@@ -333,6 +333,7 @@ export function NewWorkspaceModal() {
 													<Popover
 														open={baseBranchOpen}
 														onOpenChange={setBaseBranchOpen}
+														modal={false}
 													>
 														<PopoverTrigger asChild>
 															<Button
@@ -359,6 +360,7 @@ export function NewWorkspaceModal() {
 														<PopoverContent
 															className="w-[--radix-popover-trigger-width] p-0"
 															align="start"
+															onWheel={(e) => e.stopPropagation()}
 														>
 															<Command shouldFilter={false}>
 																<CommandInput

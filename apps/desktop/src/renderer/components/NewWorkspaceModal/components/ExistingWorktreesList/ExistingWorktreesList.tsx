@@ -215,7 +215,7 @@ export function ExistingWorktreesList({
 					<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
 						Branches
 					</div>
-					<Popover open={branchOpen} onOpenChange={setBranchOpen}>
+					<Popover open={branchOpen} onOpenChange={setBranchOpen} modal={false}>
 						<PopoverTrigger asChild>
 							<Button
 								variant="outline"
@@ -235,6 +235,7 @@ export function ExistingWorktreesList({
 						<PopoverContent
 							className="w-[--radix-popover-trigger-width] p-0"
 							align="start"
+							onWheel={(e) => e.stopPropagation()}
 						>
 							<Command shouldFilter={false}>
 								<CommandInput
