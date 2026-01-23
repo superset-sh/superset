@@ -281,3 +281,82 @@ export const tasks = sqliteTable(
 
 export type InsertTask = typeof tasks.$inferInsert;
 export type SelectTask = typeof tasks.$inferSelect;
+
+// =============================================================================
+// Cloud Workspace types
+// =============================================================================
+
+export type CloudWorkspaceStatus =
+	| "provisioning"
+	| "running"
+	| "paused"
+	| "stopped"
+	| "error";
+export type CloudProviderType = "freestyle" | "fly";
+export type CloudClientType = "desktop" | "web";
+
+/**
+ * Cloud Workspaces table - synced from cloud
+ * Represents remote VMs accessible from any device
+ */
+export const cloudWorkspaces = sqliteTable(
+	"cloud_workspaces",
+	{
+		id: text("id").primaryKey(),
+		organization_id: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		repository_id: text("repository_id").notNull(),
+		creator_id: text("creator_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		branch: text("branch").notNull(),
+		provider_type: text("provider_type").notNull().$type<CloudProviderType>(),
+		provider_vm_id: text("provider_vm_id"),
+		status: text("status").notNull().$type<CloudWorkspaceStatus>(),
+		status_message: text("status_message"),
+		auto_stop_minutes: integer("auto_stop_minutes").notNull(),
+		last_active_at: text("last_active_at"),
+		created_at: text("created_at").notNull(),
+		updated_at: text("updated_at").notNull(),
+	},
+	(table) => [
+		index("cloud_workspaces_organization_id_idx").on(table.organization_id),
+		index("cloud_workspaces_repository_id_idx").on(table.repository_id),
+		index("cloud_workspaces_creator_id_idx").on(table.creator_id),
+		index("cloud_workspaces_status_idx").on(table.status),
+	],
+);
+
+export type InsertCloudWorkspace = typeof cloudWorkspaces.$inferInsert;
+export type SelectCloudWorkspace = typeof cloudWorkspaces.$inferSelect;
+
+/**
+ * Cloud Workspace Sessions table - synced from cloud
+ * Tracks connected clients for presence and activity
+ */
+export const cloudWorkspaceSessions = sqliteTable(
+	"cloud_workspace_sessions",
+	{
+		id: text("id").primaryKey(),
+		workspace_id: text("workspace_id")
+			.notNull()
+			.references(() => cloudWorkspaces.id, { onDelete: "cascade" }),
+		user_id: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		client_type: text("client_type").notNull().$type<CloudClientType>(),
+		connected_at: text("connected_at").notNull(),
+		last_heartbeat_at: text("last_heartbeat_at").notNull(),
+	},
+	(table) => [
+		index("cloud_workspace_sessions_workspace_id_idx").on(table.workspace_id),
+		index("cloud_workspace_sessions_user_id_idx").on(table.user_id),
+	],
+);
+
+export type InsertCloudWorkspaceSession =
+	typeof cloudWorkspaceSessions.$inferInsert;
+export type SelectCloudWorkspaceSession =
+	typeof cloudWorkspaceSessions.$inferSelect;

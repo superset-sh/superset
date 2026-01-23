@@ -28,6 +28,7 @@
 		"@vercel/blob": "^2.0.0",
 		"@vercel/kv": "^3.0.0",
 		"drizzle-orm": "0.45.1",
+		"freestyle-sandboxes": "^0.1.8",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"
 	},

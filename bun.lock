@@ -541,6 +541,7 @@
         "@vercel/blob": "^2.0.0",
         "@vercel/kv": "^3.0.0",
         "drizzle-orm": "0.45.1",
+        "freestyle-sandboxes": "^0.1.8",
         "superjson": "^2.2.5",
         "zod": "^4.3.5",
       },
@@ -2922,6 +2923,8 @@
     "framer-motion": ["framer-motion@12.26.2", "", { "dependencies": { "motion-dom": "^12.26.2", "motion-utils": "^12.24.10", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-lflOQEdjquUi9sCg5Y1LrsZDlsjrHw7m0T9Yedvnk7Bnhqfkc89/Uha10J3CFhkL+TCZVCRw9eUGyM/lyYhXQA=="],
 
     "freeport-async": ["freeport-async@2.0.0", "", {}, "sha512-K7od3Uw45AJg00XUmy15+Hae2hOcgKcmN3/EF6Y7i01O0gaqiRx8sUSpsb9+BRNL8RPBrhzPsVfy8q9ADlJuWQ=="],
+
+    "freestyle-sandboxes": ["freestyle-sandboxes@0.1.8", "", {}, "sha512-Sr2MoKzPUx8mwq6/fIlHseGMS5bYMWtKPH/O+Uo1jLi1IhG6DzLna0F2m3ZcZOI5QlT3YokLwdNliiOpN/IsYA=="],
 
     "fresh": ["fresh@2.0.0", "", {}, "sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A=="],
 

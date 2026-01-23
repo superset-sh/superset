@@ -5,6 +5,7 @@ import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
 import { createCacheRouter } from "./cache";
 import { createChangesRouter } from "./changes";
+import { createCloudTerminalRouter } from "./cloud-terminal";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createHotkeysRouter } from "./hotkeys";
@@ -25,6 +26,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
 		cache: createCacheRouter(),
+		cloudTerminal: createCloudTerminalRouter(),
 		window: createWindowRouter(getWindow),
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
