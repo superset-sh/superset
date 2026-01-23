@@ -571,7 +571,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 						{/* Create Parallel Branches overlay */}
 						<motion.div
-							className="absolute inset-0 p-4 font-mono text-sm leading-relaxed"
+							className="absolute inset-0 p-3 font-mono text-[10px] leading-relaxed"
 							initial={{ opacity: 0 }}
 							animate={{
 								opacity: activeDemo === "Create Parallel Branches" ? 1 : 0,
@@ -583,18 +583,18 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								<span className="text-muted-foreground/60">❯</span>{" "}
 								<span className="text-cyan-400">superset new</span>
 							</div>
-							<div className="space-y-2 text-muted-foreground/70">
+							<div className="space-y-1.5 text-muted-foreground/70">
 								<div className="flex items-center gap-2">
-									<AsciiSpinner className="text-sm" />
+									<AsciiSpinner className="text-[10px]" />
 									<span>Setting up new parallel environment...</span>
 								</div>
-								<div className="ml-6 text-muted-foreground/50">
+								<div className="ml-5 text-muted-foreground/50">
 									→ Creating worktree from main
 								</div>
-								<div className="ml-6 text-muted-foreground/50">
+								<div className="ml-5 text-muted-foreground/50">
 									→ Installing dependencies
 								</div>
-								<div className="ml-6 text-muted-foreground/50">
+								<div className="ml-5 text-muted-foreground/50">
 									→ Configuring environment
 								</div>
 							</div>
@@ -743,7 +743,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 			{/* External IDE Popup - shown when "Open in Any IDE" is active */}
 			<motion.div
-				className="absolute bottom-6 right-6 w-[55%] rounded-lg overflow-hidden bg-[#1a1a1a] border border-white/20 shadow-2xl"
+				className="absolute bottom-6 right-6 w-[55%] rounded-xl overflow-hidden bg-black/50 backdrop-blur-xl border border-white/[0.1] shadow-2xl"
 				style={{ aspectRatio: "16/10" }}
 				initial={{ opacity: 0, scale: 0.9, y: 20 }}
 				animate={{
@@ -754,33 +754,33 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 				transition={{ duration: 0.3, ease: "easeOut" }}
 			>
 				{/* IDE window chrome */}
-				<div className="flex items-center justify-between px-3 py-2 bg-[#252525] border-b border-white/10">
+				<div className="flex items-center justify-between px-3 py-2 bg-white/[0.04] backdrop-blur-md border-b border-white/[0.06]">
 					<div className="flex items-center gap-1.5">
-						<div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-						<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-						<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+						<div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]/80" />
+						<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]/80" />
+						<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]/80" />
 					</div>
-					<span className="text-sm text-muted-foreground/70">External IDE</span>
+					<span className="text-sm text-muted-foreground/60">External IDE</span>
 					<div className="w-12" />
 				</div>
 
 				<div className="flex h-[calc(100%-36px)]">
 					{/* File tree */}
-					<div className="w-[110px] bg-[#1e1e1e] border-r border-white/10 p-3 text-sm">
-						<div className="flex items-center gap-2 text-muted-foreground/70 mb-2">
+					<div className="w-[110px] bg-white/[0.02] border-r border-white/[0.06] p-3 text-sm">
+						<div className="flex items-center gap-2 text-muted-foreground/60 mb-2">
 							<LuFolder className="size-4" />
 							<span>src</span>
 						</div>
 						<div className="ml-4 space-y-1.5">
-							<div className="flex items-center gap-2 text-cyan-400">
+							<div className="flex items-center gap-2 text-cyan-400/80">
 								<LuFile className="size-4" />
 								<span>index.ts</span>
 							</div>
-							<div className="flex items-center gap-2 text-muted-foreground/60">
+							<div className="flex items-center gap-2 text-muted-foreground/50">
 								<LuFile className="size-4" />
 								<span>utils.ts</span>
 							</div>
-							<div className="flex items-center gap-2 text-muted-foreground/60">
+							<div className="flex items-center gap-2 text-muted-foreground/50">
 								<LuFile className="size-4" />
 								<span>types.ts</span>
 							</div>
@@ -788,14 +788,14 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</div>
 
 					{/* Code editor */}
-					<div className="flex-1 bg-[#0d0d0d] p-4 text-sm font-mono overflow-hidden">
+					<div className="flex-1 bg-black/20 p-4 text-sm font-mono overflow-hidden">
 						<div className="space-y-1.5 leading-relaxed">
-							<div><span className="text-purple-400">import</span> {"{"} Agent {"}"} <span className="text-purple-400">from</span> <span className="text-amber-300">"ai"</span></div>
-							<div><span className="text-purple-400">import</span> {"{"} tools {"}"} <span className="text-purple-400">from</span> <span className="text-amber-300">"./utils"</span></div>
-							<div className="text-muted-foreground/30">│</div>
-							<div><span className="text-purple-400">const</span> <span className="text-cyan-400">agent</span> = <span className="text-amber-400">new</span> Agent({"{"}</div>
-							<div className="pl-4"><span className="text-foreground/70">model:</span> <span className="text-amber-300">"claude-4"</span>,</div>
-							<div className="pl-4"><span className="text-foreground/70">tools:</span> [tools.read, tools.write]</div>
+							<div><span className="text-purple-400/80">import</span> {"{"} Agent {"}"} <span className="text-purple-400/80">from</span> <span className="text-amber-300/80">"ai"</span></div>
+							<div><span className="text-purple-400/80">import</span> {"{"} tools {"}"} <span className="text-purple-400/80">from</span> <span className="text-amber-300/80">"./utils"</span></div>
+							<div className="text-muted-foreground/20">│</div>
+							<div><span className="text-purple-400/80">const</span> <span className="text-cyan-400/80">agent</span> = <span className="text-amber-400/80">new</span> Agent({"{"}</div>
+							<div className="pl-4"><span className="text-foreground/60">model:</span> <span className="text-amber-300/80">"claude-4"</span>,</div>
+							<div className="pl-4"><span className="text-foreground/60">tools:</span> [tools.read, tools.write]</div>
 							<div>{"}"})</div>
 						</div>
 					</div>
