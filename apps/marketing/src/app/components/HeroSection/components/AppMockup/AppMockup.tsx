@@ -12,6 +12,7 @@ import {
 	LuGitPullRequest,
 	LuPencil,
 	LuPlus,
+	LuTerminal,
 	LuX,
 } from "react-icons/lu";
 
@@ -312,18 +313,46 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 					{/* Workspace list */}
 					<div className="flex-1 overflow-hidden">
-						{WORKSPACES.map((ws) => (
-							<WorkspaceItem
-								key={ws.branch}
-								name={ws.name}
-								branch={ws.branch}
-								add={ws.add}
-								del={ws.del}
-								pr={ws.pr}
-								isActive={ws.isActive}
-								status={ws.status}
-							/>
-						))}
+						{/* New workspace - shown when "Create Parallel Branches" is active */}
+						<motion.div
+							className="overflow-hidden"
+							initial={{ height: 0, opacity: 0 }}
+							animate={{
+								height: activeDemo === "Create Parallel Branches" ? "auto" : 0,
+								opacity: activeDemo === "Create Parallel Branches" ? 1 : 0,
+							}}
+							transition={{ duration: 0.3, ease: "easeOut" }}
+						>
+							<div className="flex items-start gap-2 px-2 py-1 text-[10px] bg-cyan-500/10 border-l-2 border-cyan-500 relative">
+								<div className="mt-0.5 text-muted-foreground/50 relative">
+									<AsciiSpinner className="text-[10px]" />
+								</div>
+								<div className="flex-1 min-w-0">
+									<div className="flex items-center justify-between gap-1">
+										<span className="truncate text-foreground font-medium">new workspace</span>
+									</div>
+									<span className="text-muted-foreground/50 truncate text-[9px] font-mono">
+										creating...
+									</span>
+								</div>
+							</div>
+						</motion.div>
+						{WORKSPACES.map((ws) => {
+							const isFirstItem = ws.name === "use any agents";
+							const shouldHideActiveState = isFirstItem && activeDemo === "Create Parallel Branches";
+							return (
+								<WorkspaceItem
+									key={ws.branch}
+									name={ws.name}
+									branch={ws.branch}
+									add={ws.add}
+									del={ws.del}
+									pr={ws.pr}
+									isActive={shouldHideActiveState ? false : ws.isActive}
+									status={shouldHideActiveState ? undefined : ws.status}
+								/>
+							);
+						})}
 					</div>
 
 					{/* Ports section */}
@@ -365,8 +394,17 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					<div className="flex items-center gap-0.5 px-2 py-1 bg-[#141414] border-b border-white/10">
 						{/* Claude tab - always visible, active */}
 						<div className="flex items-center gap-1.5 px-3 py-1 bg-[#1e1e1e] rounded-t text-[10px] text-foreground/90 border-b-2 border-cyan-500">
-							<Image src="/app-icons/claude.svg" alt="Claude" width={12} height={12} />
-							<span>claude</span>
+							{activeDemo === "Create Parallel Branches" ? (
+								<>
+									<LuTerminal className="size-3 text-muted-foreground/70" />
+									<span>setup</span>
+								</>
+							) : (
+								<>
+									<Image src="/app-icons/claude.svg" alt="Claude" width={12} height={12} />
+									<span>claude</span>
+								</>
+							)}
 							<LuX className="size-3 text-muted-foreground/50 hover:text-muted-foreground" />
 						</div>
 						{/* Other agent tabs - shown when "Use Any Agents" is active */}
@@ -427,7 +465,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</div>
 
 					{/* Terminal content */}
-					<div className="flex-1 bg-[#0a0a0a] p-3 font-mono text-[10px] leading-relaxed overflow-hidden">
+					<div className="flex-1 bg-[#0a0a0a] p-3 font-mono text-[10px] leading-relaxed overflow-hidden relative">
 						{/* Claude ASCII art header */}
 						<div className="flex items-start gap-3 mb-3">
 							<div className="text-cyan-400 leading-none whitespace-pre text-[9px]">
@@ -515,6 +553,37 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								Enter to confirm · Esc to cancel
 							</div>
 						</div>
+
+						{/* Create Parallel Branches overlay */}
+						<motion.div
+							className="absolute inset-0 bg-[#0a0a0a] p-4 font-mono text-sm leading-relaxed"
+							initial={{ opacity: 0 }}
+							animate={{
+								opacity: activeDemo === "Create Parallel Branches" ? 1 : 0,
+							}}
+							transition={{ duration: 0.3, ease: "easeOut" }}
+							style={{ pointerEvents: activeDemo === "Create Parallel Branches" ? "auto" : "none" }}
+						>
+							<div className="text-foreground mb-3">
+								<span className="text-muted-foreground/60">❯</span>{" "}
+								<span className="text-cyan-400">superset new</span>
+							</div>
+							<div className="space-y-2 text-muted-foreground/70">
+								<div className="flex items-center gap-2">
+									<AsciiSpinner className="text-sm" />
+									<span>Setting up new parallel environment...</span>
+								</div>
+								<div className="ml-6 text-muted-foreground/50">
+									→ Creating worktree from main
+								</div>
+								<div className="ml-6 text-muted-foreground/50">
+									→ Installing dependencies
+								</div>
+								<div className="ml-6 text-muted-foreground/50">
+									→ Configuring environment
+								</div>
+							</div>
+						</motion.div>
 					</div>
 				</div>
 
@@ -545,7 +614,14 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</div>
 
 					{/* File changes list */}
-					<div className="flex-1 overflow-hidden">
+					<motion.div
+						className="flex-1 overflow-hidden"
+						initial={{ opacity: 1 }}
+						animate={{
+							opacity: activeDemo === "Create Parallel Branches" ? 0 : 1,
+						}}
+						transition={{ duration: 0.3, ease: "easeOut" }}
+					>
 						{FILE_CHANGES.map((file, i) => (
 							<FileChangeItem
 								key={`${file.path}-${i}`}
@@ -556,7 +632,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								type={file.type}
 							/>
 						))}
-					</div>
+					</motion.div>
 				</div>
 			</div>
 
