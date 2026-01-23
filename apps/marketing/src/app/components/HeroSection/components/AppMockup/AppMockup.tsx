@@ -409,11 +409,13 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						</div>
 						{/* Other agent tabs - shown when "Use Any Agents" is active */}
 						<motion.div
-							className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
-							initial={{ opacity: 0, width: 0 }}
+							className="flex items-center gap-1.5 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							initial={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
 							animate={{
 								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
 								width: activeDemo === "Use Any Agents" ? "auto" : 0,
+								paddingLeft: activeDemo === "Use Any Agents" ? 12 : 0,
+								paddingRight: activeDemo === "Use Any Agents" ? 12 : 0,
 							}}
 							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.1 : 0 }}
 						>
@@ -422,11 +424,13 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							<LuX className="size-3 text-muted-foreground/30" />
 						</motion.div>
 						<motion.div
-							className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
-							initial={{ opacity: 0, width: 0 }}
+							className="flex items-center gap-1.5 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							initial={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
 							animate={{
 								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
 								width: activeDemo === "Use Any Agents" ? "auto" : 0,
+								paddingLeft: activeDemo === "Use Any Agents" ? 12 : 0,
+								paddingRight: activeDemo === "Use Any Agents" ? 12 : 0,
 							}}
 							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.25 : 0 }}
 						>
@@ -435,11 +439,13 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							<LuX className="size-3 text-muted-foreground/30" />
 						</motion.div>
 						<motion.div
-							className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
-							initial={{ opacity: 0, width: 0 }}
+							className="flex items-center gap-1.5 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							initial={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
 							animate={{
 								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
 								width: activeDemo === "Use Any Agents" ? "auto" : 0,
+								paddingLeft: activeDemo === "Use Any Agents" ? 12 : 0,
+								paddingRight: activeDemo === "Use Any Agents" ? 12 : 0,
 							}}
 							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.4 : 0 }}
 						>
