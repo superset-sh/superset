@@ -28,6 +28,8 @@ export interface WorkspaceInitParams {
 	mainRepoPath: string;
 	/** If true, use an existing branch instead of creating a new one */
 	useExistingBranch?: boolean;
+	/** If true, skip worktree creation (worktree already exists on disk) */
+	skipWorktreeCreation?: boolean;
 }
 
 /**
@@ -46,6 +48,7 @@ export async function initializeWorkspaceWorktree({
 	baseBranchWasExplicit,
 	mainRepoPath,
 	useExistingBranch,
+	skipWorktreeCreation,
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
 
@@ -64,17 +67,22 @@ export async function initializeWorkspaceWorktree({
 
 		// Fast path for existing branch - skip all base branch verification
 		if (useExistingBranch) {
-			manager.updateProgress(
-				workspaceId,
-				"creating_worktree",
-				"Creating git worktree...",
-			);
-			await createWorktreeFromExistingBranch({
-				mainRepoPath,
-				branch,
-				worktreePath,
-			});
-			manager.markWorktreeCreated(workspaceId);
+			if (skipWorktreeCreation) {
+				// Worktree already created (e.g., from PR checkout)
+				manager.markWorktreeCreated(workspaceId);
+			} else {
+				manager.updateProgress(
+					workspaceId,
+					"creating_worktree",
+					"Creating git worktree...",
+				);
+				await createWorktreeFromExistingBranch({
+					mainRepoPath,
+					branch,
+					worktreePath,
+				});
+				manager.markWorktreeCreated(workspaceId);
+			}
 
 			if (manager.isCancellationRequested(workspaceId)) {
 				try {

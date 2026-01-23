@@ -576,6 +576,23 @@ export const createCreateProcedures = () => {
 					is_fork: prInfo.isCrossRepository,
 				});
 
+				// Start workspace initialization (same as regular create flow)
+				workspaceInitManager.startJob(workspace.id, input.projectId);
+
+				// Initialize workspace in background (worktree already created, just need setup)
+				initializeWorkspaceWorktree({
+					workspaceId: workspace.id,
+					projectId: input.projectId,
+					worktreeId: worktree.id,
+					worktreePath,
+					branch: localBranchName,
+					baseBranch: defaultBranch,
+					baseBranchWasExplicit: false,
+					mainRepoPath: project.mainRepoPath,
+					useExistingBranch: true, // PR branch already exists
+					skipWorktreeCreation: true, // Worktree already created by createWorktreeFromPr
+				});
+
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 				return {
