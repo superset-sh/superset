@@ -16,12 +16,11 @@ export function MemberAddedEmail({
 	addedByName = "John Smith",
 	dashboardLink = "https://app.superset.sh",
 }: MemberAddedEmailProps) {
-	const roleDisplay = role === "member" ? "Member" : role === "admin" ? "Admin" : "Owner";
+	const roleDisplay =
+		role === "member" ? "Member" : role === "admin" ? "Admin" : "Owner";
 
 	return (
-		<StandardLayout
-			preview={`You've been added to ${organizationName}`}
-		>
+		<StandardLayout preview={`You've been added to ${organizationName}`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				You're now part of <strong>{organizationName}</strong>
 			</Heading>
@@ -36,8 +35,8 @@ export function MemberAddedEmail({
 			</Text>
 
 			<Text className="text-base leading-[26px] text-foreground mb-4">
-				You now have access to the team's workspaces, tasks, and workflows.
-				Head over to your dashboard to get started.
+				You now have access to the team's workspaces, tasks, and workflows. Head
+				over to your dashboard to get started.
 			</Text>
 
 			<Section className="mt-6 mb-6">

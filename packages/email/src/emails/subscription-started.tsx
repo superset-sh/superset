@@ -21,9 +21,7 @@ export function SubscriptionStartedEmail({
 	const intervalText = billingInterval === "monthly" ? "month" : "year";
 
 	return (
-		<StandardLayout
-			preview={`Welcome to Superset ${planName}!`}
-		>
+		<StandardLayout preview={`Welcome to Superset ${planName}!`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				Welcome to <strong>Superset {planName}</strong>! 🎉
 			</Heading>

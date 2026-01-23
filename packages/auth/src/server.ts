@@ -309,10 +309,12 @@ export const auth = betterAuth({
 
 					// Send billing update email to owners
 					const owners = await getOrganizationOwners(organization.id);
-					const pricePerSeat =
-						stripeSub.items.data[0]?.price?.unit_amount ?? 0;
+					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
 					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
-					const newMonthlyTotal = formatPrice(pricePerSeat * quantity, currency);
+					const newMonthlyTotal = formatPrice(
+						pricePerSeat * quantity,
+						currency,
+					);
 
 					await Promise.all(
 						owners.map((owner) =>
@@ -380,10 +382,12 @@ export const auth = betterAuth({
 
 					// Send billing update email to owners
 					const owners = await getOrganizationOwners(organization.id);
-					const pricePerSeat =
-						stripeSub.items.data[0]?.price?.unit_amount ?? 0;
+					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
 					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
-					const newMonthlyTotal = formatPrice(pricePerSeat * quantity, currency);
+					const newMonthlyTotal = formatPrice(
+						pricePerSeat * quantity,
+						currency,
+					);
 
 					await Promise.all(
 						owners.map((owner) =>
@@ -527,8 +531,7 @@ export const auth = betterAuth({
 					// Determine billing interval
 					const interval = stripeSubscription.items.data[0]?.price?.recurring
 						?.interval as "month" | "year" | undefined;
-					const billingInterval =
-						interval === "year" ? "yearly" : "monthly";
+					const billingInterval = interval === "year" ? "yearly" : "monthly";
 
 					// Get price info
 					const pricePerSeat =
@@ -556,10 +559,7 @@ export const auth = betterAuth({
 					);
 				},
 
-				onSubscriptionCancel: async ({
-					subscription,
-					stripeSubscription,
-				}) => {
+				onSubscriptionCancel: async ({ subscription, stripeSubscription }) => {
 					// Get organization info
 					const org = await db.query.organizations.findFirst({
 						where: eq(authSchema.organizations.id, subscription.referenceId),
@@ -580,12 +580,11 @@ export const auth = betterAuth({
 						: new Date();
 
 					// Create billing portal session for resubscribe link
-					const portalSession = await stripeClient.billingPortal.sessions.create(
-						{
+					const portalSession =
+						await stripeClient.billingPortal.sessions.create({
 							customer: org.stripeCustomerId,
 							return_url: env.NEXT_PUBLIC_WEB_URL,
-						},
-					);
+						});
 
 					await Promise.all(
 						owners.map((owner) =>
@@ -636,12 +635,11 @@ export const auth = betterAuth({
 						const amount = formatPrice(invoice.amount_due, invoice.currency);
 
 						// Create billing portal session for updating payment method
-						const portalSession = await stripeClient.billingPortal.sessions.create(
-							{
+						const portalSession =
+							await stripeClient.billingPortal.sessions.create({
 								customer: org.stripeCustomerId,
 								return_url: env.NEXT_PUBLIC_WEB_URL,
-							},
-						);
+							});
 
 						await Promise.all(
 							owners.map((owner) =>

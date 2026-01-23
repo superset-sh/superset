@@ -13,9 +13,7 @@ export function MemberRemovedEmail({
 	removedByName = "John Smith",
 }: MemberRemovedEmailProps) {
 	return (
-		<StandardLayout
-			preview={`You've been removed from ${organizationName}`}
-		>
+		<StandardLayout preview={`You've been removed from ${organizationName}`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				You've been removed from <strong>{organizationName}</strong>
 			</Heading>

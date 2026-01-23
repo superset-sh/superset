@@ -19,9 +19,7 @@ export function PaymentFailedEmail({
 	billingPortalUrl,
 }: PaymentFailedEmailProps) {
 	return (
-		<StandardLayout
-			preview={`Payment failed for ${organizationName}`}
-		>
+		<StandardLayout preview={`Payment failed for ${organizationName}`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				Payment failed
 			</Heading>

@@ -33,7 +33,8 @@ export function MemberRemovedBillingEmail({
 			</Text>
 
 			<Text className="text-base leading-[26px] text-foreground mb-4">
-				{removedByName} removed a member from <strong>{organizationName}</strong>:
+				{removedByName} removed a member from{" "}
+				<strong>{organizationName}</strong>:
 			</Text>
 
 			<Section className="bg-[#f9fafb] rounded-lg p-4 mb-4">
