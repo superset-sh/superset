@@ -18,10 +18,14 @@ import {
 	touchWorkspace,
 } from "../utils/db-helpers";
 import {
+	createWorktreeFromPr,
+	fetchPrBranch,
 	generateBranchName,
 	getBranchWorktreePath,
 	getCurrentBranch,
+	getPrInfo,
 	listBranches,
+	parsePrUrl,
 	safeCheckoutBranch,
 	worktreeExists,
 } from "../utils/git";
@@ -367,6 +371,138 @@ export const createCreateProcedures = () => {
 					initialCommands: setupConfig?.setup || null,
 					worktreePath: worktree.path,
 					projectId: project.id,
+				};
+			}),
+
+		createFromPr: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					prUrl: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				// Parse the PR URL
+				const parsed = parsePrUrl(input.prUrl);
+				if (!parsed) {
+					throw new Error(
+						"Invalid PR URL. Expected format: https://github.com/owner/repo/pull/123",
+					);
+				}
+
+				// Get PR info from GitHub
+				const prInfo = await getPrInfo({
+					repoPath: project.mainRepoPath,
+					prNumber: parsed.number,
+				});
+
+				// Determine the local branch name
+				let localBranchName: string;
+				if (prInfo.isCrossRepository) {
+					// For fork PRs, prefix with the fork owner to avoid conflicts
+					const forkOwner = prInfo.headRepositoryOwner.login.toLowerCase();
+					localBranchName = `${forkOwner}/${prInfo.headRefName}`;
+				} else {
+					localBranchName = prInfo.headRefName;
+				}
+
+				// Check if branch is already checked out in a worktree
+				const existingWorktreePath = await getBranchWorktreePath({
+					mainRepoPath: project.mainRepoPath,
+					branch: localBranchName,
+				});
+				if (existingWorktreePath) {
+					throw new Error(
+						`This PR's branch is already checked out in a worktree at: ${existingWorktreePath}`,
+					);
+				}
+
+				// Fetch the PR branch (handles forks)
+				await fetchPrBranch({
+					repoPath: project.mainRepoPath,
+					prInfo,
+				});
+
+				const worktreePath = join(
+					homedir(),
+					SUPERSET_DIR_NAME,
+					WORKTREES_DIR_NAME,
+					project.name,
+					localBranchName,
+				);
+
+				// Create the worktree
+				await createWorktreeFromPr({
+					mainRepoPath: project.mainRepoPath,
+					worktreePath,
+					prInfo,
+					localBranchName,
+				});
+
+				// Get default branch for base branch reference
+				const defaultBranch = project.defaultBranch || "main";
+
+				// Insert worktree record
+				const worktree = localDb
+					.insert(worktrees)
+					.values({
+						projectId: input.projectId,
+						path: worktreePath,
+						branch: localBranchName,
+						baseBranch: defaultBranch,
+						gitStatus: null,
+					})
+					.returning()
+					.get();
+
+				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+
+				// Use PR title as workspace name
+				const workspaceName = prInfo.title || `PR #${prInfo.number}`;
+
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: input.projectId,
+						worktreeId: worktree.id,
+						type: "worktree",
+						branch: localBranchName,
+						name: workspaceName,
+						tabOrder: maxTabOrder + 1,
+					})
+					.returning()
+					.get();
+
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
+
+				track("workspace_created", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					branch: localBranchName,
+					source: "pr",
+					pr_number: prInfo.number,
+					is_fork: prInfo.isCrossRepository,
+				});
+
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+				return {
+					workspace,
+					initialCommands: setupConfig?.setup || null,
+					worktreePath,
+					projectId: project.id,
+					prNumber: prInfo.number,
+					prTitle: prInfo.title,
 				};
 			}),
 	});

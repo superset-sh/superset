@@ -6,13 +6,14 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
+import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useMemo, useState } from "react";
-import { GoGitBranch } from "react-icons/go";
+import { GoGitBranch, GoGitPullRequest } from "react-icons/go";
 import { HiChevronUpDown } from "react-icons/hi2";
-import { LuGitBranch } from "react-icons/lu";
+import { LuGitBranch, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import {
@@ -35,9 +36,11 @@ export function ExistingWorktreesList({
 		electronTrpc.projects.getBranches.useQuery({ projectId });
 	const openWorktree = useOpenWorktree();
 	const createWorkspace = useCreateWorkspace();
+	const createFromPr = electronTrpc.workspaces.createFromPr.useMutation();
 
 	const [branchOpen, setBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
+	const [prUrl, setPrUrl] = useState("");
 
 	const closedWorktrees = worktrees
 		.filter((wt) => !wt.hasActiveWorkspace)
@@ -122,8 +125,40 @@ export function ExistingWorktreesList({
 		}
 	};
 
+	const handleCreateFromPr = async () => {
+		if (!prUrl.trim()) return;
+
+		try {
+			const result = await createFromPr.mutateAsync({
+				projectId,
+				prUrl: prUrl.trim(),
+			});
+
+			onOpenSuccess();
+			setPrUrl("");
+
+			toast.success(`Opened PR #${result.prNumber}`, {
+				description: result.prTitle,
+			});
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to open PR",
+			);
+		}
+	};
+
+	const handlePrKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter" && !createFromPr.isPending) {
+			e.preventDefault();
+			handleCreateFromPr();
+		}
+	};
+
 	const isLoading = isWorktreesLoading || isBranchesLoading;
-	const isPending = openWorktree.isPending || createWorkspace.isPending;
+	const isPending =
+		openWorktree.isPending ||
+		createWorkspace.isPending ||
+		createFromPr.isPending;
 
 	if (isLoading) {
 		return (
@@ -136,21 +171,45 @@ export function ExistingWorktreesList({
 	const hasWorktrees = closedWorktrees.length > 0 || openWorktrees.length > 0;
 	const hasBranches = branchesWithoutWorktrees.length > 0;
 
-	if (!hasWorktrees && !hasBranches) {
-		return (
-			<div className="py-6 text-center text-xs text-muted-foreground">
-				No existing worktrees or branches.
-				<br />
-				Create a new branch to get started.
-			</div>
-		);
-	}
-
 	return (
-		<div className="space-y-3 max-h-[300px] overflow-y-auto">
+		<div className="space-y-3 max-h-[350px] overflow-y-auto">
+			{/* PR URL Section */}
+			<div className="space-y-1.5">
+				<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
+					Pull Request
+				</div>
+				<div className="flex gap-2">
+					<div className="relative flex-1">
+						<GoGitPullRequest className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+						<Input
+							className="h-8 text-sm pl-8 pr-3"
+							placeholder="Paste PR URL..."
+							value={prUrl}
+							onChange={(e) => setPrUrl(e.target.value)}
+							onKeyDown={handlePrKeyDown}
+							disabled={createFromPr.isPending}
+						/>
+					</div>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-8 px-3"
+						onClick={handleCreateFromPr}
+						disabled={!prUrl.trim() || createFromPr.isPending}
+					>
+						{createFromPr.isPending ? (
+							<LuLoader className="size-3.5 animate-spin" />
+						) : (
+							"Open"
+						)}
+					</Button>
+				</div>
+			</div>
+
 			{/* Worktrees Section */}
 			{hasWorktrees && (
 				<div className="space-y-1">
+					<div className="border-t border-border pt-2" />
 					<div className="flex items-center justify-between">
 						<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
 							Worktrees
@@ -211,7 +270,7 @@ export function ExistingWorktreesList({
 			{/* Branches Section */}
 			{hasBranches && (
 				<div className="space-y-1.5">
-					{hasWorktrees && <div className="border-t border-border pt-2 mt-2" />}
+					<div className="border-t border-border pt-2" />
 					<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
 						Branches
 					</div>
@@ -276,6 +335,15 @@ export function ExistingWorktreesList({
 							</Command>
 						</PopoverContent>
 					</Popover>
+				</div>
+			)}
+
+			{/* Empty state when no worktrees or branches */}
+			{!hasWorktrees && !hasBranches && (
+				<div className="py-4 text-center text-xs text-muted-foreground">
+					No existing worktrees or branches.
+					<br />
+					Paste a PR URL above or create a new branch.
 				</div>
 			)}
 		</div>

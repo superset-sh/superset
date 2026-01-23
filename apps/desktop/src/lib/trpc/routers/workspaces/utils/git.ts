@@ -1243,3 +1243,270 @@ export async function safeCheckoutBranch(
 		);
 	}
 }
+
+/**
+ * PR info returned from GitHub CLI
+ */
+export interface PullRequestInfo {
+	number: number;
+	title: string;
+	headRefName: string;
+	headRepository: {
+		owner: string;
+		name: string;
+	};
+	headRepositoryOwner: {
+		login: string;
+	};
+	isCrossRepository: boolean;
+}
+
+/**
+ * Parses a GitHub PR URL to extract owner, repo, and PR number.
+ * Supports formats:
+ * - https://github.com/owner/repo/pull/123
+ * - https://github.com/owner/repo/pull/123/
+ * - github.com/owner/repo/pull/123
+ */
+export function parsePrUrl(url: string): {
+	owner: string;
+	repo: string;
+	number: number;
+} | null {
+	// Normalize URL - add https:// if missing
+	let normalizedUrl = url.trim();
+	if (!normalizedUrl.startsWith("http")) {
+		normalizedUrl = `https://${normalizedUrl}`;
+	}
+
+	try {
+		const urlObj = new URL(normalizedUrl);
+		if (!urlObj.hostname.includes("github.com")) {
+			return null;
+		}
+
+		// Match /owner/repo/pull/number pattern
+		const match = urlObj.pathname.match(/^\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
+		if (!match) {
+			return null;
+		}
+
+		return {
+			owner: match[1],
+			repo: match[2],
+			number: Number.parseInt(match[3], 10),
+		};
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Fetches PR information using the GitHub CLI.
+ * @param repoPath - Path to the repository (used to resolve the repo context)
+ * @param prNumber - The PR number to fetch
+ * @returns PR info or throws if not found/error
+ */
+export async function getPrInfo({
+	repoPath,
+	prNumber,
+}: {
+	repoPath: string;
+	prNumber: number;
+}): Promise<PullRequestInfo> {
+	const env = await getGitEnv();
+
+	try {
+		const { stdout } = await execFileAsync(
+			"gh",
+			[
+				"pr",
+				"view",
+				String(prNumber),
+				"--json",
+				"number,title,headRefName,headRepository,headRepositoryOwner,isCrossRepository",
+			],
+			{ cwd: repoPath, env, timeout: 30_000 },
+		);
+
+		return JSON.parse(stdout) as PullRequestInfo;
+	} catch (error) {
+		if (isExecFileException(error)) {
+			if (error.code === "ENOENT") {
+				throw new Error(
+					"GitHub CLI (gh) is not installed. Please install it from https://cli.github.com/",
+				);
+			}
+			const stderr = error.stderr || error.message || "";
+			if (stderr.includes("not logged in")) {
+				throw new Error(
+					"Not logged in to GitHub CLI. Please run 'gh auth login' first.",
+				);
+			}
+			if (
+				stderr.includes("Could not resolve") ||
+				stderr.includes("not found")
+			) {
+				throw new Error(`PR #${prNumber} not found`);
+			}
+		}
+		throw new Error(
+			`Failed to fetch PR info: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
+/**
+ * Fetches a PR branch into the repository, handling cross-repository (fork) PRs.
+ * For fork PRs, adds the fork as a remote and fetches from there.
+ * @returns The local branch name to use for the worktree
+ */
+export async function fetchPrBranch({
+	repoPath,
+	prInfo,
+}: {
+	repoPath: string;
+	prInfo: PullRequestInfo;
+}): Promise<string> {
+	const git = simpleGit(repoPath);
+	const env = await getGitEnv();
+
+	if (prInfo.isCrossRepository) {
+		// PR is from a fork - add the fork as a remote and fetch
+		const forkOwner = prInfo.headRepositoryOwner.login;
+		const remoteName = forkOwner.toLowerCase();
+		const forkRepo = prInfo.headRepository.name;
+		const headBranch = prInfo.headRefName;
+
+		// Check if remote already exists
+		const remotes = await git.getRemotes();
+		const remoteExists = remotes.some((r) => r.name === remoteName);
+
+		if (!remoteExists) {
+			// Add the fork as a remote
+			const forkUrl = `https://github.com/${forkOwner}/${forkRepo}.git`;
+			await git.addRemote(remoteName, forkUrl);
+			console.log(`[git] Added remote ${remoteName} -> ${forkUrl}`);
+		}
+
+		// Fetch the specific branch from the fork
+		await execFileAsync(
+			"git",
+			["-C", repoPath, "fetch", remoteName, headBranch],
+			{ env, timeout: 120_000 },
+		);
+
+		// Return a namespaced branch name to avoid conflicts
+		// e.g., "fork-owner/feature-branch"
+		return `${remoteName}/${headBranch}`;
+	}
+
+	// PR is from the same repo - just fetch origin
+	await execFileAsync(
+		"git",
+		["-C", repoPath, "fetch", "origin", prInfo.headRefName],
+		{ env, timeout: 120_000 },
+	);
+
+	return prInfo.headRefName;
+}
+
+/**
+ * Creates a worktree from a PR.
+ * Handles fetching the PR branch (including from forks) and creating the worktree.
+ */
+export async function createWorktreeFromPr({
+	mainRepoPath,
+	worktreePath,
+	prInfo,
+	localBranchName,
+}: {
+	mainRepoPath: string;
+	worktreePath: string;
+	prInfo: PullRequestInfo;
+	localBranchName: string;
+}): Promise<void> {
+	const env = await getGitEnv();
+
+	try {
+		const parentDir = join(worktreePath, "..");
+		await mkdir(parentDir, { recursive: true });
+
+		if (prInfo.isCrossRepository) {
+			// For fork PRs, the branch is on the fork remote
+			const forkOwner = prInfo.headRepositoryOwner.login.toLowerCase();
+			const remoteBranch = `${forkOwner}/${prInfo.headRefName}`;
+
+			// Create worktree with a new local branch tracking the fork's branch
+			await execFileAsync(
+				"git",
+				[
+					"-C",
+					mainRepoPath,
+					"worktree",
+					"add",
+					"-b",
+					localBranchName,
+					worktreePath,
+					remoteBranch,
+				],
+				{ env, timeout: 120_000 },
+			);
+		} else {
+			// For same-repo PRs, check if branch exists locally
+			const git = simpleGit(mainRepoPath);
+			const localBranches = await git.branchLocal();
+
+			if (localBranches.all.includes(prInfo.headRefName)) {
+				// Branch exists locally - just checkout
+				await execFileAsync(
+					"git",
+					[
+						"-C",
+						mainRepoPath,
+						"worktree",
+						"add",
+						worktreePath,
+						prInfo.headRefName,
+					],
+					{ env, timeout: 120_000 },
+				);
+			} else {
+				// Create local branch tracking remote
+				await execFileAsync(
+					"git",
+					[
+						"-C",
+						mainRepoPath,
+						"worktree",
+						"add",
+						"--track",
+						"-b",
+						prInfo.headRefName,
+						worktreePath,
+						`origin/${prInfo.headRefName}`,
+					],
+					{ env, timeout: 120_000 },
+				);
+			}
+		}
+
+		console.log(
+			`[git] Created worktree at ${worktreePath} for PR #${prInfo.number}`,
+		);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		const lowerError = errorMessage.toLowerCase();
+
+		if (
+			lowerError.includes("already checked out") ||
+			lowerError.includes("is already used by worktree")
+		) {
+			throw new Error(
+				`This PR's branch is already checked out in another worktree.`,
+			);
+		}
+
+		throw new Error(`Failed to create worktree from PR: ${errorMessage}`);
+	}
+}
