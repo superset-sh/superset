@@ -9,11 +9,9 @@ import {
 	LuFilePlus,
 	LuFolder,
 	LuFolderGit2,
-	LuGitBranch,
 	LuGitPullRequest,
 	LuPencil,
 	LuPlus,
-	LuRefreshCw,
 	LuX,
 } from "react-icons/lu";
 
@@ -282,20 +280,8 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
 					<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
 				</div>
-				<div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-					<span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 flex items-center gap-1">
-						<LuGitBranch className="size-3" />
-						/cloud-ws
-					</span>
-					<span>Open</span>
-					<LuChevronDown className="size-3 text-muted-foreground/50" />
-				</div>
-				<div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-					<span>Base:</span>
-					<span className="text-foreground">main</span>
-					<span className="text-muted-foreground/50">(default)</span>
-					<LuChevronDown className="size-3 text-muted-foreground/50" />
-				</div>
+				<span className="text-[11px] text-muted-foreground/70">superset</span>
+				<div className="w-12" />
 			</div>
 
 			<div className="flex h-[calc(100%-36px)]">
@@ -371,16 +357,6 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						))}
 					</div>
 
-					{/* Add repository */}
-					<div className="px-2 py-2 border-t border-white/10">
-						<button
-							type="button"
-							className="flex items-center gap-2 text-[10px] text-muted-foreground/50 cursor-pointer hover:text-muted-foreground w-full"
-						>
-							<LuPlus className="size-3" />
-							<span>Add repository</span>
-						</button>
-					</div>
 				</div>
 
 				{/* Main content area */}
@@ -544,13 +520,9 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 				{/* Right sidebar */}
 				<div className="w-[200px] bg-[#111111] border-l border-white/10 flex flex-col shrink-0">
-					{/* Header icons */}
+					{/* Header */}
 					<div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-						<div className="flex items-center gap-2 text-muted-foreground/50 text-[10px]">
-							<LuFolder className="size-3.5" />
-							<LuGitBranch className="size-3.5" />
-							<LuRefreshCw className="size-3.5" />
-						</div>
+						<span className="text-[10px] text-foreground/80">Review Changes</span>
 						<div className="flex items-center gap-1 text-[10px]">
 							<LuGitPullRequest className="size-3.5 text-cyan-400" />
 							<span className="text-muted-foreground/70">#827</span>
