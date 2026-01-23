@@ -192,7 +192,6 @@ export function PlansComparison() {
 
 	const activeOrgId = session?.session?.activeOrganizationId;
 
-	// Get subscription details - this is the source of truth for plan status
 	const { data: subscriptionData, refetch: refetchSubscription } = useQuery({
 		queryKey: ["subscription", activeOrgId],
 		queryFn: async () => {
@@ -200,18 +199,14 @@ export function PlansComparison() {
 			const result = await authClient.subscription.list({
 				query: { referenceId: activeOrgId },
 			});
-			return result.data?.find(
-				(s) => s.status === "active" || s.status === "trialing",
-			);
+			return result.data?.find((s) => s.status === "active");
 		},
 		enabled: !!activeOrgId,
 	});
 
-	// Derive plan from subscription data (not session, which can be stale)
 	const currentPlan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
 	const cancelAt = subscriptionData?.cancelAt;
 
-	// Get member count from Electric
 	const { data: membersData } = useLiveQuery(
 		(q) =>
 			q
@@ -387,10 +382,8 @@ export function PlansComparison() {
 									const isDowngrade =
 										plan.id === "free" && currentPlan !== "free";
 
-									// Determine actions based on current state
 									let planActions: typeof plan.actions;
 									if (isCurrent && cancelAt) {
-										// Pro plan with pending cancellation - show restore
 										planActions = [
 											{
 												label: isRestoring ? "Restoring..." : "Restore plan",
@@ -399,7 +392,6 @@ export function PlansComparison() {
 											},
 										];
 									} else if (isCurrent) {
-										// Current plan without cancellation
 										planActions = [
 											{
 												label: "Current plan",
@@ -408,7 +400,6 @@ export function PlansComparison() {
 											},
 										];
 									} else if (isDowngrade && cancelAt) {
-										// Free plan when Pro is already canceling
 										planActions = [
 											{
 												label: `Starts ${cancelAt ? format(new Date(cancelAt), "MMMM d, yyyy") : ""}`,
@@ -417,7 +408,6 @@ export function PlansComparison() {
 											},
 										];
 									} else if (isDowngrade) {
-										// Free plan when on Pro (can switch)
 										planActions = [
 											{
 												label: isCanceling

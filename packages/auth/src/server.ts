@@ -179,10 +179,6 @@ export const auth = betterAuth({
 						.update(authSchema.organizations)
 						.set({ stripeCustomerId: customer.id })
 						.where(eq(authSchema.organizations.id, organization.id));
-
-					console.log(
-						`[stripe] Created customer ${customer.id} for org ${organization.id}`,
-					);
 				},
 
 				beforeDeleteOrganization: async ({ organization }) => {
@@ -194,9 +190,6 @@ export const auth = betterAuth({
 					});
 					for (const sub of subs.data) {
 						await stripeClient.subscriptions.cancel(sub.id);
-						console.log(
-							`[stripe] Canceled subscription ${sub.id} for deleted org ${organization.id}`,
-						);
 					}
 				},
 
@@ -262,9 +255,6 @@ export const auth = betterAuth({
 								proration_behavior: "create_prorations",
 							},
 						);
-						console.log(
-							`[stripe] Updated subscription ${subscription.stripeSubscriptionId} quantity to ${quantity}`,
-						);
 					}
 				},
 
@@ -297,9 +287,6 @@ export const auth = betterAuth({
 								items: [{ id: itemId, quantity }],
 								proration_behavior: "create_prorations",
 							},
-						);
-						console.log(
-							`[stripe] Updated subscription ${subscription.stripeSubscriptionId} quantity to ${quantity}`,
 						);
 					}
 				},
@@ -407,42 +394,6 @@ export const auth = betterAuth({
 						},
 					};
 				},
-
-				onSubscriptionComplete: async ({ subscription, plan }) => {
-					console.log(
-						`[stripe] Subscription created: ${subscription.id} for org ${subscription.referenceId}, plan: ${plan?.name}`,
-					);
-				},
-
-				onSubscriptionUpdate: async ({ subscription }) => {
-					console.log(
-						`[stripe] Subscription updated: ${subscription.id} for org ${subscription.referenceId}, cancelAtPeriodEnd: ${subscription.cancelAtPeriodEnd}`,
-					);
-				},
-
-				onSubscriptionCancel: async ({ subscription }) => {
-					console.log(
-						`[stripe] Subscription canceled: ${subscription.id} for org ${subscription.referenceId}`,
-					);
-				},
-			},
-
-			onEvent: async (event) => {
-				console.log(`[stripe] Webhook event received: ${event.type}`);
-				switch (event.type) {
-					case "customer.subscription.updated": {
-						const sub = event.data.object as Stripe.Subscription;
-						console.log(
-							`[stripe] Raw Stripe event - subscription: ${sub.id}, cancel_at_period_end: ${sub.cancel_at_period_end}, status: ${sub.status}`,
-						);
-						break;
-					}
-					case "invoice.payment_failed":
-						console.error(
-							`[stripe] Payment failed for invoice: ${event.data.object.id}`,
-						);
-						break;
-				}
 			},
 		}),
 		acceptInvitationEndpoint,

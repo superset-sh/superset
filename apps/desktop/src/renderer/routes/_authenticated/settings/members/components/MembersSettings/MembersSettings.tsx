@@ -16,6 +16,7 @@ import {
 } from "@superset/ui/table";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
@@ -68,8 +69,21 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	);
 	const organization = orgData?.find((org) => org.id === activeOrganizationId);
 
-	// Sort by role priority (owner > admin > member), then by join date
-	// Cast roles to OrganizationRole since database stores them as strings
+	const { data: subscriptionData } = useQuery({
+		queryKey: ["subscription", activeOrganizationId],
+		queryFn: async () => {
+			if (!activeOrganizationId) return null;
+			const result = await authClient.subscription.list({
+				query: { referenceId: activeOrganizationId },
+			});
+			return result.data?.find((s) => s.status === "active");
+		},
+		enabled: !!activeOrganizationId,
+	});
+
+	const plan =
+		(subscriptionData?.plan as "free" | "pro" | "enterprise") ?? "free";
+
 	const members: TeamMember[] = (membersData ?? [])
 		.map((m) => ({
 			...m,
@@ -84,14 +98,8 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 
 	const currentUserId = session?.user?.id;
-	// Find current user's role from the members data we already fetched
 	const currentMember = members.find((m) => m.userId === currentUserId);
 	const currentUserRole = currentMember?.role;
-	const plan = session?.session?.plan as
-		| "free"
-		| "pro"
-		| "enterprise"
-		| undefined;
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);

@@ -33,16 +33,18 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const activeOrgId = session?.session?.activeOrganizationId;
 
 	// Get subscription details - this is the source of truth for plan status
-	const { data: subscriptionData, refetch: refetchSubscription } = useQuery({
+	const {
+		data: subscriptionData,
+		refetch: refetchSubscription,
+		isPending: isSubscriptionPending,
+	} = useQuery({
 		queryKey: ["subscription", activeOrgId],
 		queryFn: async () => {
 			if (!activeOrgId) return null;
 			const result = await authClient.subscription.list({
 				query: { referenceId: activeOrgId },
 			});
-			return result.data?.find(
-				(s) => s.status === "active" || s.status === "trialing",
-			);
+			return result.data?.find((s) => s.status === "active");
 		},
 		enabled: !!activeOrgId,
 	});
@@ -51,14 +53,14 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const plan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
 
 	// Get member count from Electric
-	const { data: membersData } = useLiveQuery(
+	const { data: membersData, isLoading: isMembersLoading } = useLiveQuery(
 		(q) =>
 			q
 				.from({ members: collections.members })
 				.select(({ members }) => ({ id: members.id })),
 		[collections],
 	);
-	const memberCount = membersData?.length ?? 1;
+	const memberCount = membersData ? membersData.length : undefined;
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
@@ -70,7 +72,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	);
 
 	const handleUpgrade = async (annual = false) => {
-		if (!activeOrgId) return;
+		if (!activeOrgId || memberCount === undefined) return;
 
 		setIsUpgrading(true);
 		try {
@@ -163,7 +165,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 
 			<div className="space-y-3">
 				{showOverview &&
-					(isPending ? (
+					(isPending || isSubscriptionPending || isMembersLoading ? (
 						<Skeleton className="h-20 w-full rounded-lg" />
 					) : (
 						<>
@@ -179,7 +181,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 							{plan === "free" && (
 								<UpgradeCard
 									onUpgrade={() => handleUpgrade(false)}
-									isUpgrading={isUpgrading}
+									isUpgrading={isUpgrading || memberCount === undefined}
 								/>
 							)}
 						</>
