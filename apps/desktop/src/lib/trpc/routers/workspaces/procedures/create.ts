@@ -61,10 +61,10 @@ export const createCreateProcedures = () => {
 						);
 					}
 
-					const existingWorktreePath = await getBranchWorktreePath(
-						project.mainRepoPath,
-						existingBranchName,
-					);
+					const existingWorktreePath = await getBranchWorktreePath({
+						mainRepoPath: project.mainRepoPath,
+						branch: existingBranchName,
+					});
 					if (existingWorktreePath) {
 						throw new Error(
 							`Branch "${existingBranchName}" is already checked out in another worktree at: ${existingWorktreePath}`,

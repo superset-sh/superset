@@ -69,11 +69,11 @@ export async function initializeWorkspaceWorktree({
 				"creating_worktree",
 				"Creating git worktree...",
 			);
-			await createWorktreeFromExistingBranch(
+			await createWorktreeFromExistingBranch({
 				mainRepoPath,
 				branch,
 				worktreePath,
-			);
+			});
 			manager.markWorktreeCreated(workspaceId);
 
 			if (manager.isCancellationRequested(workspaceId)) {

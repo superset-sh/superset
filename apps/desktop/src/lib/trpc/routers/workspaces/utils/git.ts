@@ -418,11 +418,15 @@ export async function createWorktree(
  * Creates a worktree from an existing branch (local or remote).
  * Unlike createWorktree, this does NOT create a new branch.
  */
-export async function createWorktreeFromExistingBranch(
-	mainRepoPath: string,
-	branch: string,
-	worktreePath: string,
-): Promise<void> {
+export async function createWorktreeFromExistingBranch({
+	mainRepoPath,
+	branch,
+	worktreePath,
+}: {
+	mainRepoPath: string;
+	branch: string;
+	worktreePath: string;
+}): Promise<void> {
 	const usesLfs = await repoUsesLfs(mainRepoPath);
 
 	try {
@@ -591,10 +595,13 @@ export async function worktreeExists(
  * @param branch - The branch name to check
  * @returns The worktree path if the branch is checked out, null otherwise
  */
-export async function getBranchWorktreePath(
-	mainRepoPath: string,
-	branch: string,
-): Promise<string | null> {
+export async function getBranchWorktreePath({
+	mainRepoPath,
+	branch,
+}: {
+	mainRepoPath: string;
+	branch: string;
+}): Promise<string | null> {
 	try {
 		const git = simpleGit(mainRepoPath);
 		const worktreesOutput = await git.raw(["worktree", "list", "--porcelain"]);
@@ -604,12 +611,16 @@ export async function getBranchWorktreePath(
 
 		for (const line of lines) {
 			if (line.startsWith("worktree ")) {
+				// Reset path for each new worktree entry to handle detached HEAD worktrees
+				// that don't have a "branch" line
 				currentWorktreePath = line.slice("worktree ".length);
 			} else if (line.startsWith("branch refs/heads/")) {
 				const branchName = line.slice("branch refs/heads/".length);
 				if (branchName === branch && currentWorktreePath) {
 					return currentWorktreePath;
 				}
+				// Reset after processing this worktree's branch line
+				currentWorktreePath = null;
 			}
 		}
 
