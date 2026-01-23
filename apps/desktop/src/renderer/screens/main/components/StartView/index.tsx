@@ -1,30 +1,47 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useState } from "react";
-import { HiExclamationTriangle } from "react-icons/hi2";
-import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { formatPathWithProject } from "renderer/lib/formatPath";
-import { useOpenNew } from "renderer/react-query/projects";
-import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
-import { ActionCard } from "./ActionCard";
+import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import { LuFolderOpen, LuLoader, LuX } from "react-icons/lu";
+import { useOpenFromPath, useOpenNew } from "renderer/react-query/projects";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
 import { StartTopBar } from "./StartTopBar";
 
 export function StartView() {
-	const { data: recentProjects = [] } =
-		electronTrpc.projects.getRecents.useQuery();
-	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
+	const navigate = useNavigate();
 	const openNew = useOpenNew();
-	const createBranchWorkspace = useCreateBranchWorkspace();
+	const openFromPath = useOpenFromPath();
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [initGitDialog, setInitGitDialog] = useState<{
 		isOpen: boolean;
 		selectedPath: string;
 	}>({ isOpen: false, selectedPath: "" });
-	const [showAllProjects, setShowAllProjects] = useState(false);
-	const [visibleCount, setVisibleCount] = useState(50);
+	const [isDragOver, setIsDragOver] = useState(false);
+
+	const isLoading = openNew.isPending || openFromPath.isPending;
+
+	// Auto-dismiss error after 5 seconds
+	useEffect(() => {
+		if (!error) return;
+		const timer = setTimeout(() => setError(null), 5000);
+		return () => clearTimeout(timer);
+	}, [error]);
+
+	// Clear drag state when drag ends anywhere
+	useEffect(() => {
+		const handleWindowDragEnd = () => setIsDragOver(false);
+		const handleWindowDrop = () => setIsDragOver(false);
+
+		window.addEventListener("dragend", handleWindowDragEnd);
+		window.addEventListener("drop", handleWindowDrop);
+
+		return () => {
+			window.removeEventListener("dragend", handleWindowDragEnd);
+			window.removeEventListener("drop", handleWindowDrop);
+		};
+	}, []);
 
 	const handleOpenProject = () => {
 		setError(null);
@@ -40,7 +57,6 @@ export function StartView() {
 				}
 
 				if ("needsGitInit" in result) {
-					// Show dialog to offer git initialization
 					setInitGitDialog({
 						isOpen: true,
 						selectedPath: result.selectedPath,
@@ -48,8 +64,13 @@ export function StartView() {
 					return;
 				}
 
-				// Create a main workspace on the current branch
-				createBranchWorkspace.mutate({ projectId: result.project.id });
+				// Navigate to project view
+				if ("project" in result && result.project) {
+					navigate({
+						to: "/project/$projectId",
+						params: { projectId: result.project.id },
+					});
+				}
 			},
 			onError: (err) => {
 				setError(err.message || "Failed to open project");
@@ -57,40 +78,118 @@ export function StartView() {
 		});
 	};
 
-	const handleOpenRecentProject = (projectId: string) => {
-		setError(null);
-		// Create/activate main workspace on current branch
-		createBranchWorkspace.mutate(
-			{ projectId },
-			{
-				onError: (err) => {
-					setError(err.message || "Failed to open workspace");
-				},
-			},
-		);
-	};
+	const handleDragOver = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
 
-	const hasMoreProjects = recentProjects.length > 5;
-	const displayedProjects = showAllProjects
-		? recentProjects.slice(0, visibleCount)
-		: recentProjects.slice(0, 5);
-	const hasMoreToLoad = showAllProjects && recentProjects.length > visibleCount;
-	const isLoading = openNew.isPending || createBranchWorkspace.isPending;
+		if (e.dataTransfer.types.includes("Files")) {
+			setIsDragOver(true);
+			e.dataTransfer.dropEffect = "copy";
+		}
+	}, []);
+
+	const handleDragLeave = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+
+		const rect = e.currentTarget.getBoundingClientRect();
+		const { clientX, clientY } = e;
+
+		if (
+			clientX < rect.left ||
+			clientX > rect.right ||
+			clientY < rect.top ||
+			clientY > rect.bottom
+		) {
+			setIsDragOver(false);
+		}
+	}, []);
+
+	const handleDrop = useCallback(
+		(e: React.DragEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+			setIsDragOver(false);
+
+			if (isLoading) return;
+
+			setError(null);
+
+			const files = Array.from(e.dataTransfer.files);
+			const firstFile = files[0];
+			if (!firstFile) return;
+
+			let filePath: string;
+			try {
+				filePath = window.webUtils.getPathForFile(firstFile);
+			} catch {
+				setError("Could not get path from dropped item");
+				return;
+			}
+
+			if (!filePath) {
+				setError("Could not get path from dropped item");
+				return;
+			}
+
+			openFromPath.mutate(
+				{ path: filePath },
+				{
+					onSuccess: (result) => {
+						if ("canceled" in result && result.canceled) {
+							return;
+						}
+
+						if ("error" in result) {
+							setError(result.error);
+							return;
+						}
+
+						if ("needsGitInit" in result) {
+							setInitGitDialog({
+								isOpen: true,
+								selectedPath: result.selectedPath,
+							});
+							return;
+						}
+
+						// Navigate to project view
+						if ("project" in result && result.project) {
+							navigate({
+								to: "/project/$projectId",
+								params: { projectId: result.project.id },
+							});
+						}
+					},
+					onError: (err) => {
+						setError(err.message || "Failed to open project");
+					},
+				},
+			);
+		},
+		[openFromPath, isLoading, navigate],
+	);
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
 			<StartTopBar />
-			<div className="flex flex-1 items-center justify-center">
-				<div className="flex flex-col items-center w-full max-w-3xl px-8">
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external files */}
+			<div
+				className="flex flex-1 items-center justify-center p-8"
+				onDragOver={handleDragOver}
+				onDragLeave={handleDragLeave}
+				onDrop={handleDrop}
+			>
+				<div className="flex flex-col items-center w-full max-w-md">
 					{/* Logo */}
-					<div className="min-h-[7rem] flex items-center">
+					<div className="mb-8">
 						<svg
 							width="282"
 							height="46"
 							viewBox="0 0 282 46"
 							fill="none"
 							xmlns="http://www.w3.org/2000/svg"
-							className="w-auto h-12"
+							className="w-auto h-10"
 							role="img"
 							aria-labelledby="superset-logo-title"
 						>
@@ -102,128 +201,110 @@ export function StartView() {
 						</svg>
 					</div>
 
+					{/* Drop Zone */}
+					<button
+						type="button"
+						onClick={handleOpenProject}
+						disabled={isLoading}
+						className={cn(
+							"relative w-full rounded-xl border-2 border-dashed transition-all duration-200",
+							"flex flex-col items-center justify-center gap-4 py-16 px-8",
+							"focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+							isDragOver
+								? "border-primary bg-primary/5 scale-[1.02]"
+								: "border-border hover:border-muted-foreground/50 hover:bg-accent/30",
+							isLoading && "opacity-50 cursor-not-allowed",
+						)}
+					>
+						<AnimatePresence mode="wait">
+							{isLoading ? (
+								<motion.div
+									key="loading"
+									initial={{ opacity: 0, scale: 0.9 }}
+									animate={{ opacity: 1, scale: 1 }}
+									exit={{ opacity: 0, scale: 0.9 }}
+									className="flex flex-col items-center gap-3"
+								>
+									<LuLoader className="h-8 w-8 text-muted-foreground animate-spin" />
+									<span className="text-sm text-muted-foreground">
+										Opening project...
+									</span>
+								</motion.div>
+							) : (
+								<motion.div
+									key="default"
+									initial={{ opacity: 0, scale: 0.9 }}
+									animate={{ opacity: 1, scale: 1 }}
+									exit={{ opacity: 0, scale: 0.9 }}
+									className="flex flex-col items-center gap-3"
+								>
+									<div
+										className={cn(
+											"rounded-full p-4 transition-colors",
+											isDragOver ? "bg-primary/10" : "bg-muted",
+										)}
+									>
+										<LuFolderOpen
+											className={cn(
+												"h-8 w-8 transition-colors",
+												isDragOver ? "text-primary" : "text-muted-foreground",
+											)}
+										/>
+									</div>
+									<div className="text-center">
+										<p
+											className={cn(
+												"text-sm font-medium transition-colors",
+												isDragOver ? "text-primary" : "text-foreground",
+											)}
+										>
+											{isDragOver
+												? "Drop to open project"
+												: "Drop a folder to get started"}
+										</p>
+										<p className="text-xs text-muted-foreground mt-1">
+											or click to browse
+										</p>
+									</div>
+								</motion.div>
+							)}
+						</AnimatePresence>
+					</button>
+
+					{/* Clone repo link */}
+					<button
+						type="button"
+						onClick={() => {
+							setError(null);
+							setIsCloneDialogOpen(true);
+						}}
+						disabled={isLoading}
+						className="mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+					>
+						Clone from GitHub instead
+					</button>
+
 					{/* Error Display */}
-					{error && (
-						<div className="w-full max-w-[650px] mb-4 rounded-lg border border-border bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
-							<div className="flex items-start gap-3 p-3">
-								<div className="shrink-0 mt-0.5">
-									<HiExclamationTriangle className="h-4 w-4 text-amber-500" />
-								</div>
-								<p className="flex-1 text-sm text-foreground/90">{error}</p>
+					<AnimatePresence>
+						{error && (
+							<motion.div
+								initial={{ opacity: 0, y: 10 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: 10 }}
+								className="mt-4 w-full flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive"
+							>
+								<span className="flex-1 text-xs">{error}</span>
 								<button
 									type="button"
 									onClick={() => setError(null)}
-									className="shrink-0 p-0.5 rounded hover:bg-accent/50 transition-colors"
+									className="shrink-0 rounded p-0.5 hover:bg-destructive/20 transition-colors"
 									aria-label="Dismiss error"
 								>
-									<LuX className="h-3.5 w-3.5 text-muted-foreground" />
+									<LuX className="h-3.5 w-3.5" />
 								</button>
-							</div>
-						</div>
-					)}
-
-					{/* Action Cards and Recent Projects Container */}
-					<div className="flex flex-col items-center gap-0 w-full px-2">
-						{/* Action Cards */}
-						<div className="w-full max-w-[650px] min-w-[280px] inline-flex justify-center items-center gap-4 px-2">
-							<ActionCard
-								icon={LuFolderOpen}
-								label="Open project"
-								onClick={handleOpenProject}
-								isLoading={isLoading}
-							/>
-
-							<ActionCard
-								icon={LuFolderGit}
-								label="Clone repo"
-								onClick={() => {
-									setError(null);
-									setIsCloneDialogOpen(true);
-								}}
-								isLoading={isLoading}
-							/>
-						</div>
-
-						{/* Recent Projects */}
-						{displayedProjects.length > 0 && (
-							<div className="w-full max-w-[650px]">
-								<div className="flex-1 p-1 py-4 rounded-lg flex flex-col gap-1">
-									<div className="flex justify-between items-center px-2 py-1">
-										<span className="text-muted-foreground text-xs font-normal">
-											Recent projects
-										</span>
-										{hasMoreProjects && (
-											<button
-												type="button"
-												onClick={() => {
-													setShowAllProjects(!showAllProjects);
-													if (showAllProjects) setVisibleCount(50);
-												}}
-												className="flex items-center gap-1 text-muted-foreground text-xs font-normal hover:text-foreground transition-colors"
-											>
-												{showAllProjects ? (
-													<>
-														Show less
-														<LuChevronUp className="h-3 w-3" />
-													</>
-												) : (
-													<>View all ({recentProjects.length})</>
-												)}
-											</button>
-										)}
-									</div>
-
-									<div className="max-h-64 overflow-y-auto flex flex-col gap-1">
-										{displayedProjects.map((project) => {
-											const pathInfo = formatPathWithProject(
-												project.mainRepoPath,
-												project.name,
-												homeDir,
-											);
-											return (
-												<button
-													key={project.id}
-													type="button"
-													onClick={() => handleOpenRecentProject(project.id)}
-													disabled={isLoading}
-													className="w-full flex justify-between items-center px-2 py-1 rounded-md hover:bg-accent/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-												>
-													<span className="text-foreground text-xs font-normal truncate">
-														{project.name}
-													</span>
-													<Tooltip delayDuration={500}>
-														<TooltipTrigger asChild>
-															<span className="text-muted-foreground text-xs font-normal truncate ml-4">
-																{pathInfo.display}
-															</span>
-														</TooltipTrigger>
-														<TooltipContent
-															side="top"
-															showArrow={false}
-															className="bg-card text-foreground border border-border shadow-md"
-														>
-															{pathInfo.full}
-														</TooltipContent>
-													</Tooltip>
-												</button>
-											);
-										})}
-
-										{hasMoreToLoad && (
-											<button
-												type="button"
-												onClick={() => setVisibleCount((c) => c + 50)}
-												className="w-full px-2 py-2 text-muted-foreground text-xs font-normal hover:text-foreground transition-colors"
-											>
-												Load more ({recentProjects.length - visibleCount}{" "}
-												remaining)
-											</button>
-										)}
-									</div>
-								</div>
-							</div>
+							</motion.div>
 						)}
-					</div>
+					</AnimatePresence>
 				</div>
 			</div>
 
