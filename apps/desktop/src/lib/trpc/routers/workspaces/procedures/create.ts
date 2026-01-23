@@ -333,5 +333,52 @@ export const createCreateProcedures = () => {
 					projectId: project.id,
 				};
 			}),
+
+		createCloudWorkspace: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					name: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const workspaceName = input.name?.trim() || "Cloud Workspace";
+
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: input.projectId,
+						type: "cloud",
+						branch: "cloud",
+						name: workspaceName,
+						tabOrder: maxTabOrder + 1,
+					})
+					.returning()
+					.get();
+
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
+
+				track("workspace_created", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					type: "cloud",
+				});
+
+				return {
+					workspace,
+					projectId: project.id,
+				};
+			}),
 	});
 };

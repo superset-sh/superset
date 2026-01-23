@@ -15,7 +15,7 @@ interface Workspace {
 	id: string;
 	projectId: string;
 	worktreePath: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "cloud";
 	branch: string;
 	name: string;
 	tabOrder: number;

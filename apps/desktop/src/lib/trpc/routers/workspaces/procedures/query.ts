@@ -107,7 +107,7 @@ export const createQueryProcedures = () => {
 
 				return {
 					...workspace,
-					type: workspace.type as "worktree" | "branch",
+					type: workspace.type as "worktree" | "branch" | "cloud",
 					worktreePath: getWorkspacePath(workspace) ?? "",
 					project: project
 						? {
@@ -165,7 +165,7 @@ export const createQueryProcedures = () => {
 						projectId: string;
 						worktreeId: string | null;
 						worktreePath: string;
-						type: "worktree" | "branch";
+						type: "worktree" | "branch" | "cloud";
 						branch: string;
 						name: string;
 						tabOrder: number;
@@ -206,13 +206,16 @@ export const createQueryProcedures = () => {
 					let worktreePath = "";
 					if (workspace.type === "worktree" && workspace.worktreeId) {
 						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";
-					} else if (workspace.type === "branch") {
+					} else if (
+						workspace.type === "branch" ||
+						workspace.type === "cloud"
+					) {
 						worktreePath = group.project.mainRepoPath;
 					}
 
 					group.workspaces.push({
 						...workspace,
-						type: workspace.type as "worktree" | "branch",
+						type: workspace.type as "worktree" | "branch" | "cloud",
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
 					});

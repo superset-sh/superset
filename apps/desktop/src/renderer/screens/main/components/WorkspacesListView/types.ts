@@ -8,7 +8,7 @@ export interface WorkspaceItem {
 	projectId: string;
 	projectName: string;
 	worktreePath: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "cloud";
 	branch: string;
 	name: string;
 	lastOpenedAt: number;

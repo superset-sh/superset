@@ -17,10 +17,10 @@ export function getWorktreePath(worktreeId: string): string | undefined {
 /**
  * Gets the working directory path for a workspace.
  * For worktree workspaces: returns the worktree path
- * For branch workspaces: returns the main repo path
+ * For branch/cloud workspaces: returns the main repo path
  */
 export function getWorkspacePath(workspace: SelectWorkspace): string | null {
-	if (workspace.type === "branch") {
+	if (workspace.type === "branch" || workspace.type === "cloud") {
 		const project = localDb
 			.select()
 			.from(projects)

@@ -63,7 +63,7 @@ interface WorkspaceListItemProps {
 	worktreePath: string;
 	name: string;
 	branch: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "cloud";
 	isUnread?: boolean;
 	index: number;
 	shortcutIndex?: number;
@@ -84,6 +84,7 @@ export function WorkspaceListItem({
 	isCollapsed = false,
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const isCloudWorkspace = type === "cloud";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
@@ -308,6 +309,21 @@ export function WorkspaceListItem({
 			);
 		}
 
+		// Cloud workspaces get a simple tooltip
+		if (isCloudWorkspace) {
+			return (
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
+					<TooltipContent side="right" className="flex flex-col gap-0.5">
+						<span className="font-medium">{name || branch}</span>
+						<span className="text-xs text-muted-foreground">
+							Cloud workspace
+						</span>
+					</TooltipContent>
+				</Tooltip>
+			);
+		}
+
 		// Worktree workspaces get the full hover card with context menu
 		return (
 			<>
@@ -414,7 +430,14 @@ export function WorkspaceListItem({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="right" sideOffset={8}>
-					{isBranchWorkspace ? (
+					{isCloudWorkspace ? (
+						<>
+							<p className="text-xs font-medium">Cloud workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Hosted in the cloud for remote development
+							</p>
+						</>
+					) : isBranchWorkspace ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>
 							<p className="text-xs text-muted-foreground">

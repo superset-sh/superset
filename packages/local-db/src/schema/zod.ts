@@ -63,8 +63,11 @@ export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
 
 /**
  * Workspace type
+ * - worktree: Git worktree-based workspace (isolated copy)
+ * - branch: Branch-based workspace (main repo)
+ * - cloud: Cloud-hosted workspace
  */
-export const workspaceTypeSchema = z.enum(["worktree", "branch"]);
+export const workspaceTypeSchema = z.enum(["worktree", "branch", "cloud"]);
 
 export type WorkspaceType = z.infer<typeof workspaceTypeSchema>;
 

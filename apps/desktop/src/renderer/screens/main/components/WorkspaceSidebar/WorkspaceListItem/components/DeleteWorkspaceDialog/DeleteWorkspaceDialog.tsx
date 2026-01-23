@@ -18,7 +18,7 @@ import {
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
 	workspaceName: string;
-	workspaceType?: "worktree" | "branch";
+	workspaceType?: "worktree" | "branch" | "cloud";
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -31,6 +31,7 @@ export function DeleteWorkspaceDialog({
 	onOpenChange,
 }: DeleteWorkspaceDialogProps) {
 	const isBranch = workspaceType === "branch";
+	const isCloud = workspaceType === "cloud";
 	const deleteWorkspace = useDeleteWorkspace();
 	const closeWorkspace = useCloseWorkspace();
 
@@ -108,8 +109,8 @@ export function DeleteWorkspaceDialog({
 	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
 	const hasWarnings = hasChanges || hasUnpushedCommits;
 
-	// For branch workspaces, use simplified dialog (only close option)
-	if (isBranch) {
+	// For branch/cloud workspaces, use simplified dialog (only close option)
+	if (isBranch || isCloud) {
 		return (
 			<AlertDialog open={open} onOpenChange={onOpenChange}>
 				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
@@ -120,8 +121,9 @@ export function DeleteWorkspaceDialog({
 						<AlertDialogDescription asChild>
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
-									This will close the workspace and kill any active terminals.
-									Your branch and commits will remain in the repository.
+									{isCloud
+										? "This will disconnect from the cloud workspace and kill any active terminals."
+										: "This will close the workspace and kill any active terminals. Your branch and commits will remain in the repository."}
 								</span>
 							</div>
 						</AlertDialogDescription>

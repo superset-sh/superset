@@ -37,6 +37,7 @@ export function WorkspaceRow({
 	isOpening,
 }: WorkspaceRowProps) {
 	const isBranch = workspace.type === "branch";
+	const isCloud = workspace.type === "cloud";
 	const [hasHovered, setHasHovered] = useState(false);
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
@@ -104,7 +105,14 @@ export function WorkspaceRow({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="top" sideOffset={4}>
-					{isBranch ? (
+					{isCloud ? (
+						<>
+							<p className="text-xs font-medium">Cloud workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Hosted in the cloud for remote development
+							</p>
+						</>
+					) : isBranch ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>
 							<p className="text-xs text-muted-foreground">
@@ -181,11 +189,12 @@ export function WorkspaceRow({
 	// Determine the delete/close action label based on workspace type and state
 	const isOpenWorkspace = workspace.workspaceId !== null;
 	const isClosedWorktree = !isOpenWorkspace && workspace.worktreeId !== null;
-	const actionLabel = isBranch
-		? "Close workspace"
-		: isClosedWorktree
-			? "Delete worktree"
-			: "Delete workspace";
+	const actionLabel =
+		isBranch || isCloud
+			? "Close workspace"
+			: isClosedWorktree
+				? "Delete worktree"
+				: "Delete workspace";
 
 	// Can delete open workspaces or closed worktrees
 	const canDelete = isOpenWorkspace || isClosedWorktree;
