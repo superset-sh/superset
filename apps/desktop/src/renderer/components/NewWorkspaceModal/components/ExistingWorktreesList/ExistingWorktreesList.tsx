@@ -137,9 +137,15 @@ export function ExistingWorktreesList({
 			onOpenSuccess();
 			setPrUrl("");
 
-			toast.success(`Opened PR #${result.prNumber}`, {
-				description: result.prTitle,
-			});
+			if (result.wasExisting) {
+				toast.success(`Reopened PR #${result.prNumber}`, {
+					description: result.prTitle,
+				});
+			} else {
+				toast.success(`Opened PR #${result.prNumber}`, {
+					description: result.prTitle,
+				});
+			}
 		} catch (err) {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to open PR",

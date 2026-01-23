@@ -415,7 +415,89 @@ export const createCreateProcedures = () => {
 					localBranchName = prInfo.headRefName;
 				}
 
-				// Check if branch is already checked out in a worktree
+				// Check if we already have a worktree for this branch in our database
+				const existingWorktree = localDb
+					.select()
+					.from(worktrees)
+					.where(
+						and(
+							eq(worktrees.projectId, input.projectId),
+							eq(worktrees.branch, localBranchName),
+						),
+					)
+					.get();
+
+				if (existingWorktree) {
+					// Check if there's already an active workspace for this worktree
+					const existingWorkspace = localDb
+						.select()
+						.from(workspaces)
+						.where(
+							and(
+								eq(workspaces.worktreeId, existingWorktree.id),
+								isNull(workspaces.deletingAt),
+							),
+						)
+						.get();
+
+					if (existingWorkspace) {
+						// Workspace already open - just activate it
+						touchWorkspace(existingWorkspace.id);
+						setLastActiveWorkspace(existingWorkspace.id);
+
+						return {
+							workspace: existingWorkspace,
+							initialCommands: null,
+							worktreePath: existingWorktree.path,
+							projectId: project.id,
+							prNumber: prInfo.number,
+							prTitle: prInfo.title,
+							wasExisting: true,
+						};
+					}
+
+					// Worktree exists but no active workspace - reopen it
+					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const workspaceName = prInfo.title || `PR #${prInfo.number}`;
+
+					const workspace = localDb
+						.insert(workspaces)
+						.values({
+							projectId: input.projectId,
+							worktreeId: existingWorktree.id,
+							type: "worktree",
+							branch: localBranchName,
+							name: workspaceName,
+							tabOrder: maxTabOrder + 1,
+						})
+						.returning()
+						.get();
+
+					setLastActiveWorkspace(workspace.id);
+					activateProject(project);
+
+					track("workspace_opened", {
+						workspace_id: workspace.id,
+						project_id: project.id,
+						type: "worktree",
+						source: "pr",
+						pr_number: prInfo.number,
+					});
+
+					const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+					return {
+						workspace,
+						initialCommands: setupConfig?.setup || null,
+						worktreePath: existingWorktree.path,
+						projectId: project.id,
+						prNumber: prInfo.number,
+						prTitle: prInfo.title,
+						wasExisting: true,
+					};
+				}
+
+				// No existing worktree - check if the branch is checked out elsewhere on disk
 				const existingWorktreePath = await getBranchWorktreePath({
 					mainRepoPath: project.mainRepoPath,
 					branch: localBranchName,
@@ -503,6 +585,7 @@ export const createCreateProcedures = () => {
 					projectId: project.id,
 					prNumber: prInfo.number,
 					prTitle: prInfo.title,
+					wasExisting: false,
 				};
 			}),
 	});
