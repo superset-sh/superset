@@ -24,13 +24,251 @@ import {
 	getBranchWorktreePath,
 	getCurrentBranch,
 	getPrInfo,
+	getPrLocalBranchName,
 	listBranches,
 	parsePrUrl,
+	type PullRequestInfo,
 	safeCheckoutBranch,
 	worktreeExists,
 } from "../utils/git";
 import { loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
+
+interface CreateWorkspaceFromWorktreeParams {
+	projectId: string;
+	worktreeId: string;
+	branch: string;
+	name: string;
+}
+
+/**
+ * Creates a workspace record for an existing worktree.
+ * Used when reopening a closed worktree or opening a PR that was already checked out.
+ */
+function createWorkspaceFromWorktree({
+	projectId,
+	worktreeId,
+	branch,
+	name,
+}: CreateWorkspaceFromWorktreeParams) {
+	const maxTabOrder = getMaxWorkspaceTabOrder(projectId);
+
+	const workspace = localDb
+		.insert(workspaces)
+		.values({
+			projectId,
+			worktreeId,
+			type: "worktree",
+			branch,
+			name,
+			tabOrder: maxTabOrder + 1,
+		})
+		.returning()
+		.get();
+
+	setLastActiveWorkspace(workspace.id);
+
+	return workspace;
+}
+
+/**
+ * Gets workspace name for a PR (title or fallback to PR number).
+ */
+function getPrWorkspaceName(prInfo: PullRequestInfo): string {
+	return prInfo.title || `PR #${prInfo.number}`;
+}
+
+interface PrWorkspaceResult {
+	workspace: typeof workspaces.$inferSelect;
+	initialCommands: string[] | null;
+	worktreePath: string;
+	projectId: string;
+	prNumber: number;
+	prTitle: string;
+	wasExisting: boolean;
+}
+
+interface HandleExistingWorktreeParams {
+	existingWorktree: typeof worktrees.$inferSelect;
+	project: typeof projects.$inferSelect;
+	prInfo: PullRequestInfo;
+	localBranchName: string;
+	workspaceName: string;
+	setupConfig: { setup?: string[] } | null;
+}
+
+function handleExistingWorktree({
+	existingWorktree,
+	project,
+	prInfo,
+	localBranchName,
+	workspaceName,
+	setupConfig,
+}: HandleExistingWorktreeParams): PrWorkspaceResult {
+	// Check if there's already an active workspace for this worktree
+	const existingWorkspace = localDb
+		.select()
+		.from(workspaces)
+		.where(
+			and(
+				eq(workspaces.worktreeId, existingWorktree.id),
+				isNull(workspaces.deletingAt),
+			),
+		)
+		.get();
+
+	if (existingWorkspace) {
+		// Workspace already open - just activate it
+		touchWorkspace(existingWorkspace.id);
+		setLastActiveWorkspace(existingWorkspace.id);
+
+		return {
+			workspace: existingWorkspace,
+			initialCommands: null,
+			worktreePath: existingWorktree.path,
+			projectId: project.id,
+			prNumber: prInfo.number,
+			prTitle: prInfo.title,
+			wasExisting: true,
+		};
+	}
+
+	// Worktree exists but no active workspace - reopen it
+	const workspace = createWorkspaceFromWorktree({
+		projectId: project.id,
+		worktreeId: existingWorktree.id,
+		branch: localBranchName,
+		name: workspaceName,
+	});
+
+	activateProject(project);
+
+	track("workspace_opened", {
+		workspace_id: workspace.id,
+		project_id: project.id,
+		type: "worktree",
+		source: "pr",
+		pr_number: prInfo.number,
+	});
+
+	return {
+		workspace,
+		initialCommands: setupConfig?.setup || null,
+		worktreePath: existingWorktree.path,
+		projectId: project.id,
+		prNumber: prInfo.number,
+		prTitle: prInfo.title,
+		wasExisting: true,
+	};
+}
+
+interface HandleNewWorktreeParams {
+	project: typeof projects.$inferSelect;
+	prInfo: PullRequestInfo;
+	localBranchName: string;
+	workspaceName: string;
+	setupConfig: { setup?: string[] } | null;
+}
+
+async function handleNewWorktree({
+	project,
+	prInfo,
+	localBranchName,
+	workspaceName,
+	setupConfig,
+}: HandleNewWorktreeParams): Promise<PrWorkspaceResult> {
+	// Check if the branch is checked out elsewhere on disk
+	const existingWorktreePath = await getBranchWorktreePath({
+		mainRepoPath: project.mainRepoPath,
+		branch: localBranchName,
+	});
+	if (existingWorktreePath) {
+		throw new Error(
+			`This PR's branch is already checked out in a worktree at: ${existingWorktreePath}`,
+		);
+	}
+
+	// Fetch the PR branch (handles forks)
+	await fetchPrBranch({
+		repoPath: project.mainRepoPath,
+		prInfo,
+	});
+
+	const worktreePath = join(
+		homedir(),
+		SUPERSET_DIR_NAME,
+		WORKTREES_DIR_NAME,
+		project.name,
+		localBranchName,
+	);
+
+	// Create the worktree on disk
+	await createWorktreeFromPr({
+		mainRepoPath: project.mainRepoPath,
+		worktreePath,
+		prInfo,
+		localBranchName,
+	});
+
+	const defaultBranch = project.defaultBranch || "main";
+
+	// Insert worktree record
+	const worktree = localDb
+		.insert(worktrees)
+		.values({
+			projectId: project.id,
+			path: worktreePath,
+			branch: localBranchName,
+			baseBranch: defaultBranch,
+			gitStatus: null,
+		})
+		.returning()
+		.get();
+
+	// Create workspace record
+	const workspace = createWorkspaceFromWorktree({
+		projectId: project.id,
+		worktreeId: worktree.id,
+		branch: localBranchName,
+		name: workspaceName,
+	});
+
+	activateProject(project);
+
+	track("workspace_created", {
+		workspace_id: workspace.id,
+		project_id: project.id,
+		branch: localBranchName,
+		source: "pr",
+		pr_number: prInfo.number,
+		is_fork: prInfo.isCrossRepository,
+	});
+
+	// Start background initialization
+	workspaceInitManager.startJob(workspace.id, project.id);
+	initializeWorkspaceWorktree({
+		workspaceId: workspace.id,
+		projectId: project.id,
+		worktreeId: worktree.id,
+		worktreePath,
+		branch: localBranchName,
+		baseBranch: defaultBranch,
+		baseBranchWasExplicit: false,
+		mainRepoPath: project.mainRepoPath,
+		useExistingBranch: true,
+		skipWorktreeCreation: true,
+	});
+
+	return {
+		workspace,
+		initialCommands: setupConfig?.setup || null,
+		worktreePath,
+		projectId: project.id,
+		prNumber: prInfo.number,
+		prTitle: prInfo.title,
+		wasExisting: false,
+	};
+}
 
 export const createCreateProcedures = () => {
 	return router({
@@ -382,16 +620,11 @@ export const createCreateProcedures = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProject(input.projectId);
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				// Parse the PR URL
 				const parsed = parsePrUrl(input.prUrl);
 				if (!parsed) {
 					throw new Error(
@@ -399,23 +632,16 @@ export const createCreateProcedures = () => {
 					);
 				}
 
-				// Get PR info from GitHub
 				const prInfo = await getPrInfo({
 					repoPath: project.mainRepoPath,
 					prNumber: parsed.number,
 				});
 
-				// Determine the local branch name
-				let localBranchName: string;
-				if (prInfo.isCrossRepository) {
-					// For fork PRs, prefix with the fork owner to avoid conflicts
-					const forkOwner = prInfo.headRepositoryOwner.login.toLowerCase();
-					localBranchName = `${forkOwner}/${prInfo.headRefName}`;
-				} else {
-					localBranchName = prInfo.headRefName;
-				}
+				const localBranchName = getPrLocalBranchName(prInfo);
+				const workspaceName = getPrWorkspaceName(prInfo);
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
-				// Check if we already have a worktree for this branch in our database
+				// Check if we already have a worktree for this branch
 				const existingWorktree = localDb
 					.select()
 					.from(worktrees)
@@ -428,182 +654,23 @@ export const createCreateProcedures = () => {
 					.get();
 
 				if (existingWorktree) {
-					// Check if there's already an active workspace for this worktree
-					const existingWorkspace = localDb
-						.select()
-						.from(workspaces)
-						.where(
-							and(
-								eq(workspaces.worktreeId, existingWorktree.id),
-								isNull(workspaces.deletingAt),
-							),
-						)
-						.get();
-
-					if (existingWorkspace) {
-						// Workspace already open - just activate it
-						touchWorkspace(existingWorkspace.id);
-						setLastActiveWorkspace(existingWorkspace.id);
-
-						return {
-							workspace: existingWorkspace,
-							initialCommands: null,
-							worktreePath: existingWorktree.path,
-							projectId: project.id,
-							prNumber: prInfo.number,
-							prTitle: prInfo.title,
-							wasExisting: true,
-						};
-					}
-
-					// Worktree exists but no active workspace - reopen it
-					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
-					const workspaceName = prInfo.title || `PR #${prInfo.number}`;
-
-					const workspace = localDb
-						.insert(workspaces)
-						.values({
-							projectId: input.projectId,
-							worktreeId: existingWorktree.id,
-							type: "worktree",
-							branch: localBranchName,
-							name: workspaceName,
-							tabOrder: maxTabOrder + 1,
-						})
-						.returning()
-						.get();
-
-					setLastActiveWorkspace(workspace.id);
-					activateProject(project);
-
-					track("workspace_opened", {
-						workspace_id: workspace.id,
-						project_id: project.id,
-						type: "worktree",
-						source: "pr",
-						pr_number: prInfo.number,
+					return handleExistingWorktree({
+						existingWorktree,
+						project,
+						prInfo,
+						localBranchName,
+						workspaceName,
+						setupConfig,
 					});
-
-					const setupConfig = loadSetupConfig(project.mainRepoPath);
-
-					return {
-						workspace,
-						initialCommands: setupConfig?.setup || null,
-						worktreePath: existingWorktree.path,
-						projectId: project.id,
-						prNumber: prInfo.number,
-						prTitle: prInfo.title,
-						wasExisting: true,
-					};
 				}
 
-				// No existing worktree - check if the branch is checked out elsewhere on disk
-				const existingWorktreePath = await getBranchWorktreePath({
-					mainRepoPath: project.mainRepoPath,
-					branch: localBranchName,
-				});
-				if (existingWorktreePath) {
-					throw new Error(
-						`This PR's branch is already checked out in a worktree at: ${existingWorktreePath}`,
-					);
-				}
-
-				// Fetch the PR branch (handles forks)
-				await fetchPrBranch({
-					repoPath: project.mainRepoPath,
-					prInfo,
-				});
-
-				const worktreePath = join(
-					homedir(),
-					SUPERSET_DIR_NAME,
-					WORKTREES_DIR_NAME,
-					project.name,
-					localBranchName,
-				);
-
-				// Create the worktree
-				await createWorktreeFromPr({
-					mainRepoPath: project.mainRepoPath,
-					worktreePath,
+				return handleNewWorktree({
+					project,
 					prInfo,
 					localBranchName,
+					workspaceName,
+					setupConfig,
 				});
-
-				// Get default branch for base branch reference
-				const defaultBranch = project.defaultBranch || "main";
-
-				// Insert worktree record
-				const worktree = localDb
-					.insert(worktrees)
-					.values({
-						projectId: input.projectId,
-						path: worktreePath,
-						branch: localBranchName,
-						baseBranch: defaultBranch,
-						gitStatus: null,
-					})
-					.returning()
-					.get();
-
-				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
-
-				// Use PR title as workspace name
-				const workspaceName = prInfo.title || `PR #${prInfo.number}`;
-
-				const workspace = localDb
-					.insert(workspaces)
-					.values({
-						projectId: input.projectId,
-						worktreeId: worktree.id,
-						type: "worktree",
-						branch: localBranchName,
-						name: workspaceName,
-						tabOrder: maxTabOrder + 1,
-					})
-					.returning()
-					.get();
-
-				setLastActiveWorkspace(workspace.id);
-				activateProject(project);
-
-				track("workspace_created", {
-					workspace_id: workspace.id,
-					project_id: project.id,
-					branch: localBranchName,
-					source: "pr",
-					pr_number: prInfo.number,
-					is_fork: prInfo.isCrossRepository,
-				});
-
-				// Start workspace initialization (same as regular create flow)
-				workspaceInitManager.startJob(workspace.id, input.projectId);
-
-				// Initialize workspace in background (worktree already created, just need setup)
-				initializeWorkspaceWorktree({
-					workspaceId: workspace.id,
-					projectId: input.projectId,
-					worktreeId: worktree.id,
-					worktreePath,
-					branch: localBranchName,
-					baseBranch: defaultBranch,
-					baseBranchWasExplicit: false,
-					mainRepoPath: project.mainRepoPath,
-					useExistingBranch: true, // PR branch already exists
-					skipWorktreeCreation: true, // Worktree already created by createWorktreeFromPr
-				});
-
-				const setupConfig = loadSetupConfig(project.mainRepoPath);
-
-				return {
-					workspace,
-					initialCommands: setupConfig?.setup || null,
-					worktreePath,
-					projectId: project.id,
-					prNumber: prInfo.number,
-					prTitle: prInfo.title,
-					wasExisting: false,
-				};
 			}),
 	});
 };

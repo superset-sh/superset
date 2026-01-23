@@ -1262,6 +1262,18 @@ export interface PullRequestInfo {
 }
 
 /**
+ * Gets the local branch name for a PR.
+ * For fork PRs, prefixes with the fork owner to avoid conflicts.
+ */
+export function getPrLocalBranchName(prInfo: PullRequestInfo): string {
+	if (prInfo.isCrossRepository) {
+		const forkOwner = prInfo.headRepositoryOwner.login.toLowerCase();
+		return `${forkOwner}/${prInfo.headRefName}`;
+	}
+	return prInfo.headRefName;
+}
+
+/**
  * Parses a GitHub PR URL to extract owner, repo, and PR number.
  * Supports formats:
  * - https://github.com/owner/repo/pull/123
