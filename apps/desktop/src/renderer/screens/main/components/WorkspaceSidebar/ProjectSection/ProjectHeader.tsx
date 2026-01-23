@@ -218,7 +218,7 @@ export function ProjectHeader({
 							disabled={closeProject.isPending}
 							className="text-destructive focus:text-destructive"
 						>
-							<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							<LuX className="size-4 mr-2 text-destructive" strokeWidth={STROKE_WIDTH} />
 							{closeProject.isPending ? "Closing..." : "Close Project"}
 						</ContextMenuItem>
 					</ContextMenuContent>
@@ -316,7 +316,7 @@ export function ProjectHeader({
 						disabled={closeProject.isPending}
 						className="text-destructive focus:text-destructive"
 					>
-						<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						<LuX className="size-4 mr-2 text-destructive" strokeWidth={STROKE_WIDTH} />
 						{closeProject.isPending ? "Closing..." : "Close Project"}
 					</ContextMenuItem>
 				</ContextMenuContent>
