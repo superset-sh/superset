@@ -250,3 +250,31 @@ export const subscriptions = pgTable(
 
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
+
+// Cloud workspaces (remote dev environments linked to a repository)
+export const cloudWorkspaces = pgTable(
+	"cloud_workspaces",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		repositoryId: uuid("repository_id")
+			.notNull()
+			.references(() => repositories.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		branch: text().notNull(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("cloud_workspaces_organization_id_idx").on(table.organizationId),
+		index("cloud_workspaces_repository_id_idx").on(table.repositoryId),
+	],
+);
+
+export type InsertCloudWorkspace = typeof cloudWorkspaces.$inferInsert;
+export type SelectCloudWorkspace = typeof cloudWorkspaces.$inferSelect;

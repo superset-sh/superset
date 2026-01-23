@@ -92,6 +92,13 @@
       "when": 1769106861342,
       "tag": "0012_add_stripe_subscription_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1769197057418,
+      "tag": "0013_add_cloud_workspaces",
+      "breakpoints": true
     }
   ]
 }
