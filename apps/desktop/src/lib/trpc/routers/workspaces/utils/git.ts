@@ -1444,31 +1444,40 @@ export async function createWorktreeFromPr({
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
+		const git = simpleGit(mainRepoPath);
+		const localBranches = await git.branchLocal();
+
 		if (prInfo.isCrossRepository) {
 			// For fork PRs, the branch is on the fork remote
 			const forkOwner = prInfo.headRepositoryOwner.login.toLowerCase();
 			const remoteBranch = `${forkOwner}/${prInfo.headRefName}`;
 
-			// Create worktree with a new local branch tracking the fork's branch
-			await execFileAsync(
-				"git",
-				[
-					"-C",
-					mainRepoPath,
-					"worktree",
-					"add",
-					"-b",
-					localBranchName,
-					worktreePath,
-					remoteBranch,
-				],
-				{ env, timeout: 120_000 },
-			);
+			if (localBranches.all.includes(localBranchName)) {
+				// Branch already exists locally - just checkout
+				await execFileAsync(
+					"git",
+					["-C", mainRepoPath, "worktree", "add", worktreePath, localBranchName],
+					{ env, timeout: 120_000 },
+				);
+			} else {
+				// Create worktree with a new local branch tracking the fork's branch
+				await execFileAsync(
+					"git",
+					[
+						"-C",
+						mainRepoPath,
+						"worktree",
+						"add",
+						"-b",
+						localBranchName,
+						worktreePath,
+						remoteBranch,
+					],
+					{ env, timeout: 120_000 },
+				);
+			}
 		} else {
 			// For same-repo PRs, check if branch exists locally
-			const git = simpleGit(mainRepoPath);
-			const localBranches = await git.branchLocal();
-
 			if (localBranches.all.includes(prInfo.headRefName)) {
 				// Branch exists locally - just checkout
 				await execFileAsync(
