@@ -329,7 +329,9 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								</div>
 								<div className="flex-1 min-w-0">
 									<div className="flex items-center justify-between gap-1">
-										<span className="truncate text-foreground font-medium">new workspace</span>
+										<span className="truncate text-foreground font-medium">
+											new workspace
+										</span>
 									</div>
 									<span className="text-muted-foreground/50 truncate text-[9px] font-mono">
 										creating...
@@ -339,7 +341,8 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						</motion.div>
 						{WORKSPACES.map((ws) => {
 							const isFirstItem = ws.name === "use any agents";
-							const shouldHideActiveState = isFirstItem && activeDemo === "Create Parallel Branches";
+							const shouldHideActiveState =
+								isFirstItem && activeDemo === "Create Parallel Branches";
 							return (
 								<WorkspaceItem
 									key={ws.branch}
@@ -385,7 +388,6 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							</div>
 						))}
 					</div>
-
 				</div>
 
 				{/* Main content area */}
@@ -401,7 +403,12 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								</>
 							) : (
 								<>
-									<Image src="/app-icons/claude.svg" alt="Claude" width={12} height={12} />
+									<Image
+										src="/app-icons/claude.svg"
+										alt="Claude"
+										width={12}
+										height={12}
+									/>
 									<span>claude</span>
 								</>
 							)}
@@ -410,46 +417,88 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						{/* Other agent tabs - shown when "Use Any Agents" is active */}
 						<motion.div
 							className="flex items-center gap-1.5 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
-							initial={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
+							initial={{
+								opacity: 0,
+								width: 0,
+								paddingLeft: 0,
+								paddingRight: 0,
+							}}
 							animate={{
 								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
 								width: activeDemo === "Use Any Agents" ? "auto" : 0,
 								paddingLeft: activeDemo === "Use Any Agents" ? 12 : 0,
 								paddingRight: activeDemo === "Use Any Agents" ? 12 : 0,
 							}}
-							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.1 : 0 }}
+							transition={{
+								duration: 0.25,
+								ease: "easeOut",
+								delay: activeDemo === "Use Any Agents" ? 0.1 : 0,
+							}}
 						>
-							<Image src="/app-icons/codex.svg" alt="Codex" width={12} height={12} />
+							<Image
+								src="/app-icons/codex.svg"
+								alt="Codex"
+								width={12}
+								height={12}
+							/>
 							<span>codex</span>
 							<LuX className="size-3 text-muted-foreground/30" />
 						</motion.div>
 						<motion.div
 							className="flex items-center gap-1.5 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
-							initial={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
+							initial={{
+								opacity: 0,
+								width: 0,
+								paddingLeft: 0,
+								paddingRight: 0,
+							}}
 							animate={{
 								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
 								width: activeDemo === "Use Any Agents" ? "auto" : 0,
 								paddingLeft: activeDemo === "Use Any Agents" ? 12 : 0,
 								paddingRight: activeDemo === "Use Any Agents" ? 12 : 0,
 							}}
-							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.25 : 0 }}
+							transition={{
+								duration: 0.25,
+								ease: "easeOut",
+								delay: activeDemo === "Use Any Agents" ? 0.25 : 0,
+							}}
 						>
-							<Image src="/app-icons/gemini.svg" alt="Gemini" width={12} height={12} />
+							<Image
+								src="/app-icons/gemini.svg"
+								alt="Gemini"
+								width={12}
+								height={12}
+							/>
 							<span>gemini</span>
 							<LuX className="size-3 text-muted-foreground/30" />
 						</motion.div>
 						<motion.div
 							className="flex items-center gap-1.5 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
-							initial={{ opacity: 0, width: 0, paddingLeft: 0, paddingRight: 0 }}
+							initial={{
+								opacity: 0,
+								width: 0,
+								paddingLeft: 0,
+								paddingRight: 0,
+							}}
 							animate={{
 								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
 								width: activeDemo === "Use Any Agents" ? "auto" : 0,
 								paddingLeft: activeDemo === "Use Any Agents" ? 12 : 0,
 								paddingRight: activeDemo === "Use Any Agents" ? 12 : 0,
 							}}
-							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.4 : 0 }}
+							transition={{
+								duration: 0.25,
+								ease: "easeOut",
+								delay: activeDemo === "Use Any Agents" ? 0.4 : 0,
+							}}
 						>
-							<Image src="/app-icons/cursor-agent.svg" alt="Cursor" width={12} height={12} />
+							<Image
+								src="/app-icons/cursor-agent.svg"
+								alt="Cursor"
+								width={12}
+								height={12}
+							/>
 							<span>cursor</span>
 							<LuX className="size-3 text-muted-foreground/30" />
 						</motion.div>
@@ -480,93 +529,93 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							}}
 							transition={{ duration: 0.2, ease: "easeOut" }}
 						>
-						{/* Claude ASCII art header */}
-						<div className="flex items-start gap-3 mb-3">
-							<div className="text-cyan-400 leading-none whitespace-pre text-[9px]">
-								{`  * ▐▛███▜▌ *
+							{/* Claude ASCII art header */}
+							<div className="flex items-start gap-3 mb-3">
+								<div className="text-cyan-400 leading-none whitespace-pre text-[9px]">
+									{`  * ▐▛███▜▌ *
  * ▝▜█████▛▘ *
   *  ▘▘ ▝▝  *`}
+								</div>
+								<div className="text-muted-foreground/90 text-[10px]">
+									<div>
+										<span className="text-foreground font-medium">
+											Claude Code
+										</span>{" "}
+										v2.0.74
+									</div>
+									<div>Opus 4.5 · Claude Max</div>
+									<div className="text-muted-foreground/60">
+										~/.superset/worktrees/superset/cloud-ws
+									</div>
+								</div>
 							</div>
-							<div className="text-muted-foreground/90 text-[10px]">
+
+							{/* Command prompt */}
+							<div className="text-foreground mb-3">
+								<span className="text-muted-foreground/60">❯</span>{" "}
+								<span className="text-cyan-400">/mcp</span>
+							</div>
+
+							{/* MCP output */}
+							<div className="border-t border-white/[0.04] pt-3 space-y-2">
 								<div>
 									<span className="text-foreground font-medium">
-										Claude Code
-									</span>{" "}
-									v2.0.74
+										Manage MCP servers
+									</span>
 								</div>
-								<div>Opus 4.5 · Claude Max</div>
-								<div className="text-muted-foreground/60">
-									~/.superset/worktrees/superset/cloud-ws
+								<div className="text-muted-foreground/70">1 server</div>
+
+								<div className="mt-2">
+									<span className="text-muted-foreground/50">❯</span>
+									<span className="text-foreground ml-1">1.</span>
+									<span className="text-cyan-400 ml-1">morph-mcp</span>
+									<span className="text-emerald-400 ml-2">✓ connected</span>
+									<span className="text-muted-foreground/50 ml-2">
+										· Enter to view details
+									</span>
+								</div>
+
+								<div className="mt-3 text-muted-foreground/70">
+									<div>MCP Config locations (by scope):</div>
+									<div className="ml-2">
+										• User config (available in all your projects):
+									</div>
+									<div className="ml-4 text-muted-foreground/50">
+										· /Users/kietho/.claude.json
+									</div>
+									<div className="ml-2">
+										• Project config (shared via .mcp.json):
+									</div>
+									<div className="ml-4 text-muted-foreground/50">
+										·
+										/Users/kietho/.superset/worktrees/superset/cloud-ws/.mcp.json
+									</div>
+									<div className="ml-2">
+										• Local config (private to you in this project):
+									</div>
+									<div className="ml-4 text-muted-foreground/50">
+										· /Users/kietho/.claude.json [project: ...]
+									</div>
+								</div>
+
+								<div className="mt-3 text-muted-foreground/70">
+									<div>
+										Tip: Use /mcp enable or /mcp disable to quickly toggle all
+										servers
+									</div>
+								</div>
+
+								<div className="mt-2 text-muted-foreground/50">
+									For help configuring MCP servers, see:{" "}
+									<span className="text-cyan-400/70">
+										https://code.claude.com/docs/en/mcp
+									</span>
+								</div>
+
+								<div className="mt-3 text-muted-foreground/60">
+									Enter to confirm · Esc to cancel
 								</div>
 							</div>
-						</div>
-
-						{/* Command prompt */}
-						<div className="text-foreground mb-3">
-							<span className="text-muted-foreground/60">❯</span>{" "}
-							<span className="text-cyan-400">/mcp</span>
-						</div>
-
-						{/* MCP output */}
-						<div className="border-t border-white/[0.04] pt-3 space-y-2">
-							<div>
-								<span className="text-foreground font-medium">
-									Manage MCP servers
-								</span>
-							</div>
-							<div className="text-muted-foreground/70">1 server</div>
-
-							<div className="mt-2">
-								<span className="text-muted-foreground/50">❯</span>
-								<span className="text-foreground ml-1">1.</span>
-								<span className="text-cyan-400 ml-1">morph-mcp</span>
-								<span className="text-emerald-400 ml-2">✓ connected</span>
-								<span className="text-muted-foreground/50 ml-2">
-									· Enter to view details
-								</span>
-							</div>
-
-							<div className="mt-3 text-muted-foreground/70">
-								<div>MCP Config locations (by scope):</div>
-								<div className="ml-2">
-									• User config (available in all your projects):
-								</div>
-								<div className="ml-4 text-muted-foreground/50">
-									· /Users/kietho/.claude.json
-								</div>
-								<div className="ml-2">
-									• Project config (shared via .mcp.json):
-								</div>
-								<div className="ml-4 text-muted-foreground/50">
-									·
-									/Users/kietho/.superset/worktrees/superset/cloud-ws/.mcp.json
-								</div>
-								<div className="ml-2">
-									• Local config (private to you in this project):
-								</div>
-								<div className="ml-4 text-muted-foreground/50">
-									· /Users/kietho/.claude.json [project: ...]
-								</div>
-							</div>
-
-							<div className="mt-3 text-muted-foreground/70">
-								<div>
-									Tip: Use /mcp enable or /mcp disable to quickly toggle all
-									servers
-								</div>
-							</div>
-
-							<div className="mt-2 text-muted-foreground/50">
-								For help configuring MCP servers, see:{" "}
-								<span className="text-cyan-400/70">
-									https://code.claude.com/docs/en/mcp
-								</span>
-							</div>
-
-							<div className="mt-3 text-muted-foreground/60">
-								Enter to confirm · Esc to cancel
-							</div>
-						</div>
 						</motion.div>
 
 						{/* Create Parallel Branches overlay */}
@@ -577,7 +626,10 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								opacity: activeDemo === "Create Parallel Branches" ? 1 : 0,
 							}}
 							transition={{ duration: 0.3, ease: "easeOut" }}
-							style={{ pointerEvents: activeDemo === "Create Parallel Branches" ? "auto" : "none" }}
+							style={{
+								pointerEvents:
+									activeDemo === "Create Parallel Branches" ? "auto" : "none",
+							}}
 						>
 							<div className="text-foreground mb-3">
 								<span className="text-muted-foreground/60">❯</span>{" "}
@@ -619,11 +671,15 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							opacity: activeDemo === "See Changes" ? 0 : 1,
 						}}
 						transition={{ duration: 0.2, ease: "easeOut" }}
-						style={{ pointerEvents: activeDemo === "See Changes" ? "none" : "auto" }}
+						style={{
+							pointerEvents: activeDemo === "See Changes" ? "none" : "auto",
+						}}
 					>
 						{/* Header */}
 						<div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06]">
-							<span className="text-[10px] text-foreground/70">Review Changes</span>
+							<span className="text-[10px] text-foreground/70">
+								Review Changes
+							</span>
 							<div className="flex items-center gap-1 text-[10px]">
 								<LuGitPullRequest className="size-3.5 text-cyan-400/70" />
 								<span className="text-muted-foreground/60">#827</span>
@@ -674,66 +730,108 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						animate={{
 							opacity: activeDemo === "See Changes" ? 1 : 0,
 						}}
-						transition={{ duration: 0.3, ease: "easeOut", delay: activeDemo === "See Changes" ? 0.1 : 0 }}
-						style={{ pointerEvents: activeDemo === "See Changes" ? "auto" : "none" }}
+						transition={{
+							duration: 0.3,
+							ease: "easeOut",
+							delay: activeDemo === "See Changes" ? 0.1 : 0,
+						}}
+						style={{
+							pointerEvents: activeDemo === "See Changes" ? "auto" : "none",
+						}}
 					>
 						{/* PR Header */}
 						<div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.06]">
 							<div className="flex items-center gap-2">
 								<LuGitPullRequest className="size-4 text-emerald-400/80" />
-								<span className="text-sm text-foreground/80 font-medium">Review PR #827</span>
+								<span className="text-sm text-foreground/80 font-medium">
+									Review PR #827
+								</span>
 							</div>
-							<span className="text-xs text-emerald-400/80 px-2 py-0.5 bg-emerald-500/[0.08] rounded">Open</span>
+							<span className="text-xs text-emerald-400/80 px-2 py-0.5 bg-emerald-500/[0.08] rounded">
+								Open
+							</span>
 						</div>
 
 						{/* File tabs */}
 						<div className="flex items-center gap-1 px-3 py-2 border-b border-white/[0.06] text-xs">
-							<span className="px-2 py-1 bg-white/[0.06] rounded text-foreground/70">cloud-workspace.ts</span>
-							<span className="px-2 py-1 text-muted-foreground/50">enums.ts</span>
-							<span className="px-2 py-1 text-muted-foreground/50">+4 more</span>
+							<span className="px-2 py-1 bg-white/[0.06] rounded text-foreground/70">
+								cloud-workspace.ts
+							</span>
+							<span className="px-2 py-1 text-muted-foreground/50">
+								enums.ts
+							</span>
+							<span className="px-2 py-1 text-muted-foreground/50">
+								+4 more
+							</span>
 						</div>
 
 						{/* Diff content */}
 						<div className="flex-1 overflow-hidden p-3 font-mono text-[10px]">
 							<div className="space-y-0.5">
-								<div className="text-muted-foreground/40 py-1">@@ -1,4 +1,6 @@</div>
+								<div className="text-muted-foreground/40 py-1">
+									@@ -1,4 +1,6 @@
+								</div>
 								<div className="flex">
-									<span className="w-6 text-muted-foreground/25 shrink-0">1</span>
-									<span className="text-muted-foreground/60">import {"{"} db {"}"} from "../db"</span>
+									<span className="w-6 text-muted-foreground/25 shrink-0">
+										1
+									</span>
+									<span className="text-muted-foreground/60">
+										import {"{"} db {"}"} from "../db"
+									</span>
 								</div>
 								<div className="flex bg-emerald-500/[0.08]">
 									<span className="w-6 text-emerald-400/80 shrink-0">+</span>
-									<span className="text-emerald-400/80">import {"{"} CloudWorkspace {"}"} from "./types"</span>
+									<span className="text-emerald-400/80">
+										import {"{"} CloudWorkspace {"}"} from "./types"
+									</span>
 								</div>
 								<div className="flex bg-emerald-500/[0.08]">
 									<span className="w-6 text-emerald-400/80 shrink-0">+</span>
-									<span className="text-emerald-400/80">import {"{"} createSSHConnection {"}"} from "./ssh"</span>
+									<span className="text-emerald-400/80">
+										import {"{"} createSSHConnection {"}"} from "./ssh"
+									</span>
 								</div>
 								<div className="flex">
-									<span className="w-6 text-muted-foreground/25 shrink-0">2</span>
+									<span className="w-6 text-muted-foreground/25 shrink-0">
+										2
+									</span>
 									<span className="text-muted-foreground/60"></span>
 								</div>
 								<div className="flex bg-red-500/[0.08]">
 									<span className="w-6 text-red-400/80 shrink-0">-</span>
-									<span className="text-red-400/80">export const getWorkspaces = () ={">"} {"{"}</span>
+									<span className="text-red-400/80">
+										export const getWorkspaces = () ={">"} {"{"}
+									</span>
 								</div>
 								<div className="flex bg-emerald-500/[0.08]">
 									<span className="w-6 text-emerald-400/80 shrink-0">+</span>
-									<span className="text-emerald-400/80">export const getWorkspaces = async () ={">"} {"{"}</span>
+									<span className="text-emerald-400/80">
+										export const getWorkspaces = async () ={">"} {"{"}
+									</span>
 								</div>
 								<div className="flex">
-									<span className="w-6 text-muted-foreground/25 shrink-0">4</span>
-									<span className="text-muted-foreground/60">{"  "}return db.query.workspaces</span>
+									<span className="w-6 text-muted-foreground/25 shrink-0">
+										4
+									</span>
+									<span className="text-muted-foreground/60">
+										{"  "}return db.query.workspaces
+									</span>
 								</div>
 							</div>
 						</div>
 
 						{/* Review actions */}
 						<div className="px-3 py-2 border-t border-white/[0.06] flex items-center gap-2">
-							<button type="button" className="px-3 py-1.5 text-xs bg-emerald-500/[0.12] text-emerald-400/80 rounded hover:bg-emerald-500/20">
+							<button
+								type="button"
+								className="px-3 py-1.5 text-xs bg-emerald-500/[0.12] text-emerald-400/80 rounded hover:bg-emerald-500/20"
+							>
 								Approve
 							</button>
-							<button type="button" className="px-3 py-1.5 text-xs bg-white/[0.06] text-foreground/60 rounded hover:bg-white/[0.1]">
+							<button
+								type="button"
+								className="px-3 py-1.5 text-xs bg-white/[0.06] text-foreground/60 rounded hover:bg-white/[0.1]"
+							>
 								Comment
 							</button>
 						</div>
@@ -790,12 +888,30 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					{/* Code editor */}
 					<div className="flex-1 bg-black/20 p-4 text-sm font-mono overflow-hidden">
 						<div className="space-y-1.5 leading-relaxed">
-							<div><span className="text-purple-400/80">import</span> {"{"} Agent {"}"} <span className="text-purple-400/80">from</span> <span className="text-amber-300/80">"ai"</span></div>
-							<div><span className="text-purple-400/80">import</span> {"{"} tools {"}"} <span className="text-purple-400/80">from</span> <span className="text-amber-300/80">"./utils"</span></div>
+							<div>
+								<span className="text-purple-400/80">import</span> {"{"} Agent{" "}
+								{"}"} <span className="text-purple-400/80">from</span>{" "}
+								<span className="text-amber-300/80">"ai"</span>
+							</div>
+							<div>
+								<span className="text-purple-400/80">import</span> {"{"} tools{" "}
+								{"}"} <span className="text-purple-400/80">from</span>{" "}
+								<span className="text-amber-300/80">"./utils"</span>
+							</div>
 							<div className="text-muted-foreground/20">│</div>
-							<div><span className="text-purple-400/80">const</span> <span className="text-cyan-400/80">agent</span> = <span className="text-amber-400/80">new</span> Agent({"{"}</div>
-							<div className="pl-4"><span className="text-foreground/60">model:</span> <span className="text-amber-300/80">"claude-4"</span>,</div>
-							<div className="pl-4"><span className="text-foreground/60">tools:</span> [tools.read, tools.write]</div>
+							<div>
+								<span className="text-purple-400/80">const</span>{" "}
+								<span className="text-cyan-400/80">agent</span> ={" "}
+								<span className="text-amber-400/80">new</span> Agent({"{"}
+							</div>
+							<div className="pl-4">
+								<span className="text-foreground/60">model:</span>{" "}
+								<span className="text-amber-300/80">"claude-4"</span>,
+							</div>
+							<div className="pl-4">
+								<span className="text-foreground/60">tools:</span> [tools.read,
+								tools.write]
+							</div>
 							<div>{"}"})</div>
 						</div>
 					</div>

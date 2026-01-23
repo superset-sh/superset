@@ -8,7 +8,8 @@ import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
 
 export function ProductDemo() {
-	const [activeOption, setActiveOption] = useState<ActiveDemo>("Use Any Agents");
+	const [activeOption, setActiveOption] =
+		useState<ActiveDemo>("Use Any Agents");
 
 	return (
 		<div className="relative w-full max-w-full rounded-lg overflow-hidden">

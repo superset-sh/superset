@@ -125,7 +125,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.60",
+      "version": "0.0.61",
       "dependencies": {
         "@better-auth/stripe": "^1.4.17",
         "@dnd-kit/core": "^6.3.1",
@@ -318,6 +318,7 @@
         "react-fast-marquee": "^1.6.5",
         "react-icons": "^5.5.0",
         "require-in-the-middle": "8.0.1",
+        "simplex-noise": "^4.0.3",
         "stripe-gradient": "^1.0.1",
         "three": "^0.181.2",
         "zod": "^4.3.5",
@@ -4232,6 +4233,8 @@
     "simple-swizzle": ["simple-swizzle@0.2.4", "", { "dependencies": { "is-arrayish": "^0.3.1" } }, "sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw=="],
 
     "simple-update-notifier": ["simple-update-notifier@2.0.0", "", { "dependencies": { "semver": "^7.5.3" } }, "sha512-a2B9Y0KlNXl9u/vsW6sTIu9vGEpfKu2wRV6l1H3XEas/0gUIzGzBoP/IouTcUQbm9JWZLH3COxyn03TYlFax6w=="],
+
+    "simplex-noise": ["simplex-noise@4.0.3", "", {}, "sha512-qSE2I4AngLQG7BXqoZj51jokT4WUXe8mOBrvfOXpci8+6Yu44+/dD5zqDpOx3Ux792eamTd2lLcI8jqFntk/lg=="],
 
     "sisteransi": ["sisteransi@1.0.5", "", {}, "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg=="],
 
