@@ -45,4 +45,5 @@ export const POSTHOG_COOKIE_NAME = "superset";
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
+	BILLING_ENABLED: "billing-enabled",
 } as const;
