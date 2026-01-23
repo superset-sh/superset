@@ -14,6 +14,8 @@ import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 interface Branch {
 	name: string;
 	lastCommitDate: number;
+	isLocal: boolean;
+	isRemote: boolean;
 }
 
 interface BranchesSectionProps {
@@ -86,6 +88,11 @@ export function BranchesSection({
 										{branch.name === defaultBranch && (
 											<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 												default
+											</span>
+										)}
+										{!branch.isLocal && branch.isRemote && (
+											<span className="text-[10px] text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
+												remote
 											</span>
 										)}
 									</span>
