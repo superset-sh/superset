@@ -41,10 +41,6 @@ interface CreateWorkspaceFromWorktreeParams {
 	name: string;
 }
 
-/**
- * Creates a workspace record for an existing worktree.
- * Used when reopening a closed worktree or opening a PR that was already checked out.
- */
 function createWorkspaceFromWorktree({
 	projectId,
 	worktreeId,
@@ -71,9 +67,6 @@ function createWorkspaceFromWorktree({
 	return workspace;
 }
 
-/**
- * Gets workspace name for a PR (title or fallback to PR number).
- */
 function getPrWorkspaceName(prInfo: PullRequestInfo): string {
 	return prInfo.title || `PR #${prInfo.number}`;
 }
@@ -105,7 +98,6 @@ function handleExistingWorktree({
 	workspaceName,
 	setupConfig,
 }: HandleExistingWorktreeParams): PrWorkspaceResult {
-	// Check if there's already an active workspace for this worktree
 	const existingWorkspace = localDb
 		.select()
 		.from(workspaces)
@@ -118,7 +110,6 @@ function handleExistingWorktree({
 		.get();
 
 	if (existingWorkspace) {
-		// Workspace already open - just activate it
 		touchWorkspace(existingWorkspace.id);
 		setLastActiveWorkspace(existingWorkspace.id);
 
@@ -133,7 +124,6 @@ function handleExistingWorktree({
 		};
 	}
 
-	// Worktree exists but no active workspace - reopen it
 	const workspace = createWorkspaceFromWorktree({
 		projectId: project.id,
 		worktreeId: existingWorktree.id,
@@ -177,7 +167,6 @@ async function handleNewWorktree({
 	workspaceName,
 	setupConfig,
 }: HandleNewWorktreeParams): Promise<PrWorkspaceResult> {
-	// Check if the branch is checked out elsewhere on disk
 	const existingWorktreePath = await getBranchWorktreePath({
 		mainRepoPath: project.mainRepoPath,
 		branch: localBranchName,
@@ -188,7 +177,6 @@ async function handleNewWorktree({
 		);
 	}
 
-	// Fetch the PR branch (handles forks)
 	await fetchPrBranch({
 		repoPath: project.mainRepoPath,
 		prInfo,
@@ -202,7 +190,6 @@ async function handleNewWorktree({
 		localBranchName,
 	);
 
-	// Create the worktree on disk
 	await createWorktreeFromPr({
 		mainRepoPath: project.mainRepoPath,
 		worktreePath,
@@ -212,7 +199,6 @@ async function handleNewWorktree({
 
 	const defaultBranch = project.defaultBranch || "main";
 
-	// Insert worktree record
 	const worktree = localDb
 		.insert(worktrees)
 		.values({
@@ -225,7 +211,6 @@ async function handleNewWorktree({
 		.returning()
 		.get();
 
-	// Create workspace record
 	const workspace = createWorkspaceFromWorktree({
 		projectId: project.id,
 		worktreeId: worktree.id,
@@ -244,7 +229,6 @@ async function handleNewWorktree({
 		is_fork: prInfo.isCrossRepository,
 	});
 
-	// Start background initialization
 	workspaceInitManager.startJob(workspace.id, project.id);
 	initializeWorkspaceWorktree({
 		workspaceId: workspace.id,
@@ -279,7 +263,6 @@ export const createCreateProcedures = () => {
 					name: z.string().optional(),
 					branchName: z.string().optional(),
 					baseBranch: z.string().optional(),
-					/** If true, use an existing branch instead of creating a new one */
 					useExistingBranch: z.boolean().optional(),
 				}),
 			)
@@ -293,7 +276,6 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				// Validation for existing branch mode
 				let existingBranchName: string | undefined;
 				if (input.useExistingBranch) {
 					existingBranchName = input.branchName?.trim();
@@ -338,13 +320,9 @@ export const createCreateProcedures = () => {
 					branch,
 				);
 
-				// Use cached defaultBranch for fast path, will refresh in background
-				// If no cached value exists, use "main" as fallback (background will verify)
 				const defaultBranch = project.defaultBranch || "main";
 				const targetBranch = input.baseBranch || defaultBranch;
 
-				// Insert worktree record immediately (before git operations)
-				// gitStatus will be updated when initialization completes
 				const worktree = localDb
 					.insert(worktrees)
 					.values({
@@ -352,7 +330,7 @@ export const createCreateProcedures = () => {
 						path: worktreePath,
 						branch,
 						baseBranch: targetBranch,
-						gitStatus: null, // Will be set when init completes
+						gitStatus: null,
 					})
 					.returning()
 					.get();
@@ -375,7 +353,6 @@ export const createCreateProcedures = () => {
 				setLastActiveWorkspace(workspace.id);
 				activateProject(project);
 
-				// Track workspace creation (not initialization - that's tracked when it completes)
 				track("workspace_created", {
 					workspace_id: workspace.id,
 					project_id: project.id,
@@ -385,8 +362,6 @@ export const createCreateProcedures = () => {
 				});
 
 				workspaceInitManager.startJob(workspace.id, input.projectId);
-
-				// Start background initialization (DO NOT await - return immediately)
 				initializeWorkspaceWorktree({
 					workspaceId: workspace.id,
 					projectId: input.projectId,
@@ -399,7 +374,6 @@ export const createCreateProcedures = () => {
 					useExistingBranch: input.useExistingBranch,
 				});
 
-				// Load setup configuration (fast operation, can return with response)
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 				return {
@@ -435,7 +409,6 @@ export const createCreateProcedures = () => {
 					throw new Error("Could not determine current branch");
 				}
 
-				// If a specific branch was requested, check for conflict before checkout
 				if (input.branch) {
 					const existingBranchWorkspace = getBranchWorkspace(input.projectId);
 					if (
@@ -463,10 +436,6 @@ export const createCreateProcedures = () => {
 					};
 				}
 
-				// Insert new workspace first with conflict handling for race conditions
-				// The unique partial index (projectId WHERE type='branch') prevents duplicates
-				// We insert first, then shift - this prevents race conditions where
-				// concurrent calls both shift before either inserts (causing double shifts)
 				const insertResult = localDb
 					.insert(workspaces)
 					.values({
@@ -482,8 +451,6 @@ export const createCreateProcedures = () => {
 
 				const wasExisting = insertResult.length === 0;
 
-				// Only shift existing workspaces if we successfully inserted
-				// Losers of the race should NOT shift (they didn't create anything)
 				if (!wasExisting) {
 					const newWorkspaceId = insertResult[0].id;
 					const projectWorkspaces = localDb
@@ -507,8 +474,6 @@ export const createCreateProcedures = () => {
 					}
 				}
 
-				// If insert returned nothing, another concurrent call won the race
-				// Fetch the existing workspace instead
 				const workspace =
 					insertResult[0] ?? getBranchWorkspace(input.projectId);
 
@@ -518,7 +483,6 @@ export const createCreateProcedures = () => {
 
 				setLastActiveWorkspace(workspace.id);
 
-				// Update project (only if we actually inserted a new workspace)
 				if (!wasExisting) {
 					activateProject(project);
 
@@ -641,7 +605,6 @@ export const createCreateProcedures = () => {
 				const workspaceName = getPrWorkspaceName(prInfo);
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
-				// Check if we already have a worktree for this branch
 				const existingWorktree = localDb
 					.select()
 					.from(worktrees)

@@ -1033,11 +1033,9 @@ export async function listBranches(
 		}
 	}
 
-	// Get local branches
 	const localResult = await git.branchLocal();
 	const local = localResult.all;
 
-	// Get remote branches (strip "origin/" prefix)
 	const remoteResult = await git.branch(["-r"]);
 	const remote = remoteResult.all
 		.filter((b) => b.startsWith("origin/") && !b.includes("->"))
@@ -1153,23 +1151,19 @@ export async function checkoutBranch(
 ): Promise<void> {
 	const git = simpleGit(repoPath);
 
-	// Check if branch exists locally
 	const localBranches = await git.branchLocal();
 	if (localBranches.all.includes(branch)) {
 		await git.checkout(branch);
 		return;
 	}
 
-	// Branch doesn't exist locally - check if it exists on remote and create tracking branch
 	const remoteBranches = await git.branch(["-r"]);
 	const remoteBranchName = `origin/${branch}`;
 	if (remoteBranches.all.includes(remoteBranchName)) {
-		// Create local branch tracking the remote
 		await git.checkout(["-b", branch, "--track", remoteBranchName]);
 		return;
 	}
 
-	// Branch doesn't exist anywhere - let git checkout fail with its normal error
 	await git.checkout(branch);
 }
 
@@ -1220,22 +1214,18 @@ export async function safeCheckoutBranch(
 	repoPath: string,
 	branch: string,
 ): Promise<void> {
-	// Check if we're already on the target branch - no checkout needed
 	const currentBranch = await getCurrentBranch(repoPath);
 	if (currentBranch === branch) {
 		return;
 	}
 
-	// Run safety checks before switching branches
 	const safety = await checkBranchCheckoutSafety(repoPath);
 	if (!safety.safe) {
 		throw new Error(safety.error);
 	}
 
-	// Proceed with checkout
 	await checkoutBranch(repoPath, branch);
 
-	// Verify we landed on the correct branch
 	const verifyBranch = await getCurrentBranch(repoPath);
 	if (verifyBranch !== branch) {
 		throw new Error(
@@ -1384,36 +1374,29 @@ export async function fetchPrBranch({
 	const env = await getGitEnv();
 
 	if (prInfo.isCrossRepository) {
-		// PR is from a fork - add the fork as a remote and fetch
 		const forkOwner = prInfo.headRepositoryOwner.login;
 		const remoteName = forkOwner.toLowerCase();
 		const forkRepo = prInfo.headRepository.name;
 		const headBranch = prInfo.headRefName;
 
-		// Check if remote already exists
 		const remotes = await git.getRemotes();
 		const remoteExists = remotes.some((r) => r.name === remoteName);
 
 		if (!remoteExists) {
-			// Add the fork as a remote
 			const forkUrl = `https://github.com/${forkOwner}/${forkRepo}.git`;
 			await git.addRemote(remoteName, forkUrl);
 			console.log(`[git] Added remote ${remoteName} -> ${forkUrl}`);
 		}
 
-		// Fetch the specific branch from the fork
 		await execFileAsync(
 			"git",
 			["-C", repoPath, "fetch", remoteName, headBranch],
 			{ env, timeout: 120_000 },
 		);
 
-		// Return a namespaced branch name to avoid conflicts
-		// e.g., "fork-owner/feature-branch"
 		return `${remoteName}/${headBranch}`;
 	}
 
-	// PR is from the same repo - just fetch origin
 	await execFileAsync(
 		"git",
 		["-C", repoPath, "fetch", "origin", prInfo.headRefName],
@@ -1448,19 +1431,16 @@ export async function createWorktreeFromPr({
 		const localBranches = await git.branchLocal();
 
 		if (prInfo.isCrossRepository) {
-			// For fork PRs, the branch is on the fork remote
 			const forkOwner = prInfo.headRepositoryOwner.login.toLowerCase();
 			const remoteBranch = `${forkOwner}/${prInfo.headRefName}`;
 
 			if (localBranches.all.includes(localBranchName)) {
-				// Branch already exists locally - just checkout
 				await execFileAsync(
 					"git",
 					["-C", mainRepoPath, "worktree", "add", worktreePath, localBranchName],
 					{ env, timeout: 120_000 },
 				);
 			} else {
-				// Create worktree with a new local branch tracking the fork's branch
 				await execFileAsync(
 					"git",
 					[
@@ -1477,9 +1457,7 @@ export async function createWorktreeFromPr({
 				);
 			}
 		} else {
-			// For same-repo PRs, check if branch exists locally
 			if (localBranches.all.includes(prInfo.headRefName)) {
-				// Branch exists locally - just checkout
 				await execFileAsync(
 					"git",
 					[
@@ -1493,7 +1471,6 @@ export async function createWorktreeFromPr({
 					{ env, timeout: 120_000 },
 				);
 			} else {
-				// Create local branch tracking remote
 				await execFileAsync(
 					"git",
 					[

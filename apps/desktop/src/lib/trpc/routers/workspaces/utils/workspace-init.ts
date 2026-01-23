@@ -65,10 +65,8 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Fast path for existing branch - skip all base branch verification
 		if (useExistingBranch) {
 			if (skipWorktreeCreation) {
-				// Worktree already created (e.g., from PR checkout)
 				manager.markWorktreeCreated(workspaceId);
 			} else {
 				manager.updateProgress(
@@ -96,7 +94,6 @@ export async function initializeWorkspaceWorktree({
 				return;
 			}
 
-			// Copy config
 			manager.updateProgress(
 				workspaceId,
 				"copying_config",
@@ -116,7 +113,6 @@ export async function initializeWorkspaceWorktree({
 				return;
 			}
 
-			// Finalize
 			manager.updateProgress(workspaceId, "finalizing", "Finalizing setup...");
 			localDb
 				.update(worktrees)
@@ -143,14 +139,11 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Step 1: Sync with remote
 		manager.updateProgress(workspaceId, "syncing", "Syncing with remote...");
 		const remoteDefaultBranch = await refreshDefaultBranch(mainRepoPath);
 
-		// Track the effective baseBranch - may be updated if auto-derived and remote differs
 		let effectiveBaseBranch = baseBranch;
 
-		// Update project's default branch if it changed
 		if (remoteDefaultBranch) {
 			const project = localDb
 				.select()
@@ -184,7 +177,6 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Step 2: Verify remote and branch
 		manager.updateProgress(
 			workspaceId,
 			"verifying",
@@ -192,11 +184,9 @@ export async function initializeWorkspaceWorktree({
 		);
 		const hasRemote = await hasOriginRemote(mainRepoPath);
 
-		// Helper to resolve local ref with proper fallback order
 		const resolveLocalStartPoint = async (
 			reason: string,
 		): Promise<string | null> => {
-			// Fallback order: origin/<branch> (local tracking) > local branch > fail
 			const originRef = `origin/${effectiveBaseBranch}`;
 			if (await refExistsLocally(mainRepoPath, originRef)) {
 				console.log(
@@ -221,13 +211,11 @@ export async function initializeWorkspaceWorktree({
 			);
 
 			if (branchCheck.status === "error") {
-				// Network/auth error - can't verify, surface to user and try local fallback
 				const sanitizedError = sanitizeGitError(branchCheck.message);
 				console.warn(
 					`[workspace-init] Cannot verify remote branch: ${sanitizedError}. Falling back to local ref.`,
 				);
 
-				// Update progress to inform user about the network issue
 				manager.updateProgress(
 					workspaceId,
 					"verifying",
@@ -255,11 +243,9 @@ export async function initializeWorkspaceWorktree({
 				);
 				return;
 			} else {
-				// Branch exists on remote - use remote tracking ref
 				startPoint = `origin/${effectiveBaseBranch}`;
 			}
 		} else {
-			// No remote configured - use local fallback logic
 			const localRef = await resolveLocalStartPoint("No remote configured");
 			if (!localRef) {
 				manager.updateProgress(
@@ -277,7 +263,6 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Step 3: Fetch latest
 		manager.updateProgress(
 			workspaceId,
 			"fetching",
@@ -295,7 +280,6 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Step 4: Create worktree (SLOW)
 		manager.updateProgress(
 			workspaceId,
 			"creating_worktree",
@@ -305,7 +289,6 @@ export async function initializeWorkspaceWorktree({
 		manager.markWorktreeCreated(workspaceId);
 
 		if (manager.isCancellationRequested(workspaceId)) {
-			// Cleanup: remove the worktree we just created
 			try {
 				await removeWorktree(mainRepoPath, worktreePath);
 			} catch (e) {
@@ -317,7 +300,6 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Step 5: Copy config
 		manager.updateProgress(
 			workspaceId,
 			"copying_config",
@@ -337,10 +319,8 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Step 6: Finalize
 		manager.updateProgress(workspaceId, "finalizing", "Finalizing setup...");
 
-		// Update worktree record with git status
 		localDb
 			.update(worktrees)
 			.set({
@@ -368,7 +348,6 @@ export async function initializeWorkspaceWorktree({
 			errorMessage,
 		);
 
-		// Best-effort cleanup if worktree was created
 		if (manager.wasWorktreeCreated(workspaceId)) {
 			try {
 				await removeWorktree(mainRepoPath, worktreePath);
