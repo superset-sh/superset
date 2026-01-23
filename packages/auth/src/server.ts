@@ -26,25 +26,22 @@ import { resend } from "./lib/resend";
 
 const stripeClient = new Stripe(env.STRIPE_SECRET_KEY);
 
-// Helper to get organization owners
+// Helper to get organization owners (single query with JOIN)
 async function getOrganizationOwners(organizationId: string) {
-	const ownerMembers = await db.query.members.findMany({
-		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.role, "owner"),
-		),
-	});
-
-	const owners = await Promise.all(
-		ownerMembers.map(async (member) => {
-			const user = await db.query.users.findFirst({
-				where: eq(authSchema.users.id, member.userId),
-			});
-			return user;
-		}),
-	);
-
-	return owners.filter((owner) => owner !== undefined);
+	return db
+		.select({
+			id: authSchema.users.id,
+			name: authSchema.users.name,
+			email: authSchema.users.email,
+		})
+		.from(members)
+		.innerJoin(authSchema.users, eq(members.userId, authSchema.users.id))
+		.where(
+			and(
+				eq(members.organizationId, organizationId),
+				eq(members.role, "owner"),
+			),
+		);
 }
 
 // Helper to format price from Stripe subscription
@@ -559,7 +556,7 @@ export const auth = betterAuth({
 					);
 				},
 
-				onSubscriptionCancel: async ({ subscription, stripeSubscription }) => {
+				onSubscriptionCancel: async ({ subscription }) => {
 					// Get organization info
 					const org = await db.query.organizations.findFirst({
 						where: eq(authSchema.organizations.id, subscription.referenceId),
@@ -570,14 +567,8 @@ export const auth = betterAuth({
 					// Get owners to send email
 					const owners = await getOrganizationOwners(subscription.referenceId);
 
-					// Get the end date from Stripe subscription
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					const periodEnd = (stripeSubscription as any).current_period_end as
-						| number
-						| undefined;
-					const accessEndsAt = periodEnd
-						? new Date(periodEnd * 1000)
-						: new Date();
+					// Use periodEnd from our DB subscription record
+					const accessEndsAt = subscription.periodEnd ?? new Date();
 
 					// Create billing portal session for resubscribe link
 					const portalSession =
@@ -607,19 +598,19 @@ export const auth = betterAuth({
 				onEvent: async (event: Stripe.Event) => {
 					// Handle payment failed events
 					if (event.type === "invoice.payment_failed") {
-						const invoice = event.data.object as {
-							customer: string;
-							amount_due: number;
-							currency: string;
-							subscription?: string;
-						};
+						const invoice = event.data.object as Stripe.Invoice;
+
+						// invoice.customer can be string | Customer | DeletedCustomer | null
+						const customerId =
+							typeof invoice.customer === "string"
+								? invoice.customer
+								: invoice.customer?.id;
+
+						if (!customerId) return;
 
 						// Find the organization by Stripe customer ID
 						const org = await db.query.organizations.findFirst({
-							where: eq(
-								authSchema.organizations.stripeCustomerId,
-								invoice.customer,
-							),
+							where: eq(authSchema.organizations.stripeCustomerId, customerId),
 						});
 
 						if (!org?.stripeCustomerId) return;
