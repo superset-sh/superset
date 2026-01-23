@@ -4,9 +4,9 @@ import { COMPANY } from "@superset/shared/constants";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
+import { ShaderAnimation } from "../../../components/ui/shader-animation";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
-import { GridBackground } from "./components/GridBackground";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
@@ -16,7 +16,7 @@ export function HeroSection() {
 	return (
 		<div>
 			<div className="flex mt-14 min-h-[calc(100vh-64px)] items-center overflow-hidden">
-				<GridBackground />
+				<ShaderAnimation opacity={0.01} speed={0.005} intensity={0.00015} />
 
 				<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
 					<div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-12 lg:gap-16 items-center">
@@ -38,7 +38,8 @@ export function HeroSection() {
 									/>
 								</h1>
 								<p className="text-md sm:text-lg font-light text-muted-foreground max-w-[400px]">
-									Run dozens of Claude Code, Codex, or any other in parallel.
+									Orchestrate a team of Claude Code, Codex, or any other coding
+									agents
 								</p>
 							</div>
 
