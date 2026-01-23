@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { PlansComparison } from "../components/PlansComparison";
 
 export const Route = createFileRoute("/_authenticated/settings/billing/plans/")(
@@ -8,5 +9,11 @@ export const Route = createFileRoute("/_authenticated/settings/billing/plans/")(
 );
 
 function PlansPage() {
+	const billingEnabled = useFeatureFlagEnabled("billing-enabled");
+
+	if (!billingEnabled) {
+		return <Navigate to="/settings/account" />;
+	}
+
 	return <PlansComparison />;
 }

@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { getMatchingItemsForSection } from "../utils/settings-search";
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/_authenticated/settings/billing/")({
 
 function BillingPage() {
 	const searchQuery = useSettingsSearchQuery();
+	const billingEnabled = useFeatureFlagEnabled("billing-enabled");
 
 	const visibleItems = useMemo(() => {
 		if (!searchQuery) return null;
@@ -17,6 +19,10 @@ function BillingPage() {
 			(item) => item.id,
 		);
 	}, [searchQuery]);
+
+	if (!billingEnabled) {
+		return <Navigate to="/settings/account" />;
+	}
 
 	return <BillingOverview visibleItems={visibleItems} />;
 }
