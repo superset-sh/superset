@@ -5,8 +5,13 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useState } from "react";
-import { HiOutlineCloud, HiOutlineCloudArrowUp } from "react-icons/hi2";
+import {
+	HiOutlineCloud,
+	HiOutlineCloudArrowUp,
+	HiOutlineGlobeAlt,
+} from "react-icons/hi2";
 import { LuLoader } from "react-icons/lu";
+import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -73,16 +78,34 @@ export function CloudWorkspaceButton({
 		}
 	};
 
+	const handleOpenInWeb = () => {
+		if (cloudWorkspaceId) {
+			window.open(
+				`${env.NEXT_PUBLIC_WEB_URL}/cloud/workspace/${cloudWorkspaceId}`,
+				"_blank",
+			);
+		}
+	};
+
 	if (cloudWorkspaceId) {
 		return (
-			<button
-				type="button"
-				className="no-drag flex items-center gap-1.5 h-6 px-2 rounded border border-border/60 bg-secondary/50 text-xs font-medium text-muted-foreground cursor-default"
-				title="Linked to cloud workspace"
-			>
-				<HiOutlineCloud className="h-3.5 w-3.5 text-green-500" />
-				<span>Cloud</span>
-			</button>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<button
+						type="button"
+						className="no-drag flex items-center gap-1.5 h-6 px-2 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring text-xs font-medium"
+					>
+						<HiOutlineCloud className="h-3.5 w-3.5 text-green-500" />
+						<span>Cloud</span>
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="w-48">
+					<DropdownMenuItem onSelect={handleOpenInWeb}>
+						<HiOutlineGlobeAlt className="h-4 w-4" />
+						<span>Open in web</span>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 		);
 	}
 

@@ -3,6 +3,7 @@
 import { Badge } from "@superset/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Cloud, GitBranch } from "lucide-react";
+import Link from "next/link";
 import { useTRPC } from "@/trpc/react";
 
 export function WorkspaceList() {
@@ -41,9 +42,10 @@ export function WorkspaceList() {
 	return (
 		<div className="space-y-2">
 			{workspaces.map((workspace) => (
-				<div
+				<Link
 					key={workspace.id}
-					className="flex items-center justify-between rounded-lg border p-4"
+					href={`/cloud/workspace/${workspace.id}`}
+					className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
 				>
 					<div className="flex items-center gap-3">
 						<Cloud className="size-5 text-muted-foreground" />
@@ -59,7 +61,7 @@ export function WorkspaceList() {
 						</div>
 					</div>
 					<Badge variant="outline">Active</Badge>
-				</div>
+				</Link>
 			))}
 		</div>
 	);
