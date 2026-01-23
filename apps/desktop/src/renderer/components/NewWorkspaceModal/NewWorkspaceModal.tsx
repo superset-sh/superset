@@ -197,7 +197,7 @@ export function NewWorkspaceModal() {
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent
-				className="sm:max-w-[380px] gap-0 p-0 overflow-hidden"
+				className="sm:max-w-[440px] gap-0 p-0 overflow-hidden"
 				onKeyDown={handleKeyDown}
 			>
 				<DialogHeader className="px-4 pt-4 pb-3">
