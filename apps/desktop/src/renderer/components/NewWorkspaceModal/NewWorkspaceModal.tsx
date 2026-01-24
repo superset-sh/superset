@@ -158,7 +158,7 @@ export function NewWorkspaceModal() {
 	};
 
 	const handleBranchNameChange = (value: string) => {
-		setBranchName(value);
+		setBranchName(generateBranchFromTitle(value));
 		setBranchNameEdited(true);
 	};
 
