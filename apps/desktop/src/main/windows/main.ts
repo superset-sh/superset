@@ -40,7 +40,8 @@ function getWindowAppearanceSettings() {
 			backgroundMaterial:
 				row?.windowBackgroundMaterial ?? DEFAULT_WINDOW_BACKGROUND_MATERIAL,
 		};
-	} catch {
+	} catch (error) {
+		console.error("[window/appearance] Failed to load settings:", error);
 		return {
 			opacity: DEFAULT_WINDOW_OPACITY,
 			vibrancy: DEFAULT_WINDOW_VIBRANCY,

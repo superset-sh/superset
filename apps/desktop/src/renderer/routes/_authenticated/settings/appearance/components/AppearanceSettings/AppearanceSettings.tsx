@@ -110,7 +110,8 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			utils.settings.getWindowOpacity.setData(undefined, opacity);
 			return { previous };
 		},
-		onError: (_err, _vars, context) => {
+		onError: (err, _vars, context) => {
+			console.error("[appearance/opacity] Failed to save:", err);
 			if (context?.previous !== undefined) {
 				utils.settings.getWindowOpacity.setData(undefined, context.previous);
 			}
@@ -132,7 +133,8 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				utils.settings.getWindowVibrancy.setData(undefined, vibrancy);
 				return { previous };
 			},
-			onError: (_err, _vars, context) => {
+			onError: (err, _vars, context) => {
+				console.error("[appearance/vibrancy] Failed to save:", err);
 				if (context?.previous !== undefined) {
 					utils.settings.getWindowVibrancy.setData(undefined, context.previous);
 				}
@@ -155,7 +157,8 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				utils.settings.getWindowBackgroundMaterial.setData(undefined, material);
 				return { previous };
 			},
-			onError: (_err, _vars, context) => {
+			onError: (err, _vars, context) => {
+				console.error("[appearance/material] Failed to save:", err);
 				if (context?.previous !== undefined) {
 					utils.settings.getWindowBackgroundMaterial.setData(
 						undefined,
