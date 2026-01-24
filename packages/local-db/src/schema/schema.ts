@@ -7,6 +7,8 @@ import type {
 	GitStatus,
 	TerminalLinkBehavior,
 	TerminalPreset,
+	WindowBackgroundMaterial,
+	WindowVibrancy,
 	WorkspaceType,
 } from "./zod";
 
@@ -142,6 +144,12 @@ export const settings = sqliteTable("settings", {
 	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),
+	// Window appearance settings
+	windowOpacity: integer("window_opacity"), // 0-100 (stored as percentage)
+	windowVibrancy: text("window_vibrancy").$type<WindowVibrancy>(),
+	windowBackgroundMaterial: text(
+		"window_background_material",
+	).$type<WindowBackgroundMaterial>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

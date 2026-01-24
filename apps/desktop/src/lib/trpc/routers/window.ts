@@ -1,7 +1,12 @@
 import { homedir } from "node:os";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
+import { z } from "zod";
 import { publicProcedure, router } from "..";
+import {
+	WINDOW_BACKGROUND_MATERIALS,
+	WINDOW_VIBRANCY_OPTIONS,
+} from "@superset/local-db";
 
 /**
  * Window router for window controls
@@ -84,6 +89,41 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 
 			return { canceled: false, dataUrl };
 		}),
+
+		setOpacity: publicProcedure
+			.input(z.object({ opacity: z.number().min(20).max(100) }))
+			.mutation(({ input }) => {
+				const window = getWindow();
+				if (!window) return { success: false };
+				// Convert from 0-100 percentage to 0-1 range
+				window.setOpacity(input.opacity / 100);
+				return { success: true };
+			}),
+
+		setVibrancy: publicProcedure
+			.input(z.object({ vibrancy: z.enum(WINDOW_VIBRANCY_OPTIONS) }))
+			.mutation(({ input }) => {
+				const window = getWindow();
+				if (!window) return { success: false };
+				if (process.platform !== "darwin") {
+					return { success: false, reason: "vibrancy is only supported on macOS" };
+				}
+				// "none" means no vibrancy - pass null to Electron
+				window.setVibrancy(input.vibrancy === "none" ? null : input.vibrancy);
+				return { success: true };
+			}),
+
+		setBackgroundMaterial: publicProcedure
+			.input(z.object({ material: z.enum(WINDOW_BACKGROUND_MATERIALS) }))
+			.mutation(({ input }) => {
+				const window = getWindow();
+				if (!window) return { success: false };
+				if (process.platform !== "win32") {
+					return { success: false, reason: "backgroundMaterial is only supported on Windows" };
+				}
+				window.setBackgroundMaterial(input.material);
+				return { success: true };
+			}),
 	});
 };
 

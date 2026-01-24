@@ -108,3 +108,42 @@ export const TERMINAL_LINK_BEHAVIORS = [
 ] as const;
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
+
+/**
+ * Window vibrancy options (macOS)
+ * @see https://www.electronjs.org/docs/latest/api/browser-window#winsetvibrancytype-macos
+ */
+export const WINDOW_VIBRANCY_OPTIONS = [
+	"none",
+	"titlebar",
+	"selection",
+	"menu",
+	"popover",
+	"sidebar",
+	"header",
+	"sheet",
+	"window",
+	"hud",
+	"fullscreen-ui",
+	"tooltip",
+	"content",
+	"under-window",
+	"under-page",
+] as const;
+
+export type WindowVibrancy = (typeof WINDOW_VIBRANCY_OPTIONS)[number];
+
+/**
+ * Window background material options (Windows 11)
+ * @see https://www.electronjs.org/docs/latest/api/browser-window#winsetbackgroundmaterialmaterial-windows
+ */
+export const WINDOW_BACKGROUND_MATERIALS = [
+	"none",
+	"auto",
+	"mica",
+	"acrylic",
+	"tabbed",
+] as const;
+
+export type WindowBackgroundMaterial =
+	(typeof WINDOW_BACKGROUND_MATERIALS)[number];

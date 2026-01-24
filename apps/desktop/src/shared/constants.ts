@@ -54,6 +54,11 @@ export const DEFAULT_CONFIRM_ON_QUIT = true;
 export const DEFAULT_TERMINAL_LINK_BEHAVIOR = "external-editor" as const;
 export const DEFAULT_TERMINAL_PERSISTENCE = true;
 
+// Window appearance defaults
+export const DEFAULT_WINDOW_OPACITY = 100; // 0-100
+export const DEFAULT_WINDOW_VIBRANCY = "none" as const;
+export const DEFAULT_WINDOW_BACKGROUND_MATERIAL = "none" as const;
+
 // External links (documentation, help resources, etc.)
 export const EXTERNAL_LINKS = {
 	SETUP_TEARDOWN_SCRIPTS: `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`,
