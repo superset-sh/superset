@@ -26,6 +26,21 @@ function GridCross({ className }: { className?: string }) {
 	);
 }
 
+function AuthorAvatar({ name }: { name: string }) {
+	const initials = name
+		.split(" ")
+		.map((n) => n[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+
+	return (
+		<div className="size-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-foreground/70">
+			{initials}
+		</div>
+	);
+}
+
 export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 	const formattedDate = new Date(post.date).toLocaleDateString("en-US", {
 		year: "numeric",
@@ -47,7 +62,7 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 
 			{/* Hero header */}
 			<header className="relative border-b border-border">
-				<div className="max-w-3xl mx-auto px-6 py-20 md:py-28">
+				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12">
 					{/* Grid crosses */}
 					<GridCross className="top-0 left-0" />
 					<GridCross className="top-0 right-0" />
@@ -57,17 +72,18 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 							{post.category}
 						</span>
 
-						<h1 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-foreground mt-6 mb-6">
+						<h1 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-foreground mt-4 mb-4">
 							{post.title}
 						</h1>
 
 						{post.description && (
-							<p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
+							<p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
 								{post.description}
 							</p>
 						)}
 
 						<div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+							<AuthorAvatar name={post.author} />
 							<span className="text-foreground/70">{post.author}</span>
 							<span className="text-muted-foreground/50">·</span>
 							<time dateTime={post.date}>{formattedDate}</time>
@@ -84,7 +100,7 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 
 			{/* Back link section */}
 			<div className="relative border-b border-border">
-				<div className="max-w-3xl mx-auto px-6 py-6">
+				<div className="max-w-3xl mx-auto px-6 py-4">
 					<Link
 						href="/blog"
 						className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -96,7 +112,7 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 			</div>
 
 			{/* Content */}
-			<div className="relative max-w-3xl mx-auto px-6 py-16">
+			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				<div className="prose max-w-none">
 					{children}
 				</div>
@@ -108,7 +124,7 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 					<GridCross className="top-0 left-0" />
 					<GridCross className="top-0 right-0" />
 				</div>
-				<div className="max-w-3xl mx-auto px-6 py-12">
+				<div className="max-w-3xl mx-auto px-6 py-10">
 					<Link
 						href="/blog"
 						className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"

@@ -34,7 +34,7 @@ export default async function BlogPage() {
 
 			{/* Header section */}
 			<header className="relative border-b border-border">
-				<div className="max-w-3xl mx-auto px-6 py-20 md:py-28 relative">
+				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 relative">
 					<GridCross className="top-0 left-0" />
 					<GridCross className="top-0 right-0" />
 
@@ -44,7 +44,7 @@ export default async function BlogPage() {
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
 						News & Updates
 					</h1>
-					<p className="text-muted-foreground mt-4 max-w-lg">
+					<p className="text-muted-foreground mt-3 max-w-lg">
 						Insights from the Superset team about parallel coding agents and developer productivity.
 					</p>
 
@@ -54,7 +54,7 @@ export default async function BlogPage() {
 			</header>
 
 			{/* Posts section */}
-			<div className="relative max-w-3xl mx-auto px-6 py-16">
+			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				{posts.length === 0 ? (
 					<p className="text-muted-foreground">No posts yet.</p>
 				) : (
