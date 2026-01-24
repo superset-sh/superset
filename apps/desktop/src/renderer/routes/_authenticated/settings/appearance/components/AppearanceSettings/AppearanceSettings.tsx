@@ -273,7 +273,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 							<div className="flex items-center gap-4">
 								<Slider
 									value={[windowOpacity ?? 100]}
-									min={20}
+									min={0}
 									max={100}
 									step={5}
 									onValueChange={handleOpacityChange}
@@ -283,6 +283,9 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 									{windowOpacity ?? 100}%
 								</span>
 							</div>
+							<p className="text-xs text-muted-foreground mt-2">
+								Only affects the window frame, not the content inside.
+							</p>
 						</div>
 					</div>
 				)}

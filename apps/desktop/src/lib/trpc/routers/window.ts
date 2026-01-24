@@ -91,7 +91,7 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 		}),
 
 		setOpacity: publicProcedure
-			.input(z.object({ opacity: z.number().min(20).max(100) }))
+			.input(z.object({ opacity: z.number().min(0).max(100) }))
 			.mutation(({ input }) => {
 				const window = getWindow();
 				if (!window) return { success: false };

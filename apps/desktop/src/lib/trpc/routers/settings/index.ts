@@ -279,7 +279,7 @@ export const createSettingsRouter = () => {
 		}),
 
 		setWindowOpacity: publicProcedure
-			.input(z.object({ opacity: z.number().min(20).max(100) }))
+			.input(z.object({ opacity: z.number().min(0).max(100) }))
 			.mutation(({ input }) => {
 				localDb
 					.insert(settings)
