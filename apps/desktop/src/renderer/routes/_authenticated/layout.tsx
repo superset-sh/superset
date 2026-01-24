@@ -17,6 +17,7 @@ import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID } from "shared/constants";
+import { AgentHooks } from "./components/AgentHooks";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -32,7 +33,7 @@ function AuthenticatedLayout() {
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 
-	// Global hooks and subscriptions
+	// Global hooks and subscriptions (these don't need CollectionsProvider)
 	useAgentHookListener();
 	useUpdateListener();
 	useHotkeysSync();
@@ -76,6 +77,7 @@ function AuthenticatedLayout() {
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
+				<AgentHooks />
 				<Outlet />
 				<WorkspaceInitEffects />
 				<NewWorkspaceModal />

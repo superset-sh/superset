@@ -1,5 +1,7 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
+	SelectAgentCommand,
+	SelectDevicePresence,
 	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
@@ -27,6 +29,8 @@ interface OrgCollections {
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
 	invitations: Collection<SelectInvitation>;
+	agentCommands: Collection<SelectAgentCommand>;
+	devicePresence: Collection<SelectDevicePresence>;
 }
 
 // Per-org collections cache
@@ -196,7 +200,64 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	return { tasks, taskStatuses, repositories, members, users, invitations };
+	const agentCommands = createCollection(
+		electricCollectionOptions<SelectAgentCommand>({
+			id: `agent_commands-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "agent_commands",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				if (!changes.status) {
+					return { txid: Date.now() };
+				}
+				const result = await apiClient.agent.updateCommand.mutate({
+					id: original.id,
+					status: changes.status,
+					claimedBy: changes.claimedBy ?? undefined,
+					claimedAt: changes.claimedAt ?? undefined,
+					result: changes.result ?? undefined,
+					error: changes.error ?? undefined,
+					executedAt: changes.executedAt ?? undefined,
+				});
+				return { txid: Number(result.txid) };
+			},
+		}),
+	);
+
+	const devicePresence = createCollection(
+		electricCollectionOptions<SelectDevicePresence>({
+			id: `device_presence-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "device_presence",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	return {
+		tasks,
+		taskStatuses,
+		repositories,
+		members,
+		users,
+		invitations,
+		agentCommands,
+		devicePresence,
+	};
 }
 
 /**

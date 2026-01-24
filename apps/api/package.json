@@ -13,6 +13,7 @@
 	"dependencies": {
 		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
 		"@linear/sdk": "^68.1.0",
+		"@modelcontextprotocol/sdk": "^1.25.3",
 		"@octokit/app": "^16.1.2",
 		"@octokit/rest": "^22.0.1",
 		"@octokit/webhooks": "^14.2.0",

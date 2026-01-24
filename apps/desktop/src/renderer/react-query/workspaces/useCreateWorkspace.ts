@@ -4,6 +4,15 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 
+type MutationOptions = Parameters<
+	typeof electronTrpc.workspaces.create.useMutation
+>[0];
+
+interface UseCreateWorkspaceOptions extends NonNullable<MutationOptions> {
+	/** Skip auto-navigation to new workspace (useful for MCP/agent commands) */
+	skipNavigation?: boolean;
+}
+
 /**
  * Mutation hook for creating a new workspace
  * Automatically invalidates all workspace queries on success
@@ -18,9 +27,7 @@ import type { WorkspaceInitProgress } from "shared/types/workspace-init";
  * Note: Terminal creation is handled by WorkspaceInitEffects (always mounted in MainScreen)
  * to survive dialog unmounts. This hook just adds to the global pending store.
  */
-export function useCreateWorkspace(
-	options?: Parameters<typeof electronTrpc.workspaces.create.useMutation>[0],
-) {
+export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 	const addPendingTerminalSetup = useWorkspaceInitStore(
@@ -59,10 +66,12 @@ export function useCreateWorkspace(
 			// WorkspaceInitEffects will process it on next render when it sees the progress
 			// is already "ready" and there's a matching pending setup.
 
-			// Navigate to the new workspace immediately
+			// Navigate to the new workspace immediately (unless skipNavigation is set)
 			// The workspace exists in DB, so it's safe to navigate
 			// Git operations happen in background with progress shown via toast
-			navigateToWorkspace(data.workspace.id, navigate);
+			if (!options?.skipNavigation) {
+				navigateToWorkspace(data.workspace.id, navigate);
+			}
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);

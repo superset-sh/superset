@@ -4,6 +4,7 @@ import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { observable } from "@trpc/server/observable";
 import { shell } from "electron";
 import { env } from "main/env.main";
+import { getDeviceName, getHashedDeviceId } from "main/lib/device-info";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -94,6 +95,11 @@ export const createAuthRouter = () => {
 			authEvents.emit("token-cleared");
 			return { success: true };
 		}),
+
+		getDeviceInfo: publicProcedure.query(() => ({
+			deviceId: getHashedDeviceId(),
+			deviceName: getDeviceName(),
+		})),
 	});
 };
 

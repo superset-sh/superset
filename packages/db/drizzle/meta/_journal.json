@@ -92,6 +92,13 @@
       "when": 1769106861342,
       "tag": "0012_add_stripe_subscription_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1769225155008,
+      "tag": "0013_add_mcp_actions_and_presence",
+      "breakpoints": true
     }
   ]
 }

@@ -43,6 +43,10 @@ export const SETTING_ITEM_ID = {
 	WORKSPACE_NAME: "workspace-name",
 	WORKSPACE_BRANCH: "workspace-branch",
 	WORKSPACE_PATH: "workspace-path",
+
+	// API Keys
+	API_KEYS_LIST: "api-keys-list",
+	API_KEYS_GENERATE: "api-keys-generate",
 } as const;
 
 export type SettingItemId =
@@ -566,6 +570,42 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		title: "File Path",
 		description: "The file path to this workspace",
 		keywords: ["workspace", "path", "folder", "directory", "location", "root"],
+	},
+
+	// API Keys
+	{
+		id: SETTING_ITEM_ID.API_KEYS_LIST,
+		section: "apikeys",
+		title: "API Keys",
+		description: "Manage API keys for MCP server access",
+		keywords: [
+			"api",
+			"key",
+			"keys",
+			"mcp",
+			"claude",
+			"integration",
+			"external",
+			"access",
+			"token",
+			"authentication",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.API_KEYS_GENERATE,
+		section: "apikeys",
+		title: "Generate API Key",
+		description: "Create new API keys for external integrations",
+		keywords: [
+			"api",
+			"key",
+			"generate",
+			"create",
+			"new",
+			"mcp",
+			"claude desktop",
+			"claude code",
+		],
 	},
 ];
 
