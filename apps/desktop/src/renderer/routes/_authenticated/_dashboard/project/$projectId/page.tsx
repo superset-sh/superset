@@ -287,7 +287,8 @@ function ProjectPage() {
 																						)}
 																					</span>
 																				)}
-																				{effectiveBaseBranch === branch.name && (
+																				{effectiveBaseBranch ===
+																					branch.name && (
 																					<HiCheck className="size-4 text-primary" />
 																				)}
 																			</span>
@@ -315,7 +316,6 @@ function ProjectPage() {
 						</div>
 					</div>
 				</div>
-
 			</div>
 		</div>
 	);
