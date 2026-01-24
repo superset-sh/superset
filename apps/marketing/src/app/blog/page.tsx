@@ -1,21 +1,13 @@
 import type { Metadata } from "next";
 import { getBlogPosts } from "@/lib/blog";
 import { BlogCard } from "./components/BlogCard";
+import { GridCross } from "./components/GridCross";
 
 export const metadata: Metadata = {
 	title: "Blog | Superset",
 	description:
 		"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
 };
-
-function GridCross({ className }: { className?: string }) {
-	return (
-		<div className={`absolute ${className}`}>
-			<div className="absolute -translate-x-1/2 -translate-y-1/2 w-px h-4 bg-border" />
-			<div className="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-px bg-border" />
-		</div>
-	);
-}
 
 export default async function BlogPage() {
 	const posts = getBlogPosts();

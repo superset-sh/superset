@@ -37,7 +37,7 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
+			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
 			<head>

@@ -84,9 +84,11 @@ const components = {
 	pre: ({ children }: React.HTMLAttributes<HTMLPreElement>) => {
 		const { code, language } = extractCodeFromChildren(children);
 		return (
-			<CodeBlock code={code} language={language} className="my-6">
-				<CodeBlockCopyButton />
-			</CodeBlock>
+			<div className="not-prose my-6 [&_pre]:!bg-[#282c34] [&>div>div]:!bg-[#282c34] [&>div]:!bg-[#282c34] [&>div]:!border-[#3e4451]">
+				<CodeBlock code={code} language={language}>
+					<CodeBlockCopyButton />
+				</CodeBlock>
+			</div>
 		);
 	},
 	code: ({

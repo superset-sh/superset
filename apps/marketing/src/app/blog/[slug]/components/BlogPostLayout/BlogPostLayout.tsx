@@ -3,7 +3,9 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { GridCross } from "@/app/blog/components/GridCross";
 import type { BlogPost } from "@/lib/blog";
+import { AuthorAvatar } from "./components/AuthorAvatar";
 
 interface TocItem {
 	id: string;
@@ -15,30 +17,6 @@ interface BlogPostLayoutProps {
 	post: BlogPost;
 	toc: TocItem[];
 	children: ReactNode;
-}
-
-function GridCross({ className }: { className?: string }) {
-	return (
-		<div className={`absolute ${className}`}>
-			<div className="absolute -translate-x-1/2 -translate-y-1/2 w-px h-4 bg-border" />
-			<div className="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-px bg-border" />
-		</div>
-	);
-}
-
-function AuthorAvatar({ name }: { name: string }) {
-	const initials = name
-		.split(" ")
-		.map((n) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
-
-	return (
-		<div className="size-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-foreground/70">
-			{initials}
-		</div>
-	);
 }
 
 export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
@@ -83,7 +61,11 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 						)}
 
 						<div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
-							<AuthorAvatar name={post.author} />
+							<AuthorAvatar
+								name={post.author}
+								title="Cofounder, Superset"
+								twitterHandle="avimakesrobots"
+							/>
 							<span className="text-foreground/70">{post.author}</span>
 							<span className="text-muted-foreground/50">·</span>
 							<time dateTime={post.date}>{formattedDate}</time>
