@@ -1,0 +1,25 @@
+{
+	"name": "@superset/stream-server",
+	"version": "0.0.1",
+	"description": "Durable Stream server for real-time token streaming",
+	"type": "module",
+	"main": "./dist/index.js",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsup src/index.ts --format esm --dts",
+		"start": "node dist/index.js",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@hono/node-server": "^1.14.1",
+		"hono": "^4.7.9",
+		"nanoid": "^5.1.6"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"tsup": "^8.5.0",
+		"tsx": "^4.19.3",
+		"typescript": "^5.9.3"
+	}
+}

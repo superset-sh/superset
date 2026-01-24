@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@sentry/nextjs": "^10.36.0",
+		"@superset/ai-chat": "workspace:*",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
