@@ -99,9 +99,8 @@ export interface TocItem {
 export function extractToc(content: string): TocItem[] {
 	const headingRegex = /^(#{2,3})\s+(.+)$/gm;
 	const toc: TocItem[] = [];
-	let match: RegExpExecArray | null;
 
-	while ((match = headingRegex.exec(content)) !== null) {
+	for (const match of content.matchAll(headingRegex)) {
 		const hashes = match[1];
 		const heading = match[2];
 		if (!hashes || !heading) continue;

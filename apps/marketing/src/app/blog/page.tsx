@@ -45,7 +45,8 @@ export default async function BlogPage() {
 						News & Updates
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						Insights from the Superset team about parallel coding agents and developer productivity.
+						Insights from the Superset team about parallel coding agents and
+						developer productivity.
 					</p>
 
 					<GridCross className="bottom-0 left-0" />

@@ -113,9 +113,7 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 
 			{/* Content */}
 			<div className="relative max-w-3xl mx-auto px-6 py-12">
-				<div className="prose max-w-none">
-					{children}
-				</div>
+				<div className="prose max-w-none">{children}</div>
 			</div>
 
 			{/* Footer */}

@@ -1,10 +1,13 @@
+import {
+	CodeBlock,
+	CodeBlockCopyButton,
+} from "@superset/ui/ai-elements/code-block";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { getAllSlugs, getBlogPost, extractToc } from "@/lib/blog";
-import { BlogPostLayout } from "./components/BlogPostLayout";
-import { CodeBlock, CodeBlockCopyButton } from "@superset/ui/ai-elements/code-block";
 import type { BundledLanguage } from "shiki";
+import { extractToc, getAllSlugs, getBlogPost } from "@/lib/blog";
+import { BlogPostLayout } from "./components/BlogPostLayout";
 
 interface PageProps {
 	params: Promise<{ slug: string }>;
@@ -40,6 +43,27 @@ function extractCodeFromChildren(children: React.ReactNode): {
 	return { code: String(children ?? ""), language: "text" as BundledLanguage };
 }
 
+function Video({ src, title }: { src: string; title?: string }) {
+	return (
+		<span className="block my-8 not-prose">
+			{/* biome-ignore lint/a11y/useMediaCaption: User-uploaded videos don't have caption tracks */}
+			<video
+				src={src}
+				title={title}
+				className="w-full rounded-lg border border-border"
+				controls
+				playsInline
+				preload="metadata"
+			/>
+			{title && (
+				<span className="block text-center text-sm text-muted-foreground mt-3">
+					{title}
+				</span>
+			)}
+		</span>
+	);
+}
+
 const components = {
 	h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => {
 		const id = typeof children === "string" ? slugify(children) : undefined;
@@ -65,9 +89,17 @@ const components = {
 			</CodeBlock>
 		);
 	},
-	code: ({ children, className, ...props }: React.HTMLAttributes<HTMLElement>) => {
+	code: ({
+		children,
+		className,
+		...props
+	}: React.HTMLAttributes<HTMLElement>) => {
 		if (className?.includes("language-")) {
-			return <code className={className} {...props}>{children}</code>;
+			return (
+				<code className={className} {...props}>
+					{children}
+				</code>
+			);
 		}
 		return (
 			<code
@@ -78,6 +110,23 @@ const components = {
 			</code>
 		);
 	},
+	img: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+		<span className="block my-8 not-prose">
+			{/* biome-ignore lint/performance/noImgElement: MDX images have unknown dimensions */}
+			<img
+				src={src}
+				alt={alt}
+				className="w-full rounded-lg border border-border"
+				{...props}
+			/>
+			{alt && (
+				<span className="block text-center text-sm text-muted-foreground mt-3">
+					{alt}
+				</span>
+			)}
+		</span>
+	),
+	Video,
 };
 
 export default async function BlogPostPage({ params }: PageProps) {
@@ -103,7 +152,9 @@ export async function generateStaticParams() {
 	return getAllSlugs().map((slug) => ({ slug }));
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
 	const { slug } = await params;
 	const post = getBlogPost(slug);
 
