@@ -117,17 +117,20 @@ export function useAgentHookListener() {
 				// (router navigation is async, but state updates are immediate)
 				const freshState = useTabsStore.getState();
 				const freshTarget = resolveNotificationTarget(event.data, freshState);
-				if (!freshTarget?.tabId) return;
 
-				const freshTab = freshState.tabs.find(
-					(t) => t.id === freshTarget.tabId,
-				);
+				// Use resolved tabId, falling back to event's tabId directly
+				const tabIdToActivate = freshTarget?.tabId ?? event.data?.tabId;
+				if (!tabIdToActivate) return;
+
+				const freshTab = freshState.tabs.find((t) => t.id === tabIdToActivate);
 				if (!freshTab || freshTab.workspaceId !== workspaceId) return;
 
-				freshState.setActiveTab(workspaceId, freshTarget.tabId);
+				freshState.setActiveTab(workspaceId, tabIdToActivate);
 
-				if (freshTarget.paneId && freshState.panes[freshTarget.paneId]) {
-					freshState.setFocusedPane(freshTarget.tabId, freshTarget.paneId);
+				// Focus pane if available, using resolved or event's paneId
+				const paneIdToFocus = freshTarget?.paneId ?? event.data?.paneId;
+				if (paneIdToFocus && freshState.panes[paneIdToFocus]) {
+					freshState.setFocusedPane(tabIdToActivate, paneIdToFocus);
 				}
 			}
 		},
