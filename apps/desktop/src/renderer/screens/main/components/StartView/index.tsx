@@ -1,11 +1,9 @@
-import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { LuFolderOpen, LuLoader, LuX } from "react-icons/lu";
+import { LuFolderOpen, LuX } from "react-icons/lu";
 import { useOpenFromPath, useOpenNew } from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
-import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
 import { StartTopBar } from "./StartTopBar";
 
@@ -14,7 +12,6 @@ export function StartView() {
 	const openNew = useOpenNew();
 	const openFromPath = useOpenFromPath();
 	const [error, setError] = useState<string | null>(null);
-	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [initGitDialog, setInitGitDialog] = useState<{
 		isOpen: boolean;
 		selectedPath: string;
@@ -181,7 +178,7 @@ export function StartView() {
 				onDragLeave={handleDragLeave}
 				onDrop={handleDrop}
 			>
-				<div className="w-full max-w-sm flex flex-col items-center gap-12">
+				<div className="w-full max-w-md flex flex-col items-center gap-12">
 					<div className="flex flex-col items-center gap-3 text-center">
 						<span className="text-sm text-muted-foreground font-mono uppercase tracking-widest">
 							Welcome to
@@ -189,101 +186,71 @@ export function StartView() {
 						<SupersetLogo className="h-12 w-auto" />
 					</div>
 
-					<div className="w-full rounded-lg border border-border bg-card p-5">
-						<p className="text-sm font-medium text-foreground mb-4">
-							Open a project
-						</p>
+					<div className="w-full items-center flex flex-col gap-3">
+						<h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
+							Open a Project
+						</h4>
 
 						<button
 							type="button"
 							onClick={handleOpenProject}
-							disabled={isLoading}
 							className={cn(
-								"w-full rounded-lg border-2 border-dashed transition-all duration-200",
-								"flex flex-col items-center justify-center gap-3 px-6 py-8",
+								"w-full rounded-xl bg-card border border-dashed",
+								"flex flex-col items-center justify-center gap-5 px-8 py-16",
+								"transition-colors duration-200",
 								"focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-								isDragOver
-									? "border-primary bg-primary/5"
-									: "border-border hover:border-primary/50 hover:bg-muted/50",
-								isLoading && "opacity-50 cursor-not-allowed",
+								isDragOver ? "border-primary bg-primary/5" : "border-border",
 							)}
 						>
-							{isLoading ? (
-								<div className="flex flex-col items-center gap-2">
-									<LuLoader className="h-6 w-6 text-muted-foreground animate-spin" />
-									<span className="text-sm text-muted-foreground">
-										Opening project...
-									</span>
-								</div>
-							) : (
-								<div className="flex flex-col items-center gap-2">
-									<div
-										className={cn(
-											"rounded-full p-2.5 transition-colors",
-											isDragOver ? "bg-primary/10" : "bg-muted",
-										)}
-									>
-										<LuFolderOpen
-											className={cn(
-												"h-5 w-5 transition-colors",
-												isDragOver ? "text-primary" : "text-muted-foreground",
-											)}
-										/>
-									</div>
-									<div className="text-center">
-										<p
-											className={cn(
-												"text-sm font-medium transition-colors",
-												isDragOver ? "text-primary" : "text-foreground",
-											)}
-										>
-											{isDragOver ? "Drop to open" : "Drop a Git repo folder"}
-										</p>
-										<p className="text-xs text-muted-foreground mt-0.5">
-											or click to browse
-										</p>
-									</div>
-								</div>
-							)}
-						</button>
-
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								setError(null);
-								setIsCloneDialogOpen(true);
-							}}
-							disabled={isLoading}
-							className="mt-3 text-muted-foreground hover:text-foreground"
-						>
-							Clone from GitHub instead
-						</Button>
-
-						{error && (
-							<div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive">
-								<span className="flex-1 text-xs">{error}</span>
-								<button
-									type="button"
-									onClick={() => setError(null)}
-									className="shrink-0 rounded p-0.5 hover:bg-destructive/20 transition-colors"
-									aria-label="Dismiss error"
-								>
-									<LuX className="h-3.5 w-3.5" />
-								</button>
+							<div
+								className={cn(
+									"rounded-2xl p-5",
+									isDragOver
+										? "bg-primary/10"
+										: "bg-gradient-to-br from-muted to-muted/50",
+								)}
+							>
+								<LuFolderOpen
+									className={cn(
+										"h-12 w-12",
+										isDragOver ? "text-primary" : "text-foreground",
+									)}
+								/>
 							</div>
-						)}
+							<div className="text-center">
+								<p
+									className={cn(
+										"text-sm font-medium",
+										isDragOver ? "text-primary" : "text-foreground",
+									)}
+								>
+									{isDragOver
+										? "Drop to open"
+										: "Drag and drop a git folder to open"}
+								</p>
+								<p className="text-xs text-muted-foreground mt-1">
+									Any folder with a .git directory
+								</p>
+							</div>
+						</button>
 					</div>
+
+					{error && (
+						<div className="w-full flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive">
+							<span className="flex-1 text-xs">{error}</span>
+							<button
+								type="button"
+								onClick={() => setError(null)}
+								className="shrink-0 rounded p-0.5 hover:bg-destructive/20"
+								aria-label="Dismiss error"
+							>
+								<LuX className="h-3.5 w-3.5" />
+							</button>
+						</div>
+					)}
 				</div>
 			</div>
 
-			{/* Dialogs */}
-			<CloneRepoDialog
-				isOpen={isCloneDialogOpen}
-				onClose={() => setIsCloneDialogOpen(false)}
-				onError={setError}
-			/>
 			<InitGitDialog
 				isOpen={initGitDialog.isOpen}
 				selectedPath={initGitDialog.selectedPath}
