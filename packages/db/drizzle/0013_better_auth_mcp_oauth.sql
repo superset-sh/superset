@@ -1,5 +1,43 @@
 CREATE TYPE "public"."command_status" AS ENUM('pending', 'claimed', 'executing', 'completed', 'failed', 'timeout');--> statement-breakpoint
 CREATE TYPE "public"."device_type" AS ENUM('desktop', 'mobile', 'web');--> statement-breakpoint
+CREATE TABLE "auth"."oauth_access_tokens" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"access_token" text NOT NULL,
+	"refresh_token" text,
+	"access_token_expires_at" timestamp NOT NULL,
+	"refresh_token_expires_at" timestamp,
+	"client_id" text NOT NULL,
+	"user_id" uuid NOT NULL,
+	"scopes" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "auth"."oauth_applications" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"client_id" text NOT NULL,
+	"client_secret" text,
+	"name" text NOT NULL,
+	"redirect_urls" text NOT NULL,
+	"metadata" text,
+	"type" text NOT NULL,
+	"disabled" boolean DEFAULT false NOT NULL,
+	"user_id" uuid,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "oauth_applications_client_id_unique" UNIQUE("client_id")
+);
+--> statement-breakpoint
+CREATE TABLE "auth"."oauth_consents" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
+	"client_id" text NOT NULL,
+	"scopes" text NOT NULL,
+	"consent_given" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "agent_commands" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -45,12 +83,20 @@ CREATE TABLE "device_presence" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "auth"."oauth_access_tokens" ADD CONSTRAINT "oauth_access_tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "auth"."oauth_applications" ADD CONSTRAINT "oauth_applications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "auth"."oauth_consents" ADD CONSTRAINT "oauth_consents_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "agent_commands" ADD CONSTRAINT "agent_commands_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "agent_commands" ADD CONSTRAINT "agent_commands_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "auth"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "api_keys" ADD CONSTRAINT "api_keys_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "api_keys" ADD CONSTRAINT "api_keys_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "auth"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "device_presence" ADD CONSTRAINT "device_presence_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "device_presence" ADD CONSTRAINT "device_presence_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "auth"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "oauth_access_tokens_user_id_idx" ON "auth"."oauth_access_tokens" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "oauth_access_tokens_client_id_idx" ON "auth"."oauth_access_tokens" USING btree ("client_id");--> statement-breakpoint
+CREATE INDEX "oauth_applications_client_id_idx" ON "auth"."oauth_applications" USING btree ("client_id");--> statement-breakpoint
+CREATE INDEX "oauth_consents_user_id_idx" ON "auth"."oauth_consents" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "oauth_consents_client_id_idx" ON "auth"."oauth_consents" USING btree ("client_id");--> statement-breakpoint
 CREATE INDEX "agent_commands_user_status_idx" ON "agent_commands" USING btree ("user_id","status");--> statement-breakpoint
 CREATE INDEX "agent_commands_target_device_status_idx" ON "agent_commands" USING btree ("target_device_id","status");--> statement-breakpoint
 CREATE INDEX "agent_commands_org_created_idx" ON "agent_commands" USING btree ("organization_id","created_at");--> statement-breakpoint

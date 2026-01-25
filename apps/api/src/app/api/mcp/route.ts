@@ -12,6 +12,8 @@ import { registerMcpTools } from "@/lib/mcp/tools";
 function createMcpServer(ctx: {
 	userId: string;
 	organizationId: string;
+	role: string | null;
+	plan: string | null;
 	defaultDeviceId: string | null;
 }) {
 	const server = new McpServer(
@@ -137,8 +139,10 @@ export async function OPTIONS(): Promise<Response> {
 			"Access-Control-Allow-Origin": "*",
 			"Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
 			"Access-Control-Allow-Headers":
-				"Content-Type, X-API-Key, mcp-session-id, Last-Event-ID, mcp-protocol-version",
-			"Access-Control-Expose-Headers": "mcp-session-id, mcp-protocol-version",
+				"Content-Type, Authorization, X-API-Key, mcp-session-id, Last-Event-ID, mcp-protocol-version",
+			// Expose WWW-Authenticate so OAuth clients can read the resource metadata URL
+			"Access-Control-Expose-Headers":
+				"mcp-session-id, mcp-protocol-version, WWW-Authenticate",
 			"Access-Control-Max-Age": "86400",
 		},
 	});

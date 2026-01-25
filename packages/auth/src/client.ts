@@ -16,5 +16,6 @@ export const authClient = createAuthClient({
 		organizationClient(),
 		customSessionClient<typeof auth>(),
 		stripeClient({ subscription: true }),
+		// Note: The MCP plugin doesn't have a client plugin
 	],
 });

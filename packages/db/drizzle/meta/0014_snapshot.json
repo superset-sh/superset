@@ -1,6 +1,6 @@
 {
-  "id": "1d39a789-e96b-4044-b927-fb017fa7296d",
-  "prevId": "e2df2abc-157a-4a39-ab7f-06906df6cbdf",
+  "id": "8e551b74-b3ea-42dd-9479-57f96f3c126f",
+  "prevId": "1d39a789-e96b-4044-b927-fb017fa7296d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -508,6 +508,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "icon": {
+          "name": "icon",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "redirect_urls": {
           "name": "redirect_urls",

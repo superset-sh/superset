@@ -15,7 +15,12 @@ import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-st
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer, customSession, organization } from "better-auth/plugins";
+import {
+	bearer,
+	customSession,
+	mcp,
+	organization,
+} from "better-auth/plugins";
 import { and, count, eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { env } from "./env";
@@ -97,6 +102,14 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
+		mcp({
+			loginPage: "/sign-in",
+			oidcConfig: {
+				accessTokenExpiresIn: 3600, // 1 hour
+				refreshTokenExpiresIn: 2592000, // 30 days
+				scopes: ["openid", "profile", "email", "offline_access"],
+			},
+		}),
 		expo(),
 		organization({
 			creatorRole: "owner",

@@ -152,3 +152,79 @@ export const invitations = authSchema.table(
 
 export type SelectInvitation = typeof invitations.$inferSelect;
 export type InsertInvitation = typeof invitations.$inferInsert;
+
+// OAuth/MCP tables for Better Auth OIDC Provider plugin
+export const oauthApplications = authSchema.table(
+	"oauth_applications",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		clientId: text("client_id").notNull().unique(),
+		clientSecret: text("client_secret"),
+		name: text("name").notNull(),
+		icon: text("icon"),
+		redirectUrls: text("redirect_urls").notNull(), // Comma-separated
+		metadata: text("metadata"),
+		type: text("type").notNull(), // web, mobile, native, etc.
+		disabled: boolean("disabled").default(false).notNull(),
+		userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [index("oauth_applications_client_id_idx").on(table.clientId)],
+);
+
+export type SelectOAuthApplication = typeof oauthApplications.$inferSelect;
+export type InsertOAuthApplication = typeof oauthApplications.$inferInsert;
+
+export const oauthAccessTokens = authSchema.table(
+	"oauth_access_tokens",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		accessToken: text("access_token").notNull(),
+		refreshToken: text("refresh_token"),
+		accessTokenExpiresAt: timestamp("access_token_expires_at").notNull(),
+		refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+		clientId: text("client_id").notNull(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		scopes: text("scopes").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("oauth_access_tokens_user_id_idx").on(table.userId),
+		index("oauth_access_tokens_client_id_idx").on(table.clientId),
+	],
+);
+
+export type SelectOAuthAccessToken = typeof oauthAccessTokens.$inferSelect;
+export type InsertOAuthAccessToken = typeof oauthAccessTokens.$inferInsert;
+
+export const oauthConsents = authSchema.table(
+	"oauth_consents",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		clientId: text("client_id").notNull(),
+		scopes: text("scopes").notNull(),
+		consentGiven: boolean("consent_given").default(false).notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		index("oauth_consents_user_id_idx").on(table.userId),
+		index("oauth_consents_client_id_idx").on(table.clientId),
+	],
+);
