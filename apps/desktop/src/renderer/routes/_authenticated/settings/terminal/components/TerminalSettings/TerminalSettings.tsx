@@ -24,7 +24,11 @@ import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
+import {
+	HiOutlineCheck,
+	HiOutlinePlus,
+	HiOutlineQuestionMarkCircle,
+} from "react-icons/hi2";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -528,8 +532,9 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 									))}
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<div className="w-24 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help">
+											<div className="w-24 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help flex items-center gap-1">
 												Mode
+												<HiOutlineQuestionMarkCircle className="h-3.5 w-3.5" />
 											</div>
 										</TooltipTrigger>
 										<TooltipContent side="top" className="max-w-xs">
