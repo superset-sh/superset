@@ -17,6 +17,7 @@ import {
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
+import { extractWorkspaceIdFromUrl } from "../lib/notifications/utils";
 import {
 	getInitialWindowBounds,
 	loadWindowState,
@@ -104,11 +105,9 @@ export async function MainWindow() {
 				event.paneId
 			) {
 				try {
-					// Parse current workspace from renderer URL hash (app uses hash routing)
-					const url = window.webContents.getURL();
-					const hash = new URL(url).hash;
-					const workspaceMatch = hash.match(/\/workspace\/([^/?#]+)/);
-					const currentWorkspaceId = workspaceMatch?.[1] ?? null;
+					const currentWorkspaceId = extractWorkspaceIdFromUrl(
+						window.webContents.getURL(),
+					);
 
 					const tabsState = appState.data?.tabsState;
 					const isViewingWorkspace = currentWorkspaceId === event.workspaceId;
