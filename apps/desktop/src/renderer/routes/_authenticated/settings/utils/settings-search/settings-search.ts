@@ -2,7 +2,6 @@ import type { SettingsSection } from "renderer/stores/settings-state";
 
 export const SETTING_ITEM_ID = {
 	ACCOUNT_PROFILE: "account-profile",
-	ACCOUNT_VERSION: "account-version",
 	ACCOUNT_SIGNOUT: "account-signout",
 
 	ORGANIZATION_LOGO: "organization-logo",
@@ -76,22 +75,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"picture",
 			"photo",
 			"me",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.ACCOUNT_VERSION,
-		section: "account",
-		title: "Version",
-		description: "App version and updates",
-		keywords: [
-			"account",
-			"version",
-			"update",
-			"check for updates",
-			"app version",
-			"release",
-			"about",
-			"upgrade",
 		],
 	},
 	{
