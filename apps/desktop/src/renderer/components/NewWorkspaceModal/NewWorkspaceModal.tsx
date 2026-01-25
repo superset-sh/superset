@@ -192,13 +192,14 @@ export function NewWorkspaceModal() {
 		if (!selectedProjectId) return;
 
 		const workspaceName = title.trim() || undefined;
-		const customBranchName = branchName.trim() || undefined;
+		// Only send branchName if user manually edited it; otherwise let server auto-generate with collision checks
+		const customBranchName = branchNameEdited ? branchName.trim() : undefined;
 
 		try {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
-				branchName: customBranchName,
+				branchName: customBranchName || undefined,
 				baseBranch: effectiveBaseBranch || undefined,
 			});
 
