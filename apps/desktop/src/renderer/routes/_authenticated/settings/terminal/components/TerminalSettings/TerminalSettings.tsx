@@ -223,20 +223,14 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		});
 	};
 
-	/**
-	 * Handles execution mode changes for a preset row.
-	 * Updates local state and persists the change to the server.
-	 */
 	const handleExecutionModeChange = (rowIndex: number, mode: ExecutionMode) => {
 		const preset = localPresets[rowIndex];
 		if (!preset) return;
 
-		// Update local state
 		setLocalPresets((prev) =>
 			prev.map((p, i) => (i === rowIndex ? { ...p, executionMode: mode } : p)),
 		);
 
-		// Persist to server
 		updatePreset.mutate({
 			id: preset.id,
 			patch: { executionMode: mode },
@@ -533,23 +527,23 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 										</div>
 									))}
 									<Tooltip>
-									<TooltipTrigger asChild>
-										<div className="w-24 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help">
-											Mode
-										</div>
-									</TooltipTrigger>
-									<TooltipContent side="top" className="max-w-xs">
-										<p className="font-medium mb-1">Execution Mode</p>
-										<p className="text-xs">
-											<strong>Sequential:</strong> Commands run one after another
-											in a single terminal (joined with &&)
-										</p>
-										<p className="text-xs mt-1">
-											<strong>Parallel:</strong> Each command runs in its own
-											split pane within a single tab
-										</p>
-									</TooltipContent>
-								</Tooltip>
+										<TooltipTrigger asChild>
+											<div className="w-24 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help">
+												Mode
+											</div>
+										</TooltipTrigger>
+										<TooltipContent side="top" className="max-w-xs">
+											<p className="font-medium mb-1">Execution Mode</p>
+											<p className="text-xs">
+												<strong>Sequential:</strong> Commands run one after
+												another in a single terminal (joined with &&)
+											</p>
+											<p className="text-xs mt-1">
+												<strong>Parallel:</strong> Each command runs in its own
+												split pane within a single tab
+											</p>
+										</TooltipContent>
+									</Tooltip>
 									<div className="w-20 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
 										Actions
 									</div>

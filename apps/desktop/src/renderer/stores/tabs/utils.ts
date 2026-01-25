@@ -440,28 +440,8 @@ export const addPaneToLayout = (
 });
 
 /**
- * Builds a balanced multi-pane Mosaic layout from an array of pane IDs.
- *
- * Layout strategy:
- * - 1 pane: Returns the single pane ID (leaf node)
- * - 2 panes: Horizontal split (side-by-side)
- * - 3+ panes: Recursive binary splits creating a grid layout
- *   - Alternates between column (vertical) and row (horizontal) splits
- *   - Splits the array roughly in half at each level
- *
- * Example for 4 panes:
- * ```
- * ┌───────┬───────┐
- * │   A   │   B   │  (row split)
- * ├───────┼───────┤
- * │   C   │   D   │  (row split)
- * └───────┴───────┘
- * (column split between top and bottom rows)
- * ```
- *
- * @param paneIds - Array of pane IDs to arrange in the layout
- * @param direction - The split direction for this level ("row" = horizontal, "column" = vertical)
- * @returns A MosaicNode tree representing the balanced layout
+ * Builds a balanced multi-pane Mosaic layout using recursive binary splits.
+ * For 3+ panes, alternates between column and row splits to create a grid.
  */
 export const buildMultiPaneLayout = (
 	paneIds: string[],
@@ -484,7 +464,6 @@ export const buildMultiPaneLayout = (
 		};
 	}
 
-	// Split array in half and recurse, alternating direction
 	const mid = Math.ceil(paneIds.length / 2);
 	const nextDirection = direction === "column" ? "row" : "column";
 

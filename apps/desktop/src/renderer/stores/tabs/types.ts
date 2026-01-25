@@ -35,13 +35,8 @@ export interface AddTabOptions {
 	initialCwd?: string;
 }
 
-/**
- * Options for creating a tab with multiple panes (parallel execution mode)
- */
 export interface AddTabWithMultiplePanesOptions {
-	/** Array of commands, one per pane */
 	commands: string[];
-	/** Optional working directory for all panes */
 	initialCwd?: string;
 }
 

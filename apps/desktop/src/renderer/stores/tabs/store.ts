@@ -129,20 +129,11 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
-				/**
-				 * Creates a new tab with multiple panes, one for each command.
-				 * Used for parallel execution mode where each command runs in its own pane.
-				 * @param workspaceId - The workspace to add the tab to
-				 * @param options - Options containing commands array and optional cwd
-				 * @returns Object with tabId and array of paneIds
-				 */
 				addTabWithMultiplePanes: (
 					workspaceId: string,
 					options: AddTabWithMultiplePanesOptions,
 				) => {
 					const state = get();
-
-					// Create one pane per command
 					const tabId = generateId("tab");
 					const panes: ReturnType<typeof createPane>[] = options.commands.map(
 						(command) =>
@@ -153,11 +144,7 @@ export const useTabsStore = create<TabsStore>()(
 					);
 
 					const paneIds = panes.map((p) => p.id);
-
-					// Build balanced multi-pane layout
 					const layout = buildMultiPaneLayout(paneIds);
-
-					// Filter to same workspace for tab naming
 					const workspaceTabs = state.tabs.filter(
 						(t) => t.workspaceId === workspaceId,
 					);
@@ -170,7 +157,6 @@ export const useTabsStore = create<TabsStore>()(
 						createdAt: Date.now(),
 					};
 
-					// Build panes record
 					const panesRecord: Record<string, (typeof panes)[number]> = {};
 					for (const pane of panes) {
 						panesRecord[pane.id] = pane;
@@ -194,7 +180,7 @@ export const useTabsStore = create<TabsStore>()(
 						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
-							[tab.id]: paneIds[0], // Focus first pane
+							[tab.id]: paneIds[0],
 						},
 						tabHistoryStacks: {
 							...state.tabHistoryStacks,

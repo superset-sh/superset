@@ -386,10 +386,7 @@ describe("buildMultiPaneLayout", () => {
 	});
 
 	it("returns row-first layout when direction is row", () => {
-		const result = buildMultiPaneLayout(
-			["pane-1", "pane-2", "pane-3"],
-			"row",
-		);
+		const result = buildMultiPaneLayout(["pane-1", "pane-2", "pane-3"], "row");
 		expect(result).toEqual({
 			direction: "row",
 			first: {
