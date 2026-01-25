@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Play } from "lucide-react";
 
 const VIDEO_ID = "dkD-U7JXkbI";
 
@@ -58,10 +57,10 @@ export function VideoSection() {
 									alt="Video thumbnail"
 									className="absolute inset-0 w-full h-full object-cover"
 								/>
-								<div className="absolute inset-0 bg-black/30 transition-opacity duration-300 group-hover:bg-black/40" />
+								<div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/30" />
 								<div className="absolute inset-0 flex items-center justify-center">
-									<div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-white/95 shadow-xl transition-transform duration-300 group-hover:scale-110">
-										<Play className="h-7 w-7 sm:h-8 sm:w-8 fill-current text-black ml-1" />
+									<div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 shadow-xl transition-transform duration-300 group-hover:scale-110">
+										<div className="ml-1 w-0 h-0 border-t-[10px] border-t-transparent border-l-[16px] border-l-white border-b-[10px] border-b-transparent sm:border-t-[12px] sm:border-l-[20px] sm:border-b-[12px]" />
 									</div>
 								</div>
 							</button>
