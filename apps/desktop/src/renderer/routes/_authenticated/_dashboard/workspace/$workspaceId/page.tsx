@@ -4,6 +4,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
@@ -142,33 +143,7 @@ function WorkspacePage() {
 	]);
 
 	// Preset hotkeys (⌘⇧1-9)
-	useAppHotkey("OPEN_PRESET_1", () => openTabWithPreset(0), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_2", () => openTabWithPreset(1), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_3", () => openTabWithPreset(2), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_4", () => openTabWithPreset(3), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_5", () => openTabWithPreset(4), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_6", () => openTabWithPreset(5), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_7", () => openTabWithPreset(6), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_8", () => openTabWithPreset(7), undefined, [
-		openTabWithPreset,
-	]);
-	useAppHotkey("OPEN_PRESET_9", () => openTabWithPreset(8), undefined, [
-		openTabWithPreset,
-	]);
+	usePresetHotkeys(openTabWithPreset);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",

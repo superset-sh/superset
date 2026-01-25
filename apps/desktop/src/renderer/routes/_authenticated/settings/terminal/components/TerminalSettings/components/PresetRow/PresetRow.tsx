@@ -79,7 +79,7 @@ interface PresetRowProps {
 	onDelete: (rowIndex: number) => void;
 	onSetDefault: (presetId: string | null) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
-	onPersistReorder: (fromIndex: number, toIndex: number) => void;
+	onPersistReorder: (presetId: string, targetIndex: number) => void;
 }
 
 export function PresetRow({
@@ -110,7 +110,7 @@ export function PresetRow({
 		[preset.id, rowIndex],
 	);
 
-	const [{ isOver }, drop] = useDrop({
+	const [, drop] = useDrop({
 		accept: PRESET_TYPE,
 		hover: (item: { id: string; index: number; originalIndex: number }) => {
 			if (item.index !== rowIndex) {
@@ -120,12 +120,9 @@ export function PresetRow({
 		},
 		drop: (item: { id: string; index: number; originalIndex: number }) => {
 			if (item.originalIndex !== item.index) {
-				onPersistReorder(item.originalIndex, item.index);
+				onPersistReorder(item.id, item.index);
 			}
 		},
-		collect: (monitor) => ({
-			isOver: monitor.isOver(),
-		}),
 	});
 
 	preview(drop(rowRef));
@@ -141,7 +138,7 @@ export function PresetRow({
 			ref={rowRef}
 			className={`flex items-start gap-4 py-3 px-4 ${
 				isEven ? "bg-accent/20" : ""
-			} ${isDragging ? "opacity-30" : ""} ${isOver ? "bg-accent/40" : ""}`}
+			} ${isDragging ? "opacity-30" : ""}`}
 		>
 			<div
 				ref={dragHandleRef}

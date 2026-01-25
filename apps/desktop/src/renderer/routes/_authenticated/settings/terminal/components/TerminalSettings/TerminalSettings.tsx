@@ -327,9 +327,9 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	);
 
 	const handlePersistReorder = useCallback(
-		(fromIndex: number, toIndex: number) => {
+		(presetId: string, targetIndex: number) => {
 			// Persist to server only on drop
-			reorderPresets.mutate({ fromIndex, toIndex });
+			reorderPresets.mutate({ presetId, targetIndex });
 		},
 		[reorderPresets],
 	);

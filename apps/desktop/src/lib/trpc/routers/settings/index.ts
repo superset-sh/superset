@@ -161,28 +161,31 @@ export const createSettingsRouter = () => {
 		reorderTerminalPresets: publicProcedure
 			.input(
 				z.object({
-					fromIndex: z.number().int().min(0),
-					toIndex: z.number().int().min(0),
+					presetId: z.string(),
+					targetIndex: z.number().int().min(0),
 				}),
 			)
 			.mutation(({ input }) => {
 				const row = getSettings();
 				const presets = row.terminalPresets ?? [];
 
-				if (
-					input.fromIndex < 0 ||
-					input.fromIndex >= presets.length ||
-					input.toIndex < 0 ||
-					input.toIndex >= presets.length
-				) {
+				const currentIndex = presets.findIndex((p) => p.id === input.presetId);
+				if (currentIndex === -1) {
 					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Invalid index for reordering presets",
+						code: "NOT_FOUND",
+						message: "Preset not found",
 					});
 				}
 
-				const [removed] = presets.splice(input.fromIndex, 1);
-				presets.splice(input.toIndex, 0, removed);
+				if (input.targetIndex < 0 || input.targetIndex >= presets.length) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid target index for reordering presets",
+					});
+				}
+
+				const [removed] = presets.splice(currentIndex, 1);
+				presets.splice(input.targetIndex, 0, removed);
 
 				localDb
 					.insert(settings)
