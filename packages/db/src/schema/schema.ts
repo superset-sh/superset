@@ -264,6 +264,7 @@ export const cloudWorkspaces = pgTable(
 			.references(() => repositories.id, { onDelete: "cascade" }),
 		name: text().notNull(),
 		branch: text().notNull(),
+		deletedAt: timestamp("deleted_at"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()

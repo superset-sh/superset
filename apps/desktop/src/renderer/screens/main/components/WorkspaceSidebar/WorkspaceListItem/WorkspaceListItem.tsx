@@ -15,9 +15,15 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiMiniXMark, HiOutlineCloud } from "react-icons/hi2";
+import {
+	HiMiniXMark,
+	HiOutlineCloud,
+	HiOutlineExclamationTriangle,
+} from "react-icons/hi2";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import {
 	LuCopy,
 	LuEye,
@@ -86,8 +92,17 @@ export function WorkspaceListItem({
 	isCollapsed = false,
 	cloudWorkspaceId,
 }: WorkspaceListItemProps) {
-	const isCloudWorkspace = !!cloudWorkspaceId;
 	const isBranchWorkspace = type === "branch";
+
+	const { data: cloudWorkspace } = useQuery({
+		queryKey: ["cloudWorkspace", cloudWorkspaceId],
+		queryFn: () => apiTrpcClient.cloudWorkspace.byId.query(cloudWorkspaceId!),
+		enabled: !!cloudWorkspaceId,
+		staleTime: 30_000,
+	});
+
+	const isCloudWorkspace = !!cloudWorkspaceId;
+	const isCloudDeleted = cloudWorkspace?.deletedAt != null;
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
@@ -265,6 +280,10 @@ export function WorkspaceListItem({
 			>
 				{workspaceStatus === "working" ? (
 					<AsciiSpinner className="text-base" />
+				) : isCloudWorkspace && isCloudDeleted ? (
+					<HiOutlineExclamationTriangle
+						className={cn("size-4 text-destructive")}
+					/>
 				) : isCloudWorkspace ? (
 					<HiOutlineCloud
 						className={cn(
@@ -311,8 +330,17 @@ export function WorkspaceListItem({
 					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
 						<span className="font-medium">{name || branch}</span>
-						<span className="text-xs text-muted-foreground">
-							{isCloudWorkspace ? "Cloud workspace" : "Local workspace"}
+						<span
+							className={cn(
+								"text-xs",
+								isCloudDeleted ? "text-destructive" : "text-muted-foreground",
+							)}
+						>
+							{isCloudDeleted
+								? "Cloud workspace deleted"
+								: isCloudWorkspace
+									? "Cloud workspace"
+									: "Local workspace"}
 						</span>
 					</TooltipContent>
 				</Tooltip>
@@ -395,6 +423,10 @@ export function WorkspaceListItem({
 					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
 						{workspaceStatus === "working" ? (
 							<AsciiSpinner className="text-base" />
+						) : isCloudWorkspace && isCloudDeleted ? (
+							<HiOutlineExclamationTriangle
+								className={cn("size-4 transition-colors text-destructive")}
+							/>
 						) : isCloudWorkspace ? (
 							<HiOutlineCloud
 								className={cn(
@@ -432,7 +464,16 @@ export function WorkspaceListItem({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="right" sideOffset={8}>
-					{isCloudWorkspace ? (
+					{isCloudWorkspace && isCloudDeleted ? (
+						<>
+							<p className="text-xs font-medium text-destructive">
+								Cloud workspace deleted
+							</p>
+							<p className="text-xs text-muted-foreground">
+								The linked cloud workspace was deleted
+							</p>
+						</>
+					) : isCloudWorkspace ? (
 						<>
 							<p className="text-xs font-medium">Cloud workspace</p>
 							<p className="text-xs text-muted-foreground">

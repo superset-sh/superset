@@ -1,13 +1,14 @@
 import { db, dbWs } from "@superset/db/client";
 import { cloudWorkspaces, repositories } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 
 export const cloudWorkspaceRouter = {
 	all: protectedProcedure.query(() => {
 		return db.query.cloudWorkspaces.findMany({
+			where: isNull(cloudWorkspaces.deletedAt),
 			orderBy: desc(cloudWorkspaces.createdAt),
 			with: {
 				organization: true,
@@ -20,7 +21,10 @@ export const cloudWorkspaceRouter = {
 		.input(z.string().uuid())
 		.query(({ input }) => {
 			return db.query.cloudWorkspaces.findMany({
-				where: eq(cloudWorkspaces.organizationId, input),
+				where: and(
+					eq(cloudWorkspaces.organizationId, input),
+					isNull(cloudWorkspaces.deletedAt),
+				),
 				orderBy: desc(cloudWorkspaces.createdAt),
 				with: {
 					repository: true,
@@ -37,6 +41,40 @@ export const cloudWorkspaceRouter = {
 			},
 		});
 	}),
+
+	findMatching: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				repoOwner: z.string().min(1),
+				repoName: z.string().min(1),
+			}),
+		)
+		.query(async ({ input }) => {
+			const { organizationId, repoOwner, repoName } = input;
+
+			// Find the repository first
+			const repository = await db.query.repositories.findFirst({
+				where: and(
+					eq(repositories.organizationId, organizationId),
+					eq(repositories.repoOwner, repoOwner),
+					eq(repositories.repoName, repoName),
+				),
+			});
+
+			if (!repository) {
+				return [];
+			}
+
+			// Find all non-deleted cloud workspaces for this repository
+			return db.query.cloudWorkspaces.findMany({
+				where: and(
+					eq(cloudWorkspaces.repositoryId, repository.id),
+					isNull(cloudWorkspaces.deletedAt),
+				),
+				orderBy: desc(cloudWorkspaces.createdAt),
+			});
+		}),
 
 	create: protectedProcedure
 		.input(
@@ -100,5 +138,16 @@ export const cloudWorkspaceRouter = {
 					repository,
 				};
 			});
+		}),
+
+	delete: protectedProcedure
+		.input(z.string().uuid())
+		.mutation(async ({ input }) => {
+			await dbWs
+				.update(cloudWorkspaces)
+				.set({ deletedAt: new Date() })
+				.where(eq(cloudWorkspaces.id, input));
+
+			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;

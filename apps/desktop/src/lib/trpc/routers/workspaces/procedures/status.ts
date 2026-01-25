@@ -116,6 +116,25 @@ export const createStatusProcedures = () => {
 				return { success: true, cloudWorkspaceId: input.cloudWorkspaceId };
 			}),
 
+		unlinkFromCloud: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(({ input }) => {
+				const workspace = getWorkspaceNotDeleting(input.id);
+				if (!workspace) {
+					throw new Error(
+						`Workspace ${input.id} not found or is being deleted`,
+					);
+				}
+
+				localDb
+					.update(workspaces)
+					.set({ cloudWorkspaceId: null })
+					.where(eq(workspaces.id, input.id))
+					.run();
+
+				return { success: true };
+			}),
+
 		getRepoInfo: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(async ({ input }) => {

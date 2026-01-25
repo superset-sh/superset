@@ -1,23 +1,66 @@
 "use client";
 
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Cloud, ExternalLink, GitBranch } from "lucide-react";
+import { toast } from "@superset/ui/sonner";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	ArrowLeft,
+	Cloud,
+	ExternalLink,
+	GitBranch,
+	Trash2,
+} from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useTRPC } from "@/trpc/react";
 
 export default function WorkspaceDetailPage() {
 	const params = useParams();
 	const id = params.id as string;
+	const router = useRouter();
 
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 
 	const {
 		data: workspace,
 		isLoading,
 		isError,
 	} = useQuery(trpc.cloudWorkspace.byId.queryOptions(id));
+
+	const deleteMutation = useMutation(
+		trpc.cloudWorkspace.delete.mutationOptions({
+			onSuccess: () => {
+				toast.success("Workspace deleted", {
+					description: "The workspace has been deleted successfully.",
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.cloudWorkspace.all.queryKey(),
+				});
+				router.push("/cloud");
+			},
+			onError: (error) => {
+				toast.error("Failed to delete workspace", {
+					description: error.message,
+				});
+			},
+		}),
+	);
+
+	const handleDelete = () => {
+		deleteMutation.mutate(id);
+	};
 
 	if (isLoading) {
 		return (
@@ -54,17 +97,46 @@ export default function WorkspaceDetailPage() {
 				Back to Cloud Workspaces
 			</Link>
 
-			<div className="flex items-start gap-4">
-				<div className="flex size-12 items-center justify-center rounded-lg border bg-card">
-					<Cloud className="size-6 text-muted-foreground" />
-				</div>
-				<div>
-					<h1 className="text-2xl font-semibold">{workspace.name}</h1>
-					<div className="mt-1 flex items-center gap-2 text-muted-foreground">
-						<GitBranch className="size-4" />
-						<span>{workspace.branch}</span>
+			<div className="flex items-start justify-between">
+				<div className="flex items-start gap-4">
+					<div className="flex size-12 items-center justify-center rounded-lg border bg-card">
+						<Cloud className="size-6 text-muted-foreground" />
+					</div>
+					<div>
+						<h1 className="text-2xl font-semibold">{workspace.name}</h1>
+						<div className="mt-1 flex items-center gap-2 text-muted-foreground">
+							<GitBranch className="size-4" />
+							<span>{workspace.branch}</span>
+						</div>
 					</div>
 				</div>
+
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<Button variant="destructive" size="sm">
+							<Trash2 className="mr-2 size-4" />
+							Delete
+						</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete Workspace</AlertDialogTitle>
+							<AlertDialogDescription>
+								Are you sure you want to delete "{workspace.name}"? This action
+								cannot be undone.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={handleDelete}
+								disabled={deleteMutation.isPending}
+							>
+								{deleteMutation.isPending ? "Deleting..." : "Delete"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 			</div>
 
 			<div className="grid gap-6 md:grid-cols-2">
