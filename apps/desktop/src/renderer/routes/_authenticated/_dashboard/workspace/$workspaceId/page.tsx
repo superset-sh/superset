@@ -158,7 +158,7 @@ function WorkspacePage() {
 
 	// Switch between tabs
 	useAppHotkey(
-		"PREV_TERMINAL",
+		"PREV_TAB",
 		() => {
 			if (!activeTabId) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
@@ -171,7 +171,7 @@ function WorkspacePage() {
 	);
 
 	useAppHotkey(
-		"NEXT_TERMINAL",
+		"NEXT_TAB",
 		() => {
 			if (!activeTabId) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
