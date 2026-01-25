@@ -325,13 +325,10 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					const userBranch = input.branchName.trim();
-					const hasCustomPrefix = userBranch.includes("/");
-					branch =
-						authorPrefix && !hasCustomPrefix
-							? `${authorPrefix}/${userBranch}`
-							: userBranch;
+					// User explicitly provided a name - use it as-is
+					branch = input.branchName.trim();
 				} else {
+					// Auto-generate with author prefix
 					branch = generateBranchName({ existingBranches, authorPrefix });
 				}
 

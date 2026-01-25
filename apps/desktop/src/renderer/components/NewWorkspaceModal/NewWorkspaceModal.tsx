@@ -179,16 +179,12 @@ export function NewWorkspaceModal() {
 	};
 
 	const handleBranchNameChange = (value: string) => {
-		const hasCustomPrefix = value.includes("/");
-		if (hasCustomPrefix) {
-			const sanitizedParts = value
-				.split("/")
-				.map((part) => sanitizeSegment(part))
-				.filter(Boolean);
-			setBranchName(sanitizedParts.join("/"));
-		} else {
-			setBranchName(generateBranchFromTitle({ title: value, authorPrefix }));
-		}
+		// User manually editing - sanitize but don't auto-prefix
+		const sanitizedParts = value
+			.split("/")
+			.map((part) => sanitizeSegment(part))
+			.filter(Boolean);
+		setBranchName(sanitizedParts.join("/"));
 		setBranchNameEdited(true);
 	};
 
