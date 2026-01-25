@@ -17,7 +17,10 @@ import {
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
-import { extractWorkspaceIdFromUrl } from "../lib/notifications/utils";
+import {
+	extractWorkspaceIdFromUrl,
+	isPaneVisible,
+} from "../lib/notifications/utils";
 import {
 	getInitialWindowBounds,
 	loadWindowState,
@@ -104,27 +107,18 @@ export async function MainWindow() {
 				event.tabId &&
 				event.paneId
 			) {
-				try {
-					const currentWorkspaceId = extractWorkspaceIdFromUrl(
+				const isVisible = isPaneVisible({
+					currentWorkspaceId: extractWorkspaceIdFromUrl(
 						window.webContents.getURL(),
-					);
-
-					const tabsState = appState.data?.tabsState;
-					const isViewingWorkspace = currentWorkspaceId === event.workspaceId;
-					const isActiveTab =
-						tabsState?.activeTabIds?.[event.workspaceId] === event.tabId;
-					const isFocusedPane =
-						tabsState?.focusedPaneIds?.[event.tabId] === event.paneId;
-
-					if (isViewingWorkspace && isActiveTab && isFocusedPane) {
-						return;
-					}
-				} catch (error) {
-					console.error(
-						"[notifications] Failed to check active pane state:",
-						error,
-					);
-				}
+					),
+					tabsState: appState.data?.tabsState,
+					pane: {
+						workspaceId: event.workspaceId,
+						tabId: event.tabId,
+						paneId: event.paneId,
+					},
+				});
+				if (isVisible) return;
 			}
 
 			if (Notification.isSupported()) {

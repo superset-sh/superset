@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { extractWorkspaceIdFromUrl } from "./utils";
+import { extractWorkspaceIdFromUrl, isPaneVisible } from "./utils";
 
 describe("extractWorkspaceIdFromUrl", () => {
 	it("extracts workspace ID from hash-routed URL", () => {
@@ -53,5 +53,104 @@ describe("extractWorkspaceIdFromUrl", () => {
 	it("handles http URLs with hash routing", () => {
 		const url = "http://localhost:5173/#/workspace/mno345";
 		expect(extractWorkspaceIdFromUrl(url)).toBe("mno345");
+	});
+});
+
+describe("isPaneVisible", () => {
+	const pane = { workspaceId: "ws1", tabId: "tab1", paneId: "pane1" };
+
+	it("returns true when pane is fully visible", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: "ws1",
+				tabsState: {
+					activeTabIds: { ws1: "tab1" },
+					focusedPaneIds: { tab1: "pane1" },
+				},
+				pane,
+			}),
+		).toBe(true);
+	});
+
+	it("returns false when viewing different workspace", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: "ws2",
+				tabsState: {
+					activeTabIds: { ws1: "tab1" },
+					focusedPaneIds: { tab1: "pane1" },
+				},
+				pane,
+			}),
+		).toBe(false);
+	});
+
+	it("returns false when different tab is active", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: "ws1",
+				tabsState: {
+					activeTabIds: { ws1: "tab2" },
+					focusedPaneIds: { tab1: "pane1" },
+				},
+				pane,
+			}),
+		).toBe(false);
+	});
+
+	it("returns false when different pane is focused", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: "ws1",
+				tabsState: {
+					activeTabIds: { ws1: "tab1" },
+					focusedPaneIds: { tab1: "pane2" },
+				},
+				pane,
+			}),
+		).toBe(false);
+	});
+
+	it("returns false when currentWorkspaceId is null", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: null,
+				tabsState: {
+					activeTabIds: { ws1: "tab1" },
+					focusedPaneIds: { tab1: "pane1" },
+				},
+				pane,
+			}),
+		).toBe(false);
+	});
+
+	it("returns false when tabsState is undefined", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: "ws1",
+				tabsState: undefined,
+				pane,
+			}),
+		).toBe(false);
+	});
+
+	it("returns false when activeTabIds is missing", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: "ws1",
+				tabsState: { focusedPaneIds: { tab1: "pane1" } },
+				pane,
+			}),
+		).toBe(false);
+	});
+
+	it("returns false when focusedPaneIds is missing", () => {
+		expect(
+			isPaneVisible({
+				currentWorkspaceId: "ws1",
+				tabsState: { activeTabIds: { ws1: "tab1" } },
+				pane,
+			}),
+		).toBe(false);
 	});
 });

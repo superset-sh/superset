@@ -16,3 +16,42 @@ export function extractWorkspaceIdFromUrl(url: string): string | null {
 		return null;
 	}
 }
+
+interface TabsState {
+	activeTabIds?: Record<string, string | null>;
+	focusedPaneIds?: Record<string, string>;
+}
+
+interface PaneLocation {
+	workspaceId: string;
+	tabId: string;
+	paneId: string;
+}
+
+/**
+ * Determines if a pane is currently visible to the user.
+ *
+ * A pane is visible when:
+ * 1. User is viewing the workspace containing the pane
+ * 2. The tab is the active tab in that workspace
+ * 3. The pane is the focused pane in that tab
+ */
+export function isPaneVisible({
+	currentWorkspaceId,
+	tabsState,
+	pane,
+}: {
+	currentWorkspaceId: string | null;
+	tabsState: TabsState | undefined;
+	pane: PaneLocation;
+}): boolean {
+	if (!currentWorkspaceId || !tabsState) {
+		return false;
+	}
+
+	const isViewingWorkspace = currentWorkspaceId === pane.workspaceId;
+	const isActiveTab = tabsState.activeTabIds?.[pane.workspaceId] === pane.tabId;
+	const isFocusedPane = tabsState.focusedPaneIds?.[pane.tabId] === pane.paneId;
+
+	return isViewingWorkspace && isActiveTab && isFocusedPane;
+}
