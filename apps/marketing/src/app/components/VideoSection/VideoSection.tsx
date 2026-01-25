@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
+import { useState } from "react";
 
 const VIDEO_ID = "dkD-U7JXkbI";
 
@@ -52,10 +53,11 @@ export function VideoSection() {
 								className="relative w-full h-full cursor-pointer"
 								aria-label="Play video"
 							>
-								<img
+								<Image
 									src="/images/video-thumbnail.png"
 									alt="Video thumbnail"
-									className="absolute inset-0 w-full h-full object-cover"
+									fill
+									className="object-cover"
 								/>
 								<div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/30" />
 								<div className="absolute inset-0 flex items-center justify-center">
