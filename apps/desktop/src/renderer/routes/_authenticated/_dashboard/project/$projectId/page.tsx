@@ -46,7 +46,13 @@ export const Route = createFileRoute(
 	},
 });
 
-function generateBranchFromTitle(title: string, authorPrefix?: string): string {
+function generateBranchFromTitle({
+	title,
+	authorPrefix,
+}: {
+	title: string;
+	authorPrefix?: string;
+}): string {
 	if (!title.trim()) return "";
 
 	const slug = title
@@ -57,6 +63,8 @@ function generateBranchFromTitle(title: string, authorPrefix?: string): string {
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "")
 		.slice(0, 50);
+
+	if (!slug) return "";
 
 	if (authorPrefix) {
 		return `${authorPrefix}/${slug}`;
@@ -195,7 +203,7 @@ function ProjectPage() {
 							>
 								<GoGitBranch className="size-3.5" />
 								<span className="font-mono">
-									{generateBranchFromTitle(title, authorPrefix) ||
+									{generateBranchFromTitle({ title, authorPrefix }) ||
 										"branch-name"}
 								</span>
 								<span className="text-muted-foreground/50">

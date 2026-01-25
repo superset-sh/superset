@@ -305,7 +305,8 @@ export async function getGitAuthorName(
 		const git = repoPath ? simpleGit(repoPath) : simpleGit();
 		const name = await git.getConfig("user.name");
 		return name.value?.trim() || null;
-	} catch {
+	} catch (error) {
+		console.warn("[git/getGitAuthorName] Failed to read git user.name:", error);
 		return null;
 	}
 }

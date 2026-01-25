@@ -40,10 +40,8 @@ import {
 } from "renderer/stores/new-workspace-modal";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
-function generateBranchFromTitle(title: string, authorPrefix?: string): string {
-	if (!title.trim()) return "";
-
-	const slug = title
+function sanitizeSegment(text: string): string {
+	return text
 		.toLowerCase()
 		.trim()
 		.replace(/[^a-z0-9\s-]/g, "")
@@ -51,6 +49,19 @@ function generateBranchFromTitle(title: string, authorPrefix?: string): string {
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "")
 		.slice(0, 50);
+}
+
+function generateBranchFromTitle({
+	title,
+	authorPrefix,
+}: {
+	title: string;
+	authorPrefix?: string;
+}): string {
+	if (!title.trim()) return "";
+
+	const slug = sanitizeSegment(title);
+	if (!slug) return "";
 
 	if (authorPrefix) {
 		return `${authorPrefix}/${slug}`;
@@ -123,7 +134,7 @@ export function NewWorkspaceModal() {
 	// Auto-generate branch name from title (unless manually edited)
 	useEffect(() => {
 		if (!branchNameEdited) {
-			setBranchName(generateBranchFromTitle(title, authorPrefix));
+			setBranchName(generateBranchFromTitle({ title, authorPrefix }));
 		}
 	}, [title, branchNameEdited, authorPrefix]);
 
@@ -170,13 +181,13 @@ export function NewWorkspaceModal() {
 	const handleBranchNameChange = (value: string) => {
 		const hasCustomPrefix = value.includes("/");
 		if (hasCustomPrefix) {
-			const parts = value.split("/");
-			const prefix = parts.slice(0, -1).join("/");
-			const name = parts[parts.length - 1];
-			const sanitizedName = generateBranchFromTitle(name);
-			setBranchName(sanitizedName ? `${prefix}/${sanitizedName}` : prefix);
+			const sanitizedParts = value
+				.split("/")
+				.map((part) => sanitizeSegment(part))
+				.filter(Boolean);
+			setBranchName(sanitizedParts.join("/"));
 		} else {
-			setBranchName(generateBranchFromTitle(value, authorPrefix));
+			setBranchName(generateBranchFromTitle({ title: value, authorPrefix }));
 		}
 		setBranchNameEdited(true);
 	};
@@ -300,7 +311,7 @@ export function NewWorkspaceModal() {
 											<GoGitBranch className="size-3" />
 											<span className="font-mono">
 												{branchName ||
-													generateBranchFromTitle(title, authorPrefix)}
+													generateBranchFromTitle({ title, authorPrefix })}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
@@ -331,7 +342,7 @@ export function NewWorkspaceModal() {
 													className="h-8 text-sm font-mono"
 													placeholder={
 														title
-															? generateBranchFromTitle(title, authorPrefix)
+															? generateBranchFromTitle({ title, authorPrefix })
 															: "auto-generated"
 													}
 													value={branchName}
