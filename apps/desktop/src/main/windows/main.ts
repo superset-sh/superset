@@ -104,9 +104,10 @@ export async function MainWindow() {
 				event.paneId
 			) {
 				try {
-					// Parse current workspace from renderer URL
+					// Parse current workspace from renderer URL hash (app uses hash routing)
 					const url = window.webContents.getURL();
-					const workspaceMatch = url.match(/\/workspace\/([^/]+)/);
+					const hash = new URL(url).hash;
+					const workspaceMatch = hash.match(/\/workspace\/([^/?#]+)/);
 					const currentWorkspaceId = workspaceMatch?.[1] ?? null;
 
 					const tabsState = appState.data?.tabsState;
