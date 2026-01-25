@@ -15,6 +15,8 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_THEME: "appearance-theme",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
+	APPEARANCE_WINDOW_OPACITY: "appearance-window-opacity",
+	APPEARANCE_WINDOW_BLUR: "appearance-window-blur",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -243,6 +245,39 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"upload",
 			"personalize",
 			"customize",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_WINDOW_OPACITY,
+		section: "appearance",
+		title: "Window Opacity",
+		description: "Adjust window transparency",
+		keywords: [
+			"appearance",
+			"opacity",
+			"transparent",
+			"transparency",
+			"window",
+			"alpha",
+			"see through",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_WINDOW_BLUR,
+		section: "appearance",
+		title: "Window Blur",
+		description: "Window background blur effect",
+		keywords: [
+			"appearance",
+			"blur",
+			"vibrancy",
+			"acrylic",
+			"mica",
+			"frosted",
+			"glass",
+			"translucent",
+			"background",
+			"material",
 		],
 	},
 	{

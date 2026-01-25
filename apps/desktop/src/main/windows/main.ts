@@ -1,12 +1,18 @@
 import { join } from "node:path";
-import { workspaces, worktrees } from "@superset/local-db";
+import { settings, workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { Notification } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
-import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
+import {
+	DEFAULT_WINDOW_BACKGROUND_MATERIAL,
+	DEFAULT_WINDOW_OPACITY,
+	DEFAULT_WINDOW_VIBRANCY,
+	NOTIFICATION_EVENTS,
+	PORTS,
+} from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
@@ -29,6 +35,47 @@ import {
 	saveWindowState,
 } from "../lib/window-state";
 import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
+
+/** Load window appearance settings from database */
+function getWindowAppearanceSettings() {
+	try {
+		const row = localDb.select().from(settings).get();
+		return {
+			opacity: row?.windowOpacity ?? DEFAULT_WINDOW_OPACITY,
+			vibrancy: row?.windowVibrancy ?? DEFAULT_WINDOW_VIBRANCY,
+			backgroundMaterial:
+				row?.windowBackgroundMaterial ?? DEFAULT_WINDOW_BACKGROUND_MATERIAL,
+		};
+	} catch (error) {
+		console.error("[window/appearance] Failed to load settings:", error);
+		return {
+			opacity: DEFAULT_WINDOW_OPACITY,
+			vibrancy: DEFAULT_WINDOW_VIBRANCY,
+			backgroundMaterial: DEFAULT_WINDOW_BACKGROUND_MATERIAL,
+		};
+	}
+}
+
+/** Apply window appearance settings to a BrowserWindow */
+function applyWindowAppearance(window: BrowserWindow) {
+	const { opacity, vibrancy, backgroundMaterial } =
+		getWindowAppearanceSettings();
+
+	// Apply opacity
+	if (opacity !== 100) {
+		window.setOpacity(opacity / 100);
+	}
+
+	// Apply vibrancy (macOS only)
+	if (process.platform === "darwin" && vibrancy !== "none") {
+		window.setVibrancy(vibrancy);
+	}
+
+	// Apply background material (Windows only)
+	if (process.platform === "win32" && backgroundMaterial !== "none") {
+		window.setBackgroundMaterial(backgroundMaterial);
+	}
+}
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
@@ -94,6 +141,9 @@ export async function MainWindow() {
 
 	createApplicationMenu();
 	registerMenuHotkeyUpdates();
+
+	// Apply saved window appearance settings (opacity, vibrancy, etc.)
+	applyWindowAppearance(window);
 
 	currentWindow = window;
 

@@ -3,6 +3,8 @@ import {
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
+	WINDOW_BACKGROUND_MATERIALS,
+	WINDOW_VIBRANCY_OPTIONS,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
@@ -12,6 +14,9 @@ import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PERSISTENCE,
+	DEFAULT_WINDOW_BACKGROUND_MATERIAL,
+	DEFAULT_WINDOW_OPACITY,
+	DEFAULT_WINDOW_VIBRANCY,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
@@ -308,6 +313,66 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalPersistence: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getWindowOpacity: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.windowOpacity ?? DEFAULT_WINDOW_OPACITY;
+		}),
+
+		setWindowOpacity: publicProcedure
+			.input(z.object({ opacity: z.number().min(0).max(100) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, windowOpacity: input.opacity })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { windowOpacity: input.opacity },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getWindowVibrancy: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.windowVibrancy ?? DEFAULT_WINDOW_VIBRANCY;
+		}),
+
+		setWindowVibrancy: publicProcedure
+			.input(z.object({ vibrancy: z.enum(WINDOW_VIBRANCY_OPTIONS) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, windowVibrancy: input.vibrancy })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { windowVibrancy: input.vibrancy },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getWindowBackgroundMaterial: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.windowBackgroundMaterial ?? DEFAULT_WINDOW_BACKGROUND_MATERIAL;
+		}),
+
+		setWindowBackgroundMaterial: publicProcedure
+			.input(z.object({ material: z.enum(WINDOW_BACKGROUND_MATERIALS) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, windowBackgroundMaterial: input.material })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { windowBackgroundMaterial: input.material },
 					})
 					.run();
 
