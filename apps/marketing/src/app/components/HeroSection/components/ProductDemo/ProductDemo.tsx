@@ -29,19 +29,21 @@ export function ProductDemo() {
 				</motion.div>
 			))}
 
-			{/* Content wrapper */}
-			<div className="relative flex flex-col gap-4 p-6">
-				{/* App mockup container */}
-				<AppMockup activeDemo={activeOption} />
+			{/* Content wrapper - no right padding on mobile so content touches edge */}
+			<div className="relative flex flex-col gap-3 sm:gap-4 py-4 pl-4 sm:p-6">
+				{/* App mockup - horizontally scrollable on mobile */}
+				<div className="overflow-x-auto scrollbar-hide">
+					<AppMockup activeDemo={activeOption} />
+				</div>
 
-				{/* Selector pills */}
-				<div className="flex items-center gap-2 overflow-x-auto">
+				{/* Selector pills - horizontally scrollable on mobile */}
+				<div className="flex items-center gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
 					{DEMO_OPTIONS.map((option) => (
 						<SelectorPill
 							key={option.label}
 							label={option.label}
 							active={activeOption === option.label}
-							onHover={() => setActiveOption(option.label as ActiveDemo)}
+							onSelect={() => setActiveOption(option.label as ActiveDemo)}
 						/>
 					))}
 				</div>

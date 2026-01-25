@@ -5,3 +5,11 @@
 	--font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
+
+@utility scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}

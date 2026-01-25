@@ -5,20 +5,21 @@ import { motion } from "framer-motion";
 interface SelectorPillProps {
 	label: string;
 	active?: boolean;
-	onHover?: () => void;
+	onSelect?: () => void;
 }
 
 export function SelectorPill({
 	label,
 	active = false,
-	onHover,
+	onSelect,
 }: SelectorPillProps) {
 	return (
 		<motion.button
 			type="button"
-			onMouseEnter={onHover}
+			onMouseEnter={onSelect}
+			onClick={onSelect}
 			className={`
-				inline-flex items-center justify-center py-2 text-sm whitespace-nowrap cursor-pointer
+				inline-flex items-center justify-center py-2 text-xs sm:text-sm whitespace-nowrap cursor-pointer shrink-0
 				${
 					active
 						? "bg-foreground/90 border border-foreground text-background/80"
@@ -26,8 +27,8 @@ export function SelectorPill({
 				}
 			`}
 			animate={{
-				paddingLeft: active ? 22 : 16,
-				paddingRight: active ? 22 : 16,
+				paddingLeft: active ? 18 : 12,
+				paddingRight: active ? 18 : 12,
 			}}
 			transition={{ duration: 0.2, ease: "easeOut" }}
 		>
