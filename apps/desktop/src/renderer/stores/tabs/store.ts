@@ -505,7 +505,7 @@ export const useTabsStore = create<TabsStore>()(
 								!p.fileViewer.isPinned,
 						);
 
-					// If we found an unpinned (preview) file-viewer pane, check if it's the same file
+					// If we found an unpinned (preview) file-viewer pane, reuse it
 					if (fileViewerPanes.length > 0) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
@@ -514,25 +514,14 @@ export const useTabsStore = create<TabsStore>()(
 							return "";
 						}
 
-						// If clicking the same file that's already in preview, pin it
+						// If clicking the same file that's already in preview, just focus it
 						const isSameFile =
 							existingFileViewer.filePath === options.filePath &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
-							// Pin the preview pane
 							set({
-								panes: {
-									...state.panes,
-									[paneToReuse.id]: {
-										...paneToReuse,
-										fileViewer: {
-											...existingFileViewer,
-											isPinned: true,
-										},
-									},
-								},
 								focusedPaneIds: {
 									...state.focusedPaneIds,
 									[activeTab.id]: paneToReuse.id,

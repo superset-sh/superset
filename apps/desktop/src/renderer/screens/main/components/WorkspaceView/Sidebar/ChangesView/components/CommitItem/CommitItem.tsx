@@ -11,7 +11,6 @@ interface CommitItemProps {
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile, commitHash: string) => void;
-	onFileDoubleClick?: (file: ChangedFile, commitHash: string) => void;
 	viewMode: ChangesViewMode;
 	worktreePath?: string;
 	isExpandedView?: boolean;
@@ -46,7 +45,6 @@ export function CommitItem({
 	selectedFile,
 	selectedCommitHash,
 	onFileSelect,
-	onFileDoubleClick,
 	viewMode,
 	worktreePath,
 	isExpandedView,
@@ -55,10 +53,6 @@ export function CommitItem({
 
 	const handleFileSelect = (file: ChangedFile) => {
 		onFileSelect(file, commit.hash);
-	};
-
-	const handleFileDoubleClick = (file: ChangedFile) => {
-		onFileDoubleClick?.(file, commit.hash);
 	};
 
 	const isCommitSelected = selectedCommitHash === commit.hash;
@@ -84,7 +78,6 @@ export function CommitItem({
 					selectedFile={isCommitSelected ? selectedFile : null}
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={handleFileSelect}
-					onFileDoubleClick={handleFileDoubleClick}
 					worktreePath={worktreePath}
 					category="committed"
 					commitHash={commit.hash}

@@ -52,22 +52,6 @@ export function Sidebar() {
 				diffCategory: category,
 				commitHash,
 				oldPath: file.oldPath,
-				isPinned: false,
-			});
-			invalidateFileContent(file.path);
-		},
-		[workspaceId, worktreePath, addFileViewerPane, invalidateFileContent],
-	);
-
-	const handleFileOpenPinnedPane = useCallback(
-		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-			if (!workspaceId || !worktreePath) return;
-			addFileViewerPane(workspaceId, {
-				filePath: file.path,
-				diffCategory: category,
-				commitHash,
-				oldPath: file.oldPath,
-				isPinned: true,
 			});
 			invalidateFileContent(file.path);
 		},
@@ -88,20 +72,9 @@ export function Sidebar() {
 				: handleFileOpenPane
 			: undefined;
 
-	const handleFileOpenPinned =
-		workspaceId && worktreePath
-			? isExpanded
-				? handleFileScrollTo
-				: handleFileOpenPinnedPane
-			: undefined;
-
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<ChangesView
-				onFileOpen={handleFileOpen}
-				onFileOpenPinned={handleFileOpenPinned}
-				isExpandedView={isExpanded}
-			/>
+			<ChangesView onFileOpen={handleFileOpen} isExpandedView={isExpanded} />
 		</aside>
 	);
 }

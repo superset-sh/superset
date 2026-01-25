@@ -9,7 +9,6 @@ interface FileListProps {
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
-	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -27,7 +26,6 @@ export function FileList({
 	selectedFile,
 	selectedCommitHash,
 	onFileSelect,
-	onFileDoubleClick,
 	showStats = true,
 	onStage,
 	onUnstage,
@@ -49,7 +47,6 @@ export function FileList({
 				selectedFile={selectedFile}
 				selectedCommitHash={selectedCommitHash}
 				onFileSelect={onFileSelect}
-				onFileDoubleClick={onFileDoubleClick}
 				showStats={showStats}
 				onStage={onStage}
 				onUnstage={onUnstage}
@@ -69,7 +66,6 @@ export function FileList({
 			selectedFile={selectedFile}
 			selectedCommitHash={selectedCommitHash}
 			onFileSelect={onFileSelect}
-			onFileDoubleClick={onFileDoubleClick}
 			showStats={showStats}
 			onStage={onStage}
 			onUnstage={onUnstage}
