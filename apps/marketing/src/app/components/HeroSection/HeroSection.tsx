@@ -28,14 +28,19 @@ export function HeroSection() {
 						>
 							<div className="space-y-2 sm:space-y-6">
 								<h1
-									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground"
+									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground relative"
 									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
-									<TypewriterText
-										text="The Terminal for Coding Agents."
-										speed={40}
-										delay={600}
-									/>
+									<span className="invisible" aria-hidden="true">
+										The Terminal for Coding Agents.
+									</span>
+									<span className="absolute inset-0">
+										<TypewriterText
+											text="The Terminal for Coding Agents."
+											speed={40}
+											delay={600}
+										/>
+									</span>
 								</h1>
 								<p className="text-sm sm:text-lg font-light text-muted-foreground max-w-[400px]">
 									Orchestrate a team of Claude Code, Codex, or any other coding
