@@ -302,9 +302,19 @@ export const createCreateProcedures = () => {
 				const existingBranches = [...local, ...remote];
 
 				const authorName = await getGitAuthorName(project.mainRepoPath);
-				const authorPrefix = authorName
+				const rawAuthorPrefix = authorName
 					? sanitizeAuthorPrefix(authorName)
 					: undefined;
+
+				// Skip prefix if a branch with the exact prefix name exists (git ref collision)
+				// e.g., if "john" branch exists, can't create "john/feature"
+				const existingSet = new Set(
+					existingBranches.map((b) => b.toLowerCase()),
+				);
+				const authorPrefix =
+					rawAuthorPrefix && !existingSet.has(rawAuthorPrefix.toLowerCase())
+						? rawAuthorPrefix
+						: undefined;
 
 				let branch: string;
 				if (existingBranchName) {
