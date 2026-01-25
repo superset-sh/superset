@@ -113,11 +113,9 @@ function WorkspacePage() {
 
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Get presets for preset hotkeys
 	const { presets } = usePresets();
 	const renameTab = useTabsStore((s) => s.renameTab);
 
-	// Helper to open a tab with a preset
 	const openTabWithPreset = useCallback(
 		(presetIndex: number) => {
 			const preset = presets[presetIndex];
@@ -136,13 +134,10 @@ function WorkspacePage() {
 		[presets, workspaceId, addTab, renameTab],
 	);
 
-	// New tab hotkey (default preset or empty)
 	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
 		workspaceId,
 		addTab,
 	]);
-
-	// Preset hotkeys (⌘⇧1-9)
 	usePresetHotkeys(openTabWithPreset);
 
 	useAppHotkey(
@@ -156,7 +151,6 @@ function WorkspacePage() {
 		[focusedPaneId, removePane],
 	);
 
-	// Switch between tabs
 	useAppHotkey(
 		"PREV_TAB",
 		() => {
@@ -183,7 +177,6 @@ function WorkspacePage() {
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
-	// Switch between panes within a tab
 	useAppHotkey(
 		"PREV_PANE",
 		() => {

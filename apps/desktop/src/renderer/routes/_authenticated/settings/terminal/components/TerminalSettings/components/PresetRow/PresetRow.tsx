@@ -129,7 +129,6 @@ export function PresetRow({
 	drag(dragHandleRef);
 
 	const handleToggleDefault = () => {
-		// If already default, clear it; otherwise set this preset as default
 		onSetDefault(preset.isDefault ? null : preset.id);
 	};
 

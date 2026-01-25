@@ -315,7 +315,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 
 	const handleLocalReorder = useCallback(
 		(fromIndex: number, toIndex: number) => {
-			// Update local state optimistically during drag
 			setLocalPresets((prev) => {
 				const newPresets = [...prev];
 				const [removed] = newPresets.splice(fromIndex, 1);
@@ -328,7 +327,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 
 	const handlePersistReorder = useCallback(
 		(presetId: string, targetIndex: number) => {
-			// Persist to server only on drop
 			reorderPresets.mutate({ presetId, targetIndex });
 		},
 		[reorderPresets],
