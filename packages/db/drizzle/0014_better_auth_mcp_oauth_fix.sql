@@ -1,1 +1,0 @@
-ALTER TABLE "auth"."oauth_applications" ADD COLUMN "icon" text;
