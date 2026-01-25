@@ -19,6 +19,8 @@ import {
 } from "../lib/notifications/server";
 import {
 	extractWorkspaceIdFromUrl,
+	getNotificationTitle,
+	getWorkspaceName,
 	isPaneVisible,
 } from "../lib/notifications/utils";
 import {
@@ -30,6 +32,28 @@ import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
+
+function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
+	if (!workspaceId) return "Workspace";
+	try {
+		const workspace = localDb
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, workspaceId))
+			.get();
+		const worktree = workspace?.worktreeId
+			? localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.id, workspace.worktreeId))
+					.get()
+			: undefined;
+		return getWorkspaceName({ workspace, worktree });
+	} catch (error) {
+		console.error("[notifications] Failed to get workspace name:", error);
+		return "Workspace";
+	}
+}
 
 // Current window reference - updated on window create/close
 let currentWindow: BrowserWindow | null = null;
@@ -121,77 +145,40 @@ export async function MainWindow() {
 				if (isVisible) return;
 			}
 
-			if (Notification.isSupported()) {
-				const isPermissionRequest = event.eventType === "PermissionRequest";
+			if (!Notification.isSupported()) return;
 
-				// Derive workspace name from workspaceId with safe fallbacks
-				let workspaceName = "Workspace";
-				try {
-					if (event.workspaceId) {
-						const workspace = localDb
-							.select()
-							.from(workspaces)
-							.where(eq(workspaces.id, event.workspaceId))
-							.get();
-						const worktree = workspace?.worktreeId
-							? localDb
-									.select()
-									.from(worktrees)
-									.where(eq(worktrees.id, workspace.worktreeId))
-									.get()
-							: undefined;
-						workspaceName = workspace?.name || worktree?.branch || "Workspace";
-					}
-				} catch (error) {
-					console.error(
-						"[notifications] Failed to access db for workspace name:",
-						error,
-					);
-				}
+			const workspaceName = getWorkspaceNameFromDb(event.workspaceId);
+			const title = getNotificationTitle({
+				tabId: event.tabId,
+				paneId: event.paneId,
+				tabs: appState.data?.tabsState?.tabs,
+				panes: appState.data?.tabsState?.panes,
+			});
 
-				// Derive title from tab name, falling back to pane name
-				// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
-				let title = "Terminal";
-				try {
-					const { paneId, tabId } = event;
-					const tabsState = appState.data?.tabsState;
-					const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
-					const tab = tabId
-						? tabsState?.tabs?.find((t) => t.id === tabId)
-						: undefined;
-					title =
-						tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
-				} catch (error) {
-					console.error(
-						"[notifications] Failed to access appState for tab title:",
-						error,
-					);
-				}
+			const isPermissionRequest = event.eventType === "PermissionRequest";
+			const notification = new Notification({
+				title: isPermissionRequest
+					? `Input Needed — ${workspaceName}`
+					: `Agent Complete — ${workspaceName}`,
+				body: isPermissionRequest
+					? `"${title}" needs your attention`
+					: `"${title}" has finished its task`,
+				silent: true,
+			});
 
-				const notification = new Notification({
-					title: isPermissionRequest
-						? `Input Needed — ${workspaceName}`
-						: `Agent Complete — ${workspaceName}`,
-					body: isPermissionRequest
-						? `"${title}" needs your attention`
-						: `"${title}" has finished its task`,
-					silent: true,
+			playNotificationSound();
+
+			notification.on("click", () => {
+				window.show();
+				window.focus();
+				notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
+					paneId: event.paneId,
+					tabId: event.tabId,
+					workspaceId: event.workspaceId,
 				});
+			});
 
-				playNotificationSound();
-
-				notification.on("click", () => {
-					window.show();
-					window.focus();
-					notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
-						paneId: event.paneId,
-						tabId: event.tabId,
-						workspaceId: event.workspaceId,
-					});
-				});
-
-				notification.show();
-			}
+			notification.show();
 		},
 	);
 

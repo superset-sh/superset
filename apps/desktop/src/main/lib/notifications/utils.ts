@@ -55,3 +55,55 @@ export function isPaneVisible({
 
 	return isViewingWorkspace && isActiveTab && isFocusedPane;
 }
+
+interface BaseTab {
+	id: string;
+	name: string;
+	userTitle?: string;
+}
+
+interface Pane {
+	name: string;
+}
+
+/**
+ * Derives a display title for a notification from tab/pane state.
+ * Priority: tab.userTitle > tab.name > pane.name > "Terminal"
+ */
+export function getNotificationTitle({
+	tabId,
+	paneId,
+	tabs,
+	panes,
+}: {
+	tabId?: string;
+	paneId?: string;
+	tabs?: BaseTab[];
+	panes?: Record<string, Pane>;
+}): string {
+	const tab = tabId ? tabs?.find((t) => t.id === tabId) : undefined;
+	const pane = paneId ? panes?.[paneId] : undefined;
+	return tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
+}
+
+interface Workspace {
+	name: string | null;
+	worktreeId: string | null;
+}
+
+interface Worktree {
+	branch: string | null;
+}
+
+/**
+ * Derives a display name for a workspace, falling back through available names.
+ */
+export function getWorkspaceName({
+	workspace,
+	worktree,
+}: {
+	workspace?: Workspace | null;
+	worktree?: Worktree | null;
+}): string {
+	return workspace?.name || worktree?.branch || "Workspace";
+}

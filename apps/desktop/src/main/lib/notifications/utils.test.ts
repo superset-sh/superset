@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { extractWorkspaceIdFromUrl, isPaneVisible } from "./utils";
+import {
+	extractWorkspaceIdFromUrl,
+	getNotificationTitle,
+	getWorkspaceName,
+	isPaneVisible,
+} from "./utils";
 
 describe("extractWorkspaceIdFromUrl", () => {
 	it("extracts workspace ID from hash-routed URL", () => {
@@ -152,5 +157,75 @@ describe("isPaneVisible", () => {
 				pane,
 			}),
 		).toBe(false);
+	});
+});
+
+describe("getNotificationTitle", () => {
+	const tabs = [
+		{ id: "tab1", name: "Tab 1", userTitle: "My Custom Title" },
+		{ id: "tab2", name: "Tab 2" },
+	];
+	const panes = {
+		pane1: { name: "Pane 1" },
+		pane2: { name: "Pane 2" },
+	};
+
+	it("returns userTitle when available", () => {
+		expect(getNotificationTitle({ tabId: "tab1", tabs, panes })).toBe(
+			"My Custom Title",
+		);
+	});
+
+	it("returns tab.name when no userTitle", () => {
+		expect(getNotificationTitle({ tabId: "tab2", tabs, panes })).toBe("Tab 2");
+	});
+
+	it("returns pane.name when no tab found", () => {
+		expect(getNotificationTitle({ paneId: "pane1", tabs, panes })).toBe(
+			"Pane 1",
+		);
+	});
+
+	it("returns Terminal as fallback", () => {
+		expect(getNotificationTitle({})).toBe("Terminal");
+	});
+
+	it("trims whitespace from userTitle", () => {
+		const tabsWithWhitespace = [{ id: "t1", name: "Tab", userTitle: "  " }];
+		expect(
+			getNotificationTitle({ tabId: "t1", tabs: tabsWithWhitespace }),
+		).toBe("Tab");
+	});
+});
+
+describe("getWorkspaceName", () => {
+	it("returns workspace.name when available", () => {
+		expect(
+			getWorkspaceName({
+				workspace: { name: "My Workspace", worktreeId: null },
+			}),
+		).toBe("My Workspace");
+	});
+
+	it("returns worktree.branch when no workspace name", () => {
+		expect(
+			getWorkspaceName({
+				workspace: { name: null, worktreeId: "wt1" },
+				worktree: { branch: "feature/test" },
+			}),
+		).toBe("feature/test");
+	});
+
+	it("returns Workspace as fallback", () => {
+		expect(getWorkspaceName({})).toBe("Workspace");
+	});
+
+	it("returns Workspace when all values are null", () => {
+		expect(
+			getWorkspaceName({
+				workspace: { name: null, worktreeId: null },
+				worktree: { branch: null },
+			}),
+		).toBe("Workspace");
 	});
 });
