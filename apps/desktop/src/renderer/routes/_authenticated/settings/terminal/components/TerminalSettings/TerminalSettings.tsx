@@ -445,7 +445,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	};
 
 	return (
-		<div className="p-6 max-w-6xl w-full">
+		<div className="p-6 max-w-7xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Terminal</h2>
 				<p className="text-sm text-muted-foreground mt-1">
@@ -532,7 +532,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 									))}
 									<Tooltip>
 										<TooltipTrigger asChild>
-											<div className="w-24 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help flex items-center gap-1">
+											<div className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help flex items-center gap-1">
 												Mode
 												<HiOutlineQuestionMarkCircle className="h-3.5 w-3.5" />
 											</div>

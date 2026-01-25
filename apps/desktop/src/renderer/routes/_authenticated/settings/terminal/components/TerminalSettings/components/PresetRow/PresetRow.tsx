@@ -112,7 +112,7 @@ export function PresetRow({
 					/>
 				</div>
 			))}
-			<div className="w-24 shrink-0 pt-0.5">
+			<div className="w-28 shrink-0 pt-0.5">
 				<Select
 					value={preset.executionMode ?? "sequential"}
 					onValueChange={(value) => {
