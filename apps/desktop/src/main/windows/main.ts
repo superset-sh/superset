@@ -96,6 +96,37 @@ export async function MainWindow() {
 			// Only notify on Stop (completion) and PermissionRequest - not on Start
 			if (event.eventType === "Start") return;
 
+			// Skip notification if user is already viewing this pane (Slack pattern)
+			if (
+				window.isFocused() &&
+				event.workspaceId &&
+				event.tabId &&
+				event.paneId
+			) {
+				try {
+					// Parse current workspace from renderer URL
+					const url = window.webContents.getURL();
+					const workspaceMatch = url.match(/\/workspace\/([^/]+)/);
+					const currentWorkspaceId = workspaceMatch?.[1] ?? null;
+
+					const tabsState = appState.data?.tabsState;
+					const isViewingWorkspace = currentWorkspaceId === event.workspaceId;
+					const isActiveTab =
+						tabsState?.activeTabIds?.[event.workspaceId] === event.tabId;
+					const isFocusedPane =
+						tabsState?.focusedPaneIds?.[event.tabId] === event.paneId;
+
+					if (isViewingWorkspace && isActiveTab && isFocusedPane) {
+						return;
+					}
+				} catch (error) {
+					console.error(
+						"[notifications] Failed to check active pane state:",
+						error,
+					);
+				}
+			}
+
 			if (Notification.isSupported()) {
 				const isPermissionRequest = event.eventType === "PermissionRequest";
 
