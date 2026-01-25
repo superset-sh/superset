@@ -1,4 +1,5 @@
 import {
+	EXECUTION_MODES,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -43,6 +44,7 @@ export const createSettingsRouter = () => {
 					description: z.string().optional(),
 					cwd: z.string(),
 					commands: z.array(z.string()),
+					executionMode: z.enum(EXECUTION_MODES).optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -76,6 +78,7 @@ export const createSettingsRouter = () => {
 						description: z.string().optional(),
 						cwd: z.string().optional(),
 						commands: z.array(z.string()).optional(),
+						executionMode: z.enum(EXECUTION_MODES).optional(),
 					}),
 				}),
 			)
@@ -97,6 +100,8 @@ export const createSettingsRouter = () => {
 				if (input.patch.cwd !== undefined) preset.cwd = input.patch.cwd;
 				if (input.patch.commands !== undefined)
 					preset.commands = input.patch.commands;
+				if (input.patch.executionMode !== undefined)
+					preset.executionMode = input.patch.executionMode;
 
 				localDb
 					.insert(settings)

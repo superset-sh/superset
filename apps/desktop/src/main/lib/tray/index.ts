@@ -341,6 +341,8 @@ export function initTray(): void {
 				console.error("[Tray] Failed to update menu:", error);
 			});
 		}, POLL_INTERVAL_MS);
+		// Don't keep Electron alive just for tray updates
+		pollIntervalId.unref();
 
 		console.log("[Tray] Initialized successfully");
 	} catch (error) {

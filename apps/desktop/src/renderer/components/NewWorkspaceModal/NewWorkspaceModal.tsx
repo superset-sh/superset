@@ -27,7 +27,6 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
-import debounce from "lodash/debounce";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
@@ -54,7 +53,7 @@ function generateBranchFromTitle(title: string): string {
 		.slice(0, 50);
 }
 
-type Mode = "existing" | "new";
+type Mode = "existing" | "new" | "cloud";
 
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
@@ -63,8 +62,6 @@ export function NewWorkspaceModal() {
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
-	// Use local title for immediate input feedback, debounce updates to derived state
-	const [localTitle, setLocalTitle] = useState("");
 	const [title, setTitle] = useState("");
 	const [branchName, setBranchName] = useState("");
 	const [branchNameEdited, setBranchNameEdited] = useState(false);
@@ -74,25 +71,6 @@ export function NewWorkspaceModal() {
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const titleInputRef = useRef<HTMLInputElement>(null);
-
-	// Debounced title update to reduce re-renders from derived state calculations
-	const debouncedSetTitle = useMemo(
-		() => debounce((value: string) => setTitle(value), 150),
-		[],
-	);
-
-	// Cleanup debounced function on unmount
-	useEffect(() => {
-		return () => {
-			debouncedSetTitle.cancel();
-		};
-	}, [debouncedSetTitle]);
-
-	const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const value = e.target.value;
-		setLocalTitle(value); // Immediate update for responsive typing
-		debouncedSetTitle(value); // Debounced update for derived state
-	};
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
@@ -106,7 +84,7 @@ export function NewWorkspaceModal() {
 	);
 	const createWorkspace = useCreateWorkspace();
 
-	// Filter branches based on search
+	// Filter branches based on search (for base branch selector)
 	const filteredBranches = useMemo(() => {
 		if (!branchData?.branches) return [];
 		if (!branchSearch) return branchData.branches;
@@ -141,7 +119,6 @@ export function NewWorkspaceModal() {
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
-		setLocalTitle("");
 		setTitle("");
 		setBranchName("");
 		setBranchNameEdited(false);
@@ -181,15 +158,14 @@ export function NewWorkspaceModal() {
 	};
 
 	const handleBranchNameChange = (value: string) => {
-		setBranchName(value);
+		setBranchName(generateBranchFromTitle(value));
 		setBranchNameEdited(true);
 	};
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
 
-		// Use localTitle for the actual value (in case debounce hasn't fired yet)
-		const workspaceName = localTitle.trim() || undefined;
+		const workspaceName = title.trim() || undefined;
 		const customBranchName = branchName.trim() || undefined;
 
 		try {
@@ -221,7 +197,7 @@ export function NewWorkspaceModal() {
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent
-				className="sm:max-w-[380px] gap-0 p-0 overflow-hidden"
+				className="sm:max-w-[440px] gap-0 p-0 overflow-hidden"
 				onKeyDown={handleKeyDown}
 			>
 				<DialogHeader className="px-4 pt-4 pb-3">
@@ -274,26 +250,37 @@ export function NewWorkspaceModal() {
 								>
 									Existing
 								</button>
+								<button
+									type="button"
+									onClick={() => setMode("cloud")}
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
+										mode === "cloud"
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground"
+									}`}
+								>
+									Cloud
+								</button>
 							</div>
 						</div>
 
 						<div className="px-4 pb-4">
-							{mode === "new" ? (
+							{mode === "new" && (
 								<div className="space-y-3">
 									<Input
 										ref={titleInputRef}
 										id="title"
 										className="h-9 text-sm"
 										placeholder="Feature name (press Enter to create)"
-										value={localTitle}
-										onChange={handleTitleChange}
+										value={title}
+										onChange={(e) => setTitle(e.target.value)}
 									/>
 
-									{localTitle && !showAdvanced && (
+									{title && !showAdvanced && (
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
 											<span className="font-mono">
-												{branchName || generateBranchFromTitle(localTitle)}
+												{branchName || generateBranchFromTitle(title)}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
@@ -323,8 +310,8 @@ export function NewWorkspaceModal() {
 													id="branch"
 													className="h-8 text-sm font-mono"
 													placeholder={
-														localTitle
-															? generateBranchFromTitle(localTitle)
+														title
+															? generateBranchFromTitle(title)
 															: "auto-generated"
 													}
 													value={branchName}
@@ -346,6 +333,7 @@ export function NewWorkspaceModal() {
 													<Popover
 														open={baseBranchOpen}
 														onOpenChange={setBaseBranchOpen}
+														modal={false}
 													>
 														<PopoverTrigger asChild>
 															<Button
@@ -372,6 +360,7 @@ export function NewWorkspaceModal() {
 														<PopoverContent
 															className="w-[--radix-popover-trigger-width] p-0"
 															align="start"
+															onWheel={(e) => e.stopPropagation()}
 														>
 															<Command shouldFilter={false}>
 																<CommandInput
@@ -436,11 +425,20 @@ export function NewWorkspaceModal() {
 										Create Workspace
 									</Button>
 								</div>
-							) : (
+							)}
+							{mode === "existing" && (
 								<ExistingWorktreesList
 									projectId={selectedProjectId}
 									onOpenSuccess={handleClose}
 								/>
+							)}
+							{mode === "cloud" && (
+								<div className="flex flex-col items-center justify-center py-8 text-center">
+									<div className="text-sm font-medium text-foreground mb-1">
+										Cloud Workspaces
+									</div>
+									<p className="text-xs text-muted-foreground">Coming soon</p>
+								</div>
 							)}
 						</div>
 					</>

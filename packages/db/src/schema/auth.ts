@@ -98,6 +98,7 @@ export const organizations = authSchema.table(
 		logo: text("logo"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		metadata: text("metadata"),
+		stripeCustomerId: text("stripe_customer_id"),
 	},
 	(table) => [uniqueIndex("organizations_slug_idx").on(table.slug)],
 );
@@ -135,7 +136,6 @@ export const invitations = authSchema.table(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		email: text("email").notNull(),
-		name: text("name"),
 		role: text("role"),
 		status: text("status").default("pending").notNull(),
 		expiresAt: timestamp("expires_at").notNull(),

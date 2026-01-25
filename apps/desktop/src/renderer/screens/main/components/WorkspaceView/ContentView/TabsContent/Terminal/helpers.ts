@@ -301,6 +301,7 @@ export interface KeyboardHandlerOptions {
 	onShiftEnter?: () => void;
 	/** Callback for the configured clear terminal shortcut */
 	onClear?: () => void;
+	onWrite?: (data: string) => void;
 }
 
 export interface PasteHandlerOptions {
@@ -464,6 +465,50 @@ export function setupKeyboardHandler(
 		if (isShiftEnter) {
 			if (event.type === "keydown" && options.onShiftEnter) {
 				options.onShiftEnter();
+			}
+			return false;
+		}
+
+		const isCmdBackspace =
+			event.key === "Backspace" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdBackspace) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
+			}
+			return false;
+		}
+
+		// Cmd+Left: Move cursor to beginning of line (sends Ctrl+A)
+		const isCmdLeft =
+			event.key === "ArrowLeft" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdLeft) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x01"); // Ctrl+A - beginning of line
+			}
+			return false;
+		}
+
+		// Cmd+Right: Move cursor to end of line (sends Ctrl+E)
+		const isCmdRight =
+			event.key === "ArrowRight" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdRight) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x05"); // Ctrl+E - end of line
 			}
 			return false;
 		}

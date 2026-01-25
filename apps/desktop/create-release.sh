@@ -4,11 +4,12 @@
 # Based on apps/desktop/RELEASE.md
 #
 # Usage:
-#   ./create-release.sh [version] [--publish]
+#   ./create-release.sh [version] [--publish] [--merge]
 #   Example: ./create-release.sh              # Interactive version selection
 #   Example: ./create-release.sh 0.0.1        # Explicit version
 #   Example: ./create-release.sh 0.0.1 --publish
 #   Example: ./create-release.sh --publish    # Interactive + auto-publish
+#   Example: ./create-release.sh --publish --merge  # Auto-publish and merge PR
 #
 # This script will:
 # 1. Prompt for version if not provided (patch/minor/major/custom)
@@ -19,12 +20,14 @@
 # 6. Create and push a git tag to trigger the release workflow
 # 7. Monitor the GitHub Actions workflow in real-time
 # 8. Leave release as draft (default) or auto-publish with --publish flag
+# 9. With --merge flag: merge the PR and delete the branch after publishing
 #
 # Features:
 # - Interactive version selection with patch/minor/major options
 # - Supports republishing: Running with same version will clean up and rebuild
 # - Draft by default for review before publishing
 # - Use --publish flag to auto-publish when build completes
+# - Use --merge flag to merge the PR and delete the branch after publishing
 #
 # Requirements:
 # - GitHub CLI (gh) installed and authenticated
@@ -83,20 +86,24 @@ increment_major() {
 # Parse arguments
 VERSION=""
 AUTO_PUBLISH=false
+AUTO_MERGE=false
 
 for arg in "$@"; do
     case $arg in
         --publish)
             AUTO_PUBLISH=true
             ;;
+        --merge)
+            AUTO_MERGE=true
+            ;;
         -*)
-            error "Unknown option: $arg\nUsage: $0 [version] [--publish]"
+            error "Unknown option: $arg\nUsage: $0 [version] [--publish] [--merge]"
             ;;
         *)
             if [ -z "$VERSION" ]; then
                 VERSION="$arg"
             else
-                error "Unexpected argument: $arg\nUsage: $0 [version] [--publish]"
+                error "Unexpected argument: $arg\nUsage: $0 [version] [--publish] [--merge]"
             fi
             ;;
     esac
@@ -273,12 +280,14 @@ success "Changes pushed to ${CURRENT_BRANCH}"
 
 # Create PR if not on main branch
 MAIN_BRANCH="main"
+PR_NUMBER=""
 if [ "${CURRENT_BRANCH}" != "${MAIN_BRANCH}" ]; then
     # Check if PR already exists for this branch
     EXISTING_PR=$(gh pr list --head "${CURRENT_BRANCH}" --json number --jq '.[0].number' 2>/dev/null || echo "")
 
     if [ -n "$EXISTING_PR" ]; then
         info "PR #${EXISTING_PR} already exists for branch ${CURRENT_BRANCH}"
+        PR_NUMBER="$EXISTING_PR"
     else
         info "Creating pull request..."
         PR_URL=$(gh pr create \
@@ -291,6 +300,8 @@ This PR was automatically created by the release script." \
 
         if [ $? -eq 0 ]; then
             success "Pull request created: ${PR_URL}"
+            # Extract PR number from URL
+            PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
         else
             warn "Could not create PR: ${PR_URL}"
         fi
@@ -394,6 +405,16 @@ else
         info "Publishing release..."
         gh release edit "${TAG_NAME}" --draft=false
         success "Release published!"
+
+        # Merge the PR if one exists and --merge flag was provided
+        if [ "$AUTO_MERGE" = true ] && [ -n "$PR_NUMBER" ]; then
+            info "Merging PR #${PR_NUMBER}..."
+            if gh pr merge "${PR_NUMBER}" --squash --delete-branch; then
+                success "PR #${PR_NUMBER} merged and branch deleted"
+            else
+                warn "Could not merge PR #${PR_NUMBER}. You may need to merge it manually."
+            fi
+        fi
 
         echo ""
         echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

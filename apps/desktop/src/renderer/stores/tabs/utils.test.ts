@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { MosaicNode } from "react-mosaic-component";
 import type { Tab } from "./types";
 import {
+	buildMultiPaneLayout,
 	findPanePath,
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
@@ -288,5 +289,114 @@ describe("resolveActiveTabIdForWorkspace", () => {
 				tabHistoryStacks: { "ws-1": ["tab-x"] },
 			}),
 		).toBeNull();
+	});
+});
+
+describe("buildMultiPaneLayout", () => {
+	it("throws error for empty pane array", () => {
+		expect(() => buildMultiPaneLayout([])).toThrow(
+			"Cannot build layout with zero panes",
+		);
+	});
+
+	it("returns leaf node for single pane", () => {
+		const result = buildMultiPaneLayout(["pane-1"]);
+		expect(result).toBe("pane-1");
+	});
+
+	it("returns horizontal split for two panes", () => {
+		const result = buildMultiPaneLayout(["pane-1", "pane-2"]);
+		expect(result).toEqual({
+			direction: "row",
+			first: "pane-1",
+			second: "pane-2",
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns balanced grid for three panes", () => {
+		const result = buildMultiPaneLayout(["pane-1", "pane-2", "pane-3"]);
+		expect(result).toEqual({
+			direction: "column",
+			first: {
+				direction: "row",
+				first: "pane-1",
+				second: "pane-2",
+				splitPercentage: 50,
+			},
+			second: "pane-3",
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns 2x2 grid for four panes", () => {
+		const result = buildMultiPaneLayout([
+			"pane-1",
+			"pane-2",
+			"pane-3",
+			"pane-4",
+		]);
+		expect(result).toEqual({
+			direction: "column",
+			first: {
+				direction: "row",
+				first: "pane-1",
+				second: "pane-2",
+				splitPercentage: 50,
+			},
+			second: {
+				direction: "row",
+				first: "pane-3",
+				second: "pane-4",
+				splitPercentage: 50,
+			},
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns balanced nested layout for five panes", () => {
+		const result = buildMultiPaneLayout([
+			"pane-1",
+			"pane-2",
+			"pane-3",
+			"pane-4",
+			"pane-5",
+		]);
+		expect(result).toEqual({
+			direction: "column",
+			first: {
+				direction: "row",
+				first: {
+					direction: "row",
+					first: "pane-1",
+					second: "pane-2",
+					splitPercentage: 50,
+				},
+				second: "pane-3",
+				splitPercentage: 50,
+			},
+			second: {
+				direction: "row",
+				first: "pane-4",
+				second: "pane-5",
+				splitPercentage: 50,
+			},
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns row-first layout when direction is row", () => {
+		const result = buildMultiPaneLayout(["pane-1", "pane-2", "pane-3"], "row");
+		expect(result).toEqual({
+			direction: "row",
+			first: {
+				direction: "row",
+				first: "pane-1",
+				second: "pane-2",
+				splitPercentage: 50,
+			},
+			second: "pane-3",
+			splitPercentage: 50,
+		});
 	});
 });

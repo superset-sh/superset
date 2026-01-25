@@ -1,55 +1,52 @@
 import type { SettingsSection } from "renderer/stores/settings-state";
 
-/**
- * Typed setting item IDs for type-safe references across components.
- * When adding a new setting, add its ID here first.
- */
 export const SETTING_ITEM_ID = {
-	// Account
 	ACCOUNT_PROFILE: "account-profile",
 	ACCOUNT_VERSION: "account-version",
 	ACCOUNT_SIGNOUT: "account-signout",
 
-	// Organization
 	ORGANIZATION_LOGO: "organization-logo",
 	ORGANIZATION_NAME: "organization-name",
 	ORGANIZATION_SLUG: "organization-slug",
+	ORGANIZATION_MEMBERS_LIST: "organization-members-list",
+	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
+	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
+		"organization-members-pending-invitations",
 
-	// Members
-	MEMBERS_LIST: "members-list",
-	MEMBERS_INVITE: "members-invite",
-	MEMBERS_PENDING_INVITATIONS: "members-pending-invitations",
-
-	// Appearance
 	APPEARANCE_THEME: "appearance-theme",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 
-	// Ringtones (Notifications)
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
-	// Keyboard Shortcuts
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 
-	// Behavior (Features)
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 
-	// Terminal (includes presets)
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_PERSISTENCE: "terminal-persistence",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
-	// Project
+	INTEGRATIONS_LINEAR: "integrations-linear",
+	INTEGRATIONS_GITHUB: "integrations-github",
+
+	BILLING_OVERVIEW: "billing-overview",
+	BILLING_PLANS: "billing-plans",
+	BILLING_USAGE: "billing-usage",
+
 	PROJECT_NAME: "project-name",
 	PROJECT_PATH: "project-path",
 	PROJECT_SCRIPTS: "project-scripts",
 
-	// Workspace
 	WORKSPACE_NAME: "workspace-name",
 	WORKSPACE_BRANCH: "workspace-branch",
 	WORKSPACE_PATH: "workspace-path",
+
+	// API Keys
+	API_KEYS_LIST: "api-keys-list",
+	API_KEYS_GENERATE: "api-keys-generate",
 } as const;
 
 export type SettingItemId =
@@ -63,15 +60,7 @@ export interface SettingsItem {
 	keywords: string[];
 }
 
-/**
- * Single source of truth for all searchable settings items.
- * To add a new setting:
- * 1. Add the ID to SETTING_ITEM_ID above
- * 2. Add the item definition here
- * 3. Use the ID in the corresponding component's visibility check
- */
 export const SETTINGS_ITEMS: SettingsItem[] = [
-	// Account
 	{
 		id: SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		section: "account",
@@ -119,8 +108,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"leave",
 		],
 	},
-
-	// Organization
 	{
 		id: SETTING_ITEM_ID.ORGANIZATION_LOGO,
 		section: "organization",
@@ -166,14 +153,13 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"unique",
 		],
 	},
-
-	// Members
 	{
-		id: SETTING_ITEM_ID.MEMBERS_LIST,
-		section: "members",
+		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
+		section: "organization",
 		title: "Team Members",
 		description: "View and manage team members and their roles",
 		keywords: [
+			"organization",
 			"members",
 			"team",
 			"users",
@@ -187,11 +173,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.MEMBERS_INVITE,
-		section: "members",
+		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE,
+		section: "organization",
 		title: "Invite Members",
 		description: "Invite new members to your organization",
 		keywords: [
+			"organization",
 			"members",
 			"invite",
 			"add",
@@ -204,11 +191,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.MEMBERS_PENDING_INVITATIONS,
-		section: "members",
+		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS,
+		section: "organization",
 		title: "Pending Invitations",
 		description: "View and manage pending organization invitations",
 		keywords: [
+			"organization",
 			"members",
 			"invite",
 			"invitation",
@@ -221,8 +209,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"email",
 		],
 	},
-
-	// Appearance
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_THEME,
 		section: "appearance",
@@ -276,8 +262,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"customize",
 		],
 	},
-
-	// Ringtones (sidebar label: Notifications)
 	{
 		id: SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
 		section: "ringtones",
@@ -300,8 +284,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"volume",
 		],
 	},
-
-	// Keyboard Shortcuts
 	{
 		id: SETTING_ITEM_ID.KEYBOARD_SHORTCUTS,
 		section: "keyboard",
@@ -321,8 +303,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"customize",
 		],
 	},
-
-	// Behavior (sidebar label: Features)
 	{
 		id: SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		section: "behavior",
@@ -341,8 +321,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"unsaved",
 		],
 	},
-
-	// Terminal (includes presets)
 	{
 		id: SETTING_ITEM_ID.TERMINAL_PRESETS,
 		section: "terminal",
@@ -437,8 +415,88 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"browser",
 		],
 	},
-
-	// Project
+	{
+		id: SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
+		section: "integrations",
+		title: "Linear",
+		description: "Sync issues bidirectionally with Linear",
+		keywords: [
+			"integrations",
+			"linear",
+			"issues",
+			"tasks",
+			"sync",
+			"connect",
+			"connected",
+			"project management",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
+		section: "integrations",
+		title: "GitHub",
+		description: "Connect repos and sync pull requests",
+		keywords: [
+			"integrations",
+			"github",
+			"repos",
+			"repositories",
+			"pull requests",
+			"pr",
+			"sync",
+			"connect",
+			"connected",
+			"version control",
+			"git",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BILLING_OVERVIEW,
+		section: "billing",
+		title: "Current plan",
+		description: "View your current subscription and usage",
+		keywords: [
+			"billing",
+			"plan",
+			"subscription",
+			"pro",
+			"free",
+			"enterprise",
+			"current",
+			"payment",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BILLING_PLANS,
+		section: "billing",
+		title: "All plans",
+		description: "Compare and upgrade plans",
+		keywords: [
+			"billing",
+			"upgrade",
+			"pricing",
+			"plans",
+			"pro",
+			"enterprise",
+			"compare",
+			"features",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BILLING_USAGE,
+		section: "billing",
+		title: "Usage limits",
+		description: "Track workspace and user limits",
+		keywords: [
+			"billing",
+			"usage",
+			"limits",
+			"workspaces",
+			"users",
+			"quota",
+			"seats",
+		],
+	},
 	{
 		id: SETTING_ITEM_ID.PROJECT_NAME,
 		section: "project",
@@ -484,8 +542,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"config",
 		],
 	},
-
-	// Workspace
 	{
 		id: SETTING_ITEM_ID.WORKSPACE_NAME,
 		section: "workspace",
@@ -515,12 +571,44 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		description: "The file path to this workspace",
 		keywords: ["workspace", "path", "folder", "directory", "location", "root"],
 	},
+
+	// API Keys
+	{
+		id: SETTING_ITEM_ID.API_KEYS_LIST,
+		section: "apikeys",
+		title: "API Keys",
+		description: "Manage API keys for MCP server access",
+		keywords: [
+			"api",
+			"key",
+			"keys",
+			"mcp",
+			"claude",
+			"integration",
+			"external",
+			"access",
+			"token",
+			"authentication",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.API_KEYS_GENERATE,
+		section: "apikeys",
+		title: "Generate API Key",
+		description: "Create new API keys for external integrations",
+		keywords: [
+			"api",
+			"key",
+			"generate",
+			"create",
+			"new",
+			"mcp",
+			"claude desktop",
+			"claude code",
+		],
+	},
 ];
 
-/**
- * Search settings by query string.
- * Matches against title, description, and keywords.
- */
 export function searchSettings(query: string): SettingsItem[] {
 	if (!query.trim()) return SETTINGS_ITEMS;
 
@@ -533,9 +621,6 @@ export function searchSettings(query: string): SettingsItem[] {
 	);
 }
 
-/**
- * Get count of matching items per section for sidebar display.
- */
 export function getMatchCountBySection(
 	query: string,
 ): Partial<Record<SettingsSection, number>> {
@@ -549,9 +634,6 @@ export function getMatchCountBySection(
 	return counts;
 }
 
-/**
- * Get matching items for a specific section.
- */
 export function getMatchingItemsForSection(
 	query: string,
 	section: SettingsSection,
@@ -559,10 +641,6 @@ export function getMatchingItemsForSection(
 	return searchSettings(query).filter((item) => item.section === section);
 }
 
-/**
- * Helper to check if an item should be visible based on search results.
- * Returns true if no search filter is active OR if the item is in the visible list.
- */
 export function isItemVisible(
 	itemId: SettingItemId,
 	visibleItems: SettingItemId[] | null | undefined,

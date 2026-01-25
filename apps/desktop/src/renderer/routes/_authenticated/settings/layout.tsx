@@ -21,24 +21,24 @@ export const Route = createFileRoute("/_authenticated/settings")({
 const SECTION_ORDER: SettingsSection[] = [
 	"account",
 	"organization",
-	"members",
 	"appearance",
 	"ringtones",
 	"keyboard",
 	"behavior",
 	"terminal",
+	"integrations",
 ];
 
 // Map route paths to section names
 function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/account")) return "account";
 	if (pathname.includes("/settings/organization")) return "organization";
-	if (pathname.includes("/settings/members")) return "members";
 	if (pathname.includes("/settings/appearance")) return "appearance";
 	if (pathname.includes("/settings/ringtones")) return "ringtones";
 	if (pathname.includes("/settings/keyboard")) return "keyboard";
 	if (pathname.includes("/settings/behavior")) return "behavior";
 	if (pathname.includes("/settings/terminal")) return "terminal";
+	if (pathname.includes("/settings/integrations")) return "integrations";
 	if (pathname.includes("/settings/project")) return "project";
 	if (pathname.includes("/settings/workspace")) return "workspace";
 	return null;
@@ -51,8 +51,6 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/account";
 		case "organization":
 			return "/settings/organization";
-		case "members":
-			return "/settings/members";
 		case "appearance":
 			return "/settings/appearance";
 		case "ringtones":
@@ -63,6 +61,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/behavior";
 		case "terminal":
 			return "/settings/terminal";
+		case "integrations":
+			return "/settings/integrations";
 		default:
 			return "/settings/account";
 	}

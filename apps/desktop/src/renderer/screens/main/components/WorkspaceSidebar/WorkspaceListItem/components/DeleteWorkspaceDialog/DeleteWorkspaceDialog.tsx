@@ -66,7 +66,7 @@ export function DeleteWorkspaceDialog({
 		onOpenChange(false);
 
 		toast.promise(closeWorkspace.mutateAsync({ id: workspaceId }), {
-			loading: "Closing...",
+			loading: "Hiding...",
 			success: (result) => {
 				if (result.terminalWarning) {
 					setTimeout(() => {
@@ -75,10 +75,10 @@ export function DeleteWorkspaceDialog({
 						});
 					}, 100);
 				}
-				return "Workspace closed";
+				return "Workspace hidden";
 			},
 			error: (error) =>
-				error instanceof Error ? error.message : "Failed to close",
+				error instanceof Error ? error.message : "Failed to hide",
 		});
 	};
 
@@ -165,8 +165,8 @@ export function DeleteWorkspaceDialog({
 								<span className="text-destructive">{reason}</span>
 							) : (
 								<span className="block">
-									Close to hide from tabs (keeps files). Delete to permanently
-									remove worktree from disk.
+									Deleting will permanently remove the worktree. You can hide
+									instead to keep files on disk.
 								</span>
 							)}
 						</div>
@@ -194,22 +194,15 @@ export function DeleteWorkspaceDialog({
 					>
 						Cancel
 					</Button>
-					<Tooltip delayDuration={400}>
-						<TooltipTrigger asChild>
-							<Button
-								variant="secondary"
-								size="sm"
-								className="h-7 px-3 text-xs"
-								onClick={handleClose}
-								disabled={isLoading}
-							>
-								Close
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="top" className="text-xs max-w-[200px]">
-							Hide from tabs. Worktree stays on disk and can be reopened later.
-						</TooltipContent>
-					</Tooltip>
+					<Button
+						variant="secondary"
+						size="sm"
+						className="h-7 px-3 text-xs"
+						onClick={handleClose}
+						disabled={isLoading}
+					>
+						Hide
+					</Button>
 					<Tooltip delayDuration={400}>
 						<TooltipTrigger asChild>
 							<Button

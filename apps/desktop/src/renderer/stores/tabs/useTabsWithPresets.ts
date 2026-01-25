@@ -13,13 +13,15 @@ export function useTabsWithPresets() {
 	const { defaultPreset } = usePresets();
 
 	const storeAddTab = useTabsStore((s) => s.addTab);
+	const storeAddTabWithMultiplePanes = useTabsStore(
+		(s) => s.addTabWithMultiplePanes,
+	);
 	const storeAddPane = useTabsStore((s) => s.addPane);
 	const storeSplitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
 	const storeSplitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
 	const storeSplitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
 	const renameTab = useTabsStore((s) => s.renameTab);
 
-	// Get preset options if a default preset is set
 	const defaultPresetOptions: AddTabOptions | undefined = useMemo(() => {
 		if (!defaultPreset) return undefined;
 		return {
@@ -28,24 +30,50 @@ export function useTabsWithPresets() {
 		};
 	}, [defaultPreset]);
 
-	// Wrapped addTab that applies default preset
+	const shouldUseParallelMode = useMemo(() => {
+		return (
+			defaultPreset?.executionMode === "parallel" &&
+			defaultPreset.commands.length > 1
+		);
+	}, [defaultPreset]);
+
 	const addTab = useCallback(
 		(workspaceId: string, options?: AddTabOptions) => {
-			// If explicit options are provided, use them; otherwise use default preset
-			const effectiveOptions = options ?? defaultPresetOptions;
-			const result = storeAddTab(workspaceId, effectiveOptions);
+			if (options) {
+				return storeAddTab(workspaceId, options);
+			}
 
-			// If using default preset and it has a name, rename the tab
-			if (!options && defaultPreset?.name) {
+			if (shouldUseParallelMode && defaultPreset) {
+				const { tabId, paneIds } = storeAddTabWithMultiplePanes(workspaceId, {
+					commands: defaultPreset.commands,
+					initialCwd: defaultPreset.cwd || undefined,
+				});
+
+				if (defaultPreset.name) {
+					renameTab(tabId, defaultPreset.name);
+				}
+
+				return { tabId, paneId: paneIds[0] };
+			}
+
+			const result = storeAddTab(workspaceId, defaultPresetOptions);
+
+			if (defaultPreset?.name) {
 				renameTab(result.tabId, defaultPreset.name);
 			}
 
 			return result;
 		},
-		[storeAddTab, defaultPresetOptions, defaultPreset, renameTab],
+		[
+			storeAddTab,
+			storeAddTabWithMultiplePanes,
+			defaultPresetOptions,
+			defaultPreset,
+			shouldUseParallelMode,
+			renameTab,
+		],
 	);
 
-	// Wrapped addPane that applies default preset
 	const addPane = useCallback(
 		(tabId: string, options?: AddTabOptions) => {
 			const effectiveOptions = options ?? defaultPresetOptions;
@@ -54,7 +82,6 @@ export function useTabsWithPresets() {
 		[storeAddPane, defaultPresetOptions],
 	);
 
-	// Wrapped splitPaneVertical that applies default preset
 	const splitPaneVertical = useCallback(
 		(
 			tabId: string,
@@ -73,7 +100,6 @@ export function useTabsWithPresets() {
 		[storeSplitPaneVertical, defaultPresetOptions],
 	);
 
-	// Wrapped splitPaneHorizontal that applies default preset
 	const splitPaneHorizontal = useCallback(
 		(
 			tabId: string,
@@ -92,7 +118,6 @@ export function useTabsWithPresets() {
 		[storeSplitPaneHorizontal, defaultPresetOptions],
 	);
 
-	// Wrapped splitPaneAuto that applies default preset
 	const splitPaneAuto = useCallback(
 		(
 			tabId: string,

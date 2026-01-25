@@ -1,5 +1,6 @@
 "use client";
 
+import { stripeClient } from "@better-auth/stripe/client";
 import type { auth } from "@superset/auth/server";
 import {
 	customSessionClient,
@@ -11,5 +12,9 @@ import { createAuthClient } from "better-auth/react";
 // This doesn't require a database connection - it's just an API client
 export const authClient = createAuthClient({
 	baseURL: process.env.NEXT_PUBLIC_API_URL,
-	plugins: [organizationClient(), customSessionClient<typeof auth>()],
+	plugins: [
+		organizationClient(),
+		customSessionClient<typeof auth>(),
+		stripeClient({ subscription: true }),
+	],
 });

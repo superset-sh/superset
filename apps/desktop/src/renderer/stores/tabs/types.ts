@@ -35,6 +35,11 @@ export interface AddTabOptions {
 	initialCwd?: string;
 }
 
+export interface AddTabWithMultiplePanesOptions {
+	commands: string[];
+	initialCwd?: string;
+}
+
 /**
  * Options for opening a file in a file-viewer pane
  */
@@ -60,6 +65,10 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
+	addTabWithMultiplePanes: (
+		workspaceId: string,
+		options: AddTabWithMultiplePanesOptions,
+	) => { tabId: string; paneIds: string[] };
 	removeTab: (tabId: string) => void;
 	renameTab: (tabId: string, newName: string) => void;
 	setTabAutoTitle: (tabId: string, title: string) => void;

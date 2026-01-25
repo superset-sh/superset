@@ -1,5 +1,13 @@
+import { EXECUTION_MODES, type ExecutionMode } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
@@ -67,6 +75,7 @@ interface PresetRowProps {
 	onBlur: (rowIndex: number, column: PresetColumnKey) => void;
 	onCommandsChange: (rowIndex: number, commands: string[]) => void;
 	onCommandsBlur: (rowIndex: number) => void;
+	onExecutionModeChange: (rowIndex: number, mode: ExecutionMode) => void;
 	onDelete: (rowIndex: number) => void;
 	onSetDefault: (presetId: string | null) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
@@ -81,6 +90,7 @@ export function PresetRow({
 	onBlur,
 	onCommandsChange,
 	onCommandsBlur,
+	onExecutionModeChange,
 	onDelete,
 	onSetDefault,
 	onLocalReorder,
@@ -152,6 +162,24 @@ export function PresetRow({
 					/>
 				</div>
 			))}
+			<div className="w-28 shrink-0 pt-0.5">
+				<Select
+					value={preset.executionMode ?? "sequential"}
+					onValueChange={(value) => {
+						if (EXECUTION_MODES.includes(value as ExecutionMode)) {
+							onExecutionModeChange(rowIndex, value as ExecutionMode);
+						}
+					}}
+				>
+					<SelectTrigger className="h-8 w-full text-xs">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="sequential">Sequential</SelectItem>
+						<SelectItem value="parallel">Parallel</SelectItem>
+					</SelectContent>
+				</Select>
+			</div>
 			<div className="w-20 flex justify-center gap-1 shrink-0 pt-1">
 				<Tooltip>
 					<TooltipTrigger asChild>

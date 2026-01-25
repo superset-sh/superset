@@ -1,4 +1,5 @@
 import {
+	boolean,
 	index,
 	integer,
 	jsonb,
@@ -8,11 +9,14 @@ import {
 	text,
 	timestamp,
 	unique,
+	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
 
 import { organizations, users } from "./auth";
 import {
+	commandStatusValues,
+	deviceTypeValues,
 	integrationProviderValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
@@ -25,6 +29,8 @@ export const integrationProvider = pgEnum(
 	"integration_provider",
 	integrationProviderValues,
 );
+export const deviceType = pgEnum("device_type", deviceTypeValues);
+export const commandStatus = pgEnum("command_status", commandStatusValues);
 
 export const repositories = pgTable(
 	"repositories",
@@ -212,3 +218,144 @@ export type InsertIntegrationConnection =
 	typeof integrationConnections.$inferInsert;
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
+
+// Stripe subscriptions (org-based billing)
+export const subscriptions = pgTable(
+	"subscriptions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		plan: text().notNull(),
+		referenceId: uuid("reference_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		stripeCustomerId: text("stripe_customer_id"),
+		stripeSubscriptionId: text("stripe_subscription_id"),
+		status: text().default("incomplete").notNull(),
+		periodStart: timestamp("period_start"),
+		periodEnd: timestamp("period_end"),
+		trialStart: timestamp("trial_start"),
+		trialEnd: timestamp("trial_end"),
+		cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+		cancelAt: timestamp("cancel_at"),
+		canceledAt: timestamp("canceled_at"),
+		endedAt: timestamp("ended_at"),
+		seats: integer(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("subscriptions_reference_id_idx").on(table.referenceId),
+		index("subscriptions_stripe_customer_id_idx").on(table.stripeCustomerId),
+		index("subscriptions_status_idx").on(table.status),
+	],
+);
+
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+export type SelectSubscription = typeof subscriptions.$inferSelect;
+
+// Device presence - tracks online devices for command routing
+export const devicePresence = pgTable(
+	"device_presence",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		deviceId: text("device_id").notNull(),
+		deviceName: text("device_name").notNull(),
+		deviceType: deviceType("device_type").notNull(),
+		lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("device_presence_user_org_idx").on(
+			table.userId,
+			table.organizationId,
+		),
+		uniqueIndex("device_presence_user_device_idx").on(
+			table.userId,
+			table.deviceId,
+		),
+		index("device_presence_last_seen_idx").on(table.lastSeenAt),
+	],
+);
+
+export type InsertDevicePresence = typeof devicePresence.$inferInsert;
+export type SelectDevicePresence = typeof devicePresence.$inferSelect;
+
+// Agent commands - synced via Electric SQL to executors
+export const agentCommands = pgTable(
+	"agent_commands",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		targetDeviceId: text("target_device_id"),
+		targetDeviceType: text("target_device_type"),
+		tool: text().notNull(),
+		params: jsonb().$type<Record<string, unknown>>(),
+		parentCommandId: uuid("parent_command_id"),
+		status: commandStatus().notNull().default("pending"),
+		claimedBy: text("claimed_by"),
+		claimedAt: timestamp("claimed_at"),
+		result: jsonb().$type<Record<string, unknown>>(),
+		error: text(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		executedAt: timestamp("executed_at"),
+		timeoutAt: timestamp("timeout_at"),
+	},
+	(table) => [
+		index("agent_commands_user_status_idx").on(table.userId, table.status),
+		index("agent_commands_target_device_status_idx").on(
+			table.targetDeviceId,
+			table.status,
+		),
+		index("agent_commands_org_created_idx").on(
+			table.organizationId,
+			table.createdAt,
+		),
+	],
+);
+
+export type InsertAgentCommand = typeof agentCommands.$inferInsert;
+export type SelectAgentCommand = typeof agentCommands.$inferSelect;
+
+// API Keys for MCP server authentication
+export const apiKeys = pgTable(
+	"api_keys",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		keyPrefix: text("key_prefix").notNull(),
+		keyHash: text("key_hash").notNull(),
+		defaultDeviceId: text("default_device_id"),
+		lastUsedAt: timestamp("last_used_at"),
+		usageCount: text("usage_count").notNull().default("0"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		expiresAt: timestamp("expires_at"),
+		revokedAt: timestamp("revoked_at"),
+	},
+	(table) => [
+		index("api_keys_user_org_idx").on(table.userId, table.organizationId),
+		index("api_keys_key_hash_idx").on(table.keyHash),
+	],
+);
+
+export type InsertApiKey = typeof apiKeys.$inferInsert;
+export type SelectApiKey = typeof apiKeys.$inferSelect;

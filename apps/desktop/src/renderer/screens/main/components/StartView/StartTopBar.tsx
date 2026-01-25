@@ -1,5 +1,4 @@
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { SettingsButton } from "../SettingsButton";
 import { WindowControls } from "../TopBar/WindowControls";
 
 export function StartTopBar() {
@@ -9,22 +8,12 @@ export function StartTopBar() {
 	const showWindowControls = !isLoading && !isMac;
 
 	return (
-		<div className="drag gap-2 h-12 w-full flex items-center justify-between border-b border-sidebar bg-background">
-			<div
-				className="flex items-center gap-4 h-full"
-				style={{
-					paddingLeft: isMac ? "80px" : "16px",
-				}}
-			>
-				{/* Empty space on left for symmetry */}
-			</div>
-			<div className="flex items-center gap-2 flex-1 overflow-hidden h-full">
-				{/* Empty middle section - no tabs */}
-			</div>
-			<div className="flex items-center gap-2 h-full pr-4 no-drag">
-				<SettingsButton />
-				{showWindowControls && <WindowControls />}
-			</div>
+		<div className="drag h-10 w-full flex items-center justify-end pr-2">
+			{showWindowControls && (
+				<div className="no-drag">
+					<WindowControls />
+				</div>
+			)}
 		</div>
 	);
 }

@@ -92,7 +92,7 @@ export function IntegrationCard({
 			</div>
 
 			{/* Bottom: Description */}
-			<div className="relative z-10 h-[2.6em] w-full text-sm leading-[1.3em] text-muted-foreground">
+			<div className="relative z-10 h-[2.6em] w-full text-sm leading-[1.3em] text-foreground/80">
 				{description}
 			</div>
 		</div>

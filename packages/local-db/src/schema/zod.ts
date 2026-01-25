@@ -47,6 +47,10 @@ export const gitHubStatusSchema = z.object({
 
 export type GitHubStatus = z.infer<typeof gitHubStatusSchema>;
 
+export const EXECUTION_MODES = ["sequential", "parallel"] as const;
+
+export type ExecutionMode = (typeof EXECUTION_MODES)[number];
+
 /**
  * Terminal preset
  */
@@ -57,6 +61,7 @@ export const terminalPresetSchema = z.object({
 	cwd: z.string(),
 	commands: z.array(z.string()),
 	isDefault: z.boolean().optional(),
+	executionMode: z.enum(EXECUTION_MODES).optional(),
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;

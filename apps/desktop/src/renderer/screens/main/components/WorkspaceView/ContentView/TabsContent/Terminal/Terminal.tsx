@@ -189,6 +189,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		onErrorEvent: (event, xterm) => handleStreamErrorRef.current(event, xterm),
 		onDisconnectEvent: (reason) =>
 			setConnectionError(reason || "Connection to terminal daemon lost"),
+		onResize: (cols, rows) => resizeRef.current({ paneId, cols, rows }),
 	});
 
 	// Cold restore handling
@@ -566,6 +567,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => handleWrite("\x1b\r"),
 			onClear: handleClear,
+			onWrite: handleWrite,
 		});
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,

@@ -4,13 +4,21 @@ import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
-import type { AddFileViewerPaneOptions, TabsState, TabsStore } from "./types";
+import type {
+	AddFileViewerPaneOptions,
+	AddTabWithMultiplePanesOptions,
+	TabsState,
+	TabsStore,
+} from "./types";
 import {
+	buildMultiPaneLayout,
 	type CreatePaneOptions,
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
+	generateId,
+	generateTabName,
 	getAdjacentPaneId,
 	getFirstPaneId,
 	getPaneIdsForTab,
@@ -119,6 +127,68 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addTabWithMultiplePanes: (
+					workspaceId: string,
+					options: AddTabWithMultiplePanesOptions,
+				) => {
+					const state = get();
+					const tabId = generateId("tab");
+					const panes: ReturnType<typeof createPane>[] = options.commands.map(
+						(command) =>
+							createPane(tabId, "terminal", {
+								initialCommands: [command],
+								initialCwd: options.initialCwd,
+							}),
+					);
+
+					const paneIds = panes.map((p) => p.id);
+					const layout = buildMultiPaneLayout(paneIds);
+					const workspaceTabs = state.tabs.filter(
+						(t) => t.workspaceId === workspaceId,
+					);
+
+					const tab = {
+						id: tabId,
+						name: generateTabName(workspaceTabs),
+						workspaceId,
+						layout,
+						createdAt: Date.now(),
+					};
+
+					const panesRecord: Record<string, (typeof panes)[number]> = {};
+					for (const pane of panes) {
+						panesRecord[pane.id] = pane;
+					}
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, ...panesRecord },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: paneIds[0],
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneIds };
 				},
 
 				removeTab: (tabId) => {

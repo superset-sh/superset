@@ -133,11 +133,12 @@ class WorkspaceInitManager extends EventEmitter {
 
 		// Clean up ready jobs after a delay
 		if (step === "ready") {
-			setTimeout(() => {
+			const timer = setTimeout(() => {
 				if (this.jobs.get(workspaceId)?.progress.step === "ready") {
 					this.jobs.delete(workspaceId);
 				}
 			}, 2000);
+			timer.unref();
 		}
 	}
 

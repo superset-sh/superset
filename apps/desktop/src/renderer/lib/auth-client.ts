@@ -1,3 +1,4 @@
+import { stripeClient } from "@better-auth/stripe/client";
 import type { auth } from "@superset/auth/server";
 import {
 	customSessionClient,
@@ -24,7 +25,11 @@ export function getAuthToken(): string | null {
  */
 export const authClient = createAuthClient({
 	baseURL: env.NEXT_PUBLIC_API_URL,
-	plugins: [organizationClient(), customSessionClient<typeof auth>()],
+	plugins: [
+		organizationClient(),
+		customSessionClient<typeof auth>(),
+		stripeClient({ subscription: true }),
+	],
 	fetchOptions: {
 		credentials: "include",
 		onRequest: async (context) => {

@@ -8,7 +8,8 @@ import type {
 	GitChangesStatus,
 } from "shared/changes-types";
 import { useScrollContext } from "../../context";
-import { FileDiffSection } from "../FileDiffSection";
+import { sortFiles } from "../../utils";
+import { VirtualizedFileList } from "../VirtualizedFileList";
 import { CategoryHeader } from "./components/CategoryHeader";
 import { CommitSection } from "./components/CommitSection";
 import { DiffToolbar } from "./components/DiffToolbar";
@@ -30,6 +31,7 @@ export function InfiniteScrollView({
 		setViewMode: setDiffViewMode,
 		hideUnchangedRegions,
 		toggleHideUnchangedRegions,
+		fileListViewMode,
 	} = useChangesStore();
 	const [expandedCategories, setExpandedCategories] = useState<
 		Record<ChangeCategory, boolean>
@@ -164,12 +166,25 @@ export function InfiniteScrollView({
 		[worktreePath, deleteUntrackedMutation, discardChangesMutation],
 	);
 
-	const unstagedFiles = [...status.unstaged, ...status.untracked];
+	const sortedAgainstBase = useMemo(
+		() => sortFiles(status.againstBase, fileListViewMode),
+		[status.againstBase, fileListViewMode],
+	);
+	const sortedStaged = useMemo(
+		() => sortFiles(status.staged, fileListViewMode),
+		[status.staged, fileListViewMode],
+	);
+	const sortedUnstaged = useMemo(
+		() =>
+			sortFiles([...status.unstaged, ...status.untracked], fileListViewMode),
+		[status.unstaged, status.untracked, fileListViewMode],
+	);
+
 	const hasChanges =
-		status.againstBase.length > 0 ||
+		sortedAgainstBase.length > 0 ||
 		status.commits.length > 0 ||
-		status.staged.length > 0 ||
-		unstagedFiles.length > 0;
+		sortedStaged.length > 0 ||
+		sortedUnstaged.length > 0;
 
 	if (!hasChanges) {
 		return (
@@ -201,31 +216,24 @@ export function InfiniteScrollView({
 				onToggleHideUnchangedRegions={toggleHideUnchangedRegions}
 			/>
 
-			{status.againstBase.length > 0 && (
+			{sortedAgainstBase.length > 0 && (
 				<>
 					<CategoryHeader
 						title={`Against ${baseBranch}`}
-						count={status.againstBase.length}
+						count={sortedAgainstBase.length}
 						isExpanded={expandedCategories["against-base"]}
 						onToggle={() => toggleCategory("against-base")}
 					/>
 					{expandedCategories["against-base"] && (
-						<div>
-							{status.againstBase.map((file) => {
-								const fileKey = `against-base::${file.path}`;
-								return (
-									<FileDiffSection
-										key={fileKey}
-										file={file}
-										category="against-base"
-										worktreePath={worktreePath}
-										baseBranch={baseBranch}
-										isExpanded={!collapsedFiles.has(fileKey)}
-										onToggleExpanded={() => toggleFile(fileKey)}
-									/>
-								);
-							})}
-						</div>
+						<VirtualizedFileList
+							files={sortedAgainstBase}
+							category="against-base"
+							worktreePath={worktreePath}
+							baseBranch={baseBranch}
+							collapsedFiles={collapsedFiles}
+							onToggleFile={toggleFile}
+							scrollElementRef={containerRef}
+						/>
 					)}
 				</>
 			)}
@@ -247,6 +255,7 @@ export function InfiniteScrollView({
 									worktreePath={worktreePath}
 									collapsedFiles={collapsedFiles}
 									onToggleFile={toggleFile}
+									scrollElementRef={containerRef}
 								/>
 							))}
 						</div>
@@ -254,74 +263,60 @@ export function InfiniteScrollView({
 				</>
 			)}
 
-			{status.staged.length > 0 && (
+			{sortedStaged.length > 0 && (
 				<>
 					<CategoryHeader
 						title="Staged"
-						count={status.staged.length}
+						count={sortedStaged.length}
 						isExpanded={expandedCategories.staged}
 						onToggle={() => toggleCategory("staged")}
 					/>
 					{expandedCategories.staged && (
-						<div>
-							{status.staged.map((file) => {
-								const fileKey = `staged::${file.path}`;
-								return (
-									<FileDiffSection
-										key={fileKey}
-										file={file}
-										category="staged"
-										worktreePath={worktreePath}
-										isExpanded={!collapsedFiles.has(fileKey)}
-										onToggleExpanded={() => toggleFile(fileKey)}
-										onUnstage={() =>
-											unstageFileMutation.mutate({
-												worktreePath,
-												filePath: file.path,
-											})
-										}
-										onDiscard={() => handleDiscard(file)}
-										isActioning={isActioning}
-									/>
-								);
-							})}
-						</div>
+						<VirtualizedFileList
+							files={sortedStaged}
+							category="staged"
+							worktreePath={worktreePath}
+							collapsedFiles={collapsedFiles}
+							onToggleFile={toggleFile}
+							scrollElementRef={containerRef}
+							onUnstage={(file) =>
+								unstageFileMutation.mutate({
+									worktreePath,
+									filePath: file.path,
+								})
+							}
+							onDiscard={handleDiscard}
+							isActioning={isActioning}
+						/>
 					)}
 				</>
 			)}
 
-			{unstagedFiles.length > 0 && (
+			{sortedUnstaged.length > 0 && (
 				<>
 					<CategoryHeader
 						title="Unstaged"
-						count={unstagedFiles.length}
+						count={sortedUnstaged.length}
 						isExpanded={expandedCategories.unstaged}
 						onToggle={() => toggleCategory("unstaged")}
 					/>
 					{expandedCategories.unstaged && (
-						<div>
-							{unstagedFiles.map((file) => {
-								const fileKey = `unstaged::${file.path}`;
-								return (
-									<FileDiffSection
-										key={fileKey}
-										file={file}
-										category="unstaged"
-										worktreePath={worktreePath}
-										isExpanded={!collapsedFiles.has(fileKey)}
-										onToggleExpanded={() => toggleFile(fileKey)}
-										onStage={() =>
-											stageFileMutation.mutate({
-												worktreePath,
-												filePath: file.path,
-											})
-										}
-										onDiscard={() => handleDiscard(file)}
-										isActioning={isActioning}
-									/>
-								);
-							})}
-						</div>
+						<VirtualizedFileList
+							files={sortedUnstaged}
+							category="unstaged"
+							worktreePath={worktreePath}
+							collapsedFiles={collapsedFiles}
+							onToggleFile={toggleFile}
+							scrollElementRef={containerRef}
+							onStage={(file) =>
+								stageFileMutation.mutate({
+									worktreePath,
+									filePath: file.path,
+								})
+							}
+							onDiscard={handleDiscard}
+							isActioning={isActioning}
+						/>
 					)}
 				</>
 			)}
