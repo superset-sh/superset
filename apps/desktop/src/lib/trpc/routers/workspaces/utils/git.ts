@@ -298,34 +298,62 @@ const MAX_ATTEMPTS = 10;
 /** Maximum suffix value to try in fallback (exclusive), e.g., 0-99 */
 const FALLBACK_MAX_SUFFIX = 100;
 
-/**
- * Generates a random branch name using a single friendly word.
- * Checks against existing branches to avoid collisions.
- * With ~3000 words, collisions are rare even with hundreds of branches.
- */
-export function generateBranchName(existingBranches: string[] = []): string {
+export async function getGitAuthorName(
+	repoPath?: string,
+): Promise<string | null> {
+	try {
+		const git = repoPath ? simpleGit(repoPath) : simpleGit();
+		const name = await git.getConfig("user.name");
+		return name.value?.trim() || null;
+	} catch {
+		return null;
+	}
+}
+
+export function sanitizeAuthorPrefix(name: string): string {
+	return name
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9\s-]/g, "")
+		.replace(/\s+/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-|-$/g, "");
+}
+
+export function generateBranchName({
+	existingBranches = [],
+	authorPrefix,
+}: {
+	existingBranches?: string[];
+	authorPrefix?: string;
+} = {}): string {
 	const words = friendlyWords.objects as string[];
 	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
 
-	// Try to find a unique word
+	const addPrefix = (name: string): string => {
+		if (authorPrefix) {
+			return `${authorPrefix}/${name}`;
+		}
+		return name;
+	};
+
 	for (let i = 0; i < MAX_ATTEMPTS; i++) {
 		const word = words[Math.floor(Math.random() * words.length)];
-		if (!existingSet.has(word.toLowerCase())) {
-			return word;
-		}
-	}
-
-	// Fallback: try word with numeric suffix
-	const baseWord = words[Math.floor(Math.random() * words.length)];
-	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
-		const candidate = `${baseWord}-${n}`;
+		const candidate = addPrefix(word);
 		if (!existingSet.has(candidate.toLowerCase())) {
 			return candidate;
 		}
 	}
 
-	// Final fallback: use timestamp to guarantee uniqueness
-	return `${baseWord}-${Date.now()}`;
+	const baseWord = words[Math.floor(Math.random() * words.length)];
+	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
+		const candidate = addPrefix(`${baseWord}-${n}`);
+		if (!existingSet.has(candidate.toLowerCase())) {
+			return candidate;
+		}
+	}
+
+	return addPrefix(`${baseWord}-${Date.now()}`);
 }
 
 export async function createWorktree(

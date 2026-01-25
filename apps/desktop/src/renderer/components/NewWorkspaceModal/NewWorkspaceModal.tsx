@@ -40,10 +40,10 @@ import {
 } from "renderer/stores/new-workspace-modal";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
-function generateBranchFromTitle(title: string): string {
+function generateBranchFromTitle(title: string, authorPrefix?: string): string {
 	if (!title.trim()) return "";
 
-	return title
+	const slug = title
 		.toLowerCase()
 		.trim()
 		.replace(/[^a-z0-9\s-]/g, "")
@@ -51,6 +51,11 @@ function generateBranchFromTitle(title: string): string {
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "")
 		.slice(0, 50);
+
+	if (authorPrefix) {
+		return `${authorPrefix}/${slug}`;
+	}
+	return slug;
 }
 
 type Mode = "existing" | "new" | "cloud";
@@ -82,7 +87,12 @@ export function NewWorkspaceModal() {
 		{ projectId: selectedProjectId ?? "" },
 		{ enabled: !!selectedProjectId },
 	);
+	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
+		{ id: selectedProjectId ?? "" },
+		{ enabled: !!selectedProjectId },
+	);
 	const createWorkspace = useCreateWorkspace();
+	const authorPrefix = gitAuthor?.prefix;
 
 	// Filter branches based on search (for base branch selector)
 	const filteredBranches = useMemo(() => {
@@ -113,9 +123,9 @@ export function NewWorkspaceModal() {
 	// Auto-generate branch name from title (unless manually edited)
 	useEffect(() => {
 		if (!branchNameEdited) {
-			setBranchName(generateBranchFromTitle(title));
+			setBranchName(generateBranchFromTitle(title, authorPrefix));
 		}
-	}, [title, branchNameEdited]);
+	}, [title, branchNameEdited, authorPrefix]);
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
@@ -158,7 +168,16 @@ export function NewWorkspaceModal() {
 	};
 
 	const handleBranchNameChange = (value: string) => {
-		setBranchName(generateBranchFromTitle(value));
+		const hasCustomPrefix = value.includes("/");
+		if (hasCustomPrefix) {
+			const parts = value.split("/");
+			const prefix = parts.slice(0, -1).join("/");
+			const name = parts[parts.length - 1];
+			const sanitizedName = generateBranchFromTitle(name);
+			setBranchName(sanitizedName ? `${prefix}/${sanitizedName}` : prefix);
+		} else {
+			setBranchName(generateBranchFromTitle(value, authorPrefix));
+		}
 		setBranchNameEdited(true);
 	};
 
@@ -280,7 +299,8 @@ export function NewWorkspaceModal() {
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
 											<span className="font-mono">
-												{branchName || generateBranchFromTitle(title)}
+												{branchName ||
+													generateBranchFromTitle(title, authorPrefix)}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
@@ -311,7 +331,7 @@ export function NewWorkspaceModal() {
 													className="h-8 text-sm font-mono"
 													placeholder={
 														title
-															? generateBranchFromTitle(title)
+															? generateBranchFromTitle(title, authorPrefix)
 															: "auto-generated"
 													}
 													value={branchName}

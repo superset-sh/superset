@@ -27,8 +27,10 @@ import {
 import {
 	getCurrentBranch,
 	getDefaultBranch,
+	getGitAuthorName,
 	getGitRoot,
 	refreshDefaultBranch,
+	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getDefaultProjectColor } from "./utils/colors";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
@@ -999,6 +1001,30 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				return {
 					owner,
 					avatarUrl: getGitHubAvatarUrl(owner),
+				};
+			}),
+
+		getGitAuthor: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					return null;
+				}
+
+				const authorName = await getGitAuthorName(project.mainRepoPath);
+				if (!authorName) {
+					return null;
+				}
+
+				return {
+					name: authorName,
+					prefix: sanitizeAuthorPrefix(authorName),
 				};
 			}),
 	});

@@ -46,10 +46,10 @@ export const Route = createFileRoute(
 	},
 });
 
-function generateBranchFromTitle(title: string): string {
+function generateBranchFromTitle(title: string, authorPrefix?: string): string {
 	if (!title.trim()) return "";
 
-	return title
+	const slug = title
 		.toLowerCase()
 		.trim()
 		.replace(/[^a-z0-9\s-]/g, "")
@@ -57,6 +57,11 @@ function generateBranchFromTitle(title: string): string {
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "")
 		.slice(0, 50);
+
+	if (authorPrefix) {
+		return `${authorPrefix}/${slug}`;
+	}
+	return slug;
 }
 
 function ProjectPage() {
@@ -73,8 +78,13 @@ function ProjectPage() {
 		{ projectId },
 		{ enabled: !!projectId },
 	);
+	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
+		{ id: projectId },
+		{ enabled: !!projectId },
+	);
 
 	const createWorkspace = useCreateWorkspace();
+	const authorPrefix = gitAuthor?.prefix;
 
 	const [title, setTitle] = useState("");
 	const [baseBranch, setBaseBranch] = useState<string | null>(null);
@@ -185,7 +195,8 @@ function ProjectPage() {
 							>
 								<GoGitBranch className="size-3.5" />
 								<span className="font-mono">
-									{generateBranchFromTitle(title) || "branch-name"}
+									{generateBranchFromTitle(title, authorPrefix) ||
+										"branch-name"}
 								</span>
 								<span className="text-muted-foreground/50">
 									from {effectiveBaseBranch}

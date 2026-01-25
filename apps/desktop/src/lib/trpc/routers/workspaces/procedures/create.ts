@@ -23,12 +23,14 @@ import {
 	generateBranchName,
 	getBranchWorktreePath,
 	getCurrentBranch,
+	getGitAuthorName,
 	getPrInfo,
 	getPrLocalBranchName,
 	listBranches,
 	type PullRequestInfo,
 	parsePrUrl,
 	safeCheckoutBranch,
+	sanitizeAuthorPrefix,
 	worktreeExists,
 } from "../utils/git";
 import { loadSetupConfig } from "../utils/setup";
@@ -299,6 +301,11 @@ export const createCreateProcedures = () => {
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
 
+				const authorName = await getGitAuthorName(project.mainRepoPath);
+				const authorPrefix = authorName
+					? sanitizeAuthorPrefix(authorName)
+					: undefined;
+
 				let branch: string;
 				if (existingBranchName) {
 					if (!existingBranches.includes(existingBranchName)) {
@@ -307,9 +314,15 @@ export const createCreateProcedures = () => {
 						);
 					}
 					branch = existingBranchName;
-				} else {
+				} else if (input.branchName?.trim()) {
+					const userBranch = input.branchName.trim();
+					const hasCustomPrefix = userBranch.includes("/");
 					branch =
-						input.branchName?.trim() || generateBranchName(existingBranches);
+						authorPrefix && !hasCustomPrefix
+							? `${authorPrefix}/${userBranch}`
+							: userBranch;
+				} else {
+					branch = generateBranchName({ existingBranches, authorPrefix });
 				}
 
 				const worktreePath = join(
