@@ -178,7 +178,7 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		// Recreate headless on clear because xterm.clear() is async and unreliable
+		// Recreate headless on clear (xterm writes are async, so clear() alone is unreliable)
 		if (containsClearScrollbackSequence(data)) {
 			session.headless.dispose();
 			const { headless, serializer } = createHeadlessTerminal({

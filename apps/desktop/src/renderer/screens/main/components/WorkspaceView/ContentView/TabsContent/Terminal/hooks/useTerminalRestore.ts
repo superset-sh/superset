@@ -3,7 +3,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
 import type { CreateOrAttachResult, TerminalStreamEvent } from "../types";
-import { scrollToBottom, stripClearScrollbackSequence } from "../utils";
+import { scrollToBottom } from "../utils";
 
 export interface UseTerminalRestoreOptions {
 	paneId: string;
@@ -92,7 +92,7 @@ export function useTerminalRestore({
 		for (const event of events) {
 			if (event.type === "data") {
 				updateModesRef.current(event.data);
-				xterm.write(stripClearScrollbackSequence(event.data));
+				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
 				onExitEventRef.current(event.exitCode, xterm);

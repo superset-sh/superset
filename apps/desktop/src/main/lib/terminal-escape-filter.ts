@@ -3,13 +3,19 @@
  */
 
 const ESC = "\x1b";
-const ED3_SEQUENCE = `${ESC}[3J`;
 
 /**
- * Pattern to detect clear scrollback sequences (ED3 only).
- * ESC c (RIS) is intentionally excluded - TUI apps use it for repaints.
+ * Pattern to detect clear scrollback sequences:
+ * - ESC [ 3 J - Clear scrollback buffer (ED3)
+ *
+ * Note: We intentionally do NOT include ESC c (RIS - Reset to Initial State)
+ * because TUI applications (vim, htop, etc.) commonly use RIS for screen
+ * repaints/refreshes. Only ED3 is a deliberate "clear scrollback" action
+ * triggered by commands like `clear` or Cmd+K.
  */
 const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J`);
+
+const ED3_SEQUENCE = `${ESC}[3J`;
 
 /**
  * Checks if data contains sequences that clear the scrollback buffer.
