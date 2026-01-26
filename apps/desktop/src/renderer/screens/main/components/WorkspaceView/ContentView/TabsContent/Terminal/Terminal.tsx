@@ -74,6 +74,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	);
 	const terminalTheme = useTerminalTheme();
 	const restartTerminalRef = useRef<() => void>(() => {});
+	const ctrlDSentRef = useRef(false);
 
 	// Terminal connection state and mutations
 	const {
@@ -235,6 +236,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isExitedRef,
 			wasKilledByUserRef,
 			pendingEventsRef,
+			ctrlDSentRef,
 			setExitStatus,
 			setConnectionError,
 			updateModesFromData,
@@ -407,6 +409,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				if (!isFocusedRef.current || wasKilledByUserRef.current) return;
 				restartTerminal();
 				return;
+			}
+			// Track Ctrl+D (EOF character) for auto-close on exit
+			if (data === "\x04") {
+				ctrlDSentRef.current = true;
 			}
 			writeRef.current({ paneId, data });
 		};
