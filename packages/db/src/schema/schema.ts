@@ -66,7 +66,7 @@ export const taskStatuses = pgTable(
 
 		name: text().notNull(),
 		color: text().notNull(),
-		type: text().notNull(), // "backlog" | "unstarted" | "started" | "completed" | "canceled"
+		type: text().notNull(),
 		position: real().notNull(),
 		progressPercent: real("progress_percent"),
 
@@ -134,7 +134,7 @@ export const tasks = pgTable(
 		// External sync (null if local-only task)
 		externalProvider: integrationProvider("external_provider"),
 		externalId: text("external_id"),
-		externalKey: text("external_key"), // "SUPER-172", "#123"
+		externalKey: text("external_key"),
 		externalUrl: text("external_url"),
 		lastSyncedAt: timestamp("last_synced_at"),
 		syncError: text("sync_error"),
@@ -170,7 +170,6 @@ export const tasks = pgTable(
 export type InsertTask = typeof tasks.$inferInsert;
 export type SelectTask = typeof tasks.$inferSelect;
 
-// Integration connections for external providers (Linear, GitHub, etc.)
 export const integrationConnections = pgTable(
 	"integration_connections",
 	{
@@ -214,7 +213,6 @@ export type InsertIntegrationConnection =
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
 
-// Stripe subscriptions (org-based billing)
 export const subscriptions = pgTable(
 	"subscriptions",
 	{
@@ -251,7 +249,6 @@ export const subscriptions = pgTable(
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
 
-// Cloud workspaces (remote dev environments linked to a repository)
 export const cloudWorkspaces = pgTable(
 	"cloud_workspaces",
 	{

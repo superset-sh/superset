@@ -53,7 +53,6 @@ export const cloudWorkspaceRouter = {
 		.query(async ({ input }) => {
 			const { organizationId, repoOwner, repoName } = input;
 
-			// Find the repository first
 			const repository = await db.query.repositories.findFirst({
 				where: and(
 					eq(repositories.organizationId, organizationId),
@@ -66,7 +65,6 @@ export const cloudWorkspaceRouter = {
 				return [];
 			}
 
-			// Find all non-deleted cloud workspaces for this repository
 			return db.query.cloudWorkspaces.findMany({
 				where: and(
 					eq(cloudWorkspaces.repositoryId, repository.id),
@@ -92,7 +90,6 @@ export const cloudWorkspaceRouter = {
 				input;
 
 			return dbWs.transaction(async (tx) => {
-				// Find or create the repository
 				let repository = await tx.query.repositories.findFirst({
 					where: and(
 						eq(repositories.organizationId, organizationId),
@@ -122,7 +119,6 @@ export const cloudWorkspaceRouter = {
 					repository = newRepo;
 				}
 
-				// Create the cloud workspace
 				const [cloudWorkspace] = await tx
 					.insert(cloudWorkspaces)
 					.values({

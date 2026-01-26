@@ -57,7 +57,6 @@ export function CloudWorkspaceButton({
 
 	const isCloudDeleted = cloudWorkspace?.deletedAt != null;
 
-	// Fetch matching cloud workspaces for the same repo
 	const { data: matchingWorkspaces } = useQuery({
 		queryKey: [
 			"cloudWorkspace",
@@ -69,8 +68,8 @@ export function CloudWorkspaceButton({
 		queryFn: () =>
 			apiTrpcClient.cloudWorkspace.findMatching.query({
 				organizationId: organizationId!,
-				repoOwner: repoInfo!.repoOwner!,
-				repoName: repoInfo!.repoName!,
+				repoOwner: repoInfo?.repoOwner!,
+				repoName: repoInfo?.repoName!,
 			}),
 		enabled: !!organizationId && !!repoInfo?.hasRemote && !cloudWorkspaceId,
 		staleTime: 30_000,
@@ -114,7 +113,6 @@ export function CloudWorkspaceButton({
 				cloudWorkspaceId: result.cloudWorkspace.id,
 			});
 
-			// Invalidate matching workspaces query
 			queryClient.invalidateQueries({
 				queryKey: ["cloudWorkspace", "matching"],
 			});
