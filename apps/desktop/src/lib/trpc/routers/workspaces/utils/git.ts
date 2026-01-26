@@ -311,6 +311,44 @@ export async function getGitAuthorName(
 	}
 }
 
+export async function getGitHubUsername(): Promise<string | null> {
+	try {
+		const env = await getGitEnv();
+		const { stdout } = await execFileAsync(
+			"gh",
+			["api", "user", "-q", ".login"],
+			{ env, timeout: 10_000 },
+		);
+		return stdout.trim() || null;
+	} catch (error) {
+		if (isExecFileException(error) && error.code === "ENOENT") {
+			console.log("[git/getGitHubUsername] GitHub CLI not installed");
+		} else {
+			console.warn(
+				"[git/getGitHubUsername] Failed to get GitHub username:",
+				error,
+			);
+		}
+		return null;
+	}
+}
+
+export async function getAuthorPrefix(
+	repoPath?: string,
+): Promise<string | null> {
+	const githubUsername = await getGitHubUsername();
+	if (githubUsername) {
+		return githubUsername;
+	}
+
+	const gitAuthorName = await getGitAuthorName(repoPath);
+	if (gitAuthorName) {
+		return gitAuthorName;
+	}
+
+	return null;
+}
+
 export {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,

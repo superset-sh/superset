@@ -21,9 +21,9 @@ import {
 	createWorktreeFromPr,
 	fetchPrBranch,
 	generateBranchName,
+	getAuthorPrefix,
 	getBranchWorktreePath,
 	getCurrentBranch,
-	getGitAuthorName,
 	getPrInfo,
 	getPrLocalBranchName,
 	listBranches,
@@ -302,7 +302,7 @@ export const createCreateProcedures = () => {
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
 
-				const authorName = await getGitAuthorName(project.mainRepoPath);
+				const authorName = await getAuthorPrefix(project.mainRepoPath);
 				const rawAuthorPrefix = authorName
 					? sanitizeAuthorPrefix(authorName)
 					: undefined;
