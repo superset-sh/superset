@@ -6,6 +6,7 @@
 
 import { useDraft, usePresence } from "@superset/ai-chat";
 import { ChatInput, PresenceBar } from "@superset/ai-chat/components";
+import { useStreamDB } from "@superset/ai-chat/stream";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useMemo, useState } from "react";
 import { authClient } from "renderer/lib/auth-client";
@@ -44,6 +45,13 @@ export function ChatView({ sessionId, workspaceId, className }: ChatViewProps) {
 		startTime: Date;
 	}
 	const [activeToolUses, setActiveToolUses] = useState<ActiveToolUse[]>([]);
+
+	// Create StreamDB instance for real-time sync
+	const { db, isConnected: streamConnected } = useStreamDB({
+		baseUrl: STREAM_SERVER_URL,
+		sessionId,
+		enabled: !!user,
+	});
 
 	// Subscribe to stream events from the local Claude session
 	electronTrpc.aiChat.streamEvents.useSubscription(
@@ -136,6 +144,8 @@ export function ChatView({ sessionId, workspaceId, className }: ChatViewProps) {
 
 	// Real-time presence
 	const { viewers, typingUsers, setTyping } = usePresence(sessionId, {
+		db,
+		isDbConnected: streamConnected,
 		baseUrl: STREAM_SERVER_URL,
 		user,
 		enabled: !!user,
@@ -148,6 +158,8 @@ export function ChatView({ sessionId, workspaceId, className }: ChatViewProps) {
 		otherDrafts,
 		clear: clearDraft,
 	} = useDraft(sessionId, {
+		db,
+		isDbConnected: streamConnected,
 		baseUrl: STREAM_SERVER_URL,
 		user,
 		enabled: !!user,

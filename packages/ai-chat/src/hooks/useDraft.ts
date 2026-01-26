@@ -1,14 +1,21 @@
 /**
- * Hook for real-time draft syncing
+ * Hook for real-time draft syncing using StreamDB
  *
- * Syncs draft content across users in a chat session with ~50ms latency.
- * Uses debounced POST for updates and SSE for receiving other users' drafts.
+ * Syncs draft content across users in a chat session using TanStack DB collections
+ * backed by Durable Streams.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Draft } from "../types";
+import { DurableStream } from "@durable-streams/client";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { StreamDB } from "@durable-streams/state";
+import type { SessionStateSchema } from "../stream/schema";
 
 interface UseDraftOptions {
+	/** StreamDB instance from useStreamDB */
+	db: StreamDB<SessionStateSchema> | null;
+	/** Whether the StreamDB is connected and ready */
+	isDbConnected?: boolean;
 	/** Base URL of the durable stream server */
 	baseUrl: string;
 	/** Current user info */
@@ -22,68 +29,114 @@ interface UseDraftOptions {
 interface UseDraftResult {
 	/** Local content state for immediate UI */
 	content: string;
-	/** Set content (debounced POST to server) */
+	/** Set content (debounced sync to stream) */
 	setContent: (content: string) => void;
-	/** Clear draft (DELETE from server) */
+	/** Clear draft */
 	clear: () => void;
-	/** Other users' drafts via SSE */
-	otherDrafts: Draft[];
+	/** Other users' drafts from the collection */
+	otherDrafts: Array<{
+		userId: string;
+		userName: string;
+		content: string;
+		updatedAt: string;
+	}>;
 	/** Whether currently syncing to server */
 	isSyncing: boolean;
-	/** Whether connected to SSE */
-	isConnected: boolean;
 }
 
 export function useDraft(
 	sessionId: string | null,
 	options: UseDraftOptions,
 ): UseDraftResult {
-	const { baseUrl, user, enabled = true, debounceMs = 50 } = options;
+	const {
+		db,
+		isDbConnected = false,
+		baseUrl,
+		user,
+		enabled = true,
+		debounceMs = 50,
+	} = options;
 
 	const [content, setContentState] = useState("");
-	const [otherDrafts, setOtherDrafts] = useState<Draft[]>([]);
 	const [isSyncing, setIsSyncing] = useState(false);
-	const [isConnected, setIsConnected] = useState(false);
 
-	// Use refs to avoid recreating callbacks when options change
-	const optionsRef = useRef({ baseUrl, user, enabled, debounceMs });
-	optionsRef.current = { baseUrl, user, enabled, debounceMs };
-
-	const eventSourceRef = useRef<EventSource | null>(null);
 	const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-		null,
-	);
 	const lastSyncedContentRef = useRef("");
-	const isConnectingRef = useRef(false);
+	const streamRef = useRef<DurableStream | null>(null);
 
-	// POST draft to server
-	const syncDraft = useCallback(async (draftContent: string) => {
-		const { baseUrl, user, enabled } = optionsRef.current;
-		if (!sessionId || !user || !enabled) return;
-
-		// Skip if content hasn't changed
-		if (draftContent === lastSyncedContentRef.current) return;
-
-		lastSyncedContentRef.current = draftContent;
-		setIsSyncing(true);
-
-		try {
-			await fetch(`${baseUrl}/streams/${sessionId}/draft`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					userId: user.userId,
-					userName: user.name,
-					content: draftContent,
-				}),
-			});
-		} catch (error) {
-			console.error(`[useDraft] Failed to sync draft:`, error);
-		} finally {
-			setIsSyncing(false);
+	// Create stream handle for writing
+	useEffect(() => {
+		if (!sessionId || !baseUrl) {
+			streamRef.current = null;
+			return;
 		}
-	}, [sessionId]);
+
+		const url = `${baseUrl}/streams/${sessionId}`;
+		streamRef.current = new DurableStream({ url });
+
+		return () => {
+			streamRef.current = null;
+		};
+	}, [sessionId, baseUrl]);
+
+	// Query other users' drafts from the collection (only when db is connected)
+	const draftsQuery = useLiveQuery(
+		(q) => {
+			if (!isDbConnected || !db?.collections.drafts) return null;
+			return q.from({ draft: db.collections.drafts });
+		},
+		[db, isDbConnected],
+	);
+
+	// Filter out current user's draft
+	const otherDrafts = useMemo(() => {
+		if (!draftsQuery?.data || !user) return [];
+		return draftsQuery.data
+			.filter((d) => d.userId !== user.userId && d.content.trim())
+			.map((d) => ({
+				userId: d.userId,
+				userName: d.userName,
+				content: d.content,
+				updatedAt: d.updatedAt,
+			}));
+	}, [draftsQuery?.data, user]);
+
+	// Sync draft to stream
+	const syncDraft = useCallback(
+		async (draftContent: string) => {
+			if (!sessionId || !user || !enabled || !streamRef.current) return;
+
+			// Skip if content hasn't changed
+			if (draftContent === lastSyncedContentRef.current) return;
+
+			lastSyncedContentRef.current = draftContent;
+			setIsSyncing(true);
+
+			try {
+				// Append draft event to the stream
+				const event = {
+					type: "draft",
+					key: user.userId,
+					value: {
+						userId: user.userId,
+						userName: user.name,
+						content: draftContent,
+						updatedAt: new Date().toISOString(),
+					},
+					headers: {
+						operation: draftContent ? "upsert" : "delete",
+					},
+				};
+
+				await streamRef.current.append(JSON.stringify([event]));
+			} catch (error) {
+				console.error(`[useDraft] Failed to sync draft:`, error);
+			} finally {
+				setIsSyncing(false);
+			}
+		},
+		[sessionId, user, enabled],
+	);
 
 	// Debounced content setter
 	const setContent = useCallback(
@@ -98,14 +151,13 @@ export function useDraft(
 			// Schedule sync
 			debounceTimeoutRef.current = setTimeout(() => {
 				syncDraft(newContent);
-			}, optionsRef.current.debounceMs);
+			}, debounceMs);
 		},
-		[syncDraft],
+		[syncDraft, debounceMs],
 	);
 
-	// Clear draft (on send or blur)
+	// Clear draft
 	const clear = useCallback(() => {
-		const { baseUrl, user, enabled } = optionsRef.current;
 		setContentState("");
 		lastSyncedContentRef.current = "";
 
@@ -115,122 +167,24 @@ export function useDraft(
 			debounceTimeoutRef.current = null;
 		}
 
-		// DELETE from server
-		if (sessionId && user && enabled) {
-			fetch(`${baseUrl}/streams/${sessionId}/draft/${user.userId}`, {
-				method: "DELETE",
-			}).catch((error) => {
-				console.error(`[useDraft] Failed to clear draft:`, error);
-			});
-		}
-	}, [sessionId]);
-
-	// Connect to SSE - defined inside useEffect to avoid dependency issues
-	useEffect(() => {
-		const { user, enabled } = optionsRef.current;
-
-		if (!sessionId || !user || !enabled) {
-			return;
-		}
-
-		// Prevent multiple simultaneous connections
-		if (isConnectingRef.current) {
-			return;
-		}
-
-		const connect = () => {
-			const currentOptions = optionsRef.current;
-			if (!currentOptions.user || !currentOptions.enabled) return;
-
-			// Close existing connection
-			if (eventSourceRef.current) {
-				eventSourceRef.current.close();
-				eventSourceRef.current = null;
-			}
-
-			isConnectingRef.current = true;
-
-			const url = `${currentOptions.baseUrl}/streams/${sessionId}/drafts?live=true&excludeUserId=${currentOptions.user.userId}`;
-			console.log(`[useDraft] Connecting to ${url}`);
-
-			const eventSource = new EventSource(url);
-			eventSourceRef.current = eventSource;
-
-			eventSource.onopen = () => {
-				console.log(`[useDraft] Connected`);
-				setIsConnected(true);
-				isConnectingRef.current = false;
-			};
-
-			eventSource.addEventListener("draft", (e) => {
-				try {
-					const draft = JSON.parse(e.data) as Draft;
-
-					setOtherDrafts((prev) => {
-						// Remove existing draft from this user
-						const filtered = prev.filter((d) => d.userId !== draft.userId);
-
-						// If content is empty, user cleared their draft
-						if (!draft.content.trim()) {
-							return filtered;
-						}
-
-						// Add/update draft
-						return [...filtered, draft];
-					});
-				} catch (err) {
-					console.error(`[useDraft] Failed to parse draft:`, err);
-				}
-			});
-
-			eventSource.addEventListener("heartbeat", () => {
-				// Heartbeat received, connection is alive
-			});
-
-			eventSource.onerror = () => {
-				console.error(`[useDraft] SSE error`);
-				setIsConnected(false);
-				isConnectingRef.current = false;
-
-				eventSource.close();
-				eventSourceRef.current = null;
-
-				// Reconnect after delay
-				if (optionsRef.current.enabled) {
-					reconnectTimeoutRef.current = setTimeout(() => {
-						console.log(`[useDraft] Reconnecting...`);
-						connect();
-					}, 2000);
-				}
-			};
-		};
-
-		connect();
-
-		return () => {
-			if (eventSourceRef.current) {
-				eventSourceRef.current.close();
-				eventSourceRef.current = null;
-			}
-			if (reconnectTimeoutRef.current) {
-				clearTimeout(reconnectTimeoutRef.current);
-				reconnectTimeoutRef.current = null;
-			}
-			if (debounceTimeoutRef.current) {
-				clearTimeout(debounceTimeoutRef.current);
-				debounceTimeoutRef.current = null;
-			}
-			isConnectingRef.current = false;
-			setIsConnected(false);
-		};
-	}, [sessionId]); // Only reconnect when sessionId changes
+		// Sync empty draft (delete)
+		syncDraft("");
+	}, [syncDraft]);
 
 	// Reset state when sessionId changes
 	useEffect(() => {
 		setContentState("");
-		setOtherDrafts([]);
 		lastSyncedContentRef.current = "";
 	}, [sessionId]);
+
+	// Cleanup
+	useEffect(() => {
+		return () => {
+			if (debounceTimeoutRef.current) {
+				clearTimeout(debounceTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	return {
 		content,
@@ -238,6 +192,5 @@ export function useDraft(
 		clear,
 		otherDrafts,
 		isSyncing,
-		isConnected,
 	};
 }

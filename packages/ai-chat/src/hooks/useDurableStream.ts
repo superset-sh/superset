@@ -1,12 +1,13 @@
 /**
  * Hook for subscribing to a Durable Stream
  *
- * Provides real-time token streaming via SSE with automatic reconnection
- * and resume from last offset.
+ * Uses the official @durable-streams/client for protocol-compliant streaming
+ * with automatic reconnection and resume from last offset.
  */
 
+import { DurableStream } from "@durable-streams/client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { StreamEntry, StreamEvent } from "../types";
+import type { StreamEvent } from "../types";
 
 interface UseDurableStreamOptions {
 	/** Base URL of the durable stream server */
@@ -23,7 +24,7 @@ interface UseDurableStreamOptions {
 
 interface UseDurableStreamResult {
 	/** All received events */
-	events: StreamEntry[];
+	events: StreamEvent[];
 	/** Current streaming content (accumulated text) */
 	streamingContent: string;
 	/** Whether currently connected to the stream */
@@ -48,96 +49,116 @@ export function useDurableStream(
 		onConnectionChange,
 	} = options;
 
-	const [events, setEvents] = useState<StreamEntry[]>([]);
+	const [events, setEvents] = useState<StreamEvent[]>([]);
 	const [streamingContent, setStreamingContent] = useState("");
 	const [isConnected, setIsConnected] = useState(false);
 	const [isStreaming, setIsStreaming] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 
-	// Track last offset for resume
-	const lastOffsetRef = useRef(0);
-	const eventSourceRef = useRef<EventSource | null>(null);
-	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-		null,
-	);
+	const abortControllerRef = useRef<AbortController | null>(null);
+	const lastOffsetRef = useRef<string | undefined>(undefined);
+	const unsubscribeRef = useRef<(() => void) | null>(null);
 
 	const clear = useCallback(() => {
 		setEvents([]);
 		setStreamingContent("");
-		lastOffsetRef.current = 0;
+		lastOffsetRef.current = undefined;
 	}, []);
 
-	const connect = useCallback(() => {
+	const connect = useCallback(async () => {
 		if (!sessionId || !enabled) return;
 
-		// Close existing connection
-		if (eventSourceRef.current) {
-			eventSourceRef.current.close();
+		// Cleanup existing connection
+		if (unsubscribeRef.current) {
+			unsubscribeRef.current();
+			unsubscribeRef.current = null;
+		}
+		if (abortControllerRef.current) {
+			abortControllerRef.current.abort();
 		}
 
-		const url = `${baseUrl}/streams/${sessionId}?live=true&offset=${lastOffsetRef.current}`;
-		console.log(`[useDurableStream] Connecting to ${url}`);
+		const abortController = new AbortController();
+		abortControllerRef.current = abortController;
 
-		const eventSource = new EventSource(url);
-		eventSourceRef.current = eventSource;
+		const url = `${baseUrl}/streams/${sessionId}`;
+		console.log(
+			`[useDurableStream] Connecting to ${url} at offset ${lastOffsetRef.current ?? "start"}`,
+		);
 
-		eventSource.onopen = () => {
-			console.log(`[useDurableStream] Connected`);
+		try {
+			const handle = new DurableStream({ url });
+
+			const response = await handle.stream<StreamEvent>({
+				offset: lastOffsetRef.current,
+				signal: abortController.signal,
+				live: true,
+				onError: (err) => {
+					console.error(`[useDurableStream] Stream error:`, err);
+					// Return empty object to retry
+					return {};
+				},
+			});
+
 			setIsConnected(true);
 			setError(null);
 			onConnectionChange?.(true);
-		};
 
-		eventSource.addEventListener("event", (e) => {
-			try {
-				const entry = JSON.parse(e.data) as StreamEntry;
-				lastOffsetRef.current = entry.offset + 1;
+			// Subscribe to JSON batches
+			const unsubscribe = response.subscribeJson(async (batch) => {
+				// Update offset after receiving data
+				lastOffsetRef.current = response.offset;
 
-				setEvents((prev) => [...prev, entry]);
+				for (const event of batch.items) {
+					setEvents((prev) => [...prev, event]);
 
-				// Accumulate text content
-				if (entry.event.type === "text_delta") {
-					setIsStreaming(true);
-					const textEvent = entry.event;
-					setStreamingContent((prev: string) => prev + textEvent.text);
+					// Accumulate text content
+					if (event.type === "text_delta" && "text" in event) {
+						setIsStreaming(true);
+						const textEvent = event as StreamEvent & { text: string };
+						setStreamingContent((prev) => prev + textEvent.text);
+					}
+
+					// Reset streaming on message complete
+					if (event.type === "message_complete") {
+						setIsStreaming(false);
+					}
+
+					onEvent?.(event);
 				}
+			});
 
-				// Reset streaming on message complete
-				if (entry.event.type === "message_complete") {
-					setIsStreaming(false);
-				}
+			unsubscribeRef.current = unsubscribe;
 
-				onEvent?.(entry.event);
-			} catch (err) {
-				console.error(`[useDurableStream] Failed to parse event:`, err);
+			// Wait for stream to close
+			await response.closed;
+
+			// Stream closed, reconnect if still enabled
+			if (enabled && !abortController.signal.aborted) {
+				console.log(`[useDurableStream] Stream closed, reconnecting...`);
+				setTimeout(() => connect(), 1000);
 			}
-		});
+		} catch (err) {
+			if (abortController.signal.aborted) {
+				return; // Expected abort
+			}
 
-		eventSource.addEventListener("heartbeat", () => {
-			// Heartbeat received, connection is alive
-		});
-
-		eventSource.onerror = (e) => {
-			console.error(`[useDurableStream] Error:`, e);
+			console.error(`[useDurableStream] Error:`, err);
 			setIsConnected(false);
 			setIsStreaming(false);
 			onConnectionChange?.(false);
 
-			const err = new Error("Stream connection error");
-			setError(err);
-			onError?.(err);
+			const error = err instanceof Error ? err : new Error(String(err));
+			setError(error);
+			onError?.(error);
 
 			// Reconnect after delay
-			eventSource.close();
-			eventSourceRef.current = null;
-
 			if (enabled) {
-				reconnectTimeoutRef.current = setTimeout(() => {
+				setTimeout(() => {
 					console.log(`[useDurableStream] Reconnecting...`);
 					connect();
 				}, 2000);
 			}
-		};
+		}
 	}, [sessionId, baseUrl, enabled, onEvent, onError, onConnectionChange]);
 
 	// Connect on mount and when sessionId changes
@@ -147,13 +168,13 @@ export function useDurableStream(
 		}
 
 		return () => {
-			if (eventSourceRef.current) {
-				eventSourceRef.current.close();
-				eventSourceRef.current = null;
+			if (unsubscribeRef.current) {
+				unsubscribeRef.current();
+				unsubscribeRef.current = null;
 			}
-			if (reconnectTimeoutRef.current) {
-				clearTimeout(reconnectTimeoutRef.current);
-				reconnectTimeoutRef.current = null;
+			if (abortControllerRef.current) {
+				abortControllerRef.current.abort();
+				abortControllerRef.current = null;
 			}
 		};
 	}, [sessionId, enabled, connect]);

@@ -7,12 +7,18 @@
  * - Presence tracking
  */
 
+import type { StreamDB } from "@durable-streams/state";
 import { useCallback, useMemo, useState } from "react";
+import type { SessionStateSchema } from "../stream/schema";
 import type { ChatMessage, PresenceUser, StreamEvent } from "../types";
 import { useDurableStream } from "./useDurableStream";
 import { usePresence } from "./usePresence";
 
 interface UseMultiplayerChatOptions {
+	/** StreamDB instance from useStreamDB */
+	db: StreamDB<SessionStateSchema> | null;
+	/** Whether the StreamDB is connected and ready */
+	isDbConnected?: boolean;
 	/** Base URL of the durable stream server */
 	streamServerUrl: string;
 	/** Current user info */
@@ -53,6 +59,8 @@ export function useMultiplayerChat(
 	options: UseMultiplayerChatOptions,
 ): UseMultiplayerChatResult {
 	const {
+		db,
+		isDbConnected = false,
 		streamServerUrl,
 		user,
 		messages,
@@ -78,6 +86,8 @@ export function useMultiplayerChat(
 
 	// Track presence
 	const { viewers, typingUsers, setTyping } = usePresence(sessionId, {
+		db,
+		isDbConnected,
 		baseUrl: streamServerUrl,
 		user,
 		enabled,

@@ -7,15 +7,21 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./hooks": "./src/hooks/index.ts",
-		"./components": "./src/components/index.ts"
+		"./components": "./src/components/index.ts",
+		"./stream": "./src/stream/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@durable-streams/client": "^0.2.0",
+		"@durable-streams/state": "^0.2.0",
 		"@superset/ui": "workspace:*",
+		"@tanstack/db": "^0.5.23",
+		"@tanstack/react-db": "^0.1.67",
 		"lucide-react": "^0.560.0",
-		"react": "19.1.0"
+		"react": "19.1.0",
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
