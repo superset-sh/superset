@@ -53,7 +53,6 @@ export function WorkspaceInitEffects() {
 			const isParallel =
 				preset.executionMode === "parallel" && preset.commands.length > 1;
 
-			// When adding to an existing tab, create a split pane (run commands sequentially)
 			if (existingTabId) {
 				addPane(existingTabId, {
 					initialCommands: preset.commands,
@@ -62,7 +61,6 @@ export function WorkspaceInitEffects() {
 				return;
 			}
 
-			// When creating a new tab, use parallel panes if configured
 			if (isParallel) {
 				const options: AddTabWithMultiplePanesOptions = {
 					commands: preset.commands,
@@ -96,7 +94,6 @@ export function WorkspaceInitEffects() {
 					setup.workspaceId,
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
-				// Add preset as a split pane in the same tab
 				createPresetTerminal(
 					setup.workspaceId,
 					setup.defaultPreset,
