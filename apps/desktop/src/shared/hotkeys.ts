@@ -410,12 +410,12 @@ export const HOTKEYS = {
 		category: "Workspace",
 	}),
 	PREV_WORKSPACE: defineHotkey({
-		keys: "meta+up",
+		keys: "meta+alt+up",
 		label: "Previous Workspace",
 		category: "Workspace",
 	}),
 	NEXT_WORKSPACE: defineHotkey({
-		keys: "meta+down",
+		keys: "meta+alt+down",
 		label: "Next Workspace",
 		category: "Workspace",
 	}),
