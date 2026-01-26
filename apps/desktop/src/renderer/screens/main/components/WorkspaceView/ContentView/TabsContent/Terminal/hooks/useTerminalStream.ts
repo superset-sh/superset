@@ -6,6 +6,160 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { DEBUG_TERMINAL } from "../config";
 import type { TerminalStreamEvent } from "../types";
 
+const DEBUG_SCROLL_SEQUENCES = true;
+
+/**
+ * Build scroll-affecting sequence patterns lazily to avoid lint errors
+ * with control characters in regex literals. Uses string-based patterns.
+ */
+function buildScrollAffectingSequences(): Array<{
+	pattern: RegExp;
+	name: string;
+	description: string;
+}> {
+	// ESC character as escaped string for building regex patterns
+	const ESC_PATTERN = "\\x1b";
+
+	return [
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[H`, "g"),
+			name: "CUP_HOME",
+			description: "Cursor to home position (top-left)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\d*;\\d*H`, "g"),
+			name: "CUP",
+			description: "Cursor position (move cursor)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[2J`, "g"),
+			name: "ED_FULL",
+			description: "Clear entire screen",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[3J`, "g"),
+			name: "ED_SCROLLBACK",
+			description: "Clear scrollback buffer",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?1049h`, "g"),
+			name: "ALT_SCREEN_ENTER",
+			description: "Enter alternate screen buffer",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?1049l`, "g"),
+			name: "ALT_SCREEN_EXIT",
+			description: "Exit alternate screen buffer",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?47h`, "g"),
+			name: "ALT_SCREEN_ENTER_LEGACY",
+			description: "Enter alternate screen (legacy)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?47l`, "g"),
+			name: "ALT_SCREEN_EXIT_LEGACY",
+			description: "Exit alternate screen (legacy)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[r`, "g"),
+			name: "DECSTBM_RESET",
+			description: "Reset scrolling region to full screen",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\d+;\\d+r`, "g"),
+			name: "DECSTBM",
+			description: "Set scrolling region",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[s`, "g"),
+			name: "SCP",
+			description: "Save cursor position",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[u`, "g"),
+			name: "RCP",
+			description: "Restore cursor position",
+		},
+		{
+			pattern: new RegExp(
+				`${ESC_PATTERN}\\[0?m(?:${ESC_PATTERN}\\[H|${ESC_PATTERN}\\[2J)`,
+				"g",
+			),
+			name: "RESET_AND_CLEAR",
+			description: "Reset attributes and clear/home (common TUI pattern)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}c`, "g"),
+			name: "RIS",
+			description: "Reset to Initial State (full terminal reset)",
+		},
+	];
+}
+
+// Lazy-initialized to avoid building patterns on module load
+let scrollAffectingSequences: ReturnType<
+	typeof buildScrollAffectingSequences
+> | null = null;
+
+function getScrollAffectingSequences() {
+	if (!scrollAffectingSequences) {
+		scrollAffectingSequences = buildScrollAffectingSequences();
+	}
+	return scrollAffectingSequences;
+}
+
+/**
+ * Detect and log escape sequences that can affect scroll position.
+ */
+function detectScrollAffectingSequences(data: string, context: string): void {
+	if (!DEBUG_SCROLL_SEQUENCES) return;
+
+	const detectedSequences: Array<{
+		name: string;
+		description: string;
+		count: number;
+		positions: number[];
+	}> = [];
+
+	for (const seq of getScrollAffectingSequences()) {
+		seq.pattern.lastIndex = 0;
+		const matches = [...data.matchAll(seq.pattern)];
+		if (matches.length > 0) {
+			detectedSequences.push({
+				name: seq.name,
+				description: seq.description,
+				count: matches.length,
+				positions: matches.map((m) => m.index ?? -1),
+			});
+		}
+	}
+
+	if (detectedSequences.length > 0) {
+		console.log(
+			`[useTerminalStream] [${new Date().toISOString()}] [${context}] Detected scroll-affecting sequences in ${data.length}b:`,
+		);
+		for (const seq of detectedSequences) {
+			console.log(
+				`  - ${seq.name}: ${seq.description} (count=${seq.count}, positions=[${seq.positions.slice(0, 5).join(", ")}${seq.positions.length > 5 ? "..." : ""}])`,
+			);
+		}
+		// Log a snippet of the data around the first detected sequence for context
+		const firstSeq = detectedSequences[0];
+		if (firstSeq && firstSeq.positions[0] !== undefined) {
+			const pos = firstSeq.positions[0];
+			const snippetStart = Math.max(0, pos - 20);
+			const snippetEnd = Math.min(data.length, pos + 40);
+			const snippet = data
+				.slice(snippetStart, snippetEnd)
+				.replaceAll("\x1b", "\\x1b")
+				.replace(/\n/g, "\\n")
+				.replace(/\r/g, "\\r");
+			console.log(`  Context: "...${snippet}..."`);
+		}
+	}
+}
+
 export interface UseTerminalStreamOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
@@ -125,6 +279,14 @@ export function useTerminalStream({
 	const handleStreamData = useCallback(
 		(event: TerminalStreamEvent) => {
 			const xterm = xtermRef.current;
+			const isReady = Boolean(xterm) && isStreamReadyRef.current;
+
+			if (event.type === "data") {
+				const context = isReady
+					? `STREAM_DATA_${paneId}`
+					: `QUEUED_DATA_${paneId}`;
+				detectScrollAffectingSequences(event.data, context);
+			}
 
 			// Queue ALL events until terminal is ready, preserving order
 			// flushPendingEvents will process them in sequence after restore

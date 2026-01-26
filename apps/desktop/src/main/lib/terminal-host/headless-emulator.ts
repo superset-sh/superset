@@ -26,6 +26,110 @@ const BEL = "\x07";
 const DEBUG_EMULATOR_TIMING =
 	process.env.SUPERSET_TERMINAL_EMULATOR_DEBUG === "1";
 
+const DEBUG_SCROLL_SEQUENCES =
+	process.env.SUPERSET_DEBUG_SCROLL_SEQUENCES === "1";
+
+/**
+ * Build scroll-affecting sequence patterns lazily to avoid lint errors
+ * with control characters in regex literals. Uses string-based patterns.
+ */
+function buildScrollAffectingSequences(): Array<{
+	pattern: RegExp;
+	name: string;
+	description: string;
+}> {
+	// ESC character as escaped string for building regex patterns
+	const ESC_PATTERN = "\\x1b";
+
+	return [
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[H`, "g"),
+			name: "CUP_HOME",
+			description: "Cursor to home position (top-left)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\d*;\\d*H`, "g"),
+			name: "CUP",
+			description: "Cursor position (move cursor)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[2J`, "g"),
+			name: "ED_FULL",
+			description: "Clear entire screen",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[3J`, "g"),
+			name: "ED_SCROLLBACK",
+			description: "Clear scrollback buffer",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?1049h`, "g"),
+			name: "ALT_SCREEN_ENTER",
+			description: "Enter alternate screen buffer",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?1049l`, "g"),
+			name: "ALT_SCREEN_EXIT",
+			description: "Exit alternate screen buffer",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?47h`, "g"),
+			name: "ALT_SCREEN_ENTER_LEGACY",
+			description: "Enter alternate screen (legacy)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\?47l`, "g"),
+			name: "ALT_SCREEN_EXIT_LEGACY",
+			description: "Exit alternate screen (legacy)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[r`, "g"),
+			name: "DECSTBM_RESET",
+			description: "Reset scrolling region to full screen",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[\\d+;\\d+r`, "g"),
+			name: "DECSTBM",
+			description: "Set scrolling region",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[s`, "g"),
+			name: "SCP",
+			description: "Save cursor position",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}\\[u`, "g"),
+			name: "RCP",
+			description: "Restore cursor position",
+		},
+		{
+			pattern: new RegExp(
+				`${ESC_PATTERN}\\[0?m(?:${ESC_PATTERN}\\[H|${ESC_PATTERN}\\[2J)`,
+				"g",
+			),
+			name: "RESET_AND_CLEAR",
+			description: "Reset attributes and clear/home (common TUI pattern)",
+		},
+		{
+			pattern: new RegExp(`${ESC_PATTERN}c`, "g"),
+			name: "RIS",
+			description: "Reset to Initial State (full terminal reset)",
+		},
+	];
+}
+
+// Lazy-initialized to avoid building patterns on module load
+let scrollAffectingSequences: ReturnType<
+	typeof buildScrollAffectingSequences
+> | null = null;
+
+function getScrollAffectingSequences() {
+	if (!scrollAffectingSequences) {
+		scrollAffectingSequences = buildScrollAffectingSequences();
+	}
+	return scrollAffectingSequences;
+}
+
 /**
  * DECSET/DECRST mode numbers we track
  */
@@ -121,6 +225,11 @@ export class HeadlessEmulator {
 	write(data: string): void {
 		if (this.disposed) return;
 
+		// Detect scroll-affecting sequences for debugging reattach issues
+		if (DEBUG_SCROLL_SEQUENCES) {
+			this.detectScrollAffectingSequences(data, "PTY_OUTPUT");
+		}
+
 		if (!DEBUG_EMULATOR_TIMING) {
 			// Parse escape sequences with chunk-safe buffering
 			this.parseEscapeSequences(data);
@@ -141,6 +250,58 @@ export class HeadlessEmulator {
 			console.warn(
 				`[HeadlessEmulator] write(${data.length}b): parse=${parseTime.toFixed(1)}ms, terminal=${terminalTime.toFixed(1)}ms`,
 			);
+		}
+	}
+
+	/**
+	 * Detect and log escape sequences that can affect scroll position.
+	 * Used for debugging terminal position issues during reattach.
+	 */
+	private detectScrollAffectingSequences(data: string, context: string): void {
+		const detectedSequences: Array<{
+			name: string;
+			description: string;
+			count: number;
+			positions: number[];
+		}> = [];
+
+		for (const seq of getScrollAffectingSequences()) {
+			// Reset lastIndex for global regex
+			seq.pattern.lastIndex = 0;
+			const matches = [...data.matchAll(seq.pattern)];
+			if (matches.length > 0) {
+				detectedSequences.push({
+					name: seq.name,
+					description: seq.description,
+					count: matches.length,
+					positions: matches.map((m) => m.index ?? -1),
+				});
+			}
+		}
+
+		if (detectedSequences.length > 0) {
+			const timestamp = new Date().toISOString();
+			console.log(
+				`[HeadlessEmulator] [${timestamp}] [${context}] Detected scroll-affecting sequences in ${data.length}b:`,
+			);
+			for (const seq of detectedSequences) {
+				console.log(
+					`  - ${seq.name}: ${seq.description} (count=${seq.count}, positions=[${seq.positions.slice(0, 5).join(", ")}${seq.positions.length > 5 ? "..." : ""}])`,
+				);
+			}
+			// Log a snippet of the data around the first detected sequence for context
+			const firstSeq = detectedSequences[0];
+			if (firstSeq && firstSeq.positions[0] !== undefined) {
+				const pos = firstSeq.positions[0];
+				const snippetStart = Math.max(0, pos - 20);
+				const snippetEnd = Math.min(data.length, pos + 40);
+				const snippet = data
+					.slice(snippetStart, snippetEnd)
+					.replaceAll(ESC, "\\x1b")
+					.replace(/\n/g, "\\n")
+					.replace(/\r/g, "\\r");
+				console.log(`  Context: "...${snippet}..."`);
+			}
 		}
 	}
 
@@ -228,6 +389,33 @@ export class HeadlessEmulator {
 		});
 
 		const rehydrateSequences = this.generateRehydrateSequences();
+
+		// Log scroll-affecting sequences in snapshot for debugging reattach issues
+		if (DEBUG_SCROLL_SEQUENCES) {
+			console.log(
+				`[HeadlessEmulator] [${new Date().toISOString()}] [SNAPSHOT_GENERATION] Generating snapshot:`,
+			);
+			console.log(
+				`  - snapshotAnsi size: ${snapshotAnsi.length}b, rehydrateSequences size: ${rehydrateSequences.length}b`,
+			);
+			console.log(
+				`  - Terminal dimensions: ${this.terminal.cols}x${this.terminal.rows}`,
+			);
+			console.log(
+				`  - Buffer type: ${this.terminal.buffer.active.type}, scrollback lines: ${this.terminal.buffer.active.length}`,
+			);
+			console.log(`  - Modes: ${JSON.stringify(this.modes)}`);
+
+			if (rehydrateSequences) {
+				console.log(`  - rehydrateSequences content:`);
+				this.detectScrollAffectingSequences(
+					rehydrateSequences,
+					"SNAPSHOT_REHYDRATE",
+				);
+			}
+
+			this.detectScrollAffectingSequences(snapshotAnsi, "SNAPSHOT_ANSI");
+		}
 
 		// Build debug diagnostics
 		const xtermBufferType = this.terminal.buffer.active.type;

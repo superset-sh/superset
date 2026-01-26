@@ -38,6 +38,9 @@ import {
  */
 const ATTACH_FLUSH_TIMEOUT_MS = 500;
 
+const DEBUG_SCROLL_SEQUENCES =
+	process.env.SUPERSET_DEBUG_SCROLL_SEQUENCES === "1";
+
 /**
  * Maximum bytes allowed in subprocess stdin queue.
  * Prevents OOM if subprocess stdin is backpressured (e.g., slow PTY consumer).
@@ -689,6 +692,14 @@ export class Session {
 			throw new Error("Session disposed");
 		}
 
+		const attachStartTime = Date.now();
+
+		if (DEBUG_SCROLL_SEQUENCES) {
+			console.log(
+				`[Session ${this.sessionId}] [${new Date().toISOString()}] [ATTACH_START] Client attaching, clientCount before: ${this.attachedClients.size}`,
+			);
+		}
+
 		this.attachedClients.set(socket, {
 			socket,
 			attachedAt: Date.now(),
@@ -708,7 +719,24 @@ export class Session {
 			);
 		}
 
-		return this.emulator.getSnapshotAsync();
+		const snapshot = await this.emulator.getSnapshotAsync();
+
+		if (DEBUG_SCROLL_SEQUENCES) {
+			const attachDuration = Date.now() - attachStartTime;
+			console.log(
+				`[Session ${this.sessionId}] [${new Date().toISOString()}] [ATTACH_COMPLETE] Snapshot generated in ${attachDuration}ms`,
+			);
+			console.log(`  - snapshotAnsi size: ${snapshot.snapshotAnsi.length}b`);
+			console.log(
+				`  - rehydrateSequences size: ${snapshot.rehydrateSequences.length}b`,
+			);
+			console.log(`  - modes: ${JSON.stringify(snapshot.modes)}`);
+			console.log(
+				`  - scrollbackLines: ${snapshot.scrollbackLines}, cols: ${snapshot.cols}, rows: ${snapshot.rows}`,
+			);
+		}
+
+		return snapshot;
 	}
 
 	/**
