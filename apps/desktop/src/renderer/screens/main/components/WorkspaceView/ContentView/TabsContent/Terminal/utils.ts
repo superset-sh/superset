@@ -1,6 +1,8 @@
 import type { Terminal } from "@xterm/xterm";
 import { quote } from "shell-quote";
 
+export { stripClearScrollbackSequence } from "shared/terminal-escape";
+
 export function shellEscapePaths(paths: string[]): string {
 	return quote(paths);
 }

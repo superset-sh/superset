@@ -201,24 +201,17 @@ function PRStatusLink({ workspaceId }: { workspaceId?: string }) {
 	if (!pr) return null;
 
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<a
-					href={pr.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					className="flex items-center gap-1 hover:opacity-80 transition-opacity"
-				>
-					<PRIcon state={pr.state} className="w-4 h-4" />
-					<span className="text-xs text-muted-foreground font-mono">
-						#{pr.number}
-					</span>
-				</a>
-			</TooltipTrigger>
-			<TooltipContent side="bottom" showArrow={false}>
-				View PR on GitHub
-			</TooltipContent>
-		</Tooltip>
+		<a
+			href={pr.url}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+		>
+			<PRIcon state={pr.state} className="w-4 h-4" />
+			<span className="text-xs text-muted-foreground font-mono">
+				#{pr.number}
+			</span>
+		</a>
 	);
 }
 

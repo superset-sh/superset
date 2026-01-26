@@ -132,7 +132,6 @@ describe("extractContentAfterClear", () => {
 		});
 
 		it("should not confuse similar sequences", () => {
-			// ESC[3 (without J) is not a clear sequence
 			expect(extractContentAfterClear(`${ESC}[3mtext`)).toBe(`${ESC}[3mtext`);
 		});
 	});

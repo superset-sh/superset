@@ -52,7 +52,7 @@ export function WorkspaceSidebar({
 					<div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">
 						<span>No workspaces yet</span>
 						<span className="text-xs mt-1">
-							Add a project or drag a folder here
+							Add project or drag a Git repo folder here
 						</span>
 					</div>
 				)}

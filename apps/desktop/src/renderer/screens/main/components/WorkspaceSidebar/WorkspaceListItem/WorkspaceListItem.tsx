@@ -513,7 +513,7 @@ export function WorkspaceListItem({
 
 							{shortcutIndex !== undefined &&
 								shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
-									<span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
+									<span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
 										⌘{shortcutIndex + 1}
 									</span>
 								)}

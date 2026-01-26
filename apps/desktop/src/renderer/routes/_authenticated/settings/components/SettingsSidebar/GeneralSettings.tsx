@@ -7,6 +7,8 @@ import {
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
 	HiOutlineCreditCard,
+	HiOutlineDevicePhoneMobile,
+	HiOutlineKey,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineSparkles,
@@ -28,13 +30,16 @@ type SettingsRoute =
 	| "/settings/behavior"
 	| "/settings/terminal"
 	| "/settings/integrations"
-	| "/settings/billing";
+	| "/settings/billing"
+	| "/settings/devices"
+	| "/settings/api-keys";
 
 const GENERAL_SECTIONS: {
 	id: SettingsRoute;
 	section: SettingsSection;
 	label: string;
 	icon: React.ReactNode;
+	requiresAgentCommands?: boolean;
 }[] = [
 	{
 		id: "/settings/account",
@@ -90,19 +95,42 @@ const GENERAL_SECTIONS: {
 		label: "Billing",
 		icon: <HiOutlineCreditCard className="h-4 w-4" />,
 	},
+	{
+		id: "/settings/devices",
+		section: "devices",
+		label: "Devices",
+		icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
+		requiresAgentCommands: true,
+	},
+	{
+		id: "/settings/api-keys",
+		section: "apikeys",
+		label: "API Keys",
+		icon: <HiOutlineKey className="h-4 w-4" />,
+		requiresAgentCommands: true,
+	},
 ];
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
 	const billingEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.BILLING_ENABLED);
+	const hasAgentCommandsAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.AGENT_COMMANDS_ACCESS,
+	);
 
-	const filteredSections = (
-		matchCounts
-			? GENERAL_SECTIONS.filter(
-					(section) => (matchCounts[section.section] ?? 0) > 0,
-				)
-			: GENERAL_SECTIONS
-	).filter((section) => section.section !== "billing" || billingEnabled);
+	// Filter by feature flags first, then by search matches
+	const availableSections = GENERAL_SECTIONS.filter((section) => {
+		if (section.section === "billing" && !billingEnabled) return false;
+		if (section.requiresAgentCommands && !hasAgentCommandsAccess) return false;
+		return true;
+	});
+
+	// When searching, only show sections that have matches
+	const filteredSections = matchCounts
+		? availableSections.filter(
+				(section) => (matchCounts[section.section] ?? 0) > 0,
+			)
+		: availableSections;
 
 	if (filteredSections.length === 0) {
 		return null;

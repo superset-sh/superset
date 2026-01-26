@@ -25,6 +25,9 @@ const TERMINAL_FONT_FAMILY = [
 	"Menlo",
 	"Monaco",
 	'"Courier New"',
+	// SF fonts for Apple tools (swift, xcodebuild) that use SF Symbols private use area characters
+	"SF Mono",
+	"SF Pro",
 	"monospace",
 ].join(", ");
 

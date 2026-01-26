@@ -64,6 +64,14 @@ describe("getAppCommand", () => {
 		});
 	});
 
+	test("returns correct command for ghostty", () => {
+		const result = getAppCommand("ghostty", "/path/to/file");
+		expect(result).toEqual({
+			command: "open",
+			args: ["-a", "Ghostty", "/path/to/file"],
+		});
+	});
+
 	describe("JetBrains IDEs", () => {
 		test("returns correct command for intellij", () => {
 			const result = getAppCommand("intellij", "/path/to/file");

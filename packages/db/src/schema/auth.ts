@@ -1,6 +1,7 @@
 import {
 	boolean,
 	index,
+	integer,
 	pgSchema,
 	text,
 	timestamp,
@@ -152,3 +153,105 @@ export const invitations = authSchema.table(
 
 export type SelectInvitation = typeof invitations.$inferSelect;
 export type InsertInvitation = typeof invitations.$inferInsert;
+
+// OAuth/MCP tables for Better Auth MCP plugin
+export const oauthApplications = authSchema.table(
+	"oauth_applications",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name"),
+		icon: text("icon"),
+		metadata: text("metadata"),
+		clientId: text("client_id").unique(),
+		clientSecret: text("client_secret"),
+		redirectUrls: text("redirect_urls"),
+		type: text("type"),
+		disabled: boolean("disabled").default(false),
+		userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at"),
+		updatedAt: timestamp("updated_at"),
+	},
+	(table) => [index("oauth_applications_user_id_idx").on(table.userId)],
+);
+
+export const oauthAccessTokens = authSchema.table(
+	"oauth_access_tokens",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		accessToken: text("access_token").unique(),
+		refreshToken: text("refresh_token").unique(),
+		accessTokenExpiresAt: timestamp("access_token_expires_at"),
+		refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+		clientId: text("client_id").references(() => oauthApplications.clientId, {
+			onDelete: "cascade",
+		}),
+		userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+		scopes: text("scopes"),
+		createdAt: timestamp("created_at"),
+		updatedAt: timestamp("updated_at"),
+	},
+	(table) => [
+		index("oauth_access_tokens_client_id_idx").on(table.clientId),
+		index("oauth_access_tokens_user_id_idx").on(table.userId),
+	],
+);
+
+export const oauthConsents = authSchema.table(
+	"oauth_consents",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		clientId: text("client_id").references(() => oauthApplications.clientId, {
+			onDelete: "cascade",
+		}),
+		userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+		scopes: text("scopes"),
+		createdAt: timestamp("created_at"),
+		updatedAt: timestamp("updated_at"),
+		consentGiven: boolean("consent_given"),
+	},
+	(table) => [
+		index("oauth_consents_client_id_idx").on(table.clientId),
+		index("oauth_consents_user_id_idx").on(table.userId),
+	],
+);
+
+// Better Auth API Key plugin table
+// Fields match generated schema, adapted for auth schema + UUID IDs
+export const apikeys = authSchema.table(
+	"apikeys",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name"),
+		start: text("start"),
+		prefix: text("prefix"),
+		key: text("key").notNull(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		refillInterval: integer("refill_interval"),
+		refillAmount: integer("refill_amount"),
+		lastRefillAt: timestamp("last_refill_at"),
+		enabled: boolean("enabled").default(true),
+		rateLimitEnabled: boolean("rate_limit_enabled").default(true),
+		rateLimitTimeWindow: integer("rate_limit_time_window").default(86400000),
+		rateLimitMax: integer("rate_limit_max").default(10),
+		requestCount: integer("request_count").default(0),
+		remaining: integer("remaining"),
+		lastRequest: timestamp("last_request"),
+		expiresAt: timestamp("expires_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+		permissions: text("permissions"),
+		metadata: text("metadata"),
+	},
+	(table) => [
+		index("apikeys_key_idx").on(table.key),
+		index("apikeys_user_id_idx").on(table.userId),
+	],
+);
+
+export type SelectApikey = typeof apikeys.$inferSelect;
+export type InsertApikey = typeof apikeys.$inferInsert;

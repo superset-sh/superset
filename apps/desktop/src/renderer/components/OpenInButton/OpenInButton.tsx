@@ -21,6 +21,7 @@ import cursorIcon from "renderer/assets/app-icons/cursor.svg";
 import datagripIcon from "renderer/assets/app-icons/datagrip.svg";
 import finderIcon from "renderer/assets/app-icons/finder.png";
 import fleetIcon from "renderer/assets/app-icons/fleet.svg";
+import ghosttyIcon from "renderer/assets/app-icons/ghostty.svg";
 import golandIcon from "renderer/assets/app-icons/goland.svg";
 import intellijIcon from "renderer/assets/app-icons/intellij.svg";
 import itermIcon from "renderer/assets/app-icons/iterm.png";
@@ -57,6 +58,7 @@ export const APP_OPTIONS: AppOption[] = [
 	{ id: "iterm", label: "iTerm", icon: itermIcon },
 	{ id: "warp", label: "Warp", icon: warpIcon },
 	{ id: "terminal", label: "Terminal", icon: terminalIcon },
+	{ id: "ghostty", label: "Ghostty", icon: ghosttyIcon },
 ];
 
 export const VSCODE_OPTIONS: AppOption[] = [

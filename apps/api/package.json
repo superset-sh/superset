@@ -13,6 +13,7 @@
 	"dependencies": {
 		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
 		"@linear/sdk": "^68.1.0",
+		"@modelcontextprotocol/sdk": "^1.25.3",
 		"@octokit/app": "^16.1.2",
 		"@octokit/rest": "^22.0.1",
 		"@octokit/webhooks": "^14.2.0",
@@ -25,7 +26,8 @@
 		"@trpc/server": "^11.7.1",
 		"@upstash/qstash": "^2.8.4",
 		"@vercel/blob": "^2.0.0",
-		"better-auth": "^1.4.17",
+		"@vercel/mcp-adapter": "^1.0.0",
+		"better-auth": "1.4.17",
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "0.45.1",
 		"import-in-the-middle": "2.0.1",

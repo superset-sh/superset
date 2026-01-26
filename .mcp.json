@@ -1,3 +1,14 @@
 {
-	"mcpServers": {}
+	"mcpServers": {
+		"superset": {
+			"type": "http",
+			"url": "http://localhost:3001/api/agent/mcp",
+			"oauth": {
+				"clientId": "claude-code",
+				"authorizationUrl": "http://localhost:3001/api/auth/mcp/authorize",
+				"tokenUrl": "http://localhost:3001/api/auth/mcp/token",
+				"scopes": ["openid", "profile", "email"]
+			}
+		}
+	}
 }

@@ -13,6 +13,7 @@ const APP_NAMES: Record<ExternalApp, string | null> = {
 	iterm: "iTerm",
 	warp: "Warp",
 	terminal: "Terminal",
+	ghostty: "Ghostty",
 	sublime: "Sublime Text",
 	intellij: "IntelliJ IDEA",
 	webstorm: "WebStorm",

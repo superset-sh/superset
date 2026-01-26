@@ -36,7 +36,6 @@ interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
 	onClick: () => void;
-	onDoubleClick?: () => void;
 	showStats?: boolean;
 	level?: number;
 	onStage?: () => void;
@@ -71,7 +70,6 @@ export function FileItem({
 	file,
 	isSelected,
 	onClick,
-	onDoubleClick,
 	showStats = true,
 	level = 0,
 	onStage,
@@ -156,7 +154,6 @@ export function FileItem({
 			<button
 				type="button"
 				onClick={onClick}
-				onDoubleClick={onDoubleClick}
 				className={cn(
 					"flex items-center gap-1.5 flex-1 min-w-0",
 					hasIndent ? "py-0.5" : "py-1",

@@ -15,6 +15,8 @@ export type SettingsSection =
 	| "terminal"
 	| "integrations"
 	| "billing"
+	| "devices"
+	| "apikeys"
 	| "project"
 	| "workspace";
 

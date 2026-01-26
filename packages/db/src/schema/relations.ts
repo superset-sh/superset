@@ -14,7 +14,9 @@ import {
 	githubRepositories,
 } from "./github";
 import {
+	agentCommands,
 	cloudWorkspaces,
+	devicePresence,
 	integrationConnections,
 	repositories,
 	subscriptions,
@@ -31,6 +33,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
+	devicePresence: many(devicePresence),
+	agentCommands: many(agentCommands),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -57,6 +61,8 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	integrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
 	cloudWorkspaces: many(cloudWorkspaces),
+	devicePresence: many(devicePresence),
+	agentCommands: many(agentCommands),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -200,3 +206,31 @@ export const cloudWorkspacesRelations = relations(
 		}),
 	}),
 );
+
+// Agent relations
+export const devicePresenceRelations = relations(devicePresence, ({ one }) => ({
+	user: one(users, {
+		fields: [devicePresence.userId],
+		references: [users.id],
+	}),
+	organization: one(organizations, {
+		fields: [devicePresence.organizationId],
+		references: [organizations.id],
+	}),
+}));
+
+export const agentCommandsRelations = relations(agentCommands, ({ one }) => ({
+	user: one(users, {
+		fields: [agentCommands.userId],
+		references: [users.id],
+	}),
+	organization: one(organizations, {
+		fields: [agentCommands.organizationId],
+		references: [organizations.id],
+	}),
+	parentCommand: one(agentCommands, {
+		fields: [agentCommands.parentCommandId],
+		references: [agentCommands.id],
+		relationName: "parentCommand",
+	}),
+}));

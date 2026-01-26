@@ -440,6 +440,42 @@ export const addPaneToLayout = (
 });
 
 /**
+ * Builds a balanced multi-pane Mosaic layout using recursive binary splits.
+ * For 3+ panes, alternates between column and row splits to create a grid.
+ */
+export const buildMultiPaneLayout = (
+	paneIds: string[],
+	direction: "row" | "column" = "column",
+): MosaicNode<string> => {
+	if (paneIds.length === 0) {
+		throw new Error("Cannot build layout with zero panes");
+	}
+
+	if (paneIds.length === 1) {
+		return paneIds[0];
+	}
+
+	if (paneIds.length === 2) {
+		return {
+			direction: "row",
+			first: paneIds[0],
+			second: paneIds[1],
+			splitPercentage: 50,
+		};
+	}
+
+	const mid = Math.ceil(paneIds.length / 2);
+	const nextDirection = direction === "column" ? "row" : "column";
+
+	return {
+		direction,
+		first: buildMultiPaneLayout(paneIds.slice(0, mid), nextDirection),
+		second: buildMultiPaneLayout(paneIds.slice(mid), nextDirection),
+		splitPercentage: 50,
+	};
+};
+
+/**
  * Updates the history stack when switching to a new active tab
  * Adds the current active to history and removes the new active from history
  */

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "13c4cacb-d60f-41f7-ba5f-fefbbc4dc0de",
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "prevId": "8aa1c587-bd94-4cf9-909d-1dc931aa7ac8",
   "tables": {
     "organization_members": {
@@ -355,6 +355,13 @@
           "notNull": false,
           "autoincrement": false,
           "default": true
+        },
+        "auto_apply_default_preset": {
+          "name": "auto_apply_default_preset",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -841,13 +848,6 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
-        },
-        "cloud_workspace_id": {
-          "name": "cloud_workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
       "indexes": {
@@ -869,13 +869,6 @@
           "name": "workspaces_last_opened_at_idx",
           "columns": [
             "last_opened_at"
-          ],
-          "isUnique": false
-        },
-        "workspaces_cloud_workspace_id_idx": {
-          "name": "workspaces_cloud_workspace_id_idx",
-          "columns": [
-            "cloud_workspace_id"
           ],
           "isUnique": false
         }

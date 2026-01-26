@@ -22,8 +22,8 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@better-auth/expo": "1.4.16",
-		"@better-auth/stripe": "^1.4.17",
+		"@better-auth/expo": "1.4.17",
+		"@better-auth/stripe": "1.4.17",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",
@@ -31,7 +31,7 @@
 		"@t3-oss/env-nextjs": "^0.13.8",
 		"@upstash/ratelimit": "^2.0.4",
 		"@upstash/redis": "^1.34.3",
-		"better-auth": "^1.4.17",
+		"better-auth": "1.4.17",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "0.45.1",
 		"resend": "^4.0.1",

@@ -27,6 +27,12 @@ export const metadata: Metadata = {
 	title: "Superset - Run 10+ parallel coding agents on your machine",
 	description:
 		"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.",
+	icons: {
+		icon: [
+			{ url: "/favicon.ico", sizes: "32x32" },
+			{ url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
+		],
+	},
 };
 
 export default function RootLayout({
@@ -37,7 +43,7 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
+			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
 			<head>

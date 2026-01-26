@@ -2,7 +2,9 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { usePresets } from "renderer/react-query/presets";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
@@ -111,15 +113,32 @@ function WorkspacePage() {
 
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Tab management shortcuts
-	useAppHotkey(
-		"NEW_GROUP",
-		() => {
-			addTab(workspaceId);
+	const { presets } = usePresets();
+	const renameTab = useTabsStore((s) => s.renameTab);
+
+	const openTabWithPreset = useCallback(
+		(presetIndex: number) => {
+			const preset = presets[presetIndex];
+			if (preset) {
+				const result = addTab(workspaceId, {
+					initialCommands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				});
+				if (preset.name) {
+					renameTab(result.tabId, preset.name);
+				}
+			} else {
+				addTab(workspaceId);
+			}
 		},
-		undefined,
-		[workspaceId, addTab],
+		[presets, workspaceId, addTab, renameTab],
 	);
+
+	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
+		workspaceId,
+		addTab,
+	]);
+	usePresetHotkeys(openTabWithPreset);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",
@@ -132,9 +151,8 @@ function WorkspacePage() {
 		[focusedPaneId, removePane],
 	);
 
-	// Switch between tabs
 	useAppHotkey(
-		"PREV_TERMINAL",
+		"PREV_TAB",
 		() => {
 			if (!activeTabId) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
@@ -147,7 +165,7 @@ function WorkspacePage() {
 	);
 
 	useAppHotkey(
-		"NEXT_TERMINAL",
+		"NEXT_TAB",
 		() => {
 			if (!activeTabId) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
@@ -159,7 +177,6 @@ function WorkspacePage() {
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
-	// Switch between panes within a tab
 	useAppHotkey(
 		"PREV_PANE",
 		() => {
