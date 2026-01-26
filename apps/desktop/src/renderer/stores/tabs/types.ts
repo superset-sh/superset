@@ -83,6 +83,10 @@ export interface TabsStore extends TabsState {
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
+	addPanesToTab: (
+		tabId: string,
+		options: AddTabWithMultiplePanesOptions,
+	) => string[];
 	addFileViewerPane: (
 		workspaceId: string,
 		options: AddFileViewerPaneOptions,

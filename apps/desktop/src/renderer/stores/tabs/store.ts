@@ -438,6 +438,48 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 
+				addPanesToTab: (
+					tabId: string,
+					options: AddTabWithMultiplePanesOptions,
+				) => {
+					const state = get();
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab) return [];
+
+					const panes: ReturnType<typeof createPane>[] = options.commands.map(
+						(command) =>
+							createPane(tabId, "terminal", {
+								initialCommands: [command],
+								initialCwd: options.initialCwd,
+							}),
+					);
+
+					const paneIds = panes.map((p) => p.id);
+					const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
+					const allPaneIds = [...existingPaneIds, ...paneIds];
+					const newLayout = buildMultiPaneLayout(allPaneIds);
+
+					const panesRecord: Record<string, (typeof panes)[number]> = {
+						...state.panes,
+					};
+					for (const pane of panes) {
+						panesRecord[pane.id] = pane;
+					}
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, layout: newLayout } : t,
+						),
+						panes: panesRecord,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tabId]: paneIds[0],
+						},
+					});
+
+					return paneIds;
+				},
+
 				addFileViewerPane: (
 					workspaceId: string,
 					options: AddFileViewerPaneOptions,

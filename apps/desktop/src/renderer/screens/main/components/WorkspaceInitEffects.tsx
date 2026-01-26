@@ -33,6 +33,7 @@ export function WorkspaceInitEffects() {
 
 	const addTab = useTabsStore((state) => state.addTab);
 	const addPane = useTabsStore((state) => state.addPane);
+	const addPanesToTab = useTabsStore((state) => state.addPanesToTab);
 	const addTabWithMultiplePanes = useTabsStore(
 		(state) => state.addTabWithMultiplePanes,
 	);
@@ -54,10 +55,17 @@ export function WorkspaceInitEffects() {
 				preset.executionMode === "parallel" && preset.commands.length > 1;
 
 			if (existingTabId) {
-				addPane(existingTabId, {
-					initialCommands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				});
+				if (isParallel) {
+					addPanesToTab(existingTabId, {
+						commands: preset.commands,
+						initialCwd: preset.cwd || undefined,
+					});
+				} else {
+					addPane(existingTabId, {
+						initialCommands: preset.commands,
+						initialCwd: preset.cwd || undefined,
+					});
+				}
 				return;
 			}
 
@@ -76,7 +84,7 @@ export function WorkspaceInitEffects() {
 				renameTab(tabId, preset.name);
 			}
 		},
-		[addTab, addPane, addTabWithMultiplePanes, renameTab],
+		[addTab, addPane, addPanesToTab, addTabWithMultiplePanes, renameTab],
 	);
 
 	const handleTerminalSetup = useCallback(
