@@ -81,7 +81,6 @@ export class TerminalManager extends EventEmitter {
 			initialCommands?.some((command) => agentCommandPattern.test(command)) ??
 			false;
 		const shouldAwaitAgentHooks = isAgentSession;
-		session.isAgentSession = isAgentSession;
 
 		// Set up data handler
 		setupDataHandler(

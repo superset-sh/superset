@@ -162,7 +162,6 @@ export async function createSession(
 		shell,
 		startTime: Date.now(),
 		usedFallback: useFallbackShell,
-		isAgentSession: false,
 	};
 }
 
