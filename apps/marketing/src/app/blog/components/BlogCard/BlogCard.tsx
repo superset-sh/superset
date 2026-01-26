@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { BlogPost } from "@/lib/blog";
+import { formatBlogDate, type BlogPost } from "@/lib/blog-utils";
 import { AuthorAvatar } from "../AuthorAvatar";
 
 interface BlogCardProps {
@@ -7,11 +7,7 @@ interface BlogCardProps {
 }
 
 export function BlogCard({ post }: BlogCardProps) {
-	const formattedDate = new Date(post.date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
+	const formattedDate = formatBlogDate(post.date);
 
 	return (
 		<Link href={post.url} className="block group">

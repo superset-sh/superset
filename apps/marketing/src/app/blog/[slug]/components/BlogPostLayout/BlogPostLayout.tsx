@@ -5,13 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuthorAvatar } from "@/app/blog/components/AuthorAvatar";
 import { GridCross } from "@/app/blog/components/GridCross";
-import type { BlogPost } from "@/lib/blog";
-
-interface TocItem {
-	id: string;
-	text: string;
-	level: number;
-}
+import { formatBlogDate, type BlogPost, type TocItem } from "@/lib/blog-utils";
 
 interface BlogPostLayoutProps {
 	post: BlogPost;
@@ -20,11 +14,7 @@ interface BlogPostLayoutProps {
 }
 
 export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
-	const formattedDate = new Date(post.date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
+	const formattedDate = formatBlogDate(post.date);
 
 	return (
 		<article className="relative min-h-screen">

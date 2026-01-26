@@ -1,12 +1,6 @@
 import type { BundledLanguage } from "shiki";
+import { slugify } from "@/lib/blog-utils";
 import { BlogCodeBlock } from "./BlogCodeBlock";
-
-function slugify(text: string): string {
-	return text
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/(^-|-$)/g, "");
-}
 
 function extractCodeFromChildren(children: React.ReactNode): {
 	code: string;

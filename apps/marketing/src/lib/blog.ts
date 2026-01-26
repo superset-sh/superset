@@ -1,23 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import type { BlogCategory } from "./blog-constants";
+import { slugify, type TocItem, type BlogPost } from "./blog-utils";
 
 export { BLOG_CATEGORIES, type BlogCategory } from "./blog-constants";
+export { formatBlogDate, slugify, type TocItem, type BlogPost } from "./blog-utils";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
-
-export interface BlogPost {
-	slug: string;
-	url: string;
-	title: string;
-	description?: string;
-	author: string;
-	date: string;
-	category: BlogCategory;
-	image?: string;
-	content: string;
-}
 
 function parseFrontmatter(filePath: string): BlogPost | null {
 	try {
@@ -90,12 +79,6 @@ export function getAllSlugs(): string[] {
 		.map((f) => f.replace(".mdx", ""));
 }
 
-export interface TocItem {
-	id: string;
-	text: string;
-	level: number;
-}
-
 export function extractToc(content: string): TocItem[] {
 	const headingRegex = /^(#{2,3})\s+(.+)$/gm;
 	const toc: TocItem[] = [];
@@ -107,10 +90,7 @@ export function extractToc(content: string): TocItem[] {
 
 		const level = hashes.length;
 		const text = heading.trim();
-		const id = text
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/(^-|-$)/g, "");
+		const id = slugify(text);
 
 		toc.push({ id, text, level });
 	}
