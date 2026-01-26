@@ -25,10 +25,7 @@ export function ChatMessage({
 
 	return (
 		<div
-			className={cn(
-				"flex w-full",
-				isUser ? "justify-end" : "justify-start",
-			)}
+			className={cn("flex w-full", isUser ? "justify-end" : "justify-start")}
 		>
 			<div
 				className={cn(

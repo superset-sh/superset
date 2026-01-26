@@ -85,9 +85,8 @@ export function useMultiplayerChat(
 
 	// Combine completed messages with streaming content
 	const allMessages = useMemo(() => {
-		const result: Array<ChatMessage | { type: "streaming"; content: string }> = [
-			...messages,
-		];
+		const result: Array<ChatMessage | { type: "streaming"; content: string }> =
+			[...messages];
 
 		// Add streaming message if we have content
 		if (isStreaming && streamingContent) {

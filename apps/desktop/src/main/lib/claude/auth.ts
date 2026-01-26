@@ -22,6 +22,12 @@ interface ClaudeConfigFile {
 	api_key?: string;
 	oauthAccessToken?: string;
 	oauth_access_token?: string;
+	// Claude Code CLI format
+	claudeAiOauth?: {
+		accessToken?: string;
+		refreshToken?: string;
+		expiresAt?: number;
+	};
 }
 
 /**
@@ -40,7 +46,9 @@ function getCredentialsFromEnv(): ClaudeCredentials | null {
  */
 function getCredentialsFromConfig(): ClaudeCredentials | null {
 	const home = homedir();
+	// Check Claude Code CLI credentials first (most common case)
 	const configPaths = [
+		join(home, ".claude", ".credentials.json"), // Claude Code CLI
 		join(home, ".claude.json"),
 		join(home, ".config", "claude", "credentials.json"),
 		join(home, ".config", "claude", "config.json"),
@@ -51,6 +59,16 @@ function getCredentialsFromConfig(): ClaudeCredentials | null {
 			try {
 				const content = readFileSync(configPath, "utf-8");
 				const config: ClaudeConfigFile = JSON.parse(content);
+
+				// Check for Claude Code CLI OAuth format first
+				if (config.claudeAiOauth?.accessToken) {
+					console.log(
+						`[claude/auth] Found OAuth credentials in: ${configPath}`,
+					);
+					return { apiKey: config.claudeAiOauth.accessToken, source: "config" };
+				}
+
+				// Fall back to other formats
 				const apiKey =
 					config.apiKey ||
 					config.api_key ||
@@ -62,7 +80,10 @@ function getCredentialsFromConfig(): ClaudeCredentials | null {
 					return { apiKey, source: "config" };
 				}
 			} catch (error) {
-				console.warn(`[claude/auth] Failed to parse config at ${configPath}:`, error);
+				console.warn(
+					`[claude/auth] Failed to parse config at ${configPath}:`,
+					error,
+				);
 			}
 		}
 	}
@@ -101,7 +122,9 @@ function getCredentialsFromKeychain(): ClaudeCredentials | null {
 		).trim();
 
 		if (result) {
-			console.log("[claude/auth] Found credentials in macOS Keychain (anthropic-api-key)");
+			console.log(
+				"[claude/auth] Found credentials in macOS Keychain (anthropic-api-key)",
+			);
 			return { apiKey: result, source: "keychain" };
 		}
 	} catch {
@@ -145,16 +168,33 @@ export function getExistingClaudeCredentials(): ClaudeCredentials | null {
 
 /**
  * Build environment variables for running Claude CLI.
- * Includes the API key if available.
+ *
+ * IMPORTANT: We do NOT set ANTHROPIC_API_KEY when using OAuth credentials.
+ * The Claude binary handles its own OAuth authentication from ~/.claude/.credentials.json.
+ * Setting ANTHROPIC_API_KEY to an OAuth token causes authentication failure.
+ *
+ * We only set ANTHROPIC_API_KEY if:
+ * 1. It's already in the environment (user explicitly set it)
+ * 2. We found a raw API key (not OAuth) in config
  */
 export function buildClaudeEnv(): Record<string, string> {
 	const env: Record<string, string> = {
 		...process.env,
 	} as Record<string, string>;
 
-	const credentials = getExistingClaudeCredentials();
-	if (credentials) {
-		env.ANTHROPIC_API_KEY = credentials.apiKey;
+	// Check if user has OAuth credentials - if so, let the binary handle auth
+	const hasOAuth = hasClaudeOAuthCredentials();
+	if (hasOAuth) {
+		console.log("[claude/auth] OAuth credentials found - letting binary handle authentication");
+		// Don't set ANTHROPIC_API_KEY, let the binary use its own OAuth flow
+	} else {
+		// Only set ANTHROPIC_API_KEY if we have a raw API key (not OAuth)
+		const credentials = getExistingClaudeCredentials();
+		if (credentials && credentials.source !== "config") {
+			// Only use env or keychain credentials (not OAuth from config)
+			env.ANTHROPIC_API_KEY = credentials.apiKey;
+			console.log(`[claude/auth] Using API key from ${credentials.source}`);
+		}
 	}
 
 	// Ensure PATH includes common binary locations
@@ -170,7 +210,29 @@ export function buildClaudeEnv(): Record<string, string> {
 
 	env.PATH = pathParts.join(":");
 
+	// Mark as SDK entry (like 1code does)
+	env.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
+
 	return env;
+}
+
+/**
+ * Check if Claude OAuth credentials are available.
+ */
+function hasClaudeOAuthCredentials(): boolean {
+	const home = homedir();
+	const credentialsPath = join(home, ".claude", ".credentials.json");
+
+	if (existsSync(credentialsPath)) {
+		try {
+			const content = readFileSync(credentialsPath, "utf-8");
+			const config: ClaudeConfigFile = JSON.parse(content);
+			return !!config.claudeAiOauth?.accessToken;
+		} catch {
+			return false;
+		}
+	}
+	return false;
 }
 
 /**

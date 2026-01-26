@@ -43,7 +43,7 @@ export function ChatMessageList({ messages, className }: ChatMessageListProps) {
 	// Auto-scroll to bottom when messages change
 	useEffect(() => {
 		bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-	}, [messages]);
+	}, []);
 
 	if (messages.length === 0) {
 		return (
@@ -55,24 +55,20 @@ export function ChatMessageList({ messages, className }: ChatMessageListProps) {
 			>
 				<div className="text-center">
 					<p className="text-sm">No messages yet</p>
-					<p className="text-xs mt-1">Send a message to start the conversation</p>
+					<p className="text-xs mt-1">
+						Send a message to start the conversation
+					</p>
 				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div
-			ref={containerRef}
-			className={cn("flex-1 overflow-y-auto", className)}
-		>
+		<div ref={containerRef} className={cn("flex-1 overflow-y-auto", className)}>
 			{messages.map((message) => {
 				if (isStreamingMessage(message)) {
 					return (
-						<div
-							key="streaming"
-							className="flex gap-3 p-4 bg-background"
-						>
+						<div key="streaming" className="flex gap-3 p-4 bg-background">
 							<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
 								<Bot className="h-4 w-4" />
 							</div>

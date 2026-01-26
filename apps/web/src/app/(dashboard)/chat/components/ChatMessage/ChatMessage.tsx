@@ -50,7 +50,11 @@ export function ChatMessage({
 					<Avatar className="h-8 w-8">
 						{creatorImage && <AvatarImage src={creatorImage} />}
 						<AvatarFallback className="text-xs">
-							{creatorName ? getInitials(creatorName) : <User className="h-4 w-4" />}
+							{creatorName ? (
+								getInitials(creatorName)
+							) : (
+								<User className="h-4 w-4" />
+							)}
 						</AvatarFallback>
 					</Avatar>
 				) : (

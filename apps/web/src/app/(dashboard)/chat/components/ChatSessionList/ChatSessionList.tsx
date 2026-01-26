@@ -74,9 +74,7 @@ export function ChatSessionList({
 						>
 							<MessageSquare className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
 							<div className="flex-1 min-w-0">
-								<p className="text-sm font-medium truncate">
-									{session.title}
-								</p>
+								<p className="text-sm font-medium truncate">{session.title}</p>
 								<p className="text-xs text-muted-foreground mt-0.5">
 									{session.creatorName && `${session.creatorName} · `}
 									{formatRelativeTime(session.updatedAt)}

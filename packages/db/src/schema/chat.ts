@@ -22,7 +22,10 @@ export const chatParticipantRole = pgEnum(
 
 export const chatMessageRoleValues = ["user", "assistant"] as const;
 export type ChatMessageRole = (typeof chatMessageRoleValues)[number];
-export const chatMessageRole = pgEnum("chat_message_role", chatMessageRoleValues);
+export const chatMessageRole = pgEnum(
+	"chat_message_role",
+	chatMessageRoleValues,
+);
 
 // Chat sessions - org-scoped
 export const chatSessions = pgTable(

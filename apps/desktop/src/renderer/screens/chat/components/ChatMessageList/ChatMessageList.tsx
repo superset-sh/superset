@@ -38,7 +38,7 @@ export function ChatMessageList({
 		if (autoScroll && bottomRef.current) {
 			bottomRef.current.scrollIntoView({ behavior: "smooth" });
 		}
-	}, [messages, autoScroll]);
+	}, [autoScroll]);
 
 	return (
 		<ScrollArea className={cn("flex-1", className)}>
@@ -46,12 +46,7 @@ export function ChatMessageList({
 				{messages.map((msg, index) => {
 					if ("type" in msg && msg.type === "streaming") {
 						return (
-							<ChatMessage
-								key="streaming"
-								role="assistant"
-								content={msg.content}
-								isStreaming
-							/>
+							<ChatMessage key="streaming" content={msg.content} isStreaming />
 						);
 					}
 

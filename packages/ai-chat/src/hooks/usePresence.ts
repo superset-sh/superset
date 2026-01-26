@@ -49,22 +49,65 @@ export function usePresence(
 	});
 	const [isConnected, setIsConnected] = useState(false);
 
+	// Use refs to avoid recreating callbacks when options change
+	const optionsRef = useRef({
+		baseUrl,
+		user,
+		enabled,
+		heartbeatInterval,
+		pollInterval,
+	});
+	optionsRef.current = { baseUrl, user, enabled, heartbeatInterval, pollInterval };
+
 	const isTypingRef = useRef(false);
-	const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+	const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+		null,
+	);
 	const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-	// Update presence on the server
-	const updatePresence = useCallback(
-		async (isTyping: boolean) => {
+	// Set typing status
+	const setTyping = useCallback(
+		(isTyping: boolean) => {
+			if (isTypingRef.current === isTyping) return;
+			isTypingRef.current = isTyping;
+
+			const { baseUrl, user, enabled } = optionsRef.current;
 			if (!sessionId || !user || !enabled) return;
 
+			fetch(`${baseUrl}/streams/${sessionId}/presence`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					userId: user.userId,
+					name: user.name,
+					isTyping,
+				}),
+			}).catch((error) => {
+				console.error(`[usePresence] Failed to update presence:`, error);
+			});
+		},
+		[sessionId],
+	);
+
+	// Setup heartbeat and polling
+	useEffect(() => {
+		const { user, enabled, heartbeatInterval, pollInterval } =
+			optionsRef.current;
+
+		if (!sessionId || !user || !enabled) return;
+
+		// Update presence on the server
+		const updatePresence = async (isTyping: boolean) => {
+			const currentOptions = optionsRef.current;
+			if (!currentOptions.user || !currentOptions.enabled) return;
+
 			try {
-				await fetch(`${baseUrl}/streams/${sessionId}/presence`, {
+				await fetch(`${currentOptions.baseUrl}/streams/${sessionId}/presence`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
-						userId: user.userId,
-						name: user.name,
+						userId: currentOptions.user.userId,
+						name: currentOptions.user.name,
 						isTyping,
 					}),
 				});
@@ -73,41 +116,27 @@ export function usePresence(
 				console.error(`[usePresence] Failed to update presence:`, error);
 				setIsConnected(false);
 			}
-		},
-		[sessionId, baseUrl, user, enabled],
-	);
+		};
 
-	// Fetch presence state from the server
-	const fetchPresence = useCallback(async () => {
-		if (!sessionId || !enabled) return;
+		// Fetch presence state from the server
+		const fetchPresence = async () => {
+			const currentOptions = optionsRef.current;
+			if (!currentOptions.enabled) return;
 
-		try {
-			const response = await fetch(`${baseUrl}/streams/${sessionId}/presence`);
-			if (response.ok) {
-				const data = (await response.json()) as PresenceState;
-				setPresence(data);
-				setIsConnected(true);
+			try {
+				const response = await fetch(
+					`${currentOptions.baseUrl}/streams/${sessionId}/presence`,
+				);
+				if (response.ok) {
+					const data = (await response.json()) as PresenceState;
+					setPresence(data);
+					setIsConnected(true);
+				}
+			} catch (error) {
+				console.error(`[usePresence] Failed to fetch presence:`, error);
+				setIsConnected(false);
 			}
-		} catch (error) {
-			console.error(`[usePresence] Failed to fetch presence:`, error);
-			setIsConnected(false);
-		}
-	}, [sessionId, baseUrl, enabled]);
-
-	// Set typing status
-	const setTyping = useCallback(
-		(isTyping: boolean) => {
-			if (isTypingRef.current !== isTyping) {
-				isTypingRef.current = isTyping;
-				updatePresence(isTyping);
-			}
-		},
-		[updatePresence],
-	);
-
-	// Setup heartbeat and polling
-	useEffect(() => {
-		if (!sessionId || !user || !enabled) return;
+		};
 
 		// Initial presence update
 		updatePresence(false);
@@ -125,10 +154,14 @@ export function usePresence(
 
 		return () => {
 			// Leave session
-			if (user) {
-				fetch(`${baseUrl}/streams/${sessionId}/presence/${user.userId}`, {
-					method: "DELETE",
-				}).catch(() => {
+			const currentOptions = optionsRef.current;
+			if (currentOptions.user) {
+				fetch(
+					`${currentOptions.baseUrl}/streams/${sessionId}/presence/${currentOptions.user.userId}`,
+					{
+						method: "DELETE",
+					},
+				).catch(() => {
 					// Ignore errors on cleanup
 				});
 			}
@@ -141,17 +174,9 @@ export function usePresence(
 				clearInterval(pollIntervalRef.current);
 				pollIntervalRef.current = null;
 			}
+			setIsConnected(false);
 		};
-	}, [
-		sessionId,
-		user,
-		enabled,
-		baseUrl,
-		heartbeatInterval,
-		pollInterval,
-		updatePresence,
-		fetchPresence,
-	]);
+	}, [sessionId]); // Only reconnect when sessionId changes
 
 	return {
 		viewers: presence.viewers,

@@ -6,18 +6,17 @@
 
 "use client";
 
-import { useDurableStream } from "@superset/ai-chat";
+import { type PresenceUser, useDurableStream } from "@superset/ai-chat";
+import { ChatInput, PresenceBar } from "@superset/ai-chat/components";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { env } from "@/env";
 import { useTRPC } from "@/trpc/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { ChatInput } from "../../../components/ChatInput";
 import {
+	type ChatMessageItem,
 	ChatMessageList,
 	type Message,
-	type ChatMessageItem,
 } from "../../../components/ChatMessageList";
-import { PresenceBar, type PresenceUser } from "../../../components/PresenceBar";
 
 interface ChatRoomProps {
 	sessionId: string;
@@ -105,9 +104,7 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
 					onTypingChange={handleTypingChange}
 					disabled={sendMessageMutation.isPending}
 					placeholder={
-						sendMessageMutation.isPending
-							? "Sending..."
-							: "Type a message..."
+						sendMessageMutation.isPending ? "Sending..." : "Type a message..."
 					}
 				/>
 			</div>

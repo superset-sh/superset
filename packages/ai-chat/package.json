@@ -6,12 +6,15 @@
 	"main": "./src/index.ts",
 	"exports": {
 		".": "./src/index.ts",
-		"./hooks": "./src/hooks/index.ts"
+		"./hooks": "./src/hooks/index.ts",
+		"./components": "./src/components/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@superset/ui": "workspace:*",
+		"lucide-react": "^0.560.0",
 		"react": "19.1.0"
 	},
 	"devDependencies": {

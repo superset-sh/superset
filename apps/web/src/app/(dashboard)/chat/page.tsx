@@ -1,9 +1,9 @@
 "use client";
 
-import { useTRPC } from "@/trpc/react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import { useTRPC } from "@/trpc/react";
 import { ChatSessionList } from "./components/ChatSessionList";
 
 export default function ChatPage() {

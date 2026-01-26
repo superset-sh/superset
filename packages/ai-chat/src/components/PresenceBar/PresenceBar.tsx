@@ -2,13 +2,9 @@
  * Presence bar showing viewers and typing indicators
  */
 
-import { Avatar, AvatarFallback } from "@superset/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { cn } from "@superset/ui/utils";
-
-export interface PresenceUser {
-	userId: string;
-	name: string;
-}
+import type { PresenceUser } from "../../types";
 
 export interface PresenceBarProps {
 	viewers: PresenceUser[];
@@ -50,6 +46,7 @@ export function PresenceBar({
 								key={user.userId}
 								className="h-6 w-6 border-2 border-background"
 							>
+								{user.image && <AvatarImage src={user.image} />}
 								<AvatarFallback className="text-xs">
 									{getInitials(user.name)}
 								</AvatarFallback>

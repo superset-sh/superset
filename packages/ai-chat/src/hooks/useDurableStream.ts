@@ -40,7 +40,13 @@ export function useDurableStream(
 	sessionId: string | null,
 	options: UseDurableStreamOptions,
 ): UseDurableStreamResult {
-	const { baseUrl, enabled = true, onEvent, onError, onConnectionChange } = options;
+	const {
+		baseUrl,
+		enabled = true,
+		onEvent,
+		onError,
+		onConnectionChange,
+	} = options;
 
 	const [events, setEvents] = useState<StreamEntry[]>([]);
 	const [streamingContent, setStreamingContent] = useState("");
@@ -51,7 +57,9 @@ export function useDurableStream(
 	// Track last offset for resume
 	const lastOffsetRef = useRef(0);
 	const eventSourceRef = useRef<EventSource | null>(null);
-	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 
 	const clear = useCallback(() => {
 		setEvents([]);

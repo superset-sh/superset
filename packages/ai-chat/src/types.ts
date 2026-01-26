@@ -70,11 +70,19 @@ export interface StreamEntry {
 export interface PresenceUser {
 	userId: string;
 	name: string;
+	image?: string;
 }
 
 export interface PresenceState {
 	viewers: PresenceUser[];
 	typingUsers: PresenceUser[];
+}
+
+export interface Draft {
+	userId: string;
+	userName: string;
+	content: string;
+	updatedAt: number;
 }
 
 export interface ChatMessage {

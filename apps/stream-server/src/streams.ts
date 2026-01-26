@@ -44,7 +44,10 @@ export function getStream(sessionId: string): StreamState | undefined {
 /**
  * Append an event to a stream
  */
-export function appendEvent(sessionId: string, event: StreamEvent): StreamEntry | null {
+export function appendEvent(
+	sessionId: string,
+	event: StreamEvent,
+): StreamEntry | null {
 	const stream = streams.get(sessionId);
 	if (!stream) {
 		return null;
@@ -132,17 +135,26 @@ export function deleteStream(sessionId: string): boolean {
 export function getStreamStats(): {
 	totalStreams: number;
 	totalSubscribers: number;
-	streams: Array<{ sessionId: string; eventCount: number; subscriberCount: number }>;
+	streams: Array<{
+		sessionId: string;
+		eventCount: number;
+		subscriberCount: number;
+	}>;
 } {
-	const streamList = Array.from(streams.entries()).map(([sessionId, stream]) => ({
-		sessionId,
-		eventCount: stream.events.length,
-		subscriberCount: subscribers.get(sessionId)?.size || 0,
-	}));
+	const streamList = Array.from(streams.entries()).map(
+		([sessionId, stream]) => ({
+			sessionId,
+			eventCount: stream.events.length,
+			subscriberCount: subscribers.get(sessionId)?.size || 0,
+		}),
+	);
 
 	return {
 		totalStreams: streams.size,
-		totalSubscribers: Array.from(subscribers.values()).reduce((sum, s) => sum + s.size, 0),
+		totalSubscribers: Array.from(subscribers.values()).reduce(
+			(sum, s) => sum + s.size,
+			0,
+		),
 		streams: streamList,
 	};
 }

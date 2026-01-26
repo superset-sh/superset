@@ -143,10 +143,7 @@ export function WorkspaceSidebarHeader({
 									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
 							)}
 						>
-							<LuMessageSquare
-								className="size-4"
-								strokeWidth={STROKE_WIDTH}
-							/>
+							<LuMessageSquare className="size-4" strokeWidth={STROKE_WIDTH} />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Chat</TooltipContent>
