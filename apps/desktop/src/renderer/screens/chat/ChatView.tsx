@@ -33,10 +33,10 @@ export function ChatView({ sessionId, className }: ChatViewProps) {
 	// Get messages from the durable stream (single source of truth)
 	const { users, messages, streamingMessage, draft, setDraft } = useChatSession(
 		{
-			baseUrl: STREAM_SERVER_URL,
+			proxyUrl: STREAM_SERVER_URL,
 			sessionId,
 			user,
-			enabled: !!user,
+			autoConnect: !!user,
 		},
 	);
 

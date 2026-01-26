@@ -31,10 +31,10 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
 		: null;
 
 	const { users, draft, setDraft } = useChatSession({
-		baseUrl: streamUrl,
+		proxyUrl: streamUrl,
 		sessionId,
 		user,
-		enabled: !!user && !!streamUrl,
+		autoConnect: !!user && !!streamUrl,
 	});
 
 	const messagesQuery = useQuery(

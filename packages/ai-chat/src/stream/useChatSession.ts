@@ -1,28 +1,36 @@
 /**
- * Chat Session Hook
+ * useChatSession - React hook for durable chat.
  *
- * Real-time state for a chat room:
- * - users: who's in the room
- * - messages: materialized from stream chunks
- * - draft: shared draft (like a live doc)
+ * Copied 1:1 from @electric-sql/react-durable-session/use-durable-chat.ts
+ * Adapted for our schema: chunks, presence, drafts (no agents, tool calls, etc.)
  */
-
-import { createStreamDB, type StreamDB } from "@durable-streams/state";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createSessionActions, type SessionUser } from "./actions";
+import {
+	type ConnectionStatus,
+	DurableChatClient,
+	type DurableChatClientOptions,
+	type SessionCollections,
+} from "./client";
 import {
 	type ChunkRow,
 	type MessageRow,
 	materializeMessage,
 } from "./materialize";
-import { type SessionStateSchema, sessionStateSchema } from "./schema";
+import type { StreamChunk, StreamDraft, StreamPresence } from "./schema";
+import { useCollectionData } from "./useCollectionData";
 
-export interface UseChatSessionOptions {
-	baseUrl: string;
-	sessionId: string;
-	user: SessionUser | null;
-	enabled?: boolean;
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface UseChatSessionOptions
+	extends Omit<DurableChatClientOptions, "onError"> {
+	/** Auto-connect when hook mounts. Defaults to true. */
+	autoConnect?: boolean;
+	/** Provide an existing client instead of creating one */
+	client?: DurableChatClient;
+	/** Error handler */
+	onError?: (error: Error) => void;
 }
 
 export interface ChatUser {
@@ -30,90 +38,142 @@ export interface ChatUser {
 	name: string;
 }
 
-export interface UseChatSessionResult {
-	users: ChatUser[];
+export interface UseChatSessionReturn {
+	// Data
 	messages: MessageRow[];
 	streamingMessage: MessageRow | null;
+	users: ChatUser[];
 	draft: string;
-	setDraft: (content: string) => void;
+	drafts: StreamDraft[];
+
+	// Actions
+	sendMessage: (content: string) => Promise<void>;
+	setDraft: (content: string) => void; // Sync for onChange compatibility
+
+	// State
 	isLoading: boolean;
+	error: Error | undefined;
+	connectionStatus: ConnectionStatus;
+
+	// Extensions
+	client: DurableChatClient;
+	collections: SessionCollections;
+	connect: () => Promise<void>;
+	disconnect: () => void;
 }
 
-export function useChatSession({
-	baseUrl,
-	sessionId,
-	user,
-	enabled = true,
-}: UseChatSessionOptions): UseChatSessionResult {
-	const [isConnected, setIsConnected] = useState(false);
-	const dbRef = useRef<StreamDB<SessionStateSchema> | null>(null);
+// ============================================================================
+// Hook Implementation
+// ============================================================================
 
-	// Create DB
-	const db = useMemo(() => {
-		if (!enabled || !sessionId) return null;
-		const streamDb = createStreamDB({
-			streamOptions: { url: `${baseUrl}/streams/${sessionId}` },
-			state: sessionStateSchema,
-		});
-		dbRef.current = streamDb;
-		return streamDb;
-	}, [baseUrl, sessionId, enabled]);
+/**
+ * React hook for durable chat with TanStack AI-compatible API.
+ *
+ * Provides reactive data binding with automatic updates when underlying
+ * collection data changes. Supports SSR through proper `useSyncExternalStore`
+ * integration.
+ *
+ * The client and collections are always available synchronously.
+ * Connection state is managed separately via `connectionStatus`.
+ *
+ * @example Basic usage
+ * ```typescript
+ * function Chat() {
+ *   const { messages, sendMessage, isLoading, collections } = useChatSession({
+ *     sessionId: 'my-session',
+ *     proxyUrl: 'http://localhost:8080',
+ *   })
+ *
+ *   return (
+ *     <div>
+ *       {messages.map(m => <Message key={m.id} message={m} />)}
+ *       <Input onSubmit={sendMessage} disabled={isLoading} />
+ *     </div>
+ *   )
+ * }
+ * ```
+ */
+export function useChatSession(
+	options: UseChatSessionOptions,
+): UseChatSessionReturn {
+	const {
+		autoConnect = true,
+		client: providedClient,
+		onError: userOnError,
+		...clientOptions
+	} = options;
 
-	// Connect and join
-	useEffect(() => {
-		if (!db || !user) {
-			setIsConnected(false);
-			return;
+	// Error handler ref - allows client's onError to call setError
+	const [error, setError] = useState<Error | undefined>();
+	const onErrorRef = useRef<(err: Error) => void>(() => {});
+	onErrorRef.current = (err) => {
+		setError(err);
+		userOnError?.(err);
+	};
+
+	// Create client synchronously - always available immediately
+	const clientRef = useRef<{
+		client: DurableChatClient;
+		key: string;
+	} | null>(null);
+	const key = `${clientOptions.sessionId}:${clientOptions.proxyUrl}`;
+
+	// Create or recreate client when key changes or client was disposed
+	// The isDisposed check handles React Strict Mode: cleanup disposes the client,
+	// so the next render must create a fresh one with a new AbortController.
+	if (providedClient) {
+		if (!clientRef.current || clientRef.current.client !== providedClient) {
+			clientRef.current = { client: providedClient, key: "provided" };
 		}
-
-		let cancelled = false;
-		const actions = createSessionActions({ baseUrl, sessionId, user });
-
-		db.preload().then(() => {
-			if (cancelled) return;
-			setIsConnected(true);
-			actions.join();
-		});
-
-		return () => {
-			cancelled = true;
-			actions.leave().catch(() => {});
-			db.close();
+	} else if (
+		!clientRef.current ||
+		clientRef.current.key !== key ||
+		clientRef.current.client.isDisposed
+	) {
+		// Dispose old client if exists (may already be disposed, which is fine)
+		clientRef.current?.client.dispose();
+		clientRef.current = {
+			client: new DurableChatClient({
+				...clientOptions,
+				onError: (err) => onErrorRef.current(err),
+			}),
+			key,
 		};
-	}, [db, user, baseUrl, sessionId]);
+	}
 
-	// Query presence
-	const collections = isConnected ? db?.collections : null;
-	const { data: presenceData } = useLiveQuery(
-		(q) => (collections?.presence ? q.from({ p: collections.presence }) : null),
-		[collections],
-	);
+	const client = clientRef.current.client;
 
-	// Query drafts
-	const { data: draftsData } = useLiveQuery(
-		(q) => (collections?.drafts ? q.from({ d: collections.drafts }) : null),
-		[collections],
-	);
+	// =========================================================================
+	// Collection Subscriptions (1:1 from Electric SQL)
+	// =========================================================================
 
-	// Query all chunks for message materialization
-	const { data: chunksData } = useLiveQuery(
-		(q) => (collections?.chunks ? q.from({ c: collections.chunks }) : null),
-		[collections],
-	);
+	const chunkRows = useCollectionData(client.collections.chunks);
+	const presenceRows = useCollectionData(client.collections.presence);
+	const draftRows = useCollectionData(client.collections.drafts);
 
-	const users = useMemo((): ChatUser[] => {
-		if (!presenceData) return [];
-		return presenceData.map((p) => ({ userId: p.userId, name: p.userName }));
-	}, [presenceData]);
+	// =========================================================================
+	// Derived State
+	// =========================================================================
 
 	// Materialize messages from chunks
 	const { messages, streamingMessage } = useMemo(() => {
-		if (!chunksData?.length) return { messages: [], streamingMessage: null };
+		if (chunkRows.length === 0) {
+			return { messages: [], streamingMessage: null };
+		}
 
 		// Group chunks by messageId
 		const byMessage = new Map<string, ChunkRow[]>();
-		for (const chunk of chunksData) {
-			const chunkRow: ChunkRow = { ...chunk, id: chunk.messageId };
+		for (const rawChunk of chunkRows) {
+			const chunk = rawChunk as StreamChunk & { id: string };
+			const chunkRow: ChunkRow = {
+				messageId: chunk.messageId,
+				actorId: chunk.actorId,
+				role: chunk.role,
+				chunk: chunk.chunk,
+				seq: chunk.seq,
+				createdAt: chunk.createdAt,
+				id: chunk.id,
+			};
 			const existing = byMessage.get(chunk.messageId) ?? [];
 			existing.push(chunkRow);
 			byMessage.set(chunk.messageId, existing);
@@ -129,46 +189,118 @@ export function useChatSession({
 		const streaming = all.find((m) => !m.isComplete) ?? null;
 
 		return { messages: complete, streamingMessage: streaming };
-	}, [chunksData]);
+	}, [chunkRows]);
 
-	// Local draft state - synced from stream on load
-	const [localDraft, setLocalDraft] = useState("");
-	const [hasHydrated, setHasHydrated] = useState(false);
-
-	// Hydrate draft from stream on initial load
-	useEffect(() => {
-		if (hasHydrated || !draftsData || !user) return;
-
-		// Find current user's draft
-		const myDraft = draftsData.find((d) => d.userId === user.userId);
-		if (myDraft?.content) {
-			setLocalDraft(myDraft.content);
-		}
-		setHasHydrated(true);
-	}, [draftsData, user, hasHydrated]);
-
-	// Reset hydration flag when session changes
-	useEffect(() => {
-		setHasHydrated(false);
-		setLocalDraft("");
-	}, [sessionId]);
-
-	const setDraft = useCallback(
-		(content: string) => {
-			setLocalDraft(content);
-			if (!user) return;
-			const actions = createSessionActions({ baseUrl, sessionId, user });
-			actions.updateDraft(content).catch(() => {});
-		},
-		[baseUrl, sessionId, user],
+	// Transform presence to ChatUser[]
+	const users = useMemo(
+		(): ChatUser[] =>
+			presenceRows.map((p: StreamPresence) => ({
+				userId: p.userId,
+				name: p.userName,
+			})),
+		[presenceRows],
 	);
 
+	// All drafts
+	const drafts = useMemo((): StreamDraft[] => draftRows, [draftRows]);
+
+	// Current user's draft
+	const draft = useMemo((): string => {
+		const user = clientOptions.user;
+		if (!user) return "";
+		const myDraft = draftRows.find(
+			(d: StreamDraft) => d.userId === user.userId,
+		);
+		return myDraft?.content ?? "";
+	}, [draftRows, clientOptions.user]);
+
+	// Connection status (we don't have sessionMeta collection, use client directly)
+	const connectionStatus = client.connectionStatus;
+	const isLoading = connectionStatus !== "connected";
+
+	// =========================================================================
+	// Connection Lifecycle (1:1 from Electric SQL)
+	// =========================================================================
+
+	useEffect(() => {
+		if (autoConnect && client.connectionStatus === "disconnected") {
+			client.connect().catch((err) => {
+				setError(err instanceof Error ? err : new Error(String(err)));
+			});
+		}
+
+		// Cleanup: unsubscribe and dispose (disposal is idempotent)
+		return () => {
+			if (!providedClient) {
+				client.dispose();
+			}
+		};
+	}, [client, autoConnect, providedClient]);
+
+	// =========================================================================
+	// Action Callbacks (1:1 from Electric SQL)
+	// =========================================================================
+
+	const sendMessage = useCallback(
+		async (content: string) => {
+			try {
+				await client.sendMessage(content);
+			} catch (err) {
+				setError(err instanceof Error ? err : new Error(String(err)));
+				throw err;
+			}
+		},
+		[client],
+	);
+
+	// setDraft is sync (fire-and-forget) for onChange compatibility
+	const setDraft = useCallback(
+		(content: string) => {
+			client.updateDraft(content).catch((err) => {
+				setError(err instanceof Error ? err : new Error(String(err)));
+			});
+		},
+		[client],
+	);
+
+	const connect = useCallback(async () => {
+		try {
+			await client.connect();
+		} catch (err) {
+			setError(err instanceof Error ? err : new Error(String(err)));
+			throw err;
+		}
+	}, [client]);
+
+	const disconnect = useCallback(() => {
+		client.disconnect();
+	}, [client]);
+
+	// =========================================================================
+	// Return (1:1 structure from Electric SQL)
+	// =========================================================================
+
 	return {
-		users,
+		// Data
 		messages,
 		streamingMessage,
-		draft: localDraft,
+		users,
+		draft,
+		drafts,
+
+		// Actions
+		sendMessage,
 		setDraft,
-		isLoading: !isConnected,
+
+		// State
+		isLoading,
+		error,
+		connectionStatus,
+
+		// Extensions
+		client,
+		collections: client.collections,
+		connect,
+		disconnect,
 	};
 }
