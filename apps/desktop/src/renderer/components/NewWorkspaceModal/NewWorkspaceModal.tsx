@@ -127,10 +127,10 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	const displayBranchName = useMemo(() => {
-		if (branchNameEdited) return branchName;
-		return generateBranchFromTitle({ title, authorPrefix });
-	}, [branchNameEdited, branchName, title, authorPrefix]);
+	const generatedBranchName = generateBranchFromTitle({ title, authorPrefix });
+	const branchNameToCreate = branchNameEdited
+		? branchName.trim()
+		: generatedBranchName;
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
@@ -285,10 +285,12 @@ export function NewWorkspaceModal() {
 										onChange={(e) => setTitle(e.target.value)}
 									/>
 
-									{title && !showAdvanced && (
+									{(title || branchNameEdited) && (
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
-											<span className="font-mono">{displayBranchName}</span>
+											<span className="font-mono">
+												{branchNameToCreate || "branch-name"}
+											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
 											</span>
@@ -317,7 +319,9 @@ export function NewWorkspaceModal() {
 													id="branch"
 													className="h-8 text-sm font-mono"
 													placeholder="auto-generated"
-													value={displayBranchName}
+													value={
+														branchNameEdited ? branchName : generatedBranchName
+													}
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
 													}
