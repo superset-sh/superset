@@ -6,11 +6,7 @@ import { promisify } from "node:util";
 import friendlyWords = require("friendly-words");
 
 import simpleGit, { type StatusResult } from "simple-git";
-import {
-	checkGitLfsAvailable,
-	execWithShellEnv,
-	getShellEnvironment,
-} from "./shell-env";
+import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -315,24 +311,15 @@ export async function getGitAuthorName(
 	}
 }
 
-export async function getGitHubUsername(): Promise<string | null> {
+export async function getGitHubUsername(
+	repoPath?: string,
+): Promise<string | null> {
 	try {
-		// Use execWithShellEnv to handle macOS GUI apps where Homebrew isn't in PATH
-		const { stdout } = await execWithShellEnv(
-			"gh",
-			["api", "user", "-q", ".login"],
-			{ timeout: 10_000 },
-		);
-		return stdout.trim() || null;
+		const git = repoPath ? simpleGit(repoPath) : simpleGit();
+		const username = await git.getConfig("github.user");
+		return username.value?.trim() || null;
 	} catch (error) {
-		if (isExecFileException(error) && error.code === "ENOENT") {
-			console.log("[git/getGitHubUsername] GitHub CLI not installed");
-		} else {
-			console.warn(
-				"[git/getGitHubUsername] Failed to get GitHub username:",
-				error,
-			);
-		}
+		console.warn("[git/getGitHubUsername] Failed to get github.user:", error);
 		return null;
 	}
 }
@@ -340,7 +327,7 @@ export async function getGitHubUsername(): Promise<string | null> {
 export async function getAuthorPrefix(
 	repoPath?: string,
 ): Promise<string | null> {
-	const githubUsername = await getGitHubUsername();
+	const githubUsername = await getGitHubUsername(repoPath);
 	if (githubUsername) {
 		return githubUsername;
 	}
