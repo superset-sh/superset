@@ -5,9 +5,22 @@ import Image from "next/image";
 import Marquee from "react-fast-marquee";
 
 const CLIENT_LOGOS = [
-	{ name: "cadra", logo: "/logos/cadra.png", height: 38, text: "Cadra" },
 	{ name: "ycombinator", logo: "/logos/yc.png", height: 44 },
+	{ name: "amazon", logo: "/logos/amazon.png", height: 32, marginTop: 20 },
+	{ name: "google", logo: "/logos/google.svg", height: 32, marginTop: 10 },
+	{ name: "servicenow", logo: "/logos/servicenow.svg", height: 24 },
+	{ name: "cloudflare", logo: "/logos/cloudflare.png", height: 36 },
+	{
+		name: "courier",
+		logo: "/logos/courier.png",
+		height: 36,
+		borderRadius: 8,
+		text: "Courier",
+	},
+	{ name: "scribe", logo: "/logos/scribe.svg", height: 34 },
+	{ name: "browseruse", logo: "/logos/browseruse.svg", height: 28 },
 	{ name: "mastra", logo: "/logos/mastra.svg", height: 28, text: "Mastra" },
+	{ name: "adamcad", logo: "/logos/adam.svg", height: 32, marginTop: -5 },
 	{ name: "onlook", logo: "/logos/onlook.svg", height: 38 },
 	{
 		name: "trainloop",
@@ -16,11 +29,6 @@ const CLIENT_LOGOS = [
 		borderRadius: 10,
 		text: "Trainloop",
 	},
-	{ name: "adamcad", logo: "/logos/adam.svg", height: 32, marginTop: -5 },
-	{ name: "scribe", logo: "/logos/scribe.svg", height: 38 },
-	{ name: "amazon", logo: "/logos/amazon.png", height: 32, marginTop: 20 },
-	{ name: "google", logo: "/logos/google.svg", height: 32, marginTop: 10 },
-	{ name: "servicenow", logo: "/logos/servicenow.svg", height: 24 },
 ] as {
 	name: string;
 	logo: string;
