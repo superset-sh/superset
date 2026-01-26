@@ -87,6 +87,7 @@ export const EXTERNAL_APPS = [
 	"iterm",
 	"warp",
 	"terminal",
+	"ghostty",
 	// JetBrains IDEs
 	"intellij",
 	"webstorm",

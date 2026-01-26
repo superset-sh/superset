@@ -2,7 +2,6 @@ import type { SettingsSection } from "renderer/stores/settings-state";
 
 export const SETTING_ITEM_ID = {
 	ACCOUNT_PROFILE: "account-profile",
-	ACCOUNT_VERSION: "account-version",
 	ACCOUNT_SIGNOUT: "account-signout",
 
 	ORGANIZATION_LOGO: "organization-logo",
@@ -25,6 +24,7 @@ export const SETTING_ITEM_ID = {
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
+	TERMINAL_AUTO_APPLY_PRESET: "terminal-auto-apply-preset",
 	TERMINAL_PERSISTENCE: "terminal-persistence",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
@@ -76,22 +76,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"picture",
 			"photo",
 			"me",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.ACCOUNT_VERSION,
-		section: "account",
-		title: "Version",
-		description: "App version and updates",
-		keywords: [
-			"account",
-			"version",
-			"update",
-			"check for updates",
-			"app version",
-			"release",
-			"about",
-			"upgrade",
 		],
 	},
 	{
@@ -357,6 +341,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"opencode",
 			"ai",
 			"assistant",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
+		section: "terminal",
+		title: "Auto-apply Default Preset",
+		description: "Automatically apply default preset when creating workspaces",
+		keywords: [
+			"terminal",
+			"preset",
+			"default",
+			"auto",
+			"apply",
+			"workspace",
+			"create",
+			"new",
+			"startup",
+			"launch",
 		],
 	},
 	{

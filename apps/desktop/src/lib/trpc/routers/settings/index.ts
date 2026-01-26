@@ -9,6 +9,7 @@ import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { localDb } from "main/lib/local-db";
 import {
+	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PERSISTENCE,
@@ -158,6 +159,47 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		reorderTerminalPresets: publicProcedure
+			.input(
+				z.object({
+					presetId: z.string(),
+					targetIndex: z.number().int().min(0),
+				}),
+			)
+			.mutation(({ input }) => {
+				const row = getSettings();
+				const presets = row.terminalPresets ?? [];
+
+				const currentIndex = presets.findIndex((p) => p.id === input.presetId);
+				if (currentIndex === -1) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Preset not found",
+					});
+				}
+
+				if (input.targetIndex < 0 || input.targetIndex >= presets.length) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid target index for reordering presets",
+					});
+				}
+
+				const [removed] = presets.splice(currentIndex, 1);
+				presets.splice(input.targetIndex, 0, removed);
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPresets: presets })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPresets: presets },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getDefaultPreset: publicProcedure.query(() => {
 			const row = getSettings();
 			const presets = row.terminalPresets ?? [];
@@ -267,6 +309,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalPersistence: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getAutoApplyDefaultPreset: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
+		}),
+
+		setAutoApplyDefaultPreset: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, autoApplyDefaultPreset: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { autoApplyDefaultPreset: input.enabled },
 					})
 					.run();
 

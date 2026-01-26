@@ -28,19 +28,10 @@ interface ChangesViewProps {
 		category: ChangeCategory,
 		commitHash?: string,
 	) => void;
-	onFileOpenPinned?: (
-		file: ChangedFile,
-		category: ChangeCategory,
-		commitHash?: string,
-	) => void;
 	isExpandedView?: boolean;
 }
 
-export function ChangesView({
-	onFileOpen,
-	onFileOpenPinned,
-	isExpandedView,
-}: ChangesViewProps) {
+export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
@@ -262,36 +253,16 @@ export function ChangesView({
 		[status?.unstaged, status?.untracked],
 	);
 
-	// Single click - opens in preview mode
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, category, null);
 		onFileOpen?.(file, category);
 	};
 
-	// Double click - opens pinned (permanent)
-	const handleFileDoubleClick = (
-		file: ChangedFile,
-		category: ChangeCategory,
-	) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, category, null);
-		onFileOpenPinned?.(file, category);
-	};
-
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, "committed", commitHash);
 		onFileOpen?.(file, "committed", commitHash);
-	};
-
-	const handleCommitFileDoubleClick = (
-		file: ChangedFile,
-		commitHash: string,
-	) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, "committed", commitHash);
-		onFileOpenPinned?.(file, "committed", commitHash);
 	};
 
 	const handleCommitToggle = (hash: string) => {
@@ -402,9 +373,6 @@ export function ChangesView({
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "against-base")}
-							onFileDoubleClick={(file) =>
-								handleFileDoubleClick(file, "against-base")
-							}
 							worktreePath={worktreePath}
 							category="against-base"
 							isExpandedView={isExpandedView}
@@ -426,7 +394,6 @@ export function ChangesView({
 								selectedFile={selectedFile}
 								selectedCommitHash={selectedCommitHash}
 								onFileSelect={handleCommitFileSelect}
-								onFileDoubleClick={handleCommitFileDoubleClick}
 								viewMode={fileListViewMode}
 								worktreePath={worktreePath}
 								isExpandedView={isExpandedView}
@@ -484,9 +451,6 @@ export function ChangesView({
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "staged")}
-							onFileDoubleClick={(file) =>
-								handleFileDoubleClick(file, "staged")
-							}
 							onUnstage={(file) =>
 								unstageFileMutation.mutate({
 									worktreePath: worktreePath || "",
@@ -550,9 +514,6 @@ export function ChangesView({
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "unstaged")}
-							onFileDoubleClick={(file) =>
-								handleFileDoubleClick(file, "unstaged")
-							}
 							onStage={(file) =>
 								stageFileMutation.mutate({
 									worktreePath: worktreePath || "",

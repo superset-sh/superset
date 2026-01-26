@@ -18,6 +18,12 @@ import {
 	notificationsEmitter,
 } from "../lib/notifications/server";
 import {
+	extractWorkspaceIdFromUrl,
+	getNotificationTitle,
+	getWorkspaceName,
+	isPaneVisible,
+} from "../lib/notifications/utils";
+import {
 	getInitialWindowBounds,
 	loadWindowState,
 	saveWindowState,
@@ -26,6 +32,28 @@ import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
+
+function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
+	if (!workspaceId) return "Workspace";
+	try {
+		const workspace = localDb
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, workspaceId))
+			.get();
+		const worktree = workspace?.worktreeId
+			? localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.id, workspace.worktreeId))
+					.get()
+			: undefined;
+		return getWorkspaceName({ workspace, worktree });
+	} catch (error) {
+		console.error("[notifications] Failed to get workspace name:", error);
+		return "Workspace";
+	}
+}
 
 // Current window reference - updated on window create/close
 let currentWindow: BrowserWindow | null = null;
@@ -96,77 +124,61 @@ export async function MainWindow() {
 			// Only notify on Stop (completion) and PermissionRequest - not on Start
 			if (event.eventType === "Start") return;
 
-			if (Notification.isSupported()) {
-				const isPermissionRequest = event.eventType === "PermissionRequest";
-
-				// Derive workspace name from workspaceId with safe fallbacks
-				let workspaceName = "Workspace";
-				try {
-					if (event.workspaceId) {
-						const workspace = localDb
-							.select()
-							.from(workspaces)
-							.where(eq(workspaces.id, event.workspaceId))
-							.get();
-						const worktree = workspace?.worktreeId
-							? localDb
-									.select()
-									.from(worktrees)
-									.where(eq(worktrees.id, workspace.worktreeId))
-									.get()
-							: undefined;
-						workspaceName = workspace?.name || worktree?.branch || "Workspace";
-					}
-				} catch (error) {
-					console.error(
-						"[notifications] Failed to access db for workspace name:",
-						error,
-					);
-				}
-
-				// Derive title from tab name, falling back to pane name
-				// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
-				let title = "Terminal";
-				try {
-					const { paneId, tabId } = event;
-					const tabsState = appState.data?.tabsState;
-					const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
-					const tab = tabId
-						? tabsState?.tabs?.find((t) => t.id === tabId)
-						: undefined;
-					title =
-						tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
-				} catch (error) {
-					console.error(
-						"[notifications] Failed to access appState for tab title:",
-						error,
-					);
-				}
-
-				const notification = new Notification({
-					title: isPermissionRequest
-						? `Input Needed — ${workspaceName}`
-						: `Agent Complete — ${workspaceName}`,
-					body: isPermissionRequest
-						? `"${title}" needs your attention`
-						: `"${title}" has finished its task`,
-					silent: true,
-				});
-
-				playNotificationSound();
-
-				notification.on("click", () => {
-					window.show();
-					window.focus();
-					notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
-						paneId: event.paneId,
-						tabId: event.tabId,
+			// Skip notification if user is already viewing this pane (Slack pattern)
+			if (
+				window.isFocused() &&
+				event.workspaceId &&
+				event.tabId &&
+				event.paneId
+			) {
+				const isVisible = isPaneVisible({
+					currentWorkspaceId: extractWorkspaceIdFromUrl(
+						window.webContents.getURL(),
+					),
+					tabsState: appState.data?.tabsState,
+					pane: {
 						workspaceId: event.workspaceId,
-					});
+						tabId: event.tabId,
+						paneId: event.paneId,
+					},
 				});
-
-				notification.show();
+				if (isVisible) return;
 			}
+
+			if (!Notification.isSupported()) return;
+
+			const workspaceName = getWorkspaceNameFromDb(event.workspaceId);
+			const title = getNotificationTitle({
+				tabId: event.tabId,
+				paneId: event.paneId,
+				tabs: appState.data?.tabsState?.tabs,
+				panes: appState.data?.tabsState?.panes,
+			});
+
+			const isPermissionRequest = event.eventType === "PermissionRequest";
+			const notification = new Notification({
+				title: isPermissionRequest
+					? `Input Needed — ${workspaceName}`
+					: `Agent Complete — ${workspaceName}`,
+				body: isPermissionRequest
+					? `"${title}" needs your attention`
+					: `"${title}" has finished its task`,
+				silent: true,
+			});
+
+			playNotificationSound();
+
+			notification.on("click", () => {
+				window.show();
+				window.focus();
+				notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
+					paneId: event.paneId,
+					tabId: event.tabId,
+					workspaceId: event.workspaceId,
+				});
+			});
+
+			notification.show();
 		},
 	);
 

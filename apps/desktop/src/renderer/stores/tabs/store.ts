@@ -438,6 +438,48 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 
+				addPanesToTab: (
+					tabId: string,
+					options: AddTabWithMultiplePanesOptions,
+				) => {
+					const state = get();
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab) return [];
+
+					const panes: ReturnType<typeof createPane>[] = options.commands.map(
+						(command) =>
+							createPane(tabId, "terminal", {
+								initialCommands: [command],
+								initialCwd: options.initialCwd,
+							}),
+					);
+
+					const paneIds = panes.map((p) => p.id);
+					const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
+					const allPaneIds = [...existingPaneIds, ...paneIds];
+					const newLayout = buildMultiPaneLayout(allPaneIds);
+
+					const panesRecord: Record<string, (typeof panes)[number]> = {
+						...state.panes,
+					};
+					for (const pane of panes) {
+						panesRecord[pane.id] = pane;
+					}
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, layout: newLayout } : t,
+						),
+						panes: panesRecord,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tabId]: paneIds[0],
+						},
+					});
+
+					return paneIds;
+				},
+
 				addFileViewerPane: (
 					workspaceId: string,
 					options: AddFileViewerPaneOptions,
@@ -505,7 +547,7 @@ export const useTabsStore = create<TabsStore>()(
 								!p.fileViewer.isPinned,
 						);
 
-					// If we found an unpinned (preview) file-viewer pane, check if it's the same file
+					// If we found an unpinned (preview) file-viewer pane, reuse it
 					if (fileViewerPanes.length > 0) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
@@ -514,25 +556,14 @@ export const useTabsStore = create<TabsStore>()(
 							return "";
 						}
 
-						// If clicking the same file that's already in preview, pin it
+						// If clicking the same file that's already in preview, just focus it
 						const isSameFile =
 							existingFileViewer.filePath === options.filePath &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
-							// Pin the preview pane
 							set({
-								panes: {
-									...state.panes,
-									[paneToReuse.id]: {
-										...paneToReuse,
-										fileViewer: {
-											...existingFileViewer,
-											isPinned: true,
-										},
-									},
-								},
 								focusedPaneIds: {
 									...state.focusedPaneIds,
 									[activeTab.id]: paneToReuse.id,

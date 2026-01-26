@@ -9,8 +9,10 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useRef } from "react";
+import { useDrag, useDrop } from "react-dnd";
 import { HiOutlineStar, HiStar } from "react-icons/hi2";
-import { LuTrash } from "react-icons/lu";
+import { LuGripVertical, LuTrash } from "react-icons/lu";
 import {
 	PRESET_COLUMNS,
 	type PresetColumnConfig,
@@ -18,6 +20,8 @@ import {
 	type TerminalPreset,
 } from "renderer/routes/_authenticated/settings/presets/types";
 import { CommandsEditor } from "./components/CommandsEditor";
+
+const PRESET_TYPE = "TERMINAL_PRESET";
 
 interface PresetCellProps {
 	column: PresetColumnConfig;
@@ -74,6 +78,8 @@ interface PresetRowProps {
 	onExecutionModeChange: (rowIndex: number, mode: ExecutionMode) => void;
 	onDelete: (rowIndex: number) => void;
 	onSetDefault: (presetId: string | null) => void;
+	onLocalReorder: (fromIndex: number, toIndex: number) => void;
+	onPersistReorder: (presetId: string, targetIndex: number) => void;
 }
 
 export function PresetRow({
@@ -87,18 +93,58 @@ export function PresetRow({
 	onExecutionModeChange,
 	onDelete,
 	onSetDefault,
+	onLocalReorder,
+	onPersistReorder,
 }: PresetRowProps) {
+	const rowRef = useRef<HTMLDivElement>(null);
+	const dragHandleRef = useRef<HTMLDivElement>(null);
+
+	const [{ isDragging }, drag, preview] = useDrag(
+		() => ({
+			type: PRESET_TYPE,
+			item: { id: preset.id, index: rowIndex, originalIndex: rowIndex },
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
+		}),
+		[preset.id, rowIndex],
+	);
+
+	const [, drop] = useDrop({
+		accept: PRESET_TYPE,
+		hover: (item: { id: string; index: number; originalIndex: number }) => {
+			if (item.index !== rowIndex) {
+				onLocalReorder(item.index, rowIndex);
+				item.index = rowIndex;
+			}
+		},
+		drop: (item: { id: string; index: number; originalIndex: number }) => {
+			if (item.originalIndex !== item.index) {
+				onPersistReorder(item.id, item.index);
+			}
+		},
+	});
+
+	preview(drop(rowRef));
+	drag(dragHandleRef);
+
 	const handleToggleDefault = () => {
-		// If already default, clear it; otherwise set this preset as default
 		onSetDefault(preset.isDefault ? null : preset.id);
 	};
 
 	return (
 		<div
+			ref={rowRef}
 			className={`flex items-start gap-4 py-3 px-4 ${
 				isEven ? "bg-accent/20" : ""
-			}`}
+			} ${isDragging ? "opacity-30" : ""}`}
 		>
+			<div
+				ref={dragHandleRef}
+				className="w-6 flex justify-center shrink-0 pt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+			>
+				<LuGripVertical className="h-4 w-4" />
+			</div>
 			{PRESET_COLUMNS.map((column) => (
 				<div key={column.key} className="flex-1 min-w-0">
 					<PresetCell
