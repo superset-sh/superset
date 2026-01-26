@@ -596,12 +596,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			if (document.hidden || isUnmounted) return;
 			const buffer = xterm.buffer.active;
 			const wasAtBottom = buffer.viewportY >= buffer.baseY;
-			const prevCols = xterm.cols;
-			const prevRows = xterm.rows;
 			fitAddon.fit();
-			if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
-				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
-			}
+			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 			if (wasAtBottom) {
 				requestAnimationFrame(() => {
 					if (isUnmounted || xtermRef.current !== xterm) return;

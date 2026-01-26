@@ -126,26 +126,8 @@ export function useTerminalRestore({
 				requestAnimationFrame(() => {
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
-					const prevCols = xterm.cols;
-					const prevRows = xterm.rows;
 					fitAddon.fit();
-					const didResize = xterm.cols !== prevCols || xterm.rows !== prevRows;
-					if (didResize) {
-						// Only send resize if dimensions differ from snapshot.
-						// PTY already has snapshot dimensions from createOrAttach.
-						// Avoiding unnecessary SIGWINCH prevents TUI apps from redrawing
-						// and clearing scrollback.
-						const snapshotCols = result.snapshot?.cols;
-						const snapshotRows = result.snapshot?.rows;
-						if (
-							snapshotCols === undefined ||
-							snapshotRows === undefined ||
-							xterm.cols !== snapshotCols ||
-							xterm.rows !== snapshotRows
-						) {
-							onResizeRef.current(xterm.cols, xterm.rows);
-						}
-					}
+					onResizeRef.current(xterm.cols, xterm.rows);
 					// Only scroll to bottom for NEW sessions. For reattached sessions,
 					// the snapshot already positions the viewport correctly and we should
 					// not override the user's scroll position.

@@ -755,13 +755,6 @@ export class Session {
 	}
 
 	/**
-	 * Get current terminal dimensions
-	 */
-	getDimensions(): { cols: number; rows: number } {
-		return this.emulator.getDimensions();
-	}
-
-	/**
 	 * Get session metadata
 	 */
 	getMeta(): SessionMeta {
