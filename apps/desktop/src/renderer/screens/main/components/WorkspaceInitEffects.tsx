@@ -32,6 +32,7 @@ export function WorkspaceInitEffects() {
 	const processingRef = useRef<Set<string>>(new Set());
 
 	const addTab = useTabsStore((state) => state.addTab);
+	const addPane = useTabsStore((state) => state.addPane);
 	const addTabWithMultiplePanes = useTabsStore(
 		(state) => state.addTabWithMultiplePanes,
 	);
@@ -47,10 +48,21 @@ export function WorkspaceInitEffects() {
 		(
 			workspaceId: string,
 			preset: NonNullable<PendingTerminalSetup["defaultPreset"]>,
+			existingTabId?: string,
 		) => {
 			const isParallel =
 				preset.executionMode === "parallel" && preset.commands.length > 1;
 
+			// When adding to an existing tab, create a split pane (run commands sequentially)
+			if (existingTabId) {
+				addPane(existingTabId, {
+					initialCommands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				});
+				return;
+			}
+
+			// When creating a new tab, use parallel panes if configured
 			if (isParallel) {
 				const options: AddTabWithMultiplePanesOptions = {
 					commands: preset.commands,
@@ -66,7 +78,7 @@ export function WorkspaceInitEffects() {
 				renameTab(tabId, preset.name);
 			}
 		},
-		[addTab, addTabWithMultiplePanes, renameTab],
+		[addTab, addPane, addTabWithMultiplePanes, renameTab],
 	);
 
 	const handleTerminalSetup = useCallback(
@@ -84,7 +96,12 @@ export function WorkspaceInitEffects() {
 					setup.workspaceId,
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
-				createPresetTerminal(setup.workspaceId, setup.defaultPreset);
+				// Add preset as a split pane in the same tab
+				createPresetTerminal(
+					setup.workspaceId,
+					setup.defaultPreset,
+					setupTabId,
+				);
 
 				createOrAttach.mutate(
 					{
