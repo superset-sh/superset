@@ -70,6 +70,14 @@ async function verifyToken(
 			const orgScope = scopeArray.find((s) => s.startsWith("organization:"));
 			const organizationId = orgScope?.split(":")[1];
 
+			if (!organizationId) {
+				console.error(
+					"[mcp/auth] OAuth token missing organization scope:",
+					mcpSession.userId,
+				);
+				return undefined;
+			}
+
 			const mcpContext = await buildMcpContext({
 				userId: mcpSession.userId,
 				organizationId,

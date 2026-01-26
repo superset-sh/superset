@@ -1,7 +1,6 @@
 import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
-import { sessions } from "@superset/db/schema/auth";
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export interface McpContext {
 	userId: string;
@@ -16,53 +15,34 @@ export async function buildMcpContext({
 	organizationId,
 }: {
 	userId: string;
-	organizationId?: string;
+	organizationId: string;
 }): Promise<McpContext | null> {
-	let orgId = organizationId;
-
-	if (!orgId) {
-		const recentSession = await db.query.sessions.findFirst({
-			where: eq(sessions.userId, userId),
-			orderBy: [desc(sessions.updatedAt)],
-		});
-		orgId = recentSession?.activeOrganizationId ?? undefined;
-	}
-
-	if (!orgId) {
-		const membership = await db.query.members.findFirst({
-			where: eq(members.userId, userId),
-		});
-
-		if (!membership) {
-			console.error("[mcp/auth] User has no organization membership:", userId);
-			return null;
-		}
-		orgId = membership.organizationId;
-	}
-
 	const membership = await db.query.members.findFirst({
-		where: and(eq(members.userId, userId), eq(members.organizationId, orgId)),
+		where: and(
+			eq(members.userId, userId),
+			eq(members.organizationId, organizationId),
+		),
 	});
 
 	if (!membership) {
 		console.error(
 			"[mcp/auth] User is not a member of organization:",
 			userId,
-			orgId,
+			organizationId,
 		);
 		return null;
 	}
 
 	const subscription = await db.query.subscriptions.findFirst({
 		where: and(
-			eq(subscriptions.referenceId, orgId),
+			eq(subscriptions.referenceId, organizationId),
 			eq(subscriptions.status, "active"),
 		),
 	});
 
 	return {
 		userId,
-		organizationId: orgId,
+		organizationId: organizationId,
 		role: membership.role ?? null,
 		plan: subscription?.plan ?? null,
 		defaultDeviceId: null,
