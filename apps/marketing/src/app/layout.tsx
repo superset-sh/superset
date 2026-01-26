@@ -3,6 +3,11 @@ import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 
 import { CookieConsent } from "@/components/CookieConsent";
+import {
+	OrganizationJsonLd,
+	SoftwareApplicationJsonLd,
+	WebsiteJsonLd,
+} from "@/components/JsonLd";
 
 import { CTAButtons } from "./components/CTAButtons";
 import { Footer } from "./components/Footer";
@@ -24,15 +29,70 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-	title: "Superset - Run 10+ parallel coding agents on your machine",
+	metadataBase: new URL("https://superset.sh"),
+	title: {
+		default: "Superset - Run 10+ parallel coding agents on your machine",
+		template: "%s | Superset",
+	},
 	description:
 		"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.",
+	keywords: [
+		"coding agents",
+		"parallel execution",
+		"developer tools",
+		"AI coding",
+		"git worktrees",
+		"code automation",
+		"Claude Code",
+		"Cursor",
+		"Codex",
+	],
+	authors: [{ name: "Superset Team" }],
+	creator: "Superset",
+	openGraph: {
+		type: "website",
+		locale: "en_US",
+		url: "https://superset.sh",
+		siteName: "Superset",
+		title: "Superset - Run 10+ parallel coding agents on your machine",
+		description:
+			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+		images: [
+			{
+				url: "/og-image.png",
+				width: 1200,
+				height: 630,
+				alt: "Superset - The Terminal for Coding Agents",
+			},
+		],
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: "Superset - Run 10+ parallel coding agents on your machine",
+		description:
+			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+		images: ["/og-image.png"],
+		creator: "@AviSupersetSH",
+	},
+	robots: {
+		index: true,
+		follow: true,
+		googleBot: {
+			index: true,
+			follow: true,
+			"max-video-preview": -1,
+			"max-image-preview": "large",
+			"max-snippet": -1,
+		},
+	},
 	icons: {
 		icon: [
 			{ url: "/favicon.ico", sizes: "32x32" },
 			{ url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
 		],
+		apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
 	},
+	manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -51,6 +111,9 @@ export default function RootLayout({
 					src="https://tally.so/widgets/embed.js"
 					strategy="afterInteractive"
 				/>
+				<OrganizationJsonLd />
+				<SoftwareApplicationJsonLd />
+				<WebsiteJsonLd />
 			</head>
 			<body className="overscroll-none font-sans">
 				<Providers>

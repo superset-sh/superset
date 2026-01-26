@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import { ArticleJsonLd } from "@/components/JsonLd";
 import { extractToc, getAllSlugs, getBlogPost } from "@/lib/blog";
 import { mdxComponents } from "../components/mdx-components";
 import { BlogPostLayout } from "./components/BlogPostLayout";
@@ -19,8 +20,18 @@ export default async function BlogPostPage({ params }: PageProps) {
 
 	const toc = extractToc(post.content);
 
+	const url = `https://superset.sh/blog/${slug}`;
+
 	return (
 		<main>
+			<ArticleJsonLd
+				title={post.title}
+				description={post.description}
+				author={post.author}
+				publishedTime={new Date(post.date).toISOString()}
+				url={url}
+				image={post.image}
+			/>
 			<BlogPostLayout post={post} toc={toc}>
 				<MDXRemote source={post.content} components={mdxComponents} />
 			</BlogPostLayout>
@@ -42,13 +53,20 @@ export async function generateMetadata({
 		return {};
 	}
 
+	const url = `https://superset.sh/blog/${slug}`;
+
 	return {
 		title: `${post.title} | Superset Blog`,
 		description: post.description,
+		alternates: {
+			canonical: url,
+		},
 		openGraph: {
 			title: post.title,
 			description: post.description,
 			type: "article",
+			url,
+			siteName: "Superset",
 			publishedTime: post.date,
 			authors: [post.author],
 			...(post.image && { images: [post.image] }),

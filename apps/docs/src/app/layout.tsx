@@ -10,12 +10,54 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-	title: "Superset Docs",
+	metadataBase: new URL("https://docs.superset.sh"),
+	title: {
+		default: "Superset Documentation",
+		template: "%s | Superset Docs",
+	},
+	description:
+		"Official documentation for Superset - the terminal for coding agents. Learn how to run parallel coding agents on your machine.",
+	keywords: [
+		"Superset documentation",
+		"coding agents docs",
+		"parallel execution guide",
+		"developer tools",
+	],
+	authors: [{ name: "Superset Team" }],
+	creator: "Superset",
+	openGraph: {
+		type: "website",
+		locale: "en_US",
+		url: "https://docs.superset.sh",
+		siteName: "Superset Docs",
+		title: "Superset Documentation",
+		description:
+			"Official documentation for Superset - the terminal for coding agents.",
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: "Superset Documentation",
+		description:
+			"Official documentation for Superset - the terminal for coding agents.",
+		creator: "@AviSupersetSH",
+	},
+	robots: {
+		index: true,
+		follow: true,
+		googleBot: {
+			index: true,
+			follow: true,
+			"max-video-preview": -1,
+			"max-image-preview": "large",
+			"max-snippet": -1,
+		},
+	},
 	icons: {
 		icon: [
 			{ url: "/favicon.ico", sizes: "32x32" },
 			{ url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
 		],
+		apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
 	},
 };
 
