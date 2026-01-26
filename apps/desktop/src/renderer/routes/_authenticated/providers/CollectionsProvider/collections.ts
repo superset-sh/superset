@@ -1,7 +1,6 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
-	SelectApikey,
 	SelectDevicePresence,
 	SelectInvitation,
 	SelectMember,
@@ -19,6 +18,7 @@ import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
 import superjson from "superjson";
+import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
@@ -69,10 +69,15 @@ const organizationsCollection = createCollection(
 	}),
 );
 
-type ApiKeyDisplay = Pick<
-	SelectApikey,
-	"id" | "name" | "start" | "createdAt" | "lastRequest"
->;
+const apiKeyDisplaySchema = z.object({
+	id: z.string(),
+	name: z.string().nullable(),
+	start: z.string().nullable(),
+	createdAt: z.coerce.date(),
+	lastRequest: z.coerce.date().nullable(),
+});
+
+type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
 
 const apiKeysCollection = createCollection(
 	electricCollectionOptions<ApiKeyDisplay>({
