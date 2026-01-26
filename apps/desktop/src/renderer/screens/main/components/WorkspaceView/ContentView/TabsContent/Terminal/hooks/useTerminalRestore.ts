@@ -23,8 +23,6 @@ export interface UseTerminalRestoreOptions {
 	onDisconnectEvent: (reason: string | undefined) => void;
 	/** Callback to send resize to PTY after fit() - ensures PTY dimensions match xterm */
 	onResize: (cols: number, rows: number) => void;
-	/** Optional callback to restore viewport position for reattached sessions */
-	restoreViewport?: (xterm: XTerm, isNew: boolean) => void;
 }
 
 export interface UseTerminalRestoreReturn {
@@ -59,7 +57,6 @@ export function useTerminalRestore({
 	onErrorEvent,
 	onDisconnectEvent,
 	onResize,
-	restoreViewport,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
@@ -81,8 +78,6 @@ export function useTerminalRestore({
 	onDisconnectEventRef.current = onDisconnectEvent;
 	const onResizeRef = useRef(onResize);
 	onResizeRef.current = onResize;
-	const restoreViewportRef = useRef(restoreViewport);
-	restoreViewportRef.current = restoreViewport;
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -159,8 +154,6 @@ export function useTerminalRestore({
 						// processed before scrolling. xterm.write() is async and buffers writes,
 						// so scrollToBottom() called immediately might not see all content.
 						xterm.write("", () => scrollToBottom(xterm));
-					} else {
-						restoreViewportRef.current?.(xterm, result.isNew);
 					}
 				});
 			};

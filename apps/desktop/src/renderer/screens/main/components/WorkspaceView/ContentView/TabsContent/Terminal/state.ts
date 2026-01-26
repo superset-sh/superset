@@ -15,16 +15,3 @@ export const pendingDetaches = new Map<string, NodeJS.Timeout>();
  * with fresh state, losing the cold restore detection.
  */
 export const coldRestoreState = new Map<string, ColdRestoreState>();
-
-export type ViewportState = {
-	scrollTop: number;
-	scrollHeight: number;
-	clientHeight: number;
-	wasAtBottom: boolean;
-};
-
-/**
- * Preserve viewport position across unmount/remount cycles.
- * This stabilizes reattach when the terminal redraws.
- */
-export const viewportState = new Map<string, ViewportState>();
