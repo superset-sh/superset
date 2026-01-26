@@ -128,7 +128,10 @@ export default function Sidebar() {
 																		href={listItem.href}
 																		startWith="/docs"
 																		title={listItem.title}
-																		className="break-words text-nowrap w-[--fd-sidebar-width]"
+																		className={cn(
+																			"break-words text-nowrap w-[--fd-sidebar-width]",
+																			listItem.indent && "pl-9",
+																		)}
 																	>
 																		<div className="min-w-4">
 																			<listItem.icon className="text-stone-950 dark:text-white" />

@@ -13,6 +13,7 @@ interface Content {
 		group?: boolean;
 		separator?: boolean;
 		isNew?: boolean;
+		indent?: boolean;
 	}[];
 }
 
@@ -162,16 +163,19 @@ export const contents: Content[] = [
 				title: "Quick Start",
 				href: "/quick-start",
 				icon: PlayIcon,
+				indent: true,
 			},
 			{
 				title: "Overview",
 				href: "/overview",
 				icon: BookIcon,
+				indent: true,
 			},
 			{
 				title: "Installation",
 				href: "/installation",
 				icon: DownloadIcon,
+				indent: true,
 			},
 		],
 	},

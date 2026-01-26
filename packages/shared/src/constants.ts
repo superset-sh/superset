@@ -16,8 +16,7 @@ export const COMPANY = {
 	GITHUB_URL: "https://github.com/superset-sh/superset",
 	DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh",
 	MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh",
-	TERMS_URL:
-		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") + "/terms",
+	TERMS_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/terms`,
 	PRIVACY_URL:
 		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
 		"/privacy",
