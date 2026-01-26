@@ -1,186 +1,200 @@
 /**
- * Hook for managing presence in a chat session
+ * Hook for real-time presence syncing using StreamDB
  *
- * Tracks who's viewing and typing in a session.
+ * Syncs presence state across users in a chat session using TanStack DB collections
+ * backed by Durable Streams.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { PresenceState, PresenceUser } from "../types";
+import { DurableStream } from "@durable-streams/client";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { StreamDB } from "@durable-streams/state";
+import type { SessionStateSchema } from "../stream/schema";
 
 interface UsePresenceOptions {
+	/** StreamDB instance from useStreamDB */
+	db: StreamDB<SessionStateSchema> | null;
+	/** Whether the StreamDB is connected and ready */
+	isDbConnected?: boolean;
 	/** Base URL of the durable stream server */
 	baseUrl: string;
 	/** Current user info */
 	user: { userId: string; name: string } | null;
+	/** Device identifier (optional, defaults to generated) */
+	deviceId?: string;
 	/** Whether presence is enabled */
 	enabled?: boolean;
 	/** Heartbeat interval in ms (default: 10000) */
 	heartbeatInterval?: number;
-	/** Presence poll interval in ms (default: 5000) */
-	pollInterval?: number;
+}
+
+interface PresenceUserResult {
+	userId: string;
+	name: string;
+	userName: string;
+	deviceId: string;
+	image?: string;
 }
 
 interface UsePresenceResult {
-	/** Users currently viewing the session */
-	viewers: PresenceUser[];
+	/** Users currently viewing the session (online or idle) */
+	viewers: Array<PresenceUserResult & { status: "online" | "typing" | "idle" | "offline" }>;
 	/** Users currently typing */
-	typingUsers: PresenceUser[];
+	typingUsers: PresenceUserResult[];
 	/** Set current user's typing status */
 	setTyping: (isTyping: boolean) => void;
-	/** Whether presence is connected */
+	/** Whether connected to the stream */
 	isConnected: boolean;
 }
+
+// Generate a stable device ID for this browser session
+const generateDeviceId = () => {
+	if (typeof window === "undefined") return "server";
+	let deviceId = sessionStorage.getItem("__presence_device_id");
+	if (!deviceId) {
+		deviceId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+		sessionStorage.setItem("__presence_device_id", deviceId);
+	}
+	return deviceId;
+};
 
 export function usePresence(
 	sessionId: string | null,
 	options: UsePresenceOptions,
 ): UsePresenceResult {
 	const {
+		db,
+		isDbConnected = false,
 		baseUrl,
 		user,
+		deviceId = generateDeviceId(),
 		enabled = true,
 		heartbeatInterval = 10_000,
-		pollInterval = 5_000,
 	} = options;
 
-	const [presence, setPresence] = useState<PresenceState>({
-		viewers: [],
-		typingUsers: [],
-	});
 	const [isConnected, setIsConnected] = useState(false);
-
-	// Use refs to avoid recreating callbacks when options change
-	const optionsRef = useRef({
-		baseUrl,
-		user,
-		enabled,
-		heartbeatInterval,
-		pollInterval,
-	});
-	optionsRef.current = { baseUrl, user, enabled, heartbeatInterval, pollInterval };
-
 	const isTypingRef = useRef(false);
-	const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-		null,
+	const streamRef = useRef<DurableStream | null>(null);
+	const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+	// Create stream handle for writing
+	useEffect(() => {
+		if (!sessionId || !baseUrl) {
+			streamRef.current = null;
+			return;
+		}
+
+		const url = `${baseUrl}/streams/${sessionId}`;
+		streamRef.current = new DurableStream({ url });
+		setIsConnected(true);
+
+		return () => {
+			streamRef.current = null;
+			setIsConnected(false);
+		};
+	}, [sessionId, baseUrl]);
+
+	// Query presence from the collection (only when db is connected)
+	const presenceQuery = useLiveQuery(
+		(q) => {
+			if (!isDbConnected || !db?.collections.presence) return null;
+			return q.from({ presence: db.collections.presence });
+		},
+		[db, isDbConnected],
 	);
-	const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+	// Filter for online/typing viewers (not self)
+	const viewers = useMemo(() => {
+		if (!presenceQuery?.data || !user) return [];
+		return presenceQuery.data
+			.filter((p) => p.status !== "offline")
+			.map((p) => ({
+				userId: p.userId,
+				name: p.userName, // alias for backwards compat
+				userName: p.userName,
+				deviceId: p.deviceId,
+				status: p.status,
+			}));
+	}, [presenceQuery?.data, user]);
+
+	// Filter for typing users (excluding self)
+	const typingUsers = useMemo(() => {
+		if (!presenceQuery?.data || !user) return [];
+		return presenceQuery.data
+			.filter((p) => p.status === "typing" && p.userId !== user.userId)
+			.map((p) => ({
+				userId: p.userId,
+				name: p.userName, // alias for backwards compat
+				userName: p.userName,
+				deviceId: p.deviceId,
+			}));
+	}, [presenceQuery?.data, user]);
+
+	// Sync presence to stream
+	const syncPresence = useCallback(
+		async (status: "online" | "typing" | "idle" | "offline") => {
+			if (!sessionId || !user || !enabled || !streamRef.current) return;
+
+			try {
+				const event = {
+					type: "presence",
+					key: `${user.userId}:${deviceId}`,
+					value: {
+						userId: user.userId,
+						userName: user.name,
+						deviceId,
+						status,
+						lastSeen: new Date().toISOString(),
+					},
+					headers: {
+						operation: status === "offline" ? "delete" : "upsert",
+					},
+				};
+
+				await streamRef.current.append(JSON.stringify([event]));
+			} catch (error) {
+				console.error(`[usePresence] Failed to sync presence:`, error);
+			}
+		},
+		[sessionId, user, deviceId, enabled],
+	);
 
 	// Set typing status
 	const setTyping = useCallback(
 		(isTyping: boolean) => {
 			if (isTypingRef.current === isTyping) return;
 			isTypingRef.current = isTyping;
-
-			const { baseUrl, user, enabled } = optionsRef.current;
-			if (!sessionId || !user || !enabled) return;
-
-			fetch(`${baseUrl}/streams/${sessionId}/presence`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					userId: user.userId,
-					name: user.name,
-					isTyping,
-				}),
-			}).catch((error) => {
-				console.error(`[usePresence] Failed to update presence:`, error);
-			});
+			syncPresence(isTyping ? "typing" : "online");
 		},
-		[sessionId],
+		[syncPresence],
 	);
 
-	// Setup heartbeat and polling
+	// Initial presence and heartbeat
 	useEffect(() => {
-		const { user, enabled, heartbeatInterval, pollInterval } =
-			optionsRef.current;
-
 		if (!sessionId || !user || !enabled) return;
 
-		// Update presence on the server
-		const updatePresence = async (isTyping: boolean) => {
-			const currentOptions = optionsRef.current;
-			if (!currentOptions.user || !currentOptions.enabled) return;
-
-			try {
-				await fetch(`${currentOptions.baseUrl}/streams/${sessionId}/presence`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						userId: currentOptions.user.userId,
-						name: currentOptions.user.name,
-						isTyping,
-					}),
-				});
-				setIsConnected(true);
-			} catch (error) {
-				console.error(`[usePresence] Failed to update presence:`, error);
-				setIsConnected(false);
-			}
-		};
-
-		// Fetch presence state from the server
-		const fetchPresence = async () => {
-			const currentOptions = optionsRef.current;
-			if (!currentOptions.enabled) return;
-
-			try {
-				const response = await fetch(
-					`${currentOptions.baseUrl}/streams/${sessionId}/presence`,
-				);
-				if (response.ok) {
-					const data = (await response.json()) as PresenceState;
-					setPresence(data);
-					setIsConnected(true);
-				}
-			} catch (error) {
-				console.error(`[usePresence] Failed to fetch presence:`, error);
-				setIsConnected(false);
-			}
-		};
-
-		// Initial presence update
-		updatePresence(false);
-		fetchPresence();
+		// Announce presence
+		syncPresence("online");
 
 		// Heartbeat to keep presence alive
-		heartbeatIntervalRef.current = setInterval(() => {
-			updatePresence(isTypingRef.current);
+		heartbeatRef.current = setInterval(() => {
+			syncPresence(isTypingRef.current ? "typing" : "online");
 		}, heartbeatInterval);
 
-		// Poll for presence updates
-		pollIntervalRef.current = setInterval(() => {
-			fetchPresence();
-		}, pollInterval);
-
 		return () => {
-			// Leave session
-			const currentOptions = optionsRef.current;
-			if (currentOptions.user) {
-				fetch(
-					`${currentOptions.baseUrl}/streams/${sessionId}/presence/${currentOptions.user.userId}`,
-					{
-						method: "DELETE",
-					},
-				).catch(() => {
-					// Ignore errors on cleanup
-				});
-			}
+			// Leave on cleanup
+			syncPresence("offline");
 
-			if (heartbeatIntervalRef.current) {
-				clearInterval(heartbeatIntervalRef.current);
-				heartbeatIntervalRef.current = null;
+			if (heartbeatRef.current) {
+				clearInterval(heartbeatRef.current);
+				heartbeatRef.current = null;
 			}
-			if (pollIntervalRef.current) {
-				clearInterval(pollIntervalRef.current);
-				pollIntervalRef.current = null;
-			}
-			setIsConnected(false);
 		};
-	}, [sessionId]); // Only reconnect when sessionId changes
+	}, [sessionId, user, enabled, heartbeatInterval, syncPresence]);
 
 	return {
-		viewers: presence.viewers,
-		typingUsers: presence.typingUsers,
+		viewers,
+		typingUsers,
 		setTyping,
 		isConnected,
 	};
