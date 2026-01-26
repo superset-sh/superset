@@ -17,21 +17,23 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
+import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
@@ -83,6 +85,7 @@ export function NewWorkspaceModal() {
 		{ enabled: !!selectedProjectId },
 	);
 	const createWorkspace = useCreateWorkspace();
+	const openNew = useOpenNew();
 
 	// Filter branches based on search (for base branch selector)
 	const filteredBranches = useMemo(() => {
@@ -162,6 +165,31 @@ export function NewWorkspaceModal() {
 		setBranchNameEdited(true);
 	};
 
+	const handleImportRepo = async () => {
+		try {
+			const result = await openNew.mutateAsync(undefined);
+			if (result.canceled) return;
+			if ("error" in result) {
+				toast.error("Failed to open project", { description: result.error });
+				return;
+			}
+			if ("needsGitInit" in result) {
+				toast.error("Selected folder is not a git repository");
+				return;
+			}
+			setSelectedProjectId(result.project.id);
+		} catch (error) {
+			toast.error("Failed to open project", {
+				description:
+					error instanceof Error ? error.message : "An unknown error occurred",
+			});
+		}
+	};
+
+	const selectedProject = recentProjects.find(
+		(p) => p.id === selectedProjectId,
+	);
+
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
 
@@ -205,23 +233,44 @@ export function NewWorkspaceModal() {
 				</DialogHeader>
 
 				<div className="px-4 pb-3">
-					<Select
-						value={selectedProjectId ?? ""}
-						onValueChange={setSelectedProjectId}
-					>
-						<SelectTrigger className="w-full h-8 text-sm">
-							<SelectValue placeholder="Select project" />
-						</SelectTrigger>
-						<SelectContent>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="outline"
+								className="w-full h-8 text-sm justify-between font-normal"
+							>
+								<span
+									className={selectedProject ? "" : "text-muted-foreground"}
+								>
+									{selectedProject?.name ?? "Select project"}
+								</span>
+								<HiChevronDown className="size-4 text-muted-foreground" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="start"
+							className="w-[--radix-dropdown-menu-trigger-width]"
+						>
 							{recentProjects
 								.filter((project) => project.id)
 								.map((project) => (
-									<SelectItem key={project.id} value={project.id}>
+									<DropdownMenuItem
+										key={project.id}
+										onClick={() => setSelectedProjectId(project.id)}
+									>
 										{project.name}
-									</SelectItem>
+										{project.id === selectedProjectId && (
+											<HiCheck className="ml-auto size-4" />
+										)}
+									</DropdownMenuItem>
 								))}
-						</SelectContent>
-					</Select>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onClick={handleImportRepo}>
+								<LuFolderOpen className="size-4" />
+								Import repo
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 
 				{selectedProjectId && (
