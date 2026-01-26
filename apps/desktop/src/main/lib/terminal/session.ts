@@ -7,6 +7,7 @@ import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
+	stripClearScrollbackSequence,
 } from "../terminal-escape-filter";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import { PtyWriteQueue } from "./pty-write-queue";
@@ -178,7 +179,7 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		// Recreate headless on clear (xterm writes are async, so clear() alone is unreliable)
+		// Recreate headless on clear because xterm.clear() is async and unreliable
 		if (containsClearScrollbackSequence(data)) {
 			session.headless.dispose();
 			const { headless, serializer } = createHeadlessTerminal({
@@ -189,12 +190,13 @@ export function setupDataHandler(
 			session.serializer = serializer;
 			const contentAfterClear = extractContentAfterClear(data);
 			if (contentAfterClear) {
-				session.headless.write(contentAfterClear);
+				session.headless.write(stripClearScrollbackSequence(contentAfterClear));
 			}
 		} else {
-			session.headless.write(data);
+			session.headless.write(stripClearScrollbackSequence(data));
 		}
 
+		// Send unfiltered data to renderer - ESC[3J is stripped only in restore path
 		session.dataBatcher.write(data);
 
 		if (initialCommandString && !commandsSent) {

@@ -3,7 +3,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
 import type { CreateOrAttachResult, TerminalStreamEvent } from "../types";
-import { scrollToBottom } from "../utils";
+import { scrollToBottom, stripClearScrollbackSequence } from "../utils";
 
 export interface UseTerminalRestoreOptions {
 	paneId: string;
@@ -92,7 +92,7 @@ export function useTerminalRestore({
 		for (const event of events) {
 			if (event.type === "data") {
 				updateModesRef.current(event.data);
-				xterm.write(event.data);
+				xterm.write(stripClearScrollbackSequence(event.data));
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
 				onExitEventRef.current(event.exitCode, xterm);
@@ -184,7 +184,7 @@ export function useTerminalRestore({
 							.split(`${ESC}[?47h`)
 							.join("");
 						if (filteredRehydrate) {
-							xterm.write(filteredRehydrate);
+							xterm.write(stripClearScrollbackSequence(filteredRehydrate));
 						}
 					}
 
@@ -225,11 +225,14 @@ export function useTerminalRestore({
 					finalizeRestore();
 					return;
 				}
-				xterm.write(initialAnsi, finalizeRestore);
+				xterm.write(stripClearScrollbackSequence(initialAnsi), finalizeRestore);
 			};
 
 			if (rehydrateSequences) {
-				xterm.write(rehydrateSequences, writeSnapshot);
+				xterm.write(
+					stripClearScrollbackSequence(rehydrateSequences),
+					writeSnapshot,
+				);
 			} else {
 				writeSnapshot();
 			}
