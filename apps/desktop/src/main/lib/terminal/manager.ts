@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { track } from "main/lib/analytics";
 import { ensureAgentHooks } from "../agent-setup/ensure-agent-hooks";
+import { treeKillWithEscalation } from "../tree-kill-with-escalation";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import { portManager } from "./port-manager";
 import {
@@ -258,7 +259,8 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		if (session.isAlive) {
-			session.pty.kill();
+			// Kill the entire process tree, not just the shell
+			await treeKillWithEscalation({ pid: session.pty.pid });
 		} else {
 			this.sessions.delete(paneId);
 		}
@@ -348,56 +350,40 @@ export class TerminalManager extends EventEmitter {
 
 		return new Promise<boolean>((resolve) => {
 			let resolved = false;
-			let sigtermTimeout: ReturnType<typeof setTimeout> | undefined;
-			let sigkillTimeout: ReturnType<typeof setTimeout> | undefined;
+			let forceCleanupTimeout: ReturnType<typeof setTimeout> | undefined;
 
-			const cleanup = (success: boolean) => {
+			const finish = (success: boolean) => {
 				if (resolved) return;
 				resolved = true;
-				this.off(`exit:${paneId}`, exitHandler);
-				if (sigtermTimeout) clearTimeout(sigtermTimeout);
-				if (sigkillTimeout) clearTimeout(sigkillTimeout);
+				this.off(`exit:${paneId}`, onExit);
+				if (forceCleanupTimeout) clearTimeout(forceCleanupTimeout);
 				resolve(success);
 			};
 
-			const exitHandler = () => cleanup(true);
-			this.once(`exit:${paneId}`, exitHandler);
+			const onExit = () => finish(true);
+			this.once(`exit:${paneId}`, onExit);
 
-			// Escalate to SIGKILL after 2s
-			sigtermTimeout = setTimeout(() => {
-				if (resolved || !session.isAlive) return;
+			treeKillWithEscalation({ pid: session.pty.pid }).then((result) => {
+				if (resolved) return;
 
-				try {
-					session.pty.kill("SIGKILL");
-				} catch (error) {
-					console.error(`Failed to send SIGKILL to terminal ${paneId}:`, error);
+				if (!result.success) {
+					console.error(`Terminal ${paneId} tree-kill failed:`, result.error);
 				}
 
-				// Force cleanup after another 500ms
-				sigkillTimeout = setTimeout(() => {
+				// node-pty's onExit may not fire reliably; force cleanup after delay
+				forceCleanupTimeout = setTimeout(() => {
 					if (resolved) return;
 					if (session.isAlive) {
 						console.error(
-							`Terminal ${paneId} did not exit after SIGKILL, forcing cleanup`,
+							`Terminal ${paneId} did not emit exit after kill, forcing cleanup`,
 						);
 						session.isAlive = false;
 						this.sessions.delete(paneId);
 					}
-					cleanup(false);
+					finish(!!result.success);
 				}, 500);
-				sigkillTimeout.unref();
-			}, 2000);
-			sigtermTimeout.unref();
-
-			// Send SIGTERM
-			try {
-				session.pty.kill();
-			} catch (error) {
-				console.error(`Failed to send SIGTERM to terminal ${paneId}:`, error);
-				session.isAlive = false;
-				this.sessions.delete(paneId);
-				cleanup(false);
-			}
+				forceCleanupTimeout.unref();
+			});
 		});
 	}
 
@@ -445,30 +431,34 @@ export class TerminalManager extends EventEmitter {
 		const exitPromises: Promise<void>[] = [];
 
 		for (const [paneId, session] of this.sessions.entries()) {
+			session.writeQueue.dispose();
 			if (session.isAlive) {
 				const exitPromise = new Promise<void>((resolve) => {
 					let timeoutId: ReturnType<typeof setTimeout> | undefined;
-					const exitHandler = () => {
-						this.off(`exit:${paneId}`, exitHandler);
+					const onExit = () => {
+						this.off(`exit:${paneId}`, onExit);
 						if (timeoutId !== undefined) {
 							clearTimeout(timeoutId);
 						}
 						resolve();
 					};
-					this.once(`exit:${paneId}`, exitHandler);
+					this.once(`exit:${paneId}`, onExit);
 
+					// 2.5s allows for tree-kill escalation (2s) + buffer
 					timeoutId = setTimeout(() => {
-						this.off(`exit:${paneId}`, exitHandler);
+						this.off(`exit:${paneId}`, onExit);
 						resolve();
-					}, 2000);
+					}, 2500);
 					timeoutId.unref();
 				});
 
 				exitPromises.push(exitPromise);
-				session.writeQueue.dispose();
-				session.pty.kill();
-			} else {
-				session.writeQueue.dispose();
+
+				treeKillWithEscalation({ pid: session.pty.pid }).then((result) => {
+					if (!result.success) {
+						console.error(`Terminal ${paneId} cleanup failed:`, result.error);
+					}
+				});
 			}
 		}
 

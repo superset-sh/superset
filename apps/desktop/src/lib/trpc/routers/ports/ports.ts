@@ -50,9 +50,11 @@ export const createPortsRouter = () => {
 					port: z.number().int().positive(),
 				}),
 			)
-			.mutation(({ input }): { success: boolean; error?: string } => {
-				return portManager.killPort(input);
-			}),
+			.mutation(
+				async ({ input }): Promise<{ success: boolean; error?: string }> => {
+					return portManager.killPort(input);
+				},
+			),
 
 		hasStaticConfig: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))

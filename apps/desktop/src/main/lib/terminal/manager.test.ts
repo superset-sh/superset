@@ -11,12 +11,21 @@ mock.module("main/lib/analytics", () => ({
 	track: mock(() => {}),
 }));
 
+// Mock treeKillWithEscalation to avoid actual process killing in tests
+const mockTreeKillWithEscalation = mock(() =>
+	Promise.resolve({ success: true }),
+);
+mock.module("../tree-kill-with-escalation", () => ({
+	treeKillWithEscalation: mockTreeKillWithEscalation,
+}));
+
 // Import manager after mocks are set up
 const { TerminalManager } = await import("./manager");
 
 describe("TerminalManager", () => {
 	let manager: InstanceType<typeof TerminalManager>;
 	let mockPty: {
+		pid: number;
 		write: ReturnType<typeof mock>;
 		resize: ReturnType<typeof mock>;
 		kill: ReturnType<typeof mock>;
@@ -27,22 +36,27 @@ describe("TerminalManager", () => {
 	beforeEach(() => {
 		manager = new TerminalManager();
 
+		// Reset the treeKillWithEscalation mock and make it trigger onExit
+		mockTreeKillWithEscalation.mockReset();
+		mockTreeKillWithEscalation.mockImplementation(() => {
+			// Trigger onExit when tree-kill is called to simulate process death
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				setImmediate(async () => {
+					await onExitCallback({ exitCode: 0, signal: undefined });
+				});
+			}
+			return Promise.resolve({ success: true });
+		});
+
 		// Setup mock pty
 		mockPty = {
+			pid: 12345, // Mock PID for treeKillWithEscalation
 			write: mock(() => {}),
 			resize: mock(() => {}),
-			// biome-ignore lint/suspicious/noExplicitAny: Mock requires this binding for proper context
-			kill: mock(function (this: any, _signal?: string) {
-				// Automatically trigger onExit when kill is called to avoid timeouts in cleanup
-				const onExitCallback =
-					mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-				if (onExitCallback) {
-					// Use setImmediate to avoid blocking
-					setImmediate(async () => {
-						await onExitCallback({ exitCode: 0, signal: undefined });
-					});
-				}
-			}),
+			// kill is still used by signal() method
+			kill: mock(() => {}),
 			onData: mock((callback: (data: string) => void) => {
 				// Store callback for testing
 				mockPty.onData.mockImplementation(() => callback);
@@ -238,7 +252,7 @@ describe("TerminalManager", () => {
 	});
 
 	describe("kill", () => {
-		it("should kill the terminal session", async () => {
+		it("should kill the terminal session using tree-kill", async () => {
 			await manager.createOrAttach({
 				paneId: "pane-1",
 				tabId: "tab-1",
@@ -251,14 +265,12 @@ describe("TerminalManager", () => {
 
 			await manager.kill({ paneId: "pane-1" });
 
-			expect(mockPty.kill).toHaveBeenCalled();
+			// Should use treeKillWithEscalation to kill the process tree
+			expect(mockTreeKillWithEscalation).toHaveBeenCalledWith({
+				pid: mockPty.pid,
+			});
 
-			const onExitCallback =
-				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-			if (onExitCallback) {
-				await onExitCallback({ exitCode: 0, signal: undefined });
-			}
-
+			// The mock triggers onExit automatically, wait for it
 			await exitPromise;
 		});
 	});
@@ -304,7 +316,7 @@ describe("TerminalManager", () => {
 	});
 
 	describe("cleanup", () => {
-		it("should kill all sessions and wait for exit handlers", async () => {
+		it("should kill all sessions using tree-kill and wait for exit handlers", async () => {
 			await manager.createOrAttach({
 				paneId: "pane-1",
 				tabId: "tab-1",
@@ -317,21 +329,11 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
-			const cleanupPromise = manager.cleanup();
+			// The mock triggers onExit automatically when treeKillWithEscalation is called
+			await manager.cleanup();
 
-			const onExitCallback1 = mockPty.onExit.mock.calls[0]?.[0];
-			const onExitCallback2 = mockPty.onExit.mock.calls[1]?.[0];
-
-			if (onExitCallback1) {
-				await onExitCallback1({ exitCode: 0, signal: undefined });
-			}
-			if (onExitCallback2) {
-				await onExitCallback2({ exitCode: 0, signal: undefined });
-			}
-
-			await cleanupPromise;
-
-			expect(mockPty.kill).toHaveBeenCalledTimes(2);
+			// Should use treeKillWithEscalation for each session
+			expect(mockTreeKillWithEscalation).toHaveBeenCalledTimes(2);
 		});
 	});
 
