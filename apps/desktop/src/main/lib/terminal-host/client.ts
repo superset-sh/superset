@@ -27,6 +27,7 @@ import { connect, type Socket } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { app } from "electron";
+import { SUPERSET_DIR_NAME } from "shared/constants";
 import {
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -65,8 +66,7 @@ enum ConnectionState {
 
 const DEBUG_CLIENT = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
-const SUPERSET_DIR_NAME =
-	process.env.NODE_ENV === "development" ? ".superset-dev" : ".superset";
+// Get from shared constants for multi-worktree support (imported at top of file)
 const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
 
 const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");

@@ -7,7 +7,12 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
-import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull } from "drizzle-orm";
+
+// Port allocation constants for multi-worktree dev instances
+const START_PORT = 3000;
+const PORT_RANGE = 10;
+
 import { localDb } from "main/lib/local-db";
 
 /**
@@ -301,4 +306,34 @@ export function updateProjectDefaultBranch(
 		.set({ defaultBranch })
 		.where(eq(projects.id, projectId))
 		.run();
+}
+
+/**
+ * Allocate a port base for a new workspace.
+ * Finds the first available port range by checking for gaps in used port bases.
+ * Deleted workspaces free up their port range for reuse.
+ *
+ * Each workspace gets a range of PORT_RANGE ports starting from the allocated base.
+ * For example, with START_PORT=3000 and PORT_RANGE=10:
+ * - First workspace: 3000 (uses 3000-3009)
+ * - Second workspace: 3010 (uses 3010-3019)
+ * - If first is deleted, third workspace: 3000 (reused)
+ */
+export function allocatePortBase(): number {
+	const existing = localDb
+		.select({ portBase: workspaces.portBase })
+		.from(workspaces)
+		.where(isNotNull(workspaces.portBase))
+		.orderBy(asc(workspaces.portBase))
+		.all();
+
+	const usedBases = new Set(existing.map((w) => w.portBase));
+
+	// Find first available slot
+	let candidate = START_PORT;
+	while (usedBases.has(candidate)) {
+		candidate += PORT_RANGE;
+	}
+
+	return candidate;
 }

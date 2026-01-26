@@ -29,7 +29,7 @@ function findBinaryPathsWindows(name: string): string[] {
 
 /**
  * Finds the real path of a binary, skipping our wrapper scripts.
- * Filters out both dev and prod superset bin directories
+ * Filters out all superset bin directories (prod, dev, and workspace-specific)
  * to avoid wrapper scripts calling each other.
  */
 export function findRealBinary(name: string): string | null {
@@ -40,12 +40,21 @@ export function findRealBinary(name: string): string | null {
 			: findBinaryPathsUnix(name);
 
 		const homedir = os.homedir();
+		// Filter out wrapper scripts from all superset directories:
+		// - ~/.superset/bin (prod)
+		// - ~/.superset-dev/bin (legacy dev)
+		// - ~/.superset-*/bin (workspace-specific dev instances)
 		const supersetBinDirs = [
 			path.join(homedir, SUPERSET_DIR_NAMES.PROD, "bin"),
 			path.join(homedir, SUPERSET_DIR_NAMES.DEV, "bin"),
 		];
+		const supersetPrefix = path.join(homedir, ".superset-");
 		const paths = allPaths.filter(
-			(p) => p && !supersetBinDirs.some((dir) => p.startsWith(dir)),
+			(p) =>
+				p &&
+				!supersetBinDirs.some((dir) => p.startsWith(dir)) &&
+				// Also filter any .superset-*/bin directories (workspace instances)
+				!(p.startsWith(supersetPrefix) && p.includes("/bin/")),
 		);
 		return paths[0] || null;
 	} catch {
