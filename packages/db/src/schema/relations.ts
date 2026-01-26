@@ -15,7 +15,6 @@ import {
 } from "./github";
 import {
 	agentCommands,
-	cloudWorkspaces,
 	devicePresence,
 	integrationConnections,
 	repositories,
@@ -60,7 +59,6 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
-	cloudWorkspaces: many(cloudWorkspaces),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
 }));
@@ -102,7 +100,6 @@ export const repositoriesRelations = relations(
 			references: [organizations.id],
 		}),
 		tasks: many(tasks),
-		cloudWorkspaces: many(cloudWorkspaces),
 	}),
 );
 
@@ -189,20 +186,6 @@ export const githubPullRequestsRelations = relations(
 		repository: one(githubRepositories, {
 			fields: [githubPullRequests.repositoryId],
 			references: [githubRepositories.id],
-		}),
-	}),
-);
-
-export const cloudWorkspacesRelations = relations(
-	cloudWorkspaces,
-	({ one }) => ({
-		organization: one(organizations, {
-			fields: [cloudWorkspaces.organizationId],
-			references: [organizations.id],
-		}),
-		repository: one(repositories, {
-			fields: [cloudWorkspaces.repositoryId],
-			references: [repositories.id],
 		}),
 	}),
 );

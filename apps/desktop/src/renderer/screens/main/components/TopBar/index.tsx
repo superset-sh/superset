@@ -1,7 +1,5 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { ENABLE_CLOUD_WORKSPACES } from "shared/constants";
-import { CloudWorkspaceButton } from "./CloudWorkspaceButton";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { OrganizationDropdown } from "./OrganizationDropdown";
 import { WindowControls } from "./WindowControls";
@@ -28,14 +26,6 @@ export function TopBar() {
 			<div className="flex-1" />
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
-				{ENABLE_CLOUD_WORKSPACES && workspace && (
-					<CloudWorkspaceButton
-						workspaceId={workspace.id}
-						workspaceName={workspace.name}
-						branch={workspace.branch}
-						cloudWorkspaceId={workspace.cloudWorkspaceId ?? null}
-					/>
-				)}
 				{workspace?.worktreePath && (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}

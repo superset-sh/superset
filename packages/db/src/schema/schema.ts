@@ -71,7 +71,7 @@ export const taskStatuses = pgTable(
 
 		name: text().notNull(),
 		color: text().notNull(),
-		type: text().notNull(),
+		type: text().notNull(), // "backlog" | "unstarted" | "started" | "completed" | "canceled"
 		position: real().notNull(),
 		progressPercent: real("progress_percent"),
 
@@ -139,7 +139,7 @@ export const tasks = pgTable(
 		// External sync (null if local-only task)
 		externalProvider: integrationProvider("external_provider"),
 		externalId: text("external_id"),
-		externalKey: text("external_key"),
+		externalKey: text("external_key"), // "SUPER-172", "#123"
 		externalUrl: text("external_url"),
 		lastSyncedAt: timestamp("last_synced_at"),
 		syncError: text("sync_error"),
@@ -175,6 +175,7 @@ export const tasks = pgTable(
 export type InsertTask = typeof tasks.$inferInsert;
 export type SelectTask = typeof tasks.$inferSelect;
 
+// Integration connections for external providers (Linear, GitHub, etc.)
 export const integrationConnections = pgTable(
 	"integration_connections",
 	{
@@ -218,6 +219,7 @@ export type InsertIntegrationConnection =
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
 
+// Stripe subscriptions (org-based billing)
 export const subscriptions = pgTable(
 	"subscriptions",
 	{
@@ -253,34 +255,6 @@ export const subscriptions = pgTable(
 
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
-
-export const cloudWorkspaces = pgTable(
-	"cloud_workspaces",
-	{
-		id: uuid().primaryKey().defaultRandom(),
-		organizationId: uuid("organization_id")
-			.notNull()
-			.references(() => organizations.id, { onDelete: "cascade" }),
-		repositoryId: uuid("repository_id")
-			.notNull()
-			.references(() => repositories.id, { onDelete: "cascade" }),
-		name: text().notNull(),
-		branch: text().notNull(),
-		deletedAt: timestamp("deleted_at"),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
-		updatedAt: timestamp("updated_at")
-			.notNull()
-			.defaultNow()
-			.$onUpdate(() => new Date()),
-	},
-	(table) => [
-		index("cloud_workspaces_organization_id_idx").on(table.organizationId),
-		index("cloud_workspaces_repository_id_idx").on(table.repositoryId),
-	],
-);
-
-export type InsertCloudWorkspace = typeof cloudWorkspaces.$inferInsert;
-export type SelectCloudWorkspace = typeof cloudWorkspaces.$inferSelect;
 
 // Device presence - tracks online devices for command routing
 export const devicePresence = pgTable(

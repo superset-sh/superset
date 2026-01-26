@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 const navItems = [
 	{ href: "/", label: "Home" },
 	{ href: "/integrations", label: "Integrations" },
-	{ href: "/cloud", label: "Cloud" },
 ];
 
 export function SidebarNav() {
@@ -24,7 +23,9 @@ export function SidebarNav() {
 						href={item.href}
 						className={cn(
 							"font-mono transition-opacity",
-							isActive ? "opacity-100" : "opacity-60 hover:opacity-80",
+							isActive
+								? "underline opacity-100"
+								: "opacity-60 hover:opacity-80",
 						)}
 					>
 						{item.label}

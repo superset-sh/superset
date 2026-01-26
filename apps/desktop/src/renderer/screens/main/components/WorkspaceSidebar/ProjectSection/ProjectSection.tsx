@@ -20,7 +20,6 @@ interface Workspace {
 	name: string;
 	tabOrder: number;
 	isUnread: boolean;
-	cloudWorkspaceId?: string | null;
 }
 
 interface ProjectSectionProps {
@@ -154,7 +153,6 @@ export function ProjectSection({
 										index={wsIndex}
 										shortcutIndex={shortcutBaseIndex + wsIndex}
 										isCollapsed={isSidebarCollapsed}
-										cloudWorkspaceId={workspace.cloudWorkspaceId}
 									/>
 								))}
 							</div>
@@ -211,7 +209,6 @@ export function ProjectSection({
 									isUnread={workspace.isUnread}
 									index={wsIndex}
 									shortcutIndex={shortcutBaseIndex + wsIndex}
-									cloudWorkspaceId={workspace.cloudWorkspaceId}
 								/>
 							))}
 						</div>
