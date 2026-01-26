@@ -78,7 +78,10 @@ export function ConsentForm({
 		try {
 			// Build final scopes including organization scope
 			const finalScopes = [...scopes];
-			if (selectedOrgId && !finalScopes.some((s) => s.startsWith("organization:"))) {
+			if (
+				selectedOrgId &&
+				!finalScopes.some((s) => s.startsWith("organization:"))
+			) {
 				finalScopes.push(`organization:${selectedOrgId}`);
 			}
 
@@ -100,10 +103,11 @@ export function ConsentForm({
 			);
 
 			const data = await response.json();
-			console.log("[consent] Response:", response.status, data);
 
 			if (!response.ok) {
-				throw new Error(data.error_description || data.message || "Failed to process consent");
+				throw new Error(
+					data.error_description || data.message || "Failed to process consent",
+				);
 			}
 
 			// Redirect to the client's redirect URI with the authorization code

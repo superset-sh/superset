@@ -12,7 +12,7 @@
 		"lint:fix": "biome check --write ."
 	},
 	"dependencies": {
-		"@better-auth/expo": "1.4.16",
+		"@better-auth/expo": "1.4.17",
 		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
 		"@react-native-async-storage/async-storage": "2.2.0",
 		"@react-navigation/native": "^7.1.28",
@@ -27,7 +27,7 @@
 		"@tanstack/react-query": "^5.90.19",
 		"@trpc/client": "^11.7.1",
 		"@trpc/react-query": "^11.7.1",
-		"better-auth": "^1.4.17",
+		"better-auth": "1.4.17",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"dotenv": "^17.2.3",

@@ -23,7 +23,7 @@
 		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
 		"@trpc/tanstack-react-query": "^11.7.1",
-		"better-auth": "^1.4.17",
+		"better-auth": "1.4.17",
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "0.45.1",
 		"import-in-the-middle": "2.0.1",

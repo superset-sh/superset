@@ -44,7 +44,8 @@ export const apiKeysRouter = {
 				id: apiKey.id,
 				name: apiKey.name ?? input.name,
 				key: apiKey.key, // Only returned on creation!
-				keyPrefix: apiKey.start ?? `${apiKey.key.slice(0, 7)}...${apiKey.key.slice(-4)}`,
+				keyPrefix:
+					apiKey.start ?? `${apiKey.key.slice(0, 7)}...${apiKey.key.slice(-4)}`,
 				createdAt: apiKey.createdAt,
 				expiresAt: apiKey.expiresAt ?? null,
 			};
