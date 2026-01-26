@@ -7,6 +7,26 @@ export const metadata: Metadata = {
 	title: "Blog | Superset",
 	description:
 		"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
+	alternates: {
+		canonical: "/blog",
+		types: {
+			"application/rss+xml": "/feed.xml",
+		},
+	},
+	openGraph: {
+		title: "Blog | Superset",
+		description:
+			"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
+		url: "/blog",
+		images: ["/opengraph-image"],
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: "Blog | Superset",
+		description:
+			"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
+		images: ["/opengraph-image"],
+	},
 };
 
 export default async function BlogPage() {

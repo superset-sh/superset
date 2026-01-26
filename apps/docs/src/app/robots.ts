@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
 			{
 				userAgent: "*",
 				allow: "/",
-				disallow: ["/api/", "/_next/"],
+				disallow: ["/api/", "/_next/", "/llms.mdx/", "/llms-full.txt"],
 			},
 		],
 		sitemap: "https://docs.superset.sh/sitemap.xml",
