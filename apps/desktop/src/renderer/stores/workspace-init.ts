@@ -3,10 +3,6 @@ import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-/**
- * Data needed to create a terminal when workspace becomes ready.
- * Stored globally so it survives dialog/hook unmounts.
- */
 export interface PendingTerminalSetup {
 	workspaceId: string;
 	projectId: string;
@@ -15,13 +11,8 @@ export interface PendingTerminalSetup {
 }
 
 interface WorkspaceInitState {
-	// Map of workspaceId -> progress
 	initProgress: Record<string, WorkspaceInitProgress>;
-
-	// Map of workspaceId -> pending terminal setup (survives dialog unmount)
 	pendingTerminalSetups: Record<string, PendingTerminalSetup>;
-
-	// Actions
 	updateProgress: (progress: WorkspaceInitProgress) => void;
 	clearProgress: (workspaceId: string) => void;
 	addPendingTerminalSetup: (setup: PendingTerminalSetup) => void;
@@ -42,8 +33,6 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 					},
 				}));
 
-				// For memory hygiene, clear "ready" progress after 5 minutes
-				// (long enough that WorkspaceInitEffects will have processed it)
 				if (progress.step === "ready") {
 					setTimeout(
 						() => {

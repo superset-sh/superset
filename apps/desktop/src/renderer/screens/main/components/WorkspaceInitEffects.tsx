@@ -10,16 +10,8 @@ import {
 } from "renderer/stores/workspace-init";
 
 /**
- * Renderless component that handles terminal setup when workspaces become ready.
- *
- * This is mounted at the app root (MainScreen) so it survives dialog unmounts.
- * When a workspace creation is initiated from a dialog (e.g., InitGitDialog,
- * CloneRepoDialog), the dialog may close before initialization completes.
- * This component ensures the terminal is still created when the workspace
- * becomes ready.
- *
- * Also handles the case where pending setup data is lost (e.g., after retry
- * or app restart) by fetching setup commands from the backend on demand.
+ * Handles terminal setup when workspaces become ready.
+ * Mounted at app root to survive dialog unmounts.
  */
 export function WorkspaceInitEffects() {
 	const initProgress = useWorkspaceInitStore((s) => s.initProgress);
@@ -31,7 +23,6 @@ export function WorkspaceInitEffects() {
 	);
 	const clearProgress = useWorkspaceInitStore((s) => s.clearProgress);
 
-	// Track which setups are currently being processed to prevent duplicate handling
 	const processingRef = useRef<Set<string>>(new Set());
 
 	const addTab = useTabsStore((state) => state.addTab);
@@ -46,7 +37,6 @@ export function WorkspaceInitEffects() {
 		electronTrpc.config.dismissConfigToast.useMutation();
 	const utils = electronTrpc.useUtils();
 
-	// Helper to create terminal tab for a preset
 	const createPresetTerminal = useCallback(
 		(
 			workspaceId: string,
@@ -73,7 +63,6 @@ export function WorkspaceInitEffects() {
 		[addTab, addTabWithMultiplePanes, renameTab],
 	);
 
-	// Helper to create terminal with setup commands and/or default preset
 	const handleTerminalSetup = useCallback(
 		(setup: PendingTerminalSetup, onComplete: () => void) => {
 			const hasSetupScript =
@@ -82,18 +71,13 @@ export function WorkspaceInitEffects() {
 			const hasDefaultPreset =
 				setup.defaultPreset != null && setup.defaultPreset.commands.length > 0;
 
-			// CASE 1: Both setup script AND default preset - create separate terminals
 			if (hasSetupScript && hasDefaultPreset && setup.defaultPreset) {
-				// Create setup script terminal
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
 					setup.workspaceId,
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
-
-				// Create preset terminal
 				createPresetTerminal(setup.workspaceId, setup.defaultPreset);
 
-				// Start the setup script terminal
 				createOrAttach.mutate(
 					{
 						paneId: setupPaneId,
@@ -119,7 +103,6 @@ export function WorkspaceInitEffects() {
 				return;
 			}
 
-			// CASE 2: Only setup script (no default preset)
 			if (hasSetupScript) {
 				const { tabId, paneId } = addTab(setup.workspaceId);
 				setTabAutoTitle(tabId, "Workspace Setup");
@@ -162,14 +145,12 @@ export function WorkspaceInitEffects() {
 				return;
 			}
 
-			// CASE 3: Only default preset (no setup script)
 			if (setup.defaultPreset && setup.defaultPreset.commands.length > 0) {
 				createPresetTerminal(setup.workspaceId, setup.defaultPreset);
 				onComplete();
 				return;
 			}
 
-			// CASE 4: Neither setup script nor default preset - show config toast
 			toast.info("No setup script configured", {
 				description: "Automate workspace setup with a config.json file",
 				action: {
@@ -193,63 +174,51 @@ export function WorkspaceInitEffects() {
 	);
 
 	useEffect(() => {
-		// Process pending setups that have reached ready state
 		for (const [workspaceId, setup] of Object.entries(pendingTerminalSetups)) {
 			const progress = initProgress[workspaceId];
 
-			// Skip if already being processed
 			if (processingRef.current.has(workspaceId)) {
 				continue;
 			}
 
-			// Create terminal when workspace becomes ready
 			if (progress?.step === "ready") {
-				// Mark as processing to prevent duplicate handling
 				processingRef.current.add(workspaceId);
 
 				handleTerminalSetup(setup, () => {
-					// Only remove from pending after successful handling
 					removePendingTerminalSetup(workspaceId);
 					clearProgress(workspaceId);
 					processingRef.current.delete(workspaceId);
 				});
 			}
 
-			// Clean up pending if failed (user will use retry or delete)
-			// Note: losing pending data is OK now - we fetch on demand when ready
 			if (progress?.step === "failed") {
 				removePendingTerminalSetup(workspaceId);
 			}
 		}
 
-		// Handle workspaces that became ready without pending setup data
-		// (e.g., after retry or app restart during init)
+		// Handle workspaces that became ready without pending setup data (after retry or app restart)
 		for (const [workspaceId, progress] of Object.entries(initProgress)) {
-			// Only process ready workspaces that don't have pending setup
 			if (progress.step !== "ready") {
 				continue;
 			}
 			if (pendingTerminalSetups[workspaceId]) {
-				continue; // Already handled above
+				continue;
 			}
 			if (processingRef.current.has(workspaceId)) {
 				continue;
 			}
 
-			// Mark as processing and fetch setup commands from backend
 			processingRef.current.add(workspaceId);
 
 			utils.workspaces.getSetupCommands
 				.fetch({ workspaceId })
 				.then((setupData) => {
 					if (!setupData) {
-						// Workspace not found or no project - just clear progress
 						clearProgress(workspaceId);
 						processingRef.current.delete(workspaceId);
 						return;
 					}
 
-					// Create a pending setup from fetched data and handle it
 					const fetchedSetup: PendingTerminalSetup = {
 						workspaceId,
 						projectId: setupData.projectId,
@@ -267,7 +236,6 @@ export function WorkspaceInitEffects() {
 						"[WorkspaceInitEffects] Failed to fetch setup commands:",
 						error,
 					);
-					// Still clear progress to avoid being stuck
 					clearProgress(workspaceId);
 					processingRef.current.delete(workspaceId);
 				});
@@ -281,6 +249,5 @@ export function WorkspaceInitEffects() {
 		utils.workspaces.getSetupCommands,
 	]);
 
-	// Renderless component
 	return null;
 }
