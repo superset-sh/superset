@@ -38,18 +38,8 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
+import { sanitizeBranchName, sanitizeSegment } from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
-
-function sanitizeSegment(text: string): string {
-	return text
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9\s-]/g, "")
-		.replace(/\s+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
-}
 
 function generateBranchFromTitle({
 	title,
@@ -58,15 +48,10 @@ function generateBranchFromTitle({
 	title: string;
 	authorPrefix?: string;
 }): string {
-	if (!title.trim()) return "";
-
 	const slug = sanitizeSegment(title);
 	if (!slug) return "";
 
-	if (authorPrefix) {
-		return `${authorPrefix}/${slug}`;
-	}
-	return slug;
+	return authorPrefix ? `${authorPrefix}/${slug}` : slug;
 }
 
 type Mode = "existing" | "new" | "cloud";
@@ -129,7 +114,7 @@ export function NewWorkspaceModal() {
 
 	const generatedBranchName = generateBranchFromTitle({ title, authorPrefix });
 	const branchNameToCreate = branchNameEdited
-		? branchName.trim()
+		? sanitizeBranchName(branchName)
 		: generatedBranchName;
 
 	const resetForm = () => {

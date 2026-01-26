@@ -31,6 +31,7 @@ import {
 	parsePrUrl,
 	safeCheckoutBranch,
 	sanitizeAuthorPrefix,
+	sanitizeBranchName,
 	worktreeExists,
 } from "../utils/git";
 import { loadSetupConfig } from "../utils/setup";
@@ -322,7 +323,7 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					branch = input.branchName.trim();
+					branch = sanitizeBranchName(input.branchName);
 				} else {
 					branch = generateBranchName({ existingBranches, authorPrefix });
 				}

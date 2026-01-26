@@ -311,15 +311,10 @@ export async function getGitAuthorName(
 	}
 }
 
-export function sanitizeAuthorPrefix(name: string): string {
-	return name
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9\s-]/g, "")
-		.replace(/\s+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-|-$/g, "");
-}
+export {
+	sanitizeAuthorPrefix,
+	sanitizeBranchName,
+} from "shared/utils/branch";
 
 export function generateBranchName({
 	existingBranches = [],
