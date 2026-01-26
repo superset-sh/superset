@@ -26,6 +26,7 @@
 		"@trpc/server": "^11.7.1",
 		"@upstash/qstash": "^2.8.4",
 		"@vercel/blob": "^2.0.0",
+		"@vercel/mcp-adapter": "^1.0.0",
 		"better-auth": "^1.4.17",
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "0.45.1",

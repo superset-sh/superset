@@ -2,7 +2,7 @@
 	"mcpServers": {
 		"superset": {
 			"type": "http",
-			"url": "http://localhost:3001/api/mcp",
+			"url": "http://localhost:3001/api/agent/mcp",
 			"oauth": {
 				"clientId": "claude-code",
 				"authorizationUrl": "http://localhost:3001/api/auth/mcp/authorize",

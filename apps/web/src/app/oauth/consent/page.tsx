@@ -4,6 +4,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { env } from "@/env";
+import { api } from "@/trpc/server";
 import { ConsentForm } from "./components/ConsentForm";
 
 interface ConsentPageProps {
@@ -61,6 +62,17 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 
 	const scopes = scope?.split(" ").filter(Boolean) ?? ["openid"];
 
+	// Fetch user's organization memberships via tRPC
+	const trpc = await api();
+	const userMemberships = await trpc.organization.myOrganizations.query();
+
+	// Get active organization from session or default to first
+	const extendedSession = session.session as typeof session.session & {
+		activeOrganizationId?: string | null;
+	};
+	const defaultOrgId =
+		extendedSession.activeOrganizationId ?? userMemberships[0]?.organizationId;
+
 	return (
 		<div className="relative flex min-h-screen flex-col">
 			<header className="container mx-auto px-6 py-6">
@@ -80,6 +92,11 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 					clientId={client_id}
 					scopes={scopes}
 					userName={session.user.name}
+					organizations={userMemberships.map((m) => ({
+						id: m.organizationId,
+						name: m.organizationName,
+					}))}
+					defaultOrganizationId={defaultOrgId}
 				/>
 			</main>
 		</div>

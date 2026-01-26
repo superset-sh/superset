@@ -12,6 +12,23 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 
 export const organizationRouter = {
+	/**
+	 * List organizations the current user is a member of
+	 */
+	myOrganizations: protectedProcedure.query(async ({ ctx }) => {
+		const userMemberships = await db
+			.select({
+				organizationId: members.organizationId,
+				organizationName: organizations.name,
+				role: members.role,
+			})
+			.from(members)
+			.innerJoin(organizations, eq(members.organizationId, organizations.id))
+			.where(eq(members.userId, ctx.session.user.id));
+
+		return userMemberships;
+	}),
+
 	all: publicProcedure.query(() => {
 		return db.query.organizations.findMany({
 			orderBy: desc(organizations.createdAt),

@@ -15,7 +15,6 @@ import {
 } from "./github";
 import {
 	agentCommands,
-	apiKeys,
 	devicePresence,
 	integrationConnections,
 	repositories,
@@ -35,7 +34,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
-	apiKeys: many(apiKeys),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -63,18 +61,6 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
-	apiKeys: many(apiKeys),
-}));
-
-export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
-	user: one(users, {
-		fields: [apiKeys.userId],
-		references: [users.id],
-	}),
-	organization: one(organizations, {
-		fields: [apiKeys.organizationId],
-		references: [organizations.id],
-	}),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({

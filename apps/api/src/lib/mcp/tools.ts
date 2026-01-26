@@ -17,9 +17,32 @@ import type { McpContext } from "./auth";
 const DEVICE_ONLINE_THRESHOLD_MS = 60_000; // 60 seconds
 
 /**
- * Register all MCP tools on the server
+ * Extra parameter passed to tool handlers by withMcpAuth
  */
-export function registerMcpTools(server: McpServer, ctx: McpContext) {
+interface ToolHandlerExtra {
+	authInfo?: {
+		extra?: {
+			mcpContext?: McpContext;
+		};
+	};
+}
+
+/**
+ * Extract McpContext from tool handler's extra parameter
+ */
+function getContext(extra: ToolHandlerExtra): McpContext {
+	const ctx = extra.authInfo?.extra?.mcpContext;
+	if (!ctx) {
+		throw new Error("No MCP context available - authentication required");
+	}
+	return ctx;
+}
+
+/**
+ * Register all MCP tools on the server
+ * Tools access context via extra.authInfo.extra.mcpContext
+ */
+export function registerMcpTools(server: McpServer) {
 	// ========================================
 	// TASK TOOLS (Cloud - Immediate Execution)
 	// ========================================
@@ -60,7 +83,9 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.optional()
 				.describe("Estimate in points/hours"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
+
 			// Get default status if not provided
 			let statusId = params.statusId;
 			if (!statusId) {
@@ -183,7 +208,9 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.describe("New due date (null to clear)"),
 			estimate: z.number().int().positive().nullable().optional(),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
+
 			// Find task by ID or slug
 			const isUuid =
 				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -273,7 +300,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 			limit: z.number().int().min(1).max(100).default(50),
 			offset: z.number().int().min(0).default(0),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const assignee = alias(users, "assignee");
 			const status = alias(taskStatuses, "status");
 
@@ -393,7 +421,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 		{
 			taskId: z.string().describe("Task ID (uuid) or slug"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const isUuid =
 				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
 					params.taskId,
@@ -461,7 +490,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 		{
 			taskId: z.string().describe("Task ID (uuid) or slug"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const isUuid =
 				/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
 					params.taskId,
@@ -528,7 +558,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 			search: z.string().optional().describe("Search by name or email"),
 			limit: z.number().int().min(1).max(100).default(50),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const conditions = [eq(members.organizationId, ctx.organizationId)];
 
 			let query = db
@@ -584,7 +615,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 		"list_task_statuses",
 		"List available task statuses for the organization",
 		{},
-		async () => {
+		async (_params, extra) => {
+			const ctx = getContext(extra);
 			const statuses = await db
 				.select({
 					id: taskStatuses.id,
@@ -618,7 +650,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.default(false)
 				.describe("Include recently offline devices"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const threshold = new Date(Date.now() - DEVICE_ONLINE_THRESHOLD_MS);
 			const offlineThreshold = new Date(
 				Date.now() - DEVICE_ONLINE_THRESHOLD_MS * 10,
@@ -678,7 +711,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.optional()
 				.describe("Target device (defaults to caller's device)"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
 
 			if (!targetDeviceId) {
@@ -711,7 +745,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.optional()
 				.describe("Target device (defaults to caller's device)"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
 
 			if (!targetDeviceId) {
@@ -741,7 +776,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 		{
 			deviceId: z.string().optional(),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
 
 			if (!targetDeviceId) {
@@ -779,7 +815,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.optional()
 				.describe("Workspace name to navigate to"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
 
 			if (!targetDeviceId) {
@@ -840,7 +877,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.optional()
 				.describe("Task ID to associate with workspace"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
 
 			if (!targetDeviceId) {
@@ -883,7 +921,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 				.optional()
 				.describe("Workspace name to switch to"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
 
 			if (!targetDeviceId) {
@@ -929,7 +968,8 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 			deviceId: z.string().optional(),
 			workspaceId: z.string().uuid().describe("Workspace ID to delete"),
 		},
-		async (params) => {
+		async (params, extra) => {
+			const ctx = getContext(extra);
 			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
 
 			if (!targetDeviceId) {

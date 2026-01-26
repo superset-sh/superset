@@ -329,33 +329,3 @@ export const agentCommands = pgTable(
 
 export type InsertAgentCommand = typeof agentCommands.$inferInsert;
 export type SelectAgentCommand = typeof agentCommands.$inferSelect;
-
-// API Keys for MCP server authentication
-export const apiKeys = pgTable(
-	"api_keys",
-	{
-		id: uuid().primaryKey().defaultRandom(),
-		userId: uuid("user_id")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		organizationId: uuid("organization_id")
-			.notNull()
-			.references(() => organizations.id, { onDelete: "cascade" }),
-		name: text().notNull(),
-		keyPrefix: text("key_prefix").notNull(),
-		keyHash: text("key_hash").notNull(),
-		defaultDeviceId: text("default_device_id"),
-		lastUsedAt: timestamp("last_used_at"),
-		usageCount: text("usage_count").notNull().default("0"),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
-		expiresAt: timestamp("expires_at"),
-		revokedAt: timestamp("revoked_at"),
-	},
-	(table) => [
-		index("api_keys_user_org_idx").on(table.userId, table.organizationId),
-		index("api_keys_key_hash_idx").on(table.keyHash),
-	],
-);
-
-export type InsertApiKey = typeof apiKeys.$inferInsert;
-export type SelectApiKey = typeof apiKeys.$inferSelect;

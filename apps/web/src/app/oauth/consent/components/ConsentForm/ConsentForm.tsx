@@ -1,14 +1,35 @@
 "use client";
 
 import { Button } from "@superset/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { useState } from "react";
-import { LuCheck, LuKey, LuMail, LuShieldCheck, LuUser } from "react-icons/lu";
+import {
+	LuBuilding2,
+	LuCheck,
+	LuKey,
+	LuMail,
+	LuShieldCheck,
+	LuUser,
+} from "react-icons/lu";
+
+interface Organization {
+	id: string;
+	name: string;
+}
 
 interface ConsentFormProps {
 	consentCode: string;
 	clientId: string;
 	scopes: string[];
 	userName: string;
+	organizations: Organization[];
+	defaultOrganizationId?: string;
 }
 
 const SCOPE_DESCRIPTIONS: Record<
@@ -38,15 +59,29 @@ export function ConsentForm({
 	clientId,
 	scopes,
 	userName,
+	organizations,
+	defaultOrganizationId,
 }: ConsentFormProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [selectedOrgId, setSelectedOrgId] = useState<string>(
+		defaultOrganizationId ?? organizations[0]?.id ?? "",
+	);
+
+	const showOrgPicker = organizations.length > 1;
+	const selectedOrg = organizations.find((o) => o.id === selectedOrgId);
 
 	const handleConsent = async (accept: boolean) => {
 		setIsLoading(true);
 		setError(null);
 
 		try {
+			// Build final scopes including organization scope
+			const finalScopes = [...scopes];
+			if (selectedOrgId && !finalScopes.some((s) => s.startsWith("organization:"))) {
+				finalScopes.push(`organization:${selectedOrgId}`);
+			}
+
 			// Call the Better Auth consent endpoint
 			const response = await fetch(
 				`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth2/consent`,
@@ -58,21 +93,23 @@ export function ConsentForm({
 					credentials: "include",
 					body: JSON.stringify({
 						accept,
-						consentCode,
+						consent_code: consentCode,
+						scope: finalScopes.join(" "),
 					}),
 				},
 			);
 
+			const data = await response.json();
+			console.log("[consent] Response:", response.status, data);
+
 			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.message || "Failed to process consent");
+				throw new Error(data.error_description || data.message || "Failed to process consent");
 			}
 
-			const data = await response.json();
-
 			// Redirect to the client's redirect URI with the authorization code
-			if (data.redirectTo) {
-				window.location.href = data.redirectTo;
+			const redirectUrl = data.redirectURI || data.redirectTo;
+			if (redirectUrl) {
+				window.location.href = redirectUrl;
 			}
 		} catch (err) {
 			console.error("Consent error:", err);
@@ -101,6 +138,45 @@ export function ConsentForm({
 					Signed in as{" "}
 					<span className="font-medium text-foreground">{userName}</span>
 				</p>
+
+				{/* Organization selector for multi-org users */}
+				{showOrgPicker ? (
+					<div className="mb-4">
+						<label
+							htmlFor="org-select"
+							className="mb-2 block text-sm font-medium"
+						>
+							Select organization
+						</label>
+						<Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
+							<SelectTrigger id="org-select" className="w-full">
+								<SelectValue placeholder="Select an organization" />
+							</SelectTrigger>
+							<SelectContent>
+								{organizations.map((org) => (
+									<SelectItem key={org.id} value={org.id}>
+										<div className="flex items-center gap-2">
+											<LuBuilding2 className="size-4 text-muted-foreground" />
+											{org.name}
+										</div>
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<p className="text-muted-foreground mt-1.5 text-xs">
+							This application will have access to data in the selected
+							organization.
+						</p>
+					</div>
+				) : selectedOrg ? (
+					<p className="text-muted-foreground mb-3 text-sm">
+						Organization:{" "}
+						<span className="font-medium text-foreground">
+							{selectedOrg.name}
+						</span>
+					</p>
+				) : null}
+
 				<p className="mb-2 text-sm font-medium">
 					This application will be able to:
 				</p>
@@ -116,6 +192,13 @@ export function ConsentForm({
 							</li>
 						);
 					})}
+					{/* Always show organization access scope */}
+					<li className="flex items-center gap-2 text-sm">
+						<span className="text-muted-foreground">
+							<LuBuilding2 className="size-4" />
+						</span>
+						<span>Access your organization data</span>
+					</li>
 				</ul>
 			</div>
 
@@ -132,7 +215,7 @@ export function ConsentForm({
 				</Button>
 				<Button
 					className="flex-1"
-					disabled={isLoading}
+					disabled={isLoading || !selectedOrgId}
 					onClick={() => handleConsent(true)}
 				>
 					{isLoading ? "Authorizing..." : "Authorize"}
@@ -152,5 +235,14 @@ function getClientDisplayName(clientId: string): string {
 		"claude-code": "Claude Code",
 		"superset-desktop": "Superset Desktop",
 	};
-	return knownClients[clientId] ?? clientId;
+	// For known clients, use friendly name
+	// For dynamic MCP clients (random IDs), show generic name
+	if (knownClients[clientId]) {
+		return knownClients[clientId];
+	}
+	// Dynamic client IDs are typically long random strings
+	if (clientId.length > 20) {
+		return "External Application";
+	}
+	return clientId;
 }
