@@ -22,9 +22,17 @@ export function useCreateBranchWorkspace(
 			await utils.workspaces.invalidate();
 
 			if (!data.wasExisting) {
-				const setupData = await utils.workspaces.getSetupCommands.fetch({
-					workspaceId: data.workspace.id,
-				});
+				let setupData = null;
+				try {
+					setupData = await utils.workspaces.getSetupCommands.fetch({
+						workspaceId: data.workspace.id,
+					});
+				} catch (error) {
+					console.error(
+						"[useCreateBranchWorkspace] Failed to fetch setup commands:",
+						error,
+					);
+				}
 
 				addPendingTerminalSetup({
 					workspaceId: data.workspace.id,
