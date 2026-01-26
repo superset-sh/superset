@@ -150,6 +150,7 @@ export function ProjectSection({
 										branch={workspace.branch}
 										type={workspace.type}
 										isUnread={workspace.isUnread}
+										imagePath={workspace.imagePath}
 										index={wsIndex}
 										shortcutIndex={shortcutBaseIndex + wsIndex}
 										isCollapsed={isSidebarCollapsed}
@@ -207,6 +208,7 @@ export function ProjectSection({
 									branch={workspace.branch}
 									type={workspace.type}
 									isUnread={workspace.isUnread}
+									imagePath={workspace.imagePath}
 									index={wsIndex}
 									shortcutIndex={shortcutBaseIndex + wsIndex}
 								/>

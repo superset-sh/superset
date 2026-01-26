@@ -3,6 +3,7 @@ import { createBranchProcedures } from "./procedures/branch";
 import { createCreateProcedures } from "./procedures/create";
 import { createDeleteProcedures } from "./procedures/delete";
 import { createGitStatusProcedures } from "./procedures/git-status";
+import { createImageProcedures } from "./procedures/image";
 import { createInitProcedures } from "./procedures/init";
 import { createQueryProcedures } from "./procedures/query";
 import { createStatusProcedures } from "./procedures/status";
@@ -28,6 +29,7 @@ export const createWorkspacesRouter = () => {
 		createGitStatusProcedures(),
 		createStatusProcedures(),
 		createInitProcedures(),
+		createImageProcedures(),
 	);
 };
 

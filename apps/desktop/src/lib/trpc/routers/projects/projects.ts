@@ -17,7 +17,8 @@ import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
-import { publicProcedure, router } from "../..";
+import { mergeRouters, publicProcedure, router } from "../..";
+import { createProjectImageProcedures } from "./procedures/image";
 import {
 	activateProject,
 	getBranchWorkspace,
@@ -241,7 +242,7 @@ function extractRepoName(urlInput: string): string | null {
 }
 
 export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
-	return router({
+	const mainRouter = router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }): Project => {
@@ -1028,6 +1029,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				};
 			}),
 	});
+
+	return mergeRouters(mainRouter, createProjectImageProcedures());
 };
 
 export type ProjectsRouter = ReturnType<typeof createProjectsRouter>;

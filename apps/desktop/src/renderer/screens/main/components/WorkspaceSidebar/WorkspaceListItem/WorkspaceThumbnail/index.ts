@@ -1,0 +1,1 @@
+export { WorkspaceThumbnail } from "./WorkspaceThumbnail";

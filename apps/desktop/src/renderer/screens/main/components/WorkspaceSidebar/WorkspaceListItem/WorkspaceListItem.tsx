@@ -3,6 +3,9 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuSub,
+	ContextMenuSubContent,
+	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
@@ -25,6 +28,7 @@ import {
 	LuFolder,
 	LuFolderGit2,
 	LuFolderOpen,
+	LuImage,
 	LuPencil,
 	LuX,
 } from "react-icons/lu";
@@ -44,6 +48,7 @@ import { STROKE_WIDTH } from "../constants";
 import {
 	BranchSwitcher,
 	DeleteWorkspaceDialog,
+	ImagePickerContent,
 	WorkspaceHoverCardContent,
 } from "./components";
 import {
@@ -54,6 +59,7 @@ import {
 } from "./constants";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
+import { WorkspaceThumbnail } from "./WorkspaceThumbnail";
 
 const WORKSPACE_TYPE = "WORKSPACE";
 
@@ -65,6 +71,7 @@ interface WorkspaceListItemProps {
 	branch: string;
 	type: "worktree" | "branch";
 	isUnread?: boolean;
+	imagePath?: string | null;
 	index: number;
 	shortcutIndex?: number;
 	/** Whether the sidebar is in collapsed mode (icon-only view) */
@@ -79,6 +86,7 @@ export function WorkspaceListItem({
 	branch,
 	type,
 	isUnread = false,
+	imagePath,
 	index,
 	shortcutIndex,
 	isCollapsed = false,
@@ -261,21 +269,11 @@ export function WorkspaceListItem({
 			>
 				{workspaceStatus === "working" ? (
 					<AsciiSpinner className="text-base" />
-				) : isBranchWorkspace ? (
-					<LuFolder
-						className={cn(
-							"size-4",
-							isActive ? "text-foreground" : "text-muted-foreground",
-						)}
-						strokeWidth={STROKE_WIDTH}
-					/>
 				) : (
-					<LuFolderGit2
-						className={cn(
-							"size-4",
-							isActive ? "text-foreground" : "text-muted-foreground",
-						)}
-						strokeWidth={STROKE_WIDTH}
+					<WorkspaceThumbnail
+						workspaceId={id}
+						workspaceName={name || branch}
+						isActive={isActive}
 					/>
 				)}
 				{/* Status indicator - only show for non-working statuses */}
@@ -384,21 +382,12 @@ export function WorkspaceListItem({
 					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
 						{workspaceStatus === "working" ? (
 							<AsciiSpinner className="text-base" />
-						) : isBranchWorkspace ? (
-							<LuFolder
-								className={cn(
-									"size-4 transition-colors",
-									isActive ? "text-foreground" : "text-muted-foreground",
-								)}
-								strokeWidth={STROKE_WIDTH}
-							/>
 						) : (
-							<LuFolderGit2
-								className={cn(
-									"size-4 transition-colors",
-									isActive ? "text-foreground" : "text-muted-foreground",
-								)}
-								strokeWidth={STROKE_WIDTH}
+							<WorkspaceThumbnail
+								workspaceId={id}
+								workspaceName={name || branch}
+								type={type}
+								isActive={isActive}
 							/>
 						)}
 						{workspaceStatus && workspaceStatus !== "working" && (
@@ -570,6 +559,24 @@ export function WorkspaceListItem({
 							Copy Path
 						</ContextMenuItem>
 						<ContextMenuSeparator />
+						<ContextMenuSub>
+							<ContextMenuSubTrigger>
+								<LuImage className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+								Set Image
+							</ContextMenuSubTrigger>
+							<ContextMenuSubContent className="p-0">
+								<ImagePickerContent
+									workspaceId={id}
+									currentImagePath={imagePath}
+									onSelect={() => {
+										utils.workspaces.getWorkspaceImage.invalidate({
+											workspaceId: id,
+										});
+									}}
+								/>
+							</ContextMenuSubContent>
+						</ContextMenuSub>
+						<ContextMenuSeparator />
 						{unreadMenuItem}
 					</ContextMenuContent>
 				</ContextMenu>
@@ -611,6 +618,24 @@ export function WorkspaceListItem({
 							<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Copy Path
 						</ContextMenuItem>
+						<ContextMenuSeparator />
+						<ContextMenuSub>
+							<ContextMenuSubTrigger>
+								<LuImage className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+								Set Image
+							</ContextMenuSubTrigger>
+							<ContextMenuSubContent className="p-0">
+								<ImagePickerContent
+									workspaceId={id}
+									currentImagePath={imagePath}
+									onSelect={() => {
+										utils.workspaces.getWorkspaceImage.invalidate({
+											workspaceId: id,
+										});
+									}}
+								/>
+							</ContextMenuSubContent>
+						</ContextMenuSub>
 						<ContextMenuSeparator />
 						{unreadMenuItem}
 					</ContextMenuContent>
