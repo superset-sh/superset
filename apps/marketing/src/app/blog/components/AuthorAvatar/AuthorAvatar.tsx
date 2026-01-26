@@ -19,12 +19,14 @@ interface AuthorAvatarProps {
 	name: string;
 	twitterHandle?: string;
 	title?: string;
+	size?: "sm" | "md";
 }
 
 export function AuthorAvatar({
 	name,
 	twitterHandle,
 	title,
+	size = "md",
 }: AuthorAvatarProps) {
 	const initials = name
 		.split(" ")
@@ -33,8 +35,12 @@ export function AuthorAvatar({
 		.toUpperCase()
 		.slice(0, 2);
 
+	const sizeClasses = size === "sm" ? "size-6 text-[10px]" : "size-8 text-xs";
+
 	const avatar = (
-		<div className="size-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-foreground/70 cursor-pointer">
+		<div
+			className={`${sizeClasses} rounded-full bg-muted flex items-center justify-center font-medium text-foreground/70 cursor-pointer`}
+		>
 			{initials}
 		</div>
 	);

@@ -103,3 +103,25 @@
 	font-style: normal;
 	border-left-color: rgb(255 255 255 / 0.2);
 }
+
+/*
+ * Blog code blocks - force dark theme
+ * Note: !important is required to override Shiki's inline styles
+ */
+.blog-code-block > div {
+	background: #282c34 !important;
+	border-color: #3e4451 !important;
+}
+
+.blog-code-block pre {
+	background: #282c34 !important;
+}
+
+/* Hide light theme, show dark theme */
+.blog-code-block .dark\:hidden {
+	display: none !important;
+}
+
+.blog-code-block .hidden.dark\:block {
+	display: block !important;
+}

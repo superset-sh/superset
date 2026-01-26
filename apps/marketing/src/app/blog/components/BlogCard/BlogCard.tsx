@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { BlogPost } from "@/lib/blog";
+import { AuthorAvatar } from "../AuthorAvatar";
 
 interface BlogCardProps {
 	post: BlogPost;
@@ -28,10 +29,19 @@ export function BlogCard({ post }: BlogCardProps) {
 					{post.title}
 				</h2>
 				{post.description && (
-					<p className="text-muted-foreground text-sm leading-relaxed">
+					<p className="text-muted-foreground text-sm leading-relaxed mb-4">
 						{post.description}
 					</p>
 				)}
+				<div className="flex items-center gap-2">
+					<AuthorAvatar
+						name={post.author}
+						title="Cofounder, Superset"
+						twitterHandle="avimakesrobots"
+						size="sm"
+					/>
+					<span className="text-xs text-muted-foreground">{post.author}</span>
+				</div>
 			</article>
 		</Link>
 	);

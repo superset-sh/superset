@@ -3,9 +3,9 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AuthorAvatar } from "@/app/blog/components/AuthorAvatar";
 import { GridCross } from "@/app/blog/components/GridCross";
 import type { BlogPost } from "@/lib/blog";
-import { AuthorAvatar } from "./components/AuthorAvatar";
 
 interface TocItem {
 	id: string;
