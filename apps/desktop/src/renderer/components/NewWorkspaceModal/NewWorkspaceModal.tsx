@@ -131,12 +131,11 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	// Auto-generate branch name from title (unless manually edited)
-	useEffect(() => {
-		if (!branchNameEdited) {
-			setBranchName(generateBranchFromTitle({ title, authorPrefix }));
-		}
-	}, [title, branchNameEdited, authorPrefix]);
+	// Display branch name: use edited value or auto-generate from title
+	const displayBranchName = useMemo(() => {
+		if (branchNameEdited) return branchName;
+		return generateBranchFromTitle({ title, authorPrefix });
+	}, [branchNameEdited, branchName, title, authorPrefix]);
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
@@ -301,10 +300,7 @@ export function NewWorkspaceModal() {
 									{title && !showAdvanced && (
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
-											<span className="font-mono">
-												{branchName ||
-													generateBranchFromTitle({ title, authorPrefix })}
-											</span>
+											<span className="font-mono">{displayBranchName}</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
 											</span>
@@ -332,12 +328,8 @@ export function NewWorkspaceModal() {
 												<Input
 													id="branch"
 													className="h-8 text-sm font-mono"
-													placeholder={
-														title
-															? generateBranchFromTitle({ title, authorPrefix })
-															: "auto-generated"
-													}
-													value={branchName}
+													placeholder="auto-generated"
+													value={displayBranchName}
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
 													}
