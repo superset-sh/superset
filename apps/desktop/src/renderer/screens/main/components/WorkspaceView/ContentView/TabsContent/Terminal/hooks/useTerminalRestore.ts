@@ -3,7 +3,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
 import type { CreateOrAttachResult, TerminalStreamEvent } from "../types";
-import { scrollToBottom } from "../utils";
+import { scrollToBottom, stripClearScrollback } from "../utils";
 
 export interface UseTerminalRestoreOptions {
 	paneId: string;
@@ -23,6 +23,8 @@ export interface UseTerminalRestoreOptions {
 	onDisconnectEvent: (reason: string | undefined) => void;
 	/** Callback to send resize to PTY after fit() - ensures PTY dimensions match xterm */
 	onResize: (cols: number, rows: number) => void;
+	/** Optional callback to restore viewport position for reattached sessions */
+	restoreViewport?: (xterm: XTerm, isNew: boolean) => void;
 }
 
 export interface UseTerminalRestoreReturn {
@@ -57,6 +59,7 @@ export function useTerminalRestore({
 	onErrorEvent,
 	onDisconnectEvent,
 	onResize,
+	restoreViewport,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
@@ -78,6 +81,8 @@ export function useTerminalRestore({
 	onDisconnectEventRef.current = onDisconnectEvent;
 	const onResizeRef = useRef(onResize);
 	onResizeRef.current = onResize;
+	const restoreViewportRef = useRef(restoreViewport);
+	restoreViewportRef.current = restoreViewport;
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -92,7 +97,10 @@ export function useTerminalRestore({
 		for (const event of events) {
 			if (event.type === "data") {
 				updateModesRef.current(event.data);
-				xterm.write(event.data);
+				const sanitized = stripClearScrollback(event.data);
+				if (sanitized) {
+					xterm.write(sanitized);
+				}
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
 				onExitEventRef.current(event.exitCode, xterm);
@@ -123,11 +131,26 @@ export function useTerminalRestore({
 				requestAnimationFrame(() => {
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
+					const prevCols = xterm.cols;
+					const prevRows = xterm.rows;
 					fitAddon.fit();
-					// Send resize to PTY after fit() to ensure dimensions are synced.
-					// This fixes the race condition where createOrAttach uses stale dimensions
-					// from before the container was fully laid out.
-					onResizeRef.current(xterm.cols, xterm.rows);
+					const didResize = xterm.cols !== prevCols || xterm.rows !== prevRows;
+					if (didResize) {
+						// Only send resize if dimensions differ from snapshot.
+						// PTY already has snapshot dimensions from createOrAttach.
+						// Avoiding unnecessary SIGWINCH prevents TUI apps from redrawing
+						// and clearing scrollback.
+						const snapshotCols = result.snapshot?.cols;
+						const snapshotRows = result.snapshot?.rows;
+						if (
+							snapshotCols === undefined ||
+							snapshotRows === undefined ||
+							xterm.cols !== snapshotCols ||
+							xterm.rows !== snapshotRows
+						) {
+							onResizeRef.current(xterm.cols, xterm.rows);
+						}
+					}
 					// Only scroll to bottom for NEW sessions. For reattached sessions,
 					// the snapshot already positions the viewport correctly and we should
 					// not override the user's scroll position.
@@ -136,12 +159,17 @@ export function useTerminalRestore({
 						// processed before scrolling. xterm.write() is async and buffers writes,
 						// so scrollToBottom() called immediately might not see all content.
 						xterm.write("", () => scrollToBottom(xterm));
+					} else {
+						restoreViewportRef.current?.(xterm, result.isNew);
 					}
 				});
 			};
 
 			// Canonical initial content: prefer snapshot (daemon mode) over scrollback
 			const initialAnsi = result.snapshot?.snapshotAnsi ?? result.scrollback;
+			const sanitizedInitialAnsi = initialAnsi
+				? stripClearScrollback(initialAnsi)
+				: initialAnsi;
 
 			// Track alternate screen mode from snapshot
 			isAlternateScreenRef.current = !!result.snapshot?.modes.alternateScreen;
@@ -183,8 +211,10 @@ export function useTerminalRestore({
 							.join("")
 							.split(`${ESC}[?47h`)
 							.join("");
-						if (filteredRehydrate) {
-							xterm.write(filteredRehydrate);
+						const sanitizedRehydrate =
+							filteredRehydrate && stripClearScrollback(filteredRehydrate);
+						if (sanitizedRehydrate) {
+							xterm.write(sanitizedRehydrate);
 						}
 					}
 
@@ -208,6 +238,7 @@ export function useTerminalRestore({
 			}
 
 			const rehydrateSequences = result.snapshot?.rehydrateSequences ?? "";
+			const sanitizedRehydrate = stripClearScrollback(rehydrateSequences);
 
 			const finalizeRestore = () => {
 				isStreamReadyRef.current = true;
@@ -221,15 +252,15 @@ export function useTerminalRestore({
 			};
 
 			const writeSnapshot = () => {
-				if (!initialAnsi) {
+				if (!sanitizedInitialAnsi) {
 					finalizeRestore();
 					return;
 				}
-				xterm.write(initialAnsi, finalizeRestore);
+				xterm.write(sanitizedInitialAnsi, finalizeRestore);
 			};
 
-			if (rehydrateSequences) {
-				xterm.write(rehydrateSequences, writeSnapshot);
+			if (sanitizedRehydrate) {
+				xterm.write(sanitizedRehydrate, writeSnapshot);
 			} else {
 				writeSnapshot();
 			}

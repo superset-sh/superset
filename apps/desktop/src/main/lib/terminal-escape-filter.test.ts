@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
+	removeClearScrollbackSequences,
 } from "./terminal-escape-filter";
 
 const ESC = "\x1b";
@@ -135,5 +136,21 @@ describe("extractContentAfterClear", () => {
 			// ESC[3 (without J) is not a clear sequence
 			expect(extractContentAfterClear(`${ESC}[3mtext`)).toBe(`${ESC}[3mtext`);
 		});
+	});
+});
+
+describe("removeClearScrollbackSequences", () => {
+	it("should remove ED3 sequences while preserving content", () => {
+		expect(removeClearScrollbackSequences(`${ESC}[3J`)).toBe("");
+		expect(removeClearScrollbackSequences(`a${ESC}[3Jb`)).toBe("ab");
+	});
+
+	it("should remove multiple ED3 sequences", () => {
+		expect(removeClearScrollbackSequences(`a${ESC}[3Jb${ESC}[3Jc`)).toBe("abc");
+	});
+
+	it("should preserve other escape sequences", () => {
+		const data = `${ESC}[2J${ESC}[Htext`;
+		expect(removeClearScrollbackSequences(data)).toBe(data);
 	});
 });

@@ -41,7 +41,7 @@ import {
 	useTerminalStream,
 } from "./hooks";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
-import { coldRestoreState, pendingDetaches } from "./state";
+import { coldRestoreState, pendingDetaches, viewportState } from "./state";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { scrollToBottom, shellEscapePaths } from "./utils";
@@ -190,6 +190,31 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		onDisconnectEvent: (reason) =>
 			setConnectionError(reason || "Connection to terminal daemon lost"),
 		onResize: (cols, rows) => resizeRef.current({ paneId, cols, rows }),
+		restoreViewport: (xtermInstance, isNew) => {
+			if (isNew) return;
+			const stored = viewportState.get(paneId);
+			if (!stored) return;
+			const viewport = xtermInstance.element?.querySelector(
+				".xterm-viewport",
+			) as HTMLElement | null;
+			if (!viewport) return;
+
+			if (stored.wasAtBottom) {
+				scrollToBottom(xtermInstance);
+			} else {
+				const prevMax = Math.max(1, stored.scrollHeight - stored.clientHeight);
+				const ratio = Math.min(1, Math.max(0, stored.scrollTop / prevMax));
+				const maxScroll = Math.max(
+					0,
+					viewport.scrollHeight - viewport.clientHeight,
+				);
+				viewport.scrollTo({
+					top: Math.round(maxScroll * ratio),
+					behavior: "instant",
+				});
+			}
+			viewportState.delete(paneId);
+		},
 	});
 
 	// Cold restore handling
@@ -617,6 +642,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 			cancelInitialAttach();
 			isUnmounted = true;
+			const viewport = xterm.element?.querySelector(
+				".xterm-viewport",
+			) as HTMLElement | null;
+			if (viewport) {
+				const buffer = xterm.buffer.active;
+				const wasAtBottom = buffer.viewportY >= buffer.baseY;
+				viewportState.set(paneId, {
+					scrollTop: viewport.scrollTop,
+					scrollHeight: viewport.scrollHeight,
+					clientHeight: viewport.clientHeight,
+					wasAtBottom,
+				});
+			}
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			inputDisposable.dispose();

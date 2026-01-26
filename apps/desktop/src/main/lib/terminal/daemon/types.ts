@@ -7,6 +7,7 @@ export interface SessionInfo {
 	pid: number | null;
 	cols: number;
 	rows: number;
+	isAgentSession: boolean;
 }
 
 export interface ColdRestoreInfo {

@@ -14,6 +14,7 @@ const ESC = "\x1b";
  * triggered by commands like `clear` or Cmd+K.
  */
 const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J`);
+const CLEAR_SCROLLBACK_GLOBAL_PATTERN = new RegExp(`${ESC}\\[3J`, "g");
 
 const ED3_SEQUENCE = `${ESC}[3J`;
 
@@ -43,4 +44,12 @@ export function extractContentAfterClear(data: string): string {
 	}
 
 	return data.slice(ed3Index + ED3_SEQUENCE.length);
+}
+
+/**
+ * Removes clear scrollback sequences while preserving surrounding content.
+ * Useful when we want to keep history but ignore ED3 resets.
+ */
+export function removeClearScrollbackSequences(data: string): string {
+	return data.replace(CLEAR_SCROLLBACK_GLOBAL_PATTERN, "");
 }

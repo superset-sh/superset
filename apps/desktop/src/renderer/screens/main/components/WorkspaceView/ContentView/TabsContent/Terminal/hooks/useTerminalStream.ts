@@ -5,7 +5,7 @@ import { isTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { DEBUG_TERMINAL } from "../config";
 import type { TerminalStreamEvent } from "../types";
-
+import { stripClearScrollback } from "../utils";
 export interface UseTerminalStreamOptions {
 	paneId: string;
 	xtermRef: React.MutableRefObject<XTerm | null>;
@@ -147,7 +147,10 @@ export function useTerminalStream({
 					);
 				}
 				updateModesRef.current(event.data);
-				xterm.write(event.data);
+				const sanitized = stripClearScrollback(event.data);
+				if (sanitized) {
+					xterm.write(sanitized);
+				}
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
 				handleTerminalExit(event.exitCode, xterm);

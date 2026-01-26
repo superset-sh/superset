@@ -77,9 +77,11 @@ export class TerminalManager extends EventEmitter {
 
 		// Match agent commands anywhere in the string (handles "cd repo && claude ...")
 		const agentCommandPattern = /\b(claude|codex|opencode)\b/;
-		const shouldAwaitAgentHooks =
+		const isAgentSession =
 			initialCommands?.some((command) => agentCommandPattern.test(command)) ??
 			false;
+		const shouldAwaitAgentHooks = isAgentSession;
+		session.isAgentSession = isAgentSession;
 
 		// Set up data handler
 		setupDataHandler(

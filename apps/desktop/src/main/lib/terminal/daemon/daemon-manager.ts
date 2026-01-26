@@ -361,6 +361,12 @@ export class DaemonTerminalManager extends EventEmitter {
 			const sessionCwd = response.snapshot.cwd || cwd || "";
 			const effectiveCols = response.snapshot.cols || cols;
 			const effectiveRows = response.snapshot.rows || rows;
+			const existingSession = this.sessions.get(paneId);
+			const agentCommandPattern = /\b(claude|codex|opencode)\b/;
+			const isAgentSession =
+				initialCommands?.some((command) => agentCommandPattern.test(command)) ??
+				existingSession?.isAgentSession ??
+				false;
 
 			this.cancelPendingCleanup(paneId);
 
@@ -373,6 +379,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				pid: response.pid,
 				cols: effectiveCols,
 				rows: effectiveRows,
+				isAgentSession,
 			});
 
 			portManager.upsertDaemonSession(paneId, workspaceId, response.pid);

@@ -19,3 +19,8 @@ export function scrollToBottom(
 		terminal.scrollToBottom();
 	}
 }
+
+export function stripClearScrollback(data: string): string {
+	const ESC = "\x1b";
+	return data.replaceAll(`${ESC}[3J`, "");
+}

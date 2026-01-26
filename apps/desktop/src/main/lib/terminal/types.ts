@@ -22,6 +22,8 @@ export interface TerminalSession {
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;
+	/** Agent sessions preserve scrollback on ED3 clears */
+	isAgentSession: boolean;
 }
 
 export interface TerminalDataEvent {

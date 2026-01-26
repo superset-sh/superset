@@ -6,7 +6,7 @@ import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
-	extractContentAfterClear,
+	removeClearScrollbackSequences,
 } from "../terminal-escape-filter";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import { PtyWriteQueue } from "./pty-write-queue";
@@ -162,6 +162,7 @@ export async function createSession(
 		shell,
 		startTime: Date.now(),
 		usedFallback: useFallbackShell,
+		isAgentSession: false,
 	};
 }
 
@@ -180,16 +181,9 @@ export function setupDataHandler(
 	session.pty.onData((data) => {
 		// Recreate headless on clear (xterm writes are async, so clear() alone is unreliable)
 		if (containsClearScrollbackSequence(data)) {
-			session.headless.dispose();
-			const { headless, serializer } = createHeadlessTerminal({
-				cols: session.cols,
-				rows: session.rows,
-			});
-			session.headless = headless;
-			session.serializer = serializer;
-			const contentAfterClear = extractContentAfterClear(data);
-			if (contentAfterClear) {
-				session.headless.write(contentAfterClear);
+			const sanitized = removeClearScrollbackSequences(data);
+			if (sanitized) {
+				session.headless.write(sanitized);
 			}
 		} else {
 			session.headless.write(data);

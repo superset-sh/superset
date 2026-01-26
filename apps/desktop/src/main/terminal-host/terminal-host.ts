@@ -158,9 +158,16 @@ export class TerminalHost {
 			this.sessions.set(sessionId, session);
 			isNew = true;
 		} else {
-			// Resize to client dimensions - failures are non-fatal
+			// Only resize if dimensions actually changed - avoids unnecessary SIGWINCH
+			// which causes TUI apps like Claude Code to redraw and clear scrollback
 			try {
-				session.resize(request.cols, request.rows);
+				const currentDims = session.getDimensions();
+				if (
+					request.cols !== currentDims.cols ||
+					request.rows !== currentDims.rows
+				) {
+					session.resize(request.cols, request.rows);
+				}
 			} catch {
 				// Ignore - session may still be attachable
 			}

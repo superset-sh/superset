@@ -1,6 +1,6 @@
 import {
 	containsClearScrollbackSequence,
-	extractContentAfterClear,
+	removeClearScrollbackSequences,
 } from "../../terminal-escape-filter";
 import {
 	HistoryReader,
@@ -41,8 +41,10 @@ export class HistoryManager {
 				);
 				safeScrollback = undefined;
 			} else {
+				safeScrollback = removeClearScrollbackSequences(initialScrollback);
+
 				const initialScrollbackBytes = Buffer.byteLength(
-					initialScrollback,
+					safeScrollback,
 					"utf8",
 				);
 				if (initialScrollbackBytes > MAX_HISTORY_SCROLLBACK_BYTES) {
@@ -50,7 +52,7 @@ export class HistoryManager {
 						`[HistoryManager] initialScrollback for ${paneId} too large (${initialScrollbackBytes} bytes), truncating to ${MAX_HISTORY_SCROLLBACK_BYTES}`,
 					);
 					safeScrollback = truncateUtf8ToLastBytes(
-						initialScrollback,
+						safeScrollback,
 						MAX_HISTORY_SCROLLBACK_BYTES,
 					);
 				}
@@ -82,7 +84,7 @@ export class HistoryManager {
 	writeToHistory(
 		paneId: string,
 		data: string,
-		getSession: () => SessionInfo | undefined,
+		_getSession: () => SessionInfo | undefined,
 	): void {
 		if (this.historyInitializing.has(paneId)) {
 			const buffer = this.pendingHistoryData.get(paneId);
@@ -98,30 +100,9 @@ export class HistoryManager {
 		}
 
 		if (containsClearScrollbackSequence(data)) {
-			const session = getSession();
-			if (session) {
-				writer.close().catch((error) => {
-					console.warn(
-						`[HistoryManager] Failed to close history writer for ${paneId}:`,
-						error,
-					);
-				});
-				this.historyWriters.delete(paneId);
-
-				const contentAfterClear = extractContentAfterClear(data);
-				this.initHistoryWriter({
-					paneId,
-					workspaceId: session.workspaceId,
-					cwd: session.cwd,
-					cols: session.cols,
-					rows: session.rows,
-					initialScrollback: contentAfterClear || undefined,
-				}).catch((error) => {
-					console.warn(
-						`[HistoryManager] Failed to reinitialize history writer for ${paneId}:`,
-						error,
-					);
-				});
+			const sanitized = removeClearScrollbackSequences(data);
+			if (sanitized) {
+				writer.write(sanitized);
 			}
 			return;
 		}
