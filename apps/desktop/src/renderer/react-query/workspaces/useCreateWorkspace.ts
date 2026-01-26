@@ -35,6 +35,10 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
 
+	// Query default preset to include in terminal setup
+	const { data: defaultPreset } =
+		electronTrpc.settings.getDefaultPreset.useQuery();
+
 	return electronTrpc.workspaces.create.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
@@ -57,6 +61,7 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 				workspaceId: data.workspace.id,
 				projectId: data.projectId,
 				initialCommands: data.initialCommands,
+				defaultPreset: defaultPreset ?? null,
 			});
 
 			// Auto-invalidate all workspace queries

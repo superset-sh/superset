@@ -1,3 +1,4 @@
+import type { TerminalPreset } from "@superset/local-db";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
@@ -10,6 +11,7 @@ export interface PendingTerminalSetup {
 	workspaceId: string;
 	projectId: string;
 	initialCommands: string[] | null;
+	defaultPreset?: TerminalPreset | null;
 }
 
 interface WorkspaceInitState {

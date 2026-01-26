@@ -1,4 +1,6 @@
+import { settings } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
+import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { z } from "zod";
@@ -6,6 +8,13 @@ import { publicProcedure, router } from "../../..";
 import { getProject, getWorkspaceWithRelations } from "../utils/db-helpers";
 import { loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
+
+function getDefaultPreset() {
+	const row = localDb.select().from(settings).get();
+	if (!row) return null;
+	const presets = row.terminalPresets ?? [];
+	return presets.find((p) => p.isDefault) ?? null;
+}
 
 export const createInitProcedures = () => {
 	return router({
@@ -109,7 +118,7 @@ export const createInitProcedures = () => {
 		/**
 		 * Get setup commands for a workspace.
 		 * Used as a fallback when pending terminal setup data is lost (e.g., after retry or app restart).
-		 * Re-reads the project config to get fresh commands.
+		 * Re-reads the project config to get fresh commands and includes the default preset.
 		 */
 		getSetupCommands: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
@@ -127,10 +136,12 @@ export const createInitProcedures = () => {
 				}
 
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
+				const defaultPreset = getDefaultPreset();
 
 				return {
 					projectId: project.id,
 					initialCommands: setupConfig?.setup ?? null,
+					defaultPreset,
 				};
 			}),
 	});
