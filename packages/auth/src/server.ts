@@ -27,6 +27,7 @@ import Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { oauthOrgScopeEndpoint } from "./lib/oauth-org-scope-endpoint";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import { formatPrice, getOrganizationOwners } from "./utils";
@@ -603,6 +604,7 @@ export const auth = betterAuth({
 			},
 		}),
 		acceptInvitationEndpoint,
+		oauthOrgScopeEndpoint,
 	],
 });
 

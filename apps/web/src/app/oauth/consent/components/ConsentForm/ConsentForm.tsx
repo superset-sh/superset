@@ -76,12 +76,28 @@ export function ConsentForm({
 		setError(null);
 
 		try {
-			const finalScopes = [...scopes];
-			if (
-				selectedOrgId &&
-				!finalScopes.some((s) => s.startsWith("organization:"))
-			) {
-				finalScopes.push(`organization:${selectedOrgId}`);
+			// Add organization scope to verification value before consent
+			// (Better Auth's consent endpoint doesn't accept scope in body)
+			if (accept && selectedOrgId) {
+				const addScopeResponse = await fetch(
+					`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth/add-org-scope`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						credentials: "include",
+						body: JSON.stringify({
+							consent_code: consentCode,
+							organizationId: selectedOrgId,
+						}),
+					},
+				);
+
+				if (!addScopeResponse.ok) {
+					const data = await addScopeResponse.json();
+					throw new Error(data.error || "Failed to set organization scope");
+				}
 			}
 
 			const response = await fetch(
@@ -95,7 +111,6 @@ export function ConsentForm({
 					body: JSON.stringify({
 						accept,
 						consent_code: consentCode,
-						scope: finalScopes.join(" "),
 					}),
 				},
 			);

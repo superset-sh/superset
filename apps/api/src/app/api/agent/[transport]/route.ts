@@ -36,6 +36,8 @@ async function verifyToken(req: Request, bearerToken?: string) {
 		const scopes = Array.isArray(mcpSession.scopes)
 			? mcpSession.scopes
 			: (mcpSession.scopes?.split(" ") ?? []);
+
+		// Get organization from scope
 		const orgScope = scopes.find((s) => s.startsWith("organization:"));
 		const organizationId = orgScope?.split(":")[1];
 
@@ -64,7 +66,7 @@ const baseHandler = createMcpHandler(
 	(server) => registerTools(server),
 	{ capabilities: { tools: {} } },
 	{
-		redisUrl: env.KV_REST_API_URL,
+		redisUrl: env.KV_URL,
 		basePath: "/api/agent",
 		verboseLogs: env.NODE_ENV === "development",
 		maxDuration: 60,
