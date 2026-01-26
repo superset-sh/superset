@@ -197,13 +197,12 @@ export function NewWorkspaceModal() {
 		if (!selectedProjectId) return;
 
 		const workspaceName = title.trim() || undefined;
-		const customBranchName = branchNameEdited ? branchName.trim() : undefined;
 
 		try {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
-				branchName: customBranchName || undefined,
+				branchName: branchNameToCreate || undefined,
 				baseBranch: effectiveBaseBranch || undefined,
 			});
 
