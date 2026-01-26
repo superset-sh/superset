@@ -179,12 +179,7 @@ export function NewWorkspaceModal() {
 	};
 
 	const handleBranchNameChange = (value: string) => {
-		// User manually editing - sanitize but don't auto-prefix
-		const sanitizedParts = value
-			.split("/")
-			.map((part) => sanitizeSegment(part))
-			.filter(Boolean);
-		setBranchName(sanitizedParts.join("/"));
+		setBranchName(value);
 		setBranchNameEdited(true);
 	};
 
