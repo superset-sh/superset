@@ -1,6 +1,4 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useParams } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { CloudWorkspaceButton } from "./CloudWorkspaceButton";
 import { OpenInMenuButton } from "./OpenInMenuButton";
@@ -13,9 +11,6 @@ export function TopBar() {
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
-	);
-	const cloudWorkspaceEnabled = useFeatureFlagEnabled(
-		FEATURE_FLAGS.CLOUD_WORKSPACE_ENABLED,
 	);
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
@@ -32,7 +27,7 @@ export function TopBar() {
 			<div className="flex-1" />
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
-				{cloudWorkspaceEnabled && workspace && (
+				{workspace && (
 					<CloudWorkspaceButton
 						workspaceId={workspace.id}
 						workspaceName={workspace.name}
