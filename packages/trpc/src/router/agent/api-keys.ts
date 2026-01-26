@@ -3,10 +3,6 @@ import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 
 export const apiKeysRouter = {
-	/**
-	 * Generate a new API key using Better Auth's apiKey plugin
-	 * Returns the full key only once - it cannot be retrieved later
-	 */
 	generate: protectedProcedure
 		.input(
 			z.object({
@@ -25,25 +21,22 @@ export const apiKeysRouter = {
 
 			const userId = ctx.session.user.id;
 
-			// Create API key using Better Auth's API with metadata containing org context
 			const apiKey = await ctx.auth.api.createApiKey({
 				body: {
 					name: input.name,
-					userId, // Required for server-side creation
+					userId,
 					metadata: JSON.stringify({
 						organizationId,
 						defaultDeviceId: input.defaultDeviceId ?? null,
 					}),
-					rateLimitEnabled: false, // Disable rate limiting per plan
+					rateLimitEnabled: false,
 				},
 			});
 
-			// Return the full key only this once
-			// Better Auth returns 'start' as the key prefix, 'key' is the full value
 			return {
 				id: apiKey.id,
 				name: apiKey.name ?? input.name,
-				key: apiKey.key, // Only returned on creation!
+				key: apiKey.key,
 				keyPrefix:
 					apiKey.start ?? `${apiKey.key.slice(0, 7)}...${apiKey.key.slice(-4)}`,
 				createdAt: apiKey.createdAt,
@@ -51,22 +44,16 @@ export const apiKeysRouter = {
 			};
 		}),
 
-	/**
-	 * List all API keys for the current user in the active organization
-	 * Uses Better Auth's listApiKeys and filters by organization metadata
-	 */
 	list: protectedProcedure.query(async ({ ctx }) => {
 		const organizationId = ctx.session.session.activeOrganizationId;
 		if (!organizationId) {
 			return [];
 		}
 
-		// Get all API keys for the current user via Better Auth
 		const allKeys = await ctx.auth.api.listApiKeys({
 			headers: ctx.headers,
 		});
 
-		// Filter to only show keys for current organization (from metadata)
 		const orgKeys = allKeys.filter((key) => {
 			if (!key.metadata) return false;
 			try {
@@ -80,7 +67,6 @@ export const apiKeysRouter = {
 			}
 		});
 
-		// Map to response shape expected by UI
 		return orgKeys.map((key) => {
 			let defaultDeviceId: string | null = null;
 			if (key.metadata) {
@@ -90,9 +76,7 @@ export const apiKeysRouter = {
 							? JSON.parse(key.metadata)
 							: key.metadata;
 					defaultDeviceId = meta.defaultDeviceId ?? null;
-				} catch {
-					// Ignore parse errors
-				}
+				} catch {}
 			}
 
 			return {
@@ -108,13 +92,9 @@ export const apiKeysRouter = {
 		});
 	}),
 
-	/**
-	 * Revoke an API key using Better Auth's deleteApiKey
-	 */
 	revoke: protectedProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			// Better Auth's deleteApiKey verifies ownership via session
 			const result = await ctx.auth.api.deleteApiKey({
 				body: { keyId: input.id },
 				headers: ctx.headers,

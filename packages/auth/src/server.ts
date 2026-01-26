@@ -113,8 +113,8 @@ export const auth = betterAuth({
 			oidcConfig: {
 				loginPage: `${env.NEXT_PUBLIC_WEB_URL}/sign-in`,
 				consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
-				accessTokenExpiresIn: 3600, // 1 hour
-				refreshTokenExpiresIn: 2592000, // 30 days
+				accessTokenExpiresIn: 3600,
+				refreshTokenExpiresIn: 2592000,
 			},
 		}),
 		expo(),
@@ -386,29 +386,6 @@ export const auth = betterAuth({
 
 			let activeOrganizationId = session.activeOrganizationId;
 
-			// With enableSessionForAPIKeys: true, the session includes apiKey data
-			// when authenticating via x-api-key header
-			const apiKeySession = baseSession as typeof session & {
-				apiKey?: { metadata?: string | null };
-			};
-
-			// Extract organizationId from API key metadata if present
-			if (apiKeySession.apiKey?.metadata) {
-				try {
-					const metadata =
-						typeof apiKeySession.apiKey.metadata === "string"
-							? (JSON.parse(apiKeySession.apiKey.metadata) as {
-									organizationId?: string;
-								})
-							: apiKeySession.apiKey.metadata;
-					if (metadata.organizationId) {
-						activeOrganizationId = metadata.organizationId;
-					}
-				} catch {
-					// Invalid JSON in metadata, ignore
-				}
-			}
-
 			const membership = await db.query.members.findFirst({
 				where: activeOrganizationId
 					? and(
@@ -418,15 +395,12 @@ export const auth = betterAuth({
 					: eq(members.userId, session.userId ?? user.id),
 			});
 
-			// Only update DB session if it's a real session (not API key mock session)
 			if (!activeOrganizationId && membership?.organizationId) {
 				activeOrganizationId = membership.organizationId;
-				if (session.id) {
-					await db
-						.update(authSchema.sessions)
-						.set({ activeOrganizationId })
-						.where(eq(authSchema.sessions.id, session.id));
-				}
+				await db
+					.update(authSchema.sessions)
+					.set({ activeOrganizationId })
+					.where(eq(authSchema.sessions.id, session.id));
 			}
 
 			let plan: string | null = null;

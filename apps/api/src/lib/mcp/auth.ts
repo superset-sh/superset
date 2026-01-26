@@ -11,10 +11,6 @@ export interface McpContext {
 	defaultDeviceId: string | null;
 }
 
-/**
- * Build MCP context from a user ID and optional organization ID
- * Used for OAuth sessions where org may be specified in token scopes
- */
 export async function buildMcpContext({
 	userId,
 	organizationId,
@@ -24,7 +20,6 @@ export async function buildMcpContext({
 }): Promise<McpContext | null> {
 	let orgId = organizationId;
 
-	// If no orgId provided, try to get from user's most recent session
 	if (!orgId) {
 		const recentSession = await db.query.sessions.findFirst({
 			where: eq(sessions.userId, userId),
@@ -33,7 +28,6 @@ export async function buildMcpContext({
 		orgId = recentSession?.activeOrganizationId ?? undefined;
 	}
 
-	// If still no org, fall back to first membership
 	if (!orgId) {
 		const membership = await db.query.members.findFirst({
 			where: eq(members.userId, userId),
@@ -46,7 +40,6 @@ export async function buildMcpContext({
 		orgId = membership.organizationId;
 	}
 
-	// Verify user is a member of this organization
 	const membership = await db.query.members.findFirst({
 		where: and(eq(members.userId, userId), eq(members.organizationId, orgId)),
 	});
@@ -60,7 +53,6 @@ export async function buildMcpContext({
 		return null;
 	}
 
-	// Fetch subscription for the organization
 	const subscription = await db.query.subscriptions.findFirst({
 		where: and(
 			eq(subscriptions.referenceId, orgId),
@@ -77,11 +69,7 @@ export async function buildMcpContext({
 	};
 }
 
-/**
- * Create an unauthorized JSON-RPC error response with OAuth discovery headers
- */
 export function createUnauthorizedResponse(): Response {
-	// Get the base URL for OAuth metadata
 	const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 	const resourceMetadataUrl = `${baseUrl}/.well-known/oauth-protected-resource`;
 
@@ -98,7 +86,6 @@ export function createUnauthorizedResponse(): Response {
 			status: 401,
 			headers: {
 				"Content-Type": "application/json",
-				// WWW-Authenticate header tells OAuth clients where to find resource metadata
 				"WWW-Authenticate": `Bearer resource_metadata="${resourceMetadataUrl}"`,
 			},
 		},

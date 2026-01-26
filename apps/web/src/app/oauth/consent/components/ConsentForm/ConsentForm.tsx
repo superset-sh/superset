@@ -76,7 +76,6 @@ export function ConsentForm({
 		setError(null);
 
 		try {
-			// Build final scopes including organization scope
 			const finalScopes = [...scopes];
 			if (
 				selectedOrgId &&
@@ -85,7 +84,6 @@ export function ConsentForm({
 				finalScopes.push(`organization:${selectedOrgId}`);
 			}
 
-			// Call the Better Auth consent endpoint
 			const response = await fetch(
 				`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth2/consent`,
 				{
@@ -110,7 +108,6 @@ export function ConsentForm({
 				);
 			}
 
-			// Redirect to the client's redirect URI with the authorization code
 			const redirectUrl = data.redirectURI || data.redirectTo;
 			if (redirectUrl) {
 				window.location.href = redirectUrl;
@@ -122,7 +119,6 @@ export function ConsentForm({
 		}
 	};
 
-	// Get client display name (for now, just use the client ID)
 	const clientName = getClientDisplayName(clientId);
 
 	return (
@@ -143,7 +139,6 @@ export function ConsentForm({
 					<span className="font-medium text-foreground">{userName}</span>
 				</p>
 
-				{/* Organization selector for multi-org users */}
 				{showOrgPicker ? (
 					<div className="mb-4">
 						<label
@@ -196,7 +191,6 @@ export function ConsentForm({
 							</li>
 						);
 					})}
-					{/* Always show organization access scope */}
 					<li className="flex items-center gap-2 text-sm">
 						<span className="text-muted-foreground">
 							<LuBuilding2 className="size-4" />
@@ -239,12 +233,9 @@ function getClientDisplayName(clientId: string): string {
 		"claude-code": "Claude Code",
 		"superset-desktop": "Superset Desktop",
 	};
-	// For known clients, use friendly name
-	// For dynamic MCP clients (random IDs), show generic name
 	if (knownClients[clientId]) {
 		return knownClients[clientId];
 	}
-	// Dynamic client IDs are typically long random strings
 	if (clientId.length > 20) {
 		return "External Application";
 	}
