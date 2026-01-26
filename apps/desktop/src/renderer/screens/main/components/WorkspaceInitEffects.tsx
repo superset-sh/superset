@@ -184,11 +184,40 @@ export function WorkspaceInitEffects() {
 			if (progress?.step === "ready") {
 				processingRef.current.add(workspaceId);
 
-				handleTerminalSetup(setup, () => {
-					removePendingTerminalSetup(workspaceId);
-					clearProgress(workspaceId);
-					processingRef.current.delete(workspaceId);
-				});
+				// Always fetch from backend to ensure we have the latest preset
+				// (client-side preset query may not have resolved when pending setup was created)
+				if (setup.defaultPreset === undefined) {
+					utils.workspaces.getSetupCommands
+						.fetch({ workspaceId })
+						.then((setupData) => {
+							const completeSetup: PendingTerminalSetup = {
+								...setup,
+								defaultPreset: setupData?.defaultPreset ?? null,
+							};
+							handleTerminalSetup(completeSetup, () => {
+								removePendingTerminalSetup(workspaceId);
+								clearProgress(workspaceId);
+								processingRef.current.delete(workspaceId);
+							});
+						})
+						.catch((error) => {
+							console.error(
+								"[WorkspaceInitEffects] Failed to fetch setup commands:",
+								error,
+							);
+							handleTerminalSetup(setup, () => {
+								removePendingTerminalSetup(workspaceId);
+								clearProgress(workspaceId);
+								processingRef.current.delete(workspaceId);
+							});
+						});
+				} else {
+					handleTerminalSetup(setup, () => {
+						removePendingTerminalSetup(workspaceId);
+						clearProgress(workspaceId);
+						processingRef.current.delete(workspaceId);
+					});
+				}
 			}
 
 			if (progress?.step === "failed") {

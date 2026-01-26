@@ -15,8 +15,6 @@ export function useCreateBranchWorkspace(
 		(s) => s.addPendingTerminalSetup,
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
-	const { data: defaultPreset } =
-		electronTrpc.settings.getDefaultPreset.useQuery();
 
 	return electronTrpc.workspaces.createBranchWorkspace.useMutation({
 		...options,
@@ -32,7 +30,7 @@ export function useCreateBranchWorkspace(
 					workspaceId: data.workspace.id,
 					projectId: data.projectId,
 					initialCommands: setupData?.initialCommands ?? null,
-					defaultPreset: defaultPreset ?? setupData?.defaultPreset ?? null,
+					defaultPreset: setupData?.defaultPreset ?? null,
 				});
 
 				// Branch workspaces skip git init, so mark ready immediately to trigger terminal setup

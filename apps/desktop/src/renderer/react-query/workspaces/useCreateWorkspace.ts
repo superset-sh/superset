@@ -19,8 +19,6 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 		(s) => s.addPendingTerminalSetup,
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
-	const { data: defaultPreset } =
-		electronTrpc.settings.getDefaultPreset.useQuery();
 
 	return electronTrpc.workspaces.create.useMutation({
 		...options,
@@ -40,7 +38,6 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 				workspaceId: data.workspace.id,
 				projectId: data.projectId,
 				initialCommands: data.initialCommands,
-				defaultPreset: defaultPreset ?? null,
 			});
 
 			await utils.workspaces.invalidate();
