@@ -92,7 +92,7 @@ export function useTerminalRestore({
 		for (const event of events) {
 			if (event.type === "data") {
 				updateModesRef.current(event.data);
-				xterm.write(stripClearScrollbackSequence(event.data));
+				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
 				onExitEventRef.current(event.exitCode, xterm);
