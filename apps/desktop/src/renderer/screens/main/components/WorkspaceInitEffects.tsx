@@ -8,6 +8,7 @@ import {
 	type PendingTerminalSetup,
 	useWorkspaceInitStore,
 } from "renderer/stores/workspace-init";
+import { DEFAULT_AUTO_APPLY_DEFAULT_PRESET } from "shared/constants";
 
 /**
  * Handles terminal setup when workspaces become ready.
@@ -22,6 +23,11 @@ export function WorkspaceInitEffects() {
 		(s) => s.removePendingTerminalSetup,
 	);
 	const clearProgress = useWorkspaceInitStore((s) => s.clearProgress);
+
+	const { data: autoApplyDefaultPreset } =
+		electronTrpc.settings.getAutoApplyDefaultPreset.useQuery();
+	const shouldApplyPreset =
+		autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
 
 	const processingRef = useRef<Set<string>>(new Set());
 
@@ -69,7 +75,9 @@ export function WorkspaceInitEffects() {
 				Array.isArray(setup.initialCommands) &&
 				setup.initialCommands.length > 0;
 			const hasDefaultPreset =
-				setup.defaultPreset != null && setup.defaultPreset.commands.length > 0;
+				shouldApplyPreset &&
+				setup.defaultPreset != null &&
+				setup.defaultPreset.commands.length > 0;
 
 			if (hasSetupScript && hasDefaultPreset && setup.defaultPreset) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
@@ -145,7 +153,11 @@ export function WorkspaceInitEffects() {
 				return;
 			}
 
-			if (setup.defaultPreset && setup.defaultPreset.commands.length > 0) {
+			if (
+				shouldApplyPreset &&
+				setup.defaultPreset &&
+				setup.defaultPreset.commands.length > 0
+			) {
 				createPresetTerminal(setup.workspaceId, setup.defaultPreset);
 				onComplete();
 				return;
@@ -170,6 +182,7 @@ export function WorkspaceInitEffects() {
 			openConfigModal,
 			dismissConfigToast,
 			createPresetTerminal,
+			shouldApplyPreset,
 		],
 	);
 

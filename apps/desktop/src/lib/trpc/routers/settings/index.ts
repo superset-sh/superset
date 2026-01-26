@@ -9,6 +9,7 @@ import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { localDb } from "main/lib/local-db";
 import {
+	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PERSISTENCE,
@@ -308,6 +309,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalPersistence: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getAutoApplyDefaultPreset: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
+		}),
+
+		setAutoApplyDefaultPreset: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, autoApplyDefaultPreset: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { autoApplyDefaultPreset: input.enabled },
 					})
 					.run();
 

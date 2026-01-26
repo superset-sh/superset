@@ -40,7 +40,10 @@ import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
 } from "renderer/routes/_authenticated/settings/presets/types";
-import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
+import {
+	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
+	DEFAULT_TERMINAL_PERSISTENCE,
+} from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -119,6 +122,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	);
 	const showQuickAdd = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_QUICK_ADD,
+		visibleItems,
+	);
+	const showAutoApplyPreset = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
 		visibleItems,
 	);
 	const showPersistence = isItemVisible(
@@ -421,6 +428,35 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		});
 	};
 
+	// Auto-apply default preset setting
+	const { data: autoApplyDefaultPreset, isLoading: isLoadingAutoApply } =
+		electronTrpc.settings.getAutoApplyDefaultPreset.useQuery();
+
+	const setAutoApplyDefaultPreset =
+		electronTrpc.settings.setAutoApplyDefaultPreset.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getAutoApplyDefaultPreset.cancel();
+				const previous = utils.settings.getAutoApplyDefaultPreset.getData();
+				utils.settings.getAutoApplyDefaultPreset.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getAutoApplyDefaultPreset.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getAutoApplyDefaultPreset.invalidate();
+			},
+		});
+
+	const handleAutoApplyToggle = (enabled: boolean) => {
+		setAutoApplyDefaultPreset.mutate({ enabled });
+	};
+
 	const killAllDaemonSessions =
 		electronTrpc.terminal.killAllDaemonSessions.useMutation({
 			onMutate: async () => {
@@ -661,10 +697,43 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 					</div>
 				)}
 
-				{showPersistence && (
+				{showAutoApplyPreset && (
 					<div
 						className={
 							showPresets || showQuickAdd
+								? "flex items-center justify-between pt-6 border-t"
+								: "flex items-center justify-between"
+						}
+					>
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="auto-apply-preset"
+								className="text-sm font-medium"
+							>
+								Auto-apply default preset
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Automatically apply your default preset when creating new
+								workspaces
+							</p>
+						</div>
+						<Switch
+							id="auto-apply-preset"
+							checked={
+								autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET
+							}
+							onCheckedChange={handleAutoApplyToggle}
+							disabled={
+								isLoadingAutoApply || setAutoApplyDefaultPreset.isPending
+							}
+						/>
+					</div>
+				)}
+
+				{showPersistence && (
+					<div
+						className={
+							showPresets || showQuickAdd || showAutoApplyPreset
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}
@@ -701,7 +770,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 				{showLinkBehavior && (
 					<div
 						className={
-							showPersistence || showPresets || showQuickAdd
+							showPersistence ||
+							showPresets ||
+							showQuickAdd ||
+							showAutoApplyPreset
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}

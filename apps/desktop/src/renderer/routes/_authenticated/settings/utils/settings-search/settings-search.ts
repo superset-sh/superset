@@ -24,6 +24,7 @@ export const SETTING_ITEM_ID = {
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
+	TERMINAL_AUTO_APPLY_PRESET: "terminal-auto-apply-preset",
 	TERMINAL_PERSISTENCE: "terminal-persistence",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
@@ -340,6 +341,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"opencode",
 			"ai",
 			"assistant",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
+		section: "terminal",
+		title: "Auto-apply Default Preset",
+		description: "Automatically apply default preset when creating workspaces",
+		keywords: [
+			"terminal",
+			"preset",
+			"default",
+			"auto",
+			"apply",
+			"workspace",
+			"create",
+			"new",
+			"startup",
+			"launch",
 		],
 	},
 	{
