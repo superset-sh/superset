@@ -1,3 +1,4 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -16,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import {
@@ -93,15 +95,19 @@ export function WorkspaceListItem({
 	cloudWorkspaceId,
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const cloudWorkspaceEnabled = useFeatureFlagEnabled(
+		FEATURE_FLAGS.CLOUD_WORKSPACE_ENABLED,
+	);
 
 	const { data: cloudWorkspace } = useQuery({
 		queryKey: ["cloudWorkspace", cloudWorkspaceId],
-		queryFn: () => apiTrpcClient.cloudWorkspace.byId.query(cloudWorkspaceId!),
-		enabled: !!cloudWorkspaceId,
+		queryFn: () =>
+			apiTrpcClient.cloudWorkspace.byId.query(cloudWorkspaceId as string),
+		enabled: !!cloudWorkspaceId && cloudWorkspaceEnabled,
 		staleTime: 30_000,
 	});
 
-	const isCloudWorkspace = !!cloudWorkspaceId;
+	const isCloudWorkspace = !!cloudWorkspaceId && cloudWorkspaceEnabled;
 	const isCloudDeleted = cloudWorkspace?.deletedAt != null;
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
