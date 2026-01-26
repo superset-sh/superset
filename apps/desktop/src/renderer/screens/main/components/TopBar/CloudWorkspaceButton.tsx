@@ -50,7 +50,8 @@ export function CloudWorkspaceButton({
 
 	const { data: cloudWorkspace, isLoading: isLoadingCloudStatus } = useQuery({
 		queryKey: ["cloudWorkspace", cloudWorkspaceId],
-		queryFn: () => apiTrpcClient.cloudWorkspace.byId.query(cloudWorkspaceId!),
+		queryFn: () =>
+			apiTrpcClient.cloudWorkspace.byId.query(cloudWorkspaceId as string),
 		enabled: !!cloudWorkspaceId,
 		staleTime: 30_000,
 	});
@@ -67,11 +68,16 @@ export function CloudWorkspaceButton({
 		],
 		queryFn: () =>
 			apiTrpcClient.cloudWorkspace.findMatching.query({
-				organizationId: organizationId!,
-				repoOwner: repoInfo?.repoOwner!,
-				repoName: repoInfo?.repoName!,
+				organizationId: organizationId ?? "",
+				repoOwner: repoInfo?.repoOwner ?? "",
+				repoName: repoInfo?.repoName ?? "",
 			}),
-		enabled: !!organizationId && !!repoInfo?.hasRemote && !cloudWorkspaceId,
+		enabled:
+			!!organizationId &&
+			!!repoInfo?.hasRemote &&
+			!!repoInfo.repoOwner &&
+			!!repoInfo.repoName &&
+			!cloudWorkspaceId,
 		staleTime: 30_000,
 	});
 

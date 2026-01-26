@@ -45,6 +45,7 @@ import { StatusIndicator } from "renderer/screens/main/components/StatusIndicato
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
+import { ENABLE_CLOUD_WORKSPACES } from "shared/constants";
 import { getHighestPriorityStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import {
@@ -96,12 +97,13 @@ export function WorkspaceListItem({
 
 	const { data: cloudWorkspace } = useQuery({
 		queryKey: ["cloudWorkspace", cloudWorkspaceId],
-		queryFn: () => apiTrpcClient.cloudWorkspace.byId.query(cloudWorkspaceId!),
-		enabled: !!cloudWorkspaceId,
+		queryFn: () =>
+			apiTrpcClient.cloudWorkspace.byId.query(cloudWorkspaceId as string),
+		enabled: ENABLE_CLOUD_WORKSPACES && !!cloudWorkspaceId,
 		staleTime: 30_000,
 	});
 
-	const isCloudWorkspace = !!cloudWorkspaceId;
+	const isCloudWorkspace = ENABLE_CLOUD_WORKSPACES && !!cloudWorkspaceId;
 	const isCloudDeleted = cloudWorkspace?.deletedAt != null;
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();

@@ -58,3 +58,6 @@ export const DEFAULT_TERMINAL_PERSISTENCE = true;
 export const EXTERNAL_LINKS = {
 	SETUP_TEARDOWN_SCRIPTS: `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`,
 } as const;
+
+// Feature toggles (flip to true when ready to ship)
+export const ENABLE_CLOUD_WORKSPACES = false;
