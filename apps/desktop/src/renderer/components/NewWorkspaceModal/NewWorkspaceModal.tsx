@@ -173,6 +173,13 @@ export function NewWorkspaceModal() {
 		setBranchNameEdited(true);
 	};
 
+	const handleBranchNameBlur = () => {
+		if (!branchName.trim()) {
+			setBranchName("");
+			setBranchNameEdited(false);
+		}
+	};
+
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
 
@@ -325,6 +332,7 @@ export function NewWorkspaceModal() {
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
 													}
+													onBlur={handleBranchNameBlur}
 												/>
 											</div>
 
