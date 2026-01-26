@@ -6,7 +6,11 @@ import { promisify } from "node:util";
 import friendlyWords = require("friendly-words");
 
 import simpleGit, { type StatusResult } from "simple-git";
-import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
+import {
+	checkGitLfsAvailable,
+	execWithShellEnv,
+	getShellEnvironment,
+} from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -313,11 +317,11 @@ export async function getGitAuthorName(
 
 export async function getGitHubUsername(): Promise<string | null> {
 	try {
-		const env = await getGitEnv();
-		const { stdout } = await execFileAsync(
+		// Use execWithShellEnv to handle macOS GUI apps where Homebrew isn't in PATH
+		const { stdout } = await execWithShellEnv(
 			"gh",
 			["api", "user", "-q", ".login"],
-			{ env, timeout: 10_000 },
+			{ timeout: 10_000 },
 		);
 		return stdout.trim() || null;
 	} catch (error) {
