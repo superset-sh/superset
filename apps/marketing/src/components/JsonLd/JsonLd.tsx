@@ -1,21 +1,14 @@
-interface OrganizationJsonLdProps {
-	url?: string;
-}
+import { COMPANY } from "@superset/shared/constants";
 
-export function OrganizationJsonLd({
-	url = "https://superset.sh",
-}: OrganizationJsonLdProps) {
+export function OrganizationJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "Organization",
-		name: "Superset",
-		url,
-		logo: `${url}/logo.png`,
+		name: COMPANY.NAME,
+		url: COMPANY.MARKETING_URL,
+		logo: `${COMPANY.MARKETING_URL}/logo.png`,
 		description: "Run 10+ parallel coding agents on your machine",
-		sameAs: [
-			"https://github.com/AviSupersetSH/superset",
-			"https://twitter.com/AviSupersetSH",
-		],
+		sameAs: [COMPANY.GITHUB_URL, COMPANY.X_URL],
 	};
 
 	return (
@@ -31,7 +24,7 @@ export function SoftwareApplicationJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "SoftwareApplication",
-		name: "Superset",
+		name: COMPANY.NAME,
 		operatingSystem: "macOS, Windows, Linux",
 		applicationCategory: "DeveloperApplication",
 		offers: {
@@ -40,12 +33,7 @@ export function SoftwareApplicationJsonLd() {
 			priceCurrency: "USD",
 		},
 		description: "Run 10+ parallel coding agents on your machine",
-		url: "https://superset.sh",
-		aggregateRating: {
-			"@type": "AggregateRating",
-			ratingValue: "5",
-			ratingCount: "100",
-		},
+		url: COMPANY.MARKETING_URL,
 	};
 
 	return (
@@ -85,10 +73,10 @@ export function ArticleJsonLd({
 		},
 		publisher: {
 			"@type": "Organization",
-			name: "Superset",
+			name: COMPANY.NAME,
 			logo: {
 				"@type": "ImageObject",
-				url: "https://superset.sh/logo.png",
+				url: `${COMPANY.MARKETING_URL}/logo.png`,
 			},
 		},
 		datePublished: publishedTime,
@@ -114,25 +102,17 @@ export function ArticleJsonLd({
 	);
 }
 
-interface WebsiteJsonLdProps {
-	url?: string;
-	name?: string;
-}
-
-export function WebsiteJsonLd({
-	url = "https://superset.sh",
-	name = "Superset",
-}: WebsiteJsonLdProps) {
+export function WebsiteJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "WebSite",
-		name,
-		url,
+		name: COMPANY.NAME,
+		url: COMPANY.MARKETING_URL,
 		potentialAction: {
 			"@type": "SearchAction",
 			target: {
 				"@type": "EntryPoint",
-				urlTemplate: `${url}/blog?q={search_term_string}`,
+				urlTemplate: `${COMPANY.MARKETING_URL}/blog?q={search_term_string}`,
 			},
 			"query-input": "required name=search_term_string",
 		},

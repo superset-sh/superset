@@ -1,8 +1,9 @@
+import { COMPANY } from "@superset/shared/constants";
 import { getBlogPosts } from "@/lib/blog";
 
 export async function GET() {
 	const posts = getBlogPosts();
-	const baseUrl = "https://superset.sh";
+	const baseUrl = COMPANY.MARKETING_URL;
 
 	const escapeXml = (str: string) =>
 		str

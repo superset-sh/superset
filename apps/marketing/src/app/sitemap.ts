@@ -1,8 +1,9 @@
+import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
 import { getBlogPosts } from "@/lib/blog";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-	const baseUrl = "https://superset.sh";
+	const baseUrl = COMPANY.MARKETING_URL;
 
 	const staticPages: MetadataRoute.Sitemap = [
 		{

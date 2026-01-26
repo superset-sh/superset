@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
@@ -20,7 +21,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
 	const toc = extractToc(post.content);
 
-	const url = `https://superset.sh/blog/${slug}`;
+	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
 	return (
 		<main>
@@ -53,10 +54,10 @@ export async function generateMetadata({
 		return {};
 	}
 
-	const url = `https://superset.sh/blog/${slug}`;
+	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
 	return {
-		title: `${post.title} | Superset Blog`,
+		title: `${post.title} | ${COMPANY.NAME} Blog`,
 		description: post.description,
 		alternates: {
 			canonical: url,
@@ -66,7 +67,7 @@ export async function generateMetadata({
 			description: post.description,
 			type: "article",
 			url,
-			siteName: "Superset",
+			siteName: COMPANY.NAME,
 			publishedTime: post.date,
 			authors: [post.author],
 			...(post.image && { images: [post.image] }),

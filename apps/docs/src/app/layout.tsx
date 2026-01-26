@@ -1,6 +1,7 @@
 import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata } from "next";
 import "./global.css";
+import { COMPANY } from "@superset/shared/constants";
 import { Inter } from "next/font/google";
 import { NavigationBar } from "@/app/components/NavigationBar";
 import { NavbarProvider } from "@/app/components/NavigationBar/components/NavigationMobile";
@@ -10,36 +11,33 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-	metadataBase: new URL("https://docs.superset.sh"),
+	metadataBase: new URL(COMPANY.DOCS_URL),
 	title: {
-		default: "Superset Documentation",
-		template: "%s | Superset Docs",
+		default: `${COMPANY.NAME} Documentation`,
+		template: `%s | ${COMPANY.NAME} Docs`,
 	},
-	description:
-		"Official documentation for Superset - the terminal for coding agents. Learn how to run parallel coding agents on your machine.",
+	description: `Official documentation for ${COMPANY.NAME} - the terminal for coding agents. Learn how to run parallel coding agents on your machine.`,
 	keywords: [
-		"Superset documentation",
+		`${COMPANY.NAME} documentation`,
 		"coding agents docs",
 		"parallel execution guide",
 		"developer tools",
 	],
-	authors: [{ name: "Superset Team" }],
-	creator: "Superset",
+	authors: [{ name: `${COMPANY.NAME} Team` }],
+	creator: COMPANY.NAME,
 	openGraph: {
 		type: "website",
 		locale: "en_US",
-		url: "https://docs.superset.sh",
-		siteName: "Superset Docs",
-		title: "Superset Documentation",
-		description:
-			"Official documentation for Superset - the terminal for coding agents.",
+		url: COMPANY.DOCS_URL,
+		siteName: `${COMPANY.NAME} Docs`,
+		title: `${COMPANY.NAME} Documentation`,
+		description: `Official documentation for ${COMPANY.NAME} - the terminal for coding agents.`,
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Superset Documentation",
-		description:
-			"Official documentation for Superset - the terminal for coding agents.",
-		creator: "@AviSupersetSH",
+		title: `${COMPANY.NAME} Documentation`,
+		description: `Official documentation for ${COMPANY.NAME} - the terminal for coding agents.`,
+		creator: "@superset_sh",
 	},
 	robots: {
 		index: true,

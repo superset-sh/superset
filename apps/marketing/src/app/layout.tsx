@@ -1,7 +1,7 @@
+import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
-
 import { CookieConsent } from "@/components/CookieConsent";
 import {
 	OrganizationJsonLd,
@@ -28,14 +28,16 @@ const inter = Inter({
 	variable: "--font-inter",
 });
 
+const siteDescription =
+	"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
+
 export const metadata: Metadata = {
-	metadataBase: new URL("https://superset.sh"),
+	metadataBase: new URL(COMPANY.MARKETING_URL),
 	title: {
-		default: "Superset - Run 10+ parallel coding agents on your machine",
-		template: "%s | Superset",
+		default: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
+		template: `%s | ${COMPANY.NAME}`,
 	},
-	description:
-		"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.",
+	description: siteDescription,
 	keywords: [
 		"coding agents",
 		"parallel execution",
@@ -47,14 +49,14 @@ export const metadata: Metadata = {
 		"Cursor",
 		"Codex",
 	],
-	authors: [{ name: "Superset Team" }],
-	creator: "Superset",
+	authors: [{ name: `${COMPANY.NAME} Team` }],
+	creator: COMPANY.NAME,
 	openGraph: {
 		type: "website",
 		locale: "en_US",
-		url: "https://superset.sh",
-		siteName: "Superset",
-		title: "Superset - Run 10+ parallel coding agents on your machine",
+		url: COMPANY.MARKETING_URL,
+		siteName: COMPANY.NAME,
+		title: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
 		description:
 			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
 		images: [
@@ -62,17 +64,17 @@ export const metadata: Metadata = {
 				url: "/og-image.png",
 				width: 1200,
 				height: 630,
-				alt: "Superset - The Terminal for Coding Agents",
+				alt: `${COMPANY.NAME} - The Terminal for Coding Agents`,
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Superset - Run 10+ parallel coding agents on your machine",
+		title: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
 		description:
 			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
 		images: ["/og-image.png"],
-		creator: "@AviSupersetSH",
+		creator: "@superset_sh",
 	},
 	robots: {
 		index: true,
