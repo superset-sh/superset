@@ -1,6 +1,7 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
+	SelectApikey,
 	SelectDevicePresence,
 	SelectInvitation,
 	SelectMember,
@@ -56,6 +57,24 @@ const organizationsCollection = createCollection(
 		shapeOptions: {
 			url: electricUrl,
 			params: { table: "auth.organizations" },
+			headers: {
+				Authorization: () => {
+					const token = getAuthToken();
+					return token ? `Bearer ${token}` : "";
+				},
+			},
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
+
+const apiKeysCollection = createCollection(
+	electricCollectionOptions<SelectApikey>({
+		id: "apikeys",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.apikeys" },
 			headers: {
 				Authorization: () => {
 					const token = getAuthToken();
@@ -279,5 +298,6 @@ export function getCollections(organizationId: string) {
 	return {
 		...orgCollections,
 		organizations: organizationsCollection,
+		apiKeys: apiKeysCollection,
 	};
 }

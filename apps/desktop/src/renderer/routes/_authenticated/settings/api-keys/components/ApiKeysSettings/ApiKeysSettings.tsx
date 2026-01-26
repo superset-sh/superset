@@ -19,15 +19,17 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { useCallback, useEffect, useState } from "react";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo, useState } from "react";
 import {
 	HiOutlineClipboardDocument,
 	HiOutlineKey,
 	HiOutlinePlus,
 	HiOutlineTrash,
 } from "react-icons/hi2";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -38,20 +40,23 @@ interface ApiKeysSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
-interface ApiKey {
-	id: string;
-	name: string;
-	keyPrefix: string;
-	defaultDeviceId: string | null;
-	lastUsedAt: Date | null;
-	usageCount: string;
-	createdAt: Date;
-	expiresAt: Date | null;
+interface ApiKeyMetadata {
+	organizationId?: string;
+	defaultDeviceId?: string | null;
+}
+
+function parseMetadata(metadata: string | null): ApiKeyMetadata {
+	if (!metadata) return {};
+	try {
+		return JSON.parse(metadata) as ApiKeyMetadata;
+	} catch {
+		return {};
+	}
 }
 
 export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
-	const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+	const { data: session } = authClient.useSession();
+	const collections = useCollections();
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 	const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
@@ -60,6 +65,21 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	const [copied, setCopied] = useState(false);
 
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+
+	const activeOrganizationId = session?.session?.activeOrganizationId;
+
+	const { data: allApiKeys, isLoading } = useLiveQuery(
+		(q) => q.from({ apiKeys: collections.apiKeys }),
+		[collections],
+	);
+
+	const apiKeys = useMemo(() => {
+		if (!allApiKeys || !activeOrganizationId) return [];
+		return allApiKeys.filter((key) => {
+			const meta = parseMetadata(key.metadata);
+			return meta.organizationId === activeOrganizationId;
+		});
+	}, [allApiKeys, activeOrganizationId]);
 
 	const showApiKeysList = isItemVisible(
 		SETTING_ITEM_ID.API_KEYS_LIST,
@@ -70,36 +90,24 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		visibleItems,
 	);
 
-	const loadApiKeys = useCallback(async () => {
-		try {
-			setIsLoading(true);
-			const keys = await apiTrpcClient.apiKeys.list.query();
-			setApiKeys(keys);
-		} catch (error) {
-			console.error("[api-keys] Failed to load API keys:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	}, []);
-
-	useEffect(() => {
-		loadApiKeys();
-	}, [loadApiKeys]);
-
 	const handleGenerateKey = async () => {
-		if (!newKeyName.trim()) return;
+		if (!newKeyName.trim() || !activeOrganizationId) return;
 
 		try {
 			setIsGenerating(true);
-			const result = await apiTrpcClient.apiKeys.generate.mutate({
+			const result = await authClient.apiKey.create({
 				name: newKeyName.trim(),
-				defaultDeviceId: deviceInfo?.deviceId,
+				metadata: {
+					organizationId: activeOrganizationId,
+					defaultDeviceId: deviceInfo?.deviceId ?? null,
+				},
 			});
-			setNewKeyValue(result.key);
-			setShowGenerateDialog(false);
-			setShowNewKeyDialog(true);
-			setNewKeyName("");
-			loadApiKeys();
+			if (result.data?.key) {
+				setNewKeyValue(result.data.key);
+				setShowGenerateDialog(false);
+				setShowNewKeyDialog(true);
+				setNewKeyName("");
+			}
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
 		} finally {
@@ -109,8 +117,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 
 	const handleRevokeKey = async (id: string) => {
 		try {
-			await apiTrpcClient.apiKeys.revoke.mutate({ id });
-			loadApiKeys();
+			await authClient.apiKey.delete({ keyId: id });
 		} catch (error) {
 			console.error("[api-keys] Failed to revoke API key:", error);
 		}
@@ -204,19 +211,21 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 													<TableCell>
 														<div className="flex items-center gap-2">
 															<HiOutlineKey className="h-4 w-4 text-muted-foreground" />
-															<span className="font-medium">{key.name}</span>
+															<span className="font-medium">
+																{key.name ?? "Unnamed Key"}
+															</span>
 														</div>
 													</TableCell>
 													<TableCell>
 														<Badge variant="outline" className="font-mono">
-															{key.keyPrefix}
+															{key.start ?? "sk_..."}
 														</Badge>
 													</TableCell>
 													<TableCell className="text-muted-foreground">
 														{formatDate(key.createdAt)}
 													</TableCell>
 													<TableCell className="text-muted-foreground">
-														{formatDate(key.lastUsedAt)}
+														{formatDate(key.lastRequest)}
 													</TableCell>
 													<TableCell>
 														<Button
