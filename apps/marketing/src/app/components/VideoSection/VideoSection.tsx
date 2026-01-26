@@ -1,8 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
+import { useState } from "react";
+
+const VIDEO_ID = "dkD-U7JXkbI";
 
 export function VideoSection() {
+	const [isPlaying, setIsPlaying] = useState(false);
+
 	return (
 		<section className="relative py-12 px-8 lg:px-[30px]">
 			<div className="max-w-7xl mx-auto">
@@ -31,14 +37,36 @@ export function VideoSection() {
 					viewport={{ once: true }}
 					transition={{ duration: 0.5, delay: 0.2 }}
 				>
-					<div className="relative w-full aspect-video rounded overflow-hidden bg-muted">
-						<iframe
-							className="absolute inset-0 w-full h-full"
-							src="https://www.youtube.com/embed/dkD-U7JXkbI?control=0"
-							title="Superset Demo"
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-							allowFullScreen
-						/>
+					<div className="group relative w-full aspect-video rounded-xl overflow-hidden bg-muted shadow-2xl ring-1 ring-white/10">
+						{isPlaying ? (
+							<iframe
+								className="absolute inset-0 w-full h-full"
+								src={`https://www.youtube.com/embed/${VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`}
+								title="Superset Demo"
+								allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+								allowFullScreen
+							/>
+						) : (
+							<button
+								type="button"
+								onClick={() => setIsPlaying(true)}
+								className="relative w-full h-full cursor-pointer"
+								aria-label="Play video"
+							>
+								<Image
+									src="/images/video-thumbnail.png"
+									alt="Video thumbnail"
+									fill
+									className="object-cover"
+								/>
+								<div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/30" />
+								<div className="absolute inset-0 flex items-center justify-center">
+									<div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 shadow-xl transition-transform duration-300 group-hover:scale-110">
+										<div className="ml-1 w-0 h-0 border-t-[10px] border-t-transparent border-l-[16px] border-l-white border-b-[10px] border-b-transparent sm:border-t-[12px] sm:border-l-[20px] sm:border-b-[12px]" />
+									</div>
+								</div>
+							</button>
+						)}
 					</div>
 				</motion.div>
 			</div>

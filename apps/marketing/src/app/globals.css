@@ -6,6 +6,14 @@
 	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
 
+@utility scrollbar-hide {
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
 /* Blog prose styles */
 .prose {
 	--tw-prose-body: rgb(255 255 255 / 0.7);

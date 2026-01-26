@@ -435,8 +435,12 @@ export class TerminalHostClient extends EventEmitter {
 					resolved = true;
 					clearTimeout(timeout);
 					socket.setEncoding("utf-8");
-					socket.on("close", () => this.handleDisconnect());
+					socket.on("close", () => {
+						if (this.streamSocket !== socket) return;
+						this.handleDisconnect();
+					});
 					socket.on("error", (error) => {
+						if (this.streamSocket !== socket) return;
 						this.emit(
 							"error",
 							error instanceof Error ? error : new Error(String(error)),
@@ -463,24 +467,28 @@ export class TerminalHostClient extends EventEmitter {
 	private setupControlSocketHandlers(): void {
 		if (!this.controlSocket) return;
 
-		this.controlSocket.setEncoding("utf-8");
+		const socket = this.controlSocket;
 
-		this.controlSocket.on("data", (data: string) => {
+		socket.setEncoding("utf-8");
+
+		socket.on("data", (data: string) => {
 			const messages = this.controlParser.parse(data);
 			for (const message of messages) {
 				this.handleMessage(message);
 			}
 		});
 
-		this.controlSocket.on("drain", () => {
+		socket.on("drain", () => {
 			this.flushNotifyQueue();
 		});
 
-		this.controlSocket.on("close", () => {
+		socket.on("close", () => {
+			if (this.controlSocket !== socket) return;
 			this.handleDisconnect();
 		});
 
-		this.controlSocket.on("error", (error) => {
+		socket.on("error", (error) => {
+			if (this.controlSocket !== socket) return;
 			this.emit("error", error);
 			this.handleDisconnect();
 		});

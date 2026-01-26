@@ -24,7 +24,7 @@ export function PortsList() {
 	};
 
 	return (
-		<div className="mt-3 pt-3 border-t border-border/40">
+		<div className="pt-3 border-t border-border/40">
 			<div className="group text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5 w-full hover:text-muted-foreground transition-colors">
 				<button
 					type="button"

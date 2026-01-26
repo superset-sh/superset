@@ -3,7 +3,11 @@ import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
-import { getWorkspaceNotDeleting, touchWorkspace } from "../utils/db-helpers";
+import {
+	getWorkspaceNotDeleting,
+	setLastActiveWorkspace,
+	touchWorkspace,
+} from "../utils/db-helpers";
 
 export const createStatusProcedures = () => {
 	return router({
@@ -94,6 +98,21 @@ export const createStatusProcedures = () => {
 					.run();
 
 				return { success: true, isUnread: input.isUnread };
+			}),
+
+		setActive: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(({ input }) => {
+				const workspace = getWorkspaceNotDeleting(input.workspaceId);
+				if (!workspace) {
+					throw new Error(
+						`Workspace ${input.workspaceId} not found or is being deleted`,
+					);
+				}
+
+				setLastActiveWorkspace(input.workspaceId);
+
+				return { success: true, workspaceId: input.workspaceId };
 			}),
 	});
 };

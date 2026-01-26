@@ -1,5 +1,7 @@
 import { db } from "@superset/db/client";
 import {
+	agentCommands,
+	devicePresence,
 	invitations,
 	members,
 	organizations,
@@ -18,7 +20,9 @@ export type AllowedTable =
 	| "auth.members"
 	| "auth.organizations"
 	| "auth.users"
-	| "auth.invitations";
+	| "auth.invitations"
+	| "device_presence"
+	| "agent_commands";
 
 interface WhereClause {
 	fragment: string;
@@ -88,6 +92,16 @@ export async function buildWhereClause(
 			const fragment = `$1 = ANY("organization_ids")`;
 			return { fragment, params: [organizationId] };
 		}
+
+		case "device_presence":
+			return build(
+				devicePresence,
+				devicePresence.organizationId,
+				organizationId,
+			);
+
+		case "agent_commands":
+			return build(agentCommands, agentCommands.organizationId, organizationId);
 
 		default:
 			return null;

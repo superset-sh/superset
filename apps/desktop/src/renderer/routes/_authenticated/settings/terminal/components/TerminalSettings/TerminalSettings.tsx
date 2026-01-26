@@ -1,4 +1,8 @@
-import type { TerminalLinkBehavior, TerminalPreset } from "@superset/local-db";
+import type {
+	ExecutionMode,
+	TerminalLinkBehavior,
+	TerminalPreset,
+} from "@superset/local-db";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -19,8 +23,12 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	HiOutlineCheck,
+	HiOutlinePlus,
+	HiOutlineQuestionMarkCircle,
+} from "react-icons/hi2";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -32,7 +40,10 @@ import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
 } from "renderer/routes/_authenticated/settings/presets/types";
-import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
+import {
+	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
+	DEFAULT_TERMINAL_PERSISTENCE,
+} from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -113,6 +124,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		SETTING_ITEM_ID.TERMINAL_QUICK_ADD,
 		visibleItems,
 	);
+	const showAutoApplyPreset = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
+		visibleItems,
+	);
 	const showPersistence = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PERSISTENCE,
 		visibleItems,
@@ -137,11 +152,17 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		updatePreset,
 		deletePreset,
 		setDefaultPreset,
+		reorderPresets,
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
 	const presetsContainerRef = useRef<HTMLDivElement>(null);
 	const prevPresetsCountRef = useRef(serverPresets.length);
+	const serverPresetsRef = useRef(serverPresets);
+
+	useEffect(() => {
+		serverPresetsRef.current = serverPresets;
+	}, [serverPresets]);
 
 	useEffect(() => {
 		setLocalPresets(serverPresets);
@@ -165,83 +186,159 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	const isTemplateAdded = (template: PresetTemplate) =>
 		existingPresetNames.has(template.preset.name);
 
-	const handleCellChange = (
-		rowIndex: number,
-		column: PresetColumnKey,
-		value: string,
-	) => {
-		setLocalPresets((prev) =>
-			prev.map((p, i) => (i === rowIndex ? { ...p, [column]: value } : p)),
-		);
-	};
+	const handleCellChange = useCallback(
+		(rowIndex: number, column: PresetColumnKey, value: string) => {
+			setLocalPresets((prev) =>
+				prev.map((p, i) => (i === rowIndex ? { ...p, [column]: value } : p)),
+			);
+		},
+		[],
+	);
 
-	const handleCellBlur = (rowIndex: number, column: PresetColumnKey) => {
-		const preset = localPresets[rowIndex];
-		const serverPreset = serverPresets[rowIndex];
-		if (!preset || !serverPreset) return;
-		if (preset[column] === serverPreset[column]) return;
+	const handleCellBlur = useCallback(
+		(rowIndex: number, column: PresetColumnKey) => {
+			setLocalPresets((currentLocal) => {
+				const preset = currentLocal[rowIndex];
+				if (!preset) return currentLocal;
+				const serverPreset = serverPresetsRef.current.find(
+					(p) => p.id === preset.id,
+				);
+				if (!serverPreset) return currentLocal;
+				if (preset[column] === serverPreset[column]) return currentLocal;
 
-		updatePreset.mutate({
-			id: preset.id,
-			patch: { [column]: preset[column] },
-		});
-	};
-
-	const handleCommandsChange = (rowIndex: number, commands: string[]) => {
-		const preset = localPresets[rowIndex];
-		const isDelete = preset && commands.length < preset.commands.length;
-
-		setLocalPresets((prev) =>
-			prev.map((p, i) => (i === rowIndex ? { ...p, commands } : p)),
-		);
-
-		// Save immediately on delete since onBlur won't have the updated state yet
-		if (isDelete) {
-			updatePreset.mutate({
-				id: preset.id,
-				patch: { commands },
+				updatePreset.mutate({
+					id: preset.id,
+					patch: { [column]: preset[column] },
+				});
+				return currentLocal;
 			});
-		}
-	};
+		},
+		[updatePreset],
+	);
 
-	const handleCommandsBlur = (rowIndex: number) => {
-		const preset = localPresets[rowIndex];
-		const serverPreset = serverPresets[rowIndex];
-		if (!preset || !serverPreset) return;
-		if (
-			JSON.stringify(preset.commands) === JSON.stringify(serverPreset.commands)
-		)
-			return;
+	const handleCommandsChange = useCallback(
+		(rowIndex: number, commands: string[]) => {
+			setLocalPresets((prev) => {
+				const preset = prev[rowIndex];
+				const isDelete = preset && commands.length < preset.commands.length;
+				const newPresets = prev.map((p, i) =>
+					i === rowIndex ? { ...p, commands } : p,
+				);
 
-		updatePreset.mutate({
-			id: preset.id,
-			patch: { commands: preset.commands },
-		});
-	};
+				// Save immediately on delete since onBlur won't have the updated state yet
+				if (isDelete && preset) {
+					updatePreset.mutate({
+						id: preset.id,
+						patch: { commands },
+					});
+				}
+				return newPresets;
+			});
+		},
+		[updatePreset],
+	);
 
-	const handleAddRow = () => {
+	const handleCommandsBlur = useCallback(
+		(rowIndex: number) => {
+			setLocalPresets((currentLocal) => {
+				const preset = currentLocal[rowIndex];
+				if (!preset) return currentLocal;
+				const serverPreset = serverPresetsRef.current.find(
+					(p) => p.id === preset.id,
+				);
+				if (!serverPreset) return currentLocal;
+				if (
+					JSON.stringify(preset.commands) ===
+					JSON.stringify(serverPreset.commands)
+				)
+					return currentLocal;
+
+				updatePreset.mutate({
+					id: preset.id,
+					patch: { commands: preset.commands },
+				});
+				return currentLocal;
+			});
+		},
+		[updatePreset],
+	);
+
+	const handleExecutionModeChange = useCallback(
+		(rowIndex: number, mode: ExecutionMode) => {
+			setLocalPresets((currentLocal) => {
+				const preset = currentLocal[rowIndex];
+				if (!preset) return currentLocal;
+
+				const newPresets = currentLocal.map((p, i) =>
+					i === rowIndex ? { ...p, executionMode: mode } : p,
+				);
+
+				updatePreset.mutate({
+					id: preset.id,
+					patch: { executionMode: mode },
+				});
+
+				return newPresets;
+			});
+		},
+		[updatePreset],
+	);
+
+	const handleAddRow = useCallback(() => {
 		createPreset.mutate({
 			name: "",
 			cwd: "",
 			commands: [""],
 		});
-	};
+	}, [createPreset]);
 
-	const handleAddTemplate = (template: PresetTemplate) => {
-		if (isTemplateAdded(template)) return;
-		createPreset.mutate(template.preset);
-	};
+	const handleAddTemplate = useCallback(
+		(template: PresetTemplate) => {
+			if (existingPresetNames.has(template.preset.name)) return;
+			createPreset.mutate(template.preset);
+		},
+		[createPreset, existingPresetNames],
+	);
 
-	const handleDeleteRow = (rowIndex: number) => {
-		const preset = localPresets[rowIndex];
-		if (!preset) return;
+	const handleDeleteRow = useCallback(
+		(rowIndex: number) => {
+			setLocalPresets((currentLocal) => {
+				const preset = currentLocal[rowIndex];
+				if (preset) {
+					deletePreset.mutate({ id: preset.id });
+				}
+				return currentLocal;
+			});
+		},
+		[deletePreset],
+	);
 
-		deletePreset.mutate({ id: preset.id });
-	};
+	const handleSetDefault = useCallback(
+		(presetId: string | null) => {
+			setDefaultPreset.mutate({ id: presetId });
+		},
+		[setDefaultPreset],
+	);
 
-	const handleSetDefault = (presetId: string | null) => {
-		setDefaultPreset.mutate({ id: presetId });
-	};
+	const handleLocalReorder = useCallback(
+		(fromIndex: number, toIndex: number) => {
+			setLocalPresets((prev) => {
+				const newPresets = [...prev];
+				const [removed] = newPresets.splice(fromIndex, 1);
+				newPresets.splice(toIndex, 0, removed);
+				return newPresets;
+			});
+		},
+		[],
+	);
+
+	const handlePersistReorder = useCallback(
+		(presetId: string, targetIndex: number) => {
+			reorderPresets.mutate({ presetId, targetIndex });
+		},
+		[reorderPresets],
+	);
+
 	const { data: terminalPersistence, isLoading } =
 		electronTrpc.settings.getTerminalPersistence.useQuery();
 
@@ -329,6 +426,35 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		setTerminalLinkBehavior.mutate({
 			behavior: value as TerminalLinkBehavior,
 		});
+	};
+
+	// Auto-apply default preset setting
+	const { data: autoApplyDefaultPreset, isLoading: isLoadingAutoApply } =
+		electronTrpc.settings.getAutoApplyDefaultPreset.useQuery();
+
+	const setAutoApplyDefaultPreset =
+		electronTrpc.settings.setAutoApplyDefaultPreset.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getAutoApplyDefaultPreset.cancel();
+				const previous = utils.settings.getAutoApplyDefaultPreset.getData();
+				utils.settings.getAutoApplyDefaultPreset.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getAutoApplyDefaultPreset.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getAutoApplyDefaultPreset.invalidate();
+			},
+		});
+
+	const handleAutoApplyToggle = (enabled: boolean) => {
+		setAutoApplyDefaultPreset.mutate({ enabled });
 	};
 
 	const killAllDaemonSessions =
@@ -423,7 +549,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	};
 
 	return (
-		<div className="p-6 max-w-6xl w-full">
+		<div className="p-6 max-w-7xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Terminal</h2>
 				<p className="text-sm text-muted-foreground mt-1">
@@ -500,6 +626,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 						{showPresets && (
 							<div className="rounded-lg border border-border overflow-hidden">
 								<div className="flex items-center gap-4 py-2 px-4 bg-accent/10 border-b border-border">
+									<div className="w-6 shrink-0" />
 									{PRESET_COLUMNS.map((column) => (
 										<div
 											key={column.key}
@@ -508,6 +635,25 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 											{column.label}
 										</div>
 									))}
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help flex items-center gap-1">
+												Mode
+												<HiOutlineQuestionMarkCircle className="h-3.5 w-3.5" />
+											</div>
+										</TooltipTrigger>
+										<TooltipContent side="top" className="max-w-xs">
+											<p className="font-medium mb-1">Execution Mode</p>
+											<p className="text-xs">
+												<strong>Sequential:</strong> Commands run one after
+												another in a single terminal (joined with &&)
+											</p>
+											<p className="text-xs mt-1">
+												<strong>Parallel:</strong> Each command runs in its own
+												split pane within a single tab
+											</p>
+										</TooltipContent>
+									</Tooltip>
 									<div className="w-20 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
 										Actions
 									</div>
@@ -532,8 +678,11 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 												onBlur={handleCellBlur}
 												onCommandsChange={handleCommandsChange}
 												onCommandsBlur={handleCommandsBlur}
+												onExecutionModeChange={handleExecutionModeChange}
 												onDelete={handleDeleteRow}
 												onSetDefault={handleSetDefault}
+												onLocalReorder={handleLocalReorder}
+												onPersistReorder={handlePersistReorder}
 											/>
 										))
 									) : (
@@ -548,10 +697,43 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 					</div>
 				)}
 
-				{showPersistence && (
+				{showAutoApplyPreset && (
 					<div
 						className={
 							showPresets || showQuickAdd
+								? "flex items-center justify-between pt-6 border-t"
+								: "flex items-center justify-between"
+						}
+					>
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="auto-apply-preset"
+								className="text-sm font-medium"
+							>
+								Auto-apply default preset
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Automatically apply your default preset when creating new
+								workspaces
+							</p>
+						</div>
+						<Switch
+							id="auto-apply-preset"
+							checked={
+								autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET
+							}
+							onCheckedChange={handleAutoApplyToggle}
+							disabled={
+								isLoadingAutoApply || setAutoApplyDefaultPreset.isPending
+							}
+						/>
+					</div>
+				)}
+
+				{showPersistence && (
+					<div
+						className={
+							showPresets || showQuickAdd || showAutoApplyPreset
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}
@@ -588,7 +770,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 				{showLinkBehavior && (
 					<div
 						className={
-							showPersistence || showPresets || showQuickAdd
+							showPersistence ||
+							showPresets ||
+							showQuickAdd ||
+							showAutoApplyPreset
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}

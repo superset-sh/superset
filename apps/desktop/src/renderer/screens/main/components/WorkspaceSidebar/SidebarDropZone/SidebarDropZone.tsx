@@ -1,9 +1,9 @@
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { LuFolderPlus, LuLoader, LuX } from "react-icons/lu";
 import { useOpenFromPath } from "renderer/react-query/projects";
-import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { InitGitDialog } from "../../StartView/InitGitDialog";
 
 interface SidebarDropZoneProps {
@@ -12,6 +12,7 @@ interface SidebarDropZoneProps {
 }
 
 export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
+	const navigate = useNavigate();
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [initGitDialog, setInitGitDialog] = useState<{
@@ -20,10 +21,8 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 	}>({ isOpen: false, selectedPath: "" });
 
 	const openFromPath = useOpenFromPath();
-	const createBranchWorkspace = useCreateBranchWorkspace();
 
-	const isProcessing =
-		openFromPath.isPending || createBranchWorkspace.isPending;
+	const isProcessing = openFromPath.isPending;
 
 	// Auto-dismiss error after 5 seconds
 	useEffect(() => {
@@ -138,19 +137,12 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 							return;
 						}
 
-						// Create a main workspace on the current branch
+						// Navigate to project view
 						if ("project" in result && result.project) {
-							createBranchWorkspace.mutate(
-								{ projectId: result.project.id },
-								{
-									onError: (err) => {
-										setError(
-											err.message ||
-												"Project added but failed to create workspace",
-										);
-									},
-								},
-							);
+							navigate({
+								to: "/project/$projectId",
+								params: { projectId: result.project.id },
+							});
 						}
 					},
 					onError: (err) => {
@@ -159,7 +151,7 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 				},
 			);
 		},
-		[openFromPath, createBranchWorkspace, isProcessing],
+		[openFromPath, isProcessing, navigate],
 	);
 
 	return (

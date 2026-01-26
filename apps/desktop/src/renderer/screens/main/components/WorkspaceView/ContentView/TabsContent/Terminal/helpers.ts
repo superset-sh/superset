@@ -483,6 +483,36 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		// Cmd+Left: Move cursor to beginning of line (sends Ctrl+A)
+		const isCmdLeft =
+			event.key === "ArrowLeft" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdLeft) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x01"); // Ctrl+A - beginning of line
+			}
+			return false;
+		}
+
+		// Cmd+Right: Move cursor to end of line (sends Ctrl+E)
+		const isCmdRight =
+			event.key === "ArrowRight" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdRight) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x05"); // Ctrl+E - end of line
+			}
+			return false;
+		}
+
 		if (isTerminalReservedEvent(event)) return true;
 
 		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");

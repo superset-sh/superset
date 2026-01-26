@@ -268,7 +268,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 	return (
 		<motion.div
-			className="relative w-full rounded-xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/[0.08] shadow-2xl"
+			className="relative w-full min-w-[600px] rounded-xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/[0.08] shadow-2xl"
 			style={{ aspectRatio: "16/10" }}
 			initial={{ opacity: 0, scale: 0.98 }}
 			animate={{ opacity: 1, scale: 1 }}

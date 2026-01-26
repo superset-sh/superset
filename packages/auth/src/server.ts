@@ -4,7 +4,14 @@ import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
+import { MemberAddedEmail } from "@superset/email/emails/member-added";
+import { MemberAddedBillingEmail } from "@superset/email/emails/member-added-billing";
+import { MemberRemovedEmail } from "@superset/email/emails/member-removed";
+import { MemberRemovedBillingEmail } from "@superset/email/emails/member-removed-billing";
 import { OrganizationInvitationEmail } from "@superset/email/emails/organization-invitation";
+import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
+import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
+import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -16,6 +23,7 @@ import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
+import { formatPrice, getOrganizationOwners } from "./utils";
 
 const stripeClient = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -32,26 +40,19 @@ export const auth = betterAuth({
 		env.NEXT_PUBLIC_API_URL,
 		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
-		// Electron desktop app origins
-		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []), // Dev: http://localhost:5927
-		"superset://app", // Production Electron app
-		// React Native mobile app origins
-		"superset://", // Production mobile app
-		// Expo development mode - exp:// scheme with local IP ranges
+		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []),
+		"superset://app",
+		"superset://",
 		...(process.env.NODE_ENV === "development"
-			? [
-					"exp://", // Trust all Expo URLs (prefix matching)
-					"exp://**", // Trust all Expo URLs (wildcard matching)
-					"exp://192.168.*.*:*/**", // Trust 192.168.x.x IP range with any port and path
-				]
+			? ["exp://", "exp://**", "exp://192.168.*.*:*/**"]
 			: []),
 	],
 	session: {
-		expiresIn: 60 * 60 * 24 * 30, // 30 days
-		updateAge: 60 * 60 * 24, // refresh daily on activity
+		expiresIn: 60 * 60 * 24 * 30,
+		updateAge: 60 * 60 * 24,
 		cookieCache: {
 			enabled: true,
-			maxAge: 60 * 5, // 5 minutes
+			maxAge: 60 * 5,
 		},
 	},
 	advanced: {
@@ -77,7 +78,6 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (user) => {
-					// Create organization for new user
 					const org = await auth.api.createOrganization({
 						body: {
 							name: `${user.name}'s Team`,
@@ -86,8 +86,6 @@ export const auth = betterAuth({
 						},
 					});
 
-					// Update all sessions for this user to set the active organization
-					// This handles sessions created during signup before the org existed
 					if (org?.id) {
 						await db
 							.update(authSchema.sessions)
@@ -102,17 +100,14 @@ export const auth = betterAuth({
 		expo(),
 		organization({
 			creatorRole: "owner",
-			invitationExpiresIn: 60 * 60 * 24 * 7, // 1 week
+			invitationExpiresIn: 60 * 60 * 24 * 7,
 			sendInvitationEmail: async (data) => {
-				// Generate magic token for this invitation
 				const token = await generateMagicTokenForInvite({
 					email: data.email,
 				});
 
-				// Construct invitation link with magic token
 				const inviteLink = `${env.NEXT_PUBLIC_WEB_URL}/accept-invitation/${data.id}?token=${token}`;
 
-				// Check if user already exists to personalize greeting
 				const existingUser = await db.query.users.findFirst({
 					where: eq(authSchema.users.email, data.email),
 				});
@@ -136,7 +131,6 @@ export const auth = betterAuth({
 				beforeCreateInvitation: async (data) => {
 					const { inviterId, organizationId, role } = data.invitation;
 
-					// Rate limiting: 10 invitations per hour per user
 					const { success } = await invitationRateLimit.limit(inviterId);
 					if (!success) {
 						throw new Error(
@@ -225,12 +219,25 @@ export const auth = betterAuth({
 					}
 				},
 
-				afterAddMember: async ({ organization }) => {
+				afterAddMember: async ({ member, user, organization }) => {
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),
 							eq(subscriptions.status, "active"),
 						),
+					});
+
+					await resend.emails.send({
+						from: "Superset <noreply@superset.sh>",
+						to: user.email,
+						subject: `You've been added to ${organization.name}`,
+						react: MemberAddedEmail({
+							memberName: user.name,
+							organizationName: organization.name,
+							role: member.role,
+							addedByName: "A team admin",
+							dashboardLink: env.NEXT_PUBLIC_WEB_URL,
+						}),
 					});
 
 					if (!subscription?.stripeSubscriptionId) return;
@@ -256,9 +263,45 @@ export const auth = betterAuth({
 							},
 						);
 					}
+
+					const owners = await getOrganizationOwners(organization.id);
+					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
+					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
+					const newMonthlyTotal = formatPrice(
+						pricePerSeat * quantity,
+						currency,
+					);
+
+					await resend.batch.send(
+						owners.map((owner) => ({
+							from: "Superset <noreply@superset.sh>",
+							to: owner.email,
+							subject: `Billing update: New member added to ${organization.name}`,
+							react: MemberAddedBillingEmail({
+								ownerName: owner.name,
+								organizationName: organization.name,
+								newMemberName: user.name ?? "New member",
+								newMemberEmail: user.email,
+								addedByName: "A team admin",
+								newSeatCount: quantity,
+								newMonthlyTotal,
+							}),
+						})),
+					);
 				},
 
-				afterRemoveMember: async ({ organization }) => {
+				afterRemoveMember: async ({ user, organization }) => {
+					await resend.emails.send({
+						from: "Superset <noreply@superset.sh>",
+						to: user.email,
+						subject: `You've been removed from ${organization.name}`,
+						react: MemberRemovedEmail({
+							memberName: user.name,
+							organizationName: organization.name,
+							removedByName: "A team admin",
+						}),
+					});
+
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, organization.id),
@@ -289,6 +332,31 @@ export const auth = betterAuth({
 							},
 						);
 					}
+
+					const owners = await getOrganizationOwners(organization.id);
+					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
+					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
+					const newMonthlyTotal = formatPrice(
+						pricePerSeat * quantity,
+						currency,
+					);
+
+					await resend.batch.send(
+						owners.map((owner) => ({
+							from: "Superset <noreply@superset.sh>",
+							to: owner.email,
+							subject: `Billing update: Member removed from ${organization.name}`,
+							react: MemberRemovedBillingEmail({
+								ownerName: owner.name,
+								organizationName: organization.name,
+								removedMemberName: user.name ?? "Former member",
+								removedMemberEmail: user.email,
+								removedByName: "A team admin",
+								newSeatCount: quantity,
+								newMonthlyTotal,
+							}),
+						})),
+					);
 				},
 			},
 		}),
@@ -315,7 +383,6 @@ export const auth = betterAuth({
 					.where(eq(authSchema.sessions.id, session.id));
 			}
 
-			// Get active subscription plan for the organization
 			let plan: string | null = null;
 			if (activeOrganizationId) {
 				const subscription = await db.query.subscriptions.findFirst({
@@ -393,6 +460,125 @@ export const auth = betterAuth({
 							},
 						},
 					};
+				},
+
+				onSubscriptionComplete: async ({
+					subscription,
+					stripeSubscription,
+					plan,
+				}) => {
+					const org = await db.query.organizations.findFirst({
+						where: eq(authSchema.organizations.id, subscription.referenceId),
+					});
+
+					if (!org) return;
+
+					const owners = await getOrganizationOwners(subscription.referenceId);
+
+					const interval = stripeSubscription.items.data[0]?.price?.recurring
+						?.interval as "month" | "year" | undefined;
+					const billingInterval = interval === "year" ? "yearly" : "monthly";
+
+					const pricePerSeat =
+						stripeSubscription.items.data[0]?.price?.unit_amount ?? 0;
+					const currency =
+						stripeSubscription.items.data[0]?.price?.currency ?? "usd";
+					const amount = formatPrice(pricePerSeat, currency);
+
+					await resend.batch.send(
+						owners.map((owner) => ({
+							from: "Superset <noreply@superset.sh>",
+							to: owner.email,
+							subject: `Welcome to Superset ${plan.name}!`,
+							react: SubscriptionStartedEmail({
+								ownerName: owner.name,
+								organizationName: org.name,
+								planName: plan.name,
+								billingInterval,
+								amount,
+								seatCount: subscription.seats ?? 1,
+							}),
+						})),
+					);
+				},
+
+				onSubscriptionCancel: async ({ subscription }) => {
+					const org = await db.query.organizations.findFirst({
+						where: eq(authSchema.organizations.id, subscription.referenceId),
+					});
+
+					if (!org?.stripeCustomerId) return;
+
+					const owners = await getOrganizationOwners(subscription.referenceId);
+					const accessEndsAt = subscription.periodEnd ?? new Date();
+
+					const portalSession =
+						await stripeClient.billingPortal.sessions.create({
+							customer: org.stripeCustomerId,
+							return_url: env.NEXT_PUBLIC_WEB_URL,
+						});
+
+					await resend.batch.send(
+						owners.map((owner) => ({
+							from: "Superset <noreply@superset.sh>",
+							to: owner.email,
+							subject: `Your ${subscription.plan} subscription has been cancelled`,
+							react: SubscriptionCancelledEmail({
+								ownerName: owner.name,
+								organizationName: org.name,
+								planName: subscription.plan,
+								accessEndsAt,
+								billingPortalUrl: portalSession.url,
+							}),
+						})),
+					);
+				},
+
+				onEvent: async (event: Stripe.Event) => {
+					if (event.type === "invoice.payment_failed") {
+						const invoice = event.data.object as Stripe.Invoice;
+
+						const customerId =
+							typeof invoice.customer === "string"
+								? invoice.customer
+								: invoice.customer?.id;
+
+						if (!customerId) return;
+
+						const org = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.stripeCustomerId, customerId),
+						});
+
+						if (!org?.stripeCustomerId) return;
+
+						const subscription = await db.query.subscriptions.findFirst({
+							where: eq(subscriptions.referenceId, org.id),
+						});
+
+						const owners = await getOrganizationOwners(org.id);
+						const amount = formatPrice(invoice.amount_due, invoice.currency);
+
+						const portalSession =
+							await stripeClient.billingPortal.sessions.create({
+								customer: org.stripeCustomerId,
+								return_url: env.NEXT_PUBLIC_WEB_URL,
+							});
+
+						await resend.batch.send(
+							owners.map((owner) => ({
+								from: "Superset <noreply@superset.sh>",
+								to: owner.email,
+								subject: `Payment failed for ${org.name}`,
+								react: PaymentFailedEmail({
+									ownerName: owner.name,
+									organizationName: org.name,
+									planName: subscription?.plan ?? "Pro",
+									amount,
+									billingPortalUrl: portalSession.url,
+								}),
+							})),
+						);
+					}
 				},
 			},
 		}),
