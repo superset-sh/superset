@@ -46,7 +46,12 @@ export function ChatMessageList({
 				{messages.map((msg, index) => {
 					if ("type" in msg && msg.type === "streaming") {
 						return (
-							<ChatMessage key="streaming" content={msg.content} isStreaming />
+							<ChatMessage
+								key="streaming"
+								role="assistant"
+								content={msg.content}
+								isStreaming
+							/>
 						);
 					}
 

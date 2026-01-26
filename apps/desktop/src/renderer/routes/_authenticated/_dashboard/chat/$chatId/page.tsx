@@ -3,32 +3,38 @@ import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { cn } from "@superset/ui/utils";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { ChatView } from "renderer/screens/chat";
 import { useChatStore } from "renderer/stores/chatStore";
 
 const STREAM_SERVER_URL = "http://localhost:8080";
 
-export const Route = createFileRoute("/_authenticated/_dashboard/chat/")({
-	component: ChatIndexPage,
+export const Route = createFileRoute(
+	"/_authenticated/_dashboard/chat/$chatId/",
+)({
+	component: ChatDetailPage,
 });
 
-function ChatIndexPage() {
+function ChatDetailPage() {
+	const { chatId } = Route.useParams();
 	const navigate = useNavigate();
 	const { sessions, createSession } = useChatStore();
 
+	// Ensure stream exists when page loads
+	useEffect(() => {
+		createStream(STREAM_SERVER_URL, chatId).catch(console.error);
+	}, [chatId]);
+
 	const handleCreateChat = useCallback(async () => {
 		const session = createSession();
-		// Create stream on server
 		await createStream(STREAM_SERVER_URL, session.id);
-		// Navigate to the new chat
 		navigate({ to: "/chat/$chatId", params: { chatId: session.id } });
 	}, [navigate, createSession]);
 
 	const handleSelectChat = useCallback(
-		async (chatId: string) => {
-			// Ensure stream exists
-			await createStream(STREAM_SERVER_URL, chatId);
-			navigate({ to: "/chat/$chatId", params: { chatId } });
+		async (id: string) => {
+			await createStream(STREAM_SERVER_URL, id);
+			navigate({ to: "/chat/$chatId", params: { chatId: id } });
 		},
 		[navigate],
 	);
@@ -48,8 +54,6 @@ function ChatIndexPage() {
 						{sessions.length === 0 ? (
 							<div className="text-center text-muted-foreground text-sm py-8 px-4">
 								No chats yet.
-								<br />
-								Click "+ New Chat" to start.
 							</div>
 						) : (
 							sessions.map((session) => (
@@ -60,6 +64,7 @@ function ChatIndexPage() {
 									className={cn(
 										"w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
 										"hover:bg-accent hover:text-accent-foreground",
+										chatId === session.id && "bg-accent text-accent-foreground",
 									)}
 								>
 									<span className="truncate block">{session.name}</span>
@@ -73,12 +78,9 @@ function ChatIndexPage() {
 				</ScrollArea>
 			</div>
 
-			{/* Main area - empty state */}
-			<div className="flex-1 flex items-center justify-center text-muted-foreground">
-				<div className="text-center">
-					<p className="text-4xl mb-4 opacity-50">💬</p>
-					<p>Select a chat or create a new one</p>
-				</div>
+			{/* Chat View */}
+			<div className="flex-1 min-w-0">
+				<ChatView sessionId={chatId} className="h-full" />
 			</div>
 		</div>
 	);

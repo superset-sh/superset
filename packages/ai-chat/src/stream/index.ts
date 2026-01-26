@@ -1,40 +1,28 @@
 /**
  * Stream module exports
- *
- * Provides TanStack DB-backed real-time streaming with Durable Streams.
  */
 
-// Schema and types
 export {
-	chunkSchema,
-	presenceSchema,
-	draftSchema,
-	messageSchema,
-	sessionStateSchema,
-	type StreamChunk,
-	type StreamPresence,
-	type StreamDraft,
-	type StreamMessage,
-	type SessionStateSchema,
-} from "./schema";
+	createSessionActions,
+	createStream,
+	type SessionActions,
+	type SessionUser,
+} from "./actions";
+export {
+	type ChunkContent,
+	type ChunkRow,
+	type MessageRole,
+	type MessageRow,
+	materializeMessage,
+} from "./materialize";
 
-// Hook and utilities
 export {
-	useStreamDB,
-	useLiveQuery,
-	createOptimisticAction,
-	eq,
-	and,
-	or,
-	gt,
-	lt,
-	gte,
-	lte,
-	count,
-	sum,
-	avg,
-	min,
-	max,
-	type UseStreamDBOptions,
-	type UseStreamDBResult,
-} from "./useStreamDB";
+	type SessionStateSchema,
+	sessionStateSchema,
+} from "./schema";
+export {
+	type ChatUser,
+	type UseChatSessionOptions,
+	type UseChatSessionResult,
+	useChatSession,
+} from "./useChatSession";

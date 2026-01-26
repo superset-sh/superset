@@ -185,7 +185,9 @@ export function buildClaudeEnv(): Record<string, string> {
 	// Check if user has OAuth credentials - if so, let the binary handle auth
 	const hasOAuth = hasClaudeOAuthCredentials();
 	if (hasOAuth) {
-		console.log("[claude/auth] OAuth credentials found - letting binary handle authentication");
+		console.log(
+			"[claude/auth] OAuth credentials found - letting binary handle authentication",
+		);
 		// Don't set ANTHROPIC_API_KEY, let the binary use its own OAuth flow
 	} else {
 		// Only set ANTHROPIC_API_KEY if we have a raw API key (not OAuth)

@@ -1,13 +1,12 @@
 /**
- * Chat room - the main interactive chat view for a session.
- *
- * Sends messages via API tRPC and subscribes to Durable Stream for live tokens.
+ * Chat room
  */
 
 "use client";
 
-import { type PresenceUser, useDurableStream } from "@superset/ai-chat";
 import { ChatInput, PresenceBar } from "@superset/ai-chat/components";
+import { useChatSession } from "@superset/ai-chat/stream";
+import { authClient } from "@superset/auth/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { env } from "@/env";
@@ -24,31 +23,31 @@ interface ChatRoomProps {
 
 export function ChatRoom({ sessionId }: ChatRoomProps) {
 	const trpc = useTRPC();
+	const streamUrl = env.NEXT_PUBLIC_DURABLE_STREAM_URL ?? "";
 
-	// Fetch completed messages from the API
+	const { data: session } = authClient.useSession();
+	const user = session?.user
+		? { userId: session.user.id, name: session.user.name ?? "Unknown" }
+		: null;
+
+	const { users, draft, setDraft } = useChatSession({
+		baseUrl: streamUrl,
+		sessionId,
+		user,
+		enabled: !!user && !!streamUrl,
+	});
+
 	const messagesQuery = useQuery(
 		trpc.chat.getMessages.queryOptions({ sessionId }),
 	);
 
-	// Subscribe to Durable Stream for live tokens
-	const streamUrl = env.NEXT_PUBLIC_DURABLE_STREAM_URL ?? null;
-	const { streamingContent, isStreaming } = useDurableStream(
-		streamUrl ? sessionId : null,
-		{ baseUrl: streamUrl ?? "" },
-	);
-
-	// Send message mutation
 	const sendMessageMutation = useMutation(
 		trpc.chat.sendMessage.mutationOptions({
-			onSuccess: () => {
-				// Refetch messages after sending
-				messagesQuery.refetch();
-			},
+			onSuccess: () => messagesQuery.refetch(),
 		}),
 	);
 
-	// Transform API messages to component format
-	const completedMessages: Message[] = useMemo(() => {
+	const messages: Message[] = useMemo(() => {
 		if (!messagesQuery.data) return [];
 		return messagesQuery.data.map((row) => ({
 			id: row.message.id,
@@ -60,48 +59,25 @@ export function ChatRoom({ sessionId }: ChatRoomProps) {
 		}));
 	}, [messagesQuery.data]);
 
-	// Combine completed messages with streaming content
-	const allMessages: ChatMessageItem[] = useMemo(() => {
-		const result: ChatMessageItem[] = [...completedMessages];
-
-		if (isStreaming && streamingContent) {
-			result.push({
-				type: "streaming",
-				content: streamingContent,
-			});
-		}
-
-		return result;
-	}, [completedMessages, isStreaming, streamingContent]);
+	const allMessages: ChatMessageItem[] = messages;
 
 	const handleSend = useCallback(
 		async (content: string) => {
+			setDraft("");
 			await sendMessageMutation.mutateAsync({ sessionId, content });
 		},
-		[sessionId, sendMessageMutation],
+		[sessionId, sendMessageMutation, setDraft],
 	);
-
-	const handleTypingChange = useCallback((_isTyping: boolean) => {
-		// TODO: Update presence typing status via Durable Stream
-	}, []);
-
-	// TODO: Get real presence data from Durable Stream
-	const viewers: PresenceUser[] = [];
-	const typingUsers: PresenceUser[] = [];
 
 	return (
 		<div className="flex flex-col h-[calc(100vh-16rem)] border border-border rounded-lg overflow-hidden">
-			{/* Presence bar */}
-			<PresenceBar viewers={viewers} typingUsers={typingUsers} />
-
-			{/* Messages */}
+			<PresenceBar viewers={users} typingUsers={[]} />
 			<ChatMessageList messages={allMessages} className="flex-1" />
-
-			{/* Input */}
 			<div className="border-t border-border p-4">
 				<ChatInput
+					value={draft}
+					onChange={setDraft}
 					onSend={handleSend}
-					onTypingChange={handleTypingChange}
 					disabled={sendMessageMutation.isPending}
 					placeholder={
 						sendMessageMutation.isPending ? "Sending..." : "Type a message..."

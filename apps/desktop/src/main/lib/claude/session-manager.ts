@@ -90,10 +90,16 @@ interface ActiveSession {
 	streamEnabled: boolean;
 	// Maps content block index to tool ID for matching tool_use_end events
 	toolIndexToId: Map<number, string>;
+	// Current assistant message being streamed
+	currentMessageId: string | null;
+	// Sequence counter for current message chunks
+	currentSeq: number;
 }
 
 // Cache the SDK query function
-let cachedClaudeQuery: typeof import("@anthropic-ai/claude-agent-sdk").query | null = null;
+let cachedClaudeQuery:
+	| typeof import("@anthropic-ai/claude-agent-sdk").query
+	| null = null;
 const getClaudeQuery = async () => {
 	if (cachedClaudeQuery) {
 		return cachedClaudeQuery;
@@ -234,6 +240,8 @@ class ClaudeSessionManager extends EventEmitter {
 			toolCalls: [],
 			streamEnabled,
 			toolIndexToId: new Map(),
+			currentMessageId: null,
+			currentSeq: 0,
 		};
 
 		this.sessions.set(sessionId, session);
@@ -254,7 +262,9 @@ class ClaudeSessionManager extends EventEmitter {
 		sessionId: string;
 		content: string;
 	}): Promise<void> {
-		console.log(`[claude/session] sendMessage called for ${sessionId}: "${content.slice(0, 50)}..."`);
+		console.log(
+			`[claude/session] sendMessage called for ${sessionId}: "${content.slice(0, 50)}..."`,
+		);
 
 		const session = this.sessions.get(sessionId);
 		if (!session) {
@@ -277,6 +287,20 @@ class ClaudeSessionManager extends EventEmitter {
 		session.accumulatedContent = "";
 		session.toolCalls = [];
 		session.toolIndexToId.clear();
+		session.currentMessageId = null;
+		session.currentSeq = 0;
+
+		// Post user message as whole-message chunk to the durable stream
+		if (session.streamEnabled) {
+			const userMessageId = crypto.randomUUID();
+			await this.postChunkToStream(session, {
+				messageId: userMessageId,
+				actorId: "user",
+				role: "user",
+				chunk: JSON.stringify({ type: "whole-message", content }),
+				seq: 0,
+			});
+		}
 
 		const binaryPath = getClaudeBinaryPath();
 		if (!binaryPath) {
@@ -295,7 +319,9 @@ class ClaudeSessionManager extends EventEmitter {
 
 			console.log(`[claude/session] Starting SDK query in ${session.cwd}`);
 			console.log(`[claude/session] Binary: ${binaryPath}`);
-			console.log(`[claude/session] Resume session: ${session.claudeSessionId || "none"}`);
+			console.log(
+				`[claude/session] Resume session: ${session.claudeSessionId || "none"}`,
+			);
 
 			const queryOptions = {
 				prompt: content,
@@ -337,7 +363,8 @@ class ClaudeSessionManager extends EventEmitter {
 					type: "message_complete",
 					sessionId,
 					content: session.accumulatedContent,
-					toolCalls: session.toolCalls.length > 0 ? session.toolCalls : undefined,
+					toolCalls:
+						session.toolCalls.length > 0 ? session.toolCalls : undefined,
 					claudeSessionId: session.claudeSessionId,
 				} satisfies MessageCompleteEvent);
 			}
@@ -347,7 +374,8 @@ class ClaudeSessionManager extends EventEmitter {
 				await durableStreamClient.flushAll(sessionId);
 			}
 		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
 			const errorStack = error instanceof Error ? error.stack : undefined;
 			console.error(`[claude/session] SDK error: ${errorMessage}`);
 			if (errorStack) {
@@ -355,7 +383,10 @@ class ClaudeSessionManager extends EventEmitter {
 			}
 			// If it's an object with more details, log those too
 			if (typeof error === "object" && error !== null) {
-				console.error(`[claude/session] Full error:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+				console.error(
+					`[claude/session] Full error:`,
+					JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
+				);
 			}
 			this.emitEvent(session, {
 				type: "error",
@@ -378,7 +409,10 @@ class ClaudeSessionManager extends EventEmitter {
 		const subtype = msgAny.subtype as string | undefined;
 
 		// Verbose logging for debugging - stringify the full message
-		console.log(`[claude/session] SDK message: type=${msgType}, subtype=${subtype || "none"}, full:`, JSON.stringify(msg, null, 2).slice(0, 500));
+		console.log(
+			`[claude/session] SDK message: type=${msgType}, subtype=${subtype || "none"}, full:`,
+			JSON.stringify(msg, null, 2).slice(0, 500),
+		);
 
 		// Handle session ID from init message
 		if (msgType === "system" && subtype === "init") {
@@ -397,10 +431,16 @@ class ClaudeSessionManager extends EventEmitter {
 				const errorObj = msgAny.error as Record<string, unknown>;
 				errorText = errorObj.message?.toString() || JSON.stringify(errorObj);
 			} else {
-				errorText = msgAny.message?.toString() || msgAny.error?.toString() || "Unknown error";
+				errorText =
+					msgAny.message?.toString() ||
+					msgAny.error?.toString() ||
+					"Unknown error";
 			}
 			console.error(`[claude/session] SDK error message:`, errorText);
-			console.error(`[claude/session] Full error msg:`, JSON.stringify(msgAny, null, 2).slice(0, 1000));
+			console.error(
+				`[claude/session] Full error msg:`,
+				JSON.stringify(msgAny, null, 2).slice(0, 1000),
+			);
 			this.emitEvent(session, {
 				type: "error",
 				sessionId,
@@ -412,7 +452,9 @@ class ClaudeSessionManager extends EventEmitter {
 		// Handle streaming events
 		if (msgType === "assistant" && subtype === "message") {
 			const message = msgAny.message as Record<string, unknown> | undefined;
-			const content = message?.content as Array<Record<string, unknown>> | undefined;
+			const content = message?.content as
+				| Array<Record<string, unknown>>
+				| undefined;
 
 			if (content) {
 				for (const block of content) {
@@ -424,8 +466,8 @@ class ClaudeSessionManager extends EventEmitter {
 							text: block.text,
 						} satisfies TextDeltaEvent);
 					} else if (block.type === "tool_use") {
-						const toolName = block.name as string || "unknown";
-						const toolId = block.id as string || "unknown";
+						const toolName = (block.name as string) || "unknown";
+						const toolId = (block.id as string) || "unknown";
 						session.toolCalls.push(block);
 						this.emitEvent(session, {
 							type: "tool_use_start",
@@ -455,7 +497,9 @@ class ClaudeSessionManager extends EventEmitter {
 					} satisfies TextDeltaEvent);
 				}
 			} else if (eventType === "content_block_start") {
-				const contentBlock = event.content_block as Record<string, unknown> | undefined;
+				const contentBlock = event.content_block as
+					| Record<string, unknown>
+					| undefined;
 				const blockIndex = event.index as number | undefined;
 				if (contentBlock?.type === "tool_use") {
 					const toolId = (contentBlock.id as string) || "unknown";
@@ -503,7 +547,9 @@ class ClaudeSessionManager extends EventEmitter {
 	async interrupt({ sessionId }: { sessionId: string }): Promise<void> {
 		const session = this.sessions.get(sessionId);
 		if (!session) {
-			console.warn(`[claude/session] Session ${sessionId} not found for interrupt`);
+			console.warn(
+				`[claude/session] Session ${sessionId} not found for interrupt`,
+			);
 			return;
 		}
 
@@ -541,14 +587,77 @@ class ClaudeSessionManager extends EventEmitter {
 	}
 
 	/**
+	 * Post a chunk to the durable stream in STATE-PROTOCOL format
+	 */
+	private async postChunkToStream(
+		session: ActiveSession,
+		chunk: {
+			messageId: string;
+			actorId: string;
+			role: "user" | "assistant" | "system";
+			chunk: string;
+			seq: number;
+		},
+	): Promise<void> {
+		if (!session.streamEnabled) return;
+
+		const event = {
+			type: "chunk",
+			key: `${chunk.messageId}:${chunk.seq}`,
+			value: {
+				messageId: chunk.messageId,
+				actorId: chunk.actorId,
+				role: chunk.role,
+				chunk: chunk.chunk,
+				seq: chunk.seq,
+				createdAt: new Date().toISOString(),
+			},
+			headers: { operation: "upsert" },
+		};
+
+		durableStreamClient.queueEvent(session.sessionId, event);
+	}
+
+	/**
 	 * Emit an event both locally and to the durable stream
 	 */
 	private emitEvent(session: ActiveSession, event: ClaudeStreamEvent): void {
 		this.emit("event", event);
 
+		// Post chunks to durable stream in STATE-PROTOCOL format
 		if (session.streamEnabled) {
-			const { sessionId: _, ...streamEvent } = event;
-			durableStreamClient.queueEvent(session.sessionId, streamEvent);
+			if (event.type === "text_delta") {
+				// Start a new message if needed
+				if (!session.currentMessageId) {
+					session.currentMessageId = crypto.randomUUID();
+					session.currentSeq = 0;
+				}
+
+				// Post text-delta chunk
+				this.postChunkToStream(session, {
+					messageId: session.currentMessageId,
+					actorId: "claude",
+					role: "assistant",
+					chunk: JSON.stringify({ type: "text-delta", text: event.text }),
+					seq: session.currentSeq++,
+				});
+			} else if (
+				event.type === "message_complete" &&
+				session.currentMessageId
+			) {
+				// Post done chunk to mark message as complete
+				this.postChunkToStream(session, {
+					messageId: session.currentMessageId,
+					actorId: "claude",
+					role: "assistant",
+					chunk: JSON.stringify({ type: "done" }),
+					seq: session.currentSeq++,
+				});
+
+				// Reset message tracking
+				session.currentMessageId = null;
+				session.currentSeq = 0;
+			}
 		}
 	}
 }
