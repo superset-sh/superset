@@ -21,8 +21,8 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: LayoutProps<"/">) {
 	return (
-		<html lang="en" className={inter.className} suppressHydrationWarning>
-			<body className="flex flex-col min-h-screen">
+		<html lang="en" className={`${inter.className} overscroll-none`} suppressHydrationWarning>
+			<body className="flex flex-col min-h-screen overscroll-none">
 				<RootProvider>
 					<NavbarProvider>
 						<NavigationBar />
