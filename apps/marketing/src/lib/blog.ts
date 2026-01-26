@@ -1,10 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { slugify, type TocItem, type BlogPost } from "./blog-utils";
+import { type BlogPost, slugify, type TocItem } from "./blog-utils";
 
 export { BLOG_CATEGORIES, type BlogCategory } from "./blog-constants";
-export { formatBlogDate, slugify, type TocItem, type BlogPost } from "./blog-utils";
+export {
+	type BlogPost,
+	formatBlogDate,
+	slugify,
+	type TocItem,
+} from "./blog-utils";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
 

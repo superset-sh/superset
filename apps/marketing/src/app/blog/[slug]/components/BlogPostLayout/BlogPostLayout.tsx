@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuthorAvatar } from "@/app/blog/components/AuthorAvatar";
 import { GridCross } from "@/app/blog/components/GridCross";
-import { formatBlogDate, type BlogPost, type TocItem } from "@/lib/blog-utils";
+import { type BlogPost, formatBlogDate, type TocItem } from "@/lib/blog-utils";
 
 interface BlogPostLayoutProps {
 	post: BlogPost;

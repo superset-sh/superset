@@ -117,19 +117,19 @@
  * Note: !important is required to override Shiki's inline styles
  */
 .blog-code-block > div {
-	background: #282c34 !important;
-	border-color: #3e4451 !important;
+	background: #282c34;
+	border-color: #3e4451;
 }
 
 .blog-code-block pre {
-	background: #282c34 !important;
+	background: #282c34;
 }
 
 /* Hide light theme, show dark theme */
 .blog-code-block .dark\:hidden {
-	display: none !important;
+	display: none;
 }
 
 .blog-code-block .hidden.dark\:block {
-	display: block !important;
+	display: block;
 }

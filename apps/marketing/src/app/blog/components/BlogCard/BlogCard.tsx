@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatBlogDate, type BlogPost } from "@/lib/blog-utils";
+import { type BlogPost, formatBlogDate } from "@/lib/blog-utils";
 import { AuthorAvatar } from "../AuthorAvatar";
 
 interface BlogCardProps {
