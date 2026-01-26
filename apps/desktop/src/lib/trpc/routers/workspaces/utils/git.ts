@@ -331,12 +331,9 @@ export function generateBranchName({
 	const words = friendlyWords.objects as string[];
 	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
 
-	// Skip prefix if a branch with the exact prefix name exists (git ref collision)
-	// e.g., if "john" branch exists, can't create "john/feature"
-	const safePrefix =
-		authorPrefix && !existingSet.has(authorPrefix.toLowerCase())
-			? authorPrefix
-			: undefined;
+	const prefixWouldCollide =
+		authorPrefix && existingSet.has(authorPrefix.toLowerCase());
+	const safePrefix = prefixWouldCollide ? undefined : authorPrefix;
 
 	const addPrefix = (name: string): string => {
 		if (safePrefix) {

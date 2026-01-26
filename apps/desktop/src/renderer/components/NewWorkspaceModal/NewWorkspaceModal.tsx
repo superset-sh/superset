@@ -105,7 +105,6 @@ export function NewWorkspaceModal() {
 	const createWorkspace = useCreateWorkspace();
 	const authorPrefix = gitAuthor?.prefix;
 
-	// Filter branches based on search (for base branch selector)
 	const filteredBranches = useMemo(() => {
 		if (!branchData?.branches) return [];
 		if (!branchSearch) return branchData.branches;
@@ -115,23 +114,19 @@ export function NewWorkspaceModal() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	// Auto-select project when modal opens (use pre-selected from NewWorkspaceButton)
 	useEffect(() => {
 		if (isOpen && !selectedProjectId && preSelectedProjectId) {
 			setSelectedProjectId(preSelectedProjectId);
 		}
 	}, [isOpen, selectedProjectId, preSelectedProjectId]);
 
-	// Effective base branch - use explicit selection or fall back to default
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
 
-	// Reset base branch when project changes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
 	useEffect(() => {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	// Display branch name: use edited value or auto-generate from title
 	const displayBranchName = useMemo(() => {
 		if (branchNameEdited) return branchName;
 		return generateBranchFromTitle({ title, authorPrefix });
@@ -148,13 +143,9 @@ export function NewWorkspaceModal() {
 		setShowAdvanced(false);
 	};
 
-	// Focus title input when modal opens and project is selected
 	useEffect(() => {
 		if (isOpen && selectedProjectId && mode === "new") {
-			// Small delay to ensure dialog is fully rendered
-			const timer = setTimeout(() => {
-				titleInputRef.current?.focus();
-			}, 50);
+			const timer = setTimeout(() => titleInputRef.current?.focus(), 50);
 			return () => clearTimeout(timer);
 		}
 	}, [isOpen, selectedProjectId, mode]);
@@ -186,7 +177,6 @@ export function NewWorkspaceModal() {
 		if (!selectedProjectId) return;
 
 		const workspaceName = title.trim() || undefined;
-		// Only send branchName if user manually edited it; otherwise let server auto-generate with collision checks
 		const customBranchName = branchNameEdited ? branchName.trim() : undefined;
 
 		try {
@@ -197,10 +187,8 @@ export function NewWorkspaceModal() {
 				baseBranch: effectiveBaseBranch || undefined,
 			});
 
-			// Close modal immediately - workspace appears in sidebar
 			handleClose();
 
-			// Show appropriate toast based on initialization state
 			if (result.isInitializing) {
 				toast.success("Workspace created", {
 					description: "Setting up in the background...",

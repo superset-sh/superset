@@ -306,15 +306,12 @@ export const createCreateProcedures = () => {
 					? sanitizeAuthorPrefix(authorName)
 					: undefined;
 
-				// Skip prefix if a branch with the exact prefix name exists (git ref collision)
-				// e.g., if "john" branch exists, can't create "john/feature"
 				const existingSet = new Set(
 					existingBranches.map((b) => b.toLowerCase()),
 				);
-				const authorPrefix =
-					rawAuthorPrefix && !existingSet.has(rawAuthorPrefix.toLowerCase())
-						? rawAuthorPrefix
-						: undefined;
+				const prefixWouldCollide =
+					rawAuthorPrefix && existingSet.has(rawAuthorPrefix.toLowerCase());
+				const authorPrefix = prefixWouldCollide ? undefined : rawAuthorPrefix;
 
 				let branch: string;
 				if (existingBranchName) {
@@ -325,10 +322,8 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					// User explicitly provided a name - use it as-is
 					branch = input.branchName.trim();
 				} else {
-					// Auto-generate with author prefix
 					branch = generateBranchName({ existingBranches, authorPrefix });
 				}
 
