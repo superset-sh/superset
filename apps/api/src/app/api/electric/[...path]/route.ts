@@ -46,6 +46,13 @@ export async function GET(request: Request): Promise<Response> {
 		originUrl.searchParams.set(`params[${index + 1}]`, String(value));
 	});
 
+	if (tableName === "auth.apikeys") {
+		originUrl.searchParams.set(
+			"columns",
+			"id,name,start,created_at,last_request",
+		);
+	}
+
 	let response = await fetch(originUrl.toString());
 
 	if (response.headers.get("content-encoding")) {

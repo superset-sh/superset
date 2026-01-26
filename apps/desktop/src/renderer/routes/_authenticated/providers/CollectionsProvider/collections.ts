@@ -69,8 +69,13 @@ const organizationsCollection = createCollection(
 	}),
 );
 
+type ApiKeyDisplay = Pick<
+	SelectApikey,
+	"id" | "name" | "start" | "createdAt" | "lastRequest"
+>;
+
 const apiKeysCollection = createCollection(
-	electricCollectionOptions<SelectApikey>({
+	electricCollectionOptions<ApiKeyDisplay>({
 		id: "apikeys",
 		shapeOptions: {
 			url: electricUrl,

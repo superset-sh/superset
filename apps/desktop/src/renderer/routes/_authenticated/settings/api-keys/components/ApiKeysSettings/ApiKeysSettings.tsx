@@ -1,3 +1,4 @@
+import { alert } from "@superset/ui/atoms/Alert";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
+import { toast } from "@superset/ui/sonner";
 import {
 	Table,
 	TableBody,
@@ -20,7 +22,7 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
 	HiOutlineClipboardDocument,
 	HiOutlineKey,
@@ -28,7 +30,6 @@ import {
 	HiOutlineTrash,
 } from "react-icons/hi2";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
@@ -40,22 +41,7 @@ interface ApiKeysSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
-interface ApiKeyMetadata {
-	organizationId?: string;
-	defaultDeviceId?: string | null;
-}
-
-function parseMetadata(metadata: string | null): ApiKeyMetadata {
-	if (!metadata) return {};
-	try {
-		return JSON.parse(metadata) as ApiKeyMetadata;
-	} catch {
-		return {};
-	}
-}
-
 export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
-	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [showGenerateDialog, setShowGenerateDialog] = useState(false);
@@ -64,22 +50,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	const [newKeyValue, setNewKeyValue] = useState("");
 	const [copied, setCopied] = useState(false);
 
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
-
-	const activeOrganizationId = session?.session?.activeOrganizationId;
-
-	const { data: allApiKeys, isLoading } = useLiveQuery(
+	const { data: apiKeys, isLoading } = useLiveQuery(
 		(q) => q.from({ apiKeys: collections.apiKeys }),
 		[collections],
 	);
-
-	const apiKeys = useMemo(() => {
-		if (!allApiKeys || !activeOrganizationId) return [];
-		return allApiKeys.filter((key) => {
-			const meta = parseMetadata(key.metadata);
-			return meta.organizationId === activeOrganizationId;
-		});
-	}, [allApiKeys, activeOrganizationId]);
 
 	const showApiKeysList = isItemVisible(
 		SETTING_ITEM_ID.API_KEYS_LIST,
@@ -91,16 +65,12 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	);
 
 	const handleGenerateKey = async () => {
-		if (!newKeyName.trim() || !activeOrganizationId) return;
+		if (!newKeyName.trim()) return;
 
 		try {
 			setIsGenerating(true);
 			const result = await authClient.apiKey.create({
 				name: newKeyName.trim(),
-				metadata: {
-					organizationId: activeOrganizationId,
-					defaultDeviceId: deviceInfo?.deviceId ?? null,
-				},
 			});
 			if (result.data?.key) {
 				setNewKeyValue(result.data.key);
@@ -115,12 +85,16 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		}
 	};
 
-	const handleRevokeKey = async (id: string) => {
-		try {
-			await authClient.apiKey.delete({ keyId: id });
-		} catch (error) {
-			console.error("[api-keys] Failed to revoke API key:", error);
-		}
+	const handleRevokeKey = (id: string, name: string | null) => {
+		alert.destructive({
+			title: "Revoke API Key",
+			description: `Are you sure you want to revoke "${name ?? "Unnamed Key"}"? This action cannot be undone.`,
+			confirmText: "Revoke",
+			onConfirm: async () => {
+				await authClient.apiKey.delete({ keyId: id });
+				toast.success("API key revoked");
+			},
+		});
 	};
 
 	const handleCopyKey = () => {
@@ -185,7 +159,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 										</div>
 									))}
 								</div>
-							) : apiKeys.length === 0 ? (
+							) : !apiKeys || apiKeys.length === 0 ? (
 								<div className="text-center py-12 text-muted-foreground border rounded-lg">
 									<HiOutlineKey className="h-12 w-12 mx-auto mb-4 opacity-50" />
 									<p>No API keys yet</p>
@@ -232,7 +206,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 															variant="ghost"
 															size="icon"
 															className="h-8 w-8 text-destructive hover:text-destructive"
-															onClick={() => handleRevokeKey(key.id)}
+															onClick={() => handleRevokeKey(key.id, key.name)}
 														>
 															<HiOutlineTrash className="h-4 w-4" />
 														</Button>
