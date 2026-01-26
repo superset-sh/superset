@@ -3,6 +3,7 @@
 import { stripeClient } from "@better-auth/stripe/client";
 import type { auth } from "@superset/auth/server";
 import {
+	apiKeyClient,
 	customSessionClient,
 	organizationClient,
 } from "better-auth/client/plugins";
@@ -14,5 +15,6 @@ export const authClient = createAuthClient({
 		organizationClient(),
 		customSessionClient<typeof auth>(),
 		stripeClient({ subscription: true }),
+		apiKeyClient(),
 	],
 });

@@ -1,3 +1,4 @@
+import { alert } from "@superset/ui/atoms/Alert";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
+import { toast } from "@superset/ui/sonner";
 import {
 	Table,
 	TableBody,
@@ -19,15 +21,16 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { useCallback, useEffect, useState } from "react";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useState } from "react";
 import {
 	HiOutlineClipboardDocument,
 	HiOutlineKey,
 	HiOutlinePlus,
 	HiOutlineTrash,
 } from "react-icons/hi2";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { authClient } from "renderer/lib/auth-client";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -38,20 +41,8 @@ interface ApiKeysSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
-interface ApiKey {
-	id: string;
-	name: string;
-	keyPrefix: string;
-	defaultDeviceId: string | null;
-	lastUsedAt: Date | null;
-	usageCount: string;
-	createdAt: Date;
-	expiresAt: Date | null;
-}
-
 export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
-	const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-	const [isLoading, setIsLoading] = useState(true);
+	const collections = useCollections();
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [showGenerateDialog, setShowGenerateDialog] = useState(false);
 	const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
@@ -59,7 +50,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 	const [newKeyValue, setNewKeyValue] = useState("");
 	const [copied, setCopied] = useState(false);
 
-	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
+	const { data: apiKeys, isLoading } = useLiveQuery(
+		(q) => q.from({ apiKeys: collections.apiKeys }),
+		[collections],
+	);
 
 	const showApiKeysList = isItemVisible(
 		SETTING_ITEM_ID.API_KEYS_LIST,
@@ -70,36 +64,20 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		visibleItems,
 	);
 
-	const loadApiKeys = useCallback(async () => {
-		try {
-			setIsLoading(true);
-			const keys = await apiTrpcClient.apiKeys.list.query();
-			setApiKeys(keys);
-		} catch (error) {
-			console.error("[api-keys] Failed to load API keys:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	}, []);
-
-	useEffect(() => {
-		loadApiKeys();
-	}, [loadApiKeys]);
-
 	const handleGenerateKey = async () => {
 		if (!newKeyName.trim()) return;
 
 		try {
 			setIsGenerating(true);
-			const result = await apiTrpcClient.apiKeys.generate.mutate({
+			const result = await authClient.apiKey.create({
 				name: newKeyName.trim(),
-				defaultDeviceId: deviceInfo?.deviceId,
 			});
-			setNewKeyValue(result.key);
-			setShowGenerateDialog(false);
-			setShowNewKeyDialog(true);
-			setNewKeyName("");
-			loadApiKeys();
+			if (result.data?.key) {
+				setNewKeyValue(result.data.key);
+				setShowGenerateDialog(false);
+				setShowNewKeyDialog(true);
+				setNewKeyName("");
+			}
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
 		} finally {
@@ -107,13 +85,16 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		}
 	};
 
-	const handleRevokeKey = async (id: string) => {
-		try {
-			await apiTrpcClient.apiKeys.revoke.mutate({ id });
-			loadApiKeys();
-		} catch (error) {
-			console.error("[api-keys] Failed to revoke API key:", error);
-		}
+	const handleRevokeKey = (id: string, name: string | null) => {
+		alert.destructive({
+			title: "Revoke API Key",
+			description: `Are you sure you want to revoke "${name ?? "Unnamed Key"}"? This action cannot be undone.`,
+			confirmText: "Revoke",
+			onConfirm: async () => {
+				await authClient.apiKey.delete({ keyId: id });
+				toast.success("API key revoked");
+			},
+		});
 	};
 
 	const handleCopyKey = () => {
@@ -178,7 +159,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 										</div>
 									))}
 								</div>
-							) : apiKeys.length === 0 ? (
+							) : !apiKeys || apiKeys.length === 0 ? (
 								<div className="text-center py-12 text-muted-foreground border rounded-lg">
 									<HiOutlineKey className="h-12 w-12 mx-auto mb-4 opacity-50" />
 									<p>No API keys yet</p>
@@ -204,26 +185,28 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 													<TableCell>
 														<div className="flex items-center gap-2">
 															<HiOutlineKey className="h-4 w-4 text-muted-foreground" />
-															<span className="font-medium">{key.name}</span>
+															<span className="font-medium">
+																{key.name ?? "Unnamed Key"}
+															</span>
 														</div>
 													</TableCell>
 													<TableCell>
 														<Badge variant="outline" className="font-mono">
-															{key.keyPrefix}
+															{key.start ?? "sk_..."}
 														</Badge>
 													</TableCell>
 													<TableCell className="text-muted-foreground">
 														{formatDate(key.createdAt)}
 													</TableCell>
 													<TableCell className="text-muted-foreground">
-														{formatDate(key.lastUsedAt)}
+														{formatDate(key.lastRequest)}
 													</TableCell>
 													<TableCell>
 														<Button
 															variant="ghost"
 															size="icon"
 															className="h-8 w-8 text-destructive hover:text-destructive"
-															onClick={() => handleRevokeKey(key.id)}
+															onClick={() => handleRevokeKey(key.id, key.name)}
 														>
 															<HiOutlineTrash className="h-4 w-4" />
 														</Button>

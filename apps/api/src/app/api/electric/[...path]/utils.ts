@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import {
 	agentCommands,
+	apikeys,
 	devicePresence,
 	invitations,
 	members,
@@ -21,6 +22,7 @@ export type AllowedTable =
 	| "auth.organizations"
 	| "auth.users"
 	| "auth.invitations"
+	| "auth.apikeys"
 	| "device_presence"
 	| "agent_commands";
 
@@ -102,6 +104,9 @@ export async function buildWhereClause(
 
 		case "agent_commands":
 			return build(agentCommands, agentCommands.organizationId, organizationId);
+
+		case "auth.apikeys":
+			return build(apikeys, apikeys.userId, userId);
 
 		default:
 			return null;

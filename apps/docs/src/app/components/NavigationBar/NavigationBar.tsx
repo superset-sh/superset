@@ -1,5 +1,6 @@
 "use client";
 
+import { COMPANY } from "@superset/shared/constants";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { MobileSearchIcon } from "@/app/(docs)/[[...slug]]/components/DocsPageLayout/components/PageClient/components/MobileSearchIcon";
@@ -15,7 +16,7 @@ function SupersetLogo() {
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 			aria-label="Superset"
-			className="h-6 w-auto"
+			className="h-5 w-auto"
 		>
 			<title>Superset</title>
 			<path
@@ -45,18 +46,16 @@ export default function NavigationBar() {
 	return (
 		<div className="flex flex-col sticky top-0 bg-background backdrop-blur-md z-30">
 			<nav className="md:grid grid-cols-12 border-b flex items-center justify-between">
-				<Link
-					href="/"
+				<a
+					href={COMPANY.MARKETING_URL}
 					className="min-navbar:border-r md:px-5 px-2.5 py-4 text-foreground md:col-span-2 shrink-0 transition-colors md:w-[268px] lg:w-[286px]"
 				>
 					<SupersetLogo />
-				</Link>
+				</a>
 				<div className="md:col-span-10 flex items-center justify-end relative px-4 gap-4">
 					<MobileSearchIcon />
 					<SidebarTrigger />
 					<ul className="navbar:flex items-center gap-6 hidden shrink-0">
-						<NavLink href="/">Home</NavLink>
-						<NavLink href="/quick-start">Docs</NavLink>
 						<NavLink
 							href="https://github.com/superset-sh/superset"
 							external

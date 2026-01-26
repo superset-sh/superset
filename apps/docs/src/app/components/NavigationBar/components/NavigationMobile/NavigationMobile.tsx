@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useState } from "react";
-import { contents } from "@/app/(docs)/components/Sidebar/components/SidebarContent";
+import { sections } from "@/app/(docs)/components/Sidebar/components/SidebarContent";
 import { cn } from "@/lib/cn";
 
 interface NavbarMobileContextProps {
@@ -56,41 +56,26 @@ export const NavigationMobile = () => {
 					isOpen ? "py-5" : "invisible",
 				)}
 			>
-				{contents.map((section) => (
+				{sections.map((section) => (
 					<div key={section.title} className="py-2">
 						<div className="flex items-center gap-2 mb-2">
 							<section.Icon style={{ width: "1.4em", height: "1.4em" }} />
 							<span className="font-medium">{section.title}</span>
 						</div>
 						<div className="pl-6 space-y-1">
-							{section.list.map((item) => {
-								if (item.separator || item.group) {
-									return (
-										<div
-											key={item.title}
-											className="text-xs text-muted-foreground py-1"
-										>
-											{item.title}
-										</div>
-									);
-								}
-								return (
-									<Link
-										key={item.title}
-										href={item.href}
-										onClick={toggleNavbar}
-										className={cn(
-											"block py-1.5 text-sm text-muted-foreground hover:text-foreground",
-											pathname === item.href && "text-foreground font-medium",
-										)}
-									>
-										<div className="flex items-center gap-2">
-											<item.icon className="w-4 h-4" />
-											{item.title}
-										</div>
-									</Link>
-								);
-							})}
+							{section.items.map((item) => (
+								<Link
+									key={item.href}
+									href={item.href}
+									onClick={toggleNavbar}
+									className={cn(
+										"block py-1.5 text-sm text-muted-foreground hover:text-foreground",
+										pathname === item.href && "text-foreground font-medium",
+									)}
+								>
+									{item.title}
+								</Link>
+							))}
 						</div>
 					</div>
 				))}

@@ -1,1 +1,1 @@
-export { contents } from "./SidebarContent";
+export { sections } from "./SidebarContent";

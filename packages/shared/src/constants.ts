@@ -14,9 +14,12 @@ export const COMPANY = {
 	DOMAIN: "superset.sh",
 	EMAIL_DOMAIN: "@superset.sh",
 	GITHUB_URL: "https://github.com/superset-sh/superset",
-	DOCS_URL: "https://docs.superset.sh",
-	TERMS_URL: "https://superset.sh/terms",
-	PRIVACY_URL: "https://superset.sh/privacy",
+	DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh",
+	MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh",
+	TERMS_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/terms`,
+	PRIVACY_URL:
+		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
+		"/privacy",
 	X_URL: "https://x.com/superset_sh",
 	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",

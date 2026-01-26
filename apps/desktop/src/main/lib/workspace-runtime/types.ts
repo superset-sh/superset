@@ -41,9 +41,6 @@ export interface TerminalCapabilities {
 	persistent: boolean;
 	/** Cold restore from disk is supported after unclean shutdown */
 	coldRestore: boolean;
-	// Future capabilities (not implemented in PR1):
-	// replay: boolean;        // stream supports bounded replay via `since` cursor
-	// multiAttach: boolean;   // multiple attachments can view one backend session
 }
 
 // =============================================================================

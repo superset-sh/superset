@@ -64,14 +64,14 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 
 	// Fetch user's organization memberships via tRPC
 	const trpc = await api();
-	const userMemberships = await trpc.organization.myOrganizations.query();
+	const userOrganizations = await trpc.user.myOrganizations.query();
 
 	// Get active organization from session or default to first
 	const extendedSession = session.session as typeof session.session & {
 		activeOrganizationId?: string | null;
 	};
 	const defaultOrgId =
-		extendedSession.activeOrganizationId ?? userMemberships[0]?.organizationId;
+		extendedSession.activeOrganizationId ?? userOrganizations[0]?.id;
 
 	return (
 		<div className="relative flex min-h-screen flex-col">
@@ -92,9 +92,9 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 					clientId={client_id}
 					scopes={scopes}
 					userName={session.user.name}
-					organizations={userMemberships.map((m) => ({
-						id: m.organizationId,
-						name: m.organizationName,
+					organizations={userOrganizations.map((org) => ({
+						id: org.id,
+						name: org.name,
 					}))}
 					defaultOrganizationId={defaultOrgId}
 				/>

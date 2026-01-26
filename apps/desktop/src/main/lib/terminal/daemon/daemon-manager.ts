@@ -92,6 +92,15 @@ export class DaemonTerminalManager extends EventEmitter {
 			);
 			this.daemonSessionIdsHydrated = true;
 
+			// Enable port scanning before user opens terminal tabs
+			for (const session of preservedSessions) {
+				portManager.upsertDaemonSession(
+					session.paneId,
+					session.workspaceId,
+					session.pid,
+				);
+			}
+
 			const preservedCount = response.sessions.length - orphanedCount;
 			if (preservedCount > 0) {
 				console.log(

@@ -18,6 +18,7 @@ import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
 import superjson from "superjson";
+import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
@@ -56,6 +57,34 @@ const organizationsCollection = createCollection(
 		shapeOptions: {
 			url: electricUrl,
 			params: { table: "auth.organizations" },
+			headers: {
+				Authorization: () => {
+					const token = getAuthToken();
+					return token ? `Bearer ${token}` : "";
+				},
+			},
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
+
+const apiKeyDisplaySchema = z.object({
+	id: z.string(),
+	name: z.string().nullable(),
+	start: z.string().nullable(),
+	createdAt: z.coerce.date(),
+	lastRequest: z.coerce.date().nullable(),
+});
+
+type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
+
+const apiKeysCollection = createCollection(
+	electricCollectionOptions<ApiKeyDisplay>({
+		id: "apikeys",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.apikeys" },
 			headers: {
 				Authorization: () => {
 					const token = getAuthToken();
@@ -279,5 +308,6 @@ export function getCollections(organizationId: string) {
 	return {
 		...orgCollections,
 		organizations: organizationsCollection,
+		apiKeys: apiKeysCollection,
 	};
 }

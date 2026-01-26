@@ -311,6 +311,35 @@ export async function getGitAuthorName(
 	}
 }
 
+export async function getGitHubUsername(
+	repoPath?: string,
+): Promise<string | null> {
+	try {
+		const git = repoPath ? simpleGit(repoPath) : simpleGit();
+		const username = await git.getConfig("github.user");
+		return username.value?.trim() || null;
+	} catch (error) {
+		console.warn("[git/getGitHubUsername] Failed to get github.user:", error);
+		return null;
+	}
+}
+
+export async function getAuthorPrefix(
+	repoPath?: string,
+): Promise<string | null> {
+	const githubUsername = await getGitHubUsername(repoPath);
+	if (githubUsername) {
+		return githubUsername;
+	}
+
+	const gitAuthorName = await getGitAuthorName(repoPath);
+	if (gitAuthorName) {
+		return gitAuthorName;
+	}
+
+	return null;
+}
+
 export {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
