@@ -2,8 +2,6 @@
  * Utilities for detecting terminal clear scrollback sequences.
  */
 
-export { stripClearScrollbackSequence } from "../../shared/terminal-escape";
-
 const ESC = "\x1b";
 const ED3_SEQUENCE = `${ESC}[3J`;
 

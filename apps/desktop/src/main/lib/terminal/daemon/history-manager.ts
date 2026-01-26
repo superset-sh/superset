@@ -1,7 +1,6 @@
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
-	stripClearScrollbackSequence,
 } from "../../terminal-escape-filter";
 import {
 	HistoryReader,
@@ -116,9 +115,7 @@ export class HistoryManager {
 					cwd: session.cwd,
 					cols: session.cols,
 					rows: session.rows,
-					initialScrollback: contentAfterClear
-						? stripClearScrollbackSequence(contentAfterClear)
-						: undefined,
+					initialScrollback: contentAfterClear || undefined,
 				}).catch((error) => {
 					console.warn(
 						`[HistoryManager] Failed to reinitialize history writer for ${paneId}:`,
@@ -129,7 +126,7 @@ export class HistoryManager {
 			return;
 		}
 
-		writer.write(stripClearScrollbackSequence(data));
+		writer.write(data);
 	}
 
 	closeHistoryWriter(paneId: string, exitCode?: number): void {

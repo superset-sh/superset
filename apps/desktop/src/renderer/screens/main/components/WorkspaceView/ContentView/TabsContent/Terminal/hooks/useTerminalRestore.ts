@@ -92,7 +92,7 @@ export function useTerminalRestore({
 		for (const event of events) {
 			if (event.type === "data") {
 				updateModesRef.current(event.data);
-				xterm.write(event.data);
+				xterm.write(stripClearScrollbackSequence(event.data));
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
 				onExitEventRef.current(event.exitCode, xterm);
@@ -184,7 +184,7 @@ export function useTerminalRestore({
 							.split(`${ESC}[?47h`)
 							.join("");
 						if (filteredRehydrate) {
-							xterm.write(stripClearScrollbackSequence(filteredRehydrate));
+							xterm.write(filteredRehydrate);
 						}
 					}
 
@@ -225,14 +225,11 @@ export function useTerminalRestore({
 					finalizeRestore();
 					return;
 				}
-				xterm.write(stripClearScrollbackSequence(initialAnsi), finalizeRestore);
+				xterm.write(initialAnsi, finalizeRestore);
 			};
 
 			if (rehydrateSequences) {
-				xterm.write(
-					stripClearScrollbackSequence(rehydrateSequences),
-					writeSnapshot,
-				);
+				xterm.write(rehydrateSequences, writeSnapshot);
 			} else {
 				writeSnapshot();
 			}

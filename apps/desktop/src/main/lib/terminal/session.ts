@@ -7,7 +7,6 @@ import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
-	stripClearScrollbackSequence,
 } from "../terminal-escape-filter";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import { PtyWriteQueue } from "./pty-write-queue";
@@ -190,13 +189,12 @@ export function setupDataHandler(
 			session.serializer = serializer;
 			const contentAfterClear = extractContentAfterClear(data);
 			if (contentAfterClear) {
-				session.headless.write(stripClearScrollbackSequence(contentAfterClear));
+				session.headless.write(contentAfterClear);
 			}
 		} else {
-			session.headless.write(stripClearScrollbackSequence(data));
+			session.headless.write(data);
 		}
 
-		// Send unfiltered data to renderer - ESC[3J is stripped only in restore path
 		session.dataBatcher.write(data);
 
 		if (initialCommandString && !commandsSent) {
