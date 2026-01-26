@@ -44,7 +44,8 @@ const config: NextConfig = {
 	},
 
 	async redirects() {
-		const docsUrl = process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh";
+		const docsUrl =
+			process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh";
 		return [
 			{
 				source: "/docs/:path*",
