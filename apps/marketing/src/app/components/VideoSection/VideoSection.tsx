@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
 
-const VIDEO_ID = "dkD-U7JXkbI";
+const VIDEO_ID = "7jhPfMDwTUc";
 
 export function VideoSection() {
 	const [isPlaying, setIsPlaying] = useState(false);
