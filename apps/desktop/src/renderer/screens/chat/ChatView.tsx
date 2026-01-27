@@ -8,7 +8,7 @@
 import { ChatInput, PresenceBar } from "@superset/ai-chat/components";
 import { useChatSession } from "@superset/ai-chat/stream";
 import { cn } from "@superset/ui/utils";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -31,16 +31,14 @@ export function ChatView({ sessionId, className }: ChatViewProps) {
 		: null;
 
 	// Get messages from the durable stream (single source of truth)
-	const { users, messages, streamingMessage, draft, setDraft } = useChatSession(
-		{
+	const { users, messages, streamingMessage, draft, setDraft, sendMessage } =
+		useChatSession({
 			proxyUrl: STREAM_SERVER_URL,
 			sessionId,
 			user,
 			autoConnect: !!user,
-		},
-	);
+		});
 
-	const sendMessageMutation = electronTrpc.aiChat.sendMessage.useMutation();
 	const startSessionMutation = electronTrpc.aiChat.startSession.useMutation();
 	const { data: isActive, refetch: refetchIsActive } =
 		electronTrpc.aiChat.isSessionActive.useQuery({ sessionId });
@@ -53,13 +51,20 @@ export function ChatView({ sessionId, className }: ChatViewProps) {
 		await refetchIsActive();
 	}, [sessionId, startSessionMutation, refetchIsActive]);
 
-	// User messages are posted to the stream by session-manager
+	// Send messages directly to the stream - the session manager's stream watcher
+	// will detect new messages and trigger Claude processing
+	const [isSending, setIsSending] = useState(false);
 	const handleSend = useCallback(
 		async (content: string) => {
+			setIsSending(true);
 			setDraft("");
-			await sendMessageMutation.mutateAsync({ sessionId, content });
+			try {
+				await sendMessage(content);
+			} finally {
+				setIsSending(false);
+			}
 		},
-		[sessionId, sendMessageMutation, setDraft],
+		[sendMessage, setDraft],
 	);
 
 	// Convert MessageRow to ChatMessageList format
@@ -91,7 +96,7 @@ export function ChatView({ sessionId, className }: ChatViewProps) {
 						value={draft}
 						onChange={setDraft}
 						onSend={handleSend}
-						disabled={sendMessageMutation.isPending}
+						disabled={isSending}
 						placeholder="Type a message..."
 						buttonVariant="text"
 						autoResize={false}

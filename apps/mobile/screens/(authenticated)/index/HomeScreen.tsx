@@ -82,6 +82,21 @@ export function HomeScreen() {
 					</View>
 				</View>
 
+				{/* Chat */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Real-time Chat</CardTitle>
+						<CardDescription>
+							Chat with durable streams - syncs across all devices
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button onPress={() => router.push("/(authenticated)/chat")}>
+							<Text>Open Chat</Text>
+						</Button>
+					</CardContent>
+				</Card>
+
 				{/* Electric Collections Demo Link */}
 				<Card>
 					<CardHeader>

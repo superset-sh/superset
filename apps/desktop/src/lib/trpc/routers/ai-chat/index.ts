@@ -36,24 +36,6 @@ export const createAiChatRouter = () => {
 			}),
 
 		/**
-		 * Send a message to an active Claude session.
-		 */
-		sendMessage: publicProcedure
-			.input(
-				z.object({
-					sessionId: z.string(),
-					content: z.string(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				await claudeSessionManager.sendMessage({
-					sessionId: input.sessionId,
-					content: input.content,
-				});
-				return { success: true };
-			}),
-
-		/**
 		 * Interrupt an active Claude session (SIGINT).
 		 */
 		interrupt: publicProcedure

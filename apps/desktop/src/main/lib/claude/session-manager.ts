@@ -2,11 +2,13 @@
  * Claude Code Session Manager
  *
  * Manages Claude SDK sessions using @anthropic-ai/claude-agent-sdk.
- * Streams events for real-time UI updates.
+ * Watches durable streams for new user messages and responds via Claude.
  *
- * Streams tokens to:
- * 1. Local EventEmitter for desktop tRPC subscription
- * 2. Durable Stream server for multi-client sync
+ * Architecture:
+ * - All clients (mobile, desktop, web) POST messages to the durable stream
+ * - This manager watches the stream for new user messages
+ * - When a user message appears, it's sent to Claude for processing
+ * - Claude's response is streamed back to the durable stream
  */
 
 import { EventEmitter } from "node:events";
@@ -94,6 +96,10 @@ interface ActiveSession {
 	currentMessageId: string | null;
 	// Sequence counter for current message chunks
 	currentSeq: number;
+	// Stream watcher for incoming user messages
+	streamWatcher?: StreamWatcher;
+	// Queue of messages being processed (to avoid duplicates)
+	processingMessageIds: Set<string>;
 }
 
 // Cache the SDK query function
@@ -200,6 +206,77 @@ class DurableStreamClient {
 
 const durableStreamClient = new DurableStreamClient(DURABLE_STREAM_URL);
 
+/**
+ * Simple stream watcher that polls for new user messages.
+ */
+class StreamWatcher {
+	private intervalId: NodeJS.Timeout | null = null;
+	private seenMessageIds: Set<string> = new Set();
+	private onNewUserMessage: (messageId: string, content: string) => void;
+	private sessionId: string = "";
+
+	constructor(onNewUserMessage: (messageId: string, content: string) => void) {
+		this.onNewUserMessage = onNewUserMessage;
+	}
+
+	start(sessionId: string): void {
+		this.sessionId = sessionId;
+		this.seenMessageIds.clear();
+
+		// Poll every 500ms for new messages
+		this.intervalId = setInterval(() => this.poll(), 500);
+		console.log(`[stream-watcher] Started polling for ${sessionId}`);
+	}
+
+	private async poll(): Promise<void> {
+		try {
+			const response = await fetch(
+				`${DURABLE_STREAM_URL}/streams/${this.sessionId}`,
+				{ headers: { Accept: "application/json" } },
+			);
+
+			if (!response.ok) return;
+
+			const events = (await response.json()) as Array<Record<string, unknown>>;
+
+			for (const event of events) {
+				if (event.type !== "chunk") continue;
+
+				const value = event.value as Record<string, unknown> | undefined;
+				if (!value) continue;
+
+				const messageId = value.messageId as string;
+				const role = value.role as string;
+				const chunk = value.chunk as string;
+
+				if (role !== "user" || this.seenMessageIds.has(messageId)) continue;
+
+				this.seenMessageIds.add(messageId);
+
+				try {
+					const parsed = JSON.parse(chunk);
+					if (parsed.type === "whole-message" && parsed.content) {
+						console.log(`[stream-watcher] New user message: ${messageId}`);
+						this.onNewUserMessage(messageId, parsed.content);
+					}
+				} catch {
+					// Not JSON, ignore
+				}
+			}
+		} catch {
+			// Ignore poll errors
+		}
+	}
+
+	stop(): void {
+		if (this.intervalId) {
+			clearInterval(this.intervalId);
+			this.intervalId = null;
+		}
+		this.seenMessageIds.clear();
+	}
+}
+
 class ClaudeSessionManager extends EventEmitter {
 	private sessions: Map<string, ActiveSession> = new Map();
 
@@ -242,9 +319,29 @@ class ClaudeSessionManager extends EventEmitter {
 			toolIndexToId: new Map(),
 			currentMessageId: null,
 			currentSeq: 0,
+			processingMessageIds: new Set(),
 		};
 
 		this.sessions.set(sessionId, session);
+
+		// Start watching the stream for new user messages
+		if (streamEnabled) {
+			const watcher = new StreamWatcher((messageId, content) => {
+				// Avoid processing the same message twice
+				if (session.processingMessageIds.has(messageId)) {
+					return;
+				}
+				session.processingMessageIds.add(messageId);
+
+				// Process the message through Claude
+				this.processUserMessage({ sessionId, content }).finally(() => {
+					session.processingMessageIds.delete(messageId);
+				});
+			});
+
+			session.streamWatcher = watcher;
+			watcher.start(sessionId);
+		}
 
 		this.emitEvent(session, {
 			type: "session_start",
@@ -253,9 +350,11 @@ class ClaudeSessionManager extends EventEmitter {
 	}
 
 	/**
-	 * Send a message to an active session using the Claude Agent SDK.
+	 * Process a user message through Claude.
+	 * Called by the stream watcher when a new user message is detected.
+	 * The user message is already in the stream - this just generates Claude's response.
 	 */
-	async sendMessage({
+	private async processUserMessage({
 		sessionId,
 		content,
 	}: {
@@ -263,7 +362,7 @@ class ClaudeSessionManager extends EventEmitter {
 		content: string;
 	}): Promise<void> {
 		console.log(
-			`[claude/session] sendMessage called for ${sessionId}: "${content.slice(0, 50)}..."`,
+			`[claude/session] processUserMessage for ${sessionId}: "${content.slice(0, 50)}..."`,
 		);
 
 		const session = this.sessions.get(sessionId);
@@ -290,17 +389,7 @@ class ClaudeSessionManager extends EventEmitter {
 		session.currentMessageId = null;
 		session.currentSeq = 0;
 
-		// Post user message as whole-message chunk to the durable stream
-		if (session.streamEnabled) {
-			const userMessageId = crypto.randomUUID();
-			await this.postChunkToStream(session, {
-				messageId: userMessageId,
-				actorId: "user",
-				role: "user",
-				chunk: JSON.stringify({ type: "whole-message", content }),
-				seq: 0,
-			});
-		}
+		// User message is already in the stream - no need to post it
 
 		const binaryPath = getClaudeBinaryPath();
 		if (!binaryPath) {
@@ -568,6 +657,7 @@ class ClaudeSessionManager extends EventEmitter {
 
 		console.log(`[claude/session] Stopping session ${sessionId}`);
 		session.abortController?.abort();
+		session.streamWatcher?.stop();
 		this.sessions.delete(sessionId);
 		durableStreamClient.cleanup(sessionId);
 	}
