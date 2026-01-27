@@ -102,8 +102,7 @@ export const sections: SidebarSection[] = [
 		title: "Core Features",
 		Icon: CoreFeaturesIcon,
 		items: [
-			{ title: "Workspaces & Branches", href: "/workspaces-and-branches" },
-			{ title: "Parallel Workspaces", href: "/parallel-workspaces" },
+			{ title: "Workspaces", href: "/workspaces" },
 			{ title: "Diff Viewer", href: "/diff-viewer" },
 			{ title: "Terminal", href: "/terminal-integration" },
 			{ title: "Port Management", href: "/ports" },
