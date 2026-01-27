@@ -20,7 +20,6 @@ import {
 } from "@superset/ui/table";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { HiOutlinePencil } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -120,20 +119,8 @@ export function OrganizationSettings({
 	const currentMemberFromData = members.find((m) => m.userId === currentUserId);
 	const currentUserRole = currentMemberFromData?.role;
 
-	const { data: subscriptionData } = useQuery({
-		queryKey: ["subscription", activeOrganizationId],
-		queryFn: async () => {
-			if (!activeOrganizationId) return null;
-			const result = await authClient.subscription.list({
-				query: { referenceId: activeOrganizationId },
-			});
-			return result.data?.find((s) => s.status === "active");
-		},
-		enabled: !!activeOrganizationId,
-	});
-
 	const plan =
-		(subscriptionData?.plan as "free" | "pro" | "enterprise") ?? "free";
+		(session?.session?.plan as "free" | "pro" | "enterprise") ?? "free";
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
