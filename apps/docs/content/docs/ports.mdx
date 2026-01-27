@@ -15,12 +15,27 @@ Each workspace gets its own port range. View active ports and kill processes dir
 - **Kill processes** - Stop a process by clicking its port
 - **No conflicts** - Each workspace has dedicated ports
 
-## Port Panel
+## Static Port Configuration
 
-Open the ports panel to see all active ports in your workspace. Click a port to kill its process.
+Override automatic port discovery with a static configuration file.
 
-![Kill Port](/images/ports.png)
+Create `.superset/ports.json` in your repository:
 
-## Automatic Allocation
+```json
+{
+  "ports": [
+    { "port": 3000, "label": "Frontend Dev Server" },
+    { "port": 8080, "label": "API Server" },
+    { "port": 5432, "label": "PostgreSQL" }
+  ]
+}
+```
 
-Superset automatically assigns port ranges to avoid conflicts when running multiple workspaces with dev servers.
+**Fields:**
+- `port` - Port number (1-65535)
+- `label` - Display text shown in tooltip
+
+**Behavior:**
+- Static config replaces dynamic port discovery
+- Each workspace reads from its own worktree's file
+- Changes are detected automatically
