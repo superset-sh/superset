@@ -82,10 +82,10 @@ export function ChangelogTimeline({ entries }: ChangelogTimelineProps) {
 								</span>
 							</button>
 
-							{/* Dot indicator - sits on the gridline */}
+							{/* Vertical line indicator - sits on the gridline */}
 							<div
-								className={`shrink-0 w-2 h-2 mt-1 rounded-full transition-colors ${
-									isActive ? "bg-foreground" : "bg-muted-foreground/40"
+								className={`shrink-0 w-0.5 h-4 transition-colors ${
+									isActive ? "bg-orange-500" : "bg-muted-foreground/40"
 								}`}
 							/>
 						</li>
