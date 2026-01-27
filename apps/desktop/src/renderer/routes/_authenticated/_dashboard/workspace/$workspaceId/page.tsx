@@ -237,34 +237,28 @@ function WorkspacePage() {
 	);
 
 	// Open GitHub PR shortcut (⌘⇧R)
-	const { pr, repoUrl, branchExistsOnRemote } = usePRStatus({
+	const { pr } = usePRStatus({
 		workspaceId,
 		enabled: !!workspaceId,
 	});
 	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const createPR = electronTrpc.changes.createPR.useMutation({
+		onSuccess: () => toast.success("Opening GitHub..."),
+		onError: (error) => toast.error(`Failed: ${error.message}`),
+	});
 	useAppHotkey(
 		"OPEN_GITHUB_PR",
 		() => {
 			if (pr?.url) {
 				// PR exists - open it
 				openUrl.mutate(pr.url);
-			} else if (
-				repoUrl &&
-				branchExistsOnRemote &&
-				workspace?.worktree?.branch
-			) {
-				// No PR but branch is pushed - open create PR page
-				const createPrUrl = `${repoUrl}/compare/${workspace.worktree.branch}?expand=1`;
-				openUrl.mutate(createPrUrl);
-			} else if (repoUrl && workspace?.worktree?.branch) {
-				// Branch not pushed yet
-				toast.info("Push your branch first to create a PR");
-			} else {
-				toast.info("No GitHub repository found for this workspace");
+			} else if (workspace?.worktreePath) {
+				// No PR - create one (will push if needed and open GitHub compare page)
+				createPR.mutate({ worktreePath: workspace.worktreePath });
 			}
 		},
 		undefined,
-		[pr?.url, repoUrl, branchExistsOnRemote, workspace?.worktree?.branch],
+		[pr?.url, workspace?.worktreePath],
 	);
 
 	// Toggle changes sidebar (⌘L)
