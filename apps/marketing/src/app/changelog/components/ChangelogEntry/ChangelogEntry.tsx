@@ -2,31 +2,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { mdxComponents } from "@/app/blog/components/mdx-components";
-import {
-	type ChangelogEntry as ChangelogEntryType,
-	formatChangelogDate,
-} from "@/lib/changelog-utils";
+import { type ChangelogEntry as ChangelogEntryType } from "@/lib/changelog-utils";
 
 interface ChangelogEntryProps {
 	entry: ChangelogEntryType;
 }
 
 export async function ChangelogEntry({ entry }: ChangelogEntryProps) {
-	const formattedDate = formatChangelogDate(entry.date);
-
 	return (
 		<article
 			id={`changelog-${entry.slug}`}
 			className="border-b border-border pb-16 last:border-b-0"
 		>
-			{/* Date */}
-			<time
-				dateTime={entry.date}
-				className="block text-sm font-mono text-muted-foreground mb-4"
-			>
-				{formattedDate}
-			</time>
-
 			{/* Title */}
 			<Link href={entry.url} className="group">
 				<h2 className="text-2xl md:text-3xl font-medium text-foreground mb-4 group-hover:text-foreground/80 transition-colors">
