@@ -26,7 +26,6 @@ function SupersetLogo() {
 
 const NAV_LINKS = [
 	{ href: COMPANY.DOCS_URL, label: "Docs", external: true },
-	{ href: "/blog", label: "Blog", external: false },
 	{ href: "/community", label: "Community", external: false },
 ];
 
