@@ -93,6 +93,7 @@ export function PendingInvitations({
 							currentUserRole={currentUserRole}
 							organizationId={organizationId}
 							organizationName={organizationName}
+							plan={plan}
 						/>
 					)}
 				</div>
