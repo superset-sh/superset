@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { getChangelogEntries } from "@/lib/changelog";
-import { ChangelogCard } from "./components/ChangelogCard";
+import { ChangelogEntry } from "./components/ChangelogEntry";
 
 export const metadata: Metadata = {
 	title: "Changelog | Superset",
@@ -66,13 +66,13 @@ export default async function ChangelogPage() {
 			</header>
 
 			{/* Entries section */}
-			<div className="relative max-w-3xl mx-auto px-6 py-12">
+			<div className="relative max-w-3xl mx-auto px-6 py-16">
 				{entries.length === 0 ? (
 					<p className="text-muted-foreground">No updates yet.</p>
 				) : (
-					<div className="flex flex-col gap-8">
+					<div className="flex flex-col gap-16">
 						{entries.map((entry) => (
-							<ChangelogCard key={entry.url} entry={entry} />
+							<ChangelogEntry key={entry.url} entry={entry} />
 						))}
 					</div>
 				)}
