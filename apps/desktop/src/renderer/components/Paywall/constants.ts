@@ -5,7 +5,6 @@ import {
 	HiOutlinePuzzlePiece,
 	HiUsers,
 } from "react-icons/hi2";
-import { MdWorkspaces } from "react-icons/md";
 import type { GatedFeature } from "./usePaywall";
 import { GATED_FEATURES } from "./usePaywall";
 
@@ -27,15 +26,6 @@ export const PRO_FEATURES: ProFeature[] = [
 		icon: HiUsers,
 		iconColor: "text-blue-500",
 		gradientColors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
-	},
-	{
-		id: "unlimited-workspaces",
-		title: "Unlimited Workspaces",
-		description:
-			"Create as many workspaces and worktrees as you need. Organize complex multi-agent workflows without hitting limits.",
-		icon: MdWorkspaces,
-		iconColor: "text-orange-500",
-		gradientColors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"],
 	},
 	{
 		id: "integrations",
@@ -68,7 +58,6 @@ export const PRO_FEATURES: ProFeature[] = [
 // Map gated feature IDs to the feature to highlight in the paywall dialog
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
-	[GATED_FEATURES.CREATE_WORKSPACE]: "unlimited-workspaces",
 	[GATED_FEATURES.INTEGRATIONS]: "integrations",
 	[GATED_FEATURES.CLOUD_WORKSPACES]: "cloud-workspaces",
 	[GATED_FEATURES.MOBILE_APP]: "mobile-app",

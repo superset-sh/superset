@@ -5,7 +5,6 @@ type UserPlan = "free" | "pro";
 
 export const GATED_FEATURES = {
 	INVITE_MEMBERS: "invite-members",
-	CREATE_WORKSPACE: "create-workspace",
 	INTEGRATIONS: "integrations",
 	CLOUD_WORKSPACES: "cloud-workspaces",
 	MOBILE_APP: "mobile-app",
