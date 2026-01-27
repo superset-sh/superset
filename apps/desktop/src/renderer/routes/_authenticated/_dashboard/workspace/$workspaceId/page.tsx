@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -8,6 +9,7 @@ import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/work
 import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
+import { usePRStatus } from "renderer/screens/main/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -232,6 +234,37 @@ function WorkspacePage() {
 		},
 		undefined,
 		[workspace?.worktreePath],
+	);
+
+	// Open GitHub PR shortcut (⌘⇧R)
+	const { pr, repoUrl, branchExistsOnRemote } = usePRStatus({
+		workspaceId,
+		enabled: !!workspaceId,
+	});
+	const openUrl = electronTrpc.external.openUrl.useMutation();
+	useAppHotkey(
+		"OPEN_GITHUB_PR",
+		() => {
+			if (pr?.url) {
+				// PR exists - open it
+				openUrl.mutate(pr.url);
+			} else if (
+				repoUrl &&
+				branchExistsOnRemote &&
+				workspace?.worktree?.branch
+			) {
+				// No PR but branch is pushed - open create PR page
+				const createPrUrl = `${repoUrl}/compare/${workspace.worktree.branch}?expand=1`;
+				openUrl.mutate(createPrUrl);
+			} else if (repoUrl && workspace?.worktree?.branch) {
+				// Branch not pushed yet
+				toast.info("Push your branch first to create a PR");
+			} else {
+				toast.info("No GitHub repository found for this workspace");
+			}
+		},
+		undefined,
+		[pr?.url, repoUrl, branchExistsOnRemote, workspace?.worktree?.branch],
 	);
 
 	// Toggle changes sidebar (⌘L)
