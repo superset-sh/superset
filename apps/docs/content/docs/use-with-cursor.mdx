@@ -1,88 +1,25 @@
 ---
-title: Use with Cursor or VS Code
-description: Integrate Superset with your favorite code editor
+title: IDE Integration
+description: Use with Cursor or VS Code
 ---
 
-## Opening Workspaces in Your Editor
+## Open in Editor
 
-Superset integrates seamlessly with external code editors. To open your workspace:
+Press **⌘O** to open workspace in your editor (Cursor, VS Code, etc.)
 
-1. Press **⌘O** (macOS) while in a workspace
-2. Or click the "Open In" button in the workspace toolbar
-
-This opens your preferred editor at the workspace directory.
-
-{/* TODO: Replace with screenshot of Open In button */}
+{/* TODO: Replace with screenshot */}
 ![Open In Editor](/placeholder.svg)
 
-## Supported Editors
+## Configure Default Editor
 
-Superset supports the following code editors:
+Settings → Editor → Select your preferred editor
 
-- **Cursor** - AI-native code editor
-- **VS Code** - Microsoft Visual Studio Code
-- **Other editors** - Configure custom editor commands
+## Window Title Tip
 
-{/* TODO: Replace with screenshot of editor selection dropdown */}
-![Editor Selection](/placeholder.svg)
+Show branch name in editor title bar:
 
-## Setting Your Default Editor
+1. Open VS Code/Cursor settings
+2. Search `window.title`
+3. Set to: `${activeRepositoryBranchName}${separator}${rootName}`
 
-To change your default editor:
-
-1. Open Superset Settings
-2. Navigate to the Editor section
-3. Select your preferred editor from the dropdown
-
-{/* TODO: Replace with screenshot of editor settings */}
-![Editor Settings](/placeholder.svg)
-
-## Window Title Configuration
-
-When managing multiple Cursor or VS Code windows, it helps to see which workspace each window belongs to. Configure your editor's window title to show the branch name:
-
-### For Cursor / VS Code
-
-1. Open User Settings with **⌘⇧P** and search "Preferences: Open User Settings"
-2. Search for `window.title`
-3. Set it to: `${activeRepositoryBranchName}${separator}${rootName}${separator}${profileName}`
-
-This displays the branch name in your title bar, making it easy to identify which window corresponds to each workspace.
-
-{/* TODO: Replace with screenshot showing branch name in window title */}
-![Window Title](/placeholder.svg)
-
-**Example title:** `my-feature — project-name — Default`
-
-## Workflow Tips
-
-### Split Screen Setup
-
-For an optimal workflow, position Superset alongside your editor:
-
-- **Left side**: Superset for workspace management, terminal, and git operations
-- **Right side**: Cursor/VS Code for editing code
-
-{/* TODO: Replace with screenshot of split screen workflow */}
-![Split Screen](/placeholder.svg)
-
-### Quick Switching
-
-Use these shortcuts to move quickly between Superset and your editor:
-
-| Action | Shortcut |
-|--------|----------|
-| Open workspace in editor | ⌘O |
-| Switch to Superset | ⌘Tab (macOS app switcher) |
-| New workspace | ⌘N |
-
-### Color Coding Workspaces
-
-Consider using VS Code's Peacock extension or Cursor's workspace colors to visually distinguish between different workspaces:
-
-1. Install [Peacock](https://marketplace.visualstudio.com/items?itemName=johnpapa.vscode-peacock) extension
-2. Assign a unique color to each workspace
-3. Quickly identify which window you're in by the title bar color
-
-{/* TODO: Replace with screenshot of color-coded windows */}
-![Color Coded Windows](/placeholder.svg)
+This helps identify which window is which when you have multiple workspaces open.

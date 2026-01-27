@@ -1,170 +1,42 @@
 ---
-title: Using Monorepos
-description: Work with monorepos effectively in Superset
+title: Monorepos
+description: Working with monorepos
 ---
 
 ## Overview
 
-Superset handles monorepos seamlessly. When you add a monorepo, workspaces are established at the repository root, giving you access to all packages and services by default.
+Superset works with monorepos. Workspaces are created at the repo root with access to all packages.
 
-{/* TODO: Replace with screenshot of monorepo in Superset */}
-![Monorepo Workspace](/placeholder.svg)
+{/* TODO: Replace with screenshot */}
+![Monorepo](/placeholder.svg)
 
-## Getting Started
-
-To add a monorepo:
-
-1. Click "Add Repository"
-2. Select your local monorepo folder or paste the Git URL
-3. Superset creates a workspace at the repository root
-
-All packages, apps, and services in your monorepo are accessible from the workspace.
-
-## Working with Multiple Packages
-
-### Terminal Navigation
-
-Use the terminal to navigate between packages:
-
-```bash
-# Navigate to a specific package
-cd packages/ui
-
-# Or use your monorepo's CLI tools
-bun run --filter @myapp/api dev
-```
-
-### Running Multiple Services
-
-To run multiple services simultaneously, configure your setup script or use your monorepo's built-in tooling:
+## Setup Script
 
 ```json
 {
   "setup": [
-    "bun install"
+    "bun install",
+    "cp \"$SUPERSET_ROOT_PATH/.env\" .env"
   ]
 }
 ```
 
-Then run services from the terminal:
+## Running Services
+
+Run multiple services from terminal:
 
 ```bash
-# Using turborepo
-bun run dev
-
-# Or run specific packages
-bun run --filter @myapp/web dev &
+bun run dev                          # All services
+bun run --filter @myapp/web dev &    # Specific package
 bun run --filter @myapp/api dev
 ```
-
-{/* TODO: Replace with screenshot of multiple services running */}
-![Multiple Services](/placeholder.svg)
 
 ## Git Submodules
 
-If your monorepo uses git submodules, add this command to your setup script to initialize them automatically:
+Add to setup script:
 
 ```json
 {
-  "setup": [
-    "git submodule update --init --recursive",
-    "bun install"
-  ]
+  "setup": ["git submodule update --init --recursive", "bun install"]
 }
 ```
-
-This ensures submodules are cloned and updated when creating new workspaces.
-
-## Environment Configuration
-
-### Shared Environment Variables
-
-Store shared configuration at the repository root and copy or symlink to packages:
-
-```json
-{
-  "setup": [
-    "cp \"$SUPERSET_ROOT_PATH/.env\" .env",
-    "cp \"$SUPERSET_ROOT_PATH/.env\" apps/web/.env",
-    "cp \"$SUPERSET_ROOT_PATH/.env\" apps/api/.env"
-  ]
-}
-```
-
-### Package-Specific Configuration
-
-For package-specific environment variables, create a setup script:
-
-```bash
-#!/usr/bin/env bash
-
-# Shared env
-cp "$SUPERSET_ROOT_PATH/.env" .env
-
-# Web-specific
-cat >> apps/web/.env << EOF
-NEXT_PUBLIC_API_URL=http://localhost:3001
-EOF
-
-# API-specific
-cat >> apps/api/.env << EOF
-PORT=3001
-EOF
-```
-
-## Best Practices
-
-### Workspace Naming
-
-Name workspaces after the feature you're working on, not the package:
-
-- ✅ `user-authentication`
-- ✅ `payment-integration`
-- ❌ `packages-ui-changes`
-
-### Dependencies
-
-Run `bun install` at the root level to install all dependencies:
-
-```json
-{
-  "setup": ["bun install"]
-}
-```
-
-Most monorepo tools (Turborepo, Nx, Lerna) handle workspace dependencies automatically.
-
-### Port Conflicts
-
-When running multiple services, ensure each uses a different port. Common patterns:
-
-- Web app: 3000
-- API: 3001
-- Admin: 3002
-
-Configure these in your environment files or package.json scripts.
-
-## Troubleshooting
-
-### "Module not found" errors
-
-Run `bun install` at the repository root:
-
-```bash
-cd $SUPERSET_ROOT_PATH
-bun install
-```
-
-### Outdated dependencies in workspace
-
-If your workspace has stale dependencies:
-
-```bash
-rm -rf node_modules
-rm bun.lockb
-bun install
-```
-
-### Workspace link issues
-
-Some monorepo setups use symlinks for local packages. Ensure your workspace is at the repository root for links to resolve correctly.

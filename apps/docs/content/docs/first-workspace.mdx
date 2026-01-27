@@ -3,50 +3,33 @@ title: Your First Workspace
 description: Create and set up your first workspace in Superset
 ---
 
-## Getting Started
+## Add a Repository
 
-After installing Superset, you can add your first repository from either a local folder or a Git URL. The platform requires GitHub authentication—verify this by running `gh auth status` in your terminal.
+Add your repo from a local folder or Git URL. Requires GitHub auth (`gh auth status`).
 
-{/* TODO: Replace with screenshot of the "Add Repository" dialog */}
-![Add Repository Dialog](/placeholder.svg)
+{/* TODO: Replace with screenshot */}
+![Add Repository](/placeholder.svg)
 
-## Initial Setup Process
+## Create a Workspace
 
-When you add a repository, Superset automatically creates a new workspace for you. This workspace functions as an isolated copy and branch of your Git repository using [git worktrees](https://git-scm.com/docs/git-worktree).
+Each workspace is an isolated git worktree on its own branch. Superset only copies git-tracked files—use [setup scripts](/setup-teardown-scripts) for `.env` files or `bun install`.
 
-**Important:** Superset only copies files tracked in git. You can use a [setup script](/docs/setup-teardown-scripts) to automatically include additional files like `.env` files or run installation commands such as `bun install`.
+Create workspaces from:
+- New branch from main
+- Existing branch
+- Pull request
 
-{/* TODO: Replace with screenshot of a newly created workspace */}
+{/* TODO: Replace with screenshot */}
 ![New Workspace](/placeholder.svg)
 
-## Creating Additional Workspaces
+## Start Working
 
-You have flexibility in workspace creation:
-
-- Use the keyboard shortcut **⌘⇧N** (macOS) or click the menu button next to "New workspace"
-- Create workspaces from:
-  - Specific branches
-  - GitHub pull requests
-  - A fresh branch from main
-
-{/* TODO: Replace with screenshot of the new workspace dropdown menu */}
-![New Workspace Options](/placeholder.svg)
-
-This multi-workspace capability enables parallel feature development and collaboration on existing PRs.
-
-## Opening Your Workspace
-
-Once your workspace is ready, you can:
-
-1. **Open in IDE**: Press **⌘O** to open the workspace in your preferred code editor (Cursor, VS Code, etc.)
-2. **Use the built-in terminal**: Start working directly in Superset's integrated terminal
-3. **View changes**: Use the diff viewer to see any modifications
-
-{/* TODO: Replace with screenshot of workspace with IDE open button highlighted */}
-![Open in IDE](/placeholder.svg)
+- **⌘O** - Open in Cursor/VS Code
+- **Terminal** - Built-in terminal ready to use
+- **Changes** - View diffs and commit
 
 ## Next Steps
 
-- Learn about [setup and teardown scripts](/docs/setup-teardown-scripts) to automate workspace initialization
-- Explore [parallel workspaces](/docs/parallel-workspaces) to run multiple Claude instances
-- Set up [IDE integration](/docs/use-with-cursor) for a seamless workflow
+- [Setup Scripts](/setup-teardown-scripts) - Automate `bun install`, env files
+- [Parallel Workspaces](/parallel-workspaces) - Run multiple branches at once
+- [IDE Integration](/use-with-cursor) - Configure your editor

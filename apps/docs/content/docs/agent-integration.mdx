@@ -1,158 +1,36 @@
 ---
-title: Agent Integration
-description: Use AI coding agents like Claude Code with Superset
+title: AI Agents
+description: Use Claude Code and other AI agents
 ---
 
 ## Overview
 
-Superset integrates with AI coding agents to enable AI-assisted development. Each workspace provides an isolated environment where agents can make changes without interfering with other work.
+Run AI coding agents in isolated workspaces. Each agent works independently without interfering with others.
 
-{/* TODO: Replace with screenshot of agent working in workspace */}
-![Agent Working](/placeholder.svg)
+{/* TODO: Replace with screenshot */}
+![Agent](/placeholder.svg)
 
 ## Supported Agents
 
-Superset supports the following AI coding agents:
-
-- **Claude Code** - Anthropic's CLI for Claude
-- **Codex** - OpenAI's coding assistant
+- **Claude Code** - Anthropic's CLI
+- **Codex** - OpenAI's assistant
 - **OpenCode** - Open-source alternative
 
-## Setting Up Claude Code
+## Usage
 
-### Prerequisites
-
-Before using Claude Code with Superset:
-
-1. Install Claude Code: Follow the [official setup guide](https://docs.anthropic.com/en/docs/claude-code)
-2. Authenticate: Run `claude /login` in your terminal
-
-### Using Claude Code
-
-Once installed, you can use Claude Code directly in Superset's terminal:
+Run agents directly in the terminal:
 
 ```bash
-# Start Claude Code
-claude
-
-# Or with a specific prompt
-claude "Help me refactor this function"
+claude "Add error handling to fetchUser"
 ```
 
-{/* TODO: Replace with screenshot of Claude Code running in Superset terminal */}
-![Claude Code Terminal](/placeholder.svg)
+## Parallel Agents
 
-## Parallel Agent Development
+Create multiple workspaces and run an agent in each. Compare results and merge the best solution.
 
-One of Superset's key features is running multiple agents in parallel:
-
-1. **Create multiple workspaces**: Each workspace is isolated
-2. **Run an agent in each**: Start Claude Code or another agent in each workspace
-3. **Compare results**: Review changes across workspaces
-4. **Merge the best solution**: Use the diff viewer to select and commit changes
-
-{/* TODO: Replace with screenshot of multiple agent workspaces */}
+{/* TODO: Replace with screenshot */}
 ![Parallel Agents](/placeholder.svg)
 
-### Benefits
+## Notifications
 
-- **Isolation**: Agents can't interfere with each other
-- **Experimentation**: Try different approaches simultaneously
-- **Speed**: Tackle multiple tasks concurrently
-- **Comparison**: Compare different AI-generated solutions
-
-## Agent Notifications
-
-Superset can notify you when an agent completes its work:
-
-- Sound notifications when a task finishes
-- Focus notifications to bring attention to completed work
-- Customizable notification sounds in Settings
-
-{/* TODO: Replace with screenshot of notification settings */}
-![Notification Settings](/placeholder.svg)
-
-## Best Practices
-
-### Clear Instructions
-
-Give agents clear, specific instructions:
-
-```bash
-# ✅ Good - specific and actionable
-claude "Add error handling to the fetchUser function in src/api/users.ts.
-Handle network errors and return a typed error object."
-
-# ❌ Vague - too broad
-claude "Fix the errors"
-```
-
-### Review Changes
-
-Always review agent-generated changes before committing:
-
-1. Use the [diff viewer](/docs/diff-viewer) to see all changes
-2. Check for unintended modifications
-3. Verify the solution meets your requirements
-4. Test the changes before merging
-
-### Workspace Cleanup
-
-After an agent completes work:
-
-1. Review and commit useful changes
-2. Discard unwanted modifications
-3. Delete or archive the workspace if no longer needed
-
-## Environment Configuration
-
-### API Keys
-
-Configure your AI provider API keys in your shell environment:
-
-```bash
-# In your .zshrc or .bashrc
-export ANTHROPIC_API_KEY="your-key-here"
-```
-
-### Custom Agent Configuration
-
-Some agents support configuration files. Place these in your home directory or workspace as needed:
-
-```bash
-# Claude Code settings
-~/.claude/settings.json
-
-# Project-specific prompts
-.claude/commands/
-```
-
-## Troubleshooting
-
-### Agent not found
-
-If the agent command isn't recognized:
-
-```bash
-# Check if installed
-which claude
-
-# Reinstall if needed
-npm install -g @anthropic-ai/claude-code
-```
-
-### Authentication issues
-
-Re-authenticate if you encounter permission errors:
-
-```bash
-claude /login
-```
-
-### Agent hanging
-
-If an agent becomes unresponsive:
-
-1. Press `Ctrl+C` to interrupt
-2. If that doesn't work, close the terminal tab
-3. Start a fresh terminal session
+Get notified when agents finish. Configure sounds in Settings.

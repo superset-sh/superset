@@ -1,154 +1,55 @@
 ---
 title: Setup & Teardown Scripts
-description: Automate workspace initialization and cleanup with config.json
+description: Automate workspace initialization
 ---
 
 ## Overview
 
-Superset can automatically run commands when creating or deleting workspaces. This is useful for:
+Run commands automatically when creating or deleting workspaces.
 
-- Installing dependencies
-- Running database migrations
-- Starting background services
-- Cleaning up resources when done
+Create `.superset/config.json` in your project:
 
-{/* TODO: Replace with screenshot of setup script running */}
+```json
+{
+  "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"],
+  "teardown": ["docker-compose down"]
+}
+```
+
+{/* TODO: Replace with screenshot */}
 ![Setup Scripts](/placeholder.svg)
-
-## Configuration
-
-Create a `config.json` file in your project's `.superset` directory:
-
-```
-your-project/.superset/config.json
-```
-
-{/* TODO: Replace with screenshot of config file in editor */}
-![Config File](/placeholder.svg)
-
-## Schema
-
-The config file has two optional arrays:
-
-```json
-{
-  "setup": [
-    "bun install",
-    "bun run db:migrate"
-  ],
-  "teardown": [
-    "docker-compose down"
-  ]
-}
-```
-
-### setup
-
-Array of shell commands to run when a new workspace is created. Commands run sequentially in the workspace's worktree directory.
-
-### teardown
-
-Array of shell commands to run when a workspace is deleted. Useful for cleaning up resources like Docker containers or temporary files.
-
-## Using Shell Scripts
-
-For complex setup logic, reference shell scripts instead of inline commands:
-
-```json
-{
-  "setup": ["./.superset/setup.sh"],
-  "teardown": ["./.superset/teardown.sh"]
-}
-```
-
-Make sure your scripts are executable:
-
-```bash
-chmod +x .superset/setup.sh
-```
 
 ## How It Works
 
-1. When you create a new workspace, Superset creates a git worktree for your branch
-2. If `config.json` exists with setup commands, they run automatically in the new worktree
-3. Commands execute in a terminal tab so you can see output
-4. When deleting a workspace, teardown commands run before the worktree is removed
+1. Create workspace → setup commands run
+2. Delete workspace → teardown commands run
 
-{/* TODO: Replace with diagram of setup/teardown flow */}
-![Setup Flow](/placeholder.svg)
+Commands run sequentially in the workspace directory.
 
 ## Environment Variables
 
-Superset provides environment variables to your setup scripts. These are available when your commands run:
-
-### Provided by Superset
-
 | Variable | Description |
 |----------|-------------|
-| `SUPERSET_ROOT_PATH` | Absolute path to the root repository (main worktree) |
-| `SUPERSET_WORKSPACE_NAME` | Name of the workspace being created (defaults to directory name) |
-
-### Example Usage
-
-Your setup script can use these variables to access shared configuration:
-
-```bash
-#!/usr/bin/env bash
-
-# Copy shared environment from root to workspace
-cp "$SUPERSET_ROOT_PATH/.env" .env
-
-# Use workspace name for resource naming
-echo "Setting up workspace: $SUPERSET_WORKSPACE_NAME"
-```
-
-For more details, see [Environment Variables](/environment-variables).
-
-## Tips
-
-- Keep setup scripts fast - they run every time you create a workspace
-- Use `&&` to chain commands that depend on each other
-- Commit `.superset/` to share workspace setup with your team
-- For machine-specific values, use environment variables in your scripts instead of hardcoding paths
+| `SUPERSET_ROOT_PATH` | Path to root repository |
+| `SUPERSET_WORKSPACE_NAME` | Current workspace name |
 
 ## Examples
 
-### Node.js Project
+**Node.js:**
+```json
+{ "setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"] }
+```
 
+**Docker:**
 ```json
 {
-  "setup": [
-    "bun install",
-    "cp \"$SUPERSET_ROOT_PATH/.env\" .env"
-  ]
+  "setup": ["docker-compose up -d", "bun run db:migrate"],
+  "teardown": ["docker-compose down -v"]
 }
 ```
 
-### Python Project
+## Tips
 
-```json
-{
-  "setup": [
-    "python -m venv venv",
-    "source venv/bin/activate && pip install -r requirements.txt"
-  ],
-  "teardown": [
-    "rm -rf venv"
-  ]
-}
-```
-
-### Docker-based Project
-
-```json
-{
-  "setup": [
-    "docker-compose up -d",
-    "sleep 5",
-    "bun run db:migrate"
-  ],
-  "teardown": [
-    "docker-compose down -v"
-  ]
-}
-```
+- Keep setup fast—runs every workspace creation
+- Commit `.superset/` to share with team
+- Use shell scripts for complex logic: `"setup": ["./.superset/setup.sh"]`

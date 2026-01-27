@@ -1,86 +1,32 @@
 ---
 title: Parallel Workspaces
-description: Run multiple workspaces simultaneously for parallel development
+description: Run multiple workspaces simultaneously
 ---
 
 ## Overview
 
-Superset enables you to run multiple workspaces simultaneously through isolated git worktrees. Each workspace operates independently, allowing concurrent development without interference.
+Run multiple workspaces at once. Each is an isolated git worktree with its own branch, terminal, and ports.
 
-{/* TODO: Replace with screenshot showing multiple workspaces in sidebar */}
+{/* TODO: Replace with screenshot */}
 ![Multiple Workspaces](/placeholder.svg)
 
-## Creating Parallel Workspaces
+## Create Workspaces
 
-To create a new workspace:
-
-1. Press **⌘N** (macOS) to spawn a new workspace
-2. Or click the "New Workspace" button in the sidebar
-
-Each workspace gets its own:
-- Git branch
-- Working directory
-- Terminal sessions
-- Port assignments
-
-{/* TODO: Replace with screenshot of new workspace creation */}
-![Create Workspace](/placeholder.svg)
-
-## How It Works
-
-Superset uses [git worktrees](https://git-scm.com/docs/git-worktree) under the hood. This means:
-
-- Each workspace has a complete, isolated copy of your codebase
-- Changes in one workspace don't affect others
-- You can run different branches simultaneously
-- No need to stash changes when switching contexts
-
-{/* TODO: Replace with diagram showing worktree architecture */}
-![Worktree Architecture](/placeholder.svg)
+Press **⌘N** or click "New Workspace". Each gets:
+- Own git branch
+- Own working directory
+- Own terminal sessions
+- Own port range
 
 ## Use Cases
 
-### Feature Development
-
-Work on multiple features in parallel:
-
-- Create a workspace for each feature
-- Develop independently without conflicts
-- Merge when ready
-
-### AI-Assisted Development
-
-Run multiple AI agents concurrently:
-
-- Each agent works in its own isolated environment
-- Changes from one agent don't interfere with another
-- Review and merge the best solution
-
-{/* TODO: Replace with screenshot of multiple AI sessions */}
-![Parallel AI Development](/placeholder.svg)
-
-### Code Review
-
-Review PRs while continuing development:
-
-- Create a workspace from a PR
-- Test and review the changes
-- Continue your own work in another workspace
+- **Parallel features** - Work on multiple features simultaneously
+- **AI agents** - Run Claude Code in separate workspaces
+- **Code review** - Review PRs while continuing your work
 
 ## Port Management
 
-Each workspace is assigned a range of ports to prevent conflicts when running dev servers:
+Each workspace gets dedicated ports to avoid conflicts. View active ports in the ports panel.
 
-- Ports are automatically allocated per workspace
-- Use environment variables in your scripts to access assigned ports
-- View active ports in the workspace panel
-
-{/* TODO: Replace with screenshot of port panel */}
-![Port Management](/placeholder.svg)
-
-## Best Practices
-
-1. **Name workspaces clearly**: Use descriptive names that indicate the feature or task
-2. **Clean up old workspaces**: Archive or delete workspaces when done to free resources
-3. **Use setup scripts**: Automate workspace initialization with [setup scripts](/docs/setup-teardown-scripts)
-4. **Coordinate with team**: Be mindful of shared resources like databases when running parallel workspaces
+{/* TODO: Replace with screenshot */}
+![Ports](/placeholder.svg)

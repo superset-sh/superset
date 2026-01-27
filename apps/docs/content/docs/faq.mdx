@@ -1,110 +1,43 @@
 ---
-title: FAQ and Known Issues
-description: Frequently asked questions and known issues
+title: FAQ
+description: Frequently asked questions
 ---
 
-## Frequently Asked Questions
+## General
 
-### General
+**What platforms?**
+macOS only. Windows/Linux coming soon.
 
-#### What platforms does Superset support?
+**How does it work?**
+Uses git worktrees to give each branch its own directory.
 
-Currently, Superset is available exclusively for **macOS**. Windows and Linux support is planned for future releases.
+**Do I need an account?**
+Yes, for team features and settings sync.
 
-#### How does Superset work with my existing Git workflow?
+## Workspaces
 
-Superset enhances your Git workflow without replacing it. It uses [git worktrees](https://git-scm.com/docs/git-worktree) to create isolated copies of your repository, allowing you to work on multiple branches simultaneously.
+**Same branch in multiple workspaces?**
+No. One branch = one workspace. Create a new branch if needed.
 
-#### Do I need a Superset account?
+**Where are workspaces stored?**
+In your Superset data directory as git worktrees.
 
-Yes, you need to sign in to use Superset. This enables team collaboration features and syncs your settings across devices.
+## Terminal
 
-### Workspaces
+**Which shell?**
+Your system default (bash/zsh) with your config files.
 
-#### Can I work on the same branch in multiple workspaces?
+**Do sessions persist?**
+Yes, terminals survive app restarts.
 
-No. A branch can only be checked out in one workspace at a time. If you need parallel work on similar code, create a new branch from your existing one (e.g., `my-feature-v2`).
+## Git
 
-#### Where are workspaces stored on disk?
+**Does it modify git config?**
+No. Uses standard git commands.
 
-Workspaces are stored in your Superset data directory. Each workspace is a git worktree linked to your main repository.
-
-#### How do I share workspace configuration with my team?
-
-Create a `.superset/config.json` file in your repository and commit it. Team members will automatically use the same setup and teardown scripts.
-
-### Terminal & Environment
-
-#### Which shell does Superset use?
-
-Superset uses your system's default shell (typically bash or zsh on macOS) with your standard configuration files.
-
-#### How do I access environment variables in my scripts?
-
-Superset provides `SUPERSET_ROOT_PATH` and `SUPERSET_WORKSPACE_NAME` to your scripts. See [Environment Variables](/docs/environment-variables) for details.
-
-#### Do terminal sessions persist after closing Superset?
-
-Yes, terminal sessions survive app restarts. Running processes continue in the background and output history is preserved.
-
-### Git & Version Control
-
-#### Does Superset modify my Git configuration?
-
-No. Superset uses standard Git commands and worktrees. It doesn't modify your global Git configuration.
-
-#### Can I use Superset with private repositories?
-
-Yes. Ensure you have GitHub authentication configured. Verify with `gh auth status` in your terminal.
-
-#### How do I create a pull request from Superset?
-
-Use the diff viewer to commit and push your changes, then click "Create PR" to open a pull request on GitHub.
-
-### AI Agents
-
-#### Which AI agents does Superset support?
-
-Superset supports Claude Code, Codex, and OpenCode. Each agent runs in your terminal within the isolated workspace environment.
-
-#### Can I run multiple AI agents at once?
-
-Yes! Create multiple workspaces and run an agent in each. This is one of Superset's key features for parallel AI-assisted development.
-
-#### Does Superset provide its own AI capabilities?
-
-Superset itself doesn't include AI capabilities—it provides the environment and tooling to run external AI coding agents effectively.
-
-## Known Issues
-
-### Terminal
-
-#### Garbled output when switching terminal tabs
-
-Occasionally, terminal output may appear garbled when switching between tabs while output is streaming. This is a known issue and typically resolves itself.
-
-**Workaround**: Press `Ctrl+L` to redraw the terminal.
-
-### Workspaces
-
-#### Workspace creation slow on large repositories
-
-Creating workspaces for very large repositories may take longer as git worktree creation involves copying the index.
-
-**Workaround**: Ensure you have sufficient disk space and patience for initial setup.
-
-### Editor Integration
-
-#### "Open in Editor" opens wrong window
-
-If you have multiple editor windows open, the "Open in" feature may focus an unexpected window.
-
-**Workaround**: Close unused editor windows or use the editor's built-in file navigation.
+**Private repos?**
+Yes. Configure GitHub auth: `gh auth status`
 
 ## Getting Help
 
-If you encounter issues not listed here:
-
-1. Check the [documentation](/docs/overview) for guidance
-2. Report issues at [github.com/superset-sh/superset/issues](https://github.com/superset-sh/superset/issues)
-3. Contact support for additional help
+- Report issues: [github.com/superset-sh/superset/issues](https://github.com/superset-sh/superset/issues)

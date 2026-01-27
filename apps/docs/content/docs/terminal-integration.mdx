@@ -1,154 +1,34 @@
 ---
-title: Terminal Integration
-description: Use Superset's built-in terminal for powerful session management
+title: Terminal
+description: Built-in terminal with session persistence
 ---
 
 ## Overview
 
-Superset includes a built-in terminal with powerful session management. Run commands, manage processes, and interact with your codebase—all without leaving the app.
+Built-in terminal per workspace. Sessions persist across app restarts.
 
-{/* TODO: Replace with screenshot of terminal interface */}
-![Terminal Interface](/placeholder.svg)
+{/* TODO: Replace with screenshot */}
+![Terminal](/placeholder.svg)
 
-## Terminal Features
+## Features
 
-### Multiple Sessions
+- **Multiple tabs** - Open several terminals per workspace
+- **Persistence** - Sessions survive restarts
+- **Clickable links** - URLs and file paths are clickable
 
-Open multiple terminal tabs per workspace:
-
-- Each tab runs an independent shell session
-- Tabs persist across app restarts
-- Quick access to common commands
-
-{/* TODO: Replace with screenshot of multiple terminal tabs */}
-![Terminal Tabs](/placeholder.svg)
-
-### Session Persistence
-
-Your terminal sessions survive app restarts:
-
-- Running processes continue in the background
-- Session history is preserved
-- Output scrollback is maintained
-
-### Initial Commands
-
-When creating a new workspace, Superset can automatically run initial commands based on your [setup scripts](/docs/setup-teardown-scripts).
-
-## Keyboard Shortcuts
+## Shortcuts
 
 | Action | Shortcut |
 |--------|----------|
-| New terminal tab | ⌘T |
-| Close terminal tab | ⌘W |
-| Clear terminal | ⌘K |
-| Split terminal | ⌘D |
-| Navigate tabs | ⌘1-9 |
+| New tab | ⌘T |
+| Close tab | ⌘W |
+| Clear | ⌘K |
 
-{/* TODO: Replace with screenshot of keyboard shortcut reference */}
-![Keyboard Shortcuts](/placeholder.svg)
+## Environment Variables
 
-## Terminal Environment
+Available in all terminal sessions:
 
-### Working Directory
-
-Each terminal session starts in your workspace directory. The full path is available via environment variables:
-
-```bash
-pwd  # Outputs: /path/to/worktrees/my-workspace
-echo $SUPERSET_WORKSPACE_NAME  # Outputs: my-workspace
-```
-
-### Environment Variables
-
-Superset provides [environment variables](/docs/environment-variables) to your terminal sessions:
-
-- `SUPERSET_ROOT_PATH` - Path to the root repository
-- `SUPERSET_WORKSPACE_NAME` - Current workspace name
-
-### Shell Configuration
-
-Superset uses your default shell (bash or zsh) with your standard configuration files (`.bashrc`, `.zshrc`).
-
-## Working with Processes
-
-### Starting Dev Servers
-
-Start your development server directly in the terminal:
-
-```bash
-bun run dev
-```
-
-{/* TODO: Replace with screenshot of dev server running */}
-![Dev Server Running](/placeholder.svg)
-
-### Background Processes
-
-Run processes in the background using standard shell operators:
-
-```bash
-# Run in background
-bun run dev &
-
-# View background jobs
-jobs
-
-# Bring to foreground
-fg %1
-```
-
-### Port Management
-
-Superset tracks active ports in your workspace. View which processes are using which ports in the ports panel.
-
-{/* TODO: Replace with screenshot of ports panel */}
-![Ports Panel](/placeholder.svg)
-
-## Links in Terminal
-
-Terminal output containing URLs and file paths is clickable:
-
-- **URLs**: Click to open in your default browser
-- **File paths**: Click to open in your configured editor
-- **Error locations**: Click stack trace file references to jump to the file
-
-{/* TODO: Replace with screenshot showing clickable links */}
-![Clickable Links](/placeholder.svg)
-
-## Tips
-
-### Quick File Access
-
-Use terminal commands to quickly access and modify files:
-
-```bash
-# Open file in your editor
-code path/to/file.ts
-
-# Or with Cursor
-cursor path/to/file.ts
-```
-
-### Command History
-
-Access previous commands with arrow keys or search:
-
-```bash
-# Search history
-Ctrl+R
-
-# Previous command
-Up Arrow
-```
-
-### Customizing Your Shell
-
-Add workspace-specific aliases to your shell configuration:
-
-```bash
-# In your .zshrc or .bashrc
-alias dev="bun run dev"
-alias test="bun run test"
-alias build="bun run build"
-```
+| Variable | Description |
+|----------|-------------|
+| `SUPERSET_ROOT_PATH` | Path to root repository |
+| `SUPERSET_WORKSPACE_NAME` | Current workspace name |
