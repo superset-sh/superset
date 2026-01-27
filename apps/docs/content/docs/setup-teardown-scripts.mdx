@@ -12,6 +12,9 @@ Superset can automatically run commands when creating or deleting workspaces. Th
 - Starting background services
 - Cleaning up resources when done
 
+{/* TODO: Replace with screenshot of setup script running */}
+![Setup Scripts](/placeholder.svg)
+
 ## Configuration
 
 Create a `config.json` file in your project's `.superset` directory:
@@ -19,6 +22,9 @@ Create a `config.json` file in your project's `.superset` directory:
 ```
 your-project/.superset/config.json
 ```
+
+{/* TODO: Replace with screenshot of config file in editor */}
+![Config File](/placeholder.svg)
 
 ## Schema
 
@@ -68,6 +74,9 @@ chmod +x .superset/setup.sh
 3. Commands execute in a terminal tab so you can see output
 4. When deleting a workspace, teardown commands run before the worktree is removed
 
+{/* TODO: Replace with diagram of setup/teardown flow */}
+![Setup Flow](/placeholder.svg)
+
 ## Environment Variables
 
 Superset provides environment variables to your setup scripts. These are available when your commands run:
@@ -93,9 +102,53 @@ cp "$SUPERSET_ROOT_PATH/.env" .env
 echo "Setting up workspace: $SUPERSET_WORKSPACE_NAME"
 ```
 
+For more details, see [Environment Variables](/environment-variables).
+
 ## Tips
 
 - Keep setup scripts fast - they run every time you create a workspace
 - Use `&&` to chain commands that depend on each other
 - Commit `.superset/` to share workspace setup with your team
 - For machine-specific values, use environment variables in your scripts instead of hardcoding paths
+
+## Examples
+
+### Node.js Project
+
+```json
+{
+  "setup": [
+    "bun install",
+    "cp \"$SUPERSET_ROOT_PATH/.env\" .env"
+  ]
+}
+```
+
+### Python Project
+
+```json
+{
+  "setup": [
+    "python -m venv venv",
+    "source venv/bin/activate && pip install -r requirements.txt"
+  ],
+  "teardown": [
+    "rm -rf venv"
+  ]
+}
+```
+
+### Docker-based Project
+
+```json
+{
+  "setup": [
+    "docker-compose up -d",
+    "sleep 5",
+    "bun run db:migrate"
+  ],
+  "teardown": [
+    "docker-compose down -v"
+  ]
+}
+```
