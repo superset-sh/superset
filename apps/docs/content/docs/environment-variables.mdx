@@ -1,0 +1,114 @@
+---
+title: Environment Variables
+description: Reference for Superset environment variables available in scripts
+---
+
+## Overview
+
+Superset provides environment variables to your scripts and terminal sessions. These variables help you access workspace configuration and paths dynamically.
+
+## Available Variables
+
+| Variable | Description |
+|----------|-------------|
+| `SUPERSET_ROOT_PATH` | Absolute path to the root repository (main worktree) |
+| `SUPERSET_WORKSPACE_NAME` | Name of the current workspace |
+
+## Using Environment Variables
+
+### In Setup Scripts
+
+Your setup scripts in `.superset/config.json` can reference these variables:
+
+```json
+{
+  "setup": [
+    "cp \"$SUPERSET_ROOT_PATH/.env\" .env",
+    "echo \"Setting up workspace: $SUPERSET_WORKSPACE_NAME\""
+  ]
+}
+```
+
+### In Shell Scripts
+
+For more complex setup logic, create shell scripts that use these variables:
+
+```bash
+#!/usr/bin/env bash
+
+# Copy shared environment from root to workspace
+cp "$SUPERSET_ROOT_PATH/.env" .env
+
+# Use workspace name for resource naming
+echo "Setting up workspace: $SUPERSET_WORKSPACE_NAME"
+
+# Create workspace-specific configuration
+sed -i '' "s/DB_NAME=.*/DB_NAME=app_$SUPERSET_WORKSPACE_NAME/" .env
+```
+
+### In Terminal Sessions
+
+These variables are available in any terminal session within a workspace:
+
+```bash
+# Check your current workspace
+echo $SUPERSET_WORKSPACE_NAME
+
+# Navigate to root repository
+cd $SUPERSET_ROOT_PATH
+```
+
+## Common Patterns
+
+### Sharing Environment Files
+
+Copy your `.env` file from the root repository to each workspace:
+
+```json
+{
+  "setup": ["cp \"$SUPERSET_ROOT_PATH/.env\" .env"]
+}
+```
+
+### Symlinking Configuration
+
+For files that should stay in sync, use symbolic links instead of copying:
+
+```json
+{
+  "setup": ["ln -sf \"$SUPERSET_ROOT_PATH/.env\" .env"]
+}
+```
+
+### Workspace-Specific Databases
+
+Create isolated databases for each workspace:
+
+```bash
+#!/usr/bin/env bash
+
+# Create a workspace-specific database
+createdb "myapp_$SUPERSET_WORKSPACE_NAME"
+
+# Update the connection string
+echo "DATABASE_URL=postgres://localhost/myapp_$SUPERSET_WORKSPACE_NAME" >> .env
+```
+
+### Workspace-Specific Ports
+
+Configure your dev server to use workspace-specific ports:
+
+```bash
+#!/usr/bin/env bash
+
+# Generate a port based on workspace name hash
+PORT=$((3000 + $(echo "$SUPERSET_WORKSPACE_NAME" | cksum | cut -d' ' -f1) % 1000))
+echo "PORT=$PORT" >> .env
+```
+
+## Tips
+
+- Use quotes around variable references to handle paths with spaces
+- Variables are set before your setup scripts run
+- Changes to these variables don't affect running workspaces—you need to recreate the workspace
+- For machine-specific values, use environment variables instead of hardcoding paths

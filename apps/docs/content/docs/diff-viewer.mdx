@@ -1,0 +1,79 @@
+---
+title: Diff Viewer
+description: Review code changes and manage your git workflow
+---
+
+## Overview
+
+The Diff Viewer enables you to review all changes made to your codebase—whether by you or by an AI agent—and helps you manage your Git workflow through to merging your PR.
+
+{/* TODO: Add screenshot of the diff viewer interface */}
+![Diff Viewer Interface](<!-- IMAGE: Screenshot of the diff viewer showing file changes with additions and deletions -->)
+
+## Viewing Changes
+
+After making changes to your workspace, the Diff Viewer displays:
+
+- **Modified files**: See exactly what lines were added, removed, or changed
+- **Staged vs unstaged**: Distinguish between changes ready to commit and working directory changes
+- **Line counts**: Quick summary of additions and deletions per file
+
+{/* TODO: Add screenshot showing staged vs unstaged changes */}
+![Staged Changes](<!-- IMAGE: Screenshot showing the staging area with some files staged and others unstaged -->)
+
+## Git Operations
+
+The Diff Viewer integrates with Git to provide a streamlined workflow:
+
+### Staging Files
+
+Select files to stage for your next commit. You can stage individual files or all changes at once.
+
+{/* TODO: Add screenshot of staging individual files */}
+![Stage Files](<!-- IMAGE: Screenshot showing checkboxes for staging individual files -->)
+
+### Committing Changes
+
+Write a commit message and commit your staged changes directly from the interface.
+
+{/* TODO: Add screenshot of commit message input */}
+![Commit Dialog](<!-- IMAGE: Screenshot showing the commit message input with staged files summary -->)
+
+### Push and Pull
+
+Sync your changes with the remote repository:
+
+- **Push**: Send your local commits to GitHub
+- **Pull**: Fetch and merge remote changes
+- **Sync**: Perform both operations in sequence
+
+{/* TODO: Add screenshot of push/pull/sync buttons */}
+![Git Sync](<!-- IMAGE: Screenshot showing push, pull, and sync buttons in the toolbar -->)
+
+## Creating Pull Requests
+
+Once your changes are pushed, you can create a pull request directly from Superset:
+
+1. Click the "Create PR" button
+2. Review the changes that will be included
+3. Add a title and description
+4. Submit the PR to GitHub
+
+{/* TODO: Add screenshot of PR creation flow */}
+![Create PR](<!-- IMAGE: Screenshot of the create pull request dialog -->)
+
+## Diff Layout Options
+
+Customize how you view diffs:
+
+- **Split view**: See old and new versions side by side
+- **Unified view**: See changes inline with context
+
+{/* TODO: Add screenshot showing both diff layout options */}
+![Diff Layouts](<!-- IMAGE: Screenshot comparing split and unified diff views -->)
+
+## Tips
+
+- Use keyboard shortcuts to navigate between changed files quickly
+- Review changes before committing to catch unintended modifications
+- Stage related changes together for cleaner commit history

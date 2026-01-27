@@ -1,0 +1,131 @@
+---
+title: Workspaces and Branches
+description: Understanding the relationship between workspaces and git branches
+---
+
+## Core Concept
+
+In Superset, **the easiest way to identify a workspace is by which branch it's on**. Each workspace operates on a specific Git branch, making the branch the primary identifier for that workspace.
+
+{/* TODO: Add diagram showing workspace-branch relationship */}
+![Workspace Branch Relationship](<!-- IMAGE: Diagram showing workspaces mapped to their corresponding branches -->)
+
+## How It Works
+
+### Automatic Branch Creation
+
+When you create a new workspace, Superset automatically generates a corresponding branch. You can:
+
+- Start from `main` with a new branch name
+- Create from an existing branch
+- Create from a pull request
+
+{/* TODO: Add screenshot of branch creation options */}
+![Branch Creation](<!-- IMAGE: Screenshot of new workspace dialog showing branch options -->)
+
+### One Branch, One Workspace
+
+**A branch can only be checked out in one workspace at a time.** This one-to-one relationship prevents conflicts.
+
+If you need the same branch in multiple workspaces, create a derivative branch:
+
+```
+my-feature          → workspace-1
+my-feature-v2       → workspace-2
+```
+
+{/* TODO: Add screenshot showing multiple related workspaces */}
+![Multiple Workspaces](<!-- IMAGE: Screenshot showing multiple workspaces with related branch names -->)
+
+## Branch Management
+
+### Switching Branches
+
+You can switch branches within a workspace using standard Git commands in the terminal:
+
+```bash
+# Switch to an existing branch
+git checkout feature-branch
+
+# Create and switch to a new branch
+git checkout -b new-feature
+```
+
+### Renaming Branches
+
+Rename your current branch:
+
+```bash
+git branch -m new-name
+```
+
+The workspace will update to reflect the new branch name.
+
+### Viewing All Branches
+
+See all available branches:
+
+```bash
+# Local branches
+git branch
+
+# Local and remote branches
+git branch -a
+```
+
+## Creating Workspaces from Branches
+
+### From Existing Branches
+
+1. Click "New Workspace"
+2. Select the "Branches" tab
+3. Choose an existing branch to work on
+
+{/* TODO: Add screenshot of branches tab */}
+![Branches Tab](<!-- IMAGE: Screenshot of workspace creation dialog showing branches tab -->)
+
+### From Pull Requests
+
+Create a workspace directly from a GitHub pull request:
+
+1. Click "New Workspace"
+2. Select the "Pull Requests" tab
+3. Choose a PR to review or continue work on
+
+{/* TODO: Add screenshot of PR selection */}
+![PR Selection](<!-- IMAGE: Screenshot of workspace creation showing PR selection -->)
+
+## Best Practices
+
+### Branch Naming
+
+Use descriptive branch names that indicate:
+- The type of change (feature, fix, refactor)
+- A brief description of the work
+
+Examples:
+- `feature/user-authentication`
+- `fix/login-redirect-bug`
+- `refactor/database-queries`
+
+### Cleanup
+
+After merging a feature:
+1. Archive or delete the workspace
+2. Delete the local and remote branch if no longer needed
+
+```bash
+# Delete local branch (after checkout another branch)
+git branch -d feature-branch
+
+# Delete remote branch
+git push origin --delete feature-branch
+```
+
+### Working with Main
+
+Avoid working directly on `main`. Instead:
+1. Create a new workspace with a feature branch
+2. Make your changes
+3. Create a PR to merge back to `main`
+4. After merging, delete the feature workspace

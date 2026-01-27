@@ -1,0 +1,86 @@
+---
+title: Parallel Workspaces
+description: Run multiple workspaces simultaneously for parallel development
+---
+
+## Overview
+
+Superset enables you to run multiple workspaces simultaneously through isolated git worktrees. Each workspace operates independently, allowing concurrent development without interference.
+
+{/* TODO: Add screenshot showing multiple workspaces in sidebar */}
+![Multiple Workspaces](<!-- IMAGE: Screenshot of sidebar showing multiple active workspaces for the same repository -->)
+
+## Creating Parallel Workspaces
+
+To create a new workspace:
+
+1. Press **⌘N** (macOS) to spawn a new workspace
+2. Or click the "New Workspace" button in the sidebar
+
+Each workspace gets its own:
+- Git branch
+- Working directory
+- Terminal sessions
+- Port assignments
+
+{/* TODO: Add screenshot of new workspace creation */}
+![Create Workspace](<!-- IMAGE: Screenshot of the new workspace dialog with branch name input -->)
+
+## How It Works
+
+Superset uses [git worktrees](https://git-scm.com/docs/git-worktree) under the hood. This means:
+
+- Each workspace has a complete, isolated copy of your codebase
+- Changes in one workspace don't affect others
+- You can run different branches simultaneously
+- No need to stash changes when switching contexts
+
+{/* TODO: Add diagram showing worktree architecture */}
+![Worktree Architecture](<!-- IMAGE: Diagram showing multiple worktrees branching from main repository -->)
+
+## Use Cases
+
+### Feature Development
+
+Work on multiple features in parallel:
+
+- Create a workspace for each feature
+- Develop independently without conflicts
+- Merge when ready
+
+### AI-Assisted Development
+
+Run multiple AI agents concurrently:
+
+- Each agent works in its own isolated environment
+- Changes from one agent don't interfere with another
+- Review and merge the best solution
+
+{/* TODO: Add screenshot of multiple AI sessions */}
+![Parallel AI Development](<!-- IMAGE: Screenshot showing multiple workspace tabs with AI agents working -->)
+
+### Code Review
+
+Review PRs while continuing development:
+
+- Create a workspace from a PR
+- Test and review the changes
+- Continue your own work in another workspace
+
+## Port Management
+
+Each workspace is assigned a range of ports to prevent conflicts when running dev servers:
+
+- Ports are automatically allocated per workspace
+- Use environment variables in your scripts to access assigned ports
+- View active ports in the workspace panel
+
+{/* TODO: Add screenshot of port panel */}
+![Port Management](<!-- IMAGE: Screenshot of the ports panel showing active ports per workspace -->)
+
+## Best Practices
+
+1. **Name workspaces clearly**: Use descriptive names that indicate the feature or task
+2. **Clean up old workspaces**: Archive or delete workspaces when done to free resources
+3. **Use setup scripts**: Automate workspace initialization with [setup scripts](/docs/setup-teardown-scripts)
+4. **Coordinate with team**: Be mindful of shared resources like databases when running parallel workspaces
