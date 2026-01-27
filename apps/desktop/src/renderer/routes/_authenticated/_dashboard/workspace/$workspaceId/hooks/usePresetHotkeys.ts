@@ -1,7 +1,7 @@
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import type { HotkeyId } from "shared/hotkeys";
 
-const PRESET_HOTKEY_IDS: HotkeyId[] = [
+export const PRESET_HOTKEY_IDS: HotkeyId[] = [
 	"OPEN_PRESET_1",
 	"OPEN_PRESET_2",
 	"OPEN_PRESET_3",

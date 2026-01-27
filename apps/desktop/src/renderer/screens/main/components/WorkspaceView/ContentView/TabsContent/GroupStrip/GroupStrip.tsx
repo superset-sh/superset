@@ -5,6 +5,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
+	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -23,6 +24,8 @@ import {
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { usePresets } from "renderer/react-query/presets";
+import { useHotkeyText } from "renderer/stores/hotkeys";
+import { PRESET_HOTKEY_IDS } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
@@ -32,6 +35,17 @@ import {
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 import { NewTabDropZone } from "./NewTabDropZone";
+
+function PresetMenuItemShortcut({ index }: { index: number }) {
+	const hotkeyId = PRESET_HOTKEY_IDS[index];
+	const hotkeyText = useHotkeyText(hotkeyId);
+
+	if (!hotkeyId || hotkeyText === "Unassigned") {
+		return null;
+	}
+
+	return <DropdownMenuShortcut>{hotkeyText}</DropdownMenuShortcut>;
+}
 
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -231,7 +245,7 @@ export function GroupStrip() {
 					<DropdownMenuContent align="end" className="w-56">
 						{presets.length > 0 && (
 							<>
-								{presets.map((preset) => {
+								{presets.map((preset, index) => {
 									const presetIcon = getPresetIcon(preset.name, isDark);
 									return (
 										<DropdownMenuItem
@@ -252,8 +266,9 @@ export function GroupStrip() {
 												{preset.name || "default"}
 											</span>
 											{preset.isDefault && (
-												<HiStar className="size-3 text-yellow-500 ml-auto flex-shrink-0" />
+												<HiStar className="size-3 text-yellow-500 flex-shrink-0" />
 											)}
+											<PresetMenuItemShortcut index={index} />
 										</DropdownMenuItem>
 									);
 								})}
