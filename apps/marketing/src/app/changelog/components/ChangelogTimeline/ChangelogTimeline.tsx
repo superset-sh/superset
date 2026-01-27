@@ -66,7 +66,7 @@ export function ChangelogTimeline({ entries }: ChangelogTimelineProps) {
 				{entries.map((entry) => {
 					const isActive = activeSlug === entry.slug;
 					return (
-						<li key={entry.slug} className="relative flex items-start gap-3">
+						<li key={entry.slug} className="relative flex items-center gap-3 pt-1">
 							{/* Date text */}
 							<button
 								type="button"
@@ -77,14 +77,14 @@ export function ChangelogTimeline({ entries }: ChangelogTimelineProps) {
 										: "text-muted-foreground hover:text-foreground/70"
 								}`}
 							>
-								<span className="block text-xs font-mono">
+								<span className="block text-sm font-mono">
 									{formatChangelogDate(entry.date)}
 								</span>
 							</button>
 
 							{/* Vertical line indicator - sits on the gridline */}
 							<div
-								className={`shrink-0 w-0.5 h-4 transition-colors ${
+								className={`shrink-0 w-0.5 h-5 transition-colors ${
 									isActive ? "bg-orange-500" : "bg-muted-foreground/40"
 								}`}
 							/>
