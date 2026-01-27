@@ -5,16 +5,24 @@ date: 2025-12-16
 
 ## VS Code-Style Resizable Sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/457" />
 
-Replaced the old panel system with a VS Code-like resizable sidebar for better control over your layout.
+- Replace percentage-based panels with a custom `ResizableSidebar` component
+- Use pixel-based widths (250px default, 200-500px range) for consistent sizing
+- Implement drag-to-resize with mouse events like VS Code
+- Add wider invisible drag handle (12px) for easier resize targeting while keeping thin visible indicator
 
 ## Multiple Terminal Tabs <PRBadge url="https://github.com/superset-sh/superset/pull/452" />
 
-Create multiple terminal tabs per workspace for parallel workflows.
+Fixed a regression that prevented creating new terminal tabs. The "New Terminal" button now creates new tabs again instead of just activating existing ones. Multiple tabs can be created per workspace for parallel workflows.
 
 ## Port Visibility <PRBadge url="https://github.com/superset-sh/superset/pull/462" />
 
-See which ports are in use directly in the UI.
+- Auto-detects listening ports from terminal output and verifies activity before showing
+- New Ports panel in the sidebar showing ports grouped by workspace with quick actions (open in browser, jump to pane)
+- Real-time updates via subscriptions so the list stays current as ports appear/disappear
+- Cleans up port entries when terminal panes close to avoid stale items
 
 ## Multi-line URL Links <PRBadge url="https://github.com/superset-sh/superset/pull/467" />
 
-Terminal now supports clicking URLs that span multiple lines.
+- Extract multi-line spanning logic into a shared `MultiLineLinkProvider` base class
+- Create `UrlLinkProvider` that supports URLs spanning wrapped terminal lines
+- Replace `WebLinksAddon` with the new custom provider for consistent multi-line handling

@@ -1,20 +1,25 @@
 ---
-title: Task list view, diff scrollbar highlights, and router refactor
+title: Task list view, diff scrollbar highlights, and shell environment fix
 date: 2026-01-13
 ---
 
 ## Task List View <PRBadge url="https://github.com/superset-sh/superset/pull/717" />
 
-New task list view for managing your work items directly in the app.
+- Added semantic search capabilities for tasks using embeddings
+- Introduced dedicated task status management system with custom workflows
+- Redesigned tasks interface with table-based view and improved organization
+- Enhanced task filtering and sorting by status, priority, and assignee
 
 ## Diff Highlights in Scrollbar <PRBadge url="https://github.com/superset-sh/superset/pull/725" />
 
-See diff changes at a glance with highlights shown directly in the scrollbar.
+Enable Monaco's overview ruler in the diff viewer to show colored markers in the scrollbar. Additions (green) and deletions (red) are now visible in the scrollbar for quick navigation.
 
 ## Shell Environment Fix <PRBadge url="https://github.com/superset-sh/superset/pull/720" />
 
-Fixed shell environment resolution for macOS GUI apps - your PATH and environment variables now work correctly.
+- App now captures and applies the user's shell environment on macOS/Linux during startup
+- Terminal-related settings (like PATH and ZDOTDIR) are now available when launching from Finder/Spotlight
+- Improved handling and merging of PATH entries to prevent terminal initialization issues
 
 ## Scroll to Bottom Button <PRBadge url="https://github.com/superset-sh/superset/pull/700" />
 
-New button in terminal to quickly jump to the bottom of output.
+Add a floating scroll-to-bottom button that appears when the terminal is scrolled up. Button uses a chevron icon and animates in/out smoothly. Shows keyboard shortcut in tooltip when available.
