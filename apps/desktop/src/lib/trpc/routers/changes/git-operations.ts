@@ -116,6 +116,15 @@ export const createGitOperationsRouter = () => {
 				return { success: true };
 			}),
 
+		fetch: publicProcedure
+			.input(z.object({ worktreePath: z.string() }))
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				assertRegisteredWorktree(input.worktreePath);
+				const git = simpleGit(input.worktreePath);
+				await git.fetch();
+				return { success: true };
+			}),
+
 		createPR: publicProcedure
 			.input(
 				z.object({

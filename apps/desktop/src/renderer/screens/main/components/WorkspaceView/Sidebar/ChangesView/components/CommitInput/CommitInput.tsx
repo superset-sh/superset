@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import {
 	HiArrowDown,
+	HiArrowPath,
 	HiArrowsUpDown,
 	HiArrowTopRightOnSquare,
 	HiArrowUp,
@@ -88,12 +89,21 @@ export function CommitInput({
 		onError: (error) => toast.error(`Failed: ${error.message}`),
 	});
 
+	const fetchMutation = electronTrpc.changes.fetch.useMutation({
+		onSuccess: () => {
+			toast.success("Fetched");
+			onRefresh();
+		},
+		onError: (error) => toast.error(`Fetch failed: ${error.message}`),
+	});
+
 	const isPending =
 		commitMutation.isPending ||
 		pushMutation.isPending ||
 		pullMutation.isPending ||
 		syncMutation.isPending ||
-		createPRMutation.isPending;
+		createPRMutation.isPending ||
+		fetchMutation.isPending;
 
 	const canCommit = hasStagedChanges && commitMessage.trim();
 
@@ -117,6 +127,13 @@ export function CommitInput({
 	};
 	const handlePull = () => pullMutation.mutate({ worktreePath });
 	const handleSync = () => syncMutation.mutate({ worktreePath });
+	const handleFetch = () => fetchMutation.mutate({ worktreePath });
+	const handleFetchAndPull = () => {
+		fetchMutation.mutate(
+			{ worktreePath },
+			{ onSuccess: () => pullMutation.mutate({ worktreePath }) },
+		);
+	};
 	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
 	const handleOpenPR = () => prUrl && window.open(prUrl, "_blank");
 
@@ -331,6 +348,14 @@ export function CommitInput({
 						>
 							<HiArrowsUpDown className="size-3.5" />
 							Sync
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleFetch} className="text-xs">
+							<HiArrowPath className="size-3.5" />
+							Fetch
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleFetchAndPull} className="text-xs">
+							<HiArrowPath className="size-3.5" />
+							Fetch & Pull
 						</DropdownMenuItem>
 
 						<DropdownMenuSeparator />
