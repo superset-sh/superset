@@ -577,7 +577,7 @@ export const HOTKEYS = {
 		description: "Open an existing project folder",
 	}),
 	OPEN_GITHUB_PR: defineHotkey({
-		keys: "meta+shift+r",
+		keys: "meta+p",
 		label: "Open GitHub PR",
 		category: "Workspace",
 		description: "Open the GitHub pull request for the current workspace",

@@ -236,7 +236,7 @@ function WorkspacePage() {
 		[workspace?.worktreePath],
 	);
 
-	// Open GitHub PR shortcut (⌘⇧R)
+	// Open GitHub PR shortcut (⌘P)
 	const { pr } = usePRStatus({
 		workspaceId,
 		enabled: !!workspaceId,
