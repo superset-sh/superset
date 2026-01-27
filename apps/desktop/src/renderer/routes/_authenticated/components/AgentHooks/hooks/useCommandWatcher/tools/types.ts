@@ -1,5 +1,10 @@
 import type { SelectProject, SelectWorkspace } from "@superset/local-db";
+import type { Collection } from "@tanstack/react-db";
 import type { electronTrpc } from "renderer/lib/electron-trpc";
+import type {
+	AgentNotification,
+	AgentScreen,
+} from "renderer/stores/agent-screens";
 import type { z } from "zod";
 
 export interface CommandResult {
@@ -23,6 +28,9 @@ export interface ToolContext {
 	getActiveWorkspaceId: () => string | null;
 	// Navigation
 	navigateToWorkspace: (workspaceId: string) => Promise<void>;
+	// Agent screen collections
+	agentScreens: Collection<AgentScreen>;
+	agentNotifications: Collection<AgentNotification>;
 }
 
 // Tool definition with schema and execute function

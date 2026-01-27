@@ -1,5 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { NotificationBadge } from "./NotificationBadge";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { OrganizationDropdown } from "./OrganizationDropdown";
 import { WindowControls } from "./WindowControls";
@@ -32,6 +33,7 @@ export function TopBar() {
 						branch={workspace.worktree?.branch}
 					/>
 				)}
+				<NotificationBadge />
 				<OrganizationDropdown />
 				{!isMac && <WindowControls />}
 			</div>

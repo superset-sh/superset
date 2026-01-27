@@ -50,6 +50,8 @@ export function useCommandWatcher() {
 			getActiveWorkspaceId: getCurrentWorkspaceIdFromRoute,
 			navigateToWorkspace: (workspaceId: string) =>
 				navigateToWorkspace(workspaceId, navigate),
+			agentScreens: collections.agentScreens,
+			agentNotifications: collections.agentNotifications,
 		}),
 		[
 			createWorktree,
@@ -60,6 +62,8 @@ export function useCommandWatcher() {
 			projects,
 			getCurrentWorkspaceIdFromRoute,
 			navigate,
+			collections.agentScreens,
+			collections.agentNotifications,
 		],
 	);
 

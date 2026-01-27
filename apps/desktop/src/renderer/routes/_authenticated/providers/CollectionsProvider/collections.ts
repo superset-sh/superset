@@ -11,12 +11,17 @@ import type {
 	SelectUser,
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
+import { localStorageCollectionOptions } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
+import type {
+	AgentNotification,
+	AgentScreen,
+} from "renderer/stores/agent-screens/types";
 import superjson from "superjson";
 
 const columnMapper = snakeCamelMapper();
@@ -31,6 +36,9 @@ interface OrgCollections {
 	invitations: Collection<SelectInvitation>;
 	agentCommands: Collection<SelectAgentCommand>;
 	devicePresence: Collection<SelectDevicePresence>;
+	// Local-only collections (persisted to localStorage, not synced to backend)
+	agentScreens: Collection<AgentScreen>;
+	agentNotifications: Collection<AgentNotification>;
 }
 
 // Per-org collections cache
@@ -248,6 +256,21 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	// Local-only collections (persisted to localStorage, not synced to backend)
+	const agentScreens = createCollection(
+		localStorageCollectionOptions<AgentScreen>({
+			storageKey: `agent-screens-${organizationId}`,
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const agentNotifications = createCollection(
+		localStorageCollectionOptions<AgentNotification>({
+			storageKey: `agent-notifications-${organizationId}`,
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -257,6 +280,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		invitations,
 		agentCommands,
 		devicePresence,
+		agentScreens,
+		agentNotifications,
 	};
 }
 

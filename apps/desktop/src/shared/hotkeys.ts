@@ -436,6 +436,12 @@ export const HOTKEYS = {
 		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
 	}),
+	TOGGLE_NOTIFICATION_SIDEBAR: defineHotkey({
+		keys: "meta+shift+b",
+		label: "Toggle Notifications",
+		category: "Layout",
+		description: "Show or hide the notification sidebar",
+	}),
 	SPLIT_RIGHT: defineHotkey({
 		keys: "meta+d",
 		label: "Split Right",

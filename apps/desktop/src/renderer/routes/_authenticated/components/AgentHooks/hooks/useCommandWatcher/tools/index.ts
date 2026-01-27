@@ -1,3 +1,4 @@
+import { agentScreenTools } from "./agent-screens";
 import { createWorkspace } from "./create-worktree";
 import { deleteWorkspace } from "./delete-workspace";
 import { getAppContext } from "./get-app-context";
@@ -17,6 +18,7 @@ const tools: ToolDefinition<any>[] = [
 	listWorkspaces,
 	navigateToWorkspace,
 	switchWorkspace,
+	...agentScreenTools,
 ];
 
 // Map for O(1) lookup by name

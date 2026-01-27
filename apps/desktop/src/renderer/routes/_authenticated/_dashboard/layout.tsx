@@ -5,11 +5,13 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { NotificationSidebar } from "renderer/screens/main/components/NotificationSidebar";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { TopBar } from "renderer/screens/main/components/TopBar";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { useNotificationSidebarStore } from "renderer/stores/notification-sidebar-state";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
@@ -49,6 +51,11 @@ function DashboardLayout() {
 		isCollapsed: isWorkspaceSidebarCollapsed,
 	} = useWorkspaceSidebarStore();
 
+	const {
+		isOpen: isNotificationSidebarOpen,
+		toggleOpen: toggleNotificationSidebar,
+	} = useNotificationSidebarStore();
+
 	// Global hotkeys for dashboard
 	useAppHotkey(
 		"SHOW_HOTKEYS",
@@ -81,6 +88,14 @@ function DashboardLayout() {
 		[openNewWorkspaceModal, currentWorkspace?.projectId],
 	);
 
+	// Toggle notification sidebar with Cmd/Ctrl+Shift+N
+	useAppHotkey(
+		"TOGGLE_NOTIFICATION_SIDEBAR",
+		toggleNotificationSidebar,
+		undefined,
+		[toggleNotificationSidebar],
+	);
+
 	return (
 		<div className="flex flex-col h-full w-full">
 			<TopBar />
@@ -100,6 +115,7 @@ function DashboardLayout() {
 					</ResizablePanel>
 				)}
 				<Outlet />
+				{isNotificationSidebarOpen && <NotificationSidebar />}
 			</div>
 		</div>
 	);

@@ -954,6 +954,501 @@ export function registerMcpTools(server: McpServer, ctx: McpContext) {
 			});
 		},
 	);
+
+	// ========================================
+	// AGENT SCREEN TOOLS (Routed to Desktop)
+	// ========================================
+
+	server.tool(
+		"create_screen",
+		"Create a new agent screen for composing content to show the user",
+		{
+			deviceId: z.string().optional(),
+			workspaceId: z.string().uuid().describe("Workspace ID for context"),
+			title: z.string().describe("Screen title"),
+			description: z.string().optional().describe("Screen description"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "create_screen",
+				params: {
+					workspaceId: params.workspaceId,
+					organizationId: ctx.organizationId,
+					title: params.title,
+					description: params.description,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"update_screen",
+		"Update an existing agent screen",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID to update"),
+			title: z.string().optional().describe("New title"),
+			description: z.string().optional().describe("New description"),
+			status: z
+				.enum(["composing", "ready", "viewed", "dismissed"])
+				.optional()
+				.describe("New status"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "update_screen",
+				params: {
+					screenId: params.screenId,
+					title: params.title,
+					description: params.description,
+					status: params.status,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"set_screen_layout",
+		"Set the pane layout for an agent screen using a mosaic tree structure",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			layout: z
+				.any()
+				.describe(
+					"Mosaic layout: either a pane ID string, or an object with { direction: 'row' | 'column', first: layout, second: layout, splitPercentage?: number }",
+				),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "set_screen_layout",
+				params: {
+					screenId: params.screenId,
+					layout: params.layout,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"delete_screen",
+		"Delete an agent screen",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID to delete"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "delete_screen",
+				params: {
+					screenId: params.screenId,
+				},
+			});
+		},
+	);
+
+	// Pane management tools
+
+	server.tool(
+		"add_browser_pane",
+		"Add a browser pane to an agent screen",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			paneId: z.string().describe("Unique pane ID within the screen"),
+			url: z.string().url().describe("URL to display"),
+			title: z.string().optional().describe("Pane title"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "add_browser_pane",
+				params: {
+					screenId: params.screenId,
+					paneId: params.paneId,
+					url: params.url,
+					title: params.title,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"navigate_browser",
+		"Navigate a browser pane to a new URL",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			paneId: z.string().describe("Pane ID"),
+			url: z.string().url().describe("URL to navigate to"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "navigate_browser",
+				params: {
+					screenId: params.screenId,
+					paneId: params.paneId,
+					url: params.url,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"add_terminal_pane",
+		"Add a terminal pane to an agent screen",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			paneId: z.string().describe("Unique pane ID within the screen"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "add_terminal_pane",
+				params: {
+					screenId: params.screenId,
+					paneId: params.paneId,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"write_terminal",
+		"Write data to a terminal pane",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			paneId: z.string().describe("Pane ID"),
+			data: z.string().describe("Data to write to the terminal"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "write_terminal",
+				params: {
+					screenId: params.screenId,
+					paneId: params.paneId,
+					data: params.data,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"add_summary_pane",
+		"Add a markdown summary pane to an agent screen",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			paneId: z.string().describe("Unique pane ID within the screen"),
+			content: z.string().describe("Markdown content"),
+			title: z.string().optional().describe("Pane title"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "add_summary_pane",
+				params: {
+					screenId: params.screenId,
+					paneId: params.paneId,
+					content: params.content,
+					title: params.title,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"update_summary",
+		"Update the content of a summary pane",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			paneId: z.string().describe("Pane ID"),
+			content: z.string().describe("New markdown content"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "update_summary",
+				params: {
+					screenId: params.screenId,
+					paneId: params.paneId,
+					content: params.content,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"remove_pane",
+		"Remove a pane from an agent screen",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID"),
+			paneId: z.string().describe("Pane ID to remove"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "remove_pane",
+				params: {
+					screenId: params.screenId,
+					paneId: params.paneId,
+				},
+			});
+		},
+	);
+
+	// Notification tools
+
+	server.tool(
+		"notify_user",
+		"Send a notification to the user with a link to an agent screen",
+		{
+			deviceId: z.string().optional(),
+			screenId: z.string().describe("Screen ID to link to"),
+			title: z.string().describe("Notification title"),
+			body: z.string().optional().describe("Notification body text"),
+			priority: z
+				.enum(["normal", "high", "urgent"])
+				.default("normal")
+				.describe("Notification priority"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "notify_user",
+				params: {
+					screenId: params.screenId,
+					organizationId: ctx.organizationId,
+					title: params.title,
+					body: params.body,
+					priority: params.priority,
+				},
+			});
+		},
+	);
+
+	server.tool(
+		"cancel_notification",
+		"Cancel/dismiss a pending notification",
+		{
+			deviceId: z.string().optional(),
+			notificationId: z.string().describe("Notification ID to cancel"),
+		},
+		async (params) => {
+			const targetDeviceId = params.deviceId ?? ctx.defaultDeviceId;
+
+			if (!targetDeviceId) {
+				return {
+					content: [
+						{
+							type: "text",
+							text: "Error: No device specified and no default device configured",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			return executeOnDevice({
+				ctx,
+				deviceId: targetDeviceId,
+				tool: "cancel_notification",
+				params: {
+					notificationId: params.notificationId,
+				},
+			});
+		},
+	);
 }
 
 // ========================================
