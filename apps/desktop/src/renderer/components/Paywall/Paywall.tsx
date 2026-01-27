@@ -3,6 +3,7 @@ import { Button } from "@superset/ui/button";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
 import type { GatedFeature } from "./usePaywall";
@@ -15,6 +16,7 @@ type PaywallOptions = {
 let showPaywallFn: ((options: PaywallOptions) => void) | null = null;
 
 export const Paywall = () => {
+	const navigate = useNavigate();
 	const [paywallOptions, setPaywallOptions] = useState<PaywallOptions | null>(
 		null,
 	);
@@ -64,6 +66,7 @@ export const Paywall = () => {
 
 	const handleUpgrade = () => {
 		setIsOpen(false);
+		navigate({ to: "/settings/billing/plans" });
 	};
 
 	return (

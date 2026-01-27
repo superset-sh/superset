@@ -31,6 +31,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
+import {
+	GATED_FEATURES,
+	usePaywall,
+} from "renderer/components/Paywall/usePaywall";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { useOpenNew } from "renderer/react-query/projects";
@@ -58,10 +62,13 @@ function generateBranchFromTitle({
 
 type Mode = "existing" | "new" | "cloud";
 
+const FREE_WORKSPACE_LIMIT = 10;
+
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
+	const { gateFeature, userPlan } = usePaywall();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
@@ -77,6 +84,8 @@ export function NewWorkspaceModal() {
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const { data: allWorkspaces = [] } =
+		electronTrpc.workspaces.getAll.useQuery();
 	const {
 		data: branchData,
 		isLoading: isBranchesLoading,
@@ -195,6 +204,12 @@ export function NewWorkspaceModal() {
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
+
+		// Check workspace limit for free users
+		if (userPlan === "free" && allWorkspaces.length >= FREE_WORKSPACE_LIMIT) {
+			gateFeature(GATED_FEATURES.CREATE_WORKSPACE, () => {});
+			return;
+		}
 
 		const workspaceName = title.trim() || undefined;
 

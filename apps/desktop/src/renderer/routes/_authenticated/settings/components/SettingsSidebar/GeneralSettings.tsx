@@ -1,7 +1,5 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
@@ -110,20 +108,13 @@ const GENERAL_SECTIONS: {
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
-	const billingEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.BILLING_ENABLED);
-
-	// Filter by feature flags first, then by search matches
-	const availableSections = GENERAL_SECTIONS.filter((section) => {
-		if (section.section === "billing" && !billingEnabled) return false;
-		return true;
-	});
 
 	// When searching, only show sections that have matches
 	const filteredSections = matchCounts
-		? availableSections.filter(
+		? GENERAL_SECTIONS.filter(
 				(section) => (matchCounts[section.section] ?? 0) > 0,
 			)
-		: availableSections;
+		: GENERAL_SECTIONS;
 
 	if (filteredSections.length === 0) {
 		return null;

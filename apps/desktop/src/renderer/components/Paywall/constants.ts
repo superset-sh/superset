@@ -1,8 +1,11 @@
 import type { IconType } from "react-icons";
-import { HiUsers } from "react-icons/hi2";
-import { IoSparkles, IoTerminal } from "react-icons/io5";
+import {
+	HiCloud,
+	HiDevicePhoneMobile,
+	HiOutlinePuzzlePiece,
+	HiUsers,
+} from "react-icons/hi2";
 import { MdWorkspaces } from "react-icons/md";
-import { RiRocketLine } from "react-icons/ri";
 import type { GatedFeature } from "./usePaywall";
 import { GATED_FEATURES } from "./usePaywall";
 
@@ -26,24 +29,6 @@ export const PRO_FEATURES: ProFeature[] = [
 		gradientColors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
 	},
 	{
-		id: "ai-features",
-		title: "AI-Powered Features",
-		description:
-			"Enhanced AI agent capabilities with context-aware completions, automated workflow suggestions, and intelligent terminal assistance.",
-		icon: IoSparkles,
-		iconColor: "text-purple-500",
-		gradientColors: ["#6b21a8", "#581c87", "#3b0764", "#1a1a2e"],
-	},
-	{
-		id: "advanced-terminal",
-		title: "Advanced Terminal",
-		description:
-			"Split your terminal into multiple panes for parallel execution. Session persistence, custom themes, and comprehensive command history search.",
-		icon: IoTerminal,
-		iconColor: "text-green-500",
-		gradientColors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
-	},
-	{
 		id: "unlimited-workspaces",
 		title: "Unlimited Workspaces",
 		description:
@@ -53,20 +38,38 @@ export const PRO_FEATURES: ProFeature[] = [
 		gradientColors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"],
 	},
 	{
-		id: "priority-support",
-		title: "Priority Support",
+		id: "integrations",
+		title: "Integrations",
 		description:
-			"Priority email support from the Superset team. Early access to new Pro features and beta releases.",
-		icon: RiRocketLine,
-		iconColor: "text-red-500",
-		gradientColors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"],
+			"Connect Linear, GitHub, and more to sync issues and PRs directly with your workspaces.",
+		icon: HiOutlinePuzzlePiece,
+		iconColor: "text-indigo-500",
+		gradientColors: ["#4f46e5", "#4338ca", "#3730a3", "#1a1a2e"],
+	},
+	{
+		id: "cloud-workspaces",
+		title: "Cloud Workspaces",
+		description:
+			"Access your workspaces from anywhere with cloud-hosted environments.",
+		icon: HiCloud,
+		iconColor: "text-cyan-500",
+		gradientColors: ["#0891b2", "#0e7490", "#155e75", "#1a1a2e"],
+	},
+	{
+		id: "mobile-app",
+		title: "Mobile App",
+		description: "Monitor workspaces and manage tasks on the go.",
+		icon: HiDevicePhoneMobile,
+		iconColor: "text-pink-500",
+		gradientColors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
 	},
 ];
 
 // Map gated feature IDs to the feature to highlight in the paywall dialog
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
-	[GATED_FEATURES.AI_COMPLETION]: "ai-features",
-	[GATED_FEATURES.SPLIT_TERMINAL]: "advanced-terminal",
 	[GATED_FEATURES.CREATE_WORKSPACE]: "unlimited-workspaces",
+	[GATED_FEATURES.INTEGRATIONS]: "integrations",
+	[GATED_FEATURES.CLOUD_WORKSPACES]: "cloud-workspaces",
+	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
 };

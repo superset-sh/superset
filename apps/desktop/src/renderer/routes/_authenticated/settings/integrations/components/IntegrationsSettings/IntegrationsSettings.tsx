@@ -14,6 +14,10 @@ import { useCallback, useEffect, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { HiCheckCircle, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
+import {
+	GATED_FEATURES,
+	usePaywall,
+} from "renderer/components/Paywall/usePaywall";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -43,6 +47,7 @@ export function IntegrationsSettings({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
+	const { gateFeature } = usePaywall();
 
 	const { data: integrations, isLoading: isLoadingIntegrations } = useLiveQuery(
 		(q) =>
@@ -135,7 +140,11 @@ export function IntegrationsSettings({
 						isConnected={isLinearConnected}
 						connectedOrgName={linearConnection?.externalOrgName}
 						isLoading={isLoading}
-						onManage={() => handleOpenWeb("/integrations/linear")}
+						onManage={() =>
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
+								handleOpenWeb("/integrations/linear"),
+							)
+						}
 					/>
 				)}
 
@@ -147,7 +156,11 @@ export function IntegrationsSettings({
 						isConnected={isGithubConnected}
 						connectedOrgName={githubInstallation?.accountLogin}
 						isLoading={isLoading}
-						onManage={() => handleOpenWeb("/integrations/github")}
+						onManage={() =>
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
+								handleOpenWeb("/integrations/github"),
+							)
+						}
 					/>
 				)}
 			</div>
