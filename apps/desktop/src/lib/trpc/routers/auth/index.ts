@@ -31,14 +31,15 @@ export const createAuthRouter = () => {
 				return { success: true };
 			}),
 
+		/**
+		 * Subscribe to auth events. Only fires for actual changes:
+		 * - New authentication (OAuth callback) -> { token, expiresAt }
+		 * - Sign out -> null
+		 *
+		 * Does NOT emit on subscribe - use getStoredToken for initial hydration.
+		 */
 		onTokenChanged: publicProcedure.subscription(() => {
 			return observable<{ token: string; expiresAt: string } | null>((emit) => {
-				loadToken().then((initial) => {
-					if (initial.token && initial.expiresAt) {
-						emit.next({ token: initial.token, expiresAt: initial.expiresAt });
-					}
-				});
-
 				const handleSaved = (data: { token: string; expiresAt: string }) => {
 					emit.next(data);
 				};
