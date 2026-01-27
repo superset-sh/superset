@@ -66,7 +66,7 @@ export function ChangelogTimeline({ entries }: ChangelogTimelineProps) {
 				{entries.map((entry) => {
 					const isActive = activeSlug === entry.slug;
 					return (
-						<li key={entry.slug} className="relative flex items-center gap-3 pt-1">
+						<li key={entry.slug} className="relative flex items-center gap-3 pt-2">
 							{/* Date text */}
 							<button
 								type="button"
