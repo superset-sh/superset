@@ -7,6 +7,7 @@ import { useState } from "react";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuLayers,
+	LuMessageSquare,
 	LuPanelLeft,
 	LuPanelLeftClose,
 	LuPanelLeftOpen,
@@ -33,6 +34,7 @@ export function WorkspaceSidebarHeader({
 	// Derive active state from route
 	const isWorkspacesListOpen = !!matchRoute({ to: "/workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks" });
+	const isChatOpen = !!matchRoute({ to: "/chat" });
 
 	const handleWorkspacesClick = () => {
 		if (isWorkspacesListOpen) {
@@ -45,6 +47,10 @@ export function WorkspaceSidebarHeader({
 
 	const handleTasksClick = () => {
 		navigate({ to: "/tasks" });
+	};
+
+	const handleChatClick = () => {
+		navigate({ to: "/chat" });
 	};
 
 	const handleToggleSidebar = () => {
@@ -125,6 +131,24 @@ export function WorkspaceSidebarHeader({
 					</Tooltip>
 				)}
 
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleChatClick}
+							className={cn(
+								"flex items-center justify-center size-8 rounded-md transition-colors",
+								isChatOpen
+									? "text-foreground bg-accent"
+									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+							)}
+						>
+							<LuMessageSquare className="size-4" strokeWidth={STROKE_WIDTH} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Chat</TooltipContent>
+				</Tooltip>
+
 				<NewWorkspaceButton isCollapsed />
 			</div>
 		);
@@ -190,6 +214,22 @@ export function WorkspaceSidebarHeader({
 					<span className="text-sm font-medium flex-1 text-left">Tasks</span>
 				</button>
 			)}
+
+			<button
+				type="button"
+				onClick={handleChatClick}
+				className={cn(
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					isChatOpen
+						? "text-foreground bg-accent"
+						: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+				)}
+			>
+				<div className="flex items-center justify-center size-5">
+					<LuMessageSquare className="size-4" strokeWidth={STROKE_WIDTH} />
+				</div>
+				<span className="text-sm font-medium flex-1 text-left">Chat</span>
+			</button>
 
 			<NewWorkspaceButton />
 		</div>

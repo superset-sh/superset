@@ -35,6 +35,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])
 			.optional(),
+		NEXT_PUBLIC_DURABLE_STREAM_URL: z.string().url().optional(),
 	},
 
 	experimental__runtimeEnv: {
@@ -47,6 +48,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
 		NEXT_PUBLIC_SENTRY_DSN_WEB: process.env.NEXT_PUBLIC_SENTRY_DSN_WEB,
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+		NEXT_PUBLIC_DURABLE_STREAM_URL: process.env.NEXT_PUBLIC_DURABLE_STREAM_URL,
 	},
 
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

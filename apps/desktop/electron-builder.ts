@@ -56,6 +56,12 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
+		// Claude Code binary - bundled for AI chat functionality
+		{
+			from: "resources/bin/${platform}-${arch}",
+			to: "bin",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [

@@ -1,8 +1,8 @@
 import { db } from "@superset/db/client";
 import {
-	agentCommands,
-	apikeys,
-	devicePresence,
+	chatMessages,
+	chatParticipants,
+	chatSessions,
 	invitations,
 	members,
 	organizations,
@@ -18,13 +18,13 @@ export type AllowedTable =
 	| "tasks"
 	| "task_statuses"
 	| "repositories"
+	| "chat_sessions"
+	| "chat_messages"
+	| "chat_participants"
 	| "auth.members"
 	| "auth.organizations"
 	| "auth.users"
-	| "auth.invitations"
-	| "auth.apikeys"
-	| "device_presence"
-	| "agent_commands";
+	| "auth.invitations";
 
 interface WhereClause {
 	fragment: string;
@@ -57,6 +57,38 @@ export async function buildWhereClause(
 
 		case "repositories":
 			return build(repositories, repositories.organizationId, organizationId);
+
+		case "chat_sessions":
+			return build(chatSessions, chatSessions.organizationId, organizationId);
+
+		case "chat_messages":
+			return build(chatMessages, chatMessages.organizationId, organizationId);
+
+		case "chat_participants": {
+			// Filter participants by sessions the user's org owns
+			const orgSessions = await db.query.chatSessions.findMany({
+				where: eq(chatSessions.organizationId, organizationId),
+				columns: { id: true },
+			});
+
+			if (orgSessions.length === 0) {
+				return { fragment: "1 = 0", params: [] };
+			}
+
+			const sessionIds = orgSessions.map((s) => s.id);
+			const whereExpr = inArray(
+				sql`${sql.identifier(chatParticipants.sessionId.name)}`,
+				sessionIds,
+			);
+			const qb = new QueryBuilder();
+			const { sql: query, params } = qb
+				.select()
+				.from(chatParticipants)
+				.where(whereExpr)
+				.toSQL();
+			const fragment = query.replace(/^select .* from .* where\s+/i, "");
+			return { fragment, params };
+		}
 
 		case "auth.members":
 			return build(members, members.organizationId, organizationId);
@@ -94,19 +126,6 @@ export async function buildWhereClause(
 			const fragment = `$1 = ANY("organization_ids")`;
 			return { fragment, params: [organizationId] };
 		}
-
-		case "device_presence":
-			return build(
-				devicePresence,
-				devicePresence.organizationId,
-				organizationId,
-			);
-
-		case "agent_commands":
-			return build(agentCommands, agentCommands.organizationId, organizationId);
-
-		case "auth.apikeys":
-			return build(apikeys, apikeys.userId, userId);
 
 		default:
 			return null;

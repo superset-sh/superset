@@ -16,6 +16,10 @@ export const stateStore = new Map<string, number>();
 /**
  * Event emitter for auth-related events.
  * Used by tRPC subscription to notify renderer of token changes.
+ *
+ * Events:
+ * - "token-saved": { token, expiresAt } - New token saved (OAuth callback)
+ * - "token-cleared": (no data) - Token deleted (sign-out)
  */
 export const authEvents = new EventEmitter();
 

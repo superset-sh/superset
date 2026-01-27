@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@sentry/nextjs": "^10.36.0",
+		"@superset/ai-chat": "workspace:*",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
@@ -24,7 +25,7 @@
 		"@trpc/server": "^11.7.1",
 		"@trpc/tanstack-react-query": "^11.7.1",
 		"@uiw/react-md-editor": "^4.0.11",
-		"better-auth": "1.4.17",
+		"better-auth": "^1.4.17",
 		"framer-motion": "^12.23.26",
 		"geist": "^1.5.1",
 		"import-in-the-middle": "2.0.1",
