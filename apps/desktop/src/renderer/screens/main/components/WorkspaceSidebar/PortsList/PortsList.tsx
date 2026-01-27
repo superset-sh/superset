@@ -6,7 +6,7 @@ import { STROKE_WIDTH } from "../constants";
 import { WorkspacePortGroup } from "./components/WorkspacePortGroup";
 import { usePortsData } from "./hooks/usePortsData";
 
-const PORTS_DOCS_URL = `https://${COMPANY.DOMAIN}/ports`;
+const PORTS_DOCS_URL = `${COMPANY.DOCS_URL}/ports`;
 
 export function PortsList() {
 	const isCollapsed = usePortsStore((s) => s.isListCollapsed);
