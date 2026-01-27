@@ -2,7 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { mdxComponents } from "@/app/blog/components/mdx-components";
+import { changelogMdxComponents } from "../components/ChangelogEntry/changelog-mdx-components";
 import { ArticleJsonLd } from "@/components/JsonLd";
 import { getAllChangelogSlugs, getChangelogEntry } from "@/lib/changelog";
 import { ChangelogEntryLayout } from "./components/ChangelogEntryLayout";
@@ -32,7 +32,7 @@ export default async function ChangelogEntryPage({ params }: PageProps) {
 				image={entry.image}
 			/>
 			<ChangelogEntryLayout entry={entry}>
-				<MDXRemote source={entry.content} components={mdxComponents} />
+				<MDXRemote source={entry.content} components={changelogMdxComponents} />
 			</ChangelogEntryLayout>
 		</main>
 	);
