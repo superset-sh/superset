@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { getChangelogEntries } from "@/lib/changelog";
 import { ChangelogEntry } from "./components/ChangelogEntry";
-import { ChangelogTimeline } from "./components/ChangelogTimeline";
 
 export const metadata: Metadata = {
 	title: "Changelog | Superset",
@@ -32,12 +31,6 @@ export const metadata: Metadata = {
 
 export default async function ChangelogPage() {
 	const entries = getChangelogEntries();
-
-	const timelineEntries = entries.map((entry) => ({
-		slug: entry.slug,
-		date: entry.date,
-		title: entry.title,
-	}));
 
 	return (
 		<main className="relative min-h-screen">
@@ -72,46 +65,17 @@ export default async function ChangelogPage() {
 				</div>
 			</header>
 
-			{/* Entries section with timeline */}
-			<div className="relative py-16">
-				<div
-					className="hidden lg:flex gap-0"
-					style={{
-						marginLeft: "calc(50% - 384px - 200px)",
-						marginRight: "calc(50% - 384px)",
-					}}
-				>
-					{/* Sticky timeline - right edge aligns with gridline */}
-					<div className="w-[200px] shrink-0">
-						<ChangelogTimeline entries={timelineEntries} />
+			{/* Entries section */}
+			<div className="relative max-w-3xl mx-auto px-6 py-16">
+				{entries.length === 0 ? (
+					<p className="text-muted-foreground">No updates yet.</p>
+				) : (
+					<div className="flex flex-col gap-16">
+						{entries.map((entry) => (
+							<ChangelogEntry key={entry.url} entry={entry} />
+						))}
 					</div>
-
-					{/* Entries - within gridlines */}
-					<div className="w-[768px] px-6">
-						{entries.length === 0 ? (
-							<p className="text-muted-foreground">No updates yet.</p>
-						) : (
-							<div className="flex flex-col gap-16">
-								{entries.map((entry) => (
-									<ChangelogEntry key={entry.url} entry={entry} />
-								))}
-							</div>
-						)}
-					</div>
-				</div>
-
-				{/* Mobile layout - no timeline */}
-				<div className="lg:hidden max-w-3xl mx-auto px-6">
-					{entries.length === 0 ? (
-						<p className="text-muted-foreground">No updates yet.</p>
-					) : (
-						<div className="flex flex-col gap-16">
-							{entries.map((entry) => (
-								<ChangelogEntry key={entry.url} entry={entry} />
-							))}
-						</div>
-					)}
-				</div>
+				)}
 			</div>
 		</main>
 	);
