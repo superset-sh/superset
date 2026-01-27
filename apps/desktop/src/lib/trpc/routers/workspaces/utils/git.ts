@@ -60,8 +60,8 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 		// Run git status with --no-optional-locks to avoid holding locks
 		// Use porcelain=v1 for machine-parseable output, -b for branch info
 		// Use -z for NUL-terminated output (handles filenames with special chars)
-		// Use -M for rename detection (otherwise renames show as delete + add)
 		// Use -uall to show individual files in untracked directories (not just the directory)
+		// Note: porcelain=v1 already includes rename info (R/C status codes) without needing -M
 		const { stdout } = await execFileAsync(
 			"git",
 			[
@@ -72,7 +72,6 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 				"--porcelain=v1",
 				"-b",
 				"-z",
-				"-M",
 				"-uall",
 			],
 			{ env, timeout: 30_000 },
