@@ -71,6 +71,22 @@ const GuidesIcon = () => (
 	</svg>
 );
 
+const HelpIcon = () => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width="1.4em"
+		height="1.4em"
+		viewBox="0 0 24 24"
+		role="img"
+		aria-label="Help"
+	>
+		<path
+			fill="currentColor"
+			d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2m1 17h-2v-2h2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41c0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25"
+		/>
+	</svg>
+);
+
 export const sections: SidebarSection[] = [
 	{
 		title: "Get Started",
@@ -79,18 +95,34 @@ export const sections: SidebarSection[] = [
 			{ title: "Quick Start", href: "/quick-start" },
 			{ title: "Overview", href: "/overview" },
 			{ title: "Installation", href: "/installation" },
+			{ title: "Your First Workspace", href: "/first-workspace" },
 		],
 	},
 	{
 		title: "Core Features",
 		Icon: CoreFeaturesIcon,
-		items: [{ title: "Core Features", href: "/core-features" }],
+		items: [
+			{ title: "Core Features", href: "/core-features" },
+			{ title: "Workspaces & Branches", href: "/workspaces-and-branches" },
+			{ title: "Parallel Workspaces", href: "/parallel-workspaces" },
+			{ title: "Diff Viewer", href: "/diff-viewer" },
+			{ title: "Terminal Integration", href: "/terminal-integration" },
+			{ title: "Agent Integration", href: "/agent-integration" },
+		],
 	},
 	{
 		title: "How to Guides",
 		Icon: GuidesIcon,
 		items: [
 			{ title: "Setup & Teardown Scripts", href: "/setup-teardown-scripts" },
+			{ title: "Environment Variables", href: "/environment-variables" },
+			{ title: "Use with Cursor", href: "/use-with-cursor" },
+			{ title: "Using Monorepos", href: "/using-monorepos" },
 		],
+	},
+	{
+		title: "Help",
+		Icon: HelpIcon,
+		items: [{ title: "FAQ", href: "/faq" }],
 	},
 ];
