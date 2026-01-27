@@ -126,15 +126,31 @@ export const register = registerTool(
 			return { task, txid };
 		});
 
+		if (!result.task) {
+			return {
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify(
+							{ error: "Failed to create task", txid: result.txid },
+							null,
+							2,
+						),
+					},
+				],
+				isError: true,
+			};
+		}
+
 		return {
 			content: [
 				{
 					type: "text",
 					text: JSON.stringify(
 						{
-							id: result.task?.id,
-							slug: result.task?.slug,
-							title: result.task?.title,
+							id: result.task.id,
+							slug: result.task.slug,
+							title: result.task.title,
 							txid: result.txid,
 						},
 						null,

@@ -72,6 +72,15 @@ export const register = registerTool(
 				: null;
 		if (params.estimate !== undefined) updateData.estimate = params.estimate;
 
+		if (Object.keys(updateData).length === 0) {
+			return {
+				content: [
+					{ type: "text", text: "Error: No updatable fields provided" },
+				],
+				isError: true,
+			};
+		}
+
 		const result = await dbWs.transaction(async (tx) => {
 			const [task] = await tx
 				.update(tasks)

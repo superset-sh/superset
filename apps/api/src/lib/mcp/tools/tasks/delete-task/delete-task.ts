@@ -39,10 +39,11 @@ export const register = registerTool(
 			};
 		}
 
+		const deletedAt = new Date();
 		const result = await dbWs.transaction(async (tx) => {
 			await tx
 				.update(tasks)
-				.set({ deletedAt: new Date() })
+				.set({ deletedAt })
 				.where(eq(tasks.id, existingTask.id));
 
 			const txid = await getCurrentTxid(tx);
@@ -56,7 +57,7 @@ export const register = registerTool(
 					text: JSON.stringify(
 						{
 							success: true,
-							deletedAt: new Date().toISOString(),
+							deletedAt: deletedAt.toISOString(),
 							txid: result.txid,
 						},
 						null,

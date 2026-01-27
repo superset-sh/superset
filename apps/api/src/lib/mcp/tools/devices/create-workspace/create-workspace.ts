@@ -43,6 +43,7 @@ export const register = registerTool(
 				name: params.name,
 				branchName: params.branchName,
 				baseBranch: params.baseBranch,
+				taskId: params.taskId,
 			},
 		});
 	},

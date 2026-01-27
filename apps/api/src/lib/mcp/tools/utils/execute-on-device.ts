@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { agentCommands, devicePresence } from "@superset/db/schema";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, inArray } from "drizzle-orm";
 import type { McpContext } from "../../auth";
 
 export const DEVICE_ONLINE_THRESHOLD_MS = 60_000;
@@ -103,10 +103,16 @@ export async function executeOnDevice({
 		await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
 	}
 
+	// Only update to timeout if still in a non-final state (avoid race condition)
 	await db
 		.update(agentCommands)
 		.set({ status: "timeout" })
-		.where(eq(agentCommands.id, cmd.id));
+		.where(
+			and(
+				eq(agentCommands.id, cmd.id),
+				inArray(agentCommands.status, ["pending", "claimed", "executing"]),
+			),
+		);
 
 	return {
 		content: [

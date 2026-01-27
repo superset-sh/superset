@@ -57,7 +57,19 @@ export const oauthOrgScopeEndpoint = {
 				}
 
 				// Parse the stored value and add organization scope
-				const value = JSON.parse(verification.value);
+				let value: { scope?: string | string[]; [key: string]: unknown };
+				try {
+					value = JSON.parse(verification.value);
+				} catch {
+					console.error(
+						"[oauth-org-scope] Failed to parse verification value:",
+						verification.value,
+					);
+					return ctx.json(
+						{ error: "Invalid verification data" },
+						{ status: 400 },
+					);
+				}
 				const orgScope = `organization:${organizationId}`;
 
 				// Ensure scope is an array
