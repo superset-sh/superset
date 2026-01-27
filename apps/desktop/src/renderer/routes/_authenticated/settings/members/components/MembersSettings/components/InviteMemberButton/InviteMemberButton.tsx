@@ -32,7 +32,7 @@ export function InviteMemberButton({
 		alert({
 			title: "This will affect your billing",
 			description:
-				"Adding members may increase your subscription cost, prorated to your billing cycle.",
+				"Adding members will increase your subscription cost, prorated to your billing cycle.",
 			confirmText: "Continue",
 			cancelText: "Cancel",
 			onConfirm: () => setOpen(true),
