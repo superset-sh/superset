@@ -106,6 +106,7 @@ export const sections: SidebarSection[] = [
 			{ title: "Parallel Workspaces", href: "/parallel-workspaces" },
 			{ title: "Diff Viewer", href: "/diff-viewer" },
 			{ title: "Terminal", href: "/terminal-integration" },
+			{ title: "Port Management", href: "/ports" },
 			{ title: "AI Agents", href: "/agent-integration" },
 		],
 	},
@@ -116,6 +117,8 @@ export const sections: SidebarSection[] = [
 			{ title: "Setup Scripts", href: "/setup-teardown-scripts" },
 			{ title: "IDE Integration", href: "/use-with-cursor" },
 			{ title: "Monorepos", href: "/using-monorepos" },
+			{ title: "Keyboard Shortcuts", href: "/keyboard-shortcuts" },
+			{ title: "Customization", href: "/customization" },
 		],
 	},
 	{

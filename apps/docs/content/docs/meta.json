@@ -11,11 +11,14 @@
 		"parallel-workspaces",
 		"diff-viewer",
 		"terminal-integration",
+		"ports",
 		"agent-integration",
-		"---BookOpen How to Guides---",
+		"---BookOpen Guides---",
 		"setup-teardown-scripts",
 		"use-with-cursor",
 		"using-monorepos",
+		"keyboard-shortcuts",
+		"customization",
 		"---CircleHelp Help---",
 		"faq"
 	]

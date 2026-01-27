@@ -1,32 +1,40 @@
 ---
 title: Terminal
-description: Built-in terminal with session persistence
+description: Built-in terminal with multiple tabs and persistence
 ---
 
 ## Overview
 
-Built-in terminal per workspace. Sessions persist across app restarts.
+Built-in terminal per workspace with multiple tabs and session persistence.
 
 {/* TODO: Replace with screenshot */}
 ![Terminal](/placeholder.svg)
 
-## Features
+## Multiple Tabs
 
-- **Multiple tabs** - Open several terminals per workspace
-- **Persistence** - Sessions survive restarts
-- **Clickable links** - URLs and file paths are clickable
+Open several terminal tabs per workspace. Each runs independently.
 
-## Shortcuts
+- **⌘T** - New tab
+- **⌘W** - Close tab
+- **⌘1-9** - Switch tabs
 
-| Action | Shortcut |
-|--------|----------|
-| New tab | ⌘T |
-| Close tab | ⌘W |
-| Clear | ⌘K |
+{/* TODO: Replace with screenshot */}
+![Terminal Tabs](/placeholder.svg)
+
+## Session Persistence
+
+Sessions survive app restarts:
+- Running processes continue
+- Output history preserved
+- Scrollback maintained
+
+## Clickable Links
+
+URLs and file paths in output are clickable:
+- URLs open in browser
+- File paths open in editor
 
 ## Environment Variables
-
-Available in all terminal sessions:
 
 | Variable | Description |
 |----------|-------------|
