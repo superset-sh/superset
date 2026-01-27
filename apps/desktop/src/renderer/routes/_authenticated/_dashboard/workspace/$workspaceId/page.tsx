@@ -115,23 +115,35 @@ function WorkspacePage() {
 
 	const { presets } = usePresets();
 	const renameTab = useTabsStore((s) => s.renameTab);
+	const addTabWithMultiplePanes = useTabsStore(
+		(s) => s.addTabWithMultiplePanes,
+	);
 
 	const openTabWithPreset = useCallback(
 		(presetIndex: number) => {
 			const preset = presets[presetIndex];
 			if (preset) {
-				const result = addTab(workspaceId, {
-					initialCommands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				});
+				const isParallel =
+					preset.executionMode === "parallel" && preset.commands.length > 1;
+
+				const { tabId } = isParallel
+					? addTabWithMultiplePanes(workspaceId, {
+							commands: preset.commands,
+							initialCwd: preset.cwd || undefined,
+						})
+					: addTab(workspaceId, {
+							initialCommands: preset.commands,
+							initialCwd: preset.cwd || undefined,
+						});
+
 				if (preset.name) {
-					renameTab(result.tabId, preset.name);
+					renameTab(tabId, preset.name);
 				}
 			} else {
 				addTab(workspaceId);
 			}
 		},
-		[presets, workspaceId, addTab, renameTab],
+		[presets, workspaceId, addTab, addTabWithMultiplePanes, renameTab],
 	);
 
 	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
