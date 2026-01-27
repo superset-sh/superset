@@ -21,6 +21,7 @@ export const SETTING_ITEM_ID = {
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
+	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -39,6 +40,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_NAME: "project-name",
 	PROJECT_PATH: "project-path",
 	PROJECT_SCRIPTS: "project-scripts",
+	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 
 	WORKSPACE_NAME: "workspace-name",
 	WORKSPACE_BRANCH: "workspace-branch",
@@ -306,6 +308,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
+		section: "behavior",
+		title: "Branch Prefix",
+		description: "Default prefix for new branch names",
+		keywords: [
+			"features",
+			"branch",
+			"prefix",
+			"naming",
+			"git",
+			"worktree",
+			"author",
+			"github",
+			"username",
+			"feat",
+			"custom",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.TERMINAL_PRESETS,
 		section: "terminal",
 		title: "Terminal Presets",
@@ -542,6 +563,26 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cleanup",
 			"onboarding",
 			"config",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX,
+		section: "project",
+		title: "Branch Prefix",
+		description: "Override the default branch prefix for this project",
+		keywords: [
+			"project",
+			"branch",
+			"prefix",
+			"naming",
+			"git",
+			"worktree",
+			"author",
+			"github",
+			"username",
+			"feat",
+			"custom",
+			"override",
 		],
 	},
 	{

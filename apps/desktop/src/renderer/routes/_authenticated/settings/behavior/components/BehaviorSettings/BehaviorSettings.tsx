@@ -1,4 +1,12 @@
+import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -7,6 +15,16 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 
+type BranchPrefixMode = "github" | "author" | "feat" | "custom" | "none";
+
+const BRANCH_PREFIX_MODE_LABELS: Record<BranchPrefixMode, string> = {
+	github: "GitHub username",
+	author: "Git author name",
+	feat: '"feat" prefix',
+	custom: "Custom prefix",
+	none: "No prefix",
+};
+
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
@@ -14,6 +32,10 @@ interface BehaviorSettingsProps {
 export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	const showConfirmQuit = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
+		visibleItems,
+	);
+	const showBranchPrefix = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
 		visibleItems,
 	);
 
@@ -43,6 +65,43 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		setConfirmOnQuit.mutate({ enabled });
 	};
 
+	// Branch prefix setting
+	const { data: branchPrefix, isLoading: isBranchPrefixLoading } =
+		electronTrpc.settings.getBranchPrefix.useQuery();
+	const setBranchPrefix = electronTrpc.settings.setBranchPrefix.useMutation({
+		onMutate: async ({ mode, customPrefix }) => {
+			await utils.settings.getBranchPrefix.cancel();
+			const previous = utils.settings.getBranchPrefix.getData();
+			utils.settings.getBranchPrefix.setData(undefined, {
+				mode,
+				customPrefix: customPrefix ?? null,
+			});
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getBranchPrefix.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getBranchPrefix.invalidate();
+		},
+	});
+
+	const handleBranchPrefixModeChange = (mode: BranchPrefixMode) => {
+		setBranchPrefix.mutate({
+			mode,
+			customPrefix: mode === "custom" ? branchPrefix?.customPrefix : null,
+		});
+	};
+
+	const handleCustomPrefixChange = (customPrefix: string) => {
+		setBranchPrefix.mutate({
+			mode: "custom",
+			customPrefix: customPrefix || null,
+		});
+	};
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -70,6 +129,52 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							onCheckedChange={handleConfirmToggle}
 							disabled={isConfirmLoading || setConfirmOnQuit.isPending}
 						/>
+					</div>
+				)}
+
+				{/* Branch Prefix */}
+				{showBranchPrefix && (
+					<div className="space-y-3">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Branch Prefix</Label>
+							<p className="text-xs text-muted-foreground">
+								Default prefix for new branch names (e.g., username/branch-name)
+							</p>
+						</div>
+						<div className="flex items-center gap-3">
+							<Select
+								value={branchPrefix?.mode ?? "github"}
+								onValueChange={(value) =>
+									handleBranchPrefixModeChange(value as BranchPrefixMode)
+								}
+								disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
+							>
+								<SelectTrigger className="w-[200px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{(
+										Object.entries(BRANCH_PREFIX_MODE_LABELS) as [
+											BranchPrefixMode,
+											string,
+										][]
+									).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							{branchPrefix?.mode === "custom" && (
+								<Input
+									placeholder="Enter custom prefix"
+									value={branchPrefix.customPrefix ?? ""}
+									onChange={(e) => handleCustomPrefixChange(e.target.value)}
+									className="w-[200px]"
+									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
+								/>
+							)}
+						</div>
 					</div>
 				)}
 			</div>

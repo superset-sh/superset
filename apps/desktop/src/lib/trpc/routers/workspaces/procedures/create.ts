@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import { projects, settings, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -21,7 +21,7 @@ import {
 	createWorktreeFromPr,
 	fetchPrBranch,
 	generateBranchName,
-	getAuthorPrefix,
+	getBranchPrefix,
 	getBranchWorktreePath,
 	getCurrentBranch,
 	getPrInfo,
@@ -302,9 +302,22 @@ export const createCreateProcedures = () => {
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
 
-				const authorName = await getAuthorPrefix(project.mainRepoPath);
-				const rawAuthorPrefix = authorName
-					? sanitizeAuthorPrefix(authorName)
+				// Resolve branch prefix: project setting > global setting > default (github)
+				const globalSettings = localDb.select().from(settings).get();
+				const prefixMode =
+					project.branchPrefixMode ??
+					globalSettings?.branchPrefixMode ??
+					"github";
+				const customPrefix =
+					project.branchPrefixCustom ?? globalSettings?.branchPrefixCustom;
+
+				const rawPrefix = await getBranchPrefix({
+					repoPath: project.mainRepoPath,
+					mode: prefixMode,
+					customPrefix,
+				});
+				const rawAuthorPrefix = rawPrefix
+					? sanitizeAuthorPrefix(rawPrefix)
 					: undefined;
 
 				const existingSet = new Set(

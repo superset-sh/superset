@@ -2,6 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
+	BRANCH_PREFIX_MODES,
 	projects,
 	type SelectProject,
 	settings,
@@ -763,6 +764,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								"Invalid project color",
 							)
 							.optional(),
+						branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
+						branchPrefixCustom: z.string().nullable().optional(),
 					}),
 				}),
 			)
@@ -782,6 +785,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						...(input.patch.name !== undefined && { name: input.patch.name }),
 						...(input.patch.color !== undefined && {
 							color: input.patch.color,
+						}),
+						...(input.patch.branchPrefixMode !== undefined && {
+							branchPrefixMode: input.patch.branchPrefixMode,
+						}),
+						...(input.patch.branchPrefixCustom !== undefined && {
+							branchPrefixCustom: input.patch.branchPrefixCustom,
 						}),
 						lastOpenedAt: Date.now(),
 					})

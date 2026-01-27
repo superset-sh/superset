@@ -114,3 +114,16 @@ export const TERMINAL_LINK_BEHAVIORS = [
 ] as const;
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
+
+/**
+ * Branch prefix modes for workspace branch naming
+ */
+export const BRANCH_PREFIX_MODES = [
+	"github",
+	"author",
+	"feat",
+	"custom",
+	"none",
+] as const;
+
+export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];

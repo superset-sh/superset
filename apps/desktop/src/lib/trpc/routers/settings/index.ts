@@ -1,4 +1,5 @@
 import {
+	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
@@ -340,5 +341,40 @@ export const createSettingsRouter = () => {
 			quitWithoutConfirmation();
 			return { success: true };
 		}),
+
+		getBranchPrefix: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				mode: row.branchPrefixMode ?? "github",
+				customPrefix: row.branchPrefixCustom ?? null,
+			};
+		}),
+
+		setBranchPrefix: publicProcedure
+			.input(
+				z.object({
+					mode: z.enum(BRANCH_PREFIX_MODES),
+					customPrefix: z.string().nullable().optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						branchPrefixMode: input.mode,
+						branchPrefixCustom: input.customPrefix ?? null,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: {
+							branchPrefixMode: input.mode,
+							branchPrefixCustom: input.customPrefix ?? null,
+						},
+					})
+					.run();
+
+				return { success: true };
+			}),
 	});
 };
