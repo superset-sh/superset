@@ -115,7 +115,7 @@ export const sections: SidebarSection[] = [
 		Icon: GuidesIcon,
 		items: [
 			{ title: "Setup Scripts", href: "/setup-teardown-scripts" },
-			{ title: "IDE Integration", href: "/use-with-cursor" },
+			{ title: "IDE Integration", href: "/use-with-ide" },
 			{ title: "Monorepos", href: "/using-monorepos" },
 			{ title: "Keyboard Shortcuts", href: "/keyboard-shortcuts" },
 			{ title: "Customization", href: "/customization" },
