@@ -119,9 +119,6 @@ export function OrganizationSettings({
 	const currentMemberFromData = members.find((m) => m.userId === currentUserId);
 	const currentUserRole = currentMemberFromData?.role;
 
-	const plan =
-		(session?.session?.plan as "free" | "pro" | "enterprise") ?? "free";
-
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
 		return d.toLocaleDateString("en-US", {
@@ -335,7 +332,6 @@ export function OrganizationSettings({
 										currentUserRole={currentUserRole}
 										organizationId={activeOrganizationId}
 										organizationName={organization.name}
-										plan={plan}
 									/>
 								)}
 

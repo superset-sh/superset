@@ -25,7 +25,6 @@ interface PendingInvitationsProps {
 	currentUserRole: OrganizationRole;
 	organizationId: string;
 	organizationName: string;
-	plan?: "free" | "pro" | "enterprise";
 }
 
 export function PendingInvitations({
@@ -33,7 +32,6 @@ export function PendingInvitations({
 	currentUserRole,
 	organizationId,
 	organizationName,
-	plan,
 }: PendingInvitationsProps) {
 	const collections = useCollections();
 
@@ -93,7 +91,6 @@ export function PendingInvitations({
 							currentUserRole={currentUserRole}
 							organizationId={organizationId}
 							organizationName={organizationName}
-							plan={plan}
 						/>
 					)}
 				</div>
@@ -122,7 +119,6 @@ export function PendingInvitations({
 						currentUserRole={currentUserRole}
 						organizationId={organizationId}
 						organizationName={organizationName}
-						plan={plan}
 					/>
 				)}
 			</div>

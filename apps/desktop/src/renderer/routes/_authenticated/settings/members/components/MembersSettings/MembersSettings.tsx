@@ -68,9 +68,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	);
 	const organization = orgData?.find((org) => org.id === activeOrganizationId);
 
-	const plan =
-		(session?.session?.plan as "free" | "pro" | "enterprise") ?? "free";
-
 	const members: TeamMember[] = (membersData ?? [])
 		.map((m) => ({
 			...m,
@@ -116,7 +113,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 								currentUserRole={currentUserRole}
 								organizationId={activeOrganizationId}
 								organizationName={organization.name}
-								plan={plan}
 							/>
 						</div>
 					)}
@@ -215,7 +211,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																		isCurrentUserRow,
 																		ownerCount,
 																	)}
-																	plan={plan}
 																/>
 															)}
 														</TableCell>

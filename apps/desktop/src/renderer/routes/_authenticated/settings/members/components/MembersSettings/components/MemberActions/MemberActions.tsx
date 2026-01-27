@@ -29,17 +29,20 @@ export function MemberActions({
 	ownerCount,
 	isCurrentUser,
 	canRemove,
-	plan,
 }: {
 	member: TeamMember;
 	currentUserRole: OrganizationRole;
 	ownerCount: number;
 	isCurrentUser: boolean;
 	canRemove: boolean;
-	plan?: "free" | "pro" | "enterprise";
 }) {
 	const [isChangingRole, setIsChangingRole] = useState(false);
-	const { refetch: refetchSession } = authClient.useSession();
+	const { data: session, refetch: refetchSession } = authClient.useSession();
+	const plan = session?.session?.plan as
+		| "free"
+		| "pro"
+		| "enterprise"
+		| undefined;
 	const navigate = useNavigate();
 
 	const availableRoles = getAvailableRoleChanges(
