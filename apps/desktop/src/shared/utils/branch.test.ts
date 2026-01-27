@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	findBranchPathConflict,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeSegment,
@@ -84,5 +85,56 @@ describe("sanitizeBranchName", () => {
 
 	test("handles only slashes", () => {
 		expect(sanitizeBranchName("///")).toBe("");
+	});
+});
+
+describe("findBranchPathConflict", () => {
+	test("detects conflict when new branch is child of existing", () => {
+		// Creating release/v61 when "release" exists
+		expect(findBranchPathConflict("release/v61", ["release", "main"])).toBe(
+			"release",
+		);
+	});
+
+	test("detects conflict when new branch is parent of existing", () => {
+		// Creating "release" when "release/v61" exists
+		expect(findBranchPathConflict("release", ["release/v61", "main"])).toBe(
+			"release/v61",
+		);
+	});
+
+	test("detects deep nested conflicts", () => {
+		// Creating feature/auth/oauth when feature/auth exists
+		expect(
+			findBranchPathConflict("feature/auth/oauth", ["feature/auth", "main"]),
+		).toBe("feature/auth");
+	});
+
+	test("returns null when no conflict exists", () => {
+		expect(findBranchPathConflict("feature/new", ["release", "main"])).toBe(
+			null,
+		);
+	});
+
+	test("returns null for sibling branches", () => {
+		// release-v61 is not a child of release
+		expect(findBranchPathConflict("release-v61", ["release", "main"])).toBe(
+			null,
+		);
+	});
+
+	test("handles case insensitive comparison", () => {
+		expect(findBranchPathConflict("Release/V61", ["release", "main"])).toBe(
+			"release",
+		);
+	});
+
+	test("returns null for empty existing branches", () => {
+		expect(findBranchPathConflict("release/v61", [])).toBe(null);
+	});
+
+	test("does not match exact same branch name", () => {
+		// Exact match is not a path conflict (it's a duplicate, handled elsewhere)
+		expect(findBranchPathConflict("release", ["release"])).toBe(null);
 	});
 });

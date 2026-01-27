@@ -6,6 +6,7 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
+import { findBranchPathConflict } from "shared/utils/branch";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
@@ -326,6 +327,23 @@ export const createCreateProcedures = () => {
 					branch = sanitizeBranchName(input.branchName);
 				} else {
 					branch = generateBranchName({ existingBranches, authorPrefix });
+				}
+
+				// Check for Git ref path conflicts when creating a new branch
+				// e.g., can't create "release/v61" if "release" exists (or vice versa)
+				if (!existingBranchName) {
+					const conflictingBranch = findBranchPathConflict(
+						branch,
+						existingBranches,
+					);
+					if (conflictingBranch) {
+						const suggestedName = branch.replace(/\//g, "-");
+						throw new Error(
+							`Cannot create branch "${branch}" because branch "${conflictingBranch}" already exists. ` +
+								`Git cannot have branches where one is a path prefix of another. ` +
+								`Try using "${suggestedName}" instead.`,
+						);
+					}
 				}
 
 				const worktreePath = join(
