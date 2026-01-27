@@ -61,42 +61,37 @@ export function ChangelogTimeline({ entries }: ChangelogTimelineProps) {
 	};
 
 	return (
-		<nav className="hidden lg:block sticky top-24 self-start w-48 shrink-0">
-			<div className="relative pl-4">
-				{/* Vertical line */}
-				<div className="absolute left-0 top-0 bottom-0 w-px bg-border" />
+		<nav className="sticky top-24 w-48">
+			<ul className="space-y-6">
+				{entries.map((entry) => {
+					const isActive = activeSlug === entry.slug;
+					return (
+						<li key={entry.slug} className="relative flex items-start gap-3">
+							{/* Date text */}
+							<button
+								type="button"
+								onClick={() => scrollToEntry(entry.slug)}
+								className={`flex-1 text-right transition-colors ${
+									isActive
+										? "text-foreground"
+										: "text-muted-foreground hover:text-foreground/70"
+								}`}
+							>
+								<span className="block text-xs font-mono">
+									{formatChangelogDate(entry.date)}
+								</span>
+							</button>
 
-				<ul className="space-y-4">
-					{entries.map((entry) => {
-						const isActive = activeSlug === entry.slug;
-						return (
-							<li key={entry.slug} className="relative">
-								{/* Dot indicator */}
-								<div
-									className={`absolute -left-4 top-1 w-2 h-2 rounded-full transition-colors ${
-										isActive ? "bg-foreground" : "bg-muted-foreground/40"
-									}`}
-									style={{ transform: "translateX(-50%)" }}
-								/>
-
-								<button
-									type="button"
-									onClick={() => scrollToEntry(entry.slug)}
-									className={`text-left transition-colors ${
-										isActive
-											? "text-foreground"
-											: "text-muted-foreground hover:text-foreground/70"
-									}`}
-								>
-									<span className="block text-xs font-mono">
-										{formatChangelogDate(entry.date)}
-									</span>
-								</button>
-							</li>
-						);
-					})}
-				</ul>
-			</div>
+							{/* Dot indicator - sits on the gridline */}
+							<div
+								className={`shrink-0 w-2 h-2 mt-1 rounded-full transition-colors ${
+									isActive ? "bg-foreground" : "bg-muted-foreground/40"
+								}`}
+							/>
+						</li>
+					);
+				})}
+			</ul>
 		</nav>
 	);
 }

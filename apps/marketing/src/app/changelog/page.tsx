@@ -53,7 +53,7 @@ export default async function ChangelogPage() {
 
 			{/* Header section */}
 			<header className="relative border-b border-border">
-				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 relative lg:ml-[calc(50%-384px+12rem)]">
+				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 relative">
 					<GridCross className="top-0 left-0" />
 					<GridCross className="top-0 right-0" />
 
@@ -73,22 +73,27 @@ export default async function ChangelogPage() {
 			</header>
 
 			{/* Entries section with timeline */}
-			<div className="relative max-w-5xl mx-auto px-6 py-16">
-				{entries.length === 0 ? (
-					<p className="text-muted-foreground">No updates yet.</p>
-				) : (
-					<div className="flex gap-12">
-						{/* Sticky timeline */}
-						<ChangelogTimeline entries={timelineEntries} />
+			<div className="relative">
+				{/* Sticky timeline - positioned with right edge on the left gridline */}
+				<div
+					className="hidden lg:block absolute top-16"
+					style={{ right: "calc(50% + 384px)" }}
+				>
+					<ChangelogTimeline entries={timelineEntries} />
+				</div>
 
-						{/* Entries */}
-						<div className="flex-1 max-w-3xl flex flex-col gap-16">
+				{/* Entries - centered within gridlines */}
+				<div className="max-w-3xl mx-auto px-6 py-16">
+					{entries.length === 0 ? (
+						<p className="text-muted-foreground">No updates yet.</p>
+					) : (
+						<div className="flex flex-col gap-16">
 							{entries.map((entry) => (
 								<ChangelogEntry key={entry.url} entry={entry} />
 							))}
 						</div>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 		</main>
 	);
