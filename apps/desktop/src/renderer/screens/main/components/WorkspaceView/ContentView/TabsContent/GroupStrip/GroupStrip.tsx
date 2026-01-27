@@ -46,6 +46,7 @@ export function GroupStrip() {
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
+	const reorderTabs = useTabsStore((s) => s.reorderTabs);
 
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
@@ -134,6 +135,21 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
+	const handleReorderTabs = useCallback(
+		(fromIndex: number, toIndex: number) => {
+			if (activeWorkspaceId) {
+				reorderTabs(activeWorkspaceId, fromIndex, toIndex);
+			}
+		},
+		[activeWorkspaceId, reorderTabs],
+	);
+
+	// Tab navigation - find which tabs are adjacent to active
+	const activeTabIndex = useMemo(() => {
+		if (!activeTabId) return -1;
+		return tabs.findIndex((t) => t.id === activeTabId);
+	}, [tabs, activeTabId]);
+
 	const checkIsLastPaneInTab = useCallback((paneId: string) => {
 		// Get fresh panes from store to avoid stale closure issues during drag-drop
 		const freshPanes = useTabsStore.getState().panes;
@@ -149,23 +165,36 @@ export function GroupStrip() {
 					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border"
 					style={{ scrollbarWidth: "none" }}
 				>
-					{tabs.map((tab) => (
-						<div
-							key={tab.id}
-							className="h-full shrink-0"
-							style={{ width: "160px" }}
-						>
-							<GroupItem
-								tab={tab}
-								isActive={tab.id === activeTabId}
-								status={tabStatusMap.get(tab.id) ?? null}
-								onSelect={() => handleSelectGroup(tab.id)}
-								onClose={() => handleCloseGroup(tab.id)}
-								onRename={(newName) => handleRenameGroup(tab.id, newName)}
-								onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
-							/>
-						</div>
-					))}
+					{tabs.map((tab, index) => {
+						const isPrevOfActive = index === activeTabIndex - 1;
+						const isNextOfActive = index === activeTabIndex + 1;
+						return (
+							<div
+								key={tab.id}
+								className="h-full shrink-0"
+								style={{ width: "160px" }}
+							>
+								<GroupItem
+									tab={tab}
+									index={index}
+									isActive={tab.id === activeTabId}
+									status={tabStatusMap.get(tab.id) ?? null}
+									onSelect={() => handleSelectGroup(tab.id)}
+									onClose={() => handleCloseGroup(tab.id)}
+									onRename={(newName) => handleRenameGroup(tab.id, newName)}
+									onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
+									onReorder={handleReorderTabs}
+									navHint={
+										isPrevOfActive
+											? "prev"
+											: isNextOfActive
+												? "next"
+												: undefined
+									}
+								/>
+							</div>
+						);
+					})}
 				</div>
 			)}
 			<NewTabDropZone
