@@ -1,7 +1,7 @@
 import { db, dbWs } from "@superset/db/client";
 import { taskStatuses, tasks } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
-import { and, eq, ilike } from "drizzle-orm";
+import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { registerTool } from "../../utils";
 
@@ -12,54 +12,73 @@ function isPriority(value: unknown): value is TaskPriority {
 	return PRIORITIES.includes(value as TaskPriority);
 }
 
+const taskInputSchema = z.object({
+	title: z.string().min(1).describe("Task title"),
+	description: z.string().optional().describe("Task description (markdown)"),
+	priority: z
+		.enum(["urgent", "high", "medium", "low", "none"])
+		.default("none")
+		.describe("Task priority"),
+	assigneeId: z.string().uuid().optional().describe("User ID to assign to"),
+	statusId: z
+		.string()
+		.uuid()
+		.optional()
+		.describe("Status ID (defaults to backlog)"),
+	labels: z.array(z.string()).optional().describe("Array of label strings"),
+	dueDate: z.string().datetime().optional().describe("Due date in ISO format"),
+	estimate: z
+		.number()
+		.int()
+		.positive()
+		.optional()
+		.describe("Estimate in points/hours"),
+});
+
+type TaskInput = z.infer<typeof taskInputSchema>;
+
+function generateBaseSlug(title: string): string {
+	return title
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-|-$/g, "")
+		.slice(0, 50);
+}
+
+function generateUniqueSlug(
+	baseSlug: string,
+	existingSlugs: Set<string>,
+): string {
+	let slug = baseSlug;
+	if (existingSlugs.has(slug)) {
+		let counter = 1;
+		while (existingSlugs.has(slug)) {
+			slug = `${baseSlug}-${counter++}`;
+		}
+	}
+	return slug;
+}
+
 export const register = registerTool(
 	"create_task",
 	{
-		description: "Create a new task in the organization",
+		description: "Create one or more tasks in the organization",
 		inputSchema: {
-			title: z.string().min(1).describe("Task title"),
-			description: z
-				.string()
-				.optional()
-				.describe("Task description (markdown)"),
-			priority: z
-				.enum(["urgent", "high", "medium", "low", "none"])
-				.default("none")
-				.describe("Task priority"),
-			assigneeId: z.string().uuid().optional().describe("User ID to assign to"),
-			statusId: z
-				.string()
-				.uuid()
-				.optional()
-				.describe("Status ID (defaults to backlog)"),
-			labels: z.array(z.string()).optional().describe("Array of label strings"),
-			dueDate: z
-				.string()
-				.datetime()
-				.optional()
-				.describe("Due date in ISO format"),
-			estimate: z
-				.number()
-				.int()
-				.positive()
-				.optional()
-				.describe("Estimate in points/hours"),
+			tasks: z
+				.array(taskInputSchema)
+				.min(1)
+				.max(25)
+				.describe("Array of tasks to create (1-25)"),
 		},
 	},
 	async (params, ctx) => {
-		const title = params.title as string;
-		const description = params.description as string | undefined;
-		const priorityParam = params.priority;
-		const priority: TaskPriority = isPriority(priorityParam)
-			? priorityParam
-			: "none";
-		const assigneeId = params.assigneeId as string | undefined;
-		const labels = params.labels as string[] | undefined;
-		const dueDate = params.dueDate as string | undefined;
-		const estimate = params.estimate as number | undefined;
+		const taskInputs = params.tasks as TaskInput[];
 
-		let statusId = params.statusId as string | undefined;
-		if (!statusId) {
+		// Get default status if needed
+		let defaultStatusId: string | undefined;
+		const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
+
+		if (needsDefaultStatus) {
 			const [defaultStatus] = await db
 				.select({ id: taskStatuses.id })
 				.from(taskStatuses)
@@ -72,8 +91,8 @@ export const register = registerTool(
 				.orderBy(taskStatuses.position)
 				.limit(1);
 
-			statusId = defaultStatus?.id;
-			if (!statusId) {
+			defaultStatusId = defaultStatus?.id;
+			if (!defaultStatusId) {
 				return {
 					content: [{ type: "text", text: "Error: No default status found" }],
 					isError: true,
@@ -81,11 +100,14 @@ export const register = registerTool(
 			}
 		}
 
-		const baseSlug = title
-			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-|-$/g, "")
-			.slice(0, 50);
+		// Collect all base slugs to query existing ones
+		const baseSlugs = taskInputs.map((t) => generateBaseSlug(t.title));
+		const uniqueBaseSlugs = [...new Set(baseSlugs)];
+
+		// Query all potentially conflicting slugs in one go
+		const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
+			ilike(tasks.slug, `${baseSlug}%`),
+		);
 
 		const existingTasks = await db
 			.select({ slug: tasks.slug })
@@ -93,54 +115,68 @@ export const register = registerTool(
 			.where(
 				and(
 					eq(tasks.organizationId, ctx.organizationId),
-					ilike(tasks.slug, `${baseSlug}%`),
+					or(...slugConditions),
 				),
 			);
 
-		let slug = baseSlug;
-		if (existingTasks.length > 0) {
-			const existing = new Set(existingTasks.map((t) => t.slug));
-			let counter = 1;
-			while (existing.has(slug)) slug = `${baseSlug}-${counter++}`;
+		// Track all used slugs (DB + in-batch)
+		const usedSlugs = new Set(existingTasks.map((t) => t.slug));
+
+		// Prepare all task values with unique slugs
+		const taskValues: Array<{
+			slug: string;
+			title: string;
+			description: string | null;
+			priority: TaskPriority;
+			statusId: string;
+			organizationId: string;
+			creatorId: string;
+			assigneeId: string | null;
+			labels: string[];
+			dueDate: Date | null;
+			estimate: number | null;
+		}> = [];
+
+		for (const [i, input] of taskInputs.entries()) {
+			const baseSlug = baseSlugs[i] ?? "";
+			const slug = generateUniqueSlug(baseSlug, usedSlugs);
+
+			// Add to used slugs to prevent intra-batch collisions
+			usedSlugs.add(slug);
+
+			const priority: TaskPriority = isPriority(input.priority)
+				? input.priority
+				: "none";
+
+			// Use input.statusId if provided, otherwise fall back to defaultStatusId
+			// defaultStatusId is guaranteed to exist if any task needed it (checked earlier)
+			const statusId = input.statusId ?? (defaultStatusId as string);
+
+			taskValues.push({
+				slug,
+				title: input.title,
+				description: input.description ?? null,
+				priority,
+				statusId,
+				organizationId: ctx.organizationId,
+				creatorId: ctx.userId,
+				assigneeId: input.assigneeId ?? null,
+				labels: input.labels ?? [],
+				dueDate: input.dueDate ? new Date(input.dueDate) : null,
+				estimate: input.estimate ?? null,
+			});
 		}
 
+		// Insert all tasks in a single transaction
 		const result = await dbWs.transaction(async (tx) => {
-			const [task] = await tx
+			const createdTasks = await tx
 				.insert(tasks)
-				.values({
-					slug,
-					title,
-					description: description ?? null,
-					priority,
-					statusId,
-					organizationId: ctx.organizationId,
-					creatorId: ctx.userId,
-					assigneeId: assigneeId ?? null,
-					labels: labels ?? [],
-					dueDate: dueDate ? new Date(dueDate) : null,
-					estimate: estimate ?? null,
-				})
-				.returning();
+				.values(taskValues)
+				.returning({ id: tasks.id, slug: tasks.slug, title: tasks.title });
 
 			const txid = await getCurrentTxid(tx);
-			return { task, txid };
+			return { createdTasks, txid };
 		});
-
-		if (!result.task) {
-			return {
-				content: [
-					{
-						type: "text",
-						text: JSON.stringify(
-							{ error: "Failed to create task", txid: result.txid },
-							null,
-							2,
-						),
-					},
-				],
-				isError: true,
-			};
-		}
 
 		return {
 			content: [
@@ -148,9 +184,7 @@ export const register = registerTool(
 					type: "text",
 					text: JSON.stringify(
 						{
-							id: result.task.id,
-							slug: result.task.slug,
-							title: result.task.title,
+							created: result.createdTasks,
 							txid: result.txid,
 						},
 						null,
