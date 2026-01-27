@@ -4,6 +4,7 @@ import {
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
+import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { TopBar } from "renderer/screens/main/components/TopBar";
@@ -15,6 +16,7 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { CommandMenu } from "./components/CommandMenu";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+	const [isCommandMenuOpen, setCommandMenuOpen] = useState(false);
 
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
@@ -81,26 +84,39 @@ function DashboardLayout() {
 		[openNewWorkspaceModal, currentWorkspace?.projectId],
 	);
 
+	useAppHotkey(
+		"OPEN_COMMAND_MENU",
+		() => setCommandMenuOpen((open) => !open),
+		undefined,
+		[],
+	);
+
 	return (
-		<div className="flex flex-col h-full w-full">
-			<TopBar />
-			<div className="flex flex-1 overflow-hidden">
-				{isWorkspaceSidebarOpen && (
-					<ResizablePanel
-						width={workspaceSidebarWidth}
-						onWidthChange={setWorkspaceSidebarWidth}
-						isResizing={isWorkspaceSidebarResizing}
-						onResizingChange={setWorkspaceSidebarIsResizing}
-						minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
-						maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
-						handleSide="right"
-						clampWidth={false}
-					>
-						<WorkspaceSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
-					</ResizablePanel>
-				)}
-				<Outlet />
+		<>
+			<div className="flex flex-col h-full w-full">
+				<TopBar />
+				<div className="flex flex-1 overflow-hidden">
+					{isWorkspaceSidebarOpen && (
+						<ResizablePanel
+							width={workspaceSidebarWidth}
+							onWidthChange={setWorkspaceSidebarWidth}
+							isResizing={isWorkspaceSidebarResizing}
+							onResizingChange={setWorkspaceSidebarIsResizing}
+							minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
+							maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
+							handleSide="right"
+							clampWidth={false}
+						>
+							<WorkspaceSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
+						</ResizablePanel>
+					)}
+					<Outlet />
+				</div>
 			</div>
-		</div>
+			<CommandMenu
+				isOpen={isCommandMenuOpen}
+				onOpenChange={setCommandMenuOpen}
+			/>
+		</>
 	);
 }

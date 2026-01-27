@@ -608,6 +608,12 @@ export const HOTKEYS = {
 		label: "Show Keyboard Shortcuts",
 		category: "Help",
 	}),
+	OPEN_COMMAND_MENU: defineHotkey({
+		keys: "meta+p",
+		label: "Open Command Menu",
+		category: "Help",
+		description: "Search for commands and workspaces",
+	}),
 } as const satisfies Record<string, HotkeyDefinition>;
 
 export function getVisibleHotkeys(): HotkeyId[] {
