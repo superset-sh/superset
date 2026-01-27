@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { getChangelogEntries } from "@/lib/changelog";
 import { ChangelogEntry } from "./components/ChangelogEntry";
+import { ChangelogTimeline } from "./components/ChangelogTimeline";
 
 export const metadata: Metadata = {
 	title: "Changelog | Superset",
@@ -32,6 +33,12 @@ export const metadata: Metadata = {
 export default async function ChangelogPage() {
 	const entries = getChangelogEntries();
 
+	const timelineEntries = entries.map((entry) => ({
+		slug: entry.slug,
+		date: entry.date,
+		title: entry.title,
+	}));
+
 	return (
 		<main className="relative min-h-screen">
 			{/* Vertical guide lines */}
@@ -46,7 +53,7 @@ export default async function ChangelogPage() {
 
 			{/* Header section */}
 			<header className="relative border-b border-border">
-				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 relative">
+				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 relative lg:ml-[calc(50%-384px+12rem)]">
 					<GridCross className="top-0 left-0" />
 					<GridCross className="top-0 right-0" />
 
@@ -65,15 +72,21 @@ export default async function ChangelogPage() {
 				</div>
 			</header>
 
-			{/* Entries section */}
-			<div className="relative max-w-3xl mx-auto px-6 py-16">
+			{/* Entries section with timeline */}
+			<div className="relative max-w-5xl mx-auto px-6 py-16">
 				{entries.length === 0 ? (
 					<p className="text-muted-foreground">No updates yet.</p>
 				) : (
-					<div className="flex flex-col gap-16">
-						{entries.map((entry) => (
-							<ChangelogEntry key={entry.url} entry={entry} />
-						))}
+					<div className="flex gap-12">
+						{/* Sticky timeline */}
+						<ChangelogTimeline entries={timelineEntries} />
+
+						{/* Entries */}
+						<div className="flex-1 max-w-3xl flex flex-col gap-16">
+							{entries.map((entry) => (
+								<ChangelogEntry key={entry.url} entry={entry} />
+							))}
+						</div>
 					</div>
 				)}
 			</div>

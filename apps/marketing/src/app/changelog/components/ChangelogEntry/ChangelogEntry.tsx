@@ -15,7 +15,10 @@ export async function ChangelogEntry({ entry }: ChangelogEntryProps) {
 	const formattedDate = formatChangelogDate(entry.date);
 
 	return (
-		<article className="border-b border-border pb-16 last:border-b-0">
+		<article
+			id={`changelog-${entry.slug}`}
+			className="border-b border-border pb-16 last:border-b-0"
+		>
 			{/* Date */}
 			<time
 				dateTime={entry.date}
