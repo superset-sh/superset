@@ -89,7 +89,9 @@ export function MemberActions({
 
 	const handleRemoveClick = () => {
 		const billingNote =
-			plan === "pro" ? " Your subscription will be adjusted accordingly." : "";
+			plan === "pro" || plan === "enterprise"
+				? " Your subscription will be adjusted accordingly."
+				: "";
 
 		alert.destructive({
 			title: isCurrentUser ? "Leave organization?" : "Remove team member?",
