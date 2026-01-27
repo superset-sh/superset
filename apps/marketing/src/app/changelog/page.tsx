@@ -73,17 +73,35 @@ export default async function ChangelogPage() {
 			</header>
 
 			{/* Entries section with timeline */}
-			<div className="relative">
-				{/* Sticky timeline - positioned with right edge on the left gridline */}
+			<div className="relative py-16">
 				<div
-					className="hidden lg:block absolute top-16"
-					style={{ right: "calc(50% + 384px)" }}
+					className="hidden lg:flex gap-0"
+					style={{
+						marginLeft: "calc(50% - 384px - 200px)",
+						marginRight: "calc(50% - 384px)",
+					}}
 				>
-					<ChangelogTimeline entries={timelineEntries} />
+					{/* Sticky timeline - right edge aligns with gridline */}
+					<div className="w-[200px] shrink-0">
+						<ChangelogTimeline entries={timelineEntries} />
+					</div>
+
+					{/* Entries - within gridlines */}
+					<div className="w-[768px] px-6">
+						{entries.length === 0 ? (
+							<p className="text-muted-foreground">No updates yet.</p>
+						) : (
+							<div className="flex flex-col gap-16">
+								{entries.map((entry) => (
+									<ChangelogEntry key={entry.url} entry={entry} />
+								))}
+							</div>
+						)}
+					</div>
 				</div>
 
-				{/* Entries - centered within gridlines */}
-				<div className="max-w-3xl mx-auto px-6 py-16">
+				{/* Mobile layout - no timeline */}
+				<div className="lg:hidden max-w-3xl mx-auto px-6">
 					{entries.length === 0 ? (
 						<p className="text-muted-foreground">No updates yet.</p>
 					) : (

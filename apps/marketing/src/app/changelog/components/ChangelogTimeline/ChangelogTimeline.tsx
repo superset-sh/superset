@@ -61,7 +61,7 @@ export function ChangelogTimeline({ entries }: ChangelogTimelineProps) {
 	};
 
 	return (
-		<nav className="sticky top-24 w-48">
+		<nav className="sticky top-24 self-start h-fit">
 			<ul className="space-y-6">
 				{entries.map((entry) => {
 					const isActive = activeSlug === entry.slug;
