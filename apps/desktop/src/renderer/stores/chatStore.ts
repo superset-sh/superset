@@ -2,8 +2,10 @@
  * Local Chat Store
  *
  * Stores chat session metadata using zustand with localStorage persistence.
+ * Also syncs sessions with the streams server for cross-device access.
  */
 
+import { env } from "renderer/env.renderer";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -19,6 +21,25 @@ interface ChatStore {
 	createSession: (name?: string) => ChatSession;
 	deleteSession: (id: string) => void;
 	renameSession: (id: string, name: string) => void;
+}
+
+/**
+ * Sync session to streams server (fire-and-forget)
+ */
+function syncToStreamsServer(session: ChatSession): void {
+	const streamsUrl = env.NEXT_PUBLIC_STREAMS_URL;
+	if (!streamsUrl) return;
+
+	fetch(`${streamsUrl}/sessions`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			sessionId: session.id,
+			title: session.name,
+		}),
+	}).catch((err) => {
+		console.warn("[chatStore] Failed to sync session to streams server:", err);
+	});
 }
 
 export const useChatStore = create<ChatStore>()(
@@ -39,6 +60,9 @@ export const useChatStore = create<ChatStore>()(
 				set((state) => ({
 					sessions: [session, ...state.sessions],
 				}));
+
+				// Sync to streams server for mobile access
+				syncToStreamsServer(session);
 
 				return session;
 			},
