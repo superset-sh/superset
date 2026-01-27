@@ -67,3 +67,6 @@ next-env.d.ts
 
 # Reference material downloaded for agents
 examples
+
+# Streams data
+apps/streams/data/
