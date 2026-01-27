@@ -1,3 +1,4 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { HiCheckCircle, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
@@ -54,14 +56,17 @@ export function IntegrationsSettings({
 		useState<GithubInstallation | null>(null);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(true);
 
+	const hasGithubAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.GITHUB_INTEGRATION_ACCESS,
+	);
+
 	const showLinear = isItemVisible(
 		SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
 		visibleItems,
 	);
-	const showGithub = isItemVisible(
-		SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
-		visibleItems,
-	);
+	const showGithub =
+		hasGithubAccess &&
+		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_GITHUB, visibleItems);
 
 	const fetchGithubInstallation = useCallback(async () => {
 		if (!activeOrganizationId) {
