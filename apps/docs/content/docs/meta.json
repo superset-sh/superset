@@ -12,6 +12,7 @@
 		"terminal-integration",
 		"ports",
 		"agent-integration",
+		"mcp",
 		"---BookOpen Guides---",
 		"setup-teardown-scripts",
 		"use-with-ide",
