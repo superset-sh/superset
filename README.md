@@ -1,6 +1,7 @@
 <div align="center">
 
-<img width="600" alt="supersetlogo" src="https://github.com/user-attachments/assets/43c1bde8-93f5-4f53-9db4-187f632051a2" />
+<!-- <img width="600" alt="supersetlogo" src="https://github.com/user-attachments/assets/43c1bde8-93f5-4f53-9db4-187f632051a2" /> -->
+<img width="600" alt="Superset Demo" src="apps/marketing/public/images/video-thumbnail.png" />
 
 ### The Terminal for Coding Agents
 
@@ -16,7 +17,6 @@
 
 <br />
 
-<img width="600" alt="Superset Demo" src="apps/marketing/public/images/video-thumbnail.png" />
 
 </div>
 
@@ -115,7 +115,48 @@ open apps/desktop/release
 
 ## How It Works
 
-Superset leverages **git worktrees** to create isolated working directories for each task. When you start a new task:
+Superset leverages **git worktrees** to create isolated working directories for each task.
+
+```mermaid
+flowchart TB
+    subgraph Superset["Superset App"]
+        direction TB
+        Monitor["Agent Monitor"]
+        Diff["Diff Viewer"]
+    end
+
+    subgraph Main["Main Repository"]
+        MainBranch["main branch"]
+    end
+
+    subgraph Workspaces["Isolated Workspaces"]
+        direction LR
+        subgraph WS1["Workspace 1"]
+            Branch1["feature/auth"]
+            Agent1["Claude Code"]
+        end
+        subgraph WS2["Workspace 2"]
+            Branch2["feature/api"]
+            Agent2["Codex"]
+        end
+        subgraph WS3["Workspace 3"]
+            Branch3["fix/bug-123"]
+            Agent3["Aider"]
+        end
+    end
+
+    Main -->|"git worktree add"| WS1
+    Main -->|"git worktree add"| WS2
+    Main -->|"git worktree add"| WS3
+
+    Agent1 -.->|status| Monitor
+    Agent2 -.->|status| Monitor
+    Agent3 -.->|status| Monitor
+
+    WS1 -->|changes| Diff
+    WS2 -->|changes| Diff
+    WS3 -->|changes| Diff
+```
 
 1. **Create workspace** — Superset creates a new git worktree with its own branch
 2. **Run setup scripts** — Automatically copies env files, installs dependencies, etc.
