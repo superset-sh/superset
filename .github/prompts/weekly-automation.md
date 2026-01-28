@@ -6,20 +6,18 @@ Generate a new changelog entry for this week based on merged PRs.
 
 1. **Find PRs merged since last Monday**
    - Use `gh pr list --state merged --search "merged:>=$(date -d 'last monday' +%Y-%m-%d)" --json number,title,body,url,mergedAt --limit 50` to get all PRs merged in the past week
-   - Focus on significant PRs (features, improvements, notable fixes)
-   - Skip minor PRs like typo fixes, dependency bumps, small refactors, or reverts unless they're user-facing
-   - Skip PRs that are purely internal (CI/CD changes, dev tooling) unless they affect users
+   - Categorize PRs into: **Major features**, **Improvements**, **Bug fixes**
+   - Skip PRs that are purely internal (CI/CD, dev tooling, refactors) unless they affect users
 
 2. **Check for existing changelog**
    - Before creating a new file, check if a changelog already exists for this week's date
    - Use `ls apps/marketing/content/changelog/` to see existing files
    - If a file for today's date already exists, skip creation and report that a changelog already exists
 
-3. **Extract PR information**
-   - For each significant PR, read the description/body
-   - Look for the "Summary" section which typically contains bullet points
-   - Paraphrase the summary in a user-friendly format
-   - Group related PRs under a single heading if they're part of the same feature (e.g., multiple hotkey PRs)
+3. **Prioritize content**
+   - **Lead with 2-4 major features** - These get their own sections with full descriptions
+   - **Group smaller improvements** - Can combine related small changes under one heading
+   - **Bug fixes go in a footnote section** - Brief one-liner summaries at the bottom
 
 4. **Create the changelog file**
    - Create a new file at: `apps/marketing/content/changelog/YYYY-MM-DD-slug.mdx`
@@ -30,39 +28,57 @@ Generate a new changelog entry for this week based on merged PRs.
 
 ```mdx
 ---
-title: Brief, descriptive title covering main features
+title: Brief title highlighting 1-2 main features
 date: YYYY-MM-DD
 image: /changelog/IMAGE_PLACEHOLDER.png
 ---
 
 {/* TODO: Replace header image with actual screenshot */}
 
-## Feature Name <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
+## Major Feature Name <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
 
-- Bullet point describing the change in user-friendly terms
-- Another bullet point if needed
-- Focus on what users can now do, not implementation details
+One or two sentences describing what users can now do. Keep it brief and scannable.
 
-{/* TODO: Add screenshot showing [specific feature] */}
+- Key capability one
+- Key capability two
 
-## Another Feature <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
+## Another Major Feature <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
 
-Paragraph description for simpler changes. Explain the benefit to users.
+Brief description of the feature and its benefit to users.
+
+## Improvements
+
+- **Improvement name** - Brief description <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
+- **Another improvement** - Brief description <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
+
+---
+
+**Bug fixes:** Fixed issue with X <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />, resolved Y problem <PRBadge url="https://github.com/superset-sh/superset/pull/NUMBER" />
 ```
 
 6. **Important formatting rules**
    - Frontmatter (`---`) must be at the very top of the file with no content before it
    - MDX comments (`{/* ... */}`) must come AFTER the frontmatter, not before
    - Set `image:` in frontmatter to `/changelog/IMAGE_PLACEHOLDER.png` - reviewers will replace this
-   - Add TODO comments for the header image and for any features that would benefit from screenshots
+   - Add TODO comments for features that would benefit from screenshots
+   - Use a horizontal rule (`---`) before the bug fixes footnote
 
 7. **Writing style**
-   - Write for end users, not developers
-   - Focus on benefits and what users can now do
-   - Use active voice and present tense
-   - Be concise but descriptive
-   - Avoid jargon and technical implementation details
-   - Keep bullet points short (one line each when possible)
+   - **Be brief** - Users scan changelogs, they don't read every word
+   - **Lead with value** - What can users do now that they couldn't before?
+   - **One sentence per feature** - If you need more, use 2-3 bullet points max
+   - **Skip implementation details** - Users don't care about internal changes
+   - **Combine related small fixes** - Don't give each tiny fix its own section
+
+## Content hierarchy
+
+| PR Type | Treatment |
+|---------|-----------|
+| New user-facing feature | Own section with heading, 1-2 sentences + bullets |
+| Significant improvement | Own section or grouped under "Improvements" |
+| Small enhancement | One line under "Improvements" |
+| Bug fix | One-liner in footnote section at bottom |
+| Internal/refactor | Skip entirely unless user-visible |
 
 ## Reference Examples
 
