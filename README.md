@@ -113,56 +113,6 @@ open apps/desktop/release
 
 </details>
 
-## How It Works
-
-Superset leverages **git worktrees** to create isolated working directories for each task.
-
-```mermaid
-flowchart TB
-    subgraph Electron["Superset App"]
-        UI["Terminal UI"]
-        Notify["Notifications"]
-    end
-
-    subgraph Daemon["Terminal Host Daemon"]
-        direction TB
-        Socket["Unix Socket"]
-        Sessions["Session Manager"]
-        Emulator["Headless xterm"]
-    end
-
-    subgraph PTY["PTY Subprocesses"]
-        direction LR
-        PTY1["node-pty\n(Claude Code)"]
-        PTY2["node-pty\n(Codex)"]
-        PTY3["node-pty\n(Aider)"]
-    end
-
-    UI <-->|"attach/detach"| Socket
-    Socket <--> Sessions
-    Sessions <-->|"binary frames"| PTY1
-    Sessions <-->|"binary frames"| PTY2
-    Sessions <-->|"binary frames"| PTY3
-    Sessions --> Emulator
-    Emulator -->|"pattern detection"| Notify
-
-    Restart["App Restart"] -.->|"sessions persist"| Daemon
-```
-
-**Key features:**
-- **Daemon persistence** — Terminal sessions survive app restarts via Unix socket
-- **Process isolation** — Each PTY runs in a separate subprocess to prevent blocking
-- **Headless emulator** — Tracks terminal state for snapshots and pattern detection
-- **Binary framing** — Efficient IPC protocol with backpressure handling
-
-1. **Create workspace** — Superset creates a new git worktree with its own branch
-2. **Run setup scripts** — Automatically copies env files, installs dependencies, etc.
-3. **Launch agents** — Start any CLI coding agent in the isolated environment
-4. **Monitor progress** — Track agent status and get notified when changes are ready
-5. **Review & merge** — Use the built-in diff viewer to inspect changes before merging
-
-Each workspace is completely isolated, so agents can't interfere with each other or your main branch.
-
 ## Keyboard Shortcuts
 
 All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`).
