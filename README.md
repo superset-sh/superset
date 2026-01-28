@@ -13,7 +13,7 @@
 
 <br />
 
-[**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](docs/cookbook/README.md) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
+[**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
 
 <br />
 
@@ -53,7 +53,9 @@ Superset works with any CLI-based coding agent, including:
 | [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
 | [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
-| Any terminal-based agent | Will work |
+| Any CLI agent | Will work |
+
+If it runs in a terminal, it runs on Superset
 
 ## Requirements
 
@@ -61,14 +63,12 @@ Superset works with any CLI-based coding agent, including:
 |:------------|:--------|
 | **OS** | macOS (Windows/Linux untested) |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
-| **Version Control** | Git 2.20+ (for worktree support) |
-| **GitHub CLI** | [gh](https://cli.github.com/) (for PR creation) |
+| **Version Control** | Git 2.20+ |
+| **GitHub CLI** | [gh](https://cli.github.com/) |
 
 ## Getting Started
 
 ### Quick Start (Pre-built)
-
-Download the latest release for macOS:
 
 **[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
 
@@ -115,7 +115,7 @@ open apps/desktop/release
 
 ## Keyboard Shortcuts
 
-All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`).
+All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`). See [full documentation](https://docs.superset.sh/keyboard-shortcuts).
 
 ### Workspace Navigation
 
@@ -151,7 +151,7 @@ All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`).
 
 ## Configuration
 
-Configure workspace setup and teardown in `.superset/config.json`:
+Configure workspace setup and teardown in `.superset/config.json`. See [full documentation](https://docs.superset.sh/setup-teardown-scripts).
 
 ```json
 {
