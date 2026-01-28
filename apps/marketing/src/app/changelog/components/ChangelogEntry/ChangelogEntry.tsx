@@ -49,12 +49,12 @@ export async function ChangelogEntry({ entry }: ChangelogEntryProps) {
 
 			{/* Featured image */}
 			{entry.image && (
-				<div className="relative aspect-video mb-6 overflow-hidden border border-border rounded-lg">
-					<Image
+				<div className="relative mb-6 overflow-hidden border border-border">
+					{/* eslint-disable-next-line @next/next/no-img-element */}
+					<img
 						src={entry.image}
 						alt={entry.title}
-						fill
-						className="object-cover"
+						className="w-full h-auto"
 					/>
 				</div>
 			)}

@@ -83,13 +83,12 @@ export function ChangelogEntryLayout({
 			{/* Featured image */}
 			{entry.image && (
 				<div className="relative max-w-3xl mx-auto px-6 pt-12">
-					<div className="relative aspect-video overflow-hidden border border-border">
-						<Image
+					<div className="relative overflow-hidden border border-border">
+						{/* eslint-disable-next-line @next/next/no-img-element */}
+						<img
 							src={entry.image}
 							alt={entry.title}
-							fill
-							className="object-cover"
-							priority
+							className="w-full h-auto"
 						/>
 					</div>
 				</div>
