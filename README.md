@@ -127,28 +127,6 @@ open apps/desktop/release
 
 <br />
 
-## Usage
-
-### Workspace Management
-
-For each parallel task, Superset uses git worktrees to create isolated branches on your machine. Configure automatic setup (env variables, dependencies, etc.) through `.superset/config.json`.
-
-<img width="602" alt="Workspace configuration" src="https://github.com/user-attachments/assets/d9a2cc66-722c-4e10-bb58-5c96b594c577" />
-
-### Agent Monitoring
-
-Superset monitors your running agents, notifies you when changes are ready, and helps coordinate between multiple agents. The built-in diff viewer lets you quickly inspect and edit changes.
-
-<img width="600" alt="Agent monitoring and diff view" src="https://github.com/user-attachments/assets/ff890049-67a8-432b-8edd-bf9ff846ae16" />
-
-### IDE Integration
-
-Superset is designed to complement your existing tools. Open any workspace in your preferred IDE, file manager, or terminal with a single click.
-
-<img width="602" alt="IDE integration" src="https://github.com/user-attachments/assets/1eb3fa42-db30-4a62-9a8f-22cb757b4866" />
-
-<br />
-
 ## How It Works
 
 Superset leverages **git worktrees** to create isolated working directories for each task. When you start a new task:
