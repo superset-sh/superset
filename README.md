@@ -1,9 +1,10 @@
 <div align="center">
 
-<!-- <img width="600" alt="supersetlogo" src="https://github.com/user-attachments/assets/43c1bde8-93f5-4f53-9db4-187f632051a2" /> -->
-<img width="600" alt="Superset Demo" src="apps/marketing/public/images/video-thumbnail.png" />
+<img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
 ### The Terminal for Coding Agents
+
+[About](#why-superset) · [Features](#features) · [Download](#getting-started) · [Docs](https://docs.superset.sh) · [Contributing](#contributing)
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
