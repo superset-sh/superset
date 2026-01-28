@@ -110,11 +110,11 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: "Workspaces",
-				values: ["5", "Unlimited", "Unlimited"],
+				values: ["Unlimited", "Unlimited", "Unlimited"],
 			},
 			{
 				label: "Projects",
-				values: ["3", "Unlimited", "Unlimited"],
+				values: ["Unlimited", "Unlimited", "Unlimited"],
 			},
 		],
 	},

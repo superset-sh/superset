@@ -173,7 +173,7 @@ export const Paywall = () => {
 							</div>
 						</div>
 
-						<div className="flex min-h-[141px] w-full flex-col border-t bg-background px-6 py-4 items-center justify-center">
+						<div className="flex w-full flex-col border-t bg-background px-6 py-4 items-center justify-center">
 							<div className="mb-2 flex w-full items-center justify-center gap-2">
 								<span className="text-lg font-semibold text-foreground">
 									{selectedFeature.title}

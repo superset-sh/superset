@@ -60,7 +60,8 @@ export const PRO_FEATURES: ProFeature[] = [
 	{
 		id: "mobile-app",
 		title: "Mobile App",
-		description: "Monitor workspaces and manage tasks on the go.",
+		description:
+			"Monitor workspaces and manage tasks on the go. Continue conversations from anywhere.",
 		icon: HiDevicePhoneMobile,
 		iconColor: "text-red-500",
 		gradientColors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"],

@@ -3,27 +3,33 @@ import { HiCheck } from "react-icons/hi2";
 const TASKS = [
 	{
 		id: "1",
-		title: "Implement auth flow",
+		title: "Implement user authentication",
 		status: "done",
-		priority: "high",
+		assignee: "SC",
 	},
 	{
 		id: "2",
-		title: "Add workspace sync",
+		title: "Add workspace sync API",
 		status: "in-progress",
-		priority: "high",
+		assignee: "AR",
 	},
 	{
 		id: "3",
-		title: "Fix mobile layout",
+		title: "Fix mobile responsive layout",
 		status: "in-progress",
-		priority: "medium",
+		assignee: "JL",
 	},
 	{
 		id: "4",
-		title: "Update API docs",
+		title: "Update API documentation",
 		status: "todo",
-		priority: "low",
+		assignee: "TK",
+	},
+	{
+		id: "5",
+		title: "Write unit tests for auth",
+		status: "todo",
+		assignee: "SC",
 	},
 ];
 
@@ -52,63 +58,63 @@ function SpinnerIcon({ className }: { className?: string }) {
 	);
 }
 
-const priorityColors = {
-	high: "bg-red-500",
-	medium: "bg-amber-500",
-	low: "bg-blue-500",
-};
-
 export function TasksDemo() {
 	return (
-		<div className="w-full max-w-[280px] bg-[#1a1a1a]/90 backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl overflow-hidden">
-			{/* Header */}
-			<div className="flex items-center justify-between px-4 py-3 bg-[#2a2a2a]/80 border-b border-white/5">
-				<div className="flex items-center gap-2">
-					<div className="flex gap-1.5">
-						<div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-						<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-						<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+		<div className="w-full h-full flex items-center justify-center">
+			<div className="w-[300px] bg-[#1a1a1a]/90 backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl overflow-hidden">
+				{/* Header */}
+				<div className="flex items-center justify-between px-4 py-3 bg-[#2a2a2a]/80 border-b border-white/5">
+					<div className="flex items-center gap-2">
+						<div className="flex gap-1.5">
+							<div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+							<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+							<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+						</div>
+						<span className="text-xs text-white/60 ml-1">My Tasks</span>
 					</div>
-					<span className="text-xs text-white/60 ml-1">Tasks</span>
+					<span className="text-xs text-white/40 bg-white/10 px-2 py-0.5 rounded">
+						{TASKS.length} tasks
+					</span>
 				</div>
-				<span className="text-[10px] text-white/40">4 tasks</span>
-			</div>
 
-			{/* Task list */}
-			<div className="p-3 space-y-1.5">
-				{TASKS.map((task) => (
-					<div
-						key={task.id}
-						className="flex items-center gap-2.5 px-2.5 py-2 rounded-md bg-white/5 hover:bg-white/[0.07] transition-colors cursor-pointer"
-					>
-						{/* Status indicator */}
-						{task.status === "done" ? (
-							<div className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-								<HiCheck className="w-2.5 h-2.5 text-emerald-400" />
-							</div>
-						) : task.status === "in-progress" ? (
-							<SpinnerIcon className="w-4 h-4 text-amber-400 animate-spin" />
-						) : (
-							<div className="w-4 h-4 rounded-full border border-white/20" />
-						)}
-
-						{/* Task title */}
-						<span
-							className={`text-xs flex-1 truncate ${
-								task.status === "done"
-									? "text-white/40 line-through"
-									: "text-white/80"
-							}`}
-						>
-							{task.title}
-						</span>
-
-						{/* Priority dot */}
+				{/* Task list */}
+				<div className="p-2">
+					{TASKS.map((task) => (
 						<div
-							className={`w-1.5 h-1.5 rounded-full ${priorityColors[task.priority as keyof typeof priorityColors]}`}
-						/>
-					</div>
-				))}
+							key={task.id}
+							className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer group"
+						>
+							{/* Status indicator */}
+							{task.status === "done" ? (
+								<div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+									<HiCheck className="w-3 h-3 text-emerald-400" />
+								</div>
+							) : task.status === "in-progress" ? (
+								<SpinnerIcon className="w-5 h-5 text-amber-400 animate-spin shrink-0" />
+							) : (
+								<div className="w-5 h-5 rounded-full border-2 border-white/20 shrink-0 group-hover:border-white/40 transition-colors" />
+							)}
+
+							{/* Task content */}
+							<div className="flex-1 min-w-0">
+								<span
+									className={`text-xs block truncate ${
+										task.status === "done"
+											? "text-white/40 line-through"
+											: "text-white/90"
+									}`}
+								>
+									{task.title}
+								</span>
+							</div>
+
+							{/* Assignee */}
+							<div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-medium text-white/80 shrink-0 bg-white/10">
+								{task.assignee}
+							</div>
+						</div>
+					))}
+				</div>
 			</div>
 		</div>
 	);

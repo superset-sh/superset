@@ -1,107 +1,132 @@
-import { HiCheck } from "react-icons/hi2";
-
-const MOBILE_TASKS = [
-	{ id: "1", title: "Review PR #142", status: "done" },
-	{ id: "2", title: "Fix auth bug", status: "in-progress" },
-	{ id: "3", title: "Update docs", status: "todo" },
-];
-
-function SpinnerIcon({ className }: { className?: string }) {
+function SupersetIcon({ className }: { className?: string }) {
 	return (
 		<svg
-			className={className}
-			viewBox="0 0 24 24"
+			viewBox="0 0 86 66"
 			fill="none"
+			xmlns="http://www.w3.org/2000/svg"
+			className={className}
 			aria-hidden="true"
 		>
-			<circle
-				className="opacity-25"
-				cx="12"
-				cy="12"
-				r="10"
-				stroke="currentColor"
-				strokeWidth="3"
-			/>
+			{/* Left bracket {[ */}
 			<path
-				className="opacity-75"
+				d="M22 0H33V11H22V0ZM11 0H22V11H11V0ZM11 11H22V22H11V11ZM0 22H11V33H0V22ZM0 33H11V44H0V33ZM11 44H22V55H11V44ZM11 55H22V66H11V55ZM22 55H33V66H22V55Z"
 				fill="currentColor"
-				d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+			/>
+			{/* Right bracket ]} */}
+			<path
+				d="M53 0H64V11H53V0ZM64 11H75V22H64V11ZM75 22H86V33H75V22ZM64 44H75V55H64V44ZM53 55H64V66H53V55ZM75 33H86V44H75V33ZM64 55H75V66H64V55ZM64 0H75V11H64V0Z"
+				fill="currentColor"
 			/>
 		</svg>
 	);
 }
 
+const CHAT_MESSAGES = [
+	{
+		id: "1",
+		role: "user",
+		content: "Can you add dark mode to the settings page?",
+	},
+	{
+		id: "2",
+		role: "assistant",
+		content:
+			"I'll add a dark mode toggle to the settings. Let me update the theme context and add the UI switch.",
+	},
+	{
+		id: "3",
+		role: "assistant",
+		content:
+			"Done! I've added:\n• Theme toggle in settings\n• Dark/light mode support\n• System preference detection",
+		isLatest: true,
+	},
+];
+
 export function MobileAppDemo() {
 	return (
-		<div className="flex items-center justify-center">
-			{/* Phone frame */}
-			<div className="relative w-[140px] h-[280px] bg-[#0a0a0a] rounded-[24px] border-4 border-[#2a2a2a] shadow-2xl overflow-hidden">
-				{/* Notch */}
-				<div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-5 bg-[#0a0a0a] rounded-b-xl z-10" />
+		<div className="relative w-full h-full overflow-hidden">
+			{/* Phone frame - large and cropped at bottom */}
+			<div className="absolute right-12 top-10 w-[340px] h-[700px] bg-[#0a0a0a] rounded-[50px] border-[8px] border-[#2a2a2a] shadow-2xl overflow-hidden">
+				{/* Dynamic Island */}
+				<div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-8 bg-[#0a0a0a] rounded-full z-10" />
 
 				{/* Screen content */}
-				<div className="absolute inset-1 bg-[#1a1a1a] rounded-[20px] overflow-hidden">
+				<div className="absolute inset-2 bg-[#1a1a1a] rounded-[42px] overflow-hidden">
 					{/* Status bar */}
-					<div className="flex items-center justify-between px-4 pt-6 pb-2">
-						<span className="text-[8px] text-white/50">9:41</span>
-						<div className="flex items-center gap-1">
-							<div className="w-3 h-1.5 border border-white/50 rounded-sm">
-								<div className="w-2 h-full bg-white/50 rounded-sm" />
+					<div className="flex items-center justify-between px-8 pt-4 pb-2">
+						<span className="text-xs text-white/50 font-medium">9:41</span>
+						<div className="flex items-center gap-1.5">
+							<div className="flex gap-0.5">
+								<div className="w-1 h-1 bg-white/50 rounded-full" />
+								<div className="w-1 h-1 bg-white/50 rounded-full" />
+								<div className="w-1 h-1 bg-white/50 rounded-full" />
+								<div className="w-1 h-1 bg-white/30 rounded-full" />
+							</div>
+							<div className="w-6 h-3 border border-white/50 rounded-sm ml-1">
+								<div className="w-4 h-full bg-emerald-400 rounded-sm" />
 							</div>
 						</div>
 					</div>
 
 					{/* App header */}
-					<div className="px-3 pb-2 border-b border-white/5">
-						<span className="text-[10px] font-semibold text-white/90">
-							Superset
-						</span>
-					</div>
-
-					{/* Workspace indicator */}
-					<div className="px-3 py-2 bg-white/5">
-						<div className="text-[8px] text-white/40 uppercase tracking-wider">
-							Current Workspace
-						</div>
-						<div className="text-[10px] text-white/80 font-medium">
-							superset-app
+					<div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
+						<div className="flex items-center gap-3">
+							<div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+								<SupersetIcon className="w-4 h-4 text-white" />
+							</div>
+							<div>
+								<div className="text-sm font-semibold text-white">
+									Superset Agent
+								</div>
+								<div className="text-[10px] text-emerald-400">● Online</div>
+							</div>
 						</div>
 					</div>
 
-					{/* Tasks */}
-					<div className="p-2 space-y-1">
-						<div className="text-[8px] text-white/40 uppercase tracking-wider px-1 mb-1">
-							Tasks
-						</div>
-						{MOBILE_TASKS.map((task) => (
+					{/* Chat messages */}
+					<div className="flex flex-col gap-4 p-4">
+						{CHAT_MESSAGES.map((msg) => (
 							<div
-								key={task.id}
-								className="flex items-center gap-1.5 px-1.5 py-1 rounded bg-white/5"
+								key={msg.id}
+								className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
 							>
-								{task.status === "done" ? (
-									<div className="w-2.5 h-2.5 rounded-full bg-emerald-500/30 flex items-center justify-center">
-										<HiCheck className="w-1.5 h-1.5 text-emerald-400" />
-									</div>
-								) : task.status === "in-progress" ? (
-									<SpinnerIcon className="w-2.5 h-2.5 text-amber-400 animate-spin" />
-								) : (
-									<div className="w-2.5 h-2.5 rounded-full border border-white/20" />
-								)}
-								<span
-									className={`text-[8px] truncate ${
-										task.status === "done"
-											? "text-white/40 line-through"
-											: "text-white/70"
+								<div
+									className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
+										msg.role === "user"
+											? "bg-blue-500 text-white"
+											: "bg-white/10 text-white/90"
 									}`}
 								>
-									{task.title}
-								</span>
+									<p className="text-sm leading-relaxed whitespace-pre-line">
+										{msg.content}
+									</p>
+								</div>
 							</div>
 						))}
 					</div>
 
-					{/* Bottom nav hint */}
-					<div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-white/20 rounded-full" />
+					{/* Input bar */}
+					<div className="absolute bottom-6 left-4 right-4">
+						<div className="flex items-center gap-2 px-4 py-3 bg-white/10 rounded-full border border-white/10">
+							<span className="text-sm text-white/40 flex-1">Message...</span>
+							<div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+								<svg
+									className="w-4 h-4 text-white"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M5 10l7-7m0 0l7 7m-7-7v18"
+									/>
+								</svg>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
