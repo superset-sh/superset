@@ -41,7 +41,21 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
 
 	const updateProject = electronTrpc.projects.update.useMutation({
-		onSuccess: () => {
+		onMutate: async ({ patch }) => {
+			await utils.projects.get.cancel({ id: projectId });
+			const previous = utils.projects.get.getData({ id: projectId });
+			if (previous) {
+				utils.projects.get.setData({ id: projectId }, { ...previous, ...patch });
+			}
+			return { previous };
+		},
+		onError: (err, _vars, context) => {
+			console.error("[project-settings/update] Failed to update:", err);
+			if (context?.previous) {
+				utils.projects.get.setData({ id: projectId }, context.previous);
+			}
+		},
+		onSettled: () => {
 			utils.projects.get.invalidate({ id: projectId });
 		},
 	});

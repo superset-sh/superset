@@ -79,7 +79,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			});
 			return { previous };
 		},
-		onError: (_err, _vars, context) => {
+		onError: (err, _vars, context) => {
+			console.error("[settings/branch-prefix] Failed to update:", err);
 			if (context?.previous !== undefined) {
 				utils.settings.getBranchPrefix.setData(undefined, context.previous);
 			}

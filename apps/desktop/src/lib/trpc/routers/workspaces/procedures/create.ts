@@ -303,13 +303,15 @@ export const createCreateProcedures = () => {
 				const existingBranches = [...local, ...remote];
 
 				// Resolve branch prefix: project setting > global setting > default (github)
+				// If project has a mode set, use project's customPrefix (not global)
 				const globalSettings = localDb.select().from(settings).get();
-				const prefixMode =
-					project.branchPrefixMode ??
-					globalSettings?.branchPrefixMode ??
-					"github";
-				const customPrefix =
-					project.branchPrefixCustom ?? globalSettings?.branchPrefixCustom;
+				const projectOverrides = project.branchPrefixMode != null;
+				const prefixMode = projectOverrides
+					? project.branchPrefixMode
+					: (globalSettings?.branchPrefixMode ?? "github");
+				const customPrefix = projectOverrides
+					? project.branchPrefixCustom
+					: globalSettings?.branchPrefixCustom;
 
 				const rawPrefix = await getBranchPrefix({
 					repoPath: project.mainRepoPath,

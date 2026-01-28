@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run typecheck:*)",
+      "Bash(bun run lint:fix:*)",
+      "Bash(bun run lint:*)",
+      "Bash(bun run format:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr edit 1015 --repo superset-sh/superset --body \"$\\(cat <<''EOF''\n## Summary\n\nAdds configurable branch name prefix for new workspaces. Users can now choose how branch names are prefixed when creating worktrees.\n\n## Changes\n\n- **New prefix modes**: GitHub username \\(default\\), git author name, static \"feat\", custom prefix, or no prefix\n- **Global setting**: Configure default in Settings → Features → Branch Prefix\n- **Per-project override**: Override global default in Project Settings → Branch Prefix\n- **Precedence**: Project setting → Global setting → Default \\(GitHub username\\)\n\n## Screenshots\n\n### Global Settings \\(Features\\)\n![image]\\(https://github.com/user-attachments/assets/placeholder-global\\)\n\n### Project Settings\n![image]\\(https://github.com/user-attachments/assets/placeholder-project\\)\n\n## Test Plan\n\n- [ ] Set global to `feat`, create worktree → branch is `feat/word`\n- [ ] Set global to `author`, create worktree → branch is `firstname-lastname/word`\n- [ ] Set global to `custom` with value `myteam`, create worktree → branch is `myteam/word`\n- [ ] Set global to `none`, create worktree → branch is just `word`\n- [ ] Override project to different mode, verify project setting takes precedence\n- [ ] Reset project to \"Use global default\", verify falls back to global\n\n## Migration\n\nAfter merging, generate the schema migration:\n```bash\nbun drizzle-kit generate --name=\"add_branch_prefix_config\"\n```\nEOF\n\\)\")",
+      "Bash(gh pr edit:*)",
+      "Bash(git reset:*)",
+      "Bash(bun drizzle-kit:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "superset"
+  ]
+}
