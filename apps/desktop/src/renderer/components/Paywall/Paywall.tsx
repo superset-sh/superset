@@ -4,9 +4,25 @@ import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
+import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
+import {
+	CloudWorkspacesDemo,
+	IntegrationsDemo,
+	MobileAppDemo,
+	TasksDemo,
+	TeamCollaborationDemo,
+} from "./components";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
 import type { GatedFeature } from "./usePaywall";
+
+const DEMO_COMPONENTS: Record<string, ComponentType> = {
+	"team-collaboration": TeamCollaborationDemo,
+	integrations: IntegrationsDemo,
+	tasks: TasksDemo,
+	"cloud-workspaces": CloudWorkspacesDemo,
+	"mobile-app": MobileAppDemo,
+};
 
 type PaywallOptions = {
 	feature: GatedFeature;
@@ -109,13 +125,20 @@ export const Paywall = () => {
 													: "text-foreground/40 group-hover:text-foreground/60",
 											)}
 										/>
-										<span
-											className={cn(
-												"text-sm font-semibold transition-all duration-200",
-												isSelected ? "text-foreground" : "",
+										<span className="flex flex-col">
+											<span
+												className={cn(
+													"text-sm font-semibold transition-all duration-200",
+													isSelected ? "text-foreground" : "",
+												)}
+											>
+												{proFeature.title}
+											</span>
+											{proFeature.comingSoon && (
+												<span className="text-[10px] text-muted-foreground/70 font-normal">
+													Coming Soon
+												</span>
 											)}
-										>
-											{proFeature.title}
 										</span>
 									</button>
 								);
@@ -123,7 +146,7 @@ export const Paywall = () => {
 						</div>
 					</div>
 
-					<div className="flex h-[487px] w-[495px] flex-col">
+					<div className="flex w-[495px] flex-col">
 						<div className="relative h-[346px] overflow-hidden">
 							{PRO_FEATURES.map((proFeature) => (
 								<div
@@ -143,7 +166,10 @@ export const Paywall = () => {
 							))}
 
 							<div className="absolute inset-0 flex items-center justify-center">
-								<selectedFeature.icon className="text-white/20 text-[120px] select-none pointer-events-none" />
+								{(() => {
+									const DemoComponent = DEMO_COMPONENTS[selectedFeature.id];
+									return DemoComponent ? <DemoComponent /> : null;
+								})()}
 							</div>
 						</div>
 
@@ -153,6 +179,11 @@ export const Paywall = () => {
 									{selectedFeature.title}
 								</span>
 								<Badge variant="default">PRO</Badge>
+								{selectedFeature.comingSoon && (
+									<Badge variant="secondary" className="text-[10px]">
+										Coming Soon
+									</Badge>
+								)}
 							</div>
 							<span className="text-center text-sm font-normal text-muted-foreground">
 								{selectedFeature.description}

@@ -1,10 +1,12 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import { LuLayers } from "react-icons/lu";
+import {
+	GATED_FEATURES,
+	usePaywall,
+} from "renderer/components/Paywall/usePaywall";
 import { STROKE_WIDTH } from "../constants";
 import { NewWorkspaceButton } from "./NewWorkspaceButton";
 
@@ -17,9 +19,7 @@ export function WorkspaceSidebarHeader({
 }: WorkspaceSidebarHeaderProps) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
-	const hasTasksAccess = useFeatureFlagEnabled(
-		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
-	);
+	const { gateFeature } = usePaywall();
 
 	// Derive active state from route
 	const isWorkspacesListOpen = !!matchRoute({ to: "/workspaces" });
@@ -35,7 +35,9 @@ export function WorkspaceSidebarHeader({
 	};
 
 	const handleTasksClick = () => {
-		navigate({ to: "/tasks" });
+		gateFeature(GATED_FEATURES.TASKS, () => {
+			navigate({ to: "/tasks" });
+		});
 	};
 
 	if (isCollapsed) {
@@ -59,28 +61,26 @@ export function WorkspaceSidebarHeader({
 					<TooltipContent side="right">Workspaces</TooltipContent>
 				</Tooltip>
 
-				{hasTasksAccess && (
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleTasksClick}
-								className={cn(
-									"flex items-center justify-center size-8 rounded-md transition-colors",
-									isTasksOpen
-										? "text-foreground bg-accent"
-										: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-								)}
-							>
-								<HiOutlineClipboardDocumentList
-									className="size-4"
-									strokeWidth={STROKE_WIDTH}
-								/>
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="right">Tasks</TooltipContent>
-					</Tooltip>
-				)}
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleTasksClick}
+							className={cn(
+								"flex items-center justify-center size-8 rounded-md transition-colors",
+								isTasksOpen
+									? "text-foreground bg-accent"
+									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+							)}
+						>
+							<HiOutlineClipboardDocumentList
+								className="size-4"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Tasks</TooltipContent>
+				</Tooltip>
 
 				<NewWorkspaceButton isCollapsed />
 			</div>
@@ -105,26 +105,24 @@ export function WorkspaceSidebarHeader({
 				<span className="text-sm font-medium flex-1 text-left">Workspaces</span>
 			</button>
 
-			{hasTasksAccess && (
-				<button
-					type="button"
-					onClick={handleTasksClick}
-					className={cn(
-						"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
-						isTasksOpen
-							? "text-foreground bg-accent"
-							: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-					)}
-				>
-					<div className="flex items-center justify-center size-5">
-						<HiOutlineClipboardDocumentList
-							className="size-4"
-							strokeWidth={STROKE_WIDTH}
-						/>
-					</div>
-					<span className="text-sm font-medium flex-1 text-left">Tasks</span>
-				</button>
-			)}
+			<button
+				type="button"
+				onClick={handleTasksClick}
+				className={cn(
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					isTasksOpen
+						? "text-foreground bg-accent"
+						: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+				)}
+			>
+				<div className="flex items-center justify-center size-5">
+					<HiOutlineClipboardDocumentList
+						className="size-4"
+						strokeWidth={STROKE_WIDTH}
+					/>
+				</div>
+				<span className="text-sm font-medium flex-1 text-left">Tasks</span>
+			</button>
 
 			<NewWorkspaceButton />
 		</div>
