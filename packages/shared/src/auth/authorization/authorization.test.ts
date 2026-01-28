@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { getAvailableRoleChanges } from "./authorization";
+import {
+	canInvite,
+	getAvailableRoleChanges,
+	getInvitableRoles,
+} from "./authorization";
 
 describe("getAvailableRoleChanges", () => {
 	test("admin can change member to admin", () => {
@@ -51,5 +55,36 @@ describe("getAvailableRoleChanges", () => {
 		expect(getAvailableRoleChanges("member", "member", 2)).toEqual([]);
 		expect(getAvailableRoleChanges("member", "admin", 2)).toEqual([]);
 		expect(getAvailableRoleChanges("member", "owner", 2)).toEqual([]);
+	});
+});
+
+describe("getInvitableRoles", () => {
+	test("admin can invite members and admins", () => {
+		const roles = getInvitableRoles("admin");
+		expect(roles).toEqual(["member", "admin"]);
+	});
+
+	test("owner can invite all roles", () => {
+		const roles = getInvitableRoles("owner");
+		expect(roles).toEqual(["member", "admin", "owner"]);
+	});
+
+	test("member cannot invite anyone", () => {
+		expect(getInvitableRoles("member")).toEqual([]);
+	});
+});
+
+describe("canInvite", () => {
+	test("admin can invite admin", () => {
+		expect(canInvite("admin", "admin")).toBe(true);
+	});
+
+	test("admin cannot invite owner", () => {
+		expect(canInvite("admin", "owner")).toBe(false);
+	});
+
+	test("member cannot invite anyone", () => {
+		expect(canInvite("member", "member")).toBe(false);
+		expect(canInvite("member", "admin")).toBe(false);
 	});
 });

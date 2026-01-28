@@ -41,9 +41,6 @@ export interface TerminalCapabilities {
 	persistent: boolean;
 	/** Cold restore from disk is supported after unclean shutdown */
 	coldRestore: boolean;
-	// Future capabilities (not implemented in PR1):
-	// replay: boolean;        // stream supports bounded replay via `since` cursor
-	// multiAttach: boolean;   // multiple attachments can view one backend session
 }
 
 // =============================================================================
@@ -96,9 +93,8 @@ export interface TerminalSessionOperations {
 
 	/**
 	 * Detach from the terminal (keep session alive).
-	 * viewportY is saved for scroll restoration on reattach.
 	 */
-	detach(params: { paneId: string; viewportY?: number }): void;
+	detach(params: { paneId: string }): void;
 
 	/** Clear the scrollback buffer */
 	clearScrollback(params: { paneId: string }): void | Promise<void>;

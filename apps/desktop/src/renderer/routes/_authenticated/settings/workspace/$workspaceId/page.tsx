@@ -35,6 +35,7 @@ import { HiOutlineFolder, HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
+import { ClickablePath } from "../../components/ClickablePath";
 
 function WorkspaceSettingsPage() {
 	const { workspaceId } = Route.useParams();
@@ -115,9 +116,7 @@ function WorkspaceSettingsPage() {
 						<HiOutlineFolder className="h-4 w-4" />
 						Path
 					</h3>
-					<p className="text-sm font-mono break-all">
-						{workspace.worktreePath}
-					</p>
+					<ClickablePath path={workspace.worktreePath} />
 				</div>
 			</div>
 		</div>

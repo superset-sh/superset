@@ -172,18 +172,23 @@ export async function POST(request: Request) {
 	const body = await request.text();
 	const signature = request.headers.get("upstash-signature");
 
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
+	// Skip signature verification in development (QStash can't reach localhost)
+	const isDev = env.NODE_ENV === "development";
 
-	const isValid = await receiver.verify({
-		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/sync-task`,
-	});
+	if (!isDev) {
+		if (!signature) {
+			return Response.json({ error: "Missing signature" }, { status: 401 });
+		}
 
-	if (!isValid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
+		const isValid = await receiver.verify({
+			body,
+			signature,
+			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/sync-task`,
+		});
+
+		if (!isValid) {
+			return Response.json({ error: "Invalid signature" }, { status: 401 });
+		}
 	}
 
 	const parsed = payloadSchema.safeParse(JSON.parse(body));

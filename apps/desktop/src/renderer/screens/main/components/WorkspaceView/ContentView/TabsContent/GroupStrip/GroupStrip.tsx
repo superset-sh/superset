@@ -1,4 +1,3 @@
-import type { TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -9,7 +8,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
@@ -25,9 +24,14 @@ import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { usePresets } from "renderer/react-query/presets";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
-import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
+import {
+	isLastPaneInTab,
+	resolveActiveTabIdForWorkspace,
+} from "renderer/stores/tabs/utils";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
+import { PresetMenuItemShortcut } from "./components/PresetMenuItemShortcut";
 import { GroupItem } from "./GroupItem";
+import { NewTabDropZone } from "./NewTabDropZone";
 
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -36,34 +40,18 @@ export function GroupStrip() {
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
-	const { addTab } = useTabsWithPresets();
+	const { addTab, openPreset } = useTabsWithPresets();
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
+	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
+	const reorderTabs = useTabsStore((s) => s.reorderTabs);
 
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
 	const navigate = useNavigate();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
-	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-	const handleDropdownMouseEnter = useCallback(() => {
-		if (hoverTimeoutRef.current) {
-			clearTimeout(hoverTimeoutRef.current);
-		}
-		hoverTimeoutRef.current = setTimeout(() => {
-			setDropdownOpen(true);
-		}, 150);
-	}, []);
-
-	const handleDropdownMouseLeave = useCallback(() => {
-		if (hoverTimeoutRef.current) {
-			clearTimeout(hoverTimeoutRef.current);
-		}
-		hoverTimeoutRef.current = setTimeout(() => {
-			setDropdownOpen(false);
-		}, 150);
-	}, []);
 
 	const tabs = useMemo(
 		() =>
@@ -101,18 +89,9 @@ export function GroupStrip() {
 		addTab(activeWorkspaceId);
 	};
 
-	const handleSelectPreset = (preset: TerminalPreset) => {
+	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
 		if (!activeWorkspaceId) return;
-
-		const { tabId } = addTab(activeWorkspaceId, {
-			initialCommands: preset.commands,
-			initialCwd: preset.cwd || undefined,
-		});
-
-		if (preset.name) {
-			renameTab(tabId, preset.name);
-		}
-
+		openPreset(activeWorkspaceId, preset);
 		setDropdownOpen(false);
 	};
 
@@ -135,104 +114,142 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
+	const handleReorderTabs = useCallback(
+		(fromIndex: number, toIndex: number) => {
+			if (activeWorkspaceId) {
+				reorderTabs(activeWorkspaceId, fromIndex, toIndex);
+			}
+		},
+		[activeWorkspaceId, reorderTabs],
+	);
+
+	// Tab navigation - find which tabs are adjacent to active
+	const activeTabIndex = useMemo(() => {
+		if (!activeTabId) return -1;
+		return tabs.findIndex((t) => t.id === activeTabId);
+	}, [tabs, activeTabId]);
+
+	const checkIsLastPaneInTab = useCallback((paneId: string) => {
+		// Get fresh panes from store to avoid stale closure issues during drag-drop
+		const freshPanes = useTabsStore.getState().panes;
+		const pane = freshPanes[paneId];
+		if (!pane) return true;
+		return isLastPaneInTab(freshPanes, pane.tabId);
+	}, []);
+
 	return (
 		<div className="flex items-center h-10 flex-1 min-w-0">
 			{tabs.length > 0 && (
 				<div
-					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border pr-2"
+					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border"
 					style={{ scrollbarWidth: "none" }}
 				>
-					{tabs.map((tab) => (
-						<div
-							key={tab.id}
-							className="h-full shrink-0"
-							style={{ width: "160px" }}
-						>
-							<GroupItem
-								tab={tab}
-								isActive={tab.id === activeTabId}
-								status={tabStatusMap.get(tab.id) ?? null}
-								onSelect={() => handleSelectGroup(tab.id)}
-								onClose={() => handleCloseGroup(tab.id)}
-								onRename={(newName) => handleRenameGroup(tab.id, newName)}
-							/>
-						</div>
-					))}
+					{tabs.map((tab, index) => {
+						const isPrevOfActive = index === activeTabIndex - 1;
+						const isNextOfActive = index === activeTabIndex + 1;
+						return (
+							<div
+								key={tab.id}
+								className="h-full shrink-0"
+								style={{ width: "160px" }}
+							>
+								<GroupItem
+									tab={tab}
+									index={index}
+									isActive={tab.id === activeTabId}
+									status={tabStatusMap.get(tab.id) ?? null}
+									onSelect={() => handleSelectGroup(tab.id)}
+									onClose={() => handleCloseGroup(tab.id)}
+									onRename={(newName) => handleRenameGroup(tab.id, newName)}
+									onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
+									onReorder={handleReorderTabs}
+									navHint={
+										isPrevOfActive
+											? "prev"
+											: isNextOfActive
+												? "next"
+												: undefined
+									}
+								/>
+							</div>
+						);
+					})}
 				</div>
 			)}
-			<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-				<div className="flex items-center shrink-0">
-					<Tooltip>
-						<TooltipTrigger asChild>
+			<NewTabDropZone
+				onDrop={(paneId) => movePaneToNewTab(paneId)}
+				isLastPaneInTab={checkIsLastPaneInTab}
+			>
+				<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+					<div className="flex items-center shrink-0">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 rounded-r-none pl-2"
+									onClick={handleAddGroup}
+								>
+									<HiMiniPlus className="size-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="top" sideOffset={4}>
+								<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
+							</TooltipContent>
+						</Tooltip>
+						<DropdownMenuTrigger asChild>
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 rounded-r-none"
-								onClick={handleAddGroup}
+								className="size-7 rounded-l-none px-1"
 							>
-								<HiMiniPlus className="size-4" />
+								<HiMiniChevronDown className="size-3" />
 							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
-						</TooltipContent>
-					</Tooltip>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-7 rounded-l-none px-1"
-							onMouseEnter={handleDropdownMouseEnter}
-							onMouseLeave={handleDropdownMouseLeave}
+						</DropdownMenuTrigger>
+					</div>
+					<DropdownMenuContent align="end" className="w-56">
+						{presets.length > 0 && (
+							<>
+								{presets.map((preset, index) => {
+									const presetIcon = getPresetIcon(preset.name, isDark);
+									return (
+										<DropdownMenuItem
+											key={preset.id}
+											onClick={() => handleSelectPreset(preset)}
+											className="gap-2"
+										>
+											{presetIcon ? (
+												<img
+													src={presetIcon}
+													alt=""
+													className="size-4 object-contain"
+												/>
+											) : (
+												<HiMiniCommandLine className="size-4" />
+											)}
+											<span className="truncate">
+												{preset.name || "default"}
+											</span>
+											{preset.isDefault && (
+												<HiStar className="size-3 text-yellow-500 flex-shrink-0" />
+											)}
+											<PresetMenuItemShortcut index={index} />
+										</DropdownMenuItem>
+									);
+								})}
+								<DropdownMenuSeparator />
+							</>
+						)}
+						<DropdownMenuItem
+							onClick={handleOpenPresetsSettings}
+							className="gap-2"
 						>
-							<HiMiniChevronDown className="size-3" />
-						</Button>
-					</DropdownMenuTrigger>
-				</div>
-				<DropdownMenuContent
-					align="end"
-					className="w-56"
-					onMouseEnter={handleDropdownMouseEnter}
-					onMouseLeave={handleDropdownMouseLeave}
-				>
-					{presets.length > 0 && (
-						<>
-							{presets.map((preset) => {
-								const presetIcon = getPresetIcon(preset.name, isDark);
-								return (
-									<DropdownMenuItem
-										key={preset.id}
-										onClick={() => handleSelectPreset(preset)}
-										className="gap-2"
-									>
-										{presetIcon ? (
-											<img
-												src={presetIcon}
-												alt=""
-												className="size-4 object-contain"
-											/>
-										) : (
-											<HiMiniCommandLine className="size-4" />
-										)}
-										<span className="truncate">{preset.name || "default"}</span>
-										{preset.isDefault && (
-											<HiStar className="size-3 text-yellow-500 ml-auto flex-shrink-0" />
-										)}
-									</DropdownMenuItem>
-								);
-							})}
-							<DropdownMenuSeparator />
-						</>
-					)}
-					<DropdownMenuItem
-						onClick={handleOpenPresetsSettings}
-						className="gap-2"
-					>
-						<HiMiniCog6Tooth className="size-4" />
-						<span>Configure Presets</span>
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+							<HiMiniCog6Tooth className="size-4" />
+							<span>Configure Presets</span>
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</NewTabDropZone>
 		</div>
 	);
 }

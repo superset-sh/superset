@@ -1,0 +1,1 @@
+export { ClickablePath } from "./ClickablePath";

@@ -83,7 +83,17 @@ export function TabView({ tab }: TabViewProps) {
 				return;
 			}
 
-			const oldPaneIds = extractPaneIdsFromLayout(tab.layout);
+			// Get fresh data from store to avoid stale closure issues
+			// This is critical for drag-drop operations where state may have changed
+			// between when this callback was created and when it's invoked
+			const state = useTabsStore.getState();
+			const freshTab = state.tabs.find((t) => t.id === tab.id);
+			const freshPanes = state.panes;
+
+			// Use fresh tab layout to determine what panes were removed
+			const oldPaneIds = extractPaneIdsFromLayout(
+				freshTab?.layout ?? newLayout,
+			);
 			const newPaneIds = extractPaneIdsFromLayout(newLayout);
 
 			// Find removed panes (e.g., from Mosaic close button)
@@ -92,13 +102,18 @@ export function TabView({ tab }: TabViewProps) {
 			);
 
 			// Remove panes that were removed via Mosaic UI
+			// But skip panes that were moved to another tab (their tabId changed)
 			for (const removedId of removedPaneIds) {
-				removePane(removedId);
+				const pane = freshPanes[removedId];
+				// Only remove if pane still belongs to this tab (actual removal, not move)
+				if (pane && pane.tabId === tab.id) {
+					removePane(removedId);
+				}
 			}
 
 			updateTabLayout(tab.id, newLayout);
 		},
-		[tab.id, tab.layout, updateTabLayout, removePane],
+		[tab.id, updateTabLayout, removePane],
 	);
 
 	const renderPane = useCallback(

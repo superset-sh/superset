@@ -5,17 +5,18 @@ import { eq } from "drizzle-orm";
 import {
 	app,
 	BrowserWindow,
+	dialog,
 	Menu,
 	type MenuItemConstructorOptions,
 	nativeImage,
 	Tray,
 } from "electron";
 import { localDb } from "main/lib/local-db";
+import { menuEmitter } from "main/lib/menu-events";
 import {
-	getActiveTerminalManager,
-	isDaemonModeEnabled,
+	getDaemonTerminalManager,
+	tryListExistingDaemonSessions,
 } from "main/lib/terminal";
-import { DaemonTerminalManager } from "main/lib/terminal/daemon-manager";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 
@@ -102,25 +103,25 @@ function showWindow(): void {
 
 function openSettings(): void {
 	showWindow();
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("navigate", "/settings");
-	}
+	menuEmitter.emit("open-settings");
+}
+
+function openTerminalSettings(): void {
+	showWindow();
+	menuEmitter.emit("open-settings", "terminal");
 }
 
 function openSessionInSuperset(workspaceId: string): void {
 	showWindow();
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("navigate", `/workspace/${workspaceId}`);
-	}
+	menuEmitter.emit("open-workspace", workspaceId);
 }
 
 async function killAllSessions(): Promise<void> {
 	try {
-		const manager = getActiveTerminalManager();
-		if (manager instanceof DaemonTerminalManager) {
-			await manager.forceKillAll();
+		const client = getTerminalHostClient();
+		const connected = await client.tryConnectAndAuthenticate();
+		if (connected) {
+			await client.killAll({});
 			console.log("[Tray] Killed all daemon sessions");
 		}
 	} catch (error) {
@@ -132,9 +133,10 @@ async function killAllSessions(): Promise<void> {
 
 async function killSession(paneId: string): Promise<void> {
 	try {
-		const manager = getActiveTerminalManager();
-		if (manager instanceof DaemonTerminalManager) {
-			await manager.kill({ paneId, deleteHistory: false });
+		const client = getTerminalHostClient();
+		const connected = await client.tryConnectAndAuthenticate();
+		if (connected) {
+			await client.kill({ sessionId: paneId });
 			console.log(`[Tray] Killed session: ${paneId}`);
 		}
 	} catch (error) {
@@ -167,7 +169,7 @@ function formatSessionLabel(
 
 function buildSessionsSubmenu(
 	sessions: ListSessionsResponse["sessions"],
-	daemonEnabled: boolean,
+	daemonRunning: boolean,
 ): MenuItemConstructorOptions[] {
 	const aliveSessions = sessions.filter((s) => s.isAlive);
 	const menuItems: MenuItemConstructorOptions[] = [];
@@ -220,9 +222,14 @@ function buildSessionsSubmenu(
 		});
 	}
 
+	menuItems.push({ type: "separator" });
+	menuItems.push({
+		label: "Terminal Settings",
+		click: openTerminalSettings,
+	});
 	menuItems.push({
 		label: "Restart Daemon",
-		enabled: daemonEnabled,
+		enabled: daemonRunning,
 		click: restartDaemon,
 	});
 
@@ -230,14 +237,41 @@ function buildSessionsSubmenu(
 }
 
 async function restartDaemon(): Promise<void> {
+	const { response } = await dialog.showMessageBox({
+		type: "warning",
+		buttons: ["Cancel", "Restart Daemon"],
+		defaultId: 0,
+		cancelId: 0,
+		title: "Restart Terminal Daemon?",
+		message: "Restart Terminal Daemon?",
+		detail:
+			"This will shut down the terminal daemon and kill all running sessions. Use this to fix terminals that are stuck or unresponsive.\n\nA fresh daemon will start automatically when you open a new terminal.",
+	});
+
+	if (response === 0) {
+		return;
+	}
+
+	console.log("[Tray] Restarting daemon...");
+
 	try {
 		const client = getTerminalHostClient();
-		await client.shutdownIfRunning({ killSessions: true });
-		// Daemon auto-spawns on next terminal operation
-		console.log("[Tray] Daemon restarted (will spawn on next use)");
+		const connected = await client.tryConnectAndAuthenticate();
+
+		if (connected) {
+			await client.shutdownIfRunning({ killSessions: true });
+			console.log("[Tray] Daemon shutdown complete");
+		} else {
+			console.log("[Tray] Daemon was not running");
+		}
 	} catch (error) {
-		console.error("[Tray] Failed to restart daemon:", error);
+		console.warn("[Tray] Error during shutdown (continuing):", error);
 	}
+
+	const manager = getDaemonTerminalManager();
+	manager.reset();
+
+	console.log("[Tray] Daemon restart complete");
 
 	await updateTrayMenu();
 }
@@ -245,22 +279,10 @@ async function restartDaemon(): Promise<void> {
 async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
-	const daemonEnabled = isDaemonModeEnabled();
-	let sessionCount = 0;
-	let sessions: ListSessionsResponse["sessions"] = [];
+	const { daemonRunning, sessions } = await tryListExistingDaemonSessions();
+	const sessionCount = sessions.filter((s) => s.isAlive).length;
 
-	if (daemonEnabled) {
-		try {
-			const manager = getActiveTerminalManager();
-			if (manager instanceof DaemonTerminalManager) {
-				const result = await manager.listDaemonSessions();
-				sessions = result.sessions;
-				sessionCount = sessions.filter((s) => s.isAlive).length;
-			}
-		} catch {}
-	}
-
-	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonEnabled);
+	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonRunning);
 	const sessionsLabel =
 		sessionCount > 0
 			? `Background Sessions (${sessionCount})`
@@ -319,6 +341,8 @@ export function initTray(): void {
 				console.error("[Tray] Failed to update menu:", error);
 			});
 		}, POLL_INTERVAL_MS);
+		// Don't keep Electron alive just for tray updates
+		pollIntervalId.unref();
 
 		console.log("[Tray] Initialized successfully");
 	} catch (error) {

@@ -10,13 +10,12 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { LuUndo2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
-
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
@@ -24,24 +23,15 @@ import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
 
 interface ChangesViewProps {
-	/** Single click - opens in preview mode */
 	onFileOpen?: (
 		file: ChangedFile,
 		category: ChangeCategory,
 		commitHash?: string,
 	) => void;
-	/** Double click - opens pinned (permanent) */
-	onFileOpenPinned?: (
-		file: ChangedFile,
-		category: ChangeCategory,
-		commitHash?: string,
-	) => void;
+	isExpandedView?: boolean;
 }
 
-export function ChangesView({
-	onFileOpen,
-	onFileOpenPinned,
-}: ChangesViewProps) {
+export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
@@ -255,36 +245,24 @@ export function ChangesView({
 		}
 	});
 
-	// Single click - opens in preview mode
+	const combinedUnstaged = useMemo(
+		() =>
+			status?.unstaged && status?.untracked
+				? [...status.unstaged, ...status.untracked]
+				: [],
+		[status?.unstaged, status?.untracked],
+	);
+
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, category, null);
 		onFileOpen?.(file, category);
 	};
 
-	// Double click - opens pinned (permanent)
-	const handleFileDoubleClick = (
-		file: ChangedFile,
-		category: ChangeCategory,
-	) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, category, null);
-		onFileOpenPinned?.(file, category);
-	};
-
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, "committed", commitHash);
 		onFileOpen?.(file, "committed", commitHash);
-	};
-
-	const handleCommitFileDoubleClick = (
-		file: ChangedFile,
-		commitHash: string,
-	) => {
-		if (!worktreePath) return;
-		selectFile(worktreePath, file, "committed", commitHash);
-		onFileOpenPinned?.(file, "committed", commitHash);
 	};
 
 	const handleCommitToggle = (hash: string) => {
@@ -342,8 +320,6 @@ export function ChangesView({
 		files: commitFilesMap.get(commit.hash) || [],
 	}));
 
-	const unstagedFiles = [...status.unstaged, ...status.untracked];
-
 	const hasStagedChanges = status.staged.length > 0;
 	const hasExistingPR = !!githubStatus?.pr;
 	const prUrl = githubStatus?.pr?.url;
@@ -397,10 +373,9 @@ export function ChangesView({
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "against-base")}
-							onFileDoubleClick={(file) =>
-								handleFileDoubleClick(file, "against-base")
-							}
 							worktreePath={worktreePath}
+							category="against-base"
+							isExpandedView={isExpandedView}
 						/>
 					</CategorySection>
 
@@ -419,9 +394,9 @@ export function ChangesView({
 								selectedFile={selectedFile}
 								selectedCommitHash={selectedCommitHash}
 								onFileSelect={handleCommitFileSelect}
-								onFileDoubleClick={handleCommitFileDoubleClick}
 								viewMode={fileListViewMode}
 								worktreePath={worktreePath}
+								isExpandedView={isExpandedView}
 							/>
 						))}
 					</CategorySection>
@@ -476,9 +451,6 @@ export function ChangesView({
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "staged")}
-							onFileDoubleClick={(file) =>
-								handleFileDoubleClick(file, "staged")
-							}
 							onUnstage={(file) =>
 								unstageFileMutation.mutate({
 									worktreePath: worktreePath || "",
@@ -487,12 +459,14 @@ export function ChangesView({
 							}
 							isActioning={unstageFileMutation.isPending}
 							worktreePath={worktreePath}
+							category="staged"
+							isExpandedView={isExpandedView}
 						/>
 					</CategorySection>
 
 					<CategorySection
 						title="Unstaged"
-						count={unstagedFiles.length}
+						count={combinedUnstaged.length}
 						isExpanded={expandedSections.unstaged}
 						onToggle={() => toggleSection("unstaged")}
 						actions={
@@ -535,14 +509,11 @@ export function ChangesView({
 						}
 					>
 						<FileList
-							files={unstagedFiles}
+							files={combinedUnstaged}
 							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "unstaged")}
-							onFileDoubleClick={(file) =>
-								handleFileDoubleClick(file, "unstaged")
-							}
 							onStage={(file) =>
 								stageFileMutation.mutate({
 									worktreePath: worktreePath || "",
@@ -556,6 +527,8 @@ export function ChangesView({
 							}
 							worktreePath={worktreePath}
 							onDiscard={handleDiscard}
+							category="unstaged"
+							isExpandedView={isExpandedView}
 						/>
 					</CategorySection>
 				</div>

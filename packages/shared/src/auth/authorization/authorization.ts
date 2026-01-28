@@ -96,3 +96,36 @@ export function canRemoveMember(
 
 	return true;
 }
+
+/**
+ * Get roles that an actor can invite new users as.
+ *
+ * Rules:
+ * - Members cannot invite anyone
+ * - Admins and owners can invite roles up to their own level
+ *
+ * @param actorRole - Role of the user performing the invitation
+ * @returns Array of roles the actor can invite
+ */
+export function getInvitableRoles(
+	actorRole: OrganizationRole,
+): OrganizationRole[] {
+	if (actorRole === "member") return [];
+
+	const actorLevel = getRoleLevel(actorRole);
+	return ROLE_HIERARCHY.filter((role) => getRoleLevel(role) <= actorLevel);
+}
+
+/**
+ * Check if an actor can invite a user with a specific role.
+ *
+ * @param actorRole - Role of the user performing the invitation
+ * @param inviteRole - Role to invite the new user as
+ * @returns Whether the actor can invite with this role
+ */
+export function canInvite(
+	actorRole: OrganizationRole,
+	inviteRole: OrganizationRole,
+): boolean {
+	return getInvitableRoles(actorRole).includes(inviteRole);
+}

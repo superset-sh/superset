@@ -16,12 +16,14 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
-import { LuLoaderCircle } from "react-icons/lu";
+import { LuExpand, LuLoaderCircle, LuShrink, LuX } from "react-icons/lu";
 import { VscGitStash, VscGitStashApply } from "react-icons/vsc";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { usePRStatus } from "renderer/screens/main/hooks";
 import { useChangesStore } from "renderer/stores/changes";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
 
@@ -37,6 +39,8 @@ interface ChangesHeaderProps {
 	isStashPending: boolean;
 }
 
+const TOOLTIP_CLOSE_DELAY = 100;
+
 function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	const { baseBranch, setBaseBranch } = useChangesStore();
 	const { data: branchData, isLoading } =
@@ -44,6 +48,31 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 			{ worktreePath },
 			{ enabled: !!worktreePath },
 		);
+
+	const [tooltipOpen, setTooltipOpen] = useState(false);
+	const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+	const handlePointerEnter = () => {
+		if (closeTimeoutRef.current) {
+			clearTimeout(closeTimeoutRef.current);
+			closeTimeoutRef.current = null;
+		}
+		setTooltipOpen(true);
+	};
+
+	const handlePointerLeave = () => {
+		closeTimeoutRef.current = setTimeout(() => {
+			setTooltipOpen(false);
+		}, TOOLTIP_CLOSE_DELAY);
+	};
+
+	useEffect(() => {
+		return () => {
+			if (closeTimeoutRef.current) {
+				clearTimeout(closeTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 	const sortedBranches = [...(branchData?.remote ?? [])].sort((a, b) => {
@@ -66,12 +95,14 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	}
 
 	return (
-		<Tooltip>
+		<Tooltip open={tooltipOpen}>
 			<Select value={effectiveBaseBranch} onValueChange={handleChange}>
 				<TooltipTrigger asChild>
 					<SelectTrigger
 						size="sm"
 						className="h-5 px-1.5 py-0 text-[10px] font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-0.5 rounded"
+						onPointerEnter={handlePointerEnter}
+						onPointerLeave={handlePointerLeave}
 					>
 						<SelectValue />
 					</SelectTrigger>
@@ -199,24 +230,17 @@ function PRStatusLink({ workspaceId }: { workspaceId?: string }) {
 	if (!pr) return null;
 
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<a
-					href={pr.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					className="flex items-center gap-1 hover:opacity-80 transition-opacity"
-				>
-					<PRIcon state={pr.state} className="w-4 h-4" />
-					<span className="text-xs text-muted-foreground font-mono">
-						#{pr.number}
-					</span>
-				</a>
-			</TooltipTrigger>
-			<TooltipContent side="bottom" showArrow={false}>
-				View PR on GitHub
-			</TooltipContent>
-		</Tooltip>
+		<a
+			href={pr.url}
+			target="_blank"
+			rel="noopener noreferrer"
+			className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+		>
+			<PRIcon state={pr.state} className="w-4 h-4" />
+			<span className="text-xs text-muted-foreground font-mono">
+				#{pr.number}
+			</span>
+		</a>
 	);
 }
 
@@ -231,6 +255,13 @@ export function ChangesHeader({
 	onStashPop,
 	isStashPending,
 }: ChangesHeaderProps) {
+	const { toggleSidebar, currentMode, setMode } = useSidebarStore();
+	const isExpanded = currentMode === SidebarMode.Changes;
+
+	const handleExpandToggle = () => {
+		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+	};
+
 	return (
 		<div className="flex flex-col">
 			<div className="flex items-center gap-1.5 px-2 py-1.5">
@@ -238,6 +269,47 @@ export function ChangesHeader({
 					Base:
 				</span>
 				<BaseBranchSelector worktreePath={worktreePath} />
+				<div className="flex-1" />
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={handleExpandToggle}
+							className="size-6 p-0"
+						>
+							{isExpanded ? (
+								<LuShrink className="size-3.5" />
+							) : (
+								<LuExpand className="size-3.5" />
+							)}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						<HotkeyTooltipContent
+							label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+							hotkeyId="TOGGLE_EXPAND_SIDEBAR"
+						/>
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={toggleSidebar}
+							className="size-6 p-0"
+						>
+							<LuX className="size-3.5" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						<HotkeyTooltipContent
+							label="Close Changes Sidebar"
+							hotkeyId="TOGGLE_SIDEBAR"
+						/>
+					</TooltipContent>
+				</Tooltip>
 			</div>
 
 			<div className="flex items-center gap-0.5 px-2 pb-1.5">

@@ -12,6 +12,7 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 
 	useEffect(() => {
 		initPostHog();
+		posthog.capture("desktop_opened");
 		setIsInitialized(true);
 	}, []);
 

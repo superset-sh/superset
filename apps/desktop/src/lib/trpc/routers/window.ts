@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import type { BrowserWindow } from "electron";
+import { dialog } from "electron";
 import { publicProcedure, router } from "..";
 
 /**
@@ -48,6 +49,40 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 
 		getHomeDir: publicProcedure.query(() => {
 			return homedir();
+		}),
+
+		selectImageFile: publicProcedure.mutation(async () => {
+			const window = getWindow();
+			if (!window) {
+				return { canceled: true, dataUrl: null };
+			}
+
+			const result = await dialog.showOpenDialog(window, {
+				properties: ["openFile"],
+				title: "Select Organization Logo",
+				filters: [
+					{
+						name: "Images",
+						extensions: ["png", "jpg", "jpeg", "webp"],
+					},
+				],
+			});
+
+			if (result.canceled || result.filePaths.length === 0) {
+				return { canceled: true, dataUrl: null };
+			}
+
+			// Read the file and convert to base64 data URL
+			const fs = await import("node:fs/promises");
+			const path = await import("node:path");
+			const filePath = result.filePaths[0];
+			const buffer = await fs.readFile(filePath);
+			const ext = path.extname(filePath).slice(1).toLowerCase();
+			const mimeType = ext === "jpg" ? "jpeg" : ext;
+			const base64 = buffer.toString("base64");
+			const dataUrl = `data:image/${mimeType};base64,${base64}`;
+
+			return { canceled: false, dataUrl };
 		}),
 	});
 };

@@ -13,6 +13,7 @@ const APP_NAMES: Record<ExternalApp, string | null> = {
 	iterm: "iTerm",
 	warp: "Warp",
 	terminal: "Terminal",
+	ghostty: "Ghostty",
 	sublime: "Sublime Text",
 	intellij: "IntelliJ IDEA",
 	webstorm: "WebStorm",
@@ -59,6 +60,55 @@ const PATH_WRAPPERS: [string, string][] = [
  * These are stripped unless they're part of a valid suffix (extension, line:col).
  */
 const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+/**
+ * Check if a string looks like a file path.
+ * A path typically contains forward slashes, or starts with ., ~, or /
+ */
+function looksLikePath(str: string): boolean {
+	return (
+		str.includes("/") ||
+		str.startsWith(".") ||
+		str.startsWith("~") ||
+		str.startsWith("/")
+	);
+}
+
+/**
+ * Extract a path from within brackets/parentheses when there's adjacent text.
+ * Handles patterns like:
+ *   "text(src/file.ts)more" -> "src/file.ts"
+ *   "see (path/to/file) here" -> "path/to/file"
+ *   "in [src/file.ts:42]" -> "src/file.ts:42"
+ *
+ * Returns the original string if no embedded path is found.
+ */
+function extractEmbeddedPath(input: string): string {
+	const bracketPairs: [string, string][] = [
+		["(", ")"],
+		["[", "]"],
+		["<", ">"],
+	];
+
+	for (const [open, close] of bracketPairs) {
+		const openIdx = input.indexOf(open);
+		const closeIdx = input.lastIndexOf(close);
+
+		if (openIdx !== -1 && closeIdx > openIdx) {
+			const hasTextBefore = openIdx > 0;
+			const hasTextAfter = closeIdx < input.length - 1;
+
+			if (hasTextBefore || hasTextAfter) {
+				const content = input.slice(openIdx + 1, closeIdx);
+				if (looksLikePath(content)) {
+					return content;
+				}
+			}
+		}
+	}
+
+	return input;
+}
 
 /**
  * Strip trailing punctuation from a path, but preserve valid suffixes.
@@ -109,6 +159,9 @@ function stripTrailingPunctuation(path: string): string {
  */
 export function stripPathWrappers(filePath: string): string {
 	let result = filePath.trim();
+
+	// First, try to extract embedded paths from patterns like "text(path)more"
+	result = extractEmbeddedPath(result);
 
 	let changed = true;
 	while (changed && result.length > 0) {

@@ -64,6 +64,14 @@ describe("getAppCommand", () => {
 		});
 	});
 
+	test("returns correct command for ghostty", () => {
+		const result = getAppCommand("ghostty", "/path/to/file");
+		expect(result).toEqual({
+			command: "open",
+			args: ["-a", "Ghostty", "/path/to/file"],
+		});
+	});
+
 	describe("JetBrains IDEs", () => {
 		test("returns correct command for intellij", () => {
 			const result = getAppCommand("intellij", "/path/to/file");
@@ -404,6 +412,76 @@ describe("stripPathWrappers", () => {
 		test("preserves line:col suffix :42:10", () => {
 			expect(stripPathWrappers("./path/file.ts:42:10")).toBe(
 				"./path/file.ts:42:10",
+			);
+		});
+	});
+
+	describe("paths with adjacent tokens around parentheses", () => {
+		test("extracts path from text(path)more pattern", () => {
+			expect(stripPathWrappers("text(src/file.ts)more")).toBe("src/file.ts");
+		});
+
+		test("extracts path from text(./path)more pattern", () => {
+			expect(stripPathWrappers("text(./src/file.ts)more")).toBe(
+				"./src/file.ts",
+			);
+		});
+
+		test("extracts path from prefix (path) suffix with spaces", () => {
+			expect(stripPathWrappers("see (src/file.ts) for")).toBe("src/file.ts");
+		});
+
+		test("extracts path from 'applied to (path)' pattern", () => {
+			expect(stripPathWrappers("applied to (src/file.ts)")).toBe("src/file.ts");
+		});
+
+		test("extracts path with line number from parentheses", () => {
+			expect(stripPathWrappers("in (src/file.ts:42)")).toBe("src/file.ts:42");
+		});
+
+		test("extracts path with line:col from parentheses", () => {
+			expect(stripPathWrappers("in (src/file.ts:42:10)")).toBe(
+				"src/file.ts:42:10",
+			);
+		});
+
+		test("handles absolute path inside parentheses with prefix", () => {
+			expect(stripPathWrappers("see (/absolute/path/file.ts)")).toBe(
+				"/absolute/path/file.ts",
+			);
+		});
+
+		test("handles ~ path inside parentheses with prefix", () => {
+			expect(stripPathWrappers("in (~/Documents/file.ts)")).toBe(
+				"~/Documents/file.ts",
+			);
+		});
+
+		test("preserves valid paths with parentheses in directory names", () => {
+			expect(stripPathWrappers("/path/dir (copy)/file.ts")).toBe(
+				"/path/dir (copy)/file.ts",
+			);
+		});
+
+		test("handles brackets similar to parentheses", () => {
+			expect(stripPathWrappers("see [src/file.ts] here")).toBe("src/file.ts");
+		});
+
+		test("handles angle brackets similar to parentheses", () => {
+			expect(stripPathWrappers("import <src/file.ts> done")).toBe(
+				"src/file.ts",
+			);
+		});
+
+		test("does not extract non-path content from parentheses", () => {
+			expect(stripPathWrappers("text(not a path)more")).toBe(
+				"text(not a path)more",
+			);
+		});
+
+		test("handles nested brackets with path", () => {
+			expect(stripPathWrappers("prefix((src/file.ts))suffix")).toBe(
+				"src/file.ts",
 			);
 		});
 	});

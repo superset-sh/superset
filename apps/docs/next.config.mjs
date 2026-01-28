@@ -1,11 +1,26 @@
+import { join } from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
+import { config as dotenvConfig } from "dotenv";
 import { createMDX } from "fumadocs-mdx/next";
+
+// Load .env from monorepo root during development
+if (process.env.NODE_ENV !== "production") {
+	dotenvConfig({ path: join(process.cwd(), "../../.env"), override: true });
+}
 
 const withMDX = createMDX();
 
 /** @type {import('next').NextConfig} */
 const config = {
 	reactStrictMode: true,
+	images: {
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "*.public.blob.vercel-storage.com",
+			},
+		],
+	},
 	async redirects() {
 		return [
 			{

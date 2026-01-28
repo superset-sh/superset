@@ -9,8 +9,16 @@ import {
 	users,
 } from "./auth";
 import {
+	githubInstallations,
+	githubPullRequests,
+	githubRepositories,
+} from "./github";
+import {
+	agentCommands,
+	devicePresence,
 	integrationConnections,
 	repositories,
+	subscriptions,
 	taskStatuses,
 	tasks,
 } from "./schema";
@@ -23,6 +31,9 @@ export const usersRelations = relations(users, ({ many }) => ({
 	createdTasks: many(tasks, { relationName: "creator" }),
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
+	githubInstallations: many(githubInstallations),
+	devicePresence: many(devicePresence),
+	agentCommands: many(agentCommands),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -42,10 +53,14 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 export const organizationsRelations = relations(organizations, ({ many }) => ({
 	members: many(members),
 	invitations: many(invitations),
+	subscriptions: many(subscriptions),
 	repositories: many(repositories),
 	tasks: many(tasks),
 	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
+	githubInstallations: many(githubInstallations),
+	devicePresence: many(devicePresence),
+	agentCommands: many(agentCommands),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -67,6 +82,13 @@ export const invitationsRelations = relations(invitations, ({ one }) => ({
 	inviter: one(users, {
 		fields: [invitations.inviterId],
 		references: [users.id],
+	}),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [subscriptions.referenceId],
+		references: [organizations.id],
 	}),
 }));
 
@@ -130,3 +152,68 @@ export const integrationConnectionsRelations = relations(
 		}),
 	}),
 );
+
+// GitHub relations
+export const githubInstallationsRelations = relations(
+	githubInstallations,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [githubInstallations.organizationId],
+			references: [organizations.id],
+		}),
+		connectedBy: one(users, {
+			fields: [githubInstallations.connectedByUserId],
+			references: [users.id],
+		}),
+		repositories: many(githubRepositories),
+	}),
+);
+
+export const githubRepositoriesRelations = relations(
+	githubRepositories,
+	({ one, many }) => ({
+		installation: one(githubInstallations, {
+			fields: [githubRepositories.installationId],
+			references: [githubInstallations.id],
+		}),
+		pullRequests: many(githubPullRequests),
+	}),
+);
+
+export const githubPullRequestsRelations = relations(
+	githubPullRequests,
+	({ one }) => ({
+		repository: one(githubRepositories, {
+			fields: [githubPullRequests.repositoryId],
+			references: [githubRepositories.id],
+		}),
+	}),
+);
+
+// Agent relations
+export const devicePresenceRelations = relations(devicePresence, ({ one }) => ({
+	user: one(users, {
+		fields: [devicePresence.userId],
+		references: [users.id],
+	}),
+	organization: one(organizations, {
+		fields: [devicePresence.organizationId],
+		references: [organizations.id],
+	}),
+}));
+
+export const agentCommandsRelations = relations(agentCommands, ({ one }) => ({
+	user: one(users, {
+		fields: [agentCommands.userId],
+		references: [users.id],
+	}),
+	organization: one(organizations, {
+		fields: [agentCommands.organizationId],
+		references: [organizations.id],
+	}),
+	parentCommand: one(agentCommands, {
+		fields: [agentCommands.parentCommandId],
+		references: [agentCommands.id],
+		relationName: "parentCommand",
+	}),
+}));

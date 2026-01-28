@@ -87,7 +87,25 @@ console.log(`[local-db] Running migrations from: ${migrationsFolder}`);
 
 export const localDb = drizzle(sqlite, { schema });
 
-migrate(localDb, { migrationsFolder });
+try {
+	migrate(localDb, { migrationsFolder });
+} catch (error) {
+	const sqliteError = error as Error & { code?: string };
+	const errorCode = sqliteError.code?.toLowerCase() ?? "";
+	const errorMessage = sqliteError.message?.toLowerCase() ?? "";
+
+	const isSqliteError = errorCode === "sqlite_error";
+	const isIdempotentMessage =
+		errorMessage.includes("duplicate column name") ||
+		errorMessage.includes("already exists") ||
+		errorMessage.includes("no such column");
+
+	if (isSqliteError && isIdempotentMessage) {
+		console.log(`[local-db] Skipped idempotent error: ${sqliteError.message}`);
+	} else {
+		throw error;
+	}
+}
 
 console.log("[local-db] Migrations complete");
 

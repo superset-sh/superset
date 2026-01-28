@@ -1,16 +1,13 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { integrationConnections, members } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
-import { z } from "zod";
+import { and, eq } from "drizzle-orm";
+
 import { env } from "@/env";
+import { verifySignedState } from "@/lib/oauth-state";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
-
-const stateSchema = z.object({
-	organizationId: z.string().min(1),
-	userId: z.string().min(1),
-});
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -30,17 +27,33 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const parsed = stateSchema.safeParse(
-		JSON.parse(Buffer.from(state, "base64url").toString("utf-8")),
-	);
-
-	if (!parsed.success) {
+	// Verify signed state (prevents forgery)
+	const stateData = verifySignedState(state);
+	if (!stateData) {
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?error=invalid_state`,
 		);
 	}
 
-	const { organizationId, userId } = parsed.data;
+	const { organizationId, userId } = stateData;
+
+	// Re-verify membership at callback time (defense-in-depth)
+	const membership = await db.query.members.findFirst({
+		where: and(
+			eq(members.organizationId, organizationId),
+			eq(members.userId, userId),
+		),
+	});
+
+	if (!membership) {
+		console.error("[linear/callback] Membership verification failed:", {
+			organizationId,
+			userId,
+		});
+		return Response.redirect(
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?error=unauthorized`,
+		);
+	}
 
 	const tokenResponse = await fetch("https://api.linear.app/oauth/token", {
 		method: "POST",

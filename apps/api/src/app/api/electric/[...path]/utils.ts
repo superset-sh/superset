@@ -1,5 +1,10 @@
 import { db } from "@superset/db/client";
 import {
+	agentCommands,
+	apikeys,
+	devicePresence,
+	integrationConnections,
+	invitations,
 	members,
 	organizations,
 	repositories,
@@ -16,7 +21,12 @@ export type AllowedTable =
 	| "repositories"
 	| "auth.members"
 	| "auth.organizations"
-	| "auth.users";
+	| "auth.users"
+	| "auth.invitations"
+	| "auth.apikeys"
+	| "device_presence"
+	| "agent_commands"
+	| "integration_connections";
 
 interface WhereClause {
 	fragment: string;
@@ -38,6 +48,7 @@ function build(table: PgTable, column: PgColumn, id: string): WhereClause {
 export async function buildWhereClause(
 	tableName: string,
 	organizationId: string,
+	userId: string,
 ): Promise<WhereClause | null> {
 	switch (tableName) {
 		case "tasks":
@@ -52,33 +63,21 @@ export async function buildWhereClause(
 		case "auth.members":
 			return build(members, members.organizationId, organizationId);
 
+		case "auth.invitations":
+			return build(invitations, invitations.organizationId, organizationId);
+
 		case "auth.organizations": {
+			// Use the authenticated user's ID to find their organizations
 			const userMemberships = await db.query.members.findMany({
-				where: eq(members.organizationId, organizationId),
-				columns: { userId: true },
+				where: eq(members.userId, userId),
+				columns: { organizationId: true },
 			});
 
 			if (userMemberships.length === 0) {
 				return { fragment: "1 = 0", params: [] };
 			}
 
-			const userId = userMemberships[0]?.userId;
-			if (!userId) {
-				return { fragment: "1 = 0", params: [] };
-			}
-
-			const allUserMemberships = await db.query.members.findMany({
-				where: eq(members.userId, userId),
-				columns: { organizationId: true },
-			});
-
-			if (allUserMemberships.length === 0) {
-				return { fragment: "1 = 0", params: [] };
-			}
-
-			const orgIds = [
-				...new Set(allUserMemberships.map((m) => m.organizationId)),
-			];
+			const orgIds = [...new Set(userMemberships.map((m) => m.organizationId))];
 			const whereExpr = inArray(
 				sql`${sql.identifier(organizations.id.name)}`,
 				orgIds,
@@ -97,6 +96,26 @@ export async function buildWhereClause(
 			const fragment = `$1 = ANY("organization_ids")`;
 			return { fragment, params: [organizationId] };
 		}
+
+		case "device_presence":
+			return build(
+				devicePresence,
+				devicePresence.organizationId,
+				organizationId,
+			);
+
+		case "agent_commands":
+			return build(agentCommands, agentCommands.organizationId, organizationId);
+
+		case "auth.apikeys":
+			return build(apikeys, apikeys.userId, userId);
+
+		case "integration_connections":
+			return build(
+				integrationConnections,
+				integrationConnections.organizationId,
+				organizationId,
+			);
 
 		default:
 			return null;

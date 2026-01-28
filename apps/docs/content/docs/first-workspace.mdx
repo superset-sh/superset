@@ -1,0 +1,33 @@
+---
+title: Your First Workspace
+description: Create and set up your first workspace in Superset
+---
+
+## Add a Repository
+
+Add your repo from a local folder or Git URL. Requires GitHub auth (`gh auth status`).
+
+![Add Repository](/images/add-repo.png)
+
+## Create a Workspace
+
+Each workspace is an isolated git worktree on its own branch. Superset only copies git-tracked files—use [setup scripts](/setup-teardown-scripts) for `.env` files or `bun install`.
+
+Create workspaces from:
+- New branch from main
+- Existing branch
+- Pull request
+
+![New Workspace](/images/new-workspace.png)
+
+## Start Working
+
+- **⌘O** - Open in Cursor/VS Code
+- **Terminal** - Built-in terminal ready to use
+- **Changes** - View diffs and commit
+
+## Next Steps
+
+- [Setup Scripts](/setup-teardown-scripts) - Automate `bun install`, env files
+- [Workspaces](/workspaces) - Run multiple branches at once
+- [IDE Integration](/use-with-ide) - Configure your editor

@@ -78,6 +78,34 @@
       "when": 1768446870608,
       "tag": "0010_add_organization_ids_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1768871460342,
+      "tag": "0011_add_github_integration_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1769106861342,
+      "tag": "0012_add_stripe_subscription_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1769225155008,
+      "tag": "0013_add_mcp_actions_and_presence",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1769383267153,
+      "tag": "0014_better_auth_mcp_oauth",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,39 @@
+---
+title: Monorepos
+description: Working with monorepos
+---
+
+## Overview
+
+Superset works with monorepos. Workspaces are created at the repo root with access to all packages.
+
+## Setup Script
+
+```json
+{
+  "setup": [
+    "bun install",
+    "cp \"$SUPERSET_ROOT_PATH/.env\" .env"
+  ]
+}
+```
+
+## Running Services
+
+Run multiple services from terminal:
+
+```bash
+bun run dev                          # All services
+bun run --filter @myapp/web dev &    # Specific package
+bun run --filter @myapp/api dev
+```
+
+## Git Submodules
+
+Add to setup script:
+
+```json
+{
+  "setup": ["git submodule update --init --recursive", "bun install"]
+}
+```

@@ -65,7 +65,7 @@ export function useFileContent({
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when diff loads
 	useEffect(() => {
-		if (diffData?.modified && !isDirty) {
+		if (diffData && !isDirty) {
 			originalDiffContentRef.current = diffData.modified;
 		}
 	}, [diffData]);

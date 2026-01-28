@@ -1,7 +1,8 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
+	BRANCH_PREFIX_MODES,
 	projects,
 	type SelectProject,
 	settings,
@@ -27,8 +28,10 @@ import {
 import {
 	getCurrentBranch,
 	getDefaultBranch,
+	getGitAuthorName,
 	getGitRoot,
 	refreshDefaultBranch,
+	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getDefaultProjectColor } from "./utils/colors";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
@@ -273,7 +276,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				async ({
 					input,
 				}): Promise<{
-					branches: Array<{ name: string; lastCommitDate: number }>;
+					branches: Array<{
+						name: string;
+						lastCommitDate: number;
+						isLocal: boolean;
+						isRemote: boolean;
+					}>;
 					defaultBranch: string;
 				}> => {
 					const project = localDb
@@ -298,63 +306,123 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					const branchSummary = await git.branch(["-a"]);
 
-					const localBranches: string[] = [];
-					const remoteBranches: string[] = [];
+					const localBranchSet = new Set<string>();
+					const remoteBranchSet = new Set<string>();
 
 					for (const name of Object.keys(branchSummary.branches)) {
 						if (name.startsWith("remotes/origin/")) {
 							if (name === "remotes/origin/HEAD") continue;
 							const remoteName = name.replace("remotes/origin/", "");
-							remoteBranches.push(remoteName);
+							remoteBranchSet.add(remoteName);
 						} else {
-							localBranches.push(name);
+							localBranchSet.add(name);
 						}
 					}
 
-					// Get branch dates for sorting
-					let branches: Array<{ name: string; lastCommitDate: number }> = [];
+					// Get branch dates for sorting - fetch from both local and remote
+					const branchMap = new Map<
+						string,
+						{ lastCommitDate: number; isLocal: boolean; isRemote: boolean }
+					>();
 
-					// Determine which ref pattern to use based on whether origin exists
-					const refPattern = hasOrigin ? "refs/remotes/origin/" : "refs/heads/";
+					// First, get remote branch dates (if origin exists)
+					if (hasOrigin) {
+						try {
+							const remoteBranchInfo = await git.raw([
+								"for-each-ref",
+								"--sort=-committerdate",
+								"--format=%(refname:short) %(committerdate:unix)",
+								"refs/remotes/origin/",
+							]);
 
+							for (const line of remoteBranchInfo.trim().split("\n")) {
+								if (!line) continue;
+								const lastSpaceIdx = line.lastIndexOf(" ");
+								let branch = line.substring(0, lastSpaceIdx);
+								const timestamp = Number.parseInt(
+									line.substring(lastSpaceIdx + 1),
+									10,
+								);
+
+								// Normalize remote branch names
+								if (branch.startsWith("origin/")) {
+									branch = branch.replace("origin/", "");
+								}
+
+								if (branch === "HEAD") continue;
+
+								branchMap.set(branch, {
+									lastCommitDate: timestamp * 1000,
+									isLocal: localBranchSet.has(branch),
+									isRemote: true,
+								});
+							}
+						} catch {
+							// Fallback for remote branches
+							for (const name of remoteBranchSet) {
+								branchMap.set(name, {
+									lastCommitDate: 0,
+									isLocal: localBranchSet.has(name),
+									isRemote: true,
+								});
+							}
+						}
+					}
+
+					// Then, add local-only branches
 					try {
-						const branchInfo = await git.raw([
+						const localBranchInfo = await git.raw([
 							"for-each-ref",
 							"--sort=-committerdate",
 							"--format=%(refname:short) %(committerdate:unix)",
-							refPattern,
+							"refs/heads/",
 						]);
 
-						const seen = new Set<string>();
-						for (const line of branchInfo.trim().split("\n")) {
+						for (const line of localBranchInfo.trim().split("\n")) {
 							if (!line) continue;
 							const lastSpaceIdx = line.lastIndexOf(" ");
-							let branch = line.substring(0, lastSpaceIdx);
+							const branch = line.substring(0, lastSpaceIdx);
 							const timestamp = Number.parseInt(
 								line.substring(lastSpaceIdx + 1),
 								10,
 							);
 
-							// Normalize remote branch names
-							if (branch.startsWith("origin/")) {
-								branch = branch.replace("origin/", "");
-							}
-
-							// Skip duplicates and HEAD
-							if (seen.has(branch)) continue;
 							if (branch === "HEAD") continue;
-							seen.add(branch);
 
-							branches.push({
-								name: branch,
-								lastCommitDate: timestamp * 1000,
-							});
+							// Only add if not already in map (remote takes precedence for date)
+							if (!branchMap.has(branch)) {
+								branchMap.set(branch, {
+									lastCommitDate: timestamp * 1000,
+									isLocal: true,
+									isRemote: remoteBranchSet.has(branch),
+								});
+							} else {
+								// Update isLocal flag for branches that exist both locally and remotely
+								const existing = branchMap.get(branch);
+								if (existing) {
+									existing.isLocal = true;
+								}
+							}
 						}
 					} catch {
-						// Fallback: just list branches without dates
-						const branchList = hasOrigin ? remoteBranches : localBranches;
-						branches = branchList.map((name) => ({ name, lastCommitDate: 0 }));
+						// Fallback for local branches
+						for (const name of localBranchSet) {
+							if (!branchMap.has(name)) {
+								branchMap.set(name, {
+									lastCommitDate: 0,
+									isLocal: true,
+									isRemote: remoteBranchSet.has(name),
+								});
+							}
+						}
 					}
+
+					const branches = Array.from(branchMap.entries()).map(
+						([name, data]) => ({
+							name,
+							...data,
+						}),
+					);
 
 					// Sync with remote in case the default branch changed (e.g. master -> main)
 					const remoteDefaultBranch = await refreshDefaultBranch(
@@ -429,6 +497,61 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				project,
 			};
 		}),
+
+		openFromPath: publicProcedure
+			.input(z.object({ path: z.string() }))
+			.mutation(async ({ input }): Promise<OpenNewResult> => {
+				const selectedPath = input.path;
+
+				// Check if path exists
+				if (!existsSync(selectedPath)) {
+					return { canceled: false, error: "Path does not exist" };
+				}
+
+				// Check if path is a directory
+				try {
+					const stats = statSync(selectedPath);
+					if (!stats.isDirectory()) {
+						return {
+							canceled: false,
+							error: "Please drop a folder, not a file",
+						};
+					}
+				} catch {
+					return {
+						canceled: false,
+						error: "Could not access the dropped item",
+					};
+				}
+
+				let mainRepoPath: string;
+				try {
+					mainRepoPath = await getGitRoot(selectedPath);
+				} catch (_error) {
+					// Return a special response so the UI can offer to initialize git
+					return {
+						canceled: false,
+						needsGitInit: true,
+						selectedPath,
+					};
+				}
+
+				const defaultBranch = await getDefaultBranch(mainRepoPath);
+				const project = upsertProject(mainRepoPath, defaultBranch);
+
+				// Auto-create main workspace if it doesn't exist
+				await ensureMainWorkspace(project);
+
+				track("project_opened", {
+					project_id: project.id,
+					method: "drop",
+				});
+
+				return {
+					canceled: false,
+					project,
+				};
+			}),
 
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
@@ -641,6 +764,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								"Invalid project color",
 							)
 							.optional(),
+						branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
+						branchPrefixCustom: z.string().nullable().optional(),
 					}),
 				}),
 			)
@@ -660,6 +785,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						...(input.patch.name !== undefined && { name: input.patch.name }),
 						...(input.patch.color !== undefined && {
 							color: input.patch.color,
+						}),
+						...(input.patch.branchPrefixMode !== undefined && {
+							branchPrefixMode: input.patch.branchPrefixMode,
+						}),
+						...(input.patch.branchPrefixCustom !== undefined && {
+							branchPrefixCustom: input.patch.branchPrefixCustom,
 						}),
 						lastOpenedAt: Date.now(),
 					})
@@ -879,6 +1010,30 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				return {
 					owner,
 					avatarUrl: getGitHubAvatarUrl(owner),
+				};
+			}),
+
+		getGitAuthor: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					return null;
+				}
+
+				const authorName = await getGitAuthorName(project.mainRepoPath);
+				if (!authorName) {
+					return null;
+				}
+
+				return {
+					name: authorName,
+					prefix: sanitizeAuthorPrefix(authorName),
 				};
 			}),
 	});

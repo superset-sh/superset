@@ -2,6 +2,7 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 
 import type {
+	BranchPrefixMode,
 	ExternalApp,
 	GitHubStatus,
 	GitStatus,
@@ -34,6 +35,8 @@ export const projects = sqliteTable(
 		}),
 		defaultBranch: text("default_branch"),
 		githubOwner: text("github_owner"),
+		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
+		branchPrefixCustom: text("branch_prefix_custom"),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -139,7 +142,14 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
-	terminalPersistence: integer("terminal_persistence", { mode: "boolean" }),
+	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
+		true,
+	),
+	autoApplyDefaultPreset: integer("auto_apply_default_preset", {
+		mode: "boolean",
+	}),
+	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
+	branchPrefixCustom: text("branch_prefix_custom"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

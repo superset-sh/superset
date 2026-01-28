@@ -110,10 +110,13 @@ class StaticPortsWatcher extends EventEmitter {
 						this.watch(workspaceId, worktreePath);
 					}
 				}, 100);
+				timer.unref();
 
 				this.debounceTimers.set(workspaceId, timer);
 			});
 
+			// Don't keep Electron alive just for file watching
+			watcher.unref();
 			this.watchers.set(workspaceId, watcher);
 		} catch (error) {
 			console.error(

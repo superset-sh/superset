@@ -112,6 +112,56 @@ export const createConfigRouter = () => {
 					return { content: null, exists: false };
 				}
 			}),
+
+		// Update the config file with new setup/teardown scripts
+		updateConfig: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					setup: z.array(z.string()),
+					teardown: z.array(z.string()),
+				}),
+			)
+			.mutation(({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error("Project not found");
+				}
+
+				const configPath = ensureConfigExists(project.mainRepoPath);
+
+				// Read and parse existing config, preserving other fields
+				let existingConfig: Record<string, unknown> = {};
+				try {
+					const existingContent = readFileSync(configPath, "utf-8");
+					const parsed = JSON.parse(existingContent);
+					if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+						existingConfig = parsed;
+					}
+				} catch {
+					// If file doesn't exist or has invalid JSON, start fresh
+					existingConfig = {};
+				}
+
+				// Merge existing config with new setup/teardown values
+				const config = {
+					...existingConfig,
+					setup: input.setup,
+					teardown: input.teardown,
+				};
+
+				try {
+					writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+					return { success: true };
+				} catch (error) {
+					console.error("[config/updateConfig] Failed to write config:", error);
+					throw new Error("Failed to save config");
+				}
+			}),
 	});
 };
 

@@ -6,6 +6,7 @@ import { FeaturesSection } from "./components/FeaturesSection";
 import { HeroSection } from "./components/HeroSection";
 import { TrustedBySection } from "./components/TrustedBySection";
 import { VideoSection } from "./components/VideoSection";
+import { WallOfLoveSection } from "./components/WallOfLoveSection";
 
 export default function Home() {
 	return (
@@ -14,6 +15,7 @@ export default function Home() {
 			<VideoSection />
 			<TrustedBySection />
 			<FeaturesSection />
+			<WallOfLoveSection />
 			<FAQSection />
 			<CTASection />
 		</main>

@@ -208,7 +208,13 @@ Common transactional emails to add:
 
 ## Testing
 
-When you have the preview server working:
+To preview email templates during development:
+
+```bash
+bun --filter=@superset/email dev
+```
+
+Then:
 1. Create your email template in `emails/`
 2. Preview at http://localhost:3000
 3. Test HTML rendering with `@react-email/render`

@@ -13,6 +13,19 @@ const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 
+	images: {
+		remotePatterns: [
+			{
+				protocol: "https",
+				hostname: "*.public.blob.vercel-storage.com",
+			},
+			{
+				protocol: "https",
+				hostname: "unavatar.io",
+			},
+		],
+	},
+
 	async rewrites() {
 		return [
 			{
@@ -31,11 +44,13 @@ const config: NextConfig = {
 	},
 
 	async redirects() {
+		const docsUrl =
+			process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh";
 		return [
 			{
 				source: "/docs/:path*",
-				destination: "https://docs.superset.sh/:path*",
-				permanent: true,
+				destination: `${docsUrl}/:path*`,
+				permanent: false,
 			},
 		];
 	},

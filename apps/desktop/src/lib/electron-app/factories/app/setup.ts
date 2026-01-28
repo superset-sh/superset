@@ -22,8 +22,8 @@ export async function makeAppSetup(
 					allowFileAccess: true,
 				},
 			});
-		} catch (_error) {
-			//   console.warn('Failed to install React DevTools extension:', error)
+		} catch {
+			// DevTools installation can fail in CI/headless environments
 		}
 	}
 

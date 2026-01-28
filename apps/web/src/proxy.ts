@@ -7,6 +7,7 @@ const publicRoutes = [
 	"/sign-up",
 	"/auth/desktop",
 	"/api/auth/desktop",
+	"/accept-invitation",
 ];
 
 function isPublicRoute(pathname: string): boolean {

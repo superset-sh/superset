@@ -1,23 +1,7 @@
-import { useState } from "react";
-import type { ChangedFile } from "shared/changes-types";
+import { useCallback, useState } from "react";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
-
-interface FileListTreeProps {
-	files: ChangedFile[];
-	selectedFile: ChangedFile | null;
-	selectedCommitHash: string | null;
-	/** Single click - opens in preview mode */
-	onFileSelect: (file: ChangedFile) => void;
-	/** Double click - opens pinned (permanent) */
-	onFileDoubleClick?: (file: ChangedFile) => void;
-	showStats?: boolean;
-	onStage?: (file: ChangedFile) => void;
-	onUnstage?: (file: ChangedFile) => void;
-	isActioning?: boolean;
-	worktreePath?: string;
-	onDiscard?: (file: ChangedFile) => void;
-}
 
 interface FileTreeNode {
 	id: string;
@@ -26,6 +10,38 @@ interface FileTreeNode {
 	path: string;
 	file?: ChangedFile;
 	children?: FileTreeNode[];
+}
+
+function collectFilesFromNode(node: FileTreeNode): ChangedFile[] {
+	const files: ChangedFile[] = [];
+
+	if (node.type === "file" && node.file) {
+		files.push(node.file);
+	}
+
+	if (node.children) {
+		for (const child of node.children) {
+			files.push(...collectFilesFromNode(child));
+		}
+	}
+
+	return files;
+}
+
+interface FileListTreeProps {
+	files: ChangedFile[];
+	selectedFile: ChangedFile | null;
+	selectedCommitHash: string | null;
+	onFileSelect: (file: ChangedFile) => void;
+	showStats?: boolean;
+	onStage?: (file: ChangedFile) => void;
+	onUnstage?: (file: ChangedFile) => void;
+	isActioning?: boolean;
+	worktreePath: string;
+	onDiscard?: (file: ChangedFile) => void;
+	category?: ChangeCategory;
+	commitHash?: string;
+	isExpandedView?: boolean;
 }
 
 function buildFileTree(files: ChangedFile[]): FileTreeNode[] {
@@ -86,13 +102,15 @@ interface TreeNodeComponentProps {
 	selectedPath: string | null;
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
-	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
+	category?: ChangeCategory;
+	commitHash?: string;
+	isExpandedView?: boolean;
 }
 
 function TreeNodeComponent({
@@ -101,18 +119,44 @@ function TreeNodeComponent({
 	selectedPath,
 	selectedCommitHash,
 	onFileSelect,
-	onFileDoubleClick,
 	showStats,
 	onStage,
 	onUnstage,
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
+	isExpandedView,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
 	const isFile = node.type === "file";
 	const isSelected = selectedPath === node.path && !selectedCommitHash;
+
+	const handleStageAll = useCallback(() => {
+		if (!onStage) return;
+		const files = collectFilesFromNode(node);
+		for (const file of files) {
+			onStage(file);
+		}
+	}, [node, onStage]);
+
+	const handleUnstageAll = useCallback(() => {
+		if (!onUnstage) return;
+		const files = collectFilesFromNode(node);
+		for (const file of files) {
+			onUnstage(file);
+		}
+	}, [node, onUnstage]);
+
+	const handleDiscardAll = useCallback(() => {
+		if (!onDiscard) return;
+		const files = collectFilesFromNode(node);
+		for (const file of files) {
+			onDiscard(file);
+		}
+	}, [node, onDiscard]);
 
 	if (hasChildren) {
 		return (
@@ -122,6 +166,12 @@ function TreeNodeComponent({
 				onToggle={setIsExpanded}
 				level={level}
 				variant="tree"
+				folderPath={node.path}
+				worktreePath={worktreePath}
+				onStageAll={onStage ? handleStageAll : undefined}
+				onUnstageAll={onUnstage ? handleUnstageAll : undefined}
+				onDiscardAll={onDiscard ? handleDiscardAll : undefined}
+				isActioning={isActioning}
 			>
 				{node.children?.map((child) => (
 					<TreeNodeComponent
@@ -131,13 +181,15 @@ function TreeNodeComponent({
 						selectedPath={selectedPath}
 						selectedCommitHash={selectedCommitHash}
 						onFileSelect={onFileSelect}
-						onFileDoubleClick={onFileDoubleClick}
 						showStats={showStats}
 						onStage={onStage}
 						onUnstage={onUnstage}
 						isActioning={isActioning}
 						worktreePath={worktreePath}
 						onDiscard={onDiscard}
+						category={category}
+						commitHash={commitHash}
+						isExpandedView={isExpandedView}
 					/>
 				))}
 			</FolderRow>
@@ -151,9 +203,6 @@ function TreeNodeComponent({
 				file={file}
 				isSelected={isSelected}
 				onClick={() => onFileSelect(file)}
-				onDoubleClick={
-					onFileDoubleClick ? () => onFileDoubleClick(file) : undefined
-				}
 				showStats={showStats}
 				level={level}
 				onStage={onStage ? () => onStage(file) : undefined}
@@ -161,6 +210,9 @@ function TreeNodeComponent({
 				isActioning={isActioning}
 				worktreePath={worktreePath}
 				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
+				category={category}
+				commitHash={commitHash}
+				isExpandedView={isExpandedView}
 			/>
 		);
 	}
@@ -173,13 +225,15 @@ export function FileListTree({
 	selectedFile,
 	selectedCommitHash,
 	onFileSelect,
-	onFileDoubleClick,
 	showStats = true,
 	onStage,
 	onUnstage,
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
+	isExpandedView,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
 
@@ -192,13 +246,15 @@ export function FileListTree({
 					selectedPath={selectedFile?.path ?? null}
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={onFileSelect}
-					onFileDoubleClick={onFileDoubleClick}
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard}
+					category={category}
+					commitHash={commitHash}
+					isExpandedView={isExpandedView}
 				/>
 			))}
 		</div>

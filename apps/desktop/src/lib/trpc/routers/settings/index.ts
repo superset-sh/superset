@@ -1,11 +1,16 @@
 import {
+	BRANCH_PREFIX_MODES,
+	EXECUTION_MODES,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { app } from "electron";
+import { quitWithoutConfirmation } from "main/index";
 import { localDb } from "main/lib/local-db";
 import {
+	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PERSISTENCE,
@@ -13,6 +18,7 @@ import {
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
@@ -41,6 +47,7 @@ export const createSettingsRouter = () => {
 					description: z.string().optional(),
 					cwd: z.string(),
 					commands: z.array(z.string()),
+					executionMode: z.enum(EXECUTION_MODES).optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -74,6 +81,7 @@ export const createSettingsRouter = () => {
 						description: z.string().optional(),
 						cwd: z.string().optional(),
 						commands: z.array(z.string()).optional(),
+						executionMode: z.enum(EXECUTION_MODES).optional(),
 					}),
 				}),
 			)
@@ -95,6 +103,8 @@ export const createSettingsRouter = () => {
 				if (input.patch.cwd !== undefined) preset.cwd = input.patch.cwd;
 				if (input.patch.commands !== undefined)
 					preset.commands = input.patch.commands;
+				if (input.patch.executionMode !== undefined)
+					preset.executionMode = input.patch.executionMode;
 
 				localDb
 					.insert(settings)
@@ -133,7 +143,6 @@ export const createSettingsRouter = () => {
 				const row = getSettings();
 				const presets = row.terminalPresets ?? [];
 
-				// Clear existing default and set new one (if id is provided)
 				const updatedPresets = presets.map((p) => ({
 					...p,
 					isDefault: input.id === p.id ? true : undefined,
@@ -145,6 +154,47 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalPresets: updatedPresets },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		reorderTerminalPresets: publicProcedure
+			.input(
+				z.object({
+					presetId: z.string(),
+					targetIndex: z.number().int().min(0),
+				}),
+			)
+			.mutation(({ input }) => {
+				const row = getSettings();
+				const presets = row.terminalPresets ?? [];
+
+				const currentIndex = presets.findIndex((p) => p.id === input.presetId);
+				if (currentIndex === -1) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Preset not found",
+					});
+				}
+
+				if (input.targetIndex < 0 || input.targetIndex >= presets.length) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid target index for reordering presets",
+					});
+				}
+
+				const [removed] = presets.splice(currentIndex, 1);
+				presets.splice(input.targetIndex, 0, removed);
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPresets: presets })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPresets: presets },
 					})
 					.run();
 
@@ -207,7 +257,6 @@ export const createSettingsRouter = () => {
 
 		getConfirmOnQuit: publicProcedure.query(() => {
 			const row = getSettings();
-			// Default to true (confirm on quit enabled by default)
 			return row.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
 		}),
 
@@ -265,5 +314,76 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
+
+		getAutoApplyDefaultPreset: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
+		}),
+
+		setAutoApplyDefaultPreset: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, autoApplyDefaultPreset: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { autoApplyDefaultPreset: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		restartApp: publicProcedure.mutation(() => {
+			app.relaunch();
+			quitWithoutConfirmation();
+			return { success: true };
+		}),
+
+		getBranchPrefix: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				mode: row.branchPrefixMode ?? "none",
+				customPrefix: row.branchPrefixCustom ?? null,
+			};
+		}),
+
+		setBranchPrefix: publicProcedure
+			.input(
+				z.object({
+					mode: z.enum(BRANCH_PREFIX_MODES),
+					customPrefix: z.string().nullable().optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						branchPrefixMode: input.mode,
+						branchPrefixCustom: input.customPrefix ?? null,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: {
+							branchPrefixMode: input.mode,
+							branchPrefixCustom: input.customPrefix ?? null,
+						},
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getGitInfo: publicProcedure.query(async () => {
+			const githubUsername = await getGitHubUsername();
+			const authorName = await getGitAuthorName();
+			return {
+				githubUsername,
+				authorName,
+				authorPrefix: authorName?.toLowerCase().replace(/\s+/g, "-") ?? null,
+			};
+		}),
 	});
 };

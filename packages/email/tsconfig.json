@@ -4,17 +4,8 @@
 		"lib": ["ES2022"],
 		"jsx": "react-jsx",
 		"moduleResolution": "bundler",
-		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./src/*"]
-		}
+		"baseUrl": "."
 	},
-	"include": [
-		"src/**/*.ts",
-		"src/**/*.tsx",
-		"components/**/*.ts",
-		"components/**/*.tsx",
-		"emails/**/*.tsx"
-	],
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"exclude": ["node_modules", "dist"]
 }

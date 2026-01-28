@@ -1,0 +1,87 @@
+/* Alternating bullet styles - works at any nesting depth */
+.task-markdown-list {
+	list-style-type: disc;
+}
+
+.task-markdown-list ul {
+	list-style-type: circle;
+	margin: 0;
+	padding-left: 1.5rem;
+}
+
+.task-markdown-list ul ul {
+	list-style-type: disc;
+}
+
+.task-markdown-list ul ul ul {
+	list-style-type: circle;
+}
+
+.task-markdown-list ul ul ul ul {
+	list-style-type: disc;
+}
+
+.task-markdown-list ul ul ul ul ul {
+	list-style-type: circle;
+}
+
+/* Tighter spacing for list items */
+.task-markdown-list li {
+	margin: 0;
+}
+
+/* Task list checkbox styling */
+ul[data-type="taskList"] li[data-type="taskItem"] {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+}
+
+ul[data-type="taskList"] li[data-type="taskItem"] > label {
+	display: flex;
+	align-items: center;
+	margin-top: 0.125rem;
+}
+
+ul[data-type="taskList"]
+	li[data-type="taskItem"]
+	> label
+	> input[type="checkbox"] {
+	appearance: none;
+	width: 1rem;
+	height: 1rem;
+	border: 1.5px solid hsl(var(--border));
+	border-radius: 0.25rem;
+	background-color: transparent;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+ul[data-type="taskList"]
+	li[data-type="taskItem"]
+	> label
+	> input[type="checkbox"]:hover {
+	border-color: hsl(var(--primary));
+}
+
+ul[data-type="taskList"]
+	li[data-type="taskItem"]
+	> label
+	> input[type="checkbox"]:checked {
+	background-color: hsl(var(--primary));
+	border-color: hsl(var(--primary));
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+	background-size: 0.75rem;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+ul[data-type="taskList"]
+	li[data-type="taskItem"]
+	> label
+	> input[type="checkbox"]:focus {
+	outline: none;
+	box-shadow:
+		0 0 0 2px hsl(var(--background)),
+		0 0 0 4px hsl(var(--ring));
+}

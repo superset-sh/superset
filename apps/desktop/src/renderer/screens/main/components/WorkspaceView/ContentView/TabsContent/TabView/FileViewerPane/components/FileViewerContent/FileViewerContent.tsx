@@ -10,9 +10,10 @@ import {
 	useMonacoReady,
 } from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
+import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import type { FileViewerMode } from "shared/tabs-types";
-import { DiffViewer } from "../../../../../ChangesContent/components/DiffViewer";
+import { DiffViewer } from "../../../../../../ChangesContent/components/DiffViewer";
 import { registerCopyPathLineAction } from "../../../../../components/EditorContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 
@@ -52,6 +53,8 @@ interface FileViewerContentProps {
 	draftContentRef: MutableRefObject<string | null>;
 	initialLine?: number;
 	initialColumn?: number;
+	diffViewMode: DiffViewMode;
+	hideUnchangedRegions: boolean;
 	onSaveRaw: () => Promise<void>;
 	onSaveDiff?: (content: string) => Promise<void>;
 	onEditorChange: (value: string | undefined) => void;
@@ -80,6 +83,8 @@ export function FileViewerContent({
 	draftContentRef,
 	initialLine,
 	initialColumn,
+	diffViewMode,
+	hideUnchangedRegions,
 	onSaveRaw,
 	onSaveDiff,
 	onEditorChange,
@@ -186,7 +191,8 @@ export function FileViewerContent({
 					modified: diffData.modified,
 					language: diffData.language,
 				}}
-				viewMode="inline"
+				viewMode={diffViewMode}
+				hideUnchangedRegions={hideUnchangedRegions}
 				filePath={filePath}
 				editable={isDiffEditable}
 				onSave={isDiffEditable ? onSaveDiff : undefined}

@@ -4,9 +4,11 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
+import { githubRouter } from "./github";
 import { linearRouter } from "./linear";
 
 export const integrationRouter = {
+	github: githubRouter,
 	linear: linearRouter,
 
 	list: protectedProcedure

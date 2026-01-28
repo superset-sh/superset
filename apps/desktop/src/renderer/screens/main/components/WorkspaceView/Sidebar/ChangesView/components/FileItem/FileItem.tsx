@@ -16,7 +16,7 @@ import {
 } from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuClipboard,
@@ -27,30 +27,26 @@ import {
 	LuTrash2,
 	LuUndo2,
 } from "react-icons/lu";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { ChangedFile } from "shared/changes-types";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { createFileKey, useScrollContext } from "../../../../ChangesContent";
+import { usePathActions } from "../../hooks";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 
 interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
-	/** Single click - opens in preview mode */
 	onClick: () => void;
-	/** Double click - opens pinned (permanent) */
-	onDoubleClick?: () => void;
 	showStats?: boolean;
-	/** Number of level indentations (for tree view) */
 	level?: number;
-	/** Callback for staging the file (shown on hover for unstaged files) */
 	onStage?: () => void;
-	/** Callback for unstaging the file (shown on hover for staged files) */
 	onUnstage?: () => void;
-	/** Whether the action is currently pending */
 	isActioning?: boolean;
-	/** Worktree path for constructing absolute paths */
 	worktreePath?: string;
-	/** Callback for discarding changes */
 	onDiscard?: () => void;
+	category?: ChangeCategory;
+	commitHash?: string;
+	/** Expanded view uses scroll-sync highlighting; collapsed view uses selection highlighting */
+	isExpandedView?: boolean;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -74,7 +70,6 @@ export function FileItem({
 	file,
 	isSelected,
 	onClick,
-	onDoubleClick,
 	showStats = true,
 	level = 0,
 	onStage,
@@ -82,8 +77,13 @@ export function FileItem({
 	isActioning = false,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
+	isExpandedView = false,
 }: FileItemProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+	const { activeFileKey } = useScrollContext();
+	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const fileName = getFileName(file.path);
 	const statusBadgeColor = getStatusColor(file.status);
@@ -93,33 +93,56 @@ export function FileItem({
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage;
 
-	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
-	const openInEditorMutation =
-		electronTrpc.external.openFileInEditor.useMutation();
+	const isScrollSyncActive =
+		category && activeFileKey === createFileKey(file, category, commitHash);
+	const isHighlighted = isExpandedView ? isScrollSyncActive : isSelected;
 
 	const absolutePath = worktreePath ? `${worktreePath}/${file.path}` : null;
 
-	const handleCopyPath = async () => {
-		if (absolutePath) {
-			await navigator.clipboard.writeText(absolutePath);
-		}
-	};
+	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
+		usePathActions({
+			absolutePath,
+			relativePath: file.path,
+			cwd: worktreePath,
+		});
 
-	const handleCopyRelativePath = async () => {
-		await navigator.clipboard.writeText(file.path);
-	};
-
-	const handleRevealInFinder = () => {
-		if (absolutePath) {
-			openInFinderMutation.mutate(absolutePath);
+	const handleClick = useCallback(() => {
+		// Clear any pending single-click timeout
+		if (clickTimeoutRef.current) {
+			clearTimeout(clickTimeoutRef.current);
+			clickTimeoutRef.current = null;
 		}
-	};
 
-	const handleOpenInEditor = () => {
-		if (absolutePath && worktreePath) {
-			openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
-		}
-	};
+		// Set a timeout for single-click action
+		clickTimeoutRef.current = setTimeout(() => {
+			clickTimeoutRef.current = null;
+			onClick();
+		}, 300);
+	}, [onClick]);
+
+	const handleDoubleClick = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+				clickTimeoutRef.current = null;
+			}
+
+			openInEditor();
+		},
+		[openInEditor],
+	);
+
+	// Cleanup timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	const handleDiscardClick = () => {
 		setShowDiscardDialog(true);
@@ -144,14 +167,14 @@ export function FileItem({
 			className={cn(
 				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
 				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
-				isSelected && "bg-accent",
+				isHighlighted && "bg-accent",
 			)}
 		>
 			{hasIndent && <LevelIndicators level={level} />}
 			<button
 				type="button"
-				onClick={onClick}
-				onDoubleClick={onDoubleClick}
+				onClick={handleClick}
+				onDoubleClick={handleDoubleClick}
 				className={cn(
 					"flex items-center gap-1.5 flex-1 min-w-0",
 					hasIndent ? "py-0.5" : "py-1",
@@ -242,20 +265,20 @@ export function FileItem({
 			<ContextMenu>
 				<ContextMenuTrigger asChild>{fileContent}</ContextMenuTrigger>
 				<ContextMenuContent className="w-48">
-					<ContextMenuItem onClick={handleCopyPath}>
+					<ContextMenuItem onClick={copyPath}>
 						<LuClipboard className="mr-2 size-4" />
 						Copy Path
 					</ContextMenuItem>
-					<ContextMenuItem onClick={handleCopyRelativePath}>
+					<ContextMenuItem onClick={copyRelativePath}>
 						<LuClipboard className="mr-2 size-4" />
 						Copy Relative Path
 					</ContextMenuItem>
 					<ContextMenuSeparator />
-					<ContextMenuItem onClick={handleRevealInFinder}>
+					<ContextMenuItem onClick={revealInFinder}>
 						<LuFolderOpen className="mr-2 size-4" />
 						Reveal in Finder
 					</ContextMenuItem>
-					<ContextMenuItem onClick={handleOpenInEditor}>
+					<ContextMenuItem onClick={openInEditor}>
 						<LuExternalLink className="mr-2 size-4" />
 						Open in Editor
 					</ContextMenuItem>

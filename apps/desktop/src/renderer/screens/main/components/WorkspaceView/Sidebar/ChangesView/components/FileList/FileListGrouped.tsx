@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { ChangedFile } from "shared/changes-types";
+import { useCallback, useState } from "react";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
 
@@ -7,16 +7,16 @@ interface FileListGroupedProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile) => void;
-	/** Double click - opens pinned (permanent) */
-	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
+	category?: ChangeCategory;
+	commitHash?: string;
+	isExpandedView?: boolean;
 }
 
 interface FolderGroup {
@@ -62,30 +62,54 @@ interface FolderGroupItemProps {
 	group: FolderGroup;
 	selectedFile: ChangedFile | null;
 	onFileSelect: (file: ChangedFile) => void;
-	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
+	category?: ChangeCategory;
+	commitHash?: string;
+	isExpandedView?: boolean;
 }
 
 function FolderGroupItem({
 	group,
 	selectedFile,
 	onFileSelect,
-	onFileDoubleClick,
 	showStats,
 	onStage,
 	onUnstage,
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
+	isExpandedView,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
-	const isRoot = group.folderPath === "";
-	const displayName = isRoot ? "Root Path" : group.folderPath;
+	const displayName = group.folderPath || "Root Path";
+
+	const handleStageAll = useCallback(() => {
+		if (!onStage) return;
+		for (const file of group.files) {
+			onStage(file);
+		}
+	}, [group.files, onStage]);
+
+	const handleUnstageAll = useCallback(() => {
+		if (!onUnstage) return;
+		for (const file of group.files) {
+			onUnstage(file);
+		}
+	}, [group.files, onUnstage]);
+
+	const handleDiscardAll = useCallback(() => {
+		if (!onDiscard) return;
+		for (const file of group.files) {
+			onDiscard(file);
+		}
+	}, [group.files, onDiscard]);
 
 	return (
 		<FolderRow
@@ -94,6 +118,12 @@ function FolderGroupItem({
 			onToggle={setIsExpanded}
 			fileCount={group.files.length}
 			variant="grouped"
+			folderPath={group.folderPath}
+			worktreePath={worktreePath}
+			onStageAll={onStage ? handleStageAll : undefined}
+			onUnstageAll={onUnstage ? handleUnstageAll : undefined}
+			onDiscardAll={onDiscard ? handleDiscardAll : undefined}
+			isActioning={isActioning}
 		>
 			{group.files.map((file) => (
 				<FileItem
@@ -101,15 +131,15 @@ function FolderGroupItem({
 					file={file}
 					isSelected={selectedFile?.path === file.path}
 					onClick={() => onFileSelect(file)}
-					onDoubleClick={
-						onFileDoubleClick ? () => onFileDoubleClick(file) : undefined
-					}
 					showStats={showStats}
 					onStage={onStage ? () => onStage(file) : undefined}
 					onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
+					category={category}
+					commitHash={commitHash}
+					isExpandedView={isExpandedView}
 				/>
 			))}
 		</FolderRow>
@@ -120,13 +150,15 @@ export function FileListGrouped({
 	files,
 	selectedFile,
 	onFileSelect,
-	onFileDoubleClick,
 	showStats = true,
 	onStage,
 	onUnstage,
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
+	isExpandedView,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
@@ -138,13 +170,15 @@ export function FileListGrouped({
 					group={group}
 					selectedFile={selectedFile}
 					onFileSelect={onFileSelect}
-					onFileDoubleClick={onFileDoubleClick}
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard}
+					category={category}
+					commitHash={commitHash}
+					isExpandedView={isExpandedView}
 				/>
 			))}
 		</div>

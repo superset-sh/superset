@@ -1,7 +1,10 @@
 import { useParams } from "@tanstack/react-router";
+import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
 
 export function Sidebar() {
@@ -11,67 +14,67 @@ export function Sidebar() {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
+	const { currentMode } = useSidebarStore();
+	const isExpanded = currentMode === SidebarMode.Changes;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const trpcUtils = electronTrpc.useUtils();
+	const { scrollToFile } = useScrollContext();
 
-	// Invalidate file content queries to ensure fresh data when clicking a file
-	const invalidateFileContent = (filePath: string) => {
-		if (!worktreePath) return;
+	const invalidateFileContent = useCallback(
+		(filePath: string) => {
+			if (!worktreePath) return;
 
-		Promise.all([
-			trpcUtils.changes.readWorkingFile.invalidate({
-				worktreePath,
-				filePath,
-			}),
-			trpcUtils.changes.getFileContents.invalidate({
-				worktreePath,
-				filePath,
-			}),
-		]).catch((error) => {
-			console.error(
-				"[Sidebar/invalidateFileContent] Failed to invalidate file content queries:",
-				{ worktreePath, filePath, error },
-			);
-		});
-	};
+			Promise.all([
+				trpcUtils.changes.readWorkingFile.invalidate({
+					worktreePath,
+					filePath,
+				}),
+				trpcUtils.changes.getFileContents.invalidate({
+					worktreePath,
+					filePath,
+				}),
+			]).catch((error) => {
+				console.error(
+					"[Sidebar/invalidateFileContent] Failed to invalidate file content queries:",
+					{ worktreePath, filePath, error },
+				);
+			});
+		},
+		[worktreePath, trpcUtils],
+	);
 
-	// Single click - opens in preview mode (can be replaced by next single click)
+	const handleFileOpenPane = useCallback(
+		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
+			if (!workspaceId || !worktreePath) return;
+			addFileViewerPane(workspaceId, {
+				filePath: file.path,
+				diffCategory: category,
+				commitHash,
+				oldPath: file.oldPath,
+			});
+			invalidateFileContent(file.path);
+		},
+		[workspaceId, worktreePath, addFileViewerPane, invalidateFileContent],
+	);
+
+	const handleFileScrollTo = useCallback(
+		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
+			scrollToFile(file, category, commitHash);
+		},
+		[scrollToFile],
+	);
+
 	const handleFileOpen =
 		workspaceId && worktreePath
-			? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-					addFileViewerPane(workspaceId, {
-						filePath: file.path,
-						diffCategory: category,
-						commitHash,
-						oldPath: file.oldPath,
-						isPinned: false,
-					});
-					invalidateFileContent(file.path);
-				}
-			: undefined;
-
-	// Double click - opens pinned (permanent, won't be replaced)
-	const handleFileOpenPinned =
-		workspaceId && worktreePath
-			? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-					addFileViewerPane(workspaceId, {
-						filePath: file.path,
-						diffCategory: category,
-						commitHash,
-						oldPath: file.oldPath,
-						isPinned: true,
-					});
-					invalidateFileContent(file.path);
-				}
+			? isExpanded
+				? handleFileScrollTo
+				: handleFileOpenPane
 			: undefined;
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<ChangesView
-				onFileOpen={handleFileOpen}
-				onFileOpenPinned={handleFileOpenPinned}
-			/>
+			<ChangesView onFileOpen={handleFileOpen} isExpandedView={isExpanded} />
 		</aside>
 	);
 }

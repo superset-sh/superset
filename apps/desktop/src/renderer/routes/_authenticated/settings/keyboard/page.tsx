@@ -121,19 +121,18 @@ function KeyboardShortcutsPage() {
 
 	const showHotkeysDisplay = useHotkeyDisplay("SHOW_HOTKEYS");
 
-	const allHotkeys = useMemo(
-		() =>
-			CATEGORY_ORDER.flatMap((category) => hotkeysByCategory[category] ?? []),
-		[hotkeysByCategory],
-	);
-
-	const filteredHotkeys = useMemo(() => {
-		if (!searchQuery) return allHotkeys;
+	const filteredHotkeysByCategory = useMemo(() => {
+		if (!searchQuery) return hotkeysByCategory;
 		const lower = searchQuery.toLowerCase();
-		return allHotkeys.filter((hotkey) =>
-			hotkey.label.toLowerCase().includes(lower),
-		);
-	}, [allHotkeys, searchQuery]);
+		return Object.fromEntries(
+			CATEGORY_ORDER.map((category) => [
+				category,
+				(hotkeysByCategory[category] ?? []).filter((hotkey) =>
+					hotkey.label.toLowerCase().includes(lower),
+				),
+			]),
+		) as typeof hotkeysByCategory;
+	}, [hotkeysByCategory, searchQuery]);
 
 	useEffect(() => {
 		if (!recordingId) return;
@@ -296,36 +295,51 @@ function KeyboardShortcutsPage() {
 				/>
 			</div>
 
-			{/* Table */}
-			<div className="rounded-lg border border-border overflow-hidden">
-				<div className="flex items-center justify-between py-2 px-4 bg-accent/10 border-b border-border">
-					<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						Command
-					</span>
-					<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-						Shortcut
-					</span>
-				</div>
+			{/* Tables by Category */}
+			<div className="max-h-[calc(100vh-320px)] overflow-y-auto space-y-6">
+				{CATEGORY_ORDER.map((category) => {
+					const hotkeys = filteredHotkeysByCategory[category] ?? [];
+					if (hotkeys.length === 0) return null;
 
-				<div className="max-h-[calc(100vh-320px)] overflow-y-auto divide-y divide-border">
-					{filteredHotkeys.length > 0 ? (
-						filteredHotkeys.map((hotkey) => (
-							<HotkeyRow
-								key={hotkey.id}
-								id={hotkey.id}
-								label={hotkey.label}
-								description={hotkey.description}
-								isRecording={recordingId === hotkey.id}
-								onStartRecording={() => handleStartRecording(hotkey.id)}
-								onReset={() => resetHotkey(hotkey.id)}
-							/>
-						))
-					) : (
-						<div className="py-8 text-center text-sm text-muted-foreground">
-							No shortcuts found matching "{searchQuery}"
+					return (
+						<div key={category}>
+							<h3 className="text-sm font-medium text-muted-foreground mb-2">
+								{category}
+							</h3>
+							<div className="rounded-lg border border-border overflow-hidden">
+								<div className="flex items-center justify-between py-2 px-4 bg-accent/10 border-b border-border">
+									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+										Command
+									</span>
+									<span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+										Shortcut
+									</span>
+								</div>
+								<div className="divide-y divide-border">
+									{hotkeys.map((hotkey) => (
+										<HotkeyRow
+											key={hotkey.id}
+											id={hotkey.id}
+											label={hotkey.label}
+											description={hotkey.description}
+											isRecording={recordingId === hotkey.id}
+											onStartRecording={() => handleStartRecording(hotkey.id)}
+											onReset={() => resetHotkey(hotkey.id)}
+										/>
+									))}
+								</div>
+							</div>
 						</div>
-					)}
-				</div>
+					);
+				})}
+
+				{CATEGORY_ORDER.every(
+					(cat) => (filteredHotkeysByCategory[cat] ?? []).length === 0,
+				) && (
+					<div className="py-8 text-center text-sm text-muted-foreground">
+						No shortcuts found matching "{searchQuery}"
+					</div>
+				)}
 			</div>
 
 			{/* Conflict dialog */}

@@ -2,12 +2,14 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { usePresets } from "renderer/react-query/presets";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
-import { ContentView } from "renderer/screens/main/components/WorkspaceView/ContentView";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
+import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { useAppHotkey } from "renderer/stores/hotkeys";
-import { useSidebarStore } from "renderer/stores/sidebar-state";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
@@ -79,12 +81,21 @@ function WorkspacePage() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
-	const { addTab, splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
-		useTabsWithPresets();
+	const {
+		addTab,
+		splitPaneAuto,
+		splitPaneVertical,
+		splitPaneHorizontal,
+		openPreset,
+	} = useTabsWithPresets();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
+	const setSidebarOpen = useSidebarStore((s) => s.setSidebarOpen);
+	const currentSidebarMode = useSidebarStore((s) => s.currentMode);
+	const setSidebarMode = useSidebarStore((s) => s.setMode);
 
 	const tabs = useMemo(
 		() => allTabs.filter((tab) => tab.workspaceId === workspaceId),
@@ -107,15 +118,25 @@ function WorkspacePage() {
 
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Tab management shortcuts
-	useAppHotkey(
-		"NEW_GROUP",
-		() => {
-			addTab(workspaceId);
+	const { presets } = usePresets();
+
+	const openTabWithPreset = useCallback(
+		(presetIndex: number) => {
+			const preset = presets[presetIndex];
+			if (preset) {
+				openPreset(workspaceId, preset);
+			} else {
+				addTab(workspaceId);
+			}
 		},
-		undefined,
-		[workspaceId, addTab],
+		[presets, workspaceId, addTab, openPreset],
 	);
+
+	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
+		workspaceId,
+		addTab,
+	]);
+	usePresetHotkeys(openTabWithPreset);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",
@@ -128,9 +149,8 @@ function WorkspacePage() {
 		[focusedPaneId, removePane],
 	);
 
-	// Switch between tabs
 	useAppHotkey(
-		"PREV_TERMINAL",
+		"PREV_TAB",
 		() => {
 			if (!activeTabId) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
@@ -143,7 +163,7 @@ function WorkspacePage() {
 	);
 
 	useAppHotkey(
-		"NEXT_TERMINAL",
+		"NEXT_TAB",
 		() => {
 			if (!activeTabId) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
@@ -155,7 +175,6 @@ function WorkspacePage() {
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
-	// Switch between panes within a tab
 	useAppHotkey(
 		"PREV_PANE",
 		() => {
@@ -217,6 +236,22 @@ function WorkspacePage() {
 	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
 		toggleSidebar,
 	]);
+
+	// Toggle expand/collapse sidebar (⌘⇧L)
+	useAppHotkey(
+		"TOGGLE_EXPAND_SIDEBAR",
+		() => {
+			if (!isSidebarOpen) {
+				setSidebarOpen(true);
+				setSidebarMode(SidebarMode.Changes);
+			} else {
+				const isExpanded = currentSidebarMode === SidebarMode.Changes;
+				setSidebarMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+			}
+		},
+		undefined,
+		[isSidebarOpen, setSidebarOpen, setSidebarMode, currentSidebarMode],
+	);
 
 	// Pane splitting helper - resolves target pane for split operations
 	const resolveSplitTarget = useCallback(
@@ -336,7 +371,7 @@ function WorkspacePage() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
-			<div className="flex-1 min-h-0 overflow-hidden">
+			<div className="flex-1 min-h-0 flex overflow-hidden">
 				{showInitView ? (
 					<WorkspaceInitializingView
 						workspaceId={workspaceId}
@@ -344,7 +379,7 @@ function WorkspacePage() {
 						isInterrupted={hasIncompleteInit && !isInitializing}
 					/>
 				) : (
-					<ContentView />
+					<WorkspaceLayout />
 				)}
 			</div>
 		</div>

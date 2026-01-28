@@ -13,7 +13,7 @@ import {
 	webhookEvents,
 } from "@superset/db/schema";
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { env } from "@/env";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
@@ -28,19 +28,44 @@ export async function POST(request: Request) {
 
 	const payload = webhookClient.parseData(Buffer.from(body), signature);
 
+	// Store event with idempotent handling
+	const eventId = `${payload.organizationId}-${payload.webhookTimestamp}`;
+
 	const [webhookEvent] = await db
 		.insert(webhookEvents)
 		.values({
 			provider: "linear",
-			eventId: `${payload.organizationId}-${payload.webhookTimestamp}`,
+			eventId,
 			eventType: `${payload.type}.${payload.action}`,
 			payload,
 			status: "pending",
+		})
+		.onConflictDoUpdate({
+			target: [webhookEvents.provider, webhookEvents.eventId],
+			set: {
+				// Reset for reprocessing only if previously failed
+				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
+				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
+				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
+			},
 		})
 		.returning();
 
 	if (!webhookEvent) {
 		return Response.json({ error: "Failed to store event" }, { status: 500 });
+	}
+
+	// Idempotent: skip if already processed or not ready for processing
+	if (webhookEvent.status === "processed") {
+		console.log("[linear/webhook] Event already processed:", eventId);
+		return Response.json({ success: true, message: "Already processed" });
+	}
+	if (webhookEvent.status !== "pending") {
+		console.log(
+			`[linear/webhook] Event in ${webhookEvent.status} state:`,
+			eventId,
+		);
+		return Response.json({ success: true, message: "Event not ready" });
 	}
 
 	const connection = await db.query.integrationConnections.findFirst({

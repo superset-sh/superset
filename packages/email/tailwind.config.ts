@@ -2,10 +2,7 @@ import type { Config } from "tailwindcss";
 import { colors } from "./src/lib/colors";
 
 export default {
-	content: [
-		"./emails/**/*.{js,jsx,ts,tsx}",
-		"./components/**/*.{js,jsx,ts,tsx}",
-	],
+	content: ["./src/**/*.{js,jsx,ts,tsx}"],
 	theme: {
 		extend: {
 			colors: {

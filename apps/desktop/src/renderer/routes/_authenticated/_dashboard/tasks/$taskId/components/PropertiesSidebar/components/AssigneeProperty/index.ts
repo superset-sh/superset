@@ -1,0 +1,1 @@
+export { AssigneeProperty } from "./AssigneeProperty";

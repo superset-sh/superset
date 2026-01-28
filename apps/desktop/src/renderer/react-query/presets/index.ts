@@ -65,6 +65,22 @@ function useSetDefaultPreset(
 	});
 }
 
+function useReorderTerminalPresets(
+	options?: Parameters<
+		typeof electronTrpc.settings.reorderTerminalPresets.useMutation
+	>[0],
+) {
+	const utils = electronTrpc.useUtils();
+
+	return electronTrpc.settings.reorderTerminalPresets.useMutation({
+		...options,
+		onSuccess: async (...args) => {
+			await utils.settings.getTerminalPresets.invalidate();
+			await options?.onSuccess?.(...args);
+		},
+	});
+}
+
 /**
  * Combined hook for accessing terminal presets with all CRUD operations
  * Provides easy access to presets data and mutations from anywhere in the app
@@ -80,6 +96,7 @@ export function usePresets() {
 	const updatePreset = useUpdateTerminalPreset();
 	const deletePreset = useDeleteTerminalPreset();
 	const setDefaultPreset = useSetDefaultPreset();
+	const reorderPresets = useReorderTerminalPresets();
 
 	return {
 		presets,
@@ -89,5 +106,6 @@ export function usePresets() {
 		updatePreset,
 		deletePreset,
 		setDefaultPreset,
+		reorderPresets,
 	};
 }
