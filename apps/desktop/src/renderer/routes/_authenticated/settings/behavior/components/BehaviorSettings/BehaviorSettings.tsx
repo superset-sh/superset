@@ -9,6 +9,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
+import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
 import {
@@ -33,7 +34,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 	const utils = electronTrpc.useUtils();
 
-	// Confirm on quit setting
 	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
 		electronTrpc.settings.getConfirmOnQuit.useQuery();
 	const setConfirmOnQuit = electronTrpc.settings.setConfirmOnQuit.useMutation({
@@ -57,25 +57,21 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		setConfirmOnQuit.mutate({ enabled });
 	};
 
-	// Branch prefix setting
 	const { data: branchPrefix, isLoading: isBranchPrefixLoading } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+
+	const [customPrefixInput, setCustomPrefixInput] = useState(
+		branchPrefix?.customPrefix ?? "",
+	);
+
+	useEffect(() => {
+		setCustomPrefixInput(branchPrefix?.customPrefix ?? "");
+	}, [branchPrefix?.customPrefix]);
+
 	const setBranchPrefix = electronTrpc.settings.setBranchPrefix.useMutation({
-		onMutate: async ({ mode, customPrefix }) => {
-			await utils.settings.getBranchPrefix.cancel();
-			const previous = utils.settings.getBranchPrefix.getData();
-			utils.settings.getBranchPrefix.setData(undefined, {
-				mode,
-				customPrefix: customPrefix ?? null,
-			});
-			return { previous };
-		},
-		onError: (err, _vars, context) => {
+		onError: (err) => {
 			console.error("[settings/branch-prefix] Failed to update:", err);
-			if (context?.previous !== undefined) {
-				utils.settings.getBranchPrefix.setData(undefined, context.previous);
-			}
 		},
 		onSettled: () => {
 			utils.settings.getBranchPrefix.invalidate();
@@ -85,14 +81,14 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	const handleBranchPrefixModeChange = (mode: BranchPrefixMode) => {
 		setBranchPrefix.mutate({
 			mode,
-			customPrefix: mode === "custom" ? branchPrefix?.customPrefix : null,
+			customPrefix: customPrefixInput || null,
 		});
 	};
 
-	const handleCustomPrefixChange = (customPrefix: string) => {
+	const handleCustomPrefixBlur = () => {
 		setBranchPrefix.mutate({
 			mode: "custom",
-			customPrefix: customPrefix || null,
+			customPrefix: customPrefixInput || null,
 		});
 	};
 
@@ -102,7 +98,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			case "none":
 				return null;
 			case "custom":
-				return branchPrefix?.customPrefix || null;
+				return customPrefixInput || null;
 			case "author":
 				return gitInfo?.authorPrefix || "author-name";
 			default:
@@ -122,7 +118,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			</div>
 
 			<div className="space-y-6">
-				{/* Confirm on Quit */}
 				{showConfirmQuit && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
@@ -142,7 +137,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					</div>
 				)}
 
-				{/* Branch Prefix */}
 				{showBranchPrefix && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
@@ -150,7 +144,9 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							<p className="text-xs text-muted-foreground">
 								Preview:{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
-									{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
+									{previewPrefix
+										? `${previewPrefix}/branch-name`
+										: "branch-name"}
 								</code>
 							</p>
 						</div>
@@ -181,8 +177,9 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							{branchPrefix?.mode === "custom" && (
 								<Input
 									placeholder="Prefix"
-									value={branchPrefix.customPrefix ?? ""}
-									onChange={(e) => handleCustomPrefixChange(e.target.value)}
+									value={customPrefixInput}
+									onChange={(e) => setCustomPrefixInput(e.target.value)}
+									onBlur={handleCustomPrefixBlur}
 									className="w-[120px]"
 									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
 								/>

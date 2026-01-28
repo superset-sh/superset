@@ -8,6 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { useEffect, useState } from "react";
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ClickablePath } from "../../../../components/ClickablePath";
@@ -30,23 +31,17 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
 
+	const [customPrefixInput, setCustomPrefixInput] = useState(
+		project?.branchPrefixCustom ?? "",
+	);
+
+	useEffect(() => {
+		setCustomPrefixInput(project?.branchPrefixCustom ?? "");
+	}, [project?.branchPrefixCustom]);
+
 	const updateProject = electronTrpc.projects.update.useMutation({
-		onMutate: async ({ patch }) => {
-			await utils.projects.get.cancel({ id: projectId });
-			const previous = utils.projects.get.getData({ id: projectId });
-			if (previous) {
-				utils.projects.get.setData(
-					{ id: projectId },
-					{ ...previous, ...patch },
-				);
-			}
-			return { previous };
-		},
-		onError: (err, _vars, context) => {
+		onError: (err) => {
 			console.error("[project-settings/update] Failed to update:", err);
-			if (context?.previous) {
-				utils.projects.get.setData({ id: projectId }, context.previous);
-			}
 		},
 		onSettled: () => {
 			utils.projects.get.invalidate({ id: projectId });
@@ -59,7 +54,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				id: projectId,
 				patch: {
 					branchPrefixMode: null,
-					branchPrefixCustom: null,
+					branchPrefixCustom: customPrefixInput || null,
 				},
 			});
 		} else {
@@ -67,19 +62,18 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				id: projectId,
 				patch: {
 					branchPrefixMode: value as BranchPrefixMode,
-					branchPrefixCustom:
-						value === "custom" ? project?.branchPrefixCustom : null,
+					branchPrefixCustom: customPrefixInput || null,
 				},
 			});
 		}
 	};
 
-	const handleCustomPrefixChange = (customPrefix: string) => {
+	const handleCustomPrefixBlur = () => {
 		updateProject.mutate({
 			id: projectId,
 			patch: {
 				branchPrefixMode: "custom",
-				branchPrefixCustom: customPrefix || null,
+				branchPrefixCustom: customPrefixInput || null,
 			},
 		});
 	};
@@ -91,7 +85,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 			case "none":
 				return null;
 			case "custom":
-				return project?.branchPrefixCustom || null;
+				return customPrefixInput || null;
 			case "author":
 				return gitAuthor?.prefix || "author-name";
 			case "github":
@@ -172,8 +166,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 								</Label>
 								<Input
 									placeholder="Enter custom prefix"
-									value={project.branchPrefixCustom ?? ""}
-									onChange={(e) => handleCustomPrefixChange(e.target.value)}
+									value={customPrefixInput}
+									onChange={(e) => setCustomPrefixInput(e.target.value)}
+									onBlur={handleCustomPrefixBlur}
 									className="w-[200px]"
 									disabled={updateProject.isPending}
 								/>

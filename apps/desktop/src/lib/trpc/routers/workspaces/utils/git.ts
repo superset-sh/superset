@@ -340,13 +340,6 @@ export async function getAuthorPrefix(
 	return null;
 }
 
-/**
- * Gets the branch prefix based on the configured mode.
- * @param repoPath - Path to the repository
- * @param mode - The branch prefix mode
- * @param customPrefix - Custom prefix value (used when mode is "custom")
- * @returns The prefix string, or null if no prefix should be used
- */
 export async function getBranchPrefix({
 	repoPath,
 	mode,
@@ -364,13 +357,11 @@ export async function getBranchPrefix({
 		case "author": {
 			const authorName = await getGitAuthorName(repoPath);
 			if (authorName) {
-				// Convert "John Doe" to "john-doe"
 				return authorName.toLowerCase().replace(/\s+/g, "-");
 			}
 			return null;
 		}
 		default:
-			// Default to GitHub username, falling back to author name
 			return getAuthorPrefix(repoPath);
 	}
 }

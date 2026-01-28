@@ -143,7 +143,6 @@ export const createSettingsRouter = () => {
 				const row = getSettings();
 				const presets = row.terminalPresets ?? [];
 
-				// Clear existing default and set new one (if id is provided)
 				const updatedPresets = presets.map((p) => ({
 					...p,
 					isDefault: input.id === p.id ? true : undefined,
@@ -258,7 +257,6 @@ export const createSettingsRouter = () => {
 
 		getConfirmOnQuit: publicProcedure.query(() => {
 			const row = getSettings();
-			// Default to true (confirm on quit enabled by default)
 			return row.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
 		}),
 
