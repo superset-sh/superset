@@ -35,6 +35,14 @@ function scrollToFirstDiff(
 	}
 }
 
+function getLineNumbersMinChars(original: string, modified: string): number {
+	const originalLines = original.split("\n").length;
+	const modifiedLines = modified.split("\n").length;
+	const maxLines = Math.max(originalLines, modifiedLines);
+	const digits = maxLines > 0 ? Math.floor(Math.log10(maxLines)) + 1 : 1;
+	return digits + 1;
+}
+
 export interface DiffViewerContextMenuProps {
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
@@ -272,6 +280,10 @@ export function DiffViewer({
 			}
 			options={{
 				...MONACO_EDITOR_OPTIONS,
+				lineNumbersMinChars: getLineNumbersMinChars(
+					contents.original,
+					contents.modified,
+				),
 				renderSideBySide: viewMode === "side-by-side",
 				useInlineViewWhenSpaceIsLimited: false,
 				readOnly: !editable,
