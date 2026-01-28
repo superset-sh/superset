@@ -20,8 +20,6 @@
 
 </div>
 
-<br />
-
 ## Why Superset?
 
 Superset is a turbocharged terminal that allows you to run any CLI coding agents along with the tools to 10x your development workflow. 
@@ -32,8 +30,6 @@ Superset is a turbocharged terminal that allows you to run any CLI coding agents
 - **Review changes quickly** with built-in diff viewer and editor
 
 Wait less, ship more.
-
-<br />
 
 ## Features
 
@@ -48,8 +44,6 @@ Wait less, ship more.
 | **Quick Context Switching** | Jump between tasks as they need your attention |
 | **IDE Integration** | Open any workspace in your favorite editor with one click |
 
-<br />
-
 ## Supported Agents
 
 Superset works with any CLI-based coding agent, including:
@@ -61,8 +55,6 @@ Superset works with any CLI-based coding agent, including:
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
 | Any terminal-based agent | Will work |
 
-<br />
-
 ## Requirements
 
 | Requirement | Details |
@@ -70,8 +62,6 @@ Superset works with any CLI-based coding agent, including:
 | **OS** | macOS (Windows/Linux untested) |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
 | **Version Control** | Git 2.20+ (for worktree support) |
-
-<br />
 
 ## Getting Started
 
@@ -85,8 +75,6 @@ Download the latest release for macOS:
 
 <details>
 <summary>Click to expand build instructions</summary>
-
-<br />
 
 **1. Clone the repository**
 
@@ -124,9 +112,6 @@ open apps/desktop/release
 
 </details>
 
-
-<br />
-
 ## How It Works
 
 Superset leverages **git worktrees** to create isolated working directories for each task. When you start a new task:
@@ -138,8 +123,6 @@ Superset leverages **git worktrees** to create isolated working directories for 
 5. **Review & merge** — Use the built-in diff viewer to inspect changes before merging
 
 Each workspace is completely isolated, so agents can't interfere with each other or your main branch.
-
-<br />
 
 ## Keyboard Shortcuts
 
@@ -177,8 +160,6 @@ All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`).
 | `⌘O` | Open in external app |
 | `⌘⇧C` | Copy path |
 
-<br />
-
 ## Configuration
 
 Configure workspace setup and teardown in `.superset/config.json`:
@@ -215,8 +196,6 @@ Scripts have access to environment variables:
 - `SUPERSET_WORKSPACE_NAME` — Name of the workspace
 - `SUPERSET_ROOT_PATH` — Path to the main repository
 
-<br />
-
 ## Tech Stack
 
 <p>
@@ -231,8 +210,6 @@ Scripts have access to environment variables:
   <a href="https://neon.tech/"><img src="https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white" alt="Neon" /></a>
   <a href="https://trpc.io/"><img src="https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white" alt="tRPC" /></a>
 </p>
-
-<br />
 
 ## Contributing
 
@@ -252,8 +229,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions and code of con
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
 </a>
 
-<br />
-
 ## Community
 
 Join the Superset community to get help, share feedback, and connect with other users:
@@ -268,8 +243,6 @@ Join the Superset community to get help, share feedback, and connect with other 
 [![Avi Twitter](https://img.shields.io/badge/Avi-@avimakesrobots-555?logo=x)](https://x.com/avimakesrobots)
 [![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
 [![Satya Twitter](https://img.shields.io/badge/Satya-@saddle__paddle-555?logo=x)](https://x.com/saddle_paddle)
-
-<br />
 
 ## License
 
