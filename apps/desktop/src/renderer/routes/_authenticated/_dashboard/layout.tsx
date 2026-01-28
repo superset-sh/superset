@@ -6,7 +6,6 @@ import {
 } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
-import { TopBar } from "renderer/screens/main/components/TopBar";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -15,6 +14,7 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { TopBar } from "./components/TopBar";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,

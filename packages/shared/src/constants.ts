@@ -20,6 +20,9 @@ export const COMPANY = {
 	PRIVACY_URL:
 		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
 		"/privacy",
+	CHANGELOG_URL:
+		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
+		"/changelog",
 	X_URL: "https://x.com/superset_sh",
 	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
@@ -50,6 +53,6 @@ export const FEATURE_FLAGS = {
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
 	/** Gates access to billing features. */
 	BILLING_ENABLED: "billing-enabled",
-	/** Gates access to MCP agent commands (cloud-to-desktop sync). */
-	AGENT_COMMANDS_ACCESS: "agent-commands-access",
+	/** Gates access to GitHub integration (currently buggy, internal only). */
+	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
 } as const;

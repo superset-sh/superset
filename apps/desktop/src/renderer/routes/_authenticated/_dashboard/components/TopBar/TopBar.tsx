@@ -1,8 +1,9 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { OpenInMenuButton } from "./OpenInMenuButton";
-import { OrganizationDropdown } from "./OrganizationDropdown";
-import { WindowControls } from "./WindowControls";
+import { OpenInMenuButton } from "./components/OpenInMenuButton";
+import { OrganizationDropdown } from "./components/OrganizationDropdown";
+import { SidebarToggle } from "./components/SidebarToggle";
+import { WindowControls } from "./components/WindowControls";
 
 export function TopBar() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
@@ -21,7 +22,9 @@ export function TopBar() {
 				style={{
 					paddingLeft: isMac ? "88px" : "16px",
 				}}
-			/>
+			>
+				<SidebarToggle />
+			</div>
 
 			<div className="flex-1" />
 

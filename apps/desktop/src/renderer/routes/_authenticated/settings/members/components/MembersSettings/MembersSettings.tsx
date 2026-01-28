@@ -16,7 +16,6 @@ import {
 } from "@superset/ui/table";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
@@ -69,21 +68,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	);
 	const organization = orgData?.find((org) => org.id === activeOrganizationId);
 
-	const { data: subscriptionData } = useQuery({
-		queryKey: ["subscription", activeOrganizationId],
-		queryFn: async () => {
-			if (!activeOrganizationId) return null;
-			const result = await authClient.subscription.list({
-				query: { referenceId: activeOrganizationId },
-			});
-			return result.data?.find((s) => s.status === "active");
-		},
-		enabled: !!activeOrganizationId,
-	});
-
-	const plan =
-		(subscriptionData?.plan as "free" | "pro" | "enterprise") ?? "free";
-
 	const members: TeamMember[] = (membersData ?? [])
 		.map((m) => ({
 			...m,
@@ -129,7 +113,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 								currentUserRole={currentUserRole}
 								organizationId={activeOrganizationId}
 								organizationName={organization.name}
-								plan={plan}
 							/>
 						</div>
 					)}
@@ -228,7 +211,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																		isCurrentUserRow,
 																		ownerCount,
 																	)}
-																	plan={plan}
 																/>
 															)}
 														</TableCell>

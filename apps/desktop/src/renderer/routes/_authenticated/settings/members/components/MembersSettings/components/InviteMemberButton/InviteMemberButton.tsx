@@ -12,14 +12,12 @@ interface InviteMemberButtonProps {
 	currentUserRole: OrganizationRole;
 	organizationId: string;
 	organizationName: string;
-	plan?: "free" | "pro" | "enterprise";
 }
 
 export function InviteMemberButton({
 	currentUserRole,
 	organizationId,
 	organizationName,
-	plan,
 }: InviteMemberButtonProps) {
 	const [open, setOpen] = useState(false);
 
@@ -31,18 +29,14 @@ export function InviteMemberButton({
 	}
 
 	const handleClick = () => {
-		if (plan === "pro") {
-			alert({
-				title: "This will affect your billing",
-				description:
-					"Each member added will be billed at $20/month (prorated to your billing cycle).",
-				confirmText: "Continue",
-				cancelText: "Cancel",
-				onConfirm: () => setOpen(true),
-			});
-		} else {
-			setOpen(true);
-		}
+		alert({
+			title: "This will affect your billing",
+			description:
+				"Adding members will increase your subscription cost, prorated to your billing cycle.",
+			confirmText: "Continue",
+			cancelText: "Cancel",
+			onConfirm: () => setOpen(true),
+		});
 	};
 
 	return (

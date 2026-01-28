@@ -81,8 +81,13 @@ function WorkspacePage() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
-	const { addTab, splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
-		useTabsWithPresets();
+	const {
+		addTab,
+		splitPaneAuto,
+		splitPaneVertical,
+		splitPaneHorizontal,
+		openPreset,
+	} = useTabsWithPresets();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -114,24 +119,17 @@ function WorkspacePage() {
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
 	const { presets } = usePresets();
-	const renameTab = useTabsStore((s) => s.renameTab);
 
 	const openTabWithPreset = useCallback(
 		(presetIndex: number) => {
 			const preset = presets[presetIndex];
 			if (preset) {
-				const result = addTab(workspaceId, {
-					initialCommands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				});
-				if (preset.name) {
-					renameTab(result.tabId, preset.name);
-				}
+				openPreset(workspaceId, preset);
 			} else {
 				addTab(workspaceId);
 			}
 		},
-		[presets, workspaceId, addTab, renameTab],
+		[presets, workspaceId, addTab, openPreset],
 	);
 
 	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [

@@ -1,7 +1,32 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
+
+interface FileTreeNode {
+	id: string;
+	name: string;
+	type: "file" | "folder";
+	path: string;
+	file?: ChangedFile;
+	children?: FileTreeNode[];
+}
+
+function collectFilesFromNode(node: FileTreeNode): ChangedFile[] {
+	const files: ChangedFile[] = [];
+
+	if (node.type === "file" && node.file) {
+		files.push(node.file);
+	}
+
+	if (node.children) {
+		for (const child of node.children) {
+			files.push(...collectFilesFromNode(child));
+		}
+	}
+
+	return files;
+}
 
 interface FileListTreeProps {
 	files: ChangedFile[];
@@ -12,20 +37,11 @@ interface FileListTreeProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
-}
-
-interface FileTreeNode {
-	id: string;
-	name: string;
-	type: "file" | "folder";
-	path: string;
-	file?: ChangedFile;
-	children?: FileTreeNode[];
 }
 
 function buildFileTree(files: ChangedFile[]): FileTreeNode[] {
@@ -90,7 +106,7 @@ interface TreeNodeComponentProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
@@ -118,6 +134,30 @@ function TreeNodeComponent({
 	const isFile = node.type === "file";
 	const isSelected = selectedPath === node.path && !selectedCommitHash;
 
+	const handleStageAll = useCallback(() => {
+		if (!onStage) return;
+		const files = collectFilesFromNode(node);
+		for (const file of files) {
+			onStage(file);
+		}
+	}, [node, onStage]);
+
+	const handleUnstageAll = useCallback(() => {
+		if (!onUnstage) return;
+		const files = collectFilesFromNode(node);
+		for (const file of files) {
+			onUnstage(file);
+		}
+	}, [node, onUnstage]);
+
+	const handleDiscardAll = useCallback(() => {
+		if (!onDiscard) return;
+		const files = collectFilesFromNode(node);
+		for (const file of files) {
+			onDiscard(file);
+		}
+	}, [node, onDiscard]);
+
 	if (hasChildren) {
 		return (
 			<FolderRow
@@ -126,6 +166,12 @@ function TreeNodeComponent({
 				onToggle={setIsExpanded}
 				level={level}
 				variant="tree"
+				folderPath={node.path}
+				worktreePath={worktreePath}
+				onStageAll={onStage ? handleStageAll : undefined}
+				onUnstageAll={onUnstage ? handleUnstageAll : undefined}
+				onDiscardAll={onDiscard ? handleDiscardAll : undefined}
+				isActioning={isActioning}
 			>
 				{node.children?.map((child) => (
 					<TreeNodeComponent

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
@@ -12,7 +12,7 @@ interface FileListGroupedProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
@@ -66,7 +66,7 @@ interface FolderGroupItemProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
@@ -88,8 +88,28 @@ function FolderGroupItem({
 	isExpandedView,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
-	const isRoot = group.folderPath === "";
-	const displayName = isRoot ? "Root Path" : group.folderPath;
+	const displayName = group.folderPath || "Root Path";
+
+	const handleStageAll = useCallback(() => {
+		if (!onStage) return;
+		for (const file of group.files) {
+			onStage(file);
+		}
+	}, [group.files, onStage]);
+
+	const handleUnstageAll = useCallback(() => {
+		if (!onUnstage) return;
+		for (const file of group.files) {
+			onUnstage(file);
+		}
+	}, [group.files, onUnstage]);
+
+	const handleDiscardAll = useCallback(() => {
+		if (!onDiscard) return;
+		for (const file of group.files) {
+			onDiscard(file);
+		}
+	}, [group.files, onDiscard]);
 
 	return (
 		<FolderRow
@@ -98,6 +118,12 @@ function FolderGroupItem({
 			onToggle={setIsExpanded}
 			fileCount={group.files.length}
 			variant="grouped"
+			folderPath={group.folderPath}
+			worktreePath={worktreePath}
+			onStageAll={onStage ? handleStageAll : undefined}
+			onUnstageAll={onUnstage ? handleUnstageAll : undefined}
+			onDiscardAll={onDiscard ? handleDiscardAll : undefined}
+			isActioning={isActioning}
 		>
 			{group.files.map((file) => (
 				<FileItem

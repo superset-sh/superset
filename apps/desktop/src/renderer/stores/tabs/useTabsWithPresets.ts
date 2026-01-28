@@ -1,3 +1,4 @@
+import type { TerminalPreset } from "@superset/local-db";
 import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { usePresets } from "renderer/react-query/presets";
@@ -138,12 +139,37 @@ export function useTabsWithPresets() {
 		[storeSplitPaneAuto, defaultPresetOptions],
 	);
 
+	const openPreset = useCallback(
+		(workspaceId: string, preset: TerminalPreset) => {
+			const isParallel =
+				preset.executionMode === "parallel" && preset.commands.length > 1;
+
+			const { tabId } = isParallel
+				? storeAddTabWithMultiplePanes(workspaceId, {
+						commands: preset.commands,
+						initialCwd: preset.cwd || undefined,
+					})
+				: storeAddTab(workspaceId, {
+						initialCommands: preset.commands,
+						initialCwd: preset.cwd || undefined,
+					});
+
+			if (preset.name) {
+				renameTab(tabId, preset.name);
+			}
+
+			return { tabId };
+		},
+		[storeAddTab, storeAddTabWithMultiplePanes, renameTab],
+	);
+
 	return {
 		addTab,
 		addPane,
 		splitPaneVertical,
 		splitPaneHorizontal,
 		splitPaneAuto,
+		openPreset,
 		defaultPreset,
 	};
 }

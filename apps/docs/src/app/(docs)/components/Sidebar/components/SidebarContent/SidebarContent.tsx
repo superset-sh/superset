@@ -107,6 +107,7 @@ export const sections: SidebarSection[] = [
 			{ title: "Terminal", href: "/terminal-integration" },
 			{ title: "Port Management", href: "/ports" },
 			{ title: "AI Agents", href: "/agent-integration" },
+			{ title: "MCP Server", href: "/mcp" },
 		],
 	},
 	{
