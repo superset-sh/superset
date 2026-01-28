@@ -1,3 +1,4 @@
+import type { BranchPrefixMode } from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -9,21 +10,12 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-
-type BranchPrefixMode = "github" | "author" | "feat" | "custom" | "none";
-
-const BRANCH_PREFIX_MODE_LABELS: Record<BranchPrefixMode, string> = {
-	github: "GitHub username",
-	author: "Git author name",
-	feat: '"feat" prefix',
-	custom: "Custom prefix",
-	none: "No prefix",
-};
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -109,8 +101,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		switch (mode) {
 			case "none":
 				return null;
-			case "feat":
-				return "feat";
 			case "custom":
 				return branchPrefix?.customPrefix || null;
 			case "author":
@@ -154,14 +144,17 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 				{/* Branch Prefix */}
 				{showBranchPrefix && (
-					<div className="space-y-3">
+					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label className="text-sm font-medium">Branch Prefix</Label>
 							<p className="text-xs text-muted-foreground">
-								Default prefix for new branch names (e.g., username/branch-name)
+								Preview:{" "}
+								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
+									{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
+								</code>
 							</p>
 						</div>
-						<div className="flex items-center gap-3">
+						<div className="flex items-center gap-2">
 							<Select
 								value={branchPrefix?.mode ?? "github"}
 								onValueChange={(value) =>
@@ -169,7 +162,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								}
 								disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
 							>
-								<SelectTrigger className="w-[200px]">
+								<SelectTrigger className="w-[180px]">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -187,20 +180,14 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							</Select>
 							{branchPrefix?.mode === "custom" && (
 								<Input
-									placeholder="Enter custom prefix"
+									placeholder="Prefix"
 									value={branchPrefix.customPrefix ?? ""}
 									onChange={(e) => handleCustomPrefixChange(e.target.value)}
-									className="w-[200px]"
+									className="w-[120px]"
 									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
 								/>
 							)}
 						</div>
-						<p className="text-xs text-muted-foreground">
-							Preview:{" "}
-							<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
-								{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
-							</code>
-						</p>
 					</div>
 				)}
 			</div>

@@ -1,3 +1,4 @@
+import type { BranchPrefixMode } from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -10,19 +11,8 @@ import {
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ClickablePath } from "../../../../components/ClickablePath";
+import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
-
-type BranchPrefixMode = "github" | "author" | "feat" | "custom" | "none";
-
-const BRANCH_PREFIX_MODE_LABELS: Record<BranchPrefixMode | "default", string> =
-	{
-		default: "Use global default",
-		github: "GitHub username",
-		author: "Git author name",
-		feat: '"feat" prefix',
-		custom: "Custom prefix",
-		none: "No prefix",
-	};
 
 interface ProjectSettingsProps {
 	projectId: string;
@@ -45,7 +35,10 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 			await utils.projects.get.cancel({ id: projectId });
 			const previous = utils.projects.get.getData({ id: projectId });
 			if (previous) {
-				utils.projects.get.setData({ id: projectId }, { ...previous, ...patch });
+				utils.projects.get.setData(
+					{ id: projectId },
+					{ ...previous, ...patch },
+				);
 			}
 			return { previous };
 		},
@@ -97,8 +90,6 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		switch (mode) {
 			case "none":
 				return null;
-			case "feat":
-				return "feat";
 			case "custom":
 				return project?.branchPrefixCustom || null;
 			case "author":
@@ -162,7 +153,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 								</SelectTrigger>
 								<SelectContent>
 									{(
-										Object.entries(BRANCH_PREFIX_MODE_LABELS) as [
+										Object.entries(BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT) as [
 											BranchPrefixMode | "default",
 											string,
 										][]

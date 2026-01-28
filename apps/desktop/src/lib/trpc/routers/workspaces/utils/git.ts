@@ -359,8 +359,6 @@ export async function getBranchPrefix({
 	switch (mode) {
 		case "none":
 			return null;
-		case "feat":
-			return "feat";
 		case "custom":
 			return customPrefix || null;
 		case "author": {

@@ -121,7 +121,6 @@ export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
 export const BRANCH_PREFIX_MODES = [
 	"github",
 	"author",
-	"feat",
 	"custom",
 	"none",
 ] as const;
