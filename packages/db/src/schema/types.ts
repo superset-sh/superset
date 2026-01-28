@@ -3,4 +3,10 @@ export type LinearConfig = {
 	newTasksTeamId?: string;
 };
 
-export type IntegrationConfig = LinearConfig;
+export type SlackConfig = {
+	provider: "slack";
+	botUserId: string;
+	defaultChannelId?: string;
+};
+
+export type IntegrationConfig = LinearConfig | SlackConfig;
