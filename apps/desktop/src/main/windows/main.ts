@@ -204,6 +204,10 @@ export async function MainWindow() {
 		if (initialBounds.isMaximized) {
 			window.maximize();
 		}
+		// Restore zoom level if it was saved
+		if (savedWindowState?.zoomLevel !== undefined) {
+			window.webContents.setZoomLevel(savedWindowState.zoomLevel);
+		}
 		window.show();
 	});
 
@@ -233,12 +237,14 @@ export async function MainWindow() {
 		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
+		const zoomLevel = window.webContents.getZoomLevel();
 		saveWindowState({
 			x: bounds.x,
 			y: bounds.y,
 			width: bounds.width,
 			height: bounds.height,
 			isMaximized,
+			zoomLevel,
 		});
 
 		server.close();
