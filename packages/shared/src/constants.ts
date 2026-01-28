@@ -20,6 +20,9 @@ export const COMPANY = {
 	PRIVACY_URL:
 		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
 		"/privacy",
+	CHANGELOG_URL:
+		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
+		"/changelog",
 	X_URL: "https://x.com/superset_sh",
 	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
