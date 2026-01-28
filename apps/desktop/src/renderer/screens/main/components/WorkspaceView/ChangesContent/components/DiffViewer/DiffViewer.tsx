@@ -16,6 +16,7 @@ import {
 	registerCopyPathLineAction,
 	useEditorActions,
 } from "../../../ContentView/components/EditorContextMenu";
+import { getLineNumbersMinChars } from "./utils";
 
 function scrollToFirstDiff(
 	editor: Monaco.editor.IStandaloneDiffEditor,
@@ -33,14 +34,6 @@ function scrollToFirstDiff(
 	if (targetLine > 0) {
 		modifiedEditor.revealLineInCenter(targetLine);
 	}
-}
-
-function getLineNumbersMinChars(original: string, modified: string): number {
-	const originalLines = original.split("\n").length;
-	const modifiedLines = modified.split("\n").length;
-	const maxLines = Math.max(originalLines, modifiedLines);
-	const digits = maxLines > 0 ? Math.floor(Math.log10(maxLines)) + 1 : 1;
-	return digits + 1;
 }
 
 export interface DiffViewerContextMenuProps {
