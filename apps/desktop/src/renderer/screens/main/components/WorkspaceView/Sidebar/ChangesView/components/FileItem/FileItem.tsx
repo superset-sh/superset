@@ -27,9 +27,9 @@ import {
 	LuTrash2,
 	LuUndo2,
 } from "react-icons/lu";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../ChangesContent";
+import { usePathActions } from "../../hooks";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 
 interface FileItemProps {
@@ -97,33 +97,14 @@ export function FileItem({
 		category && activeFileKey === createFileKey(file, category, commitHash);
 	const isHighlighted = isExpandedView ? isScrollSyncActive : isSelected;
 
-	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
-	const openInEditorMutation =
-		electronTrpc.external.openFileInEditor.useMutation();
-
 	const absolutePath = worktreePath ? `${worktreePath}/${file.path}` : null;
 
-	const handleCopyPath = async () => {
-		if (absolutePath) {
-			await navigator.clipboard.writeText(absolutePath);
-		}
-	};
-
-	const handleCopyRelativePath = async () => {
-		await navigator.clipboard.writeText(file.path);
-	};
-
-	const handleRevealInFinder = () => {
-		if (absolutePath) {
-			openInFinderMutation.mutate(absolutePath);
-		}
-	};
-
-	const handleOpenInEditor = useCallback(() => {
-		if (absolutePath && worktreePath) {
-			openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
-		}
-	}, [absolutePath, worktreePath, openInEditorMutation]);
+	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
+		usePathActions({
+			absolutePath,
+			relativePath: file.path,
+			cwd: worktreePath,
+		});
 
 	const handleClick = useCallback(() => {
 		// Clear any pending single-click timeout
@@ -149,10 +130,9 @@ export function FileItem({
 				clickTimeoutRef.current = null;
 			}
 
-			// Execute double-click action (open in editor)
-			handleOpenInEditor();
+			openInEditor();
 		},
-		[handleOpenInEditor],
+		[openInEditor],
 	);
 
 	// Cleanup timeout on unmount
@@ -285,20 +265,20 @@ export function FileItem({
 			<ContextMenu>
 				<ContextMenuTrigger asChild>{fileContent}</ContextMenuTrigger>
 				<ContextMenuContent className="w-48">
-					<ContextMenuItem onClick={handleCopyPath}>
+					<ContextMenuItem onClick={copyPath}>
 						<LuClipboard className="mr-2 size-4" />
 						Copy Path
 					</ContextMenuItem>
-					<ContextMenuItem onClick={handleCopyRelativePath}>
+					<ContextMenuItem onClick={copyRelativePath}>
 						<LuClipboard className="mr-2 size-4" />
 						Copy Relative Path
 					</ContextMenuItem>
 					<ContextMenuSeparator />
-					<ContextMenuItem onClick={handleRevealInFinder}>
+					<ContextMenuItem onClick={revealInFinder}>
 						<LuFolderOpen className="mr-2 size-4" />
 						Reveal in Finder
 					</ContextMenuItem>
-					<ContextMenuItem onClick={handleOpenInEditor}>
+					<ContextMenuItem onClick={openInEditor}>
 						<LuExternalLink className="mr-2 size-4" />
 						Open in Editor
 					</ContextMenuItem>

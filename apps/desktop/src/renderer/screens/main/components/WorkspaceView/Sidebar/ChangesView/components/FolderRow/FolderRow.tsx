@@ -21,7 +21,7 @@ import {
 	LuPlus,
 	LuUndo2,
 } from "react-icons/lu";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { usePathActions } from "../../hooks";
 
 interface FolderRowProps {
 	name: string;
@@ -114,41 +114,24 @@ export function FolderRow({
 	isActioning = false,
 }: FolderRowProps) {
 	const isGrouped = variant === "grouped";
-	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
-	const openInAppMutation = electronTrpc.external.openInApp.useMutation();
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery();
-
 	const isRoot = folderPath === "";
+
 	const absolutePath = worktreePath
 		? isRoot
 			? worktreePath
 			: `${worktreePath}/${folderPath}`
 		: null;
 
-	const handleCopyPath = async () => {
-		if (absolutePath) {
-			await navigator.clipboard.writeText(absolutePath);
-		}
-	};
-
-	const handleCopyRelativePath = async () => {
-		if (folderPath) {
-			await navigator.clipboard.writeText(folderPath);
-		}
-	};
-
-	const handleRevealInFinder = () => {
-		if (absolutePath) {
-			openInFinderMutation.mutate(absolutePath);
-		}
-	};
-
-	const handleOpenInApp = () => {
-		if (absolutePath) {
-			openInAppMutation.mutate({ path: absolutePath, app: lastUsedApp });
-		}
-	};
+	const {
+		copyPath,
+		copyRelativePath,
+		revealInFinder,
+		openInEditor,
+		hasRelativePath,
+	} = usePathActions({
+		absolutePath,
+		relativePath: folderPath || undefined,
+	});
 
 	const hasContextMenu = worktreePath && folderPath !== undefined;
 
@@ -173,29 +156,27 @@ export function FolderRow({
 
 	const contextMenuContent = (
 		<ContextMenuContent className="w-48">
-			<ContextMenuItem onClick={handleCopyPath}>
+			<ContextMenuItem onClick={copyPath}>
 				<LuClipboard className="mr-2 size-4" />
 				Copy Path
 			</ContextMenuItem>
-			{!isRoot && (
-				<ContextMenuItem onClick={handleCopyRelativePath}>
+			{hasRelativePath && (
+				<ContextMenuItem onClick={copyRelativePath}>
 					<LuClipboard className="mr-2 size-4" />
 					Copy Relative Path
 				</ContextMenuItem>
 			)}
 			<ContextMenuSeparator />
-			<ContextMenuItem onClick={handleRevealInFinder}>
+			<ContextMenuItem onClick={revealInFinder}>
 				<LuFolderOpen className="mr-2 size-4" />
 				Reveal in Finder
 			</ContextMenuItem>
-			<ContextMenuItem onClick={handleOpenInApp}>
+			<ContextMenuItem onClick={openInEditor}>
 				<LuExternalLink className="mr-2 size-4" />
 				Open in Editor
 			</ContextMenuItem>
 
-			{(onStageAll || onUnstageAll || onDiscardAll) && (
-				<ContextMenuSeparator />
-			)}
+			{(onStageAll || onUnstageAll || onDiscardAll) && <ContextMenuSeparator />}
 
 			{onStageAll && (
 				<ContextMenuItem onClick={onStageAll} disabled={isActioning}>
