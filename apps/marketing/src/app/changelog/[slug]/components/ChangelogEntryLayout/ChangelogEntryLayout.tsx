@@ -22,7 +22,7 @@ export function ChangelogEntryLayout({
 	const formattedDate = formatChangelogDate(entry.date);
 
 	return (
-		<article className="relative min-h-screen">
+		<article className="relative min-h-screen overflow-x-hidden">
 			{/* Grid background with dashed lines */}
 			<div
 				className="absolute inset-0 pointer-events-none"
