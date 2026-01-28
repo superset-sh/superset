@@ -118,44 +118,34 @@ open apps/desktop/release
 Superset leverages **git worktrees** to create isolated working directories for each task.
 
 ```mermaid
-flowchart TB
-    subgraph Superset["Superset App"]
+flowchart LR
+    subgraph Terminal["Superset Terminal"]
         direction TB
-        Monitor["Agent Monitor"]
-        Diff["Diff Viewer"]
+        subgraph Tabs["Terminal Tabs"]
+            Tab1["Claude Code"]
+            Tab2["Codex"]
+            Tab3["Aider"]
+        end
+        Output["Terminal Output"]
     end
 
-    subgraph Main["Main Repository"]
-        MainBranch["main branch"]
+    subgraph Hooks["Hook System"]
+        Parser["Output Parser"]
+        Detect["Pattern Detection"]
     end
 
-    subgraph Workspaces["Isolated Workspaces"]
-        direction LR
-        subgraph WS1["Workspace 1"]
-            Branch1["feature/auth"]
-            Agent1["Claude Code"]
-        end
-        subgraph WS2["Workspace 2"]
-            Branch2["feature/api"]
-            Agent2["Codex"]
-        end
-        subgraph WS3["Workspace 3"]
-            Branch3["fix/bug-123"]
-            Agent3["Aider"]
-        end
+    subgraph Actions["Notifications & Actions"]
+        Notify["Desktop Notification"]
+        Status["Status Indicator"]
+        Jump["Jump to Workspace"]
     end
 
-    Main -->|"git worktree add"| WS1
-    Main -->|"git worktree add"| WS2
-    Main -->|"git worktree add"| WS3
-
-    Agent1 -.->|status| Monitor
-    Agent2 -.->|status| Monitor
-    Agent3 -.->|status| Monitor
-
-    WS1 -->|changes| Diff
-    WS2 -->|changes| Diff
-    WS3 -->|changes| Diff
+    Terminal --> Output
+    Output -->|stream| Parser
+    Parser -->|"waiting for input\nerror detected\ntask complete"| Detect
+    Detect -->|trigger| Notify
+    Detect -->|update| Status
+    Notify -->|click| Jump
 ```
 
 1. **Create workspace** — Superset creates a new git worktree with its own branch
