@@ -53,13 +53,13 @@ export function BranchesSection({
 						className="w-full h-8 justify-between font-normal"
 						disabled={disabled}
 					>
-						<span className="flex items-center gap-2 truncate">
+						<span className="flex items-center gap-2 shrink-0 min-w-0">
 							<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 							<span className="truncate text-sm text-muted-foreground">
 								Select branch...
 							</span>
 						</span>
-						<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+						<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground ml-2" />
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent
@@ -82,22 +82,22 @@ export function BranchesSection({
 									onSelect={() => onSelectBranch(branch.name)}
 									className="flex items-center justify-between"
 								>
-									<span className="flex items-center gap-2 truncate">
+									<span className="flex items-center gap-2 truncate min-w-0">
 										<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 										<span className="truncate">{branch.name}</span>
 										{branch.name === defaultBranch && (
-											<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+											<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
 												default
 											</span>
 										)}
 										{!branch.isLocal && branch.isRemote && (
-											<span className="text-[10px] text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
+											<span className="text-[10px] text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded shrink-0">
 												remote
 											</span>
 										)}
 									</span>
 									{branch.lastCommitDate > 0 && (
-										<span className="text-xs text-muted-foreground shrink-0">
+										<span className="text-xs text-muted-foreground shrink-0 ml-2">
 											{formatRelativeTime(branch.lastCommitDate)}
 										</span>
 									)}
