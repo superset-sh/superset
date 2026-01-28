@@ -40,20 +40,24 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
-import { sanitizeBranchName, sanitizeSegment } from "shared/utils/branch";
+import {
+	resolveBranchPrefix,
+	sanitizeBranchName,
+	sanitizeSegment,
+} from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
 function generateBranchFromTitle({
 	title,
-	authorPrefix,
+	prefix,
 }: {
 	title: string;
-	authorPrefix?: string;
+	prefix: string | null;
 }): string {
 	const slug = sanitizeSegment(title);
 	if (!slug) return "";
 
-	return authorPrefix ? `${authorPrefix}/${slug}` : slug;
+	return prefix ? `${prefix}/${slug}` : slug;
 }
 
 type Mode = "existing" | "new" | "cloud";
@@ -77,6 +81,10 @@ export function NewWorkspaceModal() {
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const { data: project } = electronTrpc.projects.get.useQuery(
+		{ id: selectedProjectId ?? "" },
+		{ enabled: !!selectedProjectId },
+	);
 	const {
 		data: branchData,
 		isLoading: isBranchesLoading,
@@ -89,9 +97,25 @@ export function NewWorkspaceModal() {
 		{ id: selectedProjectId ?? "" },
 		{ enabled: !!selectedProjectId },
 	);
+	const { data: globalBranchPrefix } =
+		electronTrpc.settings.getBranchPrefix.useQuery();
+	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
-	const authorPrefix = gitAuthor?.prefix;
+
+	const resolvedPrefix = useMemo(() => {
+		const projectOverrides = project?.branchPrefixMode != null;
+		return resolveBranchPrefix({
+			mode: projectOverrides
+				? project?.branchPrefixMode
+				: (globalBranchPrefix?.mode ?? "none"),
+			customPrefix: projectOverrides
+				? project?.branchPrefixCustom
+				: globalBranchPrefix?.customPrefix,
+			authorPrefix: gitAuthor?.prefix,
+			githubUsername: gitInfo?.githubUsername,
+		});
+	}, [project, globalBranchPrefix, gitAuthor, gitInfo]);
 
 	const filteredBranches = useMemo(() => {
 		if (!branchData?.branches) return [];
@@ -115,7 +139,7 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	const generatedBranchName = generateBranchFromTitle({ title, authorPrefix });
+	const generatedBranchName = generateBranchFromTitle({ title, prefix: resolvedPrefix });
 	const branchNameToCreate = branchNameEdited
 		? sanitizeBranchName(branchName)
 		: generatedBranchName;

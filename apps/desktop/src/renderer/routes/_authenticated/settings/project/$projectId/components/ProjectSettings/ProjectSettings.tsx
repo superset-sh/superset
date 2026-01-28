@@ -12,10 +12,8 @@ import { useEffect, useState } from "react";
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ClickablePath } from "../../../../components/ClickablePath";
-import {
-	BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT,
-	sanitizePrefix,
-} from "../../../../utils/branch-prefix";
+import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
+import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 interface ProjectSettingsProps {
@@ -72,7 +70,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	};
 
 	const handleCustomPrefixBlur = () => {
-		const sanitized = sanitizePrefix(customPrefixInput);
+		const sanitized = sanitizeSegment(customPrefixInput);
 		setCustomPrefixInput(sanitized);
 		updateProject.mutate({
 			id: projectId,
@@ -86,19 +84,22 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const getPreviewPrefix = (
 		mode: BranchPrefixMode | "default",
 	): string | null => {
-		switch (mode) {
-			case "none":
-				return null;
-			case "custom":
-				return customPrefixInput || null;
-			case "author":
-				return gitAuthor?.prefix || "author-name";
-			case "github":
-				return gitInfo?.githubUsername || gitAuthor?.prefix || "username";
-			default:
-				// Resolve the global default
-				return getPreviewPrefix(globalBranchPrefix?.mode ?? "none");
+		if (mode === "default") {
+			return getPreviewPrefix(globalBranchPrefix?.mode ?? "none");
 		}
+		return (
+			resolveBranchPrefix({
+				mode,
+				customPrefix: customPrefixInput,
+				authorPrefix: gitAuthor?.prefix,
+				githubUsername: gitInfo?.githubUsername,
+			}) ||
+			(mode === "author"
+				? "author-name"
+				: mode === "github"
+					? "username"
+					: null)
+		);
 	};
 
 	if (!project) {

@@ -14,14 +14,3 @@ export const BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT: Record<
 	default: "Use global default",
 	...BRANCH_PREFIX_MODE_LABELS,
 };
-
-export function sanitizePrefix(text: string): string {
-	return text
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9\s-]/g, "")
-		.replace(/\s+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
-}

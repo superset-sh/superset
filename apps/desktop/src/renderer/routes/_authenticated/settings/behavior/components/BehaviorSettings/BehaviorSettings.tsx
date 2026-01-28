@@ -11,10 +11,8 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	BRANCH_PREFIX_MODE_LABELS,
-	sanitizePrefix,
-} from "../../../utils/branch-prefix";
+import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
+import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -89,7 +87,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	};
 
 	const handleCustomPrefixBlur = () => {
-		const sanitized = sanitizePrefix(customPrefixInput);
+		const sanitized = sanitizeSegment(customPrefixInput);
 		setCustomPrefixInput(sanitized);
 		setBranchPrefix.mutate({
 			mode: "custom",
@@ -97,21 +95,18 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		});
 	};
 
-	const getPreviewPrefix = (): string | null => {
-		const mode = branchPrefix?.mode ?? "none";
-		switch (mode) {
-			case "none":
-				return null;
-			case "custom":
-				return customPrefixInput || null;
-			case "author":
-				return gitInfo?.authorPrefix || "author-name";
-			case "github":
-				return gitInfo?.githubUsername || gitInfo?.authorPrefix || "username";
-		}
-	};
-
-	const previewPrefix = getPreviewPrefix();
+	const previewPrefix =
+		resolveBranchPrefix({
+			mode: branchPrefix?.mode ?? "none",
+			customPrefix: customPrefixInput,
+			authorPrefix: gitInfo?.authorPrefix,
+			githubUsername: gitInfo?.githubUsername,
+		}) ||
+		(branchPrefix?.mode === "author"
+			? "author-name"
+			: branchPrefix?.mode === "github"
+				? "username"
+				: null);
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
