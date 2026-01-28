@@ -39,6 +39,8 @@ interface ChangesHeaderProps {
 	isStashPending: boolean;
 }
 
+const TOOLTIP_CLOSE_DELAY = 100;
+
 function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	const { baseBranch, setBaseBranch } = useChangesStore();
 	const { data: branchData, isLoading } =
@@ -46,6 +48,31 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 			{ worktreePath },
 			{ enabled: !!worktreePath },
 		);
+
+	const [tooltipOpen, setTooltipOpen] = useState(false);
+	const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+	const handlePointerEnter = () => {
+		if (closeTimeoutRef.current) {
+			clearTimeout(closeTimeoutRef.current);
+			closeTimeoutRef.current = null;
+		}
+		setTooltipOpen(true);
+	};
+
+	const handlePointerLeave = () => {
+		closeTimeoutRef.current = setTimeout(() => {
+			setTooltipOpen(false);
+		}, TOOLTIP_CLOSE_DELAY);
+	};
+
+	useEffect(() => {
+		return () => {
+			if (closeTimeoutRef.current) {
+				clearTimeout(closeTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 	const sortedBranches = [...(branchData?.remote ?? [])].sort((a, b) => {
@@ -68,12 +95,14 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	}
 
 	return (
-		<Tooltip>
+		<Tooltip open={tooltipOpen}>
 			<Select value={effectiveBaseBranch} onValueChange={handleChange}>
 				<TooltipTrigger asChild>
 					<SelectTrigger
 						size="sm"
 						className="h-5 px-1.5 py-0 text-[10px] font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-0.5 rounded"
+						onPointerEnter={handlePointerEnter}
+						onPointerLeave={handlePointerLeave}
 					>
 						<SelectValue />
 					</SelectTrigger>
