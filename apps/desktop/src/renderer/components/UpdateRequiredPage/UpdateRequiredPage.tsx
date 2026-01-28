@@ -1,10 +1,10 @@
+import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
 import { HiArrowPath, HiExclamationTriangle } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AppFrame } from "renderer/screens/main/components/AppFrame";
 import { Background } from "renderer/screens/main/components/Background";
-import { COMPANY } from "@superset/shared/constants";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 
 interface UpdateRequiredPageProps {
