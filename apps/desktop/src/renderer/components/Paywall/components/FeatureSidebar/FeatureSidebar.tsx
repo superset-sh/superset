@@ -1,26 +1,39 @@
 import { cn } from "@superset/ui/utils";
+import { useMemo } from "react";
 import type { ProFeature } from "../../constants";
 import { PRO_FEATURES } from "../../constants";
 
 interface FeatureSidebarProps {
 	selectedFeatureId: string;
+	highlightedFeatureId?: string;
 	onSelectFeature: (featureId: string) => void;
 }
 
 export function FeatureSidebar({
 	selectedFeatureId,
+	highlightedFeatureId,
 	onSelectFeature,
 }: FeatureSidebarProps) {
+	const orderedFeatures = useMemo(() => {
+		if (!highlightedFeatureId) return PRO_FEATURES;
+
+		const highlighted = PRO_FEATURES.find((f) => f.id === highlightedFeatureId);
+		if (!highlighted) return PRO_FEATURES;
+
+		return [
+			highlighted,
+			...PRO_FEATURES.filter((f) => f.id !== highlightedFeatureId),
+		];
+	}, [highlightedFeatureId]);
+
 	return (
 		<div className="flex flex-col border-r bg-neutral-900">
-			<div className="px-5 py-2.5">
-				<h1 className="mb-0 mt-1.5 text-lg font-bold text-foreground">
-					Pro Features
-				</h1>
+			<div className="px-5 pt-5 pb-2.5">
+				<h1 className="mb-0 text-lg font-bold text-foreground">Pro Features</h1>
 			</div>
 
 			<div className="flex flex-col gap-2.5 px-5 py-2.5">
-				{PRO_FEATURES.map((proFeature) => (
+				{orderedFeatures.map((proFeature) => (
 					<FeatureButton
 						key={proFeature.id}
 						feature={proFeature}

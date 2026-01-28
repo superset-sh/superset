@@ -1,7 +1,8 @@
 import { Button } from "@superset/ui/button";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { posthog } from "../../lib/posthog";
 import { FeaturePreview } from "./components/FeaturePreview";
 import { FeatureSidebar } from "./components/FeatureSidebar";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
@@ -20,6 +21,8 @@ export const Paywall = () => {
 		null,
 	);
 	const [isOpen, setIsOpen] = useState(false);
+	const openTimeRef = useRef<number | null>(null);
+	const featuresViewedRef = useRef<Set<string>>(new Set());
 
 	showPaywallFn = (options: PaywallOptions) => {
 		setPaywallOptions(options);
@@ -32,13 +35,29 @@ export const Paywall = () => {
 		};
 	}, []);
 
+	const triggerSource = paywallOptions?.feature;
 	const initialFeatureId =
-		(paywallOptions?.feature && FEATURE_ID_MAP[paywallOptions.feature]) ||
+		(triggerSource && FEATURE_ID_MAP[triggerSource]) ||
 		PRO_FEATURES[0]?.id ||
 		"team-collaboration";
 
 	const [selectedFeatureId, setSelectedFeatureId] =
 		useState<string>(initialFeatureId);
+
+	// Track paywall_opened when modal opens
+	useEffect(() => {
+		if (isOpen && paywallOptions) {
+			openTimeRef.current = Date.now();
+			featuresViewedRef.current = new Set([initialFeatureId]);
+
+			const feature = PRO_FEATURES.find((f) => f.id === initialFeatureId);
+			posthog.capture("paywall_opened", {
+				trigger_source: paywallOptions.feature,
+				feature_id: initialFeatureId,
+				feature_title: feature?.title,
+			});
+		}
+	}, [isOpen, paywallOptions, initialFeatureId]);
 
 	useEffect(() => {
 		if (paywallOptions?.feature && isOpen) {
@@ -50,8 +69,31 @@ export const Paywall = () => {
 		}
 	}, [paywallOptions?.feature, isOpen]);
 
+	const handleSelectFeature = (featureId: string) => {
+		if (featureId !== selectedFeatureId) {
+			const feature = PRO_FEATURES.find((f) => f.id === featureId);
+			posthog.capture("paywall_feature_clicked", {
+				trigger_source: triggerSource,
+				feature_id: featureId,
+				feature_title: feature?.title,
+				previous_feature_id: selectedFeatureId,
+			});
+			featuresViewedRef.current.add(featureId);
+		}
+		setSelectedFeatureId(featureId);
+	};
+
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
+			const timeSpent = openTimeRef.current
+				? Date.now() - openTimeRef.current
+				: 0;
+			posthog.capture("paywall_cancelled", {
+				trigger_source: triggerSource,
+				feature_id: selectedFeatureId,
+				features_viewed_count: featuresViewedRef.current.size,
+				time_spent_ms: timeSpent,
+			});
 			setIsOpen(false);
 		}
 	};
@@ -64,6 +106,16 @@ export const Paywall = () => {
 	}
 
 	const handleUpgrade = () => {
+		const timeSpent = openTimeRef.current
+			? Date.now() - openTimeRef.current
+			: 0;
+		posthog.capture("paywall_upgrade_clicked", {
+			trigger_source: triggerSource,
+			feature_id: selectedFeatureId,
+			feature_title: selectedFeature.title,
+			features_viewed_count: featuresViewedRef.current.size,
+			time_spent_ms: timeSpent,
+		});
 		setIsOpen(false);
 		navigate({ to: "/settings/billing/plans" });
 	};
@@ -71,19 +123,20 @@ export const Paywall = () => {
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
-				className="!w-[744px] !max-w-[744px] p-0 gap-0 overflow-hidden"
+				className="!w-[744px] !max-w-[744px] p-0 gap-0 overflow-hidden !rounded-none"
 				showCloseButton={false}
 			>
 				<div className="flex">
 					<FeatureSidebar
 						selectedFeatureId={selectedFeatureId}
-						onSelectFeature={setSelectedFeatureId}
+						highlightedFeatureId={initialFeatureId}
+						onSelectFeature={handleSelectFeature}
 					/>
 					<FeaturePreview selectedFeature={selectedFeature} />
 				</div>
 
 				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
-					<Button variant="outline" onClick={() => setIsOpen(false)}>
+					<Button variant="outline" onClick={() => handleOpenChange(false)}>
 						Cancel
 					</Button>
 					<Button onClick={handleUpgrade}>Get Superset Pro</Button>
