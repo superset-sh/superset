@@ -1,8 +1,6 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -15,14 +13,13 @@ import { executeTool, type ToolContext } from "./tools";
 const processingCommands = new Set<string>();
 
 export function useCommandWatcher() {
-	const isEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.AGENT_COMMANDS_ACCESS);
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const navigate = useNavigate();
 
 	const organizationId = session?.session?.activeOrganizationId;
-	const shouldWatch = isEnabled && !!deviceInfo && !!organizationId;
+	const shouldWatch = !!deviceInfo && !!organizationId;
 
 	const createWorktree = useCreateWorkspace({ skipNavigation: true });
 	const setActive = electronTrpc.workspaces.setActive.useMutation();
@@ -174,7 +171,6 @@ export function useCommandWatcher() {
 	]);
 
 	return {
-		isEnabled,
 		isWatching: shouldWatch && !!deviceInfo?.deviceId,
 		deviceId: deviceInfo?.deviceId,
 		pendingCount:

@@ -39,7 +39,6 @@ const GENERAL_SECTIONS: {
 	section: SettingsSection;
 	label: string;
 	icon: React.ReactNode;
-	requiresAgentCommands?: boolean;
 }[] = [
 	{
 		id: "/settings/account",
@@ -100,28 +99,22 @@ const GENERAL_SECTIONS: {
 		section: "devices",
 		label: "Devices",
 		icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
-		requiresAgentCommands: true,
 	},
 	{
 		id: "/settings/api-keys",
 		section: "apikeys",
 		label: "API Keys",
 		icon: <HiOutlineKey className="h-4 w-4" />,
-		requiresAgentCommands: true,
 	},
 ];
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
 	const billingEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.BILLING_ENABLED);
-	const hasAgentCommandsAccess = useFeatureFlagEnabled(
-		FEATURE_FLAGS.AGENT_COMMANDS_ACCESS,
-	);
 
 	// Filter by feature flags first, then by search matches
 	const availableSections = GENERAL_SECTIONS.filter((section) => {
 		if (section.section === "billing" && !billingEnabled) return false;
-		if (section.requiresAgentCommands && !hasAgentCommandsAccess) return false;
 		return true;
 	});
 

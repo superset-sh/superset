@@ -53,8 +53,6 @@ export const FEATURE_FLAGS = {
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
 	/** Gates access to billing features. */
 	BILLING_ENABLED: "billing-enabled",
-	/** Gates access to MCP agent commands (cloud-to-desktop sync). */
-	AGENT_COMMANDS_ACCESS: "agent-commands-access",
 	/** Gates access to GitHub integration (currently buggy, internal only). */
 	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
 } as const;
