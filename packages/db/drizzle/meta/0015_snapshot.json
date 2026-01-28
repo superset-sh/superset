@@ -1,5 +1,5 @@
 {
-  "id": "a0800a2e-f4c6-40f4-8b6e-5f9095173faa",
+  "id": "0b008ad9-e7a3-4142-afbf-a2746671d214",
   "prevId": "e2124ad5-d601-4fe4-b6dc-20310002e110",
   "version": "7",
   "dialect": "postgresql",
@@ -3239,6 +3239,13 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "tasks_slug_unique": {
+          "name": "tasks_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "slug"
+          ]
+        },
         "tasks_external_unique": {
           "name": "tasks_external_unique",
           "nullsNotDistinct": false,
@@ -3246,14 +3253,6 @@
             "organization_id",
             "external_provider",
             "external_id"
-          ]
-        },
-        "tasks_org_slug_unique": {
-          "name": "tasks_org_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id",
-            "slug"
           ]
         }
       },
@@ -3289,7 +3288,8 @@
       "schema": "public",
       "values": [
         "linear",
-        "github"
+        "github",
+        "slack"
       ]
     },
     "public.task_priority": {

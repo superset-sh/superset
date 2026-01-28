@@ -5,7 +5,30 @@ import type { McpContext } from "@/lib/mcp/auth";
 import { registerTools } from "@/lib/mcp/tools";
 
 async function verifyToken(req: Request, bearerToken?: string) {
-	// 1. Try session auth
+	// 1. Try internal service auth (for Slack agent and other internal services)
+	const internalOrgId = req.headers.get("X-Internal-Organization-Id");
+	const internalUserId = req.headers.get("X-Internal-User-Id");
+	if (internalOrgId && internalUserId) {
+		// Internal requests are trusted when running in the same process
+		// This is used by the Slack agent to call MCP tools on behalf of users
+		console.log("[mcp/auth] Internal service auth:", {
+			organizationId: internalOrgId,
+			userId: internalUserId,
+		});
+		return {
+			token: "internal",
+			clientId: "slack-agent",
+			scopes: ["mcp:full"],
+			extra: {
+				mcpContext: {
+					userId: internalUserId,
+					organizationId: internalOrgId,
+				} satisfies McpContext,
+			},
+		};
+	}
+
+	// 2. Try session auth
 	const session = await auth.api.getSession({ headers: req.headers });
 	if (session?.session) {
 		const extendedSession = session.session as {
@@ -28,7 +51,7 @@ async function verifyToken(req: Request, bearerToken?: string) {
 		};
 	}
 
-	// 2. Try OAuth bearer token
+	// 3. Try OAuth bearer token
 	if (bearerToken) {
 		const mcpSession = await auth.api.getMcpSession({ headers: req.headers });
 		if (!mcpSession) return undefined;

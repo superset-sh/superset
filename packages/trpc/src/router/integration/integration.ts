@@ -6,10 +6,12 @@ import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 import { githubRouter } from "./github";
 import { linearRouter } from "./linear";
+import { slackRouter } from "./slack";
 
 export const integrationRouter = {
 	github: githubRouter,
 	linear: linearRouter,
+	slack: slackRouter,
 
 	list: protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))

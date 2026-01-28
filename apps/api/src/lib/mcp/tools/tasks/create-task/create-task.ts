@@ -1,9 +1,8 @@
 import { db, dbWs } from "@superset/db/client";
 import { taskStatuses, tasks } from "@superset/db/schema";
-import { getCurrentTxid } from "@superset/db/utils";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
-import { registerTool } from "../../utils";
+import { registerTool, toolError, toolResult } from "../../utils";
 
 const PRIORITIES = ["urgent", "high", "medium", "low", "none"] as const;
 type TaskPriority = (typeof PRIORITIES)[number];
@@ -59,6 +58,17 @@ function generateUniqueSlug(
 	return slug;
 }
 
+// Output schema for type-safe structured content
+const createTaskOutputSchema = {
+	created: z.array(
+		z.object({
+			id: z.string(),
+			slug: z.string(),
+			title: z.string(),
+		}),
+	),
+};
+
 export const register = registerTool(
 	"create_task",
 	{
@@ -70,6 +80,7 @@ export const register = registerTool(
 				.max(25)
 				.describe("Array of tasks to create (1-25)"),
 		},
+		outputSchema: createTaskOutputSchema,
 	},
 	async (params, ctx) => {
 		const taskInputs = params.tasks as TaskInput[];
@@ -93,10 +104,7 @@ export const register = registerTool(
 
 			defaultStatusId = defaultStatus?.id;
 			if (!defaultStatusId) {
-				return {
-					content: [{ type: "text", text: "Error: No default status found" }],
-					isError: true,
-				};
+				return toolError("No default status found");
 			}
 		}
 
@@ -168,30 +176,15 @@ export const register = registerTool(
 		}
 
 		// Insert all tasks in a single transaction
-		const result = await dbWs.transaction(async (tx) => {
-			const createdTasks = await tx
+		const createdTasks = await dbWs.transaction(async (tx) => {
+			return tx
 				.insert(tasks)
 				.values(taskValues)
 				.returning({ id: tasks.id, slug: tasks.slug, title: tasks.title });
-
-			const txid = await getCurrentTxid(tx);
-			return { createdTasks, txid };
 		});
 
-		return {
-			content: [
-				{
-					type: "text",
-					text: JSON.stringify(
-						{
-							created: result.createdTasks,
-							txid: result.txid,
-						},
-						null,
-						2,
-					),
-				},
-			],
-		};
+		return toolResult({
+			created: createdTasks,
+		});
 	},
 );

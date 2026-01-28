@@ -33,10 +33,18 @@ const unsubscribe = router.subscribe("onResolved", (event) => {
 	});
 });
 
+// Handle deep link navigation from main process
+const handleDeepLink = (path: string) => {
+	console.log("[deep-link] Navigating to:", path);
+	router.navigate({ to: path });
+};
+window.ipcRenderer.on("deep-link-navigate", handleDeepLink);
+
 // Clean up subscription on HMR
 if (import.meta.hot) {
 	import.meta.hot.dispose(() => {
 		unsubscribe();
+		window.ipcRenderer.off("deep-link-navigate", handleDeepLink);
 	});
 }
 

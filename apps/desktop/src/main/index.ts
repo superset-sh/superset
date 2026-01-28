@@ -40,14 +40,37 @@ if (process.defaultApp) {
 }
 
 async function processDeepLink(url: string): Promise<void> {
-	const authParams = parseAuthDeepLink(url);
-	if (!authParams) return;
+	console.log("[main] Processing deep link:", url);
 
-	const result = await handleAuthCallback(authParams);
-	if (result.success) {
+	// Try auth deep link first (special handling)
+	const authParams = parseAuthDeepLink(url);
+	if (authParams) {
+		const result = await handleAuthCallback(authParams);
+		if (result.success) {
+			focusMainWindow();
+		} else {
+			console.error("[main] Auth deep link failed:", result.error);
+		}
+		return;
+	}
+
+	// For all other deep links, extract path and navigate in renderer
+	// e.g. superset://workspace/123 -> /workspace/123
+	try {
+		const parsed = new URL(url);
+		const path = parsed.pathname || "/";
+
 		focusMainWindow();
-	} else {
-		console.error("[main] Auth deep link failed:", result.error);
+
+		// Navigate in renderer via loading the route directly
+		const windows = BrowserWindow.getAllWindows();
+		if (windows.length > 0) {
+			const mainWindow = windows[0];
+			// Send navigation request to renderer
+			mainWindow.webContents.send("deep-link-navigate", path);
+		}
+	} catch (err) {
+		console.error("[main] Failed to parse deep link:", err);
 	}
 }
 
