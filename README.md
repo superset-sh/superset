@@ -62,6 +62,7 @@ Superset works with any CLI-based coding agent, including:
 | **OS** | macOS (Windows/Linux untested) |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
 | **Version Control** | Git 2.20+ (for worktree support) |
+| **GitHub CLI** | [gh](https://cli.github.com/) (for PR creation) |
 
 ## Getting Started
 
