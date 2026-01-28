@@ -1,11 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { changelogMdxComponents } from "./changelog-mdx-components";
 import {
 	type ChangelogEntry as ChangelogEntryType,
 	formatChangelogDate,
 } from "@/lib/changelog-utils";
+import { changelogMdxComponents } from "./changelog-mdx-components";
 
 interface ChangelogEntryProps {
 	entry: ChangelogEntryType;
