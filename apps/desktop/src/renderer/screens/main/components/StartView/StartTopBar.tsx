@@ -1,5 +1,5 @@
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { WindowControls } from "../TopBar/WindowControls";
+import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
 
 export function StartTopBar() {
 	const { data: platform, isLoading } =
