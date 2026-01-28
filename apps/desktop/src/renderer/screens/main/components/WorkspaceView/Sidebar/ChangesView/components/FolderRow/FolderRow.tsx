@@ -31,8 +31,8 @@ interface FolderRowProps {
 	level?: number;
 	fileCount?: number;
 	variant?: "tree" | "grouped";
-	folderPath?: string;
-	worktreePath?: string;
+	folderPath: string;
+	worktreePath: string;
 	onStageAll?: () => void;
 	onUnstageAll?: () => void;
 	onDiscardAll?: () => void;
@@ -115,25 +115,13 @@ export function FolderRow({
 }: FolderRowProps) {
 	const isGrouped = variant === "grouped";
 	const isRoot = folderPath === "";
+	const absolutePath = isRoot ? worktreePath : `${worktreePath}/${folderPath}`;
 
-	const absolutePath = worktreePath
-		? isRoot
-			? worktreePath
-			: `${worktreePath}/${folderPath}`
-		: null;
-
-	const {
-		copyPath,
-		copyRelativePath,
-		revealInFinder,
-		openInEditor,
-		hasRelativePath,
-	} = usePathActions({
-		absolutePath,
-		relativePath: folderPath || undefined,
-	});
-
-	const hasContextMenu = worktreePath && folderPath !== undefined;
+	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
+		usePathActions({
+			absolutePath,
+			relativePath: folderPath || undefined,
+		});
 
 	const triggerContent = (
 		<CollapsibleTrigger
@@ -160,7 +148,7 @@ export function FolderRow({
 				<LuClipboard className="mr-2 size-4" />
 				Copy Path
 			</ContextMenuItem>
-			{hasRelativePath && (
+			{!isRoot && (
 				<ContextMenuItem onClick={copyRelativePath}>
 					<LuClipboard className="mr-2 size-4" />
 					Copy Relative Path
@@ -211,14 +199,10 @@ export function FolderRow({
 			onOpenChange={onToggle}
 			className={cn("min-w-0", isGrouped && "overflow-hidden")}
 		>
-			{hasContextMenu ? (
-				<ContextMenu>
-					<ContextMenuTrigger asChild>{triggerContent}</ContextMenuTrigger>
-					{contextMenuContent}
-				</ContextMenu>
-			) : (
-				triggerContent
-			)}
+			<ContextMenu>
+				<ContextMenuTrigger asChild>{triggerContent}</ContextMenuTrigger>
+				{contextMenuContent}
+			</ContextMenu>
 			<CollapsibleContent
 				className={cn(
 					"min-w-0",
