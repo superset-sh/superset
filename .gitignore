@@ -70,3 +70,6 @@ examples
 
 # Streams data
 apps/streams/data/
+
+# Claude binary (downloaded at build time)
+apps/desktop/resources/bin/
