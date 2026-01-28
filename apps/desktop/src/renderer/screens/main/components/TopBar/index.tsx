@@ -1,5 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ExpoButton } from "./ExpoButton";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { OrganizationDropdown } from "./OrganizationDropdown";
 import { WindowControls } from "./WindowControls";
@@ -26,6 +27,12 @@ export function TopBar() {
 			<div className="flex-1" />
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				{workspace?.worktreePath && workspace?.id && (
+					<ExpoButton
+						workspaceId={workspace.id}
+						worktreePath={workspace.worktreePath}
+					/>
+				)}
 				{workspace?.worktreePath && (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}

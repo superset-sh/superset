@@ -2,6 +2,7 @@ import { mergeRouters } from "../..";
 import { createBranchProcedures } from "./procedures/branch";
 import { createCreateProcedures } from "./procedures/create";
 import { createDeleteProcedures } from "./procedures/delete";
+import { createDetectExpoProcedures } from "./procedures/detect-expo";
 import { createGitStatusProcedures } from "./procedures/git-status";
 import { createInitProcedures } from "./procedures/init";
 import { createQueryProcedures } from "./procedures/query";
@@ -18,6 +19,7 @@ import { createStatusProcedures } from "./procedures/status";
  * - git-status: refreshGitStatus, getGitHubStatus, getWorktreeInfo, getWorktreesByProject
  * - status: reorder, update, setUnread
  * - init: onInitProgress, retryInit, getInitProgress, getSetupCommands
+ * - detect-expo: detectExpo
  */
 export const createWorkspacesRouter = () => {
 	return mergeRouters(
@@ -28,6 +30,7 @@ export const createWorkspacesRouter = () => {
 		createGitStatusProcedures(),
 		createStatusProcedures(),
 		createInitProcedures(),
+		createDetectExpoProcedures(),
 	);
 };
 
