@@ -4,6 +4,7 @@ import { HiOutlineMagnifyingGlass } from "react-icons/hi2";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
 import { AllIssuesIcon } from "../shared/icons/AllIssuesIcon";
 import { BacklogIcon } from "../shared/icons/BacklogIcon";
+import { AssigneeFilter } from "./components/AssigneeFilter";
 
 export type TabValue = "all" | "active" | "backlog";
 
@@ -12,6 +13,8 @@ interface TasksTopBarProps {
 	onTabChange: (tab: TabValue) => void;
 	searchQuery: string;
 	onSearchChange: (query: string) => void;
+	assigneeFilter: string | null;
+	onAssigneeFilterChange: (value: string | null) => void;
 }
 
 const TABS = [
@@ -37,30 +40,41 @@ export function TasksTopBar({
 	onTabChange,
 	searchQuery,
 	onSearchChange,
+	assigneeFilter,
+	onAssigneeFilterChange,
 }: TasksTopBarProps) {
 	return (
 		<div className="flex items-center justify-between border-b border-border px-4 h-11">
-			{/* Tabs on the left */}
-			<Tabs
-				value={currentTab}
-				onValueChange={(value) => onTabChange(value as TabValue)}
-			>
-				<TabsList className="h-8 bg-transparent p-0 gap-1">
-					{TABS.map((tab) => {
-						const Icon = tab.Icon;
-						return (
-							<TabsTrigger
-								key={tab.value}
-								value={tab.value}
-								className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
-							>
-								<Icon className="h-3.5 w-3.5" />
-								<span className="text-sm">{tab.label}</span>
-							</TabsTrigger>
-						);
-					})}
-				</TabsList>
-			</Tabs>
+			{/* Tabs and filters on the left */}
+			<div className="flex items-center gap-2">
+				<Tabs
+					value={currentTab}
+					onValueChange={(value) => onTabChange(value as TabValue)}
+				>
+					<TabsList className="h-8 bg-transparent p-0 gap-1">
+						{TABS.map((tab) => {
+							const Icon = tab.Icon;
+							return (
+								<TabsTrigger
+									key={tab.value}
+									value={tab.value}
+									className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+								>
+									<Icon className="h-3.5 w-3.5" />
+									<span className="text-sm">{tab.label}</span>
+								</TabsTrigger>
+							);
+						})}
+					</TabsList>
+				</Tabs>
+
+				<div className="h-4 w-px bg-border" />
+
+				<AssigneeFilter
+					value={assigneeFilter}
+					onChange={onAssigneeFilterChange}
+				/>
+			</div>
 
 			{/* Search on the right */}
 			<div className="relative w-64">

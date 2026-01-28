@@ -42,11 +42,13 @@ const columnHelper = createColumnHelper<TaskWithStatus>();
 interface UseTasksTableParams {
 	filterTab: TabValue;
 	searchQuery: string;
+	assigneeFilter: string | null;
 }
 
 export function useTasksTable({
 	filterTab,
 	searchQuery,
+	assigneeFilter,
 }: UseTasksTableParams): {
 	table: Table<TaskWithStatus>;
 	isLoading: boolean;
@@ -99,8 +101,14 @@ export function useTasksTable({
 				value: filterTab,
 			});
 		}
+		if (assigneeFilter !== null) {
+			newColumnFilters.push({
+				id: "assigneeId",
+				value: assigneeFilter,
+			});
+		}
 		setColumnFilters(newColumnFilters);
-	}, [filterTab]);
+	}, [filterTab, assigneeFilter]);
 
 	const slugColumnWidth = useMemo(() => {
 		if (!data || data.length === 0) return "5rem";
@@ -239,6 +247,12 @@ export function useTasksTable({
 
 			columnHelper.accessor("assigneeId", {
 				header: "Assignee",
+				filterFn: (row, _columnId, filterValue: string) => {
+					if (filterValue === "unassigned") {
+						return row.original.assigneeId === null;
+					}
+					return row.original.assigneeId === filterValue;
+				},
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return <AssigneeCell info={info} />;
