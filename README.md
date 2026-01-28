@@ -4,8 +4,6 @@
 
 ### The Terminal for Coding Agents
 
-[About](#why-superset) · [Features](#features) · [Download](#getting-started) · [Docs](https://docs.superset.sh) · [Contributing](#contributing)
-
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
 [![License](https://img.shields.io/github/license/superset-sh/superset?style=flat)](LICENSE.md)
