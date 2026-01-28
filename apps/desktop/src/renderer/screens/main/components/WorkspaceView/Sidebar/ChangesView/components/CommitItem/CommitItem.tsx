@@ -12,7 +12,7 @@ interface CommitItemProps {
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile, commitHash: string) => void;
 	viewMode: ChangesViewMode;
-	worktreePath?: string;
+	worktreePath: string;
 	isExpandedView?: boolean;
 }
 

@@ -12,7 +12,7 @@ interface FileListGroupedProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
@@ -66,7 +66,7 @@ interface FolderGroupItemProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
-	worktreePath?: string;
+	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
