@@ -17,8 +17,8 @@
 		"@durable-streams/client": "^0.2.0",
 		"@durable-streams/state": "^0.2.0",
 		"@superset/ui": "workspace:*",
-		"@tanstack/db": "^0.5.23",
-		"@tanstack/react-db": "^0.1.67",
+		"@tanstack/db": "^0.5.24",
+		"@tanstack/react-db": "^0.1.68",
 		"lucide-react": "^0.560.0",
 		"react": "19.1.0",
 		"zod": "^4.3.5"
