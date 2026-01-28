@@ -118,35 +118,42 @@ open apps/desktop/release
 Superset leverages **git worktrees** to create isolated working directories for each task.
 
 ```mermaid
-flowchart LR
-    subgraph Terminal["Superset Terminal"]
+flowchart TB
+    subgraph Electron["Superset App"]
+        UI["Terminal UI"]
+        Notify["Notifications"]
+    end
+
+    subgraph Daemon["Terminal Host Daemon"]
         direction TB
-        subgraph Tabs["Terminal Tabs"]
-            Tab1["Claude Code"]
-            Tab2["Codex"]
-            Tab3["Aider"]
-        end
-        Output["Terminal Output"]
+        Socket["Unix Socket"]
+        Sessions["Session Manager"]
+        Emulator["Headless xterm"]
     end
 
-    subgraph Hooks["Hook System"]
-        Parser["Output Parser"]
-        Detect["Pattern Detection"]
+    subgraph PTY["PTY Subprocesses"]
+        direction LR
+        PTY1["node-pty\n(Claude Code)"]
+        PTY2["node-pty\n(Codex)"]
+        PTY3["node-pty\n(Aider)"]
     end
 
-    subgraph Actions["Notifications & Actions"]
-        Notify["Desktop Notification"]
-        Status["Status Indicator"]
-        Jump["Jump to Workspace"]
-    end
+    UI <-->|"attach/detach"| Socket
+    Socket <--> Sessions
+    Sessions <-->|"binary frames"| PTY1
+    Sessions <-->|"binary frames"| PTY2
+    Sessions <-->|"binary frames"| PTY3
+    Sessions --> Emulator
+    Emulator -->|"pattern detection"| Notify
 
-    Terminal --> Output
-    Output -->|stream| Parser
-    Parser -->|"waiting for input\nerror detected\ntask complete"| Detect
-    Detect -->|trigger| Notify
-    Detect -->|update| Status
-    Notify -->|click| Jump
+    Restart["App Restart"] -.->|"sessions persist"| Daemon
 ```
+
+**Key features:**
+- **Daemon persistence** — Terminal sessions survive app restarts via Unix socket
+- **Process isolation** — Each PTY runs in a separate subprocess to prevent blocking
+- **Headless emulator** — Tracks terminal state for snapshots and pattern detection
+- **Binary framing** — Efficient IPC protocol with backpressure handling
 
 1. **Create workspace** — Superset creates a new git worktree with its own branch
 2. **Run setup scripts** — Automatically copies env files, installs dependencies, etc.
