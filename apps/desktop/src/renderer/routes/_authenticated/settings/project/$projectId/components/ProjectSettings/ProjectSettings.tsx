@@ -12,7 +12,10 @@ import { useEffect, useState } from "react";
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ClickablePath } from "../../../../components/ClickablePath";
-import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
+import {
+	BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT,
+	sanitizePrefix,
+} from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 interface ProjectSettingsProps {
@@ -69,11 +72,13 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	};
 
 	const handleCustomPrefixBlur = () => {
+		const sanitized = sanitizePrefix(customPrefixInput);
+		setCustomPrefixInput(sanitized);
 		updateProject.mutate({
 			id: projectId,
 			patch: {
 				branchPrefixMode: "custom",
-				branchPrefixCustom: customPrefixInput || null,
+				branchPrefixCustom: sanitized || null,
 			},
 		});
 	};
@@ -92,7 +97,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				return gitInfo?.githubUsername || gitAuthor?.prefix || "username";
 			default:
 				// Resolve the global default
-				return getPreviewPrefix(globalBranchPrefix?.mode ?? "github");
+				return getPreviewPrefix(globalBranchPrefix?.mode ?? "none");
 		}
 	};
 

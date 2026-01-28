@@ -306,7 +306,7 @@ export const createCreateProcedures = () => {
 				const projectOverrides = project.branchPrefixMode != null;
 				const prefixMode = projectOverrides
 					? project.branchPrefixMode
-					: (globalSettings?.branchPrefixMode ?? "github");
+					: (globalSettings?.branchPrefixMode ?? "none");
 				const customPrefix = projectOverrides
 					? project.branchPrefixCustom
 					: globalSettings?.branchPrefixCustom;

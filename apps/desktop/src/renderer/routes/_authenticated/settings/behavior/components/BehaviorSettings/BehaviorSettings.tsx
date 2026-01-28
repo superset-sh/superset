@@ -11,7 +11,10 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
+import {
+	BRANCH_PREFIX_MODE_LABELS,
+	sanitizePrefix,
+} from "../../../utils/branch-prefix";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -86,14 +89,16 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	};
 
 	const handleCustomPrefixBlur = () => {
+		const sanitized = sanitizePrefix(customPrefixInput);
+		setCustomPrefixInput(sanitized);
 		setBranchPrefix.mutate({
 			mode: "custom",
-			customPrefix: customPrefixInput || null,
+			customPrefix: sanitized || null,
 		});
 	};
 
 	const getPreviewPrefix = (): string | null => {
-		const mode = branchPrefix?.mode ?? "github";
+		const mode = branchPrefix?.mode ?? "none";
 		switch (mode) {
 			case "none":
 				return null;
@@ -101,7 +106,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				return customPrefixInput || null;
 			case "author":
 				return gitInfo?.authorPrefix || "author-name";
-			default:
+			case "github":
 				return gitInfo?.githubUsername || gitInfo?.authorPrefix || "username";
 		}
 	};
@@ -152,7 +157,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						</div>
 						<div className="flex items-center gap-2">
 							<Select
-								value={branchPrefix?.mode ?? "github"}
+								value={branchPrefix?.mode ?? "none"}
 								onValueChange={(value) =>
 									handleBranchPrefixModeChange(value as BranchPrefixMode)
 								}

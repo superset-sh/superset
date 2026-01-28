@@ -344,7 +344,7 @@ export const createSettingsRouter = () => {
 		getBranchPrefix: publicProcedure.query(() => {
 			const row = getSettings();
 			return {
-				mode: row.branchPrefixMode ?? "github",
+				mode: row.branchPrefixMode ?? "none",
 				customPrefix: row.branchPrefixCustom ?? null,
 			};
 		}),
