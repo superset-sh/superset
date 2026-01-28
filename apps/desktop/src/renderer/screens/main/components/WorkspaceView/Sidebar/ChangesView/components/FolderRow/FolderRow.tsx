@@ -1,18 +1,42 @@
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@superset/ui/collapsible";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
-import { CollapsibleRow } from "../CollapsibleRow";
+import { HiChevronRight } from "react-icons/hi2";
+import {
+	LuClipboard,
+	LuExternalLink,
+	LuFolderOpen,
+	LuMinus,
+	LuPlus,
+	LuUndo2,
+} from "react-icons/lu";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface FolderRowProps {
 	name: string;
 	isExpanded: boolean;
 	onToggle: (expanded: boolean) => void;
 	children: ReactNode;
-	/** Number of level indentations (for tree view) */
 	level?: number;
-	/** Show file count badge */
 	fileCount?: number;
-	/** Use compact styling (grouped view) or full styling (tree view) */
 	variant?: "tree" | "grouped";
+	folderPath?: string;
+	worktreePath?: string;
+	onStageAll?: () => void;
+	onUnstageAll?: () => void;
+	onDiscardAll?: () => void;
+	isActioning?: boolean;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -33,14 +57,24 @@ function FolderRowHeader({
 	level,
 	fileCount,
 	isGrouped,
+	isExpanded,
 }: {
 	name: string;
 	level: number;
 	fileCount?: number;
 	isGrouped: boolean;
+	isExpanded: boolean;
 }) {
 	return (
 		<>
+			{!isGrouped && (
+				<HiChevronRight
+					className={cn(
+						"size-2.5 text-muted-foreground shrink-0 transition-transform duration-150",
+						isExpanded && "rotate-90",
+					)}
+				/>
+			)}
 			{!isGrouped && <LevelIndicators level={level} />}
 			<div className="flex items-center gap-1 flex-1 min-w-0">
 				<span
@@ -72,30 +106,146 @@ export function FolderRow({
 	level = 0,
 	fileCount,
 	variant = "tree",
+	folderPath,
+	worktreePath,
+	onStageAll,
+	onUnstageAll,
+	onDiscardAll,
+	isActioning = false,
 }: FolderRowProps) {
 	const isGrouped = variant === "grouped";
+	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
+	const openInAppMutation = electronTrpc.external.openInApp.useMutation();
+	const { data: lastUsedApp = "cursor" } =
+		electronTrpc.settings.getLastUsedApp.useQuery();
 
-	return (
-		<CollapsibleRow
-			isExpanded={isExpanded}
-			onToggle={onToggle}
-			showChevron={!isGrouped}
-			className={cn(isGrouped && "overflow-hidden")}
-			triggerClassName={cn(
+	const isRoot = folderPath === "";
+	const absolutePath = worktreePath
+		? isRoot
+			? worktreePath
+			: `${worktreePath}/${folderPath}`
+		: null;
+
+	const handleCopyPath = async () => {
+		if (absolutePath) {
+			await navigator.clipboard.writeText(absolutePath);
+		}
+	};
+
+	const handleCopyRelativePath = async () => {
+		if (folderPath) {
+			await navigator.clipboard.writeText(folderPath);
+		}
+	};
+
+	const handleRevealInFinder = () => {
+		if (absolutePath) {
+			openInFinderMutation.mutate(absolutePath);
+		}
+	};
+
+	const handleOpenInApp = () => {
+		if (absolutePath) {
+			openInAppMutation.mutate({ path: absolutePath, app: lastUsedApp });
+		}
+	};
+
+	const hasContextMenu = worktreePath && folderPath !== undefined;
+
+	const triggerContent = (
+		<CollapsibleTrigger
+			className={cn(
+				"w-full flex items-center gap-1.5 px-1.5 py-1 text-left rounded-sm",
+				"hover:bg-accent/50 cursor-pointer transition-colors",
 				"text-xs items-stretch py-0.5",
 				isGrouped && "text-muted-foreground",
 			)}
-			contentClassName={cn(isGrouped && "ml-1.5 border-l border-border pl-0.5")}
-			header={
-				<FolderRowHeader
-					name={name}
-					level={level}
-					fileCount={fileCount}
-					isGrouped={isGrouped}
-				/>
-			}
 		>
-			{children}
-		</CollapsibleRow>
+			<FolderRowHeader
+				name={name}
+				level={level}
+				fileCount={fileCount}
+				isGrouped={isGrouped}
+				isExpanded={isExpanded}
+			/>
+		</CollapsibleTrigger>
+	);
+
+	const contextMenuContent = (
+		<ContextMenuContent className="w-48">
+			<ContextMenuItem onClick={handleCopyPath}>
+				<LuClipboard className="mr-2 size-4" />
+				Copy Path
+			</ContextMenuItem>
+			{!isRoot && (
+				<ContextMenuItem onClick={handleCopyRelativePath}>
+					<LuClipboard className="mr-2 size-4" />
+					Copy Relative Path
+				</ContextMenuItem>
+			)}
+			<ContextMenuSeparator />
+			<ContextMenuItem onClick={handleRevealInFinder}>
+				<LuFolderOpen className="mr-2 size-4" />
+				Reveal in Finder
+			</ContextMenuItem>
+			<ContextMenuItem onClick={handleOpenInApp}>
+				<LuExternalLink className="mr-2 size-4" />
+				Open in Editor
+			</ContextMenuItem>
+
+			{(onStageAll || onUnstageAll || onDiscardAll) && (
+				<ContextMenuSeparator />
+			)}
+
+			{onStageAll && (
+				<ContextMenuItem onClick={onStageAll} disabled={isActioning}>
+					<LuPlus className="mr-2 size-4" />
+					Stage All
+				</ContextMenuItem>
+			)}
+
+			{onUnstageAll && (
+				<ContextMenuItem onClick={onUnstageAll} disabled={isActioning}>
+					<LuMinus className="mr-2 size-4" />
+					Unstage All
+				</ContextMenuItem>
+			)}
+
+			{onDiscardAll && (
+				<ContextMenuItem
+					onClick={onDiscardAll}
+					disabled={isActioning}
+					className="text-destructive focus:text-destructive"
+				>
+					<LuUndo2 className="mr-2 size-4" />
+					Discard All
+				</ContextMenuItem>
+			)}
+		</ContextMenuContent>
+	);
+
+	return (
+		<Collapsible
+			open={isExpanded}
+			onOpenChange={onToggle}
+			className={cn("min-w-0", isGrouped && "overflow-hidden")}
+		>
+			{hasContextMenu ? (
+				<ContextMenu>
+					<ContextMenuTrigger asChild>{triggerContent}</ContextMenuTrigger>
+					{contextMenuContent}
+				</ContextMenu>
+			) : (
+				triggerContent
+			)}
+			<CollapsibleContent
+				className={cn(
+					"min-w-0",
+					isGrouped && "ml-1.5 border-l border-border pl-0.5",
+				)}
+			>
+				{children}
+			</CollapsibleContent>
+		</Collapsible>
 	);
 }
