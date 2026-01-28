@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { GridCross } from "@/app/blog/components/GridCross";
@@ -84,7 +83,7 @@ export function ChangelogEntryLayout({
 			{entry.image && (
 				<div className="relative max-w-3xl mx-auto px-6 pt-12">
 					<div className="relative overflow-hidden border border-border">
-						{/* eslint-disable-next-line @next/next/no-img-element */}
+						{/* biome-ignore lint/performance/noImgElement: Need native img for natural dimensions */}
 						<img
 							src={entry.image}
 							alt={entry.title}

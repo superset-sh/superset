@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import {
@@ -50,12 +49,8 @@ export async function ChangelogEntry({ entry }: ChangelogEntryProps) {
 			{/* Featured image */}
 			{entry.image && (
 				<div className="relative mb-6 overflow-hidden border border-border">
-					{/* eslint-disable-next-line @next/next/no-img-element */}
-					<img
-						src={entry.image}
-						alt={entry.title}
-						className="w-full h-auto"
-					/>
+					{/* biome-ignore lint/performance/noImgElement: Need native img for natural dimensions */}
+					<img src={entry.image} alt={entry.title} className="w-full h-auto" />
 				</div>
 			)}
 
