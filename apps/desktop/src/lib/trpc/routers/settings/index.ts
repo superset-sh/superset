@@ -18,6 +18,7 @@ import {
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
@@ -376,5 +377,15 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
+
+		getGitInfo: publicProcedure.query(async () => {
+			const githubUsername = await getGitHubUsername();
+			const authorName = await getGitAuthorName();
+			return {
+				githubUsername,
+				authorName,
+				authorPrefix: authorName?.toLowerCase().replace(/\s+/g, "-") ?? null,
+			};
+		}),
 	});
 };

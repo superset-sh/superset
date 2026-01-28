@@ -68,6 +68,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	// Branch prefix setting
 	const { data: branchPrefix, isLoading: isBranchPrefixLoading } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
+	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
 	const setBranchPrefix = electronTrpc.settings.setBranchPrefix.useMutation({
 		onMutate: async ({ mode, customPrefix }) => {
 			await utils.settings.getBranchPrefix.cancel();
@@ -101,6 +102,24 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			customPrefix: customPrefix || null,
 		});
 	};
+
+	const getPreviewPrefix = (): string | null => {
+		const mode = branchPrefix?.mode ?? "github";
+		switch (mode) {
+			case "none":
+				return null;
+			case "feat":
+				return "feat";
+			case "custom":
+				return branchPrefix?.customPrefix || null;
+			case "author":
+				return gitInfo?.authorPrefix || "author-name";
+			default:
+				return gitInfo?.githubUsername || gitInfo?.authorPrefix || "username";
+		}
+	};
+
+	const previewPrefix = getPreviewPrefix();
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -175,6 +194,12 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								/>
 							)}
 						</div>
+						<p className="text-xs text-muted-foreground">
+							Preview:{" "}
+							<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
+								{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
+							</code>
+						</p>
 					</div>
 				)}
 			</div>

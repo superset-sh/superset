@@ -33,6 +33,12 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
+	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery({
+		id: projectId,
+	});
+	const { data: globalBranchPrefix } =
+		electronTrpc.settings.getBranchPrefix.useQuery();
+	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
 
 	const updateProject = electronTrpc.projects.update.useMutation({
 		onSuccess: () => {
@@ -71,11 +77,32 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		});
 	};
 
+	const getPreviewPrefix = (
+		mode: BranchPrefixMode | "default",
+	): string | null => {
+		switch (mode) {
+			case "none":
+				return null;
+			case "feat":
+				return "feat";
+			case "custom":
+				return project?.branchPrefixCustom || null;
+			case "author":
+				return gitAuthor?.prefix || "author-name";
+			case "github":
+				return gitInfo?.githubUsername || gitAuthor?.prefix || "username";
+			default:
+				// Resolve the global default
+				return getPreviewPrefix(globalBranchPrefix?.mode ?? "github");
+		}
+	};
+
 	if (!project) {
 		return null;
 	}
 
 	const currentMode = project.branchPrefixMode ?? "default";
+	const previewPrefix = getPreviewPrefix(currentMode);
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
@@ -148,6 +175,12 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 							</div>
 						)}
 					</div>
+					<p className="text-xs text-muted-foreground">
+						Preview:{" "}
+						<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
+							{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
+						</code>
+					</p>
 				</div>
 
 				<div className="pt-4 border-t space-y-4">
