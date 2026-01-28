@@ -16,7 +16,7 @@ import {
 } from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuClipboard,
@@ -83,6 +83,7 @@ export function FileItem({
 }: FileItemProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const { activeFileKey } = useScrollContext();
+	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const fileName = getFileName(file.path);
 	const statusBadgeColor = getStatusColor(file.status);
@@ -118,11 +119,50 @@ export function FileItem({
 		}
 	};
 
-	const handleOpenInEditor = () => {
+	const handleOpenInEditor = useCallback(() => {
 		if (absolutePath && worktreePath) {
 			openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
 		}
-	};
+	}, [absolutePath, worktreePath, openInEditorMutation]);
+
+	const handleClick = useCallback(() => {
+		// Clear any pending single-click timeout
+		if (clickTimeoutRef.current) {
+			clearTimeout(clickTimeoutRef.current);
+			clickTimeoutRef.current = null;
+		}
+
+		// Set a timeout for single-click action
+		clickTimeoutRef.current = setTimeout(() => {
+			clickTimeoutRef.current = null;
+			onClick();
+		}, 300);
+	}, [onClick]);
+
+	const handleDoubleClick = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+				clickTimeoutRef.current = null;
+			}
+
+			// Execute double-click action (open in editor)
+			handleOpenInEditor();
+		},
+		[handleOpenInEditor],
+	);
+
+	// Cleanup timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	const handleDiscardClick = () => {
 		setShowDiscardDialog(true);
@@ -153,7 +193,8 @@ export function FileItem({
 			{hasIndent && <LevelIndicators level={level} />}
 			<button
 				type="button"
-				onClick={onClick}
+				onClick={handleClick}
+				onDoubleClick={handleDoubleClick}
 				className={cn(
 					"flex items-center gap-1.5 flex-1 min-w-0",
 					hasIndent ? "py-0.5" : "py-1",
