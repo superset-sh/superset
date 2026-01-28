@@ -1,22 +1,12 @@
 import { Button } from "@superset/ui/button";
-import { eq, isNull } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { useMemo } from "react";
 import { FaGithub } from "react-icons/fa";
 import {
 	LuExternalLink,
 	LuLoaderCircle,
-	LuSquareKanban,
 	LuTriangleAlert,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	StatusIcon,
-	type StatusType,
-} from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { usePRStatus } from "renderer/screens/main/hooks";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
@@ -33,9 +23,6 @@ export function WorkspaceHoverCardContent({
 	workspaceId,
 	workspaceAlias,
 }: WorkspaceHoverCardContentProps) {
-	const navigate = useNavigate();
-	const collections = useCollections();
-
 	const { data: worktreeInfo } =
 		electronTrpc.workspaces.getWorktreeInfo.useQuery(
 			{ workspaceId },
@@ -48,37 +35,6 @@ export function WorkspaceHoverCardContent({
 		branchExistsOnRemote,
 		isLoading: isLoadingGithub,
 	} = usePRStatus({ workspaceId });
-
-	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
-		{ id: workspaceId },
-		{ enabled: !!workspaceId },
-	);
-
-	const branch = workspace?.worktree?.branch ?? workspace?.branch;
-
-	const { data: linkedTaskData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ tasks: collections.tasks })
-				.innerJoin({ status: collections.taskStatuses }, ({ tasks, status }) =>
-					eq(tasks.statusId, status.id),
-				)
-				.select(({ tasks, status }) => ({
-					id: tasks.id,
-					slug: tasks.slug,
-					title: tasks.title,
-					branch: tasks.branch,
-					statusType: status.type,
-					statusColor: status.color,
-				}))
-				.where(({ tasks }) => isNull(tasks.deletedAt)),
-		[collections],
-	);
-
-	const linkedTask = useMemo(() => {
-		if (!branch || !linkedTaskData) return null;
-		return linkedTaskData.find((task) => task.branch === branch) ?? null;
-	}, [branch, linkedTaskData]);
 
 	const needsRebase = worktreeInfo?.gitStatus?.needsRebase;
 
@@ -126,36 +82,6 @@ export function WorkspaceHoverCardContent({
 					</span>
 				)}
 			</div>
-
-			{/* Linked Task Section */}
-			{linkedTask && (
-				<button
-					type="button"
-					onClick={() => navigate({ to: `/tasks/${linkedTask.id}` })}
-					className="w-full pt-2 border-t border-border space-y-1 text-left hover:bg-muted/50 -mx-3 px-3 py-2 rounded-md transition-colors"
-				>
-					<div className="flex items-center gap-1.5">
-						<LuSquareKanban
-							className="size-3 text-muted-foreground shrink-0"
-							strokeWidth={STROKE_WIDTH}
-						/>
-						<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-							Linked Task
-						</span>
-					</div>
-					<div className="flex items-center gap-2">
-						<StatusIcon
-							type={(linkedTask.statusType as StatusType) ?? "unstarted"}
-							color={linkedTask.statusColor ?? "#6b7280"}
-							className="shrink-0"
-						/>
-						<span className="text-xs text-muted-foreground shrink-0">
-							{linkedTask.slug}
-						</span>
-						<span className="text-xs truncate">{linkedTask.title}</span>
-					</div>
-				</button>
-			)}
 
 			{/* Needs Rebase Warning */}
 			{needsRebase && (
