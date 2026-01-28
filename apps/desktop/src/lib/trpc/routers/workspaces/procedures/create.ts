@@ -338,7 +338,8 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					branch = sanitizeBranchName(input.branchName);
+					const sanitized = sanitizeBranchName(input.branchName);
+					branch = authorPrefix ? `${authorPrefix}/${sanitized}` : sanitized;
 				} else {
 					branch = generateBranchName({ existingBranches, authorPrefix });
 				}
