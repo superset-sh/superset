@@ -11,8 +11,8 @@ import {
 import { useEffect, useState } from "react";
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { ClickablePath } from "../../../../components/ClickablePath";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
+import { ClickablePath } from "../../../../components/ClickablePath";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 

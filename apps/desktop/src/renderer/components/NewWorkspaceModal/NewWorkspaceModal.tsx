@@ -139,7 +139,10 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	const generatedBranchName = generateBranchFromTitle({ title, prefix: resolvedPrefix });
+	const generatedBranchName = generateBranchFromTitle({
+		title,
+		prefix: resolvedPrefix,
+	});
 	const branchNameToCreate = branchNameEdited
 		? sanitizeBranchName(branchName)
 		: generatedBranchName;
