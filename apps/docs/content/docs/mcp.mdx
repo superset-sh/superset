@@ -18,10 +18,14 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 
 ## Setup
 
+Superset supports two MCP transports: **SSE** (Server-Sent Events) and **Streamable HTTP**. Both work identically—choose based on your client's preference.
+
 ### Claude Desktop
 
 Add to your `claude_desktop_config.json`:
 
+<Tabs items={["SSE", "HTTP"]}>
+<Tab value="SSE">
 ```json
 {
   "mcpServers": {
@@ -31,17 +35,42 @@ Add to your `claude_desktop_config.json`:
   }
 }
 ```
+</Tab>
+<Tab value="HTTP">
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
 
 ### Claude Code
 
+<Tabs items={["SSE", "HTTP"]}>
+<Tab value="SSE">
 ```bash
 claude mcp add superset --transport sse https://api.superset.sh/api/agent/sse
 ```
+</Tab>
+<Tab value="HTTP">
+```bash
+claude mcp add superset --transport http https://api.superset.sh/api/agent/mcp
+```
+</Tab>
+</Tabs>
 
 ### Cursor
 
 Add to your Cursor MCP settings:
 
+<Tabs items={["SSE", "HTTP"]}>
+<Tab value="SSE">
 ```json
 {
   "mcpServers": {
@@ -51,6 +80,20 @@ Add to your Cursor MCP settings:
   }
 }
 ```
+</Tab>
+<Tab value="HTTP">
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
 
 ## Authentication
 

@@ -1,4 +1,5 @@
 import defaultMdxComponents from "fumadocs-ui/mdx";
+import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import type { MDXComponents } from "mdx/types";
 import { DatabaseTable } from "@/components/DatabaseTable";
 import { DownloadButton } from "@/components/DownloadButton";
@@ -12,6 +13,8 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
 		DatabaseTable,
 		ResourceCard,
 		ResourceGrid,
+		Tab,
+		Tabs,
 		...components,
 	};
 }
