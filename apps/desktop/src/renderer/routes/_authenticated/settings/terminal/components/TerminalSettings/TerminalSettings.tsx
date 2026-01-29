@@ -104,7 +104,7 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		name: "opencode",
 		preset: {
 			name: "opencode",
-			description: "OpenCode: Open source AI coding agent",
+			description: "OpenCode: Open-source AI coding agent",
 			cwd: "",
 			commands: ["opencode"],
 		},
