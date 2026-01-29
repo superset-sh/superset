@@ -17,8 +17,6 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 
-const SOUND_RINGTONES = AVAILABLE_RINGTONES.filter((r) => r.id !== "none");
-
 function formatDuration(seconds: number): string {
 	return `${seconds}s`;
 }
@@ -173,7 +171,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 
 	const handleTogglePlay = useCallback(
 		async (ringtone: Ringtone) => {
-			if (ringtone.id === "none" || !ringtone.filename) {
+			if (!ringtone.filename) {
 				return;
 			}
 
@@ -268,7 +266,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 					<div>
 						<h3 className="text-sm font-medium mb-4">Notification Sound</h3>
 						<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-							{SOUND_RINGTONES.map((ringtone) => (
+							{AVAILABLE_RINGTONES.map((ringtone) => (
 								<RingtoneCard
 									key={ringtone.id}
 									ringtone={ringtone}

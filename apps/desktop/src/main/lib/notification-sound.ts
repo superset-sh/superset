@@ -31,7 +31,7 @@ function getSelectedRingtoneFilename(): string {
 		const settingsRow = localDb.select().from(settings).get();
 		const selectedId = settingsRow?.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
 
-		// "none" means silent - return empty string intentionally
+		// Legacy: "none" was previously used before the muted toggle existed
 		if (selectedId === "none") {
 			return "";
 		}
