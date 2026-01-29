@@ -1,5 +1,6 @@
 export { useCloseWorkspace } from "./useCloseWorkspace";
 export { useCreateBranchWorkspace } from "./useCreateBranchWorkspace";
+export { useCreateFromPr } from "./useCreateFromPr";
 export { useCreateWorkspace } from "./useCreateWorkspace";
 export { useDeleteWorkspace } from "./useDeleteWorkspace";
 export { useDeleteWorktree } from "./useDeleteWorktree";

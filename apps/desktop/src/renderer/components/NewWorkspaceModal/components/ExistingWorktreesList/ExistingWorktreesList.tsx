@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
+	useCreateFromPr,
 	useCreateWorkspace,
 	useOpenWorktree,
 } from "renderer/react-query/workspaces";
@@ -22,7 +23,7 @@ export function ExistingWorktreesList({
 		electronTrpc.projects.getBranches.useQuery({ projectId });
 	const openWorktree = useOpenWorktree();
 	const createWorkspace = useCreateWorkspace();
-	const createFromPr = electronTrpc.workspaces.createFromPr.useMutation();
+	const createFromPr = useCreateFromPr();
 
 	const [branchOpen, setBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
