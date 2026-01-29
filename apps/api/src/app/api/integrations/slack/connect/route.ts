@@ -68,10 +68,7 @@ export async function GET(request: Request) {
 		userId,
 	});
 
-	// Use ngrok URL in dev for redirect_uri
-	const redirectUri = isDev
-		? "https://6b3ce1c0b374.ngrok-free.app/api/integrations/slack/callback"
-		: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
+	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
 
 	const slackAuthUrl = new URL("https://slack.com/oauth/v2/authorize");
 	slackAuthUrl.searchParams.set("client_id", env.SLACK_CLIENT_ID);

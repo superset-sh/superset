@@ -1,6 +1,6 @@
 import { auth } from "@superset/auth/server";
-import type { McpContext } from "@superset/mcp/auth";
 import { registerTools } from "@superset/mcp";
+import type { McpContext } from "@superset/mcp/auth";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { env } from "@/env";
 

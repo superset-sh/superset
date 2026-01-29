@@ -57,7 +57,7 @@ async function processDeepLink(url: string): Promise<void> {
 	// For all other deep links, extract path and navigate in renderer
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
 	// e.g. superset://settings/integrations -> /settings/integrations
-	const path = "/" + url.split("://")[1];
+	const path = `/${url.split("://")[1]}`;
 
 	focusMainWindow();
 

@@ -31,8 +31,9 @@
 		}
 	},
 	"oauth_config": {
+		"_comment_redirect_urls": "Update these URLs to match your NEXT_PUBLIC_API_URL (ngrok in dev, production URL in prod)",
 		"redirect_urls": [
-			"https://a9be19c152b9.ngrok-free.app/api/integrations/slack/callback"
+			"https://api.superset.sh/api/integrations/slack/callback"
 		],
 		"scopes": {
 			"bot": [
@@ -54,7 +55,7 @@
 	},
 	"settings": {
 		"event_subscriptions": {
-			"request_url": "https://a9be19c152b9.ngrok-free.app/api/integrations/slack/events",
+			"request_url": "https://api.superset.sh/api/integrations/slack/events",
 			"bot_events": [
 				"app_mention",
 				"message.im",

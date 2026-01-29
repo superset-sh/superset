@@ -69,12 +69,8 @@ export async function GET(request: Request) {
 		);
 	}
 
-	// Exchange code for token
-	// Use ngrok URL in dev for redirect_uri (must match connect route)
-	const isDev = env.NODE_ENV === "development";
-	const redirectUri = isDev
-		? "https://6b3ce1c0b374.ngrok-free.app/api/integrations/slack/callback"
-		: `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
+	// Exchange code for token (redirect_uri must match connect route)
+	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
 
 	const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {
 		method: "POST",

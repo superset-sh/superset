@@ -82,9 +82,7 @@ export default async function SlackIntegrationPage() {
 					{connection && (
 						<div className="mt-4 text-sm text-muted-foreground">
 							Connected to{" "}
-							<span className="font-medium">
-								{connection.externalOrgName}
-							</span>
+							<span className="font-medium">{connection.externalOrgName}</span>
 						</div>
 					)}
 				</CardContent>
