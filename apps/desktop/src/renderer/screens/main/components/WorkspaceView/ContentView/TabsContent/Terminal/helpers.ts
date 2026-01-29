@@ -464,6 +464,7 @@ export function setupKeyboardHandler(
 
 		if (isShiftEnter) {
 			if (event.type === "keydown" && options.onShiftEnter) {
+				event.preventDefault();
 				options.onShiftEnter();
 			}
 			return false;
@@ -478,6 +479,7 @@ export function setupKeyboardHandler(
 
 		if (isCmdBackspace) {
 			if (event.type === "keydown" && options.onWrite) {
+				event.preventDefault();
 				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
 			}
 			return false;
@@ -493,6 +495,7 @@ export function setupKeyboardHandler(
 
 		if (isCmdLeft) {
 			if (event.type === "keydown" && options.onWrite) {
+				event.preventDefault();
 				options.onWrite("\x01"); // Ctrl+A - beginning of line
 			}
 			return false;
@@ -508,6 +511,7 @@ export function setupKeyboardHandler(
 
 		if (isCmdRight) {
 			if (event.type === "keydown" && options.onWrite) {
+				event.preventDefault();
 				options.onWrite("\x05"); // Ctrl+E - end of line
 			}
 			return false;
