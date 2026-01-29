@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
 							1. Introduction
 						</h2>
 						<p>
-							Superset (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;)
+							Superset Inc. (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;)
 							respects your privacy and is committed to protecting your personal
 							data. This Privacy Policy explains how we collect, use, disclose,
 							and safeguard your information when you visit our website or use
