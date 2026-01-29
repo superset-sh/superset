@@ -366,8 +366,7 @@ export function WorkspaceListItem({
 			className={cn(
 				"flex items-center w-full pl-3 pr-2 text-sm",
 				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
-				"group relative",
-				showBranchSubtitle ? "py-1.5" : "py-2",
+				"group relative py-1.5",
 				isActive && "bg-muted",
 				isDragging && "opacity-30",
 			)}
@@ -511,24 +510,22 @@ export function WorkspaceListItem({
 								))}
 						</div>
 
-						{/* Row 2: Git info (branch + PR badge) */}
-						{(showBranchSubtitle || pr) && (
-							<div className="flex items-center gap-2 text-[11px] w-full">
-								{showBranchSubtitle && (
-									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
-										{branch}
-									</span>
-								)}
-								{pr && (
-									<WorkspaceStatusBadge
-										state={pr.state}
-										prNumber={pr.number}
-										prUrl={pr.url}
-										className="ml-auto"
-									/>
-								)}
-							</div>
-						)}
+						{/* Row 2: Git info (branch + PR badge) - always render for consistent height */}
+						<div className="flex items-center gap-2 text-[11px] w-full min-h-[18px]">
+							{showBranchSubtitle && (
+								<span className="text-muted-foreground/60 truncate font-mono leading-tight">
+									{branch}
+								</span>
+							)}
+							{pr && (
+								<WorkspaceStatusBadge
+									state={pr.state}
+									prNumber={pr.number}
+									prUrl={pr.url}
+									className="ml-auto"
+								/>
+							)}
+						</div>
 					</div>
 				)}
 			</div>
