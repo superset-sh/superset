@@ -152,11 +152,10 @@ function WorkspacePage() {
 	useAppHotkey(
 		"PREV_TAB",
 		() => {
-			if (!activeTabId) return;
+			if (!activeTabId || tabs.length === 0) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index > 0) {
-				setActiveTab(workspaceId, tabs[index - 1].id);
-			}
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
@@ -165,11 +164,11 @@ function WorkspacePage() {
 	useAppHotkey(
 		"NEXT_TAB",
 		() => {
-			if (!activeTabId) return;
+			if (!activeTabId || tabs.length === 0) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index < tabs.length - 1) {
-				setActiveTab(workspaceId, tabs[index + 1].id);
-			}
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
