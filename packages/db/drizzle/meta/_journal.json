@@ -106,6 +106,13 @@
       "when": 1769383267153,
       "tag": "0014_better_auth_mcp_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1769719998551,
+      "tag": "0015_scope_tasks_slug_unique_to_org",
+      "breakpoints": true
     }
   ]
 }
