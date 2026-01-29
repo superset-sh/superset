@@ -8,8 +8,7 @@ import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
 
 const MeshGradient = dynamic(
-	() =>
-		import("@superset/ui/mesh-gradient").then((mod) => mod.MeshGradient),
+	() => import("@superset/ui/mesh-gradient").then((mod) => mod.MeshGradient),
 	{ ssr: false },
 );
 
