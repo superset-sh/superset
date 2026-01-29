@@ -110,8 +110,15 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1769559790446,
-      "tag": "0015_slack_integration",
+      "when": 1769719998551,
+      "tag": "0015_scope_tasks_slug_unique_to_org",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1769727642212,
+      "tag": "0016_slack_integration",
       "breakpoints": true
     }
   ]

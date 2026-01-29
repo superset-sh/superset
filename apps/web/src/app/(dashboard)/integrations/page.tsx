@@ -1,6 +1,6 @@
 "use client";
 
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaSlack } from "react-icons/fa";
 import { SiLinear } from "react-icons/si";
 import {
 	IntegrationCard,
@@ -23,6 +23,14 @@ const integrations: IntegrationCardProps[] = [
 		category: "Version Control",
 		accentColor: "#238636",
 		icon: <FaGithub className="size-8" />,
+	},
+	{
+		id: "slack",
+		name: "Slack",
+		description: "Connect Slack to manage tasks from conversations.",
+		category: "Communication",
+		accentColor: "#4A154B",
+		icon: <FaSlack className="size-8" />,
 	},
 ];
 

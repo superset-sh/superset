@@ -1,6 +1,6 @@
 {
-  "id": "a0800a2e-f4c6-40f4-8b6e-5f9095173faa",
-  "prevId": "e2124ad5-d601-4fe4-b6dc-20310002e110",
+  "id": "42baff60-2e3b-4f60-a33f-ad939180a08a",
+  "prevId": "a0800a2e-f4c6-40f4-8b6e-5f9095173faa",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3289,7 +3289,8 @@
       "schema": "public",
       "values": [
         "linear",
-        "github"
+        "github",
+        "slack"
       ]
     },
     "public.task_priority": {

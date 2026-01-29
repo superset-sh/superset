@@ -11,7 +11,7 @@ import { Skeleton } from "@superset/ui/skeleton";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaSlack } from "react-icons/fa";
 import { HiCheckCircle, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
 import {
@@ -97,10 +97,17 @@ export function IntegrationsSettings({
 	}, [fetchGithubInstallation]);
 
 	const linearConnection = integrations?.find((i) => i.provider === "linear");
+	const slackConnection = integrations?.find((i) => i.provider === "slack");
 	const isLinearConnected = !!linearConnection;
+	const isSlackConnected = !!slackConnection;
 	const isGithubConnected =
 		!!githubInstallation && !githubInstallation.suspended;
 	const isLoading = isLoadingIntegrations || isLoadingGithub;
+
+	const showSlack = isItemVisible(
+		SETTING_ITEM_ID.INTEGRATIONS_SLACK,
+		visibleItems,
+	);
 
 	const handleOpenWeb = (path: string) => {
 		window.open(`${env.NEXT_PUBLIC_WEB_URL}${path}`, "_blank");
@@ -159,6 +166,22 @@ export function IntegrationsSettings({
 						onManage={() =>
 							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
 								handleOpenWeb("/integrations/github"),
+							)
+						}
+					/>
+				)}
+
+				{showSlack && (
+					<IntegrationCard
+						name="Slack"
+						description="Manage tasks from Slack conversations"
+						icon={<FaSlack className="size-6" />}
+						isConnected={isSlackConnected}
+						connectedOrgName={slackConnection?.externalOrgName}
+						isLoading={isLoading}
+						onManage={() =>
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
+								handleOpenWeb("/integrations/slack"),
 							)
 						}
 					/>

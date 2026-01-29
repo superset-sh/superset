@@ -32,6 +32,7 @@ export const SETTING_ITEM_ID = {
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
+	INTEGRATIONS_SLACK: "integrations-slack",
 
 	BILLING_OVERVIEW: "billing-overview",
 	BILLING_PLANS: "billing-plans",
@@ -471,6 +472,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"connected",
 			"version control",
 			"git",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.INTEGRATIONS_SLACK,
+		section: "integrations",
+		title: "Slack",
+		description: "Manage tasks from Slack conversations",
+		keywords: [
+			"integrations",
+			"slack",
+			"messages",
+			"conversations",
+			"tasks",
+			"chat",
+			"sync",
+			"connect",
+			"connected",
+			"communication",
 		],
 	},
 	{
