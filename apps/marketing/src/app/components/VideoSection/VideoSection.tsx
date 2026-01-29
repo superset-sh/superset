@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -12,13 +11,7 @@ export function VideoSection() {
 	return (
 		<section className="relative py-12 px-8 lg:px-[30px]">
 			<div className="max-w-7xl mx-auto">
-				<motion.div
-					className="mb-12"
-					initial={{ opacity: 0, y: 20 }}
-					whileInView={{ opacity: 1, y: 0 }}
-					viewport={{ once: true }}
-					transition={{ duration: 0.5 }}
-				>
+				<div className="mb-12">
 					<div className="space-y-1">
 						<h2 className="text-2xl sm:text-3xl xl:text-4xl font-medium tracking-tight text-foreground">
 							Code 10x faster with no switching cost
@@ -29,14 +22,9 @@ export function VideoSection() {
 							OpenCode, Cursor, etc.
 						</p>
 					</div>
-				</motion.div>
+				</div>
 
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					whileInView={{ opacity: 1, y: 0 }}
-					viewport={{ once: true }}
-					transition={{ duration: 0.5, delay: 0.2 }}
-				>
+				<div>
 					<div className="group relative w-full aspect-video rounded-xl overflow-hidden bg-muted shadow-2xl ring-1 ring-white/10">
 						{isPlaying ? (
 							<iframe
@@ -68,7 +56,7 @@ export function VideoSection() {
 							</button>
 						)}
 					</div>
-				</motion.div>
+				</div>
 			</div>
 		</section>
 	);

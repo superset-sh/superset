@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Image from "next/image";
 import Marquee from "react-fast-marquee";
 
@@ -44,23 +43,12 @@ export function TrustedBySection() {
 	return (
 		<section className="py-6 sm:py-12 md:py-18 bg-background overflow-hidden">
 			<div className="max-w-7xl mx-auto">
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					whileInView={{ opacity: 1, y: 0 }}
-					viewport={{ once: true, margin: "-100px" }}
-					transition={{ duration: 0.5, ease: "easeOut" }}
-				>
+				<div>
 					<h2 className="text-lg sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
 						Trusted by builders from
 					</h2>
-				</motion.div>
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					whileInView={{ opacity: 1, y: 0 }}
-					viewport={{ once: true, margin: "-100px" }}
-					transition={{ duration: 0.5, delay: 0.2 }}
-					className="relative"
-				>
+				</div>
+				<div className="relative">
 					{/* Left fade overlay */}
 					<div className="absolute left-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 bg-linear-to-r from-background to-transparent z-10 pointer-events-none" />
 
@@ -98,7 +86,7 @@ export function TrustedBySection() {
 
 					{/* Right fade overlay */}
 					<div className="absolute right-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 bg-linear-to-l from-background to-transparent z-10 pointer-events-none" />
-				</motion.div>
+				</div>
 			</div>
 		</section>
 	);
