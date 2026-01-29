@@ -2,7 +2,7 @@
 	"title": "Documentation",
 	"pages": [
 		"---Rocket Get Started---",
-		"quick-start",
+		"installation",
 		"overview",
 		"first-workspace",
 		"---Gauge Core Features---",
