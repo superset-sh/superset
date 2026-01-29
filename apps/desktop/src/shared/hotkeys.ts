@@ -106,6 +106,75 @@ const ELECTRON_KEY_MAP: Record<string, string> = {
 	slash: "/",
 };
 
+/**
+ * Maps event.code values to canonical key names.
+ * Used to resolve the primary key when event.key is "Dead" or unusable
+ * (common on macOS with Option key combinations).
+ */
+const CODE_TO_KEY_MAP: Record<string, string> = {
+	// Letters
+	KeyA: "a",
+	KeyB: "b",
+	KeyC: "c",
+	KeyD: "d",
+	KeyE: "e",
+	KeyF: "f",
+	KeyG: "g",
+	KeyH: "h",
+	KeyI: "i",
+	KeyJ: "j",
+	KeyK: "k",
+	KeyL: "l",
+	KeyM: "m",
+	KeyN: "n",
+	KeyO: "o",
+	KeyP: "p",
+	KeyQ: "q",
+	KeyR: "r",
+	KeyS: "s",
+	KeyT: "t",
+	KeyU: "u",
+	KeyV: "v",
+	KeyW: "w",
+	KeyX: "x",
+	KeyY: "y",
+	KeyZ: "z",
+	// Digits
+	Digit0: "0",
+	Digit1: "1",
+	Digit2: "2",
+	Digit3: "3",
+	Digit4: "4",
+	Digit5: "5",
+	Digit6: "6",
+	Digit7: "7",
+	Digit8: "8",
+	Digit9: "9",
+	// Punctuation and special keys (common macOS Option dead keys)
+	Backquote: "`",
+	Minus: "-",
+	Equal: "=",
+	BracketLeft: "[",
+	BracketRight: "]",
+	Backslash: "\\",
+	Semicolon: ";",
+	Quote: "'",
+	Comma: ",",
+	Period: ".",
+	Slash: "slash",
+	// Navigation and control
+	ArrowUp: "up",
+	ArrowDown: "down",
+	ArrowLeft: "left",
+	ArrowRight: "right",
+	Space: "space",
+	Enter: "enter",
+	Backspace: "backspace",
+	Delete: "delete",
+	Tab: "tab",
+	Escape: "escape",
+};
+
 const TERMINAL_RESERVED_CHORDS = new Set<string>([
 	"ctrl+c",
 	"ctrl+d",
@@ -134,6 +203,51 @@ function normalizeKey(raw: string): string {
 	const trimmed = raw.trim();
 	const lower = trimmed === "" && raw !== "" ? raw : trimmed.toLowerCase();
 	return KEY_ALIAS_MAP[lower] ?? lower;
+}
+
+/**
+ * Resolves the primary key from a keyboard event.
+ *
+ * On macOS, many Option (⌥) combinations produce event.key === "Dead" or
+ * a modified character (e.g., "å" for ⌥+A). This function:
+ * - Uses event.key for ASCII alphanumerics (cross-layout compatible)
+ * - Falls back to event.code for Dead/Unidentified keys
+ * - Falls back to event.code for non-ASCII modified characters (⌥+letter)
+ *
+ * This preserves system shortcut behavior (Cmd+Z is always "z" regardless of
+ * keyboard layout) while fixing Option dead key issues.
+ */
+function resolvePrimaryKey(event: KeyboardEventLike): string | null {
+	const normalizedKey = normalizeKey(event.key);
+
+	// Dead or Unidentified keys must use event.code
+	if (normalizedKey === "dead" || normalizedKey === "unidentified") {
+		if (event.code) {
+			const fromCode = CODE_TO_KEY_MAP[event.code];
+			if (fromCode) return fromCode;
+		}
+		return null;
+	}
+
+	// ASCII alphanumeric: prefer event.key for cross-layout compatibility
+	// This ensures Cmd+Z works as "z" on all keyboard layouts
+	if (/^[a-z0-9]$/.test(normalizedKey)) {
+		return normalizedKey;
+	}
+
+	// Non-ASCII single characters (e.g., "å" from ⌥+A): use event.code
+	// This fixes modified characters from Option key combinations
+	if (
+		event.code &&
+		normalizedKey.length === 1 &&
+		!/^[\x20-\x7e]$/.test(normalizedKey)
+	) {
+		const fromCode = CODE_TO_KEY_MAP[event.code];
+		if (fromCode) return fromCode;
+	}
+
+	// Everything else: use the normalized key (arrows, space, enter, etc.)
+	return normalizedKey;
 }
 
 function parseHotkeyString(keys: string): {
@@ -238,17 +352,9 @@ export function matchesHotkeyEvent(
 	if (requiresAlt !== event.altKey) return false;
 	if (requiresShift !== event.shiftKey) return false;
 
-	const eventKey = normalizeKey(event.key);
-	const eventCode = event.code ? normalizeKey(event.code) : "";
-
-	if (key === "slash" && (eventKey === "slash" || eventCode === "slash")) {
-		return true;
-	}
-
-	if (key === "left" && eventKey === "arrowleft") return true;
-	if (key === "right" && eventKey === "arrowright") return true;
-	if (key === "up" && eventKey === "arrowup") return true;
-	if (key === "down" && eventKey === "arrowdown") return true;
+	// Use the same key resolution as capture to ensure consistency
+	const eventKey = resolvePrimaryKey(event);
+	if (!eventKey) return false;
 
 	return eventKey === key;
 }
@@ -257,25 +363,25 @@ export function hotkeyFromKeyboardEvent(
 	event: KeyboardEventLike,
 	platform: HotkeyPlatform,
 ): string | null {
-	const normalizedKey = normalizeKey(event.key);
-	if (
-		normalizedKey === "shift" ||
-		normalizedKey === "ctrl" ||
-		normalizedKey === "alt" ||
-		normalizedKey === "meta"
-	) {
-		return null;
-	}
-	if (normalizedKey === "dead" || normalizedKey === "unidentified") {
-		return null;
-	}
-
 	// App hotkeys must include ctrl or meta to avoid conflicts with terminal input
 	if (!event.ctrlKey && !event.metaKey) {
 		return null;
 	}
 
-	const primary = normalizedKey;
+	const primary = resolvePrimaryKey(event);
+	if (!primary) {
+		return null;
+	}
+
+	// Reject modifier-only keys
+	if (
+		primary === "shift" ||
+		primary === "ctrl" ||
+		primary === "alt" ||
+		primary === "meta"
+	) {
+		return null;
+	}
 
 	const modifiers = new Set<string>();
 	if (event.metaKey) modifiers.add("meta");
