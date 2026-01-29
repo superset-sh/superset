@@ -13,6 +13,7 @@ export interface UseTerminalStreamOptions {
 	isExitedRef: React.MutableRefObject<boolean>;
 	wasKilledByUserRef: React.MutableRefObject<boolean>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
+	ctrlDSentRef: React.MutableRefObject<boolean>;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	setConnectionError: (error: string | null) => void;
 	updateModesFromData: (data: string) => void;
@@ -38,12 +39,14 @@ export function useTerminalStream({
 	isExitedRef,
 	wasKilledByUserRef,
 	pendingEventsRef,
+	ctrlDSentRef,
 	setExitStatus,
 	setConnectionError,
 	updateModesFromData,
 	updateCwdFromData,
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
+	const removePane = useTabsStore((s) => s.removePane);
 	const firstStreamDataReceivedRef = useRef(false);
 
 	// Refs to use latest values in callbacks
@@ -54,10 +57,19 @@ export function useTerminalStream({
 
 	const handleTerminalExit = useCallback(
 		(exitCode: number, xterm: XTerm) => {
+			const wasKilledByUser = isTerminalKilledByUser(paneId);
+
+			// Auto-close pane on Ctrl+D (clean exit after EOF)
+			if (exitCode === 0 && ctrlDSentRef.current && !wasKilledByUser) {
+				ctrlDSentRef.current = false;
+				removePane(paneId);
+				return;
+			}
+			ctrlDSentRef.current = false;
+
 			isExitedRef.current = true;
 			isStreamReadyRef.current = false;
 
-			const wasKilledByUser = isTerminalKilledByUser(paneId);
 			wasKilledByUserRef.current = wasKilledByUser;
 			setExitStatus(wasKilledByUser ? "killed" : "exited");
 
@@ -83,8 +95,10 @@ export function useTerminalStream({
 			isExitedRef,
 			isStreamReadyRef,
 			wasKilledByUserRef,
+			ctrlDSentRef,
 			setExitStatus,
 			setPaneStatus,
+			removePane,
 		],
 	);
 
