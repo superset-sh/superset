@@ -22,6 +22,7 @@ export const SETTING_ITEM_ID = {
 
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
+	BEHAVIOR_TELEMETRY: "behavior-telemetry",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -324,6 +325,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"username",
 			"feat",
 			"custom",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_TELEMETRY,
+		section: "behavior",
+		title: "Send anonymous usage data",
+		description: "Help improve Superset by sending anonymous usage data",
+		keywords: [
+			"telemetry",
+			"analytics",
+			"tracking",
+			"privacy",
+			"data",
+			"usage",
+			"anonymous",
+			"metrics",
+			"opt out",
+			"disable",
 		],
 	},
 	{

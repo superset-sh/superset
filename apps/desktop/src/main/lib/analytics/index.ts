@@ -1,6 +1,9 @@
+import { settings } from "@superset/local-db";
 import { app } from "electron";
 import { env } from "main/env.main";
+import { localDb } from "main/lib/local-db";
 import { PostHog } from "posthog-node";
+import { DEFAULT_TELEMETRY_ENABLED } from "shared/constants";
 
 export let posthog: PostHog | null = null;
 let userId: string | null = null;
@@ -20,6 +23,15 @@ function getClient(): PostHog | null {
 	return posthog;
 }
 
+function isTelemetryEnabled(): boolean {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.telemetryEnabled ?? DEFAULT_TELEMETRY_ENABLED;
+	} catch {
+		return DEFAULT_TELEMETRY_ENABLED;
+	}
+}
+
 export function setUserId(id: string | null): void {
 	userId = id;
 }
@@ -29,6 +41,7 @@ export function track(
 	properties?: Record<string, unknown>,
 ): void {
 	if (!userId) return;
+	if (!isTelemetryEnabled()) return;
 
 	const client = getClient();
 	if (!client) return;
