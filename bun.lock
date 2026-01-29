@@ -127,7 +127,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.61",
+      "version": "0.0.62",
       "dependencies": {
         "@better-auth/stripe": "1.4.17",
         "@dnd-kit/core": "^6.3.1",
