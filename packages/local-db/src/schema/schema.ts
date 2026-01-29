@@ -150,6 +150,9 @@ export const settings = sqliteTable("settings", {
 	}),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
+	notificationSoundsMuted: integer("notification_sounds_muted", {
+		mode: "boolean",
+	}),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

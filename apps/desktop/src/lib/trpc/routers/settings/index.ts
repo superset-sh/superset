@@ -385,5 +385,25 @@ export const createSettingsRouter = () => {
 				authorPrefix: authorName?.toLowerCase().replace(/\s+/g, "-") ?? null,
 			};
 		}),
+
+		getNotificationSoundsMuted: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.notificationSoundsMuted ?? false;
+		}),
+
+		setNotificationSoundsMuted: publicProcedure
+			.input(z.object({ muted: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, notificationSoundsMuted: input.muted })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
 	});
 };
