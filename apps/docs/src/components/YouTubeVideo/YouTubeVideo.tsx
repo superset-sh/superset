@@ -9,7 +9,11 @@ interface YouTubeVideoProps {
 	thumbnail: string;
 }
 
-export function YouTubeVideo({ id, title = "Video", thumbnail }: YouTubeVideoProps) {
+export function YouTubeVideo({
+	id,
+	title = "Video",
+	thumbnail,
+}: YouTubeVideoProps) {
 	const [isPlaying, setIsPlaying] = useState(false);
 
 	if (isPlaying) {
