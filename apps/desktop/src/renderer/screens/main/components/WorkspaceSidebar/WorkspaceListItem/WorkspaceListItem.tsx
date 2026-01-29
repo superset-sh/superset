@@ -206,30 +206,79 @@ export function WorkspaceListItem({
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: WORKSPACE_TYPE,
-			item: { id, projectId, index },
-			collect: (monitor) => ({
-				isDragging: monitor.isDragging(),
-			}),
-		}),
-		[id, projectId, index],
-	);
-
-	const [, drop] = useDrop({
-		accept: WORKSPACE_TYPE,
-		hover: (item: { id: string; projectId: string; index: number }) => {
-			if (item.projectId === projectId && item.index !== index) {
+			item: { id, projectId, index, originalIndex: index },
+			end: (_item, monitor) => {
+				const item = monitor.getItem() as
+					| {
+							id: string;
+							projectId: string;
+							index: number;
+							originalIndex: number;
+					  }
+					| undefined;
+				if (!item || monitor.didDrop()) return;
+				if (item.projectId !== projectId) return;
+				if (item.originalIndex === item.index) return;
 				reorderWorkspaces.mutate(
 					{
-						projectId,
-						fromIndex: item.index,
-						toIndex: index,
+						projectId: item.projectId,
+						fromIndex: item.originalIndex,
+						toIndex: item.index,
 					},
 					{
 						onError: (error) =>
 							toast.error(`Failed to reorder workspace: ${error.message}`),
 					},
 				);
+			},
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
+		}),
+		[id, projectId, index, reorderWorkspaces],
+	);
+
+	const [, drop] = useDrop({
+		accept: WORKSPACE_TYPE,
+		hover: (item: {
+			id: string;
+			projectId: string;
+			index: number;
+			originalIndex: number;
+		}) => {
+			if (item.projectId === projectId && item.index !== index) {
+				utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
+					if (!oldData) return oldData;
+					return oldData.map((group) => {
+						if (group.project.id !== projectId) return group;
+						const workspaces = [...group.workspaces];
+						const [moved] = workspaces.splice(item.index, 1);
+						workspaces.splice(index, 0, moved);
+						return { ...group, workspaces };
+					});
+				});
 				item.index = index;
+			}
+		},
+		drop: (item: {
+			id: string;
+			projectId: string;
+			index: number;
+			originalIndex: number;
+		}) => {
+			if (item.projectId !== projectId) return;
+			if (item.originalIndex !== item.index) {
+				reorderWorkspaces.mutate(
+					{
+						projectId,
+						fromIndex: item.originalIndex,
+						toIndex: item.index,
+					},
+					{
+						onError: (error) =>
+							toast.error(`Failed to reorder workspace: ${error.message}`),
+					},
+				);
 			}
 		},
 	});
