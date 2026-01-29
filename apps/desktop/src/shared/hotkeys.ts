@@ -270,12 +270,46 @@ export function hotkeyFromKeyboardEvent(
 		return null;
 	}
 
-	// App hotkeys must include ctrl or meta to avoid conflicts with terminal input
-	if (!event.ctrlKey && !event.metaKey) {
+	// App hotkeys must include ctrl, meta, or alt to avoid conflicts with terminal input
+	if (!event.ctrlKey && !event.metaKey && !event.altKey) {
 		return null;
 	}
 
-	const primary = normalizedKey;
+	// Use event.code for physical key when modifiers are pressed (especially Alt/Option)
+	// This prevents Option from modifying the character (e.g., Option+K = "˚")
+	let primary = normalizedKey;
+	if (event.code && (event.altKey || event.ctrlKey || event.metaKey)) {
+		const code = event.code;
+		// Map common code patterns to normalized keys
+		if (code.startsWith("Key")) {
+			primary = code.substring(3).toLowerCase();
+		} else if (code.startsWith("Digit")) {
+			primary = code.substring(5);
+		} else if (code === "Space") {
+			primary = "space";
+		} else if (code === "Slash") {
+			primary = "slash";
+		} else if (code === "Minus") {
+			primary = "-";
+		} else if (code === "Equal") {
+			primary = "=";
+		} else if (code === "BracketLeft") {
+			primary = "[";
+		} else if (code === "BracketRight") {
+			primary = "]";
+		} else if (code === "Backslash") {
+			primary = "\\";
+		} else if (code === "Semicolon") {
+			primary = ";";
+		} else if (code === "Quote") {
+			primary = "'";
+		} else if (code === "Comma") {
+			primary = ",";
+		} else if (code === "Period") {
+			primary = ".";
+		}
+		// For special keys, fall back to normalizedKey
+	}
 
 	const modifiers = new Set<string>();
 	if (event.metaKey) modifiers.add("meta");
@@ -310,13 +344,17 @@ export function isOsReservedHotkey(
 }
 
 /**
- * Checks if a hotkey includes a primary modifier (ctrl or meta).
- * App hotkeys must include ctrl or meta to avoid conflicts with terminal input
+ * Checks if a hotkey includes a primary modifier (ctrl, meta, or alt).
+ * App hotkeys must include ctrl, meta, or alt to avoid conflicts with terminal input
  * and to ensure they work when the terminal is focused.
  */
 export function hasPrimaryModifier(keys: string): boolean {
 	const parsed = parseHotkeyString(keys);
-	return parsed.modifiers.has("ctrl") || parsed.modifiers.has("meta");
+	return (
+		parsed.modifiers.has("ctrl") ||
+		parsed.modifiers.has("meta") ||
+		parsed.modifiers.has("alt")
+	);
 }
 
 export function deriveNonMacDefault(keys: string | null): string | null {
@@ -685,7 +723,7 @@ export function buildOverridesFromBindings(
 		if (canonical === null && value !== null) {
 			continue;
 		}
-		// App hotkeys must include ctrl or meta to work in terminal
+		// App hotkeys must include ctrl, meta, or alt to work in terminal
 		if (canonical !== null && !hasPrimaryModifier(canonical)) {
 			continue;
 		}
