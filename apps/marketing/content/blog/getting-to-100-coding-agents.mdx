@@ -1,0 +1,137 @@
+---
+title: "Getting to 100 Coding Agents"
+description: "What happens when you stop thinking of AI as a single assistant and start thinking of it as a fleet? Here's how we're scaling to 100 parallel coding agents."
+author: avi
+date: 2026-01-29
+category: Engineering
+---
+
+What happens when you stop thinking of AI as a single assistant and start thinking of it as a fleet?
+
+Most developers today interact with AI coding tools one at a time. You ask Claude to write a function, wait for it to finish, review the output, then move on. It's useful, but it's still sequential. You're still the bottleneck.
+
+We're building toward something different: **100 coding agents working in parallel**.
+
+---
+
+## The Constraint Isn't Intelligence
+
+Modern AI models are remarkably capable. Claude can write complex functions, refactor entire modules, and debug tricky issues. The constraint isn't what the AI can do—it's where it can work.
+
+When an agent writes code, it needs:
+- A filesystem to modify
+- A branch to commit to
+- A way to run tests
+- Isolation from other work
+
+If you only have one working directory, you can only run one agent. Want two agents? You need two places for them to work.
+
+---
+
+## Git Worktrees as the Foundation
+
+This is why we built Superset on git worktrees. Each worktree is:
+- A full working directory
+- Its own branch
+- Completely isolated from other worktrees
+- Sharing the same git history
+
+Spin up 10 worktrees, and you have 10 isolated environments. Each can have its own agent working independently. No file conflicts. No branch confusion. No waiting.
+
+```bash
+# Agent 1 works here
+~/.superset/worktrees/my-app/add-auth/
+
+# Agent 2 works here
+~/.superset/worktrees/my-app/fix-tests/
+
+# Agent 3 works here
+~/.superset/worktrees/my-app/refactor-api/
+
+# You work here, undisturbed
+~/projects/my-app/
+```
+
+---
+
+## The Path to 100
+
+Getting to 100 parallel agents isn't just about spawning more processes. It requires rethinking several layers:
+
+### 1. Task Decomposition
+
+Not every task benefits from parallelism. "Rewrite the entire app" isn't 100 parallel tasks—it's one task that touches everything.
+
+The sweet spot is independent, well-scoped work:
+- Fix this specific bug
+- Add tests for this module
+- Refactor this function
+- Update these dependencies
+
+Good task decomposition is the difference between 100 agents thrashing and 100 agents shipping.
+
+### 2. Resource Management
+
+Each agent needs compute, memory, and disk. At scale, you need:
+- Intelligent scheduling (don't spawn 100 agents on a laptop)
+- Resource quotas per agent
+- Graceful degradation when resources are tight
+
+### 3. Result Aggregation
+
+100 agents produce 100 branches. Someone (or something) needs to:
+- Review the changes
+- Resolve conflicts
+- Merge the good stuff
+- Discard the failures
+
+This is where AI-assisted code review becomes essential. Humans can't review 100 PRs per hour. But AI can triage, and humans can make final calls.
+
+### 4. Failure Handling
+
+At scale, failures are guaranteed. Agents will:
+- Write buggy code
+- Get stuck in loops
+- Produce conflicting changes
+- Timeout or crash
+
+The system needs to detect failures fast, kill stuck agents, and reassign work.
+
+---
+
+## What Changes at 100x
+
+When you can run 100 coding agents in parallel, the nature of software development changes:
+
+**Prototyping becomes cheap.** Want to explore 10 different approaches to a problem? Spawn 10 agents, let them each try, compare results.
+
+**Refactoring becomes fearless.** Worried about breaking things? Run the refactor in an isolated worktree, let agents write tests first, validate before merging.
+
+**Code review becomes different.** Instead of reviewing human PRs, you're reviewing AI work. The skills shift from "did they think of edge cases" to "does this match our patterns."
+
+**The human role shifts.** Less typing, more directing. Less implementing, more reviewing. Less "how do I write this" and more "what should we build."
+
+---
+
+## We're Not There Yet
+
+Today, Superset handles a handful of parallel agents well. Getting to 100 requires:
+- Better task planning and decomposition
+- Smarter resource scheduling
+- Faster worktree setup and teardown
+- Better conflict resolution
+- Improved failure detection
+
+We're building toward it. The foundation—worktrees, persistent terminals, isolated environments—is in place. The scaling work is next.
+
+---
+
+## The Future Is Parallel
+
+The jump from 1 to 100 agents isn't just quantitative. It's a qualitative shift in how software gets built.
+
+Today, you're the programmer and AI is your assistant.
+
+Tomorrow, you're the architect and AI is your construction crew.
+
+We're building the tools to make that transition possible.
