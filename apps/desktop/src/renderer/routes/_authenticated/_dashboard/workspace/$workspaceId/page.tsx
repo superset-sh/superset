@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -8,6 +9,7 @@ import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/work
 import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
+import { usePRStatus } from "renderer/screens/main/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -230,6 +232,31 @@ function WorkspacePage() {
 		},
 		undefined,
 		[workspace?.worktreePath],
+	);
+
+	// Open GitHub PR shortcut (⌘P)
+	const { pr } = usePRStatus({
+		workspaceId,
+		enabled: !!workspaceId,
+	});
+	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const createPR = electronTrpc.changes.createPR.useMutation({
+		onSuccess: () => toast.success("Opening GitHub..."),
+		onError: (error) => toast.error(`Failed: ${error.message}`),
+	});
+	useAppHotkey(
+		"OPEN_GITHUB_PR",
+		() => {
+			if (pr?.url) {
+				// PR exists - open it
+				openUrl.mutate(pr.url);
+			} else if (workspace?.worktreePath) {
+				// No PR - create one (will push if needed and open GitHub compare page)
+				createPR.mutate({ worktreePath: workspace.worktreePath });
+			}
+		},
+		undefined,
+		[pr?.url, workspace?.worktreePath],
 	);
 
 	// Toggle changes sidebar (⌘L)
