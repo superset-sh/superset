@@ -1,13 +1,21 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { ShaderAnimation } from "../../../components/ui/shader-animation";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
+
+const ShaderAnimation = dynamic(
+	() =>
+		import("../../../components/ui/shader-animation").then(
+			(mod) => mod.ShaderAnimation,
+		),
+	{ ssr: false },
+);
 
 export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
