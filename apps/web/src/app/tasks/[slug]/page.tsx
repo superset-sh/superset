@@ -12,7 +12,7 @@ import { useEffect } from "react";
 export default function TaskDeepLinkPage() {
 	const params = useParams<{ slug: string }>();
 	const slug = params.slug;
-	const deepLink = `superset://task/${slug}`;
+	const deepLink = `superset://tasks/${slug}`;
 
 	useEffect(() => {
 		window.location.href = deepLink;

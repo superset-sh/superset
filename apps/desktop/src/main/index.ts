@@ -55,22 +55,18 @@ async function processDeepLink(url: string): Promise<void> {
 	}
 
 	// For all other deep links, extract path and navigate in renderer
-	// e.g. superset://workspace/123 -> /workspace/123
-	try {
-		const parsed = new URL(url);
-		const path = parsed.pathname || "/";
+	// e.g. superset://tasks/my-slug -> /tasks/my-slug
+	// e.g. superset://settings/integrations -> /settings/integrations
+	const path = "/" + url.split("://")[1];
 
-		focusMainWindow();
+	focusMainWindow();
 
-		// Navigate in renderer via loading the route directly
-		const windows = BrowserWindow.getAllWindows();
-		if (windows.length > 0) {
-			const mainWindow = windows[0];
-			// Send navigation request to renderer
-			mainWindow.webContents.send("deep-link-navigate", path);
-		}
-	} catch (err) {
-		console.error("[main] Failed to parse deep link:", err);
+	// Navigate in renderer via loading the route directly
+	const windows = BrowserWindow.getAllWindows();
+	if (windows.length > 0) {
+		const mainWindow = windows[0];
+		// Send navigation request to renderer
+		mainWindow.webContents.send("deep-link-navigate", path);
 	}
 }
 

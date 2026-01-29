@@ -54,12 +54,12 @@ export function formatActionsAsText(actions: AgentAction[]): string {
 	for (const action of actions) {
 		if (action.type === "task_created") {
 			for (const task of action.tasks) {
-				const url = `${WEB_APP_URL}/task/${task.slug}`;
+				const url = `${WEB_APP_URL}/tasks/${task.slug}`;
 				lines.push(`Created task <${url}|${task.slug}>`);
 			}
 		} else if (action.type === "task_updated") {
 			for (const task of action.tasks) {
-				const url = `${WEB_APP_URL}/task/${task.slug}`;
+				const url = `${WEB_APP_URL}/tasks/${task.slug}`;
 				lines.push(`Updated task <${url}|${task.slug}>`);
 			}
 		} else if (action.type === "task_deleted") {
@@ -90,7 +90,7 @@ function createTaskAttachment(
 	task: TaskData,
 	_actionType: TaskActionType,
 ): MessageAttachment {
-	const taskUrl = `${env.NEXT_PUBLIC_WEB_URL}/task/${task.slug}`;
+	const taskUrl = `${env.NEXT_PUBLIC_WEB_URL}/tasks/${task.slug}`;
 
 	const fields: { title: string; value: string; short: boolean }[] = [];
 

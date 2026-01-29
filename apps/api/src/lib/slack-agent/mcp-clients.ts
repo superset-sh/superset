@@ -1,9 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-
-import { env } from "@/env";
+import { createInMemoryMcpClient } from "@superset/mcp/in-memory";
 
 interface McpTool {
 	name: string;
@@ -12,8 +10,8 @@ interface McpTool {
 }
 
 /**
- * Creates an MCP client connected to the Superset MCP server via HTTP.
- * Uses a service-level authentication bypass for internal agent calls.
+ * Creates an MCP client connected to the Superset MCP server in-process.
+ * Uses InMemoryTransport — no HTTP, no forgeable headers.
  */
 export async function createSupersetMcpClient({
 	organizationId,
@@ -21,27 +19,8 @@ export async function createSupersetMcpClient({
 }: {
 	organizationId: string;
 	userId: string;
-}): Promise<Client> {
-	const transport = new StreamableHTTPClientTransport(
-		new URL(`${env.NEXT_PUBLIC_API_URL}/api/agent/mcp`),
-		{
-			requestInit: {
-				headers: {
-					// Pass context as headers for internal service calls
-					"X-Internal-Organization-Id": organizationId,
-					"X-Internal-User-Id": userId,
-				},
-			},
-		},
-	);
-
-	const client = new Client({
-		name: "slack-agent-superset",
-		version: "1.0.0",
-	});
-
-	await client.connect(transport);
-	return client;
+}): Promise<{ client: Client; cleanup: () => Promise<void> }> {
+	return createInMemoryMcpClient({ organizationId, userId });
 }
 
 /**

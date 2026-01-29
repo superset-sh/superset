@@ -219,6 +219,7 @@ export async function runSlackAgent(
 	}
 
 	let supersetMcp: Client | null = null;
+	let cleanupSuperset: (() => Promise<void>) | null = null;
 	let slackMcp: Client | null = null;
 
 	try {
@@ -244,7 +245,8 @@ export async function runSlackAgent(
 				}),
 			]);
 
-		supersetMcp = supersetMcpResult;
+		supersetMcp = supersetMcpResult.client;
+		cleanupSuperset = supersetMcpResult.cleanup;
 		slackMcp = slackMcpResult;
 
 		if (threadContext) {
@@ -401,9 +403,9 @@ Current context:
 		};
 	} finally {
 		// Cleanup: close MCP clients
-		if (supersetMcp) {
+		if (cleanupSuperset) {
 			try {
-				await supersetMcp.close();
+				await cleanupSuperset();
 			} catch {
 				// Ignore close errors
 			}

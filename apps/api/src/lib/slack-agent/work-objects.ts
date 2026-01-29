@@ -37,7 +37,7 @@ type TaskWithFullRelations = TaskWithRelations & {
  * Creates a Work Object entity for a task.
  */
 export function createTaskWorkObject(task: TaskWithRelations): EntityMetadata {
-	const taskUrl = `${WEB_APP_URL}/task/${task.slug}`;
+	const taskUrl = `${WEB_APP_URL}/tasks/${task.slug}`;
 
 	const fields: TaskEntityFields = {};
 	const displayOrder: string[] = [];
@@ -99,7 +99,7 @@ export function createTaskWorkObject(task: TaskWithRelations): EntityMetadata {
 export function createTaskFlexpaneObject(
 	task: TaskWithFullRelations,
 ): EntityMetadata {
-	const taskUrl = `${WEB_APP_URL}/task/${task.slug}`;
+	const taskUrl = `${WEB_APP_URL}/tasks/${task.slug}`;
 
 	const fields: TaskEntityFields = {};
 	const displayOrder: string[] = [];
@@ -275,20 +275,20 @@ function formatPriorityLabel(priority: string): string {
 /**
  * Extract task slug from Superset URL.
  * Supports:
- *   - /api/integrations/slack/task/my-task-slug (legacy API format)
- *   - /task/my-task-slug (web app format)
+ *   - /api/integrations/slack/tasks/my-task-slug (legacy API format)
+ *   - /tasks/my-task-slug (web app format)
  */
 export function parseTaskSlugFromUrl(url: string): string | null {
 	try {
 		const parsed = new URL(url);
-		// Try web app format first: /task/{slug}
-		const webMatch = parsed.pathname.match(/^\/task\/([^/]+)/);
+		// Try web app format first: /tasks/{slug}
+		const webMatch = parsed.pathname.match(/^\/tasks\/([^/]+)/);
 		if (webMatch?.[1]) {
 			return webMatch[1];
 		}
-		// Fall back to legacy API format: /api/integrations/slack/task/{slug}
+		// Fall back to legacy API format: /api/integrations/slack/tasks/{slug}
 		const apiMatch = parsed.pathname.match(
-			/^\/api\/integrations\/slack\/task\/([^/]+)/,
+			/^\/api\/integrations\/slack\/tasks\/([^/]+)/,
 		);
 		return apiMatch?.[1] ?? null;
 	} catch {

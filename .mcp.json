@@ -2,11 +2,11 @@
 	"mcpServers": {
 		"superset": {
 			"type": "http",
-			"url": "https://api.superset.sh/api/agent/mcp",
+			"url": "http://localhost:3001/api/agent/mcp",
 			"oauth": {
 				"clientId": "claude-code",
-				"authorizationUrl": "https://api.superset.sh/api/auth/mcp/authorize",
-				"tokenUrl": "https://api.superset.sh/api/auth/mcp/token",
+				"authorizationUrl": "http://localhost:3001/api/auth/mcp/authorize",
+				"tokenUrl": "http://localhost:3001/api/auth/mcp/token",
 				"scopes": ["openid", "profile", "email"]
 			}
 		}

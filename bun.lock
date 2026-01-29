@@ -70,6 +70,7 @@
         "@slack/web-api": "^7.13.0",
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
+        "@superset/mcp": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@t3-oss/env-nextjs": "^0.13.8",
@@ -565,6 +566,21 @@
         "@superset/typescript": "workspace:*",
         "@types/uuid": "^11.0.0",
         "drizzle-kit": "0.31.8",
+        "typescript": "^5.9.3",
+      },
+    },
+    "packages/mcp": {
+      "name": "@superset/mcp",
+      "version": "0.1.0",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.25.3",
+        "@superset/db": "workspace:*",
+        "drizzle-orm": "0.45.1",
+        "zod": "^4.3.5",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "@types/node": "^24.9.1",
         "typescript": "^5.9.3",
       },
     },
@@ -1795,6 +1811,8 @@
     "@superset/local-db": ["@superset/local-db@workspace:packages/local-db"],
 
     "@superset/marketing": ["@superset/marketing@workspace:apps/marketing"],
+
+    "@superset/mcp": ["@superset/mcp@workspace:packages/mcp"],
 
     "@superset/mobile": ["@superset/mobile@workspace:apps/mobile"],
 
