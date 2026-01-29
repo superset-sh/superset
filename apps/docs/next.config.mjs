@@ -25,12 +25,12 @@ const config = {
 		return [
 			{
 				source: "/",
-				destination: "/quick-start",
+				destination: "/installation",
 				permanent: false,
 			},
 			{
 				source: "/docs",
-				destination: "/quick-start",
+				destination: "/installation",
 				permanent: false,
 			},
 		];
