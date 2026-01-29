@@ -12,6 +12,7 @@ import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_TELEMETRY_ENABLED,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PERSISTENCE,
 } from "shared/constants";
@@ -400,6 +401,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTelemetryEnabled: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.telemetryEnabled ?? DEFAULT_TELEMETRY_ENABLED;
+		}),
+
+		setTelemetryEnabled: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, telemetryEnabled: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { telemetryEnabled: input.enabled },
 					})
 					.run();
 
