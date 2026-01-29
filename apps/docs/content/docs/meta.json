@@ -14,6 +14,7 @@
 		"agent-integration",
 		"mcp",
 		"---BookOpen Guides---",
+		"presets",
 		"setup-teardown-scripts",
 		"use-with-ide",
 		"using-monorepos",
