@@ -32,8 +32,8 @@ function parseSections(): SidebarSection[] {
 
 	for (const node of pageTree.children) {
 		if (node.type === "separator") {
-			// Parse separator format: "IconName Title"
-			const match = node.name.match(/^(\w+)\s+(.+)$/);
+			const name = String(node.name ?? "");
+			const match = name.match(/^(\w+)\s+(.+)$/);
 			if (match) {
 				const [, iconName, title] = match;
 				currentSection = {
@@ -45,7 +45,7 @@ function parseSections(): SidebarSection[] {
 			}
 		} else if (node.type === "page" && currentSection) {
 			currentSection.items.push({
-				title: node.name,
+				title: String(node.name ?? ""),
 				href: node.url,
 			});
 		}
