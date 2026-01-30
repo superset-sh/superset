@@ -1,23 +1,13 @@
+import type { AppMentionEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-
 import { runSlackAgent } from "@/lib/slack-agent/run-agent";
 import { formatActionsAsText } from "@/lib/slack-agent/slack-blocks";
 import { createSlackClient } from "@/lib/slack-agent/slack-client";
 
-interface SlackAppMentionEvent {
-	type: "app_mention";
-	user: string;
-	text: string;
-	ts: string;
-	channel: string;
-	event_ts: string;
-	thread_ts?: string;
-}
-
 interface ProcessMentionParams {
-	event: SlackAppMentionEvent;
+	event: AppMentionEvent;
 	teamId: string;
 	eventId: string;
 }

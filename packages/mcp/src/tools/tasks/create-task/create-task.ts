@@ -1,8 +1,9 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
 import { taskStatuses, tasks } from "@superset/db/schema";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
-import { registerTool, toolError, toolResult } from "../../utils";
+import { getMcpContext } from "../../utils";
 
 const PRIORITIES = ["urgent", "high", "medium", "low", "none"] as const;
 type TaskPriority = (typeof PRIORITIES)[number];
@@ -58,133 +59,132 @@ function generateUniqueSlug(
 	return slug;
 }
 
-// Output schema for type-safe structured content
-const createTaskOutputSchema = {
-	created: z.array(
-		z.object({
-			id: z.string(),
-			slug: z.string(),
-			title: z.string(),
-		}),
-	),
-};
-
-export const register = registerTool(
-	"create_task",
-	{
-		description: "Create one or more tasks in the organization",
-		inputSchema: {
-			tasks: z
-				.array(taskInputSchema)
-				.min(1)
-				.max(25)
-				.describe("Array of tasks to create (1-25)"),
-		},
-		outputSchema: createTaskOutputSchema,
-	},
-	async (params, ctx) => {
-		const taskInputs = params.tasks as TaskInput[];
-
-		// Get default status if needed
-		let defaultStatusId: string | undefined;
-		const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
-
-		if (needsDefaultStatus) {
-			const [defaultStatus] = await db
-				.select({ id: taskStatuses.id })
-				.from(taskStatuses)
-				.where(
-					and(
-						eq(taskStatuses.organizationId, ctx.organizationId),
-						eq(taskStatuses.type, "backlog"),
-					),
-				)
-				.orderBy(taskStatuses.position)
-				.limit(1);
-
-			defaultStatusId = defaultStatus?.id;
-			if (!defaultStatusId) {
-				return toolError("No default status found");
-			}
-		}
-
-		// Collect all base slugs to query existing ones
-		const baseSlugs = taskInputs.map((t) => generateBaseSlug(t.title));
-		const uniqueBaseSlugs = [...new Set(baseSlugs)];
-
-		// Query all potentially conflicting slugs in one go
-		const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
-			ilike(tasks.slug, `${baseSlug}%`),
-		);
-
-		const existingTasks = await db
-			.select({ slug: tasks.slug })
-			.from(tasks)
-			.where(
-				and(
-					eq(tasks.organizationId, ctx.organizationId),
-					or(...slugConditions),
+export function register(server: McpServer) {
+	server.registerTool(
+		"create_task",
+		{
+			description: "Create one or more tasks in the organization",
+			inputSchema: {
+				tasks: z
+					.array(taskInputSchema)
+					.min(1)
+					.max(25)
+					.describe("Array of tasks to create (1-25)"),
+			},
+			outputSchema: {
+				created: z.array(
+					z.object({
+						id: z.string(),
+						slug: z.string(),
+						title: z.string(),
+					}),
 				),
+			},
+		},
+		async (args, extra) => {
+			const ctx = getMcpContext(extra);
+			const taskInputs = args.tasks as TaskInput[];
+
+			let defaultStatusId: string | undefined;
+			const needsDefaultStatus = taskInputs.some((t) => !t.statusId);
+
+			if (needsDefaultStatus) {
+				const [defaultStatus] = await db
+					.select({ id: taskStatuses.id })
+					.from(taskStatuses)
+					.where(
+						and(
+							eq(taskStatuses.organizationId, ctx.organizationId),
+							eq(taskStatuses.type, "backlog"),
+						),
+					)
+					.orderBy(taskStatuses.position)
+					.limit(1);
+
+				defaultStatusId = defaultStatus?.id;
+				if (!defaultStatusId) {
+					return {
+						content: [{ type: "text", text: "Error: No default status found" }],
+						isError: true,
+					};
+				}
+			}
+
+			const baseSlugs = taskInputs.map((t) => generateBaseSlug(t.title));
+			const uniqueBaseSlugs = [...new Set(baseSlugs)];
+
+			const slugConditions = uniqueBaseSlugs.map((baseSlug) =>
+				ilike(tasks.slug, `${baseSlug}%`),
 			);
 
-		// Track all used slugs (DB + in-batch)
-		const usedSlugs = new Set(existingTasks.map((t) => t.slug));
+			const existingTasks = await db
+				.select({ slug: tasks.slug })
+				.from(tasks)
+				.where(
+					and(
+						eq(tasks.organizationId, ctx.organizationId),
+						or(...slugConditions),
+					),
+				);
 
-		// Prepare all task values with unique slugs
-		const taskValues: Array<{
-			slug: string;
-			title: string;
-			description: string | null;
-			priority: TaskPriority;
-			statusId: string;
-			organizationId: string;
-			creatorId: string;
-			assigneeId: string | null;
-			labels: string[];
-			dueDate: Date | null;
-			estimate: number | null;
-		}> = [];
+			const usedSlugs = new Set(existingTasks.map((t) => t.slug));
 
-		for (const [i, input] of taskInputs.entries()) {
-			const baseSlug = baseSlugs[i] ?? "";
-			const slug = generateUniqueSlug(baseSlug, usedSlugs);
+			const taskValues: Array<{
+				slug: string;
+				title: string;
+				description: string | null;
+				priority: TaskPriority;
+				statusId: string;
+				organizationId: string;
+				creatorId: string;
+				assigneeId: string | null;
+				labels: string[];
+				dueDate: Date | null;
+				estimate: number | null;
+			}> = [];
 
-			// Add to used slugs to prevent intra-batch collisions
-			usedSlugs.add(slug);
+			for (const [i, input] of taskInputs.entries()) {
+				const baseSlug = baseSlugs[i] ?? "";
+				const slug = generateUniqueSlug(baseSlug, usedSlugs);
+				usedSlugs.add(slug);
 
-			const priority: TaskPriority = isPriority(input.priority)
-				? input.priority
-				: "none";
+				const priority: TaskPriority = isPriority(input.priority)
+					? input.priority
+					: "none";
 
-			// Use input.statusId if provided, otherwise fall back to defaultStatusId
-			// defaultStatusId is guaranteed to exist if any task needed it (checked earlier)
-			const statusId = input.statusId ?? (defaultStatusId as string);
+				const statusId = input.statusId ?? (defaultStatusId as string);
 
-			taskValues.push({
-				slug,
-				title: input.title,
-				description: input.description ?? null,
-				priority,
-				statusId,
-				organizationId: ctx.organizationId,
-				creatorId: ctx.userId,
-				assigneeId: input.assigneeId ?? null,
-				labels: input.labels ?? [],
-				dueDate: input.dueDate ? new Date(input.dueDate) : null,
-				estimate: input.estimate ?? null,
+				taskValues.push({
+					slug,
+					title: input.title,
+					description: input.description ?? null,
+					priority,
+					statusId,
+					organizationId: ctx.organizationId,
+					creatorId: ctx.userId,
+					assigneeId: input.assigneeId ?? null,
+					labels: input.labels ?? [],
+					dueDate: input.dueDate ? new Date(input.dueDate) : null,
+					estimate: input.estimate ?? null,
+				});
+			}
+
+			const createdTasks = await dbWs.transaction(async (tx) => {
+				return tx
+					.insert(tasks)
+					.values(taskValues)
+					.returning({ id: tasks.id, slug: tasks.slug, title: tasks.title });
 			});
-		}
 
-		// Insert all tasks in a single transaction
-		const createdTasks = await dbWs.transaction(async (tx) => {
-			return tx
-				.insert(tasks)
-				.values(taskValues)
-				.returning({ id: tasks.id, slug: tasks.slug, title: tasks.title });
-		});
-
-		return toolResult({
-			created: createdTasks,
-		});
-	},
-);
+			return {
+				structuredContent: { created: createdTasks },
+				content: [
+					{
+						type: "text",
+						text: JSON.stringify({ created: createdTasks }, null, 2),
+					},
+				],
+			};
+		},
+	);
+}

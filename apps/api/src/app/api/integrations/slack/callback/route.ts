@@ -1,3 +1,4 @@
+import { WebClient } from "@slack/web-api";
 import { db } from "@superset/db/client";
 import type { SlackConfig } from "@superset/db/schema";
 import { integrationConnections, members } from "@superset/db/schema";
@@ -5,23 +6,6 @@ import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
-
-interface SlackOAuthResponse {
-	ok: boolean;
-	error?: string;
-	access_token: string;
-	token_type: string;
-	scope: string;
-	bot_user_id: string;
-	app_id: string;
-	team: {
-		id: string;
-		name: string;
-	};
-	authed_user: {
-		id: string;
-	};
-}
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -71,30 +55,24 @@ export async function GET(request: Request) {
 
 	// Exchange code for token (redirect_uri must match connect route)
 	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
+	const client = new WebClient();
 
-	const tokenResponse = await fetch("https://slack.com/api/oauth.v2.access", {
-		method: "POST",
-		headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		body: new URLSearchParams({
+	let tokenData;
+	try {
+		tokenData = await client.oauth.v2.access({
 			client_id: env.SLACK_CLIENT_ID,
 			client_secret: env.SLACK_CLIENT_SECRET,
 			redirect_uri: redirectUri,
 			code,
-		}),
-	});
-
-	if (!tokenResponse.ok) {
-		console.error("[slack/callback] Token exchange HTTP error:", {
-			status: tokenResponse.status,
 		});
+	} catch (error) {
+		console.error("[slack/callback] Token exchange failed:", error);
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=token_exchange_failed`,
 		);
 	}
 
-	const tokenData: SlackOAuthResponse = await tokenResponse.json();
-
-	if (!tokenData.ok) {
+	if (!tokenData.ok || !tokenData.access_token || !tokenData.team) {
 		console.error("[slack/callback] Slack API error:", tokenData.error);
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=slack_api_error`,
@@ -103,7 +81,6 @@ export async function GET(request: Request) {
 
 	const config: SlackConfig = {
 		provider: "slack",
-		botUserId: tokenData.bot_user_id,
 	};
 
 	// Slack bot tokens don't expire, so no tokenExpiresAt

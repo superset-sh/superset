@@ -7,17 +7,19 @@ import { env } from "@/env";
 import { createSignedState } from "@/lib/oauth-state";
 
 const SLACK_SCOPES = [
-	// Core bot functionality
 	"app_mentions:read",
 	"chat:write",
 	"reactions:write",
-	// Read messages for context
 	"channels:history",
 	"groups:history",
 	"im:history",
+	"im:read",
+	"im:write",
 	"mpim:history",
-	// User info for mapping
 	"users:read",
+	"assistant:write",
+	"links:read",
+	"links:write",
 ].join(",");
 
 export async function GET(request: Request) {

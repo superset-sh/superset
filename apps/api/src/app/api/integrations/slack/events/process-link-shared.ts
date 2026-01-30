@@ -1,30 +1,15 @@
-import type { EntityMetadata } from "@slack/types";
+import type { EntityMetadata, LinkSharedEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-
 import { createSlackClient } from "@/lib/slack-agent/slack-client";
 import {
 	createTaskWorkObject,
 	parseTaskSlugFromUrl,
 } from "@/lib/slack-agent/work-objects";
 
-interface SlackLinkSharedEvent {
-	type: "link_shared";
-	user: string;
-	channel: string;
-	message_ts: string;
-	unfurl_id: string;
-	source: "conversations_history" | "composer";
-	links: Array<{
-		url: string;
-		domain: string;
-	}>;
-	event_ts: string;
-}
-
 interface ProcessLinkSharedParams {
-	event: SlackLinkSharedEvent;
+	event: LinkSharedEvent;
 	teamId: string;
 	eventId: string;
 }

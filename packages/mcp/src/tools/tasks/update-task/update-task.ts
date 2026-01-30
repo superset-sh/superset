@@ -1,12 +1,10 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { registerTool } from "../../utils";
-
-const UUID_REGEX =
-	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { getMcpContext } from "../../utils";
 
 const updateSchema = z.object({
 	taskId: z.string().describe("Task ID (uuid) or slug"),
@@ -32,132 +30,125 @@ const updateSchema = z.object({
 
 type UpdateInput = z.infer<typeof updateSchema>;
 
-export const register = registerTool(
-	"update_task",
-	{
-		description: "Update one or more existing tasks",
-		inputSchema: {
-			updates: z
-				.array(updateSchema)
-				.min(1)
-				.max(25)
-				.describe("Array of task updates (1-25)"),
+export function register(server: McpServer) {
+	server.registerTool(
+		"update_task",
+		{
+			description: "Update one or more existing tasks",
+			inputSchema: {
+				updates: z
+					.array(updateSchema)
+					.min(1)
+					.max(25)
+					.describe("Array of task updates (1-25)"),
+			},
+			outputSchema: {
+				updated: z.array(
+					z.object({
+						id: z.string(),
+						slug: z.string(),
+						title: z.string(),
+					}),
+				),
+				txid: z.string(),
+			},
 		},
-	},
-	async (params, ctx) => {
-		const updates = params.updates as UpdateInput[];
+		async (args, extra) => {
+			const ctx = getMcpContext(extra);
+			const updates = args.updates as UpdateInput[];
 
-		// First pass: resolve all tasks and validate they exist
-		const resolvedUpdates: {
-			taskId: string;
-			updateData: Record<string, unknown>;
-		}[] = [];
+			const resolvedUpdates: {
+				taskId: string;
+				updateData: Record<string, unknown>;
+			}[] = [];
 
-		for (const [i, update] of updates.entries()) {
-			const taskId = update.taskId;
-			const isUuid = UUID_REGEX.test(taskId);
+			for (const [i, update] of updates.entries()) {
+				const taskId = update.taskId;
+				const isUuid = z.string().uuid().safeParse(taskId).success;
 
-			const [existingTask] = await db
-				.select({ id: tasks.id })
-				.from(tasks)
-				.where(
-					and(
-						isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
-						eq(tasks.organizationId, ctx.organizationId),
-						isNull(tasks.deletedAt),
-					),
-				)
-				.limit(1);
+				const [existingTask] = await db
+					.select({ id: tasks.id })
+					.from(tasks)
+					.where(
+						and(
+							isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
+							eq(tasks.organizationId, ctx.organizationId),
+							isNull(tasks.deletedAt),
+						),
+					)
+					.limit(1);
 
-			if (!existingTask) {
-				return {
-					content: [
-						{
-							type: "text",
-							text: JSON.stringify(
-								{
-									error: `Task not found: ${taskId}`,
-									failedAt: { index: i, taskId },
-								},
-								null,
-								2,
-							),
-						},
-					],
-					isError: true,
-				};
-			}
-
-			// Build update data for this task
-			const updateData: Record<string, unknown> = {};
-			if (update.title !== undefined) updateData.title = update.title;
-			if (update.description !== undefined)
-				updateData.description = update.description;
-			if (update.priority !== undefined) updateData.priority = update.priority;
-			if (update.assigneeId !== undefined)
-				updateData.assigneeId = update.assigneeId;
-			if (update.statusId !== undefined) updateData.statusId = update.statusId;
-			if (update.labels !== undefined) updateData.labels = update.labels;
-			if (update.dueDate !== undefined)
-				updateData.dueDate = update.dueDate ? new Date(update.dueDate) : null;
-			if (update.estimate !== undefined) updateData.estimate = update.estimate;
-
-			if (Object.keys(updateData).length === 0) {
-				return {
-					content: [
-						{
-							type: "text",
-							text: JSON.stringify(
-								{
-									error: `No updatable fields provided for task: ${taskId}`,
-									failedAt: { index: i, taskId },
-								},
-								null,
-								2,
-							),
-						},
-					],
-					isError: true,
-				};
-			}
-
-			resolvedUpdates.push({ taskId: existingTask.id, updateData });
-		}
-
-		// Second pass: apply all updates in a single transaction
-		const result = await dbWs.transaction(async (tx) => {
-			const updatedTasks: { id: string; slug: string; title: string }[] = [];
-
-			for (const { taskId, updateData } of resolvedUpdates) {
-				const [task] = await tx
-					.update(tasks)
-					.set(updateData)
-					.where(eq(tasks.id, taskId))
-					.returning({ id: tasks.id, slug: tasks.slug, title: tasks.title });
-
-				if (task) {
-					updatedTasks.push(task);
+				if (!existingTask) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: Task not found: ${taskId} (index ${i})`,
+							},
+						],
+						isError: true,
+					};
 				}
+
+				const updateData: Record<string, unknown> = {};
+				if (update.title !== undefined) updateData.title = update.title;
+				if (update.description !== undefined)
+					updateData.description = update.description;
+				if (update.priority !== undefined)
+					updateData.priority = update.priority;
+				if (update.assigneeId !== undefined)
+					updateData.assigneeId = update.assigneeId;
+				if (update.statusId !== undefined)
+					updateData.statusId = update.statusId;
+				if (update.labels !== undefined) updateData.labels = update.labels;
+				if (update.dueDate !== undefined)
+					updateData.dueDate = update.dueDate ? new Date(update.dueDate) : null;
+				if (update.estimate !== undefined)
+					updateData.estimate = update.estimate;
+
+				if (Object.keys(updateData).length === 0) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: `Error: No updatable fields provided for task: ${taskId} (index ${i})`,
+							},
+						],
+						isError: true,
+					};
+				}
+
+				resolvedUpdates.push({ taskId: existingTask.id, updateData });
 			}
 
-			const txid = await getCurrentTxid(tx);
-			return { updatedTasks, txid };
-		});
+			const result = await dbWs.transaction(async (tx) => {
+				const updatedTasks: { id: string; slug: string; title: string }[] = [];
 
-		return {
-			content: [
-				{
-					type: "text",
-					text: JSON.stringify(
-						{
-							updated: result.updatedTasks,
-							txid: result.txid,
-						},
-						null,
-						2,
-					),
-				},
-			],
-		};
-	},
-);
+				for (const { taskId, updateData } of resolvedUpdates) {
+					const [task] = await tx
+						.update(tasks)
+						.set(updateData)
+						.where(eq(tasks.id, taskId))
+						.returning({
+							id: tasks.id,
+							slug: tasks.slug,
+							title: tasks.title,
+						});
+
+					if (task) {
+						updatedTasks.push(task);
+					}
+				}
+
+				const txid = await getCurrentTxid(tx);
+				return { updatedTasks, txid };
+			});
+
+			const data = { updated: result.updatedTasks, txid: result.txid };
+			return {
+				structuredContent: data,
+				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+			};
+		},
+	);
+}

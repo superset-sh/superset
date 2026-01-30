@@ -10,116 +10,6 @@ import { processSlackMention } from "./process-mention";
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 const isDev = env.NODE_ENV === "development";
 
-interface SlackChallenge {
-	type: "url_verification";
-	challenge: string;
-	token: string;
-}
-
-interface SlackAppMentionEvent {
-	type: "app_mention";
-	user: string;
-	text: string;
-	ts: string;
-	channel: string;
-	event_ts: string;
-	thread_ts?: string;
-}
-
-interface SlackMessageImEvent {
-	type: "message";
-	channel_type: "im";
-	user?: string;
-	text: string;
-	ts: string;
-	channel: string;
-	event_ts: string;
-	thread_ts?: string;
-	bot_id?: string;
-	subtype?: string;
-}
-
-interface SlackAssistantThreadStartedEvent {
-	type: "assistant_thread_started";
-	assistant_thread: {
-		user_id: string;
-		context: {
-			channel_id: string;
-			team_id: string;
-			enterprise_id?: string;
-		};
-		channel_id: string;
-		thread_ts: string;
-	};
-	event_ts: string;
-}
-
-interface SlackAssistantThreadContextChangedEvent {
-	type: "assistant_thread_context_changed";
-	assistant_thread: {
-		user_id: string;
-		context: {
-			channel_id: string;
-			team_id: string;
-			enterprise_id?: string;
-		};
-		channel_id: string;
-		thread_ts: string;
-	};
-	event_ts: string;
-}
-
-interface SlackLinkSharedEvent {
-	type: "link_shared";
-	user: string;
-	channel: string;
-	message_ts: string;
-	unfurl_id: string;
-	source: "conversations_history" | "composer";
-	links: Array<{
-		url: string;
-		domain: string;
-	}>;
-	event_ts: string;
-}
-
-interface SlackEntityDetailsRequestedEvent {
-	type: "entity_details_requested";
-	user: string;
-	channel: string;
-	message_ts: string;
-	thread_ts?: string;
-	trigger_id: string;
-	user_locale: string;
-	entity_url: string;
-	app_unfurl_url: string;
-	external_ref: {
-		id: string;
-		type?: string;
-	};
-	event_ts: string;
-}
-
-type SlackEvent =
-	| SlackAppMentionEvent
-	| SlackMessageImEvent
-	| SlackAssistantThreadStartedEvent
-	| SlackAssistantThreadContextChangedEvent
-	| SlackLinkSharedEvent
-	| SlackEntityDetailsRequestedEvent;
-
-interface SlackEventPayload {
-	type: "event_callback";
-	token: string;
-	team_id: string;
-	api_app_id: string;
-	event: SlackEvent;
-	event_id: string;
-	event_time: number;
-}
-
-type SlackPayload = SlackChallenge | SlackEventPayload;
-
 function verifySlackSignature({
 	body,
 	signature,
@@ -169,7 +59,7 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	const payload: SlackPayload = JSON.parse(body);
+	const payload = JSON.parse(body);
 
 	// Handle URL verification challenge (Slack sends this when setting up Events URL)
 	if (payload.type === "url_verification") {
@@ -219,11 +109,7 @@ export async function POST(request: Request) {
 		}
 
 		// Handle message.im events (DMs to the bot, including agent messages)
-		if (
-			event.type === "message" &&
-			"channel_type" in event &&
-			event.channel_type === "im"
-		) {
+		if (event.type === "message" && event.channel_type === "im") {
 			// Skip bot messages to prevent infinite loops
 			if (event.bot_id || event.subtype === "bot_message" || !event.user) {
 				console.log("[slack/events] Skipping bot message");

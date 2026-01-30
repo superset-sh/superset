@@ -1,32 +1,20 @@
+import type { SlackEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-
 import { createSlackClient } from "@/lib/slack-agent/slack-client";
 import {
 	createTaskFlexpaneObject,
 	parseTaskSlugFromUrl,
 } from "@/lib/slack-agent/work-objects";
 
-interface SlackEntityDetailsRequestedEvent {
-	type: "entity_details_requested";
-	user: string;
-	channel: string;
-	message_ts: string;
-	thread_ts?: string;
-	trigger_id: string;
-	user_locale: string;
-	entity_url: string;
-	app_unfurl_url: string;
-	external_ref: {
-		id: string;
-		type?: string;
-	};
-	event_ts: string;
-}
+type EntityDetailsRequestedEvent = Extract<
+	SlackEvent,
+	{ type: "entity_details_requested" }
+>;
 
 interface ProcessEntityDetailsParams {
-	event: SlackEntityDetailsRequestedEvent;
+	event: EntityDetailsRequestedEvent;
 	teamId: string;
 	eventId: string;
 }

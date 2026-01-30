@@ -1,26 +1,13 @@
+import type { GenericMessageEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-
 import { runSlackAgent } from "@/lib/slack-agent/run-agent";
 import { formatActionsAsText } from "@/lib/slack-agent/slack-blocks";
 import { createSlackClient } from "@/lib/slack-agent/slack-client";
 
-interface SlackMessageImEvent {
-	type: "message";
-	channel_type: "im";
-	user?: string;
-	text: string;
-	ts: string;
-	channel: string;
-	event_ts: string;
-	thread_ts?: string;
-	bot_id?: string;
-	subtype?: string;
-}
-
 interface ProcessAssistantMessageParams {
-	event: SlackMessageImEvent;
+	event: GenericMessageEvent;
 	teamId: string;
 	eventId: string;
 }
@@ -75,7 +62,7 @@ export async function processAssistantMessage({
 	try {
 		// Run the AI agent
 		const result = await runSlackAgent({
-			prompt: event.text,
+			prompt: event.text ?? "",
 			channelId: event.channel,
 			threadTs,
 			organizationId: connection.organizationId,

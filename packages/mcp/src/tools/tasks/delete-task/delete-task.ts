@@ -1,95 +1,79 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { registerTool } from "../../utils";
+import { getMcpContext } from "../../utils";
 
-const UUID_REGEX =
-	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export const register = registerTool(
-	"delete_task",
-	{
-		description: "Soft delete one or more tasks",
-		inputSchema: {
-			taskIds: z
-				.array(z.string())
-				.min(1)
-				.max(25)
-				.describe("Task IDs (uuid or slug) to delete (1-25)"),
+export function register(server: McpServer) {
+	server.registerTool(
+		"delete_task",
+		{
+			description: "Soft delete one or more tasks",
+			inputSchema: {
+				taskIds: z
+					.array(z.string())
+					.min(1)
+					.max(25)
+					.describe("Task IDs (uuid or slug) to delete (1-25)"),
+			},
+			outputSchema: {
+				deleted: z.array(z.string()),
+				txid: z.string(),
+			},
 		},
-	},
-	async (params, ctx) => {
-		const taskIds = params.taskIds as string[];
+		async (args, extra) => {
+			const ctx = getMcpContext(extra);
+			const taskIds = args.taskIds as string[];
 
-		// Resolve all taskIds to actual tasks
-		const resolvedTasks: { id: string; identifier: string }[] = [];
+			const resolvedTasks: { id: string; identifier: string }[] = [];
 
-		for (const taskId of taskIds) {
-			const isUuid = UUID_REGEX.test(taskId);
+			for (const taskId of taskIds) {
+				const isUuid = z.string().uuid().safeParse(taskId).success;
 
-			const [existingTask] = await db
-				.select({ id: tasks.id })
-				.from(tasks)
-				.where(
-					and(
-						isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
-						eq(tasks.organizationId, ctx.organizationId),
-						isNull(tasks.deletedAt),
-					),
-				)
-				.limit(1);
+				const [existingTask] = await db
+					.select({ id: tasks.id })
+					.from(tasks)
+					.where(
+						and(
+							isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
+							eq(tasks.organizationId, ctx.organizationId),
+							isNull(tasks.deletedAt),
+						),
+					)
+					.limit(1);
 
-			if (!existingTask) {
-				return {
-					content: [
-						{
-							type: "text",
-							text: JSON.stringify(
-								{
-									error: `Task not found: ${taskId}`,
-									failedAt: { index: resolvedTasks.length, taskId },
-								},
-								null,
-								2,
-							),
-						},
-					],
-					isError: true,
-				};
+				if (!existingTask) {
+					return {
+						content: [
+							{ type: "text", text: `Error: Task not found: ${taskId}` },
+						],
+						isError: true,
+					};
+				}
+
+				resolvedTasks.push({ id: existingTask.id, identifier: taskId });
 			}
 
-			resolvedTasks.push({ id: existingTask.id, identifier: taskId });
-		}
+			const taskIdsToDelete = resolvedTasks.map((t) => t.id);
+			const deletedAt = new Date();
 
-		const taskIdsToDelete = resolvedTasks.map((t) => t.id);
-		const deletedAt = new Date();
+			const result = await dbWs.transaction(async (tx) => {
+				await tx
+					.update(tasks)
+					.set({ deletedAt })
+					.where(inArray(tasks.id, taskIdsToDelete));
 
-		const result = await dbWs.transaction(async (tx) => {
-			await tx
-				.update(tasks)
-				.set({ deletedAt })
-				.where(inArray(tasks.id, taskIdsToDelete));
+				const txid = await getCurrentTxid(tx);
+				return { txid };
+			});
 
-			const txid = await getCurrentTxid(tx);
-			return { txid };
-		});
-
-		return {
-			content: [
-				{
-					type: "text",
-					text: JSON.stringify(
-						{
-							deleted: taskIdsToDelete,
-							txid: result.txid,
-						},
-						null,
-						2,
-					),
-				},
-			],
-		};
-	},
-);
+			const data = { deleted: taskIdsToDelete, txid: result.txid };
+			return {
+				structuredContent: data,
+				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+			};
+		},
+	);
+}
