@@ -2,9 +2,9 @@ import type { GenericMessageEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { runSlackAgent } from "@/lib/slack-agent/run-agent";
-import { formatActionsAsText } from "@/lib/slack-agent/slack-blocks";
-import { createSlackClient } from "@/lib/slack-agent/slack-client";
+import { runSlackAgent } from "../utils/run-agent";
+import { formatActionsAsText } from "../utils/slack-blocks";
+import { createSlackClient } from "../utils/slack-client";
 
 interface ProcessAssistantMessageParams {
 	event: GenericMessageEvent;

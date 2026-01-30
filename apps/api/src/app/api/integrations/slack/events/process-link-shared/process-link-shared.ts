@@ -2,11 +2,11 @@ import type { EntityMetadata, LinkSharedEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections, tasks } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { createSlackClient } from "@/lib/slack-agent/slack-client";
+import { createSlackClient } from "../utils/slack-client";
 import {
 	createTaskWorkObject,
 	parseTaskSlugFromUrl,
-} from "@/lib/slack-agent/work-objects";
+} from "../utils/work-objects";
 
 interface ProcessLinkSharedParams {
 	event: LinkSharedEvent;

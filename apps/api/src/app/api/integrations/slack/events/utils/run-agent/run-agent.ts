@@ -5,14 +5,13 @@ import { WebClient } from "@slack/web-api";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-
+import type { AgentAction } from "../slack-blocks";
 import {
 	createSlackMcpClient,
 	createSupersetMcpClient,
 	mcpToolToAnthropicTool,
 	parseToolName,
 } from "./mcp-clients";
-import type { AgentAction } from "./slack-blocks";
 
 /**
  * Fetches thread context (previous messages) for the agent.

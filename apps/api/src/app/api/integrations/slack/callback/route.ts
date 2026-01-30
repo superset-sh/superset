@@ -57,64 +57,63 @@ export async function GET(request: Request) {
 	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
 	const client = new WebClient();
 
-	let tokenData;
 	try {
-		tokenData = await client.oauth.v2.access({
+		const tokenData = await client.oauth.v2.access({
 			client_id: env.SLACK_CLIENT_ID,
 			client_secret: env.SLACK_CLIENT_SECRET,
 			redirect_uri: redirectUri,
 			code,
 		});
+
+		if (!tokenData.ok || !tokenData.access_token || !tokenData.team) {
+			console.error("[slack/callback] Slack API error:", tokenData.error);
+			return Response.redirect(
+				`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=slack_api_error`,
+			);
+		}
+
+		const config: SlackConfig = {
+			provider: "slack",
+		};
+
+		// Slack bot tokens don't expire, so no tokenExpiresAt
+		await db
+			.insert(integrationConnections)
+			.values({
+				organizationId,
+				connectedByUserId: userId,
+				provider: "slack",
+				accessToken: tokenData.access_token,
+				externalOrgId: tokenData.team.id,
+				externalOrgName: tokenData.team.name,
+				config,
+			})
+			.onConflictDoUpdate({
+				target: [
+					integrationConnections.organizationId,
+					integrationConnections.provider,
+				],
+				set: {
+					accessToken: tokenData.access_token,
+					externalOrgId: tokenData.team.id,
+					externalOrgName: tokenData.team.name,
+					connectedByUserId: userId,
+					config,
+					updatedAt: new Date(),
+				},
+			});
+
+		console.log("[slack/callback] Connected workspace:", {
+			organizationId,
+			teamId: tokenData.team.id,
+			teamName: tokenData.team.name,
+		});
+
+		return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`);
 	} catch (error) {
 		console.error("[slack/callback] Token exchange failed:", error);
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=token_exchange_failed`,
 		);
 	}
-
-	if (!tokenData.ok || !tokenData.access_token || !tokenData.team) {
-		console.error("[slack/callback] Slack API error:", tokenData.error);
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack?error=slack_api_error`,
-		);
-	}
-
-	const config: SlackConfig = {
-		provider: "slack",
-	};
-
-	// Slack bot tokens don't expire, so no tokenExpiresAt
-	await db
-		.insert(integrationConnections)
-		.values({
-			organizationId,
-			connectedByUserId: userId,
-			provider: "slack",
-			accessToken: tokenData.access_token,
-			externalOrgId: tokenData.team.id,
-			externalOrgName: tokenData.team.name,
-			config,
-		})
-		.onConflictDoUpdate({
-			target: [
-				integrationConnections.organizationId,
-				integrationConnections.provider,
-			],
-			set: {
-				accessToken: tokenData.access_token,
-				externalOrgId: tokenData.team.id,
-				externalOrgName: tokenData.team.name,
-				connectedByUserId: userId,
-				config,
-				updatedAt: new Date(),
-			},
-		});
-
-	console.log("[slack/callback] Connected workspace:", {
-		organizationId,
-		teamId: tokenData.team.id,
-		teamName: tokenData.team.name,
-	});
-
-	return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`);
 }
