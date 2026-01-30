@@ -61,7 +61,7 @@ export default function Sidebar() {
 										className="border-b w-full hover:underline border-border text-sm px-5 py-2.5 text-left flex items-center gap-2"
 										onClick={() => toggleSection(index)}
 									>
-										<section.Icon style={{ width: "1.4em", height: "1.4em" }} />
+										<section.Icon className="size-4" />
 										<span className="grow">{section.title}</span>
 										<motion.div
 											animate={{
