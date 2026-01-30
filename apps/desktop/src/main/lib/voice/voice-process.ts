@@ -2,13 +2,25 @@ import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { createInterface } from "node:readline";
-import type { PythonVoiceEvent, VoiceSidecarEvent } from "shared/voice";
 import { getVoiceSpawnConfig } from "./voice-process-paths";
+
+export type VoiceSidecarEvent =
+	| { type: "ready" }
+	| { type: "recording" }
+	| { type: "audio_captured"; audioB64: string; durationS: number }
+	| { type: "error"; message: string }
+	| { type: "idle" };
+
+interface PythonVoiceEvent {
+	event: "ready" | "recording" | "audio_captured" | "error" | "idle";
+	audio_b64?: string;
+	duration_s?: number;
+	message?: string;
+}
 
 export const voiceProcessEmitter = new EventEmitter();
 
 let childProcess: ChildProcess | null = null;
-let isRunning = false;
 let lastEvent: VoiceSidecarEvent = { type: "idle" };
 
 function parsePythonEvent(raw: PythonVoiceEvent): VoiceSidecarEvent | null {
@@ -54,7 +66,6 @@ export function startVoiceProcess(): void {
 	});
 
 	childProcess = proc;
-	isRunning = true;
 
 	// Parse stdout JSON lines
 	if (proc.stdout) {
@@ -136,19 +147,12 @@ export function stopVoiceProcess(): void {
 	proc.kill("SIGTERM");
 }
 
-export function getVoiceProcessStatus(): {
-	running: boolean;
-} {
-	return { running: isRunning };
-}
-
 export function getCurrentVoiceState(): VoiceSidecarEvent {
 	return lastEvent;
 }
 
 function cleanup(): void {
 	childProcess = null;
-	isRunning = false;
 	lastEvent = { type: "idle" };
 	voiceProcessEmitter.emit("voice-event", lastEvent);
 }

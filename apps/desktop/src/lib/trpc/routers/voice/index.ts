@@ -4,10 +4,16 @@ import {
 	getCurrentVoiceState,
 	startVoiceProcess,
 	stopVoiceProcess,
+	type VoiceSidecarEvent,
 	voiceProcessEmitter,
 } from "main/lib/voice/voice-process";
-import type { MicPermissionStatus, VoiceSidecarEvent } from "shared/voice";
 import { publicProcedure, router } from "../..";
+
+type MicPermissionStatus =
+	| "not-determined"
+	| "granted"
+	| "denied"
+	| "restricted";
 
 function getMicStatus(): MicPermissionStatus {
 	if (process.platform !== "darwin") {
@@ -49,16 +55,6 @@ export const createVoiceRouter = () => {
 					}
 				};
 			});
-		}),
-
-		start: publicProcedure.mutation(() => {
-			startVoiceProcess();
-			return { success: true as const };
-		}),
-
-		stop: publicProcedure.mutation(() => {
-			stopVoiceProcess();
-			return { success: true as const };
 		}),
 
 		getMicPermission: publicProcedure.query((): MicPermissionStatus => {
