@@ -25,7 +25,6 @@ export async function GET(request: Request) {
 		);
 	}
 
-	// Verify signed state (prevents forgery)
 	const stateData = verifySignedState(state);
 	if (!stateData) {
 		return Response.redirect(
@@ -35,7 +34,7 @@ export async function GET(request: Request) {
 
 	const { organizationId, userId } = stateData;
 
-	// Re-verify membership at callback time (defense-in-depth)
+	// Re-verify membership at callback time (state was signed earlier)
 	const membership = await db.query.members.findFirst({
 		where: and(
 			eq(members.organizationId, organizationId),
@@ -53,7 +52,6 @@ export async function GET(request: Request) {
 		);
 	}
 
-	// Exchange code for token (redirect_uri must match connect route)
 	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/callback`;
 	const client = new WebClient();
 
@@ -76,7 +74,6 @@ export async function GET(request: Request) {
 			provider: "slack",
 		};
 
-		// Slack bot tokens don't expire, so no tokenExpiresAt
 		await db
 			.insert(integrationConnections)
 			.values({

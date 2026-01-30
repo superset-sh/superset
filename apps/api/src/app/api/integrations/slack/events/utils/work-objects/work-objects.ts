@@ -1,11 +1,4 @@
-/**
- * Slack Work Objects utilities for tasks.
- *
- * Work Objects provide rich unfurl cards with flexpane support,
- * allowing users to view and interact with Superset data directly in Slack.
- *
- * @see https://docs.slack.dev/messaging/work-objects/
- */
+/** @see https://docs.slack.dev/messaging/work-objects/ */
 
 import type {
 	EntityMetadata,
@@ -14,35 +7,26 @@ import type {
 } from "@slack/types";
 import type { tasks } from "@superset/db/schema";
 
-// Superset branding
+import { env } from "@/env";
+
 const SUPERSET_PRODUCT_NAME = "Superset";
 
-// Web app URL (for unfurl matching and navigation)
-// TODO: Use env var in production
-const WEB_APP_URL = "https://app.superset.sh";
-
-// Task with relations from DB query (minimal for unfurl preview)
 type TaskWithRelations = typeof tasks.$inferSelect & {
 	status?: { id: string; name: string } | null;
 	assignee?: { id: string; name: string | null; email: string } | null;
 };
 
-// Task with full relations for flexpane
 type TaskWithFullRelations = TaskWithRelations & {
 	creator?: { id: string; name: string | null; email: string } | null;
 	organization?: { id: string; name: string; slug: string } | null;
 };
 
-/**
- * Creates a Work Object entity for a task.
- */
 export function createTaskWorkObject(task: TaskWithRelations): EntityMetadata {
-	const taskUrl = `${WEB_APP_URL}/tasks/${task.slug}`;
+	const taskUrl = `${env.NEXT_PUBLIC_WEB_URL}/tasks/${task.slug}`;
 
 	const fields: TaskEntityFields = {};
 	const displayOrder: string[] = [];
 
-	// Status field (always shown)
 	fields.status = {
 		// Padded for spacing in Slack
 		value: task.status
@@ -51,7 +35,6 @@ export function createTaskWorkObject(task: TaskWithRelations): EntityMetadata {
 	};
 	displayOrder.push("status");
 
-	// Assignee field (conditional)
 	if (task.assignee) {
 		fields.assignee = {
 			type: "slack#/types/user",
@@ -92,32 +75,26 @@ export function createTaskWorkObject(task: TaskWithRelations): EntityMetadata {
 	};
 }
 
-/**
- * Creates a Work Object entity for the flexpane (details view).
- * Includes all task fields for the expanded side panel.
- */
+/** Includes all task fields for the expanded flexpane side panel. */
 export function createTaskFlexpaneObject(
 	task: TaskWithFullRelations,
 ): EntityMetadata {
-	const taskUrl = `${WEB_APP_URL}/tasks/${task.slug}`;
+	const taskUrl = `${env.NEXT_PUBLIC_WEB_URL}/tasks/${task.slug}`;
 
 	const fields: TaskEntityFields = {};
 	const displayOrder: string[] = [];
 
-	// Description field
 	fields.description = {
 		value: task.description || "No description",
 		format: "markdown",
 	};
 	displayOrder.push("description");
 
-	// Status field
 	fields.status = {
 		value: task.status?.name ?? "No status",
 	};
 	displayOrder.push("status");
 
-	// Assignee field
 	if (task.assignee) {
 		fields.assignee = {
 			type: "slack#/types/user",
@@ -135,7 +112,6 @@ export function createTaskFlexpaneObject(
 	}
 	displayOrder.push("assignee");
 
-	// Priority field
 	const priorityValue = formatPriorityLabel(task.priority);
 	fields.priority =
 		task.priority === "none"
@@ -143,7 +119,6 @@ export function createTaskFlexpaneObject(
 			: { value: priorityValue };
 	displayOrder.push("priority");
 
-	// Custom fields for additional details
 	const customFields: Array<{
 		key: string;
 		label: string;
@@ -153,7 +128,6 @@ export function createTaskFlexpaneObject(
 		user?: { text: string; email?: string };
 	}> = [];
 
-	// Labels
 	const labels = task.labels as string[] | null;
 	customFields.push(
 		labels && labels.length > 0
@@ -172,7 +146,6 @@ export function createTaskFlexpaneObject(
 				},
 	);
 
-	// Organization
 	customFields.push({
 		key: "organization",
 		label: "Organization",
@@ -180,7 +153,6 @@ export function createTaskFlexpaneObject(
 		value: task.organization?.name ?? "—",
 	});
 
-	// Created by
 	if (task.creator) {
 		customFields.push({
 			key: "created_by",
@@ -201,7 +173,6 @@ export function createTaskFlexpaneObject(
 		});
 	}
 
-	// Created date
 	customFields.push({
 		key: "created",
 		label: "Created",
@@ -209,7 +180,6 @@ export function createTaskFlexpaneObject(
 		value: Math.floor(new Date(task.createdAt).getTime() / 1000),
 	});
 
-	// Updated date
 	customFields.push({
 		key: "updated",
 		label: "Updated",
@@ -257,8 +227,6 @@ export function createTaskFlexpaneObject(
 	};
 }
 
-// Helper functions
-
 function formatPriorityLabel(priority: string): string {
 	const labels: Record<string, string> = {
 		urgent: "Urgent",
@@ -270,23 +238,18 @@ function formatPriorityLabel(priority: string): string {
 	return labels[priority] ?? priority;
 }
 
-// URL parsing utilities
-
 /**
- * Extract task slug from Superset URL.
  * Supports:
- *   - /api/integrations/slack/tasks/my-task-slug (legacy API format)
  *   - /tasks/my-task-slug (web app format)
+ *   - /api/integrations/slack/tasks/my-task-slug (legacy API format)
  */
 export function parseTaskSlugFromUrl(url: string): string | null {
 	try {
 		const parsed = new URL(url);
-		// Try web app format first: /tasks/{slug}
 		const webMatch = parsed.pathname.match(/^\/tasks\/([^/]+)/);
 		if (webMatch?.[1]) {
 			return webMatch[1];
 		}
-		// Fall back to legacy API format: /api/integrations/slack/tasks/{slug}
 		const apiMatch = parsed.pathname.match(
 			/^\/api\/integrations\/slack\/tasks\/([^/]+)/,
 		);

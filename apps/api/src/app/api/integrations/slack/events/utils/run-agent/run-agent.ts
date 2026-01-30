@@ -13,10 +13,6 @@ import {
 	parseToolName,
 } from "./mcp-clients";
 
-/**
- * Fetches thread context (previous messages) for the agent.
- * Returns formatted string of thread messages.
- */
 async function fetchThreadContext({
 	token,
 	channelId,
@@ -40,7 +36,7 @@ async function fetchThreadContext({
 			return "";
 		}
 
-		// Format messages, excluding the current mention (last message)
+		// Exclude the current mention (last message)
 		const messages = result.messages.slice(0, -1);
 		if (messages.length === 0) {
 			return "";
@@ -71,20 +67,14 @@ export interface SlackAgentResult {
 	actions: AgentAction[];
 }
 
-/**
- * Extracts action data from MCP tool result for rich Slack formatting.
- * Uses structuredContent if available (type-safe), falls back to parsing text content.
- */
 function getActionFromToolResult(
 	toolName: string,
 	// biome-ignore lint/suspicious/noExplicitAny: MCP result varies by tool
 	result: any,
 ): AgentAction | null {
-	// Prefer structuredContent (typed) over parsing text
 	const data = result.structuredContent ?? parseTextContent(result.content);
 	if (!data) return null;
 
-	// Map tool results to actions
 	if (toolName === "create_task" && data.created) {
 		return {
 			type: "task_created",
@@ -112,7 +102,6 @@ function getActionFromToolResult(
 		};
 	}
 
-	// Workspace actions - desktop returns { workspaceId, workspaceName, branch }
 	if (toolName === "create_workspace" && data.workspaceId) {
 		return {
 			type: "workspace_created",
@@ -145,9 +134,6 @@ function getActionFromToolResult(
 	return null;
 }
 
-/**
- * Fallback: parse JSON from text content (for tools without structuredContent)
- */
 // biome-ignore lint/suspicious/noExplicitAny: MCP content is loosely typed
 function parseTextContent(content: any): Record<string, unknown> | null {
 	try {
@@ -165,12 +151,11 @@ function parseTextContent(content: any): Record<string, unknown> | null {
 	}
 }
 
-// Denylist of Superset MCP tools to exclude from Slack agent
-// These are desktop-only navigation tools that don't make sense in Slack context
+// Desktop-only tools that don't make sense in Slack context
 const DENIED_SUPERSET_TOOLS = new Set([
-	"navigate_to_workspace", // Desktop navigation only
-	"switch_workspace", // Desktop navigation only
-	"get_app_context", // Desktop app state
+	"navigate_to_workspace",
+	"switch_workspace",
+	"get_app_context",
 ]);
 
 const SYSTEM_PROMPT = `You are a helpful assistant in Slack for Superset, a task management application.
@@ -204,7 +189,6 @@ export async function runSlackAgent(
 	const anthropic = new Anthropic();
 	const actions: AgentAction[] = [];
 
-	// Get the connectedByUserId to use for internal auth
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.organizationId, params.organizationId),
@@ -222,11 +206,6 @@ export async function runSlackAgent(
 	let slackMcp: Client | null = null;
 
 	try {
-		// Fetch thread context and create MCP clients in parallel
-		console.log(
-			"[slack-agent] Fetching thread context and creating MCP clients...",
-		);
-
 		const [threadContext, supersetMcpResult, slackMcpResult] =
 			await Promise.all([
 				fetchThreadContext({
@@ -248,17 +227,11 @@ export async function runSlackAgent(
 		cleanupSuperset = supersetMcpResult.cleanup;
 		slackMcp = slackMcpResult;
 
-		if (threadContext) {
-			console.log("[slack-agent] Thread context fetched");
-		}
-
-		// List available tools from both MCPs
 		const [supersetToolsResult, slackToolsResult] = await Promise.all([
 			supersetMcp.listTools(),
 			slackMcp.listTools(),
 		]);
 
-		// Convert MCP tools to Anthropic tool format with prefixes
 		const supersetTools = supersetToolsResult.tools
 			.map((t) => mcpToolToAnthropicTool(t, "superset"))
 			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name));
@@ -269,12 +242,6 @@ export async function runSlackAgent(
 
 		const tools: Anthropic.Tool[] = [...supersetTools, ...slackTools];
 
-		console.log(
-			"[slack-agent] Available tools:",
-			tools.map((t) => t.name),
-		);
-
-		// Build context-aware system prompt
 		const contextualSystem = `${SYSTEM_PROMPT}
 
 Current context:
@@ -282,7 +249,6 @@ Current context:
 - Thread: ${params.threadTs}
 - Organization ID: ${params.organizationId}`;
 
-		// Initialize conversation with thread context if available
 		const userContent = threadContext
 			? `${threadContext}\n\nCurrent message:\n${params.prompt}`
 			: params.prompt;
@@ -294,7 +260,6 @@ Current context:
 			},
 		];
 
-		// Agent loop
 		let response = await anthropic.messages.create({
 			model: "claude-sonnet-4-5",
 			max_tokens: 2048,
@@ -303,7 +268,6 @@ Current context:
 			messages,
 		});
 
-		// Process tool calls in a loop until we get a final response
 		const MAX_TOOL_ITERATIONS = 10;
 		let iterations = 0;
 
@@ -319,8 +283,6 @@ Current context:
 			const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
 			for (const toolUse of toolUseBlocks) {
-				console.log("[slack-agent] Executing tool:", toolUse.name);
-
 				const { prefix, toolName } = parseToolName(toolUse.name);
 				const mcp = prefix === "superset" ? supersetMcp : slackMcp;
 
@@ -344,7 +306,6 @@ Current context:
 
 					const resultContent = JSON.stringify(result.content);
 
-					// Track Superset actions for rich formatting
 					if (prefix === "superset") {
 						const action = getActionFromToolResult(toolName, result);
 						if (action) {
@@ -377,11 +338,9 @@ Current context:
 				}
 			}
 
-			// Add assistant response and tool results to conversation
 			messages.push({ role: "assistant", content: response.content });
 			messages.push({ role: "user", content: toolResults });
 
-			// Continue the conversation
 			response = await anthropic.messages.create({
 				model: "claude-sonnet-4-5",
 				max_tokens: 2048,
@@ -391,7 +350,6 @@ Current context:
 			});
 		}
 
-		// Extract text response
 		const textBlock = response.content.find(
 			(b): b is Anthropic.TextBlock => b.type === "text",
 		);
@@ -401,20 +359,15 @@ Current context:
 			actions,
 		};
 	} finally {
-		// Cleanup: close MCP clients
 		if (cleanupSuperset) {
 			try {
 				await cleanupSuperset();
-			} catch {
-				// Ignore close errors
-			}
+			} catch {}
 		}
 		if (slackMcp) {
 			try {
 				await slackMcp.close();
-			} catch {
-				// Ignore close errors
-			}
+			} catch {}
 		}
 	}
 }

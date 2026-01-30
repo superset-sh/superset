@@ -25,8 +25,6 @@ const SLACK_SCOPES = [
 export async function GET(request: Request) {
 	const url = new URL(request.url);
 	const organizationId = url.searchParams.get("organizationId");
-	const isDev = env.NODE_ENV === "development";
-
 	if (!organizationId) {
 		return Response.json(
 			{ error: "Missing organizationId parameter" },
@@ -34,35 +32,28 @@ export async function GET(request: Request) {
 		);
 	}
 
-	let userId: string;
+	const session = await auth.api.getSession({
+		headers: request.headers,
+	});
 
-	// In dev, allow passing userId directly (for ngrok testing where cookies don't work)
-	const devUserId = url.searchParams.get("userId");
-	if (isDev && devUserId) {
-		userId = devUserId;
-	} else {
-		const session = await auth.api.getSession({
-			headers: request.headers,
-		});
+	if (!session?.user) {
+		return Response.json({ error: "Unauthorized" }, { status: 401 });
+	}
 
-		if (!session?.user) {
-			return Response.json({ error: "Unauthorized" }, { status: 401 });
-		}
-		userId = session.user.id;
+	const userId = session.user.id;
 
-		const membership = await db.query.members.findFirst({
-			where: and(
-				eq(members.organizationId, organizationId),
-				eq(members.userId, userId),
-			),
-		});
+	const membership = await db.query.members.findFirst({
+		where: and(
+			eq(members.organizationId, organizationId),
+			eq(members.userId, userId),
+		),
+	});
 
-		if (!membership) {
-			return Response.json(
-				{ error: "User is not a member of this organization" },
-				{ status: 403 },
-			);
-		}
+	if (!membership) {
+		return Response.json(
+			{ error: "User is not a member of this organization" },
+			{ status: 403 },
+		);
 	}
 
 	const state = createSignedState({

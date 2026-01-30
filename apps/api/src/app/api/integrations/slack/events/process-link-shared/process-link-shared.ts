@@ -25,7 +25,6 @@ export async function processLinkShared({
 		linkCount: event.links.length,
 	});
 
-	// Find connection by Slack team ID
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
@@ -43,16 +42,11 @@ export async function processLinkShared({
 
 	const slack = createSlackClient(connection.accessToken);
 
-	// Build Work Object entities for each link
 	const entities: EntityMetadata[] = [];
 
 	for (const link of event.links) {
 		const taskSlug = parseTaskSlugFromUrl(link.url);
 		if (!taskSlug) {
-			console.log(
-				"[slack/process-link-shared] Could not parse task slug from URL:",
-				link.url,
-			);
 			continue;
 		}
 
@@ -70,33 +64,22 @@ export async function processLinkShared({
 
 		if (task) {
 			const entity = createTaskWorkObject(task);
-			// Ensure app_unfurl_url matches the exact URL from the message
+			// Must match the exact URL from the message for Slack to unfurl
 			entity.app_unfurl_url = link.url;
 			entities.push(entity);
-			console.log(
-				"[slack/process-link-shared] Built Work Object for task:",
-				task.slug,
-			);
-		} else {
-			console.log("[slack/process-link-shared] Task not found:", taskSlug);
 		}
 	}
 
-	// Send unfurls to Slack using Work Objects metadata format
 	if (entities.length > 0) {
 		try {
+			// Work Objects use `metadata` instead of the legacy `unfurls` field
 			await slack.chat.unfurl({
 				channel: event.channel,
 				ts: event.message_ts,
-				// Work Objects use metadata instead of unfurls
 				metadata: {
 					entities,
 				},
 			});
-
-			console.log(
-				"[slack/process-link-shared] Work Objects unfurls sent successfully",
-			);
 		} catch (err) {
 			console.error("[slack/process-link-shared] Failed to send unfurls:", err);
 		}

@@ -24,7 +24,6 @@ export async function processAssistantMessage({
 		user: event.user,
 	});
 
-	// Find connection by Slack team ID
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
@@ -42,10 +41,8 @@ export async function processAssistantMessage({
 
 	const slack = createSlackClient(connection.accessToken);
 
-	// Use thread_ts if in a thread, otherwise use message ts
 	const threadTs = event.thread_ts ?? event.ts;
 
-	// Set "thinking" status using assistant API
 	try {
 		await slack.assistant.threads.setStatus({
 			channel_id: event.channel,
@@ -60,7 +57,6 @@ export async function processAssistantMessage({
 	}
 
 	try {
-		// Run the AI agent
 		const result = await runSlackAgent({
 			prompt: event.text ?? "",
 			channelId: event.channel,
@@ -70,8 +66,7 @@ export async function processAssistantMessage({
 			slackTeamId: teamId,
 		});
 
-		// If we have actions, format them as text with URLs (enables unfurling)
-		// If no actions, use agent's text response
+		// Format actions as text with URLs (enables Slack unfurling)
 		const hasActions = result.actions.length > 0;
 		const responseText = hasActions
 			? formatActionsAsText(result.actions)
@@ -82,14 +77,6 @@ export async function processAssistantMessage({
 			thread_ts: threadTs,
 			text: responseText,
 		});
-
-		console.log(
-			"[slack/process-assistant-message] Response posted successfully",
-			{
-				hasActions,
-				actionCount: result.actions.length,
-			},
-		);
 	} catch (err) {
 		console.error("[slack/process-assistant-message] Agent error:", err);
 
@@ -99,15 +86,12 @@ export async function processAssistantMessage({
 			text: `Sorry, something went wrong: ${err instanceof Error ? err.message : "Unknown error"}`,
 		});
 	} finally {
-		// Clear the status
 		try {
 			await slack.assistant.threads.setStatus({
 				channel_id: event.channel,
 				thread_ts: threadTs,
 				status: "",
 			});
-		} catch {
-			// Ignore errors clearing status
-		}
+		} catch {}
 	}
 }

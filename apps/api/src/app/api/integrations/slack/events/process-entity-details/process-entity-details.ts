@@ -19,13 +19,7 @@ interface ProcessEntityDetailsParams {
 	eventId: string;
 }
 
-/**
- * Handles the entity_details_requested event.
- *
- * This event fires when a user clicks on an unfurled Work Object to open
- * the flexpane (side panel). We respond with entity.presentDetails to
- * populate the flexpane with task details.
- */
+/** Populates the flexpane when a user clicks an unfurled Work Object. */
 export async function processEntityDetails({
 	event,
 	teamId,
@@ -38,7 +32,6 @@ export async function processEntityDetails({
 		externalRef: event.external_ref,
 	});
 
-	// Find connection by Slack team ID
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
@@ -56,7 +49,6 @@ export async function processEntityDetails({
 
 	const slack = createSlackClient(connection.accessToken);
 
-	// Parse the task slug from the URL
 	const taskSlug = parseTaskSlugFromUrl(event.entity_url);
 
 	if (!taskSlug) {
@@ -65,7 +57,6 @@ export async function processEntityDetails({
 			event.entity_url,
 		);
 
-		// Respond with an error
 		try {
 			await slack.entity.presentDetails({
 				trigger_id: event.trigger_id,
@@ -83,7 +74,6 @@ export async function processEntityDetails({
 		return;
 	}
 
-	// Fetch the task from the database with full relations for flexpane
 	const task = await db.query.tasks.findFirst({
 		where: and(
 			eq(tasks.organizationId, connection.organizationId),
@@ -117,7 +107,6 @@ export async function processEntityDetails({
 		return;
 	}
 
-	// Create the Work Object metadata for the flexpane
 	const entity = createTaskFlexpaneObject(task);
 
 	try {
@@ -125,11 +114,6 @@ export async function processEntityDetails({
 			trigger_id: event.trigger_id,
 			metadata: entity,
 		});
-
-		console.log(
-			"[slack/process-entity-details] Flexpane populated successfully for task:",
-			task.slug,
-		);
 	} catch (err) {
 		console.error(
 			"[slack/process-entity-details] Failed to present details:",

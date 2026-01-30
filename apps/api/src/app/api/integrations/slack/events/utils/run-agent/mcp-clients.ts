@@ -9,10 +9,7 @@ interface McpTool {
 	inputSchema: unknown;
 }
 
-/**
- * Creates an MCP client connected to the Superset MCP server in-process.
- * Uses InMemoryTransport — no HTTP, no forgeable headers.
- */
+// Uses InMemoryTransport — no HTTP, no forgeable headers.
 export async function createSupersetMcpClient({
 	organizationId,
 	userId,
@@ -23,10 +20,6 @@ export async function createSupersetMcpClient({
 	return createInMemoryMcpClient({ organizationId, userId });
 }
 
-/**
- * Creates an MCP client for Slack by spawning the official Slack MCP server.
- * Uses the @modelcontextprotocol/server-slack package via npx.
- */
 export async function createSlackMcpClient({
 	token,
 	teamId,
@@ -53,10 +46,6 @@ export async function createSlackMcpClient({
 	return client;
 }
 
-/**
- * Converts an MCP tool definition to the Anthropic API tool format.
- * Prefixes tool names with the source (superset_ or slack_) for disambiguation.
- */
 export function mcpToolToAnthropicTool(
 	tool: McpTool,
 	prefix: string,
@@ -68,9 +57,6 @@ export function mcpToolToAnthropicTool(
 	};
 }
 
-/**
- * Parses a prefixed tool name back to the original name and source.
- */
 export function parseToolName(prefixedName: string): {
 	prefix: string;
 	toolName: string;
