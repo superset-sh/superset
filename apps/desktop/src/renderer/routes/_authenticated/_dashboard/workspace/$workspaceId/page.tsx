@@ -241,10 +241,18 @@ function WorkspacePage() {
 		workspaceId,
 		enabled: !!workspaceId,
 	});
-	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const openUrl = electronTrpc.external.openUrl.useMutation({
+		onError: (error) => {
+			console.error("[external/openUrl] Failed to open URL:", error);
+			toast.error(`Failed to open URL: ${error.message}`);
+		},
+	});
 	const createPR = electronTrpc.changes.createPR.useMutation({
 		onSuccess: () => toast.success("Opening GitHub..."),
-		onError: (error) => toast.error(`Failed: ${error.message}`),
+		onError: (error) => {
+			console.error("[changes/createPR] Failed to create PR:", error);
+			toast.error(`Failed: ${error.message}`);
+		},
 	});
 	useAppHotkey(
 		"OPEN_GITHUB_PR",
