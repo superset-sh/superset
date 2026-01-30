@@ -7,7 +7,6 @@ import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 import type { AgentAction } from "../slack-blocks";
 import {
-	createSlackMcpClient,
 	createSupersetMcpClient,
 	mcpToolToAnthropicTool,
 	parseToolName,
@@ -59,7 +58,6 @@ interface RunSlackAgentParams {
 	threadTs: string;
 	organizationId: string;
 	slackToken: string;
-	slackTeamId: string;
 }
 
 export interface SlackAgentResult {
@@ -158,30 +156,68 @@ const DENIED_SUPERSET_TOOLS = new Set([
 	"get_app_context",
 ]);
 
+const SLACK_GET_CHANNEL_HISTORY_TOOL: Anthropic.Tool = {
+	name: "slack_get_channel_history",
+	description:
+		"Get recent messages from the current Slack channel. Use this to understand what the team has been discussing.",
+	input_schema: {
+		type: "object" as const,
+		properties: {
+			limit: {
+				type: "number",
+				description: "Number of messages to retrieve (default 20, max 100)",
+			},
+		},
+		required: [],
+	},
+};
+
+async function handleGetChannelHistory({
+	token,
+	channelId,
+	limit = 20,
+}: {
+	token: string;
+	channelId: string;
+	limit?: number;
+}): Promise<string> {
+	const slack = new WebClient(token);
+	const result = await slack.conversations.history({
+		channel: channelId,
+		limit: Math.min(limit, 100),
+	});
+
+	if (!result.messages || result.messages.length === 0) {
+		return JSON.stringify({ messages: [] });
+	}
+
+	const messages = result.messages.map((msg) => ({
+		user: msg.user,
+		text: msg.text,
+		ts: msg.ts,
+		thread_ts: msg.thread_ts,
+	}));
+
+	return JSON.stringify({ messages });
+}
+
 const SYSTEM_PROMPT = `You are a helpful assistant in Slack for Superset, a task management application.
 
 You can:
 - Create, update, search, and manage tasks using superset_* tools
-- Read Slack messages and context using slack_* tools
+- Read recent channel messages using slack_get_channel_history
 - Help users understand conversations and create actionable items from discussions
 
 Guidelines:
 - Be concise and clear (this is Slack, not email)
 - When creating tasks, extract key details from the conversation
-- Use Slack formatting: *bold*, _italic*, \`code\`, > quotes
+- Use Slack formatting: *bold*, _italic_, \`code\`, > quotes
 - If an action fails, explain what went wrong and suggest alternatives
 
 Context gathering:
-- If the user's request references something you don't have context for (a person, a conversation, a decision, etc.), USE THE SLACK TOOLS to find it
-- Use slack_search_messages to find relevant discussions by keyword
-- Use slack_get_channel_history to read recent channel messages
-- Use slack_get_thread_replies to get full thread context
-- Use slack_get_users to look up user details when names are mentioned
-- Don't ask the user for context you can find yourself - be proactive
-
-Available tool prefixes:
-- superset_*: Task management tools (create_task, list_tasks, update_task, etc.)
-- slack_*: Slack tools (get_channel_history, search_messages, get_thread, etc.)`;
+- Thread context is automatically included if the mention is in a thread
+- Use slack_get_channel_history to read recent channel messages for additional context
+- Don't ask the user for context you can find yourself - be proactive`;
 
 export async function runSlackAgent(
 	params: RunSlackAgentParams,
@@ -203,44 +239,33 @@ export async function runSlackAgent(
 
 	let supersetMcp: Client | null = null;
 	let cleanupSuperset: (() => Promise<void>) | null = null;
-	let slackMcp: Client | null = null;
 
 	try {
-		const [threadContext, supersetMcpResult, slackMcpResult] =
-			await Promise.all([
-				fetchThreadContext({
-					token: params.slackToken,
-					channelId: params.channelId,
-					threadTs: params.threadTs,
-				}),
-				createSupersetMcpClient({
-					organizationId: params.organizationId,
-					userId: connection.connectedByUserId,
-				}),
-				createSlackMcpClient({
-					token: params.slackToken,
-					teamId: params.slackTeamId,
-				}),
-			]);
+		const [threadContext, supersetMcpResult] = await Promise.all([
+			fetchThreadContext({
+				token: params.slackToken,
+				channelId: params.channelId,
+				threadTs: params.threadTs,
+			}),
+			createSupersetMcpClient({
+				organizationId: params.organizationId,
+				userId: connection.connectedByUserId,
+			}),
+		]);
 
 		supersetMcp = supersetMcpResult.client;
 		cleanupSuperset = supersetMcpResult.cleanup;
-		slackMcp = slackMcpResult;
 
-		const [supersetToolsResult, slackToolsResult] = await Promise.all([
-			supersetMcp.listTools(),
-			slackMcp.listTools(),
-		]);
+		const supersetToolsResult = await supersetMcp.listTools();
 
 		const supersetTools = supersetToolsResult.tools
 			.map((t) => mcpToolToAnthropicTool(t, "superset"))
 			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name));
 
-		const slackTools = slackToolsResult.tools.map((t) =>
-			mcpToolToAnthropicTool(t, "slack"),
-		);
-
-		const tools: Anthropic.Tool[] = [...supersetTools, ...slackTools];
+		const tools: Anthropic.Tool[] = [
+			...supersetTools,
+			SLACK_GET_CHANNEL_HISTORY_TOOL,
+		];
 
 		const contextualSystem = `${SYSTEM_PROMPT}
 
@@ -283,30 +308,38 @@ Current context:
 			const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
 			for (const toolUse of toolUseBlocks) {
-				const { prefix, toolName } = parseToolName(toolUse.name);
-				const mcp = prefix === "superset" ? supersetMcp : slackMcp;
-
-				if (!mcp) {
-					toolResults.push({
-						type: "tool_result",
-						tool_use_id: toolUse.id,
-						content: JSON.stringify({
-							error: `Unknown tool prefix: ${prefix}`,
-						}),
-						is_error: true,
-					});
-					continue;
-				}
-
 				try {
-					const result = await mcp.callTool({
-						name: toolName,
-						arguments: toolUse.input as Record<string, unknown>,
-					});
+					let resultContent: string;
 
-					const resultContent = JSON.stringify(result.content);
+					if (toolUse.name === "slack_get_channel_history") {
+						const input = toolUse.input as { limit?: number };
+						resultContent = await handleGetChannelHistory({
+							token: params.slackToken,
+							channelId: params.channelId,
+							limit: input.limit,
+						});
+					} else {
+						const { prefix, toolName } = parseToolName(toolUse.name);
 
-					if (prefix === "superset") {
+						if (prefix !== "superset" || !supersetMcp) {
+							toolResults.push({
+								type: "tool_result",
+								tool_use_id: toolUse.id,
+								content: JSON.stringify({
+									error: `Unknown tool: ${toolUse.name}`,
+								}),
+								is_error: true,
+							});
+							continue;
+						}
+
+						const result = await supersetMcp.callTool({
+							name: toolName,
+							arguments: toolUse.input as Record<string, unknown>,
+						});
+
+						resultContent = JSON.stringify(result.content);
+
 						const action = getActionFromToolResult(toolName, result);
 						if (action) {
 							actions.push(action);
@@ -362,11 +395,6 @@ Current context:
 		if (cleanupSuperset) {
 			try {
 				await cleanupSuperset();
-			} catch {}
-		}
-		if (slackMcp) {
-			try {
-				await slackMcp.close();
 			} catch {}
 		}
 	}

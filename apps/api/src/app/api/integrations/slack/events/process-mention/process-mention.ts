@@ -60,7 +60,6 @@ export async function processSlackMention({
 			threadTs,
 			organizationId: connection.organizationId,
 			slackToken: connection.accessToken,
-			slackTeamId: teamId,
 		});
 
 		// Format actions as text with URLs (enables Slack unfurling)
