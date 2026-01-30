@@ -47,17 +47,18 @@ export function startVoiceProcess(): void {
 		`[voice-process] Starting: ${config.command} ${config.args.join(" ")}`,
 	);
 
-	childProcess = spawn(config.command, config.args, {
+	const proc = spawn(config.command, config.args, {
 		cwd: config.cwd,
 		stdio: ["pipe", "pipe", "pipe"],
 		env: { ...process.env },
 	});
 
+	childProcess = proc;
 	isRunning = true;
 
 	// Parse stdout JSON lines
-	if (childProcess.stdout) {
-		const rl = createInterface({ input: childProcess.stdout });
+	if (proc.stdout) {
+		const rl = createInterface({ input: proc.stdout });
 		rl.on("line", (line) => {
 			try {
 				const raw = JSON.parse(line) as PythonVoiceEvent;
@@ -73,25 +74,32 @@ export function startVoiceProcess(): void {
 	}
 
 	// Log stderr
-	if (childProcess.stderr) {
-		const rl = createInterface({ input: childProcess.stderr });
+	if (proc.stderr) {
+		const rl = createInterface({ input: proc.stderr });
 		rl.on("line", (line) => {
 			console.error("[voice-process/stderr]", line);
 		});
 	}
 
-	childProcess.on("error", (err) => {
+	// Only run cleanup if this process is still the active one.
+	// A newer process may have been spawned after stopVoiceProcess()
+	// cleared the reference.
+	proc.on("error", (err) => {
 		console.error("[voice-process] Spawn error:", err.message);
 		voiceProcessEmitter.emit("voice-event", {
 			type: "error",
 			message: `Process error: ${err.message}`,
 		} satisfies VoiceSidecarEvent);
-		cleanup();
+		if (childProcess === proc) {
+			cleanup();
+		}
 	});
 
-	childProcess.on("exit", (code, signal) => {
+	proc.on("exit", (code, signal) => {
 		console.log(`[voice-process] Exited with code=${code} signal=${signal}`);
-		cleanup();
+		if (childProcess === proc) {
+			cleanup();
+		}
 	});
 }
 
@@ -100,10 +108,15 @@ export function stopVoiceProcess(): void {
 		return;
 	}
 
+	// Capture reference and clear immediately so startVoiceProcess()
+	// can proceed if called while this process is still shutting down.
+	const proc = childProcess;
+	cleanup();
+
 	// Send stop command via stdin
-	if (childProcess.stdin && !childProcess.stdin.destroyed) {
+	if (proc.stdin && !proc.stdin.destroyed) {
 		try {
-			childProcess.stdin.write(`${JSON.stringify({ cmd: "stop" })}\n`);
+			proc.stdin.write(`${JSON.stringify({ cmd: "stop" })}\n`);
 		} catch {
 			// stdin may be closed already
 		}
@@ -111,16 +124,16 @@ export function stopVoiceProcess(): void {
 
 	// Give it a moment to exit gracefully, then force kill
 	const timeout = setTimeout(() => {
-		if (childProcess) {
-			childProcess.kill("SIGKILL");
+		if (!proc.killed) {
+			proc.kill("SIGKILL");
 		}
 	}, 3000);
 
-	childProcess.once("exit", () => {
+	proc.once("exit", () => {
 		clearTimeout(timeout);
 	});
 
-	childProcess.kill("SIGTERM");
+	proc.kill("SIGTERM");
 }
 
 export function getVoiceProcessStatus(): {
@@ -137,4 +150,5 @@ function cleanup(): void {
 	childProcess = null;
 	isRunning = false;
 	lastEvent = { type: "idle" };
+	voiceProcessEmitter.emit("voice-event", lastEvent);
 }

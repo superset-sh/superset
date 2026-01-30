@@ -1,6 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { z } from "zod";
 import type { McpContext } from "@superset/mcp/auth";
+import { z } from "zod";
 
 type ToolHandler = (
 	params: Record<string, unknown>,
