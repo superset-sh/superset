@@ -46,13 +46,11 @@ import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { scrollToBottom, shellEscapePaths } from "./utils";
 
-export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
-	const paneId = tabId;
+export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
-	const parentTabId = pane?.tabId;
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -69,9 +67,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
-	const focusedPaneId = useTabsStore(
-		(s) => s.focusedPaneIds[pane?.tabId ?? ""],
-	);
+	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
 	const restartTerminalRef = useRef<() => void>(() => {});
 
@@ -142,9 +138,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		) => void
 	>(() => {});
 
-	const parentTabIdRef = useRef(parentTabId);
-	parentTabIdRef.current = parentTabId;
-
 	const setTabAutoTitleRef = useRef(setTabAutoTitle);
 	setTabAutoTitleRef.current = setTabAutoTitle;
 
@@ -200,8 +193,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		handleStartShell,
 	} = useTerminalColdRestore({
 		paneId,
+		tabId,
 		workspaceId,
-		parentTabIdRef,
 		xtermRef,
 		fitAddonRef,
 		isStreamReadyRef,
@@ -253,9 +246,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Focus handler ref
 	const handleTerminalFocusRef = useRef(() => {});
 	handleTerminalFocusRef.current = () => {
-		if (pane?.tabId) {
-			setFocusedPane(pane.tabId, paneId);
-		}
+		setFocusedPane(tabId, paneId);
 	};
 
 	useEffect(() => {
@@ -378,7 +369,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			createOrAttachRef.current(
 				{
 					paneId,
-					tabId: parentTabIdRef.current || paneId,
+					tabId,
 					workspaceId,
 					cols: xterm.cols,
 					rows: xterm.rows,
@@ -419,8 +410,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			if (domEvent.key === "Enter") {
 				if (!isAlternateScreenRef.current) {
 					const title = sanitizeForTitle(commandBufferRef.current);
-					if (title && parentTabIdRef.current) {
-						debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
+					if (title) {
+						debouncedSetTabAutoTitleRef.current(tabId, title);
 					}
 				}
 				commandBufferRef.current = "";
@@ -473,7 +464,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				createOrAttachRef.current(
 					{
 						paneId,
-						tabId: parentTabIdRef.current || paneId,
+						tabId,
 						workspaceId,
 						cols: xterm.cols,
 						rows: xterm.rows,
@@ -546,8 +537,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 		const titleDisposable = xterm.onTitleChange((title) => {
-			if (title && parentTabIdRef.current) {
-				debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
+			if (title) {
+				debouncedSetTabAutoTitleRef.current(tabId, title);
 			}
 		});
 

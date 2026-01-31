@@ -123,7 +123,7 @@ export function TabPane({
 				onMoveToNewTab={onMoveToNewTab}
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
-					<Terminal tabId={paneId} workspaceId={workspaceId} />
+					<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
 				</div>
 			</TabContentContextMenu>
 		</BasePaneWindow>

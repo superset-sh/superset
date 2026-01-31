@@ -1,4 +1,5 @@
 export interface TerminalProps {
+	paneId: string;
 	tabId: string;
 	workspaceId: string;
 }
