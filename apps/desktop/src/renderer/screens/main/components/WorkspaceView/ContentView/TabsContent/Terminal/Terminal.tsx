@@ -46,8 +46,7 @@ import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { scrollToBottom, shellEscapePaths } from "./utils";
 
-export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
-	const paneId = tabId;
+export const Terminal = ({ paneId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
