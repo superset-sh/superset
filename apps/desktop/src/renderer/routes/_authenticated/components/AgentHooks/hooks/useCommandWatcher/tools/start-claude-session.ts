@@ -53,9 +53,6 @@ async function execute(
 			defaultPreset: pending?.defaultPreset ?? null,
 		});
 
-		// 4. Navigate
-		await ctx.navigateToWorkspace(result.workspace.id);
-
 		return {
 			success: true,
 			data: {
