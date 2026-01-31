@@ -3,6 +3,7 @@ import { track } from "main/lib/analytics";
 import { ensureAgentHooks } from "../agent-setup/ensure-agent-hooks";
 import { treeKillWithEscalation } from "../tree-kill-with-escalation";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
+import { TerminalKilledError } from "./errors";
 import { portManager } from "./port-manager";
 import {
 	createHeadlessTerminal,
@@ -19,13 +20,48 @@ import type {
 } from "./types";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
+const MAX_KILLED_SESSION_TOMBSTONES = 1000;
 
 export class TerminalManager extends EventEmitter {
 	private sessions = new Map<string, TerminalSession>();
 	private pendingSessions = new Map<string, Promise<SessionResult>>();
+	private killedSessionTombstones = new Map<string, number>();
+
+	private recordKilledSession(paneId: string): void {
+		this.killedSessionTombstones.delete(paneId);
+		this.killedSessionTombstones.set(paneId, Date.now());
+		if (this.killedSessionTombstones.size > MAX_KILLED_SESSION_TOMBSTONES) {
+			const oldest = this.killedSessionTombstones.keys().next().value;
+			if (oldest) {
+				this.killedSessionTombstones.delete(oldest);
+			}
+		}
+
+		const session = this.sessions.get(paneId);
+		if (session) {
+			session.exitReason = "killed";
+			session.killedByUserAt = Date.now();
+		}
+	}
+
+	private isSessionKilled(paneId: string): boolean {
+		return this.killedSessionTombstones.has(paneId);
+	}
+
+	private clearKilledSession(paneId: string): void {
+		this.killedSessionTombstones.delete(paneId);
+	}
 
 	async createOrAttach(params: CreateSessionParams): Promise<SessionResult> {
 		const { paneId, cols, rows } = params;
+
+		if (this.isSessionKilled(paneId)) {
+			if (params.allowKilled) {
+				this.clearKilledSession(paneId);
+			} else {
+				throw new TerminalKilledError();
+			}
+		}
 
 		// Deduplicate concurrent calls (prevents race in React Strict Mode)
 		const pending = this.pendingSessions.get(paneId);
@@ -162,8 +198,11 @@ export class TerminalManager extends EventEmitter {
 			// Unregister from port manager (also removes detected ports)
 			portManager.unregisterSession(paneId);
 
-			this.emit(`exit:${paneId}`, exitCode, signal);
-			this.emit("terminalExit", { paneId, exitCode, signal });
+			const reason = session.exitReason ?? "exited";
+			session.exitReason = reason;
+
+			this.emit(`exit:${paneId}`, exitCode, signal, reason);
+			this.emit("terminalExit", { paneId, exitCode, signal, reason });
 
 			// Clean up session after delay
 			const timeout = setTimeout(() => {
@@ -258,6 +297,8 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
+		this.recordKilledSession(paneId);
+
 		if (session.isAlive) {
 			// Kill the entire process tree, not just the shell
 			await treeKillWithEscalation({ pid: session.pty.pid });
@@ -324,6 +365,10 @@ export class TerminalManager extends EventEmitter {
 
 		if (sessionsToKill.length === 0) {
 			return { killed: 0, failed: 0 };
+		}
+
+		for (const [paneId] of sessionsToKill) {
+			this.recordKilledSession(paneId);
 		}
 
 		const results = await Promise.all(
@@ -464,6 +509,7 @@ export class TerminalManager extends EventEmitter {
 
 		await Promise.all(exitPromises);
 		this.sessions.clear();
+		this.killedSessionTombstones.clear();
 		this.removeAllListeners();
 	}
 }

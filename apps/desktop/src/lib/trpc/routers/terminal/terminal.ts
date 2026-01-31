@@ -9,6 +9,10 @@ import {
 	getDaemonTerminalManager,
 	tryListExistingDaemonSessions,
 } from "main/lib/terminal";
+import {
+	TERMINAL_SESSION_KILLED_MESSAGE,
+	TerminalKilledError,
+} from "main/lib/terminal/errors";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -20,8 +24,6 @@ import { resolveCwd } from "./utils";
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 let createOrAttachCallCounter = 0;
 
-const TERMINAL_SESSION_KILLED_MESSAGE = "TERMINAL_SESSION_KILLED";
-const userKilledSessions = new Set<string>();
 const SAFE_ID = z
 	.string()
 	.min(1)
@@ -85,21 +87,6 @@ export const createTerminalRouter = () => {
 					allowKilled,
 				} = input;
 
-				if (allowKilled) {
-					userKilledSessions.delete(paneId);
-				} else if (userKilledSessions.has(paneId)) {
-					if (DEBUG_TERMINAL) {
-						console.warn("[Terminal Router] createOrAttach blocked (killed):", {
-							paneId,
-							workspaceId,
-						});
-					}
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: TERMINAL_SESSION_KILLED_MESSAGE,
-					});
-				}
-
 				const workspace = localDb
 					.select()
 					.from(workspaces)
@@ -146,6 +133,7 @@ export const createTerminalRouter = () => {
 						rows,
 						initialCommands,
 						skipColdRestore,
+						allowKilled,
 					});
 
 					if (DEBUG_TERMINAL) {
@@ -170,6 +158,25 @@ export const createTerminalRouter = () => {
 						snapshot: result.snapshot,
 					};
 				} catch (error) {
+					const isKilledError =
+						error instanceof TerminalKilledError ||
+						(error instanceof Error &&
+							error.message === TERMINAL_SESSION_KILLED_MESSAGE);
+					if (isKilledError) {
+						if (DEBUG_TERMINAL) {
+							console.warn(
+								"[Terminal Router] createOrAttach blocked (killed):",
+								{
+									paneId,
+									workspaceId,
+								},
+							);
+						}
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: TERMINAL_SESSION_KILLED_MESSAGE,
+						});
+					}
 					if (DEBUG_TERMINAL) {
 						console.warn("[Terminal Router] createOrAttach failed:", {
 							callId,
@@ -247,7 +254,6 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				userKilledSessions.add(input.paneId);
 				await terminal.kill(input);
 			}),
 
@@ -285,9 +291,6 @@ export const createTerminalRouter = () => {
 
 			const before = await client.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
-			for (const id of beforeIds) {
-				userKilledSessions.add(id);
-			}
 			console.log(
 				"[killAllDaemonSessions] Before kill:",
 				beforeIds.length,
@@ -295,7 +298,11 @@ export const createTerminalRouter = () => {
 				beforeIds,
 			);
 
-			await client.killAll({});
+			if (beforeIds.length > 0) {
+				await Promise.allSettled(
+					beforeIds.map((paneId) => terminal.kill({ paneId })),
+				);
+			}
 
 			// Poll until sessions are actually dead
 			const MAX_RETRIES = 10;
@@ -346,9 +353,12 @@ export const createTerminalRouter = () => {
 					(session) => session.workspaceId === input.workspaceId,
 				);
 
-				for (const session of toKill) {
-					userKilledSessions.add(session.sessionId);
-					await client.kill({ sessionId: session.sessionId });
+				if (toKill.length > 0) {
+					await Promise.allSettled(
+						toKill.map((session) =>
+							terminal.kill({ paneId: session.sessionId }),
+						),
+					);
 				}
 
 				return { daemonModeEnabled: true, killedCount: toKill.length };
@@ -377,7 +387,12 @@ export const createTerminalRouter = () => {
 					);
 
 					for (const session of sessions) {
-						userKilledSessions.add(session.sessionId);
+						void terminal.kill({ paneId: session.sessionId }).catch((error) => {
+							console.warn(
+								"[restartDaemon] Failed to mark session killed:",
+								error,
+							);
+						});
 					}
 
 					await client.shutdownIfRunning({ killSessions: true });
@@ -479,7 +494,12 @@ export const createTerminalRouter = () => {
 			.subscription(({ input: paneId }) => {
 				return observable<
 					| { type: "data"; data: string }
-					| { type: "exit"; exitCode: number; signal?: number }
+					| {
+							type: "exit";
+							exitCode: number;
+							signal?: number;
+							reason?: "killed" | "exited" | "error";
+					  }
 					| { type: "disconnect"; reason: string }
 					| { type: "error"; error: string; code?: string }
 				>((emit) => {
@@ -499,9 +519,13 @@ export const createTerminalRouter = () => {
 						emit.next({ type: "data", data });
 					};
 
-					const onExit = (exitCode: number, signal?: number) => {
+					const onExit = (
+						exitCode: number,
+						signal?: number,
+						reason?: "killed" | "exited" | "error",
+					) => {
 						// Don't emit.complete() - paneId is reused across restarts, completion would strand listeners
-						emit.next({ type: "exit", exitCode, signal });
+						emit.next({ type: "exit", exitCode, signal, reason });
 					};
 
 					const onDisconnect = (reason: string) => {

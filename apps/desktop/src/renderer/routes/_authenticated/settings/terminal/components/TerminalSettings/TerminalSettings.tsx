@@ -34,7 +34,6 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { markTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { usePresets } from "renderer/react-query/presets";
 import {
 	PRESET_COLUMNS,
@@ -1000,9 +999,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							disabled={killAllDaemonSessions.isPending}
 							onClick={() => {
 								setConfirmKillAllOpen(false);
-								for (const session of sessions) {
-									markTerminalKilledByUser(session.sessionId);
-								}
 								killAllDaemonSessions.mutate();
 							}}
 						>
@@ -1098,7 +1094,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								const sessionId = pendingKillSession?.sessionId;
 								setPendingKillSession(null);
 								if (!sessionId) return;
-								markTerminalKilledByUser(sessionId);
 								killDaemonSession.mutate({ paneId: sessionId });
 							}}
 						>
@@ -1145,13 +1140,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							disabled={restartDaemon.isPending}
 							onClick={() => {
 								setConfirmRestartDaemonOpen(false);
-								restartDaemon.mutate(undefined, {
-									onSuccess: () => {
-										for (const session of sessions) {
-											markTerminalKilledByUser(session.sessionId);
-										}
-									},
-								});
+								restartDaemon.mutate(undefined, {});
 							}}
 						>
 							Restart daemon

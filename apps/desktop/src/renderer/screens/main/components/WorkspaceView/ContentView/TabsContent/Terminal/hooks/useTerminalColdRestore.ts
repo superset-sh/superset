@@ -1,7 +1,6 @@
 import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
-import { clearTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { coldRestoreState } from "../state";
 import type {
@@ -191,7 +190,6 @@ export function useTerminalColdRestore({
 		isExitedRef.current = false;
 		wasKilledByUserRef.current = false;
 		setExitStatus(null);
-		clearTerminalKilledByUser(paneId);
 		pendingInitialStateRef.current = null;
 		resetModes();
 

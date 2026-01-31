@@ -5,10 +5,6 @@ import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	clearTerminalKilledByUser,
-	isTerminalKilledByUser,
-} from "renderer/lib/terminal-kill-tracking";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
@@ -43,7 +39,11 @@ import {
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { coldRestoreState, pendingDetaches } from "./state";
 import { TerminalSearch } from "./TerminalSearch";
-import type { TerminalProps, TerminalStreamEvent } from "./types";
+import type {
+	TerminalExitReason,
+	TerminalProps,
+	TerminalStreamEvent,
+} from "./types";
 import { scrollToBottom, shellEscapePaths } from "./utils";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
@@ -133,7 +133,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Refs for stream event handlers (populated after useTerminalStream)
 	// These allow flushPendingEvents to call the handlers via refs
 	const handleTerminalExitRef = useRef<
-		(exitCode: number, xterm: XTerm) => void
+		(exitCode: number, xterm: XTerm, reason?: TerminalExitReason) => void
 	>(() => {});
 	const handleStreamErrorRef = useRef<
 		(
@@ -184,8 +184,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		modeScanBufferRef,
 		updateCwdFromData,
 		updateModesFromData,
-		onExitEvent: (exitCode, xterm) =>
-			handleTerminalExitRef.current(exitCode, xterm),
+		onExitEvent: (exitCode, xterm, reason) =>
+			handleTerminalExitRef.current(exitCode, xterm, reason),
 		onErrorEvent: (event, xterm) => handleStreamErrorRef.current(event, xterm),
 		onDisconnectEvent: (reason) =>
 			setConnectionError(reason || "Connection to terminal daemon lost"),
@@ -372,7 +372,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isStreamReadyRef.current = false;
 			wasKilledByUserRef.current = false;
 			setExitStatus(null);
-			clearTerminalKilledByUser(paneId);
 			resetModes();
 			xterm.clear();
 			createOrAttachRef.current(
@@ -459,14 +458,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			paneId,
 			priority: isFocusedRef.current ? 0 : 1,
 			run: (done) => {
-				if (isTerminalKilledByUser(paneId)) {
-					wasKilledByUserRef.current = true;
-					isExitedRef.current = true;
-					isStreamReadyRef.current = false;
-					setExitStatus("killed");
-					done();
-					return;
-				}
 				if (DEBUG_TERMINAL) {
 					console.log(`[Terminal] createOrAttach start: ${paneId}`);
 				}

@@ -189,11 +189,17 @@ export async function MainWindow() {
 		.getDefault()
 		.terminal.on(
 			"terminalExit",
-			(event: { paneId: string; exitCode: number; signal?: number }) => {
+			(event: {
+				paneId: string;
+				exitCode: number;
+				signal?: number;
+				reason?: "killed" | "exited" | "error";
+			}) => {
 				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
 					paneId: event.paneId,
 					exitCode: event.exitCode,
 					signal: event.signal,
+					reason: event.reason,
 				});
 			},
 		);

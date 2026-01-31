@@ -11,11 +11,13 @@ import {
 } from "../../terminal-host/client";
 import type { ListSessionsResponse } from "../../terminal-host/types";
 import { buildTerminalEnv, getDefaultShell } from "../env";
+import { TerminalKilledError } from "../errors";
 import { portManager } from "../port-manager";
 import type { CreateSessionParams, SessionResult } from "../types";
 import {
 	CREATE_OR_ATTACH_CONCURRENCY,
 	DEBUG_TERMINAL,
+	MAX_KILLED_SESSION_TOMBSTONES,
 	MAX_SCROLLBACK_BYTES,
 	SESSION_CLEANUP_DELAY_MS,
 } from "./constants";
@@ -27,6 +29,7 @@ export class DaemonTerminalManager extends EventEmitter {
 	private client!: TerminalHostClient;
 	private sessions = new Map<string, SessionInfo>();
 	private pendingSessions = new Map<string, Promise<SessionResult>>();
+	private killedSessionTombstones = new Map<string, number>();
 	private createOrAttachLimiter = new PrioritySemaphore(
 		CREATE_OR_ATTACH_CONCURRENCY,
 	);
@@ -41,6 +44,31 @@ export class DaemonTerminalManager extends EventEmitter {
 	constructor() {
 		super();
 		this.initializeClient();
+	}
+
+	private recordKilledSession(paneId: string): void {
+		this.killedSessionTombstones.delete(paneId);
+		this.killedSessionTombstones.set(paneId, Date.now());
+		if (this.killedSessionTombstones.size > MAX_KILLED_SESSION_TOMBSTONES) {
+			const oldest = this.killedSessionTombstones.keys().next().value;
+			if (oldest) {
+				this.killedSessionTombstones.delete(oldest);
+			}
+		}
+
+		const session = this.sessions.get(paneId);
+		if (session) {
+			session.exitReason = "killed";
+			session.killedByUserAt = Date.now();
+		}
+	}
+
+	private isSessionKilled(paneId: string): boolean {
+		return this.killedSessionTombstones.has(paneId);
+	}
+
+	private clearKilledSession(paneId: string): void {
+		this.killedSessionTombstones.delete(paneId);
 	}
 
 	private initializeClient(): void {
@@ -168,8 +196,12 @@ export class DaemonTerminalManager extends EventEmitter {
 
 				portManager.unregisterDaemonSession(paneId);
 				this.historyManager.closeHistoryWriter(paneId, exitCode);
-				this.emit(`exit:${paneId}`, exitCode, signal);
-				this.emit("terminalExit", { paneId, exitCode, signal });
+				const reason = session?.exitReason ?? "exited";
+				if (session) {
+					session.exitReason = reason;
+				}
+				this.emit(`exit:${paneId}`, exitCode, signal, reason);
+				this.emit("terminalExit", { paneId, exitCode, signal, reason });
 
 				const timeoutId = setTimeout(() => {
 					this.sessions.delete(paneId);
@@ -237,6 +269,14 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	async createOrAttach(params: CreateSessionParams): Promise<SessionResult> {
 		const { paneId } = params;
+
+		if (this.isSessionKilled(paneId)) {
+			if (params.allowKilled) {
+				this.clearKilledSession(paneId);
+			} else {
+				throw new TerminalKilledError();
+			}
+		}
 
 		const pending = this.pendingSessions.get(paneId);
 		if (pending) {
@@ -602,13 +642,19 @@ export class DaemonTerminalManager extends EventEmitter {
 	}): Promise<void> {
 		const { paneId, deleteHistory = false } = params;
 		this.daemonAliveSessionIds.delete(paneId);
+		this.recordKilledSession(paneId);
 
 		const session = this.sessions.get(paneId);
 		if (session?.isAlive) {
 			session.isAlive = false;
 			session.pid = null;
-			this.emit(`exit:${paneId}`, 0, 15);
-			this.emit("terminalExit", { paneId, exitCode: 0, signal: 15 });
+			this.emit(`exit:${paneId}`, 0, 15, "killed");
+			this.emit("terminalExit", {
+				paneId,
+				exitCode: 0,
+				signal: 15,
+				reason: "killed",
+			});
 		}
 
 		portManager.unregisterDaemonSession(paneId);
@@ -731,12 +777,19 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		for (const paneId of paneIdsToKill) {
 			try {
+				this.recordKilledSession(paneId);
+
 				const session = this.sessions.get(paneId);
 				if (session?.isAlive) {
 					session.isAlive = false;
 					session.pid = null;
-					this.emit(`exit:${paneId}`, 0, 15);
-					this.emit("terminalExit", { paneId, exitCode: 0, signal: 15 });
+					this.emit(`exit:${paneId}`, 0, 15, "killed");
+					this.emit("terminalExit", {
+						paneId,
+						exitCode: 0,
+						signal: 15,
+						reason: "killed",
+					});
 				}
 
 				portManager.unregisterDaemonSession(paneId);
@@ -822,6 +875,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = false;
 		this.coldRestoreInfo.clear();
+		this.killedSessionTombstones.clear();
 		this.removeAllListeners();
 		disposeTerminalHostClient();
 	}
@@ -831,6 +885,25 @@ export class DaemonTerminalManager extends EventEmitter {
 			sessions: [],
 		}));
 		const sessionIds = response.sessions.map((s) => s.sessionId);
+
+		for (const session of response.sessions) {
+			if (!session.isAlive) continue;
+			this.recordKilledSession(session.sessionId);
+
+			const localSession = this.sessions.get(session.sessionId);
+			if (localSession?.isAlive) {
+				localSession.isAlive = false;
+				localSession.pid = null;
+			}
+
+			this.emit(`exit:${session.sessionId}`, 0, 15, "killed");
+			this.emit("terminalExit", {
+				paneId: session.sessionId,
+				exitCode: 0,
+				signal: 15,
+				reason: "killed",
+			});
+		}
 
 		for (const timeout of this.cleanupTimeouts.values()) {
 			clearTimeout(timeout);
@@ -863,6 +936,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = false;
 		this.coldRestoreInfo.clear();
+		this.killedSessionTombstones.clear();
 
 		this.historyManager.closeAllSync();
 		this.createOrAttachLimiter.reset();
