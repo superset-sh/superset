@@ -38,6 +38,7 @@
 		"lodash.chunk": "^4.2.0",
 		"mcp-handler": "^1.0.7",
 		"next": "^16.0.10",
+		"openai": "^6.17.0",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
 		"require-in-the-middle": "8.0.1",

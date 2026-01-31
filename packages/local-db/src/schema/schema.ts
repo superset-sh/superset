@@ -153,6 +153,9 @@ export const settings = sqliteTable("settings", {
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),
+	voiceCommandsEnabled: integer("voice_commands_enabled", {
+		mode: "boolean",
+	}).default(false),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

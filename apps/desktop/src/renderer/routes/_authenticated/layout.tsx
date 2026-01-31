@@ -8,6 +8,7 @@ import { DndProvider } from "react-dnd";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { VoiceListener } from "renderer/components/Voice";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
@@ -78,6 +79,7 @@ function AuthenticatedLayout() {
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
 				<AgentHooks />
+				<VoiceListener />
 				<Outlet />
 				<WorkspaceInitEffects />
 				<NewWorkspaceModal />

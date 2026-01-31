@@ -81,6 +81,11 @@ jobs:
         working-directory: apps/desktop
         run: bun run clean:dev
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Compile app with electron-vite
         working-directory: apps/desktop
         env:

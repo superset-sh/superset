@@ -21,6 +21,7 @@ export const SETTING_ITEM_ID = {
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
+	BEHAVIOR_VOICE_COMMANDS: "behavior-voice-commands",
 	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
 
 	TERMINAL_PRESETS: "terminal-presets",
@@ -306,6 +307,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"warning",
 			"prompt",
 			"unsaved",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_VOICE_COMMANDS,
+		section: "behavior",
+		title: "Voice Commands",
+		description: "Enable wake word detection and voice commands",
+		keywords: [
+			"features",
+			"voice",
+			"commands",
+			"wake word",
+			"microphone",
+			"speech",
+			"audio",
+			"jarvis",
+			"sidecar",
 		],
 	},
 	{

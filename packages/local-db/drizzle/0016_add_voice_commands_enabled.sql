@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `voice_commands_enabled` integer DEFAULT false;

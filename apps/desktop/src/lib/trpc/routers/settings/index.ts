@@ -405,5 +405,25 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
+
+		getVoiceCommandsEnabled: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.voiceCommandsEnabled ?? false;
+		}),
+
+		setVoiceCommandsEnabled: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, voiceCommandsEnabled: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { voiceCommandsEnabled: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
 	});
 };
