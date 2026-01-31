@@ -27,3 +27,8 @@ export type {
 	UseTerminalStreamReturn,
 } from "./useTerminalStream";
 export { useTerminalStream } from "./useTerminalStream";
+export type {
+	UseTerminalLifecycleOptions,
+	UseTerminalLifecycleReturn,
+} from "./useTerminalLifecycle";
+export { useTerminalLifecycle } from "./useTerminalLifecycle";
