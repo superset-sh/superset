@@ -44,13 +44,8 @@ export async function POST(request: Request) {
 	}
 
 	const { eventType, blocks } = parsed.data;
-	const webhookUrl = env.SLACK_BILLING_WEBHOOK_URL;
 
-	if (!webhookUrl) {
-		return Response.json({ success: true, skipped: true });
-	}
-
-	const response = await fetch(webhookUrl, {
+	const response = await fetch(env.SLACK_BILLING_WEBHOOK_URL, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ blocks }),

@@ -534,28 +534,26 @@ export const auth = betterAuth({
 						})),
 					);
 
-					if (env.SLACK_BILLING_WEBHOOK_URL) {
-						try {
-							await qstash.publishJSON({
-								url: NOTIFY_SLACK_URL,
-								body: {
-									eventType: "subscription_started",
-									blocks: formatSubscriptionStarted({
-										organizationName: org.name,
-										planName: plan.name,
-										billingInterval,
-										amount,
-										seatCount: subscription.seats ?? 1,
-									}),
-								},
-								retries: 3,
-							});
-						} catch (error) {
-							console.error(
-								"[stripe/subscription-complete] Failed to queue Slack notification:",
-								error,
-							);
-						}
+					try {
+						await qstash.publishJSON({
+							url: NOTIFY_SLACK_URL,
+							body: {
+								eventType: "subscription_started",
+								blocks: formatSubscriptionStarted({
+									organizationName: org.name,
+									planName: plan.name,
+									billingInterval,
+									amount,
+									seatCount: subscription.seats ?? 1,
+								}),
+							},
+							retries: 3,
+						});
+					} catch (error) {
+						console.error(
+							"[stripe/subscription-complete] Failed to queue Slack notification:",
+							error,
+						);
 					}
 				},
 
@@ -590,26 +588,24 @@ export const auth = betterAuth({
 						})),
 					);
 
-					if (env.SLACK_BILLING_WEBHOOK_URL) {
-						try {
-							await qstash.publishJSON({
-								url: NOTIFY_SLACK_URL,
-								body: {
-									eventType: "subscription_cancelled",
-									blocks: formatSubscriptionCancelled({
-										organizationName: org.name,
-										planName: subscription.plan,
-										accessEndsAt,
-									}),
-								},
-								retries: 3,
-							});
-						} catch (error) {
-							console.error(
-								"[stripe/subscription-cancel] Failed to queue Slack notification:",
-								error,
-							);
-						}
+					try {
+						await qstash.publishJSON({
+							url: NOTIFY_SLACK_URL,
+							body: {
+								eventType: "subscription_cancelled",
+								blocks: formatSubscriptionCancelled({
+									organizationName: org.name,
+									planName: subscription.plan,
+									accessEndsAt,
+								}),
+							},
+							retries: 3,
+						});
+					} catch (error) {
+						console.error(
+							"[stripe/subscription-cancel] Failed to queue Slack notification:",
+							error,
+						);
 					}
 				},
 
@@ -658,26 +654,24 @@ export const auth = betterAuth({
 							})),
 						);
 
-						if (env.SLACK_BILLING_WEBHOOK_URL) {
-							try {
-								await qstash.publishJSON({
-									url: NOTIFY_SLACK_URL,
-									body: {
-										eventType: "payment_failed",
-										blocks: formatPaymentFailed({
-											organizationName: org.name,
-											planName: subscription?.plan ?? "Pro",
-											amount,
-										}),
-									},
-									retries: 3,
-								});
-							} catch (error) {
-								console.error(
-									"[stripe/payment-failed] Failed to queue Slack notification:",
-									error,
-								);
-							}
+						try {
+							await qstash.publishJSON({
+								url: NOTIFY_SLACK_URL,
+								body: {
+									eventType: "payment_failed",
+									blocks: formatPaymentFailed({
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										amount,
+									}),
+								},
+								retries: 3,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/payment-failed] Failed to queue Slack notification:",
+								error,
+							);
 						}
 					}
 
@@ -715,28 +709,26 @@ export const auth = betterAuth({
 								)
 							: "N/A";
 
-						if (env.SLACK_BILLING_WEBHOOK_URL) {
-							try {
-								await qstash.publishJSON({
-									url: NOTIFY_SLACK_URL,
-									body: {
-										eventType: "payment_succeeded",
-										blocks: formatPaymentSucceeded({
-											organizationName: org.name,
-											planName: subscription?.plan ?? "Pro",
-											amount,
-											periodStart,
-											periodEnd,
-										}),
-									},
-									retries: 3,
-								});
-							} catch (error) {
-								console.error(
-									"[stripe/payment-succeeded] Failed to queue Slack notification:",
-									error,
-								);
-							}
+						try {
+							await qstash.publishJSON({
+								url: NOTIFY_SLACK_URL,
+								body: {
+									eventType: "payment_succeeded",
+									blocks: formatPaymentSucceeded({
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										amount,
+										periodStart,
+										periodEnd,
+									}),
+								},
+								retries: 3,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/payment-succeeded] Failed to queue Slack notification:",
+								error,
+							);
 						}
 					}
 
@@ -777,27 +769,25 @@ export const auth = betterAuth({
 						const newInterval =
 							newPrice?.recurring?.interval === "year" ? "yearly" : "monthly";
 
-						if (env.SLACK_BILLING_WEBHOOK_URL) {
-							try {
-								await qstash.publishJSON({
-									url: NOTIFY_SLACK_URL,
-									body: {
-										eventType: "plan_changed",
-										blocks: formatPlanChanged({
-											organizationName: org.name,
-											planName: subscription?.plan ?? "Pro",
-											newAmount,
-											newInterval,
-										}),
-									},
-									retries: 3,
-								});
-							} catch (error) {
-								console.error(
-									"[stripe/plan-changed] Failed to queue Slack notification:",
-									error,
-								);
-							}
+						try {
+							await qstash.publishJSON({
+								url: NOTIFY_SLACK_URL,
+								body: {
+									eventType: "plan_changed",
+									blocks: formatPlanChanged({
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										newAmount,
+										newInterval,
+									}),
+								},
+								retries: 3,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/plan-changed] Failed to queue Slack notification:",
+								error,
+							);
 						}
 					}
 				},
