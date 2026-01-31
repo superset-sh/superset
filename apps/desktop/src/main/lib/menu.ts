@@ -39,6 +39,7 @@ export function registerMenuHotkeyUpdates() {
 export function createApplicationMenu() {
 	const closeAccelerator = getMenuAccelerator("CLOSE_WINDOW");
 	const showHotkeysAccelerator = getMenuAccelerator("SHOW_HOTKEYS");
+	const openSettingsAccelerator = getMenuAccelerator("OPEN_SETTINGS");
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
@@ -150,6 +151,14 @@ export function createApplicationMenu() {
 			label: app.name,
 			submenu: [
 				{ role: "about" },
+				{ type: "separator" },
+				{
+					label: "Settings...",
+					accelerator: openSettingsAccelerator,
+					click: () => {
+						menuEmitter.emit("open-settings");
+					},
+				},
 				{
 					label: "Check for Updates...",
 					click: () => {

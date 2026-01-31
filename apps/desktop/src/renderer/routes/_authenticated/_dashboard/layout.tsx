@@ -51,6 +51,13 @@ function DashboardLayout() {
 
 	// Global hotkeys for dashboard
 	useAppHotkey(
+		"OPEN_SETTINGS",
+		() => navigate({ to: "/settings/account" }),
+		undefined,
+		[navigate],
+	);
+
+	useAppHotkey(
 		"SHOW_HOTKEYS",
 		() => navigate({ to: "/settings/keyboard" }),
 		undefined,

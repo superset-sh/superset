@@ -21,7 +21,7 @@ export function SettingsButton() {
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" sideOffset={8}>
-				<HotkeyTooltipContent label="Open settings" hotkeyId="SHOW_HOTKEYS" />
+				<HotkeyTooltipContent label="Open settings" hotkeyId="OPEN_SETTINGS" />
 			</TooltipContent>
 		</Tooltip>
 	);
