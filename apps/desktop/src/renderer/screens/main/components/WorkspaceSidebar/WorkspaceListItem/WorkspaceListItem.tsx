@@ -255,7 +255,7 @@ export function WorkspaceListItem({
 				onMouseEnter={handleMouseEnter}
 				className={cn(
 					"relative flex items-center justify-center size-8 rounded-md",
-					"hover:bg-muted/50 transition-colors",
+					"hover:bg-muted/50 transition-colors cursor-pointer",
 					isActive && "bg-muted",
 				)}
 			>
@@ -492,15 +492,15 @@ export function WorkspaceListItem({
 								) : (
 									<Tooltip delayDuration={300}>
 										<TooltipTrigger asChild>
-											<button
-												type="button"
-												onClick={(e) => {
-													e.stopPropagation();
-													handleDeleteClick();
-												}}
-												className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-muted-foreground hover:text-foreground"
-												aria-label="Close workspace"
-											>
+									<button
+										type="button"
+										onClick={(e) => {
+											e.stopPropagation();
+											handleDeleteClick();
+										}}
+										className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer"
+										aria-label="Close workspace"
+									>
 												<HiMiniXMark className="size-3.5" />
 											</button>
 										</TooltipTrigger>
