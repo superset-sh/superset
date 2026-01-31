@@ -20,7 +20,7 @@ export const env = createEnv({
 		STRIPE_PRO_MONTHLY_PRICE_ID: z.string(),
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
 		QSTASH_TOKEN: z.string().min(1),
-		SLACK_BILLING_WEBHOOK_URL: z.string().url().optional(),
+		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 	},
 	clientPrefix: "NEXT_PUBLIC_",
 	client: {
