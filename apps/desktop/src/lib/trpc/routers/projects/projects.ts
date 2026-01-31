@@ -709,12 +709,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						};
 					}
 
-					// Clone the repository with optimizations for speed
+					// Clone the repository
 					const git = simpleGit();
-					await git.clone(input.url, clonePath, [
-						"--single-branch", // Only clone the default branch
-						"--filter=blob:none", // Blobless clone - fetches blobs on demand
-					]);
+					await git.clone(input.url, clonePath);
 
 					// Create new project
 					const name = basename(clonePath);
