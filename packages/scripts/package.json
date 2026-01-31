@@ -4,16 +4,10 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"wipe:stripe-customers": "bun run src/wipe-stripe-customers.ts",
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
-	"dependencies": {
-		"@superset/db": "workspace:*",
-		"dotenv": "^17.2.3",
-		"drizzle-orm": "0.45.1",
-		"stripe": "^20.2.0"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/node": "^24.9.1",
