@@ -15,11 +15,7 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import { useTerminalTheme } from "renderer/stores/theme";
 import { scheduleTerminalAttach } from "./attach-scheduler";
 import { sanitizeForTitle } from "./commandBuffer";
-import {
-	ConnectionErrorOverlay,
-	RestoredModeOverlay,
-	SessionKilledOverlay,
-} from "./components";
+import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "./config";
 import {
 	createTerminalInstance,
@@ -489,8 +485,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 							const storedColdRestore = coldRestoreState.get(paneId);
 							if (storedColdRestore?.isRestored) {
-								setIsRestoredMode(true);
-								setRestoredCwd(storedColdRestore.cwd);
 								if (storedColdRestore.scrollback && xterm) {
 									xterm.write(
 										storedColdRestore.scrollback,
@@ -498,6 +492,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 									);
 								}
 								didFirstRenderRef.current = true;
+								handleStartShell(storedColdRestore.cwd);
 								return;
 							}
 
@@ -509,12 +504,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 									cwd: result.previousCwd || null,
 									scrollback,
 								});
-								setIsRestoredMode(true);
-								setRestoredCwd(result.previousCwd || null);
 								if (scrollback && xterm) {
 									xterm.write(scrollback, scheduleScrollToBottom);
 								}
 								didFirstRenderRef.current = true;
+								handleStartShell(result.previousCwd || null);
 								return;
 							}
 
@@ -710,9 +704,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			)}
 			{connectionError && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
-			)}
-			{isRestoredMode && (
-				<RestoredModeOverlay onStartShell={handleStartShell} />
 			)}
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>

@@ -38,7 +38,7 @@ export interface UseTerminalColdRestoreReturn {
 	setIsRestoredMode: (value: boolean) => void;
 	setRestoredCwd: (value: string | null) => void;
 	handleRetryConnection: () => void;
-	handleStartShell: () => void;
+	handleStartShell: (cwd?: string | null) => void;
 }
 
 /**
@@ -76,6 +76,9 @@ export function useTerminalColdRestore({
 	const restoredCwdRef = useRef(restoredCwd);
 	restoredCwdRef.current = restoredCwd;
 
+	// Ref for handleStartShell to allow calling from handleRetryConnection
+	const handleStartShellRef = useRef<(cwd?: string | null) => void>(() => {});
+
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
 		const xterm = xtermRef.current;
@@ -110,8 +113,6 @@ export function useTerminalColdRestore({
 							cwd: result.previousCwd || null,
 							scrollback,
 						});
-						setIsRestoredMode(true);
-						setRestoredCwd(result.previousCwd || null);
 
 						currentXterm.clear();
 						if (scrollback) {
@@ -124,6 +125,7 @@ export function useTerminalColdRestore({
 						}
 
 						didFirstRenderRef.current = true;
+						handleStartShellRef.current(result.previousCwd || null);
 						return;
 					}
 
@@ -167,89 +169,92 @@ export function useTerminalColdRestore({
 		flushPendingEvents,
 	]);
 
-	const handleStartShell = useCallback(() => {
-		const xterm = xtermRef.current;
-		const fitAddon = fitAddonRef.current;
-		if (!xterm || !fitAddon) return;
+	const handleStartShell = useCallback(
+		(cwd?: string | null) => {
+			const xterm = xtermRef.current;
+			const fitAddon = fitAddonRef.current;
+			if (!xterm || !fitAddon) return;
 
-		// Drop any queued events from the pre-restore session
-		pendingEventsRef.current = [];
+			// Drop any queued events from the pre-restore session
+			pendingEventsRef.current = [];
 
-		// Acknowledge cold restore to main process
-		trpcClient.terminal.ackColdRestore.mutate({ paneId }).catch((error) => {
-			console.warn("[Terminal] Failed to acknowledge cold restore:", {
-				paneId,
-				error: error instanceof Error ? error.message : String(error),
+			// Acknowledge cold restore to main process
+			trpcClient.terminal.ackColdRestore.mutate({ paneId }).catch((error) => {
+				console.warn("[Terminal] Failed to acknowledge cold restore:", {
+					paneId,
+					error: error instanceof Error ? error.message : String(error),
+				});
 			});
-		});
 
-		// Add visual separator
-		xterm.write("\r\n\x1b[90m─── New session ───\x1b[0m\r\n\r\n");
+			// Reset state for new session
+			isStreamReadyRef.current = false;
+			isExitedRef.current = false;
+			wasKilledByUserRef.current = false;
+			setExitStatus(null);
+			clearTerminalKilledByUser(paneId);
+			pendingInitialStateRef.current = null;
+			resetModes();
 
-		// Reset state for new session
-		isStreamReadyRef.current = false;
-		isExitedRef.current = false;
-		wasKilledByUserRef.current = false;
-		setExitStatus(null);
-		clearTerminalKilledByUser(paneId);
-		pendingInitialStateRef.current = null;
-		resetModes();
-
-		// Create new session with previous cwd
-		createOrAttachRef.current(
-			{
-				paneId,
-				tabId: parentTabIdRef.current || paneId,
-				workspaceId,
-				cols: xterm.cols,
-				rows: xterm.rows,
-				cwd: restoredCwdRef.current || undefined,
-				skipColdRestore: true,
-				allowKilled: true,
-			},
-			{
-				onSuccess: (result: CreateOrAttachResult) => {
-					pendingInitialStateRef.current = result;
-					maybeApplyInitialState();
-
-					setIsRestoredMode(false);
-					coldRestoreState.delete(paneId);
-
-					setTimeout(() => {
-						const currentXterm = xtermRef.current;
-						if (currentXterm) {
-							currentXterm.focus();
-						}
-					}, 0);
+			// Create new session with previous cwd (use passed cwd or fall back to ref)
+			createOrAttachRef.current(
+				{
+					paneId,
+					tabId: parentTabIdRef.current || paneId,
+					workspaceId,
+					cols: xterm.cols,
+					rows: xterm.rows,
+					cwd: cwd ?? restoredCwdRef.current ?? undefined,
+					skipColdRestore: true,
+					allowKilled: true,
 				},
-				onError: (error: { message?: string }) => {
-					console.error("[Terminal] Failed to start shell:", error);
-					setConnectionError(error.message || "Failed to start shell");
-					setIsRestoredMode(false);
-					coldRestoreState.delete(paneId);
-					isStreamReadyRef.current = true;
-					flushPendingEvents();
+				{
+					onSuccess: (result: CreateOrAttachResult) => {
+						pendingInitialStateRef.current = result;
+						maybeApplyInitialState();
+
+						setIsRestoredMode(false);
+						coldRestoreState.delete(paneId);
+
+						setTimeout(() => {
+							const currentXterm = xtermRef.current;
+							if (currentXterm) {
+								currentXterm.focus();
+							}
+						}, 0);
+					},
+					onError: (error: { message?: string }) => {
+						console.error("[Terminal] Failed to start shell:", error);
+						setConnectionError(error.message || "Failed to start shell");
+						setIsRestoredMode(false);
+						coldRestoreState.delete(paneId);
+						isStreamReadyRef.current = true;
+						flushPendingEvents();
+					},
 				},
-			},
-		);
-	}, [
-		paneId,
-		workspaceId,
-		parentTabIdRef,
-		xtermRef,
-		fitAddonRef,
-		isStreamReadyRef,
-		isExitedRef,
-		wasKilledByUserRef,
-		pendingInitialStateRef,
-		pendingEventsRef,
-		createOrAttachRef,
-		setConnectionError,
-		setExitStatus,
-		maybeApplyInitialState,
-		flushPendingEvents,
-		resetModes,
-	]);
+			);
+		},
+		[
+			paneId,
+			workspaceId,
+			parentTabIdRef,
+			xtermRef,
+			fitAddonRef,
+			isStreamReadyRef,
+			isExitedRef,
+			wasKilledByUserRef,
+			pendingInitialStateRef,
+			pendingEventsRef,
+			createOrAttachRef,
+			setConnectionError,
+			setExitStatus,
+			maybeApplyInitialState,
+			flushPendingEvents,
+			resetModes,
+		],
+	);
+
+	// Keep ref updated for use in handleRetryConnection
+	handleStartShellRef.current = handleStartShell;
 
 	return {
 		isRestoredMode,
