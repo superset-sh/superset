@@ -90,6 +90,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							"hover:bg-secondary hover:border-border",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
+							"cursor-pointer",
 							isLoading && "opacity-50 pointer-events-none",
 						)}
 					>
@@ -137,6 +138,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							"hover:bg-secondary hover:border-border hover:text-foreground",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
+							"cursor-pointer",
 							isLoading && "opacity-50 pointer-events-none",
 						)}
 					>
