@@ -4,7 +4,7 @@ import { PORTS } from "shared/constants";
 import { HOOKS_DIR } from "./paths";
 
 export const NOTIFY_SCRIPT_NAME = "notify.sh";
-export const NOTIFY_SCRIPT_MARKER = "# Superset agent notification hook";
+export const NOTIFY_SCRIPT_MARKER = "# Superset agent notification hook v3";
 
 const NOTIFY_SCRIPT_TEMPLATE_PATH = path.join(
 	__dirname,
