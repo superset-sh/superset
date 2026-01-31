@@ -20,8 +20,18 @@ export default async function NewCloudSessionPage() {
 	}
 
 	const trpc = await api();
-	const repositories =
-		await trpc.repository.byOrganization.query(organizationId);
 
-	return <NewSessionForm repositories={repositories} />;
+	// Fetch GitHub installation and repositories
+	const [githubInstallation, githubRepositories] = await Promise.all([
+		trpc.integration.github.getInstallation.query({ organizationId }),
+		trpc.integration.github.listRepositories.query({ organizationId }),
+	]);
+
+	return (
+		<NewSessionForm
+			organizationId={organizationId}
+			githubInstallation={githubInstallation}
+			githubRepositories={githubRepositories}
+		/>
+	);
 }

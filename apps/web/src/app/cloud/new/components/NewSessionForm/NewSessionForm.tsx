@@ -21,20 +21,42 @@ import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { LuArrowLeft, LuCloud, LuLoader } from "react-icons/lu";
+import {
+	LuArrowLeft,
+	LuCloud,
+	LuGithub,
+	LuLoader,
+	LuLock,
+} from "react-icons/lu";
 
 import { useTRPC } from "@/trpc/react";
 
-interface Repository {
+interface GitHubInstallation {
 	id: string;
+	accountLogin: string;
+	accountType: string;
+	suspended: boolean;
+	lastSyncedAt: Date | null;
+	createdAt: Date;
+}
+
+interface GitHubRepository {
+	id: string;
+	repoId: string;
+	installationId: string;
+	owner: string;
 	name: string;
-	repoOwner: string;
-	repoName: string;
+	fullName: string;
 	defaultBranch: string;
+	isPrivate: boolean;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 interface NewSessionFormProps {
-	repositories: Repository[];
+	organizationId: string;
+	githubInstallation: GitHubInstallation | null;
+	githubRepositories: GitHubRepository[];
 }
 
 const MODELS = [
@@ -55,7 +77,11 @@ const MODELS = [
 	},
 ];
 
-export function NewSessionForm({ repositories }: NewSessionFormProps) {
+export function NewSessionForm({
+	organizationId,
+	githubInstallation,
+	githubRepositories,
+}: NewSessionFormProps) {
 	const trpc = useTRPC();
 	const router = useRouter();
 	const [error, setError] = useState<string | null>(null);
@@ -79,8 +105,9 @@ export function NewSessionForm({ repositories }: NewSessionFormProps) {
 	);
 
 	const isCreating = createMutation.isPending;
+	const isGitHubConnected = !!githubInstallation && !githubInstallation.suspended;
 
-	const selectedRepo = repositories.find((r) => r.id === selectedRepoId);
+	const selectedRepo = githubRepositories.find((r) => r.id === selectedRepoId);
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -92,17 +119,70 @@ export function NewSessionForm({ repositories }: NewSessionFormProps) {
 		}
 
 		const sessionTitle =
-			title.trim() || `${selectedRepo.repoOwner}/${selectedRepo.repoName}`;
+			title.trim() || `${selectedRepo.owner}/${selectedRepo.name}`;
 
 		createMutation.mutate({
 			repositoryId: selectedRepo.id,
-			repoOwner: selectedRepo.repoOwner,
-			repoName: selectedRepo.repoName,
+			repoOwner: selectedRepo.owner,
+			repoName: selectedRepo.name,
 			title: sessionTitle,
 			model: model as "claude-sonnet-4" | "claude-opus-4" | "claude-haiku-3-5",
 			baseBranch: baseBranch || selectedRepo.defaultBranch,
 		});
 	};
+
+	// Show GitHub connection prompt if not connected
+	if (!isGitHubConnected) {
+		return (
+			<div className="min-h-screen bg-background p-8">
+				<div className="max-w-xl mx-auto">
+					<Button variant="ghost" size="sm" asChild className="mb-6">
+						<Link href="/cloud">
+							<LuArrowLeft className="size-4 mr-2" />
+							Back to Sessions
+						</Link>
+					</Button>
+
+					<Card>
+						<CardHeader>
+							<div className="flex items-center gap-2">
+								<LuGithub className="size-5" />
+								<CardTitle>Connect GitHub</CardTitle>
+							</div>
+							<CardDescription>
+								Connect your GitHub account to create cloud sessions with access
+								to your repositories.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							{githubInstallation?.suspended && (
+								<div className="p-3 rounded-md bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 text-sm">
+									Your GitHub installation is suspended. Please reauthorize to
+									continue.
+								</div>
+							)}
+							<p className="text-sm text-muted-foreground">
+								Cloud sessions need access to your GitHub repositories to clone
+								code and create branches. Click below to install the Superset
+								GitHub App.
+							</p>
+							<div className="flex gap-3">
+								<Button asChild>
+									<a href={`/api/github/install?organizationId=${organizationId}`}>
+										<LuGithub className="size-4 mr-2" />
+										Install GitHub App
+									</a>
+								</Button>
+								<Button variant="outline" asChild>
+									<Link href="/cloud">Cancel</Link>
+								</Button>
+							</div>
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="min-h-screen bg-background p-8">
@@ -138,20 +218,33 @@ export function NewSessionForm({ repositories }: NewSessionFormProps) {
 								<Label htmlFor="repository">Repository *</Label>
 								<Select
 									value={selectedRepoId}
-									onValueChange={setSelectedRepoId}
+									onValueChange={(value) => {
+										setSelectedRepoId(value);
+										// Update base branch to repo's default when selecting
+										const repo = githubRepositories.find((r) => r.id === value);
+										if (repo) {
+											setBaseBranch(repo.defaultBranch);
+										}
+									}}
 								>
 									<SelectTrigger id="repository">
 										<SelectValue placeholder="Select a repository" />
 									</SelectTrigger>
 									<SelectContent>
-										{repositories.length === 0 ? (
+										{githubRepositories.length === 0 ? (
 											<div className="p-2 text-sm text-muted-foreground">
-												No repositories found. Add a repository first.
+												No repositories found. Make sure you've granted access to
+												repositories in your GitHub App settings.
 											</div>
 										) : (
-											repositories.map((repo) => (
+											githubRepositories.map((repo) => (
 												<SelectItem key={repo.id} value={repo.id}>
-													{repo.repoOwner}/{repo.repoName}
+													<div className="flex items-center gap-2">
+														{repo.isPrivate && (
+															<LuLock className="size-3 text-muted-foreground" />
+														)}
+														<span>{repo.fullName}</span>
+													</div>
 												</SelectItem>
 											))
 										)}

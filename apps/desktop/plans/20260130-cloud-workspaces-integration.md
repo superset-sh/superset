@@ -103,14 +103,14 @@ Reference: `temp_modal_vibe/background-agents` - ColeMurray's Open-Inspect
 - [x] `reconnectAttempt` counter (shown as "Reconnecting (2/5)...")
 - [x] Error message when max reconnects exceeded
 
-## Pending - Sprint 2 (Remaining)
+## Completed - Sprint 3 (GitHub Integration)
 
-## Pending - Sprint 3 (GitHub Integration)
-
-### Phase 10: GitHub Repo Connection (Priority: High)
-User needs to connect GitHub repos in the app.
-
-**Current state:** Have `repository.create` tRPC but no GitHub fetch flow
+### Phase 10: GitHub Repo Connection ✅
+- [x] Updated `/cloud/new` page to fetch GitHub installation status
+- [x] Updated `/cloud/new` page to fetch GitHub repositories via `integration.github.listRepositories`
+- [x] Show "Connect GitHub" CTA when GitHub not connected or suspended
+- [x] Repository selector shows GitHub repos with private indicator (lock icon)
+- [x] Auto-set base branch to repo's default branch on selection
 
 **Flow to implement:**
 1. [ ] Check existing GitHub integration in `packages/trpc/src/router/github/`
