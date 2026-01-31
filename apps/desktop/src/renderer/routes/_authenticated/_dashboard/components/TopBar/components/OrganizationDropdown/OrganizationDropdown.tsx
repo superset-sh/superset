@@ -21,11 +21,12 @@ import {
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
 	HiOutlineBookOpen,
-	HiOutlineBugAnt,
+	HiOutlineChatBubbleLeftRight,
 	HiOutlineCog6Tooth,
 	HiOutlineEnvelope,
 } from "react-icons/hi2";
-import { LuKeyboard, LuLifeBuoy } from "react-icons/lu";
+import { IoBugOutline } from "react-icons/io5";
+import { LuKeyboard } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -161,12 +162,12 @@ export function OrganizationDropdown() {
 				<DropdownMenuItem
 					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
 				>
-					<HiOutlineBugAnt className="h-4 w-4" />
+					<IoBugOutline className="h-4 w-4" />
 					Report Issue
 				</DropdownMenuItem>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
-						<LuLifeBuoy className="h-4 w-4" />
+						<HiOutlineChatBubbleLeftRight className="h-4 w-4" />
 						Contact Us
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
