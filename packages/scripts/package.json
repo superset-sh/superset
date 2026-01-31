@@ -4,13 +4,6 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
-	},
-	"dependencies": {},
-	"devDependencies": {
-		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
-		"typescript": "^5.9.3"
+		"clean": "git clean -xdf .cache .turbo dist node_modules"
 	}
 }
