@@ -382,7 +382,7 @@ export function NewWorkspaceModal() {
 													className="h-8 text-sm font-mono"
 													placeholder="auto-generated"
 													value={
-														branchNameEdited ? branchName : generateSlugFromTitle(title)
+														branchNameEdited ? branchName : branchPreview
 													}
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
