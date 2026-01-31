@@ -38,14 +38,18 @@ type DebouncedTitleSetter = ((tabId: string, title: string) => void) & {
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type UnregisterCallback = (paneId: string) => void;
 
-const attachInFlightByPane = new Map<string, true>();
+const attachInFlightByPane = new Map<string, number>();
 const attachWaitersByPane = new Map<string, Set<() => void>>();
 
-function markAttachInFlight(paneId: string): void {
-	attachInFlightByPane.set(paneId, true);
+function markAttachInFlight(paneId: string, attachId: number): void {
+	attachInFlightByPane.set(paneId, attachId);
 }
 
-function clearAttachInFlight(paneId: string): void {
+function clearAttachInFlight(paneId: string, attachId?: number): void {
+	if (attachId !== undefined) {
+		const current = attachInFlightByPane.get(paneId);
+		if (current !== attachId) return;
+	}
 	attachInFlightByPane.delete(paneId);
 	const waiters = attachWaitersByPane.get(paneId);
 	if (!waiters) return;
@@ -80,7 +84,7 @@ function waitForAttachClear(paneId: string, waiter: () => void): () => void {
 
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
-	tabId: string;
+	tabIdRef: MutableRefObject<string>;
 	workspaceId: string;
 	terminalRef: RefObject<HTMLDivElement | null>;
 	xtermRef: MutableRefObject<XTerm | null>;
@@ -133,7 +137,7 @@ export interface UseTerminalLifecycleReturn {
 
 export function useTerminalLifecycle({
 	paneId,
-	tabId,
+	tabIdRef,
 	workspaceId,
 	terminalRef,
 	xtermRef,
@@ -262,22 +266,22 @@ export function useTerminalLifecycle({
 			maybeApplyInitialState();
 		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
 
-		const restartTerminalSession = () => {
-			isExitedRef.current = false;
-			isStreamReadyRef.current = false;
-			wasKilledByUserRef.current = false;
-			setExitStatus(null);
-			clearTerminalKilledByUser(paneId);
-			resetModes();
-			xterm.clear();
-			createOrAttachRef.current(
-				{
-					paneId,
-					tabId,
-					workspaceId,
-					cols: xterm.cols,
-					rows: xterm.rows,
-					allowKilled: true,
+			const restartTerminalSession = () => {
+				isExitedRef.current = false;
+				isStreamReadyRef.current = false;
+				wasKilledByUserRef.current = false;
+				setExitStatus(null);
+				clearTerminalKilledByUser(paneId);
+				resetModes();
+				xterm.clear();
+				createOrAttachRef.current(
+					{
+						paneId,
+						tabId: tabIdRef.current,
+						workspaceId,
+						cols: xterm.cols,
+						rows: xterm.rows,
+						allowKilled: true,
 				},
 				{
 					onSuccess: (result) => {
@@ -312,13 +316,13 @@ export function useTerminalLifecycle({
 		}) => {
 			if (isRestoredModeRef.current || connectionErrorRef.current) return;
 			const { domEvent } = event;
-			if (domEvent.key === "Enter") {
-				if (!isAlternateScreenRef.current) {
-					const title = sanitizeForTitle(commandBufferRef.current);
-					if (title) {
-						debouncedSetTabAutoTitleRef.current(tabId, title);
-					}
-				}
+					if (domEvent.key === "Enter") {
+						if (!isAlternateScreenRef.current) {
+							const title = sanitizeForTitle(commandBufferRef.current);
+							if (title) {
+								debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
+							}
+						}
 				commandBufferRef.current = "";
 			} else if (domEvent.key === "Backspace") {
 				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
@@ -370,10 +374,10 @@ export function useTerminalLifecycle({
 					const isAttachActive = () =>
 						!isUnmounted && !attachCanceled && attachId === activeAttachId;
 
-					markAttachInFlight(paneId);
+					markAttachInFlight(paneId, attachId);
 
 					const finishAttach = () => {
-						clearAttachInFlight(paneId);
+						clearAttachInFlight(paneId, attachId);
 						done();
 					};
 
@@ -391,7 +395,7 @@ export function useTerminalLifecycle({
 					createOrAttachRef.current(
 						{
 							paneId,
-							tabId,
+							tabId: tabIdRef.current,
 							workspaceId,
 							cols: xterm.cols,
 							rows: xterm.rows,
@@ -469,11 +473,11 @@ export function useTerminalLifecycle({
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
-		const titleDisposable = xterm.onTitleChange((title) => {
-			if (title) {
-				debouncedSetTabAutoTitleRef.current(tabId, title);
-			}
-		});
+			const titleDisposable = xterm.onTitleChange((title) => {
+				if (title) {
+					debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
+				}
+			});
 
 		const handleClear = () => {
 			xterm.clear();
@@ -541,11 +545,13 @@ export function useTerminalLifecycle({
 			cancelInitialAttach();
 			isUnmounted = true;
 			attachCanceled = true;
+			const cleanupAttachId = activeAttachId || undefined;
 			activeAttachId = 0;
 			if (cancelAttachWait) {
 				cancelAttachWait();
 				cancelAttachWait = null;
 			}
+			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			inputDisposable.dispose();

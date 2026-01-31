@@ -46,6 +46,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const wasKilledByUserRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
+	const tabIdRef = useRef(tabId);
+	tabIdRef.current = tabId;
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
@@ -218,7 +220,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
 		paneId,
-		tabId,
+		tabIdRef,
 		workspaceId,
 		terminalRef,
 		xtermRef,
