@@ -312,14 +312,22 @@ export async function getGitAuthorName(
 }
 
 export async function getGitHubUsername(
-	repoPath?: string,
+	_repoPath?: string,
 ): Promise<string | null> {
+	const env = await getGitEnv();
+
 	try {
-		const git = repoPath ? simpleGit(repoPath) : simpleGit();
-		const username = await git.getConfig("github.user");
-		return username.value?.trim() || null;
+		const { stdout } = await execFileAsync(
+			"gh",
+			["api", "user", "--jq", ".login"],
+			{ env, timeout: 10_000 },
+		);
+		return stdout.trim() || null;
 	} catch (error) {
-		console.warn("[git/getGitHubUsername] Failed to get github.user:", error);
+		console.warn(
+			"[git/getGitHubUsername] Failed to get GitHub username:",
+			error instanceof Error ? error.message : String(error),
+		);
 		return null;
 	}
 }
