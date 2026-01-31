@@ -93,6 +93,7 @@ export function OrganizationDropdown() {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56">
+				{/* Organization */}
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/account" })}
 				>
@@ -102,57 +103,51 @@ export function OrganizationDropdown() {
 						<DropdownMenuShortcut>{settingsHotkey}</DropdownMenuShortcut>
 					)}
 				</DropdownMenuItem>
-
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/organization" })}
 				>
 					<FiUsers className="h-4 w-4" />
 					<span>Manage members</span>
 				</DropdownMenuItem>
+				{organizations && organizations.length > 1 && (
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger className="gap-2">
+							<span>Switch organization</span>
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent>
+							{userEmail && (
+								<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
+									{userEmail}
+								</DropdownMenuLabel>
+							)}
+							{organizations.map((organization) => (
+								<DropdownMenuItem
+									key={organization.id}
+									onSelect={() => switchOrganization(organization.id)}
+									className="gap-2"
+								>
+									<Avatar
+										size="xs"
+										fullName={organization.name}
+										image={organization.logo}
+										className="rounded-md"
+									/>
+									<span className="flex-1 truncate">{organization.name}</span>
+									{organization.id === activeOrganization?.id && (
+										<HiCheck className="h-4 w-4 text-primary" />
+									)}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+				)}
 
 				<DropdownMenuSeparator />
 
-				{organizations && organizations.length > 1 && (
-					<>
-						<DropdownMenuSub>
-							<DropdownMenuSubTrigger className="gap-2">
-								<span>Switch organization</span>
-							</DropdownMenuSubTrigger>
-							<DropdownMenuSubContent>
-								{userEmail && (
-									<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-										{userEmail}
-									</DropdownMenuLabel>
-								)}
-								{organizations.map((organization) => (
-									<DropdownMenuItem
-										key={organization.id}
-										onSelect={() => switchOrganization(organization.id)}
-										className="gap-2"
-									>
-										<Avatar
-											size="xs"
-											fullName={organization.name}
-											image={organization.logo}
-											className="rounded-md"
-										/>
-										<span className="flex-1 truncate">{organization.name}</span>
-										{organization.id === activeOrganization?.id && (
-											<HiCheck className="h-4 w-4 text-primary" />
-										)}
-									</DropdownMenuItem>
-								))}
-							</DropdownMenuSubContent>
-						</DropdownMenuSub>
-						<DropdownMenuSeparator />
-					</>
-				)}
-
-				<DropdownMenuItem
-					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
-				>
-					<HiOutlineBugAnt className="h-4 w-4" />
-					Report Issue
+				{/* Help & Support */}
+				<DropdownMenuItem onClick={() => openExternal(COMPANY.DOCS_URL)}>
+					<HiOutlineBookOpen className="h-4 w-4" />
+					Documentation
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={() => navigate({ to: "/settings/keyboard" })}
@@ -163,9 +158,11 @@ export function OrganizationDropdown() {
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
 				</DropdownMenuItem>
-				<DropdownMenuItem onClick={() => openExternal(COMPANY.DOCS_URL)}>
-					<HiOutlineBookOpen className="h-4 w-4" />
-					Documentation
+				<DropdownMenuItem
+					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
+				>
+					<HiOutlineBugAnt className="h-4 w-4" />
+					Report Issue
 				</DropdownMenuItem>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
@@ -189,6 +186,7 @@ export function OrganizationDropdown() {
 
 				<DropdownMenuSeparator />
 
+				{/* Account */}
 				<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
 					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
 					<span>Log out</span>
