@@ -35,8 +35,8 @@ export function OrganizationDropdown() {
 	const collections = useCollections();
 	const signOutMutation = electronTrpc.auth.signOut.useMutation();
 	const navigate = useNavigate();
+	const settingsHotkey = useHotkeyText("OPEN_SETTINGS");
 	const shortcutsHotkey = useHotkeyText("SHOW_HOTKEYS");
-	const showShortcut = shortcutsHotkey !== "Unassigned";
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -97,6 +97,9 @@ export function OrganizationDropdown() {
 				>
 					<HiOutlineCog6Tooth className="h-4 w-4" />
 					<span>Settings</span>
+					{settingsHotkey !== "Unassigned" && (
+						<DropdownMenuShortcut>{settingsHotkey}</DropdownMenuShortcut>
+					)}
 				</DropdownMenuItem>
 
 				<DropdownMenuItem
@@ -155,7 +158,7 @@ export function OrganizationDropdown() {
 				>
 					<LuKeyboard className="h-4 w-4" />
 					Keyboard Shortcuts
-					{showShortcut && (
+					{shortcutsHotkey !== "Unassigned" && (
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
 				</DropdownMenuItem>
