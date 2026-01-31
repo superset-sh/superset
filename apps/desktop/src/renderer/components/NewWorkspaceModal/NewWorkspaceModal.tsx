@@ -381,9 +381,7 @@ export function NewWorkspaceModal() {
 													id="branch"
 													className="h-8 text-sm font-mono"
 													placeholder="auto-generated"
-													value={
-														branchNameEdited ? branchName : branchPreview
-													}
+													value={branchNameEdited ? branchName : branchPreview}
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
 													}
