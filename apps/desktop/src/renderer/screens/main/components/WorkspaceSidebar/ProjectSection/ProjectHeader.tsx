@@ -189,7 +189,7 @@ export function ProjectHeader({
 									onClick={onToggleCollapse}
 									className={cn(
 										"flex items-center justify-center size-8 rounded-md",
-										"hover:bg-muted/50 transition-colors",
+										"hover:bg-muted/50 transition-colors cursor-pointer",
 									)}
 								>
 									<ProjectThumbnail
@@ -309,7 +309,7 @@ export function ProjectHeader({
 										onNewWorkspace();
 									}}
 									onContextMenu={(e) => e.stopPropagation()}
-									className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+									className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1 cursor-pointer"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />
 								</button>
@@ -325,7 +325,7 @@ export function ProjectHeader({
 							onClick={onToggleCollapse}
 							onContextMenu={(e) => e.stopPropagation()}
 							aria-expanded={!isCollapsed}
-							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1 cursor-pointer"
 						>
 							<HiChevronRight
 								className={cn(

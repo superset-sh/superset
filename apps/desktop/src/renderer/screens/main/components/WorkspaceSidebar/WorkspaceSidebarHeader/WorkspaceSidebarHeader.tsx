@@ -45,39 +45,39 @@ export function WorkspaceSidebarHeader({
 			<div className="flex flex-col items-center border-b border-border py-2 gap-2">
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleWorkspacesClick}
-							className={cn(
-								"flex items-center justify-center size-8 rounded-md transition-colors",
-								isWorkspacesListOpen
-									? "text-foreground bg-accent"
-									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-							)}
-						>
-							<LuLayers className="size-4" strokeWidth={STROKE_WIDTH} />
-						</button>
+					<button
+						type="button"
+						onClick={handleWorkspacesClick}
+						className={cn(
+							"flex items-center justify-center size-8 rounded-md transition-colors cursor-pointer",
+							isWorkspacesListOpen
+								? "text-foreground bg-accent"
+								: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+						)}
+					>
+						<LuLayers className="size-4" strokeWidth={STROKE_WIDTH} />
+					</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Workspaces</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleTasksClick}
-							className={cn(
-								"flex items-center justify-center size-8 rounded-md transition-colors",
-								isTasksOpen
-									? "text-foreground bg-accent"
-									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-							)}
-						>
-							<HiOutlineClipboardDocumentList
-								className="size-4"
-								strokeWidth={STROKE_WIDTH}
-							/>
-						</button>
+					<button
+						type="button"
+						onClick={handleTasksClick}
+						className={cn(
+							"flex items-center justify-center size-8 rounded-md transition-colors cursor-pointer",
+							isTasksOpen
+								? "text-foreground bg-accent"
+								: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+						)}
+					>
+						<HiOutlineClipboardDocumentList
+							className="size-4"
+							strokeWidth={STROKE_WIDTH}
+						/>
+					</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Tasks</TooltipContent>
 				</Tooltip>
@@ -93,7 +93,7 @@ export function WorkspaceSidebarHeader({
 				type="button"
 				onClick={handleWorkspacesClick}
 				className={cn(
-					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors cursor-pointer",
 					isWorkspacesListOpen
 						? "text-foreground bg-accent"
 						: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
@@ -109,7 +109,7 @@ export function WorkspaceSidebarHeader({
 				type="button"
 				onClick={handleTasksClick}
 				className={cn(
-					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors cursor-pointer",
 					isTasksOpen
 						? "text-foreground bg-accent"
 						: "text-muted-foreground hover:text-foreground hover:bg-accent/50",

@@ -120,7 +120,7 @@ export function BranchSwitcher({
 				<button
 					type="button"
 					className={cn(
-						"flex items-center gap-0.5 px-1 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors",
+						"flex items-center gap-0.5 px-1 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer",
 						isOpen && "bg-muted/50 text-foreground",
 						className,
 					)}

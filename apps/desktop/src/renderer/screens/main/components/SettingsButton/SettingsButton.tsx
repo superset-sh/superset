@@ -15,7 +15,7 @@ export function SettingsButton() {
 					size="icon"
 					onClick={() => navigate({ to: "/settings/account" })}
 					aria-label="Open settings"
-					className="no-drag"
+					className="no-drag cursor-pointer"
 				>
 					<CiSettings className="size-5" />
 				</Button>
