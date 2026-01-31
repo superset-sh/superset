@@ -196,7 +196,9 @@ export class DaemonTerminalManager extends EventEmitter {
 
 				portManager.unregisterDaemonSession(paneId);
 				this.historyManager.closeHistoryWriter(paneId, exitCode);
-				const reason = session?.exitReason ?? "exited";
+				const reason =
+					session?.exitReason ??
+					(this.isSessionKilled(paneId) ? "killed" : "exited");
 				if (session) {
 					session.exitReason = reason;
 				}
@@ -648,13 +650,6 @@ export class DaemonTerminalManager extends EventEmitter {
 		if (session?.isAlive) {
 			session.isAlive = false;
 			session.pid = null;
-			this.emit(`exit:${paneId}`, 0, 15, "killed");
-			this.emit("terminalExit", {
-				paneId,
-				exitCode: 0,
-				signal: 15,
-				reason: "killed",
-			});
 		}
 
 		portManager.unregisterDaemonSession(paneId);
@@ -783,13 +778,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				if (session?.isAlive) {
 					session.isAlive = false;
 					session.pid = null;
-					this.emit(`exit:${paneId}`, 0, 15, "killed");
-					this.emit("terminalExit", {
-						paneId,
-						exitCode: 0,
-						signal: 15,
-						reason: "killed",
-					});
 				}
 
 				portManager.unregisterDaemonSession(paneId);
@@ -895,14 +883,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				localSession.isAlive = false;
 				localSession.pid = null;
 			}
-
-			this.emit(`exit:${session.sessionId}`, 0, 15, "killed");
-			this.emit("terminalExit", {
-				paneId: session.sessionId,
-				exitCode: 0,
-				signal: 15,
-				reason: "killed",
-			});
 		}
 
 		for (const timeout of this.cleanupTimeouts.values()) {
