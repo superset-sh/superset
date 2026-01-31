@@ -1,11 +1,5 @@
 import fs from "node:fs";
-import {
-	cleanupGlobalOpenCodePlugin,
-	createClaudeWrapper,
-	createCodexWrapper,
-	createOpenCodePlugin,
-	createOpenCodeWrapper,
-} from "./agent-wrappers";
+import { cleanupGlobalOpenCodePlugin, createAllAgents } from "./agent-wrappers";
 import { createNotifyScript } from "./notify-hook";
 import {
 	BASH_DIR,
@@ -38,12 +32,11 @@ export function setupAgentHooks(): void {
 	// Clean up stale global plugins that may cause dev/prod conflicts
 	cleanupGlobalOpenCodePlugin();
 
-	// Create scripts
+	// Create notify script (used by all agents)
 	createNotifyScript();
-	createClaudeWrapper();
-	createCodexWrapper();
-	createOpenCodePlugin();
-	createOpenCodeWrapper();
+
+	// Create all agent wrappers and settings
+	createAllAgents();
 
 	// Create shell initialization wrappers
 	createZshWrapper();
