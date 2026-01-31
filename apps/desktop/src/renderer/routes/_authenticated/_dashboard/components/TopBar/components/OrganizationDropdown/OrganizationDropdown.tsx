@@ -15,6 +15,7 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { FaDiscord, FaXTwitter } from "react-icons/fa6";
+import { FiUsers } from "react-icons/fi";
 import {
 	HiCheck,
 	HiChevronUpDown,
@@ -23,7 +24,6 @@ import {
 	HiOutlineBugAnt,
 	HiOutlineCog6Tooth,
 	HiOutlineEnvelope,
-	HiOutlineUserGroup,
 } from "react-icons/hi2";
 import { LuKeyboard, LuLifeBuoy } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
@@ -106,7 +106,7 @@ export function OrganizationDropdown() {
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/organization" })}
 				>
-					<HiOutlineUserGroup className="h-4 w-4" />
+					<FiUsers className="h-4 w-4" />
 					<span>Manage members</span>
 				</DropdownMenuItem>
 
