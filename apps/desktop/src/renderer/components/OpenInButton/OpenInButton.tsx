@@ -153,13 +153,13 @@ export function OpenInButton({
 			{label && (
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button
-							variant="outline"
-							size="sm"
-							className="gap-1.5"
-							onClick={handleOpenLastUsed}
-							disabled={!path}
-						>
+					<Button
+						variant="outline"
+						size="sm"
+						className="gap-1.5 cursor-pointer"
+						onClick={handleOpenLastUsed}
+						disabled={!path}
+					>
 							<img
 								src={currentApp.icon}
 								alt=""
@@ -180,7 +180,7 @@ export function OpenInButton({
 					<Button
 						variant="outline"
 						size="sm"
-						className="gap-1"
+						className="gap-1 cursor-pointer"
 						disabled={!path}
 					>
 						<span>Open</span>
