@@ -64,11 +64,24 @@ export function ProjectSection({
 		() => ({
 			type: PROJECT_TYPE,
 			item: { projectId, index, originalIndex: index },
+			end: (item, monitor) => {
+				if (!item) return;
+				if (monitor.didDrop()) return;
+				if (item.originalIndex !== item.index) {
+					reorderProjects.mutate(
+						{ fromIndex: item.originalIndex, toIndex: item.index },
+						{
+							onError: (error) =>
+								toast.error(`Failed to reorder: ${error.message}`),
+						},
+					);
+				}
+			},
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[projectId, index],
+		[projectId, index, reorderProjects],
 	);
 
 	const [, drop] = useDrop({
