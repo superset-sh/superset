@@ -11,7 +11,6 @@ import {
 	RestoredModeOverlay,
 	SessionKilledOverlay,
 } from "./components";
-import { DEBUG_TERMINAL } from "./config";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
 	useFileLinkClick,
@@ -216,40 +215,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		isFocused,
 		xtermRef,
 	});
-
-	useEffect(() => {
-		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/state]", "focus", { paneId, tabId, isFocused });
-	}, [isFocused, paneId, tabId]);
-
-	useEffect(() => {
-		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/state]", "search", { paneId, isOpen: isSearchOpen });
-	}, [isSearchOpen, paneId]);
-
-	useEffect(() => {
-		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/state]", "connectionError", {
-			paneId,
-			error: connectionError,
-		});
-	}, [connectionError, paneId]);
-
-	useEffect(() => {
-		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/state]", "exitStatus", {
-			paneId,
-			status: exitStatus,
-		});
-	}, [exitStatus, paneId]);
-
-	useEffect(() => {
-		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/state]", "restoredMode", {
-			paneId,
-			isRestoredMode,
-		});
-	}, [isRestoredMode, paneId]);
 
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
 		paneId,

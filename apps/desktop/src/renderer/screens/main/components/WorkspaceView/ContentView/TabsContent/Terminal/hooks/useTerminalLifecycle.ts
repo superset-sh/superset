@@ -179,10 +179,6 @@ export function useTerminalLifecycle({
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
 	const restartTerminal = useCallback(() => restartTerminalRef.current(), []);
-	const log = (...args: unknown[]) => {
-		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/lifecycle]", ...args);
-	};
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
 	useEffect(() => {
@@ -192,7 +188,6 @@ export function useTerminalLifecycle({
 		if (DEBUG_TERMINAL) {
 			console.log(`[Terminal] Mount: ${paneId}`);
 		}
-		log("mount", { paneId, tabId, workspaceId });
 
 		// Cancel pending detach from previous unmount
 		const pendingDetach = pendingDetaches.get(paneId);
@@ -232,14 +227,12 @@ export function useTerminalLifecycle({
 		isExitedRef.current = false;
 		setXtermInstance(xterm);
 		isStreamReadyRef.current = false;
-		log("streamReady", { paneId, ready: false, reason: "mount" });
 		didFirstRenderRef.current = false;
 		pendingInitialStateRef.current = null;
 
 		if (isFocusedRef.current) {
 			xterm.focus();
 		}
-		log("created", { paneId, cols: xterm.cols, rows: xterm.rows });
 
 		import("@xterm/addon-search").then(({ SearchAddon }) => {
 			if (isUnmounted) return;
@@ -260,22 +253,18 @@ export function useTerminalLifecycle({
 			renderDisposable?.dispose();
 			renderDisposable = null;
 			didFirstRenderRef.current = true;
-			log("firstRender", { paneId });
 			maybeApplyInitialState();
 		});
 
 		firstRenderFallback = setTimeout(() => {
 			if (isUnmounted || didFirstRenderRef.current) return;
 			didFirstRenderRef.current = true;
-			log("firstRender:fallback", { paneId });
 			maybeApplyInitialState();
 		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
 
 		const restartTerminalSession = () => {
-			log("restart:start", { paneId });
 			isExitedRef.current = false;
 			isStreamReadyRef.current = false;
-			log("streamReady", { paneId, ready: false, reason: "restart" });
 			wasKilledByUserRef.current = false;
 			setExitStatus(null);
 			clearTerminalKilledByUser(paneId);
@@ -292,27 +281,13 @@ export function useTerminalLifecycle({
 				},
 				{
 					onSuccess: (result) => {
-						log("restart:success", {
-							paneId,
-							isNew: result.isNew,
-							scrollbackLength: result.scrollback?.length ?? 0,
-						});
 						pendingInitialStateRef.current = result;
 						maybeApplyInitialState();
 					},
 					onError: (error) => {
-						log("restart:error", {
-							paneId,
-							message: error.message || "Failed to restart terminal",
-						});
 						console.error("[Terminal] Failed to restart:", error);
 						setConnectionError(error.message || "Failed to restart terminal");
 						isStreamReadyRef.current = true;
-						log("streamReady", {
-							paneId,
-							ready: true,
-							reason: "restart-error",
-						});
 						flushPendingEvents();
 					},
 				},
@@ -383,7 +358,6 @@ export function useTerminalLifecycle({
 				const startAttach = () => {
 					if (attachCanceled) return;
 					if (attachInFlightByPane.has(paneId)) {
-						log("attach:defer-inflight", { paneId });
 						cancelAttachWait = waitForAttachClear(paneId, () => {
 							if (attachCanceled || isUnmounted) return;
 							startAttach();
@@ -404,15 +378,9 @@ export function useTerminalLifecycle({
 					};
 
 					if (isTerminalKilledByUser(paneId)) {
-						log("attach:blocked-killed", { paneId });
 						wasKilledByUserRef.current = true;
 						isExitedRef.current = true;
 						isStreamReadyRef.current = false;
-						log("streamReady", {
-							paneId,
-							ready: false,
-							reason: "killed-by-user",
-						});
 						setExitStatus("killed");
 						finishAttach();
 						return;
@@ -420,7 +388,6 @@ export function useTerminalLifecycle({
 					if (DEBUG_TERMINAL) {
 						console.log(`[Terminal] createOrAttach start: ${paneId}`);
 					}
-					log("attach:start", { paneId, tabId, workspaceId });
 					createOrAttachRef.current(
 						{
 							paneId,
@@ -434,12 +401,6 @@ export function useTerminalLifecycle({
 						{
 							onSuccess: (result) => {
 								if (!isAttachActive()) return;
-								log("attach:success", {
-									paneId,
-									isColdRestore: !!result.isColdRestore,
-									isNew: result.isNew,
-									scrollbackLength: result.scrollback?.length ?? 0,
-								});
 								setConnectionError(null);
 								if (initialCommands || initialCwd) {
 									clearPaneInitialDataRef.current(paneId);
@@ -447,10 +408,6 @@ export function useTerminalLifecycle({
 
 								const storedColdRestore = coldRestoreState.get(paneId);
 								if (storedColdRestore?.isRestored) {
-									log("attach:storedColdRestore", {
-										paneId,
-										scrollbackLength: storedColdRestore.scrollback?.length ?? 0,
-									});
 									setIsRestoredMode(true);
 									setRestoredCwd(storedColdRestore.cwd);
 									if (storedColdRestore.scrollback && xterm) {
@@ -464,7 +421,6 @@ export function useTerminalLifecycle({
 								}
 
 								if (result.isColdRestore) {
-									log("attach:coldRestore", { paneId });
 									const scrollback =
 										result.snapshot?.snapshotAnsi ?? result.scrollback;
 									coldRestoreState.set(paneId, {
@@ -486,19 +442,10 @@ export function useTerminalLifecycle({
 							},
 							onError: (error) => {
 								if (!isAttachActive()) return;
-								log("attach:error", {
-									paneId,
-									message: error.message || "Failed to connect to terminal",
-								});
 								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
 									wasKilledByUserRef.current = true;
 									isExitedRef.current = true;
 									isStreamReadyRef.current = false;
-									log("streamReady", {
-										paneId,
-										ready: false,
-										reason: "session-killed",
-									});
 									setExitStatus("killed");
 									setConnectionError(null);
 									return;
@@ -508,11 +455,6 @@ export function useTerminalLifecycle({
 									error.message || "Failed to connect to terminal",
 								);
 								isStreamReadyRef.current = true;
-								log("streamReady", {
-									paneId,
-									ready: true,
-									reason: "attach-error",
-								});
 								flushPendingEvents();
 							},
 							onSettled: () => finishAttach(),
@@ -534,7 +476,6 @@ export function useTerminalLifecycle({
 		});
 
 		const handleClear = () => {
-			log("clear", { paneId });
 			xterm.clear();
 			clearScrollbackRef.current({ paneId });
 		};
@@ -592,14 +533,12 @@ export function useTerminalLifecycle({
 			}
 		};
 		document.addEventListener("visibilitychange", handleVisibilityChange);
-		log("visibility:listener-attached", { paneId });
 
 		return () => {
 			if (DEBUG_TERMINAL) {
 				console.log(`[Terminal] Unmount: ${paneId}`);
 			}
 			cancelInitialAttach();
-			log("unmount", { paneId });
 			isUnmounted = true;
 			attachCanceled = true;
 			activeAttachId = 0;
@@ -623,7 +562,6 @@ export function useTerminalLifecycle({
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
 			const detachTimeout = setTimeout(() => {
-				log("detach", { paneId });
 				detachRef.current({ paneId });
 				pendingDetaches.delete(paneId);
 				coldRestoreState.delete(paneId);
@@ -631,7 +569,6 @@ export function useTerminalLifecycle({
 			pendingDetaches.set(paneId, detachTimeout);
 
 			isStreamReadyRef.current = false;
-			log("streamReady", { paneId, ready: false, reason: "unmount" });
 			didFirstRenderRef.current = false;
 			pendingInitialStateRef.current = null;
 			resetModes();

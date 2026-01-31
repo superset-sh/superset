@@ -45,10 +45,6 @@ export function useTerminalStream({
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const firstStreamDataReceivedRef = useRef(false);
-	const log = useCallback((...args: unknown[]) => {
-		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/stream]", ...args);
-	}, []);
 
 	// Refs to use latest values in callbacks
 	const updateModesRef = useRef(updateModesFromData);
@@ -154,15 +150,12 @@ export function useTerminalStream({
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
-				log("exit", { paneId, exitCode: event.exitCode });
 				handleTerminalExit(event.exitCode, xterm);
 			} else if (event.type === "disconnect") {
-				log("disconnect", { paneId, reason: event.reason });
 				setConnectionError(
 					event.reason || "Connection to terminal daemon lost",
 				);
 			} else if (event.type === "error") {
-				log("error", { paneId, code: event.code, message: event.error });
 				handleStreamError(event, xterm);
 			}
 		},
@@ -174,7 +167,6 @@ export function useTerminalStream({
 			handleTerminalExit,
 			handleStreamError,
 			setConnectionError,
-			log,
 		],
 	);
 
