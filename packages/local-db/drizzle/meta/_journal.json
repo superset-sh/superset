@@ -1,0 +1,104 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1766444030452,
+      "tag": "0000_initial_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1766773809299,
+      "tag": "0001_add_synced_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1766776955487,
+      "tag": "0002_add_active_organization_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1766932805546,
+      "tag": "0003_add_confirm_on_quit_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1767166138761,
+      "tag": "0004_add_terminal_link_behavior_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1767166547886,
+      "tag": "0005_add_navigation_style",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1767230000000,
+      "tag": "0006_add_unique_branch_workspace_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1767350000000,
+      "tag": "0007_add_workspace_is_unread",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1767548339097,
+      "tag": "0008_add_group_tabs_position",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1767652257969,
+      "tag": "0009_add_github_owner_to_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1768004449114,
+      "tag": "0010_add_workspace_deleting_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1768790828810,
+      "tag": "0011_add_terminal_persistence",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1768799848274,
+      "tag": "0012_add_persist_terminal",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1769500000000,
+      "tag": "0013_add_auto_apply_default_preset",
+      "breakpoints": true
+    }
+  ]
+}

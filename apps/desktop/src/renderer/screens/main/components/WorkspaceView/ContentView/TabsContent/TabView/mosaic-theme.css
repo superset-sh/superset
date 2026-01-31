@@ -1,0 +1,106 @@
+.mosaic-container {
+	background: transparent;
+}
+
+.mosaic-theme-dark .mosaic-root {
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+
+.mosaic-theme-dark .mosaic-tile {
+	margin: 0;
+}
+
+.mosaic-theme-dark .mosaic-window {
+	border: 0.5px solid var(--color-border);
+	border-radius: 0;
+	overflow: hidden;
+	box-shadow: none;
+}
+.mosaic-theme-dark .mosaic-window-focused {
+	border-color: var(--color-border);
+}
+
+.mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
+	background: var(--color-tertiary);
+	height: 28px;
+	padding: 0 8px;
+	display: flex;
+	align-items: center;
+	transition: background-color 0.15s ease;
+	border-radius: 0;
+}
+.mosaic-theme-dark
+	.mosaic-window
+	.mosaic-window-toolbar
+	.mosaic-window-controls {
+	opacity: 0;
+	transition: opacity 0.15s ease;
+	display: flex;
+	align-items: center;
+	height: 100%;
+}
+.mosaic-theme-dark
+	.mosaic-window
+	.mosaic-window-toolbar:hover
+	.mosaic-window-controls,
+.mosaic-theme-dark
+	.mosaic-window-focused
+	.mosaic-window-toolbar
+	.mosaic-window-controls,
+.mosaic-theme-dark
+	.mosaic-window
+	.mosaic-window-toolbar:focus-within
+	.mosaic-window-controls {
+	opacity: 1;
+}
+.mosaic-theme-dark .mosaic-window-focused .mosaic-window-toolbar {
+	background: var(--color-secondary);
+}
+.mosaic-theme-dark .mosaic-window .mosaic-window-title {
+	color: var(--color-muted-foreground);
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	transition: color 0.15s ease;
+}
+.mosaic-theme-dark .mosaic-window-focused .mosaic-window-title {
+	color: var(--color-foreground);
+}
+.mosaic-theme-dark .mosaic-window .mosaic-window-body {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: 0;
+	overflow: hidden;
+}
+
+.mosaic-window-content {
+	outline: none;
+}
+.mosaic-window-content:focus-visible {
+	outline: 2px solid var(--color-ring);
+	outline-offset: -2px;
+}
+.mosaic-theme-dark .mosaic-split {
+	background: transparent;
+	opacity: 1;
+	transition: background-color 0.15s ease;
+}
+
+.mosaic-theme-dark .mosaic-split.-column {
+	cursor: row-resize;
+}
+
+.mosaic-theme-dark .mosaic-split.-row {
+	cursor: col-resize;
+}
+
+/* Drop target when hovering - shows the split preview */
+.mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
+	background: rgba(59, 130, 246, 0.1);
+	border: 1px solid rgba(59, 130, 246, 0.3);
+	opacity: 1;
+}

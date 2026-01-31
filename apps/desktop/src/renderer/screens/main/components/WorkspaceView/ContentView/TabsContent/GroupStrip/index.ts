@@ -1,0 +1,1 @@
+export { GroupStrip } from "./GroupStrip";

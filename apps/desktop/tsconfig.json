@@ -1,0 +1,24 @@
+{
+	"extends": "@superset/typescript/electron.json",
+	"compilerOptions": {
+		"types": ["bun-types"],
+		"baseUrl": ".",
+		"paths": {
+			"*": ["src/*"],
+			"~/*": ["./*"]
+		}
+	},
+	"include": [
+		"./src",
+		"electron.vite.config.ts",
+		"electron-builder.ts",
+		"index.d.ts"
+	],
+	"exclude": [
+		"node_modules",
+		"dist",
+		"dist-electron",
+		"release",
+		"src/**/templates/**"
+	]
+}

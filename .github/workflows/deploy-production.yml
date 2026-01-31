@@ -1,0 +1,424 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-database:
+    name: Deploy Database Migrations
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Run database migrations
+        working-directory: packages/db
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: bun drizzle-kit migrate
+
+  deploy-api:
+    name: Deploy API to Vercel
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy API
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
+          NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
+          NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          NEXT_PUBLIC_SENTRY_DSN_API: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_API }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LINEAR_CLIENT_ID: ${{ secrets.LINEAR_CLIENT_ID }}
+          LINEAR_CLIENT_SECRET: ${{ secrets.LINEAR_CLIENT_SECRET }}
+          LINEAR_WEBHOOK_SECRET: ${{ secrets.LINEAR_WEBHOOK_SECRET }}
+          GH_APP_ID: ${{ secrets.GH_APP_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
+          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+          QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
+          QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
+          ELECTRIC_URL: ${{ secrets.ELECTRIC_URL }}
+          ELECTRIC_SECRET: ${{ secrets.ELECTRIC_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
+        run: |
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env BLOB_READ_WRITE_TOKEN=$BLOB_READ_WRITE_TOKEN \
+            --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+            --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
+            --env NEXT_PUBLIC_MARKETING_URL=$NEXT_PUBLIC_MARKETING_URL \
+            --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
+            --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
+            --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
+            --env GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
+            --env GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET \
+            --env GH_CLIENT_ID=$GH_CLIENT_ID \
+            --env GH_CLIENT_SECRET=$GH_CLIENT_SECRET \
+            --env NEXT_PUBLIC_SENTRY_DSN_API=$NEXT_PUBLIC_SENTRY_DSN_API \
+            --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
+            --env POSTHOG_API_KEY=$POSTHOG_API_KEY \
+            --env POSTHOG_PROJECT_ID=$POSTHOG_PROJECT_ID \
+            --env KV_REST_API_URL=$KV_REST_API_URL \
+            --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env RESEND_API_KEY=$RESEND_API_KEY \
+            --env LINEAR_CLIENT_ID=$LINEAR_CLIENT_ID \
+            --env LINEAR_CLIENT_SECRET=$LINEAR_CLIENT_SECRET \
+            --env LINEAR_WEBHOOK_SECRET=$LINEAR_WEBHOOK_SECRET \
+            --env GH_APP_ID="$GH_APP_ID" \
+            --env GH_APP_PRIVATE_KEY="$GH_APP_PRIVATE_KEY" \
+            --env GH_WEBHOOK_SECRET="$GH_WEBHOOK_SECRET" \
+            --env QSTASH_TOKEN=$QSTASH_TOKEN \
+            --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
+            --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY \
+            --env ELECTRIC_URL=$ELECTRIC_URL \
+            --env ELECTRIC_SECRET=$ELECTRIC_SECRET \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID
+
+  deploy-web:
+    name: Deploy Web to Vercel
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
+          NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
+          NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          NEXT_PUBLIC_SENTRY_DSN_WEB: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_WEB }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
+        run: |
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
+            --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+            --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
+            --env NEXT_PUBLIC_MARKETING_URL=$NEXT_PUBLIC_MARKETING_URL \
+            --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
+            --env NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
+            --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
+            --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+            --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+            --env NEXT_PUBLIC_SENTRY_DSN_WEB=$NEXT_PUBLIC_SENTRY_DSN_WEB \
+            --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
+            --env KV_REST_API_URL=$KV_REST_API_URL \
+            --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env RESEND_API_KEY=$RESEND_API_KEY \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID
+
+  deploy-marketing:
+    name: Deploy Marketing to Vercel
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Marketing
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_MARKETING_PROJECT_ID }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
+          NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          NEXT_PUBLIC_SENTRY_DSN_MARKETING: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_MARKETING }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
+        run: |
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+            --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
+            --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+            --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
+            --env NEXT_PUBLIC_MARKETING_URL=$NEXT_PUBLIC_MARKETING_URL \
+            --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
+            --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
+            --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+            --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+            --env NEXT_PUBLIC_SENTRY_DSN_MARKETING=$NEXT_PUBLIC_SENTRY_DSN_MARKETING \
+            --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
+            --env KV_REST_API_URL=$KV_REST_API_URL \
+            --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env RESEND_API_KEY=$RESEND_API_KEY \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID
+
+  deploy-admin:
+    name: Deploy Admin to Vercel
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Admin
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
+          NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          NEXT_PUBLIC_SENTRY_DSN_ADMIN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_ADMIN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
+        run: |
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
+            --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+            --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
+            --env NEXT_PUBLIC_MARKETING_URL=$NEXT_PUBLIC_MARKETING_URL \
+            --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
+            --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
+            --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+            --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+            --env POSTHOG_API_KEY=$POSTHOG_API_KEY \
+            --env POSTHOG_PROJECT_ID=$POSTHOG_PROJECT_ID \
+            --env NEXT_PUBLIC_SENTRY_DSN_ADMIN=$NEXT_PUBLIC_SENTRY_DSN_ADMIN \
+            --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
+            --env KV_REST_API_URL=$KV_REST_API_URL \
+            --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env RESEND_API_KEY=$RESEND_API_KEY \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID
+
+  deploy-docs:
+    name: Deploy Docs to Vercel
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Docs
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DOCS_PROJECT_ID }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_MARKETING_URL: ${{ secrets.NEXT_PUBLIC_MARKETING_URL }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          NEXT_PUBLIC_SENTRY_DSN_DOCS: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN_DOCS }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          NEXT_PUBLIC_SENTRY_ENVIRONMENT: ${{ vars.NEXT_PUBLIC_SENTRY_ENVIRONMENT }}
+        run: |
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+            --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
+            --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
+            --env NEXT_PUBLIC_SENTRY_DSN_DOCS=$NEXT_PUBLIC_SENTRY_DSN_DOCS \
+            --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT

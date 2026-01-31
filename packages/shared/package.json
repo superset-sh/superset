@@ -1,0 +1,37 @@
+{
+	"name": "@superset/shared",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./constants": {
+			"types": "./src/constants.ts",
+			"default": "./src/constants.ts"
+		},
+		"./names": {
+			"types": "./src/names/index.ts",
+			"default": "./src/names/index.ts"
+		},
+		"./terminal-link-parsing": {
+			"types": "./src/terminal-link-parsing/index.ts",
+			"default": "./src/terminal-link-parsing/index.ts"
+		},
+		"./auth": {
+			"types": "./src/auth/index.ts",
+			"default": "./src/auth/index.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"bun-types": "^1.3.1",
+		"typescript": "^5.9.3"
+	}
+}

@@ -1,0 +1,39 @@
+{
+	"name": "@superset/trpc",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./integrations/*": {
+			"types": "./src/lib/integrations/*/index.ts",
+			"default": "./src/lib/integrations/*/index.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@anthropic-ai/sdk": "^0.71.2",
+		"@linear/sdk": "^68.1.0",
+		"@superset/auth": "workspace:*",
+		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
+		"@t3-oss/env-core": "^0.13.8",
+		"@trpc/server": "^11.7.1",
+		"@upstash/qstash": "^2.8.4",
+		"@vercel/blob": "^2.0.0",
+		"@vercel/kv": "^3.0.0",
+		"drizzle-orm": "0.45.1",
+		"superjson": "^2.2.5",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"typescript": "^5.9.3"
+	}
+}

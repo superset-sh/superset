@@ -1,0 +1,389 @@
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
+import { useCallback, useMemo } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { usePresets } from "renderer/react-query/presets";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
+import { NotFound } from "renderer/routes/not-found";
+import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
+import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
+import { useAppHotkey } from "renderer/stores/hotkeys";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
+import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import type { Tab } from "renderer/stores/tabs/types";
+import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
+import {
+	findPanePath,
+	getFirstPaneId,
+	getNextPaneId,
+	getPreviousPaneId,
+	resolveActiveTabIdForWorkspace,
+} from "renderer/stores/tabs/utils";
+import {
+	useHasWorkspaceFailed,
+	useIsWorkspaceInitializing,
+} from "renderer/stores/workspace-init";
+
+export const Route = createFileRoute(
+	"/_authenticated/_dashboard/workspace/$workspaceId/",
+)({
+	component: WorkspacePage,
+	notFoundComponent: NotFound,
+	loader: async ({ params, context }) => {
+		const queryKey = [
+			["workspaces", "get"],
+			{ input: { id: params.workspaceId }, type: "query" },
+		];
+
+		try {
+			await context.queryClient.ensureQueryData({
+				queryKey,
+				queryFn: () =>
+					trpcClient.workspaces.get.query({ id: params.workspaceId }),
+			});
+		} catch (error) {
+			// If workspace not found, throw notFound() to render 404 page
+			if (error instanceof Error && error.message.includes("not found")) {
+				throw notFound();
+			}
+			// Re-throw other errors
+			throw error;
+		}
+	},
+});
+
+function WorkspacePage() {
+	const { workspaceId } = Route.useParams();
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
+		id: workspaceId,
+	});
+	const navigate = useNavigate();
+
+	// Check if workspace is initializing or failed
+	const isInitializing = useIsWorkspaceInitializing(workspaceId);
+	const hasFailed = useHasWorkspaceFailed(workspaceId);
+
+	// Check for incomplete init after app restart
+	const gitStatus = workspace?.worktree?.gitStatus;
+	const hasIncompleteInit =
+		workspace?.type === "worktree" &&
+		(gitStatus === null || gitStatus === undefined);
+
+	// Show full-screen initialization view for:
+	// - Actively initializing workspaces (shows progress)
+	// - Failed workspaces (shows error with retry)
+	// - Interrupted workspaces that aren't currently initializing (shows resume option)
+	const showInitView = isInitializing || hasFailed || hasIncompleteInit;
+
+	const allTabs = useTabsStore((s) => s.tabs);
+	const activeTabIds = useTabsStore((s) => s.activeTabIds);
+	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
+	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
+	const { addTab, splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
+		useTabsWithPresets();
+	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+	const removePane = useTabsStore((s) => s.removePane);
+	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
+	const setSidebarOpen = useSidebarStore((s) => s.setSidebarOpen);
+	const currentSidebarMode = useSidebarStore((s) => s.currentMode);
+	const setSidebarMode = useSidebarStore((s) => s.setMode);
+
+	const tabs = useMemo(
+		() => allTabs.filter((tab) => tab.workspaceId === workspaceId),
+		[workspaceId, allTabs],
+	);
+
+	const activeTabId = useMemo(() => {
+		return resolveActiveTabIdForWorkspace({
+			workspaceId,
+			tabs,
+			activeTabIds,
+			tabHistoryStacks,
+		});
+	}, [workspaceId, tabs, activeTabIds, tabHistoryStacks]);
+
+	const activeTab = useMemo(
+		() => (activeTabId ? tabs.find((t) => t.id === activeTabId) : null),
+		[activeTabId, tabs],
+	);
+
+	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
+
+	const { presets } = usePresets();
+	const renameTab = useTabsStore((s) => s.renameTab);
+
+	const openTabWithPreset = useCallback(
+		(presetIndex: number) => {
+			const preset = presets[presetIndex];
+			if (preset) {
+				const result = addTab(workspaceId, {
+					initialCommands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				});
+				if (preset.name) {
+					renameTab(result.tabId, preset.name);
+				}
+			} else {
+				addTab(workspaceId);
+			}
+		},
+		[presets, workspaceId, addTab, renameTab],
+	);
+
+	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
+		workspaceId,
+		addTab,
+	]);
+	usePresetHotkeys(openTabWithPreset);
+
+	useAppHotkey(
+		"CLOSE_TERMINAL",
+		() => {
+			if (focusedPaneId) {
+				removePane(focusedPaneId);
+			}
+		},
+		undefined,
+		[focusedPaneId, removePane],
+	);
+
+	useAppHotkey(
+		"PREV_TAB",
+		() => {
+			if (!activeTabId) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			if (index > 0) {
+				setActiveTab(workspaceId, tabs[index - 1].id);
+			}
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	useAppHotkey(
+		"NEXT_TAB",
+		() => {
+			if (!activeTabId) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			if (index < tabs.length - 1) {
+				setActiveTab(workspaceId, tabs[index + 1].id);
+			}
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	useAppHotkey(
+		"PREV_PANE",
+		() => {
+			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+			const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
+			if (prevPaneId) {
+				setFocusedPane(activeTabId, prevPaneId);
+			}
+		},
+		undefined,
+		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
+	);
+
+	useAppHotkey(
+		"NEXT_PANE",
+		() => {
+			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+			const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
+			if (nextPaneId) {
+				setFocusedPane(activeTabId, nextPaneId);
+			}
+		},
+		undefined,
+		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
+	);
+
+	// Open in last used app shortcut
+	const { data: lastUsedApp = "cursor" } =
+		electronTrpc.settings.getLastUsedApp.useQuery();
+	const openInApp = electronTrpc.external.openInApp.useMutation();
+	useAppHotkey(
+		"OPEN_IN_APP",
+		() => {
+			if (workspace?.worktreePath) {
+				openInApp.mutate({
+					path: workspace.worktreePath,
+					app: lastUsedApp,
+				});
+			}
+		},
+		undefined,
+		[workspace?.worktreePath, lastUsedApp],
+	);
+
+	// Copy path shortcut
+	const copyPath = electronTrpc.external.copyPath.useMutation();
+	useAppHotkey(
+		"COPY_PATH",
+		() => {
+			if (workspace?.worktreePath) {
+				copyPath.mutate(workspace.worktreePath);
+			}
+		},
+		undefined,
+		[workspace?.worktreePath],
+	);
+
+	// Toggle changes sidebar (⌘L)
+	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
+		toggleSidebar,
+	]);
+
+	// Toggle expand/collapse sidebar (⌘⇧L)
+	useAppHotkey(
+		"TOGGLE_EXPAND_SIDEBAR",
+		() => {
+			if (!isSidebarOpen) {
+				setSidebarOpen(true);
+				setSidebarMode(SidebarMode.Changes);
+			} else {
+				const isExpanded = currentSidebarMode === SidebarMode.Changes;
+				setSidebarMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+			}
+		},
+		undefined,
+		[isSidebarOpen, setSidebarOpen, setSidebarMode, currentSidebarMode],
+	);
+
+	// Pane splitting helper - resolves target pane for split operations
+	const resolveSplitTarget = useCallback(
+		(paneId: string, tabId: string, targetTab: Tab) => {
+			const path = findPanePath(targetTab.layout, paneId);
+			if (path !== null) return { path, paneId };
+
+			const firstPaneId = getFirstPaneId(targetTab.layout);
+			const firstPanePath = findPanePath(targetTab.layout, firstPaneId);
+			setFocusedPane(tabId, firstPaneId);
+			return { path: firstPanePath ?? [], paneId: firstPaneId };
+		},
+		[setFocusedPane],
+	);
+
+	// Pane splitting shortcuts
+	useAppHotkey(
+		"SPLIT_AUTO",
+		() => {
+			if (activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				const dimensions = getPaneDimensions(target.paneId);
+				if (dimensions) {
+					splitPaneAuto(activeTabId, target.paneId, dimensions, target.path);
+				}
+			}
+		},
+		undefined,
+		[activeTabId, focusedPaneId, activeTab, splitPaneAuto, resolveSplitTarget],
+	);
+
+	useAppHotkey(
+		"SPLIT_RIGHT",
+		() => {
+			if (activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				splitPaneVertical(activeTabId, target.paneId, target.path);
+			}
+		},
+		undefined,
+		[
+			activeTabId,
+			focusedPaneId,
+			activeTab,
+			splitPaneVertical,
+			resolveSplitTarget,
+		],
+	);
+
+	useAppHotkey(
+		"SPLIT_DOWN",
+		() => {
+			if (activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				splitPaneHorizontal(activeTabId, target.paneId, target.path);
+			}
+		},
+		undefined,
+		[
+			activeTabId,
+			focusedPaneId,
+			activeTab,
+			splitPaneHorizontal,
+			resolveSplitTarget,
+		],
+	);
+
+	// Navigate to previous workspace (⌘↑)
+	const getPreviousWorkspace =
+		electronTrpc.workspaces.getPreviousWorkspace.useQuery(
+			{ id: workspaceId },
+			{ enabled: !!workspaceId },
+		);
+	useAppHotkey(
+		"PREV_WORKSPACE",
+		() => {
+			const prevWorkspaceId = getPreviousWorkspace.data;
+			if (prevWorkspaceId) {
+				navigateToWorkspace(prevWorkspaceId, navigate);
+			}
+		},
+		undefined,
+		[getPreviousWorkspace.data, navigate],
+	);
+
+	// Navigate to next workspace (⌘↓)
+	const getNextWorkspace = electronTrpc.workspaces.getNextWorkspace.useQuery(
+		{ id: workspaceId },
+		{ enabled: !!workspaceId },
+	);
+	useAppHotkey(
+		"NEXT_WORKSPACE",
+		() => {
+			const nextWorkspaceId = getNextWorkspace.data;
+			if (nextWorkspaceId) {
+				navigateToWorkspace(nextWorkspaceId, navigate);
+			}
+		},
+		undefined,
+		[getNextWorkspace.data, navigate],
+	);
+
+	return (
+		<div className="flex-1 h-full flex flex-col overflow-hidden">
+			<div className="flex-1 min-h-0 flex overflow-hidden">
+				{showInitView ? (
+					<WorkspaceInitializingView
+						workspaceId={workspaceId}
+						workspaceName={workspace?.name ?? "Workspace"}
+						isInterrupted={hasIncompleteInit && !isInitializing}
+					/>
+				) : (
+					<WorkspaceLayout />
+				)}
+			</div>
+		</div>
+	);
+}

@@ -1,0 +1,13 @@
+{
+	"title": "Documentation",
+	"pages": [
+		"---Rocket Get Started---",
+		"quick-start",
+		"overview",
+		"installation",
+		"---Gauge Core Features---",
+		"core-features",
+		"---BookOpen How to Guides---",
+		"setup-teardown-scripts"
+	]
+}

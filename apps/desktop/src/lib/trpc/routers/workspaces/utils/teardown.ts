@@ -1,0 +1,80 @@
+import { exec } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import type { SetupConfig } from "shared/types";
+import { getShellEnvironment } from "./shell-env";
+
+const execAsync = promisify(exec);
+
+const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
+
+export interface TeardownResult {
+	success: boolean;
+	error?: string;
+}
+
+function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
+	const configPath = join(mainRepoPath, ".superset", "config.json");
+
+	if (!existsSync(configPath)) {
+		return null;
+	}
+
+	try {
+		const content = readFileSync(configPath, "utf-8");
+		const parsed = JSON.parse(content) as SetupConfig;
+
+		if (parsed.teardown && !Array.isArray(parsed.teardown)) {
+			throw new Error("'teardown' field must be an array of strings");
+		}
+
+		return parsed;
+	} catch (error) {
+		console.error(
+			`Failed to read setup config at ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+		);
+		return null;
+	}
+}
+
+export async function runTeardown(
+	mainRepoPath: string,
+	worktreePath: string,
+	workspaceName: string,
+): Promise<TeardownResult> {
+	// Load config from the main repo (where .superset/config.json lives)
+	const config = loadSetupConfig(mainRepoPath);
+
+	if (!config?.teardown || config.teardown.length === 0) {
+		return { success: true };
+	}
+
+	const command = config.teardown.join(" && ");
+
+	try {
+		const shellEnv = await getShellEnvironment();
+
+		await execAsync(command, {
+			cwd: worktreePath,
+			timeout: TEARDOWN_TIMEOUT_MS,
+			env: {
+				...shellEnv,
+				SUPERSET_WORKSPACE_NAME: workspaceName,
+				SUPERSET_ROOT_PATH: mainRepoPath,
+			},
+		});
+
+		return { success: true };
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		console.error(
+			`Teardown failed for workspace ${workspaceName}:`,
+			errorMessage,
+		);
+		return {
+			success: false,
+			error: errorMessage,
+		};
+	}
+}

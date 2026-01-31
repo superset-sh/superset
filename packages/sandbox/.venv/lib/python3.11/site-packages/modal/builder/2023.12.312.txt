@@ -1,0 +1,20 @@
+# Pins Modal dependencies installed within the container runtime.
+aiohttp==3.9.1
+aiostream==0.4.4
+asgiref==3.5.2
+certifi>=2022.12.07
+cloudpickle==2.2.0
+fastapi==0.88.0
+fastprogress==1.0.0
+grpclib==0.4.7
+importlib_metadata==4.8.1
+ipython>=7.34.0
+protobuf>=3.19.0
+python-multipart>=0.0.5
+rich==12.3.0
+tblib==1.7.0
+toml==0.10.2
+typer==0.6.1
+types-certifi==2021.10.8.3
+types-toml==0.10.4
+typeguard>=3.0.0

@@ -1,0 +1,33 @@
+Metadata-Version: 2.1
+Name: types-certifi
+Version: 2021.10.8.3
+Summary: Typing stubs for certifi
+Home-page: https://github.com/python/typeshed
+License: Apache-2.0 license
+Project-URL: GitHub, https://github.com/python/typeshed
+Project-URL: Changes, https://github.com/typeshed-internal/stub_uploader/blob/main/data/changelogs/certifi.md
+Project-URL: Issue tracker, https://github.com/python/typeshed/issues
+Project-URL: Chat, https://gitter.im/python/typing
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Typing :: Stubs Only
+Description-Content-Type: text/markdown
+
+## Typing stubs for certifi
+
+This is a PEP 561 type stub package for the `certifi` package.
+It can be used by type-checking tools like mypy, PyCharm, pytype etc. to check code
+that uses `certifi`. The source for this package can be found at
+https://github.com/python/typeshed/tree/master/stubs/certifi. All fixes for
+types and metadata should be contributed there.
+
+*Note:* The `certifi` package includes type annotations or type stubs
+since version 2022.5.18.1. Please uninstall the `types-certifi`
+package if you use this or a newer version.
+
+
+See https://github.com/python/typeshed/blob/master/README.md for more details.
+This package was generated from typeshed commit `95128e61ec82c2ca8ec32d6c03bd9dad9ab68e65`.
+
+

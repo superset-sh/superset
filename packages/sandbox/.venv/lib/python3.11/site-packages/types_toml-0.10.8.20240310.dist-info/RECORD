@@ -1,0 +1,11 @@
+toml-stubs/METADATA.toml,sha256=m71TbXQIEjDXFzghTk6ilSD_2xd_wju-QslLlcYSV8Y,72
+toml-stubs/__init__.pyi,sha256=yfV6BC8BKKwNOJgCHGVy36N2y9r4kzTDkDj1FOkC04k,623
+toml-stubs/decoder.pyi,sha256=eL_wb_xfUywykRhu-MqK89maDPqaeXowyLC8u7hTHnM,2919
+toml-stubs/encoder.pyi,sha256=XSqilg6QmxXyc0UpWE_VvSAZjAG1Nix2RQ-dk0ow_SI,1998
+toml-stubs/ordered.pyi,sha256=SQrlcdc0bDmgoBPM4h-zUmsIEIMgiSMvdhmmdAFF6Ds,324
+toml-stubs/tz.pyi,sha256=iIUsfNC531Cu7mTVYJtP1lXUxwn2lVF3yKgb3IWKVY0,409
+types_toml-0.10.8.20240310.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+types_toml-0.10.8.20240310.dist-info/METADATA,sha256=L-jnfCEMAcQG5raLkJHOn9HPJYSPq7XC7QVqddHI0i8,1530
+types_toml-0.10.8.20240310.dist-info/RECORD,,
+types_toml-0.10.8.20240310.dist-info/WHEEL,sha256=oiQVh_5PnQM0E3gPdiz09WCNmwiHDMaGer_elqB3coM,92
+types_toml-0.10.8.20240310.dist-info/top_level.txt,sha256=a1CYNIV08nMy24bJkQiDQ7id6O3k8iwkUKsL10B5A_Y,11

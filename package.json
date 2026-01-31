@@ -1,0 +1,52 @@
+{
+	"name": "@superset/repo",
+	"version": "0.0.0",
+	"repository": {
+		"type": "git"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.11",
+		"sherif": "^1.7.0",
+		"turbo": "^2.5.8"
+	},
+	"description": "Superset Monorepo",
+	"homepage": "https://superset.sh",
+	"license": "Apache-2.0",
+	"packageManager": "bun@1.3.0",
+	"private": true,
+	"scripts": {
+		"dev": "turbo dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop",
+		"dev:all": "turbo dev",
+		"dev:docs": "turbo dev --filter=@superset/docs",
+		"dev:cli": "turbo dev --filter=@superset/cli",
+		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
+		"build": "turbo build --filter=@superset/desktop",
+		"test": "turbo test",
+		"db:generate": "turbo db:generate",
+		"db:push": "cd packages/db && bun push",
+		"db:seed": "cd packages/db && bun seed",
+		"db:migrate": "cd packages/db && bun migrate",
+		"db:studio": "cd packages/db && bun studio",
+		"db:reset": "cd apps/backend && bun run reset",
+		"lint": "./scripts/lint.sh",
+		"lint:fix": "biome check --write --unsafe .",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"typecheck": "turbo typecheck",
+		"ui-add": "turbo run ui-add",
+		"postinstall": "sherif; bun run --filter=@superset/desktop install:deps",
+		"clean": "git clean -xdf node_modules",
+		"clean:workspaces": "turbo clean",
+		"release:desktop": "./apps/desktop/create-release.sh",
+		"release:canary": "gh workflow run release-desktop-canary.yml && sleep 2 && gh run list --workflow=release-desktop-canary.yml --limit=1 --json url -q '.[0].url'"
+	},
+	"type": "module",
+	"workspaces": [
+		"packages/*",
+		"apps/*",
+		"tooling/*"
+	],
+	"resolutions": {
+		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724"
+	}
+}

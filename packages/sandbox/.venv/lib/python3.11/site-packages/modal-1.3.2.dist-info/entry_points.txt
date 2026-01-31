@@ -1,0 +1,2 @@
+[console_scripts]
+modal = modal.__main__:main

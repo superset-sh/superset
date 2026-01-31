@@ -1,0 +1,52 @@
+{
+	"name": "@superset/db",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./client": {
+			"types": "./src/client.ts",
+			"default": "./src/client.ts"
+		},
+		"./enums": {
+			"types": "./src/schema/enums.ts",
+			"default": "./src/schema/enums.ts"
+		},
+		"./schema": {
+			"types": "./src/schema/index.ts",
+			"default": "./src/schema/index.ts"
+		},
+		"./schema/auth": {
+			"types": "./src/schema/auth.ts",
+			"default": "./src/schema/auth.ts"
+		},
+		"./utils": {
+			"types": "./src/utils/index.ts",
+			"default": "./src/utils/index.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"push": "drizzle-kit push",
+		"migrate": "drizzle-kit migrate",
+		"studio": "drizzle-kit studio",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@neondatabase/serverless": "1.0.2",
+		"@t3-oss/env-core": "^0.13.8",
+		"dotenv": "^17.2.3",
+		"drizzle-orm": "0.45.1",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"drizzle-kit": "0.31.8",
+		"typescript": "^5.9.3"
+	}
+}

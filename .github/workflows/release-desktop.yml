@@ -1,0 +1,117 @@
+name: Release Desktop App
+
+on:
+  push:
+    tags:
+      - "desktop-v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., 1.0.0)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-desktop.yml
+    with:
+      channel: stable
+      electron_builder_config: electron-builder.ts
+      artifact_prefix: desktop
+      artifact_retention_days: 30
+    secrets: inherit
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find previous desktop release tag
+        id: prev_tag
+        run: |
+          CURRENT_TAG="${{ github.ref_name }}"
+          # Get all desktop tags sorted by version, find the one before current
+          PREVIOUS_TAG=$(git tag -l 'desktop-v*' | sort -V | grep -B1 "^${CURRENT_TAG}$" | head -1)
+          if [ "$PREVIOUS_TAG" = "$CURRENT_TAG" ] || [ -z "$PREVIOUS_TAG" ]; then
+            # Current tag is the first or no previous found, get the oldest desktop tag
+            PREVIOUS_TAG=""
+          fi
+          echo "current_tag=${CURRENT_TAG}" >> $GITHUB_OUTPUT
+          echo "previous_tag=${PREVIOUS_TAG}" >> $GITHUB_OUTPUT
+          echo "Current tag: ${CURRENT_TAG}"
+          echo "Previous tag: ${PREVIOUS_TAG:-none}"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          pattern: desktop-*
+          merge-multiple: true
+
+      - name: Create stable-named copies for latest download URLs
+        run: |
+          cd release-artifacts
+          # Create stable-named copies (without version) for /releases/latest/download/ URLs
+          for file in *.dmg; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., Superset-0.0.1-arm64.dmg -> arm64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.dmg$/\1/')
+              cp "$file" "Superset-${arch}.dmg"
+              echo "Created stable copy: Superset-${arch}.dmg"
+            fi
+          done
+          for file in *-mac.zip; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., Superset-0.0.1-arm64-mac.zip -> arm64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)-mac\.zip$/\1/')
+              cp "$file" "Superset-${arch}-mac.zip"
+              echo "Created stable copy: Superset-${arch}-mac.zip"
+            fi
+          done
+          echo "Release artifacts:"
+          ls -la
+
+      - name: Generate release notes
+        id: release_notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREVIOUS_TAG="${{ steps.prev_tag.outputs.previous_tag }}"
+          CURRENT_TAG="${{ steps.prev_tag.outputs.current_tag }}"
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Generating notes from ${PREVIOUS_TAG} to ${CURRENT_TAG}"
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="${CURRENT_TAG}" \
+              -f previous_tag_name="${PREVIOUS_TAG}" \
+              --jq '.body')
+          else
+            echo "No previous tag found, generating notes without comparison"
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="${CURRENT_TAG}" \
+              --jq '.body')
+          fi
+
+          # Write to file to preserve formatting
+          echo "$NOTES" > release_notes.md
+          echo "Release notes generated"
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            release-artifacts/* \
+            --title "Superset Desktop ${{ github.ref_name }}" \
+            --notes-file release_notes.md \
+            --draft

@@ -1,0 +1,31 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.12/schema.json",
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
+	},
+	"files": {
+		"includes": [
+			"**",
+			"!**/drizzle",
+			"!**/*.template.js",
+			"!**/*.template.sh",
+			"!apps/mobile/uniwind-types.d.ts"
+		]
+	},
+	"formatter": {
+		"formatWithErrors": true
+	},
+	"css": {
+		"parser": {
+			"cssModules": true,
+			"tailwindDirectives": true
+		}
+	},
+	"linter": {
+		"rules": {
+			"recommended": true
+		}
+	}
+}
