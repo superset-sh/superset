@@ -266,22 +266,22 @@ export function useTerminalLifecycle({
 			maybeApplyInitialState();
 		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
 
-			const restartTerminalSession = () => {
-				isExitedRef.current = false;
-				isStreamReadyRef.current = false;
-				wasKilledByUserRef.current = false;
-				setExitStatus(null);
-				clearTerminalKilledByUser(paneId);
-				resetModes();
-				xterm.clear();
-				createOrAttachRef.current(
-					{
-						paneId,
-						tabId: tabIdRef.current,
-						workspaceId,
-						cols: xterm.cols,
-						rows: xterm.rows,
-						allowKilled: true,
+		const restartTerminalSession = () => {
+			isExitedRef.current = false;
+			isStreamReadyRef.current = false;
+			wasKilledByUserRef.current = false;
+			setExitStatus(null);
+			clearTerminalKilledByUser(paneId);
+			resetModes();
+			xterm.clear();
+			createOrAttachRef.current(
+				{
+					paneId,
+					tabId: tabIdRef.current,
+					workspaceId,
+					cols: xterm.cols,
+					rows: xterm.rows,
+					allowKilled: true,
 				},
 				{
 					onSuccess: (result) => {
@@ -316,13 +316,13 @@ export function useTerminalLifecycle({
 		}) => {
 			if (isRestoredModeRef.current || connectionErrorRef.current) return;
 			const { domEvent } = event;
-					if (domEvent.key === "Enter") {
-						if (!isAlternateScreenRef.current) {
-							const title = sanitizeForTitle(commandBufferRef.current);
-							if (title) {
-								debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
-							}
-						}
+			if (domEvent.key === "Enter") {
+				if (!isAlternateScreenRef.current) {
+					const title = sanitizeForTitle(commandBufferRef.current);
+					if (title) {
+						debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
+					}
+				}
 				commandBufferRef.current = "";
 			} else if (domEvent.key === "Backspace") {
 				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
@@ -473,11 +473,11 @@ export function useTerminalLifecycle({
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
-			const titleDisposable = xterm.onTitleChange((title) => {
-				if (title) {
-					debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
-				}
-			});
+		const titleDisposable = xterm.onTitleChange((title) => {
+			if (title) {
+				debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
+			}
+		});
 
 		const handleClear = () => {
 			xterm.clear();
