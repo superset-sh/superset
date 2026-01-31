@@ -19,6 +19,7 @@ import {
 	HiCheck,
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
+	HiOutlineBookOpen,
 	HiOutlineBugAnt,
 	HiOutlineCog6Tooth,
 	HiOutlineEnvelope,
@@ -161,6 +162,10 @@ export function OrganizationDropdown() {
 					{shortcutsHotkey !== "Unassigned" && (
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
+				</DropdownMenuItem>
+				<DropdownMenuItem onClick={() => openExternal(COMPANY.DOCS_URL)}>
+					<HiOutlineBookOpen className="h-4 w-4" />
+					Documentation
 				</DropdownMenuItem>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
