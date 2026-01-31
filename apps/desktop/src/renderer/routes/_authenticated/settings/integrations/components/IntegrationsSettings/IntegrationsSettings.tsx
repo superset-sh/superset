@@ -1,4 +1,4 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { COMPANY, FEATURE_FLAGS } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -189,7 +189,16 @@ export function IntegrationsSettings({
 			</div>
 
 			<p className="mt-6 text-xs text-muted-foreground">
-				Manage integrations in the web app to connect and configure services.
+				Manage integrations in the web app to connect and configure services.{" "}
+				<a
+					href={`${COMPANY.DOCS_URL}/integrations`}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="inline-flex items-center gap-1 text-primary hover:underline"
+				>
+					Learn more
+					<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
+				</a>
 			</p>
 		</div>
 	);
