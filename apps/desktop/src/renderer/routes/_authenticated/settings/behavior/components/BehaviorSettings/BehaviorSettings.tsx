@@ -32,6 +32,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
 		visibleItems,
 	);
+	const showTelemetry = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_TELEMETRY,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -56,6 +60,35 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
+	};
+
+	const { data: telemetryEnabled, isLoading: isTelemetryLoading } =
+		electronTrpc.settings.getTelemetryEnabled.useQuery();
+	const setTelemetryEnabled =
+		electronTrpc.settings.setTelemetryEnabled.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getTelemetryEnabled.cancel();
+				const previous = utils.settings.getTelemetryEnabled.getData();
+				utils.settings.getTelemetryEnabled.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (err, _vars, context) => {
+				console.error("[settings/telemetry] Failed to update:", err);
+				if (context?.previous !== undefined) {
+					utils.settings.getTelemetryEnabled.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getTelemetryEnabled.invalidate();
+			},
+		});
+
+	const handleTelemetryToggle = (enabled: boolean) => {
+		console.log("[settings/telemetry] Toggling to:", enabled);
+		setTelemetryEnabled.mutate({ enabled });
 	};
 
 	const { data: branchPrefix, isLoading: isBranchPrefixLoading } =
@@ -185,6 +218,25 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								/>
 							)}
 						</div>
+					</div>
+				)}
+
+				{showTelemetry && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="telemetry" className="text-sm font-medium">
+								Send anonymous usage data
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Help improve Superset by sending anonymous usage data
+							</p>
+						</div>
+						<Switch
+							id="telemetry"
+							checked={telemetryEnabled ?? true}
+							onCheckedChange={handleTelemetryToggle}
+							disabled={isTelemetryLoading || setTelemetryEnabled.isPending}
+						/>
 					</div>
 				)}
 			</div>
