@@ -1,10 +1,3 @@
-export type SlackBillingEventType =
-	| "subscription_started"
-	| "subscription_cancelled"
-	| "payment_failed"
-	| "payment_succeeded"
-	| "plan_changed";
-
 export function formatSubscriptionStarted({
 	organizationName,
 	planName,
