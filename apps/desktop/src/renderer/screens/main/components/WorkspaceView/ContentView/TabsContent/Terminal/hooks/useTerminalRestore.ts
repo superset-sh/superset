@@ -73,6 +73,10 @@ export function useTerminalRestore({
 	onErrorEventRef.current = onErrorEvent;
 	const onDisconnectEventRef = useRef(onDisconnectEvent);
 	onDisconnectEventRef.current = onDisconnectEvent;
+	const log = (...args: unknown[]) => {
+		if (!DEBUG_TERMINAL) return;
+		console.log("[terminal/restore]", ...args);
+	};
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -83,6 +87,16 @@ export function useTerminalRestore({
 			0,
 			pendingEventsRef.current.length,
 		);
+		if (DEBUG_TERMINAL) {
+			const summary = events.reduce(
+				(acc, event) => {
+					acc[event.type] = (acc[event.type] ?? 0) + 1;
+					return acc;
+				},
+				{} as Record<TerminalStreamEvent["type"], number>,
+			);
+			log("flushPendingEvents", { paneId, count: events.length, summary });
+		}
 
 		for (const event of events) {
 			if (event.type === "data") {
@@ -112,6 +126,15 @@ export function useTerminalRestore({
 		pendingInitialStateRef.current = null;
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
+		if (DEBUG_TERMINAL) {
+			log("applyInitialState:start", {
+				paneId,
+				isNew: result.isNew,
+				wasRecovered: result.wasRecovered,
+				hasSnapshot: !!result.snapshot,
+				scrollbackLength: result.scrollback?.length ?? 0,
+			});
+		}
 
 		try {
 			const scheduleFitAndScroll = () => {
@@ -158,6 +181,7 @@ export function useTerminalRestore({
 
 			// For alt-screen (TUI) sessions, enter alt-screen and trigger SIGWINCH
 			if (isAltScreenReattach) {
+				log("applyInitialState:altScreen", { paneId, restoreSequence });
 				xterm.write("\x1b[?1049h", () => {
 					if (result.snapshot?.rehydrateSequences) {
 						const ESC = "\x1b";
@@ -200,6 +224,11 @@ export function useTerminalRestore({
 						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
 					);
 				}
+				log("applyInitialState:finalize", {
+					paneId,
+					restoreSequence,
+					hasRehydrate: !!rehydrateSequences,
+				});
 				flushPendingEvents();
 			};
 
@@ -224,6 +253,10 @@ export function useTerminalRestore({
 			}
 		} catch (error) {
 			console.error("[Terminal] Restoration failed:", error);
+			log("applyInitialState:error", {
+				paneId,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			isStreamReadyRef.current = true;
 			flushPendingEvents();
 		}

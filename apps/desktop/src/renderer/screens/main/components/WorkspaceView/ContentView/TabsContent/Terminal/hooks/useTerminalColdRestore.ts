@@ -3,6 +3,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { clearTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { DEBUG_TERMINAL } from "../config";
 import { coldRestoreState } from "../state";
 import type {
 	CreateOrAttachMutate,
@@ -71,17 +72,23 @@ export function useTerminalColdRestore({
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
+	const log = (...args: unknown[]) => {
+		if (!DEBUG_TERMINAL) return;
+		console.log("[terminal/cold-restore]", ...args);
+	};
 
 	// Ref for restoredCwd to use in callbacks
 	const restoredCwdRef = useRef(restoredCwd);
 	restoredCwdRef.current = restoredCwd;
 
 	const handleRetryConnection = useCallback(() => {
+		log("retry:start", { paneId });
 		setConnectionError(null);
 		const xterm = xtermRef.current;
 		if (!xterm) return;
 
 		isStreamReadyRef.current = false;
+		log("streamReady", { paneId, ready: false, reason: "retry" });
 		pendingInitialStateRef.current = null;
 
 		xterm.clear();
@@ -101,6 +108,11 @@ export function useTerminalColdRestore({
 					if (!currentXterm) return;
 
 					setConnectionError(null);
+					log("retry:success", {
+						paneId,
+						isColdRestore: !!result.isColdRestore,
+						scrollbackLength: result.scrollback?.length ?? 0,
+					});
 
 					if (result.isColdRestore) {
 						const scrollback =
@@ -135,16 +147,30 @@ export function useTerminalColdRestore({
 					}
 				},
 				onError: (error: { message?: string }) => {
+					log("retry:error", {
+						paneId,
+						message: error.message || "Connection failed",
+					});
 					if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
 						wasKilledByUserRef.current = true;
 						isExitedRef.current = true;
 						isStreamReadyRef.current = false;
+						log("streamReady", {
+							paneId,
+							ready: false,
+							reason: "retry-session-killed",
+						});
 						setExitStatus("killed");
 						setConnectionError(null);
 						return;
 					}
 					setConnectionError(error.message || "Connection failed");
 					isStreamReadyRef.current = true;
+					log("streamReady", {
+						paneId,
+						ready: true,
+						reason: "retry-error",
+					});
 					flushPendingEvents();
 				},
 			},
@@ -168,6 +194,10 @@ export function useTerminalColdRestore({
 	]);
 
 	const handleStartShell = useCallback(() => {
+		log("startShell:start", {
+			paneId,
+			cwd: restoredCwdRef.current ?? null,
+		});
 		const xterm = xtermRef.current;
 		const fitAddon = fitAddonRef.current;
 		if (!xterm || !fitAddon) return;
@@ -188,6 +218,7 @@ export function useTerminalColdRestore({
 
 		// Reset state for new session
 		isStreamReadyRef.current = false;
+		log("streamReady", { paneId, ready: false, reason: "start-shell" });
 		isExitedRef.current = false;
 		wasKilledByUserRef.current = false;
 		setExitStatus(null);
@@ -209,6 +240,11 @@ export function useTerminalColdRestore({
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
+					log("startShell:success", {
+						paneId,
+						isNew: result.isNew,
+						scrollbackLength: result.scrollback?.length ?? 0,
+					});
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
 
@@ -223,11 +259,20 @@ export function useTerminalColdRestore({
 					}, 0);
 				},
 				onError: (error: { message?: string }) => {
+					log("startShell:error", {
+						paneId,
+						message: error.message || "Failed to start shell",
+					});
 					console.error("[Terminal] Failed to start shell:", error);
 					setConnectionError(error.message || "Failed to start shell");
 					setIsRestoredMode(false);
 					coldRestoreState.delete(paneId);
 					isStreamReadyRef.current = true;
+					log("streamReady", {
+						paneId,
+						ready: true,
+						reason: "start-shell-error",
+					});
 					flushPendingEvents();
 				},
 			},
