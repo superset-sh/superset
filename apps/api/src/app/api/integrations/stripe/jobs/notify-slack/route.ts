@@ -47,9 +47,6 @@ export async function POST(request: Request) {
 	const webhookUrl = env.SLACK_BILLING_WEBHOOK_URL;
 
 	if (!webhookUrl) {
-		console.warn(
-			"[stripe/notify-slack] SLACK_BILLING_WEBHOOK_URL not configured, skipping",
-		);
 		return Response.json({ success: true, skipped: true });
 	}
 
