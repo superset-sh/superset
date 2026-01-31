@@ -4,8 +4,6 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"backfill:stripe-customers": "bun run src/backfill-stripe-customers.ts",
-		"recover:stripe-customers": "bun run src/recover-stripe-customers.ts",
 		"wipe:stripe-customers": "bun run src/wipe-stripe-customers.ts",
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
