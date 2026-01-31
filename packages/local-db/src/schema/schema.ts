@@ -109,6 +109,9 @@ export const workspaces = sqliteTable(
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),
+		// Allocated port base for multi-worktree dev instances.
+		// Each workspace gets a range of 10 ports starting from this base.
+		portBase: integer("port_base"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

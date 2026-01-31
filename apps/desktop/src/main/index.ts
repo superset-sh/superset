@@ -7,6 +7,7 @@ import {
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
+import { getWorkspaceName } from "shared/worktree-id";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
@@ -22,8 +23,13 @@ import { MainWindow } from "./windows/main";
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
 console.log("[main] Local database ready:", !!localDb);
 
-// Set different app name for dev to avoid singleton lock conflicts with production
-if (process.env.NODE_ENV === "development") {
+// Set different app name for multi-worktree isolation and dev/prod separation
+const workspaceName = getWorkspaceName();
+if (workspaceName) {
+	// Named workspace - use workspace-specific name
+	app.setName(`Superset (${workspaceName})`);
+} else if (process.env.NODE_ENV === "development") {
+	// Dev without workspace - use "Superset Dev" to avoid conflict with prod
 	app.setName("Superset Dev");
 }
 
@@ -214,20 +220,25 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Single instance lock - required for second-instance event on Windows/Linux
-const gotTheLock = app.requestSingleInstanceLock();
+// Skip instance lock for named workspaces to allow multiple dev instances
+const shouldEnforceLock = !workspaceName;
+const gotTheLock = shouldEnforceLock ? app.requestSingleInstanceLock() : true;
 
 if (!gotTheLock) {
 	// Another instance is already running, exit immediately without triggering before-quit
 	app.exit(0);
 } else {
 	// Handle deep links when second instance is launched (Windows/Linux)
-	app.on("second-instance", async (_event, argv) => {
-		focusMainWindow();
-		const url = findDeepLinkInArgv(argv);
-		if (url) {
-			await processDeepLink(url);
-		}
-	});
+	// Only relevant when instance lock is enforced
+	if (shouldEnforceLock) {
+		app.on("second-instance", async (_event, argv) => {
+			focusMainWindow();
+			const url = findDeepLinkInArgv(argv);
+			if (url) {
+				await processDeepLink(url);
+			}
+		});
+	}
 
 	(async () => {
 		await app.whenReady();

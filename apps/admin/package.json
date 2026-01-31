@@ -6,7 +6,7 @@
 	"scripts": {
 		"build": "next build",
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
-		"dev": "next dev --port 3003",
+		"dev": "dotenv -- next dev --port ${ADMIN_PORT:-3003}",
 		"start": "next start",
 		"typecheck": "tsc --noEmit"
 	},

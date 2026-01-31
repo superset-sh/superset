@@ -97,6 +97,8 @@ export interface CreateSessionParams {
 	initialCommands?: string[];
 	/** Skip cold restore detection (used when auto-resuming after cold restore) */
 	skipColdRestore?: boolean;
+	/** Port base for multi-worktree dev instances */
+	portBase?: number | null;
 }
 
 export interface InternalCreateSessionParams extends CreateSessionParams {
