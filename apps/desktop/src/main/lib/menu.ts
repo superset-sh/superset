@@ -81,6 +81,13 @@ export function createApplicationMenu() {
 			label: "Help",
 			submenu: [
 				{
+					label: "Documentation",
+					click: () => {
+						shell.openExternal(COMPANY.DOCS_URL);
+					},
+				},
+				{ type: "separator" },
+				{
 					label: "Contact Us",
 					click: () => {
 						shell.openExternal(COMPANY.MAIL_TO);

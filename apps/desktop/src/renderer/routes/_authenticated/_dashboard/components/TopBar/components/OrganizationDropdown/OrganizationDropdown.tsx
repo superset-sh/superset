@@ -14,17 +14,19 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { FaDiscord, FaXTwitter } from "react-icons/fa6";
+import { FaDiscord, FaGithub, FaXTwitter } from "react-icons/fa6";
+import { FiUsers } from "react-icons/fi";
 import {
 	HiCheck,
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
-	HiOutlineBugAnt,
+	HiOutlineBookOpen,
+	HiOutlineChatBubbleLeftRight,
 	HiOutlineCog6Tooth,
 	HiOutlineEnvelope,
-	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuKeyboard, LuLifeBuoy } from "react-icons/lu";
+import { IoBugOutline } from "react-icons/io5";
+import { LuKeyboard } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -92,6 +94,7 @@ export function OrganizationDropdown() {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56">
+				{/* Organization */}
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/account" })}
 				>
@@ -101,57 +104,51 @@ export function OrganizationDropdown() {
 						<DropdownMenuShortcut>{settingsHotkey}</DropdownMenuShortcut>
 					)}
 				</DropdownMenuItem>
-
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/organization" })}
 				>
-					<HiOutlineUserGroup className="h-4 w-4" />
-					<span>Invite and manage members</span>
+					<FiUsers className="h-4 w-4" />
+					<span>Manage members</span>
 				</DropdownMenuItem>
+				{organizations && organizations.length > 1 && (
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger className="gap-2">
+							<span>Switch organization</span>
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent>
+							{userEmail && (
+								<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
+									{userEmail}
+								</DropdownMenuLabel>
+							)}
+							{organizations.map((organization) => (
+								<DropdownMenuItem
+									key={organization.id}
+									onSelect={() => switchOrganization(organization.id)}
+									className="gap-2"
+								>
+									<Avatar
+										size="xs"
+										fullName={organization.name}
+										image={organization.logo}
+										className="rounded-md"
+									/>
+									<span className="flex-1 truncate">{organization.name}</span>
+									{organization.id === activeOrganization?.id && (
+										<HiCheck className="h-4 w-4 text-primary" />
+									)}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+				)}
 
 				<DropdownMenuSeparator />
 
-				{organizations && organizations.length > 1 && (
-					<>
-						<DropdownMenuSub>
-							<DropdownMenuSubTrigger className="gap-2">
-								<span>Switch organization</span>
-							</DropdownMenuSubTrigger>
-							<DropdownMenuSubContent>
-								{userEmail && (
-									<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-										{userEmail}
-									</DropdownMenuLabel>
-								)}
-								{organizations.map((organization) => (
-									<DropdownMenuItem
-										key={organization.id}
-										onSelect={() => switchOrganization(organization.id)}
-										className="gap-2"
-									>
-										<Avatar
-											size="xs"
-											fullName={organization.name}
-											image={organization.logo}
-											className="rounded-md"
-										/>
-										<span className="flex-1 truncate">{organization.name}</span>
-										{organization.id === activeOrganization?.id && (
-											<HiCheck className="h-4 w-4 text-primary" />
-										)}
-									</DropdownMenuItem>
-								))}
-							</DropdownMenuSubContent>
-						</DropdownMenuSub>
-						<DropdownMenuSeparator />
-					</>
-				)}
-
-				<DropdownMenuItem
-					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
-				>
-					<HiOutlineBugAnt className="h-4 w-4" />
-					Report Issue
+				{/* Help & Support */}
+				<DropdownMenuItem onClick={() => openExternal(COMPANY.DOCS_URL)}>
+					<HiOutlineBookOpen className="h-4 w-4" />
+					Documentation
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={() => navigate({ to: "/settings/keyboard" })}
@@ -162,12 +159,22 @@ export function OrganizationDropdown() {
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
 				</DropdownMenuItem>
+				<DropdownMenuItem
+					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
+				>
+					<IoBugOutline className="h-4 w-4" />
+					Report Issue
+				</DropdownMenuItem>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
-						<LuLifeBuoy className="h-4 w-4" />
+						<HiOutlineChatBubbleLeftRight className="h-4 w-4" />
 						Contact Us
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
+						<DropdownMenuItem onClick={() => openExternal(COMPANY.GITHUB_URL)}>
+							<FaGithub className="h-4 w-4" />
+							GitHub
+						</DropdownMenuItem>
 						<DropdownMenuItem onClick={() => openExternal(COMPANY.DISCORD_URL)}>
 							<FaDiscord className="h-4 w-4" />
 							Discord
@@ -184,6 +191,7 @@ export function OrganizationDropdown() {
 
 				<DropdownMenuSeparator />
 
+				{/* Account */}
 				<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
 					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
 					<span>Log out</span>
