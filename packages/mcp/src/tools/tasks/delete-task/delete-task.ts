@@ -1,7 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
-import { getCurrentTxid } from "@superset/db/utils";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
@@ -20,7 +19,6 @@ export function register(server: McpServer) {
 			},
 			outputSchema: {
 				deleted: z.array(z.string()),
-				txid: z.string(),
 			},
 		},
 		async (args, extra) => {
@@ -59,17 +57,12 @@ export function register(server: McpServer) {
 			const taskIdsToDelete = resolvedTasks.map((t) => t.id);
 			const deletedAt = new Date();
 
-			const result = await dbWs.transaction(async (tx) => {
-				await tx
-					.update(tasks)
-					.set({ deletedAt })
-					.where(inArray(tasks.id, taskIdsToDelete));
+			await dbWs
+				.update(tasks)
+				.set({ deletedAt })
+				.where(inArray(tasks.id, taskIdsToDelete));
 
-				const txid = await getCurrentTxid(tx);
-				return { txid };
-			});
-
-			const data = { deleted: taskIdsToDelete, txid: result.txid };
+			const data = { deleted: taskIdsToDelete };
 			return {
 				structuredContent: data,
 				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
