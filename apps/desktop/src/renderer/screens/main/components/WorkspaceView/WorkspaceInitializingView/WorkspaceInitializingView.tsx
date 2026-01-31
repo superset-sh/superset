@@ -30,7 +30,6 @@ interface WorkspaceInitializingViewProps {
 	isInterrupted?: boolean;
 }
 
-// Steps to display in the progress view (skip pending and ready)
 const DISPLAY_STEPS: WorkspaceInitStep[] = INIT_STEP_ORDER.filter(
 	(step) => step !== "pending" && step !== "ready",
 );
@@ -84,8 +83,6 @@ export function WorkspaceInitializingView({
 
 	const currentStep = progress?.step ?? "pending";
 
-	// Interrupted state (app restart during init - no in-memory progress)
-	// Only show after delay to avoid flash during normal creation
 	if (isInterrupted && !progress && showInterruptedUI) {
 		return (
 			<>
@@ -176,7 +173,6 @@ export function WorkspaceInitializingView({
 		);
 	}
 
-	// Failed state
 	if (hasFailed) {
 		return (
 			<>
@@ -269,7 +265,6 @@ export function WorkspaceInitializingView({
 		);
 	}
 
-	// Initializing state
 	return (
 		<div className="flex flex-col items-center justify-center h-full w-full px-8">
 			<div className="flex flex-col items-center max-w-sm text-center space-y-6">

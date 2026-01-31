@@ -193,7 +193,6 @@ export async function initializeWorkspaceWorktree({
 			reason: string,
 			checkOriginRefs: boolean,
 		): Promise<LocalStartPointResult> => {
-			// Try origin tracking ref first (only if remote exists)
 			if (checkOriginRefs) {
 				const originRef = `origin/${effectiveBaseBranch}`;
 				if (await refExistsLocally(mainRepoPath, originRef)) {
@@ -204,7 +203,6 @@ export async function initializeWorkspaceWorktree({
 				}
 			}
 
-			// Try local branch
 			if (await refExistsLocally(mainRepoPath, effectiveBaseBranch)) {
 				console.log(
 					`[workspace-init] ${reason}. Using local branch: ${effectiveBaseBranch}`,
@@ -212,7 +210,6 @@ export async function initializeWorkspaceWorktree({
 				return { ref: effectiveBaseBranch };
 			}
 
-			// Only try fallback branches if the base branch was auto-derived
 			if (baseBranchWasExplicit) {
 				console.log(
 					`[workspace-init] ${reason}. Base branch "${effectiveBaseBranch}" was explicitly set, not using fallback.`,
@@ -220,11 +217,9 @@ export async function initializeWorkspaceWorktree({
 				return null;
 			}
 
-			// Fallback: try common default branch names
 			const commonBranches = ["main", "master", "develop", "trunk"];
 			for (const branch of commonBranches) {
-				if (branch === effectiveBaseBranch) continue; // Already tried
-				// Only check origin refs if remote exists
+				if (branch === effectiveBaseBranch) continue;
 				if (checkOriginRefs) {
 					const fallbackOriginRef = `origin/${branch}`;
 					if (await refExistsLocally(mainRepoPath, fallbackOriginRef)) {
@@ -245,7 +240,6 @@ export async function initializeWorkspaceWorktree({
 			return null;
 		};
 
-		// Helper to update baseBranch when fallback is used
 		const applyFallbackBranch = (fallbackBranch: string) => {
 			console.log(
 				`[workspace-init] Updating baseBranch from "${effectiveBaseBranch}" to "${fallbackBranch}" for workspace ${workspaceId}`,
@@ -355,7 +349,6 @@ export async function initializeWorkspaceWorktree({
 			try {
 				await fetchDefaultBranch(mainRepoPath, effectiveBaseBranch);
 			} catch (fetchError) {
-				// Fetch failed - verify local tracking ref exists before proceeding
 				const originRef = `origin/${effectiveBaseBranch}`;
 				if (!(await refExistsLocally(mainRepoPath, originRef))) {
 					console.warn(

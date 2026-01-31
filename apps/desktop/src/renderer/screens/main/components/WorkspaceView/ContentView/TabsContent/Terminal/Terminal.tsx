@@ -15,11 +15,7 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import { useTerminalTheme } from "renderer/stores/theme";
 import { scheduleTerminalAttach } from "./attach-scheduler";
 import { sanitizeForTitle } from "./commandBuffer";
-import {
-	ConnectionErrorOverlay,
-	RestoredModeOverlay,
-	SessionKilledOverlay,
-} from "./components";
+import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "./config";
 import {
 	createTerminalInstance,
@@ -75,7 +71,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const terminalTheme = useTerminalTheme();
 	const restartTerminalRef = useRef<() => void>(() => {});
 
-	// Terminal connection state and mutations
 	const {
 		connectionError,
 		setConnectionError,
@@ -89,14 +84,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		},
 	} = useTerminalConnection({ workspaceId });
 
-	// Terminal CWD management
 	const { updateCwdFromData } = useTerminalCwd({
 		paneId,
 		initialCwd: paneInitialCwd,
 		workspaceCwd,
 	});
 
-	// Terminal modes tracking
 	const {
 		isAlternateScreenRef,
 		isBracketedPasteRef,
@@ -105,13 +98,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		resetModes,
 	} = useTerminalModes();
 
-	// File link click handler
 	const { handleFileLinkClick } = useFileLinkClick({
 		workspaceId,
 		workspaceCwd,
 	});
 
-	// Refs for stable identity
 	const initialThemeRef = useRef(terminalTheme);
 	const isFocused = focusedPaneId === paneId;
 	const isFocusedRef = useRef(isFocused);
@@ -130,8 +121,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const handleFileLinkClickRef = useRef(handleFileLinkClick);
 	handleFileLinkClickRef.current = handleFileLinkClick;
 
-	// Refs for stream event handlers (populated after useTerminalStream)
-	// These allow flushPendingEvents to call the handlers via refs
 	const handleTerminalExitRef = useRef<
 		(exitCode: number, xterm: XTerm) => void
 	>(() => {});
@@ -167,7 +156,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		useTerminalCallbacksStore.getState().unregisterScrollToBottomCallback,
 	);
 
-	// Terminal restore logic
 	const {
 		isStreamReadyRef,
 		didFirstRenderRef,
@@ -191,7 +179,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			setConnectionError(reason || "Connection to terminal daemon lost"),
 	});
 
-	// Cold restore handling
 	const {
 		isRestoredMode,
 		setIsRestoredMode,
@@ -219,13 +206,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		resetModes,
 	});
 
-	// Avoid effect re-runs: track overlay states via refs for input gating
 	const isRestoredModeRef = useRef(isRestoredMode);
 	isRestoredModeRef.current = isRestoredMode;
 	const connectionErrorRef = useRef(connectionError);
 	connectionErrorRef.current = connectionError;
 
-	// Stream handling
 	const { handleTerminalExit, handleStreamError, handleStreamData } =
 		useTerminalStream({
 			paneId,
@@ -240,17 +225,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			updateCwdFromData,
 		});
 
-	// Populate handler refs for flushPendingEvents to use
 	handleTerminalExitRef.current = handleTerminalExit;
 	handleStreamErrorRef.current = handleStreamError;
 
-	// Stream subscription
 	electronTrpc.terminal.stream.useSubscription(paneId, {
 		onData: handleStreamData,
 		enabled: true,
 	});
 
-	// Focus handler ref
 	const handleTerminalFocusRef = useRef(() => {});
 	handleTerminalFocusRef.current = () => {
 		if (pane?.tabId) {
@@ -299,7 +281,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			console.log(`[Terminal] Mount: ${paneId}`);
 		}
 
-		// Cancel pending detach from previous unmount
 		const pendingDetach = pendingDetaches.get(paneId);
 		if (pendingDetach) {
 			clearTimeout(pendingDetach);
@@ -346,7 +327,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			searchAddonRef.current = searchAddon;
 		});
 
-		// Wait for first render before applying restoration
 		let renderDisposable: IDisposable | null = null;
 		let firstRenderFallback: ReturnType<typeof setTimeout> | null = null;
 
@@ -489,8 +469,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 							const storedColdRestore = coldRestoreState.get(paneId);
 							if (storedColdRestore?.isRestored) {
-								setIsRestoredMode(true);
-								setRestoredCwd(storedColdRestore.cwd);
 								if (storedColdRestore.scrollback && xterm) {
 									xterm.write(
 										storedColdRestore.scrollback,
@@ -498,6 +476,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 									);
 								}
 								didFirstRenderRef.current = true;
+								handleStartShell(storedColdRestore.cwd);
 								return;
 							}
 
@@ -509,12 +488,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 									cwd: result.previousCwd || null,
 									scrollback,
 								});
-								setIsRestoredMode(true);
-								setRestoredCwd(result.previousCwd || null);
 								if (scrollback && xterm) {
 									xterm.write(scrollback, scheduleScrollToBottom);
 								}
 								didFirstRenderRef.current = true;
+								handleStartShell(result.previousCwd || null);
 								return;
 							}
 
@@ -710,9 +688,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			)}
 			{connectionError && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
-			)}
-			{isRestoredMode && (
-				<RestoredModeOverlay onStartShell={handleStartShell} />
 			)}
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
