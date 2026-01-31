@@ -59,11 +59,13 @@ interface UseCloudSessionReturn {
 	isConnected: boolean;
 	isConnecting: boolean;
 	isLoadingHistory: boolean;
+	isSpawning: boolean;
 	error: string | null;
 	sessionState: CloudSessionState | null;
 	events: CloudEvent[];
 	sendPrompt: (content: string) => void;
 	sendStop: () => void;
+	spawnSandbox: () => Promise<void>;
 	connect: () => void;
 	disconnect: () => void;
 }
@@ -76,6 +78,7 @@ export function useCloudSession({
 	const [isConnected, setIsConnected] = useState(false);
 	const [isConnecting, setIsConnecting] = useState(false);
 	const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+	const [isSpawning, setIsSpawning] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [sessionState, setSessionState] = useState<CloudSessionState | null>(
 		null,
@@ -88,6 +91,7 @@ export function useCloudSession({
 	const reconnectAttempts = useRef(0);
 	const maxReconnectAttempts = 5;
 	const isCleaningUp = useRef(false);
+	const hasAttemptedSpawn = useRef(false);
 
 	// Store config in refs to avoid dependency changes
 	const configRef = useRef({ controlPlaneUrl, sessionId, authToken });
@@ -312,6 +316,61 @@ export function useCloudSession({
 		}
 	}, []);
 
+	const spawnSandbox = useCallback(async () => {
+		const { controlPlaneUrl, sessionId } = configRef.current;
+
+		if (isSpawning) {
+			return;
+		}
+
+		setIsSpawning(true);
+		try {
+			const response = await fetch(
+				`${controlPlaneUrl}/api/sessions/${sessionId}/spawn-sandbox`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				},
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				console.error("[cloud-session] Failed to spawn sandbox:", errorData);
+				setError("Failed to spawn sandbox");
+			} else {
+				console.log("[cloud-session] Sandbox spawn initiated");
+			}
+		} catch (e) {
+			console.error("[cloud-session] Error spawning sandbox:", e);
+			setError("Failed to spawn sandbox");
+		} finally {
+			setIsSpawning(false);
+		}
+	}, [isSpawning]);
+
+	// Auto-spawn sandbox when connected but sandbox is stopped
+	useEffect(() => {
+		if (
+			isConnected &&
+			sessionState?.sandboxStatus === "stopped" &&
+			!hasAttemptedSpawn.current &&
+			!isSpawning
+		) {
+			hasAttemptedSpawn.current = true;
+			console.log(
+				"[cloud-session] Sandbox is stopped, auto-spawning...",
+			);
+			spawnSandbox();
+		}
+	}, [isConnected, sessionState?.sandboxStatus, isSpawning, spawnSandbox]);
+
+	// Reset spawn attempt when session changes
+	useEffect(() => {
+		hasAttemptedSpawn.current = false;
+	}, [sessionId]);
+
 	// Auto-connect on mount, only re-run if controlPlaneUrl or sessionId change
 	useEffect(() => {
 		if (controlPlaneUrl && sessionId) {
@@ -329,11 +388,13 @@ export function useCloudSession({
 		isConnected,
 		isConnecting,
 		isLoadingHistory,
+		isSpawning,
 		error,
 		sessionState,
 		events,
 		sendPrompt,
 		sendStop,
+		spawnSandbox,
 		connect,
 		disconnect,
 	};

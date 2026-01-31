@@ -25,29 +25,57 @@ import {
 
 import { env } from "@/env";
 import { type CloudEvent, useCloudSession } from "../../hooks";
+import { ToolCallGroup } from "../ToolCallGroup";
 
 type GroupedEvent =
 	| { type: "assistant_message"; id: string; text: string }
 	| { type: "user_message"; id: string; content: string }
+	| {
+			type: "tool_call_group";
+			id: string;
+			events: CloudEvent[];
+			toolName: string;
+	  }
 	| { type: "other"; event: CloudEvent };
 
 function groupEvents(events: CloudEvent[]): GroupedEvent[] {
 	const result: GroupedEvent[] = [];
 	let currentTokenGroup: { id: string; tokens: string[] } | null = null;
+	let currentToolGroup: {
+		id: string;
+		events: CloudEvent[];
+		toolName: string;
+	} | null = null;
+
+	const flushTokens = () => {
+		if (currentTokenGroup) {
+			result.push({
+				type: "assistant_message",
+				id: currentTokenGroup.id,
+				text: currentTokenGroup.tokens.join(""),
+			});
+			currentTokenGroup = null;
+		}
+	};
+
+	const flushTools = () => {
+		if (currentToolGroup) {
+			result.push({
+				type: "tool_call_group",
+				id: currentToolGroup.id,
+				events: currentToolGroup.events,
+				toolName: currentToolGroup.toolName,
+			});
+			currentToolGroup = null;
+		}
+	};
 
 	for (const event of events) {
 		if (event.type === "heartbeat") continue;
 
 		if (event.type === "user_message") {
-			// Flush any pending tokens before user message
-			if (currentTokenGroup) {
-				result.push({
-					type: "assistant_message",
-					id: currentTokenGroup.id,
-					text: currentTokenGroup.tokens.join(""),
-				});
-				currentTokenGroup = null;
-			}
+			flushTokens();
+			flushTools();
 			const data = event.data as { content?: string };
 			result.push({
 				type: "user_message",
@@ -55,6 +83,7 @@ function groupEvents(events: CloudEvent[]): GroupedEvent[] {
 				content: data.content || "",
 			});
 		} else if (event.type === "token") {
+			flushTools();
 			const data = event.data as { token?: string };
 			if (data.token) {
 				if (!currentTokenGroup) {
@@ -62,26 +91,30 @@ function groupEvents(events: CloudEvent[]): GroupedEvent[] {
 				}
 				currentTokenGroup.tokens.push(data.token);
 			}
-		} else {
-			if (currentTokenGroup) {
-				result.push({
-					type: "assistant_message",
-					id: currentTokenGroup.id,
-					text: currentTokenGroup.tokens.join(""),
-				});
-				currentTokenGroup = null;
+		} else if (event.type === "tool_call") {
+			flushTokens();
+			const data = event.data as { name?: string };
+			const toolName = data.name || "Unknown";
+
+			if (currentToolGroup && currentToolGroup.toolName === toolName) {
+				currentToolGroup.events.push(event);
+			} else {
+				flushTools();
+				currentToolGroup = {
+					id: event.id,
+					events: [event],
+					toolName,
+				};
 			}
+		} else {
+			flushTokens();
+			flushTools();
 			result.push({ type: "other", event });
 		}
 	}
 
-	if (currentTokenGroup) {
-		result.push({
-			type: "assistant_message",
-			id: currentTokenGroup.id,
-			text: currentTokenGroup.tokens.join(""),
-		});
-	}
+	flushTokens();
+	flushTools();
 
 	return result;
 }
@@ -165,6 +198,7 @@ export function CloudWorkspaceContent({
 		isConnected,
 		isConnecting,
 		isLoadingHistory,
+		isSpawning,
 		error,
 		sessionState,
 		events,
@@ -353,13 +387,19 @@ export function CloudWorkspaceContent({
 									: "Disconnected"}
 						</Badge>
 						<Badge variant="outline">{workspace.status}</Badge>
-						{workspace.sandboxStatus && (
+						{(sessionState?.sandboxStatus || workspace.sandboxStatus || isSpawning) && (
 							<Badge
 								variant={
-									workspace.sandboxStatus === "ready" ? "default" : "secondary"
+									(sessionState?.sandboxStatus || workspace.sandboxStatus) === "ready"
+										? "default"
+										: "secondary"
 								}
+								className="gap-1"
 							>
-								{workspace.sandboxStatus}
+								{isSpawning && <LuLoader className="size-3 animate-spin" />}
+								{isSpawning
+									? "Spawning..."
+									: sessionState?.sandboxStatus || workspace.sandboxStatus}
 							</Badge>
 						)}
 					</div>
@@ -380,11 +420,15 @@ export function CloudWorkspaceContent({
 									</CardHeader>
 									<CardContent>
 										<p className="text-sm text-muted-foreground">
-											{isConnected
-												? "Connected to cloud workspace. Send a prompt to start."
-												: isConnecting
-													? "Connecting to cloud workspace..."
-													: "Waiting for connection..."}
+											{isSpawning
+												? "Starting cloud sandbox..."
+												: isConnected
+													? sessionState?.sandboxStatus === "ready"
+														? "Connected to cloud workspace. Send a prompt to start."
+														: "Connected. Waiting for sandbox to be ready..."
+													: isConnecting
+														? "Connecting to cloud workspace..."
+														: "Waiting for connection..."}
 										</p>
 									</CardContent>
 								</Card>
@@ -407,19 +451,32 @@ export function CloudWorkspaceContent({
 								</div>
 							)}
 
-							{groupedEvents.map((grouped) => {
+							{groupedEvents.map((grouped, index) => {
 								if (grouped.type === "user_message") {
 									return (
-										<UserMessage key={grouped.id} content={grouped.content} />
+										<UserMessage key={`user-${index}-${grouped.id}`} content={grouped.content} />
 									);
 								}
 								if (grouped.type === "assistant_message") {
 									return (
-										<AssistantMessage key={grouped.id} text={grouped.text} />
+										<AssistantMessage key={`assistant-${index}-${grouped.id}`} text={grouped.text} />
+									);
+								}
+								if (grouped.type === "tool_call_group") {
+									return (
+										<div
+											key={`tools-${index}-${grouped.id}`}
+											className="rounded-lg border bg-card p-3 text-card-foreground"
+										>
+											<ToolCallGroup
+												events={grouped.events}
+												groupId={grouped.id}
+											/>
+										</div>
 									);
 								}
 								return (
-									<EventItem key={grouped.event.id} event={grouped.event} />
+									<EventItem key={`event-${index}-${grouped.event.id}`} event={grouped.event} />
 								);
 							})}
 						</div>
@@ -509,28 +566,6 @@ function EventItem({ event }: EventItemProps) {
 				);
 			}
 
-			case "tool_call": {
-				const data = event.data as {
-					name?: string;
-					input?: Record<string, unknown>;
-				};
-				return (
-					<div className="space-y-1">
-						<div className="flex items-center gap-2">
-							<Badge variant="outline" className="text-xs">
-								Tool Call
-							</Badge>
-							<span className="font-mono text-sm font-medium">{data.name}</span>
-						</div>
-						{data.input && (
-							<pre className="text-xs bg-muted p-2 rounded overflow-x-auto">
-								{JSON.stringify(data.input, null, 2)}
-							</pre>
-						)}
-					</div>
-				);
-			}
-
 			case "tool_result": {
 				const data = event.data as { result?: unknown; error?: string };
 				return (
@@ -595,6 +630,8 @@ function EventItem({ event }: EventItemProps) {
 			}
 
 			case "heartbeat":
+			case "tool_call":
+				// tool_call is handled by ToolCallGroup
 				return null;
 
 			default:
@@ -606,8 +643,8 @@ function EventItem({ event }: EventItemProps) {
 		}
 	};
 
-	// Don't render heartbeat events
-	if (event.type === "heartbeat") {
+	// Don't render heartbeat or tool_call events (tool_call handled separately)
+	if (event.type === "heartbeat" || event.type === "tool_call") {
 		return null;
 	}
 
