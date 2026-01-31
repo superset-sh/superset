@@ -27,7 +27,6 @@ import type {
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
 	TerminalResizeMutate,
-	TerminalStreamEvent,
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
@@ -43,14 +42,13 @@ export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabId: string;
 	workspaceId: string;
-	terminalRef: RefObject<HTMLDivElement>;
+	terminalRef: RefObject<HTMLDivElement | null>;
 	xtermRef: MutableRefObject<XTerm | null>;
 	fitAddonRef: MutableRefObject<FitAddon | null>;
 	searchAddonRef: MutableRefObject<SearchAddon | null>;
 	rendererRef: MutableRefObject<TerminalRendererRef | null>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
-	pendingEventsRef: MutableRefObject<TerminalStreamEvent[]>;
 	commandBufferRef: MutableRefObject<string>;
 	isFocusedRef: MutableRefObject<boolean>;
 	isRestoredModeRef: MutableRefObject<boolean>;
@@ -104,7 +102,6 @@ export function useTerminalLifecycle({
 	rendererRef,
 	isExitedRef,
 	wasKilledByUserRef,
-	pendingEventsRef,
 	commandBufferRef,
 	isFocusedRef,
 	isRestoredModeRef,
@@ -141,10 +138,7 @@ export function useTerminalLifecycle({
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
-	const restartTerminal = useCallback(
-		() => restartTerminalRef.current(),
-		[],
-	);
+	const restartTerminal = useCallback(() => restartTerminalRef.current(), []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
 	useEffect(() => {

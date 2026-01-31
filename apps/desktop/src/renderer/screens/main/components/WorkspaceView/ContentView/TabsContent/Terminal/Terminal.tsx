@@ -2,36 +2,32 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import debounce from "lodash/debounce";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
 import {
 	ConnectionErrorOverlay,
 	RestoredModeOverlay,
 	SessionKilledOverlay,
 } from "./components";
-import {
-	getDefaultTerminalBg,
-	type TerminalRendererRef,
-} from "./helpers";
+import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
 	useTerminalConnection,
 	useTerminalCwd,
+	useTerminalHotkeys,
 	useTerminalLifecycle,
 	useTerminalModes,
+	useTerminalRefs,
 	useTerminalRestore,
 	useTerminalStream,
 } from "./hooks";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
-import { scrollToBottom, shellEscapePaths } from "./utils";
+import { shellEscapePaths } from "./utils";
 
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
@@ -50,7 +46,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const wasKilledByUserRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
-	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
@@ -92,25 +87,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		workspaceCwd,
 	});
 
-	// Refs for stable identity
-	const initialThemeRef = useRef(terminalTheme);
-	const isFocused = focusedPaneId === paneId;
-	const isFocusedRef = useRef(isFocused);
-	isFocusedRef.current = isFocused;
-
-	const paneInitialCommandsRef = useRef(paneInitialCommands);
-	const paneInitialCwdRef = useRef(paneInitialCwd);
-	const clearPaneInitialDataRef = useRef(clearPaneInitialData);
-	paneInitialCommandsRef.current = paneInitialCommands;
-	paneInitialCwdRef.current = paneInitialCwd;
-	clearPaneInitialDataRef.current = clearPaneInitialData;
-
-	const workspaceCwdRef = useRef(workspaceCwd);
-	workspaceCwdRef.current = workspaceCwd;
-
-	const handleFileLinkClickRef = useRef(handleFileLinkClick);
-	handleFileLinkClickRef.current = handleFileLinkClick;
-
 	// Refs for stream event handlers (populated after useTerminalStream)
 	// These allow flushPendingEvents to call the handlers via refs
 	const handleTerminalExitRef = useRef<
@@ -123,27 +99,34 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		) => void
 	>(() => {});
 
-	const setTabAutoTitleRef = useRef(setTabAutoTitle);
-	setTabAutoTitleRef.current = setTabAutoTitle;
-
-	const debouncedSetTabAutoTitleRef = useRef(
-		debounce((tabId: string, title: string) => {
-			setTabAutoTitleRef.current(tabId, title);
-		}, 100),
-	);
-
-	const registerClearCallbackRef = useRef(
-		useTerminalCallbacksStore.getState().registerClearCallback,
-	);
-	const unregisterClearCallbackRef = useRef(
-		useTerminalCallbacksStore.getState().unregisterClearCallback,
-	);
-	const registerScrollToBottomCallbackRef = useRef(
-		useTerminalCallbacksStore.getState().registerScrollToBottomCallback,
-	);
-	const unregisterScrollToBottomCallbackRef = useRef(
-		useTerminalCallbacksStore.getState().unregisterScrollToBottomCallback,
-	);
+	const {
+		isFocused,
+		isFocusedRef,
+		initialThemeRef,
+		paneInitialCommandsRef,
+		paneInitialCwdRef,
+		clearPaneInitialDataRef,
+		workspaceCwdRef,
+		handleFileLinkClickRef,
+		debouncedSetTabAutoTitleRef,
+		handleTerminalFocusRef,
+		registerClearCallbackRef,
+		unregisterClearCallbackRef,
+		registerScrollToBottomCallbackRef,
+		unregisterScrollToBottomCallbackRef,
+	} = useTerminalRefs({
+		paneId,
+		tabId,
+		focusedPaneId,
+		terminalTheme,
+		paneInitialCommands,
+		paneInitialCwd,
+		clearPaneInitialData,
+		workspaceCwd,
+		handleFileLinkClick,
+		setTabAutoTitle,
+		setFocusedPane,
+	});
 
 	// Terminal restore logic
 	const {
@@ -228,43 +211,10 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		enabled: true,
 	});
 
-	// Focus handler ref
-	const handleTerminalFocusRef = useRef(() => {});
-	handleTerminalFocusRef.current = () => {
-		setFocusedPane(tabId, paneId);
-	};
-
-	useEffect(() => {
-		if (!isFocused) {
-			setIsSearchOpen(false);
-		}
-	}, [isFocused]);
-
-	useEffect(() => {
-		const xterm = xtermRef.current;
-		if (!xterm) return;
-		if (isFocused) {
-			xterm.focus();
-		}
-	}, [isFocused]);
-
-	useAppHotkey(
-		"FIND_IN_TERMINAL",
-		() => setIsSearchOpen((prev) => !prev),
-		{ enabled: isFocused, preventDefault: true },
-		[isFocused],
-	);
-
-	useAppHotkey(
-		"SCROLL_TO_BOTTOM",
-		() => {
-			if (xtermRef.current) {
-				scrollToBottom(xtermRef.current);
-			}
-		},
-		{ enabled: isFocused, preventDefault: true },
-		[isFocused],
-	);
+	const { isSearchOpen, setIsSearchOpen } = useTerminalHotkeys({
+		isFocused,
+		xtermRef,
+	});
 
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
 		paneId,
@@ -277,7 +227,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		rendererRef,
 		isExitedRef,
 		wasKilledByUserRef,
-		pendingEventsRef,
 		commandBufferRef,
 		isFocusedRef,
 		isRestoredModeRef,
