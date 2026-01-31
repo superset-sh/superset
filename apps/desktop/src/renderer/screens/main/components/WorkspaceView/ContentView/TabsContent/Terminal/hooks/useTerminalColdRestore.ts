@@ -72,10 +72,10 @@ export function useTerminalColdRestore({
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
-	const log = (...args: unknown[]) => {
+	const log = useCallback((...args: unknown[]) => {
 		if (!DEBUG_TERMINAL) return;
 		console.log("[terminal/cold-restore]", ...args);
-	};
+	}, []);
 
 	// Ref for restoredCwd to use in callbacks
 	const restoredCwdRef = useRef(restoredCwd);
@@ -191,6 +191,7 @@ export function useTerminalColdRestore({
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
+		log,
 	]);
 
 	const handleStartShell = useCallback(() => {
@@ -294,6 +295,7 @@ export function useTerminalColdRestore({
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
+		log,
 	]);
 
 	return {

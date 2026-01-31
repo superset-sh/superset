@@ -45,10 +45,10 @@ export function useTerminalStream({
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const firstStreamDataReceivedRef = useRef(false);
-	const log = (...args: unknown[]) => {
+	const log = useCallback((...args: unknown[]) => {
 		if (!DEBUG_TERMINAL) return;
 		console.log("[terminal/stream]", ...args);
-	};
+	}, []);
 
 	// Refs to use latest values in callbacks
 	const updateModesRef = useRef(updateModesFromData);
@@ -174,6 +174,7 @@ export function useTerminalStream({
 			handleTerminalExit,
 			handleStreamError,
 			setConnectionError,
+			log,
 		],
 	);
 

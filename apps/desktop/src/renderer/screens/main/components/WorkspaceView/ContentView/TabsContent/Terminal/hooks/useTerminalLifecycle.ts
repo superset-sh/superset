@@ -38,6 +38,46 @@ type DebouncedTitleSetter = ((tabId: string, title: string) => void) & {
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type UnregisterCallback = (paneId: string) => void;
 
+const attachInFlightByPane = new Map<string, true>();
+const attachWaitersByPane = new Map<string, Set<() => void>>();
+
+function markAttachInFlight(paneId: string): void {
+	attachInFlightByPane.set(paneId, true);
+}
+
+function clearAttachInFlight(paneId: string): void {
+	attachInFlightByPane.delete(paneId);
+	const waiters = attachWaitersByPane.get(paneId);
+	if (!waiters) return;
+	attachWaitersByPane.delete(paneId);
+	for (const waiter of waiters) {
+		waiter();
+	}
+}
+
+function waitForAttachClear(paneId: string, waiter: () => void): () => void {
+	if (!attachInFlightByPane.has(paneId)) {
+		waiter();
+		return () => {};
+	}
+
+	let waiters = attachWaitersByPane.get(paneId);
+	if (!waiters) {
+		waiters = new Set();
+		attachWaitersByPane.set(paneId, waiters);
+	}
+	waiters.add(waiter);
+
+	return () => {
+		const current = attachWaitersByPane.get(paneId);
+		if (!current) return;
+		current.delete(waiter);
+		if (current.size === 0) {
+			attachWaitersByPane.delete(paneId);
+		}
+	};
+}
+
 export interface UseTerminalLifecycleOptions {
 	paneId: string;
 	tabId: string;
@@ -162,6 +202,10 @@ export function useTerminalLifecycle({
 		}
 
 		let isUnmounted = false;
+		let attachCanceled = false;
+		let attachSequence = 0;
+		let activeAttachId = 0;
+		let cancelAttachWait: (() => void) | null = null;
 
 		const {
 			xterm,
@@ -264,7 +308,11 @@ export function useTerminalLifecycle({
 						console.error("[Terminal] Failed to restart:", error);
 						setConnectionError(error.message || "Failed to restart terminal");
 						isStreamReadyRef.current = true;
-						log("streamReady", { paneId, ready: true, reason: "restart-error" });
+						log("streamReady", {
+							paneId,
+							ready: true,
+							reason: "restart-error",
+						});
 						flushPendingEvents();
 					},
 				},
@@ -332,119 +380,148 @@ export function useTerminalLifecycle({
 			paneId,
 			priority: isFocusedRef.current ? 0 : 1,
 			run: (done) => {
-				if (isTerminalKilledByUser(paneId)) {
-					log("attach:blocked-killed", { paneId });
-					wasKilledByUserRef.current = true;
-					isExitedRef.current = true;
-					isStreamReadyRef.current = false;
-					log("streamReady", {
-						paneId,
-						ready: false,
-						reason: "killed-by-user",
-					});
-					setExitStatus("killed");
-					done();
-					return;
-				}
-				if (DEBUG_TERMINAL) {
-					console.log(`[Terminal] createOrAttach start: ${paneId}`);
-				}
-				log("attach:start", { paneId, tabId, workspaceId });
-				createOrAttachRef.current(
-					{
-						paneId,
-						tabId,
-						workspaceId,
-						cols: xterm.cols,
-						rows: xterm.rows,
-						initialCommands,
-						cwd: initialCwd,
-					},
-					{
-						onSuccess: (result) => {
-							log("attach:success", {
-								paneId,
-								isColdRestore: !!result.isColdRestore,
-								isNew: result.isNew,
-								scrollbackLength: result.scrollback?.length ?? 0,
-							});
-							setConnectionError(null);
-							if (initialCommands || initialCwd) {
-								clearPaneInitialDataRef.current(paneId);
-							}
+				const startAttach = () => {
+					if (attachCanceled) return;
+					if (attachInFlightByPane.has(paneId)) {
+						log("attach:defer-inflight", { paneId });
+						cancelAttachWait = waitForAttachClear(paneId, () => {
+							if (attachCanceled || isUnmounted) return;
+							startAttach();
+						});
+						return;
+					}
 
-							const storedColdRestore = coldRestoreState.get(paneId);
-							if (storedColdRestore?.isRestored) {
-								log("attach:storedColdRestore", {
-									paneId,
-									scrollbackLength: storedColdRestore.scrollback?.length ?? 0,
-								});
-								setIsRestoredMode(true);
-								setRestoredCwd(storedColdRestore.cwd);
-								if (storedColdRestore.scrollback && xterm) {
-									xterm.write(
-										storedColdRestore.scrollback,
-										scheduleScrollToBottom,
-									);
-								}
-								didFirstRenderRef.current = true;
-								return;
-							}
+					activeAttachId = ++attachSequence;
+					const attachId = activeAttachId;
+					const isAttachActive = () =>
+						!isUnmounted && !attachCanceled && attachId === activeAttachId;
 
-							if (result.isColdRestore) {
-								log("attach:coldRestore", { paneId });
-								const scrollback =
-									result.snapshot?.snapshotAnsi ?? result.scrollback;
-								coldRestoreState.set(paneId, {
-									isRestored: true,
-									cwd: result.previousCwd || null,
-									scrollback,
-								});
-								setIsRestoredMode(true);
-								setRestoredCwd(result.previousCwd || null);
-								if (scrollback && xterm) {
-									xterm.write(scrollback, scheduleScrollToBottom);
-								}
-								didFirstRenderRef.current = true;
-								return;
-							}
+					markAttachInFlight(paneId);
 
-							pendingInitialStateRef.current = result;
-							maybeApplyInitialState();
+					const finishAttach = () => {
+						clearAttachInFlight(paneId);
+						done();
+					};
+
+					if (isTerminalKilledByUser(paneId)) {
+						log("attach:blocked-killed", { paneId });
+						wasKilledByUserRef.current = true;
+						isExitedRef.current = true;
+						isStreamReadyRef.current = false;
+						log("streamReady", {
+							paneId,
+							ready: false,
+							reason: "killed-by-user",
+						});
+						setExitStatus("killed");
+						finishAttach();
+						return;
+					}
+					if (DEBUG_TERMINAL) {
+						console.log(`[Terminal] createOrAttach start: ${paneId}`);
+					}
+					log("attach:start", { paneId, tabId, workspaceId });
+					createOrAttachRef.current(
+						{
+							paneId,
+							tabId,
+							workspaceId,
+							cols: xterm.cols,
+							rows: xterm.rows,
+							initialCommands,
+							cwd: initialCwd,
 						},
-						onError: (error) => {
-							log("attach:error", {
-								paneId,
-								message: error.message || "Failed to connect to terminal",
-							});
-							if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
-								wasKilledByUserRef.current = true;
-								isExitedRef.current = true;
-								isStreamReadyRef.current = false;
+						{
+							onSuccess: (result) => {
+								if (!isAttachActive()) return;
+								log("attach:success", {
+									paneId,
+									isColdRestore: !!result.isColdRestore,
+									isNew: result.isNew,
+									scrollbackLength: result.scrollback?.length ?? 0,
+								});
+								setConnectionError(null);
+								if (initialCommands || initialCwd) {
+									clearPaneInitialDataRef.current(paneId);
+								}
+
+								const storedColdRestore = coldRestoreState.get(paneId);
+								if (storedColdRestore?.isRestored) {
+									log("attach:storedColdRestore", {
+										paneId,
+										scrollbackLength: storedColdRestore.scrollback?.length ?? 0,
+									});
+									setIsRestoredMode(true);
+									setRestoredCwd(storedColdRestore.cwd);
+									if (storedColdRestore.scrollback && xterm) {
+										xterm.write(
+											storedColdRestore.scrollback,
+											scheduleScrollToBottom,
+										);
+									}
+									didFirstRenderRef.current = true;
+									return;
+								}
+
+								if (result.isColdRestore) {
+									log("attach:coldRestore", { paneId });
+									const scrollback =
+										result.snapshot?.snapshotAnsi ?? result.scrollback;
+									coldRestoreState.set(paneId, {
+										isRestored: true,
+										cwd: result.previousCwd || null,
+										scrollback,
+									});
+									setIsRestoredMode(true);
+									setRestoredCwd(result.previousCwd || null);
+									if (scrollback && xterm) {
+										xterm.write(scrollback, scheduleScrollToBottom);
+									}
+									didFirstRenderRef.current = true;
+									return;
+								}
+
+								pendingInitialStateRef.current = result;
+								maybeApplyInitialState();
+							},
+							onError: (error) => {
+								if (!isAttachActive()) return;
+								log("attach:error", {
+									paneId,
+									message: error.message || "Failed to connect to terminal",
+								});
+								if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
+									wasKilledByUserRef.current = true;
+									isExitedRef.current = true;
+									isStreamReadyRef.current = false;
+									log("streamReady", {
+										paneId,
+										ready: false,
+										reason: "session-killed",
+									});
+									setExitStatus("killed");
+									setConnectionError(null);
+									return;
+								}
+								console.error("[Terminal] Failed to create/attach:", error);
+								setConnectionError(
+									error.message || "Failed to connect to terminal",
+								);
+								isStreamReadyRef.current = true;
 								log("streamReady", {
 									paneId,
-									ready: false,
-									reason: "session-killed",
+									ready: true,
+									reason: "attach-error",
 								});
-								setExitStatus("killed");
-								setConnectionError(null);
-								return;
-							}
-							console.error("[Terminal] Failed to create/attach:", error);
-							setConnectionError(
-								error.message || "Failed to connect to terminal",
-							);
-							isStreamReadyRef.current = true;
-							log("streamReady", {
-								paneId,
-								ready: true,
-								reason: "attach-error",
-							});
-							flushPendingEvents();
+								flushPendingEvents();
+							},
+							onSettled: () => finishAttach(),
 						},
-						onSettled: () => done(),
-					},
-				);
+					);
+				};
+
+				startAttach();
+				return;
 			},
 		});
 
@@ -524,6 +601,12 @@ export function useTerminalLifecycle({
 			cancelInitialAttach();
 			log("unmount", { paneId });
 			isUnmounted = true;
+			attachCanceled = true;
+			activeAttachId = 0;
+			if (cancelAttachWait) {
+				cancelAttachWait();
+				cancelAttachWait = null;
+			}
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			inputDisposable.dispose();

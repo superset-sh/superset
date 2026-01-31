@@ -73,10 +73,10 @@ export function useTerminalRestore({
 	onErrorEventRef.current = onErrorEvent;
 	const onDisconnectEventRef = useRef(onDisconnectEvent);
 	onDisconnectEventRef.current = onDisconnectEvent;
-	const log = (...args: unknown[]) => {
+	const log = useCallback((...args: unknown[]) => {
 		if (!DEBUG_TERMINAL) return;
 		console.log("[terminal/restore]", ...args);
-	};
+	}, []);
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -111,7 +111,7 @@ export function useTerminalRestore({
 				onDisconnectEventRef.current(event.reason);
 			}
 		}
-	}, [xtermRef, pendingEventsRef]);
+	}, [xtermRef, pendingEventsRef, log, paneId]);
 
 	const maybeApplyInitialState = useCallback(() => {
 		if (!didFirstRenderRef.current) return;
@@ -269,6 +269,7 @@ export function useTerminalRestore({
 		isBracketedPasteRef,
 		modeScanBufferRef,
 		flushPendingEvents,
+		log,
 	]);
 
 	return {

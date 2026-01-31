@@ -237,7 +237,10 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	useEffect(() => {
 		if (!DEBUG_TERMINAL) return;
-		console.log("[terminal/state]", "exitStatus", { paneId, status: exitStatus });
+		console.log("[terminal/state]", "exitStatus", {
+			paneId,
+			status: exitStatus,
+		});
 	}, [exitStatus, paneId]);
 
 	useEffect(() => {
