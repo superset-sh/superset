@@ -24,13 +24,14 @@ import {
 	organization,
 } from "better-auth/plugins";
 import { and, count, eq } from "drizzle-orm";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { oauthOrgScopeEndpoint } from "./lib/oauth-org-scope-endpoint";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
+import { stripeClient } from "./stripe";
 import {
 	formatPaymentFailed,
 	formatPaymentSucceeded,
@@ -41,7 +42,6 @@ import {
 	getOrganizationOwners,
 } from "./utils";
 
-const stripeClient = new Stripe(env.STRIPE_SECRET_KEY);
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`;
