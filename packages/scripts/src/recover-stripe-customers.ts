@@ -13,7 +13,7 @@ import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 
 // Load environment variables from root .env
-config({ path: path.resolve(process.cwd(), "../../.env") });
+config({ path: path.resolve(process.cwd(), "../../.env"), quiet: true });
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 

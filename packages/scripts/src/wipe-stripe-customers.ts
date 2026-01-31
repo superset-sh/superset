@@ -12,7 +12,7 @@ import { config } from "dotenv";
 import { isNotNull } from "drizzle-orm";
 
 // Load environment variables from root .env
-config({ path: path.resolve(process.cwd(), "../../.env") });
+config({ path: path.resolve(process.cwd(), "../../.env"), quiet: true });
 
 async function wipeStripeCustomers() {
 	console.log("[wipe] Wiping stripeCustomerId from all organizations...");
