@@ -14,7 +14,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { FaDiscord, FaXTwitter } from "react-icons/fa6";
+import { FaDiscord, FaGithub, FaXTwitter } from "react-icons/fa6";
 import { FiUsers } from "react-icons/fi";
 import {
 	HiCheck,
@@ -170,6 +170,10 @@ export function OrganizationDropdown() {
 						Contact Us
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
+						<DropdownMenuItem onClick={() => openExternal(COMPANY.GITHUB_URL)}>
+							<FaGithub className="h-4 w-4" />
+							GitHub
+						</DropdownMenuItem>
 						<DropdownMenuItem onClick={() => openExternal(COMPANY.DISCORD_URL)}>
 							<FaDiscord className="h-4 w-4" />
 							Discord
