@@ -1,3 +1,4 @@
+import { Spinner } from "@superset/ui/spinner";
 import {
 	createFileRoute,
 	Navigate,
@@ -9,7 +10,7 @@ import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
-import { authClient } from "renderer/lib/auth-client";
+import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
@@ -25,15 +26,17 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-	const { data: session } = authClient.useSession();
+	const { data: session, isPending } = authClient.useSession();
+	const hasLocalToken = !!getAuthToken();
+	const navigate = useNavigate();
+	const utils = electronTrpc.useUtils();
+
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
-	const navigate = useNavigate();
-	const utils = electronTrpc.useUtils();
 
-	// Global hooks and subscriptions (these don't need CollectionsProvider)
+	// All hooks must be called before any conditional returns (Rules of Hooks)
 	useAgentHookListener();
 	useUpdateListener();
 	useHotkeysSync();
@@ -65,6 +68,21 @@ function AuthenticatedLayout() {
 			}
 		},
 	});
+
+	// If session is loading and we have a local token, show loading spinner
+	// This prevents the flash of sign-in page while session validates
+	if (isPending && hasLocalToken) {
+		return (
+			<div className="flex h-screen w-screen items-center justify-center bg-background">
+				<Spinner className="size-8" />
+			</div>
+		);
+	}
+
+	// If session is loading but no local token, redirect to sign-in
+	if (isPending && !hasLocalToken) {
+		return <Navigate to="/sign-in" replace />;
+	}
 
 	if (!isSignedIn) {
 		return <Navigate to="/sign-in" replace />;
