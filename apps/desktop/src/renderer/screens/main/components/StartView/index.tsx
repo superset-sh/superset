@@ -198,7 +198,7 @@ export function StartView() {
 									"focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 									"disabled:opacity-50 disabled:pointer-events-none",
 									isDragOver
-										? "border-foreground/40 bg-accent/50 py-30"
+										? "border-foreground/40 bg-accent/50 py-16"
 										: "border-border bg-card px-4 py-7 hover:bg-accent",
 								)}
 							>
