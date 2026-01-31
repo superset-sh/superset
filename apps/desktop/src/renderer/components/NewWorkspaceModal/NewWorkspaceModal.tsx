@@ -130,12 +130,10 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	// Branch slug without prefix - sent to backend which applies prefix
 	const branchSlug = branchNameEdited
 		? sanitizeBranchName(branchName)
 		: generateSlugFromTitle(title);
 
-	// Only apply prefix for auto-generated names, not custom
 	const applyPrefix = !branchNameEdited;
 
 	const branchPreview =
