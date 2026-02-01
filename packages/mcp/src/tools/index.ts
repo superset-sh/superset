@@ -8,6 +8,7 @@ import { register as listWorkspaces } from "./devices/list-workspaces";
 import { register as navigateToWorkspace } from "./devices/navigate-to-workspace";
 import { register as startClaudeSession } from "./devices/start-claude-session";
 import { register as switchWorkspace } from "./devices/switch-workspace";
+import { register as updateWorkspace } from "./devices/update-workspace";
 import { register as listMembers } from "./organizations/list-members";
 import { register as createTask } from "./tasks/create-task";
 import { register as deleteTask } from "./tasks/delete-task";
@@ -32,6 +33,7 @@ const allTools = [
 	createWorkspace,
 	switchWorkspace,
 	deleteWorkspace,
+	updateWorkspace,
 	startClaudeSession,
 ];
 

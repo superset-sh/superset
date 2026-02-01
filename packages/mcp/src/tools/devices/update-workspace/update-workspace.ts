@@ -2,24 +2,30 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { executeOnDevice, getMcpContext } from "../../utils";
 
+const workspaceUpdateSchema = z.object({
+	workspaceId: z.string().uuid().describe("Workspace ID to update"),
+	name: z.string().min(1).describe("New workspace name"),
+});
+
 export function register(server: McpServer) {
 	server.registerTool(
-		"delete_workspace",
+		"update_workspace",
 		{
-			description: "Delete one or more workspaces on a device",
+			description:
+				"Update one or more workspaces on a device. Currently supports renaming.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
-				workspaceIds: z
-					.array(z.string().uuid())
+				updates: z
+					.array(workspaceUpdateSchema)
 					.min(1)
 					.max(5)
-					.describe("Array of workspace IDs to delete (1-5)"),
+					.describe("Array of workspace updates (1-5)"),
 			},
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const deviceId = args.deviceId as string;
-			const workspaceIds = args.workspaceIds as string[];
+			const updates = args.updates as z.infer<typeof workspaceUpdateSchema>[];
 
 			if (!deviceId) {
 				return {
@@ -31,8 +37,8 @@ export function register(server: McpServer) {
 			return executeOnDevice({
 				ctx,
 				deviceId,
-				tool: "delete_workspace",
-				params: { workspaceIds },
+				tool: "update_workspace",
+				params: { updates },
 			});
 		},
 	);

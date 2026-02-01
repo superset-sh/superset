@@ -6,6 +6,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces/useDeleteWorkspace";
+import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider";
 import { executeTool, type ToolContext } from "./tools";
@@ -24,6 +25,7 @@ export function useCommandWatcher() {
 	const createWorktree = useCreateWorkspace({ skipNavigation: true });
 	const setActive = electronTrpc.workspaces.setActive.useMutation();
 	const deleteWorkspace = useDeleteWorkspace();
+	const updateWorkspace = useUpdateWorkspace();
 
 	const { data: workspaces, refetch: refetchWorkspaces } =
 		electronTrpc.workspaces.getAll.useQuery();
@@ -41,6 +43,7 @@ export function useCommandWatcher() {
 			createWorktree,
 			setActive,
 			deleteWorkspace,
+			updateWorkspace,
 			refetchWorkspaces: async () => refetchWorkspaces(),
 			getWorkspaces: () => workspaces,
 			getProjects: () => projects,
@@ -52,6 +55,7 @@ export function useCommandWatcher() {
 			createWorktree,
 			setActive,
 			deleteWorkspace,
+			updateWorkspace,
 			refetchWorkspaces,
 			workspaces,
 			projects,
