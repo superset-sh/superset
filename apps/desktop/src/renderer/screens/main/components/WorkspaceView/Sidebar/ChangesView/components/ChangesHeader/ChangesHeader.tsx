@@ -251,10 +251,7 @@ export function ChangesHeader({
 				onStashPop={onStashPop}
 				isPending={isStashPending}
 			/>
-			<ViewModeToggle
-				viewMode={viewMode}
-				onViewModeChange={onViewModeChange}
-			/>
+			<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
 			<RefreshButton onRefresh={onRefresh} />
 			<PRStatusLink workspaceId={workspaceId} />
 			<div className="flex-1" />
