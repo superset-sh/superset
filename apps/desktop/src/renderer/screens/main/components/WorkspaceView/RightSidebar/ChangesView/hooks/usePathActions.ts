@@ -39,24 +39,11 @@ export function usePathActions({
 	}, [absolutePath, openInFinderMutation]);
 
 	const openInEditor = useCallback(() => {
-		console.log("[usePathActions] openInEditor called", {
-			absolutePath,
-			cwd,
-			lastUsedApp,
-		});
 		if (!absolutePath) return;
 
 		if (cwd) {
-			console.log("[usePathActions] Calling openFileInEditorMutation", {
-				path: absolutePath,
-				cwd,
-			});
 			openFileInEditorMutation.mutate({ path: absolutePath, cwd });
 		} else {
-			console.log("[usePathActions] Calling openInAppMutation", {
-				path: absolutePath,
-				app: lastUsedApp,
-			});
 			openInAppMutation.mutate({ path: absolutePath, app: lastUsedApp });
 		}
 	}, [

@@ -30,38 +30,35 @@ export function FileTreeNode({
 		cwd: worktreePath,
 	});
 
+	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 	const handleClick = (e: React.MouseEvent) => {
-		console.log("[FileTreeNode] handleClick", {
-			name: data.name,
-			detail: e.detail,
-			isDirectory: data.isDirectory,
-		});
-		// Ignore second click of double-click sequence
-		if (e.detail > 1) return;
-
 		if (data.isDirectory) {
-			node.toggle();
-		} else {
-			node.activate();
-		}
-	};
-
-	const handleDoubleClick = (e: React.MouseEvent) => {
-		console.log("[FileTreeNode] handleDoubleClick", {
-			name: data.name,
-			isDirectory: data.isDirectory,
-			absolutePath: data.path,
-		});
-		if (data.isDirectory) {
+			if (e.detail === 1) {
+				node.toggle();
+			}
 			return;
 		}
 
-		e.stopPropagation();
-		e.preventDefault();
+		// Double-click: open in external editor
+		if (e.detail === 2) {
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+				clickTimeoutRef.current = null;
+			}
+			onCancelOpen();
+			openInEditor();
+			return;
+		}
 
-		console.log("[FileTreeNode] Calling onCancelOpen and openInEditor");
-		onCancelOpen();
-		openInEditor();
+		// Single-click: delay activate to allow double-click detection
+		if (clickTimeoutRef.current) {
+			clearTimeout(clickTimeoutRef.current);
+		}
+		clickTimeoutRef.current = setTimeout(() => {
+			clickTimeoutRef.current = null;
+			node.activate();
+		}, 250);
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -90,10 +87,6 @@ export function FileTreeNode({
 				node.isFocused && !node.isSelected && "ring-1 ring-ring ring-inset",
 			)}
 			onClick={handleClick}
-			onDoubleClickCapture={(e) => {
-				console.log("[FileTreeNode] onDoubleClickCapture fired", data.name);
-			}}
-			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
 		>
 			<span className="flex items-center justify-center w-4 h-4 shrink-0">
