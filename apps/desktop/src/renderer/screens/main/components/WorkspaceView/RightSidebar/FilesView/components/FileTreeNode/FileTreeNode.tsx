@@ -24,7 +24,6 @@ export function FileTreeNode({ node, style, dragHandle }: FileTreeNodeProps) {
 
 	const handleDoubleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		// Double-click activates (opens file in editor)
 		node.activate();
 	};
 
@@ -57,7 +56,6 @@ export function FileTreeNode({ node, style, dragHandle }: FileTreeNodeProps) {
 			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
 		>
-			{/* Expand/collapse indicator for directories */}
 			<span className="flex items-center justify-center w-4 h-4 shrink-0">
 				{data.isDirectory ? (
 					node.isOpen ? (
@@ -68,16 +66,13 @@ export function FileTreeNode({ node, style, dragHandle }: FileTreeNodeProps) {
 				) : null}
 			</span>
 
-			{/* File/folder icon */}
 			<Icon className={cn("size-4 shrink-0", color)} />
 
-			{/* File/folder name */}
 			{node.isEditing ? (
 				<input
 					type="text"
 					defaultValue={data.name}
 					onFocus={(e) => {
-						// Select filename without extension for files
 						if (!data.isDirectory) {
 							const dotIndex = data.name.lastIndexOf(".");
 							if (dotIndex > 0) {

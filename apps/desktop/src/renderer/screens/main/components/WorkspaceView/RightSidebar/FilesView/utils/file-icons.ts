@@ -37,9 +37,6 @@ interface FileIconConfig {
 	color: string;
 }
 
-/**
- * Extension to icon/color mapping
- */
 const EXTENSION_ICONS: Record<string, FileIconConfig> = {
 	// TypeScript
 	ts: { icon: SiTypescript, color: "text-blue-500" },
@@ -142,9 +139,6 @@ const EXTENSION_ICONS: Record<string, FileIconConfig> = {
 	eslintrc: { icon: LuSettings, color: "text-purple-400" },
 };
 
-/**
- * Special file names to icon mapping
- */
 const FILENAME_ICONS: Record<string, FileIconConfig> = {
 	"package.json": { icon: LuPackage, color: "text-green-500" },
 	"package-lock.json": { icon: LuPackage, color: "text-green-500" },
@@ -168,9 +162,6 @@ const FILENAME_ICONS: Record<string, FileIconConfig> = {
 	"LICENSE.md": { icon: LuFileText, color: "text-yellow-500" },
 };
 
-/**
- * Special folder names to icon mapping
- */
 const FOLDER_ICONS: Record<string, FileIconConfig> = {
 	node_modules: { icon: LuPackage, color: "text-green-500" },
 	".git": { icon: LuGitBranch, color: "text-orange-400" },
@@ -189,15 +180,11 @@ const FOLDER_ICONS: Record<string, FileIconConfig> = {
 	docs: { icon: LuFolder, color: "text-blue-400" },
 };
 
-/**
- * Get the icon component and color for a file
- */
 export function getFileIcon(
 	fileName: string,
 	isDirectory: boolean,
 	isOpen = false,
 ): FileIconConfig {
-	// Check folder icons
 	if (isDirectory) {
 		const folderIcon = FOLDER_ICONS[fileName];
 		if (folderIcon) {
@@ -212,13 +199,11 @@ export function getFileIcon(
 		};
 	}
 
-	// Check exact filename match
 	const filenameIcon = FILENAME_ICONS[fileName];
 	if (filenameIcon) {
 		return filenameIcon;
 	}
 
-	// Check by extension
 	const extension = getExtension(fileName);
 	if (extension) {
 		const extIcon = EXTENSION_ICONS[extension];
@@ -227,18 +212,13 @@ export function getFileIcon(
 		}
 	}
 
-	// Default file icon
 	return {
 		icon: LuFile,
 		color: "text-muted-foreground",
 	};
 }
 
-/**
- * Get the extension from a filename, handling special cases
- */
 function getExtension(fileName: string): string | null {
-	// Handle special compound extensions
 	if (fileName.endsWith(".d.ts")) {
 		return "d.ts";
 	}
@@ -252,7 +232,6 @@ function getExtension(fileName: string): string | null {
 		return "env.production";
 	}
 
-	// Get the last extension
 	const parts = fileName.split(".");
 	if (parts.length > 1) {
 		return parts[parts.length - 1].toLowerCase();

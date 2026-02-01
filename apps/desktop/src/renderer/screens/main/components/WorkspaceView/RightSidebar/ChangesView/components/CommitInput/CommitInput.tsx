@@ -33,8 +33,6 @@ interface CommitInputProps {
 	onRefresh: () => void;
 }
 
-type GitAction = "commit" | "push" | "pull" | "sync";
-
 export function CommitInput({
 	worktreePath,
 	hasStagedChanges,
@@ -161,14 +159,7 @@ export function CommitInput({
 	};
 
 	// Determine primary action based on state
-	const getPrimaryAction = (): {
-		action: GitAction;
-		label: string;
-		icon: React.ReactNode;
-		handler: () => void;
-		disabled: boolean;
-		tooltip: string;
-	} => {
+	const getPrimaryAction = () => {
 		if (canCommit) {
 			return {
 				action: "commit",
@@ -209,7 +200,6 @@ export function CommitInput({
 				tooltip: `Pull ${pullCount} commit${pullCount !== 1 ? "s" : ""}`,
 			};
 		}
-		// No upstream - show Publish Branch option
 		if (!hasUpstream) {
 			return {
 				action: "push",
@@ -232,7 +222,6 @@ export function CommitInput({
 
 	const primary = getPrimaryAction();
 
-	// Format count badge
 	const countBadge =
 		pushCount > 0 || pullCount > 0
 			? `${pullCount > 0 ? pullCount : ""}${pullCount > 0 && pushCount > 0 ? "/" : ""}${pushCount > 0 ? pushCount : ""}`
@@ -283,7 +272,6 @@ export function CommitInput({
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-48 text-xs">
-						{/* Commit actions */}
 						<DropdownMenuItem
 							onClick={handleCommit}
 							disabled={!canCommit}

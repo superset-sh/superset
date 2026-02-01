@@ -5,17 +5,12 @@ export type SortBy = "name" | "type" | "modified";
 export type SortDirection = "asc" | "desc";
 
 interface FileExplorerState {
-	// Per-worktree state (keyed by worktreePath)
 	expandedFolders: Record<string, string[]>;
 	selectedItems: Record<string, string[]>;
 	searchTerm: Record<string, string>;
-
-	// Global persisted options
 	showHiddenFiles: boolean;
 	sortBy: SortBy;
 	sortDirection: SortDirection;
-
-	// Actions
 	toggleFolder: (worktreePath: string, folderId: string) => void;
 	setExpandedFolders: (worktreePath: string, folderIds: string[]) => void;
 	expandFolder: (worktreePath: string, folderId: string) => void;
@@ -35,7 +30,6 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 	devtools(
 		persist(
 			(set, get) => ({
-				// Initial state
 				expandedFolders: {},
 				selectedItems: {},
 				searchTerm: {},
@@ -43,7 +37,6 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 				sortBy: "name",
 				sortDirection: "asc",
 
-				// Actions
 				toggleFolder: (worktreePath, folderId) => {
 					const current = get().expandedFolders[worktreePath] || [];
 					const isExpanded = current.includes(folderId);
@@ -161,7 +154,6 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 			{
 				name: "file-explorer-store",
 				partialize: (state) => ({
-					// Only persist these fields
 					showHiddenFiles: state.showHiddenFiles,
 					sortBy: state.sortBy,
 					sortDirection: state.sortDirection,

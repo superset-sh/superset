@@ -2,7 +2,6 @@ import { useParams } from "@tanstack/react-router";
 import {
 	useCallback,
 	useEffect,
-	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -37,20 +36,26 @@ export function FilesView() {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [treeHeight, setTreeHeight] = useState(400);
 
-	useLayoutEffect(() => {
+	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
 
 		const updateHeight = () => {
-			setTreeHeight(container.clientHeight);
+			if (container.clientHeight > 0) {
+				setTreeHeight(container.clientHeight);
+			}
 		};
 
-		updateHeight();
+		// Defer initial measurement to next frame to ensure layout is complete
+		const rafId = requestAnimationFrame(updateHeight);
 
 		const resizeObserver = new ResizeObserver(updateHeight);
 		resizeObserver.observe(container);
 
-		return () => resizeObserver.disconnect();
+		return () => {
+			cancelAnimationFrame(rafId);
+			resizeObserver.disconnect();
+		};
 	}, []);
 
 	const {
@@ -321,7 +326,7 @@ export function FilesView() {
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: context menu handler for tree container */}
 				<div
 					ref={containerRef}
-					className="flex-1 overflow-hidden"
+					className="flex-1 min-h-0 overflow-hidden"
 					onContextMenu={(e) => {
 						const nodeEl = (e.target as HTMLElement).closest("[data-node-id]");
 						if (nodeEl) {

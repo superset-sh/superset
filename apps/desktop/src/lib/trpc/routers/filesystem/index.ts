@@ -5,17 +5,8 @@ import type { DirectoryEntry } from "shared/file-tree-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-/**
- * Filesystem router for file tree operations
- *
- * Provides CRUD operations for files and directories,
- * used by the FilesView component in the right sidebar.
- */
 export const createFilesystemRouter = () => {
 	return router({
-		/**
-		 * List directory contents (for lazy loading tree expansion)
-		 */
 		readDirectory: publicProcedure
 			.input(
 				z.object({
@@ -44,7 +35,6 @@ export const createFilesystemRouter = () => {
 							};
 						})
 						.sort((a, b) => {
-							// Directories first, then alphabetical
 							if (a.isDirectory !== b.isDirectory) {
 								return a.isDirectory ? -1 : 1;
 							}
@@ -59,9 +49,6 @@ export const createFilesystemRouter = () => {
 				}
 			}),
 
-		/**
-		 * Create a new file
-		 */
 		createFile: publicProcedure
 			.input(
 				z.object({
@@ -73,12 +60,10 @@ export const createFilesystemRouter = () => {
 			.mutation(async ({ input }) => {
 				const filePath = path.join(input.dirPath, input.fileName);
 
-				// Check if file already exists
 				try {
 					await fs.access(filePath);
 					throw new Error(`File already exists: ${input.fileName}`);
 				} catch (error) {
-					// File doesn't exist, which is what we want
 					if (
 						error instanceof Error &&
 						error.message.includes("already exists")
@@ -91,9 +76,6 @@ export const createFilesystemRouter = () => {
 				return { path: filePath };
 			}),
 
-		/**
-		 * Create a new folder
-		 */
 		createDirectory: publicProcedure
 			.input(
 				z.object({
@@ -104,7 +86,6 @@ export const createFilesystemRouter = () => {
 			.mutation(async ({ input }) => {
 				const dirPath = path.join(input.parentPath, input.dirName);
 
-				// Check if directory already exists
 				try {
 					await fs.access(dirPath);
 					throw new Error(`Directory already exists: ${input.dirName}`);
@@ -121,9 +102,6 @@ export const createFilesystemRouter = () => {
 				return { path: dirPath };
 			}),
 
-		/**
-		 * Rename a file or folder
-		 */
 		rename: publicProcedure
 			.input(
 				z.object({
@@ -134,7 +112,6 @@ export const createFilesystemRouter = () => {
 			.mutation(async ({ input }) => {
 				const newPath = path.join(path.dirname(input.oldPath), input.newName);
 
-				// Check if target already exists
 				try {
 					await fs.access(newPath);
 					throw new Error(`Target already exists: ${input.newName}`);
@@ -151,9 +128,6 @@ export const createFilesystemRouter = () => {
 				return { oldPath: input.oldPath, newPath };
 			}),
 
-		/**
-		 * Delete files/folders (moves to system trash by default)
-		 */
 		delete: publicProcedure
 			.input(
 				z.object({
@@ -170,7 +144,6 @@ export const createFilesystemRouter = () => {
 						if (input.permanent) {
 							await fs.rm(filePath, { recursive: true, force: true });
 						} else {
-							// Move to system trash (Electron API)
 							await shell.trashItem(filePath);
 						}
 						deleted.push(filePath);
@@ -185,9 +158,6 @@ export const createFilesystemRouter = () => {
 				return { deleted, errors };
 			}),
 
-		/**
-		 * Move files/folders to a new location
-		 */
 		move: publicProcedure
 			.input(
 				z.object({
@@ -204,7 +174,6 @@ export const createFilesystemRouter = () => {
 						const fileName = path.basename(sourcePath);
 						const destPath = path.join(input.destinationDir, fileName);
 
-						// Check if destination already exists
 						try {
 							await fs.access(destPath);
 							throw new Error(`Target already exists: ${fileName}`);
@@ -230,9 +199,6 @@ export const createFilesystemRouter = () => {
 				return { moved, errors };
 			}),
 
-		/**
-		 * Copy files/folders to a new location
-		 */
 		copy: publicProcedure
 			.input(
 				z.object({
@@ -249,12 +215,10 @@ export const createFilesystemRouter = () => {
 						const fileName = path.basename(sourcePath);
 						let destPath = path.join(input.destinationDir, fileName);
 
-						// If destination exists, add a suffix
 						let counter = 1;
 						while (true) {
 							try {
 								await fs.access(destPath);
-								// File exists, try with suffix
 								const ext = path.extname(fileName);
 								const base = path.basename(fileName, ext);
 								destPath = path.join(
@@ -263,7 +227,6 @@ export const createFilesystemRouter = () => {
 								);
 								counter++;
 							} catch {
-								// File doesn't exist, we can use this path
 								break;
 							}
 						}
@@ -281,9 +244,6 @@ export const createFilesystemRouter = () => {
 				return { copied, errors };
 			}),
 
-		/**
-		 * Check if a path exists
-		 */
 		exists: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.query(async ({ input }) => {
@@ -300,9 +260,6 @@ export const createFilesystemRouter = () => {
 				}
 			}),
 
-		/**
-		 * Get file/folder stats
-		 */
 		stat: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.query(async ({ input }) => {

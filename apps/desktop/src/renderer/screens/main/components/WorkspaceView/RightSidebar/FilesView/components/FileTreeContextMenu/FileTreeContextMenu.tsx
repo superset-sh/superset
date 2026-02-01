@@ -49,9 +49,10 @@ export function FileTreeContextMenu({
 
 	return (
 		<ContextMenu>
-			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+			<ContextMenuTrigger asChild className="flex-1 min-h-0">
+				{children}
+			</ContextMenuTrigger>
 			<ContextMenuContent className="w-48">
-				{/* New items */}
 				<ContextMenuItem onClick={() => onNewFile(parentPath)}>
 					<LuFile className="mr-2 size-4" />
 					New File
@@ -65,7 +66,6 @@ export function FileTreeContextMenu({
 					<>
 						<ContextMenuSeparator />
 
-						{/* Path actions */}
 						<ContextMenuItem onClick={copyPath}>
 							<LuClipboard className="mr-2 size-4" />
 							Copy Path
@@ -77,7 +77,6 @@ export function FileTreeContextMenu({
 
 						<ContextMenuSeparator />
 
-						{/* Open actions */}
 						<ContextMenuItem onClick={revealInFinder}>
 							<LuFolderOpen className="mr-2 size-4" />
 							Reveal in Finder
@@ -91,7 +90,6 @@ export function FileTreeContextMenu({
 
 						<ContextMenuSeparator />
 
-						{/* Edit actions */}
 						<ContextMenuItem onClick={() => onRename(node)}>
 							<LuPencil className="mr-2 size-4" />
 							Rename

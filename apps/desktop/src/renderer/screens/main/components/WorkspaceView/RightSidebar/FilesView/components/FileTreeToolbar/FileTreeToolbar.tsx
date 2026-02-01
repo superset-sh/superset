@@ -37,13 +37,11 @@ export function FileTreeToolbar({
 }: FileTreeToolbarProps) {
 	const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
 
-	// Debounced search
 	const handleSearchChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const value = e.target.value;
 			setLocalSearchTerm(value);
 
-			// Debounce the actual search
 			const timeoutId = setTimeout(() => {
 				onSearchChange(value);
 			}, SEARCH_DEBOUNCE_MS);
@@ -55,7 +53,6 @@ export function FileTreeToolbar({
 
 	return (
 		<div className="flex flex-col gap-1 px-2 py-1.5 border-b border-border">
-			{/* Search input */}
 			<Input
 				type="text"
 				placeholder="Search files..."
@@ -64,7 +61,6 @@ export function FileTreeToolbar({
 				className="h-7 text-xs"
 			/>
 
-			{/* Action buttons */}
 			<div className="flex items-center gap-0.5">
 				<Tooltip>
 					<TooltipTrigger asChild>

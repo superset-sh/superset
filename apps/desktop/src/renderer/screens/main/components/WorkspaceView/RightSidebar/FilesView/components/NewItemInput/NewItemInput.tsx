@@ -52,13 +52,8 @@ export function NewItemInput({
 			className={cn("flex items-center gap-1 px-1 h-7", "bg-accent rounded-sm")}
 			style={{ paddingLeft: `${level * 16 + 4}px` }}
 		>
-			{/* Spacer for chevron area */}
 			<span className="w-4 h-4 shrink-0" />
-
-			{/* Icon */}
 			<Icon className="size-4 shrink-0 text-amber-500" />
-
-			{/* Input */}
 			<input
 				ref={inputRef}
 				type="text"

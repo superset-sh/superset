@@ -15,9 +15,6 @@ interface UseFileTreeReturn {
 	loadChildren: (nodeId: string, nodePath: string) => Promise<FileTreeNode[]>;
 }
 
-/**
- * Hook to manage file tree data and lazy loading
- */
 export function useFileTree({
 	worktreePath,
 }: UseFileTreeProps): UseFileTreeReturn {
@@ -31,10 +28,8 @@ export function useFileTree({
 		? expandedFolders[worktreePath] || []
 		: [];
 
-	// Get tRPC utils at the top level (hooks must be called at top level)
 	const trpcUtils = electronTrpc.useUtils();
 
-	// Query for root directory
 	const {
 		data: rootEntries,
 		isLoading,
@@ -48,11 +43,10 @@ export function useFileTree({
 		},
 		{
 			enabled: !!worktreePath,
-			staleTime: 5000, // Consider data fresh for 5 seconds
+			staleTime: 5000,
 		},
 	);
 
-	// Convert entries to tree nodes
 	const rootNodes = useMemo((): FileTreeNode[] => {
 		if (!rootEntries) return [];
 
@@ -62,7 +56,6 @@ export function useFileTree({
 		}));
 	}, [rootEntries]);
 
-	// Build full tree with cached children
 	const buildTree = useCallback(
 		(nodes: FileTreeNode[]): FileTreeNode[] => {
 			return nodes.map((node) => {
@@ -84,24 +77,20 @@ export function useFileTree({
 					};
 				}
 
-				// Children not loaded yet, mark as loading
 				return { ...node, children: null, isLoading: true };
 			});
 		},
 		[currentExpandedFolders, childrenCache],
 	);
 
-	// Update tree data when root nodes or cache changes
 	useEffect(() => {
 		setTreeData(buildTree(rootNodes));
 	}, [rootNodes, buildTree]);
 
-	// Load children for a folder
 	const loadChildren = useCallback(
 		async (nodeId: string, nodePath: string): Promise<FileTreeNode[]> => {
 			if (!worktreePath) return [];
 
-			// Check cache first
 			if (childrenCache[nodeId]) {
 				return childrenCache[nodeId];
 			}
@@ -118,7 +107,6 @@ export function useFileTree({
 					children: entry.isDirectory ? null : undefined,
 				}));
 
-				// Update cache
 				setChildrenCache((prev) => ({
 					...prev,
 					[nodeId]: childNodes,

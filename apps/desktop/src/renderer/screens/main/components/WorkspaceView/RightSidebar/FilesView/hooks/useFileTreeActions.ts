@@ -7,14 +7,10 @@ interface UseFileTreeActionsProps {
 	onRefresh: () => void;
 }
 
-/**
- * Hook to manage file tree CRUD operations
- */
 export function useFileTreeActions({
 	worktreePath: _worktreePath,
 	onRefresh,
 }: UseFileTreeActionsProps) {
-	// Create file mutation
 	const createFileMutation = electronTrpc.filesystem.createFile.useMutation({
 		onSuccess: (data) => {
 			toast.success(`Created ${data.path.split("/").pop()}`);
@@ -25,7 +21,6 @@ export function useFileTreeActions({
 		},
 	});
 
-	// Create directory mutation
 	const createDirectoryMutation =
 		electronTrpc.filesystem.createDirectory.useMutation({
 			onSuccess: (data) => {
@@ -37,7 +32,6 @@ export function useFileTreeActions({
 			},
 		});
 
-	// Rename mutation
 	const renameMutation = electronTrpc.filesystem.rename.useMutation({
 		onSuccess: (data) => {
 			toast.success(`Renamed to ${data.newPath.split("/").pop()}`);
@@ -48,7 +42,6 @@ export function useFileTreeActions({
 		},
 	});
 
-	// Delete mutation
 	const deleteMutation = electronTrpc.filesystem.delete.useMutation({
 		onSuccess: (data) => {
 			const count = data.deleted.length;
@@ -67,7 +60,6 @@ export function useFileTreeActions({
 		},
 	});
 
-	// Move mutation
 	const moveMutation = electronTrpc.filesystem.move.useMutation({
 		onSuccess: (data) => {
 			const count = data.moved.length;
@@ -86,7 +78,6 @@ export function useFileTreeActions({
 		},
 	});
 
-	// Copy mutation
 	const copyMutation = electronTrpc.filesystem.copy.useMutation({
 		onSuccess: (data) => {
 			const count = data.copied.length;
@@ -105,7 +96,6 @@ export function useFileTreeActions({
 		},
 	});
 
-	// Action functions
 	const createFile = useCallback(
 		(dirPath: string, fileName: string, content = "") => {
 			createFileMutation.mutate({ dirPath, fileName, content });
