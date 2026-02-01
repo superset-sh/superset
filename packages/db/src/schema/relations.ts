@@ -16,6 +16,7 @@ import {
 import {
 	agentCommands,
 	devicePresence,
+	feedback,
 	integrationConnections,
 	repositories,
 	subscriptions,
@@ -34,6 +35,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
+	feedback: many(feedback),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -61,6 +63,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
+	feedback: many(feedback),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -215,5 +218,16 @@ export const agentCommandsRelations = relations(agentCommands, ({ one }) => ({
 		fields: [agentCommands.parentCommandId],
 		references: [agentCommands.id],
 		relationName: "parentCommand",
+	}),
+}));
+
+export const feedbackRelations = relations(feedback, ({ one }) => ({
+	user: one(users, {
+		fields: [feedback.userId],
+		references: [users.id],
+	}),
+	organization: one(organizations, {
+		fields: [feedback.organizationId],
+		references: [organizations.id],
 	}),
 }));

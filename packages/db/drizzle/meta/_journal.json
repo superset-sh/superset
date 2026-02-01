@@ -120,6 +120,13 @@
       "when": 1769727642212,
       "tag": "0016_slack_integration",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1769896578273,
+      "tag": "0017_add_feedback_table",
+      "breakpoints": true
     }
   ]
 }
