@@ -4,6 +4,7 @@ import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { sanitizeForTitle } from "../commandBuffer";
 import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
@@ -17,6 +18,7 @@ import {
 	setupResizeHandlers,
 	type TerminalRendererRef,
 } from "../helpers";
+import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
 import type {
 	CreateOrAttachMutate,
@@ -527,6 +529,9 @@ export function useTerminalLifecycle({
 		};
 		document.addEventListener("visibilitychange", handleVisibilityChange);
 
+		const isPaneDestroyedInStore = () =>
+			isPaneDestroyed(useTabsStore.getState().panes, paneId);
+
 		return () => {
 			if (DEBUG_TERMINAL) {
 				console.log(`[Terminal] Unmount: ${paneId}`);
@@ -557,12 +562,19 @@ export function useTerminalLifecycle({
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
-			const detachTimeout = setTimeout(() => {
-				detachRef.current({ paneId });
-				pendingDetaches.delete(paneId);
+			if (isPaneDestroyedInStore()) {
+				// Pane was explicitly destroyed, so kill the session.
+				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
-			}, 50);
-			pendingDetaches.set(paneId, detachTimeout);
+				pendingDetaches.delete(paneId);
+			} else {
+				const detachTimeout = setTimeout(() => {
+					detachRef.current({ paneId });
+					pendingDetaches.delete(paneId);
+					coldRestoreState.delete(paneId);
+				}, 50);
+				pendingDetaches.set(paneId, detachTimeout);
+			}
 
 			isStreamReadyRef.current = false;
 			didFirstRenderRef.current = false;
