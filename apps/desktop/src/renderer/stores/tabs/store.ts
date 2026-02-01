@@ -24,6 +24,7 @@ import {
 	getPaneIdsForTab,
 	isLastPaneInTab,
 	removePaneFromLayout,
+	resolveFileViewerMode,
 	resolveActiveTabIdForWorkspace,
 } from "./utils";
 import { killTerminalForPane } from "./utils/terminal-cleanup";
@@ -563,6 +564,28 @@ export const useTabsStore = create<TabsStore>()(
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
+							if (
+								options.viewMode &&
+								existingFileViewer.viewMode !== options.viewMode
+							) {
+								set({
+									panes: {
+										...state.panes,
+										[paneToReuse.id]: {
+											...paneToReuse,
+											fileViewer: {
+												...existingFileViewer,
+												viewMode: options.viewMode,
+											},
+										},
+									},
+									focusedPaneIds: {
+										...state.focusedPaneIds,
+										[activeTab.id]: paneToReuse.id,
+									},
+								});
+								return paneToReuse.id;
+							}
 							set({
 								focusedPaneIds: {
 									...state.focusedPaneIds,
@@ -576,17 +599,11 @@ export const useTabsStore = create<TabsStore>()(
 						const fileName =
 							options.filePath.split("/").pop() || options.filePath;
 
-						// Determine default view mode
-						let viewMode: "raw" | "rendered" | "diff" = "raw";
-						if (options.diffCategory) {
-							viewMode = "diff";
-						} else if (
-							options.filePath.endsWith(".md") ||
-							options.filePath.endsWith(".markdown") ||
-							options.filePath.endsWith(".mdx")
-						) {
-							viewMode = "rendered";
-						}
+						const viewMode = resolveFileViewerMode({
+							filePath: options.filePath,
+							diffCategory: options.diffCategory,
+							viewMode: options.viewMode,
+						});
 
 						set({
 							panes: {

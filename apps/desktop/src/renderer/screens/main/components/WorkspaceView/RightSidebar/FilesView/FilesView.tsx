@@ -166,6 +166,7 @@ export function FilesView() {
 	const isSearching = hasQuery;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+	const pendingOpenRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const [newItemMode, setNewItemMode] = useState<NewItemMode>(null);
 	const [newItemParentPath, setNewItemParentPath] = useState<string>("");
@@ -178,12 +179,35 @@ export function FilesView() {
 		(node: { data: FileTreeNodeType }) => {
 			if (!workspaceId || !worktreePath || node.data.isDirectory) return;
 
-			addFileViewerPane(workspaceId, {
-				filePath: node.data.relativePath,
-			});
+			if (pendingOpenRef.current) {
+				clearTimeout(pendingOpenRef.current);
+			}
+
+			pendingOpenRef.current = setTimeout(() => {
+				pendingOpenRef.current = null;
+				addFileViewerPane(workspaceId, {
+					filePath: node.data.relativePath,
+					viewMode: "raw",
+				});
+			}, 300);
 		},
 		[workspaceId, worktreePath, addFileViewerPane],
 	);
+
+	const cancelPendingOpen = useCallback(() => {
+		if (pendingOpenRef.current) {
+			clearTimeout(pendingOpenRef.current);
+			pendingOpenRef.current = null;
+		}
+	}, []);
+
+	useEffect(() => {
+		return () => {
+			if (pendingOpenRef.current) {
+				clearTimeout(pendingOpenRef.current);
+			}
+		};
+	}, []);
 
 	const handleSelect = useCallback(
 		(nodes: { data: FileTreeNodeType }[]) => {
@@ -390,7 +414,13 @@ export function FilesView() {
 							onRename={handleRename}
 							dndManager={dragDropManager}
 						>
-							{FileTreeNode}
+							{(nodeProps) => (
+								<FileTreeNode
+									{...nodeProps}
+									worktreePath={worktreePath}
+									onCancelOpen={cancelPendingOpen}
+								/>
+							)}
 						</Tree>
 					)}
 				</div>

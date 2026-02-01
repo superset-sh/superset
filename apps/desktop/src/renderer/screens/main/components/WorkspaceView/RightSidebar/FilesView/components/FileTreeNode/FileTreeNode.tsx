@@ -1,30 +1,67 @@
 import { cn } from "@superset/ui/utils";
 import type { NodeRendererProps } from "react-arborist";
+import { useRef } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import type { FileTreeNode as FileTreeNodeType } from "shared/file-tree-types";
+import { usePathActions } from "../../../ChangesView/hooks";
 import { getFileIcon } from "../../utils";
 
-type FileTreeNodeProps = NodeRendererProps<FileTreeNodeType>;
+type FileTreeNodeProps = NodeRendererProps<FileTreeNodeType> & {
+	worktreePath: string;
+	onCancelOpen: () => void;
+};
 
-export function FileTreeNode({ node, style, dragHandle }: FileTreeNodeProps) {
+export function FileTreeNode({
+	node,
+	style,
+	dragHandle,
+	worktreePath,
+	onCancelOpen,
+}: FileTreeNodeProps) {
 	const { data } = node;
 	const { icon: Icon, color } = getFileIcon(
 		data.name,
 		data.isDirectory,
 		node.isOpen,
 	);
+	const { openInEditor } = usePathActions({
+		absolutePath: data.path ?? null,
+		relativePath: data.relativePath,
+		cwd: worktreePath,
+	});
 
 	const handleClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		node.select();
+		console.log("[FileTreeNode] handleClick", {
+			name: data.name,
+			detail: e.detail,
+			isDirectory: data.isDirectory,
+		});
+		// Ignore second click of double-click sequence
+		if (e.detail > 1) return;
+
 		if (data.isDirectory) {
 			node.toggle();
+		} else {
+			node.activate();
 		}
 	};
 
 	const handleDoubleClick = (e: React.MouseEvent) => {
+		console.log("[FileTreeNode] handleDoubleClick", {
+			name: data.name,
+			isDirectory: data.isDirectory,
+			absolutePath: data.path,
+		});
+		if (data.isDirectory) {
+			return;
+		}
+
 		e.stopPropagation();
-		node.activate();
+		e.preventDefault();
+
+		console.log("[FileTreeNode] Calling onCancelOpen and openInEditor");
+		onCancelOpen();
+		openInEditor();
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -53,6 +90,9 @@ export function FileTreeNode({ node, style, dragHandle }: FileTreeNodeProps) {
 				node.isFocused && !node.isSelected && "ring-1 ring-ring ring-inset",
 			)}
 			onClick={handleClick}
+			onDoubleClickCapture={(e) => {
+				console.log("[FileTreeNode] onDoubleClickCapture fired", data.name);
+			}}
 			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
 		>
