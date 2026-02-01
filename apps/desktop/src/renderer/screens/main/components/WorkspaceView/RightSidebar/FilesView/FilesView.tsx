@@ -1,11 +1,6 @@
 import { useParams } from "@tanstack/react-router";
-import {
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useResizeObserver from "use-resize-observer";
 import { Tree, type TreeApi } from "react-arborist";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -33,30 +28,7 @@ export function FilesView() {
 	const worktreePath = workspace?.worktreePath;
 
 	const treeRef = useRef<TreeApi<FileTreeNodeType>>(null);
-	const containerRef = useRef<HTMLDivElement>(null);
-	const [treeHeight, setTreeHeight] = useState(400);
-
-	useEffect(() => {
-		const container = containerRef.current;
-		if (!container) return;
-
-		const updateHeight = () => {
-			if (container.clientHeight > 0) {
-				setTreeHeight(container.clientHeight);
-			}
-		};
-
-		// Defer initial measurement to next frame to ensure layout is complete
-		const rafId = requestAnimationFrame(updateHeight);
-
-		const resizeObserver = new ResizeObserver(updateHeight);
-		resizeObserver.observe(container);
-
-		return () => {
-			cancelAnimationFrame(rafId);
-			resizeObserver.disconnect();
-		};
-	}, []);
+	const { ref: containerRef, height: treeHeight = 400 } = useResizeObserver();
 
 	const {
 		searchTerm,
