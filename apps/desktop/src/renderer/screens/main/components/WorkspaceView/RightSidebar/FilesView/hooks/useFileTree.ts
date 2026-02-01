@@ -1,0 +1,150 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useFileExplorerStore } from "renderer/stores/file-explorer";
+import type { FileTreeNode } from "shared/file-tree-types";
+
+interface UseFileTreeProps {
+	worktreePath: string | undefined;
+}
+
+interface UseFileTreeReturn {
+	treeData: FileTreeNode[];
+	isLoading: boolean;
+	error: Error | null;
+	refetch: () => void;
+	loadChildren: (nodeId: string, nodePath: string) => Promise<FileTreeNode[]>;
+}
+
+/**
+ * Hook to manage file tree data and lazy loading
+ */
+export function useFileTree({
+	worktreePath,
+}: UseFileTreeProps): UseFileTreeReturn {
+	const [treeData, setTreeData] = useState<FileTreeNode[]>([]);
+	const [childrenCache, setChildrenCache] = useState<
+		Record<string, FileTreeNode[]>
+	>({});
+
+	const { showHiddenFiles, expandedFolders } = useFileExplorerStore();
+	const currentExpandedFolders = worktreePath
+		? expandedFolders[worktreePath] || []
+		: [];
+
+	// Get tRPC utils at the top level (hooks must be called at top level)
+	const trpcUtils = electronTrpc.useUtils();
+
+	// Query for root directory
+	const {
+		data: rootEntries,
+		isLoading,
+		error,
+		refetch,
+	} = electronTrpc.filesystem.readDirectory.useQuery(
+		{
+			dirPath: worktreePath || "",
+			rootPath: worktreePath || "",
+			includeHidden: showHiddenFiles,
+		},
+		{
+			enabled: !!worktreePath,
+			staleTime: 5000, // Consider data fresh for 5 seconds
+		},
+	);
+
+	// Convert entries to tree nodes
+	const rootNodes = useMemo((): FileTreeNode[] => {
+		if (!rootEntries) return [];
+
+		return rootEntries.map((entry) => ({
+			...entry,
+			children: entry.isDirectory ? null : undefined,
+		}));
+	}, [rootEntries]);
+
+	// Build full tree with cached children
+	const buildTree = useCallback(
+		(nodes: FileTreeNode[]): FileTreeNode[] => {
+			return nodes.map((node) => {
+				if (!node.isDirectory) {
+					return node;
+				}
+
+				const isExpanded = currentExpandedFolders.includes(node.id);
+				const cachedChildren = childrenCache[node.id];
+
+				if (!isExpanded) {
+					return { ...node, children: null };
+				}
+
+				if (cachedChildren) {
+					return {
+						...node,
+						children: buildTree(cachedChildren),
+					};
+				}
+
+				// Children not loaded yet, mark as loading
+				return { ...node, children: null, isLoading: true };
+			});
+		},
+		[currentExpandedFolders, childrenCache],
+	);
+
+	// Update tree data when root nodes or cache changes
+	useEffect(() => {
+		setTreeData(buildTree(rootNodes));
+	}, [rootNodes, buildTree]);
+
+	// Load children for a folder
+	const loadChildren = useCallback(
+		async (nodeId: string, nodePath: string): Promise<FileTreeNode[]> => {
+			if (!worktreePath) return [];
+
+			// Check cache first
+			if (childrenCache[nodeId]) {
+				return childrenCache[nodeId];
+			}
+
+			try {
+				const entries = await trpcUtils.filesystem.readDirectory.fetch({
+					dirPath: nodePath,
+					rootPath: worktreePath,
+					includeHidden: showHiddenFiles,
+				});
+
+				const childNodes: FileTreeNode[] = entries.map((entry) => ({
+					...entry,
+					children: entry.isDirectory ? null : undefined,
+				}));
+
+				// Update cache
+				setChildrenCache((prev) => ({
+					...prev,
+					[nodeId]: childNodes,
+				}));
+
+				return childNodes;
+			} catch (err) {
+				console.error("[useFileTree] Failed to load children:", {
+					nodeId,
+					nodePath,
+					error: err,
+				});
+				return [];
+			}
+		},
+		[worktreePath, showHiddenFiles, childrenCache, trpcUtils],
+	);
+
+	return {
+		treeData,
+		isLoading,
+		error: error as Error | null,
+		refetch: () => {
+			setChildrenCache({});
+			refetch();
+		},
+		loadChildren,
+	};
+}

@@ -2,7 +2,13 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { LuExpand, LuFile, LuGitCompareArrows, LuShrink, LuX } from "react-icons/lu";
+import {
+	LuExpand,
+	LuFile,
+	LuGitCompareArrows,
+	LuShrink,
+	LuX,
+} from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -14,6 +20,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
+import { FilesView } from "./FilesView";
 
 function TabButton({
 	isActive,
@@ -36,14 +43,6 @@ function TabButton({
 			{icon}
 			{label}
 		</Button>
-	);
-}
-
-function FilesView() {
-	return (
-		<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm px-4 text-center">
-			Files view coming soon
-		</div>
 	);
 }
 
