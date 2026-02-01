@@ -767,11 +767,8 @@ export class DaemonTerminalManager extends EventEmitter {
 			`[DaemonTerminalManager] Killing ${paneIdsToKill.size} sessions for workspace ${workspaceId}`,
 		);
 
-		let killed = 0;
-		let failed = 0;
-
-		for (const paneId of paneIdsToKill) {
-			try {
+		const results = await Promise.allSettled(
+			Array.from(paneIdsToKill).map(async (paneId) => {
 				this.recordKilledSession(paneId);
 
 				const session = this.sessions.get(paneId);
@@ -782,17 +779,12 @@ export class DaemonTerminalManager extends EventEmitter {
 
 				portManager.unregisterDaemonSession(paneId);
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
-
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
-				killed++;
-			} catch (error) {
-				console.error(
-					`[DaemonTerminalManager] Failed to kill session ${paneId}:`,
-					error,
-				);
-				failed++;
-			}
-		}
+			}),
+		);
+
+		const killed = results.filter((r) => r.status === "fulfilled").length;
+		const failed = results.filter((r) => r.status === "rejected").length;
 
 		if (failed > 0) {
 			console.warn(

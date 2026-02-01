@@ -1,6 +1,7 @@
-import { execFile } from "node:child_process";
-import { mkdir, readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { execFile, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, stat } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import friendlyWords = require("friendly-words");
@@ -639,14 +640,53 @@ export async function removeWorktree(
 	try {
 		const env = await getGitEnv();
 
-		await execFileAsync(
-			"git",
-			["-C", mainRepoPath, "worktree", "remove", worktreePath, "--force"],
-			{ env, timeout: 60_000 },
+		// Rename the worktree to a sibling temp dir (same filesystem to avoid EXDEV),
+		// then `git worktree prune` to clean metadata, then delete in background.
+		const tempPath = join(
+			dirname(worktreePath),
+			`.superset-delete-${randomUUID()}`,
 		);
+		await rename(worktreePath, tempPath);
 
-		console.log(`Removed worktree at ${worktreePath}`);
+		await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
+			env,
+			timeout: 10_000,
+		});
+
+		// Delete the moved directory in the background — don't block the caller.
+		// Use spawned `rm -rf` instead of Node's fs.rm which can hang on macOS
+		// when encountering .app bundles with extended attributes.
+		const child = spawn("/bin/rm", ["-rf", tempPath], {
+			detached: true,
+			stdio: "ignore",
+		});
+		child.unref();
+		child.on("error", (err) => {
+			console.error(
+				`[removeWorktree] Failed to spawn rm for ${tempPath}:`,
+				err.message,
+			);
+		});
+		child.on("exit", (code: number | null) => {
+			if (code !== 0) {
+				console.error(
+					`[removeWorktree] Background cleanup of ${tempPath} failed (exit ${code})`,
+				);
+			}
+		});
 	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		// If the worktree directory is already gone, just prune metadata
+		if (code === "ENOENT") {
+			try {
+				const env = await getGitEnv();
+				await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
+					env,
+					timeout: 10_000,
+				});
+			} catch {}
+			return;
+		}
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to remove worktree: ${errorMessage}`);
 		throw new Error(`Failed to remove worktree: ${errorMessage}`);
