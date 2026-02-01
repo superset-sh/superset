@@ -6,8 +6,8 @@ import {
 	LuChevronsDownUp,
 	LuEye,
 	LuEyeOff,
-	LuFile,
-	LuFolder,
+	LuFilePlus,
+	LuFolderPlus,
 	LuRefreshCw,
 } from "react-icons/lu";
 import { SEARCH_DEBOUNCE_MS } from "../../constants";
@@ -74,7 +74,7 @@ export function FileTreeToolbar({
 							className="size-6"
 							onClick={onNewFile}
 						>
-							<LuFile className="size-3.5" />
+							<LuFilePlus className="size-3.5" />
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">New File</TooltipContent>
@@ -88,7 +88,7 @@ export function FileTreeToolbar({
 							className="size-6"
 							onClick={onNewFolder}
 						>
-							<LuFolder className="size-3.5" />
+							<LuFolderPlus className="size-3.5" />
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">New Folder</TooltipContent>

@@ -16,10 +16,9 @@ export function FileTreeNode({ node, style, dragHandle }: FileTreeNodeProps) {
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
+		node.select();
 		if (data.isDirectory) {
 			node.toggle();
-		} else {
-			node.select();
 		}
 	};
 
@@ -50,7 +49,7 @@ export function FileTreeNode({ node, style, dragHandle }: FileTreeNodeProps) {
 			aria-selected={node.isSelected}
 			className={cn(
 				"flex items-center gap-1 px-1 h-full cursor-pointer select-none",
-				"hover:bg-accent/50 rounded-sm transition-colors",
+				"hover:bg-accent/50 transition-colors",
 				node.isSelected && "bg-accent",
 				node.isFocused && !node.isSelected && "ring-1 ring-ring ring-inset",
 			)}
