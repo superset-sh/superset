@@ -1,5 +1,4 @@
 import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
@@ -17,30 +16,24 @@ import { ChangesView } from "./ChangesView";
 function TabButton({
 	isActive,
 	onClick,
-	children,
-	tooltip,
+	icon,
+	label,
 }: {
 	isActive: boolean;
 	onClick: () => void;
-	children: React.ReactNode;
-	tooltip: string;
+	icon: React.ReactNode;
+	label: string;
 }) {
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					onClick={onClick}
-					className={`size-6 p-0 ${isActive ? "bg-muted" : ""}`}
-				>
-					{children}
-				</Button>
-			</TooltipTrigger>
-			<TooltipContent side="bottom" showArrow={false}>
-				{tooltip}
-			</TooltipContent>
-		</Tooltip>
+		<Button
+			variant="ghost"
+			size="sm"
+			onClick={onClick}
+			className={`h-6 px-2 py-0 text-xs gap-1 ${isActive ? "bg-muted" : ""}`}
+		>
+			{icon}
+			{label}
+		</Button>
 	);
 }
 
@@ -120,21 +113,19 @@ export function Sidebar() {
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border">
+			<div className="flex items-center gap-1 px-2 py-1.5 border-b border-border">
 				<TabButton
 					isActive={rightSidebarTab === RightSidebarTab.Changes}
 					onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
-					tooltip="Changes"
-				>
-					<LuGitCompareArrows className="size-3.5" />
-				</TabButton>
+					icon={<LuGitCompareArrows className="size-3.5" />}
+					label="Changes"
+				/>
 				<TabButton
 					isActive={rightSidebarTab === RightSidebarTab.Files}
 					onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
-					tooltip="Files"
-				>
-					<LuFile className="size-3.5" />
-				</TabButton>
+					icon={<LuFile className="size-3.5" />}
+					label="Files"
+				/>
 			</div>
 			{rightSidebarTab === RightSidebarTab.Changes ? (
 				<ChangesView onFileOpen={handleFileOpen} isExpandedView={isExpanded} />
