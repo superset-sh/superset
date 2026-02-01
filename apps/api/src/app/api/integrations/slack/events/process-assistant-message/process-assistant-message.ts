@@ -2,8 +2,8 @@ import type { GenericMessageEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { runSlackAgent } from "../utils/run-agent";
-import { formatActionsAsText } from "../utils/slack-blocks";
+import { formatErrorForSlack, runSlackAgent } from "../utils/run-agent";
+import { formatSideEffectsMessage } from "../utils/slack-blocks";
 import { createSlackClient } from "../utils/slack-client";
 
 interface ProcessAssistantMessageParams {
@@ -43,15 +43,18 @@ export async function processAssistantMessage({
 
 	const threadTs = event.thread_ts ?? event.ts;
 
+	// Post an initial message that gets updated as the agent works
+	let messageTs: string | undefined;
 	try {
-		await slack.assistant.threads.setStatus({
-			channel_id: event.channel,
+		const initialMsg = await slack.chat.postMessage({
+			channel: event.channel,
 			thread_ts: threadTs,
-			status: "Thinking...",
+			text: "Thinking...",
 		});
+		messageTs = initialMsg.ts;
 	} catch (err) {
-		console.warn(
-			"[slack/process-assistant-message] Failed to set status:",
+		console.error(
+			"[slack/process-assistant-message] Failed to post initial message:",
 			err,
 		);
 	}
@@ -63,34 +66,67 @@ export async function processAssistantMessage({
 			threadTs,
 			organizationId: connection.organizationId,
 			slackToken: connection.accessToken,
+			onProgress: messageTs
+				? async (status) => {
+						try {
+							await slack.chat.update({
+								channel: event.channel,
+								ts: messageTs,
+								text: status,
+							});
+						} catch {
+							// Non-critical: progress updates are best-effort
+						}
+					}
+				: undefined,
 		});
 
-		// Format actions as text with URLs (enables Slack unfurling)
-		const hasActions = result.actions.length > 0;
-		const responseText = hasActions
-			? formatActionsAsText(result.actions)
-			: result.text;
+		// Update the message with Claude's final summary
+		if (messageTs) {
+			await slack.chat.update({
+				channel: event.channel,
+				ts: messageTs,
+				text: result.text,
+			});
+		} else {
+			await slack.chat.postMessage({
+				channel: event.channel,
+				thread_ts: threadTs,
+				text: result.text,
+			});
+		}
 
-		await slack.chat.postMessage({
-			channel: event.channel,
-			thread_ts: threadTs,
-			text: responseText,
-		});
+		// Post side effects as a separate message
+		if (result.actions.length > 0) {
+			try {
+				await slack.chat.postMessage({
+					channel: event.channel,
+					thread_ts: threadTs,
+					text: formatSideEffectsMessage(result.actions),
+				});
+			} catch (err) {
+				console.error(
+					"[slack/process-assistant-message] Failed to post side effects:",
+					err,
+				);
+			}
+		}
 	} catch (err) {
 		console.error("[slack/process-assistant-message] Agent error:", err);
 
-		await slack.chat.postMessage({
-			channel: event.channel,
-			thread_ts: threadTs,
-			text: `Sorry, something went wrong: ${err instanceof Error ? err.message : "Unknown error"}`,
-		});
-	} finally {
-		try {
-			await slack.assistant.threads.setStatus({
-				channel_id: event.channel,
-				thread_ts: threadTs,
-				status: "",
+		const errorText = await formatErrorForSlack(err);
+		if (messageTs) {
+			await slack.chat.update({
+				channel: event.channel,
+				ts: messageTs,
+				text: errorText,
 			});
-		} catch {}
+		} else {
+			await slack.chat.postMessage({
+				channel: event.channel,
+				thread_ts: threadTs,
+				text: errorText,
+			});
+		}
 	}
 }
