@@ -1,6 +1,5 @@
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useResizeObserver from "use-resize-observer";
 import { Tree, type TreeApi } from "react-arborist";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -10,6 +9,7 @@ import type {
 	DirectoryEntry,
 	FileTreeNode as FileTreeNodeType,
 } from "shared/file-tree-types";
+import useResizeObserver from "use-resize-observer";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
 import { FileTreeContextMenu } from "./components/FileTreeContextMenu";
 import { FileTreeNode } from "./components/FileTreeNode";
