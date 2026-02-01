@@ -1,7 +1,9 @@
 import { Button } from "@superset/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { LuFile, LuGitCompareArrows } from "react-icons/lu";
+import { LuExpand, LuFile, LuGitCompareArrows, LuShrink, LuX } from "react-icons/lu";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	RightSidebarTab,
@@ -52,9 +54,18 @@ export function Sidebar() {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
-	const { currentMode, rightSidebarTab, setRightSidebarTab } =
-		useSidebarStore();
+	const {
+		currentMode,
+		rightSidebarTab,
+		setRightSidebarTab,
+		toggleSidebar,
+		setMode,
+	} = useSidebarStore();
 	const isExpanded = currentMode === SidebarMode.Changes;
+
+	const handleExpandToggle = () => {
+		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+	};
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const trpcUtils = electronTrpc.useUtils();
@@ -126,6 +137,47 @@ export function Sidebar() {
 					icon={<LuFile className="size-3.5" />}
 					label="Files"
 				/>
+				<div className="flex-1" />
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={handleExpandToggle}
+							className="size-6 p-0"
+						>
+							{isExpanded ? (
+								<LuShrink className="size-3.5" />
+							) : (
+								<LuExpand className="size-3.5" />
+							)}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						<HotkeyTooltipContent
+							label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+							hotkeyId="TOGGLE_EXPAND_SIDEBAR"
+						/>
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={toggleSidebar}
+							className="size-6 p-0"
+						>
+							<LuX className="size-3.5" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						<HotkeyTooltipContent
+							label="Close sidebar"
+							hotkeyId="TOGGLE_SIDEBAR"
+						/>
+					</TooltipContent>
+				</Tooltip>
 			</div>
 			{rightSidebarTab === RightSidebarTab.Changes ? (
 				<ChangesView onFileOpen={handleFileOpen} isExpandedView={isExpanded} />
