@@ -215,9 +215,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	});
 
 	useEffect(() => {
-		if (!isRestoredMode || !isFocused) return;
+		if (!isRestoredMode) return;
 		handleStartShell();
-	}, [isRestoredMode, isFocused, handleStartShell]);
+	}, [isRestoredMode, handleStartShell]);
 
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
 		paneId,
