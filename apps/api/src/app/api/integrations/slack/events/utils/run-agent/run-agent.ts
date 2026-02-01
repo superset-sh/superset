@@ -206,6 +206,7 @@ const SYSTEM_PROMPT = `You are a helpful assistant in Slack for Superset, a task
 You can:
 - Create, update, search, and manage tasks using superset_* tools
 - Read recent channel messages using slack_get_channel_history
+- Search the web for current information using web_search
 - Help users understand conversations and create actionable items from discussions
 
 Guidelines:
@@ -213,6 +214,8 @@ Guidelines:
 - When creating tasks, extract key details from the conversation
 - Use Slack formatting: *bold*, _italic_, \`code\`, > quotes
 - If an action fails, explain what went wrong and suggest alternatives
+- When answering questions that need up-to-date info, use web_search to find current information
+- Cite sources when sharing information from web search results
 
 Context gathering:
 - Thread context is automatically included if the mention is in a thread
@@ -262,9 +265,14 @@ export async function runSlackAgent(
 			.map((t) => mcpToolToAnthropicTool(t, "superset"))
 			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name));
 
-		const tools: Anthropic.Tool[] = [
+		const tools: Anthropic.Messages.ToolUnion[] = [
 			...supersetTools,
 			SLACK_GET_CHANNEL_HISTORY_TOOL,
+			{
+				type: "web_search_20250305" as const,
+				name: "web_search" as const,
+				max_uses: 3,
+			},
 		];
 
 		const contextualSystem = `${SYSTEM_PROMPT}
@@ -297,10 +305,26 @@ Current context:
 		let iterations = 0;
 
 		while (
-			response.stop_reason === "tool_use" &&
+			(response.stop_reason === "tool_use" ||
+				response.stop_reason === "pause_turn") &&
 			iterations < MAX_TOOL_ITERATIONS
 		) {
 			iterations++;
+
+			// pause_turn: server-side tool (web search) paused a long-running turn
+			if (response.stop_reason === "pause_turn") {
+				messages.push({ role: "assistant", content: response.content });
+				response = await anthropic.messages.create({
+					model: "claude-sonnet-4-5",
+					max_tokens: 2048,
+					system: contextualSystem,
+					tools,
+					messages,
+				});
+				continue;
+			}
+
+			// tool_use: handle client-side tools (MCP + slack_get_channel_history)
 			const toolUseBlocks = response.content.filter(
 				(b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
 			);
