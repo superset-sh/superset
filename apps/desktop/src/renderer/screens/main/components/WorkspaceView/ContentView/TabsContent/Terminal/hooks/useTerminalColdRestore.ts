@@ -184,7 +184,7 @@ export function useTerminalColdRestore({
 		});
 
 		// Add visual separator
-		xterm.write("\r\n\x1b[90m─── New session ───\x1b[0m\r\n\r\n");
+		xterm.write("\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n");
 
 		// Reset state for new session
 		isStreamReadyRef.current = false;

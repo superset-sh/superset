@@ -6,11 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
-import {
-	ConnectionErrorOverlay,
-	RestoredModeOverlay,
-	SessionKilledOverlay,
-} from "./components";
+import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
 	useFileLinkClick,
@@ -218,6 +214,11 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		xtermRef,
 	});
 
+	useEffect(() => {
+		if (!isRestoredMode || !isFocused) return;
+		handleStartShell();
+	}, [isRestoredMode, isFocused, handleStartShell]);
+
 	const { xtermInstance, restartTerminal } = useTerminalLifecycle({
 		paneId,
 		tabIdRef,
@@ -307,9 +308,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			)}
 			{connectionError && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
-			)}
-			{isRestoredMode && (
-				<RestoredModeOverlay onStartShell={handleStartShell} />
 			)}
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
