@@ -9,7 +9,10 @@
  * TerminalRuntime interface.
  */
 
-import { DaemonTerminalManager, getDaemonTerminalManager } from "../terminal";
+import {
+	type DaemonTerminalManager,
+	getDaemonTerminalManager,
+} from "../terminal";
 import type {
 	TerminalCapabilities,
 	TerminalManagement,

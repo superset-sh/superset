@@ -331,7 +331,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		[reorderPresets],
 	);
 
-const { data: daemonSessions } =
+	const { data: daemonSessions } =
 		electronTrpc.terminal.listDaemonSessions.useQuery();
 	const sessions = daemonSessions?.sessions ?? [];
 	const aliveSessions = useMemo(
@@ -689,9 +689,7 @@ const { data: daemonSessions } =
 				{showLinkBehavior && (
 					<div
 						className={
-							showPresets ||
-							showQuickAdd ||
-							showAutoApplyPreset
+							showPresets || showQuickAdd || showAutoApplyPreset
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}
@@ -726,9 +724,7 @@ const { data: daemonSessions } =
 				)}
 
 				{showSessions && (
-					<div
-						className="rounded-md border border-border/60 p-4 space-y-3"
-					>
+					<div className="rounded-md border border-border/60 p-4 space-y-3">
 						<div className="space-y-0.5">
 							<div className="flex items-center justify-between">
 								<Label className="text-sm font-medium">Manage sessions</Label>
@@ -756,8 +752,7 @@ const { data: daemonSessions } =
 								variant="destructive"
 								size="sm"
 								disabled={
-									aliveSessions.length === 0 ||
-									killAllDaemonSessions.isPending
+									aliveSessions.length === 0 || killAllDaemonSessions.isPending
 								}
 								onClick={() => setConfirmKillAllOpen(true)}
 							>
@@ -767,8 +762,7 @@ const { data: daemonSessions } =
 								variant="secondary"
 								size="sm"
 								disabled={
-									aliveSessions.length === 0 ||
-									clearTerminalHistory.isPending
+									aliveSessions.length === 0 || clearTerminalHistory.isPending
 								}
 								onClick={() => setConfirmClearHistoryOpen(true)}
 							>
