@@ -14,6 +14,7 @@ import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
 import {
 	createTerminalInstance,
 	setupClickToMoveCursor,
+	setupCopyHandler,
 	setupFocusListener,
 	setupKeyboardHandler,
 	setupPasteHandler,
@@ -518,6 +519,7 @@ export function useTerminalLifecycle({
 			onWrite: handleWrite,
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
+		const cleanupCopy = setupCopyHandler(xterm);
 
 		const handleVisibilityChange = () => {
 			if (document.hidden || isUnmounted) return;
@@ -562,6 +564,7 @@ export function useTerminalLifecycle({
 			cleanupFocus?.();
 			cleanupResize();
 			cleanupPaste();
+			cleanupCopy();
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
