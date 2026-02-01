@@ -49,14 +49,13 @@ export async function GET(request: Request) {
 		userId: session.user.id,
 	});
 
+	const apiUrl = env.NEXT_PUBLIC_NGROK_URL ?? env.NEXT_PUBLIC_API_URL;
+
 	const installUrl = new URL(
 		"https://github.com/apps/superset-app/installations/new",
 	);
 	installUrl.searchParams.set("state", state);
-	installUrl.searchParams.set(
-		"redirect_url",
-		`${env.NEXT_PUBLIC_API_URL}/api/github/callback`,
-	);
+	installUrl.searchParams.set("redirect_url", `${apiUrl}/api/github/callback`);
 
 	return Response.redirect(installUrl.toString());
 }

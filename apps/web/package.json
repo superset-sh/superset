@@ -36,6 +36,8 @@
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
 		"react-icons": "^5.5.0",
+		"react-markdown": "^10.1.0",
+		"remark-gfm": "^4.0.1",
 		"require-in-the-middle": "8.0.1",
 		"server-only": "^0.0.1",
 		"superjson": "^2.2.5",

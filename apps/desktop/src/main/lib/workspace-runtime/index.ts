@@ -13,6 +13,12 @@
  * ```
  */
 
+export {
+	type CloudEvent,
+	type CloudSessionConfig,
+	type CloudSessionState,
+	CloudWorkspaceRuntime,
+} from "./cloud";
 export { LocalWorkspaceRuntime } from "./local";
 export {
 	getWorkspaceRuntimeRegistry,

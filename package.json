@@ -6,6 +6,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
+		"concurrently": "^9.2.1",
 		"sherif": "^1.7.0",
 		"turbo": "^2.5.8"
 	},
@@ -20,6 +21,7 @@
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:cli": "turbo dev --filter=@superset/cli",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
+		"dev:cloud": "concurrently -n ngrok,dev -c blue,auto \"ngrok http 3001 --url=${NGROK_SUBDOMAIN:-superset-dev}.ngrok.io\" \"turbo dev --filter=@superset/api --filter=@superset/web\"",
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test",
 		"db:generate": "turbo db:generate",

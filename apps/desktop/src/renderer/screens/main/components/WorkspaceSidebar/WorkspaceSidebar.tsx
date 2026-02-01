@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
+import { CloudWorkspacesSection } from "./CloudWorkspacesSection";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
 import { SidebarDropZone } from "./SidebarDropZone";
@@ -47,6 +48,9 @@ export function WorkspaceSidebar({
 						isCollapsed={isCollapsed}
 					/>
 				))}
+
+				{/* Cloud Workspaces Section */}
+				<CloudWorkspacesSection isCollapsed={isCollapsed} />
 
 				{groups.length === 0 && !isCollapsed && (
 					<div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">

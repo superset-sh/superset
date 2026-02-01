@@ -1,0 +1,33 @@
+# Superset Cloud Control Plane
+# Cloudflare Worker with Durable Objects for session state management
+
+name = "superset-control-plane"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Durable Objects for session state
+[[durable_objects.bindings]]
+name = "SESSION_DO"
+class_name = "SessionDO"
+
+# SQLite storage for Durable Objects
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SessionDO"]
+
+# KV Namespace for session tokens
+[[kv_namespaces]]
+binding = "SESSION_TOKENS"
+id = "e21191c73d024eedb38e15ccb67f2972"
+
+# Environment variables (set via wrangler secret or dashboard)
+# CONTROL_PLANE_URL - Public URL of this control plane (for sandbox callbacks)
+# MODAL_API_SECRET - Shared secret for Modal API authentication
+# MODAL_WORKSPACE - Modal workspace name for API URLs
+# ANTHROPIC_API_KEY - For LLM calls (if needed)
+# GITHUB_APP_ID - GitHub App ID for git operations
+# GITHUB_APP_PRIVATE_KEY - GitHub App private key
+# GITHUB_APP_INSTALLATION_ID - GitHub App installation ID
+
+[vars]
+ENVIRONMENT = "development"
