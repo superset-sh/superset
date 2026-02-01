@@ -5,10 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import {
-	getDaemonTerminalManager,
-	tryListExistingDaemonSessions,
-} from "main/lib/terminal";
+import { getDaemonTerminalManager } from "main/lib/terminal";
 import {
 	TERMINAL_SESSION_KILLED_MESSAGE,
 	TerminalKilledError,
@@ -278,18 +275,13 @@ export const createTerminalRouter = () => {
 			}),
 
 		listDaemonSessions: publicProcedure.query(async () => {
-			const { daemonRunning, sessions } = await tryListExistingDaemonSessions();
-			return { daemonModeEnabled: daemonRunning, sessions };
+			const { sessions } = await terminal.management.listSessions();
+			return { sessions };
 		}),
 
 		killAllDaemonSessions: publicProcedure.mutation(async () => {
 			const client = getTerminalHostClient();
-			const connected = await client.tryConnectAndAuthenticate();
-			if (!connected) {
-				return { daemonModeEnabled: false, killedCount: 0, remainingCount: 0 };
-			}
-
-			const before = await client.listSessions();
+			const before = await terminal.management.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
 			console.log(
 				"[killAllDaemonSessions] Before kill:",
@@ -336,19 +328,13 @@ export const createTerminalRouter = () => {
 				remainingCount > 0 ? afterIds : [],
 			);
 
-			return { daemonModeEnabled: true, killedCount, remainingCount };
+			return { killedCount, remainingCount };
 		}),
 
 		killDaemonSessionsForWorkspace: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				const client = getTerminalHostClient();
-				const connected = await client.tryConnectAndAuthenticate();
-				if (!connected) {
-					return { daemonModeEnabled: false, killedCount: 0 };
-				}
-
-				const { sessions } = await client.listSessions();
+				const { sessions } = await terminal.management.listSessions();
 				const toKill = sessions.filter(
 					(session) => session.workspaceId === input.workspaceId,
 				);
@@ -361,7 +347,7 @@ export const createTerminalRouter = () => {
 					);
 				}
 
-				return { daemonModeEnabled: true, killedCount: toKill.length };
+				return { killedCount: toKill.length };
 			}),
 
 		clearTerminalHistory: publicProcedure.mutation(async () => {

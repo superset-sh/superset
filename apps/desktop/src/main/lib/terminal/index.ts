@@ -31,18 +31,12 @@ export async function reconcileDaemonSessions(): Promise<void> {
 }
 
 export async function tryListExistingDaemonSessions(): Promise<{
-	daemonRunning: boolean;
 	sessions: ListSessionsResponse["sessions"];
 }> {
 	try {
 		const client = getTerminalHostClient();
-		const connected = await client.tryConnectAndAuthenticate();
-		if (!connected) {
-			return { daemonRunning: false, sessions: [] };
-		}
-
 		const result = await client.listSessions();
-		return { daemonRunning: true, sessions: result.sessions };
+		return { sessions: result.sessions };
 	} catch (error) {
 		if (DEBUG_TERMINAL) {
 			console.log(
@@ -50,6 +44,6 @@ export async function tryListExistingDaemonSessions(): Promise<{
 				error,
 			);
 		}
-		return { daemonRunning: false, sessions: [] };
+		return { sessions: [] };
 	}
 }

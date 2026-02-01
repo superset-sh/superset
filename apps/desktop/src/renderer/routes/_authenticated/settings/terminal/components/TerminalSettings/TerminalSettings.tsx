@@ -331,9 +331,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		[reorderPresets],
 	);
 
-	const { data: daemonSessions } =
+const { data: daemonSessions } =
 		electronTrpc.terminal.listDaemonSessions.useQuery();
-	const daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
 	const sessions = daemonSessions?.sessions ?? [];
 	const aliveSessions = useMemo(
 		() => sessions.filter((session) => session.isAlive),
@@ -427,25 +426,18 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 				await utils.terminal.listDaemonSessions.cancel();
 				const previous = utils.terminal.listDaemonSessions.getData();
 				utils.terminal.listDaemonSessions.setData(undefined, {
-					daemonModeEnabled: true,
 					sessions: [],
 				});
 				return { previous };
 			},
 			onSuccess: (result) => {
-				if (result.daemonModeEnabled) {
-					if (result.remainingCount > 0) {
-						toast.warning("Some sessions could not be killed", {
-							description: `${result.killedCount} terminated, ${result.remainingCount} remaining`,
-						});
-					} else {
-						toast.success("Killed all terminal sessions", {
-							description: `${result.killedCount} sessions terminated`,
-						});
-					}
+				if (result.remainingCount > 0) {
+					toast.warning("Some sessions could not be killed", {
+						description: `${result.killedCount} terminated, ${result.remainingCount} remaining`,
+					});
 				} else {
-					toast.error("Terminal daemon is not running", {
-						description: "Restart the app to reconnect.",
+					toast.success("Killed all terminal sessions", {
+						description: `${result.killedCount} sessions terminated`,
 					});
 				}
 			},
@@ -748,23 +740,13 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 									Refresh
 								</Button>
 							</div>
-							{daemonModeEnabled ? (
-								<>
-									<p className="text-xs text-muted-foreground">
-										Daemon sessions running: {aliveSessions.length}
-									</p>
-									{aliveSessions.length >= 20 && (
-										<p className="text-xs text-muted-foreground/70">
-											Large numbers of persistent terminals can increase
-											CPU/memory usage. Consider killing old sessions if you
-											notice slowdowns.
-										</p>
-									)}
-								</>
-							) : (
-								<p className="text-xs text-muted-foreground">
-									Terminal daemon is not running. Restart the app to manage
-									sessions.
+							<p className="text-xs text-muted-foreground">
+								Daemon sessions running: {aliveSessions.length}
+							</p>
+							{aliveSessions.length >= 20 && (
+								<p className="text-xs text-muted-foreground/70">
+									Large numbers of persistent terminals can increase CPU/memory
+									usage. Consider killing old sessions if you notice slowdowns.
 								</p>
 							)}
 						</div>
@@ -774,7 +756,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								variant="destructive"
 								size="sm"
 								disabled={
-									!daemonModeEnabled ||
 									aliveSessions.length === 0 ||
 									killAllDaemonSessions.isPending
 								}
@@ -786,7 +767,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								variant="secondary"
 								size="sm"
 								disabled={
-									!daemonModeEnabled ||
 									aliveSessions.length === 0 ||
 									clearTerminalHistory.isPending
 								}
@@ -797,7 +777,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							<Button
 								variant="outline"
 								size="sm"
-								disabled={!daemonModeEnabled || restartDaemon.isPending}
+								disabled={restartDaemon.isPending}
 								onClick={() => setConfirmRestartDaemonOpen(true)}
 							>
 								Restart daemon
@@ -805,83 +785,81 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							<Button
 								variant="ghost"
 								size="sm"
-								disabled={!daemonModeEnabled || aliveSessions.length === 0}
+								disabled={aliveSessions.length === 0}
 								onClick={() => setShowSessionList((v) => !v)}
 							>
 								{showSessionList ? "Hide sessions" : "Show sessions"}
 							</Button>
 						</div>
 
-						{daemonModeEnabled &&
-							showSessionList &&
-							aliveSessions.length > 0 && (
-								<div className="rounded-md border border-border/60 overflow-hidden">
-									<div className="max-h-64 overflow-auto">
-										<table className="w-full text-xs">
-											<thead className="sticky top-0 bg-background">
-												<tr className="text-muted-foreground">
-													<th className="px-2 py-2 text-left font-medium">
-														Workspace
-													</th>
-													<th className="px-2 py-2 text-left font-medium">
-														Session
-													</th>
-													<th className="px-2 py-2 text-right font-medium">
-														Clients
-													</th>
-													<th className="px-2 py-2 text-right font-medium">
-														PID
-													</th>
-													<th className="px-2 py-2 text-left font-medium">
-														Last attached
-													</th>
-													<th className="px-2 py-2 text-right font-medium">
-														Action
-													</th>
+						{showSessionList && aliveSessions.length > 0 && (
+							<div className="rounded-md border border-border/60 overflow-hidden">
+								<div className="max-h-64 overflow-auto">
+									<table className="w-full text-xs">
+										<thead className="sticky top-0 bg-background">
+											<tr className="text-muted-foreground">
+												<th className="px-2 py-2 text-left font-medium">
+													Workspace
+												</th>
+												<th className="px-2 py-2 text-left font-medium">
+													Session
+												</th>
+												<th className="px-2 py-2 text-right font-medium">
+													Clients
+												</th>
+												<th className="px-2 py-2 text-right font-medium">
+													PID
+												</th>
+												<th className="px-2 py-2 text-left font-medium">
+													Last attached
+												</th>
+												<th className="px-2 py-2 text-right font-medium">
+													Action
+												</th>
+											</tr>
+										</thead>
+										<tbody className="divide-y divide-border/60">
+											{sessionsSorted.map((session) => (
+												<tr
+													key={session.sessionId}
+													className="hover:bg-muted/30"
+												>
+													<td className="px-2 py-2 font-mono">
+														{session.workspaceId}
+													</td>
+													<td className="px-2 py-2 font-mono">
+														{session.sessionId}
+													</td>
+													<td className="px-2 py-2 text-right">
+														{session.attachedClients}
+													</td>
+													<td className="px-2 py-2 text-right font-mono">
+														{session.pid ?? "—"}
+													</td>
+													<td className="px-2 py-2">
+														{formatTimestamp(session.lastAttachedAt)}
+													</td>
+													<td className="px-2 py-2 text-right">
+														<Button
+															variant="ghost"
+															size="sm"
+															onClick={() =>
+																setPendingKillSession({
+																	sessionId: session.sessionId,
+																	workspaceId: session.workspaceId,
+																})
+															}
+														>
+															Kill
+														</Button>
+													</td>
 												</tr>
-											</thead>
-											<tbody className="divide-y divide-border/60">
-												{sessionsSorted.map((session) => (
-													<tr
-														key={session.sessionId}
-														className="hover:bg-muted/30"
-													>
-														<td className="px-2 py-2 font-mono">
-															{session.workspaceId}
-														</td>
-														<td className="px-2 py-2 font-mono">
-															{session.sessionId}
-														</td>
-														<td className="px-2 py-2 text-right">
-															{session.attachedClients}
-														</td>
-														<td className="px-2 py-2 text-right font-mono">
-															{session.pid ?? "—"}
-														</td>
-														<td className="px-2 py-2">
-															{formatTimestamp(session.lastAttachedAt)}
-														</td>
-														<td className="px-2 py-2 text-right">
-															<Button
-																variant="ghost"
-																size="sm"
-																onClick={() =>
-																	setPendingKillSession({
-																		sessionId: session.sessionId,
-																		workspaceId: session.workspaceId,
-																	})
-																}
-															>
-																Kill
-															</Button>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
+											))}
+										</tbody>
+									</table>
 								</div>
-							)}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
