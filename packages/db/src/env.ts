@@ -4,7 +4,7 @@ import { config } from "dotenv";
 import { z } from "zod";
 
 // Load .env from monorepo root
-config({ path: path.resolve(__dirname, "../../../.env") });
+config({ path: path.resolve(__dirname, "../../../.env"), quiet: true });
 
 export const env = createEnv({
 	server: {

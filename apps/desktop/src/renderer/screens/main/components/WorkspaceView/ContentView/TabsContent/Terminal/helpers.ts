@@ -314,6 +314,41 @@ export interface PasteHandlerOptions {
 }
 
 /**
+ * Setup copy handler for xterm to trim trailing whitespace from copied text.
+ *
+ * Terminal emulators fill lines with whitespace to pad to the terminal width.
+ * When copying text, this results in unwanted trailing spaces on each line.
+ * This handler intercepts copy events and trims trailing whitespace from each
+ * line before writing to the clipboard.
+ *
+ * Returns a cleanup function to remove the handler.
+ */
+export function setupCopyHandler(xterm: XTerm): () => void {
+	const element = xterm.element;
+	if (!element) return () => {};
+
+	const handleCopy = (event: ClipboardEvent) => {
+		const selection = xterm.getSelection();
+		if (!selection) return;
+
+		// Trim trailing whitespace from each line while preserving intentional newlines
+		const trimmedText = selection
+			.split("\n")
+			.map((line) => line.trimEnd())
+			.join("\n");
+
+		event.preventDefault();
+		event.clipboardData?.setData("text/plain", trimmedText);
+	};
+
+	element.addEventListener("copy", handleCopy);
+
+	return () => {
+		element.removeEventListener("copy", handleCopy);
+	};
+}
+
+/**
  * Setup paste handler for xterm to ensure bracketed paste mode works correctly.
  *
  * xterm.js's built-in paste handling via the textarea should work, but in some

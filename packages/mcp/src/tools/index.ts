@@ -6,6 +6,7 @@ import { register as listDevices } from "./devices/list-devices";
 import { register as listProjects } from "./devices/list-projects";
 import { register as listWorkspaces } from "./devices/list-workspaces";
 import { register as navigateToWorkspace } from "./devices/navigate-to-workspace";
+import { register as startClaudeSession } from "./devices/start-claude-session";
 import { register as switchWorkspace } from "./devices/switch-workspace";
 import { register as listMembers } from "./organizations/list-members";
 import { register as createTask } from "./tasks/create-task";
@@ -31,6 +32,7 @@ const allTools = [
 	createWorkspace,
 	switchWorkspace,
 	deleteWorkspace,
+	startClaudeSession,
 ];
 
 export function registerTools(server: McpServer) {

@@ -35,8 +35,6 @@ export function register(server: McpServer) {
 					estimate: z.number().nullable(),
 					branch: z.string().nullable(),
 					prUrl: z.string().nullable(),
-					createdAt: z.string(),
-					updatedAt: z.string(),
 				}),
 			},
 		},
@@ -70,8 +68,6 @@ export function register(server: McpServer) {
 					estimate: tasks.estimate,
 					branch: tasks.branch,
 					prUrl: tasks.prUrl,
-					createdAt: tasks.createdAt,
-					updatedAt: tasks.updatedAt,
 				})
 				.from(tasks)
 				.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
@@ -96,8 +92,6 @@ export function register(server: McpServer) {
 			const serializedTask = {
 				...task,
 				dueDate: task.dueDate?.toISOString() ?? null,
-				createdAt: task.createdAt.toISOString(),
-				updatedAt: task.updatedAt.toISOString(),
 			};
 			return {
 				structuredContent: { task: serializedTask },

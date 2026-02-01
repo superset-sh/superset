@@ -91,7 +91,6 @@ export function useTerminalRestore({
 			0,
 			pendingEventsRef.current.length,
 		);
-
 		for (const event of events) {
 			if (event.type === "data") {
 				updateModesRef.current(event.data);
@@ -120,7 +119,6 @@ export function useTerminalRestore({
 		pendingInitialStateRef.current = null;
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
-
 		try {
 			const scheduleFitAndScroll = () => {
 				requestAnimationFrame(() => {

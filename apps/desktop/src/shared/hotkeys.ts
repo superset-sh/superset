@@ -570,6 +570,12 @@ export const HOTKEYS = {
 		category: "Workspace",
 		description: "Quickly create a workspace in the current project",
 	}),
+	FOCUS_TASK_SEARCH: defineHotkey({
+		keys: "meta+f",
+		label: "Focus Task Search",
+		category: "Workspace",
+		description: "Focus the search input in the tasks view",
+	}),
 	OPEN_PROJECT: defineHotkey({
 		keys: "meta+shift+o",
 		label: "Open Project",

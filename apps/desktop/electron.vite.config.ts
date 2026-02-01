@@ -19,7 +19,7 @@ import {
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../.env"), override: true });
+config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
 
 const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],

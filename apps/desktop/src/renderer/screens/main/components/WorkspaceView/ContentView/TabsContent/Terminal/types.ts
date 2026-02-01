@@ -1,4 +1,5 @@
 export interface TerminalProps {
+	paneId: string;
 	tabId: string;
 	workspaceId: string;
 }
@@ -74,6 +75,7 @@ export interface CreateOrAttachInput {
 export interface CreateOrAttachCallbacks {
 	onSuccess?: (data: CreateOrAttachResult) => void;
 	onError?: (error: { message?: string }) => void;
+	onSettled?: () => void;
 }
 
 /**
@@ -82,4 +84,33 @@ export interface CreateOrAttachCallbacks {
 export type CreateOrAttachMutate = (
 	input: CreateOrAttachInput,
 	callbacks?: CreateOrAttachCallbacks,
+) => void;
+
+export interface TerminalWriteInput {
+	paneId: string;
+	data: string;
+}
+
+export type TerminalWriteMutate = (input: TerminalWriteInput) => void;
+
+export interface TerminalResizeInput {
+	paneId: string;
+	cols: number;
+	rows: number;
+}
+
+export type TerminalResizeMutate = (input: TerminalResizeInput) => void;
+
+export interface TerminalDetachInput {
+	paneId: string;
+}
+
+export type TerminalDetachMutate = (input: TerminalDetachInput) => void;
+
+export interface TerminalClearScrollbackInput {
+	paneId: string;
+}
+
+export type TerminalClearScrollbackMutate = (
+	input: TerminalClearScrollbackInput,
 ) => void;

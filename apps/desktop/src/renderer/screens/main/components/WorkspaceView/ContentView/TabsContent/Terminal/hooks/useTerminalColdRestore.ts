@@ -12,8 +12,8 @@ import { scrollToBottom } from "../utils";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
+	tabId: string;
 	workspaceId: string;
-	parentTabIdRef: React.MutableRefObject<string | undefined>;
 	xtermRef: React.MutableRefObject<XTerm | null>;
 	fitAddonRef: React.MutableRefObject<FitAddon | null>;
 	isStreamReadyRef: React.MutableRefObject<boolean>;
@@ -50,8 +50,8 @@ export interface UseTerminalColdRestoreReturn {
  */
 export function useTerminalColdRestore({
 	paneId,
+	tabId,
 	workspaceId,
-	parentTabIdRef,
 	xtermRef,
 	fitAddonRef,
 	isStreamReadyRef,
@@ -89,7 +89,7 @@ export function useTerminalColdRestore({
 		createOrAttachRef.current(
 			{
 				paneId,
-				tabId: parentTabIdRef.current || paneId,
+				tabId,
 				workspaceId,
 				cols: xterm.cols,
 				rows: xterm.rows,
@@ -150,8 +150,8 @@ export function useTerminalColdRestore({
 		);
 	}, [
 		paneId,
+		tabId,
 		workspaceId,
-		parentTabIdRef,
 		xtermRef,
 		isStreamReadyRef,
 		isExitedRef,
@@ -197,7 +197,7 @@ export function useTerminalColdRestore({
 		createOrAttachRef.current(
 			{
 				paneId,
-				tabId: parentTabIdRef.current || paneId,
+				tabId,
 				workspaceId,
 				cols: xterm.cols,
 				rows: xterm.rows,
@@ -232,8 +232,8 @@ export function useTerminalColdRestore({
 		);
 	}, [
 		paneId,
+		tabId,
 		workspaceId,
-		parentTabIdRef,
 		xtermRef,
 		fitAddonRef,
 		isStreamReadyRef,
