@@ -13,7 +13,6 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
-	DEFAULT_TERMINAL_PERSISTENCE,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
@@ -289,26 +288,6 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalLinkBehavior: input.behavior },
-					})
-					.run();
-
-				return { success: true };
-			}),
-
-		getTerminalPersistence: publicProcedure.query(() => {
-			const row = getSettings();
-			return row.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
-		}),
-
-		setTerminalPersistence: publicProcedure
-			.input(z.object({ enabled: z.boolean() }))
-			.mutation(({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPersistence: input.enabled })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPersistence: input.enabled },
 					})
 					.run();
 

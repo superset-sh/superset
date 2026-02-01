@@ -39,10 +39,7 @@ import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
 } from "renderer/routes/_authenticated/settings/presets/types";
-import {
-	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
-	DEFAULT_TERMINAL_PERSISTENCE,
-} from "shared/constants";
+import { DEFAULT_AUTO_APPLY_DEFAULT_PRESET } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -125,10 +122,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	);
 	const showAutoApplyPreset = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
-		visibleItems,
-	);
-	const showPersistence = isItemVisible(
-		SETTING_ITEM_ID.TERMINAL_PERSISTENCE,
 		visibleItems,
 	);
 	const showSessions = isItemVisible(
@@ -338,9 +331,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		[reorderPresets],
 	);
 
-	const { data: terminalPersistence, isLoading } =
-		electronTrpc.settings.getTerminalPersistence.useQuery();
-
 	const { data: daemonSessions } =
 		electronTrpc.terminal.listDaemonSessions.useQuery();
 	const daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
@@ -370,31 +360,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		sessionId: string;
 		workspaceId: string;
 	} | null>(null);
-
-	const setTerminalPersistence =
-		electronTrpc.settings.setTerminalPersistence.useMutation({
-			onMutate: async ({ enabled }) => {
-				await utils.settings.getTerminalPersistence.cancel();
-				const previous = utils.settings.getTerminalPersistence.getData();
-				utils.settings.getTerminalPersistence.setData(undefined, enabled);
-				return { previous };
-			},
-			onError: (_err, _vars, context) => {
-				if (context?.previous !== undefined) {
-					utils.settings.getTerminalPersistence.setData(
-						undefined,
-						context.previous,
-					);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getTerminalPersistence.invalidate();
-			},
-		});
-
-	const handleToggle = (enabled: boolean) => {
-		setTerminalPersistence.mutate({ enabled });
-	};
 
 	// Terminal link behavior setting
 	const { data: terminalLinkBehavior, isLoading: isLoadingLinkBehavior } =
@@ -479,8 +444,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 						});
 					}
 				} else {
-					toast.error("Terminal persistence is not active", {
-						description: "Restart the app after enabling terminal persistence.",
+					toast.error("Terminal daemon is not running", {
+						description: "Restart the app to reconnect.",
 					});
 				}
 			},
@@ -552,7 +517,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Terminal</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure terminal behavior, presets, and persistence
+					Configure terminal behavior and presets
 				</p>
 			</div>
 
@@ -729,47 +694,9 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 					</div>
 				)}
 
-				{showPersistence && (
-					<div
-						className={
-							showPresets || showQuickAdd || showAutoApplyPreset
-								? "flex items-center justify-between pt-6 border-t"
-								: "flex items-center justify-between"
-						}
-					>
-						<div className="space-y-0.5">
-							<Label
-								htmlFor="terminal-persistence"
-								className="text-sm font-medium"
-							>
-								Terminal persistence
-							</Label>
-							<p className="text-xs text-muted-foreground">
-								Keep terminal sessions alive across app restarts and workspace
-								switches. TUI apps like Claude Code will resume exactly where
-								you left off.
-							</p>
-							<p className="text-xs text-muted-foreground/70 mt-1">
-								May use more memory with many terminals open. Disable if you
-								notice performance issues.
-							</p>
-							<p className="text-xs text-muted-foreground/70 mt-1">
-								Requires app restart to take effect.
-							</p>
-						</div>
-						<Switch
-							id="terminal-persistence"
-							checked={terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE}
-							onCheckedChange={handleToggle}
-							disabled={isLoading || setTerminalPersistence.isPending}
-						/>
-					</div>
-				)}
-
 				{showLinkBehavior && (
 					<div
 						className={
-							showPersistence ||
 							showPresets ||
 							showQuickAdd ||
 							showAutoApplyPreset
@@ -808,11 +735,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 
 				{showSessions && (
 					<div
-						className={
-							showPersistence || showLinkBehavior
-								? "rounded-md border border-border/60 p-4 space-y-3"
-								: "rounded-md border border-border/60 p-4 space-y-3"
-						}
+						className="rounded-md border border-border/60 p-4 space-y-3"
 					>
 						<div className="space-y-0.5">
 							<div className="flex items-center justify-between">
@@ -840,8 +763,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								</>
 							) : (
 								<p className="text-xs text-muted-foreground">
-									Enable terminal persistence and restart the app to manage
-									daemon sessions.
+									Terminal daemon is not running. Restart the app to manage
+									sessions.
 								</p>
 							)}
 						</div>

@@ -34,7 +34,7 @@ const SAFE_ID = z
 	);
 
 /**
- * Terminal router using TerminalManager with node-pty
+ * Terminal router using daemon-backed terminal runtime
  * Sessions are keyed by paneId and linked to workspaces for cwd resolution
  *
  * Environment variables set for terminal sessions:
@@ -365,9 +365,7 @@ export const createTerminalRouter = () => {
 			}),
 
 		clearTerminalHistory: publicProcedure.mutation(async () => {
-			if (terminal.management) {
-				await terminal.management.resetHistoryPersistence();
-			}
+			await terminal.management.resetHistoryPersistence();
 			return { success: true };
 		}),
 

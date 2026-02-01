@@ -26,7 +26,6 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_AUTO_APPLY_PRESET: "terminal-auto-apply-preset",
-	TERMINAL_PERSISTENCE: "terminal-persistence",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
@@ -381,24 +380,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"new",
 			"startup",
 			"launch",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.TERMINAL_PERSISTENCE,
-		section: "terminal",
-		title: "Terminal Persistence",
-		description: "Keep terminal sessions running in background",
-		keywords: [
-			"terminal",
-			"persistence",
-			"background",
-			"daemon",
-			"session",
-			"keep alive",
-			"restore",
-			"resume",
-			"reconnect",
-			"restart",
 		],
 	},
 	{

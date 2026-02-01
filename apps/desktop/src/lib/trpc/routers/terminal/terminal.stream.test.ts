@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
 
 interface MockManagement {
@@ -19,9 +19,18 @@ interface MockManagement {
  * Extends EventEmitter and provides the minimal TerminalRuntime interface.
  */
 class MockTerminalRuntime extends EventEmitter {
-	management: MockManagement | null = null; // non-daemon mode
-	capabilities = { persistent: false, coldRestore: false };
+	management: MockManagement;
+	capabilities = { persistent: true, coldRestore: true };
 	killCalls: Array<{ paneId: string }> = [];
+
+	constructor() {
+		super();
+		this.management = {
+			listSessions: async () => ({ sessions: [] }),
+			killAllSessions: async () => {},
+			resetHistoryPersistence: async () => {},
+		};
+	}
 
 	async kill(params: { paneId: string }) {
 		this.killCalls.push(params);
@@ -55,6 +64,13 @@ let mockDaemonSessions: Array<{
 let mockListSessions: () => Promise<{ sessions: typeof mockDaemonSessions }> =
 	async () => ({ sessions: mockDaemonSessions });
 
+beforeEach(() => {
+	mockClientConnected = false;
+	mockListSessionsCallCount = 0;
+	mockDaemonSessions = [];
+	mockListSessions = async () => ({ sessions: mockDaemonSessions });
+});
+
 // Mock the workspace-runtime module
 mock.module("main/lib/workspace-runtime", () => ({
 	getWorkspaceRuntimeRegistry: () => ({
@@ -85,21 +101,13 @@ mock.module("main/lib/local-db", () => ({
 }));
 
 // Mock terminal module to avoid Electron imports from terminal-host/client
-// The mock checks mockTerminal.management to determine daemon mode
 mock.module("main/lib/terminal", () => ({
 	tryListExistingDaemonSessions: async () => {
-		// Check if mockTerminal.management is set to simulate daemon mode
-		if (mockTerminal.management) {
-			const result = await mockTerminal.management.listSessions();
-			return {
-				daemonRunning: true,
-				sessions: result.sessions,
-			};
+		if (!mockClientConnected) {
+			return { daemonRunning: false, sessions: [] };
 		}
-		return {
-			daemonRunning: false,
-			sessions: [],
-		};
+		const result = await mockListSessions();
+		return { daemonRunning: true, sessions: result.sessions };
 	},
 	getDaemonTerminalManager: () => ({
 		reset: () => {},
@@ -217,10 +225,10 @@ describe("terminal.stream", () => {
 	});
 });
 
-describe("terminal.management capability", () => {
-	it("returns daemonModeEnabled: false when management is null", async () => {
+describe("terminal.listDaemonSessions", () => {
+	it("returns daemonModeEnabled: false when daemon is disconnected", async () => {
 		mockTerminal = new MockTerminalRuntime();
-		mockTerminal.management = null; // non-daemon mode
+		mockClientConnected = false;
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
@@ -230,23 +238,18 @@ describe("terminal.management capability", () => {
 		expect(result.sessions).toEqual([]);
 	});
 
-	it("returns daemonModeEnabled: true when management is present", async () => {
+	it("returns daemonModeEnabled: true when daemon is connected", async () => {
 		mockTerminal = new MockTerminalRuntime();
-		// Mock daemon mode with management capability
-		mockTerminal.management = {
-			listSessions: async () => ({
-				sessions: [
-					{
-						sessionId: "pane-1",
-						paneId: "pane-1",
-						workspaceId: "ws-1",
-						isAlive: true,
-					},
-				],
-			}),
-			killAllSessions: async () => {},
-			resetHistoryPersistence: async () => {},
-		};
+		mockClientConnected = true;
+		mockDaemonSessions = [
+			{
+				sessionId: "pane-1",
+				paneId: "pane-1",
+				workspaceId: "ws-1",
+				isAlive: true,
+			},
+		];
+		mockListSessions = async () => ({ sessions: mockDaemonSessions });
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
