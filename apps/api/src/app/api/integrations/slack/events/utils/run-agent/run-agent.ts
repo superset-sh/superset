@@ -58,11 +58,40 @@ interface RunSlackAgentParams {
 	threadTs: string;
 	organizationId: string;
 	slackToken: string;
+	onProgress?: (status: string) => void | Promise<void>;
 }
 
 export interface SlackAgentResult {
 	text: string;
 	actions: AgentAction[];
+}
+
+export async function formatErrorForSlack(error: unknown): Promise<string> {
+	const message =
+		error instanceof Error ? error.message : "Unknown error occurred";
+	try {
+		const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const response = await anthropic.messages.create({
+			model: "claude-3-5-haiku-latest",
+			max_tokens: 256,
+			messages: [
+				{
+					role: "user",
+					content: `Rewrite this API error as a brief, friendly Slack message (1-2 sentences). No technical jargon, no JSON. If it's a rate limit, tell them to try again shortly.\n\nError: ${message}`,
+				},
+			],
+		});
+		const text = response.content.find(
+			(b): b is Anthropic.TextBlock => b.type === "text",
+		);
+		return text?.text ?? "Sorry, something went wrong. Please try again.";
+	} catch {
+		// Haiku itself failed (possibly also rate limited) — use static fallback
+		if (error instanceof Anthropic.APIError && error.status === 429) {
+			return "I'm a bit overloaded right now — please try again in a moment.";
+		}
+		return "Sorry, something went wrong. Please try again.";
+	}
 }
 
 function getActionFromToolResult(
@@ -97,6 +126,19 @@ function getActionFromToolResult(
 					title: t.title,
 				}),
 			),
+		};
+	}
+
+	if (toolName === "delete_task" && data.deleted) {
+		return {
+			type: "task_deleted",
+			tasks: (
+				data.deleted as { id: string; slug: string; title: string }[]
+			).map((t) => ({
+				id: t.id,
+				slug: t.slug,
+				title: t.title,
+			})),
 		};
 	}
 
@@ -148,6 +190,21 @@ function parseTextContent(content: any): Record<string, unknown> | null {
 		return null;
 	}
 }
+
+const TOOL_PROGRESS_STATUS: Record<string, string> = {
+	create_task: "Creating task...",
+	update_task: "Updating task...",
+	delete_task: "Deleting task...",
+	list_tasks: "Searching tasks...",
+	get_task: "Fetching task details...",
+	list_task_statuses: "Fetching statuses...",
+	create_workspace: "Creating workspace...",
+	list_workspaces: "Fetching workspaces...",
+	list_devices: "Fetching devices...",
+	list_projects: "Fetching projects...",
+	list_members: "Fetching team members...",
+	slack_get_channel_history: "Reading channel history...",
+};
 
 // Desktop-only tools that don't make sense in Slack context
 const DENIED_SUPERSET_TOOLS = new Set([
@@ -271,7 +328,7 @@ export async function runSlackAgent(
 			{
 				type: "web_search_20250305" as const,
 				name: "web_search" as const,
-				max_uses: 3,
+				max_uses: 1,
 			},
 		];
 
@@ -313,6 +370,11 @@ Current context:
 
 			// pause_turn: server-side tool (web search) paused a long-running turn
 			if (response.stop_reason === "pause_turn") {
+				try {
+					await params.onProgress?.("Searching the web...");
+				} catch {
+					// Non-critical
+				}
 				messages.push({ role: "assistant", content: response.content });
 				response = await anthropic.messages.create({
 					model: "claude-sonnet-4-5",
@@ -333,6 +395,18 @@ Current context:
 
 			for (const toolUse of toolUseBlocks) {
 				try {
+					const { toolName: rawToolName } = parseToolName(toolUse.name);
+					const progressStatus =
+						TOOL_PROGRESS_STATUS[toolUse.name] ??
+						TOOL_PROGRESS_STATUS[rawToolName] ??
+						"Working...";
+
+					try {
+						await params.onProgress?.(progressStatus);
+					} catch {
+						// Non-critical: don't fail the agent if progress update fails
+					}
+
 					let resultContent: string;
 
 					if (toolUse.name === "slack_get_channel_history") {
@@ -407,9 +481,12 @@ Current context:
 			});
 		}
 
-		const textBlock = response.content.find(
+		// Use the last text block — server-side tools like web_search produce
+		// multiple text blocks (preamble + synthesis) and we want the final one.
+		const textBlocks = response.content.filter(
 			(b): b is Anthropic.TextBlock => b.type === "text",
 		);
+		const textBlock = textBlocks.at(-1);
 
 		return {
 			text: textBlock?.text ?? "Done!",
