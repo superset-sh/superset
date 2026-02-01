@@ -18,23 +18,11 @@ async function hasUpstreamBranch(
 	}
 }
 
-function isCaseInsensitiveRefError(error: unknown): boolean {
-	const message = error instanceof Error ? error.message : String(error);
-	return message.includes("case-insensitive filesystem");
-}
-
-async function safeFetch(git: ReturnType<typeof simpleGit>): Promise<void> {
-	try {
-		await git.fetch();
-	} catch (error) {
-		if (isCaseInsensitiveRefError(error)) {
-			console.warn(
-				"[git/fetch] Skipping fetch due to case-conflicting refs on remote",
-			);
-			return;
-		}
-		throw error;
-	}
+async function fetchCurrentBranch(
+	git: ReturnType<typeof simpleGit>,
+): Promise<void> {
+	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+	await git.fetch(["origin", branch]);
 }
 
 export const createGitOperationsRouter = () => {
@@ -78,7 +66,7 @@ export const createGitOperationsRouter = () => {
 				} else {
 					await git.push();
 				}
-				await safeFetch(git);
+				await fetchCurrentBranch(git);
 				return { success: true };
 			}),
 
@@ -125,13 +113,13 @@ export const createGitOperationsRouter = () => {
 					if (isUpstreamMissingError(message)) {
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 						await git.push(["--set-upstream", "origin", branch.trim()]);
-						await safeFetch(git);
+						await fetchCurrentBranch(git);
 						return { success: true };
 					}
 					throw error;
 				}
 				await git.push();
-				await safeFetch(git);
+				await fetchCurrentBranch(git);
 				return { success: true };
 			}),
 
@@ -140,7 +128,7 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 				const git = simpleGit(input.worktreePath);
-				await safeFetch(git);
+				await fetchCurrentBranch(git);
 				return { success: true };
 			}),
 
@@ -180,7 +168,7 @@ export const createGitOperationsRouter = () => {
 					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
 
 					await shell.openExternal(url);
-					await safeFetch(git);
+					await fetchCurrentBranch(git);
 
 					return { success: true, url };
 				},
