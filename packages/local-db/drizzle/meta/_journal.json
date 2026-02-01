@@ -113,6 +113,13 @@
       "when": 1769649140217,
       "tag": "0015_add_notification_sounds_muted",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1769898401129,
+      "tag": "0016_add_audio_output_device",
+      "breakpoints": true
     }
   ]
 }

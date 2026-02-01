@@ -1,7 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
+import { playSound } from "renderer/lib/audio-player";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useAudioDeviceStore } from "renderer/stores/audio-device";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
 import { useTabsStore } from "./store";
@@ -47,6 +49,14 @@ export function useAgentHookListener() {
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (!event.data) return;
+
+			// PLAY_SOUND events don't have workspace/tab/pane data — handle before target resolution
+			if (event.type === NOTIFICATION_EVENTS.PLAY_SOUND) {
+				const { filename } = event.data as { filename: string };
+				const deviceId = useAudioDeviceStore.getState().selectedDeviceId;
+				playSound({ filename, deviceId });
+				return;
+			}
 
 			const state = useTabsStore.getState();
 			const target = resolveNotificationTarget(event.data, state);

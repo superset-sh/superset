@@ -12,6 +12,10 @@ type TerminalExitNotification = NotificationIds & {
 	signal?: number;
 };
 
+type PlaySoundEvent = {
+	filename: string;
+};
+
 type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.AGENT_LIFECYCLE;
@@ -21,6 +25,10 @@ type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.TERMINAL_EXIT;
 			data?: TerminalExitNotification;
+	  }
+	| {
+			type: typeof NOTIFICATION_EVENTS.PLAY_SOUND;
+			data?: PlaySoundEvent;
 	  };
 
 export const createNotificationsRouter = () => {
@@ -39,6 +47,10 @@ export const createNotificationsRouter = () => {
 					emit.next({ type: NOTIFICATION_EVENTS.TERMINAL_EXIT, data });
 				};
 
+				const onPlaySound = (data: PlaySoundEvent) => {
+					emit.next({ type: NOTIFICATION_EVENTS.PLAY_SOUND, data });
+				};
+
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 					onLifecycle,
@@ -48,6 +60,7 @@ export const createNotificationsRouter = () => {
 					NOTIFICATION_EVENTS.TERMINAL_EXIT,
 					onTerminalExit,
 				);
+				notificationsEmitter.on(NOTIFICATION_EVENTS.PLAY_SOUND, onPlaySound);
 
 				return () => {
 					notificationsEmitter.off(
@@ -59,6 +72,7 @@ export const createNotificationsRouter = () => {
 						NOTIFICATION_EVENTS.TERMINAL_EXIT,
 						onTerminalExit,
 					);
+					notificationsEmitter.off(NOTIFICATION_EVENTS.PLAY_SOUND, onPlaySound);
 				};
 			});
 		}),

@@ -1,14 +1,28 @@
 import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiCheck, HiPlay, HiStop } from "react-icons/hi2";
+import {
+	type AudioOutputDevice,
+	listAudioOutputDevices,
+	playSound,
+	stopSound,
+} from "renderer/lib/audio-player";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	AVAILABLE_RINGTONES,
 	type Ringtone,
+	useSelectedAudioDeviceId,
 	useSelectedRingtoneId,
+	useSetAudioDeviceId,
 	useSetRingtone,
 } from "renderer/stores";
 import {
@@ -125,8 +139,38 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 
 	const selectedRingtoneId = useSelectedRingtoneId();
 	const setRingtone = useSetRingtone();
+	const selectedDeviceId = useSelectedAudioDeviceId();
+	const setDeviceId = useSetAudioDeviceId();
 	const [playingId, setPlayingId] = useState<string | null>(null);
 	const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	// Audio output devices
+	const [audioDevices, setAudioDevices] = useState<AudioOutputDevice[]>([]);
+
+	useEffect(() => {
+		const refreshDevices = async () => {
+			const devices = await listAudioOutputDevices();
+			setAudioDevices(devices);
+
+			// Reset to default if selected device is no longer available
+			if (
+				selectedDeviceId &&
+				!devices.some((d) => d.deviceId === selectedDeviceId)
+			) {
+				setDeviceId(null);
+			}
+		};
+
+		refreshDevices();
+
+		navigator.mediaDevices.addEventListener("devicechange", refreshDevices);
+		return () => {
+			navigator.mediaDevices.removeEventListener(
+				"devicechange",
+				refreshDevices,
+			);
+		};
+	}, [selectedDeviceId, setDeviceId]);
 
 	const utils = electronTrpc.useUtils();
 	const { data: isMutedData, isLoading: isMutedLoading } =
@@ -162,15 +206,12 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 			if (previewTimerRef.current) {
 				clearTimeout(previewTimerRef.current);
 			}
-			// Stop any in-progress preview when navigating away
-			electronTrpcClient.ringtone.stop.mutate().catch(() => {
-				// Ignore errors during cleanup
-			});
+			stopSound();
 		};
 	}, []);
 
 	const handleTogglePlay = useCallback(
-		async (ringtone: Ringtone) => {
+		(ringtone: Ringtone) => {
 			if (!ringtone.filename) {
 				return;
 			}
@@ -183,33 +224,17 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 
 			// If this ringtone is already playing, stop it
 			if (playingId === ringtone.id) {
-				try {
-					await electronTrpcClient.ringtone.stop.mutate();
-				} catch (error) {
-					console.error("Failed to stop ringtone:", error);
-				}
+				stopSound();
 				setPlayingId(null);
 				return;
 			}
 
 			// Stop any currently playing sound first
-			try {
-				await electronTrpcClient.ringtone.stop.mutate();
-			} catch (error) {
-				console.error("Failed to stop ringtone:", error);
-			}
+			stopSound();
 
 			// Play the new sound
 			setPlayingId(ringtone.id);
-
-			try {
-				await electronTrpcClient.ringtone.preview.mutate({
-					filename: ringtone.filename,
-				});
-			} catch (error) {
-				console.error("Failed to play ringtone:", error);
-				setPlayingId(null);
-			}
+			playSound({ filename: ringtone.filename, deviceId: selectedDeviceId });
 
 			// Auto-reset after the ringtone's actual duration (with 500ms buffer)
 			const durationMs = ((ringtone.duration ?? 5) + 0.5) * 1000;
@@ -218,7 +243,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 				previewTimerRef.current = null;
 			}, durationMs);
 		},
-		[playingId],
+		[playingId, selectedDeviceId],
 	);
 
 	const handleSelect = useCallback(
@@ -227,6 +252,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 		},
 		[setRingtone],
 	);
+
+	const handleDeviceChange = (value: string) => {
+		setDeviceId(value === "default" ? null : value);
+	};
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -258,6 +287,39 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 							onCheckedChange={handleMutedToggle}
 							disabled={isMutedLoading || setMuted.isPending}
 						/>
+					</div>
+				)}
+
+				{/* Output Device Picker */}
+				{showNotification && !isMuted && audioDevices.length > 0 && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="audio-output-device"
+								className="text-sm font-medium"
+							>
+								Output device
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Speaker used for notification sounds
+							</p>
+						</div>
+						<Select
+							value={selectedDeviceId ?? "default"}
+							onValueChange={handleDeviceChange}
+						>
+							<SelectTrigger id="audio-output-device" className="w-64">
+								<SelectValue placeholder="System Default" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="default">System Default</SelectItem>
+								{audioDevices.map((device) => (
+									<SelectItem key={device.deviceId} value={device.deviceId}>
+										{device.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 				)}
 

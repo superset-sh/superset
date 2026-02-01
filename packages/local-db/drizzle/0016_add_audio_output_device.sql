@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `selected_audio_output_device_id` text;

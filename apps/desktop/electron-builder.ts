@@ -42,8 +42,8 @@ const config: Configuration = {
 		"**/node_modules/bindings/**/*",
 		"**/node_modules/file-uri-to-path/**/*",
 		"**/node_modules/node-pty/**/*",
-		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
-		"**/resources/sounds/**/*",
+		// Sound files in renderer public dir, also read by main process for file listing
+		"**/resources/public/sounds/**/*",
 		// Tray icon must be unpacked so Electron Tray can load it
 		"**/resources/tray/**/*",
 	],

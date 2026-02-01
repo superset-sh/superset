@@ -111,3 +111,22 @@ export const trpcRingtoneStorage = createJSONStorage(() =>
 		},
 	}),
 );
+
+/**
+ * Zustand storage adapter for audio output device selection using tRPC.
+ */
+export const trpcAudioDeviceStorage = createJSONStorage(() =>
+	createTrpcStorageAdapter({
+		get: async () => {
+			const deviceId =
+				await electronTrpcClient.settings.getSelectedAudioOutputDeviceId.query();
+			return { selectedDeviceId: deviceId };
+		},
+		set: async (input) => {
+			const state = input as { selectedDeviceId: string | null };
+			await electronTrpcClient.settings.setSelectedAudioOutputDeviceId.mutate({
+				deviceId: state.selectedDeviceId,
+			});
+		},
+	}),
+);

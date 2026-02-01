@@ -153,6 +153,7 @@ export const settings = sqliteTable("settings", {
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),
+	selectedAudioOutputDeviceId: text("selected_audio_output_device_id"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

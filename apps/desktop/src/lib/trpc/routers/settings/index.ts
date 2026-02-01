@@ -405,5 +405,28 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
+
+		getSelectedAudioOutputDeviceId: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.selectedAudioOutputDeviceId ?? null;
+		}),
+
+		setSelectedAudioOutputDeviceId: publicProcedure
+			.input(z.object({ deviceId: z.string().nullable() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						selectedAudioOutputDeviceId: input.deviceId,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { selectedAudioOutputDeviceId: input.deviceId },
+					})
+					.run();
+
+				return { success: true };
+			}),
 	});
 };
