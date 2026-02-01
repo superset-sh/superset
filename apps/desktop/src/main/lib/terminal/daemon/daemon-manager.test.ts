@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
+import type { SessionInfo } from "./types";
 
 class MockTerminalHostClient extends EventEmitter {
 	killCalls: Array<{ sessionId: string; deleteHistory?: boolean }> = [];
@@ -67,8 +68,9 @@ describe("DaemonTerminalManager kill tracking", () => {
 	it("waits for daemon exit and labels killed sessions", async () => {
 		const manager = new DaemonTerminalManager();
 		const paneId = "pane-kill-1";
-		const sessions = (manager as unknown as { sessions: Map<string, any> })
-			.sessions;
+		const sessions = (
+			manager as unknown as { sessions: Map<string, SessionInfo> }
+		).sessions;
 		sessions.set(paneId, {
 			paneId,
 			workspaceId: "ws-1",
