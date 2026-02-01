@@ -18,6 +18,25 @@ async function hasUpstreamBranch(
 	}
 }
 
+function isCaseInsensitiveRefError(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	return message.includes("case-insensitive filesystem");
+}
+
+async function safeFetch(git: ReturnType<typeof simpleGit>): Promise<void> {
+	try {
+		await git.fetch();
+	} catch (error) {
+		if (isCaseInsensitiveRefError(error)) {
+			console.warn(
+				"[git/fetch] Skipping fetch due to case-conflicting refs on remote",
+			);
+			return;
+		}
+		throw error;
+	}
+}
+
 export const createGitOperationsRouter = () => {
 	return router({
 		// NOTE: saveFile is defined in file-contents.ts with hardened path validation
@@ -59,7 +78,7 @@ export const createGitOperationsRouter = () => {
 				} else {
 					await git.push();
 				}
-				await git.fetch();
+				await safeFetch(git);
 				return { success: true };
 			}),
 
@@ -106,13 +125,13 @@ export const createGitOperationsRouter = () => {
 					if (isUpstreamMissingError(message)) {
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 						await git.push(["--set-upstream", "origin", branch.trim()]);
-						await git.fetch();
+						await safeFetch(git);
 						return { success: true };
 					}
 					throw error;
 				}
 				await git.push();
-				await git.fetch();
+				await safeFetch(git);
 				return { success: true };
 			}),
 
@@ -121,7 +140,7 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 				const git = simpleGit(input.worktreePath);
-				await git.fetch();
+				await safeFetch(git);
 				return { success: true };
 			}),
 
@@ -161,7 +180,7 @@ export const createGitOperationsRouter = () => {
 					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
 
 					await shell.openExternal(url);
-					await git.fetch();
+					await safeFetch(git);
 
 					return { success: true, url };
 				},
