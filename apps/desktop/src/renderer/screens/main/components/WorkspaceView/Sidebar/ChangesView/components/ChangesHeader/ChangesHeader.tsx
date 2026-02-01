@@ -3,20 +3,20 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
-import { HiArrowPath } from "react-icons/hi2";
-import { LuExpand, LuLoaderCircle, LuShrink, LuX } from "react-icons/lu";
+import { HiArrowPath, HiCheck } from "react-icons/hi2";
+import {
+	LuExpand,
+	LuGitBranch,
+	LuLoaderCircle,
+	LuShrink,
+	LuX,
+} from "react-icons/lu";
 import { VscGitStash, VscGitStashApply } from "react-icons/vsc";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -39,8 +39,6 @@ interface ChangesHeaderProps {
 	isStashPending: boolean;
 }
 
-const TOOLTIP_CLOSE_DELAY = 100;
-
 function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	const { baseBranch, setBaseBranch } = useChangesStore();
 	const { data: branchData, isLoading } =
@@ -49,31 +47,6 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 			{ enabled: !!worktreePath },
 		);
 
-	const [tooltipOpen, setTooltipOpen] = useState(false);
-	const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-	const handlePointerEnter = () => {
-		if (closeTimeoutRef.current) {
-			clearTimeout(closeTimeoutRef.current);
-			closeTimeoutRef.current = null;
-		}
-		setTooltipOpen(true);
-	};
-
-	const handlePointerLeave = () => {
-		closeTimeoutRef.current = setTimeout(() => {
-			setTooltipOpen(false);
-		}, TOOLTIP_CLOSE_DELAY);
-	};
-
-	useEffect(() => {
-		return () => {
-			if (closeTimeoutRef.current) {
-				clearTimeout(closeTimeoutRef.current);
-			}
-		};
-	}, []);
-
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 	const sortedBranches = [...(branchData?.remote ?? [])].sort((a, b) => {
 		if (a === branchData?.defaultBranch) return -1;
@@ -81,49 +54,56 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 		return a.localeCompare(b);
 	});
 
-	const handleChange = (value: string) => {
-		if (value === branchData?.defaultBranch && baseBranch === null) return;
-		setBaseBranch(value);
+	const handleBranchSelect = (branch: string) => {
+		if (branch === branchData?.defaultBranch && baseBranch === null) return;
+		setBaseBranch(branch);
 	};
 
-	if (isLoading || !branchData) {
-		return (
-			<span className="px-1.5 py-0.5 rounded bg-muted/50 text-foreground text-[10px] font-medium truncate">
-				{effectiveBaseBranch}
-			</span>
-		);
-	}
-
 	return (
-		<Tooltip open={tooltipOpen}>
-			<Select value={effectiveBaseBranch} onValueChange={handleChange}>
+		<DropdownMenu>
+			<Tooltip>
 				<TooltipTrigger asChild>
-					<SelectTrigger
-						size="sm"
-						className="h-5 px-1.5 py-0 text-[10px] font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-0.5 rounded"
-						onPointerEnter={handlePointerEnter}
-						onPointerLeave={handlePointerLeave}
-					>
-						<SelectValue />
-					</SelectTrigger>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-6 p-0"
+							disabled={isLoading}
+						>
+							<LuGitBranch className="size-3.5" />
+						</Button>
+					</DropdownMenuTrigger>
 				</TooltipTrigger>
-				<SelectContent align="start">
-					{sortedBranches
-						.filter((branch) => branch)
-						.map((branch) => (
-							<SelectItem key={branch} value={branch} className="text-xs">
+				<TooltipContent side="bottom" showArrow={false}>
+					Change base branch
+				</TooltipContent>
+			</Tooltip>
+			<DropdownMenuContent align="start" className="w-56">
+				<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+					Current base branch
+				</DropdownMenuLabel>
+				<DropdownMenuSeparator />
+				{sortedBranches
+					.filter((branch) => branch)
+					.map((branch) => (
+						<DropdownMenuItem
+							key={branch}
+							onClick={() => handleBranchSelect(branch)}
+							className="flex items-center justify-between text-xs"
+						>
+							<span className="truncate">
 								{branch}
-								{branch === branchData.defaultBranch && (
+								{branch === branchData?.defaultBranch && (
 									<span className="ml-1 text-muted-foreground">(default)</span>
 								)}
-							</SelectItem>
-						))}
-				</SelectContent>
-			</Select>
-			<TooltipContent side="bottom" showArrow={false}>
-				Change base branch
-			</TooltipContent>
-		</Tooltip>
+							</span>
+							{branch === effectiveBaseBranch && (
+								<HiCheck className="size-3.5 shrink-0 text-primary" />
+							)}
+						</DropdownMenuItem>
+					))}
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
 
@@ -263,69 +243,61 @@ export function ChangesHeader({
 	};
 
 	return (
-		<div className="flex flex-col">
-			<div className="flex items-center gap-1.5 px-2 py-1.5">
-				<span className="text-[10px] text-muted-foreground shrink-0">
-					Base:
-				</span>
-				<BaseBranchSelector worktreePath={worktreePath} />
-				<div className="flex-1" />
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={handleExpandToggle}
-							className="size-6 p-0"
-						>
-							{isExpanded ? (
-								<LuShrink className="size-3.5" />
-							) : (
-								<LuExpand className="size-3.5" />
-							)}
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						<HotkeyTooltipContent
-							label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-							hotkeyId="TOGGLE_EXPAND_SIDEBAR"
-						/>
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={toggleSidebar}
-							className="size-6 p-0"
-						>
-							<LuX className="size-3.5" />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						<HotkeyTooltipContent
-							label="Close Changes Sidebar"
-							hotkeyId="TOGGLE_SIDEBAR"
-						/>
-					</TooltipContent>
-				</Tooltip>
-			</div>
-
-			<div className="flex items-center gap-0.5 px-2 pb-1.5">
-				<StashDropdown
-					onStash={onStash}
-					onStashIncludeUntracked={onStashIncludeUntracked}
-					onStashPop={onStashPop}
-					isPending={isStashPending}
-				/>
-				<ViewModeToggle
-					viewMode={viewMode}
-					onViewModeChange={onViewModeChange}
-				/>
-				<RefreshButton onRefresh={onRefresh} />
-				<PRStatusLink workspaceId={workspaceId} />
-			</div>
+		<div className="flex items-center gap-0.5 px-2 py-1.5">
+			<BaseBranchSelector worktreePath={worktreePath} />
+			<StashDropdown
+				onStash={onStash}
+				onStashIncludeUntracked={onStashIncludeUntracked}
+				onStashPop={onStashPop}
+				isPending={isStashPending}
+			/>
+			<ViewModeToggle
+				viewMode={viewMode}
+				onViewModeChange={onViewModeChange}
+			/>
+			<RefreshButton onRefresh={onRefresh} />
+			<PRStatusLink workspaceId={workspaceId} />
+			<div className="flex-1" />
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={handleExpandToggle}
+						className="size-6 p-0"
+					>
+						{isExpanded ? (
+							<LuShrink className="size-3.5" />
+						) : (
+							<LuExpand className="size-3.5" />
+						)}
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					<HotkeyTooltipContent
+						label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+						hotkeyId="TOGGLE_EXPAND_SIDEBAR"
+					/>
+				</TooltipContent>
+			</Tooltip>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={toggleSidebar}
+						className="size-6 p-0"
+					>
+						<LuX className="size-3.5" />
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					<HotkeyTooltipContent
+						label="Close Changes Sidebar"
+						hotkeyId="TOGGLE_SIDEBAR"
+					/>
+				</TooltipContent>
+			</Tooltip>
 		</div>
 	);
 }
