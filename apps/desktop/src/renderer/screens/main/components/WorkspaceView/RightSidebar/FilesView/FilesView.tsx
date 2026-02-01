@@ -33,14 +33,10 @@ export function FilesView() {
 	);
 	const worktreePath = workspace?.worktreePath;
 
-	// Tree ref for programmatic control
 	const treeRef = useRef<TreeApi<FileTreeNodeType>>(null);
-
-	// Container ref and height for dynamic sizing
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [treeHeight, setTreeHeight] = useState(400);
 
-	// Measure container height
 	useLayoutEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -57,7 +53,6 @@ export function FilesView() {
 		return () => resizeObserver.disconnect();
 	}, []);
 
-	// Store state
 	const {
 		searchTerm,
 		showHiddenFiles,
@@ -70,18 +65,12 @@ export function FilesView() {
 
 	const currentSearchTerm = worktreePath ? searchTerm[worktreePath] || "" : "";
 
-	// Cache for loaded children (keyed by folder path)
 	const [childrenCache, setChildrenCache] = useState<
 		Record<string, DirectoryEntry[]>
 	>({});
-
-	// Track which folders are currently being loaded
 	const [loadingFolders, setLoadingFolders] = useState<Set<string>>(new Set());
-
-	// tRPC utils for fetching children
 	const trpcUtils = electronTrpc.useUtils();
 
-	// Query for root directory
 	const {
 		data: rootEntries,
 		isLoading,
@@ -98,7 +87,6 @@ export function FilesView() {
 		},
 	);
 
-	// Function to convert entries to tree nodes with cached children
 	const entriesToNodes = useCallback(
 		(entries: DirectoryEntry[]): FileTreeNodeType[] => {
 			return entries.map((entry) => {
@@ -114,20 +102,17 @@ export function FilesView() {
 					};
 				}
 
-				// Directory with unloaded children
 				return { ...entry, children: null };
 			});
 		},
 		[childrenCache],
 	);
 
-	// Build tree data from root entries
 	const treeData = useMemo((): FileTreeNodeType[] => {
 		if (!rootEntries) return [];
 		return entriesToNodes(rootEntries);
 	}, [rootEntries, entriesToNodes]);
 
-	// Load children for a folder
 	const loadChildren = useCallback(
 		async (folderPath: string) => {
 			if (
@@ -167,35 +152,26 @@ export function FilesView() {
 		[worktreePath, childrenCache, loadingFolders, showHiddenFiles, trpcUtils],
 	);
 
-	// Clear cache when workspace or hidden files setting changes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset on these changes
 	useEffect(() => {
 		setChildrenCache({});
 	}, [worktreePath, showHiddenFiles]);
 
-	// Actions
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
 			worktreePath,
 			onRefresh: () => refetch(),
 		});
 
-	// Tab store for opening files
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 
-	// New item state
 	const [newItemMode, setNewItemMode] = useState<NewItemMode>(null);
 	const [newItemParentPath, setNewItemParentPath] = useState<string>("");
-
-	// Delete confirmation state
 	const [deleteNode, setDeleteNode] = useState<FileTreeNodeType | null>(null);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-
-	// Context menu target
 	const [contextMenuNode, setContextMenuNode] =
 		useState<FileTreeNodeType | null>(null);
 
-	// Handle file double-click to open in editor pane
 	const handleActivate = useCallback(
 		(node: { data: FileTreeNodeType }) => {
 			if (!workspaceId || !worktreePath || node.data.isDirectory) return;
@@ -207,7 +183,6 @@ export function FilesView() {
 		[workspaceId, worktreePath, addFileViewerPane],
 	);
 
-	// Handle selection change
 	const handleSelect = useCallback(
 		(nodes: { data: FileTreeNodeType }[]) => {
 			if (!worktreePath) return;
@@ -219,23 +194,19 @@ export function FilesView() {
 		[worktreePath, setSelectedItems],
 	);
 
-	// Handle folder toggle - load children when expanding
 	const handleToggle = useCallback(
 		(id: string) => {
 			if (!worktreePath) return;
 			toggleFolder(worktreePath, id);
 
-			// Find the node and load children if expanding
 			const node = treeRef.current?.get(id);
 			if (node?.data.isDirectory && !node.isOpen) {
-				// Node is about to be opened, load children
 				loadChildren(node.data.path);
 			}
 		},
 		[worktreePath, toggleFolder, loadChildren],
 	);
 
-	// Handle rename
 	const handleRename = useCallback(
 		({ id, name }: { id: string; name: string }) => {
 			const node = treeData.find((n) => n.id === id);
@@ -246,7 +217,6 @@ export function FilesView() {
 		[treeData, rename],
 	);
 
-	// Handle new file/folder
 	const handleNewFile = useCallback((parentPath: string) => {
 		setNewItemMode("file");
 		setNewItemParentPath(parentPath);
@@ -275,7 +245,6 @@ export function FilesView() {
 		setNewItemParentPath("");
 	}, []);
 
-	// Handle delete
 	const handleDeleteRequest = useCallback((node: FileTreeNodeType) => {
 		setDeleteNode(node);
 		setShowDeleteDialog(true);
@@ -289,16 +258,10 @@ export function FilesView() {
 		setDeleteNode(null);
 	}, [deleteNode, deleteItems]);
 
-	// Handle context menu rename
 	const handleContextMenuRename = useCallback((node: FileTreeNodeType) => {
-		// Find the node in the tree and trigger edit mode
-		const treeNode = treeRef.current?.get(node.id);
-		if (treeNode) {
-			treeNode.edit();
-		}
+		treeRef.current?.get(node.id)?.edit();
 	}, []);
 
-	// Toolbar handlers
 	const handleSearchChange = useCallback(
 		(term: string) => {
 			if (!worktreePath) return;
@@ -318,7 +281,6 @@ export function FilesView() {
 		refetch();
 	}, [refetch]);
 
-	// Render loading state
 	if (!worktreePath) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
@@ -358,21 +320,20 @@ export function FilesView() {
 			>
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: context menu handler for tree container */}
 				<div
+					ref={containerRef}
 					className="flex-1 overflow-hidden"
 					onContextMenu={(e) => {
-						// Get clicked node from event target
-						const target = e.target as HTMLElement;
-						const nodeEl = target.closest("[data-node-id]");
+						const nodeEl = (e.target as HTMLElement).closest("[data-node-id]");
 						if (nodeEl) {
 							const nodeId = nodeEl.getAttribute("data-node-id");
-							const node = treeRef.current?.get(nodeId || "");
-							setContextMenuNode(node?.data || null);
+							setContextMenuNode(
+								treeRef.current?.get(nodeId || "")?.data || null,
+							);
 						} else {
 							setContextMenuNode(null);
 						}
 					}}
 				>
-					{/* New item input at root level */}
 					{newItemMode && newItemParentPath === worktreePath && (
 						<NewItemInput
 							mode={newItemMode}
@@ -386,7 +347,7 @@ export function FilesView() {
 						ref={treeRef}
 						data={treeData}
 						width="100%"
-						height={600}
+						height={treeHeight}
 						rowHeight={ROW_HEIGHT}
 						indent={TREE_INDENT}
 						overscanCount={OVERSCAN_COUNT}
