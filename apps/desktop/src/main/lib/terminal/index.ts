@@ -38,6 +38,10 @@ export async function tryListExistingDaemonSessions(): Promise<{
 		const result = await client.listSessions();
 		return { sessions: result.sessions };
 	} catch (error) {
+		console.warn(
+			"[TerminalManager] Failed to list existing daemon sessions (getTerminalHostClient/client.listSessions):",
+			error,
+		);
 		if (DEBUG_TERMINAL) {
 			console.log(
 				"[TerminalManager] Failed to list existing daemon sessions:",

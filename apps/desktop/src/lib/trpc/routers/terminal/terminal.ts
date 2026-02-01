@@ -19,6 +19,7 @@ import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveCwd } from "./utils";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
+const logger = console;
 let createOrAttachCallCounter = 0;
 
 const SAFE_ID = z
@@ -291,9 +292,21 @@ export const createTerminalRouter = () => {
 			);
 
 			if (beforeIds.length > 0) {
-				await Promise.allSettled(
+				const results = await Promise.allSettled(
 					beforeIds.map((paneId) => terminal.kill({ paneId })),
 				);
+				for (const [index, result] of results.entries()) {
+					if (result.status === "rejected") {
+						const paneId = beforeIds[index];
+						logger.error(
+							`[killAllDaemonSessions] terminal.kill failed for paneId=${paneId}`,
+							{
+								paneId,
+								reason: result.reason,
+							},
+						);
+					}
+				}
 			}
 
 			// Poll until sessions are actually dead
@@ -340,11 +353,23 @@ export const createTerminalRouter = () => {
 				);
 
 				if (toKill.length > 0) {
-					await Promise.allSettled(
-						toKill.map((session) =>
-							terminal.kill({ paneId: session.sessionId }),
-						),
+					const paneIds = toKill.map((session) => session.sessionId);
+					const results = await Promise.allSettled(
+						paneIds.map((paneId) => terminal.kill({ paneId })),
 					);
+					for (const [index, result] of results.entries()) {
+						if (result.status === "rejected") {
+							const paneId = paneIds[index];
+							logger.error(
+								`[killDaemonSessionsForWorkspace] terminal.kill failed for paneId=${paneId}`,
+								{
+									paneId,
+									workspaceId: input.workspaceId,
+									reason: result.reason,
+								},
+							);
+						}
+					}
 				}
 
 				return { killedCount: toKill.length };
