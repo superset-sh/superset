@@ -1,11 +1,21 @@
 import { useParams } from "@tanstack/react-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Tree, type TreeApi } from "react-arborist";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFileExplorerStore } from "renderer/stores/file-explorer";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { FileTreeNode as FileTreeNodeType } from "shared/file-tree-types";
+import type {
+	DirectoryEntry,
+	FileTreeNode as FileTreeNodeType,
+} from "shared/file-tree-types";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
 import { FileTreeContextMenu } from "./components/FileTreeContextMenu";
 import { FileTreeNode } from "./components/FileTreeNode";
@@ -26,6 +36,27 @@ export function FilesView() {
 	// Tree ref for programmatic control
 	const treeRef = useRef<TreeApi<FileTreeNodeType>>(null);
 
+	// Container ref and height for dynamic sizing
+	const containerRef = useRef<HTMLDivElement>(null);
+	const [treeHeight, setTreeHeight] = useState(400);
+
+	// Measure container height
+	useLayoutEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+
+		const updateHeight = () => {
+			setTreeHeight(container.clientHeight);
+		};
+
+		updateHeight();
+
+		const resizeObserver = new ResizeObserver(updateHeight);
+		resizeObserver.observe(container);
+
+		return () => resizeObserver.disconnect();
+	}, []);
+
 	// Store state
 	const {
 		searchTerm,
@@ -38,6 +69,17 @@ export function FilesView() {
 	} = useFileExplorerStore();
 
 	const currentSearchTerm = worktreePath ? searchTerm[worktreePath] || "" : "";
+
+	// Cache for loaded children (keyed by folder path)
+	const [childrenCache, setChildrenCache] = useState<
+		Record<string, DirectoryEntry[]>
+	>({});
+
+	// Track which folders are currently being loaded
+	const [loadingFolders, setLoadingFolders] = useState<Set<string>>(new Set());
+
+	// tRPC utils for fetching children
+	const trpcUtils = electronTrpc.useUtils();
 
 	// Query for root directory
 	const {
@@ -56,15 +98,80 @@ export function FilesView() {
 		},
 	);
 
+	// Function to convert entries to tree nodes with cached children
+	const entriesToNodes = useCallback(
+		(entries: DirectoryEntry[]): FileTreeNodeType[] => {
+			return entries.map((entry) => {
+				if (!entry.isDirectory) {
+					return { ...entry, children: undefined };
+				}
+
+				const cachedChildren = childrenCache[entry.path];
+				if (cachedChildren) {
+					return {
+						...entry,
+						children: entriesToNodes(cachedChildren),
+					};
+				}
+
+				// Directory with unloaded children
+				return { ...entry, children: null };
+			});
+		},
+		[childrenCache],
+	);
+
 	// Build tree data from root entries
 	const treeData = useMemo((): FileTreeNodeType[] => {
 		if (!rootEntries) return [];
+		return entriesToNodes(rootEntries);
+	}, [rootEntries, entriesToNodes]);
 
-		return rootEntries.map((entry) => ({
-			...entry,
-			children: entry.isDirectory ? null : undefined,
-		}));
-	}, [rootEntries]);
+	// Load children for a folder
+	const loadChildren = useCallback(
+		async (folderPath: string) => {
+			if (
+				!worktreePath ||
+				childrenCache[folderPath] ||
+				loadingFolders.has(folderPath)
+			) {
+				return;
+			}
+
+			setLoadingFolders((prev) => new Set(prev).add(folderPath));
+
+			try {
+				const children = await trpcUtils.filesystem.readDirectory.fetch({
+					dirPath: folderPath,
+					rootPath: worktreePath,
+					includeHidden: showHiddenFiles,
+				});
+
+				setChildrenCache((prev) => ({
+					...prev,
+					[folderPath]: children,
+				}));
+			} catch (error) {
+				console.error("[FilesView] Failed to load children:", {
+					folderPath,
+					error,
+				});
+			} finally {
+				setLoadingFolders((prev) => {
+					const next = new Set(prev);
+					next.delete(folderPath);
+					return next;
+				});
+			}
+		},
+		[worktreePath, childrenCache, loadingFolders, showHiddenFiles, trpcUtils],
+	);
+
+	// Clear cache when workspace or hidden files setting changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset on these changes
+	useEffect(() => {
+		setChildrenCache({});
+	}, [worktreePath, showHiddenFiles]);
 
 	// Actions
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
@@ -112,13 +219,20 @@ export function FilesView() {
 		[worktreePath, setSelectedItems],
 	);
 
-	// Handle folder toggle
+	// Handle folder toggle - load children when expanding
 	const handleToggle = useCallback(
 		(id: string) => {
 			if (!worktreePath) return;
 			toggleFolder(worktreePath, id);
+
+			// Find the node and load children if expanding
+			const node = treeRef.current?.get(id);
+			if (node?.data.isDirectory && !node.isOpen) {
+				// Node is about to be opened, load children
+				loadChildren(node.data.path);
+			}
 		},
-		[worktreePath, toggleFolder],
+		[worktreePath, toggleFolder, loadChildren],
 	);
 
 	// Handle rename
@@ -200,6 +314,7 @@ export function FilesView() {
 	}, [worktreePath, collapseAll]);
 
 	const handleRefresh = useCallback(() => {
+		setChildrenCache({});
 		refetch();
 	}, [refetch]);
 
