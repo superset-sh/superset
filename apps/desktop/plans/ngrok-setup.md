@@ -104,7 +104,22 @@ NEXT_PUBLIC_NGROK_URL=https://your-name-superset.ngrok-free.app
 
 This approach keeps Google OAuth working (which requires the registered `localhost` redirect URI) while enabling GitHub OAuth through ngrok.
 
-### 6. Start Development Servers
+### 6. Update GitHub App Callback URL
+
+The GitHub App needs its callback URL updated to point to your ngrok domain:
+
+1. Go to [GitHub App Settings](https://github.com/settings/apps) (or your organization's apps)
+2. Click on the **superset-app** (or your app name)
+3. Find **"Callback URL"** under "Identifying and authorizing users"
+4. Change it to your ngrok URL:
+   ```
+   https://your-name-superset.ngrok-free.app/api/github/callback
+   ```
+5. Save changes
+
+**Important:** Remember to change this back to the production URL (`https://api.superset.sh/api/github/callback`) when you're done testing locally, or it will break production GitHub OAuth.
+
+### 7. Start Development Servers
 
 In a separate terminal:
 
@@ -130,7 +145,7 @@ Make sure your `.env` has the correct `NEXT_PUBLIC_API_URL` pointing to your ngr
 
 ### GitHub shows "Callback URL mismatch"
 
-Your GitHub App's callback URL must match your ngrok domain. Update it in [GitHub App Settings](https://github.com/settings/apps).
+Your GitHub App's callback URL must match your ngrok domain. See [Step 6](#6-update-github-app-callback-url) to update it in GitHub App Settings.
 
 ### ngrok tunnel expires
 
