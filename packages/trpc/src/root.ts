@@ -4,6 +4,7 @@ import { adminRouter } from "./router/admin";
 import { agentRouter } from "./router/agent";
 import { analyticsRouter } from "./router/analytics";
 import { deviceRouter } from "./router/device";
+import { feedbackRouter } from "./router/feedback";
 import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
 import { repositoryRouter } from "./router/repository";
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
 	agent: agentRouter,
 	analytics: analyticsRouter,
 	device: deviceRouter,
+	feedback: feedbackRouter,
 	integration: integrationRouter,
 	organization: organizationRouter,
 	repository: repositoryRouter,

@@ -30,6 +30,7 @@ import { LuKeyboard } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOpenFeedbackModal } from "renderer/stores/feedback-modal";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
 export function OrganizationDropdown() {
@@ -39,6 +40,7 @@ export function OrganizationDropdown() {
 	const navigate = useNavigate();
 	const settingsHotkey = useHotkeyText("OPEN_SETTINGS");
 	const shortcutsHotkey = useHotkeyText("SHOW_HOTKEYS");
+	const openFeedbackModal = useOpenFeedbackModal();
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -159,9 +161,7 @@ export function OrganizationDropdown() {
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
 				</DropdownMenuItem>
-				<DropdownMenuItem
-					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
-				>
+				<DropdownMenuItem onClick={openFeedbackModal}>
 					<IoBugOutline className="h-4 w-4" />
 					Report Issue
 				</DropdownMenuItem>

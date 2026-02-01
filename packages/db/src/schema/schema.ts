@@ -330,3 +330,28 @@ export const agentCommands = pgTable(
 
 export type InsertAgentCommand = typeof agentCommands.$inferInsert;
 export type SelectAgentCommand = typeof agentCommands.$inferSelect;
+
+// User feedback submissions
+export const feedback = pgTable(
+	"feedback",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id").references(() => organizations.id, {
+			onDelete: "set null",
+		}),
+		message: text().notNull(),
+		images: jsonb().$type<string[]>().default([]),
+		metadata: jsonb().$type<Record<string, unknown>>(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("feedback_user_id_idx").on(table.userId),
+		index("feedback_created_at_idx").on(table.createdAt),
+	],
+);
+
+export type InsertFeedback = typeof feedback.$inferInsert;
+export type SelectFeedback = typeof feedback.$inferSelect;
