@@ -30,9 +30,11 @@ mock.module("renderer/lib/trpc-client", () => ({
 }));
 
 // Import after mocks are set up
-const { getDefaultTerminalBg, getDefaultTerminalTheme } = await import(
-	"./helpers"
-);
+const {
+	getDefaultTerminalBg,
+	getDefaultTerminalTheme,
+	setupKeyboardHandler,
+} = await import("./helpers");
 
 describe("getDefaultTerminalTheme", () => {
 	beforeEach(() => {
@@ -106,5 +108,83 @@ describe("getDefaultTerminalBg", () => {
 
 	it("should return default background when no cache", () => {
 		expect(getDefaultTerminalBg()).toBe("#1a1a1a");
+	});
+});
+
+describe("setupKeyboardHandler", () => {
+	const originalNavigator = globalThis.navigator;
+
+	afterEach(() => {
+		// Restore navigator between tests
+		// @ts-expect-error - resetting global navigator for tests
+		globalThis.navigator = originalNavigator;
+	});
+
+	it("maps Option+Left/Right to Meta+B/F on macOS", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		let handler: ((event: KeyboardEvent) => boolean) | null = null;
+		const xterm = {
+			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) =>
+				(handler = next),
+		};
+
+		const onWrite = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+
+		handler?.({
+			type: "keydown",
+			key: "ArrowLeft",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+		handler?.({
+			type: "keydown",
+			key: "ArrowRight",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1bb");
+		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+	});
+
+	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "Win32" };
+
+		let handler: ((event: KeyboardEvent) => boolean) | null = null;
+		const xterm = {
+			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) =>
+				(handler = next),
+		};
+
+		const onWrite = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+
+		handler?.({
+			type: "keydown",
+			key: "ArrowLeft",
+			altKey: false,
+			metaKey: false,
+			ctrlKey: true,
+			shiftKey: false,
+		} as KeyboardEvent);
+		handler?.({
+			type: "keydown",
+			key: "ArrowRight",
+			altKey: false,
+			metaKey: false,
+			ctrlKey: true,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1bb");
+		expect(onWrite).toHaveBeenCalledWith("\x1bf");
 	});
 });
