@@ -1,7 +1,6 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
@@ -9,22 +8,12 @@ import { WaitlistModal } from "../WaitlistModal";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
-const ShaderAnimation = dynamic(
-	() =>
-		import("../../../components/ui/shader-animation").then(
-			(mod) => mod.ShaderAnimation,
-		),
-	{ ssr: false },
-);
-
 export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
 
 	return (
 		<div>
 			<div className="flex mt-14 min-h-[calc(100svh-64px)] items-center overflow-hidden">
-				<ShaderAnimation opacity={0.01} speed={0.005} intensity={0.00015} />
-
 				<div className="relative w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-[30px] py-8 sm:py-12 lg:py-16">
 					<div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 lg:gap-16 items-center">
 						<div className="space-y-6 sm:space-y-8">

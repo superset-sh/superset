@@ -111,10 +111,7 @@ export default function RootLayout({
 			suppressHydrationWarning
 		>
 			<head>
-				<Script
-					src="https://tally.so/widgets/embed.js"
-					strategy="afterInteractive"
-				/>
+				<Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />

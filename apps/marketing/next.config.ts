@@ -17,6 +17,11 @@ const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 
+	// Tree-shake barrel exports from heavy libraries to reduce bundle size
+	experimental: {
+		optimizePackageImports: ["framer-motion", "react-icons", "lucide-react"],
+	},
+
 	images: {
 		remotePatterns: [
 			{
