@@ -1,6 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
-import type { Metadata } from "next";
 import { ExternalLink } from "lucide-react";
+import type { Metadata } from "next";
 import { FaGithub } from "react-icons/fa";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { getChangelogEntries } from "@/lib/changelog";
