@@ -221,9 +221,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		new Set(),
 	);
 
-	// Reset expanded commits when workspace changes to avoid querying
-	// old commit hashes against the new worktree
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally resets on worktreePath change
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on workspace change
 	useEffect(() => {
 		setExpandedCommits(new Set());
 	}, [worktreePath]);

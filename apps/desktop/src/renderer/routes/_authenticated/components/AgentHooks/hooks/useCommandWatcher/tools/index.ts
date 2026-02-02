@@ -8,6 +8,7 @@ import { startClaudeSession } from "./start-claude-session";
 import { startClaudeSubagent } from "./start-claude-subagent";
 import { switchWorkspace } from "./switch-workspace";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
+import { updateWorkspace } from "./update-workspace";
 
 // Registry of all available tools
 // biome-ignore lint/suspicious/noExplicitAny: Tool schemas vary
@@ -21,6 +22,7 @@ const tools: ToolDefinition<any>[] = [
 	startClaudeSession,
 	startClaudeSubagent,
 	switchWorkspace,
+	updateWorkspace,
 ];
 
 // Map for O(1) lookup by name

@@ -2,11 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
-import type {
-	ChangeCategory,
-	ChangedFile,
-	GitChangesStatus,
-} from "shared/changes-types";
+import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import { useScrollContext } from "../../context";
 import { sortFiles } from "../../utils";
 import { VirtualizedFileList } from "../VirtualizedFileList";
@@ -32,15 +28,9 @@ export function InfiniteScrollView({
 		hideUnchangedRegions,
 		toggleHideUnchangedRegions,
 		fileListViewMode,
+		expandedSections: expandedCategories,
+		toggleSection: toggleCategory,
 	} = useChangesStore();
-	const [expandedCategories, setExpandedCategories] = useState<
-		Record<ChangeCategory, boolean>
-	>({
-		"against-base": true,
-		committed: true,
-		staged: true,
-		unstaged: true,
-	});
 	const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
 	const totals = useMemo(() => {
@@ -75,13 +65,6 @@ export function InfiniteScrollView({
 			deletions: totalDeletions,
 		};
 	}, [status]);
-
-	const toggleCategory = useCallback((category: ChangeCategory) => {
-		setExpandedCategories((prev) => ({
-			...prev,
-			[category]: !prev[category],
-		}));
-	}, []);
 
 	const toggleFile = useCallback((key: string) => {
 		setCollapsedFiles((prev) => {

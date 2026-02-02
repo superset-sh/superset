@@ -277,7 +277,7 @@ fi
 # 4. Push changes and create PR if needed
 info "Pushing changes to remote..."
 CURRENT_BRANCH=$(git branch --show-current)
-git push origin "${CURRENT_BRANCH}"
+git push -u origin "HEAD:${CURRENT_BRANCH}"
 success "Changes pushed to ${CURRENT_BRANCH}"
 
 # Create PR if not on main branch

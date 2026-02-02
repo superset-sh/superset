@@ -6,16 +6,20 @@ export function register(server: McpServer) {
 	server.registerTool(
 		"delete_workspace",
 		{
-			description: "Delete a workspace",
+			description: "Delete one or more workspaces on a device",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
-				workspaceId: z.string().uuid().describe("Workspace ID to delete"),
+				workspaceIds: z
+					.array(z.string().uuid())
+					.min(1)
+					.max(5)
+					.describe("Array of workspace IDs to delete (1-5)"),
 			},
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const deviceId = args.deviceId as string;
-			const workspaceId = args.workspaceId as string;
+			const workspaceIds = args.workspaceIds as string[];
 
 			if (!deviceId) {
 				return {
@@ -28,7 +32,7 @@ export function register(server: McpServer) {
 				ctx,
 				deviceId,
 				tool: "delete_workspace",
-				params: { workspaceId },
+				params: { workspaceIds },
 			});
 		},
 	);

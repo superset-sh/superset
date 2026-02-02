@@ -107,13 +107,11 @@ export function FileItem({
 		});
 
 	const handleClick = useCallback(() => {
-		// Clear any pending single-click timeout
 		if (clickTimeoutRef.current) {
 			clearTimeout(clickTimeoutRef.current);
 			clickTimeoutRef.current = null;
 		}
 
-		// Set a timeout for single-click action
 		clickTimeoutRef.current = setTimeout(() => {
 			clickTimeoutRef.current = null;
 			onClick();
@@ -135,7 +133,6 @@ export function FileItem({
 		[openInEditor],
 	);
 
-	// Cleanup timeout on unmount
 	useEffect(() => {
 		return () => {
 			if (clickTimeoutRef.current) {
