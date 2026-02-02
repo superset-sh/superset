@@ -2,7 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { ArticleJsonLd } from "@/components/JsonLd";
+import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/JsonLd";
 import { getAllChangelogSlugs, getChangelogEntry } from "@/lib/changelog";
 import { changelogMdxComponents } from "../components/ChangelogEntry/changelog-mdx-components";
 import { ChangelogEntryLayout } from "./components/ChangelogEntryLayout";
@@ -30,6 +30,13 @@ export default async function ChangelogEntryPage({ params }: PageProps) {
 				publishedTime={new Date(entry.date).toISOString()}
 				url={url}
 				image={entry.image}
+			/>
+			<BreadcrumbJsonLd
+				items={[
+					{ name: "Home", url: COMPANY.MARKETING_URL },
+					{ name: "Changelog", url: `${COMPANY.MARKETING_URL}/changelog` },
+					{ name: entry.title, url },
+				]}
 			/>
 			<ChangelogEntryLayout entry={entry}>
 				<MDXRemote source={entry.content} components={changelogMdxComponents} />

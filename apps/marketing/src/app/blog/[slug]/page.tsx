@@ -2,7 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { ArticleJsonLd } from "@/components/JsonLd";
+import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/JsonLd";
 import {
 	extractToc,
 	getAllSlugs,
@@ -41,6 +41,13 @@ export default async function BlogPostPage({ params }: PageProps) {
 				publishedTime={new Date(post.date).toISOString()}
 				url={url}
 				image={post.image}
+			/>
+			<BreadcrumbJsonLd
+				items={[
+					{ name: "Home", url: COMPANY.MARKETING_URL },
+					{ name: "Blog", url: `${COMPANY.MARKETING_URL}/blog` },
+					{ name: post.title, url },
+				]}
 			/>
 			<BlogPostLayout post={post} toc={toc} relatedPosts={relatedPosts}>
 				<MDXRemote source={post.content} components={mdxComponents} />

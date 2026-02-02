@@ -108,14 +108,58 @@ export function WebsiteJsonLd() {
 		"@type": "WebSite",
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
-		potentialAction: {
-			"@type": "SearchAction",
-			target: {
-				"@type": "EntryPoint",
-				urlTemplate: `${COMPANY.MARKETING_URL}/blog?q={search_term_string}`,
+	};
+
+	return (
+		<script
+			type="application/ld+json"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
+			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+		/>
+	);
+}
+
+interface FAQPageJsonLdProps {
+	items: Array<{ question: string; answer: string }>;
+}
+
+export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		mainEntity: items.map((item) => ({
+			"@type": "Question",
+			name: item.question,
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: item.answer,
 			},
-			"query-input": "required name=search_term_string",
-		},
+		})),
+	};
+
+	return (
+		<script
+			type="application/ld+json"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
+			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+		/>
+	);
+}
+
+interface BreadcrumbJsonLdProps {
+	items: Array<{ name: string; url: string }>;
+}
+
+export function BreadcrumbJsonLd({ items }: BreadcrumbJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: items.map((item, index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name: item.name,
+			item: item.url,
+		})),
 	};
 
 	return (
