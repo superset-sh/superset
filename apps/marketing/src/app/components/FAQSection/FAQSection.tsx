@@ -93,27 +93,16 @@ export function FAQSection() {
 			<div className="max-w-7xl mx-auto">
 				<div className="grid grid-cols-1 xl:grid-cols-[1fr_1.5fr] gap-12 xl:gap-20">
 					{/* Left Column - Title */}
-					<motion.div
-						className="xl:sticky xl:top-24 xl:self-start"
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5 }}
-					>
+					<div className="xl:sticky xl:top-24 xl:self-start">
 						<h2 className="text-3xl sm:text-4xl xl:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
 							Frequently
 							<br />
 							asked questions
 						</h2>
-					</motion.div>
+					</div>
 
 					{/* Right Column - Accordion */}
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5, delay: 0.1 }}
-					>
+					<div>
 						<div className="w-full">
 							{FAQ_ITEMS.map((item, index) => (
 								<FAQAccordionItem
@@ -124,7 +113,7 @@ export function FAQSection() {
 								/>
 							))}
 						</div>
-					</motion.div>
+					</div>
 				</div>
 			</div>
 		</section>

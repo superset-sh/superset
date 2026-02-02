@@ -4,7 +4,8 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
-import { getLinearClient, verifyOrgAdmin, verifyOrgMembership } from "./utils";
+import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import { getLinearClient } from "./utils";
 
 export const linearRouter = {
 	getConnection: protectedProcedure

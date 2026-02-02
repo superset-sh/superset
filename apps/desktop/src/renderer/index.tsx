@@ -26,17 +26,22 @@ const router = createRouter({
 	},
 });
 
-// Track pageviews on navigation
 const unsubscribe = router.subscribe("onResolved", (event) => {
 	posthog.capture("$pageview", {
 		$current_url: event.toLocation.pathname,
 	});
 });
 
-// Clean up subscription on HMR
+const handleDeepLink = (path: string) => {
+	console.log("[deep-link] Navigating to:", path);
+	router.navigate({ to: path });
+};
+window.ipcRenderer.on("deep-link-navigate", handleDeepLink);
+
 if (import.meta.hot) {
 	import.meta.hot.dispose(() => {
 		unsubscribe();
+		window.ipcRenderer.off("deep-link-navigate", handleDeepLink);
 	});
 }
 

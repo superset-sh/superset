@@ -20,12 +20,14 @@ const ibmPlexMono = IBM_Plex_Mono({
 	weight: ["300", "400", "500"],
 	subsets: ["latin"],
 	variable: "--font-ibm-plex-mono",
+	display: "swap",
 });
 
 const inter = Inter({
 	weight: ["300", "400", "500"],
 	subsets: ["latin"],
 	variable: "--font-inter",
+	display: "swap",
 });
 
 const siteDescription =

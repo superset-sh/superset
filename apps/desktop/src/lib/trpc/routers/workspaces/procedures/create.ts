@@ -267,6 +267,7 @@ export const createCreateProcedures = () => {
 					branchName: z.string().optional(),
 					baseBranch: z.string().optional(),
 					useExistingBranch: z.boolean().optional(),
+					applyPrefix: z.boolean().optional().default(true),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -302,30 +303,36 @@ export const createCreateProcedures = () => {
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
 
-				const globalSettings = localDb.select().from(settings).get();
-				const projectOverrides = project.branchPrefixMode != null;
-				const prefixMode = projectOverrides
-					? project.branchPrefixMode
-					: (globalSettings?.branchPrefixMode ?? "none");
-				const customPrefix = projectOverrides
-					? project.branchPrefixCustom
-					: globalSettings?.branchPrefixCustom;
+				let branchPrefix: string | undefined;
+				if (input.applyPrefix) {
+					const globalSettings = localDb.select().from(settings).get();
+					const projectOverrides = project.branchPrefixMode != null;
+					const prefixMode = projectOverrides
+						? project.branchPrefixMode
+						: (globalSettings?.branchPrefixMode ?? "none");
+					const customPrefix = projectOverrides
+						? project.branchPrefixCustom
+						: globalSettings?.branchPrefixCustom;
 
-				const rawPrefix = await getBranchPrefix({
-					repoPath: project.mainRepoPath,
-					mode: prefixMode,
-					customPrefix,
-				});
-				const rawAuthorPrefix = rawPrefix
-					? sanitizeAuthorPrefix(rawPrefix)
-					: undefined;
+					const rawPrefix = await getBranchPrefix({
+						repoPath: project.mainRepoPath,
+						mode: prefixMode,
+						customPrefix,
+					});
+					const sanitizedPrefix = rawPrefix
+						? sanitizeAuthorPrefix(rawPrefix)
+						: undefined;
 
-				const existingSet = new Set(
-					existingBranches.map((b) => b.toLowerCase()),
-				);
-				const prefixWouldCollide =
-					rawAuthorPrefix && existingSet.has(rawAuthorPrefix.toLowerCase());
-				const authorPrefix = prefixWouldCollide ? undefined : rawAuthorPrefix;
+					const existingSet = new Set(
+						existingBranches.map((b) => b.toLowerCase()),
+					);
+					const prefixWouldCollide =
+						sanitizedPrefix && existingSet.has(sanitizedPrefix.toLowerCase());
+					branchPrefix = prefixWouldCollide ? undefined : sanitizedPrefix;
+				}
+
+				const withPrefix = (name: string): string =>
+					branchPrefix ? `${branchPrefix}/${name}` : name;
 
 				let branch: string;
 				if (existingBranchName) {
@@ -336,10 +343,12 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					const sanitized = sanitizeBranchName(input.branchName);
-					branch = authorPrefix ? `${authorPrefix}/${sanitized}` : sanitized;
+					branch = withPrefix(sanitizeBranchName(input.branchName));
 				} else {
-					branch = generateBranchName({ existingBranches, authorPrefix });
+					branch = generateBranchName({
+						existingBranches,
+						authorPrefix: branchPrefix,
+					});
 				}
 
 				const worktreePath = join(

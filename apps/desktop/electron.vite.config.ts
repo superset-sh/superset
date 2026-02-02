@@ -19,7 +19,7 @@ import {
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../.env"), override: true });
+config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
 
 const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
@@ -89,7 +89,11 @@ export default defineConfig({
 			},
 		},
 		resolve: {
-			alias: {},
+			alias: {
+				// @xterm/headless 6.0.0 has a packaging bug: `module` field points to
+				// non-existent `lib/xterm.mjs`. Force Vite to use the CJS entry instead.
+				"@xterm/headless": "@xterm/headless/lib-headless/xterm-headless.js",
+			},
 		},
 	},
 

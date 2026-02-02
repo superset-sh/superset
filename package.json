@@ -34,7 +34,7 @@
 		"format:check": "biome format .",
 		"typecheck": "turbo typecheck",
 		"ui-add": "turbo run ui-add",
-		"postinstall": "sherif; bun run --filter=@superset/desktop install:deps",
+		"postinstall": "./scripts/postinstall.sh",
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",

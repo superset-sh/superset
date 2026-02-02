@@ -28,9 +28,7 @@ export function useOpenWorktree(
 	return electronTrpc.workspaces.openWorktree.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
-			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
-			// Invalidate project queries since openWorktree updates project metadata
 			await utils.projects.getRecents.invalidate();
 
 			const initialCommands =
@@ -38,13 +36,10 @@ export function useOpenWorktree(
 					? data.initialCommands
 					: undefined;
 
-			// Always create a terminal tab when opening a worktree
 			const { tabId, paneId } = addTab(data.workspace.id);
 			if (initialCommands) {
 				setTabAutoTitle(tabId, "Workspace Setup");
 			}
-			// Pre-create terminal session (with initial commands if present)
-			// Terminal component will attach to this session when it mounts
 			createOrAttach.mutate({
 				paneId,
 				tabId,
@@ -53,7 +48,6 @@ export function useOpenWorktree(
 			});
 
 			if (!initialCommands) {
-				// Show config toast if no setup commands
 				toast.info("No setup script configured", {
 					description: "Automate workspace setup with a config.json file",
 					action: {
@@ -66,10 +60,8 @@ export function useOpenWorktree(
 				});
 			}
 
-			// Navigate to the opened workspace
 			navigateToWorkspace(data.workspace.id, navigate);
 
-			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);
 		},
 	});

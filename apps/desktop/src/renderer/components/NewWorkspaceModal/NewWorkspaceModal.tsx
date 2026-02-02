@@ -47,17 +47,8 @@ import {
 } from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
-function generateBranchFromTitle({
-	title,
-	prefix,
-}: {
-	title: string;
-	prefix: string | null;
-}): string {
-	const slug = sanitizeSegment(title);
-	if (!slug) return "";
-
-	return prefix ? `${prefix}/${slug}` : slug;
+function generateSlugFromTitle(title: string): string {
+	return sanitizeSegment(title);
 }
 
 type Mode = "existing" | "new" | "cloud";
@@ -139,13 +130,16 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	const generatedBranchName = generateBranchFromTitle({
-		title,
-		prefix: resolvedPrefix,
-	});
-	const branchNameToCreate = branchNameEdited
+	const branchSlug = branchNameEdited
 		? sanitizeBranchName(branchName)
-		: generatedBranchName;
+		: generateSlugFromTitle(title);
+
+	const applyPrefix = !branchNameEdited;
+
+	const branchPreview =
+		branchSlug && applyPrefix && resolvedPrefix
+			? `${resolvedPrefix}/${branchSlug}`
+			: branchSlug;
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
@@ -229,8 +223,9 @@ export function NewWorkspaceModal() {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
-				branchName: branchNameToCreate || undefined,
+				branchName: branchSlug || undefined,
 				baseBranch: effectiveBaseBranch || undefined,
+				applyPrefix,
 			});
 
 			handleClose();
@@ -356,7 +351,7 @@ export function NewWorkspaceModal() {
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
 											<span className="font-mono">
-												{branchNameToCreate || "branch-name"}
+												{branchPreview || "branch-name"}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
@@ -386,9 +381,7 @@ export function NewWorkspaceModal() {
 													id="branch"
 													className="h-8 text-sm font-mono"
 													placeholder="auto-generated"
-													value={
-														branchNameEdited ? branchName : generatedBranchName
-													}
+													value={branchNameEdited ? branchName : branchPreview}
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
 													}

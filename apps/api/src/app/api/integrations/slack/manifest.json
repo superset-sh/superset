@@ -1,0 +1,72 @@
+{
+	"display_information": {
+		"name": "Superset",
+		"description": "Superset's supercharged AI coding assistant - Spawn cloud agents, plan tasks, do code reviews, and more",
+		"background_color": "#0a0a0a",
+		"long_description": "Supercharge your coding workflows with Superset, an AI Coding agent. Spin up a cloud sandbox, organize your work, open worktrees on your desktop app, or get fast answers. Just start a DM with Superset for instant access without leaving Slack.\r\nSuperset can make mistakes. Please take care with prompts."
+	},
+	"features": {
+		"app_home": {
+			"home_tab_enabled": true,
+			"messages_tab_enabled": true,
+			"messages_tab_read_only_enabled": false
+		},
+		"bot_user": {
+			"display_name": "Superset",
+			"always_online": true
+		},
+		"unfurl_domains": ["app.superset.sh"],
+		"assistant_view": {
+			"assistant_description": "Superset's AI Coding Agent - spin up sandboxes, plan out work, run agents and more",
+			"suggested_prompts": [
+				{
+					"title": "Create Task",
+					"message": "Help me create a task for learning about how the Superset Slack agent works"
+				}
+			]
+		},
+		"rich_previews": {
+			"is_active": true,
+			"entity_types": ["slack#/entities/task"]
+		}
+	},
+	"oauth_config": {
+		"_comment_redirect_urls": "Update these URLs to match your NEXT_PUBLIC_API_URL (ngrok in dev, production URL in prod)",
+		"redirect_urls": [
+			"https://api.superset.sh/api/integrations/slack/callback"
+		],
+		"scopes": {
+			"bot": [
+				"app_mentions:read",
+				"chat:write",
+				"reactions:write",
+				"channels:history",
+				"groups:history",
+				"im:history",
+				"im:read",
+				"im:write",
+				"mpim:history",
+				"users:read",
+				"assistant:write",
+				"links:read",
+				"links:write"
+			]
+		}
+	},
+	"settings": {
+		"event_subscriptions": {
+			"request_url": "https://api.superset.sh/api/integrations/slack/events",
+			"bot_events": [
+				"app_mention",
+				"message.im",
+				"assistant_thread_started",
+				"assistant_thread_context_changed",
+				"link_shared",
+				"entity_details_requested"
+			]
+		},
+		"org_deploy_enabled": false,
+		"socket_mode_enabled": false,
+		"token_rotation_enabled": false
+	}
+}

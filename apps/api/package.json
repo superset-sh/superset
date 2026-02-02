@@ -11,6 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "^0.71.2",
 		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
 		"@linear/sdk": "^68.1.0",
 		"@modelcontextprotocol/sdk": "^1.25.3",
@@ -18,8 +19,11 @@
 		"@octokit/rest": "^22.0.1",
 		"@octokit/webhooks": "^14.2.0",
 		"@sentry/nextjs": "^10.36.0",
+		"@slack/types": "^2.19.0",
+		"@slack/web-api": "^7.13.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/mcp": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",

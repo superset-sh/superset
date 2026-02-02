@@ -20,7 +20,6 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 		headers: await headers(),
 	});
 
-	// Redirect to sign-in if not authenticated
 	if (!session) {
 		const params = await searchParams;
 		const returnUrl = `/oauth/consent?${new URLSearchParams(params as Record<string, string>).toString()}`;
@@ -29,7 +28,6 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 
 	const { consent_code, client_id, scope } = await searchParams;
 
-	// Validate required parameters
 	if (!consent_code || !client_id) {
 		return (
 			<div className="relative flex min-h-screen flex-col">
@@ -62,11 +60,9 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 
 	const scopes = scope?.split(" ").filter(Boolean) ?? ["openid"];
 
-	// Fetch user's organization memberships via tRPC
 	const trpc = await api();
 	const userOrganizations = await trpc.user.myOrganizations.query();
 
-	// Get active organization from session or default to first
 	const extendedSession = session.session as typeof session.session & {
 		activeOrganizationId?: string | null;
 	};

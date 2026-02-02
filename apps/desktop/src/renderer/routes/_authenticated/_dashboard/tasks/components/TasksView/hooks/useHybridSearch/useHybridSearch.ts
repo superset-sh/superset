@@ -30,7 +30,7 @@ export function useHybridSearch<T extends SearchableTask>(tasks: T[]) {
 			}),
 		[tasks],
 	);
-	// TODO(satya): Replace this with embeddings search
+
 	const fuzzyFuse = useMemo(
 		() =>
 			new Fuse(tasks, {

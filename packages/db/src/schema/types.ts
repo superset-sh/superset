@@ -3,4 +3,8 @@ export type LinearConfig = {
 	newTasksTeamId?: string;
 };
 
-export type IntegrationConfig = LinearConfig;
+export type SlackConfig = {
+	provider: "slack";
+};
+
+export type IntegrationConfig = LinearConfig | SlackConfig;

@@ -36,6 +36,7 @@
 		"simplex-noise": "^4.0.3",
 		"stripe-gradient": "^1.0.1",
 		"three": "^0.181.2",
+		"ua-parser-js": "^2.0.8",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {
@@ -47,6 +48,7 @@
 		"@types/react": "~19.1.0",
 		"@types/react-dom": "^19.2.3",
 		"@types/three": "^0.181.0",
+		"@types/ua-parser-js": "^0.7.39",
 		"babel-plugin-react-compiler": "^1.0.0",
 		"dotenv": "^17.2.3",
 		"tailwindcss": "^4.1.18",

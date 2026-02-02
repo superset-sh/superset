@@ -24,6 +24,10 @@ export const env = createEnv({
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
+		SLACK_CLIENT_ID: z.string().min(1),
+		SLACK_CLIENT_SECRET: z.string().min(1),
+		SLACK_SIGNING_SECRET: z.string(),
+		ANTHROPIC_API_KEY: z.string(),
 		QSTASH_TOKEN: z.string().min(1),
 		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
 		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
@@ -35,6 +39,7 @@ export const env = createEnv({
 		STRIPE_WEBHOOK_SECRET: z.string(),
 		STRIPE_PRO_MONTHLY_PRICE_ID: z.string(),
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
+		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 	client: {
