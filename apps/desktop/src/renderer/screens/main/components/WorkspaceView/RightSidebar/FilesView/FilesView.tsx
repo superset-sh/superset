@@ -108,7 +108,8 @@ export function FilesView() {
 
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
-		if (worktreePath && prevWorktreePathRef.current !== worktreePath) {
+		const prevPath = prevWorktreePathRef.current;
+		if (worktreePath && prevPath && prevPath !== worktreePath) {
 			invalidateTree();
 		}
 		if (worktreePath) {
