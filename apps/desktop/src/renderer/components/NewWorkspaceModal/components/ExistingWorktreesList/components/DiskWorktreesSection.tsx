@@ -25,29 +25,26 @@ export function DiskWorktreesSection({
 				</div>
 			</div>
 
-			{diskWorktrees.map((wt) => {
-				const folderName = wt.path.split("/").pop() ?? wt.branch;
-				return (
-					<button
-						key={wt.path}
-						type="button"
-						onClick={() => onOpenWorktree(wt.path, wt.branch)}
-						disabled={disabled}
-						className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-50"
-					>
-						<LuGitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-						<span className="flex-1 text-sm truncate font-mono">
-							{wt.branch}
-						</span>
-						<span
-							className="text-xs text-muted-foreground/60 truncate max-w-[120px]"
+			{diskWorktrees.map((wt) => (
+				<button
+					key={wt.path}
+					type="button"
+					onClick={() => onOpenWorktree(wt.path, wt.branch)}
+					disabled={disabled}
+					className="w-full flex items-start gap-2 px-2 py-1.5 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-50"
+				>
+					<LuGitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+					<div className="flex-1 min-w-0">
+						<div className="text-xs font-mono truncate">{wt.branch}</div>
+						<div
+							className="text-[10px] text-muted-foreground/60 truncate"
 							title={wt.path}
 						>
-							{folderName}
-						</span>
-					</button>
-				);
-			})}
+							{wt.path}
+						</div>
+					</div>
+				</button>
+			))}
 		</div>
 	);
 }
