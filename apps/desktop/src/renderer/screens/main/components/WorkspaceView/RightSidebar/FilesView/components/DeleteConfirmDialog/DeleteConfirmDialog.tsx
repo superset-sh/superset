@@ -7,10 +7,10 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import type { FileTreeNode } from "shared/file-tree-types";
+import type { DirectoryEntry } from "shared/file-tree-types";
 
 interface DeleteConfirmDialogProps {
-	node: FileTreeNode | null;
+	entry: DirectoryEntry | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onConfirm: () => void;
@@ -18,17 +18,17 @@ interface DeleteConfirmDialogProps {
 }
 
 export function DeleteConfirmDialog({
-	node,
+	entry,
 	open,
 	onOpenChange,
 	onConfirm,
 	isDeleting = false,
 }: DeleteConfirmDialogProps) {
-	if (!node) return null;
+	if (!entry) return null;
 
-	const itemType = node.isDirectory ? "folder" : "file";
-	const title = `Delete ${itemType} "${node.name}"?`;
-	const description = node.isDirectory
+	const itemType = entry.isDirectory ? "folder" : "file";
+	const title = `Delete ${itemType} "${entry.name}"?`;
+	const description = entry.isDirectory
 		? "This folder and all its contents will be moved to the trash. This action can be undone from the system trash."
 		: "This file will be moved to the trash. This action can be undone from the system trash.";
 

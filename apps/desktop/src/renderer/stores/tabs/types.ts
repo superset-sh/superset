@@ -3,6 +3,7 @@ import type { ChangeCategory } from "shared/changes-types";
 import type {
 	BaseTab,
 	BaseTabsState,
+	FileViewerMode,
 	Pane,
 	PaneStatus,
 	PaneType,
@@ -45,6 +46,8 @@ export interface AddTabWithMultiplePanesOptions {
  */
 export interface AddFileViewerPaneOptions {
 	filePath: string;
+	/** Override default view mode (raw/diff/rendered) */
+	viewMode?: FileViewerMode;
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
 	oldPath?: string;

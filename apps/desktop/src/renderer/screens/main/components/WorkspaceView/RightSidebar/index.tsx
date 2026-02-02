@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
 	LuExpand,
 	LuFile,
@@ -11,6 +11,7 @@ import {
 } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useChangesStore } from "renderer/stores/changes";
 import {
 	RightSidebarTab,
 	SidebarMode,
@@ -53,6 +54,20 @@ export function RightSidebar() {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
+	const { baseBranch } = useChangesStore();
+	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
+		{ worktreePath: worktreePath || "" },
+		{ enabled: !!worktreePath },
+	);
+	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
+	const { data: status } = electronTrpc.changes.getStatus.useQuery(
+		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
+		{
+			enabled: !!worktreePath,
+			refetchInterval: 2500,
+			refetchOnWindowFocus: true,
+		},
+	);
 	const {
 		currentMode,
 		rightSidebarTab,
@@ -61,6 +76,20 @@ export function RightSidebar() {
 		setMode,
 	} = useSidebarStore();
 	const isExpanded = currentMode === SidebarMode.Changes;
+	const hasChanges = status
+		? (status.againstBase?.length ?? 0) > 0 ||
+			(status.commits?.length ?? 0) > 0 ||
+			(status.staged?.length ?? 0) > 0 ||
+			(status.unstaged?.length ?? 0) > 0 ||
+			(status.untracked?.length ?? 0) > 0
+		: true;
+	const showChangesTab = !!worktreePath && hasChanges;
+
+	useEffect(() => {
+		if (!showChangesTab && rightSidebarTab === RightSidebarTab.Changes) {
+			setRightSidebarTab(RightSidebarTab.Files);
+		}
+	}, [rightSidebarTab, setRightSidebarTab, showChangesTab]);
 
 	const handleExpandToggle = () => {
 		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
@@ -124,12 +153,14 @@ export function RightSidebar() {
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
 			<div className="flex items-center gap-1 px-2 py-1.5 border-b border-border">
-				<TabButton
-					isActive={rightSidebarTab === RightSidebarTab.Changes}
-					onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
-					icon={<LuGitCompareArrows className="size-3.5" />}
-					label="Changes"
-				/>
+				{showChangesTab && (
+					<TabButton
+						isActive={rightSidebarTab === RightSidebarTab.Changes}
+						onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
+						icon={<LuGitCompareArrows className="size-3.5" />}
+						label="Changes"
+					/>
+				)}
 				<TabButton
 					isActive={rightSidebarTab === RightSidebarTab.Files}
 					onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
@@ -178,7 +209,7 @@ export function RightSidebar() {
 					</TooltipContent>
 				</Tooltip>
 			</div>
-			{rightSidebarTab === RightSidebarTab.Changes ? (
+			{rightSidebarTab === RightSidebarTab.Changes && showChangesTab ? (
 				<ChangesView onFileOpen={handleFileOpen} isExpandedView={isExpanded} />
 			) : (
 				<FilesView />
