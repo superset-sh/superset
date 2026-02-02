@@ -588,17 +588,6 @@
     "packages/scripts": {
       "name": "@superset/scripts",
       "version": "0.1.0",
-      "dependencies": {
-        "@superset/db": "workspace:*",
-        "dotenv": "^17.2.3",
-        "drizzle-orm": "0.45.1",
-        "stripe": "^20.2.0",
-      },
-      "devDependencies": {
-        "@superset/typescript": "workspace:*",
-        "@types/node": "^24.9.1",
-        "typescript": "^5.9.3",
-      },
     },
     "packages/shared": {
       "name": "@superset/shared",
