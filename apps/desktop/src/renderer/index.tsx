@@ -2,24 +2,18 @@ import { initSentry } from "./lib/sentry";
 
 initSentry();
 
-import {
-	createHashHistory,
-	createRouter,
-	type RouterHistory,
-	RouterProvider,
-} from "@tanstack/react-router";
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
+import { persistentHistory } from "./lib/persistent-hash-history";
 import { posthog } from "./lib/posthog";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
 
-const hashHistory = createHashHistory();
-
 const router = createRouter({
 	routeTree,
-	history: hashHistory as RouterHistory,
+	history: persistentHistory,
 	defaultPreload: "intent",
 	context: {
 		queryClient: electronQueryClient,
