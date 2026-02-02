@@ -207,29 +207,22 @@ export function WorkspaceListItem({
 		() => ({
 			type: WORKSPACE_TYPE,
 			item: { id, projectId, index, originalIndex: index },
-			end: (_item, monitor) => {
-				const item = monitor.getItem() as
-					| {
-							id: string;
-							projectId: string;
-							index: number;
-							originalIndex: number;
-					  }
-					| undefined;
+			end: (item, monitor) => {
 				if (!item || monitor.didDrop()) return;
-				if (item.projectId !== projectId) return;
-				if (item.originalIndex === item.index) return;
-				reorderWorkspaces.mutate(
-					{
-						projectId: item.projectId,
-						fromIndex: item.originalIndex,
-						toIndex: item.index,
-					},
-					{
-						onError: (error) =>
-							toast.error(`Failed to reorder workspace: ${error.message}`),
-					},
-				);
+				if (item.originalIndex !== item.index) {
+					reorderWorkspaces.mutate(
+						{
+							projectId: item.projectId,
+							fromIndex: item.originalIndex,
+							toIndex: item.index,
+						},
+						{
+							onError: (error) =>
+								toast.error(`Failed to reorder workspace: ${error.message}`),
+							onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
+						},
+					);
+				}
 			},
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
@@ -277,8 +270,10 @@ export function WorkspaceListItem({
 					{
 						onError: (error) =>
 							toast.error(`Failed to reorder workspace: ${error.message}`),
+						onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
 					},
 				);
+				return { reordered: true };
 			}
 		},
 	});

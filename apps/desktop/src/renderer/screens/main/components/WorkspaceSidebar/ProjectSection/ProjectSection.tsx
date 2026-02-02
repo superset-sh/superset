@@ -73,6 +73,7 @@ export function ProjectSection({
 						{
 							onError: (error) =>
 								toast.error(`Failed to reorder: ${error.message}`),
+							onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
 						},
 					);
 				}
@@ -113,8 +114,10 @@ export function ProjectSection({
 					{
 						onError: (error) =>
 							toast.error(`Failed to reorder: ${error.message}`),
+						onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
 					},
 				);
+				return { reordered: true };
 			}
 		},
 	});
