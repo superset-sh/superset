@@ -369,17 +369,15 @@ class PortManager extends EventEmitter {
 		}
 	}
 
-	private updatePortsForPane(
-		{
-			paneId,
-			workspaceId,
-			portInfos,
-		}: {
-			paneId: string;
-			workspaceId: string;
-			portInfos: PortInfo[];
-		},
-	): void {
+	private updatePortsForPane({
+		paneId,
+		workspaceId,
+		portInfos,
+	}: {
+		paneId: string;
+		workspaceId: string;
+		portInfos: PortInfo[];
+	}): void {
 		const now = Date.now();
 
 		const validPortInfos = portInfos.filter(
