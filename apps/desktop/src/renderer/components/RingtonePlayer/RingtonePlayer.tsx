@@ -1,8 +1,6 @@
 import { useEffect, useRef } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getRingtoneUrl } from "renderer/lib/ringtone-urls";
-
-const PLAY_CHANNEL = "ringtone-play";
-const STOP_CHANNEL = "ringtone-stop";
 
 export function RingtonePlayer() {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -34,22 +32,19 @@ export function RingtonePlayer() {
 		});
 	};
 
+	// Subscribe to ringtone events via tRPC
+	electronTrpc.ringtone.subscribe.useSubscription(undefined, {
+		onData: (event) => {
+			if (event.type === "play") {
+				playPlayback(event.filename);
+			} else if (event.type === "stop") {
+				stopPlayback();
+			}
+		},
+	});
+
 	useEffect(() => {
-		const handlePlay = (filename?: string) => {
-			if (typeof filename !== "string") return;
-			playPlayback(filename);
-		};
-
-		const handleStop = () => {
-			stopPlayback();
-		};
-
-		window.ipcRenderer.on(PLAY_CHANNEL, handlePlay);
-		window.ipcRenderer.on(STOP_CHANNEL, handleStop);
-
 		return () => {
-			window.ipcRenderer.off(PLAY_CHANNEL, handlePlay);
-			window.ipcRenderer.off(STOP_CHANNEL, handleStop);
 			stopPlayback();
 		};
 	}, []);

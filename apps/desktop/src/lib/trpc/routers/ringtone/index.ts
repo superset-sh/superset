@@ -1,8 +1,9 @@
 import type { ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { BrowserWindow } from "electron";
+import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import {
 	getSoundPath,
@@ -22,17 +23,21 @@ function getWindowsPowerShellPath(): string {
 	return existsSync(powershellPath) ? powershellPath : "powershell.exe";
 }
 
-function sendRingtoneEvent(
-	channel: "ringtone-play" | "ringtone-stop",
-	filename?: string,
-): boolean {
-	const window = BrowserWindow.getAllWindows().find(
-		(browserWindow) => !browserWindow.isDestroyed(),
-	);
-	if (!window) {
-		return false;
+type RingtoneEvent =
+	| { type: "play"; filename: string }
+	| { type: "stop" };
+
+const ringtoneEvents = new EventEmitter();
+
+function sendRingtoneEvent(params: {
+	channel: "ringtone-play" | "ringtone-stop";
+	filename?: string;
+}): boolean {
+	if (params.channel === "ringtone-play" && params.filename) {
+		ringtoneEvents.emit("ringtone-event", { type: "play", filename: params.filename });
+	} else if (params.channel === "ringtone-stop") {
+		ringtoneEvents.emit("ringtone-event", { type: "stop" });
 	}
-	window.webContents.send(channel, filename);
 	return true;
 }
 
@@ -180,7 +185,7 @@ export const createRingtoneRouter = () => {
 			}
 
 			if (process.platform === "win32") {
-				sendRingtoneEvent("ringtone-play", input.filename);
+				sendRingtoneEvent({ channel: "ringtone-play", filename: input.filename });
 				return { success: true as const };
 			}
 
@@ -194,12 +199,30 @@ export const createRingtoneRouter = () => {
 		 */
 	stop: publicProcedure.mutation(() => {
 		if (process.platform === "win32") {
-			sendRingtoneEvent("ringtone-stop");
+			sendRingtoneEvent({ channel: "ringtone-stop" });
 		} else {
 			stopCurrentSound();
 		}
 		return { success: true as const };
 	}),
+
+		/**
+		 * Subscribe to ringtone play/stop events.
+		 * Emits events when ringtones are played or stopped on Windows.
+		 */
+		subscribe: publicProcedure.subscription(() => {
+			return observable<RingtoneEvent>((emit) => {
+				const handleEvent = (event: RingtoneEvent) => {
+					emit.next(event);
+				};
+
+				ringtoneEvents.on("ringtone-event", handleEvent);
+
+				return () => {
+					ringtoneEvents.off("ringtone-event", handleEvent);
+				};
+			});
+		}),
 
 		/**
 		 * Get the list of available ringtone files from the sounds directory
@@ -234,7 +257,7 @@ export function playNotificationRingtone(filename: string): void {
 	}
 
 	if (process.platform === "win32") {
-		sendRingtoneEvent("ringtone-play", filename);
+		sendRingtoneEvent({ channel: "ringtone-play", filename });
 		return;
 	}
 
