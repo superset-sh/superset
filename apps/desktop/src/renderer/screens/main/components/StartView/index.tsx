@@ -66,6 +66,7 @@ export function StartView() {
 					navigate({
 						to: "/project/$projectId",
 						params: { projectId: result.project.id },
+						replace: true,
 					});
 				}
 			},
@@ -154,6 +155,7 @@ export function StartView() {
 							navigate({
 								to: "/project/$projectId",
 								params: { projectId: result.project.id },
+								replace: true,
 							});
 						}
 					},
