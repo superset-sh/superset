@@ -17,15 +17,23 @@ import {
 	VscTerminalBash,
 } from "react-icons/vsc";
 import {
+	SiC,
+	SiCplusplus,
 	SiCss3,
 	SiDocker,
 	SiGo,
+	SiGraphql,
 	SiHtml5,
 	SiJavascript,
+	SiPhp,
+	SiPrisma,
 	SiPython,
 	SiReact,
+	SiRuby,
 	SiRust,
+	SiSvelte,
 	SiTypescript,
+	SiVuedotjs,
 	SiYaml,
 } from "react-icons/si";
 
@@ -82,6 +90,45 @@ const EXTENSION_ICONS: Record<string, FileIconConfig> = {
 
 	// Go
 	go: { icon: SiGo, color: "text-cyan-500" },
+	mod: { icon: SiGo, color: "text-cyan-500" },
+	sum: { icon: SiGo, color: "text-cyan-400" },
+
+	// C/C++
+	c: { icon: SiC, color: "text-blue-500" },
+	h: { icon: SiC, color: "text-purple-500" },
+	cpp: { icon: SiCplusplus, color: "text-blue-500" },
+	cc: { icon: SiCplusplus, color: "text-blue-500" },
+	cxx: { icon: SiCplusplus, color: "text-blue-500" },
+	hpp: { icon: SiCplusplus, color: "text-purple-500" },
+	hxx: { icon: SiCplusplus, color: "text-purple-500" },
+
+	// Java
+	java: { icon: VscFileCode, color: "text-red-500" },
+	jar: { icon: VscFileZip, color: "text-red-500" },
+
+	// PHP
+	php: { icon: SiPhp, color: "text-indigo-400" },
+
+	// Ruby
+	rb: { icon: SiRuby, color: "text-red-500" },
+	rake: { icon: SiRuby, color: "text-red-500" },
+	gemspec: { icon: SiRuby, color: "text-red-500" },
+
+	// Vue
+	vue: { icon: SiVuedotjs, color: "text-green-500" },
+
+	// Svelte
+	svelte: { icon: SiSvelte, color: "text-orange-500" },
+
+	// GraphQL
+	graphql: { icon: SiGraphql, color: "text-pink-500" },
+	gql: { icon: SiGraphql, color: "text-pink-500" },
+
+	// Prisma
+	prisma: { icon: SiPrisma, color: "text-teal-500" },
+
+	// Logs
+	log: { icon: VscFile, color: "text-gray-400" },
 
 	// Shell
 	sh: { icon: VscTerminalBash, color: "text-green-500" },
@@ -165,6 +212,41 @@ const FILENAME_ICONS: Record<string, FileIconConfig> = {
 	".eslintrc": { icon: VscGear, color: "text-purple-400" },
 	".eslintrc.json": { icon: VscGear, color: "text-purple-400" },
 	".eslintrc.js": { icon: VscGear, color: "text-purple-400" },
+	// Build tools
+	Makefile: { icon: VscGear, color: "text-orange-500" },
+	"CMakeLists.txt": { icon: VscGear, color: "text-blue-500" },
+	// Rust
+	"Cargo.toml": { icon: SiRust, color: "text-orange-500" },
+	"Cargo.lock": { icon: SiRust, color: "text-orange-400" },
+	// Go
+	"go.mod": { icon: SiGo, color: "text-cyan-500" },
+	"go.sum": { icon: SiGo, color: "text-cyan-400" },
+	// Ruby
+	Gemfile: { icon: SiRuby, color: "text-red-500" },
+	"Gemfile.lock": { icon: SiRuby, color: "text-red-400" },
+	// Python
+	"requirements.txt": { icon: SiPython, color: "text-yellow-500" },
+	"pyproject.toml": { icon: SiPython, color: "text-yellow-500" },
+	"setup.py": { icon: SiPython, color: "text-yellow-500" },
+	"Pipfile": { icon: SiPython, color: "text-yellow-500" },
+	"Pipfile.lock": { icon: SiPython, color: "text-yellow-400" },
+	// GraphQL
+	"schema.graphql": { icon: SiGraphql, color: "text-pink-500" },
+	// Prisma
+	"schema.prisma": { icon: SiPrisma, color: "text-teal-500" },
+	// Config files
+	"vite.config.ts": { icon: VscGear, color: "text-purple-500" },
+	"vite.config.js": { icon: VscGear, color: "text-purple-500" },
+	"next.config.js": { icon: VscGear, color: "text-gray-400" },
+	"next.config.mjs": { icon: VscGear, color: "text-gray-400" },
+	"next.config.ts": { icon: VscGear, color: "text-gray-400" },
+	"tailwind.config.js": { icon: VscGear, color: "text-cyan-500" },
+	"tailwind.config.ts": { icon: VscGear, color: "text-cyan-500" },
+	"postcss.config.js": { icon: VscGear, color: "text-red-500" },
+	"postcss.config.mjs": { icon: VscGear, color: "text-red-500" },
+	".npmrc": { icon: VscPackage, color: "text-red-500" },
+	".nvmrc": { icon: VscPackage, color: "text-green-500" },
+	".node-version": { icon: VscPackage, color: "text-green-500" },
 };
 
 const FOLDER_ICONS: Record<string, FileIconConfig> = {
