@@ -167,8 +167,8 @@
 	.xterm .xterm-scrollable-element,
 	.xterm .xterm-viewport,
 	.xterm .xterm-screen {
-		height: 100% !important;
-		width: 100% !important;
+		height: 100%;
+		width: 100%;
 	}
 	.xterm .xterm-rows a {
 		color: inherit;
