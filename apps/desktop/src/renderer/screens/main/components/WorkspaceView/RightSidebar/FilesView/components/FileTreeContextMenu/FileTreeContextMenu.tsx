@@ -15,35 +15,35 @@ import {
 	LuPencil,
 	LuTrash2,
 } from "react-icons/lu";
-import type { FileTreeNode } from "shared/file-tree-types";
+import type { DirectoryEntry } from "shared/file-tree-types";
 import { usePathActions } from "../../../ChangesView/hooks";
 
 interface FileTreeContextMenuProps {
 	children: React.ReactNode;
-	node: FileTreeNode | null;
+	entry: DirectoryEntry | null;
 	worktreePath: string;
 	onNewFile: (parentPath: string) => void;
 	onNewFolder: (parentPath: string) => void;
-	onRename: (node: FileTreeNode) => void;
-	onDelete: (node: FileTreeNode) => void;
+	onRename: (entry: DirectoryEntry) => void;
+	onDelete: (entry: DirectoryEntry) => void;
 }
 
 export function FileTreeContextMenu({
 	children,
-	node,
+	entry,
 	worktreePath,
 	onNewFile,
 	onNewFolder,
 	onRename,
 	onDelete,
 }: FileTreeContextMenuProps) {
-	const targetPath = node?.path ?? worktreePath;
-	const parentPath = node?.isDirectory ? node.path : worktreePath;
+	const targetPath = entry?.path ?? worktreePath;
+	const parentPath = entry?.isDirectory ? entry.path : worktreePath;
 
 	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
 		usePathActions({
 			absolutePath: targetPath,
-			relativePath: node?.relativePath,
+			relativePath: entry?.relativePath,
 			cwd: worktreePath,
 		});
 
@@ -62,7 +62,7 @@ export function FileTreeContextMenu({
 					New Folder
 				</ContextMenuItem>
 
-				{node && (
+				{entry && (
 					<>
 						<ContextMenuSeparator />
 
@@ -81,7 +81,7 @@ export function FileTreeContextMenu({
 							<LuFolderOpen className="mr-2 size-4" />
 							Reveal in Finder
 						</ContextMenuItem>
-						{!node.isDirectory && (
+						{!entry.isDirectory && (
 							<ContextMenuItem onClick={openInEditor}>
 								<LuExternalLink className="mr-2 size-4" />
 								Open in Editor
@@ -90,12 +90,12 @@ export function FileTreeContextMenu({
 
 						<ContextMenuSeparator />
 
-						<ContextMenuItem onClick={() => onRename(node)}>
+						<ContextMenuItem onClick={() => onRename(entry)}>
 							<LuPencil className="mr-2 size-4" />
 							Rename
 						</ContextMenuItem>
 						<ContextMenuItem
-							onClick={() => onDelete(node)}
+							onClick={() => onDelete(entry)}
 							className="text-destructive focus:text-destructive"
 						>
 							<LuTrash2 className="mr-2 size-4" />

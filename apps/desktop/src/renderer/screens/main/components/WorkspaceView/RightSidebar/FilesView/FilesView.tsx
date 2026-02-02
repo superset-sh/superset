@@ -1,27 +1,21 @@
+import {
+	asyncDataLoaderFeature,
+	expandAllFeature,
+	selectionFeature,
+} from "@headless-tree/core";
+import { useTree } from "@headless-tree/react";
 import { useParams } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Tree, type TreeApi } from "react-arborist";
-import { dragDropManager } from "renderer/lib/dnd";
+import { useCallback, useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useFileExplorerStore } from "renderer/stores/file-explorer";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type {
-	DirectoryEntry,
-	FileTreeNode as FileTreeNodeType,
-} from "shared/file-tree-types";
-import useResizeObserver from "use-resize-observer";
+import type { DirectoryEntry } from "shared/file-tree-types";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
-import { FileSearchResultNode } from "./components/FileSearchResultNode";
+import { FileSearchResultItem } from "./components/FileSearchResultItem";
 import { FileTreeContextMenu } from "./components/FileTreeContextMenu";
-import { FileTreeNode } from "./components/FileTreeNode";
+import { FileTreeItem } from "./components/FileTreeItem";
 import { FileTreeToolbar } from "./components/FileTreeToolbar";
 import { NewItemInput } from "./components/NewItemInput";
-import {
-	OVERSCAN_COUNT,
-	ROW_HEIGHT,
-	SEARCH_RESULT_ROW_HEIGHT,
-	TREE_INDENT,
-} from "./constants";
+import { ROW_HEIGHT, TREE_INDENT } from "./constants";
 import { useFileSearch } from "./hooks/useFileSearch";
 import { useFileTreeActions } from "./hooks/useFileTreeActions";
 import type { NewItemMode } from "./types";
@@ -34,213 +28,104 @@ export function FilesView() {
 	);
 	const worktreePath = workspace?.worktreePath;
 
-	const treeRef = useRef<TreeApi<FileTreeNodeType>>(null);
-	const { ref: containerRef, height: treeHeight = 400 } = useResizeObserver();
+	const [searchTerm, setSearchTerm] = useState("");
+	const [showHiddenFiles, setShowHiddenFiles] = useState(false);
 
-	const {
-		expandedFolders,
-		searchTerm,
-		showHiddenFiles,
-		toggleFolder,
-		collapseAll,
-		setSelectedItems,
-		setSearchTerm,
-		toggleHiddenFiles,
-	} = useFileExplorerStore();
-
-	const currentSearchTerm = worktreePath ? searchTerm[worktreePath] || "" : "";
-	const currentExpandedFolders = useMemo(
-		() => new Set(worktreePath ? expandedFolders[worktreePath] || [] : []),
-		[worktreePath, expandedFolders],
-	);
-
-	const [childrenCache, setChildrenCache] = useState<
-		Record<string, DirectoryEntry[]>
-	>({});
-	const [loadingFolders, setLoadingFolders] = useState<Set<string>>(new Set());
 	const trpcUtils = electronTrpc.useUtils();
 
-	const {
-		data: rootEntries,
-		isLoading,
-		refetch,
-	} = electronTrpc.filesystem.readDirectory.useQuery(
-		{
-			dirPath: worktreePath || "",
-			rootPath: worktreePath || "",
-			includeHidden: showHiddenFiles,
-		},
-		{
-			enabled: !!worktreePath,
-			staleTime: 5000,
-		},
-	);
-
-	const entriesToNodes = useCallback(
-		(entries: DirectoryEntry[]): FileTreeNodeType[] => {
-			return entries.map((entry) => {
-				if (!entry.isDirectory) {
-					return { ...entry, children: undefined };
-				}
-
-				const isExpanded = currentExpandedFolders.has(entry.id);
-				const cachedChildren = childrenCache[entry.path];
-
-				if (isExpanded && cachedChildren) {
+	const tree = useTree<DirectoryEntry>({
+		rootItemId: "root",
+		getItemName: (item) => item.getItemData()?.name ?? "",
+		isItemFolder: (item) => item.getItemData()?.isDirectory ?? false,
+		dataLoader: {
+			getItem: async (itemId: string): Promise<DirectoryEntry> => {
+				if (itemId === "root") {
 					return {
-						...entry,
-						children: entriesToNodes(cachedChildren),
+						id: "root",
+						name: "root",
+						path: worktreePath ?? "",
+						relativePath: "",
+						isDirectory: true,
 					};
 				}
+				const parts = itemId.split(":::");
+				return {
+					id: itemId,
+					name: parts[1] ?? itemId,
+					path: parts[0] ?? itemId,
+					relativePath: parts[2] ?? "",
+					isDirectory: parts[3] === "true",
+				};
+			},
+			getChildren: async (itemId: string): Promise<string[]> => {
+				if (!worktreePath) return [];
+				const dirPath =
+					itemId === "root" ? worktreePath : itemId.split(":::")[0];
+				if (!dirPath) return [];
 
-				return { ...entry, children: null };
-			});
+				try {
+					const entries = await trpcUtils.filesystem.readDirectory.fetch({
+						dirPath,
+						rootPath: worktreePath,
+						includeHidden: showHiddenFiles,
+					});
+					return entries.map(
+						(e) =>
+							`${e.path}:::${e.name}:::${e.relativePath}:::${e.isDirectory}`,
+					);
+				} catch (error) {
+					console.error("[FilesView] Failed to load children:", error);
+					return [];
+				}
+			},
 		},
-		[childrenCache, currentExpandedFolders],
-	);
+		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
+	});
 
-	const treeData = useMemo((): FileTreeNodeType[] => {
-		if (!rootEntries) return [];
-		return entriesToNodes(rootEntries);
-	}, [rootEntries, entriesToNodes]);
-
-	const loadChildren = useCallback(
-		async (folderPath: string) => {
-			if (
-				!worktreePath ||
-				childrenCache[folderPath] ||
-				loadingFolders.has(folderPath)
-			) {
-				return;
-			}
-
-			setLoadingFolders((prev) => new Set(prev).add(folderPath));
-
-			try {
-				const children = await trpcUtils.filesystem.readDirectory.fetch({
-					dirPath: folderPath,
-					rootPath: worktreePath,
-					includeHidden: showHiddenFiles,
-				});
-
-				setChildrenCache((prev) => ({
-					...prev,
-					[folderPath]: children,
-				}));
-			} catch (error) {
-				console.error("[FilesView] Failed to load children:", {
-					folderPath,
-					error,
-				});
-			} finally {
-				setLoadingFolders((prev) => {
-					const next = new Set(prev);
-					next.delete(folderPath);
-					return next;
-				});
-			}
-		},
-		[worktreePath, childrenCache, loadingFolders, showHiddenFiles, trpcUtils],
-	);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset cache on workspace/visibility change
-	useEffect(() => {
-		setChildrenCache({});
-	}, [worktreePath, showHiddenFiles]);
-
-	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
+	const { createFile, createDirectory, deleteItems, isDeleting } =
 		useFileTreeActions({
 			worktreePath,
-			onRefresh: () => refetch(),
+			onRefresh: () => tree.rebuildTree(),
 		});
 
 	const {
 		searchResults,
 		isFetching: isSearchFetching,
-		hasQuery,
+		hasQuery: isSearching,
 	} = useFileSearch({
 		worktreePath,
-		searchTerm: currentSearchTerm,
+		searchTerm,
 		includeHidden: showHiddenFiles,
 	});
-	const isSearching = hasQuery;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
-	const pendingOpenRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const openFileInEditorMutation =
+		electronTrpc.external.openFileInEditor.useMutation();
 
 	const [newItemMode, setNewItemMode] = useState<NewItemMode>(null);
 	const [newItemParentPath, setNewItemParentPath] = useState<string>("");
-	const [deleteNode, setDeleteNode] = useState<FileTreeNodeType | null>(null);
+	const [deleteEntry, setDeleteEntry] = useState<DirectoryEntry | null>(null);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const [contextMenuNode, setContextMenuNode] =
-		useState<FileTreeNodeType | null>(null);
+	const [contextMenuEntry, setContextMenuEntry] =
+		useState<DirectoryEntry | null>(null);
 
-	const handleActivate = useCallback(
-		(node: { data: FileTreeNodeType }) => {
-			if (!workspaceId || !worktreePath || node.data.isDirectory) return;
-
-			if (pendingOpenRef.current) {
-				clearTimeout(pendingOpenRef.current);
-			}
-
-			pendingOpenRef.current = setTimeout(() => {
-				pendingOpenRef.current = null;
-				addFileViewerPane(workspaceId, {
-					filePath: node.data.relativePath,
-					viewMode: "raw",
-				});
-			}, 300);
+	const handleFileActivate = useCallback(
+		(entry: DirectoryEntry) => {
+			if (!workspaceId || !worktreePath || entry.isDirectory) return;
+			addFileViewerPane(workspaceId, {
+				filePath: entry.relativePath,
+				viewMode: "raw",
+			});
 		},
 		[workspaceId, worktreePath, addFileViewerPane],
 	);
 
-	const cancelPendingOpen = useCallback(() => {
-		if (pendingOpenRef.current) {
-			clearTimeout(pendingOpenRef.current);
-			pendingOpenRef.current = null;
-		}
-	}, []);
-
-	useEffect(() => {
-		return () => {
-			if (pendingOpenRef.current) {
-				clearTimeout(pendingOpenRef.current);
-			}
-		};
-	}, []);
-
-	const handleSelect = useCallback(
-		(nodes: { data: FileTreeNodeType }[]) => {
+	const handleOpenInEditor = useCallback(
+		(entry: DirectoryEntry) => {
 			if (!worktreePath) return;
-			setSelectedItems(
-				worktreePath,
-				nodes.map((n) => n.data.id),
-			);
+			openFileInEditorMutation.mutate({ path: entry.path, cwd: worktreePath });
 		},
-		[worktreePath, setSelectedItems],
-	);
-
-	const handleToggle = useCallback(
-		(id: string) => {
-			if (!worktreePath) return;
-			toggleFolder(worktreePath, id);
-
-			const node = treeRef.current?.get(id);
-			if (node?.data.isDirectory && !node.isOpen) {
-				loadChildren(node.data.path);
-			}
-		},
-		[worktreePath, toggleFolder, loadChildren],
-	);
-
-	const handleRename = useCallback(
-		({ id, name }: { id: string; name: string }) => {
-			const node = treeRef.current?.get(id)?.data;
-			if (node) {
-				rename(node.path, name);
-			}
-		},
-		[rename],
+		[worktreePath, openFileInEditorMutation],
 	);
 
 	const handleNewFile = useCallback((parentPath: string) => {
@@ -271,41 +156,40 @@ export function FilesView() {
 		setNewItemParentPath("");
 	}, []);
 
-	const handleDeleteRequest = useCallback((node: FileTreeNodeType) => {
-		setDeleteNode(node);
+	const handleDeleteRequest = useCallback((entry: DirectoryEntry) => {
+		setDeleteEntry(entry);
 		setShowDeleteDialog(true);
 	}, []);
 
 	const handleDeleteConfirm = useCallback(() => {
-		if (deleteNode) {
-			deleteItems([deleteNode.path]);
+		if (deleteEntry) {
+			deleteItems([deleteEntry.path]);
 		}
 		setShowDeleteDialog(false);
-		setDeleteNode(null);
-	}, [deleteNode, deleteItems]);
+		setDeleteEntry(null);
+	}, [deleteEntry, deleteItems]);
 
-	const handleContextMenuRename = useCallback((node: FileTreeNodeType) => {
-		treeRef.current?.get(node.id)?.edit();
+	const handleContextMenuRename = useCallback((_entry: DirectoryEntry) => {
+		// TODO: implement rename with headless-tree renamingFeature
 	}, []);
 
-	const handleSearchChange = useCallback(
-		(term: string) => {
-			if (!worktreePath) return;
-			setSearchTerm(worktreePath, term);
-		},
-		[worktreePath, setSearchTerm],
-	);
-
 	const handleCollapseAll = useCallback(() => {
-		if (!worktreePath) return;
-		collapseAll(worktreePath);
-		treeRef.current?.closeAll();
-	}, [worktreePath, collapseAll]);
+		tree.collapseAll();
+	}, [tree]);
 
 	const handleRefresh = useCallback(() => {
-		setChildrenCache({});
-		refetch();
-	}, [refetch]);
+		tree.rebuildTree();
+	}, [tree]);
+
+	const searchResultEntries = useMemo(() => {
+		return searchResults.map((result) => ({
+			id: result.id,
+			name: result.name,
+			path: result.path,
+			relativePath: result.relativePath,
+			isDirectory: result.isDirectory,
+		}));
+	}, [searchResults]);
 
 	if (!worktreePath) {
 		return (
@@ -315,51 +199,28 @@ export function FilesView() {
 		);
 	}
 
-	if (isLoading) {
-		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
-				Loading files...
-			</div>
-		);
-	}
-
 	return (
 		<div className="flex flex-col h-full">
 			<FileTreeToolbar
-				searchTerm={currentSearchTerm}
-				onSearchChange={handleSearchChange}
+				searchTerm={searchTerm}
+				onSearchChange={setSearchTerm}
 				onNewFile={() => handleNewFile(worktreePath)}
 				onNewFolder={() => handleNewFolder(worktreePath)}
 				onCollapseAll={handleCollapseAll}
 				onRefresh={handleRefresh}
 				showHiddenFiles={showHiddenFiles}
-				onToggleHiddenFiles={toggleHiddenFiles}
+				onToggleHiddenFiles={() => setShowHiddenFiles((v) => !v)}
 			/>
 
 			<FileTreeContextMenu
-				node={contextMenuNode}
+				entry={contextMenuEntry}
 				worktreePath={worktreePath}
 				onNewFile={handleNewFile}
 				onNewFolder={handleNewFolder}
 				onRename={handleContextMenuRename}
 				onDelete={handleDeleteRequest}
 			>
-				{/* biome-ignore lint/a11y/noStaticElementInteractions: context menu handler for tree container */}
-				<div
-					ref={containerRef}
-					className="flex-1 min-h-0 overflow-hidden"
-					onContextMenu={(e) => {
-						const nodeEl = (e.target as HTMLElement).closest("[data-node-id]");
-						if (nodeEl) {
-							const nodeId = nodeEl.getAttribute("data-node-id");
-							setContextMenuNode(
-								treeRef.current?.get(nodeId || "")?.data || null,
-							);
-						} else {
-							setContextMenuNode(null);
-						}
-					}}
-				>
+				<div className="flex-1 min-h-0 overflow-auto">
 					{newItemMode && newItemParentPath === worktreePath && (
 						<NewItemInput
 							mode={newItemMode}
@@ -370,64 +231,64 @@ export function FilesView() {
 					)}
 
 					{isSearching ? (
-						searchResults.length > 0 ? (
-							<Tree<FileTreeNodeType>
-								ref={treeRef}
-								data={searchResults}
-								width="100%"
-								height={treeHeight}
-								rowHeight={SEARCH_RESULT_ROW_HEIGHT}
-								indent={0}
-								overscanCount={OVERSCAN_COUNT}
-								idAccessor="id"
-								childrenAccessor="children"
-								openByDefault={false}
-								disableMultiSelection={false}
-								onActivate={handleActivate}
-								onSelect={handleSelect}
-								onRename={handleRename}
-								dndManager={dragDropManager}
-							>
-								{FileSearchResultNode}
-							</Tree>
+						searchResultEntries.length > 0 ? (
+							<div className="flex flex-col">
+								{searchResultEntries.map((entry) => (
+									<FileSearchResultItem
+										key={entry.id}
+										entry={entry}
+										onActivate={handleFileActivate}
+										onContextMenu={setContextMenuEntry}
+									/>
+								))}
+							</div>
 						) : (
 							<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 								{isSearchFetching ? "Searching files..." : "No matching files"}
 							</div>
 						)
 					) : (
-						<Tree<FileTreeNodeType>
-							ref={treeRef}
-							data={treeData}
-							width="100%"
-							height={treeHeight}
-							rowHeight={ROW_HEIGHT}
-							indent={TREE_INDENT}
-							overscanCount={OVERSCAN_COUNT}
-							idAccessor="id"
-							childrenAccessor="children"
-							openByDefault={false}
-							disableMultiSelection={false}
-							onActivate={handleActivate}
-							onSelect={handleSelect}
-							onToggle={handleToggle}
-							onRename={handleRename}
-							dndManager={dragDropManager}
+						// biome-ignore lint/a11y/noStaticElementInteractions: context menu handler for tree container
+						<div
+							{...tree.getContainerProps()}
+							className="outline-none"
+							onContextMenu={(e) => {
+								const target = e.target as HTMLElement;
+								const itemEl = target.closest("[data-item-id]");
+								if (itemEl) {
+									const itemId = itemEl.getAttribute("data-item-id");
+									if (itemId) {
+										const item = tree.getItemInstance(itemId);
+										setContextMenuEntry(item?.getItemData() ?? null);
+									}
+								} else {
+									setContextMenuEntry(null);
+								}
+							}}
 						>
-							{(nodeProps) => (
-								<FileTreeNode
-									{...nodeProps}
-									worktreePath={worktreePath}
-									onCancelOpen={cancelPendingOpen}
-								/>
-							)}
-						</Tree>
+							{tree.getItems().map((item) => {
+								const data = item.getItemData();
+								if (!data || item.getId() === "root") return null;
+								return (
+									<FileTreeItem
+										key={item.getId()}
+										item={item}
+										entry={data}
+										rowHeight={ROW_HEIGHT}
+										indent={TREE_INDENT}
+										onActivate={handleFileActivate}
+										onOpenInEditor={handleOpenInEditor}
+										onContextMenu={setContextMenuEntry}
+									/>
+								);
+							})}
+						</div>
 					)}
 				</div>
 			</FileTreeContextMenu>
 
 			<DeleteConfirmDialog
-				node={deleteNode}
+				entry={deleteEntry}
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
 				onConfirm={handleDeleteConfirm}
