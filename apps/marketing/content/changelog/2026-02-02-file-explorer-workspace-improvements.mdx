@@ -1,10 +1,20 @@
 ---
-title: File explorer, workspace improvements, and terminal upgrades
+title: Performance and memory leak fixes, file explorer, and terminal upgrades
 date: 2026-02-02
-image: /changelog/IMAGE_PLACEHOLDER.png
+image: /changelog/filetree.png
 ---
 
-{/* TODO: Replace header image with file explorer screenshot */}
+## Performance & Memory Leak Fixes
+
+This release focuses on stability and speed improvements across the app.
+
+**Workspace deletion 12x faster** - Deletion now completes in ~4-5 seconds instead of ~60 seconds. Terminal shutdowns and cleanup run in parallel, and git worktree removal uses a non-blocking background process. <PRBadge url="https://github.com/superset-sh/superset/pull/1120" />
+
+**Port scanning performance** - Batched port scans per interval to reduce CPU usage and improve responsiveness <PRBadge url="https://github.com/superset-sh/superset/pull/1134" />
+
+**Memory leak fixes** - Fixed memory leaks in terminal session management and workspace cleanup routines, reducing memory usage during long sessions
+
+**xterm viewport fixes** - Resolved terminal viewport height issues that caused rendering problems <PRBadge url="https://github.com/superset-sh/superset/pull/1133" />
 
 ## File Explorer <PRBadge url="https://github.com/superset-sh/superset/pull/1112" />
 
@@ -13,12 +23,6 @@ Browse and manage your project files directly from the right sidebar. The new fi
 - Create, rename, delete, move, and copy files with context menus
 - Toggle hidden files and refresh directory listings
 - Search files with instant results and collapsible tree navigation
-
-{/* TODO: Screenshot showing file tree in action */}
-
-## Faster Workspace Deletion <PRBadge url="https://github.com/superset-sh/superset/pull/1120" />
-
-Workspace deletion is now significantly faster, completing in ~4-5 seconds instead of ~60 seconds. Terminal shutdowns and cleanup now run in parallel, and git worktree removal uses a non-blocking background process.
 
 ## Terminal Upgrades
 
@@ -44,4 +48,4 @@ Workspace deletion is now significantly faster, completing in ~4-5 seconds inste
 
 ---
 
-**Bug fixes:** Fixed git worktree push reliability <PRBadge url="https://github.com/superset-sh/superset/pull/1135" />, resolved xterm viewport height issues <PRBadge url="https://github.com/superset-sh/superset/pull/1133" />, fixed case-insensitive filesystem errors during git fetch <PRBadge url="https://github.com/superset-sh/superset/pull/1107" />, improved port scanning performance <PRBadge url="https://github.com/superset-sh/superset/pull/1134" />, fixed MCP date serialization <PRBadge url="https://github.com/superset-sh/superset/pull/1071" />, resolved Claude session heredoc delimiter conflicts <PRBadge url="https://github.com/superset-sh/superset/pull/1128" />
+**Bug fixes:** Fixed git worktree push reliability <PRBadge url="https://github.com/superset-sh/superset/pull/1135" />, fixed case-insensitive filesystem errors during git fetch <PRBadge url="https://github.com/superset-sh/superset/pull/1107" />, fixed MCP date serialization <PRBadge url="https://github.com/superset-sh/superset/pull/1071" />, resolved Claude session heredoc delimiter conflicts <PRBadge url="https://github.com/superset-sh/superset/pull/1128" />
