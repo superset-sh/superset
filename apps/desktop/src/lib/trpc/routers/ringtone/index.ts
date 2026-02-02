@@ -137,15 +137,19 @@ function playSoundFile(soundPath: string): void {
 			powershellPath,
 			buildWindowsPlayerArgs(soundPath),
 			{ windowsHide: true },
-			() => {
+			(error, stdout, stderr) => {
+				if (error) {
+					console.warn(
+						"[ringtone/play] Windows playback failed:",
+						error.message,
+						stderr ? `\nstderr: ${stderr}` : "",
+					);
+				}
 				if (currentSession?.id === sessionId) {
 					currentSession = null;
 				}
 			},
 		);
-		currentSession.process.on("error", (error) => {
-			console.warn("[ringtone] Windows playback failed:", error.message);
-		});
 	} else {
 		// Linux - try common audio players with race-safe fallback
 		currentSession.process = execFile("paplay", [soundPath], (error) => {
