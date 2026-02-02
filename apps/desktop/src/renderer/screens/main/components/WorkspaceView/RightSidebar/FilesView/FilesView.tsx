@@ -21,6 +21,7 @@ import { FileSearchResultItem } from "./components/FileSearchResultItem";
 import { FileTreeItem } from "./components/FileTreeItem";
 import { FileTreeToolbar } from "./components/FileTreeToolbar";
 import { NewItemInput } from "./components/NewItemInput";
+import { RenameInput } from "./components/RenameInput";
 import { ROW_HEIGHT, TREE_INDENT } from "./constants";
 import { useFileSearch } from "./hooks/useFileSearch";
 import { useFileTreeActions } from "./hooks/useFileTreeActions";
@@ -88,7 +89,7 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	const { createFile, createDirectory, deleteItems, isDeleting } =
+	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
 			worktreePath,
 			onRefresh: () => tree.rebuildTree(),
@@ -110,6 +111,7 @@ export function FilesView() {
 
 	const [newItemMode, setNewItemMode] = useState<NewItemMode>(null);
 	const [newItemParentPath, setNewItemParentPath] = useState<string>("");
+	const [renameEntry, setRenameEntry] = useState<DirectoryEntry | null>(null);
 	const [deleteEntry, setDeleteEntry] = useState<DirectoryEntry | null>(null);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -132,15 +134,39 @@ export function FilesView() {
 		[worktreePath, openFileInEditorMutation],
 	);
 
-	const handleNewFile = useCallback((parentPath: string) => {
-		setNewItemMode("file");
-		setNewItemParentPath(parentPath);
-	}, []);
+	const handleNewFile = useCallback(
+		(parentPath: string) => {
+			setNewItemMode("file");
+			setNewItemParentPath(parentPath);
+			if (parentPath !== worktreePath) {
+				const itemId = tree
+					.getItems()
+					.find((item) => item.getItemData()?.path === parentPath)
+					?.getId();
+				if (itemId) {
+					tree.getItemInstance(itemId)?.expand();
+				}
+			}
+		},
+		[worktreePath, tree],
+	);
 
-	const handleNewFolder = useCallback((parentPath: string) => {
-		setNewItemMode("folder");
-		setNewItemParentPath(parentPath);
-	}, []);
+	const handleNewFolder = useCallback(
+		(parentPath: string) => {
+			setNewItemMode("folder");
+			setNewItemParentPath(parentPath);
+			if (parentPath !== worktreePath) {
+				const itemId = tree
+					.getItems()
+					.find((item) => item.getItemData()?.path === parentPath)
+					?.getId();
+				if (itemId) {
+					tree.getItemInstance(itemId)?.expand();
+				}
+			}
+		},
+		[worktreePath, tree],
+	);
 
 	const handleNewItemSubmit = useCallback(
 		(name: string) => {
@@ -173,8 +199,22 @@ export function FilesView() {
 		setDeleteEntry(null);
 	}, [deleteEntry, deleteItems]);
 
-	const handleRename = useCallback((_entry: DirectoryEntry) => {
-		// TODO: implement rename with headless-tree renamingFeature
+	const handleRename = useCallback((entry: DirectoryEntry) => {
+		setRenameEntry(entry);
+	}, []);
+
+	const handleRenameSubmit = useCallback(
+		(newName: string) => {
+			if (renameEntry) {
+				rename(renameEntry.path, newName);
+			}
+			setRenameEntry(null);
+		},
+		[renameEntry, rename],
+	);
+
+	const handleRenameCancel = useCallback(() => {
+		setRenameEntry(null);
 	}, []);
 
 	const handleCollapseAll = useCallback(() => {
@@ -231,19 +271,28 @@ export function FilesView() {
 						{isSearching ? (
 							searchResultEntries.length > 0 ? (
 								<div className="flex flex-col">
-									{searchResultEntries.map((entry) => (
-										<FileSearchResultItem
-											key={entry.id}
-											entry={entry}
-											worktreePath={worktreePath}
-											onActivate={handleFileActivate}
-											onOpenInEditor={handleOpenInEditor}
-											onNewFile={handleNewFile}
-											onNewFolder={handleNewFolder}
-											onRename={handleRename}
-											onDelete={handleDeleteRequest}
-										/>
-									))}
+									{searchResultEntries.map((entry) =>
+										renameEntry?.path === entry.path ? (
+											<RenameInput
+												key={entry.id}
+												entry={entry}
+												onSubmit={handleRenameSubmit}
+												onCancel={handleRenameCancel}
+											/>
+										) : (
+											<FileSearchResultItem
+												key={entry.id}
+												entry={entry}
+												worktreePath={worktreePath}
+												onActivate={handleFileActivate}
+												onOpenInEditor={handleOpenInEditor}
+												onNewFile={handleNewFile}
+												onNewFolder={handleNewFolder}
+												onRename={handleRename}
+												onDelete={handleDeleteRequest}
+											/>
+										),
+									)}
 								</div>
 							) : (
 								<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
@@ -257,21 +306,45 @@ export function FilesView() {
 								{tree.getItems().map((item) => {
 									const data = item.getItemData();
 									if (!data || item.getId() === "root") return null;
+									const showNewItemInput =
+										newItemMode &&
+										data.isDirectory &&
+										data.path === newItemParentPath;
+									const isRenaming = renameEntry?.path === data.path;
 									return (
-										<FileTreeItem
-											key={item.getId()}
-											item={item}
-											entry={data}
-											rowHeight={ROW_HEIGHT}
-											indent={TREE_INDENT}
-											worktreePath={worktreePath}
-											onActivate={handleFileActivate}
-											onOpenInEditor={handleOpenInEditor}
-											onNewFile={handleNewFile}
-											onNewFolder={handleNewFolder}
-											onRename={handleRename}
-											onDelete={handleDeleteRequest}
-										/>
+										<div key={item.getId()}>
+											{isRenaming ? (
+												<RenameInput
+													entry={data}
+													onSubmit={handleRenameSubmit}
+													onCancel={handleRenameCancel}
+													level={item.getItemMeta().level}
+												/>
+											) : (
+												<FileTreeItem
+													item={item}
+													entry={data}
+													rowHeight={ROW_HEIGHT}
+													indent={TREE_INDENT}
+													worktreePath={worktreePath}
+													onActivate={handleFileActivate}
+													onOpenInEditor={handleOpenInEditor}
+													onNewFile={handleNewFile}
+													onNewFolder={handleNewFolder}
+													onRename={handleRename}
+													onDelete={handleDeleteRequest}
+												/>
+											)}
+											{showNewItemInput && (
+												<NewItemInput
+													mode={newItemMode}
+													parentPath={newItemParentPath}
+													onSubmit={handleNewItemSubmit}
+													onCancel={handleNewItemCancel}
+													level={item.getItemMeta().level + 1}
+												/>
+											)}
+										</div>
 									);
 								})}
 							</div>

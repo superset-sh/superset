@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
-import { LuFile, LuFolder } from "react-icons/lu";
+import { LuFile, LuFolder, LuX } from "react-icons/lu";
 import type { NewItemMode } from "../../types";
 
 interface NewItemInputProps {
@@ -59,7 +59,6 @@ export function NewItemInput({
 				type="text"
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
-				onBlur={handleSubmit}
 				onKeyDown={handleKeyDown}
 				placeholder={mode === "folder" ? "folder name" : "file name"}
 				className={cn(
@@ -67,6 +66,13 @@ export function NewItemInput({
 					"bg-background border border-ring rounded outline-none",
 				)}
 			/>
+			<button
+				type="button"
+				onClick={onCancel}
+				className="p-0.5 hover:bg-background/50 rounded"
+			>
+				<LuX className="size-3 text-muted-foreground" />
+			</button>
 		</div>
 	);
 }
