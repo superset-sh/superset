@@ -4,7 +4,7 @@ import { BlogCard } from "./components/BlogCard";
 import { GridCross } from "./components/GridCross";
 
 export const metadata: Metadata = {
-	title: "Blog | Superset",
+	title: "Blog",
 	description:
 		"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
 	alternates: {

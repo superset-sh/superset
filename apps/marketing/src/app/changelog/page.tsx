@@ -4,7 +4,7 @@ import { getChangelogEntries } from "@/lib/changelog";
 import { ChangelogEntry } from "./components/ChangelogEntry";
 
 export const metadata: Metadata = {
-	title: "Changelog | Superset",
+	title: "Changelog",
 	description:
 		"The latest updates, improvements, and new features in Superset.",
 	alternates: {

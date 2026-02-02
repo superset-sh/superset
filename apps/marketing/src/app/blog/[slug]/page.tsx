@@ -57,7 +57,7 @@ export async function generateMetadata({
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
 	return {
-		title: `${post.title} | ${COMPANY.NAME} Blog`,
+		title: post.title,
 		description: post.description,
 		alternates: {
 			canonical: url,
