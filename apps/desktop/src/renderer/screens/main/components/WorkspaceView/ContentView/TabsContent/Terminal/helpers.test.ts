@@ -1,3 +1,4 @@
+import type { Terminal as XTerm } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 
 // Mock localStorage for Node.js test environment
@@ -126,8 +127,9 @@ describe("setupKeyboardHandler", () => {
 
 		let handler: ((event: KeyboardEvent) => boolean) | null = null;
 		const xterm = {
-			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) =>
-				(handler = next),
+			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) => {
+				handler = next;
+			},
 		};
 
 		const onWrite = mock(() => {});
@@ -160,8 +162,9 @@ describe("setupKeyboardHandler", () => {
 
 		let handler: ((event: KeyboardEvent) => boolean) | null = null;
 		const xterm = {
-			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) =>
-				(handler = next),
+			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) => {
+				handler = next;
+			},
 		};
 
 		const onWrite = mock(() => {});
