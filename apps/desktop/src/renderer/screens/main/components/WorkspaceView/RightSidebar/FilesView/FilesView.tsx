@@ -111,7 +111,9 @@ export function FilesView() {
 		if (worktreePath && prevWorktreePathRef.current !== worktreePath) {
 			invalidateTree();
 		}
-		prevWorktreePathRef.current = worktreePath;
+		if (worktreePath) {
+			prevWorktreePathRef.current = worktreePath;
+		}
 	}, [worktreePath, invalidateTree]);
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
