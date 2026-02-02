@@ -511,6 +511,51 @@ export const HOTKEYS = {
 		category: "Terminal",
 		description: "Focus the next pane in the current tab",
 	}),
+	JUMP_TO_TAB_1: defineHotkey({
+		keys: "meta+alt+1",
+		label: "Switch to Tab 1",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_2: defineHotkey({
+		keys: "meta+alt+2",
+		label: "Switch to Tab 2",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_3: defineHotkey({
+		keys: "meta+alt+3",
+		label: "Switch to Tab 3",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_4: defineHotkey({
+		keys: "meta+alt+4",
+		label: "Switch to Tab 4",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_5: defineHotkey({
+		keys: "meta+alt+5",
+		label: "Switch to Tab 5",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_6: defineHotkey({
+		keys: "meta+alt+6",
+		label: "Switch to Tab 6",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_7: defineHotkey({
+		keys: "meta+alt+7",
+		label: "Switch to Tab 7",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_8: defineHotkey({
+		keys: "meta+alt+8",
+		label: "Switch to Tab 8",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_9: defineHotkey({
+		keys: "meta+alt+9",
+		label: "Switch to Tab 9",
+		category: "Terminal",
+	}),
 	OPEN_PRESET_1: defineHotkey({
 		keys: "ctrl+1",
 		label: "Open Preset 1",
