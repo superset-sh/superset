@@ -1,15 +1,78 @@
-import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
+import type {
+	ChangedFile,
+	GitChangesStatus,
+	MultiRepoGitChangesStatus,
+	NestedRepoStatus,
+} from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getStatusNoLock } from "../workspaces/utils/git";
-import { assertRegisteredWorktree, secureFs } from "./security";
+import {
+	assertRegisteredWorktree,
+	assertValidNestedRepo,
+	secureFs,
+} from "./security";
 import { applyNumstatToFiles } from "./utils/apply-numstat";
+import { detectNestedRepos, getRepoDisplayName } from "./utils/nested-repos";
 import {
 	parseGitLog,
 	parseGitStatus,
 	parseNameStatus,
 } from "./utils/parse-status";
+
+/**
+ * Get git status for a single repository path.
+ * Internal helper used by both getStatus and getMultiRepoStatus.
+ *
+ * @param worktreePath - The registered parent worktree (for security validation)
+ * @param repoPath - The target repo path (may be nested or same as worktreePath)
+ * @param defaultBranch - The default branch name for comparison
+ */
+async function getRepoStatus({
+	worktreePath,
+	repoPath,
+	defaultBranch,
+}: {
+	worktreePath: string;
+	repoPath: string;
+	defaultBranch: string;
+}): Promise<GitChangesStatus> {
+	const git = simpleGit(repoPath);
+
+	// First, get status (needed for subsequent operations)
+	// Use --no-optional-locks to avoid holding locks on the repository
+	const status = await getStatusNoLock(repoPath);
+	const parsed = parseGitStatus(status);
+
+	// Run independent operations in parallel
+	const [branchComparison, trackingStatus] = await Promise.all([
+		getBranchComparison(git, defaultBranch),
+		getTrackingBranchStatus(git),
+		applyNumstatToFiles(git, parsed.staged, ["diff", "--cached", "--numstat"]),
+		applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
+		applyUntrackedLineCount({
+			worktreePath,
+			repoPath,
+			untracked: parsed.untracked,
+		}),
+	]);
+
+	return {
+		branch: parsed.branch,
+		defaultBranch,
+		againstBase: branchComparison.againstBase,
+		commits: branchComparison.commits,
+		staged: parsed.staged,
+		unstaged: parsed.unstaged,
+		untracked: parsed.untracked,
+		ahead: branchComparison.ahead,
+		behind: branchComparison.behind,
+		pushCount: trackingStatus.pushCount,
+		pullCount: trackingStatus.pullCount,
+		hasUpstream: trackingStatus.hasUpstream,
+	};
+}
 
 export const createStatusRouter = () => {
 	return router({
@@ -18,45 +81,87 @@ export const createStatusRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					defaultBranch: z.string().optional(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<GitChangesStatus> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
+				// If repoPath provided, validate it's within worktree bounds
+				const targetPath = input.repoPath || input.worktreePath;
+				if (input.repoPath) {
+					assertValidNestedRepo(input.worktreePath, input.repoPath);
+				}
+
+				const defaultBranch = input.defaultBranch || "main";
+				return getRepoStatus({
+					worktreePath: input.worktreePath,
+					repoPath: targetPath,
+					defaultBranch,
+				});
+			}),
+
+		getMultiRepoStatus: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					defaultBranch: z.string().optional(),
+				}),
+			)
+			.query(async ({ input }): Promise<MultiRepoGitChangesStatus> => {
+				assertRegisteredWorktree(input.worktreePath);
+
 				const defaultBranch = input.defaultBranch || "main";
 
-				// First, get status (needed for subsequent operations)
-				// Use --no-optional-locks to avoid holding locks on the repository
-				const status = await getStatusNoLock(input.worktreePath);
-				const parsed = parseGitStatus(status);
+				// Detect all nested repos
+				const repoPaths = await detectNestedRepos(input.worktreePath);
 
-				// Run independent operations in parallel
-				const [branchComparison, trackingStatus] = await Promise.all([
-					getBranchComparison(git, defaultBranch),
-					getTrackingBranchStatus(git),
-					applyNumstatToFiles(git, parsed.staged, [
-						"diff",
-						"--cached",
-						"--numstat",
-					]),
-					applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
-					applyUntrackedLineCount(input.worktreePath, parsed.untracked),
-				]);
+				// If no repos found, return empty state
+				if (repoPaths.length === 0) {
+					return {
+						repos: [],
+						totalStaged: 0,
+						totalUnstaged: 0,
+						totalUntracked: 0,
+					};
+				}
+
+				// Fetch status for all repos in parallel
+				const repoStatuses = await Promise.all(
+					repoPaths.map(async (repoPath): Promise<NestedRepoStatus> => {
+						const status = await getRepoStatus({
+							worktreePath: input.worktreePath,
+							repoPath,
+							defaultBranch,
+						});
+						return {
+							...status,
+							repoPath,
+							repoName: getRepoDisplayName(input.worktreePath, repoPath),
+							isRoot: repoPath === input.worktreePath,
+						};
+					}),
+				);
+
+				// Calculate totals
+				const totalStaged = repoStatuses.reduce(
+					(sum, repo) => sum + repo.staged.length,
+					0,
+				);
+				const totalUnstaged = repoStatuses.reduce(
+					(sum, repo) => sum + repo.unstaged.length,
+					0,
+				);
+				const totalUntracked = repoStatuses.reduce(
+					(sum, repo) => sum + repo.untracked.length,
+					0,
+				);
 
 				return {
-					branch: parsed.branch,
-					defaultBranch,
-					againstBase: branchComparison.againstBase,
-					commits: branchComparison.commits,
-					staged: parsed.staged,
-					unstaged: parsed.unstaged,
-					untracked: parsed.untracked,
-					ahead: branchComparison.ahead,
-					behind: branchComparison.behind,
-					pushCount: trackingStatus.pushCount,
-					pullCount: trackingStatus.pullCount,
-					hasUpstream: trackingStatus.hasUpstream,
+					repos: repoStatuses,
+					totalStaged,
+					totalUnstaged,
+					totalUntracked,
 				};
 			}),
 
@@ -65,12 +170,18 @@ export const createStatusRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					commitHash: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<ChangedFile[]> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
+				const targetPath = input.repoPath || input.worktreePath;
+				if (input.repoPath) {
+					assertValidNestedRepo(input.worktreePath, input.repoPath);
+				}
+
+				const git = simpleGit(targetPath);
 
 				const nameStatus = await git.raw([
 					"diff-tree",
@@ -150,16 +261,32 @@ async function getBranchComparison(
 /** Max file size for line counting (1 MiB) - skip larger files to avoid OOM */
 const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 
-async function applyUntrackedLineCount(
-	worktreePath: string,
-	untracked: ChangedFile[],
-): Promise<void> {
+async function applyUntrackedLineCount({
+	worktreePath,
+	repoPath,
+	untracked,
+}: {
+	/** The registered parent worktree (for security validation) */
+	worktreePath: string;
+	/** The target repo path (may be nested or same as worktreePath) */
+	repoPath: string;
+	untracked: ChangedFile[];
+}): Promise<void> {
 	for (const file of untracked) {
 		try {
-			const stats = await secureFs.stat(worktreePath, file.path);
+			// Use nested-repo-aware methods for proper security validation
+			const stats = await secureFs.statInNestedRepo(
+				worktreePath,
+				repoPath,
+				file.path,
+			);
 			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
 
-			const content = await secureFs.readFile(worktreePath, file.path);
+			const content = await secureFs.readFileInNestedRepo(
+				worktreePath,
+				repoPath,
+				file.path,
+			);
 			const lineCount = content.split("\n").length;
 			file.additions = lineCount;
 			file.deletions = 0;

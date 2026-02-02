@@ -2,7 +2,21 @@ import simpleGit from "simple-git";
 import {
 	assertRegisteredWorktree,
 	assertValidGitPath,
+	assertValidNestedRepo,
 } from "./path-validation";
+
+/**
+ * Resolves the effective repo path for git operations.
+ * If repoPath is provided, validates it's within worktree bounds and returns it.
+ * Otherwise returns the worktreePath.
+ */
+function resolveRepoPath(worktreePath: string, repoPath?: string): string {
+	if (repoPath) {
+		assertValidNestedRepo(worktreePath, repoPath);
+		return repoPath;
+	}
+	return worktreePath;
+}
 
 /**
  * Git command helpers with semantic naming.
@@ -27,8 +41,10 @@ import {
 export async function gitSwitchBranch(
 	worktreePath: string,
 	branch: string,
+	repoPath?: string,
 ): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
 	// Validate: reject anything that looks like a flag
 	if (branch.startsWith("-")) {
@@ -40,7 +56,7 @@ export async function gitSwitchBranch(
 		throw new Error("Invalid branch name: cannot be empty");
 	}
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 
 	try {
 		// Prefer `git switch` - unambiguous branch operation (git 2.23+)
@@ -68,11 +84,13 @@ export async function gitSwitchBranch(
 export async function gitCheckoutFile(
 	worktreePath: string,
 	filePath: string,
+	repoPath?: string,
 ): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 	assertValidGitPath(filePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	// `--` is correct here - we want path semantics
 	await git.checkout(["--", filePath]);
 }
@@ -86,11 +104,13 @@ export async function gitCheckoutFile(
 export async function gitStageFile(
 	worktreePath: string,
 	filePath: string,
+	repoPath?: string,
 ): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 	assertValidGitPath(filePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.add(["--", filePath]);
 }
 
@@ -99,10 +119,14 @@ export async function gitStageFile(
  *
  * Uses `git add -A` to stage all changes (new, modified, deleted).
  */
-export async function gitStageAll(worktreePath: string): Promise<void> {
+export async function gitStageAll(
+	worktreePath: string,
+	repoPath?: string,
+): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.add("-A");
 }
 
@@ -115,11 +139,13 @@ export async function gitStageAll(worktreePath: string): Promise<void> {
 export async function gitUnstageFile(
 	worktreePath: string,
 	filePath: string,
+	repoPath?: string,
 ): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
 	assertValidGitPath(filePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.reset(["HEAD", "--", filePath]);
 }
 
@@ -129,10 +155,14 @@ export async function gitUnstageFile(
  * Uses `git reset HEAD` to unstage all changes without
  * discarding them.
  */
-export async function gitUnstageAll(worktreePath: string): Promise<void> {
+export async function gitUnstageAll(
+	worktreePath: string,
+	repoPath?: string,
+): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.reset(["HEAD"]);
 }
 
@@ -144,10 +174,12 @@ export async function gitUnstageAll(worktreePath: string): Promise<void> {
  */
 export async function gitDiscardAllUnstaged(
 	worktreePath: string,
+	repoPath?: string,
 ): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.checkout(["--", "."]);
 }
 
@@ -157,10 +189,14 @@ export async function gitDiscardAllUnstaged(
  * Uses `git reset HEAD` followed by `git checkout -- .`.
  * Does NOT affect untracked files.
  */
-export async function gitDiscardAllStaged(worktreePath: string): Promise<void> {
+export async function gitDiscardAllStaged(
+	worktreePath: string,
+	repoPath?: string,
+): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.reset(["HEAD"]);
 	await git.checkout(["--", "."]);
 }
@@ -170,10 +206,14 @@ export async function gitDiscardAllStaged(worktreePath: string): Promise<void> {
  *
  * Uses `git stash push` to save current work-in-progress.
  */
-export async function gitStash(worktreePath: string): Promise<void> {
+export async function gitStash(
+	worktreePath: string,
+	repoPath?: string,
+): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.stash(["push"]);
 }
 
@@ -184,10 +224,12 @@ export async function gitStash(worktreePath: string): Promise<void> {
  */
 export async function gitStashIncludeUntracked(
 	worktreePath: string,
+	repoPath?: string,
 ): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.stash(["push", "--include-untracked"]);
 }
 
@@ -197,9 +239,13 @@ export async function gitStashIncludeUntracked(
  * Uses `git stash pop` to apply and remove the top stash entry.
  * Throws if no stash exists or if there are conflicts.
  */
-export async function gitStashPop(worktreePath: string): Promise<void> {
+export async function gitStashPop(
+	worktreePath: string,
+	repoPath?: string,
+): Promise<void> {
 	assertRegisteredWorktree(worktreePath);
+	const targetPath = resolveRepoPath(worktreePath, repoPath);
 
-	const git = simpleGit(worktreePath);
+	const git = simpleGit(targetPath);
 	await git.stash(["pop"]);
 }

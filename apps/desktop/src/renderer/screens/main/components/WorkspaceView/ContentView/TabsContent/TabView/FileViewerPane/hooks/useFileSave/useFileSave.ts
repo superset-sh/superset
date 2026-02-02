@@ -14,6 +14,8 @@ interface UseFileSaveParams {
 	originalDiffContentRef: MutableRefObject<string>;
 	draftContentRef: MutableRefObject<string | null>;
 	setIsDirty: (dirty: boolean) => void;
+	/** Nested repo path for multi-repo support (if different from worktreePath) */
+	repoPath?: string;
 }
 
 export function useFileSave({
@@ -26,6 +28,7 @@ export function useFileSave({
 	originalDiffContentRef,
 	draftContentRef,
 	setIsDirty,
+	repoPath,
 }: UseFileSaveParams) {
 	const savingFromRawRef = useRef(false);
 	const savingDiffContentRef = useRef<string | null>(null);
@@ -78,8 +81,9 @@ export function useFileSave({
 			worktreePath,
 			filePath,
 			content: editorRef.current.getValue(),
+			repoPath,
 		});
-	}, [worktreePath, filePath, saveFileMutation, editorRef]);
+	}, [worktreePath, filePath, saveFileMutation, editorRef, repoPath]);
 
 	const handleSaveDiff = useCallback(
 		async (content: string) => {
@@ -90,9 +94,10 @@ export function useFileSave({
 				worktreePath,
 				filePath,
 				content,
+				repoPath,
 			});
 		},
-		[worktreePath, filePath, saveFileMutation],
+		[worktreePath, filePath, saveFileMutation, repoPath],
 	);
 
 	return {

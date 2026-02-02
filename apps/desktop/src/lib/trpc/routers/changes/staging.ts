@@ -21,10 +21,11 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitStageFile(input.worktreePath, input.filePath);
+				await gitStageFile(input.worktreePath, input.filePath, input.repoPath);
 				return { success: true };
 			}),
 
@@ -33,10 +34,15 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitUnstageFile(input.worktreePath, input.filePath);
+				await gitUnstageFile(
+					input.worktreePath,
+					input.filePath,
+					input.repoPath,
+				);
 				return { success: true };
 			}),
 
@@ -45,24 +51,39 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitCheckoutFile(input.worktreePath, input.filePath);
+				await gitCheckoutFile(
+					input.worktreePath,
+					input.filePath,
+					input.repoPath,
+				);
 				return { success: true };
 			}),
 
 		stageAll: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitStageAll(input.worktreePath);
+				await gitStageAll(input.worktreePath, input.repoPath);
 				return { success: true };
 			}),
 
 		unstageAll: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitUnstageAll(input.worktreePath);
+				await gitUnstageAll(input.worktreePath, input.repoPath);
 				return { success: true };
 			}),
 
@@ -71,45 +92,77 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await secureFs.delete(input.worktreePath, input.filePath);
+				const targetRepoPath = input.repoPath || input.worktreePath;
+				// Use nested-repo-aware delete that validates both worktree and nested repo
+				await secureFs.deleteInNestedRepo(
+					input.worktreePath,
+					targetRepoPath,
+					input.filePath,
+				);
 				return { success: true };
 			}),
 
 		discardAllUnstaged: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitDiscardAllUnstaged(input.worktreePath);
+				await gitDiscardAllUnstaged(input.worktreePath, input.repoPath);
 				return { success: true };
 			}),
 
 		discardAllStaged: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitDiscardAllStaged(input.worktreePath);
+				await gitDiscardAllStaged(input.worktreePath, input.repoPath);
 				return { success: true };
 			}),
 
 		stash: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitStash(input.worktreePath);
+				await gitStash(input.worktreePath, input.repoPath);
 				return { success: true };
 			}),
 
 		stashIncludeUntracked: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitStashIncludeUntracked(input.worktreePath);
+				await gitStashIncludeUntracked(input.worktreePath, input.repoPath);
 				return { success: true };
 			}),
 
 		stashPop: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await gitStashPop(input.worktreePath);
+				await gitStashPop(input.worktreePath, input.repoPath);
 				return { success: true };
 			}),
 	});

@@ -54,24 +54,27 @@ export const createFileContentsRouter = () => {
 					category: z.enum(["against-base", "committed", "staged", "unstaged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<FileContents> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
+				const targetPath = input.repoPath || input.worktreePath;
+				const git = simpleGit(targetPath);
 				const defaultBranch = input.defaultBranch || "main";
 				const originalPath = input.oldPath || input.filePath;
 
-				const { original, modified } = await getFileVersions(
+				const { original, modified } = await getFileVersions({
 					git,
-					input.worktreePath,
-					input.filePath,
+					worktreePath: input.worktreePath,
+					targetRepoPath: targetPath,
+					filePath: input.filePath,
 					originalPath,
-					input.category,
+					category: input.category,
 					defaultBranch,
-					input.commitHash,
-				);
+					commitHash: input.commitHash,
+				});
 
 				return {
 					original,
@@ -86,11 +89,15 @@ export const createFileContentsRouter = () => {
 					worktreePath: z.string(),
 					filePath: z.string(),
 					content: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				await secureFs.writeFile(
+				const targetPath = input.repoPath || input.worktreePath;
+				// Use nested-repo-aware write that validates both worktree and nested repo
+				await secureFs.writeFileInNestedRepo(
 					input.worktreePath,
+					targetPath,
 					input.filePath,
 					input.content,
 				);
@@ -106,17 +113,25 @@ export const createFileContentsRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
 				try {
-					const stats = await secureFs.stat(input.worktreePath, input.filePath);
+					const targetPath = input.repoPath || input.worktreePath;
+					// Use nested-repo-aware methods that validate both worktree and nested repo
+					const stats = await secureFs.statInNestedRepo(
+						input.worktreePath,
+						targetPath,
+						input.filePath,
+					);
 					if (stats.size > MAX_FILE_SIZE) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					const buffer = await secureFs.readFileBuffer(
+					const buffer = await secureFs.readFileBufferInNestedRepo(
 						input.worktreePath,
+						targetPath,
 						input.filePath,
 					);
 
@@ -150,15 +165,29 @@ interface FileVersions {
 	modified: string;
 }
 
-async function getFileVersions(
-	git: ReturnType<typeof simpleGit>,
-	worktreePath: string,
-	filePath: string,
-	originalPath: string,
-	category: DiffCategory,
-	defaultBranch: string,
-	commitHash?: string,
-): Promise<FileVersions> {
+interface GetFileVersionsParams {
+	git: ReturnType<typeof simpleGit>;
+	/** The registered parent worktree (for security validation) */
+	worktreePath: string;
+	/** The target repo path (may be nested repo or same as worktreePath) */
+	targetRepoPath: string;
+	filePath: string;
+	originalPath: string;
+	category: DiffCategory;
+	defaultBranch: string;
+	commitHash?: string;
+}
+
+async function getFileVersions({
+	git,
+	worktreePath,
+	targetRepoPath,
+	filePath,
+	originalPath,
+	category,
+	defaultBranch,
+	commitHash,
+}: GetFileVersionsParams): Promise<FileVersions> {
 	switch (category) {
 		case "against-base":
 			return getAgainstBaseVersions(git, filePath, originalPath, defaultBranch);
@@ -173,7 +202,13 @@ async function getFileVersions(
 			return getStagedVersions(git, filePath, originalPath);
 
 		case "unstaged":
-			return getUnstagedVersions(git, worktreePath, filePath, originalPath);
+			return getUnstagedVersions({
+				git,
+				worktreePath,
+				targetRepoPath,
+				filePath,
+				originalPath,
+			});
 	}
 }
 
@@ -243,12 +278,23 @@ async function getStagedVersions(
 	return { original, modified };
 }
 
-async function getUnstagedVersions(
-	git: ReturnType<typeof simpleGit>,
-	worktreePath: string,
-	filePath: string,
-	originalPath: string,
-): Promise<FileVersions> {
+interface GetUnstagedVersionsParams {
+	git: ReturnType<typeof simpleGit>;
+	/** The registered parent worktree (for security validation) */
+	worktreePath: string;
+	/** The target repo path (may be nested repo or same as worktreePath) */
+	targetRepoPath: string;
+	filePath: string;
+	originalPath: string;
+}
+
+async function getUnstagedVersions({
+	git,
+	worktreePath,
+	targetRepoPath,
+	filePath,
+	originalPath,
+}: GetUnstagedVersionsParams): Promise<FileVersions> {
 	// Try staged version first, fall back to HEAD
 	let original = await safeGitShow(git, `:0:${originalPath}`);
 	if (!original) {
@@ -257,14 +303,29 @@ async function getUnstagedVersions(
 
 	let modified = "";
 	try {
-		const stats = await secureFs.stat(worktreePath, filePath);
+		// Use nested-repo-aware methods for proper security validation
+		const stats = await secureFs.statInNestedRepo(
+			worktreePath,
+			targetRepoPath,
+			filePath,
+		);
 		if (stats.size <= MAX_FILE_SIZE) {
-			modified = await secureFs.readFile(worktreePath, filePath);
+			modified = await secureFs.readFileInNestedRepo(
+				worktreePath,
+				targetRepoPath,
+				filePath,
+			);
 		} else {
 			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 		}
-	} catch {
-		// File doesn't exist or validation failed - that's ok for diff display
+	} catch (error) {
+		// Log the error to help debug
+		console.error("[getUnstagedVersions] Failed to read file:", {
+			worktreePath,
+			targetRepoPath,
+			filePath,
+			error: error instanceof Error ? error.message : error,
+		});
 		modified = "";
 	}
 

@@ -21,12 +21,14 @@ import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
+import { RepoSection } from "./components/RepoSection";
 
 interface ChangesViewProps {
 	onFileOpen?: (
 		file: ChangedFile,
 		category: ChangeCategory,
 		commitHash?: string,
+		repoPath?: string,
 	) => void;
 	isExpandedView?: boolean;
 }
@@ -47,11 +49,12 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 
+	// Use multi-repo status query
 	const {
-		data: status,
+		data: multiRepoStatus,
 		isLoading,
 		refetch,
-	} = electronTrpc.changes.getStatus.useQuery(
+	} = electronTrpc.changes.getMultiRepoStatus.useQuery(
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
 		{
 			enabled: !!worktreePath,
@@ -188,18 +191,23 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
 		useState(false);
 	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
+	const [discardDialogRepoPath, setDiscardDialogRepoPath] = useState<
+		string | undefined
+	>(undefined);
 
-	const handleDiscard = (file: ChangedFile) => {
+	const handleDiscard = (file: ChangedFile, repoPath?: string) => {
 		if (!worktreePath) return;
 		if (file.status === "untracked" || file.status === "added") {
 			deleteUntrackedMutation.mutate({
 				worktreePath,
 				filePath: file.path,
+				repoPath,
 			});
 		} else {
 			discardChangesMutation.mutate({
 				worktreePath,
 				filePath: file.path,
+				repoPath,
 			});
 		}
 	};
@@ -211,6 +219,8 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		getSelectedFile,
 		toggleSection,
 		setFileListViewMode,
+		toggleRepoExpanded,
+		isRepoExpanded,
 	} = useChangesStore();
 
 	const selectedFileState = getSelectedFile(worktreePath || "");
@@ -243,24 +253,47 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		}
 	});
 
+	// Check if we have multiple repos
+	const repos = multiRepoStatus?.repos ?? [];
+	const isMultiRepo = repos.length > 1;
+
+	// For single repo mode, get the root repo status
+	const rootRepo = repos.find((r) => r.isRoot) ?? repos[0];
+
 	const combinedUnstaged = useMemo(
 		() =>
-			status?.unstaged && status?.untracked
-				? [...status.unstaged, ...status.untracked]
+			rootRepo?.unstaged && rootRepo?.untracked
+				? [...rootRepo.unstaged, ...rootRepo.untracked]
 				: [],
-		[status?.unstaged, status?.untracked],
+		[rootRepo?.unstaged, rootRepo?.untracked],
 	);
 
-	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
+	/**
+	 * Handles file selection from staged/unstaged lists.
+	 * Passes repoPath so the diff viewer queries the correct nested repo.
+	 */
+	const handleFileSelect = (
+		file: ChangedFile,
+		category: ChangeCategory,
+		repoPath?: string,
+	) => {
 		if (!worktreePath) return;
-		selectFile(worktreePath, file, category, null);
-		onFileOpen?.(file, category);
+		selectFile(worktreePath, file, category, null, repoPath);
+		onFileOpen?.(file, category, undefined, repoPath);
 	};
 
-	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
+	/**
+	 * Handles file selection from the commits list.
+	 * Passes repoPath to support viewing committed files in nested repos.
+	 */
+	const handleCommitFileSelect = (
+		file: ChangedFile,
+		commitHash: string,
+		repoPath?: string,
+	) => {
 		if (!worktreePath) return;
-		selectFile(worktreePath, file, "committed", commitHash);
-		onFileOpen?.(file, "committed", commitHash);
+		selectFile(worktreePath, file, "committed", commitHash, repoPath);
+		onFileOpen?.(file, "committed", commitHash, repoPath);
 	};
 
 	const handleCommitToggle = (hash: string) => {
@@ -291,14 +324,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		);
 	}
 
-	if (
-		!status ||
-		!status.againstBase ||
-		!status.commits ||
-		!status.staged ||
-		!status.unstaged ||
-		!status.untracked
-	) {
+	if (!multiRepoStatus || repos.length === 0) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				Unable to load changes
@@ -307,21 +333,208 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	}
 
 	const hasChanges =
-		status.againstBase.length > 0 ||
-		status.commits.length > 0 ||
-		status.staged.length > 0 ||
-		status.unstaged.length > 0 ||
-		status.untracked.length > 0;
+		multiRepoStatus.totalStaged > 0 ||
+		multiRepoStatus.totalUnstaged > 0 ||
+		multiRepoStatus.totalUntracked > 0 ||
+		(rootRepo?.againstBase?.length ?? 0) > 0 ||
+		(rootRepo?.commits?.length ?? 0) > 0;
 
-	const commitsWithFiles = status.commits.map((commit) => ({
+	const commitsWithFiles = (rootRepo?.commits ?? []).map((commit) => ({
 		...commit,
 		files: commitFilesMap.get(commit.hash) || [],
 	}));
 
-	const hasStagedChanges = status.staged.length > 0;
+	const hasStagedChanges = rootRepo ? rootRepo.staged.length > 0 : false;
 	const hasExistingPR = !!githubStatus?.pr;
 	const prUrl = githubStatus?.pr?.url;
 
+	// Multi-repo view
+	if (isMultiRepo) {
+		return (
+			<div className="flex flex-col h-full">
+				<ChangesHeader
+					onRefresh={handleRefresh}
+					viewMode={fileListViewMode}
+					onViewModeChange={setFileListViewMode}
+					worktreePath={worktreePath}
+					workspaceId={workspaceId}
+					onStash={() => stashMutation.mutate({ worktreePath })}
+					onStashIncludeUntracked={() =>
+						stashIncludeUntrackedMutation.mutate({ worktreePath })
+					}
+					onStashPop={() => stashPopMutation.mutate({ worktreePath })}
+					isStashPending={
+						stashMutation.isPending ||
+						stashIncludeUntrackedMutation.isPending ||
+						stashPopMutation.isPending
+					}
+				/>
+
+				{!hasChanges ? (
+					<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm px-4 text-center">
+						No changes detected
+					</div>
+				) : (
+					<div className="flex-1 overflow-y-auto">
+						{repos.map((repo) => (
+							<RepoSection
+								key={repo.repoPath}
+								repo={repo}
+								worktreePath={worktreePath}
+								isExpanded={isRepoExpanded(repo.repoPath)}
+								onToggle={() => toggleRepoExpanded(repo.repoPath)}
+								selectedFile={selectedFile}
+								selectedCommitHash={selectedCommitHash}
+								fileListViewMode={fileListViewMode}
+								expandedSections={expandedSections}
+								onToggleSection={toggleSection}
+								onFileSelect={handleFileSelect}
+								onStageFile={(file, repoPath) =>
+									stageFileMutation.mutate({
+										worktreePath,
+										filePath: file.path,
+										repoPath,
+									})
+								}
+								onUnstageFile={(file, repoPath) =>
+									unstageFileMutation.mutate({
+										worktreePath,
+										filePath: file.path,
+										repoPath,
+									})
+								}
+								onDiscard={handleDiscard}
+								onStageAll={(repoPath) =>
+									stageAllMutation.mutate({ worktreePath, repoPath })
+								}
+								onUnstageAll={(repoPath) =>
+									unstageAllMutation.mutate({ worktreePath, repoPath })
+								}
+								onDiscardAllUnstaged={(repoPath) => {
+									setDiscardDialogRepoPath(repoPath);
+									setShowDiscardUnstagedDialog(true);
+								}}
+								onDiscardAllStaged={(repoPath) => {
+									setDiscardDialogRepoPath(repoPath);
+									setShowDiscardStagedDialog(true);
+								}}
+								isStaging={
+									stageFileMutation.isPending || stageAllMutation.isPending
+								}
+								isUnstaging={
+									unstageFileMutation.isPending || unstageAllMutation.isPending
+								}
+								isDiscarding={
+									discardChangesMutation.isPending ||
+									deleteUntrackedMutation.isPending ||
+									discardAllUnstagedMutation.isPending ||
+									discardAllStagedMutation.isPending
+								}
+								isExpandedView={isExpandedView}
+								commitInput={
+									<CommitInput
+										worktreePath={worktreePath}
+										hasStagedChanges={repo.staged.length > 0}
+										pushCount={repo.pushCount}
+										pullCount={repo.pullCount}
+										hasUpstream={repo.hasUpstream}
+										hasExistingPR={repo.isRoot && hasExistingPR}
+										prUrl={repo.isRoot ? prUrl : undefined}
+										onRefresh={handleRefresh}
+										repoPath={repo.repoPath}
+									/>
+								}
+							/>
+						))}
+					</div>
+				)}
+
+				<AlertDialog
+					open={showDiscardUnstagedDialog}
+					onOpenChange={setShowDiscardUnstagedDialog}
+				>
+					<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+						<AlertDialogHeader className="px-4 pt-4 pb-2">
+							<AlertDialogTitle className="font-medium">
+								Discard all unstaged changes?
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								This will revert all unstaged modifications. Untracked files
+								will not be affected. This action cannot be undone.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={() => setShowDiscardUnstagedDialog(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={() => {
+									setShowDiscardUnstagedDialog(false);
+									discardAllUnstagedMutation.mutate({
+										worktreePath,
+										repoPath: discardDialogRepoPath,
+									});
+								}}
+							>
+								Discard All
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+
+				<AlertDialog
+					open={showDiscardStagedDialog}
+					onOpenChange={setShowDiscardStagedDialog}
+				>
+					<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+						<AlertDialogHeader className="px-4 pt-4 pb-2">
+							<AlertDialogTitle className="font-medium">
+								Discard all staged changes?
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								This will unstage and revert all staged changes. Untracked files
+								will not be affected. This action cannot be undone.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={() => setShowDiscardStagedDialog(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={() => {
+									setShowDiscardStagedDialog(false);
+									discardAllStagedMutation.mutate({
+										worktreePath,
+										repoPath: discardDialogRepoPath,
+									});
+								}}
+							>
+								Discard All
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			</div>
+		);
+	}
+
+	// Single repo view (backward compatible)
 	return (
 		<div className="flex flex-col h-full">
 			<ChangesHeader
@@ -345,9 +558,9 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 			<CommitInput
 				worktreePath={worktreePath}
 				hasStagedChanges={hasStagedChanges}
-				pushCount={status.pushCount}
-				pullCount={status.pullCount}
-				hasUpstream={status.hasUpstream}
+				pushCount={rootRepo?.pushCount ?? 0}
+				pullCount={rootRepo?.pullCount ?? 0}
+				hasUpstream={rootRepo?.hasUpstream ?? false}
 				hasExistingPR={hasExistingPR}
 				prUrl={prUrl}
 				onRefresh={handleRefresh}
@@ -361,12 +574,12 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				<div className="flex-1 overflow-y-auto">
 					<CategorySection
 						title={`Against ${effectiveBaseBranch}`}
-						count={status.againstBase.length}
+						count={rootRepo?.againstBase?.length ?? 0}
 						isExpanded={expandedSections["against-base"]}
 						onToggle={() => toggleSection("against-base")}
 					>
 						<FileList
-							files={status.againstBase}
+							files={rootRepo?.againstBase ?? []}
 							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
@@ -379,7 +592,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 
 					<CategorySection
 						title="Commits"
-						count={status.commits.length}
+						count={rootRepo?.commits?.length ?? 0}
 						isExpanded={expandedSections.committed}
 						onToggle={() => toggleSection("committed")}
 					>
@@ -401,7 +614,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 
 					<CategorySection
 						title="Staged"
-						count={status.staged.length}
+						count={rootRepo?.staged?.length ?? 0}
 						isExpanded={expandedSections.staged}
 						onToggle={() => toggleSection("staged")}
 						actions={
@@ -444,7 +657,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 						}
 					>
 						<FileList
-							files={status.staged}
+							files={rootRepo?.staged ?? []}
 							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
@@ -524,7 +737,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 								deleteUntrackedMutation.isPending
 							}
 							worktreePath={worktreePath}
-							onDiscard={handleDiscard}
+							onDiscard={(file) => handleDiscard(file)}
 							category="unstaged"
 							isExpandedView={isExpandedView}
 						/>

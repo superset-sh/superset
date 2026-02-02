@@ -25,6 +25,7 @@ export {
 export {
 	assertRegisteredWorktree,
 	assertValidGitPath,
+	assertValidNestedRepo,
 	getRegisteredWorktree,
 	PathValidationError,
 	type PathValidationErrorCode,

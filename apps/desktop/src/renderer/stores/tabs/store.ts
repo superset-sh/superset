@@ -604,6 +604,9 @@ export const useTabsStore = create<TabsStore>()(
 							viewMode: options.viewMode,
 						});
 
+						// Update pane state with new file info
+						// repoPath is preserved for nested repo support - it tells
+						// the file content queries which git repo to read from
 						set({
 							panes: {
 								...state.panes,
@@ -620,6 +623,7 @@ export const useTabsStore = create<TabsStore>()(
 										oldPath: options.oldPath,
 										initialLine: options.line,
 										initialColumn: options.column,
+										repoPath: options.repoPath,
 									},
 								},
 							},

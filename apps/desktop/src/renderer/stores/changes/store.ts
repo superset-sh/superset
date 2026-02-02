@@ -12,6 +12,7 @@ interface SelectedFileState {
 	file: ChangedFile;
 	category: ChangeCategory;
 	commitHash: string | null;
+	repoPath?: string;
 }
 
 interface ChangesState {
@@ -22,12 +23,14 @@ interface ChangesState {
 	baseBranch: string | null;
 	showRenderedMarkdown: Record<string, boolean>;
 	hideUnchangedRegions: boolean;
+	expandedRepos: Record<string, boolean>;
 
 	selectFile: (
 		worktreePath: string,
 		file: ChangedFile | null,
 		category?: ChangeCategory,
 		commitHash?: string | null,
+		repoPath?: string,
 	) => void;
 	getSelectedFile: (worktreePath: string) => SelectedFileState | null;
 	setViewMode: (mode: DiffViewMode) => void;
@@ -38,6 +41,8 @@ interface ChangesState {
 	toggleRenderedMarkdown: (worktreePath: string) => void;
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
+	toggleRepoExpanded: (repoPath: string) => void;
+	isRepoExpanded: (repoPath: string) => boolean;
 	reset: (worktreePath: string) => void;
 }
 
@@ -54,6 +59,7 @@ const initialState = {
 	baseBranch: null,
 	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
+	expandedRepos: {} as Record<string, boolean>,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -62,7 +68,7 @@ export const useChangesStore = create<ChangesState>()(
 			(set, get) => ({
 				...initialState,
 
-				selectFile: (worktreePath, file, category, commitHash) => {
+				selectFile: (worktreePath, file, category, commitHash, repoPath) => {
 					const { selectedFiles } = get();
 					set({
 						selectedFiles: {
@@ -72,6 +78,7 @@ export const useChangesStore = create<ChangesState>()(
 										file,
 										category: category ?? "against-base",
 										commitHash: commitHash ?? null,
+										repoPath,
 									}
 								: null,
 						},
@@ -132,6 +139,21 @@ export const useChangesStore = create<ChangesState>()(
 					set({ hideUnchangedRegions: !get().hideUnchangedRegions });
 				},
 
+				toggleRepoExpanded: (repoPath) => {
+					const { expandedRepos } = get();
+					set({
+						expandedRepos: {
+							...expandedRepos,
+							[repoPath]: expandedRepos[repoPath] === false,
+						},
+					});
+				},
+
+				isRepoExpanded: (repoPath) => {
+					// Default to expanded (true) if not explicitly set
+					return get().expandedRepos[repoPath] !== false;
+				},
+
 				reset: (worktreePath) => {
 					const { selectedFiles } = get();
 					set({
@@ -152,6 +174,7 @@ export const useChangesStore = create<ChangesState>()(
 					baseBranch: state.baseBranch,
 					showRenderedMarkdown: state.showRenderedMarkdown,
 					hideUnchangedRegions: state.hideUnchangedRegions,
+					expandedRepos: state.expandedRepos,
 				}),
 			},
 		),

@@ -4,9 +4,20 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { isUpstreamMissingError } from "./git-utils";
-import { assertRegisteredWorktree } from "./security";
+import { assertRegisteredWorktree, assertValidNestedRepo } from "./security";
 
 export { isUpstreamMissingError };
+
+/**
+ * Resolves the target path for git operations, validating nested repo if provided.
+ */
+function resolveTargetPath(worktreePath: string, repoPath?: string): string {
+	if (repoPath) {
+		assertValidNestedRepo(worktreePath, repoPath);
+		return repoPath;
+	}
+	return worktreePath;
+}
 
 async function hasUpstreamBranch(
 	git: ReturnType<typeof simpleGit>,
@@ -97,13 +108,18 @@ export const createGitOperationsRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					message: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; hash: string }> => {
 					assertRegisteredWorktree(input.worktreePath);
+					const targetPath = resolveTargetPath(
+						input.worktreePath,
+						input.repoPath,
+					);
 
-					const git = simpleGit(input.worktreePath);
+					const git = simpleGit(targetPath);
 					const result = await git.commit(input.message);
 					return { success: true, hash: result.commit };
 				},
@@ -114,12 +130,17 @@ export const createGitOperationsRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					setUpstream: z.boolean().optional(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
+				const targetPath = resolveTargetPath(
+					input.worktreePath,
+					input.repoPath,
+				);
 
-				const git = simpleGit(input.worktreePath);
+				const git = simpleGit(targetPath);
 				const hasUpstream = await hasUpstreamBranch(git);
 
 				if (input.setUpstream && !hasUpstream) {
@@ -147,12 +168,17 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
+				const targetPath = resolveTargetPath(
+					input.worktreePath,
+					input.repoPath,
+				);
 
-				const git = simpleGit(input.worktreePath);
+				const git = simpleGit(targetPath);
 				try {
 					await git.pull(["--rebase"]);
 				} catch (error) {
@@ -172,12 +198,17 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
+				const targetPath = resolveTargetPath(
+					input.worktreePath,
+					input.repoPath,
+				);
 
-				const git = simpleGit(input.worktreePath);
+				const git = simpleGit(targetPath);
 				try {
 					await git.pull(["--rebase"]);
 				} catch (error) {
@@ -197,10 +228,19 @@ export const createGitOperationsRouter = () => {
 			}),
 
 		fetch: publicProcedure
-			.input(z.object({ worktreePath: z.string() }))
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					repoPath: z.string().optional(),
+				}),
+			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
-				const git = simpleGit(input.worktreePath);
+				const targetPath = resolveTargetPath(
+					input.worktreePath,
+					input.repoPath,
+				);
+				const git = simpleGit(targetPath);
 				await fetchCurrentBranch(git);
 				return { success: true };
 			}),
@@ -209,13 +249,18 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
+					repoPath: z.string().optional(),
 				}),
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; url: string }> => {
 					assertRegisteredWorktree(input.worktreePath);
+					const targetPath = resolveTargetPath(
+						input.worktreePath,
+						input.repoPath,
+					);
 
-					const git = simpleGit(input.worktreePath);
+					const git = simpleGit(targetPath);
 					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 					const hasUpstream = await hasUpstreamBranch(git);
 

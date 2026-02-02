@@ -100,6 +100,8 @@ export interface FileViewerState {
 	initialLine?: number;
 	/** Initial column to scroll to (raw mode only, transient - applied once) */
 	initialColumn?: number;
+	/** Nested repo path for multi-repo support (if different from worktreePath) */
+	repoPath?: string;
 }
 
 /**

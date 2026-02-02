@@ -74,6 +74,7 @@ export function FileViewerPane({
 	const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 	const [isSavingAndSwitching, setIsSavingAndSwitching] = useState(false);
 	const pendingModeRef = useRef<FileViewerMode | null>(null);
+	// Extract file viewer state from pane
 	const filePath = fileViewer?.filePath ?? "";
 	const viewMode = fileViewer?.viewMode ?? "raw";
 	const isPinned = fileViewer?.isPinned ?? false;
@@ -82,6 +83,8 @@ export function FileViewerPane({
 	const oldPath = fileViewer?.oldPath;
 	const initialLine = fileViewer?.initialLine;
 	const initialColumn = fileViewer?.initialColumn;
+	// repoPath is set when viewing files from nested repos (monorepo support)
+	const repoPath = fileViewer?.repoPath;
 
 	const pinPane = useTabsStore((s) => s.pinPane);
 
@@ -95,6 +98,7 @@ export function FileViewerPane({
 		originalDiffContentRef,
 		draftContentRef,
 		setIsDirty,
+		repoPath,
 	});
 
 	const { rawFileData, isLoadingRaw, diffData, isLoadingDiff } = useFileContent(
@@ -108,6 +112,7 @@ export function FileViewerPane({
 			isDirty,
 			originalContentRef,
 			originalDiffContentRef,
+			repoPath,
 		},
 	);
 
