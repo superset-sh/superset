@@ -36,6 +36,10 @@ export function ExistingWorktreesList({
 
 	const [branchOpen, setBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
+	const [worktreeOpen, setWorktreeOpen] = useState(false);
+	const [worktreeSearch, setWorktreeSearch] = useState("");
+	const [diskWorktreeOpen, setDiskWorktreeOpen] = useState(false);
+	const [diskWorktreeSearch, setDiskWorktreeSearch] = useState("");
 	const [prUrl, setPrUrl] = useState("");
 
 	const closedWorktrees = worktrees
@@ -62,6 +66,8 @@ export function ExistingWorktreesList({
 	}, [branchesWithoutWorktrees, branchSearch]);
 
 	const handleOpenWorktree = async (worktreeId: string, branch: string) => {
+		setWorktreeOpen(false);
+		setWorktreeSearch("");
 		toast.promise(openWorktree.mutateAsync({ worktreeId }), {
 			loading: "Opening workspace...",
 			success: () => {
@@ -71,28 +77,6 @@ export function ExistingWorktreesList({
 			error: (err) =>
 				err instanceof Error ? err.message : "Failed to open workspace",
 		});
-	};
-
-	const handleOpenAll = async () => {
-		if (closedWorktrees.length === 0) return;
-
-		const count = closedWorktrees.length;
-		toast.promise(
-			(async () => {
-				for (const wt of closedWorktrees) {
-					await openWorktree.mutateAsync({ worktreeId: wt.id });
-				}
-			})(),
-			{
-				loading: `Opening ${count} workspaces...`,
-				success: () => {
-					onOpenSuccess();
-					return `Opened ${count} workspaces`;
-				},
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to open workspaces",
-			},
-		);
 	};
 
 	const handleCreateFromBranch = async (branchName: string) => {
@@ -149,6 +133,8 @@ export function ExistingWorktreesList({
 	};
 
 	const handleOpenDiskWorktree = async (path: string, branch: string) => {
+		setDiskWorktreeOpen(false);
+		setDiskWorktreeSearch("");
 		toast.promise(
 			openDiskWorktree.mutateAsync({ projectId, worktreePath: path, branch }),
 			{
@@ -209,8 +195,11 @@ export function ExistingWorktreesList({
 				<WorktreesSection
 					closedWorktrees={closedWorktrees}
 					openWorktrees={openWorktrees}
+					searchValue={worktreeSearch}
+					onSearchChange={setWorktreeSearch}
+					isOpen={worktreeOpen}
+					onOpenChange={setWorktreeOpen}
 					onOpenWorktree={handleOpenWorktree}
-					onOpenAll={handleOpenAll}
 					disabled={isPending}
 				/>
 			)}
@@ -218,6 +207,10 @@ export function ExistingWorktreesList({
 			{hasDiskWorktrees && (
 				<DiskWorktreesSection
 					diskWorktrees={diskWorktrees}
+					searchValue={diskWorktreeSearch}
+					onSearchChange={setDiskWorktreeSearch}
+					isOpen={diskWorktreeOpen}
+					onOpenChange={setDiskWorktreeOpen}
 					onOpenWorktree={handleOpenDiskWorktree}
 					disabled={isPending}
 				/>

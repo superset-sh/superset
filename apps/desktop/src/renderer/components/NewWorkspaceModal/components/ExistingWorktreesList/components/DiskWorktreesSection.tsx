@@ -1,3 +1,13 @@
+import { Button } from "@superset/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@superset/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
 
 interface DiskWorktree {
@@ -7,44 +17,89 @@ interface DiskWorktree {
 
 interface DiskWorktreesSectionProps {
 	diskWorktrees: DiskWorktree[];
+	searchValue: string;
+	onSearchChange: (value: string) => void;
+	isOpen: boolean;
+	onOpenChange: (open: boolean) => void;
 	onOpenWorktree: (path: string, branch: string) => void;
 	disabled: boolean;
 }
 
 export function DiskWorktreesSection({
 	diskWorktrees,
+	searchValue,
+	onSearchChange,
+	isOpen,
+	onOpenChange,
 	onOpenWorktree,
 	disabled,
 }: DiskWorktreesSectionProps) {
-	return (
-		<div className="space-y-1">
-			<div className="border-t border-border pt-2" />
-			<div className="flex items-center justify-between">
-				<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-					Disk Worktrees
-				</div>
-			</div>
+	const filteredWorktrees = searchValue
+		? diskWorktrees.filter(
+				(wt) =>
+					wt.branch.toLowerCase().includes(searchValue.toLowerCase()) ||
+					wt.path.toLowerCase().includes(searchValue.toLowerCase()),
+			)
+		: diskWorktrees;
 
-			{diskWorktrees.map((wt) => (
-				<button
-					key={wt.path}
-					type="button"
-					onClick={() => onOpenWorktree(wt.path, wt.branch)}
-					disabled={disabled}
-					className="w-full flex items-start gap-2 px-2 py-1.5 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-50"
+	return (
+		<div className="space-y-1.5">
+			<div className="border-t border-border pt-2" />
+			<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
+				Disk Worktrees
+			</div>
+			<Popover open={isOpen} onOpenChange={onOpenChange} modal={false}>
+				<PopoverTrigger asChild>
+					<Button
+						variant="outline"
+						size="sm"
+						className="w-full h-8 justify-between font-normal"
+						disabled={disabled}
+					>
+						<span className="flex items-center gap-2 truncate">
+							<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+							<span className="truncate text-sm text-muted-foreground">
+								Select disk worktree...
+							</span>
+						</span>
+						<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent
+					className="w-[--radix-popover-trigger-width] p-0"
+					align="start"
+					onWheel={(e) => e.stopPropagation()}
 				>
-					<LuGitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-					<div className="flex-1 min-w-0">
-						<div className="text-xs font-mono truncate">{wt.branch}</div>
-						<div
-							className="text-[10px] text-muted-foreground/60 truncate"
-							title={wt.path}
-						>
-							{wt.path}
-						</div>
-					</div>
-				</button>
-			))}
+					<Command shouldFilter={false}>
+						<CommandInput
+							placeholder="Search disk worktrees..."
+							value={searchValue}
+							onValueChange={onSearchChange}
+						/>
+						<CommandList className="max-h-[200px]">
+							<CommandEmpty>No disk worktrees found</CommandEmpty>
+							{filteredWorktrees.map((wt) => (
+								<CommandItem
+									key={wt.path}
+									value={wt.path}
+									onSelect={() => onOpenWorktree(wt.path, wt.branch)}
+									className="flex flex-col items-start gap-0.5"
+								>
+									<span className="flex items-center gap-2 w-full">
+										<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+										<span className="flex-1 truncate text-xs font-mono">
+											{wt.branch}
+										</span>
+									</span>
+									<span className="text-[10px] text-muted-foreground/60 truncate w-full pl-5">
+										{wt.path}
+									</span>
+								</CommandItem>
+							))}
+						</CommandList>
+					</Command>
+				</PopoverContent>
+			</Popover>
 		</div>
 	);
 }
