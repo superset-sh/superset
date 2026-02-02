@@ -84,6 +84,15 @@ function getPreferredRenderer(): PreferredRenderer {
 		if (stored === "webgl" || stored === "dom") {
 			return stored;
 		}
+		if (stored === "canvas") {
+			// Canvas renderer was removed in xterm.js 6.0; fall back to DOM.
+			try {
+				localStorage.setItem("terminal-renderer", "dom");
+			} catch {
+				// ignore storage errors
+			}
+			return "dom";
+		}
 	} catch {
 		// ignore
 	}
