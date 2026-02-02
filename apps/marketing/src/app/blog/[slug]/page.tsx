@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/JsonLd";
-import { getAuthor } from "@/lib/authors";
 import {
 	extractToc,
 	getAllSlugs,
@@ -30,19 +29,19 @@ export default async function BlogPostPage({ params }: PageProps) {
 		slug,
 		relatedSlugs: post.relatedSlugs,
 	});
-	const author = getAuthor(post.author);
+	const { author } = post;
 
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
 	const sameAs: string[] = [];
-	if (author?.twitterHandle) {
-		sameAs.push(`https://x.com/${author.twitterHandle}`);
+	if (author.twitter) {
+		sameAs.push(`https://x.com/${author.twitter}`);
 	}
-	if (author?.githubHandle) {
-		sameAs.push(`https://github.com/${author.githubHandle}`);
+	if (author.github) {
+		sameAs.push(`https://github.com/${author.github}`);
 	}
-	if (author?.linkedinUrl) {
-		sameAs.push(author.linkedinUrl);
+	if (author.linkedin) {
+		sameAs.push(`https://linkedin.com/in/${author.linkedin}`);
 	}
 
 	return (
@@ -51,10 +50,8 @@ export default async function BlogPostPage({ params }: PageProps) {
 				title={post.title}
 				description={post.description}
 				author={{
-					name: author?.name ?? post.author,
-					url: author?.twitterHandle
-						? `https://x.com/${author.twitterHandle}`
-						: undefined,
+					name: author.name,
+					url: author.twitter ? `https://x.com/${author.twitter}` : undefined,
 					sameAs: sameAs.length > 0 ? sameAs : undefined,
 				}}
 				publishedTime={new Date(post.date).toISOString()}
@@ -89,7 +86,6 @@ export async function generateMetadata({
 		return {};
 	}
 
-	const author = getAuthor(post.author);
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
 	return {
@@ -105,7 +101,7 @@ export async function generateMetadata({
 			url,
 			siteName: COMPANY.NAME,
 			publishedTime: post.date,
-			authors: [author?.name ?? post.author],
+			authors: [post.author.name],
 			...(post.image && { images: [post.image] }),
 		},
 		twitter: {
