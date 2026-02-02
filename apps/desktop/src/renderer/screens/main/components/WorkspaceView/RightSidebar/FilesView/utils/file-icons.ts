@@ -1,22 +1,5 @@
 import type { IconType } from "react-icons";
 import {
-	VscFile,
-	VscFileCode,
-	VscFileMedia,
-	VscFilePdf,
-	VscFileZip,
-	VscFolder,
-	VscFolderOpened,
-	VscGear,
-	VscJson,
-	VscLock,
-	VscMarkdown,
-	VscPackage,
-	VscSourceControl,
-	VscSymbolMisc,
-	VscTerminalBash,
-} from "react-icons/vsc";
-import {
 	SiC,
 	SiCplusplus,
 	SiCss3,
@@ -36,6 +19,23 @@ import {
 	SiVuedotjs,
 	SiYaml,
 } from "react-icons/si";
+import {
+	VscFile,
+	VscFileCode,
+	VscFileMedia,
+	VscFilePdf,
+	VscFileZip,
+	VscFolder,
+	VscFolderOpened,
+	VscGear,
+	VscJson,
+	VscLock,
+	VscMarkdown,
+	VscPackage,
+	VscSourceControl,
+	VscSymbolMisc,
+	VscTerminalBash,
+} from "react-icons/vsc";
 
 interface FileIconConfig {
 	icon: IconType;
@@ -228,7 +228,7 @@ const FILENAME_ICONS: Record<string, FileIconConfig> = {
 	"requirements.txt": { icon: SiPython, color: "text-yellow-500" },
 	"pyproject.toml": { icon: SiPython, color: "text-yellow-500" },
 	"setup.py": { icon: SiPython, color: "text-yellow-500" },
-	"Pipfile": { icon: SiPython, color: "text-yellow-500" },
+	Pipfile: { icon: SiPython, color: "text-yellow-500" },
 	"Pipfile.lock": { icon: SiPython, color: "text-yellow-400" },
 	// GraphQL
 	"schema.graphql": { icon: SiGraphql, color: "text-pink-500" },
