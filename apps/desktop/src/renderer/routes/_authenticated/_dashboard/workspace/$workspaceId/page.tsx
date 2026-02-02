@@ -174,6 +174,31 @@ function WorkspacePage() {
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
+	useAppHotkey(
+		"PREV_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	useAppHotkey(
+		"NEXT_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
 	const switchToTab = useCallback(
 		(index: number) => {
 			const tab = tabs[index];
