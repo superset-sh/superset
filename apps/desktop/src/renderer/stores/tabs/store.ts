@@ -24,8 +24,8 @@ import {
 	getPaneIdsForTab,
 	isLastPaneInTab,
 	removePaneFromLayout,
-	resolveFileViewerMode,
 	resolveActiveTabIdForWorkspace,
+	resolveFileViewerMode,
 } from "./utils";
 import { killTerminalForPane } from "./utils/terminal-cleanup";
 
@@ -249,7 +249,6 @@ export const useTabsStore = create<TabsStore>()(
 				setTabAutoTitle: (tabId, title) => {
 					set((state) => {
 						const tab = state.tabs.find((t) => t.id === tabId);
-						// Guard: no-op if title hasn't changed
 						if (!tab || tab.name === title) return state;
 						return {
 							tabs: state.tabs.map((t) =>
@@ -722,7 +721,6 @@ export const useTabsStore = create<TabsStore>()(
 				markPaneAsUsed: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or already marked as used
 						if (!pane || pane.isNew === false) return state;
 						return {
 							panes: {
@@ -736,7 +734,6 @@ export const useTabsStore = create<TabsStore>()(
 				setPaneStatus: (paneId, status) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					// No-op if pane unknown or status unchanged
 					if (!pane || pane.status === status) return;
 
 					set({
@@ -784,7 +781,6 @@ export const useTabsStore = create<TabsStore>()(
 				updatePaneCwd: (paneId, cwd, confirmed) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// No-op if pane unknown or cwd unchanged
 						if (!pane) return state;
 						if (pane.cwd === cwd && pane.cwdConfirmed === confirmed) {
 							return state;
@@ -805,7 +801,6 @@ export const useTabsStore = create<TabsStore>()(
 				clearPaneInitialData: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or already cleared
 						if (!pane) return state;
 						if (
 							pane.initialCommands === undefined &&
@@ -829,9 +824,7 @@ export const useTabsStore = create<TabsStore>()(
 				pinPane: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or non-file-viewer panes
 						if (!pane?.fileViewer) return state;
-						// Already pinned, no-op
 						if (pane.fileViewer.isPinned) return state;
 						return {
 							panes: {
