@@ -98,7 +98,6 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	// Invalidate tree when workspace changes
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
 		if (
@@ -106,7 +105,9 @@ export function FilesView() {
 			prevWorktreePathRef.current !== worktreePath &&
 			prevWorktreePathRef.current !== undefined
 		) {
-			tree.getItemInstance("root")?.invalidateChildrenIds();
+			const root = tree.getItemInstance("root");
+			root?.invalidateItemData();
+			root?.invalidateChildrenIds();
 		}
 		prevWorktreePathRef.current = worktreePath;
 	}, [worktreePath, tree]);
