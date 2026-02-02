@@ -64,6 +64,9 @@ export function IntegrationsSettings({
 	const hasGithubAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.GITHUB_INTEGRATION_ACCESS,
 	);
+	const hasSlackAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.SLACK_INTEGRATION_ACCESS,
+	);
 
 	const showLinear = isItemVisible(
 		SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
@@ -104,10 +107,9 @@ export function IntegrationsSettings({
 		!!githubInstallation && !githubInstallation.suspended;
 	const isLoading = isLoadingIntegrations || isLoadingGithub;
 
-	const showSlack = isItemVisible(
-		SETTING_ITEM_ID.INTEGRATIONS_SLACK,
-		visibleItems,
-	);
+	const showSlack =
+		hasSlackAccess &&
+		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_SLACK, visibleItems);
 
 	const handleOpenWeb = (path: string) => {
 		window.open(`${env.NEXT_PUBLIC_WEB_URL}${path}`, "_blank");
