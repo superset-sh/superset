@@ -43,7 +43,6 @@ const config: Configuration = {
 		"**/node_modules/bindings/**/*",
 		"**/node_modules/file-uri-to-path/**/*",
 		"**/node_modules/node-pty/**/*",
-		"**/node_modules/@lydell/node-pty-win32-x64/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
 		// Tray icon must be unpacked so Electron Tray can load it
@@ -94,11 +93,6 @@ const config: Configuration = {
 		{
 			from: "node_modules/node-pty",
 			to: "node_modules/node-pty",
-			filter: ["**/*"],
-		},
-		{
-			from: "node_modules/@lydell/node-pty-win32-x64",
-			to: "node_modules/@lydell/node-pty-win32-x64",
 			filter: ["**/*"],
 		},
 		// friendly-words is a CommonJS module that Vite doesn't bundle
@@ -163,6 +157,14 @@ const config: Configuration = {
 		],
 		artifactName: `${productName}-${pkg.version}-\${arch}.\${ext}`,
 		signAndEditExecutable: disableWinSigning ? false : undefined,
+		asarUnpack: ["**/node_modules/@lydell/node-pty-win32-x64/**/*"],
+		files: [
+			{
+				from: "node_modules/@lydell/node-pty-win32-x64",
+				to: "node_modules/@lydell/node-pty-win32-x64",
+				filter: ["**/*"],
+			},
+		],
 	},
 
 	// NSIS installer (Windows)
