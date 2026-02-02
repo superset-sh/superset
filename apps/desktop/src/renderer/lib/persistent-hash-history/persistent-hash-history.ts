@@ -7,7 +7,6 @@ import {
 const STORAGE_KEY = "router-history";
 const MAX_ENTRIES = 100;
 
-/** Derived from TanStack's HistoryLocation — no custom type definitions. */
 type LocationState = HistoryLocation["state"];
 
 interface PersistedState {
@@ -37,9 +36,7 @@ function loadPersistedState(): PersistedState {
 				return { entries: parsed.entries, index };
 			}
 		}
-	} catch {
-		// Corrupted or unavailable — fall through to default
-	}
+	} catch {}
 	return { entries: ["/"], index: 0 };
 }
 
@@ -57,9 +54,7 @@ function persistState(entries: string[], index: number) {
 			STORAGE_KEY,
 			JSON.stringify({ entries: capped, index: cappedIndex }),
 		);
-	} catch {
-		// localStorage full or unavailable — ignore
-	}
+	} catch {}
 }
 
 function syncHash(path: string) {
@@ -121,20 +116,19 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 	);
 	let index = persisted.index;
 
-	const getLocation = () => parseHref(entries[index]!, states[index]!);
+	const getLocation = () =>
+		parseHref(entries[index] ?? "/", states[index] ?? assignKeyAndIndex(index));
 
 	let blockers: Parameters<
 		NonNullable<Parameters<typeof createHistory>[0]["setBlockers"]>
 	>[0] = [];
 
-	// Sync hash to current entry on creation
-	syncHash(entries[index]!);
+	syncHash(entries[index] ?? "/");
 
 	const history = createHistory({
 		getLocation,
 		getLength: () => entries.length,
 		pushState: (path, state) => {
-			// Truncate forward history
 			if (index < entries.length - 1) {
 				entries.splice(index + 1);
 				timestamps.splice(index + 1);
@@ -156,17 +150,17 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 		},
 		back: () => {
 			index = Math.max(index - 1, 0);
-			syncHash(entries[index]!);
+			syncHash(entries[index] ?? "/");
 			persistState(entries, index);
 		},
 		forward: () => {
 			index = Math.min(index + 1, entries.length - 1);
-			syncHash(entries[index]!);
+			syncHash(entries[index] ?? "/");
 			persistState(entries, index);
 		},
 		go: (n) => {
 			index = Math.min(Math.max(index + n, 0), entries.length - 1);
-			syncHash(entries[index]!);
+			syncHash(entries[index] ?? "/");
 			persistState(entries, index);
 		},
 		createHref: (path) =>
@@ -181,7 +175,7 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 		getEntries: (): HistoryEntry[] =>
 			entries.map((path, i) => ({
 				path,
-				timestamp: timestamps[i]!,
+				timestamp: timestamps[i] ?? 0,
 			})),
 	});
 }

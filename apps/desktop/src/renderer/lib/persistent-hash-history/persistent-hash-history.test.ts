@@ -192,7 +192,7 @@ describe("createPersistentHashHistory", () => {
 			history.push("/tasks");
 			history.push("/workspace/abc");
 
-			const stored = JSON.parse(storage.get("router-history")!);
+			const stored = JSON.parse(storage.get("router-history") ?? "{}");
 			expect(stored.entries).toEqual(["/", "/tasks", "/workspace/abc"]);
 			expect(stored.index).toBe(2);
 		});
@@ -233,9 +233,8 @@ describe("createPersistentHashHistory", () => {
 				history.push(`/page/${i}`);
 			}
 
-			const stored = JSON.parse(storage.get("router-history")!);
+			const stored = JSON.parse(storage.get("router-history") ?? "{}");
 			expect(stored.entries.length).toBe(100);
-			// Oldest entries should be trimmed
 			expect(stored.entries[0]).toBe("/page/11");
 			expect(stored.entries[99]).toBe("/page/110");
 		});
