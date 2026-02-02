@@ -100,11 +100,7 @@ export function FilesView() {
 
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
-		if (
-			worktreePath &&
-			prevWorktreePathRef.current !== worktreePath &&
-			prevWorktreePathRef.current !== undefined
-		) {
+		if (worktreePath && prevWorktreePathRef.current !== worktreePath) {
 			const root = tree.getItemInstance("root");
 			root?.invalidateItemData();
 			root?.invalidateChildrenIds();
@@ -254,12 +250,20 @@ export function FilesView() {
 	}, [tree]);
 
 	const handleRefresh = useCallback(() => {
-		tree.getItemInstance("root")?.invalidateChildrenIds();
+		for (const item of tree.getItems()) {
+			if (item.isExpanded() || item.getId() === "root") {
+				item.invalidateChildrenIds();
+			}
+		}
 	}, [tree]);
 
 	const handleToggleHiddenFiles = useCallback(() => {
 		setShowHiddenFiles((v) => !v);
-		tree.getItemInstance("root")?.invalidateChildrenIds();
+		for (const item of tree.getItems()) {
+			if (item.isExpanded() || item.getId() === "root") {
+				item.invalidateChildrenIds();
+			}
+		}
 	}, [tree]);
 
 	const searchResultEntries = useMemo(() => {
