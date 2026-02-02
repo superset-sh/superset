@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { AuthorAvatar } from "@/app/blog/components/AuthorAvatar";
 import { BlogCard } from "@/app/blog/components/BlogCard";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { getAuthor } from "@/lib/authors";
 import { type BlogPost, formatBlogDate, type TocItem } from "@/lib/blog-utils";
 
 interface BlogPostLayoutProps {
@@ -21,6 +22,7 @@ export function BlogPostLayout({
 	children,
 }: BlogPostLayoutProps) {
 	const formattedDate = formatBlogDate(post.date);
+	const author = getAuthor(post.author);
 
 	return (
 		<article className="relative min-h-screen">
@@ -58,11 +60,13 @@ export function BlogPostLayout({
 
 						<div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
 							<AuthorAvatar
-								name={post.author}
-								title="Cofounder, Superset"
-								twitterHandle="avimakesrobots"
+								name={author?.name ?? post.author}
+								title={author?.title}
+								twitterHandle={author?.twitterHandle}
 							/>
-							<span className="text-foreground/70">{post.author}</span>
+							<span className="text-foreground/70">
+								{author?.name ?? post.author}
+							</span>
 							<span className="text-muted-foreground/50">·</span>
 							<time dateTime={post.date}>{formattedDate}</time>
 						</div>

@@ -26,7 +26,7 @@ export default async function ChangelogEntryPage({ params }: PageProps) {
 			<ArticleJsonLd
 				title={entry.title}
 				description={entry.description}
-				author="Superset Team"
+				author={{ name: "Superset Team" }}
 				publishedTime={new Date(entry.date).toISOString()}
 				url={url}
 				image={entry.image}

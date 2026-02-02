@@ -1,4 +1,5 @@
 import { COMPANY } from "@superset/shared/constants";
+import { getAuthor } from "@/lib/authors";
 import { getBlogPosts } from "@/lib/blog";
 
 export async function GET() {
@@ -31,7 +32,7 @@ export async function GET() {
       <description>${escapeXml(post.description || "")}</description>
       <pubDate>${new Date(post.date).toUTCString()}</pubDate>
       <guid isPermaLink="true">${baseUrl}/blog/${post.slug}</guid>
-      <author>${escapeXml(post.author)}</author>
+      <author>${escapeXml(getAuthor(post.author)?.name ?? post.author)}</author>
     </item>`,
 			)
 			.join("")}

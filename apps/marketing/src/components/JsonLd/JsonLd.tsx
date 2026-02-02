@@ -45,10 +45,16 @@ export function SoftwareApplicationJsonLd() {
 	);
 }
 
+interface ArticleAuthor {
+	name: string;
+	url?: string;
+	sameAs?: string[];
+}
+
 interface ArticleJsonLdProps {
 	title: string;
 	description?: string;
-	author: string;
+	author: ArticleAuthor;
 	publishedTime: string;
 	url: string;
 	image?: string;
@@ -69,7 +75,10 @@ export function ArticleJsonLd({
 		description: description || title,
 		author: {
 			"@type": "Person",
-			name: author,
+			name: author.name,
+			...(author.url && { url: author.url }),
+			...(author.sameAs &&
+				author.sameAs.length > 0 && { sameAs: author.sameAs }),
 		},
 		publisher: {
 			"@type": "Organization",

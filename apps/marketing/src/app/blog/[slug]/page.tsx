@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/JsonLd";
+import { getAuthor } from "@/lib/authors";
 import {
 	extractToc,
 	getAllSlugs,
@@ -29,15 +30,33 @@ export default async function BlogPostPage({ params }: PageProps) {
 		slug,
 		relatedSlugs: post.relatedSlugs,
 	});
+	const author = getAuthor(post.author);
 
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
+
+	const sameAs: string[] = [];
+	if (author?.twitterHandle) {
+		sameAs.push(`https://x.com/${author.twitterHandle}`);
+	}
+	if (author?.githubHandle) {
+		sameAs.push(`https://github.com/${author.githubHandle}`);
+	}
+	if (author?.linkedinUrl) {
+		sameAs.push(author.linkedinUrl);
+	}
 
 	return (
 		<main>
 			<ArticleJsonLd
 				title={post.title}
 				description={post.description}
-				author={post.author}
+				author={{
+					name: author?.name ?? post.author,
+					url: author?.twitterHandle
+						? `https://x.com/${author.twitterHandle}`
+						: undefined,
+					sameAs: sameAs.length > 0 ? sameAs : undefined,
+				}}
 				publishedTime={new Date(post.date).toISOString()}
 				url={url}
 				image={post.image}
@@ -70,6 +89,7 @@ export async function generateMetadata({
 		return {};
 	}
 
+	const author = getAuthor(post.author);
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
 	return {
@@ -85,7 +105,7 @@ export async function generateMetadata({
 			url,
 			siteName: COMPANY.NAME,
 			publishedTime: post.date,
-			authors: [post.author],
+			authors: [author?.name ?? post.author],
 			...(post.image && { images: [post.image] }),
 		},
 		twitter: {

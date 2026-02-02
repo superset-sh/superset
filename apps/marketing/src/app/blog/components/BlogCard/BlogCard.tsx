@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getAuthor } from "@/lib/authors";
 import { type BlogPost, formatBlogDate } from "@/lib/blog-utils";
 import { AuthorAvatar } from "../AuthorAvatar";
 
@@ -8,6 +9,7 @@ interface BlogCardProps {
 
 export function BlogCard({ post }: BlogCardProps) {
 	const formattedDate = formatBlogDate(post.date);
+	const author = getAuthor(post.author);
 
 	return (
 		<Link href={post.url} className="block group h-full">
@@ -31,12 +33,14 @@ export function BlogCard({ post }: BlogCardProps) {
 				)}
 				<div className="flex items-center gap-2 mt-auto">
 					<AuthorAvatar
-						name={post.author}
-						title="Cofounder, Superset"
-						twitterHandle="avimakesrobots"
+						name={author?.name ?? post.author}
+						title={author?.title}
+						twitterHandle={author?.twitterHandle}
 						size="sm"
 					/>
-					<span className="text-xs text-muted-foreground">{post.author}</span>
+					<span className="text-xs text-muted-foreground">
+						{author?.name ?? post.author}
+					</span>
 				</div>
 			</article>
 		</Link>
