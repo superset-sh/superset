@@ -1,8 +1,18 @@
 "use client";
 
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@superset/ui/card";
+import { Card, CardContent } from "@superset/ui/card";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,37 +22,36 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import {
 	LuArchive,
+	LuArrowUp,
 	LuCheck,
-	LuCircle,
+	LuEllipsis,
 	LuExternalLink,
 	LuFile,
 	LuGitBranch,
-	LuGitPullRequest,
 	LuGithub,
+	LuGitPullRequest,
 	LuGlobe,
 	LuLoader,
-	LuEllipsis,
 	LuPanelLeftClose,
 	LuPanelLeftOpen,
 	LuPencil,
 	LuPlus,
-	LuSend,
 	LuSquare,
 	LuTerminal,
-	LuUsers,
 	LuWifi,
 	LuWifiOff,
 	LuX,
 } from "react-icons/lu";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { env } from "@/env";
 import { useTRPC } from "@/trpc/react";
@@ -112,12 +121,16 @@ function groupEvents(events: CloudEvent[]): GroupedEvent[] {
 			});
 		} else if (event.type === "token") {
 			flushTools();
-			const data = event.data as { token?: string };
-			if (data.token) {
+			// OpenCode sends cumulative content, not individual tokens
+			const data = event.data as { content?: string; token?: string };
+			const text = data.content || data.token;
+			if (text) {
+				// Since content is cumulative, we replace rather than append
 				if (!currentTokenGroup) {
 					currentTokenGroup = { id: event.id, tokens: [] };
 				}
-				currentTokenGroup.tokens.push(data.token);
+				// Clear previous tokens and set the cumulative text
+				currentTokenGroup.tokens = [text];
 			}
 		} else if (event.type === "tool_call") {
 			flushTokens();
@@ -214,14 +227,48 @@ const CONTROL_PLANE_URL =
 
 export function CloudWorkspaceContent({
 	workspace,
-	workspaces,
+	workspaces: initialWorkspaces,
 }: CloudWorkspaceContentProps) {
 	const trpc = useTRPC();
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const queryClient = useQueryClient();
+	const _queryClient = useQueryClient();
 	const initialPromptRef = useRef<string | null>(null);
 	const hasSentInitialPrompt = useRef(false);
+
+	// Poll for workspace list to get updated sandbox statuses for all sessions
+	const { data: polledWorkspaces } = useQuery({
+		...trpc.cloudWorkspace.list.queryOptions(),
+		// Refetch every 30 seconds to get updated sandbox statuses
+		refetchInterval: 30000,
+		// Start with stale time of 0 to fetch immediately but use server data until then
+		staleTime: 0,
+	});
+
+	// Use polled data if available, otherwise fall back to initial server data
+	// Map the polled data to match our CloudWorkspace interface
+	const workspaces = useMemo(() => {
+		if (polledWorkspaces) {
+			return polledWorkspaces.map((w) => ({
+				id: w.id,
+				sessionId: w.sessionId,
+				title: w.title,
+				repoOwner: w.repoOwner,
+				repoName: w.repoName,
+				branch: w.branch,
+				baseBranch: w.baseBranch,
+				status: w.status,
+				sandboxStatus: w.sandboxStatus,
+				model: w.model,
+				linearIssueKey: w.linearIssueKey,
+				prUrl: w.prUrl,
+				prNumber: w.prNumber,
+				createdAt: w.createdAt,
+				updatedAt: w.updatedAt,
+			}));
+		}
+		return initialWorkspaces;
+	}, [polledWorkspaces, initialWorkspaces]);
 
 	const [promptInput, setPromptInput] = useState("");
 	const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -229,8 +276,9 @@ export function CloudWorkspaceContent({
 	const [isEditingTitle, setIsEditingTitle] = useState(false);
 	const [editedTitle, setEditedTitle] = useState(workspace.title);
 	const [isMounted, setIsMounted] = useState(false);
+	const [showArchiveDialog, setShowArchiveDialog] = useState(false);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
-	const inputRef = useRef<HTMLInputElement>(null);
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const titleInputRef = useRef<HTMLInputElement>(null);
 
 	// Track hydration to avoid Radix ID mismatch
@@ -281,9 +329,7 @@ export function CloudWorkspaceContent({
 	);
 
 	const handleArchive = useCallback(() => {
-		if (confirm("Are you sure you want to archive this session?")) {
-			archiveMutation.mutate({ id: workspace.id });
-		}
+		archiveMutation.mutate({ id: workspace.id });
 	}, [archiveMutation, workspace.id]);
 
 	// Focus title input when editing starts
@@ -339,7 +385,7 @@ export function CloudWorkspaceContent({
 		if (promptInput.trim() && canSendPrompt) {
 			sendPrompt(promptInput.trim());
 			setPromptInput("");
-			inputRef.current?.focus();
+			textareaRef.current?.focus();
 		}
 	}, [promptInput, canSendPrompt, sendPrompt]);
 
@@ -376,7 +422,7 @@ export function CloudWorkspaceContent({
 			// ⌘+K or Ctrl+K to focus input
 			if (modKey && e.key === "k") {
 				e.preventDefault();
-				inputRef.current?.focus();
+				textareaRef.current?.focus();
 				return;
 			}
 
@@ -419,7 +465,10 @@ export function CloudWorkspaceContent({
 		) {
 			hasSentInitialPrompt.current = true;
 			const prompt = initialPromptRef.current;
-			console.log("[cloud-workspace] Auto-sending initial prompt:", prompt.substring(0, 50));
+			console.log(
+				"[cloud-workspace] Auto-sending initial prompt:",
+				prompt.substring(0, 50),
+			);
 			sendPrompt(prompt);
 			setPromptInput("");
 		}
@@ -463,14 +512,11 @@ export function CloudWorkspaceContent({
 							<SupersetLogo className="h-4" />
 						</Link>
 					</div>
-					<div className="flex items-center gap-2">
-						<Button variant="ghost" size="icon" className="size-8" asChild>
-							<Link href="/cloud/new">
-								<LuPlus className="size-4" />
-							</Link>
-						</Button>
-						<div className="size-8 rounded-full bg-muted" />
-					</div>
+					<Button variant="ghost" size="icon" className="size-8" asChild>
+						<Link href="/cloud/new">
+							<LuPlus className="size-4" />
+						</Link>
+					</Button>
 				</div>
 
 				{/* Search */}
@@ -497,6 +543,11 @@ export function CloudWorkspaceContent({
 									key={w.id}
 									workspace={w}
 									isActive={w.sessionId === workspace.sessionId}
+									realtimeSandboxStatus={
+										w.sessionId === workspace.sessionId
+											? sessionState?.sandboxStatus
+											: undefined
+									}
 								/>
 							))}
 
@@ -511,6 +562,11 @@ export function CloudWorkspaceContent({
 											key={w.id}
 											workspace={w}
 											isActive={w.sessionId === workspace.sessionId}
+											realtimeSandboxStatus={
+												w.sessionId === workspace.sessionId
+													? sessionState?.sandboxStatus
+													: undefined
+											}
 										/>
 									))}
 								</>
@@ -593,10 +649,13 @@ export function CloudWorkspaceContent({
 										: "Disconnected"}
 						</Badge>
 						<Badge variant="outline">{workspace.status}</Badge>
-						{(sessionState?.sandboxStatus || workspace.sandboxStatus || isSpawning) && (
+						{(sessionState?.sandboxStatus ||
+							workspace.sandboxStatus ||
+							isSpawning) && (
 							<Badge
 								variant={
-									(sessionState?.sandboxStatus || workspace.sandboxStatus) === "ready"
+									(sessionState?.sandboxStatus || workspace.sandboxStatus) ===
+									"ready"
 										? "default"
 										: "secondary"
 								}
@@ -625,13 +684,16 @@ export function CloudWorkspaceContent({
 							</div>
 						)}
 						{/* Files changed indicator */}
-						{sessionState?.filesChanged && sessionState.filesChanged.length > 0 && isMounted && (
-							<FilesChangedDropdown files={sessionState.filesChanged} />
-						)}
+						{sessionState?.filesChanged &&
+							sessionState.filesChanged.length > 0 &&
+							isMounted && (
+								<FilesChangedDropdown files={sessionState.filesChanged} />
+							)}
 						{/* Participant avatars */}
-						{sessionState?.participants && sessionState.participants.length > 0 && (
-							<ParticipantAvatars participants={sessionState.participants} />
-						)}
+						{sessionState?.participants &&
+							sessionState.participants.length > 0 && (
+								<ParticipantAvatars participants={sessionState.participants} />
+							)}
 						{/* Session menu - only render after hydration to avoid Radix ID mismatch */}
 						{isMounted ? (
 							<DropdownMenu>
@@ -647,15 +709,10 @@ export function CloudWorkspaceContent({
 									</DropdownMenuItem>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
-										onClick={handleArchive}
+										onClick={() => setShowArchiveDialog(true)}
 										className="text-destructive focus:text-destructive"
-										disabled={archiveMutation.isPending}
 									>
-										{archiveMutation.isPending ? (
-											<LuLoader className="size-4 mr-2 animate-spin" />
-										) : (
-											<LuArchive className="size-4 mr-2" />
-										)}
+										<LuArchive className="size-4 mr-2" />
 										Archive Session
 									</DropdownMenuItem>
 								</DropdownMenuContent>
@@ -671,91 +728,32 @@ export function CloudWorkspaceContent({
 				{/* Main content area */}
 				<main className="flex min-h-0 flex-1 flex-col">
 					{/* Events display */}
-					<ScrollArea ref={scrollAreaRef} className="flex-1 p-4 h-full">
-						<div className="space-y-2">
+					<ScrollArea ref={scrollAreaRef} className="flex-1 h-full">
+						<div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 							{events.length === 0 && !error && (
-								<Card>
-									<CardHeader>
-										<CardTitle className="flex items-center gap-2 text-base">
-											<LuTerminal className="size-4" />
-											Cloud Terminal
-										</CardTitle>
-									</CardHeader>
-									<CardContent>
-										<p className="text-sm text-muted-foreground">
-											{isSpawning
-												? "Starting cloud sandbox..."
-												: isConnected
-													? sessionState?.sandboxStatus === "ready"
-														? "Connected to cloud workspace. Send a prompt to start."
-														: "Connected. Waiting for sandbox to be ready..."
-													: isConnecting
-														? "Connecting to cloud workspace..."
-														: "Waiting for connection..."}
-										</p>
-									</CardContent>
-								</Card>
-							)}
-
-							{error && (
-								<Card className="border-destructive">
-									<CardContent className="pt-4">
-										<div className="flex items-start justify-between gap-4">
-											<div className="space-y-1">
-												<p className="text-sm text-destructive">{error}</p>
-												{!isControlPlaneAvailable && (
-													<p className="text-xs text-muted-foreground">
-														The cloud service may be temporarily unavailable.
-													</p>
-												)}
-												{spawnAttempt > 0 && spawnAttempt >= maxSpawnAttempts && (
-													<p className="text-xs text-muted-foreground">
-														Failed after {maxSpawnAttempts} attempts.
-													</p>
-												)}
-											</div>
-											<div className="flex gap-2 shrink-0">
-												{spawnAttempt >= maxSpawnAttempts && (
-													<Button
-														variant="outline"
-														size="sm"
-														onClick={() => {
-															clearError();
-															spawnSandbox();
-														}}
-														disabled={isSpawning}
-													>
-														{isSpawning ? (
-															<LuLoader className="size-4 animate-spin mr-1" />
-														) : null}
-														Retry
-													</Button>
-												)}
-												<Button
-													variant="ghost"
-													size="sm"
-													onClick={clearError}
-												>
-													<LuX className="size-4" />
-												</Button>
-											</div>
-										</div>
-									</CardContent>
-								</Card>
-							)}
-
-							{/* Pending prompts indicator */}
-							{pendingPrompts.length > 0 && (
-								<Card className="border-amber-500/50 bg-amber-500/5">
-									<CardContent className="pt-4">
-										<div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-											<LuLoader className="size-4 animate-spin" />
-											<span className="text-sm">
-												{pendingPrompts.length} prompt{pendingPrompts.length > 1 ? 's' : ''} queued - will send when connection is restored
-											</span>
-										</div>
-									</CardContent>
-								</Card>
+								<div className="flex flex-col items-center justify-center py-12 text-center">
+									<div className="size-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+										<LuTerminal className="size-5 text-muted-foreground" />
+									</div>
+									<h3 className="text-sm font-medium text-foreground mb-1">
+										{isSpawning
+											? "Starting cloud sandbox..."
+											: isConnected
+												? sessionState?.sandboxStatus === "ready"
+													? "Ready to start"
+													: "Preparing workspace..."
+												: isConnecting
+													? "Connecting..."
+													: "Waiting for connection..."}
+									</h3>
+									<p className="text-xs text-muted-foreground max-w-xs">
+										{isSpawning
+											? "This may take a moment"
+											: isConnected && sessionState?.sandboxStatus === "ready"
+												? "Send a message to start working with Claude"
+												: "Please wait while we set things up"}
+									</p>
+								</div>
 							)}
 
 							{isLoadingHistory && isConnected && events.length === 0 && (
@@ -770,19 +768,25 @@ export function CloudWorkspaceContent({
 							{groupedEvents.map((grouped, index) => {
 								if (grouped.type === "user_message") {
 									return (
-										<UserMessage key={`user-${index}-${grouped.id}`} content={grouped.content} />
+										<UserMessage
+											key={`user-${index}-${grouped.id}`}
+											content={grouped.content}
+										/>
 									);
 								}
 								if (grouped.type === "assistant_message") {
 									return (
-										<AssistantMessage key={`assistant-${index}-${grouped.id}`} text={grouped.text} />
+										<AssistantMessage
+											key={`assistant-${index}-${grouped.id}`}
+											text={grouped.text}
+										/>
 									);
 								}
 								if (grouped.type === "tool_call_group") {
 									return (
 										<div
 											key={`tools-${index}-${grouped.id}`}
-											className="rounded-lg border bg-card p-3 text-card-foreground"
+											className="rounded-xl border border-border/50 bg-muted/30 px-3 py-2"
 										>
 											<ToolCallGroup
 												events={grouped.events}
@@ -792,26 +796,34 @@ export function CloudWorkspaceContent({
 									);
 								}
 								return (
-									<EventItem key={`event-${index}-${grouped.event.id}`} event={grouped.event} />
+									<EventItem
+										key={`event-${index}-${grouped.event.id}`}
+										event={grouped.event}
+									/>
 								);
 							})}
 							{/* Processing indicator */}
 							{isProcessing && (
-								<div className="flex items-center gap-2 py-2 px-3 rounded-lg bg-muted/50 animate-pulse">
-									<LuLoader className="size-4 animate-spin text-muted-foreground" />
-									<span className="text-sm text-muted-foreground">
-										Claude is working...
+								<div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-muted/40 border border-border/50">
+									<div className="relative flex items-center justify-center">
+										<div className="size-2 rounded-full bg-primary animate-pulse" />
+										<div className="absolute size-4 rounded-full border-2 border-primary/30 animate-ping" />
+									</div>
+									<span className="text-sm text-muted-foreground font-medium animate-pulse">
+										Claude is thinking...
 									</span>
 								</div>
 							)}
 						</div>
 					</ScrollArea>
+				</main>
 
-					{/* Prompt input */}
-					<div className="border-t p-4">
-						<div className="flex gap-2">
-							<Input
-								ref={inputRef}
+				{/* Prompt input - sticky at bottom */}
+				<div className="sticky bottom-0 px-4 pb-4 pt-2 bg-gradient-to-t from-background via-background to-transparent relative z-10">
+					<div className="max-w-3xl mx-auto">
+						<div className="relative">
+							<Textarea
+								ref={textareaRef}
 								value={promptInput}
 								onChange={(e) => {
 									setPromptInput(e.target.value);
@@ -832,37 +844,72 @@ export function CloudWorkspaceContent({
 													? "Waiting for sandbox..."
 													: isProcessing
 														? "Processing..."
-														: "Send a prompt to Claude..."
+														: "What do you want to build?"
 								}
 								disabled={!canSendPrompt}
-								className="flex-1"
+								rows={1}
+								className="min-h-[52px] max-h-[200px] resize-none pr-14 rounded-xl border-border bg-background shadow-sm focus-visible:ring-1 focus-visible:ring-primary/50"
 							/>
-							{isExecuting ? (
-								<Button
-									variant="destructive"
-									onClick={sendStop}
-									disabled={!isConnected}
-								>
-									<LuSquare className="mr-2 size-4" />
-									Stop
-								</Button>
-							) : (
-								<Button
-									onClick={handleSendPrompt}
-									disabled={!canSendPrompt || !promptInput.trim()}
-								>
-									{!isSandboxReady && isConnected ? (
-										<LuLoader className="mr-2 size-4 animate-spin" />
-									) : (
-										<LuSend className="mr-2 size-4" />
-									)}
-									Send
-								</Button>
-							)}
+							<div className="absolute right-2 bottom-2 flex items-center gap-1">
+								{isExecuting ? (
+									<Button
+										variant="destructive"
+										size="icon"
+										onClick={sendStop}
+										disabled={!isConnected}
+										className="size-8 rounded-lg shrink-0"
+									>
+										<LuSquare className="size-4" />
+									</Button>
+								) : (
+									<Button
+										onClick={handleSendPrompt}
+										disabled={!canSendPrompt || !promptInput.trim()}
+										size="icon"
+										className="size-8 rounded-lg shrink-0 bg-foreground text-background hover:bg-foreground/90"
+									>
+										{!isSandboxReady && isConnected ? (
+											<LuLoader className="size-4 animate-spin" />
+										) : (
+											<LuArrowUp className="size-4" />
+										)}
+									</Button>
+								)}
+							</div>
 						</div>
 					</div>
-				</main>
+				</div>
 			</div>
+
+			{/* Archive Confirmation Dialog */}
+			<AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Archive this session?</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will archive the session and stop the cloud sandbox. You can
+							view and restore archived sessions from the home page.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleArchive}
+							disabled={archiveMutation.isPending}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{archiveMutation.isPending ? (
+								<>
+									<LuLoader className="size-4 mr-2 animate-spin" />
+									Archiving...
+								</>
+							) : (
+								"Archive"
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }
@@ -870,10 +917,35 @@ export function CloudWorkspaceContent({
 function SessionListItem({
 	workspace,
 	isActive,
+	realtimeSandboxStatus,
 }: {
 	workspace: CloudWorkspace;
 	isActive?: boolean;
+	realtimeSandboxStatus?: string;
 }) {
+	// Use real-time status if available (for current session), otherwise use database status
+	const sandboxStatus = realtimeSandboxStatus ?? workspace.sandboxStatus;
+
+	// Determine status indicator color and label
+	const getStatusInfo = () => {
+		if (sandboxStatus === "ready" || sandboxStatus === "running") {
+			return { color: "bg-green-500", label: "Running" };
+		}
+		if (sandboxStatus === "warming" || sandboxStatus === "syncing") {
+			return {
+				color: "bg-amber-500 animate-pulse",
+				label: sandboxStatus === "warming" ? "Warming" : "Syncing",
+			};
+		}
+		if (sandboxStatus === "error" || sandboxStatus === "failed") {
+			return { color: "bg-red-500", label: "Error" };
+		}
+		// No sandbox or stopped
+		return { color: "bg-muted-foreground/30", label: "Inactive" };
+	};
+
+	const statusInfo = getStatusInfo();
+
 	return (
 		<Link
 			href={`/cloud/${workspace.sessionId}`}
@@ -882,10 +954,16 @@ function SessionListItem({
 				isActive ? "bg-accent" : "hover:bg-muted",
 			)}
 		>
-			<p className="text-sm truncate">
-				{workspace.title || `${workspace.repoOwner}/${workspace.repoName}`}
-			</p>
-			<p className="text-xs text-muted-foreground mt-0.5 truncate">
+			<div className="flex items-center gap-2">
+				<div
+					className={cn("size-2 rounded-full shrink-0", statusInfo.color)}
+					title={statusInfo.label}
+				/>
+				<p className="text-sm truncate flex-1">
+					{workspace.title || `${workspace.repoOwner}/${workspace.repoName}`}
+				</p>
+			</div>
+			<p className="text-xs text-muted-foreground mt-0.5 truncate pl-4">
 				{formatRelativeTime(workspace.updatedAt)} · {workspace.repoOwner}/
 				{workspace.repoName}
 			</p>
@@ -912,16 +990,13 @@ function EventItem({ event }: EventItemProps) {
 			case "tool_result": {
 				const data = event.data as { result?: unknown; error?: string };
 				return (
-					<div className="space-y-1">
-						<Badge variant="secondary" className="text-xs">
-							Tool Result
-						</Badge>
+					<div className="space-y-2">
 						{data.error ? (
-							<pre className="text-xs bg-destructive/10 text-destructive p-2 rounded overflow-x-auto">
+							<pre className="text-xs bg-destructive/10 text-destructive p-3 rounded-lg overflow-x-auto font-mono">
 								{data.error}
 							</pre>
 						) : (
-							<pre className="text-xs bg-muted p-2 rounded overflow-x-auto max-h-40 overflow-y-auto">
+							<pre className="text-xs bg-muted/30 border border-border/50 p-3 rounded-lg overflow-x-auto max-h-40 overflow-y-auto font-mono text-foreground/80">
 								{typeof data.result === "string"
 									? data.result
 									: JSON.stringify(data.result, null, 2)}
@@ -934,10 +1009,8 @@ function EventItem({ event }: EventItemProps) {
 			case "error": {
 				const data = event.data as { message?: string };
 				return (
-					<div className="text-destructive">
-						<Badge variant="destructive" className="text-xs mb-1">
-							Error
-						</Badge>
+					<div className="flex items-start gap-2 text-destructive bg-destructive/5 border border-destructive/20 rounded-lg p-3">
+						<LuX className="size-4 shrink-0 mt-0.5" />
 						<p className="text-sm">{data.message || "Unknown error"}</p>
 					</div>
 				);
@@ -953,9 +1026,9 @@ function EventItem({ event }: EventItemProps) {
 				const action = data.status || data.action || "syncing";
 				const detail = data.branch || data.repo || "";
 				return (
-					<div className="flex items-center gap-2 text-muted-foreground">
-						<LuGitBranch className="size-4" />
-						<span className="text-sm">
+					<div className="flex items-center gap-2 text-muted-foreground text-xs py-1">
+						<LuGitBranch className="size-3" />
+						<span>
 							{action}
 							{detail ? `: ${detail}` : ""}
 						</span>
@@ -965,9 +1038,9 @@ function EventItem({ event }: EventItemProps) {
 
 			case "execution_complete": {
 				return (
-					<div className="flex items-center gap-2 text-green-600">
-						<LuCircle className="size-3 fill-current" />
-						<span className="text-sm font-medium">Execution complete</span>
+					<div className="flex items-center gap-2 text-green-600 dark:text-green-500 text-xs py-1">
+						<LuCheck className="size-3" />
+						<span className="font-medium">Complete</span>
 					</div>
 				);
 			}
@@ -979,7 +1052,7 @@ function EventItem({ event }: EventItemProps) {
 
 			default:
 				return (
-					<pre className="text-xs text-muted-foreground">
+					<pre className="text-xs text-muted-foreground/60 font-mono">
 						{JSON.stringify(event.data, null, 2)}
 					</pre>
 				);
@@ -991,42 +1064,121 @@ function EventItem({ event }: EventItemProps) {
 		return null;
 	}
 
-	return (
-		<div className="rounded-lg border bg-card p-3 text-card-foreground">
-			{getEventContent()}
-		</div>
-	);
+	return <div>{getEventContent()}</div>;
 }
 
 function UserMessage({ content }: { content: string }) {
 	return (
-		<div className="rounded-lg border bg-accent/10 p-3 text-card-foreground">
-			<div className="flex items-start gap-2">
-				<span className="text-xs font-medium text-accent">You</span>
+		<div className="flex justify-start">
+			<div className="max-w-[85%] rounded-xl bg-muted/50 border border-border/50 px-4 py-2.5 shadow-sm">
+				<p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+					{content}
+				</p>
 			</div>
-			<p className="mt-1 text-sm whitespace-pre-wrap">{content}</p>
 		</div>
+	);
+}
+
+function CopyButton({ text }: { text: string }) {
+	const [copied, setCopied] = useState(false);
+
+	const handleCopy = async () => {
+		try {
+			await navigator.clipboard.writeText(text);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		} catch (err) {
+			console.error("Failed to copy:", err);
+		}
+	};
+
+	return (
+		<button
+			onClick={handleCopy}
+			className="absolute top-2 right-2 p-1.5 rounded-md bg-background/80 hover:bg-background border border-border/50 text-muted-foreground hover:text-foreground transition-all opacity-0 group-hover/code:opacity-100"
+			title={copied ? "Copied!" : "Copy code"}
+		>
+			{copied ? (
+				<LuCheck className="size-3.5" />
+			) : (
+				<svg
+					className="size-3.5"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<rect
+						x="9"
+						y="9"
+						width="13"
+						height="13"
+						rx="2"
+						ry="2"
+						strokeWidth="2"
+					/>
+					<path
+						d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+						strokeWidth="2"
+					/>
+				</svg>
+			)}
+		</button>
 	);
 }
 
 function AssistantMessage({ text }: { text: string }) {
 	return (
-		<div className="rounded-lg border bg-card p-3 text-card-foreground">
-			<div className="prose prose-sm dark:prose-invert max-w-none prose-pre:bg-muted prose-pre:text-foreground prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none">
+		<div className="group/message">
+			<div
+				className="prose prose-sm dark:prose-invert max-w-none
+				prose-p:text-foreground/80 prose-p:my-1 prose-p:leading-relaxed prose-p:text-sm
+				prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-3 prose-headings:mb-1
+				prose-h1:text-base prose-h2:text-sm prose-h3:text-sm
+				prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-li:text-foreground/80 prose-li:text-sm
+				prose-pre:bg-transparent prose-pre:p-0 prose-pre:my-2
+				prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none
+				prose-blockquote:border-l-2 prose-blockquote:border-foreground/20 prose-blockquote:pl-4 prose-blockquote:text-foreground/70 prose-blockquote:not-italic
+				prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
+				prose-strong:text-foreground prose-strong:font-medium
+			"
+			>
 				<ReactMarkdown
 					remarkPlugins={[remarkGfm]}
 					components={{
-						pre: ({ children }) => (
-							<pre className="overflow-x-auto rounded-md bg-muted p-3 text-sm">
-								{children}
-							</pre>
-						),
+						pre: ({ children, ...props }) => {
+							// Extract code content for copy button using a ref
+							const extractText = (node: React.ReactNode): string => {
+								if (typeof node === "string") return node;
+								if (typeof node === "number") return String(node);
+								if (Array.isArray(node)) return node.map(extractText).join("");
+								if (node && typeof node === "object" && "props" in node) {
+									const element = node as React.ReactElement<{
+										children?: React.ReactNode;
+									}>;
+									return extractText(element.props.children);
+								}
+								return "";
+							};
+							const codeContent = extractText(children).replace(/\n$/, "");
+
+							return (
+								<div className="relative group/code rounded-xl bg-muted/50 border border-border overflow-hidden my-2">
+									<CopyButton text={codeContent} />
+									<pre
+										className="overflow-x-auto p-4 text-sm font-mono"
+										{...props}
+									>
+										{children}
+									</pre>
+								</div>
+							);
+						},
 						code: ({ className, children, ...props }) => {
 							const isInline = !className;
 							if (isInline) {
 								return (
 									<code
-										className="rounded bg-muted px-1.5 py-0.5 text-sm font-mono"
+										className="rounded bg-foreground/[0.06] dark:bg-foreground/[0.1] px-1.5 py-0.5 text-[85%] font-mono"
 										{...props}
 									>
 										{children}
@@ -1074,12 +1226,7 @@ function ArtifactButton({ artifact }: { artifact: Artifact }) {
 	};
 
 	return (
-		<Button
-			variant="outline"
-			size="sm"
-			className="h-7 gap-1 text-xs"
-			asChild
-		>
+		<Button variant="outline" size="sm" className="h-7 gap-1 text-xs" asChild>
 			<a href={artifact.url} target="_blank" rel="noopener noreferrer">
 				{getIcon()}
 				{getLabel()}
@@ -1106,11 +1253,7 @@ function ParticipantAvatars({
 	return (
 		<div className="flex items-center -space-x-2">
 			{visibleOnline.map((p) => (
-				<div
-					key={p.id}
-					className="relative"
-					title={`${p.userName} (online)`}
-				>
+				<div key={p.id} className="relative" title={`${p.userName} (online)`}>
 					{p.avatarUrl ? (
 						<img
 							src={p.avatarUrl}

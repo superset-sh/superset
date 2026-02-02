@@ -1,6 +1,21 @@
 "use client";
 
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@superset/ui/collapsible";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,18 +25,22 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { ScrollArea } from "@superset/ui/scroll-area";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
+	LuArchive,
+	LuArchiveRestore,
 	LuChevronDown,
+	LuChevronRight,
 	LuGithub,
 	LuLoader,
 	LuLock,
 	LuPaperclip,
 	LuPlus,
 	LuSend,
+	LuTrash2,
 } from "react-icons/lu";
 
 import { env } from "@/env";
@@ -119,12 +138,13 @@ function isInactive(date: Date): boolean {
 
 export function CloudHomePage({
 	organizationId,
-	workspaces,
+	workspaces: initialWorkspaces,
 	hasGitHubInstallation,
 	githubRepositories,
 }: CloudHomePageProps) {
 	const trpc = useTRPC();
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [promptInput, setPromptInput] = useState("");
 	const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(
@@ -134,6 +154,68 @@ export function CloudHomePage({
 		"claude-sonnet-4" | "claude-opus-4" | "claude-haiku-3-5"
 	>("claude-sonnet-4");
 	const [error, setError] = useState<string | null>(null);
+	const [showArchived, setShowArchived] = useState(false);
+	const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+	// Poll for workspace list to get updated sandbox statuses
+	const { data: polledWorkspaces } = useQuery({
+		...trpc.cloudWorkspace.list.queryOptions(),
+		refetchInterval: 30000,
+		staleTime: 0,
+	});
+
+	// Fetch archived workspaces
+	const { data: archivedWorkspaces = [] } = useQuery({
+		...trpc.cloudWorkspace.listArchived.queryOptions(),
+		enabled: showArchived,
+	});
+
+	// Unarchive mutation
+	const unarchiveMutation = useMutation(
+		trpc.cloudWorkspace.unarchive.mutationOptions({
+			onSuccess: () => {
+				queryClient.invalidateQueries({
+					queryKey: trpc.cloudWorkspace.list.queryKey(),
+				});
+				queryClient.invalidateQueries({
+					queryKey: trpc.cloudWorkspace.listArchived.queryKey(),
+				});
+			},
+		}),
+	);
+
+	// Delete mutation (only for archived workspaces)
+	const deleteMutation = useMutation(
+		trpc.cloudWorkspace.delete.mutationOptions({
+			onSuccess: () => {
+				setDeleteConfirmId(null);
+				queryClient.invalidateQueries({
+					queryKey: trpc.cloudWorkspace.listArchived.queryKey(),
+				});
+			},
+		}),
+	);
+
+	// Use polled data if available, map to CloudWorkspace interface
+	const workspaces = useMemo(() => {
+		if (polledWorkspaces) {
+			return polledWorkspaces.map((w) => ({
+				id: w.id,
+				sessionId: w.sessionId,
+				title: w.title,
+				repoOwner: w.repoOwner,
+				repoName: w.repoName,
+				branch: w.branch,
+				baseBranch: w.baseBranch,
+				status: w.status,
+				sandboxStatus: w.sandboxStatus,
+				model: w.model,
+				createdAt: w.createdAt,
+				updatedAt: w.updatedAt,
+			}));
+		}
+		return initialWorkspaces;
+	}, [polledWorkspaces, initialWorkspaces]);
 
 	// Get recent repos (from recent workspaces)
 	const recentRepos = useMemo(() => {
@@ -267,6 +349,46 @@ export function CloudHomePage({
 									))}
 								</>
 							)}
+
+							{/* Archived sessions - collapsible */}
+							<Collapsible open={showArchived} onOpenChange={setShowArchived}>
+								<CollapsibleTrigger className="flex items-center gap-1 px-2 py-2 mt-2 text-xs text-muted-foreground hover:text-foreground w-full">
+									{showArchived ? (
+										<LuChevronDown className="size-3" />
+									) : (
+										<LuChevronRight className="size-3" />
+									)}
+									<LuArchive className="size-3" />
+									<span>Archived</span>
+									{archivedWorkspaces.length > 0 && (
+										<span className="ml-auto text-muted-foreground/60">
+											{archivedWorkspaces.length}
+										</span>
+									)}
+								</CollapsibleTrigger>
+								<CollapsibleContent>
+									{archivedWorkspaces.length === 0 ? (
+										<div className="px-4 py-3 text-xs text-muted-foreground/60">
+											No archived sessions
+										</div>
+									) : (
+										archivedWorkspaces.map((workspace) => (
+											<ArchivedSessionItem
+												key={workspace.id}
+												workspace={workspace}
+												onUnarchive={() =>
+													unarchiveMutation.mutate({ id: workspace.id })
+												}
+												onDelete={() => setDeleteConfirmId(workspace.id)}
+												isUnarchiving={
+													unarchiveMutation.isPending &&
+													unarchiveMutation.variables?.id === workspace.id
+												}
+											/>
+										))
+									)}
+								</CollapsibleContent>
+							</Collapsible>
 						</div>
 					)}
 				</ScrollArea>
@@ -479,24 +601,157 @@ export function CloudHomePage({
 					</span>
 				</div>
 			</main>
+
+			{/* Delete Confirmation Dialog */}
+			<AlertDialog
+				open={!!deleteConfirmId}
+				onOpenChange={(open) => !open && setDeleteConfirmId(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							Delete this session permanently?
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							This action cannot be undone. The session and all its data will be
+							permanently deleted.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() =>
+								deleteConfirmId &&
+								deleteMutation.mutate({ id: deleteConfirmId })
+							}
+							disabled={deleteMutation.isPending}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							{deleteMutation.isPending ? (
+								<>
+									<LuLoader className="size-4 mr-2 animate-spin" />
+									Deleting...
+								</>
+							) : (
+								"Delete"
+							)}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }
 
 function SessionListItem({ workspace }: { workspace: CloudWorkspace }) {
+	// Determine status indicator color and label
+	const getStatusInfo = () => {
+		const sandboxStatus = workspace.sandboxStatus;
+		if (sandboxStatus === "ready" || sandboxStatus === "running") {
+			return { color: "bg-green-500", label: "Running" };
+		}
+		if (sandboxStatus === "warming" || sandboxStatus === "syncing") {
+			return {
+				color: "bg-amber-500",
+				label: sandboxStatus === "warming" ? "Warming" : "Syncing",
+			};
+		}
+		if (sandboxStatus === "error") {
+			return { color: "bg-red-500", label: "Error" };
+		}
+		// No sandbox or stopped
+		return { color: "bg-muted-foreground/30", label: "Inactive" };
+	};
+
+	const statusInfo = getStatusInfo();
+
 	return (
 		<Link
 			href={`/cloud/${workspace.sessionId}`}
 			className="block px-2 py-2 rounded-md hover:bg-muted transition-colors"
 		>
-			<p className="text-sm truncate">
-				{workspace.title || `${workspace.repoOwner}/${workspace.repoName}`}
-			</p>
-			<p className="text-xs text-muted-foreground mt-0.5 truncate">
+			<div className="flex items-center gap-2">
+				<div
+					className={`size-2 rounded-full shrink-0 ${statusInfo.color}`}
+					title={statusInfo.label}
+				/>
+				<p className="text-sm truncate flex-1">
+					{workspace.title || `${workspace.repoOwner}/${workspace.repoName}`}
+				</p>
+			</div>
+			<p className="text-xs text-muted-foreground mt-0.5 truncate pl-4">
 				{formatRelativeTime(workspace.updatedAt)} · {workspace.repoOwner}/
 				{workspace.repoName}
 			</p>
 		</Link>
+	);
+}
+
+interface ArchivedWorkspace {
+	id: string;
+	sessionId: string;
+	title: string;
+	repoOwner: string;
+	repoName: string;
+	archivedAt: Date | null;
+}
+
+function ArchivedSessionItem({
+	workspace,
+	onUnarchive,
+	onDelete,
+	isUnarchiving,
+}: {
+	workspace: ArchivedWorkspace;
+	onUnarchive: () => void;
+	onDelete: () => void;
+	isUnarchiving: boolean;
+}) {
+	return (
+		<div className="group flex items-center gap-2 px-2 py-2 rounded-md hover:bg-muted transition-colors">
+			<div className="size-2 rounded-full shrink-0 bg-muted-foreground/20" />
+			<div className="flex-1 min-w-0">
+				<p className="text-sm truncate text-muted-foreground">
+					{workspace.title || `${workspace.repoOwner}/${workspace.repoName}`}
+				</p>
+				<p className="text-xs text-muted-foreground/60 truncate">
+					{workspace.archivedAt
+						? `Archived ${formatRelativeTime(workspace.archivedAt)}`
+						: "Archived"}
+				</p>
+			</div>
+			<div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="size-6"
+					onClick={(e) => {
+						e.stopPropagation();
+						onUnarchive();
+					}}
+					disabled={isUnarchiving}
+					title="Restore session"
+				>
+					{isUnarchiving ? (
+						<LuLoader className="size-3 animate-spin" />
+					) : (
+						<LuArchiveRestore className="size-3" />
+					)}
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="size-6 text-destructive hover:text-destructive"
+					onClick={(e) => {
+						e.stopPropagation();
+						onDelete();
+					}}
+					title="Delete permanently"
+				>
+					<LuTrash2 className="size-3" />
+				</Button>
+			</div>
+		</div>
 	);
 }
 
