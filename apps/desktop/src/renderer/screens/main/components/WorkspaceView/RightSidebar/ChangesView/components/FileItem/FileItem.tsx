@@ -29,7 +29,7 @@ import {
 } from "react-icons/lu";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../ChangesContent";
-import { usePathActions } from "../../hooks";
+import { useFileDrag, usePathActions } from "../../hooks";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 
 interface FileItemProps {
@@ -106,6 +106,8 @@ export function FileItem({
 			cwd: worktreePath,
 		});
 
+	const fileDragProps = useFileDrag({ absolutePath });
+
 	const handleClick = useCallback(() => {
 		if (clickTimeoutRef.current) {
 			clearTimeout(clickTimeoutRef.current);
@@ -161,6 +163,7 @@ export function FileItem({
 
 	const fileContent = (
 		<div
+			{...fileDragProps}
 			className={cn(
 				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
 				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",

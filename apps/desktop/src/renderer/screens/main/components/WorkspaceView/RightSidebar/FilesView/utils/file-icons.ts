@@ -1,36 +1,41 @@
 import type { IconType } from "react-icons";
 import {
-	LuDatabase,
-	LuFile,
-	LuFileArchive,
-	LuFileAudio,
-	LuFileCode,
-	LuFileImage,
-	LuFileJson,
-	LuFileSpreadsheet,
-	LuFileText,
-	LuFileVideo,
-	LuFolder,
-	LuFolderOpen,
-	LuGitBranch,
-	LuLock,
-	LuPackage,
-	LuSettings,
-	LuTerminal,
-} from "react-icons/lu";
-import {
+	SiC,
+	SiCplusplus,
 	SiCss3,
 	SiDocker,
 	SiGo,
+	SiGraphql,
 	SiHtml5,
 	SiJavascript,
-	SiMarkdown,
+	SiPhp,
+	SiPrisma,
 	SiPython,
 	SiReact,
+	SiRuby,
 	SiRust,
+	SiSvelte,
 	SiTypescript,
+	SiVuedotjs,
 	SiYaml,
 } from "react-icons/si";
+import {
+	VscFile,
+	VscFileCode,
+	VscFileMedia,
+	VscFilePdf,
+	VscFileZip,
+	VscFolder,
+	VscFolderOpened,
+	VscGear,
+	VscJson,
+	VscLock,
+	VscMarkdown,
+	VscPackage,
+	VscSourceControl,
+	VscSymbolMisc,
+	VscTerminalBash,
+} from "react-icons/vsc";
 
 interface FileIconConfig {
 	icon: IconType;
@@ -40,144 +45,234 @@ interface FileIconConfig {
 const EXTENSION_ICONS: Record<string, FileIconConfig> = {
 	// TypeScript
 	ts: { icon: SiTypescript, color: "text-blue-500" },
-	tsx: { icon: SiReact, color: "text-cyan-500" },
+	tsx: { icon: SiReact, color: "text-cyan-400" },
 	mts: { icon: SiTypescript, color: "text-blue-500" },
 	cts: { icon: SiTypescript, color: "text-blue-500" },
 	"d.ts": { icon: SiTypescript, color: "text-blue-400" },
 
 	// JavaScript
-	js: { icon: SiJavascript, color: "text-yellow-500" },
-	jsx: { icon: SiReact, color: "text-cyan-500" },
-	mjs: { icon: SiJavascript, color: "text-yellow-500" },
-	cjs: { icon: SiJavascript, color: "text-yellow-500" },
+	js: { icon: SiJavascript, color: "text-yellow-400" },
+	jsx: { icon: SiReact, color: "text-cyan-400" },
+	mjs: { icon: SiJavascript, color: "text-yellow-400" },
+	cjs: { icon: SiJavascript, color: "text-yellow-400" },
 
 	// Web
 	html: { icon: SiHtml5, color: "text-orange-500" },
 	htm: { icon: SiHtml5, color: "text-orange-500" },
-	css: { icon: SiCss3, color: "text-blue-400" },
+	css: { icon: SiCss3, color: "text-blue-500" },
 	scss: { icon: SiCss3, color: "text-pink-500" },
 	sass: { icon: SiCss3, color: "text-pink-500" },
 	less: { icon: SiCss3, color: "text-purple-500" },
 
 	// Data formats
-	json: { icon: LuFileJson, color: "text-yellow-600" },
-	jsonc: { icon: LuFileJson, color: "text-yellow-600" },
+	json: { icon: VscJson, color: "text-yellow-500" },
+	jsonc: { icon: VscJson, color: "text-yellow-500" },
 	yaml: { icon: SiYaml, color: "text-red-400" },
 	yml: { icon: SiYaml, color: "text-red-400" },
-	toml: { icon: LuSettings, color: "text-orange-400" },
-	xml: { icon: LuFileCode, color: "text-orange-500" },
-	csv: { icon: LuFileSpreadsheet, color: "text-green-500" },
+	toml: { icon: VscGear, color: "text-gray-400" },
+	xml: { icon: VscFileCode, color: "text-orange-400" },
+	csv: { icon: VscSymbolMisc, color: "text-green-500" },
 
 	// Documentation
-	md: { icon: SiMarkdown, color: "text-slate-400" },
-	mdx: { icon: SiMarkdown, color: "text-yellow-400" },
-	txt: { icon: LuFileText, color: "text-muted-foreground" },
-	rst: { icon: LuFileText, color: "text-muted-foreground" },
+	md: { icon: VscMarkdown, color: "text-blue-400" },
+	mdx: { icon: VscMarkdown, color: "text-orange-400" },
+	txt: { icon: VscFile, color: "text-muted-foreground" },
+	rst: { icon: VscFile, color: "text-muted-foreground" },
+	pdf: { icon: VscFilePdf, color: "text-red-500" },
 
 	// Python
-	py: { icon: SiPython, color: "text-blue-400" },
-	pyw: { icon: SiPython, color: "text-blue-400" },
-	pyi: { icon: SiPython, color: "text-blue-300" },
+	py: { icon: SiPython, color: "text-yellow-500" },
+	pyw: { icon: SiPython, color: "text-yellow-500" },
+	pyi: { icon: SiPython, color: "text-blue-400" },
 
 	// Rust
-	rs: { icon: SiRust, color: "text-orange-600" },
+	rs: { icon: SiRust, color: "text-orange-500" },
 
 	// Go
-	go: { icon: SiGo, color: "text-cyan-400" },
+	go: { icon: SiGo, color: "text-cyan-500" },
+	mod: { icon: SiGo, color: "text-cyan-500" },
+	sum: { icon: SiGo, color: "text-cyan-400" },
+
+	// C/C++
+	c: { icon: SiC, color: "text-blue-500" },
+	h: { icon: SiC, color: "text-purple-500" },
+	cpp: { icon: SiCplusplus, color: "text-blue-500" },
+	cc: { icon: SiCplusplus, color: "text-blue-500" },
+	cxx: { icon: SiCplusplus, color: "text-blue-500" },
+	hpp: { icon: SiCplusplus, color: "text-purple-500" },
+	hxx: { icon: SiCplusplus, color: "text-purple-500" },
+
+	// Java
+	java: { icon: VscFileCode, color: "text-red-500" },
+	jar: { icon: VscFileZip, color: "text-red-500" },
+
+	// PHP
+	php: { icon: SiPhp, color: "text-indigo-400" },
+
+	// Ruby
+	rb: { icon: SiRuby, color: "text-red-500" },
+	rake: { icon: SiRuby, color: "text-red-500" },
+	gemspec: { icon: SiRuby, color: "text-red-500" },
+
+	// Vue
+	vue: { icon: SiVuedotjs, color: "text-green-500" },
+
+	// Svelte
+	svelte: { icon: SiSvelte, color: "text-orange-500" },
+
+	// GraphQL
+	graphql: { icon: SiGraphql, color: "text-pink-500" },
+	gql: { icon: SiGraphql, color: "text-pink-500" },
+
+	// Prisma
+	prisma: { icon: SiPrisma, color: "text-teal-500" },
+
+	// Logs
+	log: { icon: VscFile, color: "text-gray-400" },
 
 	// Shell
-	sh: { icon: LuTerminal, color: "text-green-400" },
-	bash: { icon: LuTerminal, color: "text-green-400" },
-	zsh: { icon: LuTerminal, color: "text-green-400" },
-	fish: { icon: LuTerminal, color: "text-green-400" },
+	sh: { icon: VscTerminalBash, color: "text-green-500" },
+	bash: { icon: VscTerminalBash, color: "text-green-500" },
+	zsh: { icon: VscTerminalBash, color: "text-green-500" },
+	fish: { icon: VscTerminalBash, color: "text-green-500" },
 
 	// Images
-	png: { icon: LuFileImage, color: "text-purple-400" },
-	jpg: { icon: LuFileImage, color: "text-purple-400" },
-	jpeg: { icon: LuFileImage, color: "text-purple-400" },
-	gif: { icon: LuFileImage, color: "text-purple-400" },
-	svg: { icon: LuFileImage, color: "text-orange-400" },
-	webp: { icon: LuFileImage, color: "text-purple-400" },
-	ico: { icon: LuFileImage, color: "text-purple-400" },
+	png: { icon: VscFileMedia, color: "text-purple-400" },
+	jpg: { icon: VscFileMedia, color: "text-purple-400" },
+	jpeg: { icon: VscFileMedia, color: "text-purple-400" },
+	gif: { icon: VscFileMedia, color: "text-purple-400" },
+	svg: { icon: VscFileMedia, color: "text-yellow-500" },
+	webp: { icon: VscFileMedia, color: "text-purple-400" },
+	ico: { icon: VscFileMedia, color: "text-purple-400" },
 
 	// Video
-	mp4: { icon: LuFileVideo, color: "text-pink-400" },
-	webm: { icon: LuFileVideo, color: "text-pink-400" },
-	mov: { icon: LuFileVideo, color: "text-pink-400" },
-	avi: { icon: LuFileVideo, color: "text-pink-400" },
+	mp4: { icon: VscFileMedia, color: "text-pink-500" },
+	webm: { icon: VscFileMedia, color: "text-pink-500" },
+	mov: { icon: VscFileMedia, color: "text-pink-500" },
+	avi: { icon: VscFileMedia, color: "text-pink-500" },
 
 	// Audio
-	mp3: { icon: LuFileAudio, color: "text-red-400" },
-	wav: { icon: LuFileAudio, color: "text-red-400" },
-	ogg: { icon: LuFileAudio, color: "text-red-400" },
-	flac: { icon: LuFileAudio, color: "text-red-400" },
+	mp3: { icon: VscFileMedia, color: "text-red-400" },
+	wav: { icon: VscFileMedia, color: "text-red-400" },
+	ogg: { icon: VscFileMedia, color: "text-red-400" },
+	flac: { icon: VscFileMedia, color: "text-red-400" },
 
 	// Archives
-	zip: { icon: LuFileArchive, color: "text-yellow-500" },
-	tar: { icon: LuFileArchive, color: "text-yellow-500" },
-	gz: { icon: LuFileArchive, color: "text-yellow-500" },
-	"7z": { icon: LuFileArchive, color: "text-yellow-500" },
-	rar: { icon: LuFileArchive, color: "text-yellow-500" },
+	zip: { icon: VscFileZip, color: "text-yellow-600" },
+	tar: { icon: VscFileZip, color: "text-yellow-600" },
+	gz: { icon: VscFileZip, color: "text-yellow-600" },
+	"7z": { icon: VscFileZip, color: "text-yellow-600" },
+	rar: { icon: VscFileZip, color: "text-yellow-600" },
 
 	// Database
-	sql: { icon: LuDatabase, color: "text-blue-400" },
-	sqlite: { icon: LuDatabase, color: "text-blue-400" },
-	db: { icon: LuDatabase, color: "text-blue-400" },
+	sql: { icon: VscSymbolMisc, color: "text-blue-400" },
+	sqlite: { icon: VscSymbolMisc, color: "text-blue-400" },
+	db: { icon: VscSymbolMisc, color: "text-blue-400" },
 
 	// Docker
-	dockerfile: { icon: SiDocker, color: "text-blue-400" },
+	dockerfile: { icon: SiDocker, color: "text-blue-500" },
 
 	// Config files
-	env: { icon: LuLock, color: "text-yellow-500" },
-	"env.local": { icon: LuLock, color: "text-yellow-500" },
-	"env.development": { icon: LuLock, color: "text-yellow-500" },
-	"env.production": { icon: LuLock, color: "text-yellow-500" },
-	gitignore: { icon: LuGitBranch, color: "text-orange-400" },
-	gitattributes: { icon: LuGitBranch, color: "text-orange-400" },
-	editorconfig: { icon: LuSettings, color: "text-muted-foreground" },
-	prettierrc: { icon: LuSettings, color: "text-pink-400" },
-	eslintrc: { icon: LuSettings, color: "text-purple-400" },
+	env: { icon: VscLock, color: "text-yellow-500" },
+	"env.local": { icon: VscLock, color: "text-yellow-500" },
+	"env.development": { icon: VscLock, color: "text-yellow-500" },
+	"env.production": { icon: VscLock, color: "text-yellow-500" },
+	gitignore: { icon: VscSourceControl, color: "text-orange-500" },
+	gitattributes: { icon: VscSourceControl, color: "text-orange-500" },
+	editorconfig: { icon: VscGear, color: "text-muted-foreground" },
+	prettierrc: { icon: VscGear, color: "text-pink-400" },
+	eslintrc: { icon: VscGear, color: "text-purple-400" },
 };
 
 const FILENAME_ICONS: Record<string, FileIconConfig> = {
-	"package.json": { icon: LuPackage, color: "text-green-500" },
-	"package-lock.json": { icon: LuPackage, color: "text-green-500" },
-	"bun.lockb": { icon: LuPackage, color: "text-pink-400" },
-	"yarn.lock": { icon: LuPackage, color: "text-blue-400" },
-	"pnpm-lock.yaml": { icon: LuPackage, color: "text-yellow-500" },
-	Dockerfile: { icon: SiDocker, color: "text-blue-400" },
-	"docker-compose.yml": { icon: SiDocker, color: "text-blue-400" },
-	"docker-compose.yaml": { icon: SiDocker, color: "text-blue-400" },
-	".gitignore": { icon: LuGitBranch, color: "text-orange-400" },
-	".gitattributes": { icon: LuGitBranch, color: "text-orange-400" },
-	".env": { icon: LuLock, color: "text-yellow-500" },
-	".env.local": { icon: LuLock, color: "text-yellow-500" },
-	".env.development": { icon: LuLock, color: "text-yellow-500" },
-	".env.production": { icon: LuLock, color: "text-yellow-500" },
+	"package.json": { icon: VscPackage, color: "text-green-500" },
+	"package-lock.json": { icon: VscPackage, color: "text-red-400" },
+	"bun.lockb": { icon: VscPackage, color: "text-amber-200" },
+	"bun.lock": { icon: VscPackage, color: "text-amber-200" },
+	"yarn.lock": { icon: VscPackage, color: "text-blue-400" },
+	"pnpm-lock.yaml": { icon: VscPackage, color: "text-orange-500" },
+	Dockerfile: { icon: SiDocker, color: "text-blue-500" },
+	"docker-compose.yml": { icon: SiDocker, color: "text-blue-500" },
+	"docker-compose.yaml": { icon: SiDocker, color: "text-blue-500" },
+	".gitignore": { icon: VscSourceControl, color: "text-orange-500" },
+	".gitattributes": { icon: VscSourceControl, color: "text-orange-500" },
+	".env": { icon: VscLock, color: "text-yellow-500" },
+	".env.local": { icon: VscLock, color: "text-yellow-500" },
+	".env.development": { icon: VscLock, color: "text-yellow-500" },
+	".env.production": { icon: VscLock, color: "text-yellow-500" },
 	"tsconfig.json": { icon: SiTypescript, color: "text-blue-500" },
-	"jsconfig.json": { icon: SiJavascript, color: "text-yellow-500" },
-	README: { icon: SiMarkdown, color: "text-slate-400" },
-	"README.md": { icon: SiMarkdown, color: "text-slate-400" },
-	LICENSE: { icon: LuFileText, color: "text-yellow-500" },
-	"LICENSE.md": { icon: LuFileText, color: "text-yellow-500" },
+	"jsconfig.json": { icon: SiJavascript, color: "text-yellow-400" },
+	README: { icon: VscMarkdown, color: "text-blue-400" },
+	"README.md": { icon: VscMarkdown, color: "text-blue-400" },
+	LICENSE: { icon: VscFile, color: "text-yellow-500" },
+	"LICENSE.md": { icon: VscFile, color: "text-yellow-500" },
+	"biome.json": { icon: VscGear, color: "text-blue-400" },
+	"turbo.json": { icon: VscGear, color: "text-pink-500" },
+	".prettierrc": { icon: VscGear, color: "text-pink-400" },
+	".eslintrc": { icon: VscGear, color: "text-purple-400" },
+	".eslintrc.json": { icon: VscGear, color: "text-purple-400" },
+	".eslintrc.js": { icon: VscGear, color: "text-purple-400" },
+	// Build tools
+	Makefile: { icon: VscGear, color: "text-orange-500" },
+	"CMakeLists.txt": { icon: VscGear, color: "text-blue-500" },
+	// Rust
+	"Cargo.toml": { icon: SiRust, color: "text-orange-500" },
+	"Cargo.lock": { icon: SiRust, color: "text-orange-400" },
+	// Go
+	"go.mod": { icon: SiGo, color: "text-cyan-500" },
+	"go.sum": { icon: SiGo, color: "text-cyan-400" },
+	// Ruby
+	Gemfile: { icon: SiRuby, color: "text-red-500" },
+	"Gemfile.lock": { icon: SiRuby, color: "text-red-400" },
+	// Python
+	"requirements.txt": { icon: SiPython, color: "text-yellow-500" },
+	"pyproject.toml": { icon: SiPython, color: "text-yellow-500" },
+	"setup.py": { icon: SiPython, color: "text-yellow-500" },
+	Pipfile: { icon: SiPython, color: "text-yellow-500" },
+	"Pipfile.lock": { icon: SiPython, color: "text-yellow-400" },
+	// GraphQL
+	"schema.graphql": { icon: SiGraphql, color: "text-pink-500" },
+	// Prisma
+	"schema.prisma": { icon: SiPrisma, color: "text-teal-500" },
+	// Config files
+	"vite.config.ts": { icon: VscGear, color: "text-purple-500" },
+	"vite.config.js": { icon: VscGear, color: "text-purple-500" },
+	"next.config.js": { icon: VscGear, color: "text-gray-400" },
+	"next.config.mjs": { icon: VscGear, color: "text-gray-400" },
+	"next.config.ts": { icon: VscGear, color: "text-gray-400" },
+	"tailwind.config.js": { icon: VscGear, color: "text-cyan-500" },
+	"tailwind.config.ts": { icon: VscGear, color: "text-cyan-500" },
+	"postcss.config.js": { icon: VscGear, color: "text-red-500" },
+	"postcss.config.mjs": { icon: VscGear, color: "text-red-500" },
+	".npmrc": { icon: VscPackage, color: "text-red-500" },
+	".nvmrc": { icon: VscPackage, color: "text-green-500" },
+	".node-version": { icon: VscPackage, color: "text-green-500" },
 };
 
 const FOLDER_ICONS: Record<string, FileIconConfig> = {
-	node_modules: { icon: LuPackage, color: "text-green-500" },
-	".git": { icon: LuGitBranch, color: "text-orange-400" },
-	src: { icon: LuFolder, color: "text-blue-400" },
-	dist: { icon: LuFolder, color: "text-yellow-500" },
-	build: { icon: LuFolder, color: "text-yellow-500" },
-	public: { icon: LuFolder, color: "text-green-400" },
-	assets: { icon: LuFolder, color: "text-purple-400" },
-	components: { icon: LuFolder, color: "text-cyan-400" },
-	lib: { icon: LuFolder, color: "text-orange-400" },
-	utils: { icon: LuFolder, color: "text-pink-400" },
-	hooks: { icon: LuFolder, color: "text-purple-400" },
-	styles: { icon: LuFolder, color: "text-pink-400" },
-	tests: { icon: LuFolder, color: "text-green-400" },
-	__tests__: { icon: LuFolder, color: "text-green-400" },
-	docs: { icon: LuFolder, color: "text-blue-400" },
+	node_modules: { icon: VscPackage, color: "text-green-600" },
+	".git": { icon: VscSourceControl, color: "text-orange-500" },
+	src: { icon: VscFolder, color: "text-blue-500" },
+	dist: { icon: VscFolder, color: "text-yellow-600" },
+	build: { icon: VscFolder, color: "text-yellow-600" },
+	public: { icon: VscFolder, color: "text-green-500" },
+	assets: { icon: VscFolder, color: "text-purple-500" },
+	components: { icon: VscFolder, color: "text-cyan-500" },
+	lib: { icon: VscFolder, color: "text-orange-500" },
+	utils: { icon: VscFolder, color: "text-pink-500" },
+	hooks: { icon: VscFolder, color: "text-purple-500" },
+	styles: { icon: VscFolder, color: "text-pink-500" },
+	tests: { icon: VscFolder, color: "text-green-500" },
+	__tests__: { icon: VscFolder, color: "text-green-500" },
+	docs: { icon: VscFolder, color: "text-blue-500" },
+	app: { icon: VscFolder, color: "text-blue-500" },
+	apps: { icon: VscFolder, color: "text-blue-500" },
+	packages: { icon: VscFolder, color: "text-purple-500" },
+	config: { icon: VscFolder, color: "text-gray-400" },
+	scripts: { icon: VscFolder, color: "text-green-500" },
+	types: { icon: VscFolder, color: "text-blue-400" },
+	api: { icon: VscFolder, color: "text-green-500" },
+	pages: { icon: VscFolder, color: "text-blue-500" },
 };
 
 export function getFileIcon(
@@ -189,12 +284,12 @@ export function getFileIcon(
 		const folderIcon = FOLDER_ICONS[fileName];
 		if (folderIcon) {
 			return {
-				icon: isOpen ? LuFolderOpen : folderIcon.icon,
+				icon: isOpen ? VscFolderOpened : folderIcon.icon,
 				color: folderIcon.color,
 			};
 		}
 		return {
-			icon: isOpen ? LuFolderOpen : LuFolder,
+			icon: isOpen ? VscFolderOpened : VscFolder,
 			color: "text-amber-500",
 		};
 	}
@@ -213,7 +308,7 @@ export function getFileIcon(
 	}
 
 	return {
-		icon: LuFile,
+		icon: VscFile,
 		color: "text-muted-foreground",
 	};
 }

@@ -8,6 +8,7 @@ import { PLATFORM } from "./constants";
 export type HotkeyPlatform = "darwin" | "win32" | "linux";
 
 export type HotkeyCategory =
+	| "Navigation"
 	| "Workspace"
 	| "Layout"
 	| "Terminal"
@@ -367,6 +368,20 @@ function defineHotkey(def: {
 }
 
 export const HOTKEYS = {
+	// Navigation - browser-style back/forward
+	NAVIGATE_BACK: defineHotkey({
+		keys: "meta+[",
+		label: "Navigate Back",
+		category: "Navigation",
+		description: "Go back to the previous page in history",
+	}),
+	NAVIGATE_FORWARD: defineHotkey({
+		keys: "meta+]",
+		label: "Navigate Forward",
+		category: "Navigation",
+		description: "Go forward to the next page in history",
+	}),
+
 	// Workspace - switch with ⌘+1-9
 	JUMP_TO_WORKSPACE_1: defineHotkey({
 		keys: "meta+1",
@@ -685,6 +700,7 @@ export function getHotkeysByCategory(options?: {
 	includeHidden?: boolean;
 }): Record<HotkeyCategory, HotkeyWithId[]> {
 	const grouped: Record<HotkeyCategory, HotkeyWithId[]> = {
+		Navigation: [],
 		Workspace: [],
 		Layout: [],
 		Terminal: [],

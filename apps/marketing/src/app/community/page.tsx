@@ -3,7 +3,7 @@ import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-	title: "Community - Superset",
+	title: "Community",
 	description:
 		"Join the Superset community to get help, share ideas, and stay up to date with the latest news and updates.",
 };

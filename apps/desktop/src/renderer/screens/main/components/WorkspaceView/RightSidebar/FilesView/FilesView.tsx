@@ -11,7 +11,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { useParams } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFile, LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -38,6 +38,13 @@ export function FilesView() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [showHiddenFiles, setShowHiddenFiles] = useState(false);
 
+	// Refs updated synchronously during render so dataLoader always reads current values
+	const worktreePathRef = useRef(worktreePath);
+	worktreePathRef.current = worktreePath;
+
+	const showHiddenFilesRef = useRef(showHiddenFiles);
+	showHiddenFilesRef.current = showHiddenFiles;
+
 	const trpcUtils = electronTrpc.useUtils();
 
 	const tree = useTree<DirectoryEntry>({
@@ -50,7 +57,7 @@ export function FilesView() {
 					return {
 						id: "root",
 						name: "root",
-						path: worktreePath ?? "",
+						path: worktreePathRef.current ?? "",
 						relativePath: "",
 						isDirectory: true,
 					};
@@ -65,16 +72,18 @@ export function FilesView() {
 				};
 			},
 			getChildren: async (itemId: string): Promise<string[]> => {
-				if (!worktreePath) return [];
+				const currentPath = worktreePathRef.current;
+				if (!currentPath) return [];
+
 				const dirPath =
-					itemId === "root" ? worktreePath : itemId.split(":::")[0];
+					itemId === "root" ? currentPath : itemId.split(":::")[0];
 				if (!dirPath) return [];
 
 				try {
 					const entries = await trpcUtils.filesystem.readDirectory.fetch({
 						dirPath,
-						rootPath: worktreePath,
-						includeHidden: showHiddenFiles,
+						rootPath: currentPath,
+						includeHidden: showHiddenFilesRef.current,
 					});
 					return entries.map(
 						(e) =>
@@ -88,6 +97,19 @@ export function FilesView() {
 		},
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
+
+	// Invalidate tree when workspace changes
+	const prevWorktreePathRef = useRef(worktreePath);
+	useEffect(() => {
+		if (
+			worktreePath &&
+			prevWorktreePathRef.current !== worktreePath &&
+			prevWorktreePathRef.current !== undefined
+		) {
+			tree.getItemInstance("root")?.invalidateChildrenIds();
+		}
+		prevWorktreePathRef.current = worktreePath;
+	}, [worktreePath, tree]);
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
@@ -231,7 +253,12 @@ export function FilesView() {
 	}, [tree]);
 
 	const handleRefresh = useCallback(() => {
-		tree.rebuildTree();
+		tree.getItemInstance("root")?.invalidateChildrenIds();
+	}, [tree]);
+
+	const handleToggleHiddenFiles = useCallback(() => {
+		setShowHiddenFiles((v) => !v);
+		tree.getItemInstance("root")?.invalidateChildrenIds();
 	}, [tree]);
 
 	const searchResultEntries = useMemo(() => {
@@ -262,7 +289,7 @@ export function FilesView() {
 				onCollapseAll={handleCollapseAll}
 				onRefresh={handleRefresh}
 				showHiddenFiles={showHiddenFiles}
-				onToggleHiddenFiles={() => setShowHiddenFiles((v) => !v)}
+				onToggleHiddenFiles={handleToggleHiddenFiles}
 			/>
 
 			<ContextMenu>

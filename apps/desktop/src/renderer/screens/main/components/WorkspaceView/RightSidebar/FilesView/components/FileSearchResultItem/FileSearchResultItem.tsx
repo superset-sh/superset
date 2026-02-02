@@ -17,7 +17,7 @@ import {
 	LuTrash2,
 } from "react-icons/lu";
 import type { DirectoryEntry } from "shared/file-tree-types";
-import { usePathActions } from "../../../ChangesView/hooks";
+import { useFileDrag, usePathActions } from "../../../ChangesView/hooks";
 import { SEARCH_RESULT_ROW_HEIGHT } from "../../constants";
 import { getFileIcon } from "../../utils";
 
@@ -83,6 +83,8 @@ export function FileSearchResultItem({
 			cwd: worktreePath,
 		});
 
+	const fileDragProps = useFileDrag({ absolutePath: entry.path });
+
 	const handleClick = () => {
 		if (!entry.isDirectory) {
 			onActivate(entry);
@@ -104,6 +106,7 @@ export function FileSearchResultItem({
 
 	const itemContent = (
 		<div
+			{...fileDragProps}
 			role="treeitem"
 			tabIndex={0}
 			style={{ height: SEARCH_RESULT_ROW_HEIGHT }}
