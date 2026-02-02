@@ -1,0 +1,68 @@
+---
+title: "Our roadmap to running 100 Parallel Coding Agents"
+description: "An attempt to crystallize our plans for 2026, and where we plan to focus on advancing AI"
+author: Satya Patel
+date: 2026-02-02
+category: Product
+---
+
+There's a natural progression that builders have been experiencing recently. People we talk to are all noticing substantial changes to their workflows - 
+They're spending less time in their IDE's, handing off more to agents, and reading less code directly. Agents are becoming smarter and the level of trust
+we can give to coding agents in terms of code quality, architecture decisions, and more is increasing.
+
+As this occurs, the optimal place for a user to interact with agents like Claude Code, Codex, and Cursor Agent is starting to evolve. Our team now is able
+to run 5-7 agents in parallel, but there's still a huge gap to be overcome for us to hit our goal for 2026 - building the tools for the first set of 100x
+engineers managing fleets of agents. 
+
+# Why isn't this possible right now? / What will it take to run 100 agents in parallel
+
+If you've attempted any of these parallel orchestration flows, you can probably guess where the bottleneck is - it's the human in the loop. Right now, most
+responsible teams still review agent code before it's shipped to production. 
+
+Framing Agent pipelines as a throughput problem is a great exercise, as it provides a lot of insight into what the low-hanging-fruit are right now. This is roughly what the pipeline looks like today:
+
+[Show an image of user comes up with idea -> plans out a task -> hands plan to agent, loop until code is good enough, merge]
+
+## Interesting insights
+
+Agent compute is a practically-infinite resource for most teams (1000 agents active all month probably cost less than an engineer's salary), the main thing
+throttling throughput is that code needs to be reviewed and approved by a human before it's merged. Freeing up your team will lead to more agent code being
+merged, and an outsized impact to your users.
+
+What's interesting is this means you don't care about how long it takes for one agent to complete its work, as you can always increase the number of agents running to increase the throughput of agent steps.
+What you can't increase is the number of places you interact. That means the vast majority of your time should go to reducing the amount of time you spend interacting with agents.
+
+# Where does the time go?
+
+Reviewing agent code takes a lot of time, and it causes an extreme amount of
+whiplash. You have to juggle all of the following right now:
+
+* Reviewing the code the agent produced
+* Giving it feedback on that code
+* Spinning up / tearing down devservers 
+* Manually clicking around in the UI
+* Planning out work for new agents
+
+# How can we improve it
+
+## Make agents require less human feedback
+  * Can run many more code review agents before an agent comes back
+  * Have the agents be more persistent (Ralph loops, etc.)
+  * Have agents block interruptions to the user until an agent's work is good enough (manager/bouncer)
+  * UI's morph when you think about 100 agents at once, need 
+## Make it fast to review agents' work
+  * Have the agent organize their work to make it easier for you to review
+    * Write reports
+    * Spin up dev servers for you
+    * Navigate to specific pages on your site that it wants you to review
+  * Have better tools for review (diff viewer, fast feedback, etc.)
+  * Have quick actions like agents prepping multiple choice questions for you, have simple actions like "create PR" readily available
+## Increase the amount of time you can spend working
+  * Make it easy to work on your phone / on the go
+  * Make the tool easy to use
+  * Make it easy to start work in the cloud and pick it up when you're ready
+## Have agents be more proactive
+  * Have agents proactively find new work to do
+  * Have agents dig into product feedback weekly
+  * Have agents investigate security gaps
+  etc. etc.
