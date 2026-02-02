@@ -198,7 +198,10 @@ export function useCloudSession({
 		}) => {
 			switch (message.type) {
 				case "subscribed":
-					console.log("[cloud-session] subscribed received, sandboxStatus:", message.state?.sandboxStatus);
+					console.log(
+						"[cloud-session] subscribed received, sandboxStatus:",
+						message.state?.sandboxStatus,
+					);
 					if (message.state) {
 						setSessionState(message.state);
 					}
@@ -286,7 +289,10 @@ export function useCloudSession({
 							const newState = prev
 								? { ...prev, ...message.state }
 								: (message.state as CloudSessionState);
-							console.log("[cloud-session] New session state sandboxStatus:", newState.sandboxStatus);
+							console.log(
+								"[cloud-session] New session state sandboxStatus:",
+								newState.sandboxStatus,
+							);
 							return newState;
 						});
 					}
@@ -307,7 +313,10 @@ export function useCloudSession({
 					if (message.participants) {
 						setSessionState((prev) =>
 							prev
-								? { ...prev, participants: message.participants as ParticipantPresence[] }
+								? {
+										...prev,
+										participants: message.participants as ParticipantPresence[],
+									}
 								: null,
 						);
 					}
@@ -324,19 +333,26 @@ export function useCloudSession({
 
 							if (action === "join") {
 								// Add participant if not already present
-								const exists = prev.participants.some((p) => p.id === participant.id);
+								const exists = prev.participants.some(
+									(p) => p.id === participant.id,
+								);
 								if (exists) {
 									// Update existing participant
 									return {
 										...prev,
 										participants: prev.participants.map((p) =>
-											p.id === participant.id ? { ...participant, isOnline: true } : p,
+											p.id === participant.id
+												? { ...participant, isOnline: true }
+												: p,
 										),
 									};
 								}
 								return {
 									...prev,
-									participants: [...prev.participants, { ...participant, isOnline: true }],
+									participants: [
+										...prev.participants,
+										{ ...participant, isOnline: true },
+									],
 								};
 							}
 
@@ -345,7 +361,13 @@ export function useCloudSession({
 								return {
 									...prev,
 									participants: prev.participants.map((p) =>
-										p.id === participant.id ? { ...p, isOnline: false, lastSeenAt: participant.lastSeenAt } : p,
+										p.id === participant.id
+											? {
+													...p,
+													isOnline: false,
+													lastSeenAt: participant.lastSeenAt,
+												}
+											: p,
 									),
 								};
 							}
@@ -356,7 +378,11 @@ export function useCloudSession({
 									...prev,
 									participants: prev.participants.map((p) =>
 										p.id === participant.id
-											? { ...p, isOnline: action === "active", lastSeenAt: participant.lastSeenAt }
+											? {
+													...p,
+													isOnline: action === "active",
+													lastSeenAt: participant.lastSeenAt,
+												}
 											: p,
 									),
 								};
@@ -376,7 +402,11 @@ export function useCloudSession({
 					// Handle prompt acknowledgment from control plane
 					if (message.status === "queued") {
 						// Prompt was queued, not processing - sandbox not connected
-						console.log("[cloud-session] Prompt queued:", message.messageId, message.message);
+						console.log(
+							"[cloud-session] Prompt queued:",
+							message.messageId,
+							message.message,
+						);
 						// Don't set isProcessing to true - it will be processed when sandbox connects
 						setIsProcessing(false);
 						// Optionally show a notification to user
@@ -385,7 +415,10 @@ export function useCloudSession({
 						}
 					} else if (message.status === "forwarded") {
 						// Prompt was forwarded to sandbox, keep isProcessing true
-						console.log("[cloud-session] Prompt forwarded to sandbox:", message.messageId);
+						console.log(
+							"[cloud-session] Prompt forwarded to sandbox:",
+							message.messageId,
+						);
 					}
 					break;
 
@@ -668,12 +701,19 @@ export function useCloudSession({
 		const status = sessionState?.sandboxStatus;
 		// Only spawn if status indicates the sandbox is truly stopped/pending
 		// Don't spawn if it's in any "active" state (warming, syncing, ready, running)
-		const needsSpawn = status === "stopped" || status === "pending" || status === "failed";
-		const isActive = status === "warming" || status === "syncing" || status === "ready" || status === "running";
+		const needsSpawn =
+			status === "stopped" || status === "pending" || status === "failed";
+		const isActive =
+			status === "warming" ||
+			status === "syncing" ||
+			status === "ready" ||
+			status === "running";
 
 		// Skip spawn if sandbox is already active
 		if (isActive) {
-			console.log(`[cloud-session] Sandbox is active (${status}), skipping spawn`);
+			console.log(
+				`[cloud-session] Sandbox is active (${status}), skipping spawn`,
+			);
 			return;
 		}
 
@@ -684,7 +724,9 @@ export function useCloudSession({
 			!isSpawning
 		) {
 			hasAttemptedSpawn.current = true;
-			console.log(`[cloud-session] Sandbox status is ${status}, auto-spawning...`);
+			console.log(
+				`[cloud-session] Sandbox status is ${status}, auto-spawning...`,
+			);
 			spawnSandbox();
 		}
 	}, [isConnected, sessionState?.sandboxStatus, isSpawning, spawnSandbox]);
