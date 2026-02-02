@@ -23,8 +23,12 @@ import {
 	LuArchive,
 	LuCheck,
 	LuCircle,
+	LuExternalLink,
+	LuFile,
 	LuGitBranch,
+	LuGitPullRequest,
 	LuGithub,
+	LuGlobe,
 	LuLoader,
 	LuEllipsis,
 	LuPanelLeftClose,
@@ -34,6 +38,7 @@ import {
 	LuSend,
 	LuSquare,
 	LuTerminal,
+	LuUsers,
 	LuWifi,
 	LuWifiOff,
 	LuX,
@@ -41,7 +46,13 @@ import {
 
 import { env } from "@/env";
 import { useTRPC } from "@/trpc/react";
-import { type CloudEvent, useCloudSession } from "../../hooks";
+import {
+	type Artifact,
+	type CloudEvent,
+	type FileChange,
+	type ParticipantPresence,
+	useCloudSession,
+} from "../../hooks";
 import { ToolCallGroup } from "../ToolCallGroup";
 
 type GroupedEvent =
@@ -232,11 +243,8 @@ export function CloudWorkspaceContent({
 		trpc.cloudWorkspace.update.mutationOptions({
 			onSuccess: () => {
 				setIsEditingTitle(false);
-				queryClient.invalidateQueries({
-					queryKey: trpc.cloudWorkspace.getBySessionId.queryKey({
-						sessionId: workspace.sessionId,
-					}),
-				});
+				// Refresh the page to get updated server data (sidebar uses server-fetched data)
+				router.refresh();
 			},
 		}),
 	);
@@ -607,6 +615,22 @@ export function CloudWorkspaceContent({
 										? "Warming..."
 										: sessionState?.sandboxStatus || workspace.sandboxStatus}
 							</Badge>
+						)}
+						{/* Artifacts - PR and Preview links */}
+						{sessionState?.artifacts && sessionState.artifacts.length > 0 && (
+							<div className="flex items-center gap-1">
+								{sessionState.artifacts.map((artifact) => (
+									<ArtifactButton key={artifact.id} artifact={artifact} />
+								))}
+							</div>
+						)}
+						{/* Files changed indicator */}
+						{sessionState?.filesChanged && sessionState.filesChanged.length > 0 && isMounted && (
+							<FilesChangedDropdown files={sessionState.filesChanged} />
+						)}
+						{/* Participant avatars */}
+						{sessionState?.participants && sessionState.participants.length > 0 && (
+							<ParticipantAvatars participants={sessionState.participants} />
 						)}
 						{/* Session menu - only render after hydration to avoid Radix ID mismatch */}
 						{isMounted ? (
@@ -1021,5 +1045,142 @@ function AssistantMessage({ text }: { text: string }) {
 				</ReactMarkdown>
 			</div>
 		</div>
+	);
+}
+
+function ArtifactButton({ artifact }: { artifact: Artifact }) {
+	if (!artifact.url) return null;
+
+	const getIcon = () => {
+		switch (artifact.type) {
+			case "pr":
+				return <LuGitPullRequest className="size-3" />;
+			case "preview":
+				return <LuGlobe className="size-3" />;
+			default:
+				return <LuExternalLink className="size-3" />;
+		}
+	};
+
+	const getLabel = () => {
+		switch (artifact.type) {
+			case "pr":
+				return artifact.title || "PR";
+			case "preview":
+				return "Preview";
+			default:
+				return artifact.title || "Link";
+		}
+	};
+
+	return (
+		<Button
+			variant="outline"
+			size="sm"
+			className="h-7 gap-1 text-xs"
+			asChild
+		>
+			<a href={artifact.url} target="_blank" rel="noopener noreferrer">
+				{getIcon()}
+				{getLabel()}
+			</a>
+		</Button>
+	);
+}
+
+function ParticipantAvatars({
+	participants,
+}: {
+	participants: ParticipantPresence[];
+}) {
+	const onlineParticipants = participants.filter((p) => p.isOnline);
+	const offlineParticipants = participants.filter((p) => !p.isOnline);
+
+	// Show up to 3 online avatars, then +N
+	const visibleOnline = onlineParticipants.slice(0, 3);
+	const remainingCount =
+		onlineParticipants.length - 3 + offlineParticipants.length;
+
+	if (participants.length === 0) return null;
+
+	return (
+		<div className="flex items-center -space-x-2">
+			{visibleOnline.map((p) => (
+				<div
+					key={p.id}
+					className="relative"
+					title={`${p.userName} (online)`}
+				>
+					{p.avatarUrl ? (
+						<img
+							src={p.avatarUrl}
+							alt={p.userName}
+							className="size-7 rounded-full border-2 border-background"
+						/>
+					) : (
+						<div className="size-7 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium">
+							{p.userName.charAt(0).toUpperCase()}
+						</div>
+					)}
+					<span className="absolute bottom-0 right-0 size-2 rounded-full bg-green-500 border border-background" />
+				</div>
+			))}
+			{remainingCount > 0 && (
+				<div
+					className="size-7 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium"
+					title={`${remainingCount} more participant${remainingCount > 1 ? "s" : ""}`}
+				>
+					+{remainingCount}
+				</div>
+			)}
+		</div>
+	);
+}
+
+function FilesChangedDropdown({ files }: { files: FileChange[] }) {
+	const getFileIcon = (type: FileChange["type"]) => {
+		switch (type) {
+			case "added":
+				return <span className="text-green-500">+</span>;
+			case "modified":
+				return <span className="text-amber-500">~</span>;
+			case "deleted":
+				return <span className="text-red-500">-</span>;
+			default:
+				return <LuFile className="size-3" />;
+		}
+	};
+
+	const getFileName = (path: string) => {
+		const parts = path.split("/");
+		return parts[parts.length - 1];
+	};
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button variant="outline" size="sm" className="h-7 gap-1 text-xs">
+					<LuFile className="size-3" />
+					{files.length} file{files.length !== 1 ? "s" : ""} changed
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="max-h-64 overflow-auto w-64">
+				{files.slice(0, 20).map((file) => (
+					<DropdownMenuItem
+						key={file.path}
+						className="flex items-center gap-2 font-mono text-xs"
+						title={file.path}
+					>
+						{getFileIcon(file.type)}
+						<span className="truncate">{getFileName(file.path)}</span>
+					</DropdownMenuItem>
+				))}
+				{files.length > 20 && (
+					<div className="px-2 py-1 text-xs text-muted-foreground">
+						+{files.length - 20} more files
+					</div>
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

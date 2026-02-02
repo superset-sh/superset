@@ -130,6 +130,9 @@ export function CloudHomePage({
 	const [selectedRepo, setSelectedRepo] = useState<GitHubRepository | null>(
 		null,
 	);
+	const [selectedModel, setSelectedModel] = useState<
+		"claude-sonnet-4" | "claude-opus-4" | "claude-haiku-3-5"
+	>("claude-sonnet-4");
 
 	// Get recent repos (from recent workspaces)
 	const recentRepos = useMemo(() => {
@@ -169,7 +172,7 @@ export function CloudHomePage({
 			repoOwner: selectedRepo.owner,
 			repoName: selectedRepo.name,
 			title: promptInput.trim() || `${selectedRepo.owner}/${selectedRepo.name}`,
-			model: "claude-sonnet-4",
+			model: selectedModel,
 			baseBranch: selectedRepo.defaultBranch,
 		});
 	};
@@ -210,14 +213,11 @@ export function CloudHomePage({
 					<div className="flex items-center gap-2">
 						<SupersetLogo className="h-4" />
 					</div>
-					<div className="flex items-center gap-2">
-						<Button variant="ghost" size="icon" className="size-8" asChild>
-							<Link href="/cloud/new">
-								<LuPlus className="size-4" />
-							</Link>
-						</Button>
-						<div className="size-8 rounded-full bg-muted" />
-					</div>
+					<Button variant="ghost" size="icon" className="size-8" asChild>
+						<Link href="/cloud/new">
+							<LuPlus className="size-4" />
+						</Link>
+					</Button>
 				</div>
 
 				{/* Search */}
@@ -383,9 +383,36 @@ export function CloudHomePage({
 								<span>Cloud</span>
 								<LuChevronDown className="size-3" />
 							</button>
-							<div className="text-xs text-muted-foreground">
-								claude sonnet 4
-							</div>
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<button
+										type="button"
+										className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+									>
+										{selectedModel === "claude-sonnet-4" && "Claude Sonnet 4"}
+										{selectedModel === "claude-opus-4" && "Claude Opus 4"}
+										{selectedModel === "claude-haiku-3-5" && "Claude Haiku 3.5"}
+										<LuChevronDown className="size-3" />
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuItem
+										onClick={() => setSelectedModel("claude-sonnet-4")}
+									>
+										Claude Sonnet 4
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onClick={() => setSelectedModel("claude-opus-4")}
+									>
+										Claude Opus 4
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onClick={() => setSelectedModel("claude-haiku-3-5")}
+									>
+										Claude Haiku 3.5
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 
 						{/* Show connect GitHub prompt if no installation */}

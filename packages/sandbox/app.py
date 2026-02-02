@@ -909,6 +909,10 @@ async def api_create_sandbox(request: Request) -> dict:
     # Use spawn() to run the sandbox asynchronously
     # The sandbox will connect back to control plane via WebSocket
     sandbox = Sandbox()
+
+    print(f"[api] Spawning sandbox for session={body.get('session_id')}, repo={body.get('repo_owner')}/{body.get('repo_name')}")
+    print(f"[api] Control plane URL: {body.get('control_plane_url')}")
+
     call = sandbox.initialize_and_run.spawn(
         session_id=body.get("session_id"),
         sandbox_id=sandbox_id,
@@ -925,11 +929,13 @@ async def api_create_sandbox(request: Request) -> dict:
         model=body.get("model", "claude-sonnet-4"),
     )
 
+    print(f"[api] Sandbox spawned: sandbox_id={sandbox_id}, call_id={call.object_id}")
+
     return {
         "success": True,
         "data": {
             "sandbox_id": sandbox_id,
-            "call_id": call.object_id,
+            "modal_object_id": call.object_id,  # Control plane expects this field name
             "status": "spawning",
             "created_at": int(time.time() * 1000),
         },
@@ -960,9 +966,120 @@ async def api_terminate_sandbox(request: Request) -> dict:
 @app.function(image=web_image, secrets=[Secret.from_name("superset-modal-secrets")])
 @modal.fastapi_endpoint(method="POST")
 async def api_snapshot_sandbox(request: Request) -> dict:
-    """Take a snapshot of a sandbox."""
-    workspace_volume.commit()
-    return {"success": True, "data": {"snapshot_id": str(uuid.uuid4())}}
+    """Take a filesystem snapshot of a running sandbox.
+
+    Uses Modal's snapshot_filesystem() API to capture the full workspace state.
+    The returned snapshot_id can be used to restore the sandbox later.
+    """
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return {"success": False, "error": "Unauthorized"}
+
+    token = auth_header[7:]
+    modal_secret = os.environ.get("MODAL_API_SECRET", "")
+    if not verify_internal_token(token, modal_secret):
+        return {"success": False, "error": "Invalid token"}
+
+    body = await request.json()
+    modal_object_id = body.get("modal_object_id")
+
+    if not modal_object_id:
+        return {"success": False, "error": "modal_object_id is required"}
+
+    try:
+        # Get the sandbox by its Modal object ID
+        sandbox = modal.Sandbox.from_id(modal_object_id)
+
+        # Take filesystem snapshot
+        snapshot_image = sandbox.snapshot_filesystem()
+        snapshot_id = snapshot_image.object_id
+
+        return {
+            "success": True,
+            "data": {
+                "snapshot_id": snapshot_id,
+                "created_at": int(time.time() * 1000),
+            },
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Failed to take snapshot: {str(e)}"}
+
+
+@app.function(image=web_image, secrets=[Secret.from_name("superset-modal-secrets")])
+@modal.fastapi_endpoint(method="POST")
+async def api_restore_sandbox(request: Request) -> dict:
+    """Restore a sandbox from a filesystem snapshot.
+
+    Creates a new sandbox from the given snapshot, skipping git clone
+    since the workspace state is already present.
+    """
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return {"success": False, "error": "Unauthorized"}
+
+    token = auth_header[7:]
+    modal_secret = os.environ.get("MODAL_API_SECRET", "")
+    if not verify_internal_token(token, modal_secret):
+        return {"success": False, "error": "Invalid token"}
+
+    body = await request.json()
+    snapshot_id = body.get("snapshot_id")
+
+    if not snapshot_id:
+        return {"success": False, "error": "snapshot_id is required"}
+
+    sandbox_id = body.get("sandbox_id") or str(uuid.uuid4())
+
+    try:
+        # Get the snapshot image
+        snapshot_image = modal.Image.from_id(snapshot_id)
+
+        # Prepare environment variables
+        env_vars = {
+            "PYTHONUNBUFFERED": "1",
+            "SESSION_ID": body.get("session_id", ""),
+            "SANDBOX_ID": sandbox_id,
+            "REPO_OWNER": body.get("repo_owner", ""),
+            "REPO_NAME": body.get("repo_name", ""),
+            "BRANCH": body.get("branch", "main"),
+            "BASE_BRANCH": body.get("base_branch", "main"),
+            "CONTROL_PLANE_URL": body.get("control_plane_url", ""),
+            "SANDBOX_AUTH_TOKEN": body.get("sandbox_auth_token", ""),
+            "MODEL": body.get("model", "claude-sonnet-4"),
+            "RESTORED_FROM_SNAPSHOT": "true",
+            "SNAPSHOT_ID": snapshot_id,
+        }
+
+        if body.get("git_user_name"):
+            env_vars["GIT_USER_NAME"] = body["git_user_name"]
+        if body.get("git_user_email"):
+            env_vars["GIT_USER_EMAIL"] = body["git_user_email"]
+
+        # Create sandbox from snapshot image
+        sandbox = modal.Sandbox.create(
+            "python",
+            "-m",
+            "entrypoint",
+            image=snapshot_image,
+            app=app,
+            secrets=[Secret.from_name("superset-modal-secrets")],
+            timeout=SANDBOX_TIMEOUT_SECONDS,
+            workdir=WORKSPACE_ROOT,
+            env=env_vars,
+        )
+
+        return {
+            "success": True,
+            "data": {
+                "sandbox_id": sandbox_id,
+                "modal_object_id": sandbox.object_id,
+                "status": "restoring",
+                "from_snapshot": snapshot_id,
+                "created_at": int(time.time() * 1000),
+            },
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Failed to restore sandbox: {str(e)}"}
 
 
 @app.function(image=web_image, secrets=[Secret.from_name("superset-modal-secrets")])

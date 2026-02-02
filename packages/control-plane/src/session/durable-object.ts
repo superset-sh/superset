@@ -10,11 +10,14 @@
 import { DurableObject } from "cloudflare:workers";
 import { verifyInternalToken } from "../auth/internal";
 import type {
+	Artifact,
+	ArtifactRow,
 	ClientInfo,
 	ClientMessage,
 	ControlPlaneToSandboxMessage,
 	Env,
 	EventRow,
+	FileChange,
 	MessageRow,
 	ParticipantRow,
 	SandboxEvent,
@@ -129,6 +132,13 @@ export class SessionDO extends DurableObject<Env> {
 			.exec("SELECT * FROM participants WHERE session_id = ?", session.id)
 			.toArray() as unknown as ParticipantRow[];
 
+		const artifactRows = this.sql
+			.exec(
+				"SELECT * FROM artifacts WHERE session_id = ? AND status = 'active' ORDER BY created_at DESC",
+				session.id,
+			)
+			.toArray() as unknown as ArtifactRow[];
+
 		const messageCount = this.sql
 			.exec(
 				"SELECT COUNT(*) as count FROM messages WHERE session_id = ?",
@@ -142,6 +152,30 @@ export class SessionDO extends DurableObject<Env> {
 				session.id,
 			)
 			.toArray()[0] as { count: number };
+
+		// Parse files_changed JSON
+		let filesChanged: FileChange[] = [];
+		try {
+			filesChanged = session.files_changed
+				? JSON.parse(session.files_changed)
+				: [];
+		} catch {
+			filesChanged = [];
+		}
+
+		// Get modal_object_id from sandboxes table if we have a sandbox_id
+		let modalObjectId: string | undefined;
+		if (session.sandbox_id) {
+			const sandboxRows = this.sql
+				.exec(
+					"SELECT modal_object_id FROM sandboxes WHERE id = ?",
+					session.sandbox_id,
+				)
+				.toArray() as unknown as { modal_object_id: string | null }[];
+			if (sandboxRows.length > 0 && sandboxRows[0].modal_object_id) {
+				modalObjectId = sandboxRows[0].modal_object_id;
+			}
+		}
 
 		return {
 			sessionId: session.id,
@@ -163,11 +197,268 @@ export class SessionDO extends DurableObject<Env> {
 				isOnline: Date.now() - p.last_seen_at < 60000,
 				lastSeenAt: p.last_seen_at,
 			})),
+			artifacts: artifactRows.map((a) => this.mapArtifactRow(a)),
+			filesChanged,
 			messageCount: messageCount.count,
 			eventCount: eventCount.count,
 			createdAt: session.created_at,
 			updatedAt: session.updated_at,
+			snapshotId: session.snapshot_id ?? undefined,
+			modalObjectId,
 		};
+	}
+
+	/**
+	 * Map an artifact row to the Artifact type.
+	 */
+	private mapArtifactRow(row: ArtifactRow): Artifact {
+		return {
+			id: row.id,
+			type: row.type as Artifact["type"],
+			url: row.url,
+			title: row.title,
+			description: row.description,
+			metadata: row.metadata ? JSON.parse(row.metadata) : null,
+			status: row.status as Artifact["status"],
+			createdAt: row.created_at,
+			updatedAt: row.updated_at,
+		};
+	}
+
+	/**
+	 * Create or update an artifact.
+	 */
+	private upsertArtifact(params: {
+		sessionId: string;
+		type: Artifact["type"];
+		url?: string;
+		title?: string;
+		description?: string;
+		metadata?: Record<string, unknown>;
+	}): Artifact {
+		const { sessionId, type, url, title, description, metadata } = params;
+
+		// Check if artifact of this type already exists
+		const existingRows = this.sql
+			.exec(
+				"SELECT * FROM artifacts WHERE session_id = ? AND type = ? AND status = 'active'",
+				sessionId,
+				type,
+			)
+			.toArray() as unknown as ArtifactRow[];
+
+		const now = Date.now();
+
+		if (existingRows.length > 0) {
+			// Update existing artifact
+			const existing = existingRows[0];
+			this.sql.exec(
+				`UPDATE artifacts SET
+					url = COALESCE(?, url),
+					title = COALESCE(?, title),
+					description = COALESCE(?, description),
+					metadata = COALESCE(?, metadata),
+					updated_at = ?
+				WHERE id = ?`,
+				url ?? null,
+				title ?? null,
+				description ?? null,
+				metadata ? JSON.stringify(metadata) : null,
+				now,
+				existing.id,
+			);
+
+			const updated = this.sql
+				.exec("SELECT * FROM artifacts WHERE id = ?", existing.id)
+				.toArray()[0] as unknown as ArtifactRow;
+
+			return this.mapArtifactRow(updated);
+		}
+
+		// Create new artifact
+		const id = generateId();
+		this.sql.exec(
+			`INSERT INTO artifacts (id, session_id, type, url, title, description, metadata, status, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+			id,
+			sessionId,
+			type,
+			url ?? null,
+			title ?? null,
+			description ?? null,
+			metadata ? JSON.stringify(metadata) : null,
+			now,
+			now,
+		);
+
+		const created = this.sql
+			.exec("SELECT * FROM artifacts WHERE id = ?", id)
+			.toArray()[0] as unknown as ArtifactRow;
+
+		return this.mapArtifactRow(created);
+	}
+
+	/**
+	 * Get all active artifacts for a session.
+	 */
+	private getArtifacts(sessionId: string): Artifact[] {
+		const rows = this.sql
+			.exec(
+				"SELECT * FROM artifacts WHERE session_id = ? AND status = 'active' ORDER BY created_at DESC",
+				sessionId,
+			)
+			.toArray() as unknown as ArtifactRow[];
+
+		return rows.map((row) => this.mapArtifactRow(row));
+	}
+
+	/**
+	 * Broadcast artifacts update to all clients.
+	 */
+	private broadcastArtifactsUpdate(sessionId: string): void {
+		const artifacts = this.getArtifacts(sessionId);
+		this.broadcast({ type: "artifacts_update", artifacts });
+	}
+
+	/**
+	 * Track file changes from tool events.
+	 */
+	private trackFileChanges(sessionId: string, event: SandboxEvent): void {
+		if (event.type !== "tool_call") return;
+
+		const data = event.data as { name?: string; input?: Record<string, unknown> };
+		if (!data.name || !data.input) return;
+
+		// Detect Write, Edit tool calls
+		const toolName = data.name.toLowerCase();
+		if (!["write", "edit"].includes(toolName)) return;
+
+		const filePath = data.input.file_path as string | undefined;
+		if (!filePath) return;
+
+		// Get current files_changed
+		const rows = this.sql.exec("SELECT files_changed FROM session WHERE id = ?", sessionId).toArray();
+		if (rows.length === 0) return;
+
+		const session = rows[0] as { files_changed: string };
+		let filesChanged: FileChange[] = [];
+		try {
+			filesChanged = session.files_changed ? JSON.parse(session.files_changed) : [];
+		} catch {
+			filesChanged = [];
+		}
+
+		const now = Date.now();
+		const existingIndex = filesChanged.findIndex((f) => f.path === filePath);
+
+		if (existingIndex >= 0) {
+			// Update existing entry
+			filesChanged[existingIndex].lastModified = now;
+			filesChanged[existingIndex].type = "modified";
+		} else {
+			// Add new entry
+			filesChanged.push({
+				path: filePath,
+				type: toolName === "write" ? "added" : "modified",
+				lastModified: now,
+			});
+		}
+
+		// Sort by most recently modified
+		filesChanged.sort((a, b) => b.lastModified - a.lastModified);
+
+		// Limit to 100 files
+		if (filesChanged.length > 100) {
+			filesChanged = filesChanged.slice(0, 100);
+		}
+
+		// Update session
+		this.sql.exec(
+			"UPDATE session SET files_changed = ?, updated_at = ? WHERE id = ?",
+			JSON.stringify(filesChanged),
+			now,
+			sessionId,
+		);
+
+		// Broadcast state update
+		const state = this.getSessionState();
+		if (state) {
+			this.broadcast({ type: "state_update", state: { filesChanged: state.filesChanged } });
+		}
+	}
+
+	/**
+	 * Detect and create artifacts from sandbox events.
+	 */
+	private detectArtifactsFromEvent(
+		sessionId: string,
+		event: SandboxEvent,
+	): void {
+		// Detect PR creation from tool_result events
+		if (event.type === "tool_result") {
+			const data = event.data as { result?: string | unknown; error?: string };
+			if (data.result && typeof data.result === "string") {
+				// Look for GitHub PR URL patterns
+				const prUrlMatch = data.result.match(
+					/https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/,
+				);
+				if (prUrlMatch) {
+					const [url, owner, repo, prNumber] = prUrlMatch;
+					console.log("[SessionDO] Detected PR creation:", url);
+
+					// Create PR artifact
+					this.upsertArtifact({
+						sessionId,
+						type: "pr",
+						url,
+						title: `PR #${prNumber}`,
+						description: `Pull request in ${owner}/${repo}`,
+						metadata: {
+							owner,
+							repo,
+							prNumber: Number.parseInt(prNumber, 10),
+						},
+					});
+
+					// Also update session with PR info
+					this.sql.exec(
+						"UPDATE session SET pr_url = ?, pr_number = ?, updated_at = ? WHERE id = ?",
+						url,
+						Number.parseInt(prNumber, 10),
+						Date.now(),
+						sessionId,
+					);
+
+					// Broadcast artifacts update
+					this.broadcastArtifactsUpdate(sessionId);
+				}
+			}
+		}
+
+		// Detect preview URL from tool events (if applicable)
+		if (event.type === "tool_result") {
+			const data = event.data as { result?: string | unknown };
+			if (data.result && typeof data.result === "string") {
+				// Look for Vercel preview URL pattern
+				const previewMatch = data.result.match(
+					/https:\/\/([a-z0-9-]+)\.vercel\.app/i,
+				);
+				if (previewMatch) {
+					const [url] = previewMatch;
+					console.log("[SessionDO] Detected preview URL:", url);
+
+					this.upsertArtifact({
+						sessionId,
+						type: "preview",
+						url,
+						title: "Preview Deployment",
+						description: "Vercel preview deployment",
+					});
+
+					this.broadcastArtifactsUpdate(sessionId);
+				}
+			}
+		}
 	}
 
 	/**
@@ -217,7 +508,122 @@ export class SessionDO extends DurableObject<Env> {
 			return this.handleArchive();
 		}
 
+		if (path === "/internal/artifacts" && request.method === "GET") {
+			return this.handleListArtifacts();
+		}
+
+		if (path === "/internal/update-snapshot" && request.method === "POST") {
+			return this.handleUpdateSnapshot(request);
+		}
+
+		if (path === "/internal/update-sandbox" && request.method === "POST") {
+			return this.handleUpdateSandbox(request);
+		}
+
 		return new Response("Not Found", { status: 404 });
+	}
+
+	/**
+	 * Handle POST /internal/update-snapshot - Update session's snapshot ID.
+	 */
+	private async handleUpdateSnapshot(request: Request): Promise<Response> {
+		const body = (await request.json()) as { snapshotId: string };
+
+		const rows = this.sql.exec("SELECT * FROM session LIMIT 1").toArray();
+		if (rows.length === 0) {
+			return Response.json({ error: "Session not found" }, { status: 404 });
+		}
+
+		const session = rows[0] as unknown as SessionRow;
+
+		// Update session with snapshot ID
+		this.sql.exec(
+			"UPDATE session SET snapshot_id = ?, updated_at = ? WHERE id = ?",
+			body.snapshotId,
+			Date.now(),
+			session.id,
+		);
+
+		// Also record in sandboxes table if we have a sandbox
+		if (session.sandbox_id) {
+			this.sql.exec(
+				"UPDATE sandboxes SET snapshot_id = ? WHERE id = ?",
+				body.snapshotId,
+				session.sandbox_id,
+			);
+		}
+
+		console.log(`[SessionDO] Updated snapshot_id: ${body.snapshotId}`);
+
+		return Response.json({ success: true, snapshotId: body.snapshotId });
+	}
+
+	/**
+	 * Handle POST /internal/update-sandbox - Store sandbox info after spawn.
+	 */
+	private async handleUpdateSandbox(request: Request): Promise<Response> {
+		const body = (await request.json()) as {
+			sandboxId: string;
+			modalObjectId?: string;
+			status: string;
+		};
+
+		const rows = this.sql.exec("SELECT * FROM session LIMIT 1").toArray();
+		if (rows.length === 0) {
+			return Response.json({ error: "Session not found" }, { status: 404 });
+		}
+
+		const session = rows[0] as unknown as SessionRow;
+		const now = Date.now();
+
+		// Create or update sandbox record
+		this.sql.exec(
+			`INSERT INTO sandboxes (id, session_id, modal_object_id, status, created_at)
+			 VALUES (?, ?, ?, ?, ?)
+			 ON CONFLICT(id) DO UPDATE SET
+				modal_object_id = COALESCE(?, modal_object_id),
+				status = ?`,
+			body.sandboxId,
+			session.id,
+			body.modalObjectId ?? null,
+			body.status,
+			now,
+			body.modalObjectId ?? null,
+			body.status,
+		);
+
+		// Update session with sandbox_id reference
+		this.sql.exec(
+			"UPDATE session SET sandbox_id = ?, updated_at = ? WHERE id = ?",
+			body.sandboxId,
+			now,
+			session.id,
+		);
+
+		console.log(
+			`[SessionDO] Updated sandbox: id=${body.sandboxId}, modal_object_id=${body.modalObjectId}`,
+		);
+
+		return Response.json({
+			success: true,
+			sandboxId: body.sandboxId,
+			modalObjectId: body.modalObjectId,
+		});
+	}
+
+	/**
+	 * Handle GET /internal/artifacts - List all artifacts.
+	 */
+	private handleListArtifacts(): Response {
+		const rows = this.sql.exec("SELECT * FROM session LIMIT 1").toArray();
+		if (rows.length === 0) {
+			return Response.json({ error: "Session not found" }, { status: 404 });
+		}
+
+		const session = rows[0] as unknown as SessionRow;
+		const artifacts = this.getArtifacts(session.id);
+
+		return Response.json({ artifacts });
 	}
 
 	/**
@@ -371,12 +777,61 @@ export class SessionDO extends DurableObject<Env> {
 		}
 
 		// Otherwise it's a client disconnecting
+		const clientInfo = this.clients.get(ws);
 		this.clients.delete(ws);
 
 		// Clear auth timeout if set
 		const attachment = ws.deserializeAttachment();
 		if (attachment?.timeoutId) {
 			clearTimeout(attachment.timeoutId);
+		}
+
+		// Broadcast presence leave if we had client info
+		if (clientInfo) {
+			const rows = this.sql.exec("SELECT * FROM session LIMIT 1").toArray();
+			if (rows.length > 0) {
+				const session = rows[0] as unknown as SessionRow;
+				const now = Date.now();
+
+				// Update participant's last_seen_at in database
+				this.sql.exec(
+					"UPDATE participants SET last_seen_at = ? WHERE id = ?",
+					now,
+					clientInfo.participantId,
+				);
+
+				// Get participant record for the presence update
+				const participantRows = this.sql
+					.exec(
+						"SELECT * FROM participants WHERE id = ?",
+						clientInfo.participantId,
+					)
+					.toArray() as unknown as ParticipantRow[];
+
+				if (participantRows.length > 0) {
+					const p = participantRows[0];
+					this.broadcast({
+						type: "presence_update",
+						action: "leave",
+						participant: {
+							id: p.id,
+							userId: p.user_id,
+							userName: p.github_name || p.github_login || "Unknown",
+							avatarUrl: p.github_login
+								? `https://github.com/${p.github_login}.png`
+								: undefined,
+							source: p.source as "web" | "desktop" | "slack",
+							isOnline: false,
+							lastSeenAt: now,
+						},
+					});
+				}
+
+				console.log(
+					"[SessionDO] Client disconnected, participant:",
+					clientInfo.participantId,
+				);
+			}
 		}
 	}
 
@@ -393,22 +848,75 @@ export class SessionDO extends DurableObject<Env> {
 	 */
 	private async handleSubscribe(ws: WebSocket, _token: string): Promise<void> {
 		// TODO: Validate token and get user info
-		// For now, accept all connections
-		const clientInfo: ClientInfo = {
-			participantId: generateId(),
-			userId: "anonymous",
-			userName: "Anonymous",
-			source: "web",
-			authenticatedAt: Date.now(),
-		};
-
-		this.clients.set(ws, clientInfo);
+		// For now, accept all connections with a consistent anonymous user
+		const userId = "anonymous";
+		const userName = "Anonymous";
+		const source = "web";
 
 		// Clear auth timeout
 		const attachment = ws.deserializeAttachment();
 		if (attachment?.timeoutId) {
 			clearTimeout(attachment.timeoutId);
 		}
+
+		// Get session and upsert participant record
+		const rows = this.sql.exec("SELECT * FROM session LIMIT 1").toArray();
+		if (rows.length === 0) {
+			console.error("[SessionDO] handleSubscribe: No session found in database");
+			this.safeSend(ws, {
+				type: "error",
+				message: "Session not found or not initialized",
+			});
+			return;
+		}
+
+		const session = rows[0] as unknown as SessionRow;
+		const now = Date.now();
+
+		// Check if participant already exists for this user in this session
+		const existingParticipants = this.sql
+			.exec(
+				"SELECT * FROM participants WHERE session_id = ? AND user_id = ? AND source = ?",
+				session.id,
+				userId,
+				source,
+			)
+			.toArray() as unknown as ParticipantRow[];
+
+		let participantId: string;
+
+		if (existingParticipants.length > 0) {
+			// Reuse existing participant record
+			participantId = existingParticipants[0].id;
+			this.sql.exec(
+				"UPDATE participants SET last_seen_at = ? WHERE id = ?",
+				now,
+				participantId,
+			);
+		} else {
+			// Create new participant record
+			participantId = generateId();
+			this.sql.exec(
+				`INSERT INTO participants (id, session_id, user_id, source, joined_at, last_seen_at)
+				 VALUES (?, ?, ?, ?, ?, ?)`,
+				participantId,
+				session.id,
+				userId,
+				source,
+				now,
+				now,
+			);
+		}
+
+		const clientInfo: ClientInfo = {
+			participantId,
+			userId,
+			userName,
+			source,
+			authenticatedAt: Date.now(),
+		};
+
+		this.clients.set(ws, clientInfo);
 
 		// Send current state
 		const state = this.getSessionState();
@@ -421,6 +929,27 @@ export class SessionDO extends DurableObject<Env> {
 
 			// Send historical messages and events for chat history persistence
 			this.sendHistory(ws, state.sessionId);
+
+			// Send presence sync (all current participants)
+			this.safeSend(ws, {
+				type: "presence_sync",
+				participants: state.participants,
+			});
+
+			// Broadcast presence update (join) to other clients
+			const joiningParticipant = state.participants.find(
+				(p) => p.id === participantId,
+			);
+			if (joiningParticipant) {
+				this.broadcast(
+					{
+						type: "presence_update",
+						action: "join",
+						participant: joiningParticipant,
+					},
+					ws, // exclude the joining client
+				);
+			}
 		}
 	}
 
@@ -546,12 +1075,21 @@ export class SessionDO extends DurableObject<Env> {
 		if (sandboxWs) {
 			if (this.sendToSandbox({ type: "prompt", messageId, content })) {
 				console.log("[SessionDO] Prompt forwarded to sandbox:", messageId);
+				// Send ack to client indicating prompt was forwarded
+				this.safeSend(ws, {
+					type: "prompt_ack",
+					messageId,
+					status: "forwarded",
+				});
 			} else {
 				// Sandbox disconnected, queue the message
 				this.pendingMessages.set(messageId, { content, createdAt: Date.now() });
+				console.log("[SessionDO] Sandbox connection lost, queueing message:", messageId);
 				this.safeSend(ws, {
-					type: "error",
-					message: "Sandbox connection lost, message queued",
+					type: "prompt_ack",
+					messageId,
+					status: "queued",
+					message: "Sandbox connection lost, message queued for when it reconnects",
 				});
 			}
 		} else {
@@ -561,6 +1099,13 @@ export class SessionDO extends DurableObject<Env> {
 				"[SessionDO] Sandbox not connected, message queued:",
 				messageId,
 			);
+			// Inform client that the message is queued, not processing
+			this.safeSend(ws, {
+				type: "prompt_ack",
+				messageId,
+				status: "queued",
+				message: "Sandbox not connected. Message queued and will be processed when sandbox connects.",
+			});
 		}
 	}
 
@@ -569,8 +1114,15 @@ export class SessionDO extends DurableObject<Env> {
 	 */
 	private async handleStopFromClient(ws: WebSocket): Promise<void> {
 		console.log("[SessionDO] Stop requested by client");
-		if (!this.sendToSandbox({ type: "stop" })) {
-			this.safeSend(ws, { type: "error", message: "Sandbox not connected" });
+		if (this.sendToSandbox({ type: "stop" })) {
+			this.safeSend(ws, { type: "stop_ack", status: "sent" });
+		} else {
+			console.log("[SessionDO] Cannot send stop - sandbox not connected");
+			this.safeSend(ws, {
+				type: "stop_ack",
+				status: "failed",
+				message: "Sandbox not connected",
+			});
 		}
 	}
 
@@ -675,6 +1227,7 @@ export class SessionDO extends DurableObject<Env> {
 		ws: WebSocket,
 		data: SandboxMessage,
 	): Promise<void> {
+		console.log("[SessionDO] handleSandboxConnect called with sandboxId:", data.type === "sandbox_connect" ? data.sandboxId : "N/A");
 		if (data.type !== "sandbox_connect") return;
 
 		// Verify the sandbox token
@@ -682,6 +1235,7 @@ export class SessionDO extends DurableObject<Env> {
 			data.token,
 			this.env.MODAL_API_SECRET,
 		);
+		console.log("[SessionDO] Token validation result:", isValid);
 		if (!isValid) {
 			console.error("[SessionDO] Invalid sandbox token");
 			ws.close(4001, "Invalid token");
@@ -726,6 +1280,7 @@ export class SessionDO extends DurableObject<Env> {
 
 		// Update sandbox status
 		if (session) {
+			console.log("[SessionDO] Updating sandbox_status to 'ready' for session:", session.id);
 			this.sql.exec(
 				"UPDATE session SET sandbox_status = 'ready', updated_at = ? WHERE id = ?",
 				Date.now(),
@@ -734,9 +1289,12 @@ export class SessionDO extends DurableObject<Env> {
 
 			// Broadcast state update to clients
 			const state = this.getSessionState();
+			console.log("[SessionDO] Broadcasting state_update, sandboxStatus:", state?.sandboxStatus, "clients:", this.clients.size);
 			if (state) {
 				this.broadcast({ type: "state_update", state });
 			}
+		} else {
+			console.error("[SessionDO] No session found when sandbox connected!");
 		}
 
 		console.log("[SessionDO] Sandbox connected:", data.sandboxId);
@@ -770,12 +1328,35 @@ export class SessionDO extends DurableObject<Env> {
 
 				// Update sandbox status based on event type
 				if (data.event.type === "git_sync") {
-					this.sql.exec(
-						"UPDATE session SET sandbox_status = 'syncing', updated_at = ? WHERE id = ?",
-						Date.now(),
-						session.id,
-					);
+					const eventData = data.event.data as { status?: string };
+					// Check if this is a "ready" status from the sandbox
+					if (eventData?.status === "ready") {
+						console.log("[SessionDO] git_sync ready event received, setting sandbox_status to 'ready'");
+						this.sql.exec(
+							"UPDATE session SET sandbox_status = 'ready', updated_at = ? WHERE id = ?",
+							Date.now(),
+							session.id,
+						);
+						// Broadcast state update for ready status
+						const state = this.getSessionState();
+						if (state) {
+							this.broadcast({ type: "state_update", state });
+						}
+					} else {
+						// For cloning, checking_out, etc. - set to syncing
+						this.sql.exec(
+							"UPDATE session SET sandbox_status = 'syncing', updated_at = ? WHERE id = ?",
+							Date.now(),
+							session.id,
+						);
+					}
 				}
+
+				// Detect artifacts from tool events
+				this.detectArtifactsFromEvent(session.id, data.event);
+
+				// Track file changes from tool events
+				this.trackFileChanges(session.id, data.event);
 
 				// Broadcast to clients
 				this.broadcast({ type: "event", event: data.event });
@@ -980,11 +1561,22 @@ export class SessionDO extends DurableObject<Env> {
 
 		// Update sandbox status if applicable
 		if (event.type === "git_sync") {
-			this.sql.exec(
-				"UPDATE session SET sandbox_status = 'syncing', updated_at = ? WHERE id = ?",
-				Date.now(),
-				session.id,
-			);
+			const eventData = event.data as { status?: string };
+			// Check if this is a "ready" status from the sandbox
+			if (eventData?.status === "ready") {
+				console.log("[SessionDO] git_sync ready event (HTTP), setting sandbox_status to 'ready'");
+				this.sql.exec(
+					"UPDATE session SET sandbox_status = 'ready', updated_at = ? WHERE id = ?",
+					Date.now(),
+					session.id,
+				);
+			} else {
+				this.sql.exec(
+					"UPDATE session SET sandbox_status = 'syncing', updated_at = ? WHERE id = ?",
+					Date.now(),
+					session.id,
+				);
+			}
 		} else if (event.type === "execution_complete") {
 			this.sql.exec(
 				"UPDATE session SET sandbox_status = 'ready', updated_at = ? WHERE id = ?",

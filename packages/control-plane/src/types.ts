@@ -134,8 +134,22 @@ export type ServerMessage =
 	| { type: "history"; messages: HistoricalMessage[] }
 	| { type: "event"; event: SandboxEvent }
 	| { type: "state_update"; state: Partial<SessionState> }
+	| { type: "artifacts_update"; artifacts: Artifact[] }
+	| { type: "presence_sync"; participants: ParticipantPresence[] }
+	| {
+			type: "presence_update";
+			action: "join" | "leave" | "idle" | "active";
+			participant: ParticipantPresence;
+	  }
 	| { type: "error"; message: string }
-	| { type: "pong" };
+	| { type: "pong" }
+	| {
+			type: "prompt_ack";
+			messageId: string;
+			status: "forwarded" | "queued";
+			message?: string;
+	  }
+	| { type: "stop_ack"; status: "sent" | "failed"; message?: string };
 
 /**
  * Events from the sandbox.
@@ -168,10 +182,23 @@ export interface SessionState {
 	baseBranch: string;
 	model: string;
 	participants: ParticipantPresence[];
+	artifacts: Artifact[];
+	filesChanged: FileChange[];
 	messageCount: number;
 	eventCount: number;
 	createdAt: number;
 	updatedAt: number;
+	snapshotId?: string;
+	modalObjectId?: string;
+}
+
+/**
+ * File change info.
+ */
+export interface FileChange {
+	path: string;
+	type: "added" | "modified" | "deleted";
+	lastModified: number;
 }
 
 /**
@@ -207,6 +234,7 @@ export interface SessionRow {
 	pr_number: number | null;
 	linear_issue_id: string | null;
 	linear_issue_key: string | null;
+	files_changed: string;
 	created_at: number;
 	updated_at: number;
 	archived_at: number | null;
@@ -251,4 +279,42 @@ export interface SandboxRow {
 	snapshot_id: string | null;
 	created_at: number;
 	terminated_at: number | null;
+}
+
+/**
+ * Artifact types for session outputs.
+ */
+export type ArtifactType = "pr" | "preview" | "screenshot" | "file";
+
+/**
+ * Artifact status values.
+ */
+export type ArtifactStatus = "active" | "deleted";
+
+/**
+ * Artifact data returned to clients.
+ */
+export interface Artifact {
+	id: string;
+	type: ArtifactType;
+	url: string | null;
+	title: string | null;
+	description: string | null;
+	metadata: Record<string, unknown> | null;
+	status: ArtifactStatus;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface ArtifactRow {
+	id: string;
+	session_id: string;
+	type: string;
+	url: string | null;
+	title: string | null;
+	description: string | null;
+	metadata: string | null;
+	status: string;
+	created_at: number;
+	updated_at: number;
 }

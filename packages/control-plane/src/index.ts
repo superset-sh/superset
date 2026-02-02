@@ -338,12 +338,26 @@ app.post("/api/sessions/:sessionId/spawn-sandbox", async (c) => {
 
 	const state = (await stateResponse.json()) as {
 		sessionId: string;
+		sandboxStatus?: string;
 		repoOwner: string;
 		repoName: string;
 		branch: string;
 		baseBranch: string;
 		model?: string;
 	};
+
+	// Guard: Don't spawn if sandbox is already active
+	const activeStatuses = ["warming", "syncing", "ready", "running"];
+	if (state.sandboxStatus && activeStatuses.includes(state.sandboxStatus)) {
+		console.log(
+			`[control-plane] Sandbox already active (status: ${state.sandboxStatus}), skipping spawn`,
+		);
+		return c.json({
+			success: true,
+			message: "Sandbox already active",
+			status: state.sandboxStatus,
+		});
+	}
 
 	// Get sandbox token from KV
 	const sandboxTokenHash = await c.env.SESSION_TOKENS.get(
@@ -374,9 +388,23 @@ app.post("/api/sessions/:sessionId/spawn-sandbox", async (c) => {
 			model: state.model,
 		});
 
+		// Store sandbox info in the Durable Object
+		await stub.fetch(
+			new Request("https://internal/internal/update-sandbox", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					sandboxId: result.sandboxId,
+					modalObjectId: result.modalObjectId,
+					status: result.status,
+				}),
+			}),
+		);
+
 		return c.json({
 			success: true,
 			sandboxId: result.sandboxId,
+			modalObjectId: result.modalObjectId,
 			status: result.status,
 		});
 	} catch (error) {
@@ -403,6 +431,128 @@ app.post("/api/sessions/:sessionId/terminate-sandbox", async (c) => {
 	} catch (error) {
 		console.error("[control-plane] Failed to terminate sandbox:", error);
 		return c.json({ error: "Failed to terminate sandbox" }, 500);
+	}
+});
+
+/**
+ * Take a snapshot of a session's sandbox.
+ * Returns a snapshot_id that can be used to restore the session.
+ */
+app.post("/api/sessions/:sessionId/snapshot", async (c) => {
+	const sessionId = c.req.param("sessionId");
+
+	// Get session state from Durable Object
+	const doId = c.env.SESSION_DO.idFromName(sessionId);
+	const stub = c.env.SESSION_DO.get(doId);
+
+	const stateResponse = await stub.fetch(
+		new Request("https://internal/internal/state"),
+	);
+	if (!stateResponse.ok) {
+		return c.json({ error: "Session not found" }, 404);
+	}
+
+	const state = (await stateResponse.json()) as {
+		modalObjectId?: string;
+		sandboxId?: string;
+	};
+
+	if (!state.modalObjectId) {
+		return c.json({ error: "No active sandbox to snapshot" }, 400);
+	}
+
+	const modalClient = createModalClient(
+		c.env.MODAL_API_SECRET,
+		c.env.MODAL_WORKSPACE,
+	);
+
+	try {
+		// Take snapshot via Modal API
+		const snapshotId = await modalClient.snapshotSandbox(state.modalObjectId);
+
+		// Update session with snapshot ID via Durable Object
+		await stub.fetch(
+			new Request("https://internal/internal/update-snapshot", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ snapshotId }),
+			}),
+		);
+
+		return c.json({
+			success: true,
+			snapshotId,
+			sessionId,
+		});
+	} catch (error) {
+		console.error("[control-plane] Failed to take snapshot:", error);
+		return c.json({ error: "Failed to take snapshot" }, 500);
+	}
+});
+
+/**
+ * Restore a session from a snapshot.
+ * Creates a new sandbox from the snapshot, skipping git clone.
+ */
+app.post("/api/sessions/:sessionId/restore", async (c) => {
+	const sessionId = c.req.param("sessionId");
+	const body = await c.req.json<{ snapshotId?: string }>();
+
+	// Get session state from Durable Object
+	const doId = c.env.SESSION_DO.idFromName(sessionId);
+	const stub = c.env.SESSION_DO.get(doId);
+
+	const stateResponse = await stub.fetch(
+		new Request("https://internal/internal/state"),
+	);
+	if (!stateResponse.ok) {
+		return c.json({ error: "Session not found" }, 404);
+	}
+
+	const state = (await stateResponse.json()) as {
+		sessionId: string;
+		repoOwner: string;
+		repoName: string;
+		branch: string;
+		baseBranch: string;
+		model?: string;
+		snapshotId?: string;
+	};
+
+	// Use provided snapshot ID or the session's stored snapshot
+	const snapshotId = body.snapshotId || state.snapshotId;
+
+	if (!snapshotId) {
+		return c.json({ error: "No snapshot available to restore from" }, 400);
+	}
+
+	const modalClient = createModalClient(
+		c.env.MODAL_API_SECRET,
+		c.env.MODAL_WORKSPACE,
+	);
+
+	try {
+		// Generate new sandbox token
+		const sandboxToken = crypto.randomUUID();
+
+		// Restore from snapshot
+		const result = await modalClient.restoreSandbox({
+			snapshotId,
+			sessionId,
+			controlPlaneUrl: c.env.CONTROL_PLANE_URL,
+			sandboxAuthToken: sandboxToken,
+		});
+
+		return c.json({
+			success: true,
+			sandboxId: result.sandboxId,
+			modalObjectId: result.modalObjectId,
+			status: result.status,
+			fromSnapshot: snapshotId,
+		});
+	} catch (error) {
+		console.error("[control-plane] Failed to restore from snapshot:", error);
+		return c.json({ error: "Failed to restore from snapshot" }, 500);
 	}
 });
 

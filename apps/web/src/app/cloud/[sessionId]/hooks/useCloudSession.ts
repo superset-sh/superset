@@ -28,6 +28,36 @@ export interface HistoricalMessage {
 	completedAt: number | null;
 }
 
+export type ArtifactType = "pr" | "preview" | "screenshot" | "file";
+
+export interface Artifact {
+	id: string;
+	type: ArtifactType;
+	url: string | null;
+	title: string | null;
+	description: string | null;
+	metadata: Record<string, unknown> | null;
+	status: "active" | "deleted";
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface FileChange {
+	path: string;
+	type: "added" | "modified" | "deleted";
+	lastModified: number;
+}
+
+export interface ParticipantPresence {
+	id: string;
+	userId: string;
+	userName: string;
+	avatarUrl?: string;
+	source: "web" | "desktop" | "slack";
+	isOnline: boolean;
+	lastSeenAt: number;
+}
+
 export interface CloudSessionState {
 	sessionId: string;
 	status: string;
@@ -37,14 +67,9 @@ export interface CloudSessionState {
 	branch: string;
 	baseBranch: string;
 	model: string;
-	participants: Array<{
-		id: string;
-		userId: string;
-		userName: string;
-		avatarUrl?: string;
-		source: string;
-		isOnline: boolean;
-	}>;
+	participants: ParticipantPresence[];
+	artifacts: Artifact[];
+	filesChanged: FileChange[];
 	messageCount: number;
 	eventCount: number;
 }
@@ -125,6 +150,9 @@ export function useCloudSession({
 	const isCleaningUp = useRef(false);
 	const hasAttemptedSpawn = useRef(false);
 
+	// Track seen event IDs for deduplication across reconnections
+	const seenEventIds = useRef<Set<string>>(new Set());
+
 	// Store config in refs to avoid dependency changes
 	const configRef = useRef({ controlPlaneUrl, sessionId, authToken });
 	configRef.current = { controlPlaneUrl, sessionId, authToken };
@@ -159,17 +187,29 @@ export function useCloudSession({
 			state?: CloudSessionState;
 			event?: CloudEvent;
 			messages?: HistoricalMessage[];
+			artifacts?: Artifact[];
+			participants?: ParticipantPresence[];
+			action?: "join" | "leave" | "idle" | "active";
+			participant?: ParticipantPresence;
 			message?: string;
+			// For prompt_ack messages
+			messageId?: string;
+			status?: "forwarded" | "queued" | "sent" | "failed";
 		}) => {
 			switch (message.type) {
 				case "subscribed":
+					console.log("[cloud-session] subscribed received, sandboxStatus:", message.state?.sandboxStatus);
 					if (message.state) {
 						setSessionState(message.state);
 					}
+					// Server always sends history after subscribed, but if session is empty
+					// or there's an issue, ensure we don't stay in loading state forever
+					setIsLoadingHistory(false);
 					break;
 
 				case "history":
 					// Convert historical messages to events for display
+					// Deduplicate by ID to handle reconnection scenarios
 					if (message.messages && message.messages.length > 0) {
 						const userMessageEvents: CloudEvent[] = message.messages
 							.filter((m) => m.role === "user")
@@ -180,7 +220,27 @@ export function useCloudSession({
 								data: { content: m.content },
 								messageId: m.id,
 							}));
-						setEvents((prev) => [...userMessageEvents, ...prev]);
+
+						// Filter out already seen messages and update seen set
+						const newEvents = userMessageEvents.filter((e) => {
+							if (seenEventIds.current.has(e.id)) {
+								return false;
+							}
+							seenEventIds.current.add(e.id);
+							return true;
+						});
+
+						if (newEvents.length > 0) {
+							setEvents((prev) => {
+								// Double-check for any IDs that slipped through
+								const existingIds = new Set(prev.map((e) => e.id));
+								const uniqueNewEvents = newEvents.filter(
+									(e) => !existingIds.has(e.id),
+								);
+								// Prepend historical user messages, maintaining order
+								return [...uniqueNewEvents, ...prev];
+							});
+						}
 					}
 					setIsLoadingHistory(false);
 					break;
@@ -188,7 +248,22 @@ export function useCloudSession({
 				case "event":
 					if (message.event) {
 						const event = message.event as CloudEvent;
+
+						// Deduplicate by ID to handle reconnection scenarios
+						if (seenEventIds.current.has(event.id)) {
+							// Still process side effects for duplicate events
+							if (event.type === "execution_complete") {
+								setIsProcessing(false);
+							}
+							if (event.type === "heartbeat") {
+								lastSandboxHeartbeat.current = Date.now();
+							}
+							break;
+						}
+
+						seenEventIds.current.add(event.id);
 						setEvents((prev) => [...prev, event]);
+
 						// Mark history as loaded once we receive live events
 						setIsLoadingHistory(false);
 
@@ -205,18 +280,113 @@ export function useCloudSession({
 					break;
 
 				case "state_update":
+					console.log("[cloud-session] state_update received:", message.state);
 					if (message.state) {
+						setSessionState((prev) => {
+							const newState = prev
+								? { ...prev, ...message.state }
+								: (message.state as CloudSessionState);
+							console.log("[cloud-session] New session state sandboxStatus:", newState.sandboxStatus);
+							return newState;
+						});
+					}
+					break;
+
+				case "artifacts_update":
+					if (message.artifacts) {
 						setSessionState((prev) =>
 							prev
-								? { ...prev, ...message.state }
-								: (message.state as CloudSessionState),
+								? { ...prev, artifacts: message.artifacts as Artifact[] }
+								: null,
 						);
+					}
+					break;
+
+				case "presence_sync":
+					// Full sync of all participants (on initial subscribe)
+					if (message.participants) {
+						setSessionState((prev) =>
+							prev
+								? { ...prev, participants: message.participants as ParticipantPresence[] }
+								: null,
+						);
+					}
+					break;
+
+				case "presence_update":
+					// Incremental update for a single participant
+					if (message.participant && message.action) {
+						setSessionState((prev) => {
+							if (!prev) return null;
+
+							const participant = message.participant as ParticipantPresence;
+							const action = message.action;
+
+							if (action === "join") {
+								// Add participant if not already present
+								const exists = prev.participants.some((p) => p.id === participant.id);
+								if (exists) {
+									// Update existing participant
+									return {
+										...prev,
+										participants: prev.participants.map((p) =>
+											p.id === participant.id ? { ...participant, isOnline: true } : p,
+										),
+									};
+								}
+								return {
+									...prev,
+									participants: [...prev.participants, { ...participant, isOnline: true }],
+								};
+							}
+
+							if (action === "leave") {
+								// Mark participant as offline (don't remove from list)
+								return {
+									...prev,
+									participants: prev.participants.map((p) =>
+										p.id === participant.id ? { ...p, isOnline: false, lastSeenAt: participant.lastSeenAt } : p,
+									),
+								};
+							}
+
+							if (action === "idle" || action === "active") {
+								// Update online status
+								return {
+									...prev,
+									participants: prev.participants.map((p) =>
+										p.id === participant.id
+											? { ...p, isOnline: action === "active", lastSeenAt: participant.lastSeenAt }
+											: p,
+									),
+								};
+							}
+
+							return prev;
+						});
 					}
 					break;
 
 				case "error":
 					setError(message.message || "Unknown error");
 					setIsLoadingHistory(false);
+					break;
+
+				case "prompt_ack":
+					// Handle prompt acknowledgment from control plane
+					if (message.status === "queued") {
+						// Prompt was queued, not processing - sandbox not connected
+						console.log("[cloud-session] Prompt queued:", message.messageId, message.message);
+						// Don't set isProcessing to true - it will be processed when sandbox connects
+						setIsProcessing(false);
+						// Optionally show a notification to user
+						if (message.message) {
+							setError(message.message);
+						}
+					} else if (message.status === "forwarded") {
+						// Prompt was forwarded to sandbox, keep isProcessing true
+						console.log("[cloud-session] Prompt forwarded to sandbox:", message.messageId);
+					}
 					break;
 
 				case "pong":
@@ -290,6 +460,7 @@ export function useCloudSession({
 			ws.onmessage = (event) => {
 				try {
 					const message = JSON.parse(event.data as string);
+					console.log("[cloud-session] Received message type:", message.type);
 					handleMessage(message);
 				} catch (e) {
 					console.error("[cloud-session] Failed to parse message:", e);
@@ -356,39 +527,41 @@ export function useCloudSession({
 		disconnectInternal();
 	}, [disconnectInternal]);
 
-	const sendPrompt = useCallback(
-		(content: string) => {
-			// Add user message to events immediately for display
-			const userMessageEvent: CloudEvent = {
-				id: `user-${Date.now()}`,
-				type: "user_message",
-				timestamp: Date.now(),
-				data: { content },
-			};
-			setEvents((prev) => [...prev, userMessageEvent]);
+	const sendPrompt = useCallback((content: string) => {
+		// Add user message to events immediately for display
+		// Use a unique ID that won't collide with server-generated IDs
+		const localId = `local-user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+		const userMessageEvent: CloudEvent = {
+			id: localId,
+			type: "user_message",
+			timestamp: Date.now(),
+			data: { content },
+		};
 
-			if (wsRef.current?.readyState === WebSocket.OPEN) {
-				// Set processing state
-				setIsProcessing(true);
+		// Track this local ID as seen
+		seenEventIds.current.add(localId);
+		setEvents((prev) => [...prev, userMessageEvent]);
 
-				wsRef.current.send(
-					JSON.stringify({
-						type: "prompt",
-						content,
-						authorId: "web-user",
-					}),
-				);
-			} else {
-				// Queue prompt for when connection is restored
-				console.log("[cloud-session] Connection not ready, queueing prompt");
-				setPendingPrompts((prev) => [
-					...prev,
-					{ content, timestamp: Date.now() },
-				]);
-			}
-		},
-		[],
-	);
+		if (wsRef.current?.readyState === WebSocket.OPEN) {
+			// Set processing state
+			setIsProcessing(true);
+
+			wsRef.current.send(
+				JSON.stringify({
+					type: "prompt",
+					content,
+					authorId: "web-user",
+				}),
+			);
+		} else {
+			// Queue prompt for when connection is restored
+			console.log("[cloud-session] Connection not ready, queueing prompt");
+			setPendingPrompts((prev) => [
+				...prev,
+				{ content, timestamp: Date.now() },
+			]);
+		}
+	}, []);
 
 	const sendStop = useCallback(() => {
 		if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -489,28 +662,42 @@ export function useCloudSession({
 		setIsSpawning(false);
 	}, [isSpawning]);
 
-	// Auto-spawn sandbox when connected but sandbox is stopped
+	// Auto-spawn sandbox when connected but sandbox needs starting
+	// Note: Server-side guard prevents duplicate spawns even if this fires multiple times
 	useEffect(() => {
+		const status = sessionState?.sandboxStatus;
+		// Only spawn if status indicates the sandbox is truly stopped/pending
+		// Don't spawn if it's in any "active" state (warming, syncing, ready, running)
+		const needsSpawn = status === "stopped" || status === "pending" || status === "failed";
+		const isActive = status === "warming" || status === "syncing" || status === "ready" || status === "running";
+
+		// Skip spawn if sandbox is already active
+		if (isActive) {
+			console.log(`[cloud-session] Sandbox is active (${status}), skipping spawn`);
+			return;
+		}
+
 		if (
 			isConnected &&
-			sessionState?.sandboxStatus === "stopped" &&
+			needsSpawn &&
 			!hasAttemptedSpawn.current &&
 			!isSpawning
 		) {
 			hasAttemptedSpawn.current = true;
-			console.log(
-				"[cloud-session] Sandbox is stopped, auto-spawning...",
-			);
+			console.log(`[cloud-session] Sandbox status is ${status}, auto-spawning...`);
 			spawnSandbox();
 		}
 	}, [isConnected, sessionState?.sandboxStatus, isSpawning, spawnSandbox]);
 
-	// Reset spawn attempt and typing state when session changes
+	// Reset spawn attempt, typing state, and seen events when session changes
 	useEffect(() => {
 		hasAttemptedSpawn.current = false;
 		hasTypedRef.current = false;
 		spawnAttempts.current = 0;
 		setSpawnAttempt(0);
+		// Clear seen events for new session
+		seenEventIds.current.clear();
+		setEvents([]);
 		if (typingDebounceRef.current) {
 			clearTimeout(typingDebounceRef.current);
 			typingDebounceRef.current = null;

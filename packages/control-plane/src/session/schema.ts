@@ -28,6 +28,7 @@ export function initSchema(sql: SqlStorage): void {
 			pr_number INTEGER,
 			linear_issue_id TEXT,
 			linear_issue_key TEXT,
+			files_changed TEXT DEFAULT '[]',
 			created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
 			updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
 			archived_at INTEGER
@@ -84,6 +85,21 @@ export function initSchema(sql: SqlStorage): void {
 			FOREIGN KEY (session_id) REFERENCES session(id)
 		);
 
+		-- Artifacts (PRs, previews, screenshots, etc.)
+		CREATE TABLE IF NOT EXISTS artifacts (
+			id TEXT PRIMARY KEY,
+			session_id TEXT NOT NULL,
+			type TEXT NOT NULL,
+			url TEXT,
+			title TEXT,
+			description TEXT,
+			metadata TEXT,
+			status TEXT NOT NULL DEFAULT 'active',
+			created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+			updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
+			FOREIGN KEY (session_id) REFERENCES session(id)
+		);
+
 		-- Indexes for efficient queries
 		CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
 		CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
@@ -92,6 +108,8 @@ export function initSchema(sql: SqlStorage): void {
 		CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
 		CREATE INDEX IF NOT EXISTS idx_participants_session ON participants(session_id);
 		CREATE INDEX IF NOT EXISTS idx_sandboxes_session ON sandboxes(session_id);
+		CREATE INDEX IF NOT EXISTS idx_artifacts_session ON artifacts(session_id);
+		CREATE INDEX IF NOT EXISTS idx_artifacts_type ON artifacts(type);
 	`);
 }
 

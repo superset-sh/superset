@@ -100,6 +100,7 @@ export function NewSessionForm({
 				}
 			},
 			onError: (err) => {
+				console.error("[NewSessionForm] Create mutation error:", err);
 				setError(err.message || "Failed to create session");
 			},
 		}),
@@ -123,14 +124,18 @@ export function NewSessionForm({
 		const sessionTitle =
 			title.trim() || `${selectedRepo.owner}/${selectedRepo.name}`;
 
-		createMutation.mutate({
-			repositoryId: selectedRepo.id,
+		const mutationInput = {
+			// Note: repositoryId is omitted because github_repositories.id != repositories.id
+			// The repoOwner/repoName are sufficient for cloud workspaces
 			repoOwner: selectedRepo.owner,
 			repoName: selectedRepo.name,
 			title: sessionTitle,
 			model: model as "claude-sonnet-4" | "claude-opus-4" | "claude-haiku-3-5",
 			baseBranch: baseBranch || selectedRepo.defaultBranch,
-		});
+		};
+
+		console.log("[NewSessionForm] Submitting:", mutationInput);
+		createMutation.mutate(mutationInput);
 	};
 
 	// Show GitHub connection prompt if not connected
