@@ -11,8 +11,8 @@ import type {
 } from "shared/file-tree-types";
 import useResizeObserver from "use-resize-observer";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
-import { FileTreeContextMenu } from "./components/FileTreeContextMenu";
 import { FileSearchResultNode } from "./components/FileSearchResultNode";
+import { FileTreeContextMenu } from "./components/FileTreeContextMenu";
 import { FileTreeNode } from "./components/FileTreeNode";
 import { FileTreeToolbar } from "./components/FileTreeToolbar";
 import { NewItemInput } from "./components/NewItemInput";
@@ -154,12 +154,15 @@ export function FilesView() {
 			onRefresh: () => refetch(),
 		});
 
-	const { searchResults, isFetching: isSearchFetching, hasQuery } =
-		useFileSearch({
-			worktreePath,
-			searchTerm: currentSearchTerm,
-			includeHidden: showHiddenFiles,
-		});
+	const {
+		searchResults,
+		isFetching: isSearchFetching,
+		hasQuery,
+	} = useFileSearch({
+		worktreePath,
+		searchTerm: currentSearchTerm,
+		includeHidden: showHiddenFiles,
+	});
 	const isSearching = hasQuery;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
