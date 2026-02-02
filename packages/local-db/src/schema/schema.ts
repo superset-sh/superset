@@ -153,6 +153,9 @@ export const settings = sqliteTable("settings", {
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),
+	telemetryEnabled: integer("telemetry_enabled", {
+		mode: "boolean",
+	}),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
