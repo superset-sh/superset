@@ -1,10 +1,12 @@
 import { cn } from "@superset/ui/utils";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { NodeRendererProps } from "react-arborist";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import type { FileTreeNode as FileTreeNodeType } from "shared/file-tree-types";
 import { usePathActions } from "../../../ChangesView/hooks";
 import { getFileIcon } from "../../utils";
+
+const CLICK_DELAY_MS = 250;
 
 type FileTreeNodeProps = NodeRendererProps<FileTreeNodeType> & {
 	worktreePath: string;
@@ -32,6 +34,15 @@ export function FileTreeNode({
 
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+	useEffect(() => {
+		return () => {
+			if (clickTimeoutRef.current) {
+				clearTimeout(clickTimeoutRef.current);
+				clickTimeoutRef.current = null;
+			}
+		};
+	}, []);
+
 	const handleClick = (e: React.MouseEvent) => {
 		if (data.isDirectory) {
 			if (e.detail === 1) {
@@ -58,7 +69,7 @@ export function FileTreeNode({
 		clickTimeoutRef.current = setTimeout(() => {
 			clickTimeoutRef.current = null;
 			node.activate();
-		}, 250);
+		}, CLICK_DELAY_MS);
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
