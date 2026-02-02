@@ -108,13 +108,14 @@ export function FilesView() {
 
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
-		const prevPath = prevWorktreePathRef.current;
-		if (worktreePath && prevPath && prevPath !== worktreePath) {
+		if (
+			worktreePath &&
+			prevWorktreePathRef.current !== worktreePath &&
+			prevWorktreePathRef.current !== undefined
+		) {
 			invalidateTree();
 		}
-		if (worktreePath) {
-			prevWorktreePathRef.current = worktreePath;
-		}
+		prevWorktreePathRef.current = worktreePath;
 	}, [worktreePath, invalidateTree]);
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
