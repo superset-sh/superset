@@ -4,16 +4,22 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AuthorAvatar } from "@/app/blog/components/AuthorAvatar";
+import { BlogCard } from "@/app/blog/components/BlogCard";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { type BlogPost, formatBlogDate, type TocItem } from "@/lib/blog-utils";
 
 interface BlogPostLayoutProps {
 	post: BlogPost;
 	toc: TocItem[];
+	relatedPosts: BlogPost[];
 	children: ReactNode;
 }
 
-export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
+export function BlogPostLayout({
+	post,
+	relatedPosts,
+	children,
+}: BlogPostLayoutProps) {
 	const formattedDate = formatBlogDate(post.date);
 
 	return (
@@ -87,6 +93,22 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				<div className="prose max-w-none">{children}</div>
 			</div>
+
+			{/* Related Posts */}
+			{relatedPosts.length > 0 && (
+				<section className="relative border-t border-border">
+					<div className="max-w-3xl mx-auto px-6 py-12">
+						<h2 className="text-xl font-medium text-foreground mb-6">
+							Related Posts
+						</h2>
+						<div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
+							{relatedPosts.map((relatedPost) => (
+								<BlogCard key={relatedPost.slug} post={relatedPost} />
+							))}
+						</div>
+					</div>
+				</section>
+			)}
 
 			{/* Footer */}
 			<footer className="relative border-t border-border">

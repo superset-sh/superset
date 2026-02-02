@@ -38,6 +38,7 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 			date: dateValue,
 			category: data.category ?? "News",
 			image: data.image,
+			relatedSlugs: data.relatedSlugs,
 			content,
 		};
 	} catch {
@@ -82,6 +83,26 @@ export function getAllSlugs(): string[] {
 		.readdirSync(BLOG_DIR)
 		.filter((f) => f.endsWith(".mdx"))
 		.map((f) => f.replace(".mdx", ""));
+}
+
+const MAX_RELATED_POSTS = 3;
+
+export function getRelatedPosts({
+	slug,
+	relatedSlugs,
+}: {
+	slug: string;
+	relatedSlugs?: string[];
+}): BlogPost[] {
+	if (relatedSlugs && relatedSlugs.length > 0) {
+		return relatedSlugs
+			.map((s) => getBlogPost(s))
+			.filter((post): post is BlogPost => post !== undefined);
+	}
+
+	return getBlogPosts()
+		.filter((post) => post.slug !== slug)
+		.slice(0, MAX_RELATED_POSTS);
 }
 
 export function extractToc(content: string): TocItem[] {

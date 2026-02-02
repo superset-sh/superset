@@ -20,6 +20,7 @@ export interface BlogPost {
 	date: string;
 	category: BlogCategory;
 	image?: string;
+	relatedSlugs?: string[];
 	content: string;
 }
 

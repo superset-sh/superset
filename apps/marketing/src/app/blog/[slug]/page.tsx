@@ -3,7 +3,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import { ArticleJsonLd } from "@/components/JsonLd";
-import { extractToc, getAllSlugs, getBlogPost } from "@/lib/blog";
+import {
+	extractToc,
+	getAllSlugs,
+	getBlogPost,
+	getRelatedPosts,
+} from "@/lib/blog";
 import { mdxComponents } from "../components/mdx-components";
 import { BlogPostLayout } from "./components/BlogPostLayout";
 
@@ -20,6 +25,10 @@ export default async function BlogPostPage({ params }: PageProps) {
 	}
 
 	const toc = extractToc(post.content);
+	const relatedPosts = getRelatedPosts({
+		slug,
+		relatedSlugs: post.relatedSlugs,
+	});
 
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
@@ -33,7 +42,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 				url={url}
 				image={post.image}
 			/>
-			<BlogPostLayout post={post} toc={toc}>
+			<BlogPostLayout post={post} toc={toc} relatedPosts={relatedPosts}>
 				<MDXRemote source={post.content} components={mdxComponents} />
 			</BlogPostLayout>
 		</main>
