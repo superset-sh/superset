@@ -1,4 +1,6 @@
+import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
+import { FaGithub } from "react-icons/fa";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { getChangelogEntries } from "@/lib/changelog";
 import { ChangelogEntry } from "./components/ChangelogEntry";
@@ -59,6 +61,16 @@ export default async function ChangelogPage() {
 					<p className="text-muted-foreground mt-3 max-w-lg">
 						The latest updates, improvements, and new features in Superset.
 					</p>
+					<a
+						href={`${COMPANY.GITHUB_URL}/releases`}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
+					>
+						<FaGithub className="size-4" />
+						View releases on GitHub
+						<span aria-hidden="true">&rarr;</span>
+					</a>
 
 					<GridCross className="bottom-0 left-0" />
 					<GridCross className="bottom-0 right-0" />
