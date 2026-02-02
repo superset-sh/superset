@@ -22,7 +22,54 @@ async function fetchCurrentBranch(
 	git: ReturnType<typeof simpleGit>,
 ): Promise<void> {
 	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
-	await git.fetch(["origin", branch]);
+	try {
+		await git.fetch(["origin", branch]);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (isUpstreamMissingError(message)) {
+			try {
+				await git.fetch(["origin"]);
+			} catch {
+				// Ignore fetch failures for missing remote refs
+			}
+			return;
+		}
+		throw error;
+	}
+}
+
+async function pushWithSetUpstream({
+	git,
+	branch,
+}: {
+	git: ReturnType<typeof simpleGit>;
+	branch: string;
+}): Promise<void> {
+	const trimmedBranch = branch.trim();
+	if (!trimmedBranch || trimmedBranch === "HEAD") {
+		throw new Error(
+			"Cannot push from detached HEAD. Please checkout a branch and try again.",
+		);
+	}
+
+	// Use HEAD refspec to avoid resolving the branch name as a local ref.
+	// This is more reliable for worktrees where upstream tracking isn't set yet.
+	await git.push([
+		"--set-upstream",
+		"origin",
+		`HEAD:refs/heads/${trimmedBranch}`,
+	]);
+}
+
+function shouldRetryPushWithUpstream(message: string): boolean {
+	const lowerMessage = message.toLowerCase();
+	return (
+		lowerMessage.includes("no upstream branch") ||
+		lowerMessage.includes("no tracking information") ||
+		lowerMessage.includes("upstream branch of your current branch does not match") ||
+		lowerMessage.includes("cannot be resolved to branch") ||
+		lowerMessage.includes("couldn't find remote ref")
+	);
 }
 
 export const createGitOperationsRouter = () => {
@@ -62,9 +109,20 @@ export const createGitOperationsRouter = () => {
 
 				if (input.setUpstream && !hasUpstream) {
 					const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
-					await git.push(["--set-upstream", "origin", branch.trim()]);
+					await pushWithSetUpstream({ git, branch });
 				} else {
-					await git.push();
+					try {
+						await git.push();
+					} catch (error) {
+						const message =
+							error instanceof Error ? error.message : String(error);
+						if (shouldRetryPushWithUpstream(message)) {
+							const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
+							await pushWithSetUpstream({ git, branch });
+						} else {
+							throw error;
+						}
+					}
 				}
 				await fetchCurrentBranch(git);
 				return { success: true };
@@ -112,7 +170,7 @@ export const createGitOperationsRouter = () => {
 						error instanceof Error ? error.message : String(error);
 					if (isUpstreamMissingError(message)) {
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
-						await git.push(["--set-upstream", "origin", branch.trim()]);
+						await pushWithSetUpstream({ git, branch });
 						await fetchCurrentBranch(git);
 						return { success: true };
 					}
@@ -148,10 +206,20 @@ export const createGitOperationsRouter = () => {
 
 					// Ensure branch is pushed first
 					if (!hasUpstream) {
-						await git.push(["--set-upstream", "origin", branch]);
+						await pushWithSetUpstream({ git, branch });
 					} else {
 						// Push any unpushed commits
-						await git.push();
+						try {
+							await git.push();
+						} catch (error) {
+							const message =
+								error instanceof Error ? error.message : String(error);
+							if (shouldRetryPushWithUpstream(message)) {
+								await pushWithSetUpstream({ git, branch });
+							} else {
+								throw error;
+							}
+						}
 					}
 
 					// Get the remote URL to construct the GitHub compare URL
