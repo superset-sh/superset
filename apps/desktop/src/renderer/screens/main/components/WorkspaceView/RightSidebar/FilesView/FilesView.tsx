@@ -92,7 +92,18 @@ export function FilesView() {
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
 			worktreePath,
-			onRefresh: () => tree.rebuildTree(),
+			onRefresh: async (parentPath: string) => {
+				const isRoot = parentPath === worktreePath;
+				const itemId = isRoot
+					? "root"
+					: tree
+							.getItems()
+							.find((item) => item.getItemData()?.path === parentPath)
+							?.getId();
+				if (itemId) {
+					await tree.getItemInstance(itemId)?.invalidateChildrenIds();
+				}
+			},
 		});
 
 	const {

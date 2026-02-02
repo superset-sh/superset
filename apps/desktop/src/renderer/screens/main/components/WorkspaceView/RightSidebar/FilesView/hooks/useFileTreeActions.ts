@@ -4,17 +4,17 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface UseFileTreeActionsProps {
 	worktreePath: string | undefined;
-	onRefresh: () => void;
+	onRefresh: (parentPath: string) => void | Promise<void>;
 }
 
 export function useFileTreeActions({
-	worktreePath: _worktreePath,
+	worktreePath,
 	onRefresh,
 }: UseFileTreeActionsProps) {
 	const createFileMutation = electronTrpc.filesystem.createFile.useMutation({
-		onSuccess: (data) => {
+		onSuccess: (data, variables) => {
 			toast.success(`Created ${data.path.split("/").pop()}`);
-			onRefresh();
+			onRefresh(variables.dirPath);
 		},
 		onError: (error) => {
 			toast.error(`Failed to create file: ${error.message}`);
@@ -23,9 +23,9 @@ export function useFileTreeActions({
 
 	const createDirectoryMutation =
 		electronTrpc.filesystem.createDirectory.useMutation({
-			onSuccess: (data) => {
+			onSuccess: (data, variables) => {
 				toast.success(`Created ${data.path.split("/").pop()}`);
-				onRefresh();
+				onRefresh(variables.parentPath);
 			},
 			onError: (error) => {
 				toast.error(`Failed to create folder: ${error.message}`);
@@ -33,9 +33,10 @@ export function useFileTreeActions({
 		});
 
 	const renameMutation = electronTrpc.filesystem.rename.useMutation({
-		onSuccess: (data) => {
+		onSuccess: (data, variables) => {
 			toast.success(`Renamed to ${data.newPath.split("/").pop()}`);
-			onRefresh();
+			const parentPath = variables.oldPath.split("/").slice(0, -1).join("/");
+			onRefresh(parentPath || worktreePath || "");
 		},
 		onError: (error) => {
 			toast.error(`Failed to rename: ${error.message}`);
@@ -43,7 +44,7 @@ export function useFileTreeActions({
 	});
 
 	const deleteMutation = electronTrpc.filesystem.delete.useMutation({
-		onSuccess: (data) => {
+		onSuccess: (data, variables) => {
 			const count = data.deleted.length;
 			if (count === 1) {
 				toast.success(`Moved to trash`);
@@ -53,7 +54,9 @@ export function useFileTreeActions({
 			if (data.errors.length > 0) {
 				toast.error(`Failed to delete ${data.errors.length} items`);
 			}
-			onRefresh();
+			const firstPath = variables.paths[0];
+			const parentPath = firstPath?.split("/").slice(0, -1).join("/");
+			onRefresh(parentPath || worktreePath || "");
 		},
 		onError: (error) => {
 			toast.error(`Failed to delete: ${error.message}`);
@@ -61,7 +64,7 @@ export function useFileTreeActions({
 	});
 
 	const moveMutation = electronTrpc.filesystem.move.useMutation({
-		onSuccess: (data) => {
+		onSuccess: (data, variables) => {
 			const count = data.moved.length;
 			if (count === 1) {
 				toast.success(`Moved ${data.moved[0].to.split("/").pop()}`);
@@ -71,7 +74,7 @@ export function useFileTreeActions({
 			if (data.errors.length > 0) {
 				toast.error(`Failed to move ${data.errors.length} items`);
 			}
-			onRefresh();
+			onRefresh(variables.destinationDir);
 		},
 		onError: (error) => {
 			toast.error(`Failed to move: ${error.message}`);
@@ -79,7 +82,7 @@ export function useFileTreeActions({
 	});
 
 	const copyMutation = electronTrpc.filesystem.copy.useMutation({
-		onSuccess: (data) => {
+		onSuccess: (data, variables) => {
 			const count = data.copied.length;
 			if (count === 1) {
 				toast.success(`Copied ${data.copied[0].to.split("/").pop()}`);
@@ -89,7 +92,7 @@ export function useFileTreeActions({
 			if (data.errors.length > 0) {
 				toast.error(`Failed to copy ${data.errors.length} items`);
 			}
-			onRefresh();
+			onRefresh(variables.destinationDir);
 		},
 		onError: (error) => {
 			toast.error(`Failed to copy: ${error.message}`);
