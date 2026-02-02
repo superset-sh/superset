@@ -117,7 +117,7 @@ export function FileTreeItem({
 				"flex items-center gap-1 px-1 cursor-pointer select-none",
 				"hover:bg-accent/50 transition-colors",
 				item.isSelected() && "bg-accent",
-				)}
+			)}
 			onClick={handleClick}
 			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
