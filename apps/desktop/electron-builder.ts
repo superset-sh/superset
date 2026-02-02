@@ -10,6 +10,7 @@ import pkg from "./package.json";
 const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
 const productName = pkg.productName;
+const disableWinSigning = process.env.SUPERSET_DISABLE_WIN_SIGNING === "1";
 
 const config: Configuration = {
 	appId: "com.superset.desktop",
@@ -42,6 +43,7 @@ const config: Configuration = {
 		"**/node_modules/bindings/**/*",
 		"**/node_modules/file-uri-to-path/**/*",
 		"**/node_modules/node-pty/**/*",
+		"**/node_modules/@lydell/node-pty-win32-x64/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
 		// Tray icon must be unpacked so Electron Tray can load it
@@ -56,32 +58,34 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
+		// App icons used by Windows shortcuts (keep outside asar)
+		{
+			from: join(pkg.resources, "build/icons"),
+			to: "build/icons",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [
-		"dist/**/*",
-		"package.json",
+		{
+			filter: ["dist/**/*", "!dist/resources/migrations/**", "package.json"],
+		},
 		{
 			from: pkg.resources,
 			to: "resources",
-			filter: ["**/*"],
+			filter: ["**/*", "!build/**"],
 		},
-		// Native modules that can't be bundled by Vite.
-		// bun creates symlinks for direct deps in workspace node_modules.
-		// The copy:native-modules script replaces symlinks with real files
-		// before building (required for Bun 1.3+ isolated installs).
+		// Native modules rebuilt for Electron
 		{
 			from: "node_modules/better-sqlite3",
 			to: "node_modules/better-sqlite3",
 			filter: ["**/*"],
 		},
-		// better-sqlite3 uses `bindings` package to locate its native .node file
 		{
 			from: "node_modules/bindings",
 			to: "node_modules/bindings",
 			filter: ["**/*"],
 		},
-		// `bindings` requires `file-uri-to-path` for file:// URL handling
 		{
 			from: "node_modules/file-uri-to-path",
 			to: "node_modules/file-uri-to-path",
@@ -90,6 +94,11 @@ const config: Configuration = {
 		{
 			from: "node_modules/node-pty",
 			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/@lydell/node-pty-win32-x64",
+			to: "node_modules/@lydell/node-pty-win32-x64",
 			filter: ["**/*"],
 		},
 		// friendly-words is a CommonJS module that Vite doesn't bundle
@@ -101,8 +110,8 @@ const config: Configuration = {
 		"!**/.DS_Store",
 	],
 
-	// Rebuild native modules for Electron's Node.js version
-	npmRebuild: true,
+	// Skip npm rebuild since we already ran electron-rebuild
+	npmRebuild: false,
 
 	// macOS
 	mac: {
@@ -153,12 +162,19 @@ const config: Configuration = {
 			},
 		],
 		artifactName: `${productName}-${pkg.version}-\${arch}.\${ext}`,
+		signAndEditExecutable: disableWinSigning ? false : undefined,
 	},
 
 	// NSIS installer (Windows)
 	nsis: {
 		oneClick: false,
 		allowToChangeInstallationDirectory: true,
+		createDesktopShortcut: true,
+		createStartMenuShortcut: true,
+		shortcutName: productName,
+		installerIcon: join(pkg.resources, "build/icons/icon.ico"),
+		uninstallerIcon: join(pkg.resources, "build/icons/icon.ico"),
+		include: join(pkg.resources, "build/installer.nsh"),
 	},
 };
 

@@ -7,8 +7,8 @@
  * Run with: ELECTRON_RUN_AS_NODE=1 electron dist/main/terminal-host.js
  *
  * IPC Protocol:
- * - Uses NDJSON (newline-delimited JSON) over Unix domain socket
- * - Socket: ~/.superset/terminal-host.sock
+ * - Uses NDJSON (newline-delimited JSON) over a local socket
+ * - Socket: ~/.superset/terminal-host.sock (Unix) or \\.\pipe\superset-terminal-host-<user> (Windows)
  * - Auth token: ~/.superset/terminal-host.token
  */
 
@@ -22,8 +22,6 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { createServer, type Server, Socket } from "node:net";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import {
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -44,6 +42,7 @@ import {
 	type TerminalExitEvent,
 	type WriteRequest,
 } from "../lib/terminal-host/types";
+import { TERMINAL_HOST_PATHS } from "../lib/terminal-host/paths";
 import { TerminalHost } from "./terminal-host";
 
 // =============================================================================
@@ -53,14 +52,14 @@ import { TerminalHost } from "./terminal-host";
 const DAEMON_VERSION = "1.0.0";
 
 // Determine superset directory based on NODE_ENV
-const SUPERSET_DIR_NAME =
-	process.env.NODE_ENV === "development" ? ".superset-dev" : ".superset";
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
-
-// Socket and token paths
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
-const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
-const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
+const {
+	IS_WINDOWS,
+	SUPERSET_DIR_NAME,
+	SUPERSET_HOME_DIR,
+	SOCKET_PATH,
+	TOKEN_PATH,
+	PID_PATH,
+} = TERMINAL_HOST_PATHS;
 
 // =============================================================================
 // Logging
@@ -636,11 +635,6 @@ function handleConnection(socket: Socket) {
  */
 function isSocketLive(): Promise<boolean> {
 	return new Promise((resolve) => {
-		if (!existsSync(SOCKET_PATH)) {
-			resolve(false);
-			return;
-		}
-
 		const testSocket = new Socket();
 		const timeout = setTimeout(() => {
 			testSocket.destroy();
@@ -678,14 +672,14 @@ async function startServer(): Promise<void> {
 
 	// Check if socket is live before removing it
 	// This prevents orphaning a running daemon
-	if (existsSync(SOCKET_PATH)) {
-		const isLive = await isSocketLive();
-		if (isLive) {
-			log("error", "Another daemon is already running and responsive");
-			throw new Error("Another daemon is already running");
-		}
+	const isLive = await isSocketLive();
+	if (isLive) {
+		log("error", "Another daemon is already running and responsive");
+		throw new Error("Another daemon is already running");
+	}
 
-		// Socket exists but not responsive - safe to remove
+	// Socket exists but not responsive - safe to remove (non-Windows only)
+	if (!IS_WINDOWS && existsSync(SOCKET_PATH)) {
 		try {
 			unlinkSync(SOCKET_PATH);
 			log("info", "Removed stale socket file");
@@ -742,10 +736,12 @@ async function startServer(): Promise<void> {
 
 		newServer.listen(SOCKET_PATH, () => {
 			// Set socket permissions (readable/writable by owner only)
-			try {
-				chmodSync(SOCKET_PATH, 0o600);
-			} catch {
-				// May fail on some systems, that's okay - directory permissions protect us
+			if (!IS_WINDOWS) {
+				try {
+					chmodSync(SOCKET_PATH, 0o600);
+				} catch {
+					// May fail on some systems, that's okay - directory permissions protect us
+				}
 			}
 
 			// Write PID file
@@ -778,7 +774,7 @@ function stopServer(): Promise<void> {
 
 		// Clean up socket and PID files
 		try {
-			if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
+			if (!IS_WINDOWS && existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
 			if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
 		} catch {
 			// Best effort cleanup

@@ -25,8 +25,15 @@ async function openPathInApp(
 
 	const cmd = getAppCommand(app, filePath);
 	if (cmd) {
-		await spawnAsync(cmd.command, cmd.args);
-		return;
+		try {
+			await spawnAsync(cmd.command, cmd.args);
+			return;
+		} catch (error) {
+			console.warn(
+				"[external/openInApp] Failed to launch app, falling back to default:",
+				error,
+			);
+		}
 	}
 
 	await shell.openPath(filePath);

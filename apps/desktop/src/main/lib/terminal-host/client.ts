@@ -24,7 +24,6 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { connect, type Socket } from "node:net";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { app } from "electron";
 import {
@@ -48,6 +47,7 @@ import {
 	type TerminalExitEvent,
 	type WriteRequest,
 } from "./types";
+import { TERMINAL_HOST_PATHS } from "./paths";
 
 // =============================================================================
 // Connection State
@@ -65,15 +65,16 @@ enum ConnectionState {
 
 const DEBUG_CLIENT = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
-const SUPERSET_DIR_NAME =
-	process.env.NODE_ENV === "development" ? ".superset-dev" : ".superset";
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
-
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
-const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
-const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
-const SPAWN_LOCK_PATH = join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock");
-const SCRIPT_MTIME_PATH = join(SUPERSET_HOME_DIR, "terminal-host.mtime");
+const {
+	IS_WINDOWS,
+	SUPERSET_DIR_NAME,
+	SUPERSET_HOME_DIR,
+	SOCKET_PATH,
+	TOKEN_PATH,
+	PID_PATH,
+	SPAWN_LOCK_PATH,
+	SCRIPT_MTIME_PATH,
+} = TERMINAL_HOST_PATHS;
 
 // Connection timeouts
 const CONNECT_TIMEOUT_MS = 5000;
@@ -428,7 +429,7 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectControl(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!IS_WINDOWS && !existsSync(SOCKET_PATH)) {
 				resolve(false);
 				return;
 			}
@@ -468,7 +469,7 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectStream(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!IS_WINDOWS && !existsSync(SOCKET_PATH)) {
 				resolve(false);
 				return;
 			}
@@ -813,7 +814,7 @@ export class TerminalHostClient extends EventEmitter {
 	}: {
 		killSessions?: boolean;
 	} = {}): Promise<void> {
-		if (!existsSync(SOCKET_PATH)) return;
+		if (!IS_WINDOWS && !existsSync(SOCKET_PATH)) return;
 
 		const token = this.readAuthToken();
 
@@ -908,7 +909,7 @@ export class TerminalHostClient extends EventEmitter {
 		const timeoutMs = 2000;
 
 		while (Date.now() - startTime < timeoutMs) {
-			if (!existsSync(SOCKET_PATH)) return;
+			if (!IS_WINDOWS && !existsSync(SOCKET_PATH)) return;
 			const live = await this.isSocketLive();
 			if (!live) return;
 			await this.sleep(100);
@@ -925,7 +926,7 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private isSocketLive(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!IS_WINDOWS && !existsSync(SOCKET_PATH)) {
 				resolve(false);
 				return;
 			}
@@ -1007,7 +1008,7 @@ export class TerminalHostClient extends EventEmitter {
 	private async spawnDaemon(): Promise<void> {
 		// Check if socket is live first - this is the authoritative check
 		// PID file can be stale if daemon crashed and PID was reused by another process
-		if (existsSync(SOCKET_PATH)) {
+		if (IS_WINDOWS || existsSync(SOCKET_PATH)) {
 			const isLive = await this.isSocketLive();
 			if (isLive) {
 				if (DEBUG_CLIENT) {
@@ -1017,13 +1018,15 @@ export class TerminalHostClient extends EventEmitter {
 			}
 
 			// Socket exists but not responsive - safe to remove
-			if (DEBUG_CLIENT) {
-				console.log("[TerminalHostClient] Removing stale socket file");
-			}
-			try {
-				unlinkSync(SOCKET_PATH);
-			} catch {
-				// Ignore - might not have permission
+			if (!IS_WINDOWS) {
+				if (DEBUG_CLIENT) {
+					console.log("[TerminalHostClient] Removing stale socket file");
+				}
+				try {
+					unlinkSync(SOCKET_PATH);
+				} catch {
+					// Ignore - might not have permission
+				}
 			}
 		}
 
@@ -1175,11 +1178,8 @@ export class TerminalHostClient extends EventEmitter {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < SPAWN_WAIT_MS) {
-			if (existsSync(SOCKET_PATH)) {
-				// Give it a moment to start listening
-				await this.sleep(200);
-				return;
-			}
+			const live = await this.isSocketLive();
+			if (live) return;
 			await this.sleep(100);
 		}
 

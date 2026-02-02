@@ -15,8 +15,7 @@ import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { connect, type Socket } from "node:net";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import {
 	type CreateOrAttachRequest,
 	type CreateOrAttachResponse,
@@ -27,13 +26,15 @@ import {
 	PROTOCOL_VERSION,
 	type TerminalDataEvent,
 } from "../lib/terminal-host/types";
+import { TERMINAL_HOST_PATHS } from "../lib/terminal-host/paths";
 
-// Test uses development paths
-const SUPERSET_DIR_NAME = ".superset-dev";
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
-const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
-const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
+const {
+	IS_WINDOWS,
+	SUPERSET_HOME_DIR,
+	SOCKET_PATH,
+	TOKEN_PATH,
+	PID_PATH,
+} = TERMINAL_HOST_PATHS;
 
 // Path to the daemon source file
 const DAEMON_PATH = resolve(__dirname, "index.ts");
@@ -60,7 +61,7 @@ describe("Terminal Host Session Lifecycle", () => {
 			}
 		}
 
-		if (existsSync(SOCKET_PATH)) {
+		if (!IS_WINDOWS && existsSync(SOCKET_PATH)) {
 			try {
 				rmSync(SOCKET_PATH);
 			} catch {

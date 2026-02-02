@@ -7,16 +7,20 @@ import {
 	disposeTerminalHostClient,
 	getTerminalHostClient,
 } from "main/lib/terminal-host/client";
+import { TERMINAL_HOST_PATHS } from "main/lib/terminal-host/paths";
 
 const TERMINAL_STATE_PATHS = [
 	"terminal-history",
-	"terminal-host.sock",
 	"terminal-host.token",
 	"terminal-host.pid",
 	"terminal-host.spawn.lock",
 	"terminal-host.mtime",
 	"daemon.log",
 ] as const;
+
+const TERMINAL_STATE_PATHS_WITH_SOCKET = TERMINAL_HOST_PATHS.IS_WINDOWS
+	? TERMINAL_STATE_PATHS
+	: (["terminal-host.sock", ...TERMINAL_STATE_PATHS] as const);
 
 export async function resetTerminalStateDev(): Promise<void> {
 	console.log("[dev/reset-terminal-state] Resetting terminal state…");
@@ -33,7 +37,7 @@ export async function resetTerminalStateDev(): Promise<void> {
 		disposeTerminalHostClient();
 	}
 
-	for (const relativePath of TERMINAL_STATE_PATHS) {
+	for (const relativePath of TERMINAL_STATE_PATHS_WITH_SOCKET) {
 		const fullPath = join(SUPERSET_HOME_DIR, relativePath);
 		await rm(fullPath, { recursive: true, force: true }).catch((error) => {
 			console.warn(

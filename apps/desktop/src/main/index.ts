@@ -129,8 +129,9 @@ app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
 	const isDev = process.env.NODE_ENV === "development";
+	const isMac = process.platform === "darwin";
 	const shouldConfirm =
-		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
+		isMac && !skipConfirmation && !isDev && getConfirmOnQuitSetting();
 
 	if (shouldConfirm) {
 		event.preventDefault();

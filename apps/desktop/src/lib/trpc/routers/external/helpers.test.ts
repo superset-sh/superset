@@ -1,9 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
 
-describe("getAppCommand", () => {
+const isDarwin = process.platform === "darwin";
+const isWindows = process.platform === "win32";
+
+const describeDarwin = isDarwin ? describe : describe.skip;
+const describeWindows = isWindows ? describe : describe.skip;
+
+describeDarwin("getAppCommand (darwin)", () => {
 	test("returns null for finder (handled specially)", () => {
 		expect(getAppCommand("finder", "/path/to/file")).toBeNull();
 	});
@@ -119,6 +126,65 @@ describe("getAppCommand", () => {
 		expect(result).toEqual({
 			command: "open",
 			args: ["-a", "Cursor", "/path/with spaces/file.ts"],
+		});
+	});
+});
+
+describeWindows("getAppCommand (windows)", () => {
+	const originalEnv = {
+		LOCALAPPDATA: process.env.LOCALAPPDATA,
+		ProgramFiles: process.env.ProgramFiles,
+		ProgramFilesX86: process.env["ProgramFiles(x86)"],
+	};
+	let tempRoot: string;
+
+	beforeEach(() => {
+		tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "superset-win-"));
+		process.env.LOCALAPPDATA = path.join(tempRoot, "LocalAppData");
+		process.env.ProgramFiles = path.join(tempRoot, "ProgramFiles");
+		process.env["ProgramFiles(x86)"] = path.join(tempRoot, "ProgramFilesX86");
+		fs.mkdirSync(process.env.LOCALAPPDATA, { recursive: true });
+		fs.mkdirSync(process.env.ProgramFiles, { recursive: true });
+		fs.mkdirSync(process.env["ProgramFiles(x86)"], { recursive: true });
+	});
+
+	afterEach(() => {
+		process.env.LOCALAPPDATA = originalEnv.LOCALAPPDATA;
+		process.env.ProgramFiles = originalEnv.ProgramFiles;
+		process.env["ProgramFiles(x86)"] = originalEnv.ProgramFilesX86;
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	});
+
+	test("resolves install path for VS Code", () => {
+		const exePath = path.join(
+			process.env.LOCALAPPDATA ?? "",
+			"Programs",
+			"Microsoft VS Code",
+			"Code.exe",
+		);
+		fs.mkdirSync(path.dirname(exePath), { recursive: true });
+		fs.writeFileSync(exePath, "");
+		const result = getAppCommand("vscode", "C:\\path\\file.ts");
+		expect(result).toEqual({
+			command: exePath,
+			args: ["C:\\path\\file.ts"],
+		});
+	});
+
+	test("resolves JetBrains install path for IntelliJ", () => {
+		const exePath = path.join(
+			process.env.ProgramFiles ?? "",
+			"JetBrains",
+			"IntelliJ IDEA 2024.1",
+			"bin",
+			"idea64.exe",
+		);
+		fs.mkdirSync(path.dirname(exePath), { recursive: true });
+		fs.writeFileSync(exePath, "");
+		const result = getAppCommand("intellij", "C:\\path\\project");
+		expect(result).toEqual({
+			command: exePath,
+			args: ["C:\\path\\project"],
 		});
 	});
 });
