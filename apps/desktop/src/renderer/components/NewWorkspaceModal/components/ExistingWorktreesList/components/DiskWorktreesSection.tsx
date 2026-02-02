@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import {
 	Command,
 	CommandEmpty,
+	CommandGroup,
 	CommandInput,
 	CommandItem,
 	CommandList,
@@ -78,24 +79,28 @@ export function DiskWorktreesSection({
 						/>
 						<CommandList className="max-h-[200px]">
 							<CommandEmpty>No disk worktrees found</CommandEmpty>
-							{filteredWorktrees.map((wt) => (
-								<CommandItem
-									key={wt.path}
-									value={wt.path}
-									onSelect={() => onOpenWorktree(wt.path, wt.branch)}
-									className="flex flex-col items-start gap-0.5"
-								>
-									<span className="flex items-center gap-2 w-full">
-										<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-										<span className="flex-1 truncate text-xs font-mono">
-											{wt.branch}
-										</span>
-									</span>
-									<span className="text-[10px] text-muted-foreground/60 truncate w-full pl-5">
-										{wt.path}
-									</span>
-								</CommandItem>
-							))}
+							{filteredWorktrees.length > 0 && (
+								<CommandGroup>
+									{filteredWorktrees.map((wt) => (
+										<CommandItem
+											key={wt.path}
+											value={wt.path}
+											onSelect={() => onOpenWorktree(wt.path, wt.branch)}
+											className="flex flex-col items-start gap-0.5"
+										>
+											<span className="flex items-center gap-2 w-full">
+												<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+												<span className="flex-1 truncate text-xs font-mono">
+													{wt.branch}
+												</span>
+											</span>
+											<span className="text-[10px] text-muted-foreground/60 truncate w-full pl-5">
+												{wt.path}
+											</span>
+										</CommandItem>
+									))}
+								</CommandGroup>
+							)}
 						</CommandList>
 					</Command>
 				</PopoverContent>
