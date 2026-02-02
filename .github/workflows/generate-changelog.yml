@@ -59,6 +59,10 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Run lint fix
+        if: steps.check-changes.outputs.has_changes == 'true'
+        run: bun run lint:fix
+
       - name: Commit and push changes
         if: steps.check-changes.outputs.has_changes == 'true'
         run: |
