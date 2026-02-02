@@ -98,14 +98,7 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	const invalidateTree = useCallback(() => {
-		for (const item of tree.getItems()) {
-			if (item.isExpanded() || item.getId() === "root") {
-				item.invalidateChildrenIds();
-			}
-		}
-	}, [tree]);
-
+	// Invalidate tree when workspace changes
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
 		if (
@@ -113,10 +106,10 @@ export function FilesView() {
 			prevWorktreePathRef.current !== worktreePath &&
 			prevWorktreePathRef.current !== undefined
 		) {
-			invalidateTree();
+			tree.getItemInstance("root")?.invalidateChildrenIds();
 		}
 		prevWorktreePathRef.current = worktreePath;
-	}, [worktreePath, invalidateTree]);
+	}, [worktreePath, tree]);
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
@@ -259,12 +252,14 @@ export function FilesView() {
 		tree.collapseAll();
 	}, [tree]);
 
-	const handleRefresh = invalidateTree;
+	const handleRefresh = useCallback(() => {
+		tree.getItemInstance("root")?.invalidateChildrenIds();
+	}, [tree]);
 
 	const handleToggleHiddenFiles = useCallback(() => {
 		setShowHiddenFiles((v) => !v);
-		invalidateTree();
-	}, [invalidateTree]);
+		tree.getItemInstance("root")?.invalidateChildrenIds();
+	}, [tree]);
 
 	const searchResultEntries = useMemo(() => {
 		return searchResults.map((result) => ({
