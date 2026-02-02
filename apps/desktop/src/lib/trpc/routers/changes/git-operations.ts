@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -29,8 +30,18 @@ async function fetchCurrentBranch(
 		if (isUpstreamMissingError(message)) {
 			try {
 				await git.fetch(["origin"]);
-			} catch {
-				// Ignore fetch failures for missing remote refs
+			} catch (fallbackError) {
+				const fallbackMessage =
+					fallbackError instanceof Error
+						? fallbackError.message
+						: String(fallbackError);
+				if (!isUpstreamMissingError(fallbackMessage)) {
+					console.error(
+						`[git/fetch] failed fallback fetch for branch ${branch}:`,
+						fallbackError,
+					);
+					throw fallbackError;
+				}
 			}
 			return;
 		}
@@ -47,9 +58,11 @@ async function pushWithSetUpstream({
 }): Promise<void> {
 	const trimmedBranch = branch.trim();
 	if (!trimmedBranch || trimmedBranch === "HEAD") {
-		throw new Error(
-			"Cannot push from detached HEAD. Please checkout a branch and try again.",
-		);
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message:
+				"Cannot push from detached HEAD. Please checkout a branch and try again.",
+		});
 	}
 
 	// Use HEAD refspec to avoid resolving the branch name as a local ref.
