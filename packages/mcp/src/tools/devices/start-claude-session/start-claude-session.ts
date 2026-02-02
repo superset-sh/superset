@@ -39,10 +39,12 @@ You are running fully autonomously. Do not ask questions or wait for user feedba
 4. Verify your changes work correctly (run relevant tests, typecheck, lint)
 5. When done, use the Superset MCP \`update_task\` tool to update task "${task.id}" with a summary of what was done`;
 
+	const delimiter = `SUPERSET_PROMPT_${crypto.randomUUID().replaceAll("-", "")}`;
+
 	return [
-		"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT'",
+		`claude --dangerously-skip-permissions "$(cat <<'${delimiter}'`,
 		prompt,
-		"SUPERSET_PROMPT",
+		delimiter,
 		')"',
 	].join("\n");
 }
