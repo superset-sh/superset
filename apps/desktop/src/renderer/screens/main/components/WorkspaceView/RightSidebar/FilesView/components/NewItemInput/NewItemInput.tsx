@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
-import { useEffect, useRef, useState } from "react";
-import { LuChevronRight, LuFile, LuFolder, LuX } from "react-icons/lu";
-import { ROW_HEIGHT, TREE_INDENT } from "../../constants";
+import { useState } from "react";
+import { LuCheck, LuFile, LuFolder, LuX } from "react-icons/lu";
+import { TREE_INDENT } from "../../constants";
 import type { NewItemMode } from "../../types";
 
 interface NewItemInputProps {
@@ -20,17 +20,6 @@ export function NewItemInput({
 	level = 0,
 }: NewItemInputProps) {
 	const [value, setValue] = useState("");
-	const inputRef = useRef<HTMLInputElement>(null);
-
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			if (inputRef.current) {
-				inputRef.current.focus();
-				inputRef.current.select();
-			}
-		}, 50);
-		return () => clearTimeout(timer);
-	}, []);
 
 	const handleSubmit = () => {
 		const trimmed = value.trim();
@@ -42,6 +31,7 @@ export function NewItemInput({
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
+		e.stopPropagation();
 		if (e.key === "Enter") {
 			e.preventDefault();
 			handleSubmit();
@@ -57,36 +47,36 @@ export function NewItemInput({
 
 	return (
 		<div
-			style={{
-				height: ROW_HEIGHT,
-				paddingLeft: level * TREE_INDENT,
-			}}
-			className={cn("flex items-center gap-1 px-1", "bg-accent")}
+			className={cn("flex items-center gap-1 px-1 h-7", "bg-accent rounded-sm")}
+			style={{ paddingLeft: `${level * TREE_INDENT + 4}px` }}
 		>
-			{isFolder ? (
-				<span className="flex items-center justify-center w-4 h-4 shrink-0">
-					<LuChevronRight className="size-3.5 text-muted-foreground" />
-				</span>
-			) : null}
-			<Icon
-				className={cn("size-4 shrink-0 text-amber-500", !isFolder && "ml-2")}
-			/>
+			<span className="w-4 h-4 shrink-0" />
+			<Icon className="size-4 shrink-0 text-amber-500" />
 			<input
-				ref={inputRef}
 				type="text"
 				value={value}
 				onChange={(e) => setValue(e.target.value)}
 				onKeyDown={handleKeyDown}
 				placeholder={isFolder ? "folder name" : "file name"}
 				className={cn(
-					"flex-1 min-w-0 px-1 py-0 text-xs h-5",
+					"flex-1 min-w-0 px-1 py-0 text-xs",
 					"bg-background border border-ring rounded outline-none",
 				)}
 			/>
 			<button
 				type="button"
-				onClick={onCancel}
-				className="p-0.5 hover:bg-background/50 rounded shrink-0"
+				onClick={handleSubmit}
+				className="p-0.5 hover:bg-background/50 rounded"
+			>
+				<LuCheck className="size-3 text-muted-foreground" />
+			</button>
+			<button
+				type="button"
+				onMouseDown={(e) => {
+					e.preventDefault();
+					onCancel();
+				}}
+				className="p-0.5 hover:bg-background/50 rounded"
 			>
 				<LuX className="size-3 text-muted-foreground" />
 			</button>

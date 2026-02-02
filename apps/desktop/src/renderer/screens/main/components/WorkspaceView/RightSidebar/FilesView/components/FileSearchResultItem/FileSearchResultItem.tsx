@@ -72,7 +72,9 @@ export function FileSearchResultItem({
 		PATH_LABEL_MAX_CHARS,
 	);
 
-	const parentPath = entry.isDirectory ? entry.path : worktreePath;
+	const parentPath = entry.isDirectory
+		? entry.path
+		: entry.path.split("/").slice(0, -1).join("/") || worktreePath;
 
 	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
 		usePathActions({

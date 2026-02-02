@@ -55,7 +55,9 @@ export function FileTreeItem({
 	const level = item.getItemMeta().level;
 	const { icon: Icon, color } = getFileIcon(entry.name, isFolder, isExpanded);
 
-	const parentPath = isFolder ? entry.path : worktreePath;
+	const parentPath = isFolder
+		? entry.path
+		: entry.path.split("/").slice(0, -1).join("/") || worktreePath;
 
 	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
 		usePathActions({

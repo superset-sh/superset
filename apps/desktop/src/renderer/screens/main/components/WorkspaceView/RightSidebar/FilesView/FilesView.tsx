@@ -146,35 +146,33 @@ export function FilesView() {
 	);
 
 	const handleNewFile = useCallback(
-		(parentPath: string) => {
-			setNewItemMode("file");
-			setNewItemParentPath(parentPath);
+		async (parentPath: string) => {
 			if (parentPath !== worktreePath) {
-				const itemId = tree
+				const item = tree
 					.getItems()
-					.find((item) => item.getItemData()?.path === parentPath)
-					?.getId();
-				if (itemId) {
-					tree.getItemInstance(itemId)?.expand();
+					.find((i) => i.getItemData()?.path === parentPath);
+				if (item && !item.isExpanded()) {
+					await item.expand();
 				}
 			}
+			setNewItemMode("file");
+			setNewItemParentPath(parentPath);
 		},
 		[worktreePath, tree],
 	);
 
 	const handleNewFolder = useCallback(
-		(parentPath: string) => {
-			setNewItemMode("folder");
-			setNewItemParentPath(parentPath);
+		async (parentPath: string) => {
 			if (parentPath !== worktreePath) {
-				const itemId = tree
+				const item = tree
 					.getItems()
-					.find((item) => item.getItemData()?.path === parentPath)
-					?.getId();
-				if (itemId) {
-					tree.getItemInstance(itemId)?.expand();
+					.find((i) => i.getItemData()?.path === parentPath);
+				if (item && !item.isExpanded()) {
+					await item.expand();
 				}
 			}
+			setNewItemMode("folder");
+			setNewItemParentPath(parentPath);
 		},
 		[worktreePath, tree],
 	);
