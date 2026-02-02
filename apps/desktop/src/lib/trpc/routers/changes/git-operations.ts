@@ -66,7 +66,9 @@ function shouldRetryPushWithUpstream(message: string): boolean {
 	return (
 		lowerMessage.includes("no upstream branch") ||
 		lowerMessage.includes("no tracking information") ||
-		lowerMessage.includes("upstream branch of your current branch does not match") ||
+		lowerMessage.includes(
+			"upstream branch of your current branch does not match",
+		) ||
 		lowerMessage.includes("cannot be resolved to branch") ||
 		lowerMessage.includes("couldn't find remote ref")
 	);
