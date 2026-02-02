@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ExternalLink } from "lucide-react";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { getChangelogEntries } from "@/lib/changelog";
 import { ChangelogEntry } from "./components/ChangelogEntry";
@@ -58,6 +59,16 @@ export default async function ChangelogPage() {
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
 						The latest updates, improvements, and new features in Superset.
+						Updated weekly. For detailed release notes, see{" "}
+						<a
+							href="https://github.com/superset-sh/superset/releases"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+						>
+							GitHub Releases
+							<ExternalLink className="h-3 w-3" />
+						</a>
 					</p>
 
 					<GridCross className="bottom-0 left-0" />
