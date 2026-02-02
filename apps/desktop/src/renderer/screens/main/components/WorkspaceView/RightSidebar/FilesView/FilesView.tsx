@@ -4,14 +4,20 @@ import {
 	selectionFeature,
 } from "@headless-tree/core";
 import { useTree } from "@headless-tree/react";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
+import { LuFile, LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
 import { FileSearchResultItem } from "./components/FileSearchResultItem";
-import { FileTreeContextMenu } from "./components/FileTreeContextMenu";
 import { FileTreeItem } from "./components/FileTreeItem";
 import { FileTreeToolbar } from "./components/FileTreeToolbar";
 import { NewItemInput } from "./components/NewItemInput";
@@ -106,8 +112,6 @@ export function FilesView() {
 	const [newItemParentPath, setNewItemParentPath] = useState<string>("");
 	const [deleteEntry, setDeleteEntry] = useState<DirectoryEntry | null>(null);
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const [contextMenuEntry, setContextMenuEntry] =
-		useState<DirectoryEntry | null>(null);
 
 	const handleFileActivate = useCallback(
 		(entry: DirectoryEntry) => {
@@ -169,7 +173,7 @@ export function FilesView() {
 		setDeleteEntry(null);
 	}, [deleteEntry, deleteItems]);
 
-	const handleContextMenuRename = useCallback((_entry: DirectoryEntry) => {
+	const handleRename = useCallback((_entry: DirectoryEntry) => {
 		// TODO: implement rename with headless-tree renamingFeature
 	}, []);
 
@@ -212,80 +216,79 @@ export function FilesView() {
 				onToggleHiddenFiles={() => setShowHiddenFiles((v) => !v)}
 			/>
 
-			<FileTreeContextMenu
-				entry={contextMenuEntry}
-				worktreePath={worktreePath}
-				onNewFile={handleNewFile}
-				onNewFolder={handleNewFolder}
-				onRename={handleContextMenuRename}
-				onDelete={handleDeleteRequest}
-			>
-				<div className="flex-1 min-h-0 overflow-auto">
-					{newItemMode && newItemParentPath === worktreePath && (
-						<NewItemInput
-							mode={newItemMode}
-							parentPath={newItemParentPath}
-							onSubmit={handleNewItemSubmit}
-							onCancel={handleNewItemCancel}
-						/>
-					)}
+			<ContextMenu>
+				<ContextMenuTrigger asChild className="flex-1 min-h-0">
+					<div className="flex-1 min-h-0 overflow-auto">
+						{newItemMode && newItemParentPath === worktreePath && (
+							<NewItemInput
+								mode={newItemMode}
+								parentPath={newItemParentPath}
+								onSubmit={handleNewItemSubmit}
+								onCancel={handleNewItemCancel}
+							/>
+						)}
 
-					{isSearching ? (
-						searchResultEntries.length > 0 ? (
-							<div className="flex flex-col">
-								{searchResultEntries.map((entry) => (
-									<FileSearchResultItem
-										key={entry.id}
-										entry={entry}
-										onActivate={handleFileActivate}
-										onContextMenu={setContextMenuEntry}
-									/>
-								))}
-							</div>
+						{isSearching ? (
+							searchResultEntries.length > 0 ? (
+								<div className="flex flex-col">
+									{searchResultEntries.map((entry) => (
+										<FileSearchResultItem
+											key={entry.id}
+											entry={entry}
+											worktreePath={worktreePath}
+											onActivate={handleFileActivate}
+											onOpenInEditor={handleOpenInEditor}
+											onNewFile={handleNewFile}
+											onNewFolder={handleNewFolder}
+											onRename={handleRename}
+											onDelete={handleDeleteRequest}
+										/>
+									))}
+								</div>
+							) : (
+								<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
+									{isSearchFetching
+										? "Searching files..."
+										: "No matching files"}
+								</div>
+							)
 						) : (
-							<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
-								{isSearchFetching ? "Searching files..." : "No matching files"}
+							<div {...tree.getContainerProps()} className="outline-none">
+								{tree.getItems().map((item) => {
+									const data = item.getItemData();
+									if (!data || item.getId() === "root") return null;
+									return (
+										<FileTreeItem
+											key={item.getId()}
+											item={item}
+											entry={data}
+											rowHeight={ROW_HEIGHT}
+											indent={TREE_INDENT}
+											worktreePath={worktreePath}
+											onActivate={handleFileActivate}
+											onOpenInEditor={handleOpenInEditor}
+											onNewFile={handleNewFile}
+											onNewFolder={handleNewFolder}
+											onRename={handleRename}
+											onDelete={handleDeleteRequest}
+										/>
+									);
+								})}
 							</div>
-						)
-					) : (
-						// biome-ignore lint/a11y/noStaticElementInteractions: context menu handler for tree container
-						<div
-							{...tree.getContainerProps()}
-							className="outline-none"
-							onContextMenu={(e) => {
-								const target = e.target as HTMLElement;
-								const itemEl = target.closest("[data-item-id]");
-								if (itemEl) {
-									const itemId = itemEl.getAttribute("data-item-id");
-									if (itemId) {
-										const item = tree.getItemInstance(itemId);
-										setContextMenuEntry(item?.getItemData() ?? null);
-									}
-								} else {
-									setContextMenuEntry(null);
-								}
-							}}
-						>
-							{tree.getItems().map((item) => {
-								const data = item.getItemData();
-								if (!data || item.getId() === "root") return null;
-								return (
-									<FileTreeItem
-										key={item.getId()}
-										item={item}
-										entry={data}
-										rowHeight={ROW_HEIGHT}
-										indent={TREE_INDENT}
-										onActivate={handleFileActivate}
-										onOpenInEditor={handleOpenInEditor}
-										onContextMenu={setContextMenuEntry}
-									/>
-								);
-							})}
-						</div>
-					)}
-				</div>
-			</FileTreeContextMenu>
+						)}
+					</div>
+				</ContextMenuTrigger>
+				<ContextMenuContent className="w-48">
+					<ContextMenuItem onClick={() => handleNewFile(worktreePath)}>
+						<LuFile className="mr-2 size-4" />
+						New File
+					</ContextMenuItem>
+					<ContextMenuItem onClick={() => handleNewFolder(worktreePath)}>
+						<LuFolder className="mr-2 size-4" />
+						New Folder
+					</ContextMenuItem>
+				</ContextMenuContent>
+			</ContextMenu>
 
 			<DeleteConfirmDialog
 				entry={deleteEntry}

@@ -1,7 +1,26 @@
 import type { ItemInstance } from "@headless-tree/core";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
-import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+import {
+	LuChevronDown,
+	LuChevronRight,
+	LuClipboard,
+	LuCopy,
+	LuExternalLink,
+	LuFile,
+	LuFolder,
+	LuFolderOpen,
+	LuPencil,
+	LuTrash2,
+} from "react-icons/lu";
 import type { DirectoryEntry } from "shared/file-tree-types";
+import { usePathActions } from "../../../ChangesView/hooks";
 import { getFileIcon } from "../../utils";
 
 interface FileTreeItemProps {
@@ -9,9 +28,13 @@ interface FileTreeItemProps {
 	entry: DirectoryEntry;
 	rowHeight: number;
 	indent: number;
+	worktreePath: string;
 	onActivate: (entry: DirectoryEntry) => void;
 	onOpenInEditor: (entry: DirectoryEntry) => void;
-	onContextMenu: (entry: DirectoryEntry | null) => void;
+	onNewFile: (parentPath: string) => void;
+	onNewFolder: (parentPath: string) => void;
+	onRename: (entry: DirectoryEntry) => void;
+	onDelete: (entry: DirectoryEntry) => void;
 }
 
 export function FileTreeItem({
@@ -19,14 +42,27 @@ export function FileTreeItem({
 	entry,
 	rowHeight,
 	indent,
+	worktreePath,
 	onActivate,
 	onOpenInEditor,
-	onContextMenu,
+	onNewFile,
+	onNewFolder,
+	onRename,
+	onDelete,
 }: FileTreeItemProps) {
 	const isFolder = entry.isDirectory;
 	const isExpanded = item.isExpanded();
 	const level = item.getItemMeta().level;
 	const { icon: Icon, color } = getFileIcon(entry.name, isFolder, isExpanded);
+
+	const parentPath = isFolder ? entry.path : worktreePath;
+
+	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
+		usePathActions({
+			absolutePath: entry.path,
+			relativePath: entry.relativePath,
+			cwd: worktreePath,
+		});
 
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -61,7 +97,7 @@ export function FileTreeItem({
 		}
 	};
 
-	return (
+	const itemContent = (
 		<div
 			{...item.getProps()}
 			data-item-id={item.getId()}
@@ -81,10 +117,6 @@ export function FileTreeItem({
 			onClick={handleClick}
 			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
-			onContextMenu={(e) => {
-				e.preventDefault();
-				onContextMenu(entry);
-			}}
 		>
 			<span className="flex items-center justify-center w-4 h-4 shrink-0">
 				{isFolder ? (
@@ -100,5 +132,57 @@ export function FileTreeItem({
 
 			<span className="flex-1 min-w-0 text-xs truncate">{entry.name}</span>
 		</div>
+	);
+
+	return (
+		<ContextMenu>
+			<ContextMenuTrigger asChild>{itemContent}</ContextMenuTrigger>
+			<ContextMenuContent className="w-48">
+				<ContextMenuItem onClick={() => onNewFile(parentPath)}>
+					<LuFile className="mr-2 size-4" />
+					New File
+				</ContextMenuItem>
+				<ContextMenuItem onClick={() => onNewFolder(parentPath)}>
+					<LuFolder className="mr-2 size-4" />
+					New Folder
+				</ContextMenuItem>
+
+				<ContextMenuSeparator />
+
+				<ContextMenuItem onClick={copyPath}>
+					<LuClipboard className="mr-2 size-4" />
+					Copy Path
+				</ContextMenuItem>
+				<ContextMenuItem onClick={copyRelativePath}>
+					<LuCopy className="mr-2 size-4" />
+					Copy Relative Path
+				</ContextMenuItem>
+
+				<ContextMenuSeparator />
+
+				<ContextMenuItem onClick={revealInFinder}>
+					<LuFolderOpen className="mr-2 size-4" />
+					Reveal in Finder
+				</ContextMenuItem>
+				<ContextMenuItem onClick={openInEditor}>
+					<LuExternalLink className="mr-2 size-4" />
+					Open in Editor
+				</ContextMenuItem>
+
+				<ContextMenuSeparator />
+
+				<ContextMenuItem onClick={() => onRename(entry)}>
+					<LuPencil className="mr-2 size-4" />
+					Rename
+				</ContextMenuItem>
+				<ContextMenuItem
+					onClick={() => onDelete(entry)}
+					className="text-destructive focus:text-destructive"
+				>
+					<LuTrash2 className="mr-2 size-4" />
+					Delete
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }

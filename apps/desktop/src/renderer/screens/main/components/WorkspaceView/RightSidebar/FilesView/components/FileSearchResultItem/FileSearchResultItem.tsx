@@ -1,12 +1,35 @@
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
+import {
+	LuClipboard,
+	LuCopy,
+	LuExternalLink,
+	LuFile,
+	LuFolder,
+	LuFolderOpen,
+	LuPencil,
+	LuTrash2,
+} from "react-icons/lu";
 import type { DirectoryEntry } from "shared/file-tree-types";
+import { usePathActions } from "../../../ChangesView/hooks";
 import { SEARCH_RESULT_ROW_HEIGHT } from "../../constants";
 import { getFileIcon } from "../../utils";
 
 interface FileSearchResultItemProps {
 	entry: DirectoryEntry;
+	worktreePath: string;
 	onActivate: (entry: DirectoryEntry) => void;
-	onContextMenu: (entry: DirectoryEntry | null) => void;
+	onOpenInEditor: (entry: DirectoryEntry) => void;
+	onNewFile: (parentPath: string) => void;
+	onNewFolder: (parentPath: string) => void;
+	onRename: (entry: DirectoryEntry) => void;
+	onDelete: (entry: DirectoryEntry) => void;
 }
 
 const PATH_LABEL_MAX_CHARS = 48;
@@ -30,8 +53,13 @@ function truncatePathStart(value: string, maxLength: number): string {
 
 export function FileSearchResultItem({
 	entry,
+	worktreePath,
 	onActivate,
-	onContextMenu,
+	onOpenInEditor,
+	onNewFile,
+	onNewFolder,
+	onRename,
+	onDelete,
 }: FileSearchResultItemProps) {
 	const { icon: Icon, color } = getFileIcon(
 		entry.name,
@@ -44,6 +72,15 @@ export function FileSearchResultItem({
 		PATH_LABEL_MAX_CHARS,
 	);
 
+	const parentPath = entry.isDirectory ? entry.path : worktreePath;
+
+	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
+		usePathActions({
+			absolutePath: entry.path,
+			relativePath: entry.relativePath,
+			cwd: worktreePath,
+		});
+
 	const handleClick = () => {
 		if (!entry.isDirectory) {
 			onActivate(entry);
@@ -51,9 +88,7 @@ export function FileSearchResultItem({
 	};
 
 	const handleDoubleClick = () => {
-		if (!entry.isDirectory) {
-			onActivate(entry);
-		}
+		onOpenInEditor(entry);
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -65,7 +100,7 @@ export function FileSearchResultItem({
 		}
 	};
 
-	return (
+	const itemContent = (
 		<div
 			role="treeitem"
 			tabIndex={0}
@@ -77,10 +112,6 @@ export function FileSearchResultItem({
 			onClick={handleClick}
 			onDoubleClick={handleDoubleClick}
 			onKeyDown={handleKeyDown}
-			onContextMenu={(e) => {
-				e.preventDefault();
-				onContextMenu(entry);
-			}}
 		>
 			<span className="flex items-center justify-center w-4 h-4 shrink-0" />
 			<div className="flex flex-col min-w-0 flex-1 gap-0.5">
@@ -96,5 +127,57 @@ export function FileSearchResultItem({
 				</div>
 			</div>
 		</div>
+	);
+
+	return (
+		<ContextMenu>
+			<ContextMenuTrigger asChild>{itemContent}</ContextMenuTrigger>
+			<ContextMenuContent className="w-48">
+				<ContextMenuItem onClick={() => onNewFile(parentPath)}>
+					<LuFile className="mr-2 size-4" />
+					New File
+				</ContextMenuItem>
+				<ContextMenuItem onClick={() => onNewFolder(parentPath)}>
+					<LuFolder className="mr-2 size-4" />
+					New Folder
+				</ContextMenuItem>
+
+				<ContextMenuSeparator />
+
+				<ContextMenuItem onClick={copyPath}>
+					<LuClipboard className="mr-2 size-4" />
+					Copy Path
+				</ContextMenuItem>
+				<ContextMenuItem onClick={copyRelativePath}>
+					<LuCopy className="mr-2 size-4" />
+					Copy Relative Path
+				</ContextMenuItem>
+
+				<ContextMenuSeparator />
+
+				<ContextMenuItem onClick={revealInFinder}>
+					<LuFolderOpen className="mr-2 size-4" />
+					Reveal in Finder
+				</ContextMenuItem>
+				<ContextMenuItem onClick={openInEditor}>
+					<LuExternalLink className="mr-2 size-4" />
+					Open in Editor
+				</ContextMenuItem>
+
+				<ContextMenuSeparator />
+
+				<ContextMenuItem onClick={() => onRename(entry)}>
+					<LuPencil className="mr-2 size-4" />
+					Rename
+				</ContextMenuItem>
+				<ContextMenuItem
+					onClick={() => onDelete(entry)}
+					className="text-destructive focus:text-destructive"
+				>
+					<LuTrash2 className="mr-2 size-4" />
+					Delete
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }
