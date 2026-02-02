@@ -189,7 +189,12 @@ export const createRingtoneRouter = () => {
 			}
 
 			if (process.platform === "win32") {
-				sendRingtoneEvent({ channel: "ringtone-play", filename: input.filename });
+				const sent = sendRingtoneEvent({ channel: "ringtone-play", filename: input.filename });
+				if (!sent) {
+					// Fallback to direct playback if no renderer window available
+					const soundPath = getSoundPath(input.filename);
+					playSoundFile(soundPath);
+				}
 				return { success: true as const };
 			}
 
@@ -203,7 +208,11 @@ export const createRingtoneRouter = () => {
 		 */
 	stop: publicProcedure.mutation(() => {
 		if (process.platform === "win32") {
-			sendRingtoneEvent({ channel: "ringtone-stop" });
+			const sent = sendRingtoneEvent({ channel: "ringtone-stop" });
+			if (!sent) {
+				// Fallback to stopping current sound if no renderer window available
+				stopCurrentSound();
+			}
 		} else {
 			stopCurrentSound();
 		}
@@ -261,7 +270,12 @@ export function playNotificationRingtone(filename: string): void {
 	}
 
 	if (process.platform === "win32") {
-		sendRingtoneEvent({ channel: "ringtone-play", filename });
+		const sent = sendRingtoneEvent({ channel: "ringtone-play", filename });
+		if (!sent) {
+			// Fallback to direct playback if no renderer window available
+			const soundPath = getSoundPath(filename);
+			playSoundFile(soundPath);
+		}
 		return;
 	}
 
