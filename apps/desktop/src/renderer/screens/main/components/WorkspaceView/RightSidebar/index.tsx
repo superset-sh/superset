@@ -11,12 +11,12 @@ import {
 } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useChangesStore } from "renderer/stores/changes";
 import {
 	RightSidebarTab,
 	SidebarMode,
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
-import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";

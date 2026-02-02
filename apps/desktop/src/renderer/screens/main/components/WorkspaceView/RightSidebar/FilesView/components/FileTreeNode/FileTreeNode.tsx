@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/utils";
-import type { NodeRendererProps } from "react-arborist";
 import { useRef } from "react";
+import type { NodeRendererProps } from "react-arborist";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import type { FileTreeNode as FileTreeNodeType } from "shared/file-tree-types";
 import { usePathActions } from "../../../ChangesView/hooks";
