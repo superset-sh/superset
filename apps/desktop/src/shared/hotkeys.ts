@@ -250,6 +250,10 @@ export function matchesHotkeyEvent(
 	if (key === "up" && eventKey === "arrowup") return true;
 	if (key === "down" && eventKey === "arrowdown") return true;
 
+	// On Mac, Option+number produces special characters (e.g., Option+1 = ¡)
+	// Use event.code to match digit keys when alt is pressed
+	if (/^[1-9]$/.test(key) && eventCode === `digit${key}`) return true;
+
 	return eventKey === key;
 }
 
