@@ -283,9 +283,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const handleDrop = (event: React.DragEvent) => {
 		event.preventDefault();
 		const files = Array.from(event.dataTransfer.files);
-		if (files.length === 0) return;
-		const paths = files.map((file) => window.webUtils.getPathForFile(file));
-		const text = shellEscapePaths(paths);
+		let text: string;
+		if (files.length > 0) {
+			// Native file drop (from Finder, etc.)
+			const paths = files.map((file) => window.webUtils.getPathForFile(file));
+			text = shellEscapePaths(paths);
+		} else {
+			// Internal drag (from file tree) - path is in text/plain
+			const plainText = event.dataTransfer.getData("text/plain");
+			if (!plainText) return;
+			text = shellEscapePaths([plainText]);
+		}
 		if (!isExitedRef.current) {
 			writeRef.current({ paneId, data: text });
 		}

@@ -20,7 +20,7 @@ import {
 	LuTrash2,
 } from "react-icons/lu";
 import type { DirectoryEntry } from "shared/file-tree-types";
-import { usePathActions } from "../../../ChangesView/hooks";
+import { useFileDrag, usePathActions } from "../../../ChangesView/hooks";
 import { getFileIcon } from "../../utils";
 
 interface FileTreeItemProps {
@@ -66,6 +66,8 @@ export function FileTreeItem({
 			cwd: worktreePath,
 		});
 
+	const fileDragProps = useFileDrag({ absolutePath: entry.path });
+
 	const handleClick = (e: React.MouseEvent) => {
 		e.stopPropagation();
 		if (isFolder) {
@@ -102,6 +104,7 @@ export function FileTreeItem({
 	const itemContent = (
 		<div
 			{...item.getProps()}
+			{...fileDragProps}
 			data-item-id={item.getId()}
 			style={{
 				height: rowHeight,
