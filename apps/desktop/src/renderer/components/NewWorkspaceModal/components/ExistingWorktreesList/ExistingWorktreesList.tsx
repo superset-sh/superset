@@ -4,9 +4,15 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCreateFromPr,
 	useCreateWorkspace,
+	useOpenDiskWorktree,
 	useOpenWorktree,
 } from "renderer/react-query/workspaces";
-import { BranchesSection, PrUrlSection, WorktreesSection } from "./components";
+import {
+	BranchesSection,
+	DiskWorktreesSection,
+	PrUrlSection,
+	WorktreesSection,
+} from "./components";
 
 interface ExistingWorktreesListProps {
 	projectId: string;
@@ -19,9 +25,12 @@ export function ExistingWorktreesList({
 }: ExistingWorktreesListProps) {
 	const { data: worktrees = [], isLoading: isWorktreesLoading } =
 		electronTrpc.workspaces.getWorktreesByProject.useQuery({ projectId });
+	const { data: diskWorktrees = [], isLoading: isDiskWorktreesLoading } =
+		electronTrpc.workspaces.getUntrackedDiskWorktrees.useQuery({ projectId });
 	const { data: branchData, isLoading: isBranchesLoading } =
 		electronTrpc.projects.getBranches.useQuery({ projectId });
 	const openWorktree = useOpenWorktree();
+	const openDiskWorktree = useOpenDiskWorktree();
 	const createWorkspace = useCreateWorkspace();
 	const createFromPr = useCreateFromPr();
 
@@ -139,9 +148,26 @@ export function ExistingWorktreesList({
 		}
 	};
 
-	const isLoading = isWorktreesLoading || isBranchesLoading;
+	const handleOpenDiskWorktree = async (path: string, branch: string) => {
+		toast.promise(
+			openDiskWorktree.mutateAsync({ projectId, worktreePath: path, branch }),
+			{
+				loading: "Opening workspace...",
+				success: () => {
+					onOpenSuccess();
+					return `Opened ${branch}`;
+				},
+				error: (err) =>
+					err instanceof Error ? err.message : "Failed to open workspace",
+			},
+		);
+	};
+
+	const isLoading =
+		isWorktreesLoading || isDiskWorktreesLoading || isBranchesLoading;
 	const isPending =
 		openWorktree.isPending ||
+		openDiskWorktree.isPending ||
 		createWorkspace.isPending ||
 		createFromPr.isPending;
 
@@ -154,6 +180,7 @@ export function ExistingWorktreesList({
 	}
 
 	const hasWorktrees = closedWorktrees.length > 0 || openWorktrees.length > 0;
+	const hasDiskWorktrees = diskWorktrees.length > 0;
 	const hasBranches = branchesWithoutWorktrees.length > 0;
 
 	return (
@@ -188,7 +215,15 @@ export function ExistingWorktreesList({
 				/>
 			)}
 
-			{!hasWorktrees && !hasBranches && (
+			{hasDiskWorktrees && (
+				<DiskWorktreesSection
+					diskWorktrees={diskWorktrees}
+					onOpenWorktree={handleOpenDiskWorktree}
+					disabled={isPending}
+				/>
+			)}
+
+			{!hasWorktrees && !hasDiskWorktrees && !hasBranches && (
 				<div className="py-4 text-center text-xs text-muted-foreground">
 					No existing worktrees or branches.
 					<br />

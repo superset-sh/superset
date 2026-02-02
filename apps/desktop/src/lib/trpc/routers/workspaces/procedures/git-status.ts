@@ -13,6 +13,7 @@ import {
 	checkNeedsRebase,
 	fetchDefaultBranch,
 	getDefaultBranch,
+	listDiskWorktrees,
 	refreshDefaultBranch,
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
@@ -165,6 +166,39 @@ export const createGitStatusProcedures = () => {
 						workspace: workspace ?? null,
 					};
 				});
+			}),
+
+		getUntrackedDiskWorktrees: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const project = getProject(input.projectId);
+				if (!project) {
+					return [];
+				}
+
+				const diskWorktrees = await listDiskWorktrees(project.mainRepoPath);
+
+				const trackedWorktrees = localDb
+					.select({ path: worktrees.path })
+					.from(worktrees)
+					.where(eq(worktrees.projectId, input.projectId))
+					.all();
+				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
+
+				return diskWorktrees
+					.filter((dw) => {
+						if (dw.path === project.mainRepoPath) return false;
+						if (dw.isBare) return false;
+						if (dw.isDetached) return false;
+						if (!dw.branch) return false;
+						if (trackedPaths.has(dw.path)) return false;
+						return true;
+					})
+					.map((dw) => ({
+						path: dw.path,
+						// biome-ignore lint/style/noNonNullAssertion: filtered above
+						branch: dw.branch!,
+					}));
 			}),
 	});
 };
