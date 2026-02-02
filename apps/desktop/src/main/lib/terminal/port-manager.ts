@@ -1,7 +1,11 @@
 import { EventEmitter } from "node:events";
 import type { DetectedPort } from "shared/types";
 import { treeKillWithEscalation } from "../tree-kill-with-escalation";
-import { getListeningPortsForPids, getProcessTree } from "./port-scanner";
+import {
+	getListeningPortsForPids,
+	getProcessTree,
+	type PortInfo,
+} from "./port-scanner";
 import type { TerminalSession } from "./types";
 
 // How often to poll for port changes (in ms)
@@ -229,6 +233,12 @@ class PortManager extends EventEmitter {
 				string,
 				{ workspaceId: string; pids: number[] }
 			>();
+			// Map pid -> owning pane/workspace (used to group port results)
+			const pidOwnerMap = new Map<
+				number,
+				{ paneId: string; workspaceId: string }
+			>();
+			const allPids = new Set<number>();
 			// Track panes with empty process trees for self-healing
 			const emptyTreePanes = new Set<string>();
 
@@ -241,6 +251,12 @@ class PortManager extends EventEmitter {
 					const pids = await getProcessTree(pid);
 					if (pids.length > 0) {
 						panePortMap.set(paneId, { workspaceId, pids });
+						for (const childPid of pids) {
+							allPids.add(childPid);
+							if (!pidOwnerMap.has(childPid)) {
+								pidOwnerMap.set(childPid, { paneId, workspaceId });
+							}
+						}
 					} else {
 						// Process tree is gone - mark for self-healing
 						emptyTreePanes.add(paneId);
@@ -259,6 +275,12 @@ class PortManager extends EventEmitter {
 					const pids = await getProcessTree(pid);
 					if (pids.length > 0) {
 						panePortMap.set(paneId, { workspaceId, pids });
+						for (const childPid of pids) {
+							allPids.add(childPid);
+							if (!pidOwnerMap.has(childPid)) {
+								pidOwnerMap.set(childPid, { paneId, workspaceId });
+							}
+						}
 					} else {
 						// Process tree is gone - mark for self-healing
 						emptyTreePanes.add(paneId);
@@ -268,9 +290,26 @@ class PortManager extends EventEmitter {
 				}
 			}
 
+			// Single port scan for all PIDs to avoid N x lsof/netstat calls.
+			const portsByPane = new Map<string, PortInfo[]>();
+			const allPidList = Array.from(allPids);
+			if (allPidList.length > 0) {
+				const portInfos = await getListeningPortsForPids(allPidList);
+				for (const info of portInfos) {
+					const owner = pidOwnerMap.get(info.pid);
+					if (!owner) continue;
+					const existing = portsByPane.get(owner.paneId);
+					if (existing) {
+						existing.push(info);
+					} else {
+						portsByPane.set(owner.paneId, [info]);
+					}
+				}
+			}
+
 			// Update ports for panes with active processes
-			for (const [paneId, { workspaceId, pids }] of panePortMap) {
-				const portInfos = await getListeningPortsForPids(pids);
+			for (const [paneId, { workspaceId }] of panePortMap) {
+				const portInfos = portsByPane.get(paneId) ?? [];
 				this.updatePortsForPane(paneId, workspaceId, portInfos);
 			}
 
