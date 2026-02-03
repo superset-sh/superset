@@ -383,7 +383,7 @@ export const createCreateProcedures = () => {
 						worktreeId: worktree.id,
 						type: "worktree",
 						branch,
-						name: input.name || branch,
+						name: input.name ?? branch,
 						isUnnamed: !input.name,
 						tabOrder: maxTabOrder + 1,
 					})
@@ -591,7 +591,7 @@ export const createCreateProcedures = () => {
 						worktreeId: worktree.id,
 						type: "worktree",
 						branch: worktree.branch,
-						name: input.name || worktree.branch,
+						name: input.name ?? worktree.branch,
 						isUnnamed: !input.name,
 						tabOrder: maxTabOrder + 1,
 					})
