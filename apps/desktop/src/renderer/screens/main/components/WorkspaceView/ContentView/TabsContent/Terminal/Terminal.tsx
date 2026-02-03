@@ -29,13 +29,15 @@ import type {
 } from "./types";
 import { shellEscapePaths } from "./utils";
 
+const stripLeadingEmoji = (text: string) =>
+	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
+
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
 
-	// Query workspace to check if it's unnamed
 	const { data: workspaceData } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId },
 		{ staleTime: 30_000 },
@@ -43,7 +45,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const isUnnamedRef = useRef(false);
 	isUnnamedRef.current = workspaceData?.isUnnamed ?? false;
 
-	// Mutation to rename workspace
 	const utils = electronTrpc.useUtils();
 	const updateWorkspace = electronTrpc.workspaces.update.useMutation({
 		onSuccess: () => {
@@ -52,18 +53,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		},
 	});
 
-	// Callback ref to rename unnamed workspace when terminal title changes
 	const renameUnnamedWorkspaceRef = useRef<(title: string) => void>(() => {});
 	renameUnnamedWorkspaceRef.current = (title: string) => {
-		if (isUnnamedRef.current && title.trim()) {
-			// Strip leading emoji/symbol (e.g., "✳ Casual Greeting" -> "Casual Greeting")
-			const cleanedTitle = title.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
-			if (cleanedTitle) {
-				updateWorkspace.mutate({
-					id: workspaceId,
-					patch: { name: cleanedTitle, preserveUnnamedStatus: true },
-				});
-			}
+		const cleanedTitle = stripLeadingEmoji(title);
+		if (isUnnamedRef.current && cleanedTitle) {
+			updateWorkspace.mutate({
+				id: workspaceId,
+				patch: { name: cleanedTitle, preserveUnnamedStatus: true },
+			});
 		}
 	};
 	const terminalRef = useRef<HTMLDivElement>(null);
