@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
 import { getBlogPosts } from "@/lib/blog";
 import { getChangelogEntries } from "@/lib/changelog";
+import { getAllPeople } from "@/lib/people";
 
 export default function sitemap(): MetadataRoute.Sitemap {
 	const baseUrl = COMPANY.MARKETING_URL;
@@ -24,6 +25,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			lastModified: new Date(),
 			changeFrequency: "weekly",
 			priority: 0.9,
+		},
+		{
+			url: `${baseUrl}/team`,
+			lastModified: new Date(),
+			changeFrequency: "monthly",
+			priority: 0.8,
 		},
 		{
 			url: `${baseUrl}/community`,
@@ -63,5 +70,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		}),
 	);
 
-	return [...staticPages, ...blogPages, ...changelogPages];
+	const people = getAllPeople();
+	const teamPages: MetadataRoute.Sitemap = people.map((person) => ({
+		url: `${baseUrl}/team/${person.id}`,
+		lastModified: new Date(),
+		changeFrequency: "monthly" as const,
+		priority: 0.7,
+	}));
+
+	return [...staticPages, ...blogPages, ...changelogPages, ...teamPages];
 }

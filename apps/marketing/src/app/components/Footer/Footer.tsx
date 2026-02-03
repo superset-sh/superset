@@ -52,6 +52,12 @@ export function Footer() {
 								Docs
 							</a>
 							<Link
+								href="/team"
+								className="text-muted-foreground hover:text-foreground transition-colors"
+							>
+								Team
+							</Link>
+							<Link
 								href="/privacy"
 								className="text-muted-foreground hover:text-foreground transition-colors"
 							>
