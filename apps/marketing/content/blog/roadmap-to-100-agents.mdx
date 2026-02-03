@@ -6,31 +6,31 @@ date: 2026-02-02
 category: Product
 ---
 
-There's a natural progression that builders have been experiencing recently. People we talk to are all noticing substantial changes to their workflows - 
-They're spending less time in their IDE's, handing off more to agents, and reading less code directly. Agents are becoming smarter and the level of trust
-we can give to coding agents in terms of code quality, architecture decisions, and more is increasing.
+Over the last year, builders have started to work in a new mode. We open fewer files, spend less time in the IDE, 
+and hand more work to agents. The agents are getting smarter, and our trust in their code quality and architectural 
+decisions is rising.
 
-As this occurs, the optimal place for a user to interact with agents like Claude Code, Codex, and Cursor Agent is starting to evolve. Our team now is able
-to run 5-7 agents in parallel, but there's still a huge gap to be overcome for us to hit our goal for 2026 - building the tools for the first set of 100x
-engineers managing fleets of agents. 
+On our team, we can reliably run 5 to 7 agents in parallel today. We believe 100 is possible in 2026, but that scale 
+won't happen just by making agents faster and better. It will require rethinking where humans spend attention and how the product mediates that attention.
 
-# Why isn't this possible right now? / What will it take to run 100 agents in parallel
+# What will it take to run 100 agents in parallel
 
-If you've attempted any of these parallel orchestration flows, you can probably guess where the bottleneck is - it's the human in the loop. Right now, most
-responsible teams still review agent code before it's shipped to production. 
+If you've attempted any of these parallel orchestration flows, you can probably guess where the bottleneck is - it's the human in the loop. Most
+responsible teams still review and test agent code by hand before it's shipped to production, which means any agent code needs to go through a human.
 
-Framing Agent pipelines as a throughput problem is a great exercise, as it provides a lot of insight into what the low-hanging-fruit are right now. This is roughly what the pipeline looks like today:
+Framing agent workflows as pipelines is a great exercise, as then the goal is clear - you can improve the total throughput
+by eliminating bottlenecks where they arise. This is roughly what the pipeline looks like today:
 
 [Show an image of user comes up with idea -> plans out a task -> hands plan to agent, loop until code is good enough, merge]
 
-## Interesting insights
+As you can see, there's a lot of places where the user is involved, and since there's only one user, agents have to do a lot of waiting before work is complete.
 
-Agent compute is a practically-infinite resource for most teams (1000 agents active all month probably cost less than an engineer's salary), the main thing
-throttling throughput is that code needs to be reviewed and approved by a human before it's merged. Freeing up your team will lead to more agent code being
-merged, and an outsized impact to your users.
+Agent compute, on the otherhand, is a practically-infinite resource for most teams (1000 agents active all month probably cost less than an engineer's salary)
 
-What's interesting is this means you don't care about how long it takes for one agent to complete its work, as you can always increase the number of agents running to increase the throughput of agent steps.
-What you can't increase is the number of places you interact. That means the vast majority of your time should go to reducing the amount of time you spend interacting with agents.
+What's interesting about this is that this means that agents can __never__ be the bottleneck. You don't care about how long it takes for one agent to complete its work, 
+an agent can be running for days and you wouldn't care, as you can always just run more agents running to increase the throughput of the different agent steps.
+
+That means most valuable thing to spend time on is the human part of the pipeline.
 
 # Where does the time go?
 
