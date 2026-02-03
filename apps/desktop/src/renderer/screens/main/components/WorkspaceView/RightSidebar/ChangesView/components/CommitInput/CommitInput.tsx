@@ -5,6 +5,9 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
@@ -20,6 +23,7 @@ import {
 	HiCheck,
 	HiChevronDown,
 } from "react-icons/hi2";
+import { VscGitMerge } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface CommitInputProps {
@@ -30,6 +34,7 @@ interface CommitInputProps {
 	hasUpstream: boolean;
 	hasExistingPR: boolean;
 	prUrl?: string;
+	prState?: "open" | "draft" | "merged" | "closed";
 	onRefresh: () => void;
 }
 
@@ -41,6 +46,7 @@ export function CommitInput({
 	hasUpstream,
 	hasExistingPR,
 	prUrl,
+	prState,
 	onRefresh,
 }: CommitInputProps) {
 	const [commitMessage, setCommitMessage] = useState("");
@@ -87,6 +93,14 @@ export function CommitInput({
 		onError: (error) => toast.error(`Failed: ${error.message}`),
 	});
 
+	const mergePRMutation = electronTrpc.changes.mergePR.useMutation({
+		onSuccess: () => {
+			toast.success("PR merged successfully");
+			onRefresh();
+		},
+		onError: (error) => toast.error(`Merge failed: ${error.message}`),
+	});
+
 	const fetchMutation = electronTrpc.changes.fetch.useMutation({
 		onSuccess: () => {
 			toast.success("Fetched");
@@ -101,7 +115,8 @@ export function CommitInput({
 		pullMutation.isPending ||
 		syncMutation.isPending ||
 		createPRMutation.isPending ||
-		fetchMutation.isPending;
+		fetchMutation.isPending ||
+		mergePRMutation.isPending;
 
 	const canCommit = hasStagedChanges && commitMessage.trim();
 
@@ -134,6 +149,10 @@ export function CommitInput({
 	};
 	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
 	const handleOpenPR = () => prUrl && window.open(prUrl, "_blank");
+	const handleMergePR = (strategy: "merge" | "squash" | "rebase") =>
+		mergePRMutation.mutate({ worktreePath, strategy, deleteBranch: true });
+
+	const canMergePR = hasExistingPR && prState === "open";
 
 	const handleCommitAndPush = () => {
 		if (!canCommit) return;
@@ -158,7 +177,6 @@ export function CommitInput({
 		);
 	};
 
-	// Determine primary action based on state
 	const getPrimaryAction = () => {
 		if (canCommit) {
 			return {
@@ -349,10 +367,40 @@ export function CommitInput({
 						<DropdownMenuSeparator />
 
 						{hasExistingPR ? (
-							<DropdownMenuItem onClick={handleOpenPR} className="text-xs">
-								<HiArrowTopRightOnSquare className="size-3.5" />
-								Open Pull Request
-							</DropdownMenuItem>
+							<>
+								<DropdownMenuItem onClick={handleOpenPR} className="text-xs">
+									<HiArrowTopRightOnSquare className="size-3.5" />
+									Open Pull Request
+								</DropdownMenuItem>
+								{canMergePR && (
+									<DropdownMenuSub>
+										<DropdownMenuSubTrigger className="text-xs">
+											<VscGitMerge className="size-3.5" />
+											Merge Pull Request
+										</DropdownMenuSubTrigger>
+										<DropdownMenuSubContent className="w-40">
+											<DropdownMenuItem
+												onClick={() => handleMergePR("squash")}
+												className="text-xs"
+											>
+												Squash and merge
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => handleMergePR("merge")}
+												className="text-xs"
+											>
+												Create merge commit
+											</DropdownMenuItem>
+											<DropdownMenuItem
+												onClick={() => handleMergePR("rebase")}
+												className="text-xs"
+											>
+												Rebase and merge
+											</DropdownMenuItem>
+										</DropdownMenuSubContent>
+									</DropdownMenuSub>
+								)}
+							</>
 						) : (
 							<DropdownMenuItem onClick={handleCreatePR} className="text-xs">
 								<HiArrowTopRightOnSquare className="size-3.5" />
