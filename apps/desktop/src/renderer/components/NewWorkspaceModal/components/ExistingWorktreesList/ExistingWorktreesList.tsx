@@ -45,10 +45,13 @@ export function ExistingWorktreesList({
 	const branchesWithoutWorktrees = useMemo(() => {
 		if (!branchData?.branches) return [];
 		const worktreeBranches = new Set(worktrees.map((wt) => wt.branch));
+		const diskWorktreeBranches = new Set(diskWorktrees.map((wt) => wt.branch));
 		return branchData.branches.filter(
-			(branch) => !worktreeBranches.has(branch.name),
+			(branch) =>
+				!worktreeBranches.has(branch.name) &&
+				!diskWorktreeBranches.has(branch.name),
 		);
-	}, [branchData?.branches, worktrees]);
+	}, [branchData?.branches, worktrees, diskWorktrees]);
 
 	const filteredBranches = useMemo(() => {
 		if (!branchSearch) return branchesWithoutWorktrees;
