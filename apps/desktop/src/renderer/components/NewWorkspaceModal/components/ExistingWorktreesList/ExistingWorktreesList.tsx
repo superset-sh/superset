@@ -4,7 +4,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCreateFromPr,
 	useCreateWorkspace,
-	useOpenDiskWorktree,
+	useOpenExternalWorktree,
 	useOpenWorktree,
 } from "renderer/react-query/workspaces";
 import { BranchesSection, PrUrlSection, WorktreesSection } from "./components";
@@ -20,12 +20,12 @@ export function ExistingWorktreesList({
 }: ExistingWorktreesListProps) {
 	const { data: worktrees = [], isLoading: isWorktreesLoading } =
 		electronTrpc.workspaces.getWorktreesByProject.useQuery({ projectId });
-	const { data: diskWorktrees = [], isLoading: isDiskWorktreesLoading } =
-		electronTrpc.workspaces.getUntrackedDiskWorktrees.useQuery({ projectId });
+	const { data: externalWorktrees = [], isLoading: isExternalWorktreesLoading } =
+		electronTrpc.workspaces.getExternalWorktrees.useQuery({ projectId });
 	const { data: branchData, isLoading: isBranchesLoading } =
 		electronTrpc.projects.getBranches.useQuery({ projectId });
 	const openWorktree = useOpenWorktree();
-	const openDiskWorktree = useOpenDiskWorktree();
+	const openExternalWorktree = useOpenExternalWorktree();
 	const createWorkspace = useCreateWorkspace();
 	const createFromPr = useCreateFromPr();
 
@@ -45,13 +45,13 @@ export function ExistingWorktreesList({
 	const branchesWithoutWorktrees = useMemo(() => {
 		if (!branchData?.branches) return [];
 		const worktreeBranches = new Set(worktrees.map((wt) => wt.branch));
-		const diskWorktreeBranches = new Set(diskWorktrees.map((wt) => wt.branch));
+		const externalWorktreeBranches = new Set(externalWorktrees.map((wt) => wt.branch));
 		return branchData.branches.filter(
 			(branch) =>
 				!worktreeBranches.has(branch.name) &&
-				!diskWorktreeBranches.has(branch.name),
+				!externalWorktreeBranches.has(branch.name),
 		);
-	}, [branchData?.branches, worktrees, diskWorktrees]);
+	}, [branchData?.branches, worktrees, externalWorktrees]);
 
 	const filteredBranches = useMemo(() => {
 		if (!branchSearch) return branchesWithoutWorktrees;
@@ -128,11 +128,11 @@ export function ExistingWorktreesList({
 		}
 	};
 
-	const handleOpenDiskWorktree = async (path: string, branch: string) => {
+	const handleOpenExternalWorktree = async (path: string, branch: string) => {
 		setWorktreeOpen(false);
 		setWorktreeSearch("");
 		toast.promise(
-			openDiskWorktree.mutateAsync({ projectId, worktreePath: path, branch }),
+			openExternalWorktree.mutateAsync({ projectId, worktreePath: path, branch }),
 			{
 				loading: "Opening workspace...",
 				success: () => {
@@ -146,10 +146,10 @@ export function ExistingWorktreesList({
 	};
 
 	const isLoading =
-		isWorktreesLoading || isDiskWorktreesLoading || isBranchesLoading;
+		isWorktreesLoading || isExternalWorktreesLoading || isBranchesLoading;
 	const isPending =
 		openWorktree.isPending ||
-		openDiskWorktree.isPending ||
+		openExternalWorktree.isPending ||
 		createWorkspace.isPending ||
 		createFromPr.isPending;
 
@@ -164,7 +164,7 @@ export function ExistingWorktreesList({
 	const hasWorktrees =
 		closedWorktrees.length > 0 ||
 		openWorktrees.length > 0 ||
-		diskWorktrees.length > 0;
+		externalWorktrees.length > 0;
 	const hasBranches = branchesWithoutWorktrees.length > 0;
 
 	return (
@@ -193,13 +193,13 @@ export function ExistingWorktreesList({
 				<WorktreesSection
 					closedWorktrees={closedWorktrees}
 					openWorktrees={openWorktrees}
-					diskWorktrees={diskWorktrees}
+					externalWorktrees={externalWorktrees}
 					searchValue={worktreeSearch}
 					onSearchChange={setWorktreeSearch}
 					isOpen={worktreeOpen}
 					onOpenChange={setWorktreeOpen}
 					onOpenWorktree={handleOpenWorktree}
-					onOpenDiskWorktree={handleOpenDiskWorktree}
+					onOpenExternalWorktree={handleOpenExternalWorktree}
 					disabled={isPending}
 				/>
 			)}

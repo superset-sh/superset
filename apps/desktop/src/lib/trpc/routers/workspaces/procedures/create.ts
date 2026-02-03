@@ -615,7 +615,7 @@ export const createCreateProcedures = () => {
 				};
 			}),
 
-		openDiskWorktree: publicProcedure
+		openExternalWorktree: publicProcedure
 			.input(
 				z.object({
 					projectId: z.string(),
@@ -640,7 +640,12 @@ export const createCreateProcedures = () => {
 				const existingWorktree = localDb
 					.select()
 					.from(worktrees)
-					.where(eq(worktrees.path, input.worktreePath))
+					.where(
+						and(
+							eq(worktrees.projectId, input.projectId),
+							eq(worktrees.path, input.worktreePath),
+						),
+					)
 					.get();
 
 				if (existingWorktree) {
@@ -705,7 +710,7 @@ export const createCreateProcedures = () => {
 						workspace_id: workspace.id,
 						project_id: project.id,
 						type: "worktree",
-						source: "disk_import",
+						source: "external_import",
 					});
 
 					return {
@@ -757,7 +762,7 @@ export const createCreateProcedures = () => {
 					workspace_id: workspace.id,
 					project_id: project.id,
 					branch: input.branch,
-					source: "disk_import",
+					source: "external_import",
 				});
 
 				return {

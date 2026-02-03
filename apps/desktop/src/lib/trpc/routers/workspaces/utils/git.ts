@@ -720,22 +720,22 @@ export async function worktreeExists(
 	}
 }
 
-export interface DiskWorktree {
+export interface ExternalWorktree {
 	path: string;
 	branch: string | null;
 	isDetached: boolean;
 	isBare: boolean;
 }
 
-export async function listDiskWorktrees(
+export async function listExternalWorktrees(
 	mainRepoPath: string,
-): Promise<DiskWorktree[]> {
+): Promise<ExternalWorktree[]> {
 	try {
 		const git = simpleGit(mainRepoPath);
 		const output = await git.raw(["worktree", "list", "--porcelain"]);
 
-		const result: DiskWorktree[] = [];
-		let current: Partial<DiskWorktree> = {};
+		const result: ExternalWorktree[] = [];
+		let current: Partial<ExternalWorktree> = {};
 
 		for (const line of output.split("\n")) {
 			if (line.startsWith("worktree ")) {
@@ -768,7 +768,7 @@ export async function listDiskWorktrees(
 
 		return result;
 	} catch (error) {
-		console.error(`Failed to list disk worktrees: ${error}`);
+		console.error(`Failed to list external worktrees: ${error}`);
 		throw error;
 	}
 }

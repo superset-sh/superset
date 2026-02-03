@@ -5,9 +5,9 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
-export function useOpenDiskWorktree(
+export function useOpenExternalWorktree(
 	options?: Parameters<
-		typeof electronTrpc.workspaces.openDiskWorktree.useMutation
+		typeof electronTrpc.workspaces.openExternalWorktree.useMutation
 	>[0],
 ) {
 	const navigate = useNavigate();
@@ -19,7 +19,7 @@ export function useOpenDiskWorktree(
 	const dismissConfigToast =
 		electronTrpc.config.dismissConfigToast.useMutation();
 
-	return electronTrpc.workspaces.openDiskWorktree.useMutation({
+	return electronTrpc.workspaces.openExternalWorktree.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
 			await utils.workspaces.invalidate();

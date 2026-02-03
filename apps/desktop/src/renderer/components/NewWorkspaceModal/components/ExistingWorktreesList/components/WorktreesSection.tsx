@@ -20,7 +20,7 @@ interface Worktree {
 	hasActiveWorkspace: boolean;
 }
 
-interface DiskWorktree {
+interface ExternalWorktree {
 	path: string;
 	branch: string;
 }
@@ -28,26 +28,26 @@ interface DiskWorktree {
 interface WorktreesSectionProps {
 	closedWorktrees: Worktree[];
 	openWorktrees: Worktree[];
-	diskWorktrees: DiskWorktree[];
+	externalWorktrees: ExternalWorktree[];
 	searchValue: string;
 	onSearchChange: (value: string) => void;
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 	onOpenWorktree: (worktreeId: string, branch: string) => void;
-	onOpenDiskWorktree: (path: string, branch: string) => void;
+	onOpenExternalWorktree: (path: string, branch: string) => void;
 	disabled: boolean;
 }
 
 export function WorktreesSection({
 	closedWorktrees,
 	openWorktrees,
-	diskWorktrees,
+	externalWorktrees,
 	searchValue,
 	onSearchChange,
 	isOpen,
 	onOpenChange,
 	onOpenWorktree,
-	onOpenDiskWorktree,
+	onOpenExternalWorktree,
 	disabled,
 }: WorktreesSectionProps) {
 	const searchLower = searchValue.toLowerCase();
@@ -68,20 +68,20 @@ export function WorktreesSection({
 			)
 		: openWorktrees;
 
-	const filteredDisk = searchValue
-		? diskWorktrees.filter(
+	const filteredExternal = searchValue
+		? externalWorktrees.filter(
 				(wt) =>
 					wt.branch.toLowerCase().includes(searchLower) ||
 					wt.path.toLowerCase().includes(searchLower),
 			)
-		: diskWorktrees;
+		: externalWorktrees;
 
 	const totalCount =
-		closedWorktrees.length + openWorktrees.length + diskWorktrees.length;
+		closedWorktrees.length + openWorktrees.length + externalWorktrees.length;
 	const hasResults =
 		filteredClosed.length > 0 ||
 		filteredOpen.length > 0 ||
-		filteredDisk.length > 0;
+		filteredExternal.length > 0;
 
 	return (
 		<div className="space-y-1.5">
@@ -151,13 +151,13 @@ export function WorktreesSection({
 									))}
 								</CommandGroup>
 							)}
-							{filteredDisk.length > 0 && (
+							{filteredExternal.length > 0 && (
 								<CommandGroup heading="External">
-									{filteredDisk.map((wt) => (
+									{filteredExternal.map((wt) => (
 										<CommandItem
 											key={wt.path}
 											value={wt.path}
-											onSelect={() => onOpenDiskWorktree(wt.path, wt.branch)}
+											onSelect={() => onOpenExternalWorktree(wt.path, wt.branch)}
 											className="flex flex-col items-start gap-0.5"
 										>
 											<span className="flex items-center gap-2 w-full">
