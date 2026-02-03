@@ -27,9 +27,15 @@ import {
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronDown,
+	HiChevronUpDown,
+	HiOutlinePencil,
+} from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
@@ -54,6 +60,7 @@ function generateSlugFromTitle(title: string): string {
 type Mode = "existing" | "new" | "cloud";
 
 export function NewWorkspaceModal() {
+	const navigate = useNavigate();
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
@@ -348,15 +355,41 @@ export function NewWorkspaceModal() {
 									/>
 
 									{(title || branchNameEdited) && (
-										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
+										<div className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
-											<span className="font-mono">
-												{branchPreview || "branch-name"}
+											<span className="font-mono flex items-center">
+												{applyPrefix && resolvedPrefix && (
+													<button
+														type="button"
+														onClick={() => {
+															handleClose();
+															navigate({ to: "/settings/behavior" });
+														}}
+														className="inline-flex items-center gap-0.5 hover:text-foreground transition-colors"
+													>
+														<span>{resolvedPrefix}/</span>
+														<HiOutlinePencil className="size-2.5" />
+													</button>
+												)}
+												{applyPrefix && !resolvedPrefix && (
+													<button
+														type="button"
+														onClick={() => {
+															handleClose();
+															navigate({ to: "/settings/behavior" });
+														}}
+														className="inline-flex items-center gap-0.5 text-muted-foreground/60 hover:text-foreground transition-colors mr-1"
+														title="Add branch prefix"
+													>
+														<HiOutlinePencil className="size-2.5" />
+													</button>
+												)}
+												<span>{branchSlug || "branch-name"}</span>
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
 											</span>
-										</p>
+										</div>
 									)}
 
 									<Collapsible
