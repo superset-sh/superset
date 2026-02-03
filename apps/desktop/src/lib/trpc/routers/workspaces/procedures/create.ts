@@ -34,7 +34,7 @@ import {
 	sanitizeBranchName,
 	worktreeExists,
 } from "../utils/git";
-import { loadSetupConfig } from "../utils/setup";
+import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
 interface CreateWorkspaceFromWorktreeParams {
@@ -704,6 +704,7 @@ export const createCreateProcedures = () => {
 					setLastActiveWorkspace(workspace.id);
 					activateProject(project);
 
+					copySupersetConfigToWorktree(project.mainRepoPath, existingWorktree.path);
 					const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 					track("workspace_opened", {
@@ -756,6 +757,7 @@ export const createCreateProcedures = () => {
 				setLastActiveWorkspace(workspace.id);
 				activateProject(project);
 
+				copySupersetConfigToWorktree(project.mainRepoPath, input.worktreePath);
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 				track("workspace_created", {
