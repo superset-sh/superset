@@ -4,6 +4,7 @@ import {
 	Outlet,
 	useNavigate,
 } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { DndProvider } from "react-dnd";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
@@ -25,13 +26,24 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-	const { data: session, isPending } = authClient.useSession();
+	const { data: session, isPending, error } = authClient.useSession();
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
+
+	// Track if user was ever authenticated in this session.
+	// This prevents redirecting to sign-in on transient network errors.
+	const wasAuthenticatedRef = useRef(false);
+
+	// Update ref when we confirm user is authenticated
+	useEffect(() => {
+		if (isSignedIn) {
+			wasAuthenticatedRef.current = true;
+		}
+	}, [isSignedIn]);
 
 	// Global hooks and subscriptions (these don't need CollectionsProvider)
 	useAgentHookListener();
@@ -66,11 +78,22 @@ function AuthenticatedLayout() {
 		},
 	});
 
+	// Still loading session - render nothing
 	if (isPending) {
 		return null;
 	}
 
-	if (!isSignedIn) {
+	// Transient error (network drop, backend hiccup) while user was previously authenticated.
+	// Keep the authenticated UI instead of redirecting to sign-in.
+	// This prevents flashing the sign-in page on temporary connectivity issues.
+	if (error && !isSignedIn && wasAuthenticatedRef.current) {
+		console.warn(
+			"[auth] Transient error while fetching session, preserving authenticated state:",
+			error,
+		);
+		// Continue rendering the authenticated UI - the session will recover on next successful fetch
+	} else if (!isSignedIn) {
+		// Confirmed signed out: no error, no session, not pending
 		return <Navigate to="/sign-in" replace />;
 	}
 
