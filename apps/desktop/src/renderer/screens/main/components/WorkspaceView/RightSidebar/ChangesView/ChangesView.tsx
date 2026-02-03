@@ -542,8 +542,8 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 							Discard all unstaged changes?
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will revert all unstaged modifications. Untracked files will
-							not be affected. This action cannot be undone.
+							This will revert all unstaged modifications and delete untracked
+							files. This action cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
@@ -582,8 +582,8 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 							Discard all staged changes?
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will unstage and revert all staged changes. Untracked files
-							will not be affected. This action cannot be undone.
+							This will unstage and revert all staged changes. Staged new files
+							will be deleted. This action cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
