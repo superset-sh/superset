@@ -56,10 +56,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const renameUnnamedWorkspaceRef = useRef<(title: string) => void>(() => {});
 	renameUnnamedWorkspaceRef.current = (title: string) => {
 		if (isUnnamedRef.current && title.trim()) {
-			updateWorkspace.mutate({
-				id: workspaceId,
-				patch: { name: title.trim(), preserveUnnamedStatus: true },
-			});
+			// Strip leading emoji/symbol (e.g., "✳ Casual Greeting" -> "Casual Greeting")
+			const cleanedTitle = title.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
+			if (cleanedTitle) {
+				updateWorkspace.mutate({
+					id: workspaceId,
+					patch: { name: cleanedTitle, preserveUnnamedStatus: true },
+				});
+			}
 		}
 	};
 	const terminalRef = useRef<HTMLDivElement>(null);
