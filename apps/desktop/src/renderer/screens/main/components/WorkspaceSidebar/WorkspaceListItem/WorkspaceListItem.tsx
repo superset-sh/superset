@@ -88,7 +88,7 @@ export function WorkspaceListItem({
 	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
 	const [hasHovered, setHasHovered] = useState(false);
-	const rename = useWorkspaceRename(id, name);
+	const rename = useWorkspaceRename(id, name, branch);
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const clearWorkspaceAttentionStatus = useTabsStore(

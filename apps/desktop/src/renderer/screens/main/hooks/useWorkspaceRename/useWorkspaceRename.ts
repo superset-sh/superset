@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";
 
-export function useWorkspaceRename(workspaceId: string, workspaceName: string) {
+export function useWorkspaceRename(
+	workspaceId: string,
+	workspaceName: string,
+	branch: string,
+) {
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const updateWorkspace = useUpdateWorkspace();
 
-	// Select input text when rename mode is activated
 	useEffect(() => {
 		if (isRenaming && inputRef.current) {
 			inputRef.current.select();
 		}
 	}, [isRenaming]);
 
-	// Sync rename value when workspace name changes
 	useEffect(() => {
 		setRenameValue(workspaceName);
 	}, [workspaceName]);
@@ -25,7 +27,15 @@ export function useWorkspaceRename(workspaceId: string, workspaceName: string) {
 
 	const submitRename = () => {
 		const trimmedValue = renameValue.trim();
-		if (trimmedValue && trimmedValue !== workspaceName) {
+		const isCleared = !trimmedValue;
+
+		if (isCleared) {
+			updateWorkspace.mutate({
+				id: workspaceId,
+				patch: { name: branch, isUnnamed: true },
+			});
+			setRenameValue(branch);
+		} else if (trimmedValue !== workspaceName) {
 			updateWorkspace.mutate({
 				id: workspaceId,
 				patch: { name: trimmedValue },
