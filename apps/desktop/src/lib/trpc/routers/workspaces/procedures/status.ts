@@ -63,6 +63,7 @@ export const createStatusProcedures = () => {
 					id: z.string(),
 					patch: z.object({
 						name: z.string().optional(),
+						preserveUnnamedStatus: z.boolean().optional(),
 					}),
 				}),
 			)
@@ -77,7 +78,8 @@ export const createStatusProcedures = () => {
 				touchWorkspace(input.id, {
 					...(input.patch.name !== undefined && {
 						name: input.patch.name,
-						isUnnamed: false,
+						// Only mark as named if not preserving unnamed status
+						...(input.patch.preserveUnnamedStatus ? {} : { isUnnamed: false }),
 					}),
 				});
 

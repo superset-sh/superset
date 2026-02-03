@@ -58,7 +58,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		if (isUnnamedRef.current && title.trim()) {
 			updateWorkspace.mutate({
 				id: workspaceId,
-				patch: { name: title.trim() },
+				patch: { name: title.trim(), preserveUnnamedStatus: true },
 			});
 		}
 	};

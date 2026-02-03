@@ -20,7 +20,6 @@ interface Workspace {
 	name: string;
 	tabOrder: number;
 	isUnread: boolean;
-	isUnnamed: boolean;
 }
 
 interface ProjectSectionProps {
@@ -167,7 +166,6 @@ export function ProjectSection({
 										branch={workspace.branch}
 										type={workspace.type}
 										isUnread={workspace.isUnread}
-										isUnnamed={workspace.isUnnamed}
 										index={wsIndex}
 										shortcutIndex={shortcutBaseIndex + wsIndex}
 										isCollapsed={isSidebarCollapsed}
@@ -225,7 +223,6 @@ export function ProjectSection({
 									branch={workspace.branch}
 									type={workspace.type}
 									isUnread={workspace.isUnread}
-									isUnnamed={workspace.isUnnamed}
 									index={wsIndex}
 									shortcutIndex={shortcutBaseIndex + wsIndex}
 								/>
