@@ -41,3 +41,35 @@ export const commandStatusValues = [
 ] as const;
 export const commandStatusEnum = z.enum(commandStatusValues);
 export type CommandStatus = z.infer<typeof commandStatusEnum>;
+
+// Cloud workspace session status
+export const cloudSessionStatusValues = [
+	"created",
+	"active",
+	"completed",
+	"archived",
+] as const;
+export const cloudSessionStatusEnum = z.enum(cloudSessionStatusValues);
+export type CloudSessionStatus = z.infer<typeof cloudSessionStatusEnum>;
+
+// Cloud sandbox status (Modal sandbox lifecycle)
+export const cloudSandboxStatusValues = [
+	"pending",
+	"warming",
+	"syncing",
+	"ready",
+	"running",
+	"stopped",
+	"failed",
+] as const;
+export const cloudSandboxStatusEnum = z.enum(cloudSandboxStatusValues);
+export type CloudSandboxStatus = z.infer<typeof cloudSandboxStatusEnum>;
+
+// Model selection for cloud sessions
+export const cloudModelValues = [
+	"claude-sonnet-4",
+	"claude-opus-4",
+	"claude-haiku-3-5",
+] as const;
+export const cloudModelEnum = z.enum(cloudModelValues);
+export type CloudModel = z.infer<typeof cloudModelEnum>;

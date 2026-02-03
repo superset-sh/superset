@@ -8,6 +8,7 @@ import {
 	sessions,
 	users,
 } from "./auth";
+import { cloudWorkspaces } from "./cloud-workspaces";
 import {
 	githubInstallations,
 	githubPullRequests,
@@ -34,6 +35,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
+	cloudWorkspaces: many(cloudWorkspaces),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -61,6 +63,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
+	cloudWorkspaces: many(cloudWorkspaces),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -100,6 +103,7 @@ export const repositoriesRelations = relations(
 			references: [organizations.id],
 		}),
 		tasks: many(tasks),
+		cloudWorkspaces: many(cloudWorkspaces),
 	}),
 );
 
@@ -217,3 +221,22 @@ export const agentCommandsRelations = relations(agentCommands, ({ one }) => ({
 		relationName: "parentCommand",
 	}),
 }));
+
+// Cloud workspace relations
+export const cloudWorkspacesRelations = relations(
+	cloudWorkspaces,
+	({ one }) => ({
+		organization: one(organizations, {
+			fields: [cloudWorkspaces.organizationId],
+			references: [organizations.id],
+		}),
+		user: one(users, {
+			fields: [cloudWorkspaces.userId],
+			references: [users.id],
+		}),
+		repository: one(repositories, {
+			fields: [cloudWorkspaces.repositoryId],
+			references: [repositories.id],
+		}),
+	}),
+);

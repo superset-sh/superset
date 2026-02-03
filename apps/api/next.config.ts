@@ -15,6 +15,9 @@ const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 
+	// Allow ngrok domains for local dev with GitHub OAuth
+	allowedDevOrigins: ["*.ngrok.io", "*.ngrok-free.app"],
+
 	images: {
 		remotePatterns: [
 			{

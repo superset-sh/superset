@@ -5,8 +5,10 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { CloudWorkspaceView } from "renderer/screens/main/components/CloudWorkspaceView";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
+import { useCloudWorkspaceStore } from "renderer/stores/cloud-workspace";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
@@ -36,6 +38,9 @@ function DashboardLayout() {
 		{ id: currentWorkspaceId ?? "" },
 		{ enabled: !!currentWorkspaceId },
 	);
+
+	// Cloud workspace state
+	const activeCloudSessionId = useCloudWorkspaceStore((s) => s.activeSessionId);
 
 	const {
 		isOpen: isWorkspaceSidebarOpen,
@@ -105,7 +110,8 @@ function DashboardLayout() {
 						<WorkspaceSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
 					</ResizablePanel>
 				)}
-				<Outlet />
+				{/* Show cloud workspace view when a cloud session is active */}
+				{activeCloudSessionId ? <CloudWorkspaceView /> : <Outlet />}
 			</div>
 		</div>
 	);

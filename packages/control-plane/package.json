@@ -1,0 +1,22 @@
+{
+	"name": "@superset/control-plane",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"hono": "^4.6.0",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20241127.0",
+		"typescript": "^5.9.3",
+		"wrangler": "^4.14.0"
+	}
+}

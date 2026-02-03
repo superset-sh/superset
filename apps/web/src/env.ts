@@ -30,6 +30,8 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_MARKETING_URL: z.string().url(),
 		NEXT_PUBLIC_DOCS_URL: z.string().url(),
+		NEXT_PUBLIC_NGROK_URL: z.string().url().optional(), // For GitHub OAuth in local dev
+		NEXT_PUBLIC_CONTROL_PLANE_URL: z.string().url().optional(),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string(),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
 		NEXT_PUBLIC_SENTRY_DSN_WEB: z.string().optional(),
@@ -44,6 +46,8 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL,
 		NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL,
+		NEXT_PUBLIC_NGROK_URL: process.env.NEXT_PUBLIC_NGROK_URL,
+		NEXT_PUBLIC_CONTROL_PLANE_URL: process.env.NEXT_PUBLIC_CONTROL_PLANE_URL,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
 		NEXT_PUBLIC_SENTRY_DSN_WEB: process.env.NEXT_PUBLIC_SENTRY_DSN_WEB,
