@@ -3,6 +3,7 @@ import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security";
 
@@ -254,6 +255,55 @@ export const createGitOperationsRouter = () => {
 					await fetchCurrentBranch(git);
 
 					return { success: true, url };
+				},
+			),
+
+		mergePR: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					strategy: z.enum(["merge", "squash", "rebase"]).default("squash"),
+					deleteBranch: z.boolean().default(true),
+				}),
+			)
+			.mutation(
+				async ({ input }): Promise<{ success: boolean; mergedAt?: string }> => {
+					assertRegisteredWorktree(input.worktreePath);
+
+					const args = ["pr", "merge", `--${input.strategy}`];
+					if (input.deleteBranch) {
+						args.push("--delete-branch");
+					}
+
+					try {
+						await execWithShellEnv("gh", args, { cwd: input.worktreePath });
+						return { success: true, mergedAt: new Date().toISOString() };
+					} catch (error) {
+						const message =
+							error instanceof Error ? error.message : String(error);
+						console.error("[git/mergePR] Failed to merge PR:", message);
+
+						if (message.includes("no pull requests found")) {
+							throw new TRPCError({
+								code: "NOT_FOUND",
+								message: "No pull request found for this branch",
+							});
+						}
+						if (
+							message.includes("not mergeable") ||
+							message.includes("blocked")
+						) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message:
+									"PR cannot be merged. Check for merge conflicts or required status checks.",
+							});
+						}
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `Failed to merge PR: ${message}`,
+						});
+					}
 				},
 			),
 	});

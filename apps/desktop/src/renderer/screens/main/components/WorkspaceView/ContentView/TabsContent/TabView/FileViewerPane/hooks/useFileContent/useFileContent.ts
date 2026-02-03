@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
+import { isImageFile } from "shared/file-types";
 
 interface UseFileContentParams {
 	worktreePath: string;
@@ -31,11 +32,23 @@ export function useFileContent({
 	);
 	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
 
+	const isImage = isImageFile(filePath);
+
 	const { data: rawFileData, isLoading: isLoadingRaw } =
 		electronTrpc.changes.readWorkingFile.useQuery(
 			{ worktreePath, filePath },
 			{
-				enabled: viewMode !== "diff" && !!filePath && !!worktreePath,
+				enabled:
+					viewMode !== "diff" && !isImage && !!filePath && !!worktreePath,
+			},
+		);
+
+	const { data: imageData, isLoading: isLoadingImage } =
+		electronTrpc.changes.readWorkingFileImage.useQuery(
+			{ worktreePath, filePath },
+			{
+				enabled:
+					viewMode === "rendered" && isImage && !!filePath && !!worktreePath,
 			},
 		);
 
@@ -72,7 +85,9 @@ export function useFileContent({
 
 	return {
 		rawFileData,
-		isLoadingRaw,
+		isLoadingRaw: isLoadingRaw || (isImage && isLoadingImage),
+		imageData,
+		isLoadingImage,
 		diffData,
 		isLoadingDiff,
 	};

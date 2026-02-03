@@ -1,8 +1,11 @@
-"use client";
-
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import {
+	RiGithubFill,
+	RiLinkedinBoxFill,
+	RiTwitterXFill,
+} from "react-icons/ri";
 import { AuthorAvatar } from "@/app/blog/components/AuthorAvatar";
 import { BlogCard } from "@/app/blog/components/BlogCard";
 import { GridCross } from "@/app/blog/components/GridCross";
@@ -21,6 +24,7 @@ export function BlogPostLayout({
 	children,
 }: BlogPostLayoutProps) {
 	const formattedDate = formatBlogDate(post.date);
+	const { author } = post;
 
 	return (
 		<article className="relative min-h-screen">
@@ -56,15 +60,48 @@ export function BlogPostLayout({
 							</p>
 						)}
 
-						<div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
-							<AuthorAvatar
-								name={post.author}
-								title="Cofounder, Superset"
-								twitterHandle="avimakesrobots"
-							/>
-							<span className="text-foreground/70">{post.author}</span>
-							<span className="text-muted-foreground/50">·</span>
-							<time dateTime={post.date}>{formattedDate}</time>
+						<div className="inline-flex items-center gap-3 text-sm text-muted-foreground mx-auto">
+							<AuthorAvatar name={author.name} avatar={author.avatar} />
+							<div className="flex flex-col items-start">
+								<span className="text-foreground/70">{author.name}</span>
+								<span className="text-xs text-muted-foreground">
+									{author.role}
+									<span className="text-muted-foreground/50"> · </span>
+									<time dateTime={post.date}>{formattedDate}</time>
+								</span>
+							</div>
+						</div>
+						<div className="inline-flex items-center gap-3 mt-3 mx-auto pl-11">
+							{author.twitter && (
+								<a
+									href={`https://x.com/${author.twitter}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-muted-foreground hover:text-foreground transition-colors"
+								>
+									<RiTwitterXFill className="size-4" />
+								</a>
+							)}
+							{author.github && (
+								<a
+									href={`https://github.com/${author.github}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-muted-foreground hover:text-foreground transition-colors"
+								>
+									<RiGithubFill className="size-4" />
+								</a>
+							)}
+							{author.linkedin && (
+								<a
+									href={`https://linkedin.com/in/${author.linkedin}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-muted-foreground hover:text-foreground transition-colors"
+								>
+									<RiLinkedinBoxFill className="size-4" />
+								</a>
+							)}
 						</div>
 					</div>
 				</div>

@@ -29,15 +29,31 @@ export default async function BlogPostPage({ params }: PageProps) {
 		slug,
 		relatedSlugs: post.relatedSlugs,
 	});
+	const { author } = post;
 
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
+
+	const sameAs: string[] = [];
+	if (author.twitter) {
+		sameAs.push(`https://x.com/${author.twitter}`);
+	}
+	if (author.github) {
+		sameAs.push(`https://github.com/${author.github}`);
+	}
+	if (author.linkedin) {
+		sameAs.push(`https://linkedin.com/in/${author.linkedin}`);
+	}
 
 	return (
 		<main>
 			<ArticleJsonLd
 				title={post.title}
 				description={post.description}
-				author={post.author}
+				author={{
+					name: author.name,
+					url: author.twitter ? `https://x.com/${author.twitter}` : undefined,
+					sameAs: sameAs.length > 0 ? sameAs : undefined,
+				}}
 				publishedTime={new Date(post.date).toISOString()}
 				url={url}
 				image={post.image}
@@ -85,7 +101,7 @@ export async function generateMetadata({
 			url,
 			siteName: COMPANY.NAME,
 			publishedTime: post.date,
-			authors: [post.author],
+			authors: [post.author.name],
 			...(post.image && { images: [post.image] }),
 		},
 		twitter: {

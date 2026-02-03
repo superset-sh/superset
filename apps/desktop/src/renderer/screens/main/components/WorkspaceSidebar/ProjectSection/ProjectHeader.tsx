@@ -201,7 +201,7 @@ export function ProjectHeader({
 								</button>
 							</TooltipTrigger>
 						</ContextMenuTrigger>
-						<TooltipContent side="right" className="flex flex-col gap-0.5">
+						<TooltipContent className="flex flex-col gap-0.5">
 							<span className="font-medium">{projectName}</span>
 							<span className="text-xs text-muted-foreground">
 								{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}

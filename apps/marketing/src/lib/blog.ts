@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { type BlogPost, slugify, type TocItem } from "./blog-utils";
+import { getPersonById } from "./people";
 
 export { BLOG_CATEGORIES, type BlogCategory } from "./blog-constants";
 export {
@@ -10,6 +11,7 @@ export {
 	slugify,
 	type TocItem,
 } from "./blog-utils";
+export type { Person } from "./people";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
 
@@ -29,12 +31,20 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 			dateValue = new Date().toISOString().split("T")[0] as string;
 		}
 
+		const authorId: string = data.author ?? "unknown";
+		const author = getPersonById(authorId) ?? {
+			id: authorId,
+			name: authorId,
+			role: "",
+			content: "",
+		};
+
 		return {
 			slug,
 			url: `/blog/${slug}`,
 			title: data.title ?? "Untitled",
 			description: data.description,
-			author: data.author ?? "Unknown",
+			author,
 			date: dateValue,
 			category: data.category ?? "News",
 			image: data.image,

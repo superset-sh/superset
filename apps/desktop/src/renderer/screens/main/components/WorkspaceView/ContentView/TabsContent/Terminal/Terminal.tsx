@@ -29,11 +29,40 @@ import type {
 } from "./types";
 import { shellEscapePaths } from "./utils";
 
+const stripLeadingEmoji = (text: string) =>
+	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
+
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
+
+	const { data: workspaceData } = electronTrpc.workspaces.get.useQuery(
+		{ id: workspaceId },
+		{ staleTime: 30_000 },
+	);
+	const isUnnamedRef = useRef(false);
+	isUnnamedRef.current = workspaceData?.isUnnamed ?? false;
+
+	const utils = electronTrpc.useUtils();
+	const updateWorkspace = electronTrpc.workspaces.update.useMutation({
+		onSuccess: () => {
+			utils.workspaces.getAllGrouped.invalidate();
+			utils.workspaces.get.invalidate({ id: workspaceId });
+		},
+	});
+
+	const renameUnnamedWorkspaceRef = useRef<(title: string) => void>(() => {});
+	renameUnnamedWorkspaceRef.current = (title: string) => {
+		const cleanedTitle = stripLeadingEmoji(title);
+		if (isUnnamedRef.current && cleanedTitle) {
+			updateWorkspace.mutate({
+				id: workspaceId,
+				patch: { name: cleanedTitle, preserveUnnamedStatus: true },
+			});
+		}
+	};
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -260,6 +289,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		isAlternateScreenRef,
 		isBracketedPasteRef,
 		debouncedSetTabAutoTitleRef,
+		renameUnnamedWorkspaceRef,
 		handleTerminalFocusRef,
 		registerClearCallbackRef,
 		unregisterClearCallbackRef,

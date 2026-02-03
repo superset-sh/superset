@@ -31,12 +31,13 @@ export function BlogCard({ post }: BlogCardProps) {
 				)}
 				<div className="flex items-center gap-2 mt-auto">
 					<AuthorAvatar
-						name={post.author}
-						title="Cofounder, Superset"
-						twitterHandle="avimakesrobots"
+						name={post.author.name}
+						avatar={post.author.avatar}
 						size="sm"
 					/>
-					<span className="text-xs text-muted-foreground">{post.author}</span>
+					<span className="text-xs text-muted-foreground">
+						{post.author.name}
+					</span>
 				</div>
 			</article>
 		</Link>

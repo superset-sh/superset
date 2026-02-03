@@ -1,13 +1,12 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { ChangeCategory } from "shared/changes-types";
+import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
 	DiffLayout,
 	FileViewerMode,
 	FileViewerState,
 } from "shared/tabs-types";
 import type { Pane, PaneType, Tab } from "./types";
-
-const MARKDOWN_EXTENSIONS = [".md", ".markdown", ".mdx"] as const;
 
 export const resolveFileViewerMode = ({
 	filePath,
@@ -19,10 +18,10 @@ export const resolveFileViewerMode = ({
 	viewMode?: FileViewerMode;
 }): FileViewerMode => {
 	if (viewMode) return viewMode;
+	// Images always default to rendered (no meaningful diff for binary files)
+	if (isImageFile(filePath)) return "rendered";
 	if (diffCategory) return "diff";
-	if (MARKDOWN_EXTENSIONS.some((ext) => filePath.endsWith(ext))) {
-		return "rendered";
-	}
+	if (hasRenderedPreview(filePath)) return "rendered";
 	return "raw";
 };
 

@@ -106,6 +106,8 @@ export const workspaces = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 		isUnread: integer("is_unread", { mode: "boolean" }).default(false),
+		// Whether the workspace has an auto-generated name (branch name) that should prompt for rename
+		isUnnamed: integer("is_unnamed", { mode: "boolean" }).default(false),
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),
@@ -151,6 +153,9 @@ export const settings = sqliteTable("settings", {
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
 	notificationSoundsMuted: integer("notification_sounds_muted", {
+		mode: "boolean",
+	}),
+	telemetryEnabled: integer("telemetry_enabled", {
 		mode: "boolean",
 	}),
 });

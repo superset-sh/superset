@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-	const { data: session } = authClient.useSession();
+	const { data: session, isPending } = authClient.useSession();
 	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -65,6 +65,10 @@ function AuthenticatedLayout() {
 			}
 		},
 	});
+
+	if (isPending) {
+		return null;
+	}
 
 	if (!isSignedIn) {
 		return <Navigate to="/sign-in" replace />;
