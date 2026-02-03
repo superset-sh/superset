@@ -55,7 +55,7 @@ export function Footer() {
 								href="/team"
 								className="text-muted-foreground hover:text-foreground transition-colors"
 							>
-								Team
+								About
 							</Link>
 							<Link
 								href="/privacy"

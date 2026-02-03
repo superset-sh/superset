@@ -1,17 +1,24 @@
+import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
-import { GridCross } from "@/app/blog/components/GridCross";
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import {
+	RiGithubFill,
+	RiLinkedinBoxFill,
+	RiTwitterXFill,
+} from "react-icons/ri";
 import { getAllPeople } from "@/lib/people";
-import { TeamMemberCard } from "./components/TeamMemberCard";
 
 export const metadata: Metadata = {
-	title: "Team",
+	title: "About",
 	description:
 		"Meet the team behind Superset — building parallel coding agents for developers.",
 	alternates: {
 		canonical: "/team",
 	},
 	openGraph: {
-		title: "Team | Superset",
+		title: "About | Superset",
 		description:
 			"Meet the team behind Superset — building parallel coding agents for developers.",
 		url: "/team",
@@ -19,7 +26,7 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Team | Superset",
+		title: "About | Superset",
 		description:
 			"Meet the team behind Superset — building parallel coding agents for developers.",
 		images: ["/opengraph-image"],
@@ -30,49 +37,132 @@ export default function TeamPage() {
 	const people = getAllPeople();
 
 	return (
-		<main className="relative min-h-screen">
-			{/* Vertical guide lines */}
-			<div
-				className="absolute inset-0 pointer-events-none"
-				style={{
-					backgroundImage: `
-						linear-gradient(to right, transparent 0%, transparent calc(50% - 384px), rgba(255,255,255,0.06) calc(50% - 384px), rgba(255,255,255,0.06) calc(50% - 383px), transparent calc(50% - 383px), transparent calc(50% + 383px), rgba(255,255,255,0.06) calc(50% + 383px), rgba(255,255,255,0.06) calc(50% + 384px), transparent calc(50% + 384px))
-					`,
-				}}
-			/>
-
-			{/* Header section */}
-			<header className="relative border-b border-border">
-				<div className="max-w-3xl mx-auto px-6 pt-16 pb-10 md:pt-20 md:pb-12 relative">
-					<GridCross className="top-0 left-0" />
-					<GridCross className="top-0 right-0" />
-
-					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						Team
-					</span>
-					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						The People Behind Superset
+		<main className="relative min-h-screen bg-background">
+			<div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
+				{/* Header Section */}
+				<section className="mb-20 md:mb-28">
+					<h1 className="text-4xl sm:text-5xl md:text-6xl font-normal text-foreground mb-8">
+						Meet the{" "}
+						<span
+							className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl ml-2"
+							style={{ fontFamily: "var(--font-micro5)" }}
+						>
+							FOUNDERS
+						</span>
 					</h1>
-					<p className="text-muted-foreground mt-3 max-w-lg">
-						We're building the future of parallel coding agents for developers.
+
+					<p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mb-8">
+						Frustrated with the status quo of AI coding tools, we teamed up to
+						give developers a better way to orchestrate coding agents—one that
+						fits naturally into real workflows.
 					</p>
 
-					<GridCross className="bottom-0 left-0" />
-					<GridCross className="bottom-0 right-0" />
-				</div>
-			</header>
+					<Link
+						href="/blog"
+						className="inline-flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors group"
+					>
+						Read more on our blog
+						<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+					</Link>
+				</section>
 
-			{/* Team grid */}
-			<div className="relative max-w-3xl mx-auto px-6 py-12">
-				{people.length === 0 ? (
-					<p className="text-muted-foreground">No team members yet.</p>
-				) : (
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-						{people.map((person) => (
-							<TeamMemberCard key={person.id} person={person} />
-						))}
-					</div>
-				)}
+				{/* Founders Grid */}
+				<section>
+					{people.length === 0 ? (
+						<p className="text-muted-foreground">No team members yet.</p>
+					) : (
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+							{people.map((person) => {
+								const initials = person.name
+									.split(" ")
+									.map((n) => n[0])
+									.join("")
+									.toUpperCase()
+									.slice(0, 2);
+
+								return (
+									<article
+										key={person.id}
+										className="flex items-start gap-6"
+									>
+										{/* Circular Photo */}
+										<Link
+											href={`/team/${person.id}`}
+											className="flex-shrink-0"
+										>
+											<div className="relative size-28 md:size-32 rounded-full overflow-hidden bg-muted grayscale hover:grayscale-0 transition-all duration-300">
+												{person.avatar ? (
+													<Image
+														src={person.avatar}
+														alt={person.name}
+														fill
+														className="object-cover"
+														sizes="128px"
+													/>
+												) : (
+													<div className="absolute inset-0 flex items-center justify-center text-2xl font-medium text-foreground/30">
+														{initials}
+													</div>
+												)}
+											</div>
+										</Link>
+
+										{/* Info */}
+										<div className="flex-1 min-w-0 pt-2">
+											<Link href={`/team/${person.id}`}>
+												<h2 className="text-xl font-medium text-foreground hover:text-foreground/80 transition-colors">
+													{person.name}
+												</h2>
+											</Link>
+											<p className="text-sm text-muted-foreground mt-1">
+												{person.role}
+											</p>
+											{person.bio && (
+												<p className="text-sm text-muted-foreground leading-relaxed mt-3">
+													{person.bio}
+												</p>
+											)}
+
+											{/* Social Links */}
+											<div className="flex items-center gap-4 mt-4">
+												{person.github && (
+													<a
+														href={`https://github.com/${person.github}`}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<RiGithubFill className="size-5" />
+													</a>
+												)}
+												{person.linkedin && (
+													<a
+														href={`https://linkedin.com/in/${person.linkedin}`}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<RiLinkedinBoxFill className="size-5" />
+													</a>
+												)}
+												{person.twitter && (
+													<a
+														href={`https://twitter.com/${person.twitter}`}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<RiTwitterXFill className="size-5" />
+													</a>
+												)}
+											</div>
+										</div>
+									</article>
+								);
+							})}
+						</div>
+					)}
+				</section>
 			</div>
 		</main>
 	);
