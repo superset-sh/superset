@@ -18,8 +18,9 @@ interface FileViewerToolbarProps {
 	viewMode: FileViewerMode;
 	/** If false, this is a preview pane (italic name, can be replaced) */
 	isPinned: boolean;
-	isMarkdown: boolean;
-	isImage: boolean;
+	/** Show Rendered tab (for markdown/images) */
+	hasRenderedMode: boolean;
+	/** Show Changes tab (when file has diff) */
 	hasDiff: boolean;
 	splitOrientation: SplitOrientation;
 	diffViewMode: DiffViewMode;
@@ -38,8 +39,7 @@ export function FileViewerToolbar({
 	isDirty,
 	viewMode,
 	isPinned,
-	isMarkdown,
-	isImage,
+	hasRenderedMode,
 	hasDiff,
 	splitOrientation,
 	diffViewMode,
@@ -51,7 +51,6 @@ export function FileViewerToolbar({
 	onPin,
 	onClosePane,
 }: FileViewerToolbarProps) {
-	const hasRenderedMode = isMarkdown || isImage;
 	return (
 		<div className="flex h-full w-full items-center justify-between px-3">
 			<div className="flex min-w-0 items-center gap-2">
@@ -64,18 +63,6 @@ export function FileViewerToolbar({
 					{isDirty && <span className="text-amber-500 mr-1">●</span>}
 					{fileName}
 				</span>
-				{!isPinned && (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<span className="text-[10px] text-muted-foreground/50 cursor-default">
-								preview
-							</span>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							Click again or double-click to pin
-						</TooltipContent>
-					</Tooltip>
-				)}
 			</div>
 			<div className="flex items-center gap-1">
 				<ToggleGroup
@@ -93,20 +80,18 @@ export function FileViewerToolbar({
 							Rendered
 						</ToggleGroupItem>
 					)}
-					{!isImage && (
-						<ToggleGroupItem
-							value="raw"
-							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
-						>
-							Raw
-						</ToggleGroupItem>
-					)}
-					{hasDiff && !isImage && (
+					<ToggleGroupItem
+						value="raw"
+						className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+					>
+						Raw
+					</ToggleGroupItem>
+					{hasDiff && (
 						<ToggleGroupItem
 							value="diff"
 							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
 						>
-							Diff
+							Changes
 						</ToggleGroupItem>
 					)}
 				</ToggleGroup>

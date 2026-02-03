@@ -256,8 +256,7 @@ export function FileViewerPane({
 	};
 
 	const fileName = filePath.split("/").pop() || filePath;
-	const isMarkdown = isMarkdownFile(filePath);
-	const isImage = isImageFile(filePath);
+	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
 	const hasDiff = !!diffCategory;
 	const hasDraft = draftContentRef.current !== null;
 	const isDiffEditable =
@@ -281,8 +280,7 @@ export function FileViewerPane({
 							isDirty={isDirty}
 							viewMode={viewMode}
 							isPinned={isPinned}
-							isMarkdown={isMarkdown}
-							isImage={isImage}
+							hasRenderedMode={hasRenderedMode}
 							hasDiff={hasDiff}
 							splitOrientation={handlers.splitOrientation}
 							diffViewMode={diffViewMode}
