@@ -94,14 +94,25 @@ export function RightSidebar() {
 		[worktreePath, trpcUtils],
 	);
 
+	/**
+	 * Opens a file in the diff viewer pane.
+	 * repoPath is passed for nested repo support - it tells the backend
+	 * which git repository to query for the file contents.
+	 */
 	const handleFileOpenPane = useCallback(
-		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
+		(
+			file: ChangedFile,
+			category: ChangeCategory,
+			commitHash?: string,
+			repoPath?: string,
+		) => {
 			if (!workspaceId || !worktreePath) return;
 			addFileViewerPane(workspaceId, {
 				filePath: file.path,
 				diffCategory: category,
 				commitHash,
 				oldPath: file.oldPath,
+				repoPath,
 			});
 			invalidateFileContent(file.path);
 		},

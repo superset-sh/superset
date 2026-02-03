@@ -71,3 +71,18 @@ export interface FileContents {
 	modified: string; // Modified content (after changes)
 	language: string; // Detected language for syntax highlighting
 }
+
+/** Status for a nested repository within a worktree */
+export interface NestedRepoStatus extends GitChangesStatus {
+	repoPath: string; // Absolute path to the nested repo
+	repoName: string; // Display name (relative from worktree root, or "(root)")
+	isRoot: boolean; // true for main worktree repo
+}
+
+/** Multi-repo git changes status for a worktree with nested repos */
+export interface MultiRepoGitChangesStatus {
+	repos: NestedRepoStatus[];
+	totalStaged: number;
+	totalUnstaged: number;
+	totalUntracked: number;
+}

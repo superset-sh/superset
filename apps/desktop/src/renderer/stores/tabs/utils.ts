@@ -172,6 +172,8 @@ export interface CreateFileViewerPaneOptions {
 	line?: number;
 	/** Column to scroll to (raw mode only) */
 	column?: number;
+	/** Nested repo path for multi-repo support (if different from worktreePath) */
+	repoPath?: string;
 }
 
 /**
@@ -189,6 +191,9 @@ export const createFileViewerPane = (
 		viewMode: options.viewMode,
 	});
 
+	// Build file viewer state
+	// repoPath enables nested repo support - when set, file content queries
+	// will use this path instead of worktreePath to access the correct git repo
 	const fileViewer: FileViewerState = {
 		filePath: options.filePath,
 		viewMode: resolvedViewMode,
@@ -199,6 +204,7 @@ export const createFileViewerPane = (
 		oldPath: options.oldPath,
 		initialLine: options.line,
 		initialColumn: options.column,
+		repoPath: options.repoPath,
 	};
 
 	// Use filename for display name

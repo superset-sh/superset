@@ -11,6 +11,7 @@ import {
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import {
 	assertRegisteredWorktree,
+	assertValidNestedRepo,
 	PathValidationError,
 	resolvePathInWorktree,
 } from "./path-validation";
@@ -271,6 +272,26 @@ async function assertDanglingSymlinkSafe(
 		throw new PathValidationError("Cannot validate path", "SYMLINK_ESCAPE");
 	}
 }
+/**
+ * Validates security for nested repo operations.
+ * Ensures the parent worktree is registered and the nested repo is valid.
+ *
+ * @param worktreePath - The registered parent worktree
+ * @param nestedRepoPath - The nested repo path (or same as worktreePath for root)
+ */
+function assertNestedRepoSecurity(
+	worktreePath: string,
+	nestedRepoPath: string,
+): void {
+	assertRegisteredWorktree(worktreePath);
+	// Normalize paths for comparison to handle trailing slashes and other differences
+	const normalizedWorktree = resolve(worktreePath);
+	const normalizedNested = resolve(nestedRepoPath);
+	if (normalizedNested !== normalizedWorktree) {
+		assertValidNestedRepo(worktreePath, nestedRepoPath);
+	}
+}
+
 export const secureFs = {
 	/**
 	 * Read a file within a worktree.
@@ -465,5 +486,112 @@ export const secureFs = {
 			// NOTE: This makes this method unsuitable as a security gate
 			return false;
 		}
+	},
+
+	// ============================================================
+	// Nested Repo Operations
+	// ============================================================
+	// These methods work with nested git repositories within a worktree.
+	// They validate the parent worktree is registered, then validate
+	// the nested repo is within bounds before operating.
+
+	/**
+	 * Read a file within a nested repo.
+	 *
+	 * @param worktreePath - The registered parent worktree
+	 * @param nestedRepoPath - The nested repo path (or same as worktreePath)
+	 * @param filePath - Relative path within the nested repo
+	 */
+	async readFileInNestedRepo(
+		worktreePath: string,
+		nestedRepoPath: string,
+		filePath: string,
+		encoding: BufferEncoding = "utf-8",
+	): Promise<string> {
+		assertNestedRepoSecurity(worktreePath, nestedRepoPath);
+		const fullPath = resolvePathInWorktree(nestedRepoPath, filePath);
+		// Validate against the root worktree for symlink escape
+		await assertRealpathInWorktree(worktreePath, fullPath);
+		return readFile(fullPath, encoding);
+	},
+
+	/**
+	 * Read a file as Buffer within a nested repo.
+	 */
+	async readFileBufferInNestedRepo(
+		worktreePath: string,
+		nestedRepoPath: string,
+		filePath: string,
+	): Promise<Buffer> {
+		assertNestedRepoSecurity(worktreePath, nestedRepoPath);
+		const fullPath = resolvePathInWorktree(nestedRepoPath, filePath);
+		await assertRealpathInWorktree(worktreePath, fullPath);
+		return readFile(fullPath);
+	},
+
+	/**
+	 * Write content to a file within a nested repo.
+	 */
+	async writeFileInNestedRepo(
+		worktreePath: string,
+		nestedRepoPath: string,
+		filePath: string,
+		content: string,
+	): Promise<void> {
+		assertNestedRepoSecurity(worktreePath, nestedRepoPath);
+		const fullPath = resolvePathInWorktree(nestedRepoPath, filePath);
+		await assertRealpathInWorktree(worktreePath, fullPath);
+		await writeFile(fullPath, content, "utf-8");
+	},
+
+	/**
+	 * Delete a file or directory within a nested repo.
+	 */
+	async deleteInNestedRepo(
+		worktreePath: string,
+		nestedRepoPath: string,
+		filePath: string,
+	): Promise<void> {
+		assertNestedRepoSecurity(worktreePath, nestedRepoPath);
+		const fullPath = resolvePathInWorktree(nestedRepoPath, filePath, {
+			allowRoot: false,
+		});
+
+		let stats: Stats;
+		try {
+			stats = await lstat(fullPath);
+		} catch (error) {
+			if (
+				error instanceof Error &&
+				"code" in error &&
+				error.code === "ENOENT"
+			) {
+				return;
+			}
+			throw error;
+		}
+
+		if (stats.isSymbolicLink()) {
+			await rm(fullPath);
+			return;
+		}
+
+		// Validate against root worktree for symlink escape
+		await assertRealpathInWorktree(worktreePath, fullPath);
+		await rm(fullPath, { recursive: true, force: true });
+	},
+
+	/**
+	 * Get file stats within a nested repo.
+	 */
+	async statInNestedRepo(
+		worktreePath: string,
+		nestedRepoPath: string,
+		filePath: string,
+	): Promise<Stats> {
+		assertNestedRepoSecurity(worktreePath, nestedRepoPath);
+		const fullPath = resolvePathInWorktree(nestedRepoPath, filePath);
+		await assertRealpathInWorktree(worktreePath, fullPath);
+		return stat(fullPath);
 	},
 };

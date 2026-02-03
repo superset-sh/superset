@@ -1,4 +1,5 @@
-import { isAbsolute, normalize, resolve, sep } from "node:path";
+import { accessSync, lstatSync } from "node:fs";
+import { isAbsolute, normalize, relative, resolve, sep } from "node:path";
 import { projects, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -191,4 +192,77 @@ export function resolvePathInWorktree(
  */
 export function assertValidGitPath(filePath: string): void {
 	validateRelativePath(filePath, { allowRoot: true });
+}
+
+/**
+ * Validates that a nested repo path is within a registered worktree.
+ *
+ * Security checks:
+ * 1. The worktree itself must be registered
+ * 2. The nested repo must be within the worktree bounds (no ..)
+ * 3. The nested repo must contain a .git directory
+ * 4. The path must not traverse through symlinks that escape the worktree
+ *
+ * @param worktreePath - The registered worktree path
+ * @param nestedRepoPath - The nested repo path to validate
+ * @throws PathValidationError if validation fails
+ */
+export function assertValidNestedRepo(
+	worktreePath: string,
+	nestedRepoPath: string,
+): void {
+	// First, verify the worktree is registered
+	assertRegisteredWorktree(worktreePath);
+
+	// If nested repo is the same as worktree, it's valid
+	if (normalize(nestedRepoPath) === normalize(worktreePath)) {
+		return;
+	}
+
+	// Compute relative path and check for traversal
+	const relativePath = relative(worktreePath, nestedRepoPath);
+
+	// Reject if relative path starts with .. (escapes worktree)
+	if (relativePath.startsWith("..") || relativePath.startsWith(`${sep}..`)) {
+		throw new PathValidationError(
+			"Nested repo path escapes worktree boundary",
+			"PATH_TRAVERSAL",
+		);
+	}
+
+	// Reject absolute paths
+	if (isAbsolute(relativePath)) {
+		throw new PathValidationError(
+			"Nested repo must be within worktree",
+			"ABSOLUTE_PATH",
+		);
+	}
+
+	// Check for symlink escape: verify the resolved path is still within worktree
+	try {
+		const stats = lstatSync(nestedRepoPath);
+		if (stats.isSymbolicLink()) {
+			throw new PathValidationError(
+				"Nested repo path cannot be a symlink",
+				"SYMLINK_ESCAPE",
+			);
+		}
+	} catch (error) {
+		if (error instanceof PathValidationError) throw error;
+		throw new PathValidationError(
+			"Nested repo path does not exist",
+			"INVALID_TARGET",
+		);
+	}
+
+	// Verify the nested repo contains a .git directory
+	try {
+		const gitPath = resolve(nestedRepoPath, ".git");
+		accessSync(gitPath);
+	} catch {
+		throw new PathValidationError(
+			"Nested repo path is not a git repository",
+			"INVALID_TARGET",
+		);
+	}
 }

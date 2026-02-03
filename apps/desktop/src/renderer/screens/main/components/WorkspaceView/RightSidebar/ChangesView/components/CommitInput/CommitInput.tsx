@@ -31,6 +31,7 @@ interface CommitInputProps {
 	hasExistingPR: boolean;
 	prUrl?: string;
 	onRefresh: () => void;
+	repoPath?: string;
 }
 
 export function CommitInput({
@@ -42,6 +43,7 @@ export function CommitInput({
 	hasExistingPR,
 	prUrl,
 	onRefresh,
+	repoPath,
 }: CommitInputProps) {
 	const [commitMessage, setCommitMessage] = useState("");
 	const [isOpen, setIsOpen] = useState(false);
@@ -95,6 +97,13 @@ export function CommitInput({
 		onError: (error) => toast.error(`Fetch failed: ${error.message}`),
 	});
 
+	// Helper to add repoPath to mutation params
+	const withRepoPath = <T extends { worktreePath: string }>(
+		params: T,
+	): T & { repoPath?: string } => {
+		return repoPath ? { ...params, repoPath } : params;
+	};
+
 	const isPending =
 		commitMutation.isPending ||
 		pushMutation.isPending ||
@@ -107,38 +116,38 @@ export function CommitInput({
 
 	const handleCommit = () => {
 		if (!canCommit) return;
-		commitMutation.mutate({ worktreePath, message: commitMessage.trim() });
+		commitMutation.mutate(
+			withRepoPath({ worktreePath, message: commitMessage.trim() }),
+		);
 	};
 
 	const handlePush = () => {
 		const isPublishing = !hasUpstream;
-		pushMutation.mutate(
-			{ worktreePath, setUpstream: true },
-			{
-				onSuccess: () => {
-					if (isPublishing) {
-						createPRMutation.mutate({ worktreePath });
-					}
-				},
+		pushMutation.mutate(withRepoPath({ worktreePath, setUpstream: true }), {
+			onSuccess: () => {
+				if (isPublishing) {
+					createPRMutation.mutate(withRepoPath({ worktreePath }));
+				}
 			},
-		);
+		});
 	};
-	const handlePull = () => pullMutation.mutate({ worktreePath });
-	const handleSync = () => syncMutation.mutate({ worktreePath });
-	const handleFetch = () => fetchMutation.mutate({ worktreePath });
+	const handlePull = () => pullMutation.mutate(withRepoPath({ worktreePath }));
+	const handleSync = () => syncMutation.mutate(withRepoPath({ worktreePath }));
+	const handleFetch = () =>
+		fetchMutation.mutate(withRepoPath({ worktreePath }));
 	const handleFetchAndPull = () => {
-		fetchMutation.mutate(
-			{ worktreePath },
-			{ onSuccess: () => pullMutation.mutate({ worktreePath }) },
-		);
+		fetchMutation.mutate(withRepoPath({ worktreePath }), {
+			onSuccess: () => pullMutation.mutate(withRepoPath({ worktreePath })),
+		});
 	};
-	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
+	const handleCreatePR = () =>
+		createPRMutation.mutate(withRepoPath({ worktreePath }));
 	const handleOpenPR = () => prUrl && window.open(prUrl, "_blank");
 
 	const handleCommitAndPush = () => {
 		if (!canCommit) return;
 		commitMutation.mutate(
-			{ worktreePath, message: commitMessage.trim() },
+			withRepoPath({ worktreePath, message: commitMessage.trim() }),
 			{ onSuccess: handlePush },
 		);
 	};
@@ -146,12 +155,14 @@ export function CommitInput({
 	const handleCommitPushAndCreatePR = () => {
 		if (!canCommit) return;
 		commitMutation.mutate(
-			{ worktreePath, message: commitMessage.trim() },
+			withRepoPath({ worktreePath, message: commitMessage.trim() }),
 			{
 				onSuccess: () => {
 					pushMutation.mutate(
-						{ worktreePath, setUpstream: true },
-						{ onSuccess: handleCreatePR },
+						withRepoPath({ worktreePath, setUpstream: true }),
+						{
+							onSuccess: handleCreatePR,
+						},
 					);
 				},
 			},

@@ -57,6 +57,8 @@ export interface AddFileViewerPaneOptions {
 	column?: number;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
+	/** Nested repo path for multi-repo support (if different from worktreePath) */
+	repoPath?: string;
 }
 
 /**
