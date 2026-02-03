@@ -22,7 +22,7 @@
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",
 		"prebuild": "bun run clean:dev && bun run compile:app && bun run copy:native-modules",
 		"build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
-		"prepackage": "bun run copy:native-modules",
+		"prepackage": "bun run copy:native-modules && bash scripts/build-voice-sidecar.sh",
 		"package": "electron-builder --config electron-builder.ts",
 		"install:deps": "electron-builder install-app-deps",
 		"release": "electron-builder --publish always",

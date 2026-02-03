@@ -56,6 +56,12 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
+		// Voice sidecar binary (built by PyInstaller via scripts/build-voice-sidecar.sh)
+		{
+			from: "dist/voice-sidecar/voice-sidecar",
+			to: "voice-sidecar",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [
@@ -117,6 +123,8 @@ const config: Configuration = {
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
 		notarize: true,
+		entitlements: join(pkg.resources, "build/entitlements.mac.plist"),
+		entitlementsInherit: join(pkg.resources, "build/entitlements.mac.plist"),
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
@@ -125,6 +133,9 @@ const config: Configuration = {
 				"Superset needs access to your local network to discover and connect to development servers running on your network.",
 			// Bonjour service types to browse for (triggers the permission prompt)
 			NSBonjourServices: ["_http._tcp", "_https._tcp"],
+			// Required for microphone access (voice commands)
+			NSMicrophoneUsageDescription:
+				"Superset uses the microphone for voice commands to interact with your development environment.",
 		},
 	},
 

@@ -32,6 +32,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
 		visibleItems,
 	);
+	const showVoiceCommands = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_VOICE_COMMANDS,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -56,6 +60,68 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
+	};
+
+	const { data: voiceCommandsEnabled, isLoading: isVoiceLoading } =
+		electronTrpc.settings.getVoiceCommandsEnabled.useQuery();
+	const setVoiceCommandsEnabled =
+		electronTrpc.settings.setVoiceCommandsEnabled.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getVoiceCommandsEnabled.cancel();
+				const previous = utils.settings.getVoiceCommandsEnabled.getData();
+				utils.settings.getVoiceCommandsEnabled.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getVoiceCommandsEnabled.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getVoiceCommandsEnabled.invalidate();
+			},
+		});
+
+	const { data: micPermission } = electronTrpc.voice.getMicPermission.useQuery(
+		undefined,
+		{
+			refetchOnWindowFocus: true,
+		},
+	);
+
+	const requestMicPermission =
+		electronTrpc.voice.requestMicPermission.useMutation({
+			onSuccess: ({ granted }) => {
+				utils.voice.getMicPermission.invalidate();
+				if (granted) {
+					setVoiceCommandsEnabled.mutate({ enabled: true });
+				}
+			},
+		});
+
+	const openUrl = electronTrpc.external.openUrl.useMutation();
+
+	const micDenied =
+		micPermission === "denied" || micPermission === "restricted";
+
+	const handleVoiceToggle = (enabled: boolean) => {
+		if (!enabled) {
+			setVoiceCommandsEnabled.mutate({ enabled: false });
+			return;
+		}
+
+		if (micPermission === "granted") {
+			setVoiceCommandsEnabled.mutate({ enabled: true });
+			return;
+		}
+
+		if (micPermission === "not-determined") {
+			requestMicPermission.mutate();
+			return;
+		}
 	};
 
 	const { data: branchPrefix, isLoading: isBranchPrefixLoading } =
@@ -134,6 +200,49 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							onCheckedChange={handleConfirmToggle}
 							disabled={isConfirmLoading || setConfirmOnQuit.isPending}
 						/>
+					</div>
+				)}
+
+				{showVoiceCommands && (
+					<div className="space-y-2">
+						<div className="flex items-center justify-between">
+							<div className="space-y-0.5">
+								<Label htmlFor="voice-commands" className="text-sm font-medium">
+									Voice Commands
+								</Label>
+								<p className="text-xs text-muted-foreground">
+									Say "Hey Jarvis" to control Superset with your voice
+								</p>
+							</div>
+							<Switch
+								id="voice-commands"
+								checked={voiceCommandsEnabled ?? false}
+								onCheckedChange={handleVoiceToggle}
+								disabled={
+									isVoiceLoading ||
+									setVoiceCommandsEnabled.isPending ||
+									requestMicPermission.isPending ||
+									micDenied
+								}
+							/>
+						</div>
+						{micDenied && (
+							<p className="text-xs text-destructive">
+								Microphone access was denied.{" "}
+								<button
+									type="button"
+									className="underline hover:no-underline"
+									onClick={() =>
+										openUrl.mutate(
+											"x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+										)
+									}
+								>
+									Open System Settings
+								</button>{" "}
+								to grant access, then return to this window.
+							</p>
+						)}
 					</div>
 				)}
 

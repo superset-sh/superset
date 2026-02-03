@@ -31,6 +31,7 @@ const config: Configuration = {
 		icon: join(pkg.resources, "build/icons/icon-canary.icns"),
 		artifactName: `Superset-Canary-\${version}-\${arch}.\${ext}`,
 		extendInfo: {
+			...baseConfig.mac?.extendInfo,
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
 		},

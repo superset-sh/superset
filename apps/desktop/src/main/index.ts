@@ -14,6 +14,7 @@ import { localDb } from "./lib/local-db";
 import { initSentry } from "./lib/sentry";
 import { reconcileDaemonSessions } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
+import { stopVoiceProcess } from "./lib/voice/voice-process";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
@@ -155,8 +156,8 @@ app.on("before-quit", async (event) => {
 	}
 
 	// Quit confirmed or no confirmation needed - exit immediately
-	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
+	stopVoiceProcess();
 	disposeTray();
 	app.exit(0);
 });

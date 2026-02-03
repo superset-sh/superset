@@ -1,0 +1,11 @@
+[project]
+name = "superset-voice-sidecar"
+version = "0.1.0"
+description = "Wake word detection + audio capture sidecar for Superset desktop"
+requires-python = ">=3.10"
+
+dependencies = [
+    "openwakeword>=0.6.0",
+    "sounddevice>=0.5.0",
+    "numpy>=1.24.0",
+]
