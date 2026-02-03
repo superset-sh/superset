@@ -83,17 +83,27 @@ function AuthenticatedLayout() {
 		return null;
 	}
 
-	// Transient error (network drop, backend hiccup) while user was previously authenticated.
+	// Check if error is a transient network error vs an auth error (401)
+	// Network errors typically have status 0 or undefined
+	// Auth errors (401) mean the session is actually invalid
+	const isNetworkError =
+		error && (error.status === 0 || error.status === undefined);
+	const isAuthError = error && error.status === 401;
+
+	// Transient network error while user was previously authenticated.
 	// Keep the authenticated UI instead of redirecting to sign-in.
 	// This prevents flashing the sign-in page on temporary connectivity issues.
-	if (error && !isSignedIn && wasAuthenticatedRef.current) {
+	if (isNetworkError && !isSignedIn && wasAuthenticatedRef.current) {
 		console.warn(
-			"[auth] Transient error while fetching session, preserving authenticated state:",
+			"[auth] Network error while fetching session, preserving authenticated state:",
 			error,
 		);
 		// Continue rendering the authenticated UI - the session will recover on next successful fetch
-	} else if (!isSignedIn) {
-		// Confirmed signed out: no error, no session, not pending
+	} else if (!isSignedIn || isAuthError) {
+		// Confirmed signed out: explicit 401, or no error + no session
+		if (isAuthError) {
+			console.log("[auth] Session invalid (401), redirecting to sign-in");
+		}
 		return <Navigate to="/sign-in" replace />;
 	}
 
