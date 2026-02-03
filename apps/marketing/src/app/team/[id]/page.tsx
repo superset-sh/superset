@@ -145,6 +145,7 @@ export default async function TeamMemberPage({ params }: PageProps) {
 							{person.bio && (
 								<p
 									className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
+									// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled content from team data
 									dangerouslySetInnerHTML={{ __html: person.bio }}
 								/>
 							)}

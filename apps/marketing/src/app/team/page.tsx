@@ -1,8 +1,7 @@
-import { COMPANY } from "@superset/shared/constants";
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import {
 	RiGithubFill,
 	RiLinkedinBoxFill,
@@ -52,9 +51,10 @@ export default function TeamPage() {
 					</h1>
 
 					<p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mb-8">
-					Superset is built by a team of 3 ex YC CTOs. We want to create the best team that has fun working together.
-					<br/>
-					Success will be a lagging indicator.
+						Superset is built by a team of 3 ex YC CTOs. We want to create the
+						best team that has fun working together.
+						<br />
+						Success will be a lagging indicator.
 					</p>
 
 					<Link
@@ -81,15 +81,9 @@ export default function TeamPage() {
 									.slice(0, 2);
 
 								return (
-									<article
-										key={person.id}
-										className="flex items-start gap-6"
-									>
+									<article key={person.id} className="flex items-start gap-6">
 										{/* Circular Photo */}
-										<Link
-											href={`/team/${person.id}`}
-											className="flex-shrink-0"
-										>
+										<Link href={`/team/${person.id}`} className="flex-shrink-0">
 											<div className="relative size-28 md:size-32 rounded-full overflow-hidden bg-muted grayscale hover:grayscale-0 transition-all duration-300">
 												{person.avatar ? (
 													<Image
@@ -120,6 +114,7 @@ export default function TeamPage() {
 											{person.bio && (
 												<p
 													className="text-sm text-muted-foreground leading-relaxed mt-3 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
+													// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled content from team data
 													dangerouslySetInnerHTML={{ __html: person.bio }}
 												/>
 											)}
