@@ -20,8 +20,10 @@ export function ExistingWorktreesList({
 }: ExistingWorktreesListProps) {
 	const { data: worktrees = [], isLoading: isWorktreesLoading } =
 		electronTrpc.workspaces.getWorktreesByProject.useQuery({ projectId });
-	const { data: externalWorktrees = [], isLoading: isExternalWorktreesLoading } =
-		electronTrpc.workspaces.getExternalWorktrees.useQuery({ projectId });
+	const {
+		data: externalWorktrees = [],
+		isLoading: isExternalWorktreesLoading,
+	} = electronTrpc.workspaces.getExternalWorktrees.useQuery({ projectId });
 	const { data: branchData, isLoading: isBranchesLoading } =
 		electronTrpc.projects.getBranches.useQuery({ projectId });
 	const openWorktree = useOpenWorktree();
@@ -45,7 +47,9 @@ export function ExistingWorktreesList({
 	const branchesWithoutWorktrees = useMemo(() => {
 		if (!branchData?.branches) return [];
 		const worktreeBranches = new Set(worktrees.map((wt) => wt.branch));
-		const externalWorktreeBranches = new Set(externalWorktrees.map((wt) => wt.branch));
+		const externalWorktreeBranches = new Set(
+			externalWorktrees.map((wt) => wt.branch),
+		);
 		return branchData.branches.filter(
 			(branch) =>
 				!worktreeBranches.has(branch.name) &&
@@ -132,7 +136,11 @@ export function ExistingWorktreesList({
 		setWorktreeOpen(false);
 		setWorktreeSearch("");
 		toast.promise(
-			openExternalWorktree.mutateAsync({ projectId, worktreePath: path, branch }),
+			openExternalWorktree.mutateAsync({
+				projectId,
+				worktreePath: path,
+				branch,
+			}),
 			{
 				loading: "Opening workspace...",
 				success: () => {

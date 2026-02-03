@@ -704,7 +704,10 @@ export const createCreateProcedures = () => {
 					setLastActiveWorkspace(workspace.id);
 					activateProject(project);
 
-					copySupersetConfigToWorktree(project.mainRepoPath, existingWorktree.path);
+					copySupersetConfigToWorktree(
+						project.mainRepoPath,
+						existingWorktree.path,
+					);
 					const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 					track("workspace_opened", {

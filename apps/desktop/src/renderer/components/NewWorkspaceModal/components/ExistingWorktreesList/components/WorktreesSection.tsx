@@ -157,7 +157,9 @@ export function WorktreesSection({
 										<CommandItem
 											key={wt.path}
 											value={wt.path}
-											onSelect={() => onOpenExternalWorktree(wt.path, wt.branch)}
+											onSelect={() =>
+												onOpenExternalWorktree(wt.path, wt.branch)
+											}
 											className="flex flex-col items-start gap-0.5"
 										>
 											<span className="flex items-center gap-2 w-full">
