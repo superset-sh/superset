@@ -197,20 +197,20 @@ const TOOL_PROGRESS_STATUS: Record<string, string> = {
 	delete_task: "Deleting task...",
 	list_tasks: "Searching tasks...",
 	get_task: "Fetching task details...",
-	list_task_statuses: "Fetching statuses...",
 	create_workspace: "Creating workspace...",
 	list_workspaces: "Fetching workspaces...",
-	list_devices: "Fetching devices...",
 	list_projects: "Fetching projects...",
-	list_members: "Fetching team members...",
 	slack_get_channel_history: "Reading channel history...",
 };
 
-// Desktop-only tools that don't make sense in Slack context
+// Tools excluded from Slack agent context
 const DENIED_SUPERSET_TOOLS = new Set([
 	"navigate_to_workspace",
 	"switch_workspace",
 	"get_app_context",
+	"list_members",
+	"list_task_statuses",
+	"list_devices",
 ]);
 
 const SLACK_GET_CHANNEL_HISTORY_TOOL: Anthropic.Tool = {
@@ -279,6 +279,71 @@ Context gathering:
 - Use slack_get_channel_history to read recent channel messages for additional context
 - Don't ask the user for context you can find yourself - be proactive`;
 
+async function fetchAgentContext({
+	mcpClient,
+	userId,
+}: {
+	mcpClient: Client;
+	userId: string;
+}): Promise<string> {
+	const [membersResult, statusesResult, devicesResult] = await Promise.all([
+		mcpClient.callTool({ name: "list_members", arguments: {} }),
+		mcpClient.callTool({ name: "list_task_statuses", arguments: {} }),
+		mcpClient.callTool({
+			name: "list_devices",
+			arguments: { includeOffline: true },
+		}),
+	]);
+
+	const sections: string[] = [];
+
+	const membersData = membersResult.structuredContent as {
+		members: { id: string; name: string | null; email: string }[];
+	} | null;
+	if (membersData?.members?.length) {
+		const currentUser = membersData.members.find((m) => m.id === userId);
+		if (currentUser) {
+			sections.push(
+				`Current user: ${currentUser.name ?? currentUser.email} (id: ${currentUser.id}, email: ${currentUser.email})`,
+			);
+		}
+
+		const lines = membersData.members.map(
+			(m) => `- ${m.name ?? m.email} (id: ${m.id}, email: ${m.email})`,
+		);
+		sections.push(`Team members:\n${lines.join("\n")}`);
+	}
+
+	const statusesData = statusesResult.structuredContent as {
+		statuses: { id: string; name: string; type: string }[];
+	} | null;
+	if (statusesData?.statuses?.length) {
+		const lines = statusesData.statuses.map(
+			(s) => `- ${s.name} (id: ${s.id}, type: ${s.type})`,
+		);
+		sections.push(`Task statuses:\n${lines.join("\n")}`);
+	}
+
+	const devicesData = devicesResult.structuredContent as {
+		devices: {
+			deviceId: string;
+			deviceName: string | null;
+			ownerName: string | null;
+			ownerEmail: string;
+			isOnline: boolean;
+		}[];
+	} | null;
+	if (devicesData?.devices?.length) {
+		const lines = devicesData.devices.map(
+			(d) =>
+				`- ${d.deviceName ?? "Unknown"} (id: ${d.deviceId}, owner: ${d.ownerName ?? d.ownerEmail}, status: ${d.isOnline ? "online" : "offline"})`,
+		);
+		sections.push(`Devices:\n${lines.join("\n")}`);
+	}
+
+	return sections.join("\n\n");
+}
+
 export async function runSlackAgent(
 	params: RunSlackAgentParams,
 ): Promise<SlackAgentResult> {
@@ -316,11 +381,17 @@ export async function runSlackAgent(
 		supersetMcp = supersetMcpResult.client;
 		cleanupSuperset = supersetMcpResult.cleanup;
 
-		const supersetToolsResult = await supersetMcp.listTools();
+		const [supersetToolsResult, agentContext] = await Promise.all([
+			supersetMcp.listTools(),
+			fetchAgentContext({
+				mcpClient: supersetMcp,
+				userId: connection.connectedByUserId,
+			}),
+		]);
 
 		const supersetTools = supersetToolsResult.tools
-			.map((t) => mcpToolToAnthropicTool(t, "superset"))
-			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name));
+			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name))
+			.map((t) => mcpToolToAnthropicTool(t, "superset"));
 
 		const tools: Anthropic.Messages.ToolUnion[] = [
 			...supersetTools,
@@ -337,7 +408,9 @@ export async function runSlackAgent(
 Current context:
 - Slack Channel: ${params.channelId}
 - Thread: ${params.threadTs}
-- Organization ID: ${params.organizationId}`;
+- Organization ID: ${params.organizationId}
+
+${agentContext}`;
 
 		const userContent = threadContext
 			? `${threadContext}\n\nCurrent message:\n${params.prompt}`
