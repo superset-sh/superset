@@ -2,7 +2,6 @@ import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { StartView } from "renderer/screens/main/components/StartView";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/workspace/")({
 	component: WorkspaceIndexPage,
@@ -26,7 +25,12 @@ function WorkspaceIndexPage() {
 
 	useEffect(() => {
 		if (isLoading || !workspaces) return;
-		if (allWorkspaces.length === 0) return; // Show StartView instead
+
+		if (allWorkspaces.length === 0) {
+			// Redirect to clean onboarding screen (no sidebar/topbar)
+			navigate({ to: "/welcome", replace: true });
+			return;
+		}
 
 		// Try to restore last viewed workspace
 		const lastViewedId = localStorage.getItem("lastViewedWorkspaceId");
@@ -43,7 +47,7 @@ function WorkspaceIndexPage() {
 	}, [workspaces, isLoading, navigate, allWorkspaces]);
 
 	if (hasNoWorkspaces) {
-		return <StartView />;
+		return <LoadingSpinner />;
 	}
 
 	return <LoadingSpinner />;

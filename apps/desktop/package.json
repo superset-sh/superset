@@ -136,7 +136,7 @@
 		"os-locale": "^6.0.2",
 		"pidtree": "^0.6.0",
 		"posthog-js": "1.310.1",
-		"posthog-node": "^5.18.0",
+		"posthog-node": "^5.24.7",
 		"react": "19.1.0",
 		"react-dnd": "^16.0.1",
 		"react-dnd-html5-backend": "^16.0.1",
