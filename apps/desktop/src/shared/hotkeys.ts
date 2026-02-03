@@ -518,6 +518,16 @@ export const HOTKEYS = {
 		label: "Next Tab",
 		category: "Terminal",
 	}),
+	PREV_TAB_ALT: defineHotkey({
+		keys: "ctrl+shift+tab",
+		label: "Previous Tab (Alt)",
+		category: "Terminal",
+	}),
+	NEXT_TAB_ALT: defineHotkey({
+		keys: "ctrl+tab",
+		label: "Next Tab (Alt)",
+		category: "Terminal",
+	}),
 	PREV_PANE: defineHotkey({
 		keys: "meta+shift+left",
 		label: "Previous Pane",
