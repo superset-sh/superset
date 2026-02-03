@@ -185,41 +185,43 @@ export function StartView() {
 				<div className="flex flex-col items-center w-full max-w-md px-6">
 					<SupersetLogo
 						className={cn(
-							"h-10 w-auto mb-10 transition-opacity duration-200",
+							"h-8 w-auto mb-12 transition-opacity duration-200 opacity-80",
 							isDragOver && "opacity-0",
 						)}
 					/>
 
-					<div className="w-full flex flex-col gap-3">
+					<div className="w-full flex flex-col gap-4">
 						<div>
 							<button
 								type="button"
 								onClick={handleOpenProject}
 								disabled={isLoading}
 								className={cn(
-									"w-full rounded-lg border border-dashed transition-colors",
-									"focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+									"w-full rounded-xl border-2 border-dashed transition-all duration-200",
+									"focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
 									"disabled:opacity-50 disabled:pointer-events-none",
 									isDragOver
-										? "border-foreground/40 bg-accent/50 py-32"
-										: "border-border bg-card px-6 py-20 hover:bg-accent",
+										? "border-primary/60 bg-primary/5 py-32 scale-[1.02]"
+										: "border-border/60 bg-card/50 px-6 py-16 hover:border-primary/40 hover:bg-accent/50",
 								)}
 							>
 								{isDragOver ? (
-									<div className="flex flex-col items-center gap-2">
-										<LuFolderGit className="w-7 h-7 text-foreground" />
-										<span className="text-base text-foreground">
+									<div className="flex flex-col items-center gap-3">
+										<LuFolderGit className="w-10 h-10 text-primary" />
+										<span className="text-lg font-medium text-foreground">
 											Drop git project
 										</span>
 									</div>
 								) : (
-									<div className="flex-1 text-left">
-										<LuFolderOpen className="w-5 h-5 text-muted-foreground" />
-										<div className="text-base pt-2 text-foreground">
-											Open Project
+									<div className="flex flex-col items-center group">
+										<div className="flex items-center gap-3">
+											<LuFolderOpen className="w-7 h-7 text-muted-foreground group-hover:text-primary transition-colors" />
+											<span className="text-lg font-medium text-foreground">
+												Open Project
+											</span>
 										</div>
-										<div className="text-sm pt-1 text-muted-foreground">
-											Drag any folder with a .git here or click to browse
+										<div className="text-sm pt-3 text-muted-foreground">
+											Drag a folder with .git or click to browse
 										</div>
 									</div>
 								)}
@@ -228,19 +230,19 @@ export function StartView() {
 
 						<div
 							className={cn(
-								"flex items-center gap-1 transition-opacity",
+								"flex items-center justify-center gap-2 transition-opacity pt-2",
 								isDragOver && "opacity-0",
 							)}
 						>
-							<span className="text-sm text-muted-foreground/60">
+							<span className="text-sm text-muted-foreground">
 								Don't have a local repo?
 							</span>
 							<Button
-								variant="link"
+								variant="outline"
 								size="sm"
 								onClick={() => setIsCloneDialogOpen(true)}
 								disabled={isLoading}
-								className="text-sm text-foreground"
+								className="text-sm"
 							>
 								Clone Repository
 							</Button>
