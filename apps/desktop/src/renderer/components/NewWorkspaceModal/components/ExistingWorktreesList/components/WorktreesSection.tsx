@@ -57,7 +57,7 @@ export function WorktreesSection({
 		<div className="space-y-1.5">
 			<div className="border-t border-border pt-2" />
 			<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-				Worktrees
+				Superset Worktrees
 			</div>
 			<Popover open={isOpen} onOpenChange={onOpenChange} modal={false}>
 				<PopoverTrigger asChild>
@@ -70,7 +70,7 @@ export function WorktreesSection({
 						<span className="flex items-center gap-2 truncate">
 							<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 							<span className="truncate text-sm text-muted-foreground">
-								Select worktree...
+								Select superset worktree...
 							</span>
 						</span>
 						<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
@@ -83,12 +83,12 @@ export function WorktreesSection({
 				>
 					<Command shouldFilter={false}>
 						<CommandInput
-							placeholder="Search worktrees..."
+							placeholder="Search superset worktrees..."
 							value={searchValue}
 							onValueChange={onSearchChange}
 						/>
 						<CommandList className="max-h-[200px]">
-							<CommandEmpty>No worktrees found</CommandEmpty>
+							<CommandEmpty>No superset worktrees found</CommandEmpty>
 							{filteredClosed.length > 0 && (
 								<CommandGroup>
 									{filteredClosed.map((wt) => (

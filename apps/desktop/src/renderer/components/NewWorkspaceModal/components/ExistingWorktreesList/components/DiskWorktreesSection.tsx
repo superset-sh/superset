@@ -47,7 +47,7 @@ export function DiskWorktreesSection({
 		<div className="space-y-1.5">
 			<div className="border-t border-border pt-2" />
 			<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-				Disk Worktrees
+				External Worktrees
 			</div>
 			<Popover open={isOpen} onOpenChange={onOpenChange} modal={false}>
 				<PopoverTrigger asChild>
@@ -60,7 +60,7 @@ export function DiskWorktreesSection({
 						<span className="flex items-center gap-2 truncate">
 							<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 							<span className="truncate text-sm text-muted-foreground">
-								Select disk worktree...
+								Select external worktree...
 							</span>
 						</span>
 						<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
@@ -73,12 +73,12 @@ export function DiskWorktreesSection({
 				>
 					<Command shouldFilter={false}>
 						<CommandInput
-							placeholder="Search disk worktrees..."
+							placeholder="Search external worktrees..."
 							value={searchValue}
 							onValueChange={onSearchChange}
 						/>
 						<CommandList className="max-h-[200px]">
-							<CommandEmpty>No disk worktrees found</CommandEmpty>
+							<CommandEmpty>No external worktrees found</CommandEmpty>
 							{filteredWorktrees.length > 0 && (
 								<CommandGroup>
 									{filteredWorktrees.map((wt) => (
