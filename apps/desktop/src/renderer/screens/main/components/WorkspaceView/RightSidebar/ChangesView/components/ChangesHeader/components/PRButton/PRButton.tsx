@@ -6,8 +6,9 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiChevronDown } from "react-icons/hi2";
-import { LuLoaderCircle } from "react-icons/lu";
+import { LuGitPullRequest, LuLoaderCircle } from "react-icons/lu";
 import { VscGitMerge } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
@@ -37,6 +38,14 @@ export function PRButton({
 		onError: (error) => toast.error(`Merge failed: ${error.message}`),
 	});
 
+	const createPRMutation = electronTrpc.changes.createPR.useMutation({
+		onSuccess: () => {
+			toast.success("Opening GitHub...");
+			onRefresh();
+		},
+		onError: (error) => toast.error(`Failed: ${error.message}`),
+	});
+
 	const handleMergePR = (strategy: "merge" | "squash" | "rebase") =>
 		mergePRMutation.mutate({ worktreePath, strategy, deleteBranch: true });
 
@@ -46,7 +55,27 @@ export function PRButton({
 		);
 	}
 
-	if (!pr) return null;
+	if (!pr) {
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						className="flex items-center ml-auto hover:opacity-80 transition-opacity disabled:opacity-50"
+						onClick={() => createPRMutation.mutate({ worktreePath })}
+						disabled={createPRMutation.isPending}
+					>
+						{createPRMutation.isPending ? (
+							<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground" />
+						) : (
+							<LuGitPullRequest className="w-4 h-4 text-muted-foreground" />
+						)}
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">Create Pull Request</TooltipContent>
+			</Tooltip>
+		);
+	}
 
 	const canMerge = pr.state === "open";
 

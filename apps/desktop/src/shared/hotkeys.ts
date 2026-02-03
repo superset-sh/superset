@@ -646,6 +646,12 @@ export const HOTKEYS = {
 		category: "Workspace",
 		description: "Open an existing project folder",
 	}),
+	OPEN_PR: defineHotkey({
+		keys: "meta+shift+p",
+		label: "Open Pull Request",
+		category: "Workspace",
+		description: "Open existing PR or create a new one on GitHub",
+	}),
 
 	// Window
 	NEW_WINDOW: defineHotkey({
