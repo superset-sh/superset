@@ -19,6 +19,7 @@ interface FileViewerToolbarProps {
 	/** If false, this is a preview pane (italic name, can be replaced) */
 	isPinned: boolean;
 	isMarkdown: boolean;
+	isImage: boolean;
 	hasDiff: boolean;
 	splitOrientation: SplitOrientation;
 	diffViewMode: DiffViewMode;
@@ -38,6 +39,7 @@ export function FileViewerToolbar({
 	viewMode,
 	isPinned,
 	isMarkdown,
+	isImage,
 	hasDiff,
 	splitOrientation,
 	diffViewMode,
@@ -49,6 +51,7 @@ export function FileViewerToolbar({
 	onPin,
 	onClosePane,
 }: FileViewerToolbarProps) {
+	const hasRenderedMode = isMarkdown || isImage;
 	return (
 		<div className="flex h-full w-full items-center justify-between px-3">
 			<div className="flex min-w-0 items-center gap-2">
@@ -82,7 +85,7 @@ export function FileViewerToolbar({
 					size="sm"
 					className="h-5 bg-muted/50 rounded-md"
 				>
-					{isMarkdown && (
+					{hasRenderedMode && (
 						<ToggleGroupItem
 							value="rendered"
 							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
@@ -90,13 +93,15 @@ export function FileViewerToolbar({
 							Rendered
 						</ToggleGroupItem>
 					)}
-					<ToggleGroupItem
-						value="raw"
-						className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
-					>
-						Raw
-					</ToggleGroupItem>
-					{hasDiff && (
+					{!isImage && (
+						<ToggleGroupItem
+							value="raw"
+							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+						>
+							Raw
+						</ToggleGroupItem>
+					)}
+					{hasDiff && !isImage && (
 						<ToggleGroupItem
 							value="diff"
 							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"

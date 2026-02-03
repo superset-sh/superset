@@ -4,6 +4,7 @@ import type { MosaicBranch } from "react-mosaic-component";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
+import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
@@ -97,19 +98,24 @@ export function FileViewerPane({
 		setIsDirty,
 	});
 
-	const { rawFileData, isLoadingRaw, diffData, isLoadingDiff } = useFileContent(
-		{
-			worktreePath,
-			filePath,
-			viewMode,
-			diffCategory,
-			commitHash,
-			oldPath,
-			isDirty,
-			originalContentRef,
-			originalDiffContentRef,
-		},
-	);
+	const {
+		rawFileData,
+		isLoadingRaw,
+		imageData,
+		isLoadingImage,
+		diffData,
+		isLoadingDiff,
+	} = useFileContent({
+		worktreePath,
+		filePath,
+		viewMode,
+		diffCategory,
+		commitHash,
+		oldPath,
+		isDirty,
+		originalContentRef,
+		originalDiffContentRef,
+	});
 
 	const handleEditorChange = useCallback((value: string | undefined) => {
 		if (value === undefined) return;
@@ -250,10 +256,8 @@ export function FileViewerPane({
 	};
 
 	const fileName = filePath.split("/").pop() || filePath;
-	const isMarkdown =
-		filePath.endsWith(".md") ||
-		filePath.endsWith(".markdown") ||
-		filePath.endsWith(".mdx");
+	const isMarkdown = isMarkdownFile(filePath);
+	const isImage = isImageFile(filePath);
 	const hasDiff = !!diffCategory;
 	const hasDraft = draftContentRef.current !== null;
 	const isDiffEditable =
@@ -278,6 +282,7 @@ export function FileViewerPane({
 							viewMode={viewMode}
 							isPinned={isPinned}
 							isMarkdown={isMarkdown}
+							isImage={isImage}
 							hasDiff={hasDiff}
 							splitOrientation={handlers.splitOrientation}
 							diffViewMode={diffViewMode}
@@ -296,8 +301,10 @@ export function FileViewerPane({
 					viewMode={viewMode}
 					filePath={filePath}
 					isLoadingRaw={isLoadingRaw}
+					isLoadingImage={isLoadingImage}
 					isLoadingDiff={isLoadingDiff}
 					rawFileData={rawFileData}
+					imageData={imageData}
 					diffData={diffData}
 					isDiffEditable={isDiffEditable}
 					editorRef={editorRef}

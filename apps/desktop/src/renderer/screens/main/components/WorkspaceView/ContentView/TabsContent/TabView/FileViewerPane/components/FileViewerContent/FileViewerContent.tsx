@@ -12,6 +12,7 @@ import {
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
+import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { DiffViewer } from "../../../../../../ChangesContent/components/DiffViewer";
 import { registerCopyPathLineAction } from "../../../../../components/EditorContextMenu";
@@ -34,6 +35,24 @@ interface RawFileError {
 
 type RawFileResult = RawFileData | RawFileError | undefined;
 
+interface ImageData {
+	ok: true;
+	dataUrl: string;
+	byteLength: number;
+}
+
+interface ImageError {
+	ok: false;
+	reason:
+		| "too-large"
+		| "not-image"
+		| "outside-worktree"
+		| "symlink-escape"
+		| "not-found";
+}
+
+type ImageResult = ImageData | ImageError | undefined;
+
 interface DiffData {
 	original: string;
 	modified: string;
@@ -44,8 +63,10 @@ interface FileViewerContentProps {
 	viewMode: FileViewerMode;
 	filePath: string;
 	isLoadingRaw: boolean;
+	isLoadingImage?: boolean;
 	isLoadingDiff: boolean;
 	rawFileData: RawFileResult;
+	imageData?: ImageResult;
 	diffData: DiffData | undefined;
 	isDiffEditable: boolean;
 	editorRef: MutableRefObject<Monaco.editor.IStandaloneCodeEditor | null>;
@@ -74,8 +95,10 @@ export function FileViewerContent({
 	viewMode,
 	filePath,
 	isLoadingRaw,
+	isLoadingImage,
 	isLoadingDiff,
 	rawFileData,
+	imageData,
 	diffData,
 	isDiffEditable,
 	editorRef,
@@ -99,6 +122,7 @@ export function FileViewerContent({
 	onMoveToTab,
 	onMoveToNewTab,
 }: FileViewerContentProps) {
+	const isImage = isImageFile(filePath);
 	const isMonacoReady = useMonacoReady();
 	const hasAppliedInitialLocationRef = useRef(false);
 
@@ -207,6 +231,47 @@ export function FileViewerContent({
 					onMoveToNewTab,
 				}}
 			/>
+		);
+	}
+
+	// Handle image files in rendered mode
+	if (viewMode === "rendered" && isImage) {
+		if (isLoadingImage) {
+			return (
+				<div className="flex items-center justify-center h-full text-muted-foreground">
+					<LuLoader className="w-4 h-4 animate-spin mr-2" />
+					<span>Loading image...</span>
+				</div>
+			);
+		}
+
+		if (!imageData?.ok) {
+			const errorMessage =
+				imageData?.reason === "too-large"
+					? "Image is too large to preview (max 10MB)"
+					: imageData?.reason === "outside-worktree"
+						? "File is outside worktree"
+						: imageData?.reason === "symlink-escape"
+							? "File is a symlink pointing outside worktree"
+							: imageData?.reason === "not-image"
+								? "Not a supported image format"
+								: "Image not found";
+			return (
+				<div className="flex items-center justify-center h-full text-muted-foreground">
+					{errorMessage}
+				</div>
+			);
+		}
+
+		return (
+			<div className="flex items-center justify-center h-full overflow-auto p-4 bg-[#0d0d0d]">
+				<img
+					src={imageData.dataUrl}
+					alt={filePath.split("/").pop() || "Image"}
+					className="max-w-full max-h-full object-contain"
+					style={{ imageRendering: "auto" }}
+				/>
+			</div>
 		);
 	}
 
