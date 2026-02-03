@@ -355,41 +355,15 @@ export function NewWorkspaceModal() {
 									/>
 
 									{(title || branchNameEdited) && (
-										<div className="text-xs text-muted-foreground flex items-center gap-1.5">
+										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
-											<span className="font-mono flex items-center">
-												{applyPrefix && resolvedPrefix && (
-													<button
-														type="button"
-														onClick={() => {
-															handleClose();
-															navigate({ to: "/settings/behavior" });
-														}}
-														className="inline-flex items-center gap-0.5 hover:text-foreground transition-colors"
-													>
-														<span>{resolvedPrefix}/</span>
-														<HiOutlinePencil className="size-2.5" />
-													</button>
-												)}
-												{applyPrefix && !resolvedPrefix && (
-													<button
-														type="button"
-														onClick={() => {
-															handleClose();
-															navigate({ to: "/settings/behavior" });
-														}}
-														className="inline-flex items-center gap-0.5 text-muted-foreground/60 hover:text-foreground transition-colors mr-1"
-														title="Add branch prefix"
-													>
-														<HiOutlinePencil className="size-2.5" />
-													</button>
-												)}
-												<span>{branchSlug || "branch-name"}</span>
+											<span className="font-mono">
+												{branchPreview || "branch-name"}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
 											</span>
-										</div>
+										</p>
 									)}
 
 									<Collapsible
@@ -404,12 +378,25 @@ export function NewWorkspaceModal() {
 										</CollapsibleTrigger>
 										<CollapsibleContent className="pt-3 space-y-3">
 											<div className="space-y-1.5">
-												<label
-													htmlFor="branch"
-													className="text-xs text-muted-foreground"
-												>
-													Branch name
-												</label>
+												<div className="flex items-center justify-between">
+													<label
+														htmlFor="branch"
+														className="text-xs text-muted-foreground"
+													>
+														Branch name
+													</label>
+													<button
+														type="button"
+														onClick={() => {
+															handleClose();
+															navigate({ to: "/settings/behavior" });
+														}}
+														className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<HiOutlinePencil className="size-3" />
+														<span>Edit prefix</span>
+													</button>
+												</div>
 												<Input
 													id="branch"
 													className="h-8 text-sm font-mono"
