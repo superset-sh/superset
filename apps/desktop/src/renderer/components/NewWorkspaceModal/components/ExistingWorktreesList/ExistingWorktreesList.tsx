@@ -7,12 +7,7 @@ import {
 	useOpenDiskWorktree,
 	useOpenWorktree,
 } from "renderer/react-query/workspaces";
-import {
-	BranchesSection,
-	DiskWorktreesSection,
-	PrUrlSection,
-	WorktreesSection,
-} from "./components";
+import { BranchesSection, PrUrlSection, WorktreesSection } from "./components";
 
 interface ExistingWorktreesListProps {
 	projectId: string;
@@ -38,8 +33,6 @@ export function ExistingWorktreesList({
 	const [branchSearch, setBranchSearch] = useState("");
 	const [worktreeOpen, setWorktreeOpen] = useState(false);
 	const [worktreeSearch, setWorktreeSearch] = useState("");
-	const [diskWorktreeOpen, setDiskWorktreeOpen] = useState(false);
-	const [diskWorktreeSearch, setDiskWorktreeSearch] = useState("");
 	const [prUrl, setPrUrl] = useState("");
 
 	const closedWorktrees = worktrees
@@ -133,8 +126,8 @@ export function ExistingWorktreesList({
 	};
 
 	const handleOpenDiskWorktree = async (path: string, branch: string) => {
-		setDiskWorktreeOpen(false);
-		setDiskWorktreeSearch("");
+		setWorktreeOpen(false);
+		setWorktreeSearch("");
 		toast.promise(
 			openDiskWorktree.mutateAsync({ projectId, worktreePath: path, branch }),
 			{
@@ -165,8 +158,10 @@ export function ExistingWorktreesList({
 		);
 	}
 
-	const hasWorktrees = closedWorktrees.length > 0 || openWorktrees.length > 0;
-	const hasDiskWorktrees = diskWorktrees.length > 0;
+	const hasWorktrees =
+		closedWorktrees.length > 0 ||
+		openWorktrees.length > 0 ||
+		diskWorktrees.length > 0;
 	const hasBranches = branchesWithoutWorktrees.length > 0;
 
 	return (
@@ -195,28 +190,18 @@ export function ExistingWorktreesList({
 				<WorktreesSection
 					closedWorktrees={closedWorktrees}
 					openWorktrees={openWorktrees}
+					diskWorktrees={diskWorktrees}
 					searchValue={worktreeSearch}
 					onSearchChange={setWorktreeSearch}
 					isOpen={worktreeOpen}
 					onOpenChange={setWorktreeOpen}
 					onOpenWorktree={handleOpenWorktree}
+					onOpenDiskWorktree={handleOpenDiskWorktree}
 					disabled={isPending}
 				/>
 			)}
 
-			{hasDiskWorktrees && (
-				<DiskWorktreesSection
-					diskWorktrees={diskWorktrees}
-					searchValue={diskWorktreeSearch}
-					onSearchChange={setDiskWorktreeSearch}
-					isOpen={diskWorktreeOpen}
-					onOpenChange={setDiskWorktreeOpen}
-					onOpenWorktree={handleOpenDiskWorktree}
-					disabled={isPending}
-				/>
-			)}
-
-			{!hasWorktrees && !hasDiskWorktrees && !hasBranches && (
+			{!hasWorktrees && !hasBranches && (
 				<div className="py-4 text-center text-xs text-muted-foreground">
 					No existing worktrees or branches.
 					<br />
