@@ -6,44 +6,34 @@ date: 2026-02-02
 category: Product
 ---
 
-Over the last year, builders have started to work in a new mode. We open fewer files, spend less time in the IDE, 
-and hand more work to agents. The agents are getting smarter, and our trust in their code quality and architectural 
-decisions is rising.
+Right now at Superset, we're able to reliably manage 5-7 coding agents in parallel - whether that's Claude Code, Codex, etc. -
+at a time. Our goal is to be able to each reliably manage 100 coding agents in parallel by the end of 2026. 
 
-On our team, we can reliably run 5 to 7 agents in parallel today. We believe 100 is possible in 2026, but that scale 
-won't happen just by making agents faster and better. It will require rethinking where humans spend attention and how the product mediates that attention.
+Most people believe that the path from seven to 100 agents is better models, faster inference, and smarter agents. It's not.
+Agent compute is already cheap enough, you can run hundreds of agents a month all cheaper than the cost of one engineer.
 
-# What will it take to run 100 agents in parallel
+What's stopping us is every agent needs a human to review its code, give feedback, and decide what to work on next. Scale 
+the agents all you want - it's the humans that don't scale. We aim to solve this problem.
 
-If you've attempted any of these parallel orchestration flows, you can probably guess where the bottleneck is - it's the human in the loop. Most
-responsible teams still review and test agent code by hand before it's shipped to production, which means any agent code needs to go through a human.
+# Mapping out the problem
 
-Framing agent workflows as pipelines is a great exercise, as then the goal is clear - you can improve the total throughput
-by eliminating bottlenecks where they arise. This is roughly what the pipeline looks like today:
+You can pretty much imagine the agent loop as a pipeline:
 
-[Show an image of user comes up with idea -> plans out a task -> hands plan to agent, loop until code is good enough, merge]
+[Insert an image of the pipeline, You come up with an idea → You plan the task → You hand it to an agent → Agent
+  works → You review → You give feedback → Agent revises → You review again → You
+   merge]
 
-As you can see, there's a lot of places where the user is involved, and since there's only one user, agents have to do a lot of waiting before work is complete.
+A human is involved in pretty much every step, and each of these steps has a steep context-switching 
+cost - you have to open that agent's code, spin up dev servers, click through the UI to verify their work, give 
+feedback and more. It's an insane amount of whiplash to put yourself through on a normal day.
 
-Agent compute, on the otherhand, is a practically-infinite resource for most teams (1000 agents active all month probably cost less than an engineer's salary)
+At 100 agents, this model completely breaks. You can't review 100 diffs a day. You can't context-switch between 100
+streams of work, at least without the right tooling.
 
-What's interesting about this is that this means that agents can __never__ be the bottleneck. You don't care about how long it takes for one agent to complete its work, 
-an agent can be running for days and you wouldn't care, as you can always just run more agents running to increase the throughput of the different agent steps.
+Framing this as an optimization problem makes the solution clear - we either need to pull the human out of some steps,
+or reduce the amount of time the users spends in each step.
 
-That means most valuable thing to spend time on is the human part of the pipeline.
-
-# Where does the time go?
-
-Reviewing agent code takes a lot of time, and it causes an extreme amount of
-whiplash. You have to juggle all of the following right now:
-
-* Reviewing the code the agent produced
-* Giving it feedback on that code
-* Spinning up / tearing down devservers 
-* Manually clicking around in the UI
-* Planning out work for new agents
-
-# How can we improve it
+# How we'll improve it
 
 ## Make agents require less human feedback
   * Can run many more code review agents before an agent comes back
@@ -57,10 +47,6 @@ whiplash. You have to juggle all of the following right now:
     * Navigate to specific pages on your site that it wants you to review
   * Have better tools for review (diff viewer, fast feedback, etc.)
   * Have quick actions like agents prepping multiple choice questions for you, have simple actions like "create PR" readily available
-## Increase the amount of time you can spend working
-  * Make it easy to work on your phone / on the go
-  * Make the tool easy to use
-  * Make it easy to start work in the cloud and pick it up when you're ready
 ## Have agents be more proactive
   * Have agents proactively find new work to do
   * Have agents dig into product feedback weekly
