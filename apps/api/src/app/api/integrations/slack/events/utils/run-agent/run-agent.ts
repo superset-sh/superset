@@ -338,7 +338,7 @@ async function fetchAgentContext({
 			(d) =>
 				`- ${d.deviceName ?? "Unknown"} (id: ${d.deviceId}, owner: ${d.ownerName ?? d.ownerEmail}, status: ${d.isOnline ? "online" : "offline"})`,
 		);
-		sections.push(`Online devices:\n${lines.join("\n")}`);
+		sections.push(`Devices:\n${lines.join("\n")}`);
 	}
 
 	return sections.join("\n\n");
