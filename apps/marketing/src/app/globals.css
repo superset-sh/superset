@@ -30,6 +30,14 @@
 	--tw-prose-pre-code: rgb(255 255 255 / 0.8);
 }
 
+.prose h1 {
+	font-size: 2rem;
+	font-weight: 700;
+	margin-top: 3rem;
+	margin-bottom: 1.25rem;
+	scroll-margin-top: 6rem;
+}
+
 .prose h2 {
 	font-size: 1.5rem;
 	font-weight: 600;
@@ -65,11 +73,14 @@
 }
 
 .prose a {
-	text-decoration: none;
+	text-decoration: underline;
+	text-decoration-color: rgb(255 255 255 / 0.3);
+	text-underline-offset: 2px;
+	transition: text-decoration-color 0.15s;
 }
 
 .prose a:hover {
-	text-decoration: underline;
+	text-decoration-color: rgb(255 255 255 / 0.6);
 }
 
 .prose code:not(pre code) {
