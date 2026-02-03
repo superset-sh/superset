@@ -1,7 +1,5 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
@@ -39,7 +37,6 @@ const GENERAL_SECTIONS: {
 	section: SettingsSection;
 	label: string;
 	icon: React.ReactNode;
-	requiresAgentCommands?: boolean;
 }[] = [
 	{
 		id: "/settings/account",
@@ -100,37 +97,24 @@ const GENERAL_SECTIONS: {
 		section: "devices",
 		label: "Devices",
 		icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
-		requiresAgentCommands: true,
 	},
 	{
 		id: "/settings/api-keys",
 		section: "apikeys",
 		label: "API Keys",
 		icon: <HiOutlineKey className="h-4 w-4" />,
-		requiresAgentCommands: true,
 	},
 ];
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
-	const billingEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.BILLING_ENABLED);
-	const hasAgentCommandsAccess = useFeatureFlagEnabled(
-		FEATURE_FLAGS.AGENT_COMMANDS_ACCESS,
-	);
-
-	// Filter by feature flags first, then by search matches
-	const availableSections = GENERAL_SECTIONS.filter((section) => {
-		if (section.section === "billing" && !billingEnabled) return false;
-		if (section.requiresAgentCommands && !hasAgentCommandsAccess) return false;
-		return true;
-	});
 
 	// When searching, only show sections that have matches
 	const filteredSections = matchCounts
-		? availableSections.filter(
+		? GENERAL_SECTIONS.filter(
 				(section) => (matchCounts[section.section] ?? 0) > 0,
 			)
-		: availableSections;
+		: GENERAL_SECTIONS;
 
 	if (filteredSections.length === 0) {
 		return null;

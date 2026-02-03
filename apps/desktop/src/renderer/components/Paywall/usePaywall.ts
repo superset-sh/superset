@@ -5,9 +5,10 @@ type UserPlan = "free" | "pro";
 
 export const GATED_FEATURES = {
 	INVITE_MEMBERS: "invite-members",
-	AI_COMPLETION: "ai-completion",
-	SPLIT_TERMINAL: "split-terminal",
-	CREATE_WORKSPACE: "create-workspace",
+	INTEGRATIONS: "integrations",
+	TASKS: "tasks",
+	CLOUD_WORKSPACES: "cloud-workspaces",
+	MOBILE_APP: "mobile-app",
 } as const;
 
 export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
@@ -15,7 +16,7 @@ export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
 export function usePaywall() {
 	const { data: session } = authClient.useSession();
 
-	const userPlan: UserPlan = "free";
+	const userPlan: UserPlan = (session?.session?.plan as UserPlan) ?? "free";
 
 	function hasAccess(feature: GatedFeature): boolean {
 		void feature;

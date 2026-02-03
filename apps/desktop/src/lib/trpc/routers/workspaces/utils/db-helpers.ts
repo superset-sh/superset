@@ -220,6 +220,7 @@ export function touchWorkspace(
 	workspaceId: string,
 	additionalFields?: Partial<{
 		isUnread: boolean;
+		isUnnamed: boolean;
 		branch: string;
 		name: string;
 	}>,

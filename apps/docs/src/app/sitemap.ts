@@ -11,6 +11,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		url: `${baseUrl}${page.url}`,
 		lastModified: new Date(),
 		changeFrequency: "weekly" as const,
-		priority: page.url === "/quick-start" ? 1.0 : 0.8,
+		priority: page.url === "/installation" ? 1.0 : 0.8,
 	}));
 }

@@ -3,39 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { HiPlus } from "react-icons/hi2";
-
-interface FAQItem {
-	question: string;
-	answer: string;
-}
-
-const FAQ_ITEMS: FAQItem[] = [
-	{
-		question: "I already use an IDE like Cursor, is this for me?",
-		answer:
-			"Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE.",
-	},
-	{
-		question: "Which AI coding agents are supported?",
-		answer:
-			"Superset works with any CLI-based coding agent including Claude Code, OpenCode, OpenAI Codex, and more. If it runs in a terminal, it runs in Superset.",
-	},
-	{
-		question: "How does the parallel agent system work?",
-		answer:
-			"Each agent runs in its own isolated Git worktree, which means they can work on different branches or features simultaneously without conflicts. You can monitor all agents in real-time and switch between them instantly.",
-	},
-	{
-		question: "Is Superset free to use?",
-		answer:
-			"Yes, Superset is completely free and open source. You can self-host it, modify it, and use it however you like. The source code is available on GitHub under a permissive license.",
-	},
-	{
-		question: "Can I use my own API keys?",
-		answer:
-			"Absolutely. Superset doesn't proxy any API calls. You use your own API keys directly with whatever AI providers you choose. This means you have full control over costs and usage.",
-	},
-];
+import type { FAQItem } from "./constants";
+import { FAQ_ITEMS } from "./constants";
 
 function FAQAccordionItem({
 	item,
@@ -93,27 +62,16 @@ export function FAQSection() {
 			<div className="max-w-7xl mx-auto">
 				<div className="grid grid-cols-1 xl:grid-cols-[1fr_1.5fr] gap-12 xl:gap-20">
 					{/* Left Column - Title */}
-					<motion.div
-						className="xl:sticky xl:top-24 xl:self-start"
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5 }}
-					>
+					<div className="xl:sticky xl:top-24 xl:self-start">
 						<h2 className="text-3xl sm:text-4xl xl:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
 							Frequently
 							<br />
 							asked questions
 						</h2>
-					</motion.div>
+					</div>
 
 					{/* Right Column - Accordion */}
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5, delay: 0.1 }}
-					>
+					<div>
 						<div className="w-full">
 							{FAQ_ITEMS.map((item, index) => (
 								<FAQAccordionItem
@@ -124,7 +82,7 @@ export function FAQSection() {
 								/>
 							))}
 						</div>
-					</motion.div>
+					</div>
 				</div>
 			</div>
 		</section>

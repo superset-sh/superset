@@ -73,7 +73,7 @@ export function Footer() {
 				{/* Bottom - Copyright */}
 				<div className="mt-10 pt-6 border-t border-border/60">
 					<p className="text-muted-foreground text-sm">
-						© {new Date().getFullYear()} Superset. All rights reserved.
+						© {new Date().getFullYear()} Superset Inc. All rights reserved.
 					</p>
 				</div>
 			</motion.div>

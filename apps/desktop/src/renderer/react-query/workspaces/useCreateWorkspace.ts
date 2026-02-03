@@ -43,7 +43,7 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 			await utils.workspaces.invalidate();
 
 			if (!options?.skipNavigation) {
-				navigateToWorkspace(data.workspace.id, navigate);
+				navigateToWorkspace(data.workspace.id, navigate, { replace: true });
 			}
 
 			await options?.onSuccess?.(data, ...rest);

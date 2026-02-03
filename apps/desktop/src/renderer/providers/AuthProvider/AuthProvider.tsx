@@ -39,15 +39,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setIsHydrated(true);
 	}, [storedToken, isSuccess, isHydrated, refetchSession]);
 
-	// Listen for token changes from main process (OAuth callback or sign-out)
+	// Listen for auth events from main process (new auth or sign-out only, not hydration)
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
-		onData: (data) => {
+		onData: async (data) => {
 			if (data?.token && data?.expiresAt) {
+				// New authentication - clear old session state first, then set new token
+				setAuthToken(null);
+				await authClient.signOut({ fetchOptions: { throw: false } });
 				setAuthToken(data.token);
 				setIsHydrated(true);
 				refetchSession();
 			} else if (data === null) {
-				// Token was cleared (sign-out)
+				// Sign-out
 				setAuthToken(null);
 				refetchSession();
 			}

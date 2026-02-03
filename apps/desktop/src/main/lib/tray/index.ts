@@ -169,7 +169,6 @@ function formatSessionLabel(
 
 function buildSessionsSubmenu(
 	sessions: ListSessionsResponse["sessions"],
-	daemonRunning: boolean,
 ): MenuItemConstructorOptions[] {
 	const aliveSessions = sessions.filter((s) => s.isAlive);
 	const menuItems: MenuItemConstructorOptions[] = [];
@@ -229,7 +228,6 @@ function buildSessionsSubmenu(
 	});
 	menuItems.push({
 		label: "Restart Daemon",
-		enabled: daemonRunning,
 		click: restartDaemon,
 	});
 
@@ -279,10 +277,10 @@ async function restartDaemon(): Promise<void> {
 async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
-	const { daemonRunning, sessions } = await tryListExistingDaemonSessions();
+	const { sessions } = await tryListExistingDaemonSessions();
 	const sessionCount = sessions.filter((s) => s.isAlive).length;
 
-	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonRunning);
+	const sessionsSubmenu = buildSessionsSubmenu(sessions);
 	const sessionsLabel =
 		sessionCount > 0
 			? `Background Sessions (${sessionCount})`

@@ -11,7 +11,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
 import { protectedProcedure } from "../../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "./utils";
+import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 

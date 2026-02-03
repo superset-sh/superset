@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { FeatureDemo } from "./components/FeatureDemo";
 import { IsolationDemo } from "./components/IsolationDemo";
 import { OpenInDemo } from "./components/OpenInDemo";
@@ -25,15 +24,11 @@ export function FeaturesSection() {
 						const isReversed = index % 2 === 1;
 						const DemoComponent = DEMO_COMPONENTS[index];
 						return (
-							<motion.div
+							<div
 								key={feature.title}
 								className={`grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center ${
 									isReversed ? "lg:direction-rtl" : ""
 								}`}
-								initial={{ opacity: 0, y: 40 }}
-								whileInView={{ opacity: 1, y: 0 }}
-								viewport={{ once: true, margin: "-100px" }}
-								transition={{ duration: 0.6 }}
 							>
 								{/* Text Content */}
 								<div
@@ -58,7 +53,7 @@ export function FeaturesSection() {
 										{DemoComponent && <DemoComponent />}
 									</FeatureDemo>
 								</div>
-							</motion.div>
+							</div>
 						);
 					})}
 				</div>

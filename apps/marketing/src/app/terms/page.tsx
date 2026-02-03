@@ -27,7 +27,7 @@ export default function TermsOfServicePage() {
 						</h2>
 						<p>
 							These Terms of Service (&quot;Terms&quot;) constitute a legally
-							binding agreement between you and Superset (&quot;we&quot;,
+							binding agreement between you and Superset Inc. (&quot;we&quot;,
 							&quot;us&quot;, or &quot;our&quot;) governing your access to and
 							use of our website, desktop application, and related services
 							(collectively, the &quot;Services&quot;).
@@ -138,8 +138,9 @@ export default function TermsOfServicePage() {
 						<p>
 							The Services and all content, features, and functionality
 							(including but not limited to software, text, graphics, logos, and
-							design) are owned by Superset or our licensors and are protected
-							by copyright, trademark, and other intellectual property laws.
+							design) are owned by Superset Inc. or our licensors and are
+							protected by copyright, trademark, and other intellectual property
+							laws.
 						</p>
 						<p>
 							You retain ownership of any content you create using our Services.
@@ -225,7 +226,7 @@ export default function TermsOfServicePage() {
 							11. Limitation of Liability
 						</h2>
 						<p className="uppercase text-sm">
-							TO THE MAXIMUM EXTENT PERMITTED BY LAW, SUPERSET SHALL NOT BE
+							TO THE MAXIMUM EXTENT PERMITTED BY LAW, SUPERSET INC. SHALL NOT BE
 							LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR
 							PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE,
 							ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICES.
@@ -243,11 +244,11 @@ export default function TermsOfServicePage() {
 							12. Indemnification
 						</h2>
 						<p>
-							You agree to indemnify, defend, and hold harmless Superset and its
-							officers, directors, employees, and agents from any claims,
-							damages, losses, liabilities, and expenses (including reasonable
-							attorneys&apos; fees) arising out of or related to your violation
-							of these Terms or your use of the Services.
+							You agree to indemnify, defend, and hold harmless Superset Inc.
+							and its officers, directors, employees, and agents from any
+							claims, damages, losses, liabilities, and expenses (including
+							reasonable attorneys&apos; fees) arising out of or related to your
+							violation of these Terms or your use of the Services.
 						</p>
 					</section>
 
@@ -328,8 +329,8 @@ export default function TermsOfServicePage() {
 						</h2>
 						<p>
 							These Terms, together with our Privacy Policy, constitute the
-							entire agreement between you and Superset regarding the Services
-							and supersede all prior agreements and understandings.
+							entire agreement between you and Superset Inc. regarding the
+							Services and supersede all prior agreements and understandings.
 						</p>
 					</section>
 

@@ -76,6 +76,57 @@ describe("isValidWindowState", () => {
 			).toBe(true);
 		});
 
+		it("should accept valid window state with zoomLevel", () => {
+			expect(
+				isValidWindowState({
+					x: 100,
+					y: 200,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					zoomLevel: 1.5,
+				}),
+			).toBe(true);
+		});
+
+		it("should accept valid window state with negative zoomLevel", () => {
+			expect(
+				isValidWindowState({
+					x: 100,
+					y: 200,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					zoomLevel: -2,
+				}),
+			).toBe(true);
+		});
+
+		it("should accept valid window state with zero zoomLevel", () => {
+			expect(
+				isValidWindowState({
+					x: 100,
+					y: 200,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					zoomLevel: 0,
+				}),
+			).toBe(true);
+		});
+
+		it("should accept valid window state without zoomLevel (optional)", () => {
+			expect(
+				isValidWindowState({
+					x: 100,
+					y: 200,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+				}),
+			).toBe(true);
+		});
+
 		it("should accept MAX_SAFE_INTEGER dimensions", () => {
 			expect(
 				isValidWindowState({
@@ -160,6 +211,45 @@ describe("isValidWindowState", () => {
 					width: Number.NaN,
 					height: 600,
 					isMaximized: false,
+				}),
+			).toBe(false);
+		});
+
+		it("should reject NaN zoomLevel", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					zoomLevel: Number.NaN,
+				}),
+			).toBe(false);
+		});
+
+		it("should reject Infinity zoomLevel", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					zoomLevel: Number.POSITIVE_INFINITY,
+				}),
+			).toBe(false);
+		});
+
+		it("should reject string zoomLevel", () => {
+			expect(
+				isValidWindowState({
+					x: 0,
+					y: 0,
+					width: 800,
+					height: 600,
+					isMaximized: false,
+					zoomLevel: "1.5" as unknown as number,
 				}),
 			).toBe(false);
 		});

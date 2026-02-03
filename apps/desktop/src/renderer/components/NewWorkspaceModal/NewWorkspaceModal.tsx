@@ -27,9 +27,15 @@ import {
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronDown,
+	HiChevronUpDown,
+	HiOutlinePencil,
+} from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
@@ -40,25 +46,21 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
-import { sanitizeBranchName, sanitizeSegment } from "shared/utils/branch";
+import {
+	resolveBranchPrefix,
+	sanitizeBranchName,
+	sanitizeSegment,
+} from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
-function generateBranchFromTitle({
-	title,
-	authorPrefix,
-}: {
-	title: string;
-	authorPrefix?: string;
-}): string {
-	const slug = sanitizeSegment(title);
-	if (!slug) return "";
-
-	return authorPrefix ? `${authorPrefix}/${slug}` : slug;
+function generateSlugFromTitle(title: string): string {
+	return sanitizeSegment(title);
 }
 
 type Mode = "existing" | "new" | "cloud";
 
 export function NewWorkspaceModal() {
+	const navigate = useNavigate();
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
@@ -77,6 +79,10 @@ export function NewWorkspaceModal() {
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const { data: project } = electronTrpc.projects.get.useQuery(
+		{ id: selectedProjectId ?? "" },
+		{ enabled: !!selectedProjectId },
+	);
 	const {
 		data: branchData,
 		isLoading: isBranchesLoading,
@@ -89,9 +95,25 @@ export function NewWorkspaceModal() {
 		{ id: selectedProjectId ?? "" },
 		{ enabled: !!selectedProjectId },
 	);
+	const { data: globalBranchPrefix } =
+		electronTrpc.settings.getBranchPrefix.useQuery();
+	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
-	const authorPrefix = gitAuthor?.prefix;
+
+	const resolvedPrefix = useMemo(() => {
+		const projectOverrides = project?.branchPrefixMode != null;
+		return resolveBranchPrefix({
+			mode: projectOverrides
+				? project?.branchPrefixMode
+				: (globalBranchPrefix?.mode ?? "none"),
+			customPrefix: projectOverrides
+				? project?.branchPrefixCustom
+				: globalBranchPrefix?.customPrefix,
+			authorPrefix: gitAuthor?.prefix,
+			githubUsername: gitInfo?.githubUsername,
+		});
+	}, [project, globalBranchPrefix, gitAuthor, gitInfo]);
 
 	const filteredBranches = useMemo(() => {
 		if (!branchData?.branches) return [];
@@ -115,10 +137,16 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	const generatedBranchName = generateBranchFromTitle({ title, authorPrefix });
-	const branchNameToCreate = branchNameEdited
+	const branchSlug = branchNameEdited
 		? sanitizeBranchName(branchName)
-		: generatedBranchName;
+		: generateSlugFromTitle(title);
+
+	const applyPrefix = !branchNameEdited;
+
+	const branchPreview =
+		branchSlug && applyPrefix && resolvedPrefix
+			? `${resolvedPrefix}/${branchSlug}`
+			: branchSlug;
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
@@ -202,8 +230,9 @@ export function NewWorkspaceModal() {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
-				branchName: branchNameToCreate || undefined,
+				branchName: branchSlug || undefined,
 				baseBranch: effectiveBaseBranch || undefined,
+				applyPrefix,
 			});
 
 			handleClose();
@@ -329,7 +358,7 @@ export function NewWorkspaceModal() {
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
 											<span className="font-mono">
-												{branchNameToCreate || "branch-name"}
+												{branchPreview || "branch-name"}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
@@ -349,19 +378,30 @@ export function NewWorkspaceModal() {
 										</CollapsibleTrigger>
 										<CollapsibleContent className="pt-3 space-y-3">
 											<div className="space-y-1.5">
-												<label
-													htmlFor="branch"
-													className="text-xs text-muted-foreground"
-												>
-													Branch name
-												</label>
+												<div className="flex items-center justify-between">
+													<label
+														htmlFor="branch"
+														className="text-xs text-muted-foreground"
+													>
+														Branch name
+													</label>
+													<button
+														type="button"
+														onClick={() => {
+															handleClose();
+															navigate({ to: "/settings/behavior" });
+														}}
+														className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<HiOutlinePencil className="size-3" />
+														<span>Edit prefix</span>
+													</button>
+												</div>
 												<Input
 													id="branch"
 													className="h-8 text-sm font-mono"
 													placeholder="auto-generated"
-													value={
-														branchNameEdited ? branchName : generatedBranchName
-													}
+													value={branchNameEdited ? branchName : branchPreview}
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
 													}

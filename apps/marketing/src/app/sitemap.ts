@@ -1,6 +1,8 @@
 import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
 import { getBlogPosts } from "@/lib/blog";
+import { getChangelogEntries } from "@/lib/changelog";
+import { getComparisonPages } from "@/lib/compare";
 
 export default function sitemap(): MetadataRoute.Sitemap {
 	const baseUrl = COMPANY.MARKETING_URL;
@@ -17,6 +19,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			lastModified: new Date(),
 			changeFrequency: "daily",
 			priority: 0.9,
+		},
+		{
+			url: `${baseUrl}/changelog`,
+			lastModified: new Date(),
+			changeFrequency: "weekly",
+			priority: 0.9,
+		},
+		{
+			url: `${baseUrl}/community`,
+			lastModified: new Date(),
+			changeFrequency: "monthly",
+			priority: 0.5,
 		},
 		{
 			url: `${baseUrl}/privacy`,
@@ -40,5 +54,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		priority: 0.8,
 	}));
 
-	return [...staticPages, ...blogPages];
+	const changelogEntries = getChangelogEntries();
+	const changelogPages: MetadataRoute.Sitemap = changelogEntries.map(
+		(entry) => ({
+			url: `${baseUrl}/changelog/${entry.slug}`,
+			lastModified: new Date(entry.date),
+			changeFrequency: "monthly" as const,
+			priority: 0.8,
+		}),
+	);
+
+	const comparisonPages: MetadataRoute.Sitemap = getComparisonPages().map(
+		(page) => ({
+			url: `${baseUrl}/compare/${page.slug}`,
+			lastModified: new Date(page.lastUpdated || page.date),
+			changeFrequency: "monthly" as const,
+			priority: 0.7,
+		}),
+	);
+
+	return [...staticPages, ...blogPages, ...changelogPages, ...comparisonPages];
 }

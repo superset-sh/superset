@@ -1,10 +1,8 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { ShaderAnimation } from "../../../components/ui/shader-animation";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { ProductDemo } from "./components/ProductDemo";
@@ -16,16 +14,9 @@ export function HeroSection() {
 	return (
 		<div>
 			<div className="flex mt-14 min-h-[calc(100svh-64px)] items-center overflow-hidden">
-				<ShaderAnimation opacity={0.01} speed={0.005} intensity={0.00015} />
-
 				<div className="relative w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-[30px] py-8 sm:py-12 lg:py-16">
 					<div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 lg:gap-16 items-center">
-						<motion.div
-							className="space-y-6 sm:space-y-8"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.5 }}
-						>
+						<div className="space-y-6 sm:space-y-8">
 							<div className="space-y-2 sm:space-y-6">
 								<h1
 									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground relative"
@@ -62,16 +53,11 @@ export function HeroSection() {
 									<FaGithub className="size-4" />
 								</button>
 							</div>
-						</motion.div>
+						</div>
 
-						<motion.div
-							className="relative w-full min-w-0"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ duration: 0.5, delay: 0.2 }}
-						>
+						<div className="relative w-full min-w-0">
 							<ProductDemo />
-						</motion.div>
+						</div>
 					</div>
 				</div>
 			</div>

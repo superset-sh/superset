@@ -1,0 +1,60 @@
+---
+title: Presets
+description: Save and reuse terminal configurations
+---
+
+<YouTubeVideo id="jT8AoqYTwRU" title="Superset Presets" thumbnail="/images/preset.png" />
+
+## Overview
+
+Presets let you quickly launch terminals with pre-configured commands. Save common workflows and apply them with a single click.
+
+## What Presets Do
+
+- **Custom commands for new tabs** - Define commands that run when opening a terminal
+- **Working directory** - Specify where commands run in your project (e.g., `apps/web`)
+- **Sequential or parallel execution** - Run commands one after another, or in split panes
+- **Default preset** - Auto-apply a preset to new workspaces
+- **Quick-add templates** - One-click setup for Claude, Codex, Gemini, and other agents
+
+## Creating a Preset
+
+Go to **Settings → Terminal** and click **Add Preset**.
+
+Each preset has:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name for the preset |
+| **Description** | Optional description |
+| **Working Directory** | Relative path in your project (leave empty for root) |
+| **Commands** | One or more commands to run |
+| **Mode** | Sequential (&&) or Parallel (split panes) |
+
+## Execution Modes
+
+**Sequential** - Commands run one after another in a single terminal, joined with `&&`:
+
+```bash
+bun install && bun dev
+```
+
+**Parallel** - Each command runs in its own split pane within a single tab. Useful for running a dev server and tests simultaneously.
+
+## Quick-Add Templates
+
+Pre-configured presets for popular AI agents:
+
+- **claude** - `claude --dangerously-skip-permissions`
+- **codex** - Full danger mode with high reasoning effort
+- **gemini** - `gemini --yolo`
+- **cursor-agent** - Cursor AI agent
+- **opencode** - Open-source AI coding agent
+
+## Default Preset
+
+Mark a preset as default to auto-apply it when:
+- Creating new terminal tabs (if "Auto-apply default preset" is enabled)
+- Creating new workspaces
+
+Enable **Auto-apply default preset** in Settings → Terminal to automatically run your default preset in new workspaces.

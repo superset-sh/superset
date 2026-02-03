@@ -2,6 +2,7 @@ import { snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
 	SelectDevicePresence,
+	SelectIntegrationConnection,
 	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
@@ -32,6 +33,7 @@ interface OrgCollections {
 	invitations: Collection<SelectInvitation>;
 	agentCommands: Collection<SelectAgentCommand>;
 	devicePresence: Collection<SelectDevicePresence>;
+	integrationConnections: Collection<SelectIntegrationConnection>;
 }
 
 // Per-org collections cache
@@ -277,6 +279,22 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const integrationConnections = createCollection(
+		electricCollectionOptions<SelectIntegrationConnection>({
+			id: `integration_connections-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "integration_connections",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -286,6 +304,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		invitations,
 		agentCommands,
 		devicePresence,
+		integrationConnections,
 	};
 }
 

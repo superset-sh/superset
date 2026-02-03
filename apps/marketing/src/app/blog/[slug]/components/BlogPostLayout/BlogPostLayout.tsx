@@ -1,20 +1,30 @@
-"use client";
-
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import {
+	RiGithubFill,
+	RiLinkedinBoxFill,
+	RiTwitterXFill,
+} from "react-icons/ri";
 import { AuthorAvatar } from "@/app/blog/components/AuthorAvatar";
+import { BlogCard } from "@/app/blog/components/BlogCard";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { type BlogPost, formatBlogDate, type TocItem } from "@/lib/blog-utils";
 
 interface BlogPostLayoutProps {
 	post: BlogPost;
 	toc: TocItem[];
+	relatedPosts: BlogPost[];
 	children: ReactNode;
 }
 
-export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
+export function BlogPostLayout({
+	post,
+	relatedPosts,
+	children,
+}: BlogPostLayoutProps) {
 	const formattedDate = formatBlogDate(post.date);
+	const { author } = post;
 
 	return (
 		<article className="relative min-h-screen">
@@ -50,15 +60,48 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 							</p>
 						)}
 
-						<div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
-							<AuthorAvatar
-								name={post.author}
-								title="Cofounder, Superset"
-								twitterHandle="avimakesrobots"
-							/>
-							<span className="text-foreground/70">{post.author}</span>
-							<span className="text-muted-foreground/50">·</span>
-							<time dateTime={post.date}>{formattedDate}</time>
+						<div className="inline-flex items-center gap-3 text-sm text-muted-foreground mx-auto">
+							<AuthorAvatar name={author.name} avatar={author.avatar} />
+							<div className="flex flex-col items-start">
+								<span className="text-foreground/70">{author.name}</span>
+								<span className="text-xs text-muted-foreground">
+									{author.role}
+									<span className="text-muted-foreground/50"> · </span>
+									<time dateTime={post.date}>{formattedDate}</time>
+								</span>
+							</div>
+						</div>
+						<div className="inline-flex items-center gap-3 mt-3 mx-auto pl-11">
+							{author.twitter && (
+								<a
+									href={`https://x.com/${author.twitter}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-muted-foreground hover:text-foreground transition-colors"
+								>
+									<RiTwitterXFill className="size-4" />
+								</a>
+							)}
+							{author.github && (
+								<a
+									href={`https://github.com/${author.github}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-muted-foreground hover:text-foreground transition-colors"
+								>
+									<RiGithubFill className="size-4" />
+								</a>
+							)}
+							{author.linkedin && (
+								<a
+									href={`https://linkedin.com/in/${author.linkedin}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-muted-foreground hover:text-foreground transition-colors"
+								>
+									<RiLinkedinBoxFill className="size-4" />
+								</a>
+							)}
 						</div>
 					</div>
 				</div>
@@ -87,6 +130,22 @@ export function BlogPostLayout({ post, children }: BlogPostLayoutProps) {
 			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				<div className="prose max-w-none">{children}</div>
 			</div>
+
+			{/* Related Posts */}
+			{relatedPosts.length > 0 && (
+				<section className="relative border-t border-border">
+					<div className="max-w-3xl mx-auto px-6 py-12">
+						<h2 className="text-xl font-medium text-foreground mb-6">
+							Related Posts
+						</h2>
+						<div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
+							{relatedPosts.map((relatedPost) => (
+								<BlogCard key={relatedPost.slug} post={relatedPost} />
+							))}
+						</div>
+					</div>
+				</section>
+			)}
 
 			{/* Footer */}
 			<footer className="relative border-t border-border">

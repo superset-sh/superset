@@ -5,7 +5,11 @@ import type { NextConfig } from "next";
 
 // Load .env from monorepo root during development
 if (process.env.NODE_ENV !== "production") {
-	dotenvConfig({ path: join(process.cwd(), "../../.env"), override: true });
+	dotenvConfig({
+		path: join(process.cwd(), "../../.env"),
+		override: true,
+		quiet: true,
+	});
 }
 
 const config: NextConfig = {

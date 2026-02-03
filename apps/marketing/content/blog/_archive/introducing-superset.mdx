@@ -1,0 +1,46 @@
+---
+title: Introducing Superset
+description: Run 10+ parallel coding agents on your machine. A new way to work with AI coding assistants.
+author: avi
+date: 2025-01-15
+category: Product
+---
+
+We're excited to introduce Superset - a new way to work with AI coding agents.
+
+## The Problem
+
+Modern AI coding assistants are powerful, but they have a fundamental limitation: you can only run one task at a time. When your agent is working on a complex feature, you're stuck waiting. Context switching between different projects means losing your train of thought.
+
+## The Solution
+
+Superset lets you run **10+ parallel coding agents** on your machine. Here's what that means for your workflow:
+
+- **Spin up new tasks** while waiting for your current agent to finish
+- **Quickly switch between tasks** as they need your attention
+- **Keep your context** across multiple projects and features
+
+## How It Works
+
+Superset uses isolated workspaces powered by git worktrees. Each task runs in its own environment, with its own terminal, its own files, and its own agent context.
+
+![Superset workspace interface](/blog/introducing-superset/workspace-interface.png)
+
+```bash
+# Create a new workspace for a feature
+superset create --branch feature/auth
+
+# Your agent works in isolation
+# Meanwhile, start another task...
+superset create --branch feature/dashboard
+```
+
+## What's Next
+
+We're just getting started. In the coming weeks, we'll be sharing more about:
+
+- Deep integrations with popular AI coding tools
+- Advanced workspace management features
+- Team collaboration capabilities
+
+Stay tuned for updates.

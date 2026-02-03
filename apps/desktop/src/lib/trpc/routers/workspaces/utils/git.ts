@@ -1,10 +1,12 @@
-import { execFile } from "node:child_process";
-import { mkdir, readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { execFile, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, stat } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import friendlyWords = require("friendly-words");
 
+import type { BranchPrefixMode } from "@superset/local-db";
 import simpleGit, { type StatusResult } from "simple-git";
 import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
@@ -60,8 +62,8 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 		// Run git status with --no-optional-locks to avoid holding locks
 		// Use porcelain=v1 for machine-parseable output, -b for branch info
 		// Use -z for NUL-terminated output (handles filenames with special chars)
-		// Use -M for rename detection (otherwise renames show as delete + add)
 		// Use -uall to show individual files in untracked directories (not just the directory)
+		// Note: porcelain=v1 already includes rename info (R/C status codes) without needing -M
 		const { stdout } = await execFileAsync(
 			"git",
 			[
@@ -72,7 +74,6 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 				"--porcelain=v1",
 				"-b",
 				"-z",
-				"-M",
 				"-uall",
 			],
 			{ env, timeout: 30_000 },
@@ -312,14 +313,22 @@ export async function getGitAuthorName(
 }
 
 export async function getGitHubUsername(
-	repoPath?: string,
+	_repoPath?: string,
 ): Promise<string | null> {
+	const env = await getGitEnv();
+
 	try {
-		const git = repoPath ? simpleGit(repoPath) : simpleGit();
-		const username = await git.getConfig("github.user");
-		return username.value?.trim() || null;
+		const { stdout } = await execFileAsync(
+			"gh",
+			["api", "user", "--jq", ".login"],
+			{ env, timeout: 10_000 },
+		);
+		return stdout.trim() || null;
 	} catch (error) {
-		console.warn("[git/getGitHubUsername] Failed to get github.user:", error);
+		console.warn(
+			"[git/getGitHubUsername] Failed to get GitHub username:",
+			error instanceof Error ? error.message : String(error),
+		);
 		return null;
 	}
 }
@@ -338,6 +347,32 @@ export async function getAuthorPrefix(
 	}
 
 	return null;
+}
+
+export async function getBranchPrefix({
+	repoPath,
+	mode,
+	customPrefix,
+}: {
+	repoPath: string;
+	mode?: BranchPrefixMode | null;
+	customPrefix?: string | null;
+}): Promise<string | null> {
+	switch (mode) {
+		case "none":
+			return null;
+		case "custom":
+			return customPrefix || null;
+		case "author": {
+			const authorName = await getGitAuthorName(repoPath);
+			if (authorName) {
+				return authorName.toLowerCase().replace(/\s+/g, "-");
+			}
+			return null;
+		}
+		default:
+			return getAuthorPrefix(repoPath);
+	}
 }
 
 export {
@@ -605,14 +640,53 @@ export async function removeWorktree(
 	try {
 		const env = await getGitEnv();
 
-		await execFileAsync(
-			"git",
-			["-C", mainRepoPath, "worktree", "remove", worktreePath, "--force"],
-			{ env, timeout: 60_000 },
+		// Rename the worktree to a sibling temp dir (same filesystem to avoid EXDEV),
+		// then `git worktree prune` to clean metadata, then delete in background.
+		const tempPath = join(
+			dirname(worktreePath),
+			`.superset-delete-${randomUUID()}`,
 		);
+		await rename(worktreePath, tempPath);
 
-		console.log(`Removed worktree at ${worktreePath}`);
+		await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
+			env,
+			timeout: 10_000,
+		});
+
+		// Delete the moved directory in the background — don't block the caller.
+		// Use spawned `rm -rf` instead of Node's fs.rm which can hang on macOS
+		// when encountering .app bundles with extended attributes.
+		const child = spawn("/bin/rm", ["-rf", tempPath], {
+			detached: true,
+			stdio: "ignore",
+		});
+		child.unref();
+		child.on("error", (err) => {
+			console.error(
+				`[removeWorktree] Failed to spawn rm for ${tempPath}:`,
+				err.message,
+			);
+		});
+		child.on("exit", (code: number | null) => {
+			if (code !== 0) {
+				console.error(
+					`[removeWorktree] Background cleanup of ${tempPath} failed (exit ${code})`,
+				);
+			}
+		});
 	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		// If the worktree directory is already gone, just prune metadata
+		if (code === "ENOENT") {
+			try {
+				const env = await getGitEnv();
+				await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
+					env,
+					timeout: 10_000,
+				});
+			} catch {}
+			return;
+		}
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to remove worktree: ${errorMessage}`);
 		throw new Error(`Failed to remove worktree: ${errorMessage}`);
@@ -642,6 +716,59 @@ export async function worktreeExists(
 		return lines.some((line) => line.trim() === worktreePrefix);
 	} catch (error) {
 		console.error(`Failed to check worktree existence: ${error}`);
+		throw error;
+	}
+}
+
+export interface ExternalWorktree {
+	path: string;
+	branch: string | null;
+	isDetached: boolean;
+	isBare: boolean;
+}
+
+export async function listExternalWorktrees(
+	mainRepoPath: string,
+): Promise<ExternalWorktree[]> {
+	try {
+		const git = simpleGit(mainRepoPath);
+		const output = await git.raw(["worktree", "list", "--porcelain"]);
+
+		const result: ExternalWorktree[] = [];
+		let current: Partial<ExternalWorktree> = {};
+
+		for (const line of output.split("\n")) {
+			if (line.startsWith("worktree ")) {
+				if (current.path) {
+					result.push({
+						path: current.path,
+						branch: current.branch ?? null,
+						isDetached: current.isDetached ?? false,
+						isBare: current.isBare ?? false,
+					});
+				}
+				current = { path: line.slice("worktree ".length) };
+			} else if (line.startsWith("branch refs/heads/")) {
+				current.branch = line.slice("branch refs/heads/".length);
+			} else if (line === "detached") {
+				current.isDetached = true;
+			} else if (line === "bare") {
+				current.isBare = true;
+			}
+		}
+
+		if (current.path) {
+			result.push({
+				path: current.path,
+				branch: current.branch ?? null,
+				isDetached: current.isDetached ?? false,
+				isBare: current.isBare ?? false,
+			});
+		}
+
+		return result;
+	} catch (error) {
+		console.error(`Failed to list external worktrees: ${error}`);
 		throw error;
 	}
 }

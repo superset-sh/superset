@@ -1,3 +1,4 @@
+import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
 import {
@@ -187,6 +188,20 @@ export const organizationRouter = {
 				.set(data)
 				.where(eq(organizations.id, id))
 				.returning();
+
+			if (organization?.stripeCustomerId && data.name) {
+				stripeClient.customers
+					.update(organization.stripeCustomerId, {
+						name: data.name,
+					})
+					.catch((error) => {
+						console.error(
+							"[org/update] Failed to sync Stripe customer info:",
+							error,
+						);
+					});
+			}
+
 			return organization;
 		}),
 

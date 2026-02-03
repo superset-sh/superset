@@ -81,8 +81,13 @@ function WorkspacePage() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
-	const { addTab, splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
-		useTabsWithPresets();
+	const {
+		addTab,
+		splitPaneAuto,
+		splitPaneVertical,
+		splitPaneHorizontal,
+		openPreset,
+	} = useTabsWithPresets();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -114,24 +119,17 @@ function WorkspacePage() {
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
 	const { presets } = usePresets();
-	const renameTab = useTabsStore((s) => s.renameTab);
 
 	const openTabWithPreset = useCallback(
 		(presetIndex: number) => {
 			const preset = presets[presetIndex];
 			if (preset) {
-				const result = addTab(workspaceId, {
-					initialCommands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				});
-				if (preset.name) {
-					renameTab(result.tabId, preset.name);
-				}
+				openPreset(workspaceId, preset);
 			} else {
 				addTab(workspaceId);
 			}
 		},
-		[presets, workspaceId, addTab, renameTab],
+		[presets, workspaceId, addTab, openPreset],
 	);
 
 	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
@@ -154,11 +152,10 @@ function WorkspacePage() {
 	useAppHotkey(
 		"PREV_TAB",
 		() => {
-			if (!activeTabId) return;
+			if (!activeTabId || tabs.length === 0) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index > 0) {
-				setActiveTab(workspaceId, tabs[index - 1].id);
-			}
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
@@ -167,15 +164,35 @@ function WorkspacePage() {
 	useAppHotkey(
 		"NEXT_TAB",
 		() => {
-			if (!activeTabId) return;
+			if (!activeTabId || tabs.length === 0) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index < tabs.length - 1) {
-				setActiveTab(workspaceId, tabs[index + 1].id);
-			}
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
+
+	const switchToTab = useCallback(
+		(index: number) => {
+			const tab = tabs[index];
+			if (tab) {
+				setActiveTab(workspaceId, tab.id);
+			}
+		},
+		[tabs, workspaceId, setActiveTab],
+	);
+
+	useAppHotkey("JUMP_TO_TAB_1", () => switchToTab(0), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_2", () => switchToTab(1), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_3", () => switchToTab(2), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_4", () => switchToTab(3), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_5", () => switchToTab(4), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_6", () => switchToTab(5), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_7", () => switchToTab(6), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_8", () => switchToTab(7), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_9", () => switchToTab(8), undefined, [switchToTab]);
 
 	useAppHotkey(
 		"PREV_PANE",

@@ -3,6 +3,7 @@ import {
 	agentCommands,
 	apikeys,
 	devicePresence,
+	integrationConnections,
 	invitations,
 	members,
 	organizations,
@@ -24,7 +25,8 @@ export type AllowedTable =
 	| "auth.invitations"
 	| "auth.apikeys"
 	| "device_presence"
-	| "agent_commands";
+	| "agent_commands"
+	| "integration_connections";
 
 interface WhereClause {
 	fragment: string;
@@ -107,6 +109,13 @@ export async function buildWhereClause(
 
 		case "auth.apikeys":
 			return build(apikeys, apikeys.userId, userId);
+
+		case "integration_connections":
+			return build(
+				integrationConnections,
+				integrationConnections.organizationId,
+				organizationId,
+			);
 
 		default:
 			return null;

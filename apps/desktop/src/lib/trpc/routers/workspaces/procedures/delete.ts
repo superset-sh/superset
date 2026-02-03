@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import type { SelectWorktree } from "@superset/local-db";
 import { track } from "main/lib/analytics";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
@@ -159,6 +160,10 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
+				console.log(
+					`[workspace/delete] Starting deletion of "${workspace.name}" (${input.id})`,
+				);
+
 				markWorkspaceAsDeleting(input.id);
 				updateActiveWorkspaceIfRemoved(input.id);
 
@@ -171,7 +176,6 @@ export const createDeleteProcedures = () => {
 					try {
 						await workspaceInitManager.waitForInit(input.id, 30000);
 					} catch (error) {
-						// Clear deleting status so workspace reappears in UI
 						console.error(
 							`[workspace/delete] Failed to wait for init cancellation:`,
 							error,
@@ -185,63 +189,69 @@ export const createDeleteProcedures = () => {
 					}
 				}
 
-				// Kill all terminal processes in this workspace first
-				const terminalResult = await getWorkspaceRuntimeRegistry()
-					.getForWorkspaceId(input.id)
-					.terminal.killByWorkspaceId(input.id);
-
 				const project = getProject(workspace.projectId);
 
 				let worktree: SelectWorktree | undefined;
 
+				// Fire terminal kills (don't await yet)
+				const terminalPromise = getWorkspaceRuntimeRegistry()
+					.getForWorkspaceId(input.id)
+					.terminal.killByWorkspaceId(input.id);
+
+				// Fire teardown in parallel with terminal kills
+				let teardownPromise: Promise<void> | undefined;
 				if (workspace.type === "worktree" && workspace.worktreeId) {
 					worktree = getWorktree(workspace.worktreeId);
 
-					if (worktree && project) {
-						// Prevents racing with concurrent init operations
-						await workspaceInitManager.acquireProjectLock(project.id);
-
-						try {
-							const exists = await worktreeExists(
-								project.mainRepoPath,
-								worktree.path,
-							);
-
-							if (exists) {
-								const teardownResult = await runTeardown(
-									project.mainRepoPath,
-									worktree.path,
-									workspace.name,
+					if (worktree && project && existsSync(worktree.path)) {
+						const wt = worktree;
+						teardownPromise = runTeardown(
+							project.mainRepoPath,
+							wt.path,
+							workspace.name,
+						).then((result) => {
+							if (!result.success) {
+								console.error(
+									`[workspace/delete] Teardown failed:`,
+									result.error,
 								);
-								if (!teardownResult.success) {
-									console.error(
-										`Teardown failed for workspace ${workspace.name}:`,
-										teardownResult.error,
-									);
-								}
 							}
+						});
+					}
+				}
 
-							try {
-								if (exists) {
-									await removeWorktree(project.mainRepoPath, worktree.path);
-								} else {
-									console.warn(
-										`Worktree ${worktree.path} not found in git, skipping removal`,
-									);
-								}
-							} catch (error) {
-								const errorMessage =
-									error instanceof Error ? error.message : String(error);
-								console.error("Failed to remove worktree:", errorMessage);
-								clearWorkspaceDeletingStatus(input.id);
-								return {
-									success: false,
-									error: `Failed to remove worktree: ${errorMessage}`,
-								};
-							}
-						} finally {
-							workspaceInitManager.releaseProjectLock(project.id);
+				// Wait for both terminal kills and teardown to finish
+				const [terminalResult] = await Promise.all([
+					terminalPromise,
+					teardownPromise ?? Promise.resolve(),
+				]);
+
+				// Only hold the project lock for the git worktree removal
+				if (worktree && project) {
+					await workspaceInitManager.acquireProjectLock(project.id);
+
+					try {
+						await removeWorktree(project.mainRepoPath, worktree.path);
+					} catch (error) {
+						const errorMessage =
+							error instanceof Error ? error.message : String(error);
+						// If worktree was already removed, that's fine
+						if (
+							!errorMessage.includes("is not a working tree") &&
+							!errorMessage.includes("No such file or directory")
+						) {
+							console.error("Failed to remove worktree:", errorMessage);
+							clearWorkspaceDeletingStatus(input.id);
+							return {
+								success: false,
+								error: `Failed to remove worktree: ${errorMessage}`,
+							};
 						}
+						console.warn(
+							`Worktree ${worktree.path} not found in git, skipping removal`,
+						);
+					} finally {
+						workspaceInitManager.releaseProjectLock(project.id);
 					}
 				}
 

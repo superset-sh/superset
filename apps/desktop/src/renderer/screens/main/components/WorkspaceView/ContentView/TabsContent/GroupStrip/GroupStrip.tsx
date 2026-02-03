@@ -1,4 +1,3 @@
-import type { TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -41,7 +40,7 @@ export function GroupStrip() {
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
-	const { addTab } = useTabsWithPresets();
+	const { addTab, openPreset } = useTabsWithPresets();
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -90,30 +89,9 @@ export function GroupStrip() {
 		addTab(activeWorkspaceId);
 	};
 
-	const addTabWithMultiplePanes = useTabsStore(
-		(s) => s.addTabWithMultiplePanes,
-	);
-
-	const handleSelectPreset = (preset: TerminalPreset) => {
+	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
 		if (!activeWorkspaceId) return;
-
-		const isParallel =
-			preset.executionMode === "parallel" && preset.commands.length > 1;
-
-		const { tabId } = isParallel
-			? addTabWithMultiplePanes(activeWorkspaceId, {
-					commands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				})
-			: addTab(activeWorkspaceId, {
-					initialCommands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				});
-
-		if (preset.name) {
-			renameTab(tabId, preset.name);
-		}
-
+		openPreset(activeWorkspaceId, preset);
 		setDropdownOpen(false);
 	};
 

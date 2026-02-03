@@ -93,16 +93,21 @@ async function getRepoUrl(worktreePath: string): Promise<string | null> {
 
 async function getPRForBranch(
 	worktreePath: string,
-	branch: string,
+	_branch: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
 		// Use execWithShellEnv to handle macOS GUI app PATH issues
+		// Important: Do NOT pass the branch name argument. When `gh pr view` is
+		// called without arguments, it uses the branch's tracking info to find
+		// the associated PR. This is essential for fork PRs checked out via
+		// `gh pr checkout`, where the branch tracks `refs/pull/XXX/head`.
+		// Passing the branch name explicitly would search by head branch name,
+		// which fails for fork PRs since the branch exists on the fork, not origin.
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
 				"view",
-				branch,
 				"--json",
 				"number,title,url,state,isDraft,mergedAt,additions,deletions,reviewDecision,statusCheckRollup",
 			],

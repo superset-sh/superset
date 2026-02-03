@@ -7,6 +7,7 @@ import { createCacheRouter } from "./cache";
 import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
+import { createFilesystemRouter } from "./filesystem";
 import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
@@ -30,6 +31,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
 		changes: createChangesRouter(),
+		filesystem: createFilesystemRouter(),
 		notifications: createNotificationsRouter(),
 		ports: createPortsRouter(),
 		menu: createMenuRouter(),

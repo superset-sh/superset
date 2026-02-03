@@ -105,7 +105,7 @@ export const tasks = pgTable(
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Core fields
-		slug: text().notNull().unique(),
+		slug: text().notNull(),
 		title: text().notNull(),
 		description: text(),
 		statusId: uuid("status_id")
@@ -169,6 +169,7 @@ export const tasks = pgTable(
 			table.externalProvider,
 			table.externalId,
 		),
+		unique("tasks_org_slug_unique").on(table.organizationId, table.slug),
 	],
 );
 

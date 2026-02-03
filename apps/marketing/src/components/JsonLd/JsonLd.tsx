@@ -45,10 +45,16 @@ export function SoftwareApplicationJsonLd() {
 	);
 }
 
+interface ArticleAuthor {
+	name: string;
+	url?: string;
+	sameAs?: string[];
+}
+
 interface ArticleJsonLdProps {
 	title: string;
 	description?: string;
-	author: string;
+	author: ArticleAuthor;
 	publishedTime: string;
 	url: string;
 	image?: string;
@@ -69,7 +75,10 @@ export function ArticleJsonLd({
 		description: description || title,
 		author: {
 			"@type": "Person",
-			name: author,
+			name: author.name,
+			...(author.url && { url: author.url }),
+			...(author.sameAs &&
+				author.sameAs.length > 0 && { sameAs: author.sameAs }),
 		},
 		publisher: {
 			"@type": "Organization",
@@ -102,20 +111,117 @@ export function ArticleJsonLd({
 	);
 }
 
+interface ComparisonJsonLdProps {
+	title: string;
+	description: string;
+	publishedTime: string;
+	modifiedTime?: string;
+	url: string;
+	image?: string;
+}
+
+export function ComparisonJsonLd({
+	title,
+	description,
+	publishedTime,
+	modifiedTime,
+	url,
+	image,
+}: ComparisonJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "Article",
+		headline: title,
+		description,
+		publisher: {
+			"@type": "Organization",
+			name: COMPANY.NAME,
+			logo: {
+				"@type": "ImageObject",
+				url: `${COMPANY.MARKETING_URL}/logo.png`,
+			},
+		},
+		datePublished: publishedTime,
+		dateModified: modifiedTime || publishedTime,
+		mainEntityOfPage: {
+			"@type": "WebPage",
+			"@id": url,
+		},
+		...(image && {
+			image: {
+				"@type": "ImageObject",
+				url: image,
+			},
+		}),
+	};
+
+	return (
+		<script
+			type="application/ld+json"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
+			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+		/>
+	);
+}
+
 export function WebsiteJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "WebSite",
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
-		potentialAction: {
-			"@type": "SearchAction",
-			target: {
-				"@type": "EntryPoint",
-				urlTemplate: `${COMPANY.MARKETING_URL}/blog?q={search_term_string}`,
+	};
+
+	return (
+		<script
+			type="application/ld+json"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
+			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+		/>
+	);
+}
+
+interface FAQPageJsonLdProps {
+	items: Array<{ question: string; answer: string }>;
+}
+
+export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "FAQPage",
+		mainEntity: items.map((item) => ({
+			"@type": "Question",
+			name: item.question,
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: item.answer,
 			},
-			"query-input": "required name=search_term_string",
-		},
+		})),
+	};
+
+	return (
+		<script
+			type="application/ld+json"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
+			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+		/>
+	);
+}
+
+interface BreadcrumbJsonLdProps {
+	items: Array<{ name: string; url: string }>;
+}
+
+export function BreadcrumbJsonLd({ items }: BreadcrumbJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: items.map((item, index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name: item.name,
+			item: item.url,
+		})),
 	};
 
 	return (

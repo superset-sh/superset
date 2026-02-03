@@ -1,0 +1,141 @@
+---
+title: MCP Server
+description: Connect AI agents directly to Superset via MCP
+---
+
+## Overview
+
+Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets AI agents interact with your tasks, workspaces, and devices programmatically.
+
+## Capabilities
+
+| Category | Tools |
+|----------|-------|
+| **Tasks** | Create, update, list, get, delete tasks |
+| **Workspaces** | Create, switch, delete, list workspaces |
+| **Devices** | List devices, projects, and app context |
+| **Organization** | List members and task statuses |
+
+## Setup
+
+Superset supports two MCP transports: **SSE** (Server-Sent Events) and **Streamable HTTP**. Both work identically—choose based on your client's preference.
+
+### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+<Tabs items={["SSE", "HTTP"]}>
+<Tab value="SSE">
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/agent/sse"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="HTTP">
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+
+### Claude Code
+
+<Tabs items={["SSE", "HTTP"]}>
+<Tab value="SSE">
+```bash
+claude mcp add superset --transport sse https://api.superset.sh/api/agent/sse
+```
+</Tab>
+<Tab value="HTTP">
+```bash
+claude mcp add superset --transport http https://api.superset.sh/api/agent/mcp
+```
+</Tab>
+</Tabs>
+
+### Cursor
+
+Add to your Cursor MCP settings:
+
+<Tabs items={["SSE", "HTTP"]}>
+<Tab value="SSE">
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/agent/sse"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="HTTP">
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+
+## Authentication
+
+The MCP server uses OAuth 2.1. When you first connect, you'll be prompted to authorize the connection in your browser. The token is scoped to your active organization.
+
+## Available Tools
+
+### Task Management
+
+| Tool | Description |
+|------|-------------|
+| `create_task` | Create one or more tasks (batch up to 25) |
+| `update_task` | Update existing tasks |
+| `list_tasks` | List tasks with filters (status, assignee, priority, labels) |
+| `get_task` | Get a single task by ID or slug |
+| `delete_task` | Soft delete tasks |
+| `list_task_statuses` | List available status options |
+
+### Workspace Management
+
+| Tool | Description |
+|------|-------------|
+| `create_workspace` | Create a new git worktree workspace |
+| `switch_workspace` | Switch to a different workspace |
+| `delete_workspace` | Delete a workspace |
+| `list_workspaces` | List all workspaces on a device |
+| `navigate_to_workspace` | Navigate the desktop app to a workspace |
+
+### Device & Organization
+
+| Tool | Description |
+|------|-------------|
+| `list_devices` | List online devices in your organization |
+| `list_projects` | List all projects on a device |
+| `get_app_context` | Get current app state (active workspace, pathname) |
+| `list_members` | List organization members |
+
+## Example Usage
+
+Once connected, you can ask your AI agent to:
+
+- "Create a task for fixing the login bug"
+- "List all my assigned tasks"
+- "Create a new workspace for the auth feature"
+- "Show me who's online in my team"

@@ -1,13 +1,12 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces/useDeleteWorkspace";
+import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider";
 import { executeTool, type ToolContext } from "./tools";
@@ -15,18 +14,18 @@ import { executeTool, type ToolContext } from "./tools";
 const processingCommands = new Set<string>();
 
 export function useCommandWatcher() {
-	const isEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.AGENT_COMMANDS_ACCESS);
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const navigate = useNavigate();
 
 	const organizationId = session?.session?.activeOrganizationId;
-	const shouldWatch = isEnabled && !!deviceInfo && !!organizationId;
+	const shouldWatch = !!deviceInfo && !!organizationId;
 
 	const createWorktree = useCreateWorkspace({ skipNavigation: true });
 	const setActive = electronTrpc.workspaces.setActive.useMutation();
 	const deleteWorkspace = useDeleteWorkspace();
+	const updateWorkspace = useUpdateWorkspace();
 
 	const { data: workspaces, refetch: refetchWorkspaces } =
 		electronTrpc.workspaces.getAll.useQuery();
@@ -44,6 +43,7 @@ export function useCommandWatcher() {
 			createWorktree,
 			setActive,
 			deleteWorkspace,
+			updateWorkspace,
 			refetchWorkspaces: async () => refetchWorkspaces(),
 			getWorkspaces: () => workspaces,
 			getProjects: () => projects,
@@ -55,6 +55,7 @@ export function useCommandWatcher() {
 			createWorktree,
 			setActive,
 			deleteWorkspace,
+			updateWorkspace,
 			refetchWorkspaces,
 			workspaces,
 			projects,
@@ -174,7 +175,6 @@ export function useCommandWatcher() {
 	]);
 
 	return {
-		isEnabled,
 		isWatching: shouldWatch && !!deviceInfo?.deviceId,
 		deviceId: deviceInfo?.deviceId,
 		pendingCount:

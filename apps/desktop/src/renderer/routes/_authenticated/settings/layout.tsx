@@ -94,7 +94,7 @@ function SettingsLayout() {
 				(section) => (matchCounts[section] ?? 0) > 0,
 			);
 			if (firstMatch) {
-				navigate({ to: getPathFromSection(firstMatch) });
+				navigate({ to: getPathFromSection(firstMatch), replace: true });
 			}
 		}
 	}, [searchQuery, location.pathname, navigate]);

@@ -4,6 +4,7 @@
  */
 
 import type { BlogCategory } from "./blog-constants";
+import type { Person } from "./people";
 
 export interface TocItem {
 	id: string;
@@ -16,10 +17,11 @@ export interface BlogPost {
 	url: string;
 	title: string;
 	description?: string;
-	author: string;
+	author: Person;
 	date: string;
 	category: BlogCategory;
 	image?: string;
+	relatedSlugs?: string[];
 	content: string;
 }
 

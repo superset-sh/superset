@@ -20,12 +20,14 @@ const ibmPlexMono = IBM_Plex_Mono({
 	weight: ["300", "400", "500"],
 	subsets: ["latin"],
 	variable: "--font-ibm-plex-mono",
+	display: "swap",
 });
 
 const inter = Inter({
 	weight: ["300", "400", "500"],
 	subsets: ["latin"],
 	variable: "--font-inter",
+	display: "swap",
 });
 
 const siteDescription =
@@ -109,10 +111,7 @@ export default function RootLayout({
 			suppressHydrationWarning
 		>
 			<head>
-				<Script
-					src="https://tally.so/widgets/embed.js"
-					strategy="afterInteractive"
-				/>
+				<Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />
