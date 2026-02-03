@@ -59,7 +59,7 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openFile"],
-				title: "Select Organization Logo",
+				title: "Select Image",
 				filters: [
 					{
 						name: "Images",
