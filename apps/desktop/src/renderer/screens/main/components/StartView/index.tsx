@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
@@ -181,89 +182,81 @@ export function StartView() {
 				onDragLeave={handleDragLeave}
 				onDrop={handleDrop}
 			>
-				<div className="flex flex-col items-center w-full max-w-xs px-4">
+				<div className="flex flex-col items-center w-full max-w-md px-6">
 					<SupersetLogo
 						className={cn(
-							"h-8 w-auto mb-6 transition-opacity duration-200",
+							"h-10 w-auto mb-10 transition-opacity duration-200",
 							isDragOver && "opacity-0",
 						)}
 					/>
 
-					<div className="w-full flex flex-col gap-2">
+					<div className="w-full flex flex-col gap-3">
 						<div>
 							<button
 								type="button"
 								onClick={handleOpenProject}
 								disabled={isLoading}
 								className={cn(
-									"w-full rounded border border-dashed transition-colors",
+									"w-full rounded-lg border border-dashed transition-colors",
 									"focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 									"disabled:opacity-50 disabled:pointer-events-none",
 									isDragOver
-										? "border-foreground/40 bg-accent/50 py-16"
-										: "border-border bg-card px-4 py-7 hover:bg-accent",
+										? "border-foreground/40 bg-accent/50 py-32"
+										: "border-border bg-card px-6 py-20 hover:bg-accent",
 								)}
 							>
 								{isDragOver ? (
-									<div className="flex flex-col items-center gap-1">
-										<LuFolderGit className="w-5 h-5 text-foreground" />
-										<span className="text-sm text-foreground">
+									<div className="flex flex-col items-center gap-2">
+										<LuFolderGit className="w-7 h-7 text-foreground" />
+										<span className="text-base text-foreground">
 											Drop git project
 										</span>
 									</div>
 								) : (
 									<div className="flex-1 text-left">
-										<LuFolderOpen className="w-4 h-4 text-muted-foreground" />
-										<div className="text-sm pt-1 text-foreground">
+										<LuFolderOpen className="w-5 h-5 text-muted-foreground" />
+										<div className="text-base pt-2 text-foreground">
 											Open Project
 										</div>
-										<div className="text-xs pt-0.5 text-muted-foreground">
-											Drag git folder or click to browse
+										<div className="text-sm pt-1 text-muted-foreground">
+											Drag any folder with a .git here or click to browse
 										</div>
 									</div>
 								)}
 							</button>
-							<p
-								className={cn(
-									"mt-1.5 text-xs text-muted-foreground/60 text-center transition-opacity",
-									isDragOver && "opacity-0",
-								)}
-							>
-								Any folder with a .git directory
-							</p>
 						</div>
 
-						<button
-							type="button"
-							onClick={() => setIsCloneDialogOpen(true)}
-							disabled={isLoading || isDragOver}
+						<div
 							className={cn(
-								"w-full rounded border border-border bg-transparent px-3 py-2",
-								"transition-colors hover:bg-accent",
-								"focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-								"disabled:opacity-50 disabled:pointer-events-none",
+								"flex items-center gap-1 transition-opacity",
 								isDragOver && "opacity-0",
 							)}
 						>
-							<div className="flex items-center gap-3">
-								<LuFolderGit className="w-4 h-4 text-muted-foreground" />
-								<span className="text-sm text-muted-foreground">
-									Clone Repository
-								</span>
-							</div>
-						</button>
+							<span className="text-sm text-muted-foreground/60">
+								Don't have a local repo?
+							</span>
+							<Button
+								variant="link"
+								size="sm"
+								onClick={() => setIsCloneDialogOpen(true)}
+								disabled={isLoading}
+								className="text-sm text-foreground"
+							>
+								Clone Repository
+							</Button>
+						</div>
 					</div>
 
 					{error && !isDragOver && (
-						<div className="mt-4 w-full flex items-start gap-2 rounded-md px-3 py-2 bg-destructive/10 border border-destructive/20">
-							<span className="flex-1 text-xs text-destructive">{error}</span>
+						<div className="mt-5 w-full flex items-start gap-2 rounded-md px-4 py-3 bg-destructive/10 border border-destructive/20">
+							<span className="flex-1 text-sm text-destructive">{error}</span>
 							<button
 								type="button"
 								onClick={() => setError(null)}
 								className="shrink-0 rounded p-0.5 text-destructive/70 hover:text-destructive transition-colors"
 								aria-label="Dismiss error"
 							>
-								<LuX className="h-3 w-3" />
+								<LuX className="h-3.5 w-3.5" />
 							</button>
 						</div>
 					)}
