@@ -143,9 +143,10 @@ export default async function TeamMemberPage({ params }: PageProps) {
 							</h1>
 
 							{person.bio && (
-								<p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
-									{person.bio}
-								</p>
+								<p
+									className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
+									dangerouslySetInnerHTML={{ __html: person.bio }}
+								/>
 							)}
 
 							{/* Social links */}

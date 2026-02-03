@@ -52,6 +52,11 @@ const config: NextConfig = {
 			process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh";
 		return [
 			{
+				source: "/about",
+				destination: "/team",
+				permanent: true,
+			},
+			{
 				source: "/docs/:path*",
 				destination: `${docsUrl}/:path*`,
 				permanent: false,

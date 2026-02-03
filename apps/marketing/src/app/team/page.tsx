@@ -44,7 +44,7 @@ export default function TeamPage() {
 					<h1 className="text-4xl sm:text-5xl md:text-6xl font-normal text-foreground mb-8">
 						Meet the{" "}
 						<span
-							className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl ml-2"
+							className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl ml-2 font-light tracking-wide"
 							style={{ fontFamily: "var(--font-micro5)" }}
 						>
 							FOUNDERS
@@ -52,9 +52,9 @@ export default function TeamPage() {
 					</h1>
 
 					<p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mb-8">
-						Frustrated with the status quo of AI coding tools, we teamed up to
-						give developers a better way to orchestrate coding agents—one that
-						fits naturally into real workflows.
+					Superset is built by a team of 3 ex YC CTOs. We want to create the best team that has fun working together.
+					<br/>
+					Success will be a lagging indicator.
 					</p>
 
 					<Link
@@ -118,9 +118,10 @@ export default function TeamPage() {
 												{person.role}
 											</p>
 											{person.bio && (
-												<p className="text-sm text-muted-foreground leading-relaxed mt-3">
-													{person.bio}
-												</p>
+												<p
+													className="text-sm text-muted-foreground leading-relaxed mt-3 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
+													dangerouslySetInnerHTML={{ __html: person.bio }}
+												/>
 											)}
 
 											{/* Social Links */}
