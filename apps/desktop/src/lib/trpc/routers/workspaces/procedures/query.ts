@@ -173,6 +173,7 @@ export const createQueryProcedures = () => {
 						updatedAt: number;
 						lastOpenedAt: number;
 						isUnread: boolean;
+						isUnnamed: boolean;
 					}>;
 				}
 			>();
@@ -215,6 +216,7 @@ export const createQueryProcedures = () => {
 						type: workspace.type as "worktree" | "branch",
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
+						isUnnamed: workspace.isUnnamed ?? false,
 					});
 				}
 			}

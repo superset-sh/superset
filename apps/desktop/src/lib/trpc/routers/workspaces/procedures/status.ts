@@ -75,7 +75,10 @@ export const createStatusProcedures = () => {
 				}
 
 				touchWorkspace(input.id, {
-					...(input.patch.name !== undefined && { name: input.patch.name }),
+					...(input.patch.name !== undefined && {
+						name: input.patch.name,
+						isUnnamed: false,
+					}),
 				});
 
 				return { success: true };

@@ -15,7 +15,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import {
@@ -65,6 +65,7 @@ interface WorkspaceListItemProps {
 	branch: string;
 	type: "worktree" | "branch";
 	isUnread?: boolean;
+	isUnnamed?: boolean;
 	index: number;
 	shortcutIndex?: number;
 	/** Whether the sidebar is in collapsed mode (icon-only view) */
@@ -79,6 +80,7 @@ export function WorkspaceListItem({
 	branch,
 	type,
 	isUnread = false,
+	isUnnamed = false,
 	index,
 	shortcutIndex,
 	isCollapsed = false,
@@ -102,6 +104,30 @@ export function WorkspaceListItem({
 		params: { workspaceId: id },
 		fuzzy: true,
 	});
+
+	// Auto-trigger rename for unnamed worktree workspaces when they become active
+	useEffect(() => {
+		if (
+			isUnnamed &&
+			isActive &&
+			!isBranchWorkspace &&
+			!isCollapsed &&
+			!rename.isRenaming
+		) {
+			const timer = setTimeout(() => {
+				rename.startRename();
+			}, 100);
+			return () => clearTimeout(timer);
+		}
+	}, [
+		isUnnamed,
+		isActive,
+		isBranchWorkspace,
+		isCollapsed,
+		rename.isRenaming,
+		rename.startRename,
+	]);
+
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
