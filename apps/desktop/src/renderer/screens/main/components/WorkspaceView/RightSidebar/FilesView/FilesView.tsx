@@ -279,7 +279,7 @@ export function FilesView() {
 	}
 
 	return (
-		<div className="flex flex-col h-full">
+		<div className="flex flex-col flex-1 min-h-0">
 			<FileTreeToolbar
 				searchTerm={searchTerm}
 				onSearchChange={setSearchTerm}
@@ -291,9 +291,10 @@ export function FilesView() {
 				onToggleHiddenFiles={handleToggleHiddenFiles}
 			/>
 
-			<ContextMenu>
-				<ContextMenuTrigger asChild className="flex-1 min-h-0">
-					<div className="flex-1 min-h-0 overflow-auto">
+			<div className="flex-1 min-h-0 overflow-hidden">
+				<ContextMenu>
+					<ContextMenuTrigger asChild className="h-full">
+						<div className="h-full overflow-auto">
 						{newItemMode && newItemParentPath === worktreePath && (
 							<NewItemInput
 								mode={newItemMode}
@@ -385,18 +386,19 @@ export function FilesView() {
 							</div>
 						)}
 					</div>
-				</ContextMenuTrigger>
-				<ContextMenuContent className="w-48">
-					<ContextMenuItem onClick={() => handleNewFile(worktreePath)}>
-						<LuFile className="mr-2 size-4" />
-						New File
-					</ContextMenuItem>
-					<ContextMenuItem onClick={() => handleNewFolder(worktreePath)}>
-						<LuFolder className="mr-2 size-4" />
-						New Folder
-					</ContextMenuItem>
-				</ContextMenuContent>
-			</ContextMenu>
+					</ContextMenuTrigger>
+					<ContextMenuContent className="w-48">
+						<ContextMenuItem onClick={() => handleNewFile(worktreePath)}>
+							<LuFile className="mr-2 size-4" />
+							New File
+						</ContextMenuItem>
+						<ContextMenuItem onClick={() => handleNewFolder(worktreePath)}>
+							<LuFolder className="mr-2 size-4" />
+							New Folder
+						</ContextMenuItem>
+					</ContextMenuContent>
+				</ContextMenu>
+			</div>
 
 			<DeleteConfirmDialog
 				entry={deleteEntry}
