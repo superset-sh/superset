@@ -100,6 +100,7 @@ export function OpenInDemo() {
 						<button
 							type="button"
 							className="flex items-center px-2 text-white/90 bg-[#2a2a2a] border border-white/10 rounded-r-md hover:bg-[#3a3a3a] transition-colors"
+							aria-label="Select IDE"
 						>
 							<HiChevronDown className="w-3.5 h-3.5" />
 						</button>

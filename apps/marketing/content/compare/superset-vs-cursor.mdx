@@ -1,0 +1,103 @@
+---
+title: "Superset vs Cursor (2026): Parallel Agents vs AI Editor"
+description: "Compare Superset and Cursor for AI-assisted development. See how parallel agent orchestration differs from an AI-powered editor."
+date: 2026-02-02
+lastUpdated: 2026-02-02
+type: "1v1"
+competitors:
+  - cursor
+keywords:
+  - superset vs cursor
+  - cursor alternative
+  - ai coding editor comparison
+  - parallel coding agents
+---
+
+Cursor replaces your editor with an AI-native IDE. Superset sits outside your editor and runs 10+ AI coding agents in parallel, each in its own Git worktree. They solve different problems: Cursor makes single-agent editing seamless, Superset scales autonomous agent work horizontally.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Cursor** |
+|---|---|---|
+| **Category** | Agent orchestration terminal | AI code editor (VS Code fork) |
+| **AI approach** | Agent-agnostic — works with Claude Code, Codex, Aider, or any CLI agent | Built-in models (GPT-5, Claude 4.5 Sonnet, Gemini 2.5 Pro) proxied through Cursor servers |
+| **Parallelism** | Core feature — 10+ agents across isolated worktrees | Sequential by default; cloud-based Background Agents added recently |
+| **Editor** | Works alongside any editor (VS Code, Cursor, JetBrains, Xcode) | You must use Cursor's IDE |
+| **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited), Pro $20/mo, Ultra $200/mo |
+| **Privacy** | Fully local — no telemetry, code never leaves your machine | Code sent to Cursor servers and third-party AI providers |
+
+---
+
+## What Is Superset?
+
+Superset is a desktop terminal that orchestrates CLI-based coding agents — Claude Code, Codex, Aider — in parallel across isolated Git worktrees. Each agent gets its own branch and working directory. When one finishes, you review the diff and merge. Open source, fully local, no telemetry.
+
+---
+
+## What Is Cursor?
+
+Cursor is a VS Code fork with AI built into every interaction: inline completions (Tab), chat (Cmd+L), inline edits (Cmd+K), and Composer for multi-file changes. The AI indexes your codebase and proposes changes as reviewable diffs. Requests route through Cursor's servers, providing access to multiple models without your own API keys.
+
+---
+
+## Key Differences
+
+### Single Agent vs Many Agents
+
+Cursor is built for one developer working with one AI assistant — you ask, it responds, you iterate. Superset runs many agents simultaneously in isolated worktrees: one writing tests, another refactoring a service, a third updating docs. Cursor improves a single interaction; Superset runs many concurrently.
+
+### Editor Lock-In vs Editor Freedom
+
+Using Cursor means adopting Cursor. For VS Code users the switch is smooth, but JetBrains, Xcode, and Neovim users must leave their editor behind. Superset does not touch your editor — use it alongside anything, switch editors next year, nothing changes.
+
+### Model Lock-In vs Model Freedom
+
+Cursor routes all requests through its servers, subject to its credit system and rate limits. Superset runs whatever CLI agents you point it at — Claude Code today, Codex tomorrow, a new agent next week — without changing anything in Superset. Your API keys, your models, no middleman.
+
+### Privacy
+
+Superset runs entirely locally — no telemetry, no data collection, fully auditable source code. Cursor sends code to its servers and third-party providers. Privacy Mode offers zero-data-retention, but code still transits external servers, and Background Agents require Privacy Mode disabled entirely.
+
+---
+
+## Pricing
+
+Superset offers a free tier and a Pro plan at $20/seat/month. You also pay for your agents' API keys (e.g., Anthropic for Claude Code) — transparent costs, no markup, no credit system.
+
+Cursor offers a limited free tier (50 requests/month), Pro at $20/month, Pro+ at $60/month, Ultra at $200/month, and Teams at $40/user/month. Its mid-2025 shift to credit-based billing has made costs harder to predict.
+
+---
+
+## Which Should You Choose?
+
+**Choose Cursor if you:**
+- Primarily use VS Code and want AI deeply embedded in your editing flow
+- Work on one task at a time with real-time AI collaboration
+- Prefer convenience over control — no API keys to manage
+- Are comfortable with cloud-based code processing
+
+**Choose Superset if you:**
+- Run CLI-based coding agents and want to parallelize across 10+ tasks
+- Use JetBrains, Xcode, Neovim, or any non-VS Code editor
+- Need code to stay on your machine with no telemetry
+- Want agent and model flexibility with no vendor lock-in
+
+Both tools work together. Use Cursor for inline AI editing, Superset alongside it to dispatch parallel agents for test generation, refactors, and migrations. Cursor is where you write code interactively; Superset is where you orchestrate autonomous work at scale.
+
+---
+
+## Frequently Asked Questions
+
+### Is Superset a Cursor replacement?
+
+No. Superset provides no inline completions, syntax highlighting, or file editing. It is a terminal for orchestrating AI coding agents in parallel, and works alongside Cursor or any other editor.
+
+### Does Cursor support parallel agents?
+
+Cursor's Background Agents run in cloud-based VMs and produce pull requests, enabling some parallelism. But they run remotely, require disabling Privacy Mode, and consume Cursor credits. Superset runs agents locally with no cloud dependency.
+
+### Is Superset really free?
+
+Superset has a free tier and a Pro plan at $20/seat/month. You also need API keys for your chosen agents (e.g., Anthropic for Claude Code). No credit system, no markup on API costs.

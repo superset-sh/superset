@@ -1,0 +1,102 @@
+---
+title: "Superset vs Conductor (2026): Comparing AI Agent Orchestration Platforms"
+description: "Compare Superset and Conductor for managing AI coding agents. See how these orchestration tools differ in approach, features, and developer experience."
+date: 2026-02-02
+lastUpdated: 2026-02-02
+type: "1v1"
+competitors:
+  - conductor
+keywords:
+  - superset vs conductor
+  - conductor alternative
+  - ai agent orchestration
+  - coding agent management
+  - conductor vs superset
+---
+
+Superset and Conductor both run multiple AI coding agents in parallel using Git worktrees for isolation. They differ sharply in agent support, architecture, and openness.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Conductor** |
+|---|---|---|
+| **What it does** | Runs 10+ AI agents in parallel with Git worktree isolation | Runs Claude Code / Codex agents in parallel with Git worktree isolation |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Aider, etc.) | Claude Code and OpenAI Codex only |
+| **Open source** | Yes (Apache 2.0) | No (closed source) |
+| **Terminal architecture** | Persistent daemon (survives app restarts) | Standard sessions (do not survive restarts) |
+| **Integrations** | VS Code, Cursor, JetBrains, Xcode | Linear, GitHub PRs |
+| **Platform** | macOS (Electron) | macOS (Apple Silicon required) |
+| **Pricing** | Free tier + Pro $20/seat/mo | Free |
+
+---
+
+## What Is Superset?
+
+Superset is a desktop terminal for orchestrating AI coding agents. It runs any CLI-based agent -- Claude Code, Codex, OpenCode, Aider, or custom scripts -- in its own Git worktree. A persistent daemon manages all sessions via Unix domain sockets, so they survive app restarts and crashes. Each worktree gets a built-in diff viewer and one-click opening in VS Code, Cursor, JetBrains, or Xcode. Open source (Apache 2.0) with zero telemetry.
+
+---
+
+## What Is Conductor?
+
+Conductor is a macOS app from Melty Labs (YC S24) for running Claude Code and Codex in parallel. It wraps agents via their SDKs rather than running raw CLI processes. A visual dashboard shows all active agents and their diffs. It integrates with Linear (create workspaces from issues) and GitHub (create PRs from the app). Closed source, free, Apple Silicon required.
+
+---
+
+## Key Differences
+
+### Agent Flexibility
+
+Superset is a terminal -- any process that runs in a shell runs in Superset. When a new CLI agent ships, you can use it immediately. Conductor wraps specific SDKs (Claude Code and Codex), so adding a new agent requires Conductor's team to build an integration. If you want to adopt new agents as they appear, Superset removes that bottleneck.
+
+### Terminal Architecture
+
+Superset runs a background daemon that owns all PTY sessions independently of the Electron app. Close Superset, reopen it, and your agents are still running. The daemon handles backpressure and priority-based concurrency (focused pane gets priority, background tabs hydrate gradually). Conductor's sessions persist when switching workspaces but do not survive app restarts -- a real limitation for long-running agent tasks.
+
+### Openness and Privacy
+
+Superset is open source (Apache 2.0) with no telemetry -- you can audit every line of code. Conductor is closed source. In mid-2025, it faced backlash over its GitHub integration requesting broad read-write access to entire GitHub accounts. They later added fine-grained access, but the incident highlighted the trust cost of closed-source tooling that handles source code.
+
+### Workflow Integration
+
+Conductor has a tighter built-in workflow for teams on Linear and GitHub: issue to workspace to PR, all in one app. Superset integrates with your editor instead (VS Code, Cursor, JetBrains, Xcode) and lets you review and merge however you prefer.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Conductor is free. Both require you to pay the underlying AI providers (Anthropic, OpenAI, etc.) for agent usage. The difference is flexibility: Superset lets you pick whichever agent offers the best price-performance per task, while Conductor limits you to Anthropic and OpenAI.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+- Use multiple CLI agents or want the freedom to adopt new ones instantly
+- Need terminal sessions that survive app restarts and crashes
+- Care about open source, code auditability, or zero telemetry
+- Prefer reviewing code in your own editor (JetBrains, Xcode, VS Code, Cursor)
+
+**Choose Conductor if you:**
+- Primarily use Claude Code and want a polished SDK-level integration for it
+- Use Linear for issue tracking and want a connected issue-to-PR workflow
+- Prefer a visual dashboard for monitoring agent status at a glance
+
+**Verdict:** Conductor fits Claude Code-centric teams on Linear and GitHub. Superset is the better long-term bet if you value agent flexibility, open source, and session persistence. New CLI agents ship every month; the tool that supports any agent by design has a structural advantage as the ecosystem evolves.
+
+---
+
+## FAQ
+
+### Is Conductor open source?
+
+No. Conductor is closed source from Melty Labs. You cannot inspect or audit the code. Superset is open source under Apache 2.0 with its full codebase on GitHub.
+
+### Can Conductor run agents other than Claude Code?
+
+Conductor supports Claude Code and OpenAI Codex. It does not support other CLI agents like OpenCode, Aider, or custom tools. Adding new agents requires Conductor to build an SDK integration.
+
+### Do both tools use Git worktrees?
+
+Yes. Both create isolated Git worktrees for each agent, giving every task its own branch and working directory. The underlying isolation mechanism is identical.

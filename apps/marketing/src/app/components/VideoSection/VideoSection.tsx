@@ -46,7 +46,6 @@ export function VideoSection() {
 									alt="Video thumbnail"
 									fill
 									className="object-cover"
-									priority
 									sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1280px"
 								/>
 								<div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/30" />

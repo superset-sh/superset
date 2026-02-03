@@ -107,6 +107,36 @@
 	font-family: inherit;
 }
 
+.prose table {
+	width: 100%;
+	margin-top: 1.5rem;
+	margin-bottom: 1.5rem;
+	border-collapse: collapse;
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.prose thead {
+	border-bottom: 1px solid rgb(255 255 255 / 0.15);
+}
+
+.prose th {
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	font-weight: 600;
+	color: rgb(255 255 255);
+}
+
+.prose td {
+	padding: 0.5rem 0.75rem;
+	color: rgb(255 255 255 / 0.7);
+	border-top: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.prose tbody tr:first-child td {
+	border-top: none;
+}
+
 .prose blockquote {
 	font-style: normal;
 	border-left-color: rgb(255 255 255 / 0.2);

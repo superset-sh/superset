@@ -31,7 +31,7 @@ export async function GET() {
       <description>${escapeXml(post.description || "")}</description>
       <pubDate>${new Date(post.date).toUTCString()}</pubDate>
       <guid isPermaLink="true">${baseUrl}/blog/${post.slug}</guid>
-      <author>${escapeXml(post.author)}</author>
+      <author>${escapeXml(post.author.name)}</author>
     </item>`,
 			)
 			.join("")}

@@ -6,6 +6,9 @@ export const metadata: Metadata = {
 	title: "Community",
 	description:
 		"Join the Superset community to get help, share ideas, and stay up to date with the latest news and updates.",
+	alternates: {
+		canonical: `${COMPANY.MARKETING_URL}/community`,
+	},
 };
 
 interface GitHubRepoResponse {
