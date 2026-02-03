@@ -999,8 +999,7 @@ export const useTabsStore = create<TabsStore>()(
 					if (version < 2 && state.panes) {
 						// Migrate needsAttention → status
 						for (const pane of Object.values(state.panes)) {
-							// biome-ignore lint/suspicious/noExplicitAny: migration from old schema
-							const legacyPane = pane as any;
+							const legacyPane = pane as { needsAttention?: boolean };
 							if (legacyPane.needsAttention === true) {
 								pane.status = "review";
 							}
@@ -1011,8 +1010,9 @@ export const useTabsStore = create<TabsStore>()(
 						// Migrate isLocked → isPinned
 						for (const pane of Object.values(state.panes)) {
 							if (pane.fileViewer) {
-								// biome-ignore lint/suspicious/noExplicitAny: migration from old schema
-								const legacyFileViewer = pane.fileViewer as any;
+								const legacyFileViewer = pane.fileViewer as {
+									isLocked?: boolean;
+								};
 								// Default old panes to pinned (they were explicitly opened)
 								pane.fileViewer.isPinned = legacyFileViewer.isLocked ?? true;
 								delete legacyFileViewer.isLocked;

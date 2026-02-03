@@ -68,13 +68,14 @@ export default async function DesktopSuccessPage({
 	);
 
 	// Create a new session record in the database
+	const activeOrganizationId = session.session?.activeOrganizationId ?? null;
 	await db.insert(sessions).values({
 		token,
 		userId: session.user.id,
 		expiresAt,
 		ipAddress,
 		userAgent,
-		activeOrganizationId: session.session.activeOrganizationId,
+		activeOrganizationId,
 		updatedAt: now,
 	});
 	const protocol =
