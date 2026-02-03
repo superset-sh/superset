@@ -18,8 +18,15 @@ import {
 	HiArrowUp,
 	HiCheck,
 	HiChevronDown,
+	HiPlus,
 } from "react-icons/hi2";
+import { LuGitPullRequest } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	formatHotkeyText,
+	getCurrentPlatform,
+	getHotkey,
+} from "shared/hotkeys";
 
 interface CommitInputProps {
 	worktreePath: string;
@@ -33,6 +40,115 @@ interface CommitInputProps {
 }
 
 type GitAction = "commit" | "push" | "pull" | "sync";
+
+interface PullRequestButtonProps {
+	hasExistingPR: boolean;
+	prUrl?: string;
+	worktreePath: string;
+	isPending: boolean;
+	onRefresh: () => void;
+}
+
+function PullRequestButton({
+	hasExistingPR,
+	prUrl,
+	worktreePath,
+	isPending,
+	onRefresh,
+}: PullRequestButtonProps) {
+	const [isOpen, setIsOpen] = useState(false);
+	const platform = getCurrentPlatform();
+	const hotkeyDisplay = formatHotkeyText(getHotkey("OPEN_GITHUB_PR"), platform);
+
+	const createPRMutation = electronTrpc.changes.createPR.useMutation({
+		onSuccess: () => {
+			toast.success("Opening GitHub...");
+			onRefresh();
+		},
+		onError: (error) => toast.error(`Failed: ${error.message}`),
+	});
+
+	const openUrlMutation = electronTrpc.external.openUrl.useMutation({
+		onError: (error) => {
+			console.error("[external/openUrl] Failed to open URL:", error);
+			toast.error(`Failed to open URL: ${error.message}`);
+		},
+	});
+
+	const handlePrimaryAction = () => {
+		if (hasExistingPR && prUrl) {
+			openUrlMutation.mutate(prUrl);
+		} else {
+			createPRMutation.mutate({ worktreePath });
+		}
+	};
+
+	const handleCopyUrl = () => {
+		if (prUrl) {
+			navigator.clipboard.writeText(prUrl);
+			toast.success("PR URL copied to clipboard");
+		}
+	};
+
+	const isLoading =
+		isPending || createPRMutation.isPending || openUrlMutation.isPending;
+
+	return (
+		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+			<ButtonGroup className="h-7">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="secondary"
+							size="sm"
+							onClick={handlePrimaryAction}
+							disabled={isLoading}
+							className="flex-1 gap-1.5 px-2 h-7 text-xs rounded-r-none"
+						>
+							<div className="relative">
+								<LuGitPullRequest className="size-3.5" />
+								{!hasExistingPR && (
+									<HiPlus className="size-2 absolute -bottom-0.5 -right-0.5" />
+								)}
+							</div>
+							<span>{hasExistingPR ? "View PR" : "Create PR"}</span>
+							<span className="text-[10px] text-muted-foreground">
+								{hotkeyDisplay}
+							</span>
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">
+						{hasExistingPR
+							? "Open pull request in browser"
+							: "Create a new pull request on GitHub"}
+					</TooltipContent>
+				</Tooltip>
+				<DropdownMenuTrigger asChild>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={isLoading}
+						className="h-7 px-1.5 rounded-l-none border-l border-border/50"
+					>
+						<HiChevronDown className="size-3" />
+					</Button>
+				</DropdownMenuTrigger>
+			</ButtonGroup>
+			<DropdownMenuContent align="end" className="w-48 text-xs">
+				<DropdownMenuItem onClick={handlePrimaryAction} className="text-xs">
+					<LuGitPullRequest className="size-3.5" />
+					{hasExistingPR ? "Open Pull Request" : "Create Pull Request"}
+				</DropdownMenuItem>
+				{hasExistingPR && (
+					<DropdownMenuItem onClick={handleCopyUrl} className="text-xs">
+						<HiCheck className="size-3.5" />
+						Copy PR URL
+					</DropdownMenuItem>
+				)}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
 
 export function CommitInput({
 	worktreePath,
@@ -117,8 +233,6 @@ export function CommitInput({
 	};
 	const handlePull = () => pullMutation.mutate({ worktreePath });
 	const handleSync = () => syncMutation.mutate({ worktreePath });
-	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
-	const handleOpenPR = () => prUrl && window.open(prUrl, "_blank");
 
 	const handleCommitAndPush = () => {
 		if (!canCommit) return;
@@ -136,7 +250,7 @@ export function CommitInput({
 				onSuccess: () => {
 					pushMutation.mutate(
 						{ worktreePath, setUpstream: true },
-						{ onSuccess: handleCreatePR },
+						{ onSuccess: () => createPRMutation.mutate({ worktreePath }) },
 					);
 				},
 			},
@@ -332,22 +446,15 @@ export function CommitInput({
 							<HiArrowsUpDown className="size-3.5" />
 							Sync
 						</DropdownMenuItem>
-
-						<DropdownMenuSeparator />
-
-						{hasExistingPR ? (
-							<DropdownMenuItem onClick={handleOpenPR} className="text-xs">
-								<HiArrowTopRightOnSquare className="size-3.5" />
-								Open Pull Request
-							</DropdownMenuItem>
-						) : (
-							<DropdownMenuItem onClick={handleCreatePR} className="text-xs">
-								<HiArrowTopRightOnSquare className="size-3.5" />
-								Create Pull Request
-							</DropdownMenuItem>
-						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
+				<PullRequestButton
+					hasExistingPR={hasExistingPR}
+					prUrl={prUrl}
+					worktreePath={worktreePath}
+					isPending={isPending}
+					onRefresh={onRefresh}
+				/>
 			</ButtonGroup>
 		</div>
 	);
