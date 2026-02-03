@@ -34,6 +34,34 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
+
+	// Query workspace to check if it's unnamed
+	const { data: workspaceData } = electronTrpc.workspaces.get.useQuery(
+		{ id: workspaceId },
+		{ staleTime: 30_000 },
+	);
+	const isUnnamedRef = useRef(false);
+	isUnnamedRef.current = workspaceData?.isUnnamed ?? false;
+
+	// Mutation to rename workspace
+	const utils = electronTrpc.useUtils();
+	const updateWorkspace = electronTrpc.workspaces.update.useMutation({
+		onSuccess: () => {
+			utils.workspaces.getAllGrouped.invalidate();
+			utils.workspaces.get.invalidate({ id: workspaceId });
+		},
+	});
+
+	// Callback ref to rename unnamed workspace when terminal title changes
+	const renameUnnamedWorkspaceRef = useRef<(title: string) => void>(() => {});
+	renameUnnamedWorkspaceRef.current = (title: string) => {
+		if (isUnnamedRef.current && title.trim()) {
+			updateWorkspace.mutate({
+				id: workspaceId,
+				patch: { name: title.trim() },
+			});
+		}
+	};
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -260,6 +288,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		isAlternateScreenRef,
 		isBracketedPasteRef,
 		debouncedSetTabAutoTitleRef,
+		renameUnnamedWorkspaceRef,
 		handleTerminalFocusRef,
 		registerClearCallbackRef,
 		unregisterClearCallbackRef,

@@ -122,6 +122,7 @@ export interface UseTerminalLifecycleOptions {
 	isAlternateScreenRef: MutableRefObject<boolean>;
 	isBracketedPasteRef: MutableRefObject<boolean>;
 	debouncedSetTabAutoTitleRef: MutableRefObject<DebouncedTitleSetter>;
+	renameUnnamedWorkspaceRef: MutableRefObject<(title: string) => void>;
 	handleTerminalFocusRef: MutableRefObject<() => void>;
 	registerClearCallbackRef: MutableRefObject<RegisterCallback>;
 	unregisterClearCallbackRef: MutableRefObject<UnregisterCallback>;
@@ -173,6 +174,7 @@ export function useTerminalLifecycle({
 	isAlternateScreenRef,
 	isBracketedPasteRef,
 	debouncedSetTabAutoTitleRef,
+	renameUnnamedWorkspaceRef,
 	handleTerminalFocusRef,
 	registerClearCallbackRef,
 	unregisterClearCallbackRef,
@@ -466,6 +468,7 @@ export function useTerminalLifecycle({
 		const titleDisposable = xterm.onTitleChange((title) => {
 			if (title) {
 				debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
+				renameUnnamedWorkspaceRef.current(title);
 			}
 		});
 
