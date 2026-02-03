@@ -2,8 +2,8 @@ import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
 import { getBlogPosts } from "@/lib/blog";
 import { getChangelogEntries } from "@/lib/changelog";
-import { getAllPeople } from "@/lib/people";
 import { getComparisonPages } from "@/lib/compare";
+import { getAllPeople } from "@/lib/people";
 
 export default function sitemap(): MetadataRoute.Sitemap {
 	const baseUrl = COMPANY.MARKETING_URL;
@@ -88,5 +88,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		}),
 	);
 
-	return [...staticPages, ...blogPages, ...changelogPages, ...teamPages, ...comparisonPages];
+	return [
+		...staticPages,
+		...blogPages,
+		...changelogPages,
+		...teamPages,
+		...comparisonPages,
+	];
 }
