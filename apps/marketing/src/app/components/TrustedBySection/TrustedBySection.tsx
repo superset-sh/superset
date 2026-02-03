@@ -72,8 +72,6 @@ export function TrustedBySection() {
 										marginTop: client?.marginTop ?? 0,
 									}}
 									unoptimized
-									loading="eager"
-									priority
 								/>
 								{client.text && (
 									<span className="ml-2 mt-1 font-medium text-foreground text-[1.3rem]">

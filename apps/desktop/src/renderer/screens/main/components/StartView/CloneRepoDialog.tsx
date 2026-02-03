@@ -1,3 +1,13 @@
+import { Button } from "@superset/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@superset/ui/dialog";
+import { Input } from "@superset/ui/input";
 import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -18,6 +28,8 @@ export function CloneRepoDialog({
 	const cloneRepo = electronTrpc.projects.cloneRepo.useMutation();
 	const createWorkspace = useCreateWorkspace();
 
+	const isLoading = cloneRepo.isPending || createWorkspace.isPending;
+
 	const handleClone = async () => {
 		if (!url.trim()) {
 			onError("Please enter a repository URL");
@@ -28,19 +40,16 @@ export function CloneRepoDialog({
 			{ url: url.trim() },
 			{
 				onSuccess: (result) => {
-					// User canceled the directory picker - silent no-op
 					if (result.canceled) {
 						return;
 					}
 
 					if (result.success && result.project) {
-						// Invalidate recents so the new/updated project appears
 						utils.projects.getRecents.invalidate();
 						createWorkspace.mutate({ projectId: result.project.id });
 						onClose();
 						setUrl("");
 					} else if (!result.success) {
-						// Show user-friendly error message
 						onError(result.error ?? "Failed to clone repository");
 					}
 				},
@@ -51,61 +60,47 @@ export function CloneRepoDialog({
 		);
 	};
 
-	if (!isOpen) return null;
-
-	const isLoading = cloneRepo.isPending || createWorkspace.isPending;
-
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-			<div className="bg-card border border-border rounded-lg p-8 w-full max-w-md shadow-2xl">
-				<h2 className="text-xl font-normal text-foreground mb-6">
-					Clone Repository
-				</h2>
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Clone Repository</DialogTitle>
+					<DialogDescription>
+						Enter a repository URL to clone it locally.
+					</DialogDescription>
+				</DialogHeader>
 
-				<div className="space-y-6">
-					<div>
-						<label
-							htmlFor="repo-url"
-							className="block text-xs font-normal text-muted-foreground mb-2"
-						>
-							Repository URL
-						</label>
-						<input
-							id="repo-url"
-							type="text"
-							value={url}
-							onChange={(e) => setUrl(e.target.value)}
-							placeholder="https://github.com/user/repo.git"
-							className="w-full px-3 py-2.5 bg-background border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-ring transition-colors"
-							disabled={isLoading}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" && !isLoading) {
-									handleClone();
-								}
-							}}
-						/>
-					</div>
-
-					<div className="flex gap-3 justify-end pt-2">
-						<button
-							type="button"
-							onClick={onClose}
-							disabled={isLoading}
-							className="px-4 py-2 rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-						>
-							Cancel
-						</button>
-						<button
-							type="button"
-							onClick={handleClone}
-							disabled={isLoading}
-							className="px-4 py-2 rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-						>
-							{isLoading ? "Cloning..." : "Clone"}
-						</button>
-					</div>
+				<div>
+					<label
+						htmlFor="repo-url"
+						className="block text-sm font-medium text-foreground mb-2"
+					>
+						Repository URL
+					</label>
+					<Input
+						id="repo-url"
+						value={url}
+						onChange={(e) => setUrl(e.target.value)}
+						placeholder="https://github.com/user/repo.git"
+						disabled={isLoading}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" && !isLoading) {
+								handleClone();
+							}
+						}}
+						autoFocus
+					/>
 				</div>
-			</div>
-		</div>
+
+				<DialogFooter>
+					<Button variant="outline" onClick={onClose} disabled={isLoading}>
+						Cancel
+					</Button>
+					<Button onClick={handleClone} disabled={isLoading}>
+						{isLoading ? "Cloning..." : "Clone"}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 }

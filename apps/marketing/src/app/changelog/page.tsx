@@ -1,4 +1,5 @@
 import { COMPANY } from "@superset/shared/constants";
+import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { FaGithub } from "react-icons/fa";
 import { GridCross } from "@/app/blog/components/GridCross";
@@ -60,6 +61,16 @@ export default async function ChangelogPage() {
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
 						The latest updates, improvements, and new features in Superset.
+						Updated weekly. For detailed release notes, see{" "}
+						<a
+							href="https://github.com/superset-sh/superset/releases"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+						>
+							GitHub Releases
+							<ExternalLink className="h-3 w-3" />
+						</a>
 					</p>
 					<a
 						href={`${COMPANY.GITHUB_URL}/releases`}
