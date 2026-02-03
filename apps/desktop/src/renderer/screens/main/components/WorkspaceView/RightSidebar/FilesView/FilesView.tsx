@@ -153,7 +153,6 @@ export function FilesView() {
 			if (!workspaceId || !worktreePath || entry.isDirectory) return;
 			addFileViewerPane(workspaceId, {
 				filePath: entry.relativePath,
-				viewMode: "raw",
 			});
 		},
 		[workspaceId, worktreePath, addFileViewerPane],

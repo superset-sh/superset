@@ -1,6 +1,6 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { ChangeCategory } from "shared/changes-types";
-import { hasRenderedPreview } from "shared/file-types";
+import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
 	DiffLayout,
 	FileViewerMode,
@@ -18,6 +18,8 @@ export const resolveFileViewerMode = ({
 	viewMode?: FileViewerMode;
 }): FileViewerMode => {
 	if (viewMode) return viewMode;
+	// Images always default to rendered (no meaningful diff for binary files)
+	if (isImageFile(filePath)) return "rendered";
 	if (diffCategory) return "diff";
 	if (hasRenderedPreview(filePath)) return "rendered";
 	return "raw";

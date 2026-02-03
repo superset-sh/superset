@@ -1,6 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useState } from "react";
 import {
 	TbFold,
 	TbLayoutSidebarRightFilled,
@@ -14,6 +15,7 @@ import type { SplitOrientation } from "../../../hooks";
 
 interface FileViewerToolbarProps {
 	fileName: string;
+	filePath: string;
 	isDirty: boolean;
 	viewMode: FileViewerMode;
 	/** If false, this is a preview pane (italic name, can be replaced) */
@@ -36,6 +38,7 @@ interface FileViewerToolbarProps {
 
 export function FileViewerToolbar({
 	fileName,
+	filePath,
 	isDirty,
 	viewMode,
 	isPinned,
@@ -51,18 +54,34 @@ export function FileViewerToolbar({
 	onPin,
 	onClosePane,
 }: FileViewerToolbarProps) {
+	const [copied, setCopied] = useState(false);
+
+	const handleCopyPath = () => {
+		navigator.clipboard.writeText(filePath);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 1500);
+	};
 	return (
 		<div className="flex h-full w-full items-center justify-between px-3">
 			<div className="flex min-w-0 items-center gap-2">
-				<span
-					className={cn(
-						"truncate text-xs text-muted-foreground",
-						!isPinned && "italic",
-					)}
-				>
-					{isDirty && <span className="text-amber-500 mr-1">●</span>}
-					{fileName}
-				</span>
+				<Tooltip open={copied ? true : undefined}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleCopyPath}
+							className={cn(
+								"truncate text-xs text-muted-foreground hover:text-foreground transition-colors text-left",
+								!isPinned && "italic",
+							)}
+						>
+							{isDirty && <span className="text-amber-500 mr-1">●</span>}
+							{fileName}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						{copied ? "Copied!" : "Click to copy path"}
+					</TooltipContent>
+				</Tooltip>
 			</div>
 			<div className="flex items-center gap-1">
 				<ToggleGroup

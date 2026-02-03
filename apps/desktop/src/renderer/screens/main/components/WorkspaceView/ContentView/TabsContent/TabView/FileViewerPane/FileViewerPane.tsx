@@ -277,6 +277,7 @@ export function FileViewerPane({
 					<div className="flex h-full w-full">
 						<FileViewerToolbar
 							fileName={fileName}
+							filePath={filePath}
 							isDirty={isDirty}
 							viewMode={viewMode}
 							isPinned={isPinned}
