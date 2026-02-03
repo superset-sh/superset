@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -24,6 +25,7 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useState } from "react";
 import {
+	HiArrowTopRightOnSquare,
 	HiOutlineClipboardDocument,
 	HiOutlineKey,
 	HiOutlinePlus,
@@ -119,7 +121,16 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				<div className="max-w-5xl">
 					<h2 className="text-2xl font-semibold">API Keys</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Manage API keys for MCP server access and external integrations
+						Manage API keys for MCP server access and external integrations.{" "}
+						<a
+							href={`${COMPANY.DOCS_URL}/mcp`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="inline-flex items-center gap-1 text-primary hover:underline"
+						>
+							Learn more
+							<HiArrowTopRightOnSquare className="h-3 w-3" />
+						</a>
 					</p>
 				</div>
 			</div>

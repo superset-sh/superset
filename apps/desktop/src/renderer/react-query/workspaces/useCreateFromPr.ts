@@ -19,7 +19,6 @@ export function useCreateFromPr(options?: MutationOptions) {
 	return electronTrpc.workspaces.createFromPr.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
-			// Set optimistic progress before navigation for new workspaces
 			if (!data.wasExisting && data.initialCommands) {
 				const optimisticProgress: WorkspaceInitProgress = {
 					workspaceId: data.workspace.id,
@@ -30,7 +29,6 @@ export function useCreateFromPr(options?: MutationOptions) {
 				updateProgress(optimisticProgress);
 			}
 
-			// Setup terminal if there are initial commands
 			if (data.initialCommands) {
 				addPendingTerminalSetup({
 					workspaceId: data.workspace.id,
@@ -41,7 +39,6 @@ export function useCreateFromPr(options?: MutationOptions) {
 
 			await utils.workspaces.invalidate();
 
-			// Navigate to the workspace
 			navigateToWorkspace(data.workspace.id, navigate);
 
 			await options?.onSuccess?.(data, ...rest);

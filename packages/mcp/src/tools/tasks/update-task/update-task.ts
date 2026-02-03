@@ -1,7 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db, dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
-import { getCurrentTxid } from "@superset/db/utils";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
@@ -50,7 +49,6 @@ export function register(server: McpServer) {
 						title: z.string(),
 					}),
 				),
-				txid: z.string(),
 			},
 		},
 		async (args, extra) => {
@@ -121,30 +119,25 @@ export function register(server: McpServer) {
 				resolvedUpdates.push({ taskId: existingTask.id, updateData });
 			}
 
-			const result = await dbWs.transaction(async (tx) => {
-				const updatedTasks: { id: string; slug: string; title: string }[] = [];
+			const updatedTasks: { id: string; slug: string; title: string }[] = [];
 
-				for (const { taskId, updateData } of resolvedUpdates) {
-					const [task] = await tx
-						.update(tasks)
-						.set(updateData)
-						.where(eq(tasks.id, taskId))
-						.returning({
-							id: tasks.id,
-							slug: tasks.slug,
-							title: tasks.title,
-						});
+			for (const { taskId, updateData } of resolvedUpdates) {
+				const [task] = await dbWs
+					.update(tasks)
+					.set(updateData)
+					.where(eq(tasks.id, taskId))
+					.returning({
+						id: tasks.id,
+						slug: tasks.slug,
+						title: tasks.title,
+					});
 
-					if (task) {
-						updatedTasks.push(task);
-					}
+				if (task) {
+					updatedTasks.push(task);
 				}
+			}
 
-				const txid = await getCurrentTxid(tx);
-				return { updatedTasks, txid };
-			});
-
-			const data = { updated: result.updatedTasks, txid: result.txid };
+			const data = { updated: updatedTasks };
 			return {
 				structuredContent: data,
 				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],

@@ -58,11 +58,40 @@ interface RunSlackAgentParams {
 	threadTs: string;
 	organizationId: string;
 	slackToken: string;
+	onProgress?: (status: string) => void | Promise<void>;
 }
 
 export interface SlackAgentResult {
 	text: string;
 	actions: AgentAction[];
+}
+
+export async function formatErrorForSlack(error: unknown): Promise<string> {
+	const message =
+		error instanceof Error ? error.message : "Unknown error occurred";
+	try {
+		const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+		const response = await anthropic.messages.create({
+			model: "claude-3-5-haiku-latest",
+			max_tokens: 256,
+			messages: [
+				{
+					role: "user",
+					content: `Rewrite this API error as a brief, friendly Slack message (1-2 sentences). No technical jargon, no JSON. If it's a rate limit, tell them to try again shortly.\n\nError: ${message}`,
+				},
+			],
+		});
+		const text = response.content.find(
+			(b): b is Anthropic.TextBlock => b.type === "text",
+		);
+		return text?.text ?? "Sorry, something went wrong. Please try again.";
+	} catch {
+		// Haiku itself failed (possibly also rate limited) — use static fallback
+		if (error instanceof Anthropic.APIError && error.status === 429) {
+			return "I'm a bit overloaded right now — please try again in a moment.";
+		}
+		return "Sorry, something went wrong. Please try again.";
+	}
 }
 
 function getActionFromToolResult(
@@ -97,6 +126,19 @@ function getActionFromToolResult(
 					title: t.title,
 				}),
 			),
+		};
+	}
+
+	if (toolName === "delete_task" && data.deleted) {
+		return {
+			type: "task_deleted",
+			tasks: (
+				data.deleted as { id: string; slug: string; title: string }[]
+			).map((t) => ({
+				id: t.id,
+				slug: t.slug,
+				title: t.title,
+			})),
 		};
 	}
 
@@ -148,6 +190,21 @@ function parseTextContent(content: any): Record<string, unknown> | null {
 		return null;
 	}
 }
+
+const TOOL_PROGRESS_STATUS: Record<string, string> = {
+	create_task: "Creating task...",
+	update_task: "Updating task...",
+	delete_task: "Deleting task...",
+	list_tasks: "Searching tasks...",
+	get_task: "Fetching task details...",
+	list_task_statuses: "Fetching statuses...",
+	create_workspace: "Creating workspace...",
+	list_workspaces: "Fetching workspaces...",
+	list_devices: "Fetching devices...",
+	list_projects: "Fetching projects...",
+	list_members: "Fetching team members...",
+	slack_get_channel_history: "Reading channel history...",
+};
 
 // Desktop-only tools that don't make sense in Slack context
 const DENIED_SUPERSET_TOOLS = new Set([
@@ -206,6 +263,7 @@ const SYSTEM_PROMPT = `You are a helpful assistant in Slack for Superset, a task
 You can:
 - Create, update, search, and manage tasks using superset_* tools
 - Read recent channel messages using slack_get_channel_history
+- Search the web for current information using web_search
 - Help users understand conversations and create actionable items from discussions
 
 Guidelines:
@@ -213,6 +271,8 @@ Guidelines:
 - When creating tasks, extract key details from the conversation
 - Use Slack formatting: *bold*, _italic_, \`code\`, > quotes
 - If an action fails, explain what went wrong and suggest alternatives
+- When answering questions that need up-to-date info, use web_search to find current information
+- Cite sources when sharing information from web search results
 
 Context gathering:
 - Thread context is automatically included if the mention is in a thread
@@ -262,9 +322,14 @@ export async function runSlackAgent(
 			.map((t) => mcpToolToAnthropicTool(t, "superset"))
 			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name));
 
-		const tools: Anthropic.Tool[] = [
+		const tools: Anthropic.Messages.ToolUnion[] = [
 			...supersetTools,
 			SLACK_GET_CHANNEL_HISTORY_TOOL,
+			{
+				type: "web_search_20250305" as const,
+				name: "web_search" as const,
+				max_uses: 1,
+			},
 		];
 
 		const contextualSystem = `${SYSTEM_PROMPT}
@@ -297,10 +362,31 @@ Current context:
 		let iterations = 0;
 
 		while (
-			response.stop_reason === "tool_use" &&
+			(response.stop_reason === "tool_use" ||
+				response.stop_reason === "pause_turn") &&
 			iterations < MAX_TOOL_ITERATIONS
 		) {
 			iterations++;
+
+			// pause_turn: server-side tool (web search) paused a long-running turn
+			if (response.stop_reason === "pause_turn") {
+				try {
+					await params.onProgress?.("Searching the web...");
+				} catch {
+					// Non-critical
+				}
+				messages.push({ role: "assistant", content: response.content });
+				response = await anthropic.messages.create({
+					model: "claude-sonnet-4-5",
+					max_tokens: 2048,
+					system: contextualSystem,
+					tools,
+					messages,
+				});
+				continue;
+			}
+
+			// tool_use: handle client-side tools (MCP + slack_get_channel_history)
 			const toolUseBlocks = response.content.filter(
 				(b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
 			);
@@ -309,6 +395,18 @@ Current context:
 
 			for (const toolUse of toolUseBlocks) {
 				try {
+					const { toolName: rawToolName } = parseToolName(toolUse.name);
+					const progressStatus =
+						TOOL_PROGRESS_STATUS[toolUse.name] ??
+						TOOL_PROGRESS_STATUS[rawToolName] ??
+						"Working...";
+
+					try {
+						await params.onProgress?.(progressStatus);
+					} catch {
+						// Non-critical: don't fail the agent if progress update fails
+					}
+
 					let resultContent: string;
 
 					if (toolUse.name === "slack_get_channel_history") {
@@ -383,9 +481,12 @@ Current context:
 			});
 		}
 
-		const textBlock = response.content.find(
+		// Use the last text block — server-side tools like web_search produce
+		// multiple text blocks (preamble + synthesis) and we want the final one.
+		const textBlocks = response.content.filter(
 			(b): b is Anthropic.TextBlock => b.type === "text",
 		);
+		const textBlock = textBlocks.at(-1);
 
 		return {
 			text: textBlock?.text ?? "Done!",

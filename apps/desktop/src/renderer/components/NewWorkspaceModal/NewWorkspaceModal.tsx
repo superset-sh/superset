@@ -27,9 +27,15 @@ import {
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronDown,
+	HiChevronUpDown,
+	HiOutlinePencil,
+} from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
@@ -54,6 +60,7 @@ function generateSlugFromTitle(title: string): string {
 type Mode = "existing" | "new" | "cloud";
 
 export function NewWorkspaceModal() {
+	const navigate = useNavigate();
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
@@ -371,12 +378,25 @@ export function NewWorkspaceModal() {
 										</CollapsibleTrigger>
 										<CollapsibleContent className="pt-3 space-y-3">
 											<div className="space-y-1.5">
-												<label
-													htmlFor="branch"
-													className="text-xs text-muted-foreground"
-												>
-													Branch name
-												</label>
+												<div className="flex items-center justify-between">
+													<label
+														htmlFor="branch"
+														className="text-xs text-muted-foreground"
+													>
+														Branch name
+													</label>
+													<button
+														type="button"
+														onClick={() => {
+															handleClose();
+															navigate({ to: "/settings/behavior" });
+														}}
+														className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<HiOutlinePencil className="size-3" />
+														<span>Edit prefix</span>
+													</button>
+												</div>
 												<Input
 													id="branch"
 													className="h-8 text-sm font-mono"

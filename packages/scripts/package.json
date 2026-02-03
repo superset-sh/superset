@@ -4,21 +4,6 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"backfill:stripe-customers": "bun run src/backfill-stripe-customers.ts",
-		"recover:stripe-customers": "bun run src/recover-stripe-customers.ts",
-		"wipe:stripe-customers": "bun run src/wipe-stripe-customers.ts",
-		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
-	},
-	"dependencies": {
-		"@superset/db": "workspace:*",
-		"dotenv": "^17.2.3",
-		"drizzle-orm": "0.45.1",
-		"stripe": "^20.2.0"
-	},
-	"devDependencies": {
-		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
-		"typescript": "^5.9.3"
+		"clean": "git clean -xdf .cache .turbo dist node_modules"
 	}
 }

@@ -1,5 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { NavigationControls } from "./components/NavigationControls";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { SidebarToggle } from "./components/SidebarToggle";
@@ -18,12 +19,13 @@ export function TopBar() {
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-background border-b border-border">
 			<div
-				className="flex items-center gap-2 h-full"
+				className="flex items-center gap-1.5 h-full"
 				style={{
 					paddingLeft: isMac ? "88px" : "16px",
 				}}
 			>
 				<SidebarToggle />
+				<NavigationControls />
 			</div>
 
 			<div className="flex-1" />

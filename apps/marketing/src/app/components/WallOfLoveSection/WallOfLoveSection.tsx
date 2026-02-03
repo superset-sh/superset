@@ -68,7 +68,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 						e.stopPropagation();
 						setShowOriginal(!showOriginal);
 					}}
-					className="group mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					className="group mt-2 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<span className="group-hover:hidden">
 						{showOriginal ? "Translated" : "Translated"}

@@ -34,16 +34,12 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { markTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { usePresets } from "renderer/react-query/presets";
 import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
 } from "renderer/routes/_authenticated/settings/presets/types";
-import {
-	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
-	DEFAULT_TERMINAL_PERSISTENCE,
-} from "shared/constants";
+import { DEFAULT_AUTO_APPLY_DEFAULT_PRESET } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -126,10 +122,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	);
 	const showAutoApplyPreset = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
-		visibleItems,
-	);
-	const showPersistence = isItemVisible(
-		SETTING_ITEM_ID.TERMINAL_PERSISTENCE,
 		visibleItems,
 	);
 	const showSessions = isItemVisible(
@@ -339,12 +331,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		[reorderPresets],
 	);
 
-	const { data: terminalPersistence, isLoading } =
-		electronTrpc.settings.getTerminalPersistence.useQuery();
-
 	const { data: daemonSessions } =
 		electronTrpc.terminal.listDaemonSessions.useQuery();
-	const daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
 	const sessions = daemonSessions?.sessions ?? [];
 	const aliveSessions = useMemo(
 		() => sessions.filter((session) => session.isAlive),
@@ -371,31 +359,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		sessionId: string;
 		workspaceId: string;
 	} | null>(null);
-
-	const setTerminalPersistence =
-		electronTrpc.settings.setTerminalPersistence.useMutation({
-			onMutate: async ({ enabled }) => {
-				await utils.settings.getTerminalPersistence.cancel();
-				const previous = utils.settings.getTerminalPersistence.getData();
-				utils.settings.getTerminalPersistence.setData(undefined, enabled);
-				return { previous };
-			},
-			onError: (_err, _vars, context) => {
-				if (context?.previous !== undefined) {
-					utils.settings.getTerminalPersistence.setData(
-						undefined,
-						context.previous,
-					);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getTerminalPersistence.invalidate();
-			},
-		});
-
-	const handleToggle = (enabled: boolean) => {
-		setTerminalPersistence.mutate({ enabled });
-	};
 
 	// Terminal link behavior setting
 	const { data: terminalLinkBehavior, isLoading: isLoadingLinkBehavior } =
@@ -463,25 +426,18 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 				await utils.terminal.listDaemonSessions.cancel();
 				const previous = utils.terminal.listDaemonSessions.getData();
 				utils.terminal.listDaemonSessions.setData(undefined, {
-					daemonModeEnabled: true,
 					sessions: [],
 				});
 				return { previous };
 			},
 			onSuccess: (result) => {
-				if (result.daemonModeEnabled) {
-					if (result.remainingCount > 0) {
-						toast.warning("Some sessions could not be killed", {
-							description: `${result.killedCount} terminated, ${result.remainingCount} remaining`,
-						});
-					} else {
-						toast.success("Killed all terminal sessions", {
-							description: `${result.killedCount} sessions terminated`,
-						});
-					}
+				if (result.remainingCount > 0) {
+					toast.warning("Some sessions could not be killed", {
+						description: `${result.killedCount} terminated, ${result.remainingCount} remaining`,
+					});
 				} else {
-					toast.error("Terminal persistence is not active", {
-						description: "Restart the app after enabling terminal persistence.",
+					toast.success("Killed all terminal sessions", {
+						description: `${result.killedCount} sessions terminated`,
 					});
 				}
 			},
@@ -553,7 +509,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Terminal</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure terminal behavior, presets, and persistence
+					Configure terminal behavior and presets
 				</p>
 			</div>
 
@@ -730,50 +686,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 					</div>
 				)}
 
-				{showPersistence && (
-					<div
-						className={
-							showPresets || showQuickAdd || showAutoApplyPreset
-								? "flex items-center justify-between pt-6 border-t"
-								: "flex items-center justify-between"
-						}
-					>
-						<div className="space-y-0.5">
-							<Label
-								htmlFor="terminal-persistence"
-								className="text-sm font-medium"
-							>
-								Terminal persistence
-							</Label>
-							<p className="text-xs text-muted-foreground">
-								Keep terminal sessions alive across app restarts and workspace
-								switches. TUI apps like Claude Code will resume exactly where
-								you left off.
-							</p>
-							<p className="text-xs text-muted-foreground/70 mt-1">
-								May use more memory with many terminals open. Disable if you
-								notice performance issues.
-							</p>
-							<p className="text-xs text-muted-foreground/70 mt-1">
-								Requires app restart to take effect.
-							</p>
-						</div>
-						<Switch
-							id="terminal-persistence"
-							checked={terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE}
-							onCheckedChange={handleToggle}
-							disabled={isLoading || setTerminalPersistence.isPending}
-						/>
-					</div>
-				)}
-
 				{showLinkBehavior && (
 					<div
 						className={
-							showPersistence ||
-							showPresets ||
-							showQuickAdd ||
-							showAutoApplyPreset
+							showPresets || showQuickAdd || showAutoApplyPreset
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}
@@ -808,13 +724,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 				)}
 
 				{showSessions && (
-					<div
-						className={
-							showPersistence || showLinkBehavior
-								? "rounded-md border border-border/60 p-4 space-y-3"
-								: "rounded-md border border-border/60 p-4 space-y-3"
-						}
-					>
+					<div className="rounded-md border border-border/60 p-4 space-y-3">
 						<div className="space-y-0.5">
 							<div className="flex items-center justify-between">
 								<Label className="text-sm font-medium">Manage sessions</Label>
@@ -826,23 +736,13 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 									Refresh
 								</Button>
 							</div>
-							{daemonModeEnabled ? (
-								<>
-									<p className="text-xs text-muted-foreground">
-										Daemon sessions running: {aliveSessions.length}
-									</p>
-									{aliveSessions.length >= 20 && (
-										<p className="text-xs text-muted-foreground/70">
-											Large numbers of persistent terminals can increase
-											CPU/memory usage. Consider killing old sessions if you
-											notice slowdowns.
-										</p>
-									)}
-								</>
-							) : (
-								<p className="text-xs text-muted-foreground">
-									Enable terminal persistence and restart the app to manage
-									daemon sessions.
+							<p className="text-xs text-muted-foreground">
+								Daemon sessions running: {aliveSessions.length}
+							</p>
+							{aliveSessions.length >= 20 && (
+								<p className="text-xs text-muted-foreground/70">
+									Large numbers of persistent terminals can increase CPU/memory
+									usage. Consider killing old sessions if you notice slowdowns.
 								</p>
 							)}
 						</div>
@@ -852,9 +752,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								variant="destructive"
 								size="sm"
 								disabled={
-									!daemonModeEnabled ||
-									aliveSessions.length === 0 ||
-									killAllDaemonSessions.isPending
+									aliveSessions.length === 0 || killAllDaemonSessions.isPending
 								}
 								onClick={() => setConfirmKillAllOpen(true)}
 							>
@@ -864,9 +762,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								variant="secondary"
 								size="sm"
 								disabled={
-									!daemonModeEnabled ||
-									aliveSessions.length === 0 ||
-									clearTerminalHistory.isPending
+									aliveSessions.length === 0 || clearTerminalHistory.isPending
 								}
 								onClick={() => setConfirmClearHistoryOpen(true)}
 							>
@@ -875,7 +771,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							<Button
 								variant="outline"
 								size="sm"
-								disabled={!daemonModeEnabled || restartDaemon.isPending}
+								disabled={restartDaemon.isPending}
 								onClick={() => setConfirmRestartDaemonOpen(true)}
 							>
 								Restart daemon
@@ -883,83 +779,81 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							<Button
 								variant="ghost"
 								size="sm"
-								disabled={!daemonModeEnabled || aliveSessions.length === 0}
+								disabled={aliveSessions.length === 0}
 								onClick={() => setShowSessionList((v) => !v)}
 							>
 								{showSessionList ? "Hide sessions" : "Show sessions"}
 							</Button>
 						</div>
 
-						{daemonModeEnabled &&
-							showSessionList &&
-							aliveSessions.length > 0 && (
-								<div className="rounded-md border border-border/60 overflow-hidden">
-									<div className="max-h-64 overflow-auto">
-										<table className="w-full text-xs">
-											<thead className="sticky top-0 bg-background">
-												<tr className="text-muted-foreground">
-													<th className="px-2 py-2 text-left font-medium">
-														Workspace
-													</th>
-													<th className="px-2 py-2 text-left font-medium">
-														Session
-													</th>
-													<th className="px-2 py-2 text-right font-medium">
-														Clients
-													</th>
-													<th className="px-2 py-2 text-right font-medium">
-														PID
-													</th>
-													<th className="px-2 py-2 text-left font-medium">
-														Last attached
-													</th>
-													<th className="px-2 py-2 text-right font-medium">
-														Action
-													</th>
+						{showSessionList && aliveSessions.length > 0 && (
+							<div className="rounded-md border border-border/60 overflow-hidden">
+								<div className="max-h-64 overflow-auto">
+									<table className="w-full text-xs">
+										<thead className="sticky top-0 bg-background">
+											<tr className="text-muted-foreground">
+												<th className="px-2 py-2 text-left font-medium">
+													Workspace
+												</th>
+												<th className="px-2 py-2 text-left font-medium">
+													Session
+												</th>
+												<th className="px-2 py-2 text-right font-medium">
+													Clients
+												</th>
+												<th className="px-2 py-2 text-right font-medium">
+													PID
+												</th>
+												<th className="px-2 py-2 text-left font-medium">
+													Last attached
+												</th>
+												<th className="px-2 py-2 text-right font-medium">
+													Action
+												</th>
+											</tr>
+										</thead>
+										<tbody className="divide-y divide-border/60">
+											{sessionsSorted.map((session) => (
+												<tr
+													key={session.sessionId}
+													className="hover:bg-muted/30"
+												>
+													<td className="px-2 py-2 font-mono">
+														{session.workspaceId}
+													</td>
+													<td className="px-2 py-2 font-mono">
+														{session.sessionId}
+													</td>
+													<td className="px-2 py-2 text-right">
+														{session.attachedClients}
+													</td>
+													<td className="px-2 py-2 text-right font-mono">
+														{session.pid ?? "—"}
+													</td>
+													<td className="px-2 py-2">
+														{formatTimestamp(session.lastAttachedAt)}
+													</td>
+													<td className="px-2 py-2 text-right">
+														<Button
+															variant="ghost"
+															size="sm"
+															onClick={() =>
+																setPendingKillSession({
+																	sessionId: session.sessionId,
+																	workspaceId: session.workspaceId,
+																})
+															}
+														>
+															Kill
+														</Button>
+													</td>
 												</tr>
-											</thead>
-											<tbody className="divide-y divide-border/60">
-												{sessionsSorted.map((session) => (
-													<tr
-														key={session.sessionId}
-														className="hover:bg-muted/30"
-													>
-														<td className="px-2 py-2 font-mono">
-															{session.workspaceId}
-														</td>
-														<td className="px-2 py-2 font-mono">
-															{session.sessionId}
-														</td>
-														<td className="px-2 py-2 text-right">
-															{session.attachedClients}
-														</td>
-														<td className="px-2 py-2 text-right font-mono">
-															{session.pid ?? "—"}
-														</td>
-														<td className="px-2 py-2">
-															{formatTimestamp(session.lastAttachedAt)}
-														</td>
-														<td className="px-2 py-2 text-right">
-															<Button
-																variant="ghost"
-																size="sm"
-																onClick={() =>
-																	setPendingKillSession({
-																		sessionId: session.sessionId,
-																		workspaceId: session.workspaceId,
-																	})
-																}
-															>
-																Kill
-															</Button>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
+											))}
+										</tbody>
+									</table>
 								</div>
-							)}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
@@ -1000,9 +894,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							disabled={killAllDaemonSessions.isPending}
 							onClick={() => {
 								setConfirmKillAllOpen(false);
-								for (const session of sessions) {
-									markTerminalKilledByUser(session.sessionId);
-								}
 								killAllDaemonSessions.mutate();
 							}}
 						>
@@ -1098,7 +989,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								const sessionId = pendingKillSession?.sessionId;
 								setPendingKillSession(null);
 								if (!sessionId) return;
-								markTerminalKilledByUser(sessionId);
 								killDaemonSession.mutate({ paneId: sessionId });
 							}}
 						>
@@ -1145,13 +1035,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							disabled={restartDaemon.isPending}
 							onClick={() => {
 								setConfirmRestartDaemonOpen(false);
-								restartDaemon.mutate(undefined, {
-									onSuccess: () => {
-										for (const session of sessions) {
-											markTerminalKilledByUser(session.sessionId);
-										}
-									},
-								});
+								restartDaemon.mutate(undefined, {});
 							}}
 						>
 							Restart daemon

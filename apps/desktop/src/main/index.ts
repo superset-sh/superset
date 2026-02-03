@@ -12,10 +12,7 @@ import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { initSentry } from "./lib/sentry";
-import {
-	reconcileDaemonSessions,
-	shutdownOrphanedDaemon,
-} from "./lib/terminal";
+import { reconcileDaemonSessions } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
@@ -239,9 +236,6 @@ if (!gotTheLock) {
 		// Clean up stale daemon sessions from previous app runs
 		// Must happen BEFORE renderer restore runs
 		await reconcileDaemonSessions();
-
-		// Shutdown orphaned daemon if persistence is disabled
-		await shutdownOrphanedDaemon();
 
 		try {
 			setupAgentHooks();

@@ -8,6 +8,7 @@ import { PLATFORM } from "./constants";
 export type HotkeyPlatform = "darwin" | "win32" | "linux";
 
 export type HotkeyCategory =
+	| "Navigation"
 	| "Workspace"
 	| "Layout"
 	| "Terminal"
@@ -250,6 +251,10 @@ export function matchesHotkeyEvent(
 	if (key === "up" && eventKey === "arrowup") return true;
 	if (key === "down" && eventKey === "arrowdown") return true;
 
+	// On Mac, Option+number produces special characters (e.g., Option+1 = ¡)
+	// Use event.code to match digit keys when alt is pressed
+	if (/^[1-9]$/.test(key) && eventCode === `digit${key}`) return true;
+
 	return eventKey === key;
 }
 
@@ -363,6 +368,20 @@ function defineHotkey(def: {
 }
 
 export const HOTKEYS = {
+	// Navigation - browser-style back/forward
+	NAVIGATE_BACK: defineHotkey({
+		keys: "meta+[",
+		label: "Navigate Back",
+		category: "Navigation",
+		description: "Go back to the previous page in history",
+	}),
+	NAVIGATE_FORWARD: defineHotkey({
+		keys: "meta+]",
+		label: "Navigate Forward",
+		category: "Navigation",
+		description: "Go forward to the next page in history",
+	}),
+
 	// Workspace - switch with ⌘+1-9
 	JUMP_TO_WORKSPACE_1: defineHotkey({
 		keys: "meta+1",
@@ -511,6 +530,51 @@ export const HOTKEYS = {
 		category: "Terminal",
 		description: "Focus the next pane in the current tab",
 	}),
+	JUMP_TO_TAB_1: defineHotkey({
+		keys: "meta+alt+1",
+		label: "Switch to Tab 1",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_2: defineHotkey({
+		keys: "meta+alt+2",
+		label: "Switch to Tab 2",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_3: defineHotkey({
+		keys: "meta+alt+3",
+		label: "Switch to Tab 3",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_4: defineHotkey({
+		keys: "meta+alt+4",
+		label: "Switch to Tab 4",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_5: defineHotkey({
+		keys: "meta+alt+5",
+		label: "Switch to Tab 5",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_6: defineHotkey({
+		keys: "meta+alt+6",
+		label: "Switch to Tab 6",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_7: defineHotkey({
+		keys: "meta+alt+7",
+		label: "Switch to Tab 7",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_8: defineHotkey({
+		keys: "meta+alt+8",
+		label: "Switch to Tab 8",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_9: defineHotkey({
+		keys: "meta+alt+9",
+		label: "Switch to Tab 9",
+		category: "Terminal",
+	}),
 	OPEN_PRESET_1: defineHotkey({
 		keys: "ctrl+1",
 		label: "Open Preset 1",
@@ -570,6 +634,12 @@ export const HOTKEYS = {
 		category: "Workspace",
 		description: "Quickly create a workspace in the current project",
 	}),
+	FOCUS_TASK_SEARCH: defineHotkey({
+		keys: "meta+f",
+		label: "Focus Task Search",
+		category: "Workspace",
+		description: "Focus the search input in the tasks view",
+	}),
 	OPEN_PROJECT: defineHotkey({
 		keys: "meta+shift+o",
 		label: "Open Project",
@@ -603,6 +673,16 @@ export const HOTKEYS = {
 	}),
 
 	// Help
+	OPEN_SETTINGS: defineHotkey({
+		keys: "meta+,",
+		label: "Open Settings",
+		category: "Help",
+		defaults: {
+			darwin: "meta+,",
+			win32: "ctrl+,",
+			linux: "ctrl+,",
+		},
+	}),
 	SHOW_HOTKEYS: defineHotkey({
 		keys: "meta+slash",
 		label: "Show Keyboard Shortcuts",
@@ -620,6 +700,7 @@ export function getHotkeysByCategory(options?: {
 	includeHidden?: boolean;
 }): Record<HotkeyCategory, HotkeyWithId[]> {
 	const grouped: Record<HotkeyCategory, HotkeyWithId[]> = {
+		Navigation: [],
 		Workspace: [],
 		Layout: [],
 		Terminal: [],

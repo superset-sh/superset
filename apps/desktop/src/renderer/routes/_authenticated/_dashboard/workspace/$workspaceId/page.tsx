@@ -174,6 +174,26 @@ function WorkspacePage() {
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
+	const switchToTab = useCallback(
+		(index: number) => {
+			const tab = tabs[index];
+			if (tab) {
+				setActiveTab(workspaceId, tab.id);
+			}
+		},
+		[tabs, workspaceId, setActiveTab],
+	);
+
+	useAppHotkey("JUMP_TO_TAB_1", () => switchToTab(0), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_2", () => switchToTab(1), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_3", () => switchToTab(2), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_4", () => switchToTab(3), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_5", () => switchToTab(4), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_6", () => switchToTab(5), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_7", () => switchToTab(6), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_8", () => switchToTab(7), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_9", () => switchToTab(8), undefined, [switchToTab]);
+
 	useAppHotkey(
 		"PREV_PANE",
 		() => {

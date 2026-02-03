@@ -6,6 +6,11 @@ export enum SidebarMode {
 	Changes = "changes",
 }
 
+export enum RightSidebarTab {
+	Changes = "changes",
+	Files = "files",
+}
+
 const DEFAULT_SIDEBAR_WIDTH = 250;
 export const MIN_SIDEBAR_WIDTH = 200;
 export const MAX_SIDEBAR_WIDTH = 500;
@@ -17,11 +22,13 @@ interface SidebarState {
 	currentMode: SidebarMode;
 	lastMode: SidebarMode;
 	isResizing: boolean;
+	rightSidebarTab: RightSidebarTab;
 	toggleSidebar: () => void;
 	setSidebarOpen: (open: boolean) => void;
 	setSidebarWidth: (width: number) => void;
 	setMode: (mode: SidebarMode) => void;
 	setIsResizing: (isResizing: boolean) => void;
+	setRightSidebarTab: (tab: RightSidebarTab) => void;
 }
 
 export const useSidebarStore = create<SidebarState>()(
@@ -34,6 +41,7 @@ export const useSidebarStore = create<SidebarState>()(
 				currentMode: SidebarMode.Tabs,
 				lastMode: SidebarMode.Tabs,
 				isResizing: false,
+				rightSidebarTab: RightSidebarTab.Changes,
 
 				toggleSidebar: () => {
 					const { isSidebarOpen, lastOpenSidebarWidth, currentMode, lastMode } =
@@ -101,6 +109,10 @@ export const useSidebarStore = create<SidebarState>()(
 
 				setIsResizing: (isResizing) => {
 					set({ isResizing });
+				},
+
+				setRightSidebarTab: (tab) => {
+					set({ rightSidebarTab: tab });
 				},
 			}),
 			{

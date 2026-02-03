@@ -7,6 +7,8 @@ export interface SessionInfo {
 	pid: number | null;
 	cols: number;
 	rows: number;
+	exitReason?: "killed" | "exited" | "error";
+	killedByUserAt?: number;
 }
 
 export interface ColdRestoreInfo {

@@ -5,10 +5,11 @@ import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { getDaemonTerminalManager } from "main/lib/terminal";
 import {
-	getDaemonTerminalManager,
-	tryListExistingDaemonSessions,
-} from "main/lib/terminal";
+	TERMINAL_SESSION_KILLED_MESSAGE,
+	TerminalKilledError,
+} from "main/lib/terminal/errors";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -18,10 +19,9 @@ import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveCwd } from "./utils";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
+const logger = console;
 let createOrAttachCallCounter = 0;
 
-const TERMINAL_SESSION_KILLED_MESSAGE = "TERMINAL_SESSION_KILLED";
-const userKilledSessions = new Set<string>();
 const SAFE_ID = z
 	.string()
 	.min(1)
@@ -32,7 +32,7 @@ const SAFE_ID = z
 	);
 
 /**
- * Terminal router using TerminalManager with node-pty
+ * Terminal router using daemon-backed terminal runtime
  * Sessions are keyed by paneId and linked to workspaces for cwd resolution
  *
  * Environment variables set for terminal sessions:
@@ -85,21 +85,6 @@ export const createTerminalRouter = () => {
 					allowKilled,
 				} = input;
 
-				if (allowKilled) {
-					userKilledSessions.delete(paneId);
-				} else if (userKilledSessions.has(paneId)) {
-					if (DEBUG_TERMINAL) {
-						console.warn("[Terminal Router] createOrAttach blocked (killed):", {
-							paneId,
-							workspaceId,
-						});
-					}
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: TERMINAL_SESSION_KILLED_MESSAGE,
-					});
-				}
-
 				const workspace = localDb
 					.select()
 					.from(workspaces)
@@ -146,6 +131,7 @@ export const createTerminalRouter = () => {
 						rows,
 						initialCommands,
 						skipColdRestore,
+						allowKilled,
 					});
 
 					if (DEBUG_TERMINAL) {
@@ -170,6 +156,25 @@ export const createTerminalRouter = () => {
 						snapshot: result.snapshot,
 					};
 				} catch (error) {
+					const isKilledError =
+						error instanceof TerminalKilledError ||
+						(error instanceof Error &&
+							error.message === TERMINAL_SESSION_KILLED_MESSAGE);
+					if (isKilledError) {
+						if (DEBUG_TERMINAL) {
+							console.warn(
+								"[Terminal Router] createOrAttach blocked (killed):",
+								{
+									paneId,
+									workspaceId,
+								},
+							);
+						}
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: TERMINAL_SESSION_KILLED_MESSAGE,
+						});
+					}
 					if (DEBUG_TERMINAL) {
 						console.warn("[Terminal Router] createOrAttach failed:", {
 							callId,
@@ -247,7 +252,6 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				userKilledSessions.add(input.paneId);
 				await terminal.kill(input);
 			}),
 
@@ -272,22 +276,14 @@ export const createTerminalRouter = () => {
 			}),
 
 		listDaemonSessions: publicProcedure.query(async () => {
-			const { daemonRunning, sessions } = await tryListExistingDaemonSessions();
-			return { daemonModeEnabled: daemonRunning, sessions };
+			const { sessions } = await terminal.management.listSessions();
+			return { sessions };
 		}),
 
 		killAllDaemonSessions: publicProcedure.mutation(async () => {
 			const client = getTerminalHostClient();
-			const connected = await client.tryConnectAndAuthenticate();
-			if (!connected) {
-				return { daemonModeEnabled: false, killedCount: 0, remainingCount: 0 };
-			}
-
-			const before = await client.listSessions();
+			const before = await terminal.management.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
-			for (const id of beforeIds) {
-				userKilledSessions.add(id);
-			}
 			console.log(
 				"[killAllDaemonSessions] Before kill:",
 				beforeIds.length,
@@ -295,7 +291,23 @@ export const createTerminalRouter = () => {
 				beforeIds,
 			);
 
-			await client.killAll({});
+			if (beforeIds.length > 0) {
+				const results = await Promise.allSettled(
+					beforeIds.map((paneId) => terminal.kill({ paneId })),
+				);
+				for (const [index, result] of results.entries()) {
+					if (result.status === "rejected") {
+						const paneId = beforeIds[index];
+						logger.error(
+							`[killAllDaemonSessions] terminal.kill failed for paneId=${paneId}`,
+							{
+								paneId,
+								reason: result.reason,
+							},
+						);
+					}
+				}
+			}
 
 			// Poll until sessions are actually dead
 			const MAX_RETRIES = 10;
@@ -329,35 +341,42 @@ export const createTerminalRouter = () => {
 				remainingCount > 0 ? afterIds : [],
 			);
 
-			return { daemonModeEnabled: true, killedCount, remainingCount };
+			return { killedCount, remainingCount };
 		}),
 
 		killDaemonSessionsForWorkspace: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				const client = getTerminalHostClient();
-				const connected = await client.tryConnectAndAuthenticate();
-				if (!connected) {
-					return { daemonModeEnabled: false, killedCount: 0 };
-				}
-
-				const { sessions } = await client.listSessions();
+				const { sessions } = await terminal.management.listSessions();
 				const toKill = sessions.filter(
 					(session) => session.workspaceId === input.workspaceId,
 				);
 
-				for (const session of toKill) {
-					userKilledSessions.add(session.sessionId);
-					await client.kill({ sessionId: session.sessionId });
+				if (toKill.length > 0) {
+					const paneIds = toKill.map((session) => session.sessionId);
+					const results = await Promise.allSettled(
+						paneIds.map((paneId) => terminal.kill({ paneId })),
+					);
+					for (const [index, result] of results.entries()) {
+						if (result.status === "rejected") {
+							const paneId = paneIds[index];
+							logger.error(
+								`[killDaemonSessionsForWorkspace] terminal.kill failed for paneId=${paneId}`,
+								{
+									paneId,
+									workspaceId: input.workspaceId,
+									reason: result.reason,
+								},
+							);
+						}
+					}
 				}
 
-				return { daemonModeEnabled: true, killedCount: toKill.length };
+				return { killedCount: toKill.length };
 			}),
 
 		clearTerminalHistory: publicProcedure.mutation(async () => {
-			if (terminal.management) {
-				await terminal.management.resetHistoryPersistence();
-			}
+			await terminal.management.resetHistoryPersistence();
 			return { success: true };
 		}),
 
@@ -377,7 +396,12 @@ export const createTerminalRouter = () => {
 					);
 
 					for (const session of sessions) {
-						userKilledSessions.add(session.sessionId);
+						void terminal.kill({ paneId: session.sessionId }).catch((error) => {
+							console.warn(
+								"[restartDaemon] Failed to mark session killed:",
+								error,
+							);
+						});
 					}
 
 					await client.shutdownIfRunning({ killSessions: true });
@@ -479,7 +503,12 @@ export const createTerminalRouter = () => {
 			.subscription(({ input: paneId }) => {
 				return observable<
 					| { type: "data"; data: string }
-					| { type: "exit"; exitCode: number; signal?: number }
+					| {
+							type: "exit";
+							exitCode: number;
+							signal?: number;
+							reason?: "killed" | "exited" | "error";
+					  }
 					| { type: "disconnect"; reason: string }
 					| { type: "error"; error: string; code?: string }
 				>((emit) => {
@@ -499,9 +528,13 @@ export const createTerminalRouter = () => {
 						emit.next({ type: "data", data });
 					};
 
-					const onExit = (exitCode: number, signal?: number) => {
+					const onExit = (
+						exitCode: number,
+						signal?: number,
+						reason?: "killed" | "exited" | "error",
+					) => {
 						// Don't emit.complete() - paneId is reused across restarts, completion would strand listeners
-						emit.next({ type: "exit", exitCode, signal });
+						emit.next({ type: "exit", exitCode, signal, reason });
 					};
 
 					const onDisconnect = (reason: string) => {

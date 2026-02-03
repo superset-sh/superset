@@ -1,5 +1,4 @@
 import { toast } from "@superset/ui/sonner";
-import { CanvasAddon } from "@xterm/addon-canvas";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
@@ -60,33 +59,48 @@ export function getDefaultTerminalBg(): string {
 
 /**
  * Load GPU-accelerated renderer with automatic fallback.
- * Tries WebGL first, falls back to Canvas if WebGL fails.
+ * Tries WebGL first, falls back to DOM if WebGL fails.
+ * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
  */
 export type TerminalRenderer = {
-	kind: "webgl" | "canvas" | "dom";
+	kind: "webgl" | "dom";
 	dispose: () => void;
 	clearTextureAtlas?: () => void;
 };
 
 type PreferredRenderer = TerminalRenderer["kind"] | "auto";
 
+// Track WebGL failures globally to avoid repeated initialization attempts (VS Code pattern)
+let suggestedRendererType: TerminalRenderer["kind"] | undefined;
+
 function getPreferredRenderer(): PreferredRenderer {
+	// If WebGL previously failed, don't try again
+	if (suggestedRendererType === "dom") {
+		return "dom";
+	}
+
 	try {
 		const stored = localStorage.getItem("terminal-renderer");
-		if (stored === "webgl" || stored === "canvas" || stored === "dom") {
+		if (stored === "webgl" || stored === "dom") {
 			return stored;
+		}
+		if (stored === "canvas") {
+			// Canvas renderer was removed in xterm.js 6.0; fall back to DOM.
+			try {
+				localStorage.setItem("terminal-renderer", "dom");
+			} catch {
+				// ignore storage errors
+			}
+			return "dom";
 		}
 	} catch {
 		// ignore
 	}
 
-	// Default: avoid xterm-webgl on macOS. We've seen repeated corruption/glitching
-	// when terminals are hidden/shown or switched between panes.
-	return navigator.userAgent.includes("Macintosh") ? "canvas" : "webgl";
+	return "auto";
 }
 
 function loadRenderer(xterm: XTerm): TerminalRenderer {
-	let renderer: WebglAddon | CanvasAddon | null = null;
 	let webglAddon: WebglAddon | null = null;
 	let kind: TerminalRenderer["kind"] = "dom";
 
@@ -96,54 +110,35 @@ function loadRenderer(xterm: XTerm): TerminalRenderer {
 		return { kind: "dom", dispose: () => {}, clearTextureAtlas: undefined };
 	}
 
-	const tryLoadCanvas = () => {
-		try {
-			renderer = new CanvasAddon();
-			xterm.loadAddon(renderer);
-			kind = "canvas";
-		} catch {
-			// Canvas fallback failed, use default renderer
-		}
-	};
-
-	if (preferred === "canvas") {
-		tryLoadCanvas();
-		return {
-			kind,
-			dispose: () => renderer?.dispose(),
-			clearTextureAtlas: undefined,
-		};
-	}
-
 	try {
 		webglAddon = new WebglAddon();
 
 		webglAddon.onContextLoss(() => {
+			console.warn(
+				"[Terminal] WebGL context lost, falling back to DOM renderer",
+			);
 			webglAddon?.dispose();
 			webglAddon = null;
-			try {
-				renderer = new CanvasAddon();
-				xterm.loadAddon(renderer);
-				kind = "canvas";
-				// Force refresh after context loss recovery
-				xterm.refresh(0, xterm.rows - 1);
-			} catch {
-				// Canvas fallback failed, use default renderer
-				renderer = null;
-				kind = "dom";
-			}
+			kind = "dom";
+			// Force refresh after context loss
+			xterm.refresh(0, xterm.rows - 1);
 		});
 
 		xterm.loadAddon(webglAddon);
-		renderer = webglAddon;
 		kind = "webgl";
-	} catch {
-		tryLoadCanvas();
+	} catch (e) {
+		console.warn(
+			"[Terminal] WebGL could not be loaded, falling back to DOM renderer",
+			e,
+		);
+		suggestedRendererType = "dom";
+		webglAddon = null;
+		kind = "dom";
 	}
 
 	return {
 		kind,
-		dispose: () => renderer?.dispose(),
+		dispose: () => webglAddon?.dispose(),
 		clearTextureAtlas: webglAddon
 			? () => {
 					try {
@@ -215,11 +210,11 @@ export function createTerminalInstance(
 
 	// Defer GPU renderer loading to next animation frame.
 	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
-	// the renderer to be ready. Loading WebGL/Canvas immediately after open() can
-	// cause a race condition where the setTimeout fires during addon initialization,
-	// when _renderer is temporarily undefined (old renderer disposed, new not yet set).
+	// the renderer to be ready. Loading WebGL immediately after open() can cause a
+	// race condition where the setTimeout fires during addon initialization, when
+	// _renderer is temporarily undefined (old renderer disposed, new not yet set).
 	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
-	// default DOM renderer, then we safely swap to WebGL/Canvas.
+	// default DOM renderer, then we safely swap to WebGL.
 	rafId = requestAnimationFrame(() => {
 		rafId = null;
 		if (isDisposed) return;
@@ -311,6 +306,41 @@ export interface PasteHandlerOptions {
 	onWrite?: (data: string) => void;
 	/** Whether bracketed paste mode is enabled for the current terminal */
 	isBracketedPasteEnabled?: () => boolean;
+}
+
+/**
+ * Setup copy handler for xterm to trim trailing whitespace from copied text.
+ *
+ * Terminal emulators fill lines with whitespace to pad to the terminal width.
+ * When copying text, this results in unwanted trailing spaces on each line.
+ * This handler intercepts copy events and trims trailing whitespace from each
+ * line before writing to the clipboard.
+ *
+ * Returns a cleanup function to remove the handler.
+ */
+export function setupCopyHandler(xterm: XTerm): () => void {
+	const element = xterm.element;
+	if (!element) return () => {};
+
+	const handleCopy = (event: ClipboardEvent) => {
+		const selection = xterm.getSelection();
+		if (!selection) return;
+
+		// Trim trailing whitespace from each line while preserving intentional newlines
+		const trimmedText = selection
+			.split("\n")
+			.map((line) => line.trimEnd())
+			.join("\n");
+
+		event.preventDefault();
+		event.clipboardData?.setData("text/plain", trimmedText);
+	};
+
+	element.addEventListener("copy", handleCopy);
+
+	return () => {
+		element.removeEventListener("copy", handleCopy);
+	};
 }
 
 /**
