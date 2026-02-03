@@ -32,8 +32,7 @@ export function BlogCard({ post }: BlogCardProps) {
 				<div className="flex items-center gap-2 mt-auto">
 					<AuthorAvatar
 						name={post.author.name}
-						title={post.author.role}
-						twitterHandle={post.author.twitter}
+						avatar={post.author.avatar}
 						size="sm"
 					/>
 					<span className="text-xs text-muted-foreground">
