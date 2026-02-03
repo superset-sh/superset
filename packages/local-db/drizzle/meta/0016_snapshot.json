@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "053a60e4-9846-4c4d-86d0-ae07b2c7e41f",
+  "id": "69fdf483-d29d-4514-8cee-8b6ea6449774",
   "prevId": "2c6f4b00-72ca-4cc3-bc0a-f25a40163119",
   "tables": {
     "organization_members": {
@@ -393,6 +393,13 @@
         },
         "notification_sounds_muted": {
           "name": "notification_sounds_muted",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "telemetry_enabled": {
+          "name": "telemetry_enabled",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -871,14 +878,6 @@
         },
         "is_unread": {
           "name": "is_unread",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": false
-        },
-        "is_unnamed": {
-          "name": "is_unnamed",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,

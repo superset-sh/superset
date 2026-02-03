@@ -158,7 +158,6 @@ export function CommitInput({
 		);
 	};
 
-	// Determine primary action based on state
 	const getPrimaryAction = () => {
 		if (canCommit) {
 			return {

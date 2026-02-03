@@ -1,84 +1,207 @@
 import { Button } from "@superset/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@superset/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { formatDistanceToNow } from "date-fns";
+import { HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
 
 interface Worktree {
 	id: string;
 	branch: string;
+	path: string;
 	createdAt: number;
 	hasActiveWorkspace: boolean;
+}
+
+interface ExternalWorktree {
+	path: string;
+	branch: string;
 }
 
 interface WorktreesSectionProps {
 	closedWorktrees: Worktree[];
 	openWorktrees: Worktree[];
+	externalWorktrees: ExternalWorktree[];
+	searchValue: string;
+	onSearchChange: (value: string) => void;
+	isOpen: boolean;
+	onOpenChange: (open: boolean) => void;
 	onOpenWorktree: (worktreeId: string, branch: string) => void;
-	onOpenAll: () => void;
+	onOpenExternalWorktree: (path: string, branch: string) => void;
 	disabled: boolean;
 }
 
 export function WorktreesSection({
 	closedWorktrees,
 	openWorktrees,
+	externalWorktrees,
+	searchValue,
+	onSearchChange,
+	isOpen,
+	onOpenChange,
 	onOpenWorktree,
-	onOpenAll,
+	onOpenExternalWorktree,
 	disabled,
 }: WorktreesSectionProps) {
+	const searchLower = searchValue.toLowerCase();
+
+	const filteredClosed = searchValue
+		? closedWorktrees.filter(
+				(wt) =>
+					wt.branch.toLowerCase().includes(searchLower) ||
+					wt.path.toLowerCase().includes(searchLower),
+			)
+		: closedWorktrees;
+
+	const filteredOpen = searchValue
+		? openWorktrees.filter(
+				(wt) =>
+					wt.branch.toLowerCase().includes(searchLower) ||
+					wt.path.toLowerCase().includes(searchLower),
+			)
+		: openWorktrees;
+
+	const filteredExternal = searchValue
+		? externalWorktrees.filter(
+				(wt) =>
+					wt.branch.toLowerCase().includes(searchLower) ||
+					wt.path.toLowerCase().includes(searchLower),
+			)
+		: externalWorktrees;
+
+	const totalCount =
+		closedWorktrees.length + openWorktrees.length + externalWorktrees.length;
+	const hasResults =
+		filteredClosed.length > 0 ||
+		filteredOpen.length > 0 ||
+		filteredExternal.length > 0;
+
 	return (
-		<div className="space-y-1">
+		<div className="space-y-1.5">
 			<div className="border-t border-border pt-2" />
-			<div className="flex items-center justify-between">
-				<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-					Worktrees
-				</div>
-				{closedWorktrees.length > 1 && (
+			<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
+				Worktrees
+			</div>
+			<Popover open={isOpen} onOpenChange={onOpenChange} modal={false}>
+				<PopoverTrigger asChild>
 					<Button
-						variant="ghost"
+						variant="outline"
 						size="sm"
-						className="h-5 px-2 text-[10px]"
-						onClick={onOpenAll}
+						className="w-full h-8 justify-between font-normal"
 						disabled={disabled}
 					>
-						Open All
-					</Button>
-				)}
-			</div>
-
-			{closedWorktrees.map((wt) => (
-				<button
-					key={wt.id}
-					type="button"
-					onClick={() => onOpenWorktree(wt.id, wt.branch)}
-					disabled={disabled}
-					className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-50"
-				>
-					<LuGitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-					<span className="flex-1 text-sm truncate font-mono">{wt.branch}</span>
-					<span className="text-xs text-muted-foreground shrink-0">
-						{formatDistanceToNow(wt.createdAt, { addSuffix: false })}
-					</span>
-				</button>
-			))}
-
-			{openWorktrees.length > 0 && (
-				<div className="pt-1">
-					<div className="text-[10px] text-muted-foreground/40 uppercase tracking-wider px-2 py-1">
-						Already open
-					</div>
-					{openWorktrees.map((wt) => (
-						<div
-							key={wt.id}
-							className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground/60"
-						>
-							<LuGitBranch className="h-3.5 w-3.5 shrink-0" />
-							<span className="flex-1 text-sm truncate font-mono">
-								{wt.branch}
+						<span className="flex items-center gap-2 truncate">
+							<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+							<span className="truncate text-sm text-muted-foreground">
+								Select worktree...
 							</span>
-							<span className="text-[10px] shrink-0">open</span>
-						</div>
-					))}
-				</div>
-			)}
+						</span>
+						<span className="flex items-center gap-1.5">
+							<span className="text-xs text-muted-foreground/60">
+								{totalCount}
+							</span>
+							<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+						</span>
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent
+					className="w-[--radix-popover-trigger-width] p-0"
+					align="start"
+					onWheel={(e) => e.stopPropagation()}
+				>
+					<Command shouldFilter={false}>
+						<CommandInput
+							placeholder="Search worktrees..."
+							value={searchValue}
+							onValueChange={onSearchChange}
+						/>
+						<CommandList className="max-h-[200px]">
+							{!hasResults && <CommandEmpty>No worktrees found</CommandEmpty>}
+							{filteredClosed.length > 0 && (
+								<CommandGroup heading="Superset">
+									{filteredClosed.map((wt) => (
+										<CommandItem
+											key={wt.id}
+											value={wt.id}
+											onSelect={() => onOpenWorktree(wt.id, wt.branch)}
+											className="flex flex-col items-start gap-0.5"
+										>
+											<span className="flex items-center gap-2 w-full">
+												<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+												<span className="flex-1 truncate text-xs font-mono">
+													{wt.branch}
+												</span>
+												<span className="text-[10px] text-muted-foreground shrink-0">
+													{formatDistanceToNow(wt.createdAt, {
+														addSuffix: false,
+													})}
+												</span>
+											</span>
+											<span className="text-[10px] text-muted-foreground/60 truncate w-full pl-5">
+												{wt.path}
+											</span>
+										</CommandItem>
+									))}
+								</CommandGroup>
+							)}
+							{filteredExternal.length > 0 && (
+								<CommandGroup heading="External">
+									{filteredExternal.map((wt) => (
+										<CommandItem
+											key={wt.path}
+											value={wt.path}
+											onSelect={() =>
+												onOpenExternalWorktree(wt.path, wt.branch)
+											}
+											className="flex flex-col items-start gap-0.5"
+										>
+											<span className="flex items-center gap-2 w-full">
+												<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+												<span className="flex-1 truncate text-xs font-mono">
+													{wt.branch}
+												</span>
+											</span>
+											<span className="text-[10px] text-muted-foreground/60 truncate w-full pl-5">
+												{wt.path}
+											</span>
+										</CommandItem>
+									))}
+								</CommandGroup>
+							)}
+							{filteredOpen.length > 0 && (
+								<CommandGroup heading="Already open">
+									{filteredOpen.map((wt) => (
+										<CommandItem
+											key={wt.id}
+											value={wt.id}
+											disabled
+											className="flex flex-col items-start gap-0.5 opacity-50"
+										>
+											<span className="flex items-center gap-2 w-full">
+												<LuGitBranch className="size-3.5 shrink-0" />
+												<span className="flex-1 truncate text-xs font-mono">
+													{wt.branch}
+												</span>
+												<span className="text-[10px] shrink-0">open</span>
+											</span>
+											<span className="text-[10px] text-muted-foreground/60 truncate w-full pl-5">
+												{wt.path}
+											</span>
+										</CommandItem>
+									))}
+								</CommandGroup>
+							)}
+						</CommandList>
+					</Command>
+				</PopoverContent>
+			</Popover>
 		</div>
 	);
 }

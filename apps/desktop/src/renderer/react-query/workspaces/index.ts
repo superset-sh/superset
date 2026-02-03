@@ -4,6 +4,7 @@ export { useCreateFromPr } from "./useCreateFromPr";
 export { useCreateWorkspace } from "./useCreateWorkspace";
 export { useDeleteWorkspace } from "./useDeleteWorkspace";
 export { useDeleteWorktree } from "./useDeleteWorktree";
+export { useOpenExternalWorktree } from "./useOpenExternalWorktree";
 export { useOpenWorktree } from "./useOpenWorktree";
 export { useReorderWorkspaces } from "./useReorderWorkspaces";
 export { useUpdateWorkspace } from "./useUpdateWorkspace";

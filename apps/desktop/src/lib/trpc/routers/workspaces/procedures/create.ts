@@ -34,7 +34,7 @@ import {
 	sanitizeBranchName,
 	worktreeExists,
 } from "../utils/git";
-import { loadSetupConfig } from "../utils/setup";
+import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
 interface CreateWorkspaceFromWorktreeParams {
@@ -614,6 +614,170 @@ export const createCreateProcedures = () => {
 					initialCommands: setupConfig?.setup || null,
 					worktreePath: worktree.path,
 					projectId: project.id,
+				};
+			}),
+
+		openExternalWorktree: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					worktreePath: z.string(),
+					branch: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = getProject(input.projectId);
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				const exists = await worktreeExists(
+					project.mainRepoPath,
+					input.worktreePath,
+				);
+				if (!exists) {
+					throw new Error("Worktree no longer exists on disk");
+				}
+
+				const existingWorktree = localDb
+					.select()
+					.from(worktrees)
+					.where(
+						and(
+							eq(worktrees.projectId, input.projectId),
+							eq(worktrees.path, input.worktreePath),
+						),
+					)
+					.get();
+
+				if (existingWorktree) {
+					// Failed init can leave gitStatus null, which shows "Setup incomplete" UI
+					if (!existingWorktree.gitStatus) {
+						localDb
+							.update(worktrees)
+							.set({
+								gitStatus: {
+									branch: existingWorktree.branch,
+									needsRebase: false,
+									lastRefreshed: Date.now(),
+								},
+							})
+							.where(eq(worktrees.id, existingWorktree.id))
+							.run();
+					}
+
+					const existingWorkspace = localDb
+						.select()
+						.from(workspaces)
+						.where(
+							and(
+								eq(workspaces.worktreeId, existingWorktree.id),
+								isNull(workspaces.deletingAt),
+							),
+						)
+						.get();
+
+					if (existingWorkspace) {
+						touchWorkspace(existingWorkspace.id);
+						setLastActiveWorkspace(existingWorkspace.id);
+						return {
+							workspace: existingWorkspace,
+							initialCommands: null,
+							worktreePath: existingWorktree.path,
+							projectId: project.id,
+							wasExisting: true,
+						};
+					}
+
+					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					const workspace = localDb
+						.insert(workspaces)
+						.values({
+							projectId: input.projectId,
+							worktreeId: existingWorktree.id,
+							type: "worktree",
+							branch: existingWorktree.branch,
+							name: existingWorktree.branch,
+							tabOrder: maxTabOrder + 1,
+						})
+						.returning()
+						.get();
+
+					setLastActiveWorkspace(workspace.id);
+					activateProject(project);
+
+					copySupersetConfigToWorktree(
+						project.mainRepoPath,
+						existingWorktree.path,
+					);
+					const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+					track("workspace_opened", {
+						workspace_id: workspace.id,
+						project_id: project.id,
+						type: "worktree",
+						source: "external_import",
+					});
+
+					return {
+						workspace,
+						initialCommands: setupConfig?.setup || null,
+						worktreePath: existingWorktree.path,
+						projectId: project.id,
+						wasExisting: false,
+					};
+				}
+
+				const defaultBranch = project.defaultBranch || "main";
+				const worktree = localDb
+					.insert(worktrees)
+					.values({
+						projectId: input.projectId,
+						path: input.worktreePath,
+						branch: input.branch,
+						baseBranch: defaultBranch,
+						gitStatus: {
+							branch: input.branch,
+							needsRebase: false,
+							lastRefreshed: Date.now(),
+						},
+					})
+					.returning()
+					.get();
+
+				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: input.projectId,
+						worktreeId: worktree.id,
+						type: "worktree",
+						branch: input.branch,
+						name: input.branch,
+						tabOrder: maxTabOrder + 1,
+					})
+					.returning()
+					.get();
+
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
+
+				copySupersetConfigToWorktree(project.mainRepoPath, input.worktreePath);
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+				track("workspace_created", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					branch: input.branch,
+					source: "external_import",
+				});
+
+				return {
+					workspace,
+					initialCommands: setupConfig?.setup || null,
+					worktreePath: input.worktreePath,
+					projectId: project.id,
+					wasExisting: false,
 				};
 			}),
 
