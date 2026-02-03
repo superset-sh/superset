@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
 import { mdxComponents } from "@/app/blog/components/mdx-components";
 import { ComparisonJsonLd } from "@/components/JsonLd";
 import { getAllComparisonSlugs, getComparisonPage } from "@/lib/compare";
@@ -36,7 +37,11 @@ export default async function ComparePageRoute({ params }: PageProps) {
 				image={page.image}
 			/>
 			<CompareLayout page={page}>
-				<MDXRemote source={page.content} components={mdxComponents} />
+				<MDXRemote
+					source={page.content}
+					components={mdxComponents}
+					options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+				/>
 			</CompareLayout>
 		</main>
 	);
