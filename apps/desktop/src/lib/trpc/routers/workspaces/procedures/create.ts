@@ -644,6 +644,21 @@ export const createCreateProcedures = () => {
 					.get();
 
 				if (existingWorktree) {
+					// Failed init can leave gitStatus null, which shows "Setup incomplete" UI
+					if (!existingWorktree.gitStatus) {
+						localDb
+							.update(worktrees)
+							.set({
+								gitStatus: {
+									branch: existingWorktree.branch,
+									needsRebase: false,
+									lastRefreshed: Date.now(),
+								},
+							})
+							.where(eq(worktrees.id, existingWorktree.id))
+							.run();
+					}
+
 					const existingWorkspace = localDb
 						.select()
 						.from(workspaces)
@@ -710,7 +725,11 @@ export const createCreateProcedures = () => {
 						path: input.worktreePath,
 						branch: input.branch,
 						baseBranch: defaultBranch,
-						gitStatus: null,
+						gitStatus: {
+							branch: input.branch,
+							needsRebase: false,
+							lastRefreshed: Date.now(),
+						},
 					})
 					.returning()
 					.get();
