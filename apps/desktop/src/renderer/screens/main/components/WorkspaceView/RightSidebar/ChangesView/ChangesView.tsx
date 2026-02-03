@@ -321,7 +321,6 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const hasStagedChanges = status.staged.length > 0;
 	const hasExistingPR = !!githubStatus?.pr;
 	const prUrl = githubStatus?.pr?.url;
-	const prState = githubStatus?.pr?.state;
 
 	return (
 		<div className="flex flex-col h-full">
@@ -351,7 +350,6 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				hasUpstream={status.hasUpstream}
 				hasExistingPR={hasExistingPR}
 				prUrl={prUrl}
-				prState={prState}
 				onRefresh={handleRefresh}
 			/>
 
