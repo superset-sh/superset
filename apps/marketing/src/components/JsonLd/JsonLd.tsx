@@ -111,6 +111,59 @@ export function ArticleJsonLd({
 	);
 }
 
+interface ComparisonJsonLdProps {
+	title: string;
+	description: string;
+	publishedTime: string;
+	modifiedTime?: string;
+	url: string;
+	image?: string;
+}
+
+export function ComparisonJsonLd({
+	title,
+	description,
+	publishedTime,
+	modifiedTime,
+	url,
+	image,
+}: ComparisonJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "Article",
+		headline: title,
+		description,
+		publisher: {
+			"@type": "Organization",
+			name: COMPANY.NAME,
+			logo: {
+				"@type": "ImageObject",
+				url: `${COMPANY.MARKETING_URL}/logo.png`,
+			},
+		},
+		datePublished: publishedTime,
+		dateModified: modifiedTime || publishedTime,
+		mainEntityOfPage: {
+			"@type": "WebPage",
+			"@id": url,
+		},
+		...(image && {
+			image: {
+				"@type": "ImageObject",
+				url: image,
+			},
+		}),
+	};
+
+	return (
+		<script
+			type="application/ld+json"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: Safe for JSON-LD structured data
+			dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+		/>
+	);
+}
+
 export function WebsiteJsonLd() {
 	const schema = {
 		"@context": "https://schema.org",

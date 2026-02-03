@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
 import { getBlogPosts } from "@/lib/blog";
 import { getChangelogEntries } from "@/lib/changelog";
+import { getComparisonPages } from "@/lib/compare";
 
 export default function sitemap(): MetadataRoute.Sitemap {
 	const baseUrl = COMPANY.MARKETING_URL;
@@ -63,5 +64,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		}),
 	);
 
-	return [...staticPages, ...blogPages, ...changelogPages];
+	const comparisonPages: MetadataRoute.Sitemap = getComparisonPages().map(
+		(page) => ({
+			url: `${baseUrl}/compare/${page.slug}`,
+			lastModified: new Date(page.lastUpdated || page.date),
+			changeFrequency: "monthly" as const,
+			priority: 0.7,
+		}),
+	);
+
+	return [...staticPages, ...blogPages, ...changelogPages, ...comparisonPages];
 }

@@ -1,0 +1,225 @@
+---
+title: "Superset vs OpenCode (2026): Agent Orchestration vs Open-Source AI Terminal"
+description: "Compare Superset and OpenCode for AI-assisted development. See how parallel agent orchestration differs from a single open-source AI coding terminal."
+date: 2026-02-02
+lastUpdated: 2026-02-02
+type: "1v1"
+competitors:
+  - opencode
+keywords:
+  - superset vs opencode
+  - opencode alternative
+  - open source ai coding terminal
+  - parallel coding agents
+  - opencode vs superset
+---
+
+Superset and OpenCode are both open-source tools that live in the terminal, and they both work with AI coding models. But they solve fundamentally different problems. OpenCode is a coding agent — a single interactive AI assistant that reads, writes, and debugs code for you. Superset is an orchestration layer that runs many coding agents (including OpenCode itself) in parallel, each in its own isolated Git worktree.
+
+One gives you a powerful AI pair programmer in the terminal. The other lets you dispatch a team of AI pair programmers across separate tasks simultaneously. Understanding this distinction is key to choosing the right tool — or deciding to use both.
+
+---
+
+## At a Glance
+
+| | **Superset** | **OpenCode** |
+|---|---|---|
+| **Category** | Agent orchestration terminal | AI coding agent (terminal-native) |
+| **What it does** | Runs 10+ AI coding agents in parallel with Git worktree isolation | Provides an interactive AI assistant in the terminal for writing, debugging, and refactoring code |
+| **AI approach** | Agent-agnostic — orchestrates Claude Code, OpenCode, Codex, or any CLI agent | Model-agnostic — supports 75+ providers (Anthropic, OpenAI, Google, local models) |
+| **Parallelism** | Core feature — spin up many agents on separate branches simultaneously | Single-session by default; multi-session on same project supported recently |
+| **Built with** | TypeScript, Electron | Go, Bubble Tea TUI |
+| **Pricing** | Free and open source | Free and open source (pay for API usage or use Zen) |
+| **GitHub stars** | 1,100+ | 95,000+ |
+| **License** | Apache 2.0 | MIT |
+
+---
+
+## What Is Superset?
+
+Superset is a desktop application purpose-built for orchestrating AI coding agents. Its tagline is "The Terminal for Coding Agents," and the core idea is straightforward: instead of running one agent at a time, you run 10 or more in parallel, each working on a separate task in its own isolated Git worktree.
+
+Superset does not ship its own AI model or coding agent. It orchestrates whatever CLI-based coding tools you already use — Claude Code, OpenCode, OpenAI Codex, Aider, or anything that runs in a terminal. You bring your own API keys, your own agents, and your own editor. Superset handles the infrastructure: creating worktrees, managing branches, running terminal sessions, and providing a built-in diff viewer for reviewing agent output.
+
+Under the hood, Superset uses a persistent terminal daemon architecture. Terminal sessions survive app restarts and even crashes through a process-isolated daemon that communicates over Unix domain sockets. Each agent gets its own worktree with its own branch, working directory, and file changes. Agents cannot interfere with each other or your main working tree.
+
+Superset integrates with VS Code, Cursor, JetBrains, Xcode, and any other editor. It runs entirely locally, collects no telemetry, and is fully open source under the Apache 2.0 license.
+
+---
+
+## What Is OpenCode?
+
+OpenCode is an open-source AI coding agent built for the terminal. Created by the SST (Serverless Stack) team — Jay V, Frank Wang, Dax Raad, and Adam Elmore — it launched in mid-2025 and has grown to over 95,000 GitHub stars and 650,000 monthly active users, making it one of the fastest-growing open-source developer tools in recent memory.
+
+OpenCode brings an AI assistant directly into your terminal through a polished TUI (Terminal User Interface) built with Go and Bubble Tea. You describe what you want in natural language, and the AI reads your codebase, writes code, executes shell commands, searches files, and modifies files — all within an interactive terminal session.
+
+The standout feature is model flexibility. OpenCode supports 75+ LLM providers through the AI SDK and Models.dev, including Anthropic (Claude), OpenAI (GPT), Google (Gemini), AWS Bedrock, Groq, Azure OpenAI, OpenRouter, and local models via Ollama or LM Studio. You are not locked into any single provider. OpenCode also offers Zen, a curated set of models provided at cost, and recently added support for logging in with your Claude Pro or Max subscription.
+
+OpenCode includes two built-in agents: a "build" agent with full access for writing code, and a "plan" agent for read-only analysis. It offers LSP integration for code intelligence, MCP protocol support for external tool integrations, a Vim-like editor, persistent SQLite storage, file change tracking, and GitHub Actions integration for automated workflows.
+
+---
+
+## The Core Difference: Orchestrator vs Agent
+
+The most important thing to understand is that Superset and OpenCode operate at different layers of the AI development stack.
+
+**OpenCode is a coding agent.** It is the thing that talks to the AI model, reads your code, and makes changes. When you type a prompt into OpenCode, it sends that prompt to an LLM, receives instructions, and executes them — editing files, running commands, iterating on errors. It is a direct replacement for (or alternative to) Claude Code.
+
+**Superset is an agent orchestrator.** It does not talk to AI models directly. It runs agents — including OpenCode — in parallel, each in its own isolated environment. Superset manages the infrastructure that lets you dispatch many agents simultaneously without them interfering with each other.
+
+This means they are not competing products. You can (and many developers do) run OpenCode inside Superset. You get OpenCode's model flexibility and polished terminal experience for each individual agent, plus Superset's parallel execution and worktree isolation across all of them.
+
+### Single Agent vs Team of Agents
+
+When you use OpenCode by itself, you work with one AI assistant at a time. You give it a task, it works through it, you review the output, and then you give it the next task. This is fast and effective for focused work, and OpenCode's interactive TUI makes the back-and-forth smooth.
+
+When you use Superset, you assign tasks to multiple agents simultaneously. One OpenCode instance writes tests for a service, another refactors an API layer, a third fixes lint errors, a fourth updates documentation. Each runs in its own worktree on its own branch. You switch between them, review diffs as they complete, and merge when satisfied.
+
+The difference is sequential versus parallel. OpenCode makes a single AI interaction excellent. Superset makes many AI interactions run concurrently.
+
+### Where Your Code Lives
+
+Both tools run locally, and both are open source. But the architecture differs in how they manage code changes.
+
+OpenCode works directly in your project directory. It modifies files in place, much like any other terminal-based coding agent. If you want to experiment on a separate branch, you manage that yourself.
+
+Superset creates a separate Git worktree for each task. The agent works in a completely isolated copy of the repository, with its own branch and working directory. Your main working tree is untouched. This is the same isolation model that makes it safe to run 10 agents at once — no agent can corrupt another's work or yours.
+
+---
+
+## Feature Comparison
+
+### Terminal Experience
+
+OpenCode's TUI is widely praised. Built with Bubble Tea in Go, it provides a responsive, themeable terminal interface with clear formatting of tool calls, file diffs, and AI responses. It includes a Vim-like editor, history navigation, attachment support, and a Bash mode for shell commands. Reviews consistently call it one of the best terminal UIs in the AI coding space.
+
+Superset's terminal is built on a persistent daemon architecture. Terminal sessions survive app restarts and crashes. Each pane has its own PTY process, backpressure management, and scrollback history persisted to disk. The terminal itself is a full xterm.js implementation with cold restore capability — if the app crashes, you see what happened and can resume where you left off.
+
+**Edge: Different strengths.** OpenCode has the better interactive AI chat experience. Superset has the more robust terminal infrastructure for long-running, parallel sessions.
+
+### Model and Provider Support
+
+OpenCode supports 75+ LLM providers, local models, and a curated Zen service. You can switch providers mid-session without losing context. This is OpenCode's defining advantage over tools like Claude Code, which locks you into Anthropic.
+
+Superset is model-agnostic at a higher level — it does not interact with models at all. Whatever agent you run inside Superset brings its own model support. Run OpenCode inside Superset and you get access to all 75+ providers. Run Claude Code inside Superset and you get Claude. The choice is yours, per agent, per task.
+
+**Edge: OpenCode** for direct model flexibility. Superset inherits whatever its agents support.
+
+### Parallel Execution
+
+Superset's core feature. Launch 10+ agents, each in its own worktree, each on its own branch. Built-in monitoring shows agent status and notifies you when tasks complete. A diff viewer lets you review and merge changes without leaving the app.
+
+OpenCode recently added multi-session support, allowing you to start multiple agents in parallel on the same project. However, these sessions share the same working directory — there is no built-in worktree isolation. Coordinating changes across multiple OpenCode sessions on the same codebase requires manual branch management.
+
+**Edge: Superset**. Parallel execution with full Git isolation is the product's reason for existence.
+
+### Code Review and Diff Workflow
+
+Superset includes a built-in diff viewer designed for reviewing agent output. Each agent's changes are isolated on their own branch, making it straightforward to review what changed, accept or reject it, and merge into your main branch.
+
+OpenCode shows file changes inline as the agent works. You can see what was modified, review diffs, and the agent can iterate based on your feedback. The workflow is more interactive — you guide the agent in real time rather than reviewing completed work.
+
+**Edge: Depends on preference.** OpenCode's interactive review is better for guided tasks. Superset's post-completion review is better for autonomous tasks running in parallel.
+
+### IDE and Tool Integration
+
+Superset integrates with VS Code, Cursor, JetBrains, Xcode, and any terminal-based editor. You can open any worktree in your preferred IDE with one click.
+
+OpenCode integrates with VS Code and Cursor through a terminal-based extension, and offers a desktop app. It also has GitHub Actions integration — mention `/opencode` in a GitHub issue comment and it can triage, implement, and submit a PR automatically.
+
+**Edge: OpenCode** for GitHub workflow integration. **Superset** for IDE-agnostic worktree management.
+
+---
+
+## Pricing
+
+| | **Superset** | **OpenCode** |
+|---|---|---|
+| **Software cost** | Free | Free |
+| **License** | Apache 2.0 | MIT |
+| **AI model cost** | Pay your agent's provider directly | Pay your provider directly, or use Zen (at-cost) |
+| **Zen service** | N/A | $20 initial credit, pay-per-use at cost |
+| **OpenCode Black** | N/A | $200/month for all-model access (limited availability) |
+| **Markup** | None | None on Zen (credit card fees passed through at cost) |
+
+Both tools are free and open source. Neither charges for the software itself. The costs you incur are for the AI models you use.
+
+With OpenCode, you can bring your own API keys from any provider, use the Zen service for a curated pay-per-use experience, or subscribe to OpenCode Black for $200/month to access all models. Zen passes along provider costs at cost with no markup beyond credit card processing fees. You can set monthly usage limits and auto-reload thresholds.
+
+With Superset, you pay whatever your chosen agents cost. If you run Claude Code, you pay Anthropic. If you run OpenCode with Zen, you pay OpenCode's Zen fees. If you run a local model through OpenCode, you pay nothing. Superset adds no cost layer.
+
+The practical difference is that OpenCode can help you manage and optimize model costs across providers, while Superset is cost-transparent by being uninvolved — it is infrastructure, not a model access layer.
+
+---
+
+## Who Should Use OpenCode
+
+OpenCode is the right choice if you want a single, powerful AI coding agent in the terminal with maximum model flexibility. Specifically:
+
+- **You want provider independence.** You use Claude today but might switch to GPT or Gemini tomorrow. OpenCode lets you swap without changing tools.
+- **You want a polished terminal experience.** OpenCode's Bubble Tea TUI is one of the best in the space — responsive, clean, and thoughtfully designed.
+- **You prefer interactive AI collaboration.** You want to guide the AI in real time, iterate on its output, and work through tasks together.
+- **You want an open-source Claude Code alternative.** OpenCode provides comparable functionality without locking you into Anthropic's ecosystem.
+- **You care about cost control.** Zen's at-cost pricing and the ability to switch providers lets you optimize spending across different models for different tasks.
+
+OpenCode is excellent at what it does. For developers who want a terminal-native AI coding assistant that works with any model, it is one of the strongest options available.
+
+---
+
+## Who Should Use Superset
+
+Superset is the right choice if you want to run multiple agents in parallel with proper isolation. Specifically:
+
+- **You already use CLI coding agents.** Claude Code, OpenCode, Codex, Aider — you have a preferred tool and want to scale its usage horizontally.
+- **You want to parallelize.** Instead of working through tasks one at a time, you assign five or ten tasks to separate agents and review them as they complete.
+- **You need isolation.** Each agent works in its own worktree, on its own branch. No merge conflicts, no agents overwriting each other's changes.
+- **You want to keep your editor.** Superset works alongside any IDE. You do not adopt a new tool; you add an orchestration layer to your existing setup.
+- **You work on large codebases.** Monorepo workflows, multi-service architectures, and projects with extensive test suites benefit most from parallel agent execution.
+
+Superset is for developers who have adopted autonomous coding agents and want to run many of them at the same time without chaos.
+
+---
+
+## Can You Use Both?
+
+Yes. This is the most common pattern for developers who use both tools.
+
+Run OpenCode inside Superset. You get OpenCode's model flexibility, polished TUI, and interactive AI experience for each individual agent session. You get Superset's parallel execution, worktree isolation, and diff review workflow across all sessions.
+
+A typical workflow looks like this: open Superset, create three tasks. Each task spins up its own worktree and launches an OpenCode session. One session refactors a module using Claude Sonnet, another writes tests using GPT-5, a third fixes a batch of lint errors using a local model. All three run concurrently. You switch between them as they progress, review diffs as they complete, and merge branches when satisfied.
+
+OpenCode is the agent. Superset is the orchestrator. They are complementary, not competing.
+
+---
+
+## Verdict
+
+OpenCode is one of the best open-source AI coding agents available. Its model flexibility, polished terminal experience, and vibrant community (95,000+ GitHub stars and growing) make it a compelling choice for developers who want a terminal-native AI assistant without provider lock-in. If you are choosing between OpenCode and Claude Code, OpenCode's open-source nature and multi-provider support are strong differentiators, and code quality when using the same underlying model is comparable.
+
+Superset solves a different problem. It does not replace OpenCode — it amplifies it. Where OpenCode gives you one excellent AI coding session, Superset gives you ten running at the same time, each safely isolated in its own worktree. The question is not "which agent is better" but "do I need to run more than one agent at once?"
+
+If you work with a single AI assistant interactively, OpenCode is excellent. If you run autonomous agents and want to scale to parallel execution across many tasks, Superset is built for exactly that. If you want both — the best single-agent experience and the ability to run many of them concurrently — use OpenCode inside Superset.
+
+---
+
+## Frequently Asked Questions
+
+### Is Superset an OpenCode replacement?
+
+No. Superset is not a coding agent. It does not talk to AI models, write code, or execute prompts. Superset is an orchestration layer that runs coding agents — including OpenCode — in parallel, each in its own isolated Git worktree. Many developers use OpenCode as their preferred agent inside Superset.
+
+### Can I run OpenCode inside Superset?
+
+Yes. Superset works with any CLI-based agent that runs in a terminal. OpenCode is fully supported. Each Superset task can launch its own OpenCode session, and each session runs in its own worktree with its own branch. This gives you OpenCode's model flexibility and TUI in each session, plus Superset's parallel execution and isolation across sessions.
+
+### How does OpenCode compare to Claude Code?
+
+OpenCode and Claude Code are both terminal-based AI coding agents with similar capabilities. The key differences: OpenCode is open source (MIT license) and supports 75+ model providers, while Claude Code is proprietary and locked to Anthropic's models. When using the same underlying model (e.g., Claude Sonnet 4), reviewers report comparable code quality. OpenCode offers more provider flexibility; Claude Code offers tighter optimization for Anthropic's models.
+
+### Is OpenCode really free?
+
+OpenCode the software is free and open source. However, you still pay for AI model usage — either through your own API keys, through the Zen service (which passes provider costs through at cost), or through a subscription like OpenCode Black ($200/month for all-model access). The tool itself costs nothing; the AI models it calls cost whatever the provider charges.
+
+### Which should I use for a team?
+
+For teams, the two tools serve different functions. OpenCode standardizes the AI coding agent experience across your team with consistent tooling and model access. Superset enables each team member to run multiple agents in parallel, which is especially valuable for large codebases with many concurrent tasks. A team can adopt both: OpenCode as the standard agent, Superset as the orchestration layer for parallel workflows.
