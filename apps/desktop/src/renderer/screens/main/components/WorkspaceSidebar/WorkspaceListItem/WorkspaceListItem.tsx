@@ -289,7 +289,7 @@ export function WorkspaceListItem({
 	const showDiffStats = !!diffStats;
 
 	// Determine if we should show the branch subtitle
-	const showBranchSubtitle = !isBranchWorkspace;
+	const showBranchSubtitle = !isBranchWorkspace || (!!name && name !== branch);
 
 	// Collapsed sidebar: show just the icon with hover card (worktree) or tooltip (branch)
 	if (isCollapsed) {
@@ -345,6 +345,11 @@ export function WorkspaceListItem({
 					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
 						<span className="font-medium">{name || branch}</span>
+						{showBranchSubtitle && (
+							<span className="text-xs text-muted-foreground font-mono">
+								{branch}
+							</span>
+						)}
 						<span className="text-xs text-muted-foreground">
 							Local workspace
 						</span>
