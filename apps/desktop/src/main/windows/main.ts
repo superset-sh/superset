@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
-import { Notification, app } from "electron";
+import { Notification, app, nativeTheme } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
@@ -61,6 +61,19 @@ let currentWindow: BrowserWindow | null = null;
 // Getter for routers to access current window without stale references
 const getWindow = () => currentWindow;
 
+// Force a full repaint + compositor layer tree rebuild.
+// invalidate() schedules a repaint but may not rebuild corrupted GPU layers.
+// A tiny resize forces Chromium to tear down and reconstruct the layer tree.
+const forceRepaint = (win: BrowserWindow) => {
+	if (win.isDestroyed()) return;
+	win.webContents.invalidate();
+	const [width, height] = win.getSize();
+	win.setSize(width + 1, height);
+	setTimeout(() => {
+		if (!win.isDestroyed()) win.setSize(width, height);
+	}, 32);
+};
+
 // Recover from GPU process crashes that cause white/blank compositor layers.
 // When the GPU process dies, Chromium restarts it but existing compositor layers
 // may not repaint. Terminal (xterm.js) survives because it handles WebGL context
@@ -69,9 +82,7 @@ app.on("child-process-gone", (_event, details) => {
 	if (details.type === "GPU") {
 		console.warn("[main-window] GPU process gone:", details.reason);
 		const win = getWindow();
-		if (win && !win.isDestroyed()) {
-			win.webContents.invalidate();
-		}
+		if (win) forceRepaint(win);
 	}
 });
 
@@ -89,7 +100,7 @@ export async function MainWindow() {
 		minWidth: 400,
 		minHeight: 400,
 		show: false,
-		backgroundColor: "#1a1a1a",
+		backgroundColor: nativeTheme.shouldUseDarkColors ? "#252525" : "#ffffff",
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
