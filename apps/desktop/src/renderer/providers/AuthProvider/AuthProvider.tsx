@@ -6,11 +6,10 @@ import { electronTrpc } from "../../lib/electron-trpc";
 /**
  * AuthProvider: Manages token synchronization between memory and encrypted disk storage.
  *
- * Offline-friendly flow:
+ * Flow:
  * 1. Load token from disk on mount
- * 2. Check if token is expired locally (no network required)
- * 3. If valid, set in memory and validate session in background
- * 4. Render children immediately - don't block on network
+ * 2. If valid (not expired), set in memory and validate session in background
+ * 3. Render children immediately without blocking on network
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
@@ -26,24 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		});
 
 	useEffect(() => {
-		// Wait for query to complete before hydrating
 		if (!isSuccess || isHydrated) return;
 
-		// If token exists and isn't expired locally, set it and validate in background
 		if (storedToken?.token && storedToken?.expiresAt) {
 			const isExpired = new Date(storedToken.expiresAt) < new Date();
-
 			if (!isExpired) {
 				setAuthToken(storedToken.token);
-				// Validate session in background - don't block UI on network
-				refetchSession().catch((err) => {
-					console.warn("[auth] Background session validation failed:", err);
-				});
+				refetchSession().catch(() => {});
 			}
-			// If expired, don't set token - user will be redirected to sign-in
 		}
 
-		// Always mark as hydrated once query completes (even if no token)
 		setIsHydrated(true);
 	}, [storedToken, isSuccess, isHydrated, refetchSession]);
 

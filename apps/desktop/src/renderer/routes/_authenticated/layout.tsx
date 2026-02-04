@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import {
 	createFileRoute,
@@ -6,10 +7,12 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
+import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { env } from "renderer/env.renderer";
+import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -26,8 +29,9 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-	const { data: session, isPending } = authClient.useSession();
+	const { data: session, isPending, refetch } = authClient.useSession();
 	const hasLocalToken = !!getAuthToken();
+	const isOnline = useOnlineStatus();
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 
@@ -36,7 +40,6 @@ function AuthenticatedLayout() {
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
 
-	// All hooks must be called before any conditional returns (Rules of Hooks)
 	useAgentHookListener();
 	useUpdateListener();
 	useHotkeysSync();
@@ -69,19 +72,32 @@ function AuthenticatedLayout() {
 		},
 	});
 
-	// If session is loading and we have a local token, show loading spinner
-	// This prevents the flash of sign-in page while session validates
-	if (isPending && hasLocalToken) {
-		return (
-			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<Spinner className="size-8" />
-			</div>
-		);
+	if (isPending) {
+		if (hasLocalToken) {
+			return (
+				<div className="flex h-screen w-screen items-center justify-center bg-background">
+					<Spinner className="size-8" />
+				</div>
+			);
+		}
+		return <Navigate to="/sign-in" replace />;
 	}
 
-	// If session is loading but no local token, redirect to sign-in
-	if (isPending && !hasLocalToken) {
-		return <Navigate to="/sign-in" replace />;
+	if (!isSignedIn && hasLocalToken && !isOnline) {
+		return (
+			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+				<HiOutlineWifi className="size-12 text-muted-foreground" />
+				<div className="text-center">
+					<h2 className="text-lg font-medium">You're offline</h2>
+					<p className="text-sm text-muted-foreground">
+						Connect to the internet to continue
+					</p>
+				</div>
+				<Button variant="outline" size="sm" onClick={() => refetch()}>
+					Retry
+				</Button>
+			</div>
+		);
 	}
 
 	if (!isSignedIn) {
