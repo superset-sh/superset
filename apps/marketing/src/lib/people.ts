@@ -64,6 +64,8 @@ export function getAllPeople(): Person[] {
 	}
 
 	return people.sort(
-		(a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER),
+		(a, b) =>
+			(a.order ?? Number.MAX_SAFE_INTEGER) -
+			(b.order ?? Number.MAX_SAFE_INTEGER),
 	);
 }
