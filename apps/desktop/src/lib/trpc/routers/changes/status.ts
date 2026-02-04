@@ -1,5 +1,5 @@
 import { projects, workspaces, worktrees } from "@superset/local-db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, not } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import simpleGit from "simple-git";
@@ -118,53 +118,40 @@ function syncWorkspaceBranch({
 
 	try {
 		const worktree = localDb
-			.select()
+			.select({ id: worktrees.id })
 			.from(worktrees)
 			.where(eq(worktrees.path, worktreePath))
 			.get();
 
 		if (worktree) {
-			if (worktree.branch !== currentBranch) {
-				localDb
-					.update(worktrees)
-					.set({ branch: currentBranch })
-					.where(eq(worktrees.id, worktree.id))
-					.run();
-			}
+			localDb
+				.update(worktrees)
+				.set({ branch: currentBranch })
+				.where(
+					and(
+						eq(worktrees.id, worktree.id),
+						not(eq(worktrees.branch, currentBranch)),
+					),
+				)
+				.run();
 
-			const workspacesForWorktree = localDb
-				.select({ branch: workspaces.branch })
-				.from(workspaces)
+			localDb
+				.update(workspaces)
+				.set({ branch: currentBranch })
 				.where(
 					and(
 						eq(workspaces.worktreeId, worktree.id),
 						isNull(workspaces.deletingAt),
+						not(eq(workspaces.branch, currentBranch)),
 					),
 				)
-				.all();
-
-			const hasWorkspaceMismatch = workspacesForWorktree.some(
-				(ws) => ws.branch !== currentBranch,
-			);
-
-			if (hasWorkspaceMismatch) {
-				localDb
-					.update(workspaces)
-					.set({ branch: currentBranch })
-					.where(
-						and(
-							eq(workspaces.worktreeId, worktree.id),
-							isNull(workspaces.deletingAt),
-						),
-					)
-					.run();
-			}
+				.run();
 
 			return;
 		}
 
 		const project = localDb
-			.select()
+			.select({ id: projects.id })
 			.from(projects)
 			.where(eq(projects.mainRepoPath, worktreePath))
 			.get();
@@ -172,35 +159,18 @@ function syncWorkspaceBranch({
 			return;
 		}
 
-		const branchWorkspaces = localDb
-			.select({ branch: workspaces.branch })
-			.from(workspaces)
+		localDb
+			.update(workspaces)
+			.set({ branch: currentBranch })
 			.where(
 				and(
 					eq(workspaces.projectId, project.id),
 					eq(workspaces.type, "branch"),
 					isNull(workspaces.deletingAt),
+					not(eq(workspaces.branch, currentBranch)),
 				),
 			)
-			.all();
-
-		const hasBranchMismatch = branchWorkspaces.some(
-			(ws) => ws.branch !== currentBranch,
-		);
-
-		if (hasBranchMismatch) {
-			localDb
-				.update(workspaces)
-				.set({ branch: currentBranch })
-				.where(
-					and(
-						eq(workspaces.projectId, project.id),
-						eq(workspaces.type, "branch"),
-						isNull(workspaces.deletingAt),
-					),
-				)
-				.run();
-		}
+			.run();
 	} catch (error) {
 		console.warn("[changes/status] Failed to sync branch:", error);
 	}

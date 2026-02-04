@@ -15,7 +15,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import {
@@ -36,6 +36,7 @@ import {
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
@@ -136,15 +137,11 @@ export function WorkspaceListItem({
 		},
 	);
 
-	useEffect(() => {
-		const latestBranch = localChanges?.branch;
-		if (!latestBranch || latestBranch === "HEAD") return;
-		if (latestBranch !== branch) {
-			utils.workspaces.getAllGrouped.invalidate();
-			utils.workspaces.get.invalidate({ id });
-			utils.workspaces.getWorktreeInfo.invalidate({ workspaceId: id });
-		}
-	}, [localChanges?.branch, branch, id, utils]);
+	useBranchSyncInvalidation({
+		gitBranch: localChanges?.branch,
+		workspaceBranch: branch,
+		workspaceId: id,
+	});
 
 	// Calculate total local changes (staged + unstaged + untracked)
 	const localDiffStats = useMemo(() => {

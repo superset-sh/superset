@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { LuUndo2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { CategorySection } from "./components/CategorySection";
@@ -33,7 +34,6 @@ interface ChangesViewProps {
 
 export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
-	const utils = electronTrpc.useUtils();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
@@ -70,16 +70,11 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 			},
 		);
 
-	useEffect(() => {
-		if (!workspace || !status?.branch || status.branch === "HEAD") return;
-		if (workspace.branch !== status.branch) {
-			utils.workspaces.getAllGrouped.invalidate();
-			utils.workspaces.get.invalidate({ id: workspace.id });
-			utils.workspaces.getWorktreeInfo.invalidate({
-				workspaceId: workspace.id,
-			});
-		}
-	}, [status?.branch, utils, workspace]);
+	useBranchSyncInvalidation({
+		gitBranch: status?.branch,
+		workspaceBranch: workspace?.branch,
+		workspaceId: workspaceId ?? "",
+	});
 
 	const handleRefresh = () => {
 		refetch();
