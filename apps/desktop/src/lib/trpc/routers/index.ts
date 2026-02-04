@@ -19,9 +19,11 @@ import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
+import { createAiChatRouter } from "./ai-chat";
 
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
+		aiChat: createAiChatRouter(),
 		analytics: createAnalyticsRouter(),
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
