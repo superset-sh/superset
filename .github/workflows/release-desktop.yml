@@ -62,6 +62,8 @@ jobs:
         run: |
           cd release-artifacts
           # Create stable-named copies (without version) for /releases/latest/download/ URLs
+
+          # macOS DMG files
           for file in *.dmg; do
             if [[ -f "$file" ]]; then
               # Extract architecture from filename (e.g., Superset-0.0.1-arm64.dmg -> arm64)
@@ -70,6 +72,8 @@ jobs:
               echo "Created stable copy: Superset-${arch}.dmg"
             fi
           done
+
+          # macOS ZIP files
           for file in *-mac.zip; do
             if [[ -f "$file" ]]; then
               # Extract architecture from filename (e.g., Superset-0.0.1-arm64-mac.zip -> arm64)
@@ -78,6 +82,27 @@ jobs:
               echo "Created stable copy: Superset-${arch}-mac.zip"
             fi
           done
+
+          # Linux AppImage files
+          for file in *.AppImage; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., superset-0.0.1-x64.AppImage -> x64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.AppImage$/\1/')
+              cp "$file" "Superset-${arch}.AppImage"
+              echo "Created stable copy: Superset-${arch}.AppImage"
+            fi
+          done
+
+          # Linux DEB files
+          for file in *.deb; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., superset-0.0.1-amd64.deb -> amd64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.deb$/\1/')
+              cp "$file" "Superset-${arch}.deb"
+              echo "Created stable copy: Superset-${arch}.deb"
+            fi
+          done
+
           echo "Release artifacts:"
           ls -la
 

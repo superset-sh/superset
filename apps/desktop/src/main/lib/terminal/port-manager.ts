@@ -117,6 +117,9 @@ class PortManager extends EventEmitter {
 		if (this.scanInterval) return;
 
 		this.scanInterval = setInterval(() => {
+			// Skip scanning when no sessions are registered (adaptive polling)
+			if (this.sessions.size === 0 && this.daemonSessions.size === 0) return;
+
 			this.scanAllSessions().catch((error) => {
 				console.error("[PortManager] Scan error:", error);
 			});

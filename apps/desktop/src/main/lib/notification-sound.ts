@@ -61,10 +61,15 @@ function playSoundFile(soundPath: string): void {
 			`(New-Object Media.SoundPlayer '${soundPath}').PlaySync()`,
 		]);
 	} else {
-		// Linux - try common audio players
-		execFile("paplay", [soundPath], (error) => {
+		// Linux - try common audio players in order of preference:
+		// pw-play (PipeWire), paplay (PulseAudio), aplay (ALSA)
+		execFile("pw-play", [soundPath], (error) => {
 			if (error) {
-				execFile("aplay", [soundPath]);
+				execFile("paplay", [soundPath], (error) => {
+					if (error) {
+						execFile("aplay", [soundPath]);
+					}
+				});
 			}
 		});
 	}

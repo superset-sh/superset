@@ -22,6 +22,13 @@ const TERMINAL_FONT_FAMILY = [
 	"FiraCode Nerd Font",
 	"JetBrainsMono Nerd Font",
 	"CaskaydiaCove Nerd Font",
+	// Cross-platform monospace
+	"Consolas",
+	// Linux monospace fonts (Ubuntu Mono, DejaVu Sans Mono, Liberation Mono)
+	"Ubuntu Mono",
+	"DejaVu Sans Mono",
+	"Liberation Mono",
+	// macOS monospace fonts
 	"Menlo",
 	"Monaco",
 	'"Courier New"',

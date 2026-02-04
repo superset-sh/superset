@@ -105,7 +105,9 @@ export async function MainWindow() {
 		autoHideMenuBar: true,
 		frame: false,
 		titleBarStyle: "hidden",
-		trafficLightPosition: { x: 16, y: 16 },
+		...(process.platform === "darwin"
+			? { trafficLightPosition: { x: 16, y: 16 } }
+			: {}),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,

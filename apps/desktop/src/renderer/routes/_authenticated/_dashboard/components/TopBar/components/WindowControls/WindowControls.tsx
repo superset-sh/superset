@@ -19,7 +19,7 @@ export function WindowControls() {
 	};
 
 	return (
-		<div className="flex items-center h-full">
+		<div className="no-drag flex items-center h-full">
 			<button
 				type="button"
 				className="h-full w-12 flex items-center justify-center hover:bg-accent transition-colors"

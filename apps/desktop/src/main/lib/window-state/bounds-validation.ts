@@ -50,29 +50,47 @@ export interface InitialWindowBounds {
 /**
  * Computes initial window bounds from saved state, with fallbacks.
  *
- * - No saved state → default to primary display size, centered
+ * - No saved state → maximize on primary display
  * - Saved position visible → restore exactly
  * - Saved position not visible (monitor disconnected) → use saved size, but center
+ * - Saved size is much smaller than current display → scale up proportionally
  */
 export function getInitialWindowBounds(
 	savedState: WindowState | null,
 ): InitialWindowBounds {
 	const { workAreaSize } = screen.getPrimaryDisplay();
 
-	// No saved state → default to primary display size, centered
+	// No saved state → maximize by default for best first-launch experience
 	if (!savedState) {
 		return {
 			width: workAreaSize.width,
 			height: workAreaSize.height,
 			center: true,
-			isMaximized: false,
+			isMaximized: true,
 		};
 	}
 
-	const { width, height } = clampToWorkArea(
-		savedState.width,
-		savedState.height,
-	);
+	let { width, height } = clampToWorkArea(savedState.width, savedState.height);
+
+	// Scale up if saved bounds are much smaller than current work area
+	// This handles moving from a small screen to a large screen
+	const areaRatio =
+		(width * height) / (workAreaSize.width * workAreaSize.height);
+	if (areaRatio < 0.6) {
+		// Saved window covers less than 60% of current screen → scale up
+		// Use 90% of work area while maintaining aspect ratio
+		const savedAspect = width / height;
+		const targetWidth = Math.round(workAreaSize.width * 0.9);
+		const targetHeight = Math.round(targetWidth / savedAspect);
+
+		if (targetHeight <= workAreaSize.height) {
+			width = targetWidth;
+			height = targetHeight;
+		} else {
+			height = Math.round(workAreaSize.height * 0.9);
+			width = Math.round(height * savedAspect);
+		}
+	}
 
 	const savedBounds: Rectangle = {
 		x: savedState.x,
