@@ -52,6 +52,23 @@ export class BootErrorBoundary extends Component<
 					<p style={{ fontSize: "14px", opacity: 0.8 }}>
 						The renderer crashed during startup. Please check logs for details.
 					</p>
+
+					<button
+						type="button"
+						onClick={() => window.location.reload()}
+						style={{
+							marginTop: "16px",
+							padding: "8px 20px",
+							fontSize: "14px",
+							background: "#333",
+							color: "#e5e5e5",
+							border: "1px solid #555",
+							borderRadius: "6px",
+							cursor: "pointer",
+						}}
+					>
+						Reload
+					</button>
 				</div>
 			</div>
 		);
