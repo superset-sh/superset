@@ -22,7 +22,7 @@
 		"fumadocs-core": "16.4.7",
 		"fumadocs-mdx": "14.2.5",
 		"fumadocs-ui": "16.4.7",
-		"lucide-react": "^0.560.0",
+		"lucide-react": "^0.563.0",
 		"next": "^16.0.10",
 		"posthog-js": "1.310.1",
 		"react": "19.1.0",
