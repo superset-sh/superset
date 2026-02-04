@@ -78,7 +78,10 @@ export const createStatusProcedures = () => {
 
 				const resolveIsUnnamed = () => {
 					if (input.patch.isUnnamed !== undefined) return input.patch.isUnnamed;
-					if (input.patch.name !== undefined && !input.patch.preserveUnnamedStatus)
+					if (
+						input.patch.name !== undefined &&
+						!input.patch.preserveUnnamedStatus
+					)
 						return false;
 					return undefined;
 				};

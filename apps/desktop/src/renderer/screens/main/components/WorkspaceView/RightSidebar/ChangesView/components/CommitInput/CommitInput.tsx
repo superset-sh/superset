@@ -234,7 +234,11 @@ export function CommitInput({
 				onChange={(e) => setCommitMessage(e.target.value)}
 				className="min-h-[52px] resize-none text-[10px] bg-background"
 				onKeyDown={(e) => {
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !primary.disabled) {
+					if (
+						e.key === "Enter" &&
+						(e.metaKey || e.ctrlKey) &&
+						!primary.disabled
+					) {
 						e.preventDefault();
 						primary.handler();
 					}

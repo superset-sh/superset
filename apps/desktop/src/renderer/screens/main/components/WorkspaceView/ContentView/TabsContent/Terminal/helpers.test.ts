@@ -1,5 +1,5 @@
-import type { Terminal as XTerm } from "@xterm/xterm";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import type { Terminal as XTerm } from "@xterm/xterm";
 
 // Mock localStorage for Node.js test environment
 const mockStorage = new Map<string, string>();
@@ -31,11 +31,8 @@ mock.module("renderer/lib/trpc-client", () => ({
 }));
 
 // Import after mocks are set up
-const {
-	getDefaultTerminalBg,
-	getDefaultTerminalTheme,
-	setupKeyboardHandler,
-} = await import("./helpers");
+const { getDefaultTerminalBg, getDefaultTerminalTheme, setupKeyboardHandler } =
+	await import("./helpers");
 
 describe("getDefaultTerminalTheme", () => {
 	beforeEach(() => {
@@ -127,7 +124,9 @@ describe("setupKeyboardHandler", () => {
 
 		let handler: ((event: KeyboardEvent) => boolean) | null = null;
 		const xterm = {
-			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) => {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
 				handler = next;
 			},
 		};
@@ -162,7 +161,9 @@ describe("setupKeyboardHandler", () => {
 
 		let handler: ((event: KeyboardEvent) => boolean) | null = null;
 		const xterm = {
-			attachCustomKeyEventHandler: (next: (event: KeyboardEvent) => boolean) => {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
 				handler = next;
 			},
 		};
