@@ -90,7 +90,7 @@ export function SlugDialog({
 					slug: slugValue,
 				});
 
-				setSlugAvailable(result.data?.available ?? null);
+				setSlugAvailable(result.data?.status ?? null);
 			} catch (error) {
 				console.error("[slug-dialog] Slug check failed:", error);
 				setSlugAvailable(null);

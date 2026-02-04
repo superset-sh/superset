@@ -86,7 +86,7 @@ export function CreateOrganization() {
 					slug: slugValue,
 				});
 
-				setSlugAvailable(result.data?.available ?? null);
+				setSlugAvailable(result.data?.status ?? null);
 			} catch (error) {
 				console.error("[create-org] Slug check failed:", error);
 				setSlugAvailable(null);
