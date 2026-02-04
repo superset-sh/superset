@@ -86,7 +86,7 @@ export function CreateOrganization() {
 					slug: slugValue,
 				});
 
-				setSlugAvailable(result.data?.status ?? null);
+				setSlugAvailable(result.data?.available ?? null);
 			} catch (error) {
 				console.error("[create-org] Slug check failed:", error);
 				setSlugAvailable(null);
@@ -129,11 +129,6 @@ export function CreateOrganization() {
 	}
 
 	async function onSubmit(values: FormValues): Promise<void> {
-		if (slugAvailable === false) {
-			toast.error("Slug is already taken");
-			return;
-		}
-
 		setIsSubmitting(true);
 		try {
 			const organization = await apiTrpcClient.organization.create.mutate({
@@ -234,7 +229,9 @@ export function CreateOrganization() {
 							<Button
 								type="submit"
 								className="w-full"
-								disabled={isSubmitting || slugAvailable === false}
+								disabled={
+									isSubmitting || isCheckingSlug || slugAvailable === false
+								}
 							>
 								{isSubmitting ? "Creating..." : "Create Organization"}
 							</Button>

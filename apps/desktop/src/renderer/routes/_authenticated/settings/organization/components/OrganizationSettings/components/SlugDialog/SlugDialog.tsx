@@ -90,7 +90,7 @@ export function SlugDialog({
 					slug: slugValue,
 				});
 
-				setSlugAvailable(result.data?.status ?? null);
+				setSlugAvailable(result.data?.available ?? null);
 			} catch (error) {
 				console.error("[slug-dialog] Slug check failed:", error);
 				setSlugAvailable(null);
@@ -103,11 +103,6 @@ export function SlugDialog({
 	}, [slugValue, currentSlug, open]);
 
 	async function handleSlugUpdate(values: SlugFormValues): Promise<void> {
-		if (slugAvailable === false) {
-			toast.error("Slug is already taken");
-			return;
-		}
-
 		try {
 			await apiTrpcClient.organization.update.mutate({
 				id: organizationId,
