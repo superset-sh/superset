@@ -1,31 +1,59 @@
 import { z } from "zod";
-import type { CommandResult, ToolContext, ToolDefinition } from "./types";
+import type {
+	BulkItemError,
+	CommandResult,
+	ToolContext,
+	ToolDefinition,
+} from "./types";
+import { buildBulkResult } from "./types";
 
 const schema = z.object({
-	workspaceId: z.string(),
+	workspaceIds: z.array(z.string().uuid()).min(1).max(5),
 });
+
+interface DeletedWorkspace {
+	workspaceId: string;
+}
 
 async function execute(
 	params: z.infer<typeof schema>,
 	ctx: ToolContext,
 ): Promise<CommandResult> {
-	try {
-		const result = await ctx.deleteWorkspace.mutateAsync({
-			id: params.workspaceId,
-		});
+	const deleted: DeletedWorkspace[] = [];
+	const errors: BulkItemError[] = [];
 
-		if (!result.success) {
-			return { success: false, error: result.error ?? "Delete failed" };
+	for (const [i, workspaceId] of params.workspaceIds.entries()) {
+		try {
+			const result = await ctx.deleteWorkspace.mutateAsync({
+				id: workspaceId,
+			});
+
+			if (!result.success) {
+				errors.push({
+					index: i,
+					workspaceId,
+					error: result.error ?? "Delete failed",
+				});
+			} else {
+				deleted.push({ workspaceId });
+			}
+		} catch (error) {
+			errors.push({
+				index: i,
+				workspaceId,
+				error:
+					error instanceof Error ? error.message : "Failed to delete workspace",
+			});
 		}
-
-		return { success: true, data: { workspaceId: params.workspaceId } };
-	} catch (error) {
-		return {
-			success: false,
-			error:
-				error instanceof Error ? error.message : "Failed to delete workspace",
-		};
 	}
+
+	return buildBulkResult({
+		items: deleted,
+		errors,
+		itemKey: "deleted",
+		allFailedMessage: "All workspace deletions failed",
+		total: params.workspaceIds.length,
+	});
 }
 
 export const deleteWorkspace: ToolDefinition<typeof schema> = {

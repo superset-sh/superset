@@ -2,11 +2,11 @@ import { join } from "node:path";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
-import { Notification } from "electron";
+import { app, Notification, nativeTheme } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
-import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
+import { NOTIFICATION_EVENTS, PLATFORM, PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
@@ -61,6 +61,28 @@ let currentWindow: BrowserWindow | null = null;
 // Getter for routers to access current window without stale references
 const getWindow = () => currentWindow;
 
+// invalidate() alone may not rebuild corrupted GPU layers — a tiny resize
+// forces Chromium to reconstruct the compositor layer tree.
+const forceRepaint = (win: BrowserWindow) => {
+	if (win.isDestroyed()) return;
+	win.webContents.invalidate();
+	if (win.isMaximized() || win.isFullScreen()) return;
+	const [width, height] = win.getSize();
+	win.setSize(width + 1, height);
+	setTimeout(() => {
+		if (!win.isDestroyed()) win.setSize(width, height);
+	}, 32);
+};
+
+// GPU process restarts don't repaint existing compositor layers automatically.
+app.on("child-process-gone", (_event, details) => {
+	if (details.type === "GPU") {
+		console.warn("[main-window] GPU process gone:", details.reason);
+		const win = getWindow();
+		if (win) forceRepaint(win);
+	}
+});
+
 export async function MainWindow() {
 	const savedWindowState = loadWindowState();
 	const initialBounds = getInitialWindowBounds(savedWindowState);
@@ -75,6 +97,7 @@ export async function MainWindow() {
 		minWidth: 400,
 		minHeight: 400,
 		show: false,
+		backgroundColor: nativeTheme.shouldUseDarkColors ? "#252525" : "#ffffff",
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
@@ -96,6 +119,11 @@ export async function MainWindow() {
 	registerMenuHotkeyUpdates();
 
 	currentWindow = window;
+
+	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
+	if (PLATFORM.IS_MAC) {
+		window.webContents.setBackgroundThrottling(false);
+	}
 
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);
@@ -189,14 +217,30 @@ export async function MainWindow() {
 		.getDefault()
 		.terminal.on(
 			"terminalExit",
-			(event: { paneId: string; exitCode: number; signal?: number }) => {
+			(event: {
+				paneId: string;
+				exitCode: number;
+				signal?: number;
+				reason?: "killed" | "exited" | "error";
+			}) => {
 				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
 					paneId: event.paneId,
 					exitCode: event.exitCode,
 					signal: event.signal,
+					reason: event.reason,
 				});
 			},
 		);
+
+	// macOS Sequoia+: occluded/minimized windows can lose compositor layers
+	if (PLATFORM.IS_MAC) {
+		window.on("restore", () => {
+			window.webContents.invalidate();
+		});
+		window.on("show", () => {
+			window.webContents.invalidate();
+		});
+	}
 
 	window.webContents.on("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");

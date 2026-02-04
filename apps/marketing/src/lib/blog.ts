@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { type BlogPost, slugify, type TocItem } from "./blog-utils";
+import { getPersonById } from "./people";
 
 export { BLOG_CATEGORIES, type BlogCategory } from "./blog-constants";
 export {
@@ -10,6 +11,7 @@ export {
 	slugify,
 	type TocItem,
 } from "./blog-utils";
+export type { Person } from "./people";
 
 const BLOG_DIR = path.join(process.cwd(), "content/blog");
 
@@ -29,15 +31,24 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 			dateValue = new Date().toISOString().split("T")[0] as string;
 		}
 
+		const authorId: string = data.author ?? "unknown";
+		const author = getPersonById(authorId) ?? {
+			id: authorId,
+			name: authorId,
+			role: "",
+			content: "",
+		};
+
 		return {
 			slug,
 			url: `/blog/${slug}`,
 			title: data.title ?? "Untitled",
 			description: data.description,
-			author: data.author ?? "Unknown",
+			author,
 			date: dateValue,
 			category: data.category ?? "News",
 			image: data.image,
+			relatedSlugs: data.relatedSlugs,
 			content,
 		};
 	} catch {
@@ -82,6 +93,26 @@ export function getAllSlugs(): string[] {
 		.readdirSync(BLOG_DIR)
 		.filter((f) => f.endsWith(".mdx"))
 		.map((f) => f.replace(".mdx", ""));
+}
+
+const MAX_RELATED_POSTS = 3;
+
+export function getRelatedPosts({
+	slug,
+	relatedSlugs,
+}: {
+	slug: string;
+	relatedSlugs?: string[];
+}): BlogPost[] {
+	if (relatedSlugs && relatedSlugs.length > 0) {
+		return relatedSlugs
+			.map((s) => getBlogPost(s))
+			.filter((post): post is BlogPost => post !== undefined);
+	}
+
+	return getBlogPosts()
+		.filter((post) => post.slug !== slug)
+		.slice(0, MAX_RELATED_POSTS);
 }
 
 export function extractToc(content: string): TocItem[] {

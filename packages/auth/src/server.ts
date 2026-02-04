@@ -13,6 +13,7 @@ import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
+import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import {
@@ -23,16 +24,27 @@ import {
 	organization,
 } from "better-auth/plugins";
 import { and, count, eq } from "drizzle-orm";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { oauthOrgScopeEndpoint } from "./lib/oauth-org-scope-endpoint";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
-import { formatPrice, getOrganizationOwners } from "./utils";
+import { stripeClient } from "./stripe";
+import {
+	formatPaymentFailed,
+	formatPaymentSucceeded,
+	formatPlanChanged,
+	formatPrice,
+	formatSubscriptionCancelled,
+	formatSubscriptionStarted,
+	getOrganizationOwners,
+} from "./utils";
 
-const stripeClient = new Stripe(env.STRIPE_SECRET_KEY);
+const qstash = new Client({ token: env.QSTASH_TOKEN });
+
+const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`;
 
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
@@ -521,6 +533,28 @@ export const auth = betterAuth({
 							}),
 						})),
 					);
+
+					try {
+						await qstash.publishJSON({
+							url: NOTIFY_SLACK_URL,
+							body: {
+								eventType: "subscription_started",
+								blocks: formatSubscriptionStarted({
+									organizationName: org.name,
+									planName: plan.name,
+									billingInterval,
+									amount,
+									seatCount: subscription.seats ?? 1,
+								}),
+							},
+							retries: 3,
+						});
+					} catch (error) {
+						console.error(
+							"[stripe/subscription-complete] Failed to queue Slack notification:",
+							error,
+						);
+					}
 				},
 
 				onSubscriptionCancel: async ({ subscription }) => {
@@ -553,6 +587,26 @@ export const auth = betterAuth({
 							}),
 						})),
 					);
+
+					try {
+						await qstash.publishJSON({
+							url: NOTIFY_SLACK_URL,
+							body: {
+								eventType: "subscription_cancelled",
+								blocks: formatSubscriptionCancelled({
+									organizationName: org.name,
+									planName: subscription.plan,
+									accessEndsAt,
+								}),
+							},
+							retries: 3,
+						});
+					} catch (error) {
+						console.error(
+							"[stripe/subscription-cancel] Failed to queue Slack notification:",
+							error,
+						);
+					}
 				},
 
 				onEvent: async (event: Stripe.Event) => {
@@ -599,6 +653,142 @@ export const auth = betterAuth({
 								}),
 							})),
 						);
+
+						try {
+							await qstash.publishJSON({
+								url: NOTIFY_SLACK_URL,
+								body: {
+									eventType: "payment_failed",
+									blocks: formatPaymentFailed({
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										amount,
+									}),
+								},
+								retries: 3,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/payment-failed] Failed to queue Slack notification:",
+								error,
+							);
+						}
+					}
+
+					if (event.type === "invoice.paid") {
+						const invoice = event.data.object as Stripe.Invoice;
+
+						const customerId =
+							typeof invoice.customer === "string"
+								? invoice.customer
+								: invoice.customer?.id;
+
+						if (!customerId) return;
+
+						const org = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.stripeCustomerId, customerId),
+						});
+
+						if (!org) return;
+
+						const subscription = await db.query.subscriptions.findFirst({
+							where: eq(subscriptions.referenceId, org.id),
+						});
+
+						const amount = formatPrice(invoice.amount_paid, invoice.currency);
+						const periodStart = invoice.period_start
+							? new Date(invoice.period_start * 1000).toLocaleDateString(
+									"en-US",
+									{ month: "short", day: "numeric", year: "numeric" },
+								)
+							: "N/A";
+						const periodEnd = invoice.period_end
+							? new Date(invoice.period_end * 1000).toLocaleDateString(
+									"en-US",
+									{ month: "short", day: "numeric", year: "numeric" },
+								)
+							: "N/A";
+
+						try {
+							await qstash.publishJSON({
+								url: NOTIFY_SLACK_URL,
+								body: {
+									eventType: "payment_succeeded",
+									blocks: formatPaymentSucceeded({
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										amount,
+										periodStart,
+										periodEnd,
+									}),
+								},
+								retries: 3,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/payment-succeeded] Failed to queue Slack notification:",
+								error,
+							);
+						}
+					}
+
+					if (event.type === "customer.subscription.updated") {
+						const stripeSubscription = event.data.object as Stripe.Subscription;
+						const previousAttributes = event.data.previous_attributes as
+							| Partial<Stripe.Subscription>
+							| undefined;
+
+						const previousPriceId =
+							previousAttributes?.items?.data?.[0]?.price?.id;
+						const currentPriceId = stripeSubscription.items.data[0]?.price?.id;
+
+						if (!previousPriceId || previousPriceId === currentPriceId) return;
+
+						const customerId =
+							typeof stripeSubscription.customer === "string"
+								? stripeSubscription.customer
+								: stripeSubscription.customer?.id;
+
+						if (!customerId) return;
+
+						const org = await db.query.organizations.findFirst({
+							where: eq(authSchema.organizations.stripeCustomerId, customerId),
+						});
+
+						if (!org) return;
+
+						const subscription = await db.query.subscriptions.findFirst({
+							where: eq(subscriptions.referenceId, org.id),
+						});
+
+						const newPrice = stripeSubscription.items.data[0]?.price;
+						const newAmount = formatPrice(
+							newPrice?.unit_amount ?? 0,
+							newPrice?.currency ?? "usd",
+						);
+						const newInterval =
+							newPrice?.recurring?.interval === "year" ? "yearly" : "monthly";
+
+						try {
+							await qstash.publishJSON({
+								url: NOTIFY_SLACK_URL,
+								body: {
+									eventType: "plan_changed",
+									blocks: formatPlanChanged({
+										organizationName: org.name,
+										planName: subscription?.plan ?? "Pro",
+										newAmount,
+										newInterval,
+									}),
+								},
+								retries: 3,
+							});
+						} catch (error) {
+							console.error(
+								"[stripe/plan-changed] Failed to queue Slack notification:",
+								error,
+							);
+						}
 					}
 				},
 			},

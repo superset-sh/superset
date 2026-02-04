@@ -7,7 +7,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
 		"sherif": "^1.7.0",
-		"turbo": "^2.5.8"
+		"turbo": "^2.8.3"
 	},
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",
@@ -34,7 +34,7 @@
 		"format:check": "biome format .",
 		"typecheck": "turbo typecheck",
 		"ui-add": "turbo run ui-add",
-		"postinstall": "sherif; bun run --filter=@superset/desktop install:deps",
+		"postinstall": "./scripts/postinstall.sh",
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",

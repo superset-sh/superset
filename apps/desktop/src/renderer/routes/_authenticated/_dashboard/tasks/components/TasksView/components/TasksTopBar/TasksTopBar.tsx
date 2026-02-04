@@ -1,6 +1,8 @@
 import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
+import { useRef } from "react";
 import { HiOutlineMagnifyingGlass } from "react-icons/hi2";
+import { useAppHotkey } from "renderer/stores/hotkeys";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
 import { AllIssuesIcon } from "../shared/icons/AllIssuesIcon";
 import { BacklogIcon } from "../shared/icons/BacklogIcon";
@@ -43,6 +45,17 @@ export function TasksTopBar({
 	assigneeFilter,
 	onAssigneeFilterChange,
 }: TasksTopBarProps) {
+	const searchInputRef = useRef<HTMLInputElement>(null);
+
+	useAppHotkey(
+		"FOCUS_TASK_SEARCH",
+		() => {
+			searchInputRef.current?.focus();
+			searchInputRef.current?.select();
+		},
+		{ preventDefault: true },
+	);
+
 	return (
 		<div className="flex items-center justify-between border-b border-border px-4 h-11">
 			{/* Tabs and filters on the left */}
@@ -80,10 +93,17 @@ export function TasksTopBar({
 			<div className="relative w-64">
 				<HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 				<Input
+					ref={searchInputRef}
 					type="text"
 					placeholder="Search tasks..."
 					value={searchQuery}
 					onChange={(e) => onSearchChange(e.target.value)}
+					onKeyDown={(e) => {
+						if (e.key === "Escape") {
+							onSearchChange("");
+							searchInputRef.current?.blur();
+						}
+					}}
 					className="h-8 pl-9 pr-3 text-sm bg-muted/50 border-0 focus-visible:ring-1"
 				/>
 			</div>

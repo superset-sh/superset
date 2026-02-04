@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
-import { eq } from "@tanstack/db";
+import { eq, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -29,6 +29,7 @@ function TaskDetailPage() {
 
 	useEscapeToNavigate("/tasks");
 
+	// Support both UUID and slug lookups
 	const { data: taskData } = useLiveQuery(
 		(q) =>
 			q
@@ -44,7 +45,7 @@ function TaskDetailPage() {
 					status,
 					assignee: assignee ?? null,
 				}))
-				.where(({ tasks }) => eq(tasks.id, taskId)),
+				.where(({ tasks }) => or(eq(tasks.id, taskId), eq(tasks.slug, taskId))),
 		[collections, taskId],
 	);
 

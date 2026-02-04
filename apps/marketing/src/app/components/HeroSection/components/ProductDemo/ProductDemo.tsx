@@ -1,11 +1,16 @@
 "use client";
 
-import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { type ActiveDemo, AppMockup } from "../AppMockup";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
+
+const MeshGradient = dynamic(
+	() => import("@superset/ui/mesh-gradient").then((mod) => mod.MeshGradient),
+	{ ssr: false },
+);
 
 export function ProductDemo() {
 	const [activeOption, setActiveOption] =

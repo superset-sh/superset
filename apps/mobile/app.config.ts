@@ -6,6 +6,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 config({
 	path: path.resolve(__dirname, "../../.env"),
 	override: true,
+	quiet: true,
 });
 
 export default ({ config }: ConfigContext): ExpoConfig => ({

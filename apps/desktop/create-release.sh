@@ -197,6 +197,8 @@ cd "${DESKTOP_DIR}"
 
 # 1. Check for uncommitted changes
 info "Checking for uncommitted changes..."
+# Refresh index to avoid false positives from stat cache mismatches
+git update-index --refresh > /dev/null 2>&1 || true
 if ! git diff-index --quiet HEAD --; then
     error "You have uncommitted changes. Please commit or stash them first."
 fi
@@ -275,7 +277,7 @@ fi
 # 4. Push changes and create PR if needed
 info "Pushing changes to remote..."
 CURRENT_BRANCH=$(git branch --show-current)
-git push origin "${CURRENT_BRANCH}"
+git push -u origin "HEAD:${CURRENT_BRANCH}"
 success "Changes pushed to ${CURRENT_BRANCH}"
 
 # Create PR if not on main branch

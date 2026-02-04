@@ -2,9 +2,8 @@
 	"title": "Documentation",
 	"pages": [
 		"---Rocket Get Started---",
-		"quick-start",
-		"overview",
 		"installation",
+		"overview",
 		"first-workspace",
 		"---Gauge Core Features---",
 		"workspaces",
@@ -17,6 +16,7 @@
 		"setup-teardown-scripts",
 		"use-with-ide",
 		"using-monorepos",
+		"terminal-presets",
 		"keyboard-shortcuts",
 		"customization",
 		"---CircleHelp Help---",

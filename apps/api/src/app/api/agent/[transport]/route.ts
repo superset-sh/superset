@@ -1,8 +1,8 @@
 import { auth } from "@superset/auth/server";
+import { registerTools } from "@superset/mcp";
+import type { McpContext } from "@superset/mcp/auth";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { env } from "@/env";
-import type { McpContext } from "@/lib/mcp/auth";
-import { registerTools } from "@/lib/mcp/tools";
 
 async function verifyToken(req: Request, bearerToken?: string) {
 	// 1. Try session auth

@@ -135,6 +135,11 @@
 		@apply border-border antialiased;
 	}
 
+	button,
+	[role="button"] {
+		cursor: pointer;
+	}
+
 	body {
 		@apply bg-background text-foreground;
 	}
@@ -162,19 +167,14 @@
 		min-height: 100vh;
 	}
 
-	/* Ensure xterm terminal fills container height */
-	.xterm {
+	/* xterm 6.0.0+ requires explicit sizing due to VS Code scrollbar integration */
+	.xterm,
+	.xterm .xterm-scrollable-element,
+	.xterm .xterm-viewport,
+	.xterm .xterm-screen {
 		height: 100%;
 		width: 100%;
 	}
-
-	.xterm-screen {
-		height: 100%;
-		width: 100%;
-	}
-
-	/* Style links in terminal (like iTerm) */
-	/* xterm uses underline-5 (dashed) for links on hover */
 	.xterm .xterm-rows a {
 		color: inherit;
 		cursor: pointer;

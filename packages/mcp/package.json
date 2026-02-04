@@ -1,0 +1,34 @@
+{
+	"name": "@superset/mcp",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./auth": {
+			"types": "./src/auth.ts",
+			"default": "./src/auth.ts"
+		},
+		"./in-memory": {
+			"types": "./src/in-memory.ts",
+			"default": "./src/in-memory.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.25.3",
+		"@superset/db": "workspace:*",
+		"drizzle-orm": "0.45.1",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"typescript": "^5.9.3"
+	}
+}

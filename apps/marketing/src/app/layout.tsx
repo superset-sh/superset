@@ -1,6 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Inter } from "next/font/google";
+import { IBM_Plex_Mono, Inter, Micro_5 } from "next/font/google";
 import Script from "next/script";
 import { CookieConsent } from "@/components/CookieConsent";
 import {
@@ -20,12 +20,21 @@ const ibmPlexMono = IBM_Plex_Mono({
 	weight: ["300", "400", "500"],
 	subsets: ["latin"],
 	variable: "--font-ibm-plex-mono",
+	display: "swap",
 });
 
 const inter = Inter({
 	weight: ["300", "400", "500"],
 	subsets: ["latin"],
 	variable: "--font-inter",
+	display: "swap",
+});
+
+const micro5 = Micro_5({
+	weight: "400",
+	subsets: ["latin"],
+	variable: "--font-micro5",
+	display: "swap",
 });
 
 const siteDescription =
@@ -105,14 +114,11 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
+			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable}`}
 			suppressHydrationWarning
 		>
 			<head>
-				<Script
-					src="https://tally.so/widgets/embed.js"
-					strategy="afterInteractive"
-				/>
+				<Script src="https://tally.so/widgets/embed.js" strategy="lazyOnload" />
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />

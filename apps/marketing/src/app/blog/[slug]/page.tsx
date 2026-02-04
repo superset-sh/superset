@@ -2,8 +2,13 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { ArticleJsonLd } from "@/components/JsonLd";
-import { extractToc, getAllSlugs, getBlogPost } from "@/lib/blog";
+import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/JsonLd";
+import {
+	extractToc,
+	getAllSlugs,
+	getBlogPost,
+	getRelatedPosts,
+} from "@/lib/blog";
 import { mdxComponents } from "../components/mdx-components";
 import { BlogPostLayout } from "./components/BlogPostLayout";
 
@@ -20,20 +25,47 @@ export default async function BlogPostPage({ params }: PageProps) {
 	}
 
 	const toc = extractToc(post.content);
+	const relatedPosts = getRelatedPosts({
+		slug,
+		relatedSlugs: post.relatedSlugs,
+	});
+	const { author } = post;
 
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
+
+	const sameAs: string[] = [];
+	if (author.twitter) {
+		sameAs.push(`https://x.com/${author.twitter}`);
+	}
+	if (author.github) {
+		sameAs.push(`https://github.com/${author.github}`);
+	}
+	if (author.linkedin) {
+		sameAs.push(`https://linkedin.com/in/${author.linkedin}`);
+	}
 
 	return (
 		<main>
 			<ArticleJsonLd
 				title={post.title}
 				description={post.description}
-				author={post.author}
+				author={{
+					name: author.name,
+					url: author.twitter ? `https://x.com/${author.twitter}` : undefined,
+					sameAs: sameAs.length > 0 ? sameAs : undefined,
+				}}
 				publishedTime={new Date(post.date).toISOString()}
 				url={url}
 				image={post.image}
 			/>
-			<BlogPostLayout post={post} toc={toc}>
+			<BreadcrumbJsonLd
+				items={[
+					{ name: "Home", url: COMPANY.MARKETING_URL },
+					{ name: "Blog", url: `${COMPANY.MARKETING_URL}/blog` },
+					{ name: post.title, url },
+				]}
+			/>
+			<BlogPostLayout post={post} toc={toc} relatedPosts={relatedPosts}>
 				<MDXRemote source={post.content} components={mdxComponents} />
 			</BlogPostLayout>
 		</main>
@@ -57,7 +89,7 @@ export async function generateMetadata({
 	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
 
 	return {
-		title: `${post.title} | ${COMPANY.NAME} Blog`,
+		title: post.title,
 		description: post.description,
 		alternates: {
 			canonical: url,
@@ -69,7 +101,7 @@ export async function generateMetadata({
 			url,
 			siteName: COMPANY.NAME,
 			publishedTime: post.date,
-			authors: [post.author],
+			authors: [post.author.name],
 			...(post.image && { images: [post.image] }),
 		},
 		twitter: {

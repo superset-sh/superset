@@ -12,8 +12,8 @@ import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_TELEMETRY_ENABLED,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
-	DEFAULT_TERMINAL_PERSISTENCE,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
@@ -295,26 +295,6 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		getTerminalPersistence: publicProcedure.query(() => {
-			const row = getSettings();
-			return row.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
-		}),
-
-		setTerminalPersistence: publicProcedure
-			.input(z.object({ enabled: z.boolean() }))
-			.mutation(({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPersistence: input.enabled })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPersistence: input.enabled },
-					})
-					.run();
-
-				return { success: true };
-			}),
-
 		getAutoApplyDefaultPreset: publicProcedure.query(() => {
 			const row = getSettings();
 			return row.autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
@@ -400,6 +380,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTelemetryEnabled: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.telemetryEnabled ?? DEFAULT_TELEMETRY_ENABLED;
+		}),
+
+		setTelemetryEnabled: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, telemetryEnabled: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { telemetryEnabled: input.enabled },
 					})
 					.run();
 

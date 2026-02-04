@@ -10,6 +10,7 @@ import { publicProcedure, router } from "..";
 type TerminalExitNotification = NotificationIds & {
 	exitCode: number;
 	signal?: number;
+	reason?: "killed" | "exited" | "error";
 };
 
 type NotificationEvent =

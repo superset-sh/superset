@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
 
 interface MockManagement {
@@ -19,8 +19,22 @@ interface MockManagement {
  * Extends EventEmitter and provides the minimal TerminalRuntime interface.
  */
 class MockTerminalRuntime extends EventEmitter {
-	management: MockManagement | null = null; // non-daemon mode
-	capabilities = { persistent: false, coldRestore: false };
+	management: MockManagement;
+	capabilities = { persistent: true, coldRestore: true };
+	killCalls: Array<{ paneId: string }> = [];
+
+	constructor() {
+		super();
+		this.management = {
+			listSessions: async () => ({ sessions: [] }),
+			killAllSessions: async () => {},
+			resetHistoryPersistence: async () => {},
+		};
+	}
+
+	async kill(params: { paneId: string }) {
+		this.killCalls.push(params);
+	}
 
 	detachAllListeners() {
 		for (const event of this.eventNames()) {
@@ -39,6 +53,21 @@ class MockTerminalRuntime extends EventEmitter {
 }
 
 let mockTerminal: MockTerminalRuntime = new MockTerminalRuntime();
+let mockListSessionsCallCount = 0;
+let mockDaemonSessions: Array<{
+	sessionId: string;
+	paneId: string;
+	workspaceId: string;
+	isAlive: boolean;
+}> = [];
+let mockListSessions: () => Promise<{ sessions: typeof mockDaemonSessions }> =
+	async () => ({ sessions: mockDaemonSessions });
+
+beforeEach(() => {
+	mockListSessionsCallCount = 0;
+	mockDaemonSessions = [];
+	mockListSessions = async () => ({ sessions: mockDaemonSessions });
+});
 
 // Mock the workspace-runtime module
 mock.module("main/lib/workspace-runtime", () => ({
@@ -70,22 +99,7 @@ mock.module("main/lib/local-db", () => ({
 }));
 
 // Mock terminal module to avoid Electron imports from terminal-host/client
-// The mock checks mockTerminal.management to determine daemon mode
 mock.module("main/lib/terminal", () => ({
-	tryListExistingDaemonSessions: async () => {
-		// Check if mockTerminal.management is set to simulate daemon mode
-		if (mockTerminal.management) {
-			const result = await mockTerminal.management.listSessions();
-			return {
-				daemonRunning: true,
-				sessions: result.sessions,
-			};
-		}
-		return {
-			daemonRunning: false,
-			sessions: [],
-		};
-	},
 	getDaemonTerminalManager: () => ({
 		reset: () => {},
 	}),
@@ -95,10 +109,11 @@ mock.module("main/lib/terminal", () => ({
 mock.module("main/lib/terminal-host/client", () => ({
 	getTerminalHostClient: () => ({
 		tryConnectAndAuthenticate: async () => false,
-		listSessions: async () => ({ sessions: [] }),
+		listSessions: async () => mockListSessions(),
 		killAll: async () => ({}),
 		kill: async () => ({}),
 	}),
+	disposeTerminalHostClient: () => {},
 }));
 
 const { createTerminalRouter } = await import("./terminal");
@@ -201,43 +216,98 @@ describe("terminal.stream", () => {
 	});
 });
 
-describe("terminal.management capability", () => {
-	it("returns daemonModeEnabled: false when management is null", async () => {
+describe("terminal.listDaemonSessions", () => {
+	it("returns sessions from management list", async () => {
 		mockTerminal = new MockTerminalRuntime();
-		mockTerminal.management = null; // non-daemon mode
+		mockDaemonSessions = [
+			{
+				sessionId: "pane-1",
+				paneId: "pane-1",
+				workspaceId: "ws-1",
+				isAlive: true,
+			},
+		];
+		mockTerminal.management.listSessions = async () => ({
+			sessions: mockDaemonSessions,
+		});
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
 		const result = await caller.listDaemonSessions();
 
-		expect(result.daemonModeEnabled).toBe(false);
-		expect(result.sessions).toEqual([]);
+		expect(result.sessions.length).toBe(1);
+		expect(result.sessions[0].sessionId).toBe("pane-1");
 	});
+});
 
-	it("returns daemonModeEnabled: true when management is present", async () => {
+describe("terminal daemon kill helpers", () => {
+	it("killAllDaemonSessions forwards kills for each daemon session", async () => {
 		mockTerminal = new MockTerminalRuntime();
-		// Mock daemon mode with management capability
-		mockTerminal.management = {
-			listSessions: async () => ({
-				sessions: [
-					{
-						sessionId: "pane-1",
-						paneId: "pane-1",
-						workspaceId: "ws-1",
-						isAlive: true,
-					},
-				],
-			}),
-			killAllSessions: async () => {},
-			resetHistoryPersistence: async () => {},
+		mockDaemonSessions = [
+			{
+				sessionId: "pane-1",
+				paneId: "pane-1",
+				workspaceId: "ws-1",
+				isAlive: true,
+			},
+			{
+				sessionId: "pane-2",
+				paneId: "pane-2",
+				workspaceId: "ws-2",
+				isAlive: true,
+			},
+		];
+		mockListSessionsCallCount = 0;
+		mockTerminal.management.listSessions = async () => ({
+			sessions: mockDaemonSessions,
+		});
+		mockListSessions = async () => {
+			mockListSessionsCallCount++;
+			if (mockListSessionsCallCount === 1) {
+				return { sessions: mockDaemonSessions };
+			}
+			return { sessions: [] };
 		};
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
-		const result = await caller.listDaemonSessions();
+		const result = await caller.killAllDaemonSessions();
 
-		expect(result.daemonModeEnabled).toBe(true);
-		expect(result.sessions.length).toBe(1);
-		expect(result.sessions[0].sessionId).toBe("pane-1");
+		expect(result.killedCount).toBe(2);
+		expect(mockTerminal.killCalls).toEqual([
+			{ paneId: "pane-1" },
+			{ paneId: "pane-2" },
+		]);
+	});
+
+	it("killDaemonSessionsForWorkspace only kills matching workspace sessions", async () => {
+		mockTerminal = new MockTerminalRuntime();
+		mockDaemonSessions = [
+			{
+				sessionId: "pane-1",
+				paneId: "pane-1",
+				workspaceId: "ws-1",
+				isAlive: true,
+			},
+			{
+				sessionId: "pane-2",
+				paneId: "pane-2",
+				workspaceId: "ws-2",
+				isAlive: true,
+			},
+		];
+		mockTerminal.management.listSessions = async () => ({
+			sessions: mockDaemonSessions,
+		});
+		mockListSessions = async () => ({ sessions: mockDaemonSessions });
+
+		const router = createTerminalRouter();
+		const caller = router.createCaller({} as never);
+		const result = await caller.killDaemonSessionsForWorkspace({
+			workspaceId: "ws-1",
+		});
+
+		expect(result.killedCount).toBe(1);
+		expect(mockTerminal.killCalls).toEqual([{ paneId: "pane-1" }]);
 	});
 });

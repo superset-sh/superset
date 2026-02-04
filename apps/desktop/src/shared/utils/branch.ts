@@ -32,16 +32,21 @@ export function resolveBranchPrefix({
 	authorPrefix?: string | null;
 	githubUsername?: string | null;
 }): string | null {
+	let prefix: string | null = null;
 	switch (mode) {
 		case "none":
 			return null;
 		case "custom":
-			return customPrefix || null;
+			prefix = customPrefix || null;
+			break;
 		case "author":
-			return authorPrefix || null;
+			prefix = authorPrefix || null;
+			break;
 		case "github":
-			return githubUsername || authorPrefix || null;
+			prefix = githubUsername || authorPrefix || null;
+			break;
 		default:
 			return null;
 	}
+	return prefix ? sanitizeSegment(prefix) : null;
 }

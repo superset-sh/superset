@@ -25,6 +25,7 @@ import {
 	isLastPaneInTab,
 	removePaneFromLayout,
 	resolveActiveTabIdForWorkspace,
+	resolveFileViewerMode,
 } from "./utils";
 import { killTerminalForPane } from "./utils/terminal-cleanup";
 
@@ -248,7 +249,6 @@ export const useTabsStore = create<TabsStore>()(
 				setTabAutoTitle: (tabId, title) => {
 					set((state) => {
 						const tab = state.tabs.find((t) => t.id === tabId);
-						// Guard: no-op if title hasn't changed
 						if (!tab || tab.name === title) return state;
 						return {
 							tabs: state.tabs.map((t) =>
@@ -563,6 +563,28 @@ export const useTabsStore = create<TabsStore>()(
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
+							if (
+								options.viewMode &&
+								existingFileViewer.viewMode !== options.viewMode
+							) {
+								set({
+									panes: {
+										...state.panes,
+										[paneToReuse.id]: {
+											...paneToReuse,
+											fileViewer: {
+												...existingFileViewer,
+												viewMode: options.viewMode,
+											},
+										},
+									},
+									focusedPaneIds: {
+										...state.focusedPaneIds,
+										[activeTab.id]: paneToReuse.id,
+									},
+								});
+								return paneToReuse.id;
+							}
 							set({
 								focusedPaneIds: {
 									...state.focusedPaneIds,
@@ -576,17 +598,11 @@ export const useTabsStore = create<TabsStore>()(
 						const fileName =
 							options.filePath.split("/").pop() || options.filePath;
 
-						// Determine default view mode
-						let viewMode: "raw" | "rendered" | "diff" = "raw";
-						if (options.diffCategory) {
-							viewMode = "diff";
-						} else if (
-							options.filePath.endsWith(".md") ||
-							options.filePath.endsWith(".markdown") ||
-							options.filePath.endsWith(".mdx")
-						) {
-							viewMode = "rendered";
-						}
+						const viewMode = resolveFileViewerMode({
+							filePath: options.filePath,
+							diffCategory: options.diffCategory,
+							viewMode: options.viewMode,
+						});
 
 						set({
 							panes: {
@@ -705,7 +721,6 @@ export const useTabsStore = create<TabsStore>()(
 				markPaneAsUsed: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or already marked as used
 						if (!pane || pane.isNew === false) return state;
 						return {
 							panes: {
@@ -719,7 +734,6 @@ export const useTabsStore = create<TabsStore>()(
 				setPaneStatus: (paneId, status) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					// No-op if pane unknown or status unchanged
 					if (!pane || pane.status === status) return;
 
 					set({
@@ -767,7 +781,6 @@ export const useTabsStore = create<TabsStore>()(
 				updatePaneCwd: (paneId, cwd, confirmed) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// No-op if pane unknown or cwd unchanged
 						if (!pane) return state;
 						if (pane.cwd === cwd && pane.cwdConfirmed === confirmed) {
 							return state;
@@ -788,7 +801,6 @@ export const useTabsStore = create<TabsStore>()(
 				clearPaneInitialData: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or already cleared
 						if (!pane) return state;
 						if (
 							pane.initialCommands === undefined &&
@@ -812,9 +824,7 @@ export const useTabsStore = create<TabsStore>()(
 				pinPane: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or non-file-viewer panes
 						if (!pane?.fileViewer) return state;
-						// Already pinned, no-op
 						if (pane.fileViewer.isPinned) return state;
 						return {
 							panes: {

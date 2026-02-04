@@ -21,9 +21,8 @@ export function WorkspaceSidebarHeader({
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
 
-	// Derive active state from route
 	const isWorkspacesListOpen = !!matchRoute({ to: "/workspaces" });
-	const isTasksOpen = !!matchRoute({ to: "/tasks" });
+	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 
 	const handleWorkspacesClick = () => {
 		if (isWorkspacesListOpen) {

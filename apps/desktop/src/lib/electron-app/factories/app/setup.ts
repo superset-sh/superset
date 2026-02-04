@@ -71,6 +71,11 @@ export async function makeAppSetup(
 
 PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
 
+// macOS Sequoia+: occluded window throttling can corrupt GPU compositor layers
+if (PLATFORM.IS_MAC) {
+	app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+}
+
 PLATFORM.IS_WINDOWS &&
 	app.setAppUserModelId(
 		env.NODE_ENV === "development" ? process.execPath : makeAppId(),

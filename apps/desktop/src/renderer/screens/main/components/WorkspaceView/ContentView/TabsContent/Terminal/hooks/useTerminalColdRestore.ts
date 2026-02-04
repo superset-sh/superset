@@ -1,7 +1,6 @@
 import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
-import { clearTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { coldRestoreState } from "../state";
 import type {
@@ -13,8 +12,8 @@ import { scrollToBottom } from "../utils";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
+	tabId: string;
 	workspaceId: string;
-	parentTabIdRef: React.MutableRefObject<string | undefined>;
 	xtermRef: React.MutableRefObject<XTerm | null>;
 	fitAddonRef: React.MutableRefObject<FitAddon | null>;
 	isStreamReadyRef: React.MutableRefObject<boolean>;
@@ -51,8 +50,8 @@ export interface UseTerminalColdRestoreReturn {
  */
 export function useTerminalColdRestore({
 	paneId,
+	tabId,
 	workspaceId,
-	parentTabIdRef,
 	xtermRef,
 	fitAddonRef,
 	isStreamReadyRef,
@@ -90,7 +89,7 @@ export function useTerminalColdRestore({
 		createOrAttachRef.current(
 			{
 				paneId,
-				tabId: parentTabIdRef.current || paneId,
+				tabId,
 				workspaceId,
 				cols: xterm.cols,
 				rows: xterm.rows,
@@ -151,8 +150,8 @@ export function useTerminalColdRestore({
 		);
 	}, [
 		paneId,
+		tabId,
 		workspaceId,
-		parentTabIdRef,
 		xtermRef,
 		isStreamReadyRef,
 		isExitedRef,
@@ -184,14 +183,13 @@ export function useTerminalColdRestore({
 		});
 
 		// Add visual separator
-		xterm.write("\r\n\x1b[90m─── New session ───\x1b[0m\r\n\r\n");
+		xterm.write("\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n");
 
 		// Reset state for new session
 		isStreamReadyRef.current = false;
 		isExitedRef.current = false;
 		wasKilledByUserRef.current = false;
 		setExitStatus(null);
-		clearTerminalKilledByUser(paneId);
 		pendingInitialStateRef.current = null;
 		resetModes();
 
@@ -199,7 +197,7 @@ export function useTerminalColdRestore({
 		createOrAttachRef.current(
 			{
 				paneId,
-				tabId: parentTabIdRef.current || paneId,
+				tabId,
 				workspaceId,
 				cols: xterm.cols,
 				rows: xterm.rows,
@@ -234,8 +232,8 @@ export function useTerminalColdRestore({
 		);
 	}, [
 		paneId,
+		tabId,
 		workspaceId,
-		parentTabIdRef,
 		xtermRef,
 		fitAddonRef,
 		isStreamReadyRef,

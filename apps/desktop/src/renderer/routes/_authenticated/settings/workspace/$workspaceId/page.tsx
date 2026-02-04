@@ -43,7 +43,11 @@ function WorkspaceSettingsPage() {
 		id: workspaceId,
 	});
 
-	const rename = useWorkspaceRename(workspace?.id ?? "", workspace?.name ?? "");
+	const rename = useWorkspaceRename(
+		workspace?.id ?? "",
+		workspace?.name ?? "",
+		workspace?.branch ?? "",
+	);
 
 	// Workspace is guaranteed to exist here because loader handles 404s
 	if (!workspace) {

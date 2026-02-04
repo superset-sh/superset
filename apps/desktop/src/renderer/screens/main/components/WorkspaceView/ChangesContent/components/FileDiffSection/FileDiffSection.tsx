@@ -8,7 +8,7 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import {
 	getStatusColor,
 	getStatusIndicator,
-} from "../../../Sidebar/ChangesView/utils";
+} from "../../../RightSidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";

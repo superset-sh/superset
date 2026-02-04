@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -8,6 +9,7 @@ import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/work
 import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
+import { usePRStatus } from "renderer/screens/main/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -175,6 +177,51 @@ function WorkspacePage() {
 	);
 
 	useAppHotkey(
+		"PREV_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	useAppHotkey(
+		"NEXT_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	const switchToTab = useCallback(
+		(index: number) => {
+			const tab = tabs[index];
+			if (tab) {
+				setActiveTab(workspaceId, tab.id);
+			}
+		},
+		[tabs, workspaceId, setActiveTab],
+	);
+
+	useAppHotkey("JUMP_TO_TAB_1", () => switchToTab(0), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_2", () => switchToTab(1), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_3", () => switchToTab(2), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_4", () => switchToTab(3), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_5", () => switchToTab(4), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_6", () => switchToTab(5), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_7", () => switchToTab(6), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_8", () => switchToTab(7), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_9", () => switchToTab(8), undefined, [switchToTab]);
+
+	useAppHotkey(
 		"PREV_PANE",
 		() => {
 			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
@@ -229,6 +276,25 @@ function WorkspacePage() {
 		},
 		undefined,
 		[workspace?.worktreePath],
+	);
+
+	// Open PR shortcut (⌘⇧P)
+	const { pr } = usePRStatus({ workspaceId });
+	const createPRMutation = electronTrpc.changes.createPR.useMutation({
+		onSuccess: () => toast.success("Opening GitHub..."),
+		onError: (error) => toast.error(`Failed: ${error.message}`),
+	});
+	useAppHotkey(
+		"OPEN_PR",
+		() => {
+			if (pr?.url) {
+				window.open(pr.url, "_blank");
+			} else if (workspace?.worktreePath) {
+				createPRMutation.mutate({ worktreePath: workspace.worktreePath });
+			}
+		},
+		undefined,
+		[pr?.url, workspace?.worktreePath],
 	);
 
 	// Toggle changes sidebar (⌘L)

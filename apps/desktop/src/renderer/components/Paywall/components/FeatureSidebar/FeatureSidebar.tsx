@@ -27,7 +27,7 @@ export function FeatureSidebar({
 	}, [highlightedFeatureId]);
 
 	return (
-		<div className="flex flex-col border-r bg-neutral-900">
+		<div className="flex flex-col border-r bg-card">
 			<div className="px-5 pt-5 pb-2.5">
 				<h1 className="mb-0 text-lg font-bold text-foreground">Pro Features</h1>
 			</div>

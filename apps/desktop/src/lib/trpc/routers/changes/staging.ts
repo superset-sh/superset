@@ -1,6 +1,8 @@
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	assertRegisteredWorktree,
 	gitCheckoutFile,
 	gitDiscardAllStaged,
 	gitDiscardAllUnstaged,
@@ -13,6 +15,32 @@ import {
 	gitUnstageFile,
 	secureFs,
 } from "./security";
+import { parseGitStatus } from "./utils/parse-status";
+
+async function getUntrackedFilePaths(worktreePath: string): Promise<string[]> {
+	assertRegisteredWorktree(worktreePath);
+	const git = simpleGit(worktreePath);
+	const status = await git.status();
+	return parseGitStatus(status).untracked.map((f) => f.path);
+}
+
+async function getStagedNewFilePaths(worktreePath: string): Promise<string[]> {
+	assertRegisteredWorktree(worktreePath);
+	const git = simpleGit(worktreePath);
+	const status = await git.status();
+	return parseGitStatus(status)
+		.staged.filter((f) => f.status === "added")
+		.map((f) => f.path);
+}
+
+async function deleteFiles(
+	worktreePath: string,
+	filePaths: string[],
+): Promise<void> {
+	await Promise.all(
+		filePaths.map((filePath) => secureFs.delete(worktreePath, filePath)),
+	);
+}
 
 export const createStagingRouter = () => {
 	return router({
@@ -81,14 +109,20 @@ export const createStagingRouter = () => {
 		discardAllUnstaged: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				// Must capture untracked files before git checkout removes status info
+				const untrackedFiles = await getUntrackedFilePaths(input.worktreePath);
 				await gitDiscardAllUnstaged(input.worktreePath);
+				await deleteFiles(input.worktreePath, untrackedFiles);
 				return { success: true };
 			}),
 
 		discardAllStaged: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				// Must capture staged new files before reset makes them untracked
+				const stagedNewFiles = await getStagedNewFilePaths(input.worktreePath);
 				await gitDiscardAllStaged(input.worktreePath);
+				await deleteFiles(input.worktreePath, stagedNewFiles);
 				return { success: true };
 			}),
 

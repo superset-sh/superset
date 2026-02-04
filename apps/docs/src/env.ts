@@ -15,6 +15,7 @@ export const env = createEnv({
 		STRIPE_WEBHOOK_SECRET: z.string().optional(),
 		STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string().optional(),
+		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 
