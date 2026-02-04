@@ -51,6 +51,12 @@ export interface MessageRow {
 /** Raw chunk row from the durable stream collection */
 export type ChunkRow = Record<string, unknown> & { id: string };
 
+interface ChunkSortKey {
+	seq: number | null;
+	time: number | null;
+	index: number;
+}
+
 // ============================================================================
 // Materialize All Messages
 // ============================================================================
@@ -68,15 +74,15 @@ export type ChunkRow = Record<string, unknown> & { id: string };
 export function materializeMessages(chunks: ChunkRow[]): MessageRow[] {
 	if (chunks.length === 0) return [];
 
-	// Sort by createdAt, then _seq as tiebreaker for same-millisecond chunks
-	const sorted = [...chunks].sort((a, b) => {
-		const aTime = a.createdAt ? new Date(String(a.createdAt)).getTime() : 0;
-		const bTime = b.createdAt ? new Date(String(b.createdAt)).getTime() : 0;
-		if (aTime !== bTime) return aTime - bTime;
-		const aSeq = typeof a._seq === "number" ? a._seq : 0;
-		const bSeq = typeof b._seq === "number" ? b._seq : 0;
-		return aSeq - bSeq;
-	});
+	// Sort by stream sequence when available, then createdAt, then original index.
+	// createdAt is not guaranteed on SDK messages, so _seq should be authoritative.
+	const sorted = [...chunks]
+		.map((chunk, index) => ({
+			chunk,
+			key: getChunkSortKey(chunk, index),
+		}))
+		.sort((a, b) => compareChunkSortKeys(a.key, b.key))
+		.map(({ chunk }) => chunk);
 
 	console.log(
 		`[ai-chat/materialize] processing ${sorted.length} sorted chunks, types: ${sorted.map((c) => c.type).join(", ")}`,
@@ -337,4 +343,28 @@ export function isUserMessage(row: MessageRow): boolean {
 
 export function isAssistantMessage(row: MessageRow): boolean {
 	return row.role === "assistant";
+}
+
+function getChunkSortKey(chunk: ChunkRow, index: number): ChunkSortKey {
+	const seq = typeof chunk._seq === "number" ? chunk._seq : null;
+	const time = chunk.createdAt
+		? new Date(String(chunk.createdAt)).getTime()
+		: null;
+	return { seq, time, index };
+}
+
+function compareChunkSortKeys(a: ChunkSortKey, b: ChunkSortKey): number {
+	if (a.seq !== null || b.seq !== null) {
+		if (a.seq === null) return 1;
+		if (b.seq === null) return -1;
+		if (a.seq !== b.seq) return a.seq - b.seq;
+	}
+
+	if (a.time !== null || b.time !== null) {
+		if (a.time === null) return 1;
+		if (b.time === null) return -1;
+		if (a.time !== b.time) return a.time - b.time;
+	}
+
+	return a.index - b.index;
 }
