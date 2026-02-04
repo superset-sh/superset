@@ -7,7 +7,7 @@
  */
 
 import type { Collection } from "@tanstack/db";
-import { useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 /**
  * Extract the item type from a Collection.
@@ -32,6 +32,8 @@ export function useCollectionData<
 >(collection: C): CollectionItem<C>[] {
 	type T = CollectionItem<C>;
 
+	const collectionRef = useRef(collection);
+
 	// Track version to know when to create a new snapshot.
 	// Incremented by subscription callback when collection changes.
 	const versionRef = useRef(0);
@@ -44,22 +46,23 @@ export function useCollectionData<
 		data: [],
 	});
 
+	useEffect(() => {
+		collectionRef.current = collection;
+		versionRef.current = 0;
+		snapshotRef.current = { version: -1, data: [] };
+	}, [collection]);
+
 	// Subscribe callback - increments version to signal data changed.
 	// Stored in ref to maintain stable reference for useSyncExternalStore.
-	const subscribeRef = useRef((onStoreChange: () => void): (() => void) => {
-		const subscription = collection.subscribeChanges(() => {
-			versionRef.current++;
-			onStoreChange();
-		});
-		return () => subscription.unsubscribe();
-	});
-
-	// Update subscribe ref when collection changes
+	const subscribeRef = useRef<(onStoreChange: () => void) => () => void>(
+		() => () => {},
+	);
 	subscribeRef.current = (onStoreChange: () => void): (() => void) => {
-		const subscription = collection.subscribeChanges(() => {
+		const currentCollection = collectionRef.current;
+		const subscription = currentCollection.subscribeChanges(() => {
 			versionRef.current++;
 			console.log(
-				`[ai-chat/collection] change detected, version=${versionRef.current}, size=${collection.size}`,
+				`[ai-chat/collection] change detected, version=${versionRef.current}, size=${currentCollection.size}`,
 			);
 			onStoreChange();
 		});
@@ -68,22 +71,7 @@ export function useCollectionData<
 
 	// Snapshot callback - returns cached data unless version changed.
 	// Stored in ref to maintain stable reference for useSyncExternalStore.
-	const getSnapshotRef = useRef((): T[] => {
-		const currentVersion = versionRef.current;
-		const cached = snapshotRef.current;
-
-		// Return cached snapshot if version hasn't changed
-		if (cached.version === currentVersion) {
-			return cached.data;
-		}
-
-		// Version changed - create new snapshot and cache it
-		const data = [...collection.values()] as T[];
-		snapshotRef.current = { version: currentVersion, data };
-		return data;
-	});
-
-	// Update getSnapshot ref when collection changes
+	const getSnapshotRef = useRef<() => T[]>(() => []);
 	getSnapshotRef.current = (): T[] => {
 		const currentVersion = versionRef.current;
 		const cached = snapshotRef.current;
@@ -92,17 +80,19 @@ export function useCollectionData<
 			return cached.data;
 		}
 
-		const data = [...collection.values()] as T[];
+		const data = [...collectionRef.current.values()] as T[];
 		snapshotRef.current = { version: currentVersion, data };
 		return data;
 	};
 
-	// Pass the same function for both getSnapshot and getServerSnapshot.
-	// This ensures server and client render the same initial state (empty array),
-	// preventing hydration mismatches while enabling proper SSR.
+	const getServerSnapshotRef = useRef<() => T[]>(() => []);
+	getServerSnapshotRef.current = (): T[] => snapshotRef.current.data;
+
+	// Use a stable server snapshot to keep SSR output consistent
+	// and avoid hydration mismatches.
 	return useSyncExternalStore(
 		subscribeRef.current,
 		getSnapshotRef.current,
-		getSnapshotRef.current,
+		getServerSnapshotRef.current,
 	);
 }

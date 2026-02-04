@@ -19,16 +19,16 @@
 		"@durable-streams/client": "^0.2.0",
 		"@durable-streams/state": "^0.2.0",
 		"@superset/ui": "workspace:*",
-		"@tanstack/db": "^0.5.24",
-		"@tanstack/react-db": "^0.1.68",
+		"@tanstack/db": "0.5.22",
+		"@tanstack/react-db": "0.1.66",
 		"lucide-react": "^0.563.0",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"bun-types": "^1.3.1",
 		"@types/node": "^24.9.1",
 		"@types/react": "~19.1.0",
+		"bun-types": "^1.3.1",
 		"react": "19.1.0",
 		"typescript": "^5.9.3"
 	},

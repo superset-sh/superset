@@ -150,6 +150,10 @@ export function useChatSession(
 
 	const client = clientRef.current.client;
 
+	useEffect(() => {
+		client.setUser(clientOptions.user ?? null);
+	}, [client]);
+
 	// =========================================================================
 	// Collection Subscriptions (1:1 from Electric SQL)
 	// =========================================================================

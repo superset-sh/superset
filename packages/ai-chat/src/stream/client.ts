@@ -239,6 +239,7 @@ export class DurableChatClient {
 		}
 
 		this._db.close();
+		this._abortController.abort();
 		this._isConnected = false;
 		this._setConnectionStatus("disconnected");
 	}
@@ -253,7 +254,6 @@ export class DurableChatClient {
 		if (this._isDisposed) return;
 		this._isDisposed = true;
 		this.disconnect();
-		this._abortController.abort();
 	}
 
 	// =========================================================================

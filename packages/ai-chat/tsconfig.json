@@ -5,7 +5,7 @@
 		"rootDir": "./src",
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"jsx": "react-jsx",
-		"types": ["node"]
+		"types": ["bun-types", "node"]
 	},
 	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"exclude": ["node_modules", "dist"]

@@ -130,8 +130,11 @@ export function materializeMessages(chunks: ChunkRow[]): MessageRow[] {
 
 		if (!isRenderingType) continue;
 
-		// Turn boundary: stream_event after user (tool result) = new turn
-		if (chunkType === "stream_event" && lastRenderingType === "user") {
+		// Turn boundary: stream_event or assistant after user (tool result) = new turn
+		if (
+			lastRenderingType === "user" &&
+			(chunkType === "stream_event" || chunkType === "assistant")
+		) {
 			if (currentTurnChunks.length > 0) {
 				messages.push(materializeTurn(currentTurnChunks));
 				currentTurnChunks = [];
