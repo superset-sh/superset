@@ -217,7 +217,15 @@ export const createDeleteProcedures = () => {
 								);
 							}
 						});
+					} else {
+						console.warn(
+							`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktree ? existsSync(worktree.path) : "N/A"}`,
+						);
 					}
+				} else {
+					console.log(
+						`[workspace/delete] No teardown needed: type=${workspace.type}, worktreeId=${workspace.worktreeId ?? "null"}`,
+					);
 				}
 
 				// Wait for both terminal kills and teardown to finish

@@ -44,6 +44,9 @@ export async function runTeardown(
 	const config = loadSetupConfig(mainRepoPath);
 
 	if (!config?.teardown || config.teardown.length === 0) {
+		console.log(
+			`[teardown] No teardown commands found for "${workspaceName}" (config: ${config ? "found, no teardown field" : "not found"}, mainRepoPath: ${mainRepoPath})`,
+		);
 		return { success: true };
 	}
 
