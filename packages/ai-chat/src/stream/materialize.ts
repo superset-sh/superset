@@ -78,7 +78,9 @@ export function materializeMessages(chunks: ChunkRow[]): MessageRow[] {
 		return aSeq - bSeq;
 	});
 
-	console.log(`[ai-chat/materialize] processing ${sorted.length} sorted chunks, types: ${sorted.map(c => c.type).join(", ")}`);
+	console.log(
+		`[ai-chat/materialize] processing ${sorted.length} sorted chunks, types: ${sorted.map((c) => c.type).join(", ")}`,
+	);
 
 	const messages: MessageRow[] = [];
 	let currentTurnChunks: ChunkRow[] = [];
@@ -150,7 +152,7 @@ export function materializeMessages(chunks: ChunkRow[]): MessageRow[] {
  * Materialize a single assistant turn from its SDK message chunks.
  */
 function materializeTurn(chunks: ChunkRow[]): MessageRow {
-	const firstChunk = chunks[0]!;
+	const firstChunk = chunks[0] as ChunkRow;
 
 	console.log(
 		`[ai-chat/materialize] materializeTurn: ${chunks.length} chunks, types: ${chunks.map((c) => c.type).join(", ")}`,

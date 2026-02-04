@@ -18,6 +18,7 @@ import { useRef, useSyncExternalStore } from "react";
  * This helper extracts `T` (the item type) from any Collection variant.
  */
 type CollectionItem<C> =
+	// biome-ignore lint/suspicious/noExplicitAny: Collection has constrained generic params that require any
 	C extends Collection<infer T, any, any, any, any> ? T : never;
 
 /**
@@ -26,6 +27,7 @@ type CollectionItem<C> =
  * as per https://github.com/TanStack/db/pull/709
  */
 export function useCollectionData<
+	// biome-ignore lint/suspicious/noExplicitAny: Collection has constrained generic params that require any
 	C extends Collection<any, any, any, any, any>,
 >(collection: C): CollectionItem<C>[] {
 	type T = CollectionItem<C>;
@@ -56,7 +58,9 @@ export function useCollectionData<
 	subscribeRef.current = (onStoreChange: () => void): (() => void) => {
 		const subscription = collection.subscribeChanges(() => {
 			versionRef.current++;
-			console.log(`[ai-chat/collection] change detected, version=${versionRef.current}, size=${collection.size}`);
+			console.log(
+				`[ai-chat/collection] change detected, version=${versionRef.current}, size=${collection.size}`,
+			);
 			onStoreChange();
 		});
 		return () => subscription.unsubscribe();

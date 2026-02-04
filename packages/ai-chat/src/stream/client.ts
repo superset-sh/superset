@@ -26,7 +26,10 @@ import {
 
 /** UUID generator with fallback for environments without crypto.randomUUID (React Native). */
 function generateUUID(): string {
-	if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+	if (
+		typeof crypto !== "undefined" &&
+		typeof crypto.randomUUID === "function"
+	) {
 		return crypto.randomUUID();
 	}
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -124,8 +127,7 @@ export class DurableChatClient {
 	constructor(options: DurableChatClientOptions) {
 		this.options = options;
 		this.sessionId = options.sessionId;
-		this.actorId =
-			options.actorId ?? options.user?.userId ?? generateUUID();
+		this.actorId = options.actorId ?? options.user?.userId ?? generateUUID();
 
 		// Create abort controller before anything else
 		this._abortController = new AbortController();
@@ -204,7 +206,9 @@ export class DurableChatClient {
 
 		try {
 			this._setConnectionStatus("connecting");
-			console.log(`[ai-chat/client] connect() sessionId=${this.sessionId} url=${this.options.proxyUrl}`);
+			console.log(
+				`[ai-chat/client] connect() sessionId=${this.sessionId} url=${this.options.proxyUrl}`,
+			);
 
 			// Preload stream data
 			await this._db.preload();
@@ -270,7 +274,9 @@ export class DurableChatClient {
 		}
 
 		const uuid = generateUUID();
-		console.log(`[ai-chat/client] sendMessage uuid=${uuid} content="${content.slice(0, 50)}"`);
+		console.log(
+			`[ai-chat/client] sendMessage uuid=${uuid} content="${content.slice(0, 50)}"`,
+		);
 
 		await this._appendToStream([
 			{
