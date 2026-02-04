@@ -69,6 +69,8 @@ bun run clean:workspaces   # Clean all workspace node_modules
 2. **Follow existing patterns** - match the codebase style
 3. **Type safety** - avoid `any` unless necessary
 4. **Search narrowly** - avoid reading large files/assets
+5. **Lint = lint:fix** - when running lint, always use `bun run lint:fix` (not `bun run lint`) so issues are auto-fixed
+6. **Prefer `gh` CLI** - when performing git operations (PRs, issues, checkout, etc.), prefer the GitHub CLI (`gh`) over raw `git` commands where possible
 
 ---
 
