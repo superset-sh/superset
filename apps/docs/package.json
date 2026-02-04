@@ -5,7 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "fumadocs-mdx && next build",
-		"dev": "next dev --port 3004",
+		"dev": "dotenv -- next dev --port ${DOCS_PORT:-3004}",
 		"start": "next start",
 		"typecheck": "fumadocs-mdx && next typegen && tsc --noEmit",
 		"postinstall": "fumadocs-mdx"

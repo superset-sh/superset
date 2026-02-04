@@ -5,7 +5,8 @@ import { env } from "./env";
 const allowedOrigins = [
 	env.NEXT_PUBLIC_WEB_URL,
 	env.NEXT_PUBLIC_ADMIN_URL,
-	env.NODE_ENV === "development" && "http://localhost:5927",
+	// Desktop dev server - use env var to support multi-worktree dev instances
+	env.NEXT_PUBLIC_DESKTOP_URL,
 ].filter(Boolean);
 
 function getCorsHeaders(origin: string | null) {

@@ -1,5 +1,6 @@
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { env } from "./env.shared";
+import { getWorkspaceName } from "./worktree-id";
 
 export const PLATFORM = {
 	IS_MAC: process.platform === "darwin",
@@ -7,24 +8,38 @@ export const PLATFORM = {
 	IS_LINUX: process.platform === "linux",
 };
 
-// Ports - different for dev vs prod to allow running both simultaneously
+// Ports - read from env vars set by setup.sh for multi-worktree support
+// Defaults (5927, 31416) preserved for running outside Superset terminals
 export const PORTS = {
-	VITE_DEV_SERVER: env.NODE_ENV === "development" ? 5927 : 4927,
-	NOTIFICATIONS: env.NODE_ENV === "development" ? 31416 : 31415,
-	// Electric SQL proxy port (local-first sync)
-	ELECTRIC: env.NODE_ENV === "development" ? 31418 : 31417,
+	VITE_DEV_SERVER: Number(env.DESKTOP_VITE_PORT) || 5927,
+	NOTIFICATIONS: Number(env.DESKTOP_NOTIFICATIONS_PORT) || 31416,
+	// Electric SQL proxy port (local-first sync) - not yet workspace-isolated
+	ELECTRIC: 31418,
 };
+
+/**
+ * Get the Superset home directory name.
+ * When running in a named workspace, returns `.superset-{workspace}` for isolation.
+ * Otherwise returns `.superset`.
+ */
+function getSupersetDirName(): string {
+	const workspace = getWorkspaceName();
+	if (workspace) {
+		return `.superset-${workspace}`;
+	}
+	return ".superset";
+}
 
 // Note: For environment-aware paths, use main/lib/app-environment.ts instead.
 // Paths require Node.js/Electron APIs that aren't available in renderer.
+export const SUPERSET_DIR_NAME = getSupersetDirName();
+
+// Static directory names for filtering wrapper scripts (used by agent-setup)
+// These are the known directories that may contain wrapper scripts
 export const SUPERSET_DIR_NAMES = {
-	DEV: ".superset-dev",
 	PROD: ".superset",
+	DEV: ".superset-dev",
 } as const;
-export const SUPERSET_DIR_NAME =
-	env.NODE_ENV === "development"
-		? SUPERSET_DIR_NAMES.DEV
-		: SUPERSET_DIR_NAMES.PROD;
 
 // Deep link protocol scheme (environment-aware)
 export const PROTOCOL_SCHEME =
