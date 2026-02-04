@@ -40,13 +40,25 @@ const UI_COLOR_TO_CSS_VAR: Record<keyof UIColors, string> = {
 	chart5: "--chart-5",
 };
 
+// Variables managed by liquid glass CSS — inline styles would override the
+// semi-transparent values needed for the native glass effect to show through.
+const LIQUID_GLASS_MANAGED_VARS = new Set([
+	"--sidebar",
+	"--sidebar-accent",
+	"--sidebar-border",
+]);
+
 /**
  * Apply UI colors to CSS variables on :root
  */
 export function applyUIColors(colors: UIColors): void {
 	const root = document.documentElement;
+	const isLiquidGlass = root.classList.contains("liquid-glass");
 
 	for (const [key, cssVar] of Object.entries(UI_COLOR_TO_CSS_VAR)) {
+		// Skip variables controlled by liquid glass CSS to preserve transparency
+		if (isLiquidGlass && LIQUID_GLASS_MANAGED_VARS.has(cssVar)) continue;
+
 		const value = colors[key as keyof UIColors];
 		if (value) {
 			root.style.setProperty(cssVar, value);

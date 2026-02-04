@@ -51,6 +51,20 @@
 	--sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Liquid Glass: transparent body lets native NSGlassEffectView show through.
+   --background stays opaque so content areas are solid.
+   Only --sidebar gets transparency for the glass effect. */
+:root.liquid-glass {
+	--sidebar: oklch(0.145 0 0 / 0.4);
+	--sidebar-accent: oklch(0.269 0 0 / 0.5);
+	--sidebar-border: oklch(0.269 0 0 / 0.3);
+}
+:root.liquid-glass.light {
+	--sidebar: oklch(1 0 0 / 0.4);
+	--sidebar-accent: oklch(0.97 0 0 / 0.5);
+	--sidebar-border: oklch(0.922 0 0 / 0.3);
+}
+
 /* Light theme fallback values - applied before hydration if user has light theme saved */
 :root.light {
 	--background: oklch(1 0 0);
@@ -142,6 +156,12 @@
 
 	body {
 		@apply bg-background text-foreground;
+	}
+
+	/* Liquid glass: body must be fully transparent so the native glass shows.
+	   The <app> element paints bg-background instead so content areas are covered. */
+	.liquid-glass body {
+		background: transparent;
 	}
 
 	html,

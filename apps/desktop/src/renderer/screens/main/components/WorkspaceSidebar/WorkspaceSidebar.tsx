@@ -29,7 +29,7 @@ export function WorkspaceSidebar({
 	);
 
 	return (
-		<SidebarDropZone className="flex flex-col h-full bg-background">
+		<SidebarDropZone className="flex flex-col h-full bg-sidebar">
 			<WorkspaceSidebarHeader isCollapsed={isCollapsed} />
 
 			<div className="flex-1 overflow-y-auto hide-scrollbar">
