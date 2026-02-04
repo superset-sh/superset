@@ -3,7 +3,7 @@ import nodePath from "node:path";
 import { EXTERNAL_APPS, type ExternalApp } from "@superset/local-db";
 
 /** Map of app IDs to their macOS application names */
-const APP_NAMES: Record<ExternalApp, string | null> = {
+const MAC_APP_NAMES: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
 	vscode: "Visual Studio Code",
 	"vscode-insiders": "Visual Studio Code - Insiders",
@@ -29,17 +29,57 @@ const APP_NAMES: Record<ExternalApp, string | null> = {
 	rustrover: "RustRover",
 };
 
+/** Map of app IDs to their Linux CLI commands */
+const LINUX_APP_COMMANDS: Record<ExternalApp, string | null> = {
+	finder: null,
+	vscode: "code",
+	"vscode-insiders": "code-insiders",
+	cursor: "cursor",
+	zed: "zed",
+	xcode: null, // macOS only
+	iterm: null, // macOS only
+	warp: null, // macOS only
+	terminal: "x-terminal-emulator",
+	ghostty: "ghostty",
+	sublime: "subl",
+	intellij: "idea",
+	webstorm: "webstorm",
+	pycharm: "pycharm",
+	phpstorm: "phpstorm",
+	rubymine: "rubymine",
+	goland: "goland",
+	clion: "clion",
+	rider: "rider",
+	datagrip: "datagrip",
+	appcode: null, // macOS only
+	fleet: "fleet",
+	rustrover: "rustrover",
+};
+
 /**
  * Get the command and args to open a path in the specified app.
- * Uses `open -a` for macOS apps to avoid PATH issues in production builds.
+ * Uses `open -a` on macOS, direct CLI commands on Linux.
  */
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
 ): { command: string; args: string[] } | null {
-	const appName = APP_NAMES[app];
+	if (process.platform === "darwin") {
+		const appName = MAC_APP_NAMES[app];
+		if (!appName) return null;
+		return { command: "open", args: ["-a", appName, targetPath] };
+	}
+
+	if (process.platform === "linux") {
+		const command = LINUX_APP_COMMANDS[app];
+		if (!command) return null;
+		return { command, args: [targetPath] };
+	}
+
+	// Windows: use start command
+	const appName = MAC_APP_NAMES[app];
 	if (!appName) return null;
-	return { command: "open", args: ["-a", appName, targetPath] };
+	return { command: "cmd", args: ["/c", "start", "", appName, targetPath] };
 }
 
 /**
