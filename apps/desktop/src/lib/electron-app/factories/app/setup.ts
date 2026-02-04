@@ -79,6 +79,13 @@ if (PLATFORM.IS_LINUX) {
 	app.commandLine.appendSwitch("enable-gpu-rasterization");
 	app.commandLine.appendSwitch("enable-zero-copy");
 	app.commandLine.appendSwitch("ignore-gpu-blocklist");
+	// Canvas OOP rasterization offloads canvas rendering to GPU process
+	app.commandLine.appendSwitch(
+		"enable-features",
+		"CanvasOopRasterization,VaapiVideoDecodeLinuxGL",
+	);
+	// Auto-detect Wayland vs X11 for native compositor integration
+	app.commandLine.appendSwitch("ozone-platform-hint", "auto");
 }
 
 PLATFORM.IS_WINDOWS &&

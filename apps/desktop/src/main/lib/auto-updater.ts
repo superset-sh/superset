@@ -100,7 +100,7 @@ export function dismissUpdate(): void {
 }
 
 export function checkForUpdates(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || PLATFORM.IS_WINDOWS) {
 		return;
 	}
 	isDismissed = false;
@@ -125,11 +125,11 @@ export function checkForUpdatesInteractive(): void {
 		});
 		return;
 	}
-	if (!PLATFORM.IS_MAC) {
+	if (PLATFORM.IS_WINDOWS) {
 		dialog.showMessageBox({
 			type: "info",
 			title: "Updates",
-			message: "Auto-updates are only available on macOS.",
+			message: "Auto-updates are not yet available on Windows.",
 		});
 		return;
 	}
@@ -198,7 +198,7 @@ export function simulateError(): void {
 }
 
 export function setupAutoUpdater(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || PLATFORM.IS_WINDOWS) {
 		return;
 	}
 
