@@ -142,6 +142,7 @@ export function WorkspaceListItem({
 		if (latestBranch !== branch) {
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.workspaces.get.invalidate({ id });
+			utils.workspaces.getWorktreeInfo.invalidate({ workspaceId: id });
 		}
 	}, [localChanges?.branch, branch, id, utils]);
 

@@ -75,6 +75,9 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		if (workspace.branch !== status.branch) {
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.workspaces.get.invalidate({ id: workspace.id });
+			utils.workspaces.getWorktreeInfo.invalidate({
+				workspaceId: workspace.id,
+			});
 		}
 	}, [status?.branch, utils, workspace]);
 
