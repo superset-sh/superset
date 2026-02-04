@@ -6,7 +6,7 @@ export function register(server: McpServer) {
 	server.registerTool(
 		"delete_workspace",
 		{
-			description: "Delete one or more workspaces on a device",
+			description: "Delete one or more workspaces (git worktrees) on a device",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				workspaceIds: z

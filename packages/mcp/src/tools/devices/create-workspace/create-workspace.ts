@@ -21,7 +21,8 @@ export function register(server: McpServer) {
 	server.registerTool(
 		"create_workspace",
 		{
-			description: "Create one or more git worktree workspaces on a device",
+			description:
+				"Create one or more workspaces (git worktrees) on a device. Use this when the user asks to create worktrees or workspaces.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				workspaces: z

@@ -12,7 +12,7 @@ export function register(server: McpServer) {
 		"update_workspace",
 		{
 			description:
-				"Update one or more workspaces on a device. Currently supports renaming.",
+				"Update one or more workspaces (git worktrees) on a device. Currently supports renaming.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				updates: z

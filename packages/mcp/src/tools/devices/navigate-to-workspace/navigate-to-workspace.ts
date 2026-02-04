@@ -6,7 +6,8 @@ export function register(server: McpServer) {
 	server.registerTool(
 		"navigate_to_workspace",
 		{
-			description: "Navigate the desktop app to a specific workspace",
+			description:
+				"Navigate the desktop app to a specific workspace (git worktree)",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				workspaceId: z

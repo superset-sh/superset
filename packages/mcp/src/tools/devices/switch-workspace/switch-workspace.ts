@@ -6,7 +6,7 @@ export function register(server: McpServer) {
 	server.registerTool(
 		"switch_workspace",
 		{
-			description: "Switch to a different workspace",
+			description: "Switch to a different workspace (git worktree)",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				workspaceId: z
