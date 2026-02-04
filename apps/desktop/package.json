@@ -44,7 +44,7 @@
 		"@monaco-editor/react": "^4.7.0",
 		"@radix-ui/react-dialog": "^1.1.15",
 		"@radix-ui/react-label": "^2.1.8",
-		"@sentry/electron": "^7.5.1",
+		"@sentry/electron": "^7.7.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/local-db": "workspace:*",
