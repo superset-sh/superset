@@ -41,7 +41,7 @@ const handleDeepLink = (path: string) => {
 	console.log("[deep-link] Navigating to:", path);
 	router.navigate({ to: path });
 };
-if (window.ipcRenderer?.on && window.ipcRenderer?.off) {
+if (window.ipcRenderer) {
 	window.ipcRenderer.on("deep-link-navigate", handleDeepLink);
 } else {
 	reportBootError(
