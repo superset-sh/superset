@@ -105,7 +105,9 @@ function DashboardLayout() {
 						<WorkspaceSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
 					</ResizablePanel>
 				)}
-				<Outlet />
+				<div className="flex-1 overflow-hidden bg-background">
+					<Outlet />
+				</div>
 			</div>
 		</div>
 	);

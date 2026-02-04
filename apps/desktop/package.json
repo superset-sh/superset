@@ -112,6 +112,7 @@
 		"dnd-core": "^16.0.1",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "0.45.1",
+		"electron-liquid-glass": "^1.1.1",
 		"electron-updater": "6",
 		"execa": "^9.6.0",
 		"express": "^5.1.0",

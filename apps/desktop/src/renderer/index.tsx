@@ -32,10 +32,21 @@ const handleDeepLink = (path: string) => {
 };
 window.ipcRenderer.on("deep-link-navigate", handleDeepLink);
 
+const handleLiquidGlass = () => {
+	const root = document.documentElement;
+	root.classList.add("liquid-glass");
+	// Remove inline styles that would override the semi-transparent CSS values
+	for (const v of ["--sidebar", "--sidebar-accent", "--sidebar-border"]) {
+		root.style.removeProperty(v);
+	}
+};
+window.ipcRenderer.on("liquid-glass-active", handleLiquidGlass);
+
 if (import.meta.hot) {
 	import.meta.hot.dispose(() => {
 		unsubscribe();
 		window.ipcRenderer.off("deep-link-navigate", handleDeepLink);
+		window.ipcRenderer.off("liquid-glass-active", handleLiquidGlass);
 	});
 }
 

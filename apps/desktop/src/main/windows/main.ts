@@ -3,6 +3,7 @@ import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { Notification } from "electron";
+import liquidGlass from "electron-liquid-glass";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
@@ -83,6 +84,7 @@ export async function MainWindow() {
 		frame: false,
 		titleBarStyle: "hidden",
 		trafficLightPosition: { x: 16, y: 16 },
+		...(process.platform === "darwin" && { transparent: true }),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
@@ -206,6 +208,10 @@ export async function MainWindow() {
 
 	window.webContents.on("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
+		if (process.platform === "darwin") {
+			liquidGlass.addView(window.getNativeWindowHandle());
+			window.webContents.send("liquid-glass-active");
+		}
 		// Restore maximized state if it was saved
 		if (initialBounds.isMaximized) {
 			window.maximize();
