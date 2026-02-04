@@ -7,7 +7,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
 		"sherif": "^1.7.0",
-		"turbo": "^2.5.8"
+		"turbo": "^2.8.3"
 	},
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",
