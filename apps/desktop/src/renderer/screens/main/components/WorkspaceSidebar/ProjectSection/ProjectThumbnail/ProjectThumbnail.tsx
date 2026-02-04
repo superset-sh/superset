@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 
@@ -8,6 +8,8 @@ interface ProjectThumbnailProps {
 	projectName: string;
 	projectColor: string;
 	githubOwner: string | null;
+	iconUrl?: string | null;
+	iconOverride?: string | null;
 	className?: string;
 }
 
@@ -37,15 +39,28 @@ export function ProjectThumbnail({
 	projectName,
 	projectColor,
 	githubOwner,
+	iconUrl,
+	iconOverride,
 	className,
 }: ProjectThumbnailProps) {
 	const [imageError, setImageError] = useState(false);
+	const [iconError, setIconError] = useState(false);
+
+	const effectiveIcon = iconOverride || iconUrl;
+
+	// Reset error state when icon source changes
+	const prevIconRef = useRef(effectiveIcon);
+	if (prevIconRef.current !== effectiveIcon) {
+		setIconError(false);
+		prevIconRef.current = effectiveIcon;
+	}
 
 	const { data: avatarData } = electronTrpc.projects.getGitHubAvatar.useQuery(
 		{ id: projectId },
 		{
 			staleTime: 1000 * 60 * 5,
 			refetchOnWindowFocus: false,
+			enabled: !effectiveIcon,
 		},
 	);
 
@@ -53,7 +68,6 @@ export function ProjectThumbnail({
 	const firstLetter = projectName.charAt(0).toUpperCase();
 	const hasCustomColor = isCustomColor(projectColor);
 
-	// Border: gray by default, custom color with slight transparency when set
 	const borderClasses = cn(
 		"border-[1.5px]",
 		hasCustomColor ? undefined : "border-border",
@@ -62,12 +76,31 @@ export function ProjectThumbnail({
 		? { borderColor: hexToRgba(projectColor, 0.6) }
 		: undefined;
 
-	// Show GitHub avatar if available
+	if (effectiveIcon && !iconError) {
+		return (
+			<div
+				className={cn(
+					"relative size-6 rounded overflow-hidden shrink-0 bg-muted",
+					borderClasses,
+					className,
+				)}
+				style={borderStyle}
+			>
+				<img
+					src={effectiveIcon}
+					alt={`${projectName} icon`}
+					className="size-full object-cover"
+					onError={() => setIconError(true)}
+				/>
+			</div>
+		);
+	}
+
 	if (owner && !imageError) {
 		return (
 			<div
 				className={cn(
-					"relative size-6 rounded overflow-hidden flex-shrink-0 bg-muted",
+					"relative size-6 rounded overflow-hidden shrink-0 bg-muted",
 					borderClasses,
 					className,
 				)}
@@ -83,11 +116,10 @@ export function ProjectThumbnail({
 		);
 	}
 
-	// Fallback: show first letter
 	return (
 		<div
 			className={cn(
-				"size-6 rounded flex items-center justify-center flex-shrink-0",
+				"size-6 rounded flex items-center justify-center shrink-0",
 				"bg-muted text-muted-foreground text-xs font-medium",
 				borderClasses,
 				className,

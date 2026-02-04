@@ -127,6 +127,13 @@
       "when": 1770103994672,
       "tag": "0017_add_is_unnamed_to_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1770117318144,
+      "tag": "0018_add_project_icons",
+      "breakpoints": true
     }
   ]
 }

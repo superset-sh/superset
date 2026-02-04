@@ -34,6 +34,7 @@ import {
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getDefaultProjectColor } from "./utils/colors";
+import { discoverFavicon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
@@ -54,9 +55,38 @@ export type OpenNewResult =
 	| OpenNewError;
 
 /**
+ * Fire-and-forget favicon discovery for a project.
+ * Finds a favicon in the repo directory and stores it as a base64 data URL.
+ */
+function triggerFaviconDiscovery({
+	projectId,
+	repoPath,
+}: {
+	projectId: string;
+	repoPath: string;
+}): void {
+	discoverFavicon(repoPath)
+		.then((icon) => {
+			if (icon) {
+				localDb
+					.update(projects)
+					.set({ iconUrl: icon })
+					.where(eq(projects.id, projectId))
+					.run();
+				console.log(
+					`[upsertProject] Discovered favicon for project: ${projectId}`,
+				);
+			}
+		})
+		.catch((err) => {
+			console.error("[upsertProject] Favicon discovery error:", err);
+		});
+}
+
+/**
  * Creates or updates a project record in the database.
  * If a project with the same mainRepoPath exists, updates lastOpenedAt.
- * Otherwise, creates a new project.
+ * Otherwise, creates a new project and triggers favicon discovery.
  */
 function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	const name = basename(mainRepoPath);
@@ -73,6 +103,14 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 			.set({ lastOpenedAt: Date.now(), defaultBranch })
 			.where(eq(projects.id, existing.id))
 			.run();
+
+		if (!existing.iconOverride && !existing.iconUrl) {
+			triggerFaviconDiscovery({
+				projectId: existing.id,
+				repoPath: mainRepoPath,
+			});
+		}
+
 		return { ...existing, lastOpenedAt: Date.now(), defaultBranch };
 	}
 
@@ -86,6 +124,8 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 		})
 		.returning()
 		.get();
+
+	triggerFaviconDiscovery({ projectId: project.id, repoPath: mainRepoPath });
 
 	return project;
 }
@@ -183,6 +223,10 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 // Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
 // Allows most valid Git repo names while avoiding path traversal characters
 const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
+
+const ICON_DATA_URL_REGEX =
+	/^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+$/i;
+const MAX_ICON_DATA_URL_LENGTH = 512 * 1024;
 
 /**
  * Extracts and validates a repository name from a git URL.
@@ -713,7 +757,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					const git = simpleGit();
 					await git.clone(input.url, clonePath);
 
-					// Create new project
 					const name = basename(clonePath);
 					const defaultBranch = await getDefaultBranch(clonePath);
 					const project = localDb
@@ -727,7 +770,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.returning()
 						.get();
 
-					// Auto-create main workspace if it doesn't exist
+					triggerFaviconDiscovery({
+						projectId: project.id,
+						repoPath: clonePath,
+					});
+
 					await ensureMainWorkspace(project);
 
 					track("project_opened", {
@@ -1035,6 +1082,74 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					name: authorName,
 					prefix: sanitizeAuthorPrefix(authorName),
 				};
+			}),
+
+		setProjectIcon: publicProcedure
+			.input(
+				z.object({
+					id: z.string(),
+					icon: z
+						.string()
+						.trim()
+						.max(MAX_ICON_DATA_URL_LENGTH, "Icon data URL is too large")
+						.regex(ICON_DATA_URL_REGEX, "Icon must be a base64 image data URL")
+						.nullable(), // Base64 data URL or null to remove
+				}),
+			)
+			.mutation(({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				localDb
+					.update(projects)
+					.set({ iconOverride: input.icon })
+					.where(eq(projects.id, input.id))
+					.run();
+
+				return { success: true };
+			}),
+
+		discoverProjectIcon: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				if (project.iconOverride || project.iconUrl) {
+					return { success: true, found: false, skipped: true };
+				}
+
+				const icon = await discoverFavicon(project.mainRepoPath);
+
+				if (icon) {
+					localDb
+						.update(projects)
+						.set({ iconUrl: icon })
+						.where(eq(projects.id, input.id))
+						.run();
+				}
+
+				return { success: true, found: !!icon };
 			}),
 	});
 };

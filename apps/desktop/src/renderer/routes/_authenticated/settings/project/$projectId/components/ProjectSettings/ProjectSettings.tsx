@@ -8,12 +8,18 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
-import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
+import {
+	HiOutlineCog6Tooth,
+	HiOutlineFolder,
+	HiOutlinePhoto,
+} from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import { ClickablePath } from "../../../../components/ClickablePath";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
+import { IconUploader } from "./components/IconUploader";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 interface ProjectSettingsProps {
@@ -102,6 +108,17 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		);
 	};
 
+	const setIcon = electronTrpc.projects.setProjectIcon.useMutation({
+		onSuccess: () => {
+			utils.projects.get.invalidate({ id: projectId });
+			utils.workspaces.getAllGrouped.invalidate();
+		},
+		onError: (err) => {
+			console.error("[project-settings/setIcon] Failed to update icon:", err);
+			toast.error(`Failed to update icon: ${err.message}`);
+		},
+	});
+
 	if (!project) {
 		return null;
 	}
@@ -116,6 +133,24 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 			</div>
 
 			<div className="space-y-6">
+				<div className="space-y-2">
+					<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+						<HiOutlinePhoto className="h-4 w-4" />
+						Project Icon
+					</h3>
+					<p className="text-sm text-muted-foreground">
+						Upload a custom icon or use the auto-discovered favicon.
+					</p>
+					<IconUploader
+						projectName={project.name}
+						iconUrl={project.iconUrl ?? null}
+						iconOverride={project.iconOverride ?? null}
+						githubOwner={project.githubOwner ?? null}
+						onIconChange={(icon) => setIcon.mutate({ id: projectId, icon })}
+						isPending={setIcon.isPending}
+					/>
+				</div>
+
 				<div className="space-y-2">
 					<h3 className="text-base font-semibold text-foreground">Name</h3>
 					<p>{project.name}</p>

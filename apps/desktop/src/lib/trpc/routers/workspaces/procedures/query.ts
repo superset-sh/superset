@@ -159,6 +159,8 @@ export const createQueryProcedures = () => {
 						tabOrder: number;
 						githubOwner: string | null;
 						mainRepoPath: string;
+						iconUrl: string | null;
+						iconOverride: string | null;
 					};
 					workspaces: Array<{
 						id: string;
@@ -188,6 +190,8 @@ export const createQueryProcedures = () => {
 						tabOrder: project.tabOrder!,
 						githubOwner: project.githubOwner ?? null,
 						mainRepoPath: project.mainRepoPath,
+						iconUrl: project.iconUrl ?? null,
+						iconOverride: project.iconOverride ?? null,
 					},
 					workspaces: [],
 				});
