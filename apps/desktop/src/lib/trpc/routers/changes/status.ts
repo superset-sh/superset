@@ -1,3 +1,6 @@
+import { projects, workspaces, worktrees } from "@superset/local-db";
+import { and, eq, isNull } from "drizzle-orm";
+import { localDb } from "main/lib/local-db";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -30,6 +33,10 @@ export const createStatusRouter = () => {
 				// Use --no-optional-locks to avoid holding locks on the repository
 				const status = await getStatusNoLock(input.worktreePath);
 				const parsed = parseGitStatus(status);
+				syncWorkspaceBranch({
+					worktreePath: input.worktreePath,
+					currentBranch: parsed.branch,
+				});
 
 				// Run independent operations in parallel
 				const [branchComparison, trackingStatus] = await Promise.all([
@@ -93,6 +100,107 @@ export const createStatusRouter = () => {
 			}),
 	});
 };
+
+function syncWorkspaceBranch({
+	worktreePath,
+	currentBranch,
+}: {
+	worktreePath: string;
+	currentBranch: string;
+}): void {
+	if (!currentBranch || currentBranch === "HEAD") {
+		return;
+	}
+
+	try {
+		const worktree = localDb
+			.select()
+			.from(worktrees)
+			.where(eq(worktrees.path, worktreePath))
+			.get();
+
+		if (worktree) {
+			if (worktree.branch !== currentBranch) {
+				localDb
+					.update(worktrees)
+					.set({ branch: currentBranch })
+					.where(eq(worktrees.id, worktree.id))
+					.run();
+			}
+
+			const workspacesForWorktree = localDb
+				.select({ branch: workspaces.branch })
+				.from(workspaces)
+				.where(
+					and(
+						eq(workspaces.worktreeId, worktree.id),
+						isNull(workspaces.deletingAt),
+					),
+				)
+				.all();
+
+			const hasWorkspaceMismatch = workspacesForWorktree.some(
+				(ws) => ws.branch !== currentBranch,
+			);
+
+			if (hasWorkspaceMismatch) {
+				localDb
+					.update(workspaces)
+					.set({ branch: currentBranch })
+					.where(
+						and(
+							eq(workspaces.worktreeId, worktree.id),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.run();
+			}
+
+			return;
+		}
+
+		const project = localDb
+			.select()
+			.from(projects)
+			.where(eq(projects.mainRepoPath, worktreePath))
+			.get();
+		if (!project) {
+			return;
+		}
+
+		const branchWorkspaces = localDb
+			.select({ branch: workspaces.branch })
+			.from(workspaces)
+			.where(
+				and(
+					eq(workspaces.projectId, project.id),
+					eq(workspaces.type, "branch"),
+					isNull(workspaces.deletingAt),
+				),
+			)
+			.all();
+
+		const hasBranchMismatch = branchWorkspaces.some(
+			(ws) => ws.branch !== currentBranch,
+		);
+
+		if (hasBranchMismatch) {
+			localDb
+				.update(workspaces)
+				.set({ branch: currentBranch })
+				.where(
+					and(
+						eq(workspaces.projectId, project.id),
+						eq(workspaces.type, "branch"),
+						isNull(workspaces.deletingAt),
+					),
+				)
+				.run();
+		}
+	} catch (error) {
+		console.warn("[changes/status] Failed to sync branch:", error);
+	}
+}
 
 interface BranchComparison {
 	commits: GitChangesStatus["commits"];

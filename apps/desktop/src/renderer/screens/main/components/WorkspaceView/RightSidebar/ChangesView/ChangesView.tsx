@@ -33,6 +33,7 @@ interface ChangesViewProps {
 
 export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
+	const utils = electronTrpc.useUtils();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
@@ -68,6 +69,14 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				refetchInterval: 10000,
 			},
 		);
+
+	useEffect(() => {
+		if (!workspace || !status?.branch || status.branch === "HEAD") return;
+		if (workspace.branch !== status.branch) {
+			utils.workspaces.getAllGrouped.invalidate();
+			utils.workspaces.get.invalidate({ id: workspace.id });
+		}
+	}, [status?.branch, utils, workspace]);
 
 	const handleRefresh = () => {
 		refetch();

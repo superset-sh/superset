@@ -15,7 +15,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import {
@@ -135,6 +135,15 @@ export function WorkspaceListItem({
 			staleTime: GITHUB_STATUS_STALE_TIME,
 		},
 	);
+
+	useEffect(() => {
+		const latestBranch = localChanges?.branch;
+		if (!latestBranch || latestBranch === "HEAD") return;
+		if (latestBranch !== branch) {
+			utils.workspaces.getAllGrouped.invalidate();
+			utils.workspaces.get.invalidate({ id });
+		}
+	}, [localChanges?.branch, branch, id, utils]);
 
 	// Calculate total local changes (staged + unstaged + untracked)
 	const localDiffStats = useMemo(() => {
