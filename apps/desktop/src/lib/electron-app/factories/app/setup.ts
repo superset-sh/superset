@@ -71,6 +71,14 @@ export async function makeAppSetup(
 
 PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
 
+if (PLATFORM.IS_MAC) {
+	// Prevent Chromium from throttling/suspending renderers for occluded windows.
+	// On macOS Sequoia+, occluded window throttling can cause GPU compositor layer
+	// corruption leading to permanently white/blank content while WebGL content
+	// (terminals with context-loss fallback) survives.
+	app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+}
+
 PLATFORM.IS_WINDOWS &&
 	app.setAppUserModelId(
 		env.NODE_ENV === "development" ? process.execPath : makeAppId(),

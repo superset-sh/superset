@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
-import { Notification } from "electron";
+import { Notification, app } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
@@ -61,6 +61,20 @@ let currentWindow: BrowserWindow | null = null;
 // Getter for routers to access current window without stale references
 const getWindow = () => currentWindow;
 
+// Recover from GPU process crashes that cause white/blank compositor layers.
+// When the GPU process dies, Chromium restarts it but existing compositor layers
+// may not repaint. Terminal (xterm.js) survives because it handles WebGL context
+// loss explicitly with DOM fallback; other content needs a forced invalidation.
+app.on("child-process-gone", (_event, details) => {
+	if (details.type === "GPU") {
+		console.warn("[main-window] GPU process gone:", details.reason);
+		const win = getWindow();
+		if (win && !win.isDestroyed()) {
+			win.webContents.invalidate();
+		}
+	}
+});
+
 export async function MainWindow() {
 	const savedWindowState = loadWindowState();
 	const initialBounds = getInitialWindowBounds(savedWindowState);
@@ -75,6 +89,7 @@ export async function MainWindow() {
 		minWidth: 400,
 		minHeight: 400,
 		show: false,
+		backgroundColor: "#1a1a1a",
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
@@ -96,6 +111,10 @@ export async function MainWindow() {
 	registerMenuHotkeyUpdates();
 
 	currentWindow = window;
+
+	// Prevent renderer throttling when window is backgrounded/occluded.
+	// On macOS Sequoia+, throttling can corrupt GPU compositor layers.
+	window.webContents.setBackgroundThrottling(false);
 
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);
@@ -203,6 +222,16 @@ export async function MainWindow() {
 				});
 			},
 		);
+
+	// Force compositor repaint on visibility changes to recover from GPU layer
+	// corruption on macOS Sequoia+. Occluded/minimized windows can lose their
+	// compositor layers; invalidating on restore/show forces a rebuild.
+	window.on("restore", () => {
+		window.webContents.invalidate();
+	});
+	window.on("show", () => {
+		window.webContents.invalidate();
+	});
 
 	window.webContents.on("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
