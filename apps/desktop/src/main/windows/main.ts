@@ -61,9 +61,8 @@ let currentWindow: BrowserWindow | null = null;
 // Getter for routers to access current window without stale references
 const getWindow = () => currentWindow;
 
-// Force a full repaint + compositor layer tree rebuild.
-// invalidate() schedules a repaint but may not rebuild corrupted GPU layers.
-// A tiny resize forces Chromium to tear down and reconstruct the layer tree.
+// invalidate() alone may not rebuild corrupted GPU layers — a tiny resize
+// forces Chromium to reconstruct the compositor layer tree.
 const forceRepaint = (win: BrowserWindow) => {
 	if (win.isDestroyed()) return;
 	win.webContents.invalidate();
@@ -74,10 +73,7 @@ const forceRepaint = (win: BrowserWindow) => {
 	}, 32);
 };
 
-// Recover from GPU process crashes that cause white/blank compositor layers.
-// When the GPU process dies, Chromium restarts it but existing compositor layers
-// may not repaint. Terminal (xterm.js) survives because it handles WebGL context
-// loss explicitly with DOM fallback; other content needs a forced invalidation.
+// GPU process restarts don't repaint existing compositor layers automatically.
 app.on("child-process-gone", (_event, details) => {
 	if (details.type === "GPU") {
 		console.warn("[main-window] GPU process gone:", details.reason);
@@ -123,8 +119,7 @@ export async function MainWindow() {
 
 	currentWindow = window;
 
-	// Prevent renderer throttling when window is backgrounded/occluded.
-	// On macOS Sequoia+, throttling can corrupt GPU compositor layers.
+	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
 	if (PLATFORM.IS_MAC) {
 		window.webContents.setBackgroundThrottling(false);
 	}
@@ -236,10 +231,8 @@ export async function MainWindow() {
 			},
 		);
 
+	// macOS Sequoia+: occluded/minimized windows can lose compositor layers
 	if (PLATFORM.IS_MAC) {
-		// Force compositor repaint on visibility changes to recover from GPU layer
-		// corruption on macOS Sequoia+. Occluded/minimized windows can lose their
-		// compositor layers; invalidating on restore/show forces a rebuild.
 		window.on("restore", () => {
 			window.webContents.invalidate();
 		});

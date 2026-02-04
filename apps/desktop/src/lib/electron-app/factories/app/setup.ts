@@ -71,11 +71,8 @@ export async function makeAppSetup(
 
 PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
 
+// macOS Sequoia+: occluded window throttling can corrupt GPU compositor layers
 if (PLATFORM.IS_MAC) {
-	// Prevent Chromium from throttling/suspending renderers for occluded windows.
-	// On macOS Sequoia+, occluded window throttling can cause GPU compositor layer
-	// corruption leading to permanently white/blank content while WebGL content
-	// (terminals with context-loss fallback) survives.
 	app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
 }
 

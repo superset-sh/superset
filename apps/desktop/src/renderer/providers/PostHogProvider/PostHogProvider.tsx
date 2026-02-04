@@ -21,7 +21,6 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 		}
 	}, []);
 
-	// Wait for PostHog initialization attempt before rendering children
 	if (!isInitialized) {
 		return null;
 	}
