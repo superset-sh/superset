@@ -6,7 +6,7 @@ import { Notification, app } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
-import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
+import { NOTIFICATION_EVENTS, PLATFORM, PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
@@ -114,7 +114,9 @@ export async function MainWindow() {
 
 	// Prevent renderer throttling when window is backgrounded/occluded.
 	// On macOS Sequoia+, throttling can corrupt GPU compositor layers.
-	window.webContents.setBackgroundThrottling(false);
+	if (PLATFORM.IS_MAC) {
+		window.webContents.setBackgroundThrottling(false);
+	}
 
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);
@@ -223,15 +225,17 @@ export async function MainWindow() {
 			},
 		);
 
-	// Force compositor repaint on visibility changes to recover from GPU layer
-	// corruption on macOS Sequoia+. Occluded/minimized windows can lose their
-	// compositor layers; invalidating on restore/show forces a rebuild.
-	window.on("restore", () => {
-		window.webContents.invalidate();
-	});
-	window.on("show", () => {
-		window.webContents.invalidate();
-	});
+	if (PLATFORM.IS_MAC) {
+		// Force compositor repaint on visibility changes to recover from GPU layer
+		// corruption on macOS Sequoia+. Occluded/minimized windows can lose their
+		// compositor layers; invalidating on restore/show forces a rebuild.
+		window.on("restore", () => {
+			window.webContents.invalidate();
+		});
+		window.on("show", () => {
+			window.webContents.invalidate();
+		});
+	}
 
 	window.webContents.on("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
