@@ -78,6 +78,8 @@ export function materializeMessages(chunks: ChunkRow[]): MessageRow[] {
 		return aSeq - bSeq;
 	});
 
+	console.log(`[ai-chat/materialize] processing ${sorted.length} sorted chunks, types: ${sorted.map(c => c.type).join(", ")}`);
+
 	const messages: MessageRow[] = [];
 	let currentTurnChunks: ChunkRow[] = [];
 	let lastRenderingType: string | null = null;
@@ -110,11 +112,13 @@ export function materializeMessages(chunks: ChunkRow[]): MessageRow[] {
 		}
 
 		// SDK message — only process rendering-relevant types for turns
+		// Note: "result" is excluded — materializeTurn doesn't handle it,
+		// and including it creates ghost streaming messages from lone result
+		// chunks. It also masks the user→stream_event turn boundary.
 		const isRenderingType =
 			chunkType === "stream_event" ||
 			chunkType === "assistant" ||
-			chunkType === "user" ||
-			chunkType === "result";
+			chunkType === "user";
 
 		if (!isRenderingType) continue;
 
@@ -147,6 +151,10 @@ export function materializeMessages(chunks: ChunkRow[]): MessageRow[] {
  */
 function materializeTurn(chunks: ChunkRow[]): MessageRow {
 	const firstChunk = chunks[0]!;
+
+	console.log(
+		`[ai-chat/materialize] materializeTurn: ${chunks.length} chunks, types: ${chunks.map((c) => c.type).join(", ")}`,
+	);
 
 	let assistantMsg: SDKAssistantMessage | null = null;
 	const streamEvents: SDKPartialAssistantMessage[] = [];
@@ -186,6 +194,10 @@ function materializeTurn(chunks: ChunkRow[]): MessageRow {
 		.filter((b): b is BetaTextBlock => b.type === "text")
 		.map((b) => b.text)
 		.join("");
+
+	console.log(
+		`[ai-chat/materialize] turn result: id=${firstChunk.id.slice(0, 8)} hasAssistant=${!!assistantMsg} streamEvents=${streamEvents.length} userMsgs=${userMsgs.length} blocks=${contentBlocks.length} contentLen=${content.length} isComplete=${assistantMsg !== null} isStreaming=${isStreaming}`,
+	);
 
 	return {
 		id: firstChunk.id,

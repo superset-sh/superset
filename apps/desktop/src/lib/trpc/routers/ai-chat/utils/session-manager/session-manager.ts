@@ -1,13 +1,14 @@
 /**
  * Claude Code Session Manager
  *
- * Manages Claude SDK sessions using V2 session API.
+ * Manages Claude SDK sessions using V1 query() API with streaming.
  * Persists ALL raw SDKMessage objects to the durable stream.
  *
  * Architecture:
  * - All clients POST user messages to the durable stream
  * - This manager watches the stream for new user messages
- * - When a user message appears, it creates/resumes a V2 SDK session
+ * - When a user message appears, it calls query() with resume for multi-turn
+ * - includePartialMessages: true enables stream_event messages for live streaming
  * - ALL SDK messages are persisted as raw JSON chunks
  * - Client-side materialize() reconstructs UI state from chunks
  */
@@ -57,6 +58,7 @@ interface ActiveSession {
 	cwd: string;
 	claudeSessionId?: string;
 	abortController?: AbortController;
+	activeQuery?: { interrupt(): Promise<void>; close(): void };
 	streamWatcher?: StreamWatcher;
 	processingMessageIds: Set<string>;
 }
@@ -224,28 +226,16 @@ class StreamWatcher {
 // Session Manager
 // ============================================================================
 
-// Cache V2 SDK functions
-let cachedCreateSession:
-	| typeof import("@anthropic-ai/claude-agent-sdk").unstable_v2_createSession
-	| null = null;
-let cachedResumeSession:
-	| typeof import("@anthropic-ai/claude-agent-sdk").unstable_v2_resumeSession
+// Cache V1 SDK query function
+let cachedQuery:
+	| typeof import("@anthropic-ai/claude-agent-sdk").query
 	| null = null;
 
-const getV2SDK = async () => {
-	if (cachedCreateSession && cachedResumeSession) {
-		return {
-			createSession: cachedCreateSession,
-			resumeSession: cachedResumeSession,
-		};
-	}
+const getSDK = async () => {
+	if (cachedQuery) return { query: cachedQuery };
 	const sdk = await import("@anthropic-ai/claude-agent-sdk");
-	cachedCreateSession = sdk.unstable_v2_createSession;
-	cachedResumeSession = sdk.unstable_v2_resumeSession;
-	return {
-		createSession: cachedCreateSession,
-		resumeSession: cachedResumeSession,
-	};
+	cachedQuery = sdk.query;
+	return { query: cachedQuery };
 };
 
 class ClaudeSessionManager extends EventEmitter {
@@ -310,7 +300,8 @@ class ClaudeSessionManager extends EventEmitter {
 	}
 
 	/**
-	 * Process a user message through Claude using V2 session API.
+	 * Process a user message through Claude using V1 query() API.
+	 * Uses includePartialMessages for real-time streaming events.
 	 * Persists ALL raw SDKMessage objects to the durable stream.
 	 */
 	private async processUserMessage({
@@ -335,8 +326,10 @@ class ClaudeSessionManager extends EventEmitter {
 			return;
 		}
 
-		if (session.abortController) {
-			session.abortController.abort();
+		// Abort any previous in-flight query
+		if (session.activeQuery) {
+			session.activeQuery.close();
+			session.activeQuery = undefined;
 		}
 
 		const abortController = new AbortController();
@@ -364,34 +357,33 @@ class ClaudeSessionManager extends EventEmitter {
 		const env = buildClaudeEnv();
 
 		try {
-			const { createSession, resumeSession } = await getV2SDK();
+			const { query } = await getSDK();
 
-			const sessionOptions = {
+			const options = {
+				includePartialMessages: true,
+				cwd: session.cwd,
+				resume: session.claudeSessionId,
 				model: process.env.CLAUDE_MODEL || "claude-sonnet-4-5-20250929",
 				pathToClaudeCodeExecutable: binaryPath,
 				env,
 				permissionMode: "bypassPermissions" as const,
+				abortController,
 			};
 
-			console.log(`[claude/session] Starting V2 SDK session in ${session.cwd}`);
 			console.log(
-				`[claude/session] Resume session: ${session.claudeSessionId || "none"}`,
+				`[claude/session] Starting V1 query in ${session.cwd} (resume=${session.claudeSessionId || "none"})`,
 			);
 
-			const sdkSession = session.claudeSessionId
-				? resumeSession(session.claudeSessionId, sessionOptions)
-				: createSession(sessionOptions);
-
-			// Send user message
-			await sdkSession.send(content);
+			const q = query({ prompt: content, options });
+			session.activeQuery = q;
 
 			// Stream and persist ALL SDK messages as raw passthrough.
-			// No envelope — each SDK message is stored directly.
+			// includePartialMessages: true gives us stream_event messages for live streaming.
 			// Turn detection happens client-side in materialize().
 			let totalChunks = 0;
 			let seq = 0;
 
-			for await (const msg of sdkSession.stream()) {
+			for await (const msg of q) {
 				if (abortController.signal.aborted) {
 					console.log(`[claude/session] Stream aborted`);
 					break;
@@ -399,6 +391,9 @@ class ClaudeSessionManager extends EventEmitter {
 
 				const msgAny = msg as Record<string, unknown>;
 				const msgType = msgAny.type as string;
+				console.log(
+					`[claude/session] SDK message #${seq}: type=${msgType}${msgType === "stream_event" ? ` event=${(msgAny.event as Record<string, unknown>)?.type}` : ""}`,
+				);
 
 				// Extract session ID from init message
 				if (msgType === "system" && msgAny.subtype === "init") {
@@ -427,12 +422,15 @@ class ClaudeSessionManager extends EventEmitter {
 							headers: { operation: "upsert" },
 						}),
 					);
+					// Flush immediately so chunks are visible to clients as they arrive
+					await producer.flush();
 				}
 
 				totalChunks++;
 			}
 
-			sdkSession.close();
+			q.close();
+			session.activeQuery = undefined;
 
 			// Flush pending events
 			const flushProducer = sessionProducers.get(sessionId);
@@ -444,6 +442,7 @@ class ClaudeSessionManager extends EventEmitter {
 				`[claude/session] Message processing complete, ${totalChunks} chunks persisted`,
 			);
 		} catch (error) {
+			session.activeQuery = undefined;
 			const errorMessage =
 				error instanceof Error ? error.message : String(error);
 			console.error(`[claude/session] SDK error: ${errorMessage}`);
@@ -468,6 +467,9 @@ class ClaudeSessionManager extends EventEmitter {
 		}
 
 		console.log(`[claude/session] Interrupting session ${sessionId}`);
+		if (session.activeQuery) {
+			await session.activeQuery.interrupt();
+		}
 		session.abortController?.abort();
 	}
 
@@ -478,6 +480,8 @@ class ClaudeSessionManager extends EventEmitter {
 		}
 
 		console.log(`[claude/session] Stopping session ${sessionId}`);
+		session.activeQuery?.close();
+		session.activeQuery = undefined;
 		session.abortController?.abort();
 		session.streamWatcher?.stop();
 		this.sessions.delete(sessionId);

@@ -195,38 +195,60 @@ export function ChatPane({
 		refetchIsActive,
 	]);
 
-	const [isSending, setIsSending] = useState(false);
+	const [isAwaitingResponse, setIsAwaitingResponse] = useState(false);
+
 	const handleSend = useCallback(
 		async (content: string) => {
 			console.log(`[ChatPane] Sending message: "${content.slice(0, 50)}..."`);
-			setIsSending(true);
+			setIsAwaitingResponse(true);
 			setDraft("");
 			try {
 				await sendMessage(content);
 				console.log(`[ChatPane] Message sent successfully`);
 			} catch (err) {
 				console.error("[ChatPane] Failed to send message:", err);
-			} finally {
-				setIsSending(false);
+				setIsAwaitingResponse(false);
 			}
 		},
 		[sendMessage, setDraft],
 	);
 
+	// Clear awaiting state when streaming starts
+	useEffect(() => {
+		if (streamingMessage) {
+			console.log(`[ChatPane] Streaming started, clearing awaiting state`);
+			setIsAwaitingResponse(false);
+		}
+	}, [streamingMessage]);
+
+	// Handle case where response completes so fast it skips streaming
+	const prevAssistantCount = useRef(0);
+	useEffect(() => {
+		const assistantCount = messages.filter((m) => m.role === "assistant").length;
+		if (assistantCount > prevAssistantCount.current && isAwaitingResponse) {
+			console.log(`[ChatPane] New assistant message appeared, clearing awaiting state`);
+			setIsAwaitingResponse(false);
+		}
+		prevAssistantCount.current = assistantCount;
+	}, [messages, isAwaitingResponse]);
+
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
-				if (draft.trim() && isSessionActive && !isSending) {
+				if (draft.trim() && isSessionActive && !isAwaitingResponse) {
 					handleSend(draft);
 				}
 			}
 		},
-		[draft, isSessionActive, isSending, handleSend],
+		[draft, isSessionActive, isAwaitingResponse, handleSend],
 	);
 
 	// Build allMessages array - same pattern as dashboard ChatView
 	const allMessages = useMemo((): ChatMessageItem[] => {
+		console.log(
+			`[ChatPane] Building allMessages: messages=${messages.length} streamingMessage=${streamingMessage ? `id=${streamingMessage.id.slice(0, 8)} role=${streamingMessage.role} content="${streamingMessage.content.slice(0, 80)}" blocks=${streamingMessage.contentBlocks.length} isComplete=${streamingMessage.isComplete} isStreaming=${streamingMessage.isStreaming}` : "null"}`,
+		);
 		const result: ChatMessageItem[] = messages.map((m) => ({
 			id: m.id,
 			role: m.role as "user" | "assistant",
@@ -235,9 +257,6 @@ export function ChatPane({
 			toolResults: m.toolResults,
 		}));
 		if (streamingMessage) {
-			console.log(
-				`[ChatPane] Streaming message: content="${streamingMessage.content.slice(0, 80)}..." blocks=${streamingMessage.contentBlocks.length}`,
-			);
 			result.push({
 				id: "streaming",
 				role: "assistant",
@@ -247,11 +266,16 @@ export function ChatPane({
 				isStreaming: true,
 			});
 		}
-		if (result.length > 0) {
-			console.log(
-				`[ChatPane] allMessages: ${result.length} messages (last: ${result[result.length - 1]?.role})`,
-			);
-		}
+		console.log(
+			`[ChatPane] allMessages: ${result.length} items:`,
+			result.map((m) => ({
+				id: m.id.slice(0, 8),
+				role: m.role,
+				contentLen: m.content.length,
+				blocks: m.contentBlocks?.length ?? 0,
+				isStreaming: m.isStreaming,
+			})),
+		);
 		return result;
 	}, [messages, streamingMessage]);
 
@@ -299,10 +323,14 @@ export function ChatPane({
 	}
 
 	const hasMessages = allMessages.length > 0;
-	const inputDisabled = !isSessionActive || isSending;
+	const inputDisabled = !isSessionActive || isAwaitingResponse;
 
-	// Show thinking when we just sent a message and no streaming response yet
-	const isThinking = isSending && !streamingMessage;
+	console.log(
+		`[ChatPane] Render state: hasMessages=${hasMessages} isAwaitingResponse=${isAwaitingResponse} isThinking=${isAwaitingResponse && !streamingMessage} inputDisabled=${inputDisabled} streamingMessage=${!!streamingMessage}`,
+	);
+
+	// Show thinking when awaiting response and no streaming response yet
+	const isThinking = isAwaitingResponse && !streamingMessage;
 
 	return (
 		<BasePaneWindow

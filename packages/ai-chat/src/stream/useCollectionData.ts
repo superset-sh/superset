@@ -56,6 +56,7 @@ export function useCollectionData<
 	subscribeRef.current = (onStoreChange: () => void): (() => void) => {
 		const subscription = collection.subscribeChanges(() => {
 			versionRef.current++;
+			console.log(`[ai-chat/collection] change detected, version=${versionRef.current}, size=${collection.size}`);
 			onStoreChange();
 		});
 		return () => subscription.unsubscribe();

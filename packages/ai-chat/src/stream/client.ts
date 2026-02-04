@@ -204,12 +204,14 @@ export class DurableChatClient {
 
 		try {
 			this._setConnectionStatus("connecting");
+			console.log(`[ai-chat/client] connect() sessionId=${this.sessionId} url=${this.options.proxyUrl}`);
 
 			// Preload stream data
 			await this._db.preload();
 
 			this._isConnected = true;
 			this._setConnectionStatus("connected");
+			console.log(`[ai-chat/client] connected, preload complete`);
 
 			// Announce presence if we have a user
 			if (this.options.user) {
@@ -268,6 +270,7 @@ export class DurableChatClient {
 		}
 
 		const uuid = generateUUID();
+		console.log(`[ai-chat/client] sendMessage uuid=${uuid} content="${content.slice(0, 50)}"`);
 
 		await this._appendToStream([
 			{
@@ -282,6 +285,7 @@ export class DurableChatClient {
 				headers: { operation: "insert" },
 			},
 		]);
+		console.log(`[ai-chat/client] sendMessage POST complete`);
 	}
 
 	/**

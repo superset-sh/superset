@@ -164,6 +164,7 @@ export function useChatSession(
 
 	// Materialize messages from chunks (processed in collection order)
 	const { messages, streamingMessage } = useMemo(() => {
+		console.log(`[ai-chat/session] materialize: ${chunkRows.length} chunks`);
 		if (chunkRows.length === 0) {
 			return { messages: [], streamingMessage: null };
 		}
@@ -175,6 +176,23 @@ export function useChatSession(
 		// Separate complete messages from streaming (incomplete) message
 		const complete = all.filter((m) => m.isComplete);
 		const streaming = all.find((m) => !m.isComplete) ?? null;
+
+		console.log(
+			`[ai-chat/session] materialized: ${all.length} total, ${complete.length} complete, streaming=${streaming ? `id=${streaming.id} role=${streaming.role} content="${streaming.content.slice(0, 80)}" blocks=${streaming.contentBlocks.length} isComplete=${streaming.isComplete} isStreaming=${streaming.isStreaming}` : "null"}`,
+		);
+		if (all.length > 0) {
+			console.log(
+				`[ai-chat/session] all messages:`,
+				all.map((m) => ({
+					id: m.id.slice(0, 8),
+					role: m.role,
+					isComplete: m.isComplete,
+					isStreaming: m.isStreaming,
+					contentLen: m.content.length,
+					blocks: m.contentBlocks.length,
+				})),
+			);
+		}
 
 		return { messages: complete, streamingMessage: streaming };
 	}, [chunkRows]);
