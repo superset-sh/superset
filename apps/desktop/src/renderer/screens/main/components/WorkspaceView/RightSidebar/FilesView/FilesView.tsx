@@ -1,6 +1,7 @@
 import {
 	asyncDataLoaderFeature,
 	expandAllFeature,
+	type ItemInstance,
 	selectionFeature,
 } from "@headless-tree/core";
 import { useTree } from "@headless-tree/react";
@@ -49,8 +50,10 @@ export function FilesView() {
 
 	const tree = useTree<DirectoryEntry>({
 		rootItemId: "root",
-		getItemName: (item) => item.getItemData()?.name ?? "",
-		isItemFolder: (item) => item.getItemData()?.isDirectory ?? false,
+		getItemName: (item: ItemInstance<DirectoryEntry>) =>
+			item.getItemData()?.name ?? "",
+		isItemFolder: (item: ItemInstance<DirectoryEntry>) =>
+			item.getItemData()?.isDirectory ?? false,
 		dataLoader: {
 			getItem: async (itemId: string): Promise<DirectoryEntry> => {
 				if (itemId === "root") {
@@ -120,7 +123,10 @@ export function FilesView() {
 					? "root"
 					: tree
 							.getItems()
-							.find((item) => item.getItemData()?.path === parentPath)
+							.find(
+								(item: ItemInstance<DirectoryEntry>) =>
+									item.getItemData()?.path === parentPath,
+							)
 							?.getId();
 				if (itemId) {
 					await tree.getItemInstance(itemId)?.invalidateChildrenIds();
@@ -171,7 +177,10 @@ export function FilesView() {
 			if (parentPath !== worktreePath) {
 				const item = tree
 					.getItems()
-					.find((i) => i.getItemData()?.path === parentPath);
+					.find(
+						(i: ItemInstance<DirectoryEntry>) =>
+							i.getItemData()?.path === parentPath,
+					);
 				if (item && !item.isExpanded()) {
 					await item.expand();
 				}
@@ -187,7 +196,10 @@ export function FilesView() {
 			if (parentPath !== worktreePath) {
 				const item = tree
 					.getItems()
-					.find((i) => i.getItemData()?.path === parentPath);
+					.find(
+						(i: ItemInstance<DirectoryEntry>) =>
+							i.getItemData()?.path === parentPath,
+					);
 				if (item && !item.isExpanded()) {
 					await item.expand();
 				}
@@ -339,7 +351,7 @@ export function FilesView() {
 								)
 							) : (
 								<div {...tree.getContainerProps()} className="outline-none">
-									{tree.getItems().map((item) => {
+									{tree.getItems().map((item: ItemInstance<DirectoryEntry>) => {
 										const data = item.getItemData();
 										if (!data || item.getId() === "root") return null;
 										const showNewItemInput =
