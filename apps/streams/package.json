@@ -1,0 +1,29 @@
+{
+	"name": "@superset/streams",
+	"version": "0.0.1",
+	"description": "Durable Stream server for real-time token streaming",
+	"type": "module",
+	"main": "./dist/index.js",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsup src/index.ts --format esm --dts",
+		"start": "node dist/index.js",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:conformance": "npx @durable-streams/server-conformance-tests --run http://localhost:8080"
+	},
+	"dependencies": {
+		"@durable-streams/server": "^0.2.0"
+	},
+	"devDependencies": {
+		"@durable-streams/client": "^0.2.0",
+		"@durable-streams/server-conformance-tests": "^0.2.0",
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"fast-check": "^4.5.3",
+		"tsup": "^8.5.0",
+		"tsx": "^4.19.3",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.0"
+	}
+}
