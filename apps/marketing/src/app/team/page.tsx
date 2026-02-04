@@ -71,7 +71,7 @@ export default function TeamPage() {
 					{people.length === 0 ? (
 						<p className="text-muted-foreground">No team members yet.</p>
 					) : (
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16">
+						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-12 md:gap-10">
 							{people.map((person) => {
 								const initials = person.name
 									.split(" ")
@@ -81,17 +81,19 @@ export default function TeamPage() {
 									.slice(0, 2);
 
 								return (
-									<article key={person.id} className="flex items-start gap-6">
-										{/* Circular Photo */}
-										<Link href={`/team/${person.id}`} className="flex-shrink-0">
-											<div className="relative size-28 md:size-32 rounded-full overflow-hidden bg-muted grayscale hover:grayscale-0 transition-all duration-300">
+									<article
+										key={person.id}
+										className="flex flex-col items-center text-center"
+									>
+										<Link href={`/team/${person.id}`} className="mb-5">
+											<div className="relative size-32 md:size-36 rounded-full overflow-hidden bg-muted grayscale hover:grayscale-0 transition-all duration-300">
 												{person.avatar ? (
 													<Image
 														src={person.avatar}
 														alt={person.name}
 														fill
 														className="object-cover"
-														sizes="128px"
+														sizes="144px"
 													/>
 												) : (
 													<div className="absolute inset-0 flex items-center justify-center text-2xl font-medium text-foreground/30">
@@ -101,57 +103,53 @@ export default function TeamPage() {
 											</div>
 										</Link>
 
-										{/* Info */}
-										<div className="flex-1 min-w-0 pt-2">
-											<Link href={`/team/${person.id}`}>
-												<h2 className="text-xl font-medium text-foreground hover:text-foreground/80 transition-colors">
-													{person.name}
-												</h2>
-											</Link>
-											<p className="text-sm text-muted-foreground mt-1">
-												{person.role}
-											</p>
-											{person.bio && (
-												<p
-													className="text-sm text-muted-foreground leading-relaxed mt-3 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
-													// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled content from team data
-													dangerouslySetInnerHTML={{ __html: person.bio }}
-												/>
-											)}
+										<Link href={`/team/${person.id}`}>
+											<h2 className="text-xl font-medium text-foreground hover:text-foreground/80 transition-colors">
+												{person.name}
+											</h2>
+										</Link>
+										<p className="text-sm text-muted-foreground mt-1">
+											{person.role}
+										</p>
+										{person.bio && (
+											<p
+												className="text-sm text-muted-foreground leading-relaxed mt-3 [&_a]:text-muted-foreground [&_a]:underline [&_a]:underline-offset-2 [&_a]:hover:text-foreground"
+												// biome-ignore lint/security/noDangerouslySetInnerHtml: controlled content from team data
+												dangerouslySetInnerHTML={{ __html: person.bio }}
+											/>
+										)}
 
-											{/* Social Links */}
-											<div className="flex items-center gap-4 mt-4">
-												{person.github && (
-													<a
-														href={`https://github.com/${person.github}`}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-muted-foreground hover:text-foreground transition-colors"
-													>
-														<RiGithubFill className="size-5" />
-													</a>
-												)}
-												{person.linkedin && (
-													<a
-														href={`https://linkedin.com/in/${person.linkedin}`}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-muted-foreground hover:text-foreground transition-colors"
-													>
-														<RiLinkedinBoxFill className="size-5" />
-													</a>
-												)}
-												{person.twitter && (
-													<a
-														href={`https://twitter.com/${person.twitter}`}
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-muted-foreground hover:text-foreground transition-colors"
-													>
-														<RiTwitterXFill className="size-5" />
-													</a>
-												)}
-											</div>
+										<div className="flex items-center gap-4 mt-4">
+											{person.github && (
+												<a
+													href={`https://github.com/${person.github}`}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-muted-foreground hover:text-foreground transition-colors"
+												>
+													<RiGithubFill className="size-5" />
+												</a>
+											)}
+											{person.linkedin && (
+												<a
+													href={`https://linkedin.com/in/${person.linkedin}`}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-muted-foreground hover:text-foreground transition-colors"
+												>
+													<RiLinkedinBoxFill className="size-5" />
+												</a>
+											)}
+											{person.twitter && (
+												<a
+													href={`https://twitter.com/${person.twitter}`}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="text-muted-foreground hover:text-foreground transition-colors"
+												>
+													<RiTwitterXFill className="size-5" />
+												</a>
+											)}
 										</div>
 									</article>
 								);
