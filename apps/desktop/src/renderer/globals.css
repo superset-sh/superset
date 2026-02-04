@@ -135,6 +135,11 @@
 		@apply border-border antialiased;
 	}
 
+	button,
+	[role="button"] {
+		cursor: pointer;
+	}
+
 	body {
 		@apply bg-background text-foreground;
 	}
