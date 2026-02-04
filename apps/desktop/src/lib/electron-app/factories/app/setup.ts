@@ -69,7 +69,17 @@ export async function makeAppSetup(
 	return window;
 }
 
-PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
+// Allow users with problematic GPU drivers to disable hardware acceleration
+if (process.env.SUPERSET_DISABLE_GPU === "1") {
+	app.disableHardwareAcceleration();
+}
+
+// Enable GPU optimizations on Linux
+if (PLATFORM.IS_LINUX) {
+	app.commandLine.appendSwitch("enable-gpu-rasterization");
+	app.commandLine.appendSwitch("enable-zero-copy");
+	app.commandLine.appendSwitch("ignore-gpu-blocklist");
+}
 
 PLATFORM.IS_WINDOWS &&
 	app.setAppUserModelId(
