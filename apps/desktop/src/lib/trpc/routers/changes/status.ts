@@ -101,6 +101,10 @@ export const createStatusRouter = () => {
 	});
 };
 
+/**
+ * Update local DB branch fields to match the current git branch for a worktree
+ * or main repo workspace path.
+ */
 function syncWorkspaceBranch({
 	worktreePath,
 	currentBranch,
