@@ -17,7 +17,7 @@ export function TopBar() {
 	const isMac = platform === undefined || platform === "darwin";
 
 	return (
-		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-background border-b border-border">
+		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-background border-b border-border relative">
 			<div
 				className="flex items-center gap-1.5 h-full"
 				style={{
@@ -28,7 +28,13 @@ export function TopBar() {
 				<NavigationControls />
 			</div>
 
-			<div className="flex-1" />
+			{workspace?.project?.name && (
+				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<span className="text-sm text-muted-foreground font-medium truncate max-w-[200px]">
+						{workspace.project.name}
+					</span>
+				</div>
+			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
 				{workspace?.worktreePath && (
