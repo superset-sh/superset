@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type {
+	AddChatPaneOptions,
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
 	TabsState,
@@ -13,6 +14,7 @@ import type {
 import {
 	buildMultiPaneLayout,
 	type CreatePaneOptions,
+	createChatPane,
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
@@ -634,6 +636,84 @@ export const useTabsStore = create<TabsStore>()(
 
 					// No reusable pane found, create a new one
 					const newPane = createFileViewerPane(activeTab.id, options);
+
+					const newLayout: MosaicNode<string> = {
+						direction: "row",
+						first: activeTab.layout,
+						second: newPane.id,
+						splitPercentage: 50,
+					};
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === activeTab.id ? { ...t, layout: newLayout } : t,
+						),
+						panes: { ...state.panes, [newPane.id]: newPane },
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[activeTab.id]: newPane.id,
+						},
+					});
+
+					return newPane.id;
+				},
+
+				addChatPane: (workspaceId: string, options: AddChatPaneOptions) => {
+					const state = get();
+					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
+						workspaceId,
+						tabs: state.tabs,
+						activeTabIds: state.activeTabIds,
+						tabHistoryStacks: state.tabHistoryStacks,
+					});
+					const activeTab = resolvedActiveTabId
+						? state.tabs.find((t) => t.id === resolvedActiveTabId)
+						: null;
+
+					// If no active tab, create a new one with the chat pane
+					if (!activeTab) {
+						const tabId = generateId("tab");
+						const newPane = createChatPane(tabId, options);
+
+						const tab = {
+							id: tabId,
+							name: options.name ?? "Chat",
+							workspaceId,
+							layout: newPane.id,
+							createdAt: Date.now(),
+						};
+
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+						const newHistoryStack = currentActiveId
+							? [
+									currentActiveId,
+									...historyStack.filter((id) => id !== currentActiveId),
+								]
+							: historyStack;
+
+						set({
+							tabs: [...state.tabs, tab],
+							panes: { ...state.panes, [newPane.id]: newPane },
+							activeTabIds: {
+								...state.activeTabIds,
+								[workspaceId]: tab.id,
+							},
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[tab.id]: newPane.id,
+							},
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						});
+
+						return newPane.id;
+					}
+
+					// Add chat pane to the active tab
+					const newPane = createChatPane(activeTab.id, options);
 
 					const newLayout: MosaicNode<string> = {
 						direction: "row",

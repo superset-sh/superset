@@ -144,6 +144,10 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
 			),
+			"process.env.NEXT_PUBLIC_STREAMS_URL": defineEnv(
+				process.env.NEXT_PUBLIC_STREAMS_URL,
+				"http://localhost:8080",
+			),
 			"import.meta.env.DEV_SERVER_PORT": defineEnv(String(DEV_SERVER_PORT)),
 			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,

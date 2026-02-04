@@ -2,6 +2,7 @@ import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { ChangeCategory } from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
+	ChatState,
 	DiffLayout,
 	FileViewerMode,
 	FileViewerState,
@@ -174,6 +175,14 @@ export interface CreateFileViewerPaneOptions {
 }
 
 /**
+ * Options for creating a chat pane
+ */
+export interface CreateChatPaneOptions {
+	sessionId: string;
+	name?: string;
+}
+
+/**
  * Creates a new file-viewer pane with the given properties
  */
 export const createFileViewerPane = (
@@ -209,6 +218,28 @@ export const createFileViewerPane = (
 		type: "file-viewer",
 		name: fileName,
 		fileViewer,
+	};
+};
+
+/**
+ * Creates a new chat pane with the given properties
+ */
+export const createChatPane = (
+	tabId: string,
+	options: CreateChatPaneOptions,
+): Pane => {
+	const id = generateId("pane");
+
+	const chat: ChatState = {
+		sessionId: options.sessionId,
+	};
+
+	return {
+		id,
+		tabId,
+		type: "chat",
+		name: options.name ?? "Chat",
+		chat,
 	};
 };
 

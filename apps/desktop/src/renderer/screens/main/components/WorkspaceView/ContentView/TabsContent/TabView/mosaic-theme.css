@@ -76,6 +76,9 @@
 	border-radius: 0;
 	overflow: hidden;
 }
+.mosaic-theme-dark .mosaic-window .mosaic-preview {
+	display: none;
+}
 
 .mosaic-window-content {
 	outline: none;

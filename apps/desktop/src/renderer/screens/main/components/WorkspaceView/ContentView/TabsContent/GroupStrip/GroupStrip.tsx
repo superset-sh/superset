@@ -1,3 +1,4 @@
+import { createStream } from "@superset/ai-chat/stream";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -8,6 +9,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { MessageCircle } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
 	HiMiniChevronDown,
@@ -21,7 +23,9 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { env } from "renderer/env.renderer";
 import { usePresets } from "renderer/react-query/presets";
+import { useChatStore } from "renderer/routes/_authenticated/_dashboard/chats/stores/chatStore";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
@@ -32,6 +36,9 @@ import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { PresetMenuItemShortcut } from "./components/PresetMenuItemShortcut";
 import { GroupItem } from "./GroupItem";
 import { NewTabDropZone } from "./NewTabDropZone";
+
+const STREAM_SERVER_URL =
+	env.NEXT_PUBLIC_STREAMS_URL || "http://localhost:8080";
 
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -47,7 +54,9 @@ export function GroupStrip() {
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
+	const addChatPane = useTabsStore((s) => s.addChatPane);
 
+	const { createSession } = useChatStore();
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
 	const navigate = useNavigate();
@@ -88,6 +97,16 @@ export function GroupStrip() {
 		if (!activeWorkspaceId) return;
 		addTab(activeWorkspaceId);
 	};
+
+	const handleAddChat = useCallback(async () => {
+		if (!activeWorkspaceId) return;
+		const session = createSession();
+		await createStream(STREAM_SERVER_URL, session.id);
+		addChatPane(activeWorkspaceId, {
+			sessionId: session.id,
+			name: session.name,
+		});
+	}, [activeWorkspaceId, createSession, addChatPane]);
 
 	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
 		if (!activeWorkspaceId) return;
@@ -180,75 +199,92 @@ export function GroupStrip() {
 				onDrop={(paneId) => movePaneToNewTab(paneId)}
 				isLastPaneInTab={checkIsLastPaneInTab}
 			>
-				<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-					<div className="flex items-center shrink-0">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-7 rounded-r-none pl-2"
-									onClick={handleAddGroup}
-								>
-									<HiMiniPlus className="size-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="top" sideOffset={4}>
-								<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
-							</TooltipContent>
-						</Tooltip>
-						<DropdownMenuTrigger asChild>
+				<div className="flex items-center shrink-0 gap-1">
+					<Tooltip>
+						<TooltipTrigger asChild>
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 rounded-l-none px-1"
+								className="size-7"
+								onClick={handleAddChat}
 							>
-								<HiMiniChevronDown className="size-3" />
+								<MessageCircle className="size-4" />
 							</Button>
-						</DropdownMenuTrigger>
-					</div>
-					<DropdownMenuContent align="end" className="w-56">
-						{presets.length > 0 && (
-							<>
-								{presets.map((preset, index) => {
-									const presetIcon = getPresetIcon(preset.name, isDark);
-									return (
-										<DropdownMenuItem
-											key={preset.id}
-											onClick={() => handleSelectPreset(preset)}
-											className="gap-2"
-										>
-											{presetIcon ? (
-												<img
-													src={presetIcon}
-													alt=""
-													className="size-4 object-contain"
-												/>
-											) : (
-												<HiMiniCommandLine className="size-4" />
-											)}
-											<span className="truncate">
-												{preset.name || "default"}
-											</span>
-											{preset.isDefault && (
-												<HiStar className="size-3 text-yellow-500 flex-shrink-0" />
-											)}
-											<PresetMenuItemShortcut index={index} />
-										</DropdownMenuItem>
-									);
-								})}
-								<DropdownMenuSeparator />
-							</>
-						)}
-						<DropdownMenuItem
-							onClick={handleOpenPresetsSettings}
-							className="gap-2"
-						>
-							<HiMiniCog6Tooth className="size-4" />
-							<span>Configure Presets</span>
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
+						</TooltipTrigger>
+						<TooltipContent side="top" sideOffset={4}>
+							New Chat
+						</TooltipContent>
+					</Tooltip>
+					<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+						<div className="flex items-center shrink-0">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="size-7 rounded-r-none pl-2"
+										onClick={handleAddGroup}
+									>
+										<HiMiniPlus className="size-4" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="top" sideOffset={4}>
+									<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
+								</TooltipContent>
+							</Tooltip>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 rounded-l-none px-1"
+								>
+									<HiMiniChevronDown className="size-3" />
+								</Button>
+							</DropdownMenuTrigger>
+						</div>
+						<DropdownMenuContent align="end" className="w-56">
+							{presets.length > 0 && (
+								<>
+									{presets.map((preset, index) => {
+										const presetIcon = getPresetIcon(preset.name, isDark);
+										return (
+											<DropdownMenuItem
+												key={preset.id}
+												onClick={() => handleSelectPreset(preset)}
+												className="gap-2"
+											>
+												{presetIcon ? (
+													<img
+														src={presetIcon}
+														alt=""
+														className="size-4 object-contain"
+													/>
+												) : (
+													<HiMiniCommandLine className="size-4" />
+												)}
+												<span className="truncate">
+													{preset.name || "default"}
+												</span>
+												{preset.isDefault && (
+													<HiStar className="size-3 text-yellow-500 flex-shrink-0" />
+												)}
+												<PresetMenuItemShortcut index={index} />
+											</DropdownMenuItem>
+										);
+									})}
+									<DropdownMenuSeparator />
+								</>
+							)}
+							<DropdownMenuItem
+								onClick={handleOpenPresetsSettings}
+								className="gap-2"
+							>
+								<HiMiniCog6Tooth className="size-4" />
+								<span>Configure Presets</span>
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</NewTabDropZone>
 		</div>
 	);
