@@ -16,6 +16,7 @@ import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
 } from "renderer/stores/tabs/utils";
+import { ChatPane } from "./ChatPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
@@ -145,6 +146,26 @@ export function TabView({ tab }: TabViewProps) {
 						isActive={isActive}
 						tabId={tab.id}
 						worktreePath={worktreePath}
+						splitPaneAuto={splitPaneAuto}
+						splitPaneHorizontal={splitPaneHorizontal}
+						splitPaneVertical={splitPaneVertical}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+						availableTabs={workspaceTabs}
+						onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
+						onMoveToNewTab={() => movePaneToNewTab(paneId)}
+					/>
+				);
+			}
+
+			// Route chat panes to ChatPane component
+			if (paneInfo.type === "chat") {
+				return (
+					<ChatPane
+						paneId={paneId}
+						path={path}
+						isActive={isActive}
+						tabId={tab.id}
 						splitPaneAuto={splitPaneAuto}
 						splitPaneHorizontal={splitPaneHorizontal}
 						splitPaneVertical={splitPaneVertical}

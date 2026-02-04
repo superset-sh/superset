@@ -60,6 +60,14 @@ export interface AddFileViewerPaneOptions {
 }
 
 /**
+ * Options for opening a chat pane
+ */
+export interface AddChatPaneOptions {
+	sessionId: string;
+	name?: string;
+}
+
+/**
  * Actions available on the tabs store
  */
 export interface TabsStore extends TabsState {
@@ -94,6 +102,7 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options: AddFileViewerPaneOptions,
 	) => string;
+	addChatPane: (workspaceId: string, options: AddChatPaneOptions) => string;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
