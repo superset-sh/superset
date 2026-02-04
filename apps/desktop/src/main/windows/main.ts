@@ -66,6 +66,7 @@ const getWindow = () => currentWindow;
 const forceRepaint = (win: BrowserWindow) => {
 	if (win.isDestroyed()) return;
 	win.webContents.invalidate();
+	if (win.isMaximized() || win.isFullScreen()) return;
 	const [width, height] = win.getSize();
 	win.setSize(width + 1, height);
 	setTimeout(() => {
