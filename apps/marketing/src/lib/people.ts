@@ -13,6 +13,7 @@ export const personSchema = z.object({
 	github: z.string().optional(),
 	linkedin: z.string().optional(),
 	avatar: z.string().optional(),
+	order: z.number().optional(),
 });
 
 export type PersonMetadata = z.infer<typeof personSchema>;
@@ -62,5 +63,9 @@ export function getAllPeople(): Person[] {
 		}
 	}
 
-	return people.sort((a, b) => a.name.localeCompare(b.name));
+	return people.sort(
+		(a, b) =>
+			(a.order ?? Number.MAX_SAFE_INTEGER) -
+			(b.order ?? Number.MAX_SAFE_INTEGER),
+	);
 }
