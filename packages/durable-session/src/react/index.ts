@@ -38,6 +38,13 @@
 export { useDurableChat } from './use-durable-chat'
 
 // ============================================================================
+// Components
+// ============================================================================
+
+export { ChatInput, type ChatInputProps } from './components/ChatInput'
+export { PresenceBar, type PresenceBarProps, type PresenceUser } from './components/PresenceBar'
+
+// ============================================================================
 // Types
 // ============================================================================
 

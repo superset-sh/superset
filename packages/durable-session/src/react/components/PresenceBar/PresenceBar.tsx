@@ -4,7 +4,12 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { cn } from "@superset/ui/utils";
-import type { PresenceUser } from "../../types";
+
+export interface PresenceUser {
+	userId: string;
+	name: string;
+	image?: string;
+}
 
 export interface PresenceBarProps {
 	viewers: PresenceUser[];

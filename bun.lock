@@ -598,11 +598,15 @@
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
+        "@superset/ui": "workspace:*",
         "@types/react": "~19.1.0",
+        "lucide-react": "^0.563.0",
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
+        "@superset/ui": "workspace:*",
         "@tanstack/react-db": "^0.1.66",
+        "lucide-react": ">=0.300.0",
         "react": "^18.0.0 || ^19.0.0",
       },
     },
