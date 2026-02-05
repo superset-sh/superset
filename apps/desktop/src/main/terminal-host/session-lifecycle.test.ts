@@ -96,14 +96,18 @@ describe("Terminal Host Session Lifecycle", () => {
 				mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
 			}
 
-			daemonProcess = spawn("bun", ["run", "--preload", XTERM_POLYFILL_PATH, DAEMON_PATH], {
-				env: {
-					...process.env,
-					NODE_ENV: "development",
+			daemonProcess = spawn(
+				"bun",
+				["run", "--preload", XTERM_POLYFILL_PATH, DAEMON_PATH],
+				{
+					env: {
+						...process.env,
+						NODE_ENV: "development",
+					},
+					stdio: ["ignore", "pipe", "pipe"],
+					detached: true,
 				},
-				stdio: ["ignore", "pipe", "pipe"],
-				detached: true,
-			});
+			);
 
 			let output = "";
 			let settled = false;

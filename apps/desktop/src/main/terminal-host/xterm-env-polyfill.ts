@@ -13,6 +13,5 @@
  * This file MUST be imported before any @xterm/headless import.
  */
 if (typeof window === "undefined") {
-	// biome-ignore lint/suspicious/noGlobalAssign: required polyfill for @xterm/headless in Bun
 	(globalThis as Record<string, unknown>).window = globalThis;
 }
