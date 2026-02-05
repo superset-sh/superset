@@ -58,6 +58,7 @@ const config: Configuration = {
 		},
 		// Claude Code binary - bundled for AI chat functionality
 		{
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder variable interpolation
 			from: "resources/bin/${platform}-${arch}",
 			to: "bin",
 			filter: ["**/*"],
