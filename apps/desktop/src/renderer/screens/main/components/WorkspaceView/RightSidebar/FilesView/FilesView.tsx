@@ -40,7 +40,7 @@ export function FilesView() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const { showHiddenFiles, toggleHiddenFiles } = useFileExplorerStore();
 
-	// Refs updated synchronously during render so dataLoader always reads current values
+	// Ref avoids stale closure in dataLoader callbacks
 	const worktreePathRef = useRef(worktreePath);
 	worktreePathRef.current = worktreePath;
 
@@ -99,7 +99,6 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	// Invalidate tree when workspace changes
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
 		if (
@@ -267,9 +266,8 @@ export function FilesView() {
 
 	const handleToggleHiddenFiles = useCallback(() => {
 		toggleHiddenFiles();
-		// Invalidate root explicitly (getItems() may not include it)
+		// invalidateChildrenIds doesn't cascade, so invalidate every directory
 		tree.getItemInstance("root")?.invalidateChildrenIds();
-		// Also invalidate expanded directories so nested hidden files appear
 		for (const item of tree.getItems()) {
 			if (item.getItemData()?.isDirectory) {
 				item.invalidateChildrenIds();
