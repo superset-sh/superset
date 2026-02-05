@@ -206,42 +206,44 @@ class StreamWatcher {
 				},
 			});
 
-			this.unsubscribe = response.subscribeJson((batch: { items: ReadonlyArray<unknown> }) => {
-				for (const event of batch.items) {
-					if (this.isStopped) {
-						return;
-					}
+			this.unsubscribe = response.subscribeJson(
+				(batch: { items: ReadonlyArray<unknown> }) => {
+					for (const event of batch.items) {
+						if (this.isStopped) {
+							return;
+						}
 
-					if (!event || typeof event !== "object") {
-						continue;
-					}
+						if (!event || typeof event !== "object") {
+							continue;
+						}
 
-					const eventRecord = event as Record<string, unknown>;
-					if (eventRecord.type !== "chunk") {
-						continue;
-					}
+						const eventRecord = event as Record<string, unknown>;
+						if (eventRecord.type !== "chunk") {
+							continue;
+						}
 
-					const value = eventRecord.value as
-						| Record<string, unknown>
-						| undefined;
-					if (!value || value.type !== "user_input") {
-						continue;
-					}
+						const value = eventRecord.value as
+							| Record<string, unknown>
+							| undefined;
+						if (!value || value.type !== "user_input") {
+							continue;
+						}
 
-					const key = eventRecord.key as string | undefined;
-					if (!key || this.seenMessageIds.has(key)) {
-						continue;
-					}
+						const key = eventRecord.key as string | undefined;
+						if (!key || this.seenMessageIds.has(key)) {
+							continue;
+						}
 
-					this.seenMessageIds.add(key);
+						this.seenMessageIds.add(key);
 
-					const content = value.content as string | undefined;
-					if (content && !this.isStopped) {
-						console.log(`[stream-watcher] New user message: ${key}`);
-						this.onNewUserMessage(key, content);
+						const content = value.content as string | undefined;
+						if (content && !this.isStopped) {
+							console.log(`[stream-watcher] New user message: ${key}`);
+							this.onNewUserMessage(key, content);
+						}
 					}
-				}
-			});
+				},
+			);
 
 			this.retryCount = 0;
 			console.log(
