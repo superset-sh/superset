@@ -68,6 +68,7 @@ export const createTerminalRouter = () => {
 					initialCommands: z.array(z.string()).optional(),
 					skipColdRestore: z.boolean().optional(),
 					allowKilled: z.boolean().optional(),
+					themeType: z.enum(["dark", "light"]).optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -83,6 +84,7 @@ export const createTerminalRouter = () => {
 					initialCommands,
 					skipColdRestore,
 					allowKilled,
+					themeType,
 				} = input;
 
 				const workspace = localDb
@@ -132,6 +134,7 @@ export const createTerminalRouter = () => {
 						initialCommands,
 						skipColdRestore,
 						allowKilled,
+						themeType,
 					});
 
 					if (DEBUG_TERMINAL) {

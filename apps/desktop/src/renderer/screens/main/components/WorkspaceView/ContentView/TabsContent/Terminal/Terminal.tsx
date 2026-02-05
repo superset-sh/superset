@@ -5,7 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { useTerminalTheme } from "renderer/stores/theme";
+import { useTerminalTheme, useTheme } from "renderer/stores/theme";
 import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
@@ -81,6 +81,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
+	const activeTheme = useTheme();
+	const themeTypeRef = useRef(activeTheme?.type);
+	themeTypeRef.current = activeTheme?.type;
 
 	// Terminal connection state and mutations
 	const {
@@ -204,6 +207,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		pendingInitialStateRef,
 		pendingEventsRef,
 		createOrAttachRef,
+		themeTypeRef,
 		setConnectionError,
 		setExitStatus,
 		maybeApplyInitialState,
@@ -266,6 +270,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		isRestoredModeRef,
 		connectionErrorRef,
 		initialThemeRef,
+		themeTypeRef,
 		workspaceCwdRef,
 		handleFileLinkClickRef,
 		paneInitialCommandsRef,

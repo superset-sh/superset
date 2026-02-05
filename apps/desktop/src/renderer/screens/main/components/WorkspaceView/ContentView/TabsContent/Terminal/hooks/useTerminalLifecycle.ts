@@ -97,6 +97,7 @@ export interface UseTerminalLifecycleOptions {
 	isRestoredModeRef: MutableRefObject<boolean>;
 	connectionErrorRef: MutableRefObject<string | null>;
 	initialThemeRef: MutableRefObject<ITheme | null>;
+	themeTypeRef: MutableRefObject<"dark" | "light" | undefined>;
 	workspaceCwdRef: MutableRefObject<string | null>;
 	handleFileLinkClickRef: MutableRefObject<
 		(path: string, line?: number, column?: number) => void
@@ -151,6 +152,7 @@ export function useTerminalLifecycle({
 	isRestoredModeRef,
 	connectionErrorRef,
 	initialThemeRef,
+	themeTypeRef,
 	workspaceCwdRef,
 	handleFileLinkClickRef,
 	paneInitialCommandsRef,
@@ -281,6 +283,7 @@ export function useTerminalLifecycle({
 					cols: xterm.cols,
 					rows: xterm.rows,
 					allowKilled: true,
+					themeType: themeTypeRef.current,
 				},
 				{
 					onSuccess: (result) => {
@@ -392,6 +395,7 @@ export function useTerminalLifecycle({
 							rows: xterm.rows,
 							initialCommands,
 							cwd: initialCwd,
+							themeType: themeTypeRef.current,
 						},
 						{
 							onSuccess: (result) => {
