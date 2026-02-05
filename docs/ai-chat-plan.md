@@ -130,39 +130,74 @@ The agent endpoint converts these to TanStack AI `StreamChunk` format before wri
 
 Source: [electric-sql/transport](https://github.com/electric-sql/transport) (unpublished, Apache-2.0)
 
+Reference source cloned to `/tmp/electric-sql-transport/` via:
+```bash
+git clone https://github.com/electric-sql/transport.git /tmp/electric-sql-transport
+```
+
 ### A1. Create `packages/durable-session/`
 
 Vendor from `packages/durable-session` + `packages/react-durable-session` in the transport repo.
 
-```
-packages/durable-session/
-  package.json
-  tsconfig.json
-  src/
-    index.ts                  -- Re-exports everything
-    client.ts                 -- DurableChatClient class (~830 lines)
-    collection.ts             -- createSessionDB factory
-    materialize.ts            -- materializeMessage (uses @tanstack/ai StreamProcessor)
-    schema.ts                 -- sessionStateSchema (chunks, presence, agents)
-    types.ts                  -- All TypeScript types (~420 lines)
-    collections/
-      index.ts
-      messages.ts             -- createMessagesCollection + derived (toolCalls, pendingApprovals, toolResults)
-      active-generations.ts   -- createActiveGenerationsCollection
-      session-meta.ts         -- createSessionMetaCollectionOptions (local-only)
-      session-stats.ts        -- createSessionStatsCollection
-      model-messages.ts       -- createModelMessagesCollection (LLM-ready format)
-      presence.ts             -- createPresenceCollection (aggregated by actorId)
-    react/
-      index.ts
-      types.ts                -- UseDurableChatOptions, UseDurableChatReturn
-      use-durable-chat.ts     -- useDurableChat hook (~340 lines)
+#### File-by-File Vendoring Reference
+
+| Source (in `/tmp/electric-sql-transport/`) | Destination | Import Changes |
+|---|---|---|
+| `packages/durable-session/src/index.ts` | `packages/durable-session/src/index.ts` | None (relative imports) |
+| `packages/durable-session/src/client.ts` | `packages/durable-session/src/client.ts` | None (relative imports) |
+| `packages/durable-session/src/collection.ts` | `packages/durable-session/src/collection.ts` | None (relative imports) |
+| `packages/durable-session/src/materialize.ts` | `packages/durable-session/src/materialize.ts` | None (relative imports) |
+| `packages/durable-session/src/schema.ts` | `packages/durable-session/src/schema.ts` | None (relative imports) |
+| `packages/durable-session/src/types.ts` | `packages/durable-session/src/types.ts` | None (relative imports) |
+| `packages/durable-session/src/collections/index.ts` | `packages/durable-session/src/collections/index.ts` | None |
+| `packages/durable-session/src/collections/messages.ts` | `packages/durable-session/src/collections/messages.ts` | None |
+| `packages/durable-session/src/collections/active-generations.ts` | `packages/durable-session/src/collections/active-generations.ts` | None |
+| `packages/durable-session/src/collections/session-meta.ts` | `packages/durable-session/src/collections/session-meta.ts` | None |
+| `packages/durable-session/src/collections/session-stats.ts` | `packages/durable-session/src/collections/session-stats.ts` | None |
+| `packages/durable-session/src/collections/model-messages.ts` | `packages/durable-session/src/collections/model-messages.ts` | None |
+| `packages/durable-session/src/collections/presence.ts` | `packages/durable-session/src/collections/presence.ts` | None |
+| `packages/react-durable-session/src/index.ts` | `packages/durable-session/src/react/index.ts` | `@electric-sql/durable-session` → `../` |
+| `packages/react-durable-session/src/types.ts` | `packages/durable-session/src/react/types.ts` | `@electric-sql/durable-session` → `../` |
+| `packages/react-durable-session/src/use-durable-chat.ts` | `packages/durable-session/src/react/use-durable-chat.ts` | `@electric-sql/durable-session` → `../` |
+
+**Specific import changes in react files:**
+```typescript
+// BEFORE (in react-durable-session source):
+import { DurableChatClient, messageRowToUIMessage } from '@electric-sql/durable-session'
+import type { DurableChatClientOptions } from '@electric-sql/durable-session'
+
+// AFTER (in packages/durable-session/src/react/):
+import { DurableChatClient, messageRowToUIMessage } from '..'
+import type { DurableChatClientOptions } from '..'
 ```
 
-**Dependencies** (all published on npm):
+```typescript
+// BEFORE (react index.ts re-exports):
+export { DurableChatClient, ... } from '@electric-sql/durable-session'
+
+// AFTER:
+export { DurableChatClient, ... } from '..'
+```
+
+#### Package Configuration
+
+**`packages/durable-session/package.json`:**
 ```json
 {
   "name": "@superset/durable-session",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./react": {
+      "types": "./src/react/index.ts",
+      "default": "./src/react/index.ts"
+    }
+  },
   "dependencies": {
     "@durable-streams/state": "^0.2.0",
     "@standard-schema/spec": "^1.0.0",
@@ -178,76 +213,170 @@ packages/durable-session/
 }
 ```
 
-**Key adaptations when vendoring:**
-- Replace all `workspace:*` with published versions
-- Replace `@electric-sql/durable-session` imports in react files with relative `../` imports
-- Package name becomes `@superset/durable-session`
+**`packages/durable-session/tsconfig.json`:**
+```json
+{
+  "extends": "@superset/typescript-config/react-library.json",
+  "compilerOptions": {
+    "outDir": "./dist"
+  },
+  "include": ["src"]
+}
+```
 
-**Schema** (from official `schema.ts`):
+#### Key Internals to Understand
+
+**Schema** (`schema.ts`) — Three STATE-PROTOCOL collections:
 ```typescript
-// Chunks: structured, not raw passthrough
-const chunkValueSchema = z.object({
-  messageId: z.string(),
-  actorId: z.string(),
-  role: z.enum(['user', 'assistant', 'system']),
-  chunk: z.string(),     // JSON-serialized TanStack AI StreamChunk
-  seq: z.number(),
-  createdAt: z.string(),
-})
-
-// Presence: richer than our current schema
-const presenceValueSchema = z.object({
-  actorId: z.string(),
-  deviceId: z.string(),
-  actorType: z.enum(['user', 'agent']),
-  name: z.string().optional(),
-  status: z.enum(['online', 'offline', 'away']),
-  lastSeenAt: z.string(),
-})
-
-// Agents: new collection (replaces our drafts)
-const agentValueSchema = z.object({
-  agentId: z.string(),
-  name: z.string().optional(),
-  endpoint: z.string(),
-  triggers: z.enum(['all', 'user-messages']).optional(),
+export const sessionStateSchema = createStateSchema({
+  chunks: {
+    schema: chunkValueSchema,    // messageId, actorId, role, chunk (JSON), seq, createdAt
+    type: 'chunk',
+    primaryKey: 'id',            // Injected from event.key = `${messageId}:${seq}`
+    allowSyncWhilePersisting: true,
+  },
+  presence: {
+    schema: presenceValueSchema, // actorId, deviceId, actorType, name?, status, lastSeenAt
+    type: 'presence',
+    primaryKey: 'id',            // Injected from event.key = `${actorId}:${deviceId}`
+  },
+  agents: {
+    schema: agentValueSchema,    // agentId, name?, endpoint, triggers?
+    type: 'agent',
+    primaryKey: 'agentId',
+  },
 })
 ```
 
-**Materialization pipeline** (from official `materialize.ts`):
-- User messages stored as "whole-message" chunks → returned as-is
-- Assistant messages stored as sequential StreamChunk JSON strings → accumulated via `StreamProcessor` from `@tanstack/ai`
-- `createMessagesCollection()` groups chunks by `messageId`, orders by `startedAt`, materializes via `fn.select()`
-- Derived collections (toolCalls, pendingApprovals, etc.) are reactive filters on the messages collection
+**Materialization pipeline** (`materialize.ts`):
+- Uses `StreamProcessor` from `@tanstack/ai` (the key dependency)
+- Two paths: `WholeMessageChunk` (type: 'whole-message') for user msgs, `StreamChunk[]` for assistant msgs
+- `parseChunk(row.chunk)` → JSON.parse the chunk field
+- `materializeWholeMessage()` → extract UIMessage from chunk, return MessageRow
+- `materializeAssistantMessage()` → sort chunks by seq, feed to StreamProcessor, get parts
+- `isDoneChunk()` / stop/error chunk types mark `isComplete: true`
+
+**Collection pipeline** (`collections/messages.ts`):
+```
+chunks → groupBy(messageId) + collect(chunk) + minStr(createdAt) + count(chunk)
+       → orderBy(startedAt, 'asc')
+       → fn.select(materializeMessage(collected.rows))
+       → getKey: row.id
+```
+
+Derived collections use `.fn.where()`:
+- `toolCalls`: `parts.some(p => p.type === 'tool-call')`
+- `pendingApprovals`: `parts.some(p => p.type === 'tool-call' && p.approval?.needsApproval && p.approval.approved === undefined)`
+- `toolResults`: `parts.some(p => p.type === 'tool-result')`
+- `activeGenerations`: `!message.isComplete` → maps to `ActiveGenerationRow`
+
+**Session DB factory** (`collection.ts`):
+```typescript
+const streamUrl = `${baseUrl}/v1/stream/sessions/${sessionId}`
+const rawDb = createStreamDB({
+  streamOptions: { url: streamUrl, headers, signal },
+  state: sessionStateSchema,
+})
+```
+
+**Chunk key format**: `${messageId}:${seq}` — e.g., "msg-1:0", "msg-2:5"
+
+**React hook** (`react/use-durable-chat.ts`):
+- `useCollectionData()` — SSR-safe collection subscription using `useSyncExternalStore`
+- Client created synchronously in render (ref-cached by `${sessionId}:${proxyUrl}` key)
+- Handles Strict Mode: checks `client.isDisposed` and recreates if needed
+- Auto-connects on mount if `autoConnect: true` (default)
+- Returns TanStack AI-compatible API: messages, sendMessage, isLoading, etc.
 
 ### A2. Vendor proxy into `apps/streams/`
 
 Vendor from `packages/durable-session-proxy` in the transport repo.
 
-```
-apps/streams/src/
-  index.ts               -- Server entrypoint (starts proxy + internal durable stream)
-  server.ts              -- createServer() factory (vendored)
-  protocol.ts            -- AIDBSessionProtocol (~917 lines, vendored)
-  types.ts               -- Request/response types + Zod schemas (vendored)
-  handlers/
-    index.ts
-    send-message.ts      -- handleSendMessage
-    invoke-agent.ts      -- handleInvokeAgent, handleRegisterAgents
-    stream-writer.ts     -- StreamWriter class
-  routes/
-    index.ts
-    sessions.ts          -- PUT/GET/DELETE sessions
-    messages.ts          -- POST messages, regenerate, stop
-    agents.ts            -- POST/GET/DELETE agents
-    stream.ts            -- SSE proxy to underlying durable stream
-    tool-results.ts
-    approvals.ts
-    health.ts
-    auth.ts              -- login/logout (presence)
+#### File-by-File Vendoring Reference
+
+| Source (in `/tmp/electric-sql-transport/`) | Destination | Import Changes |
+|---|---|---|
+| `packages/durable-session-proxy/src/index.ts` | `packages/durable-session-proxy/src/index.ts` (re-exports only, keep for reference) | N/A |
+| `packages/durable-session-proxy/src/server.ts` | `apps/streams/src/server.ts` | `@electric-sql/durable-session` → `@superset/durable-session` |
+| `packages/durable-session-proxy/src/protocol.ts` | `apps/streams/src/protocol.ts` | `@electric-sql/durable-session` → `@superset/durable-session` |
+| `packages/durable-session-proxy/src/types.ts` | `apps/streams/src/types.ts` | `@electric-sql/durable-session` → `@superset/durable-session` |
+| `packages/durable-session-proxy/src/handlers/index.ts` | `apps/streams/src/handlers/index.ts` | None |
+| `packages/durable-session-proxy/src/handlers/send-message.ts` | `apps/streams/src/handlers/send-message.ts` | None (relative) |
+| `packages/durable-session-proxy/src/handlers/invoke-agent.ts` | `apps/streams/src/handlers/invoke-agent.ts` | None (relative) |
+| `packages/durable-session-proxy/src/handlers/stream-writer.ts` | `apps/streams/src/handlers/stream-writer.ts` | None (relative) |
+| `packages/durable-session-proxy/src/routes/index.ts` | `apps/streams/src/routes/index.ts` | None |
+| `packages/durable-session-proxy/src/routes/sessions.ts` | `apps/streams/src/routes/sessions.ts` | None (relative) |
+| `packages/durable-session-proxy/src/routes/messages.ts` | `apps/streams/src/routes/messages.ts` | None (relative) |
+| `packages/durable-session-proxy/src/routes/agents.ts` | `apps/streams/src/routes/agents.ts` | None (relative) |
+| `packages/durable-session-proxy/src/routes/stream.ts` | `apps/streams/src/routes/stream.ts` | None |
+| `packages/durable-session-proxy/src/routes/tool-results.ts` | `apps/streams/src/routes/tool-results.ts` | None (relative) |
+| `packages/durable-session-proxy/src/routes/approvals.ts` | `apps/streams/src/routes/approvals.ts` | None (relative) |
+| `packages/durable-session-proxy/src/routes/health.ts` | `apps/streams/src/routes/health.ts` | None |
+| `packages/durable-session-proxy/src/routes/auth.ts` | `apps/streams/src/routes/auth.ts` | None (relative) |
+| `packages/durable-session-proxy/src/routes/fork.ts` | `apps/streams/src/routes/fork.ts` | None (relative) |
+
+**Import change in proxy files** (3 files: `server.ts`, `protocol.ts`, `types.ts`):
+```typescript
+// BEFORE:
+import { sessionStateSchema, createSessionDB, ... } from '@electric-sql/durable-session'
+import type { SessionDB, MessageRow, ModelMessage } from '@electric-sql/durable-session'
+
+// AFTER:
+import { sessionStateSchema, createSessionDB, ... } from '@superset/durable-session'
+import type { SessionDB, MessageRow, ModelMessage } from '@superset/durable-session'
 ```
 
 **Replace** existing `apps/streams/src/index.ts` and **delete** `session-registry.ts`.
+
+#### New entrypoint: `apps/streams/src/index.ts`
+
+Based on vendored `dev.ts` pattern, combined with existing DurableStreamTestServer:
+
+```typescript
+import { serve } from '@hono/node-server'
+import { DurableStreamTestServer } from '@durable-streams/server'
+import { createServer } from './server'
+
+const PORT = parseInt(process.env.PORT ?? '8080', 10)
+const INTERNAL_PORT = parseInt(process.env.INTERNAL_PORT ?? '8081', 10)
+const DURABLE_STREAMS_URL = process.env.DURABLE_STREAMS_URL ?? `http://127.0.0.1:${INTERNAL_PORT}`
+
+// Start internal durable stream server
+const durableStreamServer = new DurableStreamTestServer({ port: INTERNAL_PORT })
+await durableStreamServer.start()
+console.log(`[streams] Durable stream server on port ${INTERNAL_PORT}`)
+
+// Start proxy server
+const { app, protocol } = createServer({
+  baseUrl: DURABLE_STREAMS_URL,
+  cors: true,
+  logging: true,
+})
+
+serve({ fetch: app.fetch, port: PORT }, (info) => {
+  console.log(`[streams] Proxy running on http://localhost:${info.port}`)
+})
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await durableStreamServer.stop()
+  process.exit(0)
+})
+```
+
+#### Key Protocol Internals (`protocol.ts`, ~917 lines)
+
+The `AIDBSessionProtocol` class manages:
+
+1. **Session lifecycle**: `createSession()` → creates DurableStream + SessionDB + reactive trigger
+2. **Chunk writing** via `sessionStateSchema.chunks.insert({ key, value })`:
+   - User messages: single chunk with `{ type: 'whole-message', message: UIMessage }`
+   - Agent responses: sequential chunks with TanStack AI StreamChunk objects
+3. **Reactive agent triggering**: After `preload()`, subscribes to `modelMessages.subscribeChanges()` — only triggers for NEW user messages (not historical)
+4. **Agent invocation**: `fetch()` to agent endpoint → parse SSE → `writeChunk()` for each data line
+5. **Active generation tracking**: Map<messageId, AbortController> for interrupt support
+6. **Stop generation**: `abortController.abort()` → writes `{ type: 'stop', reason: 'aborted' }` chunk
+7. **Message history**: Reads from materialized `modelMessages` collection (not raw chunks)
 
 **Add to `apps/streams/package.json`:**
 ```json
@@ -272,26 +401,110 @@ apps/streams/src/
 
 ### B1. Create `apps/streams/src/claude-agent.ts`
 
-HTTP endpoint the proxy invokes when a user sends a message:
+Hono app that acts as an AI agent endpoint the proxy can invoke. The proxy's `invokeAgent()` calls this endpoint via `fetch()` and parses the SSE response.
 
 ```typescript
-// Hono app with POST /
-// 1. Receives { messages: Array<{ role, content, parts }> } from proxy
-// 2. Extracts latest user message as prompt
-// 3. Runs query() from @anthropic-ai/claude-agent-sdk
-// 4. Converts SDKMessage stream → TanStack AI SSE chunks
-// 5. Returns SSE Response
+import { Hono } from 'hono'
+import { query } from '@anthropic-ai/claude-agent-sdk'
+import { convertSDKMessageToSSE } from './sdk-to-ai-chunks'
+
+const app = new Hono()
+
+// Session state for multi-turn resume
+const claudeSessions = new Map<string, string>() // sessionId → claudeSessionId
+
+app.post('/', async (c) => {
+  const { messages, stream: shouldStream, sessionId } = await c.req.json()
+
+  // Extract prompt from latest user message
+  const latestUserMessage = messages.filter(m => m.role === 'user').pop()
+  if (!latestUserMessage) {
+    return c.json({ error: 'No user message found' }, 400)
+  }
+
+  const prompt = latestUserMessage.content
+  const claudeSessionId = claudeSessions.get(sessionId)
+
+  // Run Claude query
+  const result = query({
+    prompt,
+    options: {
+      ...(claudeSessionId && { resume: claudeSessionId }),
+      model: process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-5-20250929',
+      maxTurns: 25,
+      allowedTools: ['computer', 'bash', 'edit', 'browser'],
+    },
+    executable: process.env.CLAUDE_BINARY_PATH,
+    env: buildClaudeEnv(), // Auth env vars from desktop
+    abortSignal: c.req.raw.signal,
+  })
+
+  // Return SSE response
+  const encoder = new TextEncoder()
+  const readable = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const message of result) {
+          // Extract claudeSessionId from system init
+          if (message.type === 'system' && message.subtype === 'init') {
+            claudeSessions.set(sessionId, message.session_id)
+            continue
+          }
+
+          // Convert SDKMessage → TanStack AI SSE chunks
+          const chunks = convertSDKMessageToSSE(message)
+          for (const chunk of chunks) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+          }
+        }
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+        controller.close()
+      } catch (err) {
+        controller.error(err)
+      }
+    },
+  })
+
+  return new Response(readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  })
+})
+
+export { app as claudeAgentApp }
+```
+
+**Integration with proxy:** Register this agent endpoint in the proxy:
+```typescript
+// In session startup:
+await protocol.registerAgent(sessionId, {
+  id: 'claude',
+  name: 'Claude Agent',
+  endpoint: `http://localhost:${CLAUDE_AGENT_PORT}/`,
+  method: 'POST',
+  triggers: 'user-messages',
+  bodyTemplate: { sessionId },
+})
 ```
 
 **Session state:** Maintains `Map<sessionId, claudeSessionId>` for multi-turn resume.
 
 **Binary path:** From `CLAUDE_BINARY_PATH` env var (set by desktop app when starting streams process).
 
-**Auth:** From `CLAUDE_AUTH_*` env vars forwarded from desktop process.
+**Auth:** From `CLAUDE_AUTH_*` env vars forwarded from desktop process via `buildClaudeEnv()`.
+
+**Abort handling:** When proxy calls `stopGeneration()`, it aborts the fetch to this endpoint. The agent detects the abort via `c.req.raw.signal` and the `query()` call is interrupted.
 
 ### B2. Create `apps/streams/src/sdk-to-ai-chunks.ts`
 
-Pure conversion module. Maps Claude SDK `SDKMessage` types to TanStack AI `StreamChunk`:
+Pure conversion module. Maps Claude SDK `SDKMessage` types to TanStack AI `StreamChunk`.
+
+**The proxy expects standard JSON chunks** — it reads SSE `data: {...}` lines, parses JSON, and writes each chunk to the durable stream via `protocol.writeChunk()`. The `StreamProcessor` on the client side then materializes these into `MessagePart[]`.
+
+#### Conversion Table
 
 | SDKMessage | TanStack AI Chunk | Notes |
 |---|---|---|
@@ -303,14 +516,77 @@ Pure conversion module. Maps Claude SDK `SDKMessage` types to TanStack AI `Strea
 | `stream_event` → `content_block_start` (thinking) | — | Wait for deltas |
 | `stream_event` → `content_block_delta` (thinking_delta) | `{ type: "reasoning", textDelta }` | |
 | `user` (tool_result blocks) | `{ type: "tool-result", toolCallId, result }` | Server-side tool execution |
-| `result` | `{ type: "finish", finishReason: "stop" }` | End of agent turn |
+| `result` | `{ type: "done", finishReason: "stop" }` | End of agent turn, maps to `DoneStreamChunk` |
 | `system` (init) | — | Extract `claudeSessionId` internally |
 | `assistant` | — | Skip (stream_events already cover content) |
 
+#### Implementation Skeleton
+
+```typescript
+import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk'
+
+interface ConversionState {
+  // Map content_block index → block type + metadata
+  activeBlocks: Map<number, {
+    type: 'text' | 'tool_use' | 'thinking'
+    toolCallId?: string
+    toolName?: string
+    argsAccumulator?: string  // JSON string accumulator for tool_use
+  }>
+}
+
+export function createConverter(): {
+  state: ConversionState
+  convert: (message: SDKMessage) => StreamChunk[]
+} {
+  const state: ConversionState = { activeBlocks: new Map() }
+
+  return {
+    state,
+    convert(message: SDKMessage): StreamChunk[] {
+      if (message.type === 'stream_event') {
+        return handleStreamEvent(state, message.event)
+      }
+      if (message.type === 'user') {
+        // tool_result from Claude's internal tool execution
+        return message.message.content
+          .filter(block => block.type === 'tool_result')
+          .map(block => ({
+            type: 'tool-result' as const,
+            toolCallId: block.tool_use_id,
+            result: block.content,
+          }))
+      }
+      if (message.type === 'result') {
+        return [{ type: 'done' as const, finishReason: 'stop' }]
+      }
+      return [] // Skip system, assistant
+    },
+  }
+}
+
+// Simpler stateless wrapper
+export function convertSDKMessageToSSE(message: SDKMessage): StreamChunk[] {
+  // ... delegates to converter
+}
+```
+
 **ConversionState** tracks:
 - Active content block indices (to correlate starts with deltas)
-- JSON accumulator per tool_use block (for partial → full args)
+- JSON accumulator per tool_use block (for partial → full args on `content_block_stop`)
 - Current tool call IDs per block index
+
+**Key TanStack AI StreamChunk types** (from `@tanstack/ai`):
+```typescript
+type StreamChunk =
+  | { type: 'text-delta'; textDelta: string }
+  | { type: 'tool-call-streaming-start'; toolCallId: string; toolName: string }
+  | { type: 'tool-call-delta'; toolCallId: string; argsTextDelta: string }
+  | { type: 'tool-call'; toolCallId: string; toolName: string; args: Record<string, unknown> }
+  | { type: 'tool-result'; toolCallId: string; result: unknown }
+  | { type: 'reasoning'; textDelta: string }
+  | { type: 'done'; finishReason: string }
+```
 
 ---
 
@@ -353,13 +629,77 @@ export {
 
 ### C2. Simplify desktop session manager
 
-**Rewrite** `apps/desktop/.../session-manager.ts`:
-- Remove `StreamWatcher`, `IdempotentProducer`, `processUserMessage()`
-- Becomes thin HTTP orchestrator:
-  - `startSession()` → PUT session on proxy + POST register Claude agent
-  - `stopSession()` → DELETE agent + DELETE session
-  - `interrupt()` → POST proxy `/v1/sessions/:id/stop`
-- Keep `EventEmitter` for tRPC subscriptions
+**Rewrite** `apps/desktop/src/lib/trpc/routers/ai-chat/utils/session-manager/session-manager.ts`:
+
+**Remove entirely:**
+- `StreamWatcher` class (watched stream for user_input via SSE — proxy now handles this reactively)
+- `IdempotentProducer` / `createProducer` / `closeProducer` (proxy writes to durable stream)
+- `processUserMessage()` (moved to Claude agent endpoint)
+- `binaryPathResolver` (moved to agent endpoint env)
+
+**New session manager** — thin HTTP orchestrator:
+
+```typescript
+const PROXY_URL = process.env.DURABLE_STREAM_URL ?? 'http://localhost:8080'
+
+export class ClaudeSessionManager extends EventEmitter {
+  private activeSessions = new Map<string, { sessionId: string }>()
+
+  async startSession({ sessionId, cwd, env }: StartSessionOptions): Promise<void> {
+    // 1. Create session on proxy
+    await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, { method: 'PUT' })
+
+    // 2. Register Claude agent
+    await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        agents: [{
+          id: 'claude',
+          name: 'Claude Agent',
+          endpoint: `http://localhost:${CLAUDE_AGENT_PORT}/`,
+          triggers: 'user-messages',
+          bodyTemplate: { sessionId, cwd, env },
+        }],
+      }),
+    })
+
+    this.activeSessions.set(sessionId, { sessionId })
+    this.emit('session:started', { sessionId })
+  }
+
+  async stopSession(sessionId: string): Promise<void> {
+    // 1. Stop active generations
+    await this.interrupt(sessionId)
+    // 2. Unregister agent
+    await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents/claude`, { method: 'DELETE' })
+    // 3. Delete session
+    await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, { method: 'DELETE' })
+
+    this.activeSessions.delete(sessionId)
+    this.emit('session:stopped', { sessionId })
+  }
+
+  async interrupt(sessionId: string): Promise<void> {
+    await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    this.emit('session:interrupted', { sessionId })
+  }
+
+  isActive(sessionId: string): boolean {
+    return this.activeSessions.has(sessionId)
+  }
+
+  getActiveSessions(): string[] {
+    return [...this.activeSessions.keys()]
+  }
+}
+```
+
+**tRPC router** (`apps/desktop/src/lib/trpc/routers/ai-chat/index.ts`) keeps same shape — just the session manager internals are simpler.
 
 ### C3. Handle drafts
 
@@ -526,12 +866,98 @@ DURABLE_STREAM_URL=https://stream.superset.sh
 
 ---
 
+## Complete File Operations Summary
+
+### Files to CREATE (vendored)
+
+| Destination | Source | Lines |
+|---|---|---|
+| `packages/durable-session/package.json` | NEW | ~30 |
+| `packages/durable-session/tsconfig.json` | NEW | ~8 |
+| `packages/durable-session/src/index.ts` | `durable-session/src/index.ts` | 197 |
+| `packages/durable-session/src/client.ts` | `durable-session/src/client.ts` | ~830 |
+| `packages/durable-session/src/collection.ts` | `durable-session/src/collection.ts` | 155 |
+| `packages/durable-session/src/materialize.ts` | `durable-session/src/materialize.ts` | 251 |
+| `packages/durable-session/src/schema.ts` | `durable-session/src/schema.ts` | 253 |
+| `packages/durable-session/src/types.ts` | `durable-session/src/types.ts` | 422 |
+| `packages/durable-session/src/collections/index.ts` | `durable-session/src/collections/index.ts` | 57 |
+| `packages/durable-session/src/collections/messages.ts` | `durable-session/src/collections/messages.ts` | 225 |
+| `packages/durable-session/src/collections/active-generations.ts` | `durable-session/src/collections/active-generations.ts` | 82 |
+| `packages/durable-session/src/collections/session-meta.ts` | `durable-session/src/collections/session-meta.ts` | 111 |
+| `packages/durable-session/src/collections/session-stats.ts` | `durable-session/src/collections/session-stats.ts` | 265 |
+| `packages/durable-session/src/collections/model-messages.ts` | `durable-session/src/collections/model-messages.ts` | 83 |
+| `packages/durable-session/src/collections/presence.ts` | `durable-session/src/collections/presence.ts` | 77 |
+| `packages/durable-session/src/react/index.ts` | `react-durable-session/src/index.ts` | 88 |
+| `packages/durable-session/src/react/types.ts` | `react-durable-session/src/types.ts` | 119 |
+| `packages/durable-session/src/react/use-durable-chat.ts` | `react-durable-session/src/use-durable-chat.ts` | 341 |
+
+### Files to CREATE (new code)
+
+| File | Description | Lines (est) |
+|---|---|---|
+| `apps/streams/src/claude-agent.ts` | Claude agent HTTP endpoint | ~120 |
+| `apps/streams/src/sdk-to-ai-chunks.ts` | SDKMessage → TanStack AI chunk converter | ~200 |
+
+### Files to CREATE (vendored proxy)
+
+| Destination | Source | Lines |
+|---|---|---|
+| `apps/streams/src/server.ts` | `durable-session-proxy/src/server.ts` | 149 |
+| `apps/streams/src/protocol.ts` | `durable-session-proxy/src/protocol.ts` | 917 |
+| `apps/streams/src/types.ts` | `durable-session-proxy/src/types.ts` | 278 |
+| `apps/streams/src/handlers/index.ts` | `durable-session-proxy/src/handlers/index.ts` | 12 |
+| `apps/streams/src/handlers/send-message.ts` | `durable-session-proxy/src/handlers/send-message.ts` | 81 |
+| `apps/streams/src/handlers/invoke-agent.ts` | `durable-session-proxy/src/handlers/invoke-agent.ts` | 128 |
+| `apps/streams/src/handlers/stream-writer.ts` | `durable-session-proxy/src/handlers/stream-writer.ts` | 124 |
+| `apps/streams/src/routes/index.ts` | `durable-session-proxy/src/routes/index.ts` | 14 |
+| `apps/streams/src/routes/sessions.ts` | `durable-session-proxy/src/routes/sessions.ts` | 136 |
+| `apps/streams/src/routes/messages.ts` | `durable-session-proxy/src/routes/messages.ts` | 99 |
+| `apps/streams/src/routes/agents.ts` | `durable-session-proxy/src/routes/agents.ts` | 58 |
+| `apps/streams/src/routes/stream.ts` | `durable-session-proxy/src/routes/stream.ts` | 162 |
+| `apps/streams/src/routes/tool-results.ts` | `durable-session-proxy/src/routes/tool-results.ts` | 57 |
+| `apps/streams/src/routes/approvals.ts` | `durable-session-proxy/src/routes/approvals.ts` | 58 |
+| `apps/streams/src/routes/health.ts` | `durable-session-proxy/src/routes/health.ts` | 51 |
+| `apps/streams/src/routes/auth.ts` | `durable-session-proxy/src/routes/auth.ts` | 146 |
+| `apps/streams/src/routes/fork.ts` | `durable-session-proxy/src/routes/fork.ts` | 50 |
+
+### Files to DELETE
+
+| File | Reason |
+|---|---|
+| `apps/streams/src/session-registry.ts` | Replaced by proxy's built-in session management |
+| `packages/ai-chat/src/stream/client.ts` | Replaced by vendored DurableChatClient |
+| `packages/ai-chat/src/stream/schema.ts` | Replaced by vendored sessionStateSchema |
+| `packages/ai-chat/src/stream/materialize.ts` | Replaced by vendored materializeMessage |
+| `packages/ai-chat/src/stream/materialize.test.ts` | Tests for deleted file |
+| `packages/ai-chat/src/stream/useChatSession.ts` | Replaced by vendored useDurableChat |
+| `packages/ai-chat/src/stream/useCollectionData.ts` | Replaced (built into vendored hook) |
+| `packages/ai-chat/src/stream/actions.ts` | Replaced by vendored optimistic actions |
+
+### Files to REWRITE
+
+| File | Description |
+|---|---|
+| `apps/streams/src/index.ts` | New entrypoint with Hono proxy + DurableStreamTestServer |
+| `packages/ai-chat/src/stream/index.ts` | Re-export from `@superset/durable-session` |
+| `apps/desktop/.../session-manager.ts` | Thin HTTP orchestrator (no StreamWatcher/Producer) |
+
+### Files to MODIFY
+
+| File | Changes |
+|---|---|
+| `packages/ai-chat/package.json` | Remove: @durable-streams/*, @anthropic-ai/*. Add: @superset/durable-session |
+| `apps/streams/package.json` | Add: hono, @hono/node-server, @durable-streams/client, @superset/durable-session |
+| `packages/ai-chat/src/types.ts` | Remove StreamEvent, StreamEntry, Draft types |
+| `packages/ai-chat/src/index.ts` | Update exports to match new stream/index.ts |
+
+---
+
 ## Implementation Order
 
-1. **Phase A1** — Vendor `@superset/durable-session` package
-2. **Phase A2** — Vendor proxy into `apps/streams`
-3. **Phase B** — Claude agent endpoint + SDK-to-AI chunk converter
-4. **Phase C** — Update `packages/ai-chat` + simplify session manager
+1. **Phase A1** — Vendor `@superset/durable-session` package (copy 18 files, adjust 3 import paths)
+2. **Phase A2** — Vendor proxy into `apps/streams` (copy 17 files, adjust 3 import paths)
+3. **Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)
+4. **Phase C** — Update `packages/ai-chat` + simplify session manager (delete 7 files, rewrite 3)
 5. **Phase D** — Database schema + migration
 6. **Phase E** — API tRPC router
 7. **Phase F** — Desktop chat UI
@@ -552,14 +978,213 @@ DURABLE_STREAM_URL=https://stream.superset.sh
 
 ---
 
+## API Quick Reference
+
+### `useDurableChat(options)` Return Type
+
+```typescript
+interface UseDurableChatReturn {
+  // TanStack AI useChat-compatible
+  messages: UIMessage[]                     // All messages (reactive)
+  sendMessage: (content: string) => Promise<void>
+  append: (message: UIMessage | { role: string; content: string }) => Promise<void>
+  reload: () => Promise<void>              // Regenerate last response
+  stop: () => void                         // Stop active generations
+  clear: () => void                        // Clear local messages
+  isLoading: boolean                       // Any generation active?
+  error: Error | undefined
+  addToolResult: (result: ToolResultInput) => Promise<void>
+  addToolApprovalResponse: (response: ApprovalResponseInput) => Promise<void>
+
+  // Durable extensions
+  client: DurableChatClient                // Underlying client instance
+  collections: DurableChatCollections      // All reactive collections
+  connectionStatus: ConnectionStatus       // 'disconnected' | 'connecting' | 'connected' | 'error'
+  fork: (options?: ForkOptions) => Promise<ForkResult>
+  registerAgents: (agents: AgentSpec[]) => Promise<void>
+  unregisterAgent: (agentId: string) => Promise<void>
+  connect: () => Promise<void>
+  disconnect: () => void
+  pause: () => void
+  resume: () => Promise<void>
+}
+```
+
+### `DurableChatCollections`
+
+```typescript
+interface DurableChatCollections {
+  chunks: Collection<ChunkRow>              // Root — synced from stream
+  presence: Collection<PresenceRow>         // Aggregated per-actor presence
+  agents: Collection<AgentRow>              // Registered webhook agents
+  messages: Collection<MessageRow>          // Materialized messages
+  toolCalls: Collection<MessageRow>         // Messages with tool-call parts
+  pendingApprovals: Collection<MessageRow>  // Messages with unapproved tool calls
+  toolResults: Collection<MessageRow>       // Messages with tool-result parts
+  activeGenerations: Collection<ActiveGenerationRow>  // Incomplete messages
+  sessionMeta: Collection<SessionMetaRow>   // Local connection state
+  sessionStats: Collection<SessionStatsRow> // Aggregate statistics
+}
+```
+
+### `MessageRow` (from materialized messages)
+
+```typescript
+interface MessageRow {
+  id: string                  // messageId
+  role: 'user' | 'assistant' | 'system'
+  parts: MessagePart[]        // TanStack AI parts (TextPart, ToolCallPart, etc.)
+  actorId: string
+  isComplete: boolean         // Has finish/done chunk been received?
+  createdAt: Date
+}
+```
+
+### Proxy HTTP API
+
+| Method | Endpoint | Body | Response |
+|---|---|---|---|
+| `PUT` | `/v1/sessions/:id` | — | `{ sessionId, streamUrl }` |
+| `GET` | `/v1/sessions/:id` | — | `{ sessionId, streamUrl }` |
+| `DELETE` | `/v1/sessions/:id` | — | 204 |
+| `POST` | `/v1/sessions/:id/messages` | `{ content, actorId?, agent? }` | `{ messageId }` |
+| `POST` | `/v1/sessions/:id/stop` | `{ messageId? }` | 204 |
+| `POST` | `/v1/sessions/:id/regenerate` | `{ fromMessageId, content }` | `{ success }` |
+| `POST` | `/v1/sessions/:id/reset` | `{ clearPresence? }` | `{ success }` |
+| `POST` | `/v1/sessions/:id/agents` | `{ agents: AgentSpec[] }` | `{ success }` |
+| `GET` | `/v1/sessions/:id/agents` | — | `{ agents }` |
+| `DELETE` | `/v1/sessions/:id/agents/:agentId` | — | 204 |
+| `POST` | `/v1/sessions/:id/tool-results` | `{ toolCallId, output, error? }` | 204 |
+| `POST` | `/v1/sessions/:id/approvals/:id` | `{ approved }` | 204 |
+| `POST` | `/v1/sessions/:id/fork` | `{ atMessageId?, newSessionId? }` | `{ sessionId, offset }` |
+| `POST` | `/v1/sessions/:id/login` | `{ actorId, deviceId, name? }` | `{ success }` |
+| `POST` | `/v1/sessions/:id/logout` | `{ actorId, deviceId }` | `{ success }` |
+| `GET` | `/v1/stream/sessions/:id` | — | SSE stream (proxied to durable stream) |
+| `GET` | `/health` | — | `{ status: 'ok' }` |
+
+---
+
+## Testing Patterns
+
+The vendored source includes test helpers at `packages/durable-session/tests/fixtures/test-helpers.ts`. Key patterns:
+
+### Mock SessionDB for Unit Tests
+
+```typescript
+import { createMockSessionDB } from '@superset/durable-session/test-helpers'
+
+// Create mock with controllable collections
+const { sessionDB, controllers } = createMockSessionDB('test-session')
+
+const client = new DurableChatClient({
+  sessionId: 'test-session',
+  proxyUrl: 'http://localhost:4000',
+  sessionDB, // Inject mock — skips real stream connection
+})
+
+await client.connect()
+
+// Emit test chunks via controller
+controllers.chunks.emit([{
+  id: 'msg-1:0',
+  messageId: 'msg-1',
+  actorId: 'user-1',
+  role: 'user',
+  chunk: JSON.stringify({
+    type: 'whole-message',
+    message: { id: 'msg-1', role: 'user', parts: [{ type: 'text', content: 'Hello' }] }
+  }),
+  seq: 0,
+  createdAt: new Date().toISOString(),
+}])
+controllers.chunks.markReady()
+
+// Wait for live query pipeline
+await new Promise(r => setTimeout(r, 40))
+
+// Assert materialized messages
+const messages = [...client.collections.messages.values()]
+expect(messages).toHaveLength(1)
+expect(messages[0].role).toBe('user')
+```
+
+### SDK-to-AI Chunk Conversion Tests
+
+Test with captured SDKMessage fixtures to verify the conversion:
+```typescript
+import { convertSDKMessageToSSE } from './sdk-to-ai-chunks'
+
+it('converts text_delta to text-delta chunk', () => {
+  const sdkMessage = {
+    type: 'stream_event',
+    event: {
+      type: 'content_block_delta',
+      index: 0,
+      delta: { type: 'text_delta', text: 'Hello' },
+    },
+  }
+  const chunks = convertSDKMessageToSSE(sdkMessage)
+  expect(chunks).toEqual([{ type: 'text-delta', textDelta: 'Hello' }])
+})
+
+it('converts result to done chunk', () => {
+  const sdkMessage = { type: 'result', result: { stop_reason: 'end_turn' } }
+  const chunks = convertSDKMessageToSSE(sdkMessage)
+  expect(chunks).toEqual([{ type: 'done', finishReason: 'stop' }])
+})
+```
+
+---
+
 ## Verification
 
-1. Proxy health: `curl http://localhost:8080/health`
-2. Create session: PUT `/v1/sessions/test-1`
-3. Register agent: POST `/v1/sessions/test-1/agents` with Claude agent endpoint
-4. Send message: POST `/v1/sessions/test-1/messages` → verify agent invoked
-5. Stream sync: GET `/v1/stream/sessions/test-1` → verify chunks arrive as SSE
-6. Client integration: `useDurableChat({ sessionId: "test-1" })` → messages render
-7. Interrupt: POST `/v1/sessions/test-1/stop` → generation halts
-8. Reconnection: reload page → messages replayed from stream offset
-9. Multi-client: open 2 tabs → both see same messages in real-time
+### Phase A Verification (Vendored Package)
+```bash
+# 1. Install deps
+cd packages/durable-session && bun install
+# 2. Type check vendored package
+bun run typecheck
+# 3. Verify exports resolve
+node -e "require('@superset/durable-session')" # or bun
+```
+
+### Phase A2 + B Verification (Proxy + Agent)
+```bash
+# 1. Start streams server
+cd apps/streams && bun dev
+
+# 2. Health check
+curl http://localhost:8080/health
+# → { "status": "ok", "timestamp": "..." }
+
+# 3. Create session
+curl -X PUT http://localhost:8080/v1/sessions/test-1
+# → { "sessionId": "test-1", "streamUrl": "/v1/stream/sessions/test-1" }
+
+# 4. Register Claude agent
+curl -X POST http://localhost:8080/v1/sessions/test-1/agents \
+  -H 'Content-Type: application/json' \
+  -d '{"agents":[{"id":"claude","endpoint":"http://localhost:9090/","triggers":"user-messages"}]}'
+
+# 5. Send message (triggers agent)
+curl -X POST http://localhost:8080/v1/sessions/test-1/messages \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Hello","actorId":"user-1"}'
+# → { "messageId": "..." }
+
+# 6. Read stream (verify chunks)
+curl http://localhost:8080/v1/stream/sessions/test-1
+# → SSE events with chunk data
+
+# 7. Stop generation
+curl -X POST http://localhost:8080/v1/sessions/test-1/stop \
+  -H 'Content-Type: application/json' \
+  -d '{}'
+```
+
+### Phase C Verification (Client Integration)
+1. `useDurableChat({ sessionId: "test-1", proxyUrl: "http://localhost:8080" })` → messages render
+2. Interrupt: POST `/v1/sessions/test-1/stop` → generation halts, `isLoading` becomes `false`
+3. Reconnection: reload page → messages replayed from stream offset (not re-fetched)
+4. Multi-client: open 2 tabs → both see same messages in real-time via SSE sync
+5. Presence: both tabs show in `collections.presence`
