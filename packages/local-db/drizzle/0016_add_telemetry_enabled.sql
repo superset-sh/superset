@@ -1,1 +1,2 @@
-ALTER TABLE `settings` ADD `telemetry_enabled` integer;
+-- ALTER TABLE `settings` ADD `telemetry_enabled` integer;
+SELECT 1;
