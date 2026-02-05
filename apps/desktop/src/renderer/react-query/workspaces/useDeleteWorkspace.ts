@@ -17,12 +17,6 @@ type DeleteContext = {
 	navigatedTo: string | null;
 };
 
-/**
- * Mutation hook for deleting a workspace with optimistic updates.
- * Server marks `deletingAt` immediately so refetches stay correct during slow git operations.
- * Optimistically navigates away immediately if the deleted workspace is currently being viewed.
- * Navigates back on error to restore the user to the original workspace.
- */
 export function useDeleteWorkspace(
 	options?: Parameters<typeof electronTrpc.workspaces.delete.useMutation>[0],
 ) {
@@ -91,8 +85,25 @@ export function useDeleteWorkspace(
 			await utils.workspaces.invalidate();
 			await options?.onSettled?.(...args);
 		},
-		onSuccess: async (data, variables, ...rest) => {
-			await options?.onSuccess?.(data, variables, ...rest);
+		onSuccess: async (data, variables, context, ...rest) => {
+			// tRPC treats { success: false } as a successful response, so roll back optimistic updates
+			if (!data.success) {
+				if (context?.previousGrouped !== undefined) {
+					utils.workspaces.getAllGrouped.setData(
+						undefined,
+						context.previousGrouped,
+					);
+				}
+				if (context?.previousAll !== undefined) {
+					utils.workspaces.getAll.setData(undefined, context.previousAll);
+				}
+
+				if (context?.wasViewingDeleted) {
+					navigateToWorkspace(variables.id, navigate);
+				}
+			}
+
+			await options?.onSuccess?.(data, variables, context, ...rest);
 		},
 		onError: async (_err, variables, context, ...rest) => {
 			if (context?.previousGrouped !== undefined) {

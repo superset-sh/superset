@@ -146,10 +146,11 @@ step_delete_neon_branch() {
 
   WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 
-  if neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force 2>/dev/null; then
+  if neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force; then
     success "Neon branch deleted: $WORKSPACE_NAME ($BRANCH_ID)"
   else
-    warn "Neon branch '$WORKSPACE_NAME' ($BRANCH_ID) not found or already deleted"
+    error "Failed to delete Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
+    return 1
   fi
 
   return 0

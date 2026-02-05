@@ -1,5 +1,5 @@
 import type { FitAddon } from "@xterm/addon-fit";
-import type { SearchAddon } from "@xterm/addon-search";
+import { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
 import type { MutableRefObject, RefObject } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -239,12 +239,11 @@ export function useTerminalLifecycle({
 			xterm.focus();
 		}
 
-		import("@xterm/addon-search").then(({ SearchAddon }) => {
-			if (isUnmounted) return;
+		if (!isUnmounted) {
 			const searchAddon = new SearchAddon();
 			xterm.loadAddon(searchAddon);
 			searchAddonRef.current = searchAddon;
-		});
+		}
 
 		// Wait for first render before applying restoration
 		let renderDisposable: IDisposable | null = null;
