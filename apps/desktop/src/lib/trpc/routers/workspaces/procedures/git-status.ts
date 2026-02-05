@@ -131,9 +131,11 @@ export const createGitStatusProcedures = () => {
 
 				// Extract worktree name from path (last segment)
 				const worktreeName = worktree.path.split("/").pop() ?? worktree.branch;
+				const branchName = worktree.branch;
 
 				return {
 					worktreeName,
+					branchName,
 					createdAt: worktree.createdAt,
 					gitStatus: worktree.gitStatus ?? null,
 					githubStatus: worktree.githubStatus ?? null,

@@ -74,13 +74,11 @@ export async function generateMetadata({
 			url,
 			siteName: COMPANY.NAME,
 			publishedTime: entry.date,
-			...(entry.image && { images: [entry.image] }),
 		},
 		twitter: {
 			card: "summary_large_image",
 			title: entry.title,
 			description: entry.description,
-			...(entry.image && { images: [entry.image] }),
 		},
 	};
 }

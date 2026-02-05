@@ -11,7 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@anthropic-ai/sdk": "^0.71.2",
+		"@anthropic-ai/sdk": "^0.72.1",
 		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
 		"@linear/sdk": "^68.1.0",
 		"@modelcontextprotocol/sdk": "^1.25.3",

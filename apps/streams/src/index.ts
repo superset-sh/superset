@@ -1,0 +1,279 @@
+/**
+ * Durable Streams Server with Session Registry
+ *
+ * Combines the official @durable-streams/server with a session registry API.
+ * The durable streams server runs on an internal port, and this Hono server
+ * proxies requests to it while handling /sessions routes directly.
+ */
+
+import {
+	createServer as createHttpServer,
+	request as httpRequest,
+} from "node:http";
+import { DurableStreamTestServer } from "@durable-streams/server";
+import { SessionRegistry } from "./session-registry.js";
+
+const DEFAULT_DATA_DIR = "./data";
+const DEFAULT_PORT = 8080;
+const INTERNAL_PORT_OFFSET = 1;
+const MAX_PORT = 65_535;
+const MAX_BODY_BYTES = 1_000_000;
+
+const dataDir = process.env.DATA_DIR || DEFAULT_DATA_DIR;
+const portEnv = process.env.PORT;
+const parsedPort = portEnv ? Number.parseInt(portEnv, 10) : DEFAULT_PORT;
+
+if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > MAX_PORT) {
+	console.error(`[streams] Invalid PORT: ${portEnv ?? "unset"}`);
+	process.exit(1);
+}
+
+const port = parsedPort;
+const internalPort = port + INTERNAL_PORT_OFFSET; // Durable streams runs on internal port
+
+if (internalPort > MAX_PORT) {
+	console.error(`[streams] Internal port ${internalPort} exceeds ${MAX_PORT}.`);
+	process.exit(1);
+}
+
+const registry = new SessionRegistry(dataDir);
+
+// Start the durable streams server on internal port
+const durableServer = new DurableStreamTestServer({
+	port: internalPort,
+	host: "127.0.0.1",
+	dataDir,
+});
+
+// Create main HTTP server that routes requests
+const server = createHttpServer(async (req, res) => {
+	const url = new URL(req.url || "/", `http://${req.headers.host}`);
+
+	// CORS headers
+	res.setHeader("Access-Control-Allow-Origin", "*");
+	res.setHeader(
+		"Access-Control-Allow-Methods",
+		"GET, POST, PUT, DELETE, HEAD, OPTIONS",
+	);
+	res.setHeader(
+		"Access-Control-Allow-Headers",
+		"Content-Type, Producer-Id, Producer-Epoch, Producer-Seq, Authorization",
+	);
+	res.setHeader("Access-Control-Expose-Headers", "*");
+
+	if (req.method === "OPTIONS") {
+		res.writeHead(204);
+		res.end();
+		return;
+	}
+
+	// Handle session registry routes
+	if (url.pathname === "/sessions" || url.pathname === "/sessions/") {
+		if (req.method === "GET") {
+			// List all sessions
+			const sessions = registry.list();
+			res.writeHead(200, { "Content-Type": "application/json" });
+			res.end(JSON.stringify(sessions));
+			return;
+		}
+
+		if (req.method === "POST") {
+			// Register a new session
+			try {
+				const body = await readBody({ req, maxBytes: MAX_BODY_BYTES });
+				const { sessionId, title, createdBy } = JSON.parse(body);
+
+				if (!sessionId || !title) {
+					res.writeHead(400, { "Content-Type": "application/json" });
+					res.end(
+						JSON.stringify({ error: "sessionId and title are required" }),
+					);
+					return;
+				}
+
+				const session = registry.register({ sessionId, title, createdBy });
+				res.writeHead(201, { "Content-Type": "application/json" });
+				res.end(JSON.stringify(session));
+				return;
+			} catch (error) {
+				if (error instanceof PayloadTooLargeError) {
+					res.writeHead(413, { "Content-Type": "application/json" });
+					res.end(JSON.stringify({ error: "Payload too large" }));
+					return;
+				}
+				console.error("[sessions] Failed to parse request body:", error);
+				res.writeHead(400, { "Content-Type": "application/json" });
+				res.end(JSON.stringify({ error: "Invalid JSON body" }));
+				return;
+			}
+		}
+
+		res.writeHead(405, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({ error: "Method not allowed" }));
+		return;
+	}
+
+	// Handle GET /sessions/:id
+	const sessionMatch = url.pathname.match(/^\/sessions\/([^/]+)$/);
+	if (sessionMatch?.[1]) {
+		const sessionId = sessionMatch[1];
+
+		if (req.method === "GET") {
+			const session = registry.get(sessionId);
+			if (!session) {
+				res.writeHead(404, { "Content-Type": "application/json" });
+				res.end(JSON.stringify({ error: "Session not found" }));
+				return;
+			}
+			res.writeHead(200, { "Content-Type": "application/json" });
+			res.end(JSON.stringify(session));
+			return;
+		}
+
+		res.writeHead(405, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({ error: "Method not allowed" }));
+		return;
+	}
+
+	// Health check
+	if (url.pathname === "/health") {
+		res.writeHead(200, { "Content-Type": "application/json" });
+		res.end(JSON.stringify({ status: "ok" }));
+		return;
+	}
+
+	// Proxy all other requests to durable streams server
+	proxyToDurableStreams(req, res, url);
+});
+
+server.on("error", (err) => {
+	console.error("[streams] HTTP server error:", err);
+	process.exit(1);
+});
+
+class PayloadTooLargeError extends Error {
+	constructor(maxBytes: number) {
+		super(`Payload exceeded ${maxBytes} bytes`);
+		this.name = "PayloadTooLargeError";
+	}
+}
+
+function readBody({
+	req,
+	maxBytes = Number.POSITIVE_INFINITY,
+}: {
+	req: import("node:http").IncomingMessage;
+	maxBytes?: number;
+}): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const chunks: Buffer[] = [];
+		let size = 0;
+		let done = false;
+
+		const finish = (error?: Error) => {
+			if (done) {
+				return;
+			}
+			done = true;
+			if (error) {
+				reject(error);
+				return;
+			}
+			resolve(Buffer.concat(chunks).toString("utf-8"));
+		};
+
+		req.on("data", (chunk) => {
+			if (done) {
+				return;
+			}
+			size += chunk.length;
+			if (size > maxBytes) {
+				finish(new PayloadTooLargeError(maxBytes));
+				return;
+			}
+			chunks.push(chunk);
+		});
+		req.on("end", () => finish());
+		req.on("error", (error) => finish(error));
+	});
+}
+
+function proxyToDurableStreams(
+	req: import("node:http").IncomingMessage,
+	res: import("node:http").ServerResponse,
+	url: URL,
+) {
+	const proxyReq = httpRequest(
+		{
+			hostname: "127.0.0.1",
+			port: internalPort,
+			path: url.pathname + url.search,
+			method: req.method,
+			headers: req.headers,
+		},
+		(proxyRes) => {
+			// Forward status and headers
+			res.writeHead(proxyRes.statusCode || 500, proxyRes.headers);
+			proxyRes.pipe(res);
+		},
+	);
+
+	proxyReq.on("error", (err: Error) => {
+		console.error("[proxy] Error proxying to durable streams:", err);
+		if (!res.headersSent) {
+			res.writeHead(502, { "Content-Type": "application/json" });
+			res.end(JSON.stringify({ error: "Bad gateway" }));
+		}
+	});
+
+	// Pipe request body for POST/PUT requests
+	req.pipe(proxyReq);
+}
+
+console.log(`[streams] Starting on port ${port}`);
+
+// Start both servers
+async function start() {
+	await registry.init();
+
+	const durableUrl = await durableServer.start();
+	console.log(`[streams] Durable streams internal: ${durableUrl}`);
+
+	server.listen(port, "0.0.0.0", () => {
+		console.log(`[streams] Server running at http://0.0.0.0:${port}`);
+	});
+}
+
+start().catch((err) => {
+	console.error("[streams] Failed to start streams server:", err);
+	process.exit(1);
+});
+
+// Graceful shutdown
+function shutdown(signal: string) {
+	console.log(`[streams] Received ${signal}, shutting down...`);
+	server.close(() => {
+		console.log("[streams] HTTP server closed");
+		durableServer
+			.stop()
+			.then(() => {
+				console.log("[streams] Durable streams server closed");
+				process.exit(0);
+			})
+			.catch((err) => {
+				console.error("[streams] Error stopping durable server:", err);
+				process.exit(1);
+			});
+	});
+
+	// Force exit if graceful shutdown takes too long
+	setTimeout(() => {
+		console.error("[streams] Graceful shutdown timed out, forcing exit");
+		process.exit(1);
+	}, 10_000);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+export default server;

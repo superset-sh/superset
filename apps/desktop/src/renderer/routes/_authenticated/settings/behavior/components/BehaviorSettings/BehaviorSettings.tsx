@@ -62,6 +62,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		setConfirmOnQuit.mutate({ enabled });
 	};
 
+	// TODO: remove telemetry query/mutation/handler once telemetry procedures are removed
 	const { data: telemetryEnabled, isLoading: isTelemetryLoading } =
 		electronTrpc.settings.getTelemetryEnabled.useQuery();
 	const setTelemetryEnabled =
@@ -221,7 +222,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					</div>
 				)}
 
-				{showTelemetry && (
+				{false && showTelemetry && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="telemetry" className="text-sm font-medium">

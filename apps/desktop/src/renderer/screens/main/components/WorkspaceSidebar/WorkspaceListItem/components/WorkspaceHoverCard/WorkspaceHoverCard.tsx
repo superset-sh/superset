@@ -39,6 +39,7 @@ export function WorkspaceHoverCardContent({
 	const needsRebase = worktreeInfo?.gitStatus?.needsRebase;
 
 	const worktreeName = worktreeInfo?.worktreeName;
+	const branchName = worktreeInfo?.branchName;
 	const hasCustomAlias =
 		workspaceAlias && worktreeName && workspaceAlias !== worktreeName;
 
@@ -49,19 +50,19 @@ export function WorkspaceHoverCardContent({
 				{hasCustomAlias && (
 					<div className="text-sm font-medium">{workspaceAlias}</div>
 				)}
-				{worktreeName && (
+				{branchName && (
 					<div className="space-y-0.5">
 						<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
 							Branch
 						</span>
 						{repoUrl && branchExistsOnRemote ? (
 							<a
-								href={`${repoUrl}/tree/${worktreeName}`}
+								href={`${repoUrl}/tree/${branchName}`}
 								target="_blank"
 								rel="noopener noreferrer"
 								className={`flex items-center gap-1 font-mono break-all hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
 							>
-								{worktreeName}
+								{branchName}
 								<LuExternalLink
 									className="size-3 shrink-0"
 									strokeWidth={STROKE_WIDTH}
@@ -71,7 +72,7 @@ export function WorkspaceHoverCardContent({
 							<code
 								className={`font-mono break-all block ${hasCustomAlias ? "text-xs" : "text-sm"}`}
 							>
-								{worktreeName}
+								{branchName}
 							</code>
 						)}
 					</div>

@@ -6,11 +6,10 @@ import { electronTrpc } from "../../lib/electron-trpc";
 /**
  * AuthProvider: Manages token synchronization between memory and encrypted disk storage.
  *
- * Simple flow:
+ * Flow:
  * 1. Load token from disk on mount
- * 2. Listen for OAuth callback tokens
- * 3. Set in memory via setAuthToken()
- * 4. Layouts handle session checks naturally via authClient.useSession()
+ * 2. If valid (not expired), set in memory and validate session in background
+ * 3. Render children immediately without blocking on network
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
@@ -26,16 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		});
 
 	useEffect(() => {
-		// Wait for query to complete before hydrating
 		if (!isSuccess || isHydrated) return;
 
-		// If token exists, set it in memory and refetch session
 		if (storedToken?.token && storedToken?.expiresAt) {
-			setAuthToken(storedToken.token);
-			refetchSession();
+			const isExpired = new Date(storedToken.expiresAt) < new Date();
+			if (!isExpired) {
+				setAuthToken(storedToken.token);
+				refetchSession().catch(() => {});
+			}
 		}
 
-		// Always mark as hydrated once query completes (even if no token)
 		setIsHydrated(true);
 	}, [storedToken, isSuccess, isHydrated, refetchSession]);
 

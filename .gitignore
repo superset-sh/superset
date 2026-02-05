@@ -74,3 +74,6 @@ apps/desktop/resources/bin/darwin-x64/
 apps/desktop/resources/bin/linux-arm64/
 apps/desktop/resources/bin/linux-x64/
 apps/desktop/resources/bin/win32-x64/
+
+# Streams data
+apps/streams/data/

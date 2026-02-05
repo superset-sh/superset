@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { LuUndo2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { CategorySection } from "./components/CategorySection";
@@ -68,6 +69,12 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				refetchInterval: 10000,
 			},
 		);
+
+	useBranchSyncInvalidation({
+		gitBranch: status?.branch,
+		workspaceBranch: workspace?.branch,
+		workspaceId: workspaceId ?? "",
+	});
 
 	const handleRefresh = () => {
 		refetch();

@@ -1,0 +1,36 @@
+# fly.toml for Superset Stream Server
+app = "superset-stream"
+primary_region = "iad"
+
+[build]
+  # Deploy from repo root so Docker build context includes workspaces.
+  dockerfile = "apps/streams/Dockerfile"
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+  DATA_DIR = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "2s"
+  grace_period = "5s"
+  method = "GET"
+  path = "/health"
+
+[mounts]
+  source = "stream_data"
+  destination = "/data"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
