@@ -471,6 +471,7 @@ Note: `@tanstack/db`, `@tanstack/react-db`, `@electric-sql/client` already insta
 ```bash
 # Desktop
 DURABLE_STREAM_URL=https://stream.superset.sh
+DURABLE_STREAM_AUTH_TOKEN=... # Bearer token for durable stream access
 
 # API
 DURABLE_STREAM_INTERNAL_URL=http://stream-server.internal:8080
