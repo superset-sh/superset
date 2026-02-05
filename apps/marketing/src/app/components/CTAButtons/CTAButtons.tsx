@@ -8,9 +8,10 @@ export async function CTAButtons() {
 	let session = null;
 	try {
 		session = await auth.api.getSession({ headers: await headers() });
-	} catch (error) {
-		// Handle errors from invalid/stale cookies (e.g., old Clerk cookies after migration to Better Auth)
-		console.error("[marketing/CTAButtons] Failed to get session:", error);
+	} catch {
+		// Expected when visitors have invalid/stale cookies (e.g., old Clerk cookies after migration to Better Auth).
+		// Session is optional on the marketing site — we just show the logged-out CTA.
+		console.warn("[marketing/CTAButtons] Failed to get session");
 	}
 
 	return (
