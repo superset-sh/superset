@@ -5,7 +5,7 @@ import type { SetupConfig } from "shared/types";
 import { removeWorktree } from "./git";
 import { getShellEnvironment } from "./shell-env";
 
-const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
+const TEARDOWN_TIMEOUT_MS = 60_000;
 
 export interface TeardownResult {
 	success: boolean;
@@ -155,7 +155,6 @@ export async function removeWorktreeFromDisk({
 		return { success: true };
 	} catch (error) {
 		const msg = error instanceof Error ? error.message : String(error);
-		// Worktree already gone — not an error
 		if (
 			msg.includes("is not a working tree") ||
 			msg.includes("No such file or directory")

@@ -29,7 +29,6 @@ export const createDeleteProcedures = () => {
 			.input(
 				z.object({
 					id: z.string(),
-					// Skip expensive git checks (status, unpushed) during polling - only check terminal count
 					skipGitChecks: z.boolean().optional(),
 				}),
 			)
@@ -62,7 +61,6 @@ export const createDeleteProcedures = () => {
 					.getForWorkspaceId(input.id)
 					.terminal.getSessionCountByWorkspaceId(input.id);
 
-				// Branch workspaces are non-destructive to close - no git checks needed
 				if (workspace.type === "branch") {
 					return {
 						canDelete: true,
@@ -75,7 +73,6 @@ export const createDeleteProcedures = () => {
 					};
 				}
 
-				// Polling uses skipGitChecks to avoid expensive git operations
 				if (input.skipGitChecks) {
 					return {
 						canDelete: true,
@@ -166,7 +163,6 @@ export const createDeleteProcedures = () => {
 				markWorkspaceAsDeleting(input.id);
 				updateActiveWorkspaceIfRemoved(input.id);
 
-				// Wait for any ongoing init to complete to avoid racing git operations
 				if (workspaceInitManager.isInitializing(input.id)) {
 					console.log(
 						`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
@@ -192,12 +188,10 @@ export const createDeleteProcedures = () => {
 
 				let worktree: SelectWorktree | undefined;
 
-				// Fire terminal kills (don't await yet)
 				const terminalPromise = getWorkspaceRuntimeRegistry()
 					.getForWorkspaceId(input.id)
 					.terminal.killByWorkspaceId(input.id);
 
-				// Fire teardown in parallel with terminal kills
 				let teardownPromise:
 					| Promise<{ success: boolean; error?: string }>
 					| undefined;
@@ -221,7 +215,6 @@ export const createDeleteProcedures = () => {
 					);
 				}
 
-				// Wait for both terminal kills and teardown to finish
 				const [terminalResult, teardownResult] = await Promise.all([
 					terminalPromise,
 					teardownPromise ?? Promise.resolve({ success: true as const }),
@@ -239,7 +232,6 @@ export const createDeleteProcedures = () => {
 					};
 				}
 
-				// Only hold the project lock for the git worktree removal
 				if (worktree && project) {
 					await workspaceInitManager.acquireProjectLock(project.id);
 
@@ -274,7 +266,6 @@ export const createDeleteProcedures = () => {
 
 				track("workspace_deleted", { workspace_id: input.id });
 
-				// Clear after cleanup so cancellation signals remain visible during deletion
 				workspaceInitManager.clearJob(input.id);
 
 				return { success: true, terminalWarning };
@@ -293,7 +284,7 @@ export const createDeleteProcedures = () => {
 					.getForWorkspaceId(input.id)
 					.terminal.killByWorkspaceId(input.id);
 
-				deleteWorkspace(input.id); // keeps worktree on disk
+				deleteWorkspace(input.id);
 				hideProjectIfNoWorkspaces(workspace.projectId);
 				updateActiveWorkspaceIfRemoved(input.id);
 
@@ -307,7 +298,6 @@ export const createDeleteProcedures = () => {
 				return { success: true, terminalWarning };
 			}),
 
-		// Check if a closed worktree (no active workspace) can be deleted
 		canDeleteWorktree: publicProcedure
 			.input(
 				z.object({
@@ -393,7 +383,6 @@ export const createDeleteProcedures = () => {
 				}
 			}),
 
-		// Delete a closed worktree (no active workspace) by worktree ID
 		deleteWorktree: publicProcedure
 			.input(z.object({ worktreeId: z.string() }))
 			.mutation(async ({ input }) => {
@@ -409,7 +398,6 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Project not found" };
 				}
 
-				// Acquire project lock to prevent racing with concurrent operations
 				await workspaceInitManager.acquireProjectLock(project.id);
 
 				try {
