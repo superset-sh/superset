@@ -12,7 +12,6 @@ import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
-	DEFAULT_TELEMETRY_ENABLED,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -386,23 +385,14 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		// TODO: remove telemetry procedures once telemetry_enabled column is dropped
 		getTelemetryEnabled: publicProcedure.query(() => {
-			const row = getSettings();
-			return row.telemetryEnabled ?? DEFAULT_TELEMETRY_ENABLED;
+			return true;
 		}),
 
 		setTelemetryEnabled: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
-			.mutation(({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, telemetryEnabled: input.enabled })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { telemetryEnabled: input.enabled },
-					})
-					.run();
-
+			.mutation(() => {
 				return { success: true };
 			}),
 	});
