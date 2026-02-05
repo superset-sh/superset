@@ -10,25 +10,24 @@
  */
 
 import type {
-  StreamChunk,
-  UIMessage,
-  MessagePart,
-  AnyClientTool,
-} from '@tanstack/ai'
-import type { Collection } from '@tanstack/db'
-import type { SessionDB } from './collection'
-
-// Re-export schema types
-export type { ChunkRow, ChunkValue, PresenceRow, AgentRow } from './schema'
+	AnyClientTool,
+	MessagePart,
+	StreamChunk,
+	UIMessage,
+} from "@tanstack/ai";
+import type { Collection } from "@tanstack/db";
+import type { SessionDB } from "./collection";
 
 // Re-export TanStack AI message part types for consumer convenience
 export type {
-  MessagePart,
-  TextPart,
-  ToolCallPart,
-  ToolResultPart,
-  ThinkingPart,
-} from '@tanstack/ai'
+	MessagePart,
+	TextPart,
+	ThinkingPart,
+	ToolCallPart,
+	ToolResultPart,
+} from "@tanstack/ai";
+// Re-export schema types
+export type { AgentRow, ChunkRow, ChunkValue, PresenceRow } from "./schema";
 
 // ============================================================================
 // Stream Protocol Types
@@ -43,8 +42,8 @@ export type {
  * so we store them as complete UIMessage objects.
  */
 export interface WholeMessageChunk {
-  type: 'whole-message'
-  message: UIMessage
+	type: "whole-message";
+	message: UIMessage;
 }
 
 /**
@@ -52,17 +51,17 @@ export interface WholeMessageChunk {
  * - WholeMessageChunk: Complete messages (user input)
  * - StreamChunk: TanStack AI streaming chunks (assistant responses)
  */
-export type DurableStreamChunk = WholeMessageChunk | StreamChunk
+export type DurableStreamChunk = WholeMessageChunk | StreamChunk;
 
 /**
  * Actor types in the chat session.
  */
-export type ActorType = 'user' | 'agent'
+export type ActorType = "user" | "agent";
 
 /**
  * Message role types (aligned with TanStack AI UIMessage.role).
  */
-export type MessageRole = 'user' | 'assistant' | 'system'
+export type MessageRole = "user" | "assistant" | "system";
 
 // ============================================================================
 // Message Collection Types
@@ -94,18 +93,18 @@ export type MessageRole = 'user' | 'assistant' | 'system'
  * ```
  */
 export interface MessageRow {
-  /** Message identifier (same as messageId from chunks) */
-  id: string
-  /** Message role */
-  role: MessageRole
-  /** Message parts - uses TanStack AI's MessagePart type directly */
-  parts: MessagePart[]
-  /** Actor identifier who wrote this message */
-  actorId: string
-  /** Whether the message is complete (finish chunk received) */
-  isComplete: boolean
-  /** Message creation timestamp (from first chunk) */
-  createdAt: Date
+	/** Message identifier (same as messageId from chunks) */
+	id: string;
+	/** Message role */
+	role: MessageRole;
+	/** Message parts - uses TanStack AI's MessagePart type directly */
+	parts: MessagePart[];
+	/** Actor identifier who wrote this message */
+	actorId: string;
+	/** Whether the message is complete (finish chunk received) */
+	isComplete: boolean;
+	/** Message creation timestamp (from first chunk) */
+	createdAt: Date;
 }
 
 // ============================================================================
@@ -116,16 +115,16 @@ export interface MessageRow {
  * Messages currently being streamed (have chunks but no finish chunk).
  */
 export interface ActiveGenerationRow {
-  /** The message being generated */
-  messageId: string
-  /** Actor identifier */
-  actorId: string
-  /** When generation started */
-  startedAt: Date
-  /** Last chunk sequence number */
-  lastChunkSeq: number
-  /** When last chunk was received */
-  lastChunkAt: Date
+	/** The message being generated */
+	messageId: string;
+	/** Actor identifier */
+	actorId: string;
+	/** When generation started */
+	startedAt: Date;
+	/** Last chunk sequence number */
+	lastChunkSeq: number;
+	/** When last chunk was received */
+	lastChunkAt: Date;
 }
 
 // ============================================================================
@@ -135,22 +134,26 @@ export interface ActiveGenerationRow {
 /**
  * Connection status states.
  */
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+export type ConnectionStatus =
+	| "disconnected"
+	| "connecting"
+	| "connected"
+	| "error";
 
 /**
  * Session metadata row (local state only, not derived from stream).
  */
 export interface SessionMetaRow {
-  /** Session identifier */
-  sessionId: string
-  /** Current connection status */
-  connectionStatus: ConnectionStatus
-  /** Last synced transaction ID (for txid tracking) */
-  lastSyncedTxId: string | null
-  /** Last sync timestamp */
-  lastSyncedAt: Date | null
-  /** Error information if any */
-  error: { message: string; code?: string } | null
+	/** Session identifier */
+	sessionId: string;
+	/** Current connection status */
+	connectionStatus: ConnectionStatus;
+	/** Last synced transaction ID (for txid tracking) */
+	lastSyncedTxId: string | null;
+	/** Last sync timestamp */
+	lastSyncedAt: Date | null;
+	/** Error information if any */
+	error: { message: string; code?: string } | null;
 }
 
 // ============================================================================
@@ -161,30 +164,30 @@ export interface SessionMetaRow {
  * Aggregate session statistics row.
  */
 export interface SessionStatsRow {
-  /** Session identifier */
-  sessionId: string
-  /** Total message count */
-  messageCount: number
-  /** User message count */
-  userMessageCount: number
-  /** Assistant message count */
-  assistantMessageCount: number
-  /** Total tool call count */
-  toolCallCount: number
-  /** Total approval count */
-  approvalCount: number
-  /** Total tokens used */
-  totalTokens: number
-  /** Prompt tokens used */
-  promptTokens: number
-  /** Completion tokens used */
-  completionTokens: number
-  /** Currently active generation count */
-  activeGenerationCount: number
-  /** First message timestamp */
-  firstMessageAt: Date | null
-  /** Last message timestamp */
-  lastMessageAt: Date | null
+	/** Session identifier */
+	sessionId: string;
+	/** Total message count */
+	messageCount: number;
+	/** User message count */
+	userMessageCount: number;
+	/** Assistant message count */
+	assistantMessageCount: number;
+	/** Total tool call count */
+	toolCallCount: number;
+	/** Total approval count */
+	approvalCount: number;
+	/** Total tokens used */
+	totalTokens: number;
+	/** Prompt tokens used */
+	promptTokens: number;
+	/** Completion tokens used */
+	completionTokens: number;
+	/** Currently active generation count */
+	activeGenerationCount: number;
+	/** First message timestamp */
+	firstMessageAt: Date | null;
+	/** Last message timestamp */
+	lastMessageAt: Date | null;
 }
 
 // ============================================================================
@@ -194,26 +197,26 @@ export interface SessionStatsRow {
 /**
  * Agent trigger modes.
  */
-export type AgentTrigger = 'all' | 'user-messages'
+export type AgentTrigger = "all" | "user-messages";
 
 /**
  * Unified structure for webhook registration and inline agent invocation.
  */
 export interface AgentSpec {
-  /** Agent identifier */
-  id: string
-  /** Optional display name */
-  name?: string
-  /** Endpoint URL the proxy will call */
-  endpoint: string
-  /** HTTP method */
-  method?: 'POST'
-  /** Additional headers for agent calls */
-  headers?: Record<string, string>
-  /** Trigger mode (for registered agents) */
-  triggers?: AgentTrigger
-  /** Request body template */
-  bodyTemplate?: Record<string, unknown>
+	/** Agent identifier */
+	id: string;
+	/** Optional display name */
+	name?: string;
+	/** Endpoint URL the proxy will call */
+	endpoint: string;
+	/** HTTP method */
+	method?: "POST";
+	/** Additional headers for agent calls */
+	headers?: Record<string, string>;
+	/** Trigger mode (for registered agents) */
+	triggers?: AgentTrigger;
+	/** Request body template */
+	bodyTemplate?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -221,7 +224,7 @@ export interface AgentSpec {
 // ============================================================================
 
 // Import types from schema
-import type { ChunkRow, PresenceRow, AgentRow } from './schema'
+import type { AgentRow, ChunkRow, PresenceRow } from "./schema";
 
 /**
  * All collections exposed by DurableChatClient.
@@ -250,26 +253,26 @@ import type { ChunkRow, PresenceRow, AgentRow } from './schema'
  * ```
  */
 export interface DurableChatCollections {
-  /** Root chunks collection synced from Durable Stream via stream-db */
-  chunks: Collection<ChunkRow>
-  /** Aggregated presence - one row per online actor with their device count */
-  presence: Collection<PresenceRow>
-  /** Agents collection - registered webhook agents (from stream-db) */
-  agents: Collection<AgentRow>
-  /** All materialized messages (keyed by messageId) */
-  messages: Collection<MessageRow>
-  /** Messages containing tool calls (keyed by messageId) */
-  toolCalls: Collection<MessageRow>
-  /** Messages with pending approval requests (keyed by messageId) */
-  pendingApprovals: Collection<MessageRow>
-  /** Messages containing tool results (keyed by messageId) */
-  toolResults: Collection<MessageRow>
-  /** Active generations - incomplete messages (keyed by messageId) */
-  activeGenerations: Collection<ActiveGenerationRow>
-  /** Session metadata collection (local state) */
-  sessionMeta: Collection<SessionMetaRow>
-  /** Session statistics (keyed by sessionId) */
-  sessionStats: Collection<SessionStatsRow>
+	/** Root chunks collection synced from Durable Stream via stream-db */
+	chunks: Collection<ChunkRow>;
+	/** Aggregated presence - one row per online actor with their device count */
+	presence: Collection<PresenceRow>;
+	/** Agents collection - registered webhook agents (from stream-db) */
+	agents: Collection<AgentRow>;
+	/** All materialized messages (keyed by messageId) */
+	messages: Collection<MessageRow>;
+	/** Messages containing tool calls (keyed by messageId) */
+	toolCalls: Collection<MessageRow>;
+	/** Messages with pending approval requests (keyed by messageId) */
+	pendingApprovals: Collection<MessageRow>;
+	/** Messages containing tool results (keyed by messageId) */
+	toolResults: Collection<MessageRow>;
+	/** Active generations - incomplete messages (keyed by messageId) */
+	activeGenerations: Collection<ActiveGenerationRow>;
+	/** Session metadata collection (local state) */
+	sessionMeta: Collection<SessionMetaRow>;
+	/** Session statistics (keyed by sessionId) */
+	sessionStats: Collection<SessionStatsRow>;
 }
 
 // ============================================================================
@@ -280,56 +283,56 @@ export interface DurableChatCollections {
  * Configuration options for DurableChatClient.
  */
 export interface DurableChatClientOptions<
-  TTools extends ReadonlyArray<AnyClientTool> = AnyClientTool[],
+	TTools extends ReadonlyArray<AnyClientTool> = AnyClientTool[],
 > {
-  /** Session identifier */
-  sessionId: string
-  /** Proxy URL for API requests */
-  proxyUrl: string
-  /** Actor identifier (auto-generated if not provided) */
-  actorId?: string
-  /** Actor type */
-  actorType?: ActorType
-  /** Client tools */
-  tools?: TTools
-  /** Initial messages for SSR hydration */
-  initialMessages?: UIMessage[]
-  /** API endpoint */
-  api?: string
-  /** Additional request body fields */
-  body?: Record<string, unknown>
-  /**
-   * Default agent to invoke for each user message.
-   * For single-agent scenarios, this provides a simpler alternative to registerAgents().
-   * The agent spec is sent with each sendMessage request.
-   */
-  agent?: AgentSpec
+	/** Session identifier */
+	sessionId: string;
+	/** Proxy URL for API requests */
+	proxyUrl: string;
+	/** Actor identifier (auto-generated if not provided) */
+	actorId?: string;
+	/** Actor type */
+	actorType?: ActorType;
+	/** Client tools */
+	tools?: TTools;
+	/** Initial messages for SSR hydration */
+	initialMessages?: UIMessage[];
+	/** API endpoint */
+	api?: string;
+	/** Additional request body fields */
+	body?: Record<string, unknown>;
+	/**
+	 * Default agent to invoke for each user message.
+	 * For single-agent scenarios, this provides a simpler alternative to registerAgents().
+	 * The agent spec is sent with each sendMessage request.
+	 */
+	agent?: AgentSpec;
 
-  // Callbacks (TanStack AI compatible)
-  /** Called when response is received */
-  onResponse?: (response?: Response) => void | Promise<void>
-  /** Called for each chunk */
-  onChunk?: (chunk: StreamChunk) => void
-  /** Called when message finishes */
-  onFinish?: (message: UIMessage) => void
-  /** Called on error */
-  onError?: (error: Error) => void
-  /** Called when messages change */
-  onMessagesChange?: (messages: UIMessage[]) => void
+	// Callbacks (TanStack AI compatible)
+	/** Called when response is received */
+	onResponse?: (response?: Response) => void | Promise<void>;
+	/** Called for each chunk */
+	onChunk?: (chunk: StreamChunk) => void;
+	/** Called when message finishes */
+	onFinish?: (message: UIMessage) => void;
+	/** Called on error */
+	onError?: (error: Error) => void;
+	/** Called when messages change */
+	onMessagesChange?: (messages: UIMessage[]) => void;
 
-  /** Durable Streams configuration */
-  stream?: {
-    /** Additional headers for stream requests */
-    headers?: Record<string, string>
-  }
+	/** Durable Streams configuration */
+	stream?: {
+		/** Additional headers for stream requests */
+		headers?: Record<string, string>;
+	};
 
-  /**
-   * Pre-created SessionDB for testing.
-   * If provided, the client will use this instead of creating its own via createSessionDB().
-   * This allows tests to inject mock collections with controlled data.
-   * @internal
-   */
-  sessionDB?: SessionDB
+	/**
+	 * Pre-created SessionDB for testing.
+	 * If provided, the client will use this instead of creating its own via createSessionDB().
+	 * This allows tests to inject mock collections with controlled data.
+	 * @internal
+	 */
+	sessionDB?: SessionDB;
 }
 
 // ============================================================================
@@ -340,30 +343,32 @@ export interface DurableChatClientOptions<
  * Input for adding a tool result.
  */
 export interface ToolResultInput {
-  /** Tool call identifier */
-  toolCallId: string
-  /** Tool output */
-  output: unknown
-  /** Error message if failed */
-  error?: string
-  /** Client-generated message ID for optimistic updates (auto-generated if not provided) */
-  messageId?: string
+	/** Tool call identifier */
+	toolCallId: string;
+	/** Tool output */
+	output: unknown;
+	/** Error message if failed */
+	error?: string;
+	/** Client-generated message ID for optimistic updates (auto-generated if not provided) */
+	messageId?: string;
 }
 
 /**
  * Tool result input with required messageId (used internally for optimistic actions).
  */
-export type ClientToolResultInput = Required<Pick<ToolResultInput, 'messageId'>> &
-  ToolResultInput
+export type ClientToolResultInput = Required<
+	Pick<ToolResultInput, "messageId">
+> &
+	ToolResultInput;
 
 /**
  * Input for adding an approval response.
  */
 export interface ApprovalResponseInput {
-  /** Approval identifier */
-  id: string
-  /** Whether approved */
-  approved: boolean
+	/** Approval identifier */
+	id: string;
+	/** Whether approved */
+	approved: boolean;
 }
 
 // ============================================================================
@@ -374,20 +379,20 @@ export interface ApprovalResponseInput {
  * Options for forking a session.
  */
 export interface ForkOptions {
-  /** Fork before this message (default: current end) */
-  atMessageId?: string
-  /** Custom session ID (default: auto-generated) */
-  newSessionId?: string
+	/** Fork before this message (default: current end) */
+	atMessageId?: string;
+	/** Custom session ID (default: auto-generated) */
+	newSessionId?: string;
 }
 
 /**
  * Result of forking a session.
  */
 export interface ForkResult {
-  /** New session identifier */
-  sessionId: string
-  /** Starting offset for new session */
-  offset: string
+	/** New session identifier */
+	sessionId: string;
+	/** Starting offset for new session */
+	offset: string;
 }
 
 // ============================================================================
@@ -398,20 +403,20 @@ export interface ForkResult {
  * Configuration for creating a session stream-db.
  */
 export interface SessionDBConfig {
-  /** Session identifier */
-  sessionId: string
-  /** Base URL for the proxy */
-  baseUrl: string
-  /** Additional headers for stream requests */
-  headers?: Record<string, string>
-  /**
-   * AbortSignal to cancel the stream sync.
-   * When aborted, the sync will stop and cleanup will be called.
-   */
-  signal?: AbortSignal
-  // /**
-  //  * Live mode for the stream connection.
-  //  * Defaults to "sse" for efficient real-time updates.
-  //  */
-  // liveMode?: LiveMode
+	/** Session identifier */
+	sessionId: string;
+	/** Base URL for the proxy */
+	baseUrl: string;
+	/** Additional headers for stream requests */
+	headers?: Record<string, string>;
+	/**
+	 * AbortSignal to cancel the stream sync.
+	 * When aborted, the sync will stop and cleanup will be called.
+	 */
+	signal?: AbortSignal;
+	// /**
+	//  * Live mode for the stream connection.
+	//  * Defaults to "sse" for efficient real-time updates.
+	//  */
+	// liveMode?: LiveMode
 }

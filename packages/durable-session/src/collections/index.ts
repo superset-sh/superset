@@ -9,48 +9,43 @@
  * Consumers filter message.parts to access specific part types (ToolCallPart, etc.).
  */
 
-// Messages collection (root) and derived collections
-export {
-  createMessagesCollection,
-  createToolCallsCollection,
-  createPendingApprovalsCollection,
-  createToolResultsCollection,
-  type MessagesCollectionOptions,
-  type DerivedMessagesCollectionOptions,
-} from './messages'
-
 // Active generations collection (derived from messages)
 export {
-  createActiveGenerationsCollection,
-  type ActiveGenerationsCollectionOptions,
-} from './active-generations'
-
-// Session metadata collection (local state)
+	type ActiveGenerationsCollectionOptions,
+	createActiveGenerationsCollection,
+} from "./active-generations";
+// Messages collection (root) and derived collections
 export {
-  createSessionMetaCollectionOptions,
-  createInitialSessionMeta,
-  updateConnectionStatus,
-  updateSyncProgress,
-  type SessionMetaCollectionOptions,
-} from './session-meta'
-
-// Session statistics collection (aggregated from chunks)
-export {
-  createSessionStatsCollection,
-  computeSessionStats,
-  createEmptyStats,
-  type SessionStatsCollectionOptions,
-} from './session-stats'
-
+	createMessagesCollection,
+	createPendingApprovalsCollection,
+	createToolCallsCollection,
+	createToolResultsCollection,
+	type DerivedMessagesCollectionOptions,
+	type MessagesCollectionOptions,
+} from "./messages";
 // Model messages collection (for LLM invocation)
 export {
-  createModelMessagesCollection,
-  type ModelMessage,
-  type ModelMessagesCollectionOptions,
-} from './model-messages'
-
+	createModelMessagesCollection,
+	type ModelMessage,
+	type ModelMessagesCollectionOptions,
+} from "./model-messages";
 // Aggregated presence collection (derived from raw per-device presence)
 export {
-  createPresenceCollection,
-  type PresenceCollectionOptions,
-} from './presence'
+	createPresenceCollection,
+	type PresenceCollectionOptions,
+} from "./presence";
+// Session metadata collection (local state)
+export {
+	createInitialSessionMeta,
+	createSessionMetaCollectionOptions,
+	type SessionMetaCollectionOptions,
+	updateConnectionStatus,
+	updateSyncProgress,
+} from "./session-meta";
+// Session statistics collection (aggregated from chunks)
+export {
+	computeSessionStats,
+	createEmptyStats,
+	createSessionStatsCollection,
+	type SessionStatsCollectionOptions,
+} from "./session-stats";

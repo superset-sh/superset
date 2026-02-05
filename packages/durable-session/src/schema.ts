@@ -27,8 +27,8 @@
  * ```
  */
 
-import { createStateSchema } from '@durable-streams/state'
-import { z } from 'zod'
+import { createStateSchema } from "@durable-streams/state";
+import { z } from "zod";
 
 // ============================================================================
 // Chunk Schema
@@ -48,22 +48,22 @@ import { z } from 'zod'
  * Key format: `${messageId}:${seq}` - e.g., "msg-1:0", "msg-2:5"
  */
 export const chunkValueSchema = z.object({
-  /** Message identifier - groups chunks belonging to the same message */
-  messageId: z.string(),
-  /** Actor who wrote this chunk */
-  actorId: z.string(),
-  /** Message role - aligns with TanStack AI UIMessage.role */
-  role: z.enum(['user', 'assistant', 'system']),
-  /** JSON-encoded chunk content - could be WholeMessageChunk or StreamChunk */
-  chunk: z.string(),
-  /** Sequence number within message - monotonically increasing per messageId */
-  seq: z.number(),
-  /** ISO 8601 timestamp when chunk was created */
-  createdAt: z.string(),
-})
+	/** Message identifier - groups chunks belonging to the same message */
+	messageId: z.string(),
+	/** Actor who wrote this chunk */
+	actorId: z.string(),
+	/** Message role - aligns with TanStack AI UIMessage.role */
+	role: z.enum(["user", "assistant", "system"]),
+	/** JSON-encoded chunk content - could be WholeMessageChunk or StreamChunk */
+	chunk: z.string(),
+	/** Sequence number within message - monotonically increasing per messageId */
+	seq: z.number(),
+	/** ISO 8601 timestamp when chunk was created */
+	createdAt: z.string(),
+});
 
 /** Inferred type for chunk values (without the injected `id` field) */
-export type ChunkValue = z.infer<typeof chunkValueSchema>
+export type ChunkValue = z.infer<typeof chunkValueSchema>;
 
 // ============================================================================
 // Presence Schema
@@ -78,22 +78,22 @@ export type ChunkValue = z.infer<typeof chunkValueSchema>
  * Key format: `${actorId}:${deviceId}` - e.g., "user-123:device-abc"
  */
 export const presenceValueSchema = z.object({
-  /** Actor identifier */
-  actorId: z.string(),
-  /** Device/tab identifier - unique per browser tab/page load */
-  deviceId: z.string(),
-  /** Actor type - 'user' or 'agent' */
-  actorType: z.enum(['user', 'agent']),
-  /** Optional display name */
-  name: z.string().optional(),
-  /** Current status */
-  status: z.enum(['online', 'offline', 'away']),
-  /** ISO 8601 timestamp of last activity */
-  lastSeenAt: z.string(),
-})
+	/** Actor identifier */
+	actorId: z.string(),
+	/** Device/tab identifier - unique per browser tab/page load */
+	deviceId: z.string(),
+	/** Actor type - 'user' or 'agent' */
+	actorType: z.enum(["user", "agent"]),
+	/** Optional display name */
+	name: z.string().optional(),
+	/** Current status */
+	status: z.enum(["online", "offline", "away"]),
+	/** ISO 8601 timestamp of last activity */
+	lastSeenAt: z.string(),
+});
 
 /** Inferred type for presence values */
-export type PresenceValue = z.infer<typeof presenceValueSchema>
+export type PresenceValue = z.infer<typeof presenceValueSchema>;
 
 // ============================================================================
 // Agent Schema
@@ -108,18 +108,18 @@ export type PresenceValue = z.infer<typeof presenceValueSchema>
  * Key format: `${agentId}` - e.g., "claude-agent", "custom-tool"
  */
 export const agentValueSchema = z.object({
-  /** Agent identifier (same as key) */
-  agentId: z.string(),
-  /** Optional display name */
-  name: z.string().optional(),
-  /** Webhook endpoint URL */
-  endpoint: z.string(),
-  /** Trigger mode - when to invoke this agent */
-  triggers: z.enum(['all', 'user-messages']).optional(),
-})
+	/** Agent identifier (same as key) */
+	agentId: z.string(),
+	/** Optional display name */
+	name: z.string().optional(),
+	/** Webhook endpoint URL */
+	endpoint: z.string(),
+	/** Trigger mode - when to invoke this agent */
+	triggers: z.enum(["all", "user-messages"]).optional(),
+});
 
 /** Inferred type for agent values */
-export type AgentValue = z.infer<typeof agentValueSchema>
+export type AgentValue = z.infer<typeof agentValueSchema>;
 
 // ============================================================================
 // Session State Schema
@@ -157,45 +157,45 @@ export type AgentValue = z.infer<typeof agentValueSchema>
  * ```
  */
 export const sessionStateSchema = createStateSchema({
-  /**
-   * Chunks collection - all message chunks (complete and streaming).
-   *
-   * Primary key `id` is injected from event.key = `${messageId}:${seq}`
-   */
-  chunks: {
-    schema: chunkValueSchema,
-    type: 'chunk',
-    primaryKey: 'id',
-    allowSyncWhilePersisting: true,
-  },
+	/**
+	 * Chunks collection - all message chunks (complete and streaming).
+	 *
+	 * Primary key `id` is injected from event.key = `${messageId}:${seq}`
+	 */
+	chunks: {
+		schema: chunkValueSchema,
+		type: "chunk",
+		primaryKey: "id",
+		allowSyncWhilePersisting: true,
+	},
 
-  /**
-   * Presence collection - online status of users and agents.
-   *
-   * Uses upsert semantics with (actorId, deviceId) pairs.
-   * Primary key `id` is injected from event.key = `${actorId}:${deviceId}`
-   * This follows the same pattern as chunks.
-   */
-  presence: {
-    schema: presenceValueSchema,
-    type: 'presence',
-    primaryKey: 'id',
-  },
+	/**
+	 * Presence collection - online status of users and agents.
+	 *
+	 * Uses upsert semantics with (actorId, deviceId) pairs.
+	 * Primary key `id` is injected from event.key = `${actorId}:${deviceId}`
+	 * This follows the same pattern as chunks.
+	 */
+	presence: {
+		schema: presenceValueSchema,
+		type: "presence",
+		primaryKey: "id",
+	},
 
-  /**
-   * Agents collection - registered webhook agents.
-   *
-   * Uses upsert semantics for registration. Primary key `agentId` from event.key.
-   */
-  agents: {
-    schema: agentValueSchema,
-    type: 'agent',
-    primaryKey: 'agentId',
-  },
-})
+	/**
+	 * Agents collection - registered webhook agents.
+	 *
+	 * Uses upsert semantics for registration. Primary key `agentId` from event.key.
+	 */
+	agents: {
+		schema: agentValueSchema,
+		type: "agent",
+		primaryKey: "agentId",
+	},
+});
 
 /** Type of the session state schema */
-export type SessionStateSchema = typeof sessionStateSchema
+export type SessionStateSchema = typeof sessionStateSchema;
 
 // ============================================================================
 // Row Types (with injected primary keys)
@@ -208,9 +208,9 @@ export type SessionStateSchema = typeof sessionStateSchema
  * injects the primary key from the event key.
  */
 export type ChunkRow = ChunkValue & {
-  /** Primary key - injected from event.key = `${messageId}:${seq}` */
-  id: string
-}
+	/** Primary key - injected from event.key = `${messageId}:${seq}` */
+	id: string;
+};
 
 /**
  * RawPresenceRow - a presence value with the injected `id` primary key.
@@ -222,9 +222,9 @@ export type ChunkRow = ChunkValue & {
  * which is an aggregated view per actor.
  */
 export type RawPresenceRow = PresenceValue & {
-  /** Primary key - injected from event.key = `${actorId}:${deviceId}` */
-  id: string
-}
+	/** Primary key - injected from event.key = `${actorId}:${deviceId}` */
+	id: string;
+};
 
 /**
  * PresenceRow - aggregated presence per actor.
@@ -233,20 +233,20 @@ export type RawPresenceRow = PresenceValue & {
  * all devices for an actor into a single row showing who's online.
  */
 export type PresenceRow = {
-  /** Actor identifier */
-  actorId: string
-  /** Actor type - 'user' or 'agent' */
-  actorType: 'user' | 'agent'
-  /** Optional display name */
-  name?: string
-  /** All online device IDs for this actor */
-  deviceIds: string[]
-  /** Number of online devices */
-  deviceCount: number
-}
+	/** Actor identifier */
+	actorId: string;
+	/** Actor type - 'user' or 'agent' */
+	actorType: "user" | "agent";
+	/** Optional display name */
+	name?: string;
+	/** All online device IDs for this actor */
+	deviceIds: string[];
+	/** Number of online devices */
+	deviceCount: number;
+};
 
 /**
  * AgentRow - an agent value with the `agentId` key.
  * (Note: agentId is already in the schema, so this is the same as AgentValue)
  */
-export type AgentRow = AgentValue
+export type AgentRow = AgentValue;

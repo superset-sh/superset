@@ -5,18 +5,15 @@
  * This is a local-only collection, not derived from stream.
  */
 
-import { localOnlyCollectionOptions } from '@tanstack/db'
-import type {
-  SessionMetaRow,
-  ConnectionStatus,
-} from '../types'
+import { localOnlyCollectionOptions } from "@tanstack/db";
+import type { ConnectionStatus, SessionMetaRow } from "../types";
 
 /**
  * Options for creating a session meta collection.
  */
 export interface SessionMetaCollectionOptions {
-  /** Session identifier */
-  sessionId: string
+	/** Session identifier */
+	sessionId: string;
 }
 
 /**
@@ -43,14 +40,14 @@ export interface SessionMetaCollectionOptions {
  * ```
  */
 export function createSessionMetaCollectionOptions(
-  options: SessionMetaCollectionOptions
+	options: SessionMetaCollectionOptions,
 ) {
-  const { sessionId } = options
+	const { sessionId } = options;
 
-  return localOnlyCollectionOptions<SessionMetaRow>({
-    id: `session-meta:${sessionId}`,
-    getKey: (meta) => meta.sessionId,
-  })
+	return localOnlyCollectionOptions<SessionMetaRow>({
+		id: `session-meta:${sessionId}`,
+		getKey: (meta) => meta.sessionId,
+	});
 }
 
 /**
@@ -60,13 +57,13 @@ export function createSessionMetaCollectionOptions(
  * @returns Initial session metadata row
  */
 export function createInitialSessionMeta(sessionId: string): SessionMetaRow {
-  return {
-    sessionId,
-    connectionStatus: 'disconnected',
-    lastSyncedTxId: null,
-    lastSyncedAt: null,
-    error: null,
-  }
+	return {
+		sessionId,
+		connectionStatus: "disconnected",
+		lastSyncedTxId: null,
+		lastSyncedAt: null,
+		error: null,
+	};
 }
 
 /**
@@ -78,15 +75,15 @@ export function createInitialSessionMeta(sessionId: string): SessionMetaRow {
  * @returns Updated metadata
  */
 export function updateConnectionStatus(
-  meta: SessionMetaRow,
-  status: ConnectionStatus,
-  error?: { message: string; code?: string } | null
+	meta: SessionMetaRow,
+	status: ConnectionStatus,
+	error?: { message: string; code?: string } | null,
 ): SessionMetaRow {
-  return {
-    ...meta,
-    connectionStatus: status,
-    error: error ?? (status === 'connected' ? null : meta.error),
-  }
+	return {
+		...meta,
+		connectionStatus: status,
+		error: error ?? (status === "connected" ? null : meta.error),
+	};
 }
 
 /**
@@ -97,14 +94,14 @@ export function updateConnectionStatus(
  * @returns Updated metadata
  */
 export function updateSyncProgress(
-  meta: SessionMetaRow,
-  txId: string
+	meta: SessionMetaRow,
+	txId: string,
 ): SessionMetaRow {
-  return {
-    ...meta,
-    lastSyncedTxId: txId,
-    lastSyncedAt: new Date(),
-    connectionStatus: 'connected',
-    error: null,
-  }
+	return {
+		...meta,
+		lastSyncedTxId: txId,
+		lastSyncedAt: new Date(),
+		connectionStatus: "connected",
+		error: null,
+	};
 }

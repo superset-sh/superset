@@ -9,10 +9,19 @@
  * that are automatically populated from the STATE-PROTOCOL events on the stream.
  */
 
-import { createStreamDB, type StreamDB, type StreamDBMethods } from '@durable-streams/state'
-import type { Collection } from '@tanstack/db'
-import { sessionStateSchema, type ChunkRow, type RawPresenceRow, type AgentRow } from './schema'
-import type { SessionDBConfig } from './types'
+import {
+	createStreamDB,
+	type StreamDB,
+	type StreamDBMethods,
+} from "@durable-streams/state";
+import type { Collection } from "@tanstack/db";
+import {
+	type AgentRow,
+	type ChunkRow,
+	type RawPresenceRow,
+	sessionStateSchema,
+} from "./schema";
+import type { SessionDBConfig } from "./types";
 
 // ============================================================================
 // Session StreamDB Types
@@ -29,9 +38,9 @@ import type { SessionDBConfig } from './types'
  * The aggregated per-actor presence is created in client.ts.
  */
 export interface SessionCollections {
-  chunks: Collection<ChunkRow>
-  presence: Collection<RawPresenceRow>
-  agents: Collection<AgentRow>
+	chunks: Collection<ChunkRow>;
+	presence: Collection<RawPresenceRow>;
+	agents: Collection<AgentRow>;
 }
 
 /**
@@ -48,14 +57,14 @@ export interface SessionCollections {
  * - `db.utils.awaitTxId(txid)` - Wait for specific write to sync
  */
 export type SessionDB = {
-  collections: SessionCollections
-} & StreamDBMethods
+	collections: SessionCollections;
+} & StreamDBMethods;
 
 /**
  * Internal type for the raw stream-db instance.
  * @internal
  */
-type RawSessionDB = StreamDB<typeof sessionStateSchema>
+type RawSessionDB = StreamDB<typeof sessionStateSchema>;
 
 // ============================================================================
 // Session StreamDB Factory
@@ -96,25 +105,25 @@ type RawSessionDB = StreamDB<typeof sessionStateSchema>
  * ```
  */
 export function createSessionDB(config: SessionDBConfig): SessionDB {
-  const { sessionId, baseUrl, headers, signal, /* liveMode */ } = config
+	const { sessionId, baseUrl, headers, signal /* liveMode */ } = config;
 
-  // Build the stream URL for this session
-  const streamUrl = `${baseUrl}/v1/stream/sessions/${sessionId}`
+	// Build the stream URL for this session
+	const streamUrl = `${baseUrl}/v1/stream/sessions/${sessionId}`;
 
-  // Create the stream-db instance with our session state schema (synchronous)
-  const rawDb: RawSessionDB = createStreamDB({
-    streamOptions: {
-      url: streamUrl,
-      headers,
-      signal,
-    },
-    state: sessionStateSchema,
-    // liveMode,
-  })
+	// Create the stream-db instance with our session state schema (synchronous)
+	const rawDb: RawSessionDB = createStreamDB({
+		streamOptions: {
+			url: streamUrl,
+			headers,
+			signal,
+		},
+		state: sessionStateSchema,
+		// liveMode,
+	});
 
-  // Cast to our SessionDB type which has correctly typed collections
-  // (stream-db injects the primary key at runtime, so our types reflect that)
-  return rawDb as unknown as SessionDB
+	// Cast to our SessionDB type which has correctly typed collections
+	// (stream-db injects the primary key at runtime, so our types reflect that)
+	return rawDb as unknown as SessionDB;
 }
 
 // ============================================================================
@@ -131,7 +140,7 @@ export function createSessionDB(config: SessionDBConfig): SessionDB {
  * @returns Primary key string
  */
 export function getChunkKey(messageId: string, seq: number): string {
-  return `${messageId}:${seq}`
+	return `${messageId}:${seq}`;
 }
 
 /**
@@ -140,15 +149,17 @@ export function getChunkKey(messageId: string, seq: number): string {
  * @param key - Chunk key in format `${messageId}:${seq}`
  * @returns Parsed components or null if invalid
  */
-export function parseChunkKey(key: string): { messageId: string; seq: number } | null {
-  const lastColonIndex = key.lastIndexOf(':')
-  if (lastColonIndex === -1) return null
+export function parseChunkKey(
+	key: string,
+): { messageId: string; seq: number } | null {
+	const lastColonIndex = key.lastIndexOf(":");
+	if (lastColonIndex === -1) return null;
 
-  const messageId = key.slice(0, lastColonIndex)
-  const seqStr = key.slice(lastColonIndex + 1)
-  const seq = parseInt(seqStr, 10)
+	const messageId = key.slice(0, lastColonIndex);
+	const seqStr = key.slice(lastColonIndex + 1);
+	const seq = parseInt(seqStr, 10);
 
-  if (isNaN(seq)) return null
+	if (Number.isNaN(seq)) return null;
 
-  return { messageId, seq }
+	return { messageId, seq };
 }

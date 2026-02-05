@@ -11,16 +11,12 @@
  * all chunks for each message.
  */
 
-import {
-  createLiveQueryCollection,
-  count,
-  min,
-} from '@tanstack/db'
-import type { Collection } from '@tanstack/db'
-import type { ToolCallPart } from '@tanstack/ai'
-import type { ChunkRow } from '../schema'
-import type { MessageRow } from '../types'
-import { materializeMessage } from '../materialize'
+import type { ToolCallPart } from "@tanstack/ai";
+import type { Collection } from "@tanstack/db";
+import { count, createLiveQueryCollection, min } from "@tanstack/db";
+import { materializeMessage } from "../materialize";
+import type { ChunkRow } from "../schema";
+import type { MessageRow } from "../types";
 
 // ============================================================================
 // Messages Collection (Root)
@@ -30,8 +26,8 @@ import { materializeMessage } from '../materialize'
  * Options for creating a messages collection.
  */
 export interface MessagesCollectionOptions {
-  /** Chunks collection from stream-db */
-  chunksCollection: Collection<ChunkRow>
+	/** Chunks collection from stream-db */
+	chunksCollection: Collection<ChunkRow>;
 }
 
 /**
@@ -44,38 +40,38 @@ export interface MessagesCollectionOptions {
  * imperatively gathers chunks from the collection per messageId.
  */
 export function createMessagesCollection(
-  options: MessagesCollectionOptions
+	options: MessagesCollectionOptions,
 ): Collection<MessageRow> {
-  const { chunksCollection } = options
+	const { chunksCollection } = options;
 
-  return createLiveQueryCollection({
-    query: (q) => {
-      // Subquery: group chunks by messageId with aggregates for change detection
-      const grouped = q
-        .from({ chunk: chunksCollection })
-        .groupBy(({ chunk }) => chunk.messageId)
-        .select(({ chunk }) => ({
-          messageId: chunk.messageId,
-          // min() handles strings (ISO 8601 sort lexicographically)
-          startedAt: min(chunk.createdAt),
-          // Count as discriminator to force re-evaluation when chunks change
-          rowCount: count(chunk),
-        }))
+	return createLiveQueryCollection({
+		query: (q) => {
+			// Subquery: group chunks by messageId with aggregates for change detection
+			const grouped = q
+				.from({ chunk: chunksCollection })
+				.groupBy(({ chunk }) => chunk.messageId)
+				.select(({ chunk }) => ({
+					messageId: chunk.messageId,
+					// min() handles strings (ISO 8601 sort lexicographically)
+					startedAt: min(chunk.createdAt),
+					// Count as discriminator to force re-evaluation when chunks change
+					rowCount: count(chunk),
+				}));
 
-      // Main query: materialize messages from chunks
-      return q
-        .from({ grouped })
-        .orderBy(({ grouped }) => grouped.startedAt, 'asc')
-        .fn.select(({ grouped }) => {
-          // Imperatively gather all chunks for this messageId
-          const rows = [...chunksCollection.values()].filter(
-            (c) => (c as ChunkRow).messageId === grouped.messageId
-          ) as ChunkRow[]
-          return materializeMessage(rows)
-        })
-    },
-    getKey: (row) => row.id,
-  })
+			// Main query: materialize messages from chunks
+			return q
+				.from({ grouped })
+				.orderBy(({ grouped }) => grouped.startedAt, "asc")
+				.fn.select(({ grouped }) => {
+					// Imperatively gather all chunks for this messageId
+					const rows = [...chunksCollection.values()].filter(
+						(c) => (c as ChunkRow).messageId === grouped.messageId,
+					) as ChunkRow[];
+					return materializeMessage(rows);
+				});
+		},
+		getKey: (row) => row.id,
+	});
 }
 
 // ============================================================================
@@ -86,8 +82,8 @@ export function createMessagesCollection(
  * Options for creating a derived collection from messages.
  */
 export interface DerivedMessagesCollectionOptions {
-  /** Messages collection to derive from */
-  messagesCollection: Collection<MessageRow>
+	/** Messages collection to derive from */
+	messagesCollection: Collection<MessageRow>;
 }
 
 /**
@@ -97,20 +93,20 @@ export interface DerivedMessagesCollectionOptions {
  * The collection is lazy - filtering only runs when accessed.
  */
 export function createToolCallsCollection(
-  options: DerivedMessagesCollectionOptions
+	options: DerivedMessagesCollectionOptions,
 ): Collection<MessageRow> {
-  const { messagesCollection } = options
+	const { messagesCollection } = options;
 
-  return createLiveQueryCollection({
-    query: (q) =>
-      q
-        .from({ message: messagesCollection })
-        .fn.where(({ message }) =>
-          message.parts.some((p): p is ToolCallPart => p.type === 'tool-call')
-        )
-        .orderBy(({ message }) => message.createdAt, 'asc'),
-    getKey: (row) => row.id,
-  })
+	return createLiveQueryCollection({
+		query: (q) =>
+			q
+				.from({ message: messagesCollection })
+				.fn.where(({ message }) =>
+					message.parts.some((p): p is ToolCallPart => p.type === "tool-call"),
+				)
+				.orderBy(({ message }) => message.createdAt, "asc"),
+		getKey: (row) => row.id,
+	});
 }
 
 /**
@@ -121,25 +117,25 @@ export function createToolCallsCollection(
  * - approval.approved === undefined (not yet responded)
  */
 export function createPendingApprovalsCollection(
-  options: DerivedMessagesCollectionOptions
+	options: DerivedMessagesCollectionOptions,
 ): Collection<MessageRow> {
-  const { messagesCollection } = options
+	const { messagesCollection } = options;
 
-  return createLiveQueryCollection({
-    query: (q) =>
-      q
-        .from({ message: messagesCollection })
-        .fn.where(({ message }) =>
-          message.parts.some(
-            (p): p is ToolCallPart =>
-              p.type === 'tool-call' &&
-              p.approval?.needsApproval === true &&
-              p.approval.approved === undefined
-          )
-        )
-        .orderBy(({ message }) => message.createdAt, 'asc'),
-    getKey: (row) => row.id,
-  })
+	return createLiveQueryCollection({
+		query: (q) =>
+			q
+				.from({ message: messagesCollection })
+				.fn.where(({ message }) =>
+					message.parts.some(
+						(p): p is ToolCallPart =>
+							p.type === "tool-call" &&
+							p.approval?.needsApproval === true &&
+							p.approval.approved === undefined,
+					),
+				)
+				.orderBy(({ message }) => message.createdAt, "asc"),
+		getKey: (row) => row.id,
+	});
 }
 
 /**
@@ -148,18 +144,18 @@ export function createPendingApprovalsCollection(
  * Filters messages where at least one part has type 'tool-result'.
  */
 export function createToolResultsCollection(
-  options: DerivedMessagesCollectionOptions
+	options: DerivedMessagesCollectionOptions,
 ): Collection<MessageRow> {
-  const { messagesCollection } = options
+	const { messagesCollection } = options;
 
-  return createLiveQueryCollection({
-    query: (q) =>
-      q
-        .from({ message: messagesCollection })
-        .fn.where(({ message }) =>
-          message.parts.some((p) => p.type === 'tool-result')
-        )
-        .orderBy(({ message }) => message.createdAt, 'asc'),
-    getKey: (row) => row.id,
-  })
+	return createLiveQueryCollection({
+		query: (q) =>
+			q
+				.from({ message: messagesCollection })
+				.fn.where(({ message }) =>
+					message.parts.some((p) => p.type === "tool-result"),
+				)
+				.orderBy(({ message }) => message.createdAt, "asc"),
+		getKey: (row) => row.id,
+	});
 }

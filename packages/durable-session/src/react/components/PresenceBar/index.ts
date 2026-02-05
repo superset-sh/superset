@@ -1,1 +1,5 @@
-export { PresenceBar, type PresenceBarProps, type PresenceUser } from "./PresenceBar";
+export {
+	PresenceBar,
+	type PresenceBarProps,
+	type PresenceUser,
+} from "./PresenceBar";

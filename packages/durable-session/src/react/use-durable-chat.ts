@@ -3,19 +3,20 @@
  *
  * Provides TanStack AI-compatible API backed by Durable Streams
  */
+
+import type { AnyClientTool, UIMessage } from "@tanstack/ai";
+import type { Collection } from "@tanstack/react-db";
 import {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-  useMemo,
-  useSyncExternalStore,
-} from 'react'
-import { DurableChatClient, messageRowToUIMessage } from '..'
-import type { DurableChatClientOptions } from '..'
-import type { Collection } from '@tanstack/react-db'
-import type { UIMessage, AnyClientTool } from '@tanstack/ai'
-import type { UseDurableChatOptions, UseDurableChatReturn } from './types'
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
+import type { DurableChatClientOptions } from "..";
+import { DurableChatClient, messageRowToUIMessage } from "..";
+import type { UseDurableChatOptions, UseDurableChatReturn } from "./types";
 
 /**
  * Extract the item type from a Collection.
@@ -25,9 +26,8 @@ import type { UseDurableChatOptions, UseDurableChatReturn } from './types'
  *
  * This helper extracts `T` (the item type) from any Collection variant.
  */
-type CollectionItem<C> = C extends Collection<infer T, any, any, any, any>
-  ? T
-  : never
+type CollectionItem<C> =
+	C extends Collection<infer T, any, any, any, any> ? T : never;
 
 /**
  * SSR-safe hook for subscribing to TanStack DB collection data.
@@ -35,80 +35,80 @@ type CollectionItem<C> = C extends Collection<infer T, any, any, any, any>
  * as per https://github.com/TanStack/db/pull/709
  */
 function useCollectionData<C extends Collection<any, any, any, any, any>>(
-  collection: C
+	collection: C,
 ): CollectionItem<C>[] {
-  type T = CollectionItem<C>
+	type T = CollectionItem<C>;
 
-  // Track version to know when to create a new snapshot.
-  // Incremented by subscription callback when collection changes.
-  const versionRef = useRef(0)
+	// Track version to know when to create a new snapshot.
+	// Incremented by subscription callback when collection changes.
+	const versionRef = useRef(0);
 
-  // Cache the last snapshot to maintain stable reference.
-  // useSyncExternalStore requires getSnapshot to return the same reference
-  // when data hasn't changed, otherwise it triggers infinite re-renders.
-  const snapshotRef = useRef<{ version: number; data: T[] }>({
-    version: -1, // Force initial snapshot creation
-    data: [],
-  })
+	// Cache the last snapshot to maintain stable reference.
+	// useSyncExternalStore requires getSnapshot to return the same reference
+	// when data hasn't changed, otherwise it triggers infinite re-renders.
+	const snapshotRef = useRef<{ version: number; data: T[] }>({
+		version: -1, // Force initial snapshot creation
+		data: [],
+	});
 
-  // Subscribe callback - increments version to signal data changed.
-  // Stored in ref to maintain stable reference for useSyncExternalStore.
-  const subscribeRef = useRef((onStoreChange: () => void): (() => void) => {
-    const subscription = collection.subscribeChanges(() => {
-      versionRef.current++
-      onStoreChange()
-    })
-    return () => subscription.unsubscribe()
-  })
+	// Subscribe callback - increments version to signal data changed.
+	// Stored in ref to maintain stable reference for useSyncExternalStore.
+	const subscribeRef = useRef((onStoreChange: () => void): (() => void) => {
+		const subscription = collection.subscribeChanges(() => {
+			versionRef.current++;
+			onStoreChange();
+		});
+		return () => subscription.unsubscribe();
+	});
 
-  // Update subscribe ref when collection changes
-  subscribeRef.current = (onStoreChange: () => void): (() => void) => {
-    const subscription = collection.subscribeChanges(() => {
-      versionRef.current++
-      onStoreChange()
-    })
-    return () => subscription.unsubscribe()
-  }
+	// Update subscribe ref when collection changes
+	subscribeRef.current = (onStoreChange: () => void): (() => void) => {
+		const subscription = collection.subscribeChanges(() => {
+			versionRef.current++;
+			onStoreChange();
+		});
+		return () => subscription.unsubscribe();
+	};
 
-  // Snapshot callback - returns cached data unless version changed.
-  // Stored in ref to maintain stable reference for useSyncExternalStore.
-  const getSnapshotRef = useRef((): T[] => {
-    const currentVersion = versionRef.current
-    const cached = snapshotRef.current
+	// Snapshot callback - returns cached data unless version changed.
+	// Stored in ref to maintain stable reference for useSyncExternalStore.
+	const getSnapshotRef = useRef((): T[] => {
+		const currentVersion = versionRef.current;
+		const cached = snapshotRef.current;
 
-    // Return cached snapshot if version hasn't changed
-    if (cached.version === currentVersion) {
-      return cached.data
-    }
+		// Return cached snapshot if version hasn't changed
+		if (cached.version === currentVersion) {
+			return cached.data;
+		}
 
-    // Version changed - create new snapshot and cache it
-    const data = [...collection.values()] as T[]
-    snapshotRef.current = { version: currentVersion, data }
-    return data
-  })
+		// Version changed - create new snapshot and cache it
+		const data = [...collection.values()] as T[];
+		snapshotRef.current = { version: currentVersion, data };
+		return data;
+	});
 
-  // Update getSnapshot ref when collection changes
-  getSnapshotRef.current = (): T[] => {
-    const currentVersion = versionRef.current
-    const cached = snapshotRef.current
+	// Update getSnapshot ref when collection changes
+	getSnapshotRef.current = (): T[] => {
+		const currentVersion = versionRef.current;
+		const cached = snapshotRef.current;
 
-    if (cached.version === currentVersion) {
-      return cached.data
-    }
+		if (cached.version === currentVersion) {
+			return cached.data;
+		}
 
-    const data = [...collection.values()] as T[]
-    snapshotRef.current = { version: currentVersion, data }
-    return data
-  }
+		const data = [...collection.values()] as T[];
+		snapshotRef.current = { version: currentVersion, data };
+		return data;
+	};
 
-  // Pass the same function for both getSnapshot and getServerSnapshot.
-  // This ensures server and client render the same initial state (empty array),
-  // preventing hydration mismatches while enabling proper SSR.
-  return useSyncExternalStore(
-    subscribeRef.current,
-    getSnapshotRef.current,
-    getSnapshotRef.current
-  )
+	// Pass the same function for both getSnapshot and getServerSnapshot.
+	// This ensures server and client render the same initial state (empty array),
+	// preventing hydration mismatches while enabling proper SSR.
+	return useSyncExternalStore(
+		subscribeRef.current,
+		getSnapshotRef.current,
+		getSnapshotRef.current,
+	);
 }
 
 /**
@@ -154,187 +154,215 @@ function useCollectionData<C extends Collection<any, any, any, any, any>>(
  * ```
  */
 export function useDurableChat<
-  TTools extends ReadonlyArray<AnyClientTool> = AnyClientTool[],
+	TTools extends ReadonlyArray<AnyClientTool> = AnyClientTool[],
 >(options: UseDurableChatOptions<TTools>): UseDurableChatReturn<TTools> {
-  const { autoConnect = true, client: providedClient, ...clientOptions } = options
+	const {
+		autoConnect = true,
+		client: providedClient,
+		...clientOptions
+	} = options;
 
-  // Error handler ref - allows client's onError to call setError
-  const [error, setError] = useState<Error | undefined>()
-  const onErrorRef = useRef<(err: Error) => void>(() => {})
-  onErrorRef.current = (err) => {
-    setError(err)
-    clientOptions.onError?.(err)
-  }
+	// Error handler ref - allows client's onError to call setError
+	const [error, setError] = useState<Error | undefined>();
+	const onErrorRef = useRef<(err: Error) => void>(() => {});
+	onErrorRef.current = (err) => {
+		setError(err);
+		clientOptions.onError?.(err);
+	};
 
-  // Create client synchronously - always available immediately
-  const clientRef = useRef<{ client: DurableChatClient<TTools>; key: string } | null>(null)
-  const key = `${clientOptions.sessionId}:${clientOptions.proxyUrl}`
+	// Create client synchronously - always available immediately
+	const clientRef = useRef<{
+		client: DurableChatClient<TTools>;
+		key: string;
+	} | null>(null);
+	const key = `${clientOptions.sessionId}:${clientOptions.proxyUrl}`;
 
-  // Create or recreate client when key changes or client was disposed
-  // The isDisposed check handles React Strict Mode: cleanup disposes the client,
-  // so the next render must create a fresh one with a new AbortController.
-  if (providedClient) {
-    if (!clientRef.current || clientRef.current.client !== providedClient) {
-      clientRef.current = { client: providedClient, key: 'provided' }
-    }
-  } else if (!clientRef.current || clientRef.current.key !== key || clientRef.current.client.isDisposed) {
-    // Dispose old client if exists (may already be disposed, which is fine)
-    clientRef.current?.client.dispose()
-    clientRef.current = {
-      client: new DurableChatClient<TTools>({
-        ...clientOptions,
-        onError: (err) => onErrorRef.current(err),
-      } as DurableChatClientOptions<TTools>),
-      key,
-    }
-  }
+	// Create or recreate client when key changes or client was disposed
+	// The isDisposed check handles React Strict Mode: cleanup disposes the client,
+	// so the next render must create a fresh one with a new AbortController.
+	if (providedClient) {
+		if (!clientRef.current || clientRef.current.client !== providedClient) {
+			clientRef.current = { client: providedClient, key: "provided" };
+		}
+	} else if (
+		!clientRef.current ||
+		clientRef.current.key !== key ||
+		clientRef.current.client.isDisposed
+	) {
+		// Dispose old client if exists (may already be disposed, which is fine)
+		clientRef.current?.client.dispose();
+		clientRef.current = {
+			client: new DurableChatClient<TTools>({
+				...clientOptions,
+				onError: (err) => onErrorRef.current(err),
+			} as DurableChatClientOptions<TTools>),
+			key,
+		};
+	}
 
-  const client = clientRef.current.client
+	const client = clientRef.current.client;
 
-  const messageRows = useCollectionData(client.collections.messages)
-  const activeGenerations = useCollectionData(client.collections.activeGenerations)
-  const sessionMetaRows = useCollectionData(client.collections.sessionMeta)
+	const messageRows = useCollectionData(client.collections.messages);
+	const activeGenerations = useCollectionData(
+		client.collections.activeGenerations,
+	);
+	const sessionMetaRows = useCollectionData(client.collections.sessionMeta);
 
-  const messages = useMemo(
-    // Transform MessageRow[] to UIMessage[]
-    () => messageRows.map(messageRowToUIMessage),
-    [messageRows]
-  )
+	const messages = useMemo(
+		// Transform MessageRow[] to UIMessage[]
+		() => messageRows.map(messageRowToUIMessage),
+		[messageRows],
+	);
 
-  const isLoading = activeGenerations.length > 0
-  const connectionStatus = sessionMetaRows[0]?.connectionStatus ?? 'disconnected'
+	const isLoading = activeGenerations.length > 0;
+	const connectionStatus =
+		sessionMetaRows[0]?.connectionStatus ?? "disconnected";
 
-  useEffect(() => {
-    if (autoConnect && client.connectionStatus === 'disconnected') {
-      client.connect().catch((err) => {
-        setError(err instanceof Error ? err : new Error(String(err)))
-      })
-    }
+	useEffect(() => {
+		if (autoConnect && client.connectionStatus === "disconnected") {
+			client.connect().catch((err) => {
+				setError(err instanceof Error ? err : new Error(String(err)));
+			});
+		}
 
-    // Cleanup: unsubscribe and dispose (disposal is idempotent)
-    return () => {
-      if (!providedClient) {
-        client.dispose()
-      }
-    }
-  }, [client, autoConnect, providedClient])
+		// Cleanup: unsubscribe and dispose (disposal is idempotent)
+		return () => {
+			if (!providedClient) {
+				client.dispose();
+			}
+		};
+	}, [client, autoConnect, providedClient]);
 
-  // Action Callbacks
+	// Action Callbacks
 
-  const sendMessage = useCallback(async (content: string) => {
-    try {
-      await client.sendMessage(content)
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
-      throw err
-    }
-  }, [client])
+	const sendMessage = useCallback(
+		async (content: string) => {
+			try {
+				await client.sendMessage(content);
+			} catch (err) {
+				setError(err instanceof Error ? err : new Error(String(err)));
+				throw err;
+			}
+		},
+		[client],
+	);
 
-  const append = useCallback(
-    async (message: UIMessage | { role: string; content: string }) => {
-      try {
-        await client.append(message)
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error(String(err)))
-        throw err
-      }
-    },
-    [client]
-  )
+	const append = useCallback(
+		async (message: UIMessage | { role: string; content: string }) => {
+			try {
+				await client.append(message);
+			} catch (err) {
+				setError(err instanceof Error ? err : new Error(String(err)));
+				throw err;
+			}
+		},
+		[client],
+	);
 
-  const reload = useCallback(async () => {
-    try {
-      await client.reload()
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
-      throw err
-    }
-  }, [client])
+	const reload = useCallback(async () => {
+		try {
+			await client.reload();
+		} catch (err) {
+			setError(err instanceof Error ? err : new Error(String(err)));
+			throw err;
+		}
+	}, [client]);
 
-  const stop = useCallback(() => {
-    client.stop()
-  }, [client])
+	const stop = useCallback(() => {
+		client.stop();
+	}, [client]);
 
-  const clear = useCallback(() => {
-    client.clear()
-  }, [client])
+	const clear = useCallback(() => {
+		client.clear();
+	}, [client]);
 
-  const addToolResult = useCallback(
-    async (result: Parameters<DurableChatClient<TTools>['addToolResult']>[0]) => {
-      await client.addToolResult(result)
-    },
-    [client]
-  )
+	const addToolResult = useCallback(
+		async (
+			result: Parameters<DurableChatClient<TTools>["addToolResult"]>[0],
+		) => {
+			await client.addToolResult(result);
+		},
+		[client],
+	);
 
-  const addToolApprovalResponse = useCallback(
-    async (response: Parameters<DurableChatClient<TTools>['addToolApprovalResponse']>[0]) => {
-      await client.addToolApprovalResponse(response)
-    },
-    [client]
-  )
+	const addToolApprovalResponse = useCallback(
+		async (
+			response: Parameters<
+				DurableChatClient<TTools>["addToolApprovalResponse"]
+			>[0],
+		) => {
+			await client.addToolApprovalResponse(response);
+		},
+		[client],
+	);
 
-  const fork = useCallback(
-    async (opts?: Parameters<DurableChatClient<TTools>['fork']>[0]) => {
-      return client.fork(opts)
-    },
-    [client]
-  )
+	const fork = useCallback(
+		async (opts?: Parameters<DurableChatClient<TTools>["fork"]>[0]) => {
+			return client.fork(opts);
+		},
+		[client],
+	);
 
-  const registerAgents = useCallback(
-    async (agents: Parameters<DurableChatClient<TTools>['registerAgents']>[0]) => {
-      await client.registerAgents(agents)
-    },
-    [client]
-  )
+	const registerAgents = useCallback(
+		async (
+			agents: Parameters<DurableChatClient<TTools>["registerAgents"]>[0],
+		) => {
+			await client.registerAgents(agents);
+		},
+		[client],
+	);
 
-  const unregisterAgent = useCallback(async (agentId: string) => {
-    await client.unregisterAgent(agentId)
-  }, [client])
+	const unregisterAgent = useCallback(
+		async (agentId: string) => {
+			await client.unregisterAgent(agentId);
+		},
+		[client],
+	);
 
-  const connect = useCallback(async () => {
-    try {
-      await client.connect()
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
-      throw err
-    }
-  }, [client])
+	const connect = useCallback(async () => {
+		try {
+			await client.connect();
+		} catch (err) {
+			setError(err instanceof Error ? err : new Error(String(err)));
+			throw err;
+		}
+	}, [client]);
 
-  const disconnect = useCallback(() => {
-    client.disconnect()
-  }, [client])
+	const disconnect = useCallback(() => {
+		client.disconnect();
+	}, [client]);
 
-  const pause = useCallback(() => {
-    client.pause()
-  }, [client])
+	const pause = useCallback(() => {
+		client.pause();
+	}, [client]);
 
-  const resume = useCallback(async () => {
-    await client.resume()
-  }, [client])
+	const resume = useCallback(async () => {
+		await client.resume();
+	}, [client]);
 
-  return {
-    // TanStack AI useChat compatible
-    messages,
-    sendMessage,
-    append,
-    reload,
-    stop,
-    clear,
-    isLoading,
-    error,
-    addToolResult,
-    addToolApprovalResponse,
+	return {
+		// TanStack AI useChat compatible
+		messages,
+		sendMessage,
+		append,
+		reload,
+		stop,
+		clear,
+		isLoading,
+		error,
+		addToolResult,
+		addToolApprovalResponse,
 
-    // Durable extensions
-    client,
-    collections: client.collections,
-    connectionStatus,
-    fork,
-    registerAgents,
-    unregisterAgent,
-    connect,
-    disconnect,
-    pause,
-    resume,
-  }
+		// Durable extensions
+		client,
+		collections: client.collections,
+		connectionStatus,
+		fork,
+		registerAgents,
+		unregisterAgent,
+		connect,
+		disconnect,
+		pause,
+		resume,
+	};
 }

@@ -7,9 +7,9 @@
  * This follows the pattern: derive from materialized data with fn.select
  */
 
-import { createLiveQueryCollection } from '@tanstack/db'
-import type { Collection } from '@tanstack/db'
-import type { MessageRow, ActiveGenerationRow } from '../types'
+import type { Collection } from "@tanstack/db";
+import { createLiveQueryCollection } from "@tanstack/db";
+import type { ActiveGenerationRow, MessageRow } from "../types";
 
 // ============================================================================
 // Active Generations Collection
@@ -19,21 +19,21 @@ import type { MessageRow, ActiveGenerationRow } from '../types'
  * Options for creating an active generations collection.
  */
 export interface ActiveGenerationsCollectionOptions {
-  /** Messages collection to derive from */
-  messagesCollection: Collection<MessageRow>
+	/** Messages collection to derive from */
+	messagesCollection: Collection<MessageRow>;
 }
 
 /**
  * Convert an incomplete message to an active generation row.
  */
 function messageToActiveGeneration(message: MessageRow): ActiveGenerationRow {
-  return {
-    messageId: message.id,
-    actorId: message.actorId,
-    startedAt: message.createdAt,
-    lastChunkSeq: 0, // We don't track seq in messages, so use 0 as placeholder
-    lastChunkAt: message.createdAt,
-  }
+	return {
+		messageId: message.id,
+		actorId: message.actorId,
+		startedAt: message.createdAt,
+		lastChunkSeq: 0, // We don't track seq in messages, so use 0 as placeholder
+		lastChunkAt: message.createdAt,
+	};
 }
 
 /**
@@ -64,18 +64,18 @@ function messageToActiveGeneration(message: MessageRow): ActiveGenerationRow {
  * ```
  */
 export function createActiveGenerationsCollection(
-  options: ActiveGenerationsCollectionOptions
+	options: ActiveGenerationsCollectionOptions,
 ): Collection<ActiveGenerationRow> {
-  const { messagesCollection } = options
+	const { messagesCollection } = options;
 
-  // Filter messages for incomplete ones and transform to ActiveGenerationRow
-  // Order by createdAt to ensure chronological ordering
-  return createLiveQueryCollection({
-    query: (q) =>
-      q
-        .from({ message: messagesCollection })
-        .orderBy(({ message }) => message.createdAt, 'asc')
-        .fn.where(({ message }) => !message.isComplete)
-        .fn.select(({ message }) => messageToActiveGeneration(message)),
-  })
+	// Filter messages for incomplete ones and transform to ActiveGenerationRow
+	// Order by createdAt to ensure chronological ordering
+	return createLiveQueryCollection({
+		query: (q) =>
+			q
+				.from({ message: messagesCollection })
+				.orderBy(({ message }) => message.createdAt, "asc")
+				.fn.where(({ message }) => !message.isComplete)
+				.fn.select(({ message }) => messageToActiveGeneration(message)),
+	});
 }

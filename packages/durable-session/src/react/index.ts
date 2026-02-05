@@ -35,60 +35,61 @@
 // Hooks
 // ============================================================================
 
-export { useDurableChat } from './use-durable-chat'
+export { useDurableChat } from "./use-durable-chat";
 
 // ============================================================================
 // Components
 // ============================================================================
 
-export { ChatInput, type ChatInputProps } from './components/ChatInput'
-export { PresenceBar, type PresenceBarProps, type PresenceUser } from './components/PresenceBar'
+export { ChatInput, type ChatInputProps } from "./components/ChatInput";
+export {
+	PresenceBar,
+	type PresenceBarProps,
+	type PresenceUser,
+} from "./components/PresenceBar";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type { UseDurableChatOptions, UseDurableChatReturn } from './types'
+export type { UseDurableChatOptions, UseDurableChatReturn } from "./types";
 
 // ============================================================================
 // Re-exports from durable-session
 // ============================================================================
 
 export {
-  // Client
-  DurableChatClient,
-  createDurableChatClient,
-
-  // Types
-  type ActorType,
-  type ChunkRow,
-  type MessageRole,
-  type MessageRow,
-  type ActiveGenerationRow,
-  type RawPresenceRow,
-  type PresenceRow,
-  type AgentRow,
-  type ConnectionStatus,
-  type SessionMetaRow,
-  type SessionStatsRow,
-  type AgentTrigger,
-  type AgentSpec,
-  type DurableChatCollections,
-  type DurableChatClientOptions,
-  type ToolResultInput,
-  type ApprovalResponseInput,
-  type ForkOptions,
-  type ForkResult,
-
-  // Re-exported TanStack AI types for consumer convenience
-  type MessagePart,
-  type TextPart,
-  type ToolCallPart,
-  type ToolResultPart,
-  type ThinkingPart,
-
-  // Materialization helpers
-  extractTextContent,
-  isUserMessage,
-  isAssistantMessage,
-} from '..'
+	type ActiveGenerationRow,
+	// Types
+	type ActorType,
+	type AgentRow,
+	type AgentSpec,
+	type AgentTrigger,
+	type ApprovalResponseInput,
+	type ChunkRow,
+	type ConnectionStatus,
+	createDurableChatClient,
+	// Client
+	DurableChatClient,
+	type DurableChatClientOptions,
+	type DurableChatCollections,
+	// Materialization helpers
+	extractTextContent,
+	type ForkOptions,
+	type ForkResult,
+	isAssistantMessage,
+	isUserMessage,
+	// Re-exported TanStack AI types for consumer convenience
+	type MessagePart,
+	type MessageRole,
+	type MessageRow,
+	type PresenceRow,
+	type RawPresenceRow,
+	type SessionMetaRow,
+	type SessionStatsRow,
+	type TextPart,
+	type ThinkingPart,
+	type ToolCallPart,
+	type ToolResultInput,
+	type ToolResultPart,
+} from "..";

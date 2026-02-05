@@ -15,29 +15,31 @@
  * Derived collections filter on these parts rather than using separate extraction.
  */
 
-import { StreamProcessor } from '@tanstack/ai'
-import type { StreamChunk, UIMessage } from '@tanstack/ai'
-import type { ChunkRow } from './schema'
+import type { StreamChunk, UIMessage } from "@tanstack/ai";
+import { StreamProcessor } from "@tanstack/ai";
+import type { ChunkRow } from "./schema";
 import type {
-  MessageRow,
-  MessageRole,
-  WholeMessageChunk,
-  DurableStreamChunk,
-} from './types'
+	DurableStreamChunk,
+	MessageRole,
+	MessageRow,
+	WholeMessageChunk,
+} from "./types";
 
 // ============================================================================
 // Type Guards
 // ============================================================================
 
 function isDoneChunk(chunk: StreamChunk): boolean {
-  return chunk.type === 'RUN_FINISHED'
+	return chunk.type === "RUN_FINISHED";
 }
 
 /**
  * Type guard for WholeMessageChunk.
  */
-function isWholeMessageChunk(chunk: DurableStreamChunk | null): chunk is WholeMessageChunk {
-  return chunk !== null && chunk.type === 'whole-message'
+function isWholeMessageChunk(
+	chunk: DurableStreamChunk | null,
+): chunk is WholeMessageChunk {
+	return chunk !== null && chunk.type === "whole-message";
 }
 
 // ============================================================================
@@ -51,11 +53,11 @@ function isWholeMessageChunk(chunk: DurableStreamChunk | null): chunk is WholeMe
  * @returns Parsed chunk or null if invalid
  */
 export function parseChunk(chunkJson: string): DurableStreamChunk | null {
-  try {
-    return JSON.parse(chunkJson) as DurableStreamChunk
-  } catch {
-    return null
-  }
+	try {
+		return JSON.parse(chunkJson) as DurableStreamChunk;
+	} catch {
+		return null;
+	}
 }
 
 /**
@@ -63,19 +65,21 @@ export function parseChunk(chunkJson: string): DurableStreamChunk | null {
  * User messages are stored as complete UIMessage objects.
  */
 function materializeWholeMessage(
-  row: ChunkRow,
-  chunk: WholeMessageChunk
+	row: ChunkRow,
+	chunk: WholeMessageChunk,
 ): MessageRow {
-  const { message } = chunk
+	const { message } = chunk;
 
-  return {
-    id: message.id,
-    role: message.role as MessageRole,
-    parts: message.parts,
-    actorId: row.actorId,
-    isComplete: true,
-    createdAt: message.createdAt ? new Date(message.createdAt) : new Date(row.createdAt),
-  }
+	return {
+		id: message.id,
+		role: message.role as MessageRole,
+		parts: message.parts,
+		actorId: row.actorId,
+		isComplete: true,
+		createdAt: message.createdAt
+			? new Date(message.createdAt)
+			: new Date(row.createdAt),
+	};
 }
 
 /**
@@ -83,65 +87,72 @@ function materializeWholeMessage(
  * Uses TanStack AI's StreamProcessor to process chunks.
  */
 function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
-  const sorted = [...rows].sort((a, b) => a.seq - b.seq)
-  const first = sorted[0]!
+	const sorted = [...rows].sort((a, b) => a.seq - b.seq);
+	const first = sorted[0]!;
 
-  // Create processor and start assistant message
-  const processor = new StreamProcessor()
-  processor.startAssistantMessage()
+	// Create processor and start assistant message
+	const processor = new StreamProcessor();
+	processor.startAssistantMessage();
 
-  let isComplete = false
+	let isComplete = false;
 
-  for (const row of sorted) {
-    const chunk = parseChunk(row.chunk)
-    if (!chunk) continue
+	for (const row of sorted) {
+		const chunk = parseChunk(row.chunk);
+		if (!chunk) continue;
 
-    // Skip legacy wrapper chunks (for backward compatibility)
-    if ((chunk as any).type === 'message-start' || (chunk as any).type === 'message-end') {
-      if ((chunk as any).type === 'message-end') {
-        isComplete = true
-      }
-      continue
-    }
+		// Skip legacy wrapper chunks (for backward compatibility)
+		if (
+			(chunk as any).type === "message-start" ||
+			(chunk as any).type === "message-end"
+		) {
+			if ((chunk as any).type === "message-end") {
+				isComplete = true;
+			}
+			continue;
+		}
 
-    // Skip whole-message chunks (shouldn't be in assistant messages, but guard)
-    if (isWholeMessageChunk(chunk)) continue
+		// Skip whole-message chunks (shouldn't be in assistant messages, but guard)
+		if (isWholeMessageChunk(chunk)) continue;
 
-    // Process TanStack AI StreamChunk
-    try {
-      processor.processChunk(chunk as StreamChunk)
-    } catch {
-      // Skip chunks that can't be processed
-    }
+		// Process TanStack AI StreamChunk
+		try {
+			processor.processChunk(chunk as StreamChunk);
+		} catch {
+			// Skip chunks that can't be processed
+		}
 
-    if (isDoneChunk(chunk as StreamChunk)) {
-      isComplete = true
-    }
+		if (isDoneChunk(chunk as StreamChunk)) {
+			isComplete = true;
+		}
 
-    // Also check for stop/error chunks (stop is from our proxy, not in TanStack AI types)
-    const chunkType = (chunk as { type: string }).type
-    if (chunkType === 'stop' || chunkType === 'error' || chunkType === 'RUN_ERROR') {
-      isComplete = true
-    }
-  }
+		// Also check for stop/error chunks (stop is from our proxy, not in TanStack AI types)
+		const chunkType = (chunk as { type: string }).type;
+		if (
+			chunkType === "stop" ||
+			chunkType === "error" ||
+			chunkType === "RUN_ERROR"
+		) {
+			isComplete = true;
+		}
+	}
 
-  // Finalize if complete
-  if (isComplete) {
-    processor.finalizeStream()
-  }
+	// Finalize if complete
+	if (isComplete) {
+		processor.finalizeStream();
+	}
 
-  // Get the materialized UIMessage
-  const messages = processor.getMessages()
-  const message = messages[messages.length - 1]
+	// Get the materialized UIMessage
+	const messages = processor.getMessages();
+	const message = messages[messages.length - 1];
 
-  return {
-    id: first.messageId,
-    role: first.role as MessageRole,
-    parts: message?.parts ?? [],
-    actorId: first.actorId,
-    isComplete,
-    createdAt: new Date(first.createdAt),
-  }
+	return {
+		id: first.messageId,
+		role: first.role as MessageRole,
+		parts: message?.parts ?? [],
+		actorId: first.actorId,
+		isComplete,
+		createdAt: new Date(first.createdAt),
+	};
 }
 
 /**
@@ -155,28 +166,27 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
  * @returns Materialized message row
  */
 export function materializeMessage(rows: ChunkRow[]): MessageRow {
-  if (!rows || rows.length === 0) {
-    throw new Error('Cannot materialize message from empty rows')
-  }
+	if (!rows || rows.length === 0) {
+		throw new Error("Cannot materialize message from empty rows");
+	}
 
-  // Sort by seq to ensure correct order
-  const sorted = [...rows].sort((a, b) => a.seq - b.seq)
-  const firstRow = sorted[0]!
-  const firstChunk = parseChunk(firstRow.chunk)
+	// Sort by seq to ensure correct order
+	const sorted = [...rows].sort((a, b) => a.seq - b.seq);
+	const firstRow = sorted[0]!;
+	const firstChunk = parseChunk(firstRow.chunk);
 
-  if (!firstChunk) {
-    throw new Error('Failed to parse first chunk')
-  }
+	if (!firstChunk) {
+		throw new Error("Failed to parse first chunk");
+	}
 
-  // Check if this is a whole message
-  if (isWholeMessageChunk(firstChunk)) {
-    return materializeWholeMessage(firstRow, firstChunk)
-  }
+	// Check if this is a whole message
+	if (isWholeMessageChunk(firstChunk)) {
+		return materializeWholeMessage(firstRow, firstChunk);
+	}
 
-  // Otherwise, process as streamed assistant message
-  return materializeAssistantMessage(sorted)
+	// Otherwise, process as streamed assistant message
+	return materializeAssistantMessage(sorted);
 }
-
 
 // ============================================================================
 // Content Extraction Helpers
@@ -188,11 +198,13 @@ export function materializeMessage(rows: ChunkRow[]): MessageRow {
  * @param message - Message to extract from
  * @returns Combined text content
  */
-export function extractTextContent(message: { parts: Array<{ type: string; text?: string; content?: string }> }): string {
-  return message.parts
-    .filter((p) => p.type === 'text')
-    .map((p) => p.text ?? p.content ?? '')
-    .join('')
+export function extractTextContent(message: {
+	parts: Array<{ type: string; text?: string; content?: string }>;
+}): string {
+	return message.parts
+		.filter((p) => p.type === "text")
+		.map((p) => p.text ?? p.content ?? "")
+		.join("");
 }
 
 /**
@@ -202,7 +214,7 @@ export function extractTextContent(message: { parts: Array<{ type: string; text?
  * @returns Whether the message is from a user
  */
 export function isUserMessage(row: MessageRow): boolean {
-  return row.role === 'user'
+	return row.role === "user";
 }
 
 /**
@@ -212,7 +224,7 @@ export function isUserMessage(row: MessageRow): boolean {
  * @returns Whether the message is from an assistant
  */
 export function isAssistantMessage(row: MessageRow): boolean {
-  return row.role === 'assistant'
+	return row.role === "assistant";
 }
 
 // ============================================================================
@@ -228,12 +240,14 @@ export function isAssistantMessage(row: MessageRow): boolean {
  * @param row - MessageRow from the messages collection
  * @returns UIMessage compatible with TanStack AI
  */
-export function messageRowToUIMessage(row: MessageRow): UIMessage & { actorId: string } {
-  return {
-    id: row.id,
-    role: row.role as 'user' | 'assistant',
-    parts: row.parts,
-    createdAt: row.createdAt,
-    actorId: row.actorId,
-  }
+export function messageRowToUIMessage(
+	row: MessageRow,
+): UIMessage & { actorId: string } {
+	return {
+		id: row.id,
+		role: row.role as "user" | "assistant",
+		parts: row.parts,
+		createdAt: row.createdAt,
+		actorId: row.actorId,
+	};
 }

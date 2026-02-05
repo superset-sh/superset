@@ -62,134 +62,120 @@
 // Client
 // ============================================================================
 
-export { DurableChatClient, createDurableChatClient } from './client'
+export { createDurableChatClient, DurableChatClient } from "./client";
 
 // ============================================================================
 // Schema (STATE-PROTOCOL)
 // ============================================================================
 
 export {
-  sessionStateSchema,
-  chunkValueSchema,
-  presenceValueSchema,
-  agentValueSchema,
-  type SessionStateSchema,
-  type ChunkValue,
-  type ChunkRow,
-  type PresenceValue,
-  type RawPresenceRow,
-  type PresenceRow,
-  type AgentValue,
-  type AgentRow,
-} from './schema'
+	type AgentRow,
+	type AgentValue,
+	agentValueSchema,
+	type ChunkRow,
+	type ChunkValue,
+	chunkValueSchema,
+	type PresenceRow,
+	type PresenceValue,
+	presenceValueSchema,
+	type RawPresenceRow,
+	type SessionStateSchema,
+	sessionStateSchema,
+} from "./schema";
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export type {
-  // Actor types
-  ActorType,
-
-  // Message types
-  MessageRole,
-  MessageRow,
-
-  // Re-exported TanStack AI types for consumer convenience
-  MessagePart,
-  TextPart,
-  ToolCallPart,
-  ToolResultPart,
-  ThinkingPart,
-
-  // Active generation types
-  ActiveGenerationRow,
-
-  // Session types
-  ConnectionStatus,
-  SessionMetaRow,
-  SessionStatsRow,
-
-  // Agent types
-  AgentTrigger,
-  AgentSpec,
-
-  // Collection types
-  DurableChatCollections,
-
-  // Configuration types
-  DurableChatClientOptions,
-  SessionDBConfig,
-
-  // Input types
-  ToolResultInput,
-  ApprovalResponseInput,
-
-  // Fork types
-  ForkOptions,
-  ForkResult,
-} from './types'
+	// Active generation types
+	ActiveGenerationRow,
+	// Actor types
+	ActorType,
+	AgentSpec,
+	// Agent types
+	AgentTrigger,
+	ApprovalResponseInput,
+	// Session types
+	ConnectionStatus,
+	// Configuration types
+	DurableChatClientOptions,
+	// Collection types
+	DurableChatCollections,
+	// Fork types
+	ForkOptions,
+	ForkResult,
+	// Re-exported TanStack AI types for consumer convenience
+	MessagePart,
+	// Message types
+	MessageRole,
+	MessageRow,
+	SessionDBConfig,
+	SessionMetaRow,
+	SessionStatsRow,
+	TextPart,
+	ThinkingPart,
+	ToolCallPart,
+	// Input types
+	ToolResultInput,
+	ToolResultPart,
+} from "./types";
 
 // ============================================================================
 // Session DB Factory
 // ============================================================================
 
 export {
-  createSessionDB,
-  getChunkKey,
-  parseChunkKey,
-  type SessionDB,
-} from './collection'
+	createSessionDB,
+	getChunkKey,
+	parseChunkKey,
+	type SessionDB,
+} from "./collection";
 
 // ============================================================================
 // Collection Factories
 // ============================================================================
 
 export {
-  // Messages collection (root) and derived collections
-  createMessagesCollection,
-  createToolCallsCollection,
-  createPendingApprovalsCollection,
-  createToolResultsCollection,
-  type MessagesCollectionOptions,
-  type DerivedMessagesCollectionOptions,
-
-  // Active generations collection
-  createActiveGenerationsCollection,
-  type ActiveGenerationsCollectionOptions,
-
-  // Session metadata collection (local state)
-  createSessionMetaCollectionOptions,
-  createInitialSessionMeta,
-  updateConnectionStatus,
-  updateSyncProgress,
-  type SessionMetaCollectionOptions,
-
-  // Session statistics collection
-  createSessionStatsCollection,
-  computeSessionStats,
-  createEmptyStats,
-  type SessionStatsCollectionOptions,
-
-  // Model messages collection (for LLM invocation)
-  createModelMessagesCollection,
-  type ModelMessage,
-  type ModelMessagesCollectionOptions,
-
-  // Aggregated presence collection
-  createPresenceCollection,
-  type PresenceCollectionOptions,
-} from './collections'
+	type ActiveGenerationsCollectionOptions,
+	computeSessionStats,
+	// Active generations collection
+	createActiveGenerationsCollection,
+	createEmptyStats,
+	createInitialSessionMeta,
+	// Messages collection (root) and derived collections
+	createMessagesCollection,
+	// Model messages collection (for LLM invocation)
+	createModelMessagesCollection,
+	createPendingApprovalsCollection,
+	// Aggregated presence collection
+	createPresenceCollection,
+	// Session metadata collection (local state)
+	createSessionMetaCollectionOptions,
+	// Session statistics collection
+	createSessionStatsCollection,
+	createToolCallsCollection,
+	createToolResultsCollection,
+	type DerivedMessagesCollectionOptions,
+	type MessagesCollectionOptions,
+	type ModelMessage,
+	type ModelMessagesCollectionOptions,
+	type PresenceCollectionOptions,
+	type SessionMetaCollectionOptions,
+	type SessionStatsCollectionOptions,
+	updateConnectionStatus,
+	updateSyncProgress,
+} from "./collections";
 
 // ============================================================================
 // Materialization
 // ============================================================================
 
 export {
-  materializeMessage,
-  parseChunk,
-  extractTextContent,
-  isUserMessage,
-  isAssistantMessage,
-  messageRowToUIMessage,
-} from './materialize'
+	extractTextContent,
+	isAssistantMessage,
+	isUserMessage,
+	materializeMessage,
+	messageRowToUIMessage,
+	parseChunk,
+} from "./materialize";
