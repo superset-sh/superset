@@ -8,7 +8,7 @@ import type { ChangeCategory } from "./changes-types";
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType = "terminal" | "webview" | "file-viewer";
+export type PaneType = "terminal" | "webview" | "file-viewer" | "chat";
 
 /**
  * Pane status for agent lifecycle indicators
@@ -103,6 +103,14 @@ export interface FileViewerState {
 }
 
 /**
+ * Chat pane-specific properties
+ */
+export interface ChatState {
+	/** Unique session ID for the chat */
+	sessionId: string;
+}
+
+/**
  * Base Pane interface - shared between main and renderer
  */
 export interface Pane {
@@ -118,6 +126,7 @@ export interface Pane {
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
+	chat?: ChatState; // For chat panes
 }
 
 /**
