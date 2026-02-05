@@ -5,14 +5,12 @@
  * This provides a lightweight session index without full database persistence.
  */
 
-import {
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	renameSync,
-	writeFileSync,
-} from "node:fs";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+
+const LOG_PREFIX = "[session-registry]";
+const SESSIONS_FILE = "sessions.json";
+const TMP_SUFFIX = ".tmp";
 
 export interface SessionInfo {
 	sessionId: string;
@@ -24,10 +22,14 @@ export interface SessionInfo {
 export class SessionRegistry {
 	private sessions: Map<string, SessionInfo> = new Map();
 	private filePath: string;
+	private persistQueue: Promise<void> = Promise.resolve();
 
 	constructor(dataDir: string) {
-		this.filePath = join(dataDir, "sessions.json");
-		this.load();
+		this.filePath = join(dataDir, SESSIONS_FILE);
+	}
+
+	async init(): Promise<void> {
+		await this.load();
 	}
 
 	list(): SessionInfo[] {
@@ -59,35 +61,37 @@ export class SessionRegistry {
 	}
 
 	private persist(): void {
-		try {
-			const dir = dirname(this.filePath);
-			if (!existsSync(dir)) {
-				mkdirSync(dir, { recursive: true });
+		this.persistQueue = this.persistQueue.then(async () => {
+			try {
+				const dir = dirname(this.filePath);
+				await mkdir(dir, { recursive: true });
+				const data = JSON.stringify(Array.from(this.sessions.values()), null, 2);
+				// Write to temp file then rename for crash safety
+				const tmpPath = `${this.filePath}${TMP_SUFFIX}`;
+				await writeFile(tmpPath, data, "utf-8");
+				await rename(tmpPath, this.filePath);
+			} catch (error) {
+				console.error(`${LOG_PREFIX} Failed to persist sessions:`, error);
 			}
-			const data = JSON.stringify(Array.from(this.sessions.values()), null, 2);
-			// Write to temp file then rename for crash safety
-			const tmpPath = `${this.filePath}.tmp`;
-			writeFileSync(tmpPath, data, "utf-8");
-			renameSync(tmpPath, this.filePath);
-		} catch (error) {
-			console.error("[session-registry] Failed to persist sessions:", error);
-		}
+		});
 	}
 
-	private load(): void {
+	private async load(): Promise<void> {
 		try {
-			if (existsSync(this.filePath)) {
-				const data = readFileSync(this.filePath, "utf-8");
-				const sessions: SessionInfo[] = JSON.parse(data);
-				for (const session of sessions) {
-					this.sessions.set(session.sessionId, session);
-				}
-				console.log(
-					`[session-registry] Loaded ${sessions.length} sessions from disk`,
-				);
+			const data = await readFile(this.filePath, "utf-8");
+			const sessions: SessionInfo[] = JSON.parse(data);
+			for (const session of sessions) {
+				this.sessions.set(session.sessionId, session);
 			}
+			console.log(
+				`${LOG_PREFIX} Loaded ${sessions.length} sessions from disk`,
+			);
 		} catch (error) {
-			console.error("[session-registry] Failed to load sessions:", error);
+			const err = error as NodeJS.ErrnoException;
+			if (err.code === "ENOENT") {
+				return;
+			}
+			console.error(`${LOG_PREFIX} Failed to load sessions:`, error);
 		}
 	}
 }

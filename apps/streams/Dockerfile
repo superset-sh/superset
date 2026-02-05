@@ -1,32 +1,41 @@
-FROM node:22-slim AS builder
+FROM oven/bun:1.3.0 AS builder
+
+# Build context must be the repo root (docker build -f apps/streams/Dockerfile .)
 
 WORKDIR /app
 
-# Install dependencies
+# Install dependencies (workspace root)
 COPY package.json bun.lock ./
-RUN npm install
+COPY tooling/typescript/package.json tooling/typescript/
+COPY apps/streams/package.json apps/streams/
+RUN bun install --frozen-lockfile
 
 # Copy source
-COPY tsconfig.json ./
-COPY src ./src
+COPY tooling/typescript tooling/typescript
+COPY apps/streams apps/streams
 
 # Build
-RUN npm run build
+WORKDIR /app/apps/streams
+RUN bun run build
 
 # Production image
-FROM node:22-slim
+FROM oven/bun:1.3.0
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy built files and production dependencies
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./
+# Install production dependencies (workspace root)
+COPY package.json bun.lock ./
+COPY tooling/typescript/package.json tooling/typescript/
+COPY apps/streams/package.json apps/streams/
+RUN bun install --frozen-lockfile --production
 
-# Install production dependencies only
-RUN npm install --omit=dev
+# Copy built files
+COPY --from=builder /app/apps/streams/dist ./apps/streams/dist
+
+WORKDIR /app/apps/streams
 
 EXPOSE 8080
 
-CMD ["node", "dist/index.js"]
+CMD ["bun", "dist/index.js"]
