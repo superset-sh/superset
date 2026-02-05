@@ -56,6 +56,12 @@ export function useFileTree({
 		}));
 	}, [rootEntries]);
 
+	// Clear children cache when showHiddenFiles changes to ensure nested
+	// hidden files/folders are properly shown or hidden
+	useEffect(() => {
+		setChildrenCache({});
+	}, [showHiddenFiles]);
+
 	const buildTree = useCallback(
 		(nodes: FileTreeNode[]): FileTreeNode[] => {
 			return nodes.map((node) => {
