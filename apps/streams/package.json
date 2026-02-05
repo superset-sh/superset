@@ -9,7 +9,7 @@
 		"build": "tsup src/index.ts --format esm --dts",
 		"start": "node dist/index.js",
 		"typecheck": "tsc --noEmit",
-		"test": "vitest run",
+		"test": "vitest run --passWithNoTests",
 		"test:conformance": "npx @durable-streams/server-conformance-tests --run http://localhost:8080"
 	},
 	"dependencies": {
