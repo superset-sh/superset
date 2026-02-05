@@ -117,7 +117,7 @@ The agent endpoint converts these to TanStack AI `StreamChunk` format before wri
 | ChatInput component | DONE — `packages/durable-session/src/react/components/ChatInput/` |
 | PresenceBar component | DONE — `packages/durable-session/src/react/components/PresenceBar/` |
 | Old ai-chat package | REMOVED — replaced by `@superset/durable-session` |
-| Vendored proxy (A2) | NOT BUILT — **Next phase** |
+| Vendored proxy (A2) | DONE — `apps/streams/src/` (vendored from electric-sql/transport, JSON.stringify fix for DurableStream.append) |
 | Claude agent endpoint (B) | NOT BUILT |
 | Database schema | NOT BUILT |
 | API chat router | NOT BUILT |
@@ -310,7 +310,7 @@ import { ChatInput, PresenceBar } from '@superset/durable-session/react'
 
 The old `packages/ai-chat` package has been fully removed.
 
-### A2. Vendor proxy into `apps/streams/` — NEXT
+### A2. Vendor proxy into `apps/streams/` — DONE
 
 Vendor from `packages/durable-session-proxy` in the transport repo.
 
@@ -901,27 +901,29 @@ All files below are created and typechecking. Compatibility fixes applied for un
 | `apps/streams/src/claude-agent.ts` | Claude agent HTTP endpoint | ~120 |
 | `apps/streams/src/sdk-to-ai-chunks.ts` | SDKMessage → TanStack AI chunk converter | ~200 |
 
-### Files to CREATE (vendored proxy)
+### Files CREATED (vendored proxy — Phase A2) ✅
 
-| Destination | Source | Lines |
+All files below are created and typechecking. Compatibility fix: `DurableStream.append()` in published `@durable-streams/client@0.2.1` only accepts `string | Uint8Array`, not `ChangeEvent` objects. All `stream.append(event)` calls wrapped with `JSON.stringify()`.
+
+| Destination | Source | Status |
 |---|---|---|
-| `apps/streams/src/server.ts` | `durable-session-proxy/src/server.ts` | 149 |
-| `apps/streams/src/protocol.ts` | `durable-session-proxy/src/protocol.ts` | 917 |
-| `apps/streams/src/types.ts` | `durable-session-proxy/src/types.ts` | 278 |
-| `apps/streams/src/handlers/index.ts` | `durable-session-proxy/src/handlers/index.ts` | 12 |
-| `apps/streams/src/handlers/send-message.ts` | `durable-session-proxy/src/handlers/send-message.ts` | 81 |
-| `apps/streams/src/handlers/invoke-agent.ts` | `durable-session-proxy/src/handlers/invoke-agent.ts` | 128 |
-| `apps/streams/src/handlers/stream-writer.ts` | `durable-session-proxy/src/handlers/stream-writer.ts` | 124 |
-| `apps/streams/src/routes/index.ts` | `durable-session-proxy/src/routes/index.ts` | 14 |
-| `apps/streams/src/routes/sessions.ts` | `durable-session-proxy/src/routes/sessions.ts` | 136 |
-| `apps/streams/src/routes/messages.ts` | `durable-session-proxy/src/routes/messages.ts` | 99 |
-| `apps/streams/src/routes/agents.ts` | `durable-session-proxy/src/routes/agents.ts` | 58 |
-| `apps/streams/src/routes/stream.ts` | `durable-session-proxy/src/routes/stream.ts` | 162 |
-| `apps/streams/src/routes/tool-results.ts` | `durable-session-proxy/src/routes/tool-results.ts` | 57 |
-| `apps/streams/src/routes/approvals.ts` | `durable-session-proxy/src/routes/approvals.ts` | 58 |
-| `apps/streams/src/routes/health.ts` | `durable-session-proxy/src/routes/health.ts` | 51 |
-| `apps/streams/src/routes/auth.ts` | `durable-session-proxy/src/routes/auth.ts` | 146 |
-| `apps/streams/src/routes/fork.ts` | `durable-session-proxy/src/routes/fork.ts` | 50 |
+| `apps/streams/src/server.ts` | `durable-session-proxy/src/server.ts` | ✅ |
+| `apps/streams/src/protocol.ts` | `durable-session-proxy/src/protocol.ts` | ✅ (fixed: JSON.stringify for append) |
+| `apps/streams/src/types.ts` | `durable-session-proxy/src/types.ts` | ✅ |
+| `apps/streams/src/handlers/index.ts` | `durable-session-proxy/src/handlers/index.ts` | ✅ |
+| `apps/streams/src/handlers/send-message.ts` | `durable-session-proxy/src/handlers/send-message.ts` | ✅ |
+| `apps/streams/src/handlers/invoke-agent.ts` | `durable-session-proxy/src/handlers/invoke-agent.ts` | ✅ |
+| `apps/streams/src/handlers/stream-writer.ts` | `durable-session-proxy/src/handlers/stream-writer.ts` | ✅ |
+| `apps/streams/src/routes/index.ts` | `durable-session-proxy/src/routes/index.ts` | ✅ |
+| `apps/streams/src/routes/sessions.ts` | `durable-session-proxy/src/routes/sessions.ts` | ✅ |
+| `apps/streams/src/routes/messages.ts` | `durable-session-proxy/src/routes/messages.ts` | ✅ |
+| `apps/streams/src/routes/agents.ts` | `durable-session-proxy/src/routes/agents.ts` | ✅ |
+| `apps/streams/src/routes/stream.ts` | `durable-session-proxy/src/routes/stream.ts` | ✅ |
+| `apps/streams/src/routes/tool-results.ts` | `durable-session-proxy/src/routes/tool-results.ts` | ✅ |
+| `apps/streams/src/routes/approvals.ts` | `durable-session-proxy/src/routes/approvals.ts` | ✅ |
+| `apps/streams/src/routes/health.ts` | `durable-session-proxy/src/routes/health.ts` | ✅ |
+| `apps/streams/src/routes/auth.ts` | `durable-session-proxy/src/routes/auth.ts` | ✅ |
+| `apps/streams/src/routes/fork.ts` | `durable-session-proxy/src/routes/fork.ts` | ✅ |
 
 ### Files DELETED ✅
 
@@ -929,24 +931,30 @@ All files below are created and typechecking. Compatibility fixes applied for un
 |---|---|---|
 | `packages/ai-chat/` (entire package) | Replaced by `@superset/durable-session` | ✅ Removed |
 
-### Files to DELETE (remaining)
+### Files DELETED (Phase A2) ✅
 
-| File | Reason |
-|---|---|
-| `apps/streams/src/session-registry.ts` | Replaced by proxy's built-in session management (Phase A2) |
+| File | Reason | Status |
+|---|---|---|
+| `apps/streams/src/session-registry.ts` | Replaced by proxy's built-in session management | ✅ Removed |
+
+### Files REWRITTEN (Phase A2) ✅
+
+| File | Description | Status |
+|---|---|---|
+| `apps/streams/src/index.ts` | New entrypoint with Hono proxy + DurableStreamTestServer | ✅ |
 
 ### Files to REWRITE (remaining)
 
 | File | Description |
 |---|---|
-| `apps/streams/src/index.ts` | New entrypoint with Hono proxy + DurableStreamTestServer (Phase A2) |
 | `apps/desktop/.../session-manager.ts` | Thin HTTP orchestrator (no StreamWatcher/Producer) (Phase C2) |
 
-### Files to MODIFY (remaining)
+### Files MODIFIED (Phase A2) ✅
 
-| File | Changes |
-|---|---|
-| `apps/streams/package.json` | Add: hono, @hono/node-server, @durable-streams/client, @superset/durable-session (Phase A2) |
+| File | Changes | Status |
+|---|---|---|
+| `apps/streams/package.json` | Added: hono, @hono/node-server, @durable-streams/client, @superset/durable-session, @tanstack/db, zod | ✅ |
+| `packages/durable-session/src/client.ts` | Fixed: `response.json()` return type assertion for `ForkResult` | ✅ |
 
 ---
 
@@ -954,7 +962,7 @@ All files below are created and typechecking. Compatibility fixes applied for un
 
 1. ~~**Phase A1** — Vendor `@superset/durable-session` package~~ ✅ DONE
 2. ~~**Phase C1** — Remove old `packages/ai-chat`, migrate UI components~~ ✅ DONE
-3. **Phase A2** — Vendor proxy into `apps/streams` (copy 17 files, adjust 3 import paths) ← NEXT
+3. ~~**Phase A2** — Vendor proxy into `apps/streams` (copy 17 files, adjust 3 import paths)~~ ✅ DONE
 4. **Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)
 5. **Phase C2** — Simplify desktop session manager
 6. **Phase C3** — Handle drafts
@@ -975,7 +983,7 @@ All files below are created and typechecking. Compatibility fixes applied for un
 | Claude binary path outside Electron | Agent can't start | `CLAUDE_BINARY_PATH` env var set by desktop at streams startup | Pending |
 | Multi-turn resume state lost on restart | Context lost | In-memory map + optional file-based persistence in data dir | Pending |
 | Interrupt via HTTP abort | Claude subprocess continues | Agent detects fetch abort → calls `query.interrupt()` + `abortController.abort()` | Pending |
-| Proxy `workspace:*` TanStack DB deps | Import errors | Pin all `@tanstack/*` to compatible published versions across monorepo | Pending (Phase A2) |
+| Proxy `workspace:*` TanStack DB deps | Import errors | Pin all `@tanstack/*` to compatible published versions across monorepo | ✅ Resolved — imports changed to `@superset/durable-session`, `DurableStream.append()` wrapped with `JSON.stringify()` |
 
 ---
 

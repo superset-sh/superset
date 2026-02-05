@@ -654,7 +654,7 @@ export class DurableChatClient<
 			);
 		}
 
-		return await response.json();
+		return (await response.json()) as ForkResult;
 	}
 
 	/**

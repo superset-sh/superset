@@ -454,11 +454,16 @@
       "name": "@superset/streams",
       "version": "0.0.1",
       "dependencies": {
+        "@durable-streams/client": "^0.2.0",
         "@durable-streams/server": "^0.2.0",
+        "@superset/durable-session": "workspace:*",
+        "@tanstack/db": "^0.5.22",
+        "hono": "^4.4.0",
+        "zod": "^4.1.12",
       },
       "devDependencies": {
-        "@durable-streams/client": "^0.2.0",
         "@durable-streams/server-conformance-tests": "^0.2.0",
+        "@hono/node-server": "^1.13.0",
         "@superset/typescript": "workspace:*",
         "@types/node": "^24.9.1",
         "fast-check": "^4.5.3",
@@ -513,32 +518,6 @@
         "dotenv": "^17.2.3",
         "tailwindcss": "^4.1.18",
         "typescript": "^5.9.3",
-      },
-    },
-    "packages/ai-chat": {
-      "name": "@superset/ai-chat",
-      "version": "0.0.1",
-      "dependencies": {
-        "@anthropic-ai/claude-agent-sdk": "^0.2.19",
-        "@anthropic-ai/sdk": "^0.72.1",
-        "@durable-streams/client": "^0.2.0",
-        "@durable-streams/state": "^0.2.0",
-        "@superset/ui": "workspace:*",
-        "@tanstack/db": "0.5.22",
-        "@tanstack/react-db": "0.1.66",
-        "lucide-react": "^0.563.0",
-        "zod": "^4.3.5",
-      },
-      "devDependencies": {
-        "@superset/typescript": "workspace:*",
-        "@types/node": "^24.9.1",
-        "@types/react": "~19.1.0",
-        "bun-types": "^1.3.1",
-        "react": "19.1.0",
-        "typescript": "^5.9.3",
-      },
-      "peerDependencies": {
-        "react": "^18.0.0 || ^19.0.0",
       },
     },
     "packages/auth": {
@@ -1907,8 +1886,6 @@
     "@standard-schema/utils": ["@standard-schema/utils@0.3.0", "", {}, "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g=="],
 
     "@superset/admin": ["@superset/admin@workspace:apps/admin"],
-
-    "@superset/ai-chat": ["@superset/ai-chat@workspace:packages/ai-chat"],
 
     "@superset/api": ["@superset/api@workspace:apps/api"],
 
