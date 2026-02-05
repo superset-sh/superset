@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
+import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
@@ -221,16 +222,13 @@ export function createTerminalInstance(
 		rendererRef.current = loadRenderer(xterm);
 	});
 
-	import("@xterm/addon-ligatures")
-		.then(({ LigaturesAddon }) => {
-			if (isDisposed) return;
-			try {
-				xterm.loadAddon(new LigaturesAddon());
-			} catch {
-				// Ligatures not supported by current font
-			}
-		})
-		.catch(() => {});
+	try {
+		if (!isDisposed) {
+			xterm.loadAddon(new LigaturesAddon());
+		}
+	} catch {
+		// Ligatures not supported by current font
+	}
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 

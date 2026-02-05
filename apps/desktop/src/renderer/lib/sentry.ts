@@ -1,8 +1,9 @@
+import * as Sentry from "@sentry/electron/renderer";
 import { env } from "../env.renderer";
 
 let sentryInitialized = false;
 
-export async function initSentry(): Promise<void> {
+export function initSentry(): void {
 	if (sentryInitialized) return;
 
 	if (!env.SENTRY_DSN_DESKTOP || env.NODE_ENV !== "production") {
@@ -10,9 +11,6 @@ export async function initSentry(): Promise<void> {
 	}
 
 	try {
-		// Dynamic import to avoid bundler issues
-		const Sentry = await import("@sentry/electron/renderer");
-
 		Sentry.init({
 			dsn: env.SENTRY_DSN_DESKTOP,
 			environment: env.NODE_ENV,
