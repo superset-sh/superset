@@ -15,6 +15,7 @@ import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFile, LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useFileExplorerStore } from "renderer/stores/file-explorer";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
@@ -37,14 +38,11 @@ export function FilesView() {
 	const worktreePath = workspace?.worktreePath;
 
 	const [searchTerm, setSearchTerm] = useState("");
-	const [showHiddenFiles, setShowHiddenFiles] = useState(false);
+	const { showHiddenFiles, toggleHiddenFiles } = useFileExplorerStore();
 
-	// Refs updated synchronously during render so dataLoader always reads current values
+	// Ref avoids stale closure in dataLoader callbacks
 	const worktreePathRef = useRef(worktreePath);
 	worktreePathRef.current = worktreePath;
-
-	const showHiddenFilesRef = useRef(showHiddenFiles);
-	showHiddenFilesRef.current = showHiddenFiles;
 
 	const trpcUtils = electronTrpc.useUtils();
 
@@ -86,7 +84,7 @@ export function FilesView() {
 					const entries = await trpcUtils.filesystem.readDirectory.fetch({
 						dirPath,
 						rootPath: currentPath,
-						includeHidden: showHiddenFilesRef.current,
+						includeHidden: useFileExplorerStore.getState().showHiddenFiles,
 					});
 					return entries.map(
 						(e) =>
@@ -101,7 +99,6 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	// Invalidate tree when workspace changes
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
 		if (
@@ -264,13 +261,26 @@ export function FilesView() {
 	}, [tree]);
 
 	const handleRefresh = useCallback(() => {
+		// Invalidate root explicitly (getItems() may not include it)
 		tree.getItemInstance("root")?.invalidateChildrenIds();
+		// Also invalidate all expanded directories so new files in nested folders appear
+		for (const item of tree.getItems()) {
+			if (item.getItemData()?.isDirectory) {
+				item.invalidateChildrenIds();
+			}
+		}
 	}, [tree]);
 
 	const handleToggleHiddenFiles = useCallback(() => {
-		setShowHiddenFiles((v) => !v);
+		toggleHiddenFiles();
+		// invalidateChildrenIds doesn't cascade, so invalidate every directory
 		tree.getItemInstance("root")?.invalidateChildrenIds();
-	}, [tree]);
+		for (const item of tree.getItems()) {
+			if (item.getItemData()?.isDirectory) {
+				item.invalidateChildrenIds();
+			}
+		}
+	}, [tree, toggleHiddenFiles]);
 
 	const searchResultEntries = useMemo(() => {
 		return searchResults.map((result) => ({

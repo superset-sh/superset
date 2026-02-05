@@ -39,12 +39,20 @@ export function DeleteWorktreeDialog({
 	const handleDelete = () => {
 		onOpenChange(false);
 
-		toast.promise(deleteWorktree.mutateAsync({ worktreeId }), {
-			loading: `Deleting "${worktreeName}"...`,
-			success: `Deleted "${worktreeName}"`,
-			error: (error) =>
-				error instanceof Error ? error.message : "Failed to delete",
-		});
+		toast.promise(
+			deleteWorktree.mutateAsync({ worktreeId }).then((result) => {
+				if (!result.success) {
+					throw new Error(result.error ?? "Failed to delete");
+				}
+				return result;
+			}),
+			{
+				loading: `Deleting "${worktreeName}"...`,
+				success: `Deleted "${worktreeName}"`,
+				error: (error) =>
+					error instanceof Error ? error.message : "Failed to delete",
+			},
+		);
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;

@@ -1,0 +1,2 @@
+# Git LFS tracking for large binaries (darwin-arm64 only for now)
+apps/desktop/resources/bin/darwin-arm64/claude filter=lfs diff=lfs merge=lfs -text
