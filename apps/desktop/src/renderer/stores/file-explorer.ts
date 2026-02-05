@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
+export const LEGACY_SHOW_HIDDEN_KEY = "__legacy__";
+
 export type SortBy = "name" | "type" | "modified";
 export type SortDirection = "asc" | "desc";
 
@@ -8,7 +10,7 @@ interface FileExplorerState {
 	expandedFolders: Record<string, string[]>;
 	selectedItems: Record<string, string[]>;
 	searchTerm: Record<string, string>;
-	showHiddenFiles: boolean;
+	showHiddenFiles: Record<string, boolean>;
 	sortBy: SortBy;
 	sortDirection: SortDirection;
 	toggleFolder: (worktreePath: string, folderId: string) => void;
@@ -21,7 +23,7 @@ interface FileExplorerState {
 	removeSelectedItem: (worktreePath: string, itemId: string) => void;
 	clearSelection: (worktreePath: string) => void;
 	setSearchTerm: (worktreePath: string, term: string) => void;
-	toggleHiddenFiles: () => void;
+	toggleHiddenFiles: (projectId: string) => void;
 	setSortBy: (sortBy: SortBy) => void;
 	setSortDirection: (direction: SortDirection) => void;
 }
@@ -33,7 +35,7 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 				expandedFolders: {},
 				selectedItems: {},
 				searchTerm: {},
-				showHiddenFiles: false,
+				showHiddenFiles: {},
 				sortBy: "name",
 				sortDirection: "asc",
 
@@ -139,8 +141,17 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 					});
 				},
 
-				toggleHiddenFiles: () => {
-					set({ showHiddenFiles: !get().showHiddenFiles });
+				toggleHiddenFiles: (projectId) => {
+					const current =
+						get().showHiddenFiles[projectId] ??
+						get().showHiddenFiles[LEGACY_SHOW_HIDDEN_KEY] ??
+						false;
+					set({
+						showHiddenFiles: {
+							...get().showHiddenFiles,
+							[projectId]: !current,
+						},
+					});
 				},
 
 				setSortBy: (sortBy) => {
@@ -153,6 +164,17 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 			}),
 			{
 				name: "file-explorer-store",
+				version: 1,
+				migrate: (persisted, version) => {
+					const state = persisted as Record<string, unknown>;
+					// v0 -> v1: showHiddenFiles changed from boolean to Record<string, boolean>
+					// Preserve legacy value so users don't lose their preference
+					if (version === 0 && typeof state.showHiddenFiles === "boolean") {
+						const legacyValue = state.showHiddenFiles;
+						state.showHiddenFiles = { [LEGACY_SHOW_HIDDEN_KEY]: legacyValue };
+					}
+					return state as FileExplorerState;
+				},
 				partialize: (state) => ({
 					showHiddenFiles: state.showHiddenFiles,
 					sortBy: state.sortBy,

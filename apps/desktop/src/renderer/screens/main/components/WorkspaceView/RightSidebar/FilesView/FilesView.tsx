@@ -15,7 +15,10 @@ import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFile, LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useFileExplorerStore } from "renderer/stores/file-explorer";
+import {
+	LEGACY_SHOW_HIDDEN_KEY,
+	useFileExplorerStore,
+} from "renderer/stores/file-explorer";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
@@ -38,11 +41,20 @@ export function FilesView() {
 	const worktreePath = workspace?.worktreePath;
 
 	const [searchTerm, setSearchTerm] = useState("");
-	const { showHiddenFiles, toggleHiddenFiles } = useFileExplorerStore();
+	const projectId = workspace?.project?.id;
+	const showHiddenFiles = useFileExplorerStore(
+		(s) =>
+			s.showHiddenFiles[projectId ?? LEGACY_SHOW_HIDDEN_KEY] ??
+			s.showHiddenFiles[LEGACY_SHOW_HIDDEN_KEY] ??
+			false,
+	);
+	const toggleHiddenFiles = useFileExplorerStore((s) => s.toggleHiddenFiles);
 
-	// Ref avoids stale closure in dataLoader callbacks
+	// Refs avoid stale closure in dataLoader callbacks
 	const worktreePathRef = useRef(worktreePath);
 	worktreePathRef.current = worktreePath;
+	const showHiddenFilesRef = useRef(showHiddenFiles);
+	showHiddenFilesRef.current = showHiddenFiles;
 
 	const trpcUtils = electronTrpc.useUtils();
 
@@ -84,7 +96,7 @@ export function FilesView() {
 					const entries = await trpcUtils.filesystem.readDirectory.fetch({
 						dirPath,
 						rootPath: currentPath,
-						includeHidden: useFileExplorerStore.getState().showHiddenFiles,
+						includeHidden: showHiddenFilesRef.current,
 					});
 					return entries.map(
 						(e) =>
@@ -272,7 +284,10 @@ export function FilesView() {
 	}, [tree]);
 
 	const handleToggleHiddenFiles = useCallback(() => {
-		toggleHiddenFiles();
+		if (!projectId) return;
+		// Update ref synchronously so invalidation uses correct value
+		showHiddenFilesRef.current = !showHiddenFilesRef.current;
+		toggleHiddenFiles(projectId);
 		// invalidateChildrenIds doesn't cascade, so invalidate every directory
 		tree.getItemInstance("root")?.invalidateChildrenIds();
 		for (const item of tree.getItems()) {
@@ -280,7 +295,7 @@ export function FilesView() {
 				item.invalidateChildrenIds();
 			}
 		}
-	}, [tree, toggleHiddenFiles]);
+	}, [tree, projectId, toggleHiddenFiles]);
 
 	const searchResultEntries = useMemo(() => {
 		return searchResults.map((result) => ({
