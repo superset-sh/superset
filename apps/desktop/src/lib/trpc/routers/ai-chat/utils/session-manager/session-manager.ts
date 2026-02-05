@@ -16,12 +16,22 @@
 import { EventEmitter } from "node:events";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { query } from "@anthropic-ai/claude-agent-sdk";
 import { DurableStream, IdempotentProducer } from "@durable-streams/client";
 import { app } from "electron";
 import { buildClaudeEnv } from "../auth";
 
 const DURABLE_STREAM_URL =
 	process.env.DURABLE_STREAM_URL || "http://localhost:8080";
+const DURABLE_STREAM_AUTH_TOKEN =
+	process.env.DURABLE_STREAM_AUTH_TOKEN || process.env.DURABLE_STREAM_TOKEN;
+
+function buildDurableStreamHeaders(): Record<string, string> {
+	if (!DURABLE_STREAM_AUTH_TOKEN) {
+		return {};
+	}
+	return { Authorization: `Bearer ${DURABLE_STREAM_AUTH_TOKEN}` };
+}
 
 // ============================================================================
 // Events (simplified — only for local IPC subscribers)
@@ -61,6 +71,7 @@ interface ActiveSession {
 	activeQuery?: { interrupt(): Promise<void>; close(): void };
 	streamWatcher?: StreamWatcher;
 	processingMessageIds: Set<string>;
+	processingQueue?: Promise<void>;
 }
 
 // ============================================================================
@@ -73,6 +84,7 @@ async function createProducer(sessionId: string): Promise<IdempotentProducer> {
 	const streamOpts = {
 		url: `${DURABLE_STREAM_URL}/streams/${sessionId}`,
 		contentType: "application/json",
+		headers: buildDurableStreamHeaders(),
 	};
 
 	let stream: DurableStream;
@@ -106,118 +118,120 @@ async function closeProducer(sessionId: string): Promise<void> {
 // ============================================================================
 
 class StreamWatcher {
-	private intervalId: ReturnType<typeof setInterval> | null = null;
 	private seenMessageIds: Set<string> = new Set();
-	private isPolling = false;
 	private isStopped = false;
 	private onNewUserMessage: (messageId: string, content: string) => void;
 	private sessionId = "";
+	private abortController: AbortController | null = null;
+	private unsubscribe: (() => void) | null = null;
 
 	constructor(onNewUserMessage: (messageId: string, content: string) => void) {
 		this.onNewUserMessage = onNewUserMessage;
 	}
 
 	/**
-	 * Fetch the current stream and seed seenMessageIds with all existing
-	 * user_input keys, then start polling for new messages.
-	 * This prevents reprocessing historical messages after a restart.
+	 * Start watching the durable stream for new user input messages.
+	 * Uses the stream API to avoid full re-fetches.
 	 */
 	async start(sessionId: string): Promise<void> {
 		this.sessionId = sessionId;
 		this.seenMessageIds.clear();
 		this.isStopped = false;
+		this.abortController = new AbortController();
 
-		// Seed with existing messages before polling
-		await this.seedExistingMessages();
+		const streamUrl = `${DURABLE_STREAM_URL}/streams/${this.sessionId}`;
+		let startOffset = "-1";
 
-		this.intervalId = setInterval(() => this.poll(), 500);
-		console.log(
-			`[stream-watcher] Started polling for ${sessionId} (${this.seenMessageIds.size} existing messages seeded)`,
-		);
-	}
-
-	/**
-	 * Fetch all existing events from the stream and record their keys
-	 * so they are not treated as new messages.
-	 */
-	private async seedExistingMessages(): Promise<void> {
 		try {
-			const response = await fetch(
-				`${DURABLE_STREAM_URL}/streams/${this.sessionId}`,
-				{ headers: { Accept: "application/json" } },
-			);
-
-			if (!response.ok) return;
-
-			const events = (await response.json()) as Array<Record<string, unknown>>;
-
-			for (const event of events) {
-				if (event.type !== "chunk") continue;
-
-				const value = event.value as Record<string, unknown> | undefined;
-				if (!value || value.type !== "user_input") continue;
-
-				const key = event.key as string;
-				if (key) {
-					this.seenMessageIds.add(key);
-				}
+			const head = await DurableStream.head({
+				url: streamUrl,
+				contentType: "application/json",
+				headers: buildDurableStreamHeaders(),
+			});
+			if (head.offset) {
+				startOffset = head.offset;
 			}
 		} catch (error) {
 			console.warn(
-				`[stream-watcher] Failed to seed existing messages for ${this.sessionId}:`,
+				`[stream-watcher] Failed to HEAD stream for ${this.sessionId}:`,
+				error,
+			);
+		}
+
+		try {
+			const handle = new DurableStream({
+				url: streamUrl,
+				contentType: "application/json",
+				headers: buildDurableStreamHeaders(),
+			});
+			const response = await handle.stream<Record<string, unknown>>({
+				offset: startOffset,
+				live: true,
+				json: true,
+				signal: this.abortController.signal,
+				onError: (error) => {
+					console.warn(
+						`[stream-watcher] Stream error for ${this.sessionId}:`,
+						error,
+					);
+					return {};
+				},
+			});
+
+			this.unsubscribe = response.subscribeJson((batch) => {
+				for (const event of batch.items) {
+					if (this.isStopped) {
+						return;
+					}
+
+					if (!event || typeof event !== "object") {
+						continue;
+					}
+
+					const eventRecord = event as Record<string, unknown>;
+					if (eventRecord.type !== "chunk") {
+						continue;
+					}
+
+					const value = eventRecord.value as
+						| Record<string, unknown>
+						| undefined;
+					if (!value || value.type !== "user_input") {
+						continue;
+					}
+
+					const key = eventRecord.key as string | undefined;
+					if (!key || this.seenMessageIds.has(key)) {
+						continue;
+					}
+
+					this.seenMessageIds.add(key);
+
+					const content = value.content as string | undefined;
+					if (content && !this.isStopped) {
+						console.log(`[stream-watcher] New user message: ${key}`);
+						this.onNewUserMessage(key, content);
+					}
+				}
+			});
+
+			console.log(
+				`[stream-watcher] Started streaming for ${sessionId} (offset=${startOffset})`,
+			);
+		} catch (error) {
+			console.warn(
+				`[stream-watcher] Failed to start stream for ${this.sessionId}:`,
 				error,
 			);
 		}
 	}
 
-	private async poll(): Promise<void> {
-		if (this.isStopped) return;
-		if (this.isPolling) return;
-		this.isPolling = true;
-
-		try {
-			const response = await fetch(
-				`${DURABLE_STREAM_URL}/streams/${this.sessionId}`,
-				{ headers: { Accept: "application/json" } },
-			);
-
-			if (!response.ok) return;
-
-			const events = (await response.json()) as Array<Record<string, unknown>>;
-
-			for (const event of events) {
-				if (event.type !== "chunk") continue;
-
-				const value = event.value as Record<string, unknown> | undefined;
-				if (!value) continue;
-
-				// Detect user input messages (new format: { type: "user_input", content, ... })
-				if (value.type !== "user_input") continue;
-
-				const key = event.key as string;
-				if (!key || this.seenMessageIds.has(key)) continue;
-
-				this.seenMessageIds.add(key);
-
-				const content = value.content as string | undefined;
-				if (content && !this.isStopped) {
-					console.log(`[stream-watcher] New user message: ${key}`);
-					this.onNewUserMessage(key, content);
-				}
-			}
-		} catch {
-			// Ignore poll errors
-		} finally {
-			this.isPolling = false;
-		}
-	}
-
 	stop(): void {
 		this.isStopped = true;
-		if (this.intervalId) {
-			clearInterval(this.intervalId);
-			this.intervalId = null;
-		}
+		this.unsubscribe?.();
+		this.unsubscribe = null;
+		this.abortController?.abort();
+		this.abortController = null;
 		this.seenMessageIds.clear();
 	}
 }
@@ -226,17 +240,7 @@ class StreamWatcher {
 // Session Manager
 // ============================================================================
 
-// Cache V1 SDK query function
-let cachedQuery:
-	| typeof import("@anthropic-ai/claude-agent-sdk").query
-	| null = null;
-
-const getSDK = async () => {
-	if (cachedQuery) return { query: cachedQuery };
-	const sdk = await import("@anthropic-ai/claude-agent-sdk");
-	cachedQuery = sdk.query;
-	return { query: cachedQuery };
-};
+type ClaudeQueryResult = ReturnType<typeof query>;
 
 class ClaudeSessionManager extends EventEmitter {
 	private sessions: Map<string, ActiveSession> = new Map();
@@ -284,9 +288,7 @@ class ClaudeSessionManager extends EventEmitter {
 				}
 				session.processingMessageIds.add(messageId);
 
-				this.processUserMessage({ sessionId, content }).finally(() => {
-					session.processingMessageIds.delete(messageId);
-				});
+				this.enqueueUserMessage({ sessionId, messageId, content });
 			});
 
 			session.streamWatcher = watcher;
@@ -297,6 +299,39 @@ class ClaudeSessionManager extends EventEmitter {
 			type: "session_start",
 			sessionId,
 		} satisfies SessionStartEvent);
+	}
+
+	private enqueueUserMessage({
+		sessionId,
+		messageId,
+		content,
+	}: {
+		sessionId: string;
+		messageId: string;
+		content: string;
+	}): void {
+		const session = this.sessions.get(sessionId);
+		if (!session) {
+			return;
+		}
+
+		const run = async () => {
+			await this.processUserMessage({ sessionId, content });
+		};
+
+		const base = session.processingQueue ?? Promise.resolve();
+		const next = base.catch(() => undefined).then(run);
+
+		session.processingQueue = next
+			.catch((error) => {
+				console.error(
+					`[claude/session] Failed to process message ${messageId}:`,
+					error,
+				);
+			})
+			.finally(() => {
+				session.processingMessageIds.delete(messageId);
+			});
 	}
 
 	/**
@@ -326,12 +361,6 @@ class ClaudeSessionManager extends EventEmitter {
 			return;
 		}
 
-		// Abort any previous in-flight query
-		if (session.activeQuery) {
-			session.activeQuery.close();
-			session.activeQuery = undefined;
-		}
-
 		const abortController = new AbortController();
 		session.abortController = abortController;
 
@@ -356,9 +385,10 @@ class ClaudeSessionManager extends EventEmitter {
 
 		const env = buildClaudeEnv();
 
-		try {
-			const { query } = await getSDK();
+		let q: ClaudeQueryResult | null = null;
+		let hadError = false;
 
+		try {
 			const options = {
 				includePartialMessages: true,
 				cwd: session.cwd,
@@ -374,7 +404,7 @@ class ClaudeSessionManager extends EventEmitter {
 				`[claude/session] Starting V1 query in ${session.cwd} (resume=${session.claudeSessionId || "none"})`,
 			);
 
-			const q = query({ prompt: content, options });
+			q = query({ prompt: content, options });
 			session.activeQuery = q;
 
 			// Stream and persist ALL SDK messages as raw passthrough.
@@ -422,27 +452,16 @@ class ClaudeSessionManager extends EventEmitter {
 							headers: { operation: "upsert" },
 						}),
 					);
-					// Flush immediately so chunks are visible to clients as they arrive
-					await producer.flush();
 				}
 
 				totalChunks++;
-			}
-
-			q.close();
-			session.activeQuery = undefined;
-
-			// Flush pending events
-			const flushProducer = sessionProducers.get(sessionId);
-			if (flushProducer) {
-				await flushProducer.flush();
 			}
 
 			console.log(
 				`[claude/session] Message processing complete, ${totalChunks} chunks persisted`,
 			);
 		} catch (error) {
-			session.activeQuery = undefined;
+			hadError = true;
 			const errorMessage =
 				error instanceof Error ? error.message : String(error);
 			console.error(`[claude/session] SDK error: ${errorMessage}`);
@@ -454,6 +473,22 @@ class ClaudeSessionManager extends EventEmitter {
 				sessionId,
 				error: errorMessage,
 			} satisfies ErrorEvent);
+		} finally {
+			if (hadError && !abortController.signal.aborted) {
+				abortController.abort();
+			}
+			try {
+				q?.close();
+			} catch (closeError) {
+				console.warn("[claude/session] Failed to close query:", closeError);
+			}
+			session.activeQuery = undefined;
+
+			// Flush pending events
+			const flushProducer = sessionProducers.get(sessionId);
+			if (flushProducer) {
+				await flushProducer.flush();
+			}
 		}
 	}
 

@@ -103,7 +103,13 @@ export const chatMessages = pgTable("chat_messages", {
   toolCalls: jsonb("tool_calls"),
   inputTokens: integer("input_tokens"),
   outputTokens: integer("output_tokens"),
-  createdById: uuid("created_by_id").notNull().references(() => users.id),
+  // NOTE: assistant messages may be system-generated
+  createdById: uuid("created_by_id").references(() => users.id),
+  // Processing state for desktop execution
+  processingStartedAt: timestamp("processing_started_at"),
+  processingExpiresAt: timestamp("processing_expires_at"),
+  processedAt: timestamp("processed_at"),
+  processingError: text("processing_error"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -256,18 +262,38 @@ export const chatRouter = createTRPCRouter({
 });
 ```
 
-**Desktop subscription:**
+**Desktop subscription (with claim/lease to avoid double-processing):**
 ```typescript
 // Subscribe to pending messages for workspaces user has open
 const pendingMessages = electricClient.stream({
   shape: {
     table: "chat_messages",
-    where: `session_id IN (...) AND role = 'user' AND NOT processed`,
-  }
+    where: `session_id IN (...) AND role = 'user' AND processed_at IS NULL`,
+  },
 });
 
-pendingMessages.subscribe((messages) => {
+pendingMessages.subscribe(async (messages) => {
   for (const msg of messages) {
+    // Claim/lease: only one desktop should process a message at a time
+    const claimed = await db
+      .update(chatMessages)
+      .set({
+        processingStartedAt: new Date(),
+        processingExpiresAt: addMinutes(new Date(), 5),
+      })
+      .where(
+        and(
+          eq(chatMessages.id, msg.id),
+          isNull(chatMessages.processedAt),
+          or(
+            isNull(chatMessages.processingExpiresAt),
+            lt(chatMessages.processingExpiresAt, new Date()),
+          ),
+        ),
+      )
+      .returning({ id: chatMessages.id });
+
+    if (claimed.length === 0) continue;
     runClaudeSession(msg);
   }
 });
@@ -277,9 +303,9 @@ pendingMessages.subscribe((messages) => {
 
 ## Phase 5: Durable Stream Server (Separate Fly App)
 
-**`apps/stream-server/`** (new Fly app)
+**`apps/streams/`** (new Fly app)
 ```
-apps/stream-server/
+apps/streams/
 ├── package.json
 ├── Dockerfile
 ├── fly.toml
@@ -291,12 +317,16 @@ apps/stream-server/
 
 Dependencies: `@durable-streams/server`, `@durable-streams/state`, `hono`
 
-Endpoints:
+Endpoints (all require auth):
 - `PUT /streams/:sessionId` - Create stream
 - `POST /streams/:sessionId` - Append tokens
 - `GET /streams/:sessionId` - Read with `?live=true` for SSE
 - `POST /streams/:sessionId/presence` - Update presence
 - `GET /streams/:sessionId/presence` - Get presence state
+
+Auth:
+- Require bearer token or signed session token on every request
+- Validate session membership (org + participant) before allowing stream access
 
 ---
 
@@ -328,6 +358,8 @@ export const chatRouter = createTRPCRouter({
       toolCalls: z.any().optional(),
       inputTokens: z.number().optional(),
       outputTokens: z.number().optional(),
+      // createdById may be null for assistant/system-generated messages
+      createdById: z.string().uuid().optional(),
     }))
     .mutation(...),
   archiveSession: protectedProcedure

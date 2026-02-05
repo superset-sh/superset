@@ -10,11 +10,13 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
+import { delimiter } from "node:path";
 import { join } from "node:path";
 
 interface ClaudeCredentials {
 	apiKey: string;
 	source: "env" | "config" | "keychain";
+	kind: "apiKey" | "oauth";
 }
 
 interface ClaudeConfigFile {
@@ -36,7 +38,7 @@ interface ClaudeConfigFile {
 function getCredentialsFromEnv(): ClaudeCredentials | null {
 	const apiKey = process.env.ANTHROPIC_API_KEY;
 	if (apiKey) {
-		return { apiKey, source: "env" };
+		return { apiKey, source: "env", kind: "apiKey" };
 	}
 	return null;
 }
@@ -65,19 +67,32 @@ function getCredentialsFromConfig(): ClaudeCredentials | null {
 					console.log(
 						`[claude/auth] Found OAuth credentials in: ${configPath}`,
 					);
-					return { apiKey: config.claudeAiOauth.accessToken, source: "config" };
+					return {
+						apiKey: config.claudeAiOauth.accessToken,
+						source: "config",
+						kind: "oauth",
+					};
 				}
 
 				// Fall back to other formats
-				const apiKey =
-					config.apiKey ||
-					config.api_key ||
-					config.oauthAccessToken ||
-					config.oauth_access_token;
+				const apiKey = config.apiKey || config.api_key;
+				const oauthAccessToken =
+					config.oauthAccessToken || config.oauth_access_token;
 
 				if (apiKey) {
 					console.log(`[claude/auth] Found credentials in: ${configPath}`);
-					return { apiKey, source: "config" };
+					return { apiKey, source: "config", kind: "apiKey" };
+				}
+
+				if (oauthAccessToken) {
+					console.log(
+						`[claude/auth] Found OAuth credentials in: ${configPath}`,
+					);
+					return {
+						apiKey: oauthAccessToken,
+						source: "config",
+						kind: "oauth",
+					};
 				}
 			} catch (error) {
 				console.warn(
@@ -108,7 +123,7 @@ function getCredentialsFromKeychain(): ClaudeCredentials | null {
 
 		if (result) {
 			console.log("[claude/auth] Found credentials in macOS Keychain");
-			return { apiKey: result, source: "keychain" };
+			return { apiKey: result, source: "keychain", kind: "apiKey" };
 		}
 	} catch {
 		// Not found in keychain, this is fine
@@ -125,7 +140,7 @@ function getCredentialsFromKeychain(): ClaudeCredentials | null {
 			console.log(
 				"[claude/auth] Found credentials in macOS Keychain (anthropic-api-key)",
 			);
-			return { apiKey: result, source: "keychain" };
+			return { apiKey: result, source: "keychain", kind: "apiKey" };
 		}
 	} catch {
 		// Not found in keychain, this is fine
@@ -192,25 +207,26 @@ export function buildClaudeEnv(): Record<string, string> {
 	} else {
 		// Only set ANTHROPIC_API_KEY if we have a raw API key (not OAuth)
 		const credentials = getExistingClaudeCredentials();
-		if (credentials && credentials.source !== "config") {
-			// Only use env or keychain credentials (not OAuth from config)
+		if (credentials?.kind === "apiKey") {
 			env.ANTHROPIC_API_KEY = credentials.apiKey;
 			console.log(`[claude/auth] Using API key from ${credentials.source}`);
 		}
 	}
 
-	// Ensure PATH includes common binary locations
-	const pathAdditions = ["/usr/local/bin", "/opt/homebrew/bin", "/usr/bin"];
-	const currentPath = env.PATH || "";
-	const pathParts = currentPath.split(":");
+	// Ensure PATH includes common binary locations (non-Windows only)
+	if (platform() !== "win32") {
+		const pathAdditions = ["/usr/local/bin", "/opt/homebrew/bin", "/usr/bin"];
+		const currentPath = env.PATH || "";
+		const pathParts = currentPath.split(delimiter);
 
-	for (const addition of pathAdditions) {
-		if (!pathParts.includes(addition)) {
-			pathParts.push(addition);
+		for (const addition of pathAdditions) {
+			if (!pathParts.includes(addition)) {
+				pathParts.push(addition);
+			}
 		}
-	}
 
-	env.PATH = pathParts.join(":");
+		env.PATH = pathParts.join(delimiter);
+	}
 
 	// Mark as SDK entry (like 1code does)
 	env.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";

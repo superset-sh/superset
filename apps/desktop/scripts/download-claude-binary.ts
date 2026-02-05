@@ -9,6 +9,9 @@
  *   bun run scripts/download-claude-binary.ts --all     # Download all platforms
  *   bun run scripts/download-claude-binary.ts --version=2.1.17  # Specific version
  *
+ * Env:
+ *   SKIP_CLAUDE_DOWNLOAD=1  # Skip downloads (use existing binaries if present)
+ *
  * The binary is downloaded based on the current platform and architecture.
  */
 
@@ -295,9 +298,34 @@ async function main() {
 	const downloadAll = args.includes("--all");
 	const versionArg = args.find((a) => a.startsWith("--version="));
 	const specifiedVersion = versionArg?.split("=")[1];
+	const skipDownload =
+		process.env.SKIP_CLAUDE_DOWNLOAD === "1" ||
+		process.env.SKIP_CLAUDE_DOWNLOAD === "true";
 
 	console.log("Claude Code Binary Downloader");
 	console.log("=============================\n");
+
+	if (skipDownload) {
+		const currentPlatform = getPlatformKey();
+		const platform = PLATFORMS[currentPlatform];
+		const resourcesDir = join(dirname(import.meta.dirname), "resources");
+		const binDir = join(resourcesDir, "bin");
+		const expectedPath = platform
+			? join(binDir, currentPlatform, platform.binary)
+			: null;
+
+		console.log("SKIP_CLAUDE_DOWNLOAD is set - skipping download.");
+		if (!downloadAll && expectedPath) {
+			if (existsSync(expectedPath)) {
+				console.log(`Using existing binary at: ${expectedPath}`);
+			} else {
+				console.warn(
+					`No existing binary found at ${expectedPath}. Packaging may fail.`,
+				);
+			}
+		}
+		return;
+	}
 
 	// Get version
 	const version = specifiedVersion || (await getLatestVersion());
@@ -314,6 +342,22 @@ async function main() {
 		console.error(
 			`Failed to fetch manifest: ${error instanceof Error ? error.message : error}`,
 		);
+		if (!downloadAll) {
+			const currentPlatform = getPlatformKey();
+			const platform = PLATFORMS[currentPlatform];
+			const resourcesDir = join(dirname(import.meta.dirname), "resources");
+			const binDir = join(resourcesDir, "bin");
+			const expectedPath = platform
+				? join(binDir, currentPlatform, platform.binary)
+				: null;
+
+			if (expectedPath && existsSync(expectedPath)) {
+				console.warn(
+					`Using existing binary due to manifest fetch failure: ${expectedPath}`,
+				);
+				return;
+			}
+		}
 		process.exit(1);
 	}
 
