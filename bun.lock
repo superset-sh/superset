@@ -585,6 +585,31 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/durable-session": {
+      "name": "@superset/durable-session",
+      "version": "0.0.1",
+      "dependencies": {
+        "@durable-streams/state": "^0.2.0",
+        "@standard-schema/spec": "^1.0.0",
+        "@tanstack/ai": "^0.3.0",
+        "@tanstack/db": "^0.5.22",
+        "@tanstack/db-ivm": "^0.1.17",
+        "zod": "^4.1.12",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "@superset/ui": "workspace:*",
+        "@types/react": "~19.1.0",
+        "lucide-react": "^0.563.0",
+        "typescript": "^5.9.3",
+      },
+      "peerDependencies": {
+        "@superset/ui": "workspace:*",
+        "@tanstack/react-db": "^0.1.66",
+        "lucide-react": ">=0.300.0",
+        "react": "^18.0.0 || ^19.0.0",
+      },
+    },
     "packages/email": {
       "name": "@superset/email",
       "version": "0.1.0",
@@ -1897,6 +1922,8 @@
 
     "@superset/docs": ["@superset/docs@workspace:apps/docs"],
 
+    "@superset/durable-session": ["@superset/durable-session@workspace:packages/durable-session"],
+
     "@superset/email": ["@superset/email@workspace:packages/email"],
 
     "@superset/local-db": ["@superset/local-db@workspace:packages/local-db"],
@@ -1963,9 +1990,13 @@
 
     "@tailwindcss/vite": ["@tailwindcss/vite@4.1.18", "", { "dependencies": { "@tailwindcss/node": "4.1.18", "@tailwindcss/oxide": "4.1.18", "tailwindcss": "4.1.18" }, "peerDependencies": { "vite": "^5.2.0 || ^6 || ^7" } }, "sha512-jVA+/UpKL1vRLg6Hkao5jldawNmRo7mQYrZtNHMIVpLfLhDml5nMRUo/8MwoX2vNXvnaXNNMedrMfMugAVX1nA=="],
 
+    "@tanstack/ai": ["@tanstack/ai@0.3.0", "", { "dependencies": { "@tanstack/devtools-event-client": "^0.4.0", "partial-json": "^0.1.7" } }, "sha512-+MmqvLFmM1XvzGzVm2Pwgj8TmN8l3AV5NikDgam+B1HZY0MGdj5Pz7QFFYDEjTmzcFrDSDOAIobxR7Qp2iuKog=="],
+
     "@tanstack/db": ["@tanstack/db@0.5.22", "", { "dependencies": { "@standard-schema/spec": "^1.1.0", "@tanstack/db-ivm": "0.1.17", "@tanstack/pacer-lite": "^0.2.0" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-Qh33d9Idw7lEa/sg7veJfG8EUmSMtBzRkk/ghAVIDA3MJWAjyGOzU29TVZaM7K36BegTL8T/yVVlAFqjn/G2pw=="],
 
     "@tanstack/db-ivm": ["@tanstack/db-ivm@0.1.17", "", { "dependencies": { "fractional-indexing": "^3.2.0", "sorted-btree": "^1.8.1" }, "peerDependencies": { "typescript": ">=4.7" } }, "sha512-DK7vm56CDxNuRAdsbiPs+gITJ+16tUtYgZg3BRTLYKGIDsy8sdIO7sQFq5zl7Y+aIKAPmMAbVp9UjJ75FTtwgQ=="],
+
+    "@tanstack/devtools-event-client": ["@tanstack/devtools-event-client@0.4.0", "", {}, "sha512-RPfGuk2bDZgcu9bAJodvO2lnZeHuz4/71HjZ0bGb/SPg8+lyTA+RLSKQvo7fSmPSi8/vcH3aKQ8EM9ywf1olaw=="],
 
     "@tanstack/electric-db-collection": ["@tanstack/electric-db-collection@0.2.27", "", { "dependencies": { "@electric-sql/client": "^1.3.1", "@standard-schema/spec": "^1.1.0", "@tanstack/db": "0.5.22", "@tanstack/store": "^0.8.0", "debug": "^4.4.3" } }, "sha512-nCJosh3GV8iX0w5b1LNys8a6l8k0I28bU86Zw3lIN/xN/blZ/dOO7nVDWE+jFBfu7UWYK2qFSzHATPKezWrHfw=="],
 
@@ -4146,6 +4177,8 @@
     "parseley": ["parseley@0.12.1", "", { "dependencies": { "leac": "^0.6.0", "peberminta": "^0.9.0" } }, "sha512-e6qHKe3a9HWr0oMRVDTRhKce+bRO8VGQR3NyVwcjwrbhMmFCX9KszEV35+rn4AdilFAq9VPxP/Fe1wC9Qjd2lw=="],
 
     "parseurl": ["parseurl@1.3.3", "", {}, "sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ=="],
+
+    "partial-json": ["partial-json@0.1.7", "", {}, "sha512-Njv/59hHaokb/hRUjce3Hdv12wd60MtM9Z5Olmn+nehe0QDAsRtRbJPvJ0Z91TusF0SuZRIvnM+S4l6EIP8leA=="],
 
     "patch-console": ["patch-console@2.0.0", "", {}, "sha512-0YNdUceMdaQwoKce1gatDScmMo5pu/tfABfnzEqeG0gtTmd7mh/WcwgUjtAeOU7N8nFFlbQBnFK2gXW5fGvmMA=="],
 
