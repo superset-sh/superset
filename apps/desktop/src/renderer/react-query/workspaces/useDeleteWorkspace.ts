@@ -91,8 +91,26 @@ export function useDeleteWorkspace(
 			await utils.workspaces.invalidate();
 			await options?.onSettled?.(...args);
 		},
-		onSuccess: async (data, variables, ...rest) => {
-			await options?.onSuccess?.(data, variables, ...rest);
+		onSuccess: async (data, variables, context, ...rest) => {
+			// Server returns { success: false } for business logic failures (e.g. teardown failed).
+			// tRPC treats this as a successful response, so we must roll back optimistic updates here.
+			if (!data.success) {
+				if (context?.previousGrouped !== undefined) {
+					utils.workspaces.getAllGrouped.setData(
+						undefined,
+						context.previousGrouped,
+					);
+				}
+				if (context?.previousAll !== undefined) {
+					utils.workspaces.getAll.setData(undefined, context.previousAll);
+				}
+
+				if (context?.wasViewingDeleted) {
+					navigateToWorkspace(variables.id, navigate);
+				}
+			}
+
+			await options?.onSuccess?.(data, variables, context, ...rest);
 		},
 		onError: async (_err, variables, context, ...rest) => {
 			if (context?.previousGrouped !== undefined) {

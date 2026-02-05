@@ -85,21 +85,29 @@ export function DeleteWorkspaceDialog({
 	const handleDelete = () => {
 		onOpenChange(false);
 
-		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
-			loading: `Deleting "${workspaceName}"...`,
-			success: (result) => {
-				if (result.terminalWarning) {
-					setTimeout(() => {
-						toast.warning("Terminal warning", {
-							description: result.terminalWarning,
-						});
-					}, 100);
+		toast.promise(
+			deleteWorkspace.mutateAsync({ id: workspaceId }).then((result) => {
+				if (!result.success) {
+					throw new Error(result.error ?? "Failed to delete");
 				}
-				return `Deleted "${workspaceName}"`;
+				return result;
+			}),
+			{
+				loading: `Deleting "${workspaceName}"...`,
+				success: (result) => {
+					if (result.terminalWarning) {
+						setTimeout(() => {
+							toast.warning("Terminal warning", {
+								description: result.terminalWarning,
+							});
+						}, 100);
+					}
+					return `Deleted "${workspaceName}"`;
+				},
+				error: (error) =>
+					error instanceof Error ? error.message : "Failed to delete",
 			},
-			error: (error) =>
-				error instanceof Error ? error.message : "Failed to delete",
-		});
+		);
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;
