@@ -65,7 +65,11 @@ export class SessionRegistry {
 			try {
 				const dir = dirname(this.filePath);
 				await mkdir(dir, { recursive: true });
-				const data = JSON.stringify(Array.from(this.sessions.values()), null, 2);
+				const data = JSON.stringify(
+					Array.from(this.sessions.values()),
+					null,
+					2,
+				);
 				// Write to temp file then rename for crash safety
 				const tmpPath = `${this.filePath}${TMP_SUFFIX}`;
 				await writeFile(tmpPath, data, "utf-8");
@@ -83,9 +87,7 @@ export class SessionRegistry {
 			for (const session of sessions) {
 				this.sessions.set(session.sessionId, session);
 			}
-			console.log(
-				`${LOG_PREFIX} Loaded ${sessions.length} sessions from disk`,
-			);
+			console.log(`${LOG_PREFIX} Loaded ${sessions.length} sessions from disk`);
 		} catch (error) {
 			const err = error as NodeJS.ErrnoException;
 			if (err.code === "ENOENT") {

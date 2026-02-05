@@ -3,7 +3,8 @@ app = "superset-stream"
 primary_region = "iad"
 
 [build]
-  dockerfile = "Dockerfile"
+  # Deploy from repo root so Docker build context includes workspaces.
+  dockerfile = "apps/streams/Dockerfile"
 
 [env]
   PORT = "8080"

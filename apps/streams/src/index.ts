@@ -23,11 +23,7 @@ const dataDir = process.env.DATA_DIR || DEFAULT_DATA_DIR;
 const portEnv = process.env.PORT;
 const parsedPort = portEnv ? Number.parseInt(portEnv, 10) : DEFAULT_PORT;
 
-if (
-	!Number.isInteger(parsedPort) ||
-	parsedPort < 1 ||
-	parsedPort > MAX_PORT
-) {
+if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > MAX_PORT) {
 	console.error(`[streams] Invalid PORT: ${portEnv ?? "unset"}`);
 	process.exit(1);
 }
@@ -36,9 +32,7 @@ const port = parsedPort;
 const internalPort = port + INTERNAL_PORT_OFFSET; // Durable streams runs on internal port
 
 if (internalPort > MAX_PORT) {
-	console.error(
-		`[streams] Internal port ${internalPort} exceeds ${MAX_PORT}.`,
-	);
+	console.error(`[streams] Internal port ${internalPort} exceeds ${MAX_PORT}.`);
 	process.exit(1);
 }
 
