@@ -88,7 +88,7 @@ function materializeWholeMessage(
  */
 function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 	const sorted = [...rows].sort((a, b) => a.seq - b.seq);
-	const first = sorted[0]!;
+	const first = sorted[0] as ChunkRow;
 
 	// Create processor and start assistant message
 	const processor = new StreamProcessor();
@@ -100,12 +100,12 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 		const chunk = parseChunk(row.chunk);
 		if (!chunk) continue;
 
+		// Extract type as string for legacy/proxy chunk type checks
+		const type = (chunk as { type: string }).type as string;
+
 		// Skip legacy wrapper chunks (for backward compatibility)
-		if (
-			(chunk as any).type === "message-start" ||
-			(chunk as any).type === "message-end"
-		) {
-			if ((chunk as any).type === "message-end") {
+		if (type === "message-start" || type === "message-end") {
+			if (type === "message-end") {
 				isComplete = true;
 			}
 			continue;
@@ -126,12 +126,7 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 		}
 
 		// Also check for stop/error chunks (stop is from our proxy, not in TanStack AI types)
-		const chunkType = (chunk as { type: string }).type;
-		if (
-			chunkType === "stop" ||
-			chunkType === "error" ||
-			chunkType === "RUN_ERROR"
-		) {
+		if (type === "stop" || type === "error" || type === "RUN_ERROR") {
 			isComplete = true;
 		}
 	}
@@ -172,7 +167,7 @@ export function materializeMessage(rows: ChunkRow[]): MessageRow {
 
 	// Sort by seq to ensure correct order
 	const sorted = [...rows].sort((a, b) => a.seq - b.seq);
-	const firstRow = sorted[0]!;
+	const firstRow = sorted[0] as ChunkRow;
 	const firstChunk = parseChunk(firstRow.chunk);
 
 	if (!firstChunk) {

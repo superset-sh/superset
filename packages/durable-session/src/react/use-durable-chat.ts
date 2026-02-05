@@ -27,6 +27,7 @@ import type { UseDurableChatOptions, UseDurableChatReturn } from "./types";
  * This helper extracts `T` (the item type) from any Collection variant.
  */
 type CollectionItem<C> =
+	// biome-ignore lint/suspicious/noExplicitAny: Collection generic params require any for conditional type inference
 	C extends Collection<infer T, any, any, any, any> ? T : never;
 
 /**
@@ -34,6 +35,7 @@ type CollectionItem<C> =
  * This is a workaround to useLiveQuery not yet supporting SSR
  * as per https://github.com/TanStack/db/pull/709
  */
+// biome-ignore lint/suspicious/noExplicitAny: Collection generic params require any for type constraint
 function useCollectionData<C extends Collection<any, any, any, any, any>>(
 	collection: C,
 ): CollectionItem<C>[] {

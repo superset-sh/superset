@@ -107,7 +107,6 @@ export class DurableChatClient<
 
 	private _isConnected = false;
 	private _isDisposed = false;
-	private _isPaused = false;
 	private _error: Error | undefined;
 
 	// AbortController created at construction time to pass signal to stream-db.
@@ -417,18 +416,17 @@ export class DurableChatClient<
 		if (msgs.length === 0) return;
 
 		// Find the last user message
-		let lastUserMessageIndex = -1;
+		let lastUserMessage: UIMessage | undefined;
 		for (let i = msgs.length - 1; i >= 0; i--) {
 			if (msgs[i]?.role === "user") {
-				lastUserMessageIndex = i;
+				lastUserMessage = msgs[i];
 				break;
 			}
 		}
 
-		if (lastUserMessageIndex === -1) return;
+		if (!lastUserMessage) return;
 
 		// Get content of last user message
-		const lastUserMessage = msgs[lastUserMessageIndex]!;
 		const content = extractTextContent(
 			lastUserMessage as unknown as MessageRow,
 		);
@@ -575,8 +573,13 @@ export class DurableChatClient<
 							// Update the message with the approval response
 							this._collections.messages.update(message.id, (draft) => {
 								for (const p of draft.parts) {
-									if (p.type === "tool-call" && p.approval?.id === id) {
-										(p as ToolCallPart).approval!.approved = approved;
+									const toolCall = p as ToolCallPart;
+									if (
+										p.type === "tool-call" &&
+										toolCall.approval?.id === id &&
+										toolCall.approval
+									) {
+										toolCall.approval.approved = approved;
 									}
 								}
 							});
@@ -743,7 +746,6 @@ export class DurableChatClient<
 			await this._db.preload();
 
 			this._isConnected = true;
-			this._isPaused = false;
 
 			// Update connection status
 			this.updateSessionMeta((meta) =>
@@ -766,7 +768,6 @@ export class DurableChatClient<
 	 * Pause stream sync.
 	 */
 	pause(): void {
-		this._isPaused = true;
 		// The stream-db handles pausing internally via the abort signal
 	}
 
@@ -779,7 +780,6 @@ export class DurableChatClient<
 			return;
 		}
 
-		this._isPaused = false;
 		// The stream-db handles resuming internally
 	}
 
@@ -792,7 +792,6 @@ export class DurableChatClient<
 
 		this._abortController.abort();
 		this._isConnected = false;
-		this._isPaused = false;
 
 		this.updateSessionMeta((meta) =>
 			updateConnectionStatus(meta, "disconnected"),
