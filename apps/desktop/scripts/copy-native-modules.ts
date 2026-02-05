@@ -13,7 +13,7 @@
  * This is safe because bun install will recreate the symlinks on next install.
  */
 
-import { cpSync, existsSync, lstatSync, realpathSync, rmSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, realpathSync, rmSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 // Native modules that must exist for the app to work
@@ -46,8 +46,13 @@ function copyModuleIfSymlink(
 		console.log(`  ${moduleName}: symlink -> replacing with real files`);
 		console.log(`    Real path: ${realPath}`);
 
-		// Remove the symlink
-		rmSync(modulePath);
+		// Remove the symlink (use unlinkSync for Windows compatibility)
+		try {
+			unlinkSync(modulePath);
+		} catch (error) {
+			// Fallback to rmSync with force option
+			rmSync(modulePath, { force: true, recursive: false });
+		}
 
 		// Copy the actual files
 		cpSync(realPath, modulePath, { recursive: true });
