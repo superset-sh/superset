@@ -124,7 +124,7 @@ export function RightSidebar() {
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<div className="flex items-center gap-1 px-2 py-1.5 border-b border-border">
+			<div className="flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-border">
 				{showChangesTab && (
 					<TabButton
 						isActive={rightSidebarTab === RightSidebarTab.Changes}
