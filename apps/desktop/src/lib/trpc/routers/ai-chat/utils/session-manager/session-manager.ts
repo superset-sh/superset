@@ -171,7 +171,7 @@ class StreamWatcher {
 				live: true,
 				json: true,
 				signal: this.abortController.signal,
-				onError: (error) => {
+				onError: (error: Error) => {
 					const status = (error as { status?: number }).status;
 					const code = (error as { code?: string }).code;
 					const isFatalStatus =
@@ -206,7 +206,7 @@ class StreamWatcher {
 				},
 			});
 
-			this.unsubscribe = response.subscribeJson((batch) => {
+			this.unsubscribe = response.subscribeJson((batch: { items: ReadonlyArray<unknown> }) => {
 				for (const event of batch.items) {
 					if (this.isStopped) {
 						return;
