@@ -29,7 +29,7 @@ export interface SessionMetaCollectionOptions {
  *
  * @example
  * ```typescript
- * import { createSessionMetaCollectionOptions } from '@electric-sql/durable-session'
+ * import { createSessionMetaCollectionOptions } from '@superset/durable-session'
  * import { createCollection } from '@tanstack/db'
  *
  * const sessionMetaCollection = createCollection(

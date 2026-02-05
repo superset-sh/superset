@@ -62,7 +62,7 @@ interface MessageActionInput {
  *
  * @example
  * ```typescript
- * import { DurableChatClient } from '@electric-sql/durable-session'
+ * import { DurableChatClient } from '@superset/durable-session'
  *
  * const client = new DurableChatClient({
  *   sessionId: 'my-session',
@@ -654,7 +654,7 @@ export class DurableChatClient<
 			);
 		}
 
-		return response.json();
+		return await response.json();
 	}
 
 	/**

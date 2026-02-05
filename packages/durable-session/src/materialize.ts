@@ -240,7 +240,7 @@ export function messageRowToUIMessage(
 ): UIMessage & { actorId: string } {
 	return {
 		id: row.id,
-		role: row.role as "user" | "assistant",
+		role: row.role,
 		parts: row.parts,
 		createdAt: row.createdAt,
 		actorId: row.actorId,

@@ -1,5 +1,5 @@
 /**
- * @electric-sql/durable-session
+ * @superset/durable-session
  *
  * Framework-agnostic durable chat client backed by TanStack DB and Durable Streams.
  *
@@ -18,7 +18,7 @@
  *
  * @example
  * ```typescript
- * import { DurableChatClient } from '@electric-sql/durable-session'
+ * import { DurableChatClient } from '@superset/durable-session'
  *
  * const client = new DurableChatClient({
  *   sessionId: 'my-session',

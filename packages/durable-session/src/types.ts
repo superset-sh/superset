@@ -1,5 +1,5 @@
 /**
- * Core type definitions for @electric-sql/durable-session
+ * Core type definitions for @superset/durable-session
  *
  * Defines the stream protocol types, collection schemas, and API interfaces.
  *

@@ -10,7 +10,7 @@
  *
  * @example
  * ```typescript
- * import { sessionStateSchema } from '@electric-sql/durable-session'
+ * import { sessionStateSchema } from '@superset/durable-session'
  *
  * // Create insert event for a chunk
  * const event = sessionStateSchema.chunks.insert({

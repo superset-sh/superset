@@ -1,5 +1,5 @@
 /**
- * Collection exports for @electric-sql/durable-session
+ * Collection exports for @superset/durable-session
  *
  * Pipeline architecture:
  * - chunks → (subquery) → messages (root materialized collection)
