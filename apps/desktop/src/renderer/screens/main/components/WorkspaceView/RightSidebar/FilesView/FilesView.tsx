@@ -270,6 +270,9 @@ export function FilesView() {
 	const handleToggleHiddenFiles = useCallback(() => {
 		setShowHiddenFiles((v) => !v);
 		tree.getItemInstance("root")?.invalidateChildrenIds();
+		for (const itemId of tree.getState().expandedItems) {
+			tree.getItemInstance(itemId)?.invalidateChildrenIds();
+		}
 	}, [tree]);
 
 	const searchResultEntries = useMemo(() => {
