@@ -166,13 +166,19 @@ function proxyToDurableStreams(
 console.log(`[streams] Starting on port ${port}`);
 
 // Start both servers
-durableServer.start().then((durableUrl) => {
-	console.log(`[streams] Durable streams internal: ${durableUrl}`);
+durableServer
+	.start()
+	.then((durableUrl) => {
+		console.log(`[streams] Durable streams internal: ${durableUrl}`);
 
-	server.listen(port, "127.0.0.1", () => {
-		console.log(`[streams] Server running at http://127.0.0.1:${port}`);
+		server.listen(port, "0.0.0.0", () => {
+			console.log(`[streams] Server running at http://0.0.0.0:${port}`);
+		});
+	})
+	.catch((err) => {
+		console.error("[streams] Failed to start durable server:", err);
+		process.exit(1);
 	});
-});
 
 // Graceful shutdown
 function shutdown(signal: string) {
