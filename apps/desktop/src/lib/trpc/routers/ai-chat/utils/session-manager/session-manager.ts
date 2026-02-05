@@ -124,6 +124,7 @@ class StreamWatcher {
 	private sessionId = "";
 	private abortController: AbortController | null = null;
 	private unsubscribe: (() => void) | null = null;
+	private retryCount = 0;
 
 	constructor(onNewUserMessage: (messageId: string, content: string) => void) {
 		this.onNewUserMessage = onNewUserMessage;
@@ -137,6 +138,7 @@ class StreamWatcher {
 		this.sessionId = sessionId;
 		this.seenMessageIds.clear();
 		this.isStopped = false;
+		this.retryCount = 0;
 		this.abortController = new AbortController();
 
 		const streamUrl = `${DURABLE_STREAM_URL}/streams/${this.sessionId}`;
@@ -170,8 +172,34 @@ class StreamWatcher {
 				json: true,
 				signal: this.abortController.signal,
 				onError: (error) => {
+					const status = (error as { status?: number }).status;
+					const code = (error as { code?: string }).code;
+					const isFatalStatus =
+						status === 401 || status === 403 || status === 404;
+					const isFatalCode =
+						code === "UNAUTHORIZED" ||
+						code === "FORBIDDEN" ||
+						code === "NOT_FOUND";
+
+					if (isFatalStatus || isFatalCode) {
+						console.warn(
+							`[stream-watcher] Fatal stream error for ${this.sessionId} (status=${status ?? "n/a"}, code=${code ?? "n/a"})`,
+						);
+						this.stop();
+						return;
+					}
+
+					this.retryCount += 1;
+					if (this.retryCount > 5) {
+						console.warn(
+							`[stream-watcher] Retry limit exceeded for ${this.sessionId}`,
+						);
+						this.stop();
+						return;
+					}
+
 					console.warn(
-						`[stream-watcher] Stream error for ${this.sessionId}:`,
+						`[stream-watcher] Stream error for ${this.sessionId} (attempt ${this.retryCount}):`,
 						error,
 					);
 					return {};
@@ -215,6 +243,7 @@ class StreamWatcher {
 				}
 			});
 
+			this.retryCount = 0;
 			console.log(
 				`[stream-watcher] Started streaming for ${sessionId} (offset=${startOffset})`,
 			);
