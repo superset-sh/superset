@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { SetupConfig } from "shared/types";
+import { removeWorktree } from "./git";
 import { getShellEnvironment } from "./shell-env";
 
 const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
@@ -139,5 +140,32 @@ export async function runTeardown(
 			error: errorMessage,
 			output: errorMessage,
 		};
+	}
+}
+
+export async function removeWorktreeFromDisk({
+	mainRepoPath,
+	worktreePath,
+}: {
+	mainRepoPath: string;
+	worktreePath: string;
+}): Promise<{ success: true } | { success: false; error: string }> {
+	try {
+		await removeWorktree(mainRepoPath, worktreePath);
+		return { success: true };
+	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
+		// Worktree already gone — not an error
+		if (
+			msg.includes("is not a working tree") ||
+			msg.includes("No such file or directory")
+		) {
+			console.warn(
+				`Worktree ${worktreePath} not found in git, skipping removal`,
+			);
+			return { success: true };
+		}
+		console.error("Failed to remove worktree:", msg);
+		return { success: false, error: `Failed to remove worktree: ${msg}` };
 	}
 }
