@@ -1,5 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef } from "react";
+import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -39,7 +40,7 @@ export function WorkspaceInitEffects() {
 	);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const renameTab = useTabsStore((state) => state.renameTab);
-	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
+	const createOrAttach = useCreateOrAttachWithTheme();
 	const openConfigModal = useOpenConfigModal();
 	const dismissConfigToast =
 		electronTrpc.config.dismissConfigToast.useMutation();

@@ -677,5 +677,28 @@ describe("env", () => {
 			expect(result.SUPERSET_HOOK_VERSION).toBeDefined();
 			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
 		});
+
+		describe("COLORFGBG for light mode detection", () => {
+			it("should set COLORFGBG to dark mode by default", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.COLORFGBG).toBe("15;0");
+			});
+
+			it("should set COLORFGBG to dark mode when themeType is dark", () => {
+				const result = buildTerminalEnv({
+					...baseParams,
+					themeType: "dark",
+				});
+				expect(result.COLORFGBG).toBe("15;0");
+			});
+
+			it("should set COLORFGBG to light mode when themeType is light", () => {
+				const result = buildTerminalEnv({
+					...baseParams,
+					themeType: "light",
+				});
+				expect(result.COLORFGBG).toBe("0;15");
+			});
+		});
 	});
 });

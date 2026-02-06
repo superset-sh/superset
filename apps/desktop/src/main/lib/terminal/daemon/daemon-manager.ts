@@ -322,6 +322,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			rows = 24,
 			initialCommands,
 			skipColdRestore,
+			themeType,
 		} = params;
 
 		try {
@@ -379,6 +380,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				workspaceName,
 				workspacePath,
 				rootPath,
+				themeType,
 			});
 
 			if (DEBUG_TERMINAL) {

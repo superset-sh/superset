@@ -1,5 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
+import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
@@ -14,7 +15,7 @@ export function useOpenExternalWorktree(
 	const utils = electronTrpc.useUtils();
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
-	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
+	const createOrAttach = useCreateOrAttachWithTheme();
 	const openConfigModal = useOpenConfigModal();
 	const dismissConfigToast =
 		electronTrpc.config.dismissConfigToast.useMutation();
