@@ -4,6 +4,8 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { AddTabWithMultiplePanesOptions } from "renderer/stores/tabs/types";
+import { useTheme } from "renderer/stores/theme";
+import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import {
 	type PendingTerminalSetup,
 	useWorkspaceInitStore,
@@ -40,6 +42,10 @@ export function WorkspaceInitEffects() {
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const renameTab = useTabsStore((state) => state.renameTab);
 	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
+	const activeTheme = useTheme();
+	const terminalThemeType = resolveTerminalThemeType({
+		activeThemeType: activeTheme?.type,
+	});
 	const openConfigModal = useOpenConfigModal();
 	const dismissConfigToast =
 		electronTrpc.config.dismissConfigToast.useMutation();
@@ -114,6 +120,7 @@ export function WorkspaceInitEffects() {
 						tabId: setupTabId,
 						workspaceId: setup.workspaceId,
 						initialCommands: setup.initialCommands ?? undefined,
+						themeType: terminalThemeType,
 					},
 					{
 						onSuccess: () => onComplete(),
@@ -142,6 +149,7 @@ export function WorkspaceInitEffects() {
 						tabId,
 						workspaceId: setup.workspaceId,
 						initialCommands: setup.initialCommands ?? undefined,
+						themeType: terminalThemeType,
 					},
 					{
 						onSuccess: () => onComplete(),
@@ -164,6 +172,7 @@ export function WorkspaceInitEffects() {
 											tabId: newTabId,
 											workspaceId: setup.workspaceId,
 											initialCommands: setup.initialCommands ?? undefined,
+											themeType: terminalThemeType,
 										});
 									},
 								},
@@ -205,6 +214,7 @@ export function WorkspaceInitEffects() {
 			dismissConfigToast,
 			createPresetTerminal,
 			shouldApplyPreset,
+			terminalThemeType,
 		],
 	);
 

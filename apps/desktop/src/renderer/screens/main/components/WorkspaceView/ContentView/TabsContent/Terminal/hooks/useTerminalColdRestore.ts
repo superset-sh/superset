@@ -24,7 +24,7 @@ export interface UseTerminalColdRestoreOptions {
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	createOrAttachRef: React.MutableRefObject<CreateOrAttachMutate>;
-	themeTypeRef: React.MutableRefObject<"dark" | "light" | undefined>;
+	themeTypeRef: React.MutableRefObject<"dark" | "light">;
 	setConnectionError: (error: string | null) => void;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	maybeApplyInitialState: () => void;

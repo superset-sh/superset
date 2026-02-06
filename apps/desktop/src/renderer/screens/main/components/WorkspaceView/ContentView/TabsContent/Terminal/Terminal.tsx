@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme, useTheme } from "renderer/stores/theme";
+import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
@@ -82,8 +83,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
 	const activeTheme = useTheme();
-	const themeTypeRef = useRef(activeTheme?.type);
-	themeTypeRef.current = activeTheme?.type;
+	const themeTypeRef = useRef<"dark" | "light">(
+		resolveTerminalThemeType({
+			activeThemeType: activeTheme?.type,
+		}),
+	);
+	themeTypeRef.current = resolveTerminalThemeType({
+		activeThemeType: activeTheme?.type,
+	});
 
 	// Terminal connection state and mutations
 	const {
