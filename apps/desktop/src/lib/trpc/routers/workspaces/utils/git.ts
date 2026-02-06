@@ -632,6 +632,32 @@ export async function createWorktreeFromExistingBranch({
 	}
 }
 
+export async function deleteLocalBranch({
+	mainRepoPath,
+	branch,
+}: {
+	mainRepoPath: string;
+	branch: string;
+}): Promise<void> {
+	const env = await getGitEnv();
+
+	try {
+		await execFileAsync("git", ["-C", mainRepoPath, "branch", "-D", branch], {
+			env,
+			timeout: 10_000,
+		});
+		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		console.error(
+			`[workspace/delete] Failed to delete local branch "${branch}": ${errorMessage}`,
+		);
+		throw new Error(
+			`Failed to delete local branch "${branch}": ${errorMessage}`,
+		);
+	}
+}
+
 export async function removeWorktree(
 	mainRepoPath: string,
 	worktreePath: string,
