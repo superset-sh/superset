@@ -642,20 +642,19 @@ export async function deleteLocalBranch({
 	const env = await getGitEnv();
 
 	try {
-		await execFileAsync(
-			"git",
-			["-C", mainRepoPath, "branch", "-D", branch],
-			{ env, timeout: 10_000 },
-		);
-		console.log(
-			`[workspace/delete] Deleted local branch "${branch}"`,
-		);
+		await execFileAsync("git", ["-C", mainRepoPath, "branch", "-D", branch], {
+			env,
+			timeout: 10_000,
+		});
+		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.error(
 			`[workspace/delete] Failed to delete local branch "${branch}": ${errorMessage}`,
 		);
-		throw new Error(`Failed to delete local branch "${branch}": ${errorMessage}`);
+		throw new Error(
+			`Failed to delete local branch "${branch}": ${errorMessage}`,
+		);
 	}
 }
 

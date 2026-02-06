@@ -220,9 +220,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							id="delete-local-branch"
 							checked={deleteLocalBranch ?? false}
 							onCheckedChange={handleDeleteBranchToggle}
-							disabled={
-								isDeleteBranchLoading || setDeleteLocalBranch.isPending
-							}
+							disabled={isDeleteBranchLoading || setDeleteLocalBranch.isPending}
 						/>
 					</div>
 				)}

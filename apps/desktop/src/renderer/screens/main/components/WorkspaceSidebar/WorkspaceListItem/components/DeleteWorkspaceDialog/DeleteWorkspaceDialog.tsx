@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -10,6 +9,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCloseWorkspace,

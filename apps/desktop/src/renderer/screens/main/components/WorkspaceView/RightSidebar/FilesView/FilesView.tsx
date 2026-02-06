@@ -39,8 +39,8 @@ export function FilesView() {
 
 	const [searchTerm, setSearchTerm] = useState("");
 	const projectId = workspace?.project?.id;
-	const showHiddenFiles = useFileExplorerStore(
-		(s) => (projectId ? (s.showHiddenFiles[projectId] ?? false) : false),
+	const showHiddenFiles = useFileExplorerStore((s) =>
+		projectId ? (s.showHiddenFiles[projectId] ?? false) : false,
 	);
 	const toggleHiddenFiles = useFileExplorerStore((s) => s.toggleHiddenFiles);
 

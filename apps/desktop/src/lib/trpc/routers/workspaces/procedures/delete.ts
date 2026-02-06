@@ -149,7 +149,9 @@ export const createDeleteProcedures = () => {
 			}),
 
 		delete: publicProcedure
-			.input(z.object({ id: z.string(), deleteLocalBranch: z.boolean().optional() }))
+			.input(
+				z.object({ id: z.string(), deleteLocalBranch: z.boolean().optional() }),
+			)
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.id);
 
