@@ -1,9 +1,11 @@
 import { DurableStreamTestServer } from "@durable-streams/server";
 import { serve } from "@hono/node-server";
+import { claudeAgentApp } from "./claude-agent";
 import { createServer } from "./server";
 
 const PORT = parseInt(process.env.PORT ?? "8080", 10);
 const INTERNAL_PORT = parseInt(process.env.INTERNAL_PORT ?? "8081", 10);
+const AGENT_PORT = parseInt(process.env.CLAUDE_AGENT_PORT ?? "9090", 10);
 const DURABLE_STREAMS_URL =
 	process.env.DURABLE_STREAMS_URL ?? `http://127.0.0.1:${INTERNAL_PORT}`;
 
@@ -21,12 +23,24 @@ const { app } = createServer({
 	logging: true,
 });
 
-serve({ fetch: app.fetch, port: PORT }, (info) => {
+const proxyServer = serve({ fetch: app.fetch, port: PORT }, (info) => {
 	console.log(`[streams] Proxy running on http://localhost:${info.port}`);
 });
 
+// Start Claude agent endpoint
+const agentServer = serve(
+	{ fetch: claudeAgentApp.fetch, port: AGENT_PORT },
+	(info) => {
+		console.log(
+			`[streams] Claude agent endpoint on http://localhost:${info.port}`,
+		);
+	},
+);
+
 // Graceful shutdown
 process.on("SIGINT", async () => {
+	proxyServer.close();
+	agentServer.close();
 	await durableStreamServer.stop();
 	process.exit(0);
 });

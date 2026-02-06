@@ -71,17 +71,17 @@ describe("LFS Detection", () => {
 		expect(content.includes("filter=lfs")).toBe(true);
 	});
 
-	test("detects LFS via .lfsconfig", async () => {
+	test("does not detect LFS from .lfsconfig alone", async () => {
 		const repoPath = createTestRepo("lfs-config-test");
 
-		// Create .lfsconfig
+		// .lfsconfig configures LFS behaviour but does not indicate file tracking
 		writeFileSync(
 			join(repoPath, ".lfsconfig"),
-			"[lfs]\n\turl = https://example.com/lfs\n",
+			"[lfs]\n\tlocksverify = false\n",
 		);
 
-		const content = await Bun.file(join(repoPath, ".lfsconfig")).text();
-		expect(content.includes("[lfs]")).toBe(true);
+		expect(existsSync(join(repoPath, ".git", "lfs"))).toBe(false);
+		expect(existsSync(join(repoPath, ".gitattributes"))).toBe(false);
 	});
 
 	test("no LFS detected in plain repo", async () => {

@@ -8,7 +8,7 @@ interface FileExplorerState {
 	expandedFolders: Record<string, string[]>;
 	selectedItems: Record<string, string[]>;
 	searchTerm: Record<string, string>;
-	showHiddenFiles: boolean;
+	showHiddenFiles: Record<string, boolean>;
 	sortBy: SortBy;
 	sortDirection: SortDirection;
 	toggleFolder: (worktreePath: string, folderId: string) => void;
@@ -21,7 +21,7 @@ interface FileExplorerState {
 	removeSelectedItem: (worktreePath: string, itemId: string) => void;
 	clearSelection: (worktreePath: string) => void;
 	setSearchTerm: (worktreePath: string, term: string) => void;
-	toggleHiddenFiles: () => void;
+	toggleHiddenFiles: (projectId: string) => void;
 	setSortBy: (sortBy: SortBy) => void;
 	setSortDirection: (direction: SortDirection) => void;
 }
@@ -33,7 +33,7 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 				expandedFolders: {},
 				selectedItems: {},
 				searchTerm: {},
-				showHiddenFiles: false,
+				showHiddenFiles: {},
 				sortBy: "name",
 				sortDirection: "asc",
 
@@ -139,8 +139,14 @@ export const useFileExplorerStore = create<FileExplorerState>()(
 					});
 				},
 
-				toggleHiddenFiles: () => {
-					set({ showHiddenFiles: !get().showHiddenFiles });
+				toggleHiddenFiles: (projectId) => {
+					const current = get().showHiddenFiles[projectId] ?? false;
+					set({
+						showHiddenFiles: {
+							...get().showHiddenFiles,
+							[projectId]: !current,
+						},
+					});
 				},
 
 				setSortBy: (sortBy) => {
