@@ -30,8 +30,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
 					WebkitUserSelect: "text",
 					maxHeight: "80dvh",
 					overflow: "hidden",
-					display: "flex",
-					flexDirection: "column",
 				},
 				classNames: {
 					description: "overflow-y-auto",
