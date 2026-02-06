@@ -24,6 +24,7 @@
 		"@modelcontextprotocol/sdk": "^1.25.3",
 		"@superset/db": "workspace:*",
 		"drizzle-orm": "0.45.1",
+		"posthog-node": "^5.24.7",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {

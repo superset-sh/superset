@@ -32,6 +32,7 @@ import {
 	HiOutlineTrash,
 } from "react-icons/hi2";
 import { authClient } from "renderer/lib/auth-client";
+import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
@@ -79,6 +80,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				setShowGenerateDialog(false);
 				setShowNewKeyDialog(true);
 				setNewKeyName("");
+				posthog.capture("api_key_created");
 			}
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
@@ -95,6 +97,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			onConfirm: async () => {
 				await authClient.apiKey.delete({ keyId: id });
 				toast.success("API key revoked");
+				posthog.capture("api_key_revoked");
 			},
 		});
 	};

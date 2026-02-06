@@ -11,6 +11,7 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { posthog } from "renderer/lib/posthog";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
 import {
@@ -60,6 +61,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
+		posthog.capture("setting_changed", {
+			setting: "confirm_on_quit",
+			value: enabled,
+		});
 	};
 
 	// TODO: remove telemetry query/mutation/handler once telemetry procedures are removed
@@ -90,6 +95,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	const handleTelemetryToggle = (enabled: boolean) => {
 		console.log("[settings/telemetry] Toggling to:", enabled);
 		setTelemetryEnabled.mutate({ enabled });
+		posthog.capture("setting_changed", {
+			setting: "telemetry",
+			value: enabled,
+		});
 	};
 
 	const { data: branchPrefix, isLoading: isBranchPrefixLoading } =
@@ -117,6 +126,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		setBranchPrefix.mutate({
 			mode,
 			customPrefix: customPrefixInput || null,
+		});
+		posthog.capture("setting_changed", {
+			setting: "branch_prefix",
+			value: mode,
 		});
 	};
 

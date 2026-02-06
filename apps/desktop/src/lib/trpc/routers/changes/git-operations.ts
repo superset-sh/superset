@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { shell } from "electron";
+import { track } from "main/lib/analytics";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -106,6 +107,10 @@ export const createGitOperationsRouter = () => {
 
 					const git = simpleGit(input.worktreePath);
 					const result = await git.commit(input.message);
+					track("git_committed", {
+						workspace_id: input.worktreePath,
+						files_count: result.summary.changes,
+					});
 					return { success: true, hash: result.commit };
 				},
 			),
@@ -141,6 +146,7 @@ export const createGitOperationsRouter = () => {
 					}
 				}
 				await fetchCurrentBranch(git);
+				track("git_pushed", { workspace_id: input.worktreePath });
 				return { success: true };
 			}),
 
@@ -166,6 +172,7 @@ export const createGitOperationsRouter = () => {
 					}
 					throw error;
 				}
+				track("git_pulled", { workspace_id: input.worktreePath });
 				return { success: true };
 			}),
 
@@ -253,6 +260,7 @@ export const createGitOperationsRouter = () => {
 
 					await shell.openExternal(url);
 					await fetchCurrentBranch(git);
+					track("git_pr_created", { workspace_id: input.worktreePath });
 
 					return { success: true, url };
 				},

@@ -29,6 +29,7 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { posthog } from "renderer/lib/posthog";
 import {
 	useReorderWorkspaces,
 	useWorkspaceDeleteHandler,
@@ -180,6 +181,10 @@ export function WorkspaceListItem({
 		if (!rename.isRenaming) {
 			clearWorkspaceAttentionStatus(id);
 			navigateToWorkspace(id, navigate);
+			posthog.capture("workspace_switched", {
+				workspace_id: id,
+				project_id: projectId,
+			});
 		}
 	};
 

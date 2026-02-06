@@ -5,6 +5,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { posthog } from "renderer/lib/posthog";
 import {
 	type MarkdownStyle,
 	SYSTEM_THEME_ID,
@@ -49,6 +50,19 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 
 	const allThemes = [...builtInThemes, ...customThemes];
 
+	const handleSetTheme = (themeId: string) => {
+		setTheme(themeId);
+		posthog.capture("setting_changed", { setting: "theme", value: themeId });
+	};
+
+	const handleSetMarkdownStyle = (style: MarkdownStyle) => {
+		setMarkdownStyle(style);
+		posthog.capture("setting_changed", {
+			setting: "markdown_style",
+			value: style,
+		});
+	};
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -66,14 +80,14 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
 							<SystemThemeCard
 								isSelected={activeThemeId === SYSTEM_THEME_ID}
-								onSelect={() => setTheme(SYSTEM_THEME_ID)}
+								onSelect={() => handleSetTheme(SYSTEM_THEME_ID)}
 							/>
 							{allThemes.map((theme) => (
 								<ThemeCard
 									key={theme.id}
 									theme={theme}
 									isSelected={activeThemeId === theme.id}
-									onSelect={() => setTheme(theme.id)}
+									onSelect={() => handleSetTheme(theme.id)}
 								/>
 							))}
 						</div>
@@ -89,7 +103,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						<Select
 							value={markdownStyle}
 							onValueChange={(value) =>
-								setMarkdownStyle(value as MarkdownStyle)
+								handleSetMarkdownStyle(value as MarkdownStyle)
 							}
 						>
 							<SelectTrigger className="w-[200px]">

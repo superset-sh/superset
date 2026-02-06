@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { posthog } from "renderer/lib/posthog";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -130,14 +131,26 @@ function WorkspacePage() {
 			} else {
 				addTab(workspaceId);
 			}
+			posthog.capture("terminal_opened", {
+				source: preset ? "preset_hotkey" : "hotkey",
+				workspace_id: workspaceId,
+			});
 		},
 		[presets, workspaceId, addTab, openPreset],
 	);
 
-	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
-		workspaceId,
-		addTab,
-	]);
+	useAppHotkey(
+		"NEW_GROUP",
+		() => {
+			addTab(workspaceId);
+			posthog.capture("terminal_opened", {
+				source: "hotkey",
+				workspace_id: workspaceId,
+			});
+		},
+		undefined,
+		[workspaceId, addTab],
+	);
 	usePresetHotkeys(openTabWithPreset);
 
 	useAppHotkey(
@@ -346,6 +359,10 @@ function WorkspacePage() {
 				const dimensions = getPaneDimensions(target.paneId);
 				if (dimensions) {
 					splitPaneAuto(activeTabId, target.paneId, dimensions, target.path);
+					posthog.capture("terminal_opened", {
+						source: "split_pane",
+						workspace_id: workspaceId,
+					});
 				}
 			}
 		},
@@ -364,6 +381,10 @@ function WorkspacePage() {
 				);
 				if (!target) return;
 				splitPaneVertical(activeTabId, target.paneId, target.path);
+				posthog.capture("terminal_opened", {
+					source: "split_pane",
+					workspace_id: workspaceId,
+				});
 			}
 		},
 		undefined,
@@ -387,6 +408,10 @@ function WorkspacePage() {
 				);
 				if (!target) return;
 				splitPaneHorizontal(activeTabId, target.paneId, target.path);
+				posthog.capture("terminal_opened", {
+					source: "split_pane",
+					workspace_id: workspaceId,
+				});
 			}
 		},
 		undefined,

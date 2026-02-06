@@ -1,3 +1,4 @@
+import { track } from "main/lib/analytics";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -53,6 +54,10 @@ export const createStagingRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				await gitStageFile(input.worktreePath, input.filePath);
+				track("git_files_staged", {
+					workspace_id: input.worktreePath,
+					scope: "single",
+				});
 				return { success: true };
 			}),
 
@@ -77,6 +82,10 @@ export const createStagingRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				await gitCheckoutFile(input.worktreePath, input.filePath);
+				track("git_changes_discarded", {
+					workspace_id: input.worktreePath,
+					scope: "file",
+				});
 				return { success: true };
 			}),
 
@@ -84,6 +93,10 @@ export const createStagingRouter = () => {
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				await gitStageAll(input.worktreePath);
+				track("git_files_staged", {
+					workspace_id: input.worktreePath,
+					scope: "all",
+				});
 				return { success: true };
 			}),
 
@@ -113,6 +126,10 @@ export const createStagingRouter = () => {
 				const untrackedFiles = await getUntrackedFilePaths(input.worktreePath);
 				await gitDiscardAllUnstaged(input.worktreePath);
 				await deleteFiles(input.worktreePath, untrackedFiles);
+				track("git_changes_discarded", {
+					workspace_id: input.worktreePath,
+					scope: "all_unstaged",
+				});
 				return { success: true };
 			}),
 
@@ -123,6 +140,10 @@ export const createStagingRouter = () => {
 				const stagedNewFiles = await getStagedNewFilePaths(input.worktreePath);
 				await gitDiscardAllStaged(input.worktreePath);
 				await deleteFiles(input.worktreePath, stagedNewFiles);
+				track("git_changes_discarded", {
+					workspace_id: input.worktreePath,
+					scope: "all_staged",
+				});
 				return { success: true };
 			}),
 

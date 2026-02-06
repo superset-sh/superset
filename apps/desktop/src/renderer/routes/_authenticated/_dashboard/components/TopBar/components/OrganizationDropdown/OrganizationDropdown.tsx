@@ -29,6 +29,7 @@ import { IoBugOutline } from "react-icons/io5";
 import { LuKeyboard } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
@@ -59,6 +60,7 @@ export function OrganizationDropdown() {
 	async function switchOrganization(newOrgId: string): Promise<void> {
 		await authClient.organization.setActive({ organizationId: newOrgId });
 		clearCacheMutation.mutate();
+		posthog.capture("organization_switched", { organization_id: newOrgId });
 	}
 
 	async function handleSignOut(): Promise<void> {

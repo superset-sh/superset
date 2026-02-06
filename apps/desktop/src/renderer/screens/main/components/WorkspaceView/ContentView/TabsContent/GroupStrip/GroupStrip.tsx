@@ -21,6 +21,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { posthog } from "renderer/lib/posthog";
 import { usePresets } from "renderer/react-query/presets";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -87,11 +88,19 @@ export function GroupStrip() {
 	const handleAddGroup = () => {
 		if (!activeWorkspaceId) return;
 		addTab(activeWorkspaceId);
+		posthog.capture("terminal_opened", {
+			source: "plus_button",
+			workspace_id: activeWorkspaceId,
+		});
 	};
 
 	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
 		if (!activeWorkspaceId) return;
 		openPreset(activeWorkspaceId, preset);
+		posthog.capture("terminal_opened", {
+			source: "preset",
+			workspace_id: activeWorkspaceId,
+		});
 		setDropdownOpen(false);
 	};
 

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
+import { posthog } from "renderer/lib/posthog";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
@@ -63,6 +64,7 @@ export function BasePaneWindow({
 
 		const { width, height } = container.getBoundingClientRect();
 		splitPaneAuto(tabId, paneId, { width, height }, path);
+		posthog.capture("terminal_opened", { source: "split_pane" });
 	};
 
 	const handlers: PaneHandlers = {

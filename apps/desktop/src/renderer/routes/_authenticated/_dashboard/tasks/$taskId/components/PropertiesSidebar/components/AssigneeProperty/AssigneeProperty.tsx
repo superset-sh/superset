@@ -8,6 +8,7 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
+import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 
@@ -37,6 +38,7 @@ export function AssigneeProperty({ task }: AssigneePropertyProps) {
 		collections.tasks.update(task.id, (draft) => {
 			draft.assigneeId = userId;
 		});
+		posthog.capture("task_assigned", { task_id: task.id });
 	};
 
 	return (

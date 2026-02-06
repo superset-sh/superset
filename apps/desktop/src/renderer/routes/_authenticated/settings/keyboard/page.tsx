@@ -14,6 +14,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { posthog } from "renderer/lib/posthog";
 import {
 	captureHotkeyFromEvent,
 	getHotkeyConflict,
@@ -173,6 +174,7 @@ function KeyboardShortcutsPage() {
 			}
 
 			setHotkey(recordingId, captured);
+			posthog.capture("hotkey_customized", { hotkey_id: recordingId });
 			setRecordingId(null);
 		};
 

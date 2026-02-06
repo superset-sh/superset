@@ -7,6 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
+import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	StatusIcon,
@@ -45,6 +46,11 @@ export function StatusProperty({ task }: StatusPropertyProps) {
 		try {
 			collections.tasks.update(task.id, (draft) => {
 				draft.statusId = newStatus.id;
+			});
+			posthog.capture("task_status_updated", {
+				task_id: task.id,
+				from_status: currentStatus.type,
+				to_status: newStatus.type,
 			});
 			setOpen(false);
 		} catch (error) {

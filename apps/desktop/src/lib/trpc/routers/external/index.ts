@@ -1,6 +1,7 @@
 import { settings } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { clipboard, shell } from "electron";
+import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -75,6 +76,7 @@ export const createExternalRouter = () => {
 					})
 					.run();
 				await openPathInApp(input.path, input.app);
+				track("editor_opened", { editor: input.app });
 			}),
 
 		copyPath: publicProcedure.input(z.string()).mutation(async ({ input }) => {
@@ -95,6 +97,7 @@ export const createExternalRouter = () => {
 				const settingsRow = localDb.select().from(settings).get();
 				const app = settingsRow?.lastUsedApp ?? "cursor";
 				await openPathInApp(filePath, app);
+				track("editor_file_link_clicked", { editor: app });
 			}),
 	});
 };

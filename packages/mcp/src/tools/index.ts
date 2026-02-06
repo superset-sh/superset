@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { trackToolCall } from "../analytics";
 import { register as createWorkspace } from "./devices/create-workspace";
 import { register as deleteWorkspace } from "./devices/delete-workspace";
 import { register as getAppContext } from "./devices/get-app-context";
@@ -37,8 +38,36 @@ const allTools = [
 	startClaudeSession,
 ];
 
+/**
+ * Wraps McpServer.registerTool to automatically track all tool calls via PostHog.
+ * The wrapper intercepts the handler (last argument) and fires a `mcp_tool_called`
+ * event with the tool name, source (clientId), and user context after execution.
+ */
+function withToolTracking(server: McpServer): McpServer {
+	const original = server.registerTool.bind(server);
+
+	// biome-ignore lint/suspicious/noExplicitAny: MCP SDK registerTool has complex overloads
+	(server as any).registerTool = (name: string, ...rest: any[]) => {
+		const handler = rest[rest.length - 1];
+		if (typeof handler === "function") {
+			// biome-ignore lint/suspicious/noExplicitAny: handler args from MCP SDK
+			rest[rest.length - 1] = async (args: any, extra: any) => {
+				const result = await handler(args, extra);
+				trackToolCall({ toolName: name, extra });
+				return result;
+			};
+		}
+		// biome-ignore lint/suspicious/noExplicitAny: forwarding to original overloaded method
+		return (original as any)(name, ...rest);
+	};
+
+	return server;
+}
+
 export function registerTools(server: McpServer) {
+	const tracked = withToolTracking(server);
+
 	for (const register of allTools) {
-		register(server);
+		register(tracked);
 	}
 }
