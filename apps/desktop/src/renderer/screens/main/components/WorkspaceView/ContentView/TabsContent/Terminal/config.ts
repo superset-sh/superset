@@ -42,8 +42,6 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	macOptionIsMeta: false,
 	cursorStyle: "block",
 	cursorInactiveStyle: "outline",
-	fastScrollModifier: "alt",
-	fastScrollSensitivity: 5,
 	screenReaderMode: false,
 };
 
