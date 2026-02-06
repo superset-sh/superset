@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -7,6 +8,7 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import { Checkbox } from "@superset/ui/checkbox";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -33,6 +35,18 @@ export function DeleteWorkspaceDialog({
 	const isBranch = workspaceType === "branch";
 	const deleteWorkspace = useDeleteWorkspace();
 	const closeWorkspace = useCloseWorkspace();
+	const setDeleteLocalBranchSetting =
+		electronTrpc.settings.setDeleteLocalBranch.useMutation();
+
+	const { data: deleteLocalBranchDefault } =
+		electronTrpc.settings.getDeleteLocalBranch.useQuery(undefined, {
+			enabled: open && !isBranch,
+		});
+	const [deleteLocalBranch, setDeleteLocalBranch] = useState<boolean | null>(
+		null,
+	);
+	const deleteLocalBranchChecked =
+		deleteLocalBranch ?? deleteLocalBranchDefault ?? false;
 
 	const { data: gitStatusData, isLoading: isLoadingGitStatus } =
 		electronTrpc.workspaces.canDelete.useQuery(
@@ -85,13 +99,22 @@ export function DeleteWorkspaceDialog({
 	const handleDelete = () => {
 		onOpenChange(false);
 
+		setDeleteLocalBranchSetting.mutate({
+			enabled: deleteLocalBranchChecked,
+		});
+
 		toast.promise(
-			deleteWorkspace.mutateAsync({ id: workspaceId }).then((result) => {
-				if (!result.success) {
-					throw new Error(result.error ?? "Failed to delete");
-				}
-				return result;
-			}),
+			deleteWorkspace
+				.mutateAsync({
+					id: workspaceId,
+					deleteLocalBranch: deleteLocalBranchChecked,
+				})
+				.then((result) => {
+					if (!result.success) {
+						throw new Error(result.error ?? "Failed to delete");
+					}
+					return result;
+				}),
 			{
 				loading: `Deleting "${workspaceName}"...`,
 				success: (result) => {
@@ -190,6 +213,20 @@ export function DeleteWorkspaceDialog({
 									? "Has uncommitted changes"
 									: "Has unpushed commits"}
 						</div>
+					</div>
+				)}
+
+				{!isLoading && canDelete && (
+					<div className="px-4 pb-2">
+						<label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+							<Checkbox
+								checked={deleteLocalBranchChecked}
+								onCheckedChange={(checked) =>
+									setDeleteLocalBranch(checked === true)
+								}
+							/>
+							Also delete local branch
+						</label>
 					</div>
 				)}
 

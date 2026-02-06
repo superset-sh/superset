@@ -155,6 +155,7 @@ export const settings = sqliteTable("settings", {
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),
+	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
