@@ -6,8 +6,10 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
-import { LuExternalLink } from "react-icons/lu";
+import { LuExternalLink, LuPlay } from "react-icons/lu";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOpenStartWorkingModal } from "renderer/stores/start-working-modal";
+import { StartWorkingDialog } from "../components/StartWorkingDialog";
 import type { TaskWithStatus } from "../components/TasksView/hooks/useTasksTable";
 import { ActivitySection } from "./components/ActivitySection";
 import { CommentInput } from "./components/CommentInput";
@@ -26,6 +28,7 @@ function TaskDetailPage() {
 	const { taskId } = Route.useParams();
 	const navigate = useNavigate();
 	const collections = useCollections();
+	const openStartWorkingModal = useOpenStartWorkingModal();
 
 	useEscapeToNavigate("/tasks");
 
@@ -81,61 +84,75 @@ function TaskDetailPage() {
 	}
 
 	return (
-		<div className="flex-1 flex min-h-0">
-			{/* Main content area */}
-			<div className="flex-1 flex flex-col min-h-0 min-w-0">
-				{/* Header */}
-				<div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
-					<Button
-						variant="ghost"
-						size="icon"
-						className="h-8 w-8"
-						onClick={handleBack}
-					>
-						<HiArrowLeft className="w-4 h-4" />
-					</Button>
-					<span className="text-sm text-muted-foreground">{task.slug}</span>
-					{task.externalUrl && (
-						<a
-							href={task.externalUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-muted-foreground hover:text-foreground transition-colors"
-							title="Open in Linear"
+		<>
+			<div className="flex-1 flex min-h-0">
+				{/* Main content area */}
+				<div className="flex-1 flex flex-col min-h-0 min-w-0">
+					{/* Header */}
+					<div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-8 w-8"
+							onClick={handleBack}
 						>
-							<LuExternalLink className="w-4 h-4" />
-						</a>
-					)}
-				</div>
-
-				{/* Content */}
-				<ScrollArea className="flex-1 min-h-0">
-					<div className="px-6 py-6 max-w-4xl">
-						<EditableTitle value={task.title} onSave={handleSaveTitle} />
-
-						<TaskMarkdownRenderer
-							content={task.description ?? ""}
-							onSave={handleSaveDescription}
-						/>
-
-						<Separator className="my-8" />
-
-						<h2 className="text-lg font-semibold mb-4">Activity</h2>
-
-						<ActivitySection
-							createdAt={new Date(task.createdAt)}
-							creatorName={task.assignee?.name ?? "Someone"}
-							creatorAvatarUrl={task.assignee?.image}
-						/>
-
-						<div className="mt-6">
-							<CommentInput />
+							<HiArrowLeft className="w-4 h-4" />
+						</Button>
+						<span className="text-sm text-muted-foreground">{task.slug}</span>
+						{task.externalUrl && (
+							<a
+								href={task.externalUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-muted-foreground hover:text-foreground transition-colors"
+								title="Open in Linear"
+							>
+								<LuExternalLink className="w-4 h-4" />
+							</a>
+						)}
+						<div className="ml-auto">
+							<Button
+								variant="default"
+								size="sm"
+								className="h-7 text-xs gap-1.5"
+								onClick={() => openStartWorkingModal(task)}
+							>
+								<LuPlay className="size-3" />
+								Start Working
+							</Button>
 						</div>
 					</div>
-				</ScrollArea>
-			</div>
 
-			<PropertiesSidebar task={task} />
-		</div>
+					{/* Content */}
+					<ScrollArea className="flex-1 min-h-0">
+						<div className="px-6 py-6 max-w-4xl">
+							<EditableTitle value={task.title} onSave={handleSaveTitle} />
+
+							<TaskMarkdownRenderer
+								content={task.description ?? ""}
+								onSave={handleSaveDescription}
+							/>
+
+							<Separator className="my-8" />
+
+							<h2 className="text-lg font-semibold mb-4">Activity</h2>
+
+							<ActivitySection
+								createdAt={new Date(task.createdAt)}
+								creatorName={task.assignee?.name ?? "Someone"}
+								creatorAvatarUrl={task.assignee?.image}
+							/>
+
+							<div className="mt-6">
+								<CommentInput />
+							</div>
+						</div>
+					</ScrollArea>
+				</div>
+
+				<PropertiesSidebar task={task} />
+			</div>
+			<StartWorkingDialog />
+		</>
 	);
 }

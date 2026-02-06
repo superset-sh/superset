@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { StartWorkingDialog } from "./components/StartWorkingDialog";
 import { TasksView } from "./components/TasksView";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/tasks/")({
@@ -6,5 +7,10 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks/")({
 });
 
 function TasksPage() {
-	return <TasksView />;
+	return (
+		<>
+			<TasksView />
+			<StartWorkingDialog />
+		</>
+	);
 }
