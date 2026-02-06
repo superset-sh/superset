@@ -1,8 +1,6 @@
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { SetupConfig } from "shared/types";
 import { removeWorktree } from "./git";
+import { loadSetupConfig } from "./setup";
 import { getShellEnvironment } from "./shell-env";
 
 const TEARDOWN_TIMEOUT_MS = 60_000;
@@ -11,45 +9,6 @@ export interface TeardownResult {
 	success: boolean;
 	error?: string;
 	output?: string;
-}
-
-function readConfigFromPath(basePath: string): SetupConfig | null {
-	const configPath = join(basePath, ".superset", "config.json");
-
-	if (!existsSync(configPath)) {
-		return null;
-	}
-
-	try {
-		const content = readFileSync(configPath, "utf-8");
-		const parsed = JSON.parse(content) as SetupConfig;
-
-		if (parsed.teardown && !Array.isArray(parsed.teardown)) {
-			throw new Error("'teardown' field must be an array of strings");
-		}
-
-		return parsed;
-	} catch (error) {
-		console.error(
-			`Failed to read setup config at ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
-		);
-		return null;
-	}
-}
-
-function loadSetupConfig({
-	mainRepoPath,
-	worktreePath,
-}: {
-	mainRepoPath: string;
-	worktreePath?: string;
-}): SetupConfig | null {
-	if (worktreePath) {
-		const config = readConfigFromPath(worktreePath);
-		if (config) return config;
-	}
-
-	return readConfigFromPath(mainRepoPath);
 }
 
 export async function runTeardown(

@@ -46,6 +46,10 @@ function readConfigFromPath(basePath: string): SetupConfig | null {
 			throw new Error("'setup' field must be an array of strings");
 		}
 
+		if (parsed.teardown && !Array.isArray(parsed.teardown)) {
+			throw new Error("'teardown' field must be an array of strings");
+		}
+
 		return parsed;
 	} catch (error) {
 		console.error(
