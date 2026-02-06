@@ -24,7 +24,6 @@ export interface UseTerminalColdRestoreOptions {
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
 	createOrAttachRef: React.MutableRefObject<CreateOrAttachMutate>;
-	themeTypeRef: React.MutableRefObject<"dark" | "light">;
 	setConnectionError: (error: string | null) => void;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	maybeApplyInitialState: () => void;
@@ -63,7 +62,6 @@ export function useTerminalColdRestore({
 	pendingInitialStateRef,
 	pendingEventsRef,
 	createOrAttachRef,
-	themeTypeRef,
 	setConnectionError,
 	setExitStatus,
 	maybeApplyInitialState,
@@ -95,7 +93,6 @@ export function useTerminalColdRestore({
 				workspaceId,
 				cols: xterm.cols,
 				rows: xterm.rows,
-				themeType: themeTypeRef.current,
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
@@ -167,7 +164,6 @@ export function useTerminalColdRestore({
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
-		themeTypeRef.current,
 	]);
 
 	const handleStartShell = useCallback(() => {
@@ -208,7 +204,6 @@ export function useTerminalColdRestore({
 				cwd: restoredCwdRef.current || undefined,
 				skipColdRestore: true,
 				allowKilled: true,
-				themeType: themeTypeRef.current,
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
@@ -252,7 +247,6 @@ export function useTerminalColdRestore({
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
-		themeTypeRef.current,
 	]);
 
 	return {

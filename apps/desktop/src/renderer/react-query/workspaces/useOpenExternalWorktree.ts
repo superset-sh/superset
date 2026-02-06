@@ -1,11 +1,10 @@
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
+import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { useTheme } from "renderer/stores/theme";
-import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 
 export function useOpenExternalWorktree(
 	options?: Parameters<
@@ -16,12 +15,8 @@ export function useOpenExternalWorktree(
 	const utils = electronTrpc.useUtils();
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
-	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
+	const createOrAttach = useCreateOrAttachWithTheme();
 	const openConfigModal = useOpenConfigModal();
-	const activeTheme = useTheme();
-	const terminalThemeType = resolveTerminalThemeType({
-		activeThemeType: activeTheme?.type,
-	});
 	const dismissConfigToast =
 		electronTrpc.config.dismissConfigToast.useMutation();
 
@@ -45,7 +40,6 @@ export function useOpenExternalWorktree(
 				tabId,
 				workspaceId: data.workspace.id,
 				initialCommands,
-				themeType: terminalThemeType,
 			});
 
 			if (!initialCommands) {
