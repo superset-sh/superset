@@ -398,29 +398,37 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Project not found" };
 				}
 
-				await workspaceInitManager.acquireProjectLock(project.id);
+				// Check worktree existence and run teardown before acquiring lock.
+				// Note: teardown runs user-defined shell commands (.superset/config.json)
+				// which could include git operations, but not git worktree mutations
+				// (which is what the project lock protects).
+				const exists = await worktreeExists(
+					project.mainRepoPath,
+					worktree.path,
+				);
 
+				if (exists) {
+					const teardownResult = await runTeardown(
+						project.mainRepoPath,
+						worktree.path,
+						worktree.branch,
+					);
+					if (!teardownResult.success) {
+						return {
+							success: false,
+							error: `Teardown failed: ${teardownResult.error}`,
+						};
+					}
+				}
+
+				// Acquire project lock for existence re-check + git worktree removal
+				await workspaceInitManager.acquireProjectLock(project.id);
 				try {
-					const exists = await worktreeExists(
+					const stillExists = await worktreeExists(
 						project.mainRepoPath,
 						worktree.path,
 					);
-
-					if (exists) {
-						const teardownResult = await runTeardown(
-							project.mainRepoPath,
-							worktree.path,
-							worktree.branch,
-						);
-						if (!teardownResult.success) {
-							return {
-								success: false,
-								error: `Teardown failed: ${teardownResult.error}`,
-							};
-						}
-					}
-
-					if (exists) {
+					if (stillExists) {
 						const removeResult = await removeWorktreeFromDisk({
 							mainRepoPath: project.mainRepoPath,
 							worktreePath: worktree.path,

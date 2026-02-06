@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { projects, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { track } from "main/lib/analytics";
@@ -53,9 +54,6 @@ export async function initializeWorkspaceWorktree({
 	const manager = workspaceInitManager;
 
 	try {
-		// Acquire per-project lock to prevent concurrent git operations
-		await manager.acquireProjectLock(projectId);
-
 		// Check cancellation before starting (use durable cancellation check)
 		// Note: We don't emit "failed" progress for cancellations because the workspace
 		// is being deleted. Emitting would trigger a refetch race condition where the
@@ -69,28 +67,51 @@ export async function initializeWorkspaceWorktree({
 			if (skipWorktreeCreation) {
 				manager.markWorktreeCreated(workspaceId);
 			} else {
-				manager.updateProgress(
-					workspaceId,
-					"creating_worktree",
-					"Creating git worktree...",
-				);
-				await createWorktreeFromExistingBranch({
-					mainRepoPath,
-					branch,
-					worktreePath,
-				});
-				manager.markWorktreeCreated(workspaceId);
+				// Acquire lock only for the git worktree mutation
+				await manager.acquireProjectLock(projectId);
+				try {
+					if (manager.isCancellationRequested(workspaceId)) {
+						return;
+					}
+					manager.updateProgress(
+						workspaceId,
+						"creating_worktree",
+						"Creating git worktree...",
+					);
+					await createWorktreeFromExistingBranch({
+						mainRepoPath,
+						branch,
+						worktreePath,
+					});
+					manager.markWorktreeCreated(workspaceId);
+
+					if (manager.isCancellationRequested(workspaceId)) {
+						try {
+							await removeWorktree(mainRepoPath, worktreePath);
+						} catch (e) {
+							console.error(
+								"[workspace-init] Failed to cleanup worktree after cancel:",
+								e,
+							);
+						}
+						return;
+					}
+				} finally {
+					manager.releaseProjectLock(projectId);
+				}
 			}
 
+			// Post-lock: config copy and DB update don't need the git lock.
+			// A concurrent delete could remove the worktree between lock release
+			// and here, so check cancellation and worktree existence defensively.
 			if (manager.isCancellationRequested(workspaceId)) {
-				try {
-					await removeWorktree(mainRepoPath, worktreePath);
-				} catch (e) {
-					console.error(
-						"[workspace-init] Failed to cleanup worktree after cancel:",
-						e,
-					);
-				}
+				return;
+			}
+
+			if (!existsSync(worktreePath)) {
+				console.warn(
+					`[workspace-init] Worktree directory gone after creation (concurrent delete?): ${worktreePath}`,
+				);
 				return;
 			}
 
@@ -102,14 +123,6 @@ export async function initializeWorkspaceWorktree({
 			copySupersetConfigToWorktree(mainRepoPath, worktreePath);
 
 			if (manager.isCancellationRequested(workspaceId)) {
-				try {
-					await removeWorktree(mainRepoPath, worktreePath);
-				} catch (e) {
-					console.error(
-						"[workspace-init] Failed to cleanup worktree after cancel:",
-						e,
-					);
-				}
 				return;
 			}
 
@@ -403,23 +416,47 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		manager.updateProgress(
-			workspaceId,
-			"creating_worktree",
-			"Creating git worktree...",
-		);
-		await createWorktree(mainRepoPath, branch, worktreePath, startPoint);
-		manager.markWorktreeCreated(workspaceId);
-
-		if (manager.isCancellationRequested(workspaceId)) {
-			try {
-				await removeWorktree(mainRepoPath, worktreePath);
-			} catch (e) {
-				console.error(
-					"[workspace-init] Failed to cleanup worktree after cancel:",
-					e,
-				);
+		// Acquire lock only for the git worktree mutation
+		await manager.acquireProjectLock(projectId);
+		try {
+			if (manager.isCancellationRequested(workspaceId)) {
+				return;
 			}
+
+			manager.updateProgress(
+				workspaceId,
+				"creating_worktree",
+				"Creating git worktree...",
+			);
+			await createWorktree(mainRepoPath, branch, worktreePath, startPoint);
+			manager.markWorktreeCreated(workspaceId);
+
+			if (manager.isCancellationRequested(workspaceId)) {
+				try {
+					await removeWorktree(mainRepoPath, worktreePath);
+				} catch (e) {
+					console.error(
+						"[workspace-init] Failed to cleanup worktree after cancel:",
+						e,
+					);
+				}
+				return;
+			}
+		} finally {
+			manager.releaseProjectLock(projectId);
+		}
+
+		// Post-lock: config copy and DB update don't need the git lock.
+		// A concurrent delete could remove the worktree between lock release
+		// and here, so check cancellation and worktree existence defensively.
+		if (manager.isCancellationRequested(workspaceId)) {
+			return;
+		}
+
+		if (!existsSync(worktreePath)) {
+			console.warn(
+				`[workspace-init] Worktree directory gone after creation (concurrent delete?): ${worktreePath}`,
+			);
 			return;
 		}
 
@@ -431,14 +468,6 @@ export async function initializeWorkspaceWorktree({
 		copySupersetConfigToWorktree(mainRepoPath, worktreePath);
 
 		if (manager.isCancellationRequested(workspaceId)) {
-			try {
-				await removeWorktree(mainRepoPath, worktreePath);
-			} catch (e) {
-				console.error(
-					"[workspace-init] Failed to cleanup worktree after cancel:",
-					e,
-				);
-			}
 			return;
 		}
 
@@ -472,6 +501,8 @@ export async function initializeWorkspaceWorktree({
 		);
 
 		if (manager.wasWorktreeCreated(workspaceId)) {
+			// Re-acquire lock for worktree cleanup since it's a git mutation
+			await manager.acquireProjectLock(projectId);
 			try {
 				await removeWorktree(mainRepoPath, worktreePath);
 				console.log(
@@ -482,6 +513,8 @@ export async function initializeWorkspaceWorktree({
 					"[workspace-init] Failed to cleanup partial worktree:",
 					cleanupError,
 				);
+			} finally {
+				manager.releaseProjectLock(projectId);
 			}
 		}
 
@@ -494,6 +527,5 @@ export async function initializeWorkspaceWorktree({
 	} finally {
 		// Always finalize the job to unblock waitForInit() callers (e.g., delete mutation)
 		manager.finalizeJob(workspaceId);
-		manager.releaseProjectLock(projectId);
 	}
 }
