@@ -16,7 +16,7 @@ export async function runTeardown(
 	worktreePath: string,
 	workspaceName: string,
 ): Promise<TeardownResult> {
-	const config = loadSetupConfig({ mainRepoPath, worktreePath });
+	const config = loadSetupConfig({ mainRepoPath });
 
 	if (!config?.teardown || config.teardown.length === 0) {
 		console.log(
