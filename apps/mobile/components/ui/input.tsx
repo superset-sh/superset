@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 
 function Input({
 	className,
-	placeholderClassName,
 	...props
 }: TextInputProps & React.RefAttributes<TextInput>) {
 	return (
