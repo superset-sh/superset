@@ -15,7 +15,7 @@ await durableStreamServer.start();
 console.log(`[streams] Durable stream server on port ${INTERNAL_PORT}`);
 
 // Start proxy server
-const { app, protocol } = createServer({
+const { app } = createServer({
 	baseUrl: DURABLE_STREAMS_URL,
 	cors: true,
 	logging: true,

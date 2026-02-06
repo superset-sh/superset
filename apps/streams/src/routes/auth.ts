@@ -66,7 +66,7 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 				return c.json({ error: "actorId is required" }, 400);
 			}
 
-			if (!deviceId && !allDevices) {
+			if (!allDevices && !deviceId) {
 				return c.json({ error: "deviceId or allDevices is required" }, 400);
 			}
 
@@ -103,7 +103,7 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 					stream,
 					sessionId,
 					actorId,
-					deviceId!,
+					deviceId as string,
 					"user",
 					"offline",
 				);

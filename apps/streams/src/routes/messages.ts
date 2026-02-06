@@ -35,7 +35,12 @@ export function createMessageRoutes(protocol: AIDBSessionProtocol) {
 				},
 			];
 
-			await protocol.invokeAgent(stream, sessionId, agents[0]!, messageHistory);
+			const agent = agents[0];
+			if (!agent) {
+				return c.json({ error: "No agents registered for regeneration" }, 400);
+			}
+
+			await protocol.invokeAgent(stream, sessionId, agent, messageHistory);
 
 			return c.json({ success: true }, 200);
 		} catch (error) {

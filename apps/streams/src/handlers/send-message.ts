@@ -42,7 +42,11 @@ export async function handleSendMessage(
 
 		if (body.agent) {
 			const messageHistory = await protocol.getMessageHistory(sessionId);
-			protocol.invokeAgent(stream, sessionId, body.agent, messageHistory);
+			protocol
+				.invokeAgent(stream, sessionId, body.agent, messageHistory)
+				.catch((err) => {
+					console.error("[streams/send-message] Agent invocation failed:", err);
+				});
 		}
 
 		const response: SendMessageResponse = { messageId };
