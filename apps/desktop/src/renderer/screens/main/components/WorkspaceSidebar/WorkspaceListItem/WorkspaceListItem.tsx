@@ -15,7 +15,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import {
@@ -103,6 +103,14 @@ export function WorkspaceListItem({
 		params: { workspaceId: id },
 		fuzzy: true,
 	});
+
+	const itemRef = useRef<HTMLElement | null>(null);
+	useEffect(() => {
+		if (isActive) {
+			itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+		}
+	}, [isActive]);
+
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
@@ -302,6 +310,7 @@ export function WorkspaceListItem({
 	if (isCollapsed) {
 		const collapsedButton = (
 			<button
+				ref={itemRef}
 				type="button"
 				onClick={handleClick}
 				onMouseEnter={handleMouseEnter}
@@ -409,6 +418,7 @@ export function WorkspaceListItem({
 			role="button"
 			tabIndex={0}
 			ref={(node) => {
+				itemRef.current = node;
 				drag(drop(node));
 			}}
 			onClick={handleClick}
