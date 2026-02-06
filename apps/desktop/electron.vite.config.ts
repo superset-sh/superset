@@ -169,6 +169,8 @@ export default defineConfig({
 				indexToken: "page",
 				routeToken: "layout",
 				autoCodeSplitting: true,
+				routeFileIgnorePattern:
+					"^(?!(__root|page|layout)\\.tsx$).*\\.(tsx?|jsx?)$",
 			}),
 			tsconfigPaths,
 			tailwindcss(),
