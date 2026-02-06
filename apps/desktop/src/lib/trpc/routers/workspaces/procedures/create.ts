@@ -10,6 +10,8 @@ import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
 	activateProject,
+	findOrphanedWorktreeByBranch,
+	findWorktreeWorkspaceByBranch,
 	getBranchWorkspace,
 	getMaxWorkspaceTabOrder,
 	getProject,
@@ -357,6 +359,53 @@ export const createCreateProcedures = () => {
 					});
 				}
 
+				// Idempotency check: only for explicit branch names (auto-generated are intentionally new)
+				if (input.branchName?.trim()) {
+					const existing = findWorktreeWorkspaceByBranch({
+						projectId: input.projectId,
+						branch,
+					});
+					if (existing) {
+						touchWorkspace(existing.workspace.id);
+						setLastActiveWorkspace(existing.workspace.id);
+						activateProject(project);
+						return {
+							workspace: existing.workspace,
+							initialCommands: null,
+							worktreePath: existing.worktree.path,
+							projectId: project.id,
+							isInitializing: false,
+							wasExisting: true,
+						};
+					}
+
+					const orphanedWorktree = findOrphanedWorktreeByBranch({
+						projectId: input.projectId,
+						branch,
+					});
+					if (orphanedWorktree) {
+						const workspace = createWorkspaceFromWorktree({
+							projectId: input.projectId,
+							worktreeId: orphanedWorktree.id,
+							branch,
+							name: input.name ?? branch,
+						});
+						activateProject(project);
+						const setupConfig = loadSetupConfig({
+							mainRepoPath: project.mainRepoPath,
+							worktreePath: orphanedWorktree.path,
+						});
+						return {
+							workspace,
+							initialCommands: setupConfig?.setup || null,
+							worktreePath: orphanedWorktree.path,
+							projectId: project.id,
+							isInitializing: false,
+							wasExisting: true,
+						};
+					}
+				}
+
 				const worktreePath = join(
 					homedir(),
 					SUPERSET_DIR_NAME,
@@ -431,6 +480,7 @@ export const createCreateProcedures = () => {
 					worktreePath,
 					projectId: project.id,
 					isInitializing: true,
+					wasExisting: false,
 				};
 			}),
 

@@ -21,6 +21,7 @@ interface CreatedWorkspace {
 	workspaceId: string;
 	workspaceName: string;
 	branch: string;
+	wasExisting: boolean;
 }
 
 async function execute(
@@ -69,6 +70,7 @@ async function execute(
 				workspaceId: result.workspace.id,
 				workspaceName: result.workspace.name,
 				branch: result.workspace.branch,
+				wasExisting: result.wasExisting,
 			});
 		} catch (error) {
 			errors.push({
