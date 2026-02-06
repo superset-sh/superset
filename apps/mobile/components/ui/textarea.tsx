@@ -18,7 +18,10 @@ function Textarea({
 				props.editable === false && "opacity-50",
 				className,
 			)}
-			placeholderTextColorClassName={cn("text-muted-foreground", placeholderTextColorClassName)}
+			placeholderTextColorClassName={cn(
+				"text-muted-foreground",
+				placeholderTextColorClassName,
+			)}
 			multiline={multiline}
 			numberOfLines={numberOfLines}
 			textAlignVertical="top"
