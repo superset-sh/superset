@@ -317,7 +317,13 @@ function handleContentBlockStop(
 		let parsedInput: unknown;
 		try {
 			parsedInput = JSON.parse(block.argsAccumulator || "{}");
-		} catch {
+		} catch (parseErr) {
+			console.warn(
+				"[sdk-to-ai-chunks] Failed to parse tool args for",
+				block.toolName,
+				":",
+				parseErr,
+			);
 			parsedInput = {};
 		}
 
@@ -408,6 +414,7 @@ function handleResultMessage(
 			},
 			timestamp: now,
 		} satisfies StreamChunk);
+		return chunks;
 	}
 
 	const finishReason =

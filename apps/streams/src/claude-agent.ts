@@ -18,23 +18,97 @@
 
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { Hono } from "hono";
+import { z } from "zod";
 import { createConverter } from "./sdk-to-ai-chunks";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
+const MAX_AGENT_TURNS = 25;
+const SESSION_MAX_SIZE = 1000;
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ============================================================================
+// Request Validation
+// ============================================================================
+
+const agentRequestSchema = z.object({
+	messages: z
+		.array(z.object({ role: z.string(), content: z.string() }))
+		.optional(),
+	stream: z.boolean().optional(),
+	sessionId: z.string().optional(),
+	cwd: z.string().optional(),
+	env: z.record(z.string(), z.string()).optional(),
+});
+
+// ============================================================================
+// Session State
+// ============================================================================
+
+interface SessionEntry {
+	claudeSessionId: string;
+	lastAccessedAt: number;
+}
+
+const claudeSessions = new Map<string, SessionEntry>();
+
+function evictStaleSessions(): void {
+	const now = Date.now();
+	for (const [key, entry] of claudeSessions) {
+		if (now - entry.lastAccessedAt > SESSION_TTL_MS) {
+			claudeSessions.delete(key);
+		}
+	}
+
+	// If still over capacity, evict oldest entries
+	if (claudeSessions.size > SESSION_MAX_SIZE) {
+		const sorted = [...claudeSessions.entries()].sort(
+			(a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt,
+		);
+		const toRemove = sorted.slice(0, claudeSessions.size - SESSION_MAX_SIZE);
+		for (const [key] of toRemove) {
+			claudeSessions.delete(key);
+		}
+	}
+}
+
+function getClaudeSessionId(sessionId: string): string | undefined {
+	const entry = claudeSessions.get(sessionId);
+	if (entry) {
+		entry.lastAccessedAt = Date.now();
+	}
+	return entry?.claudeSessionId;
+}
+
+function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
+	evictStaleSessions();
+	claudeSessions.set(sessionId, {
+		claudeSessionId,
+		lastAccessedAt: Date.now(),
+	});
+}
+
+// ============================================================================
+// App
+// ============================================================================
 
 const app = new Hono();
 
-// Session state for multi-turn resume
-const claudeSessions = new Map<string, string>();
-
 app.post("/", async (c) => {
-	const body = await c.req.json<{
-		messages?: Array<{ role: string; content: string }>;
-		stream?: boolean;
-		sessionId?: string;
-		cwd?: string;
-		env?: Record<string, string>;
-	}>();
+	const rawBody = await c.req.json();
+	const parsed = agentRequestSchema.safeParse(rawBody);
 
-	const { messages, sessionId, cwd, env: agentEnv } = body;
+	if (!parsed.success) {
+		return c.json(
+			{ error: "Invalid request body", details: parsed.error.message },
+			400,
+		);
+	}
+
+	const { messages, sessionId, cwd, env: agentEnv } = parsed.data;
 
 	// Extract prompt from latest user message
 	const latestUserMessage = messages?.filter((m) => m.role === "user").pop();
@@ -44,12 +118,12 @@ app.post("/", async (c) => {
 	}
 
 	const prompt = latestUserMessage.content;
-	const claudeSessionId = sessionId ? claudeSessions.get(sessionId) : undefined;
+	const claudeSessionId = sessionId ? getClaudeSessionId(sessionId) : undefined;
 
 	// Build environment for Claude binary
-	const queryEnv: Record<string, string> = {
-		...(agentEnv ?? (process.env as Record<string, string>)),
-	};
+	const baseEnv =
+		agentEnv ?? (process.env as unknown as Record<string, string>);
+	const queryEnv: Record<string, string> = { ...baseEnv };
 
 	// Ensure CLAUDE_CODE_ENTRYPOINT is set
 	queryEnv.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
@@ -57,18 +131,19 @@ app.post("/", async (c) => {
 	const binaryPath = process.env.CLAUDE_BINARY_PATH;
 
 	// Run Claude query
+	const abortController = new AbortController();
 	const result = query({
 		prompt,
 		options: {
 			...(claudeSessionId && { resume: claudeSessionId }),
 			...(cwd && { cwd }),
-			model: process.env.CLAUDE_MODEL ?? "claude-sonnet-4-5-20250929",
-			maxTurns: 25,
+			model: process.env.CLAUDE_MODEL ?? DEFAULT_MODEL,
+			maxTurns: MAX_AGENT_TURNS,
 			includePartialMessages: true,
 			permissionMode: "bypassPermissions" as const,
 			...(binaryPath && { pathToClaudeCodeExecutable: binaryPath }),
 			env: queryEnv,
-			abortController: new AbortController(),
+			abortController,
 		},
 	});
 
@@ -78,6 +153,7 @@ app.post("/", async (c) => {
 	// Abort handling: when the fetch is aborted, interrupt the query
 	const requestSignal = c.req.raw.signal;
 	const abortHandler = () => {
+		abortController.abort();
 		result.interrupt().catch(() => {});
 		result.close();
 	};
@@ -96,7 +172,7 @@ app.post("/", async (c) => {
 					if (msg.type === "system" && msg.subtype === "init") {
 						const sdkSessionId = msg.session_id as string | undefined;
 						if (sdkSessionId && sessionId) {
-							claudeSessions.set(sessionId, sdkSessionId);
+							setClaudeSessionId(sessionId, sdkSessionId);
 						}
 						continue;
 					}
@@ -128,22 +204,28 @@ app.post("/", async (c) => {
 							encoder.encode(`data: ${JSON.stringify(errorChunk)}\n\n`),
 						);
 						controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-					} catch {
-						// Controller may already be closed
+					} catch (enqueueErr) {
+						console.debug(
+							"[claude-agent] Controller already closed, could not write error event:",
+							enqueueErr,
+						);
 					}
 				}
 
 				try {
 					controller.close();
-				} catch {
-					// Already closed
+				} catch (closeErr) {
+					console.debug("[claude-agent] Controller already closed:", closeErr);
 				}
 			} finally {
 				requestSignal.removeEventListener("abort", abortHandler);
 				try {
 					result.close();
-				} catch {
-					// Already closed
+				} catch (resultCloseErr) {
+					console.debug(
+						"[claude-agent] Result already closed:",
+						resultCloseErr,
+					);
 				}
 			}
 		},

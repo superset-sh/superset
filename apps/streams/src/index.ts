@@ -23,19 +23,24 @@ const { app } = createServer({
 	logging: true,
 });
 
-serve({ fetch: app.fetch, port: PORT }, (info) => {
+const proxyServer = serve({ fetch: app.fetch, port: PORT }, (info) => {
 	console.log(`[streams] Proxy running on http://localhost:${info.port}`);
 });
 
 // Start Claude agent endpoint
-serve({ fetch: claudeAgentApp.fetch, port: AGENT_PORT }, (info) => {
-	console.log(
-		`[streams] Claude agent endpoint on http://localhost:${info.port}`,
-	);
-});
+const agentServer = serve(
+	{ fetch: claudeAgentApp.fetch, port: AGENT_PORT },
+	(info) => {
+		console.log(
+			`[streams] Claude agent endpoint on http://localhost:${info.port}`,
+		);
+	},
+);
 
 // Graceful shutdown
 process.on("SIGINT", async () => {
+	proxyServer.close();
+	agentServer.close();
 	await durableStreamServer.stop();
 	process.exit(0);
 });
