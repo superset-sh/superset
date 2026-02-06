@@ -103,7 +103,7 @@ function AccordionTrigger({
 							className,
 						)}
 					>
-						<>{children}</>
+						{children}
 						<Animated.View style={chevronStyle}>
 							<Icon
 								as={ChevronDown}

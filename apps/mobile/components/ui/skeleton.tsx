@@ -18,7 +18,7 @@ function Skeleton({
 
 	React.useEffect(() => {
 		sv.value = withRepeat(withTiming(0.5, { duration }), -1, true);
-	}, []);
+	}, [sv]);
 
 	const style = useAnimatedStyle(
 		() => ({

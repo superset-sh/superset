@@ -41,7 +41,7 @@ function AlertDialogOverlay({
 					entering={FadeIn.duration(200).delay(50)}
 					exiting={FadeOut.duration(150)}
 				>
-					<>{children}</>
+					{children}
 				</NativeOnlyAnimatedView>
 			</AlertDialogPrimitive.Overlay>
 		</FullWindowOverlay>
