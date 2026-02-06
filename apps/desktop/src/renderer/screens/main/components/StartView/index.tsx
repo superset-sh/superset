@@ -1,10 +1,13 @@
 import { Button } from "@superset/ui/button";
-import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
-import { useOpenFromPath, useOpenNew } from "renderer/react-query/projects";
+import {
+	processOpenNewResults,
+	useOpenFromPath,
+	useOpenNew,
+} from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
@@ -19,6 +22,9 @@ export function StartView() {
 		selectedPath: string;
 		selectedPaths?: string[];
 	}>({ isOpen: false, selectedPath: "" });
+	const [pendingNavigateProjectId, setPendingNavigateProjectId] = useState<
+		string | null
+	>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
 
@@ -52,55 +58,34 @@ export function StartView() {
 					return;
 				}
 
-				if ("error" in result && !("multi" in result)) {
+				if ("error" in result) {
 					setError(result.error);
 					return;
 				}
 
-				if ("multi" in result) {
-					const successes = result.results.filter(
-						(r) => r.status === "success",
-					);
-					const needsGitInit = result.results.filter(
-						(r) => r.status === "needsGitInit",
-					);
-					const errors = result.results.filter((r) => r.status === "error");
+				if ("results" in result) {
+					const { successes, needsGitInit } = processOpenNewResults({
+						results: result.results,
+					});
 
-					// Show summary toast for opened projects
-					if (successes.length > 0) {
-						toast.success(
-							successes.length === 1
-								? "Project opened"
-								: `${successes.length} projects opened`,
-						);
+					const firstProjectId = successes[0]?.project.id;
 
-						// Navigate to the first successfully opened project
-						navigate({
-							to: "/project/$projectId",
-							params: { projectId: successes[0].project.id },
-							replace: true,
-						});
-					}
-
-					// Show errors
-					if (errors.length > 0) {
-						for (const err of errors) {
-							toast.error(
-								`Failed to open ${err.selectedPath.split("/").pop()}`,
-								{
-									description: err.error,
-								},
-							);
-						}
-					}
-
-					// Prompt for git init if needed
 					if (needsGitInit.length > 0) {
 						const paths = needsGitInit.map((r) => r.selectedPath);
+						// Defer navigation until git-init dialog is closed
+						if (firstProjectId) {
+							setPendingNavigateProjectId(firstProjectId);
+						}
 						setInitGitDialog({
 							isOpen: true,
 							selectedPath: paths[0],
 							selectedPaths: paths,
+						});
+					} else if (firstProjectId) {
+						navigate({
+							to: "/project/$projectId",
+							params: { projectId: firstProjectId },
+							replace: true,
 						});
 					}
 
@@ -305,7 +290,17 @@ export function StartView() {
 				isOpen={initGitDialog.isOpen}
 				selectedPath={initGitDialog.selectedPath}
 				selectedPaths={initGitDialog.selectedPaths}
-				onClose={() => setInitGitDialog({ isOpen: false, selectedPath: "" })}
+				onClose={() => {
+					setInitGitDialog({ isOpen: false, selectedPath: "" });
+					if (pendingNavigateProjectId) {
+						navigate({
+							to: "/project/$projectId",
+							params: { projectId: pendingNavigateProjectId },
+							replace: true,
+						});
+						setPendingNavigateProjectId(null);
+					}
+				}}
 				onError={setError}
 			/>
 

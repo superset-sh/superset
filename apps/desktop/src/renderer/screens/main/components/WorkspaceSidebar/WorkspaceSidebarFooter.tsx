@@ -9,7 +9,10 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
-import { useOpenNew } from "renderer/react-query/projects";
+import {
+	processOpenNewResults,
+	useOpenNew,
+} from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { CloneRepoDialog } from "../StartView/CloneRepoDialog";
 import { STROKE_WIDTH } from "./constants";
@@ -31,21 +34,19 @@ export function WorkspaceSidebarFooter({
 			if (result.canceled) {
 				return;
 			}
-			if ("error" in result && !("multi" in result)) {
+			if ("error" in result) {
 				toast.error("Failed to open project", {
 					description: result.error,
 				});
 				return;
 			}
 
-			if ("multi" in result) {
-				const successes = result.results.filter((r) => r.status === "success");
-				const needsGitInit = result.results.filter(
-					(r) => r.status === "needsGitInit",
-				);
-				const errors = result.results.filter((r) => r.status === "error");
+			if ("results" in result) {
+				const { successes } = processOpenNewResults({
+					results: result.results,
+					showGitInitToast: true,
+				});
 
-				// Create branch workspaces for all successful projects
 				for (const s of successes) {
 					try {
 						await createBranchWorkspace.mutateAsync({
@@ -59,37 +60,6 @@ export function WorkspaceSidebarFooter({
 									: "Failed to create workspace",
 						});
 					}
-				}
-
-				// Summary toast
-				if (successes.length > 0) {
-					toast.success(
-						successes.length === 1
-							? "Project opened"
-							: `${successes.length} projects opened`,
-					);
-				}
-
-				// Show errors
-				for (const err of errors) {
-					toast.error(`Failed to open ${err.selectedPath.split("/").pop()}`, {
-						description: err.error,
-					});
-				}
-
-				// Show git init warnings
-				if (needsGitInit.length > 0) {
-					const names = needsGitInit
-						.map((r) => r.selectedPath.split("/").pop())
-						.join(", ");
-					toast.error(
-						needsGitInit.length === 1
-							? "Folder is not a git repository"
-							: `${needsGitInit.length} folders are not git repositories`,
-						{
-							description: `${names} - use 'Open project' from the start view to initialize git.`,
-						},
-					);
 				}
 			}
 		} catch (error) {
