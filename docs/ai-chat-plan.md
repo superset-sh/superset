@@ -941,11 +941,11 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 |---|---|---|
 | `apps/streams/src/index.ts` | New entrypoint with Hono proxy + DurableStreamTestServer | ✅ |
 
-### Files to REWRITE (remaining)
+### Files REWRITTEN (Phase C2) ✅
 
-| File | Description |
-|---|---|
-| `apps/desktop/.../session-manager.ts` | Thin HTTP orchestrator (no StreamWatcher/Producer) (Phase C2) |
+| File | Description | Status |
+|---|---|---|
+| `apps/desktop/.../session-manager.ts` | Thin HTTP orchestrator (no StreamWatcher/Producer) | ✅ |
 
 ### Files MODIFIED (Phase A2) ✅
 
@@ -969,7 +969,7 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 2. ~~**Phase C1** — Remove old `packages/ai-chat`, migrate UI components~~ ✅ DONE
 3. ~~**Phase A2** — Vendor proxy into `apps/streams` (copy 17 files, adjust 3 import paths)~~ ✅ DONE
 4. ~~**Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)~~ ✅ DONE
-5. **Phase C2** — Simplify desktop session manager
+5. ~~**Phase C2** — Simplify desktop session manager~~ ✅ DONE
 6. **Phase C3** — Handle drafts
 7. **Phase D** — Database schema + migration
 8. **Phase E** — API tRPC router

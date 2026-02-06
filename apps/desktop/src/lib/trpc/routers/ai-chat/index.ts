@@ -23,14 +23,12 @@ export const createAiChatRouter = () => {
 				z.object({
 					sessionId: z.string(),
 					cwd: z.string(),
-					claudeSessionId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				await claudeSessionManager.startSession({
 					sessionId: input.sessionId,
 					cwd: input.cwd,
-					claudeSessionId: input.claudeSessionId,
 				});
 				return { success: true };
 			}),
