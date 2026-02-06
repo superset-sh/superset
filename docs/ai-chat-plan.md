@@ -118,7 +118,7 @@ The agent endpoint converts these to TanStack AI `StreamChunk` format before wri
 | PresenceBar component | DONE — `packages/durable-session/src/react/components/PresenceBar/` |
 | Old ai-chat package | REMOVED — replaced by `@superset/durable-session` |
 | Vendored proxy (A2) | DONE — `apps/streams/src/` (vendored from electric-sql/transport, JSON.stringify fix for DurableStream.append) |
-| Claude agent endpoint (B) | NOT BUILT |
+| Claude agent endpoint (B) | DONE — `apps/streams/src/claude-agent.ts` + `apps/streams/src/sdk-to-ai-chunks.ts` |
 | Database schema | NOT BUILT |
 | API chat router | NOT BUILT |
 | Desktop chat UI (renderer) | NOT BUILT |
@@ -892,12 +892,12 @@ All files below are created and typechecking. Compatibility fixes applied for un
 | `packages/durable-session/src/react/components/ChatInput/` | Migrated from `packages/ai-chat` | ✅ |
 | `packages/durable-session/src/react/components/PresenceBar/` | Migrated from `packages/ai-chat` | ✅ |
 
-### Files to CREATE (new code)
+### Files CREATED (Phase B — Claude Agent Endpoint) ✅
 
-| File | Description | Lines (est) |
+| File | Description | Status |
 |---|---|---|
-| `apps/streams/src/claude-agent.ts` | Claude agent HTTP endpoint | ~120 |
-| `apps/streams/src/sdk-to-ai-chunks.ts` | SDKMessage → TanStack AI chunk converter | ~200 |
+| `apps/streams/src/claude-agent.ts` | Claude agent HTTP endpoint (Hono, SSE response) | ✅ |
+| `apps/streams/src/sdk-to-ai-chunks.ts` | SDKMessage → TanStack AI AG-UI chunk converter | ✅ |
 
 ### Files CREATED (vendored proxy — Phase A2) ✅
 
@@ -954,6 +954,13 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 | `apps/streams/package.json` | Added: hono, @hono/node-server, @durable-streams/client, @superset/durable-session, @tanstack/db, zod | ✅ |
 | `packages/durable-session/src/client.ts` | Fixed: `response.json()` return type assertion for `ForkResult` | ✅ |
 
+### Files MODIFIED (Phase B) ✅
+
+| File | Changes | Status |
+|---|---|---|
+| `apps/streams/package.json` | Added: @anthropic-ai/claude-agent-sdk, @tanstack/ai | ✅ |
+| `apps/streams/src/index.ts` | Added: Claude agent endpoint on CLAUDE_AGENT_PORT (default 9090) | ✅ |
+
 ---
 
 ## Implementation Order
@@ -961,7 +968,7 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 1. ~~**Phase A1** — Vendor `@superset/durable-session` package~~ ✅ DONE
 2. ~~**Phase C1** — Remove old `packages/ai-chat`, migrate UI components~~ ✅ DONE
 3. ~~**Phase A2** — Vendor proxy into `apps/streams` (copy 17 files, adjust 3 import paths)~~ ✅ DONE
-4. **Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)
+4. ~~**Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)~~ ✅ DONE
 5. **Phase C2** — Simplify desktop session manager
 6. **Phase C3** — Handle drafts
 7. **Phase D** — Database schema + migration
