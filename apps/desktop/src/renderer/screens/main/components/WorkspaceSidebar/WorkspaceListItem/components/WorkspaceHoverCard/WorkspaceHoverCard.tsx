@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
 import { FaGithub } from "react-icons/fa";
 import {
@@ -8,6 +9,7 @@ import {
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePRStatus } from "renderer/screens/main/hooks";
+import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
@@ -35,6 +37,11 @@ export function WorkspaceHoverCardContent({
 		branchExistsOnRemote,
 		isLoading: isLoadingGithub,
 	} = usePRStatus({ workspaceId });
+
+	const openPRDisplay = useHotkeyDisplay("OPEN_PR");
+	const hasOpenPRShortcut = !(
+		openPRDisplay.length === 1 && openPRDisplay[0] === "Unassigned"
+	);
 
 	const needsRebase = worktreeInfo?.gitStatus?.needsRebase;
 
@@ -147,6 +154,15 @@ export function WorkspaceHoverCardContent({
 						<a href={pr.url} target="_blank" rel="noopener noreferrer">
 							<FaGithub className="size-3" />
 							View on GitHub
+							{hasOpenPRShortcut && (
+								<KbdGroup className="ml-auto">
+									{openPRDisplay.map((key) => (
+										<Kbd key={key} className="h-4 min-w-4 text-[10px]">
+											{key}
+										</Kbd>
+									))}
+								</KbdGroup>
+							)}
 						</a>
 					</Button>
 				</div>
