@@ -5,10 +5,10 @@ import { loadSetupConfig } from "./setup";
 
 const TEST_DIR = join(__dirname, ".test-tmp");
 const MAIN_REPO = join(TEST_DIR, "main-repo");
+const WORKTREE = join(TEST_DIR, "worktree");
 
 describe("loadSetupConfig", () => {
 	beforeEach(() => {
-		// Create test directories
 		mkdirSync(join(MAIN_REPO, ".superset"), { recursive: true });
 	});
 
@@ -20,11 +20,11 @@ describe("loadSetupConfig", () => {
 	});
 
 	test("returns null when config.json does not exist", () => {
-		const config = loadSetupConfig(MAIN_REPO);
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
 		expect(config).toBeNull();
 	});
 
-	test("loads valid setup config", () => {
+	test("loads valid setup config from main repo", () => {
 		const setupConfig = {
 			setup: ["npm install", "npm run build"],
 		};
@@ -34,7 +34,7 @@ describe("loadSetupConfig", () => {
 			JSON.stringify(setupConfig),
 		);
 
-		const config = loadSetupConfig(MAIN_REPO);
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
 		expect(config).toEqual(setupConfig);
 	});
 
@@ -44,7 +44,7 @@ describe("loadSetupConfig", () => {
 			"{ invalid json",
 		);
 
-		const config = loadSetupConfig(MAIN_REPO);
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
 		expect(config).toBeNull();
 	});
 
@@ -54,7 +54,46 @@ describe("loadSetupConfig", () => {
 			JSON.stringify({ setup: "not-an-array" }),
 		);
 
-		const config = loadSetupConfig(MAIN_REPO);
+		const config = loadSetupConfig({ mainRepoPath: MAIN_REPO });
 		expect(config).toBeNull();
+	});
+
+	test("prefers worktree config over main repo config", () => {
+		const mainConfig = { setup: ["./.superset/setup.sh"] };
+		const worktreeConfig = { setup: ["scripts/setup-worktree.sh"] };
+
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify(mainConfig),
+		);
+
+		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
+		writeFileSync(
+			join(WORKTREE, ".superset", "config.json"),
+			JSON.stringify(worktreeConfig),
+		);
+
+		const config = loadSetupConfig({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+		});
+		expect(config).toEqual(worktreeConfig);
+	});
+
+	test("falls back to main repo when worktree has no config", () => {
+		const mainConfig = { setup: ["npm install"] };
+
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify(mainConfig),
+		);
+
+		mkdirSync(WORKTREE, { recursive: true });
+
+		const config = loadSetupConfig({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+		});
+		expect(config).toEqual(mainConfig);
 	});
 });

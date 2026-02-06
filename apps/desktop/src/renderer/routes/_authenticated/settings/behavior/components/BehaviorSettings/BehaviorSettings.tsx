@@ -28,6 +28,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
 	);
+	const showDeleteLocalBranch = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_DELETE_LOCAL_BRANCH,
+		visibleItems,
+	);
 	const showBranchPrefix = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
 		visibleItems,
@@ -60,6 +64,33 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
+	};
+
+	const { data: deleteLocalBranch, isLoading: isDeleteBranchLoading } =
+		electronTrpc.settings.getDeleteLocalBranch.useQuery();
+	const setDeleteLocalBranch =
+		electronTrpc.settings.setDeleteLocalBranch.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getDeleteLocalBranch.cancel();
+				const previous = utils.settings.getDeleteLocalBranch.getData();
+				utils.settings.getDeleteLocalBranch.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getDeleteLocalBranch.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getDeleteLocalBranch.invalidate();
+			},
+		});
+
+	const handleDeleteBranchToggle = (enabled: boolean) => {
+		setDeleteLocalBranch.mutate({ enabled });
 	};
 
 	// TODO: remove telemetry query/mutation/handler once telemetry procedures are removed
@@ -167,6 +198,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							checked={confirmOnQuit ?? true}
 							onCheckedChange={handleConfirmToggle}
 							disabled={isConfirmLoading || setConfirmOnQuit.isPending}
+						/>
+					</div>
+				)}
+
+				{showDeleteLocalBranch && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="delete-local-branch"
+								className="text-sm font-medium"
+							>
+								Delete local branch on workspace removal
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Also delete the local git branch when deleting a worktree
+								workspace
+							</p>
+						</div>
+						<Switch
+							id="delete-local-branch"
+							checked={deleteLocalBranch ?? false}
+							onCheckedChange={handleDeleteBranchToggle}
+							disabled={isDeleteBranchLoading || setDeleteLocalBranch.isPending}
 						/>
 					</div>
 				)}

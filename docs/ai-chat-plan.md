@@ -118,7 +118,7 @@ The agent endpoint converts these to TanStack AI `StreamChunk` format before wri
 | PresenceBar component | DONE — `packages/durable-session/src/react/components/PresenceBar/` |
 | Old ai-chat package | REMOVED — replaced by `@superset/durable-session` |
 | Vendored proxy (A2) | DONE — `apps/streams/src/` (vendored from electric-sql/transport, JSON.stringify fix for DurableStream.append) |
-| Claude agent endpoint (B) | NOT BUILT |
+| Claude agent endpoint (B) | DONE — `apps/streams/src/claude-agent.ts` + `apps/streams/src/sdk-to-ai-chunks.ts` |
 | Database schema | NOT BUILT |
 | API chat router | NOT BUILT |
 | Desktop chat UI (renderer) | NOT BUILT |
@@ -892,12 +892,12 @@ All files below are created and typechecking. Compatibility fixes applied for un
 | `packages/durable-session/src/react/components/ChatInput/` | Migrated from `packages/ai-chat` | ✅ |
 | `packages/durable-session/src/react/components/PresenceBar/` | Migrated from `packages/ai-chat` | ✅ |
 
-### Files to CREATE (new code)
+### Files CREATED (Phase B — Claude Agent Endpoint) ✅
 
-| File | Description | Lines (est) |
+| File | Description | Status |
 |---|---|---|
-| `apps/streams/src/claude-agent.ts` | Claude agent HTTP endpoint | ~120 |
-| `apps/streams/src/sdk-to-ai-chunks.ts` | SDKMessage → TanStack AI chunk converter | ~200 |
+| `apps/streams/src/claude-agent.ts` | Claude agent HTTP endpoint (Hono, SSE response) | ✅ |
+| `apps/streams/src/sdk-to-ai-chunks.ts` | SDKMessage → TanStack AI AG-UI chunk converter | ✅ |
 
 ### Files CREATED (vendored proxy — Phase A2) ✅
 
@@ -954,6 +954,13 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 | `apps/streams/package.json` | Added: hono, @hono/node-server, @durable-streams/client, @superset/durable-session, @tanstack/db, zod | ✅ |
 | `packages/durable-session/src/client.ts` | Fixed: `response.json()` return type assertion for `ForkResult` | ✅ |
 
+### Files MODIFIED (Phase B) ✅
+
+| File | Changes | Status |
+|---|---|---|
+| `apps/streams/package.json` | Added: @anthropic-ai/claude-agent-sdk, @tanstack/ai | ✅ |
+| `apps/streams/src/index.ts` | Added: Claude agent endpoint on CLAUDE_AGENT_PORT (default 9090) | ✅ |
+
 ---
 
 ## Implementation Order
@@ -961,7 +968,7 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 1. ~~**Phase A1** — Vendor `@superset/durable-session` package~~ ✅ DONE
 2. ~~**Phase C1** — Remove old `packages/ai-chat`, migrate UI components~~ ✅ DONE
 3. ~~**Phase A2** — Vendor proxy into `apps/streams` (copy 17 files, adjust 3 import paths)~~ ✅ DONE
-4. **Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)
+4. ~~**Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)~~ ✅ DONE
 5. **Phase C2** — Simplify desktop session manager
 6. **Phase C3** — Handle drafts
 7. **Phase D** — Database schema + migration
@@ -978,6 +985,7 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 | `@tanstack/ai` API mismatch with vendored code | Build breaks | Vendored code uses `workspace:*` — pin to compatible published versions, fix API differences | ✅ Resolved — `DoneStreamChunk` → `RUN_FINISHED`, `LiveMode` removed |
 | `@tanstack/db` unreleased aggregates | Build breaks | Rewrite collection pipelines with `groupBy + count + fn.select` workaround | ✅ Resolved — `collect`/`minStr` replaced |
 | SDKMessage → AI chunk conversion errors | Broken rendering | Comprehensive unit tests with real Claude output fixtures | Pending (Phase B) |
+| Dual `StreamChunk` types | Type confusion, silent mismatches at module boundaries | `sdk-to-ai-chunks.ts` imports strict `StreamChunk` from `@tanstack/ai` (union of 14 AG-UI events). `types.ts` defines a loose `{ type: string; [key: string]: unknown }` used by `protocol.ts` and `stream-writer.ts`. Works at runtime because JSON serialization is the boundary, but `protocol.ts` gets zero type safety when constructing/consuming chunks. **Fix:** delete local `StreamChunk` from `types.ts`, use `@tanstack/ai`'s everywhere, replace `as StreamChunk` casts in `protocol.ts` with typed construction (~10 call sites). | Deferred — cleanup PR |
 | Claude binary path outside Electron | Agent can't start | `CLAUDE_BINARY_PATH` env var set by desktop at streams startup | Pending |
 | Multi-turn resume state lost on restart | Context lost | In-memory map + optional file-based persistence in data dir | Pending |
 | Interrupt via HTTP abort | Claude subprocess continues | Agent detects fetch abort → calls `query.interrupt()` + `abortController.abort()` | Pending |

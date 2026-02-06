@@ -365,6 +365,26 @@ export const createSettingsRouter = () => {
 			};
 		}),
 
+		getDeleteLocalBranch: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.deleteLocalBranch ?? false;
+		}),
+
+		setDeleteLocalBranch: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, deleteLocalBranch: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { deleteLocalBranch: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getNotificationSoundsMuted: publicProcedure.query(() => {
 			const row = getSettings();
 			return row.notificationSoundsMuted ?? false;

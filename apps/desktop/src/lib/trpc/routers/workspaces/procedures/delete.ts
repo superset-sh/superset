@@ -17,6 +17,7 @@ import {
 	updateActiveWorkspaceIfRemoved,
 } from "../utils/db-helpers";
 import {
+	deleteLocalBranch,
 	hasUncommittedChanges,
 	hasUnpushedCommits,
 	worktreeExists,
@@ -148,7 +149,9 @@ export const createDeleteProcedures = () => {
 			}),
 
 		delete: publicProcedure
-			.input(z.object({ id: z.string() }))
+			.input(
+				z.object({ id: z.string(), deleteLocalBranch: z.boolean().optional() }),
+			)
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.id);
 
@@ -246,6 +249,20 @@ export const createDeleteProcedures = () => {
 						}
 					} finally {
 						workspaceInitManager.releaseProjectLock(project.id);
+					}
+
+					if (input.deleteLocalBranch && workspace.branch) {
+						try {
+							await deleteLocalBranch({
+								mainRepoPath: project.mainRepoPath,
+								branch: workspace.branch,
+							});
+						} catch (error) {
+							console.error(
+								`[workspace/delete] Branch cleanup failed (non-blocking):`,
+								error instanceof Error ? error.message : String(error),
+							);
+						}
 					}
 				}
 
