@@ -218,15 +218,21 @@ export function DeleteWorkspaceDialog({
 
 				{!isLoading && canDelete && (
 					<div className="px-4 pb-2">
-						<label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+						<div className="flex items-center gap-2 text-xs text-muted-foreground">
 							<Checkbox
+								id="delete-local-branch"
 								checked={deleteLocalBranchChecked}
 								onCheckedChange={(checked) =>
 									setDeleteLocalBranch(checked === true)
 								}
 							/>
-							Also delete local branch
-						</label>
+							<label
+								htmlFor="delete-local-branch"
+								className="cursor-pointer select-none"
+							>
+								Also delete local branch
+							</label>
+						</div>
 					</div>
 				)}
 
