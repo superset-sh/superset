@@ -47,7 +47,7 @@ export function PRButton({
 	});
 
 	const handleMergePR = (strategy: "merge" | "squash" | "rebase") =>
-		mergePRMutation.mutate({ worktreePath, strategy, deleteBranch: true });
+		mergePRMutation.mutate({ worktreePath, strategy });
 
 	if (isLoading) {
 		return (
