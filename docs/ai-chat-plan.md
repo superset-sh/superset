@@ -111,7 +111,7 @@ The agent endpoint converts these to TanStack AI `StreamChunk` format before wri
 | Auth (buildClaudeEnv) | DONE — `apps/desktop/src/lib/trpc/routers/ai-chat/utils/auth/auth.ts` |
 | Session manager (v1) | DONE — `apps/desktop/src/lib/trpc/routers/ai-chat/utils/session-manager/session-manager.ts` |
 | Desktop tRPC router | DONE — `apps/desktop/src/lib/trpc/routers/ai-chat/index.ts` |
-| Durable stream server (v1) | DONE — `apps/streams/` (custom HTTP proxy + session registry) |
+| Durable stream server (v1) | DONE — `apps/streams/` (vendored proxy from electric-sql/transport) |
 | Vendored durable-session client | DONE — `packages/durable-session/` (vendored from electric-sql/transport) |
 | React hook (useDurableChat) | DONE — `packages/durable-session/src/react/use-durable-chat.ts` |
 | ChatInput component | DONE — `packages/durable-session/src/react/components/ChatInput/` |
@@ -369,7 +369,7 @@ await durableStreamServer.start()
 console.log(`[streams] Durable stream server on port ${INTERNAL_PORT}`)
 
 // Start proxy server
-const { app, protocol } = createServer({
+const { app } = createServer({
   baseUrl: DURABLE_STREAMS_URL,
   cors: true,
   logging: true,
@@ -406,13 +406,11 @@ The `AIDBSessionProtocol` class manages:
   "dependencies": {
     "@durable-streams/server": "^0.2.0",
     "@durable-streams/client": "^0.2.0",
+    "@hono/node-server": "^1.13.0",
     "@superset/durable-session": "workspace:*",
     "@tanstack/db": "^0.5.22",
     "hono": "^4.4.0",
     "zod": "^4.1.12"
-  },
-  "devDependencies": {
-    "@hono/node-server": "^1.13.0"
   }
 }
 ```
@@ -837,7 +835,7 @@ Web uses same `useDurableChat` hook pointing at deployed proxy URL.
 | `@tanstack/db-ivm` | ^0.1.17 | durable-session (incremental view maintenance) |
 | `@standard-schema/spec` | ^1.0.0 | durable-session (schema validation) |
 | `hono` | ^4.4.0 | apps/streams (proxy HTTP framework) |
-| `@hono/node-server` | ^1.13.0 | apps/streams (dev server) |
+| `@hono/node-server` | ^1.13.0 | apps/streams (Hono Node.js HTTP adapter) |
 
 **Already installed:**
 - `@durable-streams/client` ^0.2.0, `@durable-streams/server` ^0.2.0, `@durable-streams/state` ^0.2.0
