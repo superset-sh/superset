@@ -98,7 +98,13 @@ function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
 const app = new Hono();
 
 app.post("/", async (c) => {
-	const rawBody = await c.req.json();
+	let rawBody: unknown;
+	try {
+		rawBody = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid JSON body" }, 400);
+	}
+
 	const parsed = agentRequestSchema.safeParse(rawBody);
 
 	if (!parsed.success) {
@@ -190,7 +196,7 @@ app.post("/", async (c) => {
 				controller.close();
 			} catch (err) {
 				if ((err as Error).name !== "AbortError") {
-					// Write an error event before closing
+					console.error("[claude-agent] Stream error:", err);
 					const errorChunk = {
 						type: "RUN_ERROR",
 						runId: converter.state.runId,

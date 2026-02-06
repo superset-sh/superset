@@ -346,6 +346,7 @@ function handleContentBlockStop(
 // ============================================================================
 
 function handleUserMessage(message: SDKUserMessage): StreamChunk[] {
+	if (!message.message) return [];
 	const content = message.message.content;
 	if (typeof content === "string" || !Array.isArray(content)) {
 		return [];
