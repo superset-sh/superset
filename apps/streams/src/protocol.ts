@@ -506,8 +506,12 @@ export class AIDBSessionProtocol {
 								"assistant",
 								chunk,
 							);
-						} catch {
-							// Skip malformed JSON
+						} catch (err) {
+							console.error(
+								"[streams/protocol] Malformed SSE chunk:",
+								data,
+								err,
+							);
 						}
 					}
 				}
@@ -527,8 +531,8 @@ export class AIDBSessionProtocol {
 							"assistant",
 							chunk,
 						);
-					} catch {
-						// Skip malformed JSON
+					} catch (err) {
+						console.error("[streams/protocol] Malformed SSE chunk:", data, err);
 					}
 				}
 			}
