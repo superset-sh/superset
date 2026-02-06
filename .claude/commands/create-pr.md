@@ -3,80 +3,48 @@ description: Analyze changes, generate structured PR title + body, and create a 
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
-Create a pull request for the current branch by analyzing actual changes and generating a structured description.
+Create a pull request for the current branch.
 
-## Step 1: Context Validation
+## Step 1: Validate
 
-Run these checks in parallel and stop if any fail:
+1. Confirm not on `main`/`master` branch
+2. Check `gh auth status` works
+3. Warn if uncommitted changes exist
 
-1. **Branch check**: Run `git branch --show-current`. If the branch is `main` or `master`, stop and tell the user: "You're on the main branch. Switch to a feature branch first."
-2. **Auth check**: Run `gh auth status`. If not authenticated, stop and tell the user to run `gh auth login`.
-3. **Clean state check**: Run `git status --porcelain`. If there are uncommitted changes, warn the user and ask if they want to continue or commit first.
-4. **Remote check**: Run `git log @{u}.. --oneline 2>/dev/null`. If the branch has no upstream or has unpushed commits, note that you'll need to push before creating the PR.
+## Step 2: Analyze Changes
 
-## Step 2: Gather Change Context
+Run in parallel:
+- `git log main..HEAD --oneline`
+- `git diff main...HEAD`
 
-Run these commands in parallel to understand the full scope of changes:
+Read the diff carefully to understand what changed and why.
 
-1. `git log main..HEAD --oneline` — commit history since branching
-2. `git diff main...HEAD --stat` — file change summary
-3. `git diff main...HEAD` — full diff of all changes
-4. `git log main..HEAD --format="%B---"` — full commit messages
+## Step 3: Generate PR
 
-Read the actual diff carefully. Understand what changed and why.
+Based on the actual diff, draft:
 
-## Step 3: Generate PR Content
+**Title**: `<type>(<scope>): <description>` (under 72 chars)
+- Types: feat, fix, chore, refactor, docs, test, perf, ci
 
-Based on the real diff and commit history (NOT summaries), draft:
-
-### Title
-- Under 72 characters
-- Format: `<type>(<scope>): <description>` where type is one of: feat, fix, chore, refactor, docs, test, perf, ci
-- Be specific about what changed — e.g., `feat(desktop): add workspace rename support` not `update desktop app`
-
-### Body
-Use this exact structure:
-
+**Body**:
 ```markdown
 ## Summary
-<2-4 bullet points describing what changed and WHY, based on the actual diff>
-
-## Changes
-<Bulleted list of specific, meaningful changes — group by area if touching multiple packages>
+<2-4 bullets: what changed and WHY>
 
 ## Test Plan
-- [ ] <Specific testing steps someone can follow to verify the changes>
-- [ ] <Include edge cases worth checking>
+- [ ] <specific verification steps>
 ```
 
-## Step 4: Human Approval Gate
+## Step 4: Get Approval
 
-Display the generated title and full body to the user clearly formatted. Then ask:
+Show the title and body, then ask: **"Create this PR? (yes/no or feedback)"**
 
-**"Does this PR look good? Reply 'yes' to create it, or provide feedback to adjust."**
+Do NOT proceed without explicit approval.
 
-Do NOT proceed until the user explicitly approves.
+## Step 5: Create
 
-## Step 5: Create the PR
-
-Once approved:
-
-1. If unpushed commits exist, run: `git push -u origin HEAD`
-2. Create the PR using `gh pr create` with a HEREDOC for the body:
-```bash
-gh pr create --title "the title" --body "$(cat <<'EOF'
-## Summary
-...
-
-## Changes
-...
-
-## Test Plan
-...
-EOF
-)"
-```
-3. Run `gh pr view --web` to open the PR in the browser.
-4. Display the PR URL to the user.
+1. Push if needed: `git push -u origin HEAD`
+2. Create PR: `gh pr create --title "..." --body "..."`
+3. Open in browser: `gh pr view --web`
 
 $ARGUMENTS
