@@ -1,18 +1,13 @@
 import { promises as fs, constants as fsConstants } from "node:fs";
 import path from "node:path";
 import {
-	buildClaudeWrapperScript,
-	buildCodexWrapperScript,
-	buildOpenCodeWrapperScript,
-	getClaudeSettingsContent,
-	getClaudeSettingsPath,
-	getClaudeWrapperPath,
-	getCodexWrapperPath,
+	AGENT_CONFIGS,
+	type AgentName,
+	buildAgentWrapperScript,
+	getAgentSettingsContent,
+	getAgentSettingsPath,
+	getAgentWrapperPath,
 	getOpenCodeGlobalPluginPath,
-	getOpenCodePluginContent,
-	getOpenCodePluginPath,
-	getOpenCodeWrapperPath,
-	OPENCODE_PLUGIN_MARKER,
 	WRAPPER_MARKER,
 } from "./agent-wrappers";
 import {
@@ -74,18 +69,143 @@ async function ensureScriptFile(params: {
 	}
 }
 
-async function ensureClaudeSettings(): Promise<void> {
-	const settingsPath = getClaudeSettingsPath();
-	const notifyPath = getNotifyScriptPath();
+/**
+ * Ensures settings file exists and contains hooks configuration.
+ * For global-settings agents, merges our hooks into the existing user settings.
+ */
+async function ensureAgentSettings(agentName: AgentName): Promise<void> {
+	const config = AGENT_CONFIGS[agentName];
+	const settingsPath = getAgentSettingsPath(agentName);
+	if (!settingsPath) return; // Agent doesn't use settings file
+
 	const existing = await readFileIfExists(settingsPath);
 
+	// For global-settings type, we need to merge hooks into existing settings
+	if (config.type === "global-settings") {
+		const notifyPath = getNotifyScriptPath();
+		const hooksConfig = config.getHooksConfig(notifyPath);
+
+		// Ensure parent directory exists
+		const settingsDir = path.dirname(settingsPath);
+		try {
+			await fs.mkdir(settingsDir, { recursive: true });
+		} catch {
+			// Directory may already exist
+		}
+
+		// Parse existing settings or start with empty object
+		let existingSettings: Record<string, unknown> = {};
+		if (existing) {
+			try {
+				existingSettings = JSON.parse(existing);
+			} catch {
+				console.warn(
+					`[agent-setup] Failed to parse ${settingsPath}, preserving file`,
+				);
+				return; // Don't overwrite if we can't parse
+			}
+		}
+
+		// Check if our hooks are already present
+		const existingHooks = existingSettings.hooks as
+			| Record<string, unknown>
+			| undefined;
+		const newHooks = hooksConfig.hooks as Record<string, unknown>;
+
+		// Check if all our hook events are already configured
+		const needsUpdate = Object.keys(newHooks).some(
+			(eventName) => !existingHooks?.[eventName],
+		);
+
+		if (needsUpdate) {
+			const mergedSettings = {
+				...existingSettings,
+				hooks: {
+					...existingHooks,
+					...newHooks,
+				},
+			};
+
+			await fs.writeFile(
+				settingsPath,
+				JSON.stringify(mergedSettings, null, 2),
+				{ mode: 0o644 },
+			);
+			console.log(`[agent-setup] Merged hooks into ${settingsPath}`);
+		}
+		return;
+	}
+
+	// For settings-file type, just check if hooks exist
 	if (!existing || !existing.includes('"hooks"')) {
-		const content = getClaudeSettingsContent(notifyPath);
-		await fs.writeFile(settingsPath, content, { mode: 0o644 });
-		console.log("[agent-setup] Rewrote Claude settings");
+		const content = getAgentSettingsContent(agentName);
+		if (content) {
+			await fs.writeFile(settingsPath, content, { mode: 0o644 });
+			console.log(
+				`[agent-setup] Rewrote ${AGENT_CONFIGS[agentName].name} settings`,
+			);
+		}
 	}
 }
 
+/**
+ * Ensures wrapper script exists and has correct marker.
+ */
+async function ensureAgentWrapper(agentName: AgentName): Promise<void> {
+	const config = AGENT_CONFIGS[agentName];
+	const wrapperPath = getAgentWrapperPath(agentName);
+	const content = buildAgentWrapperScript(agentName);
+
+	await ensureScriptFile({
+		filePath: wrapperPath,
+		content,
+		mode: 0o755,
+		marker: WRAPPER_MARKER,
+		logLabel: `${config.name} wrapper`,
+	});
+}
+
+/**
+ * Ensures plugin file exists for plugin-based agents.
+ */
+async function ensureAgentPlugin(agentName: AgentName): Promise<void> {
+	const config = AGENT_CONFIGS[agentName];
+	if (config.type !== "plugin") return;
+
+	const notifyPath = getNotifyScriptPath();
+	const content = config.getPluginContent(notifyPath);
+
+	await ensureScriptFile({
+		filePath: config.pluginPath,
+		content,
+		mode: 0o644,
+		marker: config.pluginMarker,
+		logLabel: `${config.name} plugin`,
+	});
+
+	// Handle global plugin if defined
+	if (config.globalPluginPath) {
+		try {
+			await ensureScriptFile({
+				filePath: config.globalPluginPath,
+				content,
+				mode: 0o644,
+				marker: config.pluginMarker,
+				logLabel: `${config.name} global plugin`,
+			});
+		} catch (error) {
+			console.warn(
+				`[agent-setup] Failed to write global ${config.name} plugin:`,
+				error,
+			);
+		}
+	}
+}
+
+/**
+ * Ensures all agent hooks are properly set up.
+ * This is called periodically to fix any missing or corrupted files.
+ */
 export function ensureAgentHooks(): Promise<void> {
 	if (process.platform === "win32") {
 		return Promise.resolve();
@@ -98,10 +218,13 @@ export function ensureAgentHooks(): Promise<void> {
 	inFlight = (async () => {
 		await new Promise<void>((resolve) => setImmediate(resolve));
 
+		// Create required directories
 		await fs.mkdir(BIN_DIR, { recursive: true });
 		await fs.mkdir(HOOKS_DIR, { recursive: true });
 		await fs.mkdir(OPENCODE_CONFIG_DIR, { recursive: true });
 		await fs.mkdir(OPENCODE_PLUGIN_DIR, { recursive: true });
+
+		// Create global OpenCode plugin directory
 		const globalOpenCodePluginPath = getOpenCodeGlobalPluginPath();
 		try {
 			await fs.mkdir(path.dirname(globalOpenCodePluginPath), {
@@ -114,6 +237,7 @@ export function ensureAgentHooks(): Promise<void> {
 			);
 		}
 
+		// Ensure notify script exists
 		const notifyPath = getNotifyScriptPath();
 		await ensureScriptFile({
 			filePath: notifyPath,
@@ -123,54 +247,12 @@ export function ensureAgentHooks(): Promise<void> {
 			logLabel: "notify hook",
 		});
 
-		await ensureClaudeSettings();
-
-		await ensureScriptFile({
-			filePath: getClaudeWrapperPath(),
-			content: buildClaudeWrapperScript(getClaudeSettingsPath()),
-			mode: 0o755,
-			marker: WRAPPER_MARKER,
-			logLabel: "Claude wrapper",
-		});
-
-		await ensureScriptFile({
-			filePath: getCodexWrapperPath(),
-			content: buildCodexWrapperScript(notifyPath),
-			mode: 0o755,
-			marker: WRAPPER_MARKER,
-			logLabel: "Codex wrapper",
-		});
-
-		await ensureScriptFile({
-			filePath: getOpenCodePluginPath(),
-			content: getOpenCodePluginContent(notifyPath),
-			mode: 0o644,
-			marker: OPENCODE_PLUGIN_MARKER,
-			logLabel: "OpenCode plugin",
-		});
-
-		try {
-			await ensureScriptFile({
-				filePath: globalOpenCodePluginPath,
-				content: getOpenCodePluginContent(notifyPath),
-				mode: 0o644,
-				marker: OPENCODE_PLUGIN_MARKER,
-				logLabel: "OpenCode global plugin",
-			});
-		} catch (error) {
-			console.warn(
-				"[agent-setup] Failed to write global OpenCode plugin:",
-				error,
-			);
+		// Ensure all agents are set up
+		for (const agentName of Object.keys(AGENT_CONFIGS) as AgentName[]) {
+			await ensureAgentSettings(agentName);
+			await ensureAgentPlugin(agentName);
+			await ensureAgentWrapper(agentName);
 		}
-
-		await ensureScriptFile({
-			filePath: getOpenCodeWrapperPath(),
-			content: buildOpenCodeWrapperScript(OPENCODE_CONFIG_DIR),
-			mode: 0o755,
-			marker: WRAPPER_MARKER,
-			logLabel: "OpenCode wrapper",
-		});
 	})().finally(() => {
 		inFlight = null;
 	});
