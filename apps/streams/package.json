@@ -14,14 +14,14 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/claude-agent-sdk": "^0.2.19",
-		"@durable-streams/client": "^0.2.0",
+		"@durable-streams/client": "^0.2.1",
 		"@durable-streams/server": "^0.2.0",
+		"@hono/node-server": "^1.13.0",
 		"@superset/durable-session": "workspace:*",
 		"@tanstack/ai": "^0.3.0",
-		"@tanstack/db": "^0.5.22",
-		"@hono/node-server": "^1.13.0",
+		"@tanstack/db": "0.5.22",
 		"hono": "^4.4.0",
-		"zod": "^4.1.12"
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@durable-streams/server-conformance-tests": "^0.2.0",
