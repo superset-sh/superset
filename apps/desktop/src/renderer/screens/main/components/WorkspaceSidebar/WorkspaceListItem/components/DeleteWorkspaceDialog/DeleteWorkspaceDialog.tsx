@@ -8,7 +8,7 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { Checkbox } from "@superset/ui/checkbox";
+import { Switch } from "@superset/ui/switch";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -217,22 +217,15 @@ export function DeleteWorkspaceDialog({
 				)}
 
 				{!isLoading && canDelete && (
-					<div className="px-4 pb-2">
-						<div className="flex items-center gap-2 text-xs text-muted-foreground">
-							<Checkbox
-								id="delete-local-branch"
-								checked={deleteLocalBranchChecked}
-								onCheckedChange={(checked) =>
-									setDeleteLocalBranch(checked === true)
-								}
-							/>
-							<label
-								htmlFor="delete-local-branch"
-								className="cursor-pointer select-none"
-							>
-								Also delete local branch
-							</label>
-						</div>
+					<div className="flex items-center justify-between px-4 pb-2">
+						<span className="text-xs text-muted-foreground">
+							Also delete local branch
+						</span>
+						<Switch
+							checked={deleteLocalBranchChecked}
+							onCheckedChange={(checked) => setDeleteLocalBranch(checked)}
+							className="scale-75"
+						/>
 					</div>
 				)}
 
