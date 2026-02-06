@@ -249,7 +249,6 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 	const attributeFiles = [
 		join(repoPath, ".gitattributes"),
 		join(repoPath, ".git", "info", "attributes"),
-		join(repoPath, ".lfsconfig"),
 	];
 
 	for (const filePath of attributeFiles) {
