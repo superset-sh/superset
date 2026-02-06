@@ -34,7 +34,9 @@ export function TopBar() {
 			{workspace?.project?.name && (
 				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
 					<span className="text-sm text-muted-foreground font-medium truncate max-w-[300px]">
-						{[workspace.project.name, workspace.name].filter(Boolean).join(" - ")}
+						{[workspace.project.name, workspace.name]
+							.filter(Boolean)
+							.join(" - ")}
 					</span>
 				</div>
 			)}
