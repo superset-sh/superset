@@ -16,16 +16,20 @@ Stop if no PR exists or it's closed/merged.
 
 List each comment with: reviewer, file/line (if inline), and the comment text.
 
-Mark as **BLOCKER** if it requests a required change or flags a bug. Everything else is lower priority.
+Categorize each:
+- **BLOCKER** — requests a required change or flags a bug/security issue
+- **QUESTION** — asks for clarification (needs a reply)
+- **SUGGESTION** — optional improvement (may ignore or adopt)
+- **NITPICK** — minor style issue (fix quickly or ignore)
 
-Address BLOCKERs first.
+Address BLOCKERs first, then QUESTIONs.
 
 ## Step 3: Address Each
 
 For each comment:
 1. Read the relevant code for context
 2. Either make the fix, or draft a reply if it needs discussion
-3. For BLOCKERs, confirm with user before making changes
+3. **For BLOCKERs: show the user what you plan to change before editing**
 
 Summarize what you changed and any replies needed.
 
