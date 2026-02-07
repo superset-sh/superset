@@ -72,12 +72,12 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		});
 	}, []);
 
+	const [sessionReady, setSessionReady] = useState(false);
+
 	const startSession = electronTrpc.aiChat.startSession.useMutation({
 		onSuccess: () => {
-			console.log("[chat] Session started, proxyUrl:", config?.proxyUrl);
-			if (config?.proxyUrl) {
-				doConnect();
-			}
+			console.log("[chat] Session started");
+			setSessionReady(true);
 		},
 		onError: (err) => {
 			console.error("[chat] Start session failed:", err);
@@ -85,22 +85,27 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	});
 	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
 
+	const startSessionRef = useRef(startSession);
+	startSessionRef.current = startSession;
+	const stopSessionRef = useRef(stopSession);
+	stopSessionRef.current = stopSession;
+
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
 		hasConnected.current = false;
-		startSession.mutate({ sessionId, cwd });
+		setSessionReady(false);
+		startSessionRef.current.mutate({ sessionId, cwd });
 		return () => {
-			stopSession.mutate({ sessionId });
+			stopSessionRef.current.mutate({ sessionId });
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount/unmount; mutations are stable transports
-	}, [sessionId, cwd, startSession, stopSession]);
+	}, [sessionId, cwd]);
 
-	// Config query may resolve after session already started
+	// Connect once both session is ready and config has loaded
 	useEffect(() => {
-		if (!hasConnected.current && startSession.isSuccess && config?.proxyUrl) {
+		if (sessionReady && config?.proxyUrl) {
 			doConnect();
 		}
-	}, [startSession.isSuccess, config?.proxyUrl, doConnect]);
+	}, [sessionReady, config?.proxyUrl, doConnect]);
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
