@@ -14,6 +14,7 @@
 	"dependencies": {
 		"@better-auth/expo": "1.4.18",
 		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
+		"@expo/ui": "~55.0.0-preview.4",
 		"@expo/vector-icons": "^15.0.3",
 		"@react-native-async-storage/async-storage": "2.2.0",
 		"@react-navigation/native": "^7.1.8",
@@ -60,6 +61,7 @@
 		"expo-dev-client": "~55.0.4",
 		"expo-device": "~55.0.5",
 		"expo-file-system": "~55.0.4",
+		"expo-glass-effect": "~55.0.4",
 		"expo-image": "~55.0.3",
 		"expo-linking": "~55.0.3",
 		"expo-localization": "~55.0.4",
