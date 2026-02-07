@@ -1,3 +1,5 @@
+import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { LuX } from "react-icons/lu";
@@ -51,9 +53,7 @@ export function SetupScriptCard({
 					className="px-3 pb-2"
 				>
 					<div className="relative rounded-lg border border-border bg-card p-3">
-						<span className="inline-block text-[10px] font-medium uppercase tracking-wider bg-primary/15 text-primary px-1.5 py-0.5 rounded">
-							Setup
-						</span>
+						<Badge variant="box">Setup</Badge>
 
 						<button
 							type="button"
@@ -63,13 +63,17 @@ export function SetupScriptCard({
 							<LuX className="size-3.5" />
 						</button>
 
-						<p className="text-sm font-semibold mt-2">Setup scripts</p>
-						<p className="text-sm text-muted-foreground mt-1 leading-snug">
+						<p className="text-sm font-semibold mt-2 text-card-foreground">
+							Setup scripts
+						</p>
+						<p className="text-xs text-muted-foreground mt-1 leading-snug">
 							Automate workspace setup for {projectName}
 						</p>
 
-						<button
-							type="button"
+						<Button
+							variant="outline"
+							size="sm"
+							className="mt-3 w-full h-7 text-xs"
 							onClick={() => {
 								if (projectId) {
 									navigate({
@@ -78,10 +82,9 @@ export function SetupScriptCard({
 									});
 								}
 							}}
-							className="text-xs text-primary hover:underline mt-1.5"
 						>
 							Configure
-						</button>
+						</Button>
 					</div>
 				</motion.div>
 			)}
