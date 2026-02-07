@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `hide_image` integer;

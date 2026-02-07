@@ -780,6 +780,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							.optional(),
 						branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
 						branchPrefixCustom: z.string().nullable().optional(),
+						hideImage: z.boolean().optional(),
 					}),
 				}),
 			)
@@ -805,6 +806,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}),
 						...(input.patch.branchPrefixCustom !== undefined && {
 							branchPrefixCustom: input.patch.branchPrefixCustom,
+						}),
+						...(input.patch.hideImage !== undefined && {
+							hideImage: input.patch.hideImage,
 						}),
 						lastOpenedAt: Date.now(),
 					})
