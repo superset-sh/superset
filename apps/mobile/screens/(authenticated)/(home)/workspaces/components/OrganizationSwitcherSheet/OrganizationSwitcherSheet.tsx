@@ -1,5 +1,3 @@
-import { Text } from "@/components/ui/text";
-import { useTheme } from "@/hooks/useTheme";
 import { BottomSheet, Group, Host, RNHostView } from "@expo/ui/swift-ui";
 import {
 	background,
@@ -8,6 +6,8 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
+import { Text } from "@/components/ui/text";
+import { useTheme } from "@/hooks/useTheme";
 import { OrganizationAvatar } from "./components/OrganizationAvatar";
 
 export interface Organization {
@@ -49,9 +49,9 @@ export function OrganizationSwitcherSheet({
 					]}
 				>
 					<RNHostView matchContents>
-						<View className="px-5 pb-6 pt-3">
+						<View className="px-5 pb-3 pt-6">
 							<Text
-								className="mb-2 text-xs font-medium uppercase tracking-widest"
+								className="mb-2 text-sm font-semibold"
 								style={{ color: theme.mutedForeground }}
 							>
 								Organizations
