@@ -33,12 +33,18 @@ function sendRingtoneEvent(params: {
 	channel: "ringtone-play" | "ringtone-stop";
 	filename?: string;
 }): boolean {
-	if (params.channel === "ringtone-play" && params.filename) {
-		ringtoneEvents.emit("ringtone-event", { type: "play", filename: params.filename });
-	} else if (params.channel === "ringtone-stop") {
-		ringtoneEvents.emit("ringtone-event", { type: "stop" });
+	if (params.channel === "ringtone-play") {
+		if (!params.filename) {
+			return false; // Invalid play request - no filename provided
+		}
+		return ringtoneEvents.emit("ringtone-event", { type: "play", filename: params.filename });
 	}
-	return true;
+	
+	if (params.channel === "ringtone-stop") {
+		return ringtoneEvents.emit("ringtone-event", { type: "stop" });
+	}
+	
+	return false;
 }
 
 function buildWindowsPlayerArgs(soundPath: string): string[] {
