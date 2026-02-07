@@ -40,6 +40,7 @@ function SidebarCard({
 				<button
 					type="button"
 					onClick={onDismiss}
+					aria-label="Dismiss"
 					className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<LuX className="size-3.5" />

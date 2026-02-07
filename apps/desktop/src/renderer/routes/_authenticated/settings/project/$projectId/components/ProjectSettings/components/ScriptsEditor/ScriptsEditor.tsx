@@ -237,7 +237,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 		onSuccess: () => {
 			setHasChanges(false);
 			utils.config.getConfigContent.invalidate({ projectId });
-			utils.config.shouldShowConfigToast.invalidate({ projectId });
+			utils.config.shouldShowSetupCard.invalidate({ projectId });
 		},
 	});
 
