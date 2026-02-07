@@ -74,6 +74,9 @@ export default defineConfig({
 				process.env.STREAMS_URL,
 				"https://superset-stream.fly.dev",
 			),
+			"process.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
+			),
 		},
 
 		build: {
@@ -158,6 +161,9 @@ export default defineConfig({
 			),
 			"import.meta.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
+			),
+			"import.meta.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
 			),
 		},
 
