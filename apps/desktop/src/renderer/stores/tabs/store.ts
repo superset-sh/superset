@@ -13,6 +13,7 @@ import type {
 import {
 	buildMultiPaneLayout,
 	type CreatePaneOptions,
+	createChatTabWithPane,
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
@@ -100,6 +101,40 @@ export const useTabsStore = create<TabsStore>()(
 						state.tabs,
 						options,
 					);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addChatTab: (workspaceId: string) => {
+					const state = get();
+
+					const { tab, pane } = createChatTabWithPane(workspaceId, state.tabs);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];

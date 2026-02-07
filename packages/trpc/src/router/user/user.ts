@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { members, users } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { del, put } from "@vercel/blob";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure } from "../../trpc";
@@ -20,6 +20,7 @@ export const userRouter = {
 						eq(members.organizationId, activeOrganizationId),
 					)
 				: eq(members.userId, ctx.session.user.id),
+			orderBy: desc(members.createdAt),
 			with: {
 				organization: true,
 			},
@@ -31,6 +32,7 @@ export const userRouter = {
 	myOrganizations: protectedProcedure.query(async ({ ctx }) => {
 		const memberships = await db.query.members.findMany({
 			where: eq(members.userId, ctx.session.user.id),
+			orderBy: desc(members.createdAt),
 			with: {
 				organization: true,
 			},

@@ -11,12 +11,18 @@ export interface TeardownResult {
 	output?: string;
 }
 
-export async function runTeardown(
-	mainRepoPath: string,
-	worktreePath: string,
-	workspaceName: string,
-): Promise<TeardownResult> {
-	const config = loadSetupConfig({ mainRepoPath });
+export async function runTeardown({
+	mainRepoPath,
+	worktreePath,
+	workspaceName,
+	projectName,
+}: {
+	mainRepoPath: string;
+	worktreePath: string;
+	workspaceName: string;
+	projectName?: string;
+}): Promise<TeardownResult> {
+	const config = loadSetupConfig({ mainRepoPath, worktreePath, projectName });
 
 	if (!config?.teardown || config.teardown.length === 0) {
 		console.log(

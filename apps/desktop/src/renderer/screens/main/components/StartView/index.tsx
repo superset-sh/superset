@@ -3,7 +3,11 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
-import { useOpenFromPath, useOpenNew } from "renderer/react-query/projects";
+import {
+	processOpenNewResults,
+	useOpenFromPath,
+	useOpenNew,
+} from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
@@ -16,7 +20,11 @@ export function StartView() {
 	const [initGitDialog, setInitGitDialog] = useState<{
 		isOpen: boolean;
 		selectedPath: string;
+		selectedPaths?: string[];
 	}>({ isOpen: false, selectedPath: "" });
+	const [pendingNavigateProjectId, setPendingNavigateProjectId] = useState<
+		string | null
+	>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
 
@@ -55,20 +63,33 @@ export function StartView() {
 					return;
 				}
 
-				if ("needsGitInit" in result) {
-					setInitGitDialog({
-						isOpen: true,
-						selectedPath: result.selectedPath,
+				if ("results" in result) {
+					const { successes, needsGitInit } = processOpenNewResults({
+						results: result.results,
 					});
-					return;
-				}
 
-				if ("project" in result && result.project) {
-					navigate({
-						to: "/project/$projectId",
-						params: { projectId: result.project.id },
-						replace: true,
-					});
+					const firstProjectId = successes[0]?.project.id;
+
+					if (needsGitInit.length > 0) {
+						const paths = needsGitInit.map((r) => r.selectedPath);
+						// Defer navigation until git-init dialog is closed
+						if (firstProjectId) {
+							setPendingNavigateProjectId(firstProjectId);
+						}
+						setInitGitDialog({
+							isOpen: true,
+							selectedPath: paths[0],
+							selectedPaths: paths,
+						});
+					} else if (firstProjectId) {
+						navigate({
+							to: "/project/$projectId",
+							params: { projectId: firstProjectId },
+							replace: true,
+						});
+					}
+
+					return;
 				}
 			},
 			onError: (err) => {
@@ -268,8 +289,22 @@ export function StartView() {
 			<InitGitDialog
 				isOpen={initGitDialog.isOpen}
 				selectedPath={initGitDialog.selectedPath}
-				onClose={() => setInitGitDialog({ isOpen: false, selectedPath: "" })}
-				onError={setError}
+				selectedPaths={initGitDialog.selectedPaths}
+				onClose={() => {
+					setInitGitDialog({ isOpen: false, selectedPath: "" });
+					if (pendingNavigateProjectId) {
+						navigate({
+							to: "/project/$projectId",
+							params: { projectId: pendingNavigateProjectId },
+							replace: true,
+						});
+						setPendingNavigateProjectId(null);
+					}
+				}}
+				onError={(msg) => {
+					setError(msg);
+					setPendingNavigateProjectId(null);
+				}}
 			/>
 
 			<CloneRepoDialog

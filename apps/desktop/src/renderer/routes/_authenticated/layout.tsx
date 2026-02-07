@@ -72,7 +72,7 @@ function AuthenticatedLayout() {
 		},
 	});
 
-	if (isPending) {
+	if (isPending && !env.SKIP_ENV_VALIDATION) {
 		if (hasLocalToken) {
 			return (
 				<div className="flex h-screen w-screen items-center justify-center bg-background">

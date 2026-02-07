@@ -4,6 +4,7 @@ import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
@@ -16,6 +17,11 @@ export const Route = createFileRoute("/sign-in/")({
 function SignInPage() {
 	const { data: session, isPending } = authClient.useSession();
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
+
+	// Dev bypass: skip sign-in entirely
+	if (env.SKIP_ENV_VALIDATION) {
+		return <Navigate to="/workspace" replace />;
+	}
 
 	// Show loading while session is being fetched
 	if (isPending) {

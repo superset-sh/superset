@@ -45,8 +45,43 @@ Commands run sequentially in the workspace directory.
 }
 ```
 
+## User Overrides
+
+Override project setup/teardown scripts without modifying the repo by placing a `config.json` in your home directory:
+
+```
+~/.superset/projects/<project-name>/config.json
+```
+
+Where `<project-name>` matches your project's name in Superset (the same name used in `~/.superset/worktrees/<project-name>/`).
+
+### Priority Order
+
+Config is resolved in this order (first found wins, for both setup and teardown):
+1. `~/.superset/projects/<project-name>/config.json` — user override
+2. `<worktree>/.superset/config.json` — worktree-specific
+3. `<repo>/.superset/config.json` — project default
+
+No merging occurs between levels—the first config found is used entirely.
+
+### Examples
+
+**Custom setup script:**
+```json
+{
+  "setup": ["~/.superset/projects/my-project/setup.sh"],
+  "teardown": ["~/.superset/projects/my-project/teardown.sh"]
+}
+```
+
+**Skip setup entirely:**
+```json
+{ "setup": [], "teardown": [] }
+```
+
 ## Tips
 
 - Keep setup fast—runs every workspace creation
 - Commit `.superset/` to share with team
 - Use shell scripts for complex logic: `"setup": ["./.superset/setup.sh"]`
+- Use user overrides to customize scripts without creating git noise
