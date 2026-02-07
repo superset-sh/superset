@@ -45,7 +45,7 @@ export function OrgDropdown() {
 		setSwitching(true);
 		try {
 			await authClient.organization.setActive({ organizationId: orgId });
-			router.replace("/(authenticated)/(drawer)/workspaces");
+			router.replace("/(authenticated)/(home)");
 		} catch (error) {
 			console.error("[org/switch] Failed to switch organization:", error);
 		} finally {

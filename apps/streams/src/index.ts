@@ -7,7 +7,7 @@ import { claudeAgentApp } from "./claude-agent";
 import { createServer } from "./server";
 
 const PORT = parseInt(process.env.PORT ?? "8080", 10);
-const INTERNAL_PORT = parseInt(process.env.INTERNAL_PORT ?? "8081", 10);
+const INTERNAL_PORT = parseInt(process.env.INTERNAL_PORT ?? "8082", 10);
 const AGENT_PORT = parseInt(process.env.CLAUDE_AGENT_PORT ?? "9090", 10);
 const DURABLE_STREAMS_URL =
 	process.env.DURABLE_STREAMS_URL ?? `http://127.0.0.1:${INTERNAL_PORT}`;

@@ -70,9 +70,7 @@ export function SocialButton({
 			) : (
 				<GoogleIcon />
 			)}
-			<Text>
-				{`Continue with ${PROVIDER_NAME[provider]}`}
-			</Text>
+			<Text>{`Continue with ${PROVIDER_NAME[provider]}`}</Text>
 		</Button>
 	);
 }

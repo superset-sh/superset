@@ -17,7 +17,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 	orientation: "portrait",
 	icon: "./assets/icon.png",
 	userInterfaceStyle: "light",
-	newArchEnabled: true,
 	scheme: "superset",
 	splash: {
 		image: "./assets/splash-icon.png",
@@ -37,7 +36,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 			backgroundColor: "#ffffff",
 		},
 		package: "sh.superset.mobile",
-		edgeToEdgeEnabled: true,
 		predictiveBackGestureEnabled: false,
 	},
 	web: {
