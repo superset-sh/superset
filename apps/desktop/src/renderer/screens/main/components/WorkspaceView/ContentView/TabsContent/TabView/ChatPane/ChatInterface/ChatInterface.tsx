@@ -72,15 +72,12 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		});
 	}, []);
 
-	const sessionStarted = useRef(false);
+	const [sessionReady, setSessionReady] = useState(false);
 
 	const startSession = electronTrpc.aiChat.startSession.useMutation({
 		onSuccess: () => {
-			sessionStarted.current = true;
 			console.log("[chat] Session started, proxyUrl:", config?.proxyUrl);
-			if (config?.proxyUrl) {
-				doConnect();
-			}
+			setSessionReady(true);
 		},
 		onError: (err) => {
 			console.error("[chat] Start session failed:", err);
@@ -96,19 +93,19 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
 		hasConnected.current = false;
-		sessionStarted.current = false;
+		setSessionReady(false);
 		startSessionRef.current.mutate({ sessionId, cwd });
 		return () => {
 			stopSessionRef.current.mutate({ sessionId });
 		};
 	}, [sessionId, cwd]);
 
-	// Config query may resolve after session already started
+	// Connect once both session is ready and config has loaded
 	useEffect(() => {
-		if (!hasConnected.current && sessionStarted.current && config?.proxyUrl) {
+		if (sessionReady && config?.proxyUrl) {
 			doConnect();
 		}
-	}, [config?.proxyUrl, doConnect]);
+	}, [sessionReady, config?.proxyUrl, doConnect]);
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
