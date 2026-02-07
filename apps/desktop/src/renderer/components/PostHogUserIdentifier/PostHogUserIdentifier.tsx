@@ -1,7 +1,7 @@
 import { useEffect } from "react";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-
 import { posthog } from "../../lib/posthog";
 
 const AUTH_COMPLETED_KEY = "superset_auth_completed";
@@ -23,7 +23,7 @@ export function PostHogUserIdentifier() {
 
 			const trackedUserId = localStorage.getItem(AUTH_COMPLETED_KEY);
 			if (trackedUserId !== user.id) {
-				posthog.capture("auth_completed");
+				track("auth_completed");
 				localStorage.setItem(AUTH_COMPLETED_KEY, user.id);
 			}
 		} else if (session !== undefined && !user) {
