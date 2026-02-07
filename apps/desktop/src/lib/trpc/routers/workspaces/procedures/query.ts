@@ -159,6 +159,7 @@ export const createQueryProcedures = () => {
 						tabOrder: number;
 						githubOwner: string | null;
 						mainRepoPath: string;
+						hideImage: boolean;
 					};
 					workspaces: Array<{
 						id: string;
@@ -188,6 +189,7 @@ export const createQueryProcedures = () => {
 						tabOrder: project.tabOrder!,
 						githubOwner: project.githubOwner ?? null,
 						mainRepoPath: project.mainRepoPath,
+						hideImage: project.hideImage ?? false,
 					},
 					workspaces: [],
 				});
