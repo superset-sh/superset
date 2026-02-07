@@ -13,6 +13,14 @@ import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 const execFileAsync = promisify(execFile);
 
 /**
+ * 50 MiB – generous ceiling for git-status stdout.
+ * Repos with huge numbers of untracked/changed files can easily exceed the
+ * Node.js default (1 MiB), which causes an ERR_CHILD_PROCESS_STDIO_MAXBUFFER
+ * crash (Sentry DESKTOP-1J). 50 MiB handles even very large monorepos.
+ */
+const GIT_STATUS_MAX_BUFFER = 50 * 1024 * 1024;
+
+/**
  * Error thrown by execFile when the command fails.
  * `code` can be a number (exit code) or string (spawn error like "ENOENT").
  */
@@ -59,42 +67,81 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 	const env = await getGitEnv();
 
 	try {
-		// Run git status with --no-optional-locks to avoid holding locks
-		// Use porcelain=v1 for machine-parseable output, -b for branch info
-		// Use -z for NUL-terminated output (handles filenames with special chars)
-		// Use -uall to show individual files in untracked directories (not just the directory)
-		// Note: porcelain=v1 already includes rename info (R/C status codes) without needing -M
-		const { stdout } = await execFileAsync(
-			"git",
-			[
-				"--no-optional-locks",
-				"-C",
-				repoPath,
-				"status",
-				"--porcelain=v1",
-				"-b",
-				"-z",
-				"-uall",
-			],
-			{ env, timeout: 30_000 },
-		);
-
-		return parsePortelainStatus(stdout);
+		return await runGitStatus({ repoPath, env, untrackedMode: "-uall" });
 	} catch (error) {
-		// Provide more descriptive error messages
-		if (isExecFileException(error)) {
-			if (error.code === "ENOENT") {
-				throw new Error("Git is not installed or not found in PATH");
-			}
-			const stderr = error.stderr || error.message || "";
-			if (stderr.includes("not a git repository")) {
-				throw new Error(`Not a git repository: ${repoPath}`);
+		// If maxBuffer is exceeded even with the generous limit, retry with
+		// -unormal (collapses untracked directories into a single entry).
+		if (isMaxBufferError(error)) {
+			console.warn(
+				"[git/status] maxBuffer exceeded with -uall, retrying with -unormal:",
+				repoPath,
+			);
+			try {
+				return await runGitStatus({
+					repoPath,
+					env,
+					untrackedMode: "-unormal",
+				});
+			} catch (retryError) {
+				throw toGitStatusError(retryError);
 			}
 		}
-		throw new Error(
-			`Failed to get git status: ${error instanceof Error ? error.message : String(error)}`,
-		);
+
+		throw toGitStatusError(error);
 	}
+}
+
+async function runGitStatus({
+	repoPath,
+	env,
+	untrackedMode,
+}: {
+	repoPath: string;
+	env: Record<string, string>;
+	untrackedMode: "-uall" | "-unormal";
+}): Promise<StatusResult> {
+	// Run git status with --no-optional-locks to avoid holding locks
+	// Use porcelain=v1 for machine-parseable output, -b for branch info
+	// Use -z for NUL-terminated output (handles filenames with special chars)
+	// Note: porcelain=v1 already includes rename info (R/C status codes) without needing -M
+	const { stdout } = await execFileAsync(
+		"git",
+		[
+			"--no-optional-locks",
+			"-C",
+			repoPath,
+			"status",
+			"--porcelain=v1",
+			"-b",
+			"-z",
+			untrackedMode,
+		],
+		{ env, timeout: 30_000, maxBuffer: GIT_STATUS_MAX_BUFFER },
+	);
+
+	return parsePortelainStatus(stdout);
+}
+
+function isMaxBufferError(error: unknown): boolean {
+	return (
+		error instanceof Error &&
+		error.message.includes("maxBuffer length exceeded")
+	);
+}
+
+function toGitStatusError(error: unknown): Error {
+	if (isExecFileException(error)) {
+		if (error.code === "ENOENT") {
+			return new Error("Git is not installed or not found in PATH");
+		}
+		const stderr = error.stderr || error.message || "";
+		if (stderr.includes("not a git repository")) {
+			return new Error(`Not a git repository`);
+		}
+	}
+	return new Error(
+		`Failed to get git status: ${error instanceof Error ? error.message : String(error)}`,
+	);
 }
 
 /**
