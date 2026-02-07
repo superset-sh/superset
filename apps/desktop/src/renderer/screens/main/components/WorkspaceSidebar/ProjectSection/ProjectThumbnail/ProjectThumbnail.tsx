@@ -86,15 +86,24 @@ export function ProjectThumbnail({
 	}
 
 	// Fallback: show first letter
+	const fallbackStyle = hasCustomColor
+		? {
+				borderColor: hexToRgba(projectColor, 0.6),
+				backgroundColor: hexToRgba(projectColor, 0.15),
+				color: projectColor,
+			}
+		: borderStyle;
+
 	return (
 		<div
 			className={cn(
 				"size-6 rounded flex items-center justify-center flex-shrink-0",
-				"bg-muted text-muted-foreground text-xs font-medium",
+				"text-xs font-medium",
+				hasCustomColor ? undefined : "bg-muted text-muted-foreground",
 				borderClasses,
 				className,
 			)}
-			style={borderStyle}
+			style={fallbackStyle}
 		>
 			{firstLetter}
 		</div>

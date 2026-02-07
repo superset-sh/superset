@@ -8,9 +8,19 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { Switch } from "@superset/ui/switch";
+import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
-import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
+import {
+	HiOutlineCog6Tooth,
+	HiOutlineFolder,
+	HiOutlinePaintBrush,
+} from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLORS,
+} from "shared/constants/project-colors";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import { ClickablePath } from "../../../../components/ClickablePath";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
@@ -46,6 +56,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		},
 		onSettled: () => {
 			utils.projects.get.invalidate({ id: projectId });
+			utils.workspaces.getAllGrouped.invalidate();
 		},
 	});
 
@@ -127,6 +138,69 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 						Repository Path
 					</h3>
 					<ClickablePath path={project.mainRepoPath} />
+				</div>
+
+				<div className="pt-4 border-t space-y-4">
+					<div className="space-y-2">
+						<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+							<HiOutlinePaintBrush className="h-4 w-4" />
+							Appearance
+						</h3>
+						<p className="text-sm text-muted-foreground">
+							Customize how this project appears in the sidebar.
+						</p>
+					</div>
+
+					<div className="space-y-1.5">
+						<Label className="text-xs text-muted-foreground">Color</Label>
+						<div className="flex items-center gap-2">
+							{PROJECT_COLORS.map((color) => {
+								const isDefault = color.value === PROJECT_COLOR_DEFAULT;
+								const isSelected = project.color === color.value;
+								return (
+									<button
+										key={color.value}
+										type="button"
+										title={color.name}
+										onClick={() =>
+											updateProject.mutate({
+												id: projectId,
+												patch: { color: color.value },
+											})
+										}
+										className={cn(
+											"size-6 rounded-full border-2 transition-transform hover:scale-110",
+											isSelected
+												? "border-foreground scale-110"
+												: "border-transparent",
+											isDefault && "bg-muted",
+										)}
+										style={
+											isDefault ? undefined : { backgroundColor: color.value }
+										}
+									/>
+								);
+							})}
+						</div>
+					</div>
+
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm">Hide Image</Label>
+							<p className="text-xs text-muted-foreground">
+								Show only the initial letter instead of the GitHub avatar.
+							</p>
+						</div>
+						<Switch
+							checked={project.hideImage ?? false}
+							onCheckedChange={(checked) =>
+								updateProject.mutate({
+									id: projectId,
+									patch: { hideImage: checked },
+								})
+							}
+						/>
+					</div>
 				</div>
 
 				<div className="pt-4 border-t space-y-4">
