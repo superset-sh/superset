@@ -58,6 +58,7 @@ async function execute(
 			data: {
 				workspaceId: result.workspace.id,
 				branch: result.workspace.branch,
+				worktreePath: result.worktreePath,
 			},
 		};
 	} catch (error) {
