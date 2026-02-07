@@ -76,7 +76,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 
 	const startSession = electronTrpc.aiChat.startSession.useMutation({
 		onSuccess: () => {
-			console.log("[chat] Session started, proxyUrl:", config?.proxyUrl);
+			console.log("[chat] Session started");
 			setSessionReady(true);
 		},
 		onError: (err) => {
