@@ -17,7 +17,6 @@ interface ScriptEntry {
 
 interface ScriptsEditorProps {
 	projectId: string;
-	projectName: string;
 	className?: string;
 }
 
@@ -126,9 +125,9 @@ function ScriptEntryRow({
 			<textarea
 				value={script.content}
 				onChange={(e) => onChange(script.id, e.target.value)}
-				placeholder="#!/bin/bash&#10;# Your script here..."
-				className="w-full min-h-[100px] p-3 pr-10 text-sm font-mono bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-ring rounded-lg"
-				rows={4}
+				placeholder="e.g. bun install && bun run dev"
+				className="w-full min-h-[60px] p-3 pr-10 text-sm font-mono bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-ring rounded-lg"
+				rows={2}
 			/>
 			<button
 				type="button"
@@ -179,7 +178,7 @@ function ScriptsSection({
 			</div>
 
 			{scripts.length > 0 ? (
-				<div className="space-y-3">
+				<div className="space-y-2">
 					{scripts.map((script) => (
 						<ScriptEntryRow
 							key={script.id}
@@ -190,36 +189,28 @@ function ScriptsSection({
 						/>
 					))}
 				</div>
-			) : (
-				<div className="text-sm text-muted-foreground italic">
-					No scripts configured
-				</div>
-			)}
+			) : null}
 
 			<div className="flex gap-2">
 				<Button variant="outline" size="sm" onClick={onAdd} className="gap-1.5">
-					<HiPlus className="h-4 w-4" />
-					Add Script
+					<HiPlus className="h-3.5 w-3.5" />
+					Add
 				</Button>
 				<Button
 					variant="ghost"
 					size="sm"
 					onClick={onImportFile}
-					className="gap-1.5"
+					className="gap-1.5 text-muted-foreground"
 				>
-					<HiDocumentArrowUp className="h-4 w-4" />
-					Import File
+					<HiDocumentArrowUp className="h-3.5 w-3.5" />
+					Import file
 				</Button>
 			</div>
 		</div>
 	);
 }
 
-export function ScriptsEditor({
-	projectId,
-	projectName,
-	className,
-}: ScriptsEditorProps) {
+export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const utils = electronTrpc.useUtils();
 
 	const { data: configData, isLoading } =
@@ -246,6 +237,7 @@ export function ScriptsEditor({
 		onSuccess: () => {
 			setHasChanges(false);
 			utils.config.getConfigContent.invalidate({ projectId });
+			utils.config.shouldShowSetupCard.invalidate({ projectId });
 		},
 	});
 
@@ -358,26 +350,27 @@ export function ScriptsEditor({
 	if (isLoading) {
 		return (
 			<div className={cn("space-y-4", className)}>
-				<div className="h-32 bg-muted/30 rounded-lg animate-pulse" />
-				<div className="h-32 bg-muted/30 rounded-lg animate-pulse" />
+				<div className="h-24 bg-muted/30 rounded-lg animate-pulse" />
 			</div>
 		);
 	}
 
 	return (
-		<div className={cn("space-y-6", className)}>
-			<div className="flex items-center justify-between">
-				<div>
+		<div className={cn("space-y-5", className)}>
+			<div className="flex items-start justify-between">
+				<div className="space-y-1">
+					<h3 className="text-base font-semibold text-foreground">Scripts</h3>
 					<p className="text-sm text-muted-foreground">
-						Scripts for <span className="font-medium">{projectName}</span>
+						Commands that run automatically when workspaces are created or
+						deleted.
 					</p>
 				</div>
-				<div className="flex gap-2">
+				<div className="flex gap-2 shrink-0">
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						onClick={handleLearnMore}
-						className="gap-1.5"
+						className="gap-1.5 text-muted-foreground"
 					>
 						Learn more
 						<HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
@@ -388,15 +381,15 @@ export function ScriptsEditor({
 							onClick={handleSave}
 							disabled={updateConfigMutation.isPending}
 						>
-							{updateConfigMutation.isPending ? "Saving..." : "Save Changes"}
+							{updateConfigMutation.isPending ? "Saving..." : "Save"}
 						</Button>
 					)}
 				</div>
 			</div>
 
 			<ScriptsSection
-				title="Setup Scripts"
-				description="Run when a new workspace is created from this project"
+				title="Setup"
+				description="Run when a new workspace is created"
 				scripts={setupScripts}
 				onChange={handleSetupChange}
 				onAdd={handleAddSetup}
@@ -405,10 +398,8 @@ export function ScriptsEditor({
 				onImportFile={handleImportSetupFile}
 			/>
 
-			<div className="border-t" />
-
 			<ScriptsSection
-				title="Teardown Scripts"
+				title="Teardown"
 				description="Run when a workspace is deleted"
 				scripts={teardownScripts}
 				onChange={handleTeardownChange}

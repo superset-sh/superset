@@ -152,7 +152,6 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 			</div>
 
 			<div className="space-y-4">
-
 				<SettingsSection
 					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
 					title="Branch Prefix"
@@ -206,13 +205,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 					</div>
 				</SettingsSection>
 
-				<SettingsSection
-					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
-					title="Scripts"
-					description="Run scripts on workspace create or delete."
-				>
-					<ScriptsEditor projectId={project.id} projectName={project.name} />
-				</SettingsSection>
+				<div className="pt-3 border-t">
+					<ScriptsEditor projectId={project.id} />
+				</div>
 
 				<SettingsSection
 					icon={<HiOutlinePaintBrush className="h-4 w-4" />}

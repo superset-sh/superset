@@ -1,7 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { AddTabWithMultiplePanesOptions } from "renderer/stores/tabs/types";
 import {
@@ -40,9 +39,6 @@ export function WorkspaceInitEffects() {
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const renameTab = useTabsStore((state) => state.renameTab);
 	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
-	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast =
-		electronTrpc.config.dismissConfigToast.useMutation();
 	const utils = electronTrpc.useUtils();
 
 	const createPresetTerminal = useCallback(
@@ -185,24 +181,13 @@ export function WorkspaceInitEffects() {
 				return;
 			}
 
-			toast.info("No setup script configured", {
-				description: "Automate workspace setup with a config.json file",
-				action: {
-					label: "Configure",
-					onClick: () => openConfigModal(setup.projectId),
-				},
-				onDismiss: () => {
-					dismissConfigToast.mutate({ projectId: setup.projectId });
-				},
-			});
+			// No setup script or default preset — sidebar card handles the prompt
 			onComplete();
 		},
 		[
 			addTab,
 			setTabAutoTitle,
 			createOrAttach,
-			openConfigModal,
-			dismissConfigToast,
 			createPresetTerminal,
 			shouldApplyPreset,
 		],
