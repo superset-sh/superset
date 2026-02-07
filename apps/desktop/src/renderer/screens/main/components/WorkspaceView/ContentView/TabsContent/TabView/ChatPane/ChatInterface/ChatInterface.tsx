@@ -46,6 +46,8 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		messages,
 		sendMessage,
 		isLoading,
+		error,
+		connectionStatus,
 		stop,
 		addToolApprovalResponse,
 		connect,
@@ -63,13 +65,26 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	connectRef.current = connect;
 	const hasConnected = useRef(false);
 
+	const doConnect = useCallback(() => {
+		if (hasConnected.current) return;
+		hasConnected.current = true;
+		console.log("[chat] Connecting to proxy...");
+		connectRef.current().catch((err) => {
+			console.error("[chat] Connect failed:", err);
+			hasConnected.current = false;
+		});
+	}, []);
+
 	// Session lifecycle via tRPC callbacks (not useEffect state tracking)
 	const startSession = electronTrpc.aiChat.startSession.useMutation({
 		onSuccess: () => {
-			if (!hasConnected.current && config?.proxyUrl) {
-				hasConnected.current = true;
-				connectRef.current();
+			console.log("[chat] Session started, proxyUrl:", config?.proxyUrl);
+			if (config?.proxyUrl) {
+				doConnect();
 			}
+		},
+		onError: (err) => {
+			console.error("[chat] Start session failed:", err);
 		},
 	});
 	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
@@ -88,17 +103,19 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	// Handle case where config query resolves after session already started
 	useEffect(() => {
 		if (!hasConnected.current && startSession.isSuccess && config?.proxyUrl) {
-			hasConnected.current = true;
-			connectRef.current();
+			doConnect();
 		}
-	}, [startSession.isSuccess, config?.proxyUrl]);
+	}, [startSession.isSuccess, config?.proxyUrl, doConnect]);
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			if (!message.text.trim()) return;
-			sendMessage(message.text);
+			console.log("[chat] Sending message, connectionStatus:", connectionStatus);
+			sendMessage(message.text).catch((err) => {
+				console.error("[chat] Send failed:", err);
+			});
 		},
-		[sendMessage],
+		[sendMessage, connectionStatus],
 	);
 
 	const handleSuggestion = useCallback(
@@ -132,6 +149,16 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 
 	return (
 		<div className="flex h-full flex-col bg-background">
+			{error && (
+				<div className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+					{error.message}
+				</div>
+			)}
+			{connectionStatus !== "connected" && connectionStatus !== "disconnected" && (
+				<div className="border-b px-4 py-1 text-xs text-muted-foreground">
+					Connection: {connectionStatus}
+				</div>
+			)}
 			<Conversation className="flex-1">
 				<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
 					{messages.length === 0 ? (
