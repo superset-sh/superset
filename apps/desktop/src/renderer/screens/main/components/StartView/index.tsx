@@ -301,7 +301,10 @@ export function StartView() {
 						setPendingNavigateProjectId(null);
 					}
 				}}
-				onError={setError}
+				onError={(msg) => {
+					setError(msg);
+					setPendingNavigateProjectId(null);
+				}}
 			/>
 
 			<CloneRepoDialog
