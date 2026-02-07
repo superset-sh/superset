@@ -12,11 +12,7 @@ import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import {
-	HiOutlineCog6Tooth,
-	HiOutlineFolder,
-	HiOutlinePaintBrush,
-} from "react-icons/hi2";
+import { HiOutlineCog6Tooth, HiOutlinePaintBrush } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	PROJECT_COLOR_DEFAULT,
@@ -149,22 +145,11 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Project</h2>
+				<h2 className="text-xl font-semibold">{project.name}</h2>
+				<ClickablePath path={project.mainRepoPath} />
 			</div>
 
 			<div className="space-y-6">
-				<div className="space-y-2">
-					<h3 className="text-base font-semibold text-foreground">Name</h3>
-					<p>{project.name}</p>
-				</div>
-
-				<div className="space-y-2">
-					<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-						<HiOutlineFolder className="h-4 w-4" />
-						Repository Path
-					</h3>
-					<ClickablePath path={project.mainRepoPath} />
-				</div>
 
 				<SettingsSection
 					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
