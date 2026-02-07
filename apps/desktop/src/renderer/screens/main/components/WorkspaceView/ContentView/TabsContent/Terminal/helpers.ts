@@ -11,7 +11,12 @@ import { debounce } from "lodash";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
-import { isTerminalReservedEvent, matchesHotkeyEvent } from "shared/hotkeys";
+import {
+	getCurrentPlatform,
+	hotkeyFromKeyboardEvent,
+	isTerminalReservedEvent,
+	matchesHotkeyEvent,
+} from "shared/hotkeys";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -627,7 +632,11 @@ export function setupKeyboardHandler(
 		}
 
 		if (event.type !== "keydown") return true;
-		if (!event.metaKey && !event.ctrlKey) return true;
+		const potentialHotkey = hotkeyFromKeyboardEvent(
+			event,
+			getCurrentPlatform(),
+		);
+		if (!potentialHotkey) return true;
 
 		if (isAppHotkeyEvent(event)) {
 			// Return false to prevent xterm from processing the key.
