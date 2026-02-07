@@ -145,6 +145,7 @@
         "@hookform/resolvers": "^5.2.2",
         "@monaco-editor/react": "^4.7.0",
         "@outlit/browser": "^1.2.0",
+        "@outlit/node": "^1.1.0",
         "@pierre/diffs": "^1.0.10",
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-label": "^2.1.8",
@@ -1575,6 +1576,8 @@
     "@outlit/browser": ["@outlit/browser@1.2.0", "", { "dependencies": { "@outlit/core": "1.1.0" }, "peerDependencies": { "react": ">=17.0.0", "vue": ">=3.0.0" }, "optionalPeers": ["react", "vue"] }, "sha512-h2c/9Qmzw7tVygPln3o8XVEVA/0E9XWOhbh2mNWPjmCmv0VbREP4IoU8dG4flWYNKcGo2aVPsdIXTiEVqSlkzg=="],
 
     "@outlit/core": ["@outlit/core@1.1.0", "", {}, "sha512-TNM9cIdunfcF0TLwCzSJ7sZWmDhUF8oYt4Q1KgW5Fm+4KGsfjDUbGDq9svrml1cmPrAXTZdiYwIYdRAG9327/g=="],
+
+    "@outlit/node": ["@outlit/node@1.1.0", "", { "dependencies": { "@outlit/core": "1.1.0" } }, "sha512-iIw4P+NK6/gXXOqTzZpK6Hlf4mBdoPUYOWwfSbxIbFI6gCXiFO83eOfMTfmTnnEncX2KpZ34XlyfarRxuLcm4Q=="],
 
     "@pierre/diffs": ["@pierre/diffs@1.0.10", "", { "dependencies": { "@shikijs/core": "^3.0.0", "@shikijs/engine-javascript": "^3.0.0", "@shikijs/transformers": "^3.0.0", "diff": "8.0.3", "hast-util-to-html": "9.0.5", "lru_map": "0.4.1", "shiki": "^3.0.0" }, "peerDependencies": { "react": "^18.3.1 || ^19.0.0", "react-dom": "^18.3.1 || ^19.0.0" } }, "sha512-ahkpfS30NfaB+PBxnf0/Mc20ySBRTQmM28a7Ojpd0UZixmTyhGhJfBFjvmhX8dSzR22lB3h3OIMMxpB4yYTIOQ=="],
 

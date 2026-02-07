@@ -46,6 +46,7 @@
 		"@hookform/resolvers": "^5.2.2",
 		"@monaco-editor/react": "^4.7.0",
 		"@outlit/browser": "^1.2.0",
+		"@outlit/node": "^1.1.0",
 		"@pierre/diffs": "^1.0.10",
 		"@radix-ui/react-dialog": "^1.1.15",
 		"@radix-ui/react-label": "^2.1.8",
