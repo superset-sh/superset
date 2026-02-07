@@ -16,6 +16,7 @@ import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
 } from "renderer/stores/tabs/utils";
+import { ChatPane } from "./ChatPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
@@ -153,6 +154,22 @@ export function TabView({ tab }: TabViewProps) {
 						availableTabs={workspaceTabs}
 						onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
 						onMoveToNewTab={() => movePaneToNewTab(paneId)}
+					/>
+				);
+			}
+
+			// Route chat panes to ChatPane component
+			if (paneInfo.type === "chat") {
+				return (
+					<ChatPane
+						paneId={paneId}
+						path={path}
+						isActive={isActive}
+						tabId={tab.id}
+						workspaceId={tab.workspaceId}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
 					/>
 				);
 			}

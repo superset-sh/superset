@@ -970,11 +970,11 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 3. ~~**Phase A2** — Vendor proxy into `apps/streams` (copy 17 files, adjust 3 import paths)~~ ✅ DONE
 4. ~~**Phase B** — Claude agent endpoint + SDK-to-AI chunk converter (2 new files)~~ ✅ DONE
 5. ~~**Phase C2** — Simplify desktop session manager~~ ✅ DONE
-6. **Phase C3** — Handle drafts
-7. **Phase D** — Database schema + migration
-8. **Phase E** — API tRPC router
-9. **Phase F** — Desktop chat UI
-10. **Phase G** — Web chat UI
+6. **Phase F** — Desktop chat UI (works with existing proxy, no DB needed)
+7. **Phase C3** — Handle drafts (local state + typing indicators)
+8. **Phase G** — Web chat UI
+9. **Phase D** — Database schema + migration (persistent storage)
+10. **Phase E** — API tRPC router (web session management)
 
 ---
 

@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useMemo, useState } from "react";
 import {
+	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
 	HiMiniCommandLine,
@@ -41,6 +42,7 @@ export function GroupStrip() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const { addTab, openPreset } = useTabsWithPresets();
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -87,6 +89,11 @@ export function GroupStrip() {
 	const handleAddGroup = () => {
 		if (!activeWorkspaceId) return;
 		addTab(activeWorkspaceId);
+	};
+
+	const handleAddChat = () => {
+		if (!activeWorkspaceId) return;
+		addChatTab(activeWorkspaceId);
 	};
 
 	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
@@ -176,6 +183,21 @@ export function GroupStrip() {
 					})}
 				</div>
 			)}
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-7 shrink-0"
+						onClick={handleAddChat}
+					>
+						<HiMiniChatBubbleLeftRight className="size-3.5" />
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="top" sideOffset={4}>
+					New Chat
+				</TooltipContent>
+			</Tooltip>
 			<NewTabDropZone
 				onDrop={(paneId) => movePaneToNewTab(paneId)}
 				isLastPaneInTab={checkIsLastPaneInTab}

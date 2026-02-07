@@ -68,6 +68,7 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
+	addChatTab: (workspaceId: string) => { tabId: string; paneId: string };
 	addTabWithMultiplePanes: (
 		workspaceId: string,
 		options: AddTabWithMultiplePanesOptions,
