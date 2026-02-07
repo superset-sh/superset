@@ -1,13 +1,10 @@
-import type { FitAddon } from "@xterm/addon-fit";
-import type { SearchAddon } from "@xterm/addon-search";
-import type { Terminal as XTerm } from "@xterm/xterm";
-import "@xterm/xterm/css/xterm.css";
+import type { FitAddon, Terminal as XTerm } from "ghostty-web";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
-import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
+import { getDefaultTerminalBg } from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
@@ -66,8 +63,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
-	const searchAddonRef = useRef<SearchAddon | null>(null);
-	const rendererRef = useRef<TerminalRendererRef | null>(null);
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
@@ -81,6 +76,21 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
+
+	// Theme recreation key - remount terminal when theme changes
+	const [themeKey, setThemeKey] = useState(0);
+	const prevThemeRef = useRef(terminalTheme);
+	useEffect(() => {
+		if (
+			prevThemeRef.current &&
+			terminalTheme &&
+			prevThemeRef.current !== terminalTheme
+		) {
+			prevThemeRef.current = terminalTheme;
+			setThemeKey((k) => k + 1);
+		}
+		prevThemeRef.current = terminalTheme;
+	}, [terminalTheme]);
 
 	// Terminal connection state and mutations
 	const {
@@ -257,8 +267,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		terminalRef,
 		xtermRef,
 		fitAddonRef,
-		searchAddonRef,
-		rendererRef,
 		isExitedRef,
 		wasKilledByUserRef,
 		commandBufferRef,
@@ -297,12 +305,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterScrollToBottomCallbackRef,
 	});
 
-	useEffect(() => {
-		const xterm = xtermRef.current;
-		if (!xterm || !terminalTheme) return;
-		xterm.options.theme = terminalTheme;
-	}, [terminalTheme]);
-
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
 	const handleDragOver = (event: React.DragEvent) => {
@@ -338,7 +340,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			onDrop={handleDrop}
 		>
 			<TerminalSearch
-				searchAddon={searchAddonRef.current}
+				terminal={xtermInstance}
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
@@ -349,7 +351,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{connectionError && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			<div key={themeKey} ref={terminalRef} className="h-full w-full" />
 		</div>
 	);
 };

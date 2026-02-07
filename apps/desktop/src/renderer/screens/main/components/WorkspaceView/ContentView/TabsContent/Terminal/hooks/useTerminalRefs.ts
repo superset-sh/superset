@@ -1,4 +1,4 @@
-import type { ITheme } from "@xterm/xterm";
+import type { ITheme } from "ghostty-web";
 import debounce from "lodash/debounce";
 import type { MutableRefObject } from "react";
 import { useRef } from "react";

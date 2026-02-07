@@ -1,10 +1,10 @@
-import type { ITheme } from "@xterm/xterm";
+import type { ITheme } from "ghostty-web";
 import type { TerminalColors } from "shared/themes/types";
 
 /**
- * Convert theme terminal colors to xterm.js ITheme format
+ * Convert theme terminal colors to terminal ITheme format
  */
-export function toXtermTheme(colors: TerminalColors): ITheme {
+export function toTerminalTheme(colors: TerminalColors): ITheme {
 	return {
 		background: colors.background,
 		foreground: colors.foreground,
@@ -34,3 +34,6 @@ export function toXtermTheme(colors: TerminalColors): ITheme {
 		brightWhite: colors.brightWhite,
 	};
 }
+
+/** @deprecated Use toTerminalTheme instead */
+export const toXtermTheme = toTerminalTheme;

@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { Terminal as XTerm } from "ghostty-web";
 import { useCallback, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { DEBUG_TERMINAL } from "../config";

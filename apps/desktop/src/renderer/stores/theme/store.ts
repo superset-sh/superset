@@ -1,4 +1,4 @@
-import type { ITheme } from "@xterm/xterm";
+import type { ITheme } from "ghostty-web";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -13,7 +13,7 @@ import {
 	applyUIColors,
 	type MonacoTheme,
 	toMonacoTheme,
-	toXtermTheme,
+	toTerminalTheme,
 	updateThemeClass,
 } from "./utils";
 
@@ -118,7 +118,7 @@ function applyTheme(theme: Theme): {
 
 	// Convert to editor-specific formats
 	return {
-		terminalTheme: toXtermTheme(getTerminalColors(theme)),
+		terminalTheme: toTerminalTheme(getTerminalColors(theme)),
 		monacoTheme: toMonacoTheme(theme),
 	};
 }
