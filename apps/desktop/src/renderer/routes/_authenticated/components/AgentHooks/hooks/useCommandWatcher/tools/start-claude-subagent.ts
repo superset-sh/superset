@@ -1,24 +1,21 @@
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { z } from "zod";
-import type { CommandResult, ToolContext, ToolDefinition } from "./types";
+import type { CommandResult, ToolDefinition } from "./types";
 
 const schema = z.object({
 	command: z.string(),
+	workspaceId: z.string(),
 });
 
 async function execute(
 	params: z.infer<typeof schema>,
-	ctx: ToolContext,
 ): Promise<CommandResult> {
-	const activeWorkspaceId = ctx.getActiveWorkspaceId();
-	if (!activeWorkspaceId) {
-		return { success: false, error: "No active workspace" };
-	}
+	const { workspaceId } = params;
 
 	const tabsStore = useTabsStore.getState();
-	const activeTabId = tabsStore.activeTabIds[activeWorkspaceId];
+	const activeTabId = tabsStore.activeTabIds[workspaceId];
 	if (!activeTabId) {
-		return { success: false, error: "No active tab in workspace" };
+		return { success: false, error: `No active tab in workspace "${workspaceId}"` };
 	}
 
 	const paneId = tabsStore.addPane(activeTabId, {
@@ -31,7 +28,7 @@ async function execute(
 
 	return {
 		success: true,
-		data: { workspaceId: activeWorkspaceId, paneId },
+		data: { workspaceId, paneId },
 	};
 }
 

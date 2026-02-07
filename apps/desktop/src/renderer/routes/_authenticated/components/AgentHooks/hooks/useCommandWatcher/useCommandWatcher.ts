@@ -31,13 +31,6 @@ export function useCommandWatcher() {
 		electronTrpc.workspaces.getAll.useQuery();
 	const { data: projects } = electronTrpc.projects.getRecents.useQuery();
 
-	const getCurrentWorkspaceIdFromRoute = useCallback(() => {
-		const hash = window.location.hash;
-		const pathname = hash.startsWith("#") ? hash.slice(1) : hash;
-		const match = pathname.match(/\/workspace\/([^/]+)/);
-		return match ? match[1] : null;
-	}, []);
-
 	const toolContext: ToolContext = useMemo(
 		() => ({
 			createWorktree,
@@ -47,7 +40,6 @@ export function useCommandWatcher() {
 			refetchWorkspaces: async () => refetchWorkspaces(),
 			getWorkspaces: () => workspaces,
 			getProjects: () => projects,
-			getActiveWorkspaceId: getCurrentWorkspaceIdFromRoute,
 			navigateToWorkspace: (workspaceId: string) =>
 				navigateToWorkspace(workspaceId, navigate),
 		}),
@@ -59,7 +51,6 @@ export function useCommandWatcher() {
 			refetchWorkspaces,
 			workspaces,
 			projects,
-			getCurrentWorkspaceIdFromRoute,
 			navigate,
 		],
 	);

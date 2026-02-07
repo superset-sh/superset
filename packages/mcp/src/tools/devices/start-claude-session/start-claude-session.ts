@@ -84,16 +84,18 @@ async function fetchTask({
 function validateArgs(args: Record<string, unknown>): {
 	deviceId: string;
 	taskId: string;
+	workspaceId: string;
 } | null {
 	const deviceId = args.deviceId as string;
 	const taskId = args.taskId as string;
-	if (!deviceId || !taskId) return null;
-	return { deviceId, taskId };
+	const workspaceId = args.workspaceId as string;
+	if (!deviceId || !taskId || !workspaceId) return null;
+	return { deviceId, taskId, workspaceId };
 }
 
-const ERROR_DEVICE_AND_TASK_REQUIRED = {
+const ERROR_REQUIRED_FIELDS = {
 	content: [
-		{ type: "text" as const, text: "Error: deviceId and taskId are required" },
+		{ type: "text" as const, text: "Error: deviceId, taskId, and workspaceId are required" },
 	],
 	isError: true,
 };
@@ -112,12 +114,15 @@ export function register(server: McpServer) {
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				taskId: z.string().describe("Task ID to work on"),
+				workspaceId: z
+					.string()
+					.describe("Workspace ID to derive project context from (use list_workspaces to find)"),
 			},
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const validated = validateArgs(args);
-			if (!validated) return ERROR_DEVICE_AND_TASK_REQUIRED;
+			if (!validated) return ERROR_REQUIRED_FIELDS;
 
 			const task = await fetchTask({
 				taskId: validated.taskId,
@@ -129,7 +134,7 @@ export function register(server: McpServer) {
 				ctx,
 				deviceId: validated.deviceId,
 				tool: "start_claude_session",
-				params: { command: buildCommand(task), name: task.slug },
+				params: { command: buildCommand(task), name: task.slug, workspaceId: validated.workspaceId },
 			});
 		},
 	);
@@ -138,16 +143,19 @@ export function register(server: McpServer) {
 		"start_claude_subagent",
 		{
 			description:
-				"Start a Claude Code subagent for a task in an existing workspace. Adds a new terminal pane to the active workspace instead of creating a new one. Use this when you want to run Claude alongside your current work.",
+				"Start a Claude Code subagent for a task in an existing workspace. Adds a new terminal pane to the specified workspace. Use this when you want to run Claude alongside your current work.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				taskId: z.string().describe("Task ID to work on"),
+				workspaceId: z
+					.string()
+					.describe("Workspace ID to run the subagent in (use list_workspaces to find)"),
 			},
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const validated = validateArgs(args);
-			if (!validated) return ERROR_DEVICE_AND_TASK_REQUIRED;
+			if (!validated) return ERROR_REQUIRED_FIELDS;
 
 			const task = await fetchTask({
 				taskId: validated.taskId,
@@ -159,7 +167,7 @@ export function register(server: McpServer) {
 				ctx,
 				deviceId: validated.deviceId,
 				tool: "start_claude_subagent",
-				params: { command: buildCommand(task) },
+				params: { command: buildCommand(task), workspaceId: validated.workspaceId },
 			});
 		},
 	);

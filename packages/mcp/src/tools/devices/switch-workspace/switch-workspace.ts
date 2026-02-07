@@ -6,7 +6,7 @@ export function register(server: McpServer) {
 	server.registerTool(
 		"switch_workspace",
 		{
-			description: "Switch to a different workspace (git worktree)",
+			description: "Switch the desktop app UI to show a different workspace (git worktree). This is a UI-only action — it does not change any agent's working directory or context.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				workspaceId: z

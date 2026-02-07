@@ -54,7 +54,6 @@ export interface ToolContext {
 	refetchWorkspaces: () => Promise<unknown>;
 	getWorkspaces: () => SelectWorkspace[] | undefined;
 	getProjects: () => SelectProject[] | undefined;
-	getActiveWorkspaceId: () => string | null;
 	// Navigation
 	navigateToWorkspace: (workspaceId: string) => Promise<void>;
 }

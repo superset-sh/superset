@@ -47,7 +47,7 @@ async function execute(
 	}
 
 	try {
-		await ctx.setActive.mutateAsync({ workspaceId: targetWorkspaceId });
+		await ctx.navigateToWorkspace(targetWorkspaceId);
 		return { success: true, data: { workspaceId: targetWorkspaceId } };
 	} catch (error) {
 		return {

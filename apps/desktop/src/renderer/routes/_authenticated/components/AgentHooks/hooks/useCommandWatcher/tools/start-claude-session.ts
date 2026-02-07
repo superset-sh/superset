@@ -5,38 +5,22 @@ import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 const schema = z.object({
 	command: z.string(),
 	name: z.string(),
+	workspaceId: z.string(),
 });
 
 async function execute(
 	params: z.infer<typeof schema>,
 	ctx: ToolContext,
 ): Promise<CommandResult> {
-	// 1. Derive projectId from current workspace or most recent
 	const workspaces = ctx.getWorkspaces();
-	if (!workspaces || workspaces.length === 0) {
-		return { success: false, error: "No workspaces available" };
+	const workspace = workspaces?.find((ws) => ws.id === params.workspaceId);
+	if (!workspace) {
+		return { success: false, error: `Workspace "${params.workspaceId}" not found` };
 	}
 
-	let projectId: string | null = null;
-	const activeWorkspaceId = ctx.getActiveWorkspaceId();
-	if (activeWorkspaceId) {
-		const activeWorkspace = workspaces.find(
-			(ws) => ws.id === activeWorkspaceId,
-		);
-		if (activeWorkspace) {
-			projectId = activeWorkspace.projectId;
-		}
-	}
-
-	if (!projectId) {
-		const sorted = [...workspaces].sort(
-			(a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0),
-		);
-		projectId = sorted[0].projectId;
-	}
+	const projectId = workspace.projectId;
 
 	try {
-		// 2. Create workspace
 		const result = await ctx.createWorktree.mutateAsync({
 			projectId,
 			name: params.name,
