@@ -26,7 +26,6 @@ import {
 	useStartWorkingModalOpen,
 	useStartWorkingModalTask,
 } from "renderer/stores/start-working-modal";
-import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { sanitizeSegment } from "shared/utils/branch";
 import { formatTaskContext } from "../../utils/formatTaskContext";
 
@@ -40,14 +39,15 @@ export function StartWorkingDialog() {
 	);
 	const [additionalContext, setAdditionalContext] = useState("");
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const pendingCommandRef = useRef<string | null>(null);
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
-	const createWorkspace = useCreateWorkspace();
+	const createWorkspace = useCreateWorkspace({
+		resolveInitialCommands: () =>
+			pendingCommandRef.current ? [pendingCommandRef.current] : null,
+	});
 	const openNew = useOpenNew();
-	const addPendingTerminalSetup = useWorkspaceInitStore(
-		(s) => s.addPendingTerminalSetup,
-	);
 
 	const selectedProject = recentProjects.find(
 		(p) => p.id === selectedProjectId,
@@ -105,7 +105,7 @@ export function StartWorkingDialog() {
 		const workspaceName = task.slug;
 		const branchSlug = sanitizeSegment(task.slug);
 
-		const command = formatTaskContext({
+		pendingCommandRef.current = formatTaskContext({
 			task,
 			additionalContext: additionalContext.trim() || undefined,
 		});
@@ -116,13 +116,6 @@ export function StartWorkingDialog() {
 				name: workspaceName,
 				branchName: branchSlug || undefined,
 				applyPrefix: true,
-			});
-
-			// Override the pending terminal setup with our Claude command
-			addPendingTerminalSetup({
-				workspaceId: result.workspace.id,
-				projectId: result.projectId,
-				initialCommands: [command],
 			});
 
 			handleClose();
@@ -140,6 +133,8 @@ export function StartWorkingDialog() {
 			toast.error(
 				err instanceof Error ? err.message : "Failed to create workspace",
 			);
+		} finally {
+			pendingCommandRef.current = null;
 		}
 	};
 

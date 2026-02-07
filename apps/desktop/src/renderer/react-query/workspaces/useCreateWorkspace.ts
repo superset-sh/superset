@@ -10,6 +10,7 @@ type MutationOptions = Parameters<
 
 interface UseCreateWorkspaceOptions extends NonNullable<MutationOptions> {
 	skipNavigation?: boolean;
+	resolveInitialCommands?: (serverCommands: string[] | null) => string[] | null;
 }
 
 export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
@@ -37,7 +38,9 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 			addPendingTerminalSetup({
 				workspaceId: data.workspace.id,
 				projectId: data.projectId,
-				initialCommands: data.initialCommands,
+				initialCommands: options?.resolveInitialCommands
+					? options.resolveInitialCommands(data.initialCommands)
+					: data.initialCommands,
 			});
 
 			await utils.workspaces.invalidate();
