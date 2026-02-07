@@ -10,6 +10,7 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import {
 	HiOutlineCog6Tooth,
@@ -25,6 +26,31 @@ import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import { ClickablePath } from "../../../../components/ClickablePath";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
+
+function SettingsSection({
+	icon,
+	title,
+	description,
+	children,
+}: {
+	icon: ReactNode;
+	title: string;
+	description: string;
+	children: ReactNode;
+}) {
+	return (
+		<div className="pt-4 border-t space-y-4">
+			<div className="space-y-2">
+				<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+					{icon}
+					{title}
+				</h3>
+				<p className="text-sm text-muted-foreground">{description}</p>
+			</div>
+			{children}
+		</div>
+	);
+}
 
 interface ProjectSettingsProps {
 	projectId: string;
@@ -140,17 +166,73 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 					<ClickablePath path={project.mainRepoPath} />
 				</div>
 
-				<div className="pt-4 border-t space-y-4">
-					<div className="space-y-2">
-						<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-							<HiOutlinePaintBrush className="h-4 w-4" />
-							Appearance
-						</h3>
-						<p className="text-sm text-muted-foreground">
-							Customize how this project appears in the sidebar.
-						</p>
+				<SettingsSection
+					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
+					title="Branch Prefix"
+					description="Override the default branch prefix for new workspaces in this project."
+				>
+					<div className="flex items-center gap-3">
+						<div className="space-y-1.5">
+							<Label className="text-xs text-muted-foreground">Mode</Label>
+							<Select
+								value={currentMode}
+								onValueChange={handleBranchPrefixModeChange}
+								disabled={updateProject.isPending}
+							>
+								<SelectTrigger className="w-[200px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{(
+										Object.entries(BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT) as [
+											BranchPrefixMode | "default",
+											string,
+										][]
+									).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						{currentMode === "custom" && (
+							<div className="space-y-1.5">
+								<Label className="text-xs text-muted-foreground">
+									Custom Prefix
+								</Label>
+								<Input
+									placeholder="Enter custom prefix"
+									value={customPrefixInput}
+									onChange={(e) => setCustomPrefixInput(e.target.value)}
+									onBlur={handleCustomPrefixBlur}
+									className="w-[200px]"
+									disabled={updateProject.isPending}
+								/>
+							</div>
+						)}
 					</div>
+					<p className="text-xs text-muted-foreground">
+						Preview:{" "}
+						<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
+							{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
+						</code>
+					</p>
+				</SettingsSection>
 
+				<SettingsSection
+					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
+					title="Scripts"
+					description="Configure setup and teardown scripts that run when workspaces are created or deleted."
+				>
+					<ScriptsEditor projectId={project.id} projectName={project.name} />
+				</SettingsSection>
+
+				<SettingsSection
+					icon={<HiOutlinePaintBrush className="h-4 w-4" />}
+					title="Appearance"
+					description="Customize how this project appears in the sidebar."
+				>
 					<div className="space-y-1.5">
 						<Label className="text-xs text-muted-foreground">Color</Label>
 						<div className="flex items-center gap-2">
@@ -201,81 +283,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 							}
 						/>
 					</div>
-				</div>
-
-				<div className="pt-4 border-t space-y-4">
-					<div className="space-y-2">
-						<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-							<HiOutlineCog6Tooth className="h-4 w-4" />
-							Branch Prefix
-						</h3>
-						<p className="text-sm text-muted-foreground">
-							Override the default branch prefix for new workspaces in this
-							project.
-						</p>
-					</div>
-					<div className="flex items-center gap-3">
-						<div className="space-y-1.5">
-							<Label className="text-xs text-muted-foreground">Mode</Label>
-							<Select
-								value={currentMode}
-								onValueChange={handleBranchPrefixModeChange}
-								disabled={updateProject.isPending}
-							>
-								<SelectTrigger className="w-[200px]">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{(
-										Object.entries(BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT) as [
-											BranchPrefixMode | "default",
-											string,
-										][]
-									).map(([value, label]) => (
-										<SelectItem key={value} value={value}>
-											{label}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						{currentMode === "custom" && (
-							<div className="space-y-1.5">
-								<Label className="text-xs text-muted-foreground">
-									Custom Prefix
-								</Label>
-								<Input
-									placeholder="Enter custom prefix"
-									value={customPrefixInput}
-									onChange={(e) => setCustomPrefixInput(e.target.value)}
-									onBlur={handleCustomPrefixBlur}
-									className="w-[200px]"
-									disabled={updateProject.isPending}
-								/>
-							</div>
-						)}
-					</div>
-					<p className="text-xs text-muted-foreground">
-						Preview:{" "}
-						<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
-							{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
-						</code>
-					</p>
-				</div>
-
-				<div className="pt-4 border-t space-y-4">
-					<div className="space-y-2">
-						<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-							<HiOutlineCog6Tooth className="h-4 w-4" />
-							Scripts
-						</h3>
-						<p className="text-sm text-muted-foreground">
-							Configure setup and teardown scripts that run when workspaces are
-							created or deleted.
-						</p>
-					</div>
-					<ScriptsEditor projectId={project.id} projectName={project.name} />
-				</div>
+				</SettingsSection>
 			</div>
 		</div>
 	);
