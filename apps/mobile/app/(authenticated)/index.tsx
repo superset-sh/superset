@@ -1,3 +1,5 @@
-import { HomeScreen } from "@/screens/(authenticated)/index";
+import { Redirect } from "expo-router";
 
-export default HomeScreen;
+export default function AuthenticatedIndex() {
+	return <Redirect href="/(authenticated)/(drawer)/workspaces" />;
+}
