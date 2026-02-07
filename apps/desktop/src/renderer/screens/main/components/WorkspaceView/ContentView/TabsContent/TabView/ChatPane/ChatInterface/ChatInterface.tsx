@@ -85,19 +85,15 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	});
 	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
 
-	const startSessionRef = useRef(startSession);
-	startSessionRef.current = startSession;
-	const stopSessionRef = useRef(stopSession);
-	stopSessionRef.current = stopSession;
-
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
 		hasConnected.current = false;
 		setSessionReady(false);
-		startSessionRef.current.mutate({ sessionId, cwd });
+		startSession.mutate({ sessionId, cwd });
 		return () => {
-			stopSessionRef.current.mutate({ sessionId });
+			stopSession.mutate({ sessionId });
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- mutations are stable transports, not reactive deps
 	}, [sessionId, cwd]);
 
 	// Connect once both session is ready and config has loaded
