@@ -98,9 +98,11 @@ try {
 	// DrizzleError wraps the original SQLite error in `cause`,
 	// so check both the top-level error and the underlying cause.
 	const rootCause = sqliteError.cause ?? sqliteError;
-	const errorCode =
-		(sqliteError.code ?? (rootCause as { code?: string }).code ?? "")
-			.toLowerCase();
+	const errorCode = (
+		sqliteError.code ??
+		(rootCause as { code?: string }).code ??
+		""
+	).toLowerCase();
 	const errorMessage =
 		`${sqliteError.message ?? ""} ${rootCause.message ?? ""}`.toLowerCase();
 
