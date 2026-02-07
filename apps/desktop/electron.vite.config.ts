@@ -87,6 +87,9 @@ export default defineConfig({
 			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
 				process.env.SUPERSET_WORKSPACE_NAME,
 			),
+			"process.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
+			),
 		},
 
 		build: {
@@ -183,6 +186,9 @@ export default defineConfig({
 			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
 			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
 				process.env.SUPERSET_WORKSPACE_NAME,
+			),
+			"import.meta.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
 			),
 		},
 

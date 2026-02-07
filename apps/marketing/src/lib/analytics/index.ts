@@ -7,5 +7,8 @@ export function track(
 	properties?: Record<string, unknown>,
 ): void {
 	posthog.capture(event, properties);
-	getOutlit()?.track(event, properties);
+	getOutlit()?.track(
+		event,
+		properties as Record<string, string | number | boolean | null> | undefined,
+	);
 }
