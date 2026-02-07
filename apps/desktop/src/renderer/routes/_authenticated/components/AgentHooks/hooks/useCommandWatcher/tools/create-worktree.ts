@@ -21,6 +21,7 @@ interface CreatedWorkspace {
 	workspaceId: string;
 	workspaceName: string;
 	branch: string;
+	worktreePath: string;
 	wasExisting: boolean;
 }
 
@@ -70,6 +71,7 @@ async function execute(
 				workspaceId: result.workspace.id,
 				workspaceName: result.workspace.name,
 				branch: result.workspace.branch,
+				worktreePath: result.worktreePath,
 				wasExisting: result.wasExisting,
 			});
 		} catch (error) {

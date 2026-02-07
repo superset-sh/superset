@@ -81,7 +81,19 @@ async function fetchTask({
 	return task ?? null;
 }
 
-function validateArgs(args: Record<string, unknown>): {
+function validateSessionArgs(args: Record<string, unknown>): {
+	deviceId: string;
+	taskId: string;
+	workspaceId: string;
+} | null {
+	const deviceId = args.deviceId as string;
+	const taskId = args.taskId as string;
+	const workspaceId = args.workspaceId as string;
+	if (!deviceId || !taskId || !workspaceId) return null;
+	return { deviceId, taskId, workspaceId };
+}
+
+function validateSubagentArgs(args: Record<string, unknown>): {
 	deviceId: string;
 	taskId: string;
 } | null {
@@ -91,9 +103,22 @@ function validateArgs(args: Record<string, unknown>): {
 	return { deviceId, taskId };
 }
 
-const ERROR_DEVICE_AND_TASK_REQUIRED = {
+const ERROR_SESSION_ARGS_REQUIRED = {
 	content: [
-		{ type: "text" as const, text: "Error: deviceId and taskId are required" },
+		{
+			type: "text" as const,
+			text: "Error: deviceId, taskId, and workspaceId are required",
+		},
+	],
+	isError: true,
+};
+
+const ERROR_SUBAGENT_ARGS_REQUIRED = {
+	content: [
+		{
+			type: "text" as const,
+			text: "Error: deviceId and taskId are required",
+		},
 	],
 	isError: true,
 };
@@ -108,16 +133,21 @@ export function register(server: McpServer) {
 		"start_claude_session",
 		{
 			description:
-				"Start an autonomous Claude Code session for a task. Creates a new workspace with its own git branch and launches Claude with the task context.",
+				"Start an autonomous Claude Code session for a task in an existing workspace. Launches Claude with the task context in the specified workspace.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				taskId: z.string().describe("Task ID to work on"),
+				workspaceId: z
+					.string()
+					.describe(
+						"Workspace ID to run the session in (from create_workspace)",
+					),
 			},
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
-			const validated = validateArgs(args);
-			if (!validated) return ERROR_DEVICE_AND_TASK_REQUIRED;
+			const validated = validateSessionArgs(args);
+			if (!validated) return ERROR_SESSION_ARGS_REQUIRED;
 
 			const task = await fetchTask({
 				taskId: validated.taskId,
@@ -129,7 +159,11 @@ export function register(server: McpServer) {
 				ctx,
 				deviceId: validated.deviceId,
 				tool: "start_claude_session",
-				params: { command: buildCommand(task), name: task.slug },
+				params: {
+					command: buildCommand(task),
+					name: task.slug,
+					workspaceId: validated.workspaceId,
+				},
 			});
 		},
 	);
@@ -146,8 +180,8 @@ export function register(server: McpServer) {
 		},
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
-			const validated = validateArgs(args);
-			if (!validated) return ERROR_DEVICE_AND_TASK_REQUIRED;
+			const validated = validateSubagentArgs(args);
+			if (!validated) return ERROR_SUBAGENT_ARGS_REQUIRED;
 
 			const task = await fetchTask({
 				taskId: validated.taskId,
