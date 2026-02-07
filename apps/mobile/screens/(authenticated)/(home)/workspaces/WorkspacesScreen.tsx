@@ -1,5 +1,3 @@
-import { useLiveQuery } from "@tanstack/react-db";
-import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
 	RefreshControl,
@@ -8,42 +6,24 @@ import {
 	View,
 } from "react-native";
 import { Text } from "@/components/ui/text";
-import { authClient } from "@/lib/auth/client";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
 
 export function WorkspacesScreen() {
-	const router = useRouter();
-	const collections = useCollections();
 	const [refreshing, setRefreshing] = useState(false);
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const { width } = useWindowDimensions();
+	const {
+		organizations,
+		activeOrganization,
+		activeOrganizationId,
+		switchOrganization,
+	} = useOrganizations();
 
-	const session = authClient.useSession();
-	const activeOrganizationId = session.data?.session?.activeOrganizationId;
-
-	const { data: organizations } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
-
-	const activeOrganization = organizations?.find(
-		(organization) => organization.id === activeOrganizationId,
-	);
-
-	const handleSwitchOrganization = async (organizationId: string) => {
-		if (organizationId === activeOrganizationId) return;
+	const handleSwitchOrganization = (organizationId: string) => {
 		setSheetOpen(false);
-		try {
-			await authClient.organization.setActive({ organizationId });
-			router.replace("/(authenticated)/(home)");
-		} catch (error) {
-			console.error(
-				"[organization/switch] Failed to switch organization:",
-				error,
-			);
-		}
+		switchOrganization(organizationId);
 	};
 
 	const onRefresh = useCallback(async () => {
@@ -76,7 +56,7 @@ export function WorkspacesScreen() {
 			<OrganizationSwitcherSheet
 				isPresented={sheetOpen}
 				onIsPresentedChange={setSheetOpen}
-				organizations={organizations ?? []}
+				organizations={organizations}
 				activeOrganizationId={activeOrganizationId}
 				onSwitchOrganization={handleSwitchOrganization}
 				width={width}
