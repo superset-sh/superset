@@ -25,7 +25,6 @@ interface ChatMessageItemProps {
 	onDeny?: (approvalId: string) => void;
 }
 
-/** Generate a stable key for a message part based on its content. */
 function getPartKey(part: MessagePart, index: number): string {
 	switch (part.type) {
 		case "tool-call":
@@ -33,7 +32,6 @@ function getPartKey(part: MessagePart, index: number): string {
 		case "tool-result":
 			return `result-${part.toolCallId}`;
 		default:
-			// text/thinking parts lack IDs; use type + index for stable ordering
 			return `${part.type}-${index}`;
 	}
 }
@@ -43,7 +41,6 @@ export function ChatMessageItem({
 	onApprove,
 	onDeny,
 }: ChatMessageItemProps) {
-	// Build toolCallId → ToolResultPart map for pairing
 	const toolResults = new Map<string, ToolResultPart>();
 	for (const part of message.parts) {
 		if (part.type === "tool-result") {
@@ -85,7 +82,6 @@ export function ChatMessageItem({
 							);
 						}
 						case "tool-result":
-							// Rendered alongside its tool-call
 							return null;
 						default:
 							return null;

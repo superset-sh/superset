@@ -10,9 +10,8 @@ import {
 import type { SetupConfig } from "shared/types";
 
 /**
- * Copies the .superset directory from main repo to worktree if it exists in main but not in worktree.
- * This handles the case where .superset is gitignored - worktrees won't have it since git only
- * includes tracked files. By copying it, setup scripts like "./.superset/setup.sh" will work.
+ * Worktrees don't include gitignored files, so copy .superset from main repo
+ * if it's missing — ensures setup scripts like "./.superset/setup.sh" work.
  */
 export function copySupersetConfigToWorktree(
 	mainRepoPath: string,
@@ -21,7 +20,6 @@ export function copySupersetConfigToWorktree(
 	const mainSupersetDir = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME);
 	const worktreeSupersetDir = join(worktreePath, PROJECT_SUPERSET_DIR_NAME);
 
-	// Only copy if it exists in main repo but not in worktree
 	if (existsSync(mainSupersetDir) && !existsSync(worktreeSupersetDir)) {
 		try {
 			cpSync(mainSupersetDir, worktreeSupersetDir, { recursive: true });
@@ -82,7 +80,6 @@ export function loadSetupConfig({
 	worktreePath?: string;
 	projectName?: string;
 }): SetupConfig | null {
-	// 1. Check user-level override (~/.superset/projects/<projectName>/config.json)
 	if (
 		projectName &&
 		!projectName.includes("/") &&
@@ -102,7 +99,6 @@ export function loadSetupConfig({
 		}
 	}
 
-	// 2. Check worktree-specific config
 	if (worktreePath) {
 		const config = readConfigFromPath(worktreePath);
 		if (config) {
@@ -113,7 +109,6 @@ export function loadSetupConfig({
 		}
 	}
 
-	// 3. Fall back to main repo config
 	const config = readConfigFromPath(mainRepoPath);
 	if (config) {
 		console.log(

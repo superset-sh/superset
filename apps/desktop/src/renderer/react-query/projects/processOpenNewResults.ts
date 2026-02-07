@@ -18,17 +18,7 @@ export interface CategorizedResults {
 	errors: ErrorOutcome[];
 }
 
-/**
- * Categorizes multi-select open-project results and shows standard toasts.
- *
- * Always:
- * - Categorizes results into successes / needsGitInit / errors
- * - Shows per-error toasts
- *
- * Optionally:
- * - Shows a success summary toast ("N projects opened") — on by default
- * - Shows a git-init warning toast (used by sidebar + modal where no InitGitDialog is available)
- */
+/** Categorizes open-project results and shows appropriate toasts. */
 export function processOpenNewResults({
 	results,
 	showSuccessToast = true,

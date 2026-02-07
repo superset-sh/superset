@@ -19,10 +19,7 @@ import {
 } from "../ui/collapsible";
 import { CodeBlock } from "./code-block";
 
-/**
- * All possible display states for a tool invocation.
- * Covers TanStack AI native states + derived output states.
- */
+/** TanStack AI native states + derived output states. */
 export type ToolDisplayState =
 	| "awaiting-input"
 	| "input-streaming"
@@ -49,6 +46,12 @@ export type ToolHeaderProps = {
 	state: ToolDisplayState;
 	className?: string;
 };
+
+function getToolDisplayName(title?: string, type?: string): string {
+	if (title) return title;
+	if (type) return type.split("-").slice(1).join("-");
+	return "tool";
+}
 
 const getStatusBadge = (status: ToolDisplayState) => {
 	const labels: Record<ToolDisplayState, string> = {
@@ -100,7 +103,7 @@ export const ToolHeader = ({
 		<div className="flex items-center gap-2">
 			<WrenchIcon className="size-4 text-muted-foreground" />
 			<span className="font-medium text-sm">
-				{title ?? type?.split("-").slice(1).join("-") ?? "tool"}
+				{getToolDisplayName(title, type)}
 			</span>
 			{getStatusBadge(state)}
 		</div>
@@ -124,17 +127,19 @@ export type ToolInputProps = ComponentProps<"div"> & {
 	input: unknown;
 };
 
-export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
-	let displayCode: string;
+function formatJson(input: unknown): string {
 	if (typeof input === "string") {
 		try {
-			displayCode = JSON.stringify(JSON.parse(input), null, 2);
+			return JSON.stringify(JSON.parse(input), null, 2);
 		} catch {
-			displayCode = input;
+			return input;
 		}
-	} else {
-		displayCode = JSON.stringify(input, null, 2);
 	}
+	return JSON.stringify(input, null, 2);
+}
+
+export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
+	const displayCode = formatJson(input);
 
 	return (
 		<div className={cn("space-y-2 overflow-hidden p-4", className)} {...props}>

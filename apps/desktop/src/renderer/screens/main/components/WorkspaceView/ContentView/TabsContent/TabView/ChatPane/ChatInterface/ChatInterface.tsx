@@ -38,10 +38,8 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 
-	// Get proxy config from main process
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
-	// Real-time data via useDurableChat → SSE from proxy
 	const {
 		messages,
 		sendMessage,
@@ -60,7 +58,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			: undefined,
 	});
 
-	// Stable ref for connect — avoids stale closures in tRPC callbacks
 	const connectRef = useRef(connect);
 	connectRef.current = connect;
 	const hasConnected = useRef(false);
@@ -75,7 +72,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		});
 	}, []);
 
-	// Session lifecycle via tRPC callbacks (not useEffect state tracking)
 	const startSession = electronTrpc.aiChat.startSession.useMutation({
 		onSuccess: () => {
 			console.log("[chat] Session started, proxyUrl:", config?.proxyUrl);
@@ -89,7 +85,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	});
 	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
 
-	// Start session on mount, stop on unmount
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
 		hasConnected.current = false;
@@ -98,9 +93,9 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			stopSession.mutate({ sessionId });
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount/unmount; mutations are stable transports
-	}, [sessionId, cwd]);
+	}, [sessionId, cwd, startSession, stopSession]);
 
-	// Handle case where config query resolves after session already started
+	// Config query may resolve after session already started
 	useEffect(() => {
 		if (!hasConnected.current && startSession.isSuccess && config?.proxyUrl) {
 			doConnect();
@@ -110,12 +105,11 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			if (!message.text.trim()) return;
-			console.log("[chat] Sending message, connectionStatus:", connectionStatus);
 			sendMessage(message.text).catch((err) => {
 				console.error("[chat] Send failed:", err);
 			});
 		},
-		[sendMessage, connectionStatus],
+		[sendMessage],
 	);
 
 	const handleSuggestion = useCallback(
@@ -154,11 +148,12 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 					{error.message}
 				</div>
 			)}
-			{connectionStatus !== "connected" && connectionStatus !== "disconnected" && (
-				<div className="border-b px-4 py-1 text-xs text-muted-foreground">
-					Connection: {connectionStatus}
-				</div>
-			)}
+			{connectionStatus !== "connected" &&
+				connectionStatus !== "disconnected" && (
+					<div className="border-b px-4 py-1 text-xs text-muted-foreground">
+						Connection: {connectionStatus}
+					</div>
+				)}
 			<Conversation className="flex-1">
 				<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
 					{messages.length === 0 ? (

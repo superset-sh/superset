@@ -1,16 +1,3 @@
-/**
- * Claude Code Session Manager
- *
- * Thin HTTP orchestrator that delegates to the proxy server for:
- * - Session lifecycle (create / stop / delete)
- * - Agent registration (Claude agent endpoint)
- * - Stream watching and message processing
- *
- * The proxy handles durable streams, reactive agent triggering,
- * and sequential invocation. This manager only tracks local state
- * and emits IPC events for the renderer.
- */
-
 import { EventEmitter } from "node:events";
 import { buildClaudeEnv } from "../auth";
 
@@ -29,10 +16,6 @@ function buildProxyHeaders(): Record<string, string> {
 	}
 	return headers;
 }
-
-// ============================================================================
-// Events (unchanged — for local IPC subscribers)
-// ============================================================================
 
 export interface SessionStartEvent {
 	type: "session_start";
@@ -56,18 +39,10 @@ export type ClaudeStreamEvent =
 	| SessionEndEvent
 	| ErrorEvent;
 
-// ============================================================================
-// Active Session State (simplified — no query/producer/watcher)
-// ============================================================================
-
 interface ActiveSession {
 	sessionId: string;
 	cwd: string;
 }
-
-// ============================================================================
-// Session Manager
-// ============================================================================
 
 class ClaudeSessionManager extends EventEmitter {
 	private sessions = new Map<string, ActiveSession>();
@@ -88,7 +63,6 @@ class ClaudeSessionManager extends EventEmitter {
 		const headers = buildProxyHeaders();
 
 		try {
-			// 1. Create session on proxy
 			const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 				method: "PUT",
 				headers,
@@ -99,7 +73,6 @@ class ClaudeSessionManager extends EventEmitter {
 				);
 			}
 
-			// 2. Register Claude agent with bodyTemplate containing auth env
 			const env = buildClaudeEnv();
 			const registerRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
@@ -128,7 +101,6 @@ class ClaudeSessionManager extends EventEmitter {
 				);
 			}
 
-			// 3. Track locally
 			this.sessions.set(sessionId, { sessionId, cwd });
 
 			this.emit("event", {
@@ -177,7 +149,6 @@ class ClaudeSessionManager extends EventEmitter {
 		const headers = buildProxyHeaders();
 
 		try {
-			// 1. Stop active generations
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
 				headers,
@@ -188,7 +159,6 @@ class ClaudeSessionManager extends EventEmitter {
 		}
 
 		try {
-			// 2. Delete session on proxy
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 				method: "DELETE",
 				headers,
@@ -200,7 +170,6 @@ class ClaudeSessionManager extends EventEmitter {
 			);
 		}
 
-		// 3. Remove from local map
 		this.sessions.delete(sessionId);
 
 		this.emit("event", {

@@ -4,7 +4,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
 function getBasename(path: string): string {
-	// Handle both Unix and Windows paths
 	const normalized = path.replace(/\\/g, "/");
 	const segments = normalized.split("/").filter(Boolean);
 	return segments[segments.length - 1] || path;
@@ -33,7 +32,6 @@ export function InitGitDialog({
 	onClose,
 	onError,
 }: InitGitDialogProps) {
-	// Normalize: if selectedPaths provided, use that; otherwise fall back to single selectedPath
 	const allPaths =
 		selectedPaths && selectedPaths.length > 0
 			? selectedPaths
@@ -44,10 +42,8 @@ export function InitGitDialog({
 	const initGitAndOpen = electronTrpc.projects.initGitAndOpen.useMutation();
 	const createWorkspace = useCreateWorkspace();
 
-	// Track the entire async sequence to keep modal locked
 	const [isProcessing, setIsProcessing] = useState(false);
 
-	// Guard against setState after unmount
 	const isMountedRef = useRef(true);
 	useEffect(() => {
 		isMountedRef.current = true;
@@ -56,31 +52,25 @@ export function InitGitDialog({
 		};
 	}, []);
 
-	// Accessibility: unique ID for aria-labelledby
 	const titleId = useId();
 
-	// Focus management refs
 	const dialogRef = useRef<HTMLDivElement>(null);
 	const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
-	// Save previous focus and move focus into dialog when opening
 	useEffect(() => {
 		if (isOpen) {
 			previouslyFocusedRef.current = document.activeElement as HTMLElement;
-			// Move focus to the first focusable element in the dialog
 			requestAnimationFrame(() => {
 				const firstFocusable =
 					dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
 				firstFocusable?.focus();
 			});
 		} else {
-			// Restore focus when closing
 			previouslyFocusedRef.current?.focus();
 			previouslyFocusedRef.current = null;
 		}
 	}, [isOpen]);
 
-	// Focus trap: cycle focus within the dialog
 	const handleKeyDown = useCallback(
 		(e: React.KeyboardEvent) => {
 			if (e.key === "Escape" && !isProcessing) {
@@ -109,14 +99,13 @@ export function InitGitDialog({
 	);
 
 	const handleBackdropClick = (e: React.MouseEvent) => {
-		// Only close if clicking the backdrop, not the dialog content
 		if (e.target === e.currentTarget && !isProcessing) {
 			onClose();
 		}
 	};
 
 	const handleInitGit = async () => {
-		if (isProcessing) return; // Prevent double-clicks
+		if (isProcessing) return;
 		setIsProcessing(true);
 
 		const errors: string[] = [];
@@ -143,7 +132,6 @@ export function InitGitDialog({
 				}
 			}
 
-			// Invalidate cache in background
 			utils.projects.getRecents.invalidate().catch(console.error);
 
 			if (errors.length > 0) {
