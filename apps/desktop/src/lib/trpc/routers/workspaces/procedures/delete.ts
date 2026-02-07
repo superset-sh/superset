@@ -202,11 +202,12 @@ export const createDeleteProcedures = () => {
 					worktree = getWorktree(workspace.worktreeId);
 
 					if (worktree && project && existsSync(worktree.path)) {
-						teardownPromise = runTeardown(
-							project.mainRepoPath,
-							worktree.path,
-							workspace.name,
-						);
+						teardownPromise = runTeardown({
+							mainRepoPath: project.mainRepoPath,
+							worktreePath: worktree.path,
+							workspaceName: workspace.name,
+							projectName: project.name,
+						});
 					} else {
 						console.warn(
 							`[workspace/delete] Skipping teardown: worktree=${!!worktree}, project=${!!project}, pathExists=${worktree ? existsSync(worktree.path) : "N/A"}`,
@@ -424,11 +425,12 @@ export const createDeleteProcedures = () => {
 					);
 
 					if (exists) {
-						const teardownResult = await runTeardown(
-							project.mainRepoPath,
-							worktree.path,
-							worktree.branch,
-						);
+						const teardownResult = await runTeardown({
+							mainRepoPath: project.mainRepoPath,
+							worktreePath: worktree.path,
+							workspaceName: worktree.branch,
+							projectName: project.name,
+						});
 						if (!teardownResult.success) {
 							return {
 								success: false,

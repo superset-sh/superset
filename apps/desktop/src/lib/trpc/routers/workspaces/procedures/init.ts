@@ -118,6 +118,7 @@ export const createInitProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath: relations.worktree?.path,
+					projectName: project.name,
 				});
 				const defaultPreset = getDefaultPreset();
 

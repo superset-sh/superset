@@ -147,6 +147,7 @@ function handleExistingWorktree({
 	const setupConfig = loadSetupConfig({
 		mainRepoPath: project.mainRepoPath,
 		worktreePath: existingWorktree.path,
+		projectName: project.name,
 	});
 
 	return {
@@ -252,6 +253,7 @@ async function handleNewWorktree({
 	const setupConfig = loadSetupConfig({
 		mainRepoPath: project.mainRepoPath,
 		worktreePath,
+		projectName: project.name,
 	});
 
 	return {
@@ -394,6 +396,7 @@ export const createCreateProcedures = () => {
 						const setupConfig = loadSetupConfig({
 							mainRepoPath: project.mainRepoPath,
 							worktreePath: orphanedWorktree.path,
+							projectName: project.name,
 						});
 						return {
 							workspace,
@@ -472,6 +475,7 @@ export const createCreateProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath,
+					projectName: project.name,
 				});
 
 				return {
@@ -663,6 +667,7 @@ export const createCreateProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath: worktree.path,
+					projectName: project.name,
 				});
 
 				track("workspace_opened", {
@@ -775,6 +780,7 @@ export const createCreateProcedures = () => {
 					const setupConfig = loadSetupConfig({
 						mainRepoPath: project.mainRepoPath,
 						worktreePath: existingWorktree.path,
+						projectName: project.name,
 					});
 
 					track("workspace_opened", {
@@ -831,6 +837,7 @@ export const createCreateProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath: input.worktreePath,
+					projectName: project.name,
 				});
 
 				track("workspace_created", {

@@ -32,6 +32,7 @@ export const PROTOCOL_SCHEME =
 // Project-level directory name (always .superset, not conditional)
 export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
+export const PROJECTS_DIR_NAME = "projects";
 export const CONFIG_FILE_NAME = "config.json";
 export const PORTS_FILE_NAME = "ports.json";
 
