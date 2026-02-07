@@ -83,50 +83,7 @@ import {
 	HiMiniClipboard,
 	HiMiniPaperClip,
 } from "react-icons/hi2";
-
-type MessageRole = "user" | "assistant" | "system";
-
-interface ToolCall {
-	id: string;
-	name: string;
-	state: "input-available" | "output-available" | "output-error";
-	input: Record<string, unknown>;
-	output?: unknown;
-	errorText?: string;
-	approval?:
-		| { id: string }
-		| { id: string; approved: true; reason?: string }
-		| { id: string; approved: false; reason?: string };
-}
-
-interface PlanData {
-	title: string;
-	description: string;
-	steps: Array<{ label: string; done: boolean }>;
-}
-
-interface TaskData {
-	title: string;
-	files: string[];
-}
-
-interface ChatMessage {
-	id: string;
-	role: MessageRole;
-	content: string;
-	reasoning?: string;
-	toolCalls?: ToolCall[];
-	plan?: PlanData;
-	codeBlocks?: Array<{ code: string; language: string }>;
-	tasks?: TaskData[];
-	checkpoint?: string;
-}
-
-interface ModelOption {
-	id: string;
-	name: string;
-	description: string;
-}
+import type { ChatMessage, ModelOption, PlanData } from "./types";
 
 const MODELS: ModelOption[] = [
 	{
