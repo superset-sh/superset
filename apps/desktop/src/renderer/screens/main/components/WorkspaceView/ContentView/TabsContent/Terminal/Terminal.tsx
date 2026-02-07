@@ -77,12 +77,20 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
 
-	// Apply theme changes at runtime via the renderer — no remount needed.
-	// This preserves scroll position, focus, and session state.
+	// Remount terminal when theme changes — ghostty-web bakes default fg/bg colors
+	// into WASM cells at parse time, so renderer.setTheme() alone isn't sufficient.
+	const [themeKey, setThemeKey] = useState(0);
+	const prevThemeRef = useRef(terminalTheme);
 	useEffect(() => {
-		const xterm = xtermRef.current;
-		if (!xterm || !terminalTheme) return;
-		xterm.renderer?.setTheme(terminalTheme);
+		if (
+			prevThemeRef.current &&
+			terminalTheme &&
+			prevThemeRef.current !== terminalTheme
+		) {
+			prevThemeRef.current = terminalTheme;
+			setThemeKey((k) => k + 1);
+		}
+		prevThemeRef.current = terminalTheme;
 	}, [terminalTheme]);
 
 	// Terminal connection state and mutations
@@ -344,7 +352,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{connectionError && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			<div key={themeKey} ref={terminalRef} className="h-full w-full" />
 		</div>
 	);
 };

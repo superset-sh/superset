@@ -58,6 +58,8 @@ export function useTerminalRefs({
 	setFocusedPane,
 }: UseTerminalRefsOptions): UseTerminalRefsReturn {
 	const initialThemeRef = useRef(terminalTheme);
+	// Keep ref current so remounted terminals pick up the latest theme.
+	initialThemeRef.current = terminalTheme;
 	const isFocused = focusedPaneId === paneId;
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
