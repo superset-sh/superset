@@ -9,10 +9,7 @@ export default function AuthenticatedLayout() {
 
 	return (
 		<CollectionsProvider>
-			<NativeTabs
-				tintColor={THEME.dark.primary}
-				blurEffect="systemThinMaterialDark"
-			>
+			<NativeTabs blurEffect="none" tintColor={THEME.dark.primary}>
 				<NativeTabs.Trigger name="(home)">
 					<NativeTabs.Trigger.Icon
 						src={
@@ -22,7 +19,7 @@ export default function AuthenticatedLayout() {
 							/>
 						}
 					/>
-					<NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Label>{""}</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="(tasks)">
 					<NativeTabs.Trigger.Icon
@@ -33,7 +30,7 @@ export default function AuthenticatedLayout() {
 							/>
 						}
 					/>
-					<NativeTabs.Trigger.Label>Tasks</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Label>{""}</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="(more)">
 					<NativeTabs.Trigger.Icon
@@ -44,7 +41,7 @@ export default function AuthenticatedLayout() {
 							/>
 						}
 					/>
-					<NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Label>{""}</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 			</NativeTabs>
 		</CollectionsProvider>
