@@ -90,11 +90,24 @@ export const localDb = drizzle(sqlite, { schema });
 try {
 	migrate(localDb, { migrationsFolder });
 } catch (error) {
-	const sqliteError = error as Error & { code?: string };
-	const errorCode = sqliteError.code?.toLowerCase() ?? "";
-	const errorMessage = sqliteError.message?.toLowerCase() ?? "";
+	const sqliteError = error as Error & {
+		code?: string;
+		cause?: Error & { code?: string };
+	};
 
-	const isSqliteError = errorCode === "sqlite_error";
+	// DrizzleError wraps the original SQLite error in `cause`,
+	// so check both the top-level error and the underlying cause.
+	const rootCause = sqliteError.cause ?? sqliteError;
+	const errorCode = (
+		sqliteError.code ??
+		(rootCause as { code?: string }).code ??
+		""
+	).toLowerCase();
+	const errorMessage =
+		`${sqliteError.message ?? ""} ${rootCause.message ?? ""}`.toLowerCase();
+
+	const isDrizzleError = sqliteError.constructor?.name === "DrizzleError";
+	const isSqliteError = errorCode === "sqlite_error" || isDrizzleError;
 	const isIdempotentMessage =
 		errorMessage.includes("duplicate column name") ||
 		errorMessage.includes("already exists") ||
