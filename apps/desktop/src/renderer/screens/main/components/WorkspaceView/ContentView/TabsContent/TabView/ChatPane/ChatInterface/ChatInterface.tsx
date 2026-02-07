@@ -1,8 +1,4 @@
-import {
-	Checkpoint,
-	CheckpointIcon,
-	CheckpointTrigger,
-} from "@superset/ui/ai-elements/checkpoint";
+import { useDurableChat } from "@superset/durable-session/react";
 import {
 	Conversation,
 	ConversationContent,
@@ -20,53 +16,109 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
-import { Fragment, useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	HiMiniAtSymbol,
 	HiMiniChatBubbleLeftRight,
 	HiMiniPaperClip,
 } from "react-icons/hi2";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
-import { MOCK_MESSAGES, MODELS, SUGGESTIONS } from "./constants";
-import type { ChatMessage, ModelOption } from "./types";
+import { MODELS, SUGGESTIONS } from "./constants";
+import type { ModelOption } from "./types";
 
-export function ChatInterface() {
-	const [messages, setMessages] = useState<ChatMessage[]>(MOCK_MESSAGES);
-	const [isLoading, setIsLoading] = useState(false);
+interface ChatInterfaceProps {
+	sessionId: string;
+	cwd: string;
+}
+
+export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 
-	const handleSend = useCallback((message: { text: string }) => {
-		if (!message.text.trim()) return;
+	// Get proxy config from main process
+	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
-		const userMessage: ChatMessage = {
-			id: `msg-${Date.now()}`,
-			role: "user",
-			content: message.text,
+	// Session lifecycle via tRPC → main process → proxy
+	const startSession = electronTrpc.aiChat.startSession.useMutation();
+	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
+
+	// Real-time data via useDurableChat → SSE from proxy
+	const {
+		messages,
+		sendMessage,
+		isLoading,
+		stop,
+		connectionStatus,
+		addToolApprovalResponse,
+		connect,
+	} = useDurableChat({
+		sessionId,
+		proxyUrl: config?.proxyUrl ?? "http://localhost:8080",
+		autoConnect: false,
+		stream: config?.authToken
+			? { headers: { Authorization: `Bearer ${config.authToken}` } }
+			: undefined,
+	});
+
+	// Start session on mount when we have sessionId + cwd
+	useEffect(() => {
+		if (!sessionId || !cwd) return;
+		startSession.mutate({ sessionId, cwd });
+		return () => {
+			stopSession.mutate({ sessionId });
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount/unmount with stable deps
+	}, [sessionId, cwd, startSession, stopSession]);
 
-		setMessages((prev) => [...prev, userMessage]);
-		setIsLoading(true);
+	// Connect to durable stream after session is started
+	useEffect(() => {
+		if (
+			startSession.isSuccess &&
+			config?.proxyUrl &&
+			connectionStatus === "disconnected"
+		) {
+			connect();
+		}
+	}, [startSession.isSuccess, config?.proxyUrl, connectionStatus, connect]);
 
-		setTimeout(() => {
-			const assistantMessage: ChatMessage = {
-				id: `msg-${Date.now()}-reply`,
-				role: "assistant",
-				content:
-					"This is a mock response. The chat backend is not connected yet.",
-			};
-			setMessages((prev) => [...prev, assistantMessage]);
-			setIsLoading(false);
-		}, 1000);
-	}, []);
+	const handleSend = useCallback(
+		(message: { text: string }) => {
+			if (!message.text.trim()) return;
+			sendMessage(message.text);
+		},
+		[sendMessage],
+	);
 
 	const handleSuggestion = useCallback(
 		(suggestion: string) => {
 			handleSend({ text: suggestion });
 		},
 		[handleSend],
+	);
+
+	const handleApprove = useCallback(
+		(approvalId: string) => {
+			addToolApprovalResponse({ id: approvalId, approved: true });
+		},
+		[addToolApprovalResponse],
+	);
+
+	const handleDeny = useCallback(
+		(approvalId: string) => {
+			addToolApprovalResponse({ id: approvalId, approved: false });
+		},
+		[addToolApprovalResponse],
+	);
+
+	const handleStop = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			stop();
+		},
+		[stop],
 	);
 
 	return (
@@ -92,17 +144,12 @@ export function ChatInterface() {
 						</>
 					) : (
 						messages.map((msg) => (
-							<Fragment key={msg.id}>
-								{msg.checkpoint && (
-									<Checkpoint>
-										<CheckpointIcon />
-										<CheckpointTrigger tooltip="Restore to this point">
-											{msg.checkpoint}
-										</CheckpointTrigger>
-									</Checkpoint>
-								)}
-								<ChatMessageItem message={msg} />
-							</Fragment>
+							<ChatMessageItem
+								key={msg.id}
+								message={msg}
+								onApprove={handleApprove}
+								onDeny={handleDeny}
+							/>
 						))
 					)}
 					{isLoading && (
@@ -148,6 +195,7 @@ export function ChatInterface() {
 								<ContextIndicator />
 								<PromptInputSubmit
 									status={isLoading ? "streaming" : undefined}
+									onClick={isLoading ? handleStop : undefined}
 								/>
 							</div>
 						</PromptInputFooter>

@@ -92,4 +92,5 @@ export {
 	type ToolCallPart,
 	type ToolResultInput,
 	type ToolResultPart,
+	type UIMessage,
 } from "..";

@@ -1,3 +1,7 @@
+import type {
+	ToolCallPart,
+	ToolResultPart,
+} from "@superset/durable-session/react";
 import {
 	Confirmation,
 	ConfirmationAction,
@@ -12,41 +16,62 @@ import {
 	ToolInput,
 	ToolOutput,
 } from "@superset/ui/ai-elements/tool";
-import type { ToolCall } from "../../types";
+import { mapApproval, mapToolCallState } from "../../utils/map-tool-state";
 
-export function ToolCallBlock({ toolCall }: { toolCall: ToolCall }) {
+interface ToolCallBlockProps {
+	toolCallPart: ToolCallPart;
+	toolResultPart?: ToolResultPart;
+	onApprove?: (approvalId: string) => void;
+	onDeny?: (approvalId: string) => void;
+}
+
+export function ToolCallBlock({
+	toolCallPart,
+	toolResultPart,
+	onApprove,
+	onDeny,
+}: ToolCallBlockProps) {
+	const state = mapToolCallState(toolCallPart, toolResultPart);
+	const output = toolResultPart?.content ?? toolCallPart.output;
+	const errorText = toolResultPart?.error;
+	const approval = mapApproval(toolCallPart.approval);
+
 	return (
 		<div className="flex flex-col gap-2">
-			<Tool defaultOpen={toolCall.state === "output-error"}>
+			<Tool defaultOpen={state === "output-error"}>
 				<ToolHeader
-					title={toolCall.name}
-					type="tool-invocation"
-					state={toolCall.state}
+					title={toolCallPart.name}
+					type={toolCallPart.type}
+					state={state}
 				/>
 				<ToolContent>
-					<ToolInput input={toolCall.input} />
-					{(toolCall.output || toolCall.errorText) && (
-						<ToolOutput
-							output={toolCall.output}
-							errorText={toolCall.errorText}
-						/>
+					<ToolInput input={toolCallPart.arguments} />
+					{(output || errorText) && (
+						<ToolOutput output={output} errorText={errorText} />
 					)}
 				</ToolContent>
 			</Tool>
 
-			{toolCall.approval && (
-				<Confirmation approval={toolCall.approval} state={toolCall.state}>
+			{approval && (
+				<Confirmation approval={approval} state={state}>
 					<ConfirmationTitle>
-						{"approved" in toolCall.approval
-							? toolCall.approval.approved
-								? `${toolCall.name} was approved`
-								: `${toolCall.name} was denied`
-							: `Allow ${toolCall.name}?`}
+						{"approved" in approval
+							? approval.approved
+								? `${toolCallPart.name} was approved`
+								: `${toolCallPart.name} was denied`
+							: `Allow ${toolCallPart.name}?`}
 					</ConfirmationTitle>
 					<ConfirmationRequest>
 						<ConfirmationActions>
-							<ConfirmationAction variant="outline">Deny</ConfirmationAction>
-							<ConfirmationAction>Allow</ConfirmationAction>
+							<ConfirmationAction
+								variant="outline"
+								onClick={() => onDeny?.(approval.id)}
+							>
+								Deny
+							</ConfirmationAction>
+							<ConfirmationAction onClick={() => onApprove?.(approval.id)}>
+								Allow
+							</ConfirmationAction>
 						</ConfirmationActions>
 					</ConfirmationRequest>
 				</Confirmation>

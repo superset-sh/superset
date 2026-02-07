@@ -5,7 +5,12 @@ import {
 	PlanHeader,
 	PlanTitle,
 } from "@superset/ui/ai-elements/plan";
-import type { PlanData } from "../../types";
+
+interface PlanData {
+	title: string;
+	description: string;
+	steps: Array<{ label: string; done: boolean }>;
+}
 
 export function PlanBlock({ plan }: { plan: PlanData }) {
 	return (

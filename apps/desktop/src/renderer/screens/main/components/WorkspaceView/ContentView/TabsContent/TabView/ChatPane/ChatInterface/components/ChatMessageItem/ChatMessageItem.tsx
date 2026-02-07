@@ -1,7 +1,9 @@
-import {
-	CodeBlock,
-	CodeBlockCopyButton,
-} from "@superset/ui/ai-elements/code-block";
+import type {
+	MessagePart,
+	ToolCallPart,
+	ToolResultPart,
+	UIMessage,
+} from "@superset/durable-session/react";
 import {
 	Message,
 	MessageAction,
@@ -14,64 +16,83 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from "@superset/ui/ai-elements/reasoning";
-import {
-	Task,
-	TaskContent,
-	TaskItem,
-	TaskItemFile,
-	TaskTrigger,
-} from "@superset/ui/ai-elements/task";
 import { HiMiniArrowPath, HiMiniClipboard } from "react-icons/hi2";
-import type { ChatMessage } from "../../types";
-import { PlanBlock } from "../PlanBlock";
 import { ToolCallBlock } from "../ToolCallBlock";
 
-export function ChatMessageItem({ message }: { message: ChatMessage }) {
+interface ChatMessageItemProps {
+	message: UIMessage;
+	onApprove?: (approvalId: string) => void;
+	onDeny?: (approvalId: string) => void;
+}
+
+/** Generate a stable key for a message part based on its content. */
+function getPartKey(part: MessagePart, index: number): string {
+	switch (part.type) {
+		case "tool-call":
+			return part.id;
+		case "tool-result":
+			return `result-${part.toolCallId}`;
+		default:
+			// text/thinking parts lack IDs; use type + index for stable ordering
+			return `${part.type}-${index}`;
+	}
+}
+
+export function ChatMessageItem({
+	message,
+	onApprove,
+	onDeny,
+}: ChatMessageItemProps) {
+	// Build toolCallId → ToolResultPart map for pairing
+	const toolResults = new Map<string, ToolResultPart>();
+	for (const part of message.parts) {
+		if (part.type === "tool-result") {
+			toolResults.set(part.toolCallId, part as ToolResultPart);
+		}
+	}
+
+	const hasTextContent = message.parts.some(
+		(p) => p.type === "text" && p.content,
+	);
+
 	return (
 		<Message from={message.role}>
 			<MessageContent>
-				{message.reasoning && (
-					<Reasoning>
-						<ReasoningTrigger />
-						<ReasoningContent>{message.reasoning}</ReasoningContent>
-					</Reasoning>
-				)}
-
-				{message.plan && <PlanBlock plan={message.plan} />}
-
-				{message.content && (
-					<MessageResponse>{message.content}</MessageResponse>
-				)}
-
-				{message.tasks?.map((task) => (
-					<Task key={task.title}>
-						<TaskTrigger title={task.title} />
-						<TaskContent>
-							{task.files.map((file) => (
-								<TaskItem key={file}>
-									<TaskItemFile>{file}</TaskItemFile>
-								</TaskItem>
-							))}
-						</TaskContent>
-					</Task>
-				))}
-
-				{message.codeBlocks?.map((block) => (
-					<CodeBlock
-						key={block.code}
-						code={block.code}
-						language={block.language as "typescript"}
-					>
-						<CodeBlockCopyButton />
-					</CodeBlock>
-				))}
-
-				{message.toolCalls?.map((tc) => (
-					<ToolCallBlock key={tc.id} toolCall={tc} />
-				))}
+				{message.parts.map((part, i) => {
+					const key = getPartKey(part, i);
+					switch (part.type) {
+						case "thinking":
+							return (
+								<Reasoning key={key}>
+									<ReasoningTrigger />
+									<ReasoningContent>{part.content}</ReasoningContent>
+								</Reasoning>
+							);
+						case "text":
+							return part.content ? (
+								<MessageResponse key={key}>{part.content}</MessageResponse>
+							) : null;
+						case "tool-call": {
+							const tc = part as ToolCallPart;
+							return (
+								<ToolCallBlock
+									key={key}
+									toolCallPart={tc}
+									toolResultPart={toolResults.get(tc.id)}
+									onApprove={onApprove}
+									onDeny={onDeny}
+								/>
+							);
+						}
+						case "tool-result":
+							// Rendered alongside its tool-call
+							return null;
+						default:
+							return null;
+					}
+				})}
 			</MessageContent>
-
-			{message.role === "assistant" && message.content && (
+			{message.role === "assistant" && hasTextContent && (
 				<MessageActions>
 					<MessageAction tooltip="Copy">
 						<HiMiniClipboard className="size-3.5" />

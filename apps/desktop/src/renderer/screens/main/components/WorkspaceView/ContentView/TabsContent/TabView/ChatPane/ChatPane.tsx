@@ -1,4 +1,6 @@
 import type { MosaicBranch } from "react-mosaic-component";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatInterface } from "./ChatInterface";
 
@@ -23,11 +25,19 @@ export function ChatPane({
 	path,
 	isActive,
 	tabId,
-	workspaceId: _workspaceId,
+	workspaceId,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,
 }: ChatPaneProps) {
+	const pane = useTabsStore((s) => s.panes[paneId]);
+	const sessionId = pane?.chat?.sessionId ?? "";
+
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
+		{ id: workspaceId },
+		{ enabled: !!workspaceId },
+	);
+
 	return (
 		<BasePaneWindow
 			paneId={paneId}
@@ -53,7 +63,10 @@ export function ChatPane({
 				</div>
 			)}
 		>
-			<ChatInterface />
+			<ChatInterface
+				sessionId={sessionId}
+				cwd={workspace?.worktreePath ?? ""}
+			/>
 		</BasePaneWindow>
 	);
 }

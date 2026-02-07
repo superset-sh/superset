@@ -25,6 +25,7 @@ export type {
 	ThinkingPart,
 	ToolCallPart,
 	ToolResultPart,
+	UIMessage,
 } from "@tanstack/ai";
 // Re-export schema types
 export type { AgentRow, ChunkRow, ChunkValue, PresenceRow } from "./schema";

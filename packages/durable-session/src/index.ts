@@ -119,6 +119,7 @@ export type {
 	// Input types
 	ToolResultInput,
 	ToolResultPart,
+	UIMessage,
 } from "./types";
 
 // ============================================================================

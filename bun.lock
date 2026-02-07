@@ -149,6 +149,7 @@
         "@sentry/electron": "^7.7.0",
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
+        "@superset/durable-session": "workspace:*",
         "@superset/local-db": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",

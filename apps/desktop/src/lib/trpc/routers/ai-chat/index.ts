@@ -16,6 +16,17 @@ import {
 export const createAiChatRouter = () => {
 	return router({
 		/**
+		 * Get durable stream config (proxy URL + auth token).
+		 */
+		getConfig: publicProcedure.query(() => ({
+			proxyUrl: process.env.DURABLE_STREAM_URL || "http://localhost:8080",
+			authToken:
+				process.env.DURABLE_STREAM_AUTH_TOKEN ||
+				process.env.DURABLE_STREAM_TOKEN ||
+				null,
+		})),
+
+		/**
 		 * Start a Claude session.
 		 */
 		startSession: publicProcedure

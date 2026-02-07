@@ -50,6 +50,7 @@
 		"@radix-ui/react-label": "^2.1.8",
 		"@sentry/electron": "^7.7.0",
 		"@superset/auth": "workspace:*",
+		"@superset/durable-session": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/local-db": "workspace:*",
 		"@superset/shared": "workspace:*",
