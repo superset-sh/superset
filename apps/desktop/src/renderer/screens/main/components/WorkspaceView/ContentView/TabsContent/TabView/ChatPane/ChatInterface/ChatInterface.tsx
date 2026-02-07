@@ -27,6 +27,7 @@ import {
 	HiMiniPaperClip,
 } from "react-icons/hi2";
 import { ChatMessageItem } from "./components/ChatMessageItem";
+import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
 import { MOCK_MESSAGES, MODELS, SUGGESTIONS } from "./constants";
 import type { ChatMessage, ModelOption } from "./types";
@@ -143,7 +144,12 @@ export function ChatInterface() {
 									onOpenChange={setModelSelectorOpen}
 								/>
 							</PromptInputTools>
-							<PromptInputSubmit status={isLoading ? "streaming" : undefined} />
+							<div className="flex items-center gap-1">
+								<ContextIndicator />
+								<PromptInputSubmit
+									status={isLoading ? "streaming" : undefined}
+								/>
+							</div>
 						</PromptInputFooter>
 					</PromptInput>
 				</div>
