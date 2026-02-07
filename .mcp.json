@@ -9,6 +9,14 @@
 				"tokenUrl": "https://api.superset.sh/api/auth/mcp/token",
 				"scopes": ["openid", "profile", "email"]
 			}
+		},
+		"expo-mcp": {
+			"type": "http",
+			"url": "https://mcp.expo.dev/mcp"
+		},
+		"maestro": {
+			"command": "maestro",
+			"args": ["mcp"]
 		}
 	}
 }

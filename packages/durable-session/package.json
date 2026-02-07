@@ -17,9 +17,9 @@
 		"@durable-streams/state": "^0.2.0",
 		"@standard-schema/spec": "^1.0.0",
 		"@tanstack/ai": "^0.3.0",
-		"@tanstack/db": "^0.5.22",
+		"@tanstack/db": "0.5.22",
 		"@tanstack/db-ivm": "^0.1.17",
-		"zod": "^4.1.12"
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
@@ -29,9 +29,9 @@
 		"typescript": "^5.9.3"
 	},
 	"peerDependencies": {
-		"react": "^18.0.0 || ^19.0.0",
-		"@tanstack/react-db": "^0.1.66",
 		"@superset/ui": "workspace:*",
-		"lucide-react": ">=0.300.0"
+		"@tanstack/react-db": "^0.1.66",
+		"lucide-react": ">=0.300.0",
+		"react": "^18.0.0 || ^19.0.0"
 	}
 }
