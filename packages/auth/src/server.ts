@@ -23,7 +23,7 @@ import {
 	mcp,
 	organization,
 } from "better-auth/plugins";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
@@ -406,6 +406,7 @@ export const auth = betterAuth({
 							eq(members.organizationId, activeOrganizationId),
 						)
 					: eq(members.userId, session.userId ?? user.id),
+				orderBy: desc(members.createdAt),
 			});
 
 			if (!activeOrganizationId && membership?.organizationId) {
