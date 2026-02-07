@@ -461,6 +461,14 @@ export async function createWorktree(
 			{ env, timeout: 120_000 },
 		);
 
+		// Enable autoSetupRemote so the first `git push` automatically creates
+		// the remote branch and sets upstream (like `git push -u origin <branch>`).
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
+
 		console.log(
 			`Created worktree at ${worktreePath} with branch ${branch} from ${startPoint}`,
 		);
@@ -576,6 +584,14 @@ export async function createWorktreeFromExistingBranch({
 				);
 			}
 		}
+
+		// Enable autoSetupRemote so the first `git push` automatically creates
+		// the remote branch and sets upstream (like `git push -u origin <branch>`).
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
 
 		console.log(
 			`Created worktree at ${worktreePath} using existing branch ${branch}`,
@@ -1699,6 +1715,13 @@ export async function createWorktreeFromPr({
 			args.push("-b", branchName, worktreePath, remoteRef);
 			await execFileAsync("git", args, { env, timeout: 120_000 });
 		}
+
+		// Enable autoSetupRemote so `git push` just works without -u flag.
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
 
 		console.log(
 			`[git] Created worktree at ${worktreePath} for PR #${prInfo.number}`,
