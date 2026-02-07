@@ -2,7 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { posthog } from "../../lib/posthog";
+import { track } from "renderer/lib/analytics";
 import { FeaturePreview } from "./components/FeaturePreview";
 import { FeatureSidebar } from "./components/FeatureSidebar";
 import type { GatedFeature } from "./constants";
@@ -51,7 +51,7 @@ export const Paywall = () => {
 			featuresViewedRef.current = new Set([initialFeatureId]);
 
 			const feature = PRO_FEATURES.find((f) => f.id === initialFeatureId);
-			posthog.capture("paywall_opened", {
+			track("paywall_opened", {
 				trigger_source: paywallOptions.feature,
 				feature_id: initialFeatureId,
 				feature_title: feature?.title,
@@ -72,7 +72,7 @@ export const Paywall = () => {
 	const handleSelectFeature = (featureId: string) => {
 		if (featureId !== selectedFeatureId) {
 			const feature = PRO_FEATURES.find((f) => f.id === featureId);
-			posthog.capture("paywall_feature_clicked", {
+			track("paywall_feature_clicked", {
 				trigger_source: triggerSource,
 				feature_id: featureId,
 				feature_title: feature?.title,
@@ -88,7 +88,7 @@ export const Paywall = () => {
 			const timeSpent = openTimeRef.current
 				? Date.now() - openTimeRef.current
 				: 0;
-			posthog.capture("paywall_cancelled", {
+			track("paywall_cancelled", {
 				trigger_source: triggerSource,
 				feature_id: selectedFeatureId,
 				features_viewed_count: featuresViewedRef.current.size,
@@ -109,7 +109,7 @@ export const Paywall = () => {
 		const timeSpent = openTimeRef.current
 			? Date.now() - openTimeRef.current
 			: 0;
-		posthog.capture("paywall_upgrade_clicked", {
+		track("paywall_upgrade_clicked", {
 			trigger_source: triggerSource,
 			feature_id: selectedFeatureId,
 			feature_title: selectedFeature.title,

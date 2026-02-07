@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getOutlit } from "renderer/lib/outlit";
 import { posthog } from "renderer/lib/posthog";
 
 export function TelemetrySync() {
@@ -18,6 +19,11 @@ export function TelemetrySync() {
 				if (typeof posthog?.opt_out_capturing === "function") {
 					posthog.opt_out_capturing();
 				}
+			}
+
+			const outlit = getOutlit();
+			if (outlit && telemetryEnabled) {
+				outlit.enableTracking();
 			}
 		} catch (error) {
 			console.error(
