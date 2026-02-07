@@ -310,7 +310,9 @@ export function WorkspaceListItem({
 	if (isCollapsed) {
 		const collapsedButton = (
 			<button
-				ref={itemRef}
+				ref={(node) => {
+					itemRef.current = node;
+				}}
 				type="button"
 				onClick={handleClick}
 				onMouseEnter={handleMouseEnter}
