@@ -31,17 +31,19 @@ function SettingsSection({
 }: {
 	icon: ReactNode;
 	title: string;
-	description: string;
+	description?: string;
 	children: ReactNode;
 }) {
 	return (
-		<div className="pt-4 border-t space-y-4">
-			<div className="space-y-2">
+		<div className="pt-3 border-t space-y-3">
+			<div>
 				<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
 					{icon}
 					{title}
 				</h3>
-				<p className="text-sm text-muted-foreground">{description}</p>
+				{description && (
+					<p className="text-xs text-muted-foreground mt-1">{description}</p>
+				)}
 			</div>
 			{children}
 		</div>
@@ -149,22 +151,32 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				<ClickablePath path={project.mainRepoPath} />
 			</div>
 
-			<div className="space-y-6">
+			<div className="space-y-4">
 
 				<SettingsSection
 					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
 					title="Branch Prefix"
-					description="Override the default branch prefix for new workspaces in this project."
+					description="Override the default prefix for new workspaces."
 				>
-					<div className="flex items-center gap-3">
-						<div className="space-y-1.5">
-							<Label className="text-xs text-muted-foreground">Mode</Label>
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Branch Prefix</Label>
+							<p className="text-xs text-muted-foreground">
+								Preview:{" "}
+								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
+									{previewPrefix
+										? `${previewPrefix}/branch-name`
+										: "branch-name"}
+								</code>
+							</p>
+						</div>
+						<div className="flex items-center gap-2">
 							<Select
 								value={currentMode}
 								onValueChange={handleBranchPrefixModeChange}
 								disabled={updateProject.isPending}
 							>
-								<SelectTrigger className="w-[200px]">
+								<SelectTrigger className="w-[180px]">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -180,35 +192,24 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 									))}
 								</SelectContent>
 							</Select>
-						</div>
-						{currentMode === "custom" && (
-							<div className="space-y-1.5">
-								<Label className="text-xs text-muted-foreground">
-									Custom Prefix
-								</Label>
+							{currentMode === "custom" && (
 								<Input
-									placeholder="Enter custom prefix"
+									placeholder="Prefix"
 									value={customPrefixInput}
 									onChange={(e) => setCustomPrefixInput(e.target.value)}
 									onBlur={handleCustomPrefixBlur}
-									className="w-[200px]"
+									className="w-[120px]"
 									disabled={updateProject.isPending}
 								/>
-							</div>
-						)}
+							)}
+						</div>
 					</div>
-					<p className="text-xs text-muted-foreground">
-						Preview:{" "}
-						<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
-							{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
-						</code>
-					</p>
 				</SettingsSection>
 
 				<SettingsSection
 					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
 					title="Scripts"
-					description="Configure setup and teardown scripts that run when workspaces are created or deleted."
+					description="Run scripts on workspace create or delete."
 				>
 					<ScriptsEditor projectId={project.id} projectName={project.name} />
 				</SettingsSection>
@@ -216,10 +217,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				<SettingsSection
 					icon={<HiOutlinePaintBrush className="h-4 w-4" />}
 					title="Appearance"
-					description="Customize how this project appears in the sidebar."
+					description="Customize this project's sidebar look."
 				>
-					<div className="space-y-1.5">
-						<Label className="text-xs text-muted-foreground">Color</Label>
+					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							{PROJECT_COLORS.map((color) => {
 								const isDefault = color.value === PROJECT_COLOR_DEFAULT;
@@ -249,24 +249,20 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 								);
 							})}
 						</div>
-					</div>
-
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm">Hide Image</Label>
-							<p className="text-xs text-muted-foreground">
-								Show only the initial letter instead of the GitHub avatar.
-							</p>
+						<div className="flex items-center gap-2">
+							<Label className="text-sm text-muted-foreground">
+								Hide Image
+							</Label>
+							<Switch
+								checked={project.hideImage ?? false}
+								onCheckedChange={(checked) =>
+									updateProject.mutate({
+										id: projectId,
+										patch: { hideImage: checked },
+									})
+								}
+							/>
 						</div>
-						<Switch
-							checked={project.hideImage ?? false}
-							onCheckedChange={(checked) =>
-								updateProject.mutate({
-									id: projectId,
-									patch: { hideImage: checked },
-								})
-							}
-						/>
 					</div>
 				</SettingsSection>
 			</div>
