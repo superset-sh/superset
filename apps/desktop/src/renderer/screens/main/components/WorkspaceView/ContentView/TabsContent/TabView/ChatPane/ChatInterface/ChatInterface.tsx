@@ -16,7 +16,7 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	HiMiniAtSymbol,
 	HiMiniChatBubbleLeftRight,
@@ -41,17 +41,12 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	// Get proxy config from main process
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
-	// Session lifecycle via tRPC → main process → proxy
-	const startSession = electronTrpc.aiChat.startSession.useMutation();
-	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
-
 	// Real-time data via useDurableChat → SSE from proxy
 	const {
 		messages,
 		sendMessage,
 		isLoading,
 		stop,
-		connectionStatus,
 		addToolApprovalResponse,
 		connect,
 	} = useDurableChat({
@@ -63,26 +58,40 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			: undefined,
 	});
 
-	// Start session on mount when we have sessionId + cwd
+	// Stable ref for connect — avoids stale closures in tRPC callbacks
+	const connectRef = useRef(connect);
+	connectRef.current = connect;
+	const hasConnected = useRef(false);
+
+	// Session lifecycle via tRPC callbacks (not useEffect state tracking)
+	const startSession = electronTrpc.aiChat.startSession.useMutation({
+		onSuccess: () => {
+			if (!hasConnected.current && config?.proxyUrl) {
+				hasConnected.current = true;
+				connectRef.current();
+			}
+		},
+	});
+	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
+
+	// Start session on mount, stop on unmount
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
+		hasConnected.current = false;
 		startSession.mutate({ sessionId, cwd });
 		return () => {
 			stopSession.mutate({ sessionId });
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- only run on mount/unmount with stable deps
-	}, [sessionId, cwd, startSession, stopSession]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount/unmount; mutations are stable transports
+	}, [sessionId, cwd]);
 
-	// Connect to durable stream after session is started
+	// Handle case where config query resolves after session already started
 	useEffect(() => {
-		if (
-			startSession.isSuccess &&
-			config?.proxyUrl &&
-			connectionStatus === "disconnected"
-		) {
-			connect();
+		if (!hasConnected.current && startSession.isSuccess && config?.proxyUrl) {
+			hasConnected.current = true;
+			connectRef.current();
 		}
-	}, [startSession.isSuccess, config?.proxyUrl, connectionStatus, connect]);
+	}, [startSession.isSuccess, config?.proxyUrl]);
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
