@@ -1,8 +1,6 @@
-import { Badge } from "@superset/ui/badge";
-import { Button } from "@superset/ui/button";
+import { SidebarCard } from "@superset/ui/sidebar-card";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { LuX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface SetupScriptCardProps {
@@ -52,40 +50,21 @@ export function SetupScriptCard({
 					transition={{ duration: 0.2 }}
 					className="px-3 pb-2"
 				>
-					<div className="relative rounded-lg border border-border bg-card p-3">
-						<Badge variant="box">Setup</Badge>
-
-						<button
-							type="button"
-							onClick={handleDismiss}
-							className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground transition-colors"
-						>
-							<LuX className="size-3.5" />
-						</button>
-
-						<p className="text-sm font-semibold mt-2 text-card-foreground">
-							Setup scripts
-						</p>
-						<p className="text-xs text-muted-foreground mt-1 leading-snug">
-							Automate workspace setup for {projectName}
-						</p>
-
-						<Button
-							variant="outline"
-							size="sm"
-							className="mt-3 w-full h-7 text-xs"
-							onClick={() => {
-								if (projectId) {
-									navigate({
-										to: "/settings/project/$projectId",
-										params: { projectId },
-									});
-								}
-							}}
-						>
-							Configure
-						</Button>
-					</div>
+					<SidebarCard
+						badge="Setup"
+						title="Setup scripts"
+						description={`Automate workspace setup for ${projectName}`}
+						actionLabel="Configure"
+						onAction={() => {
+							if (projectId) {
+								navigate({
+									to: "/settings/project/$projectId",
+									params: { projectId },
+								});
+							}
+						}}
+						onDismiss={handleDismiss}
+					/>
 				</motion.div>
 			)}
 		</AnimatePresence>
