@@ -342,6 +342,7 @@
       "name": "@superset/marketing",
       "version": "0.1.0",
       "dependencies": {
+        "@outlit/browser": "^1.2.0",
         "@react-three/drei": "^10.7.6",
         "@react-three/fiber": "^9.4.0",
         "@sentry/nextjs": "^10.36.0",
@@ -1526,6 +1527,10 @@
     "@opentelemetry/sql-common": ["@opentelemetry/sql-common@0.41.2", "", { "dependencies": { "@opentelemetry/core": "^2.0.0" }, "peerDependencies": { "@opentelemetry/api": "^1.1.0" } }, "sha512-4mhWm3Z8z+i508zQJ7r6Xi7y4mmoJpdvH0fZPFRkWrdp5fq7hhZ2HhYokEOLkfqSMgPR4Z9EyB3DBkbKGOqZiQ=="],
 
     "@orama/orama": ["@orama/orama@3.1.18", "", {}, "sha512-a61ljmRVVyG5MC/698C8/FfFDw5a8LOIvyOLW5fztgUXqUpc1jOfQzOitSCbge657OgXXThmY3Tk8fpiDb4UcA=="],
+
+    "@outlit/browser": ["@outlit/browser@1.2.0", "", { "dependencies": { "@outlit/core": "1.1.0" }, "peerDependencies": { "react": ">=17.0.0", "vue": ">=3.0.0" }, "optionalPeers": ["react", "vue"] }, "sha512-h2c/9Qmzw7tVygPln3o8XVEVA/0E9XWOhbh2mNWPjmCmv0VbREP4IoU8dG4flWYNKcGo2aVPsdIXTiEVqSlkzg=="],
+
+    "@outlit/core": ["@outlit/core@1.1.0", "", {}, "sha512-TNM9cIdunfcF0TLwCzSJ7sZWmDhUF8oYt4Q1KgW5Fm+4KGsfjDUbGDq9svrml1cmPrAXTZdiYwIYdRAG9327/g=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
