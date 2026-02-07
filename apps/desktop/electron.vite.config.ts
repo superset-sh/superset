@@ -69,6 +69,9 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_POSTHOG_HOST": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
+			"process.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
+			),
 		},
 
 		build: {
@@ -153,6 +156,9 @@ export default defineConfig({
 			),
 			"import.meta.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
+			),
+			"import.meta.env.NEXT_PUBLIC_OUTLIT_KEY": defineEnv(
+				process.env.NEXT_PUBLIC_OUTLIT_KEY,
 			),
 		},
 

@@ -21,7 +21,13 @@ export function RootLayout({ children }: { children: ReactNode }) {
 				publicKey={env.NEXT_PUBLIC_OUTLIT_KEY ?? ""}
 				trackPageviews={false}
 				user={
-					user ? { email: user.email, userId: user.id, name: user.name } : null
+					user
+						? {
+								email: user.email,
+								userId: user.id,
+								traits: { name: user.name },
+							}
+						: null
 				}
 			>
 				<ElectronTRPCProvider>

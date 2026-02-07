@@ -23,7 +23,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
 				publicKey={env.NEXT_PUBLIC_OUTLIT_KEY ?? ""}
 				trackPageviews
 				user={
-					user ? { email: user.email, userId: user.id, name: user.name } : null
+					user
+						? {
+								email: user.email,
+								userId: user.id,
+								traits: { name: user.name },
+							}
+						: null
 				}
 			>
 				<TRPCReactProvider>
