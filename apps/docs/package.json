@@ -11,7 +11,7 @@
 		"postinstall": "fumadocs-mdx"
 	},
 	"dependencies": {
-		"@outlit/browser": "^1.2.0",
+		"@outlit/browser": "^1.4.0",
 		"@radix-ui/react-collapsible": "^1.1.12",
 		"@radix-ui/react-scroll-area": "^1.2.10",
 		"@sentry/nextjs": "^10.36.0",

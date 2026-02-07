@@ -8,6 +8,8 @@ export function track(
 	posthog.capture(event, properties);
 	getOutlit()?.track(
 		event,
-		properties as Record<string, string | number | boolean | null> | undefined,
+		properties as
+			| Record<string, string | number | boolean | null>
+			| undefined,
 	);
 }

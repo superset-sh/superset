@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
 
 export function CookieConsent() {
-	const { enableTracking } = useOutlit();
+	const { enableTracking, disableTracking } = useOutlit();
 	const [showBanner, setShowBanner] = useState(false);
 
 	useEffect(() => {
@@ -29,6 +29,7 @@ export function CookieConsent() {
 	const handleOptOut = () => {
 		localStorage.setItem(ANALYTICS_CONSENT_KEY, "declined");
 		posthog.opt_out_capturing();
+		disableTracking();
 		setShowBanner(false);
 	};
 

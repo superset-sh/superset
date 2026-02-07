@@ -15,5 +15,3 @@ export function getOutlit(): Outlit | null {
 	}
 	return outlit;
 }
-
-export { outlit };
