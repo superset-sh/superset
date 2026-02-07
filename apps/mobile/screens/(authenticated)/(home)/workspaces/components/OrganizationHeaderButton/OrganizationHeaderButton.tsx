@@ -17,10 +17,7 @@ export function OrganizationHeaderButton({
 		<>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.View hidesSharedBackground>
-					<Pressable
-						onPress={onPress}
-						className="flex-row items-center gap-2"
-					>
+					<Pressable onPress={onPress} className="flex-row items-center gap-2">
 						{logo ? (
 							<GlassView
 								style={{
@@ -31,16 +28,13 @@ export function OrganizationHeaderButton({
 								}}
 								colorScheme="dark"
 							>
-								<Image
-									source={{ uri: logo }}
-									className="size-7"
-								/>
+								<Image source={{ uri: logo }} className="size-7" />
 							</GlassView>
 						) : null}
-						<Text className="text-xl font-semibold text-white">
+						<Text className="text-xl font-semibold text-foreground">
 							{name ?? "Organization"}
 						</Text>
-						<ChevronsUpDown size={14} color="rgba(255,255,255,0.5)" />
+						<ChevronsUpDown size={14} color="hsl(240 5% 64.9%)" />
 					</Pressable>
 				</Stack.Toolbar.View>
 			</Stack.Toolbar>

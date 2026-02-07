@@ -5,6 +5,7 @@ export default function HomeLayout() {
 		<Stack
 			screenOptions={{
 				headerBackButtonDisplayMode: "minimal",
+				headerShadowVisible: false,
 			}}
 		>
 			<Stack.Screen name="index" options={{ title: "" }} />

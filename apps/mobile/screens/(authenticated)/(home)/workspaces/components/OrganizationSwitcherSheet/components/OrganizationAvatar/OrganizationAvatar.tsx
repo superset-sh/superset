@@ -1,5 +1,6 @@
 import { Image, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { useTheme } from "@/hooks/useTheme";
 
 export function OrganizationAvatar({
 	name,
@@ -10,11 +11,13 @@ export function OrganizationAvatar({
 	logo?: string | null;
 	size: number;
 }) {
+	const theme = useTheme();
+
 	if (logo) {
 		return (
 			<Image
 				source={{ uri: logo }}
-				style={{ width: size, height: size, borderRadius: 12 }}
+				style={{ width: size, height: size, borderRadius: size / 2 }}
 			/>
 		);
 	}
@@ -22,21 +25,17 @@ export function OrganizationAvatar({
 	const initial = (name ?? "O").charAt(0).toUpperCase();
 	return (
 		<View
+			className="items-center justify-center"
 			style={{
 				width: size,
 				height: size,
-				borderRadius: 12,
-				backgroundColor: "rgba(120,120,128,0.2)",
-				alignItems: "center",
-				justifyContent: "center",
+				borderRadius: size / 2,
+				backgroundColor: theme.muted,
 			}}
 		>
 			<Text
-				style={{
-					fontSize: size * 0.45,
-					fontWeight: "700",
-					color: "rgba(60,60,67,0.6)",
-				}}
+				className="font-bold"
+				style={{ fontSize: size * 0.45, color: theme.mutedForeground }}
 			>
 				{initial}
 			</Text>

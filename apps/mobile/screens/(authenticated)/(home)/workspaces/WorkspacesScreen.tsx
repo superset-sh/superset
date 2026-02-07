@@ -1,7 +1,12 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { RefreshControl, ScrollView, View, useWindowDimensions } from "react-native";
+import {
+	RefreshControl,
+	ScrollView,
+	useWindowDimensions,
+	View,
+} from "react-native";
 import { Text } from "@/components/ui/text";
 import { authClient } from "@/lib/auth/client";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
@@ -34,13 +39,15 @@ export function WorkspacesScreen() {
 			await authClient.organization.setActive({ organizationId });
 			router.replace("/(authenticated)/(home)");
 		} catch (error) {
-			console.error("[organization/switch] Failed to switch organization:", error);
+			console.error(
+				"[organization/switch] Failed to switch organization:",
+				error,
+			);
 		}
 	};
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
-		// TODO: refresh workspace data
 		setRefreshing(false);
 	}, []);
 
@@ -60,7 +67,7 @@ export function WorkspacesScreen() {
 			>
 				<View className="p-6">
 					<View className="items-center justify-center py-20">
-						<Text className="text-muted-foreground text-center">
+						<Text className="text-center text-muted-foreground">
 							Workspaces grouped by project will appear here
 						</Text>
 					</View>
