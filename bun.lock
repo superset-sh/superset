@@ -144,7 +144,7 @@
         "@headless-tree/react": "^1.6.3",
         "@hookform/resolvers": "^5.2.2",
         "@monaco-editor/react": "^4.7.0",
-        "@outlit/browser": "^1.2.0",
+        "@outlit/browser": "^1.4.0",
         "@outlit/node": "^1.1.0",
         "@pierre/diffs": "^1.0.10",
         "@radix-ui/react-dialog": "^1.1.15",
@@ -311,7 +311,7 @@
       "name": "@superset/docs",
       "version": "0.0.0",
       "dependencies": {
-        "@outlit/browser": "^1.2.0",
+        "@outlit/browser": "^1.4.0",
         "@radix-ui/react-collapsible": "^1.1.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
         "@sentry/nextjs": "^10.36.0",
@@ -348,7 +348,7 @@
       "name": "@superset/marketing",
       "version": "0.1.0",
       "dependencies": {
-        "@outlit/browser": "^1.2.0",
+        "@outlit/browser": "^1.4.0",
         "@react-three/drei": "^10.7.6",
         "@react-three/fiber": "^9.4.0",
         "@sentry/nextjs": "^10.36.0",
@@ -513,7 +513,7 @@
       "name": "@superset/web",
       "version": "0.1.0",
       "dependencies": {
-        "@outlit/browser": "^1.2.0",
+        "@outlit/browser": "^1.4.0",
         "@sentry/nextjs": "^10.36.0",
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
@@ -1573,7 +1573,7 @@
 
     "@orama/orama": ["@orama/orama@3.1.18", "", {}, "sha512-a61ljmRVVyG5MC/698C8/FfFDw5a8LOIvyOLW5fztgUXqUpc1jOfQzOitSCbge657OgXXThmY3Tk8fpiDb4UcA=="],
 
-    "@outlit/browser": ["@outlit/browser@1.2.0", "", { "dependencies": { "@outlit/core": "1.1.0" }, "peerDependencies": { "react": ">=17.0.0", "vue": ">=3.0.0" }, "optionalPeers": ["react", "vue"] }, "sha512-h2c/9Qmzw7tVygPln3o8XVEVA/0E9XWOhbh2mNWPjmCmv0VbREP4IoU8dG4flWYNKcGo2aVPsdIXTiEVqSlkzg=="],
+    "@outlit/browser": ["@outlit/browser@1.4.0", "", { "dependencies": { "@outlit/core": "1.1.0" }, "peerDependencies": { "react": ">=17.0.0", "vue": ">=3.0.0" }, "optionalPeers": ["react", "vue"] }, "sha512-CIcMrRWkeVa42uof33ugoQw6RGkDRtwUxUxF0Ih6hFLhgJU3I/d+fYC+bZHmzh3WMUSPQhjulRrA3cY9GouqPg=="],
 
     "@outlit/core": ["@outlit/core@1.1.0", "", {}, "sha512-TNM9cIdunfcF0TLwCzSJ7sZWmDhUF8oYt4Q1KgW5Fm+4KGsfjDUbGDq9svrml1cmPrAXTZdiYwIYdRAG9327/g=="],
 

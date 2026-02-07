@@ -10,26 +10,18 @@ export function TelemetrySync() {
 	useEffect(() => {
 		if (telemetryEnabled === undefined) return;
 
-		try {
-			if (telemetryEnabled) {
-				if (typeof posthog?.opt_in_capturing === "function") {
-					posthog.opt_in_capturing();
-				}
-			} else {
-				if (typeof posthog?.opt_out_capturing === "function") {
-					posthog.opt_out_capturing();
-				}
-			}
+		const outlit = getOutlit();
 
-			const outlit = getOutlit();
-			if (outlit && telemetryEnabled) {
-				outlit.enableTracking();
+		if (telemetryEnabled) {
+			if (typeof posthog?.opt_in_capturing === "function") {
+				posthog.opt_in_capturing();
 			}
-		} catch (error) {
-			console.error(
-				"[telemetry-sync] Failed to update telemetry state:",
-				error,
-			);
+			outlit?.enableTracking();
+		} else {
+			if (typeof posthog?.opt_out_capturing === "function") {
+				posthog.opt_out_capturing();
+			}
+			outlit?.disableTracking();
 		}
 	}, [telemetryEnabled]);
 
