@@ -1,5 +1,6 @@
 import { app } from "electron";
 import { env } from "main/env.main";
+import { getOutlit } from "main/lib/outlit";
 import { PostHog } from "posthog-node";
 import { DEFAULT_TELEMETRY_ENABLED } from "shared/constants";
 
@@ -49,4 +50,25 @@ export function track(
 			desktop_version: app.getVersion(),
 		},
 	});
+
+	// Outlit tracking
+	try {
+		const outlit = getOutlit();
+		if (outlit) {
+			outlit.track({
+				eventName: event,
+				userId,
+				properties: properties as
+					| Record<string, string | number | boolean | null>
+					| undefined,
+			});
+
+			// Fire user.activate() on project_opened (activation moment)
+			if (event === "project_opened") {
+				outlit.user.activate({ userId });
+			}
+		}
+	} catch (error) {
+		console.error("[analytics/outlit] Failed to track:", error);
+	}
 }
