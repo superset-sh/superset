@@ -1,3 +1,4 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -8,6 +9,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo, useState } from "react";
 import {
 	HiMiniChatBubbleLeftRight,
@@ -50,6 +52,7 @@ export function GroupStrip() {
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
 
+	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
 	const navigate = useNavigate();
@@ -183,21 +186,23 @@ export function GroupStrip() {
 					})}
 				</div>
 			)}
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7 shrink-0"
-						onClick={handleAddChat}
-					>
-						<HiMiniChatBubbleLeftRight className="size-3.5" />
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent side="top" sideOffset={4}>
-					New Chat
-				</TooltipContent>
-			</Tooltip>
+			{hasAiChat && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7 shrink-0"
+							onClick={handleAddChat}
+						>
+							<HiMiniChatBubbleLeftRight className="size-3.5" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="top" sideOffset={4}>
+						New Chat
+					</TooltipContent>
+				</Tooltip>
+			)}
 			<NewTabDropZone
 				onDrop={(paneId) => movePaneToNewTab(paneId)}
 				isLastPaneInTab={checkIsLastPaneInTab}
