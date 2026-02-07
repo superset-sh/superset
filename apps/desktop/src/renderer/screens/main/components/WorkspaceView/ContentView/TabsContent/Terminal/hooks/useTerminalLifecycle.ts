@@ -286,6 +286,11 @@ export function useTerminalLifecycle({
 			restartTerminalRef.current = restartTerminalSession;
 
 			const handleTerminalInput = (data: string) => {
+				// Gate writes until stream is ready. ghostty-web fires onData()
+				// with terminal response sequences (DSR, DA) during init, before
+				// the PTY is attached. Without this guard those binary responses
+				// reach the shell as "user input" and produce garbled text.
+				if (!isStreamReadyRef.current) return;
 				if (isRestoredModeRef.current || connectionErrorRef.current) return;
 				if (isExitedRef.current) {
 					if (!isFocusedRef.current || wasKilledByUserRef.current) return;
