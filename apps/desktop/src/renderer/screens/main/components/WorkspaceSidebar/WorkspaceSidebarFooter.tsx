@@ -45,15 +45,9 @@ export function WorkspaceSidebarFooter({
 				return;
 			}
 			// Create a main workspace on the current branch for the new project
-			toast.promise(
-				createBranchWorkspace.mutateAsync({ projectId: result.project.id }),
-				{
-					loading: "Opening project...",
-					success: "Project opened",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to open project",
-				},
-			);
+			await createBranchWorkspace.mutateAsync({
+				projectId: result.project.id,
+			});
 		} catch (error) {
 			toast.error("Failed to open project", {
 				description:

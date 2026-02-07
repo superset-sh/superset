@@ -6,9 +6,24 @@ import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-function configExists(mainRepoPath: string): boolean {
+function hasConfiguredScripts(mainRepoPath: string): boolean {
 	const configPath = join(mainRepoPath, ".superset", "config.json");
-	return existsSync(configPath);
+	if (!existsSync(configPath)) {
+		return false;
+	}
+	try {
+		const content = readFileSync(configPath, "utf-8");
+		const parsed = JSON.parse(content);
+		const setup = Array.isArray(parsed.setup)
+			? parsed.setup.filter((s: string) => s.trim().length > 0)
+			: [];
+		const teardown = Array.isArray(parsed.teardown)
+			? parsed.teardown.filter((s: string) => s.trim().length > 0)
+			: [];
+		return setup.length > 0 || teardown.length > 0;
+	} catch {
+		return false;
+	}
 }
 
 const CONFIG_TEMPLATE = `{
@@ -57,7 +72,7 @@ export const createConfigRouter = () => {
 					return false;
 				}
 
-				return !configExists(project.mainRepoPath);
+				return !hasConfiguredScripts(project.mainRepoPath);
 			}),
 
 		// Mark the config toast as dismissed for a project

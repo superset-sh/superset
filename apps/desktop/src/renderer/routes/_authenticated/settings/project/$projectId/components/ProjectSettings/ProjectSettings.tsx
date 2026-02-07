@@ -129,6 +129,10 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 					<ClickablePath path={project.mainRepoPath} />
 				</div>
 
+				<div className="pt-4 border-t">
+					<ScriptsEditor projectId={project.id} projectName={project.name} />
+				</div>
+
 				<div className="pt-4 border-t space-y-4">
 					<div className="space-y-2">
 						<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -187,20 +191,6 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 							{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
 						</code>
 					</p>
-				</div>
-
-				<div className="pt-4 border-t space-y-4">
-					<div className="space-y-2">
-						<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-							<HiOutlineCog6Tooth className="h-4 w-4" />
-							Scripts
-						</h3>
-						<p className="text-sm text-muted-foreground">
-							Configure setup and teardown scripts that run when workspaces are
-							created or deleted.
-						</p>
-					</div>
-					<ScriptsEditor projectId={project.id} projectName={project.name} />
 				</div>
 			</div>
 		</div>
