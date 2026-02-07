@@ -25,6 +25,7 @@ export function register(server: McpServer) {
 				"Create one or more workspaces (git worktrees) on a device. Use this when the user asks to create worktrees or workspaces.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
+				projectId: z.string().describe("Project ID to create workspaces in"),
 				workspaces: z
 					.array(workspaceInputSchema)
 					.min(1)
@@ -35,13 +36,19 @@ export function register(server: McpServer) {
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const deviceId = args.deviceId as string;
+			const projectId = args.projectId as string;
 			const workspaces = args.workspaces as z.infer<
 				typeof workspaceInputSchema
 			>[];
 
-			if (!deviceId) {
+			if (!deviceId || !projectId) {
 				return {
-					content: [{ type: "text", text: "Error: deviceId is required" }],
+					content: [
+						{
+							type: "text",
+							text: "Error: deviceId and projectId are required",
+						},
+					],
 					isError: true,
 				};
 			}
@@ -50,7 +57,7 @@ export function register(server: McpServer) {
 				ctx,
 				deviceId,
 				tool: "create_workspace",
-				params: { workspaces },
+				params: { projectId, workspaces },
 			});
 		},
 	);

@@ -14,6 +14,7 @@ const workspaceInputSchema = z.object({
 });
 
 const schema = z.object({
+	projectId: z.string(),
 	workspaces: z.array(workspaceInputSchema).min(1).max(5),
 });
 
@@ -29,32 +30,7 @@ async function execute(
 	params: z.infer<typeof schema>,
 	ctx: ToolContext,
 ): Promise<CommandResult> {
-	// Derive projectId from current workspace or use the only available project
-	const workspaces = ctx.getWorkspaces();
-	if (!workspaces || workspaces.length === 0) {
-		return { success: false, error: "No workspaces available" };
-	}
-
-	// Try to get from current workspace first
-	let projectId: string | null = null;
-	const activeWorkspaceId = ctx.getActiveWorkspaceId();
-	if (activeWorkspaceId) {
-		const activeWorkspace = workspaces.find(
-			(ws) => ws.id === activeWorkspaceId,
-		);
-		if (activeWorkspace) {
-			projectId = activeWorkspace.projectId;
-		}
-	}
-
-	// Fall back to the most recently used workspace's project
-	if (!projectId) {
-		const sorted = [...workspaces].sort(
-			(a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0),
-		);
-		projectId = sorted[0].projectId;
-	}
-
+	const { projectId } = params;
 	const created: CreatedWorkspace[] = [];
 	const errors: BulkItemError[] = [];
 
