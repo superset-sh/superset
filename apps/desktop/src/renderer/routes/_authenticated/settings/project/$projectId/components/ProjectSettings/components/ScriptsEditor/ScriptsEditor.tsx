@@ -17,7 +17,6 @@ interface ScriptEntry {
 
 interface ScriptsEditorProps {
 	projectId: string;
-	projectName: string;
 	className?: string;
 }
 
@@ -211,11 +210,7 @@ function ScriptsSection({
 	);
 }
 
-export function ScriptsEditor({
-	projectId,
-	projectName,
-	className,
-}: ScriptsEditorProps) {
+export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 	const utils = electronTrpc.useUtils();
 
 	const { data: configData, isLoading } =

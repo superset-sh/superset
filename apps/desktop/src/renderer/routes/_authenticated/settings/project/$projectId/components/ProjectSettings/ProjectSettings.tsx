@@ -130,7 +130,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				</div>
 
 				<div className="pt-4 border-t">
-					<ScriptsEditor projectId={project.id} projectName={project.name} />
+					<ScriptsEditor projectId={project.id} />
 				</div>
 
 				<div className="pt-4 border-t space-y-4">

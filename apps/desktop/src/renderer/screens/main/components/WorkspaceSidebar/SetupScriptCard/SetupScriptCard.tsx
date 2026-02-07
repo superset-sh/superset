@@ -70,12 +70,14 @@ export function SetupScriptCard({
 
 						<button
 							type="button"
-							onClick={() =>
-								navigate({
-									to: "/settings/project/$projectId",
-									params: { projectId: projectId! },
-								})
-							}
+							onClick={() => {
+								if (projectId) {
+									navigate({
+										to: "/settings/project/$projectId",
+										params: { projectId },
+									});
+								}
+							}}
 							className="text-xs text-primary hover:underline mt-1.5"
 						>
 							Configure
