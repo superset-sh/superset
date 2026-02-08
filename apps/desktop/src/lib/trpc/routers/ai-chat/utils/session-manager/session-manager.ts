@@ -309,6 +309,54 @@ export class ChatSessionManager extends EventEmitter {
 		await this.store.update(sessionId, patch);
 	}
 
+	async updateAgentConfig({
+		sessionId,
+		maxThinkingTokens,
+	}: {
+		sessionId: string;
+		maxThinkingTokens?: number | null;
+	}): Promise<void> {
+		const session = this.sessions.get(sessionId);
+		if (!session) {
+			console.warn(
+				`[chat/session] Session ${sessionId} not found for config update`,
+			);
+			return;
+		}
+
+		const registration = this.provider.getAgentRegistration({
+			sessionId,
+			cwd: session.cwd,
+		});
+
+		if (maxThinkingTokens !== undefined) {
+			if (maxThinkingTokens === null) {
+				delete registration.bodyTemplate.maxThinkingTokens;
+			} else {
+				registration.bodyTemplate.maxThinkingTokens = maxThinkingTokens;
+			}
+		}
+
+		const headers = buildProxyHeaders();
+		const res = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ agents: [registration] }),
+		});
+		if (!res.ok) {
+			throw new Error(
+				`POST /v1/sessions/${sessionId}/agents failed: ${res.status}`,
+			);
+		}
+
+		console.log(
+			`[chat/session] Updated agent config for ${sessionId}`,
+			maxThinkingTokens !== undefined
+				? `maxThinkingTokens=${maxThinkingTokens}`
+				: "",
+		);
+	}
+
 	isSessionActive(sessionId: string): boolean {
 		return this.sessions.has(sessionId);
 	}

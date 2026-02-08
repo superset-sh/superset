@@ -1,36 +1,45 @@
+import type { DurableChatCollections } from "@superset/durable-session/react";
 import {
 	Context,
-	ContextCacheUsage,
 	ContextContent,
 	ContextContentBody,
 	ContextContentFooter,
 	ContextContentHeader,
 	ContextInputUsage,
 	ContextOutputUsage,
-	ContextReasoningUsage,
 	ContextTrigger,
 } from "@superset/ui/ai-elements/context";
+import { useLiveQuery } from "@tanstack/react-db";
 
-const MOCK_CONTEXT = {
-	usedTokens: 84_200,
-	maxTokens: 200_000,
-	modelId: "claude-sonnet-4-5-20250929",
-	usage: {
-		inputTokens: 42_100,
-		outputTokens: 18_300,
-		totalTokens: 84_200,
-		reasoningTokens: 12_800,
-		cachedInputTokens: 11_000,
-	},
-} as const;
+const MAX_TOKENS = 200_000;
 
-export function ContextIndicator() {
+interface ContextIndicatorProps {
+	collections: DurableChatCollections;
+	modelId: string;
+}
+
+export function ContextIndicator({
+	collections,
+	modelId,
+}: ContextIndicatorProps) {
+	const { data: statsRows } = useLiveQuery((q) =>
+		q.from({ s: collections.sessionStats }).select(({ s }) => ({ ...s })),
+	);
+
+	const stats = statsRows?.[0];
+	const usedTokens = stats?.totalTokens ?? 0;
+	const usage = {
+		inputTokens: stats?.promptTokens ?? 0,
+		outputTokens: stats?.completionTokens ?? 0,
+		totalTokens: stats?.totalTokens ?? 0,
+	};
+
 	return (
 		<Context
-			maxTokens={MOCK_CONTEXT.maxTokens}
-			modelId={MOCK_CONTEXT.modelId}
-			usage={MOCK_CONTEXT.usage}
-			usedTokens={MOCK_CONTEXT.usedTokens}
+			maxTokens={MAX_TOKENS}
+			modelId={modelId}
+			usage={usage}
+			usedTokens={usedTokens}
 		>
 			<ContextTrigger />
 			<ContextContent>
@@ -39,8 +48,6 @@ export function ContextIndicator() {
 					<div className="space-y-1">
 						<ContextInputUsage />
 						<ContextOutputUsage />
-						<ContextReasoningUsage />
-						<ContextCacheUsage />
 					</div>
 				</ContextContentBody>
 				<ContextContentFooter />

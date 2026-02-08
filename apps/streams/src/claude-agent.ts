@@ -32,6 +32,7 @@ const agentRequestSchema = z.object({
 	cwd: z.string().optional(),
 	env: z.record(z.string(), z.string()).optional(),
 	notification: notificationSchema.optional(),
+	maxThinkingTokens: z.number().optional(),
 });
 
 interface SessionEntry {
@@ -169,7 +170,14 @@ app.post("/", async (c) => {
 		);
 	}
 
-	const { messages, sessionId, cwd, env: agentEnv, notification } = parsed.data;
+	const {
+		messages,
+		sessionId,
+		cwd,
+		env: agentEnv,
+		notification,
+		maxThinkingTokens,
+	} = parsed.data;
 
 	const latestUserMessage = messages?.filter((m) => m.role === "user").pop();
 
@@ -205,6 +213,7 @@ app.post("/", async (c) => {
 			env: queryEnv,
 			abortController,
 			...(hooks && { hooks }),
+			...(maxThinkingTokens !== undefined && { maxThinkingTokens }),
 		},
 	});
 
