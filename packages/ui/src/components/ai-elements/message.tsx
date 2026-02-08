@@ -44,7 +44,7 @@ export const MessageContent = ({
 }: MessageContentProps) => (
 	<div
 		className={cn(
-			"flex w-full min-w-0 flex-col gap-1.5 text-sm",
+			"flex w-full min-w-0 flex-col gap-1.5 text-sm select-text",
 			"group-[.is-user]:w-full",
 			"group-[.is-assistant]:text-foreground",
 			className,
