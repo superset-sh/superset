@@ -146,7 +146,7 @@ app.post("/", async (c) => {
 						toolCallId: toolUseId,
 						toolName,
 						input,
-						approval: { id: toolUseId },
+						approval: { id: toolUseId, needsApproval: true },
 					},
 					timestamp: Date.now(),
 				});
@@ -301,7 +301,7 @@ app.post("/approvals/:toolUseId", async (c) => {
 	resolvePendingPermission({
 		toolUseId,
 		result: approved
-			? { behavior: "allow", ...(updatedInput && { updatedInput }) }
+			? { behavior: "allow", updatedInput: updatedInput ?? {} }
 			: { behavior: "deny", message: "User denied permission" },
 	});
 

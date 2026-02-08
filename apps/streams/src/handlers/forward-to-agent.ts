@@ -1,3 +1,8 @@
+export type ForwardResult =
+	| { ok: true }
+	| { ok: false; status: number; statusText: string }
+	| { ok: false; status: 0; statusText: string };
+
 export async function forwardToAgent({
 	agentEndpoint,
 	path,
@@ -6,7 +11,7 @@ export async function forwardToAgent({
 	agentEndpoint: string;
 	path: string;
 	body: unknown;
-}): Promise<boolean> {
+}): Promise<ForwardResult> {
 	try {
 		const base = agentEndpoint.endsWith("/")
 			? agentEndpoint.slice(0, -1)
@@ -23,12 +28,16 @@ export async function forwardToAgent({
 			console.error(
 				`[forward-to-agent] Failed: ${res.status} ${res.statusText}`,
 			);
-			return false;
+			return { ok: false, status: res.status, statusText: res.statusText };
 		}
 
-		return true;
+		return { ok: true };
 	} catch (err) {
 		console.error("[forward-to-agent] Error:", err);
-		return false;
+		return {
+			ok: false,
+			status: 0,
+			statusText: (err as Error).message ?? "Connection failed",
+		};
 	}
 }
