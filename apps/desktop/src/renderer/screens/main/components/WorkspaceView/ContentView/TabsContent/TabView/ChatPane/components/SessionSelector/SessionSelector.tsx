@@ -219,7 +219,7 @@ export function SessionSelector({
 
 		return TIME_GROUP_ORDER.filter((g) => groups.has(g)).map((group) => ({
 			label: group,
-			sessions: groups.get(group)!,
+			sessions: groups.get(group) ?? [],
 		}));
 	}, [sessions, allClaudeSessions]);
 
