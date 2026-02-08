@@ -53,10 +53,6 @@ export class ChatSessionManager extends EventEmitter {
 		super();
 	}
 
-	/**
-	 * Start a new session or re-activate an existing one.
-	 * Creates the proxy session, registers the agent, and persists metadata.
-	 */
 	async startSession({
 		sessionId,
 		workspaceId,
@@ -75,7 +71,6 @@ export class ChatSessionManager extends EventEmitter {
 		const headers = buildProxyHeaders();
 
 		try {
-			// Create or re-activate proxy session (PUT is idempotent)
 			const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 				method: "PUT",
 				headers,
@@ -86,7 +81,6 @@ export class ChatSessionManager extends EventEmitter {
 				);
 			}
 
-			// Register agent
 			const registration = this.provider.getAgentRegistration({
 				sessionId,
 				cwd,
@@ -107,7 +101,6 @@ export class ChatSessionManager extends EventEmitter {
 
 			this.sessions.set(sessionId, { sessionId, cwd });
 
-			// Persist metadata
 			await this.store.create({
 				sessionId,
 				workspaceId,
@@ -135,10 +128,6 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Restore a previously deactivated session.
-	 * Re-creates the proxy session and re-registers the agent (both idempotent).
-	 */
 	async restoreSession({
 		sessionId,
 		cwd,
@@ -154,7 +143,6 @@ export class ChatSessionManager extends EventEmitter {
 		const headers = buildProxyHeaders();
 
 		try {
-			// PUT is idempotent — safe if session still exists on proxy
 			const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 				method: "PUT",
 				headers,
@@ -206,9 +194,6 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Interrupt a running generation without destroying the session.
-	 */
 	async interrupt({ sessionId }: { sessionId: string }): Promise<void> {
 		if (!this.sessions.has(sessionId)) {
 			console.warn(
@@ -229,11 +214,7 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Deactivate a session — interrupt any running work and remove from
-	 * the active set, but do NOT delete the proxy session.
-	 * The session's messages remain in LMDB and can be restored later.
-	 */
+	// Removes from active set but preserves the proxy session for later restore
 	async deactivateSession({ sessionId }: { sessionId: string }): Promise<void> {
 		if (!this.sessions.has(sessionId)) {
 			return;
@@ -241,18 +222,14 @@ export class ChatSessionManager extends EventEmitter {
 
 		console.log(`[chat/session] Deactivating session ${sessionId}`);
 
-		// Best-effort interrupt
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
 				headers: buildProxyHeaders(),
 				body: JSON.stringify({}),
 			});
-		} catch {
-			// Non-fatal
-		}
+		} catch {}
 
-		// Capture provider session ID for future resume
 		try {
 			const providerSessionId =
 				await this.provider.getProviderSessionId(sessionId);
@@ -266,9 +243,7 @@ export class ChatSessionManager extends EventEmitter {
 					lastActiveAt: Date.now(),
 				});
 			}
-		} catch {
-			// Non-fatal — metadata update failure shouldn't block deactivation
-		}
+		} catch {}
 
 		this.sessions.delete(sessionId);
 
@@ -279,38 +254,26 @@ export class ChatSessionManager extends EventEmitter {
 		} satisfies SessionEndEvent);
 	}
 
-	/**
-	 * Permanently delete a session — removes from proxy and archives metadata.
-	 */
 	async deleteSession({ sessionId }: { sessionId: string }): Promise<void> {
 		console.log(`[chat/session] Deleting session ${sessionId}`);
 		const headers = buildProxyHeaders();
 
-		// Interrupt first
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
 				headers,
 				body: JSON.stringify({}),
 			});
-		} catch {
-			// Non-fatal
-		}
+		} catch {}
 
-		// Delete from proxy
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 				method: "DELETE",
 				headers,
 			});
-		} catch {
-			// Non-fatal
-		}
+		} catch {}
 
-		// Provider cleanup
 		await this.provider.cleanup(sessionId);
-
-		// Archive metadata
 		await this.store.archive(sessionId);
 
 		this.sessions.delete(sessionId);
@@ -322,9 +285,6 @@ export class ChatSessionManager extends EventEmitter {
 		} satisfies SessionEndEvent);
 	}
 
-	/**
-	 * Update session metadata (title, preview, etc.)
-	 */
 	async updateSessionMeta(
 		sessionId: string,
 		patch: {

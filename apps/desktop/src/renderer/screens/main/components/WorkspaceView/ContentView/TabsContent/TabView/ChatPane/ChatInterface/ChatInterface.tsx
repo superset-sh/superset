@@ -109,7 +109,6 @@ export function ChatInterface({
 	const renameSessionRef = useRef(renameSession);
 	renameSessionRef.current = renameSession;
 
-	// Check if session already exists in metadata store
 	const { data: existingSession } = electronTrpc.aiChat.getSession.useQuery(
 		{ sessionId },
 		{ enabled: !!sessionId },
@@ -117,17 +116,14 @@ export function ChatInterface({
 
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
-		// Wait for getSession query to settle
 		if (existingSession === undefined) return;
 
 		hasConnected.current = false;
 		setSessionReady(false);
 
 		if (existingSession) {
-			// Session exists in metadata — restore it
 			restoreSessionRef.current.mutate({ sessionId, cwd });
 		} else {
-			// New session
 			startSessionRef.current.mutate({
 				sessionId,
 				workspaceId,
@@ -140,14 +136,12 @@ export function ChatInterface({
 		};
 	}, [sessionId, cwd, workspaceId, existingSession]);
 
-	// Connect once both session is ready and config has loaded
 	useEffect(() => {
 		if (sessionReady && config?.proxyUrl) {
 			doConnect();
 		}
 	}, [sessionReady, config?.proxyUrl, doConnect]);
 
-	// Auto-title: after first user + assistant exchange, rename session
 	const hasAutoTitled = useRef(false);
 	useEffect(() => {
 		if (hasAutoTitled.current) return;
@@ -159,7 +153,6 @@ export function ChatInterface({
 
 		hasAutoTitled.current = true;
 
-		// Use first user message as title, truncated
 		const textPart = userMsg.parts?.find((p) => p.type === "text");
 		const firstUserText =
 			(textPart && "content" in textPart
@@ -172,7 +165,7 @@ export function ChatInterface({
 		renameSessionRef.current.mutate({ sessionId, title });
 	}, [messages, sessionId]);
 
-	// Reset auto-title flag when session changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
 	useEffect(() => {
 		hasAutoTitled.current = false;
 	}, [sessionId]);

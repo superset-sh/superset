@@ -1,21 +1,3 @@
-/**
- * Claude Agent Endpoint
- *
- * Hono app that acts as an AI agent the proxy can invoke.
- * The proxy's `invokeAgent()` POSTs to this endpoint and parses the SSE response.
- *
- * Flow:
- * 1. Proxy sends { messages, stream, sessionId, cwd, env }
- * 2. Agent extracts latest user message as the prompt
- * 3. Runs `query()` from @anthropic-ai/claude-agent-sdk
- * 4. Converts each SDKMessage to TanStack AI AG-UI chunks
- * 5. Returns SSE response with `data: {chunk}\n\n` lines
- *
- * Session state: Maintains Map<sessionId, claudeSessionId> for multi-turn resume.
- * Binary path: From CLAUDE_BINARY_PATH env var.
- * Auth: From environment (ANTHROPIC_API_KEY or OAuth via ~/.claude/.credentials.json).
- */
-
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -24,18 +6,10 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { createConverter } from "./sdk-to-ai-chunks";
 
-// ============================================================================
-// Constants
-// ============================================================================
-
 const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
 const MAX_AGENT_TURNS = 25;
 const SESSION_MAX_SIZE = 1000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-// ============================================================================
-// Request Validation
-// ============================================================================
 
 const agentRequestSchema = z.object({
 	messages: z
@@ -47,10 +21,6 @@ const agentRequestSchema = z.object({
 	env: z.record(z.string(), z.string()).optional(),
 });
 
-// ============================================================================
-// Session State
-// ============================================================================
-
 interface SessionEntry {
 	claudeSessionId: string;
 	lastAccessedAt: number;
@@ -58,7 +28,6 @@ interface SessionEntry {
 
 const claudeSessions = new Map<string, SessionEntry>();
 
-// Persistence for claude session mapping
 const SESSIONS_DIR =
 	process.env.DURABLE_STREAMS_DATA_DIR ??
 	join(homedir(), ".superset", "chat-streams");
@@ -91,7 +60,6 @@ function persistSessions(): void {
 	}
 }
 
-// Load persisted sessions on startup
 loadPersistedSessions();
 
 function evictStaleSessions(): void {
@@ -102,7 +70,6 @@ function evictStaleSessions(): void {
 		}
 	}
 
-	// If still over capacity, evict oldest entries
 	if (claudeSessions.size > SESSION_MAX_SIZE) {
 		const sorted = [...claudeSessions.entries()].sort(
 			(a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt,
@@ -131,10 +98,6 @@ function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
 	persistSessions();
 }
 
-// ============================================================================
-// App
-// ============================================================================
-
 const app = new Hono();
 
 app.post("/", async (c) => {
@@ -156,7 +119,6 @@ app.post("/", async (c) => {
 
 	const { messages, sessionId, cwd, env: agentEnv } = parsed.data;
 
-	// Extract prompt from latest user message
 	const latestUserMessage = messages?.filter((m) => m.role === "user").pop();
 
 	if (!latestUserMessage) {
@@ -166,17 +128,13 @@ app.post("/", async (c) => {
 	const prompt = latestUserMessage.content;
 	const claudeSessionId = sessionId ? getClaudeSessionId(sessionId) : undefined;
 
-	// Build environment for Claude binary
 	const baseEnv =
 		agentEnv ?? (process.env as unknown as Record<string, string>);
 	const queryEnv: Record<string, string> = { ...baseEnv };
-
-	// Ensure CLAUDE_CODE_ENTRYPOINT is set
 	queryEnv.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
 
 	const binaryPath = process.env.CLAUDE_BINARY_PATH;
 
-	// Run Claude query
 	const abortController = new AbortController();
 	const result = query({
 		prompt,
@@ -193,10 +151,8 @@ app.post("/", async (c) => {
 		},
 	});
 
-	// Create stateful converter
 	const converter = createConverter();
 
-	// Abort handling: when the fetch is aborted, interrupt the query
 	const requestSignal = c.req.raw.signal;
 	const abortHandler = () => {
 		abortController.abort();
@@ -205,7 +161,6 @@ app.post("/", async (c) => {
 	};
 	requestSignal.addEventListener("abort", abortHandler, { once: true });
 
-	// Return SSE response
 	const encoder = new TextEncoder();
 	const readable = new ReadableStream({
 		async start(controller) {
@@ -213,7 +168,6 @@ app.post("/", async (c) => {
 				for await (const message of result) {
 					if (requestSignal.aborted) break;
 
-					// Extract claudeSessionId from system init
 					const msg = message as Record<string, unknown>;
 					if (msg.type === "system" && msg.subtype === "init") {
 						const sdkSessionId = msg.session_id as string | undefined;
@@ -223,7 +177,6 @@ app.post("/", async (c) => {
 						continue;
 					}
 
-					// Convert SDKMessage to AG-UI chunks
 					const chunks = converter.convert(message);
 					for (const chunk of chunks) {
 						controller.enqueue(
@@ -252,7 +205,7 @@ app.post("/", async (c) => {
 						controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 					} catch (enqueueErr) {
 						console.debug(
-							"[claude-agent] Controller already closed, could not write error event:",
+							"[claude-agent] Controller already closed:",
 							enqueueErr,
 						);
 					}
@@ -286,7 +239,6 @@ app.post("/", async (c) => {
 	});
 });
 
-// Session lookup — used by providers to retrieve the claudeSessionId
 app.get("/sessions/:sessionId", (c) => {
 	const sessionId = c.req.param("sessionId");
 	const claudeSessionId = getClaudeSessionId(sessionId);
@@ -298,7 +250,6 @@ app.get("/sessions/:sessionId", (c) => {
 	return c.json({ claudeSessionId });
 });
 
-// Health check for the agent
 app.get("/health", (c) => {
 	return c.json({
 		status: "ok",

@@ -59,7 +59,6 @@ export function ChatPane({
 	const handleDeleteSession = useCallback(
 		(sessionIdToDelete: string) => {
 			deleteSession.mutate({ sessionId: sessionIdToDelete });
-			// If deleting the current session, switch to a new one
 			if (sessionIdToDelete === sessionId) {
 				handleNewChat();
 			}

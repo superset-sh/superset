@@ -58,10 +58,6 @@ export const createAiChatRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Deactivate — interrupts work, removes from active set,
-		 * but preserves the proxy session and metadata.
-		 */
 		stopSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
@@ -71,9 +67,6 @@ export const createAiChatRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Permanently delete — removes proxy session and archives metadata.
-		 */
 		deleteSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {

@@ -1,11 +1,3 @@
-/**
- * Claude SDK Agent Provider
- *
- * Implements AgentProvider for the Claude SDK backend.
- * Delegates to the Claude agent endpoint (apps/streams) for execution
- * and reads back the provider session ID for multi-turn resume.
- */
-
 import { buildClaudeEnv } from "../auth";
 import type {
 	AgentProvider,
@@ -57,7 +49,5 @@ export class ClaudeSdkProvider implements AgentProvider {
 		}
 	}
 
-	async cleanup(_sessionId: string): Promise<void> {
-		// No-op — the agent endpoint manages its own state
-	}
+	async cleanup(_sessionId: string): Promise<void> {}
 }

@@ -10,7 +10,6 @@ export type {
 } from "./session-manager";
 export { ChatSessionManager } from "./session-manager";
 
-// Singleton instances
 const provider = new ClaudeSdkProvider();
 const sessionStore = new SessionStore();
 
