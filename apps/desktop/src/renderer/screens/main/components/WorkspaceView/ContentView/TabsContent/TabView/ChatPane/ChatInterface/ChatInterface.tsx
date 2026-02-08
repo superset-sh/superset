@@ -128,7 +128,13 @@ export function ChatInterface({
 		setSessionReady(false);
 
 		if (existingSession) {
-			restoreSessionRef.current.mutate({ sessionId, cwd, paneId, tabId });
+			restoreSessionRef.current.mutate({
+				sessionId,
+				cwd,
+				paneId,
+				tabId,
+				model: selectedModel.id,
+			});
 		} else {
 			startSessionRef.current.mutate({
 				sessionId,
@@ -136,13 +142,22 @@ export function ChatInterface({
 				cwd,
 				paneId,
 				tabId,
+				model: selectedModel.id,
 			});
 		}
 
 		return () => {
 			stopSessionRef.current.mutate({ sessionId });
 		};
-	}, [sessionId, cwd, workspaceId, existingSession, paneId, tabId]);
+	}, [
+		sessionId,
+		cwd,
+		workspaceId,
+		existingSession,
+		paneId,
+		tabId,
+		selectedModel.id,
+	]);
 
 	useEffect(() => {
 		if (sessionReady && config?.proxyUrl) {
@@ -214,6 +229,27 @@ export function ChatInterface({
 		[addToolApprovalResponse],
 	);
 
+	const handleAnswer = useCallback(
+		(toolUseId: string, answers: Record<string, string>) => {
+			if (!config?.proxyUrl) return;
+			const url = `${config.proxyUrl}/v1/sessions/${sessionId}/answers/${toolUseId}`;
+			const headers: Record<string, string> = {
+				"Content-Type": "application/json",
+			};
+			if (config.authToken) {
+				headers.Authorization = `Bearer ${config.authToken}`;
+			}
+			fetch(url, {
+				method: "POST",
+				headers,
+				body: JSON.stringify({ answers }),
+			}).catch((err) => {
+				console.error("[chat] Failed to submit answer:", err);
+			});
+		},
+		[config?.proxyUrl, config?.authToken, sessionId],
+	);
+
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -261,6 +297,7 @@ export function ChatInterface({
 								message={msg}
 								onApprove={handleApprove}
 								onDeny={handleDeny}
+								onAnswer={handleAnswer}
 							/>
 						))
 					)}

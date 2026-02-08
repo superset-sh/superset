@@ -12,8 +12,10 @@ import {
 } from "@superset/ui/ai-elements/confirmation";
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
 import { ToolCall } from "@superset/ui/ai-elements/tool-call";
+import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
+import { MessageCircleQuestionIcon } from "lucide-react";
 import {
 	mapApproval,
 	mapToolCallState,
@@ -26,6 +28,7 @@ interface ToolCallBlockProps {
 	toolResultPart?: ToolResultPart;
 	onApprove?: (approvalId: string) => void;
 	onDeny?: (approvalId: string) => void;
+	onAnswer?: (toolUseId: string, answers: Record<string, string>) => void;
 }
 
 type SpecializedToolState =
@@ -34,10 +37,6 @@ type SpecializedToolState =
 	| "output-available"
 	| "output-error";
 
-/**
- * Map the broader ToolDisplayState to the 4-state subset
- * used by BashTool, FileDiffTool, WebSearchTool, WebFetchTool.
- */
 function toSpecializedState(
 	tc: ToolCallPart,
 	result?: ToolResultPart,
@@ -208,6 +207,45 @@ function WebFetchToolBlock({
 	);
 }
 
+function UserQuestionToolBlock({
+	toolCallPart,
+	toolResultPart,
+	onAnswer,
+}: {
+	toolCallPart: ToolCallPart;
+	toolResultPart?: ToolResultPart;
+	onAnswer?: (toolUseId: string, answers: Record<string, string>) => void;
+}) {
+	const args = safeParseJson(toolCallPart.arguments);
+	const questions = Array.isArray(args.questions) ? args.questions : [];
+	if (toolResultPart) {
+		const resultContent = toolResultPart?.content
+			? safeParseJson(toolResultPart.content)
+			: {};
+		const answers = resultContent.answers as Record<string, string> | undefined;
+		return (
+			<ToolCall
+				icon={MessageCircleQuestionIcon}
+				isError={false}
+				isPending={false}
+				title={
+					answers
+						? `Answered ${Object.keys(answers).length} question(s)`
+						: "Question skipped"
+				}
+			/>
+		);
+	}
+
+	return (
+		<UserQuestionTool
+			questions={questions}
+			onAnswer={(answers) => onAnswer?.(toolCallPart.id, answers)}
+			onSkip={() => onAnswer?.(toolCallPart.id, {})}
+		/>
+	);
+}
+
 function DefaultToolBlock({
 	toolCallPart,
 	toolResultPart,
@@ -245,7 +283,6 @@ function DefaultToolBlock({
 	);
 }
 
-/** Tool names that get specialized collapsible rendering. */
 const SPECIALIZED_DISPATCH: Record<string, string> = {
 	Bash: "bash",
 	FileEdit: "file-edit",
@@ -254,6 +291,7 @@ const SPECIALIZED_DISPATCH: Record<string, string> = {
 	Write: "file-write",
 	WebSearch: "web-search",
 	WebFetch: "web-fetch",
+	AskUserQuestion: "user-question",
 };
 
 export function ToolCallBlock({
@@ -261,6 +299,7 @@ export function ToolCallBlock({
 	toolResultPart,
 	onApprove,
 	onDeny,
+	onAnswer,
 }: ToolCallBlockProps) {
 	const state = mapToolCallState(toolCallPart, toolResultPart);
 	const approval = mapApproval(toolCallPart.approval);
@@ -303,6 +342,14 @@ export function ToolCallBlock({
 					<WebFetchToolBlock
 						toolCallPart={toolCallPart}
 						toolResultPart={toolResultPart}
+					/>
+				);
+			case "user-question":
+				return (
+					<UserQuestionToolBlock
+						toolCallPart={toolCallPart}
+						toolResultPart={toolResultPart}
+						onAnswer={onAnswer}
 					/>
 				);
 			default:

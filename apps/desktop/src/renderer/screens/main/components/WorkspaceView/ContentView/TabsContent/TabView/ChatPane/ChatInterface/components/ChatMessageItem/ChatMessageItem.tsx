@@ -27,6 +27,7 @@ interface ChatMessageItemProps {
 	message: UIMessage;
 	onApprove?: (approvalId: string) => void;
 	onDeny?: (approvalId: string) => void;
+	onAnswer?: (toolUseId: string, answers: Record<string, string>) => void;
 }
 
 const EXPLORING_TOOLS = new Set(["Read", "Grep", "Glob"]);
@@ -50,7 +51,6 @@ type RenderedItem =
 			items: Array<{ part: ToolCallPart; index: number }>;
 	  };
 
-/** Group consecutive exploring tool-calls into ExploringGroup when 3+. */
 function groupParts(parts: MessagePart[]): RenderedItem[] {
 	const result: RenderedItem[] = [];
 	let i = 0;
@@ -59,7 +59,6 @@ function groupParts(parts: MessagePart[]): RenderedItem[] {
 		const part = parts[i];
 
 		if (part.type === "tool-call" && EXPLORING_TOOLS.has(part.name)) {
-			// Collect consecutive exploring tool-calls
 			const run: Array<{ part: ToolCallPart; index: number }> = [];
 			while (i < parts.length) {
 				const current = parts[i];
@@ -67,7 +66,6 @@ function groupParts(parts: MessagePart[]): RenderedItem[] {
 					run.push({ part: current as ToolCallPart, index: i });
 					i++;
 				} else if (current.type === "tool-result") {
-					// Skip tool-result parts inline (they're handled via toolResults map)
 					i++;
 				} else {
 					break;
@@ -126,6 +124,7 @@ export function ChatMessageItem({
 	message,
 	onApprove,
 	onDeny,
+	onAnswer,
 }: ChatMessageItemProps) {
 	const toolResults = new Map<string, ToolResultPart>();
 	for (const part of message.parts) {
@@ -140,7 +139,6 @@ export function ChatMessageItem({
 
 	const grouped = groupParts(message.parts);
 
-	// User messages: render as 1code-style bubble
 	if (message.role === "user") {
 		const textContent = message.parts
 			.filter((p) => p.type === "text" && p.content)
@@ -160,7 +158,6 @@ export function ChatMessageItem({
 		);
 	}
 
-	// Assistant messages: render with tool grouping + text
 	return (
 		<Message from={message.role}>
 			<MessageContent>
@@ -212,6 +209,7 @@ export function ChatMessageItem({
 									toolResultPart={toolResults.get(tc.id)}
 									onApprove={onApprove}
 									onDeny={onDeny}
+									onAnswer={onAnswer}
 								/>
 							);
 						}

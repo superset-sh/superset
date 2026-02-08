@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
 	type HookCallbackMatcher,
 	type HookEvent,
+	type Options,
 	query,
 } from "@anthropic-ai/claude-agent-sdk";
 import { Hono } from "hono";
@@ -13,7 +14,7 @@ import { createConverter } from "./sdk-to-ai-chunks";
 const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
 const MAX_AGENT_TURNS = 25;
 const SESSION_MAX_SIZE = 1000;
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
 const notificationSchema = z.object({
 	port: z.number(),
@@ -32,6 +33,17 @@ const agentRequestSchema = z.object({
 	cwd: z.string().optional(),
 	env: z.record(z.string(), z.string()).optional(),
 	notification: notificationSchema.optional(),
+	model: z.string().optional(),
+	permissionMode: z
+		.enum(["default", "acceptEdits", "bypassPermissions"])
+		.optional(),
+	allowedTools: z.array(z.string()).optional(),
+	disallowedTools: z.array(z.string()).optional(),
+	maxBudgetUsd: z.number().optional(),
+	maxThinkingTokens: z.number().optional(),
+	fallbackModel: z.string().optional(),
+	additionalDirectories: z.array(z.string()).optional(),
+	betas: z.array(z.string()).optional(),
 });
 
 interface SessionEntry {
@@ -111,9 +123,22 @@ function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
 	persistSessions();
 }
 
+interface PendingPermission {
+	resolve: (
+		result:
+			| { behavior: "allow"; updatedInput?: Record<string, unknown> }
+			| { behavior: "deny"; message: string },
+	) => void;
+	reject: (error: Error) => void;
+	timeoutId: ReturnType<typeof setTimeout>;
+}
+
+const pendingPermissions = new Map<string, PendingPermission>();
+
+const PERMISSION_TIMEOUT_MS = 5 * 60 * 1000;
+
 type NotificationContext = z.infer<typeof notificationSchema>;
 
-// Mirrors the terminal shell wrapper hooks that call GET /hook/complete
 function buildNotificationHooks({
 	notification,
 }: {
@@ -169,7 +194,22 @@ app.post("/", async (c) => {
 		);
 	}
 
-	const { messages, sessionId, cwd, env: agentEnv, notification } = parsed.data;
+	const {
+		messages,
+		sessionId,
+		cwd,
+		env: agentEnv,
+		notification,
+		model,
+		permissionMode,
+		allowedTools,
+		disallowedTools,
+		maxBudgetUsd,
+		maxThinkingTokens,
+		fallbackModel,
+		additionalDirectories,
+		betas,
+	} = parsed.data;
 
 	const latestUserMessage = messages?.filter((m) => m.role === "user").pop();
 
@@ -191,26 +231,117 @@ app.post("/", async (c) => {
 		? buildNotificationHooks({ notification })
 		: undefined;
 
+	const resolvedPermissionMode = permissionMode ?? "bypassPermissions";
+
+	const converter = createConverter();
+	const encoder = new TextEncoder();
+	const requestSignal = c.req.raw.signal;
+
+	let streamController: ReadableStreamDefaultController<Uint8Array> | null =
+		null;
+
+	function emitSSE(data: unknown): void {
+		if (streamController && !requestSignal.aborted) {
+			try {
+				streamController.enqueue(
+					encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
+				);
+			} catch {}
+		}
+	}
+
+	const needsApproval = resolvedPermissionMode !== "bypassPermissions";
+
+	const canUseTool = needsApproval
+		? async (
+				toolName: string,
+				input: Record<string, unknown>,
+				options: { toolUseID: string; signal: AbortSignal },
+			) => {
+				const toolUseId = options.toolUseID;
+
+				if (toolName === "AskUserQuestion") {
+					emitSSE({
+						type: "USER_QUESTION_REQUEST",
+						toolCallId: toolUseId,
+						toolName,
+						questions: input?.questions,
+						timestamp: Date.now(),
+					});
+				} else {
+					emitSSE({
+						type: "TOOL_CALL_APPROVAL",
+						toolCallId: toolUseId,
+						toolName,
+						input,
+						timestamp: Date.now(),
+					});
+				}
+
+				return new Promise<
+					| {
+							behavior: "allow";
+							updatedInput?: Record<string, unknown>;
+					  }
+					| { behavior: "deny"; message: string }
+				>((resolve, reject) => {
+					const timeoutId = setTimeout(() => {
+						pendingPermissions.delete(toolUseId);
+						resolve({
+							behavior: "deny",
+							message: "Permission request timed out",
+						});
+					}, PERMISSION_TIMEOUT_MS);
+
+					pendingPermissions.set(toolUseId, {
+						resolve,
+						reject,
+						timeoutId,
+					});
+
+					options.signal.addEventListener(
+						"abort",
+						() => {
+							pendingPermissions.delete(toolUseId);
+							clearTimeout(timeoutId);
+							reject(new Error("Aborted"));
+						},
+						{ once: true },
+					);
+				});
+			}
+		: undefined;
+
 	const abortController = new AbortController();
 	const result = query({
 		prompt,
 		options: {
 			...(claudeSessionId && { resume: claudeSessionId }),
 			...(cwd && { cwd }),
-			model: process.env.CLAUDE_MODEL ?? DEFAULT_MODEL,
+			model: model ?? process.env.CLAUDE_MODEL ?? DEFAULT_MODEL,
 			maxTurns: MAX_AGENT_TURNS,
 			includePartialMessages: true,
-			permissionMode: "bypassPermissions" as const,
+			permissionMode: resolvedPermissionMode as
+				| "default"
+				| "acceptEdits"
+				| "bypassPermissions",
+			settingSources: ["user", "project", "local"],
+			systemPrompt: { type: "preset" as const, preset: "claude_code" as const },
 			...(binaryPath && { pathToClaudeCodeExecutable: binaryPath }),
 			env: queryEnv,
 			abortController,
 			...(hooks && { hooks }),
+			...(canUseTool && { canUseTool }),
+			...(allowedTools && { allowedTools }),
+			...(disallowedTools && { disallowedTools }),
+			...(maxBudgetUsd !== undefined && { maxBudgetUsd }),
+			...(maxThinkingTokens !== undefined && { maxThinkingTokens }),
+			...(fallbackModel && { fallbackModel }),
+			...(additionalDirectories && { additionalDirectories }),
+			...(betas && { betas: betas as Options["betas"] }),
 		},
 	});
 
-	const converter = createConverter();
-
-	const requestSignal = c.req.raw.signal;
 	const abortHandler = () => {
 		abortController.abort();
 		result.interrupt().catch(() => {});
@@ -218,9 +349,9 @@ app.post("/", async (c) => {
 	};
 	requestSignal.addEventListener("abort", abortHandler, { once: true });
 
-	const encoder = new TextEncoder();
 	const readable = new ReadableStream({
 		async start(controller) {
+			streamController = controller;
 			try {
 				for await (const message of result) {
 					if (requestSignal.aborted) break;
@@ -274,6 +405,7 @@ app.post("/", async (c) => {
 					console.debug("[claude-agent] Controller already closed:", closeErr);
 				}
 			} finally {
+				streamController = null;
 				requestSignal.removeEventListener("abort", abortHandler);
 				try {
 					result.close();
@@ -294,6 +426,69 @@ app.post("/", async (c) => {
 			Connection: "keep-alive",
 		},
 	});
+});
+
+app.post("/approvals/:toolUseId", async (c) => {
+	const toolUseId = c.req.param("toolUseId");
+	const pending = pendingPermissions.get(toolUseId);
+
+	if (!pending) {
+		return c.json({ error: "No pending permission for this tool use" }, 404);
+	}
+
+	try {
+		const body = (await c.req.json()) as {
+			approved: boolean;
+			updatedInput?: Record<string, unknown>;
+		};
+		pendingPermissions.delete(toolUseId);
+		clearTimeout(pending.timeoutId);
+
+		if (body.approved) {
+			pending.resolve({
+				behavior: "allow",
+				...(body.updatedInput !== undefined && {
+					updatedInput: body.updatedInput,
+				}),
+			});
+		} else {
+			pending.resolve({ behavior: "deny", message: "User denied permission" });
+		}
+
+		return c.json({ ok: true });
+	} catch (err) {
+		return c.json({ error: (err as Error).message }, 400);
+	}
+});
+
+app.post("/answers/:toolUseId", async (c) => {
+	const toolUseId = c.req.param("toolUseId");
+	const pending = pendingPermissions.get(toolUseId);
+
+	if (!pending) {
+		return c.json({ error: "No pending question for this tool use" }, 404);
+	}
+
+	try {
+		const body = (await c.req.json()) as {
+			answers: Record<string, string>;
+			originalInput?: Record<string, unknown>;
+		};
+		pendingPermissions.delete(toolUseId);
+		clearTimeout(pending.timeoutId);
+
+		pending.resolve({
+			behavior: "allow",
+			updatedInput: {
+				...(body.originalInput ?? {}),
+				answers: body.answers,
+			},
+		});
+
+		return c.json({ ok: true });
+	} catch (err) {
+		return c.json({ error: (err as Error).message }, 400);
+	}
 });
 
 app.get("/sessions/:sessionId", (c) => {

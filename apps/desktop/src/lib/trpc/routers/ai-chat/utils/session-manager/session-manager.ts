@@ -59,12 +59,16 @@ export class ChatSessionManager extends EventEmitter {
 		cwd,
 		paneId,
 		tabId,
+		model,
+		permissionMode,
 	}: {
 		sessionId: string;
 		workspaceId: string;
 		cwd: string;
 		paneId?: string;
 		tabId?: string;
+		model?: string;
+		permissionMode?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			console.warn(`[chat/session] Session ${sessionId} already active`);
@@ -91,6 +95,8 @@ export class ChatSessionManager extends EventEmitter {
 				paneId,
 				tabId,
 				workspaceId,
+				model,
+				permissionMode,
 			});
 			const registerRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
@@ -140,11 +146,15 @@ export class ChatSessionManager extends EventEmitter {
 		cwd,
 		paneId,
 		tabId,
+		model,
+		permissionMode,
 	}: {
 		sessionId: string;
 		cwd: string;
 		paneId?: string;
 		tabId?: string;
+		model?: string;
+		permissionMode?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			return;
@@ -169,6 +179,8 @@ export class ChatSessionManager extends EventEmitter {
 				cwd,
 				paneId,
 				tabId,
+				model,
+				permissionMode,
 			});
 			const registerRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
@@ -227,7 +239,6 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
-	// Removes from active set but preserves the proxy session for later restore
 	async deactivateSession({ sessionId }: { sessionId: string }): Promise<void> {
 		if (!this.sessions.has(sessionId)) {
 			return;

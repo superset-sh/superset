@@ -22,12 +22,16 @@ export class ClaudeSdkProvider implements AgentProvider {
 		paneId,
 		tabId,
 		workspaceId,
+		model,
+		permissionMode,
 	}: {
 		sessionId: string;
 		cwd: string;
 		paneId?: string;
 		tabId?: string;
 		workspaceId?: string;
+		model?: string;
+		permissionMode?: string;
 	}): AgentRegistration {
 		const claudeEnv = buildClaudeEnv();
 
@@ -46,6 +50,8 @@ export class ClaudeSdkProvider implements AgentProvider {
 					workspaceId,
 					env: env.NODE_ENV === "development" ? "development" : "production",
 				},
+				...(model && { model }),
+				...(permissionMode && { permissionMode }),
 			},
 		};
 	}

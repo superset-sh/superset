@@ -29,6 +29,8 @@ export const createAiChatRouter = () => {
 					cwd: z.string(),
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
+					model: z.string().optional(),
+					permissionMode: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -38,6 +40,8 @@ export const createAiChatRouter = () => {
 					cwd: input.cwd,
 					paneId: input.paneId,
 					tabId: input.tabId,
+					model: input.model,
+					permissionMode: input.permissionMode,
 				});
 				return { success: true };
 			}),
@@ -49,6 +53,8 @@ export const createAiChatRouter = () => {
 					cwd: z.string(),
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
+					model: z.string().optional(),
+					permissionMode: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -57,6 +63,8 @@ export const createAiChatRouter = () => {
 					cwd: input.cwd,
 					paneId: input.paneId,
 					tabId: input.tabId,
+					model: input.model,
+					permissionMode: input.permissionMode,
 				});
 				return { success: true };
 			}),

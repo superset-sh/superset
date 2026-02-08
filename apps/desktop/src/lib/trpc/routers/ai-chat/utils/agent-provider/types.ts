@@ -19,6 +19,8 @@ export interface AgentProvider {
 		paneId?: string;
 		tabId?: string;
 		workspaceId?: string;
+		model?: string;
+		permissionMode?: string;
 	}): AgentRegistration;
 
 	getProviderSessionId(sessionId: string): Promise<string | undefined>;
