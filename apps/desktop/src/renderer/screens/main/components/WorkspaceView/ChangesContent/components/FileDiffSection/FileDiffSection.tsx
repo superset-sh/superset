@@ -10,7 +10,7 @@ import {
 	getStatusIndicator,
 } from "../../../RightSidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
-import { DiffViewer } from "../DiffViewer";
+import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 
 interface FileDiffSectionProps {
@@ -259,13 +259,11 @@ export function FileDiffSection({
 							<span>Loading diff...</span>
 						</div>
 					) : shouldRenderEditor ? (
-						<DiffViewer
+						<LightDiffViewer
 							contents={diffData}
 							viewMode={diffViewMode}
 							hideUnchangedRegions={hideUnchangedRegions}
 							filePath={file.path}
-							fitContent
-							captureScroll={false}
 						/>
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
