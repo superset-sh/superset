@@ -4,11 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
-import {
-	type ChangeCategory,
-	type ChangedFile,
-	isDiffEditable,
-} from "shared/changes-types";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import {
 	getStatusColor,
 	getStatusIndicator,
@@ -17,6 +13,7 @@ import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
 import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
+import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
 
 interface FileDiffSectionProps {
 	file: ChangedFile;
@@ -87,24 +84,12 @@ export function FileDiffSection({
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
 	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
-	const [isEditing, setIsEditing] = useState(false);
 
-	const editable = isDiffEditable(category);
-	const utils = electronTrpc.useUtils();
-	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
-		onSuccess: () => {
-			utils.changes.getFileContents.invalidate();
-			utils.changes.getStatus.invalidate();
-		},
+	const { isEditing, toggleEdit, handleSave } = useFileDiffEdit({
+		category,
+		worktreePath,
+		filePath: file.path,
 	});
-
-	const handleSave = useCallback(
-		(content: string) => {
-			if (!worktreePath || !file.path) return;
-			saveFileMutation.mutate({ worktreePath, filePath: file.path, content });
-		},
-		[worktreePath, file.path, saveFileMutation],
-	);
 
 	const totalChanges = file.additions + file.deletions;
 	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
@@ -254,9 +239,7 @@ export function FileDiffSection({
 					onCopyPath={handleCopyPath}
 					isCopied={isCopied}
 					isEditing={isEditing}
-					onToggleEdit={
-						editable ? () => setIsEditing((prev) => !prev) : undefined
-					}
+					onToggleEdit={toggleEdit}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
