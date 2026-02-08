@@ -58,8 +58,8 @@ step_load_env() {
   echo "📂 Loading environment variables..."
 
   if [ ! -f ".env" ]; then
-    error "No .env file found in current directory"
-    return 1
+    warn "No .env file found in current directory; using existing environment"
+    return 0
   fi
 
   set -a
@@ -146,18 +146,19 @@ step_delete_neon_branch() {
 
   WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 
+  # Check if branch exists before attempting deletion
+  if ! neonctl branches get "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" &> /dev/null; then
+    warn "Neon branch not found or already deleted: $WORKSPACE_NAME ($BRANCH_ID)"
+    return 0
+  fi
+
   local output
   if output=$(neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force 2>&1); then
     success "Neon branch deleted: $WORKSPACE_NAME ($BRANCH_ID)"
   else
-    # Treat "not found" / "already deleted" as a skip, not a failure
-    if echo "$output" | grep -qiE "not found|does not exist|already deleted|404"; then
-      warn "Neon branch already deleted or not found: $WORKSPACE_NAME ($BRANCH_ID)"
-    else
-      error "Failed to delete Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
-      error "Output: $output"
-      return 1
-    fi
+    error "Failed to delete Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
+    error "Output: $output"
+    return 1
   fi
 
   return 0
