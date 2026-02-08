@@ -103,7 +103,7 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 						onValueChange={setSearchQuery}
 					/>
 					<CommandList className="min-h-[200px] max-h-[200px] [&::-webkit-scrollbar]:hidden">
-						<CommandEmpty className="py-3 text-xs">
+						<CommandEmpty className="px-1.5 py-3 text-left text-xs text-muted-foreground">
 							{searchQuery.length === 0
 								? "Type to search files..."
 								: "No files found."}
