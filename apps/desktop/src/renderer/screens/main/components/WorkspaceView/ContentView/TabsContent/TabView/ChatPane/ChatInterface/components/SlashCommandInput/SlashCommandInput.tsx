@@ -1,8 +1,5 @@
-import {
-	PromptInput,
-	PromptInputTextarea,
-	usePromptInputController,
-} from "@superset/ui/ai-elements/prompt-input";
+import { usePromptInputController } from "@superset/ui/ai-elements/prompt-input";
+import { Popover, PopoverAnchor } from "@superset/ui/popover";
 import { useCallback } from "react";
 import {
 	resolveCommandAction,
@@ -12,7 +9,6 @@ import {
 import { SlashCommandMenu } from "../SlashCommandMenu";
 
 interface SlashCommandInputProps {
-	onSubmit: (message: { text: string }) => void;
 	onClear: () => void;
 	onCommandSend: (command: SlashCommand) => void;
 	cwd: string;
@@ -20,7 +16,6 @@ interface SlashCommandInputProps {
 }
 
 export function SlashCommandInput({
-	onSubmit,
 	onClear,
 	onCommandSend,
 	cwd,
@@ -81,21 +76,16 @@ export function SlashCommandInput({
 	);
 
 	return (
-		<div className="relative">
-			{slashCommands.isOpen && (
-				<SlashCommandMenu
-					commands={slashCommands.filteredCommands}
-					selectedIndex={slashCommands.selectedIndex}
-					onSelect={executeCommand}
-					onHover={slashCommands.setSelectedIndex}
-				/>
-			)}
-			<div onKeyDownCapture={handleKeyDownCapture}>
-				<PromptInput onSubmit={onSubmit}>
-					<PromptInputTextarea placeholder="Ask anything..." />
-					{children}
-				</PromptInput>
-			</div>
-		</div>
+		<Popover open={slashCommands.isOpen}>
+			<PopoverAnchor asChild>
+				<div onKeyDownCapture={handleKeyDownCapture}>{children}</div>
+			</PopoverAnchor>
+			<SlashCommandMenu
+				commands={slashCommands.filteredCommands}
+				selectedIndex={slashCommands.selectedIndex}
+				onSelect={executeCommand}
+				onHover={slashCommands.setSelectedIndex}
+			/>
+		</Popover>
 	);
 }

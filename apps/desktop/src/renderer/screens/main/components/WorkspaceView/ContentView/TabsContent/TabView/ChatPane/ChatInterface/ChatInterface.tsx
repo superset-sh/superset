@@ -7,24 +7,27 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import {
+	PromptInput,
 	PromptInputButton,
 	PromptInputFooter,
 	PromptInputProvider,
 	PromptInputSubmit,
+	PromptInputTextarea,
 	PromptInputTools,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
 import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	HiMiniAtSymbol,
-	HiMiniChatBubbleLeftRight,
-	HiMiniPaperClip,
-} from "react-icons/hi2";
+import { HiMiniChatBubbleLeftRight, HiMiniPaperClip } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
+import {
+	FileMentionAnchor,
+	FileMentionProvider,
+	FileMentionTrigger,
+} from "./components/FileMentionPopover";
 import { ModelPicker } from "./components/ModelPicker";
 import { SlashCommandInput } from "./components/SlashCommandInput";
 import { MODELS, SUGGESTIONS } from "./constants";
@@ -325,43 +328,47 @@ export function ChatInterface({
 						</Suggestions>
 					)}
 					<PromptInputProvider>
-						<SlashCommandInput
-							onSubmit={handleSend}
-							onClear={handleClear}
-							onCommandSend={handleSlashCommandSend}
-							cwd={cwd}
-						>
-							<PromptInputFooter>
-								<PromptInputTools>
-									<PromptInputButton>
-										<HiMiniPaperClip className="size-4" />
-									</PromptInputButton>
-									<PromptInputButton>
-										<HiMiniAtSymbol className="size-4" />
-									</PromptInputButton>
-									<ThinkingToggle
-										enabled={thinkingEnabled}
-										onToggle={handleThinkingToggle}
-									/>
-									<ModelPicker
-										selectedModel={selectedModel}
-										onSelectModel={handleModelSelect}
-										open={modelSelectorOpen}
-										onOpenChange={setModelSelectorOpen}
-									/>
-								</PromptInputTools>
-								<div className="flex items-center gap-1">
-									<ContextIndicator
-										collections={collections}
-										modelId={selectedModel.id}
-									/>
-									<PromptInputSubmit
-										status={isLoading ? "streaming" : undefined}
-										onClick={isLoading ? handleStop : undefined}
-									/>
-								</div>
-							</PromptInputFooter>
-						</SlashCommandInput>
+						<FileMentionProvider cwd={cwd}>
+							<SlashCommandInput
+								onClear={handleClear}
+								onCommandSend={handleSlashCommandSend}
+								cwd={cwd}
+							>
+								<FileMentionAnchor>
+									<PromptInput onSubmit={handleSend}>
+										<PromptInputTextarea placeholder="Ask anything..." />
+										<PromptInputFooter>
+											<PromptInputTools>
+												<PromptInputButton>
+													<HiMiniPaperClip className="size-4" />
+												</PromptInputButton>
+												<FileMentionTrigger />
+												<ThinkingToggle
+													enabled={thinkingEnabled}
+													onToggle={handleThinkingToggle}
+												/>
+												<ModelPicker
+													selectedModel={selectedModel}
+													onSelectModel={handleModelSelect}
+													open={modelSelectorOpen}
+													onOpenChange={setModelSelectorOpen}
+												/>
+											</PromptInputTools>
+											<div className="flex items-center gap-1">
+												<ContextIndicator
+													collections={collections}
+													modelId={selectedModel.id}
+												/>
+												<PromptInputSubmit
+													status={isLoading ? "streaming" : undefined}
+													onClick={isLoading ? handleStop : undefined}
+												/>
+											</div>
+										</PromptInputFooter>
+									</PromptInput>
+								</FileMentionAnchor>
+							</SlashCommandInput>
+						</FileMentionProvider>
 					</PromptInputProvider>
 				</div>
 			</div>

@@ -1,3 +1,4 @@
+import { PopoverContent } from "@superset/ui/popover";
 import { useEffect, useRef } from "react";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 
@@ -24,39 +25,48 @@ export function SlashCommandMenu({
 	if (commands.length === 0) return null;
 
 	return (
-		<div className="absolute bottom-full left-0 z-50 mb-2 w-full max-h-[200px] overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-md">
-			{commands.map((cmd, index) => (
-				<button
-					key={cmd.name}
-					ref={index === selectedIndex ? selectedRef : undefined}
-					type="button"
-					className={`flex w-full cursor-pointer flex-col gap-0.5 rounded-md px-3 py-2 text-left transition-colors ${
-						index === selectedIndex
-							? "bg-accent text-accent-foreground"
-							: "hover:bg-accent/50"
-					}`}
-					onMouseEnter={() => onHover(index)}
-					onMouseDown={(e) => {
-						e.preventDefault();
-						onSelect(cmd);
-					}}
-				>
-					<div className="flex items-center gap-1.5">
-						<span className="font-mono text-xs text-muted-foreground">/</span>
-						<span className="font-medium text-sm">{cmd.name}</span>
-						{cmd.argumentHint && (
-							<span className="text-xs text-muted-foreground">
-								{cmd.argumentHint}
+		<PopoverContent
+			side="top"
+			align="start"
+			sideOffset={0}
+			className="w-80 p-0 text-xs"
+			onOpenAutoFocus={(e) => e.preventDefault()}
+			onCloseAutoFocus={(e) => e.preventDefault()}
+		>
+			<div className="max-h-[200px] overflow-y-auto p-1">
+				{commands.map((cmd, index) => (
+					<button
+						key={cmd.name}
+						ref={index === selectedIndex ? selectedRef : undefined}
+						type="button"
+						className={`flex w-full cursor-pointer flex-col gap-0.5 rounded-md px-3 py-2 text-left transition-colors ${
+							index === selectedIndex
+								? "bg-accent text-accent-foreground"
+								: "hover:bg-accent/50"
+						}`}
+						onMouseEnter={() => onHover(index)}
+						onMouseDown={(e) => {
+							e.preventDefault();
+							onSelect(cmd);
+						}}
+					>
+						<div className="flex items-center gap-1.5">
+							<span className="font-mono text-muted-foreground">/</span>
+							<span className="font-medium">{cmd.name}</span>
+							{cmd.argumentHint && (
+								<span className="text-muted-foreground">
+									{cmd.argumentHint}
+								</span>
+							)}
+						</div>
+						{cmd.description && (
+							<span className="text-muted-foreground pl-4">
+								{cmd.description}
 							</span>
 						)}
-					</div>
-					{cmd.description && (
-						<span className="text-xs text-muted-foreground pl-4">
-							{cmd.description}
-						</span>
-					)}
-				</button>
-			))}
-		</div>
+					</button>
+				))}
+			</div>
+		</PopoverContent>
 	);
 }
