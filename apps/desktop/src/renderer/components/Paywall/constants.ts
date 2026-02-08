@@ -6,8 +6,16 @@ import {
 	HiOutlinePuzzlePiece,
 	HiUsers,
 } from "react-icons/hi2";
-import type { GatedFeature } from "./usePaywall";
-import { GATED_FEATURES } from "./usePaywall";
+
+export const GATED_FEATURES = {
+	INVITE_MEMBERS: "invite-members",
+	INTEGRATIONS: "integrations",
+	TASKS: "tasks",
+	CLOUD_WORKSPACES: "cloud-workspaces",
+	MOBILE_APP: "mobile-app",
+} as const;
+
+export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
 
 export interface ProFeature {
 	id: string;
