@@ -201,6 +201,16 @@ export function WorkspaceInitEffects() {
 				continue;
 			}
 
+			// No initProgress means workspace is already initialized — process immediately
+			if (!progress) {
+				processingRef.current.add(workspaceId);
+				handleTerminalSetup(setup, () => {
+					removePendingTerminalSetup(workspaceId);
+					processingRef.current.delete(workspaceId);
+				});
+				continue;
+			}
+
 			if (progress?.step === "ready") {
 				processingRef.current.add(workspaceId);
 
