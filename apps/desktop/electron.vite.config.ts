@@ -88,13 +88,6 @@ export default defineConfig({
 				plugins: [sentryPlugin].filter(Boolean),
 			},
 		},
-		resolve: {
-			alias: {
-				// @xterm/headless 6.0.0 has a packaging bug: `module` field points to
-				// non-existent `lib/xterm.mjs`. Force Vite to use the CJS entry instead.
-				"@xterm/headless": "@xterm/headless/lib-headless/xterm-headless.js",
-			},
-		},
 	},
 
 	preload: {
@@ -189,7 +182,10 @@ export default defineConfig({
 
 		optimizeDeps: {
 			include: ["monaco-editor"],
+			exclude: ["ghostty-web"],
 		},
+
+		assetsInclude: ["**/*.wasm"],
 
 		publicDir: resolve(resources, "public"),
 

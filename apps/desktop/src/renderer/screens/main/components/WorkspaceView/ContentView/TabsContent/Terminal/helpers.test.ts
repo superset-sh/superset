@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { Terminal as XTerm } from "ghostty-web";
 
 // Mock localStorage for Node.js test environment
 const mockStorage = new Map<string, string>();

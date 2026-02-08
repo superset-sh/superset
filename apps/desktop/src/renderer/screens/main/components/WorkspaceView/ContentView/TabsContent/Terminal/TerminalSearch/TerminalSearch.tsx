@@ -1,42 +1,31 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
+import type { Terminal } from "ghostty-web";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronDown, HiChevronUp, HiMiniXMark } from "react-icons/hi2";
 import { PiTextAa } from "react-icons/pi";
+import { TerminalSearchEngine } from "../search";
 
 interface TerminalSearchProps {
-	searchAddon: SearchAddon | null;
+	terminal: Terminal | null;
 	isOpen: boolean;
 	onClose: () => void;
 }
 
-const SEARCH_DECORATIONS: ISearchOptions["decorations"] = {
-	matchBackground: "#515c6a",
-	matchBorder: "#74879f",
-	matchOverviewRuler: "#d186167e",
-	activeMatchBackground: "#515c6a",
-	activeMatchBorder: "#ffd33d",
-	activeMatchColorOverviewRuler: "#ffd33d",
-};
-
 export function TerminalSearch({
-	searchAddon,
+	terminal,
 	isOpen,
 	onClose,
 }: TerminalSearchProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
 	const [query, setQuery] = useState("");
 	const [matchCount, setMatchCount] = useState<number | null>(null);
+	const [currentMatch, setCurrentMatch] = useState(-1);
 	const [caseSensitive, setCaseSensitive] = useState(false);
 
-	const searchOptions: ISearchOptions = useMemo(
-		() => ({
-			caseSensitive,
-			regex: false,
-			decorations: SEARCH_DECORATIONS,
-		}),
-		[caseSensitive],
-	);
+	const searchEngine = useMemo(() => {
+		if (!terminal) return null;
+		return new TerminalSearchEngine(terminal);
+	}, [terminal]);
 
 	// Focus input when search opens
 	useEffect(() => {
@@ -48,38 +37,47 @@ export function TerminalSearch({
 
 	// Clear search highlighting when closing
 	useEffect(() => {
-		if (!isOpen && searchAddon) {
-			searchAddon.clearDecorations();
+		if (!isOpen && searchEngine) {
+			searchEngine.clearHighlight();
 		}
-	}, [isOpen, searchAddon]);
+	}, [isOpen, searchEngine]);
+
+	const runSearch = useCallback(
+		(searchQuery: string) => {
+			if (!searchEngine) return;
+			if (!searchQuery) {
+				setMatchCount(null);
+				setCurrentMatch(-1);
+				searchEngine.clearHighlight();
+				return;
+			}
+			const count = searchEngine.search(searchQuery, { caseSensitive });
+			setMatchCount(count);
+			setCurrentMatch(count > 0 ? searchEngine.currentMatchIndex + 1 : -1);
+		},
+		[searchEngine, caseSensitive],
+	);
 
 	const handleSearch = useCallback(
 		(direction: "next" | "previous") => {
-			if (!searchAddon || !query) return;
+			if (!searchEngine || !query) return;
 
 			const found =
 				direction === "next"
-					? searchAddon.findNext(query, searchOptions)
-					: searchAddon.findPrevious(query, searchOptions);
+					? searchEngine.findNext()
+					: searchEngine.findPrevious();
 
-			// xterm search addon doesn't provide match count directly
-			// We just indicate if there are matches or not
-			setMatchCount(found ? 1 : 0);
+			if (found) {
+				setCurrentMatch(searchEngine.currentMatchIndex + 1);
+			}
 		},
-		[searchAddon, query, searchOptions],
+		[searchEngine, query],
 	);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const newQuery = e.target.value;
 		setQuery(newQuery);
-
-		if (searchAddon && newQuery) {
-			const found = searchAddon.findNext(newQuery, searchOptions);
-			setMatchCount(found ? 1 : 0);
-		} else {
-			setMatchCount(null);
-			searchAddon?.clearDecorations();
-		}
+		runSearch(newQuery);
 	};
 
 	const toggleCaseSensitive = () => {
@@ -88,11 +86,10 @@ export function TerminalSearch({
 
 	// Re-run search when case sensitivity changes
 	useEffect(() => {
-		if (searchAddon && query) {
-			const found = searchAddon.findNext(query, searchOptions);
-			setMatchCount(found ? 1 : 0);
+		if (query) {
+			runSearch(query);
 		}
-	}, [searchAddon, query, searchOptions]);
+	}, [runSearch, query]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Escape") {
@@ -111,6 +108,7 @@ export function TerminalSearch({
 	const handleClose = () => {
 		setQuery("");
 		setMatchCount(null);
+		setCurrentMatch(-1);
 		onClose();
 	};
 
@@ -127,9 +125,9 @@ export function TerminalSearch({
 				placeholder="Find"
 				className="h-6 min-w-0 w-28 flex-shrink bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
-			{matchCount === 0 && query && (
+			{matchCount !== null && query && (
 				<span className="text-xs text-muted-foreground whitespace-nowrap px-1">
-					No results
+					{matchCount === 0 ? "No results" : `${currentMatch} of ${matchCount}`}
 				</span>
 			)}
 			<div className="flex items-center shrink-0">

@@ -1,14 +1,16 @@
 /**
  * Headless Terminal Emulator
  *
- * Wraps @xterm/headless with:
+ * Raw ANSI stream buffer with:
  * - Mode tracking (DECSET/DECRST parsing)
- * - Snapshot generation via @xterm/addon-serialize
+ * - Snapshot generation (raw ANSI output)
  * - Rehydration sequence generation for mode restoration
+ * - OSC-7 CWD tracking
+ *
+ * Replaces @xterm/headless — the renderer's ghostty-web terminal replays
+ * the raw PTY output correctly.
  */
 
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Terminal } from "@xterm/headless";
 import {
 	DEFAULT_MODES,
 	type TerminalModes,
@@ -48,6 +50,42 @@ const MODE_MAP: Record<number, keyof TerminalModes> = {
 };
 
 // =============================================================================
+// Scrollback Buffer
+// =============================================================================
+
+/** Maximum buffer size in bytes (~10MB) to bound memory */
+const MAX_BUFFER_SIZE = 10 * 1024 * 1024;
+
+class ScrollbackBuffer {
+	private chunks: string[] = [];
+	private totalLength = 0;
+
+	write(data: string): void {
+		this.chunks.push(data);
+		this.totalLength += data.length;
+
+		// Trim from the front if we exceed the cap
+		while (this.totalLength > MAX_BUFFER_SIZE && this.chunks.length > 1) {
+			const removed = this.chunks.shift()!;
+			this.totalLength -= removed.length;
+		}
+	}
+
+	getContent(): string {
+		return this.chunks.join("");
+	}
+
+	clear(): void {
+		this.chunks = [];
+		this.totalLength = 0;
+	}
+
+	get length(): number {
+		return this.totalLength;
+	}
+}
+
+// =============================================================================
 // Headless Emulator Class
 // =============================================================================
 
@@ -58,15 +96,15 @@ export interface HeadlessEmulatorOptions {
 }
 
 export class HeadlessEmulator {
-	private terminal: Terminal;
-	private serializeAddon: SerializeAddon;
+	private buffer: ScrollbackBuffer;
 	private modes: TerminalModes;
 	private cwd: string | null = null;
 	private disposed = false;
+	private cols: number;
+	private rows: number;
 
 	// Pending output buffer for query responses
 	private pendingOutput: string[] = [];
-	private onDataCallback?: (data: string) => void;
 
 	// Buffer for partial escape sequences that span chunk boundaries
 	private escapeSequenceBuffer = "";
@@ -75,33 +113,23 @@ export class HeadlessEmulator {
 	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
 
 	constructor(options: HeadlessEmulatorOptions = {}) {
-		const { cols = 80, rows = 24, scrollback = 10000 } = options;
+		const { cols = 80, rows = 24 } = options;
 
-		this.terminal = new Terminal({
-			cols,
-			rows,
-			scrollback,
-			allowProposedApi: true,
-		});
-
-		this.serializeAddon = new SerializeAddon();
-		this.terminal.loadAddon(this.serializeAddon);
+		this.cols = cols;
+		this.rows = rows;
+		this.buffer = new ScrollbackBuffer();
 
 		// Initialize mode state
 		this.modes = { ...DEFAULT_MODES };
-
-		// Listen for terminal output (query responses)
-		this.terminal.onData((data) => {
-			this.pendingOutput.push(data);
-			this.onDataCallback?.(data);
-		});
 	}
 
 	/**
 	 * Set callback for terminal-generated output (query responses)
+	 * Note: In the raw buffer approach, responses are collected via pendingOutput
+	 * and flushed with flushPendingOutput(). This method is kept for API compatibility.
 	 */
-	onData(callback: (data: string) => void): void {
-		this.onDataCallback = callback;
+	onData(_callback: (data: string) => void): void {
+		// No-op: raw buffer approach uses pendingOutput + flushPendingOutput() instead
 	}
 
 	/**
@@ -114,18 +142,15 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Write data to the terminal emulator (synchronous, non-blocking)
-	 * Data is buffered and will be processed asynchronously.
-	 * Use writeSync() if you need to wait for the write to complete.
+	 * Write data to the emulator (synchronous).
+	 * Parses escape sequences for mode/CWD tracking and appends to buffer.
 	 */
 	write(data: string): void {
 		if (this.disposed) return;
 
 		if (!DEBUG_EMULATOR_TIMING) {
-			// Parse escape sequences with chunk-safe buffering
 			this.parseEscapeSequences(data);
-			// Write to headless terminal (buffered/async)
-			this.terminal.write(data);
+			this.buffer.write(data);
 			return;
 		}
 
@@ -133,39 +158,31 @@ export class HeadlessEmulator {
 		this.parseEscapeSequences(data);
 		const parseTime = performance.now() - parseStart;
 
-		const terminalStart = performance.now();
-		this.terminal.write(data);
-		const terminalTime = performance.now() - terminalStart;
+		const bufferStart = performance.now();
+		this.buffer.write(data);
+		const bufferTime = performance.now() - bufferStart;
 
-		if (parseTime > 2 || terminalTime > 2) {
+		if (parseTime > 2 || bufferTime > 2) {
 			console.warn(
-				`[HeadlessEmulator] write(${data.length}b): parse=${parseTime.toFixed(1)}ms, terminal=${terminalTime.toFixed(1)}ms`,
+				`[HeadlessEmulator] write(${data.length}b): parse=${parseTime.toFixed(1)}ms, buffer=${bufferTime.toFixed(1)}ms`,
 			);
 		}
 	}
 
 	/**
-	 * Write data to the terminal emulator and wait for completion.
-	 * Use this when you need to ensure data is processed before reading state.
+	 * Write data synchronously (same as write() since buffer is synchronous).
 	 */
 	async writeSync(data: string): Promise<void> {
-		if (this.disposed) return;
-
-		// Parse escape sequences with chunk-safe buffering
-		this.parseEscapeSequences(data);
-
-		// Write to headless terminal and wait for completion
-		return new Promise<void>((resolve) => {
-			this.terminal.write(data, () => resolve());
-		});
+		this.write(data);
 	}
 
 	/**
-	 * Resize the terminal
+	 * Resize the terminal (store dimensions only)
 	 */
 	resize(cols: number, rows: number): void {
 		if (this.disposed) return;
-		this.terminal.resize(cols, rows);
+		this.cols = cols;
+		this.rows = rows;
 	}
 
 	/**
@@ -173,8 +190,8 @@ export class HeadlessEmulator {
 	 */
 	getDimensions(): { cols: number; rows: number } {
 		return {
-			cols: this.terminal.cols,
-			rows: this.terminal.rows,
+			cols: this.cols,
+			rows: this.rows,
 		};
 	}
 
@@ -200,103 +217,53 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Get scrollback line count
+	 * Get approximate scrollback size
 	 */
 	getScrollbackLines(): number {
-		return this.terminal.buffer.active.length;
+		// Approximate line count from buffer size
+		const content = this.buffer.getContent();
+		if (!content) return 0;
+		let count = 1;
+		for (let i = 0; i < content.length; i++) {
+			if (content[i] === "\n") count++;
+		}
+		return count;
 	}
 
 	/**
-	 * Flush all pending writes to the terminal.
-	 * Call this before getSnapshot() if you've written data without waiting.
+	 * Flush is a no-op since writes are synchronous.
 	 */
 	async flush(): Promise<void> {
-		if (this.disposed) return;
-		// Write an empty string with callback to ensure all pending writes are processed
-		return new Promise<void>((resolve) => {
-			this.terminal.write("", () => resolve());
-		});
+		// Synchronous buffer — nothing to flush
 	}
 
 	/**
 	 * Generate a complete snapshot for session restore.
-	 * Note: Call flush() first if you have pending async writes.
 	 */
 	getSnapshot(): TerminalSnapshot {
-		const snapshotAnsi = this.serializeAddon.serialize({
-			scrollback: this.terminal.options.scrollback ?? 10000,
-		});
-
+		const snapshotAnsi = this.buffer.getContent();
 		const rehydrateSequences = this.generateRehydrateSequences();
-
-		// Build debug diagnostics
-		const xtermBufferType = this.terminal.buffer.active.type;
-		const hasAltScreenEntry = snapshotAnsi.includes("\x1b[?1049h");
-
-		let altBufferDebug:
-			| {
-					lines: number;
-					nonEmptyLines: number;
-					totalChars: number;
-					cursorX: number;
-					cursorY: number;
-					sampleLines: string[];
-			  }
-			| undefined;
-
-		if (this.modes.alternateScreen || xtermBufferType === "alternate") {
-			const altBuffer = this.terminal.buffer.alternate;
-			let nonEmptyLines = 0;
-			let totalChars = 0;
-			const sampleLines: string[] = [];
-
-			for (let i = 0; i < altBuffer.length; i++) {
-				const line = altBuffer.getLine(i);
-				if (line) {
-					const lineText = line.translateToString(true);
-					if (lineText.trim().length > 0) {
-						nonEmptyLines++;
-						totalChars += lineText.length;
-						if (sampleLines.length < 3) {
-							sampleLines.push(lineText.slice(0, 80));
-						}
-					}
-				}
-			}
-
-			altBufferDebug = {
-				lines: altBuffer.length,
-				nonEmptyLines,
-				totalChars,
-				cursorX: altBuffer.cursorX,
-				cursorY: altBuffer.cursorY,
-				sampleLines,
-			};
-		}
 
 		return {
 			snapshotAnsi,
 			rehydrateSequences,
 			cwd: this.cwd,
 			modes: { ...this.modes },
-			cols: this.terminal.cols,
-			rows: this.terminal.rows,
+			cols: this.cols,
+			rows: this.rows,
 			scrollbackLines: this.getScrollbackLines(),
 			debug: {
-				xtermBufferType,
-				hasAltScreenEntry,
-				altBuffer: altBufferDebug,
-				normalBufferLines: this.terminal.buffer.normal.length,
+				xtermBufferType: this.modes.alternateScreen ? "alternate" : "normal",
+				hasAltScreenEntry: snapshotAnsi.includes("\x1b[?1049h"),
+				normalBufferLines: this.getScrollbackLines(),
 			},
 		};
 	}
 
 	/**
-	 * Generate a complete snapshot after flushing pending writes.
-	 * This is the preferred method for getting consistent snapshots.
+	 * Generate a complete snapshot (same as sync version since buffer is synchronous).
 	 */
 	async getSnapshotAsync(): Promise<TerminalSnapshot> {
-		await this.flush();
 		return this.getSnapshot();
 	}
 
@@ -305,7 +272,7 @@ export class HeadlessEmulator {
 	 */
 	clear(): void {
 		if (this.disposed) return;
-		this.terminal.clear();
+		this.buffer.clear();
 	}
 
 	/**
@@ -313,17 +280,17 @@ export class HeadlessEmulator {
 	 */
 	reset(): void {
 		if (this.disposed) return;
-		this.terminal.reset();
+		this.buffer.clear();
 		this.modes = { ...DEFAULT_MODES };
 	}
 
 	/**
-	 * Dispose of the terminal
+	 * Dispose of the emulator
 	 */
 	dispose(): void {
 		if (this.disposed) return;
 		this.disposed = true;
-		this.terminal.dispose();
+		this.buffer.clear();
 	}
 
 	// ===========================================================================
@@ -455,8 +422,6 @@ export class HeadlessEmulator {
 			for (const modeNum of modeNumbers) {
 				const modeName = MODE_MAP[modeNum];
 				if (modeName) {
-					// For cursor visibility and auto-wrap, 'h' means true, 'l' means false
-					// But their defaults are different (cursorVisible=true, autoWrap=true)
 					this.modes[modeName] = enable;
 				}
 			}
@@ -466,26 +431,11 @@ export class HeadlessEmulator {
 	/**
 	 * Parse OSC-7 sequences for CWD tracking
 	 * Format: ESC]7;file://hostname/path BEL or ESC]7;file://hostname/path ESC\
-	 *
-	 * The path part starts after the hostname (after file://hostname).
-	 * Hostname can be empty, localhost, or a machine name.
 	 */
 	private parseOsc7(data: string): void {
-		// OSC-7 format: \x1b]7;file://hostname/path\x07
-		// We need to extract the /path portion after the hostname
-		// Hostname ends at the first / after file://
-
-		// Pattern explanation:
-		// - ESC ]7;file:// - the OSC-7 prefix
-		// - [^/]* - the hostname (anything that's not a slash)
-		// - (/.+?) - capture the path (starts with /, non-greedy)
-		// - (?:BEL|ESC\\) - terminated by BEL or ST
-
-		// Using string building to avoid control character linter issues
 		const escEscaped = escapeRegex(ESC);
 		const belEscaped = escapeRegex(BEL);
 
-		// Match OSC-7 with either terminator
 		const osc7Pattern = `${escEscaped}\\]7;file://[^/]*(/.+?)(?:${belEscaped}|${escEscaped}\\\\)`;
 		const osc7Regex = new RegExp(osc7Pattern, "g");
 
@@ -503,56 +453,33 @@ export class HeadlessEmulator {
 
 	/**
 	 * Generate escape sequences to restore current mode state
-	 * These sequences should be written to a fresh xterm instance before
-	 * writing the snapshot to ensure input behavior matches.
 	 */
 	private generateRehydrateSequences(): string {
 		const sequences: string[] = [];
 
-		// Helper to add DECSET/DECRST sequence
 		const addModeSequence = (
 			modeNum: number,
 			enabled: boolean,
 			defaultEnabled: boolean,
 		) => {
-			// Only add sequence if different from default
 			if (enabled !== defaultEnabled) {
 				sequences.push(`${ESC}[?${modeNum}${enabled ? "h" : "l"}`);
 			}
 		};
 
-		// Application cursor keys (mode 1)
 		addModeSequence(1, this.modes.applicationCursorKeys, false);
-
-		// Origin mode (mode 6)
 		addModeSequence(6, this.modes.originMode, false);
-
-		// Auto-wrap mode (mode 7)
 		addModeSequence(7, this.modes.autoWrap, true);
-
-		// Cursor visibility (mode 25)
 		addModeSequence(25, this.modes.cursorVisible, true);
-
-		// Mouse tracking modes (mutually exclusive typically, but we track all)
 		addModeSequence(9, this.modes.mouseTrackingX10, false);
 		addModeSequence(1000, this.modes.mouseTrackingNormal, false);
 		addModeSequence(1001, this.modes.mouseTrackingHighlight, false);
 		addModeSequence(1002, this.modes.mouseTrackingButtonEvent, false);
 		addModeSequence(1003, this.modes.mouseTrackingAnyEvent, false);
-
-		// Mouse encoding modes
 		addModeSequence(1005, this.modes.mouseUtf8, false);
 		addModeSequence(1006, this.modes.mouseSgr, false);
-
-		// Focus reporting (mode 1004)
 		addModeSequence(1004, this.modes.focusReporting, false);
-
-		// Bracketed paste (mode 2004)
 		addModeSequence(2004, this.modes.bracketedPaste, false);
-
-		// Note: We don't restore alternate screen mode (1049/47) here because
-		// the serialized snapshot already contains the correct screen buffer.
-		// Restoring it would cause incorrect behavior.
 
 		return sequences.join("");
 	}
@@ -576,10 +503,7 @@ export function applySnapshot(
 	emulator: HeadlessEmulator,
 	snapshot: TerminalSnapshot,
 ): void {
-	// First, write the rehydrate sequences to restore mode state
 	emulator.write(snapshot.rehydrateSequences);
-
-	// Then write the serialized screen content
 	emulator.write(snapshot.snapshotAnsi);
 }
 

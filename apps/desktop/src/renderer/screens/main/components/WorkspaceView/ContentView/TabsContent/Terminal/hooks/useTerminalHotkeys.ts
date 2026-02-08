@@ -1,4 +1,4 @@
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { Terminal as XTerm } from "ghostty-web";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import { useAppHotkey } from "renderer/stores/hotkeys";

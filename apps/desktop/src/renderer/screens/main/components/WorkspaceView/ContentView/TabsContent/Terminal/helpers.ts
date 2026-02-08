@@ -1,16 +1,14 @@
 import { toast } from "@superset/ui/sonner";
-import { ClipboardAddon } from "@xterm/addon-clipboard";
-import { FitAddon } from "@xterm/addon-fit";
-import { ImageAddon } from "@xterm/addon-image";
-import { LigaturesAddon } from "@xterm/addon-ligatures";
-import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebglAddon } from "@xterm/addon-webgl";
-import type { ITheme } from "@xterm/xterm";
-import { Terminal as XTerm } from "@xterm/xterm";
+import type { ITheme } from "ghostty-web";
+import { FitAddon, Terminal as XTerm } from "ghostty-web";
 import { debounce } from "lodash";
+import {
+	ensureGhosttyInit,
+	getGhosttyInstance,
+} from "renderer/lib/ghostty-init";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
-import { toXtermTheme } from "renderer/stores/theme/utils";
+import { toTerminalTheme } from "renderer/stores/theme/utils";
 import { isTerminalReservedEvent, matchesHotkeyEvent } from "shared/hotkeys";
 import {
 	builtInThemes,
@@ -19,7 +17,6 @@ import {
 } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
-import { suppressQueryResponses } from "./suppressQueryResponses";
 import { scrollToBottom } from "./utils";
 
 /**
@@ -32,13 +29,13 @@ export function getDefaultTerminalTheme(): ITheme {
 		// First try cached terminal colors (works for all themes including custom)
 		const cachedTerminal = localStorage.getItem("theme-terminal");
 		if (cachedTerminal) {
-			return toXtermTheme(JSON.parse(cachedTerminal));
+			return toTerminalTheme(JSON.parse(cachedTerminal));
 		}
 		// Fallback to looking up by theme ID (for fresh installs before first theme apply)
 		const themeId = localStorage.getItem("theme-id") ?? DEFAULT_THEME_ID;
 		const theme = builtInThemes.find((t) => t.id === themeId);
 		if (theme) {
-			return toXtermTheme(getTerminalColors(theme));
+			return toTerminalTheme(getTerminalColors(theme));
 		}
 	} catch {
 		// Fall through to default
@@ -46,7 +43,7 @@ export function getDefaultTerminalTheme(): ITheme {
 	// Final fallback to default theme
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
-		? toXtermTheme(getTerminalColors(defaultTheme))
+		? toTerminalTheme(getTerminalColors(defaultTheme))
 		: { background: "#1a1a1a", foreground: "#d4d4d4" };
 }
 
@@ -58,179 +55,34 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#1a1a1a";
 }
 
-/**
- * Load GPU-accelerated renderer with automatic fallback.
- * Tries WebGL first, falls back to DOM if WebGL fails.
- * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
- */
-export type TerminalRenderer = {
-	kind: "webgl" | "dom";
-	dispose: () => void;
-	clearTextureAtlas?: () => void;
-};
-
-type PreferredRenderer = TerminalRenderer["kind"] | "auto";
-
-// Track WebGL failures globally to avoid repeated initialization attempts (VS Code pattern)
-let suggestedRendererType: TerminalRenderer["kind"] | undefined;
-
-function getPreferredRenderer(): PreferredRenderer {
-	// If WebGL previously failed, don't try again
-	if (suggestedRendererType === "dom") {
-		return "dom";
-	}
-
-	try {
-		const stored = localStorage.getItem("terminal-renderer");
-		if (stored === "webgl" || stored === "dom") {
-			return stored;
-		}
-		if (stored === "canvas") {
-			// Canvas renderer was removed in xterm.js 6.0; fall back to DOM.
-			try {
-				localStorage.setItem("terminal-renderer", "dom");
-			} catch {
-				// ignore storage errors
-			}
-			return "dom";
-		}
-	} catch {
-		// ignore
-	}
-
-	return "auto";
-}
-
-function loadRenderer(xterm: XTerm): TerminalRenderer {
-	let webglAddon: WebglAddon | null = null;
-	let kind: TerminalRenderer["kind"] = "dom";
-
-	const preferred = getPreferredRenderer();
-
-	if (preferred === "dom") {
-		return { kind: "dom", dispose: () => {}, clearTextureAtlas: undefined };
-	}
-
-	try {
-		webglAddon = new WebglAddon();
-
-		webglAddon.onContextLoss(() => {
-			console.warn(
-				"[Terminal] WebGL context lost, falling back to DOM renderer",
-			);
-			webglAddon?.dispose();
-			webglAddon = null;
-			kind = "dom";
-			// Force refresh after context loss
-			xterm.refresh(0, xterm.rows - 1);
-		});
-
-		xterm.loadAddon(webglAddon);
-		kind = "webgl";
-	} catch (e) {
-		console.warn(
-			"[Terminal] WebGL could not be loaded, falling back to DOM renderer",
-			e,
-		);
-		suggestedRendererType = "dom";
-		webglAddon = null;
-		kind = "dom";
-	}
-
-	return {
-		kind,
-		dispose: () => webglAddon?.dispose(),
-		clearTextureAtlas: webglAddon
-			? () => {
-					try {
-						webglAddon?.clearTextureAtlas();
-					} catch (error) {
-						console.warn("[Terminal] WebGL clearTextureAtlas() failed:", error);
-					}
-				}
-			: undefined,
-	};
-}
-
 export interface CreateTerminalOptions {
 	cwd?: string;
 	initialTheme?: ITheme | null;
 	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
 }
 
-/**
- * Mutable reference to the terminal renderer.
- * Used because the GPU renderer is loaded asynchronously after the terminal is created.
- */
-export interface TerminalRendererRef {
-	current: TerminalRenderer;
-}
-
-export function createTerminalInstance(
+export async function createTerminalInstance(
 	container: HTMLDivElement,
 	options: CreateTerminalOptions = {},
-): {
+): Promise<{
 	xterm: XTerm;
 	fitAddon: FitAddon;
-	renderer: TerminalRendererRef;
 	cleanup: () => void;
-} {
+}> {
 	const { cwd, initialTheme, onFileLinkClick } = options;
+
+	await ensureGhosttyInit();
 
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
-	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
+	const ghostty = getGhosttyInstance();
+	const terminalOptions = { ...TERMINAL_OPTIONS, theme, ghostty };
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
 
-	const clipboardAddon = new ClipboardAddon();
-	const unicode11Addon = new Unicode11Addon();
-	const imageAddon = new ImageAddon();
-
-	// Track cleanup state to prevent operations on disposed terminal
-	let isDisposed = false;
-	let rafId: number | null = null;
-
-	// Use a ref pattern so the renderer can be updated after rAF.
-	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
-	const rendererRef: TerminalRendererRef = {
-		current: {
-			kind: "dom",
-			dispose: () => {},
-			clearTextureAtlas: undefined,
-		},
-	};
-
 	xterm.open(container);
-
-	// Load non-renderer addons synchronously - these are safe and needed immediately
 	xterm.loadAddon(fitAddon);
-	xterm.loadAddon(clipboardAddon);
-	xterm.loadAddon(unicode11Addon);
-	xterm.loadAddon(imageAddon);
-
-	// Defer GPU renderer loading to next animation frame.
-	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
-	// the renderer to be ready. Loading WebGL immediately after open() can cause a
-	// race condition where the setTimeout fires during addon initialization, when
-	// _renderer is temporarily undefined (old renderer disposed, new not yet set).
-	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
-	// default DOM renderer, then we safely swap to WebGL.
-	rafId = requestAnimationFrame(() => {
-		rafId = null;
-		if (isDisposed) return;
-		rendererRef.current = loadRenderer(xterm);
-	});
-
-	try {
-		if (!isDisposed) {
-			xterm.loadAddon(new LigaturesAddon());
-		}
-	} catch {
-		// Ligatures not supported by current font
-	}
-
-	const cleanupQuerySuppression = suppressQueryResponses(xterm);
+	fitAddon.fit();
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
 		trpcClient.external.openUrl.mutate(uri).catch((error) => {
@@ -271,21 +123,10 @@ export function createTerminalInstance(
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
 
-	xterm.unicode.activeVersion = "11";
-	fitAddon.fit();
-
 	return {
 		xterm,
 		fitAddon,
-		renderer: rendererRef,
-		cleanup: () => {
-			isDisposed = true;
-			if (rafId !== null) {
-				cancelAnimationFrame(rafId);
-			}
-			cleanupQuerySuppression();
-			rendererRef.current.dispose();
-		},
+		cleanup: () => {},
 	};
 }
 
@@ -476,6 +317,10 @@ export function setupPasteHandler(
  * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
  * - Clear terminal: Uses the configured clear shortcut
  *
+ * IMPORTANT: ghostty-web inverts the return value convention from xterm.js:
+ * - return true  = PREVENT ghostty from handling the key (let app handle it)
+ * - return false = ALLOW ghostty to handle the key normally
+ *
  * Returns a cleanup function to remove the handler.
  */
 export function setupKeyboardHandler(
@@ -500,7 +345,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onShiftEnter();
 			}
-			return false;
+			return true;
 		}
 
 		const isCmdBackspace =
@@ -515,7 +360,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
 			}
-			return false;
+			return true;
 		}
 
 		// Cmd+Left: Move cursor to beginning of line (sends Ctrl+A)
@@ -531,7 +376,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onWrite("\x01"); // Ctrl+A - beginning of line
 			}
-			return false;
+			return true;
 		}
 
 		// Cmd+Right: Move cursor to end of line (sends Ctrl+E)
@@ -547,7 +392,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onWrite("\x05"); // Ctrl+E - end of line
 			}
-			return false;
+			return true;
 		}
 
 		// Option+Left/Right (macOS): word navigation (Meta+B / Meta+F)
@@ -563,7 +408,7 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bb"); // Meta+B - backward word
 			}
-			return false;
+			return true;
 		}
 
 		// Option+Right: Move cursor forward by word (Meta+F)
@@ -579,7 +424,7 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bf"); // Meta+F - forward word
 			}
-			return false;
+			return true;
 		}
 
 		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)
@@ -595,7 +440,7 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bb"); // Meta+B - backward word
 			}
-			return false;
+			return true;
 		}
 
 		const isCtrlRight =
@@ -610,10 +455,10 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bf"); // Meta+F - forward word
 			}
-			return false;
+			return true;
 		}
 
-		if (isTerminalReservedEvent(event)) return true;
+		if (isTerminalReservedEvent(event)) return false;
 
 		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");
 		const isClearShortcut =
@@ -623,25 +468,25 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onClear) {
 				options.onClear();
 			}
-			return false;
+			return true;
 		}
 
-		if (event.type !== "keydown") return true;
-		if (!event.metaKey && !event.ctrlKey) return true;
+		if (event.type !== "keydown") return false;
+		if (!event.metaKey && !event.ctrlKey) return false;
 
 		if (isAppHotkeyEvent(event)) {
-			// Return false to prevent xterm from processing the key.
+			// Return true to prevent ghostty from processing the key.
 			// The original event bubbles to document where useAppHotkey handles it.
-			return false;
+			return true;
 		}
 
-		return true;
+		return false;
 	};
 
 	xterm.attachCustomKeyEventHandler(handler);
 
 	return () => {
-		xterm.attachCustomKeyEventHandler(() => true);
+		xterm.attachCustomKeyEventHandler(() => false);
 	};
 }
 
@@ -706,24 +551,42 @@ function getTerminalCoordsFromEvent(
 	const x = event.clientX - rect.left;
 	const y = event.clientY - rect.top;
 
-	// Note: xterm.js does not expose a public API for mouse-to-coords conversion,
-	// so we must access internal _core._renderService.dimensions. This is fragile
-	// and may break in future xterm.js versions.
-	const dimensions = (
+	// Try to get cell metrics from ghostty-web renderer
+	const metrics = (
 		xterm as unknown as {
-			_core?: {
-				_renderService?: {
-					dimensions?: { css: { cell: { width: number; height: number } } };
-				};
+			renderer?: {
+				getMetrics?: () => { cellWidth: number; cellHeight: number } | null;
 			};
 		}
-	)._core?._renderService?.dimensions;
-	if (!dimensions?.css?.cell) return null;
+	).renderer?.getMetrics?.();
 
-	const cellWidth = dimensions.css.cell.width;
-	const cellHeight = dimensions.css.cell.height;
+	// Fallback to internal _core._renderService.dimensions if renderer metrics unavailable
+	const cellWidth =
+		metrics?.cellWidth ??
+		(
+			xterm as unknown as {
+				_core?: {
+					_renderService?: {
+						dimensions?: { css: { cell: { width: number; height: number } } };
+					};
+				};
+			}
+		)._core?._renderService?.dimensions?.css?.cell?.width;
 
-	if (cellWidth <= 0 || cellHeight <= 0) return null;
+	const cellHeight =
+		metrics?.cellHeight ??
+		(
+			xterm as unknown as {
+				_core?: {
+					_renderService?: {
+						dimensions?: { css: { cell: { width: number; height: number } } };
+					};
+				};
+			}
+		)._core?._renderService?.dimensions?.css?.cell?.height;
+
+	if (!cellWidth || !cellHeight || cellWidth <= 0 || cellHeight <= 0)
+		return null;
 
 	// Clamp to valid terminal grid range to prevent excessive delta calculations
 	const col = Math.max(0, Math.min(xterm.cols - 1, Math.floor(x / cellWidth)));

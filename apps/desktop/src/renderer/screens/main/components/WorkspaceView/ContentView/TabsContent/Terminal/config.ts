@@ -1,9 +1,9 @@
-import type { ITerminalOptions } from "@xterm/xterm";
+import type { ITerminalOptions } from "ghostty-web";
 
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
 
-// Fallback timeout for first render (in case xterm doesn't emit onRender)
+// Fallback timeout for first render (in case terminal doesn't emit onRender)
 export const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
 
 // Debug logging for terminal lifecycle (enable via localStorage)
@@ -36,13 +36,8 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontSize: 14,
 	fontFamily: TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
-	allowProposedApi: true,
 	scrollback: 10000,
-	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
-	macOptionIsMeta: false,
 	cursorStyle: "block",
-	cursorInactiveStyle: "outline",
-	screenReaderMode: false,
 };
 
 export const RESIZE_DEBOUNCE_MS = 150;

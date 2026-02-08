@@ -1,8 +1,14 @@
-import type { SerializeAddon } from "@xterm/addon-serialize";
-import type { Terminal as HeadlessTerminal } from "@xterm/headless";
 import type * as pty from "node-pty";
 import type { DataBatcher } from "../data-batcher";
 import type { PtyWriteQueue } from "./pty-write-queue";
+
+/** Simple scrollback buffer for tracking terminal output */
+export interface ScrollbackBuffer {
+	write(data: string): void;
+	getContent(): string;
+	clear(): void;
+	dispose(): void;
+}
 
 export interface TerminalSession {
 	pty: pty.IPty;
@@ -12,8 +18,7 @@ export interface TerminalSession {
 	cols: number;
 	rows: number;
 	lastActive: number;
-	headless: HeadlessTerminal;
-	serializer: SerializeAddon;
+	scrollbackBuffer: ScrollbackBuffer;
 	isAlive: boolean;
 	wasRecovered: boolean;
 	dataBatcher: DataBatcher;

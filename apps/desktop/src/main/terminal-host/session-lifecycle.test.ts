@@ -37,8 +37,6 @@ const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
 
 // Path to the daemon source file
 const DAEMON_PATH = resolve(__dirname, "index.ts");
-// Polyfill for @xterm/headless in Bun (see xterm-env-polyfill.ts for details)
-const XTERM_POLYFILL_PATH = resolve(__dirname, "xterm-env-polyfill.ts");
 
 // Timeouts
 const DAEMON_TIMEOUT = 10000;
@@ -96,18 +94,14 @@ describe("Terminal Host Session Lifecycle", () => {
 				mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
 			}
 
-			daemonProcess = spawn(
-				"bun",
-				["run", "--preload", XTERM_POLYFILL_PATH, DAEMON_PATH],
-				{
-					env: {
-						...process.env,
-						NODE_ENV: "development",
-					},
-					stdio: ["ignore", "pipe", "pipe"],
-					detached: true,
+			daemonProcess = spawn("bun", ["run", DAEMON_PATH], {
+				env: {
+					...process.env,
+					NODE_ENV: "development",
 				},
-			);
+				stdio: ["ignore", "pipe", "pipe"],
+				detached: true,
+			});
 
 			let output = "";
 			let settled = false;

@@ -1,4 +1,4 @@
-import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import type { ILink, ILinkProvider, Terminal } from "ghostty-web";
 
 export interface LinkMatch {
 	text: string;
@@ -106,8 +106,8 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 			links.push({
 				range,
 				text: linkMatch.text,
-				activate: (event: MouseEvent, text: string) => {
-					this.handleActivation(event, text, match);
+				activate: (event: MouseEvent) => {
+					this.handleActivation(event, linkMatch.text, match);
 				},
 			});
 		}
