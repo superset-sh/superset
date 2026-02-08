@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDownIcon, FileCode2Icon } from "lucide-react";
+import { FileCode2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Shimmer } from "./shimmer";
@@ -126,34 +126,43 @@ export const FileDiffTool = ({
 	return (
 		<div
 			className={cn(
-				"not-prose mb-4 w-full overflow-hidden rounded-md border",
+				"overflow-hidden rounded-lg border border-border bg-muted/30 mx-2",
 				className,
 			)}
 		>
-			{/* Header */}
-			<button
-				className="flex w-full items-center gap-2 px-3 py-2"
-				disabled={!hasDiff}
-				onClick={() => setExpanded((prev) => !prev)}
-				type="button"
-			>
-				<FileCode2Icon className="size-3.5 shrink-0 text-muted-foreground" />
-				{isStreaming && !filePath ? (
-					<Shimmer as="span" className="text-xs">
-						{isWriteMode ? "Writing file..." : "Editing file..."}
-					</Shimmer>
-				) : (
-					<span className="min-w-0 truncate text-xs">
-						{isWriteMode ? "Wrote" : "Edited"}{" "}
-						<code className="font-mono text-foreground">
-							{filePath ? extractFilename(filePath) : "file"}
-						</code>
-					</span>
+			{/* Header - fixed height */}
+			<div
+				className={cn(
+					"flex h-7 items-center justify-between px-2.5",
+					hasDiff &&
+						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
 				)}
+				onClick={() => hasDiff && setExpanded((prev) => !prev)}
+				onKeyDown={undefined}
+			>
+				<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
+					<FileCode2Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
+					{isStreaming && !filePath ? (
+						<Shimmer
+							as="span"
+							duration={1.2}
+							className="text-xs text-muted-foreground"
+						>
+							{isWriteMode ? "Writing file..." : "Editing file..."}
+						</Shimmer>
+					) : (
+						<span className="min-w-0 truncate text-muted-foreground">
+							{isWriteMode ? "Wrote" : "Edited"}{" "}
+							<span className="text-foreground">
+								{filePath ? extractFilename(filePath) : "file"}
+							</span>
+						</span>
+					)}
+				</div>
 
 				{/* Diff stats */}
 				{(stats.additions > 0 || stats.removals > 0) && (
-					<span className="flex shrink-0 items-center gap-1.5 text-xs">
+					<span className="ml-2 flex shrink-0 items-center gap-1.5 text-xs">
 						{stats.additions > 0 && (
 							<span className="text-green-500">+{stats.additions}</span>
 						)}
@@ -162,22 +171,13 @@ export const FileDiffTool = ({
 						)}
 					</span>
 				)}
-
-				{hasDiff && (
-					<ChevronDownIcon
-						className={cn(
-							"ml-auto size-3.5 shrink-0 text-muted-foreground transition-transform",
-							expanded && "rotate-180",
-						)}
-					/>
-				)}
-			</button>
+			</div>
 
 			{/* Diff body */}
 			{hasDiff && (
 				<div
 					className={cn(
-						"overflow-hidden border-t transition-[max-height] duration-200",
+						"overflow-hidden border-t border-border transition-[max-height] duration-200",
 						expanded ? "overflow-y-auto" : "",
 					)}
 					style={{
@@ -216,7 +216,7 @@ export const FileDiffTool = ({
 
 			{/* Streaming indicator */}
 			{isStreaming && !hasDiff && (
-				<div className="border-t px-3 py-2">
+				<div className="border-t border-border px-2.5 py-1.5">
 					<span className="animate-pulse font-mono text-muted-foreground/50 text-xs">
 						...
 					</span>

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-	CheckCircleIcon,
-	ChevronDownIcon,
-	ExternalLinkIcon,
-	SearchIcon,
-	XCircleIcon,
-} from "lucide-react";
+import { ExternalLinkIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { Loader } from "./loader";
@@ -27,89 +21,91 @@ type WebSearchToolProps = {
 	className?: string;
 };
 
-const StatusIcon = ({ state }: { state: WebSearchToolState }) => {
-	if (state === "input-streaming" || state === "input-available") {
-		return <Loader className="text-muted-foreground" size={14} />;
-	}
-	if (state === "output-error") {
-		return <XCircleIcon className="size-3.5 text-red-500" />;
-	}
-	return <CheckCircleIcon className="size-3.5 text-green-500" />;
-};
-
 export const WebSearchTool = ({
 	query,
 	results,
 	state,
 	className,
 }: WebSearchToolProps) => {
-	const [expanded, setExpanded] = useState(false);
+	const [isExpanded, setIsExpanded] = useState(false);
 	const isPending = state === "input-streaming" || state === "input-available";
+	const isError = state === "output-error";
 	const hasResults = results.length > 0;
+	const truncatedQuery =
+		query && query.length > 40 ? `${query.slice(0, 37)}...` : query;
 
 	return (
 		<div
 			className={cn(
-				"not-prose mb-4 w-full overflow-hidden rounded-md border",
+				"overflow-hidden rounded-lg border border-border bg-muted/30 mx-2",
 				className,
 			)}
 		>
 			{/* Header */}
-			<button
-				className="flex w-full items-center gap-2 px-3 py-2"
-				disabled={!hasResults}
-				onClick={() => setExpanded((prev) => !prev)}
-				type="button"
+			<div
+				className={cn(
+					"flex h-7 items-center justify-between px-2.5",
+					hasResults &&
+						!isPending &&
+						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
+				)}
+				onClick={() => hasResults && !isPending && setIsExpanded(!isExpanded)}
+				onKeyDown={undefined}
 			>
-				<SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
-				<StatusIcon state={state} />
-				{isPending ? (
-					<Shimmer as="span" className="text-xs">
-						{query ? `Searching "${query}"` : "Searching web..."}
-					</Shimmer>
-				) : (
-					<span className="min-w-0 truncate text-muted-foreground text-xs">
-						{state === "output-error" ? "Search failed" : "Searched"}{" "}
-						{query && (
-							<>
-								&ldquo;<span className="text-foreground">{query}</span>&rdquo;
-							</>
-						)}
-					</span>
-				)}
-				{hasResults && (
-					<span className="shrink-0 text-muted-foreground/70 text-xs">
-						{results.length} result{results.length !== 1 ? "s" : ""}
-					</span>
-				)}
-				{hasResults && (
-					<ChevronDownIcon
-						className={cn(
-							"ml-auto size-3.5 shrink-0 text-muted-foreground transition-transform",
-							expanded && "rotate-180",
-						)}
-					/>
-				)}
-			</button>
+				<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs">
+					<SearchIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+					{isPending ? (
+						<Shimmer
+							as="span"
+							duration={1.2}
+							className="text-xs text-muted-foreground"
+						>
+							Searching
+						</Shimmer>
+					) : (
+						<span className="text-xs text-muted-foreground">Searched</span>
+					)}
+					{truncatedQuery && (
+						<span className="truncate text-foreground">{truncatedQuery}</span>
+					)}
+				</div>
 
-			{/* Expandable results */}
-			{expanded && hasResults && (
-				<div className="max-h-[200px] overflow-y-auto border-t">
-					{results.map((result) => (
+				{/* Status */}
+				<div className="ml-2 flex shrink-0 items-center gap-2">
+					<div className="flex items-center gap-1.5 text-xs">
+						{isPending ? (
+							<Loader size={12} />
+						) : isError ? (
+							<span className="text-destructive">Failed</span>
+						) : (
+							<span className="text-muted-foreground">
+								{results.length} {results.length === 1 ? "result" : "results"}
+							</span>
+						)}
+					</div>
+				</div>
+			</div>
+
+			{/* Results list */}
+			{hasResults && isExpanded && (
+				<div className="max-h-[200px] overflow-y-auto border-t border-border">
+					{results.map((result, idx) => (
 						<a
-							className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/50"
+							className="group flex items-start gap-2 px-2.5 py-1.5 transition-colors hover:bg-muted/50"
 							href={result.url}
-							key={result.url}
+							key={`${result.url}-${idx}`}
 							rel="noopener noreferrer"
 							target="_blank"
 						>
-							<ExternalLinkIcon className="size-3 shrink-0 text-muted-foreground" />
-							<span className="min-w-0 truncate text-foreground">
-								{result.title}
-							</span>
-							<span className="ml-auto shrink-0 truncate text-muted-foreground/70 text-xs">
-								{extractHostname(result.url)}
-							</span>
+							<ExternalLinkIcon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground group-hover:text-foreground" />
+							<div className="min-w-0 flex-1">
+								<div className="truncate text-xs text-foreground">
+									{result.title}
+								</div>
+								<div className="truncate text-[10px] text-muted-foreground">
+									{result.url}
+								</div>
+							</div>
 						</a>
 					))}
 				</div>
@@ -117,11 +113,3 @@ export const WebSearchTool = ({
 		</div>
 	);
 };
-
-function extractHostname(url: string): string {
-	try {
-		return new URL(url).hostname;
-	} catch {
-		return url;
-	}
-}

@@ -140,6 +140,27 @@ export function ChatMessageItem({
 
 	const grouped = groupParts(message.parts);
 
+	// User messages: render as 1code-style bubble
+	if (message.role === "user") {
+		const textContent = message.parts
+			.filter((p) => p.type === "text" && p.content)
+			.map((p) => (p as { content: string }).content)
+			.join("\n");
+
+		return (
+			<Message from="user">
+				<MessageContent>
+					{textContent && (
+						<div className="relative max-h-[100px] overflow-hidden rounded-xl border bg-input px-3 py-2 text-sm whitespace-pre-wrap">
+							{textContent}
+						</div>
+					)}
+				</MessageContent>
+			</Message>
+		);
+	}
+
+	// Assistant messages: render with tool grouping + text
 	return (
 		<Message from={message.role}>
 			<MessageContent>
@@ -201,7 +222,7 @@ export function ChatMessageItem({
 					}
 				})}
 			</MessageContent>
-			{message.role === "assistant" && hasTextContent && (
+			{hasTextContent && (
 				<MessageActions>
 					<MessageAction tooltip="Copy">
 						<HiMiniClipboard className="size-3.5" />

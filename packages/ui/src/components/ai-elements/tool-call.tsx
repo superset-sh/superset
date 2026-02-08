@@ -15,67 +15,54 @@ export type ToolCallProps = {
 };
 
 export const ToolCall = ({
-	icon: Icon,
+	icon: _Icon,
 	title,
 	subtitle,
 	isPending,
-	isError,
+	isError: _isError,
 	onClick,
 	className,
 }: ToolCallProps) => {
-	const content = (
-		<>
-			<Icon
-				className={cn(
-					"size-3.5 shrink-0",
-					isError ? "text-red-500" : "text-muted-foreground",
-				)}
-			/>
-			{isPending ? (
-				<Shimmer as="span" className="text-xs">
-					{title}
-				</Shimmer>
-			) : (
-				<span
-					className={cn(
-						"text-xs",
-						isError ? "text-red-500" : "text-muted-foreground",
-					)}
-				>
-					{title}
-				</span>
-			)}
-			{subtitle && (
-				<span className="min-w-0 truncate text-muted-foreground/70 text-xs">
-					{subtitle}
-				</span>
-			)}
-		</>
-	);
-
-	if (onClick) {
-		return (
-			<button
-				className={cn(
-					"not-prose flex items-center gap-2 rounded-md py-1 cursor-pointer hover:bg-muted/50",
-					className,
-				)}
-				onClick={onClick}
-				type="button"
-			>
-				{content}
-			</button>
-		);
-	}
+	const clickableClass = onClick
+		? "cursor-pointer hover:text-muted-foreground transition-colors"
+		: "";
 
 	return (
 		<div
 			className={cn(
-				"not-prose flex items-center gap-2 rounded-md py-1",
+				"flex items-start gap-1.5 rounded-md px-2 py-0.5",
 				className,
 			)}
 		>
-			{content}
+			<div className="min-w-0 flex flex-1 items-center gap-1.5">
+				<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+					<span className="shrink-0 whitespace-nowrap font-medium">
+						{isPending ? (
+							<Shimmer
+								as="span"
+								duration={1.2}
+								className="m-0 inline-flex h-4 items-center text-xs leading-none"
+							>
+								{title}
+							</Shimmer>
+						) : (
+							title
+						)}
+					</span>
+					{subtitle && (
+						<span
+							className={cn(
+								"min-w-0 truncate font-normal text-muted-foreground/60",
+								clickableClass,
+							)}
+							onClick={onClick}
+							onKeyDown={undefined}
+						>
+							{subtitle}
+						</span>
+					)}
+				</div>
+			</div>
 		</div>
 	);
 };
