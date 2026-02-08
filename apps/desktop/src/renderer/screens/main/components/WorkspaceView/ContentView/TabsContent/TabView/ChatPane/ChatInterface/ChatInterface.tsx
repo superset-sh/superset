@@ -131,7 +131,6 @@ export function ChatInterface({
 		{ enabled: !!sessionId },
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: selectedModel read via ref to avoid session churn on model change
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
 		if (existingSession === undefined) return;
