@@ -152,9 +152,6 @@ function buildNotificationHooks({
 	};
 }
 
-// ---------------------------------------------------------------------------
-// Slash-command cache
-// ---------------------------------------------------------------------------
 interface SlashCommand {
 	name: string;
 	description: string;
@@ -261,7 +258,6 @@ app.post("/", async (c) => {
 		},
 	});
 
-	// Populate slash-command cache on first query (fire-and-forget)
 	if (!cachedCommands) {
 		result
 			.supportedCommands()

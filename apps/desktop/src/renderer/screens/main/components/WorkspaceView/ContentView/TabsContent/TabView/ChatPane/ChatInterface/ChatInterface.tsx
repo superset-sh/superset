@@ -7,25 +7,16 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import {
-	PromptInput,
 	PromptInputButton,
 	PromptInputFooter,
 	PromptInputProvider,
 	PromptInputSubmit,
-	PromptInputTextarea,
 	PromptInputTools,
-	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
 import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
-import {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	HiMiniAtSymbol,
 	HiMiniChatBubbleLeftRight,
@@ -35,14 +26,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
-import { SlashCommandMenu } from "./components/SlashCommandMenu";
+import { SlashCommandInput } from "./components/SlashCommandInput";
 import { MODELS, SUGGESTIONS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
-import {
-	resolveCommandAction,
-	type SlashCommand,
-	useSlashCommands,
-} from "./hooks/useSlashCommands";
+import type { SlashCommand } from "./hooks/useSlashCommands";
 import type { ModelOption } from "./types";
 import { extractTitleFromMessages } from "./utils/extract-title";
 
@@ -263,9 +250,6 @@ export function ChatInterface({
 		[stop],
 	);
 
-	// TODO: Wire to actual session/conversation reset
-	const handleClear = useCallback(() => {}, []);
-
 	const handleSlashCommandSend = useCallback(
 		(command: SlashCommand) => {
 			handleSend({ text: `/${command.name}` });
@@ -273,38 +257,8 @@ export function ChatInterface({
 		[handleSend],
 	);
 
-	const footerContent: ReactNode = (
-		<PromptInputFooter>
-			<PromptInputTools>
-				<PromptInputButton>
-					<HiMiniPaperClip className="size-4" />
-				</PromptInputButton>
-				<PromptInputButton>
-					<HiMiniAtSymbol className="size-4" />
-				</PromptInputButton>
-				<ThinkingToggle
-					enabled={thinkingEnabled}
-					onToggle={handleThinkingToggle}
-				/>
-				<ModelPicker
-					selectedModel={selectedModel}
-					onSelectModel={handleModelSelect}
-					open={modelSelectorOpen}
-					onOpenChange={setModelSelectorOpen}
-				/>
-			</PromptInputTools>
-			<div className="flex items-center gap-1">
-				<ContextIndicator
-					collections={collections}
-					modelId={selectedModel.id}
-				/>
-				<PromptInputSubmit
-					status={isLoading ? "streaming" : undefined}
-					onClick={isLoading ? handleStop : undefined}
-				/>
-			</div>
-		</PromptInputFooter>
-	);
+	// TODO: Wire to actual session/conversation reset
+	const handleClear = useCallback(() => {}, []);
 
 	return (
 		<div className="flex h-full flex-col bg-background">
@@ -375,98 +329,40 @@ export function ChatInterface({
 							onSubmit={handleSend}
 							onClear={handleClear}
 							onCommandSend={handleSlashCommandSend}
-							footer={footerContent}
-						/>
+						>
+							<PromptInputFooter>
+								<PromptInputTools>
+									<PromptInputButton>
+										<HiMiniPaperClip className="size-4" />
+									</PromptInputButton>
+									<PromptInputButton>
+										<HiMiniAtSymbol className="size-4" />
+									</PromptInputButton>
+									<ThinkingToggle
+										enabled={thinkingEnabled}
+										onToggle={handleThinkingToggle}
+									/>
+									<ModelPicker
+										selectedModel={selectedModel}
+										onSelectModel={handleModelSelect}
+										open={modelSelectorOpen}
+										onOpenChange={setModelSelectorOpen}
+									/>
+								</PromptInputTools>
+								<div className="flex items-center gap-1">
+									<ContextIndicator
+										collections={collections}
+										modelId={selectedModel.id}
+									/>
+									<PromptInputSubmit
+										status={isLoading ? "streaming" : undefined}
+										onClick={isLoading ? handleStop : undefined}
+									/>
+								</div>
+							</PromptInputFooter>
+						</SlashCommandInput>
 					</PromptInputProvider>
 				</div>
-			</div>
-		</div>
-	);
-}
-
-// ---------------------------------------------------------------------------
-// Inner component — must live inside PromptInputProvider to access textInput
-// ---------------------------------------------------------------------------
-
-interface SlashCommandInputProps {
-	onSubmit: (message: { text: string }) => void;
-	onClear: () => void;
-	onCommandSend: (command: SlashCommand) => void;
-	footer: ReactNode;
-}
-
-function SlashCommandInput({
-	onSubmit,
-	onClear,
-	onCommandSend,
-	footer,
-}: SlashCommandInputProps) {
-	const { textInput } = usePromptInputController();
-
-	const slashCommands = useSlashCommands({ inputValue: textInput.value });
-
-	const executeCommand = useCallback(
-		(command: SlashCommand) => {
-			const action = resolveCommandAction(command);
-			if (action.isClear) {
-				onClear();
-			} else if (action.shouldSend) {
-				onCommandSend(command);
-			}
-			textInput.setInput(action.text);
-		},
-		[onClear, onCommandSend, textInput],
-	);
-
-	const handleKeyDownCapture = useCallback(
-		(e: React.KeyboardEvent) => {
-			if (!slashCommands.isOpen) return;
-
-			switch (e.key) {
-				case "Escape":
-					e.preventDefault();
-					e.stopPropagation();
-					textInput.setInput("");
-					break;
-				case "Enter":
-				case "Tab": {
-					e.preventDefault();
-					e.stopPropagation();
-					const cmd =
-						slashCommands.filteredCommands[slashCommands.selectedIndex];
-					if (cmd) executeCommand(cmd);
-					break;
-				}
-				case "ArrowUp":
-					e.preventDefault();
-					e.stopPropagation();
-					slashCommands.navigateUp();
-					break;
-				case "ArrowDown":
-					e.preventDefault();
-					e.stopPropagation();
-					slashCommands.navigateDown();
-					break;
-			}
-		},
-		[slashCommands, textInput, executeCommand],
-	);
-
-	return (
-		<div className="relative">
-			{slashCommands.isOpen && (
-				<SlashCommandMenu
-					commands={slashCommands.filteredCommands}
-					selectedIndex={slashCommands.selectedIndex}
-					onSelect={executeCommand}
-					onHover={slashCommands.setSelectedIndex}
-				/>
-			)}
-			<div onKeyDownCapture={handleKeyDownCapture}>
-				<PromptInput onSubmit={onSubmit}>
-					<PromptInputTextarea placeholder="Ask anything..." />
-					{footer}
-				</PromptInput>
 			</div>
 		</div>
 	);

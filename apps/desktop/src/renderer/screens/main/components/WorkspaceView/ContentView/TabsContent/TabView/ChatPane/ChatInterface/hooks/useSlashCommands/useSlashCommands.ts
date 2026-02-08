@@ -93,10 +93,6 @@ export function useSlashCommands({ inputValue }: { inputValue: string }) {
 	};
 }
 
-/**
- * Determines the action to take when a slash command is selected.
- * Returns the text to place in the input and whether to send immediately.
- */
 export function resolveCommandAction(command: SlashCommand): {
 	text: string;
 	isClear: boolean;
