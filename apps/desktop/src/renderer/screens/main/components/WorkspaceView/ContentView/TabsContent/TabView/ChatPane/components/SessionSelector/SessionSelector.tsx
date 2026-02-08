@@ -107,15 +107,6 @@ export function SessionSelector({
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 
-	// Reset pagination when dropdown closes
-	useEffect(() => {
-		if (!isOpen) {
-			setCursor(0);
-			setAllClaudeSessions([]);
-			setHasMore(true);
-			setTotal(0);
-		}
-	}, [isOpen]);
 
 	const { data: sessions } = electronTrpc.aiChat.listSessions.useQuery(
 		{ workspaceId },
