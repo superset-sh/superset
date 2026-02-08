@@ -7,4 +7,9 @@ export type SlackConfig = {
 	provider: "slack";
 };
 
-export type IntegrationConfig = LinearConfig | SlackConfig;
+export type GithubConfig = {
+	provider: "github";
+	syncIssues?: boolean;
+};
+
+export type IntegrationConfig = LinearConfig | SlackConfig | GithubConfig;
