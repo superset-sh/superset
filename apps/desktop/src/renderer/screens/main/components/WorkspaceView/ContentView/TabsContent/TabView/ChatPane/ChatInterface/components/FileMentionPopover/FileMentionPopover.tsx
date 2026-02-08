@@ -92,8 +92,8 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 			</PopoverTrigger>
 			<PopoverContent
 				side="top"
-				align="end"
-				sideOffset={8}
+				align="start"
+				sideOffset={-4}
 				className="w-80 p-0"
 			>
 				<Command shouldFilter={false}>
