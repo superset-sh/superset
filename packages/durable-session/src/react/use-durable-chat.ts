@@ -312,6 +312,17 @@ export function useDurableChat<
 		[client],
 	);
 
+	const addToolAnswerResponse = useCallback(
+		async (
+			response: Parameters<
+				DurableChatClient<TTools>["addToolAnswerResponse"]
+			>[0],
+		) => {
+			await client.addToolAnswerResponse(response);
+		},
+		[client],
+	);
+
 	const fork = useCallback(
 		async (opts?: Parameters<DurableChatClient<TTools>["fork"]>[0]) => {
 			return client.fork(opts);
@@ -368,6 +379,7 @@ export function useDurableChat<
 		error,
 		addToolResult,
 		addToolApprovalResponse,
+		addToolAnswerResponse,
 
 		// Durable extensions
 		client,

@@ -5,7 +5,7 @@ import {
 	ConversationEmptyState,
 	ConversationScrollButton,
 } from "@superset/ui/ai-elements/conversation";
-import { Message, MessageContent } from "@superset/ui/ai-elements/message";
+import { Message } from "@superset/ui/ai-elements/message";
 import {
 	PromptInput,
 	PromptInputButton,
@@ -28,12 +28,12 @@ import {
 	FileMentionTrigger,
 } from "./components/FileMentionPopover";
 import { ModelPicker } from "./components/ModelPicker";
+import { PermissionModePicker } from "./components/PermissionModePicker";
 import { SlashCommandInput } from "./components/SlashCommandInput";
 import { MODELS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
 import type { SlashCommand } from "./hooks/useSlashCommands";
-import type { ModelOption } from "./types";
-import { extractTitleFromMessages } from "./utils/extract-title";
+import type { ModelOption, PermissionMode } from "./types";
 
 interface ChatInterfaceProps {
 	sessionId: string;
@@ -53,6 +53,9 @@ export function ChatInterface({
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+	const [permissionMode, setPermissionMode] =
+		useState<PermissionMode>("bypassPermissions");
+	const [isSending, setIsSending] = useState(false);
 
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 
@@ -66,6 +69,7 @@ export function ChatInterface({
 		connectionStatus,
 		stop,
 		addToolApprovalResponse,
+		addToolAnswerResponse,
 		connect,
 		collections,
 	} = useDurableChat({
@@ -122,6 +126,10 @@ export function ChatInterface({
 	stopSessionRef.current = stopSession;
 	const renameSessionRef = useRef(renameSession);
 	renameSessionRef.current = renameSession;
+	const selectedModelRef = useRef(selectedModel);
+	selectedModelRef.current = selectedModel;
+	const permissionModeRef = useRef(permissionMode);
+	permissionModeRef.current = permissionMode;
 
 	const { data: existingSession } = electronTrpc.aiChat.getSession.useQuery(
 		{ sessionId },
@@ -136,7 +144,14 @@ export function ChatInterface({
 		setSessionReady(false);
 
 		if (existingSession) {
-			restoreSessionRef.current.mutate({ sessionId, cwd, paneId, tabId });
+			restoreSessionRef.current.mutate({
+				sessionId,
+				cwd,
+				paneId,
+				tabId,
+				model: selectedModelRef.current.id,
+				permissionMode: permissionModeRef.current,
+			});
 		} else {
 			startSessionRef.current.mutate({
 				sessionId,
@@ -144,6 +159,8 @@ export function ChatInterface({
 				cwd,
 				paneId,
 				tabId,
+				model: selectedModelRef.current.id,
+				permissionMode: permissionModeRef.current,
 			});
 		}
 
@@ -158,25 +175,6 @@ export function ChatInterface({
 		}
 	}, [sessionReady, config?.proxyUrl, doConnect]);
 
-	const hasAutoTitled = useRef(false);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
-	useEffect(() => {
-		hasAutoTitled.current = false;
-	}, [sessionId]);
-
-	useEffect(() => {
-		if (hasAutoTitled.current || !sessionId) return;
-
-		const userMsg = messages.find((m) => m.role === "user");
-		const assistantMsg = messages.find((m) => m.role === "assistant");
-		if (!userMsg || !assistantMsg) return;
-
-		hasAutoTitled.current = true;
-		const title = extractTitleFromMessages(messages) ?? "Chat";
-		renameSessionRef.current.mutate({ sessionId, title });
-	}, [messages, sessionId]);
-
 	const handleRename = useCallback(
 		(title: string) => {
 			renameSessionRef.current.mutate({ sessionId, title });
@@ -187,19 +185,27 @@ export function ChatInterface({
 	const { allMessages } = useClaudeCodeHistory({
 		sessionId,
 		liveMessages: messages,
-		hasAutoTitled,
 		onRename: handleRename,
 	});
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			if (!message.text.trim()) return;
+			setIsSending(true);
 			sendMessage(message.text).catch((err) => {
 				console.error("[chat] Send failed:", err);
+				setIsSending(false);
 			});
 		},
 		[sendMessage],
 	);
+
+	// Clear isSending once the server starts streaming (isLoading takes over)
+	useEffect(() => {
+		if (isLoading) {
+			setIsSending(false);
+		}
+	}, [isLoading]);
 
 	const handleApprove = useCallback(
 		(approvalId: string) => {
@@ -213,6 +219,15 @@ export function ChatInterface({
 			addToolApprovalResponse({ id: approvalId, approved: false });
 		},
 		[addToolApprovalResponse],
+	);
+
+	const handleAnswer = useCallback(
+		(toolUseId: string, answers: Record<string, string>) => {
+			addToolAnswerResponse({ toolCallId: toolUseId, answers }).catch((err) => {
+				console.error("[chat] Failed to submit answer:", err);
+			});
+		},
+		[addToolAnswerResponse],
 	);
 
 	const handleThinkingToggle = useCallback(
@@ -232,6 +247,17 @@ export function ChatInterface({
 			updateConfig.mutate({
 				sessionId,
 				model: model.id,
+			});
+		},
+		[sessionId, updateConfig],
+	);
+
+	const handlePermissionModeSelect = useCallback(
+		(mode: PermissionMode) => {
+			setPermissionMode(mode);
+			updateConfig.mutate({
+				sessionId,
+				permissionMode: mode,
 			});
 		},
 		[sessionId, updateConfig],
@@ -278,16 +304,15 @@ export function ChatInterface({
 								message={msg}
 								onApprove={handleApprove}
 								onDeny={handleDeny}
+								onAnswer={handleAnswer}
 							/>
 						))
 					)}
-					{isLoading && (
+					{(isSending || isLoading) && (
 						<Message from="assistant">
-							<MessageContent>
-								<Shimmer className="text-sm" duration={1.5}>
-									Thinking...
-								</Shimmer>
-							</MessageContent>
+							<Shimmer className="text-sm text-muted-foreground" duration={1}>
+								Thinking...
+							</Shimmer>
 						</Message>
 					)}
 				</ConversationContent>
@@ -326,6 +351,10 @@ export function ChatInterface({
 													onSelectModel={handleModelSelect}
 													open={modelSelectorOpen}
 													onOpenChange={setModelSelectorOpen}
+												/>
+												<PermissionModePicker
+													selectedMode={permissionMode}
+													onSelectMode={handlePermissionModeSelect}
 												/>
 											</PromptInputTools>
 											<div className="flex items-center gap-1">

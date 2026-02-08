@@ -1,5 +1,5 @@
 import type { UIMessage } from "@superset/durable-session/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { extractTitleFromMessages } from "../../utils/extract-title";
 
@@ -9,14 +9,12 @@ const UUID_RE =
 interface UseClaudeCodeHistoryOptions {
 	sessionId: string;
 	liveMessages: UIMessage[];
-	hasAutoTitled: React.MutableRefObject<boolean>;
 	onRename: (title: string) => void;
 }
 
 export function useClaudeCodeHistory({
 	sessionId,
 	liveMessages,
-	hasAutoTitled,
 	onRename,
 }: UseClaudeCodeHistoryOptions) {
 	const isClaudeCodeSession = UUID_RE.test(sessionId);
@@ -34,15 +32,38 @@ export function useClaudeCodeHistory({
 		return [...history, ...liveMessages];
 	}, [claudeMessages, liveMessages]);
 
+	// Auto-titling: owned entirely by this hook.
+	// Titles from Claude Code history (claudeMessages) or live messages.
+	const hasAutoTitled = useRef(false);
+
+	// Reset when session changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
+	useEffect(() => {
+		hasAutoTitled.current = false;
+	}, [sessionId]);
+
+	// Title from Claude Code history (available immediately)
 	useEffect(() => {
 		if (hasAutoTitled.current) return;
 		if (!isClaudeCodeSession || !claudeMessages?.length) return;
 
 		hasAutoTitled.current = true;
-
 		const title = extractTitleFromMessages(claudeMessages);
 		if (title) onRename(title);
-	}, [claudeMessages, isClaudeCodeSession, hasAutoTitled, onRename]);
+	}, [claudeMessages, isClaudeCodeSession, onRename]);
+
+	// Title from live messages (for non-Claude-Code sessions or new sessions)
+	useEffect(() => {
+		if (hasAutoTitled.current || !sessionId) return;
+
+		const userMsg = liveMessages.find((m) => m.role === "user");
+		const assistantMsg = liveMessages.find((m) => m.role === "assistant");
+		if (!userMsg || !assistantMsg) return;
+
+		hasAutoTitled.current = true;
+		const title = extractTitleFromMessages(liveMessages) ?? "Chat";
+		onRename(title);
+	}, [liveMessages, sessionId, onRename]);
 
 	return { allMessages, isClaudeCodeSession };
 }

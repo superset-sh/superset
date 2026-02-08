@@ -98,6 +98,8 @@ export const createAiChatRouter = () => {
 					cwd: z.string(),
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
+					model: z.string().optional(),
+					permissionMode: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -107,6 +109,8 @@ export const createAiChatRouter = () => {
 					cwd: input.cwd,
 					paneId: input.paneId,
 					tabId: input.tabId,
+					model: input.model,
+					permissionMode: input.permissionMode,
 				});
 				return { success: true };
 			}),
@@ -118,6 +122,8 @@ export const createAiChatRouter = () => {
 					cwd: z.string(),
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
+					model: z.string().optional(),
+					permissionMode: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -126,6 +132,8 @@ export const createAiChatRouter = () => {
 					cwd: input.cwd,
 					paneId: input.paneId,
 					tabId: input.tabId,
+					model: input.model,
+					permissionMode: input.permissionMode,
 				});
 				return { success: true };
 			}),
@@ -163,6 +171,10 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					maxThinkingTokens: z.number().nullable().optional(),
 					model: z.string().nullable().optional(),
+					permissionMode: z
+						.enum(["default", "acceptEdits", "bypassPermissions"])
+						.nullable()
+						.optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -170,6 +182,7 @@ export const createAiChatRouter = () => {
 					sessionId: input.sessionId,
 					maxThinkingTokens: input.maxThinkingTokens,
 					model: input.model,
+					permissionMode: input.permissionMode,
 				});
 				return { success: true };
 			}),

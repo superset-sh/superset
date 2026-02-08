@@ -87,11 +87,18 @@ async function readSessionMeta(filePath: string): Promise<{
 			}
 		}
 		return null;
-	} catch {
+	} catch (err) {
+		console.debug(
+			`[claude-scanner] Failed to read session meta:`,
+			filePath,
+			err,
+		);
 		if (fd !== undefined) {
 			try {
 				await fsClose(fd);
-			} catch {}
+			} catch (closeErr) {
+				console.debug(`[claude-scanner] Failed to close fd:`, closeErr);
+			}
 		}
 		return null;
 	}
@@ -107,7 +114,12 @@ async function buildIndex(): Promise<SessionFileEntry[]> {
 	let projectDirs: string[];
 	try {
 		projectDirs = await readdir(projectsDir);
-	} catch {
+	} catch (err) {
+		console.debug(
+			`[claude-scanner] Cannot read projects dir:`,
+			projectsDir,
+			err,
+		);
 		return [];
 	}
 
@@ -136,10 +148,18 @@ async function buildIndex(): Promise<SessionFileEntry[]> {
 									sessionId: f.replace(".jsonl", ""),
 									mtime: s.mtimeMs,
 								});
-							} catch {}
+							} catch (err) {
+								console.debug(`[claude-scanner] stat failed:`, filePath, err);
+							}
 						}),
 					);
-				} catch {}
+				} catch (err) {
+					console.debug(
+						`[claude-scanner] readdir failed:`,
+						fullProjectDir,
+						err,
+					);
+				}
 			}),
 		);
 

@@ -6,6 +6,25 @@ const PROXY_URL = process.env.DURABLE_STREAM_URL || "http://localhost:8080";
 const DURABLE_STREAM_AUTH_TOKEN =
 	process.env.DURABLE_STREAM_AUTH_TOKEN || process.env.DURABLE_STREAM_TOKEN;
 
+/**
+ * Set, clear, or skip a field on a body template.
+ * - `undefined` → no-op (field not mentioned in the update)
+ * - `null`      → delete the field (revert to agent default)
+ * - otherwise   → set the value
+ */
+function applyBodyField(
+	template: Record<string, unknown>,
+	key: string,
+	value: unknown,
+): void {
+	if (value === undefined) return;
+	if (value === null) {
+		delete template[key];
+	} else {
+		template[key] = value;
+	}
+}
+
 function buildProxyHeaders(): Record<string, string> {
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
@@ -53,18 +72,81 @@ export class ChatSessionManager extends EventEmitter {
 		super();
 	}
 
+	/**
+	 * Register session with proxy: create/ensure session, register agent.
+	 * Shared between startSession and restoreSession.
+	 */
+	private async ensureSessionReady({
+		sessionId,
+		cwd,
+		paneId,
+		tabId,
+		workspaceId,
+		model,
+		permissionMode,
+	}: {
+		sessionId: string;
+		cwd: string;
+		paneId?: string;
+		tabId?: string;
+		workspaceId?: string;
+		model?: string;
+		permissionMode?: string;
+	}): Promise<void> {
+		const headers = buildProxyHeaders();
+
+		const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
+			method: "PUT",
+			headers,
+		});
+		if (!createRes.ok) {
+			throw new Error(
+				`PUT /v1/sessions/${sessionId} failed: ${createRes.status}`,
+			);
+		}
+
+		const registration = this.provider.getAgentRegistration({
+			sessionId,
+			cwd,
+			paneId,
+			tabId,
+			workspaceId,
+			model,
+			permissionMode,
+		});
+		const registerRes = await fetch(
+			`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
+			{
+				method: "POST",
+				headers,
+				body: JSON.stringify({ agents: [registration] }),
+			},
+		);
+		if (!registerRes.ok) {
+			throw new Error(
+				`POST /v1/sessions/${sessionId}/agents failed: ${registerRes.status}`,
+			);
+		}
+
+		this.sessions.set(sessionId, { sessionId, cwd });
+	}
+
 	async startSession({
 		sessionId,
 		workspaceId,
 		cwd,
 		paneId,
 		tabId,
+		model,
+		permissionMode,
 	}: {
 		sessionId: string;
 		workspaceId: string;
 		cwd: string;
 		paneId?: string;
 		tabId?: string;
+		model?: string;
+		permissionMode?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			console.warn(`[chat/session] Session ${sessionId} already active`);
@@ -72,41 +154,17 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		console.log(`[chat/session] Starting session ${sessionId} in ${cwd}`);
-		const headers = buildProxyHeaders();
 
 		try {
-			const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
-				method: "PUT",
-				headers,
-			});
-			if (!createRes.ok) {
-				throw new Error(
-					`PUT /v1/sessions/${sessionId} failed: ${createRes.status}`,
-				);
-			}
-
-			const registration = this.provider.getAgentRegistration({
+			await this.ensureSessionReady({
 				sessionId,
 				cwd,
 				paneId,
 				tabId,
 				workspaceId,
+				model,
+				permissionMode,
 			});
-			const registerRes = await fetch(
-				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
-				{
-					method: "POST",
-					headers,
-					body: JSON.stringify({ agents: [registration] }),
-				},
-			);
-			if (!registerRes.ok) {
-				throw new Error(
-					`POST /v1/sessions/${sessionId}/agents failed: ${registerRes.status}`,
-				);
-			}
-
-			this.sessions.set(sessionId, { sessionId, cwd });
 
 			await this.store.create({
 				sessionId,
@@ -140,51 +198,31 @@ export class ChatSessionManager extends EventEmitter {
 		cwd,
 		paneId,
 		tabId,
+		model,
+		permissionMode,
 	}: {
 		sessionId: string;
 		cwd: string;
 		paneId?: string;
 		tabId?: string;
+		model?: string;
+		permissionMode?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			return;
 		}
 
 		console.log(`[chat/session] Restoring session ${sessionId}`);
-		const headers = buildProxyHeaders();
 
 		try {
-			const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
-				method: "PUT",
-				headers,
-			});
-			if (!createRes.ok) {
-				throw new Error(
-					`PUT /v1/sessions/${sessionId} failed: ${createRes.status}`,
-				);
-			}
-
-			const registration = this.provider.getAgentRegistration({
+			await this.ensureSessionReady({
 				sessionId,
 				cwd,
 				paneId,
 				tabId,
+				model,
+				permissionMode,
 			});
-			const registerRes = await fetch(
-				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
-				{
-					method: "POST",
-					headers,
-					body: JSON.stringify({ agents: [registration] }),
-				},
-			);
-			if (!registerRes.ok) {
-				throw new Error(
-					`POST /v1/sessions/${sessionId}/agents failed: ${registerRes.status}`,
-				);
-			}
-
-			this.sessions.set(sessionId, { sessionId, cwd });
 
 			await this.store.update(sessionId, {
 				lastActiveAt: Date.now(),
@@ -227,7 +265,6 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
-	// Removes from active set but preserves the proxy session for later restore
 	async deactivateSession({ sessionId }: { sessionId: string }): Promise<void> {
 		if (!this.sessions.has(sessionId)) {
 			return;
@@ -241,7 +278,9 @@ export class ChatSessionManager extends EventEmitter {
 				headers: buildProxyHeaders(),
 				body: JSON.stringify({}),
 			});
-		} catch {}
+		} catch (err) {
+			console.debug(`[chat/session] Stop during deactivate failed:`, err);
+		}
 
 		try {
 			const providerSessionId =
@@ -256,7 +295,12 @@ export class ChatSessionManager extends EventEmitter {
 					lastActiveAt: Date.now(),
 				});
 			}
-		} catch {}
+		} catch (err) {
+			console.debug(
+				`[chat/session] Store update during deactivate failed:`,
+				err,
+			);
+		}
 
 		this.sessions.delete(sessionId);
 
@@ -277,14 +321,18 @@ export class ChatSessionManager extends EventEmitter {
 				headers,
 				body: JSON.stringify({}),
 			});
-		} catch {}
+		} catch (err) {
+			console.debug(`[chat/session] Stop during delete failed:`, err);
+		}
 
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 				method: "DELETE",
 				headers,
 			});
-		} catch {}
+		} catch (err) {
+			console.debug(`[chat/session] DELETE request failed:`, err);
+		}
 
 		await this.provider.cleanup(sessionId);
 		await this.store.archive(sessionId);
@@ -313,10 +361,12 @@ export class ChatSessionManager extends EventEmitter {
 		sessionId,
 		maxThinkingTokens,
 		model,
+		permissionMode,
 	}: {
 		sessionId: string;
 		maxThinkingTokens?: number | null;
 		model?: string | null;
+		permissionMode?: string | null;
 	}): Promise<void> {
 		const session = this.sessions.get(sessionId);
 		if (!session) {
@@ -331,21 +381,10 @@ export class ChatSessionManager extends EventEmitter {
 			cwd: session.cwd,
 		});
 
-		if (maxThinkingTokens !== undefined) {
-			if (maxThinkingTokens === null) {
-				delete registration.bodyTemplate.maxThinkingTokens;
-			} else {
-				registration.bodyTemplate.maxThinkingTokens = maxThinkingTokens;
-			}
-		}
-
-		if (model !== undefined) {
-			if (model === null) {
-				delete registration.bodyTemplate.model;
-			} else {
-				registration.bodyTemplate.model = model;
-			}
-		}
+		const tpl = registration.bodyTemplate;
+		applyBodyField(tpl, "maxThinkingTokens", maxThinkingTokens);
+		applyBodyField(tpl, "model", model);
+		applyBodyField(tpl, "permissionMode", permissionMode);
 
 		const headers = buildProxyHeaders();
 		const res = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents`, {
@@ -365,6 +404,7 @@ export class ChatSessionManager extends EventEmitter {
 				maxThinkingTokens !== undefined &&
 					`maxThinkingTokens=${maxThinkingTokens}`,
 				model !== undefined && `model=${model}`,
+				permissionMode !== undefined && `permissionMode=${permissionMode}`,
 			]
 				.filter(Boolean)
 				.join(", "),

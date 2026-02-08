@@ -1,27 +1,24 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import {
-	type HookCallbackMatcher,
-	type HookEvent,
-	query,
-} from "@anthropic-ai/claude-agent-sdk";
+import { type Options, query } from "@anthropic-ai/claude-agent-sdk";
 import { Hono } from "hono";
 import { z } from "zod";
+import {
+	getActiveSessionCount,
+	getClaudeSessionId,
+	setClaudeSessionId,
+} from "./claude-session-store";
+import {
+	buildNotificationHooks,
+	notificationSchema,
+} from "./notification-hooks";
+import {
+	createPermissionRequest,
+	getPendingPermission,
+	resolvePendingPermission,
+} from "./permission-manager";
 import { createConverter } from "./sdk-to-ai-chunks";
 
 const DEFAULT_MODEL = "claude-sonnet-4-5-20250929";
 const MAX_AGENT_TURNS = 25;
-const SESSION_MAX_SIZE = 1000;
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-const notificationSchema = z.object({
-	port: z.number(),
-	paneId: z.string().optional(),
-	tabId: z.string().optional(),
-	workspaceId: z.string().optional(),
-	env: z.string().optional(),
-});
 
 const agentRequestSchema = z.object({
 	messages: z
@@ -32,125 +29,28 @@ const agentRequestSchema = z.object({
 	cwd: z.string().optional(),
 	env: z.record(z.string(), z.string()).optional(),
 	notification: notificationSchema.optional(),
-	maxThinkingTokens: z.number().optional(),
 	model: z.string().optional(),
+	permissionMode: z
+		.enum(["default", "acceptEdits", "bypassPermissions"])
+		.optional(),
+	allowedTools: z.array(z.string()).optional(),
+	disallowedTools: z.array(z.string()).optional(),
+	maxBudgetUsd: z.number().optional(),
+	maxThinkingTokens: z.number().optional(),
+	fallbackModel: z.string().optional(),
+	additionalDirectories: z.array(z.string()).optional(),
+	betas: z.array(z.string()).optional(),
 });
 
-interface SessionEntry {
-	claudeSessionId: string;
-	lastAccessedAt: number;
-}
+const approvalBodySchema = z.object({
+	approved: z.boolean(),
+	updatedInput: z.record(z.string(), z.unknown()).optional(),
+});
 
-const claudeSessions = new Map<string, SessionEntry>();
-
-const SESSIONS_DIR =
-	process.env.DURABLE_STREAMS_DATA_DIR ??
-	join(homedir(), ".superset", "chat-streams");
-const SESSIONS_FILE = join(SESSIONS_DIR, "claude-sessions.json");
-
-function loadPersistedSessions(): void {
-	try {
-		if (existsSync(SESSIONS_FILE)) {
-			const raw = readFileSync(SESSIONS_FILE, "utf-8");
-			const entries = JSON.parse(raw) as Array<[string, SessionEntry]>;
-			for (const [key, entry] of entries) {
-				claudeSessions.set(key, entry);
-			}
-			console.log(`[claude-agent] Loaded ${entries.length} persisted sessions`);
-		}
-	} catch (err) {
-		console.warn("[claude-agent] Failed to load persisted sessions:", err);
-	}
-}
-
-function persistSessions(): void {
-	try {
-		if (!existsSync(SESSIONS_DIR)) {
-			mkdirSync(SESSIONS_DIR, { recursive: true });
-		}
-		const entries = Array.from(claudeSessions.entries());
-		writeFileSync(SESSIONS_FILE, JSON.stringify(entries), "utf-8");
-	} catch (err) {
-		console.warn("[claude-agent] Failed to persist sessions:", err);
-	}
-}
-
-loadPersistedSessions();
-
-function evictStaleSessions(): void {
-	const now = Date.now();
-	for (const [key, entry] of claudeSessions) {
-		if (now - entry.lastAccessedAt > SESSION_TTL_MS) {
-			claudeSessions.delete(key);
-		}
-	}
-
-	if (claudeSessions.size > SESSION_MAX_SIZE) {
-		const sorted = [...claudeSessions.entries()].sort(
-			(a, b) => a[1].lastAccessedAt - b[1].lastAccessedAt,
-		);
-		const toRemove = sorted.slice(0, claudeSessions.size - SESSION_MAX_SIZE);
-		for (const [key] of toRemove) {
-			claudeSessions.delete(key);
-		}
-	}
-}
-
-function getClaudeSessionId(sessionId: string): string | undefined {
-	const entry = claudeSessions.get(sessionId);
-	if (entry) {
-		entry.lastAccessedAt = Date.now();
-	}
-	return entry?.claudeSessionId;
-}
-
-function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
-	evictStaleSessions();
-	claudeSessions.set(sessionId, {
-		claudeSessionId,
-		lastAccessedAt: Date.now(),
-	});
-	persistSessions();
-}
-
-type NotificationContext = z.infer<typeof notificationSchema>;
-
-// Mirrors the terminal shell wrapper hooks that call GET /hook/complete
-function buildNotificationHooks({
-	notification,
-}: {
-	notification: NotificationContext;
-}): Partial<Record<HookEvent, HookCallbackMatcher[]>> {
-	const baseUrl = `http://localhost:${notification.port}/hook/complete`;
-
-	const buildUrl = (eventType: string): string => {
-		const params = new URLSearchParams({ eventType });
-		if (notification.paneId) params.set("paneId", notification.paneId);
-		if (notification.tabId) params.set("tabId", notification.tabId);
-		if (notification.workspaceId)
-			params.set("workspaceId", notification.workspaceId);
-		if (notification.env) params.set("env", notification.env);
-		return `${baseUrl}?${params.toString()}`;
-	};
-
-	const createHookMatcher = (eventType: string): HookCallbackMatcher => ({
-		hooks: [
-			async () => {
-				try {
-					await fetch(buildUrl(eventType));
-				} catch (err) {
-					console.warn(`[claude-agent] Failed to notify ${eventType}:`, err);
-				}
-				return { continue: true };
-			},
-		],
-	});
-
-	return {
-		UserPromptSubmit: [createHookMatcher("UserPromptSubmit")],
-		Stop: [createHookMatcher("Stop")],
-	};
-}
+const answerBodySchema = z.object({
+	answers: z.record(z.string(), z.string()),
+	originalInput: z.record(z.string(), z.unknown()).optional(),
+});
 
 interface SlashCommand {
 	name: string;
@@ -187,8 +87,15 @@ app.post("/", async (c) => {
 		cwd,
 		env: agentEnv,
 		notification,
-		maxThinkingTokens,
 		model,
+		permissionMode,
+		allowedTools,
+		disallowedTools,
+		maxBudgetUsd,
+		maxThinkingTokens,
+		fallbackModel,
+		additionalDirectories,
+		betas,
 	} = parsed.data;
 
 	const latestUserMessage = messages?.filter((m) => m.role === "user").pop();
@@ -211,6 +118,56 @@ app.post("/", async (c) => {
 		? buildNotificationHooks({ notification })
 		: undefined;
 
+	const resolvedPermissionMode = permissionMode ?? "bypassPermissions";
+
+	const converter = createConverter();
+	const encoder = new TextEncoder();
+	const requestSignal = c.req.raw.signal;
+
+	let streamController: ReadableStreamDefaultController<Uint8Array> | null =
+		null;
+
+	function emitSSE(data: unknown): void {
+		if (streamController && !requestSignal.aborted) {
+			try {
+				streamController.enqueue(
+					encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
+				);
+			} catch (err) {
+				console.debug("[claude-agent] Failed to enqueue SSE:", err);
+			}
+		}
+	}
+
+	const needsApproval = resolvedPermissionMode !== "bypassPermissions";
+
+	const canUseTool = needsApproval
+		? async (
+				toolName: string,
+				input: Record<string, unknown>,
+				options: { toolUseID: string; signal: AbortSignal },
+			) => {
+				const toolUseId = options.toolUseID;
+
+				emitSSE({
+					type: "CUSTOM",
+					name: "approval-requested",
+					data: {
+						toolCallId: toolUseId,
+						toolName,
+						input,
+						approval: { id: toolUseId, needsApproval: true },
+					},
+					timestamp: Date.now(),
+				});
+
+				return createPermissionRequest({
+					toolUseId,
+					signal: options.signal,
+				});
+			}
+		: undefined;
+
 	const abortController = new AbortController();
 	const result = query({
 		prompt,
@@ -220,13 +177,24 @@ app.post("/", async (c) => {
 			model: model ?? process.env.CLAUDE_MODEL ?? DEFAULT_MODEL,
 			maxTurns: MAX_AGENT_TURNS,
 			includePartialMessages: true,
-			permissionMode: "bypassPermissions" as const,
-			settingSources: ["project", "user"],
+			permissionMode: resolvedPermissionMode as
+				| "default"
+				| "acceptEdits"
+				| "bypassPermissions",
+			settingSources: ["user", "project", "local"],
+			systemPrompt: { type: "preset" as const, preset: "claude_code" as const },
 			...(binaryPath && { pathToClaudeCodeExecutable: binaryPath }),
 			env: queryEnv,
 			abortController,
 			...(hooks && { hooks }),
+			...(canUseTool && { canUseTool }),
+			...(allowedTools && { allowedTools }),
+			...(disallowedTools && { disallowedTools }),
+			...(maxBudgetUsd !== undefined && { maxBudgetUsd }),
 			...(maxThinkingTokens !== undefined && { maxThinkingTokens }),
+			...(fallbackModel && { fallbackModel }),
+			...(additionalDirectories && { additionalDirectories }),
+			...(betas && { betas: betas as Options["betas"] }),
 		},
 	});
 
@@ -243,9 +211,6 @@ app.post("/", async (c) => {
 			.catch(() => {});
 	}
 
-	const converter = createConverter();
-
-	const requestSignal = c.req.raw.signal;
 	const abortHandler = () => {
 		abortController.abort();
 		result.interrupt().catch(() => {});
@@ -253,9 +218,9 @@ app.post("/", async (c) => {
 	};
 	requestSignal.addEventListener("abort", abortHandler, { once: true });
 
-	const encoder = new TextEncoder();
 	const readable = new ReadableStream({
 		async start(controller) {
+			streamController = controller;
 			try {
 				for await (const message of result) {
 					if (requestSignal.aborted) break;
@@ -309,6 +274,7 @@ app.post("/", async (c) => {
 					console.debug("[claude-agent] Controller already closed:", closeErr);
 				}
 			} finally {
+				streamController = null;
 				requestSignal.removeEventListener("abort", abortHandler);
 				try {
 					result.close();
@@ -331,6 +297,78 @@ app.post("/", async (c) => {
 	});
 });
 
+app.post("/approvals/:toolUseId", async (c) => {
+	const toolUseId = c.req.param("toolUseId");
+
+	if (!getPendingPermission(toolUseId)) {
+		return c.json({ error: "No pending permission for this tool use" }, 404);
+	}
+
+	let rawBody: unknown;
+	try {
+		rawBody = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid JSON body" }, 400);
+	}
+
+	const parsed = approvalBodySchema.safeParse(rawBody);
+	if (!parsed.success) {
+		return c.json(
+			{ error: "Invalid request body", details: parsed.error.message },
+			400,
+		);
+	}
+
+	const { approved, updatedInput } = parsed.data;
+
+	resolvePendingPermission({
+		toolUseId,
+		result: approved
+			? { behavior: "allow", updatedInput: updatedInput ?? {} }
+			: { behavior: "deny", message: "User denied permission" },
+	});
+
+	return c.json({ ok: true });
+});
+
+app.post("/answers/:toolUseId", async (c) => {
+	const toolUseId = c.req.param("toolUseId");
+
+	if (!getPendingPermission(toolUseId)) {
+		return c.json({ error: "No pending question for this tool use" }, 404);
+	}
+
+	let rawBody: unknown;
+	try {
+		rawBody = await c.req.json();
+	} catch {
+		return c.json({ error: "Invalid JSON body" }, 400);
+	}
+
+	const parsed = answerBodySchema.safeParse(rawBody);
+	if (!parsed.success) {
+		return c.json(
+			{ error: "Invalid request body", details: parsed.error.message },
+			400,
+		);
+	}
+
+	const { answers, originalInput } = parsed.data;
+
+	resolvePendingPermission({
+		toolUseId,
+		result: {
+			behavior: "allow",
+			updatedInput: {
+				...(originalInput ?? {}),
+				answers,
+			},
+		},
+	});
+
+	return c.json({ ok: true });
+});
+
 app.get("/sessions/:sessionId", (c) => {
 	const sessionId = c.req.param("sessionId");
 	const claudeSessionId = getClaudeSessionId(sessionId);
@@ -351,7 +389,7 @@ app.get("/health", (c) => {
 		status: "ok",
 		agent: "claude",
 		hasBinary: !!process.env.CLAUDE_BINARY_PATH,
-		activeSessions: claudeSessions.size,
+		activeSessions: getActiveSessionCount(),
 	});
 });
 

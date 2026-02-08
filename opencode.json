@@ -2,5 +2,11 @@
 	"$schema": "https://opencode.ai/config.json",
 	"permission": {
 		"external_directory": "allow"
+	},
+	"mcp": {
+		"superset": {
+			"type": "remote",
+			"url": "https://api.superset.sh/api/agent/mcp"
+		}
 	}
 }
