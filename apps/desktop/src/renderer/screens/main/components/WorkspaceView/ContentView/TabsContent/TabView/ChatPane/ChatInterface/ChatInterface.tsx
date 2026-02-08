@@ -16,6 +16,7 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
+import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	HiMiniAtSymbol,
@@ -47,6 +48,9 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+
+	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
@@ -60,6 +64,7 @@ export function ChatInterface({
 		addToolApprovalResponse,
 		addToolAnswerResponse,
 		connect,
+		collections,
 	} = useDurableChat({
 		sessionId,
 		proxyUrl: config?.proxyUrl ?? "http://localhost:8080",
@@ -213,6 +218,28 @@ export function ChatInterface({
 		[addToolAnswerResponse],
 	);
 
+	const handleThinkingToggle = useCallback(
+		(enabled: boolean) => {
+			setThinkingEnabled(enabled);
+			updateConfig.mutate({
+				sessionId,
+				maxThinkingTokens: enabled ? 10000 : null,
+			});
+		},
+		[sessionId, updateConfig],
+	);
+
+	const handleModelSelect = useCallback(
+		(model: ModelOption) => {
+			setSelectedModel(model);
+			updateConfig.mutate({
+				sessionId,
+				model: model.id,
+			});
+		},
+		[sessionId, updateConfig],
+	);
+
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -296,15 +323,22 @@ export function ChatInterface({
 								<PromptInputButton>
 									<HiMiniAtSymbol className="size-4" />
 								</PromptInputButton>
+								<ThinkingToggle
+									enabled={thinkingEnabled}
+									onToggle={handleThinkingToggle}
+								/>
 								<ModelPicker
 									selectedModel={selectedModel}
-									onSelectModel={setSelectedModel}
+									onSelectModel={handleModelSelect}
 									open={modelSelectorOpen}
 									onOpenChange={setModelSelectorOpen}
 								/>
 							</PromptInputTools>
 							<div className="flex items-center gap-1">
-								<ContextIndicator />
+								<ContextIndicator
+									collections={collections}
+									modelId={selectedModel.id}
+								/>
 								<PromptInputSubmit
 									status={isLoading ? "streaming" : undefined}
 									onClick={isLoading ? handleStop : undefined}

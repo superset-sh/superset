@@ -96,6 +96,23 @@ export const createAiChatRouter = () => {
 				return { success: true };
 			}),
 
+		updateSessionConfig: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					maxThinkingTokens: z.number().nullable().optional(),
+					model: z.string().nullable().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await chatSessionManager.updateAgentConfig({
+					sessionId: input.sessionId,
+					maxThinkingTokens: input.maxThinkingTokens,
+					model: input.model,
+				});
+				return { success: true };
+			}),
+
 		renameSession: publicProcedure
 			.input(
 				z.object({
