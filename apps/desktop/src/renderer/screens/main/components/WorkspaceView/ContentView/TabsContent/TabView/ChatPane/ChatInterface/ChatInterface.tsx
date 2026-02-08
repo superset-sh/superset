@@ -5,7 +5,7 @@ import {
 	ConversationEmptyState,
 	ConversationScrollButton,
 } from "@superset/ui/ai-elements/conversation";
-import { Message, MessageContent } from "@superset/ui/ai-elements/message";
+import { Message } from "@superset/ui/ai-elements/message";
 import {
 	PromptInput,
 	PromptInputButton,
@@ -53,6 +53,7 @@ export function ChatInterface({
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
+	const [isSending, setIsSending] = useState(false);
 
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 
@@ -188,12 +189,21 @@ export function ChatInterface({
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			if (!message.text.trim()) return;
+			setIsSending(true);
 			sendMessage(message.text).catch((err) => {
 				console.error("[chat] Send failed:", err);
+				setIsSending(false);
 			});
 		},
 		[sendMessage],
 	);
+
+	// Clear isSending once the server starts streaming (isLoading takes over)
+	useEffect(() => {
+		if (isLoading) {
+			setIsSending(false);
+		}
+	}, [isLoading]);
 
 	const handleApprove = useCallback(
 		(approvalId: string) => {
@@ -286,13 +296,11 @@ export function ChatInterface({
 							/>
 						))
 					)}
-					{isLoading && (
+					{(isSending || isLoading) && (
 						<Message from="assistant">
-							<MessageContent>
-								<Shimmer className="text-sm" duration={1.5}>
-									Thinking...
-								</Shimmer>
-							</MessageContent>
+							<Shimmer className="text-sm text-muted-foreground" duration={1}>
+								Thinking...
+							</Shimmer>
 						</Message>
 					)}
 				</ConversationContent>
