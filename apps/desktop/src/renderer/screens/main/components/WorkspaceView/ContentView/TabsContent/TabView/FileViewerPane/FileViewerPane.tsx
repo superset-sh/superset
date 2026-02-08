@@ -4,6 +4,7 @@ import type { MosaicBranch } from "react-mosaic-component";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
+import { isDiffEditable } from "shared/changes-types";
 import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { BasePaneWindow } from "../components";
@@ -259,8 +260,8 @@ export function FileViewerPane({
 	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
 	const hasDiff = !!diffCategory;
 	const hasDraft = draftContentRef.current !== null;
-	const isDiffEditable =
-		(diffCategory === "staged" || diffCategory === "unstaged") && !hasDraft;
+	const canEditDiff =
+		diffCategory != null && isDiffEditable(diffCategory) && !hasDraft;
 
 	return (
 		<>
@@ -305,7 +306,7 @@ export function FileViewerPane({
 					rawFileData={rawFileData}
 					imageData={imageData}
 					diffData={diffData}
-					isDiffEditable={isDiffEditable}
+					isDiffEditable={canEditDiff}
 					editorRef={editorRef}
 					originalContentRef={originalContentRef}
 					draftContentRef={draftContentRef}
@@ -314,9 +315,9 @@ export function FileViewerPane({
 					diffViewMode={diffViewMode}
 					hideUnchangedRegions={hideUnchangedRegions}
 					onSaveRaw={handleSaveRaw}
-					onSaveDiff={isDiffEditable ? handleSaveDiff : undefined}
+					onSaveDiff={canEditDiff ? handleSaveDiff : undefined}
 					onEditorChange={handleEditorChange}
-					onDiffChange={isDiffEditable ? handleDiffChange : undefined}
+					onDiffChange={canEditDiff ? handleDiffChange : undefined}
 					setIsDirty={setIsDirty}
 					// Context menu props
 					onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
