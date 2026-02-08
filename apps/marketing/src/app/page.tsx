@@ -36,8 +36,8 @@ export default function Home() {
 		<main className="flex flex-col bg-background">
 			<FAQPageJsonLd items={FAQ_ITEMS} />
 			<HeroSection />
-			<VideoSection />
 			<TrustedBySection />
+			<VideoSection />
 			<FeaturesSection />
 			<WallOfLoveSection />
 			<FAQSection />
