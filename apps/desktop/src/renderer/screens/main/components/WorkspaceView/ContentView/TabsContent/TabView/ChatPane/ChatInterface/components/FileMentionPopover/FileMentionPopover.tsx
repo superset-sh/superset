@@ -11,10 +11,13 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import { FileIcon } from "lucide-react";
+import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
 import { HiMiniAtSymbol } from "react-icons/hi2";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useFileSearch } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileSearch";
+import { getFileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
+
+const MENTION_SEARCH_LIMIT = 20;
 
 function findAtTriggerIndex(value: string, prevValue: string): number {
 	if (value.length !== prevValue.length + 1) return -1;
@@ -58,10 +61,12 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 		}
 	}, [textInput.value]);
 
-	const { data: results } = electronTrpc.filesystem.searchFiles.useQuery(
-		{ rootPath: cwd, query: searchQuery, includeHidden: false, limit: 20 },
-		{ enabled: open && cwd.length > 0 && searchQuery.length > 0 },
-	);
+	const { searchResults } = useFileSearch({
+		worktreePath: cwd || undefined,
+		searchTerm: open ? searchQuery : "",
+		includeHidden: false,
+		limit: MENTION_SEARCH_LIMIT,
+	});
 
 	const handleSelect = (relativePath: string) => {
 		const current = textInput.value;
@@ -87,7 +92,7 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 			</PopoverTrigger>
 			<PopoverContent
 				side="top"
-				align="start"
+				align="end"
 				className="w-80 p-0"
 				onOpenAutoFocus={(e) => e.preventDefault()}
 			>
@@ -97,16 +102,21 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
-					<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
+					<CommandList className="min-h-[200px] max-h-[200px] [&::-webkit-scrollbar]:hidden">
 						<CommandEmpty className="py-3 text-xs">
 							{searchQuery.length === 0
 								? "Type to search files..."
 								: "No files found."}
 						</CommandEmpty>
-						{results && results.length > 0 && (
+						{searchResults.length > 0 && (
 							<CommandGroup>
-								{results.map((file) => {
+								{searchResults.map((file) => {
 									const dirPath = getDirectoryPath(file.relativePath);
+									const { icon: Icon, color } = getFileIcon(
+										file.name,
+										false,
+										false,
+									);
 									return (
 										<CommandItem
 											key={file.id}
@@ -114,7 +124,7 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 											onSelect={() => handleSelect(file.relativePath)}
 											className="h-7 gap-1.5 px-1.5 text-xs"
 										>
-											<FileIcon className="size-3 shrink-0 text-muted-foreground" />
+											<Icon className={cn("size-3 shrink-0", color)} />
 											<span className="shrink-0 whitespace-nowrap">
 												{file.name}
 											</span>
