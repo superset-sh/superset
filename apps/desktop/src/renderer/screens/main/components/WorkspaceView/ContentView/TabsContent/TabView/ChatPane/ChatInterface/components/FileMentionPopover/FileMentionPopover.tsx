@@ -15,40 +15,54 @@ import { useEffect, useRef, useState } from "react";
 import { HiMiniAtSymbol } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-function isAtTrigger(value: string, prevValue: string): boolean {
-	if (value.length !== prevValue.length + 1) return false;
-	if (!value.endsWith("@")) return false;
-	const charBeforeAt = value[value.length - 2];
-	return (
-		charBeforeAt === undefined || charBeforeAt === " " || charBeforeAt === "\n"
-	);
+function findAtTriggerIndex(value: string, prevValue: string): number {
+	if (value.length !== prevValue.length + 1) return -1;
+	for (let i = 0; i < value.length; i++) {
+		if (value[i] !== prevValue[i]) {
+			if (value[i] !== "@") return -1;
+			const charBefore = value[i - 1];
+			if (
+				charBefore === undefined ||
+				charBefore === " " ||
+				charBefore === "\n"
+			) {
+				return i;
+			}
+			return -1;
+		}
+	}
+	return -1;
 }
 
 export function FileMentionPopover({ cwd }: { cwd: string }) {
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [triggerIndex, setTriggerIndex] = useState(-1);
 	const { textInput } = usePromptInputController();
 	const prevValueRef = useRef(textInput.value);
 
 	useEffect(() => {
 		const prev = prevValueRef.current;
 		prevValueRef.current = textInput.value;
-		if (isAtTrigger(textInput.value, prev)) {
+		const idx = findAtTriggerIndex(textInput.value, prev);
+		if (idx !== -1) {
+			setTriggerIndex(idx);
 			setOpen(true);
 		}
 	}, [textInput.value]);
 
 	const { data: results } = electronTrpc.filesystem.searchFiles.useQuery(
 		{ rootPath: cwd, query: searchQuery, includeHidden: false, limit: 20 },
-		{ enabled: open && searchQuery.length > 0 },
+		{ enabled: open && cwd.length > 0 && searchQuery.length > 0 },
 	);
 
 	const handleSelect = (relativePath: string) => {
 		const current = textInput.value;
-		const trimmed = current.endsWith("@") ? current.slice(0, -1) : current;
-		const separator = trimmed.length > 0 && !trimmed.endsWith(" ") ? " " : "";
-		textInput.setInput(`${trimmed}${separator}@${relativePath} `);
+		const before = current.slice(0, triggerIndex);
+		const after = current.slice(triggerIndex + 1);
+		textInput.setInput(`${before}@${relativePath} ${after}`);
 		setSearchQuery("");
+		setTriggerIndex(-1);
 		setOpen(false);
 	};
 
