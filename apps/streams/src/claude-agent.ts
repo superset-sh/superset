@@ -113,13 +113,7 @@ function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
 
 type NotificationContext = z.infer<typeof notificationSchema>;
 
-/**
- * Build SDK hooks that notify the desktop app's notification server
- * about agent lifecycle events (start/stop).
- *
- * This mirrors the terminal shell wrapper hooks that call
- * GET /hook/complete?eventType=...&paneId=...&tabId=...&workspaceId=...
- */
+// Mirrors the terminal shell wrapper hooks that call GET /hook/complete
 function buildNotificationHooks({
 	notification,
 }: {
