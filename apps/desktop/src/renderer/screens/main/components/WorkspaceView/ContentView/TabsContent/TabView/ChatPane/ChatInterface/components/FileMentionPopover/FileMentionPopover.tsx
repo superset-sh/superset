@@ -116,7 +116,7 @@ export function FileMentionProvider({
 					side="top"
 					align="start"
 					sideOffset={0}
-					className="w-80 p-0"
+					className="w-80 p-0 text-xs"
 				>
 					<Command shouldFilter={false}>
 						<CommandInput
@@ -125,7 +125,7 @@ export function FileMentionProvider({
 							onValueChange={setSearchQuery}
 						/>
 						<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
-							<CommandEmpty className="px-2 py-3 text-left text-sm text-muted-foreground">
+							<CommandEmpty className="px-2 py-3 text-left text-muted-foreground">
 								{searchQuery.length === 0
 									? "Type to search files..."
 									: "No files found."}
@@ -145,12 +145,10 @@ export function FileMentionProvider({
 												value={file.relativePath}
 												onSelect={() => handleSelect(file.relativePath)}
 											>
-												<Icon className={cn("shrink-0", color)} />
-												<span className="truncate">
-													{file.name}
-												</span>
+												<Icon className={cn("size-3.5 shrink-0", color)} />
+												<span className="truncate">{file.name}</span>
 												{dirPath && (
-													<span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
+													<span className="min-w-0 truncate font-mono text-muted-foreground">
 														{dirPath}
 													</span>
 												)}
