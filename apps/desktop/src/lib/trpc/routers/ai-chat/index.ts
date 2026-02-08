@@ -2,6 +2,10 @@ import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	readClaudeSessionMessages,
+	scanClaudeSessions,
+} from "./utils/claude-session-scanner";
+import {
 	type ClaudeStreamEvent,
 	chatSessionManager,
 	sessionStore,
@@ -23,6 +27,8 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					workspaceId: z.string(),
 					cwd: z.string(),
+					paneId: z.string().optional(),
+					tabId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -30,6 +36,8 @@ export const createAiChatRouter = () => {
 					sessionId: input.sessionId,
 					workspaceId: input.workspaceId,
 					cwd: input.cwd,
+					paneId: input.paneId,
+					tabId: input.tabId,
 				});
 				return { success: true };
 			}),
@@ -39,12 +47,16 @@ export const createAiChatRouter = () => {
 				z.object({
 					sessionId: z.string(),
 					cwd: z.string(),
+					paneId: z.string().optional(),
+					tabId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				await chatSessionManager.restoreSession({
 					sessionId: input.sessionId,
 					cwd: input.cwd,
+					paneId: input.paneId,
+					tabId: input.tabId,
 				});
 				return { success: true };
 			}),
@@ -72,6 +84,23 @@ export const createAiChatRouter = () => {
 			.mutation(async ({ input }) => {
 				await chatSessionManager.deleteSession({
 					sessionId: input.sessionId,
+				});
+				return { success: true };
+			}),
+
+		updateSessionConfig: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					maxThinkingTokens: z.number().nullable().optional(),
+					model: z.string().nullable().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await chatSessionManager.updateAgentConfig({
+					sessionId: input.sessionId,
+					maxThinkingTokens: input.maxThinkingTokens,
+					model: input.model,
 				});
 				return { success: true };
 			}),
@@ -111,6 +140,28 @@ export const createAiChatRouter = () => {
 		getActiveSessions: publicProcedure.query(() => {
 			return chatSessionManager.getActiveSessions();
 		}),
+
+		getClaudeSessionMessages: publicProcedure
+			.input(z.object({ sessionId: z.string() }))
+			.query(async ({ input }) => {
+				return readClaudeSessionMessages({ sessionId: input.sessionId });
+			}),
+
+		scanClaudeSessions: publicProcedure
+			.input(
+				z
+					.object({
+						cursor: z.number().optional(),
+						limit: z.number().min(1).max(100).optional(),
+					})
+					.optional(),
+			)
+			.query(async ({ input }) => {
+				return scanClaudeSessions({
+					cursor: input?.cursor ?? 0,
+					limit: input?.limit ?? 30,
+				});
+			}),
 
 		streamEvents: publicProcedure
 			.input(z.object({ sessionId: z.string().optional() }))

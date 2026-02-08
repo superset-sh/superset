@@ -99,6 +99,8 @@ export function ChatPane({
 				sessionId={sessionId}
 				workspaceId={workspaceId}
 				cwd={workspace?.worktreePath ?? ""}
+				paneId={paneId}
+				tabId={tabId}
 			/>
 		</BasePaneWindow>
 	);

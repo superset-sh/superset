@@ -15,6 +15,7 @@
  * - RUN_ERROR             — error during execution
  */
 
+import { createTextSegmentEnricher } from "@superset/durable-session";
 import type { StreamChunk } from "@tanstack/ai";
 
 // ============================================================================
@@ -131,10 +132,14 @@ export function createConverter(): {
 		runId: crypto.randomUUID(),
 	};
 
+	const enrichChunk = createTextSegmentEnricher();
+
 	return {
 		state,
 		convert(message: SDKMessage): StreamChunk[] {
-			return convertMessage(state, message);
+			return convertMessage(state, message).map((chunk) =>
+				enrichChunk(chunk as StreamChunk & { [key: string]: unknown }),
+			);
 		},
 	};
 }

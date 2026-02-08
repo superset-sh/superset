@@ -10,38 +10,49 @@ import {
 	PromptInput,
 	PromptInputButton,
 	PromptInputFooter,
+	PromptInputProvider,
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
-import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
+import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	HiMiniAtSymbol,
-	HiMiniChatBubbleLeftRight,
-	HiMiniPaperClip,
-} from "react-icons/hi2";
+import { HiMiniChatBubbleLeftRight, HiMiniPaperClip } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
+import {
+	FileMentionAnchor,
+	FileMentionProvider,
+	FileMentionTrigger,
+} from "./components/FileMentionPopover";
 import { ModelPicker } from "./components/ModelPicker";
-import { MODELS, SUGGESTIONS } from "./constants";
+import { MODELS } from "./constants";
+import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
 import type { ModelOption } from "./types";
+import { extractTitleFromMessages } from "./utils/extract-title";
 
 interface ChatInterfaceProps {
 	sessionId: string;
 	workspaceId: string;
 	cwd: string;
+	paneId: string;
+	tabId: string;
 }
 
 export function ChatInterface({
 	sessionId,
 	workspaceId,
 	cwd,
+	paneId,
+	tabId,
 }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+
+	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
@@ -54,6 +65,7 @@ export function ChatInterface({
 		stop,
 		addToolApprovalResponse,
 		connect,
+		collections,
 	} = useDurableChat({
 		sessionId,
 		proxyUrl: config?.proxyUrl ?? "http://localhost:8080",
@@ -122,19 +134,21 @@ export function ChatInterface({
 		setSessionReady(false);
 
 		if (existingSession) {
-			restoreSessionRef.current.mutate({ sessionId, cwd });
+			restoreSessionRef.current.mutate({ sessionId, cwd, paneId, tabId });
 		} else {
 			startSessionRef.current.mutate({
 				sessionId,
 				workspaceId,
 				cwd,
+				paneId,
+				tabId,
 			});
 		}
 
 		return () => {
 			stopSessionRef.current.mutate({ sessionId });
 		};
-	}, [sessionId, cwd, workspaceId, existingSession]);
+	}, [sessionId, cwd, workspaceId, existingSession, paneId, tabId]);
 
 	useEffect(() => {
 		if (sessionReady && config?.proxyUrl) {
@@ -143,32 +157,37 @@ export function ChatInterface({
 	}, [sessionReady, config?.proxyUrl, doConnect]);
 
 	const hasAutoTitled = useRef(false);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
 	useEffect(() => {
-		if (hasAutoTitled.current) return;
-		if (!sessionId) return;
+		hasAutoTitled.current = false;
+	}, [sessionId]);
+
+	useEffect(() => {
+		if (hasAutoTitled.current || !sessionId) return;
 
 		const userMsg = messages.find((m) => m.role === "user");
 		const assistantMsg = messages.find((m) => m.role === "assistant");
 		if (!userMsg || !assistantMsg) return;
 
 		hasAutoTitled.current = true;
-
-		const textPart = userMsg.parts?.find((p) => p.type === "text");
-		const firstUserText =
-			(textPart && "content" in textPart
-				? (textPart.content as string)
-				: undefined
-			)?.slice(0, 80) ?? "Chat";
-		const title =
-			firstUserText.length === 80 ? `${firstUserText}...` : firstUserText;
-
+		const title = extractTitleFromMessages(messages) ?? "Chat";
 		renameSessionRef.current.mutate({ sessionId, title });
 	}, [messages, sessionId]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
-	useEffect(() => {
-		hasAutoTitled.current = false;
-	}, [sessionId]);
+	const handleRename = useCallback(
+		(title: string) => {
+			renameSessionRef.current.mutate({ sessionId, title });
+		},
+		[sessionId],
+	);
+
+	const { allMessages } = useClaudeCodeHistory({
+		sessionId,
+		liveMessages: messages,
+		hasAutoTitled,
+		onRename: handleRename,
+	});
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
@@ -178,13 +197,6 @@ export function ChatInterface({
 			});
 		},
 		[sendMessage],
-	);
-
-	const handleSuggestion = useCallback(
-		(suggestion: string) => {
-			handleSend({ text: suggestion });
-		},
-		[handleSend],
 	);
 
 	const handleApprove = useCallback(
@@ -201,6 +213,28 @@ export function ChatInterface({
 		[addToolApprovalResponse],
 	);
 
+	const handleThinkingToggle = useCallback(
+		(enabled: boolean) => {
+			setThinkingEnabled(enabled);
+			updateConfig.mutate({
+				sessionId,
+				maxThinkingTokens: enabled ? 10000 : null,
+			});
+		},
+		[sessionId, updateConfig],
+	);
+
+	const handleModelSelect = useCallback(
+		(model: ModelOption) => {
+			setSelectedModel(model);
+			updateConfig.mutate({
+				sessionId,
+				model: model.id,
+			});
+		},
+		[sessionId, updateConfig],
+	);
+
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -211,11 +245,6 @@ export function ChatInterface({
 
 	return (
 		<div className="flex h-full flex-col bg-background">
-			{error && (
-				<div className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-					{error.message}
-				</div>
-			)}
 			{connectionStatus !== "connected" &&
 				connectionStatus !== "disconnected" && (
 					<div className="border-b px-4 py-1 text-xs text-muted-foreground">
@@ -224,25 +253,14 @@ export function ChatInterface({
 				)}
 			<Conversation className="flex-1">
 				<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
-					{messages.length === 0 ? (
-						<>
-							<ConversationEmptyState
-								title="Start a conversation"
-								description="Ask anything to get started"
-								icon={<HiMiniChatBubbleLeftRight className="size-8" />}
-							/>
-							<Suggestions className="justify-center">
-								{SUGGESTIONS.map((s) => (
-									<Suggestion
-										key={s}
-										suggestion={s}
-										onClick={handleSuggestion}
-									/>
-								))}
-							</Suggestions>
-						</>
+					{allMessages.length === 0 ? (
+						<ConversationEmptyState
+							title="Start a conversation"
+							description="Ask anything to get started"
+							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
+						/>
 					) : (
-						messages.map((msg) => (
+						allMessages.map((msg) => (
 							<ChatMessageItem
 								key={msg.id}
 								message={msg}
@@ -266,39 +284,48 @@ export function ChatInterface({
 
 			<div className="border-t bg-background px-4 py-3">
 				<div className="mx-auto w-full max-w-3xl">
-					{messages.length > 0 && (
-						<Suggestions className="mb-3">
-							{SUGGESTIONS.map((s) => (
-								<Suggestion key={s} suggestion={s} onClick={handleSuggestion} />
-							))}
-						</Suggestions>
+					{error && (
+						<div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive mb-3">
+							{error.message}
+						</div>
 					)}
-					<PromptInput onSubmit={handleSend}>
-						<PromptInputTextarea placeholder="Ask anything..." />
-						<PromptInputFooter>
-							<PromptInputTools>
-								<PromptInputButton>
-									<HiMiniPaperClip className="size-4" />
-								</PromptInputButton>
-								<PromptInputButton>
-									<HiMiniAtSymbol className="size-4" />
-								</PromptInputButton>
-								<ModelPicker
-									selectedModel={selectedModel}
-									onSelectModel={setSelectedModel}
-									open={modelSelectorOpen}
-									onOpenChange={setModelSelectorOpen}
-								/>
-							</PromptInputTools>
-							<div className="flex items-center gap-1">
-								<ContextIndicator />
-								<PromptInputSubmit
-									status={isLoading ? "streaming" : undefined}
-									onClick={isLoading ? handleStop : undefined}
-								/>
-							</div>
-						</PromptInputFooter>
-					</PromptInput>
+					<PromptInputProvider>
+						<FileMentionProvider cwd={cwd}>
+							<FileMentionAnchor>
+								<PromptInput onSubmit={handleSend}>
+									<PromptInputTextarea placeholder="Ask anything..." />
+									<PromptInputFooter>
+										<PromptInputTools>
+											<PromptInputButton>
+												<HiMiniPaperClip className="size-4" />
+											</PromptInputButton>
+											<FileMentionTrigger />
+											<ThinkingToggle
+												enabled={thinkingEnabled}
+												onToggle={handleThinkingToggle}
+											/>
+											<ModelPicker
+												selectedModel={selectedModel}
+												onSelectModel={handleModelSelect}
+												open={modelSelectorOpen}
+												onOpenChange={setModelSelectorOpen}
+											/>
+										</PromptInputTools>
+										<div className="flex items-center gap-1">
+											<ContextIndicator
+												collections={collections}
+												modelId={selectedModel.id}
+											/>
+											<PromptInputSubmit
+												status={isLoading ? "streaming" : undefined}
+												onClick={isLoading ? handleStop : undefined}
+											/>
+										</div>
+									</PromptInputFooter>
+								</PromptInput>
+							</FileMentionAnchor>
+						</FileMentionProvider>
+					</PromptInputProvider>
 				</div>
 			</div>
 		</div>

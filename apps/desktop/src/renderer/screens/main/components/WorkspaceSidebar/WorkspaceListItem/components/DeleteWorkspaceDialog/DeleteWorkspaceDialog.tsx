@@ -7,6 +7,8 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import { Checkbox } from "@superset/ui/checkbox";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
@@ -15,6 +17,7 @@ import {
 	useCloseWorkspace,
 	useDeleteWorkspace,
 } from "renderer/react-query/workspaces";
+import { showTeardownLogs } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
@@ -95,41 +98,51 @@ export function DeleteWorkspaceDialog({
 		});
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		onOpenChange(false);
 
 		setDeleteLocalBranchSetting.mutate({
 			enabled: deleteLocalBranchChecked,
 		});
 
-		toast.promise(
-			deleteWorkspace
-				.mutateAsync({
-					id: workspaceId,
-					deleteLocalBranch: deleteLocalBranchChecked,
-				})
-				.then((result) => {
-					if (!result.success) {
-						throw new Error(result.error ?? "Failed to delete");
-					}
-					return result;
-				}),
-			{
-				loading: `Deleting "${workspaceName}"...`,
-				success: (result) => {
-					if (result.terminalWarning) {
-						setTimeout(() => {
-							toast.warning("Terminal warning", {
-								description: result.terminalWarning,
-							});
-						}, 100);
-					}
-					return `Deleted "${workspaceName}"`;
-				},
-				error: (error) =>
-					error instanceof Error ? error.message : "Failed to delete",
-			},
-		);
+		const toastId = toast.loading(`Deleting "${workspaceName}"...`);
+
+		try {
+			const result = await deleteWorkspace.mutateAsync({
+				id: workspaceId,
+				deleteLocalBranch: deleteLocalBranchChecked,
+			});
+
+			if (!result.success) {
+				const { output } = result;
+				if (output) {
+					toast.error("Teardown failed", {
+						id: toastId,
+						action: {
+							label: "View Logs",
+							onClick: () => showTeardownLogs(output),
+						},
+					});
+				} else {
+					toast.error(result.error ?? "Failed to delete", { id: toastId });
+				}
+				return;
+			}
+
+			toast.success(`Deleted "${workspaceName}"`, { id: toastId });
+
+			if (result.terminalWarning) {
+				setTimeout(() => {
+					toast.warning("Terminal warning", {
+						description: result.terminalWarning,
+					});
+				}, 100);
+			}
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to delete", {
+				id: toastId,
+			});
+		}
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;
@@ -217,14 +230,21 @@ export function DeleteWorkspaceDialog({
 
 				{!isLoading && canDelete && (
 					<div className="px-4 pb-2">
-						<label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-							<input
-								type="checkbox"
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id="delete-local-branch"
 								checked={deleteLocalBranchChecked}
-								onChange={(e) => setDeleteLocalBranch(e.target.checked)}
+								onCheckedChange={(checked) =>
+									setDeleteLocalBranch(checked === true)
+								}
 							/>
-							Also delete local branch
-						</label>
+							<Label
+								htmlFor="delete-local-branch"
+								className="text-xs text-muted-foreground cursor-pointer select-none"
+							>
+								Also delete local branch
+							</Label>
+						</div>
 					</div>
 				)}
 

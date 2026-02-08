@@ -196,7 +196,7 @@ export const createDeleteProcedures = () => {
 					.terminal.killByWorkspaceId(input.id);
 
 				let teardownPromise:
-					| Promise<{ success: boolean; error?: string }>
+					| Promise<{ success: boolean; error?: string; output?: string }>
 					| undefined;
 				if (workspace.type === "worktree" && workspace.worktreeId) {
 					worktree = getWorktree(workspace.worktreeId);
@@ -233,6 +233,7 @@ export const createDeleteProcedures = () => {
 					return {
 						success: false,
 						error: `Teardown failed: ${teardownResult.error}`,
+						output: teardownResult.output,
 					};
 				}
 
@@ -435,6 +436,7 @@ export const createDeleteProcedures = () => {
 							return {
 								success: false,
 								error: `Teardown failed: ${teardownResult.error}`,
+								output: teardownResult.output,
 							};
 						}
 					}

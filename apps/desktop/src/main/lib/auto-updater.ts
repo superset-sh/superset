@@ -204,6 +204,7 @@ export function setupAutoUpdater(): void {
 
 	autoUpdater.autoDownload = true;
 	autoUpdater.autoInstallOnAppQuit = true;
+	autoUpdater.disableDifferentialDownload = true;
 
 	// Allow downgrade for prerelease builds so users can switch back to stable
 	autoUpdater.allowDowngrade = IS_PRERELEASE;
@@ -215,42 +216,53 @@ export function setupAutoUpdater(): void {
 		url: UPDATE_FEED_URL,
 	});
 
+	console.info(
+		`[auto-updater] Initialized: version=${app.getVersion()}, channel=${IS_PRERELEASE ? "canary" : "stable"}, feedURL=${UPDATE_FEED_URL}`,
+	);
+
 	autoUpdater.on("error", (error) => {
 		if (isNetworkError(error)) {
 			console.info("[auto-updater] Network unavailable, will retry later");
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);
 			return;
 		}
-		console.error("[auto-updater] Error during update check:", error);
+		console.error(
+			`[auto-updater] Error during update (currentVersion=${app.getVersion()}):`,
+			error?.message || error,
+		);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
 
 	autoUpdater.on("checking-for-update", () => {
-		console.info("[auto-updater] Checking for updates...");
+		console.info(
+			`[auto-updater] Checking for updates... (currentVersion=${app.getVersion()}, feedURL=${UPDATE_FEED_URL})`,
+		);
 		emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	});
 
 	autoUpdater.on("update-available", (info) => {
 		console.info(
-			`[auto-updater] Update available: ${info.version}. Downloading...`,
+			`[auto-updater] Update available: ${app.getVersion()} → ${info.version} (files: ${info.files?.map((f: { url: string }) => f.url).join(", ")})`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, info.version);
 	});
 
-	autoUpdater.on("update-not-available", () => {
-		console.info("[auto-updater] No updates available");
+	autoUpdater.on("update-not-available", (info) => {
+		console.info(
+			`[auto-updater] No updates available (currentVersion=${app.getVersion()}, latestVersion=${info.version})`,
+		);
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 	});
 
 	autoUpdater.on("download-progress", (progress) => {
 		console.info(
-			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}%`,
+			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`,
 		);
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
 		console.info(
-			`[auto-updater] Update downloaded (${info.version}). Ready to install.`,
+			`[auto-updater] Update downloaded: ${app.getVersion()} → ${info.version}. Ready to install.`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
 	});

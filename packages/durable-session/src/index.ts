@@ -180,3 +180,9 @@ export {
 	messageRowToUIMessage,
 	parseChunk,
 } from "./materialize";
+
+// ============================================================================
+// Stream Utilities
+// ============================================================================
+
+export { createTextSegmentEnricher } from "./enrich-text-segments";

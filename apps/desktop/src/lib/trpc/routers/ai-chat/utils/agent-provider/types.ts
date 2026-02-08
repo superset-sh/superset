@@ -16,6 +16,9 @@ export interface AgentProvider {
 	getAgentRegistration(opts: {
 		sessionId: string;
 		cwd: string;
+		paneId?: string;
+		tabId?: string;
+		workspaceId?: string;
 	}): AgentRegistration;
 
 	getProviderSessionId(sessionId: string): Promise<string | undefined>;

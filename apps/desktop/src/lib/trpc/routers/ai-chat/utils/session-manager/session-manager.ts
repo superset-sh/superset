@@ -57,10 +57,14 @@ export class ChatSessionManager extends EventEmitter {
 		sessionId,
 		workspaceId,
 		cwd,
+		paneId,
+		tabId,
 	}: {
 		sessionId: string;
 		workspaceId: string;
 		cwd: string;
+		paneId?: string;
+		tabId?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			console.warn(`[chat/session] Session ${sessionId} already active`);
@@ -84,6 +88,9 @@ export class ChatSessionManager extends EventEmitter {
 			const registration = this.provider.getAgentRegistration({
 				sessionId,
 				cwd,
+				paneId,
+				tabId,
+				workspaceId,
 			});
 			const registerRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
@@ -131,9 +138,13 @@ export class ChatSessionManager extends EventEmitter {
 	async restoreSession({
 		sessionId,
 		cwd,
+		paneId,
+		tabId,
 	}: {
 		sessionId: string;
 		cwd: string;
+		paneId?: string;
+		tabId?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			return;
@@ -156,6 +167,8 @@ export class ChatSessionManager extends EventEmitter {
 			const registration = this.provider.getAgentRegistration({
 				sessionId,
 				cwd,
+				paneId,
+				tabId,
 			});
 			const registerRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
@@ -294,6 +307,68 @@ export class ChatSessionManager extends EventEmitter {
 		},
 	): Promise<void> {
 		await this.store.update(sessionId, patch);
+	}
+
+	async updateAgentConfig({
+		sessionId,
+		maxThinkingTokens,
+		model,
+	}: {
+		sessionId: string;
+		maxThinkingTokens?: number | null;
+		model?: string | null;
+	}): Promise<void> {
+		const session = this.sessions.get(sessionId);
+		if (!session) {
+			console.warn(
+				`[chat/session] Session ${sessionId} not found for config update`,
+			);
+			return;
+		}
+
+		const registration = this.provider.getAgentRegistration({
+			sessionId,
+			cwd: session.cwd,
+		});
+
+		if (maxThinkingTokens !== undefined) {
+			if (maxThinkingTokens === null) {
+				delete registration.bodyTemplate.maxThinkingTokens;
+			} else {
+				registration.bodyTemplate.maxThinkingTokens = maxThinkingTokens;
+			}
+		}
+
+		if (model !== undefined) {
+			if (model === null) {
+				delete registration.bodyTemplate.model;
+			} else {
+				registration.bodyTemplate.model = model;
+			}
+		}
+
+		const headers = buildProxyHeaders();
+		const res = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents`, {
+			method: "POST",
+			headers,
+			body: JSON.stringify({ agents: [registration] }),
+		});
+		if (!res.ok) {
+			throw new Error(
+				`POST /v1/sessions/${sessionId}/agents failed: ${res.status}`,
+			);
+		}
+
+		console.log(
+			`[chat/session] Updated agent config for ${sessionId}`,
+			[
+				maxThinkingTokens !== undefined &&
+					`maxThinkingTokens=${maxThinkingTokens}`,
+				model !== undefined && `model=${model}`,
+			]
+				.filter(Boolean)
+				.join(", "),
+		);
 	}
 
 	isSessionActive(sessionId: string): boolean {

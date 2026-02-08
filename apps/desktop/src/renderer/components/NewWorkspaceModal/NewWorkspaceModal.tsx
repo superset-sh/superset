@@ -241,6 +241,8 @@ export function NewWorkspaceModal() {
 
 		const workspaceName = title.trim() || undefined;
 
+		handleClose();
+
 		try {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
@@ -249,8 +251,6 @@ export function NewWorkspaceModal() {
 				baseBranch: effectiveBaseBranch || undefined,
 				applyPrefix,
 			});
-
-			handleClose();
 
 			if (result.isInitializing) {
 				toast.success("Workspace created", {

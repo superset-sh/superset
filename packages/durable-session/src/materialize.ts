@@ -17,6 +17,7 @@
 
 import type { StreamChunk, UIMessage } from "@tanstack/ai";
 import { StreamProcessor } from "@tanstack/ai";
+import { createTextSegmentEnricher } from "./enrich-text-segments";
 import type { ChunkRow } from "./schema";
 import type {
 	DurableStreamChunk,
@@ -95,6 +96,7 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 	processor.startAssistantMessage();
 
 	let isComplete = false;
+	const enrichChunk = createTextSegmentEnricher();
 
 	for (const row of sorted) {
 		const chunk = parseChunk(row.chunk);
@@ -116,7 +118,9 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 
 		// Process TanStack AI StreamChunk
 		try {
-			processor.processChunk(chunk as StreamChunk);
+			processor.processChunk(
+				enrichChunk(chunk as StreamChunk & { [key: string]: unknown }),
+			);
 		} catch {
 			// Skip chunks that can't be processed
 		}

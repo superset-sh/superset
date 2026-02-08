@@ -19,7 +19,7 @@
 		"@superset/ui": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
 		"framer-motion": "^12.23.26",
-		"geist": "^1.5.1",
+		"geist": "^1.7.0",
 		"gray-matter": "^4.0.3",
 		"import-in-the-middle": "2.0.1",
 		"lucide-react": "^0.563.0",

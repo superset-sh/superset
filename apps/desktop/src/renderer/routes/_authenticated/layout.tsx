@@ -22,6 +22,7 @@ import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener"
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
+import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -115,6 +116,7 @@ function AuthenticatedLayout() {
 				<Outlet />
 				<WorkspaceInitEffects />
 				<NewWorkspaceModal />
+				<TeardownLogsDialog />
 				<Paywall />
 			</CollectionsProvider>
 		</DndProvider>
