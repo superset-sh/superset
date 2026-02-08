@@ -3,10 +3,7 @@ import { MultiFileDiff } from "@pierre/diffs/react";
 import { useThemeStore } from "renderer/stores/theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 
-/**
- * Maps Superset theme IDs to their closest Shiki bundled theme equivalents.
- * This keeps syntax highlighting visually consistent with Monaco's per-theme colors.
- */
+// Superset theme ID → closest Shiki bundled equivalent
 const SHIKI_THEME_MAP: Record<
 	string,
 	{ light: DiffsThemeNames; dark: DiffsThemeNames }
