@@ -329,6 +329,7 @@ export function ChatInterface({
 							onSubmit={handleSend}
 							onClear={handleClear}
 							onCommandSend={handleSlashCommandSend}
+							cwd={cwd}
 						>
 							<PromptInputFooter>
 								<PromptInputTools>

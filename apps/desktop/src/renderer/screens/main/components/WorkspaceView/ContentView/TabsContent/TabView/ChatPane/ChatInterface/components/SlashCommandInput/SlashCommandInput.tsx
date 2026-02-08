@@ -15,6 +15,7 @@ interface SlashCommandInputProps {
 	onSubmit: (message: { text: string }) => void;
 	onClear: () => void;
 	onCommandSend: (command: SlashCommand) => void;
+	cwd: string;
 	children: React.ReactNode;
 }
 
@@ -22,11 +23,15 @@ export function SlashCommandInput({
 	onSubmit,
 	onClear,
 	onCommandSend,
+	cwd,
 	children,
 }: SlashCommandInputProps) {
 	const { textInput } = usePromptInputController();
 
-	const slashCommands = useSlashCommands({ inputValue: textInput.value });
+	const slashCommands = useSlashCommands({
+		inputValue: textInput.value,
+		cwd,
+	});
 
 	const executeCommand = useCallback(
 		(command: SlashCommand) => {

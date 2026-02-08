@@ -1,3 +1,6 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -14,6 +17,43 @@ import {
 const CLAUDE_AGENT_URL =
 	process.env.CLAUDE_AGENT_URL || "http://localhost:9090";
 
+interface CommandEntry {
+	name: string;
+	description: string;
+	argumentHint: string;
+}
+
+function scanCustomCommands(cwd: string): CommandEntry[] {
+	const dirs = [
+		join(cwd, ".claude", "commands"),
+		join(homedir(), ".claude", "commands"),
+	];
+	const commands: CommandEntry[] = [];
+	const seen = new Set<string>();
+
+	for (const dir of dirs) {
+		if (!existsSync(dir)) continue;
+		try {
+			for (const file of readdirSync(dir)) {
+				if (!file.endsWith(".md")) continue;
+				const name = file.replace(/\.md$/, "");
+				if (seen.has(name)) continue;
+				seen.add(name);
+				const content = readFileSync(join(dir, file), "utf-8");
+				const match = content.match(/^---\n([\s\S]*?)\n---/);
+				const descMatch = match?.[1]?.match(/^description:\s*(.+)$/m);
+				commands.push({
+					name,
+					description: descMatch?.[1]?.trim() ?? "",
+					argumentHint: "",
+				});
+			}
+		} catch {}
+	}
+
+	return commands;
+}
+
 export const createAiChatRouter = () => {
 	return router({
 		getConfig: publicProcedure.query(() => ({
@@ -24,22 +64,30 @@ export const createAiChatRouter = () => {
 				null,
 		})),
 
-		getSlashCommands: publicProcedure.query(async () => {
-			try {
-				const res = await fetch(`${CLAUDE_AGENT_URL}/commands`);
-				if (!res.ok) return { commands: [] };
-				const data = (await res.json()) as {
-					commands: Array<{
-						name: string;
-						description: string;
-						argumentHint: string;
-					}>;
+		getSlashCommands: publicProcedure
+			.input(z.object({ cwd: z.string() }))
+			.query(async ({ input }) => {
+				const customCommands = scanCustomCommands(input.cwd);
+
+				let sdkCommands: CommandEntry[] = [];
+				try {
+					const res = await fetch(`${CLAUDE_AGENT_URL}/commands`);
+					if (res.ok) {
+						const data = (await res.json()) as {
+							commands: CommandEntry[];
+						};
+						sdkCommands = data.commands ?? [];
+					}
+				} catch {}
+
+				const seen = new Set(sdkCommands.map((c) => c.name));
+				return {
+					commands: [
+						...sdkCommands,
+						...customCommands.filter((c) => !seen.has(c.name)),
+					],
 				};
-				return { commands: data.commands ?? [] };
-			} catch {
-				return { commands: [] };
-			}
-		}),
+			}),
 
 		startSession: publicProcedure
 			.input(

@@ -38,10 +38,19 @@ const DEFAULT_COMMANDS: SlashCommand[] = [
 	{ name: "status", description: "Show status information", argumentHint: "" },
 ];
 
-export function useSlashCommands({ inputValue }: { inputValue: string }) {
-	const { data } = electronTrpc.aiChat.getSlashCommands.useQuery(undefined, {
-		staleTime: 5 * 60 * 1000,
-	});
+export function useSlashCommands({
+	inputValue,
+	cwd,
+}: {
+	inputValue: string;
+	cwd: string;
+}) {
+	const utils = electronTrpc.useUtils();
+
+	const { data } = electronTrpc.aiChat.getSlashCommands.useQuery(
+		{ cwd },
+		{ staleTime: 5 * 60 * 1000 },
+	);
 
 	const commands = useMemo(() => {
 		const fetched = data?.commands;
@@ -70,6 +79,14 @@ export function useSlashCommands({ inputValue }: { inputValue: string }) {
 			prevQuery.current = query;
 		}
 	}, [query]);
+
+	const prevIsOpen = useRef(false);
+	useEffect(() => {
+		if (isOpen && !prevIsOpen.current) {
+			void utils.aiChat.getSlashCommands.invalidate();
+		}
+		prevIsOpen.current = isOpen;
+	}, [isOpen, utils]);
 
 	const navigateUp = useCallback(() => {
 		setSelectedIndex((prev) =>
