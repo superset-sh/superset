@@ -15,7 +15,6 @@ import {
 	PromptInputTools,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
-import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
 import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -27,7 +26,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
-import { MODELS, SUGGESTIONS } from "./constants";
+import { MODELS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
 import type { ModelOption } from "./types";
 import { extractTitleFromMessages } from "./utils/extract-title";
@@ -198,13 +197,6 @@ export function ChatInterface({
 		[sendMessage],
 	);
 
-	const handleSuggestion = useCallback(
-		(suggestion: string) => {
-			handleSend({ text: suggestion });
-		},
-		[handleSend],
-	);
-
 	const handleApprove = useCallback(
 		(approvalId: string) => {
 			addToolApprovalResponse({ id: approvalId, approved: true });
@@ -251,11 +243,6 @@ export function ChatInterface({
 
 	return (
 		<div className="flex h-full flex-col bg-background">
-			{error && (
-				<div className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-					{error.message}
-				</div>
-			)}
 			{connectionStatus !== "connected" &&
 				connectionStatus !== "disconnected" && (
 					<div className="border-b px-4 py-1 text-xs text-muted-foreground">
@@ -265,22 +252,11 @@ export function ChatInterface({
 			<Conversation className="flex-1">
 				<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
 					{allMessages.length === 0 ? (
-						<>
-							<ConversationEmptyState
-								title="Start a conversation"
-								description="Ask anything to get started"
-								icon={<HiMiniChatBubbleLeftRight className="size-8" />}
-							/>
-							<Suggestions className="justify-center">
-								{SUGGESTIONS.map((s) => (
-									<Suggestion
-										key={s}
-										suggestion={s}
-										onClick={handleSuggestion}
-									/>
-								))}
-							</Suggestions>
-						</>
+						<ConversationEmptyState
+							title="Start a conversation"
+							description="Ask anything to get started"
+							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
+						/>
 					) : (
 						allMessages.map((msg) => (
 							<ChatMessageItem
@@ -306,12 +282,10 @@ export function ChatInterface({
 
 			<div className="border-t bg-background px-4 py-3">
 				<div className="mx-auto w-full max-w-3xl">
-					{allMessages.length > 0 && (
-						<Suggestions className="mb-3">
-							{SUGGESTIONS.map((s) => (
-								<Suggestion key={s} suggestion={s} onClick={handleSuggestion} />
-							))}
-						</Suggestions>
+					{error && (
+						<div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive mb-3">
+							{error.message}
+						</div>
 					)}
 					<PromptInput onSubmit={handleSend}>
 						<PromptInputTextarea placeholder="Ask anything..." />
