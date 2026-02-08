@@ -39,13 +39,14 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 				const name = file.replace(/\.md$/, "");
 				if (seen.has(name)) continue;
 				seen.add(name);
-				const content = readFileSync(join(dir, file), "utf-8");
-				const match = content.match(/^---\n([\s\S]*?)\n---/);
-				const descMatch = match?.[1]?.match(/^description:\s*(.+)$/m);
+				const raw = readFileSync(join(dir, file), "utf-8");
+				const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
+				const descMatch = fmMatch?.[1]?.match(/^description:\s*(.+)$/m);
+				const argMatch = fmMatch?.[1]?.match(/^argument-hint:\s*(.+)$/m);
 				commands.push({
 					name,
 					description: descMatch?.[1]?.trim() ?? "",
-					argumentHint: "",
+					argumentHint: argMatch?.[1]?.trim() ?? "",
 				});
 			}
 		} catch {}

@@ -48,6 +48,8 @@ interface SDKResultMessage {
 	total_cost_usd: number;
 	usage: { input_tokens: number; output_tokens: number };
 	session_id: string;
+	result?: string;
+	errors?: string[];
 }
 
 interface SDKSystemMessage {
@@ -162,11 +164,13 @@ function convertMessage(
 		case "user":
 			return handleUserMessage(message as SDKUserMessage);
 
+		case "assistant":
+			return handleAssistantMessage(state, message);
+
 		case "result":
 			return handleResultMessage(state, message as SDKResultMessage);
 
 		default:
-			// Skip system, assistant, status, hook, and other message types
 			return [];
 	}
 }
@@ -400,6 +404,38 @@ function handleUserMessage(message: SDKUserMessage): StreamChunk[] {
 }
 
 // ============================================================================
+// Assistant Message Handler (non-streamed responses, e.g. slash command output)
+// ============================================================================
+
+function handleAssistantMessage(
+	state: ConversionState,
+	message: SDKMessage,
+): StreamChunk[] {
+	const msg = message as {
+		type: "assistant";
+		message?: { content?: Array<{ type: string; text?: string }> };
+	};
+	const content = msg.message?.content;
+	if (!content || !Array.isArray(content)) return [];
+
+	const now = Date.now();
+	const chunks: StreamChunk[] = [];
+
+	for (const block of content) {
+		if (block.type === "text" && block.text) {
+			chunks.push({
+				type: "TEXT_MESSAGE_CONTENT",
+				messageId: state.messageId,
+				delta: block.text,
+				timestamp: now,
+			} satisfies StreamChunk);
+		}
+	}
+
+	return chunks;
+}
+
+// ============================================================================
 // Result Message Handler
 // ============================================================================
 
@@ -411,16 +447,33 @@ function handleResultMessage(
 	const chunks: StreamChunk[] = [];
 
 	if (message.subtype?.startsWith("error")) {
+		const errorText =
+			message.errors?.join("\n") ?? `Claude agent error: ${message.subtype}`;
+		chunks.push({
+			type: "TEXT_MESSAGE_CONTENT",
+			messageId: state.messageId,
+			delta: errorText,
+			timestamp: now,
+		} satisfies StreamChunk);
 		chunks.push({
 			type: "RUN_ERROR",
 			runId: state.runId,
 			error: {
-				message: `Claude agent error: ${message.subtype}`,
+				message: errorText,
 				code: message.subtype,
 			},
 			timestamp: now,
 		} satisfies StreamChunk);
 		return chunks;
+	}
+
+	if (message.result) {
+		chunks.push({
+			type: "TEXT_MESSAGE_CONTENT",
+			messageId: state.messageId,
+			delta: message.result,
+			timestamp: now,
+		} satisfies StreamChunk);
 	}
 
 	const finishReason =

@@ -7,36 +7,7 @@ export interface SlashCommand {
 	argumentHint: string;
 }
 
-const DEFAULT_COMMANDS: SlashCommand[] = [
-	{ name: "help", description: "Show available commands", argumentHint: "" },
-	{
-		name: "clear",
-		description: "Clear conversation history",
-		argumentHint: "",
-	},
-	{
-		name: "compact",
-		description: "Compact conversation context",
-		argumentHint: "[instructions]",
-	},
-	{ name: "config", description: "Show configuration", argumentHint: "" },
-	{
-		name: "cost",
-		description: "Show token usage and cost",
-		argumentHint: "",
-	},
-	{
-		name: "memory",
-		description: "Edit CLAUDE.md memory files",
-		argumentHint: "",
-	},
-	{
-		name: "review",
-		description: "Review a pull request",
-		argumentHint: "[pr-url]",
-	},
-	{ name: "status", description: "Show status information", argumentHint: "" },
-];
+const DEFAULT_COMMANDS: SlashCommand[] = [];
 
 export function useSlashCommands({
 	inputValue,
