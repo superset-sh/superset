@@ -184,11 +184,11 @@ export const FileDiffTool = ({
 						maxHeight: expanded ? EXPANDED_MAX_HEIGHT : COLLAPSED_MAX_HEIGHT,
 					}}
 				>
-					<div className="font-mono text-xs leading-5">
+					<div className="font-mono text-xs">
 						{diffLines.map((line, i) => (
 							<div
 								className={cn(
-									"flex border-l-2 px-3",
+									"flex border-l-2 px-2.5 py-0.5",
 									line.type === "added" &&
 										"border-l-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
 									line.type === "removed" &&

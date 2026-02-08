@@ -63,7 +63,7 @@ export const ExploringGroup = ({
 		if (isStreaming && isExpanded && scrollRef.current) {
 			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
 		}
-	}, [isStreaming, isExpanded]);
+	}, [isStreaming, isExpanded, items.length]);
 
 	const summary = buildSummary(items);
 
