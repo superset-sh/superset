@@ -181,11 +181,29 @@ export function RightSidebar() {
 					</TooltipContent>
 				</Tooltip>
 			</div>
-			{rightSidebarTab === RightSidebarTab.Changes && showChangesTab ? (
-				<ChangesView onFileOpen={handleFileOpen} isExpandedView={isExpanded} />
-			) : (
-				<FilesView />
+			{showChangesTab && (
+				<div
+					className={
+						rightSidebarTab === RightSidebarTab.Changes
+							? "flex-1 min-h-0 flex flex-col overflow-hidden"
+							: "hidden"
+					}
+				>
+					<ChangesView
+						onFileOpen={handleFileOpen}
+						isExpandedView={isExpanded}
+					/>
+				</div>
 			)}
+			<div
+				className={
+					rightSidebarTab === RightSidebarTab.Changes && showChangesTab
+						? "hidden"
+						: "flex-1 min-h-0 flex flex-col overflow-hidden"
+				}
+			>
+				<FilesView />
+			</div>
 		</aside>
 	);
 }
