@@ -1,1 +1,5 @@
-export { FileMentionPopover } from "./FileMentionPopover";
+export {
+	FileMentionAnchor,
+	FileMentionProvider,
+	FileMentionTrigger,
+} from "./FileMentionPopover";

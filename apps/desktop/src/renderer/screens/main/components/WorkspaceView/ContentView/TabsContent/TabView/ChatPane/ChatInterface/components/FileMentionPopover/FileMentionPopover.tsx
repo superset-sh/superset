@@ -10,9 +10,21 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import {
+	Popover,
+	PopoverAnchor,
+	PopoverContent,
+	PopoverTrigger,
+} from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
-import { useEffect, useRef, useState } from "react";
+import {
+	createContext,
+	type ReactNode,
+	useContext,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { HiMiniAtSymbol } from "react-icons/hi2";
 import { useFileSearch } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileSearch";
 import { getFileIcon } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/utils";
@@ -44,7 +56,20 @@ function getDirectoryPath(relativePath: string): string {
 	return relativePath.slice(0, lastSlash);
 }
 
-export function FileMentionPopover({ cwd }: { cwd: string }) {
+interface FileMentionContextValue {
+	open: boolean;
+	setOpen: (open: boolean) => void;
+}
+
+const FileMentionContext = createContext<FileMentionContextValue | null>(null);
+
+export function FileMentionProvider({
+	cwd,
+	children,
+}: {
+	cwd: string;
+	children: ReactNode;
+}) {
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [triggerIndex, setTriggerIndex] = useState(-1);
@@ -84,70 +109,83 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 	};
 
 	return (
-		<Popover open={open} onOpenChange={handleOpenChange}>
-			<PopoverTrigger asChild>
-				<PromptInputButton onClick={() => setOpen((v) => !v)}>
-					<HiMiniAtSymbol className="size-4" />
-				</PromptInputButton>
-			</PopoverTrigger>
-			<PopoverContent
-				side="top"
-				align="start"
-				sideOffset={0}
-				className="w-80 p-0"
-			>
-				<Command shouldFilter={false}>
-					<CommandInput
-						placeholder="Search files..."
-						value={searchQuery}
-						onValueChange={setSearchQuery}
-					/>
-					<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
-						<CommandEmpty className="px-1.5 py-3 text-left text-xs text-muted-foreground">
-							{searchQuery.length === 0
-								? "Type to search files..."
-								: "No files found."}
-						</CommandEmpty>
-						{searchResults.length > 0 && (
-							<CommandGroup>
-								{searchResults.map((file) => {
-									const dirPath = getDirectoryPath(file.relativePath);
-									const { icon: Icon, color } = getFileIcon(
-										file.name,
-										false,
-										false,
-									);
-									return (
-										<CommandItem
-											key={file.id}
-											value={file.relativePath}
-											onSelect={() => handleSelect(file.relativePath)}
-											className="h-7 gap-1.5 px-1.5 text-xs"
-										>
-											<Icon className={cn("size-3 shrink-0", color)} />
-											<span className="shrink-0 whitespace-nowrap">
-												{file.name}
-											</span>
-											{dirPath && (
-												<span
-													className="min-w-0 flex-1 overflow-hidden font-mono text-[10px] text-muted-foreground"
-													style={{
-														direction: "rtl",
-														textAlign: "left",
-														whiteSpace: "nowrap",
-													}}
-												>
-													<span style={{ direction: "ltr" }}>{dirPath}</span>
+		<FileMentionContext.Provider value={{ open, setOpen }}>
+			<Popover open={open} onOpenChange={handleOpenChange}>
+				{children}
+				<PopoverContent
+					side="top"
+					align="start"
+					sideOffset={0}
+					className="w-80 p-0"
+				>
+					<Command shouldFilter={false}>
+						<CommandInput
+							placeholder="Search files..."
+							value={searchQuery}
+							onValueChange={setSearchQuery}
+						/>
+						<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
+							<CommandEmpty className="px-1.5 py-3 text-left text-xs text-muted-foreground">
+								{searchQuery.length === 0
+									? "Type to search files..."
+									: "No files found."}
+							</CommandEmpty>
+							{searchResults.length > 0 && (
+								<CommandGroup>
+									{searchResults.map((file) => {
+										const dirPath = getDirectoryPath(file.relativePath);
+										const { icon: Icon, color } = getFileIcon(
+											file.name,
+											false,
+											false,
+										);
+										return (
+											<CommandItem
+												key={file.id}
+												value={file.relativePath}
+												onSelect={() => handleSelect(file.relativePath)}
+												className="h-7 gap-1.5 px-1.5 text-xs"
+											>
+												<Icon className={cn("size-3 shrink-0", color)} />
+												<span className="shrink-0 whitespace-nowrap">
+													{file.name}
 												</span>
-											)}
-										</CommandItem>
-									);
-								})}
-							</CommandGroup>
-						)}
-					</CommandList>
-				</Command>
-			</PopoverContent>
-		</Popover>
+												{dirPath && (
+													<span
+														className="min-w-0 flex-1 overflow-hidden font-mono text-[10px] text-muted-foreground"
+														style={{
+															direction: "rtl",
+															textAlign: "left",
+															whiteSpace: "nowrap",
+														}}
+													>
+														<span style={{ direction: "ltr" }}>{dirPath}</span>
+													</span>
+												)}
+											</CommandItem>
+										);
+									})}
+								</CommandGroup>
+							)}
+						</CommandList>
+					</Command>
+				</PopoverContent>
+			</Popover>
+		</FileMentionContext.Provider>
+	);
+}
+
+export function FileMentionAnchor({ children }: { children: ReactNode }) {
+	return <PopoverAnchor asChild>{children}</PopoverAnchor>;
+}
+
+export function FileMentionTrigger() {
+	const ctx = useContext(FileMentionContext);
+	return (
+		<PopoverTrigger asChild>
+			<PromptInputButton onClick={() => ctx?.setOpen(!ctx.open)}>
+				<HiMiniAtSymbol className="size-4" />
+			</PromptInputButton>
+		</PopoverTrigger>
 	);
 }

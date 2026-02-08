@@ -23,7 +23,11 @@ import { HiMiniChatBubbleLeftRight, HiMiniPaperClip } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
-import { FileMentionPopover } from "./components/FileMentionPopover";
+import {
+	FileMentionAnchor,
+	FileMentionProvider,
+	FileMentionTrigger,
+} from "./components/FileMentionPopover";
 import { ModelPicker } from "./components/ModelPicker";
 import { MODELS, SUGGESTIONS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
@@ -312,37 +316,41 @@ export function ChatInterface({
 						</Suggestions>
 					)}
 					<PromptInputProvider>
-						<PromptInput onSubmit={handleSend}>
-							<PromptInputTextarea placeholder="Ask anything..." />
-							<PromptInputFooter>
-								<PromptInputTools>
-									<PromptInputButton>
-										<HiMiniPaperClip className="size-4" />
-									</PromptInputButton>
-									<FileMentionPopover cwd={cwd} />
-									<ThinkingToggle
-										enabled={thinkingEnabled}
-										onToggle={handleThinkingToggle}
-									/>
-									<ModelPicker
-										selectedModel={selectedModel}
-										onSelectModel={handleModelSelect}
-										open={modelSelectorOpen}
-										onOpenChange={setModelSelectorOpen}
-									/>
-								</PromptInputTools>
-								<div className="flex items-center gap-1">
-									<ContextIndicator
-										collections={collections}
-										modelId={selectedModel.id}
-									/>
-									<PromptInputSubmit
-										status={isLoading ? "streaming" : undefined}
-										onClick={isLoading ? handleStop : undefined}
-									/>
-								</div>
-							</PromptInputFooter>
-						</PromptInput>
+						<FileMentionProvider cwd={cwd}>
+							<FileMentionAnchor>
+								<PromptInput onSubmit={handleSend}>
+									<PromptInputTextarea placeholder="Ask anything..." />
+									<PromptInputFooter>
+										<PromptInputTools>
+											<PromptInputButton>
+												<HiMiniPaperClip className="size-4" />
+											</PromptInputButton>
+											<FileMentionTrigger />
+											<ThinkingToggle
+												enabled={thinkingEnabled}
+												onToggle={handleThinkingToggle}
+											/>
+											<ModelPicker
+												selectedModel={selectedModel}
+												onSelectModel={handleModelSelect}
+												open={modelSelectorOpen}
+												onOpenChange={setModelSelectorOpen}
+											/>
+										</PromptInputTools>
+										<div className="flex items-center gap-1">
+											<ContextIndicator
+												collections={collections}
+												modelId={selectedModel.id}
+											/>
+											<PromptInputSubmit
+												status={isLoading ? "streaming" : undefined}
+												onClick={isLoading ? handleStop : undefined}
+											/>
+										</div>
+									</PromptInputFooter>
+								</PromptInput>
+							</FileMentionAnchor>
+						</FileMentionProvider>
 					</PromptInputProvider>
 				</div>
 			</div>
