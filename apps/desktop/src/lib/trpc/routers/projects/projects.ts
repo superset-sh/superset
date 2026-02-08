@@ -3,6 +3,7 @@ import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
 	BRANCH_PREFIX_MODES,
+	PROJECT_COLOR_MODES,
 	projects,
 	type SelectProject,
 	settings,
@@ -778,9 +779,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								"Invalid project color",
 							)
 							.optional(),
-						branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
-						branchPrefixCustom: z.string().nullable().optional(),
-						hideImage: z.boolean().optional(),
+					branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
+					branchPrefixCustom: z.string().nullable().optional(),
+					hideImage: z.boolean().optional(),
+					colorMode: z.enum(PROJECT_COLOR_MODES).nullable().optional(),
 					}),
 				}),
 			)
@@ -807,9 +809,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						...(input.patch.branchPrefixCustom !== undefined && {
 							branchPrefixCustom: input.patch.branchPrefixCustom,
 						}),
-						...(input.patch.hideImage !== undefined && {
-							hideImage: input.patch.hideImage,
-						}),
+					...(input.patch.hideImage !== undefined && {
+						hideImage: input.patch.hideImage,
+					}),
+					...(input.patch.colorMode !== undefined && {
+						colorMode: input.patch.colorMode,
+					}),
 						lastOpenedAt: Date.now(),
 					})
 					.where(eq(projects.id, input.id))

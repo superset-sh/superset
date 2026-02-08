@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `color_mode` text;

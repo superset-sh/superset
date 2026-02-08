@@ -44,6 +44,7 @@ export function WorkspaceSidebar({
 						projectId={group.project.id}
 						projectName={group.project.name}
 						projectColor={group.project.color}
+						colorMode={group.project.colorMode}
 						githubOwner={group.project.githubOwner}
 						mainRepoPath={group.project.mainRepoPath}
 						hideImage={group.project.hideImage}

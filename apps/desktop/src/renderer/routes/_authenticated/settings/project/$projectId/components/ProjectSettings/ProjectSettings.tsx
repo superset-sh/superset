@@ -14,8 +14,10 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { HiOutlineCog6Tooth, HiOutlinePaintBrush } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type { ProjectColorMode } from "@superset/local-db";
 import {
 	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLOR_MODE_LABELS,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
@@ -214,49 +216,88 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 					title="Appearance"
 					description="Customize this project's sidebar look."
 				>
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-2">
-							{PROJECT_COLORS.map((color) => {
-								const isDefault = color.value === PROJECT_COLOR_DEFAULT;
-								const isSelected = project.color === color.value;
-								return (
-									<button
-										key={color.value}
-										type="button"
-										title={color.name}
-										onClick={() =>
-											updateProject.mutate({
-												id: projectId,
-												patch: { color: color.value },
-											})
-										}
-										className={cn(
-											"size-6 rounded-full border-2 transition-transform hover:scale-110",
-											isSelected
-												? "border-foreground scale-110"
-												: "border-transparent",
-											isDefault && "bg-muted",
-										)}
-										style={
-											isDefault ? undefined : { backgroundColor: color.value }
-										}
-									/>
-								);
-							})}
+					<div className="space-y-3">
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								{PROJECT_COLORS.map((color) => {
+									const isDefault = color.value === PROJECT_COLOR_DEFAULT;
+									const isSelected = project.color === color.value;
+									return (
+										<button
+											key={color.value}
+											type="button"
+											title={color.name}
+											onClick={() =>
+												updateProject.mutate({
+													id: projectId,
+													patch: { color: color.value },
+												})
+											}
+											className={cn(
+												"size-6 rounded-full border-2 transition-transform hover:scale-110",
+												isSelected
+													? "border-foreground scale-110"
+													: "border-transparent",
+												isDefault && "bg-muted",
+											)}
+											style={
+												isDefault
+													? undefined
+													: { backgroundColor: color.value }
+											}
+										/>
+									);
+								})}
+							</div>
+							<div className="flex items-center gap-2">
+								<Label className="text-sm text-muted-foreground">
+									Hide Image
+								</Label>
+								<Switch
+									checked={project.hideImage ?? false}
+									onCheckedChange={(checked) =>
+										updateProject.mutate({
+											id: projectId,
+											patch: { hideImage: checked },
+										})
+									}
+								/>
+							</div>
 						</div>
-						<div className="flex items-center gap-2">
-							<Label className="text-sm text-muted-foreground">
-								Hide Image
-							</Label>
-							<Switch
-								checked={project.hideImage ?? false}
-								onCheckedChange={(checked) =>
+
+						<div className="flex items-center justify-between">
+							<div className="space-y-0.5">
+								<Label className="text-sm font-medium">Color Style</Label>
+								<p className="text-xs text-muted-foreground">
+									Apply the project color to the badge border or background.
+								</p>
+							</div>
+							<Select
+								value={project.colorMode ?? "border"}
+								onValueChange={(value: string) =>
 									updateProject.mutate({
 										id: projectId,
-										patch: { hideImage: checked },
+										patch: { colorMode: value as ProjectColorMode },
 									})
 								}
-							/>
+								disabled={updateProject.isPending}
+							>
+								<SelectTrigger className="w-[140px]">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{(
+										Object.entries(PROJECT_COLOR_MODE_LABELS) as [
+											ProjectColorMode,
+											string,
+										][]
+									).map(([value, label]) => (
+										<SelectItem key={value} value={value}>
+											{label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 				</SettingsSection>

@@ -126,3 +126,7 @@ export const BRANCH_PREFIX_MODES = [
 ] as const;
 
 export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+
+export const PROJECT_COLOR_MODES = ["border", "background"] as const;
+
+export type ProjectColorMode = (typeof PROJECT_COLOR_MODES)[number];
