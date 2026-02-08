@@ -11,18 +11,15 @@ import {
 	ConfirmationTitle,
 } from "@superset/ui/ai-elements/confirmation";
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
-import {
-	Tool,
-	ToolContent,
-	ToolHeader,
-	ToolInput,
-	ToolOutput,
-} from "@superset/ui/ai-elements/tool";
+import { ToolCall } from "@superset/ui/ai-elements/tool-call";
+import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
+import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import {
 	mapApproval,
 	mapToolCallState,
 	safeParseJson,
 } from "../../utils/map-tool-state";
+import { getToolMeta, getToolStatus } from "../../utils/tool-registry";
 
 interface ToolCallBlockProps {
 	toolCallPart: ToolCallPart;
@@ -39,7 +36,7 @@ type SpecializedToolState =
 
 /**
  * Map the broader ToolDisplayState to the 4-state subset
- * used by BashTool and FileDiffTool.
+ * used by BashTool, FileDiffTool, WebSearchTool, WebFetchTool.
  */
 function toSpecializedState(
 	tc: ToolCallPart,
@@ -71,7 +68,6 @@ function BashToolBlock({
 	const args = safeParseJson(toolCallPart.arguments);
 	const command = typeof args.command === "string" ? args.command : undefined;
 
-	// Parse result content for stdout/stderr
 	const resultContent = toolResultPart?.content
 		? safeParseJson(toolResultPart.content)
 		: {};
@@ -114,7 +110,6 @@ function FileDiffToolBlock({
 	const filePath =
 		typeof args.file_path === "string" ? args.file_path : undefined;
 
-	// Parse result for structured patch
 	const resultContent = toolResultPart?.content
 		? safeParseJson(toolResultPart.content)
 		: {};
@@ -151,11 +146,114 @@ function FileDiffToolBlock({
 	);
 }
 
-/** Tool names that get specialized rendering. */
-const SPECIALIZED_TOOLS: Record<string, "bash" | "file-edit" | "file-write"> = {
+function WebSearchToolBlock({
+	toolCallPart,
+	toolResultPart,
+}: {
+	toolCallPart: ToolCallPart;
+	toolResultPart?: ToolResultPart;
+}) {
+	const state = toSpecializedState(toolCallPart, toolResultPart);
+	const args = safeParseJson(toolCallPart.arguments);
+	const query = typeof args.query === "string" ? args.query : undefined;
+
+	const resultContent = toolResultPart?.content
+		? safeParseJson(toolResultPart.content)
+		: {};
+	const results = Array.isArray(resultContent.results)
+		? (resultContent.results as Array<{ title?: string; url?: string }>).filter(
+				(r): r is { title: string; url: string } =>
+					typeof r.title === "string" && typeof r.url === "string",
+			)
+		: [];
+
+	return <WebSearchTool query={query} results={results} state={state} />;
+}
+
+function WebFetchToolBlock({
+	toolCallPart,
+	toolResultPart,
+}: {
+	toolCallPart: ToolCallPart;
+	toolResultPart?: ToolResultPart;
+}) {
+	const state = toSpecializedState(toolCallPart, toolResultPart);
+	const args = safeParseJson(toolCallPart.arguments);
+	const url = typeof args.url === "string" ? args.url : undefined;
+
+	const resultContent = toolResultPart?.content
+		? safeParseJson(toolResultPart.content)
+		: {};
+	const content =
+		typeof resultContent.content === "string"
+			? resultContent.content
+			: typeof toolResultPart?.content === "string"
+				? toolResultPart.content
+				: undefined;
+	const bytes =
+		typeof resultContent.bytes === "number" ? resultContent.bytes : undefined;
+	const statusCode =
+		typeof resultContent.status_code === "number"
+			? resultContent.status_code
+			: undefined;
+
+	return (
+		<WebFetchTool
+			bytes={bytes}
+			content={content}
+			state={state}
+			statusCode={statusCode}
+			url={url}
+		/>
+	);
+}
+
+function DefaultToolBlock({
+	toolCallPart,
+	toolResultPart,
+}: {
+	toolCallPart: ToolCallPart;
+	toolResultPart?: ToolResultPart;
+}) {
+	const meta = getToolMeta(toolCallPart.name);
+	const args = safeParseJson(toolCallPart.arguments);
+	const resultContent = toolResultPart?.content
+		? safeParseJson(toolResultPart.content)
+		: {};
+	const state = toolResultPart
+		? toolResultPart.error
+			? "output-error"
+			: "output-available"
+		: (toolCallPart.state ?? "input-available");
+	const { isPending, isError } = getToolStatus(
+		state,
+		Boolean(toolResultPart),
+		Boolean(toolResultPart?.error),
+	);
+
+	const title = meta.title(args, resultContent, state);
+	const subtitle = meta.subtitle?.(args, resultContent, state);
+
+	return (
+		<ToolCall
+			icon={meta.icon}
+			isError={isError}
+			isPending={isPending}
+			subtitle={subtitle}
+			title={title}
+		/>
+	);
+}
+
+/** Tool names that get specialized collapsible rendering. */
+const SPECIALIZED_DISPATCH: Record<string, string> = {
 	Bash: "bash",
 	FileEdit: "file-edit",
 	FileWrite: "file-write",
+	Edit: "file-edit",
+	Write: "file-write",
+	WebSearch: "web-search",
+	WebFetch: "web-fetch",
 };
 
 export function ToolCallBlock({
@@ -166,10 +264,10 @@ export function ToolCallBlock({
 }: ToolCallBlockProps) {
 	const state = mapToolCallState(toolCallPart, toolResultPart);
 	const approval = mapApproval(toolCallPart.approval);
-	const specialized = SPECIALIZED_TOOLS[toolCallPart.name];
+	const dispatch = SPECIALIZED_DISPATCH[toolCallPart.name];
 
 	const toolContent = (() => {
-		switch (specialized) {
+		switch (dispatch) {
 			case "bash":
 				return (
 					<BashToolBlock
@@ -193,25 +291,27 @@ export function ToolCallBlock({
 						toolResultPart={toolResultPart}
 					/>
 				);
-			default: {
-				const output = toolResultPart?.content ?? toolCallPart.output;
-				const errorText = toolResultPart?.error;
+			case "web-search":
 				return (
-					<Tool defaultOpen={state === "output-error"}>
-						<ToolHeader
-							title={toolCallPart.name}
-							type={toolCallPart.type}
-							state={state}
-						/>
-						<ToolContent>
-							<ToolInput input={toolCallPart.arguments} />
-							{(output || errorText) && (
-								<ToolOutput output={output} errorText={errorText} />
-							)}
-						</ToolContent>
-					</Tool>
+					<WebSearchToolBlock
+						toolCallPart={toolCallPart}
+						toolResultPart={toolResultPart}
+					/>
 				);
-			}
+			case "web-fetch":
+				return (
+					<WebFetchToolBlock
+						toolCallPart={toolCallPart}
+						toolResultPart={toolResultPart}
+					/>
+				);
+			default:
+				return (
+					<DefaultToolBlock
+						toolCallPart={toolCallPart}
+						toolResultPart={toolResultPart}
+					/>
+				);
 		}
 	})();
 

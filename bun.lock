@@ -232,6 +232,7 @@
         "lodash": "^4.17.21",
         "lowdb": "^7.0.1",
         "lowlight": "^3.3.0",
+        "lucide-react": "^0.563.0",
         "monaco-editor": "^0.55.1",
         "nanoid": "^5.1.6",
         "node-addon-api": "^7.1.0",
