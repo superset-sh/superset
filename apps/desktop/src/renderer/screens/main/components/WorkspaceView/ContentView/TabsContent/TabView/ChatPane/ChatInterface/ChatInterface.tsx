@@ -27,7 +27,9 @@ import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
 import { MODELS, SUGGESTIONS } from "./constants";
+import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
 import type { ModelOption } from "./types";
+import { extractTitleFromMessages } from "./utils/extract-title";
 
 interface ChatInterfaceProps {
 	sessionId: string;
@@ -143,32 +145,37 @@ export function ChatInterface({
 	}, [sessionReady, config?.proxyUrl, doConnect]);
 
 	const hasAutoTitled = useRef(false);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
 	useEffect(() => {
-		if (hasAutoTitled.current) return;
-		if (!sessionId) return;
+		hasAutoTitled.current = false;
+	}, [sessionId]);
+
+	useEffect(() => {
+		if (hasAutoTitled.current || !sessionId) return;
 
 		const userMsg = messages.find((m) => m.role === "user");
 		const assistantMsg = messages.find((m) => m.role === "assistant");
 		if (!userMsg || !assistantMsg) return;
 
 		hasAutoTitled.current = true;
-
-		const textPart = userMsg.parts?.find((p) => p.type === "text");
-		const firstUserText =
-			(textPart && "content" in textPart
-				? (textPart.content as string)
-				: undefined
-			)?.slice(0, 80) ?? "Chat";
-		const title =
-			firstUserText.length === 80 ? `${firstUserText}...` : firstUserText;
-
+		const title = extractTitleFromMessages(messages) ?? "Chat";
 		renameSessionRef.current.mutate({ sessionId, title });
 	}, [messages, sessionId]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
-	useEffect(() => {
-		hasAutoTitled.current = false;
-	}, [sessionId]);
+	const handleRename = useCallback(
+		(title: string) => {
+			renameSessionRef.current.mutate({ sessionId, title });
+		},
+		[sessionId],
+	);
+
+	const { allMessages } = useClaudeCodeHistory({
+		sessionId,
+		liveMessages: messages,
+		hasAutoTitled,
+		onRename: handleRename,
+	});
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
@@ -224,7 +231,7 @@ export function ChatInterface({
 				)}
 			<Conversation className="flex-1">
 				<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
-					{messages.length === 0 ? (
+					{allMessages.length === 0 ? (
 						<>
 							<ConversationEmptyState
 								title="Start a conversation"
@@ -242,7 +249,7 @@ export function ChatInterface({
 							</Suggestions>
 						</>
 					) : (
-						messages.map((msg) => (
+						allMessages.map((msg) => (
 							<ChatMessageItem
 								key={msg.id}
 								message={msg}
@@ -266,7 +273,7 @@ export function ChatInterface({
 
 			<div className="border-t bg-background px-4 py-3">
 				<div className="mx-auto w-full max-w-3xl">
-					{messages.length > 0 && (
+					{allMessages.length > 0 && (
 						<Suggestions className="mb-3">
 							{SUGGESTIONS.map((s) => (
 								<Suggestion key={s} suggestion={s} onClick={handleSuggestion} />

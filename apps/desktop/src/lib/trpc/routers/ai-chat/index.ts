@@ -2,6 +2,10 @@ import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	readClaudeSessionMessages,
+	scanClaudeSessions,
+} from "./utils/claude-session-scanner";
+import {
 	type ClaudeStreamEvent,
 	chatSessionManager,
 	sessionStore,
@@ -111,6 +115,28 @@ export const createAiChatRouter = () => {
 		getActiveSessions: publicProcedure.query(() => {
 			return chatSessionManager.getActiveSessions();
 		}),
+
+		getClaudeSessionMessages: publicProcedure
+			.input(z.object({ sessionId: z.string() }))
+			.query(async ({ input }) => {
+				return readClaudeSessionMessages({ sessionId: input.sessionId });
+			}),
+
+		scanClaudeSessions: publicProcedure
+			.input(
+				z
+					.object({
+						cursor: z.number().optional(),
+						limit: z.number().min(1).max(100).optional(),
+					})
+					.optional(),
+			)
+			.query(async ({ input }) => {
+				return scanClaudeSessions({
+					cursor: input?.cursor ?? 0,
+					limit: input?.limit ?? 30,
+				});
+			}),
 
 		streamEvents: publicProcedure
 			.input(z.object({ sessionId: z.string().optional() }))
