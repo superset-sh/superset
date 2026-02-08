@@ -1,3 +1,4 @@
+import type { ProjectColorMode } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -26,7 +27,7 @@ interface ProjectSectionProps {
 	projectId: string;
 	projectName: string;
 	projectColor: string;
-	colorMode: "border" | "background";
+	colorMode: ProjectColorMode;
 	githubOwner: string | null;
 	mainRepoPath: string;
 	hideImage: boolean;
