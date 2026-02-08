@@ -6,7 +6,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
@@ -31,6 +31,8 @@ const TIME_GROUP_ORDER: TimeGroup[] = [
 	"This Month",
 	"Older",
 ];
+
+const PAGE_SIZE = 30;
 
 function getTimeGroup(timestamp: number): TimeGroup {
 	const now = new Date();
@@ -96,16 +98,89 @@ export function SessionSelector({
 	onDeleteSession,
 }: SessionSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [cursor, setCursor] = useState(0);
+	const [allClaudeSessions, setAllClaudeSessions] = useState<UnifiedSession[]>(
+		[],
+	);
+	const [hasMore, setHasMore] = useState(true);
+	const [total, setTotal] = useState(0);
+	const sentinelRef = useRef<HTMLDivElement>(null);
+	const scrollRef = useRef<HTMLDivElement>(null);
+
+	// Reset pagination when dropdown closes
+	useEffect(() => {
+		if (!isOpen) {
+			setCursor(0);
+			setAllClaudeSessions([]);
+			setHasMore(true);
+			setTotal(0);
+		}
+	}, [isOpen]);
 
 	const { data: sessions } = electronTrpc.aiChat.listSessions.useQuery(
 		{ workspaceId },
 		{ enabled: isOpen },
 	);
 
-	const { data: claudeSessions, isLoading: isScanning } =
-		electronTrpc.aiChat.scanClaudeSessions.useQuery(undefined, {
-			enabled: isOpen,
-		});
+	const { data: claudePage, isLoading: isScanning } =
+		electronTrpc.aiChat.scanClaudeSessions.useQuery(
+			{ cursor, limit: PAGE_SIZE },
+			{
+				enabled: isOpen,
+				staleTime: 5 * 60_000,
+			},
+		);
+
+	// Accumulate Claude sessions as pages load
+	useEffect(() => {
+		if (!claudePage) return;
+		setTotal(claudePage.total);
+		setHasMore(claudePage.nextCursor !== null);
+
+		if (cursor === 0) {
+			setAllClaudeSessions(
+				claudePage.sessions.map((s) => ({
+					sessionId: s.sessionId,
+					display: s.display || "Untitled session",
+					timestamp: s.timestamp,
+					gitBranch: s.gitBranch,
+					source: "claude-code" as const,
+				})),
+			);
+		} else {
+			setAllClaudeSessions((prev) => {
+				const existingIds = new Set(prev.map((s) => s.sessionId));
+				const newSessions = claudePage.sessions
+					.filter((s) => !existingIds.has(s.sessionId))
+					.map((s) => ({
+						sessionId: s.sessionId,
+						display: s.display || "Untitled session",
+						timestamp: s.timestamp,
+						gitBranch: s.gitBranch,
+						source: "claude-code" as const,
+					}));
+				return [...prev, ...newSessions];
+			});
+		}
+	}, [claudePage, cursor]);
+
+	// IntersectionObserver to trigger loading more when sentinel is visible
+	useEffect(() => {
+		const sentinel = sentinelRef.current;
+		if (!sentinel || !isOpen) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting && hasMore && !isScanning) {
+					setCursor((prev) => prev + PAGE_SIZE);
+				}
+			},
+			{ root: scrollRef.current, threshold: 0.1 },
+		);
+
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [isOpen, hasMore, isScanning]);
 
 	const currentSession = sessions?.find(
 		(s) => s.sessionId === currentSessionId,
@@ -116,7 +191,7 @@ export function SessionSelector({
 		const unified: UnifiedSession[] = [];
 		const seenIds = new Set<string>();
 
-		// Superset sessions first (they take priority)
+		// Superset sessions first
 		if (sessions) {
 			for (const s of sessions) {
 				seenIds.add(s.sessionId);
@@ -131,19 +206,11 @@ export function SessionSelector({
 			}
 		}
 
-		// Claude Code sessions (skip any already tracked by superset)
-		if (claudeSessions) {
-			for (const s of claudeSessions) {
-				if (seenIds.has(s.sessionId)) continue;
-				seenIds.add(s.sessionId);
-				unified.push({
-					sessionId: s.sessionId,
-					display: s.display || "Untitled session",
-					timestamp: s.timestamp,
-					gitBranch: s.gitBranch,
-					source: "claude-code",
-				});
-			}
+		// Claude Code sessions (skip duplicates)
+		for (const s of allClaudeSessions) {
+			if (seenIds.has(s.sessionId)) continue;
+			seenIds.add(s.sessionId);
+			unified.push(s);
 		}
 
 		// Group by time
@@ -158,7 +225,6 @@ export function SessionSelector({
 			}
 		}
 
-		// Sort within each group by timestamp desc
 		for (const items of groups.values()) {
 			items.sort((a, b) => b.timestamp - a.timestamp);
 		}
@@ -167,7 +233,7 @@ export function SessionSelector({
 			label: group,
 			sessions: groups.get(group)!,
 		}));
-	}, [sessions, claudeSessions]);
+	}, [sessions, allClaudeSessions]);
 
 	const handleSelect = useCallback(
 		(sessionId: string) => {
@@ -192,6 +258,8 @@ export function SessionSelector({
 		setIsOpen(false);
 	}, [onNewChat]);
 
+	const loadedCount = allClaudeSessions.length + (sessions?.length ?? 0);
+
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 			<DropdownMenuTrigger asChild>
@@ -209,15 +277,17 @@ export function SessionSelector({
 					<DropdownMenuLabel className="p-0 text-xs">
 						Sessions
 					</DropdownMenuLabel>
-					{isScanning && (
-						<span className="text-[10px] text-muted-foreground">
-							Scanning...
-						</span>
-					)}
+					<span className="text-[10px] text-muted-foreground">
+						{isScanning
+							? "Loading..."
+							: total > 0
+								? `${loadedCount} / ${total}`
+								: null}
+					</span>
 				</div>
 				<DropdownMenuSeparator />
 
-				<div className="max-h-80 overflow-y-auto">
+				<div ref={scrollRef} className="max-h-80 overflow-y-auto">
 					{grouped.length > 0 ? (
 						grouped.map((group) => (
 							<div key={group.label}>
@@ -279,6 +349,17 @@ export function SessionSelector({
 							No sessions found
 						</div>
 					) : null}
+
+					{/* Sentinel for infinite scroll */}
+					{hasMore && (
+						<div ref={sentinelRef} className="px-2 py-1.5">
+							{isScanning && (
+								<span className="text-[10px] text-muted-foreground">
+									Loading more...
+								</span>
+							)}
+						</div>
+					)}
 				</div>
 
 				<DropdownMenuSeparator />

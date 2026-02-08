@@ -113,9 +113,21 @@ export const createAiChatRouter = () => {
 			return chatSessionManager.getActiveSessions();
 		}),
 
-		scanClaudeSessions: publicProcedure.query(async () => {
-			return scanClaudeSessions();
-		}),
+		scanClaudeSessions: publicProcedure
+			.input(
+				z
+					.object({
+						cursor: z.number().optional(),
+						limit: z.number().min(1).max(100).optional(),
+					})
+					.optional(),
+			)
+			.query(async ({ input }) => {
+				return scanClaudeSessions({
+					cursor: input?.cursor ?? 0,
+					limit: input?.limit ?? 30,
+				});
+			}),
 
 		streamEvents: publicProcedure
 			.input(z.object({ sessionId: z.string().optional() }))
