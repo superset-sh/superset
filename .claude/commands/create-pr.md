@@ -13,11 +13,15 @@ Create a pull request for the current branch.
 
 ## Step 2: Analyze Changes
 
+First, determine the base branch to diff against:
+- Run `git fetch origin main --quiet` to ensure the remote ref is up to date
+- Use `origin/main` (not local `main`) as the base for all diff/log commands — local `main` may be stale
+
 Run in parallel:
-- `git log main..HEAD --oneline` — commit history
-- `git log main..HEAD --format="%B---"` — full commit messages for context
-- `git diff main...HEAD --stat` — file change overview
-- `git diff main...HEAD` — full diff
+- `git log origin/main..HEAD --oneline` — commit history
+- `git log origin/main..HEAD --format="%B---"` — full commit messages for context
+- `git diff origin/main...HEAD --stat` — file change overview
+- `git diff origin/main...HEAD` — full diff
 
 Read the diff carefully to understand what changed and why.
 
