@@ -35,12 +35,16 @@ interface ChatInterfaceProps {
 	sessionId: string;
 	workspaceId: string;
 	cwd: string;
+	paneId: string;
+	tabId: string;
 }
 
 export function ChatInterface({
 	sessionId,
 	workspaceId,
 	cwd,
+	paneId,
+	tabId,
 }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -124,19 +128,21 @@ export function ChatInterface({
 		setSessionReady(false);
 
 		if (existingSession) {
-			restoreSessionRef.current.mutate({ sessionId, cwd });
+			restoreSessionRef.current.mutate({ sessionId, cwd, paneId, tabId });
 		} else {
 			startSessionRef.current.mutate({
 				sessionId,
 				workspaceId,
 				cwd,
+				paneId,
+				tabId,
 			});
 		}
 
 		return () => {
 			stopSessionRef.current.mutate({ sessionId });
 		};
-	}, [sessionId, cwd, workspaceId, existingSession]);
+	}, [sessionId, cwd, workspaceId, existingSession, paneId, tabId]);
 
 	useEffect(() => {
 		if (sessionReady && config?.proxyUrl) {

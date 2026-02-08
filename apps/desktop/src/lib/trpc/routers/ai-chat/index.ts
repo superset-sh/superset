@@ -27,6 +27,8 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					workspaceId: z.string(),
 					cwd: z.string(),
+					paneId: z.string().optional(),
+					tabId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -34,6 +36,8 @@ export const createAiChatRouter = () => {
 					sessionId: input.sessionId,
 					workspaceId: input.workspaceId,
 					cwd: input.cwd,
+					paneId: input.paneId,
+					tabId: input.tabId,
 				});
 				return { success: true };
 			}),
@@ -43,12 +47,16 @@ export const createAiChatRouter = () => {
 				z.object({
 					sessionId: z.string(),
 					cwd: z.string(),
+					paneId: z.string().optional(),
+					tabId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				await chatSessionManager.restoreSession({
 					sessionId: input.sessionId,
 					cwd: input.cwd,
+					paneId: input.paneId,
+					tabId: input.tabId,
 				});
 				return { success: true };
 			}),

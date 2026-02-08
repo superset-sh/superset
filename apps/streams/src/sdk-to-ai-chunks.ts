@@ -15,8 +15,8 @@
  * - RUN_ERROR             — error during execution
  */
 
-import type { StreamChunk } from "@tanstack/ai";
 import { createTextSegmentEnricher } from "@superset/durable-session";
+import type { StreamChunk } from "@tanstack/ai";
 
 // ============================================================================
 // Claude SDK Types (subset used for conversion)

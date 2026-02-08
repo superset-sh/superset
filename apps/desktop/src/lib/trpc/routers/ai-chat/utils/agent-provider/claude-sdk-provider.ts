@@ -1,3 +1,5 @@
+import { PORTS } from "shared/constants";
+import { env } from "shared/env.shared";
 import { buildClaudeEnv } from "../auth";
 import type {
 	AgentProvider,
@@ -17,11 +19,17 @@ export class ClaudeSdkProvider implements AgentProvider {
 	getAgentRegistration({
 		sessionId,
 		cwd,
+		paneId,
+		tabId,
+		workspaceId,
 	}: {
 		sessionId: string;
 		cwd: string;
+		paneId?: string;
+		tabId?: string;
+		workspaceId?: string;
 	}): AgentRegistration {
-		const env = buildClaudeEnv();
+		const claudeEnv = buildClaudeEnv();
 
 		return {
 			id: "claude",
@@ -30,7 +38,14 @@ export class ClaudeSdkProvider implements AgentProvider {
 			bodyTemplate: {
 				sessionId,
 				cwd,
-				env,
+				env: claudeEnv,
+				notification: {
+					port: PORTS.NOTIFICATIONS,
+					paneId,
+					tabId,
+					workspaceId,
+					env: env.NODE_ENV === "development" ? "development" : "production",
+				},
 			},
 		};
 	}

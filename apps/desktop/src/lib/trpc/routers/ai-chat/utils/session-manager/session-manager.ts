@@ -57,10 +57,14 @@ export class ChatSessionManager extends EventEmitter {
 		sessionId,
 		workspaceId,
 		cwd,
+		paneId,
+		tabId,
 	}: {
 		sessionId: string;
 		workspaceId: string;
 		cwd: string;
+		paneId?: string;
+		tabId?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			console.warn(`[chat/session] Session ${sessionId} already active`);
@@ -84,6 +88,9 @@ export class ChatSessionManager extends EventEmitter {
 			const registration = this.provider.getAgentRegistration({
 				sessionId,
 				cwd,
+				paneId,
+				tabId,
+				workspaceId,
 			});
 			const registerRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
@@ -131,9 +138,13 @@ export class ChatSessionManager extends EventEmitter {
 	async restoreSession({
 		sessionId,
 		cwd,
+		paneId,
+		tabId,
 	}: {
 		sessionId: string;
 		cwd: string;
+		paneId?: string;
+		tabId?: string;
 	}): Promise<void> {
 		if (this.sessions.has(sessionId)) {
 			return;
@@ -156,6 +167,8 @@ export class ChatSessionManager extends EventEmitter {
 			const registration = this.provider.getAgentRegistration({
 				sessionId,
 				cwd,
+				paneId,
+				tabId,
 			});
 			const registerRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,

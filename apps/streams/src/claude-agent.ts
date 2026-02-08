@@ -1,7 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import {
+	type HookCallbackMatcher,
+	type HookEvent,
+	query,
+} from "@anthropic-ai/claude-agent-sdk";
 import { Hono } from "hono";
 import { z } from "zod";
 import { createConverter } from "./sdk-to-ai-chunks";
@@ -11,6 +15,14 @@ const MAX_AGENT_TURNS = 25;
 const SESSION_MAX_SIZE = 1000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+const notificationSchema = z.object({
+	port: z.number(),
+	paneId: z.string().optional(),
+	tabId: z.string().optional(),
+	workspaceId: z.string().optional(),
+	env: z.string().optional(),
+});
+
 const agentRequestSchema = z.object({
 	messages: z
 		.array(z.object({ role: z.string(), content: z.string() }))
@@ -19,6 +31,7 @@ const agentRequestSchema = z.object({
 	sessionId: z.string().optional(),
 	cwd: z.string().optional(),
 	env: z.record(z.string(), z.string()).optional(),
+	notification: notificationSchema.optional(),
 });
 
 interface SessionEntry {
@@ -98,6 +111,51 @@ function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
 	persistSessions();
 }
 
+type NotificationContext = z.infer<typeof notificationSchema>;
+
+/**
+ * Build SDK hooks that notify the desktop app's notification server
+ * about agent lifecycle events (start/stop).
+ *
+ * This mirrors the terminal shell wrapper hooks that call
+ * GET /hook/complete?eventType=...&paneId=...&tabId=...&workspaceId=...
+ */
+function buildNotificationHooks({
+	notification,
+}: {
+	notification: NotificationContext;
+}): Partial<Record<HookEvent, HookCallbackMatcher[]>> {
+	const baseUrl = `http://localhost:${notification.port}/hook/complete`;
+
+	const buildUrl = (eventType: string): string => {
+		const params = new URLSearchParams({ eventType });
+		if (notification.paneId) params.set("paneId", notification.paneId);
+		if (notification.tabId) params.set("tabId", notification.tabId);
+		if (notification.workspaceId)
+			params.set("workspaceId", notification.workspaceId);
+		if (notification.env) params.set("env", notification.env);
+		return `${baseUrl}?${params.toString()}`;
+	};
+
+	const createHookMatcher = (eventType: string): HookCallbackMatcher => ({
+		hooks: [
+			async () => {
+				try {
+					await fetch(buildUrl(eventType));
+				} catch (err) {
+					console.warn(`[claude-agent] Failed to notify ${eventType}:`, err);
+				}
+				return { continue: true };
+			},
+		],
+	});
+
+	return {
+		UserPromptSubmit: [createHookMatcher("UserPromptSubmit")],
+		Stop: [createHookMatcher("Stop")],
+	};
+}
+
 const app = new Hono();
 
 app.post("/", async (c) => {
@@ -117,7 +175,7 @@ app.post("/", async (c) => {
 		);
 	}
 
-	const { messages, sessionId, cwd, env: agentEnv } = parsed.data;
+	const { messages, sessionId, cwd, env: agentEnv, notification } = parsed.data;
 
 	const latestUserMessage = messages?.filter((m) => m.role === "user").pop();
 
@@ -135,6 +193,10 @@ app.post("/", async (c) => {
 
 	const binaryPath = process.env.CLAUDE_BINARY_PATH;
 
+	const hooks = notification
+		? buildNotificationHooks({ notification })
+		: undefined;
+
 	const abortController = new AbortController();
 	const result = query({
 		prompt,
@@ -148,6 +210,7 @@ app.post("/", async (c) => {
 			...(binaryPath && { pathToClaudeCodeExecutable: binaryPath }),
 			env: queryEnv,
 			abortController,
+			...(hooks && { hooks }),
 		},
 	});
 
