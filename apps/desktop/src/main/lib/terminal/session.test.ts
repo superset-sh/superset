@@ -1,93 +1,80 @@
 import { describe, expect, it } from "bun:test";
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import {
 	flushSession,
 	getSerializedScrollback,
 	recoverScrollback,
 } from "./session";
-import type { TerminalSession } from "./types";
+import type { ScrollbackBuffer, TerminalSession } from "./types";
 
-function createTestHeadless(): {
-	headless: HeadlessTerminal;
-	serializer: SerializeAddon;
-} {
-	const headless = new HeadlessTerminal({
-		cols: 80,
-		rows: 24,
-		scrollback: 1000,
-		allowProposedApi: true,
-	});
-	const serializer = new SerializeAddon();
-	headless.loadAddon(
-		serializer as unknown as Parameters<typeof headless.loadAddon>[0],
-	);
-	return { headless, serializer };
+function createTestScrollbackBuffer(): ScrollbackBuffer {
+	let chunks: string[] = [];
+	let _totalLength = 0;
+
+	return {
+		write(data: string) {
+			chunks.push(data);
+			_totalLength += data.length;
+		},
+		getContent(): string {
+			return chunks.join("");
+		},
+		clear() {
+			chunks = [];
+			_totalLength = 0;
+		},
+		dispose() {
+			chunks = [];
+			_totalLength = 0;
+		},
+	};
 }
 
 describe("session", () => {
 	describe("recoverScrollback", () => {
-		it("should write existing scrollback to headless and return true", async () => {
-			const { headless, serializer } = createTestHeadless();
+		it("should write existing scrollback to buffer and return true", () => {
+			const scrollbackBuffer = createTestScrollbackBuffer();
 
 			const wasRecovered = recoverScrollback({
 				existingScrollback: "existing content",
-				headless,
+				scrollbackBuffer,
 			});
 
 			expect(wasRecovered).toBe(true);
 
-			// Wait for write to complete (xterm write is async)
-			await new Promise<void>((resolve) => {
-				headless.write("", resolve);
-			});
-
-			// The headless terminal should have the content
-			const serialized = serializer.serialize();
-			expect(serialized).toContain("existing content");
-
-			headless.dispose();
+			const content = scrollbackBuffer.getContent();
+			expect(content).toContain("existing content");
 		});
 
 		it("should return false when no existing scrollback", () => {
-			const { headless } = createTestHeadless();
+			const scrollbackBuffer = createTestScrollbackBuffer();
 
 			const wasRecovered = recoverScrollback({
 				existingScrollback: null,
-				headless,
+				scrollbackBuffer,
 			});
 
 			expect(wasRecovered).toBe(false);
-
-			headless.dispose();
 		});
 	});
 
 	describe("getSerializedScrollback", () => {
-		it("should return serialized content from headless terminal", async () => {
-			const { headless, serializer } = createTestHeadless();
-
-			// Wait for write to complete (xterm write is async)
-			await new Promise<void>((resolve) => {
-				headless.write("test output", resolve);
-			});
+		it("should return content from scrollback buffer", () => {
+			const scrollbackBuffer = createTestScrollbackBuffer();
+			scrollbackBuffer.write("test output");
 
 			const mockSession = {
-				headless,
-				serializer,
+				scrollbackBuffer,
 			} as unknown as TerminalSession;
 
 			const result = getSerializedScrollback(mockSession);
 			expect(result).toContain("test output");
-
-			headless.dispose();
 		});
 	});
 
 	describe("flushSession", () => {
-		it("should dispose data batcher and headless terminal", () => {
+		it("should dispose data batcher and scrollback buffer", () => {
 			let batcherDisposed = false;
-			let headlessDisposed = false;
+			let bufferDisposed = false;
 
 			const mockDataBatcher = {
 				dispose: () => {
@@ -95,21 +82,21 @@ describe("session", () => {
 				},
 			};
 
-			const mockHeadless = {
+			const mockScrollbackBuffer = {
 				dispose: () => {
-					headlessDisposed = true;
+					bufferDisposed = true;
 				},
 			};
 
 			const mockSession = {
 				dataBatcher: mockDataBatcher,
-				headless: mockHeadless,
+				scrollbackBuffer: mockScrollbackBuffer,
 			} as unknown as TerminalSession;
 
 			flushSession(mockSession);
 
 			expect(batcherDisposed).toBe(true);
-			expect(headlessDisposed).toBe(true);
+			expect(bufferDisposed).toBe(true);
 		});
 	});
 });

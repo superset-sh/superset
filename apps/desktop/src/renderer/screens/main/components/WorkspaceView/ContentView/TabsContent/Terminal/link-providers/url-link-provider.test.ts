@@ -1,15 +1,23 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
+import type { ILink, Terminal } from "ghostty-web";
 import { UrlLinkProvider } from "./url-link-provider";
 
-function createMockLine(text: string, isWrapped = false): IBufferLine {
+interface MockBufferLine {
+	translateToString: () => string;
+	isWrapped: boolean;
+	length: number;
+	getCell: ReturnType<typeof mock>;
+	getCells: ReturnType<typeof mock>;
+}
+
+function createMockLine(text: string, isWrapped = false): MockBufferLine {
 	return {
 		translateToString: () => text,
 		isWrapped,
 		length: text.length,
 		getCell: mock(() => null),
 		getCells: mock(() => []),
-	} as unknown as IBufferLine;
+	};
 }
 
 function createMockTerminal(
@@ -363,7 +371,7 @@ describe("UrlLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "https://example.com");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).not.toHaveBeenCalled();
 		});
@@ -380,7 +388,7 @@ describe("UrlLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "https://example.com");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 			expect(onOpen.mock.calls[0][1]).toBe("https://example.com");
@@ -398,7 +406,7 @@ describe("UrlLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "https://example.com");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 		});

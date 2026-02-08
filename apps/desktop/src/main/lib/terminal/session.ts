@@ -1,6 +1,4 @@
 import os from "node:os";
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import * as pty from "node-pty";
 import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
@@ -10,49 +8,61 @@ import {
 } from "../terminal-escape-filter";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import { PtyWriteQueue } from "./pty-write-queue";
-import type { InternalCreateSessionParams, TerminalSession } from "./types";
+import type {
+	InternalCreateSessionParams,
+	ScrollbackBuffer,
+	TerminalSession,
+} from "./types";
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
-const DEFAULT_SCROLLBACK = 10000;
 /** Max time to wait for agent hooks before running initial commands */
 const AGENT_HOOKS_TIMEOUT_MS = 2000;
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
-export function createHeadlessTerminal(params: {
-	cols: number;
-	rows: number;
-	scrollback?: number;
-}): { headless: HeadlessTerminal; serializer: SerializeAddon } {
-	const { cols, rows, scrollback = DEFAULT_SCROLLBACK } = params;
+/** Maximum buffer size in bytes (~10MB) */
+const MAX_BUFFER_SIZE = 10 * 1024 * 1024;
 
-	const headless = new HeadlessTerminal({
-		cols,
-		rows,
-		scrollback,
-		allowProposedApi: true,
-	});
+function createScrollbackBuffer(): ScrollbackBuffer {
+	let chunks: string[] = [];
+	let totalLength = 0;
 
-	const serializer = new SerializeAddon();
-	// SerializeAddon types expect browser Terminal, but works with headless at runtime
-	headless.loadAddon(
-		serializer as unknown as Parameters<typeof headless.loadAddon>[0],
-	);
+	return {
+		write(data: string) {
+			chunks.push(data);
+			totalLength += data.length;
 
-	return { headless, serializer };
+			// Trim from the front if we exceed the cap
+			while (totalLength > MAX_BUFFER_SIZE && chunks.length > 1) {
+				const removed = chunks.shift()!;
+				totalLength -= removed.length;
+			}
+		},
+		getContent(): string {
+			return chunks.join("");
+		},
+		clear() {
+			chunks = [];
+			totalLength = 0;
+		},
+		dispose() {
+			chunks = [];
+			totalLength = 0;
+		},
+	};
 }
 
 export function getSerializedScrollback(session: TerminalSession): string {
-	return session.serializer.serialize();
+	return session.scrollbackBuffer.getContent();
 }
 
 export function recoverScrollback(params: {
 	existingScrollback: string | null;
-	headless: HeadlessTerminal;
+	scrollbackBuffer: ScrollbackBuffer;
 }): boolean {
-	const { existingScrollback, headless } = params;
+	const { existingScrollback, scrollbackBuffer } = params;
 	if (existingScrollback) {
-		headless.write(existingScrollback);
+		scrollbackBuffer.write(existingScrollback);
 		return true;
 	}
 	return false;
@@ -121,14 +131,11 @@ export async function createSession(
 		rootPath,
 	});
 
-	const { headless, serializer } = createHeadlessTerminal({
-		cols: terminalCols,
-		rows: terminalRows,
-	});
+	const scrollbackBuffer = createScrollbackBuffer();
 
 	const wasRecovered = recoverScrollback({
 		existingScrollback,
-		headless,
+		scrollbackBuffer,
 	});
 
 	const ptyProcess = spawnPty({
@@ -153,8 +160,7 @@ export async function createSession(
 		cols: terminalCols,
 		rows: terminalRows,
 		lastActive: Date.now(),
-		headless,
-		serializer,
+		scrollbackBuffer,
 		isAlive: true,
 		wasRecovered,
 		dataBatcher,
@@ -178,21 +184,15 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		// Recreate headless on clear (xterm writes are async, so clear() alone is unreliable)
+		// On clear scrollback, create new buffer
 		if (containsClearScrollbackSequence(data)) {
-			session.headless.dispose();
-			const { headless, serializer } = createHeadlessTerminal({
-				cols: session.cols,
-				rows: session.rows,
-			});
-			session.headless = headless;
-			session.serializer = serializer;
+			session.scrollbackBuffer.clear();
 			const contentAfterClear = extractContentAfterClear(data);
 			if (contentAfterClear) {
-				session.headless.write(contentAfterClear);
+				session.scrollbackBuffer.write(contentAfterClear);
 			}
 		} else {
-			session.headless.write(data);
+			session.scrollbackBuffer.write(data);
 		}
 
 		session.dataBatcher.write(data);
@@ -233,5 +233,5 @@ export function setupDataHandler(
 
 export function flushSession(session: TerminalSession): void {
 	session.dataBatcher.dispose();
-	session.headless.dispose();
+	session.scrollbackBuffer.dispose();
 }

@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import type { Terminal } from "@xterm/xterm";
+import type { Terminal } from "ghostty-web";
 import { useCallback, useEffect, useState } from "react";
 import { HiArrowDown } from "react-icons/hi2";
 import { useHotkeyText } from "renderer/stores/hotkeys";
@@ -27,12 +27,13 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 
 		checkScrollPosition();
 
-		const writeDisposable = terminal.onWriteParsed(checkScrollPosition);
+		// ghostty-web doesn't have onWriteParsed, use onScroll + polling fallback
 		const scrollDisposable = terminal.onScroll(checkScrollPosition);
+		const interval = setInterval(checkScrollPosition, 500);
 
 		return () => {
-			writeDisposable.dispose();
 			scrollDisposable.dispose();
+			clearInterval(interval);
 		};
 	}, [terminal, checkScrollPosition]);
 
