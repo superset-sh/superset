@@ -95,6 +95,7 @@ export type {
 	AgentSpec,
 	// Agent types
 	AgentTrigger,
+	AnswerResponseInput,
 	ApprovalResponseInput,
 	// Session types
 	ConnectionStatus,

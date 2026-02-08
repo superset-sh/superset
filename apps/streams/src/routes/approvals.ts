@@ -1,7 +1,13 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { forwardToAgent } from "../handlers/forward-to-agent";
 import type { AIDBSessionProtocol } from "../protocol";
 import { approvalResponseRequestSchema } from "../types";
+
+const answerRequestSchema = z.object({
+	answers: z.record(z.string(), z.string()),
+	originalInput: z.record(z.string(), z.unknown()).optional(),
+});
 
 export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();
@@ -66,10 +72,8 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 		const toolUseId = c.req.param("toolUseId");
 
 		try {
-			const rawBody = (await c.req.json()) as {
-				answers: Record<string, string>;
-				originalInput?: Record<string, unknown>;
-			};
+			const rawBody = await c.req.json();
+			const body = answerRequestSchema.parse(rawBody);
 
 			const agents = protocol.getRegisteredAgents(sessionId);
 			let forwarded = false;
@@ -78,7 +82,7 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 					await forwardToAgent({
 						agentEndpoint: agent.endpoint,
 						path: `answers/${toolUseId}`,
-						body: rawBody,
+						body,
 					})
 				) {
 					forwarded = true;

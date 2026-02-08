@@ -28,6 +28,7 @@ import { extractTextContent, messageRowToUIMessage } from "./materialize";
 import type {
 	ActorType,
 	AgentSpec,
+	AnswerResponseInput,
 	ApprovalResponseInput,
 	ClientToolResultInput,
 	ConnectionStatus,
@@ -121,6 +122,9 @@ export class DurableChatClient<
 	private readonly _addApprovalResponseAction: (
 		input: ApprovalResponseInput,
 	) => Transaction;
+	private readonly _addAnswerResponseAction: (
+		input: AnswerResponseInput,
+	) => Transaction;
 
 	// ═══════════════════════════════════════════════════════════════════════
 	// Constructor
@@ -157,6 +161,7 @@ export class DurableChatClient<
 		this._messageAction = this.createMessageAction();
 		this._addToolResultAction = this.createAddToolResultAction();
 		this._addApprovalResponseAction = this.createApprovalResponseAction();
+		this._addAnswerResponseAction = this.createAnswerResponseAction();
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════
@@ -599,6 +604,44 @@ export class DurableChatClient<
 
 				// Wait for txid to appear in synced stream
 				await this._db.utils.awaitTxId(txid);
+			},
+		});
+	}
+
+	/**
+	 * Submit an answer to a user question tool call.
+	 *
+	 * Forwards the answer to the agent via the proxy. Unlike approvals,
+	 * answers don't modify local state — they trigger agent continuation.
+	 *
+	 * @param response - Answer response with tool call ID and answers
+	 */
+	async addToolAnswerResponse(response: AnswerResponseInput): Promise<void> {
+		if (!this._isConnected) {
+			throw new Error("Client not connected. Call connect() first.");
+		}
+
+		await this.executeAction(this._addAnswerResponseAction, response);
+	}
+
+	/**
+	 * Create the optimistic action for answer responses.
+	 *
+	 * Answers don't modify local message state (unlike approvals).
+	 * They are forwarded to the agent which will continue the conversation.
+	 */
+	private createAnswerResponseAction() {
+		return createOptimisticAction<AnswerResponseInput>({
+			onMutate: () => {
+				// No optimistic update needed — answers trigger agent continuation,
+				// they don't modify existing tool call state.
+			},
+			mutationFn: async ({ toolCallId, answers, originalInput }) => {
+				await this.postToProxy(
+					`/v1/sessions/${this.sessionId}/answers/${toolCallId}`,
+					{ answers, ...(originalInput && { originalInput }) },
+					{ actorIdHeader: true },
+				);
 			},
 		});
 	}

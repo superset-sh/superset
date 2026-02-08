@@ -59,6 +59,7 @@ export function ChatInterface({
 		connectionStatus,
 		stop,
 		addToolApprovalResponse,
+		addToolAnswerResponse,
 		connect,
 	} = useDurableChat({
 		sessionId,
@@ -231,31 +232,11 @@ export function ChatInterface({
 
 	const handleAnswer = useCallback(
 		(toolUseId: string, answers: Record<string, string>) => {
-			if (!config?.proxyUrl) return;
-			const url = `${config.proxyUrl}/v1/sessions/${sessionId}/answers/${toolUseId}`;
-			const headers: Record<string, string> = {
-				"Content-Type": "application/json",
-			};
-			if (config.authToken) {
-				headers.Authorization = `Bearer ${config.authToken}`;
-			}
-			fetch(url, {
-				method: "POST",
-				headers,
-				body: JSON.stringify({ answers }),
-			})
-				.then((res) => {
-					if (!res.ok) {
-						console.error(
-							`[chat] Answer submit failed: ${res.status} ${res.statusText}`,
-						);
-					}
-				})
-				.catch((err) => {
-					console.error("[chat] Failed to submit answer:", err);
-				});
+			addToolAnswerResponse({ toolCallId: toolUseId, answers }).catch((err) => {
+				console.error("[chat] Failed to submit answer:", err);
+			});
 		},
-		[config?.proxyUrl, config?.authToken, sessionId],
+		[addToolAnswerResponse],
 	);
 
 	const handleStop = useCallback(

@@ -372,6 +372,18 @@ export interface ApprovalResponseInput {
 	approved: boolean;
 }
 
+/**
+ * Input for submitting an answer to a user question tool call.
+ */
+export interface AnswerResponseInput {
+	/** Tool call identifier */
+	toolCallId: string;
+	/** User-provided answers keyed by question ID */
+	answers: Record<string, string>;
+	/** Original tool input for context (forwarded to agent) */
+	originalInput?: Record<string, unknown>;
+}
+
 // ============================================================================
 // Fork Types
 // ============================================================================
