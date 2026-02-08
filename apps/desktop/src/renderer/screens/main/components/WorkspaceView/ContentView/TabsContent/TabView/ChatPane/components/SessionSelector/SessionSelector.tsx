@@ -23,6 +23,15 @@ type TimeGroup =
 	| "This Month"
 	| "Older";
 
+const TIME_GROUP_ORDER: TimeGroup[] = [
+	"Today",
+	"Yesterday",
+	"This Week",
+	"Last Week",
+	"This Month",
+	"Older",
+];
+
 function getTimeGroup(timestamp: number): TimeGroup {
 	const now = new Date();
 	const date = new Date(timestamp);
@@ -62,6 +71,15 @@ function formatRelativeTime(timestamp: number): string {
 	return new Date(timestamp).toLocaleDateString();
 }
 
+interface UnifiedSession {
+	sessionId: string;
+	display: string;
+	timestamp: number;
+	gitBranch: string | null;
+	source: "superset" | "claude-code";
+	messagePreview?: string;
+}
+
 interface SessionSelectorProps {
 	workspaceId: string;
 	currentSessionId: string;
@@ -69,15 +87,6 @@ interface SessionSelectorProps {
 	onNewChat: () => void;
 	onDeleteSession: (sessionId: string) => void;
 }
-
-const TIME_GROUP_ORDER: TimeGroup[] = [
-	"Today",
-	"Yesterday",
-	"This Week",
-	"Last Week",
-	"This Month",
-	"Older",
-];
 
 export function SessionSelector({
 	workspaceId,
@@ -87,7 +96,6 @@ export function SessionSelector({
 	onDeleteSession,
 }: SessionSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [showClaudeSessions, setShowClaudeSessions] = useState(false);
 
 	const { data: sessions } = electronTrpc.aiChat.listSessions.useQuery(
 		{ workspaceId },
@@ -96,7 +104,7 @@ export function SessionSelector({
 
 	const { data: claudeSessions, isLoading: isScanning } =
 		electronTrpc.aiChat.scanClaudeSessions.useQuery(undefined, {
-			enabled: showClaudeSessions,
+			enabled: isOpen,
 		});
 
 	const currentSession = sessions?.find(
@@ -104,14 +112,43 @@ export function SessionSelector({
 	);
 	const displayTitle = currentSession?.title ?? "Chat";
 
-	const groupedClaudeSessions = useMemo(() => {
-		if (!claudeSessions) return null;
-		const groups = new Map<
-			TimeGroup,
-			typeof claudeSessions
-		>();
+	const grouped = useMemo(() => {
+		const unified: UnifiedSession[] = [];
+		const seenIds = new Set<string>();
 
-		for (const session of claudeSessions) {
+		// Superset sessions first (they take priority)
+		if (sessions) {
+			for (const s of sessions) {
+				seenIds.add(s.sessionId);
+				unified.push({
+					sessionId: s.sessionId,
+					display: s.title,
+					timestamp: s.lastActiveAt,
+					gitBranch: null,
+					source: "superset",
+					messagePreview: s.messagePreview,
+				});
+			}
+		}
+
+		// Claude Code sessions (skip any already tracked by superset)
+		if (claudeSessions) {
+			for (const s of claudeSessions) {
+				if (seenIds.has(s.sessionId)) continue;
+				seenIds.add(s.sessionId);
+				unified.push({
+					sessionId: s.sessionId,
+					display: s.display || "Untitled session",
+					timestamp: s.timestamp,
+					gitBranch: s.gitBranch,
+					source: "claude-code",
+				});
+			}
+		}
+
+		// Group by time
+		const groups = new Map<TimeGroup, UnifiedSession[]>();
+		for (const session of unified) {
 			const group = getTimeGroup(session.timestamp);
 			const existing = groups.get(group);
 			if (existing) {
@@ -121,11 +158,16 @@ export function SessionSelector({
 			}
 		}
 
+		// Sort within each group by timestamp desc
+		for (const items of groups.values()) {
+			items.sort((a, b) => b.timestamp - a.timestamp);
+		}
+
 		return TIME_GROUP_ORDER.filter((g) => groups.has(g)).map((group) => ({
 			label: group,
 			sessions: groups.get(group)!,
 		}));
-	}, [claudeSessions]);
+	}, [sessions, claudeSessions]);
 
 	const handleSelect = useCallback(
 		(sessionId: string) => {
@@ -150,10 +192,6 @@ export function SessionSelector({
 		setIsOpen(false);
 	}, [onNewChat]);
 
-	const handleToggleClaudeSessions = useCallback(() => {
-		setShowClaudeSessions((prev) => !prev);
-	}, []);
-
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 			<DropdownMenuTrigger asChild>
@@ -167,88 +205,40 @@ export function SessionSelector({
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-72">
-				<DropdownMenuLabel className="text-xs">Sessions</DropdownMenuLabel>
+				<div className="flex items-center justify-between px-2 py-1.5">
+					<DropdownMenuLabel className="p-0 text-xs">
+						Sessions
+					</DropdownMenuLabel>
+					{isScanning && (
+						<span className="text-[10px] text-muted-foreground">
+							Scanning...
+						</span>
+					)}
+				</div>
 				<DropdownMenuSeparator />
 
-				{sessions && sessions.length > 0 ? (
-					sessions.map((session) => (
-						<DropdownMenuItem
-							key={session.sessionId}
-							className="group flex items-center justify-between gap-2"
-							onSelect={() => handleSelect(session.sessionId)}
-						>
-							<div className="flex min-w-0 flex-1 flex-col">
-								<span
-									className={`truncate text-xs ${
-										session.sessionId === currentSessionId
-											? "font-semibold"
-											: ""
-									}`}
-								>
-									{session.title}
-								</span>
-								<span className="text-[10px] text-muted-foreground">
-									{formatRelativeTime(session.lastActiveAt)}
-									{session.messagePreview && (
-										<>
-											{" — "}
-											<span className="truncate">{session.messagePreview}</span>
-										</>
-									)}
-								</span>
-							</div>
-							{session.sessionId !== currentSessionId && (
-								<button
-									type="button"
-									className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-									onClick={(e) => handleDelete(e, session.sessionId)}
-								>
-									<HiMiniTrash className="size-3" />
-								</button>
-							)}
-						</DropdownMenuItem>
-					))
-				) : (
-					<div className="px-2 py-1.5 text-xs text-muted-foreground">
-						No previous sessions
-					</div>
-				)}
-
-				<DropdownMenuSeparator />
-
-				<DropdownMenuItem
-					onSelect={(e) => {
-						e.preventDefault();
-						handleToggleClaudeSessions();
-					}}
-				>
-					<span className="text-xs text-muted-foreground">
-						{showClaudeSessions
-							? "Hide Claude Code Sessions"
-							: "Browse Claude Code Sessions"}
-					</span>
-				</DropdownMenuItem>
-
-				{showClaudeSessions && (
-					<div className="max-h-64 overflow-y-auto">
-						{isScanning ? (
-							<div className="px-2 py-1.5 text-xs text-muted-foreground">
-								Scanning sessions...
-							</div>
-						) : groupedClaudeSessions && groupedClaudeSessions.length > 0 ? (
-							groupedClaudeSessions.map((group) => (
-								<div key={group.label}>
-									<DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
-										{group.label}
-									</DropdownMenuLabel>
-									{group.sessions.map((session) => (
-										<DropdownMenuItem
-											key={session.sessionId}
-											className="flex flex-col items-start gap-0.5"
-											onSelect={() => handleSelect(session.sessionId)}
-										>
-											<span className="w-full truncate text-xs">
-												{session.display || "Untitled session"}
+				<div className="max-h-80 overflow-y-auto">
+					{grouped.length > 0 ? (
+						grouped.map((group) => (
+							<div key={group.label}>
+								<DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+									{group.label}
+								</DropdownMenuLabel>
+								{group.sessions.map((session) => (
+									<DropdownMenuItem
+										key={session.sessionId}
+										className="group flex items-center justify-between gap-2"
+										onSelect={() => handleSelect(session.sessionId)}
+									>
+										<div className="flex min-w-0 flex-1 flex-col">
+											<span
+												className={`truncate text-xs ${
+													session.sessionId === currentSessionId
+														? "font-semibold"
+														: ""
+												}`}
+											>
+												{session.display}
 											</span>
 											<span className="flex w-full items-center gap-1 text-[10px] text-muted-foreground">
 												{formatRelativeTime(session.timestamp)}
@@ -260,18 +250,36 @@ export function SessionSelector({
 														</span>
 													</>
 												)}
+												{session.messagePreview && (
+													<>
+														{" — "}
+														<span className="truncate">
+															{session.messagePreview}
+														</span>
+													</>
+												)}
 											</span>
-										</DropdownMenuItem>
-									))}
-								</div>
-							))
-						) : (
-							<div className="px-2 py-1.5 text-xs text-muted-foreground">
-								No Claude Code sessions found
+										</div>
+										{session.sessionId !== currentSessionId &&
+											session.source === "superset" && (
+												<button
+													type="button"
+													className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+													onClick={(e) => handleDelete(e, session.sessionId)}
+												>
+													<HiMiniTrash className="size-3" />
+												</button>
+											)}
+									</DropdownMenuItem>
+								))}
 							</div>
-						)}
-					</div>
-				)}
+						))
+					) : !isScanning ? (
+						<div className="px-2 py-1.5 text-xs text-muted-foreground">
+							No sessions found
+						</div>
+					) : null}
+				</div>
 
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onSelect={handleNewChat}>

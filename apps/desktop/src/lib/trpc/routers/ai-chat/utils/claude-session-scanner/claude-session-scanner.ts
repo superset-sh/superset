@@ -108,6 +108,16 @@ export async function scanClaudeSessions(): Promise<ClaudeSessionInfo[]> {
 
 	await Promise.all(scanPromises);
 
-	sessions.sort((a, b) => b.timestamp - a.timestamp);
-	return sessions;
+	// Deduplicate by sessionId — keep most recent when same session appears in multiple project dirs
+	const seen = new Map<string, ClaudeSessionInfo>();
+	for (const session of sessions) {
+		const existing = seen.get(session.sessionId);
+		if (!existing || session.timestamp > existing.timestamp) {
+			seen.set(session.sessionId, session);
+		}
+	}
+
+	const deduplicated = Array.from(seen.values());
+	deduplicated.sort((a, b) => b.timestamp - a.timestamp);
+	return deduplicated;
 }
