@@ -1,9 +1,5 @@
 const MAX_TITLE_LENGTH = 80;
 
-/**
- * Extract a display title from the first user message's text content.
- * Returns null if no suitable text is found.
- */
 export function extractTitleFromMessages(
 	messages: Array<{
 		role: string;

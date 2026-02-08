@@ -65,8 +65,6 @@ export function ChatInterface({
 			: undefined,
 	});
 
-	// ── Session lifecycle ────────────────────────────────────────────────
-
 	const connectRef = useRef(connect);
 	connectRef.current = connect;
 	const hasConnected = useRef(false);
@@ -146,8 +144,6 @@ export function ChatInterface({
 		}
 	}, [sessionReady, config?.proxyUrl, doConnect]);
 
-	// ── Auto-title ───────────────────────────────────────────────────────
-
 	const hasAutoTitled = useRef(false);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
@@ -155,7 +151,6 @@ export function ChatInterface({
 		hasAutoTitled.current = false;
 	}, [sessionId]);
 
-	// Auto-title from live proxy messages (non-CC sessions)
 	useEffect(() => {
 		if (hasAutoTitled.current || !sessionId) return;
 
@@ -167,8 +162,6 @@ export function ChatInterface({
 		const title = extractTitleFromMessages(messages) ?? "Chat";
 		renameSessionRef.current.mutate({ sessionId, title });
 	}, [messages, sessionId]);
-
-	// ── Claude Code history ──────────────────────────────────────────────
 
 	const handleRename = useCallback(
 		(title: string) => {
@@ -183,8 +176,6 @@ export function ChatInterface({
 		hasAutoTitled,
 		onRename: handleRename,
 	});
-
-	// ── Event handlers ───────────────────────────────────────────────────
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
@@ -224,8 +215,6 @@ export function ChatInterface({
 		},
 		[stop],
 	);
-
-	// ── Render ───────────────────────────────────────────────────────────
 
 	return (
 		<div className="flex h-full flex-col bg-background">

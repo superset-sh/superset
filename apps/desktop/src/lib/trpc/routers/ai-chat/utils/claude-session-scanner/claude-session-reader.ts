@@ -1,9 +1,4 @@
 /**
- * Reads Claude Code session messages from JSONL files on disk.
- *
- * Converts Claude's native message format (text, thinking, tool_use, tool_result)
- * into TanStack AI UIMessage-compatible parts for rendering.
- *
  * Tool results from user turns are merged into the preceding assistant message
  * so that tool-call and tool-result parts are co-located for rendering.
  */
@@ -11,10 +6,6 @@
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { findSessionFilePath } from "./claude-session-scanner";
-
-// ============================================================================
-// Types — discriminated union matching TanStack AI MessagePart shape
-// ============================================================================
 
 type TextPart = { type: "text"; content: string };
 type ThinkingPart = { type: "thinking"; content: string };
@@ -44,11 +35,6 @@ export interface ClaudeSessionMessage {
 	parts: ClaudeSessionMessagePart[];
 }
 
-// ============================================================================
-// Content block conversion
-// ============================================================================
-
-/** Map from Claude API content block format to UIMessage part format. */
 function convertContentBlock(
 	block: Record<string, unknown>,
 ): ClaudeSessionMessagePart | null {
@@ -79,10 +65,6 @@ function convertContentBlock(
 			return null;
 	}
 }
-
-// ============================================================================
-// JSONL line parsing
-// ============================================================================
 
 function parseUserLine(
 	parsed: Record<string, unknown>,
@@ -118,7 +100,6 @@ function parseUserLine(
 		}
 	}
 
-	// Merge tool results into the last assistant message
 	if (toolResultParts.length > 0) {
 		const lastMsg = messages[messages.length - 1];
 		if (lastMsg?.role === "assistant") {
@@ -156,16 +137,6 @@ function parseAssistantLine(
 	}
 }
 
-// ============================================================================
-// Public API
-// ============================================================================
-
-/**
- * Reads all user/assistant messages from a Claude Code session JSONL file.
- *
- * Uses streaming line-by-line reads to handle large files efficiently.
- * Returns messages in UIMessage-compatible format for direct rendering.
- */
 export async function readClaudeSessionMessages({
 	sessionId,
 }: {
@@ -194,9 +165,7 @@ export async function readClaudeSessionMessages({
 				} else if (parsed.type === "assistant") {
 					parseAssistantLine(parsed, msgId, messages);
 				}
-			} catch {
-				// Skip unparseable lines
-			}
+			} catch {}
 		}
 	} catch {
 		return [];

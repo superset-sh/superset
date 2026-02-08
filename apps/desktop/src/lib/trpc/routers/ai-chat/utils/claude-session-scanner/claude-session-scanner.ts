@@ -11,10 +11,9 @@ const fsClose = promisify(close);
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/** Max bytes to read from the start of each JSONL file (metadata is in the first ~2 lines). */
+/** Session metadata lives in the first ~2 JSONL lines, so 4KB is plenty. */
 const HEAD_BYTES = 4096;
 
-/** How many files to stat concurrently per batch. */
 const BATCH_SIZE = 100;
 
 export interface ClaudeSessionInfo {
@@ -39,10 +38,9 @@ interface SessionFileEntry {
 	mtime: number;
 }
 
-/** Cached index of session files sorted by mtime desc. Built once, reused for pagination. */
 let cachedIndex: SessionFileEntry[] | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60_000; // 5 minutes
+const CACHE_TTL = 5 * 60_000;
 
 function decodeProjectDir(encoded: string): string {
 	return encoded.replace(/-/g, "/");
@@ -85,7 +83,7 @@ async function readSessionMeta(filePath: string): Promise<{
 					};
 				}
 			} catch {
-				// Incomplete JSON at buffer boundary or non-JSON line
+				// JSON may be truncated at buffer boundary
 			}
 		}
 		return null;
@@ -93,18 +91,13 @@ async function readSessionMeta(filePath: string): Promise<{
 		if (fd !== undefined) {
 			try {
 				await fsClose(fd);
-			} catch {
-				// ignore
-			}
+			} catch {}
 		}
 		return null;
 	}
 }
 
-/**
- * Build an index of all session files with their mtimes.
- * Uses stat (no file reads) so it's fast even for 600+ files.
- */
+/** Uses stat() only (no file reads) so it's fast even for 600+ files. */
 async function buildIndex(): Promise<SessionFileEntry[]> {
 	if (cachedIndex && Date.now() - cacheTimestamp < CACHE_TTL) {
 		return cachedIndex;
@@ -121,7 +114,6 @@ async function buildIndex(): Promise<SessionFileEntry[]> {
 
 	const entries: SessionFileEntry[] = [];
 
-	// Collect all session files with their mtimes
 	for (let i = 0; i < projectDirs.length; i += BATCH_SIZE) {
 		const batch = projectDirs.slice(i, i + BATCH_SIZE);
 		await Promise.all(
@@ -145,24 +137,18 @@ async function buildIndex(): Promise<SessionFileEntry[]> {
 									sessionId: f.replace(".jsonl", ""),
 									mtime: s.mtimeMs,
 								});
-							} catch {
-								// skip
-							}
+							} catch {}
 						}),
 					);
-				} catch {
-					// skip
-				}
+				} catch {}
 			}),
 		);
 
-		// Yield between batches
 		if (i + BATCH_SIZE < projectDirs.length) {
 			await new Promise<void>((resolve) => setImmediate(resolve));
 		}
 	}
 
-	// Deduplicate by sessionId — keep most recent mtime
 	const seen = new Map<string, SessionFileEntry>();
 	for (const entry of entries) {
 		const existing = seen.get(entry.sessionId);
@@ -179,11 +165,6 @@ async function buildIndex(): Promise<SessionFileEntry[]> {
 	return deduplicated;
 }
 
-/**
- * Scans ~/.claude/projects/ for resumable Claude Code sessions with cursor-based pagination.
- * First call builds a lightweight index using stat (no file reads).
- * Then reads metadata only for the requested page.
- */
 export async function scanClaudeSessions({
 	cursor = 0,
 	limit = 30,
@@ -194,7 +175,6 @@ export async function scanClaudeSessions({
 	const index = await buildIndex();
 	const page = index.slice(cursor, cursor + limit);
 
-	// Read metadata only for this page
 	const sessions: ClaudeSessionInfo[] = [];
 	await Promise.all(
 		page.map(async (entry) => {
@@ -208,7 +188,7 @@ export async function scanClaudeSessions({
 		}),
 	);
 
-	// Re-sort this page by timestamp from the actual metadata
+	// Index is sorted by mtime, but actual timestamps from metadata may differ
 	sessions.sort((a, b) => b.timestamp - a.timestamp);
 
 	const nextOffset = cursor + limit;
@@ -219,10 +199,6 @@ export async function scanClaudeSessions({
 	};
 }
 
-/**
- * Find the JSONL file path for a Claude Code session by ID.
- * Returns null if the session is not found in the index.
- */
 export async function findSessionFilePath({
 	sessionId,
 }: {

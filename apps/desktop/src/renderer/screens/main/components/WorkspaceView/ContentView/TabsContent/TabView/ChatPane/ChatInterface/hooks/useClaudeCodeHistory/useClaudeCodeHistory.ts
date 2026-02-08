@@ -1,11 +1,3 @@
-/**
- * Hook for loading Claude Code session history from on-disk JSONL files.
- *
- * Detects UUID-format session IDs (Claude Code sessions), fetches their
- * messages via tRPC, merges them with live proxy messages, and handles
- * auto-titling from the first user message.
- */
-
 import type { UIMessage } from "@superset/durable-session/react";
 import { useEffect, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -21,19 +13,12 @@ interface UseClaudeCodeHistoryOptions {
 	onRename: (title: string) => void;
 }
 
-interface UseClaudeCodeHistoryReturn {
-	/** Combined message list: CC history + live proxy messages */
-	allMessages: UIMessage[];
-	/** Whether the current session is a Claude Code session */
-	isClaudeCodeSession: boolean;
-}
-
 export function useClaudeCodeHistory({
 	sessionId,
 	liveMessages,
 	hasAutoTitled,
 	onRename,
-}: UseClaudeCodeHistoryOptions): UseClaudeCodeHistoryReturn {
+}: UseClaudeCodeHistoryOptions) {
 	const isClaudeCodeSession = UUID_RE.test(sessionId);
 
 	const { data: claudeMessages } =
@@ -49,7 +34,6 @@ export function useClaudeCodeHistory({
 		return [...history, ...liveMessages];
 	}, [claudeMessages, liveMessages]);
 
-	// Auto-title CC sessions from JSONL history
 	useEffect(() => {
 		if (hasAutoTitled.current) return;
 		if (!isClaudeCodeSession || !claudeMessages?.length) return;
