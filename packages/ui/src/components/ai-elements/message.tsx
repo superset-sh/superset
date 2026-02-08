@@ -307,7 +307,7 @@ export const MessageResponse = memo(
 	({ className, ...props }: MessageResponseProps) => (
 		<Streamdown
 			className={cn(
-				"text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+				"text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ol]:list-outside [&_ol]:pl-6 [&_ul]:list-outside [&_ul]:pl-6",
 				className,
 			)}
 			{...props}
