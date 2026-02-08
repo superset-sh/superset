@@ -27,7 +27,7 @@ export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 export const Message = ({ className, from, ...props }: MessageProps) => (
 	<div
 		className={cn(
-			"group flex w-full flex-col gap-1.5",
+			"group flex w-full flex-col gap-2",
 			from === "user" ? "is-user" : "is-assistant",
 			className,
 		)}
@@ -44,7 +44,7 @@ export const MessageContent = ({
 }: MessageContentProps) => (
 	<div
 		className={cn(
-			"flex w-full min-w-0 flex-col gap-1.5 text-sm select-text",
+			"flex w-full min-w-0 flex-col gap-3 text-sm select-text",
 			"group-[.is-user]:w-full",
 			"group-[.is-assistant]:text-foreground",
 			className,
@@ -307,7 +307,7 @@ export const MessageResponse = memo(
 	({ className, ...props }: MessageResponseProps) => (
 		<Streamdown
 			className={cn(
-				"px-2 text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+				"text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
 				className,
 			)}
 			{...props}

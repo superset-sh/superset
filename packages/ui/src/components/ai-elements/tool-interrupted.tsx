@@ -15,7 +15,7 @@ export const ToolInterrupted = ({
 }: ToolInterruptedProps) => (
 	<div
 		className={cn(
-			"flex items-center gap-1.5 rounded-md px-2 py-0.5",
+			"flex items-center gap-1.5 rounded-md py-0.5",
 			className,
 		)}
 	>

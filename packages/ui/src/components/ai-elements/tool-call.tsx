@@ -30,7 +30,7 @@ export const ToolCall = ({
 	return (
 		<div
 			className={cn(
-				"flex items-start gap-1.5 rounded-md px-2 py-0.5",
+				"flex items-start gap-1.5 rounded-md py-0.5",
 				className,
 			)}
 		>

@@ -73,7 +73,7 @@ export const ExploringGroup = ({
 			{/* Header - clickable to toggle */}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive group header */}
 			<div
-				className="group flex cursor-pointer items-start gap-1.5 px-2 py-0.5"
+				className="group flex cursor-pointer items-start gap-1.5 py-0.5"
 				onClick={() => setIsExpanded(!isExpanded)}
 			>
 				<div className="min-w-0 flex flex-1 items-center gap-1">

@@ -53,7 +53,7 @@ export const WebFetchTool = ({
 	return (
 		<div
 			className={cn(
-				"overflow-hidden rounded-lg border border-border bg-muted/30 mx-2",
+				"overflow-hidden rounded-lg border border-border bg-muted/30",
 				className,
 			)}
 		>

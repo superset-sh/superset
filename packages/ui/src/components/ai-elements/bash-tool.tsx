@@ -83,7 +83,7 @@ export const BashTool = ({
 		return (
 			<div
 				className={cn(
-					"flex items-start gap-1.5 rounded-md px-2 py-0.5",
+					"flex items-start gap-1.5 rounded-md py-0.5",
 					className,
 				)}
 			>
@@ -107,7 +107,7 @@ export const BashTool = ({
 	return (
 		<div
 			className={cn(
-				"overflow-hidden rounded-lg border border-border bg-muted/30 mx-2",
+				"overflow-hidden rounded-lg border border-border bg-muted/30",
 				className,
 			)}
 		>
