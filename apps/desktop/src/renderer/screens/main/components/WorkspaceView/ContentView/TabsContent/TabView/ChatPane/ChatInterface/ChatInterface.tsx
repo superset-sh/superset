@@ -29,7 +29,6 @@ import { ModelPicker } from "./components/ModelPicker";
 import { MODELS, SUGGESTIONS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
 import type { ModelOption } from "./types";
-import { extractTitleFromMessages } from "./utils/extract-title";
 
 interface ChatInterfaceProps {
 	sessionId: string;
@@ -166,25 +165,6 @@ export function ChatInterface({
 		}
 	}, [sessionReady, config?.proxyUrl, doConnect]);
 
-	const hasAutoTitled = useRef(false);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: must reset when session changes
-	useEffect(() => {
-		hasAutoTitled.current = false;
-	}, [sessionId]);
-
-	useEffect(() => {
-		if (hasAutoTitled.current || !sessionId) return;
-
-		const userMsg = messages.find((m) => m.role === "user");
-		const assistantMsg = messages.find((m) => m.role === "assistant");
-		if (!userMsg || !assistantMsg) return;
-
-		hasAutoTitled.current = true;
-		const title = extractTitleFromMessages(messages) ?? "Chat";
-		renameSessionRef.current.mutate({ sessionId, title });
-	}, [messages, sessionId]);
-
 	const handleRename = useCallback(
 		(title: string) => {
 			renameSessionRef.current.mutate({ sessionId, title });
@@ -195,7 +175,6 @@ export function ChatInterface({
 	const { allMessages } = useClaudeCodeHistory({
 		sessionId,
 		liveMessages: messages,
-		hasAutoTitled,
 		onRename: handleRename,
 	});
 

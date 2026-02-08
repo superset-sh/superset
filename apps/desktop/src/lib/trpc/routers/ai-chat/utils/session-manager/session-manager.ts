@@ -53,6 +53,65 @@ export class ChatSessionManager extends EventEmitter {
 		super();
 	}
 
+	/**
+	 * Register session with proxy: create/ensure session, register agent.
+	 * Shared between startSession and restoreSession.
+	 */
+	private async ensureSessionReady({
+		sessionId,
+		cwd,
+		paneId,
+		tabId,
+		workspaceId,
+		model,
+		permissionMode,
+	}: {
+		sessionId: string;
+		cwd: string;
+		paneId?: string;
+		tabId?: string;
+		workspaceId?: string;
+		model?: string;
+		permissionMode?: string;
+	}): Promise<void> {
+		const headers = buildProxyHeaders();
+
+		const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
+			method: "PUT",
+			headers,
+		});
+		if (!createRes.ok) {
+			throw new Error(
+				`PUT /v1/sessions/${sessionId} failed: ${createRes.status}`,
+			);
+		}
+
+		const registration = this.provider.getAgentRegistration({
+			sessionId,
+			cwd,
+			paneId,
+			tabId,
+			workspaceId,
+			model,
+			permissionMode,
+		});
+		const registerRes = await fetch(
+			`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
+			{
+				method: "POST",
+				headers,
+				body: JSON.stringify({ agents: [registration] }),
+			},
+		);
+		if (!registerRes.ok) {
+			throw new Error(
+				`POST /v1/sessions/${sessionId}/agents failed: ${registerRes.status}`,
+			);
+		}
+
+		this.sessions.set(sessionId, { sessionId, cwd });
+	}
+
 	async startSession({
 		sessionId,
 		workspaceId,
@@ -76,20 +135,9 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		console.log(`[chat/session] Starting session ${sessionId} in ${cwd}`);
-		const headers = buildProxyHeaders();
 
 		try {
-			const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
-				method: "PUT",
-				headers,
-			});
-			if (!createRes.ok) {
-				throw new Error(
-					`PUT /v1/sessions/${sessionId} failed: ${createRes.status}`,
-				);
-			}
-
-			const registration = this.provider.getAgentRegistration({
+			await this.ensureSessionReady({
 				sessionId,
 				cwd,
 				paneId,
@@ -98,21 +146,6 @@ export class ChatSessionManager extends EventEmitter {
 				model,
 				permissionMode,
 			});
-			const registerRes = await fetch(
-				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
-				{
-					method: "POST",
-					headers,
-					body: JSON.stringify({ agents: [registration] }),
-				},
-			);
-			if (!registerRes.ok) {
-				throw new Error(
-					`POST /v1/sessions/${sessionId}/agents failed: ${registerRes.status}`,
-				);
-			}
-
-			this.sessions.set(sessionId, { sessionId, cwd });
 
 			await this.store.create({
 				sessionId,
@@ -161,20 +194,9 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		console.log(`[chat/session] Restoring session ${sessionId}`);
-		const headers = buildProxyHeaders();
 
 		try {
-			const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
-				method: "PUT",
-				headers,
-			});
-			if (!createRes.ok) {
-				throw new Error(
-					`PUT /v1/sessions/${sessionId} failed: ${createRes.status}`,
-				);
-			}
-
-			const registration = this.provider.getAgentRegistration({
+			await this.ensureSessionReady({
 				sessionId,
 				cwd,
 				paneId,
@@ -182,21 +204,6 @@ export class ChatSessionManager extends EventEmitter {
 				model,
 				permissionMode,
 			});
-			const registerRes = await fetch(
-				`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
-				{
-					method: "POST",
-					headers,
-					body: JSON.stringify({ agents: [registration] }),
-				},
-			);
-			if (!registerRes.ok) {
-				throw new Error(
-					`POST /v1/sessions/${sessionId}/agents failed: ${registerRes.status}`,
-				);
-			}
-
-			this.sessions.set(sessionId, { sessionId, cwd });
 
 			await this.store.update(sessionId, {
 				lastActiveAt: Date.now(),
@@ -252,7 +259,9 @@ export class ChatSessionManager extends EventEmitter {
 				headers: buildProxyHeaders(),
 				body: JSON.stringify({}),
 			});
-		} catch {}
+		} catch (err) {
+			console.debug(`[chat/session] Stop during deactivate failed:`, err);
+		}
 
 		try {
 			const providerSessionId =
@@ -267,7 +276,12 @@ export class ChatSessionManager extends EventEmitter {
 					lastActiveAt: Date.now(),
 				});
 			}
-		} catch {}
+		} catch (err) {
+			console.debug(
+				`[chat/session] Store update during deactivate failed:`,
+				err,
+			);
+		}
 
 		this.sessions.delete(sessionId);
 
@@ -288,14 +302,18 @@ export class ChatSessionManager extends EventEmitter {
 				headers,
 				body: JSON.stringify({}),
 			});
-		} catch {}
+		} catch (err) {
+			console.debug(`[chat/session] Stop during delete failed:`, err);
+		}
 
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 				method: "DELETE",
 				headers,
 			});
-		} catch {}
+		} catch (err) {
+			console.debug(`[chat/session] DELETE request failed:`, err);
+		}
 
 		await this.provider.cleanup(sessionId);
 		await this.store.archive(sessionId);
