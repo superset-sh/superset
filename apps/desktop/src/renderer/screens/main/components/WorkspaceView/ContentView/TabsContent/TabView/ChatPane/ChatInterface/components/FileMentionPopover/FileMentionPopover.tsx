@@ -93,8 +93,8 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 			<PopoverContent
 				side="top"
 				align="end"
+				sideOffset={8}
 				className="w-80 p-0"
-				onOpenAutoFocus={(e) => e.preventDefault()}
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
@@ -102,7 +102,7 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
-					<CommandList className="min-h-[200px] max-h-[200px] [&::-webkit-scrollbar]:hidden">
+					<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
 						<CommandEmpty className="px-1.5 py-3 text-left text-xs text-muted-foreground">
 							{searchQuery.length === 0
 								? "Type to search files..."
