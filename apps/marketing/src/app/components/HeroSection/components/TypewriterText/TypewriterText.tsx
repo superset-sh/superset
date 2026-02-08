@@ -60,7 +60,7 @@ export function TypewriterText({
 		if (!segments) return displayedText;
 
 		let charIndex = 0;
-		return segments.map((segment, i) => {
+		return segments.map((segment) => {
 			const segStart = charIndex;
 			charIndex += segment.text.length;
 
@@ -72,7 +72,11 @@ export function TypewriterText({
 			);
 
 			return (
-				<span key={i} className={segment.className} style={segment.style}>
+				<span
+					key={segment.text}
+					className={segment.className}
+					style={segment.style}
+				>
 					{visibleText}
 				</span>
 			);
