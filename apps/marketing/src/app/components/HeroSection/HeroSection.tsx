@@ -13,21 +13,32 @@ export function HeroSection() {
 
 	return (
 		<div>
-			<div className="flex mt-14 min-h-[calc(100svh-64px)] items-center overflow-hidden">
+			<div className="flex mt-14 min-h-[calc(100svh-64px)] items-center -translate-y-8 overflow-hidden">
 				<div className="relative w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-[30px] py-8 sm:py-12 lg:py-16">
 					<div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 lg:gap-16 items-center">
 						<div className="space-y-6 sm:space-y-8">
 							<div className="space-y-2 sm:space-y-6">
 								<h1
-									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground relative"
-									style={{ fontFamily: "var(--font-geist-pixel-square)" }}
+									className="text-3xl sm:text-4xl lg:text-5xl font-normal tracking-normal leading-[1.3em] text-foreground relative"
+									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
 									<span className="invisible" aria-hidden="true">
 										The Terminal for Coding Agents.
 									</span>
 									<span className="absolute inset-0">
 										<TypewriterText
-											text="The Terminal for Coding Agents."
+											segments={[
+												{ text: "The Terminal for " },
+												{
+													text: "Coding Agents",
+													style: {
+														fontFamily:
+															"var(--font-geist-pixel-grid)",
+												fontWeight: "bold",
+													},
+												},
+												{ text: "." },
+											]}
 											speed={40}
 											delay={600}
 										/>
