@@ -32,9 +32,8 @@ export function HeroSection() {
 												{
 													text: "Coding Agents",
 													style: {
-														fontFamily:
-															"var(--font-geist-pixel-grid)",
-												fontWeight: 900,
+														fontFamily: "var(--font-geist-pixel-grid)",
+														fontWeight: 900,
 													},
 												},
 												{ text: "." },

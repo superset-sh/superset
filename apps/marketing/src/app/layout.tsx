@@ -1,6 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
-import type { Metadata } from "next";
 import { GeistPixelGrid, GeistPixelSquare } from "geist/font/pixel";
+import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Micro_5 } from "next/font/google";
 import Script from "next/script";
 import { CookieConsent } from "@/components/CookieConsent";
