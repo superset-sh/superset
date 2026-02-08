@@ -1,3 +1,5 @@
+import type { ProjectColorMode } from "@superset/local-db";
+
 /** Special value representing "no custom color" - uses default gray border */
 export const PROJECT_COLOR_DEFAULT = "default";
 
@@ -14,3 +16,10 @@ export const PROJECT_COLORS: { name: string; value: string }[] = [
 ] as const;
 
 export const PROJECT_COLOR_VALUES = PROJECT_COLORS.map((color) => color.value);
+
+export const PROJECT_COLOR_MODE_DEFAULT: ProjectColorMode = "border";
+
+export const PROJECT_COLOR_MODE_LABELS: Record<ProjectColorMode, string> = {
+	border: "Border",
+	background: "Background",
+};

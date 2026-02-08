@@ -1,3 +1,4 @@
+import type { ProjectColorMode } from "@superset/local-db";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -7,6 +8,7 @@ interface ProjectThumbnailProps {
 	projectId: string;
 	projectName: string;
 	projectColor: string;
+	colorMode?: ProjectColorMode;
 	githubOwner: string | null;
 	hideImage?: boolean;
 	className?: string;
@@ -33,10 +35,28 @@ function isCustomColor(color: string): boolean {
 	return color !== PROJECT_COLOR_DEFAULT && color.startsWith("#");
 }
 
+function getRelativeLuminance(hex: string): number {
+	const toLinear = (c: number) => {
+		const sRGB = c / 255;
+		return sRGB <= 0.03928 ? sRGB / 12.92 : ((sRGB + 0.055) / 1.055) ** 2.4;
+	};
+	const r = toLinear(Number.parseInt(hex.slice(1, 3), 16));
+	const g = toLinear(Number.parseInt(hex.slice(3, 5), 16));
+	const b = toLinear(Number.parseInt(hex.slice(5, 7), 16));
+	return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function getContrastTextColor(hex: string): string {
+	return getRelativeLuminance(hex) > 0.4
+		? "rgba(0, 0, 0, 0.85)"
+		: "rgba(255, 255, 255, 0.95)";
+}
+
 export function ProjectThumbnail({
 	projectId,
 	projectName,
 	projectColor,
+	colorMode = "border",
 	githubOwner,
 	hideImage,
 	className,
@@ -54,22 +74,28 @@ export function ProjectThumbnail({
 	const owner = avatarData?.owner ?? githubOwner;
 	const firstLetter = projectName.charAt(0).toUpperCase();
 	const hasCustomColor = isCustomColor(projectColor);
+	const isBackground = colorMode === "background";
 
-	// Border: gray by default, custom color with slight transparency when set
+	// Border mode: gray by default, custom color with slight transparency when set
+	// Background mode: no border
 	const borderClasses = cn(
-		"border-[1.5px]",
-		hasCustomColor ? undefined : "border-border",
+		isBackground ? undefined : "border-[1.5px]",
+		!isBackground && !hasCustomColor && "border-border",
 	);
-	const borderStyle = hasCustomColor
-		? { borderColor: hexToRgba(projectColor, 0.6) }
-		: undefined;
+
+	const getBorderStyle = () => {
+		if (isBackground || !hasCustomColor) return undefined;
+		return { borderColor: hexToRgba(projectColor, 0.6) };
+	};
+
+	const borderStyle = getBorderStyle();
 
 	// Show GitHub avatar if available and not hidden
 	if (owner && !imageError && !hideImage) {
 		return (
 			<div
 				className={cn(
-					"relative size-6 rounded overflow-hidden flex-shrink-0 bg-muted",
+					"relative size-6 rounded overflow-hidden shrink-0 bg-muted",
 					borderClasses,
 					className,
 				)}
@@ -85,21 +111,32 @@ export function ProjectThumbnail({
 		);
 	}
 
-	// Fallback: show first letter
-	const fallbackStyle = hasCustomColor
-		? {
-				borderColor: hexToRgba(projectColor, 0.6),
-				backgroundColor: hexToRgba(projectColor, 0.15),
-				color: projectColor,
-			}
-		: borderStyle;
+	// Fallback: show first letter with color applied based on colorMode
+	const getFallbackStyle = () => {
+		if (!hasCustomColor) return borderStyle;
+
+		if (isBackground) {
+			return {
+				backgroundColor: projectColor,
+				color: getContrastTextColor(projectColor),
+			};
+		}
+
+		return {
+			borderColor: hexToRgba(projectColor, 0.6),
+			backgroundColor: hexToRgba(projectColor, 0.15),
+			color: projectColor,
+		};
+	};
+
+	const fallbackStyle = getFallbackStyle();
 
 	return (
 		<div
 			className={cn(
-				"size-6 rounded flex items-center justify-center flex-shrink-0",
+				"size-6 rounded flex items-center justify-center shrink-0",
 				"text-xs font-medium",
-				hasCustomColor ? undefined : "bg-muted text-muted-foreground",
+				!hasCustomColor && "bg-muted text-muted-foreground",
 				borderClasses,
 				className,
 			)}

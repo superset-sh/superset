@@ -26,6 +26,7 @@ interface ProjectSectionProps {
 	projectId: string;
 	projectName: string;
 	projectColor: string;
+	colorMode: "border" | "background";
 	githubOwner: string | null;
 	mainRepoPath: string;
 	hideImage: boolean;
@@ -42,6 +43,7 @@ export function ProjectSection({
 	projectId,
 	projectName,
 	projectColor,
+	colorMode,
 	githubOwner,
 	mainRepoPath,
 	hideImage,
@@ -140,6 +142,7 @@ export function ProjectSection({
 					projectId={projectId}
 					projectName={projectName}
 					projectColor={projectColor}
+					colorMode={colorMode}
 					githubOwner={githubOwner}
 					mainRepoPath={mainRepoPath}
 					hideImage={hideImage}
@@ -197,6 +200,7 @@ export function ProjectSection({
 				projectId={projectId}
 				projectName={projectName}
 				projectColor={projectColor}
+				colorMode={colorMode}
 				githubOwner={githubOwner}
 				mainRepoPath={mainRepoPath}
 				hideImage={hideImage}

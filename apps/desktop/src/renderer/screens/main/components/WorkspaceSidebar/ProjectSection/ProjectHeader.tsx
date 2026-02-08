@@ -27,8 +27,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
+import type { ProjectColorMode } from "@superset/local-db";
 import {
 	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLOR_MODE_LABELS,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
 import { STROKE_WIDTH } from "../constants";
@@ -40,6 +42,7 @@ interface ProjectHeaderProps {
 	projectId: string;
 	projectName: string;
 	projectColor: string;
+	colorMode: ProjectColorMode;
 	githubOwner: string | null;
 	mainRepoPath: string;
 	hideImage: boolean;
@@ -56,6 +59,7 @@ export function ProjectHeader({
 	projectId,
 	projectName,
 	projectColor,
+	colorMode,
 	githubOwner,
 	mainRepoPath,
 	hideImage,
@@ -150,6 +154,10 @@ export function ProjectHeader({
 		updateProject.mutate({ id: projectId, patch: { hideImage: !hideImage } });
 	};
 
+	const handleColorModeChange = (mode: ProjectColorMode) => {
+		updateProject.mutate({ id: projectId, patch: { colorMode: mode } });
+	};
+
 	// Color picker submenu used in both collapsed and expanded context menus
 	const colorPickerSubmenu = (
 		<ContextMenuSub>
@@ -180,6 +188,24 @@ export function ProjectHeader({
 						</ContextMenuItem>
 					);
 				})}
+				<ContextMenuSeparator />
+				{(
+					Object.entries(PROJECT_COLOR_MODE_LABELS) as [
+						ProjectColorMode,
+						string,
+					][]
+				).map(([mode, label]) => (
+					<ContextMenuItem
+						key={mode}
+						onSelect={() => handleColorModeChange(mode)}
+						className="flex items-center gap-2"
+					>
+						<span>{label}</span>
+						{colorMode === mode && (
+							<span className="ml-auto text-xs text-muted-foreground">✓</span>
+						)}
+					</ContextMenuItem>
+				))}
 			</ContextMenuSubContent>
 		</ContextMenuSub>
 	);
@@ -204,6 +230,7 @@ export function ProjectHeader({
 										projectId={projectId}
 										projectName={projectName}
 										projectColor={projectColor}
+										colorMode={colorMode}
 										githubOwner={githubOwner}
 									/>
 								</button>
@@ -277,6 +304,7 @@ export function ProjectHeader({
 									projectId={projectId}
 									projectName={projectName}
 									projectColor={projectColor}
+									colorMode={colorMode}
 									githubOwner={githubOwner}
 									hideImage={hideImage}
 								/>
@@ -299,6 +327,7 @@ export function ProjectHeader({
 									projectId={projectId}
 									projectName={projectName}
 									projectColor={projectColor}
+									colorMode={colorMode}
 									githubOwner={githubOwner}
 									hideImage={hideImage}
 								/>

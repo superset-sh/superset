@@ -6,6 +6,7 @@ import type {
 	ExternalApp,
 	GitHubStatus,
 	GitStatus,
+	ProjectColorMode,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -38,6 +39,7 @@ export const projects = sqliteTable(
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
 		hideImage: integer("hide_image", { mode: "boolean" }),
+		colorMode: text("color_mode").$type<ProjectColorMode>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
