@@ -1,4 +1,4 @@
-import type { BranchPrefixMode } from "@superset/local-db";
+import type { BranchPrefixMode, ProjectColorMode } from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -14,9 +14,9 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { HiOutlineCog6Tooth, HiOutlinePaintBrush } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { ProjectColorMode } from "@superset/local-db";
 import {
 	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLOR_MODE_DEFAULT,
 	PROJECT_COLOR_MODE_LABELS,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
@@ -241,9 +241,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 												isDefault && "bg-muted",
 											)}
 											style={
-												isDefault
-													? undefined
-													: { backgroundColor: color.value }
+												isDefault ? undefined : { backgroundColor: color.value }
 											}
 										/>
 									);
@@ -273,7 +271,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 								</p>
 							</div>
 							<Select
-								value={project.colorMode ?? "border"}
+								value={project.colorMode ?? PROJECT_COLOR_MODE_DEFAULT}
 								onValueChange={(value: string) =>
 									updateProject.mutate({
 										id: projectId,

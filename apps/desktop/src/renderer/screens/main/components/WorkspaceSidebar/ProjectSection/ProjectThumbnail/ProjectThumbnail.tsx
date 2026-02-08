@@ -2,7 +2,10 @@ import type { ProjectColorMode } from "@superset/local-db";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
+import {
+	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLOR_MODE_DEFAULT,
+} from "shared/constants/project-colors";
 
 interface ProjectThumbnailProps {
 	projectId: string;
@@ -56,7 +59,7 @@ export function ProjectThumbnail({
 	projectId,
 	projectName,
 	projectColor,
-	colorMode = "border",
+	colorMode = PROJECT_COLOR_MODE_DEFAULT,
 	githubOwner,
 	hideImage,
 	className,
@@ -83,12 +86,10 @@ export function ProjectThumbnail({
 		!isBackground && !hasCustomColor && "border-border",
 	);
 
-	const getBorderStyle = () => {
-		if (isBackground || !hasCustomColor) return undefined;
-		return { borderColor: hexToRgba(projectColor, 0.6) };
-	};
-
-	const borderStyle = getBorderStyle();
+	const borderStyle =
+		isBackground || !hasCustomColor
+			? undefined
+			: { borderColor: hexToRgba(projectColor, 0.6) };
 
 	// Show GitHub avatar if available and not hidden
 	if (owner && !imageError && !hideImage) {
@@ -112,24 +113,18 @@ export function ProjectThumbnail({
 	}
 
 	// Fallback: show first letter with color applied based on colorMode
-	const getFallbackStyle = () => {
-		if (!hasCustomColor) return borderStyle;
-
-		if (isBackground) {
-			return {
-				backgroundColor: projectColor,
-				color: getContrastTextColor(projectColor),
-			};
-		}
-
-		return {
-			borderColor: hexToRgba(projectColor, 0.6),
-			backgroundColor: hexToRgba(projectColor, 0.15),
-			color: projectColor,
-		};
-	};
-
-	const fallbackStyle = getFallbackStyle();
+	const fallbackStyle = !hasCustomColor
+		? borderStyle
+		: isBackground
+			? {
+					backgroundColor: projectColor,
+					color: getContrastTextColor(projectColor),
+				}
+			: {
+					borderColor: hexToRgba(projectColor, 0.6),
+					backgroundColor: hexToRgba(projectColor, 0.15),
+					color: projectColor,
+				};
 
 	return (
 		<div

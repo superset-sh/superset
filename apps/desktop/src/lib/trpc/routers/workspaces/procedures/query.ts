@@ -1,7 +1,9 @@
+import type { ProjectColorMode } from "@superset/local-db";
 import { projects, workspaces, worktrees } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { PROJECT_COLOR_MODE_DEFAULT } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
@@ -152,16 +154,16 @@ export const createQueryProcedures = () => {
 			const groupsMap = new Map<
 				string,
 				{
-			project: {
-					id: string;
-					name: string;
-					color: string;
-					colorMode: "border" | "background";
-					tabOrder: number;
-					githubOwner: string | null;
-					mainRepoPath: string;
-					hideImage: boolean;
-				};
+					project: {
+						id: string;
+						name: string;
+						color: string;
+						colorMode: ProjectColorMode;
+						tabOrder: number;
+						githubOwner: string | null;
+						mainRepoPath: string;
+						hideImage: boolean;
+					};
 					workspaces: Array<{
 						id: string;
 						projectId: string;
@@ -181,18 +183,18 @@ export const createQueryProcedures = () => {
 			>();
 
 			for (const project of activeProjects) {
-			groupsMap.set(project.id, {
-				project: {
-					id: project.id,
-					name: project.name,
-					color: project.color,
-					colorMode: project.colorMode ?? "border",
-					// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
-					tabOrder: project.tabOrder!,
-					githubOwner: project.githubOwner ?? null,
-					mainRepoPath: project.mainRepoPath,
-					hideImage: project.hideImage ?? false,
-				},
+				groupsMap.set(project.id, {
+					project: {
+						id: project.id,
+						name: project.name,
+						color: project.color,
+						colorMode: project.colorMode ?? PROJECT_COLOR_MODE_DEFAULT,
+						// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
+						tabOrder: project.tabOrder!,
+						githubOwner: project.githubOwner ?? null,
+						mainRepoPath: project.mainRepoPath,
+						hideImage: project.hideImage ?? false,
+					},
 					workspaces: [],
 				});
 			}

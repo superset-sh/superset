@@ -779,10 +779,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								"Invalid project color",
 							)
 							.optional(),
-					branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
-					branchPrefixCustom: z.string().nullable().optional(),
-					hideImage: z.boolean().optional(),
-					colorMode: z.enum(PROJECT_COLOR_MODES).nullable().optional(),
+						branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
+						branchPrefixCustom: z.string().nullable().optional(),
+						hideImage: z.boolean().optional(),
+						colorMode: z.enum(PROJECT_COLOR_MODES).nullable().optional(),
 					}),
 				}),
 			)
@@ -809,12 +809,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						...(input.patch.branchPrefixCustom !== undefined && {
 							branchPrefixCustom: input.patch.branchPrefixCustom,
 						}),
-					...(input.patch.hideImage !== undefined && {
-						hideImage: input.patch.hideImage,
-					}),
-					...(input.patch.colorMode !== undefined && {
-						colorMode: input.patch.colorMode,
-					}),
+						...(input.patch.hideImage !== undefined && {
+							hideImage: input.patch.hideImage,
+						}),
+						...(input.patch.colorMode !== undefined && {
+							colorMode: input.patch.colorMode,
+						}),
 						lastOpenedAt: Date.now(),
 					})
 					.where(eq(projects.id, input.id))

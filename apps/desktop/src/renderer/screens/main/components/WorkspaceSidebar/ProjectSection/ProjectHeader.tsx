@@ -1,3 +1,4 @@
+import type { ProjectColorMode } from "@superset/local-db";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -27,7 +28,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
-import type { ProjectColorMode } from "@superset/local-db";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLOR_MODE_LABELS,
