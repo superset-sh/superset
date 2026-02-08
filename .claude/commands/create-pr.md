@@ -1,5 +1,5 @@
 ---
-description: Analyze changes, generate structured PR title + body, and create a PR with approval
+description: Analyze changes, generate structured PR title + body, and create a PR
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
@@ -40,16 +40,10 @@ Based on the actual diff and commit messages, draft:
 - [ ] <specific verification steps>
 ```
 
-## Step 4: Get Approval
-
-Show the title and body, then ask: **"Create this PR? (yes/no or feedback)"**
-
-Do NOT proceed without explicit approval.
-
-## Step 5: Create
+## Step 4: Create
 
 1. Push if needed: `git push -u origin HEAD`
 2. Create PR: `gh pr create --title "..." --body "..."`
-3. Open in browser: `gh pr view --web`
+3. Return the PR URL
 
 $ARGUMENTS
