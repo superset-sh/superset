@@ -27,9 +27,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
+import { PermissionModePicker } from "./components/PermissionModePicker";
 import { MODELS, SUGGESTIONS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
-import type { ModelOption } from "./types";
+import type { ModelOption, PermissionMode } from "./types";
 
 interface ChatInterfaceProps {
 	sessionId: string;
@@ -49,6 +50,8 @@ export function ChatInterface({
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+	const [permissionMode, setPermissionMode] =
+		useState<PermissionMode>("bypassPermissions");
 
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 
@@ -240,6 +243,17 @@ export function ChatInterface({
 		[sessionId, updateConfig],
 	);
 
+	const handlePermissionModeSelect = useCallback(
+		(mode: PermissionMode) => {
+			setPermissionMode(mode);
+			updateConfig.mutate({
+				sessionId,
+				permissionMode: mode,
+			});
+		},
+		[sessionId, updateConfig],
+	);
+
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -332,6 +346,10 @@ export function ChatInterface({
 									onSelectModel={handleModelSelect}
 									open={modelSelectorOpen}
 									onOpenChange={setModelSelectorOpen}
+								/>
+								<PermissionModePicker
+									selectedMode={permissionMode}
+									onSelectMode={handlePermissionModeSelect}
 								/>
 							</PromptInputTools>
 							<div className="flex items-center gap-1">

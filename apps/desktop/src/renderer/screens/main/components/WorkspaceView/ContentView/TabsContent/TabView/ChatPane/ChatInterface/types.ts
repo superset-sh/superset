@@ -3,3 +3,5 @@ export interface ModelOption {
 	name: string;
 	description: string;
 }
+
+export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions";

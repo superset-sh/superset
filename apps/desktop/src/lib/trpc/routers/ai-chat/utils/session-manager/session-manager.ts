@@ -6,6 +6,25 @@ const PROXY_URL = process.env.DURABLE_STREAM_URL || "http://localhost:8080";
 const DURABLE_STREAM_AUTH_TOKEN =
 	process.env.DURABLE_STREAM_AUTH_TOKEN || process.env.DURABLE_STREAM_TOKEN;
 
+/**
+ * Set, clear, or skip a field on a body template.
+ * - `undefined` → no-op (field not mentioned in the update)
+ * - `null`      → delete the field (revert to agent default)
+ * - otherwise   → set the value
+ */
+function applyBodyField(
+	template: Record<string, unknown>,
+	key: string,
+	value: unknown,
+): void {
+	if (value === undefined) return;
+	if (value === null) {
+		delete template[key];
+	} else {
+		template[key] = value;
+	}
+}
+
 function buildProxyHeaders(): Record<string, string> {
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
@@ -342,10 +361,12 @@ export class ChatSessionManager extends EventEmitter {
 		sessionId,
 		maxThinkingTokens,
 		model,
+		permissionMode,
 	}: {
 		sessionId: string;
 		maxThinkingTokens?: number | null;
 		model?: string | null;
+		permissionMode?: string | null;
 	}): Promise<void> {
 		const session = this.sessions.get(sessionId);
 		if (!session) {
@@ -360,21 +381,10 @@ export class ChatSessionManager extends EventEmitter {
 			cwd: session.cwd,
 		});
 
-		if (maxThinkingTokens !== undefined) {
-			if (maxThinkingTokens === null) {
-				delete registration.bodyTemplate.maxThinkingTokens;
-			} else {
-				registration.bodyTemplate.maxThinkingTokens = maxThinkingTokens;
-			}
-		}
-
-		if (model !== undefined) {
-			if (model === null) {
-				delete registration.bodyTemplate.model;
-			} else {
-				registration.bodyTemplate.model = model;
-			}
-		}
+		const tpl = registration.bodyTemplate;
+		applyBodyField(tpl, "maxThinkingTokens", maxThinkingTokens);
+		applyBodyField(tpl, "model", model);
+		applyBodyField(tpl, "permissionMode", permissionMode);
 
 		const headers = buildProxyHeaders();
 		const res = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents`, {
@@ -394,6 +404,7 @@ export class ChatSessionManager extends EventEmitter {
 				maxThinkingTokens !== undefined &&
 					`maxThinkingTokens=${maxThinkingTokens}`,
 				model !== undefined && `model=${model}`,
+				permissionMode !== undefined && `permissionMode=${permissionMode}`,
 			]
 				.filter(Boolean)
 				.join(", "),

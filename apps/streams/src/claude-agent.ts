@@ -139,23 +139,17 @@ app.post("/", async (c) => {
 			) => {
 				const toolUseId = options.toolUseID;
 
-				if (toolName === "AskUserQuestion") {
-					emitSSE({
-						type: "USER_QUESTION_REQUEST",
-						toolCallId: toolUseId,
-						toolName,
-						questions: input?.questions,
-						timestamp: Date.now(),
-					});
-				} else {
-					emitSSE({
-						type: "TOOL_CALL_APPROVAL",
+				emitSSE({
+					type: "CUSTOM",
+					name: "approval-requested",
+					data: {
 						toolCallId: toolUseId,
 						toolName,
 						input,
-						timestamp: Date.now(),
-					});
-				}
+						approval: { id: toolUseId },
+					},
+					timestamp: Date.now(),
+				});
 
 				return createPermissionRequest({
 					toolUseId,

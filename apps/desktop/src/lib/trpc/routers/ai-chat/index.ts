@@ -102,6 +102,10 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					maxThinkingTokens: z.number().nullable().optional(),
 					model: z.string().nullable().optional(),
+					permissionMode: z
+						.enum(["default", "acceptEdits", "bypassPermissions"])
+						.nullable()
+						.optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -109,6 +113,7 @@ export const createAiChatRouter = () => {
 					sessionId: input.sessionId,
 					maxThinkingTokens: input.maxThinkingTokens,
 					model: input.model,
+					permissionMode: input.permissionMode,
 				});
 				return { success: true };
 			}),

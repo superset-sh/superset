@@ -70,14 +70,13 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 
 		if (isWholeMessageChunk(chunk)) continue;
 
-		// Skip custom chunk types that aren't TanStack AI StreamChunks
-		if (type === "USER_QUESTION_REQUEST") continue;
-
 		try {
 			processor.processChunk(
 				enrichChunk(chunk as StreamChunk & { [key: string]: unknown }),
 			);
-		} catch {}
+		} catch (err) {
+			console.debug("[materialize] processChunk error:", err);
+		}
 
 		if (isDoneChunk(chunk as StreamChunk)) {
 			isComplete = true;
