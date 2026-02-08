@@ -112,6 +112,7 @@ export const BashTool = ({
 			)}
 		>
 			{/* Header - fixed height to prevent layout shift */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
 			<div
 				className={cn(
 					"flex h-7 items-center justify-between pl-2.5 pr-0.5",
@@ -122,7 +123,6 @@ export const BashTool = ({
 				onClick={() =>
 					hasMoreOutput && !isPending && setIsOutputExpanded(!isOutputExpanded)
 				}
-				onKeyDown={undefined}
 			>
 				<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
 					{isPending ? "Running command: " : "Ran command: "}
@@ -154,6 +154,7 @@ export const BashTool = ({
 			</div>
 
 			{/* Content - always visible */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: clickable to expand */}
 			<div
 				className={cn(
 					"border-t border-border px-2.5 py-1.5 transition-colors duration-150",
@@ -164,7 +165,6 @@ export const BashTool = ({
 				onClick={() =>
 					hasMoreOutput && !isOutputExpanded && setIsOutputExpanded(true)
 				}
-				onKeyDown={undefined}
 			>
 				{/* Command */}
 				{command && (

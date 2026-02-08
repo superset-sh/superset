@@ -42,6 +42,7 @@ export const WebSearchTool = ({
 			)}
 		>
 			{/* Header */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
 			<div
 				className={cn(
 					"flex h-7 items-center justify-between px-2.5",
@@ -50,7 +51,6 @@ export const WebSearchTool = ({
 						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
 				)}
 				onClick={() => hasResults && !isPending && setIsExpanded(!isExpanded)}
-				onKeyDown={undefined}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs">
 					<SearchIcon className="h-3 w-3 shrink-0 text-muted-foreground" />

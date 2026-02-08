@@ -58,7 +58,8 @@ export const ExploringGroup = ({
 		wasStreamingRef.current = isStreaming;
 	}, [isStreaming]);
 
-	// Auto-scroll to bottom while streaming
+	// Auto-scroll to bottom while streaming and when new items arrive
+	// biome-ignore lint/correctness/useExhaustiveDependencies: items.length triggers scroll on new items
 	useEffect(() => {
 		if (isStreaming && isExpanded && scrollRef.current) {
 			scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -70,10 +71,10 @@ export const ExploringGroup = ({
 	return (
 		<div className={className}>
 			{/* Header - clickable to toggle */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive group header */}
 			<div
 				className="group flex cursor-pointer items-start gap-1.5 px-2 py-0.5"
 				onClick={() => setIsExpanded(!isExpanded)}
-				onKeyDown={undefined}
 			>
 				<div className="min-w-0 flex flex-1 items-center gap-1">
 					<div className="flex min-w-0 items-center gap-1.5 text-xs">

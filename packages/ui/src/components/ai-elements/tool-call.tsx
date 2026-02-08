@@ -50,13 +50,13 @@ export const ToolCall = ({
 						)}
 					</span>
 					{subtitle && (
+						// biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: clickable subtitle
 						<span
 							className={cn(
 								"min-w-0 truncate font-normal text-muted-foreground/60",
 								clickableClass,
 							)}
 							onClick={onClick}
-							onKeyDown={undefined}
 						>
 							{subtitle}
 						</span>

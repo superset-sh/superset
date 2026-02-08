@@ -58,6 +58,7 @@ export const WebFetchTool = ({
 			)}
 		>
 			{/* Header */}
+			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
 			<div
 				className={cn(
 					"flex h-7 items-center justify-between px-2.5",
@@ -66,7 +67,6 @@ export const WebFetchTool = ({
 						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
 				)}
 				onClick={() => hasContent && !isPending && setIsExpanded(!isExpanded)}
-				onKeyDown={undefined}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs">
 					<GlobeIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
