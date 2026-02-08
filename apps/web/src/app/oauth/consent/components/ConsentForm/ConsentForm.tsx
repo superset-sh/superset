@@ -26,6 +26,7 @@ interface Organization {
 interface ConsentFormProps {
 	consentCode: string;
 	clientId: string;
+	clientName?: string;
 	scopes: string[];
 	userName: string;
 	organizations: Organization[];
@@ -57,6 +58,7 @@ const SCOPE_DESCRIPTIONS: Record<
 export function ConsentForm({
 	consentCode,
 	clientId,
+	clientName,
 	scopes,
 	userName,
 	organizations,
@@ -134,16 +136,16 @@ export function ConsentForm({
 		}
 	};
 
-	const clientName = getClientDisplayName(clientId);
+	const displayName = clientName ?? getClientDisplayName(clientId);
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
-					Authorize {clientName}
+					Authorize {displayName}
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					<span className="font-medium text-foreground">{clientName}</span> is
+					<span className="font-medium text-foreground">{displayName}</span> is
 					requesting access to your Superset account
 				</p>
 			</div>

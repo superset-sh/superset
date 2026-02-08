@@ -1,4 +1,5 @@
 import { auth } from "@superset/auth/server";
+import { db } from "@superset/db/client";
 import { headers } from "next/headers";
 import Image from "next/image";
 import { redirect } from "next/navigation";
@@ -63,6 +64,11 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 	const trpc = await api();
 	const userOrganizations = await trpc.user.myOrganizations.query();
 
+	const oauthApp = await db.query.oauthApplications.findFirst({
+		where: (table, { eq }) => eq(table.clientId, client_id),
+		columns: { name: true },
+	});
+
 	const extendedSession = session.session as typeof session.session & {
 		activeOrganizationId?: string | null;
 	};
@@ -86,6 +92,7 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 				<ConsentForm
 					consentCode={consent_code}
 					clientId={client_id}
+					clientName={oauthApp?.name ?? undefined}
 					scopes={scopes}
 					userName={session.user.name}
 					organizations={userOrganizations.map((org) => ({
