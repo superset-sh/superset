@@ -114,12 +114,15 @@ export function ChatInterface({
 	stopSessionRef.current = stopSession;
 	const renameSessionRef = useRef(renameSession);
 	renameSessionRef.current = renameSession;
+	const selectedModelRef = useRef(selectedModel);
+	selectedModelRef.current = selectedModel;
 
 	const { data: existingSession } = electronTrpc.aiChat.getSession.useQuery(
 		{ sessionId },
 		{ enabled: !!sessionId },
 	);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: selectedModel read via ref to avoid session churn on model change
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
 		if (existingSession === undefined) return;
@@ -133,7 +136,7 @@ export function ChatInterface({
 				cwd,
 				paneId,
 				tabId,
-				model: selectedModel.id,
+				model: selectedModelRef.current.id,
 			});
 		} else {
 			startSessionRef.current.mutate({
@@ -142,22 +145,14 @@ export function ChatInterface({
 				cwd,
 				paneId,
 				tabId,
-				model: selectedModel.id,
+				model: selectedModelRef.current.id,
 			});
 		}
 
 		return () => {
 			stopSessionRef.current.mutate({ sessionId });
 		};
-	}, [
-		sessionId,
-		cwd,
-		workspaceId,
-		existingSession,
-		paneId,
-		tabId,
-		selectedModel.id,
-	]);
+	}, [sessionId, cwd, workspaceId, existingSession, paneId, tabId]);
 
 	useEffect(() => {
 		if (sessionReady && config?.proxyUrl) {
