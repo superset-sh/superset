@@ -9,7 +9,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiOutlineStar, HiStar } from "react-icons/hi2";
 import { LuGripVertical, LuTrash } from "react-icons/lu";
@@ -125,8 +125,10 @@ export function PresetRow({
 		},
 	});
 
-	preview(drop(rowRef));
-	drag(dragHandleRef);
+	useEffect(() => {
+		preview(drop(rowRef));
+		drag(dragHandleRef);
+	}, [preview, drop, drag]);
 
 	const handleToggleDefault = () => {
 		onSetDefault(preset.isDefault ? null : preset.id);

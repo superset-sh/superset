@@ -10,6 +10,7 @@ import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { localDb } from "main/lib/local-db";
 import {
+	DEFAULT_APPLY_PRESET_ON_NEW_TAB,
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
@@ -308,6 +309,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { autoApplyDefaultPreset: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getApplyPresetOnNewTab: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.applyPresetOnNewTab ?? DEFAULT_APPLY_PRESET_ON_NEW_TAB;
+		}),
+
+		setApplyPresetOnNewTab: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, applyPresetOnNewTab: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { applyPresetOnNewTab: input.enabled },
 					})
 					.run();
 

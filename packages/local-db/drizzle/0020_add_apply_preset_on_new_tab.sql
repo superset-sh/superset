@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `apply_preset_on_new_tab` integer;

@@ -1,7 +1,9 @@
 import type { TerminalPreset } from "@superset/local-db";
 import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
+import { DEFAULT_APPLY_PRESET_ON_NEW_TAB } from "shared/constants";
 import { useTabsStore } from "./store";
 import type { AddTabOptions } from "./types";
 
@@ -12,6 +14,11 @@ import type { AddTabOptions } from "./types";
  */
 export function useTabsWithPresets() {
 	const { defaultPreset } = usePresets();
+
+	const { data: applyPresetOnNewTab } =
+		electronTrpc.settings.getApplyPresetOnNewTab.useQuery();
+	const isNewTabPresetEnabled =
+		applyPresetOnNewTab ?? DEFAULT_APPLY_PRESET_ON_NEW_TAB;
 
 	const storeAddTab = useTabsStore((s) => s.addTab);
 	const storeAddTabWithMultiplePanes = useTabsStore(
@@ -24,19 +31,20 @@ export function useTabsWithPresets() {
 	const renameTab = useTabsStore((s) => s.renameTab);
 
 	const defaultPresetOptions: AddTabOptions | undefined = useMemo(() => {
-		if (!defaultPreset) return undefined;
+		if (!isNewTabPresetEnabled || !defaultPreset) return undefined;
 		return {
 			initialCommands: defaultPreset.commands,
 			initialCwd: defaultPreset.cwd || undefined,
 		};
-	}, [defaultPreset]);
+	}, [isNewTabPresetEnabled, defaultPreset]);
 
 	const shouldUseParallelMode = useMemo(() => {
 		return (
+			isNewTabPresetEnabled &&
 			defaultPreset?.executionMode === "parallel" &&
 			defaultPreset.commands.length > 1
 		);
-	}, [defaultPreset]);
+	}, [isNewTabPresetEnabled, defaultPreset]);
 
 	const addTab = useCallback(
 		(workspaceId: string, options?: AddTabOptions) => {
@@ -59,7 +67,7 @@ export function useTabsWithPresets() {
 
 			const result = storeAddTab(workspaceId, defaultPresetOptions);
 
-			if (defaultPreset?.name) {
+			if (isNewTabPresetEnabled && defaultPreset?.name) {
 				renameTab(result.tabId, defaultPreset.name);
 			}
 
@@ -71,6 +79,7 @@ export function useTabsWithPresets() {
 			defaultPresetOptions,
 			defaultPreset,
 			shouldUseParallelMode,
+			isNewTabPresetEnabled,
 			renameTab,
 		],
 	);

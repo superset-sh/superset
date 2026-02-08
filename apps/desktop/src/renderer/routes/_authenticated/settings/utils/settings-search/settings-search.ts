@@ -28,6 +28,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_AUTO_APPLY_PRESET: "terminal-auto-apply-preset",
+	TERMINAL_APPLY_PRESET_ON_NEW_TAB: "terminal-apply-preset-on-new-tab",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
@@ -405,8 +406,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
 		section: "terminal",
-		title: "Auto-apply Default Preset",
-		description: "Automatically apply default preset when creating workspaces",
+		title: "Apply Preset on Workspace Creation",
+		description:
+			"Automatically apply default preset when creating new workspaces",
 		keywords: [
 			"terminal",
 			"preset",
@@ -418,6 +420,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"new",
 			"startup",
 			"launch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_APPLY_PRESET_ON_NEW_TAB,
+		section: "terminal",
+		title: "Apply Preset on New Tab",
+		description:
+			"Automatically apply default preset when opening new tabs, panes, or splits",
+		keywords: [
+			"terminal",
+			"preset",
+			"default",
+			"auto",
+			"apply",
+			"tab",
+			"pane",
+			"split",
+			"new",
+			"open",
 		],
 	},
 	{
