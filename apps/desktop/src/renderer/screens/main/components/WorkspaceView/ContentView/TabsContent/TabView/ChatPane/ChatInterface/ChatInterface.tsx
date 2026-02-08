@@ -16,7 +16,7 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	HiMiniAtSymbol,
 	HiMiniChatBubbleLeftRight,
@@ -28,6 +28,9 @@ import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
 import { MODELS, SUGGESTIONS } from "./constants";
 import type { ModelOption } from "./types";
+
+const UUID_RE =
+	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 interface ChatInterfaceProps {
 	sessionId: string;
@@ -114,6 +117,22 @@ export function ChatInterface({
 		{ enabled: !!sessionId },
 	);
 
+	// Fetch Claude Code session messages from JSONL files on disk
+	const isClaudeCodeSession = UUID_RE.test(sessionId);
+	const { data: claudeMessages } =
+		electronTrpc.aiChat.getClaudeSessionMessages.useQuery(
+			{ sessionId },
+			{ enabled: isClaudeCodeSession, staleTime: 60_000 },
+		);
+
+	// Combine CC history with live proxy messages
+	const allMessages = useMemo(() => {
+		const history = (claudeMessages ?? []) as typeof messages;
+		if (history.length === 0) return messages;
+		if (messages.length === 0) return history;
+		return [...history, ...messages];
+	}, [claudeMessages, messages]);
+
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
 		if (existingSession === undefined) return;
@@ -170,6 +189,22 @@ export function ChatInterface({
 		hasAutoTitled.current = false;
 	}, [sessionId]);
 
+	// Auto-title for Claude Code sessions from JSONL history
+	useEffect(() => {
+		if (hasAutoTitled.current) return;
+		if (!isClaudeCodeSession || !claudeMessages?.length) return;
+
+		hasAutoTitled.current = true;
+
+		const firstUser = claudeMessages.find((m) => m.role === "user");
+		const textPart = firstUser?.parts?.find((p) => p.type === "text");
+		const content =
+			(textPart as { content?: string } | undefined)?.content ?? "Chat";
+		const title = content.length > 80 ? `${content.slice(0, 80)}...` : content;
+
+		renameSessionRef.current.mutate({ sessionId, title });
+	}, [claudeMessages, isClaudeCodeSession, sessionId]);
+
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			if (!message.text.trim()) return;
@@ -224,7 +259,7 @@ export function ChatInterface({
 				)}
 			<Conversation className="flex-1">
 				<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
-					{messages.length === 0 ? (
+					{allMessages.length === 0 ? (
 						<>
 							<ConversationEmptyState
 								title="Start a conversation"
@@ -242,7 +277,7 @@ export function ChatInterface({
 							</Suggestions>
 						</>
 					) : (
-						messages.map((msg) => (
+						allMessages.map((msg) => (
 							<ChatMessageItem
 								key={msg.id}
 								message={msg}
@@ -266,7 +301,7 @@ export function ChatInterface({
 
 			<div className="border-t bg-background px-4 py-3">
 				<div className="mx-auto w-full max-w-3xl">
-					{messages.length > 0 && (
+					{allMessages.length > 0 && (
 						<Suggestions className="mb-3">
 							{SUGGESTIONS.map((s) => (
 								<Suggestion key={s} suggestion={s} onClick={handleSuggestion} />

@@ -1,2 +1,9 @@
-export type { ClaudeSessionInfo, ClaudeSessionPage } from "./claude-session-scanner";
-export { scanClaudeSessions } from "./claude-session-scanner";
+export type {
+	ClaudeSessionInfo,
+	ClaudeSessionMessage,
+	ClaudeSessionPage,
+} from "./claude-session-scanner";
+export {
+	readClaudeSessionMessages,
+	scanClaudeSessions,
+} from "./claude-session-scanner";

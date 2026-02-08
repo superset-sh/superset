@@ -1,7 +1,8 @@
-import { close, open, read } from "node:fs";
+import { close, createReadStream, open, read } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { promisify } from "node:util";
 
 const fsOpen = promisify(open);
@@ -48,9 +49,7 @@ function decodeProjectDir(encoded: string): string {
 	return encoded.replace(/-/g, "/");
 }
 
-async function readSessionMeta(
-	filePath: string,
-): Promise<{
+async function readSessionMeta(filePath: string): Promise<{
 	sessionId: string;
 	cwd: string;
 	gitBranch: string | null;
@@ -133,8 +132,7 @@ async function buildIndex(): Promise<SessionFileEntry[]> {
 					const files = await readdir(fullProjectDir);
 					const sessionFiles = files.filter(
 						(f) =>
-							f.endsWith(".jsonl") &&
-							UUID_RE.test(f.replace(".jsonl", "")),
+							f.endsWith(".jsonl") && UUID_RE.test(f.replace(".jsonl", "")),
 					);
 
 					await Promise.all(
@@ -220,4 +218,163 @@ export async function scanClaudeSessions({
 		nextCursor: nextOffset < index.length ? nextOffset : null,
 		total: index.length,
 	};
+}
+
+// ============================================================================
+// Message Reading
+// ============================================================================
+
+export interface ClaudeSessionMessagePart {
+	type: string;
+	content?: string;
+	id?: string;
+	name?: string;
+	arguments?: Record<string, unknown>;
+	state?: string;
+	toolCallId?: string;
+	error?: string;
+}
+
+export interface ClaudeSessionMessage {
+	id: string;
+	role: "user" | "assistant";
+	parts: ClaudeSessionMessagePart[];
+}
+
+function convertContentBlock(
+	block: Record<string, unknown>,
+): ClaudeSessionMessagePart | null {
+	switch (block.type) {
+		case "text":
+			return { type: "text", content: block.text as string };
+		case "thinking":
+			return { type: "thinking", content: block.thinking as string };
+		case "tool_use":
+			return {
+				type: "tool-call",
+				id: block.id as string,
+				name: block.name as string,
+				arguments: (block.input as Record<string, unknown>) ?? {},
+				state: "complete",
+			};
+		case "tool_result": {
+			const raw = block.content;
+			const content = typeof raw === "string" ? raw : JSON.stringify(raw ?? "");
+			return {
+				type: "tool-result",
+				toolCallId: block.tool_use_id as string,
+				content,
+				state: "complete",
+			};
+		}
+		default:
+			return null;
+	}
+}
+
+/**
+ * Reads all user/assistant messages from a Claude Code session JSONL file
+ * and returns them in UIMessage-compatible format.
+ *
+ * Tool results from user turns are merged into the preceding assistant message
+ * so that tool-call and tool-result parts are co-located for rendering.
+ */
+export async function readClaudeSessionMessages({
+	sessionId,
+}: {
+	sessionId: string;
+}): Promise<ClaudeSessionMessage[]> {
+	const index = await buildIndex();
+	const entry = index.find((e) => e.sessionId === sessionId);
+	if (!entry) return [];
+
+	const messages: ClaudeSessionMessage[] = [];
+	let messageCounter = 0;
+
+	try {
+		const rl = createInterface({
+			input: createReadStream(entry.filePath, { encoding: "utf-8" }),
+			crlfDelay: Number.POSITIVE_INFINITY,
+		});
+
+		for await (const line of rl) {
+			if (!line.trim()) continue;
+			try {
+				const parsed = JSON.parse(line);
+				const msgId = parsed.uuid ?? `cc-msg-${++messageCounter}`;
+
+				if (parsed.type === "user" && parsed.message) {
+					const content = parsed.message.content;
+
+					if (typeof content === "string") {
+						messages.push({
+							id: msgId,
+							role: "user",
+							parts: [{ type: "text", content }],
+						});
+					} else if (Array.isArray(content)) {
+						const toolResultParts: ClaudeSessionMessagePart[] = [];
+						const otherParts: ClaudeSessionMessagePart[] = [];
+
+						for (const block of content) {
+							const part = convertContentBlock(
+								block as Record<string, unknown>,
+							);
+							if (!part) continue;
+							if (part.type === "tool-result") {
+								toolResultParts.push(part);
+							} else {
+								otherParts.push(part);
+							}
+						}
+
+						// Merge tool results into the last assistant message
+						if (toolResultParts.length > 0 && messages.length > 0) {
+							const lastMsg = messages[messages.length - 1];
+							if (lastMsg && lastMsg.role === "assistant") {
+								lastMsg.parts.push(...toolResultParts);
+							}
+						}
+
+						// Add remaining parts as user message
+						if (otherParts.length > 0) {
+							messages.push({
+								id: msgId,
+								role: "user",
+								parts: otherParts,
+							});
+						}
+					}
+				} else if (parsed.type === "assistant" && parsed.message) {
+					const content = parsed.message.content;
+					const parts: ClaudeSessionMessagePart[] = [];
+
+					if (Array.isArray(content)) {
+						for (const block of content) {
+							const part = convertContentBlock(
+								block as Record<string, unknown>,
+							);
+							if (part) parts.push(part);
+						}
+					} else if (typeof content === "string") {
+						parts.push({ type: "text", content });
+					}
+
+					if (parts.length > 0) {
+						messages.push({
+							id: msgId,
+							role: "assistant",
+							parts,
+						});
+					}
+				}
+			} catch {
+				// Skip unparseable lines
+			}
+		}
+	} catch {
+		return [];
+	}
+
+	return messages;
 }

@@ -48,9 +48,7 @@ function getTimeGroup(timestamp: number): TimeGroup {
 	const startOfThisWeek = new Date(
 		startOfToday.getTime() - (dayOfWeek - 1) * 86_400_000,
 	);
-	const startOfLastWeek = new Date(
-		startOfThisWeek.getTime() - 7 * 86_400_000,
-	);
+	const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86_400_000);
 	const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
 	if (date >= startOfToday) return "Today";
@@ -106,7 +104,6 @@ export function SessionSelector({
 	const [total, setTotal] = useState(0);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
-
 
 	const { data: sessions } = electronTrpc.aiChat.listSessions.useQuery(
 		{ workspaceId },
