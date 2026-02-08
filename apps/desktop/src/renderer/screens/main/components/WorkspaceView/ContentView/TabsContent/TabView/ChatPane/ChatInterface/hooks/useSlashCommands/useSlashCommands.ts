@@ -38,25 +38,14 @@ const DEFAULT_COMMANDS: SlashCommand[] = [
 	{ name: "status", description: "Show status information", argumentHint: "" },
 ];
 
-interface UseSlashCommandsOptions {
-	inputValue: string;
-	onClear: () => void;
-	onSendMessage: (text: string) => void;
-}
-
-export function useSlashCommands({
-	inputValue,
-	onClear,
-	onSendMessage,
-}: UseSlashCommandsOptions) {
+export function useSlashCommands({ inputValue }: { inputValue: string }) {
 	const { data } = electronTrpc.aiChat.getSlashCommands.useQuery(undefined, {
 		staleTime: 5 * 60 * 1000,
 	});
 
 	const commands = useMemo(() => {
 		const fetched = data?.commands;
-		if (fetched && fetched.length > 0) return fetched;
-		return DEFAULT_COMMANDS;
+		return fetched && fetched.length > 0 ? fetched : DEFAULT_COMMANDS;
 	}, [data]);
 
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -74,7 +63,6 @@ export function useSlashCommands({
 		return commands.filter((cmd) => cmd.name.startsWith(query));
 	}, [commands, isOpen, query]);
 
-	// Reset selected index when filter changes
 	const prevQuery = useRef(query);
 	useEffect(() => {
 		if (prevQuery.current !== query) {
@@ -83,72 +71,42 @@ export function useSlashCommands({
 		}
 	}, [query]);
 
-	const handleSelectCommand = useCallback(
-		(command: SlashCommand): { text: string; shouldSend: boolean } => {
-			if (command.name === "clear") {
-				onClear();
-				return { text: "", shouldSend: false };
-			}
+	const navigateUp = useCallback(() => {
+		setSelectedIndex((prev) =>
+			prev <= 0 ? filteredCommands.length - 1 : prev - 1,
+		);
+	}, [filteredCommands.length]);
 
-			if (command.argumentHint) {
-				return { text: `/${command.name} `, shouldSend: false };
-			}
-
-			onSendMessage(`/${command.name}`);
-			return { text: "", shouldSend: true };
-		},
-		[onClear, onSendMessage],
-	);
-
-	const handleKeyDown = useCallback(
-		(e: React.KeyboardEvent): boolean => {
-			if (!isOpen || filteredCommands.length === 0) return false;
-
-			switch (e.key) {
-				case "ArrowUp": {
-					e.preventDefault();
-					e.stopPropagation();
-					setSelectedIndex((prev) =>
-						prev <= 0 ? filteredCommands.length - 1 : prev - 1,
-					);
-					return true;
-				}
-				case "ArrowDown": {
-					e.preventDefault();
-					e.stopPropagation();
-					setSelectedIndex((prev) =>
-						prev >= filteredCommands.length - 1 ? 0 : prev + 1,
-					);
-					return true;
-				}
-				case "Enter":
-				case "Tab": {
-					e.preventDefault();
-					e.stopPropagation();
-					const cmd = filteredCommands[selectedIndex];
-					if (cmd) {
-						handleSelectCommand(cmd);
-					}
-					return true;
-				}
-				case "Escape": {
-					e.preventDefault();
-					e.stopPropagation();
-					return true;
-				}
-				default:
-					return false;
-			}
-		},
-		[isOpen, filteredCommands, selectedIndex, handleSelectCommand],
-	);
+	const navigateDown = useCallback(() => {
+		setSelectedIndex((prev) =>
+			prev >= filteredCommands.length - 1 ? 0 : prev + 1,
+		);
+	}, [filteredCommands.length]);
 
 	return {
 		isOpen: isOpen && filteredCommands.length > 0,
 		filteredCommands,
 		selectedIndex,
 		setSelectedIndex,
-		handleKeyDown,
-		handleSelectCommand,
+		navigateUp,
+		navigateDown,
 	};
+}
+
+/**
+ * Determines the action to take when a slash command is selected.
+ * Returns the text to place in the input and whether to send immediately.
+ */
+export function resolveCommandAction(command: SlashCommand): {
+	text: string;
+	isClear: boolean;
+	shouldSend: boolean;
+} {
+	if (command.name === "clear") {
+		return { text: "", isClear: true, shouldSend: false };
+	}
+	if (command.argumentHint) {
+		return { text: `/${command.name} `, isClear: false, shouldSend: false };
+	}
+	return { text: "", isClear: false, shouldSend: true };
 }

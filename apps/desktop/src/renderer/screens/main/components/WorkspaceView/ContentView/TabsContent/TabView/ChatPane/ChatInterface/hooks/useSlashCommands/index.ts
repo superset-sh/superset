@@ -1,1 +1,5 @@
-export { type SlashCommand, useSlashCommands } from "./useSlashCommands";
+export {
+	resolveCommandAction,
+	type SlashCommand,
+	useSlashCommands,
+} from "./useSlashCommands";
