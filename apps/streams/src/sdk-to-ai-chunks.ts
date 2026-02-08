@@ -16,6 +16,7 @@
  */
 
 import type { StreamChunk } from "@tanstack/ai";
+import { createTextSegmentEnricher } from "@superset/durable-session";
 
 // ============================================================================
 // Claude SDK Types (subset used for conversion)
@@ -109,7 +110,6 @@ interface ActiveBlock {
 	toolCallId?: string;
 	toolName?: string;
 	argsAccumulator?: string;
-	textAccumulator?: string;
 }
 
 export interface ConversionState {
@@ -132,10 +132,14 @@ export function createConverter(): {
 		runId: crypto.randomUUID(),
 	};
 
+	const enrichChunk = createTextSegmentEnricher();
+
 	return {
 		state,
 		convert(message: SDKMessage): StreamChunk[] {
-			return convertMessage(state, message);
+			return convertMessage(state, message).map((chunk) =>
+				enrichChunk(chunk as StreamChunk & { [key: string]: unknown }),
+			);
 		},
 	};
 }
@@ -202,7 +206,7 @@ function handleContentBlockStart(
 
 	switch (block.type) {
 		case "text": {
-			state.activeBlocks.set(index, { type: "text", textAccumulator: "" });
+			state.activeBlocks.set(index, { type: "text" });
 			return [];
 		}
 
@@ -259,18 +263,11 @@ function handleContentBlockDelta(
 
 	switch (delta.type) {
 		case "text_delta": {
-			// Track per-block accumulated text so the StreamProcessor
-			// can detect new text segments across agent turns.
-			if (block?.type === "text") {
-				block.textAccumulator =
-					(block.textAccumulator ?? "") + delta.text;
-			}
 			return [
 				{
 					type: "TEXT_MESSAGE_CONTENT",
 					messageId: state.messageId,
 					delta: delta.text,
-					content: block?.textAccumulator ?? delta.text,
 					timestamp: now,
 				} satisfies StreamChunk,
 			];

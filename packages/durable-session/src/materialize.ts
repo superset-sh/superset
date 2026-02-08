@@ -17,6 +17,7 @@
 
 import type { StreamChunk, UIMessage } from "@tanstack/ai";
 import { StreamProcessor } from "@tanstack/ai";
+import { createTextSegmentEnricher } from "./enrich-text-segments";
 import type { ChunkRow } from "./schema";
 import type {
 	DurableStreamChunk,
@@ -95,12 +96,7 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 	processor.startAssistantMessage();
 
 	let isComplete = false;
-
-	// Track per-segment text so we can inject `content` for segment detection.
-	// Without `content`, StreamProcessor's isNewTextSegment() always returns false
-	// and text accumulates across agent turns instead of creating separate parts.
-	let segmentText = "";
-	let hadToolSinceText = false;
+	const enrichChunk = createTextSegmentEnricher();
 
 	for (const row of sorted) {
 		const chunk = parseChunk(row.chunk);
@@ -120,29 +116,11 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 		// Skip whole-message chunks (shouldn't be in assistant messages, but guard)
 		if (isWholeMessageChunk(chunk)) continue;
 
-		// Enrich TEXT_MESSAGE_CONTENT with `content` for segment boundary detection.
-		// When text follows tool calls, reset the accumulator so `content` is shorter
-		// than the previous segment — this triggers StreamProcessor.isNewTextSegment().
-		if (type === "TEXT_MESSAGE_CONTENT") {
-			const textChunk = chunk as { delta?: string; content?: string };
-			if (hadToolSinceText) {
-				segmentText = "";
-				hadToolSinceText = false;
-			}
-			segmentText += textChunk.delta ?? "";
-			if (textChunk.content === undefined) {
-				textChunk.content = segmentText;
-			}
-		} else if (
-			type === "TOOL_CALL_START" ||
-			type === "TOOL_CALL_END"
-		) {
-			hadToolSinceText = true;
-		}
-
 		// Process TanStack AI StreamChunk
 		try {
-			processor.processChunk(chunk as StreamChunk);
+			processor.processChunk(
+				enrichChunk(chunk as StreamChunk & { [key: string]: unknown }),
+			);
 		} catch {
 			// Skip chunks that can't be processed
 		}

@@ -18,13 +18,10 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from "@superset/ui/ai-elements/reasoning";
-import { useState } from "react";
 import { HiMiniArrowPath, HiMiniClipboard } from "react-icons/hi2";
 import { safeParseJson } from "../../utils/map-tool-state";
 import { getToolMeta, getToolStatus } from "../../utils/tool-registry";
 import { ToolCallBlock } from "../ToolCallBlock";
-
-const DEBUG_PARTS = true;
 
 interface ChatMessageItemProps {
 	message: UIMessage;
@@ -164,56 +161,9 @@ export function ChatMessageItem({
 	}
 
 	// Assistant messages: render with tool grouping + text
-	const [showDebug, setShowDebug] = useState(false);
-
 	return (
 		<Message from={message.role}>
 			<MessageContent>
-				{DEBUG_PARTS && (
-					<button
-						type="button"
-						className="mb-1 text-[10px] text-muted-foreground/50 hover:text-muted-foreground"
-						onClick={() => setShowDebug((v) => !v)}
-					>
-						{showDebug ? "hide" : "show"} raw parts ({message.parts.length})
-					</button>
-				)}
-				{showDebug && (
-					<pre className="mb-2 max-h-[400px] overflow-auto rounded border bg-muted/50 p-2 font-mono text-[10px] leading-tight">
-						{JSON.stringify(
-							message.parts.map((p) => {
-								if (p.type === "text")
-									return {
-										type: "text",
-										content:
-											p.content.length > 200
-												? `${p.content.slice(0, 200)}... (${p.content.length} chars)`
-												: p.content,
-									};
-								if (p.type === "tool-call")
-									return {
-										type: "tool-call",
-										id: p.id,
-										name: p.name,
-										state: p.state,
-										hasOutput: p.output != null,
-										argsLen: p.arguments?.length,
-									};
-								if (p.type === "tool-result")
-									return {
-										type: "tool-result",
-										toolCallId: p.toolCallId,
-										state: p.state,
-										error: p.error,
-										contentLen: p.content?.length,
-									};
-								return { type: p.type };
-							}),
-							null,
-							2,
-						)}
-					</pre>
-				)}
 				{grouped.map((item) => {
 					if (item.kind === "exploring-group") {
 						const groupKey = item.items.map((i) => i.part.id).join("-");
