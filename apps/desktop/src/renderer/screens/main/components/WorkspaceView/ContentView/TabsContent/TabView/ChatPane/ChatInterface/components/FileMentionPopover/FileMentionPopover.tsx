@@ -11,6 +11,7 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { FileIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { HiMiniAtSymbol } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -32,6 +33,12 @@ function findAtTriggerIndex(value: string, prevValue: string): number {
 		}
 	}
 	return -1;
+}
+
+function getDirectoryPath(relativePath: string): string {
+	const lastSlash = relativePath.lastIndexOf("/");
+	if (lastSlash === -1) return "";
+	return relativePath.slice(0, lastSlash);
 }
 
 export function FileMentionPopover({ cwd }: { cwd: string }) {
@@ -90,30 +97,42 @@ export function FileMentionPopover({ cwd }: { cwd: string }) {
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
-					<CommandList>
-						<CommandEmpty>
+					<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
+						<CommandEmpty className="py-3 text-xs">
 							{searchQuery.length === 0
 								? "Type to search files..."
 								: "No files found."}
 						</CommandEmpty>
 						{results && results.length > 0 && (
 							<CommandGroup>
-								{results.map((file) => (
-									<CommandItem
-										key={file.id}
-										value={file.relativePath}
-										onSelect={() => handleSelect(file.relativePath)}
-									>
-										<div className="flex flex-col gap-0.5 overflow-hidden">
-											<span className="truncate text-sm font-medium">
+								{results.map((file) => {
+									const dirPath = getDirectoryPath(file.relativePath);
+									return (
+										<CommandItem
+											key={file.id}
+											value={file.relativePath}
+											onSelect={() => handleSelect(file.relativePath)}
+											className="h-7 gap-1.5 px-1.5 text-xs"
+										>
+											<FileIcon className="size-3 shrink-0 text-muted-foreground" />
+											<span className="shrink-0 whitespace-nowrap">
 												{file.name}
 											</span>
-											<span className="truncate text-xs text-muted-foreground">
-												{file.relativePath}
-											</span>
-										</div>
-									</CommandItem>
-								))}
+											{dirPath && (
+												<span
+													className="min-w-0 flex-1 overflow-hidden font-mono text-[10px] text-muted-foreground"
+													style={{
+														direction: "rtl",
+														textAlign: "left",
+														whiteSpace: "nowrap",
+													}}
+												>
+													<span style={{ direction: "ltr" }}>{dirPath}</span>
+												</span>
+											)}
+										</CommandItem>
+									);
+								})}
 							</CommandGroup>
 						)}
 					</CommandList>
