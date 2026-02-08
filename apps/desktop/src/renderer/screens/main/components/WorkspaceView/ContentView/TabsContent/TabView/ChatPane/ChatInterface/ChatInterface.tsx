@@ -392,22 +392,25 @@ function ChatInputArea({
 	const handleKeyDownCapture = useCallback(
 		(e: React.KeyboardEvent) => {
 			if (slashCommands.isOpen) {
-				const handled = slashCommands.handleKeyDown(e);
-				if (handled) {
-					// For Enter/Tab, apply the selected command
-					if (e.key === "Enter" || e.key === "Tab") {
-						const cmd =
-							slashCommands.filteredCommands[slashCommands.selectedIndex];
-						if (cmd) {
-							const result = slashCommands.handleSelectCommand(cmd);
-							textInput.setInput(result.text);
-						}
-					}
-					// For Escape, clear the slash input
-					if (e.key === "Escape") {
-						textInput.setInput("");
-					}
+				if (e.key === "Escape") {
+					e.preventDefault();
+					e.stopPropagation();
+					textInput.setInput("");
+					return;
 				}
+				if (e.key === "Enter" || e.key === "Tab") {
+					e.preventDefault();
+					e.stopPropagation();
+					const cmd =
+						slashCommands.filteredCommands[slashCommands.selectedIndex];
+					if (cmd) {
+						const result = slashCommands.handleSelectCommand(cmd);
+						textInput.setInput(result.text);
+					}
+					return;
+				}
+				// ArrowUp/ArrowDown for navigation
+				slashCommands.handleKeyDown(e);
 			}
 		},
 		[slashCommands, textInput],

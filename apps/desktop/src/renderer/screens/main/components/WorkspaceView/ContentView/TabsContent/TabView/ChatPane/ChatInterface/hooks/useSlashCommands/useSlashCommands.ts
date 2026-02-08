@@ -64,7 +64,7 @@ export function useSlashCommands({
 	const isOpen =
 		inputValue.startsWith("/") &&
 		!inputValue.includes("\n") &&
-		inputValue !== "/";
+		!inputValue.includes(" ");
 
 	const query = isOpen ? inputValue.slice(1).toLowerCase() : "";
 
