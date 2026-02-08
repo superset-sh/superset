@@ -20,7 +20,7 @@ export function HeroSection() {
 							<div className="space-y-2 sm:space-y-6">
 								<h1
 									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground relative"
-									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
+									style={{ fontFamily: "var(--font-geist-pixel-square)" }}
 								>
 									<span className="invisible" aria-hidden="true">
 										The Terminal for Coding Agents.
