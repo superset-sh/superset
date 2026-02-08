@@ -11,9 +11,6 @@ export function mapToolCallState(
 	if (result) {
 		return result.error ? "output-error" : "output-available";
 	}
-	if (tc.output != null) {
-		return "output-available";
-	}
 	switch (tc.state) {
 		case "awaiting-input":
 		case "input-streaming":
@@ -23,7 +20,7 @@ export function mapToolCallState(
 		case "approval-requested":
 			return "approval-requested";
 		case "approval-responded":
-			return "approval-responded";
+			return tc.output != null ? "output-available" : "approval-responded";
 		default:
 			return "input-available";
 	}

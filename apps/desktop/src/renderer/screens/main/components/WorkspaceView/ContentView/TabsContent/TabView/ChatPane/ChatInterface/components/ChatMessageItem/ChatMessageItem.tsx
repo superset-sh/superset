@@ -106,12 +106,10 @@ function buildGroupItem({
 		? toolResult.error
 			? "output-error"
 			: "output-available"
-		: tc.output != null
-			? "output-available"
-			: (tc.state ?? "input-available");
+		: (tc.state ?? "input-available");
 	const { isPending, isError } = getToolStatus(
 		state,
-		Boolean(toolResult) || tc.output != null,
+		Boolean(toolResult),
 		Boolean(toolResult?.error),
 	);
 
@@ -172,7 +170,6 @@ export function ChatMessageItem({
 						const isStreaming = item.items.some(
 							(i) =>
 								!toolResults.has(i.part.id) &&
-								i.part.output == null &&
 								(i.part.state === "input-streaming" ||
 									i.part.state === "awaiting-input"),
 						);

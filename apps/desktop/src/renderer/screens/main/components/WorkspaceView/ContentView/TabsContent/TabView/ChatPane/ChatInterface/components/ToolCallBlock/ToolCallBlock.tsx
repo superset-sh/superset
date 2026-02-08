@@ -45,13 +45,13 @@ function toSpecializedState(
 	if (result) {
 		return result.error ? "output-error" : "output-available";
 	}
-	if (tc.output != null) {
-		return "output-available";
-	}
 	switch (tc.state) {
 		case "input-streaming":
 		case "awaiting-input":
 			return "input-streaming";
+		case "approval-requested":
+		case "approval-responded":
+			return tc.output != null ? "output-available" : "input-available";
 		default:
 			return "input-available";
 	}
@@ -224,12 +224,10 @@ function DefaultToolBlock({
 		? toolResultPart.error
 			? "output-error"
 			: "output-available"
-		: toolCallPart.output != null
-			? "output-available"
-			: (toolCallPart.state ?? "input-available");
+		: (toolCallPart.state ?? "input-available");
 	const { isPending, isError } = getToolStatus(
 		state,
-		Boolean(toolResultPart) || toolCallPart.output != null,
+		Boolean(toolResultPart),
 		Boolean(toolResultPart?.error),
 	);
 

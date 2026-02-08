@@ -159,8 +159,6 @@ export const CodeBlockCopyButton = ({
 		}
 	};
 
-	const Icon = isCopied ? CheckIcon : CopyIcon;
-
 	return (
 		<Button
 			className={cn("shrink-0", className)}
@@ -169,7 +167,22 @@ export const CodeBlockCopyButton = ({
 			variant="ghost"
 			{...props}
 		>
-			{children ?? <Icon size={14} />}
+			{children ?? (
+				<div className="relative h-3.5 w-3.5">
+					<CopyIcon
+						className={cn(
+							"absolute inset-0 h-3.5 w-3.5 transition-[opacity,transform] duration-200 ease-out",
+							isCopied ? "scale-50 opacity-0" : "scale-100 opacity-100",
+						)}
+					/>
+					<CheckIcon
+						className={cn(
+							"absolute inset-0 h-3.5 w-3.5 transition-[opacity,transform] duration-200 ease-out",
+							isCopied ? "scale-100 opacity-100" : "scale-50 opacity-0",
+						)}
+					/>
+				</div>
+			)}
 		</Button>
 	);
 };
