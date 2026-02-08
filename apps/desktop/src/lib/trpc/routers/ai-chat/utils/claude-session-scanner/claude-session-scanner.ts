@@ -97,7 +97,6 @@ async function readSessionMeta(filePath: string): Promise<{
 	}
 }
 
-/** Uses stat() only (no file reads) so it's fast even for 600+ files. */
 async function buildIndex(): Promise<SessionFileEntry[]> {
 	if (cachedIndex && Date.now() - cacheTimestamp < CACHE_TTL) {
 		return cachedIndex;

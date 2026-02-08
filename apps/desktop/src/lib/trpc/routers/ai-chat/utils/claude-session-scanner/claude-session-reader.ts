@@ -1,8 +1,3 @@
-/**
- * Tool results from user turns are merged into the preceding assistant message
- * so that tool-call and tool-result parts are co-located for rendering.
- */
-
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { findSessionFilePath } from "./claude-session-scanner";
