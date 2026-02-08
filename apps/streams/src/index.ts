@@ -1,3 +1,6 @@
+import { existsSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { DurableStreamTestServer } from "@durable-streams/server";
 import { serve } from "@hono/node-server";
 import { claudeAgentApp } from "./claude-agent";
@@ -9,9 +12,19 @@ const AGENT_PORT = parseInt(process.env.CLAUDE_AGENT_PORT ?? "9090", 10);
 const DURABLE_STREAMS_URL =
 	process.env.DURABLE_STREAMS_URL ?? `http://127.0.0.1:${INTERNAL_PORT}`;
 
+// Persistent data directory for LMDB and session state
+const DATA_DIR =
+	process.env.DURABLE_STREAMS_DATA_DIR ??
+	join(homedir(), ".superset", "chat-streams");
+
+if (!existsSync(DATA_DIR)) {
+	mkdirSync(DATA_DIR, { recursive: true });
+}
+
 // Start internal durable stream server
 const durableStreamServer = new DurableStreamTestServer({
 	port: INTERNAL_PORT,
+	dataDir: DATA_DIR,
 });
 await durableStreamServer.start();
 console.log(`[streams] Durable stream server on port ${INTERNAL_PORT}`);

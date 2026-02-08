@@ -31,10 +31,15 @@ import type { ModelOption } from "./types";
 
 interface ChatInterfaceProps {
 	sessionId: string;
+	workspaceId: string;
 	cwd: string;
 }
 
-export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
+export function ChatInterface({
+	sessionId,
+	workspaceId,
+	cwd,
+}: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] = useState<ModelOption>(MODELS[1]);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 
@@ -83,22 +88,57 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			console.error("[chat] Start session failed:", err);
 		},
 	});
+	const restoreSession = electronTrpc.aiChat.restoreSession.useMutation({
+		onSuccess: () => {
+			console.log("[chat] Session restored");
+			setSessionReady(true);
+		},
+		onError: (err) => {
+			console.error("[chat] Restore session failed:", err);
+		},
+	});
 	const stopSession = electronTrpc.aiChat.stopSession.useMutation();
+	const renameSession = electronTrpc.aiChat.renameSession.useMutation();
 
 	const startSessionRef = useRef(startSession);
 	startSessionRef.current = startSession;
+	const restoreSessionRef = useRef(restoreSession);
+	restoreSessionRef.current = restoreSession;
 	const stopSessionRef = useRef(stopSession);
 	stopSessionRef.current = stopSession;
+	const renameSessionRef = useRef(renameSession);
+	renameSessionRef.current = renameSession;
+
+	// Check if session already exists in metadata store
+	const { data: existingSession } = electronTrpc.aiChat.getSession.useQuery(
+		{ sessionId },
+		{ enabled: !!sessionId },
+	);
 
 	useEffect(() => {
 		if (!sessionId || !cwd) return;
+		// Wait for getSession query to settle
+		if (existingSession === undefined) return;
+
 		hasConnected.current = false;
 		setSessionReady(false);
-		startSessionRef.current.mutate({ sessionId, cwd });
+
+		if (existingSession) {
+			// Session exists in metadata — restore it
+			restoreSessionRef.current.mutate({ sessionId, cwd });
+		} else {
+			// New session
+			startSessionRef.current.mutate({
+				sessionId,
+				workspaceId,
+				cwd,
+			});
+		}
+
 		return () => {
 			stopSessionRef.current.mutate({ sessionId });
 		};
-	}, [sessionId, cwd]);
+	}, [sessionId, cwd, workspaceId, existingSession]);
 
 	// Connect once both session is ready and config has loaded
 	useEffect(() => {
@@ -106,6 +146,36 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			doConnect();
 		}
 	}, [sessionReady, config?.proxyUrl, doConnect]);
+
+	// Auto-title: after first user + assistant exchange, rename session
+	const hasAutoTitled = useRef(false);
+	useEffect(() => {
+		if (hasAutoTitled.current) return;
+		if (!sessionId) return;
+
+		const userMsg = messages.find((m) => m.role === "user");
+		const assistantMsg = messages.find((m) => m.role === "assistant");
+		if (!userMsg || !assistantMsg) return;
+
+		hasAutoTitled.current = true;
+
+		// Use first user message as title, truncated
+		const textPart = userMsg.parts?.find((p) => p.type === "text");
+		const firstUserText =
+			(textPart && "content" in textPart
+				? (textPart.content as string)
+				: undefined
+			)?.slice(0, 80) ?? "Chat";
+		const title =
+			firstUserText.length === 80 ? `${firstUserText}...` : firstUserText;
+
+		renameSessionRef.current.mutate({ sessionId, title });
+	}, [messages, sessionId]);
+
+	// Reset auto-title flag when session changes
+	useEffect(() => {
+		hasAutoTitled.current = false;
+	}, [sessionId]);
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {

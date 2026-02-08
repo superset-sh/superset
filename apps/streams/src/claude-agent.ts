@@ -16,6 +16,9 @@
  * Auth: From environment (ANTHROPIC_API_KEY or OAuth via ~/.claude/.credentials.json).
  */
 
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -55,6 +58,42 @@ interface SessionEntry {
 
 const claudeSessions = new Map<string, SessionEntry>();
 
+// Persistence for claude session mapping
+const SESSIONS_DIR =
+	process.env.DURABLE_STREAMS_DATA_DIR ??
+	join(homedir(), ".superset", "chat-streams");
+const SESSIONS_FILE = join(SESSIONS_DIR, "claude-sessions.json");
+
+function loadPersistedSessions(): void {
+	try {
+		if (existsSync(SESSIONS_FILE)) {
+			const raw = readFileSync(SESSIONS_FILE, "utf-8");
+			const entries = JSON.parse(raw) as Array<[string, SessionEntry]>;
+			for (const [key, entry] of entries) {
+				claudeSessions.set(key, entry);
+			}
+			console.log(`[claude-agent] Loaded ${entries.length} persisted sessions`);
+		}
+	} catch (err) {
+		console.warn("[claude-agent] Failed to load persisted sessions:", err);
+	}
+}
+
+function persistSessions(): void {
+	try {
+		if (!existsSync(SESSIONS_DIR)) {
+			mkdirSync(SESSIONS_DIR, { recursive: true });
+		}
+		const entries = Array.from(claudeSessions.entries());
+		writeFileSync(SESSIONS_FILE, JSON.stringify(entries), "utf-8");
+	} catch (err) {
+		console.warn("[claude-agent] Failed to persist sessions:", err);
+	}
+}
+
+// Load persisted sessions on startup
+loadPersistedSessions();
+
 function evictStaleSessions(): void {
 	const now = Date.now();
 	for (const [key, entry] of claudeSessions) {
@@ -89,6 +128,7 @@ function setClaudeSessionId(sessionId: string, claudeSessionId: string): void {
 		claudeSessionId,
 		lastAccessedAt: Date.now(),
 	});
+	persistSessions();
 }
 
 // ============================================================================
@@ -244,6 +284,18 @@ app.post("/", async (c) => {
 			Connection: "keep-alive",
 		},
 	});
+});
+
+// Session lookup — used by providers to retrieve the claudeSessionId
+app.get("/sessions/:sessionId", (c) => {
+	const sessionId = c.req.param("sessionId");
+	const claudeSessionId = getClaudeSessionId(sessionId);
+
+	if (!claudeSessionId) {
+		return c.json({ error: "Session not found" }, 404);
+	}
+
+	return c.json({ claudeSessionId });
 });
 
 // Health check for the agent

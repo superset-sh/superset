@@ -1006,6 +1006,23 @@ export const useTabsStore = create<TabsStore>()(
 					return moveResult.newTabId;
 				},
 
+				// Chat operations
+				switchChatSession: (paneId, sessionId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.chat) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								chat: { sessionId },
+							},
+						},
+					});
+				},
+
 				// Query helpers
 				getTabsByWorkspace: (workspaceId) => {
 					return get().tabs.filter((t) => t.workspaceId === workspaceId);

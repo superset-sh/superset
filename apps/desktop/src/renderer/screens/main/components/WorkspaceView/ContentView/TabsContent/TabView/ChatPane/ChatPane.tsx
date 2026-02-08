@@ -1,8 +1,11 @@
+import { useCallback } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { generateId } from "renderer/stores/tabs/utils";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatInterface } from "./ChatInterface";
+import { SessionSelector } from "./components/SessionSelector";
 
 interface ChatPaneProps {
 	paneId: string;
@@ -31,11 +34,37 @@ export function ChatPane({
 	setFocusedPane,
 }: ChatPaneProps) {
 	const pane = useTabsStore((s) => s.panes[paneId]);
+	const switchChatSession = useTabsStore((s) => s.switchChatSession);
 	const sessionId = pane?.chat?.sessionId ?? "";
 
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId },
 		{ enabled: !!workspaceId },
+	);
+
+	const deleteSession = electronTrpc.aiChat.deleteSession.useMutation();
+
+	const handleSelectSession = useCallback(
+		(newSessionId: string) => {
+			switchChatSession(paneId, newSessionId);
+		},
+		[paneId, switchChatSession],
+	);
+
+	const handleNewChat = useCallback(() => {
+		const newSessionId = generateId("chat-session");
+		switchChatSession(paneId, newSessionId);
+	}, [paneId, switchChatSession]);
+
+	const handleDeleteSession = useCallback(
+		(sessionIdToDelete: string) => {
+			deleteSession.mutate({ sessionId: sessionIdToDelete });
+			// If deleting the current session, switch to a new one
+			if (sessionIdToDelete === sessionId) {
+				handleNewChat();
+			}
+		},
+		[deleteSession, sessionId, handleNewChat],
 	);
 
 	return (
@@ -50,9 +79,13 @@ export function ChatPane({
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
-						<span className="text-xs font-medium text-muted-foreground">
-							Chat
-						</span>
+						<SessionSelector
+							workspaceId={workspaceId}
+							currentSessionId={sessionId}
+							onSelectSession={handleSelectSession}
+							onNewChat={handleNewChat}
+							onDeleteSession={handleDeleteSession}
+						/>
 					</div>
 					<PaneToolbarActions
 						splitOrientation={handlers.splitOrientation}
@@ -65,6 +98,7 @@ export function ChatPane({
 		>
 			<ChatInterface
 				sessionId={sessionId}
+				workspaceId={workspaceId}
 				cwd={workspace?.worktreePath ?? ""}
 			/>
 		</BasePaneWindow>

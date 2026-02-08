@@ -3,7 +3,8 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	type ClaudeStreamEvent,
-	claudeSessionManager,
+	chatSessionManager,
+	sessionStore,
 } from "./utils/session-manager";
 
 export const createAiChatRouter = () => {
@@ -20,11 +21,28 @@ export const createAiChatRouter = () => {
 			.input(
 				z.object({
 					sessionId: z.string(),
+					workspaceId: z.string(),
 					cwd: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await claudeSessionManager.startSession({
+				await chatSessionManager.startSession({
+					sessionId: input.sessionId,
+					workspaceId: input.workspaceId,
+					cwd: input.cwd,
+				});
+				return { success: true };
+			}),
+
+		restoreSession: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					cwd: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await chatSessionManager.restoreSession({
 					sessionId: input.sessionId,
 					cwd: input.cwd,
 				});
@@ -34,25 +52,71 @@ export const createAiChatRouter = () => {
 		interrupt: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
-				await claudeSessionManager.interrupt({ sessionId: input.sessionId });
+				await chatSessionManager.interrupt({
+					sessionId: input.sessionId,
+				});
 				return { success: true };
 			}),
 
+		/**
+		 * Deactivate — interrupts work, removes from active set,
+		 * but preserves the proxy session and metadata.
+		 */
 		stopSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
-				await claudeSessionManager.stopSession({ sessionId: input.sessionId });
+				await chatSessionManager.deactivateSession({
+					sessionId: input.sessionId,
+				});
 				return { success: true };
+			}),
+
+		/**
+		 * Permanently delete — removes proxy session and archives metadata.
+		 */
+		deleteSession: publicProcedure
+			.input(z.object({ sessionId: z.string() }))
+			.mutation(async ({ input }) => {
+				await chatSessionManager.deleteSession({
+					sessionId: input.sessionId,
+				});
+				return { success: true };
+			}),
+
+		renameSession: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					title: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await chatSessionManager.updateSessionMeta(input.sessionId, {
+					title: input.title,
+				});
+				return { success: true };
+			}),
+
+		listSessions: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async ({ input }) => {
+				return sessionStore.listByWorkspace(input.workspaceId);
+			}),
+
+		getSession: publicProcedure
+			.input(z.object({ sessionId: z.string() }))
+			.query(async ({ input }) => {
+				return (await sessionStore.get(input.sessionId)) ?? null;
 			}),
 
 		isSessionActive: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.query(({ input }) => {
-				return claudeSessionManager.isSessionActive(input.sessionId);
+				return chatSessionManager.isSessionActive(input.sessionId);
 			}),
 
 		getActiveSessions: publicProcedure.query(() => {
-			return claudeSessionManager.getActiveSessions();
+			return chatSessionManager.getActiveSessions();
 		}),
 
 		streamEvents: publicProcedure
@@ -66,10 +130,10 @@ export const createAiChatRouter = () => {
 						emit.next(event);
 					};
 
-					claudeSessionManager.on("event", onEvent);
+					chatSessionManager.on("event", onEvent);
 
 					return () => {
-						claudeSessionManager.off("event", onEvent);
+						chatSessionManager.off("event", onEvent);
 					};
 				});
 			}),
