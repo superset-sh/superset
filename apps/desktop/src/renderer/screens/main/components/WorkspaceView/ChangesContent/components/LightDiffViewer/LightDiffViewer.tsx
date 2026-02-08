@@ -1,6 +1,27 @@
+import type { DiffsThemeNames } from "@pierre/diffs/react";
 import { MultiFileDiff } from "@pierre/diffs/react";
 import { useThemeStore } from "renderer/stores/theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
+
+/**
+ * Maps Superset theme IDs to their closest Shiki bundled theme equivalents.
+ * This keeps syntax highlighting visually consistent with Monaco's per-theme colors.
+ */
+const SHIKI_THEME_MAP: Record<
+	string,
+	{ light: DiffsThemeNames; dark: DiffsThemeNames }
+> = {
+	dark: { light: "github-light-default", dark: "github-dark-default" },
+	light: { light: "github-light-default", dark: "github-dark-default" },
+	"one-dark": { light: "one-light", dark: "one-dark-pro" },
+	monokai: { light: "one-light", dark: "monokai" },
+	ember: { light: "one-light", dark: "vitesse-dark" },
+};
+
+const DEFAULT_THEMES = {
+	light: "github-light-default" as DiffsThemeNames,
+	dark: "github-dark-default" as DiffsThemeNames,
+};
 
 interface LightDiffViewerProps {
 	contents: FileContents;
@@ -15,9 +36,12 @@ export function LightDiffViewer({
 	hideUnchangedRegions,
 	filePath,
 }: LightDiffViewerProps) {
+	const themeId = useThemeStore((s) => s.activeTheme?.id ?? "dark");
 	const themeType = useThemeStore((s) =>
-		s.activeTheme?.type === "light" ? "light" : "dark",
+		s.activeTheme?.type === "light" ? ("light" as const) : ("dark" as const),
 	);
+
+	const theme = SHIKI_THEME_MAP[themeId] ?? DEFAULT_THEMES;
 
 	return (
 		<MultiFileDiff
@@ -26,10 +50,7 @@ export function LightDiffViewer({
 			options={{
 				diffStyle: viewMode === "side-by-side" ? "split" : "unified",
 				expandUnchanged: !hideUnchangedRegions,
-				theme:
-					themeType === "light"
-						? { light: "one-light", dark: "one-dark-pro" }
-						: { light: "one-light", dark: "one-dark-pro" },
+				theme,
 				themeType,
 				overflow: "wrap",
 				disableFileHeader: true,
