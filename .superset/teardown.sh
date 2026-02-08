@@ -135,8 +135,8 @@ step_delete_neon_branch() {
 
   BRANCH_ID="${NEON_BRANCH_ID:-}"
   if [ -z "$BRANCH_ID" ]; then
-    error "No NEON_BRANCH_ID found in .env; cannot delete branch"
-    return 1
+    warn "No NEON_BRANCH_ID found in .env; skipping branch deletion"
+    return 0
   fi
 
   if ! command -v neonctl &> /dev/null; then
@@ -146,11 +146,18 @@ step_delete_neon_branch() {
 
   WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 
-  if neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force; then
+  local output
+  if output=$(neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force 2>&1); then
     success "Neon branch deleted: $WORKSPACE_NAME ($BRANCH_ID)"
   else
-    error "Failed to delete Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
-    return 1
+    # Treat "not found" / "already deleted" as a skip, not a failure
+    if echo "$output" | grep -qiE "not found|does not exist|already deleted|404"; then
+      warn "Neon branch already deleted or not found: $WORKSPACE_NAME ($BRANCH_ID)"
+    else
+      error "Failed to delete Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
+      error "Output: $output"
+      return 1
+    fi
   fi
 
   return 0
