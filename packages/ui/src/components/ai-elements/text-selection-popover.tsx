@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
 
 type TextSelectionPopoverAction = {
@@ -150,5 +149,5 @@ export const TextSelectionPopover = ({
 		</div>
 	);
 
-	return createPortal(content, document.body);
+	return content;
 };

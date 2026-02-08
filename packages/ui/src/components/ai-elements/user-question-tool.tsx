@@ -41,6 +41,17 @@ export const UserQuestionTool = ({
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const prevIndexRef = useRef(currentIndex);
 
+	const current = questions[currentIndex] as Question | undefined;
+	const options = current?.options ?? [];
+	const isMulti = current?.multiSelect ?? false;
+	const isLast = currentIndex === questions.length - 1;
+	const currentQuestion = current?.question ?? "";
+
+	const currentHasAnswer = (answers[currentQuestion] ?? []).length > 0;
+	const allAnswered = questions.every(
+		(q) => (answers[q.question] ?? []).length > 0,
+	);
+
 	// Animate on question change
 	useEffect(() => {
 		if (prevIndexRef.current !== currentIndex) {
@@ -50,21 +61,6 @@ export const UserQuestionTool = ({
 			return () => clearTimeout(timer);
 		}
 	}, [currentIndex]);
-
-	if (questions.length === 0) return null;
-
-	const current = questions[currentIndex];
-	const options = current?.options ?? [];
-	const isMulti = current?.multiSelect ?? false;
-	const isLast = currentIndex === questions.length - 1;
-
-	const isSelected = (questionText: string, optionLabel: string) =>
-		answers[questionText]?.includes(optionLabel) ?? false;
-
-	const currentHasAnswer = (answers[current?.question] ?? []).length > 0;
-	const allAnswered = questions.every(
-		(q) => (answers[q.question] ?? []).length > 0,
-	);
 
 	const handleOptionClick = useCallback(
 		({
@@ -81,13 +77,13 @@ export const UserQuestionTool = ({
 			const isLastQ = questionIndex === questions.length - 1;
 
 			setAnswers((prev) => {
-				const current = prev[questionText] ?? [];
+				const selected = prev[questionText] ?? [];
 				if (allowMultiple) {
 					return {
 						...prev,
-						[questionText]: current.includes(optionLabel)
-							? current.filter((l) => l !== optionLabel)
-							: [...current, optionLabel],
+						[questionText]: selected.includes(optionLabel)
+							? selected.filter((l) => l !== optionLabel)
+							: [...selected, optionLabel],
 					};
 				}
 				return { ...prev, [questionText]: [optionLabel] };
@@ -105,8 +101,7 @@ export const UserQuestionTool = ({
 	);
 
 	const handleContinue = useCallback(() => {
-		if (isSubmitting) return;
-		if (!currentHasAnswer) return;
+		if (isSubmitting || !currentHasAnswer) return;
 
 		if (!isLast) {
 			setCurrentIndex((i) => i + 1);
@@ -141,6 +136,8 @@ export const UserQuestionTool = ({
 
 	// Keyboard navigation
 	useEffect(() => {
+		if (questions.length === 0) return;
+
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (isSubmitting) return;
 
@@ -174,20 +171,21 @@ export const UserQuestionTool = ({
 				e.preventDefault();
 				if (currentHasAnswer) {
 					handleContinue();
-				} else if (options[focusedOption] && current) {
+				} else if (options[focusedOption] && currentQuestion) {
 					handleOptionClick({
-						questionText: current.question,
+						questionText: currentQuestion,
 						optionLabel: options[focusedOption].label,
 						questionIndex: currentIndex,
 					});
 				}
 			} else if (e.key >= "1" && e.key <= "9") {
 				const idx = Number.parseInt(e.key, 10) - 1;
-				if (idx >= 0 && idx < options.length && current) {
+				const opt = options[idx];
+				if (opt && currentQuestion) {
 					e.preventDefault();
 					handleOptionClick({
-						questionText: current.question,
-						optionLabel: options[idx].label,
+						questionText: currentQuestion,
+						optionLabel: opt.label,
 						questionIndex: currentIndex,
 					});
 					setFocusedOption(idx);
@@ -199,7 +197,7 @@ export const UserQuestionTool = ({
 		return () => document.removeEventListener("keydown", handleKeyDown);
 	}, [
 		options,
-		current,
+		currentQuestion,
 		currentIndex,
 		focusedOption,
 		handleOptionClick,
@@ -208,6 +206,8 @@ export const UserQuestionTool = ({
 		questions,
 		isSubmitting,
 	]);
+
+	if (questions.length === 0 || !current) return null;
 
 	return (
 		<div
@@ -220,7 +220,7 @@ export const UserQuestionTool = ({
 			<div className="flex items-center justify-between px-3 py-1.5">
 				<div className="flex items-center gap-1.5">
 					<span className="text-xs text-muted-foreground">
-						{current?.header ?? "Question"}
+						{current.header ?? "Question"}
 					</span>
 					<span className="text-muted-foreground/50">&middot;</span>
 					<span className="text-xs text-muted-foreground">
@@ -268,15 +268,14 @@ export const UserQuestionTool = ({
 			>
 				<div className="mb-3 px-2 pt-1 text-sm font-[450] text-foreground">
 					<span className="text-muted-foreground">{currentIndex + 1}.</span>{" "}
-					{current?.question}
+					{current.question}
 				</div>
 
 				{/* Options */}
 				<div className="space-y-1">
 					{options.map((option, optIndex) => {
-						const selected = current
-							? isSelected(current.question, option.label)
-							: false;
+						const selected =
+							answers[current.question]?.includes(option.label) ?? false;
 						const focused = focusedOption === optIndex;
 
 						return (
@@ -289,7 +288,7 @@ export const UserQuestionTool = ({
 								disabled={isSubmitting}
 								key={option.label}
 								onClick={() => {
-									if (isSubmitting || !current) return;
+									if (isSubmitting) return;
 									handleOptionClick({
 										questionText: current.question,
 										optionLabel: option.label,

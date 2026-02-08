@@ -109,6 +109,7 @@ interface ActiveBlock {
 	toolCallId?: string;
 	toolName?: string;
 	argsAccumulator?: string;
+	textAccumulator?: string;
 }
 
 export interface ConversionState {
@@ -201,7 +202,7 @@ function handleContentBlockStart(
 
 	switch (block.type) {
 		case "text": {
-			state.activeBlocks.set(index, { type: "text" });
+			state.activeBlocks.set(index, { type: "text", textAccumulator: "" });
 			return [];
 		}
 
@@ -258,11 +259,18 @@ function handleContentBlockDelta(
 
 	switch (delta.type) {
 		case "text_delta": {
+			// Track per-block accumulated text so the StreamProcessor
+			// can detect new text segments across agent turns.
+			if (block?.type === "text") {
+				block.textAccumulator =
+					(block.textAccumulator ?? "") + delta.text;
+			}
 			return [
 				{
 					type: "TEXT_MESSAGE_CONTENT",
 					messageId: state.messageId,
 					delta: delta.text,
+					content: block?.textAccumulator ?? delta.text,
 					timestamp: now,
 				} satisfies StreamChunk,
 			];
