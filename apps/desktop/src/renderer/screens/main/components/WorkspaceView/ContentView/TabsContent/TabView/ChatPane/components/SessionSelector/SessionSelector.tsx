@@ -6,7 +6,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
@@ -14,6 +14,41 @@ import {
 	HiMiniTrash,
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+
+type TimeGroup =
+	| "Today"
+	| "Yesterday"
+	| "This Week"
+	| "Last Week"
+	| "This Month"
+	| "Older";
+
+function getTimeGroup(timestamp: number): TimeGroup {
+	const now = new Date();
+	const date = new Date(timestamp);
+
+	const startOfToday = new Date(
+		now.getFullYear(),
+		now.getMonth(),
+		now.getDate(),
+	);
+	const startOfYesterday = new Date(startOfToday.getTime() - 86_400_000);
+	const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
+	const startOfThisWeek = new Date(
+		startOfToday.getTime() - (dayOfWeek - 1) * 86_400_000,
+	);
+	const startOfLastWeek = new Date(
+		startOfThisWeek.getTime() - 7 * 86_400_000,
+	);
+	const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+	if (date >= startOfToday) return "Today";
+	if (date >= startOfYesterday) return "Yesterday";
+	if (date >= startOfThisWeek) return "This Week";
+	if (date >= startOfLastWeek) return "Last Week";
+	if (date >= startOfThisMonth) return "This Month";
+	return "Older";
+}
 
 function formatRelativeTime(timestamp: number): string {
 	const diff = Date.now() - timestamp;
@@ -35,6 +70,15 @@ interface SessionSelectorProps {
 	onDeleteSession: (sessionId: string) => void;
 }
 
+const TIME_GROUP_ORDER: TimeGroup[] = [
+	"Today",
+	"Yesterday",
+	"This Week",
+	"Last Week",
+	"This Month",
+	"Older",
+];
+
 export function SessionSelector({
 	workspaceId,
 	currentSessionId,
@@ -43,16 +87,45 @@ export function SessionSelector({
 	onDeleteSession,
 }: SessionSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [showClaudeSessions, setShowClaudeSessions] = useState(false);
 
 	const { data: sessions } = electronTrpc.aiChat.listSessions.useQuery(
 		{ workspaceId },
 		{ enabled: isOpen },
 	);
 
+	const { data: claudeSessions, isLoading: isScanning } =
+		electronTrpc.aiChat.scanClaudeSessions.useQuery(undefined, {
+			enabled: showClaudeSessions,
+		});
+
 	const currentSession = sessions?.find(
 		(s) => s.sessionId === currentSessionId,
 	);
 	const displayTitle = currentSession?.title ?? "Chat";
+
+	const groupedClaudeSessions = useMemo(() => {
+		if (!claudeSessions) return null;
+		const groups = new Map<
+			TimeGroup,
+			typeof claudeSessions
+		>();
+
+		for (const session of claudeSessions) {
+			const group = getTimeGroup(session.timestamp);
+			const existing = groups.get(group);
+			if (existing) {
+				existing.push(session);
+			} else {
+				groups.set(group, [session]);
+			}
+		}
+
+		return TIME_GROUP_ORDER.filter((g) => groups.has(g)).map((group) => ({
+			label: group,
+			sessions: groups.get(group)!,
+		}));
+	}, [claudeSessions]);
 
 	const handleSelect = useCallback(
 		(sessionId: string) => {
@@ -77,6 +150,10 @@ export function SessionSelector({
 		setIsOpen(false);
 	}, [onNewChat]);
 
+	const handleToggleClaudeSessions = useCallback(() => {
+		setShowClaudeSessions((prev) => !prev);
+	}, []);
+
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 			<DropdownMenuTrigger asChild>
@@ -89,7 +166,7 @@ export function SessionSelector({
 					<HiMiniChevronDown className="size-3" />
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-64">
+			<DropdownMenuContent align="start" className="w-72">
 				<DropdownMenuLabel className="text-xs">Sessions</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 
@@ -134,6 +211,65 @@ export function SessionSelector({
 				) : (
 					<div className="px-2 py-1.5 text-xs text-muted-foreground">
 						No previous sessions
+					</div>
+				)}
+
+				<DropdownMenuSeparator />
+
+				<DropdownMenuItem
+					onSelect={(e) => {
+						e.preventDefault();
+						handleToggleClaudeSessions();
+					}}
+				>
+					<span className="text-xs text-muted-foreground">
+						{showClaudeSessions
+							? "Hide Claude Code Sessions"
+							: "Browse Claude Code Sessions"}
+					</span>
+				</DropdownMenuItem>
+
+				{showClaudeSessions && (
+					<div className="max-h-64 overflow-y-auto">
+						{isScanning ? (
+							<div className="px-2 py-1.5 text-xs text-muted-foreground">
+								Scanning sessions...
+							</div>
+						) : groupedClaudeSessions && groupedClaudeSessions.length > 0 ? (
+							groupedClaudeSessions.map((group) => (
+								<div key={group.label}>
+									<DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70">
+										{group.label}
+									</DropdownMenuLabel>
+									{group.sessions.map((session) => (
+										<DropdownMenuItem
+											key={session.sessionId}
+											className="flex flex-col items-start gap-0.5"
+											onSelect={() => handleSelect(session.sessionId)}
+										>
+											<span className="w-full truncate text-xs">
+												{session.display || "Untitled session"}
+											</span>
+											<span className="flex w-full items-center gap-1 text-[10px] text-muted-foreground">
+												{formatRelativeTime(session.timestamp)}
+												{session.gitBranch && (
+													<>
+														{" · "}
+														<span className="truncate rounded bg-muted px-1">
+															{session.gitBranch}
+														</span>
+													</>
+												)}
+											</span>
+										</DropdownMenuItem>
+									))}
+								</div>
+							))
+						) : (
+							<div className="px-2 py-1.5 text-xs text-muted-foreground">
+								No Claude Code sessions found
+							</div>
+						)}
 					</div>
 				)}
 

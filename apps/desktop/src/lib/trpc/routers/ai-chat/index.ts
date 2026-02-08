@@ -1,6 +1,7 @@
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { scanClaudeSessions } from "./utils/claude-session-scanner";
 import {
 	type ClaudeStreamEvent,
 	chatSessionManager,
@@ -110,6 +111,10 @@ export const createAiChatRouter = () => {
 
 		getActiveSessions: publicProcedure.query(() => {
 			return chatSessionManager.getActiveSessions();
+		}),
+
+		scanClaudeSessions: publicProcedure.query(async () => {
+			return scanClaudeSessions();
 		}),
 
 		streamEvents: publicProcedure
