@@ -13,7 +13,7 @@ export function HeroSection() {
 
 	return (
 		<div>
-			<div className="flex mt-14 min-h-[calc(100svh-64px)] items-center -translate-y-8 overflow-hidden">
+			<div className="flex mt-14 min-h-[calc(100svh-64px)] items-center -translate-y-12 overflow-hidden">
 				<div className="relative w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-[30px] py-8 sm:py-12 lg:py-16">
 					<div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-8 lg:gap-16 items-center">
 						<div className="space-y-6 sm:space-y-8">
@@ -34,7 +34,7 @@ export function HeroSection() {
 													style: {
 														fontFamily:
 															"var(--font-geist-pixel-grid)",
-												fontWeight: "bold",
+												fontWeight: 900,
 													},
 												},
 												{ text: "." },
@@ -44,7 +44,7 @@ export function HeroSection() {
 										/>
 									</span>
 								</h1>
-								<p className="text-sm sm:text-lg font-light text-muted-foreground max-w-[400px]">
+								<p className="text-base sm:text-xl font-light text-muted-foreground max-w-[400px]">
 									Orchestrate a team of Claude Code, Codex, or any other coding
 									agents
 								</p>
