@@ -11,6 +11,9 @@ import {
 	sessionStore,
 } from "./utils/session-manager";
 
+const CLAUDE_AGENT_URL =
+	process.env.CLAUDE_AGENT_URL || "http://localhost:9090";
+
 export const createAiChatRouter = () => {
 	return router({
 		getConfig: publicProcedure.query(() => ({
@@ -20,6 +23,23 @@ export const createAiChatRouter = () => {
 				process.env.DURABLE_STREAM_TOKEN ||
 				null,
 		})),
+
+		getSlashCommands: publicProcedure.query(async () => {
+			try {
+				const res = await fetch(`${CLAUDE_AGENT_URL}/commands`);
+				if (!res.ok) return { commands: [] };
+				const data = (await res.json()) as {
+					commands: Array<{
+						name: string;
+						description: string;
+						argumentHint: string;
+					}>;
+				};
+				return { commands: data.commands ?? [] };
+			} catch {
+				return { commands: [] };
+			}
+		}),
 
 		startSession: publicProcedure
 			.input(

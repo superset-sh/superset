@@ -1,3 +1,4 @@
+import type { DurableChatCollections } from "@superset/durable-session/react";
 import { useDurableChat } from "@superset/durable-session/react";
 import {
 	Conversation,
@@ -10,9 +11,11 @@ import {
 	PromptInput,
 	PromptInputButton,
 	PromptInputFooter,
+	PromptInputProvider,
 	PromptInputSubmit,
 	PromptInputTextarea,
 	PromptInputTools,
+	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import { Suggestion, Suggestions } from "@superset/ui/ai-elements/suggestion";
@@ -27,8 +30,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatMessageItem } from "./components/ChatMessageItem";
 import { ContextIndicator } from "./components/ContextIndicator";
 import { ModelPicker } from "./components/ModelPicker";
+import { SlashCommandMenu } from "./components/SlashCommandMenu";
 import { MODELS, SUGGESTIONS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
+import { useSlashCommands } from "./hooks/useSlashCommands";
 import type { ModelOption } from "./types";
 import { extractTitleFromMessages } from "./utils/extract-title";
 
@@ -198,6 +203,13 @@ export function ChatInterface({
 		[sendMessage],
 	);
 
+	const handleSendText = useCallback(
+		(text: string) => {
+			handleSend({ text });
+		},
+		[handleSend],
+	);
+
 	const handleSuggestion = useCallback(
 		(suggestion: string) => {
 			handleSend({ text: suggestion });
@@ -248,6 +260,11 @@ export function ChatInterface({
 		},
 		[stop],
 	);
+
+	// TODO: Implement proper /clear handler that resets the conversation
+	const handleClear = useCallback(() => {
+		console.log("[chat] /clear requested");
+	}, []);
 
 	return (
 		<div className="flex h-full flex-col bg-background">
@@ -313,40 +330,142 @@ export function ChatInterface({
 							))}
 						</Suggestions>
 					)}
-					<PromptInput onSubmit={handleSend}>
-						<PromptInputTextarea placeholder="Ask anything..." />
-						<PromptInputFooter>
-							<PromptInputTools>
-								<PromptInputButton>
-									<HiMiniPaperClip className="size-4" />
-								</PromptInputButton>
-								<PromptInputButton>
-									<HiMiniAtSymbol className="size-4" />
-								</PromptInputButton>
-								<ThinkingToggle
-									enabled={thinkingEnabled}
-									onToggle={handleThinkingToggle}
-								/>
-								<ModelPicker
-									selectedModel={selectedModel}
-									onSelectModel={handleModelSelect}
-									open={modelSelectorOpen}
-									onOpenChange={setModelSelectorOpen}
-								/>
-							</PromptInputTools>
-							<div className="flex items-center gap-1">
-								<ContextIndicator
-									collections={collections}
-									modelId={selectedModel.id}
-								/>
-								<PromptInputSubmit
-									status={isLoading ? "streaming" : undefined}
-									onClick={isLoading ? handleStop : undefined}
-								/>
-							</div>
-						</PromptInputFooter>
-					</PromptInput>
+					<PromptInputProvider>
+						<ChatInputArea
+							handleSend={handleSend}
+							handleSendText={handleSendText}
+							handleClear={handleClear}
+							isLoading={isLoading}
+							handleStop={handleStop}
+							thinkingEnabled={thinkingEnabled}
+							handleThinkingToggle={handleThinkingToggle}
+							selectedModel={selectedModel}
+							handleModelSelect={handleModelSelect}
+							modelSelectorOpen={modelSelectorOpen}
+							setModelSelectorOpen={setModelSelectorOpen}
+							collections={collections}
+						/>
+					</PromptInputProvider>
 				</div>
+			</div>
+		</div>
+	);
+}
+
+interface ChatInputAreaProps {
+	handleSend: (message: { text: string }) => void;
+	handleSendText: (text: string) => void;
+	handleClear: () => void;
+	isLoading: boolean;
+	handleStop: (e: React.MouseEvent) => void;
+	thinkingEnabled: boolean;
+	handleThinkingToggle: (enabled: boolean) => void;
+	selectedModel: ModelOption;
+	handleModelSelect: (model: ModelOption) => void;
+	modelSelectorOpen: boolean;
+	setModelSelectorOpen: (open: boolean) => void;
+	collections: DurableChatCollections;
+}
+
+function ChatInputArea({
+	handleSend,
+	handleSendText,
+	handleClear,
+	isLoading,
+	handleStop,
+	thinkingEnabled,
+	handleThinkingToggle,
+	selectedModel,
+	handleModelSelect,
+	modelSelectorOpen,
+	setModelSelectorOpen,
+	collections,
+}: ChatInputAreaProps) {
+	const { textInput } = usePromptInputController();
+
+	const slashCommands = useSlashCommands({
+		inputValue: textInput.value,
+		onClear: handleClear,
+		onSendMessage: handleSendText,
+	});
+
+	const handleKeyDownCapture = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (slashCommands.isOpen) {
+				const handled = slashCommands.handleKeyDown(e);
+				if (handled) {
+					// For Enter/Tab, apply the selected command
+					if (e.key === "Enter" || e.key === "Tab") {
+						const cmd =
+							slashCommands.filteredCommands[slashCommands.selectedIndex];
+						if (cmd) {
+							const result = slashCommands.handleSelectCommand(cmd);
+							textInput.setInput(result.text);
+						}
+					}
+					// For Escape, clear the slash input
+					if (e.key === "Escape") {
+						textInput.setInput("");
+					}
+				}
+			}
+		},
+		[slashCommands, textInput],
+	);
+
+	const handleMenuSelect = useCallback(
+		(command: Parameters<typeof slashCommands.handleSelectCommand>[0]) => {
+			const result = slashCommands.handleSelectCommand(command);
+			textInput.setInput(result.text);
+		},
+		[slashCommands, textInput],
+	);
+
+	return (
+		<div className="relative">
+			{slashCommands.isOpen && (
+				<SlashCommandMenu
+					commands={slashCommands.filteredCommands}
+					selectedIndex={slashCommands.selectedIndex}
+					onSelect={handleMenuSelect}
+					onHover={slashCommands.setSelectedIndex}
+				/>
+			)}
+			{/* onKeyDownCapture intercepts keys before textarea handles them */}
+			<div onKeyDownCapture={handleKeyDownCapture}>
+				<PromptInput onSubmit={handleSend}>
+					<PromptInputTextarea placeholder="Ask anything..." />
+					<PromptInputFooter>
+						<PromptInputTools>
+							<PromptInputButton>
+								<HiMiniPaperClip className="size-4" />
+							</PromptInputButton>
+							<PromptInputButton>
+								<HiMiniAtSymbol className="size-4" />
+							</PromptInputButton>
+							<ThinkingToggle
+								enabled={thinkingEnabled}
+								onToggle={handleThinkingToggle}
+							/>
+							<ModelPicker
+								selectedModel={selectedModel}
+								onSelectModel={handleModelSelect}
+								open={modelSelectorOpen}
+								onOpenChange={setModelSelectorOpen}
+							/>
+						</PromptInputTools>
+						<div className="flex items-center gap-1">
+							<ContextIndicator
+								collections={collections}
+								modelId={selectedModel.id}
+							/>
+							<PromptInputSubmit
+								status={isLoading ? "streaming" : undefined}
+								onClick={isLoading ? handleStop : undefined}
+							/>
+						</div>
+					</PromptInputFooter>
+				</PromptInput>
 			</div>
 		</div>
 	);

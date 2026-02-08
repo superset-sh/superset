@@ -152,6 +152,48 @@ function buildNotificationHooks({
 	};
 }
 
+// ---------------------------------------------------------------------------
+// Slash-command cache
+// ---------------------------------------------------------------------------
+interface SlashCommand {
+	name: string;
+	description: string;
+	argumentHint: string;
+}
+
+const DEFAULT_COMMANDS: SlashCommand[] = [
+	{ name: "help", description: "Show available commands", argumentHint: "" },
+	{
+		name: "clear",
+		description: "Clear conversation history",
+		argumentHint: "",
+	},
+	{
+		name: "compact",
+		description: "Compact conversation context",
+		argumentHint: "[instructions]",
+	},
+	{ name: "config", description: "Show configuration", argumentHint: "" },
+	{
+		name: "cost",
+		description: "Show token usage and cost",
+		argumentHint: "",
+	},
+	{
+		name: "memory",
+		description: "Edit CLAUDE.md memory files",
+		argumentHint: "",
+	},
+	{
+		name: "review",
+		description: "Review a pull request",
+		argumentHint: "[pr-url]",
+	},
+	{ name: "status", description: "Show status information", argumentHint: "" },
+];
+
+let cachedCommands: SlashCommand[] | null = null;
+
 const app = new Hono();
 
 app.post("/", async (c) => {
@@ -218,6 +260,20 @@ app.post("/", async (c) => {
 			...(maxThinkingTokens !== undefined && { maxThinkingTokens }),
 		},
 	});
+
+	// Populate slash-command cache on first query (fire-and-forget)
+	if (!cachedCommands) {
+		result
+			.supportedCommands()
+			.then((cmds) => {
+				cachedCommands = cmds.map((cmd) => ({
+					name: cmd.name ?? "",
+					description: cmd.description ?? "",
+					argumentHint: cmd.argumentHint ?? "",
+				}));
+			})
+			.catch(() => {});
+	}
 
 	const converter = createConverter();
 
@@ -316,6 +372,10 @@ app.get("/sessions/:sessionId", (c) => {
 	}
 
 	return c.json({ claudeSessionId });
+});
+
+app.get("/commands", (c) => {
+	return c.json({ commands: cachedCommands ?? DEFAULT_COMMANDS });
 });
 
 app.get("/health", (c) => {
