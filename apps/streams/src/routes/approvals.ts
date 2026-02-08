@@ -28,12 +28,24 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 			);
 
 			const agents = protocol.getRegisteredAgents(sessionId);
+			let forwarded = false;
 			for (const agent of agents) {
-				await forwardToAgent({
-					agentEndpoint: agent.endpoint,
-					path: `approvals/${approvalId}`,
-					body: { approved: body.approved },
-				});
+				if (
+					await forwardToAgent({
+						agentEndpoint: agent.endpoint,
+						path: `approvals/${approvalId}`,
+						body: { approved: body.approved },
+					})
+				) {
+					forwarded = true;
+				}
+			}
+
+			if (agents.length > 0 && !forwarded) {
+				return c.json(
+					{ error: "Approval persisted but failed to forward to agent" },
+					502,
+				);
 			}
 
 			return new Response(null, { status: 204 });
@@ -60,12 +72,21 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 			};
 
 			const agents = protocol.getRegisteredAgents(sessionId);
+			let forwarded = false;
 			for (const agent of agents) {
-				await forwardToAgent({
-					agentEndpoint: agent.endpoint,
-					path: `answers/${toolUseId}`,
-					body: rawBody,
-				});
+				if (
+					await forwardToAgent({
+						agentEndpoint: agent.endpoint,
+						path: `answers/${toolUseId}`,
+						body: rawBody,
+					})
+				) {
+					forwarded = true;
+				}
+			}
+
+			if (agents.length > 0 && !forwarded) {
+				return c.json({ error: "Failed to forward answer to agent" }, 502);
 			}
 
 			return new Response(null, { status: 204 });

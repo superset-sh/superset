@@ -243,9 +243,17 @@ export function ChatInterface({
 				method: "POST",
 				headers,
 				body: JSON.stringify({ answers }),
-			}).catch((err) => {
-				console.error("[chat] Failed to submit answer:", err);
-			});
+			})
+				.then((res) => {
+					if (!res.ok) {
+						console.error(
+							`[chat] Answer submit failed: ${res.status} ${res.statusText}`,
+						);
+					}
+				})
+				.catch((err) => {
+					console.error("[chat] Failed to submit answer:", err);
+				});
 		},
 		[config?.proxyUrl, config?.authToken, sessionId],
 	);

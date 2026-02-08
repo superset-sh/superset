@@ -55,11 +55,6 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 	let isComplete = false;
 	const enrichChunk = createTextSegmentEnricher();
 
-	const userQuestionRequests = new Map<
-		string,
-		{ questions: unknown; toolName: string }
-	>();
-
 	for (const row of sorted) {
 		const chunk = parseChunk(row.chunk);
 		if (!chunk) continue;
@@ -75,18 +70,8 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 
 		if (isWholeMessageChunk(chunk)) continue;
 
-		if (type === "USER_QUESTION_REQUEST") {
-			const uqr = chunk as unknown as {
-				toolCallId: string;
-				toolName: string;
-				questions: unknown;
-			};
-			userQuestionRequests.set(uqr.toolCallId, {
-				questions: uqr.questions,
-				toolName: uqr.toolName,
-			});
-			continue;
-		}
+		// Skip custom chunk types that aren't TanStack AI StreamChunks
+		if (type === "USER_QUESTION_REQUEST") continue;
 
 		try {
 			processor.processChunk(
@@ -110,24 +95,6 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 	const messages = processor.getMessages();
 	const message = messages[messages.length - 1];
 	const parts = message?.parts ?? [];
-
-	if (userQuestionRequests.size > 0) {
-		for (const part of parts) {
-			if (part.type === "tool-call") {
-				const tcPart = part as unknown as {
-					id: string;
-					[key: string]: unknown;
-				};
-				const uqr = userQuestionRequests.get(tcPart.id);
-				if (uqr) {
-					tcPart.userQuestion = {
-						questions: uqr.questions,
-						pending: !isComplete,
-					};
-				}
-			}
-		}
-	}
 
 	return {
 		id: first.messageId,
