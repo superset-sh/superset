@@ -54,6 +54,11 @@ export interface GitChangesStatus {
 	hasUpstream: boolean; // Whether branch has an upstream tracking branch
 }
 
+/** Whether a diff category supports editing (saving changes back to disk) */
+export function isDiffEditable(category: ChangeCategory): boolean {
+	return category === "staged" || category === "unstaged";
+}
+
 /** Diff view mode toggle */
 export type DiffViewMode = "side-by-side" | "inline";
 
