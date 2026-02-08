@@ -117,7 +117,7 @@
 		"dnd-core": "^16.0.1",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "0.45.1",
-		"electron-updater": "^6.8.2",
+		"electron-updater": "^6.7.3",
 		"execa": "^9.6.0",
 		"express": "^5.1.0",
 		"fast-glob": "^3.3.3",
