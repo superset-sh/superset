@@ -230,6 +230,17 @@ export function ChatInterface({
 		[sessionId, updateConfig],
 	);
 
+	const handleModelSelect = useCallback(
+		(model: ModelOption) => {
+			setSelectedModel(model);
+			updateConfig.mutate({
+				sessionId,
+				model: model.id,
+			});
+		},
+		[sessionId, updateConfig],
+	);
+
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -318,7 +329,7 @@ export function ChatInterface({
 								/>
 								<ModelPicker
 									selectedModel={selectedModel}
-									onSelectModel={setSelectedModel}
+									onSelectModel={handleModelSelect}
 									open={modelSelectorOpen}
 									onOpenChange={setModelSelectorOpen}
 								/>

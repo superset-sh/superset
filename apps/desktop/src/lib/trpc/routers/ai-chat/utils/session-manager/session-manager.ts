@@ -312,9 +312,11 @@ export class ChatSessionManager extends EventEmitter {
 	async updateAgentConfig({
 		sessionId,
 		maxThinkingTokens,
+		model,
 	}: {
 		sessionId: string;
 		maxThinkingTokens?: number | null;
+		model?: string | null;
 	}): Promise<void> {
 		const session = this.sessions.get(sessionId);
 		if (!session) {
@@ -337,6 +339,14 @@ export class ChatSessionManager extends EventEmitter {
 			}
 		}
 
+		if (model !== undefined) {
+			if (model === null) {
+				delete registration.bodyTemplate.model;
+			} else {
+				registration.bodyTemplate.model = model;
+			}
+		}
+
 		const headers = buildProxyHeaders();
 		const res = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents`, {
 			method: "POST",
@@ -351,9 +361,13 @@ export class ChatSessionManager extends EventEmitter {
 
 		console.log(
 			`[chat/session] Updated agent config for ${sessionId}`,
-			maxThinkingTokens !== undefined
-				? `maxThinkingTokens=${maxThinkingTokens}`
-				: "",
+			[
+				maxThinkingTokens !== undefined &&
+					`maxThinkingTokens=${maxThinkingTokens}`,
+				model !== undefined && `model=${model}`,
+			]
+				.filter(Boolean)
+				.join(", "),
 		);
 	}
 

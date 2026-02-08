@@ -93,12 +93,14 @@ export const createAiChatRouter = () => {
 				z.object({
 					sessionId: z.string(),
 					maxThinkingTokens: z.number().nullable().optional(),
+					model: z.string().nullable().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				await chatSessionManager.updateAgentConfig({
 					sessionId: input.sessionId,
 					maxThinkingTokens: input.maxThinkingTokens,
+					model: input.model,
 				});
 				return { success: true };
 			}),
