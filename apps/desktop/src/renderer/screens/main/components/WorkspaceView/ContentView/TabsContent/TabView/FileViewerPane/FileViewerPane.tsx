@@ -4,6 +4,7 @@ import type { MosaicBranch } from "react-mosaic-component";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
+import { isDiffEditable as isDiffEditableFn } from "shared/changes-types";
 import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { BasePaneWindow } from "../components";
@@ -260,7 +261,7 @@ export function FileViewerPane({
 	const hasDiff = !!diffCategory;
 	const hasDraft = draftContentRef.current !== null;
 	const isDiffEditable =
-		(diffCategory === "staged" || diffCategory === "unstaged") && !hasDraft;
+		diffCategory != null && isDiffEditableFn(diffCategory) && !hasDraft;
 
 	return (
 		<>

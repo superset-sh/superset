@@ -4,12 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
-import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import {
+	type ChangeCategory,
+	type ChangedFile,
+	isDiffEditable,
+} from "shared/changes-types";
 import {
 	getStatusColor,
 	getStatusIndicator,
 } from "../../../RightSidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
+import { DiffViewer } from "../DiffViewer";
 import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 
@@ -82,6 +87,24 @@ export function FileDiffSection({
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
 	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
+	const [isEditing, setIsEditing] = useState(false);
+
+	const editable = isDiffEditable(category);
+	const utils = electronTrpc.useUtils();
+	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
+		onSuccess: () => {
+			utils.changes.getFileContents.invalidate();
+			utils.changes.getStatus.invalidate();
+		},
+	});
+
+	const handleSave = useCallback(
+		(content: string) => {
+			if (!worktreePath || !file.path) return;
+			saveFileMutation.mutate({ worktreePath, filePath: file.path, content });
+		},
+		[worktreePath, file.path, saveFileMutation],
+	);
 
 	const totalChanges = file.additions + file.deletions;
 	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
@@ -230,6 +253,10 @@ export function FileDiffSection({
 					onOpenInEditor={handleOpenInEditor}
 					onCopyPath={handleCopyPath}
 					isCopied={isCopied}
+					isEditing={isEditing}
+					onToggleEdit={
+						editable ? () => setIsEditing((prev) => !prev) : undefined
+					}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
@@ -259,12 +286,25 @@ export function FileDiffSection({
 							<span>Loading diff...</span>
 						</div>
 					) : shouldRenderEditor ? (
-						<LightDiffViewer
-							contents={diffData}
-							viewMode={diffViewMode}
-							hideUnchangedRegions={hideUnchangedRegions}
-							filePath={file.path}
-						/>
+						isEditing ? (
+							<DiffViewer
+								contents={diffData}
+								viewMode={diffViewMode}
+								hideUnchangedRegions={hideUnchangedRegions}
+								filePath={file.path}
+								editable
+								onSave={handleSave}
+								fitContent
+								captureScroll={false}
+							/>
+						) : (
+							<LightDiffViewer
+								contents={diffData}
+								viewMode={diffViewMode}
+								hideUnchangedRegions={hideUnchangedRegions}
+								filePath={file.path}
+							/>
+						)
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
 							{diffData ? (
