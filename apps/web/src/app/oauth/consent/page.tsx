@@ -9,11 +9,7 @@ import { api } from "@/trpc/server";
 import { ConsentForm } from "./components/ConsentForm";
 
 interface ConsentPageProps {
-	searchParams: Promise<{
-		consent_code?: string;
-		client_id?: string;
-		scope?: string;
-	}>;
+	searchParams: Promise<Record<string, string>>;
 }
 
 export default async function ConsentPage({ searchParams }: ConsentPageProps) {
@@ -23,13 +19,14 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 
 	if (!session) {
 		const params = await searchParams;
-		const returnUrl = `/oauth/consent?${new URLSearchParams(params as Record<string, string>).toString()}`;
+		const returnUrl = `/oauth/consent?${new URLSearchParams(params).toString()}`;
 		redirect(`/sign-in?redirect=${encodeURIComponent(returnUrl)}`);
 	}
 
-	const { consent_code, client_id, scope } = await searchParams;
+	const params = await searchParams;
+	const { client_id, scope } = params;
 
-	if (!consent_code || !client_id) {
+	if (!client_id) {
 		return (
 			<div className="relative flex min-h-screen flex-col">
 				<header className="container mx-auto px-6 py-6">
@@ -64,7 +61,7 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 	const trpc = await api();
 	const userOrganizations = await trpc.user.myOrganizations.query();
 
-	const oauthApp = await db.query.oauthApplications.findFirst({
+	const oauthApp = await db.query.oauthClients.findFirst({
 		where: (table, { eq }) => eq(table.clientId, client_id),
 		columns: { name: true },
 	});
@@ -90,7 +87,6 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 			</header>
 			<main className="flex flex-1 items-center justify-center">
 				<ConsentForm
-					consentCode={consent_code}
 					clientId={client_id}
 					clientName={oauthApp?.name ?? undefined}
 					scopes={scopes}

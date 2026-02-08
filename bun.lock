@@ -59,6 +59,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.72.1",
+        "@better-auth/oauth-provider": "1.4.18",
         "@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
         "@linear/sdk": "^68.1.0",
         "@modelcontextprotocol/sdk": "^1.25.3",
@@ -549,6 +550,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@better-auth/expo": "1.4.18",
+        "@better-auth/oauth-provider": "1.4.18",
         "@better-auth/stripe": "1.4.18",
         "@superset/db": "workspace:*",
         "@superset/email": "workspace:*",
@@ -1002,6 +1004,8 @@
     "@better-auth/core": ["@better-auth/core@1.4.18", "", { "dependencies": { "@standard-schema/spec": "^1.0.0", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.21", "better-call": "1.1.8", "jose": "^6.1.0", "kysely": "^0.28.5", "nanostores": "^1.0.1" } }, "sha512-q+awYgC7nkLEBdx2sW0iJjkzgSHlIxGnOpsN1r/O1+a4m7osJNHtfK2mKJSL1I+GfNyIlxJF8WvD/NLuYMpmcg=="],
 
     "@better-auth/expo": ["@better-auth/expo@1.4.18", "", { "dependencies": { "@better-fetch/fetch": "1.1.21", "better-call": "1.1.8", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/core": "1.4.18", "better-auth": "1.4.18", "expo-constants": ">=17.0.0", "expo-linking": ">=7.0.0", "expo-network": "^8.0.7", "expo-web-browser": ">=14.0.0" }, "optionalPeers": ["expo-constants", "expo-linking", "expo-network", "expo-web-browser"] }, "sha512-hrAgqtwe5R1eVsdMtxU8iLMZTHKeww5xpdqqyVWYO5UAwit/pb97d8TBGDfSj/uq5ihklC/0RNYg9SQNVTHSsQ=="],
+
+    "@better-auth/oauth-provider": ["@better-auth/oauth-provider@1.4.18", "", { "dependencies": { "jose": "^6.1.0", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/core": "1.4.18", "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.21", "better-auth": "1.4.18", "better-call": "1.1.8" } }, "sha512-9Hexp9tVDEY3T7p+2Vj0JBX+IvinXt0MFCWTjJYrsuzhJyXCO8EoECP3Dq6Ja8Yp39ttmLH5friEykakpkwcMQ=="],
 
     "@better-auth/stripe": ["@better-auth/stripe@1.4.18", "", { "dependencies": { "defu": "^6.1.4", "zod": "^4.3.5" }, "peerDependencies": { "@better-auth/core": "1.4.18", "better-auth": "1.4.18", "stripe": "^18 || ^19 || ^20" } }, "sha512-T1vUPHEnzd3/gQH2e9BigfqcaOZ3W+jBVlfHpXZVGoat1oKFPtKnJ3OHmfU1MwSCjNSdIFllrN6U6DhsQlZoEQ=="],
 

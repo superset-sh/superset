@@ -27,6 +27,7 @@
 	},
 	"dependencies": {
 		"@better-auth/expo": "1.4.18",
+		"@better-auth/oauth-provider": "1.4.18",
 		"@better-auth/stripe": "1.4.18",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",

@@ -120,6 +120,13 @@
       "when": 1769727642212,
       "tag": "0016_slack_integration",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1770583877762,
+      "tag": "0017_switch_to_oauth2",
+      "breakpoints": true
     }
   ]
 }

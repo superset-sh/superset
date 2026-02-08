@@ -2,6 +2,7 @@ import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	pgSchema,
 	text,
 	timestamp,
@@ -17,8 +18,6 @@ export const users = authSchema.table("users", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
-	// Have to denormalize this for electric sql to properly be able to filter
-	// Users by org, as electric sql doesn't support joins.
 	organizationIds: uuid("organization_ids").array().default([]).notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
@@ -154,69 +153,87 @@ export const invitations = authSchema.table(
 export type SelectInvitation = typeof invitations.$inferSelect;
 export type InsertInvitation = typeof invitations.$inferInsert;
 
-// OAuth/MCP tables for Better Auth MCP plugin
-export const oauthApplications = authSchema.table(
-	"oauth_applications",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		name: text("name"),
-		icon: text("icon"),
-		metadata: text("metadata"),
-		clientId: text("client_id").unique(),
-		clientSecret: text("client_secret"),
-		redirectUrls: text("redirect_urls"),
-		type: text("type"),
-		disabled: boolean("disabled").default(false),
-		userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-		createdAt: timestamp("created_at"),
-		updatedAt: timestamp("updated_at"),
-	},
-	(table) => [index("oauth_applications_user_id_idx").on(table.userId)],
-);
+export const oauthClients = authSchema.table("oauth_clients", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	clientId: text("client_id").notNull().unique(),
+	clientSecret: text("client_secret"),
+	disabled: boolean("disabled").default(false),
+	skipConsent: boolean("skip_consent"),
+	enableEndSession: boolean("enable_end_session"),
+	scopes: text("scopes").array(),
+	userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+	createdAt: timestamp("created_at"),
+	updatedAt: timestamp("updated_at"),
+	name: text("name"),
+	uri: text("uri"),
+	icon: text("icon"),
+	contacts: text("contacts").array(),
+	tos: text("tos"),
+	policy: text("policy"),
+	softwareId: text("software_id"),
+	softwareVersion: text("software_version"),
+	softwareStatement: text("software_statement"),
+	redirectUris: text("redirect_uris").array().notNull(),
+	postLogoutRedirectUris: text("post_logout_redirect_uris").array(),
+	tokenEndpointAuthMethod: text("token_endpoint_auth_method"),
+	grantTypes: text("grant_types").array(),
+	responseTypes: text("response_types").array(),
+	public: boolean("public"),
+	type: text("type"),
+	referenceId: text("reference_id"),
+	metadata: jsonb("metadata"),
+});
 
-export const oauthAccessTokens = authSchema.table(
-	"oauth_access_tokens",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		accessToken: text("access_token").unique(),
-		refreshToken: text("refresh_token").unique(),
-		accessTokenExpiresAt: timestamp("access_token_expires_at"),
-		refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
-		clientId: text("client_id").references(() => oauthApplications.clientId, {
-			onDelete: "cascade",
-		}),
-		userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-		scopes: text("scopes"),
-		createdAt: timestamp("created_at"),
-		updatedAt: timestamp("updated_at"),
-	},
-	(table) => [
-		index("oauth_access_tokens_client_id_idx").on(table.clientId),
-		index("oauth_access_tokens_user_id_idx").on(table.userId),
-	],
-);
+export const oauthRefreshTokens = authSchema.table("oauth_refresh_tokens", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	token: text("token").notNull(),
+	clientId: text("client_id")
+		.notNull()
+		.references(() => oauthClients.clientId, { onDelete: "cascade" }),
+	sessionId: uuid("session_id").references(() => sessions.id, {
+		onDelete: "set null",
+	}),
+	userId: uuid("user_id")
+		.notNull()
+		.references(() => users.id, { onDelete: "cascade" }),
+	referenceId: text("reference_id"),
+	expiresAt: timestamp("expires_at"),
+	createdAt: timestamp("created_at"),
+	revoked: timestamp("revoked"),
+	scopes: text("scopes").array().notNull(),
+});
 
-export const oauthConsents = authSchema.table(
-	"oauth_consents",
-	{
-		id: uuid("id").primaryKey().defaultRandom(),
-		clientId: text("client_id").references(() => oauthApplications.clientId, {
-			onDelete: "cascade",
-		}),
-		userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
-		scopes: text("scopes"),
-		createdAt: timestamp("created_at"),
-		updatedAt: timestamp("updated_at"),
-		consentGiven: boolean("consent_given"),
-	},
-	(table) => [
-		index("oauth_consents_client_id_idx").on(table.clientId),
-		index("oauth_consents_user_id_idx").on(table.userId),
-	],
-);
+export const oauthAccessTokens = authSchema.table("oauth_access_tokens", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	token: text("token").unique(),
+	clientId: text("client_id")
+		.notNull()
+		.references(() => oauthClients.clientId, { onDelete: "cascade" }),
+	sessionId: uuid("session_id").references(() => sessions.id, {
+		onDelete: "set null",
+	}),
+	userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+	referenceId: text("reference_id"),
+	refreshId: uuid("refresh_id").references(() => oauthRefreshTokens.id, {
+		onDelete: "cascade",
+	}),
+	expiresAt: timestamp("expires_at"),
+	createdAt: timestamp("created_at"),
+	scopes: text("scopes").array().notNull(),
+});
 
-// Better Auth API Key plugin table
-// Fields match generated schema, adapted for auth schema + UUID IDs
+export const oauthConsents = authSchema.table("oauth_consents", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	clientId: text("client_id")
+		.notNull()
+		.references(() => oauthClients.clientId, { onDelete: "cascade" }),
+	userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+	referenceId: text("reference_id"),
+	scopes: text("scopes").array().notNull(),
+	createdAt: timestamp("created_at"),
+	updatedAt: timestamp("updated_at"),
+});
+
 export const apikeys = authSchema.table(
 	"apikeys",
 	{
@@ -255,3 +272,11 @@ export const apikeys = authSchema.table(
 
 export type SelectApikey = typeof apikeys.$inferSelect;
 export type InsertApikey = typeof apikeys.$inferInsert;
+
+export const jwkss = authSchema.table("jwkss", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	publicKey: text("public_key").notNull(),
+	privateKey: text("private_key").notNull(),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	expiresAt: timestamp("expires_at"),
+});

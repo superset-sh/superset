@@ -57,13 +57,7 @@ Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and
   "mcpServers": {
     "superset": {
       "type": "http",
-      "url": "https://api.superset.sh/api/agent/mcp",
-      "oauth": {
-        "clientId": "claude-code",
-        "authorizationUrl": "https://api.superset.sh/api/auth/mcp/authorize",
-        "tokenUrl": "https://api.superset.sh/api/auth/mcp/token",
-        "scopes": ["openid", "profile", "email"]
-      }
+      "url": "https://api.superset.sh/api/agent/mcp"
     }
   }
 }
@@ -126,8 +120,7 @@ Add to your `opencode.json`:
   "mcp": {
     "superset": {
       "type": "remote",
-      "url": "https://api.superset.sh/api/agent/mcp",
-      "enabled": true
+      "url": "https://api.superset.sh/api/agent/mcp"
     }
   }
 }

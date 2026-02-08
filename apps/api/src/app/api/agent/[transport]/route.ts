@@ -1,11 +1,12 @@
 import { auth } from "@superset/auth/server";
 import { registerTools } from "@superset/mcp";
 import type { McpContext } from "@superset/mcp/auth";
+import { verifyAccessToken } from "better-auth/oauth2";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { env } from "@/env";
 
 async function verifyToken(req: Request, bearerToken?: string) {
-	// 1. Try session auth
+	// 1. Try session auth (for desktop/web app)
 	const session = await auth.api.getSession({ headers: req.headers });
 	if (session?.session) {
 		const extendedSession = session.session as {
@@ -28,35 +29,44 @@ async function verifyToken(req: Request, bearerToken?: string) {
 		};
 	}
 
-	// 2. Try OAuth bearer token
+	// 2. Try OAuth access token verification via JWKS
 	if (bearerToken) {
-		const mcpSession = await auth.api.getMcpSession({ headers: req.headers });
-		if (!mcpSession) return undefined;
+		try {
+			const payload = await verifyAccessToken(bearerToken, {
+				jwksUrl: `${env.NEXT_PUBLIC_API_URL}/api/auth/jwks`,
+				verifyOptions: {
+					issuer: env.NEXT_PUBLIC_API_URL,
+					audience: [env.NEXT_PUBLIC_API_URL, `${env.NEXT_PUBLIC_API_URL}/`],
+				},
+			});
+			if (!payload?.sub || !payload.organizationId) {
+				console.error(
+					"[mcp/auth] Access token missing sub or organizationId claim",
+				);
+				return undefined;
+			}
 
-		const scopes = Array.isArray(mcpSession.scopes)
-			? mcpSession.scopes
-			: (mcpSession.scopes?.split(" ") ?? []);
+			const scopes = Array.isArray(payload.scope)
+				? (payload.scope as string[])
+				: typeof payload.scope === "string"
+					? payload.scope.split(" ")
+					: [];
 
-		// Get organization from scope
-		const orgScope = scopes.find((s) => s.startsWith("organization:"));
-		const organizationId = orgScope?.split(":")[1];
-
-		if (!organizationId) {
-			console.error("[mcp/auth] OAuth token missing organization scope");
+			return {
+				token: bearerToken,
+				clientId: (payload.azp as string) ?? "mcp-client",
+				scopes,
+				extra: {
+					mcpContext: {
+						userId: payload.sub,
+						organizationId: payload.organizationId as string,
+					} satisfies McpContext,
+				},
+			};
+		} catch (error) {
+			console.error("[mcp/auth] Access token verification failed:", error);
 			return undefined;
 		}
-
-		return {
-			token: bearerToken,
-			clientId: mcpSession.clientId ?? "mcp-client",
-			scopes,
-			extra: {
-				mcpContext: {
-					userId: mcpSession.userId,
-					organizationId,
-				} satisfies McpContext,
-			},
-		};
 	}
 
 	return undefined;
