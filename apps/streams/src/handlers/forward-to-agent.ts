@@ -1,3 +1,5 @@
+const FORWARD_TIMEOUT_MS = 30_000;
+
 export type ForwardResult =
 	| { ok: true }
 	| { ok: false; status: number; statusText: string }
@@ -22,6 +24,7 @@ export async function forwardToAgent({
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(FORWARD_TIMEOUT_MS),
 		});
 
 		if (!res.ok) {

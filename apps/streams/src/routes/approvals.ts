@@ -88,7 +88,14 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 
 		try {
 			const rawBody = await c.req.json();
-			const body = answerRequestSchema.parse(rawBody);
+			const parsed = answerRequestSchema.safeParse(rawBody);
+			if (!parsed.success) {
+				return c.json(
+					{ error: "Invalid request body", details: parsed.error.message },
+					400,
+				);
+			}
+			const body = parsed.data;
 
 			const agents = protocol.getRegisteredAgents(sessionId);
 			let forwarded = false;

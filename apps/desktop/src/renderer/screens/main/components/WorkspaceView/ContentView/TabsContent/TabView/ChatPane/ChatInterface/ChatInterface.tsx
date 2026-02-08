@@ -125,6 +125,8 @@ export function ChatInterface({
 	renameSessionRef.current = renameSession;
 	const selectedModelRef = useRef(selectedModel);
 	selectedModelRef.current = selectedModel;
+	const permissionModeRef = useRef(permissionMode);
+	permissionModeRef.current = permissionMode;
 
 	const { data: existingSession } = electronTrpc.aiChat.getSession.useQuery(
 		{ sessionId },
@@ -145,6 +147,7 @@ export function ChatInterface({
 				paneId,
 				tabId,
 				model: selectedModelRef.current.id,
+				permissionMode: permissionModeRef.current,
 			});
 		} else {
 			startSessionRef.current.mutate({
@@ -154,6 +157,7 @@ export function ChatInterface({
 				paneId,
 				tabId,
 				model: selectedModelRef.current.id,
+				permissionMode: permissionModeRef.current,
 			});
 		}
 
