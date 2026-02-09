@@ -7,7 +7,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type MarkdownStyle,
@@ -33,6 +33,36 @@ const DEFAULT_EDITOR_FONT_SIZE = 13;
 const DEFAULT_TERMINAL_FONT_FAMILY =
 	"MesloLGM Nerd Font, MesloLGM NF, Menlo, Monaco, monospace";
 const DEFAULT_TERMINAL_FONT_SIZE = 14;
+
+const FONT_PREVIEW_TEXT =
+	"The quick brown fox jumps over the lazy dog.\n0O1lI {}[]() => !== +- @#$%";
+
+function FontPreview({
+	fontFamily,
+	fontSize,
+	variant,
+}: {
+	fontFamily: string;
+	fontSize: number;
+	variant: "editor" | "terminal";
+}) {
+	const isTerminal = variant === "terminal";
+	return (
+		<div
+			className={`rounded-md border p-3 ${
+				isTerminal ? "bg-[#1e1e1e] text-[#cccccc] border-[#333]" : "bg-muted/50"
+			}`}
+			style={{
+				fontFamily: fontFamily || undefined,
+				fontSize: `${fontSize}px`,
+				lineHeight: 1.5,
+				whiteSpace: "pre-wrap",
+			}}
+		>
+			{FONT_PREVIEW_TEXT}
+		</div>
+	);
+}
 
 interface AppearanceSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -136,6 +166,24 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		[setFontSettings],
 	);
 
+	const [editorFontDraft, setEditorFontDraft] = useState<string | null>(null);
+	const [terminalFontDraft, setTerminalFontDraft] = useState<string | null>(
+		null,
+	);
+
+	const editorPreviewFamily =
+		editorFontDraft ??
+		fontSettings?.editorFontFamily ??
+		DEFAULT_EDITOR_FONT_FAMILY;
+	const editorPreviewSize =
+		fontSettings?.editorFontSize ?? DEFAULT_EDITOR_FONT_SIZE;
+	const terminalPreviewFamily =
+		terminalFontDraft ??
+		fontSettings?.terminalFontFamily ??
+		DEFAULT_TERMINAL_FONT_FAMILY;
+	const terminalPreviewSize =
+		fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
+
 	const hasPrecedingSection = showTheme || showMarkdown;
 
 	return (
@@ -198,57 +246,55 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 
 				{showEditorFont && (
 					<div className={hasPrecedingSection ? "pt-6 border-t" : ""}>
-						<h3 className="text-sm font-medium mb-2">Editor Font</h3>
-						<p className="text-sm text-muted-foreground mb-4">
+						<h3 className="text-sm font-medium mb-1">Editor Font</h3>
+						<p className="text-sm text-muted-foreground mb-3">
 							Font used in diff views and file editors
 						</p>
-						<div className="space-y-4">
-							<div className="space-y-2">
-								<span className="text-xs text-muted-foreground">
-									Font Family
-								</span>
-								<Input
-									placeholder={DEFAULT_EDITOR_FONT_FAMILY}
-									defaultValue={fontSettings?.editorFontFamily ?? ""}
-									onBlur={handleEditorFontFamilyBlur}
-									disabled={isFontLoading}
-									className="max-w-md"
-								/>
-							</div>
-							<div className="flex items-center gap-4">
-								<div className="space-y-2">
-									<span className="text-xs text-muted-foreground">
-										Font Size
-									</span>
-									<Input
-										type="number"
-										min={10}
-										max={24}
-										value={
-											fontSettings?.editorFontSize ?? DEFAULT_EDITOR_FONT_SIZE
-										}
-										onChange={handleEditorFontSizeChange}
-										disabled={isFontLoading}
-										className="w-20"
-									/>
-								</div>
-								{(fontSettings?.editorFontFamily ||
-									fontSettings?.editorFontSize) && (
-									<Button
-										variant="ghost"
-										size="sm"
-										className="mt-5 text-xs text-muted-foreground"
-										onClick={() =>
-											setFontSettings.mutate({
-												editorFontFamily: null,
-												editorFontSize: null,
-											})
-										}
-									>
-										Reset to default
-									</Button>
-								)}
-							</div>
+						<div className="flex items-center gap-2">
+							<Input
+								placeholder={DEFAULT_EDITOR_FONT_FAMILY}
+								defaultValue={fontSettings?.editorFontFamily ?? ""}
+								onChange={(e) => setEditorFontDraft(e.target.value)}
+								onBlur={(e) => {
+									handleEditorFontFamilyBlur(e);
+									setEditorFontDraft(null);
+								}}
+								disabled={isFontLoading}
+								className="flex-1"
+							/>
+							<Input
+								type="number"
+								min={10}
+								max={24}
+								value={fontSettings?.editorFontSize ?? DEFAULT_EDITOR_FONT_SIZE}
+								onChange={handleEditorFontSizeChange}
+								disabled={isFontLoading}
+								className="w-20"
+							/>
+							{(fontSettings?.editorFontFamily ||
+								fontSettings?.editorFontSize) && (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-xs text-muted-foreground shrink-0"
+									onClick={() => {
+										setFontSettings.mutate({
+											editorFontFamily: null,
+											editorFontSize: null,
+										});
+										setEditorFontDraft(null);
+									}}
+								>
+									Reset
+								</Button>
+							)}
+						</div>
+						<div className="mt-3">
+							<FontPreview
+								fontFamily={editorPreviewFamily}
+								fontSize={editorPreviewSize}
+								variant="editor"
+							/>
 						</div>
 					</div>
 				)}
@@ -259,59 +305,58 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 							hasPrecedingSection || showEditorFont ? "pt-6 border-t" : ""
 						}
 					>
-						<h3 className="text-sm font-medium mb-2">Terminal Font</h3>
-						<p className="text-sm text-muted-foreground mb-4">
+						<h3 className="text-sm font-medium mb-1">Terminal Font</h3>
+						<p className="text-sm text-muted-foreground mb-3">
 							Font used in terminal panels. Nerd Fonts recommended for shell
 							theme icons.
 						</p>
-						<div className="space-y-4">
-							<div className="space-y-2">
-								<span className="text-xs text-muted-foreground">
-									Font Family
-								</span>
-								<Input
-									placeholder={DEFAULT_TERMINAL_FONT_FAMILY}
-									defaultValue={fontSettings?.terminalFontFamily ?? ""}
-									onBlur={handleTerminalFontFamilyBlur}
-									disabled={isFontLoading}
-									className="max-w-md"
-								/>
-							</div>
-							<div className="flex items-center gap-4">
-								<div className="space-y-2">
-									<span className="text-xs text-muted-foreground">
-										Font Size
-									</span>
-									<Input
-										type="number"
-										min={10}
-										max={24}
-										value={
-											fontSettings?.terminalFontSize ??
-											DEFAULT_TERMINAL_FONT_SIZE
-										}
-										onChange={handleTerminalFontSizeChange}
-										disabled={isFontLoading}
-										className="w-20"
-									/>
-								</div>
-								{(fontSettings?.terminalFontFamily ||
-									fontSettings?.terminalFontSize) && (
-									<Button
-										variant="ghost"
-										size="sm"
-										className="mt-5 text-xs text-muted-foreground"
-										onClick={() =>
-											setFontSettings.mutate({
-												terminalFontFamily: null,
-												terminalFontSize: null,
-											})
-										}
-									>
-										Reset to default
-									</Button>
-								)}
-							</div>
+						<div className="flex items-center gap-2">
+							<Input
+								placeholder={DEFAULT_TERMINAL_FONT_FAMILY}
+								defaultValue={fontSettings?.terminalFontFamily ?? ""}
+								onChange={(e) => setTerminalFontDraft(e.target.value)}
+								onBlur={(e) => {
+									handleTerminalFontFamilyBlur(e);
+									setTerminalFontDraft(null);
+								}}
+								disabled={isFontLoading}
+								className="flex-1"
+							/>
+							<Input
+								type="number"
+								min={10}
+								max={24}
+								value={
+									fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE
+								}
+								onChange={handleTerminalFontSizeChange}
+								disabled={isFontLoading}
+								className="w-20"
+							/>
+							{(fontSettings?.terminalFontFamily ||
+								fontSettings?.terminalFontSize) && (
+								<Button
+									variant="ghost"
+									size="sm"
+									className="text-xs text-muted-foreground shrink-0"
+									onClick={() => {
+										setFontSettings.mutate({
+											terminalFontFamily: null,
+											terminalFontSize: null,
+										});
+										setTerminalFontDraft(null);
+									}}
+								>
+									Reset
+								</Button>
+							)}
+						</div>
+						<div className="mt-3">
+							<FontPreview
+								fontFamily={terminalPreviewFamily}
+								fontSize={terminalPreviewSize}
+								variant="terminal"
+							/>
 						</div>
 					</div>
 				)}
