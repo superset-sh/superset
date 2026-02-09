@@ -2,7 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { AddTabWithMultiplePanesOptions } from "renderer/stores/tabs/types";
+import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
 	type PendingTerminalSetup,
 	useWorkspaceInitStore,
@@ -28,49 +28,19 @@ export function WorkspaceInitEffects() {
 	const processingRef = useRef<Set<string>>(new Set());
 
 	const addTab = useTabsStore((state) => state.addTab);
-	const addTabWithMultiplePanes = useTabsStore(
-		(state) => state.addTabWithMultiplePanes,
-	);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
-	const renameTab = useTabsStore((state) => state.renameTab);
+	const { openPreset } = useTabsWithPresets();
 	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
 	const utils = electronTrpc.useUtils();
-
-	const createPresetTerminal = useCallback(
-		(
-			workspaceId: string,
-			preset: NonNullable<PendingTerminalSetup["defaultPreset"]>,
-		) => {
-			const isParallel =
-				preset.executionMode === "parallel" && preset.commands.length > 1;
-
-			if (isParallel) {
-				const options: AddTabWithMultiplePanesOptions = {
-					commands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				};
-				const { tabId } = addTabWithMultiplePanes(workspaceId, options);
-				renameTab(tabId, preset.name);
-			} else {
-				const { tabId } = addTab(workspaceId, {
-					initialCommands: preset.commands,
-					initialCwd: preset.cwd || undefined,
-				});
-				renameTab(tabId, preset.name);
-			}
-		},
-		[addTab, addTabWithMultiplePanes, renameTab],
-	);
 
 	const handleTerminalSetup = useCallback(
 		(setup: PendingTerminalSetup, onComplete: () => void) => {
 			const hasSetupScript =
 				Array.isArray(setup.initialCommands) &&
 				setup.initialCommands.length > 0;
-			const presets = (
-				setup.defaultPresets ??
-				(setup.defaultPreset ? [setup.defaultPreset] : [])
-			).filter((p) => p.commands.length > 0);
+			const presets = (setup.defaultPresets ?? []).filter(
+				(p) => p.commands.length > 0,
+			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
 
 			if (hasSetupScript && hasPresets) {
@@ -79,7 +49,7 @@ export function WorkspaceInitEffects() {
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
 				for (const preset of presets) {
-					createPresetTerminal(setup.workspaceId, preset);
+					openPreset(setup.workspaceId, preset);
 				}
 
 				createOrAttach.mutate(
@@ -151,7 +121,7 @@ export function WorkspaceInitEffects() {
 
 			if (hasPresets) {
 				for (const preset of presets) {
-					createPresetTerminal(setup.workspaceId, preset);
+					openPreset(setup.workspaceId, preset);
 				}
 				onComplete();
 				return;
@@ -159,13 +129,7 @@ export function WorkspaceInitEffects() {
 
 			onComplete();
 		},
-		[
-			addTab,
-			setTabAutoTitle,
-			createOrAttach,
-			createPresetTerminal,
-			shouldApplyPreset,
-		],
+		[addTab, setTabAutoTitle, createOrAttach, openPreset, shouldApplyPreset],
 	);
 
 	useEffect(() => {
@@ -190,13 +154,12 @@ export function WorkspaceInitEffects() {
 
 				// Always fetch from backend to ensure we have the latest preset
 				// (client-side preset query may not have resolved when pending setup was created)
-				if (setup.defaultPreset === undefined) {
+				if (setup.defaultPresets === undefined) {
 					utils.workspaces.getSetupCommands
 						.fetch({ workspaceId })
 						.then((setupData) => {
 							const completeSetup: PendingTerminalSetup = {
 								...setup,
-								defaultPreset: setupData?.defaultPreset ?? null,
 								defaultPresets: setupData?.defaultPresets ?? [],
 							};
 							handleTerminalSetup(completeSetup, () => {
@@ -257,7 +220,6 @@ export function WorkspaceInitEffects() {
 						workspaceId,
 						projectId: setupData.projectId,
 						initialCommands: setupData.initialCommands,
-						defaultPreset: setupData.defaultPreset,
 						defaultPresets: setupData.defaultPresets ?? [],
 					};
 

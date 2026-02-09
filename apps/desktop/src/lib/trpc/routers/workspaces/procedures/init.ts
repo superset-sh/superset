@@ -1,23 +1,12 @@
-import { settings } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
-import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { getPresetsForTrigger } from "../../settings";
 import { getProject, getWorkspaceWithRelations } from "../utils/db-helpers";
 import { loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
-
-function getWorkspaceCreationPresets() {
-	const row = localDb.select().from(settings).get();
-	if (!row) return [];
-	const presets = row.terminalPresets ?? [];
-	const tagged = presets.filter((p) => p.applyOnWorkspaceCreated);
-	if (tagged.length > 0) return tagged;
-	const defaultPreset = presets.find((p) => p.isDefault);
-	return defaultPreset ? [defaultPreset] : [];
-}
 
 export const createInitProcedures = () => {
 	return router({
@@ -123,12 +112,11 @@ export const createInitProcedures = () => {
 					worktreePath: relations.worktree?.path,
 					projectName: project.name,
 				});
-				const defaultPresets = getWorkspaceCreationPresets();
+				const defaultPresets = getPresetsForTrigger("applyOnWorkspaceCreated");
 
 				return {
 					projectId: project.id,
 					initialCommands: setupConfig?.setup ?? null,
-					defaultPreset: defaultPresets[0] ?? null,
 					defaultPresets,
 				};
 			}),

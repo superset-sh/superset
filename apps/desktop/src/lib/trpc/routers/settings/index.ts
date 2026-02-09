@@ -29,6 +29,18 @@ function getSettings() {
 	return row;
 }
 
+/** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
+export function getPresetsForTrigger(
+	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
+) {
+	const row = getSettings();
+	const presets = row.terminalPresets ?? [];
+	const tagged = presets.filter((p) => p[field]);
+	if (tagged.length > 0) return tagged;
+	const defaultPreset = presets.find((p) => p.isDefault);
+	return defaultPreset ? [defaultPreset] : [];
+}
+
 export const createSettingsRouter = () => {
 	return router({
 		getLastUsedApp: publicProcedure.query(() => {
@@ -175,7 +187,9 @@ export const createSettingsRouter = () => {
 					...p,
 					[input.field]:
 						p.id === input.id
-							? input.enabled || undefined
+							? input.enabled
+								? true
+								: undefined
 							: p[input.field as keyof typeof p],
 				}));
 
@@ -238,23 +252,13 @@ export const createSettingsRouter = () => {
 			return presets.find((p) => p.isDefault) ?? null;
 		}),
 
-		getWorkspaceCreationPresets: publicProcedure.query(() => {
-			const row = getSettings();
-			const presets = row.terminalPresets ?? [];
-			const tagged = presets.filter((p) => p.applyOnWorkspaceCreated);
-			if (tagged.length > 0) return tagged;
-			const defaultPreset = presets.find((p) => p.isDefault);
-			return defaultPreset ? [defaultPreset] : [];
-		}),
+		getWorkspaceCreationPresets: publicProcedure.query(() =>
+			getPresetsForTrigger("applyOnWorkspaceCreated"),
+		),
 
-		getNewTabPresets: publicProcedure.query(() => {
-			const row = getSettings();
-			const presets = row.terminalPresets ?? [];
-			const tagged = presets.filter((p) => p.applyOnNewTab);
-			if (tagged.length > 0) return tagged;
-			const defaultPreset = presets.find((p) => p.isDefault);
-			return defaultPreset ? [defaultPreset] : [];
-		}),
+		getNewTabPresets: publicProcedure.query(() =>
+			getPresetsForTrigger("applyOnNewTab"),
+		),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();

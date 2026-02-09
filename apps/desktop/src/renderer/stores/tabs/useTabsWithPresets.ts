@@ -5,11 +5,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "./store";
 import type { AddTabOptions } from "./types";
 
-/**
- * Hook that wraps tab store actions with default preset support.
- * When presets are tagged with applyOnNewTab, new terminals will
- * automatically use those presets' commands and cwd.
- */
 export function useTabsWithPresets() {
 	const { data: newTabPresets = [] } =
 		electronTrpc.settings.getNewTabPresets.useQuery();
@@ -39,21 +34,30 @@ export function useTabsWithPresets() {
 			const isParallel =
 				preset.executionMode === "parallel" && preset.commands.length > 1;
 
-			const { tabId } = isParallel
-				? storeAddTabWithMultiplePanes(workspaceId, {
-						commands: preset.commands,
-						initialCwd: preset.cwd || undefined,
-					})
-				: storeAddTab(workspaceId, {
-						initialCommands: preset.commands,
-						initialCwd: preset.cwd || undefined,
-					});
+			let tabId: string;
+			let paneId: string;
+
+			if (isParallel) {
+				const result = storeAddTabWithMultiplePanes(workspaceId, {
+					commands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				});
+				tabId = result.tabId;
+				paneId = result.paneIds[0];
+			} else {
+				const result = storeAddTab(workspaceId, {
+					initialCommands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				});
+				tabId = result.tabId;
+				paneId = result.paneId;
+			}
 
 			if (preset.name) {
 				renameTab(tabId, preset.name);
 			}
 
-			return { tabId };
+			return { tabId, paneId };
 		},
 		[storeAddTab, storeAddTabWithMultiplePanes, renameTab],
 	);
@@ -68,15 +72,12 @@ export function useTabsWithPresets() {
 				return storeAddTab(workspaceId);
 			}
 
-			// Open the first preset using the normal addTab path
 			const firstResult = openPresetAsTab(workspaceId, newTabPresets[0]);
-
-			// Open additional presets as separate tabs
 			for (let i = 1; i < newTabPresets.length; i++) {
 				openPresetAsTab(workspaceId, newTabPresets[i]);
 			}
 
-			return { tabId: firstResult.tabId, paneId: firstResult.tabId };
+			return { tabId: firstResult.tabId, paneId: firstResult.paneId };
 		},
 		[storeAddTab, newTabPresets, openPresetAsTab],
 	);
@@ -145,20 +146,12 @@ export function useTabsWithPresets() {
 		[storeSplitPaneAuto, firstPresetOptions],
 	);
 
-	const openPreset = useCallback(
-		(workspaceId: string, preset: TerminalPreset) => {
-			return openPresetAsTab(workspaceId, preset);
-		},
-		[openPresetAsTab],
-	);
-
 	return {
 		addTab,
 		addPane,
 		splitPaneVertical,
 		splitPaneHorizontal,
 		splitPaneAuto,
-		openPreset,
-		defaultPreset: firstPreset,
+		openPreset: openPresetAsTab,
 	};
 }
