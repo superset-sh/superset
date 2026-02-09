@@ -29,6 +29,8 @@ export interface AIDBProxyServerOptions extends AIDBProtocolOptions {
 	logging?: boolean;
 	/** Custom CORS origins */
 	corsOrigins?: string | string[];
+	/** If set, require Bearer token on /v1/* routes */
+	authToken?: string;
 }
 
 export function createServer(options: AIDBProxyServerOptions) {
@@ -64,8 +66,20 @@ export function createServer(options: AIDBProxyServerOptions) {
 		app.use("*", logger());
 	}
 
-	// Health routes
+	// Health routes (no auth)
 	app.route("/health", createHealthRoutes());
+
+	// Auth middleware on /v1/* routes
+	if (options.authToken) {
+		const expectedHeader = `Bearer ${options.authToken}`;
+		app.use("/v1/*", async (c, next) => {
+			const authorization = c.req.header("Authorization");
+			if (authorization !== expectedHeader) {
+				return c.json({ error: "Unauthorized" }, 401);
+			}
+			return next();
+		});
+	}
 
 	// API v1 routes
 	const v1 = new Hono();

@@ -31,6 +31,7 @@ const { app } = createServer({
 	baseUrl: DURABLE_STREAMS_URL,
 	cors: true,
 	logging: true,
+	authToken: process.env.DURABLE_STREAM_AUTH_TOKEN,
 });
 
 const proxyServer = serve({ fetch: app.fetch, port: PORT }, (info) => {
@@ -46,9 +47,11 @@ const agentServer = serve(
 	},
 );
 
-process.on("SIGINT", async () => {
-	proxyServer.close();
-	agentServer.close();
-	await durableStreamServer.stop();
-	process.exit(0);
-});
+for (const signal of ["SIGINT", "SIGTERM"]) {
+	process.on(signal, async () => {
+		proxyServer.close();
+		agentServer.close();
+		await durableStreamServer.stop();
+		process.exit(0);
+	});
+}
