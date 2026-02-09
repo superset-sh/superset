@@ -1,5 +1,4 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { env } from "./env";
 
@@ -13,8 +12,7 @@ interface SessionEntry {
 
 const claudeSessions = new Map<string, SessionEntry>();
 
-const SESSIONS_DIR =
-	env.STREAMS_DATA_DIR ?? join(homedir(), ".superset", "chat-streams");
+const SESSIONS_DIR = env.STREAMS_DATA_DIR;
 const SESSIONS_FILE = join(SESSIONS_DIR, "claude-sessions.json");
 
 function loadPersistedSessions(): void {

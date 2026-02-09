@@ -1,25 +1,17 @@
 import { existsSync, mkdirSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { DurableStreamTestServer } from "@durable-streams/server";
 import { serve } from "@hono/node-server";
 import { claudeAgentApp } from "./claude-agent";
 import { env } from "./env";
 import { createServer } from "./server";
 
-const STREAMS_INTERNAL_URL =
-	env.STREAMS_INTERNAL_URL ?? `http://127.0.0.1:${env.STREAMS_INTERNAL_PORT}`;
-
-const DATA_DIR =
-	env.STREAMS_DATA_DIR ?? join(homedir(), ".superset", "chat-streams");
-
-if (!existsSync(DATA_DIR)) {
-	mkdirSync(DATA_DIR, { recursive: true });
+if (!existsSync(env.STREAMS_DATA_DIR)) {
+	mkdirSync(env.STREAMS_DATA_DIR, { recursive: true });
 }
 
 const durableStreamServer = new DurableStreamTestServer({
 	port: env.STREAMS_INTERNAL_PORT,
-	dataDir: DATA_DIR,
+	dataDir: env.STREAMS_DATA_DIR,
 });
 await durableStreamServer.start();
 console.log(
@@ -27,7 +19,7 @@ console.log(
 );
 
 const { app } = createServer({
-	baseUrl: STREAMS_INTERNAL_URL,
+	baseUrl: env.STREAMS_INTERNAL_URL,
 	cors: true,
 	logging: true,
 	authToken: env.STREAMS_SECRET,
