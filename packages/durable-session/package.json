@@ -24,7 +24,7 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@superset/ui": "workspace:*",
-		"@types/react": "~19.1.0",
+		"@types/react": "~19.2.2",
 		"lucide-react": "^0.563.0",
 		"typescript": "^5.9.3"
 	},

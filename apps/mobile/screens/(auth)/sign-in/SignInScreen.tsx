@@ -1,79 +1,81 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
-import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+import { Image, Linking, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 
-export function SignInScreen() {
-	const [loading, setLoading] = useState<"github" | "google" | null>(null);
+import type { SocialProvider } from "./components/SocialButton";
+import { SocialButton } from "./components/SocialButton";
 
-	const handleSignIn = async (provider: "github" | "google") => {
-		console.log("[sign-in] Button clicked:", provider);
+const TERMS_URL = "https://superset.sh/terms";
+const PRIVACY_URL = "https://superset.sh/privacy";
+
+export function SignInScreen() {
+	const [error, setError] = useState<string | null>(null);
+
+	const handleSignIn = async (provider: SocialProvider) => {
+		setError(null);
 		try {
-			setLoading(provider);
-			console.log("[sign-in] Calling signIn.social...");
-			const result = await signIn.social({
+			await signIn.social({
 				provider,
 				callbackURL: "/",
 			});
-			console.log("[sign-in] signIn.social result:", result);
-		} catch (error) {
-			console.error("[sign-in] Error caught:", error);
-			console.error("[sign-in] Error details:", JSON.stringify(error, null, 2));
-			Alert.alert(
-				"Sign In Failed",
-				error instanceof Error ? error.message : JSON.stringify(error),
-			);
-		} finally {
-			setLoading(null);
+		} catch (err) {
+			const message =
+				err instanceof Error ? err.message : "Something went wrong";
+			console.error("[sign-in] Error:", err);
+			setError(message);
 		}
 	};
 
 	return (
-		<View className="flex-1 items-center justify-center bg-background p-6">
-			<Card className="w-full max-w-sm">
-				<CardHeader>
-					<CardTitle className="text-2xl">Welcome to Superset</CardTitle>
-					<CardDescription>Sign in to continue</CardDescription>
-				</CardHeader>
-				<CardContent className="gap-4">
-					<Button
-						onPress={() => handleSignIn("github")}
-						disabled={loading !== null}
-						className="w-full"
-					>
-						{loading === "github" ? (
-							<ActivityIndicator size="small" color="white" />
-						) : (
-							<Text className="text-primary-foreground">
-								Continue with GitHub
-							</Text>
-						)}
-					</Button>
+		<View className="flex-1 items-center justify-center gap-8 bg-background p-6">
+			<Image
+				source={require("@/assets/icon.png")}
+				style={{ width: 80, height: 80, borderRadius: 16 }}
+			/>
 
-					<Button
-						variant="secondary"
-						onPress={() => handleSignIn("google")}
-						disabled={loading !== null}
-						className="w-full"
-					>
-						{loading === "google" ? (
-							<ActivityIndicator size="small" />
-						) : (
-							<Text className="text-secondary-foreground">
-								Continue with Google
-							</Text>
-						)}
-					</Button>
-				</CardContent>
-			</Card>
+			<View className="items-center gap-2">
+				<Text className="text-2xl font-semibold text-foreground">
+					Welcome to Superset
+				</Text>
+				<Text className="text-base text-muted-foreground">
+					Sign in to get started
+				</Text>
+			</View>
+
+			<View className="w-full items-center gap-3">
+				<SocialButton
+					provider="github"
+					onPress={() => handleSignIn("github")}
+					className="w-4/5"
+				/>
+				<SocialButton
+					provider="google"
+					onPress={() => handleSignIn("google")}
+					className="w-4/5"
+				/>
+			</View>
+
+			{error && (
+				<Text className="text-center text-sm text-destructive">{error}</Text>
+			)}
+
+			<Text className="text-center text-xs text-muted-foreground/70">
+				By signing in, you agree to our{"\n"}
+				<Text
+					className="text-xs text-muted-foreground underline"
+					onPress={() => Linking.openURL(TERMS_URL)}
+				>
+					Terms of Service
+				</Text>{" "}
+				and{" "}
+				<Text
+					className="text-xs text-muted-foreground underline"
+					onPress={() => Linking.openURL(PRIVACY_URL)}
+				>
+					Privacy Policy
+				</Text>
+			</Text>
 		</View>
 	);
 }
