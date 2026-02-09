@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { env } from "./env";
 
 const SESSION_MAX_SIZE = 1000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -13,8 +14,7 @@ interface SessionEntry {
 const claudeSessions = new Map<string, SessionEntry>();
 
 const SESSIONS_DIR =
-	process.env.DURABLE_STREAMS_DATA_DIR ??
-	join(homedir(), ".superset", "chat-streams");
+	env.DURABLE_STREAMS_DATA_DIR ?? join(homedir(), ".superset", "chat-streams");
 const SESSIONS_FILE = join(SESSIONS_DIR, "claude-sessions.json");
 
 function loadPersistedSessions(): void {
