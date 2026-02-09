@@ -82,10 +82,6 @@ const findNextTab = (state: TabsState, tabIdToClose: string): string | null => {
 	return workspaceTabs[0]?.id || null;
 };
 
-/**
- * Derive tab name from its panes.
- * Single pane: use pane name. Multiple panes: "Multiple panes (N)".
- */
 const deriveTabName = (
 	panes: Record<string, { tabId: string; name: string }>,
 	tabId: string,
