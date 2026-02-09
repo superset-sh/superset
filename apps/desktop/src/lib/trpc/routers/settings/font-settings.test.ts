@@ -1,62 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { z } from "zod";
-
-/**
- * Font settings validation tests.
- *
- * These test the Zod validation schema and the transformation logic used
- * by the setFontSettings tRPC procedure, extracted here for unit testing
- * without requiring a database connection.
- */
-
-// Replicate the exact Zod schema from the router
-const setFontSettingsSchema = z.object({
-	terminalFontFamily: z.string().nullable().optional(),
-	terminalFontSize: z.number().int().min(10).max(24).nullable().optional(),
-	editorFontFamily: z.string().nullable().optional(),
-	editorFontSize: z.number().int().min(10).max(24).nullable().optional(),
-});
-
-// Replicate the transformation logic from the mutation
-function transformFontSettings(
-	input: z.infer<typeof setFontSettingsSchema>,
-): Record<string, string | number | null> {
-	const set: Record<string, string | number | null> = {};
-
-	if (input.terminalFontFamily !== undefined) {
-		set.terminalFontFamily = input.terminalFontFamily?.trim() || null;
-	}
-	if (input.terminalFontSize !== undefined) {
-		set.terminalFontSize = input.terminalFontSize;
-	}
-	if (input.editorFontFamily !== undefined) {
-		set.editorFontFamily = input.editorFontFamily?.trim() || null;
-	}
-	if (input.editorFontSize !== undefined) {
-		set.editorFontSize = input.editorFontSize;
-	}
-
-	return set;
-}
+import {
+	setFontSettingsSchema,
+	transformFontSettings,
+} from "./font-settings.utils";
 
 describe("font settings validation", () => {
-	describe("getFontSettings defaults", () => {
-		it("returns all null when no settings are stored", () => {
-			// Simulates the default return shape of getFontSettings
-			const defaults = {
-				terminalFontFamily: null,
-				terminalFontSize: null,
-				editorFontFamily: null,
-				editorFontSize: null,
-			};
-
-			expect(defaults.terminalFontFamily).toBeNull();
-			expect(defaults.terminalFontSize).toBeNull();
-			expect(defaults.editorFontFamily).toBeNull();
-			expect(defaults.editorFontSize).toBeNull();
-		});
-	});
-
 	describe("font size validation (range 10-24)", () => {
 		it("accepts font size at minimum (10)", () => {
 			const result = setFontSettingsSchema.safeParse({
