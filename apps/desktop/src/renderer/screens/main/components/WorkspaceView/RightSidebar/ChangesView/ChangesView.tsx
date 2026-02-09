@@ -17,6 +17,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { useFsSubscription } from "../hooks/useFsSubscription";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
@@ -57,10 +58,15 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
 		{
 			enabled: !!worktreePath,
-			refetchInterval: 2500,
 			refetchOnWindowFocus: true,
 		},
 	);
+
+	useFsSubscription({
+		workspaceId,
+		onData: () => refetch(),
+		debounceMs: 500,
+	});
 
 	const { data: githubStatus, refetch: refetchGithubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(

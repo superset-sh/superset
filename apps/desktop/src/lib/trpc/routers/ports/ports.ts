@@ -1,13 +1,13 @@
+import path from "node:path";
 import { workspaces } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
+import { fsWatcher } from "main/lib/fs-watcher";
 import { localDb } from "main/lib/local-db";
-import {
-	hasStaticPortsConfig,
-	loadStaticPorts,
-	staticPortsWatcher,
-} from "main/lib/static-ports";
+import { hasStaticPortsConfig, loadStaticPorts } from "main/lib/static-ports";
 import { portManager } from "main/lib/terminal/port-manager";
+import { PORTS_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
+import type { FileSystemBatchEvent } from "shared/file-tree-types";
 import type { DetectedPort, StaticPort } from "shared/types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -154,35 +154,29 @@ export const createPortsRouter = () => {
 		subscribeStatic: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.subscription(({ input }) => {
+				const portsRelativePath = path.join(
+					PROJECT_SUPERSET_DIR_NAME,
+					PORTS_FILE_NAME,
+				);
+
 				return observable<{ type: "change" }>((emit) => {
-					const workspace = localDb
-						.select()
-						.from(workspaces)
-						.where(eq(workspaces.id, input.workspaceId))
-						.get();
+					const onBatch = (batch: FileSystemBatchEvent) => {
+						if (batch.workspaceId !== input.workspaceId) return;
 
-					if (!workspace) {
-						return () => {};
-					}
-
-					const workspacePath = getWorkspacePath(workspace);
-					if (!workspacePath) {
-						return () => {};
-					}
-
-					staticPortsWatcher.watch(input.workspaceId, workspacePath);
-
-					const onChange = (changedWorkspaceId: string) => {
-						if (changedWorkspaceId === input.workspaceId) {
+						const hasPortsChange = batch.events.some(
+							(e) =>
+								e.relativePath === portsRelativePath ||
+								e.relativePath === PROJECT_SUPERSET_DIR_NAME,
+						);
+						if (hasPortsChange) {
 							emit.next({ type: "change" });
 						}
 					};
 
-					staticPortsWatcher.on("change", onChange);
+					fsWatcher.on("batch", onBatch);
 
 					return () => {
-						staticPortsWatcher.off("change", onChange);
-						staticPortsWatcher.unwatch(input.workspaceId);
+						fsWatcher.off("batch", onBatch);
 					};
 				});
 			}),

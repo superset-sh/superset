@@ -1,5 +1,6 @@
 import path from "node:path";
-import { settings } from "@superset/local-db";
+import { settings, workspaces, worktrees } from "@superset/local-db";
+import { eq, isNull } from "drizzle-orm";
 import { app, BrowserWindow, dialog } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
@@ -10,6 +11,7 @@ import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { fsWatcher } from "./lib/fs-watcher";
 import { localDb } from "./lib/local-db";
 import { initSentry } from "./lib/sentry";
 import { reconcileDaemonSessions } from "./lib/terminal";
@@ -210,6 +212,39 @@ if (process.env.NODE_ENV === "development") {
 	parentCheckInterval.unref();
 }
 
+function startFileWatchersForActiveWorkspaces(): void {
+	try {
+		const activeWorkspaces = localDb
+			.select({
+				id: workspaces.id,
+				worktreePath: worktrees.path,
+			})
+			.from(workspaces)
+			.innerJoin(worktrees, eq(workspaces.worktreeId, worktrees.id))
+			.where(isNull(workspaces.deletingAt))
+			.all();
+
+		for (const ws of activeWorkspaces) {
+			fsWatcher
+				.watch({ workspaceId: ws.id, rootPath: ws.worktreePath })
+				.catch((err) => {
+					console.error(
+						`[main] Failed to start fs watcher for workspace ${ws.id}:`,
+						err,
+					);
+				});
+		}
+
+		if (activeWorkspaces.length > 0) {
+			console.log(
+				`[main] Started fs watchers for ${activeWorkspaces.length} active workspace(s)`,
+			);
+		}
+	} catch (error) {
+		console.error("[main] Failed to start fs watchers on boot:", error);
+	}
+}
+
 // Single instance lock - required for second-instance event on Windows/Linux
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -236,6 +271,9 @@ if (!gotTheLock) {
 		// Clean up stale daemon sessions from previous app runs
 		// Must happen BEFORE renderer restore runs
 		await reconcileDaemonSessions();
+
+		// Start filesystem watchers for all active workspaces
+		startFileWatchersForActiveWorkspaces();
 
 		try {
 			setupAgentHooks();

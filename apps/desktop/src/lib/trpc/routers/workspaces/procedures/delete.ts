@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import type { SelectWorktree } from "@superset/local-db";
 import { track } from "main/lib/analytics";
+import { fsWatcher } from "main/lib/fs-watcher";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -163,6 +164,7 @@ export const createDeleteProcedures = () => {
 					`[workspace/delete] Starting deletion of "${workspace.name}" (${input.id})`,
 				);
 
+				await fsWatcher.unwatch(input.id);
 				markWorkspaceAsDeleting(input.id);
 				updateActiveWorkspaceIfRemoved(input.id);
 
@@ -298,6 +300,8 @@ export const createDeleteProcedures = () => {
 				if (!workspace) {
 					throw new Error("Workspace not found");
 				}
+
+				await fsWatcher.unwatch(input.id);
 
 				const terminalResult = await getWorkspaceRuntimeRegistry()
 					.getForWorkspaceId(input.id)

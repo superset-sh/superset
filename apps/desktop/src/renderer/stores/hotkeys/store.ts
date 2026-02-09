@@ -20,8 +20,8 @@ import {
 	type HotkeyId,
 	type HotkeyPlatform,
 	type HotkeysState,
-	isValidAppHotkey,
 	hotkeyFromKeyboardEvent,
+	isValidAppHotkey,
 	matchesHotkeyEvent,
 } from "shared/hotkeys";
 import { create } from "zustand";

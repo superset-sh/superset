@@ -1,6 +1,7 @@
 import { projects, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { track } from "main/lib/analytics";
+import { fsWatcher } from "main/lib/fs-watcher";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import {
@@ -127,6 +128,10 @@ export async function initializeWorkspaceWorktree({
 				.run();
 
 			manager.updateProgress(workspaceId, "ready", "Ready");
+
+			fsWatcher.watch({ workspaceId, rootPath: worktreePath }).catch((err) => {
+				console.error("[workspace-init] Failed to start fs watcher:", err);
+			});
 
 			track("workspace_initialized", {
 				workspace_id: workspaceId,
@@ -457,6 +462,10 @@ export async function initializeWorkspaceWorktree({
 			.run();
 
 		manager.updateProgress(workspaceId, "ready", "Ready");
+
+		fsWatcher.watch({ workspaceId, rootPath: worktreePath }).catch((err) => {
+			console.error("[workspace-init] Failed to start fs watcher:", err);
+		});
 
 		track("workspace_initialized", {
 			workspace_id: workspaceId,
