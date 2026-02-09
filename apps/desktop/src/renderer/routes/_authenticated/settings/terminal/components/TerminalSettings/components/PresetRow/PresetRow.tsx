@@ -1,4 +1,5 @@
 import { EXECUTION_MODES, type ExecutionMode } from "@superset/local-db";
+import { Checkbox } from "@superset/ui/checkbox";
 import { Input } from "@superset/ui/input";
 import {
 	Select,
@@ -7,7 +8,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { LuGripVertical, LuTrash } from "react-icons/lu";
@@ -185,53 +185,27 @@ export function PresetRow({
 					</SelectContent>
 				</Select>
 			</div>
-			<div className="w-[7rem] flex items-center justify-center gap-1 shrink-0 pt-1">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={() =>
-								onToggleAutoApply(
-									preset.id,
-									"applyOnWorkspaceCreated",
-									!isWorkspaceCreation,
-								)
-							}
-							className={`text-[10px] leading-none font-medium px-1.5 py-1 rounded-md border cursor-pointer transition-colors ${
-								isWorkspaceCreation
-									? "bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-400"
-									: "text-muted-foreground/50 border-transparent hover:border-border hover:text-muted-foreground"
-							}`}
-						>
-							WS
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="top">
-						{isWorkspaceCreation
-							? "Runs on workspace creation (click to remove)"
-							: "Run on workspace creation"}
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={() =>
-								onToggleAutoApply(preset.id, "applyOnNewTab", !isNewTab)
-							}
-							className={`text-[10px] leading-none font-medium px-1.5 py-1 rounded-md border cursor-pointer transition-colors ${
-								isNewTab
-									? "bg-green-500/15 text-green-600 border-green-500/30 dark:text-green-400"
-									: "text-muted-foreground/50 border-transparent hover:border-border hover:text-muted-foreground"
-							}`}
-						>
-							Tab
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="top">
-						{isNewTab ? "Runs on new tab (click to remove)" : "Run on new tab"}
-					</TooltipContent>
-				</Tooltip>
+			<div className="w-[7rem] flex justify-center shrink-0 pt-1.5">
+				<Checkbox
+					checked={isWorkspaceCreation}
+					onCheckedChange={(checked) =>
+						onToggleAutoApply(
+							preset.id,
+							"applyOnWorkspaceCreated",
+							checked === true,
+						)
+					}
+				/>
+			</div>
+			<div className="w-14 flex justify-center shrink-0 pt-1.5">
+				<Checkbox
+					checked={isNewTab}
+					onCheckedChange={(checked) =>
+						onToggleAutoApply(preset.id, "applyOnNewTab", checked === true)
+					}
+				/>
+			</div>
+			<div className="w-10 flex justify-center shrink-0 pt-0.5">
 				<button
 					type="button"
 					onClick={() => onDelete(rowIndex)}

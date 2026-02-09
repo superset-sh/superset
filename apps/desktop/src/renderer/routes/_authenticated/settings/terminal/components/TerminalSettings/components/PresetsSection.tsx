@@ -353,14 +353,28 @@ export function PresetsSection({
 				<div className="rounded-lg border border-border overflow-hidden">
 					<div className="flex items-center gap-4 py-2 px-4 bg-accent/10 border-b border-border">
 						<div className="w-6 shrink-0" />
-						{PRESET_COLUMNS.map((column) => (
-							<div
-								key={column.key}
-								className="flex-1 text-xs font-medium text-muted-foreground uppercase tracking-wider"
-							>
-								{column.label}
-							</div>
-						))}
+						{PRESET_COLUMNS.map((column) =>
+							column.tooltip ? (
+								<Tooltip key={column.key}>
+									<TooltipTrigger asChild>
+										<div className="flex-1 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-help flex items-center gap-1">
+											{column.label}
+											<HiOutlineQuestionMarkCircle className="h-3.5 w-3.5" />
+										</div>
+									</TooltipTrigger>
+									<TooltipContent side="top" className="max-w-xs">
+										{column.tooltip}
+									</TooltipContent>
+								</Tooltip>
+							) : (
+								<div
+									key={column.key}
+									className="flex-1 text-xs font-medium text-muted-foreground uppercase tracking-wider"
+								>
+									{column.label}
+								</div>
+							),
+						)}
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<div className="w-28 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help flex items-center gap-1">
@@ -380,9 +394,29 @@ export function PresetsSection({
 								</p>
 							</TooltipContent>
 						</Tooltip>
-						<div className="w-[7rem] text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
-							Actions
-						</div>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className="w-[7rem] text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help flex items-center justify-center gap-1">
+									Workspace
+									<HiOutlineQuestionMarkCircle className="h-3.5 w-3.5" />
+								</div>
+							</TooltipTrigger>
+							<TooltipContent side="top" className="max-w-xs">
+								Auto-run this preset when creating a new workspace
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className="w-14 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0 cursor-help flex items-center justify-center gap-1">
+									Tab
+									<HiOutlineQuestionMarkCircle className="h-3.5 w-3.5" />
+								</div>
+							</TooltipTrigger>
+							<TooltipContent side="top" className="max-w-xs">
+								Auto-run this preset when opening a new tab
+							</TooltipContent>
+						</Tooltip>
+						<div className="w-10 shrink-0" />
 					</div>
 
 					<div
