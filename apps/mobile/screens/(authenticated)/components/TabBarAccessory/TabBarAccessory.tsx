@@ -1,13 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
+import { ChevronsUpDown } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, useWindowDimensions, View } from "react-native";
-import { ChevronsUpDown } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
-import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
-import { OrganizationAvatar } from "@/screens/(authenticated)/(home)/workspaces/components/OrganizationSwitcherSheet/components/OrganizationAvatar";
 import { OrganizationSwitcherSheet } from "@/screens/(authenticated)/(home)/workspaces/components/OrganizationSwitcherSheet";
+import { OrganizationAvatar } from "@/screens/(authenticated)/(home)/workspaces/components/OrganizationSwitcherSheet/components/OrganizationAvatar";
+import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 
 export function TabBarAccessory() {
 	const theme = useTheme();

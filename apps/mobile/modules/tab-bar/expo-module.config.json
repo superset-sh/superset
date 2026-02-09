@@ -1,0 +1,5 @@
+{
+	"platforms": ["apple"],
+	"coreFeatures": ["swiftui"],
+	"apple": { "modules": ["TabBarModule"] }
+}
