@@ -105,6 +105,18 @@ const ELECTRON_KEY_MAP: Record<string, string> = {
 	right: "Right",
 	space: "Space",
 	slash: "/",
+	f1: "F1",
+	f2: "F2",
+	f3: "F3",
+	f4: "F4",
+	f5: "F5",
+	f6: "F6",
+	f7: "F7",
+	f8: "F8",
+	f9: "F9",
+	f10: "F10",
+	f11: "F11",
+	f12: "F12",
 };
 
 const TERMINAL_RESERVED_CHORDS = new Set<string>([
@@ -115,6 +127,10 @@ const TERMINAL_RESERVED_CHORDS = new Set<string>([
 	"ctrl+q",
 	"ctrl+\\",
 ]);
+
+function isFunctionKey(key: string): boolean {
+	return /^f([1-9]|1[0-2])$/.test(key);
+}
 
 const OS_RESERVED_CHORDS: Record<HotkeyPlatform, string[]> = {
 	darwin: ["meta+q", "meta+space", "meta+tab"],
@@ -275,8 +291,9 @@ export function hotkeyFromKeyboardEvent(
 		return null;
 	}
 
-	// App hotkeys must include ctrl or meta to avoid conflicts with terminal input
-	if (!event.ctrlKey && !event.metaKey) {
+	// App hotkeys must include ctrl or meta (or be function keys F1-F12)
+	// to avoid conflicts with terminal input and ensure they work when the terminal is focused
+	if (!isFunctionKey(normalizedKey) && !event.ctrlKey && !event.metaKey) {
 		return null;
 	}
 
@@ -315,12 +332,16 @@ export function isOsReservedHotkey(
 }
 
 /**
- * Checks if a hotkey includes a primary modifier (ctrl or meta).
- * App hotkeys must include ctrl or meta to avoid conflicts with terminal input
- * and to ensure they work when the terminal is focused.
+ * Checks if a hotkey is valid for app-level use.
+ * App hotkeys must include ctrl or meta (or be function keys F1-F12)
+ * to avoid conflicts with terminal input and ensure they work when the terminal is focused.
  */
-export function hasPrimaryModifier(keys: string): boolean {
+export function isValidAppHotkey(keys: string): boolean {
 	const parsed = parseHotkeyString(keys);
+	// Function keys are allowed without modifiers
+	if (parsed.key && isFunctionKey(parsed.key)) {
+		return true;
+	}
 	return parsed.modifiers.has("ctrl") || parsed.modifiers.has("meta");
 }
 
@@ -787,8 +808,8 @@ export function buildOverridesFromBindings(
 		if (canonical === null && value !== null) {
 			continue;
 		}
-		// App hotkeys must include ctrl or meta to work in terminal
-		if (canonical !== null && !hasPrimaryModifier(canonical)) {
+		// App hotkeys must include ctrl or meta (or be function keys) to work in terminal
+		if (canonical !== null && !isValidAppHotkey(canonical)) {
 			continue;
 		}
 		const defaultValue = getDefaultHotkey(id, platform);
