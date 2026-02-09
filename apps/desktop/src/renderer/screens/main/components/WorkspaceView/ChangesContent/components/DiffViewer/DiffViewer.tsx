@@ -3,9 +3,9 @@ import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuLoader } from "react-icons/lu";
 import {
-	MONACO_EDITOR_OPTIONS,
 	registerSaveAction,
 	SUPERSET_THEME,
+	useMonacoEditorOptions,
 	useMonacoReady,
 } from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
@@ -72,6 +72,7 @@ export function DiffViewer({
 	fitContent = false,
 }: DiffViewerProps) {
 	const isMonacoReady = useMonacoReady();
+	const monacoEditorOptions = useMonacoEditorOptions();
 	const diffEditorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(
 		null,
 	);
@@ -272,7 +273,7 @@ export function DiffViewer({
 				</div>
 			}
 			options={{
-				...MONACO_EDITOR_OPTIONS,
+				...monacoEditorOptions,
 				lineNumbersMinChars: getLineNumbersMinChars(
 					contents.original,
 					contents.modified,

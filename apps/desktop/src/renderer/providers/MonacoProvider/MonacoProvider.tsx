@@ -6,7 +6,8 @@ import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
 import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 import type React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useMonacoTheme } from "renderer/stores/theme";
 
 self.MonacoEnvironment = {
@@ -126,6 +127,28 @@ export const MONACO_EDITOR_OPTIONS = {
 		highlightActiveIndentation: false,
 	},
 };
+
+export function useMonacoEditorOptions() {
+	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
+		undefined,
+		{
+			staleTime: 30_000,
+		},
+	);
+
+	return useMemo(() => {
+		if (!fontSettings) return MONACO_EDITOR_OPTIONS;
+		return {
+			...MONACO_EDITOR_OPTIONS,
+			...(fontSettings.editorFontFamily && {
+				fontFamily: fontSettings.editorFontFamily,
+			}),
+			...(fontSettings.editorFontSize != null && {
+				fontSize: fontSettings.editorFontSize,
+			}),
+		};
+	}, [fontSettings]);
+}
 
 export function registerSaveAction(
 	editor: monaco.editor.IStandaloneCodeEditor,
