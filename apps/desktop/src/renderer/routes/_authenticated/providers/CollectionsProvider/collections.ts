@@ -23,6 +23,11 @@ import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
+const backoffOptions = {
+	initialDelay: 1_000,
+	maxDelay: 30_000,
+	multiplier: 2,
+};
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
@@ -66,6 +71,7 @@ const organizationsCollection = createCollection(
 				},
 			},
 			columnMapper,
+			backoffOptions,
 		},
 		getKey: (item) => item.id,
 	}),
@@ -94,6 +100,7 @@ const apiKeysCollection = createCollection(
 				},
 			},
 			columnMapper,
+			backoffOptions,
 		},
 		getKey: (item) => item.id,
 	}),
@@ -118,6 +125,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
@@ -152,6 +160,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -168,6 +177,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
@@ -194,6 +204,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -210,6 +221,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -226,6 +238,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -242,6 +255,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
@@ -274,6 +288,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -290,6 +305,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),

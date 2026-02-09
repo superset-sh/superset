@@ -17,6 +17,11 @@ import { apiClient } from "../trpc/client";
 
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.EXPO_PUBLIC_API_URL}/api/electric/v1/shape`;
+const backoffOptions = {
+	initialDelay: 1_000,
+	maxDelay: 30_000,
+	multiplier: 2,
+};
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
@@ -40,6 +45,7 @@ const organizationsCollection = createCollection(
 				Cookie: () => authClient.getCookie() || "",
 			},
 			columnMapper,
+			backoffOptions,
 		},
 		getKey: (item) => item.id,
 	}),
@@ -58,6 +64,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "tasks", organizationId },
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
@@ -89,6 +96,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "task_statuses", organizationId },
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -102,6 +110,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "repositories", organizationId },
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
@@ -125,6 +134,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "auth.members", organizationId },
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -138,6 +148,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "auth.users", organizationId },
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
@@ -151,6 +162,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				params: { table: "auth.invitations", organizationId },
 				headers,
 				columnMapper,
+				backoffOptions,
 			},
 			getKey: (item) => item.id,
 		}),
