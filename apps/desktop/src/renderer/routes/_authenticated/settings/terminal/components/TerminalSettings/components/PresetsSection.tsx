@@ -259,10 +259,11 @@ export function PresetsSection({
 
 	const handleToggleAutoApply = useCallback(
 		(
-			presetId: string | null,
+			presetId: string,
 			field: "applyOnWorkspaceCreated" | "applyOnNewTab",
+			enabled: boolean,
 		) => {
-			setPresetAutoApply.mutate({ id: presetId, field });
+			setPresetAutoApply.mutate({ id: presetId, field, enabled });
 		},
 		[setPresetAutoApply],
 	);

@@ -1,5 +1,4 @@
 import { EXECUTION_MODES, type ExecutionMode } from "@superset/local-db";
-import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import {
 	Select,
@@ -11,12 +10,6 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import {
-	HiOutlineRectangleGroup,
-	HiOutlineSquare2Stack,
-	HiRectangleGroup,
-	HiSquare2Stack,
-} from "react-icons/hi2";
 import { LuGripVertical, LuTrash } from "react-icons/lu";
 import {
 	PRESET_COLUMNS,
@@ -84,7 +77,11 @@ interface PresetRowProps {
 	onCommandsBlur: (rowIndex: number) => void;
 	onExecutionModeChange: (rowIndex: number, mode: ExecutionMode) => void;
 	onDelete: (rowIndex: number) => void;
-	onToggleAutoApply: (presetId: string | null, field: AutoApplyField) => void;
+	onToggleAutoApply: (
+		presetId: string,
+		field: AutoApplyField,
+		enabled: boolean,
+	) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
 }
@@ -188,71 +185,61 @@ export function PresetRow({
 					</SelectContent>
 				</Select>
 			</div>
-			<div className="w-[7rem] flex justify-center gap-0.5 shrink-0 pt-1">
+			<div className="w-[7rem] flex items-center justify-center gap-1 shrink-0 pt-1">
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
+						<button
+							type="button"
 							onClick={() =>
 								onToggleAutoApply(
-									isWorkspaceCreation ? null : preset.id,
+									preset.id,
 									"applyOnWorkspaceCreated",
+									!isWorkspaceCreation,
 								)
 							}
-							className={`h-8 w-8 p-0 ${isWorkspaceCreation ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
-							aria-label={
+							className={`text-[10px] leading-none font-medium px-1.5 py-1 rounded-md border cursor-pointer transition-colors ${
 								isWorkspaceCreation
-									? "Remove from workspace creation"
-									: "Apply on workspace creation"
-							}
+									? "bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-400"
+									: "text-muted-foreground/50 border-transparent hover:border-border hover:text-muted-foreground"
+							}`}
 						>
-							{isWorkspaceCreation ? (
-								<HiRectangleGroup className="h-4 w-4" />
-							) : (
-								<HiOutlineRectangleGroup className="h-4 w-4" />
-							)}
-						</Button>
+							WS
+						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top">
 						{isWorkspaceCreation
-							? "Applied on workspace creation (click to remove)"
-							: "Apply on workspace creation"}
+							? "Runs on workspace creation (click to remove)"
+							: "Run on workspace creation"}
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
+						<button
+							type="button"
 							onClick={() =>
-								onToggleAutoApply(isNewTab ? null : preset.id, "applyOnNewTab")
+								onToggleAutoApply(preset.id, "applyOnNewTab", !isNewTab)
 							}
-							className={`h-8 w-8 p-0 ${isNewTab ? "text-green-500 hover:text-green-600" : "text-muted-foreground hover:text-foreground"}`}
-							aria-label={isNewTab ? "Remove from new tab" : "Apply on new tab"}
+							className={`text-[10px] leading-none font-medium px-1.5 py-1 rounded-md border cursor-pointer transition-colors ${
+								isNewTab
+									? "bg-green-500/15 text-green-600 border-green-500/30 dark:text-green-400"
+									: "text-muted-foreground/50 border-transparent hover:border-border hover:text-muted-foreground"
+							}`}
 						>
-							{isNewTab ? (
-								<HiSquare2Stack className="h-4 w-4" />
-							) : (
-								<HiOutlineSquare2Stack className="h-4 w-4" />
-							)}
-						</Button>
+							Tab
+						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top">
-						{isNewTab
-							? "Applied on new tab (click to remove)"
-							: "Apply on new tab"}
+						{isNewTab ? "Runs on new tab (click to remove)" : "Run on new tab"}
 					</TooltipContent>
 				</Tooltip>
-				<Button
-					variant="ghost"
-					size="sm"
+				<button
+					type="button"
 					onClick={() => onDelete(rowIndex)}
-					className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+					className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
 					aria-label="Delete row"
 				>
-					<LuTrash className="h-4 w-4" />
-				</Button>
+					<LuTrash className="h-3.5 w-3.5" />
+				</button>
 			</div>
 		</div>
 	);

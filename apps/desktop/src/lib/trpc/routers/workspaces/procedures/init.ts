@@ -9,15 +9,14 @@ import { getProject, getWorkspaceWithRelations } from "../utils/db-helpers";
 import { loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
-function getDefaultPreset() {
+function getWorkspaceCreationPresets() {
 	const row = localDb.select().from(settings).get();
-	if (!row) return null;
+	if (!row) return [];
 	const presets = row.terminalPresets ?? [];
-	return (
-		presets.find((p) => p.applyOnWorkspaceCreated) ??
-		presets.find((p) => p.isDefault) ??
-		null
-	);
+	const tagged = presets.filter((p) => p.applyOnWorkspaceCreated);
+	if (tagged.length > 0) return tagged;
+	const defaultPreset = presets.find((p) => p.isDefault);
+	return defaultPreset ? [defaultPreset] : [];
 }
 
 export const createInitProcedures = () => {
@@ -124,12 +123,13 @@ export const createInitProcedures = () => {
 					worktreePath: relations.worktree?.path,
 					projectName: project.name,
 				});
-				const defaultPreset = getDefaultPreset();
+				const defaultPresets = getWorkspaceCreationPresets();
 
 				return {
 					projectId: project.id,
 					initialCommands: setupConfig?.setup ?? null,
-					defaultPreset,
+					defaultPreset: defaultPresets[0] ?? null,
+					defaultPresets,
 				};
 			}),
 	});

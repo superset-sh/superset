@@ -88,21 +88,23 @@ export function WorkspaceInitEffects() {
 			const hasSetupScript =
 				Array.isArray(setup.initialCommands) &&
 				setup.initialCommands.length > 0;
-			const hasDefaultPreset =
-				shouldApplyPreset &&
-				setup.defaultPreset != null &&
-				setup.defaultPreset.commands.length > 0;
+			const presets = (
+				setup.defaultPresets ??
+				(setup.defaultPreset ? [setup.defaultPreset] : [])
+			).filter((p) => p.commands.length > 0);
+			const hasPresets = shouldApplyPreset && presets.length > 0;
 
-			if (hasSetupScript && hasDefaultPreset && setup.defaultPreset) {
+			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
 					setup.workspaceId,
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
-				createPresetTerminal(
-					setup.workspaceId,
-					setup.defaultPreset,
-					setupTabId,
-				);
+				// Add first preset to the setup tab
+				createPresetTerminal(setup.workspaceId, presets[0], setupTabId);
+				// Additional presets get their own tabs
+				for (let i = 1; i < presets.length; i++) {
+					createPresetTerminal(setup.workspaceId, presets[i]);
+				}
 
 				createOrAttach.mutate(
 					{
@@ -171,17 +173,15 @@ export function WorkspaceInitEffects() {
 				return;
 			}
 
-			if (
-				shouldApplyPreset &&
-				setup.defaultPreset &&
-				setup.defaultPreset.commands.length > 0
-			) {
-				createPresetTerminal(setup.workspaceId, setup.defaultPreset);
+			if (hasPresets) {
+				for (const preset of presets) {
+					createPresetTerminal(setup.workspaceId, preset);
+				}
 				onComplete();
 				return;
 			}
 
-			// No setup script or default preset — sidebar card handles the prompt
+			// No setup script or presets — sidebar card handles the prompt
 			onComplete();
 		},
 		[
@@ -223,6 +223,7 @@ export function WorkspaceInitEffects() {
 							const completeSetup: PendingTerminalSetup = {
 								...setup,
 								defaultPreset: setupData?.defaultPreset ?? null,
+								defaultPresets: setupData?.defaultPresets ?? [],
 							};
 							handleTerminalSetup(completeSetup, () => {
 								removePendingTerminalSetup(workspaceId);
@@ -283,6 +284,7 @@ export function WorkspaceInitEffects() {
 						projectId: setupData.projectId,
 						initialCommands: setupData.initialCommands,
 						defaultPreset: setupData.defaultPreset,
+						defaultPresets: setupData.defaultPresets ?? [],
 					};
 
 					handleTerminalSetup(fetchedSetup, () => {

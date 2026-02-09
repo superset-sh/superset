@@ -162,8 +162,9 @@ export const createSettingsRouter = () => {
 		setPresetAutoApply: publicProcedure
 			.input(
 				z.object({
-					id: z.string().nullable(),
+					id: z.string(),
 					field: z.enum(["applyOnWorkspaceCreated", "applyOnNewTab"]),
+					enabled: z.boolean(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -172,7 +173,10 @@ export const createSettingsRouter = () => {
 
 				const updatedPresets = presets.map((p) => ({
 					...p,
-					[input.field]: input.id === p.id ? true : undefined,
+					[input.field]:
+						p.id === input.id
+							? input.enabled || undefined
+							: p[input.field as keyof typeof p],
 				}));
 
 				localDb
@@ -234,24 +238,22 @@ export const createSettingsRouter = () => {
 			return presets.find((p) => p.isDefault) ?? null;
 		}),
 
-		getWorkspaceCreationPreset: publicProcedure.query(() => {
+		getWorkspaceCreationPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			const presets = row.terminalPresets ?? [];
-			return (
-				presets.find((p) => p.applyOnWorkspaceCreated) ??
-				presets.find((p) => p.isDefault) ??
-				null
-			);
+			const tagged = presets.filter((p) => p.applyOnWorkspaceCreated);
+			if (tagged.length > 0) return tagged;
+			const defaultPreset = presets.find((p) => p.isDefault);
+			return defaultPreset ? [defaultPreset] : [];
 		}),
 
-		getNewTabPreset: publicProcedure.query(() => {
+		getNewTabPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			const presets = row.terminalPresets ?? [];
-			return (
-				presets.find((p) => p.applyOnNewTab) ??
-				presets.find((p) => p.isDefault) ??
-				null
-			);
+			const tagged = presets.filter((p) => p.applyOnNewTab);
+			if (tagged.length > 0) return tagged;
+			const defaultPreset = presets.find((p) => p.isDefault);
+			return defaultPreset ? [defaultPreset] : [];
 		}),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {

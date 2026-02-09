@@ -8,6 +8,7 @@ export interface PendingTerminalSetup {
 	projectId: string;
 	initialCommands: string[] | null;
 	defaultPreset?: TerminalPreset | null;
+	defaultPresets?: TerminalPreset[];
 }
 
 interface WorkspaceInitState {

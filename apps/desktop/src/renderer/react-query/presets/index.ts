@@ -76,8 +76,8 @@ function useSetPresetAutoApply(
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
-			await utils.settings.getWorkspaceCreationPreset.invalidate();
-			await utils.settings.getNewTabPreset.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});
