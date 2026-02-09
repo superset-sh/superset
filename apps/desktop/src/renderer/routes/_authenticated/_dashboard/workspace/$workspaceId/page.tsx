@@ -1,9 +1,10 @@
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
+import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
@@ -33,6 +34,10 @@ export const Route = createFileRoute(
 )({
 	component: WorkspacePage,
 	notFoundComponent: NotFound,
+	validateSearch: (search: Record<string, unknown>): WorkspaceSearchParams => ({
+		tabId: typeof search.tabId === "string" ? search.tabId : undefined,
+		paneId: typeof search.paneId === "string" ? search.paneId : undefined,
+	}),
 	loader: async ({ params, context }) => {
 		const queryKey = [
 			["workspaces", "get"],
@@ -62,6 +67,27 @@ function WorkspacePage() {
 		id: workspaceId,
 	});
 	const navigate = useNavigate();
+	const routeNavigate = Route.useNavigate();
+	const { tabId: searchTabId, paneId: searchPaneId } = Route.useSearch();
+
+	// Handle search-param-driven tab/pane activation (e.g. from notification clicks)
+	useEffect(() => {
+		if (!searchTabId) return;
+
+		const state = useTabsStore.getState();
+		const tab = state.tabs.find(
+			(t) => t.id === searchTabId && t.workspaceId === workspaceId,
+		);
+		if (!tab) return;
+
+		state.setActiveTab(workspaceId, searchTabId);
+
+		if (searchPaneId && state.panes[searchPaneId]) {
+			state.setFocusedPane(searchTabId, searchPaneId);
+		}
+
+		routeNavigate({ search: {}, replace: true });
+	}, [searchTabId, searchPaneId, workspaceId, routeNavigate]);
 
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);
