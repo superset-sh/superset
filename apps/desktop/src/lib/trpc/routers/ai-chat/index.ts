@@ -47,7 +47,10 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 				});
 			}
 		} catch (err) {
-			console.warn(`[ai-chat/scanCustomCommands] Failed to read commands from ${dir}:`, err);
+			console.warn(
+				`[ai-chat/scanCustomCommands] Failed to read commands from ${dir}:`,
+				err,
+			);
 		}
 	}
 
