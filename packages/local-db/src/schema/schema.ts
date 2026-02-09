@@ -159,6 +159,10 @@ export const settings = sqliteTable("settings", {
 	}),
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
+	terminalFontFamily: text("terminal_font_family"),
+	terminalFontSize: integer("terminal_font_size"),
+	editorFontFamily: text("editor_font_family"),
+	editorFontSize: integer("editor_font_size"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

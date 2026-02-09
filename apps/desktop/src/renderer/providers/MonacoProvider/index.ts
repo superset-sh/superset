@@ -4,5 +4,6 @@ export {
 	monaco,
 	registerSaveAction,
 	SUPERSET_THEME,
+	useMonacoEditorOptions,
 	useMonacoReady,
 } from "./MonacoProvider";

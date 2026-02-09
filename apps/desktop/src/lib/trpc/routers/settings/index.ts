@@ -495,6 +495,65 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getFontSettings: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				terminalFontFamily: row.terminalFontFamily ?? null,
+				terminalFontSize: row.terminalFontSize ?? null,
+				editorFontFamily: row.editorFontFamily ?? null,
+				editorFontSize: row.editorFontSize ?? null,
+			};
+		}),
+
+		setFontSettings: publicProcedure
+			.input(
+				z.object({
+					terminalFontFamily: z.string().nullable().optional(),
+					terminalFontSize: z
+						.number()
+						.int()
+						.min(10)
+						.max(24)
+						.nullable()
+						.optional(),
+					editorFontFamily: z.string().nullable().optional(),
+					editorFontSize: z
+						.number()
+						.int()
+						.min(10)
+						.max(24)
+						.nullable()
+						.optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const set: Record<string, string | number | null> = {};
+
+				if (input.terminalFontFamily !== undefined) {
+					set.terminalFontFamily = input.terminalFontFamily?.trim() || null;
+				}
+				if (input.terminalFontSize !== undefined) {
+					set.terminalFontSize = input.terminalFontSize;
+				}
+				if (input.editorFontFamily !== undefined) {
+					set.editorFontFamily = input.editorFontFamily?.trim() || null;
+				}
+				if (input.editorFontSize !== undefined) {
+					set.editorFontSize = input.editorFontSize;
+				}
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, ...set })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set,
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		// TODO: remove telemetry procedures once telemetry_enabled column is dropped
 		getTelemetryEnabled: publicProcedure.query(() => {
 			return true;
