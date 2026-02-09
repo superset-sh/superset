@@ -23,10 +23,23 @@ async function openPathInApp(
 		return;
 	}
 
-	const cmd = getAppCommand(app, filePath);
-	if (cmd) {
-		await spawnAsync(cmd.command, cmd.args);
-		return;
+	const candidates = getAppCommand(app, filePath);
+	if (candidates) {
+		let lastError: Error | undefined;
+		for (const cmd of candidates) {
+			try {
+				await spawnAsync(cmd.command, cmd.args);
+				return;
+			} catch (error) {
+				lastError = error instanceof Error ? error : new Error(String(error));
+				if (candidates.length > 1) {
+					console.warn(
+						`[external/openInApp] ${cmd.args[1]} not found, trying next candidate`,
+					);
+				}
+			}
+		}
+		throw lastError;
 	}
 
 	await shell.openPath(filePath);

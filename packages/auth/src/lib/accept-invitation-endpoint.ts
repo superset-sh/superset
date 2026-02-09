@@ -133,10 +133,18 @@ export const acceptInvitationEndpoint = {
 				});
 
 				if (!existingMember) {
-					await db.insert(members).values({
-						organizationId: invitation.organization.id,
-						userId: user.id,
-						role: invitation.role ?? "member",
+					// Dynamic import: this plugin needs to call the organization plugin's
+					// addMember API to trigger billing hooks (beforeAddMember/afterAddMember).
+					// server.ts imports this file as a plugin, so a static import would be circular.
+					// The import resolves at request time when all modules are fully initialized.
+					const { auth } = await import("../server");
+					await auth.api.addMember({
+						body: {
+							organizationId: invitation.organization.id,
+							userId: user.id,
+							role:
+								(invitation.role as "member" | "owner" | "admin") ?? "member",
+						},
 					});
 				}
 

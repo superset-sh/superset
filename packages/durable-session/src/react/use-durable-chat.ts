@@ -179,11 +179,17 @@ export function useDurableChat<
 	} | null>(null);
 	const key = `${clientOptions.sessionId}:${clientOptions.proxyUrl}`;
 
-	// Create or recreate client when key changes or client was disposed
+	// Create or recreate client when key changes or client was disposed.
 	// The isDisposed check handles React Strict Mode: cleanup disposes the client,
 	// so the next render must create a fresh one with a new AbortController.
 	if (providedClient) {
 		if (!clientRef.current || clientRef.current.client !== providedClient) {
+			const prev = clientRef.current?.client;
+			if (prev && !prev.isDisposed) {
+				// Defer disposal via microtask — dispose() triggers collection events
+				// which call setState, so it must not run during render or useEffect.
+				queueMicrotask(() => prev.dispose());
+			}
 			clientRef.current = { client: providedClient, key: "provided" };
 		}
 	} else if (
@@ -191,8 +197,10 @@ export function useDurableChat<
 		clientRef.current.key !== key ||
 		clientRef.current.client.isDisposed
 	) {
-		// Dispose old client if exists (may already be disposed, which is fine)
-		clientRef.current?.client.dispose();
+		const prev = clientRef.current?.client;
+		if (prev && !prev.isDisposed) {
+			queueMicrotask(() => prev.dispose());
+		}
 		clientRef.current = {
 			client: new DurableChatClient<TTools>({
 				...clientOptions,
@@ -227,10 +235,16 @@ export function useDurableChat<
 			});
 		}
 
-		// Cleanup: unsubscribe and dispose (disposal is idempotent)
+		// Cleanup: defer disposal via microtask — dispose() triggers collection events
+		// that call setState. When Radix UI uses flushSync for dropdown selection,
+		// this cleanup runs during a synchronous render which would cause
+		// "Cannot update a component while rendering" if dispose runs inline.
 		return () => {
 			if (!providedClient) {
-				client.dispose();
+				const c = client;
+				queueMicrotask(() => {
+					if (!c.isDisposed) c.dispose();
+				});
 			}
 		};
 	}, [client, autoConnect, providedClient]);

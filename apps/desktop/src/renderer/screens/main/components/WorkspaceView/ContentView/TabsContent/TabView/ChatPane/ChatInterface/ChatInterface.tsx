@@ -5,7 +5,7 @@ import {
 	ConversationEmptyState,
 	ConversationScrollButton,
 } from "@superset/ui/ai-elements/conversation";
-import { Message, MessageContent } from "@superset/ui/ai-elements/message";
+import { Message } from "@superset/ui/ai-elements/message";
 import {
 	PromptInput,
 	PromptInputButton,
@@ -29,8 +29,10 @@ import {
 } from "./components/FileMentionPopover";
 import { ModelPicker } from "./components/ModelPicker";
 import { PermissionModePicker } from "./components/PermissionModePicker";
+import { SlashCommandInput } from "./components/SlashCommandInput";
 import { MODELS } from "./constants";
 import { useClaudeCodeHistory } from "./hooks/useClaudeCodeHistory";
+import type { SlashCommand } from "./hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "./types";
 
 interface ChatInterfaceProps {
@@ -53,6 +55,7 @@ export function ChatInterface({
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
+	const [isSending, setIsSending] = useState(false);
 
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 
@@ -188,12 +191,21 @@ export function ChatInterface({
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			if (!message.text.trim()) return;
+			setIsSending(true);
 			sendMessage(message.text).catch((err) => {
 				console.error("[chat] Send failed:", err);
+				setIsSending(false);
 			});
 		},
 		[sendMessage],
 	);
+
+	// Clear isSending once the server starts streaming (isLoading takes over)
+	useEffect(() => {
+		if (isLoading) {
+			setIsSending(false);
+		}
+	}, [isLoading]);
 
 	const handleApprove = useCallback(
 		(approvalId: string) => {
@@ -259,6 +271,13 @@ export function ChatInterface({
 		[stop],
 	);
 
+	const handleSlashCommandSend = useCallback(
+		(command: SlashCommand) => {
+			handleSend({ text: `/${command.name}` });
+		},
+		[handleSend],
+	);
+
 	return (
 		<div className="flex h-full flex-col bg-background">
 			{connectionStatus !== "connected" &&
@@ -286,13 +305,11 @@ export function ChatInterface({
 							/>
 						))
 					)}
-					{isLoading && (
+					{(isSending || isLoading) && (
 						<Message from="assistant">
-							<MessageContent>
-								<Shimmer className="text-sm" duration={1.5}>
-									Thinking...
-								</Shimmer>
-							</MessageContent>
+							<Shimmer className="text-sm text-muted-foreground" duration={1}>
+								Thinking...
+							</Shimmer>
 						</Message>
 					)}
 				</ConversationContent>
@@ -308,43 +325,48 @@ export function ChatInterface({
 					)}
 					<PromptInputProvider>
 						<FileMentionProvider cwd={cwd}>
-							<FileMentionAnchor>
-								<PromptInput onSubmit={handleSend}>
-									<PromptInputTextarea placeholder="Ask anything..." />
-									<PromptInputFooter>
-										<PromptInputTools>
-											<PromptInputButton>
-												<HiMiniPaperClip className="size-4" />
-											</PromptInputButton>
-											<FileMentionTrigger />
-											<ThinkingToggle
-												enabled={thinkingEnabled}
-												onToggle={handleThinkingToggle}
-											/>
-											<ModelPicker
-												selectedModel={selectedModel}
-												onSelectModel={handleModelSelect}
-												open={modelSelectorOpen}
-												onOpenChange={setModelSelectorOpen}
-											/>
-											<PermissionModePicker
-												selectedMode={permissionMode}
-												onSelectMode={handlePermissionModeSelect}
-											/>
-										</PromptInputTools>
-										<div className="flex items-center gap-1">
-											<ContextIndicator
-												collections={collections}
-												modelId={selectedModel.id}
-											/>
-											<PromptInputSubmit
-												status={isLoading ? "streaming" : undefined}
-												onClick={isLoading ? handleStop : undefined}
-											/>
-										</div>
-									</PromptInputFooter>
-								</PromptInput>
-							</FileMentionAnchor>
+							<SlashCommandInput
+								onCommandSend={handleSlashCommandSend}
+								cwd={cwd}
+							>
+								<FileMentionAnchor>
+									<PromptInput onSubmit={handleSend}>
+										<PromptInputTextarea placeholder="Ask anything..." />
+										<PromptInputFooter>
+											<PromptInputTools>
+												<PromptInputButton>
+													<HiMiniPaperClip className="size-4" />
+												</PromptInputButton>
+												<FileMentionTrigger />
+												<ThinkingToggle
+													enabled={thinkingEnabled}
+													onToggle={handleThinkingToggle}
+												/>
+												<ModelPicker
+													selectedModel={selectedModel}
+													onSelectModel={handleModelSelect}
+													open={modelSelectorOpen}
+													onOpenChange={setModelSelectorOpen}
+												/>
+												<PermissionModePicker
+													selectedMode={permissionMode}
+													onSelectMode={handlePermissionModeSelect}
+												/>
+											</PromptInputTools>
+											<div className="flex items-center gap-1">
+												<ContextIndicator
+													collections={collections}
+													modelId={selectedModel.id}
+												/>
+												<PromptInputSubmit
+													status={isLoading ? "streaming" : undefined}
+													onClick={isLoading ? handleStop : undefined}
+												/>
+											</div>
+										</PromptInputFooter>
+									</PromptInput>
+								</FileMentionAnchor>
+							</SlashCommandInput>
 						</FileMentionProvider>
 					</PromptInputProvider>
 				</div>

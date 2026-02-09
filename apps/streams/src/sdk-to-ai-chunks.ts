@@ -162,11 +162,13 @@ function convertMessage(
 		case "user":
 			return handleUserMessage(message as SDKUserMessage);
 
+		case "assistant":
+			return handleAssistantMessage(state, message);
+
 		case "result":
 			return handleResultMessage(state, message as SDKResultMessage);
 
 		default:
-			// Skip system, assistant, status, hook, and other message types
 			return [];
 	}
 }
@@ -400,6 +402,38 @@ function handleUserMessage(message: SDKUserMessage): StreamChunk[] {
 }
 
 // ============================================================================
+// Assistant Message Handler (non-streamed responses, e.g. slash command output)
+// ============================================================================
+
+function handleAssistantMessage(
+	state: ConversionState,
+	message: SDKMessage,
+): StreamChunk[] {
+	const msg = message as {
+		type: "assistant";
+		message?: { content?: Array<{ type: string; text?: string }> };
+	};
+	const content = msg.message?.content;
+	if (!content || !Array.isArray(content)) return [];
+
+	const now = Date.now();
+	const chunks: StreamChunk[] = [];
+
+	for (const block of content) {
+		if (block.type === "text" && block.text) {
+			chunks.push({
+				type: "TEXT_MESSAGE_CONTENT",
+				messageId: state.messageId,
+				delta: block.text,
+				timestamp: now,
+			} satisfies StreamChunk);
+		}
+	}
+
+	return chunks;
+}
+
+// ============================================================================
 // Result Message Handler
 // ============================================================================
 
@@ -411,6 +445,12 @@ function handleResultMessage(
 	const chunks: StreamChunk[] = [];
 
 	if (message.subtype?.startsWith("error")) {
+		chunks.push({
+			type: "TEXT_MESSAGE_CONTENT",
+			messageId: state.messageId,
+			delta: `Error: ${message.subtype}`,
+			timestamp: now,
+		} satisfies StreamChunk);
 		chunks.push({
 			type: "RUN_ERROR",
 			runId: state.runId,

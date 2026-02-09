@@ -1,3 +1,6 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -11,6 +14,49 @@ import {
 	sessionStore,
 } from "./utils/session-manager";
 
+interface CommandEntry {
+	name: string;
+	description: string;
+	argumentHint: string;
+}
+
+function scanCustomCommands(cwd: string): CommandEntry[] {
+	const dirs = [
+		join(cwd, ".claude", "commands"),
+		join(homedir(), ".claude", "commands"),
+	];
+	const commands: CommandEntry[] = [];
+	const seen = new Set<string>();
+
+	for (const dir of dirs) {
+		if (!existsSync(dir)) continue;
+		try {
+			for (const file of readdirSync(dir)) {
+				if (!file.endsWith(".md")) continue;
+				const name = file.replace(/\.md$/, "");
+				if (seen.has(name)) continue;
+				seen.add(name);
+				const raw = readFileSync(join(dir, file), "utf-8");
+				const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
+				const descMatch = fmMatch?.[1]?.match(/^description:\s*(.+)$/m);
+				const argMatch = fmMatch?.[1]?.match(/^argument-hint:\s*(.+)$/m);
+				commands.push({
+					name,
+					description: descMatch?.[1]?.trim() ?? "",
+					argumentHint: argMatch?.[1]?.trim() ?? "",
+				});
+			}
+		} catch (err) {
+			console.warn(
+				`[ai-chat/scanCustomCommands] Failed to read commands from ${dir}:`,
+				err,
+			);
+		}
+	}
+
+	return commands;
+}
+
 export const createAiChatRouter = () => {
 	return router({
 		getConfig: publicProcedure.query(() => ({
@@ -20,6 +66,12 @@ export const createAiChatRouter = () => {
 				process.env.DURABLE_STREAM_TOKEN ||
 				null,
 		})),
+
+		getSlashCommands: publicProcedure
+			.input(z.object({ cwd: z.string() }))
+			.query(({ input }) => {
+				return { commands: scanCustomCommands(input.cwd) };
+			}),
 
 		startSession: publicProcedure
 			.input(

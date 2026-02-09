@@ -30,10 +30,6 @@ import type {
 } from "../types";
 import { scrollToBottom } from "../utils";
 
-type DebouncedTitleSetter = ((tabId: string, title: string) => void) & {
-	cancel?: () => void;
-};
-
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type UnregisterCallback = (paneId: string) => void;
 
@@ -121,7 +117,7 @@ export interface UseTerminalLifecycleOptions {
 	resetModes: () => void;
 	isAlternateScreenRef: MutableRefObject<boolean>;
 	isBracketedPasteRef: MutableRefObject<boolean>;
-	debouncedSetTabAutoTitleRef: MutableRefObject<DebouncedTitleSetter>;
+	setPaneNameRef: MutableRefObject<(paneId: string, name: string) => void>;
 	renameUnnamedWorkspaceRef: MutableRefObject<(title: string) => void>;
 	handleTerminalFocusRef: MutableRefObject<() => void>;
 	registerClearCallbackRef: MutableRefObject<RegisterCallback>;
@@ -173,7 +169,7 @@ export function useTerminalLifecycle({
 	resetModes,
 	isAlternateScreenRef,
 	isBracketedPasteRef,
-	debouncedSetTabAutoTitleRef,
+	setPaneNameRef,
 	renameUnnamedWorkspaceRef,
 	handleTerminalFocusRef,
 	registerClearCallbackRef,
@@ -319,7 +315,7 @@ export function useTerminalLifecycle({
 				if (!isAlternateScreenRef.current) {
 					const title = sanitizeForTitle(commandBufferRef.current);
 					if (title) {
-						debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
+						setPaneNameRef.current(paneId, title);
 					}
 				}
 				commandBufferRef.current = "";
@@ -466,7 +462,7 @@ export function useTerminalLifecycle({
 		const keyDisposable = xterm.onKey(handleKeyPress);
 		const titleDisposable = xterm.onTitleChange((title) => {
 			if (title) {
-				debouncedSetTabAutoTitleRef.current(tabIdRef.current, title);
+				setPaneNameRef.current(paneId, title);
 				renameUnnamedWorkspaceRef.current(title);
 			}
 		});
@@ -562,7 +558,6 @@ export function useTerminalLifecycle({
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
-			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
 			if (isPaneDestroyedInStore()) {
 				// Pane was explicitly destroyed, so kill the session.
