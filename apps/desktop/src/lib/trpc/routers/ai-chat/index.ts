@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { observable } from "@trpc/server/observable";
+import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -60,8 +61,8 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 export const createAiChatRouter = () => {
 	return router({
 		getConfig: publicProcedure.query(() => ({
-			proxyUrl: process.env.STREAMS_URL || "http://localhost:8080",
-			authToken: process.env.STREAMS_SECRET || null,
+			proxyUrl: env.STREAMS_URL,
+			authToken: env.STREAMS_SECRET,
 		})),
 
 		getSlashCommands: publicProcedure
