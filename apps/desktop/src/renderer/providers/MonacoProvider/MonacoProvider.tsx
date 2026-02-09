@@ -138,13 +138,16 @@ export function useMonacoEditorOptions() {
 
 	return useMemo(() => {
 		if (!fontSettings) return MONACO_EDITOR_OPTIONS;
+		const fontSize =
+			fontSettings.editorFontSize ?? MONACO_EDITOR_OPTIONS.fontSize;
 		return {
 			...MONACO_EDITOR_OPTIONS,
 			...(fontSettings.editorFontFamily && {
 				fontFamily: fontSettings.editorFontFamily,
 			}),
 			...(fontSettings.editorFontSize != null && {
-				fontSize: fontSettings.editorFontSize,
+				fontSize,
+				lineHeight: Math.round(fontSize * 1.5),
 			}),
 		};
 	}, [fontSettings]);
