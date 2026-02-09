@@ -7,13 +7,14 @@ import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
 import { NOTIFICATION_EVENTS, PLATFORM, PORTS } from "shared/constants";
+import type { AgentLifecycleEvent } from "shared/notification-types";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
+import { NotificationManager } from "../lib/notifications/notification-manager";
 import {
-	type AgentLifecycleEvent,
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
@@ -21,7 +22,6 @@ import {
 	extractWorkspaceIdFromUrl,
 	getNotificationTitle,
 	getWorkspaceName,
-	isPaneVisible,
 } from "../lib/notifications/utils";
 import {
 	getInitialWindowBounds,
@@ -55,10 +55,9 @@ function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 	}
 }
 
-// Current window reference - updated on window create/close
 let currentWindow: BrowserWindow | null = null;
 
-// Getter for routers to access current window without stale references
+// Routers receive this getter so they always see the current window, not a stale reference
 const getWindow = () => currentWindow;
 
 // invalidate() alone may not rebuild corrupted GPU layers — a tiny resize
@@ -134,7 +133,6 @@ export async function MainWindow() {
 		});
 	}
 
-	// Start notifications HTTP server
 	const server = notificationsApp.listen(
 		PORTS.NOTIFICATIONS,
 		"127.0.0.1",
@@ -145,68 +143,37 @@ export async function MainWindow() {
 		},
 	);
 
-	// Handle agent lifecycle notifications (Stop = completion, PermissionRequest = needs input)
-	notificationsEmitter.on(
-		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
-		(event: AgentLifecycleEvent) => {
-			// Only notify on Stop (completion) and PermissionRequest - not on Start
-			if (event.eventType === "Start") return;
-
-			// Skip notification if user is already viewing this pane (Slack pattern)
-			if (
-				window.isFocused() &&
-				event.workspaceId &&
-				event.tabId &&
-				event.paneId
-			) {
-				const isVisible = isPaneVisible({
-					currentWorkspaceId: extractWorkspaceIdFromUrl(
-						window.webContents.getURL(),
-					),
-					tabsState: appState.data?.tabsState,
-					pane: {
-						workspaceId: event.workspaceId,
-						tabId: event.tabId,
-						paneId: event.paneId,
-					},
-				});
-				if (isVisible) return;
-			}
-
-			if (!Notification.isSupported()) return;
-
-			const workspaceName = getWorkspaceNameFromDb(event.workspaceId);
-			const title = getNotificationTitle({
+	const notificationManager = new NotificationManager({
+		isSupported: () => Notification.isSupported(),
+		createNotification: (opts) => new Notification(opts),
+		playSound: playNotificationSound,
+		onNotificationClick: (ids) => {
+			window.show();
+			window.focus();
+			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
+		},
+		getVisibilityContext: () => ({
+			isFocused: window.isFocused(),
+			currentWorkspaceId: extractWorkspaceIdFromUrl(
+				window.webContents.getURL(),
+			),
+			tabsState: appState.data?.tabsState,
+		}),
+		getWorkspaceName: getWorkspaceNameFromDb,
+		getNotificationTitle: (event) =>
+			getNotificationTitle({
 				tabId: event.tabId,
 				paneId: event.paneId,
 				tabs: appState.data?.tabsState?.tabs,
 				panes: appState.data?.tabsState?.panes,
-			});
+			}),
+	});
+	notificationManager.start();
 
-			const isPermissionRequest = event.eventType === "PermissionRequest";
-			const notification = new Notification({
-				title: isPermissionRequest
-					? `Input Needed — ${workspaceName}`
-					: `Agent Complete — ${workspaceName}`,
-				body: isPermissionRequest
-					? `"${title}" needs your attention`
-					: `"${title}" has finished its task`,
-				silent: true,
-			});
-
-			playNotificationSound();
-
-			notification.on("click", () => {
-				window.show();
-				window.focus();
-				notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
-					paneId: event.paneId,
-					tabId: event.tabId,
-					workspaceId: event.workspaceId,
-				});
-			});
-
-			notification.show();
+	notificationsEmitter.on(
+		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
+		(event: AgentLifecycleEvent) => {
+			notificationManager.handleAgentLifecycle(event);
 		},
 	);
 
@@ -244,11 +211,9 @@ export async function MainWindow() {
 
 	window.webContents.on("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
-		// Restore maximized state if it was saved
 		if (initialBounds.isMaximized) {
 			window.maximize();
 		}
-		// Restore zoom level if it was saved
 		if (savedWindowState?.zoomLevel !== undefined) {
 			window.webContents.setZoomLevel(savedWindowState.zoomLevel);
 		}
@@ -292,12 +257,12 @@ export async function MainWindow() {
 		});
 
 		server.close();
+		notificationManager.dispose();
 		notificationsEmitter.removeAllListeners();
 		// Remove terminal listeners to prevent duplicates when window reopens on macOS
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		// Detach window from IPC handler (handler stays alive for window reopen)
 		ipcHandler?.detachWindow(window);
-		// Clear current window reference
 		currentWindow = null;
 	});
 
