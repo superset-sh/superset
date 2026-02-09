@@ -416,7 +416,7 @@ jobs:
         run: |
           flyctl secrets set \
             ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
-            DURABLE_STREAM_AUTH_TOKEN="${{ secrets.DURABLE_STREAM_AUTH_TOKEN }}" \
+            STREAMS_SECRET="${{ secrets.STREAMS_SECRET }}" \
             --app superset-stream
 
   deploy-docs:

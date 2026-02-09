@@ -2,9 +2,8 @@ import { EventEmitter } from "node:events";
 import type { AgentProvider } from "../agent-provider";
 import type { SessionStore } from "../session-store";
 
-const PROXY_URL = process.env.DURABLE_STREAM_URL || "http://localhost:8080";
-const DURABLE_STREAM_AUTH_TOKEN =
-	process.env.DURABLE_STREAM_AUTH_TOKEN || process.env.DURABLE_STREAM_TOKEN;
+const PROXY_URL = process.env.STREAMS_URL || "http://localhost:8080";
+const STREAMS_SECRET = process.env.STREAMS_SECRET;
 
 /**
  * Set, clear, or skip a field on a body template.
@@ -29,8 +28,8 @@ function buildProxyHeaders(): Record<string, string> {
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
 	};
-	if (DURABLE_STREAM_AUTH_TOKEN) {
-		headers.Authorization = `Bearer ${DURABLE_STREAM_AUTH_TOKEN}`;
+	if (STREAMS_SECRET) {
+		headers.Authorization = `Bearer ${STREAMS_SECRET}`;
 	}
 	return headers;
 }

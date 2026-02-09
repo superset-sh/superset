@@ -60,11 +60,8 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 export const createAiChatRouter = () => {
 	return router({
 		getConfig: publicProcedure.query(() => ({
-			proxyUrl: process.env.DURABLE_STREAM_URL || "http://localhost:8080",
-			authToken:
-				process.env.DURABLE_STREAM_AUTH_TOKEN ||
-				process.env.DURABLE_STREAM_TOKEN ||
-				null,
+			proxyUrl: process.env.STREAMS_URL || "http://localhost:8080",
+			authToken: process.env.STREAMS_SECRET || null,
 		})),
 
 		getSlashCommands: publicProcedure
