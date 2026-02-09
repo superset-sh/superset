@@ -94,13 +94,10 @@ export function useAgentHookListener() {
 					state.setPaneStatus(paneId, "idle");
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
-				const tabIdToActivate = target.tabId ?? event.data?.tabId;
-				const paneIdToFocus = target.paneId ?? event.data?.paneId;
-
 				navigateToWorkspace(workspaceId, navigate, {
 					search: {
-						tabId: tabIdToActivate,
-						paneId: paneIdToFocus,
+						tabId: target.tabId,
+						paneId: target.paneId,
 					},
 				});
 			}
