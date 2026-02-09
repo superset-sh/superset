@@ -31,8 +31,6 @@ export function WorkspaceInitEffects() {
 	const processingRef = useRef<Set<string>>(new Set());
 
 	const addTab = useTabsStore((state) => state.addTab);
-	const addPane = useTabsStore((state) => state.addPane);
-	const addPanesToTab = useTabsStore((state) => state.addPanesToTab);
 	const addTabWithMultiplePanes = useTabsStore(
 		(state) => state.addTabWithMultiplePanes,
 	);
@@ -45,25 +43,9 @@ export function WorkspaceInitEffects() {
 		(
 			workspaceId: string,
 			preset: NonNullable<PendingTerminalSetup["defaultPreset"]>,
-			existingTabId?: string,
 		) => {
 			const isParallel =
 				preset.executionMode === "parallel" && preset.commands.length > 1;
-
-			if (existingTabId) {
-				if (isParallel) {
-					addPanesToTab(existingTabId, {
-						commands: preset.commands,
-						initialCwd: preset.cwd || undefined,
-					});
-				} else {
-					addPane(existingTabId, {
-						initialCommands: preset.commands,
-						initialCwd: preset.cwd || undefined,
-					});
-				}
-				return;
-			}
 
 			if (isParallel) {
 				const options: AddTabWithMultiplePanesOptions = {
@@ -80,7 +62,7 @@ export function WorkspaceInitEffects() {
 				renameTab(tabId, preset.name);
 			}
 		},
-		[addTab, addPane, addPanesToTab, addTabWithMultiplePanes, renameTab],
+		[addTab, addTabWithMultiplePanes, renameTab],
 	);
 
 	const handleTerminalSetup = useCallback(
@@ -99,11 +81,9 @@ export function WorkspaceInitEffects() {
 					setup.workspaceId,
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
-				// Add first preset to the setup tab
-				createPresetTerminal(setup.workspaceId, presets[0], setupTabId);
-				// Additional presets get their own tabs
-				for (let i = 1; i < presets.length; i++) {
-					createPresetTerminal(setup.workspaceId, presets[i]);
+				// Each preset gets its own tab
+				for (const preset of presets) {
+					createPresetTerminal(setup.workspaceId, preset);
 				}
 
 				createOrAttach.mutate(
