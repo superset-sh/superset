@@ -1,5 +1,4 @@
 import { mergeRouters } from "../..";
-import { createBranchProcedures } from "./procedures/branch";
 import { createCreateProcedures } from "./procedures/create";
 import { createDeleteProcedures } from "./procedures/delete";
 import { createGitStatusProcedures } from "./procedures/git-status";
@@ -14,7 +13,6 @@ import { createStatusProcedures } from "./procedures/status";
  * - create: create, createBranchWorkspace, openWorktree
  * - delete: delete, close, canDelete
  * - query: get, getAll, getAllGrouped
- * - branch: getBranches, switchBranchWorkspace
  * - git-status: refreshGitStatus, getGitHubStatus, getWorktreeInfo, getWorktreesByProject
  * - status: reorder, update, setUnread
  * - init: onInitProgress, retryInit, getInitProgress, getSetupCommands
@@ -24,7 +22,6 @@ export const createWorkspacesRouter = () => {
 		createCreateProcedures(),
 		createDeleteProcedures(),
 		createQueryProcedures(),
-		createBranchProcedures(),
 		createGitStatusProcedures(),
 		createStatusProcedures(),
 		createInitProcedures(),

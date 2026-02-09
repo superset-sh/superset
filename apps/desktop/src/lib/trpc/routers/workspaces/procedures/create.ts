@@ -519,8 +519,7 @@ export const createCreateProcedures = () => {
 						existingBranchWorkspace.branch !== branch
 					) {
 						throw new Error(
-							`A main workspace already exists on branch "${existingBranchWorkspace.branch}". ` +
-								`Use the branch switcher to change branches.`,
+							`A main workspace already exists on branch "${existingBranchWorkspace.branch}".`,
 						);
 					}
 					await safeCheckoutBranch(project.mainRepoPath, input.branch);
