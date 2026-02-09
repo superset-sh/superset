@@ -299,6 +299,16 @@ step_start_electric() {
   return 0
 }
 
+step_setup_streams() {
+  echo "🔄 Setting up Streams secret..."
+
+  STREAMS_SECRET=$(openssl rand -hex 32)
+  export STREAMS_SECRET
+
+  success "Streams secret generated"
+  return 0
+}
+
 step_write_env() {
   echo "📝 Writing .env file..."
 
@@ -341,6 +351,10 @@ step_write_env() {
     if [ -n "${ELECTRIC_SECRET:-}" ]; then
       echo "ELECTRIC_SECRET=$ELECTRIC_SECRET"
     fi
+
+    echo ""
+    echo "# Workspace Streams (AI Chat Server)"
+    echo "STREAMS_SECRET=$STREAMS_SECRET"
   } >> .env
 
   success "Workspace .env written"
@@ -376,7 +390,12 @@ main() {
     step_failed "Start Electric SQL"
   fi
 
-  # Step 6: Write .env file
+  # Step 6: Setup Streams secret
+  if ! step_setup_streams; then
+    step_failed "Setup Streams secret"
+  fi
+
+  # Step 7: Write .env file
   if ! step_write_env; then
     step_failed "Write .env file"
   fi
