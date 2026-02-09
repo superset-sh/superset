@@ -2,23 +2,17 @@ import type { TerminalPreset } from "@superset/local-db";
 import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { usePresets } from "renderer/react-query/presets";
-import { DEFAULT_APPLY_PRESET_ON_NEW_TAB } from "shared/constants";
 import { useTabsStore } from "./store";
 import type { AddTabOptions } from "./types";
 
 /**
  * Hook that wraps tab store actions with default preset support.
- * When a default preset is configured, new terminals will automatically
- * use that preset's commands and cwd.
+ * When a preset with applyOnNewTab is configured, new terminals will
+ * automatically use that preset's commands and cwd.
  */
 export function useTabsWithPresets() {
-	const { defaultPreset } = usePresets();
-
-	const { data: applyPresetOnNewTab } =
-		electronTrpc.settings.getApplyPresetOnNewTab.useQuery();
-	const isNewTabPresetEnabled =
-		applyPresetOnNewTab ?? DEFAULT_APPLY_PRESET_ON_NEW_TAB;
+	const { data: newTabPreset } =
+		electronTrpc.settings.getNewTabPreset.useQuery();
 
 	const storeAddTab = useTabsStore((s) => s.addTab);
 	const storeAddTabWithMultiplePanes = useTabsStore(
@@ -31,20 +25,19 @@ export function useTabsWithPresets() {
 	const renameTab = useTabsStore((s) => s.renameTab);
 
 	const defaultPresetOptions: AddTabOptions | undefined = useMemo(() => {
-		if (!isNewTabPresetEnabled || !defaultPreset) return undefined;
+		if (!newTabPreset) return undefined;
 		return {
-			initialCommands: defaultPreset.commands,
-			initialCwd: defaultPreset.cwd || undefined,
+			initialCommands: newTabPreset.commands,
+			initialCwd: newTabPreset.cwd || undefined,
 		};
-	}, [isNewTabPresetEnabled, defaultPreset]);
+	}, [newTabPreset]);
 
 	const shouldUseParallelMode = useMemo(() => {
 		return (
-			isNewTabPresetEnabled &&
-			defaultPreset?.executionMode === "parallel" &&
-			defaultPreset.commands.length > 1
+			newTabPreset?.executionMode === "parallel" &&
+			(newTabPreset?.commands.length ?? 0) > 1
 		);
-	}, [isNewTabPresetEnabled, defaultPreset]);
+	}, [newTabPreset]);
 
 	const addTab = useCallback(
 		(workspaceId: string, options?: AddTabOptions) => {
@@ -52,14 +45,14 @@ export function useTabsWithPresets() {
 				return storeAddTab(workspaceId, options);
 			}
 
-			if (shouldUseParallelMode && defaultPreset) {
+			if (shouldUseParallelMode && newTabPreset) {
 				const { tabId, paneIds } = storeAddTabWithMultiplePanes(workspaceId, {
-					commands: defaultPreset.commands,
-					initialCwd: defaultPreset.cwd || undefined,
+					commands: newTabPreset.commands,
+					initialCwd: newTabPreset.cwd || undefined,
 				});
 
-				if (defaultPreset.name) {
-					renameTab(tabId, defaultPreset.name);
+				if (newTabPreset.name) {
+					renameTab(tabId, newTabPreset.name);
 				}
 
 				return { tabId, paneId: paneIds[0] };
@@ -67,8 +60,8 @@ export function useTabsWithPresets() {
 
 			const result = storeAddTab(workspaceId, defaultPresetOptions);
 
-			if (isNewTabPresetEnabled && defaultPreset?.name) {
-				renameTab(result.tabId, defaultPreset.name);
+			if (newTabPreset?.name) {
+				renameTab(result.tabId, newTabPreset.name);
 			}
 
 			return result;
@@ -77,9 +70,8 @@ export function useTabsWithPresets() {
 			storeAddTab,
 			storeAddTabWithMultiplePanes,
 			defaultPresetOptions,
-			defaultPreset,
+			newTabPreset,
 			shouldUseParallelMode,
-			isNewTabPresetEnabled,
 			renameTab,
 		],
 	);
@@ -179,6 +171,6 @@ export function useTabsWithPresets() {
 		splitPaneHorizontal,
 		splitPaneAuto,
 		openPreset,
-		defaultPreset,
+		defaultPreset: newTabPreset,
 	};
 }

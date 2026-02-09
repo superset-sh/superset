@@ -34,10 +34,11 @@ export function AutoApplyPresetSetting() {
 		<div className="flex items-center justify-between">
 			<div className="space-y-0.5">
 				<Label htmlFor="auto-apply-preset" className="text-sm font-medium">
-					Apply preset on workspace creation
+					Auto-apply default preset
 				</Label>
 				<p className="text-xs text-muted-foreground">
-					Automatically apply your default preset when creating new workspaces
+					Automatically apply the workspace creation preset when creating new
+					workspaces
 				</p>
 			</div>
 			<Switch

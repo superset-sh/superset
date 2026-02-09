@@ -65,6 +65,24 @@ function useSetDefaultPreset(
 	});
 }
 
+function useSetPresetAutoApply(
+	options?: Parameters<
+		typeof electronTrpc.settings.setPresetAutoApply.useMutation
+	>[0],
+) {
+	const utils = electronTrpc.useUtils();
+
+	return electronTrpc.settings.setPresetAutoApply.useMutation({
+		...options,
+		onSuccess: async (...args) => {
+			await utils.settings.getTerminalPresets.invalidate();
+			await utils.settings.getWorkspaceCreationPreset.invalidate();
+			await utils.settings.getNewTabPreset.invalidate();
+			await options?.onSuccess?.(...args);
+		},
+	});
+}
+
 function useReorderTerminalPresets(
 	options?: Parameters<
 		typeof electronTrpc.settings.reorderTerminalPresets.useMutation
@@ -96,6 +114,7 @@ export function usePresets() {
 	const updatePreset = useUpdateTerminalPreset();
 	const deletePreset = useDeleteTerminalPreset();
 	const setDefaultPreset = useSetDefaultPreset();
+	const setPresetAutoApply = useSetPresetAutoApply();
 	const reorderPresets = useReorderTerminalPresets();
 
 	return {
@@ -106,6 +125,7 @@ export function usePresets() {
 		updatePreset,
 		deletePreset,
 		setDefaultPreset,
+		setPresetAutoApply,
 		reorderPresets,
 	};
 }

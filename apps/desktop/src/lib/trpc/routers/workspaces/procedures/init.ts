@@ -13,7 +13,11 @@ function getDefaultPreset() {
 	const row = localDb.select().from(settings).get();
 	if (!row) return null;
 	const presets = row.terminalPresets ?? [];
-	return presets.find((p) => p.isDefault) ?? null;
+	return (
+		presets.find((p) => p.applyOnWorkspaceCreated) ??
+		presets.find((p) => p.isDefault) ??
+		null
+	);
 }
 
 export const createInitProcedures = () => {

@@ -11,7 +11,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiOutlineStar, HiStar } from "react-icons/hi2";
+import { HiOutlineDocumentPlus, HiOutlineFolderPlus } from "react-icons/hi2";
 import { LuGripVertical, LuTrash } from "react-icons/lu";
 import {
 	PRESET_COLUMNS,
@@ -67,6 +67,8 @@ function PresetCell({
 	);
 }
 
+type AutoApplyField = "applyOnWorkspaceCreated" | "applyOnNewTab";
+
 interface PresetRowProps {
 	preset: TerminalPreset;
 	rowIndex: number;
@@ -77,7 +79,7 @@ interface PresetRowProps {
 	onCommandsBlur: (rowIndex: number) => void;
 	onExecutionModeChange: (rowIndex: number, mode: ExecutionMode) => void;
 	onDelete: (rowIndex: number) => void;
-	onSetDefault: (presetId: string | null) => void;
+	onToggleAutoApply: (presetId: string | null, field: AutoApplyField) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
 }
@@ -92,7 +94,7 @@ export function PresetRow({
 	onCommandsBlur,
 	onExecutionModeChange,
 	onDelete,
-	onSetDefault,
+	onToggleAutoApply,
 	onLocalReorder,
 	onPersistReorder,
 }: PresetRowProps) {
@@ -130,9 +132,12 @@ export function PresetRow({
 		drag(dragHandleRef);
 	}, [preview, drop, drag]);
 
-	const handleToggleDefault = () => {
-		onSetDefault(preset.isDefault ? null : preset.id);
-	};
+	const isWorkspaceCreation =
+		preset.applyOnWorkspaceCreated ||
+		(!preset.applyOnNewTab && preset.isDefault);
+	const isNewTab =
+		preset.applyOnNewTab ||
+		(!preset.applyOnWorkspaceCreated && preset.isDefault);
 
 	return (
 		<div
@@ -178,29 +183,52 @@ export function PresetRow({
 					</SelectContent>
 				</Select>
 			</div>
-			<div className="w-20 flex justify-center gap-1 shrink-0 pt-1">
+			<div className="w-[7rem] flex justify-center gap-0.5 shrink-0 pt-1">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={handleToggleDefault}
-							className={`h-8 w-8 p-0 ${preset.isDefault ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-foreground"}`}
+							onClick={() =>
+								onToggleAutoApply(
+									isWorkspaceCreation ? null : preset.id,
+									"applyOnWorkspaceCreated",
+								)
+							}
+							className={`h-8 w-8 p-0 ${isWorkspaceCreation ? "text-blue-500 hover:text-blue-600" : "text-muted-foreground hover:text-foreground"}`}
 							aria-label={
-								preset.isDefault ? "Remove default" : "Set as default"
+								isWorkspaceCreation
+									? "Remove from workspace creation"
+									: "Apply on workspace creation"
 							}
 						>
-							{preset.isDefault ? (
-								<HiStar className="h-4 w-4" />
-							) : (
-								<HiOutlineStar className="h-4 w-4" />
-							)}
+							<HiOutlineFolderPlus className="h-4 w-4" />
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="top">
-						{preset.isDefault
-							? "Remove as default"
-							: "Set as default for new terminals"}
+						{isWorkspaceCreation
+							? "Applied on workspace creation (click to remove)"
+							: "Apply on workspace creation"}
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() =>
+								onToggleAutoApply(isNewTab ? null : preset.id, "applyOnNewTab")
+							}
+							className={`h-8 w-8 p-0 ${isNewTab ? "text-green-500 hover:text-green-600" : "text-muted-foreground hover:text-foreground"}`}
+							aria-label={isNewTab ? "Remove from new tab" : "Apply on new tab"}
+						>
+							<HiOutlineDocumentPlus className="h-4 w-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						{isNewTab
+							? "Applied on new tab (click to remove)"
+							: "Apply on new tab"}
 					</TooltipContent>
 				</Tooltip>
 				<Button

@@ -4,7 +4,6 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { ApplyPresetOnNewTabSetting } from "./components/ApplyPresetOnNewTabSetting";
 import { AutoApplyPresetSetting } from "./components/AutoApplyPresetSetting";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
@@ -48,10 +47,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
 		visibleItems,
 	);
-	const showApplyPresetOnNewTab = isItemVisible(
-		SETTING_ITEM_ID.TERMINAL_APPLY_PRESET_ON_NEW_TAB,
-		visibleItems,
-	);
 	const showLinkBehavior = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR,
 		visibleItems,
@@ -79,9 +74,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 					/>
 				)}
 				{showAutoApplyPreset && <AutoApplyPresetSetting key="auto-apply" />}
-				{showApplyPresetOnNewTab && (
-					<ApplyPresetOnNewTabSetting key="apply-on-new-tab" />
-				)}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
 				{showSessions && <SessionsSection key="sessions" />}
 			</SectionList>

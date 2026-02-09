@@ -95,7 +95,7 @@ export function PresetsSection({
 		createPreset,
 		updatePreset,
 		deletePreset,
-		setDefaultPreset,
+		setPresetAutoApply,
 		reorderPresets,
 	} = usePresets();
 
@@ -257,11 +257,14 @@ export function PresetsSection({
 		[deletePreset],
 	);
 
-	const handleSetDefault = useCallback(
-		(presetId: string | null) => {
-			setDefaultPreset.mutate({ id: presetId });
+	const handleToggleAutoApply = useCallback(
+		(
+			presetId: string | null,
+			field: "applyOnWorkspaceCreated" | "applyOnNewTab",
+		) => {
+			setPresetAutoApply.mutate({ id: presetId, field });
 		},
-		[setDefaultPreset],
+		[setPresetAutoApply],
 	);
 
 	const handleLocalReorder = useCallback(
@@ -376,7 +379,7 @@ export function PresetsSection({
 								</p>
 							</TooltipContent>
 						</Tooltip>
-						<div className="w-20 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
+						<div className="w-[7rem] text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
 							Actions
 						</div>
 					</div>
@@ -402,7 +405,7 @@ export function PresetsSection({
 									onCommandsBlur={handleCommandsBlur}
 									onExecutionModeChange={handleExecutionModeChange}
 									onDelete={handleDeleteRow}
-									onSetDefault={handleSetDefault}
+									onToggleAutoApply={handleToggleAutoApply}
 									onLocalReorder={handleLocalReorder}
 									onPersistReorder={handlePersistReorder}
 								/>
