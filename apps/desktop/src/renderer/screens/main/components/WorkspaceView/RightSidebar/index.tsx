@@ -27,12 +27,34 @@ function TabButton({
 	onClick,
 	icon,
 	label,
+	compact,
 }: {
 	isActive: boolean;
 	onClick: () => void;
 	icon: React.ReactNode;
 	label: string;
+	compact?: boolean;
 }) {
+	if (compact) {
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={onClick}
+						className={`size-6 p-0 ${isActive ? "bg-muted" : ""}`}
+					>
+						{icon}
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					{label}
+				</TooltipContent>
+			</Tooltip>
+		);
+	}
+
 	return (
 		<Button
 			variant="ghost"
@@ -59,8 +81,10 @@ export function RightSidebar() {
 		setRightSidebarTab,
 		toggleSidebar,
 		setMode,
+		sidebarWidth,
 	} = useSidebarStore();
 	const isExpanded = currentMode === SidebarMode.Changes;
+	const compactTabs = sidebarWidth < 250;
 	const showChangesTab = !!worktreePath;
 
 	const handleExpandToggle = () => {
@@ -124,13 +148,14 @@ export function RightSidebar() {
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<div className="flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-border">
+			<div className="flex items-center gap-1 px-2 py-1.5 border-b border-border">
 				{showChangesTab && (
 					<TabButton
 						isActive={rightSidebarTab === RightSidebarTab.Changes}
 						onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
 						icon={<LuGitCompareArrows className="size-3.5" />}
 						label="Changes"
+						compact={compactTabs}
 					/>
 				)}
 				<TabButton
@@ -138,6 +163,7 @@ export function RightSidebar() {
 					onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
 					icon={<LuFile className="size-3.5" />}
 					label="Files"
+					compact={compactTabs}
 				/>
 				<div className="flex-1" />
 				<Tooltip>
