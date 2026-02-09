@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
 	SETTING_ITEM_ID,
-	searchSettings,
 	type SettingsItem,
+	searchSettings,
 } from "./settings-search";
 
 function getIds(items: SettingsItem[]): string[] {

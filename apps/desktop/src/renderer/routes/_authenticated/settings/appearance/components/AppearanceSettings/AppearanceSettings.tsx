@@ -9,6 +9,11 @@ import {
 } from "@superset/ui/select";
 import { useCallback, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { MONACO_EDITOR_OPTIONS } from "renderer/providers/MonacoProvider";
+import {
+	DEFAULT_TERMINAL_FONT_FAMILY,
+	DEFAULT_TERMINAL_FONT_SIZE,
+} from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/config";
 import {
 	type MarkdownStyle,
 	SYSTEM_THEME_ID,
@@ -27,12 +32,8 @@ import {
 import { SystemThemeCard } from "./components/SystemThemeCard";
 import { ThemeCard } from "./components/ThemeCard";
 
-const DEFAULT_EDITOR_FONT_FAMILY =
-	"ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace";
-const DEFAULT_EDITOR_FONT_SIZE = 13;
-const DEFAULT_TERMINAL_FONT_FAMILY =
-	"MesloLGM Nerd Font, MesloLGM NF, Menlo, Monaco, monospace";
-const DEFAULT_TERMINAL_FONT_SIZE = 14;
+const DEFAULT_EDITOR_FONT_FAMILY = MONACO_EDITOR_OPTIONS.fontFamily;
+const DEFAULT_EDITOR_FONT_SIZE = MONACO_EDITOR_OPTIONS.fontSize;
 
 const FONT_PREVIEW_TEXT =
 	"The quick brown fox jumps over the lazy dog.\n0O1lI {}[]() => !== +- @#$%";
@@ -253,7 +254,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						<div className="flex items-center gap-2">
 							<Input
 								placeholder={DEFAULT_EDITOR_FONT_FAMILY}
-								defaultValue={fontSettings?.editorFontFamily ?? ""}
+								value={editorFontDraft ?? fontSettings?.editorFontFamily ?? ""}
 								onChange={(e) => setEditorFontDraft(e.target.value)}
 								onBlur={(e) => {
 									handleEditorFontFamilyBlur(e);
@@ -321,7 +322,9 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						<div className="flex items-center gap-2">
 							<Input
 								placeholder={DEFAULT_TERMINAL_FONT_FAMILY}
-								defaultValue={fontSettings?.terminalFontFamily ?? ""}
+								value={
+									terminalFontDraft ?? fontSettings?.terminalFontFamily ?? ""
+								}
 								onChange={(e) => setTerminalFontDraft(e.target.value)}
 								onBlur={(e) => {
 									handleTerminalFontFamilyBlur(e);
