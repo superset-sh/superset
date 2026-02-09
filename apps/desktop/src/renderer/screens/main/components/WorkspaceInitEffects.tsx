@@ -9,10 +9,7 @@ import {
 } from "renderer/stores/workspace-init";
 import { DEFAULT_AUTO_APPLY_DEFAULT_PRESET } from "shared/constants";
 
-/**
- * Handles terminal setup when workspaces become ready.
- * Mounted at app root to survive dialog unmounts.
- */
+/** Mounted at app root to survive dialog unmounts. */
 export function WorkspaceInitEffects() {
 	const initProgress = useWorkspaceInitStore((s) => s.initProgress);
 	const pendingTerminalSetups = useWorkspaceInitStore(
@@ -81,7 +78,6 @@ export function WorkspaceInitEffects() {
 					setup.workspaceId,
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
-				// Each preset gets its own tab
 				for (const preset of presets) {
 					createPresetTerminal(setup.workspaceId, preset);
 				}
@@ -161,7 +157,6 @@ export function WorkspaceInitEffects() {
 				return;
 			}
 
-			// No setup script or presets — sidebar card handles the prompt
 			onComplete();
 		},
 		[
@@ -181,7 +176,6 @@ export function WorkspaceInitEffects() {
 				continue;
 			}
 
-			// No initProgress means workspace is already initialized — process immediately
 			if (!progress) {
 				processingRef.current.add(workspaceId);
 				handleTerminalSetup(setup, () => {
