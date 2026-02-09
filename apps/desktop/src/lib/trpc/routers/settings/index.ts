@@ -20,6 +20,10 @@ import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
+import {
+	setFontSettingsSchema,
+	transformFontSettings,
+} from "./font-settings.utils";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
@@ -506,40 +510,12 @@ export const createSettingsRouter = () => {
 		}),
 
 		setFontSettings: publicProcedure
-			.input(
-				z.object({
-					terminalFontFamily: z.string().nullable().optional(),
-					terminalFontSize: z
-						.number()
-						.int()
-						.min(10)
-						.max(24)
-						.nullable()
-						.optional(),
-					editorFontFamily: z.string().nullable().optional(),
-					editorFontSize: z
-						.number()
-						.int()
-						.min(10)
-						.max(24)
-						.nullable()
-						.optional(),
-				}),
-			)
+			.input(setFontSettingsSchema)
 			.mutation(({ input }) => {
-				const set: Record<string, string | number | null> = {};
+				const set = transformFontSettings(input);
 
-				if (input.terminalFontFamily !== undefined) {
-					set.terminalFontFamily = input.terminalFontFamily?.trim() || null;
-				}
-				if (input.terminalFontSize !== undefined) {
-					set.terminalFontSize = input.terminalFontSize;
-				}
-				if (input.editorFontFamily !== undefined) {
-					set.editorFontFamily = input.editorFontFamily?.trim() || null;
-				}
-				if (input.editorFontSize !== undefined) {
-					set.editorFontSize = input.editorFontSize;
+				if (Object.keys(set).length === 0) {
+					return { success: true };
 				}
 
 				localDb
