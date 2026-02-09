@@ -183,15 +183,29 @@ export const createSettingsRouter = () => {
 				const row = getSettings();
 				const presets = row.terminalPresets ?? [];
 
-				const updatedPresets = presets.map((p) => ({
-					...p,
-					[input.field]:
-						p.id === input.id
-							? input.enabled
-								? true
-								: undefined
-							: p[input.field as keyof typeof p],
-				}));
+				const updatedPresets = presets.map((p) => {
+					if (p.id !== input.id) return p;
+
+					// Migrate legacy isDefault preset to explicit fields on first toggle
+					const needsMigration =
+						p.isDefault &&
+						p.applyOnWorkspaceCreated === undefined &&
+						p.applyOnNewTab === undefined;
+
+					const base = needsMigration
+						? {
+								...p,
+								isDefault: undefined,
+								applyOnWorkspaceCreated: true as const,
+								applyOnNewTab: true as const,
+							}
+						: p;
+
+					return {
+						...base,
+						[input.field]: input.enabled ? true : undefined,
+					};
+				});
 
 				localDb
 					.insert(settings)
