@@ -398,6 +398,28 @@ jobs:
             --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL
 
+  deploy-streams:
+    name: Deploy Streams to Fly.io
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Stage secrets
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl secrets set \
+            ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
+            STREAMS_SECRET="${{ secrets.STREAMS_SECRET }}" \
+            --app superset-stream \
+            --stage
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --config apps/streams/fly.toml --remote-only
+
   deploy-docs:
     name: Deploy Docs to Vercel
     runs-on: ubuntu-latest

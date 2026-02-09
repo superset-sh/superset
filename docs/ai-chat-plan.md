@@ -352,38 +352,36 @@ import type { SessionDB, MessageRow, ModelMessage } from '@superset/durable-sess
 
 #### New entrypoint: `apps/streams/src/index.ts`
 
-Based on vendored `dev.ts` pattern, combined with existing DurableStreamTestServer:
+Based on vendored `dev.ts` pattern, combined with existing DurableStreamTestServer. All env vars are validated via `env.ts` (required, no defaults).
 
 ```typescript
-import { serve } from '@hono/node-server'
 import { DurableStreamTestServer } from '@durable-streams/server'
+import { serve } from '@hono/node-server'
+import { claudeAgentApp } from './claude-agent'
+import { env } from './env'
 import { createServer } from './server'
 
-const PORT = parseInt(process.env.PORT ?? '8080', 10)
-const INTERNAL_PORT = parseInt(process.env.INTERNAL_PORT ?? '8081', 10)
-const DURABLE_STREAMS_URL = process.env.DURABLE_STREAMS_URL ?? `http://127.0.0.1:${INTERNAL_PORT}`
-
-// Start internal durable stream server
-const durableStreamServer = new DurableStreamTestServer({ port: INTERNAL_PORT })
+const durableStreamServer = new DurableStreamTestServer({
+  port: env.STREAMS_INTERNAL_PORT,
+  dataDir: env.STREAMS_DATA_DIR,
+})
 await durableStreamServer.start()
-console.log(`[streams] Durable stream server on port ${INTERNAL_PORT}`)
 
-// Start proxy server
 const { app } = createServer({
-  baseUrl: DURABLE_STREAMS_URL,
+  baseUrl: env.STREAMS_INTERNAL_URL,
   cors: true,
   logging: true,
+  authToken: env.STREAMS_SECRET,
 })
 
-serve({ fetch: app.fetch, port: PORT }, (info) => {
-  console.log(`[streams] Proxy running on http://localhost:${info.port}`)
-})
+serve({ fetch: app.fetch, port: env.PORT })
+serve({ fetch: claudeAgentApp.fetch, port: env.STREAMS_AGENT_PORT })
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  await durableStreamServer.stop()
-  process.exit(0)
-})
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, async () => {
+    /* graceful shutdown */
+  })
+}
 ```
 
 #### Key Protocol Internals (`protocol.ts`, ~917 lines)
@@ -450,12 +448,9 @@ app.post('/', async (c) => {
     prompt,
     options: {
       ...(claudeSessionId && { resume: claudeSessionId }),
-      model: process.env.CLAUDE_MODEL ?? 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-5-20250929',
       maxTurns: 25,
-      allowedTools: ['computer', 'bash', 'edit', 'browser'],
     },
-    executable: process.env.CLAUDE_BINARY_PATH,
-    env: buildClaudeEnv(), // Auth env vars from desktop
     abortSignal: c.req.raw.signal,
   })
 
@@ -511,10 +506,6 @@ await protocol.registerAgent(sessionId, {
 ```
 
 **Session state:** Maintains `Map<sessionId, claudeSessionId>` for multi-turn resume.
-
-**Binary path:** From `CLAUDE_BINARY_PATH` env var (set by desktop app when starting streams process).
-
-**Auth:** From `CLAUDE_AUTH_*` env vars forwarded from desktop process via `buildClaudeEnv()`.
 
 **Abort handling:** When proxy calls `stopGeneration()`, it aborts the fetch to this endpoint. The agent detects the abort via `c.req.raw.signal` and the `query()` call is interrupted.
 
@@ -637,7 +628,7 @@ import { useDurableChat, ChatInput, PresenceBar } from '@superset/durable-sessio
 **New session manager** — thin HTTP orchestrator:
 
 ```typescript
-const PROXY_URL = process.env.DURABLE_STREAM_URL ?? 'http://localhost:8080'
+const PROXY_URL = process.env.STREAMS_URL || 'http://localhost:8080'
 
 export class ClaudeSessionManager extends EventEmitter {
   private activeSessions = new Map<string, { sessionId: string }>()
@@ -797,10 +788,10 @@ apps/desktop/src/renderer/.../ChatPane/
 
 ### Environment variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DURABLE_STREAM_URL` | `http://localhost:8080` | Proxy URL exposed via tRPC `getConfig` query |
-| `DURABLE_STREAM_AUTH_TOKEN` | — | Optional Bearer token for authenticated proxy |
+| Variable | Description |
+|----------|-------------|
+| `STREAMS_URL` | Proxy URL exposed via tRPC `getConfig` query |
+| `STREAMS_SECRET` | Bearer token for authenticated proxy |
 
 ---
 
@@ -843,20 +834,21 @@ Web uses same `useDurableChat` hook pointing at deployed proxy URL.
 
 ## Environment Variables
 
+All env vars are required — the streams server throws at startup if any are missing.
+
 ```bash
-# Desktop
-DURABLE_STREAM_URL=http://localhost:8080      # Proxy URL (local dev)
-CLAUDE_BINARY_PATH=...                        # Set by desktop when starting streams
-CLAUDE_AUTH_TOKEN=...                         # Forwarded from desktop auth
+# Streams server (apps/streams)
+PORT=8080                                          # Proxy port (set by Fly.io in production)
+STREAMS_INTERNAL_PORT=8081                         # Internal durable stream server port
+STREAMS_AGENT_PORT=9090                            # Claude agent endpoint port
+STREAMS_INTERNAL_URL=http://127.0.0.1:8081         # Internal durable stream server URL
+STREAMS_DATA_DIR=/data                             # Data directory for LMDB + session persistence
+STREAMS_SECRET=<random-64-char-token>              # Bearer token for /v1/* route auth
+ANTHROPIC_API_KEY=sk-ant-...                       # Claude API key
 
-# Streams server
-PORT=8080                                     # Proxy port
-DURABLE_STREAMS_URL=http://127.0.0.1:8081    # Internal durable stream server
-CLAUDE_BINARY_PATH=...                        # Path to claude binary
-CLAUDE_MODEL=claude-sonnet-4-5-20250929       # Default model
-
-# Production
-DURABLE_STREAM_URL=https://stream.superset.sh
+# Desktop (apps/desktop) — validated in env.main.ts, required
+STREAMS_URL=http://localhost:8080                  # Proxy URL exposed via tRPC getConfig
+STREAMS_SECRET=<same-token>                        # Bearer token for authenticated proxy
 ```
 
 ---
@@ -957,7 +949,7 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 | File | Changes | Status |
 |---|---|---|
 | `apps/streams/package.json` | Added: @anthropic-ai/claude-agent-sdk, @tanstack/ai | ✅ |
-| `apps/streams/src/index.ts` | Added: Claude agent endpoint on CLAUDE_AGENT_PORT (default 9090) | ✅ |
+| `apps/streams/src/index.ts` | Added: Claude agent endpoint on STREAMS_AGENT_PORT | ✅ |
 
 ---
 
@@ -984,7 +976,7 @@ All files below are created and typechecking. Compatibility fix: `DurableStream.
 | `@tanstack/db` unreleased aggregates | Build breaks | Rewrite collection pipelines with `groupBy + count + fn.select` workaround | ✅ Resolved — `collect`/`minStr` replaced |
 | SDKMessage → AI chunk conversion errors | Broken rendering | Comprehensive unit tests with real Claude output fixtures | Pending (Phase B) |
 | Dual `StreamChunk` types | Type confusion, silent mismatches at module boundaries | `sdk-to-ai-chunks.ts` imports strict `StreamChunk` from `@tanstack/ai` (union of 14 AG-UI events). `types.ts` defines a loose `{ type: string; [key: string]: unknown }` used by `protocol.ts` and `stream-writer.ts`. Works at runtime because JSON serialization is the boundary, but `protocol.ts` gets zero type safety when constructing/consuming chunks. **Fix:** delete local `StreamChunk` from `types.ts`, use `@tanstack/ai`'s everywhere, replace `as StreamChunk` casts in `protocol.ts` with typed construction (~10 call sites). | Deferred — cleanup PR |
-| Claude binary path outside Electron | Agent can't start | `CLAUDE_BINARY_PATH` env var set by desktop at streams startup | Pending |
+| Claude binary path outside Electron | Agent can't start | Claude agent SDK resolves binary automatically | ✅ Resolved — CLAUDE_BINARY_PATH removed |
 | Multi-turn resume state lost on restart | Context lost | In-memory map + optional file-based persistence in data dir | Pending |
 | Interrupt via HTTP abort | Claude subprocess continues | Agent detects fetch abort → calls `query.interrupt()` + `abortController.abort()` | Pending |
 | Proxy `workspace:*` TanStack DB deps | Import errors | Pin all `@tanstack/*` to compatible published versions across monorepo | ✅ Resolved — imports changed to `@superset/durable-session`, `DurableStream.append()` wrapped with `JSON.stringify()` |

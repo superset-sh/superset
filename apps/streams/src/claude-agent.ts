@@ -102,8 +102,6 @@ app.post("/", async (c) => {
 	const queryEnv: Record<string, string> = { ...baseEnv };
 	queryEnv.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
 
-	const binaryPath = process.env.CLAUDE_BINARY_PATH;
-
 	const hooks = notification
 		? buildNotificationHooks({ notification })
 		: undefined;
@@ -164,7 +162,7 @@ app.post("/", async (c) => {
 		options: {
 			...(claudeSessionId && { resume: claudeSessionId }),
 			...(cwd && { cwd }),
-			model: model ?? process.env.CLAUDE_MODEL ?? DEFAULT_MODEL,
+			model: model ?? DEFAULT_MODEL,
 			maxTurns: MAX_AGENT_TURNS,
 			includePartialMessages: true,
 			permissionMode: resolvedPermissionMode as
@@ -173,7 +171,6 @@ app.post("/", async (c) => {
 				| "bypassPermissions",
 			settingSources: ["user", "project", "local"],
 			systemPrompt: { type: "preset" as const, preset: "claude_code" as const },
-			...(binaryPath && { pathToClaudeCodeExecutable: binaryPath }),
 			env: queryEnv,
 			abortController,
 			...(hooks && { hooks }),
@@ -361,7 +358,6 @@ app.get("/health", (c) => {
 	return c.json({
 		status: "ok",
 		agent: "claude",
-		hasBinary: !!process.env.CLAUDE_BINARY_PATH,
 		activeSessions: getActiveSessionCount(),
 	});
 });
