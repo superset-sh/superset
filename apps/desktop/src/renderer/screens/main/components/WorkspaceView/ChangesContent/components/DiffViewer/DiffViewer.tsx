@@ -285,14 +285,7 @@ export function DiffViewer({
 				glyphMargin: false,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps,
-				renderLineHighlight: "none",
-				folding: false,
 				renderIndicators: false,
-				guides: {
-					indentation: false,
-					bracketPairs: false,
-					highlightActiveIndentation: false,
-				},
 				hideUnchangedRegions: {
 					enabled: hideUnchangedRegions,
 				},
