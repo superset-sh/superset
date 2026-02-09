@@ -14,7 +14,7 @@ interface SessionEntry {
 const claudeSessions = new Map<string, SessionEntry>();
 
 const SESSIONS_DIR =
-	env.DURABLE_STREAMS_DATA_DIR ?? join(homedir(), ".superset", "chat-streams");
+	env.STREAMS_DATA_DIR ?? join(homedir(), ".superset", "chat-streams");
 const SESSIONS_FILE = join(SESSIONS_DIR, "claude-sessions.json");
 
 function loadPersistedSessions(): void {

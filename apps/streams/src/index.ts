@@ -7,25 +7,27 @@ import { claudeAgentApp } from "./claude-agent";
 import { env } from "./env";
 import { createServer } from "./server";
 
-const DURABLE_STREAMS_URL =
-	env.DURABLE_STREAMS_URL ?? `http://127.0.0.1:${env.INTERNAL_PORT}`;
+const STREAMS_INTERNAL_URL =
+	env.STREAMS_INTERNAL_URL ?? `http://127.0.0.1:${env.STREAMS_INTERNAL_PORT}`;
 
 const DATA_DIR =
-	env.DURABLE_STREAMS_DATA_DIR ?? join(homedir(), ".superset", "chat-streams");
+	env.STREAMS_DATA_DIR ?? join(homedir(), ".superset", "chat-streams");
 
 if (!existsSync(DATA_DIR)) {
 	mkdirSync(DATA_DIR, { recursive: true });
 }
 
 const durableStreamServer = new DurableStreamTestServer({
-	port: env.INTERNAL_PORT,
+	port: env.STREAMS_INTERNAL_PORT,
 	dataDir: DATA_DIR,
 });
 await durableStreamServer.start();
-console.log(`[streams] Durable stream server on port ${env.INTERNAL_PORT}`);
+console.log(
+	`[streams] Durable stream server on port ${env.STREAMS_INTERNAL_PORT}`,
+);
 
 const { app } = createServer({
-	baseUrl: DURABLE_STREAMS_URL,
+	baseUrl: STREAMS_INTERNAL_URL,
 	cors: true,
 	logging: true,
 	authToken: env.STREAMS_SECRET,
@@ -36,7 +38,7 @@ const proxyServer = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
 });
 
 const agentServer = serve(
-	{ fetch: claudeAgentApp.fetch, port: env.CLAUDE_AGENT_PORT },
+	{ fetch: claudeAgentApp.fetch, port: env.STREAMS_AGENT_PORT },
 	(info) => {
 		console.log(
 			`[streams] Claude agent endpoint on http://localhost:${info.port}`,

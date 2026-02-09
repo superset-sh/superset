@@ -6,7 +6,6 @@ import {
 	getClaudeSessionId,
 	setClaudeSessionId,
 } from "./claude-session-store";
-import { env } from "./env";
 import {
 	buildNotificationHooks,
 	notificationSchema,
@@ -103,7 +102,7 @@ app.post("/", async (c) => {
 	const queryEnv: Record<string, string> = { ...baseEnv };
 	queryEnv.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
 
-	const binaryPath = env.CLAUDE_BINARY_PATH;
+	const binaryPath = process.env.CLAUDE_BINARY_PATH;
 
 	const hooks = notification
 		? buildNotificationHooks({ notification })
@@ -165,7 +164,7 @@ app.post("/", async (c) => {
 		options: {
 			...(claudeSessionId && { resume: claudeSessionId }),
 			...(cwd && { cwd }),
-			model: model ?? env.CLAUDE_MODEL ?? DEFAULT_MODEL,
+			model: model ?? process.env.CLAUDE_MODEL ?? DEFAULT_MODEL,
 			maxTurns: MAX_AGENT_TURNS,
 			includePartialMessages: true,
 			permissionMode: resolvedPermissionMode as
@@ -362,7 +361,7 @@ app.get("/health", (c) => {
 	return c.json({
 		status: "ok",
 		agent: "claude",
-		hasBinary: !!env.CLAUDE_BINARY_PATH,
+		hasBinary: !!process.env.CLAUDE_BINARY_PATH,
 		activeSessions: getActiveSessionCount(),
 	});
 });
