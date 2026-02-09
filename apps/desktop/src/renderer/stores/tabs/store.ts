@@ -767,6 +767,10 @@ export const useTabsStore = create<TabsStore>()(
 					if (!pane || pane.tabId !== tabId) return;
 
 					set({
+						panes: {
+							...state.panes,
+							[paneId]: { ...pane, status: "idle" },
+						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: paneId,
