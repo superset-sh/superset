@@ -82,6 +82,19 @@ const findNextTab = (state: TabsState, tabIdToClose: string): string | null => {
 	return workspaceTabs[0]?.id || null;
 };
 
+/**
+ * Derive tab name from its panes.
+ * Single pane: use pane name. Multiple panes: "Multiple panes (N)".
+ */
+const deriveTabName = (
+	panes: Record<string, { tabId: string; name: string }>,
+	tabId: string,
+): string => {
+	const tabPanes = Object.values(panes).filter((p) => p.tabId === tabId);
+	if (tabPanes.length === 1) return tabPanes[0].name;
+	return `Multiple panes (${tabPanes.length})`;
+};
+
 export const useTabsStore = create<TabsStore>()(
 	devtools(
 		persist(
@@ -775,6 +788,19 @@ export const useTabsStore = create<TabsStore>()(
 						panes: {
 							...state.panes,
 							[paneId]: { ...pane, status },
+						},
+					});
+				},
+
+				setPaneName: (paneId, name) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane || pane.name === name) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: { ...pane, name },
 						},
 					});
 				},
