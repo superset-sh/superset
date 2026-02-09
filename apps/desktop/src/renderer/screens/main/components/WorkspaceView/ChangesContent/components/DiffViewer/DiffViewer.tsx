@@ -285,6 +285,7 @@ export function DiffViewer({
 				glyphMargin: false,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps,
+				renderIndicators: false,
 				hideUnchangedRegions: {
 					enabled: hideUnchangedRegions,
 				},
