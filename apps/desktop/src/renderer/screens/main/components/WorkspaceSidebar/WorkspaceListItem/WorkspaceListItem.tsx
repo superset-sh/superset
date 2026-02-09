@@ -42,11 +42,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { getHighestPriorityStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
-import {
-	BranchSwitcher,
-	DeleteWorkspaceDialog,
-	WorkspaceHoverCardContent,
-} from "./components";
+import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import {
 	GITHUB_STATUS_STALE_TIME,
 	HOVER_CARD_CLOSE_DELAY,
@@ -540,11 +536,6 @@ export function WorkspaceListItem({
 										⌘{shortcutIndex + 1}
 									</span>
 								)}
-
-							{/* Branch switcher for branch workspaces */}
-							{isBranchWorkspace && (
-								<BranchSwitcher projectId={projectId} currentBranch={branch} />
-							)}
 
 							{/* Diff stats (transforms to X on hover) or close button for worktree workspaces */}
 							{!isBranchWorkspace &&
