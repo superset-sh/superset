@@ -446,6 +446,12 @@ function handleResultMessage(
 
 	if (message.subtype?.startsWith("error")) {
 		chunks.push({
+			type: "TEXT_MESSAGE_CONTENT",
+			messageId: state.messageId,
+			delta: `Error: ${message.subtype}`,
+			timestamp: now,
+		} satisfies StreamChunk);
+		chunks.push({
 			type: "RUN_ERROR",
 			runId: state.runId,
 			error: {

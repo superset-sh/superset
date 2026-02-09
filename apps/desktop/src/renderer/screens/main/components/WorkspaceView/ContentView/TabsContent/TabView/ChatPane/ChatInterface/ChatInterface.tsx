@@ -278,9 +278,6 @@ export function ChatInterface({
 		[handleSend],
 	);
 
-	// TODO: Wire to actual session/conversation reset
-	const handleClear = useCallback(() => {}, []);
-
 	return (
 		<div className="flex h-full flex-col bg-background">
 			{connectionStatus !== "connected" &&
@@ -329,7 +326,6 @@ export function ChatInterface({
 					<PromptInputProvider>
 						<FileMentionProvider cwd={cwd}>
 							<SlashCommandInput
-								onClear={handleClear}
 								onCommandSend={handleSlashCommandSend}
 								cwd={cwd}
 							>

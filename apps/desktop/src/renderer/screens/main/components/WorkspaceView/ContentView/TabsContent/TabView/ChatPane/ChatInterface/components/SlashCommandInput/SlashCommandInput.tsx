@@ -9,14 +9,12 @@ import {
 import { SlashCommandMenu } from "../SlashCommandMenu";
 
 interface SlashCommandInputProps {
-	onClear: () => void;
 	onCommandSend: (command: SlashCommand) => void;
 	cwd: string;
 	children: React.ReactNode;
 }
 
 export function SlashCommandInput({
-	onClear,
 	onCommandSend,
 	cwd,
 	children,
@@ -31,14 +29,12 @@ export function SlashCommandInput({
 	const executeCommand = useCallback(
 		(command: SlashCommand) => {
 			const action = resolveCommandAction(command);
-			if (action.isClear) {
-				onClear();
-			} else if (action.shouldSend) {
+			if (action.shouldSend) {
 				onCommandSend(command);
 			}
 			textInput.setInput(action.text);
 		},
-		[onClear, onCommandSend, textInput],
+		[onCommandSend, textInput],
 	);
 
 	const handleKeyDownCapture = useCallback(

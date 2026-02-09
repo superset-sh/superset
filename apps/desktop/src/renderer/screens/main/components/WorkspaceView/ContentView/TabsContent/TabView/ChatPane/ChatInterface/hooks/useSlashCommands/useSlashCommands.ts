@@ -83,14 +83,10 @@ export function useSlashCommands({
 
 export function resolveCommandAction(command: SlashCommand): {
 	text: string;
-	isClear: boolean;
 	shouldSend: boolean;
 } {
-	if (command.name === "clear") {
-		return { text: "", isClear: true, shouldSend: false };
-	}
 	if (command.argumentHint) {
-		return { text: `/${command.name} `, isClear: false, shouldSend: false };
+		return { text: `/${command.name} `, shouldSend: false };
 	}
-	return { text: "", isClear: false, shouldSend: true };
+	return { text: "", shouldSend: true };
 }
