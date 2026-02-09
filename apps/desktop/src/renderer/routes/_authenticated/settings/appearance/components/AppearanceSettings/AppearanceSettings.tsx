@@ -307,8 +307,16 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 					>
 						<h3 className="text-sm font-medium mb-1">Terminal Font</h3>
 						<p className="text-sm text-muted-foreground mb-3">
-							Font used in terminal panels. Nerd Fonts recommended for shell
-							theme icons.
+							Font used in terminal panels.{" "}
+							<a
+								href="https://www.nerdfonts.com"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-primary hover:underline"
+							>
+								Nerd Fonts
+							</a>{" "}
+							recommended for shell theme icons.
 						</p>
 						<div className="flex items-center gap-2">
 							<Input
