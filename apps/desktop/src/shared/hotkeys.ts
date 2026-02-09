@@ -489,7 +489,12 @@ export const HOTKEYS = {
 	}),
 	NEW_GROUP: defineHotkey({
 		keys: "meta+t",
-		label: "New Tab",
+		label: "New Terminal",
+		category: "Terminal",
+	}),
+	NEW_CHAT: defineHotkey({
+		keys: "meta+shift+t",
+		label: "New Chat",
 		category: "Terminal",
 	}),
 	CLOSE_TERMINAL: defineHotkey({

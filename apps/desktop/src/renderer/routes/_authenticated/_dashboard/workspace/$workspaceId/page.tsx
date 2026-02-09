@@ -90,6 +90,7 @@ function WorkspacePage() {
 		splitPaneHorizontal,
 		openPreset,
 	} = useTabsWithPresets();
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -137,6 +138,10 @@ function WorkspacePage() {
 	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
 		workspaceId,
 		addTab,
+	]);
+	useAppHotkey("NEW_CHAT", () => addChatTab(workspaceId), undefined, [
+		workspaceId,
+		addChatTab,
 	]);
 	usePresetHotkeys(openTabWithPreset);
 

@@ -118,6 +118,13 @@ export const MONACO_EDITOR_OPTIONS = {
 		verticalScrollbarSize: 8,
 		horizontalScrollbarSize: 8,
 	},
+	renderLineHighlight: "none" as const,
+	folding: false,
+	guides: {
+		indentation: false,
+		bracketPairs: false,
+		highlightActiveIndentation: false,
+	},
 };
 
 export function registerSaveAction(

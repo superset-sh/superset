@@ -320,15 +320,15 @@ export const organizationRouter = {
 				userId: z.string().uuid(),
 			}),
 		)
-		.mutation(async ({ input }) => {
-			const [member] = await db
-				.insert(members)
-				.values({
+		.mutation(async ({ ctx, input }) => {
+			const member = await ctx.auth.api.addMember({
+				body: {
 					organizationId: input.organizationId,
 					userId: input.userId,
 					role: "member",
-				})
-				.returning();
+				},
+				headers: ctx.headers,
+			});
 			return member;
 		}),
 

@@ -6,10 +6,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
-import {
-	GATED_FEATURES,
-	usePaywall,
-} from "renderer/components/Paywall/usePaywall";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { InviteMemberDialog } from "./components/InviteMemberDialog";
 
 interface InviteMemberButtonProps {

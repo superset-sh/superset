@@ -11,14 +11,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo, useState } from "react";
+import { BsTerminalPlus } from "react-icons/bs";
 import {
-	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
 	HiMiniCommandLine,
-	HiMiniPlus,
 	HiStar,
 } from "react-icons/hi2";
+import { TbMessageCirclePlus } from "react-icons/tb";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -186,23 +186,6 @@ export function GroupStrip() {
 					})}
 				</div>
 			)}
-			{hasAiChat && (
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-7 shrink-0"
-							onClick={handleAddChat}
-						>
-							<HiMiniChatBubbleLeftRight className="size-3.5" />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="top" sideOffset={4}>
-						New Chat
-					</TooltipContent>
-				</Tooltip>
-			)}
 			<NewTabDropZone
 				onDrop={(paneId) => movePaneToNewTab(paneId)}
 				isLastPaneInTab={checkIsLastPaneInTab}
@@ -212,23 +195,43 @@ export function GroupStrip() {
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
-									variant="ghost"
-									size="icon"
-									className="size-7 rounded-r-none pl-2"
+									variant="outline"
+									className="h-7 rounded-r-none pl-2 pr-1.5 gap-1 text-xs"
 									onClick={handleAddGroup}
 								>
-									<HiMiniPlus className="size-4" />
+									<BsTerminalPlus className="size-3.5" />
+									Terminal
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="top" sideOffset={4}>
-								<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
+								<HotkeyTooltipContent
+									label="New Terminal"
+									hotkeyId="NEW_GROUP"
+								/>
 							</TooltipContent>
 						</Tooltip>
+						{hasAiChat && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="outline"
+										className="h-7 rounded-none border-l-0 px-1.5 gap-1 text-xs"
+										onClick={handleAddChat}
+									>
+										<TbMessageCirclePlus className="size-3.5" />
+										Chat
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="top" sideOffset={4}>
+									<HotkeyTooltipContent label="New Chat" hotkeyId="NEW_CHAT" />
+								</TooltipContent>
+							</Tooltip>
+						)}
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant="ghost"
+								variant="outline"
 								size="icon"
-								className="size-7 rounded-l-none px-1"
+								className="size-7 rounded-l-none border-l-0 px-1"
 							>
 								<HiMiniChevronDown className="size-3" />
 							</Button>

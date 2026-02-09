@@ -35,12 +35,12 @@ function createEditorColors(theme: Theme): editor.IColors {
 		"editorGutter.background": hex(terminal.background),
 		"editorCursor.foreground": hex(terminal.cursor),
 
-		"diffEditor.insertedTextBackground": alpha(terminal.green, 0.13),
-		"diffEditor.removedTextBackground": alpha(terminal.red, 0.13),
-		"diffEditor.insertedLineBackground": alpha(terminal.green, 0.08),
-		"diffEditor.removedLineBackground": alpha(terminal.red, 0.08),
-		"diffEditorGutter.insertedLineBackground": alpha(terminal.green, 0.2),
-		"diffEditorGutter.removedLineBackground": alpha(terminal.red, 0.2),
+		"diffEditor.insertedTextBackground": alpha(terminal.green, 0.2),
+		"diffEditor.removedTextBackground": alpha(terminal.red, 0.2),
+		"diffEditor.insertedLineBackground": alpha(terminal.green, 0.2),
+		"diffEditor.removedLineBackground": alpha(terminal.red, 0.2),
+		"diffEditorGutter.insertedLineBackground": alpha(terminal.green, 0.15),
+		"diffEditorGutter.removedLineBackground": alpha(terminal.red, 0.15),
 		"diffEditor.diagonalFill": hex(ui.border),
 
 		"scrollbar.shadow": "#00000000",

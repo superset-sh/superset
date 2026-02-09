@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { posthog } from "../../lib/posthog";
 import { FeaturePreview } from "./components/FeaturePreview";
 import { FeatureSidebar } from "./components/FeatureSidebar";
+import type { GatedFeature } from "./constants";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
-import type { GatedFeature } from "./usePaywall";
 
 type PaywallOptions = {
 	feature: GatedFeature;
