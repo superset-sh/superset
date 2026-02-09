@@ -52,16 +52,6 @@ const answerBodySchema = z.object({
 	originalInput: z.record(z.string(), z.unknown()).optional(),
 });
 
-interface SlashCommand {
-	name: string;
-	description: string;
-	argumentHint: string;
-}
-
-const DEFAULT_COMMANDS: SlashCommand[] = [];
-
-let cachedCommands: SlashCommand[] | null = null;
-
 const app = new Hono();
 
 app.post("/", async (c) => {
@@ -197,19 +187,6 @@ app.post("/", async (c) => {
 			...(betas && { betas: betas as Options["betas"] }),
 		},
 	});
-
-	if (!cachedCommands) {
-		result
-			.supportedCommands()
-			.then((cmds) => {
-				cachedCommands = cmds.map((cmd) => ({
-					name: cmd.name ?? "",
-					description: cmd.description ?? "",
-					argumentHint: cmd.argumentHint ?? "",
-				}));
-			})
-			.catch(() => {});
-	}
 
 	const abortHandler = () => {
 		abortController.abort();
@@ -378,10 +355,6 @@ app.get("/sessions/:sessionId", (c) => {
 	}
 
 	return c.json({ claudeSessionId });
-});
-
-app.get("/commands", (c) => {
-	return c.json({ commands: cachedCommands ?? DEFAULT_COMMANDS });
 });
 
 app.get("/health", (c) => {

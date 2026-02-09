@@ -48,8 +48,6 @@ interface SDKResultMessage {
 	total_cost_usd: number;
 	usage: { input_tokens: number; output_tokens: number };
 	session_id: string;
-	result?: string;
-	errors?: string[];
 }
 
 interface SDKSystemMessage {
@@ -447,33 +445,16 @@ function handleResultMessage(
 	const chunks: StreamChunk[] = [];
 
 	if (message.subtype?.startsWith("error")) {
-		const errorText =
-			message.errors?.join("\n") ?? `Claude agent error: ${message.subtype}`;
-		chunks.push({
-			type: "TEXT_MESSAGE_CONTENT",
-			messageId: state.messageId,
-			delta: errorText,
-			timestamp: now,
-		} satisfies StreamChunk);
 		chunks.push({
 			type: "RUN_ERROR",
 			runId: state.runId,
 			error: {
-				message: errorText,
+				message: `Claude agent error: ${message.subtype}`,
 				code: message.subtype,
 			},
 			timestamp: now,
 		} satisfies StreamChunk);
 		return chunks;
-	}
-
-	if (message.result) {
-		chunks.push({
-			type: "TEXT_MESSAGE_CONTENT",
-			messageId: state.messageId,
-			delta: message.result,
-			timestamp: now,
-		} satisfies StreamChunk);
 	}
 
 	const finishReason =

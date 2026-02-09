@@ -14,9 +14,6 @@ import {
 	sessionStore,
 } from "./utils/session-manager";
 
-const CLAUDE_AGENT_URL =
-	process.env.CLAUDE_AGENT_URL || "http://localhost:9090";
-
 interface CommandEntry {
 	name: string;
 	description: string;
@@ -67,27 +64,8 @@ export const createAiChatRouter = () => {
 
 		getSlashCommands: publicProcedure
 			.input(z.object({ cwd: z.string() }))
-			.query(async ({ input }) => {
-				const customCommands = scanCustomCommands(input.cwd);
-
-				let sdkCommands: CommandEntry[] = [];
-				try {
-					const res = await fetch(`${CLAUDE_AGENT_URL}/commands`);
-					if (res.ok) {
-						const data = (await res.json()) as {
-							commands: CommandEntry[];
-						};
-						sdkCommands = data.commands ?? [];
-					}
-				} catch {}
-
-				const seen = new Set(sdkCommands.map((c) => c.name));
-				return {
-					commands: [
-						...sdkCommands,
-						...customCommands.filter((c) => !seen.has(c.name)),
-					],
-				};
+			.query(({ input }) => {
+				return { commands: scanCustomCommands(input.cwd) };
 			}),
 
 		startSession: publicProcedure
