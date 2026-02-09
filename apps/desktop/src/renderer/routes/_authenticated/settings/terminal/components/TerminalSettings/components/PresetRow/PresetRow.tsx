@@ -11,7 +11,12 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiOutlineDocumentPlus, HiOutlineFolderPlus } from "react-icons/hi2";
+import {
+	HiOutlineRectangleGroup,
+	HiOutlineSquare2Stack,
+	HiRectangleGroup,
+	HiSquare2Stack,
+} from "react-icons/hi2";
 import { LuGripVertical, LuTrash } from "react-icons/lu";
 import {
 	PRESET_COLUMNS,
@@ -202,7 +207,11 @@ export function PresetRow({
 									: "Apply on workspace creation"
 							}
 						>
-							<HiOutlineFolderPlus className="h-4 w-4" />
+							{isWorkspaceCreation ? (
+								<HiRectangleGroup className="h-4 w-4" />
+							) : (
+								<HiOutlineRectangleGroup className="h-4 w-4" />
+							)}
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="top">
@@ -222,7 +231,11 @@ export function PresetRow({
 							className={`h-8 w-8 p-0 ${isNewTab ? "text-green-500 hover:text-green-600" : "text-muted-foreground hover:text-foreground"}`}
 							aria-label={isNewTab ? "Remove from new tab" : "Apply on new tab"}
 						>
-							<HiOutlineDocumentPlus className="h-4 w-4" />
+							{isNewTab ? (
+								<HiSquare2Stack className="h-4 w-4" />
+							) : (
+								<HiOutlineSquare2Stack className="h-4 w-4" />
+							)}
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="top">
