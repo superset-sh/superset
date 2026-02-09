@@ -25,7 +25,6 @@ const FILE_CATEGORIES: Array<{
 export function SidebarControl() {
 	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
 
-	// Get active workspace for file opening
 	const { workspaceId } = useParams({ strict: false });
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
@@ -33,21 +32,19 @@ export function SidebarControl() {
 	);
 	const worktreePath = workspace?.worktreePath;
 
-	// Get base branch for changes query
-	const { baseBranch, selectFile } = useChangesStore();
+	const { getBaseBranch, selectFile } = useChangesStore();
+	const baseBranch = getBaseBranch(worktreePath || "");
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },
 		{ enabled: !!worktreePath && !isSidebarOpen },
 	);
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 
-	// Get changes status - only query when sidebar is closed (we need it to open first file)
 	const { data: status } = electronTrpc.changes.getStatus.useQuery(
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
 		{ enabled: !!worktreePath && !isSidebarOpen },
 	);
 
-	// Access tabs store for file opening
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const trpcUtils = electronTrpc.useUtils();
 
@@ -76,7 +73,6 @@ export function SidebarControl() {
 	const openFirstFile = useCallback(() => {
 		if (!workspaceId || !worktreePath || !status) return;
 
-		// Find the first file in priority order
 		let firstFile: ChangedFile | undefined;
 		let category: ChangeCategory | undefined;
 

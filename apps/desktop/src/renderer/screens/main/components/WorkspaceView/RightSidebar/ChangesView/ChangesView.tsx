@@ -40,7 +40,8 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	);
 	const worktreePath = workspace?.worktreePath;
 
-	const { baseBranch } = useChangesStore();
+	const { getBaseBranch } = useChangesStore();
+	const baseBranch = getBaseBranch(worktreePath || "");
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },
 		{ enabled: !!worktreePath },

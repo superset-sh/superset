@@ -19,7 +19,7 @@ interface ChangesState {
 	viewMode: DiffViewMode;
 	fileListViewMode: FileListViewMode;
 	expandedSections: Record<ChangeCategory, boolean>;
-	baseBranch: string | null;
+	baseBranch: Record<string, string | null>;
 	showRenderedMarkdown: Record<string, boolean>;
 	hideUnchangedRegions: boolean;
 
@@ -34,7 +34,8 @@ interface ChangesState {
 	setFileListViewMode: (mode: FileListViewMode) => void;
 	toggleSection: (section: ChangeCategory) => void;
 	setSectionExpanded: (section: ChangeCategory, expanded: boolean) => void;
-	setBaseBranch: (branch: string | null) => void;
+	setBaseBranch: (worktreePath: string, branch: string | null) => void;
+	getBaseBranch: (worktreePath: string) => string | null;
 	toggleRenderedMarkdown: (worktreePath: string) => void;
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
@@ -51,7 +52,7 @@ const initialState = {
 		staged: true,
 		unstaged: true,
 	},
-	baseBranch: null,
+	baseBranch: {} as Record<string, string | null>,
 	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
 };
@@ -110,8 +111,18 @@ export const useChangesStore = create<ChangesState>()(
 					});
 				},
 
-				setBaseBranch: (branch) => {
-					set({ baseBranch: branch });
+				setBaseBranch: (worktreePath, branch) => {
+					const { baseBranch } = get();
+					set({
+						baseBranch: {
+							...baseBranch,
+							[worktreePath]: branch,
+						},
+					});
+				},
+
+				getBaseBranch: (worktreePath) => {
+					return get().baseBranch[worktreePath] ?? null;
 				},
 
 				toggleRenderedMarkdown: (worktreePath) => {
@@ -144,6 +155,12 @@ export const useChangesStore = create<ChangesState>()(
 			}),
 			{
 				name: "changes-store",
+				version: 1,
+				migrate: (persisted) => {
+					const state = persisted as Record<string, unknown>;
+					state.baseBranch = {};
+					return state as unknown as ChangesState;
+				},
 				partialize: (state) => ({
 					selectedFiles: state.selectedFiles,
 					viewMode: state.viewMode,

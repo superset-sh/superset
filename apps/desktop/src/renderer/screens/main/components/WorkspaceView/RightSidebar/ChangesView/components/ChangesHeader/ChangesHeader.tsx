@@ -31,7 +31,8 @@ interface ChangesHeaderProps {
 }
 
 function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
-	const { baseBranch, setBaseBranch } = useChangesStore();
+	const { getBaseBranch, setBaseBranch } = useChangesStore();
+	const baseBranch = getBaseBranch(worktreePath);
 	const { data: branchData, isLoading } =
 		electronTrpc.changes.getBranches.useQuery(
 			{ worktreePath },
@@ -46,8 +47,11 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	});
 
 	const handleBranchSelect = (branch: string) => {
-		if (branch === branchData?.defaultBranch && baseBranch === null) return;
-		setBaseBranch(branch);
+		if (branch === branchData?.defaultBranch) {
+			setBaseBranch(worktreePath, null);
+		} else {
+			setBaseBranch(worktreePath, branch);
+		}
 	};
 
 	return (
