@@ -66,18 +66,18 @@ deploy-streams:
       run: |
         flyctl secrets set \
           ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
-          DURABLE_STREAM_AUTH_TOKEN="${{ secrets.DURABLE_STREAM_AUTH_TOKEN }}" \
+          STREAMS_SECRET="${{ secrets.STREAMS_SECRET }}" \
           --app superset-stream
       env:
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 ```
 
 **Secrets to add to GitHub:**
-- `DURABLE_STREAM_AUTH_TOKEN` — bearer token for auth (generate a random 64-char string)
+- `STREAMS_SECRET` — bearer token for auth (generate a random 64-char string)
 
 **Env vars to add to `.env.example`:**
-- `DURABLE_STREAM_URL` — production URL (e.g., `https://superset-stream.fly.dev`)
-- `DURABLE_STREAM_AUTH_TOKEN` — bearer token for authenticated requests
+- `STREAMS_URL` — production URL (e.g., `https://superset-stream.fly.dev`)
+- `STREAMS_SECRET` — bearer token for authenticated requests
 
 ### 1.2 Add streams to preview deployments (`deploy-preview.yml`)
 
@@ -100,7 +100,7 @@ deploy-streams-preview:
         config: apps/streams/fly.toml
         secrets: |
           ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
-          DURABLE_STREAM_AUTH_TOKEN=${{ secrets.DURABLE_STREAM_AUTH_TOKEN }}
+          STREAMS_SECRET=${{ secrets.STREAMS_SECRET }}
       env:
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 ```
@@ -144,7 +144,7 @@ The `auto_stop_machines = "stop"` + `auto_start_machines = true` + `min_machines
 
 ### 2.1 Bearer token middleware
 
-Add a Hono middleware in `apps/streams/src/server.ts` that validates the `Authorization: Bearer <token>` header against `DURABLE_STREAM_AUTH_TOKEN`. This is the simplest approach that works for both desktop and web clients.
+Add a Hono middleware in `apps/streams/src/server.ts` that validates the `Authorization: Bearer <token>` header against `STREAMS_SECRET`. This is the simplest approach that works for both desktop and web clients.
 
 ```
 Request flow:
@@ -192,7 +192,7 @@ The hook from `packages/durable-session` is client-agnostic. Connect it to the s
 ```typescript
 const { messages, sendMessage, isLoading, stop } = useDurableChat({
   sessionId,
-  proxyUrl: env.NEXT_PUBLIC_DURABLE_STREAM_URL,
+  proxyUrl: env.NEXT_PUBLIC_STREAMS_URL,
   autoConnect: true,
   stream: {
     headers: { Authorization: `Bearer ${authToken}` },
@@ -211,13 +211,13 @@ The 39+ AI element components are already published from `packages/ui`. Import a
 - `reasoning.tsx` — extended thinking display
 - `model-selector.tsx` — model picker
 
-### 3.4 Add `NEXT_PUBLIC_DURABLE_STREAM_URL` to web deployment
+### 3.4 Add `NEXT_PUBLIC_STREAMS_URL` to web deployment
 
 Add to `deploy-production.yml` `deploy-web` job and `deploy-preview.yml`:
 
 ```
-NEXT_PUBLIC_DURABLE_STREAM_URL=https://superset-stream.fly.dev  # production
-NEXT_PUBLIC_DURABLE_STREAM_URL=https://superset-stream-pr-{N}.fly.dev  # preview
+NEXT_PUBLIC_STREAMS_URL=https://superset-stream.fly.dev  # production
+NEXT_PUBLIC_STREAMS_URL=https://superset-stream-pr-{N}.fly.dev  # preview
 ```
 
 ---
@@ -392,7 +392,7 @@ process.on("SIGTERM", async () => {
 
 Desktop tRPC router (`apps/desktop/src/lib/trpc/routers/ai-chat/`) already has a `getConfig()` procedure that returns `{ proxyUrl, authToken }`. Update it to:
 
-1. Read `DURABLE_STREAM_URL` from `.env` (loaded in main process)
+1. Read `STREAMS_URL` from `.env` (loaded in main process)
 2. Pass the user's auth token (from Better Auth desktop flow)
 
 ### 7.2 Desktop auto-update
@@ -417,7 +417,7 @@ Phase 3: Web Chat UI
   ├── 3.1 Chat route in apps/web
   ├── 3.2 Wire useDurableChat
   ├── 3.3 Compose ai-elements
-  └── 3.4 Add DURABLE_STREAM_URL to web deploys
+  └── 3.4 Add STREAMS_URL to web deploys
 
 Phase 4: Persistence
   ├── 4.1 DB schema (chatSessions, chatMessages)
@@ -450,10 +450,10 @@ New secrets to add to GitHub (production + preview environments):
 
 | Secret | Purpose | Where |
 |--------|---------|-------|
-| `DURABLE_STREAM_AUTH_TOKEN` | Bearer auth for streams API | `apps/streams`, clients |
+| `STREAMS_SECRET` | Bearer auth for streams API | `apps/streams`, clients |
 | `SENTRY_DSN_STREAMS` | Error tracking for streams | `apps/streams` |
-| `NEXT_PUBLIC_DURABLE_STREAM_URL` | Streams server URL (client-side) | `apps/web` |
-| `DURABLE_STREAM_URL` | Streams server URL (server-side) | `apps/api` (for webhooks) |
+| `NEXT_PUBLIC_STREAMS_URL` | Streams server URL (client-side) | `apps/web` |
+| `STREAMS_URL` | Streams server URL (server-side) | `apps/api` (for webhooks) |
 
 Existing secrets already available:
 - `ANTHROPIC_API_KEY` — already in GitHub secrets

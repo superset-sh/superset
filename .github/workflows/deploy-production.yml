@@ -406,18 +406,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Deploy to Fly.io
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --config apps/streams/fly.toml --remote-only
-      - name: Set secrets
+      - name: Stage secrets
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           flyctl secrets set \
             ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
             STREAMS_SECRET="${{ secrets.STREAMS_SECRET }}" \
-            --app superset-stream
+            --app superset-stream \
+            --stage
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --config apps/streams/fly.toml --remote-only
 
   deploy-docs:
     name: Deploy Docs to Vercel
