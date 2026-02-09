@@ -128,7 +128,7 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 			projectId: project.id,
 			type: "branch",
 			branch,
-			name: branch,
+			name: "default",
 			tabOrder: 0,
 		})
 		.onConflictDoNothing()

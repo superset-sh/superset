@@ -131,7 +131,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.69",
+      "version": "0.0.70",
       "dependencies": {
         "@anthropic-ai/claude-agent-sdk": "^0.2.19",
         "@better-auth/stripe": "1.4.18",
