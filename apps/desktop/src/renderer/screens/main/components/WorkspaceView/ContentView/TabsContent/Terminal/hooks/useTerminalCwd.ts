@@ -21,7 +21,7 @@ export interface UseTerminalCwdReturn {
  * Handles:
  * - Initial CWD seeding from initialCwd or workspaceCwd
  * - Parsing OSC-7 sequences from terminal data to update CWD
- * - Debounced sync to tabs store for DirectoryNavigator
+ * - Debounced sync to tabs store
  */
 export function useTerminalCwd({
 	paneId,
@@ -50,7 +50,7 @@ export function useTerminalCwd({
 		}, 150),
 	);
 
-	// Sync terminal cwd to store for DirectoryNavigator (debounced)
+	// Sync terminal cwd to store (debounced)
 	useEffect(() => {
 		debouncedUpdatePaneCwdRef.current(
 			paneId,
