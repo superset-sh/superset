@@ -46,7 +46,9 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 					argumentHint: argMatch?.[1]?.trim() ?? "",
 				});
 			}
-		} catch {}
+		} catch (err) {
+			console.warn(`[ai-chat/scanCustomCommands] Failed to read commands from ${dir}:`, err);
+		}
 	}
 
 	return commands;
