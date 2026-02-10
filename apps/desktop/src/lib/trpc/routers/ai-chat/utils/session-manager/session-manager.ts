@@ -250,6 +250,7 @@ export class ChatSessionManager extends EventEmitter {
 		this.runningAgents.set(sessionId, abortController);
 
 		const headers = buildProxyHeaders();
+		let messageId: string | undefined;
 
 		try {
 			const startRes = await fetch(
@@ -265,9 +266,9 @@ export class ChatSessionManager extends EventEmitter {
 					`POST /generations/start failed: ${startRes.status}`,
 				);
 			}
-			const { messageId } = (await startRes.json()) as {
+			({ messageId } = (await startRes.json()) as {
 				messageId: string;
-			};
+			});
 
 			const agentEnv = buildClaudeEnv();
 
@@ -344,17 +345,6 @@ export class ChatSessionManager extends EventEmitter {
 					}
 				},
 			});
-
-			const finishRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`, {
-				method: "POST",
-				headers,
-				body: JSON.stringify({}),
-			});
-			if (!finishRes.ok) {
-				console.error(
-					`[chat/session] POST /generations/finish failed for ${sessionId}: ${finishRes.status}`,
-				);
-			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(
@@ -367,6 +357,41 @@ export class ChatSessionManager extends EventEmitter {
 				error: message,
 			} satisfies ErrorEvent);
 		} finally {
+			// Always write a terminal chunk + finish so the client
+			// materializes the message as complete (isLoading → false).
+			if (messageId) {
+				try {
+					await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
+						method: "POST",
+						headers,
+						body: JSON.stringify({
+							messageId,
+							actorId: "claude",
+							role: "assistant",
+							chunk: { type: "message-end" },
+						}),
+					});
+				} catch (err) {
+					console.error(
+						`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
+						err,
+					);
+				}
+
+				try {
+					await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`, {
+						method: "POST",
+						headers,
+						body: JSON.stringify({}),
+					});
+				} catch (err) {
+					console.error(
+						`[chat/session] POST /generations/finish failed for ${sessionId}:`,
+						err,
+					);
+				}
+			}
+
 			this.runningAgents.delete(sessionId);
 		}
 	}

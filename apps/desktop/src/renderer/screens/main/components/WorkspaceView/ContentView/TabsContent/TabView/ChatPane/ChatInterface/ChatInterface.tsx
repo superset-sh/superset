@@ -276,6 +276,7 @@ export function ChatInterface({
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
+			setIsSending(false);
 			interruptAgent.mutate({ sessionId });
 			stop();
 		},
