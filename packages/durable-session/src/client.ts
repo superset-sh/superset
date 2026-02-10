@@ -381,13 +381,9 @@ export class DurableChatClient<
 		});
 	}
 
-	stop(): void {
-		fetch(`${this.options.proxyUrl}/v1/sessions/${this.sessionId}/stop`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ messageId: null }), // null = stop all
-		}).catch((err) => {
-			console.warn("Failed to stop generation:", err);
+	async stop(): Promise<void> {
+		await this.postToProxy(`/v1/sessions/${this.sessionId}/stop`, {
+			messageId: null,
 		});
 	}
 

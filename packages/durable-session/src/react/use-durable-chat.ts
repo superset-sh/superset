@@ -271,8 +271,12 @@ export function useDurableChat<
 		[client],
 	);
 
-	const stop = useCallback(() => {
-		client.stop();
+	const stop = useCallback(async () => {
+		try {
+			await client.stop();
+		} catch (err) {
+			setError(err instanceof Error ? err : new Error(String(err)));
+		}
 	}, [client]);
 
 	const clear = useCallback(() => {

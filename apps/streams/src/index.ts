@@ -36,8 +36,12 @@ console.log(
 	`[streams] Durable stream server on port ${env.STREAMS_INTERNAL_PORT}`,
 );
 
+const internalUrl =
+	env.STREAMS_INTERNAL_URL ??
+	`http://localhost:${env.STREAMS_INTERNAL_PORT}`;
+
 const { app } = createServer({
-	baseUrl: env.STREAMS_INTERNAL_URL,
+	baseUrl: internalUrl,
 	cors: true,
 	logging: true,
 });
