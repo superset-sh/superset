@@ -10,12 +10,20 @@ export interface FlatFileEntry {
 	key: string;
 }
 
+export interface SectionInfo {
+	category: ChangeCategory;
+	label: string;
+	startIndex: number;
+	count: number;
+}
+
 interface FocusModeInput {
 	sortedAgainstBase: ChangedFile[];
 	commits: { hash: string; files: ChangedFile[] }[];
 	sortedStaged: ChangedFile[];
 	sortedUnstaged: ChangedFile[];
 	worktreePath: string;
+	baseBranch: string;
 	stageFile: (params: { worktreePath: string; filePath: string }) => void;
 	unstageFile: (params: { worktreePath: string; filePath: string }) => void;
 	handleDiscard: (file: ChangedFile) => void;
@@ -27,6 +35,7 @@ export function useFocusMode({
 	sortedStaged,
 	sortedUnstaged,
 	worktreePath,
+	baseBranch,
 	stageFile,
 	unstageFile,
 	handleDiscard,
@@ -71,6 +80,53 @@ export function useFocusMode({
 		return entries;
 	}, [sortedAgainstBase, commits, sortedStaged, sortedUnstaged]);
 
+	const sections = useMemo<SectionInfo[]>(() => {
+		const result: SectionInfo[] = [];
+		let offset = 0;
+
+		if (sortedAgainstBase.length > 0) {
+			result.push({
+				category: "against-base",
+				label: `Against ${baseBranch}`,
+				startIndex: offset,
+				count: sortedAgainstBase.length,
+			});
+			offset += sortedAgainstBase.length;
+		}
+
+		const commitFileCount = commits.reduce((acc, c) => acc + c.files.length, 0);
+		if (commitFileCount > 0) {
+			result.push({
+				category: "committed",
+				label: "Commits",
+				startIndex: offset,
+				count: commitFileCount,
+			});
+			offset += commitFileCount;
+		}
+
+		if (sortedStaged.length > 0) {
+			result.push({
+				category: "staged",
+				label: "Staged",
+				startIndex: offset,
+				count: sortedStaged.length,
+			});
+			offset += sortedStaged.length;
+		}
+
+		if (sortedUnstaged.length > 0) {
+			result.push({
+				category: "unstaged",
+				label: "Unstaged",
+				startIndex: offset,
+				count: sortedUnstaged.length,
+			});
+		}
+
+		return result;
+	}, [sortedAgainstBase, commits, sortedStaged, sortedUnstaged, baseBranch]);
+
 	const focusedEntry = focusMode
 		? (flatFileList.find((e) => e.key === focusedFileKey) ??
 			flatFileList[0] ??
@@ -79,6 +135,19 @@ export function useFocusMode({
 
 	const focusedIndex = focusedEntry
 		? flatFileList.findIndex((e) => e.key === focusedEntry.key)
+		: 0;
+
+	const currentSection = useMemo(() => {
+		for (let i = sections.length - 1; i >= 0; i--) {
+			if (focusedIndex >= sections[i].startIndex) {
+				return sections[i];
+			}
+		}
+		return sections[0] ?? null;
+	}, [focusedIndex, sections]);
+
+	const indexWithinSection = currentSection
+		? focusedIndex - currentSection.startIndex
 		: 0;
 
 	const navigateToIndex = useCallback(
@@ -103,6 +172,16 @@ export function useFocusMode({
 			navigateToIndex(focusedIndex + 1);
 		}
 	}, [focusedIndex, flatFileList.length, navigateToIndex]);
+
+	const navigateToSection = useCallback(
+		(category: ChangeCategory) => {
+			const section = sections.find((s) => s.category === category);
+			if (section) {
+				navigateToIndex(section.startIndex);
+			}
+		},
+		[sections, navigateToIndex],
+	);
 
 	const handleToggleFocusMode = useCallback(() => {
 		if (!focusMode && flatFileList.length > 0) {
@@ -147,8 +226,12 @@ export function useFocusMode({
 		focusedEntry,
 		focusedIndex,
 		flatFileList,
+		sections,
+		currentSection,
+		indexWithinSection,
 		navigatePrev,
 		navigateNext,
+		navigateToSection,
 		handleToggleFocusMode,
 		getFocusedFileActions,
 	};

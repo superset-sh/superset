@@ -1,3 +1,9 @@
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import {
@@ -12,7 +18,8 @@ import {
 	TbLayoutSidebarRightFilled,
 	TbListDetails,
 } from "react-icons/tb";
-import type { DiffViewMode } from "shared/changes-types";
+import type { ChangeCategory, DiffViewMode } from "shared/changes-types";
+import type { SectionInfo } from "../../hooks/useFocusMode";
 
 interface DiffToolbarProps {
 	viewedCount: number;
@@ -28,10 +35,14 @@ interface DiffToolbarProps {
 	onToggleHideUnchangedRegions: () => void;
 	focusMode: boolean;
 	onToggleFocusMode: () => void;
-	currentFileIndex: number;
-	totalFocusFiles: number;
+	sections: SectionInfo[];
+	currentSection: SectionInfo | null;
+	indexWithinSection: number;
 	onNavigatePrev: () => void;
 	onNavigateNext: () => void;
+	onNavigateToSection: (category: ChangeCategory) => void;
+	isFirstFile: boolean;
+	isLastFile: boolean;
 }
 
 export function DiffToolbar({
@@ -48,30 +59,36 @@ export function DiffToolbar({
 	onToggleHideUnchangedRegions,
 	focusMode,
 	onToggleFocusMode,
-	currentFileIndex,
-	totalFocusFiles,
+	sections,
+	currentSection,
+	indexWithinSection,
 	onNavigatePrev,
 	onNavigateNext,
+	onNavigateToSection,
+	isFirstFile,
+	isLastFile,
 }: DiffToolbarProps) {
 	return (
-		<div className="flex items-center gap-3 px-3 py-1.5 border-b border-r border-border bg-background sticky top-0 z-30">
+		<div className="flex items-center gap-3 px-3 py-2.5 border-b border-r border-border bg-background sticky top-0 z-30">
 			<div className="flex items-center gap-3 text-xs text-muted-foreground flex-1">
 				<span>
 					{viewedCount}/{totalFiles} viewed
 				</span>
-				<span className="flex items-center gap-1 font-mono">
-					{totalFiles} files
-					{totalAdditions > 0 && (
-						<span className="text-green-600 dark:text-green-500">
-							+{totalAdditions}
-						</span>
-					)}
-					{totalDeletions > 0 && (
-						<span className="text-red-600 dark:text-red-400">
-							-{totalDeletions}
-						</span>
-					)}
-				</span>
+				{!focusMode && (
+					<span className="flex items-center gap-1 font-mono">
+						{totalFiles} files
+						{totalAdditions > 0 && (
+							<span className="text-green-600 dark:text-green-500">
+								+{totalAdditions}
+							</span>
+						)}
+						{totalDeletions > 0 && (
+							<span className="text-red-600 dark:text-red-400">
+								-{totalDeletions}
+							</span>
+						)}
+					</span>
+				)}
 				{hasUpstream && (pushCount > 0 || pullCount > 0) && (
 					<span className="flex items-center gap-2">
 						{pushCount > 0 && (
@@ -90,25 +107,57 @@ export function DiffToolbar({
 				)}
 			</div>
 
-			{focusMode && totalFocusFiles > 0 && (
+			{focusMode && currentSection && (
 				<div className="flex items-center gap-1.5">
 					<button
 						type="button"
 						onClick={onNavigatePrev}
-						disabled={currentFileIndex <= 0}
+						disabled={isFirstFile}
 						className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
 						aria-label="Previous file"
 					>
 						<LuChevronUp className="size-3.5" />
 						Prev
 					</button>
-					<span className="text-xs text-muted-foreground font-mono tabular-nums">
-						{currentFileIndex + 1}/{totalFocusFiles}
-					</span>
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
+								type="button"
+								className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs transition-colors hover:bg-accent"
+							>
+								<span className="text-foreground font-medium">
+									{currentSection.label}
+								</span>
+								<span className="text-muted-foreground font-mono tabular-nums">
+									{indexWithinSection + 1}/{currentSection.count}
+								</span>
+								<LuChevronDown className="size-3 text-muted-foreground" />
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="center" className="min-w-[160px]">
+							{sections.map((section) => (
+								<DropdownMenuItem
+									key={section.category}
+									onClick={() => onNavigateToSection(section.category)}
+									className={cn(
+										"flex items-center justify-between gap-4",
+										section.category === currentSection.category && "bg-accent",
+									)}
+								>
+									<span>{section.label}</span>
+									<span className="text-muted-foreground font-mono text-xs tabular-nums">
+										{section.count}
+									</span>
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+
 					<button
 						type="button"
 						onClick={onNavigateNext}
-						disabled={currentFileIndex >= totalFocusFiles - 1}
+						disabled={isLastFile}
 						className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
 						aria-label="Next file"
 					>

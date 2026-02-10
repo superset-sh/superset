@@ -101,8 +101,12 @@ export function InfiniteScrollView({
 		focusedEntry,
 		focusedIndex,
 		flatFileList,
+		sections,
+		currentSection,
+		indexWithinSection,
 		navigatePrev,
 		navigateNext,
+		navigateToSection,
 		handleToggleFocusMode,
 		getFocusedFileActions,
 	} = useFocusMode({
@@ -111,6 +115,7 @@ export function InfiniteScrollView({
 		sortedStaged,
 		sortedUnstaged,
 		worktreePath,
+		baseBranch,
 		stageFile: (params) => stageFileMutation.mutate(params),
 		unstageFile: (params) => unstageFileMutation.mutate(params),
 		handleDiscard,
@@ -146,10 +151,14 @@ export function InfiniteScrollView({
 				onToggleHideUnchangedRegions={toggleHideUnchangedRegions}
 				focusMode={focusMode}
 				onToggleFocusMode={handleToggleFocusMode}
-				currentFileIndex={focusedIndex}
-				totalFocusFiles={flatFileList.length}
+				sections={sections}
+				currentSection={currentSection}
+				indexWithinSection={indexWithinSection}
 				onNavigatePrev={navigatePrev}
 				onNavigateNext={navigateNext}
+				onNavigateToSection={navigateToSection}
+				isFirstFile={focusedIndex <= 0}
+				isLastFile={focusedIndex >= flatFileList.length - 1}
 			/>
 
 			{focusMode ? (
