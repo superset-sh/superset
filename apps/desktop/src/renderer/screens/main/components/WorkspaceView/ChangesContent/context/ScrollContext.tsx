@@ -31,14 +31,11 @@ interface ScrollContextValue {
 		commitHash?: string,
 	) => void;
 	containerRef: RefObject<HTMLDivElement | null>;
-	// Viewed state tracking
 	viewedFiles: Set<string>;
 	setFileViewed: (key: string, viewed: boolean) => void;
 	viewedCount: number;
-	// Active file tracking for scroll sync
 	activeFileKey: string | null;
 	setActiveFileKey: (key: string | null) => void;
-	// Focus mode: which file to show in single-file view
 	focusedFileKey: string | null;
 	setFocusedFileKey: (key: string | null) => void;
 }
