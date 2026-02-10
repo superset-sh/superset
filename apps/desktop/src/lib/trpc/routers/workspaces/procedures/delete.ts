@@ -150,7 +150,11 @@ export const createDeleteProcedures = () => {
 
 		delete: publicProcedure
 			.input(
-				z.object({ id: z.string(), deleteLocalBranch: z.boolean().optional() }),
+				z.object({
+					id: z.string(),
+					deleteLocalBranch: z.boolean().optional(),
+					force: z.boolean().optional(),
+				}),
 			)
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.id);
@@ -225,16 +229,23 @@ export const createDeleteProcedures = () => {
 				]);
 
 				if (teardownResult && !teardownResult.success) {
-					console.error(
-						`[workspace/delete] Teardown failed:`,
-						teardownResult.error,
-					);
-					clearWorkspaceDeletingStatus(input.id);
-					return {
-						success: false,
-						error: `Teardown failed: ${teardownResult.error}`,
-						output: teardownResult.output,
-					};
+					if (input.force) {
+						console.warn(
+							`[workspace/delete] Teardown failed but force=true, continuing deletion:`,
+							teardownResult.error,
+						);
+					} else {
+						console.error(
+							`[workspace/delete] Teardown failed:`,
+							teardownResult.error,
+						);
+						clearWorkspaceDeletingStatus(input.id);
+						return {
+							success: false,
+							error: `Teardown failed: ${teardownResult.error}`,
+							output: teardownResult.output,
+						};
+					}
 				}
 
 				if (worktree && project) {
@@ -403,7 +414,12 @@ export const createDeleteProcedures = () => {
 			}),
 
 		deleteWorktree: publicProcedure
-			.input(z.object({ worktreeId: z.string() }))
+			.input(
+				z.object({
+					worktreeId: z.string(),
+					force: z.boolean().optional(),
+				}),
+			)
 			.mutation(async ({ input }) => {
 				const worktree = getWorktree(input.worktreeId);
 
@@ -433,11 +449,18 @@ export const createDeleteProcedures = () => {
 							projectName: project.name,
 						});
 						if (!teardownResult.success) {
-							return {
-								success: false,
-								error: `Teardown failed: ${teardownResult.error}`,
-								output: teardownResult.output,
-							};
+							if (input.force) {
+								console.warn(
+									`[worktree/delete] Teardown failed but force=true, continuing deletion:`,
+									teardownResult.error,
+								);
+							} else {
+								return {
+									success: false,
+									error: `Teardown failed: ${teardownResult.error}`,
+									output: teardownResult.output,
+								};
+							}
 						}
 					}
 

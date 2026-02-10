@@ -11,7 +11,10 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
-import { showTeardownLogs } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
+import {
+	forceDeleteWithToast,
+	showTeardownFailedToast,
+} from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
@@ -37,6 +40,12 @@ export function DeleteWorktreeDialog({
 			},
 		);
 
+	const handleForceDelete = () =>
+		forceDeleteWithToast({
+			name: worktreeName,
+			deleteFn: () => deleteWorktree.mutateAsync({ worktreeId, force: true }),
+		});
+
 	const handleDelete = async () => {
 		onOpenChange(false);
 
@@ -48,12 +57,10 @@ export function DeleteWorktreeDialog({
 			if (!result.success) {
 				const { output } = result;
 				if (output) {
-					toast.error("Teardown failed", {
-						id: toastId,
-						action: {
-							label: "View Logs",
-							onClick: () => showTeardownLogs(output),
-						},
+					showTeardownFailedToast({
+						toastId,
+						output,
+						onForceDelete: handleForceDelete,
 					});
 				} else {
 					toast.error(result.error ?? "Failed to delete", { id: toastId });

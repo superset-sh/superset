@@ -17,7 +17,10 @@ import {
 	useCloseWorkspace,
 	useDeleteWorkspace,
 } from "renderer/react-query/workspaces";
-import { showTeardownLogs } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
+import {
+	forceDeleteWithToast,
+	showTeardownFailedToast,
+} from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
@@ -98,6 +101,17 @@ export function DeleteWorkspaceDialog({
 		});
 	};
 
+	const handleForceDelete = () =>
+		forceDeleteWithToast({
+			name: workspaceName,
+			deleteFn: () =>
+				deleteWorkspace.mutateAsync({
+					id: workspaceId,
+					deleteLocalBranch: deleteLocalBranchChecked,
+					force: true,
+				}),
+		});
+
 	const handleDelete = async () => {
 		onOpenChange(false);
 
@@ -116,12 +130,10 @@ export function DeleteWorkspaceDialog({
 			if (!result.success) {
 				const { output } = result;
 				if (output) {
-					toast.error("Teardown failed", {
-						id: toastId,
-						action: {
-							label: "View Logs",
-							onClick: () => showTeardownLogs(output),
-						},
+					showTeardownFailedToast({
+						toastId,
+						output,
+						onForceDelete: handleForceDelete,
 					});
 				} else {
 					toast.error(result.error ?? "Failed to delete", { id: toastId });
