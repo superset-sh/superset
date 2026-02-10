@@ -104,7 +104,7 @@ jobs:
 
       - name: Build app bundle
         working-directory: apps/desktop
-        run: npx electron-builder --dir --config ${{ inputs.electron_builder_config }} -c.mac.identity=null
+        run: npx electron-builder --dir --arm64 --config ${{ inputs.electron_builder_config }} -c.mac.identity=null
 
       - name: Code sign, notarize & package
         working-directory: apps/desktop
