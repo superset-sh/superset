@@ -163,7 +163,9 @@ function convertMessage(
 			return handleUserMessage(message as SDKUserMessage);
 
 		case "assistant":
-			return handleAssistantMessage(state, message);
+			// Skip: content already streamed via stream_event messages.
+			// handleAssistantMessage is only needed when includePartialMessages is false.
+			return [];
 
 		case "result":
 			return handleResultMessage(state, message as SDKResultMessage);
