@@ -14,7 +14,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@anthropic-ai/claude-agent-sdk": "^0.2.37",
+		"@anthropic-ai/claude-agent-sdk": "^0.2.38",
 		"@superset/durable-session": "workspace:*",
 		"@tanstack/ai": "^0.3.0",
 		"zod": "^4.3.5"

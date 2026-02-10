@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { join } from "node:path";
 import {
+	createPermissionRequest,
 	executeAgent,
 	getClaudeSessionId,
 	type PermissionRequestParams,
@@ -246,6 +247,14 @@ export class ChatSessionManager extends EventEmitter {
 			return;
 		}
 
+		const existingController = this.runningAgents.get(sessionId);
+		if (existingController) {
+			console.warn(
+				`[chat/session] Aborting previous agent run for ${sessionId}`,
+			);
+			existingController.abort();
+		}
+
 		const abortController = new AbortController();
 		this.runningAgents.set(sessionId, abortController);
 
@@ -264,9 +273,11 @@ export class ChatSessionManager extends EventEmitter {
 			if (!startRes.ok) {
 				throw new Error(`POST /generations/start failed: ${startRes.status}`);
 			}
-			({ messageId } = (await startRes.json()) as {
-				messageId: string;
-			});
+			const startBody = await startRes.json();
+			if (typeof startBody?.messageId !== "string") {
+				throw new Error("Invalid start generation response: missing messageId");
+			}
+			messageId = startBody.messageId;
 
 			const agentEnv = buildClaudeEnv();
 
@@ -323,7 +334,6 @@ export class ChatSessionManager extends EventEmitter {
 						input: params.input,
 					} satisfies PermissionRequestEvent);
 
-					const { createPermissionRequest } = await import("@superset/agent");
 					return createPermissionRequest({
 						toolUseId: params.toolUseId,
 						signal: params.signal,

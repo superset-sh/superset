@@ -75,6 +75,9 @@ export async function executeAgent(
 	const abortController = new AbortController();
 
 	if (signal) {
+		if (signal.aborted) {
+			abortController.abort();
+		}
 		signal.addEventListener(
 			"abort",
 			() => {

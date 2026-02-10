@@ -10,8 +10,10 @@ export {
 	setClaudeSessionId,
 } from "./session-store";
 export type {
+	AgentEvent,
 	ExecuteAgentParams,
 	ExecuteAgentResult,
+	PermissionMode,
 	PermissionRequestParams,
 	PermissionResult,
 } from "./types";

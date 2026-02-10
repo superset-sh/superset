@@ -153,7 +153,7 @@ export interface ExecuteAgentParams {
   // Callbacks for environment-specific behavior
   onChunk: (chunk: StreamChunk) => Promise<void>;
   onPermissionRequest?: (params: PermissionRequestParams) => Promise<PermissionResult>;
-  onEvent?: (event: RuntimeEvent) => void;
+  onEvent?: (event: AgentEvent) => void;
 
   // Optional
   resume?: boolean;
@@ -181,8 +181,8 @@ export async function executeAgent(params: ExecuteAgentParams): Promise<void> {
   "private": true,
   "main": "./src/index.ts",
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "latest",
-    "zod": "^3.x.x"
+    "@anthropic-ai/claude-agent-sdk": "^0.2.38",
+    "zod": "^4.3.5"
   }
 }
 ```
