@@ -58,7 +58,12 @@ export function ChatInterface({
 	const [isSending, setIsSending] = useState(false);
 
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
-	const triggerAgent = electronTrpc.aiChat.sendMessage.useMutation();
+	const triggerAgent = electronTrpc.aiChat.sendMessage.useMutation({
+		onError: (err) => {
+			console.error("[chat] Agent trigger failed:", err);
+			setIsSending(false);
+		},
+	});
 	const interruptAgent = electronTrpc.aiChat.interrupt.useMutation();
 	const approveToolUse = electronTrpc.aiChat.approveToolUse.useMutation();
 
