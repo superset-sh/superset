@@ -93,6 +93,7 @@ jobs:
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          STREAMS_URL: ${{ secrets.STREAMS_URL }}
         run: bun run compile:app
 
       - name: Build Electron app
