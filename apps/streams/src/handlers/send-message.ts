@@ -40,8 +40,6 @@ export async function handleSendMessage(
 			body.txid,
 		);
 
-		// Agent invocation removed - now handled by desktop
-
 		const response: SendMessageResponse = { messageId };
 		return c.json(response, 200);
 	} catch (error) {

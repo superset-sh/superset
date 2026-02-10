@@ -9,7 +9,6 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { AIDBSessionProtocol } from "./protocol";
 import {
-	createAgentRoutes,
 	createApprovalRoutes,
 	createAuthRoutes,
 	createChunkRoutes,
@@ -94,9 +93,6 @@ export function createServer(options: AIDBProxyServerOptions) {
 	// Messages (nested under sessions)
 	v1.route("/sessions", createMessageRoutes(protocol));
 
-	// Agents (nested under sessions)
-	v1.route("/sessions", createAgentRoutes(protocol));
-
 	// Tool results (nested under sessions)
 	v1.route("/sessions", createToolResultRoutes(protocol));
 
@@ -124,7 +120,6 @@ export function createServer(options: AIDBProxyServerOptions) {
 				stream: "/v1/stream/sessions/:sessionId",
 				sessions: "/v1/sessions/:sessionId",
 				messages: "/v1/sessions/:sessionId/messages",
-				agents: "/v1/sessions/:sessionId/agents",
 				toolResults: "/v1/sessions/:sessionId/tool-results",
 				approvals: "/v1/sessions/:sessionId/approvals/:approvalId",
 				chunks: "/v1/sessions/:sessionId/chunks",

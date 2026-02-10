@@ -5,7 +5,6 @@
  * Provides:
  * - Session management
  * - LLM API proxying with stream teeing
- * - Agent webhook invocation
  * - Chunk framing with sequence numbers
  */
 
@@ -17,7 +16,6 @@ import {
 	sessionStateSchema,
 } from "@superset/durable-session";
 import type {
-	AgentSpec,
 	AIDBProtocolOptions,
 	ProxySessionState,
 	StreamChunk,
@@ -49,10 +47,7 @@ export class AIDBSessionProtocol {
 	// Session Management
 	// ═══════════════════════════════════════════════════════════════════════
 
-	async createSession(
-		sessionId: string,
-		defaultAgents?: AgentSpec[],
-	): Promise<DurableStream> {
+	async createSession(sessionId: string): Promise<DurableStream> {
 		const stream = new DurableStream({
 			url: `${this.baseUrl}/v1/stream/sessions/${sessionId}`,
 		});
@@ -65,27 +60,13 @@ export class AIDBSessionProtocol {
 		// Initialize session state with SessionDB and collections
 		await this.initializeSessionState(sessionId);
 
-		// Register default agents if provided
-		if (defaultAgents && defaultAgents.length > 0) {
-			for (const agent of defaultAgents) {
-				await this.writeAgentRegistration(stream, sessionId, agent);
-				const state = this.sessionStates.get(sessionId);
-				if (state) {
-					state.agents.push(agent);
-				}
-			}
-		}
-
 		return stream;
 	}
 
-	async getOrCreateSession(
-		sessionId: string,
-		defaultAgents?: AgentSpec[],
-	): Promise<DurableStream> {
+	async getOrCreateSession(sessionId: string): Promise<DurableStream> {
 		let stream = this.streams.get(sessionId);
 		if (!stream) {
-			stream = await this.createSession(sessionId, defaultAgents);
+			stream = await this.createSession(sessionId);
 		}
 		return stream;
 	}
@@ -163,7 +144,6 @@ export class AIDBSessionProtocol {
 		const state: ProxySessionState = {
 			createdAt: new Date().toISOString(),
 			lastActivityAt: new Date().toISOString(),
-			agents: [],
 			activeGenerations: [],
 			sessionDB,
 			messages,
@@ -301,82 +281,6 @@ export class AIDBSessionProtocol {
 		}
 
 		return deviceIds;
-	}
-
-	async writeAgentRegistration(
-		stream: DurableStream,
-		sessionId: string,
-		agent: AgentSpec,
-	): Promise<void> {
-		const event = sessionStateSchema.agents.upsert({
-			key: agent.id,
-			value: {
-				agentId: agent.id,
-				name: agent.name,
-				endpoint: agent.endpoint,
-				triggers: agent.triggers,
-			},
-		});
-
-		const result = await stream.append(JSON.stringify(event));
-		this.updateLastActivity(sessionId);
-
-		return result;
-	}
-
-	async removeAgentRegistration(
-		stream: DurableStream,
-		sessionId: string,
-		agentId: string,
-	): Promise<void> {
-		const event = sessionStateSchema.agents.delete({
-			key: agentId,
-		});
-
-		const result = await stream.append(JSON.stringify(event));
-		this.updateLastActivity(sessionId);
-
-		return result;
-	}
-
-	// ═══════════════════════════════════════════════════════════════════════
-	// Agent Registration
-	// ═══════════════════════════════════════════════════════════════════════
-
-	async registerAgent(sessionId: string, agent: AgentSpec): Promise<void> {
-		const state = this.sessionStates.get(sessionId);
-		if (state) {
-			state.agents = state.agents.filter((a) => a.id !== agent.id);
-			state.agents.push(agent);
-
-			const stream = this.streams.get(sessionId);
-			if (stream) {
-				await this.writeAgentRegistration(stream, sessionId, agent);
-			}
-		}
-	}
-
-	async registerAgents(sessionId: string, agents: AgentSpec[]): Promise<void> {
-		for (const agent of agents) {
-			await this.registerAgent(sessionId, agent);
-		}
-	}
-
-	async unregisterAgent(sessionId: string, agentId: string): Promise<void> {
-		const state = this.sessionStates.get(sessionId);
-		if (state) {
-			state.agents = state.agents.filter((a) => a.id !== agentId);
-
-			const stream = this.streams.get(sessionId);
-			if (stream) {
-				await this.removeAgentRegistration(stream, sessionId, agentId);
-			}
-		}
-	}
-
-	getRegisteredAgents(sessionId: string): AgentSpec[] {
-		const state = this.sessionStates.get(sessionId);
-		return state?.agents ?? [];
 	}
 
 	stopGeneration(sessionId: string, messageId: string | null): void {

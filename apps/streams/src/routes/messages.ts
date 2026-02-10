@@ -10,8 +10,6 @@ export function createMessageRoutes(protocol: AIDBSessionProtocol) {
 		return handleSendMessage(c, protocol);
 	});
 
-	// Regenerate endpoint removed - agent invocation now handled by desktop
-
 	app.post("/:sessionId/stop", async (c) => {
 		const sessionId = c.req.param("sessionId");
 

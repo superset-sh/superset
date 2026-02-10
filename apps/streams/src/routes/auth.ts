@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { AIDBSessionProtocol } from "../protocol";
-import type { AgentSpec } from "../types";
 
 export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();
@@ -10,21 +9,17 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 
 		try {
 			const body = await c.req.json();
-			const { actorId, deviceId, name, defaultAgents } = body as {
+			const { actorId, deviceId, name } = body as {
 				actorId: string;
 				deviceId: string;
 				name?: string;
-				defaultAgents?: AgentSpec[];
 			};
 
 			if (!actorId || !deviceId) {
 				return c.json({ error: "actorId and deviceId are required" }, 400);
 			}
 
-			const stream = await protocol.getOrCreateSession(
-				sessionId,
-				defaultAgents,
-			);
+			const stream = await protocol.getOrCreateSession(sessionId);
 
 			await protocol.writePresence(
 				stream,

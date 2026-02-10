@@ -37,32 +37,6 @@ export const streamRowSchema = z.object({
 });
 
 // ============================================================================
-// Agent Types
-// ============================================================================
-
-export type AgentTrigger = "all" | "user-messages";
-
-export interface AgentSpec {
-	id: string;
-	name?: string;
-	endpoint: string;
-	method?: "POST";
-	headers?: Record<string, string>;
-	triggers?: AgentTrigger;
-	bodyTemplate?: Record<string, unknown>;
-}
-
-export const agentSpecSchema = z.object({
-	id: z.string(),
-	name: z.string().optional(),
-	endpoint: z.string().url(),
-	method: z.literal("POST").optional(),
-	headers: z.record(z.string(), z.string()).optional(),
-	triggers: z.enum(["all", "user-messages"]).optional(),
-	bodyTemplate: z.record(z.string(), z.unknown()).optional(),
-});
-
-// ============================================================================
 // Request Types
 // ============================================================================
 
@@ -72,7 +46,6 @@ export interface SendMessageRequest {
 	role?: "user" | "assistant" | "system";
 	actorId?: string;
 	actorType?: ActorType;
-	agent?: AgentSpec;
 	txid?: string;
 }
 
@@ -82,7 +55,6 @@ export const sendMessageRequestSchema = z.object({
 	role: z.enum(["user", "assistant", "system"]).optional(),
 	actorId: z.string().optional(),
 	actorType: z.enum(["user", "agent"]).optional(),
-	agent: agentSpecSchema.optional(),
 	txid: z.string().uuid().optional(),
 });
 
@@ -110,14 +82,6 @@ export interface ApprovalResponseRequest {
 export const approvalResponseRequestSchema = z.object({
 	approved: z.boolean(),
 	txid: z.string().uuid().optional(),
-});
-
-export interface RegisterAgentsRequest {
-	agents: AgentSpec[];
-}
-
-export const registerAgentsRequestSchema = z.object({
-	agents: z.array(agentSpecSchema),
 });
 
 export interface ForkSessionRequest {
@@ -181,7 +145,6 @@ export interface StreamChunk {
 export interface SessionState {
 	createdAt: string;
 	lastActivityAt: string;
-	agents: AgentSpec[];
 	activeGenerations: string[];
 }
 
