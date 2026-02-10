@@ -1,29 +1,16 @@
 import { EventEmitter } from "node:events";
+import {
+	type PermissionRequestParams,
+	executeAgent,
+	getClaudeSessionId,
+	resolvePendingPermission,
+} from "@superset/agent";
 import { env } from "main/env.main";
-import type { AgentProvider } from "../agent-provider";
+import { buildClaudeEnv } from "../auth";
 import type { SessionStore } from "../session-store";
 
 const PROXY_URL = env.STREAMS_URL;
 const STREAMS_SECRET = env.STREAMS_SECRET;
-
-/**
- * Set, clear, or skip a field on a body template.
- * - `undefined` → no-op (field not mentioned in the update)
- * - `null`      → delete the field (revert to agent default)
- * - otherwise   → set the value
- */
-function applyBodyField(
-	template: Record<string, unknown>,
-	key: string,
-	value: unknown,
-): void {
-	if (value === undefined) return;
-	if (value === null) {
-		delete template[key];
-	} else {
-		template[key] = value;
-	}
-}
 
 function buildProxyHeaders(): Record<string, string> {
 	return {
@@ -49,46 +36,51 @@ export interface ErrorEvent {
 	error: string;
 }
 
+export interface PermissionRequestEvent {
+	type: "permission_request";
+	sessionId: string;
+	toolUseId: string;
+	toolName: string;
+	input: Record<string, unknown>;
+}
+
 export type ClaudeStreamEvent =
 	| SessionStartEvent
 	| SessionEndEvent
-	| ErrorEvent;
+	| ErrorEvent
+	| PermissionRequestEvent;
 
 interface ActiveSession {
 	sessionId: string;
 	cwd: string;
+	model?: string;
+	permissionMode?: string;
+	maxThinkingTokens?: number;
 }
 
 export class ChatSessionManager extends EventEmitter {
 	private sessions = new Map<string, ActiveSession>();
+	private runningAgents = new Map<string, AbortController>();
 
-	constructor(
-		private readonly provider: AgentProvider,
-		private readonly store: SessionStore,
-	) {
+	constructor(private readonly store: SessionStore) {
 		super();
 	}
 
 	/**
-	 * Register session with proxy: create/ensure session, register agent.
-	 * Shared between startSession and restoreSession.
+	 * Create/ensure session on proxy.
 	 */
 	private async ensureSessionReady({
 		sessionId,
 		cwd,
-		paneId,
-		tabId,
-		workspaceId,
 		model,
 		permissionMode,
+		maxThinkingTokens,
 	}: {
 		sessionId: string;
 		cwd: string;
-		paneId?: string;
-		tabId?: string;
-		workspaceId?: string;
 		model?: string;
 		permissionMode?: string;
+		maxThinkingTokens?: number;
 	}): Promise<void> {
 		const headers = buildProxyHeaders();
 
@@ -102,38 +94,21 @@ export class ChatSessionManager extends EventEmitter {
 			);
 		}
 
-		const registration = this.provider.getAgentRegistration({
+		this.sessions.set(sessionId, {
 			sessionId,
 			cwd,
-			paneId,
-			tabId,
-			workspaceId,
 			model,
 			permissionMode,
+			maxThinkingTokens,
 		});
-		const registerRes = await fetch(
-			`${PROXY_URL}/v1/sessions/${sessionId}/agents`,
-			{
-				method: "POST",
-				headers,
-				body: JSON.stringify({ agents: [registration] }),
-			},
-		);
-		if (!registerRes.ok) {
-			throw new Error(
-				`POST /v1/sessions/${sessionId}/agents failed: ${registerRes.status}`,
-			);
-		}
-
-		this.sessions.set(sessionId, { sessionId, cwd });
 	}
 
 	async startSession({
 		sessionId,
 		workspaceId,
 		cwd,
-		paneId,
-		tabId,
+		paneId: _paneId,
+		tabId: _tabId,
 		model,
 		permissionMode,
 	}: {
@@ -156,9 +131,6 @@ export class ChatSessionManager extends EventEmitter {
 			await this.ensureSessionReady({
 				sessionId,
 				cwd,
-				paneId,
-				tabId,
-				workspaceId,
 				model,
 				permissionMode,
 			});
@@ -166,7 +138,7 @@ export class ChatSessionManager extends EventEmitter {
 			await this.store.create({
 				sessionId,
 				workspaceId,
-				provider: this.provider.spec.id,
+				provider: "claude-sdk",
 				title: "New chat",
 				cwd,
 				createdAt: Date.now(),
@@ -193,8 +165,8 @@ export class ChatSessionManager extends EventEmitter {
 	async restoreSession({
 		sessionId,
 		cwd,
-		paneId,
-		tabId,
+		paneId: _paneId,
+		tabId: _tabId,
 		model,
 		permissionMode,
 	}: {
@@ -215,8 +187,6 @@ export class ChatSessionManager extends EventEmitter {
 			await this.ensureSessionReady({
 				sessionId,
 				cwd,
-				paneId,
-				tabId,
 				model,
 				permissionMode,
 			});
@@ -242,6 +212,170 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Run the agent locally for a given session.
+	 */
+	async startAgent({
+		sessionId,
+		prompt,
+	}: {
+		sessionId: string;
+		prompt: string;
+	}): Promise<void> {
+		const session = this.sessions.get(sessionId);
+		if (!session) {
+			console.error(
+				`[chat/session] Session ${sessionId} not found for startAgent`,
+			);
+			this.emit("event", {
+				type: "error",
+				sessionId,
+				error: "Session not active",
+			} satisfies ErrorEvent);
+			return;
+		}
+
+		const abortController = new AbortController();
+		this.runningAgents.set(sessionId, abortController);
+
+		const headers = buildProxyHeaders();
+
+		try {
+			// Signal generation start to proxy
+			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/start`, {
+				method: "POST",
+				headers,
+				body: JSON.stringify({}),
+			});
+
+			const agentEnv = buildClaudeEnv();
+
+			await executeAgent({
+				sessionId,
+				prompt,
+				cwd: session.cwd,
+				env: agentEnv,
+				model: session.model,
+				permissionMode:
+					(session.permissionMode as
+						| "default"
+						| "acceptEdits"
+						| "bypassPermissions"
+						| undefined) ?? "bypassPermissions",
+				maxThinkingTokens: session.maxThinkingTokens,
+				signal: abortController.signal,
+
+				onChunk: async (chunk) => {
+					try {
+						await fetch(
+							`${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
+							{
+								method: "POST",
+								headers,
+								body: JSON.stringify(chunk),
+							},
+						);
+					} catch (err) {
+						console.error(
+							`[chat/session] Failed to POST chunk for ${sessionId}:`,
+							err,
+						);
+					}
+				},
+
+				onPermissionRequest: async (
+					params: PermissionRequestParams,
+				) => {
+					// Emit permission request event to renderer
+					this.emit("event", {
+						type: "permission_request",
+						sessionId,
+						toolUseId: params.toolUseId,
+						toolName: params.toolName,
+						input: params.input,
+					} satisfies PermissionRequestEvent);
+
+					// Use the agent package's built-in permission system
+					const { createPermissionRequest } = await import(
+						"@superset/agent"
+					);
+					return createPermissionRequest({
+						toolUseId: params.toolUseId,
+						signal: params.signal,
+					});
+				},
+
+				onEvent: (event) => {
+					if (event.type === "session_initialized") {
+						this.store
+							.update(sessionId, {
+								providerSessionId: event.claudeSessionId,
+								lastActiveAt: Date.now(),
+							})
+							.catch((err: unknown) => {
+								console.error(
+									`[chat/session] Failed to update providerSessionId:`,
+									err,
+								);
+							});
+					}
+				},
+			});
+
+			// Signal generation finish to proxy
+			await fetch(
+				`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
+				{
+					method: "POST",
+					headers,
+					body: JSON.stringify({}),
+				},
+			);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			console.error(
+				`[chat/session] Agent execution failed for ${sessionId}:`,
+				message,
+			);
+			this.emit("event", {
+				type: "error",
+				sessionId,
+				error: message,
+			} satisfies ErrorEvent);
+		} finally {
+			this.runningAgents.delete(sessionId);
+		}
+	}
+
+	/**
+	 * Resolve a pending permission request for a running agent.
+	 */
+	resolvePermission({
+		sessionId: _sessionId,
+		toolUseId,
+		approved,
+		updatedInput,
+	}: {
+		sessionId: string;
+		toolUseId: string;
+		approved: boolean;
+		updatedInput?: Record<string, unknown>;
+	}): void {
+		const result = approved
+			? {
+					behavior: "allow" as const,
+					updatedInput: updatedInput ?? {},
+				}
+			: { behavior: "deny" as const, message: "User denied permission" };
+
+		const resolved = resolvePendingPermission({ toolUseId, result });
+		if (!resolved) {
+			console.warn(
+				`[chat/session] No pending permission for toolUseId=${toolUseId}`,
+			);
+		}
+	}
+
 	async interrupt({ sessionId }: { sessionId: string }): Promise<void> {
 		if (!this.sessions.has(sessionId)) {
 			console.warn(
@@ -251,6 +385,15 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		console.log(`[chat/session] Interrupting session ${sessionId}`);
+
+		// Abort local agent
+		const controller = this.runningAgents.get(sessionId);
+		if (controller) {
+			controller.abort();
+			this.runningAgents.delete(sessionId);
+		}
+
+		// Also tell proxy to stop
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
@@ -258,7 +401,7 @@ export class ChatSessionManager extends EventEmitter {
 				body: JSON.stringify({}),
 			});
 		} catch (error) {
-			console.error(`[chat/session] Interrupt failed:`, error);
+			console.error(`[chat/session] Interrupt proxy stop failed:`, error);
 		}
 	}
 
@@ -268,6 +411,13 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		console.log(`[chat/session] Deactivating session ${sessionId}`);
+
+		// Abort any running agent
+		const controller = this.runningAgents.get(sessionId);
+		if (controller) {
+			controller.abort();
+			this.runningAgents.delete(sessionId);
+		}
 
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
@@ -280,11 +430,10 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		try {
-			const providerSessionId =
-				await this.provider.getProviderSessionId(sessionId);
-			if (providerSessionId) {
+			const claudeSessionId = getClaudeSessionId(sessionId);
+			if (claudeSessionId) {
 				await this.store.update(sessionId, {
-					providerSessionId,
+					providerSessionId: claudeSessionId,
 					lastActiveAt: Date.now(),
 				});
 			} else {
@@ -312,6 +461,13 @@ export class ChatSessionManager extends EventEmitter {
 		console.log(`[chat/session] Deleting session ${sessionId}`);
 		const headers = buildProxyHeaders();
 
+		// Abort any running agent
+		const controller = this.runningAgents.get(sessionId);
+		if (controller) {
+			controller.abort();
+			this.runningAgents.delete(sessionId);
+		}
+
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
@@ -331,7 +487,6 @@ export class ChatSessionManager extends EventEmitter {
 			console.debug(`[chat/session] DELETE request failed:`, err);
 		}
 
-		await this.provider.cleanup(sessionId);
 		await this.store.archive(sessionId);
 
 		this.sessions.delete(sessionId);
@@ -373,26 +528,16 @@ export class ChatSessionManager extends EventEmitter {
 			return;
 		}
 
-		const registration = this.provider.getAgentRegistration({
-			sessionId,
-			cwd: session.cwd,
-		});
-
-		const tpl = registration.bodyTemplate;
-		applyBodyField(tpl, "maxThinkingTokens", maxThinkingTokens);
-		applyBodyField(tpl, "model", model);
-		applyBodyField(tpl, "permissionMode", permissionMode);
-
-		const headers = buildProxyHeaders();
-		const res = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/agents`, {
-			method: "POST",
-			headers,
-			body: JSON.stringify({ agents: [registration] }),
-		});
-		if (!res.ok) {
-			throw new Error(
-				`POST /v1/sessions/${sessionId}/agents failed: ${res.status}`,
-			);
+		if (maxThinkingTokens !== undefined) {
+			session.maxThinkingTokens =
+				maxThinkingTokens === null ? undefined : maxThinkingTokens;
+		}
+		if (model !== undefined) {
+			session.model = model === null ? undefined : model;
+		}
+		if (permissionMode !== undefined) {
+			session.permissionMode =
+				permissionMode === null ? undefined : permissionMode;
 		}
 
 		console.log(

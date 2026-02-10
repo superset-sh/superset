@@ -149,6 +149,7 @@
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-label": "^2.1.8",
         "@sentry/electron": "^7.7.0",
+        "@superset/agent": "workspace:*",
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/durable-session": "workspace:*",

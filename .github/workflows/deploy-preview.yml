@@ -135,7 +135,6 @@ jobs:
           org: ${{ vars.FLY_ORG }}
           config: apps/streams/fly.toml
           secrets: |
-            ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
             STREAMS_SECRET=${{ secrets.STREAMS_SECRET }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

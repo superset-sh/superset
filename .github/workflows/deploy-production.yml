@@ -411,7 +411,6 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           flyctl secrets set \
-            ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
             STREAMS_SECRET="${{ secrets.STREAMS_SECRET }}" \
             --app superset-stream \
             --stage

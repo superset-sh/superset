@@ -226,6 +226,35 @@ export const createAiChatRouter = () => {
 				});
 			}),
 
+		sendMessage: publicProcedure
+			.input(z.object({ sessionId: z.string(), text: z.string() }))
+			.mutation(async ({ input }) => {
+				await chatSessionManager.startAgent({
+					sessionId: input.sessionId,
+					prompt: input.text,
+				});
+				return { success: true };
+			}),
+
+		approveToolUse: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					toolUseId: z.string(),
+					approved: z.boolean(),
+					updatedInput: z.record(z.unknown()).optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				chatSessionManager.resolvePermission({
+					sessionId: input.sessionId,
+					toolUseId: input.toolUseId,
+					approved: input.approved,
+					updatedInput: input.updatedInput,
+				});
+				return { success: true };
+			}),
+
 		streamEvents: publicProcedure
 			.input(z.object({ sessionId: z.string().optional() }))
 			.subscription(({ input }) => {
