@@ -39,8 +39,8 @@ jobs:
 
       - name: Create branch
         run: |
-          BRANCH_NAME="changelog/$(date +%Y-%m-%d)"
-          git checkout -b "$BRANCH_NAME"
+          BRANCH_NAME="changelog/$(date +%Y-%m-%d)-${GITHUB_RUN_ID}"
+          git checkout -B "$BRANCH_NAME"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Generate changelog with Claude Code
