@@ -69,6 +69,21 @@ export function getHighestPriorityStatus(
 }
 
 /**
+ * Resolve what a pane's status should become when the user acknowledges it
+ * (e.g. clicking a tab, focusing a pane, selecting a workspace).
+ *
+ * - "review"     → "idle"    (user saw the completion)
+ * - "permission" → "working" (user saw the prompt; assume granted)
+ * - "working"    → unchanged (persists until agent stops)
+ * - "idle"       → unchanged
+ */
+export function acknowledgedStatus(status: PaneStatus | undefined): PaneStatus {
+	if (status === "review") return "idle";
+	if (status === "permission") return "working";
+	return status ?? "idle";
+}
+
+/**
  * File viewer display modes
  */
 export type FileViewerMode = "rendered" | "raw" | "diff";
