@@ -40,9 +40,7 @@ const REQUIRED_ENV_VARS = [
 export function validateRequiredEnv(): void {
 	if (process.env.SKIP_ENV_VALIDATION) return;
 
-	const missing = REQUIRED_ENV_VARS.filter(
-		(key) => !process.env[key]?.trim(),
-	);
+	const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]?.trim());
 
 	if (missing.length > 0) {
 		throw new Error(
