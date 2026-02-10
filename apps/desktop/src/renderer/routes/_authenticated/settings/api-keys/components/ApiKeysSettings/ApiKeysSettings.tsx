@@ -31,6 +31,7 @@ import {
 	HiOutlinePlus,
 	HiOutlineTrash,
 } from "react-icons/hi2";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
@@ -71,11 +72,11 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 
 		try {
 			setIsGenerating(true);
-			const result = await authClient.apiKey.create({
+			const result = await apiTrpcClient.apiKey.create.mutate({
 				name: newKeyName.trim(),
 			});
-			if (result.data?.key) {
-				setNewKeyValue(result.data.key);
+			if (result.key) {
+				setNewKeyValue(result.key);
 				setShowGenerateDialog(false);
 				setShowNewKeyDialog(true);
 				setNewKeyName("");
