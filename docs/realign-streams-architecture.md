@@ -39,7 +39,7 @@ Streams Proxy (Fly.io) — pure durable streams
 ├── Chunk-writing endpoint (NEW — accepts chunks from desktop)
 ├── SSE fan-out to all clients
 ├── Auth middleware (Bearer token on /v1/*)
-└── Stop generation (writes stop chunk, desktop detects via SSE)
+└── Stop generation (aborts active generation controllers)
 ```
 
 ## Chunk Flow
@@ -49,7 +49,7 @@ Streams Proxy (Fly.io) — pure durable streams
 2. Desktop runs SDK locally with user's cwd + credentials
 3. For each SDK event → convert to StreamChunk → POST /v1/sessions/:id/chunks
 4. Proxy writes chunk to durable stream → SSE fan-out to all clients
-5. Stop from any client → proxy writes stop chunk → Desktop detects via SSE → aborts SDK
+5. Stop → Desktop calls tRPC interrupt → aborts local AbortController → SDK stops
 ```
 
 ---
@@ -152,7 +152,7 @@ export interface ExecuteAgentParams {
 
   // Callbacks for environment-specific behavior
   onChunk: (chunk: StreamChunk) => Promise<void>;
-  canUseTool?: (toolUse: ToolUseBlock) => Promise<boolean>;
+  onPermissionRequest?: (params: PermissionRequestParams) => Promise<PermissionResult>;
   onEvent?: (event: RuntimeEvent) => void;
 
   // Optional
@@ -236,8 +236,8 @@ class SessionManager {
         },
 
         // Handle permissions locally via tRPC
-        canUseTool: async (toolUse) => {
-          return this.requestPermission(sessionId, toolUse);
+        onPermissionRequest: async (params) => {
+          return this.requestPermission(sessionId, params);
         },
 
         // Emit events for renderer
@@ -259,11 +259,11 @@ class SessionManager {
 
   private async requestPermission(
     sessionId: string,
-    toolUse: ToolUseBlock
-  ): Promise<boolean> {
+    params: PermissionRequestParams
+  ): Promise<PermissionResult> {
     // Create permission request, emit event to renderer
     // Wait for tRPC mutation response
-    // Return approval decision
+    // Return PermissionResult ({ behavior: "allow" | "deny", ... })
   }
 }
 ```
@@ -335,9 +335,9 @@ Add to `apps/desktop/package.json`:
 ## Permission/Approval Flow (Local)
 
 Old: SDK → agent endpoint (Fly.io) → SSE to proxy → client → HTTP back → resolve
-New: SDK → `canUseTool` callback (local) → tRPC event → renderer UI → tRPC mutation → resolve
+New: SDK → `onPermissionRequest` callback (local) → tRPC event → renderer UI → tRPC mutation → resolve
 
-1. SDK calls `canUseTool()` callback on desktop
+1. SDK calls `onPermissionRequest()` callback on desktop
 2. Callback emits tRPC event: `{ type: "approval_requested", toolName, input, toolUseId }`
 3. Renderer receives via existing `streamEvents` subscription
 4. User approves/denies
@@ -348,8 +348,8 @@ New: SDK → `canUseTool` callback (local) → tRPC event → renderer UI → tR
 
 ## Stop Generation Flow
 
-- **From desktop**: `runner.interrupt()` → abort SDK → write stop chunk to proxy
-- **From web/mobile**: `POST /v1/sessions/:id/stop` → proxy writes stop chunk → desktop detects via SSE → `runner.interrupt()`
+- **From desktop**: `runner.interrupt()` → abort local AbortController → SDK stops → also calls proxy `/stop` as fallback
+- **From web/mobile**: `POST /v1/sessions/:id/stop` → proxy aborts active generation controllers
 
 ---
 
@@ -382,7 +382,7 @@ apps/sandbox-worker/ → uses SandboxAgentRuntime
 1. **Shared package builds:**
    ```bash
    cd packages/agent
-   bun run build  # Should compile without errors
+   bun run typecheck  # Should compile without errors
    ```
 
 2. **Desktop imports and runs agent:**
@@ -408,11 +408,11 @@ apps/sandbox-worker/ → uses SandboxAgentRuntime
 
 5. **Permissions work locally:**
    - Set permission mode to "default", trigger tool use
-   - `canUseTool` callback fires → tRPC event emitted
+   - `onPermissionRequest` callback fires → tRPC event emitted
    - Approval UI appears in renderer
    - User approves → tRPC mutation → promise resolves
    - SDK continues execution
 
 6. **Stop works across clients:**
    - Start generation → call `sessionManager.stopAgent()` → AbortController aborts → SDK stops
-   - Start generation → `POST /v1/sessions/:id/stop` → proxy writes stop chunk → desktop detects via SSE → aborts
+   - Start generation → call tRPC `interrupt` mutation → AbortController aborts → SDK stops
