@@ -1,26 +1,8 @@
-import { execSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 import { DurableStreamTestServer } from "@durable-streams/server";
 import { serve } from "@hono/node-server";
 import { env } from "./env";
 import { createServer } from "./server";
-
-function freePort(port: number): void {
-	try {
-		const pid = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -t`, {
-			encoding: "utf-8",
-		}).trim();
-		if (pid) {
-			process.kill(Number(pid), "SIGKILL");
-			console.log(`[streams] Killed stale process ${pid} on port ${port}`);
-		}
-	} catch {
-		// No process found on this port — nothing to do
-	}
-}
-
-freePort(env.STREAMS_PORT);
-freePort(env.STREAMS_INTERNAL_PORT);
 
 if (!existsSync(env.STREAMS_DATA_DIR)) {
 	mkdirSync(env.STREAMS_DATA_DIR, { recursive: true });
