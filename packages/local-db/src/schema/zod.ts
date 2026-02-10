@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-/**
- * Git status for a worktree
- */
 export const gitStatusSchema = z.object({
 	branch: z.string(),
 	needsRebase: z.boolean(),
@@ -11,9 +8,6 @@ export const gitStatusSchema = z.object({
 
 export type GitStatus = z.infer<typeof gitStatusSchema>;
 
-/**
- * GitHub check item
- */
 export const checkItemSchema = z.object({
 	name: z.string(),
 	status: z.enum(["success", "failure", "pending", "skipped", "cancelled"]),
@@ -22,9 +16,6 @@ export const checkItemSchema = z.object({
 
 export type CheckItem = z.infer<typeof checkItemSchema>;
 
-/**
- * GitHub PR status
- */
 export const gitHubStatusSchema = z.object({
 	pr: z
 		.object({
@@ -51,9 +42,6 @@ export const EXECUTION_MODES = ["sequential", "parallel"] as const;
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
 
-/**
- * Terminal preset
- */
 export const terminalPresetSchema = z.object({
 	id: z.string(),
 	name: z.string(),
@@ -68,16 +56,10 @@ export const terminalPresetSchema = z.object({
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
 
-/**
- * Workspace type
- */
 export const workspaceTypeSchema = z.enum(["worktree", "branch"]);
 
 export type WorkspaceType = z.infer<typeof workspaceTypeSchema>;
 
-/**
- * External apps that can be opened
- */
 export const EXTERNAL_APPS = [
 	"finder",
 	"vscode",
@@ -107,9 +89,6 @@ export const EXTERNAL_APPS = [
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
 
-/**
- * Terminal link behavior options
- */
 export const TERMINAL_LINK_BEHAVIORS = [
 	"external-editor",
 	"file-viewer",
@@ -117,9 +96,6 @@ export const TERMINAL_LINK_BEHAVIORS = [
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
 
-/**
- * Branch prefix modes for workspace branch naming
- */
 export const BRANCH_PREFIX_MODES = [
 	"none",
 	"github",

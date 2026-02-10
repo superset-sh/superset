@@ -23,6 +23,7 @@ Some CLI agents and configs are good at certain things. Use them accordingly:
 
 - **[Codex (high)](https://github.com/openai/codex)** - Good at planning and reviewing
 - **[Sonnet 4.5](https://www.claude.com/product/claude-code)** - Good at coding
+- **[Factory Droid](https://factory.ai/)** - Good at complex tasks, incident response, and migrations
 - **[Composer-1](https://cursor.com/cli)** - Good at refactoring and making quick changes
 - **[CodeRabbit CLI](https://www.coderabbit.ai/cli)** - Good at reviewing
 

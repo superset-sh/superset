@@ -52,6 +52,7 @@ Superset works with any CLI-based coding agent, including:
 | [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
 | [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| [Factory Droid](https://factory.ai/) | Fully supported |
 | Any CLI agent | Will work |
 
 If it runs in a terminal, it runs on Superset

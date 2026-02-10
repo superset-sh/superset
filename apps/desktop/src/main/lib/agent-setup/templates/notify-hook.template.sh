@@ -1,6 +1,6 @@
 #!/bin/bash
 {{MARKER}}
-# Called by CLI agents (Claude Code, Codex, etc.) when they complete or need input
+# Called by CLI agents (Claude Code, Codex, Factory Droid, etc.) when they complete or need input
 
 # Only run if inside a Superset terminal
 [ -z "$SUPERSET_TAB_ID" ] && exit 0

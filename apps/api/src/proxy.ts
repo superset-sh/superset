@@ -23,12 +23,10 @@ export default function proxy(req: NextRequest) {
 	const origin = req.headers.get("origin");
 	const corsHeaders = getCorsHeaders(origin);
 
-	// Handle preflight
 	if (req.method === "OPTIONS") {
 		return new NextResponse(null, { status: 204, headers: corsHeaders });
 	}
 
-	// Add CORS headers to all responses
 	const response = NextResponse.next();
 	for (const [key, value] of Object.entries(corsHeaders)) {
 		response.headers.set(key, value);
