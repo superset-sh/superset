@@ -17,7 +17,6 @@ export class AIDBSessionProtocol {
 	private readonly baseUrl: string;
 	private streams = new Map<string, DurableStream>();
 	private messageSeqs = new Map<string, number>();
-	private activeAbortControllers = new Map<string, AbortController>();
 	private sessionStates = new Map<string, ProxySessionState>();
 
 	constructor(options: AIDBProtocolOptions) {
@@ -245,23 +244,10 @@ export class AIDBSessionProtocol {
 		return deviceIds;
 	}
 
-	stopGeneration(sessionId: string, messageId: string | null): void {
-		if (messageId) {
-			const controller = this.activeAbortControllers.get(messageId);
-			if (controller) {
-				controller.abort();
-			}
-		} else {
-			const state = this.sessionStates.get(sessionId);
-			if (state) {
-				for (const id of state.activeGenerations) {
-					const controller = this.activeAbortControllers.get(id);
-					if (controller) {
-						controller.abort();
-					}
-				}
-			}
-		}
+	stopGeneration(_sessionId: string, _messageId: string | null): void {
+		// No-op: agent execution moved to desktop. Cross-client stop
+		// requires future signaling implementation. The /stop endpoint
+		// still exists so clients don't get 404.
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════
