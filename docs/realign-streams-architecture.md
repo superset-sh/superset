@@ -298,22 +298,10 @@ export const aiChatRouter = router({
       });
     }),
 
-  streamEvents: protectedProcedure
+  interrupt: protectedProcedure
     .input(z.object({ sessionId: z.string() }))
-    .subscription(({ input }) => {
-      return observable<RuntimeEvent>((emit) => {
-        const handler = (event: RuntimeEvent) => {
-          if (event.sessionId === input.sessionId) {
-            emit.next(event);
-          }
-        };
-
-        sessionManager.on("agent-event", handler);
-
-        return () => {
-          sessionManager.off("agent-event", handler);
-        };
-      });
+    .mutation(({ input }) => {
+      sessionManager.interrupt({ sessionId: input.sessionId });
     }),
 });
 ```
@@ -338,18 +326,18 @@ Old: SDK → agent endpoint (Fly.io) → SSE to proxy → client → HTTP back �
 New: SDK → `onPermissionRequest` callback (local) → tRPC event → renderer UI → tRPC mutation → resolve
 
 1. SDK calls `onPermissionRequest()` callback on desktop
-2. Callback emits tRPC event: `{ type: "approval_requested", toolName, input, toolUseId }`
-3. Renderer receives via existing `streamEvents` subscription
-4. User approves/denies
+2. Callback creates a pending permission promise and emits event
+3. Permission request chunk is written to proxy → renderer sees it via SSE
+4. User approves/denies in renderer UI
 5. Renderer calls `approveToolUse` tRPC mutation
-6. Mutation resolves local `permissionManager` promise
+6. Mutation resolves pending permission promise locally
 7. SDK continues
 8. Also write approval chunk to proxy so other clients see it
 
 ## Stop Generation Flow
 
 - **From desktop**: `runner.interrupt()` → abort local AbortController → SDK stops → also calls proxy `/stop` as fallback
-- **From web/mobile**: `POST /v1/sessions/:id/stop` → proxy aborts active generation controllers
+- **From web/mobile**: Not yet implemented (proxy `/stop` endpoint exists but has no effect on desktop agent — requires future cross-client signaling)
 
 ---
 
@@ -414,5 +402,4 @@ apps/sandbox-worker/ → uses SandboxAgentRuntime
    - SDK continues execution
 
 6. **Stop works across clients:**
-   - Start generation → call `sessionManager.stopAgent()` → AbortController aborts → SDK stops
-   - Start generation → call tRPC `interrupt` mutation → AbortController aborts → SDK stops
+   - Start generation → call tRPC `interrupt` mutation → `sessionManager.interrupt()` → AbortController aborts → SDK stops
