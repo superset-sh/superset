@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import {
@@ -39,14 +40,18 @@ function TabButton({
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
+					<button
+						type="button"
 						onClick={onClick}
-						className={`size-6 p-0 ${isActive ? "bg-muted" : ""}`}
+						className={cn(
+							"flex items-center justify-center shrink-0 h-full w-10 transition-all",
+							isActive
+								? "text-foreground bg-border/30"
+								: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
+						)}
 					>
 						{icon}
-					</Button>
+					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
 					{label}
@@ -56,15 +61,19 @@ function TabButton({
 	}
 
 	return (
-		<Button
-			variant="ghost"
-			size="sm"
+		<button
+			type="button"
 			onClick={onClick}
-			className={`h-6 px-2 py-0 text-xs gap-1 ${isActive ? "bg-muted" : ""}`}
+			className={cn(
+				"flex items-center gap-2 shrink-0 px-3 h-full transition-all text-sm",
+				isActive
+					? "text-foreground bg-border/30"
+					: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
+			)}
 		>
 			{icon}
 			{label}
-		</Button>
+		</button>
 	);
 }
 
@@ -148,64 +157,68 @@ export function RightSidebar() {
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<div className="flex items-center gap-1 px-2 py-1.5 border-b border-border">
-				{showChangesTab && (
+			<div className="flex items-center bg-background shrink-0 h-10 border-b">
+				<div className="flex items-center h-full">
+					{showChangesTab && (
+						<TabButton
+							isActive={rightSidebarTab === RightSidebarTab.Changes}
+							onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
+							icon={<LuGitCompareArrows className="size-3.5" />}
+							label="Changes"
+							compact={compactTabs}
+						/>
+					)}
 					<TabButton
-						isActive={rightSidebarTab === RightSidebarTab.Changes}
-						onClick={() => setRightSidebarTab(RightSidebarTab.Changes)}
-						icon={<LuGitCompareArrows className="size-3.5" />}
-						label="Changes"
+						isActive={rightSidebarTab === RightSidebarTab.Files}
+						onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
+						icon={<LuFile className="size-3.5" />}
+						label="Files"
 						compact={compactTabs}
 					/>
-				)}
-				<TabButton
-					isActive={rightSidebarTab === RightSidebarTab.Files}
-					onClick={() => setRightSidebarTab(RightSidebarTab.Files)}
-					icon={<LuFile className="size-3.5" />}
-					label="Files"
-					compact={compactTabs}
-				/>
+				</div>
 				<div className="flex-1" />
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={handleExpandToggle}
-							className="size-6 p-0"
-						>
-							{isExpanded ? (
-								<LuShrink className="size-3.5" />
-							) : (
-								<LuExpand className="size-3.5" />
-							)}
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						<HotkeyTooltipContent
-							label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
-							hotkeyId="TOGGLE_EXPAND_SIDEBAR"
-						/>
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={toggleSidebar}
-							className="size-6 p-0"
-						>
-							<LuX className="size-3.5" />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						<HotkeyTooltipContent
-							label="Close sidebar"
-							hotkeyId="TOGGLE_SIDEBAR"
-						/>
-					</TooltipContent>
-				</Tooltip>
+				<div className="flex items-center h-10 pr-2 gap-0.5">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={handleExpandToggle}
+								className="size-6 p-0"
+							>
+								{isExpanded ? (
+									<LuShrink className="size-3.5" />
+								) : (
+									<LuExpand className="size-3.5" />
+								)}
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							<HotkeyTooltipContent
+								label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+								hotkeyId="TOGGLE_EXPAND_SIDEBAR"
+							/>
+						</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={toggleSidebar}
+								className="size-6 p-0"
+							>
+								<LuX className="size-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							<HotkeyTooltipContent
+								label="Close sidebar"
+								hotkeyId="TOGGLE_SIDEBAR"
+							/>
+						</TooltipContent>
+					</Tooltip>
+				</div>
 			</div>
 			{showChangesTab && (
 				<div

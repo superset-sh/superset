@@ -20,7 +20,7 @@
 		"@superset/durable-session": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
 		"@tanstack/ai": "^0.3.0",
-		"@tanstack/db": "0.5.22",
+		"@tanstack/db": "0.5.25",
 		"hono": "^4.4.0",
 		"zod": "^4.3.5"
 	},

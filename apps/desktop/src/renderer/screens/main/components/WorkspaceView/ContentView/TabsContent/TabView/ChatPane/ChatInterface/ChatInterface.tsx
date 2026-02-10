@@ -58,6 +58,7 @@ export function ChatInterface({
 	const [isSending, setIsSending] = useState(false);
 
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
+	const triggerAgent = electronTrpc.aiChat.sendMessage.useMutation();
 
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
@@ -192,12 +193,17 @@ export function ChatInterface({
 		(message: { text: string }) => {
 			if (!message.text.trim()) return;
 			setIsSending(true);
-			sendMessage(message.text).catch((err) => {
-				console.error("[chat] Send failed:", err);
-				setIsSending(false);
-			});
+			sendMessage(message.text)
+				.then(() => {
+					// Trigger the local agent to process the message
+					triggerAgent.mutate({ sessionId, text: message.text });
+				})
+				.catch((err) => {
+					console.error("[chat] Send failed:", err);
+					setIsSending(false);
+				});
 		},
-		[sendMessage],
+		[sendMessage, triggerAgent, sessionId],
 	);
 
 	// Clear isSending once the server starts streaming (isLoading takes over)
