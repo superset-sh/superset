@@ -19,8 +19,10 @@ import {
 	HiArrowUp,
 	HiCheck,
 	HiChevronDown,
+	HiSparkles,
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { CreatePRDialog } from "./CreatePRDialog";
 
 interface CommitInputProps {
 	worktreePath: string;
@@ -45,6 +47,7 @@ export function CommitInput({
 }: CommitInputProps) {
 	const [commitMessage, setCommitMessage] = useState("");
 	const [isOpen, setIsOpen] = useState(false);
+	const [showCreatePRDialog, setShowCreatePRDialog] = useState(false);
 
 	const commitMutation = electronTrpc.changes.commit.useMutation({
 		onSuccess: () => {
@@ -80,8 +83,13 @@ export function CommitInput({
 	});
 
 	const createPRMutation = electronTrpc.changes.createPR.useMutation({
-		onSuccess: () => {
-			toast.success("Opening GitHub...");
+		onSuccess: (data) => {
+			toast.success(`PR #${data.number} created`, {
+				action: {
+					label: "Open",
+					onClick: () => window.open(data.url, "_blank"),
+				},
+			});
 			onRefresh();
 		},
 		onError: (error) => toast.error(`Failed: ${error.message}`),
@@ -95,13 +103,23 @@ export function CommitInput({
 		onError: (error) => toast.error(`Fetch failed: ${error.message}`),
 	});
 
+	const generateMessageMutation =
+		electronTrpc.changes.generateCommitMessage.useMutation({
+			onSuccess: (data) => {
+				setCommitMessage(data.message);
+			},
+			onError: (error) =>
+				toast.error(`Failed to generate message: ${error.message}`),
+		});
+
 	const isPending =
 		commitMutation.isPending ||
 		pushMutation.isPending ||
 		pullMutation.isPending ||
 		syncMutation.isPending ||
 		createPRMutation.isPending ||
-		fetchMutation.isPending;
+		fetchMutation.isPending ||
+		generateMessageMutation.isPending;
 
 	const canCommit = hasStagedChanges && commitMessage.trim();
 
@@ -117,7 +135,7 @@ export function CommitInput({
 			{
 				onSuccess: () => {
 					if (isPublishing) {
-						createPRMutation.mutate({ worktreePath });
+						setShowCreatePRDialog(true);
 					}
 				},
 			},
@@ -132,7 +150,7 @@ export function CommitInput({
 			{ onSuccess: () => pullMutation.mutate({ worktreePath }) },
 		);
 	};
-	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
+	const handleCreatePR = () => setShowCreatePRDialog(true);
 	const handleOpenPR = () => prUrl && window.open(prUrl, "_blank");
 
 	const handleCommitAndPush = () => {
@@ -151,7 +169,9 @@ export function CommitInput({
 				onSuccess: () => {
 					pushMutation.mutate(
 						{ worktreePath, setUpstream: true },
-						{ onSuccess: handleCreatePR },
+						{
+							onSuccess: () => setShowCreatePRDialog(true),
+						},
 					);
 				},
 			},
@@ -226,24 +246,47 @@ export function CommitInput({
 			? `${pullCount > 0 ? pullCount : ""}${pullCount > 0 && pushCount > 0 ? "/" : ""}${pushCount > 0 ? pushCount : ""}`
 			: null;
 
+	const handleGenerateMessage = () => {
+		if (!hasStagedChanges) return;
+		generateMessageMutation.mutate({ worktreePath });
+	};
+
 	return (
 		<div className="flex flex-col gap-1.5 px-2 py-2 border-b border-border">
-			<Textarea
-				placeholder="Commit message"
-				value={commitMessage}
-				onChange={(e) => setCommitMessage(e.target.value)}
-				className="min-h-[52px] resize-none text-[10px] bg-background"
-				onKeyDown={(e) => {
-					if (
-						e.key === "Enter" &&
-						(e.metaKey || e.ctrlKey) &&
-						!primary.disabled
-					) {
-						e.preventDefault();
-						primary.handler();
-					}
-				}}
-			/>
+			<div className="relative">
+				<Textarea
+					placeholder="Commit message"
+					value={commitMessage}
+					onChange={(e) => setCommitMessage(e.target.value)}
+					className="min-h-[52px] resize-none text-[10px] bg-background pr-7"
+					onKeyDown={(e) => {
+						if (
+							e.key === "Enter" &&
+							(e.metaKey || e.ctrlKey) &&
+							!primary.disabled
+						) {
+							e.preventDefault();
+							primary.handler();
+						}
+					}}
+				/>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="absolute right-1 top-1 h-5 w-5 text-muted-foreground hover:text-foreground"
+							onClick={handleGenerateMessage}
+							disabled={!hasStagedChanges || generateMessageMutation.isPending}
+						>
+							<HiSparkles
+								className={`size-3 ${generateMessageMutation.isPending ? "animate-pulse" : ""}`}
+							/>
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="left">Generate commit message</TooltipContent>
+				</Tooltip>
+			</div>
 			<ButtonGroup className="w-full">
 				<Tooltip>
 					<TooltipTrigger asChild>
@@ -365,6 +408,13 @@ export function CommitInput({
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</ButtonGroup>
+
+			<CreatePRDialog
+				open={showCreatePRDialog}
+				onOpenChange={setShowCreatePRDialog}
+				worktreePath={worktreePath}
+				onSuccess={onRefresh}
+			/>
 		</div>
 	);
 }

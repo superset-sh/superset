@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
+import { useDiffCommentsStore } from "renderer/stores/diff-comments";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import {
 	getStatusColor,
@@ -11,6 +12,7 @@ import {
 } from "../../../RightSidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
+import { DiffCommentThread } from "../InlineComment";
 import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
@@ -213,6 +215,9 @@ export function FileDiffSection({
 			},
 		);
 
+	const commentCount = useDiffCommentsStore((s) =>
+		s.getFileCommentCount(worktreePath, file.path),
+	);
 	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
 	const showStats = file.additions > 0 || file.deletions > 0;
@@ -244,6 +249,7 @@ export function FileDiffSection({
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
 					isActioning={isActioning}
+					commentCount={commentCount}
 				/>
 
 				<CollapsibleContent>
@@ -269,25 +275,31 @@ export function FileDiffSection({
 							<span>Loading diff...</span>
 						</div>
 					) : shouldRenderEditor ? (
-						isEditing ? (
-							<DiffViewer
-								contents={diffData}
-								viewMode={diffViewMode}
-								hideUnchangedRegions={hideUnchangedRegions}
+						<>
+							{isEditing ? (
+								<DiffViewer
+									contents={diffData}
+									viewMode={diffViewMode}
+									hideUnchangedRegions={hideUnchangedRegions}
+									filePath={file.path}
+									editable
+									onSave={handleSave}
+									fitContent
+									captureScroll={false}
+								/>
+							) : (
+								<LightDiffViewer
+									contents={diffData}
+									viewMode={diffViewMode}
+									hideUnchangedRegions={hideUnchangedRegions}
+									filePath={file.path}
+								/>
+							)}
+							<DiffCommentThread
+								worktreePath={worktreePath}
 								filePath={file.path}
-								editable
-								onSave={handleSave}
-								fitContent
-								captureScroll={false}
 							/>
-						) : (
-							<LightDiffViewer
-								contents={diffData}
-								viewMode={diffViewMode}
-								hideUnchangedRegions={hideUnchangedRegions}
-								filePath={file.path}
-							/>
-						)
+						</>
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
 							{diffData ? (
