@@ -91,42 +91,30 @@ export function DiffToolbar({
 			</div>
 
 			{focusMode && totalFocusFiles > 0 && (
-				<div className="flex items-center gap-0.5">
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={onNavigatePrev}
-								disabled={currentFileIndex <= 0}
-								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
-								aria-label="Previous file"
-							>
-								<LuChevronUp className="size-4" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							Previous file
-						</TooltipContent>
-					</Tooltip>
-					<span className="text-xs text-muted-foreground font-mono tabular-nums min-w-[3ch] text-center">
+				<div className="flex items-center gap-1.5">
+					<button
+						type="button"
+						onClick={onNavigatePrev}
+						disabled={currentFileIndex <= 0}
+						className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+						aria-label="Previous file"
+					>
+						<LuChevronUp className="size-3.5" />
+						Prev
+					</button>
+					<span className="text-xs text-muted-foreground font-mono tabular-nums">
 						{currentFileIndex + 1}/{totalFocusFiles}
 					</span>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={onNavigateNext}
-								disabled={currentFileIndex >= totalFocusFiles - 1}
-								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
-								aria-label="Next file"
-							>
-								<LuChevronDown className="size-4" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							Next file
-						</TooltipContent>
-					</Tooltip>
+					<button
+						type="button"
+						onClick={onNavigateNext}
+						disabled={currentFileIndex >= totalFocusFiles - 1}
+						className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+						aria-label="Next file"
+					>
+						Next
+						<LuChevronDown className="size-3.5" />
+					</button>
 				</div>
 			)}
 
