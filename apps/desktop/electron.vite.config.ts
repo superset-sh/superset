@@ -61,8 +61,6 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
 			),
-			"process.env.GOOGLE_CLIENT_ID": defineEnv(process.env.GOOGLE_CLIENT_ID),
-			"process.env.GH_CLIENT_ID": defineEnv(process.env.GH_CLIENT_ID),
 			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),

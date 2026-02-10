@@ -27,8 +27,6 @@ export function defineEnv(
 }
 
 const REQUIRED_ENV_VARS = [
-	"GOOGLE_CLIENT_ID",
-	"GH_CLIENT_ID",
 	"STREAMS_URL",
 	"STREAMS_SECRET",
 ] as const;
