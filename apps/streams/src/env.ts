@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const env = createEnv({
 	server: {
-		PORT: z.coerce.number(),
+		STREAMS_PORT: z.coerce.number(),
 		STREAMS_INTERNAL_PORT: z.coerce.number(),
 		STREAMS_INTERNAL_URL: z.string().url(),
 		STREAMS_DATA_DIR: z.string().min(1),

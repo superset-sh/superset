@@ -7,7 +7,7 @@ primary_region = "iad"
   dockerfile = "apps/streams/Dockerfile"
 
 [env]
-  PORT = "8080"
+  STREAMS_PORT = "8080"
   NODE_ENV = "production"
   DATA_DIR = "/data"
 

@@ -5,7 +5,7 @@
 	"type": "module",
 	"main": "./dist/index.js",
 	"scripts": {
-		"dev": "tsx watch src/index.ts",
+		"dev": "tsx watch --env-file=../../.env src/index.ts",
 		"build": "tsup src/index.ts --format esm --dts",
 		"start": "node dist/index.js",
 		"typecheck": "tsc --noEmit",

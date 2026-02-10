@@ -24,7 +24,7 @@ const { app } = createServer({
 	authToken: env.STREAMS_SECRET,
 });
 
-const proxyServer = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
+const proxyServer = serve({ fetch: app.fetch, port: env.STREAMS_PORT }, (info) => {
 	console.log(`[streams] Proxy running on http://localhost:${info.port}`);
 });
 
