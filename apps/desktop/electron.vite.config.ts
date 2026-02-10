@@ -16,14 +16,13 @@ import {
 	defineEnv,
 	devPath,
 	htmlEnvTransformPlugin,
-	validateRequiredEnv,
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
 config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
 
-// Fail the build early if required env vars are missing
-validateRequiredEnv();
+// Validate required env vars at build time using the Zod schema (single source of truth)
+await import("./src/main/env.main");
 
 const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
