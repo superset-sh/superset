@@ -7,7 +7,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { MONACO_EDITOR_OPTIONS } from "renderer/providers/MonacoProvider";
 import {
@@ -137,8 +137,8 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		[setFontSettings],
 	);
 
-	const handleEditorFontSizeChange = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleEditorFontSizeBlur = useCallback(
+		(e: React.FocusEvent<HTMLInputElement>) => {
 			const value = Number.parseInt(e.target.value, 10);
 			if (!Number.isNaN(value) && value >= 10 && value <= 24) {
 				setFontSettings.mutate({ editorFontSize: value });
@@ -157,8 +157,8 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		[setFontSettings],
 	);
 
-	const handleTerminalFontSizeChange = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleTerminalFontSizeBlur = useCallback(
+		(e: React.FocusEvent<HTMLInputElement>) => {
 			const value = Number.parseInt(e.target.value, 10);
 			if (!Number.isNaN(value) && value >= 10 && value <= 24) {
 				setFontSettings.mutate({ terminalFontSize: value });
@@ -171,19 +171,39 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 	const [terminalFontDraft, setTerminalFontDraft] = useState<string | null>(
 		null,
 	);
+	const [editorFontSizeDraft, setEditorFontSizeDraft] = useState<string | null>(
+		null,
+	);
+	const [terminalFontSizeDraft, setTerminalFontSizeDraft] = useState<
+		string | null
+	>(null);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: sync draft state when fontSettings changes
+	useEffect(() => {
+		setEditorFontSizeDraft(null);
+		setTerminalFontSizeDraft(null);
+	}, [fontSettings]);
 
 	const editorPreviewFamily =
 		editorFontDraft ??
 		fontSettings?.editorFontFamily ??
 		DEFAULT_EDITOR_FONT_FAMILY;
 	const editorPreviewSize =
-		fontSettings?.editorFontSize ?? DEFAULT_EDITOR_FONT_SIZE;
+		(editorFontSizeDraft != null
+			? Number.parseInt(editorFontSizeDraft, 10)
+			: undefined) ||
+		fontSettings?.editorFontSize ||
+		DEFAULT_EDITOR_FONT_SIZE;
 	const terminalPreviewFamily =
 		terminalFontDraft ??
 		fontSettings?.terminalFontFamily ??
 		DEFAULT_TERMINAL_FONT_FAMILY;
 	const terminalPreviewSize =
-		fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
+		(terminalFontSizeDraft != null
+			? Number.parseInt(terminalFontSizeDraft, 10)
+			: undefined) ||
+		fontSettings?.terminalFontSize ||
+		DEFAULT_TERMINAL_FONT_SIZE;
 
 	const hasPrecedingSection = showTheme || showMarkdown;
 
@@ -267,8 +287,17 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 								type="number"
 								min={10}
 								max={24}
-								value={fontSettings?.editorFontSize ?? DEFAULT_EDITOR_FONT_SIZE}
-								onChange={handleEditorFontSizeChange}
+								value={
+									editorFontSizeDraft ??
+									String(
+										fontSettings?.editorFontSize ?? DEFAULT_EDITOR_FONT_SIZE,
+									)
+								}
+								onChange={(e) => setEditorFontSizeDraft(e.target.value)}
+								onBlur={(e) => {
+									handleEditorFontSizeBlur(e);
+									setEditorFontSizeDraft(null);
+								}}
 								disabled={isFontLoading}
 								className="w-20"
 							/>
@@ -284,6 +313,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 											editorFontSize: null,
 										});
 										setEditorFontDraft(null);
+										setEditorFontSizeDraft(null);
 									}}
 								>
 									Reset
@@ -338,9 +368,17 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 								min={10}
 								max={24}
 								value={
-									fontSettings?.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE
+									terminalFontSizeDraft ??
+									String(
+										fontSettings?.terminalFontSize ??
+											DEFAULT_TERMINAL_FONT_SIZE,
+									)
 								}
-								onChange={handleTerminalFontSizeChange}
+								onChange={(e) => setTerminalFontSizeDraft(e.target.value)}
+								onBlur={(e) => {
+									handleTerminalFontSizeBlur(e);
+									setTerminalFontSizeDraft(null);
+								}}
 								disabled={isFontLoading}
 								className="w-20"
 							/>
@@ -356,6 +394,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 											terminalFontSize: null,
 										});
 										setTerminalFontDraft(null);
+										setTerminalFontSizeDraft(null);
 									}}
 								>
 									Reset
