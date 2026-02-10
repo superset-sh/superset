@@ -59,6 +59,7 @@ export function ChatInterface({
 
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 	const triggerAgent = electronTrpc.aiChat.sendMessage.useMutation();
+	const interruptAgent = electronTrpc.aiChat.interrupt.useMutation();
 
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
@@ -272,9 +273,10 @@ export function ChatInterface({
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
+			interruptAgent.mutate({ sessionId });
 			stop();
 		},
-		[stop],
+		[interruptAgent, sessionId, stop],
 	);
 
 	const handleSlashCommandSend = useCallback(
