@@ -24,9 +24,10 @@ await executeAgent({
   onChunk: async (chunk) => {
     // Send chunk to streams server or handle locally
   },
-  canUseTool: async (toolUse) => {
+  onPermissionRequest: async ({ toolUseId, toolName, input, signal }) => {
     // Handle permission approval
-    return true;
+    return { behavior: "allow", updatedInput: input };
+    // Or deny: return { behavior: "deny", message: "Not allowed" };
   },
 });
 ```
