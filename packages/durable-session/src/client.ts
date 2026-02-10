@@ -352,6 +352,7 @@ export class DurableChatClient<
 		options?: { actorIdHeader?: boolean },
 	): Promise<void> {
 		const headers: Record<string, string> = {
+			...this.options.stream?.headers,
 			"Content-Type": "application/json",
 		};
 		if (options?.actorIdHeader) {

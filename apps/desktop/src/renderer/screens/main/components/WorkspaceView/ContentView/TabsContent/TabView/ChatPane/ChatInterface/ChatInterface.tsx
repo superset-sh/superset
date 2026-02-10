@@ -170,10 +170,10 @@ export function ChatInterface({
 	}, [sessionId, cwd, workspaceId, existingSession, paneId, tabId]);
 
 	useEffect(() => {
-		if (sessionReady && config?.proxyUrl) {
+		if (sessionReady && config?.proxyUrl && config?.authToken) {
 			doConnect();
 		}
-	}, [sessionReady, config?.proxyUrl, doConnect]);
+	}, [sessionReady, config?.proxyUrl, config?.authToken, doConnect]);
 
 	const handleRename = useCallback(
 		(title: string) => {

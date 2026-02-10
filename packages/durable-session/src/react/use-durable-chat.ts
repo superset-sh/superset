@@ -177,7 +177,8 @@ export function useDurableChat<
 		client: DurableChatClient<TTools>;
 		key: string;
 	} | null>(null);
-	const key = `${clientOptions.sessionId}:${clientOptions.proxyUrl}`;
+	const authHeader = clientOptions.stream?.headers?.Authorization;
+	const key = `${clientOptions.sessionId}:${clientOptions.proxyUrl}:${authHeader ?? ""}`;
 
 	// Create or recreate client when key changes or client was disposed.
 	// The isDisposed check handles React Strict Mode: cleanup disposes the client,
