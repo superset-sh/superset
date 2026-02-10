@@ -370,8 +370,8 @@ export function ChatInterface({
 													modelId={selectedModel.id}
 												/>
 												<PromptInputSubmit
-													status={isLoading ? "streaming" : undefined}
-													onClick={isLoading ? handleStop : undefined}
+													status={isSending || isLoading ? "streaming" : undefined}
+													onClick={isSending || isLoading ? handleStop : undefined}
 												/>
 											</div>
 										</PromptInputFooter>
