@@ -30,6 +30,7 @@ export async function executeAgent(
 		fallbackModel,
 		additionalDirectories,
 		betas,
+		pathToClaudeCodeExecutable,
 		signal,
 		onChunk,
 		onPermissionRequest,
@@ -112,6 +113,7 @@ export async function executeAgent(
 			...(fallbackModel && { fallbackModel }),
 			...(additionalDirectories && { additionalDirectories }),
 			...(betas && { betas: betas as Array<"context-1m-2025-08-07"> }),
+			...(pathToClaudeCodeExecutable && { pathToClaudeCodeExecutable }),
 		},
 	});
 

@@ -45,6 +45,9 @@ export interface ExecuteAgentParams {
 	/** Beta features to enable */
 	betas?: string[];
 
+	/** Path to the Claude Code executable */
+	pathToClaudeCodeExecutable?: string;
+
 	/** Abort signal for cancellation */
 	signal?: AbortSignal;
 

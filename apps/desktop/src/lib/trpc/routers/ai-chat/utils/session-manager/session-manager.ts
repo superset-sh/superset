@@ -1,16 +1,27 @@
 import { EventEmitter } from "node:events";
+import { join } from "node:path";
 import {
 	executeAgent,
 	getClaudeSessionId,
 	type PermissionRequestParams,
 	resolvePendingPermission,
 } from "@superset/agent";
+import { app } from "electron";
 import { env } from "main/env.main";
 import { buildClaudeEnv } from "../auth";
 import type { SessionStore } from "../session-store";
 
 const PROXY_URL = env.STREAMS_URL;
 const STREAMS_SECRET = env.STREAMS_SECRET;
+
+function getClaudeBinaryPath(): string {
+	if (app.isPackaged) {
+		return join(process.resourcesPath, "bin", "claude");
+	}
+	const platform = process.platform;
+	const arch = process.arch;
+	return join(app.getAppPath(), "resources", "bin", `${platform}-${arch}`, "claude");
+}
 
 function buildProxyHeaders(): Record<string, string> {
 	return {
@@ -241,12 +252,18 @@ export class ChatSessionManager extends EventEmitter {
 		const headers = buildProxyHeaders();
 
 		try {
-			// Signal generation start to proxy
-			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/start`, {
-				method: "POST",
-				headers,
-				body: JSON.stringify({}),
-			});
+			// Signal generation start to proxy and get messageId
+			const startRes = await fetch(
+				`${PROXY_URL}/v1/sessions/${sessionId}/generations/start`,
+				{
+					method: "POST",
+					headers,
+					body: JSON.stringify({}),
+				},
+			);
+			const { messageId } = (await startRes.json()) as {
+				messageId: string;
+			};
 
 			const agentEnv = buildClaudeEnv();
 
@@ -254,6 +271,7 @@ export class ChatSessionManager extends EventEmitter {
 				sessionId,
 				prompt,
 				cwd: session.cwd,
+				pathToClaudeCodeExecutable: getClaudeBinaryPath(),
 				env: agentEnv,
 				model: session.model,
 				permissionMode:
@@ -270,7 +288,12 @@ export class ChatSessionManager extends EventEmitter {
 						await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
 							method: "POST",
 							headers,
-							body: JSON.stringify(chunk),
+							body: JSON.stringify({
+								messageId,
+								actorId: "claude",
+								role: "assistant",
+								chunk,
+							}),
 						});
 					} catch (err) {
 						console.error(

@@ -228,8 +228,9 @@ export const createAiChatRouter = () => {
 
 		sendMessage: publicProcedure
 			.input(z.object({ sessionId: z.string(), text: z.string() }))
-			.mutation(async ({ input }) => {
-				await chatSessionManager.startAgent({
+			.mutation(({ input }) => {
+				// Fire-and-forget: agent runs in background, errors surface via streamEvents
+				chatSessionManager.startAgent({
 					sessionId: input.sessionId,
 					prompt: input.text,
 				});
