@@ -404,8 +404,12 @@ jobs:
     environment: production
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
       - name: Stage secrets
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
@@ -414,6 +418,7 @@ jobs:
             DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             --app superset-stream \
             --stage
+
       - name: Deploy to Fly.io
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

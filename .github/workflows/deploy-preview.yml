@@ -127,8 +127,8 @@ jobs:
     needs: deploy-database
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Download database info
         uses: actions/download-artifact@v4
@@ -140,41 +140,17 @@ jobs:
           source database-status.env
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
 
-      - name: Create or reuse Fly app
+      - name: Deploy Streams to Fly.io
+        uses: superfly/fly-pr-review-apps@1.3.0
+        with:
+          name: superset-stream-pr-${{ github.event.pull_request.number }}
+          region: iad
+          org: ${{ vars.FLY_ORG }}
+          config: apps/streams/fly.toml
+          secrets: |
+            DATABASE_URL=${{ env.DATABASE_URL }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          flyctl apps create superset-stream-pr-${{ env.PR_NUMBER }} \
-            --org ${{ vars.FLY_ORG }} 2>/dev/null || true
-
-      - name: Ensure volume exists
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          flyctl volumes list --app superset-stream-pr-${{ env.PR_NUMBER }} --json 2>/dev/null \
-            | grep -q stream_data \
-            || flyctl volumes create stream_data \
-              --app superset-stream-pr-${{ env.PR_NUMBER }} \
-              --region iad --size 1 --count 1 --yes
-
-      - name: Stage secrets
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          flyctl secrets set \
-            DATABASE_URL="${{ env.DATABASE_URL }}" \
-            --app superset-stream-pr-${{ env.PR_NUMBER }} \
-            --stage
-
-      - name: Deploy to Fly.io
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          flyctl deploy . \
-            --config apps/streams/fly.toml \
-            --app superset-stream-pr-${{ env.PR_NUMBER }} \
-            --remote-only \
-            --ha=false
 
       - name: Save streams status
         run: |
@@ -182,6 +158,7 @@ jobs:
           STREAMS_STATUS="✅"
           STREAMS_LINK="<a href=\"https://fly.io/apps/superset-stream-pr-${{ github.event.pull_request.number }}\">View App</a>"
           EOF
+
       - name: Upload streams status
         uses: actions/upload-artifact@v4
         with:
