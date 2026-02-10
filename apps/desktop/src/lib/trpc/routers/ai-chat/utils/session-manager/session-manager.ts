@@ -260,6 +260,11 @@ export class ChatSessionManager extends EventEmitter {
 					body: JSON.stringify({}),
 				},
 			);
+			if (!startRes.ok) {
+				throw new Error(
+					`POST /generations/start failed: ${startRes.status}`,
+				);
+			}
 			const { messageId } = (await startRes.json()) as {
 				messageId: string;
 			};
@@ -284,7 +289,7 @@ export class ChatSessionManager extends EventEmitter {
 
 				onChunk: async (chunk) => {
 					try {
-						await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
+						const chunkRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
 							method: "POST",
 							headers,
 							body: JSON.stringify({
@@ -294,6 +299,11 @@ export class ChatSessionManager extends EventEmitter {
 								chunk,
 							}),
 						});
+						if (!chunkRes.ok) {
+							console.error(
+								`[chat/session] POST chunk failed for ${sessionId}: ${chunkRes.status}`,
+							);
+						}
 					} catch (err) {
 						console.error(
 							`[chat/session] Failed to POST chunk for ${sessionId}:`,
@@ -335,11 +345,16 @@ export class ChatSessionManager extends EventEmitter {
 				},
 			});
 
-			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`, {
+			const finishRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`, {
 				method: "POST",
 				headers,
 				body: JSON.stringify({}),
 			});
+			if (!finishRes.ok) {
+				console.error(
+					`[chat/session] POST /generations/finish failed for ${sessionId}: ${finishRes.status}`,
+				);
+			}
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(
