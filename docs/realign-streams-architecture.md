@@ -4,14 +4,32 @@
 
 The original design has Claude SDK running locally on the desktop (access to user's filesystem, credentials, keychain). The current implementation mistakenly put the SDK on the Fly.io server via `apps/streams/src/claude-agent.ts`, meaning the proxy both manages durable streams AND runs the agent. This breaks when deployed — the SDK on Fly.io can't access the user's local files or credentials.
 
-**Goal**: Move Claude Agent SDK execution from the streams server to the desktop Electron main process. The streams server becomes a pure durable streams layer (message persistence, SSE fan-out, auth). The desktop runs the SDK locally and writes streaming chunks back to the proxy.
+**Goal**: Move Claude Agent SDK execution from the streams server to a shared package consumed by desktop. The streams server becomes a pure durable streams layer (message persistence, SSE fan-out, auth). The desktop runs the SDK locally and writes streaming chunks back to the proxy.
+
+## Architecture Principle
+
+**Start simple, add abstraction when needed.** We're creating a shared `packages/agent` package that desktop consumes directly. When we need to support sandboxes or cloud workers in the future, we'll add abstraction layers then (follow the "three instances" heuristic).
+
+## Migration Summary
+
+1. **Create `packages/agent`** - Move agent logic from `apps/streams` to shared package
+2. **Desktop consumes it** - Import `executeAgent()` and call with local context
+3. **Streams becomes pure proxy** - Only handles chunk writing, SSE, session management
+4. **Future**: Add abstraction layer when we have 2+ concrete use cases (desktop + sandbox, desktop + cloud worker, etc.)
 
 ## New Architecture
 
 ```
+packages/agent/ (shared package)
+├── agent-executor.ts       # Core SDK execution logic
+├── sdk-to-ai-chunks.ts     # SDK event → stream chunk conversion
+├── session-store.ts        # Session state management
+├── permission-manager.ts   # Permission/approval handling
+└── types.ts                # Shared types
+
 Desktop (Electron main process)
-├── Runs query() from @anthropic-ai/claude-agent-sdk locally
-├── Converts SDK messages → chunks (sdk-to-ai-chunks.ts)
+├── Imports @superset/agent
+├── Calls executeAgent() with local context (cwd, env, credentials)
 ├── POSTs each chunk to proxy: POST /v1/sessions/:id/chunks
 ├── Handles permissions/approvals locally via tRPC events
 └── Uses user's local credentials (buildClaudeEnv — keychain, config, env)
@@ -42,11 +60,11 @@ Streams Proxy (Fly.io) — pure durable streams
 
 | File | Reason |
 |------|--------|
-| `claude-agent.ts` | Moves to desktop |
-| `sdk-to-ai-chunks.ts` | Moves to desktop |
-| `claude-session-store.ts` | Moves to desktop |
-| `notification-hooks.ts` | Moves to desktop (simplified — direct events, no HTTP webhooks) |
-| `permission-manager.ts` | Moves to desktop |
+| `claude-agent.ts` | Moves to `packages/agent` |
+| `sdk-to-ai-chunks.ts` | Moves to `packages/agent` |
+| `claude-session-store.ts` | Moves to `packages/agent` |
+| `notification-hooks.ts` | Delete (desktop emits events directly, no HTTP webhooks) |
+| `permission-manager.ts` | Moves to `packages/agent` |
 
 ### A2. Clean up `env.ts`
 
@@ -92,74 +110,225 @@ POST /v1/sessions/:id/generations/finish → 204             (clears active gene
 
 ---
 
-## Part B: Desktop Changes (add local SDK execution)
+## Part B: Create Shared Agent Package
 
-### B1. Create `claude-runner/` module
+### B1. Create `packages/agent/` structure
 
-New directory: `apps/desktop/src/lib/trpc/routers/ai-chat/utils/claude-runner/`
+New package: `packages/agent/`
 
-| File | Source | Notes |
-|------|--------|-------|
-| `claude-runner.ts` | New | Core module — calls `query()`, converts chunks, POSTs to proxy |
-| `sdk-to-ai-chunks.ts` | From `apps/streams/` | Move as-is — pure conversion logic |
-| `claude-session-store.ts` | From `apps/streams/` | Change data dir to `app.getPath('userData')` |
-| `permission-manager.ts` | From `apps/streams/` | Move as-is — same in-memory promise pattern |
-| `index.ts` | New | Barrel export |
+```
+packages/agent/
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── agent-executor.ts       # Main entry — executeAgent()
+│   ├── sdk-to-ai-chunks.ts     # From apps/streams (as-is)
+│   ├── session-store.ts        # From apps/streams (make storage path configurable)
+│   ├── permission-manager.ts   # From apps/streams (as-is)
+│   ├── types.ts                # Shared types
+│   └── index.ts                # Barrel export
+└── README.md
+```
 
-`notification-hooks.ts` is NOT moved — desktop doesn't need HTTP webhooks to notify itself. SDK hooks can emit events directly via the session manager's EventEmitter.
+### B2. Move files from `apps/streams/src/` to `packages/agent/src/`
 
-### B2. `ClaudeRunner` implementation
+| Source File | Destination | Changes |
+|-------------|-------------|---------|
+| `claude-agent.ts` | `agent-executor.ts` | Strip Hono HTTP server, keep core `query()` logic |
+| `sdk-to-ai-chunks.ts` | `sdk-to-ai-chunks.ts` | Move as-is (pure conversion logic) |
+| `claude-session-store.ts` | `session-store.ts` | Make storage path configurable (inject via constructor) |
+| `permission-manager.ts` | `permission-manager.ts` | Move as-is (in-memory promise pattern) |
+
+### B3. `agent-executor.ts` interface
 
 ```typescript
-export class ClaudeRunner {
-  async runQuery({ sessionId, cwd, prompt, model, permissionMode, onEvent }): Promise<void> {
-    // 1. POST /v1/sessions/:id/generations/start → { messageId }
-    // 2. buildClaudeEnv() for user's local credentials
-    // 3. Resolve claudeSessionId from local store (for resume)
-    // 4. query({ prompt, options: { resume, cwd, model, env, canUseTool, ... } })
-    // 5. For each SDK message → convert → POST /v1/sessions/:id/chunks
-    // 6. POST /v1/sessions/:id/generations/finish
-  }
+export interface ExecuteAgentParams {
+  sessionId: string;
+  prompt: string;
+  model?: string;
+  cwd: string;
+  env: Record<string, string>;
+  permissionMode?: "default" | "acceptEdits" | "bypassPermissions";
 
-  interrupt(): void {
-    // Abort SDK via AbortController
+  // Callbacks for environment-specific behavior
+  onChunk: (chunk: StreamChunk) => Promise<void>;
+  canUseTool?: (toolUse: ToolUseBlock) => Promise<boolean>;
+  onEvent?: (event: RuntimeEvent) => void;
+
+  // Optional
+  resume?: boolean;
+  allowedTools?: string[];
+  disallowedTools?: string[];
+  maxBudgetUsd?: number;
+  signal?: AbortSignal;
+}
+
+export async function executeAgent(params: ExecuteAgentParams): Promise<void> {
+  // 1. Get claudeSessionId from session store (for resume)
+  // 2. Build SDK options from params
+  // 3. Create converter with onChunk callback
+  // 4. Call query() with options
+  // 5. Handle errors, cleanup
+}
+```
+
+### B4. `packages/agent/package.json`
+
+```json
+{
+  "name": "@superset/agent",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "latest",
+    "zod": "^3.x.x"
   }
 }
 ```
 
-Key differences from server-side `claude-agent.ts`:
-- No Hono HTTP server — called directly from session manager
-- Uses `buildClaudeEnv()` for user's local credentials (already exists)
-- Writes chunks via HTTP to proxy (not internal `protocol.writeChunk`)
-- Permissions handled locally via tRPC events
+---
 
-### B3. Update session manager
+## Part C: Desktop Integration
 
-`session-manager.ts` changes:
-- Remove `AgentProvider` dependency and agent registration calls
-- Own a `ClaudeRunner` instance
-- `ensureSessionReady()` — only creates session on proxy (`PUT /v1/sessions/:id`), no agent registration
-- New method to trigger SDK when user sends message
-- Listen for stop chunks from durable stream SSE to abort local runner
+### C1. Update session manager
 
-### B4. Delete `agent-provider/` directory
+`apps/desktop/src/lib/trpc/routers/ai-chat/utils/session-manager.ts`:
 
-The entire `agent-provider/` directory is no longer needed:
-- `claude-sdk-provider.ts` — replaced by `ClaudeRunner`
-- `types.ts` — `AgentProvider`, `AgentRegistration` interfaces no longer used
+```typescript
+import { executeAgent } from "@superset/agent";
+
+class SessionManager {
+  private runningAgents = new Map<string, AbortController>();
+
+  async startAgent(sessionId: string, prompt: string) {
+    const session = this.sessions.get(sessionId);
+    if (!session) throw new Error("Session not found");
+
+    const controller = new AbortController();
+    this.runningAgents.set(sessionId, controller);
+
+    try {
+      await executeAgent({
+        sessionId,
+        prompt,
+        cwd: session.cwd,
+        env: buildClaudeEnv(),
+        model: session.model,
+        permissionMode: session.permissionMode,
+        signal: controller.signal,
+
+        // Write chunks to streams server
+        onChunk: async (chunk) => {
+          await fetch(`${this.streamsUrl}/v1/sessions/${sessionId}/chunks`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.authToken}`,
+            },
+            body: JSON.stringify({
+              messageId: chunk.messageId,
+              actorId: "claude",
+              role: "assistant",
+              chunk,
+            }),
+          });
+        },
+
+        // Handle permissions locally via tRPC
+        canUseTool: async (toolUse) => {
+          return this.requestPermission(sessionId, toolUse);
+        },
+
+        // Emit events for renderer
+        onEvent: (event) => {
+          this.eventEmitter.emit("agent-event", { sessionId, event });
+        },
+      });
+    } finally {
+      this.runningAgents.delete(sessionId);
+    }
+  }
+
+  async stopAgent(sessionId: string) {
+    const controller = this.runningAgents.get(sessionId);
+    if (controller) {
+      controller.abort();
+    }
+  }
+
+  private async requestPermission(
+    sessionId: string,
+    toolUse: ToolUseBlock
+  ): Promise<boolean> {
+    // Create permission request, emit event to renderer
+    // Wait for tRPC mutation response
+    // Return approval decision
+  }
+}
+```
+
+### C2. Delete `agent-provider/` directory
+
+Remove `apps/desktop/src/lib/trpc/routers/ai-chat/utils/agent-provider/`:
+- `claude-sdk-provider.ts` — replaced by direct `executeAgent()` calls
+- `types.ts` — `AgentProvider`, `AgentRegistration` interfaces no longer needed
 - `index.ts` — barrel export
 
-### B5. Update tRPC router
+### C3. Update tRPC router
 
 Add mutations for local permission handling:
-- `approveToolUse` — resolves pending permission promise locally
-- `answerToolQuestion` — resolves pending question promise locally
 
-The existing `streamEvents` subscription already handles emitting events to the renderer — `ClaudeRunner` emits approval-requested events through it.
+```typescript
+export const aiChatRouter = router({
+  // ... existing routes
 
-### B6. Add SDK dependency
+  approveToolUse: protectedProcedure
+    .input(z.object({
+      sessionId: z.string(),
+      toolUseId: z.string(),
+      approved: z.boolean(),
+      updatedInput: z.record(z.unknown()).optional(),
+    }))
+    .mutation(({ input }) => {
+      // Resolve permission in session manager
+      sessionManager.resolvePermission(input.sessionId, input.toolUseId, {
+        approved: input.approved,
+        updatedInput: input.updatedInput,
+      });
+    }),
 
-Add `@anthropic-ai/claude-agent-sdk` to `apps/desktop/package.json`.
+  streamEvents: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .subscription(({ input }) => {
+      return observable<RuntimeEvent>((emit) => {
+        const handler = (event: RuntimeEvent) => {
+          if (event.sessionId === input.sessionId) {
+            emit.next(event);
+          }
+        };
+
+        sessionManager.on("agent-event", handler);
+
+        return () => {
+          sessionManager.off("agent-event", handler);
+        };
+      });
+    }),
+});
+```
+
+### C4. Add package dependency
+
+Add to `apps/desktop/package.json`:
+
+```json
+{
+  "dependencies": {
+    "@superset/agent": "workspace:*"
+  }
+}
+```
 
 ---
 
@@ -184,9 +353,45 @@ New: SDK → `canUseTool` callback (local) → tRPC event → renderer UI → tR
 
 ---
 
+## Part D: Future Extensibility (When Needed)
+
+When we add sandboxes or cloud workers, we'll introduce abstraction layers:
+
+```
+packages/agent-runtime/          # Future: abstraction layer
+├── runtime/
+│   ├── agent-runtime.ts        # Interface: AgentRuntime
+│   └── base-runtime.ts         # Base implementation
+├── transports/
+│   ├── http-transport.ts       # POST chunks via HTTP
+│   └── ipc-transport.ts        # Write via tRPC
+└── environments/
+    ├── desktop-context.ts      # Desktop capabilities
+    └── sandbox-context.ts      # Sandbox capabilities
+
+apps/desktop/ → uses DesktopAgentRuntime
+apps/sandbox-worker/ → uses SandboxAgentRuntime
+```
+
+**Don't build this yet.** Only add it when we have concrete requirements for 2+ environments. See "three instances" heuristic in AGENTS.md.
+
+---
+
 ## Verification
 
-1. **Proxy works as pure durable stream layer:**
+1. **Shared package builds:**
+   ```bash
+   cd packages/agent
+   bun run build  # Should compile without errors
+   ```
+
+2. **Desktop imports and runs agent:**
+   ```typescript
+   import { executeAgent } from "@superset/agent";
+   // Should have type inference for all params
+   ```
+
+3. **Proxy works as pure durable stream layer:**
    ```bash
    curl http://localhost:8080/health  # 200
    curl -H "Authorization: Bearer $TOKEN" -X PUT http://localhost:8080/v1/sessions/test
@@ -194,16 +399,20 @@ New: SDK → `canUseTool` callback (local) → tRPC event → renderer UI → tR
      -d '{"messageId":"m1","actorId":"claude","role":"assistant","chunk":{"type":"text-delta","textDelta":"Hi"}}'
    ```
 
-2. **Desktop runs SDK locally:**
+4. **Desktop runs SDK locally:**
    - Start desktop + streams, open chat, send message
-   - Desktop console shows `[claude/runner] Running query...`
+   - Desktop console shows `[agent/executor] Running query...`
+   - Chunks POST to `/v1/sessions/:id/chunks`
    - Chunks appear in durable stream SSE
    - Response renders in UI
 
-3. **Permissions work locally:**
+5. **Permissions work locally:**
    - Set permission mode to "default", trigger tool use
-   - Approval UI appears, approve → SDK continues
+   - `canUseTool` callback fires → tRPC event emitted
+   - Approval UI appears in renderer
+   - User approves → tRPC mutation → promise resolves
+   - SDK continues execution
 
-4. **Stop works across clients:**
-   - Start generation → stop from desktop → stops
-   - Start generation → stop via API → desktop detects stop chunk → stops
+6. **Stop works across clients:**
+   - Start generation → call `sessionManager.stopAgent()` → AbortController aborts → SDK stops
+   - Start generation → `POST /v1/sessions/:id/stop` → proxy writes stop chunk → desktop detects via SSE → aborts
