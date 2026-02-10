@@ -1,10 +1,8 @@
 export { executeAgent } from "./agent-executor";
 export {
 	createPermissionRequest,
-	getPendingPermission,
 	resolvePendingPermission,
 } from "./permission-manager";
-export { createConverter } from "./sdk-to-ai-chunks";
 export {
 	getActiveSessionCount,
 	getClaudeSessionId,

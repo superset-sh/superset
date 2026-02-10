@@ -3,20 +3,6 @@ import { z } from "zod";
 import type { AIDBSessionProtocol } from "../protocol";
 import { type AgentSpec, agentSpecSchema } from "../types";
 
-const invokeAgentRequestSchema = z.object({
-	agent: agentSpecSchema,
-	messages: z.array(
-		z.object({
-			role: z.string(),
-			content: z.string(),
-		}),
-	),
-});
-
-type InvokeAgentRequest = z.infer<typeof invokeAgentRequestSchema>;
-
-// handleInvokeAgent removed - agent invocation is now handled by desktop
-
 export async function handleRegisterAgents(
 	c: Context,
 	protocol: AIDBSessionProtocol,
