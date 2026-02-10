@@ -1,7 +1,13 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { LuArrowDown, LuArrowUp } from "react-icons/lu";
 import {
+	LuArrowDown,
+	LuArrowUp,
+	LuChevronDown,
+	LuChevronUp,
+} from "react-icons/lu";
+import {
+	TbFocus2,
 	TbFold,
 	TbLayoutSidebarRightFilled,
 	TbListDetails,
@@ -20,6 +26,12 @@ interface DiffToolbarProps {
 	onDiffViewModeChange: (mode: DiffViewMode) => void;
 	hideUnchangedRegions: boolean;
 	onToggleHideUnchangedRegions: () => void;
+	focusMode: boolean;
+	onToggleFocusMode: () => void;
+	currentFileIndex: number;
+	totalFocusFiles: number;
+	onNavigatePrev: () => void;
+	onNavigateNext: () => void;
 }
 
 export function DiffToolbar({
@@ -34,6 +46,12 @@ export function DiffToolbar({
 	onDiffViewModeChange,
 	hideUnchangedRegions,
 	onToggleHideUnchangedRegions,
+	focusMode,
+	onToggleFocusMode,
+	currentFileIndex,
+	totalFocusFiles,
+	onNavigatePrev,
+	onNavigateNext,
 }: DiffToolbarProps) {
 	return (
 		<div className="flex items-center gap-3 px-3 py-1.5 border-b border-r border-border bg-background sticky top-0 z-30">
@@ -72,7 +90,70 @@ export function DiffToolbar({
 				)}
 			</div>
 
+			{focusMode && totalFocusFiles > 0 && (
+				<div className="flex items-center gap-0.5">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={onNavigatePrev}
+								disabled={currentFileIndex <= 0}
+								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+								aria-label="Previous file"
+							>
+								<LuChevronUp className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							Previous file
+						</TooltipContent>
+					</Tooltip>
+					<span className="text-xs text-muted-foreground font-mono tabular-nums min-w-[3ch] text-center">
+						{currentFileIndex + 1}/{totalFocusFiles}
+					</span>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={onNavigateNext}
+								disabled={currentFileIndex >= totalFocusFiles - 1}
+								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent disabled:opacity-30 disabled:pointer-events-none"
+								aria-label="Next file"
+							>
+								<LuChevronDown className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							Next file
+						</TooltipContent>
+					</Tooltip>
+				</div>
+			)}
+
 			<div className="flex items-center gap-1">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={onToggleFocusMode}
+							className={cn(
+								"rounded p-1 transition-colors hover:bg-accent",
+								focusMode
+									? "text-foreground"
+									: "text-muted-foreground/60 hover:text-muted-foreground",
+							)}
+							aria-label={
+								focusMode ? "Show all files" : "Focus mode (one file at a time)"
+							}
+							aria-pressed={focusMode}
+						>
+							<TbFocus2 className="size-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						{focusMode ? "Show all files" : "Focus mode"}
+					</TooltipContent>
+				</Tooltip>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button

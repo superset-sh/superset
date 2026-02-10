@@ -22,6 +22,7 @@ interface ChangesState {
 	baseBranch: Record<string, string | null>;
 	showRenderedMarkdown: Record<string, boolean>;
 	hideUnchangedRegions: boolean;
+	focusMode: boolean;
 
 	selectFile: (
 		worktreePath: string,
@@ -39,6 +40,7 @@ interface ChangesState {
 	toggleRenderedMarkdown: (worktreePath: string) => void;
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
+	toggleFocusMode: () => void;
 	reset: (worktreePath: string) => void;
 }
 
@@ -55,6 +57,7 @@ const initialState = {
 	baseBranch: {} as Record<string, string | null>,
 	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
+	focusMode: false,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -143,6 +146,10 @@ export const useChangesStore = create<ChangesState>()(
 					set({ hideUnchangedRegions: !get().hideUnchangedRegions });
 				},
 
+				toggleFocusMode: () => {
+					set({ focusMode: !get().focusMode });
+				},
+
 				reset: (worktreePath) => {
 					const { selectedFiles } = get();
 					set({
@@ -169,6 +176,7 @@ export const useChangesStore = create<ChangesState>()(
 					baseBranch: state.baseBranch,
 					showRenderedMarkdown: state.showRenderedMarkdown,
 					hideUnchangedRegions: state.hideUnchangedRegions,
+					focusMode: state.focusMode,
 				}),
 			},
 		),

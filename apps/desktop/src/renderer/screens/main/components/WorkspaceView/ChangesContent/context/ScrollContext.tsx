@@ -38,6 +38,9 @@ interface ScrollContextValue {
 	// Active file tracking for scroll sync
 	activeFileKey: string | null;
 	setActiveFileKey: (key: string | null) => void;
+	// Focus mode: which file to show in single-file view
+	focusedFileKey: string | null;
+	setFocusedFileKey: (key: string | null) => void;
 }
 
 const ScrollContext = createContext<ScrollContextValue | null>(null);
@@ -47,6 +50,7 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [viewedFiles, setViewedFiles] = useState<Set<string>>(new Set());
 	const [activeFileKey, setActiveFileKey] = useState<string | null>(null);
+	const [focusedFileKey, setFocusedFileKey] = useState<string | null>(null);
 
 	const registerFileRef = useCallback(
 		(
@@ -68,8 +72,9 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 	const scrollToFile = useCallback(
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 			const key = createFileKey(file, category, commitHash);
+			setFocusedFileKey(key);
+			setActiveFileKey(key);
 			const element = fileRefs.current.get(key);
-
 			if (element) {
 				element.scrollIntoView({ behavior: "instant", block: "start" });
 			}
@@ -101,6 +106,8 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 			viewedCount,
 			activeFileKey,
 			setActiveFileKey,
+			focusedFileKey,
+			setFocusedFileKey,
 		}),
 		[
 			registerFileRef,
@@ -109,6 +116,7 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 			setFileViewed,
 			viewedCount,
 			activeFileKey,
+			focusedFileKey,
 		],
 	);
 
