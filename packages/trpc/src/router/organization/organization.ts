@@ -35,7 +35,7 @@ export const organizationRouter = {
 						user: true,
 					},
 				},
-				repositories: true,
+				projects: true,
 			},
 		});
 	}),
@@ -49,7 +49,7 @@ export const organizationRouter = {
 						user: true,
 					},
 				},
-				repositories: true,
+				projects: true,
 			},
 		});
 	}),

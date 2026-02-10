@@ -47,10 +47,6 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 
-	WORKSPACE_NAME: "workspace-name",
-	WORKSPACE_BRANCH: "workspace-branch",
-	WORKSPACE_PATH: "workspace-path",
-
 	// API Keys
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
@@ -682,36 +678,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"override",
 		],
 	},
-	{
-		id: SETTING_ITEM_ID.WORKSPACE_NAME,
-		section: "workspace",
-		title: "Workspace Name",
-		description: "The name of this workspace",
-		keywords: ["workspace", "name", "rename", "title", "label"],
-	},
-	{
-		id: SETTING_ITEM_ID.WORKSPACE_BRANCH,
-		section: "workspace",
-		title: "Branch",
-		description: "The git branch for this workspace",
-		keywords: [
-			"workspace",
-			"branch",
-			"git",
-			"worktree",
-			"checkout",
-			"switch",
-			"feature",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.WORKSPACE_PATH,
-		section: "workspace",
-		title: "File Path",
-		description: "The file path to this workspace",
-		keywords: ["workspace", "path", "folder", "directory", "location", "root"],
-	},
-
 	// API Keys
 	{
 		id: SETTING_ITEM_ID.API_KEYS_LIST,

@@ -6,7 +6,7 @@ import type {
 	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
-	SelectRepository,
+	SelectProject,
 	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
@@ -38,7 +38,7 @@ type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
-	repositories: Collection<SelectRepository>;
+	projects: Collection<SelectProject>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
 	invitations: Collection<SelectInvitation>;
@@ -142,29 +142,19 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const repositories = createCollection(
-		electricCollectionOptions<SelectRepository>({
-			id: `repositories-${organizationId}`,
+	const projects = createCollection(
+		electricCollectionOptions<SelectProject>({
+			id: `projects-${organizationId}`,
 			shapeOptions: {
 				url: electricUrl,
 				params: {
-					table: "repositories",
+					table: "projects",
 					organizationId,
 				},
 				headers,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
-			onInsert: async ({ transaction }) => {
-				const item = transaction.mutations[0].modified;
-				const result = await apiClient.repository.create.mutate(item);
-				return { txid: result.txid };
-			},
-			onUpdate: async ({ transaction }) => {
-				const { modified } = transaction.mutations[0];
-				const result = await apiClient.repository.update.mutate(modified);
-				return { txid: result.txid };
-			},
 		}),
 	);
 
@@ -315,7 +305,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	return {
 		tasks,
 		taskStatuses,
-		repositories,
+		projects,
 		members,
 		users,
 		invitations,

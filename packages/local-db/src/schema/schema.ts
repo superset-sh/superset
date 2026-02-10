@@ -40,6 +40,7 @@ export const projects = sqliteTable(
 		branchPrefixCustom: text("branch_prefix_custom"),
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
+		neonProjectId: text("neon_project_id"),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
