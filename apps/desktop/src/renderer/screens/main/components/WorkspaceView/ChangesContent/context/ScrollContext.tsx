@@ -71,7 +71,7 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 			const element = fileRefs.current.get(key);
 
 			if (element) {
-				element.scrollIntoView({ behavior: "smooth", block: "start" });
+				element.scrollIntoView({ behavior: "instant", block: "start" });
 			}
 		},
 		[],
