@@ -141,6 +141,13 @@
       "when": 1770438863796,
       "tag": "0019_add_hide_image_to_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1770754481921,
+      "tag": "0020_add_file_open_mode_setting",
+      "breakpoints": true
     }
   ]
 }
