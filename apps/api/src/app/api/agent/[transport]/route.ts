@@ -1,7 +1,10 @@
 import { auth } from "@superset/auth/server";
+import { db } from "@superset/db/client";
+import { members } from "@superset/db/schema";
 import { registerTools } from "@superset/mcp";
 import type { McpContext } from "@superset/mcp/auth";
 import { verifyAccessToken } from "better-auth/oauth2";
+import { desc, eq } from "drizzle-orm";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { env } from "@/env";
 
@@ -29,7 +32,42 @@ async function verifyToken(req: Request, bearerToken?: string) {
 		};
 	}
 
-	// 2. Try OAuth access token verification via JWKS
+	// 2. Try API key verification (for sk_live_ tokens)
+	if (bearerToken) {
+		try {
+			const result = await auth.api.verifyApiKey({
+				body: { key: bearerToken },
+			});
+			if (result.valid && result.key) {
+				const userId = result.key.userId;
+				const membership = await db.query.members.findFirst({
+					where: eq(members.userId, userId),
+					orderBy: desc(members.createdAt),
+				});
+				if (!membership?.organizationId) {
+					console.error(
+						"[mcp/auth] API key user has no organization membership",
+					);
+					return undefined;
+				}
+				return {
+					token: bearerToken,
+					clientId: "api-key",
+					scopes: ["mcp:full"],
+					extra: {
+						mcpContext: {
+							userId,
+							organizationId: membership.organizationId,
+						} satisfies McpContext,
+					},
+				};
+			}
+		} catch (error) {
+			console.error("[mcp/auth] API key verification failed:", error);
+		}
+	}
+
+	// 3. Try OAuth access token verification via JWKS
 	if (bearerToken) {
 		try {
 			const payload = await verifyAccessToken(bearerToken, {
