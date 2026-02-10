@@ -37,8 +37,7 @@ console.log(
 );
 
 const internalUrl =
-	env.STREAMS_INTERNAL_URL ??
-	`http://localhost:${env.STREAMS_INTERNAL_PORT}`;
+	env.STREAMS_INTERNAL_URL ?? `http://localhost:${env.STREAMS_INTERNAL_PORT}`;
 
 const { app } = createServer({
 	baseUrl: internalUrl,

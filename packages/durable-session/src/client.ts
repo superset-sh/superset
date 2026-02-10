@@ -131,7 +131,10 @@ export class DurableChatClient<
 	// ═══════════════════════════════════════════════════════════════════════
 
 	constructor(options: DurableChatClientOptions<TTools>) {
-		this.options = options;
+		this.options = {
+			...options,
+			proxyUrl: options.proxyUrl.replace(/\/+$/, ""),
+		};
 		this.sessionId = options.sessionId;
 		this.actorId = options.actorId ?? crypto.randomUUID();
 		this.actorType = options.actorType ?? "user";
