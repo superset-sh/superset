@@ -1,3 +1,4 @@
+import { StreamError } from "@superset/durable-session";
 import { useDurableChat } from "@superset/durable-session/react";
 import {
 	Conversation,
@@ -343,11 +344,14 @@ export function ChatInterface({
 
 			<div className="border-t bg-background px-4 py-3">
 				<div className="mx-auto w-full max-w-3xl">
-					{error && (
-						<div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive mb-3">
-							{error.message}
-						</div>
-					)}
+					{error && (() => {
+						const { message, code } = StreamError.friendly(error);
+						return (
+							<div className="select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive mb-3">
+								{message}{code && <span className="ml-1 opacity-50">({code})</span>}
+							</div>
+						);
+					})()}
 					<PromptInputProvider>
 						<FileMentionProvider cwd={cwd}>
 							<SlashCommandInput

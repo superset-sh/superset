@@ -25,6 +25,7 @@ import {
 	updateConnectionStatus,
 } from "./collections";
 import { extractTextContent, messageRowToUIMessage } from "./materialize";
+import { StreamError } from "./errors";
 import type {
 	ActorType,
 	AgentSpec,
@@ -338,8 +339,7 @@ export class DurableChatClient<
 		});
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Request failed: ${response.status} ${errorText}`);
+			throw StreamError.fromResponse(response);
 		}
 	}
 
@@ -588,10 +588,7 @@ export class DurableChatClient<
 		);
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(
-				`Failed to fork session: ${response.status} ${errorText}`,
-			);
+			throw StreamError.fromResponse(response);
 		}
 
 		return (await response.json()) as ForkResult;
@@ -613,10 +610,7 @@ export class DurableChatClient<
 		);
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(
-				`Failed to register agents: ${response.status} ${errorText}`,
-			);
+			throw StreamError.fromResponse(response);
 		}
 	}
 
@@ -634,10 +628,7 @@ export class DurableChatClient<
 		);
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(
-				`Failed to unregister agent: ${response.status} ${errorText}`,
-			);
+			throw StreamError.fromResponse(response);
 		}
 	}
 
@@ -670,12 +661,8 @@ export class DurableChatClient<
 					},
 				);
 
-				if (
-					!response.ok &&
-					response.status !== 200 &&
-					response.status !== 201
-				) {
-					throw new Error(`Failed to create session: ${response.status}`);
+				if (!response.ok) {
+					throw StreamError.fromResponse(response);
 				}
 			}
 

@@ -63,6 +63,7 @@
 // ============================================================================
 
 export { createDurableChatClient, DurableChatClient } from "./client";
+export { StreamError } from "./errors";
 
 // ============================================================================
 // Schema (STATE-PROTOCOL)
