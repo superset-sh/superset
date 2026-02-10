@@ -37,18 +37,14 @@ export async function executeAgent(
 		onEvent,
 	} = params;
 
-	// Get previous session ID for resume
 	const claudeSessionId = resume ? getClaudeSessionId(sessionId) : undefined;
 
-	// Setup environment
 	const queryEnv: Record<string, string> = { ...agentEnv };
 	queryEnv.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
 
-	// Create converter
 	const converter = createConverter();
 	const { messageId, runId } = converter.state;
 
-	// Setup permission handling
 	const needsApproval = permissionMode !== "bypassPermissions";
 
 	const canUseTool = needsApproval
@@ -59,7 +55,6 @@ export async function executeAgent(
 			): Promise<PermissionResult> => {
 				const toolUseId = options.toolUseID;
 
-				// Emit permission request event if callback provided
 				if (onPermissionRequest) {
 					return onPermissionRequest({
 						toolUseId,
@@ -69,7 +64,7 @@ export async function executeAgent(
 					});
 				}
 
-				// Default: create permission request (for backward compatibility)
+				// Fallback for backward compatibility
 				return createPermissionRequest({
 					toolUseId,
 					signal: options.signal,
@@ -77,10 +72,8 @@ export async function executeAgent(
 			}
 		: undefined;
 
-	// Setup abort controller
 	const abortController = new AbortController();
 
-	// Connect external signal to internal abort controller
 	if (signal) {
 		signal.addEventListener(
 			"abort",
@@ -91,7 +84,6 @@ export async function executeAgent(
 		);
 	}
 
-	// Run SDK query
 	const result = query({
 		prompt,
 		options: {
@@ -123,7 +115,6 @@ export async function executeAgent(
 
 			const msg = message as Record<string, unknown>;
 
-			// Handle session initialization
 			if (msg.type === "system" && msg.subtype === "init") {
 				const sdkSessionId = msg.session_id as string | undefined;
 				if (sdkSessionId && sessionId) {
@@ -137,10 +128,8 @@ export async function executeAgent(
 				continue;
 			}
 
-			// Convert SDK message to stream chunks
 			const chunks = converter.convert(message);
 
-			// Emit chunks via callback
 			for (const chunk of chunks) {
 				await onChunk?.(chunk);
 				onEvent?.({ type: "chunk_sent", chunk });
@@ -170,7 +159,6 @@ export async function executeAgent(
 
 		onEvent?.({ type: "error", error: err });
 
-		// Send error chunk if callback provided
 		if (onChunk) {
 			const errorChunk: StreamChunk = {
 				type: "RUN_ERROR",
