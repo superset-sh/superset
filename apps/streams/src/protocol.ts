@@ -379,26 +379,6 @@ export class AIDBSessionProtocol {
 		return state?.agents ?? [];
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Active Generation Tracking
-	// ═══════════════════════════════════════════════════════════════════════
-
-	private addActiveGeneration(sessionId: string, messageId: string): void {
-		const state = this.sessionStates.get(sessionId);
-		if (state && !state.activeGenerations.includes(messageId)) {
-			state.activeGenerations.push(messageId);
-		}
-	}
-
-	private removeActiveGeneration(sessionId: string, messageId: string): void {
-		const state = this.sessionStates.get(sessionId);
-		if (state) {
-			state.activeGenerations = state.activeGenerations.filter(
-				(id) => id !== messageId,
-			);
-		}
-	}
-
 	stopGeneration(sessionId: string, messageId: string | null): void {
 		if (messageId) {
 			const controller = this.activeAbortControllers.get(messageId);

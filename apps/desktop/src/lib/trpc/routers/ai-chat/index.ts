@@ -242,7 +242,7 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					toolUseId: z.string(),
 					approved: z.boolean(),
-					updatedInput: z.record(z.unknown()).optional(),
+					updatedInput: z.record(z.string(), z.unknown()).optional(),
 				}),
 			)
 			.mutation(({ input }) => {

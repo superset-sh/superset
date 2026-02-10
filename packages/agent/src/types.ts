@@ -52,7 +52,9 @@ export interface ExecuteAgentParams {
 	onChunk?: (chunk: StreamChunk) => Promise<void> | void;
 
 	/** Callback for permission requests */
-	onPermissionRequest?: (params: PermissionRequestParams) => Promise<PermissionResult>;
+	onPermissionRequest?: (
+		params: PermissionRequestParams,
+	) => Promise<PermissionResult>;
 
 	/** Callback for system events */
 	onEvent?: (event: AgentEvent) => void;

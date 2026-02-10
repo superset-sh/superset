@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { handleSendMessage } from "../handlers/send-message";
 import type { AIDBSessionProtocol } from "../protocol";
-import { regenerateRequestSchema, stopGenerationRequestSchema } from "../types";
+import { stopGenerationRequestSchema } from "../types";
 
 export function createMessageRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();

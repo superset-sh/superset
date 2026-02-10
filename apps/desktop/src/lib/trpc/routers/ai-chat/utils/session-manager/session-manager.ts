@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
 import {
-	type PermissionRequestParams,
 	executeAgent,
 	getClaudeSessionId,
+	type PermissionRequestParams,
 	resolvePendingPermission,
 } from "@superset/agent";
 import { env } from "main/env.main";
@@ -267,14 +267,11 @@ export class ChatSessionManager extends EventEmitter {
 
 				onChunk: async (chunk) => {
 					try {
-						await fetch(
-							`${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
-							{
-								method: "POST",
-								headers,
-								body: JSON.stringify(chunk),
-							},
-						);
+						await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
+							method: "POST",
+							headers,
+							body: JSON.stringify(chunk),
+						});
 					} catch (err) {
 						console.error(
 							`[chat/session] Failed to POST chunk for ${sessionId}:`,
@@ -283,9 +280,7 @@ export class ChatSessionManager extends EventEmitter {
 					}
 				},
 
-				onPermissionRequest: async (
-					params: PermissionRequestParams,
-				) => {
+				onPermissionRequest: async (params: PermissionRequestParams) => {
 					// Emit permission request event to renderer
 					this.emit("event", {
 						type: "permission_request",
@@ -296,9 +291,7 @@ export class ChatSessionManager extends EventEmitter {
 					} satisfies PermissionRequestEvent);
 
 					// Use the agent package's built-in permission system
-					const { createPermissionRequest } = await import(
-						"@superset/agent"
-					);
+					const { createPermissionRequest } = await import("@superset/agent");
 					return createPermissionRequest({
 						toolUseId: params.toolUseId,
 						signal: params.signal,
@@ -323,14 +316,11 @@ export class ChatSessionManager extends EventEmitter {
 			});
 
 			// Signal generation finish to proxy
-			await fetch(
-				`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
-				{
-					method: "POST",
-					headers,
-					body: JSON.stringify({}),
-				},
-			);
+			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`, {
+				method: "POST",
+				headers,
+				body: JSON.stringify({}),
+			});
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(
