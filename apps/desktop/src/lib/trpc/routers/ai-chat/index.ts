@@ -8,10 +8,7 @@ import {
 	readClaudeSessionMessages,
 	scanClaudeSessions,
 } from "./utils/claude-session-scanner";
-import {
-	chatSessionManager,
-	sessionStore,
-} from "./utils/session-manager";
+import { chatSessionManager, sessionStore } from "./utils/session-manager";
 
 interface CommandEntry {
 	name: string;
@@ -253,6 +250,5 @@ export const createAiChatRouter = () => {
 				});
 				return { success: true };
 			}),
-
 	});
 };

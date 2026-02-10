@@ -222,7 +222,11 @@ export function ChatInterface({
 
 	const handleApprove = useCallback(
 		(approvalId: string) => {
-			approveToolUse.mutate({ sessionId, toolUseId: approvalId, approved: true });
+			approveToolUse.mutate({
+				sessionId,
+				toolUseId: approvalId,
+				approved: true,
+			});
 			addToolApprovalResponse({ id: approvalId, approved: true });
 		},
 		[approveToolUse, sessionId, addToolApprovalResponse],
@@ -230,7 +234,11 @@ export function ChatInterface({
 
 	const handleDeny = useCallback(
 		(approvalId: string) => {
-			approveToolUse.mutate({ sessionId, toolUseId: approvalId, approved: false });
+			approveToolUse.mutate({
+				sessionId,
+				toolUseId: approvalId,
+				approved: false,
+			});
 			addToolApprovalResponse({ id: approvalId, approved: false });
 		},
 		[approveToolUse, sessionId, addToolApprovalResponse],
@@ -376,8 +384,12 @@ export function ChatInterface({
 													modelId={selectedModel.id}
 												/>
 												<PromptInputSubmit
-													status={isSending || isLoading ? "streaming" : undefined}
-													onClick={isSending || isLoading ? handleStop : undefined}
+													status={
+														isSending || isLoading ? "streaming" : undefined
+													}
+													onClick={
+														isSending || isLoading ? handleStop : undefined
+													}
 												/>
 											</div>
 										</PromptInputFooter>
