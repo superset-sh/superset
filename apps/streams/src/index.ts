@@ -5,7 +5,7 @@ import { serve } from "@hono/node-server";
 import { env } from "./env";
 import { createServer } from "./server";
 
-// Kill stale listeners left behind by tsx watch restarts
+// Kill stale listeners left behind by dev server restarts
 function freePort(port: number): void {
 	try {
 		const pid = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -t`, {
@@ -43,9 +43,12 @@ const { app } = createServer({
 	authToken: env.STREAMS_SECRET,
 });
 
-const proxyServer = serve({ fetch: app.fetch, port: env.STREAMS_PORT }, (info) => {
-	console.log(`[streams] Proxy running on http://localhost:${info.port}`);
-});
+const proxyServer = serve(
+	{ fetch: app.fetch, port: env.STREAMS_PORT },
+	(info) => {
+		console.log(`[streams] Proxy running on http://localhost:${info.port}`);
+	},
+);
 
 for (const signal of ["SIGINT", "SIGTERM"]) {
 	process.on(signal, async () => {

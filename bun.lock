@@ -484,7 +484,6 @@
       "name": "@superset/streams",
       "version": "0.0.1",
       "dependencies": {
-        "@anthropic-ai/claude-agent-sdk": "^0.2.37",
         "@durable-streams/client": "^0.2.1",
         "@durable-streams/server": "^0.2.0",
         "@hono/node-server": "^1.13.0",
@@ -501,7 +500,6 @@
         "@types/node": "^24.9.1",
         "fast-check": "^4.5.3",
         "tsup": "^8.5.0",
-        "tsx": "^4.19.3",
         "typescript": "^5.9.3",
         "vitest": "^4.0.0",
       },

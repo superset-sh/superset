@@ -84,9 +84,6 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 
 		const messageId = crypto.randomUUID();
 
-		// Track active generation (optional - for future stop generation support)
-		// protocol.setActiveGeneration(sessionId, messageId);
-
 		return c.json({ messageId }, 200);
 	});
 
@@ -102,9 +99,6 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		if (!stream) {
 			return c.json({ error: "Session not found" }, 404);
 		}
-
-		// Clear active generation (optional)
-		// protocol.clearActiveGeneration(sessionId);
 
 		return c.json({ ok: true }, 200);
 	});

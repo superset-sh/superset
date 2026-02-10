@@ -20,7 +20,13 @@ function getClaudeBinaryPath(): string {
 	}
 	const platform = process.platform;
 	const arch = process.arch;
-	return join(app.getAppPath(), "resources", "bin", `${platform}-${arch}`, "claude");
+	return join(
+		app.getAppPath(),
+		"resources",
+		"bin",
+		`${platform}-${arch}`,
+		"claude",
+	);
 }
 
 function buildProxyHeaders(): Record<string, string> {
