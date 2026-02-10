@@ -17,7 +17,7 @@ import {
 	getTerminalColors,
 } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
-import { ensureGhosttyReady } from "./ghostty-init";
+import { ensureGhosttyReady, getGhosttyInstance } from "./ghostty-init";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { scrollToBottom } from "./utils";
 
@@ -77,7 +77,8 @@ export async function createTerminalInstance(
 
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
-	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
+	const ghostty = getGhosttyInstance();
+	const terminalOptions = { ...TERMINAL_OPTIONS, theme, ghostty };
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
 
@@ -335,6 +336,9 @@ export function setupKeyboardHandler(
 	const isMac = platform.includes("mac");
 	const isWindows = platform.includes("win");
 
+	// ghostty-web semantics: return true = "I handled it, don't process"
+	//                        return false = "let ghostty process normally"
+	// (This is inverted from xterm.js where true = "process", false = "don't process")
 	const handler = (event: KeyboardEvent): boolean => {
 		const isShiftEnter =
 			event.key === "Enter" &&
@@ -348,7 +352,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onShiftEnter();
 			}
-			return false;
+			return true;
 		}
 
 		const isCmdBackspace =
@@ -363,7 +367,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
 			}
-			return false;
+			return true;
 		}
 
 		// Cmd+Left: Move cursor to beginning of line (sends Ctrl+A)
@@ -379,7 +383,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onWrite("\x01"); // Ctrl+A - beginning of line
 			}
-			return false;
+			return true;
 		}
 
 		// Cmd+Right: Move cursor to end of line (sends Ctrl+E)
@@ -395,7 +399,7 @@ export function setupKeyboardHandler(
 				event.preventDefault();
 				options.onWrite("\x05"); // Ctrl+E - end of line
 			}
-			return false;
+			return true;
 		}
 
 		// Option+Left/Right (macOS): word navigation (Meta+B / Meta+F)
@@ -411,7 +415,7 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bb"); // Meta+B - backward word
 			}
-			return false;
+			return true;
 		}
 
 		// Option+Right: Move cursor forward by word (Meta+F)
@@ -427,7 +431,7 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bf"); // Meta+F - forward word
 			}
-			return false;
+			return true;
 		}
 
 		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)
@@ -443,7 +447,7 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bb"); // Meta+B - backward word
 			}
-			return false;
+			return true;
 		}
 
 		const isCtrlRight =
@@ -458,10 +462,10 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onWrite) {
 				options.onWrite("\x1bf"); // Meta+F - forward word
 			}
-			return false;
+			return true;
 		}
 
-		if (isTerminalReservedEvent(event)) return true;
+		if (isTerminalReservedEvent(event)) return false;
 
 		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");
 		const isClearShortcut =
@@ -471,29 +475,29 @@ export function setupKeyboardHandler(
 			if (event.type === "keydown" && options.onClear) {
 				options.onClear();
 			}
-			return false;
+			return true;
 		}
 
-		if (event.type !== "keydown") return true;
+		if (event.type !== "keydown") return false;
 		const potentialHotkey = hotkeyFromKeyboardEvent(
 			event,
 			getCurrentPlatform(),
 		);
-		if (!potentialHotkey) return true;
+		if (!potentialHotkey) return false;
 
 		if (isAppHotkeyEvent(event)) {
-			// Return false to prevent xterm from processing the key.
+			// Return true to prevent ghostty from processing the key.
 			// The original event bubbles to document where useAppHotkey handles it.
-			return false;
+			return true;
 		}
 
-		return true;
+		return false;
 	};
 
 	xterm.attachCustomKeyEventHandler(handler);
 
 	return () => {
-		xterm.attachCustomKeyEventHandler(() => true);
+		xterm.attachCustomKeyEventHandler(() => false);
 	};
 }
 

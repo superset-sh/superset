@@ -345,7 +345,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{connectionError && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			{/* caret-color: transparent hides the DOM cursor from ghostty-web's contenteditable container */}
+			<div
+				ref={terminalRef}
+				className="h-full w-full"
+				style={{ caretColor: "transparent" }}
+			/>
 		</div>
 	);
 };
