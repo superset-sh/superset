@@ -117,6 +117,7 @@ async function getSearchIndex({
 	}
 
 	if (cached && !inFlight) {
+		const staleIndex = cached.index;
 		const buildPromise = buildSearchIndex({ rootPath, includeHidden })
 			.then((index) => {
 				searchIndexCache.set(cacheKey, { index, builtAt: Date.now() });
@@ -125,10 +126,14 @@ async function getSearchIndex({
 			})
 			.catch((error) => {
 				searchIndexBuilds.delete(cacheKey);
-				throw error;
+				console.error(
+					"[filesystem/search] Background index rebuild failed:",
+					error,
+				);
+				return staleIndex;
 			});
 		searchIndexBuilds.set(cacheKey, buildPromise);
-		return cached.index;
+		return staleIndex;
 	}
 
 	if (cached) {
