@@ -19,7 +19,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
 		SENTRY_DSN_DESKTOP: z.string().optional(),
-		STREAMS_URL: z.url(),
+		STREAMS_URL: z.url().default("https://superset-stream.fly.dev"),
 	},
 
 	runtimeEnv: {
