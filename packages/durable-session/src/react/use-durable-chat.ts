@@ -276,15 +276,6 @@ export function useDurableChat<
 		[client],
 	);
 
-	const reload = useCallback(async () => {
-		try {
-			await client.reload();
-		} catch (err) {
-			setError(err instanceof Error ? err : new Error(String(err)));
-			throw err;
-		}
-	}, [client]);
-
 	const stop = useCallback(() => {
 		client.stop();
 	}, [client]);
@@ -373,7 +364,6 @@ export function useDurableChat<
 		messages,
 		sendMessage,
 		append,
-		reload,
 		stop,
 		clear,
 		isLoading,

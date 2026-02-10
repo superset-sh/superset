@@ -57,9 +57,6 @@ export interface UseDurableChatReturn<
 		message: UIMessage | { role: string; content: string },
 	) => Promise<void>;
 
-	/** Reload and regenerate the last response */
-	reload: () => Promise<void>;
-
 	/** Stop all active generations */
 	stop: () => void;
 

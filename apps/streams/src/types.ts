@@ -90,20 +90,6 @@ export const stopGenerationRequestSchema = z.object({
 	messageId: z.string().nullable().optional(),
 });
 
-export interface RegenerateRequest {
-	fromMessageId: string;
-	content: string;
-	actorId?: string;
-	actorType?: ActorType;
-}
-
-export const regenerateRequestSchema = z.object({
-	fromMessageId: z.string(),
-	content: z.string(),
-	actorId: z.string().optional(),
-	actorType: z.enum(["user", "agent"]).optional(),
-});
-
 export interface SendMessageResponse {
 	messageId: string;
 }

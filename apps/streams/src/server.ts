@@ -95,7 +95,6 @@ export function createServer(options: AIDBProxyServerOptions) {
 				generationsFinish: "/v1/sessions/:sessionId/generations/finish",
 				fork: "/v1/sessions/:sessionId/fork",
 				stop: "/v1/sessions/:sessionId/stop",
-				regenerate: "/v1/sessions/:sessionId/regenerate",
 				reset: "/v1/sessions/:sessionId/reset",
 			},
 		});

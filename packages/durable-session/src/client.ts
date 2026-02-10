@@ -415,50 +415,6 @@ export class DurableChatClient<
 	}
 
 	/**
-	 * Reload the last user message and regenerate response.
-	 */
-	async reload(): Promise<void> {
-		const msgs = this.messages;
-		if (msgs.length === 0) return;
-
-		// Find the last user message
-		let lastUserMessage: UIMessage | undefined;
-		for (let i = msgs.length - 1; i >= 0; i--) {
-			if (msgs[i]?.role === "user") {
-				lastUserMessage = msgs[i];
-				break;
-			}
-		}
-
-		if (!lastUserMessage) return;
-
-		// Get content of last user message
-		const content = extractTextContent(
-			lastUserMessage as unknown as MessageRow,
-		);
-
-		// Call regenerate endpoint
-		const response = await fetch(
-			`${this.options.proxyUrl}/v1/sessions/${this.sessionId}/regenerate`,
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					fromMessageId: lastUserMessage.id,
-					content,
-					actorId: this.actorId,
-					actorType: this.actorType,
-				}),
-			},
-		);
-
-		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Failed to reload: ${response.status} ${errorText}`);
-		}
-	}
-
-	/**
 	 * Stop all active generations.
 	 */
 	stop(): void {
