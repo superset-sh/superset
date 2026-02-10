@@ -7,7 +7,7 @@ export const env = createEnv({
 		STREAMS_INTERNAL_PORT: z.coerce.number(),
 		STREAMS_INTERNAL_URL: z.string().url(),
 		STREAMS_DATA_DIR: z.string().min(1),
-		STREAMS_SECRET: z.string().min(1),
+		DATABASE_URL: z.string().url(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

@@ -124,9 +124,21 @@ jobs:
   deploy-streams-preview:
     name: Deploy Streams (Fly.io)
     runs-on: ubuntu-latest
+    needs: deploy-database
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download database info
+        uses: actions/download-artifact@v4
+        with:
+          name: database-status
+
+      - name: Load database URL
+        run: |
+          source database-status.env
+          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
+
       - name: Deploy Streams preview to Fly.io
         uses: superfly/fly-pr-review-apps@1.3.0
         with:
@@ -135,7 +147,7 @@ jobs:
           org: ${{ vars.FLY_ORG }}
           config: apps/streams/fly.toml
           secrets: |
-            STREAMS_SECRET=${{ secrets.STREAMS_SECRET }}
+            DATABASE_URL=${{ env.DATABASE_URL }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       - name: Save streams status

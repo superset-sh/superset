@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { loadToken } from "../auth/utils/auth-functions";
 import {
 	readClaudeSessionMessages,
 	scanClaudeSessions,
@@ -55,10 +56,13 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 
 export const createAiChatRouter = () => {
 	return router({
-		getConfig: publicProcedure.query(() => ({
-			proxyUrl: env.STREAMS_URL,
-			authToken: env.STREAMS_SECRET,
-		})),
+		getConfig: publicProcedure.query(async () => {
+			const { token } = await loadToken();
+			return {
+				proxyUrl: env.STREAMS_URL,
+				authToken: token,
+			};
+		}),
 
 		getSlashCommands: publicProcedure
 			.input(z.object({ cwd: z.string() }))

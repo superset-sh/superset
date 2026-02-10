@@ -40,7 +40,6 @@ const { app } = createServer({
 	baseUrl: env.STREAMS_INTERNAL_URL,
 	cors: true,
 	logging: true,
-	authToken: env.STREAMS_SECRET,
 });
 
 const proxyServer = serve(

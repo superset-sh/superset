@@ -411,7 +411,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           flyctl secrets set \
-            STREAMS_SECRET="${{ secrets.STREAMS_SECRET }}" \
+            DATABASE_URL="${{ secrets.DATABASE_URL }}" \
             --app superset-stream \
             --stage
       - name: Deploy to Fly.io

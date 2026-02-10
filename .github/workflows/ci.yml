@@ -127,6 +127,4 @@ jobs:
       - name: Build CLI and Desktop
         run: bun turbo run build --filter=@superset/cli --filter=@superset/desktop
         env:
-          # TODO: Remove once desktop app no longer validates STREAMS_* at build time
           STREAMS_URL: ${{ secrets.STREAMS_URL }}
-          STREAMS_SECRET: ${{ secrets.STREAMS_SECRET }}

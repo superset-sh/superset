@@ -9,11 +9,11 @@ import {
 } from "@superset/agent";
 import { app } from "electron";
 import { env } from "main/env.main";
+import { loadToken } from "../../../auth/utils/auth-functions";
 import { buildClaudeEnv } from "../auth";
 import type { SessionStore } from "../session-store";
 
 const PROXY_URL = env.STREAMS_URL;
-const STREAMS_SECRET = env.STREAMS_SECRET;
 
 function getClaudeBinaryPath(): string {
 	if (app.isPackaged) {
@@ -30,10 +30,14 @@ function getClaudeBinaryPath(): string {
 	);
 }
 
-function buildProxyHeaders(): Record<string, string> {
+async function buildProxyHeaders(): Promise<Record<string, string>> {
+	const { token } = await loadToken();
+	if (!token) {
+		throw new Error("User not authenticated");
+	}
 	return {
 		"Content-Type": "application/json",
-		Authorization: `Bearer ${STREAMS_SECRET}`,
+		Authorization: `Bearer ${token}`,
 	};
 }
 
@@ -97,7 +101,7 @@ export class ChatSessionManager extends EventEmitter {
 		permissionMode?: string;
 		maxThinkingTokens?: number;
 	}): Promise<void> {
-		const headers = buildProxyHeaders();
+		const headers = await buildProxyHeaders();
 
 		const createRes = await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
 			method: "PUT",
@@ -258,7 +262,7 @@ export class ChatSessionManager extends EventEmitter {
 		const abortController = new AbortController();
 		this.runningAgents.set(sessionId, abortController);
 
-		const headers = buildProxyHeaders();
+		const headers = await buildProxyHeaders();
 		let messageId: string | undefined;
 
 		try {
@@ -455,7 +459,7 @@ export class ChatSessionManager extends EventEmitter {
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
-				headers: buildProxyHeaders(),
+				headers: await buildProxyHeaders(),
 				body: JSON.stringify({}),
 			});
 		} catch (error) {
@@ -479,7 +483,7 @@ export class ChatSessionManager extends EventEmitter {
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
-				headers: buildProxyHeaders(),
+				headers: await buildProxyHeaders(),
 				body: JSON.stringify({}),
 			});
 		} catch (err) {
@@ -516,7 +520,7 @@ export class ChatSessionManager extends EventEmitter {
 
 	async deleteSession({ sessionId }: { sessionId: string }): Promise<void> {
 		console.log(`[chat/session] Deleting session ${sessionId}`);
-		const headers = buildProxyHeaders();
+		const headers = await buildProxyHeaders();
 
 		const controller = this.runningAgents.get(sessionId);
 		if (controller) {

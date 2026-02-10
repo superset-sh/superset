@@ -20,7 +20,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
 		SENTRY_DSN_DESKTOP: z.string().optional(),
 		STREAMS_URL: z.url(),
-		STREAMS_SECRET: z.string().min(1),
 	},
 
 	runtimeEnv: {
@@ -34,7 +33,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
 		SENTRY_DSN_DESKTOP: process.env.SENTRY_DSN_DESKTOP,
 		STREAMS_URL: process.env.STREAMS_URL,
-		STREAMS_SECRET: process.env.STREAMS_SECRET,
 	},
 	emptyStringAsUndefined: true,
 	// Only allow skipping validation in development (never in production)

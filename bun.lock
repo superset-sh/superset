@@ -486,10 +486,12 @@
         "@durable-streams/client": "^0.2.1",
         "@durable-streams/server": "^0.2.0",
         "@hono/node-server": "^1.13.0",
+        "@superset/db": "workspace:*",
         "@superset/durable-session": "workspace:*",
         "@t3-oss/env-core": "^0.13.8",
         "@tanstack/ai": "^0.3.0",
         "@tanstack/db": "0.5.25",
+        "drizzle-orm": "0.45.1",
         "hono": "^4.4.0",
         "zod": "^4.3.5",
       },
@@ -805,9 +807,6 @@
       "version": "0.1.0",
     },
   },
-  "overrides": {
-    "@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
-  },
   "packages": {
     "7zip-bin": ["7zip-bin@5.2.0", "", {}, "sha512-ukTPVhqG4jNzMro2qA9HSCSSVJN3aN7tlb+hfqYCt3ER0yWroeA2VR38MNrOHLQ/cVj+DaIMad0kFCtWWowh/A=="],
 
@@ -1103,7 +1102,7 @@
 
     "@egjs/hammerjs": ["@egjs/hammerjs@2.0.17", "", { "dependencies": { "@types/hammerjs": "^2.0.36" } }, "sha512-XQsZgjm2EcVUiZQf11UBJQfmZeEmOW8DpI1gsFeln6w0ae0ii4dMQEQ0kjl6DspdWX1aGY1/loyXnP0JS06e/A=="],
 
-    "@electric-sql/client": ["@electric-sql/client@https://pkg.pr.new/@electric-sql/client@3724", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1" }, "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" } }],
+    "@electric-sql/client": ["@electric-sql/client@1.5.2", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1" }, "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" } }, "sha512-4kDyEXBhRz7+84Y1JQtKXy0FdRyXkjU/9rM9N9TOmGxWT0zuAl6dWIG/iJUu+0geBELYo8Ot8fVSMTqg5bf/Tw=="],
 
     "@electron/asar": ["@electron/asar@3.4.1", "", { "dependencies": { "commander": "^5.0.0", "glob": "^7.1.6", "minimatch": "^3.0.4" }, "bin": { "asar": "bin/asar.js" } }, "sha512-i4/rNPRS84t0vSRa2HorerGRXWyF4vThfHesw0dmcWHp+cspK743UanA0suA5Q5y8kzY2y6YKrvbIUn69BCAiA=="],
 

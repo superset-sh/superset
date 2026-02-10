@@ -16,10 +16,12 @@
 		"@durable-streams/client": "^0.2.1",
 		"@durable-streams/server": "^0.2.0",
 		"@hono/node-server": "^1.13.0",
+		"@superset/db": "workspace:*",
 		"@superset/durable-session": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
 		"@tanstack/ai": "^0.3.0",
 		"@tanstack/db": "0.5.25",
+		"drizzle-orm": "0.45.1",
 		"hono": "^4.4.0",
 		"zod": "^4.3.5"
 	},
