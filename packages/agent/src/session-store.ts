@@ -1,6 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { env } from "./env";
 
 const SESSION_MAX_SIZE = 1000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -12,38 +11,48 @@ interface SessionEntry {
 
 const claudeSessions = new Map<string, SessionEntry>();
 
-const SESSIONS_DIR = env.STREAMS_DATA_DIR;
-const SESSIONS_FILE = join(SESSIONS_DIR, "claude-sessions.json");
+let sessionsDir: string | null = null;
+let sessionsFile: string | null = null;
+
+export function initSessionStore(dataDir: string): void {
+	sessionsDir = dataDir;
+	sessionsFile = join(dataDir, "claude-sessions.json");
+	loadPersistedSessions();
+}
 
 function loadPersistedSessions(): void {
+	if (!sessionsFile) return;
+
 	try {
-		if (existsSync(SESSIONS_FILE)) {
-			const raw = readFileSync(SESSIONS_FILE, "utf-8");
+		if (existsSync(sessionsFile)) {
+			const raw = readFileSync(sessionsFile, "utf-8");
 			const entries = JSON.parse(raw) as Array<[string, SessionEntry]>;
 			for (const [key, entry] of entries) {
 				claudeSessions.set(key, entry);
 			}
 			console.log(
-				`[claude-session-store] Loaded ${entries.length} persisted sessions`,
+				`[agent/session-store] Loaded ${entries.length} persisted sessions`,
 			);
 		}
 	} catch (err) {
 		console.warn(
-			"[claude-session-store] Failed to load persisted sessions:",
+			"[agent/session-store] Failed to load persisted sessions:",
 			err,
 		);
 	}
 }
 
 function persistSessions(): void {
+	if (!sessionsDir || !sessionsFile) return;
+
 	try {
-		if (!existsSync(SESSIONS_DIR)) {
-			mkdirSync(SESSIONS_DIR, { recursive: true });
+		if (!existsSync(sessionsDir)) {
+			mkdirSync(sessionsDir, { recursive: true });
 		}
 		const entries = Array.from(claudeSessions.entries());
-		writeFileSync(SESSIONS_FILE, JSON.stringify(entries), "utf-8");
+		writeFileSync(sessionsFile, JSON.stringify(entries), "utf-8");
 	} catch (err) {
-		console.warn("[claude-session-store] Failed to persist sessions:", err);
+		console.warn("[agent/session-store] Failed to persist sessions:", err);
 	}
 }
 
@@ -89,6 +98,3 @@ export function setClaudeSessionId(
 export function getActiveSessionCount(): number {
 	return claudeSessions.size;
 }
-
-// Load persisted sessions on module init
-loadPersistedSessions();

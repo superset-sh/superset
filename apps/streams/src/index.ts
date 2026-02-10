@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { DurableStreamTestServer } from "@durable-streams/server";
 import { serve } from "@hono/node-server";
-import { claudeAgentApp } from "./claude-agent";
 import { env } from "./env";
 import { createServer } from "./server";
 
@@ -29,19 +28,9 @@ const proxyServer = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
 	console.log(`[streams] Proxy running on http://localhost:${info.port}`);
 });
 
-const agentServer = serve(
-	{ fetch: claudeAgentApp.fetch, port: env.STREAMS_AGENT_PORT },
-	(info) => {
-		console.log(
-			`[streams] Claude agent endpoint on http://localhost:${info.port}`,
-		);
-	},
-);
-
 for (const signal of ["SIGINT", "SIGTERM"]) {
 	process.on(signal, async () => {
 		proxyServer.close();
-		agentServer.close();
 		await durableStreamServer.stop();
 		process.exit(0);
 	});

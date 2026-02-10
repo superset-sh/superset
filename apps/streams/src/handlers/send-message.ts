@@ -40,14 +40,7 @@ export async function handleSendMessage(
 			body.txid,
 		);
 
-		if (body.agent) {
-			const messageHistory = await protocol.getMessageHistory(sessionId);
-			protocol
-				.invokeAgent(stream, sessionId, body.agent, messageHistory)
-				.catch((err) => {
-					console.error("[streams/send-message] Agent invocation failed:", err);
-				});
-		}
+		// Agent invocation removed - now handled by desktop
 
 		const response: SendMessageResponse = { messageId };
 		return c.json(response, 200);

@@ -12,6 +12,7 @@ import {
 	createAgentRoutes,
 	createApprovalRoutes,
 	createAuthRoutes,
+	createChunkRoutes,
 	createForkRoutes,
 	createHealthRoutes,
 	createMessageRoutes,
@@ -105,6 +106,9 @@ export function createServer(options: AIDBProxyServerOptions) {
 	// Fork (nested under sessions)
 	v1.route("/sessions", createForkRoutes(protocol));
 
+	// Chunks - for external agents to write chunks directly
+	v1.route("/sessions", createChunkRoutes(protocol));
+
 	// Stream proxy - forwards to Durable Streams server
 	v1.route("/stream", createStreamRoutes(options.baseUrl));
 
@@ -123,6 +127,9 @@ export function createServer(options: AIDBProxyServerOptions) {
 				agents: "/v1/sessions/:sessionId/agents",
 				toolResults: "/v1/sessions/:sessionId/tool-results",
 				approvals: "/v1/sessions/:sessionId/approvals/:approvalId",
+				chunks: "/v1/sessions/:sessionId/chunks",
+				generationsStart: "/v1/sessions/:sessionId/generations/start",
+				generationsFinish: "/v1/sessions/:sessionId/generations/finish",
 				fork: "/v1/sessions/:sessionId/fork",
 				stop: "/v1/sessions/:sessionId/stop",
 				regenerate: "/v1/sessions/:sessionId/regenerate",
