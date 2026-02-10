@@ -11,8 +11,7 @@
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test"
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
 		"@anthropic-ai/claude-agent-sdk": "^0.2.37",
