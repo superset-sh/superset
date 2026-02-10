@@ -7,7 +7,7 @@ import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 
 import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
-import { outlit } from "@/lib/outlit";
+import { getOutlit } from "@/lib/outlit";
 
 export function CookieConsent() {
 	const [showBanner, setShowBanner] = useState(false);
@@ -23,13 +23,13 @@ export function CookieConsent() {
 		localStorage.setItem(ANALYTICS_CONSENT_KEY, "accepted");
 		setShowBanner(false);
 		posthog.opt_in_capturing();
-		outlit.enableTracking();
+		getOutlit().enableTracking();
 	};
 
 	const handleOptOut = () => {
 		localStorage.setItem(ANALYTICS_CONSENT_KEY, "declined");
 		posthog.opt_out_capturing();
-		outlit.disableTracking();
+		getOutlit().disableTracking();
 		setShowBanner(false);
 	};
 

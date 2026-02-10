@@ -2,12 +2,12 @@
 
 import { OutlitProvider } from "@outlit/browser/react";
 
-import { outlit } from "@/lib/outlit";
+import { getOutlit } from "@/lib/outlit";
 
 export function OutlitProviderWrapper({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	return <OutlitProvider client={outlit}>{children}</OutlitProvider>;
+	return <OutlitProvider client={getOutlit()}>{children}</OutlitProvider>;
 }

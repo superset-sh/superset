@@ -2,8 +2,15 @@ import { Outlit } from "@outlit/browser";
 
 import { env } from "@/env";
 
-export const outlit = new Outlit({
-	publicKey: env.NEXT_PUBLIC_OUTLIT_KEY,
-	trackPageviews: true,
-	trackForms: true,
-});
+let instance: Outlit | undefined;
+
+export function getOutlit(): Outlit {
+	if (!instance) {
+		instance = new Outlit({
+			publicKey: env.NEXT_PUBLIC_OUTLIT_KEY,
+			trackPageviews: true,
+			trackForms: true,
+		});
+	}
+	return instance;
+}

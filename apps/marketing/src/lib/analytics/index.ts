@@ -1,6 +1,6 @@
 import posthog from "posthog-js";
 
-import { outlit } from "@/lib/outlit";
+import { getOutlit } from "@/lib/outlit";
 
 function toOutlitProperties(
 	properties?: Record<string, unknown>,
@@ -25,5 +25,5 @@ export function track(
 	properties?: Record<string, unknown>,
 ): void {
 	posthog.capture(event, properties);
-	outlit.track(event, toOutlitProperties(properties));
+	getOutlit().track(event, toOutlitProperties(properties));
 }
