@@ -23,6 +23,7 @@ export function CookieConsent() {
 	const handleAccept = () => {
 		localStorage.setItem(ANALYTICS_CONSENT_KEY, "accepted");
 		setShowBanner(false);
+		posthog.opt_in_capturing();
 		enableTracking();
 	};
 

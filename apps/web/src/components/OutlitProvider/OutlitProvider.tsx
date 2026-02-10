@@ -14,9 +14,13 @@ export function OutlitProvider({ children }: OutlitProviderProps) {
 	const { data: session } = authClient.useSession();
 	const user = session?.user;
 
+	if (!env.NEXT_PUBLIC_OUTLIT_KEY) {
+		return <>{children}</>;
+	}
+
 	return (
 		<OutlitBrowserProvider
-			publicKey={env.NEXT_PUBLIC_OUTLIT_KEY ?? ""}
+			publicKey={env.NEXT_PUBLIC_OUTLIT_KEY}
 			trackPageviews
 			user={
 				user

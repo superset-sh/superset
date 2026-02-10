@@ -30,6 +30,24 @@ export function setUserId(id: string | null): void {
 	userId = id;
 }
 
+function toOutlitProperties(
+	properties?: Record<string, unknown>,
+): Record<string, string | number | boolean | null> | undefined {
+	if (!properties) return undefined;
+	const result: Record<string, string | number | boolean | null> = {};
+	for (const [key, value] of Object.entries(properties)) {
+		if (
+			value === null ||
+			typeof value === "string" ||
+			typeof value === "number" ||
+			typeof value === "boolean"
+		) {
+			result[key] = value;
+		}
+	}
+	return result;
+}
+
 export function track(
 	event: string,
 	properties?: Record<string, unknown>,
@@ -38,18 +56,18 @@ export function track(
 	if (!isTelemetryEnabled()) return;
 
 	const client = getClient();
-	if (!client) return;
-
-	client.capture({
-		distinctId: userId,
-		event,
-		properties: {
-			...properties,
-			app_name: "desktop",
-			platform: process.platform,
-			desktop_version: app.getVersion(),
-		},
-	});
+	if (client) {
+		client.capture({
+			distinctId: userId,
+			event,
+			properties: {
+				...properties,
+				app_name: "desktop",
+				platform: process.platform,
+				desktop_version: app.getVersion(),
+			},
+		});
+	}
 
 	// Outlit tracking
 	try {
@@ -58,9 +76,7 @@ export function track(
 			outlit.track({
 				eventName: event,
 				userId,
-				properties: properties as
-					| Record<string, string | number | boolean | null>
-					| undefined,
+				properties: toOutlitProperties(properties),
 			});
 
 			// Fire user.activate() on project_opened (activation moment)
