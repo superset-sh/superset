@@ -390,7 +390,6 @@ export class DurableChatClient<
 		});
 	}
 
-	/** Local-only clear — does not affect the durable stream. */
 	clear(): void {
 		this.options.onMessagesChange?.([]);
 	}
@@ -650,7 +649,6 @@ export class DurableChatClient<
 				updateConnectionStatus(meta, "connecting"),
 			);
 
-			// Skip server call in test mode (injected sessionDB)
 			if (!this.options.sessionDB) {
 				const response = await fetch(
 					`${this.options.proxyUrl}/v1/sessions/${this.sessionId}`,

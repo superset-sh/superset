@@ -5,7 +5,6 @@ import { serve } from "@hono/node-server";
 import { env } from "./env";
 import { createServer } from "./server";
 
-// Kill stale listeners left behind by dev server restarts
 function freePort(port: number): void {
 	try {
 		const pid = execSync(`lsof -iTCP:${port} -sTCP:LISTEN -t`, {

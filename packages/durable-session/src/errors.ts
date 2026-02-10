@@ -28,12 +28,6 @@ export class StreamError extends Error {
 		return new StreamError(response.status);
 	}
 
-	static networkError(cause?: unknown): StreamError {
-		const err = new StreamError(0);
-		err.cause = cause;
-		return Object.assign(err, { friendlyMessage: NETWORK_MESSAGE });
-	}
-
 	static friendly(error: unknown): { message: string; code: string | null } {
 		if (error instanceof StreamError) {
 			return {
