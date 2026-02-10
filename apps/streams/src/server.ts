@@ -1,9 +1,3 @@
-/**
- * AI DB Proxy Server
- *
- * Hono-based HTTP server implementing the AI DB Wrapper Protocol.
- */
-
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -23,26 +17,20 @@ import {
 import type { AIDBProtocolOptions } from "./types";
 
 export interface AIDBProxyServerOptions extends AIDBProtocolOptions {
-	/** Enable CORS */
 	cors?: boolean;
-	/** Enable request logging */
 	logging?: boolean;
-	/** Custom CORS origins */
 	corsOrigins?: string | string[];
-	/** If set, require Bearer token on /v1/* routes */
 	authToken?: string;
 }
 
 export function createServer(options: AIDBProxyServerOptions) {
 	const app = new Hono();
 
-	// Create protocol instance
 	const protocol = new AIDBSessionProtocol({
 		baseUrl: options.baseUrl,
 		storage: options.storage,
 	});
 
-	// Middleware
 	if (options.cors !== false) {
 		app.use(
 			"*",
@@ -56,7 +44,6 @@ export function createServer(options: AIDBProxyServerOptions) {
 					"X-Actor-Type",
 					"X-Session-Id",
 				],
-				// Expose Durable Streams protocol headers to browser clients
 				exposeHeaders: [...PROTOCOL_RESPONSE_HEADERS],
 			}),
 		);
@@ -66,10 +53,9 @@ export function createServer(options: AIDBProxyServerOptions) {
 		app.use("*", logger());
 	}
 
-	// Health routes (no auth)
 	app.route("/health", createHealthRoutes());
 
-	// Auth middleware on /v1/* routes
+	// No auth on health; Bearer token required on /v1/*
 	if (options.authToken) {
 		const expectedHeader = `Bearer ${options.authToken}`;
 		app.use("/v1/*", async (c, next) => {
@@ -81,36 +67,18 @@ export function createServer(options: AIDBProxyServerOptions) {
 		});
 	}
 
-	// API v1 routes
 	const v1 = new Hono();
-
-	// Session management
 	v1.route("/sessions", createSessionRoutes(protocol));
-
-	// Auth (login/logout - nested under sessions)
 	v1.route("/sessions", createAuthRoutes(protocol));
-
-	// Messages (nested under sessions)
 	v1.route("/sessions", createMessageRoutes(protocol));
-
-	// Tool results (nested under sessions)
 	v1.route("/sessions", createToolResultRoutes(protocol));
-
-	// Approvals (nested under sessions)
 	v1.route("/sessions", createApprovalRoutes(protocol));
-
-	// Fork (nested under sessions)
 	v1.route("/sessions", createForkRoutes(protocol));
-
-	// Chunks - for external agents to write chunks directly
 	v1.route("/sessions", createChunkRoutes(protocol));
-
-	// Stream proxy - forwards to Durable Streams server
 	v1.route("/stream", createStreamRoutes(options.baseUrl));
 
 	app.route("/v1", v1);
 
-	// Root info
 	app.get("/", (c) => {
 		return c.json({
 			name: "@superset/streams",

@@ -1,7 +1,3 @@
-/**
- * Type definitions for the durable session proxy.
- */
-
 import type {
 	MessageRow,
 	ModelMessage,
@@ -9,10 +5,6 @@ import type {
 } from "@superset/durable-session";
 import type { Collection } from "@tanstack/db";
 import { z } from "zod";
-
-// ============================================================================
-// Stream Row Types
-// ============================================================================
 
 export type ActorType = "user" | "agent";
 
@@ -35,10 +27,6 @@ export const streamRowSchema = z.object({
 	createdAt: z.string(),
 	seq: z.number(),
 });
-
-// ============================================================================
-// Request Types
-// ============================================================================
 
 export interface SendMessageRequest {
 	messageId?: string;
@@ -116,10 +104,6 @@ export const regenerateRequestSchema = z.object({
 	actorType: z.enum(["user", "agent"]).optional(),
 });
 
-// ============================================================================
-// Response Types
-// ============================================================================
-
 export interface SendMessageResponse {
 	messageId: string;
 }
@@ -129,18 +113,10 @@ export interface ForkSessionResponse {
 	offset: string;
 }
 
-// ============================================================================
-// Stream Chunk Types (TanStack AI compatible)
-// ============================================================================
-
 export interface StreamChunk {
 	type: string;
 	[key: string]: unknown;
 }
-
-// ============================================================================
-// Session State Types
-// ============================================================================
 
 export interface SessionState {
 	createdAt: string;
@@ -155,10 +131,6 @@ export interface ProxySessionState extends SessionState {
 	changeSubscription: { unsubscribe: () => void } | null;
 	isReady: boolean;
 }
-
-// ============================================================================
-// Protocol Options
-// ============================================================================
 
 export interface AIDBProtocolOptions {
 	baseUrl: string;

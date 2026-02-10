@@ -83,9 +83,6 @@ export class ChatSessionManager extends EventEmitter {
 		super();
 	}
 
-	/**
-	 * Create/ensure session on proxy.
-	 */
 	private async ensureSessionReady({
 		sessionId,
 		cwd,
@@ -229,9 +226,6 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Run the agent locally for a given session.
-	 */
 	async startAgent({
 		sessionId,
 		prompt,
@@ -258,7 +252,6 @@ export class ChatSessionManager extends EventEmitter {
 		const headers = buildProxyHeaders();
 
 		try {
-			// Signal generation start to proxy and get messageId
 			const startRes = await fetch(
 				`${PROXY_URL}/v1/sessions/${sessionId}/generations/start`,
 				{
@@ -310,7 +303,6 @@ export class ChatSessionManager extends EventEmitter {
 				},
 
 				onPermissionRequest: async (params: PermissionRequestParams) => {
-					// Emit permission request event to renderer
 					this.emit("event", {
 						type: "permission_request",
 						sessionId,
@@ -319,7 +311,6 @@ export class ChatSessionManager extends EventEmitter {
 						input: params.input,
 					} satisfies PermissionRequestEvent);
 
-					// Use the agent package's built-in permission system
 					const { createPermissionRequest } = await import("@superset/agent");
 					return createPermissionRequest({
 						toolUseId: params.toolUseId,
@@ -344,7 +335,6 @@ export class ChatSessionManager extends EventEmitter {
 				},
 			});
 
-			// Signal generation finish to proxy
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`, {
 				method: "POST",
 				headers,
@@ -366,9 +356,6 @@ export class ChatSessionManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Resolve a pending permission request for a running agent.
-	 */
 	resolvePermission({
 		sessionId: _sessionId,
 		toolUseId,
@@ -405,14 +392,12 @@ export class ChatSessionManager extends EventEmitter {
 
 		console.log(`[chat/session] Interrupting session ${sessionId}`);
 
-		// Abort local agent
 		const controller = this.runningAgents.get(sessionId);
 		if (controller) {
 			controller.abort();
 			this.runningAgents.delete(sessionId);
 		}
 
-		// Also tell proxy to stop
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
 				method: "POST",
@@ -431,7 +416,6 @@ export class ChatSessionManager extends EventEmitter {
 
 		console.log(`[chat/session] Deactivating session ${sessionId}`);
 
-		// Abort any running agent
 		const controller = this.runningAgents.get(sessionId);
 		if (controller) {
 			controller.abort();
@@ -480,7 +464,6 @@ export class ChatSessionManager extends EventEmitter {
 		console.log(`[chat/session] Deleting session ${sessionId}`);
 		const headers = buildProxyHeaders();
 
-		// Abort any running agent
 		const controller = this.runningAgents.get(sessionId);
 		if (controller) {
 			controller.abort();

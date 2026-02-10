@@ -1,13 +1,3 @@
-/**
- * AIDBSessionProtocol - STATE-PROTOCOL implementation for AI DB.
- *
- * Uses @durable-streams/client to write STATE-PROTOCOL events to Durable Streams.
- * Provides:
- * - Session management
- * - LLM API proxying with stream teeing
- * - Chunk framing with sequence numbers
- */
-
 import { DurableStream } from "@durable-streams/client";
 import {
 	createMessagesCollection,
@@ -21,22 +11,13 @@ import type {
 	StreamChunk,
 } from "./types";
 
-// Map role to the role type expected by the schema
 type MessageRole = "user" | "assistant" | "system";
 
 export class AIDBSessionProtocol {
 	private readonly baseUrl: string;
-
-	/** Active streams by sessionId */
 	private streams = new Map<string, DurableStream>();
-
-	/** Sequence counters per message for deduplication */
 	private messageSeqs = new Map<string, number>();
-
-	/** Active generation abort controllers */
 	private activeAbortControllers = new Map<string, AbortController>();
-
-	/** Session state with SessionDB and collections for message materialization */
 	private sessionStates = new Map<string, ProxySessionState>();
 
 	constructor(options: AIDBProtocolOptions) {
@@ -52,12 +33,8 @@ export class AIDBSessionProtocol {
 			url: `${this.baseUrl}/v1/stream/sessions/${sessionId}`,
 		});
 
-		// Create the stream on the Durable Streams server
 		await stream.create({ contentType: "application/json" });
-
 		this.streams.set(sessionId, stream);
-
-		// Initialize session state with SessionDB and collections
 		await this.initializeSessionState(sessionId);
 
 		return stream;
@@ -78,9 +55,7 @@ export class AIDBSessionProtocol {
 	deleteSession(sessionId: string): void {
 		const state = this.sessionStates.get(sessionId);
 		if (state) {
-			// Unsubscribe from changes
 			state.changeSubscription?.unsubscribe();
-			// Close SessionDB to cleanup stream subscription
 			state.sessionDB.close();
 		}
 
@@ -94,16 +69,10 @@ export class AIDBSessionProtocol {
 			throw new Error(`Session ${sessionId} not found`);
 		}
 
-		// Write control reset event to the stream
-		const resetEvent = {
-			headers: {
-				control: "reset" as const,
-			},
-		};
+		await stream.append(
+			JSON.stringify({ headers: { control: "reset" as const } }),
+		);
 
-		await stream.append(JSON.stringify(resetEvent));
-
-		// Clear in-memory state
 		this.messageSeqs.clear();
 		const state = this.sessionStates.get(sessionId);
 		if (state) {
@@ -121,27 +90,22 @@ export class AIDBSessionProtocol {
 	}
 
 	private async initializeSessionState(sessionId: string): Promise<void> {
-		// Create SessionDB (same as client does)
 		const sessionDB = createSessionDB({
 			sessionId,
 			baseUrl: this.baseUrl,
 		});
 
-		// Preload to sync initial data from stream
 		await sessionDB.preload();
 
-		// Create the messages collection from chunks
 		const messages = createMessagesCollection({
 			chunksCollection: sessionDB.collections.chunks,
 		});
 
-		// Create the model messages collection (LLM-ready)
 		const modelMessages = createModelMessagesCollection({
 			messagesCollection: messages,
 		});
 
-		// Store in session state
-		const state: ProxySessionState = {
+		this.sessionStates.set(sessionId, {
 			createdAt: new Date().toISOString(),
 			lastActivityAt: new Date().toISOString(),
 			activeGenerations: [],
@@ -150,9 +114,7 @@ export class AIDBSessionProtocol {
 			modelMessages,
 			changeSubscription: null,
 			isReady: true,
-		};
-
-		this.sessionStates.set(sessionId, state);
+		});
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════

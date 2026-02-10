@@ -12,7 +12,6 @@ export type {
 } from "./session-manager";
 export { ChatSessionManager } from "./session-manager";
 
-// Initialize the agent session store for Claude SDK session persistence
 initSessionStore(SUPERSET_HOME_DIR);
 
 const sessionStore = new SessionStore();

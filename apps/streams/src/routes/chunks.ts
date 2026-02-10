@@ -1,9 +1,3 @@
-/**
- * Chunk Writing Routes
- *
- * Accepts chunk writes from desktop/external agents and forwards them to the durable stream.
- */
-
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AIDBSessionProtocol } from "../protocol";
@@ -12,18 +6,13 @@ const chunkBodySchema = z.object({
 	messageId: z.string(),
 	actorId: z.string(),
 	role: z.enum(["user", "assistant", "system"]),
-	chunk: z.record(z.string(), z.unknown()), // StreamChunk type
+	chunk: z.record(z.string(), z.unknown()),
 	txid: z.string().optional(),
 });
 
 export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();
 
-	/**
-	 * POST /:id/chunks
-	 *
-	 * Write a chunk to the session stream (called by desktop agent)
-	 */
 	app.post("/:id/chunks", async (c) => {
 		const sessionId = c.req.param("id");
 
@@ -69,11 +58,6 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		}
 	});
 
-	/**
-	 * POST /:id/generations/start
-	 *
-	 * Start a new generation (creates messageId and tracks active generation)
-	 */
 	app.post("/:id/generations/start", async (c) => {
 		const sessionId = c.req.param("id");
 
@@ -87,11 +71,6 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		return c.json({ messageId }, 200);
 	});
 
-	/**
-	 * POST /:id/generations/finish
-	 *
-	 * Mark generation as complete
-	 */
 	app.post("/:id/generations/finish", async (c) => {
 		const sessionId = c.req.param("id");
 
