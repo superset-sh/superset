@@ -26,6 +26,36 @@ export function defineEnv(
 	return JSON.stringify(value ?? fallback);
 }
 
+const REQUIRED_ENV_VARS = [
+	"GOOGLE_CLIENT_ID",
+	"GH_CLIENT_ID",
+	"STREAMS_URL",
+	"STREAMS_SECRET",
+] as const;
+
+/**
+ * Validates that required environment variables are present at build time.
+ * Skipped when SKIP_ENV_VALIDATION is set (development only).
+ */
+export function validateRequiredEnv(): void {
+	if (process.env.SKIP_ENV_VALIDATION) return;
+
+	const missing = REQUIRED_ENV_VARS.filter(
+		(key) => !process.env[key]?.trim(),
+	);
+
+	if (missing.length > 0) {
+		throw new Error(
+			[
+				"Missing required environment variables:",
+				...missing.map((v) => `  - ${v}`),
+				"",
+				"Set SKIP_ENV_VALIDATION=1 to bypass this check during development.",
+			].join("\n"),
+		);
+	}
+}
+
 const RESOURCES_TO_COPY = [
 	{
 		src: resolve(__dirname, "..", resources, "sounds"),
