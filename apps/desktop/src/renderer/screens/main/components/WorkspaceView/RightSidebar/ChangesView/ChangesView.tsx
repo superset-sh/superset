@@ -59,6 +59,10 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		{
 			enabled: !!worktreePath,
 			refetchOnWindowFocus: true,
+			// Safety net: .git internals are ignored by @parcel/watcher, so
+			// operations like staging, committing, and rebasing won't trigger
+			// fs events. Poll infrequently to catch those.
+			refetchInterval: 5000,
 		},
 	);
 

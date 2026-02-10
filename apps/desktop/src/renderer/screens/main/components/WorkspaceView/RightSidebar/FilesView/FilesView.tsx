@@ -120,7 +120,16 @@ export function FilesView() {
 
 	useFsSubscription({
 		workspaceId,
-		onData: () => tree.getItemInstance("root")?.invalidateChildrenIds(),
+		onData: () => {
+			tree.getItemInstance("root")?.invalidateChildrenIds();
+			// invalidateChildrenIds does NOT cascade, so explicitly
+			// invalidate every expanded directory so nested changes appear.
+			for (const item of tree.getItems()) {
+				if (item.getItemData()?.isDirectory) {
+					item.invalidateChildrenIds();
+				}
+			}
+		},
 	});
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =

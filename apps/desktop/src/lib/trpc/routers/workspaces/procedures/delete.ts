@@ -164,6 +164,7 @@ export const createDeleteProcedures = () => {
 					`[workspace/delete] Starting deletion of "${workspace.name}" (${input.id})`,
 				);
 
+				const watcherRootPath = fsWatcher.getRootPath(input.id);
 				await fsWatcher.unwatch(input.id);
 				markWorkspaceAsDeleting(input.id);
 				updateActiveWorkspaceIfRemoved(input.id);
@@ -181,6 +182,16 @@ export const createDeleteProcedures = () => {
 							error,
 						);
 						clearWorkspaceDeletingStatus(input.id);
+						if (watcherRootPath) {
+							fsWatcher
+								.watch({ workspaceId: input.id, rootPath: watcherRootPath })
+								.catch((err) => {
+									console.error(
+										"[workspace/delete] Failed to re-attach watcher:",
+										err,
+									);
+								});
+						}
 						return {
 							success: false,
 							error:
@@ -232,6 +243,16 @@ export const createDeleteProcedures = () => {
 						teardownResult.error,
 					);
 					clearWorkspaceDeletingStatus(input.id);
+					if (watcherRootPath) {
+						fsWatcher
+							.watch({ workspaceId: input.id, rootPath: watcherRootPath })
+							.catch((err) => {
+								console.error(
+									"[workspace/delete] Failed to re-attach watcher:",
+									err,
+								);
+							});
+					}
 					return {
 						success: false,
 						error: `Teardown failed: ${teardownResult.error}`,
@@ -249,6 +270,16 @@ export const createDeleteProcedures = () => {
 						});
 						if (!removeResult.success) {
 							clearWorkspaceDeletingStatus(input.id);
+							if (watcherRootPath) {
+								fsWatcher
+									.watch({ workspaceId: input.id, rootPath: watcherRootPath })
+									.catch((err) => {
+										console.error(
+											"[workspace/delete] Failed to re-attach watcher:",
+											err,
+										);
+									});
+							}
 							return removeResult;
 						}
 					} finally {

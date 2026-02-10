@@ -129,9 +129,13 @@ export async function initializeWorkspaceWorktree({
 
 			manager.updateProgress(workspaceId, "ready", "Ready");
 
-			fsWatcher.watch({ workspaceId, rootPath: worktreePath }).catch((err) => {
-				console.error("[workspace-init] Failed to start fs watcher:", err);
-			});
+			if (!manager.isCancellationRequested(workspaceId)) {
+				fsWatcher
+					.watch({ workspaceId, rootPath: worktreePath })
+					.catch((err) => {
+						console.error("[workspace-init] Failed to start fs watcher:", err);
+					});
+			}
 
 			track("workspace_initialized", {
 				workspace_id: workspaceId,
@@ -463,9 +467,11 @@ export async function initializeWorkspaceWorktree({
 
 		manager.updateProgress(workspaceId, "ready", "Ready");
 
-		fsWatcher.watch({ workspaceId, rootPath: worktreePath }).catch((err) => {
-			console.error("[workspace-init] Failed to start fs watcher:", err);
-		});
+		if (!manager.isCancellationRequested(workspaceId)) {
+			fsWatcher.watch({ workspaceId, rootPath: worktreePath }).catch((err) => {
+				console.error("[workspace-init] Failed to start fs watcher:", err);
+			});
+		}
 
 		track("workspace_initialized", {
 			workspace_id: workspaceId,
