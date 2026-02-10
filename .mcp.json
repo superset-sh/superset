@@ -12,7 +12,7 @@
 			"command": "maestro",
 			"args": ["mcp"]
 		},
-		"Neon": {
+		"neon": {
 			"type": "http",
 			"url": "https://mcp.neon.tech/mcp"
 		},
