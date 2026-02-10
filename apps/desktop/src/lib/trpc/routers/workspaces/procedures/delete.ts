@@ -176,6 +176,9 @@ export const createDeleteProcedures = () => {
 					workspaceInitManager.cancel(input.id);
 					try {
 						await workspaceInitManager.waitForInit(input.id, 30000);
+						// Init's fire-and-forget fsWatcher.watch() may have resolved
+						// after our initial unwatch. Clean up again.
+						await fsWatcher.unwatch(input.id);
 					} catch (error) {
 						console.error(
 							`[workspace/delete] Failed to wait for init cancellation:`,
