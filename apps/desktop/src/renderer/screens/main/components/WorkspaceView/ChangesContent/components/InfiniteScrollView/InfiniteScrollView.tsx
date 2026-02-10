@@ -1,19 +1,15 @@
-import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo, useState } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
-import type {
-	ChangeCategory,
-	ChangedFile,
-	GitChangesStatus,
-} from "shared/changes-types";
-import { createFileKey, useScrollContext } from "../../context";
+import type { GitChangesStatus } from "shared/changes-types";
+import { useScrollContext } from "../../context";
 import { sortFiles } from "../../utils";
 import { FileDiffSection } from "../FileDiffSection";
 import { VirtualizedFileList } from "../VirtualizedFileList";
 import { CategoryHeader } from "./components/CategoryHeader";
 import { CommitSection } from "./components/CommitSection";
 import { DiffToolbar } from "./components/DiffToolbar";
+import { useFileMutations } from "./hooks/useFileMutations";
+import { useFocusMode } from "./hooks/useFocusMode";
 
 interface InfiniteScrollViewProps {
 	status: GitChangesStatus;
@@ -21,26 +17,12 @@ interface InfiniteScrollViewProps {
 	baseBranch: string;
 }
 
-interface FlatFileEntry {
-	file: ChangedFile;
-	category: ChangeCategory;
-	commitHash?: string;
-	key: string;
-}
-
 export function InfiniteScrollView({
 	status,
 	worktreePath,
 	baseBranch,
 }: InfiniteScrollViewProps) {
-	const {
-		containerRef,
-		viewedCount,
-		focusedFileKey,
-		setFocusedFileKey,
-		setActiveFileKey,
-		activeFileKey,
-	} = useScrollContext();
+	const { containerRef, viewedCount } = useScrollContext();
 	const {
 		viewMode: diffViewMode,
 		setViewMode: setDiffViewMode,
@@ -49,10 +31,11 @@ export function InfiniteScrollView({
 		fileListViewMode,
 		expandedSections: expandedCategories,
 		toggleSection: toggleCategory,
-		focusMode,
-		toggleFocusMode,
 	} = useChangesStore();
 	const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
+
+	const { stageFileMutation, unstageFileMutation, handleDiscard, isActioning } =
+		useFileMutations({ worktreePath, baseBranch });
 
 	const totals = useMemo(() => {
 		const allFiles = [
@@ -99,77 +82,6 @@ export function InfiniteScrollView({
 		});
 	}, []);
 
-	const trpcUtils = electronTrpc.useUtils();
-	const refetch = useCallback(() => {
-		trpcUtils.changes.getStatus.invalidate({
-			worktreePath,
-			defaultBranch: baseBranch,
-		});
-	}, [trpcUtils, worktreePath, baseBranch]);
-
-	const stageFileMutation = electronTrpc.changes.stageFile.useMutation({
-		onSuccess: () => refetch(),
-		onError: (error, variables) => {
-			console.error(
-				`[InfiniteScrollView] Failed to stage file ${variables.filePath}:`,
-				error,
-			);
-			toast.error(`Failed to stage ${variables.filePath}: ${error.message}`);
-		},
-	});
-
-	const unstageFileMutation = electronTrpc.changes.unstageFile.useMutation({
-		onSuccess: () => refetch(),
-		onError: (error, variables) => {
-			console.error(
-				`[InfiniteScrollView] Failed to unstage file ${variables.filePath}:`,
-				error,
-			);
-			toast.error(`Failed to unstage ${variables.filePath}: ${error.message}`);
-		},
-	});
-
-	const discardChangesMutation =
-		electronTrpc.changes.discardChanges.useMutation({
-			onSuccess: () => refetch(),
-			onError: (error, variables) => {
-				console.error(
-					`[InfiniteScrollView] Failed to discard changes for ${variables.filePath}:`,
-					error,
-				);
-				toast.error(`Failed to discard changes: ${error.message}`);
-			},
-		});
-
-	const deleteUntrackedMutation =
-		electronTrpc.changes.deleteUntracked.useMutation({
-			onSuccess: () => refetch(),
-			onError: (error, variables) => {
-				console.error(
-					`[InfiniteScrollView] Failed to delete ${variables.filePath}:`,
-					error,
-				);
-				toast.error(`Failed to delete file: ${error.message}`);
-			},
-		});
-
-	const handleDiscard = useCallback(
-		(file: ChangedFile) => {
-			if (file.status === "untracked" || file.status === "added") {
-				deleteUntrackedMutation.mutate({
-					worktreePath,
-					filePath: file.path,
-				});
-			} else {
-				discardChangesMutation.mutate({
-					worktreePath,
-					filePath: file.path,
-				});
-			}
-		},
-		[worktreePath, deleteUntrackedMutation, discardChangesMutation],
-	);
-
 	const sortedAgainstBase = useMemo(
 		() => sortFiles(status.againstBase, fileListViewMode),
 		[status.againstBase, fileListViewMode],
@@ -184,119 +96,25 @@ export function InfiniteScrollView({
 		[status.unstaged, status.untracked, fileListViewMode],
 	);
 
-	// Flat file list for focus mode navigation
-	const flatFileList = useMemo<FlatFileEntry[]>(() => {
-		const entries: FlatFileEntry[] = [];
-		for (const file of sortedAgainstBase) {
-			entries.push({
-				file,
-				category: "against-base",
-				key: createFileKey(file, "against-base"),
-			});
-		}
-		for (const commit of status.commits) {
-			for (const file of commit.files) {
-				entries.push({
-					file,
-					category: "committed",
-					commitHash: commit.hash,
-					key: createFileKey(file, "committed", commit.hash),
-				});
-			}
-		}
-		for (const file of sortedStaged) {
-			entries.push({
-				file,
-				category: "staged",
-				key: createFileKey(file, "staged"),
-			});
-		}
-		for (const file of sortedUnstaged) {
-			entries.push({
-				file,
-				category: "unstaged",
-				key: createFileKey(file, "unstaged"),
-			});
-		}
-		return entries;
-	}, [sortedAgainstBase, status.commits, sortedStaged, sortedUnstaged]);
-
-	const focusedEntry = focusMode
-		? (flatFileList.find((e) => e.key === focusedFileKey) ??
-			flatFileList[0] ??
-			null)
-		: null;
-
-	const focusedIndex = focusedEntry
-		? flatFileList.findIndex((e) => e.key === focusedEntry.key)
-		: 0;
-
-	const navigateToIndex = useCallback(
-		(index: number) => {
-			const entry = flatFileList[index];
-			if (entry) {
-				setFocusedFileKey(entry.key);
-				setActiveFileKey(entry.key);
-			}
-		},
-		[flatFileList, setFocusedFileKey, setActiveFileKey],
-	);
-
-	const navigatePrev = useCallback(() => {
-		if (focusedIndex > 0) {
-			navigateToIndex(focusedIndex - 1);
-		}
-	}, [focusedIndex, navigateToIndex]);
-
-	const navigateNext = useCallback(() => {
-		if (focusedIndex < flatFileList.length - 1) {
-			navigateToIndex(focusedIndex + 1);
-		}
-	}, [focusedIndex, flatFileList.length, navigateToIndex]);
-
-	const handleToggleFocusMode = useCallback(() => {
-		if (!focusMode && flatFileList.length > 0) {
-			const targetKey = activeFileKey ?? flatFileList[0].key;
-			setFocusedFileKey(targetKey);
-			setActiveFileKey(targetKey);
-		}
-		toggleFocusMode();
-	}, [
+	const {
 		focusMode,
-		toggleFocusMode,
+		focusedEntry,
+		focusedIndex,
 		flatFileList,
-		activeFileKey,
-		setFocusedFileKey,
-		setActiveFileKey,
-	]);
-
-	const getFocusedFileActions = useCallback(
-		(entry: FlatFileEntry) => {
-			switch (entry.category) {
-				case "staged":
-					return {
-						onUnstage: () =>
-							unstageFileMutation.mutate({
-								worktreePath,
-								filePath: entry.file.path,
-							}),
-						onDiscard: () => handleDiscard(entry.file),
-					};
-				case "unstaged":
-					return {
-						onStage: () =>
-							stageFileMutation.mutate({
-								worktreePath,
-								filePath: entry.file.path,
-							}),
-						onDiscard: () => handleDiscard(entry.file),
-					};
-				default:
-					return {};
-			}
-		},
-		[worktreePath, stageFileMutation, unstageFileMutation, handleDiscard],
-	);
+		navigatePrev,
+		navigateNext,
+		handleToggleFocusMode,
+		getFocusedFileActions,
+	} = useFocusMode({
+		sortedAgainstBase,
+		commits: status.commits,
+		sortedStaged,
+		sortedUnstaged,
+		worktreePath,
+		stageFile: (params) => stageFileMutation.mutate(params),
+		unstageFile: (params) => unstageFileMutation.mutate(params),
+		handleDiscard,
+	});
 
 	const hasChanges =
 		sortedAgainstBase.length > 0 ||
@@ -311,12 +129,6 @@ export function InfiniteScrollView({
 			</div>
 		);
 	}
-
-	const isActioning =
-		stageFileMutation.isPending ||
-		unstageFileMutation.isPending ||
-		discardChangesMutation.isPending ||
-		deleteUntrackedMutation.isPending;
 
 	return (
 		<div ref={containerRef} className="h-full overflow-y-auto">
