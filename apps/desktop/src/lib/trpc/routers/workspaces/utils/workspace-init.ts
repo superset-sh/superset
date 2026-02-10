@@ -1,6 +1,7 @@
-import { projects, worktrees } from "@superset/local-db";
+import { projects, settings, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { track } from "main/lib/analytics";
+import { fsWatcher } from "main/lib/fs-watcher";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import {
@@ -127,6 +128,18 @@ export async function initializeWorkspaceWorktree({
 				.run();
 
 			manager.updateProgress(workspaceId, "ready", "Ready");
+
+			if (!manager.isCancellationRequested(workspaceId)) {
+				// Only switch watcher if this workspace is still the active one
+				const activeId = localDb.select().from(settings).get()?.lastActiveWorkspaceId;
+				if (activeId === workspaceId) {
+					fsWatcher
+						.switchTo({ workspaceId, rootPath: worktreePath })
+						.catch((err) => {
+							console.error("[workspace-init] Failed to start fs watcher:", err);
+						});
+				}
+			}
 
 			track("workspace_initialized", {
 				workspace_id: workspaceId,
@@ -457,6 +470,16 @@ export async function initializeWorkspaceWorktree({
 			.run();
 
 		manager.updateProgress(workspaceId, "ready", "Ready");
+
+		if (!manager.isCancellationRequested(workspaceId)) {
+			// Only switch watcher if this workspace is still the active one
+			const activeId = localDb.select().from(settings).get()?.lastActiveWorkspaceId;
+			if (activeId === workspaceId) {
+				fsWatcher.switchTo({ workspaceId, rootPath: worktreePath }).catch((err) => {
+					console.error("[workspace-init] Failed to start fs watcher:", err);
+				});
+			}
+		}
 
 		track("workspace_initialized", {
 			workspace_id: workspaceId,

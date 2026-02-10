@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import type { SelectWorktree } from "@superset/local-db";
 import { track } from "main/lib/analytics";
+import { fsWatcher } from "main/lib/fs-watcher";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
@@ -23,6 +24,7 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
+import { getWorkspacePath } from "../utils/worktree";
 
 export const createDeleteProcedures = () => {
 	return router({
@@ -163,6 +165,8 @@ export const createDeleteProcedures = () => {
 					`[workspace/delete] Starting deletion of "${workspace.name}" (${input.id})`,
 				);
 
+				const savedRootPath = getWorkspacePath(workspace);
+				await fsWatcher.unwatch(input.id);
 				markWorkspaceAsDeleting(input.id);
 				updateActiveWorkspaceIfRemoved(input.id);
 
@@ -173,12 +177,25 @@ export const createDeleteProcedures = () => {
 					workspaceInitManager.cancel(input.id);
 					try {
 						await workspaceInitManager.waitForInit(input.id, 30000);
+						// Init's fire-and-forget fsWatcher.watch() may have resolved
+						// after our initial unwatch. Clean up again.
+						await fsWatcher.unwatch(input.id);
 					} catch (error) {
 						console.error(
 							`[workspace/delete] Failed to wait for init cancellation:`,
 							error,
 						);
 						clearWorkspaceDeletingStatus(input.id);
+						if (savedRootPath) {
+							fsWatcher
+								.switchTo({ workspaceId: input.id, rootPath: savedRootPath })
+								.catch((err) => {
+									console.error(
+										"[workspace/delete] Failed to re-attach watcher:",
+										err,
+									);
+								});
+						}
 						return {
 							success: false,
 							error:
@@ -230,6 +247,16 @@ export const createDeleteProcedures = () => {
 						teardownResult.error,
 					);
 					clearWorkspaceDeletingStatus(input.id);
+					if (savedRootPath) {
+						fsWatcher
+							.switchTo({ workspaceId: input.id, rootPath: savedRootPath })
+							.catch((err) => {
+								console.error(
+									"[workspace/delete] Failed to re-attach watcher:",
+									err,
+								);
+							});
+					}
 					return {
 						success: false,
 						error: `Teardown failed: ${teardownResult.error}`,
@@ -247,6 +274,16 @@ export const createDeleteProcedures = () => {
 						});
 						if (!removeResult.success) {
 							clearWorkspaceDeletingStatus(input.id);
+							if (savedRootPath) {
+								fsWatcher
+									.switchTo({ workspaceId: input.id, rootPath: savedRootPath })
+									.catch((err) => {
+										console.error(
+											"[workspace/delete] Failed to re-attach watcher:",
+											err,
+										);
+									});
+							}
 							return removeResult;
 						}
 					} finally {
@@ -298,6 +335,8 @@ export const createDeleteProcedures = () => {
 				if (!workspace) {
 					throw new Error("Workspace not found");
 				}
+
+				await fsWatcher.unwatch(input.id);
 
 				const terminalResult = await getWorkspaceRuntimeRegistry()
 					.getForWorkspaceId(input.id)

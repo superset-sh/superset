@@ -7,9 +7,12 @@ import {
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
+import { getWorkspace } from "lib/trpc/routers/workspaces/utils/db-helpers";
+import { getWorkspacePath } from "lib/trpc/routers/workspaces/utils/worktree";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { fsWatcher } from "./lib/fs-watcher";
 import { localDb } from "./lib/local-db";
 import { initSentry } from "./lib/sentry";
 import { reconcileDaemonSessions } from "./lib/terminal";
@@ -210,6 +213,33 @@ if (process.env.NODE_ENV === "development") {
 	parentCheckInterval.unref();
 }
 
+function startFileWatcherForActiveWorkspace(): void {
+	try {
+		const row = localDb.select().from(settings).get();
+		const workspaceId = row?.lastActiveWorkspaceId;
+		if (!workspaceId) return;
+
+		const workspace = getWorkspace(workspaceId);
+		if (!workspace) return;
+
+		const rootPath = getWorkspacePath(workspace);
+		if (!rootPath) return;
+
+		fsWatcher.switchTo({ workspaceId, rootPath }).catch((err) => {
+			console.error(
+				`[main] Failed to start fs watcher for active workspace ${workspaceId}:`,
+				err,
+			);
+		});
+
+		console.log(
+			`[main] Started fs watcher for active workspace ${workspaceId}`,
+		);
+	} catch (error) {
+		console.error("[main] Failed to start fs watcher on boot:", error);
+	}
+}
+
 // Single instance lock - required for second-instance event on Windows/Linux
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -236,6 +266,9 @@ if (!gotTheLock) {
 		// Clean up stale daemon sessions from previous app runs
 		// Must happen BEFORE renderer restore runs
 		await reconcileDaemonSessions();
+
+		// Start filesystem watcher for the active workspace
+		startFileWatcherForActiveWorkspace();
 
 		try {
 			setupAgentHooks();

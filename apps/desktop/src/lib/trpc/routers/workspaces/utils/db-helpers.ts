@@ -8,11 +8,14 @@ import {
 	worktrees,
 } from "@superset/local-db";
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
+import { fsWatcher } from "main/lib/fs-watcher";
 import { localDb } from "main/lib/local-db";
+import { getWorkspacePath } from "./worktree";
 
 /**
  * Set the last active workspace in settings.
  * Uses upsert to handle both initial and subsequent calls.
+ * Also switches the filesystem watcher to the new active workspace.
  */
 export function setLastActiveWorkspace(workspaceId: string | null): void {
 	localDb
@@ -23,6 +26,32 @@ export function setLastActiveWorkspace(workspaceId: string | null): void {
 			set: { lastActiveWorkspaceId: workspaceId },
 		})
 		.run();
+
+	// Switch filesystem watcher to the new active workspace
+	if (workspaceId) {
+		const workspace = localDb
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, workspaceId))
+			.get();
+		if (workspace) {
+			const rootPath = getWorkspacePath(workspace);
+			if (rootPath) {
+				fsWatcher.switchTo({ workspaceId, rootPath }).catch((err) => {
+					console.error(
+						"[db-helpers] Failed to switch fs watcher:",
+						err,
+					);
+				});
+			}
+			// If rootPath is null, the worktree isn't created yet —
+			// workspace-init will call switchTo() when it finishes
+		}
+	} else {
+		fsWatcher.stop().catch((err) => {
+			console.error("[db-helpers] Failed to stop fs watcher:", err);
+		});
+	}
 }
 
 /**

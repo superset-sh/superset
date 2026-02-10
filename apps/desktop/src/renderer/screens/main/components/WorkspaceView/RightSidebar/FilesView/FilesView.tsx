@@ -19,6 +19,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFileExplorerStore } from "renderer/stores/file-explorer";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { DirectoryEntry } from "shared/file-tree-types";
+import { useFsSubscription } from "../hooks/useFsSubscription";
 import { DeleteConfirmDialog } from "./components/DeleteConfirmDialog";
 import { FileSearchResultItem } from "./components/FileSearchResultItem";
 import { FileTreeItem } from "./components/FileTreeItem";
@@ -117,6 +118,20 @@ export function FilesView() {
 		}
 		prevWorktreePathRef.current = worktreePath;
 	}, [worktreePath, tree]);
+
+	useFsSubscription({
+		workspaceId,
+		onData: () => {
+			tree.getItemInstance("root")?.invalidateChildrenIds();
+			// invalidateChildrenIds does NOT cascade, so explicitly
+			// invalidate every expanded directory so nested changes appear.
+			for (const item of tree.getItems()) {
+				if (item.getItemData()?.isDirectory) {
+					item.invalidateChildrenIds();
+				}
+			}
+		},
+	});
 
 	const { createFile, createDirectory, rename, deleteItems, isDeleting } =
 		useFileTreeActions({
