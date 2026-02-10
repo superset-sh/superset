@@ -96,7 +96,17 @@ jobs:
           STREAMS_URL: ${{ secrets.STREAMS_URL }}
         run: bun run compile:app
 
-      - name: Build Electron app
+      - name: Prepare native modules & resources
+        working-directory: apps/desktop
+        run: |
+          bun run copy:native-modules
+          bun run download:claude
+
+      - name: Build app bundle
+        working-directory: apps/desktop
+        run: npx electron-builder --dir --config ${{ inputs.electron_builder_config }} -c.mac.identity=null
+
+      - name: Code sign, notarize & package
         working-directory: apps/desktop
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
@@ -104,7 +114,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+        run: npx electron-builder --prepackaged release/mac-arm64 --config ${{ inputs.electron_builder_config }} --publish never
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
