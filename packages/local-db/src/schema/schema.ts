@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import type {
 	BranchPrefixMode,
 	ExternalApp,
+	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
 	TerminalLinkBehavior,
@@ -157,6 +158,7 @@ export const settings = sqliteTable("settings", {
 		mode: "boolean",
 	}),
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
+	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

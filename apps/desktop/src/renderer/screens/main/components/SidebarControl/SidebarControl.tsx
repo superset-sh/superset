@@ -5,6 +5,7 @@ import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { LuDiff } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSidebarStore } from "renderer/stores";
 import { useChangesStore } from "renderer/stores/changes";
@@ -46,6 +47,7 @@ export function SidebarControl() {
 	);
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+	const fileOpenMode = useFileOpenMode();
 	const trpcUtils = electronTrpc.useUtils();
 
 	const invalidateFileContent = useCallback(
@@ -92,6 +94,7 @@ export function SidebarControl() {
 				diffCategory: category,
 				oldPath: firstFile.oldPath,
 				isPinned: false,
+				openInNewTab: fileOpenMode === "new-tab",
 			});
 			invalidateFileContent(firstFile.path);
 		}
@@ -102,6 +105,7 @@ export function SidebarControl() {
 		selectFile,
 		addFileViewerPane,
 		invalidateFileContent,
+		fileOpenMode,
 	]);
 
 	const handleClick = useCallback(() => {

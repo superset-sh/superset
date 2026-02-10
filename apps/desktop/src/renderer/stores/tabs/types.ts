@@ -57,6 +57,8 @@ export interface AddFileViewerPaneOptions {
 	column?: number;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
+	/** If true, opens in a new tab instead of splitting the current tab */
+	openInNewTab?: boolean;
 }
 
 /**

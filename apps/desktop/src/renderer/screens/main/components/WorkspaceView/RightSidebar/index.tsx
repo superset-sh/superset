@@ -11,6 +11,7 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	RightSidebarTab,
@@ -101,6 +102,7 @@ export function RightSidebar() {
 	};
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+	const fileOpenMode = useFileOpenMode();
 	const trpcUtils = electronTrpc.useUtils();
 	const { scrollToFile } = useScrollContext();
 
@@ -135,10 +137,17 @@ export function RightSidebar() {
 				diffCategory: category,
 				commitHash,
 				oldPath: file.oldPath,
+				openInNewTab: fileOpenMode === "new-tab",
 			});
 			invalidateFileContent(file.path);
 		},
-		[workspaceId, worktreePath, addFileViewerPane, invalidateFileContent],
+		[
+			workspaceId,
+			worktreePath,
+			addFileViewerPane,
+			invalidateFileContent,
+			fileOpenMode,
+		],
 	);
 
 	const handleFileScrollTo = useCallback(

@@ -24,6 +24,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_DELETE_LOCAL_BRANCH: "behavior-delete-local-branch",
 	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
 	BEHAVIOR_TELEMETRY: "behavior-telemetry",
+	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -362,6 +363,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"metrics",
 			"opt out",
 			"disable",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
+		section: "behavior",
+		title: "File open mode",
+		description:
+			"Choose how files open when clicked in the file tree or changes view",
+		keywords: [
+			"file",
+			"open",
+			"mode",
+			"split",
+			"pane",
+			"tab",
+			"new tab",
+			"split pane",
+			"viewer",
+			"behavior",
 		],
 	},
 	{

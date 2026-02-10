@@ -682,6 +682,49 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					// No reusable pane found, create a new one
+					if (options.openInNewTab) {
+						// Open in a new tab instead of splitting
+						const workspaceId = activeTab.workspaceId;
+						const newTabId = generateId("tab");
+						const newPane = createFileViewerPane(newTabId, options);
+
+						const newTab = {
+							id: newTabId,
+							workspaceId,
+							name: newPane.name,
+							layout: newPane.id as MosaicNode<string>,
+							createdAt: Date.now(),
+						};
+
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+						const newHistoryStack = currentActiveId
+							? [
+									currentActiveId,
+									...historyStack.filter((id) => id !== currentActiveId),
+								]
+							: historyStack;
+
+						set({
+							tabs: [...state.tabs, newTab],
+							panes: { ...state.panes, [newPane.id]: newPane },
+							activeTabIds: {
+								...state.activeTabIds,
+								[workspaceId]: newTab.id,
+							},
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[newTab.id]: newPane.id,
+							},
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						});
+
+						return newPane.id;
+					}
+
 					const newPane = createFileViewerPane(activeTab.id, options);
 
 					const newLayout: MosaicNode<string> = {

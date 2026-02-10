@@ -1,4 +1,4 @@
-import type { BranchPrefixMode } from "@superset/local-db";
+import type { BranchPrefixMode, FileOpenMode } from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -38,6 +38,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showTelemetry = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_TELEMETRY,
+		visibleItems,
+	);
+	const showFileOpenMode = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
 		visibleItems,
 	);
 
@@ -160,6 +164,25 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		});
 	};
 
+	const { data: fileOpenMode, isLoading: isFileOpenModeLoading } =
+		electronTrpc.settings.getFileOpenMode.useQuery();
+	const setFileOpenMode = electronTrpc.settings.setFileOpenMode.useMutation({
+		onMutate: async ({ mode }) => {
+			await utils.settings.getFileOpenMode.cancel();
+			const previous = utils.settings.getFileOpenMode.getData();
+			utils.settings.getFileOpenMode.setData(undefined, mode);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getFileOpenMode.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getFileOpenMode.invalidate();
+		},
+	});
+
 	const previewPrefix =
 		resolveBranchPrefix({
 			mode: branchPrefix?.mode ?? "none",
@@ -273,6 +296,32 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								/>
 							)}
 						</div>
+					</div>
+				)}
+
+				{showFileOpenMode && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">File open mode</Label>
+							<p className="text-xs text-muted-foreground">
+								Choose how files open when no preview pane exists
+							</p>
+						</div>
+						<Select
+							value={fileOpenMode ?? "split-pane"}
+							onValueChange={(value) =>
+								setFileOpenMode.mutate({ mode: value as FileOpenMode })
+							}
+							disabled={isFileOpenModeLoading || setFileOpenMode.isPending}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="split-pane">Split pane</SelectItem>
+								<SelectItem value="new-tab">New tab</SelectItem>
+							</SelectContent>
+						</Select>
 					</div>
 				)}
 

@@ -1,6 +1,7 @@
 import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
+	FILE_OPEN_MODES,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -12,6 +13,7 @@ import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -356,6 +358,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalLinkBehavior: input.behavior },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getFileOpenMode: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.fileOpenMode ?? DEFAULT_FILE_OPEN_MODE;
+		}),
+
+		setFileOpenMode: publicProcedure
+			.input(z.object({ mode: z.enum(FILE_OPEN_MODES) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, fileOpenMode: input.mode })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { fileOpenMode: input.mode },
 					})
 					.run();
 
