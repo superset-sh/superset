@@ -417,7 +417,7 @@ jobs:
       - name: Deploy to Fly.io
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --config apps/streams/fly.toml --remote-only
+        run: flyctl deploy . --config apps/streams/fly.toml --remote-only
 
   deploy-docs:
     name: Deploy Docs to Vercel
