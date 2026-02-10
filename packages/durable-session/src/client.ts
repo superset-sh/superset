@@ -24,8 +24,8 @@ import {
 	createToolResultsCollection,
 	updateConnectionStatus,
 } from "./collections";
-import { extractTextContent, messageRowToUIMessage } from "./materialize";
 import { StreamError } from "./errors";
+import { extractTextContent, messageRowToUIMessage } from "./materialize";
 import type {
 	ActorType,
 	AgentSpec,

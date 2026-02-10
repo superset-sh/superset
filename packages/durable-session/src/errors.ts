@@ -16,7 +16,8 @@ export class StreamError extends Error {
 	readonly friendlyMessage: string;
 
 	constructor(status: number, detail?: string) {
-		const friendly = FRIENDLY_MESSAGES[status] ?? `Unexpected error (${status})`;
+		const friendly =
+			FRIENDLY_MESSAGES[status] ?? `Unexpected error (${status})`;
 		super(detail ?? friendly);
 		this.name = "StreamError";
 		this.status = status;
