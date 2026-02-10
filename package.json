@@ -45,8 +45,5 @@
 		"packages/*",
 		"apps/*",
 		"tooling/*"
-	],
-	"resolutions": {
-		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724"
-	}
+	]
 }

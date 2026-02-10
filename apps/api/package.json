@@ -13,7 +13,7 @@
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.72.1",
 		"@better-auth/oauth-provider": "1.4.18",
-		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
+		"@electric-sql/client": "1.5.2",
 		"@linear/sdk": "^68.1.0",
 		"@modelcontextprotocol/sdk": "^1.25.3",
 		"@octokit/app": "^16.1.2",
