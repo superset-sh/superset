@@ -683,7 +683,6 @@ export const useTabsStore = create<TabsStore>()(
 
 					// No reusable pane found, create a new one
 					if (options.openInNewTab) {
-						// Open in a new tab instead of splitting
 						const workspaceId = activeTab.workspaceId;
 						const newTabId = generateId("tab");
 						const newPane = createFileViewerPane(newTabId, options);

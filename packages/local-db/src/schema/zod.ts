@@ -129,9 +129,6 @@ export const BRANCH_PREFIX_MODES = [
 
 export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
 
-/**
- * File open mode options
- */
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 
 export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];
