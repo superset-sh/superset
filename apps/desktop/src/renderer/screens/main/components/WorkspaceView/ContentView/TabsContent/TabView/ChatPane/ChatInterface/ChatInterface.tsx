@@ -60,6 +60,7 @@ export function ChatInterface({
 	const updateConfig = electronTrpc.aiChat.updateSessionConfig.useMutation();
 	const triggerAgent = electronTrpc.aiChat.sendMessage.useMutation();
 	const interruptAgent = electronTrpc.aiChat.interrupt.useMutation();
+	const approveToolUse = electronTrpc.aiChat.approveToolUse.useMutation();
 
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
@@ -216,16 +217,18 @@ export function ChatInterface({
 
 	const handleApprove = useCallback(
 		(approvalId: string) => {
+			approveToolUse.mutate({ sessionId, toolUseId: approvalId, approved: true });
 			addToolApprovalResponse({ id: approvalId, approved: true });
 		},
-		[addToolApprovalResponse],
+		[approveToolUse, sessionId, addToolApprovalResponse],
 	);
 
 	const handleDeny = useCallback(
 		(approvalId: string) => {
+			approveToolUse.mutate({ sessionId, toolUseId: approvalId, approved: false });
 			addToolApprovalResponse({ id: approvalId, approved: false });
 		},
-		[addToolApprovalResponse],
+		[approveToolUse, sessionId, addToolApprovalResponse],
 	);
 
 	const handleAnswer = useCallback(
