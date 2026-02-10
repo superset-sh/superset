@@ -26,7 +26,6 @@ export function defineEnv(
 	return JSON.stringify(value ?? fallback);
 }
 
-
 const RESOURCES_TO_COPY = [
 	{
 		src: resolve(__dirname, "..", resources, "sounds"),
