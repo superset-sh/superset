@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { observable } from "@trpc/server/observable";
 import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -10,7 +9,6 @@ import {
 	scanClaudeSessions,
 } from "./utils/claude-session-scanner";
 import {
-	type ClaudeStreamEvent,
 	chatSessionManager,
 	sessionStore,
 } from "./utils/session-manager";
@@ -256,23 +254,5 @@ export const createAiChatRouter = () => {
 				return { success: true };
 			}),
 
-		streamEvents: publicProcedure
-			.input(z.object({ sessionId: z.string().optional() }))
-			.subscription(({ input }) => {
-				return observable<ClaudeStreamEvent>((emit) => {
-					const onEvent = (event: ClaudeStreamEvent) => {
-						if (input.sessionId && event.sessionId !== input.sessionId) {
-							return;
-						}
-						emit.next(event);
-					};
-
-					chatSessionManager.on("event", onEvent);
-
-					return () => {
-						chatSessionManager.off("event", onEvent);
-					};
-				});
-			}),
 	});
 };
