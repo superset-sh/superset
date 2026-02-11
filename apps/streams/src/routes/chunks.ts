@@ -10,10 +10,6 @@ const chunkBodySchema = z.object({
 	txid: z.string().optional(),
 });
 
-const batchBodySchema = z.object({
-	chunks: z.array(chunkBodySchema),
-});
-
 const finishBodySchema = z.object({
 	messageId: z.string().optional(),
 });
@@ -66,13 +62,18 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		}
 	});
 
+	// Batch endpoint skips Zod for hot-path performance — this is an
+	// authenticated internal path from the desktop client.
 	app.post("/:id/chunks/batch", async (c) => {
 		const sessionId = c.req.param("id");
 
-		let body: z.infer<typeof batchBodySchema>;
+		let chunks: Array<z.infer<typeof chunkBodySchema>>;
 		try {
 			const rawBody = await c.req.json();
-			body = batchBodySchema.parse(rawBody);
+			chunks = rawBody?.chunks;
+			if (!Array.isArray(chunks) || chunks.length === 0) {
+				return c.json({ error: "chunks must be a non-empty array" }, 400);
+			}
 		} catch (error) {
 			return c.json(
 				{ error: "Invalid request body", details: (error as Error).message },
@@ -88,10 +89,10 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		try {
 			await protocol.writeChunks({
 				sessionId,
-				chunks: body.chunks as never,
+				chunks: chunks as never,
 			});
 
-			return c.json({ ok: true, count: body.chunks.length }, 200);
+			return c.json({ ok: true, count: chunks.length }, 200);
 		} catch (error) {
 			console.error("[chunks] Failed to write batch:", error);
 			return c.json(
