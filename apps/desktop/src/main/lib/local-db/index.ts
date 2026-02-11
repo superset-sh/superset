@@ -82,9 +82,6 @@ try {
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = OFF");
 
-console.log(`[local-db] Database initialized at: ${DB_PATH}`);
-console.log(`[local-db] Running migrations from: ${migrationsFolder}`);
-
 export const localDb = drizzle(sqlite, { schema });
 
 try {
@@ -101,12 +98,9 @@ try {
 		errorMessage.includes("no such column");
 
 	if (isSqliteError && isIdempotentMessage) {
-		console.log(`[local-db] Skipped idempotent error: ${sqliteError.message}`);
 	} else {
 		throw error;
 	}
 }
-
-console.log("[local-db] Migrations complete");
 
 export type LocalDb = typeof localDb;

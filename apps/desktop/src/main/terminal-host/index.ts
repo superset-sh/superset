@@ -68,15 +68,13 @@ const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
 
 function log(
 	level: "info" | "warn" | "error",
-	message: string,
+	_message: string,
 	data?: unknown,
 ) {
 	const timestamp = new Date().toISOString();
-	const prefix = `[${timestamp}] [terminal-host] [${level.toUpperCase()}]`;
+	const _prefix = `[${timestamp}] [terminal-host] [${level.toUpperCase()}]`;
 	if (data !== undefined) {
-		console.log(`${prefix} ${message}`, data);
 	} else {
-		console.log(`${prefix} ${message}`);
 	}
 }
 

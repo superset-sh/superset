@@ -30,9 +30,6 @@ function loadPersistedSessions(): void {
 			for (const [key, entry] of entries) {
 				claudeSessions.set(key, entry);
 			}
-			console.log(
-				`[agent/session-store] Loaded ${entries.length} persisted sessions`,
-			);
 		}
 	} catch (err) {
 		console.warn(

@@ -17,7 +17,6 @@ import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
-console.log("[main] Local database ready:", !!localDb);
 
 // Set different app name for dev to avoid singleton lock conflicts with production
 if (process.env.NODE_ENV === "development") {
@@ -37,8 +36,6 @@ if (process.defaultApp) {
 }
 
 async function processDeepLink(url: string): Promise<void> {
-	console.log("[main] Processing deep link:", url);
-
 	// Try auth deep link first (special handling)
 	const authParams = parseAuthDeepLink(url);
 	if (authParams) {
@@ -174,8 +171,7 @@ process.on("unhandledRejection", (reason) => {
 // Handle termination signals (e.g., when dev server stops via Ctrl+C)
 // Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
-	const handleTerminationSignal = (signal: string) => {
-		console.log(`[main] Received ${signal}, quitting...`);
+	const handleTerminationSignal = (_signal: string) => {
 		// Use app.exit() to bypass before-quit async cleanup which can hang
 		app.exit(0);
 	};
@@ -200,7 +196,6 @@ if (process.env.NODE_ENV === "development") {
 
 	const parentCheckInterval = setInterval(() => {
 		if (!checkParentAlive()) {
-			console.log("[main] Parent process exited, quitting...");
 			clearInterval(parentCheckInterval);
 			// Use app.exit() instead of app.quit() to bypass the before-quit
 			// handler's async cleanup which can hang in dev mode

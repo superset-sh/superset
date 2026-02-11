@@ -1,7 +1,7 @@
 import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
-import { DEBUG_TERMINAL } from "../config";
+
 import type {
 	CreateOrAttachResult,
 	TerminalExitReason,
@@ -178,11 +178,6 @@ export function useTerminalRestore({
 					}
 
 					isStreamReadyRef.current = true;
-					if (DEBUG_TERMINAL) {
-						console.log(
-							`[Terminal] isStreamReady=true (altScreen): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
-						);
-					}
 					flushPendingEvents();
 
 					scheduleFitAndScroll();
@@ -201,11 +196,6 @@ export function useTerminalRestore({
 			const finalizeRestore = () => {
 				isStreamReadyRef.current = true;
 				scheduleFitAndScroll();
-				if (DEBUG_TERMINAL) {
-					console.log(
-						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
-					);
-				}
 				flushPendingEvents();
 			};
 
@@ -234,10 +224,8 @@ export function useTerminalRestore({
 			flushPendingEvents();
 		}
 	}, [
-		paneId,
 		xtermRef,
 		fitAddonRef,
-		pendingEventsRef,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
 		modeScanBufferRef,

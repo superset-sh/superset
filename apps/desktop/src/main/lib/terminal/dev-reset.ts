@@ -19,8 +19,6 @@ const TERMINAL_STATE_PATHS = [
 ] as const;
 
 export async function resetTerminalStateDev(): Promise<void> {
-	console.log("[dev/reset-terminal-state] Resetting terminal state…");
-
 	try {
 		const client = getTerminalHostClient();
 		await client.shutdownIfRunning({ killSessions: true });
@@ -54,6 +52,4 @@ export async function resetTerminalStateDev(): Promise<void> {
 			error,
 		);
 	}
-
-	console.log("[dev/reset-terminal-state] Done.");
 }

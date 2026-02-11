@@ -207,7 +207,6 @@ export function Dashboard() {
 			// Print cd hint for selected local workspace
 			const selectedWorkspace = data.workspaces[selectedWorkspaceIndex];
 			if (selectedWorkspace && "path" in selectedWorkspace) {
-				console.log(`\n  cd ${selectedWorkspace.path}\n`);
 			}
 		}
 	});

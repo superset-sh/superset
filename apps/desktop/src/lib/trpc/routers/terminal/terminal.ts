@@ -46,12 +46,6 @@ const SAFE_ID = z
 export const createTerminalRouter = () => {
 	const registry = getWorkspaceRuntimeRegistry();
 	const terminal = registry.getDefault().terminal;
-	if (DEBUG_TERMINAL) {
-		console.log(
-			"[Terminal Router] Using terminal runtime, capabilities:",
-			terminal.capabilities,
-		);
-	}
 
 	return router({
 		createOrAttach: publicProcedure
@@ -96,18 +90,6 @@ export const createTerminalRouter = () => {
 				}
 				const cwd = resolveCwd(cwdOverride, workspacePath);
 
-				if (DEBUG_TERMINAL) {
-					console.log("[Terminal Router] createOrAttach called:", {
-						paneId,
-						workspaceId,
-						workspacePath,
-						cwdOverride,
-						resolvedCwd: cwd,
-						cols,
-						rows,
-					});
-				}
-
 				const project = workspace
 					? localDb
 							.select()
@@ -131,16 +113,6 @@ export const createTerminalRouter = () => {
 						skipColdRestore,
 						allowKilled,
 					});
-
-					if (DEBUG_TERMINAL) {
-						console.log("[Terminal Router] createOrAttach result:", {
-							callId,
-							paneId,
-							isNew: result.isNew,
-							wasRecovered: result.wasRecovered,
-							durationMs: Date.now() - startedAt,
-						});
-					}
 
 					return {
 						paneId,
@@ -282,12 +254,6 @@ export const createTerminalRouter = () => {
 			const client = getTerminalHostClient();
 			const before = await terminal.management.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
-			console.log(
-				"[killAllDaemonSessions] Before kill:",
-				beforeIds.length,
-				"sessions",
-				beforeIds,
-			);
 
 			if (beforeIds.length > 0) {
 				const results = await Promise.allSettled(
@@ -321,23 +287,10 @@ export const createTerminalRouter = () => {
 					.map((s) => s.sessionId);
 				remainingCount = afterIds.length;
 
-				if (remainingCount > 0) {
-					console.log(
-						`[killAllDaemonSessions] Retry ${i + 1}/${MAX_RETRIES}: ${remainingCount} sessions still alive`,
-						afterIds,
-					);
-				}
+				if (remainingCount === 0) break;
 			}
 
 			const killedCount = before.sessions.length - remainingCount;
-			console.log(
-				"[killAllDaemonSessions] Complete:",
-				killedCount,
-				"killed,",
-				remainingCount,
-				"remaining",
-				remainingCount > 0 ? afterIds : [],
-			);
 
 			return { killedCount, remainingCount };
 		}),
@@ -380,18 +333,12 @@ export const createTerminalRouter = () => {
 
 		/** Restart daemon to recover from stuck state. Kills all sessions. */
 		restartDaemon: publicProcedure.mutation(async () => {
-			console.log("[restartDaemon] Starting daemon restart...");
-
 			try {
 				const client = getTerminalHostClient();
 				const connected = await client.tryConnectAndAuthenticate();
 
 				if (connected) {
 					const { sessions } = await client.listSessions();
-					const aliveCount = sessions.filter((s) => s.isAlive).length;
-					console.log(
-						`[restartDaemon] Shutting down daemon with ${aliveCount} alive sessions`,
-					);
 
 					for (const session of sessions) {
 						void terminal.kill({ paneId: session.sessionId }).catch((error) => {
@@ -403,8 +350,6 @@ export const createTerminalRouter = () => {
 					}
 
 					await client.shutdownIfRunning({ killSessions: true });
-				} else {
-					console.log("[restartDaemon] Daemon was not running");
 				}
 			} catch (error) {
 				console.warn(
@@ -415,8 +360,6 @@ export const createTerminalRouter = () => {
 
 			const manager = getDaemonTerminalManager();
 			manager.reset();
-
-			console.log("[restartDaemon] Complete");
 
 			return { success: true };
 		}),
@@ -465,19 +408,7 @@ export const createTerminalRouter = () => {
 					| { type: "disconnect"; reason: string }
 					| { type: "error"; error: string; code?: string }
 				>((emit) => {
-					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal Stream] Subscribe: ${paneId}`);
-					}
-
-					let firstDataReceived = false;
-
 					const onData = (data: string) => {
-						if (DEBUG_TERMINAL && !firstDataReceived) {
-							firstDataReceived = true;
-							console.log(
-								`[Terminal Stream] First data for ${paneId}: ${data.length} bytes`,
-							);
-						}
 						emit.next({ type: "data", data });
 					};
 
@@ -508,9 +439,6 @@ export const createTerminalRouter = () => {
 					terminal.on(`error:${paneId}`, onError);
 
 					return () => {
-						if (DEBUG_TERMINAL) {
-							console.log(`[Terminal Stream] Unsubscribe: ${paneId}`);
-						}
 						terminal.off(`data:${paneId}`, onData);
 						terminal.off(`exit:${paneId}`, onExit);
 						terminal.off(`disconnect:${paneId}`, onDisconnect);

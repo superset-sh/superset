@@ -75,10 +75,6 @@ export function treeKillWithEscalation({
 				return;
 			}
 
-			console.log(
-				`[treeKillWithEscalation] Process ${pid} still alive after ${signal}, escalating to SIGKILL`,
-			);
-
 			treeKill(pid, "SIGKILL", (err) => {
 				if (resolved) return;
 

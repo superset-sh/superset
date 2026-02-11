@@ -100,12 +100,6 @@ export async function GET(request: Request) {
 				},
 			});
 
-		console.log("[slack/callback] Connected workspace:", {
-			organizationId,
-			teamId: tokenData.team.id,
-			teamName: tokenData.team.name,
-		});
-
 		return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack`);
 	} catch (error) {
 		console.error("[slack/callback] Token exchange failed:", error);

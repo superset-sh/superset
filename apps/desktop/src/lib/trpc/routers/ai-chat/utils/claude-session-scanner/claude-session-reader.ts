@@ -160,12 +160,9 @@ export async function readClaudeSessionMessages({
 				} else if (parsed.type === "assistant") {
 					parseAssistantLine(parsed, msgId, messages);
 				}
-			} catch (err) {
-				console.debug(`[claude-reader] Skipping malformed JSONL line:`, err);
-			}
+			} catch (_err) {}
 		}
-	} catch (err) {
-		console.debug(`[claude-reader] Failed to read session file:`, err);
+	} catch (_err) {
 		return [];
 	}
 

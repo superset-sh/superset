@@ -144,8 +144,6 @@ export class ChatSessionManager extends EventEmitter {
 			return;
 		}
 
-		console.log(`[chat/session] Starting session ${sessionId} in ${cwd}`);
-
 		try {
 			await this.ensureSessionReady({
 				sessionId,
@@ -168,8 +166,6 @@ export class ChatSessionManager extends EventEmitter {
 				type: "session_start",
 				sessionId,
 			} satisfies SessionStartEvent);
-
-			console.log(`[chat/session] Session ${sessionId} started`);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(`[chat/session] Failed to start session:`, message);
@@ -200,8 +196,6 @@ export class ChatSessionManager extends EventEmitter {
 			return;
 		}
 
-		console.log(`[chat/session] Restoring session ${sessionId}`);
-
 		try {
 			await this.ensureSessionReady({
 				sessionId,
@@ -218,8 +212,6 @@ export class ChatSessionManager extends EventEmitter {
 				type: "session_start",
 				sessionId,
 			} satisfies SessionStartEvent);
-
-			console.log(`[chat/session] Session ${sessionId} restored`);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(`[chat/session] Failed to restore session:`, message);
@@ -448,8 +440,6 @@ export class ChatSessionManager extends EventEmitter {
 			return;
 		}
 
-		console.log(`[chat/session] Interrupting session ${sessionId}`);
-
 		const controller = this.runningAgents.get(sessionId);
 		if (controller) {
 			controller.abort();
@@ -472,8 +462,6 @@ export class ChatSessionManager extends EventEmitter {
 			return;
 		}
 
-		console.log(`[chat/session] Deactivating session ${sessionId}`);
-
 		const controller = this.runningAgents.get(sessionId);
 		if (controller) {
 			controller.abort();
@@ -486,8 +474,8 @@ export class ChatSessionManager extends EventEmitter {
 				headers: await buildProxyHeaders(),
 				body: JSON.stringify({}),
 			});
-		} catch (err) {
-			console.debug(`[chat/session] Stop during deactivate failed:`, err);
+		} catch {
+			// Best-effort stop
 		}
 
 		try {
@@ -502,11 +490,8 @@ export class ChatSessionManager extends EventEmitter {
 					lastActiveAt: Date.now(),
 				});
 			}
-		} catch (err) {
-			console.debug(
-				`[chat/session] Store update during deactivate failed:`,
-				err,
-			);
+		} catch {
+			// Best-effort store update
 		}
 
 		this.sessions.delete(sessionId);
@@ -519,7 +504,6 @@ export class ChatSessionManager extends EventEmitter {
 	}
 
 	async deleteSession({ sessionId }: { sessionId: string }): Promise<void> {
-		console.log(`[chat/session] Deleting session ${sessionId}`);
 		const headers = await buildProxyHeaders();
 
 		const controller = this.runningAgents.get(sessionId);
@@ -534,8 +518,8 @@ export class ChatSessionManager extends EventEmitter {
 				headers,
 				body: JSON.stringify({}),
 			});
-		} catch (err) {
-			console.debug(`[chat/session] Stop during delete failed:`, err);
+		} catch {
+			// Best-effort stop
 		}
 
 		try {
@@ -543,8 +527,8 @@ export class ChatSessionManager extends EventEmitter {
 				method: "DELETE",
 				headers,
 			});
-		} catch (err) {
-			console.debug(`[chat/session] DELETE request failed:`, err);
+		} catch {
+			// Best-effort delete
 		}
 
 		await this.store.archive(sessionId);
@@ -599,18 +583,6 @@ export class ChatSessionManager extends EventEmitter {
 			session.permissionMode =
 				permissionMode === null ? undefined : permissionMode;
 		}
-
-		console.log(
-			`[chat/session] Updated agent config for ${sessionId}`,
-			[
-				maxThinkingTokens !== undefined &&
-					`maxThinkingTokens=${maxThinkingTokens}`,
-				model !== undefined && `model=${model}`,
-				permissionMode !== undefined && `permissionMode=${permissionMode}`,
-			]
-				.filter(Boolean)
-				.join(", "),
-		);
 	}
 
 	isSessionActive(sessionId: string): boolean {

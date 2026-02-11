@@ -484,10 +484,6 @@ export async function createWorktree(
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
 			{ env, timeout: 10_000 },
 		);
-
-		console.log(
-			`Created worktree at ${worktreePath} with branch ${branch} from ${startPoint}`,
-		);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const lowerError = errorMessage.toLowerCase();
@@ -619,10 +615,6 @@ export async function createWorktreeFromExistingBranch({
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
 			{ env, timeout: 10_000 },
 		);
-
-		console.log(
-			`Created worktree at ${worktreePath} using existing branch ${branch}`,
-		);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const lowerError = errorMessage.toLowerCase();
@@ -689,7 +681,6 @@ export async function deleteLocalBranch({
 			env,
 			timeout: 10_000,
 		});
-		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.error(
@@ -1642,7 +1633,6 @@ export async function fetchPrBranch({
 		if (!remoteExists) {
 			const forkUrl = `https://github.com/${forkOwner}/${forkRepo}.git`;
 			await git.addRemote(remoteName, forkUrl);
-			console.log(`[git] Added remote ${remoteName} -> ${forkUrl}`);
 		}
 
 		await execFileAsync(
@@ -1764,10 +1754,6 @@ export async function createWorktreeFromPr({
 			"git",
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
 			{ env, timeout: 10_000 },
-		);
-
-		console.log(
-			`[git] Created worktree at ${worktreePath} for PR #${prInfo.number}`,
 		);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);

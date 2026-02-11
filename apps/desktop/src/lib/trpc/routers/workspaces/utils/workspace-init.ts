@@ -161,9 +161,6 @@ export async function initializeWorkspaceWorktree({
 			// If baseBranch was auto-derived and differs from remote,
 			// update the worktree record so retries use the correct branch
 			if (!baseBranchWasExplicit && remoteDefaultBranch !== baseBranch) {
-				console.log(
-					`[workspace-init] Auto-updating baseBranch from "${baseBranch}" to "${remoteDefaultBranch}" for workspace ${workspaceId}`,
-				);
 				effectiveBaseBranch = remoteDefaultBranch;
 				localDb
 					.update(worktrees)
@@ -190,33 +187,24 @@ export async function initializeWorkspaceWorktree({
 		} | null;
 
 		const resolveLocalStartPoint = async (
-			reason: string,
+			_reason: string,
 			checkOriginRefs: boolean,
 		): Promise<LocalStartPointResult> => {
 			// Try origin tracking ref first (only if remote exists)
 			if (checkOriginRefs) {
 				const originRef = `origin/${effectiveBaseBranch}`;
 				if (await refExistsLocally(mainRepoPath, originRef)) {
-					console.log(
-						`[workspace-init] ${reason}. Using local tracking ref: ${originRef}`,
-					);
 					return { ref: originRef };
 				}
 			}
 
 			// Try local branch
 			if (await refExistsLocally(mainRepoPath, effectiveBaseBranch)) {
-				console.log(
-					`[workspace-init] ${reason}. Using local branch: ${effectiveBaseBranch}`,
-				);
 				return { ref: effectiveBaseBranch };
 			}
 
 			// Only try fallback branches if the base branch was auto-derived
 			if (baseBranchWasExplicit) {
-				console.log(
-					`[workspace-init] ${reason}. Base branch "${effectiveBaseBranch}" was explicitly set, not using fallback.`,
-				);
 				return null;
 			}
 
@@ -228,16 +216,10 @@ export async function initializeWorkspaceWorktree({
 				if (checkOriginRefs) {
 					const fallbackOriginRef = `origin/${branch}`;
 					if (await refExistsLocally(mainRepoPath, fallbackOriginRef)) {
-						console.log(
-							`[workspace-init] ${reason}. Using fallback tracking ref: ${fallbackOriginRef}`,
-						);
 						return { ref: fallbackOriginRef, fallbackBranch: branch };
 					}
 				}
 				if (await refExistsLocally(mainRepoPath, branch)) {
-					console.log(
-						`[workspace-init] ${reason}. Using fallback local branch: ${branch}`,
-					);
 					return { ref: branch, fallbackBranch: branch };
 				}
 			}
@@ -247,9 +229,6 @@ export async function initializeWorkspaceWorktree({
 
 		// Helper to update baseBranch when fallback is used
 		const applyFallbackBranch = (fallbackBranch: string) => {
-			console.log(
-				`[workspace-init] Updating baseBranch from "${effectiveBaseBranch}" to "${fallbackBranch}" for workspace ${workspaceId}`,
-			);
 			effectiveBaseBranch = fallbackBranch;
 			localDb
 				.update(worktrees)
@@ -474,9 +453,6 @@ export async function initializeWorkspaceWorktree({
 		if (manager.wasWorktreeCreated(workspaceId)) {
 			try {
 				await removeWorktree(mainRepoPath, worktreePath);
-				console.log(
-					`[workspace-init] Cleaned up partial worktree at ${worktreePath}`,
-				);
 			} catch (cleanupError) {
 				console.error(
 					"[workspace-init] Failed to cleanup partial worktree:",

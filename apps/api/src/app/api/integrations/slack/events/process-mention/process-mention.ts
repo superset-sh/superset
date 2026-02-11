@@ -17,13 +17,6 @@ export async function processSlackMention({
 	teamId,
 	eventId,
 }: ProcessMentionParams): Promise<void> {
-	console.log("[slack/process-mention] Processing mention:", {
-		eventId,
-		teamId,
-		channel: event.channel,
-		user: event.user,
-	});
-
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),

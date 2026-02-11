@@ -7,7 +7,6 @@ export const posthog = posthogFull as unknown as PostHog;
 
 export function initPostHog() {
 	if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
-		console.log("[posthog] No key configured, skipping");
 		return;
 	}
 

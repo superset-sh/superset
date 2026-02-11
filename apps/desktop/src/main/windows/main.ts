@@ -136,11 +136,7 @@ export async function MainWindow() {
 	const server = notificationsApp.listen(
 		PORTS.NOTIFICATIONS,
 		"127.0.0.1",
-		() => {
-			console.log(
-				`[notifications] Listening on http://127.0.0.1:${PORTS.NOTIFICATIONS}`,
-			);
-		},
+		() => {},
 	);
 
 	const notificationManager = new NotificationManager({
@@ -210,7 +206,6 @@ export async function MainWindow() {
 	}
 
 	window.webContents.on("did-finish-load", async () => {
-		console.log("[main-window] Renderer loaded successfully");
 		if (initialBounds.isMaximized) {
 			window.maximize();
 		}

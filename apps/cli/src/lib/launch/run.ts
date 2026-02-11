@@ -116,11 +116,6 @@ async function createSessionWithRetry(
 
 			// Retry once if this was the first attempt
 			if (attempt < maxAttempts) {
-				if (!options.silent) {
-					console.log(
-						`\nSession creation failed (attempt ${attempt}/${maxAttempts}). Retrying...\n`,
-					);
-				}
 				// Wait before retry
 				await new Promise((resolve) => setTimeout(resolve, 500));
 				return createSessionWithRetry(
@@ -150,9 +145,6 @@ async function createSessionWithRetry(
 			}
 
 			// Created successfully and still alive, now attach
-			if (!options.silent) {
-				console.log(`\nSession "${sessionName}" created. Attaching...\n`);
-			}
 			const result = await attachToAgent(
 				agent,
 				options.silent,
@@ -168,9 +160,6 @@ async function createSessionWithRetry(
 		}
 
 		// Created but not attaching - just return success
-		if (!options.silent) {
-			console.log(`\n✓ Agent session created: ${sessionName}\n`);
-		}
 		return {
 			success: true,
 			exitCode: 0,
@@ -181,11 +170,6 @@ async function createSessionWithRetry(
 
 		// Retry once if this was the first attempt
 		if (attempt < maxAttempts) {
-			if (!options.silent) {
-				console.log(
-					`\nSession creation error (attempt ${attempt}/${maxAttempts}). Retrying...\n`,
-				);
-			}
 			await new Promise((resolve) => setTimeout(resolve, 500));
 			return createSessionWithRetry(
 				agent,
@@ -264,9 +248,6 @@ export async function launchAgent(
 	if (exists) {
 		// Session exists - attach if requested
 		if (options.attach) {
-			if (!options.silent) {
-				console.log(`\nSession "${sessionName}" exists. Attaching...\n`);
-			}
 			return attachToAgent(agent, options.silent, options.retryCount || 0);
 		}
 		// Session exists but not attaching - just return success
@@ -303,32 +284,11 @@ export async function attachToAgent(
 				error: `Session "${sessionName}" not found and recreate attempt already failed.`,
 			};
 		}
-		if (!silent) {
-			console.log(
-				`\nSession "${sessionName}" not found. Creating new session...\n`,
-			);
-		}
 		return launchAgent(agent, {
 			attach: true,
 			silent,
 			retryCount: retryCount + 1,
 		});
-	}
-
-	if (!silent) {
-		console.log(
-			`\n╔════════════════════════════════════════════════════════════════╗`,
-		);
-		console.log(`║  Attaching to session: ${sessionName.padEnd(38)} ║`);
-		console.log(
-			`║                                                                ║`,
-		);
-		console.log(
-			`║  Press Ctrl-b then d to detach and keep agent running         ║`,
-		);
-		console.log(
-			`╚════════════════════════════════════════════════════════════════╝\n`,
-		);
 	}
 
 	return new Promise((resolve) => {
@@ -372,11 +332,6 @@ export async function attachToAgent(
 					return;
 				}
 
-				if (!silent) {
-					console.log(
-						`\nSession pane died. Attempting to recreate session...\n`,
-					);
-				}
 				const retry = await launchAgent(agent, {
 					attach: true,
 					silent,

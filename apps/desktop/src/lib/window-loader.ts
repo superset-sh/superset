@@ -23,22 +23,15 @@ export function registerRoute(props: {
 	if (isDev) {
 		// Development: load from Vite dev server with hash routing
 		const url = `http://localhost:${PORTS.VITE_DEV_SERVER}/#/`;
-		console.log("[window-loader] Loading development URL:", url);
 		props.browserWindow.loadURL(url);
 	} else {
 		// Production: load from file with hash routing
 		// TanStack Router uses hash-based routing, so we always start at #/
-		console.log("[window-loader] Loading file:", props.htmlFile);
 		props.browserWindow.loadFile(props.htmlFile, { hash: "/" });
 	}
 
 	// Log successful loads
-	props.browserWindow.webContents.on("did-finish-load", () => {
-		console.log(
-			"[window-loader] Successfully loaded:",
-			props.browserWindow.webContents.getURL(),
-		);
-	});
+	props.browserWindow.webContents.on("did-finish-load", () => {});
 
 	// Log and handle load failures
 	props.browserWindow.webContents.on(

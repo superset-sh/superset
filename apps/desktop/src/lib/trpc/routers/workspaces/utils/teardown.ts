@@ -25,14 +25,10 @@ export async function runTeardown({
 	const config = loadSetupConfig({ mainRepoPath, worktreePath, projectName });
 
 	if (!config?.teardown || config.teardown.length === 0) {
-		console.log(
-			`[teardown] No teardown commands found for "${workspaceName}" (config: ${config ? "found, no teardown field" : "not found"}, mainRepoPath: ${mainRepoPath})`,
-		);
 		return { success: true };
 	}
 
 	const command = config.teardown.join(" && ");
-	console.log(`[teardown] Running for "${workspaceName}": ${command}`);
 
 	try {
 		const shellEnv = await getShellEnvironment();
@@ -57,15 +53,13 @@ export async function runTeardown({
 			child.stdout?.on("data", (chunk: Buffer) => {
 				const text = chunk.toString();
 				combined += text;
-				for (const line of text.trimEnd().split("\n")) {
-					console.log(`[teardown/stdout] ${line}`);
+				for (const _line of text.trimEnd().split("\n")) {
 				}
 			});
 			child.stderr?.on("data", (chunk: Buffer) => {
 				const text = chunk.toString();
 				combined += text;
-				for (const line of text.trimEnd().split("\n")) {
-					console.log(`[teardown/stderr] ${line}`);
+				for (const _line of text.trimEnd().split("\n")) {
 				}
 			});
 

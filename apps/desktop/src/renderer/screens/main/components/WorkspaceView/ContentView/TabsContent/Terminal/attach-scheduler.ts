@@ -35,7 +35,6 @@ function pump(): void {
 		if (!task) return;
 		if (task.canceled) {
 			if (DEBUG_SCHEDULER) {
-				console.log(`[AttachScheduler] Skipping canceled task: ${task.paneId}`);
 			}
 			continue;
 		}
@@ -44,7 +43,6 @@ function pump(): void {
 		const current = pendingByPaneId.get(task.paneId);
 		if (current !== task) {
 			if (DEBUG_SCHEDULER) {
-				console.log(`[AttachScheduler] Skipping replaced task: ${task.paneId}`);
 			}
 			continue;
 		}
@@ -56,9 +54,6 @@ function pump(): void {
 		const running = runningByPaneId.get(task.paneId);
 		if (running && running !== task) {
 			if (DEBUG_SCHEDULER) {
-				console.log(
-					`[AttachScheduler] Waiting for previous task to finish: ${task.paneId}, inFlight=${inFlight}`,
-				);
 			}
 			// Store in waiting map (NOT back in queue to avoid infinite loop).
 			// Will be re-queued when the running task completes.
@@ -70,9 +65,6 @@ function pump(): void {
 		runningByPaneId.set(task.paneId, task);
 
 		if (DEBUG_SCHEDULER) {
-			console.log(
-				`[AttachScheduler] Starting task: ${task.paneId}, inFlight=${inFlight}, queueLength=${queue.length}`,
-			);
 		}
 
 		task.run(() => {
@@ -84,9 +76,6 @@ function pump(): void {
 			}
 
 			if (DEBUG_SCHEDULER) {
-				console.log(
-					`[AttachScheduler] Task done: ${task.paneId}, inFlight=${shouldRelease ? inFlight - 1 : inFlight}, alreadyReleased=${!shouldRelease}`,
-				);
 			}
 
 			// Clear running tracker
@@ -105,9 +94,6 @@ function pump(): void {
 				waitingByPaneId.delete(task.paneId);
 				queue.push(waiting);
 				if (DEBUG_SCHEDULER) {
-					console.log(
-						`[AttachScheduler] Re-queued waiting task: ${task.paneId}`,
-					);
 				}
 			}
 
@@ -120,9 +106,6 @@ function pump(): void {
 	}
 
 	if (DEBUG_SCHEDULER && queue.length > 0) {
-		console.log(
-			`[AttachScheduler] pump() exited with ${queue.length} tasks waiting, inFlight=${inFlight}`,
-		);
 	}
 }
 
@@ -136,9 +119,6 @@ export function scheduleTerminalAttach({
 	run: (done: () => void) => void;
 }): () => void {
 	if (DEBUG_SCHEDULER) {
-		console.log(
-			`[AttachScheduler] Schedule: ${paneId}, priority=${priority}, inFlight=${inFlight}, queueLength=${queue.length}`,
-		);
 	}
 
 	// Replace any existing pending task for this paneId.
@@ -147,9 +127,6 @@ export function scheduleTerminalAttach({
 		existing.canceled = true;
 		pendingByPaneId.delete(paneId);
 		if (DEBUG_SCHEDULER) {
-			console.log(
-				`[AttachScheduler] Canceled existing pending task: ${paneId}`,
-			);
 		}
 	}
 
@@ -184,9 +161,6 @@ export function scheduleTerminalAttach({
 			runningByPaneId.delete(paneId);
 			inFlight = Math.max(0, inFlight - 1);
 			if (DEBUG_SCHEDULER) {
-				console.log(
-					`[AttachScheduler] Cancel running task: ${paneId}, inFlight=${inFlight}`,
-				);
 			}
 			// Re-queue any task that was waiting for this one to complete
 			// (mirrors done() behavior for the "done never fires" scenario)
@@ -195,15 +169,11 @@ export function scheduleTerminalAttach({
 				waitingByPaneId.delete(paneId);
 				queue.push(waiting);
 				if (DEBUG_SCHEDULER) {
-					console.log(
-						`[AttachScheduler] Re-queued waiting task after cancel: ${paneId}`,
-					);
 				}
 			}
 			// Pump to start any waiting tasks now that we have capacity
 			pump();
 		} else if (DEBUG_SCHEDULER) {
-			console.log(`[AttachScheduler] Cancel called: ${paneId}`);
 		}
 	};
 }

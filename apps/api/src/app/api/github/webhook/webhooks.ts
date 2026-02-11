@@ -16,10 +16,6 @@ export const webhooks = new Webhooks({ secret: env.GH_WEBHOOK_SECRET });
 webhooks.on(
 	"installation.deleted",
 	async ({ payload }: EmitterWebhookEvent<"installation.deleted">) => {
-		console.log(
-			"[github/webhook] Installation deleted:",
-			payload.installation.id,
-		);
 		await db
 			.delete(githubInstallations)
 			.where(
@@ -31,10 +27,6 @@ webhooks.on(
 webhooks.on(
 	"installation.suspend",
 	async ({ payload }: EmitterWebhookEvent<"installation.suspend">) => {
-		console.log(
-			"[github/webhook] Installation suspended:",
-			payload.installation.id,
-		);
 		await db
 			.update(githubInstallations)
 			.set({ suspended: true, suspendedAt: new Date() })
@@ -47,10 +39,6 @@ webhooks.on(
 webhooks.on(
 	"installation.unsuspend",
 	async ({ payload }: EmitterWebhookEvent<"installation.unsuspend">) => {
-		console.log(
-			"[github/webhook] Installation unsuspended:",
-			payload.installation.id,
-		);
 		await db
 			.update(githubInstallations)
 			.set({ suspended: false, suspendedAt: null })
@@ -84,7 +72,6 @@ webhooks.on(
 
 		for (const repo of payload.repositories_added) {
 			const [owner, name] = repo.full_name.split("/");
-			console.log("[github/webhook] Repository added:", repo.full_name);
 
 			await db
 				.insert(githubRepositories)
@@ -108,7 +95,6 @@ webhooks.on(
 		payload,
 	}: EmitterWebhookEvent<"installation_repositories.removed">) => {
 		for (const repo of payload.repositories_removed) {
-			console.log("[github/webhook] Repository removed:", repo.full_name);
 			await db
 				.delete(githubRepositories)
 				.where(eq(githubRepositories.repoId, String(repo.id)));
@@ -148,11 +134,6 @@ webhooks.on(
 			console.warn("[github/webhook] Repository not found:", repository.id);
 			return;
 		}
-
-		console.log(
-			`[github/webhook] PR ${payload.action}:`,
-			`${repository.full_name}#${pr.number}`,
-		);
 
 		await db
 			.insert(githubPullRequests)
@@ -213,11 +194,6 @@ webhooks.on(
 			return;
 		}
 
-		console.log(
-			"[github/webhook] PR closed:",
-			`${repository.full_name}#${pr.number}`,
-		);
-
 		await db
 			.update(githubPullRequests)
 			.set({
@@ -261,11 +237,6 @@ webhooks.on(
 					: null;
 
 		if (!reviewDecision) return;
-
-		console.log(
-			`[github/webhook] PR review ${review.state}:`,
-			`${repository.full_name}#${pr.number}`,
-		);
 
 		await db
 			.update(githubPullRequests)
@@ -359,11 +330,6 @@ webhooks.on(
 					: currentChecks.length > 0
 						? "success"
 						: "none";
-
-			console.log(
-				`[github/webhook] Check ${checkRun.status}/${checkRun.conclusion}:`,
-				`${repository.full_name}#${pr.number} - ${checkRun.name}`,
-			);
 
 			await db
 				.update(githubPullRequests)

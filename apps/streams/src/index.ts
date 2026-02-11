@@ -13,9 +13,6 @@ const durableStreamServer = new DurableStreamTestServer({
 	dataDir: env.STREAMS_DATA_DIR,
 });
 await durableStreamServer.start();
-console.log(
-	`[streams] Durable stream server on port ${env.STREAMS_INTERNAL_PORT}`,
-);
 
 const internalUrl =
 	env.STREAMS_INTERNAL_URL ?? `http://localhost:${env.STREAMS_INTERNAL_PORT}`;
@@ -28,9 +25,7 @@ const { app } = createServer({
 
 const proxyServer = serve(
 	{ fetch: app.fetch, port: env.STREAMS_PORT },
-	(info) => {
-		console.log(`[streams] Proxy running on http://localhost:${info.port}`);
-	},
+	(_info) => {},
 );
 
 for (const signal of ["SIGINT", "SIGTERM"]) {

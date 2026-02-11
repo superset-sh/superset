@@ -63,7 +63,6 @@ async function ensureScriptFile(params: {
 	if (!existing || !hasMarker) {
 		await fs.writeFile(filePath, content, { mode });
 		await fs.chmod(filePath, mode);
-		console.log(`[agent-setup] Rewrote ${logLabel}`);
 		return;
 	}
 
@@ -82,7 +81,6 @@ async function ensureClaudeSettings(): Promise<void> {
 	if (!existing || !existing.includes('"hooks"')) {
 		const content = getClaudeSettingsContent(notifyPath);
 		await fs.writeFile(settingsPath, content, { mode: 0o644 });
-		console.log("[agent-setup] Rewrote Claude settings");
 	}
 }
 

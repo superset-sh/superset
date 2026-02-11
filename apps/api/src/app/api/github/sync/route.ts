@@ -62,8 +62,6 @@ export async function POST(request: Request) {
 			{ per_page: 100 },
 		);
 
-		console.log(`[github/sync] Found ${repos.length} repositories`);
-
 		// Upsert repositories
 		for (const repo of repos) {
 			await db
@@ -106,10 +104,6 @@ export async function POST(request: Request) {
 				state: "open",
 				per_page: 100,
 			});
-
-			console.log(
-				`[github/sync] Found ${prs.length} PRs for ${repo.full_name}`,
-			);
 
 			for (const pr of prs) {
 				// Get CI checks
@@ -206,7 +200,6 @@ export async function POST(request: Request) {
 			.set({ lastSyncedAt: new Date() })
 			.where(eq(githubInstallations.id, installation.id));
 
-		console.log("[github/sync] Sync completed successfully");
 		return Response.json({
 			success: true,
 			repositoriesCount: repos.length,

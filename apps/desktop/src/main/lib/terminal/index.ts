@@ -11,8 +11,6 @@ export type {
 	TerminalExitEvent,
 } from "./types";
 
-const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
-
 /**
  * Reconcile daemon sessions on app startup.
  * Cleans up stale sessions from previous app runs and preserves sessions
@@ -42,12 +40,6 @@ export async function tryListExistingDaemonSessions(): Promise<{
 			"[TerminalManager] Failed to list existing daemon sessions (getTerminalHostClient/client.listSessions):",
 			error,
 		);
-		if (DEBUG_TERMINAL) {
-			console.log(
-				"[TerminalManager] Failed to list existing daemon sessions:",
-				error,
-			);
-		}
 		return { sessions: [] };
 	}
 }

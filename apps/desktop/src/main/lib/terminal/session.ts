@@ -17,8 +17,6 @@ const DEFAULT_ROWS = 24;
 const DEFAULT_SCROLLBACK = 10000;
 /** Max time to wait for agent hooks before running initial commands */
 const AGENT_HOOKS_TIMEOUT_MS = 2000;
-const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
-
 export function createHeadlessTerminal(params: {
 	cols: number;
 	rows: number;
@@ -99,17 +97,6 @@ export async function createSession(
 	const workingDir = cwd || os.homedir();
 	const terminalCols = cols || DEFAULT_COLS;
 	const terminalRows = rows || DEFAULT_ROWS;
-
-	if (DEBUG_TERMINAL) {
-		console.log("[Terminal Session] Creating session:", {
-			paneId,
-			shell,
-			workingDir,
-			terminalCols,
-			terminalRows,
-			useFallbackShell,
-		});
-	}
 
 	const env = buildTerminalEnv({
 		shell,

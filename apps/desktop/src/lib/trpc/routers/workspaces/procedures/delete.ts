@@ -163,17 +163,10 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
-				console.log(
-					`[workspace/delete] Starting deletion of "${workspace.name}" (${input.id})`,
-				);
-
 				markWorkspaceAsDeleting(input.id);
 				updateActiveWorkspaceIfRemoved(input.id);
 
 				if (workspaceInitManager.isInitializing(input.id)) {
-					console.log(
-						`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
-					);
 					workspaceInitManager.cancel(input.id);
 					try {
 						await workspaceInitManager.waitForInit(input.id, 30000);
@@ -218,9 +211,6 @@ export const createDeleteProcedures = () => {
 						);
 					}
 				} else {
-					console.log(
-						`[workspace/delete] No teardown needed: type=${workspace.type}, worktreeId=${workspace.worktreeId ?? "null"}`,
-					);
 				}
 
 				const [terminalResult, teardownResult] = await Promise.all([

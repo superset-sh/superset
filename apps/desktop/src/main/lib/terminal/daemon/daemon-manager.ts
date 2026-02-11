@@ -16,7 +16,6 @@ import { portManager } from "../port-manager";
 import type { CreateSessionParams, SessionResult } from "../types";
 import {
 	CREATE_OR_ATTACH_CONCURRENCY,
-	DEBUG_TERMINAL,
 	MAX_KILLED_SESSION_TOMBSTONES,
 	MAX_SCROLLBACK_BYTES,
 	SESSION_CLEANUP_DELAY_MS,
@@ -85,10 +84,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				return;
 			}
 
-			console.log(
-				`[DaemonTerminalManager] Found ${response.sessions.length} sessions from previous run`,
-			);
-
 			const validWorkspaceIds = new Set(
 				localDb
 					.select({ id: workspaces.id })
@@ -100,9 +95,6 @@ export class DaemonTerminalManager extends EventEmitter {
 			let orphanedCount = 0;
 			for (const session of response.sessions) {
 				if (!validWorkspaceIds.has(session.workspaceId)) {
-					console.log(
-						`[DaemonTerminalManager] Killing orphaned session ${session.sessionId} (workspace deleted)`,
-					);
 					await this.client.kill({ sessionId: session.sessionId });
 					orphanedCount++;
 				}
@@ -131,9 +123,6 @@ export class DaemonTerminalManager extends EventEmitter {
 
 			const preservedCount = response.sessions.length - orphanedCount;
 			if (preservedCount > 0) {
-				console.log(
-					`[DaemonTerminalManager] Preserving ${preservedCount} sessions for reattach`,
-				);
 			}
 		} catch (error) {
 			console.warn(
@@ -163,12 +152,6 @@ export class DaemonTerminalManager extends EventEmitter {
 	private setupClientEventHandlers(): void {
 		this.client.on("data", (sessionId: string, data: string) => {
 			const paneId = sessionId;
-			if (DEBUG_TERMINAL) {
-				const listenerCount = this.listenerCount(`data:${paneId}`);
-				console.log(
-					`[DaemonTerminalManager] Received data from daemon: paneId=${paneId}, bytes=${data.length}, listeners=${listenerCount}`,
-				);
-			}
 
 			const session = this.sessions.get(paneId);
 			if (session) {
@@ -259,9 +242,6 @@ export class DaemonTerminalManager extends EventEmitter {
 					if (session) {
 						session.isAlive = false;
 					}
-					console.log(
-						`[DaemonTerminalManager] Session ${paneId} lost - will trigger cold restore on next attach`,
-					);
 				}
 
 				this.emit(`error:${paneId}`, { error, code });
@@ -380,16 +360,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				workspacePath,
 				rootPath,
 			});
-
-			if (DEBUG_TERMINAL) {
-				console.log("[DaemonTerminalManager] Calling daemon createOrAttach:", {
-					paneId,
-					shell,
-					cwd,
-					cols,
-					rows,
-				});
-			}
 
 			const response = await this.client.createOrAttach({
 				sessionId: paneId,
@@ -763,10 +733,6 @@ export class DaemonTerminalManager extends EventEmitter {
 			return { killed: 0, failed: 0 };
 		}
 
-		console.log(
-			`[DaemonTerminalManager] Killing ${paneIdsToKill.size} sessions for workspace ${workspaceId}`,
-		);
-
 		const results = await Promise.allSettled(
 			Array.from(paneIdsToKill).map(async (paneId) => {
 				this.recordKilledSession(paneId);
@@ -895,8 +861,6 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	reset(): void {
-		console.log("[DaemonTerminalManager] Resetting...");
-
 		for (const timeout of this.cleanupTimeouts.values()) {
 			clearTimeout(timeout);
 		}
@@ -915,7 +879,5 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		disposeTerminalHostClient();
 		this.initializeClient();
-
-		console.log("[DaemonTerminalManager] Reset complete");
 	}
 }

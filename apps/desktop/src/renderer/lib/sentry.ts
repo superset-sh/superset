@@ -22,7 +22,6 @@ export async function initSentry(): Promise<void> {
 		});
 
 		sentryInitialized = true;
-		console.log("[sentry] Initialized in renderer process");
 	} catch (error) {
 		console.error("[sentry] Failed to initialize in renderer:", error);
 	}

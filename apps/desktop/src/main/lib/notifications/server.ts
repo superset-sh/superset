@@ -137,9 +137,6 @@ app.get("/hook/complete", (req, res) => {
 
 	// Log version for debugging (helpful when troubleshooting hook issues)
 	if (version && version !== HOOK_PROTOCOL_VERSION) {
-		console.log(
-			`[notifications] Received hook v${version} request (server expects v${HOOK_PROTOCOL_VERSION})`,
-		);
 	}
 
 	const mappedEventType = mapEventType(eventType as string | undefined);
@@ -148,7 +145,6 @@ app.get("/hook/complete", (req, res) => {
 	// This ensures forward compatibility and doesn't block the agent
 	if (!mappedEventType) {
 		if (eventType) {
-			console.log("[notifications] Ignoring unknown eventType:", eventType);
 		}
 		return res.json({ success: true, ignored: true });
 	}

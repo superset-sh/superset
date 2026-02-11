@@ -25,15 +25,12 @@ export const acceptInvitationEndpoint = {
 			async (ctx) => {
 				const { invitationId, token } = ctx.body;
 
-				console.log("[invitation/accept] START - invitationId:", invitationId);
-
 				// 1. Verify token exists and is valid
 				const verification = await db.query.verifications.findFirst({
 					where: eq(verifications.value, token),
 				});
 
 				if (!verification || new Date() > new Date(verification.expiresAt)) {
-					console.log("[invitation/accept] ERROR - Invalid or expired token");
 					throw new Error("Invalid or expired token");
 				}
 
@@ -46,22 +43,14 @@ export const acceptInvitationEndpoint = {
 				});
 
 				if (!invitation) {
-					console.log("[invitation/accept] ERROR - Invitation not found");
 					throw new Error("Invitation not found");
 				}
 
 				if (invitation.email !== verification.identifier) {
-					console.log(
-						"[invitation/accept] ERROR - Token email does not match invitation email",
-					);
 					throw new Error("Token does not match invitation");
 				}
 
 				if (invitation.status !== "pending") {
-					console.log(
-						"[invitation/accept] ERROR - Invitation already processed:",
-						invitation.status,
-					);
 					throw new Error("Invitation already accepted or rejected");
 				}
 
@@ -150,8 +139,6 @@ export const acceptInvitationEndpoint = {
 
 				// 6. Delete verification token (one-time use)
 				await db.delete(verifications).where(eq(verifications.value, token));
-
-				console.log("[invitation/accept] COMPLETE - Success");
 
 				// 7. Return success (session is now in the cookie)
 				return ctx.json({

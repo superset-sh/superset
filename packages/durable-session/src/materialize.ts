@@ -74,8 +74,8 @@ function materializeAssistantMessage(rows: ChunkRow[]): MessageRow {
 			processor.processChunk(
 				enrichChunk(chunk as StreamChunk & { [key: string]: unknown }),
 			);
-		} catch (err) {
-			console.debug("[materialize] processChunk error:", err);
+		} catch (_err) {
+			// Silently skip malformed chunks
 		}
 
 		if (isDoneChunk(chunk as StreamChunk)) {

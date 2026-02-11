@@ -173,7 +173,6 @@ class WorkspaceInitManager extends EventEmitter {
 		if (job) {
 			job.cancelled = true;
 		}
-		console.log(`[workspace-init] Cancelled job for ${workspaceId}`);
 	}
 
 	/**
@@ -213,7 +212,6 @@ class WorkspaceInitManager extends EventEmitter {
 		const resolve = this.doneResolvers.get(workspaceId);
 		if (resolve) {
 			resolve();
-			console.log(`[workspace-init] Finalized job for ${workspaceId}`);
 		}
 
 		// Clean up coordination state to prevent memory leaks
@@ -239,10 +237,6 @@ class WorkspaceInitManager extends EventEmitter {
 			// No init in progress or already completed
 			return;
 		}
-
-		console.log(
-			`[workspace-init] Waiting for init to complete: ${workspaceId}`,
-		);
 
 		await Promise.race([
 			promise,

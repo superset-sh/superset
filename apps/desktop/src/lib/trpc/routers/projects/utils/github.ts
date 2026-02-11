@@ -15,23 +15,19 @@ export async function fetchGitHubOwner(
 	repoPath: string,
 ): Promise<string | null> {
 	try {
-		console.log("[fetchGitHubOwner] Running gh repo view in:", repoPath);
 		const { stdout, stderr } = await execWithShellEnv(
 			"gh",
 			["repo", "view", "--json", "owner"],
 			{ cwd: repoPath },
 		);
 		if (stderr) {
-			console.log("[fetchGitHubOwner] stderr:", stderr);
 		}
-		console.log("[fetchGitHubOwner] stdout:", stdout);
 		const raw = JSON.parse(stdout);
 		const result = GHRepoOwnerResponseSchema.safeParse(raw);
 		if (!result.success) {
 			console.error("[GitHub] Owner schema validation failed:", result.error);
 			return null;
 		}
-		console.log("[fetchGitHubOwner] Parsed owner:", result.data.owner.login);
 		return result.data.owner.login;
 	} catch (error) {
 		console.error("[fetchGitHubOwner] Error:", error);

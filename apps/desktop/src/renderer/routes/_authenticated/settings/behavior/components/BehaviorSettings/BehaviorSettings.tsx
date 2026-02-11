@@ -123,7 +123,6 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		});
 
 	const handleTelemetryToggle = (enabled: boolean) => {
-		console.log("[settings/telemetry] Toggling to:", enabled);
 		setTelemetryEnabled.mutate({ enabled });
 	};
 

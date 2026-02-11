@@ -25,13 +25,6 @@ export async function processEntityDetails({
 	teamId,
 	eventId,
 }: ProcessEntityDetailsParams): Promise<void> {
-	console.log("[slack/process-entity-details] Processing entity details:", {
-		eventId,
-		teamId,
-		entityUrl: event.entity_url,
-		externalRef: event.external_ref,
-	});
-
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),

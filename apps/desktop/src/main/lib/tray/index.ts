@@ -122,7 +122,6 @@ async function killAllSessions(): Promise<void> {
 		const connected = await client.tryConnectAndAuthenticate();
 		if (connected) {
 			await client.killAll({});
-			console.log("[Tray] Killed all daemon sessions");
 		}
 	} catch (error) {
 		console.error("[Tray] Failed to kill sessions:", error);
@@ -137,7 +136,6 @@ async function killSession(paneId: string): Promise<void> {
 		const connected = await client.tryConnectAndAuthenticate();
 		if (connected) {
 			await client.kill({ sessionId: paneId });
-			console.log(`[Tray] Killed session: ${paneId}`);
 		}
 	} catch (error) {
 		console.error(`[Tray] Failed to kill session ${paneId}:`, error);
@@ -250,17 +248,13 @@ async function restartDaemon(): Promise<void> {
 		return;
 	}
 
-	console.log("[Tray] Restarting daemon...");
-
 	try {
 		const client = getTerminalHostClient();
 		const connected = await client.tryConnectAndAuthenticate();
 
 		if (connected) {
 			await client.shutdownIfRunning({ killSessions: true });
-			console.log("[Tray] Daemon shutdown complete");
 		} else {
-			console.log("[Tray] Daemon was not running");
 		}
 	} catch (error) {
 		console.warn("[Tray] Error during shutdown (continuing):", error);
@@ -268,8 +262,6 @@ async function restartDaemon(): Promise<void> {
 
 	const manager = getDaemonTerminalManager();
 	manager.reset();
-
-	console.log("[Tray] Daemon restart complete");
 
 	await updateTrayMenu();
 }
@@ -341,8 +333,6 @@ export function initTray(): void {
 		}, POLL_INTERVAL_MS);
 		// Don't keep Electron alive just for tray updates
 		pollIntervalId.unref();
-
-		console.log("[Tray] Initialized successfully");
 	} catch (error) {
 		console.error("[Tray] Failed to initialize:", error);
 	}

@@ -26,7 +26,6 @@ export function initSentry(): void {
 		});
 
 		sentryInitialized = true;
-		console.log("[sentry] Initialized in main process");
 	} catch (error) {
 		console.error("[sentry] Failed to initialize in main:", error);
 	}

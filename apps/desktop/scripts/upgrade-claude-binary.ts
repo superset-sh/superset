@@ -23,7 +23,6 @@ const DESKTOP_DIR = dirname(SCRIPT_DIR);
 const BIN_DIR = join(DESKTOP_DIR, "resources", "bin");
 
 function run(cmd: string, opts?: { cwd?: string }): string {
-	console.log(`$ ${cmd}`);
 	return execSync(cmd, {
 		encoding: "utf-8",
 		cwd: opts?.cwd ?? DESKTOP_DIR,
@@ -36,44 +35,27 @@ async function main() {
 	const versionArg = args.find((a) => a.startsWith("--version="));
 	const versionFlag = versionArg ? ` ${versionArg}` : "";
 
-	console.log("Claude Code Binary Upgrader");
-	console.log("===========================\n");
-
 	// Get current version if exists
 	const versionFile = join(BIN_DIR, "VERSION");
 	if (existsSync(versionFile)) {
-		const currentVersion = readFileSync(versionFile, "utf-8")
+		const _currentVersion = readFileSync(versionFile, "utf-8")
 			.split("\n")[0]
 			.trim();
-		console.log(`Current version: ${currentVersion}`);
 	} else {
-		console.log("No existing binaries found");
 	}
 
 	// Download darwin-arm64 only (tracked with Git LFS)
 	// Other platforms are downloaded at build time
-	console.log("\nDownloading binary for darwin-arm64...\n");
 	run(`bun run scripts/download-claude-binary.ts${versionFlag}`);
 
 	// Get new version
-	const newVersion = readFileSync(versionFile, "utf-8").split("\n")[0].trim();
-	console.log(`\nNew version: ${newVersion}`);
+	const _newVersion = readFileSync(versionFile, "utf-8").split("\n")[0].trim();
 
 	// Stage the binary
-	console.log("\nStaging binary in git...");
 	run("git add resources/bin/darwin-arm64/claude");
 
 	// Show status
-	console.log("\nGit status:");
-	const status = run("git status --short resources/bin/darwin-arm64/");
-	console.log(status || "  (no changes)");
-
-	console.log("\n✓ Upgrade complete!");
-	console.log("\nNext steps:");
-	console.log(
-		`  git commit -m "chore: upgrade claude binary to v${newVersion}"`,
-	);
-	console.log("  git push");
+	const _status = run("git status --short resources/bin/darwin-arm64/");
 }
 
 main().catch((error) => {

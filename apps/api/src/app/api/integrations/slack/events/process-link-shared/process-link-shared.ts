@@ -19,12 +19,6 @@ export async function processLinkShared({
 	teamId,
 	eventId,
 }: ProcessLinkSharedParams): Promise<void> {
-	console.log("[slack/process-link-shared] Processing links:", {
-		eventId,
-		teamId,
-		linkCount: event.links.length,
-	});
-
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),

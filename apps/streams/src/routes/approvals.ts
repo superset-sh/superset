@@ -46,9 +46,6 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 	});
 
 	app.post("/:sessionId/answers/:toolUseId", async (c) => {
-		const sessionId = c.req.param("sessionId");
-		const toolUseId = c.req.param("toolUseId");
-
 		try {
 			const rawBody = await c.req.json();
 			const parsed = answerRequestSchema.safeParse(rawBody);
@@ -58,10 +55,6 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 					400,
 				);
 			}
-
-			console.log(
-				`[approvals] Received answer for ${toolUseId} in session ${sessionId}`,
-			);
 
 			return new Response(null, { status: 204 });
 		} catch (error) {

@@ -9,7 +9,6 @@ function startApp() {
 		child.kill();
 	}
 
-	console.log("\x1b[36m[watch] Starting app...\x1b[0m");
 	child = spawn("bun", ["dist/cli.js"], {
 		stdio: "inherit",
 		shell: false,
@@ -17,7 +16,6 @@ function startApp() {
 
 	child.on("exit", (code) => {
 		if (code !== null && code !== 0 && code !== 130) {
-			console.log(`\x1b[33m[watch] App exited with code ${code}\x1b[0m`);
 		}
 	});
 }
@@ -28,12 +26,10 @@ const watcher = chokidar.watch("dist/**/*", {
 });
 
 watcher.on("ready", () => {
-	console.log("\x1b[36m[watch] Watching dist/ for changes...\x1b[0m");
 	startApp();
 });
 
-watcher.on("change", (path) => {
-	console.log(`\x1b[36m[watch] File changed: ${path}\x1b[0m`);
+watcher.on("change", (_path) => {
 	startApp();
 });
 

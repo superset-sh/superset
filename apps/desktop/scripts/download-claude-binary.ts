@@ -210,8 +210,6 @@ function calculateSha256(filePath: string): Promise<string> {
  * Get latest version from GCS bucket
  */
 async function getLatestVersion(): Promise<string> {
-	console.log("Fetching latest Claude Code version...");
-
 	try {
 		const version = await fetchText(`${DIST_BASE}/latest`);
 		return version.trim();
@@ -256,18 +254,12 @@ async function downloadPlatform(
 	const expectedHash = platformManifest.checksum;
 	const downloadUrl = `${DIST_BASE}/${version}/${platform.dir}/${platform.binary}`;
 
-	console.log(`\nDownloading Claude Code for ${platformKey}...`);
-	console.log(`  URL: ${downloadUrl}`);
-	console.log(`  Size: ${(platformManifest.size / 1024 / 1024).toFixed(1)} MB`);
-
 	// Check if already downloaded with correct hash
 	if (existsSync(targetPath)) {
 		const existingHash = await calculateSha256(targetPath);
 		if (existingHash === expectedHash) {
-			console.log("  Already downloaded and verified");
 			return true;
 		}
-		console.log("  Existing file has wrong hash, re-downloading...");
 	}
 
 	// Download
@@ -282,14 +274,12 @@ async function downloadPlatform(
 		rmSync(targetPath);
 		return false;
 	}
-	console.log(`  Verified SHA256: ${actualHash.substring(0, 16)}...`);
 
 	// Make executable (Unix)
 	if (process.platform !== "win32") {
 		chmodSync(targetPath, 0o755);
 	}
 
-	console.log(`  Saved to: ${targetPath}`);
 	return true;
 }
 
@@ -302,9 +292,6 @@ async function main() {
 		process.env.SKIP_CLAUDE_DOWNLOAD === "1" ||
 		process.env.SKIP_CLAUDE_DOWNLOAD === "true";
 
-	console.log("Claude Code Binary Downloader");
-	console.log("=============================\n");
-
 	if (skipDownload) {
 		const currentPlatform = getPlatformKey();
 		const platform = PLATFORMS[currentPlatform];
@@ -314,10 +301,8 @@ async function main() {
 			? join(binDir, currentPlatform, platform.binary)
 			: null;
 
-		console.log("SKIP_CLAUDE_DOWNLOAD is set - skipping download.");
 		if (!downloadAll && expectedPath) {
 			if (existsSync(expectedPath)) {
-				console.log(`Using existing binary at: ${expectedPath}`);
 			} else {
 				console.warn(
 					`No existing binary found at ${expectedPath}. Packaging may fail.`,
@@ -329,11 +314,9 @@ async function main() {
 
 	// Get version
 	const version = specifiedVersion || (await getLatestVersion());
-	console.log(`Version: ${version}`);
 
 	// Fetch manifest
 	const manifestUrl = `${DIST_BASE}/${version}/manifest.json`;
-	console.log(`Fetching manifest: ${manifestUrl}`);
 
 	let manifest: Manifest;
 	try {
@@ -370,13 +353,10 @@ async function main() {
 		const currentPlatform = getPlatformKey();
 		if (!PLATFORMS[currentPlatform]) {
 			console.error(`Unsupported platform: ${currentPlatform}`);
-			console.log(`Supported platforms: ${Object.keys(PLATFORMS).join(", ")}`);
 			process.exit(1);
 		}
 		platformsToDownload = [currentPlatform];
 	}
-
-	console.log(`\nPlatforms to download: ${platformsToDownload.join(", ")}`);
 
 	// Create bin directory
 	const resourcesDir = join(dirname(import.meta.dirname), "resources");
@@ -397,7 +377,6 @@ async function main() {
 	}
 
 	if (success) {
-		console.log("\n✓ All downloads completed successfully!");
 	} else {
 		console.error("\n✗ Some downloads failed");
 		process.exit(1);

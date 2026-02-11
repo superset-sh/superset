@@ -23,7 +23,6 @@ const PROTOCOL_SCHEMES = {
 
 // Only needed on macOS
 if (process.platform !== "darwin") {
-	console.log("[patch-dev-protocol] Skipping - not macOS");
 	process.exit(0);
 }
 
@@ -36,7 +35,6 @@ const ELECTRON_APP_PATH = resolve(
 const PLIST_PATH = resolve(ELECTRON_APP_PATH, "Contents/Info.plist");
 
 if (!existsSync(PLIST_PATH)) {
-	console.log("[patch-dev-protocol] Electron.app not found, skipping");
 	process.exit(0);
 }
 
@@ -48,16 +46,11 @@ try {
 	).trim();
 
 	if (result === PROTOCOL_SCHEME) {
-		console.log(
-			`[patch-dev-protocol] ${PROTOCOL_SCHEME}:// already registered`,
-		);
 		process.exit(0);
 	}
 } catch {
 	// Not patched yet, continue
 }
-
-console.log(`[patch-dev-protocol] Registering ${PROTOCOL_SCHEME}:// scheme...`);
 
 // Set unique bundle ID to avoid conflicts with other Electron apps
 try {
@@ -90,9 +83,6 @@ for (const cmd of commands) {
 try {
 	execSync(
 		`/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "${ELECTRON_APP_PATH}"`,
-	);
-	console.log(
-		`[patch-dev-protocol] Registered ${PROTOCOL_SCHEME}:// with Launch Services`,
 	);
 } catch (err) {
 	console.warn(

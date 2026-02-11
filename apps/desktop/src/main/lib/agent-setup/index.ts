@@ -26,8 +26,6 @@ import {
  * Called on app startup
  */
 export function setupAgentHooks(): void {
-	console.log("[agent-setup] Initializing agent hooks...");
-
 	// Create directories
 	fs.mkdirSync(BIN_DIR, { recursive: true });
 	fs.mkdirSync(HOOKS_DIR, { recursive: true });
@@ -48,8 +46,6 @@ export function setupAgentHooks(): void {
 	// Create shell initialization wrappers
 	createZshWrapper();
 	createBashWrapper();
-
-	console.log("[agent-setup] Agent hooks initialized");
 }
 
 /**

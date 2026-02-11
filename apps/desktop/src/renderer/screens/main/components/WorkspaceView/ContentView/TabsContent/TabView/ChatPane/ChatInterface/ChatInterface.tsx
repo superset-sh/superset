@@ -97,7 +97,6 @@ export function ChatInterface({
 	const doConnect = useCallback(() => {
 		if (hasConnected.current) return;
 		hasConnected.current = true;
-		console.log("[chat] Connecting to proxy...");
 		connectRef.current().catch((err) => {
 			console.error("[chat] Connect failed:", err);
 			hasConnected.current = false;
@@ -108,7 +107,6 @@ export function ChatInterface({
 
 	const startSession = electronTrpc.aiChat.startSession.useMutation({
 		onSuccess: () => {
-			console.log("[chat] Session started");
 			setSessionReady(true);
 		},
 		onError: (err) => {
@@ -117,7 +115,6 @@ export function ChatInterface({
 	});
 	const restoreSession = electronTrpc.aiChat.restoreSession.useMutation({
 		onSuccess: () => {
-			console.log("[chat] Session restored");
 			setSessionReady(true);
 		},
 		onError: (err) => {

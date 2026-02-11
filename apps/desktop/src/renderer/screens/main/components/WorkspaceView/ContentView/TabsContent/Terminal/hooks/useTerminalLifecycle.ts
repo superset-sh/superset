@@ -7,7 +7,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { sanitizeForTitle } from "../commandBuffer";
-import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
+import { FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
 import {
 	createTerminalInstance,
 	setupClickToMoveCursor,
@@ -185,10 +185,6 @@ export function useTerminalLifecycle({
 	useEffect(() => {
 		const container = terminalRef.current;
 		if (!container) return;
-
-		if (DEBUG_TERMINAL) {
-			console.log(`[Terminal] Mount: ${paneId}`);
-		}
 
 		// Cancel pending detach from previous unmount
 		const pendingDetach = pendingDetaches.get(paneId);
@@ -376,9 +372,6 @@ export function useTerminalLifecycle({
 						done();
 					};
 
-					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal] createOrAttach start: ${paneId}`);
-					}
 					createOrAttachRef.current(
 						{
 							paneId,
@@ -531,9 +524,6 @@ export function useTerminalLifecycle({
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);
 
 		return () => {
-			if (DEBUG_TERMINAL) {
-				console.log(`[Terminal] Unmount: ${paneId}`);
-			}
 			cancelInitialAttach();
 			isUnmounted = true;
 			attachCanceled = true;

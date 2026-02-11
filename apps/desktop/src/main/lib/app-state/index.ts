@@ -40,8 +40,6 @@ export async function initAppState(): Promise<void> {
 
 	// Reshape data to ensure it has the correct structure (handles legacy formats)
 	_appState.data = ensureValidShape(_appState.data);
-
-	console.log(`App state initialized at: ${APP_STATE_PATH}`);
 }
 
 export const appState = new Proxy({} as AppStateDB, {

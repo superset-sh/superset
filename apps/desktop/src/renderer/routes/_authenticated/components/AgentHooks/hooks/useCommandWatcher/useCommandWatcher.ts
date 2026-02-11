@@ -82,7 +82,6 @@ export function useCommandWatcher() {
 			if (processingCommands.has(commandId)) return;
 
 			processingCommands.add(commandId);
-			console.log(`[command-watcher] Processing: ${commandId} (${tool})`);
 
 			try {
 				collections.agentCommands.update(commandId, (draft) => {

@@ -174,12 +174,6 @@ export class TerminalHostClient extends EventEmitter {
 	constructor() {
 		super();
 		if (DEBUG_CLIENT) {
-			console.log("[TerminalHostClient] Initialized with paths:", {
-				SUPERSET_DIR_NAME,
-				SUPERSET_HOME_DIR,
-				SOCKET_PATH,
-				NODE_ENV: process.env.NODE_ENV,
-			});
 		}
 	}
 
@@ -206,9 +200,6 @@ export class TerminalHostClient extends EventEmitter {
 		// Another connection in progress - wait with timeout
 		if (this.connectionState === ConnectionState.CONNECTING) {
 			if (DEBUG_CLIENT) {
-				console.log(
-					"[TerminalHostClient] Connection already in progress, waiting...",
-				);
 			}
 			return new Promise((resolve, reject) => {
 				const startTime = Date.now();
@@ -242,7 +233,6 @@ export class TerminalHostClient extends EventEmitter {
 		this.connectionState = ConnectionState.CONNECTING;
 		this.disconnectArmed = false;
 		if (DEBUG_CLIENT) {
-			console.log("[TerminalHostClient] Connecting to daemon...");
 		}
 
 		try {
@@ -299,9 +289,6 @@ export class TerminalHostClient extends EventEmitter {
 			if (attempt === 0 && process.env.NODE_ENV === "development") {
 				if (this.isDaemonScriptStale()) {
 					if (DEBUG_CLIENT) {
-						console.log(
-							"[TerminalHostClient] Daemon script rebuilt, restarting...",
-						);
 					}
 					this.killDaemonFromPidFile();
 					await this.waitForDaemonShutdown();
@@ -323,9 +310,6 @@ export class TerminalHostClient extends EventEmitter {
 			} catch (error) {
 				if (attempt === 0) {
 					if (DEBUG_CLIENT) {
-						console.log(
-							"[TerminalHostClient] Auth token missing, restarting daemon...",
-						);
 					}
 					this.resetConnectionState({ emitDisconnected: false });
 					this.killDaemonFromPidFile();
@@ -341,9 +325,6 @@ export class TerminalHostClient extends EventEmitter {
 			} catch (error) {
 				if (attempt === 0 && this.isProtocolMismatchError(error)) {
 					if (DEBUG_CLIENT) {
-						console.log(
-							"[TerminalHostClient] Protocol mismatch detected, shutting down legacy daemon...",
-						);
 					}
 					this.resetConnectionState({ emitDisconnected: false });
 					await this.shutdownLegacyDaemon();
@@ -1011,14 +992,12 @@ export class TerminalHostClient extends EventEmitter {
 			const isLive = await this.isSocketLive();
 			if (isLive) {
 				if (DEBUG_CLIENT) {
-					console.log("[TerminalHostClient] Socket is live, daemon is running");
 				}
 				return;
 			}
 
 			// Socket exists but not responsive - safe to remove
 			if (DEBUG_CLIENT) {
-				console.log("[TerminalHostClient] Removing stale socket file");
 			}
 			try {
 				unlinkSync(SOCKET_PATH);
@@ -1031,7 +1010,6 @@ export class TerminalHostClient extends EventEmitter {
 		// This handles the case where daemon crashed and PID was reused
 		if (existsSync(PID_PATH)) {
 			if (DEBUG_CLIENT) {
-				console.log("[TerminalHostClient] Removing stale PID file");
 			}
 			try {
 				unlinkSync(PID_PATH);
@@ -1043,9 +1021,6 @@ export class TerminalHostClient extends EventEmitter {
 		// Acquire spawn lock to prevent concurrent spawns
 		if (!this.acquireSpawnLock()) {
 			if (DEBUG_CLIENT) {
-				console.log(
-					"[TerminalHostClient] Another spawn in progress, waiting...",
-				);
 			}
 			// Wait for the other spawn to complete
 			await this.waitForDaemon();
@@ -1056,10 +1031,6 @@ export class TerminalHostClient extends EventEmitter {
 			// Get path to daemon script
 			const daemonScript = this.getDaemonScriptPath();
 			if (DEBUG_CLIENT) {
-				console.log(`[TerminalHostClient] Daemon script path: ${daemonScript}`);
-				console.log(
-					`[TerminalHostClient] Script exists: ${existsSync(daemonScript)}`,
-				);
 			}
 
 			if (!existsSync(daemonScript)) {
@@ -1067,9 +1038,6 @@ export class TerminalHostClient extends EventEmitter {
 			}
 
 			if (DEBUG_CLIENT) {
-				console.log(
-					`[TerminalHostClient] Spawning daemon with execPath: ${process.execPath}`,
-				);
 			}
 
 			// Open log file for daemon output (helps debug daemon-side issues)
@@ -1127,9 +1095,6 @@ export class TerminalHostClient extends EventEmitter {
 			}
 
 			if (DEBUG_CLIENT) {
-				console.log(
-					`[TerminalHostClient] Daemon spawned with PID: ${child.pid}`,
-				);
 			}
 
 			// Unref to allow parent to exit independently
@@ -1137,7 +1102,6 @@ export class TerminalHostClient extends EventEmitter {
 
 			// Wait for daemon to start
 			if (DEBUG_CLIENT) {
-				console.log("[TerminalHostClient] Waiting for daemon to start...");
 			}
 			await this.waitForDaemon();
 
@@ -1147,7 +1111,6 @@ export class TerminalHostClient extends EventEmitter {
 			}
 
 			if (DEBUG_CLIENT) {
-				console.log("[TerminalHostClient] Daemon started successfully");
 			}
 		} finally {
 			this.releaseSpawnLock();

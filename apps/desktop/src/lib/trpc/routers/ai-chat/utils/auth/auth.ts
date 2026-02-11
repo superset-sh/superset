@@ -63,9 +63,6 @@ function getCredentialsFromConfig(): ClaudeCredentials | null {
 
 				// Check for Claude Code CLI OAuth format first
 				if (config.claudeAiOauth?.accessToken) {
-					console.log(
-						`[claude/auth] Found OAuth credentials in: ${configPath}`,
-					);
 					return {
 						apiKey: config.claudeAiOauth.accessToken,
 						source: "config",
@@ -79,14 +76,10 @@ function getCredentialsFromConfig(): ClaudeCredentials | null {
 					config.oauthAccessToken || config.oauth_access_token;
 
 				if (apiKey) {
-					console.log(`[claude/auth] Found credentials in: ${configPath}`);
 					return { apiKey, source: "config", kind: "apiKey" };
 				}
 
 				if (oauthAccessToken) {
-					console.log(
-						`[claude/auth] Found OAuth credentials in: ${configPath}`,
-					);
 					return {
 						apiKey: oauthAccessToken,
 						source: "config",
@@ -121,7 +114,6 @@ function getCredentialsFromKeychain(): ClaudeCredentials | null {
 		).trim();
 
 		if (result) {
-			console.log("[claude/auth] Found credentials in macOS Keychain");
 			return { apiKey: result, source: "keychain", kind: "apiKey" };
 		}
 	} catch {
@@ -136,9 +128,6 @@ function getCredentialsFromKeychain(): ClaudeCredentials | null {
 		).trim();
 
 		if (result) {
-			console.log(
-				"[claude/auth] Found credentials in macOS Keychain (anthropic-api-key)",
-			);
 			return { apiKey: result, source: "keychain", kind: "apiKey" };
 		}
 	} catch {
@@ -160,7 +149,6 @@ export function getExistingClaudeCredentials(): ClaudeCredentials | null {
 	// 1. Check environment variable
 	const envCredentials = getCredentialsFromEnv();
 	if (envCredentials) {
-		console.log("[claude/auth] Using credentials from environment variable");
 		return envCredentials;
 	}
 
@@ -199,16 +187,12 @@ export function buildClaudeEnv(): Record<string, string> {
 	// Check if user has OAuth credentials - if so, let the binary handle auth
 	const hasOAuth = hasClaudeOAuthCredentials();
 	if (hasOAuth) {
-		console.log(
-			"[claude/auth] OAuth credentials found - letting binary handle authentication",
-		);
 		// Don't set ANTHROPIC_API_KEY, let the binary use its own OAuth flow
 	} else {
 		// Only set ANTHROPIC_API_KEY if we have a raw API key (not OAuth)
 		const credentials = getExistingClaudeCredentials();
 		if (credentials?.kind === "apiKey") {
 			env.ANTHROPIC_API_KEY = credentials.apiKey;
-			console.log(`[claude/auth] Using API key from ${credentials.source}`);
 		}
 	}
 

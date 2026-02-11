@@ -16,7 +16,6 @@ declare global {
 }
 
 const API = {
-	sayHelloFromBridge: () => console.log("\nHello from bridgeAPI! 👋\n\n"),
 	username: process.env.USER,
 	appVersion: __APP_VERSION__,
 };

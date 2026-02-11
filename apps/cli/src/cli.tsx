@@ -26,8 +26,6 @@ import {
 	WorkspaceList,
 	WorkspaceUse,
 } from "./commands/index";
-import { getDb } from "./lib/db";
-import { WorkspaceOrchestrator } from "./lib/orchestrators/workspace-orchestrator";
 import { AgentType, ProcessType } from "./types/process";
 import { WorkspaceType } from "./types/workspace";
 
@@ -335,46 +333,7 @@ change
 
 // Default action when no command is provided
 program.action(async () => {
-	console.log("\n👋 Welcome to Superset CLI!\n");
-
-	// Show current workspace if set
-	try {
-		const db = getDb();
-		const orchestrator = new WorkspaceOrchestrator(db);
-		const currentWorkspace = await orchestrator.getCurrent();
-
-		if (currentWorkspace) {
-			console.log(
-				`📁 Current workspace: ${currentWorkspace.name || currentWorkspace.id}`,
-			);
-			if ("path" in currentWorkspace && currentWorkspace.path) {
-				console.log(`   Path: ${currentWorkspace.path}`);
-			}
-			if ("branch" in currentWorkspace && currentWorkspace.branch) {
-				console.log(`   Branch: ${currentWorkspace.branch}`);
-			}
-			console.log("");
-		} else {
-			console.log(
-				"💡 No workspace selected. Run 'superset init' to get started!\n",
-			);
-		}
-	} catch (_err) {
-		// Silently ignore errors (e.g., no database yet)
-	}
-
-	console.log("Get started with these commands:\n");
-	console.log("  superset init                  Create workspace (wizard)");
-	console.log("  superset dashboard             Show dashboard overview");
-	console.log(
-		"  superset panels                Show three-panel IDE interface",
-	);
-	console.log("  superset workspace use <id>    Switch to a workspace");
-	console.log(
-		"  superset agent start           Start agents in current workspace",
-	);
-	console.log("\nFor more information, run: superset --help\n");
-	process.exit(0);
+	program.help();
 });
 
 program.parse();

@@ -17,13 +17,6 @@ export async function processAssistantMessage({
 	teamId,
 	eventId,
 }: ProcessAssistantMessageParams): Promise<void> {
-	console.log("[slack/process-assistant-message] Processing message:", {
-		eventId,
-		teamId,
-		channel: event.channel,
-		user: event.user,
-	});
-
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),

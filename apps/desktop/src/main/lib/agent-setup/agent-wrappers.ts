@@ -161,7 +161,6 @@ export function createClaudeWrapper(): void {
 	const settingsPath = createClaudeSettings();
 	const script = buildClaudeWrapperScript(settingsPath);
 	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
-	console.log("[agent-setup] Created Claude wrapper");
 }
 
 export function createCodexWrapper(): void {
@@ -169,7 +168,6 @@ export function createCodexWrapper(): void {
 	const notifyPath = getNotifyScriptPath();
 	const script = buildCodexWrapperScript(notifyPath);
 	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
-	console.log("[agent-setup] Created Codex wrapper");
 }
 
 /**
@@ -181,7 +179,6 @@ export function createOpenCodePlugin(): void {
 	const notifyPath = getNotifyScriptPath();
 	const content = getOpenCodePluginContent(notifyPath);
 	fs.writeFileSync(pluginPath, content, { mode: 0o644 });
-	console.log("[agent-setup] Created OpenCode plugin");
 }
 
 /**
@@ -196,9 +193,6 @@ export function cleanupGlobalOpenCodePlugin(): void {
 		const content = fs.readFileSync(globalPluginPath, "utf-8");
 		if (content.includes(OPENCODE_PLUGIN_SIGNATURE)) {
 			fs.unlinkSync(globalPluginPath);
-			console.log(
-				"[agent-setup] Removed stale global OpenCode plugin to prevent dev/prod conflicts",
-			);
 		}
 	} catch (error) {
 		console.warn(
@@ -212,5 +206,4 @@ export function createOpenCodeWrapper(): void {
 	const wrapperPath = getOpenCodeWrapperPath();
 	const script = buildOpenCodeWrapperScript(OPENCODE_CONFIG_DIR);
 	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
-	console.log("[agent-setup] Created OpenCode wrapper");
 }

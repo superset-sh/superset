@@ -1006,33 +1006,21 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					.get();
 
 				if (!project) {
-					console.log("[getGitHubAvatar] Project not found:", input.id);
 					return null;
 				}
 
 				if (project.githubOwner) {
-					console.log(
-						"[getGitHubAvatar] Using cached owner:",
-						project.githubOwner,
-					);
 					return {
 						owner: project.githubOwner,
 						avatarUrl: getGitHubAvatarUrl(project.githubOwner),
 					};
 				}
 
-				console.log(
-					"[getGitHubAvatar] Fetching owner for:",
-					project.mainRepoPath,
-				);
 				const owner = await fetchGitHubOwner(project.mainRepoPath);
 
 				if (!owner) {
-					console.log("[getGitHubAvatar] Failed to fetch owner");
 					return null;
 				}
-
-				console.log("[getGitHubAvatar] Fetched owner:", owner);
 
 				localDb
 					.update(projects)

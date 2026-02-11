@@ -23,9 +23,8 @@ const isDebugEnabled =
  * @param namespace - Category for the log (e.g., "notifications", "agent-hooks")
  * @param args - Values to log (same as console.log)
  */
-export function debugLog(namespace: string, ...args: unknown[]): void {
+export function debugLog(_namespace: string, ..._args: unknown[]): void {
 	if (isDebugEnabled) {
-		console.log(`[debug:${namespace}]`, ...args);
 	}
 }
 

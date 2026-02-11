@@ -12,11 +12,6 @@ export const createCacheRouter = () => {
 					origin: env.NEXT_PUBLIC_API_URL,
 				});
 
-				console.log(
-					"[cache] Cleared Electric cache for origin:",
-					env.NEXT_PUBLIC_API_URL,
-				);
-
 				return { success: true };
 			} catch (error) {
 				console.error("[cache] Failed to clear Electric cache:", error);

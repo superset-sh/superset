@@ -94,7 +94,6 @@ export function loadSetupConfig({
 		);
 		const config = readConfigFile(userConfigPath);
 		if (config) {
-			console.log(`[setup] Using user override config from ${userConfigPath}`);
 			return config;
 		}
 	}
@@ -102,18 +101,12 @@ export function loadSetupConfig({
 	if (worktreePath) {
 		const config = readConfigFromPath(worktreePath);
 		if (config) {
-			console.log(
-				`[setup] Using worktree config from ${join(worktreePath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME)}`,
-			);
 			return config;
 		}
 	}
 
 	const config = readConfigFromPath(mainRepoPath);
 	if (config) {
-		console.log(
-			`[setup] Using main repo config from ${join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME)}`,
-		);
 	}
 	return config;
 }

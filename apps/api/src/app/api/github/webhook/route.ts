@@ -55,14 +55,9 @@ export async function POST(request: Request) {
 
 	// Idempotent: skip if already processed or not ready for processing
 	if (webhookEvent.status === "processed") {
-		console.log("[github/webhook] Event already processed:", eventId);
 		return Response.json({ success: true, message: "Already processed" });
 	}
 	if (webhookEvent.status !== "pending") {
-		console.log(
-			`[github/webhook] Event in ${webhookEvent.status} state:`,
-			eventId,
-		);
 		return Response.json({ success: true, message: "Event not ready" });
 	}
 

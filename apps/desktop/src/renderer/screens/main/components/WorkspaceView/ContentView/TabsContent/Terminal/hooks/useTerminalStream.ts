@@ -2,7 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { DEBUG_TERMINAL } from "../config";
+
 import type { TerminalExitReason, TerminalStreamEvent } from "../types";
 
 export interface UseTerminalStreamOptions {
@@ -47,7 +47,6 @@ export function useTerminalStream({
 	updateCwdFromData,
 }: UseTerminalStreamOptions): UseTerminalStreamReturn {
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
-	const firstStreamDataReceivedRef = useRef(false);
 
 	// Refs to use latest values in callbacks
 	const updateModesRef = useRef(updateModesFromData);
@@ -132,23 +131,12 @@ export function useTerminalStream({
 			// Queue ALL events until terminal is ready, preserving order
 			// flushPendingEvents will process them in sequence after restore
 			if (!xterm || !isStreamReadyRef.current) {
-				if (DEBUG_TERMINAL && event.type === "data") {
-					console.log(
-						`[Terminal] Queuing event (not ready): ${paneId}, type=${event.type}, bytes=${event.data.length}`,
-					);
-				}
 				pendingEventsRef.current.push(event);
 				return;
 			}
 
 			// Process events when stream is ready
 			if (event.type === "data") {
-				if (DEBUG_TERMINAL && !firstStreamDataReceivedRef.current) {
-					firstStreamDataReceivedRef.current = true;
-					console.log(
-						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
-					);
-				}
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
@@ -163,7 +151,6 @@ export function useTerminalStream({
 			}
 		},
 		[
-			paneId,
 			xtermRef,
 			isStreamReadyRef,
 			pendingEventsRef,

@@ -141,7 +141,6 @@ export async function execWithShellEnv(
 		}
 
 		pathFixAttempted = true;
-		console.log("[shell-env] Command not found, deriving shell environment");
 
 		try {
 			const shellEnv = await getShellEnvironment();
@@ -150,7 +149,6 @@ export async function execWithShellEnv(
 			if (shellEnv.PATH) {
 				process.env.PATH = shellEnv.PATH;
 				pathFixSucceeded = true;
-				console.log("[shell-env] Fixed process.env.PATH for GUI app");
 			}
 
 			// Retry with fixed env (respect caller's other env vars, force PATH if present)
