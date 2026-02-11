@@ -130,11 +130,15 @@ export class AIDBSessionProtocol {
 			throw new Error(`Session ${sessionId} not found`);
 		}
 
+		// Flush queued chunks so the reset control event is ordered after them
+		await this.flushSession(sessionId);
+
 		await stream.append(
 			JSON.stringify({ headers: { control: "reset" as const } }),
 		);
 
 		this.messageSeqs.clear();
+		this.producerErrors.set(sessionId, []);
 		const state = this.sessionStates.get(sessionId);
 		if (state) {
 			state.activeGenerations = [];
