@@ -310,6 +310,7 @@ export class ChatSessionManager extends EventEmitter {
 								{
 									method: "POST",
 									headers,
+									signal: abortController.signal,
 									body: JSON.stringify({
 										messageId,
 										actorId: "claude",
@@ -324,6 +325,12 @@ export class ChatSessionManager extends EventEmitter {
 								);
 							}
 						} catch (err) {
+							if (
+								err instanceof DOMException &&
+								err.name === "AbortError"
+							) {
+								return;
+							}
 							console.error(
 								`[chat/session] Failed to POST chunk for ${sessionId}:`,
 								err,
