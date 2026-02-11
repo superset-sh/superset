@@ -148,6 +148,13 @@
       "when": 1770754481921,
       "tag": "0020_add_file_open_mode_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1770783531923,
+      "tag": "0021_add_image_project",
+      "breakpoints": true
     }
   ]
 }

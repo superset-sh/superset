@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `icon_url` text;
