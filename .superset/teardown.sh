@@ -77,8 +77,9 @@ step_load_env() {
   fi
 
   if [ "$sourced_any" = false ]; then
-    error "No .env file found (set SUPERSET_ROOT_PATH or run from a workspace with .env)"
-    return 1
+    warn "No .env file found (set SUPERSET_ROOT_PATH or run from a workspace with .env); using existing environment"
+    step_skipped "env sourcing (no .env files found)"
+    return 0
   fi
 
   success "Environment variables loaded"
