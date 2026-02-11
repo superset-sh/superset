@@ -259,6 +259,38 @@ export class AIDBSessionProtocol {
 		this.updateLastActivity(sessionId);
 	}
 
+	async writeChunks({
+		sessionId,
+		chunks,
+	}: {
+		sessionId: string;
+		chunks: Array<{
+			messageId: string;
+			actorId: string;
+			role: MessageRole;
+			chunk: StreamChunk;
+			txid?: string;
+		}>;
+	}): Promise<void> {
+		for (const c of chunks) {
+			const seq = this.getNextSeq(c.messageId);
+			const event = sessionStateSchema.chunks.insert({
+				key: `${c.messageId}:${seq}`,
+				value: {
+					messageId: c.messageId,
+					actorId: c.actorId,
+					role: c.role,
+					chunk: JSON.stringify(c.chunk),
+					seq,
+					createdAt: new Date().toISOString(),
+				},
+				...(c.txid && { headers: { txid: c.txid } }),
+			});
+			await this.appendToStream(sessionId, JSON.stringify(event));
+		}
+		this.updateLastActivity(sessionId);
+	}
+
 	private async appendToStream(
 		sessionId: string,
 		data: string,

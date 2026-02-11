@@ -12,6 +12,7 @@ import { env } from "main/env.main";
 import { loadToken } from "../../../auth/utils/auth-functions";
 import { buildClaudeEnv } from "../auth";
 import type { SessionStore } from "../session-store";
+import { ChunkBatcher } from "./chunk-batcher";
 
 const PROXY_URL = env.STREAMS_URL;
 
@@ -264,7 +265,38 @@ export class ChatSessionManager extends EventEmitter {
 
 		const headers = await buildProxyHeaders();
 		const messageId = crypto.randomUUID();
-		let chunkSendChain = Promise.resolve();
+
+		const batcher = new ChunkBatcher({
+			sendBatch: async (chunks) => {
+				try {
+					const res = await fetch(
+						`${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
+						{
+							method: "POST",
+							headers,
+							signal: abortController.signal,
+							body: JSON.stringify({ chunks }),
+						},
+					);
+					if (!res.ok) {
+						console.error(
+							`[chat/session] POST batch failed for ${sessionId}: ${res.status}`,
+						);
+					}
+				} catch (err) {
+					if (
+						err instanceof DOMException &&
+						err.name === "AbortError"
+					) {
+						return;
+					}
+					console.error(
+						`[chat/session] Failed to POST batch for ${sessionId}:`,
+						err,
+					);
+				}
+			},
+		});
 
 		try {
 			const agentEnv = buildClaudeEnv();
@@ -286,39 +318,11 @@ export class ChatSessionManager extends EventEmitter {
 				signal: abortController.signal,
 
 				onChunk: (chunk) => {
-					chunkSendChain = chunkSendChain.then(async () => {
-						try {
-							const chunkRes = await fetch(
-								`${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
-								{
-									method: "POST",
-									headers,
-									signal: abortController.signal,
-									body: JSON.stringify({
-										messageId,
-										actorId: "claude",
-										role: "assistant",
-										chunk,
-									}),
-								},
-							);
-							if (!chunkRes.ok) {
-								console.error(
-									`[chat/session] POST chunk failed for ${sessionId}: ${chunkRes.status}`,
-								);
-							}
-						} catch (err) {
-							if (
-								err instanceof DOMException &&
-								err.name === "AbortError"
-							) {
-								return;
-							}
-							console.error(
-								`[chat/session] Failed to POST chunk for ${sessionId}:`,
-								err,
-							);
-						}
+					batcher.push({
+						messageId,
+						actorId: "claude",
+						role: "assistant",
+						chunk,
 					});
 				},
 
@@ -365,8 +369,8 @@ export class ChatSessionManager extends EventEmitter {
 				error: message,
 			} satisfies ErrorEvent);
 		} finally {
-			// Terminal chunk must follow all streaming chunks in the durable stream
-			await chunkSendChain;
+			// Drain buffered chunks before sending terminal chunk
+			await batcher.drain();
 
 			// Client uses terminal chunk + finish to mark message complete (isLoading → false)
 			try {

@@ -10,6 +10,10 @@ const chunkBodySchema = z.object({
 	txid: z.string().optional(),
 });
 
+const batchBodySchema = z.object({
+	chunks: z.array(chunkBodySchema),
+});
+
 const finishBodySchema = z.object({
 	messageId: z.string().optional(),
 });
@@ -55,6 +59,44 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 			return c.json(
 				{
 					error: "Failed to write chunk",
+					details: (error as Error).message,
+				},
+				500,
+			);
+		}
+	});
+
+	app.post("/:id/chunks/batch", async (c) => {
+		const sessionId = c.req.param("id");
+
+		let body: z.infer<typeof batchBodySchema>;
+		try {
+			const rawBody = await c.req.json();
+			body = batchBodySchema.parse(rawBody);
+		} catch (error) {
+			return c.json(
+				{ error: "Invalid request body", details: (error as Error).message },
+				400,
+			);
+		}
+
+		const stream = protocol.getSession(sessionId);
+		if (!stream) {
+			return c.json({ error: "Session not found" }, 404);
+		}
+
+		try {
+			await protocol.writeChunks({
+				sessionId,
+				chunks: body.chunks as never,
+			});
+
+			return c.json({ ok: true, count: body.chunks.length }, 200);
+		} catch (error) {
+			console.error("[chunks] Failed to write batch:", error);
+			return c.json(
+				{
+					error: "Failed to write chunk batch",
 					details: (error as Error).message,
 				},
 				500,
