@@ -416,16 +416,30 @@ export class ChatSessionManager extends EventEmitter {
 					);
 					if (!finishRes.ok) {
 						const body = await finishRes.json().catch(() => null);
+						const detail =
+							body?.details ?? body?.error ?? `status ${finishRes.status}`;
 						console.error(
-							`[chat/session] POST /generations/finish failed for ${sessionId}: ${finishRes.status}`,
-							body,
+							`[chat/session] POST /generations/finish failed for ${sessionId}:`,
+							detail,
 						);
+						this.emit("event", {
+							type: "error",
+							sessionId,
+							error: `Generation finish failed: ${detail}`,
+						} satisfies ErrorEvent);
 					}
 				} catch (err) {
+					const detail =
+						err instanceof Error ? err.message : String(err);
 					console.error(
 						`[chat/session] POST /generations/finish failed for ${sessionId}:`,
-						err,
+						detail,
 					);
+					this.emit("event", {
+						type: "error",
+						sessionId,
+						error: `Generation finish failed: ${detail}`,
+					} satisfies ErrorEvent);
 				}
 			}
 
