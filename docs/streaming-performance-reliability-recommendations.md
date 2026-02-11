@@ -120,3 +120,70 @@ This is the complete recommendation list for the current desktop + streams archi
 - `51`: based on current repo changes and tests in `apps/desktop/src/lib/trpc/routers/workspaces/utils/git.ts` and `apps/desktop/src/lib/trpc/routers/workspaces/utils/git.test.ts`.
 
 Recommendations not explicitly mapped above are engineering suggestions derived from standard distributed systems and streaming architecture tradeoffs, not direct one-to-one source prescriptions.
+
+## Adoption classification by item
+
+Legend:
+
+- `Local`: implement directly in this repo.
+- `Vendor`: copy/adapt patterns from `electric-sql/transport` into workspace packages (`@superset/durable-session` / `apps/streams`) to keep tight control.
+- `Package`: use upstream package capability directly (no vendoring).
+
+1. Local
+2. Local
+3. Local
+4. Local
+5. Local
+6. Local
+7. Local
+8. Local
+9. Local
+10. Local
+11. Local
+12. Local
+13. Local
+14. Local
+15. Package
+16. Local
+17. Local
+18. Local
+19. Local
+20. Local
+21. Local
+22. Local
+23. Local
+24. Local
+25. Local
+26. Local
+27. Local
+28. Local
+29. Vendor
+30. Package
+31. Vendor
+32. Local
+33. Local
+34. Local
+35. Local
+36. Local
+37. Local
+38. Local
+39. Local
+40. Local
+41. Local
+42. Local
+43. Local
+44. Local
+45. Local
+46. Local
+47. Local
+48. Local
+49. Local
+50. Local
+51. Local
+
+### Notes on `Vendor` and `Package` items
+
+- `15 (Package)`: use `@durable-streams/client` producer tuning knobs (`lingerMs`, `maxBatchBytes`, `maxInFlight`) directly.
+- `29 (Vendor)`: if you collapse lifecycle APIs, adapt from `durable-session-proxy` patterns rather than hard-switching architecture.
+- `30 (Package)`: use txid + await-sync capability from durable state/client primitives.
+- `31 (Vendor)`: reuse durable-session materialization/terminal handling patterns from `electric-sql/transport` where it matches Superset semantics.
