@@ -4,11 +4,12 @@ import { SessionStore } from "../session-store";
 import { ChatSessionManager } from "./session-manager";
 
 export type {
+	ClaudeStreamEvent,
 	ErrorEvent,
 	PermissionRequestEvent,
 	SessionEndEvent,
 	SessionStartEvent,
-} from "./session-manager";
+} from "./session-events";
 export { ChatSessionManager } from "./session-manager";
 
 initSessionStore(SUPERSET_HOME_DIR);

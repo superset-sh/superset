@@ -14,6 +14,12 @@ import type { SessionStore } from "../session-store";
 import { ChunkBatcher } from "./chunk-batcher";
 import { GenerationWatchdog } from "./generation-watchdog";
 import { buildProxyHeaders, postJsonWithRetry } from "./proxy-requests";
+import type {
+	ErrorEvent,
+	PermissionRequestEvent,
+	SessionEndEvent,
+	SessionStartEvent,
+} from "./session-events";
 
 const PROXY_URL = env.STREAMS_URL;
 const FIRST_CHUNK_TIMEOUT_MS = 30_000;
@@ -35,37 +41,6 @@ function getClaudeBinaryPath(): string {
 		"claude",
 	);
 }
-
-export interface SessionStartEvent {
-	type: "session_start";
-	sessionId: string;
-}
-
-export interface SessionEndEvent {
-	type: "session_end";
-	sessionId: string;
-	exitCode: number | null;
-}
-
-export interface ErrorEvent {
-	type: "error";
-	sessionId: string;
-	error: string;
-}
-
-export interface PermissionRequestEvent {
-	type: "permission_request";
-	sessionId: string;
-	toolUseId: string;
-	toolName: string;
-	input: Record<string, unknown>;
-}
-
-export type ClaudeStreamEvent =
-	| SessionStartEvent
-	| SessionEndEvent
-	| ErrorEvent
-	| PermissionRequestEvent;
 
 interface ActiveSession {
 	sessionId: string;
@@ -136,6 +111,65 @@ export class ChatSessionManager extends EventEmitter {
 		if (!existingController) return;
 		console.warn(`[chat/session] Aborting previous agent run for ${sessionId}`);
 		existingController.abort();
+	}
+
+	private abortRunningAgent({ sessionId }: { sessionId: string }): void {
+		const controller = this.runningAgents.get(sessionId);
+		if (!controller) return;
+		controller.abort();
+		this.runningAgents.delete(sessionId);
+	}
+
+	private emitSessionEnd({ sessionId }: { sessionId: string }): void {
+		this.emit("event", {
+			type: "session_end",
+			sessionId,
+			exitCode: null,
+		} satisfies SessionEndEvent);
+	}
+
+	private async stopRemoteSession({
+		sessionId,
+		headers,
+		logContext,
+		logLevel,
+	}: {
+		sessionId: string;
+		headers: Record<string, string>;
+		logContext: string;
+		logLevel: "error" | "debug";
+	}): Promise<void> {
+		try {
+			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
+				method: "POST",
+				headers,
+				body: JSON.stringify({}),
+			});
+		} catch (error) {
+			if (logLevel === "error") {
+				console.error(`[chat/session] ${logContext}:`, error);
+			} else {
+				console.debug(`[chat/session] ${logContext}:`, error);
+			}
+		}
+	}
+
+	private async updateDeactivatedSessionMeta({
+		sessionId,
+	}: {
+		sessionId: string;
+	}): Promise<void> {
+		const claudeSessionId = getClaudeSessionId(sessionId);
+		if (claudeSessionId) {
+			await this.store.update(sessionId, {
+				providerSessionId: claudeSessionId,
+				lastActiveAt: Date.now(),
+			});
+			return;
+		}
+		await this.store.update(sessionId, {
+			lastActiveAt: Date.now(),
+		});
 	}
 
 	private createWatchdog({
@@ -550,11 +584,7 @@ export class ChatSessionManager extends EventEmitter {
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(`[chat/session] Failed to start session:`, message);
-			this.emit("event", {
-				type: "error",
-				sessionId,
-				error: message,
-			} satisfies ErrorEvent);
+			this.emitSessionError({ sessionId, error: message });
 		}
 	}
 
@@ -600,11 +630,7 @@ export class ChatSessionManager extends EventEmitter {
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(`[chat/session] Failed to restore session:`, message);
-			this.emit("event", {
-				type: "error",
-				sessionId,
-				error: message,
-			} satisfies ErrorEvent);
+			this.emitSessionError({ sessionId, error: message });
 		}
 	}
 
@@ -731,22 +757,13 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		console.log(`[chat/session] Interrupting session ${sessionId}`);
-
-		const controller = this.runningAgents.get(sessionId);
-		if (controller) {
-			controller.abort();
-			this.runningAgents.delete(sessionId);
-		}
-
-		try {
-			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
-				method: "POST",
-				headers: await buildProxyHeaders(),
-				body: JSON.stringify({}),
-			});
-		} catch (error) {
-			console.error(`[chat/session] Interrupt proxy stop failed:`, error);
-		}
+		this.abortRunningAgent({ sessionId });
+		await this.stopRemoteSession({
+			sessionId,
+			headers: await buildProxyHeaders(),
+			logContext: "Interrupt proxy stop failed",
+			logLevel: "error",
+		});
 	}
 
 	async deactivateSession({ sessionId }: { sessionId: string }): Promise<void> {
@@ -755,35 +772,16 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		console.log(`[chat/session] Deactivating session ${sessionId}`);
-
-		const controller = this.runningAgents.get(sessionId);
-		if (controller) {
-			controller.abort();
-			this.runningAgents.delete(sessionId);
-		}
-
-		try {
-			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
-				method: "POST",
-				headers: await buildProxyHeaders(),
-				body: JSON.stringify({}),
-			});
-		} catch (err) {
-			console.debug(`[chat/session] Stop during deactivate failed:`, err);
-		}
+		this.abortRunningAgent({ sessionId });
+		await this.stopRemoteSession({
+			sessionId,
+			headers: await buildProxyHeaders(),
+			logContext: "Stop during deactivate failed",
+			logLevel: "debug",
+		});
 
 		try {
-			const claudeSessionId = getClaudeSessionId(sessionId);
-			if (claudeSessionId) {
-				await this.store.update(sessionId, {
-					providerSessionId: claudeSessionId,
-					lastActiveAt: Date.now(),
-				});
-			} else {
-				await this.store.update(sessionId, {
-					lastActiveAt: Date.now(),
-				});
-			}
+			await this.updateDeactivatedSessionMeta({ sessionId });
 		} catch (err) {
 			console.debug(
 				`[chat/session] Store update during deactivate failed:`,
@@ -792,33 +790,19 @@ export class ChatSessionManager extends EventEmitter {
 		}
 
 		this.sessions.delete(sessionId);
-
-		this.emit("event", {
-			type: "session_end",
-			sessionId,
-			exitCode: null,
-		} satisfies SessionEndEvent);
+		this.emitSessionEnd({ sessionId });
 	}
 
 	async deleteSession({ sessionId }: { sessionId: string }): Promise<void> {
 		console.log(`[chat/session] Deleting session ${sessionId}`);
 		const headers = await buildProxyHeaders();
-
-		const controller = this.runningAgents.get(sessionId);
-		if (controller) {
-			controller.abort();
-			this.runningAgents.delete(sessionId);
-		}
-
-		try {
-			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/stop`, {
-				method: "POST",
-				headers,
-				body: JSON.stringify({}),
-			});
-		} catch (err) {
-			console.debug(`[chat/session] Stop during delete failed:`, err);
-		}
+		this.abortRunningAgent({ sessionId });
+		await this.stopRemoteSession({
+			sessionId,
+			headers,
+			logContext: "Stop during delete failed",
+			logLevel: "debug",
+		});
 
 		try {
 			await fetch(`${PROXY_URL}/v1/sessions/${sessionId}`, {
@@ -832,12 +816,7 @@ export class ChatSessionManager extends EventEmitter {
 		await this.store.archive(sessionId);
 
 		this.sessions.delete(sessionId);
-
-		this.emit("event", {
-			type: "session_end",
-			sessionId,
-			exitCode: null,
-		} satisfies SessionEndEvent);
+		this.emitSessionEnd({ sessionId });
 	}
 
 	async updateSessionMeta(
