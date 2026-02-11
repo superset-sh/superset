@@ -20,9 +20,36 @@ export class AIDBSessionProtocol {
 	private messageSeqs = new Map<string, number>();
 	private sessionStates = new Map<string, ProxySessionState>();
 	private producerErrors = new Map<string, Error[]>();
+	private sessionLocks = new Map<string, Promise<void>>();
 
 	constructor(options: AIDBProtocolOptions) {
 		this.baseUrl = options.baseUrl;
+	}
+
+	// ═══════════════════════════════════════════════════════════════════════
+	// Per-session Mutex
+	// ═══════════════════════════════════════════════════════════════════════
+
+	private async withSessionLock<T>(
+		sessionId: string,
+		fn: () => Promise<T>,
+	): Promise<T> {
+		const prev = this.sessionLocks.get(sessionId) ?? Promise.resolve();
+		let resolve: () => void;
+		const current = new Promise<void>((r) => {
+			resolve = r;
+		});
+		this.sessionLocks.set(sessionId, current);
+
+		await prev;
+		try {
+			return await fn();
+		} finally {
+			if (this.sessionLocks.get(sessionId) === current) {
+				this.sessionLocks.delete(sessionId);
+			}
+			resolve!();
+		}
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════
@@ -92,59 +119,66 @@ export class AIDBSessionProtocol {
 	}
 
 	async deleteSession(sessionId: string): Promise<void> {
-		const producer = this.producers.get(sessionId);
-		if (producer) {
-			try {
-				await producer.flush();
-			} catch (err) {
-				console.error(
-					`[protocol] Failed to flush producer for ${sessionId}:`,
-					err,
-				);
+		return this.withSessionLock(sessionId, async () => {
+			const producer = this.producers.get(sessionId);
+			if (producer) {
+				try {
+					await producer.flush();
+				} catch (err) {
+					console.error(
+						`[protocol] Failed to flush producer for ${sessionId}:`,
+						err,
+					);
+				}
+				try {
+					await producer.detach();
+				} catch (err) {
+					console.error(
+						`[protocol] Failed to detach producer for ${sessionId}:`,
+						err,
+					);
+				}
+				this.producers.delete(sessionId);
 			}
-			try {
-				await producer.detach();
-			} catch (err) {
-				console.error(
-					`[protocol] Failed to detach producer for ${sessionId}:`,
-					err,
-				);
+
+			const state = this.sessionStates.get(sessionId);
+			if (state) {
+				state.changeSubscription?.unsubscribe();
+				state.sessionDB.close();
 			}
-			this.producers.delete(sessionId);
-		}
 
-		const state = this.sessionStates.get(sessionId);
-		if (state) {
-			state.changeSubscription?.unsubscribe();
-			state.sessionDB.close();
-		}
-
-		this.streams.delete(sessionId);
-		this.sessionStates.delete(sessionId);
-		this.producerErrors.delete(sessionId);
+			this.streams.delete(sessionId);
+			this.sessionStates.delete(sessionId);
+			this.producerErrors.delete(sessionId);
+		});
 	}
 
-	async resetSession(sessionId: string, _clearPresence = false): Promise<void> {
-		const stream = this.streams.get(sessionId);
-		if (!stream) {
-			throw new Error(`Session ${sessionId} not found`);
-		}
+	async resetSession(
+		sessionId: string,
+		_clearPresence = false,
+	): Promise<void> {
+		return this.withSessionLock(sessionId, async () => {
+			const stream = this.streams.get(sessionId);
+			if (!stream) {
+				throw new Error(`Session ${sessionId} not found`);
+			}
 
-		// Flush queued chunks so the reset control event is ordered after them
-		await this.flushSession(sessionId);
+			// Flush queued chunks so the reset control event is ordered after them
+			await this.flushSession(sessionId);
 
-		await stream.append(
-			JSON.stringify({ headers: { control: "reset" as const } }),
-		);
+			await stream.append(
+				JSON.stringify({ headers: { control: "reset" as const } }),
+			);
 
-		this.messageSeqs.clear();
-		this.producerErrors.set(sessionId, []);
-		const state = this.sessionStates.get(sessionId);
-		if (state) {
-			state.activeGenerations = [];
-		}
+			this.messageSeqs.clear();
+			this.producerErrors.set(sessionId, []);
+			const state = this.sessionStates.get(sessionId);
+			if (state) {
+				state.activeGenerations = [];
+			}
 
-		this.updateLastActivity(sessionId);
+			this.updateLastActivity(sessionId);
+		});
 	}
 
 	private updateLastActivity(sessionId: string): void {
