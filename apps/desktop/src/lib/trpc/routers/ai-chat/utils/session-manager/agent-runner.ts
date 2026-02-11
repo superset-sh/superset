@@ -37,6 +37,7 @@ export class AgentRunner {
 			proxyUrl: deps.proxyUrl,
 			emitSessionError: deps.emitSessionError,
 			ensureSessionReady: deps.ensureSessionReady,
+			isSessionActive: (sessionId) => this.deps.sessions.has(sessionId),
 		});
 	}
 

@@ -12,6 +12,7 @@ interface AgentStreamWriterDeps {
 	proxyUrl: string;
 	emitSessionError: (params: { sessionId: string; error: string }) => void;
 	ensureSessionReady: (input: EnsureSessionReadyInput) => Promise<void>;
+	isSessionActive: (sessionId: string) => boolean;
 }
 
 export interface PrepareStreamResult {
@@ -74,6 +75,12 @@ export class AgentStreamWriter {
 		sessionId: string;
 		session: ActiveSession;
 	}): Promise<void> {
+		if (!this.deps.isSessionActive(sessionId)) {
+			throw new Error(
+				`[chat/session] Session ${sessionId} is no longer active; refusing recovery`,
+			);
+		}
+
 		console.warn(
 			`[chat/session] Remote session missing for ${sessionId}; recreating`,
 		);
@@ -116,6 +123,9 @@ export class AgentStreamWriter {
 			});
 		} catch (error) {
 			if (!this.isSessionNotFoundError(error)) {
+				throw error;
+			}
+			if (signal?.aborted) {
 				throw error;
 			}
 

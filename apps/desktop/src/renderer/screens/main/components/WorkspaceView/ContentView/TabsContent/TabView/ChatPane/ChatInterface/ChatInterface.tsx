@@ -44,7 +44,6 @@ interface ChatInterfaceProps {
 	tabId: string;
 }
 
-const START_AGENT_AFTER_MS = 400;
 const SEND_PENDING_TIMEOUT_MS = 20_000;
 
 export function ChatInterface({
@@ -223,27 +222,11 @@ export function ChatInterface({
 				setIsSending(false);
 			}, SEND_PENDING_TIMEOUT_MS);
 
-			let agentTriggered = false;
-			const triggerAgentOnce = () => {
-				if (agentTriggered) return;
-				agentTriggered = true;
-				triggerAgent.mutate({ sessionId, text });
-			};
-
-			const triggerTimeout = setTimeout(() => {
-				console.warn(
-					`[chat] sendMessage sync ack exceeded ${START_AGENT_AFTER_MS}ms; starting agent early`,
-				);
-				triggerAgentOnce();
-			}, START_AGENT_AFTER_MS);
-
 			sendMessage(text)
 				.then(() => {
-					clearTimeout(triggerTimeout);
-					triggerAgentOnce();
+					triggerAgent.mutate({ sessionId, text });
 				})
 				.catch((err) => {
-					clearTimeout(triggerTimeout);
 					clearSendPendingTimer();
 					console.error("[chat] Send failed:", err);
 					setIsSending(false);
