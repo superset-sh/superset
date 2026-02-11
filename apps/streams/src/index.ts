@@ -20,9 +20,14 @@ console.log(
 const internalUrl =
 	env.STREAMS_INTERNAL_URL ?? `http://localhost:${env.STREAMS_INTERNAL_PORT}`;
 
+const corsOrigins = env.CORS_ORIGINS
+	? env.CORS_ORIGINS.split(",").map((o) => o.trim())
+	: undefined;
+
 const { app } = createServer({
 	baseUrl: internalUrl,
 	cors: true,
+	corsOrigins,
 	logging: true,
 });
 
