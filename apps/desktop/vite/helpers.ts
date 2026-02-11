@@ -68,15 +68,10 @@ export function htmlEnvTransformPlugin(): Plugin {
 	return {
 		name: "html-env-transform",
 		transformIndexHtml(html) {
-			return html
-				.replace(
-					/%NEXT_PUBLIC_API_URL%/g,
-					process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
-				)
-				.replace(
-					/%STREAMS_URL%/g,
-					process.env.STREAMS_URL || "https://superset-stream.fly.dev",
-				);
+			return html.replace(
+				/%NEXT_PUBLIC_API_URL%/g,
+				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+			);
 		},
 	};
 }

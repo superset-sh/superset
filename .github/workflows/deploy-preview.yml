@@ -18,7 +18,6 @@ env:
   ADMIN_ALIAS: admin-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   DOCS_ALIAS: docs-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   ELECTRIC_URL: https://superset-electric-pr-${{ github.event.pull_request.number }}.fly.dev/v1/shape
-  STREAMS_URL: https://superset-stream-pr-${{ github.event.pull_request.number }}.fly.dev
 
 jobs:
   deploy-database:

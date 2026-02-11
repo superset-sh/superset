@@ -13,7 +13,7 @@ import { loadToken } from "../../../auth/utils/auth-functions";
 import { buildClaudeEnv } from "../auth";
 import type { SessionStore } from "../session-store";
 
-const PROXY_URL = env.STREAMS_URL;
+const PROXY_URL = `${env.NEXT_PUBLIC_API_URL}/api/streams`;
 
 function getClaudeBinaryPath(): string {
 	if (app.isPackaged) {

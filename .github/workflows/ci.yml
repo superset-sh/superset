@@ -126,5 +126,3 @@ jobs:
 
       - name: Build CLI and Desktop
         run: bun turbo run build --filter=@superset/cli --filter=@superset/desktop
-        env:
-          STREAMS_URL: ${{ secrets.STREAMS_URL }}
