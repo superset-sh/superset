@@ -141,23 +141,6 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		}
 	});
 
-	app.post("/:id/generations/start", async (c) => {
-		const sessionId = c.req.param("id");
-
-		const stream = protocol.getSession(sessionId);
-		if (!stream) {
-			return c.json(
-				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
-				404,
-			);
-		}
-
-		const messageId = crypto.randomUUID();
-		protocol.startGeneration({ sessionId, messageId });
-
-		return c.json({ messageId }, 200);
-	});
-
 	app.post("/:id/generations/finish", async (c) => {
 		const sessionId = c.req.param("id");
 
