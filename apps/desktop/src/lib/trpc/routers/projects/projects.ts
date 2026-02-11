@@ -627,17 +627,20 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		cloneRepo: publicProcedure
 			.input(
 				z.object({
-					url: z.string().min(1).refine(
-						(val) => {
-							try {
-								const parsed = new URL(val);
-								return ALLOWED_URL_PROTOCOLS.has(parsed.protocol);
-							} catch {
-								return SSH_GIT_URL_REGEX.test(val);
-							}
-						},
-						{ message: "Must be a valid Git URL (HTTPS or SSH)" },
-					),
+					url: z
+						.string()
+						.min(1)
+						.refine(
+							(val) => {
+								try {
+									const parsed = new URL(val);
+									return ALLOWED_URL_PROTOCOLS.has(parsed.protocol);
+								} catch {
+									return SSH_GIT_URL_REGEX.test(val);
+								}
+							},
+							{ message: "Must be a valid Git URL (HTTPS or SSH)" },
+						),
 					// Trim and convert empty/whitespace strings to undefined
 					targetDirectory: z
 						.string()
