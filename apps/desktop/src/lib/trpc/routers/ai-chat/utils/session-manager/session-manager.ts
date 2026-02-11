@@ -268,32 +268,17 @@ export class ChatSessionManager extends EventEmitter {
 
 		const batcher = new ChunkBatcher({
 			sendBatch: async (chunks) => {
-				try {
-					const res = await fetch(
-						`${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
-						{
-							method: "POST",
-							headers,
-							signal: abortController.signal,
-							body: JSON.stringify({ chunks }),
-						},
-					);
-					if (!res.ok) {
-						console.error(
-							`[chat/session] POST batch failed for ${sessionId}: ${res.status}`,
-						);
-					}
-				} catch (err) {
-					if (
-						err instanceof DOMException &&
-						err.name === "AbortError"
-					) {
-						return;
-					}
-					console.error(
-						`[chat/session] Failed to POST batch for ${sessionId}:`,
-						err,
-					);
+				const res = await fetch(
+					`${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
+					{
+						method: "POST",
+						headers,
+						signal: abortController.signal,
+						body: JSON.stringify({ chunks }),
+					},
+				);
+				if (!res.ok) {
+					throw new Error(`POST batch failed: ${res.status}`);
 				}
 			},
 		});

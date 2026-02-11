@@ -5,44 +5,70 @@ export interface ChunkPayload {
 	chunk: unknown;
 }
 
-/**
- * Buffers streaming chunks and flushes them in batches to reduce
- * per-chunk HTTP overhead. Chunks are coalesced within a short time
- * window (lingerMs) or when the batch reaches maxBatchSize.
- *
- * Ordering is preserved: batches are sent sequentially via a
- * promise chain so earlier chunks always arrive before later ones.
- *
- * maxBufferSize caps the number of unsent chunks in memory to
- * prevent OOM when the network or proxy is slower than the agent.
- * Once the cap is reached, oldest chunks are dropped.
- */
 export class ChunkBatcher {
 	private buffer: ChunkPayload[] = [];
 	private flushTimer: ReturnType<typeof setTimeout> | null = null;
 	private sendChain = Promise.resolve();
 	private dropped = 0;
+	private consecutiveFailures = 0;
 
 	private readonly sendBatch: (chunks: ChunkPayload[]) => Promise<void>;
 	private readonly lingerMs: number;
 	private readonly maxBatchSize: number;
 	private readonly maxBufferSize: number;
+	private readonly maxRetries: number;
+	private readonly retryBaseMs: number;
 
 	constructor({
 		sendBatch,
 		lingerMs = 5,
 		maxBatchSize = 50,
 		maxBufferSize = 2000,
+		maxRetries = 3,
+		retryBaseMs = 50,
 	}: {
 		sendBatch: (chunks: ChunkPayload[]) => Promise<void>;
 		lingerMs?: number;
 		maxBatchSize?: number;
 		maxBufferSize?: number;
+		maxRetries?: number;
+		retryBaseMs?: number;
 	}) {
 		this.sendBatch = sendBatch;
 		this.lingerMs = lingerMs;
 		this.maxBatchSize = maxBatchSize;
 		this.maxBufferSize = maxBufferSize;
+		this.maxRetries = maxRetries;
+		this.retryBaseMs = retryBaseMs;
+	}
+
+	private async sendWithRetry(batch: ChunkPayload[]): Promise<void> {
+		for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+			try {
+				await this.sendBatch(batch);
+				this.consecutiveFailures = 0;
+				return;
+			} catch (err) {
+				if (
+					err instanceof DOMException &&
+					err.name === "AbortError"
+				) {
+					throw err;
+				}
+
+				this.consecutiveFailures++;
+
+				if (attempt === this.maxRetries) {
+					console.error(
+						`[chunk-batcher] Batch failed after ${this.maxRetries + 1} attempts, dropping ${batch.length} chunk(s)`,
+					);
+					return;
+				}
+
+				const delayMs = this.retryBaseMs * 2 ** attempt;
+				await new Promise((r) => setTimeout(r, delayMs));
+			}
+		}
 	}
 
 	push(payload: ChunkPayload): void {
@@ -75,7 +101,7 @@ export class ChunkBatcher {
 		if (this.buffer.length === 0) return;
 		const batch = this.buffer;
 		this.buffer = [];
-		this.sendChain = this.sendChain.then(() => this.sendBatch(batch));
+		this.sendChain = this.sendChain.then(() => this.sendWithRetry(batch));
 	}
 
 	async drain(): Promise<void> {
@@ -85,5 +111,9 @@ export class ChunkBatcher {
 
 	get droppedCount(): number {
 		return this.dropped;
+	}
+
+	get isHealthy(): boolean {
+		return this.consecutiveFailures < this.maxRetries;
 	}
 }
