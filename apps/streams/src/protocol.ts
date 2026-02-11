@@ -221,13 +221,28 @@ export class AIDBSessionProtocol {
 			...(txid && { headers: { txid } }),
 		});
 
+		await this.appendToStream(sessionId, JSON.stringify(event));
+		this.updateLastActivity(sessionId);
+	}
+
+	private async appendToStream(
+		sessionId: string,
+		data: string,
+		{ flush = false }: { flush?: boolean } = {},
+	): Promise<void> {
 		const producer = this.producers.get(sessionId);
 		if (producer) {
-			producer.append(JSON.stringify(event));
+			producer.append(data);
+			if (flush) {
+				await producer.flush();
+			}
 		} else {
-			await stream.append(JSON.stringify(event));
+			const stream = this.streams.get(sessionId);
+			if (!stream) {
+				throw new Error(`Session ${sessionId} not found`);
+			}
+			await stream.append(data);
 		}
-		this.updateLastActivity(sessionId);
 	}
 
 	async flushSession(sessionId: string): Promise<void> {
@@ -289,10 +304,10 @@ export class AIDBSessionProtocol {
 			...(txid && { headers: { txid } }),
 		});
 
-		const result = await stream.append(JSON.stringify(event));
+		await this.appendToStream(sessionId, JSON.stringify(event), {
+			flush: true,
+		});
 		this.updateLastActivity(sessionId);
-
-		return result;
 	}
 
 	async writePresence(
@@ -316,7 +331,9 @@ export class AIDBSessionProtocol {
 			},
 		});
 
-		await stream.append(JSON.stringify(event));
+		await this.appendToStream(sessionId, JSON.stringify(event), {
+			flush: true,
+		});
 		this.updateLastActivity(sessionId);
 	}
 
