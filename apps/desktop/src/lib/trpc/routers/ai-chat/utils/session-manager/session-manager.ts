@@ -15,6 +15,11 @@ import type { SessionStore } from "../session-store";
 import { ChunkBatcher } from "./chunk-batcher";
 
 const PROXY_URL = env.STREAMS_URL;
+const FIRST_CHUNK_TIMEOUT_MS = 30_000;
+const CHUNK_INACTIVITY_TIMEOUT_MS = 45_000;
+const TERMINAL_CHUNK_MAX_ATTEMPTS = 3;
+const FINISH_MAX_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 150;
 
 function getClaudeBinaryPath(): string {
 	if (app.isPackaged) {
@@ -40,6 +45,61 @@ async function buildProxyHeaders(): Promise<Record<string, string>> {
 		"Content-Type": "application/json",
 		Authorization: `Bearer ${token}`,
 	};
+}
+
+async function sleep({ ms }: { ms: number }): Promise<void> {
+	await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function postJsonWithRetry({
+	url,
+	headers,
+	body,
+	maxAttempts,
+	operation,
+	signal,
+}: {
+	url: string;
+	headers: Record<string, string>;
+	body: Record<string, unknown>;
+	maxAttempts: number;
+	operation: string;
+	signal?: AbortSignal;
+}): Promise<void> {
+	let lastError: Error | null = null;
+
+	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+		try {
+			const res = await fetch(url, {
+				method: "POST",
+				headers,
+				signal,
+				body: JSON.stringify(body),
+			});
+			if (!res.ok) {
+				const rawDetail = await res.text().catch(() => "");
+				const detail = rawDetail.trim();
+				throw new Error(
+					`${operation} failed: status ${res.status}${detail ? ` (${detail.slice(0, 300)})` : ""}`,
+				);
+			}
+			return;
+		} catch (error) {
+			if (error instanceof DOMException && error.name === "AbortError") {
+				throw error;
+			}
+
+			lastError = error instanceof Error ? error : new Error(String(error));
+			if (attempt === maxAttempts) {
+				break;
+			}
+			await sleep({ ms: RETRY_BASE_DELAY_MS * 2 ** (attempt - 1) });
+		}
+	}
+
+	throw (
+		lastError ?? new Error(`${operation} failed after ${maxAttempts} attempts`)
+	);
 }
 
 export interface SessionStartEvent {
@@ -264,6 +324,33 @@ export class ChatSessionManager extends EventEmitter {
 		this.runningAgents.set(sessionId, abortController);
 
 		const messageId = crypto.randomUUID();
+		let chunkWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
+		let chunkWatchdogTriggered = false;
+		const clearChunkWatchdog = () => {
+			if (!chunkWatchdogTimer) return;
+			clearTimeout(chunkWatchdogTimer);
+			chunkWatchdogTimer = null;
+		};
+		const armChunkWatchdog = ({
+			timeoutMs,
+			reason,
+		}: {
+			timeoutMs: number;
+			reason: string;
+		}) => {
+			clearChunkWatchdog();
+			chunkWatchdogTimer = setTimeout(() => {
+				if (abortController.signal.aborted) return;
+				chunkWatchdogTriggered = true;
+				console.error(`[chat/session] ${reason}`);
+				this.emit("event", {
+					type: "error",
+					sessionId,
+					error: reason,
+				} satisfies ErrorEvent);
+				abortController.abort();
+			}, timeoutMs);
+		};
 		let headers: Record<string, string> | null = null;
 		let batcher: ChunkBatcher | null = null;
 
@@ -285,6 +372,25 @@ export class ChatSessionManager extends EventEmitter {
 						throw new Error(`POST batch failed: ${res.status}`);
 					}
 				},
+				onFatalError: (error) => {
+					if (abortController.signal.aborted) return;
+					const detail = error instanceof Error ? error.message : String(error);
+					console.error(
+						`[chat/session] Chunk persistence failed for ${sessionId}:`,
+						detail,
+					);
+					this.emit("event", {
+						type: "error",
+						sessionId,
+						error: `Chunk persistence failed: ${detail}`,
+					} satisfies ErrorEvent);
+					abortController.abort();
+				},
+			});
+
+			armChunkWatchdog({
+				timeoutMs: FIRST_CHUNK_TIMEOUT_MS,
+				reason: `No assistant response within ${FIRST_CHUNK_TIMEOUT_MS}ms`,
 			});
 
 			const agentEnv = buildClaudeEnv();
@@ -306,6 +412,10 @@ export class ChatSessionManager extends EventEmitter {
 				signal: abortController.signal,
 
 				onChunk: (chunk) => {
+					armChunkWatchdog({
+						timeoutMs: CHUNK_INACTIVITY_TIMEOUT_MS,
+						reason: `Assistant stream stalled for ${CHUNK_INACTIVITY_TIMEOUT_MS}ms`,
+					});
 					batcher?.push({
 						messageId,
 						actorId: "claude",
@@ -347,16 +457,25 @@ export class ChatSessionManager extends EventEmitter {
 			});
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			console.error(
-				`[chat/session] Agent execution failed for ${sessionId}:`,
-				message,
-			);
-			this.emit("event", {
-				type: "error",
-				sessionId,
-				error: message,
-			} satisfies ErrorEvent);
+			if (!abortController.signal.aborted) {
+				console.error(
+					`[chat/session] Agent execution failed for ${sessionId}:`,
+					message,
+				);
+				this.emit("event", {
+					type: "error",
+					sessionId,
+					error: message,
+				} satisfies ErrorEvent);
+			} else if (chunkWatchdogTriggered) {
+				console.warn(
+					`[chat/session] Agent aborted by watchdog for ${sessionId}:`,
+					message,
+				);
+			}
 		} finally {
+			clearChunkWatchdog();
+
 			// Drain buffered chunks before sending terminal chunk.
 			// Never let drain failure skip generation finish cleanup.
 			if (batcher) {
@@ -364,31 +483,45 @@ export class ChatSessionManager extends EventEmitter {
 					await batcher.drain();
 				} catch (err) {
 					const detail = err instanceof Error ? err.message : String(err);
-					console.error(
-						`[chat/session] Failed to drain chunk batcher for ${sessionId}:`,
-						detail,
-					);
-					this.emit("event", {
-						type: "error",
-						sessionId,
-						error: `Chunk drain failed: ${detail}`,
-					} satisfies ErrorEvent);
+					const isAbortError =
+						err instanceof DOMException && err.name === "AbortError";
+					if (isAbortError && abortController.signal.aborted) {
+						console.debug(
+							`[chat/session] Chunk drain aborted for ${sessionId}`,
+						);
+					} else {
+						console.error(
+							`[chat/session] Failed to drain chunk batcher for ${sessionId}:`,
+							detail,
+						);
+						this.emit("event", {
+							type: "error",
+							sessionId,
+							error: `Chunk drain failed: ${detail}`,
+						} satisfies ErrorEvent);
+					}
 				}
 			}
 
 			if (headers) {
 				// Client uses terminal chunk + finish to mark message complete (isLoading → false)
+				const terminalChunkPayload = {
+					messageId,
+					actorId: "claude",
+					role: "assistant",
+					chunk: { type: "message-end" },
+				};
+				let terminalChunkPersisted = false;
+
 				try {
-					await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
-						method: "POST",
+					await postJsonWithRetry({
+						url: `${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
 						headers,
-						body: JSON.stringify({
-							messageId,
-							actorId: "claude",
-							role: "assistant",
-							chunk: { type: "message-end" },
-						}),
+						body: terminalChunkPayload,
+						maxAttempts: TERMINAL_CHUNK_MAX_ATTEMPTS,
+						operation: "write terminal chunk",
 					});
+					terminalChunkPersisted = true;
 				} catch (err) {
 					console.error(
 						`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
@@ -397,28 +530,40 @@ export class ChatSessionManager extends EventEmitter {
 				}
 
 				try {
-					const finishRes = await fetch(
-						`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
-						{
-							method: "POST",
+					if (!terminalChunkPersisted) {
+						await postJsonWithRetry({
+							url: `${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
 							headers,
-							body: JSON.stringify({ messageId }),
-						},
-					);
-					if (!finishRes.ok) {
-						const body = await finishRes.json().catch(() => null);
-						const detail =
-							body?.details ?? body?.error ?? `status ${finishRes.status}`;
-						console.error(
-							`[chat/session] POST /generations/finish failed for ${sessionId}:`,
-							detail,
-						);
-						this.emit("event", {
-							type: "error",
-							sessionId,
-							error: `Generation finish failed: ${detail}`,
-						} satisfies ErrorEvent);
+							body: { chunks: [terminalChunkPayload] },
+							maxAttempts: TERMINAL_CHUNK_MAX_ATTEMPTS,
+							operation: "write terminal chunk (batch fallback)",
+						});
+						terminalChunkPersisted = true;
 					}
+				} catch (err) {
+					console.error(
+						`[chat/session] Failed to write terminal chunk fallback for ${sessionId}:`,
+						err,
+					);
+				}
+
+				if (!terminalChunkPersisted) {
+					this.emit("event", {
+						type: "error",
+						sessionId,
+						error:
+							"Assistant completion marker failed to persist. Message may stay loading.",
+					} satisfies ErrorEvent);
+				}
+
+				try {
+					await postJsonWithRetry({
+						url: `${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
+						headers,
+						body: { messageId },
+						maxAttempts: FINISH_MAX_ATTEMPTS,
+						operation: "finish generation",
+					});
 				} catch (err) {
 					const detail = err instanceof Error ? err.message : String(err);
 					console.error(

@@ -41,6 +41,8 @@ import type {
 	ToolResultInput,
 } from "./types";
 
+const AWAIT_TXID_TIMEOUT_MS = 12_000;
+
 /**
  * Unified input for all message optimistic actions.
  */
@@ -343,6 +345,35 @@ export class DurableChatClient<
 		}
 	}
 
+	private async awaitTxIdWithTimeout({
+		txid,
+		operation,
+		timeoutMs = AWAIT_TXID_TIMEOUT_MS,
+	}: {
+		txid: string;
+		operation: string;
+		timeoutMs?: number;
+	}): Promise<void> {
+		let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+		const timeoutPromise = new Promise<never>((_, reject) => {
+			timeoutHandle = setTimeout(() => {
+				reject(
+					new Error(
+						`[durable-session/${operation}] Timed out waiting for txid sync after ${timeoutMs}ms`,
+					),
+				);
+			}, timeoutMs);
+		});
+
+		try {
+			await Promise.race([this._db.utils.awaitTxId(txid), timeoutPromise]);
+		} finally {
+			if (timeoutHandle) {
+				clearTimeout(timeoutHandle);
+			}
+		}
+	}
+
 	/**
 	 * Create the unified optimistic action for all message types.
 	 * Handles user, assistant, and system messages with the same pattern.
@@ -378,8 +409,10 @@ export class DurableChatClient<
 					...(agent && { agent }),
 				});
 
-				// Wait for txid to appear in synced stream
-				await this._db.utils.awaitTxId(txid);
+				await this.awaitTxIdWithTimeout({
+					txid,
+					operation: "send-message",
+				});
 			},
 		});
 	}
@@ -445,8 +478,10 @@ export class DurableChatClient<
 					{ actorIdHeader: true },
 				);
 
-				// Wait for txid to appear in synced stream
-				await this._db.utils.awaitTxId(txid);
+				await this.awaitTxIdWithTimeout({
+					txid,
+					operation: "add-tool-result",
+				});
 			},
 		});
 	}
@@ -506,8 +541,10 @@ export class DurableChatClient<
 					{ actorIdHeader: true },
 				);
 
-				// Wait for txid to appear in synced stream
-				await this._db.utils.awaitTxId(txid);
+				await this.awaitTxIdWithTimeout({
+					txid,
+					operation: "approval-response",
+				});
 			},
 		});
 	}

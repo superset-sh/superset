@@ -11,6 +11,7 @@ export class ChunkBatcher {
 	private sendChain = Promise.resolve();
 	private dropped = 0;
 	private consecutiveFailures = 0;
+	private fatalError: Error | null = null;
 
 	private readonly sendBatch: (chunks: ChunkPayload[]) => Promise<void>;
 	private readonly lingerMs: number;
@@ -18,6 +19,7 @@ export class ChunkBatcher {
 	private readonly maxBufferSize: number;
 	private readonly maxRetries: number;
 	private readonly retryBaseMs: number;
+	private readonly onFatalError?: (error: Error) => void;
 
 	constructor({
 		sendBatch,
@@ -26,6 +28,7 @@ export class ChunkBatcher {
 		maxBufferSize = 2000,
 		maxRetries = 3,
 		retryBaseMs = 50,
+		onFatalError,
 	}: {
 		sendBatch: (chunks: ChunkPayload[]) => Promise<void>;
 		lingerMs?: number;
@@ -33,6 +36,7 @@ export class ChunkBatcher {
 		maxBufferSize?: number;
 		maxRetries?: number;
 		retryBaseMs?: number;
+		onFatalError?: (error: Error) => void;
 	}) {
 		this.sendBatch = sendBatch;
 		this.lingerMs = lingerMs;
@@ -40,6 +44,15 @@ export class ChunkBatcher {
 		this.maxBufferSize = maxBufferSize;
 		this.maxRetries = maxRetries;
 		this.retryBaseMs = retryBaseMs;
+		this.onFatalError = onFatalError;
+	}
+
+	private setFatalError(error: unknown): void {
+		const normalized =
+			error instanceof Error ? error : new Error(String(error));
+		if (this.fatalError) return;
+		this.fatalError = normalized;
+		this.onFatalError?.(normalized);
 	}
 
 	private async sendWithRetry(batch: ChunkPayload[]): Promise<void> {
@@ -56,10 +69,10 @@ export class ChunkBatcher {
 				this.consecutiveFailures++;
 
 				if (attempt === this.maxRetries) {
-					console.error(
-						`[chunk-batcher] Batch failed after ${this.maxRetries + 1} attempts, dropping ${batch.length} chunk(s)`,
+					const detail = err instanceof Error ? err.message : String(err);
+					throw new Error(
+						`[chunk-batcher] Batch failed after ${this.maxRetries + 1} attempts for ${batch.length} chunk(s): ${detail}`,
 					);
-					return;
 				}
 
 				const delayMs = this.retryBaseMs * 2 ** attempt;
@@ -69,6 +82,16 @@ export class ChunkBatcher {
 	}
 
 	push(payload: ChunkPayload): void {
+		if (this.fatalError) {
+			this.dropped++;
+			if (this.dropped === 1 || this.dropped % 100 === 0) {
+				console.warn(
+					`[chunk-batcher] Ignoring chunk after fatal error, dropped ${this.dropped} chunk(s)`,
+				);
+			}
+			return;
+		}
+
 		if (this.buffer.length >= this.maxBufferSize) {
 			this.buffer.shift();
 			this.dropped++;
@@ -96,14 +119,34 @@ export class ChunkBatcher {
 			this.flushTimer = null;
 		}
 		if (this.buffer.length === 0) return;
+		if (this.fatalError) {
+			this.dropped += this.buffer.length;
+			this.buffer = [];
+			return;
+		}
+
 		const batch = this.buffer;
 		this.buffer = [];
-		this.sendChain = this.sendChain.then(() => this.sendWithRetry(batch));
+		this.sendChain = this.sendChain
+			.catch((error: unknown) => {
+				this.setFatalError(error);
+			})
+			.then(async () => {
+				if (this.fatalError) return;
+				try {
+					await this.sendWithRetry(batch);
+				} catch (error) {
+					this.setFatalError(error);
+				}
+			});
 	}
 
 	async drain(): Promise<void> {
 		this.flush();
 		await this.sendChain;
+		if (this.fatalError) {
+			throw this.fatalError;
+		}
 	}
 
 	get droppedCount(): number {
@@ -111,6 +154,6 @@ export class ChunkBatcher {
 	}
 
 	get isHealthy(): boolean {
-		return this.consecutiveFailures < this.maxRetries;
+		return !this.fatalError && this.consecutiveFailures < this.maxRetries;
 	}
 }
