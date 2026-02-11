@@ -1,6 +1,10 @@
 import { ChunkBatcher } from "./chunk-batcher";
 import { GenerationWatchdog } from "./generation-watchdog";
-import { buildProxyHeaders, postJsonWithRetry } from "./proxy-requests";
+import {
+	buildProxyHeaders,
+	ProxyRequestError,
+	postJsonWithRetry,
+} from "./proxy-requests";
 import type { ActiveSession, EnsureSessionReadyInput } from "./session-types";
 
 const FIRST_CHUNK_TIMEOUT_MS = 30_000;
@@ -59,6 +63,20 @@ export class AgentStreamWriter {
 	}
 
 	private isSessionNotFoundError(error: unknown): boolean {
+		if (error instanceof ProxyRequestError) {
+			if (error.status !== 404) {
+				return false;
+			}
+			if (!error.code) {
+				return true;
+			}
+			const normalizedCode = error.code.toLowerCase();
+			return (
+				normalizedCode === "session_not_found" ||
+				normalizedCode === "session not found"
+			);
+		}
+
 		const message = error instanceof Error ? error.message : String(error);
 		const normalized = message.toLowerCase();
 		return (

@@ -8,7 +8,16 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 		const sessionId = c.req.param("sessionId");
 
 		try {
-			const body = await c.req.json();
+			let body: { actorId?: string; deviceId?: string; name?: string };
+			try {
+				body = await c.req.json();
+			} catch {
+				return c.json(
+					{ error: "Invalid JSON body", code: "INVALID_BODY", sessionId },
+					400,
+				);
+			}
+
 			const { actorId, deviceId, name } = body as {
 				actorId: string;
 				deviceId: string;
@@ -46,7 +55,6 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 					error: "Failed to login",
 					code: "LOGIN_FAILED",
 					sessionId,
-					details: (error as Error).message,
 				},
 				500,
 			);
@@ -140,7 +148,6 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 					error: "Failed to logout",
 					code: "LOGOUT_FAILED",
 					sessionId,
-					details: (error as Error).message,
 				},
 				500,
 			);

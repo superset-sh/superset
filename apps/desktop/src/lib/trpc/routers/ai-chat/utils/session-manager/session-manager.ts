@@ -1,7 +1,11 @@
 import { EventEmitter } from "node:events";
 import { env } from "main/env.main";
 import type { SessionStore } from "../session-store";
-import { AgentRunner, type ResolvePermissionInput } from "./agent-runner";
+import {
+	AgentRunner,
+	type ResolvePermissionInput,
+	type StartAgentInput,
+} from "./agent-runner";
 import type {
 	ErrorEvent,
 	PermissionRequestEvent,
@@ -21,11 +25,6 @@ import {
 import type { ActiveSession } from "./session-types";
 
 const PROXY_URL = env.STREAMS_URL;
-
-interface StartAgentInput {
-	sessionId: string;
-	prompt: string;
-}
 
 export class ChatSessionManager extends EventEmitter {
 	private readonly sessions = new Map<string, ActiveSession>();
@@ -110,11 +109,14 @@ export class ChatSessionManager extends EventEmitter {
 		await this.lifecycle.deleteSession(input);
 	}
 
-	async updateSessionMeta(
-		sessionId: string,
-		patch: UpdateSessionMetaPatch,
-	): Promise<void> {
-		await this.lifecycle.updateSessionMeta(sessionId, patch);
+	async updateSessionMeta({
+		sessionId,
+		patch,
+	}: {
+		sessionId: string;
+		patch: UpdateSessionMetaPatch;
+	}): Promise<void> {
+		await this.lifecycle.updateSessionMeta({ sessionId, patch });
 	}
 
 	async updateAgentConfig(input: UpdateAgentConfigInput): Promise<void> {

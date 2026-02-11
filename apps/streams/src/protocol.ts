@@ -160,11 +160,21 @@ export class AIDBSessionProtocol {
 				JSON.stringify({ headers: { control: "reset" as const } }),
 			);
 
-			this.messageSeqs.clear();
+			const state = this.sessionStates.get(sessionId);
+			const generationMessageIds = new Set<string>(
+				state?.activeGenerations ?? [],
+			);
+			const activeMessageId = this.activeGenerationIds.get(sessionId);
+			if (activeMessageId) {
+				generationMessageIds.add(activeMessageId);
+			}
+			for (const generationMessageId of generationMessageIds) {
+				this.messageSeqs.delete(generationMessageId);
+			}
+
 			this.producerErrors.set(sessionId, []);
 			this.producerHealthy.set(sessionId, true);
 			this.activeGenerationIds.delete(sessionId);
-			const state = this.sessionStates.get(sessionId);
 			if (state) {
 				state.activeGenerations = [];
 			}
@@ -306,13 +316,18 @@ export class AIDBSessionProtocol {
 		const producer = this.producers.get(sessionId);
 		if (!producer) return;
 
+		let timer: ReturnType<typeof setTimeout> | undefined;
 		const timeout = new Promise<never>((_, reject) => {
-			setTimeout(
+			timer = setTimeout(
 				() => reject(new Error(`Flush timed out for session ${sessionId}`)),
 				FLUSH_TIMEOUT_MS,
 			);
 		});
-		await Promise.race([producer.flush(), timeout]);
+		try {
+			await Promise.race([producer.flush(), timeout]);
+		} finally {
+			clearTimeout(timer);
+		}
 		this.producerHealthy.set(sessionId, true);
 	}
 

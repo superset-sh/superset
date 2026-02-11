@@ -64,12 +64,7 @@ export class AgentExecution {
 			pathToClaudeCodeExecutable: getClaudeBinaryPath(),
 			env: agentEnv,
 			model: session.model,
-			permissionMode:
-				(session.permissionMode as
-					| "default"
-					| "acceptEdits"
-					| "bypassPermissions"
-					| undefined) ?? "bypassPermissions",
+			permissionMode: session.permissionMode ?? "default",
 			maxThinkingTokens: session.maxThinkingTokens,
 			signal: abortController.signal,
 			onChunk,
@@ -106,7 +101,7 @@ export class AgentExecution {
 	}
 
 	resolvePermission({
-		sessionId: _sessionId,
+		sessionId,
 		toolUseId,
 		approved,
 		updatedInput,
@@ -121,7 +116,7 @@ export class AgentExecution {
 		const resolved = resolvePendingPermission({ toolUseId, result });
 		if (!resolved) {
 			console.warn(
-				`[chat/session] No pending permission for toolUseId=${toolUseId}`,
+				`[chat/session] No pending permission for toolUseId=${toolUseId} in session ${sessionId}`,
 			);
 		}
 	}

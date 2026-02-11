@@ -1,6 +1,7 @@
 import { type Context, Hono } from "hono";
 import { z } from "zod";
 import type { AIDBSessionProtocol } from "../protocol";
+import type { StreamChunk } from "../types";
 
 const chunkBodySchema = z.object({
 	messageId: z.string(),
@@ -13,6 +14,25 @@ const chunkBodySchema = z.object({
 const finishBodySchema = z.object({
 	messageId: z.string().optional(),
 });
+
+type ChunkBody = z.infer<typeof chunkBodySchema>;
+type PersistableChunk = {
+	messageId: string;
+	actorId: string;
+	role: ChunkBody["role"];
+	chunk: StreamChunk;
+	txid?: string;
+};
+
+const VALID_ROLES = new Set<ChunkBody["role"]>(["user", "assistant", "system"]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStreamChunk(value: unknown): value is StreamChunk {
+	return isRecord(value) && typeof value.type === "string";
+}
 
 export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();
@@ -116,11 +136,11 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 	app.post("/:id/chunks/batch", async (c) => {
 		const sessionId = c.req.param("id");
 
-		let chunks: Array<z.infer<typeof chunkBodySchema>>;
+		let chunks: PersistableChunk[];
 		try {
 			const rawBody = await c.req.json();
-			chunks = rawBody?.chunks;
-			if (!Array.isArray(chunks) || chunks.length === 0) {
+			const rawChunks = rawBody?.chunks;
+			if (!Array.isArray(rawChunks) || rawChunks.length === 0) {
 				return c.json(
 					{
 						error: "chunks must be a non-empty array",
@@ -130,6 +150,74 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 					400,
 				);
 			}
+
+			const validatedChunks: PersistableChunk[] = [];
+			for (const rawChunk of rawChunks) {
+				if (!isRecord(rawChunk)) {
+					return c.json(
+						{
+							error: "Each chunk must be an object",
+							code: "INVALID_BODY",
+							sessionId,
+						},
+						400,
+					);
+				}
+
+				const { messageId, actorId, role, chunk, txid } = rawChunk;
+				if (typeof messageId !== "string" || typeof actorId !== "string") {
+					return c.json(
+						{
+							error: "Each chunk must include string messageId and actorId",
+							code: "INVALID_BODY",
+							sessionId,
+						},
+						400,
+					);
+				}
+				if (
+					typeof role !== "string" ||
+					!VALID_ROLES.has(role as ChunkBody["role"])
+				) {
+					return c.json(
+						{
+							error: "Each chunk must include a valid role",
+							code: "INVALID_BODY",
+							sessionId,
+						},
+						400,
+					);
+				}
+				if (!isStreamChunk(chunk)) {
+					return c.json(
+						{
+							error: "Each chunk must include a chunk payload with string type",
+							code: "INVALID_BODY",
+							sessionId,
+						},
+						400,
+					);
+				}
+				if (txid !== undefined && typeof txid !== "string") {
+					return c.json(
+						{
+							error: "txid must be a string when provided",
+							code: "INVALID_BODY",
+							sessionId,
+						},
+						400,
+					);
+				}
+
+				validatedChunks.push({
+					messageId,
+					actorId,
+					role: role as ChunkBody["role"],
+					chunk,
+					...(txid !== undefined ? { txid } : {}),
+				});
+			}
+			chunks = validatedChunks;
 		} catch (error) {
 			return c.json(
 				{
@@ -196,7 +284,7 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 
 			await protocol.writeChunks({
 				sessionId,
-				chunks: chunks as never,
+				chunks,
 			});
 
 			return c.json({ ok: true, sessionId, count: chunks.length }, 200);

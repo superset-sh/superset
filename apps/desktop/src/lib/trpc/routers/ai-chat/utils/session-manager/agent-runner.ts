@@ -46,6 +46,9 @@ export class AgentRunner {
 		if (!existingController) return;
 		console.warn(`[chat/session] Aborting previous agent run for ${sessionId}`);
 		existingController.abort();
+		if (this.deps.runningAgents.get(sessionId) === existingController) {
+			this.deps.runningAgents.delete(sessionId);
+		}
 	}
 
 	async startAgent({ sessionId, prompt }: StartAgentInput): Promise<void> {
@@ -122,7 +125,9 @@ export class AgentRunner {
 				messageId,
 				headers,
 			});
-			this.deps.runningAgents.delete(sessionId);
+			if (this.deps.runningAgents.get(sessionId) === abortController) {
+				this.deps.runningAgents.delete(sessionId);
+			}
 		}
 	}
 

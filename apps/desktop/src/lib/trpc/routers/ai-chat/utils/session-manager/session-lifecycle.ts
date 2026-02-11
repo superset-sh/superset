@@ -1,7 +1,11 @@
 import { getClaudeSessionId } from "@superset/agent";
 import type { SessionStore } from "../session-store";
 import { buildProxyHeaders } from "./proxy-requests";
-import type { ActiveSession, EnsureSessionReadyInput } from "./session-types";
+import type {
+	ActiveSession,
+	EnsureSessionReadyInput,
+	PermissionMode,
+} from "./session-types";
 
 export interface StartSessionInput {
 	sessionId: string;
@@ -10,7 +14,7 @@ export interface StartSessionInput {
 	paneId?: string;
 	tabId?: string;
 	model?: string;
-	permissionMode?: string;
+	permissionMode?: PermissionMode;
 }
 
 export interface RestoreSessionInput {
@@ -19,7 +23,7 @@ export interface RestoreSessionInput {
 	paneId?: string;
 	tabId?: string;
 	model?: string;
-	permissionMode?: string;
+	permissionMode?: PermissionMode;
 }
 
 export interface InterruptInput {
@@ -44,7 +48,7 @@ export interface UpdateAgentConfigInput {
 	sessionId: string;
 	maxThinkingTokens?: number | null;
 	model?: string | null;
-	permissionMode?: string | null;
+	permissionMode?: PermissionMode | null;
 }
 
 interface SessionLifecycleDeps {
@@ -95,7 +99,9 @@ export class SessionLifecycle {
 		const controller = this.deps.runningAgents.get(sessionId);
 		if (!controller) return;
 		controller.abort();
-		this.deps.runningAgents.delete(sessionId);
+		if (this.deps.runningAgents.get(sessionId) === controller) {
+			this.deps.runningAgents.delete(sessionId);
+		}
 	}
 
 	private async stopRemoteSession({
@@ -109,19 +115,40 @@ export class SessionLifecycle {
 		logContext: string;
 		logLevel: "error" | "debug";
 	}): Promise<void> {
+		let response: Response;
 		try {
-			await fetch(`${this.deps.proxyUrl}/v1/sessions/${sessionId}/stop`, {
-				method: "POST",
-				headers,
-				body: JSON.stringify({}),
-			});
+			response = await fetch(
+				`${this.deps.proxyUrl}/v1/sessions/${sessionId}/stop`,
+				{
+					method: "POST",
+					headers,
+					body: JSON.stringify({}),
+				},
+			);
 		} catch (error) {
 			if (logLevel === "error") {
 				console.error(`[chat/session] ${logContext}:`, error);
+				throw error;
 			} else {
 				console.debug(`[chat/session] ${logContext}:`, error);
 			}
+			return;
 		}
+
+		if (response.ok) {
+			return;
+		}
+
+		const detail = await response.text().catch(() => "");
+		const normalizedDetail = detail.trim();
+		const error = new Error(
+			`POST /v1/sessions/${sessionId}/stop failed: ${response.status}${normalizedDetail ? ` (${normalizedDetail.slice(0, 300)})` : ""}`,
+		);
+		if (logLevel === "error") {
+			console.error(`[chat/session] ${logContext}:`, error.message);
+			throw error;
+		}
+		console.debug(`[chat/session] ${logContext}:`, error.message);
 	}
 
 	private async updateDeactivatedSessionMeta({
@@ -183,6 +210,10 @@ export class SessionLifecycle {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(`[chat/session] Failed to start session:`, message);
 			this.deps.emitSessionError({ sessionId, error: message });
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error(message);
 		}
 	}
 
@@ -218,6 +249,10 @@ export class SessionLifecycle {
 			const message = error instanceof Error ? error.message : String(error);
 			console.error(`[chat/session] Failed to restore session:`, message);
 			this.deps.emitSessionError({ sessionId, error: message });
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error(message);
 		}
 	}
 
@@ -281,12 +316,26 @@ export class SessionLifecycle {
 		});
 
 		try {
-			await fetch(`${this.deps.proxyUrl}/v1/sessions/${sessionId}`, {
-				method: "DELETE",
-				headers,
-			});
+			const response = await fetch(
+				`${this.deps.proxyUrl}/v1/sessions/${sessionId}`,
+				{
+					method: "DELETE",
+					headers,
+				},
+			);
+			if (!response.ok) {
+				const detail = await response.text().catch(() => "");
+				const normalizedDetail = detail.trim();
+				throw new Error(
+					`DELETE /v1/sessions/${sessionId} failed: ${response.status}${normalizedDetail ? ` (${normalizedDetail.slice(0, 300)})` : ""}`,
+				);
+			}
 		} catch (err) {
-			console.debug(`[chat/session] DELETE request failed:`, err);
+			console.error(`[chat/session] DELETE request failed:`, err);
+			if (err instanceof Error) {
+				throw err;
+			}
+			throw new Error(String(err));
 		}
 
 		await this.deps.store.archive(sessionId);
@@ -294,10 +343,13 @@ export class SessionLifecycle {
 		this.deps.emitSessionEnd({ sessionId });
 	}
 
-	async updateSessionMeta(
-		sessionId: string,
-		patch: UpdateSessionMetaPatch,
-	): Promise<void> {
+	async updateSessionMeta({
+		sessionId,
+		patch,
+	}: {
+		sessionId: string;
+		patch: UpdateSessionMetaPatch;
+	}): Promise<void> {
 		await this.deps.store.update(sessionId, patch);
 	}
 

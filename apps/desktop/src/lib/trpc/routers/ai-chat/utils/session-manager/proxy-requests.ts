@@ -2,6 +2,30 @@ import { loadToken } from "../../../auth/utils/auth-functions";
 
 const DEFAULT_RETRY_BASE_DELAY_MS = 150;
 
+export class ProxyRequestError extends Error {
+	readonly status: number;
+	readonly code?: string;
+	readonly nonRetryable: boolean;
+
+	constructor({
+		message,
+		status,
+		code,
+		nonRetryable,
+	}: {
+		message: string;
+		status: number;
+		code?: string;
+		nonRetryable: boolean;
+	}) {
+		super(message);
+		this.name = "ProxyRequestError";
+		this.status = status;
+		this.code = code;
+		this.nonRetryable = nonRetryable;
+	}
+}
+
 export async function buildProxyHeaders(): Promise<Record<string, string>> {
 	const { token } = await loadToken();
 	if (!token) {
@@ -47,13 +71,28 @@ export async function postJsonWithRetry({
 			if (!res.ok) {
 				const rawDetail = await res.text().catch(() => "");
 				const detail = rawDetail.trim();
-				throw new Error(
-					`${operation} failed: status ${res.status}${detail ? ` (${detail.slice(0, 300)})` : ""}`,
-				);
+				let code: string | undefined;
+				try {
+					const parsed = JSON.parse(detail) as { code?: unknown };
+					if (typeof parsed.code === "string") {
+						code = parsed.code;
+					}
+				} catch {
+					// Ignore parse failures; detail may be plaintext.
+				}
+				throw new ProxyRequestError({
+					message: `${operation} failed: status ${res.status}${detail ? ` (${detail.slice(0, 300)})` : ""}`,
+					status: res.status,
+					code,
+					nonRetryable: res.status >= 400 && res.status < 500,
+				});
 			}
 			return;
 		} catch (error) {
 			if (error instanceof DOMException && error.name === "AbortError") {
+				throw error;
+			}
+			if (error instanceof ProxyRequestError && error.nonRetryable) {
 				throw error;
 			}
 

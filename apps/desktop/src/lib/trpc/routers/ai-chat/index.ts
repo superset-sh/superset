@@ -17,6 +17,12 @@ interface CommandEntry {
 	argumentHint: string;
 }
 
+const permissionModeSchema = z.enum([
+	"default",
+	"acceptEdits",
+	"bypassPermissions",
+]);
+
 function scanCustomCommands(cwd: string): CommandEntry[] {
 	const dirs = [
 		join(cwd, ".claude", "commands"),
@@ -79,7 +85,7 @@ export const createAiChatRouter = () => {
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
 					model: z.string().optional(),
-					permissionMode: z.string().optional(),
+					permissionMode: permissionModeSchema.optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -103,7 +109,7 @@ export const createAiChatRouter = () => {
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
 					model: z.string().optional(),
-					permissionMode: z.string().optional(),
+					permissionMode: permissionModeSchema.optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -151,10 +157,7 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					maxThinkingTokens: z.number().nullable().optional(),
 					model: z.string().nullable().optional(),
-					permissionMode: z
-						.enum(["default", "acceptEdits", "bypassPermissions"])
-						.nullable()
-						.optional(),
+					permissionMode: permissionModeSchema.nullable().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -175,8 +178,9 @@ export const createAiChatRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await chatSessionManager.updateSessionMeta(input.sessionId, {
-					title: input.title,
+				await chatSessionManager.updateSessionMeta({
+					sessionId: input.sessionId,
+					patch: { title: input.title },
 				});
 				return { success: true };
 			}),
