@@ -263,27 +263,30 @@ export class ChatSessionManager extends EventEmitter {
 		const abortController = new AbortController();
 		this.runningAgents.set(sessionId, abortController);
 
-		const headers = await buildProxyHeaders();
 		const messageId = crypto.randomUUID();
-
-		const batcher = new ChunkBatcher({
-			sendBatch: async (chunks) => {
-				const res = await fetch(
-					`${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
-					{
-						method: "POST",
-						headers,
-						signal: abortController.signal,
-						body: JSON.stringify({ chunks }),
-					},
-				);
-				if (!res.ok) {
-					throw new Error(`POST batch failed: ${res.status}`);
-				}
-			},
-		});
+		let headers: Record<string, string> | null = null;
+		let batcher: ChunkBatcher | null = null;
 
 		try {
+			const proxyHeaders = await buildProxyHeaders();
+			headers = proxyHeaders;
+			batcher = new ChunkBatcher({
+				sendBatch: async (chunks) => {
+					const res = await fetch(
+						`${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
+						{
+							method: "POST",
+							headers: proxyHeaders,
+							signal: abortController.signal,
+							body: JSON.stringify({ chunks }),
+						},
+					);
+					if (!res.ok) {
+						throw new Error(`POST batch failed: ${res.status}`);
+					}
+				},
+			});
+
 			const agentEnv = buildClaudeEnv();
 
 			await executeAgent({
@@ -303,7 +306,7 @@ export class ChatSessionManager extends EventEmitter {
 				signal: abortController.signal,
 
 				onChunk: (chunk) => {
-					batcher.push({
+					batcher?.push({
 						messageId,
 						actorId: "claude",
 						role: "assistant",
@@ -354,41 +357,70 @@ export class ChatSessionManager extends EventEmitter {
 				error: message,
 			} satisfies ErrorEvent);
 		} finally {
-			// Drain buffered chunks before sending terminal chunk
-			await batcher.drain();
-
-			// Client uses terminal chunk + finish to mark message complete (isLoading → false)
-			try {
-				await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
-					method: "POST",
-					headers,
-					body: JSON.stringify({
-						messageId,
-						actorId: "claude",
-						role: "assistant",
-						chunk: { type: "message-end" },
-					}),
-				});
-			} catch (err) {
-				console.error(
-					`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
-					err,
-				);
+			// Drain buffered chunks before sending terminal chunk.
+			// Never let drain failure skip generation finish cleanup.
+			if (batcher) {
+				try {
+					await batcher.drain();
+				} catch (err) {
+					const detail = err instanceof Error ? err.message : String(err);
+					console.error(
+						`[chat/session] Failed to drain chunk batcher for ${sessionId}:`,
+						detail,
+					);
+					this.emit("event", {
+						type: "error",
+						sessionId,
+						error: `Chunk drain failed: ${detail}`,
+					} satisfies ErrorEvent);
+				}
 			}
 
-			try {
-				const finishRes = await fetch(
-					`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
-					{
+			if (headers) {
+				// Client uses terminal chunk + finish to mark message complete (isLoading → false)
+				try {
+					await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
 						method: "POST",
 						headers,
-						body: JSON.stringify({ messageId }),
-					},
-				);
-				if (!finishRes.ok) {
-					const body = await finishRes.json().catch(() => null);
-					const detail =
-						body?.details ?? body?.error ?? `status ${finishRes.status}`;
+						body: JSON.stringify({
+							messageId,
+							actorId: "claude",
+							role: "assistant",
+							chunk: { type: "message-end" },
+						}),
+					});
+				} catch (err) {
+					console.error(
+						`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
+						err,
+					);
+				}
+
+				try {
+					const finishRes = await fetch(
+						`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
+						{
+							method: "POST",
+							headers,
+							body: JSON.stringify({ messageId }),
+						},
+					);
+					if (!finishRes.ok) {
+						const body = await finishRes.json().catch(() => null);
+						const detail =
+							body?.details ?? body?.error ?? `status ${finishRes.status}`;
+						console.error(
+							`[chat/session] POST /generations/finish failed for ${sessionId}:`,
+							detail,
+						);
+						this.emit("event", {
+							type: "error",
+							sessionId,
+							error: `Generation finish failed: ${detail}`,
+						} satisfies ErrorEvent);
+					}
+				} catch (err) {
+					const detail = err instanceof Error ? err.message : String(err);
 					console.error(
 						`[chat/session] POST /generations/finish failed for ${sessionId}:`,
 						detail,
@@ -399,17 +431,6 @@ export class ChatSessionManager extends EventEmitter {
 						error: `Generation finish failed: ${detail}`,
 					} satisfies ErrorEvent);
 				}
-			} catch (err) {
-				const detail = err instanceof Error ? err.message : String(err);
-				console.error(
-					`[chat/session] POST /generations/finish failed for ${sessionId}:`,
-					detail,
-				);
-				this.emit("event", {
-					type: "error",
-					sessionId,
-					error: `Generation finish failed: ${detail}`,
-				} satisfies ErrorEvent);
 			}
 
 			this.runningAgents.delete(sessionId);

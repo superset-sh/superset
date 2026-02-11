@@ -44,6 +44,8 @@ interface ChatInterfaceProps {
 	tabId: string;
 }
 
+const START_AGENT_AFTER_MS = 400;
+
 export function ChatInterface({
 	sessionId,
 	workspaceId,
@@ -199,14 +201,32 @@ export function ChatInterface({
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
-			if (!message.text.trim()) return;
+			const text = message.text.trim();
+			if (!text) return;
+
 			setIsSending(true);
-			sendMessage(message.text)
+
+			let agentTriggered = false;
+			const triggerAgentOnce = () => {
+				if (agentTriggered) return;
+				agentTriggered = true;
+				triggerAgent.mutate({ sessionId, text });
+			};
+
+			const triggerTimeout = setTimeout(() => {
+				console.warn(
+					`[chat] sendMessage sync ack exceeded ${START_AGENT_AFTER_MS}ms; starting agent early`,
+				);
+				triggerAgentOnce();
+			}, START_AGENT_AFTER_MS);
+
+			sendMessage(text)
 				.then(() => {
-					// Trigger the local agent to process the message
-					triggerAgent.mutate({ sessionId, text: message.text });
+					clearTimeout(triggerTimeout);
+					triggerAgentOnce();
 				})
 				.catch((err) => {
+					clearTimeout(triggerTimeout);
 					console.error("[chat] Send failed:", err);
 					setIsSending(false);
 				});

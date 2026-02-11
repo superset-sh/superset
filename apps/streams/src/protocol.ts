@@ -30,18 +30,14 @@ export class AIDBSessionProtocol {
 		this.baseUrl = options.baseUrl;
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Per-session Mutex
-	// ═══════════════════════════════════════════════════════════════════════
-
 	private async withSessionLock<T>(
 		sessionId: string,
 		fn: () => Promise<T>,
 	): Promise<T> {
 		const prev = this.sessionLocks.get(sessionId) ?? Promise.resolve();
-		let resolve: () => void;
+		let release: (() => void) | undefined;
 		const current = new Promise<void>((r) => {
-			resolve = r;
+			release = r;
 		});
 		this.sessionLocks.set(sessionId, current);
 
@@ -52,13 +48,11 @@ export class AIDBSessionProtocol {
 			if (this.sessionLocks.get(sessionId) === current) {
 				this.sessionLocks.delete(sessionId);
 			}
-			resolve?.();
+			if (release) {
+				release();
+			}
 		}
 	}
-
-	// ═══════════════════════════════════════════════════════════════════════
-	// Producer Error Tracking
-	// ═══════════════════════════════════════════════════════════════════════
 
 	private recordProducerError(sessionId: string, err: unknown): void {
 		const errors = this.producerErrors.get(sessionId);
@@ -76,10 +70,6 @@ export class AIDBSessionProtocol {
 		return drained;
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Session Management
-	// ═══════════════════════════════════════════════════════════════════════
-
 	async createSession(sessionId: string): Promise<DurableStream> {
 		const stream = new DurableStream({
 			url: `${this.baseUrl}/v1/stream/sessions/${sessionId}`,
@@ -92,9 +82,8 @@ export class AIDBSessionProtocol {
 
 		const producer = new IdempotentProducer(stream, `session-${sessionId}`, {
 			autoClaim: true,
-			// Desktop ChunkBatcher coalesces at 5ms; keep producer linger
-			// minimal to avoid double-buffering latency.
-			lingerMs: 1,
+			lingerMs: 1, // Desktop ChunkBatcher already coalesces at 5ms
+
 			maxInFlight: 5,
 			onError: (err) => {
 				console.error(`[protocol] Producer error for ${sessionId}:`, err);
@@ -164,7 +153,7 @@ export class AIDBSessionProtocol {
 				throw new Error(`Session ${sessionId} not found`);
 			}
 
-			// Flush queued chunks so the reset control event is ordered after them
+			// Flush before reset so queued chunks are ordered before the control event
 			await this.flushSession(sessionId);
 
 			await stream.append(
@@ -218,10 +207,6 @@ export class AIDBSessionProtocol {
 			isReady: true,
 		});
 	}
-
-	// ═══════════════════════════════════════════════════════════════════════
-	// Chunk Writing (STATE-PROTOCOL)
-	// ═══════════════════════════════════════════════════════════════════════
 
 	private getNextSeq(messageId: string): number {
 		const current = this.messageSeqs.get(messageId) ?? -1;
@@ -363,7 +348,16 @@ export class AIDBSessionProtocol {
 		if (messageId) {
 			this.clearSeq(messageId);
 		}
-		this.activeGenerationIds.delete(sessionId);
+		const activeMessageId = this.activeGenerationIds.get(sessionId);
+		if (!activeMessageId) {
+			// no-op
+		} else if (!messageId || messageId === activeMessageId) {
+			this.activeGenerationIds.delete(sessionId);
+		} else {
+			console.warn(
+				`[protocol] Ignoring stale finish for ${sessionId}: got ${messageId}, active is ${activeMessageId}`,
+			);
+		}
 
 		const errors = this.drainProducerErrors(sessionId);
 		if (errors.length > 0) {
@@ -404,9 +398,8 @@ export class AIDBSessionProtocol {
 			...(txid && { headers: { txid } }),
 		});
 
-		// Flush buffered producer chunks first to preserve ordering, then
-		// write directly to the stream so the txid header is immediately
-		// visible to subscribers (avoids producer queue latency).
+		// Flush producer for ordering, then write directly to stream
+		// so the txid header is immediately visible to subscribers.
 		await this.flushSession(sessionId);
 		await stream.append(JSON.stringify(event));
 		this.updateLastActivity(sessionId);
@@ -466,10 +459,6 @@ export class AIDBSessionProtocol {
 		// still exists so clients don't get 404.
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Tool Results & Approvals
-	// ═══════════════════════════════════════════════════════════════════════
-
 	async writeToolResult(
 		stream: DurableStream,
 		sessionId: string,
@@ -527,10 +516,6 @@ export class AIDBSessionProtocol {
 		this.clearSeq(messageId);
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Session Forking
-	// ═══════════════════════════════════════════════════════════════════════
-
 	async forkSession(
 		sessionId: string,
 		_atMessageId: string | null,
@@ -561,10 +546,6 @@ export class AIDBSessionProtocol {
 			offset: "-1",
 		};
 	}
-
-	// ═══════════════════════════════════════════════════════════════════════
-	// Message History
-	// ═══════════════════════════════════════════════════════════════════════
 
 	async getMessageHistory(
 		sessionId: string,

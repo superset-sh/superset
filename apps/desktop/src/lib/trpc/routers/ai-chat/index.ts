@@ -229,10 +229,17 @@ export const createAiChatRouter = () => {
 			.input(z.object({ sessionId: z.string(), text: z.string() }))
 			.mutation(({ input }) => {
 				// Fire-and-forget: agent runs in background, errors surface via streamEvents
-				chatSessionManager.startAgent({
-					sessionId: input.sessionId,
-					prompt: input.text,
-				});
+				void chatSessionManager
+					.startAgent({
+						sessionId: input.sessionId,
+						prompt: input.text,
+					})
+					.catch((error: unknown) => {
+						console.error(
+							"[ai-chat/sendMessage] Failed to start agent:",
+							error,
+						);
+					});
 				return { success: true };
 			}),
 
