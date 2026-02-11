@@ -41,9 +41,9 @@ This is the complete recommendation list for the current desktop + streams archi
 
 ## Protocol/API cleanups
 
-29. Collapse `start/chunks/finish` into one generation lifecycle API with explicit generation id.
+29. ~~Collapse `start/chunks/finish` into one generation lifecycle API with explicit generation id.~~ DONE (removed /generations/start; generation auto-registers from first chunk)
 30. ~~Add an optional strict-ack endpoint (`txid`) for flows that need synced-to-stream confirmation.~~ DONE (already in use via writeUserMessage txid pattern)
-31. Standardize terminal semantics (`done` vs `message-end` vs `stop/error`) and document one canonical end signal.
+31. ~~Standardize terminal semantics (`done` vs `message-end` vs `stop/error`) and document one canonical end signal.~~ DONE (documented in types.ts: `message-end` = UI signal, `/finish` = server cleanup)
 32. ~~Return structured error codes from finish/flush routes for better client behavior.~~ DONE (all routes have `code` field)
 33. ~~Define whether `/chunks` supports multi-writer per session; enforce if single-writer.~~ DONE (single-writer via activeGenerationIds)
 34. ~~Add request/session/message IDs in all responses for tracing.~~ DONE
