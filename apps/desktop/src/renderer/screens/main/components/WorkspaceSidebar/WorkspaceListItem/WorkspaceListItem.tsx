@@ -441,10 +441,12 @@ export function WorkspaceListItem({
 			{/* Icon with status indicator */}
 			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
-					<div className={cn(
-						"relative shrink-0 size-5 flex items-center justify-center mr-2.5",
-						showBranchSubtitle && "mt-0.5",
-					)}>
+					<div
+						className={cn(
+							"relative shrink-0 size-5 flex items-center justify-center mr-2.5",
+							showBranchSubtitle && "mt-0.5",
+						)}
+					>
 						{workspaceStatus === "working" ? (
 							<AsciiSpinner className="text-base" />
 						) : isBranchWorkspace ? (
