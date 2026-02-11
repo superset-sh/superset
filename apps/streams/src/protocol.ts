@@ -22,6 +22,7 @@ export class AIDBSessionProtocol {
 	private messageSeqs = new Map<string, number>();
 	private sessionStates = new Map<string, ProxySessionState>();
 	private producerErrors = new Map<string, Error[]>();
+	private producerHealthy = new Map<string, boolean>();
 	private sessionLocks = new Map<string, Promise<void>>();
 
 	constructor(options: AIDBProtocolOptions) {
@@ -63,6 +64,7 @@ export class AIDBSessionProtocol {
 		if (errors) {
 			errors.push(err instanceof Error ? err : new Error(String(err)));
 		}
+		this.producerHealthy.set(sessionId, false);
 	}
 
 	private drainProducerErrors(sessionId: string): Error[] {
@@ -85,6 +87,7 @@ export class AIDBSessionProtocol {
 		await stream.create({ contentType: "application/json" });
 		this.streams.set(sessionId, stream);
 		this.producerErrors.set(sessionId, []);
+		this.producerHealthy.set(sessionId, true);
 
 		const producer = new IdempotentProducer(
 			stream,
@@ -155,6 +158,7 @@ export class AIDBSessionProtocol {
 			this.streams.delete(sessionId);
 			this.sessionStates.delete(sessionId);
 			this.producerErrors.delete(sessionId);
+			this.producerHealthy.delete(sessionId);
 		});
 	}
 
@@ -177,6 +181,7 @@ export class AIDBSessionProtocol {
 
 			this.messageSeqs.clear();
 			this.producerErrors.set(sessionId, []);
+			this.producerHealthy.set(sessionId, true);
 			const state = this.sessionStates.get(sessionId);
 			if (state) {
 				state.activeGenerations = [];
@@ -302,18 +307,21 @@ export class AIDBSessionProtocol {
 		{ flush = false }: { flush?: boolean } = {},
 	): Promise<void> {
 		const producer = this.producers.get(sessionId);
-		if (producer) {
+		const healthy = this.producerHealthy.get(sessionId) !== false;
+
+		if (producer && healthy) {
 			producer.append(data);
 			if (flush) {
 				await producer.flush();
 			}
-		} else {
-			const stream = this.streams.get(sessionId);
-			if (!stream) {
-				throw new Error(`Session ${sessionId} not found`);
-			}
-			await stream.append(data);
+			return;
 		}
+
+		const stream = this.streams.get(sessionId);
+		if (!stream) {
+			throw new Error(`Session ${sessionId} not found`);
+		}
+		await stream.append(data);
 	}
 
 	async flushSession(sessionId: string): Promise<void> {
@@ -327,6 +335,7 @@ export class AIDBSessionProtocol {
 			);
 		});
 		await Promise.race([producer.flush(), timeout]);
+		this.producerHealthy.set(sessionId, true);
 	}
 
 	async finishGeneration({
