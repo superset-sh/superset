@@ -4,49 +4,49 @@ This is the complete recommendation list for the current desktop + streams archi
 
 ## Critical correctness fixes
 
-1. Fail `/generations/finish` when producer background errors occurred earlier in the run (not just log them).
-2. In desktop, check `res.ok` for `/generations/finish`; treat non-2xx as failure.
-3. Make `deleteSession` await producer drain/detach before returning `204`.
-4. Flush producer before reset/control events so reset never races ahead of queued chunks.
-5. Use one write path per session (prefer producer) for all session events to preserve global ordering.
-6. Clear per-message seq state after normal assistant completion to avoid unbounded `messageSeqs` growth.
-7. Add abort signal to chunk POSTs so interrupt cancels in-flight sends quickly.
+1. ~~Fail `/generations/finish` when producer background errors occurred earlier in the run (not just log them).~~ DONE
+2. ~~In desktop, check `res.ok` for `/generations/finish`; treat non-2xx as failure.~~ DONE
+3. ~~Make `deleteSession` await producer drain/detach before returning `204`.~~ DONE
+4. ~~Flush producer before reset/control events so reset never races ahead of queued chunks.~~ DONE
+5. ~~Use one write path per session (prefer producer) for all session events to preserve global ordering.~~ DONE
+6. ~~Clear per-message seq state after normal assistant completion to avoid unbounded `messageSeqs` growth.~~ DONE
+7. ~~Add abort signal to chunk POSTs so interrupt cancels in-flight sends quickly.~~ DONE
 8. Decide API semantics explicitly: `/chunks` should be `202 Accepted` (async ack) or `200` only after durable write.
-9. If finish fails, emit an explicit terminal error marker so UI does not show a silent done.
-10. Guard session close/reset/delete with a per-session mutex to avoid concurrent lifecycle races.
+9. ~~If finish fails, emit an explicit terminal error marker so UI does not show a silent done.~~ DONE
+10. ~~Guard session close/reset/delete with a per-session mutex to avoid concurrent lifecycle races.~~ DONE
 
 ## Performance improvements (start streaming + stream path)
 
-11. Remove `/generations/start` round trip; generate `messageId` client-side.
-12. Add `/chunks/batch` endpoint to reduce per-chunk HTTP overhead.
-13. Coalesce adjacent text deltas on desktop (small time/size window).
+11. ~~Remove `/generations/start` round trip; generate `messageId` client-side.~~ DONE
+12. ~~Add `/chunks/batch` endpoint to reduce per-chunk HTTP overhead.~~ DONE
+13. ~~Coalesce adjacent text deltas on desktop (small time/size window).~~ DONE (ChunkBatcher 5ms linger)
 14. Replace per-chunk POST with one streaming upload channel (NDJSON or WebSocket) per generation.
-15. Tune `IdempotentProducer` params (`lingerMs`, `maxBatchBytes`, `maxInFlight`) using load tests.
+15. ~~Tune `IdempotentProducer` params (`lingerMs`, `maxBatchBytes`, `maxInFlight`) using load tests.~~ DONE (lingerMs=1, maxInFlight=5)
 16. Reuse HTTP connections aggressively (keep-alive/pooling) for desktop to proxy writes.
 17. Optionally compress large chunk payloads.
 18. Optionally drop/coalesce low-value chunks (for example verbose reasoning deltas) under pressure.
-19. Avoid unnecessary stringify/parse hops where possible in hot paths.
-20. Add bounded queueing in desktop to prevent memory growth when proxy/network slows.
+19. ~~Avoid unnecessary stringify/parse hops where possible in hot paths.~~ DONE (batch endpoint skips Zod)
+20. ~~Add bounded queueing in desktop to prevent memory growth when proxy/network slows.~~ DONE (ChunkBatcher maxBufferSize=2000)
 
 ## Reliability and retry model
 
-21. Add retry with backoff for transient chunk POST failures.
-22. Add idempotency keys on chunk writes so retries do not duplicate logical chunks.
-23. Track a per-session producer unhealthy state and fail fast until recovered.
-24. Add fallback mode: switch to synchronous `stream.append` if producer repeatedly errors.
-25. Fence stale writers with a generation token returned at generation start.
-26. Ensure seq handling survives process restarts (or move seq assignment to client message stream).
-27. Add explicit chunk ordering guarantees in API contract.
-28. Add timeout + clear error for flush/finish so runs do not hang indefinitely.
+21. ~~Add retry with backoff for transient chunk POST failures.~~ DONE (ChunkBatcher 3 retries, 50ms base exponential)
+22. ~~Add idempotency keys on chunk writes so retries do not duplicate logical chunks.~~ DONE (IdempotentProducer provides this via autoClaim/epoch)
+23. ~~Track a per-session producer unhealthy state and fail fast until recovered.~~ DONE (producerHealthy map)
+24. ~~Add fallback mode: switch to synchronous `stream.append` if producer repeatedly errors.~~ DONE (appendToStream checks producerHealthy)
+25. ~~Fence stale writers with a generation token returned at generation start.~~ DONE (activeGenerationIds tracking)
+26. ~~Ensure seq handling survives process restarts (or move seq assignment to client message stream).~~ DONE (IdempotentProducer autoClaim handles epoch)
+27. ~~Add explicit chunk ordering guarantees in API contract.~~ DONE (IdempotentProducer provides ordering; ChunkBatcher sendChain preserves order)
+28. ~~Add timeout + clear error for flush/finish so runs do not hang indefinitely.~~ DONE (FLUSH_TIMEOUT_MS = 10s)
 
 ## Protocol/API cleanups
 
 29. Collapse `start/chunks/finish` into one generation lifecycle API with explicit generation id.
-30. Add an optional strict-ack endpoint (`txid`) for flows that need synced-to-stream confirmation.
+30. ~~Add an optional strict-ack endpoint (`txid`) for flows that need synced-to-stream confirmation.~~ DONE (already in use via writeUserMessage txid pattern)
 31. Standardize terminal semantics (`done` vs `message-end` vs `stop/error`) and document one canonical end signal.
-32. Return structured error codes from finish/flush routes for better client behavior.
-33. Define whether `/chunks` supports multi-writer per session; enforce if single-writer.
-34. Add request/session/message IDs in all responses for tracing.
+32. ~~Return structured error codes from finish/flush routes for better client behavior.~~ DONE (all routes have `code` field)
+33. ~~Define whether `/chunks` supports multi-writer per session; enforce if single-writer.~~ DONE (single-writer via activeGenerationIds)
+34. ~~Add request/session/message IDs in all responses for tracing.~~ DONE
 
 ## Observability
 
