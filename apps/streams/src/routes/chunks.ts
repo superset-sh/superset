@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { z } from "zod";
 import type { AIDBSessionProtocol } from "../protocol";
 
@@ -16,6 +16,28 @@ const finishBodySchema = z.object({
 
 export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();
+
+	const generationMismatchResponse = ({
+		c,
+		sessionId,
+		messageId,
+		activeMessageId,
+	}: {
+		c: Context;
+		sessionId: string;
+		messageId: string;
+		activeMessageId: string;
+	}) =>
+		c.json(
+			{
+				error: "Generation mismatch",
+				code: "GENERATION_MISMATCH",
+				sessionId,
+				messageId,
+				activeMessageId,
+			},
+			409,
+		);
 
 	app.post("/:id/chunks", async (c) => {
 		const sessionId = c.req.param("id");
@@ -51,8 +73,16 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 				);
 			}
 
-			if (!protocol.getActiveGeneration(sessionId)) {
+			const activeMessageId = protocol.getActiveGeneration(sessionId);
+			if (!activeMessageId) {
 				protocol.startGeneration({ sessionId, messageId });
+			} else if (activeMessageId !== messageId) {
+				return generationMismatchResponse({
+					c,
+					sessionId,
+					messageId,
+					activeMessageId,
+				});
 			}
 
 			await protocol.writeChunk(
@@ -125,8 +155,43 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 			}
 
 			const firstMessageId = chunks[0]?.messageId;
-			if (firstMessageId && !protocol.getActiveGeneration(sessionId)) {
+			if (!firstMessageId) {
+				return c.json(
+					{
+						error: "Each chunk must include messageId",
+						code: "INVALID_BODY",
+						sessionId,
+					},
+					400,
+				);
+			}
+
+			const mixedMessageIdChunk = chunks.find(
+				(chunk) => chunk.messageId !== firstMessageId,
+			);
+			if (mixedMessageIdChunk) {
+				return c.json(
+					{
+						error: "Batch chunks must belong to one generation",
+						code: "GENERATION_MISMATCH",
+						sessionId,
+						messageId: mixedMessageIdChunk.messageId,
+						activeMessageId: firstMessageId,
+					},
+					409,
+				);
+			}
+
+			const activeMessageId = protocol.getActiveGeneration(sessionId);
+			if (!activeMessageId) {
 				protocol.startGeneration({ sessionId, messageId: firstMessageId });
+			} else if (activeMessageId !== firstMessageId) {
+				return generationMismatchResponse({
+					c,
+					sessionId,
+					messageId: firstMessageId,
+					activeMessageId,
+				});
 			}
 
 			await protocol.writeChunks({
