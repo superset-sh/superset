@@ -31,7 +31,7 @@ on:
 jobs:
   build:
     name: Build - macOS (${{ matrix.arch }})
-    runs-on: macos-latest-large
+    runs-on: macos-latest
     environment: production
 
     strategy:
@@ -95,13 +95,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: bun run compile:app
 
-      - name: Prepare native modules & resources
-        working-directory: apps/desktop
-        run: |
-          bun run copy:native-modules
-          bun run download:claude
-
-      - name: Build & sign app bundle
+      - name: Build Electron app
         working-directory: apps/desktop
         env:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
@@ -109,11 +103,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx electron-builder --dir --arm64 --config ${{ inputs.electron_builder_config }}
-
-      - name: Package (DMG & ZIP)
-        working-directory: apps/desktop
-        run: npx electron-builder --prepackaged "release/mac-arm64/$(ls release/mac-arm64/)" --config ${{ inputs.electron_builder_config }} --publish never
+        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
