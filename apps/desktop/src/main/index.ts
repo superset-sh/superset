@@ -11,6 +11,7 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
+import { shutdownOutlit } from "./lib/outlit";
 import { initSentry } from "./lib/sentry";
 import { reconcileDaemonSessions } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
@@ -157,6 +158,7 @@ app.on("before-quit", async (event) => {
 	// Quit confirmed or no confirmation needed - exit immediately
 	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
+	await shutdownOutlit();
 	disposeTray();
 	app.exit(0);
 });
