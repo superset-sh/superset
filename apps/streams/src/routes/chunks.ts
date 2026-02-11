@@ -79,6 +79,8 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 			return c.json({ error: "Session not found" }, 404);
 		}
 
+		await protocol.flushSession(sessionId);
+
 		return c.json({ ok: true }, 200);
 	});
 

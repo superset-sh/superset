@@ -1,4 +1,4 @@
-import { DurableStream } from "@durable-streams/client";
+import { DurableStream, IdempotentProducer } from "@durable-streams/client";
 import {
 	createMessagesCollection,
 	createModelMessagesCollection,
@@ -16,6 +16,7 @@ type MessageRole = "user" | "assistant" | "system";
 export class AIDBSessionProtocol {
 	private readonly baseUrl: string;
 	private streams = new Map<string, DurableStream>();
+	private producers = new Map<string, IdempotentProducer>();
 	private messageSeqs = new Map<string, number>();
 	private sessionStates = new Map<string, ProxySessionState>();
 
@@ -34,6 +35,23 @@ export class AIDBSessionProtocol {
 
 		await stream.create({ contentType: "application/json" });
 		this.streams.set(sessionId, stream);
+
+		const producer = new IdempotentProducer(
+			stream,
+			`session-${sessionId}`,
+			{
+				autoClaim: true,
+				lingerMs: 5,
+				onError: (err) => {
+					console.error(
+						`[protocol] Producer error for ${sessionId}:`,
+						err,
+					);
+				},
+			},
+		);
+		this.producers.set(sessionId, producer);
+
 		await this.initializeSessionState(sessionId);
 
 		return stream;
@@ -52,6 +70,17 @@ export class AIDBSessionProtocol {
 	}
 
 	deleteSession(sessionId: string): void {
+		const producer = this.producers.get(sessionId);
+		if (producer) {
+			producer.detach().catch((err) => {
+				console.error(
+					`[protocol] Failed to detach producer for ${sessionId}:`,
+					err,
+				);
+			});
+			this.producers.delete(sessionId);
+		}
+
 		const state = this.sessionStates.get(sessionId);
 		if (state) {
 			state.changeSubscription?.unsubscribe();
@@ -155,10 +184,20 @@ export class AIDBSessionProtocol {
 			...(txid && { headers: { txid } }),
 		});
 
-		const result = await stream.append(JSON.stringify(event));
+		const producer = this.producers.get(sessionId);
+		if (producer) {
+			producer.append(JSON.stringify(event));
+		} else {
+			await stream.append(JSON.stringify(event));
+		}
 		this.updateLastActivity(sessionId);
+	}
 
-		return result;
+	async flushSession(sessionId: string): Promise<void> {
+		const producer = this.producers.get(sessionId);
+		if (producer) {
+			await producer.flush();
+		}
 	}
 
 	async writeUserMessage(
@@ -264,7 +303,7 @@ export class AIDBSessionProtocol {
 		error: string | null,
 		txid?: string,
 	): Promise<void> {
-		const result = await this.writeChunk(
+		await this.writeChunk(
 			stream,
 			sessionId,
 			messageId,
@@ -279,8 +318,8 @@ export class AIDBSessionProtocol {
 			txid,
 		);
 
+		await this.flushSession(sessionId);
 		this.clearSeq(messageId);
-		return result;
 	}
 
 	async writeApprovalResponse(
@@ -293,7 +332,7 @@ export class AIDBSessionProtocol {
 	): Promise<void> {
 		const messageId = crypto.randomUUID();
 
-		const result = await this.writeChunk(
+		await this.writeChunk(
 			stream,
 			sessionId,
 			messageId,
@@ -307,8 +346,8 @@ export class AIDBSessionProtocol {
 			txid,
 		);
 
+		await this.flushSession(sessionId);
 		this.clearSeq(messageId);
-		return result;
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════

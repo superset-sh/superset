@@ -264,6 +264,7 @@ export class ChatSessionManager extends EventEmitter {
 
 		const headers = await buildProxyHeaders();
 		let messageId: string | undefined;
+		let chunkSendChain = Promise.resolve();
 
 		try {
 			const startRes = await fetch(
@@ -301,32 +302,34 @@ export class ChatSessionManager extends EventEmitter {
 				maxThinkingTokens: session.maxThinkingTokens,
 				signal: abortController.signal,
 
-				onChunk: async (chunk) => {
-					try {
-						const chunkRes = await fetch(
-							`${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
-							{
-								method: "POST",
-								headers,
-								body: JSON.stringify({
-									messageId,
-									actorId: "claude",
-									role: "assistant",
-									chunk,
-								}),
-							},
-						);
-						if (!chunkRes.ok) {
+				onChunk: (chunk) => {
+					chunkSendChain = chunkSendChain.then(async () => {
+						try {
+							const chunkRes = await fetch(
+								`${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
+								{
+									method: "POST",
+									headers,
+									body: JSON.stringify({
+										messageId,
+										actorId: "claude",
+										role: "assistant",
+										chunk,
+									}),
+								},
+							);
+							if (!chunkRes.ok) {
+								console.error(
+									`[chat/session] POST chunk failed for ${sessionId}: ${chunkRes.status}`,
+								);
+							}
+						} catch (err) {
 							console.error(
-								`[chat/session] POST chunk failed for ${sessionId}: ${chunkRes.status}`,
+								`[chat/session] Failed to POST chunk for ${sessionId}:`,
+								err,
 							);
 						}
-					} catch (err) {
-						console.error(
-							`[chat/session] Failed to POST chunk for ${sessionId}:`,
-							err,
-						);
-					}
+					});
 				},
 
 				onPermissionRequest: async (params: PermissionRequestParams) => {
@@ -372,8 +375,10 @@ export class ChatSessionManager extends EventEmitter {
 				error: message,
 			} satisfies ErrorEvent);
 		} finally {
-			// Always write a terminal chunk + finish so the client
-			// materializes the message as complete (isLoading → false).
+			// Terminal chunk must follow all streaming chunks in the durable stream
+			await chunkSendChain;
+
+			// Client uses terminal chunk + finish to mark message complete (isLoading → false)
 			if (messageId) {
 				try {
 					await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
