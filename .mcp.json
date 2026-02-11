@@ -23,19 +23,6 @@
 		"sentry": {
 			"type": "http",
 			"url": "https://mcp.sentry.dev/mcp"
-		},
-		"posthog": {
-			"command": "npx",
-			"args": [
-				"-y",
-				"mcp-remote@latest",
-				"https://mcp.posthog.com/mcp",
-				"--header",
-				"Authorization:${POSTHOG_AUTH_HEADER}"
-			],
-			"env": {
-				"POSTHOG_AUTH_HEADER": "Bearer ${POSTHOG_API_KEY}"
-			}
 		}
 	}
 }
