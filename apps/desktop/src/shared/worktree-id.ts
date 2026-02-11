@@ -1,19 +1,12 @@
 /**
- * Utilities for multi-worktree development instance isolation.
+ * Standalone workspace name reader for use by predev scripts
+ * that cannot import env.shared.ts (Zod validation fails before env is loaded).
  *
- * When running inside a Superset terminal, SUPERSET_WORKSPACE_NAME is set
- * to enable multiple dev instances to run simultaneously with isolated
- * resources (home dir, ports, app name).
- */
-
-/**
- * Get workspace name for instance isolation.
- * Returns a sanitized name suitable for use in directory names.
+ * In-app code should use getWorkspaceName() from env.shared.ts instead.
  */
 export function getWorkspaceName(): string | undefined {
 	const name = process.env.SUPERSET_WORKSPACE_NAME;
 	if (!name) return undefined;
-	// Sanitize for use in directory names
 	return name
 		.toLowerCase()
 		.replace(/[^a-z0-9-]/g, "-")

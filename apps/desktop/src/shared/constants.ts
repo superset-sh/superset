@@ -1,5 +1,5 @@
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
-import { getWorkspaceName } from "./worktree-id";
+import { getWorkspaceName } from "./env.shared";
 
 export const PLATFORM = {
 	IS_MAC: process.platform === "darwin",
@@ -7,31 +7,13 @@ export const PLATFORM = {
 	IS_LINUX: process.platform === "linux",
 };
 
-/**
- * Get the Superset home directory name.
- * When running in a named workspace, returns `.superset-{workspace}` for isolation.
- * Otherwise returns `.superset`.
- */
-function getSupersetDirName(): string {
-	const workspace = getWorkspaceName();
-	if (workspace) {
-		return `.superset-${workspace}`;
-	}
-	return ".superset";
-}
-
-// Note: For environment-aware paths, use main/lib/app-environment.ts instead.
-// Paths require Node.js/Electron APIs that aren't available in renderer.
-export const SUPERSET_DIR_NAME = getSupersetDirName();
-
-// Deep link protocol scheme (workspace-aware)
-// Dev: "superset-{workspace}", Prod: "superset"
-function getProtocolScheme(): string {
-	const workspace = getWorkspaceName();
-	if (workspace) return `superset-${workspace}`;
-	return PROTOCOL_SCHEMES.PROD;
-}
-export const PROTOCOL_SCHEME = getProtocolScheme();
+const workspace = getWorkspaceName();
+export const SUPERSET_DIR_NAME = workspace
+	? `.superset-${workspace}`
+	: ".superset";
+export const PROTOCOL_SCHEME = workspace
+	? `superset-${workspace}`
+	: PROTOCOL_SCHEMES.PROD;
 // Project-level directory name (always .superset, not conditional)
 export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
