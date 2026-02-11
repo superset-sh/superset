@@ -4,7 +4,7 @@ import { NotFound } from "renderer/routes/not-found";
 import { SecretsSettings } from "../components/SecretsSettings";
 
 export const Route = createFileRoute(
-	"/_authenticated/settings/project/$projectId/secrets/",
+	"/_authenticated/settings/project/$projectId/cloud/secrets/",
 )({
 	component: SecretsSettingsPage,
 	notFoundComponent: NotFound,

@@ -46,6 +46,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_PATH: "project-path",
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
+	PROJECT_ENV_VARS: "project-env-vars",
 
 	// API Keys
 	API_KEYS_LIST: "api-keys-list",
@@ -676,6 +677,20 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"feat",
 			"custom",
 			"override",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_ENV_VARS,
+		section: "project",
+		title: "Environment Variables",
+		description: "Manage environment variables and secrets for cloud sandboxes",
+		keywords: [
+			"environment",
+			"variables",
+			"secrets",
+			"env",
+			"cloud",
+			"sandbox",
 		],
 	},
 	// API Keys

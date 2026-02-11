@@ -6,7 +6,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { SettingsSection } from "../ProjectSettings";
+import { SettingsSection } from "../../../components/ProjectSettings";
 import { AddSecretSheet } from "./components/AddSecretSheet";
 import { EditSecretDialog } from "./components/EditSecretDialog";
 import { EnvironmentVariablesList } from "./components/EnvironmentVariablesList";

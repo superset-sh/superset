@@ -50,11 +50,12 @@ export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
 						to: "/settings/project/$projectId/general",
 						params: { projectId: group.project.id },
 					});
-					const isSecretsActive = matchRoute({
-						to: "/settings/project/$projectId/secrets",
+					const isCloudSecretsActive = matchRoute({
+						to: "/settings/project/$projectId/cloud/secrets",
 						params: { projectId: group.project.id },
 					});
-					const isProjectActive = !!isGeneralActive || !!isSecretsActive;
+					const isCloudActive = !!isCloudSecretsActive;
+					const isProjectActive = !!isGeneralActive || isCloudActive;
 
 					return (
 						<Collapsible key={group.project.id} defaultOpen>
@@ -76,7 +77,7 @@ export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
 								<HiChevronDown className="h-3.5 w-3.5 text-muted-foreground group-data-[state=closed]:hidden" />
 							</CollapsibleTrigger>
 
-							{/* Sub-items: General + Env Variables */}
+							{/* Sub-items: General + Cloud */}
 							<CollapsibleContent>
 								<div className="ml-4 border-l border-border pl-2 mt-0.5 mb-1">
 									<Link
@@ -91,18 +92,38 @@ export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
 									>
 										<span className="truncate">General</span>
 									</Link>
-									<Link
-										to="/settings/project/$projectId/secrets"
-										params={{ projectId: group.project.id }}
-										className={cn(
-											"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
-											isSecretsActive
-												? "bg-accent text-accent-foreground"
-												: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-										)}
-									>
-										<span className="truncate">Environment Variables</span>
-									</Link>
+									<Collapsible defaultOpen>
+										<CollapsibleTrigger
+											className={cn(
+												"group flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
+												isCloudActive
+													? "text-accent-foreground"
+													: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+											)}
+										>
+											<span className="flex-1 truncate">Cloud</span>
+											<HiChevronRight className="h-3 w-3 text-muted-foreground group-data-[state=open]:hidden" />
+											<HiChevronDown className="h-3 w-3 text-muted-foreground group-data-[state=closed]:hidden" />
+										</CollapsibleTrigger>
+										<CollapsibleContent>
+											<div className="ml-3 border-l border-border pl-2 mt-0.5 mb-1">
+												<Link
+													to="/settings/project/$projectId/cloud/secrets"
+													params={{ projectId: group.project.id }}
+													className={cn(
+														"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
+														isCloudSecretsActive
+															? "bg-accent text-accent-foreground"
+															: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+													)}
+												>
+													<span className="truncate">
+														Environment Variables
+													</span>
+												</Link>
+											</div>
+										</CollapsibleContent>
+									</Collapsible>
 								</div>
 							</CollapsibleContent>
 						</Collapsible>
