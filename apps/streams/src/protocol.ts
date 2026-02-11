@@ -91,15 +91,25 @@ export class AIDBSessionProtocol {
 		return this.streams.get(sessionId);
 	}
 
-	deleteSession(sessionId: string): void {
+	async deleteSession(sessionId: string): Promise<void> {
 		const producer = this.producers.get(sessionId);
 		if (producer) {
-			producer.detach().catch((err) => {
+			try {
+				await producer.flush();
+			} catch (err) {
+				console.error(
+					`[protocol] Failed to flush producer for ${sessionId}:`,
+					err,
+				);
+			}
+			try {
+				await producer.detach();
+			} catch (err) {
 				console.error(
 					`[protocol] Failed to detach producer for ${sessionId}:`,
 					err,
 				);
-			});
+			}
 			this.producers.delete(sessionId);
 		}
 
