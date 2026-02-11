@@ -263,27 +263,10 @@ export class ChatSessionManager extends EventEmitter {
 		this.runningAgents.set(sessionId, abortController);
 
 		const headers = await buildProxyHeaders();
-		let messageId: string | undefined;
+		const messageId = crypto.randomUUID();
 		let chunkSendChain = Promise.resolve();
 
 		try {
-			const startRes = await fetch(
-				`${PROXY_URL}/v1/sessions/${sessionId}/generations/start`,
-				{
-					method: "POST",
-					headers,
-					body: JSON.stringify({}),
-				},
-			);
-			if (!startRes.ok) {
-				throw new Error(`POST /generations/start failed: ${startRes.status}`);
-			}
-			const startBody = await startRes.json();
-			if (typeof startBody?.messageId !== "string") {
-				throw new Error("Invalid start generation response: missing messageId");
-			}
-			messageId = startBody.messageId;
-
 			const agentEnv = buildClaudeEnv();
 
 			await executeAgent({
@@ -386,51 +369,37 @@ export class ChatSessionManager extends EventEmitter {
 			await chunkSendChain;
 
 			// Client uses terminal chunk + finish to mark message complete (isLoading → false)
-			if (messageId) {
-				try {
-					await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
+			try {
+				await fetch(`${PROXY_URL}/v1/sessions/${sessionId}/chunks`, {
+					method: "POST",
+					headers,
+					body: JSON.stringify({
+						messageId,
+						actorId: "claude",
+						role: "assistant",
+						chunk: { type: "message-end" },
+					}),
+				});
+			} catch (err) {
+				console.error(
+					`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
+					err,
+				);
+			}
+
+			try {
+				const finishRes = await fetch(
+					`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
+					{
 						method: "POST",
 						headers,
-						body: JSON.stringify({
-							messageId,
-							actorId: "claude",
-							role: "assistant",
-							chunk: { type: "message-end" },
-						}),
-					});
-				} catch (err) {
-					console.error(
-						`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
-						err,
-					);
-				}
-
-				try {
-					const finishRes = await fetch(
-						`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
-						{
-							method: "POST",
-							headers,
-							body: JSON.stringify({ messageId }),
-						},
-					);
-					if (!finishRes.ok) {
-						const body = await finishRes.json().catch(() => null);
-						const detail =
-							body?.details ?? body?.error ?? `status ${finishRes.status}`;
-						console.error(
-							`[chat/session] POST /generations/finish failed for ${sessionId}:`,
-							detail,
-						);
-						this.emit("event", {
-							type: "error",
-							sessionId,
-							error: `Generation finish failed: ${detail}`,
-						} satisfies ErrorEvent);
-					}
-				} catch (err) {
+						body: JSON.stringify({ messageId }),
+					},
+				);
+				if (!finishRes.ok) {
+					const body = await finishRes.json().catch(() => null);
 					const detail =
-						err instanceof Error ? err.message : String(err);
+						body?.details ?? body?.error ?? `status ${finishRes.status}`;
 					console.error(
 						`[chat/session] POST /generations/finish failed for ${sessionId}:`,
 						detail,
@@ -441,6 +410,18 @@ export class ChatSessionManager extends EventEmitter {
 						error: `Generation finish failed: ${detail}`,
 					} satisfies ErrorEvent);
 				}
+			} catch (err) {
+				const detail =
+					err instanceof Error ? err.message : String(err);
+				console.error(
+					`[chat/session] POST /generations/finish failed for ${sessionId}:`,
+					detail,
+				);
+				this.emit("event", {
+					type: "error",
+					sessionId,
+					error: `Generation finish failed: ${detail}`,
+				} satisfies ErrorEvent);
 			}
 
 			this.runningAgents.delete(sessionId);
