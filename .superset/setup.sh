@@ -316,6 +316,9 @@ step_write_env() {
   # Append workspace-specific values
   {
     echo ""
+    echo "# Workspace Identity"
+    echo "SUPERSET_WORKSPACE_NAME=${WORKSPACE_NAME:-$(basename "$PWD")}"
+    echo ""
     echo "# Workspace Database (Neon Branch)"
     if [ -n "${BRANCH_ID:-}" ]; then
       echo "NEON_BRANCH_ID=$BRANCH_ID"
@@ -382,9 +385,18 @@ step_write_env() {
       echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"
       echo "NEXT_PUBLIC_DOCS_URL=http://localhost:$DOCS_PORT"
       echo "NEXT_PUBLIC_DESKTOP_URL=http://localhost:$DESKTOP_VITE_PORT"
-      echo "STREAMS_URL=http://localhost:$STREAMS_PORT"
       echo "EXPO_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
       echo "EXPO_PUBLIC_API_URL=http://localhost:$API_PORT"
+      echo ""
+      echo "# Streams URLs (overrides from root .env)"
+      echo "PORT=$STREAMS_PORT"
+      echo "STREAMS_URL=http://localhost:$STREAMS_PORT"
+      echo "NEXT_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
+      echo "EXPO_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
+      echo "STREAMS_INTERNAL_URL=http://127.0.0.1:$STREAMS_INTERNAL_PORT"
+      echo ""
+      echo "# Electric URL (overrides from root .env)"
+      echo "ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape"
     fi
   } >> .env
 

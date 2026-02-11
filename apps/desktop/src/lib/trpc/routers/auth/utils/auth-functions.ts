@@ -2,8 +2,8 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import { join } from "node:path";
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
-import { PROTOCOL_SCHEME } from "shared/constants";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
+import { PROTOCOL_SCHEME } from "shared/constants";
 import { decrypt, encrypt } from "./crypto-storage";
 
 interface StoredAuth {
@@ -84,7 +84,6 @@ export function parseAuthDeepLink(
 		const parsed = new URL(url);
 		const validProtocols = new Set([
 			`${PROTOCOL_SCHEMES.PROD}:`,
-			`${PROTOCOL_SCHEMES.DEV}:`,
 			`${PROTOCOL_SCHEME}:`,
 		]);
 		if (!validProtocols.has(parsed.protocol)) return null;

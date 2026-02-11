@@ -1,5 +1,4 @@
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
-import { env } from "./env.shared";
 import { getWorkspaceName } from "./worktree-id";
 
 export const PLATFORM = {
@@ -26,11 +25,11 @@ function getSupersetDirName(): string {
 export const SUPERSET_DIR_NAME = getSupersetDirName();
 
 // Deep link protocol scheme (workspace-aware)
-// Named workspaces get "superset-{name}", default dev gets "superset-dev", prod gets "superset"
+// Dev: "superset-{workspace}", Prod: "superset"
 function getProtocolScheme(): string {
 	const workspace = getWorkspaceName();
 	if (workspace) return `superset-${workspace}`;
-	return env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;
+	return PROTOCOL_SCHEMES.PROD;
 }
 export const PROTOCOL_SCHEME = getProtocolScheme();
 // Project-level directory name (always .superset, not conditional)

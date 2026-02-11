@@ -7,6 +7,7 @@ export async function GET(request: Request) {
 	const url = new URL(request.url);
 	const provider = url.searchParams.get("provider");
 	const state = url.searchParams.get("state");
+	const protocol = url.searchParams.get("protocol");
 
 	if (!provider || !state) {
 		return new Response("Missing provider or state", { status: 400 });
@@ -18,6 +19,9 @@ export async function GET(request: Request) {
 
 	const successUrl = new URL(`${env.NEXT_PUBLIC_WEB_URL}/auth/desktop/success`);
 	successUrl.searchParams.set("desktop_state", state);
+	if (protocol) {
+		successUrl.searchParams.set("desktop_protocol", protocol);
+	}
 
 	const result = await auth.api.signInSocial({
 		body: {

@@ -14,12 +14,9 @@ import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-// Import directly from shared package to avoid env.ts validation during predev script
-// (The desktop's shared/constants.ts imports env.ts which validates env vars at import time)
-const PROTOCOL_SCHEMES = {
-	DEV: "superset-dev",
-	PROD: "superset",
-} as const;
+// Import getWorkspaceName directly (not shared/constants.ts which imports env.ts
+// and would trigger Zod validation of env vars not yet available during predev)
+import { getWorkspaceName } from "../src/shared/worktree-id";
 
 // Only needed on macOS
 if (process.platform !== "darwin") {
@@ -27,8 +24,16 @@ if (process.platform !== "darwin") {
 	process.exit(0);
 }
 
-const PROTOCOL_SCHEME = PROTOCOL_SCHEMES.DEV;
-const BUNDLE_ID = "com.superset.desktop.dev";
+// Workspace-aware protocol scheme and bundle ID for multi-worktree isolation
+const workspaceName = getWorkspaceName();
+if (!workspaceName) {
+	console.log(
+		"[patch-dev-protocol] Skipping - SUPERSET_WORKSPACE_NAME not set",
+	);
+	process.exit(0);
+}
+const PROTOCOL_SCHEME = `superset-${workspaceName}`;
+const BUNDLE_ID = `com.superset.desktop.${workspaceName}`;
 const ELECTRON_APP_PATH = resolve(
 	import.meta.dirname,
 	"../node_modules/electron/dist/Electron.app",
