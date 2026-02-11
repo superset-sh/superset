@@ -38,7 +38,7 @@
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",
-		"release:canary": "gh workflow run release-desktop-canary.yml && sleep 2 && gh run list --workflow=release-desktop-canary.yml --limit=1 --json url -q '.[0].url'"
+		"release:canary": "gh workflow run release-desktop-canary.yml -f force_build=true && sleep 2 && gh run list --workflow=release-desktop-canary.yml --limit=1 --json url -q '.[0].url'"
 	},
 	"type": "module",
 	"workspaces": [
