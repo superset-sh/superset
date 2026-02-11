@@ -107,6 +107,15 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
 
+      - name: Verify app-update.yml exists
+        working-directory: apps/desktop
+        run: |
+          APP_DIR=$(ls -d release/mac-arm64/*.app | head -1)
+          test -f "$APP_DIR/Contents/Resources/app-update.yml" || {
+            echo "::error::app-update.yml missing from $APP_DIR/Contents/Resources/ — auto-update will be broken"
+            exit 1
+          }
+
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
