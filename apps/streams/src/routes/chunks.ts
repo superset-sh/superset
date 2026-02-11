@@ -53,12 +53,14 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 				txid,
 			);
 
-			return c.json({ ok: true }, 200);
+			return c.json({ ok: true, sessionId, messageId }, 200);
 		} catch (error) {
 			console.error("[chunks] Failed to write chunk:", error);
 			return c.json(
 				{
 					error: "Failed to write chunk",
+					sessionId,
+					messageId,
 					details: (error as Error).message,
 				},
 				500,
@@ -101,12 +103,13 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 				chunks: chunks as never,
 			});
 
-			return c.json({ ok: true, count: chunks.length }, 200);
+			return c.json({ ok: true, sessionId, count: chunks.length }, 200);
 		} catch (error) {
 			console.error("[chunks] Failed to write batch:", error);
 			return c.json(
 				{
 					error: "Failed to write chunk batch",
+					sessionId,
 					details: (error as Error).message,
 				},
 				500,
@@ -147,7 +150,7 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 
 		try {
 			await protocol.finishGeneration({ sessionId, messageId });
-			return c.json({ ok: true }, 200);
+			return c.json({ ok: true, sessionId, messageId }, 200);
 		} catch (error) {
 			console.error(
 				"[chunks] Generation finish failed:",
@@ -158,6 +161,8 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 					ok: false,
 					error: "Generation finish failed",
 					code: "FINISH_FAILED",
+					sessionId,
+					messageId,
 					details: (error as Error).message,
 				},
 				500,
