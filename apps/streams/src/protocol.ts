@@ -19,6 +19,7 @@ export class AIDBSessionProtocol {
 	private producers = new Map<string, IdempotentProducer>();
 	private messageSeqs = new Map<string, number>();
 	private sessionStates = new Map<string, ProxySessionState>();
+	private producerErrors = new Map<string, Error[]>();
 
 	constructor(options: AIDBProtocolOptions) {
 		this.baseUrl = options.baseUrl;
@@ -35,6 +36,7 @@ export class AIDBSessionProtocol {
 
 		await stream.create({ contentType: "application/json" });
 		this.streams.set(sessionId, stream);
+		this.producerErrors.set(sessionId, []);
 
 		const producer = new IdempotentProducer(
 			stream,
@@ -47,6 +49,12 @@ export class AIDBSessionProtocol {
 						`[protocol] Producer error for ${sessionId}:`,
 						err,
 					);
+					const errors = this.producerErrors.get(sessionId);
+					if (errors) {
+						errors.push(
+							err instanceof Error ? err : new Error(String(err)),
+						);
+					}
 				},
 			},
 		);
@@ -89,6 +97,7 @@ export class AIDBSessionProtocol {
 
 		this.streams.delete(sessionId);
 		this.sessionStates.delete(sessionId);
+		this.producerErrors.delete(sessionId);
 	}
 
 	async resetSession(sessionId: string, _clearPresence = false): Promise<void> {
@@ -197,6 +206,30 @@ export class AIDBSessionProtocol {
 		const producer = this.producers.get(sessionId);
 		if (producer) {
 			await producer.flush();
+		}
+	}
+
+	async finishGeneration({
+		sessionId,
+		messageId,
+	}: {
+		sessionId: string;
+		messageId?: string;
+	}): Promise<void> {
+		await this.flushSession(sessionId);
+
+		if (messageId) {
+			this.clearSeq(messageId);
+		}
+
+		const errors = this.producerErrors.get(sessionId);
+		if (errors && errors.length > 0) {
+			const count = errors.length;
+			const errorMessages = errors.map((e) => e.message).join("; ");
+			errors.length = 0;
+			throw new Error(
+				`Producer encountered ${count} background error(s) during generation: ${errorMessages}`,
+			);
 		}
 	}
 

@@ -10,6 +10,10 @@ const chunkBodySchema = z.object({
 	txid: z.string().optional(),
 });
 
+const finishBodySchema = z.object({
+	messageId: z.string().optional(),
+});
+
 export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();
 
@@ -79,9 +83,33 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 			return c.json({ error: "Session not found" }, 404);
 		}
 
-		await protocol.flushSession(sessionId);
+		let messageId: string | undefined;
+		try {
+			const rawBody = await c.req.json();
+			const parsed = finishBodySchema.parse(rawBody);
+			messageId = parsed.messageId;
+		} catch {
+			// No body or invalid JSON — messageId is optional
+		}
 
-		return c.json({ ok: true }, 200);
+		try {
+			await protocol.finishGeneration({ sessionId, messageId });
+			return c.json({ ok: true }, 200);
+		} catch (error) {
+			console.error(
+				"[chunks] Generation finish failed:",
+				(error as Error).message,
+			);
+			return c.json(
+				{
+					ok: false,
+					error: "Generation finish failed",
+					code: "FINISH_FAILED",
+					details: (error as Error).message,
+				},
+				500,
+			);
+		}
 	});
 
 	return app;
