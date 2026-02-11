@@ -21,7 +21,7 @@ const envSchema = z.object({
 	DESKTOP_NOTIFICATIONS_PORT: z.coerce.number().default(5174),
 	ELECTRIC_PORT: z.coerce.number().default(5133),
 	// Workspace name for instance isolation
-	SUPERSET_WORKSPACE_NAME: z.string(),
+	SUPERSET_WORKSPACE_NAME: z.string().default("superset"),
 });
 
 /**
