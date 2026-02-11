@@ -40,16 +40,31 @@ gemini mcp add --transport http superset https://api.superset.sh/api/agent/mcp
 <Tab value="Open Code">
 Run `opencode mcp add` and follow the interactive prompts:
 
-```bash title="terminal"
+```ansi title="terminal"
 opencode mcp add
-```
 
-When prompted, enter:
-- **Server name**: `superset`
-- **Type**: Remote
-- **URL**: `https://api.superset.sh/api/agent/mcp`
-- **Requires OAuth?**: Yes
-- **Pre-registered client ID?**: No
+┌  Add MCP server
+│
+◇  Location
+│  Current project
+│
+◇  Enter MCP server name
+│  superset
+│
+◇  Select MCP server type
+│  Remote
+│
+◇  Enter MCP server URL
+│  https://api.superset.sh/api/agent/mcp
+│
+◇  Does this server require OAuth authentication?
+│  Yes
+│
+◇  Do you have a pre-registered client ID?
+│  No
+│
+└  MCP server added successfully
+```
 </Tab>
 </Tabs>
 
