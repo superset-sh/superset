@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
-import { SUPERSET_DIR_NAMES } from "shared/constants";
 import { getDefaultShell } from "../terminal/env";
 
 /**
@@ -41,19 +40,14 @@ export function findRealBinary(name: string): string | null {
 
 		const homedir = os.homedir();
 		// Filter out wrapper scripts from all superset directories:
-		// - ~/.superset/bin (prod)
-		// - ~/.superset-dev/bin (legacy dev)
-		// - ~/.superset-*/bin (workspace-specific dev instances)
-		const supersetBinDirs = [
-			path.join(homedir, SUPERSET_DIR_NAMES.PROD, "bin"),
-			path.join(homedir, SUPERSET_DIR_NAMES.DEV, "bin"),
-		];
+		// - ~/.superset/bin
+		// - ~/.superset-*/bin (workspace-specific instances)
+		const supersetBinDir = path.join(homedir, ".superset", "bin");
 		const supersetPrefix = path.join(homedir, ".superset-");
 		const paths = allPaths.filter(
 			(p) =>
 				p &&
-				!supersetBinDirs.some((dir) => p.startsWith(dir)) &&
-				// Also filter any .superset-*/bin directories (workspace instances)
+				!p.startsWith(supersetBinDir) &&
 				!(p.startsWith(supersetPrefix) && p.includes("/bin/")),
 		);
 		return paths[0] || null;

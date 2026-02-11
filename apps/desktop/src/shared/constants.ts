@@ -25,13 +25,6 @@ function getSupersetDirName(): string {
 // Paths require Node.js/Electron APIs that aren't available in renderer.
 export const SUPERSET_DIR_NAME = getSupersetDirName();
 
-// Static directory names for filtering wrapper scripts (used by agent-setup)
-// These are the known directories that may contain wrapper scripts
-export const SUPERSET_DIR_NAMES = {
-	PROD: ".superset",
-	DEV: ".superset-dev",
-} as const;
-
 // Deep link protocol scheme (environment-aware)
 export const PROTOCOL_SCHEME =
 	env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;

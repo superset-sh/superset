@@ -85,7 +85,9 @@ export function ChatInterface({
 		collections,
 	} = useDurableChat({
 		sessionId,
-		proxyUrl: config?.proxyUrl ?? "http://localhost:8080",
+		proxyUrl:
+			config?.proxyUrl ??
+			(process.env.STREAMS_URL || "https://superset-stream.fly.dev"),
 		autoConnect: false,
 		stream: config?.authToken
 			? { headers: { Authorization: `Bearer ${config.authToken}` } }

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { JSONFilePreset } from "lowdb/node";
+import { SUPERSET_DIR_NAME } from "shared/constants";
 
 export interface ChatSessionMeta {
 	sessionId: string;
@@ -20,9 +21,7 @@ interface SessionStoreData {
 	sessions: ChatSessionMeta[];
 }
 
-const SUPERSET_DIR =
-	process.env.NODE_ENV === "development" ? ".superset-dev" : ".superset";
-const STORE_PATH = join(homedir(), SUPERSET_DIR, "chat-sessions.json");
+const STORE_PATH = join(homedir(), SUPERSET_DIR_NAME, "chat-sessions.json");
 
 export class SessionStore {
 	private db: Awaited<

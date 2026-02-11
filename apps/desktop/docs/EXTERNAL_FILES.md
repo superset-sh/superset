@@ -1,17 +1,17 @@
 # External Files Written by Superset Desktop
 
 This document lists all files written by the Superset desktop app outside of user projects.
-Understanding these files is critical for maintaining dev/prod separation and avoiding conflicts.
+Understanding these files is critical for maintaining workspace isolation and avoiding conflicts.
 
-## Environment-Specific Directories
+## Workspace-Specific Directories
 
-The app uses different home directories based on environment:
-- **Development**: `~/.superset-dev/`
-- **Production**: `~/.superset/`
+The app uses different home directories based on workspace:
+- **Default**: `~/.superset/`
+- **Named workspace**: `~/.superset-{workspace}/` (e.g. `~/.superset-my-feature/`)
 
-This separation prevents dev and prod from interfering with each other.
+This separation prevents multiple instances from interfering with each other.
 
-## Files in `~/.superset[-dev]/`
+## Files in `~/.superset[-{workspace}]/`
 
 ### `bin/` - Agent Wrapper Scripts
 
@@ -61,8 +61,8 @@ The app modifies shell RC files to add the Superset bin directory to PATH:
 
 | Shell | RC File | Modification |
 |-------|---------|--------------|
-| Zsh | `~/.zshrc` | Prepends `~/.superset[-dev]/bin` to PATH |
-| Bash | `~/.bashrc` | Prepends `~/.superset[-dev]/bin` to PATH |
+| Zsh | `~/.zshrc` | Prepends `~/.superset[-{workspace}]/bin` to PATH |
+| Bash | `~/.bashrc` | Prepends `~/.superset[-{workspace}]/bin` to PATH |
 
 ## Terminal Environment Variables
 
@@ -82,7 +82,7 @@ Each terminal session receives these environment variables:
 
 ## Adding New External Files
 
-Before adding new files outside of `~/.superset[-dev]/`:
+Before adding new files outside of `~/.superset[-{workspace}]/`:
 
 1. **Consider if it's necessary** - Can you use the environment-specific directory instead?
 2. **Check for conflicts** - Will dev and prod overwrite each other?

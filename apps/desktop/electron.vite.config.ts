@@ -169,6 +169,10 @@ export default defineConfig({
 			"import.meta.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
+			"process.env.STREAMS_URL": defineEnv(
+				process.env.STREAMS_URL,
+				"https://superset-stream.fly.dev",
+			),
 			// Multi-worktree support env vars (for env.shared.ts in renderer)
 			"process.env.DESKTOP_VITE_PORT": defineEnv(process.env.DESKTOP_VITE_PORT),
 			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
