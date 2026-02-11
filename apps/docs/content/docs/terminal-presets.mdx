@@ -53,8 +53,12 @@ Pre-configured presets for popular AI agents:
 
 ## Default Preset
 
-Mark a preset as default to auto-apply it when:
-- Creating new terminal tabs (if "Auto-apply default preset" is enabled)
-- Creating new workspaces
+Mark a preset as default to auto-apply it when creating workspaces or opening new tabs.
 
-Enable **Auto-apply default preset** in Settings → Terminal to automatically run your default preset in new workspaces.
+**Auto-apply settings** in Settings → Terminal:
+- **Apply preset on workspace creation** - Runs default preset when creating new workspaces
+- **Apply preset on new tab** - Runs default preset when opening new terminal tabs/panes/splits
+
+Both settings are enabled by default. Disable either to prevent automatic preset application in that context.
+
+Explicit preset launches (via hotkey or menu) always work regardless of these settings.

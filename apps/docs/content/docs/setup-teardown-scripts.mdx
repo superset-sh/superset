@@ -79,6 +79,15 @@ No merging occurs between levels—the first config found is used entirely.
 { "setup": [], "teardown": [] }
 ```
 
+## Force Delete
+
+If teardown scripts fail during workspace deletion, you can force-delete to skip the failed teardown and continue cleanup.
+
+When teardown fails:
+1. Error toast appears with "Delete Anyway" and "View Logs" buttons
+2. Click "Delete Anyway" to force-delete immediately
+3. Or click "View Logs" to review the failure, then force-delete from the dialog
+
 ## Tips
 
 - Keep setup fast—runs every workspace creation
