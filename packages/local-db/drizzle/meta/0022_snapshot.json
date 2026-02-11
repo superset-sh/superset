@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6cbb83fb-b7c0-46fa-830a-2c63f67bc147",
+  "id": "9b4b835d-bade-4c2d-a569-042165d45105",
   "prevId": "8a53a71d-3904-41e1-8c3f-b0322d375a78",
   "tables": {
     "organization_members": {
@@ -276,6 +276,13 @@
         "hide_image": {
           "name": "hide_image",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "icon_url": {
+          "name": "icon_url",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
