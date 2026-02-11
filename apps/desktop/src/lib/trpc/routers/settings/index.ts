@@ -31,6 +31,51 @@ function getSettings() {
 	return row;
 }
 
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
+	{
+		name: "claude",
+		description: "Danger mode: All permissions auto-approved",
+		cwd: "",
+		commands: ["claude --dangerously-skip-permissions"],
+	},
+	{
+		name: "codex",
+		description: "Danger mode: All permissions auto-approved",
+		cwd: "",
+		commands: [
+			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+		],
+	},
+];
+
+function initializeDefaultPresets() {
+	const row = getSettings();
+	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
+
+	const presets: TerminalPreset[] = DEFAULT_PRESETS.map((p) => ({
+		id: crypto.randomUUID(),
+		...p,
+	}));
+
+	localDb
+		.insert(settings)
+		.values({
+			id: 1,
+			terminalPresets: presets,
+			terminalPresetsInitialized: true,
+		})
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: {
+				terminalPresets: presets,
+				terminalPresetsInitialized: true,
+			},
+		})
+		.run();
+
+	return presets;
+}
+
 /** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
@@ -51,6 +96,9 @@ export const createSettingsRouter = () => {
 		}),
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
+			if (!row.terminalPresetsInitialized) {
+				return initializeDefaultPresets();
+			}
 			return row.terminalPresets ?? [];
 		}),
 		createTerminalPreset: publicProcedure
