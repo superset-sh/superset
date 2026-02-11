@@ -71,17 +71,17 @@ describe("LFS Detection", () => {
 		expect(content.includes("filter=lfs")).toBe(true);
 	});
 
-	test("detects LFS via .lfsconfig", async () => {
+	test("does not detect LFS from .lfsconfig alone", async () => {
 		const repoPath = createTestRepo("lfs-config-test");
 
-		// Create .lfsconfig
+		// .lfsconfig configures LFS behaviour but does not indicate file tracking
 		writeFileSync(
 			join(repoPath, ".lfsconfig"),
-			"[lfs]\n\turl = https://example.com/lfs\n",
+			"[lfs]\n\tlocksverify = false\n",
 		);
 
-		const content = await Bun.file(join(repoPath, ".lfsconfig")).text();
-		expect(content.includes("[lfs]")).toBe(true);
+		expect(existsSync(join(repoPath, ".git", "lfs"))).toBe(false);
+		expect(existsSync(join(repoPath, ".gitattributes"))).toBe(false);
 	});
 
 	test("no LFS detected in plain repo", async () => {
@@ -281,6 +281,125 @@ describe("getDefaultBranch", () => {
 
 			const result = await getDefaultBranchForTest(repoPath);
 			expect(result).toBe("main");
+		} finally {
+			cleanup();
+		}
+	});
+});
+
+describe("Worktree creation bypasses git hooks", () => {
+	function setupRepoWithFailingHook(testName: string) {
+		const baseDir = join(
+			__dirname,
+			`.test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		);
+		const repoPath = join(baseDir, "repo");
+		mkdirSync(repoPath, { recursive: true });
+		execSync("git init", { cwd: repoPath, stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", { cwd: repoPath, stdio: "ignore" });
+		writeFileSync(join(repoPath, "README.md"), "# test\n");
+		execSync("git add . && git commit -m 'init'", {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		const hooksDir = join(repoPath, ".git", "hooks");
+		mkdirSync(hooksDir, { recursive: true });
+		writeFileSync(
+			join(hooksDir, "post-checkout"),
+			'#!/bin/sh\necho "hook: simulating pnpm not found" >&2\nexit 1\n',
+		);
+		execSync(`chmod +x "${join(hooksDir, "post-checkout")}"`, {
+			stdio: "ignore",
+		});
+
+		return {
+			repoPath,
+			worktreePath: join(baseDir, "worktree"),
+			cleanup: () => {
+				if (existsSync(baseDir)) {
+					rmSync(baseDir, { recursive: true, force: true });
+				}
+			},
+		};
+	}
+
+	test("createWorktree succeeds despite failing post-checkout hook", async () => {
+		const { createWorktree } = await import("./git");
+		const { repoPath, worktreePath, cleanup } =
+			setupRepoWithFailingHook("create");
+		try {
+			await createWorktree(repoPath, "test-branch", worktreePath, "HEAD");
+
+			expect(existsSync(worktreePath)).toBe(true);
+			const branch = execSync("git rev-parse --abbrev-ref HEAD", {
+				cwd: worktreePath,
+				encoding: "utf-8",
+			}).trim();
+			expect(branch).toBe("test-branch");
+		} finally {
+			cleanup();
+		}
+	});
+
+	test("createWorktreeFromExistingBranch succeeds despite failing post-checkout hook", async () => {
+		const { createWorktreeFromExistingBranch } = await import("./git");
+		const { repoPath, worktreePath, cleanup } =
+			setupRepoWithFailingHook("existing");
+		try {
+			execSync("git branch existing-branch", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			await createWorktreeFromExistingBranch({
+				mainRepoPath: repoPath,
+				branch: "existing-branch",
+				worktreePath,
+			});
+
+			expect(existsSync(worktreePath)).toBe(true);
+			const branch = execSync("git rev-parse --abbrev-ref HEAD", {
+				cwd: worktreePath,
+				encoding: "utf-8",
+			}).trim();
+			expect(branch).toBe("existing-branch");
+		} finally {
+			cleanup();
+		}
+	});
+
+	test("failing post-checkout hook blocks vanilla worktree add but not with hooksPath=/dev/null", () => {
+		const { repoPath, cleanup } = setupRepoWithFailingHook("proof");
+		const failPath = join(repoPath, "..", "wt-fail");
+		const okPath = join(repoPath, "..", "wt-ok");
+		try {
+			expect(() => {
+				execSync(
+					`git -C "${repoPath}" worktree add "${failPath}" -b fail HEAD`,
+					{ stdio: "pipe" },
+				);
+			}).toThrow();
+
+			// git creates branch + directory before running the hook, clean up residual state
+			try {
+				execSync(`git -C "${repoPath}" worktree prune`, { stdio: "ignore" });
+			} catch {}
+			try {
+				execSync(`git -C "${repoPath}" branch -D fail`, { stdio: "ignore" });
+			} catch {}
+			if (existsSync(failPath))
+				rmSync(failPath, { recursive: true, force: true });
+
+			execSync(
+				`git -c core.hooksPath=/dev/null -C "${repoPath}" worktree add "${okPath}" -b ok HEAD`,
+				{ stdio: "pipe" },
+			);
+			expect(existsSync(okPath)).toBe(true);
 		} finally {
 			cleanup();
 		}

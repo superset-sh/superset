@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import { generate as DefaultImage } from "fumadocs-ui/og";
 import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
@@ -17,7 +18,18 @@ export async function GET(
 		<DefaultImage
 			title={page.data.title}
 			description={page.data.description}
-			site="My App"
+			site={COMPANY.NAME}
+			icon={
+				// biome-ignore lint/performance/noImgElement: Satori requires plain HTML elements
+				<img
+					src={`${COMPANY.DOCS_URL}/logo.png`}
+					alt=""
+					width={40}
+					height={40}
+				/>
+			}
+			primaryColor="rgba(255,255,255,0.15)"
+			primaryTextColor="rgb(255,255,255)"
 		/>,
 		{
 			width: 1200,

@@ -1,5 +1,6 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
+import { createAiChatRouter } from "./ai-chat";
 import { createAnalyticsRouter } from "./analytics";
 import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
@@ -7,6 +8,7 @@ import { createCacheRouter } from "./cache";
 import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
+import { createFilesystemRouter } from "./filesystem";
 import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
@@ -21,6 +23,7 @@ import { createWorkspacesRouter } from "./workspaces";
 
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
+		aiChat: createAiChatRouter(),
 		analytics: createAnalyticsRouter(),
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
@@ -30,6 +33,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
 		changes: createChangesRouter(),
+		filesystem: createFilesystemRouter(),
 		notifications: createNotificationsRouter(),
 		ports: createPortsRouter(),
 		menu: createMenuRouter(),

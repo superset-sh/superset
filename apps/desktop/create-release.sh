@@ -197,6 +197,8 @@ cd "${DESKTOP_DIR}"
 
 # 1. Check for uncommitted changes
 info "Checking for uncommitted changes..."
+# Refresh index to avoid false positives from stat cache mismatches
+git update-index --refresh > /dev/null 2>&1 || true
 if ! git diff-index --quiet HEAD --; then
     error "You have uncommitted changes. Please commit or stash them first."
 fi
@@ -275,7 +277,7 @@ fi
 # 4. Push changes and create PR if needed
 info "Pushing changes to remote..."
 CURRENT_BRANCH=$(git branch --show-current)
-git push origin "${CURRENT_BRANCH}"
+git push -u origin "HEAD:${CURRENT_BRANCH}"
 success "Changes pushed to ${CURRENT_BRANCH}"
 
 # Create PR if not on main branch
@@ -289,21 +291,32 @@ if [ "${CURRENT_BRANCH}" != "${MAIN_BRANCH}" ]; then
         info "PR #${EXISTING_PR} already exists for branch ${CURRENT_BRANCH}"
         PR_NUMBER="$EXISTING_PR"
     else
-        info "Creating pull request..."
-        PR_URL=$(gh pr create \
-            --title "chore(desktop): bump version to ${VERSION}" \
-            --body "Bumps desktop app version to ${VERSION}.
+        # Check if there are any commits ahead of main before trying to create PR
+        COMMITS_AHEAD=$(git rev-list --count "${MAIN_BRANCH}..HEAD" 2>/dev/null || echo "0")
+        if [ "$COMMITS_AHEAD" = "0" ]; then
+            warn "No commits ahead of ${MAIN_BRANCH}. Skipping PR creation."
+            warn "The tag will still be created and trigger the release workflow."
+        else
+            info "Creating pull request..."
+            # Disable set -e temporarily to capture exit code
+            set +e
+            PR_URL=$(gh pr create \
+                --title "chore(desktop): bump version to ${VERSION}" \
+                --body "Bumps desktop app version to ${VERSION}.
 
 This PR was automatically created by the release script." \
-            --base "${MAIN_BRANCH}" \
-            --head "${CURRENT_BRANCH}" 2>&1)
+                --base "${MAIN_BRANCH}" \
+                --head "${CURRENT_BRANCH}" 2>&1)
+            PR_EXIT_CODE=$?
+            set -e
 
-        if [ $? -eq 0 ]; then
-            success "Pull request created: ${PR_URL}"
-            # Extract PR number from URL
-            PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-        else
-            warn "Could not create PR: ${PR_URL}"
+            if [ $PR_EXIT_CODE -eq 0 ]; then
+                success "Pull request created: ${PR_URL}"
+                # Extract PR number from URL
+                PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+            else
+                warn "Could not create PR: ${PR_URL}"
+            fi
         fi
     fi
 fi

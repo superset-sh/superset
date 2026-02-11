@@ -1,0 +1,26 @@
+---
+title: SQLite database, Sentry tracking, and Features section
+date: 2025-12-23
+image: /changelog/docs.png
+---
+
+## SQLite Local Database <PRBadge url="https://github.com/superset-sh/superset/pull/477" />
+
+- Desktop app now uses a local SQLite-backed database with automatic migration from the legacy JSON store
+- Adds `@superset/local-db` package with Drizzle ORM schema for SQLite
+- Migrates all database operations from lowdb (db.json) to SQLite using better-sqlite3
+- UUID defaults for all ID fields (prep for local-first architecture)
+
+## Sentry Error Tracking <PRBadge url="https://github.com/superset-sh/superset/pull/484" />
+
+- Added error tracking and monitoring to the desktop application for improved stability reporting
+- Add Sentry integration for main and renderer processes
+- Add tRPC middleware to automatically capture all backend errors with proper context (path, type, code)
+- Added developer testing tools to validate error reporting functionality
+
+## Features and FAQ Sections <PRBadge url="https://github.com/superset-sh/superset/pull/472" />
+
+- Add Features section with alternating text/image layout showcasing Parallel Agents, Universal CLI Support, and Git Worktree Integration
+- Add FAQ section with two-column layout and smooth accordion animations
+- Custom accordion with plus icon (rotates to X when open)
+- Multiple interactive demos (file/diff, IDE file-tree, terminal, compatibility, parallel execution)

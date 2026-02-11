@@ -1,22 +1,33 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
+import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
-import type { AddFileViewerPaneOptions, TabsState, TabsStore } from "./types";
+import type {
+	AddFileViewerPaneOptions,
+	AddTabWithMultiplePanesOptions,
+	TabsState,
+	TabsStore,
+} from "./types";
 import {
+	buildMultiPaneLayout,
 	type CreatePaneOptions,
+	createChatTabWithPane,
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
+	generateId,
+	generateTabName,
 	getAdjacentPaneId,
 	getFirstPaneId,
 	getPaneIdsForTab,
 	isLastPaneInTab,
 	removePaneFromLayout,
 	resolveActiveTabIdForWorkspace,
+	resolveFileViewerMode,
 } from "./utils";
 import { killTerminalForPane } from "./utils/terminal-cleanup";
 
@@ -72,6 +83,15 @@ const findNextTab = (state: TabsState, tabIdToClose: string): string | null => {
 	return workspaceTabs[0]?.id || null;
 };
 
+const deriveTabName = (
+	panes: Record<string, { tabId: string; name: string }>,
+	tabId: string,
+): string => {
+	const tabPanes = Object.values(panes).filter((p) => p.tabId === tabId);
+	if (tabPanes.length === 1) return tabPanes[0].name;
+	return `Multiple panes (${tabPanes.length})`;
+};
+
 export const useTabsStore = create<TabsStore>()(
 	devtools(
 		persist(
@@ -119,6 +139,102 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addChatTab: (workspaceId: string) => {
+					const state = get();
+
+					const { tab, pane } = createChatTabWithPane(workspaceId, state.tabs);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addTabWithMultiplePanes: (
+					workspaceId: string,
+					options: AddTabWithMultiplePanesOptions,
+				) => {
+					const state = get();
+					const tabId = generateId("tab");
+					const panes: ReturnType<typeof createPane>[] = options.commands.map(
+						(command) =>
+							createPane(tabId, "terminal", {
+								initialCommands: [command],
+								initialCwd: options.initialCwd,
+							}),
+					);
+
+					const paneIds = panes.map((p) => p.id);
+					const layout = buildMultiPaneLayout(paneIds);
+					const workspaceTabs = state.tabs.filter(
+						(t) => t.workspaceId === workspaceId,
+					);
+
+					const tab = {
+						id: tabId,
+						name: generateTabName(workspaceTabs),
+						workspaceId,
+						layout,
+						createdAt: Date.now(),
+					};
+
+					const panesRecord: Record<string, (typeof panes)[number]> = {};
+					for (const pane of panes) {
+						panesRecord[pane.id] = pane;
+					}
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, ...panesRecord },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: paneIds[0],
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneIds };
 				},
 
 				removeTab: (tabId) => {
@@ -178,7 +294,6 @@ export const useTabsStore = create<TabsStore>()(
 				setTabAutoTitle: (tabId, title) => {
 					set((state) => {
 						const tab = state.tabs.find((t) => t.id === tabId);
-						// Guard: no-op if title hasn't changed
 						if (!tab || tab.name === title) return state;
 						return {
 							tabs: state.tabs.map((t) =>
@@ -211,17 +326,11 @@ export const useTabsStore = create<TabsStore>()(
 					const newPanes = { ...state.panes };
 					let hasChanges = false;
 					for (const paneId of tabPaneIds) {
-						const currentStatus = newPanes[paneId]?.status;
-						if (currentStatus === "review") {
-							// User acknowledged completion
-							newPanes[paneId] = { ...newPanes[paneId], status: "idle" };
-							hasChanges = true;
-						} else if (currentStatus === "permission") {
-							// Assume permission granted, agent is now working
-							newPanes[paneId] = { ...newPanes[paneId], status: "working" };
+						const resolved = acknowledgedStatus(newPanes[paneId]?.status);
+						if (resolved !== (newPanes[paneId]?.status ?? "idle")) {
+							newPanes[paneId] = { ...newPanes[paneId], status: resolved };
 							hasChanges = true;
 						}
-						// "working" status is NOT cleared by click - persists until Stop
 					}
 
 					set({
@@ -354,11 +463,14 @@ export const useTabsStore = create<TabsStore>()(
 						splitPercentage: 50,
 					};
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, layout: newLayout } : t,
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
@@ -366,6 +478,50 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					return newPane.id;
+				},
+
+				addPanesToTab: (
+					tabId: string,
+					options: AddTabWithMultiplePanesOptions,
+				) => {
+					const state = get();
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab) return [];
+
+					const panes: ReturnType<typeof createPane>[] = options.commands.map(
+						(command) =>
+							createPane(tabId, "terminal", {
+								initialCommands: [command],
+								initialCwd: options.initialCwd,
+							}),
+					);
+
+					const paneIds = panes.map((p) => p.id);
+					const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
+					const allPaneIds = [...existingPaneIds, ...paneIds];
+					const newLayout = buildMultiPaneLayout(allPaneIds);
+
+					const panesRecord: Record<string, (typeof panes)[number]> = {
+						...state.panes,
+					};
+					for (const pane of panes) {
+						panesRecord[pane.id] = pane;
+					}
+
+					const tabName = deriveTabName(panesRecord, tabId);
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
+						),
+						panes: panesRecord,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tabId]: paneIds[0],
+						},
+					});
+
+					return paneIds;
 				},
 
 				addFileViewerPane: (
@@ -435,7 +591,7 @@ export const useTabsStore = create<TabsStore>()(
 								!p.fileViewer.isPinned,
 						);
 
-					// If we found an unpinned (preview) file-viewer pane, check if it's the same file
+					// If we found an unpinned (preview) file-viewer pane, reuse it
 					if (fileViewerPanes.length > 0) {
 						const paneToReuse = fileViewerPanes[0];
 						const existingFileViewer = paneToReuse.fileViewer;
@@ -444,25 +600,36 @@ export const useTabsStore = create<TabsStore>()(
 							return "";
 						}
 
-						// If clicking the same file that's already in preview, pin it
+						// If clicking the same file that's already in preview, just focus it
 						const isSameFile =
 							existingFileViewer.filePath === options.filePath &&
 							existingFileViewer.diffCategory === options.diffCategory &&
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
-							// Pin the preview pane
-							set({
-								panes: {
-									...state.panes,
-									[paneToReuse.id]: {
-										...paneToReuse,
-										fileViewer: {
-											...existingFileViewer,
-											isPinned: true,
+							if (
+								options.viewMode &&
+								existingFileViewer.viewMode !== options.viewMode
+							) {
+								set({
+									panes: {
+										...state.panes,
+										[paneToReuse.id]: {
+											...paneToReuse,
+											fileViewer: {
+												...existingFileViewer,
+												viewMode: options.viewMode,
+											},
 										},
 									},
-								},
+									focusedPaneIds: {
+										...state.focusedPaneIds,
+										[activeTab.id]: paneToReuse.id,
+									},
+								});
+								return paneToReuse.id;
+							}
+							set({
 								focusedPaneIds: {
 									...state.focusedPaneIds,
 									[activeTab.id]: paneToReuse.id,
@@ -475,17 +642,11 @@ export const useTabsStore = create<TabsStore>()(
 						const fileName =
 							options.filePath.split("/").pop() || options.filePath;
 
-						// Determine default view mode
-						let viewMode: "raw" | "rendered" | "diff" = "raw";
-						if (options.diffCategory) {
-							viewMode = "diff";
-						} else if (
-							options.filePath.endsWith(".md") ||
-							options.filePath.endsWith(".markdown") ||
-							options.filePath.endsWith(".mdx")
-						) {
-							viewMode = "rendered";
-						}
+						const viewMode = resolveFileViewerMode({
+							filePath: options.filePath,
+							diffCategory: options.diffCategory,
+							viewMode: options.viewMode,
+						});
 
 						set({
 							panes: {
@@ -516,6 +677,48 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					// No reusable pane found, create a new one
+					if (options.openInNewTab) {
+						const workspaceId = activeTab.workspaceId;
+						const newTabId = generateId("tab");
+						const newPane = createFileViewerPane(newTabId, options);
+
+						const newTab = {
+							id: newTabId,
+							workspaceId,
+							name: newPane.name,
+							layout: newPane.id as MosaicNode<string>,
+							createdAt: Date.now(),
+						};
+
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+						const newHistoryStack = currentActiveId
+							? [
+									currentActiveId,
+									...historyStack.filter((id) => id !== currentActiveId),
+								]
+							: historyStack;
+
+						set({
+							tabs: [...state.tabs, newTab],
+							panes: { ...state.panes, [newPane.id]: newPane },
+							activeTabIds: {
+								...state.activeTabIds,
+								[workspaceId]: newTab.id,
+							},
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[newTab.id]: newPane.id,
+							},
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						});
+
+						return newPane.id;
+					}
+
 					const newPane = createFileViewerPane(activeTab.id, options);
 
 					const newLayout: MosaicNode<string> = {
@@ -525,11 +728,16 @@ export const useTabsStore = create<TabsStore>()(
 						splitPercentage: 50,
 					};
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, activeTab.id);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === activeTab.id ? { ...t, layout: newLayout } : t,
+							t.id === activeTab.id
+								? { ...t, layout: newLayout, name: tabName }
+								: t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[activeTab.id]: newPane.id,
@@ -579,9 +787,11 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
+					const tabName = deriveTabName(newPanes, tab.id);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tab.id ? { ...t, layout: newLayout } : t,
+							t.id === tab.id ? { ...t, layout: newLayout, name: tabName } : t,
 						),
 						panes: newPanes,
 						focusedPaneIds: newFocusedPaneIds,
@@ -594,6 +804,10 @@ export const useTabsStore = create<TabsStore>()(
 					if (!pane || pane.tabId !== tabId) return;
 
 					set({
+						panes: {
+							...state.panes,
+							[paneId]: { ...pane, status: acknowledgedStatus(pane.status) },
+						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: paneId,
@@ -604,7 +818,6 @@ export const useTabsStore = create<TabsStore>()(
 				markPaneAsUsed: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or already marked as used
 						if (!pane || pane.isNew === false) return state;
 						return {
 							panes: {
@@ -618,7 +831,6 @@ export const useTabsStore = create<TabsStore>()(
 				setPaneStatus: (paneId, status) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					// No-op if pane unknown or status unchanged
 					if (!pane || pane.status === status) return;
 
 					set({
@@ -626,6 +838,25 @@ export const useTabsStore = create<TabsStore>()(
 							...state.panes,
 							[paneId]: { ...pane, status },
 						},
+					});
+				},
+
+				setPaneName: (paneId, name) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane || pane.name === name) return;
+
+					const newPanes = {
+						...state.panes,
+						[paneId]: { ...pane, name },
+					};
+					const tabName = deriveTabName(newPanes, pane.tabId);
+
+					set({
+						panes: newPanes,
+						tabs: state.tabs.map((t) =>
+							t.id === pane.tabId ? { ...t, name: tabName } : t,
+						),
 					});
 				},
 
@@ -645,17 +876,11 @@ export const useTabsStore = create<TabsStore>()(
 					const newPanes = { ...state.panes };
 					let hasChanges = false;
 					for (const paneId of workspacePaneIds) {
-						const currentStatus = newPanes[paneId]?.status;
-						if (currentStatus === "review") {
-							// User acknowledged completion
-							newPanes[paneId] = { ...newPanes[paneId], status: "idle" };
-							hasChanges = true;
-						} else if (currentStatus === "permission") {
-							// Assume permission granted, Claude is now working
-							newPanes[paneId] = { ...newPanes[paneId], status: "working" };
+						const resolved = acknowledgedStatus(newPanes[paneId]?.status);
+						if (resolved !== (newPanes[paneId]?.status ?? "idle")) {
+							newPanes[paneId] = { ...newPanes[paneId], status: resolved };
 							hasChanges = true;
 						}
-						// "working" status is NOT cleared by click - persists until Stop
 					}
 
 					if (hasChanges) {
@@ -666,7 +891,6 @@ export const useTabsStore = create<TabsStore>()(
 				updatePaneCwd: (paneId, cwd, confirmed) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// No-op if pane unknown or cwd unchanged
 						if (!pane) return state;
 						if (pane.cwd === cwd && pane.cwdConfirmed === confirmed) {
 							return state;
@@ -687,7 +911,6 @@ export const useTabsStore = create<TabsStore>()(
 				clearPaneInitialData: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or already cleared
 						if (!pane) return state;
 						if (
 							pane.initialCommands === undefined &&
@@ -711,9 +934,7 @@ export const useTabsStore = create<TabsStore>()(
 				pinPane: (paneId) => {
 					set((state) => {
 						const pane = state.panes[paneId];
-						// Guard: no-op for unknown panes or non-file-viewer panes
 						if (!pane?.fileViewer) return state;
-						// Already pinned, no-op
 						if (pane.fileViewer.isPinned) return state;
 						return {
 							panes: {
@@ -768,11 +989,14 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, layout: newLayout } : t,
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
@@ -817,11 +1041,14 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, layout: newLayout } : t,
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
@@ -838,8 +1065,21 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				movePaneToTab: (paneId, targetTabId) => {
-					const result = movePaneToTab(get(), paneId, targetTabId);
-					if (result) set(result);
+					const state = get();
+					const pane = state.panes[paneId];
+					const result = movePaneToTab(state, paneId, targetTabId);
+					if (!result) return;
+
+					// Re-derive tab names for affected tabs
+					const sourceTabId = pane?.tabId;
+					result.tabs = result.tabs.map((t) => {
+						if (t.id === targetTabId || t.id === sourceTabId) {
+							return { ...t, name: deriveTabName(result.panes, t.id) };
+						}
+						return t;
+					});
+
+					set(result);
 				},
 
 				movePaneToNewTab: (paneId) => {
@@ -856,8 +1096,36 @@ export const useTabsStore = create<TabsStore>()(
 					const moveResult = movePaneToNewTab(state, paneId);
 					if (!moveResult) return "";
 
+					// Re-derive tab names for affected tabs
+					moveResult.result.tabs = moveResult.result.tabs.map((t) => {
+						if (t.id === moveResult.newTabId || t.id === sourceTab.id) {
+							return {
+								...t,
+								name: deriveTabName(moveResult.result.panes, t.id),
+							};
+						}
+						return t;
+					});
+
 					set(moveResult.result);
 					return moveResult.newTabId;
+				},
+
+				// Chat operations
+				switchChatSession: (paneId, sessionId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.chat) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								chat: { sessionId },
+							},
+						},
+					});
 				},
 
 				// Query helpers

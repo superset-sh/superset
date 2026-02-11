@@ -11,12 +11,16 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 	const [isInitialized, setIsInitialized] = useState(false);
 
 	useEffect(() => {
-		initPostHog();
-		posthog.capture("desktop_opened");
-		setIsInitialized(true);
+		try {
+			initPostHog();
+			posthog.capture("desktop_opened");
+		} catch (error) {
+			console.error("[posthog] Failed to initialize:", error);
+		} finally {
+			setIsInitialized(true);
+		}
 	}, []);
 
-	// Don't render children until PostHog is initialized
 	if (!isInitialized) {
 		return null;
 	}

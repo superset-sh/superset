@@ -1,0 +1,37 @@
+{
+	"name": "@superset/durable-session",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./react": {
+			"types": "./src/react/index.ts",
+			"default": "./src/react/index.ts"
+		}
+	},
+	"dependencies": {
+		"@durable-streams/state": "^0.2.0",
+		"@standard-schema/spec": "^1.0.0",
+		"@tanstack/ai": "^0.3.0",
+		"@tanstack/db": "0.5.25",
+		"@tanstack/db-ivm": "^0.1.17",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@superset/ui": "workspace:*",
+		"@types/react": "~19.2.2",
+		"lucide-react": "^0.563.0",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"@superset/ui": "workspace:*",
+		"@tanstack/react-db": "^0.1.69",
+		"lucide-react": ">=0.300.0",
+		"react": "^18.0.0 || ^19.0.0"
+	}
+}

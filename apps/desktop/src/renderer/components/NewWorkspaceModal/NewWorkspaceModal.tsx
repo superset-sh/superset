@@ -17,45 +17,53 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronDown,
+	HiChevronUpDown,
+	HiOutlinePencil,
+} from "react-icons/hi2";
+import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import {
+	processOpenNewResults,
+	useOpenNew,
+} from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
+import {
+	resolveBranchPrefix,
+	sanitizeBranchName,
+	sanitizeSegment,
+} from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
-function generateBranchFromTitle(title: string): string {
-	if (!title.trim()) return "";
-
-	return title
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9\s-]/g, "")
-		.replace(/\s+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
+function generateSlugFromTitle(title: string): string {
+	return sanitizeSegment(title);
 }
 
 type Mode = "existing" | "new" | "cloud";
 
 export function NewWorkspaceModal() {
+	const navigate = useNavigate();
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
@@ -74,6 +82,10 @@ export function NewWorkspaceModal() {
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const { data: project } = electronTrpc.projects.get.useQuery(
+		{ id: selectedProjectId ?? "" },
+		{ enabled: !!selectedProjectId },
+	);
 	const {
 		data: branchData,
 		isLoading: isBranchesLoading,
@@ -82,9 +94,30 @@ export function NewWorkspaceModal() {
 		{ projectId: selectedProjectId ?? "" },
 		{ enabled: !!selectedProjectId },
 	);
+	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
+		{ id: selectedProjectId ?? "" },
+		{ enabled: !!selectedProjectId },
+	);
+	const { data: globalBranchPrefix } =
+		electronTrpc.settings.getBranchPrefix.useQuery();
+	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const openNew = useOpenNew();
 
-	// Filter branches based on search (for base branch selector)
+	const resolvedPrefix = useMemo(() => {
+		const projectOverrides = project?.branchPrefixMode != null;
+		return resolveBranchPrefix({
+			mode: projectOverrides
+				? project?.branchPrefixMode
+				: (globalBranchPrefix?.mode ?? "none"),
+			customPrefix: projectOverrides
+				? project?.branchPrefixCustom
+				: globalBranchPrefix?.customPrefix,
+			authorPrefix: gitAuthor?.prefix,
+			githubUsername: gitInfo?.githubUsername,
+		});
+	}, [project, globalBranchPrefix, gitAuthor, gitInfo]);
+
 	const filteredBranches = useMemo(() => {
 		if (!branchData?.branches) return [];
 		if (!branchSearch) return branchData.branches;
@@ -94,28 +127,29 @@ export function NewWorkspaceModal() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	// Auto-select project when modal opens (use pre-selected from NewWorkspaceButton)
 	useEffect(() => {
 		if (isOpen && !selectedProjectId && preSelectedProjectId) {
 			setSelectedProjectId(preSelectedProjectId);
 		}
 	}, [isOpen, selectedProjectId, preSelectedProjectId]);
 
-	// Effective base branch - use explicit selection or fall back to default
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
 
-	// Reset base branch when project changes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
 	useEffect(() => {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
-	// Auto-generate branch name from title (unless manually edited)
-	useEffect(() => {
-		if (!branchNameEdited) {
-			setBranchName(generateBranchFromTitle(title));
-		}
-	}, [title, branchNameEdited]);
+	const branchSlug = branchNameEdited
+		? sanitizeBranchName(branchName)
+		: generateSlugFromTitle(title);
+
+	const applyPrefix = !branchNameEdited;
+
+	const branchPreview =
+		branchSlug && applyPrefix && resolvedPrefix
+			? `${resolvedPrefix}/${branchSlug}`
+			: branchSlug;
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
@@ -128,13 +162,9 @@ export function NewWorkspaceModal() {
 		setShowAdvanced(false);
 	};
 
-	// Focus title input when modal opens and project is selected
 	useEffect(() => {
 		if (isOpen && selectedProjectId && mode === "new") {
-			// Small delay to ensure dialog is fully rendered
-			const timer = setTimeout(() => {
-				titleInputRef.current?.focus();
-			}, 50);
+			const timer = setTimeout(() => titleInputRef.current?.focus(), 50);
 			return () => clearTimeout(timer);
 		}
 	}, [isOpen, selectedProjectId, mode]);
@@ -162,24 +192,66 @@ export function NewWorkspaceModal() {
 		setBranchNameEdited(true);
 	};
 
+	const handleBranchNameBlur = () => {
+		if (!branchName.trim()) {
+			setBranchName("");
+			setBranchNameEdited(false);
+		}
+	};
+
+	const handleImportRepo = async () => {
+		try {
+			const result = await openNew.mutateAsync(undefined);
+			if (result.canceled) return;
+
+			if ("error" in result) {
+				toast.error("Failed to open project", { description: result.error });
+				return;
+			}
+
+			if ("results" in result) {
+				const { successes } = processOpenNewResults({
+					results: result.results,
+					showSuccessToast: false,
+					showGitInitToast: true,
+				});
+
+				if (successes.length > 1) {
+					toast.success(`${successes.length} projects imported`);
+				}
+
+				if (successes.length > 0) {
+					setSelectedProjectId(successes[0].project.id);
+				}
+			}
+		} catch (error) {
+			toast.error("Failed to open project", {
+				description:
+					error instanceof Error ? error.message : "An unknown error occurred",
+			});
+		}
+	};
+
+	const selectedProject = recentProjects.find(
+		(p) => p.id === selectedProjectId,
+	);
+
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
 
 		const workspaceName = title.trim() || undefined;
-		const customBranchName = branchName.trim() || undefined;
+
+		handleClose();
 
 		try {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
-				branchName: customBranchName,
+				branchName: branchSlug || undefined,
 				baseBranch: effectiveBaseBranch || undefined,
+				applyPrefix,
 			});
 
-			// Close modal immediately - workspace appears in sidebar
-			handleClose();
-
-			// Show appropriate toast based on initialization state
 			if (result.isInitializing) {
 				toast.success("Workspace created", {
 					description: "Setting up in the background...",
@@ -205,23 +277,44 @@ export function NewWorkspaceModal() {
 				</DialogHeader>
 
 				<div className="px-4 pb-3">
-					<Select
-						value={selectedProjectId ?? ""}
-						onValueChange={setSelectedProjectId}
-					>
-						<SelectTrigger className="w-full h-8 text-sm">
-							<SelectValue placeholder="Select project" />
-						</SelectTrigger>
-						<SelectContent>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="outline"
+								className="w-full h-8 text-sm justify-between font-normal"
+							>
+								<span
+									className={selectedProject ? "" : "text-muted-foreground"}
+								>
+									{selectedProject?.name ?? "Select project"}
+								</span>
+								<HiChevronDown className="size-4 text-muted-foreground" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="start"
+							className="w-[--radix-dropdown-menu-trigger-width]"
+						>
 							{recentProjects
 								.filter((project) => project.id)
 								.map((project) => (
-									<SelectItem key={project.id} value={project.id}>
+									<DropdownMenuItem
+										key={project.id}
+										onClick={() => setSelectedProjectId(project.id)}
+									>
 										{project.name}
-									</SelectItem>
+										{project.id === selectedProjectId && (
+											<HiCheck className="ml-auto size-4" />
+										)}
+									</DropdownMenuItem>
 								))}
-						</SelectContent>
-					</Select>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onClick={handleImportRepo}>
+								<LuFolderOpen className="size-4" />
+								Import repo
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 
 				{selectedProjectId && (
@@ -276,11 +369,11 @@ export function NewWorkspaceModal() {
 										onChange={(e) => setTitle(e.target.value)}
 									/>
 
-									{title && !showAdvanced && (
+									{(title || branchNameEdited) && (
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
 											<span className="font-mono">
-												{branchName || generateBranchFromTitle(title)}
+												{branchPreview || "branch-name"}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
@@ -300,24 +393,34 @@ export function NewWorkspaceModal() {
 										</CollapsibleTrigger>
 										<CollapsibleContent className="pt-3 space-y-3">
 											<div className="space-y-1.5">
-												<label
-													htmlFor="branch"
-													className="text-xs text-muted-foreground"
-												>
-													Branch name
-												</label>
+												<div className="flex items-center justify-between">
+													<label
+														htmlFor="branch"
+														className="text-xs text-muted-foreground"
+													>
+														Branch name
+													</label>
+													<button
+														type="button"
+														onClick={() => {
+															handleClose();
+															navigate({ to: "/settings/behavior" });
+														}}
+														className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+													>
+														<HiOutlinePencil className="size-3" />
+														<span>Edit prefix</span>
+													</button>
+												</div>
 												<Input
 													id="branch"
 													className="h-8 text-sm font-mono"
-													placeholder={
-														title
-															? generateBranchFromTitle(title)
-															: "auto-generated"
-													}
-													value={branchName}
+													placeholder="auto-generated"
+													value={branchNameEdited ? branchName : branchPreview}
 													onChange={(e) =>
 														handleBranchNameChange(e.target.value)
 													}
+													onBlur={handleBranchNameBlur}
 												/>
 											</div>
 

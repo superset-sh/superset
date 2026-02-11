@@ -1,0 +1,37 @@
+{
+	"name": "@superset/streams",
+	"version": "0.0.1",
+	"description": "Durable Stream server for real-time token streaming",
+	"type": "module",
+	"main": "./dist/index.js",
+	"scripts": {
+		"dev": "bun --env-file=../../.env --watch src/index.ts",
+		"build": "tsup src/index.ts --format esm --dts",
+		"start": "node dist/index.js",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run --passWithNoTests",
+		"test:conformance": "npx @durable-streams/server-conformance-tests --run http://localhost:8080"
+	},
+	"dependencies": {
+		"@durable-streams/client": "^0.2.1",
+		"@durable-streams/server": "^0.2.0",
+		"@hono/node-server": "^1.13.0",
+		"@superset/db": "workspace:*",
+		"@superset/durable-session": "workspace:*",
+		"@t3-oss/env-core": "^0.13.8",
+		"@tanstack/ai": "^0.3.0",
+		"@tanstack/db": "0.5.25",
+		"drizzle-orm": "0.45.1",
+		"hono": "^4.4.0",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@durable-streams/server-conformance-tests": "^0.2.0",
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"fast-check": "^4.5.3",
+		"tsup": "^8.5.0",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.0"
+	}
+}

@@ -1,9 +1,8 @@
 import { auth } from "@superset/auth/server";
-import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
-import { Download } from "lucide-react";
 import { headers } from "next/headers";
 
 import { env } from "@/env";
+import { HeaderCTA } from "./HeaderCTA";
 
 export async function CTAButtons() {
 	let session = null;
@@ -14,41 +13,7 @@ export async function CTAButtons() {
 		console.error("[marketing/CTAButtons] Failed to get session:", error);
 	}
 
-	if (session) {
-		return (
-			<>
-				<a
-					href={env.NEXT_PUBLIC_WEB_URL}
-					className="px-4 py-2 text-sm font-normal text-muted-foreground hover:text-foreground transition-colors text-center"
-				>
-					Dashboard
-				</a>
-				<a
-					href={DOWNLOAD_URL_MAC_ARM64}
-					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
-				>
-					Download for macOS
-					<Download className="size-4" aria-hidden="true" />
-				</a>
-			</>
-		);
-	}
-
 	return (
-		<>
-			<a
-				href={`${env.NEXT_PUBLIC_WEB_URL}/sign-in`}
-				className="px-4 py-2 text-sm font-normal text-muted-foreground hover:text-foreground transition-colors text-center"
-			>
-				Sign In
-			</a>
-			<a
-				href={DOWNLOAD_URL_MAC_ARM64}
-				className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
-			>
-				Download for macOS
-				<Download className="size-4" aria-hidden="true" />
-			</a>
-		</>
+		<HeaderCTA isLoggedIn={!!session} dashboardUrl={env.NEXT_PUBLIC_WEB_URL} />
 	);
 }

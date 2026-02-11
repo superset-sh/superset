@@ -8,10 +8,12 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import {
 	getStatusColor,
 	getStatusIndicator,
-} from "../../../Sidebar/ChangesView/utils";
+} from "../../../RightSidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
+import { LightDiffViewer } from "../LightDiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
+import { useFileDiffEdit } from "./hooks/useFileDiffEdit";
 
 interface FileDiffSectionProps {
 	file: ChangedFile;
@@ -82,6 +84,12 @@ export function FileDiffSection({
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
 	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
+
+	const { isEditing, toggleEdit, handleSave } = useFileDiffEdit({
+		category,
+		worktreePath,
+		filePath: file.path,
+	});
 
 	const totalChanges = file.additions + file.deletions;
 	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
@@ -230,6 +238,8 @@ export function FileDiffSection({
 					onOpenInEditor={handleOpenInEditor}
 					onCopyPath={handleCopyPath}
 					isCopied={isCopied}
+					isEditing={isEditing}
+					onToggleEdit={toggleEdit}
 					onStage={onStage}
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
@@ -259,14 +269,25 @@ export function FileDiffSection({
 							<span>Loading diff...</span>
 						</div>
 					) : shouldRenderEditor ? (
-						<DiffViewer
-							contents={diffData}
-							viewMode={diffViewMode}
-							hideUnchangedRegions={hideUnchangedRegions}
-							filePath={file.path}
-							fitContent
-							captureScroll={false}
-						/>
+						isEditing ? (
+							<DiffViewer
+								contents={diffData}
+								viewMode={diffViewMode}
+								hideUnchangedRegions={hideUnchangedRegions}
+								filePath={file.path}
+								editable
+								onSave={handleSave}
+								fitContent
+								captureScroll={false}
+							/>
+						) : (
+							<LightDiffViewer
+								contents={diffData}
+								viewMode={diffViewMode}
+								hideUnchangedRegions={hideUnchangedRegions}
+								filePath={file.path}
+							/>
+						)
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
 							{diffData ? (

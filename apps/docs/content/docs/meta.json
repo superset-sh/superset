@@ -2,12 +2,24 @@
 	"title": "Documentation",
 	"pages": [
 		"---Rocket Get Started---",
-		"quick-start",
-		"overview",
 		"installation",
+		"overview",
+		"first-workspace",
 		"---Gauge Core Features---",
-		"core-features",
-		"---BookOpen How to Guides---",
-		"setup-teardown-scripts"
+		"workspaces",
+		"diff-viewer",
+		"terminal-integration",
+		"ports",
+		"agent-integration",
+		"mcp",
+		"---BookOpen Guides---",
+		"setup-teardown-scripts",
+		"use-with-ide",
+		"using-monorepos",
+		"terminal-presets",
+		"keyboard-shortcuts",
+		"customization",
+		"---CircleHelp Help---",
+		"faq"
 	]
 }

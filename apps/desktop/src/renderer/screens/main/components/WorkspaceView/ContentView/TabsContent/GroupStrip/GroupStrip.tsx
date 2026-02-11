@@ -1,4 +1,4 @@
-import type { TerminalPreset } from "@superset/local-db";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -9,14 +9,16 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo, useState } from "react";
+import { BsTerminalPlus } from "react-icons/bs";
 import {
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
 	HiMiniCommandLine,
-	HiMiniPlus,
 	HiStar,
 } from "react-icons/hi2";
+import { TbMessageCirclePlus } from "react-icons/tb";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -30,6 +32,7 @@ import {
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
+import { PresetMenuItemShortcut } from "./components/PresetMenuItemShortcut";
 import { GroupItem } from "./GroupItem";
 import { NewTabDropZone } from "./NewTabDropZone";
 
@@ -40,13 +43,16 @@ export function GroupStrip() {
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
-	const { addTab } = useTabsWithPresets();
+	const { addTab, openPreset } = useTabsWithPresets();
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
+	const reorderTabs = useTabsStore((s) => s.reorderTabs);
 
+	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
 	const navigate = useNavigate();
@@ -88,18 +94,14 @@ export function GroupStrip() {
 		addTab(activeWorkspaceId);
 	};
 
-	const handleSelectPreset = (preset: TerminalPreset) => {
+	const handleAddChat = () => {
 		if (!activeWorkspaceId) return;
+		addChatTab(activeWorkspaceId);
+	};
 
-		const { tabId } = addTab(activeWorkspaceId, {
-			initialCommands: preset.commands,
-			initialCwd: preset.cwd || undefined,
-		});
-
-		if (preset.name) {
-			renameTab(tabId, preset.name);
-		}
-
+	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
+		if (!activeWorkspaceId) return;
+		openPreset(activeWorkspaceId, preset);
 		setDropdownOpen(false);
 	};
 
@@ -122,6 +124,21 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
+	const handleReorderTabs = useCallback(
+		(fromIndex: number, toIndex: number) => {
+			if (activeWorkspaceId) {
+				reorderTabs(activeWorkspaceId, fromIndex, toIndex);
+			}
+		},
+		[activeWorkspaceId, reorderTabs],
+	);
+
+	// Tab navigation - find which tabs are adjacent to active
+	const activeTabIndex = useMemo(() => {
+		if (!activeTabId) return -1;
+		return tabs.findIndex((t) => t.id === activeTabId);
+	}, [tabs, activeTabId]);
+
 	const checkIsLastPaneInTab = useCallback((paneId: string) => {
 		// Get fresh panes from store to avoid stale closure issues during drag-drop
 		const freshPanes = useTabsStore.getState().panes;
@@ -137,23 +154,36 @@ export function GroupStrip() {
 					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border"
 					style={{ scrollbarWidth: "none" }}
 				>
-					{tabs.map((tab) => (
-						<div
-							key={tab.id}
-							className="h-full shrink-0"
-							style={{ width: "160px" }}
-						>
-							<GroupItem
-								tab={tab}
-								isActive={tab.id === activeTabId}
-								status={tabStatusMap.get(tab.id) ?? null}
-								onSelect={() => handleSelectGroup(tab.id)}
-								onClose={() => handleCloseGroup(tab.id)}
-								onRename={(newName) => handleRenameGroup(tab.id, newName)}
-								onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
-							/>
-						</div>
-					))}
+					{tabs.map((tab, index) => {
+						const isPrevOfActive = index === activeTabIndex - 1;
+						const isNextOfActive = index === activeTabIndex + 1;
+						return (
+							<div
+								key={tab.id}
+								className="h-full shrink-0"
+								style={{ width: "160px" }}
+							>
+								<GroupItem
+									tab={tab}
+									index={index}
+									isActive={tab.id === activeTabId}
+									status={tabStatusMap.get(tab.id) ?? null}
+									onSelect={() => handleSelectGroup(tab.id)}
+									onClose={() => handleCloseGroup(tab.id)}
+									onRename={(newName) => handleRenameGroup(tab.id, newName)}
+									onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
+									onReorder={handleReorderTabs}
+									navHint={
+										isPrevOfActive
+											? "prev"
+											: isNextOfActive
+												? "next"
+												: undefined
+									}
+								/>
+							</div>
+						);
+					})}
 				</div>
 			)}
 			<NewTabDropZone
@@ -165,23 +195,43 @@ export function GroupStrip() {
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<Button
-									variant="ghost"
-									size="icon"
-									className="size-7 rounded-r-none pl-2"
+									variant="outline"
+									className="h-7 rounded-r-none pl-2 pr-1.5 gap-1 text-xs"
 									onClick={handleAddGroup}
 								>
-									<HiMiniPlus className="size-4" />
+									<BsTerminalPlus className="size-3.5" />
+									Terminal
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="top" sideOffset={4}>
-								<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
+								<HotkeyTooltipContent
+									label="New Terminal"
+									hotkeyId="NEW_GROUP"
+								/>
 							</TooltipContent>
 						</Tooltip>
+						{hasAiChat && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="outline"
+										className="h-7 rounded-none border-l-0 px-1.5 gap-1 text-xs"
+										onClick={handleAddChat}
+									>
+										<TbMessageCirclePlus className="size-3.5" />
+										Chat
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="top" sideOffset={4}>
+									<HotkeyTooltipContent label="New Chat" hotkeyId="NEW_CHAT" />
+								</TooltipContent>
+							</Tooltip>
+						)}
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant="ghost"
+								variant="outline"
 								size="icon"
-								className="size-7 rounded-l-none px-1"
+								className="size-7 rounded-l-none border-l-0 px-1"
 							>
 								<HiMiniChevronDown className="size-3" />
 							</Button>
@@ -190,7 +240,7 @@ export function GroupStrip() {
 					<DropdownMenuContent align="end" className="w-56">
 						{presets.length > 0 && (
 							<>
-								{presets.map((preset) => {
+								{presets.map((preset, index) => {
 									const presetIcon = getPresetIcon(preset.name, isDark);
 									return (
 										<DropdownMenuItem
@@ -211,8 +261,9 @@ export function GroupStrip() {
 												{preset.name || "default"}
 											</span>
 											{preset.isDefault && (
-												<HiStar className="size-3 text-yellow-500 ml-auto flex-shrink-0" />
+												<HiStar className="size-3 text-yellow-500 flex-shrink-0" />
 											)}
+											<PresetMenuItemShortcut index={index} />
 										</DropdownMenuItem>
 									);
 								})}

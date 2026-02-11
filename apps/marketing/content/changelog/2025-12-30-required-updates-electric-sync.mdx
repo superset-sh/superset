@@ -1,0 +1,32 @@
+---
+title: Electric SQL sync, Linear integration, and required updates
+date: 2025-12-30
+image: /changelog/integrations.png
+---
+
+## Electric SQL Sync <PRBadge url="https://github.com/superset-sh/superset/pull/511" />
+
+- Added task management UI with create, edit, and status tracking capabilities
+- Implemented organization switching and multi-organization support
+- Introduced local-first synchronization for tasks data via Electric SQL
+- Bidirectional task updates that sync back to Linear via API
+
+## Linear Integration <PRBadge url="https://github.com/superset-sh/superset/pull/503" />
+
+- Added Linear integration with OAuth-based connection flow
+- New integrations management page to connect and configure third-party services
+- Task synchronization between Linear and local system with priority and team configuration
+- Real-time sync from Linear via webhook
+
+## Required Updates <PRBadge url="https://github.com/superset-sh/superset/pull/552" />
+
+- Desktop app enforces a minimum required version via a remote endpoint
+- New "Update Required" screen guides blocked users to check, download, or install updates
+- App exposes its current version to the UI so version comparisons are accurate
+- Fail-open behavior when API is unreachable, re-checks when network comes back online
+
+## Confirm on Quit <PRBadge url="https://github.com/superset-sh/superset/pull/524" />
+
+- Added a "Behavior" section in Settings with a "Confirm before quitting" toggle (defaults to enabled)
+- App now shows a quit confirmation dialog when enabled and respects the toggle across restarts
+- Update/install flows and programmatic quits can skip the confirmation to avoid blocking updates

@@ -5,55 +5,18 @@ description: Learn what Superset is and how it works
 
 ## What is Superset?
 
-Superset is a desktop application that helps developers work more efficiently with their codebase. It combines workspace management, terminal integration, and team collaboration into a single unified experience.
+Superset is a desktop app for managing multiple codebases with git worktrees. Work on several branches simultaneously, each in its own isolated workspace.
 
 ## Key Features
 
-### Workspace Management
-
-Organize your projects using git worktrees. Superset makes it easy to:
-
-- Create and manage multiple worktrees for the same repository
-- Switch between branches without stashing changes
-- Keep your work organized across features and fixes
-
-### Terminal Integration
-
-Built-in terminal with powerful session management:
-
-- Multiple terminal sessions per workspace
-- Persistent sessions that survive restarts
-- Quick access to common commands
-
-### Team Collaboration
-
-Work together with your team seamlessly:
-
-- Share workspaces with team members
-- Sync configurations across devices
-- Manage team permissions and access
+- **Workspaces** - Each branch gets its own directory via git worktrees. No more stashing.
+- **Terminal** - Built-in terminal with persistent sessions per workspace.
+- **Diff Viewer** - Review changes, stage files, commit, and push.
+- **AI Agents** - Run Claude Code or other agents in isolated workspaces.
+- **IDE Integration** - Open any workspace in Cursor or VS Code.
 
 ## How It Works
 
-Superset sits on top of your existing git workflow and enhances it with a visual interface and productivity tools. It doesn't replace git—it makes it easier to use.
+Superset uses [git worktrees](https://git-scm.com/docs/git-worktree) to give each branch its own directory. Switch contexts instantly without losing your place.
 
-### Git Worktrees
-
-Instead of switching branches in a single directory, Superset uses git worktrees to give each branch its own directory. This means:
-
-- No more stashing uncommitted changes
-- Run multiple branches simultaneously
-- Keep your IDE state intact when switching contexts
-
-### Local-First Architecture
-
-Your data stays on your machine. Superset works offline and syncs when you're connected.
-
-## Tech Stack
-
-Superset is built with modern technologies:
-
-- **Electron** - Cross-platform desktop framework
-- **React** - UI components with TypeScript
-- **SQLite** - Local database for fast queries
-- **Git** - Version control integration
+Your data stays local. Superset works offline and syncs when connected.

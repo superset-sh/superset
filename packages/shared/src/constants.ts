@@ -14,9 +14,15 @@ export const COMPANY = {
 	DOMAIN: "superset.sh",
 	EMAIL_DOMAIN: "@superset.sh",
 	GITHUB_URL: "https://github.com/superset-sh/superset",
-	DOCS_URL: "https://docs.superset.sh",
-	TERMS_URL: "https://superset.sh/terms",
-	PRIVACY_URL: "https://superset.sh/privacy",
+	DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh",
+	MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh",
+	TERMS_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/terms`,
+	PRIVACY_URL:
+		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
+		"/privacy",
+	CHANGELOG_URL:
+		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
+		"/changelog",
 	X_URL: "https://x.com/superset_sh",
 	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
@@ -45,5 +51,12 @@ export const POSTHOG_COOKIE_NAME = "superset";
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
+	/** Gates access to billing features. */
 	BILLING_ENABLED: "billing-enabled",
+	/** Gates access to GitHub integration (currently buggy, internal only). */
+	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
+	/** Gates access to AI chat (@superset.sh internal only). */
+	AI_CHAT: "ai-chat",
+	/** Gates access to Slack integration (internal only). */
+	SLACK_INTEGRATION_ACCESS: "slack-integration-access",
 } as const;

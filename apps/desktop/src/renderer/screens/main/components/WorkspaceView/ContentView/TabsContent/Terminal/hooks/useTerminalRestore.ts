@@ -2,7 +2,11 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
-import type { CreateOrAttachResult, TerminalStreamEvent } from "../types";
+import type {
+	CreateOrAttachResult,
+	TerminalExitReason,
+	TerminalStreamEvent,
+} from "../types";
 import { scrollToBottom } from "../utils";
 
 export interface UseTerminalRestoreOptions {
@@ -15,14 +19,16 @@ export interface UseTerminalRestoreOptions {
 	modeScanBufferRef: React.MutableRefObject<string>;
 	updateCwdFromData: (data: string) => void;
 	updateModesFromData: (data: string) => void;
-	onExitEvent: (exitCode: number, xterm: XTerm) => void;
+	onExitEvent: (
+		exitCode: number,
+		xterm: XTerm,
+		reason?: TerminalExitReason,
+	) => void;
 	onErrorEvent: (
 		event: Extract<TerminalStreamEvent, { type: "error" }>,
 		xterm: XTerm,
 	) => void;
 	onDisconnectEvent: (reason: string | undefined) => void;
-	/** Callback to send resize to PTY after fit() - ensures PTY dimensions match xterm */
-	onResize: (cols: number, rows: number) => void;
 }
 
 export interface UseTerminalRestoreReturn {
@@ -56,7 +62,6 @@ export function useTerminalRestore({
 	onExitEvent,
 	onErrorEvent,
 	onDisconnectEvent,
-	onResize,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
@@ -76,8 +81,6 @@ export function useTerminalRestore({
 	onErrorEventRef.current = onErrorEvent;
 	const onDisconnectEventRef = useRef(onDisconnectEvent);
 	onDisconnectEventRef.current = onDisconnectEvent;
-	const onResizeRef = useRef(onResize);
-	onResizeRef.current = onResize;
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -88,14 +91,13 @@ export function useTerminalRestore({
 			0,
 			pendingEventsRef.current.length,
 		);
-
 		for (const event of events) {
 			if (event.type === "data") {
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
-				onExitEventRef.current(event.exitCode, xterm);
+				onExitEventRef.current(event.exitCode, xterm, event.reason);
 			} else if (event.type === "error") {
 				onErrorEventRef.current(event, xterm);
 			} else if (event.type === "disconnect") {
@@ -117,26 +119,13 @@ export function useTerminalRestore({
 		pendingInitialStateRef.current = null;
 		++restoreSequenceRef.current;
 		const restoreSequence = restoreSequenceRef.current;
-
 		try {
 			const scheduleFitAndScroll = () => {
 				requestAnimationFrame(() => {
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
 					fitAddon.fit();
-					// Send resize to PTY after fit() to ensure dimensions are synced.
-					// This fixes the race condition where createOrAttach uses stale dimensions
-					// from before the container was fully laid out.
-					onResizeRef.current(xterm.cols, xterm.rows);
-					// Only scroll to bottom for NEW sessions. For reattached sessions,
-					// the snapshot already positions the viewport correctly and we should
-					// not override the user's scroll position.
-					if (result.isNew) {
-						// Write empty string with callback to ensure all pending writes are
-						// processed before scrolling. xterm.write() is async and buffers writes,
-						// so scrollToBottom() called immediately might not see all content.
-						xterm.write("", () => scrollToBottom(xterm));
-					}
+					scrollToBottom(xterm);
 				});
 			};
 

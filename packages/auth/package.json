@@ -15,6 +15,10 @@
 		"./env": {
 			"types": "./src/env.ts",
 			"default": "./src/env.ts"
+		},
+		"./stripe": {
+			"types": "./src/stripe.ts",
+			"default": "./src/stripe.ts"
 		}
 	},
 	"scripts": {
@@ -22,16 +26,18 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@better-auth/expo": "1.4.16",
-		"@better-auth/stripe": "^1.4.17",
+		"@better-auth/expo": "1.4.18",
+		"@better-auth/oauth-provider": "1.4.18",
+		"@better-auth/stripe": "1.4.18",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
 		"@t3-oss/env-nextjs": "^0.13.8",
+		"@upstash/qstash": "^2.8.4",
 		"@upstash/ratelimit": "^2.0.4",
 		"@upstash/redis": "^1.34.3",
-		"better-auth": "^1.4.17",
+		"better-auth": "1.4.18",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "0.45.1",
 		"resend": "^4.0.1",

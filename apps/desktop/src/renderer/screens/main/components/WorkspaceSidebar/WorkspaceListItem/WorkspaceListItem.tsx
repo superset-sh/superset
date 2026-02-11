@@ -15,7 +15,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import {
@@ -36,16 +36,13 @@ import {
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { getHighestPriorityStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
-import {
-	BranchSwitcher,
-	DeleteWorkspaceDialog,
-	WorkspaceHoverCardContent,
-} from "./components";
+import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import {
 	GITHUB_STATUS_STALE_TIME,
 	HOVER_CARD_CLOSE_DELAY,
@@ -88,7 +85,7 @@ export function WorkspaceListItem({
 	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
 	const [hasHovered, setHasHovered] = useState(false);
-	const rename = useWorkspaceRename(id, name);
+	const rename = useWorkspaceRename(id, name, branch);
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const clearWorkspaceAttentionStatus = useTabsStore(
@@ -100,7 +97,16 @@ export function WorkspaceListItem({
 	const isActive = !!matchRoute({
 		to: "/workspace/$workspaceId",
 		params: { workspaceId: id },
+		fuzzy: true,
 	});
+
+	const itemRef = useRef<HTMLElement | null>(null);
+	useEffect(() => {
+		if (isActive) {
+			itemRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+		}
+	}, [isActive]);
+
 	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
@@ -134,6 +140,12 @@ export function WorkspaceListItem({
 			staleTime: GITHUB_STATUS_STALE_TIME,
 		},
 	);
+
+	useBranchSyncInvalidation({
+		gitBranch: localChanges?.branch,
+		workspaceBranch: branch,
+		workspaceId: id,
+	});
 
 	// Calculate total local changes (staged + unstaged + untracked)
 	const localDiffStats = useMemo(() => {
@@ -206,30 +218,74 @@ export function WorkspaceListItem({
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: WORKSPACE_TYPE,
-			item: { id, projectId, index },
+			item: { id, projectId, index, originalIndex: index },
+			end: (item, monitor) => {
+				if (!item || monitor.didDrop()) return;
+				if (item.originalIndex !== item.index) {
+					reorderWorkspaces.mutate(
+						{
+							projectId: item.projectId,
+							fromIndex: item.originalIndex,
+							toIndex: item.index,
+						},
+						{
+							onError: (error) =>
+								toast.error(`Failed to reorder workspace: ${error.message}`),
+							onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
+						},
+					);
+				}
+			},
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[id, projectId, index],
+		[id, projectId, index, reorderWorkspaces],
 	);
 
 	const [, drop] = useDrop({
 		accept: WORKSPACE_TYPE,
-		hover: (item: { id: string; projectId: string; index: number }) => {
+		hover: (item: {
+			id: string;
+			projectId: string;
+			index: number;
+			originalIndex: number;
+		}) => {
 			if (item.projectId === projectId && item.index !== index) {
+				utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
+					if (!oldData) return oldData;
+					return oldData.map((group) => {
+						if (group.project.id !== projectId) return group;
+						const workspaces = [...group.workspaces];
+						const [moved] = workspaces.splice(item.index, 1);
+						workspaces.splice(index, 0, moved);
+						return { ...group, workspaces };
+					});
+				});
+				item.index = index;
+			}
+		},
+		drop: (item: {
+			id: string;
+			projectId: string;
+			index: number;
+			originalIndex: number;
+		}) => {
+			if (item.projectId !== projectId) return;
+			if (item.originalIndex !== item.index) {
 				reorderWorkspaces.mutate(
 					{
 						projectId,
-						fromIndex: item.index,
-						toIndex: index,
+						fromIndex: item.originalIndex,
+						toIndex: item.index,
 					},
 					{
 						onError: (error) =>
 							toast.error(`Failed to reorder workspace: ${error.message}`),
+						onSettled: () => utils.workspaces.getAllGrouped.invalidate(),
 					},
 				);
-				item.index = index;
+				return { reordered: true };
 			}
 		},
 	});
@@ -244,12 +300,15 @@ export function WorkspaceListItem({
 	const showDiffStats = !!diffStats;
 
 	// Determine if we should show the branch subtitle
-	const showBranchSubtitle = !isBranchWorkspace;
+	const showBranchSubtitle = !isBranchWorkspace || (!!name && name !== branch);
 
 	// Collapsed sidebar: show just the icon with hover card (worktree) or tooltip (branch)
 	if (isCollapsed) {
 		const collapsedButton = (
 			<button
+				ref={(node) => {
+					itemRef.current = node;
+				}}
 				type="button"
 				onClick={handleClick}
 				onMouseEnter={handleMouseEnter}
@@ -300,6 +359,11 @@ export function WorkspaceListItem({
 					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
 						<span className="font-medium">{name || branch}</span>
+						{showBranchSubtitle && (
+							<span className="text-xs text-muted-foreground font-mono">
+								{branch}
+							</span>
+						)}
 						<span className="text-xs text-muted-foreground">
 							Local workspace
 						</span>
@@ -352,6 +416,7 @@ export function WorkspaceListItem({
 			role="button"
 			tabIndex={0}
 			ref={(node) => {
+				itemRef.current = node;
 				drag(drop(node));
 			}}
 			onClick={handleClick}
@@ -467,15 +532,10 @@ export function WorkspaceListItem({
 							{/* Keyboard shortcut */}
 							{shortcutIndex !== undefined &&
 								shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
-									<span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
+									<span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
 										⌘{shortcutIndex + 1}
 									</span>
 								)}
-
-							{/* Branch switcher for branch workspaces */}
-							{isBranchWorkspace && (
-								<BranchSwitcher projectId={projectId} currentBranch={branch} />
-							)}
 
 							{/* Diff stats (transforms to X on hover) or close button for worktree workspaces */}
 							{!isBranchWorkspace &&

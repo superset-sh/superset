@@ -4,6 +4,8 @@ import type { MosaicBranch } from "react-mosaic-component";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
+import { isDiffEditable } from "shared/changes-types";
+import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
@@ -97,19 +99,24 @@ export function FileViewerPane({
 		setIsDirty,
 	});
 
-	const { rawFileData, isLoadingRaw, diffData, isLoadingDiff } = useFileContent(
-		{
-			worktreePath,
-			filePath,
-			viewMode,
-			diffCategory,
-			commitHash,
-			oldPath,
-			isDirty,
-			originalContentRef,
-			originalDiffContentRef,
-		},
-	);
+	const {
+		rawFileData,
+		isLoadingRaw,
+		imageData,
+		isLoadingImage,
+		diffData,
+		isLoadingDiff,
+	} = useFileContent({
+		worktreePath,
+		filePath,
+		viewMode,
+		diffCategory,
+		commitHash,
+		oldPath,
+		isDirty,
+		originalContentRef,
+		originalDiffContentRef,
+	});
 
 	const handleEditorChange = useCallback((value: string | undefined) => {
 		if (value === undefined) return;
@@ -250,14 +257,11 @@ export function FileViewerPane({
 	};
 
 	const fileName = filePath.split("/").pop() || filePath;
-	const isMarkdown =
-		filePath.endsWith(".md") ||
-		filePath.endsWith(".markdown") ||
-		filePath.endsWith(".mdx");
+	const hasRenderedMode = isMarkdownFile(filePath) || isImageFile(filePath);
 	const hasDiff = !!diffCategory;
 	const hasDraft = draftContentRef.current !== null;
-	const isDiffEditable =
-		(diffCategory === "staged" || diffCategory === "unstaged") && !hasDraft;
+	const canEditDiff =
+		diffCategory != null && isDiffEditable(diffCategory) && !hasDraft;
 
 	return (
 		<>
@@ -274,10 +278,11 @@ export function FileViewerPane({
 					<div className="flex h-full w-full">
 						<FileViewerToolbar
 							fileName={fileName}
+							filePath={filePath}
 							isDirty={isDirty}
 							viewMode={viewMode}
 							isPinned={isPinned}
-							isMarkdown={isMarkdown}
+							hasRenderedMode={hasRenderedMode}
 							hasDiff={hasDiff}
 							splitOrientation={handlers.splitOrientation}
 							diffViewMode={diffViewMode}
@@ -296,10 +301,12 @@ export function FileViewerPane({
 					viewMode={viewMode}
 					filePath={filePath}
 					isLoadingRaw={isLoadingRaw}
+					isLoadingImage={isLoadingImage}
 					isLoadingDiff={isLoadingDiff}
 					rawFileData={rawFileData}
+					imageData={imageData}
 					diffData={diffData}
-					isDiffEditable={isDiffEditable}
+					isDiffEditable={canEditDiff}
 					editorRef={editorRef}
 					originalContentRef={originalContentRef}
 					draftContentRef={draftContentRef}
@@ -308,9 +315,9 @@ export function FileViewerPane({
 					diffViewMode={diffViewMode}
 					hideUnchangedRegions={hideUnchangedRegions}
 					onSaveRaw={handleSaveRaw}
-					onSaveDiff={isDiffEditable ? handleSaveDiff : undefined}
+					onSaveDiff={canEditDiff ? handleSaveDiff : undefined}
 					onEditorChange={handleEditorChange}
-					onDiffChange={isDiffEditable ? handleDiffChange : undefined}
+					onDiffChange={canEditDiff ? handleDiffChange : undefined}
 					setIsDirty={setIsDirty}
 					// Context menu props
 					onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}

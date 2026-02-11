@@ -14,6 +14,7 @@ export async function GET(
 	return new Response(await getLLMText(page), {
 		headers: {
 			"Content-Type": "text/markdown",
+			"X-Robots-Tag": "noindex, nofollow",
 		},
 	});
 }

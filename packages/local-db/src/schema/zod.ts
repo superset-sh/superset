@@ -47,6 +47,10 @@ export const gitHubStatusSchema = z.object({
 
 export type GitHubStatus = z.infer<typeof gitHubStatusSchema>;
 
+export const EXECUTION_MODES = ["sequential", "parallel"] as const;
+
+export type ExecutionMode = (typeof EXECUTION_MODES)[number];
+
 /**
  * Terminal preset
  */
@@ -57,6 +61,9 @@ export const terminalPresetSchema = z.object({
 	cwd: z.string(),
 	commands: z.array(z.string()),
 	isDefault: z.boolean().optional(),
+	applyOnWorkspaceCreated: z.boolean().optional(),
+	applyOnNewTab: z.boolean().optional(),
+	executionMode: z.enum(EXECUTION_MODES).optional(),
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
@@ -82,6 +89,7 @@ export const EXTERNAL_APPS = [
 	"iterm",
 	"warp",
 	"terminal",
+	"ghostty",
 	// JetBrains IDEs
 	"intellij",
 	"webstorm",
@@ -108,3 +116,19 @@ export const TERMINAL_LINK_BEHAVIORS = [
 ] as const;
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
+
+/**
+ * Branch prefix modes for workspace branch naming
+ */
+export const BRANCH_PREFIX_MODES = [
+	"none",
+	"github",
+	"author",
+	"custom",
+] as const;
+
+export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+
+export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
+
+export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];

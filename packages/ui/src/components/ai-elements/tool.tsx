@@ -1,6 +1,5 @@
 "use client";
 
-import type { ToolUIPart } from "ai";
 import {
 	CheckCircleIcon,
 	ChevronDownIcon,
@@ -20,6 +19,18 @@ import {
 } from "../ui/collapsible";
 import { CodeBlock } from "./code-block";
 
+/** TanStack AI native states + derived output states. */
+export type ToolDisplayState =
+	| "awaiting-input"
+	| "input-streaming"
+	| "input-complete"
+	| "input-available"
+	| "approval-requested"
+	| "approval-responded"
+	| "output-available"
+	| "output-error"
+	| "output-denied";
+
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
 export const Tool = ({ className, ...props }: ToolProps) => (
@@ -31,16 +42,23 @@ export const Tool = ({ className, ...props }: ToolProps) => (
 
 export type ToolHeaderProps = {
 	title?: string;
-	type: ToolUIPart["type"];
-	state: ToolUIPart["state"];
+	type?: string;
+	state: ToolDisplayState;
 	className?: string;
 };
 
-const getStatusBadge = (status: ToolUIPart["state"]) => {
-	const labels: Record<ToolUIPart["state"], string> = {
+function getToolDisplayName(title?: string, type?: string): string {
+	if (title) return title;
+	if (type) return type.split("-").slice(1).join("-");
+	return "tool";
+}
+
+const getStatusBadge = (status: ToolDisplayState) => {
+	const labels: Record<ToolDisplayState, string> = {
+		"awaiting-input": "Pending",
 		"input-streaming": "Pending",
+		"input-complete": "Running",
 		"input-available": "Running",
-		// @ts-expect-error state only available in AI SDK v6
 		"approval-requested": "Awaiting Approval",
 		"approval-responded": "Responded",
 		"output-available": "Completed",
@@ -48,10 +66,11 @@ const getStatusBadge = (status: ToolUIPart["state"]) => {
 		"output-denied": "Denied",
 	};
 
-	const icons: Record<ToolUIPart["state"], ReactNode> = {
+	const icons: Record<ToolDisplayState, ReactNode> = {
+		"awaiting-input": <CircleIcon className="size-4" />,
 		"input-streaming": <CircleIcon className="size-4" />,
+		"input-complete": <ClockIcon className="size-4 animate-pulse" />,
 		"input-available": <ClockIcon className="size-4 animate-pulse" />,
-		// @ts-expect-error state only available in AI SDK v6
 		"approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
 		"approval-responded": <CheckCircleIcon className="size-4 text-blue-600" />,
 		"output-available": <CheckCircleIcon className="size-4 text-green-600" />,
@@ -84,7 +103,7 @@ export const ToolHeader = ({
 		<div className="flex items-center gap-2">
 			<WrenchIcon className="size-4 text-muted-foreground" />
 			<span className="font-medium text-sm">
-				{title ?? type.split("-").slice(1).join("-")}
+				{getToolDisplayName(title, type)}
 			</span>
 			{getStatusBadge(state)}
 		</div>
@@ -105,23 +124,38 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
 );
 
 export type ToolInputProps = ComponentProps<"div"> & {
-	input: ToolUIPart["input"];
+	input: unknown;
 };
 
-export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
-	<div className={cn("space-y-2 overflow-hidden p-4", className)} {...props}>
-		<h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-			Parameters
-		</h4>
-		<div className="rounded-md bg-muted/50">
-			<CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
+function formatJson(input: unknown): string {
+	if (typeof input === "string") {
+		try {
+			return JSON.stringify(JSON.parse(input), null, 2);
+		} catch {
+			return input;
+		}
+	}
+	return JSON.stringify(input, null, 2);
+}
+
+export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
+	const displayCode = formatJson(input);
+
+	return (
+		<div className={cn("space-y-2 overflow-hidden p-4", className)} {...props}>
+			<h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+				Parameters
+			</h4>
+			<div className="rounded-md bg-muted/50">
+				<CodeBlock code={displayCode} language="json" />
+			</div>
 		</div>
-	</div>
-);
+	);
+};
 
 export type ToolOutputProps = ComponentProps<"div"> & {
-	output: ToolUIPart["output"];
-	errorText: ToolUIPart["errorText"];
+	output?: unknown;
+	errorText?: string;
 };
 
 export const ToolOutput = ({

@@ -1,0 +1,1 @@
+export { AuthorAvatar } from "./AuthorAvatar";

@@ -70,8 +70,13 @@ export const InlineCitationCardTrigger = ({
 		>
 			{sources[0] ? (
 				<>
-					{new URL(sources[0]).hostname}{" "}
-					{sources.length > 1 && `+${sources.length - 1}`}
+					{(() => {
+						try {
+							return new URL(sources[0]).hostname;
+						} catch {
+							return sources[0].slice(0, 30);
+						}
+					})()} {sources.length > 1 && `+${sources.length - 1}`}
 				</>
 			) : (
 				"unknown"
@@ -166,9 +171,13 @@ export const InlineCitationCarouselIndex = ({
 		setCount(api.scrollSnapList().length);
 		setCurrent(api.selectedScrollSnap() + 1);
 
-		api.on("select", () => {
+		const onSelect = () => {
 			setCurrent(api.selectedScrollSnap() + 1);
-		});
+		};
+		api.on("select", onSelect);
+		return () => {
+			api.off("select", onSelect);
+		};
 	}, [api]);
 
 	return (

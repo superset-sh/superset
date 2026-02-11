@@ -22,7 +22,11 @@ export interface TerminalSession {
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;
+	exitReason?: TerminalExitReason;
+	killedByUserAt?: number;
 }
+
+export type TerminalExitReason = "killed" | "exited" | "error";
 
 export interface TerminalDataEvent {
 	type: "data";
@@ -33,6 +37,7 @@ export interface TerminalExitEvent {
 	type: "exit";
 	exitCode: number;
 	signal?: number;
+	reason?: TerminalExitReason;
 }
 
 export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
@@ -97,6 +102,8 @@ export interface CreateSessionParams {
 	initialCommands?: string[];
 	/** Skip cold restore detection (used when auto-resuming after cold restore) */
 	skipColdRestore?: boolean;
+	/** Allow restarting a session that was explicitly killed */
+	allowKilled?: boolean;
 }
 
 export interface InternalCreateSessionParams extends CreateSessionParams {

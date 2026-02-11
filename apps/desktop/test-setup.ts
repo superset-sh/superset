@@ -15,8 +15,6 @@ import { join } from "node:path";
 
 process.env.NODE_ENV = "test";
 process.env.SKIP_ENV_VALIDATION = "1";
-process.env.GOOGLE_CLIENT_ID = "test-google-client-id";
-process.env.GH_CLIENT_ID = "test-github-client-id";
 
 const testTmpDir = join(tmpdir(), "superset-test");
 

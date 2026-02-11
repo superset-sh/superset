@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
+import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import {
 	registerPaneRef,
 	unregisterPaneRef,
@@ -9,7 +10,6 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import type { Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
-import { DirectoryNavigator } from "../Terminal/DirectoryNavigator";
 import { BasePaneWindow, PaneToolbarActions } from "./components";
 
 interface TabPaneProps {
@@ -56,9 +56,8 @@ export function TabPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: TabPaneProps) {
-	// Use granular selector to only get this pane's cwd data
-	const paneCwd = useTabsStore((s) => s.panes[paneId]?.cwd);
-	const paneCwdConfirmed = useTabsStore((s) => s.panes[paneId]?.cwdConfirmed);
+	const paneName = useTabsStore((s) => s.panes[paneId]?.name);
+	const paneStatus = useTabsStore((s) => s.panes[paneId]?.status);
 
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
@@ -96,11 +95,12 @@ export function TabPane({
 			renderToolbar={(handlers) => (
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
-						<DirectoryNavigator
-							paneId={paneId}
-							currentCwd={paneCwd}
-							cwdConfirmed={paneCwdConfirmed}
-						/>
+						<span className="truncate text-sm text-muted-foreground">
+							{paneName || "Terminal"}
+						</span>
+						{paneStatus && paneStatus !== "idle" && (
+							<StatusIndicator status={paneStatus} />
+						)}
 					</div>
 					<PaneToolbarActions
 						splitOrientation={handlers.splitOrientation}
@@ -123,7 +123,7 @@ export function TabPane({
 				onMoveToNewTab={onMoveToNewTab}
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
-					<Terminal tabId={paneId} workspaceId={workspaceId} />
+					<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />
 				</div>
 			</TabContentContextMenu>
 		</BasePaneWindow>

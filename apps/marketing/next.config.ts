@@ -5,7 +5,11 @@ import type { NextConfig } from "next";
 
 // Load .env from monorepo root during development
 if (process.env.NODE_ENV !== "production") {
-	dotenvConfig({ path: join(process.cwd(), "../../.env"), override: true });
+	dotenvConfig({
+		path: join(process.cwd(), "../../.env"),
+		override: true,
+		quiet: true,
+	});
 }
 
 const config: NextConfig = {
@@ -44,11 +48,18 @@ const config: NextConfig = {
 	},
 
 	async redirects() {
+		const docsUrl =
+			process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh";
 		return [
 			{
-				source: "/docs/:path*",
-				destination: "https://docs.superset.sh/:path*",
+				source: "/about",
+				destination: "/team",
 				permanent: true,
+			},
+			{
+				source: "/docs/:path*",
+				destination: `${docsUrl}/:path*`,
+				permanent: false,
 			},
 		];
 	},

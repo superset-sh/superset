@@ -3,7 +3,7 @@
  *
  * This module defines the contracts for workspace-scoped runtime providers.
  * The WorkspaceRuntime boundary encapsulates backend-specific behavior
- * (local in-process, local daemon, or cloud/SSH in the future).
+ * (local daemon today, or cloud/SSH in the future).
  *
  * Key invariants:
  * 1. Stream subscriptions MUST NOT complete on session exit (exit is a state transition)
@@ -41,9 +41,6 @@ export interface TerminalCapabilities {
 	persistent: boolean;
 	/** Cold restore from disk is supported after unclean shutdown */
 	coldRestore: boolean;
-	// Future capabilities (not implemented in PR1):
-	// replay: boolean;        // stream supports bounded replay via `since` cursor
-	// multiAttach: boolean;   // multiple attachments can view one backend session
 }
 
 // =============================================================================
@@ -52,11 +49,7 @@ export interface TerminalCapabilities {
 
 /**
  * Terminal management capabilities for listing and killing sessions.
- * Only available when the backend supports persistent sessions (daemon mode).
- *
- * When `management` is null, session management is unavailable.
- * When `management` is present but a call fails, errors are propagated
- * (never silently "disabled").
+ * These are available for daemon-backed runtimes.
  */
 export interface TerminalManagement {
 	/** List all sessions in the daemon */
@@ -102,10 +95,7 @@ export interface TerminalSessionOperations {
 	/** Clear the scrollback buffer */
 	clearScrollback(params: { paneId: string }): void | Promise<void>;
 
-	/**
-	 * Acknowledge cold restore - clears sticky cold restore info.
-	 * No-op in non-daemon mode.
-	 */
+	/** Acknowledge cold restore - clears sticky cold restore info. */
 	ackColdRestore(paneId: string): void;
 
 	/** Get session info */
@@ -166,22 +156,15 @@ export interface TerminalEventSource extends EventEmitter {
  * This combines session operations, workspace operations, event source,
  * and optional management capabilities into a single interface.
  *
- * Implementations:
- * - In-process: TerminalManager (no persistence, management === null)
- * - Daemon: DaemonTerminalManager (persistent, management !== null)
+ * Implementation:
+ * - Daemon: DaemonTerminalManager (persistent, management available)
  */
 export interface TerminalRuntime
 	extends TerminalSessionOperations,
 		TerminalWorkspaceOperations,
 		TerminalEventSource {
-	/**
-	 * Session management capabilities (nullable).
-	 * Only available when backend supports persistent sessions.
-	 *
-	 * When null: Session management UI should show "unavailable"
-	 * When present: Session management is available (errors propagate normally)
-	 */
-	management: TerminalManagement | null;
+	/** Session management capabilities (daemon-backed). */
+	management: TerminalManagement;
 
 	/** Terminal capabilities for this backend */
 	capabilities: TerminalCapabilities;

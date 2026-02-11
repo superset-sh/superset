@@ -9,7 +9,7 @@
 <th align="left">Link</th>
 </tr>
 <tr>
-<td><img src="https://neon.com/favicon.ico" width="20" height="20" alt="Neon"> <strong>Database (Neon)</strong></td>
+<td><img src="https://neon.com/favicon/favicon.svg" width="20" height="20" alt="Neon"> <strong>Database (Neon)</strong></td>
 <td align="center">$DATABASE_STATUS</td>
 <td>$DATABASE_LINK</td>
 </tr>
@@ -17,6 +17,11 @@
 <td><img src="https://fly.io/phx/ui/images/favicon/favicon-595d1312b35dfe32838befdf8505515e.ico" width="20" height="20" alt="Fly.io"> <strong>Electric (Fly.io)</strong></td>
 <td align="center">$ELECTRIC_STATUS</td>
 <td>$ELECTRIC_LINK</td>
+</tr>
+<tr>
+<td><img src="https://fly.io/phx/ui/images/favicon/favicon-595d1312b35dfe32838befdf8505515e.ico" width="20" height="20" alt="Fly.io"> <strong>Streams (Fly.io)</strong></td>
+<td align="center">$STREAMS_STATUS</td>
+<td>$STREAMS_LINK</td>
 </tr>
 <tr>
 <td><img src="https://vercel.com/favicon.ico" width="20" height="20" alt="Vercel"> <strong>API (Vercel)</strong></td>

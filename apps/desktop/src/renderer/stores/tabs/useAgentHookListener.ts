@@ -13,7 +13,7 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  *
  * STATUS MAPPING:
  * - Start → "working" (amber pulsing indicator)
- * - Stop → "review" (green static) if pane not active, "idle" if active
+ * - Stop → "review" (green static) if pane's tab not active, "idle" if tab is active
  * - PermissionRequest → "permission" (red pulsing indicator)
  * - Terminal Exit → "idle" (handled in Terminal.tsx when mounted; also forwarded via notifications for unmounted panes)
  *
@@ -35,15 +35,10 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
 export function useAgentHookListener() {
 	const navigate = useNavigate();
 
-	// Track current workspace from router to avoid stale closure
+	// Ref avoids stale closure; parsed from URL since hook runs in _authenticated/layout
 	const currentWorkspaceIdRef = useRef<string | null>(null);
-
-	// We need to update this ref from the workspace page, but for now
-	// we'll use router state. This is called from _authenticated/layout
-	// so we check the current route
 	try {
-		const location = window.location;
-		const match = location.pathname.match(/\/workspace\/([^/]+)/);
+		const match = window.location.pathname.match(/\/workspace\/([^/]+)/);
 		currentWorkspaceIdRef.current = match ? match[1] : null;
 	} catch {
 		currentWorkspaceIdRef.current = null;
@@ -68,39 +63,28 @@ export function useAgentHookListener() {
 				const { eventType } = lifecycleEvent;
 
 				if (eventType === "Start") {
-					// Agent started working - always set to working
 					state.setPaneStatus(paneId, "working");
 				} else if (eventType === "PermissionRequest") {
-					// Agent needs permission - always set to permission (overrides working)
 					state.setPaneStatus(paneId, "permission");
 				} else if (eventType === "Stop") {
-					// Agent completed - only mark as review if not currently active
 					const activeTabId = state.activeTabIds[workspaceId];
-					const focusedPaneId =
-						activeTabId && state.focusedPaneIds[activeTabId];
-					const isAlreadyActive =
+					const pane = state.panes[paneId];
+					const isInActiveTab =
 						currentWorkspaceIdRef.current === workspaceId &&
-						focusedPaneId === paneId;
+						pane?.tabId === activeTabId;
 
 					debugLog("agent-hooks", "Stop event:", {
-						isAlreadyActive,
+						isInActiveTab,
 						activeTabId,
-						focusedPaneId,
+						paneTabId: pane?.tabId,
 						paneId,
-						willSetTo: isAlreadyActive ? "idle" : "review",
+						willSetTo: isInActiveTab ? "idle" : "review",
 					});
 
-					if (isAlreadyActive) {
-						// User is watching - go straight to idle
-						state.setPaneStatus(paneId, "idle");
-					} else {
-						// User not watching - mark for review
-						state.setPaneStatus(paneId, "review");
-					}
+					state.setPaneStatus(paneId, isInActiveTab ? "idle" : "review");
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.TERMINAL_EXIT) {
-				// Correctness-only: clear transient status if the underlying process exited
-				// while the terminal pane was not mounted (no per-pane stream subscription).
+				// Clear transient status for unmounted panes (mounted panes handle this via stream subscription)
 				if (!paneId) return;
 				const currentPane = state.panes[paneId];
 				if (
@@ -110,25 +94,12 @@ export function useAgentHookListener() {
 					state.setPaneStatus(paneId, "idle");
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
-				// Navigate to the workspace and focus the tab/pane
-				navigateToWorkspace(workspaceId, navigate);
-
-				// Set active tab and focused pane after navigation
-				// (router navigation is async, but state updates are immediate)
-				const freshState = useTabsStore.getState();
-				const freshTarget = resolveNotificationTarget(event.data, freshState);
-				if (!freshTarget?.tabId) return;
-
-				const freshTab = freshState.tabs.find(
-					(t) => t.id === freshTarget.tabId,
-				);
-				if (!freshTab || freshTab.workspaceId !== workspaceId) return;
-
-				freshState.setActiveTab(workspaceId, freshTarget.tabId);
-
-				if (freshTarget.paneId && freshState.panes[freshTarget.paneId]) {
-					freshState.setFocusedPane(freshTarget.tabId, freshTarget.paneId);
-				}
+				navigateToWorkspace(workspaceId, navigate, {
+					search: {
+						tabId: target.tabId,
+						paneId: target.paneId,
+					},
+				});
 			}
 		},
 	});

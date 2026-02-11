@@ -6,7 +6,7 @@ import { drizzle as drizzleWs } from "drizzle-orm/neon-serverless";
 import { env } from "./env";
 import * as schema from "./schema";
 
-config({ path: ".env" });
+config({ path: ".env", quiet: true });
 
 const sql = neon(env.DATABASE_URL);
 

@@ -8,6 +8,7 @@ import { PLATFORM } from "./constants";
 export type HotkeyPlatform = "darwin" | "win32" | "linux";
 
 export type HotkeyCategory =
+	| "Navigation"
 	| "Workspace"
 	| "Layout"
 	| "Terminal"
@@ -104,6 +105,18 @@ const ELECTRON_KEY_MAP: Record<string, string> = {
 	right: "Right",
 	space: "Space",
 	slash: "/",
+	f1: "F1",
+	f2: "F2",
+	f3: "F3",
+	f4: "F4",
+	f5: "F5",
+	f6: "F6",
+	f7: "F7",
+	f8: "F8",
+	f9: "F9",
+	f10: "F10",
+	f11: "F11",
+	f12: "F12",
 };
 
 const TERMINAL_RESERVED_CHORDS = new Set<string>([
@@ -114,6 +127,10 @@ const TERMINAL_RESERVED_CHORDS = new Set<string>([
 	"ctrl+q",
 	"ctrl+\\",
 ]);
+
+function isFunctionKey(key: string): boolean {
+	return /^f([1-9]|1[0-2])$/.test(key);
+}
 
 const OS_RESERVED_CHORDS: Record<HotkeyPlatform, string[]> = {
 	darwin: ["meta+q", "meta+space", "meta+tab"],
@@ -250,6 +267,10 @@ export function matchesHotkeyEvent(
 	if (key === "up" && eventKey === "arrowup") return true;
 	if (key === "down" && eventKey === "arrowdown") return true;
 
+	// On Mac, Option+number produces special characters (e.g., Option+1 = ¡)
+	// Use event.code to match digit keys when alt is pressed
+	if (/^[1-9]$/.test(key) && eventCode === `digit${key}`) return true;
+
 	return eventKey === key;
 }
 
@@ -270,8 +291,9 @@ export function hotkeyFromKeyboardEvent(
 		return null;
 	}
 
-	// App hotkeys must include ctrl or meta to avoid conflicts with terminal input
-	if (!event.ctrlKey && !event.metaKey) {
+	// App hotkeys must include ctrl or meta (or be function keys F1-F12)
+	// to avoid conflicts with terminal input and ensure they work when the terminal is focused
+	if (!isFunctionKey(normalizedKey) && !event.ctrlKey && !event.metaKey) {
 		return null;
 	}
 
@@ -310,12 +332,16 @@ export function isOsReservedHotkey(
 }
 
 /**
- * Checks if a hotkey includes a primary modifier (ctrl or meta).
- * App hotkeys must include ctrl or meta to avoid conflicts with terminal input
- * and to ensure they work when the terminal is focused.
+ * Checks if a hotkey is valid for app-level use.
+ * App hotkeys must include ctrl or meta (or be function keys F1-F12)
+ * to avoid conflicts with terminal input and ensure they work when the terminal is focused.
  */
-export function hasPrimaryModifier(keys: string): boolean {
+export function isValidAppHotkey(keys: string): boolean {
 	const parsed = parseHotkeyString(keys);
+	// Function keys are allowed without modifiers
+	if (parsed.key && isFunctionKey(parsed.key)) {
+		return true;
+	}
 	return parsed.modifiers.has("ctrl") || parsed.modifiers.has("meta");
 }
 
@@ -363,6 +389,20 @@ function defineHotkey(def: {
 }
 
 export const HOTKEYS = {
+	// Navigation - browser-style back/forward
+	NAVIGATE_BACK: defineHotkey({
+		keys: "meta+[",
+		label: "Navigate Back",
+		category: "Navigation",
+		description: "Go back to the previous page in history",
+	}),
+	NAVIGATE_FORWARD: defineHotkey({
+		keys: "meta+]",
+		label: "Navigate Forward",
+		category: "Navigation",
+		description: "Go forward to the next page in history",
+	}),
+
 	// Workspace - switch with ⌘+1-9
 	JUMP_TO_WORKSPACE_1: defineHotkey({
 		keys: "meta+1",
@@ -410,12 +450,12 @@ export const HOTKEYS = {
 		category: "Workspace",
 	}),
 	PREV_WORKSPACE: defineHotkey({
-		keys: "meta+up",
+		keys: "meta+alt+up",
 		label: "Previous Workspace",
 		category: "Workspace",
 	}),
 	NEXT_WORKSPACE: defineHotkey({
-		keys: "meta+down",
+		keys: "meta+alt+down",
 		label: "Next Workspace",
 		category: "Workspace",
 	}),
@@ -470,7 +510,12 @@ export const HOTKEYS = {
 	}),
 	NEW_GROUP: defineHotkey({
 		keys: "meta+t",
-		label: "New Tab",
+		label: "New Terminal",
+		category: "Terminal",
+	}),
+	NEW_CHAT: defineHotkey({
+		keys: "meta+shift+t",
+		label: "New Chat",
 		category: "Terminal",
 	}),
 	CLOSE_TERMINAL: defineHotkey({
@@ -489,27 +534,127 @@ export const HOTKEYS = {
 		category: "Terminal",
 		description: "Scroll the active terminal to the bottom",
 	}),
-	PREV_TERMINAL: defineHotkey({
-		keys: "meta+left",
-		label: "Previous Terminal",
+	PREV_TAB: defineHotkey({
+		keys: "meta+alt+left",
+		label: "Previous Tab",
 		category: "Terminal",
 	}),
-	NEXT_TERMINAL: defineHotkey({
-		keys: "meta+right",
-		label: "Next Terminal",
+	NEXT_TAB: defineHotkey({
+		keys: "meta+alt+right",
+		label: "Next Tab",
+		category: "Terminal",
+	}),
+	PREV_TAB_ALT: defineHotkey({
+		keys: "ctrl+shift+tab",
+		label: "Previous Tab (Alt)",
+		category: "Terminal",
+	}),
+	NEXT_TAB_ALT: defineHotkey({
+		keys: "ctrl+tab",
+		label: "Next Tab (Alt)",
 		category: "Terminal",
 	}),
 	PREV_PANE: defineHotkey({
-		keys: "meta+alt+left",
+		keys: "meta+shift+left",
 		label: "Previous Pane",
 		category: "Terminal",
 		description: "Focus the previous pane in the current tab",
 	}),
 	NEXT_PANE: defineHotkey({
-		keys: "meta+alt+right",
+		keys: "meta+shift+right",
 		label: "Next Pane",
 		category: "Terminal",
 		description: "Focus the next pane in the current tab",
+	}),
+	JUMP_TO_TAB_1: defineHotkey({
+		keys: "meta+alt+1",
+		label: "Switch to Tab 1",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_2: defineHotkey({
+		keys: "meta+alt+2",
+		label: "Switch to Tab 2",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_3: defineHotkey({
+		keys: "meta+alt+3",
+		label: "Switch to Tab 3",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_4: defineHotkey({
+		keys: "meta+alt+4",
+		label: "Switch to Tab 4",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_5: defineHotkey({
+		keys: "meta+alt+5",
+		label: "Switch to Tab 5",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_6: defineHotkey({
+		keys: "meta+alt+6",
+		label: "Switch to Tab 6",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_7: defineHotkey({
+		keys: "meta+alt+7",
+		label: "Switch to Tab 7",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_8: defineHotkey({
+		keys: "meta+alt+8",
+		label: "Switch to Tab 8",
+		category: "Terminal",
+	}),
+	JUMP_TO_TAB_9: defineHotkey({
+		keys: "meta+alt+9",
+		label: "Switch to Tab 9",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_1: defineHotkey({
+		keys: "ctrl+1",
+		label: "Open Preset 1",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_2: defineHotkey({
+		keys: "ctrl+2",
+		label: "Open Preset 2",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_3: defineHotkey({
+		keys: "ctrl+3",
+		label: "Open Preset 3",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_4: defineHotkey({
+		keys: "ctrl+4",
+		label: "Open Preset 4",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_5: defineHotkey({
+		keys: "ctrl+5",
+		label: "Open Preset 5",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_6: defineHotkey({
+		keys: "ctrl+6",
+		label: "Open Preset 6",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_7: defineHotkey({
+		keys: "ctrl+7",
+		label: "Open Preset 7",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_8: defineHotkey({
+		keys: "ctrl+8",
+		label: "Open Preset 8",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_9: defineHotkey({
+		keys: "ctrl+9",
+		label: "Open Preset 9",
+		category: "Terminal",
 	}),
 
 	// Workspace creation
@@ -525,11 +670,23 @@ export const HOTKEYS = {
 		category: "Workspace",
 		description: "Quickly create a workspace in the current project",
 	}),
+	FOCUS_TASK_SEARCH: defineHotkey({
+		keys: "meta+f",
+		label: "Focus Task Search",
+		category: "Workspace",
+		description: "Focus the search input in the tasks view",
+	}),
 	OPEN_PROJECT: defineHotkey({
 		keys: "meta+shift+o",
 		label: "Open Project",
 		category: "Workspace",
 		description: "Open an existing project folder",
+	}),
+	OPEN_PR: defineHotkey({
+		keys: "meta+shift+p",
+		label: "Open Pull Request",
+		category: "Workspace",
+		description: "Open existing PR or create a new one on GitHub",
 	}),
 
 	// Window
@@ -558,6 +715,16 @@ export const HOTKEYS = {
 	}),
 
 	// Help
+	OPEN_SETTINGS: defineHotkey({
+		keys: "meta+,",
+		label: "Open Settings",
+		category: "Help",
+		defaults: {
+			darwin: "meta+,",
+			win32: "ctrl+,",
+			linux: "ctrl+,",
+		},
+	}),
 	SHOW_HOTKEYS: defineHotkey({
 		keys: "meta+slash",
 		label: "Show Keyboard Shortcuts",
@@ -575,6 +742,7 @@ export function getHotkeysByCategory(options?: {
 	includeHidden?: boolean;
 }): Record<HotkeyCategory, HotkeyWithId[]> {
 	const grouped: Record<HotkeyCategory, HotkeyWithId[]> = {
+		Navigation: [],
 		Workspace: [],
 		Layout: [],
 		Terminal: [],
@@ -640,8 +808,8 @@ export function buildOverridesFromBindings(
 		if (canonical === null && value !== null) {
 			continue;
 		}
-		// App hotkeys must include ctrl or meta to work in terminal
-		if (canonical !== null && !hasPrimaryModifier(canonical)) {
+		// App hotkeys must include ctrl or meta (or be function keys) to work in terminal
+		if (canonical !== null && !isValidAppHotkey(canonical)) {
 			continue;
 		}
 		const defaultValue = getDefaultHotkey(id, platform);

@@ -6,7 +6,6 @@ import {
 } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
-import { TopBar } from "renderer/screens/main/components/TopBar";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -15,6 +14,7 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
+import { TopBar } from "./components/TopBar";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
@@ -23,7 +23,6 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
-
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
@@ -50,6 +49,13 @@ function DashboardLayout() {
 	} = useWorkspaceSidebarStore();
 
 	// Global hotkeys for dashboard
+	useAppHotkey(
+		"OPEN_SETTINGS",
+		() => navigate({ to: "/settings/account" }),
+		undefined,
+		[navigate],
+	);
+
 	useAppHotkey(
 		"SHOW_HOTKEYS",
 		() => navigate({ to: "/settings/keyboard" }),
@@ -96,7 +102,11 @@ function DashboardLayout() {
 						handleSide="right"
 						clampWidth={false}
 					>
-						<WorkspaceSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
+						<WorkspaceSidebar
+							isCollapsed={isWorkspaceSidebarCollapsed()}
+							activeProjectId={currentWorkspace?.projectId ?? null}
+							activeProjectName={currentWorkspace?.project?.name ?? null}
+						/>
 					</ResizablePanel>
 				)}
 				<Outlet />

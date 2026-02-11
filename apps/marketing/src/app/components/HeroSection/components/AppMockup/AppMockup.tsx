@@ -267,12 +267,9 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 	// - "Open in Any IDE": Highlight top bar / open actions
 
 	return (
-		<motion.div
-			className="relative w-full rounded-xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/[0.08] shadow-2xl"
+		<div
+			className="relative w-full min-w-[600px] rounded-xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/[0.08] shadow-2xl"
 			style={{ aspectRatio: "16/10" }}
-			initial={{ opacity: 0, scale: 0.98 }}
-			animate={{ opacity: 1, scale: 1 }}
-			transition={{ duration: 0.5, ease: "easeOut" }}
 		>
 			{/* Window chrome */}
 			<div className="flex items-center justify-between px-3 py-2 bg-white/[0.03] backdrop-blur-md border-b border-white/[0.06]">
@@ -917,6 +914,6 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</div>
 				</div>
 			</motion.div>
-		</motion.div>
+		</div>
 	);
 }

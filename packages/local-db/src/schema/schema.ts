@@ -2,7 +2,9 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 
 import type {
+	BranchPrefixMode,
 	ExternalApp,
+	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
 	TerminalLinkBehavior,
@@ -34,6 +36,10 @@ export const projects = sqliteTable(
 		}),
 		defaultBranch: text("default_branch"),
 		githubOwner: text("github_owner"),
+		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
+		branchPrefixCustom: text("branch_prefix_custom"),
+		hideImage: integer("hide_image", { mode: "boolean" }),
+		iconUrl: text("icon_url"),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -103,6 +109,8 @@ export const workspaces = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 		isUnread: integer("is_unread", { mode: "boolean" }).default(false),
+		// Whether the workspace has an auto-generated name (branch name) that should prompt for rename
+		isUnnamed: integer("is_unnamed", { mode: "boolean" }).default(false),
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),
@@ -142,6 +150,16 @@ export const settings = sqliteTable("settings", {
 	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),
+	autoApplyDefaultPreset: integer("auto_apply_default_preset", {
+		mode: "boolean",
+	}),
+	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
+	branchPrefixCustom: text("branch_prefix_custom"),
+	notificationSoundsMuted: integer("notification_sounds_muted", {
+		mode: "boolean",
+	}),
+	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
+	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

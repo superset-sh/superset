@@ -1,145 +1,237 @@
-<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <div align="center">
-<img width="600" alt="supersetlogo" src="https://github.com/user-attachments/assets/43c1bde8-93f5-4f53-9db4-187f632051a2" />
 
+<img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
-<h3 align="center">Superset</h3>
-  <p align="center">
-    Run 10+ parallel coding agents on your machine
-  </p>
+### The Terminal for Coding Agents
 
-[![Superset Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
-[![Superset Twitter](https://img.shields.io/badge/Discord-555?logo=discord)]([https://x.com/superset_sh](https://discord.gg/cZeD9WYcV7))
+[![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
+[![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
+[![License](https://img.shields.io/github/license/superset-sh/superset?style=flat)](LICENSE.md)
+[![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
+[![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
+
+<br />
+
+[**Download for macOS**](https://github.com/superset-sh/superset/releases/latest) &nbsp;&bull;&nbsp; [Documentation](https://docs.superset.sh) &nbsp;&bull;&nbsp; [Changelog](https://github.com/superset-sh/superset/releases) &nbsp;&bull;&nbsp; [Discord](https://discord.gg/cZeD9WYcV7)
+
+<br />
+
 
 </div>
 
-## A Terminal Built for Coding Agents
-Run 10+ CLI coding agents like Claude Code, Codex, etc. in parallel on your machine. 
-Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.
+## Why Superset?
 
-https://github.com/user-attachments/assets/d85ec84f-34de-4e17-9d44-5ccbd225566f
+Superset is a turbocharged terminal that allows you to run any CLI coding agents along with the tools to 10x your development workflow. 
+
+- **Run multiple agents simultaneously** without context switching overhead
+- **Isolate each task** in its own git worktree so agents don't interfere with each other
+- **Monitor all your agents** from one place and get notified when they need attention
+- **Review changes quickly** with built-in diff viewer and editor
+
+Wait less, ship more.
+
+## Features
+
+| Feature | Description |
+|:--------|:------------|
+| **Parallel Execution** | Run 10+ coding agents simultaneously on your machine |
+| **Worktree Isolation** | Each task gets its own branch and working directory |
+| **Agent Monitoring** | Track agent status and get notified when changes are ready |
+| **Built-in Diff Viewer** | Inspect and edit agent changes without leaving the app |
+| **Workspace Presets** | Automate env setup, dependency installation, and more |
+| **Universal Compatibility** | Works with any CLI agent that runs in a terminal |
+| **Quick Context Switching** | Jump between tasks as they need your attention |
+| **IDE Integration** | Open any workspace in your favorite editor with one click |
+
+## Supported Agents
+
+Superset works with any CLI-based coding agent, including:
+
+| Agent | Status |
+|:------|:-------|
+| [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
+| [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
+| [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
+| Any CLI agent | Will work |
+
+If it runs in a terminal, it runs on Superset
+
+## Requirements
+
+| Requirement | Details |
+|:------------|:--------|
+| **OS** | macOS (Windows/Linux untested) |
+| **Runtime** | [Bun](https://bun.sh/) v1.0+ |
+| **Version Control** | Git 2.20+ |
+| **GitHub CLI** | [gh](https://cli.github.com/) |
 
 ## Getting Started
 
-Prerequisites:
-1. Install [Bun](https://bun.sh/) (package manager and Node runtime)
-2. Clone the repo from GitHub
-```
+### Quick Start (Pre-built)
+
+**[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
+
+### Build from Source
+
+<details>
+<summary>Click to expand build instructions</summary>
+
+**1. Clone the repository**
+
+```bash
 git clone https://github.com/superset-sh/superset.git
+cd superset
 ```
-3. Set up environment variables (choose one):
 
-   **Option A: Full setup**
-   ```bash
-   cp .env.example .env
-   ```
-   Then edit `.env` and fill in the values
+**2. Set up environment variables** (choose one):
 
-   **Option B: Skip env validation**
-   ```bash
-   export SKIP_ENV_VALIDATION=1
-   ```
-   This skips environment validation, useful for quickly running the app without external services.
+Option A: Full setup
+```bash
+cp .env.example .env
+# Edit .env and fill in the values
+```
 
-Install dependencies:
+Option B: Skip env validation (for quick local testing)
+```bash
+export SKIP_ENV_VALIDATION=1
+```
+
+**3. Install dependencies and run**
+
 ```bash
 bun install
-```
-Run in dev mode:
-```bash
 bun run dev
 ```
-Build desktop app:
+
+**4. Build the desktop app**
+
 ```bash
 bun run build
-open apps/desktop/release       
+open apps/desktop/release
 ```
 
-> [!NOTE]  
-> While Electron is cross-platform, Superset Desktop has only been built and tested on **macOS**. Other platforms are currently untested and may not work as expected.
+</details>
 
-### Usage
+## Keyboard Shortcuts
 
-For each parallel tasks, Superset uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a config file (`.superset/config.json`).
-Each workspace gets their own organized terminal system. You can create default presets.
+All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`). See [full documentation](https://docs.superset.sh/keyboard-shortcuts).
 
-<img width="602" height="445" alt="Screenshot 2025-12-24 at 9 33 35 PM" src="https://github.com/user-attachments/assets/d9a2cc66-722c-4e10-bb58-5c96b594c577" />
+### Workspace Navigation
 
-Superset monitors your running agents, notify you when changes are ready, and help coordinate between multiple agents. There's a diff view with editor built in so you can quickly inspect and edit agents' changes.
+| Shortcut | Action |
+|:---------|:-------|
+| `⌘1-9` | Switch to workspace 1-9 |
+| `⌘⌥↑/↓` | Previous/next workspace |
+| `⌘N` | New workspace |
+| `⌘⇧N` | Quick create workspace |
+| `⌘⇧O` | Open project |
 
-<img width="600" height="447" alt="Screenshot 2025-12-24 at 9 33 51 PM" src="https://github.com/user-attachments/assets/ff890049-67a8-432b-8edd-bf9ff846ae16" />
+### Terminal
 
-Superset is designed to be a superset of your existing tools. It works for any CLI agents that runs in the terminal. You can open your superset workspace in any apps like IDE, filesystem, terminal, etc. 
+| Shortcut | Action |
+|:---------|:-------|
+| `⌘T` | New tab |
+| `⌘W` | Close pane/terminal |
+| `⌘D` | Split right |
+| `⌘⇧D` | Split down |
+| `⌘K` | Clear terminal |
+| `⌘F` | Find in terminal |
+| `⌘⌥←/→` | Previous/next tab |
+| `Ctrl+1-9` | Open preset 1-9 |
 
-<img width="602" height="445" alt="Screenshot 2025-12-24 at 9 34 04 PM" src="https://github.com/user-attachments/assets/1eb3fa42-db30-4a62-9a8f-22cb757b4866" />
+### Layout
 
-### Tech Stack
+| Shortcut | Action |
+|:---------|:-------|
+| `⌘B` | Toggle workspaces sidebar |
+| `⌘L` | Toggle changes panel |
+| `⌘O` | Open in external app |
+| `⌘⇧C` | Copy path |
 
-[![Electron](https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white)](https://www.electronjs.org/)
-[![React](https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
-[![TailwindCSS](https://img.shields.io/badge/Tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
-[![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build/)
-[![Vite](https://img.shields.io/badge/Vite-%23646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Biome](https://img.shields.io/badge/Biome-339AF0?logo=biome&logoColor=white)](https://biomejs.dev/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-FFE873?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
-[![Neon](https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white)](https://neon.tech/)
-[![tRPC](https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white)](https://trpc.io/)
+## Configuration
 
+Configure workspace setup and teardown in `.superset/config.json`. See [full documentation](https://docs.superset.sh/setup-teardown-scripts).
+
+```json
+{
+  "setup": ["./.superset/setup.sh"],
+  "teardown": ["./.superset/teardown.sh"]
+}
+```
+
+| Option | Type | Description |
+|:-------|:-----|:------------|
+| `setup` | `string[]` | Commands to run when creating a workspace |
+| `teardown` | `string[]` | Commands to run when deleting a workspace |
+
+### Example setup script
+
+```bash
+#!/bin/bash
+# .superset/setup.sh
+
+# Copy environment variables
+cp ../.env .env
+
+# Install dependencies
+bun install
+
+# Run any other setup tasks
+echo "Workspace ready!"
+```
+
+Scripts have access to environment variables:
+- `SUPERSET_WORKSPACE_NAME` — Name of the workspace
+- `SUPERSET_ROOT_PATH` — Path to the main repository
+
+## Tech Stack
+
+<p>
+  <a href="https://www.electronjs.org/"><img src="https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white" alt="Electron" /></a>
+  <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB" alt="React" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white" alt="TailwindCSS" /></a>
+  <a href="https://bun.sh/"><img src="https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white" alt="Bun" /></a>
+  <a href="https://turbo.build/"><img src="https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white" alt="Turborepo" /></a>
+  <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-%23646CFF.svg?logo=vite&logoColor=white" alt="Vite" /></a>
+  <a href="https://biomejs.dev/"><img src="https://img.shields.io/badge/Biome-339AF0?logo=biome&logoColor=white" alt="Biome" /></a>
+  <a href="https://orm.drizzle.team/"><img src="https://img.shields.io/badge/Drizzle%20ORM-FFE873?logo=drizzle&logoColor=black" alt="Drizzle ORM" /></a>
+  <a href="https://neon.tech/"><img src="https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white" alt="Neon" /></a>
+  <a href="https://trpc.io/"><img src="https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white" alt="tRPC" /></a>
+</p>
 
 ## Contributing
 
-If you have a suggestion that would make this better, please fork the repo and
-create a pull request. You can also
-[open issues](https://github.com/superset-sh/superset/issues).
+We welcome contributions! If you have a suggestion that would make Superset better:
 
-See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+You can also [open issues](https://github.com/superset-sh/superset/issues) for bugs or feature requests.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions and code of conduct.
 
 <a href="https://github.com/superset-sh/superset/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
 </a>
 
-## Cookbook
+## Community
 
-See tips and motivation under `docs`: [docs/cookbook/README.md](docs/cookbook/README.md).
+Join the Superset community to get help, share feedback, and connect with other users:
 
-## Follow Us
-- [![Avi Twitter](https://img.shields.io/badge/Avi-@avimakesrobots-555?logo=x)](https://x.com/avimakesrobots)
-- [![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
-- [![Satya Twitter](https://img.shields.io/badge/Satya-@saddle_paddle-555?logo=x)](https://x.com/saddle_paddle)
+- **[Discord](https://discord.gg/cZeD9WYcV7)** — Chat with the team and community
+- **[Twitter](https://x.com/superset_sh)** — Follow for updates and announcements
+- **[GitHub Issues](https://github.com/superset-sh/superset/issues)** — Report bugs and request features
+- **[GitHub Discussions](https://github.com/superset-sh/superset/discussions)** — Ask questions and share ideas
+
+### Team
+
+[![Avi Twitter](https://img.shields.io/badge/Avi-@avimakesrobots-555?logo=x)](https://x.com/avimakesrobots)
+[![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
+[![Satya Twitter](https://img.shields.io/badge/Satya-@saddle__paddle-555?logo=x)](https://x.com/saddle_paddle)
 
 ## License
 
 Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more information.
-
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-
-[superset-twitter]: https://x.com/supersetdev
-[kiet-twitter]: https://x.com/flyakiet
-[satya-twitter]: https://x.com/saddle_paddle
-[avi-twitter]: https://x.com/avimakesrobots
-[contributors-shield]: https://img.shields.io/github/contributors/superset-sh/studio.svg?style=for-the-badge
-[contributors-url]: https://github.com/superset-sh/superset/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/superset-sh/studio.svg?style=for-the-badge
-[forks-url]: https://github.com/superset-sh/superset/network/members
-[stars-shield]: https://img.shields.io/github/stars/superset-sh/studio.svg?style=for-the-badge
-[stars-url]: https://github.com/superset-sh/superset/stargazers
-[issues-shield]: https://img.shields.io/github/issues/superset-sh/studio.svg?style=for-the-badge
-[issues-url]: https://github.com/superset-sh/superset/issues
-[license-shield]: https://img.shields.io/github/license/superset-sh/studio.svg?style=for-the-badge
-[license-url]: ./LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?logo=linkedin&colorB=555
-[linkedin-url]: https://www.linkedin.com/company/superset-sh
-[twitter-shield]: https://img.shields.io/badge/-Twitter-black?logo=x&colorB=555
-[twitter-url]: https://x.com/supersetdev
-[discord-shield]: https://img.shields.io/badge/-Discord-black?logo=discord&colorB=555
-[discord-url]: https://discord.gg/hERDfFZCsH
-[React.js]: https://img.shields.io/badge/react-%2320232a.svg?logo=react&logoColor=%2361DAFB
-[React-url]: https://reactjs.org/
-[TailwindCSS]: https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white
-[Tailwind-url]: https://tailwindcss.com/
-[Electron.js]: https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white
-[Electron-url]: https://www.electronjs.org/
-[Vite.js]: https://img.shields.io/badge/vite-%23646CFF.svg?logo=vite&logoColor=white
-[Vite-url]: https://vitejs.dev/
-[product-screenshot]: assets/brand.png

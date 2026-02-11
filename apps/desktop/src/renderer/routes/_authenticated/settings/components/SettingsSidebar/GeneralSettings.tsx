@@ -1,12 +1,12 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
 	HiOutlineCreditCard,
+	HiOutlineDevicePhoneMobile,
+	HiOutlineKey,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineSparkles,
@@ -28,7 +28,9 @@ type SettingsRoute =
 	| "/settings/behavior"
 	| "/settings/terminal"
 	| "/settings/integrations"
-	| "/settings/billing";
+	| "/settings/billing"
+	| "/settings/devices"
+	| "/settings/api-keys";
 
 const GENERAL_SECTIONS: {
 	id: SettingsRoute;
@@ -90,19 +92,29 @@ const GENERAL_SECTIONS: {
 		label: "Billing",
 		icon: <HiOutlineCreditCard className="h-4 w-4" />,
 	},
+	{
+		id: "/settings/devices",
+		section: "devices",
+		label: "Devices",
+		icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/api-keys",
+		section: "apikeys",
+		label: "API Keys",
+		icon: <HiOutlineKey className="h-4 w-4" />,
+	},
 ];
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
-	const billingEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.BILLING_ENABLED);
 
-	const filteredSections = (
-		matchCounts
-			? GENERAL_SECTIONS.filter(
-					(section) => (matchCounts[section.section] ?? 0) > 0,
-				)
-			: GENERAL_SECTIONS
-	).filter((section) => section.section !== "billing" || billingEnabled);
+	// When searching, only show sections that have matches
+	const filteredSections = matchCounts
+		? GENERAL_SECTIONS.filter(
+				(section) => (matchCounts[section.section] ?? 0) > 0,
+			)
+		: GENERAL_SECTIONS;
 
 	if (filteredSections.length === 0) {
 		return null;

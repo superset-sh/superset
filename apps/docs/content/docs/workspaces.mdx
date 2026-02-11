@@ -1,0 +1,36 @@
+---
+title: Workspaces
+description: Isolated environments for each git branch
+---
+
+## Core Concept
+
+Each workspace = one git branch. Workspaces are isolated git worktrees with their own directory, terminal, and ports.
+
+<YouTubeVideo id="8PuptrsyNvM" title="Superset Workspaces" thumbnail="/images/branches.png" />
+
+## Create Workspaces
+
+Press **⌘N** or click "New Workspace". Create from:
+
+- **New branch** - Fresh branch from main
+- **Existing branch** - Continue work on a branch
+- **Pull request** - Review or continue a PR
+
+Each workspace gets:
+- Own git branch
+- Own working directory
+- Own terminal sessions
+- Own port range
+
+## Use Cases
+
+- **Parallel features** - Work on multiple features simultaneously
+- **AI agents** - Run Claude Code in separate workspaces
+- **Code review** - Review PRs while continuing your work
+
+## Best Practices
+
+- Use descriptive branch names: `feature/auth`, `fix/login-bug`
+- Don't work directly on `main`
+- Delete workspaces after merging

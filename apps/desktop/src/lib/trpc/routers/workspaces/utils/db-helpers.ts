@@ -220,6 +220,7 @@ export function touchWorkspace(
 	workspaceId: string,
 	additionalFields?: Partial<{
 		isUnread: boolean;
+		isUnnamed: boolean;
 		branch: string;
 		name: string;
 	}>,
@@ -287,6 +288,71 @@ export function getBranchWorkspace(
 			),
 		)
 		.get();
+}
+
+/**
+ * Find a non-deleting worktree-type workspace by project + branch.
+ * Returns the workspace and its worktree, or null if not found.
+ */
+export function findWorktreeWorkspaceByBranch({
+	projectId,
+	branch,
+}: {
+	projectId: string;
+	branch: string;
+}): {
+	workspace: SelectWorkspace;
+	worktree: SelectWorktree;
+} | null {
+	const result = localDb
+		.select({ workspace: workspaces, worktree: worktrees })
+		.from(workspaces)
+		.innerJoin(worktrees, eq(workspaces.worktreeId, worktrees.id))
+		.where(
+			and(
+				eq(workspaces.projectId, projectId),
+				eq(workspaces.type, "worktree"),
+				eq(workspaces.branch, branch),
+				isNull(workspaces.deletingAt),
+			),
+		)
+		.get();
+
+	return result ?? null;
+}
+
+/**
+ * Find an orphaned worktree (has a worktree record but no active workspace) by project + branch.
+ */
+export function findOrphanedWorktreeByBranch({
+	projectId,
+	branch,
+}: {
+	projectId: string;
+	branch: string;
+}): SelectWorktree | null {
+	const worktree = localDb
+		.select()
+		.from(worktrees)
+		.where(
+			and(eq(worktrees.projectId, projectId), eq(worktrees.branch, branch)),
+		)
+		.get();
+
+	if (!worktree) return null;
+
+	const activeWorkspace = localDb
+		.select()
+		.from(workspaces)
+		.where(
+			and(
+				eq(workspaces.worktreeId, worktree.id),
+				isNull(workspaces.deletingAt),
+			),
+		)
+		.get();
+
+	return activeWorkspace ? null : worktree;
 }
 
 /**

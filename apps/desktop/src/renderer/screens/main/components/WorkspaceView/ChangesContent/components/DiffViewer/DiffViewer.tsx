@@ -16,6 +16,7 @@ import {
 	registerCopyPathLineAction,
 	useEditorActions,
 } from "../../../ContentView/components/EditorContextMenu";
+import { getLineNumbersMinChars } from "./utils";
 
 function scrollToFirstDiff(
 	editor: Monaco.editor.IStandaloneDiffEditor,
@@ -272,6 +273,10 @@ export function DiffViewer({
 			}
 			options={{
 				...MONACO_EDITOR_OPTIONS,
+				lineNumbersMinChars: getLineNumbersMinChars(
+					contents.original,
+					contents.modified,
+				),
 				renderSideBySide: viewMode === "side-by-side",
 				useInlineViewWhenSpaceIsLimited: false,
 				readOnly: !editable,
@@ -280,6 +285,7 @@ export function DiffViewer({
 				glyphMargin: false,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps,
+				renderIndicators: false,
 				hideUnchangedRegions: {
 					enabled: hideUnchangedRegions,
 				},

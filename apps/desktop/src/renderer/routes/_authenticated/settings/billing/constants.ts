@@ -69,7 +69,7 @@ export const PLANS: Record<PlanTier, Plan> = {
 				included: true,
 				limit: "$20/seat",
 			},
-			{ id: "workspaces", name: "Unlimited workspaces", included: true },
+			{ id: "tasks", name: "Task management", included: true },
 			{ id: "cloud", name: "Cloud workspaces", included: true },
 			{ id: "mobile", name: "Mobile app access", included: true },
 			{ id: "priority", name: "Priority support", included: true },

@@ -1,6 +1,9 @@
+import { Label } from "@superset/ui/label";
+import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiBellSlash, HiCheck, HiPlay, HiStop } from "react-icons/hi2";
+import { HiCheck, HiPlay, HiStop } from "react-icons/hi2";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	AVAILABLE_RINGTONES,
@@ -33,50 +36,6 @@ function RingtoneCard({
 	onSelect,
 	onTogglePlay,
 }: RingtoneCardProps) {
-	const isSilent = ringtone.id === "none";
-
-	// Silent card has a distinct style
-	if (isSilent) {
-		return (
-			<button
-				type="button"
-				onClick={onSelect}
-				className={cn(
-					"relative flex flex-col rounded-lg border-2 overflow-hidden transition-all text-left",
-					isSelected
-						? "border-primary ring-2 ring-primary/20"
-						: "border-dashed border-border hover:border-muted-foreground/50",
-				)}
-			>
-				{/* Preview area */}
-				<div
-					className={cn(
-						"h-24 flex flex-col items-center justify-center relative gap-1",
-						isSelected ? "bg-accent/50" : "bg-muted/20",
-					)}
-				>
-					<HiBellSlash className="h-8 w-8 text-muted-foreground" />
-					<span className="text-xs text-muted-foreground">No sound</span>
-				</div>
-
-				{/* Info */}
-				<div className="p-3 bg-card border-t flex items-center justify-between">
-					<div>
-						<div className="text-sm font-medium">{ringtone.name}</div>
-						<div className="text-xs text-muted-foreground">
-							{ringtone.description}
-						</div>
-					</div>
-					{isSelected && (
-						<div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-							<HiCheck className="h-3 w-3 text-primary-foreground" />
-						</div>
-					)}
-				</div>
-			</button>
-		);
-	}
-
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: Using div with role="button" to allow nested play/stop button
 		<div
@@ -169,6 +128,34 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	const [playingId, setPlayingId] = useState<string | null>(null);
 	const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+	const utils = electronTrpc.useUtils();
+	const { data: isMutedData, isLoading: isMutedLoading } =
+		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
+	const isMuted = isMutedData ?? false;
+
+	const setMuted = electronTrpc.settings.setNotificationSoundsMuted.useMutation(
+		{
+			onMutate: async ({ muted }) => {
+				await utils.settings.getNotificationSoundsMuted.cancel();
+				const previous = utils.settings.getNotificationSoundsMuted.getData();
+				utils.settings.getNotificationSoundsMuted.setData(undefined, muted);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getNotificationSoundsMuted.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+		},
+	);
+
+	const handleMutedToggle = (enabled: boolean) => {
+		setMuted.mutate({ muted: !enabled });
+	};
+
 	// Clean up timer and stop any playing sound on unmount
 	useEffect(() => {
 		return () => {
@@ -184,7 +171,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 
 	const handleTogglePlay = useCallback(
 		async (ringtone: Ringtone) => {
-			if (ringtone.id === "none" || !ringtone.filename) {
+			if (!ringtone.filename) {
 				return;
 			}
 
@@ -251,8 +238,31 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 			</div>
 
 			<div className="space-y-8">
-				{/* Ringtone Section */}
+				{/* Sound Toggle */}
 				{showNotification && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="notification-sounds"
+								className="text-sm font-medium"
+							>
+								Notification sounds
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Play a sound when tasks complete
+							</p>
+						</div>
+						<Switch
+							id="notification-sounds"
+							checked={!isMuted}
+							onCheckedChange={handleMutedToggle}
+							disabled={isMutedLoading || setMuted.isPending}
+						/>
+					</div>
+				)}
+
+				{/* Ringtone Section */}
+				{showNotification && !isMuted && (
 					<div>
 						<h3 className="text-sm font-medium mb-4">Notification Sound</h3>
 						<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -271,7 +281,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 				)}
 
 				{/* Tip */}
-				{showNotification && (
+				{showNotification && !isMuted && (
 					<div className="pt-6 border-t">
 						<p className="text-sm text-muted-foreground">
 							Click the play button to preview a sound. Click stop or play

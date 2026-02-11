@@ -9,6 +9,18 @@ import { localDb } from "./local-db";
 import { getSoundPath } from "./sound-paths";
 
 /**
+ * Checks if notification sounds are muted.
+ */
+function areNotificationSoundsMuted(): boolean {
+	try {
+		const settingsRow = localDb.select().from(settings).get();
+		return settingsRow?.notificationSoundsMuted ?? false;
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Gets the selected ringtone filename from the database.
  * Falls back to default ringtone if the stored ID is invalid/stale.
  */
@@ -19,7 +31,7 @@ function getSelectedRingtoneFilename(): string {
 		const settingsRow = localDb.select().from(settings).get();
 		const selectedId = settingsRow?.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
 
-		// "none" means silent - return empty string intentionally
+		// Legacy: "none" was previously used before the muted toggle existed
 		if (selectedId === "none") {
 			return "";
 		}
@@ -63,6 +75,11 @@ function playSoundFile(soundPath: string): void {
  * Uses platform-specific commands to play the audio file.
  */
 export function playNotificationSound(): void {
+	// Check if sounds are muted
+	if (areNotificationSoundsMuted()) {
+		return;
+	}
+
 	const filename = getSelectedRingtoneFilename();
 
 	// No sound if "none" is selected

@@ -1,5 +1,6 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { ChangeCategory } from "shared/changes-types";
+import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
 	DiffLayout,
 	FileViewerMode,
@@ -7,7 +8,22 @@ import type {
 } from "shared/tabs-types";
 import type { Pane, PaneType, Tab } from "./types";
 
-const MARKDOWN_EXTENSIONS = [".md", ".markdown", ".mdx"] as const;
+export const resolveFileViewerMode = ({
+	filePath,
+	diffCategory,
+	viewMode,
+}: {
+	filePath: string;
+	diffCategory?: ChangeCategory;
+	viewMode?: FileViewerMode;
+}): FileViewerMode => {
+	if (viewMode) return viewMode;
+	// Images always default to rendered (no meaningful diff for binary files)
+	if (isImageFile(filePath)) return "rendered";
+	if (diffCategory) return "diff";
+	if (hasRenderedPreview(filePath)) return "rendered";
+	return "raw";
+};
 
 /**
  * Generates a unique ID with the given prefix
@@ -166,19 +182,15 @@ export const createFileViewerPane = (
 ): Pane => {
 	const id = generateId("pane");
 
-	// Determine default view mode based on file and category
-	let defaultViewMode: FileViewerMode = "raw";
-	if (options.diffCategory) {
-		defaultViewMode = "diff";
-	} else if (
-		MARKDOWN_EXTENSIONS.some((ext) => options.filePath.endsWith(ext))
-	) {
-		defaultViewMode = "rendered";
-	}
+	const resolvedViewMode = resolveFileViewerMode({
+		filePath: options.filePath,
+		diffCategory: options.diffCategory,
+		viewMode: options.viewMode,
+	});
 
 	const fileViewer: FileViewerState = {
 		filePath: options.filePath,
-		viewMode: options.viewMode ?? defaultViewMode,
+		viewMode: resolvedViewMode,
 		isPinned: options.isPinned ?? false,
 		diffLayout: options.diffLayout ?? "inline",
 		diffCategory: options.diffCategory,
@@ -198,6 +210,48 @@ export const createFileViewerPane = (
 		name: fileName,
 		fileViewer,
 	};
+};
+
+/**
+ * Creates a new chat pane
+ */
+export const createChatPane = (tabId: string): Pane => {
+	const id = generateId("pane");
+
+	return {
+		id,
+		tabId,
+		type: "chat",
+		name: "Chat",
+		chat: {
+			sessionId: generateId("chat-session"),
+		},
+	};
+};
+
+/**
+ * Creates a new tab with a chat pane atomically
+ */
+export const createChatTabWithPane = (
+	workspaceId: string,
+	existingTabs: Tab[] = [],
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createChatPane(tabId);
+
+	const workspaceTabs = existingTabs.filter(
+		(t) => t.workspaceId === workspaceId,
+	);
+
+	const tab: Tab = {
+		id: tabId,
+		name: `Chat ${workspaceTabs.filter((t) => t.name.startsWith("Chat")).length + 1}`,
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
+
+	return { tab, pane };
 };
 
 /**
@@ -438,6 +492,42 @@ export const addPaneToLayout = (
 	second: newPaneId,
 	splitPercentage: 50,
 });
+
+/**
+ * Builds a balanced multi-pane Mosaic layout using recursive binary splits.
+ * For 3+ panes, alternates between column and row splits to create a grid.
+ */
+export const buildMultiPaneLayout = (
+	paneIds: string[],
+	direction: "row" | "column" = "column",
+): MosaicNode<string> => {
+	if (paneIds.length === 0) {
+		throw new Error("Cannot build layout with zero panes");
+	}
+
+	if (paneIds.length === 1) {
+		return paneIds[0];
+	}
+
+	if (paneIds.length === 2) {
+		return {
+			direction: "row",
+			first: paneIds[0],
+			second: paneIds[1],
+			splitPercentage: 50,
+		};
+	}
+
+	const mid = Math.ceil(paneIds.length / 2);
+	const nextDirection = direction === "column" ? "row" : "column";
+
+	return {
+		direction,
+		first: buildMultiPaneLayout(paneIds.slice(0, mid), nextDirection),
+		second: buildMultiPaneLayout(paneIds.slice(mid), nextDirection),
+		splitPercentage: 50,
+	};
+};
 
 /**
  * Updates the history stack when switching to a new active tab

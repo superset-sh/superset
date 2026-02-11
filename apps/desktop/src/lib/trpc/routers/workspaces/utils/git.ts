@@ -1,10 +1,12 @@
-import { execFile } from "node:child_process";
-import { mkdir, readFile, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { execFile, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, stat } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import friendlyWords = require("friendly-words");
 
+import type { BranchPrefixMode } from "@superset/local-db";
 import simpleGit, { type StatusResult } from "simple-git";
 import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
@@ -60,8 +62,8 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 		// Run git status with --no-optional-locks to avoid holding locks
 		// Use porcelain=v1 for machine-parseable output, -b for branch info
 		// Use -z for NUL-terminated output (handles filenames with special chars)
-		// Use -M for rename detection (otherwise renames show as delete + add)
 		// Use -uall to show individual files in untracked directories (not just the directory)
+		// Note: porcelain=v1 already includes rename info (R/C status codes) without needing -M
 		const { stdout } = await execFileAsync(
 			"git",
 			[
@@ -72,7 +74,6 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 				"--porcelain=v1",
 				"-b",
 				"-z",
-				"-M",
 				"-uall",
 			],
 			{ env, timeout: 30_000 },
@@ -248,7 +249,6 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 	const attributeFiles = [
 		join(repoPath, ".gitattributes"),
 		join(repoPath, ".git", "info", "attributes"),
-		join(repoPath, ".lfsconfig"),
 	];
 
 	for (const filePath of attributeFiles) {
@@ -298,34 +298,139 @@ const MAX_ATTEMPTS = 10;
 /** Maximum suffix value to try in fallback (exclusive), e.g., 0-99 */
 const FALLBACK_MAX_SUFFIX = 100;
 
-/**
- * Generates a random branch name using a single friendly word.
- * Checks against existing branches to avoid collisions.
- * With ~3000 words, collisions are rare even with hundreds of branches.
- */
-export function generateBranchName(existingBranches: string[] = []): string {
+export async function getGitAuthorName(
+	repoPath?: string,
+): Promise<string | null> {
+	try {
+		const git = repoPath ? simpleGit(repoPath) : simpleGit();
+		const name = await git.getConfig("user.name");
+		return name.value?.trim() || null;
+	} catch (error) {
+		console.warn("[git/getGitAuthorName] Failed to read git user.name:", error);
+		return null;
+	}
+}
+
+let cachedGitHubUsername: { value: string | null; timestamp: number } | null =
+	null;
+const GITHUB_USERNAME_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+export async function getGitHubUsername(
+	_repoPath?: string,
+): Promise<string | null> {
+	if (
+		cachedGitHubUsername &&
+		Date.now() - cachedGitHubUsername.timestamp < GITHUB_USERNAME_CACHE_TTL
+	) {
+		return cachedGitHubUsername.value;
+	}
+
+	const env = await getGitEnv();
+
+	try {
+		const { stdout } = await execFileAsync(
+			"gh",
+			["api", "user", "--jq", ".login"],
+			{ env, timeout: 10_000 },
+		);
+		const value = stdout.trim() || null;
+		cachedGitHubUsername = { value, timestamp: Date.now() };
+		return value;
+	} catch (error) {
+		console.warn(
+			"[git/getGitHubUsername] Failed to get GitHub username:",
+			error instanceof Error ? error.message : String(error),
+		);
+		cachedGitHubUsername = { value: null, timestamp: Date.now() };
+		return null;
+	}
+}
+
+export async function getAuthorPrefix(
+	repoPath?: string,
+): Promise<string | null> {
+	const githubUsername = await getGitHubUsername(repoPath);
+	if (githubUsername) {
+		return githubUsername;
+	}
+
+	const gitAuthorName = await getGitAuthorName(repoPath);
+	if (gitAuthorName) {
+		return gitAuthorName;
+	}
+
+	return null;
+}
+
+export async function getBranchPrefix({
+	repoPath,
+	mode,
+	customPrefix,
+}: {
+	repoPath: string;
+	mode?: BranchPrefixMode | null;
+	customPrefix?: string | null;
+}): Promise<string | null> {
+	switch (mode) {
+		case "none":
+			return null;
+		case "custom":
+			return customPrefix || null;
+		case "author": {
+			const authorName = await getGitAuthorName(repoPath);
+			if (authorName) {
+				return authorName.toLowerCase().replace(/\s+/g, "-");
+			}
+			return null;
+		}
+		default:
+			return getAuthorPrefix(repoPath);
+	}
+}
+
+export {
+	sanitizeAuthorPrefix,
+	sanitizeBranchName,
+} from "shared/utils/branch";
+
+export function generateBranchName({
+	existingBranches = [],
+	authorPrefix,
+}: {
+	existingBranches?: string[];
+	authorPrefix?: string;
+} = {}): string {
 	const words = friendlyWords.objects as string[];
 	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
 
-	// Try to find a unique word
+	const prefixWouldCollide =
+		authorPrefix && existingSet.has(authorPrefix.toLowerCase());
+	const safePrefix = prefixWouldCollide ? undefined : authorPrefix;
+
+	const addPrefix = (name: string): string => {
+		if (safePrefix) {
+			return `${safePrefix}/${name}`;
+		}
+		return name;
+	};
+
 	for (let i = 0; i < MAX_ATTEMPTS; i++) {
 		const word = words[Math.floor(Math.random() * words.length)];
-		if (!existingSet.has(word.toLowerCase())) {
-			return word;
-		}
-	}
-
-	// Fallback: try word with numeric suffix
-	const baseWord = words[Math.floor(Math.random() * words.length)];
-	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
-		const candidate = `${baseWord}-${n}`;
+		const candidate = addPrefix(word);
 		if (!existingSet.has(candidate.toLowerCase())) {
 			return candidate;
 		}
 	}
 
-	// Final fallback: use timestamp to guarantee uniqueness
-	return `${baseWord}-${Date.now()}`;
+	const baseWord = words[Math.floor(Math.random() * words.length)];
+	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
+		const candidate = addPrefix(`${baseWord}-${n}`);
+		if (!existingSet.has(candidate.toLowerCase())) {
+			return candidate;
+		}
+	}
+
+	return addPrefix(`${baseWord}-${Date.now()}`);
 }
 
 export async function createWorktree(
@@ -355,6 +460,8 @@ export async function createWorktree(
 		await execFileAsync(
 			"git",
 			[
+				"-c",
+				"core.hooksPath=/dev/null",
 				"-C",
 				mainRepoPath,
 				"worktree",
@@ -368,6 +475,14 @@ export async function createWorktree(
 				`${startPoint}^{commit}`,
 			],
 			{ env, timeout: 120_000 },
+		);
+
+		// Enable autoSetupRemote so the first `git push` automatically creates
+		// the remote branch and sets upstream (like `git push -u origin <branch>`).
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
 		);
 
 		console.log(
@@ -454,7 +569,16 @@ export async function createWorktreeFromExistingBranch({
 			// Branch exists locally - just checkout into the worktree
 			await execFileAsync(
 				"git",
-				["-C", mainRepoPath, "worktree", "add", worktreePath, branch],
+				[
+					"-c",
+					"core.hooksPath=/dev/null",
+					"-C",
+					mainRepoPath,
+					"worktree",
+					"add",
+					worktreePath,
+					branch,
+				],
 				{ env, timeout: 120_000 },
 			);
 		} else {
@@ -467,6 +591,8 @@ export async function createWorktreeFromExistingBranch({
 				await execFileAsync(
 					"git",
 					[
+						"-c",
+						"core.hooksPath=/dev/null",
 						"-C",
 						mainRepoPath,
 						"worktree",
@@ -485,6 +611,14 @@ export async function createWorktreeFromExistingBranch({
 				);
 			}
 		}
+
+		// Enable autoSetupRemote so the first `git push` automatically creates
+		// the remote branch and sets upstream (like `git push -u origin <branch>`).
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
 
 		console.log(
 			`Created worktree at ${worktreePath} using existing branch ${branch}`,
@@ -541,6 +675,32 @@ export async function createWorktreeFromExistingBranch({
 	}
 }
 
+export async function deleteLocalBranch({
+	mainRepoPath,
+	branch,
+}: {
+	mainRepoPath: string;
+	branch: string;
+}): Promise<void> {
+	const env = await getGitEnv();
+
+	try {
+		await execFileAsync("git", ["-C", mainRepoPath, "branch", "-D", branch], {
+			env,
+			timeout: 10_000,
+		});
+		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		console.error(
+			`[workspace/delete] Failed to delete local branch "${branch}": ${errorMessage}`,
+		);
+		throw new Error(
+			`Failed to delete local branch "${branch}": ${errorMessage}`,
+		);
+	}
+}
+
 export async function removeWorktree(
 	mainRepoPath: string,
 	worktreePath: string,
@@ -548,14 +708,53 @@ export async function removeWorktree(
 	try {
 		const env = await getGitEnv();
 
-		await execFileAsync(
-			"git",
-			["-C", mainRepoPath, "worktree", "remove", worktreePath, "--force"],
-			{ env, timeout: 60_000 },
+		// Rename the worktree to a sibling temp dir (same filesystem to avoid EXDEV),
+		// then `git worktree prune` to clean metadata, then delete in background.
+		const tempPath = join(
+			dirname(worktreePath),
+			`.superset-delete-${randomUUID()}`,
 		);
+		await rename(worktreePath, tempPath);
 
-		console.log(`Removed worktree at ${worktreePath}`);
+		await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
+			env,
+			timeout: 10_000,
+		});
+
+		// Delete the moved directory in the background — don't block the caller.
+		// Use spawned `rm -rf` instead of Node's fs.rm which can hang on macOS
+		// when encountering .app bundles with extended attributes.
+		const child = spawn("/bin/rm", ["-rf", tempPath], {
+			detached: true,
+			stdio: "ignore",
+		});
+		child.unref();
+		child.on("error", (err) => {
+			console.error(
+				`[removeWorktree] Failed to spawn rm for ${tempPath}:`,
+				err.message,
+			);
+		});
+		child.on("exit", (code: number | null) => {
+			if (code !== 0) {
+				console.error(
+					`[removeWorktree] Background cleanup of ${tempPath} failed (exit ${code})`,
+				);
+			}
+		});
 	} catch (error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		// If the worktree directory is already gone, just prune metadata
+		if (code === "ENOENT") {
+			try {
+				const env = await getGitEnv();
+				await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
+					env,
+					timeout: 10_000,
+				});
+			} catch {}
+			return;
+		}
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.error(`Failed to remove worktree: ${errorMessage}`);
 		throw new Error(`Failed to remove worktree: ${errorMessage}`);
@@ -585,6 +784,59 @@ export async function worktreeExists(
 		return lines.some((line) => line.trim() === worktreePrefix);
 	} catch (error) {
 		console.error(`Failed to check worktree existence: ${error}`);
+		throw error;
+	}
+}
+
+export interface ExternalWorktree {
+	path: string;
+	branch: string | null;
+	isDetached: boolean;
+	isBare: boolean;
+}
+
+export async function listExternalWorktrees(
+	mainRepoPath: string,
+): Promise<ExternalWorktree[]> {
+	try {
+		const git = simpleGit(mainRepoPath);
+		const output = await git.raw(["worktree", "list", "--porcelain"]);
+
+		const result: ExternalWorktree[] = [];
+		let current: Partial<ExternalWorktree> = {};
+
+		for (const line of output.split("\n")) {
+			if (line.startsWith("worktree ")) {
+				if (current.path) {
+					result.push({
+						path: current.path,
+						branch: current.branch ?? null,
+						isDetached: current.isDetached ?? false,
+						isBare: current.isBare ?? false,
+					});
+				}
+				current = { path: line.slice("worktree ".length) };
+			} else if (line.startsWith("branch refs/heads/")) {
+				current.branch = line.slice("branch refs/heads/".length);
+			} else if (line === "detached") {
+				current.isDetached = true;
+			} else if (line === "bare") {
+				current.isBare = true;
+			}
+		}
+
+		if (current.path) {
+			result.push({
+				path: current.path,
+				branch: current.branch ?? null,
+				isDetached: current.isDetached ?? false,
+				isBare: current.isBare ?? false,
+			});
+		}
+
+		return result;
+	} catch (error) {
+		console.error(`Failed to list external worktrees: ${error}`);
 		throw error;
 	}
 }
@@ -1471,7 +1723,16 @@ export async function createWorktreeFromPr({
 
 			await execFileAsync(
 				"git",
-				["-C", mainRepoPath, "worktree", "add", worktreePath, branchName],
+				[
+					"-c",
+					"core.hooksPath=/dev/null",
+					"-C",
+					mainRepoPath,
+					"worktree",
+					"add",
+					worktreePath,
+					branchName,
+				],
 				{ env, timeout: 120_000 },
 			);
 
@@ -1483,13 +1744,27 @@ export async function createWorktreeFromPr({
 				);
 			}
 		} else {
-			const args = ["-C", mainRepoPath, "worktree", "add"];
+			const args = [
+				"-c",
+				"core.hooksPath=/dev/null",
+				"-C",
+				mainRepoPath,
+				"worktree",
+				"add",
+			];
 			if (!prInfo.isCrossRepository) {
 				args.push("--track");
 			}
 			args.push("-b", branchName, worktreePath, remoteRef);
 			await execFileAsync("git", args, { env, timeout: 120_000 });
 		}
+
+		// Enable autoSetupRemote so `git push` just works without -u flag.
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
 
 		console.log(
 			`[git] Created worktree at ${worktreePath} for PR #${prInfo.number}`,

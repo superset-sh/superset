@@ -1,0 +1,230 @@
+---
+title: MCP Server
+description: Connect AI agents directly to Superset via MCP
+---
+
+## Overview
+
+Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets AI agents interact with your tasks, workspaces, and devices programmatically.
+
+## Capabilities
+
+| Category | Tools |
+|----------|-------|
+| **Tasks** | Create, update, list, get, delete tasks |
+| **Workspaces** | Create, update, switch, delete, list, navigate workspaces |
+| **Devices** | List devices, projects, and app context |
+| **Organization** | List members and task statuses |
+| **AI Sessions** | Start autonomous Claude sessions and subagents |
+
+## Setup
+
+### CLI Options
+
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code"]}>
+<Tab value="Claude Code">
+```bash title="terminal"
+claude mcp add superset --transport http https://api.superset.sh/api/agent/mcp
+```
+</Tab>
+<Tab value="Codex">
+```bash title="terminal"
+codex mcp add superset --url https://api.superset.sh/api/agent/mcp
+```
+</Tab>
+<Tab value="Gemini CLI">
+```bash title="terminal"
+gemini mcp add --transport http superset https://api.superset.sh/api/agent/mcp
+```
+</Tab>
+<Tab value="Open Code">
+```bash title="terminal"
+opencode mcp add
+```
+</Tab>
+</Tabs>
+
+### Manual Configuration
+
+Alternatively, you can manually configure the MCP server for each client:
+
+<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code"]}>
+<Tab value="Claude Code">
+Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and handles OAuth authentication.
+
+```json title=".mcp.json"
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Claude Desktop">
+Add to your `claude_desktop_config.json`:
+
+```json title="claude_desktop_config.json"
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Cursor">
+Add to `.cursor/mcp.json` in your project root:
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Codex">
+Add to your `~/.codex/config.toml`:
+
+```toml title="config.toml"
+[mcp_servers.superset]
+url = "https://api.superset.sh/api/agent/mcp"
+```
+</Tab>
+<Tab value="Gemini CLI">
+Add to your `.gemini/settings.json`:
+
+```json title="settings.json"
+{
+  "mcpServers": {
+    "superset": {
+      "httpUrl": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Open Code">
+Add to your `opencode.json`:
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "superset": {
+      "type": "remote",
+      "url": "https://api.superset.sh/api/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+
+## Authentication
+
+The MCP server uses OAuth 2.1. When you first connect, you'll be prompted to authorize the connection in your browser. The token is scoped to your active organization.
+
+### API Key Authentication
+
+For headless environments, CI/CD pipelines, or scripts where browser-based OAuth isn't practical, you can authenticate with an API key instead.
+
+**Generating an API key:**
+
+1. Open the Superset desktop app
+2. Go to **Settings > API Keys**
+3. Click **Create API Key**
+4. Copy the key (it starts with `sk_live_`)—you won't be able to see it again
+
+**Using the API key:**
+
+Pass the API key as a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+MCP clients that support custom headers can use this directly. For Claude Code, set the header in your `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/agent/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_live_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+<Callout type="warn">
+API keys grant full access to your organization. Keep them secret and never commit them to version control. Use environment variables or secrets managers for CI/CD.
+</Callout>
+
+**When to use which method:**
+
+| Method | Best for |
+|--------|----------|
+| OAuth 2.1 | Interactive use — Claude Desktop, Claude Code, Cursor |
+| API Key | Headless/CI — scripts, automation, pipelines |
+
+## Available Tools
+
+### Task Management
+
+| Tool | Description |
+|------|-------------|
+| `create_task` | Create one or more tasks (batch up to 25) |
+| `update_task` | Update existing tasks |
+| `list_tasks` | List tasks with filters (status, assignee, priority, labels) |
+| `get_task` | Get a single task by ID or slug |
+| `delete_task` | Soft delete tasks |
+| `list_task_statuses` | List available status options |
+
+### Workspace Management
+
+| Tool | Description |
+|------|-------------|
+| `create_workspace` | Create a new git worktree workspace |
+| `update_workspace` | Update workspaces (rename) |
+| `switch_workspace` | Switch to a different workspace |
+| `delete_workspace` | Delete a workspace |
+| `list_workspaces` | List all workspaces on a device |
+| `navigate_to_workspace` | Navigate the desktop app to a workspace |
+
+### Device & Organization
+
+| Tool | Description |
+|------|-------------|
+| `list_devices` | List online devices in your organization |
+| `list_projects` | List all projects on a device |
+| `get_app_context` | Get current app state (active workspace, pathname) |
+| `list_members` | List organization members |
+
+### AI Sessions
+
+| Tool | Description |
+|------|-------------|
+| `start_claude_session` | Start an autonomous Claude Code session for a task. Creates a new workspace with its own git branch and launches Claude with the task context. |
+| `start_claude_subagent` | Start a Claude Code subagent in an existing workspace. Adds a new terminal pane instead of creating a new workspace. |
+
+## Example Usage
+
+Once connected, you can ask your AI agent to:
+
+- "Create a task for fixing the login bug"
+- "List all my assigned tasks"
+- "Create a new workspace for the auth feature"
+- "Show me who's online in my team"
+- "Start a Claude session on my MacBook to work on the auth task"
+- "Spin up a subagent to fix the failing tests"

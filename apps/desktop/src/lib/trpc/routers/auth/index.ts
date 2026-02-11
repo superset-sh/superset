@@ -4,6 +4,7 @@ import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { observable } from "@trpc/server/observable";
 import { shell } from "electron";
 import { env } from "main/env.main";
+import { getDeviceName, getHashedDeviceId } from "main/lib/device-info";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -18,6 +19,11 @@ export const createAuthRouter = () => {
 	return router({
 		getStoredToken: publicProcedure.query(() => loadToken()),
 
+		getDeviceInfo: publicProcedure.query(() => ({
+			deviceId: getHashedDeviceId(),
+			deviceName: getDeviceName(),
+		})),
+
 		persistToken: publicProcedure
 			.input(
 				z.object({
@@ -30,14 +36,15 @@ export const createAuthRouter = () => {
 				return { success: true };
 			}),
 
+		/**
+		 * Subscribe to auth events. Only fires for actual changes:
+		 * - New authentication (OAuth callback) -> { token, expiresAt }
+		 * - Sign out -> null
+		 *
+		 * Does NOT emit on subscribe - use getStoredToken for initial hydration.
+		 */
 		onTokenChanged: publicProcedure.subscription(() => {
 			return observable<{ token: string; expiresAt: string } | null>((emit) => {
-				loadToken().then((initial) => {
-					if (initial.token && initial.expiresAt) {
-						emit.next({ token: initial.token, expiresAt: initial.expiresAt });
-					}
-				});
-
 				const handleSaved = (data: { token: string; expiresAt: string }) => {
 					emit.next(data);
 				};

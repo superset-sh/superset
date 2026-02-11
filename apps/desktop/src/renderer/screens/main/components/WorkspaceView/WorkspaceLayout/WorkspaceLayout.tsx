@@ -7,7 +7,7 @@ import {
 import { ResizablePanel } from "../../ResizablePanel";
 import { ChangesContent, ScrollProvider } from "../ChangesContent";
 import { ContentView } from "../ContentView";
-import { Sidebar } from "../Sidebar";
+import { RightSidebar } from "../RightSidebar";
 
 export function WorkspaceLayout() {
 	const {
@@ -37,7 +37,7 @@ export function WorkspaceLayout() {
 					handleSide="left"
 					className={isExpanded ? "border-l-0" : undefined}
 				>
-					<Sidebar />
+					<RightSidebar />
 				</ResizablePanel>
 			)}
 		</ScrollProvider>

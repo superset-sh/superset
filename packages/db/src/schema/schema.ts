@@ -9,11 +9,14 @@ import {
 	text,
 	timestamp,
 	unique,
+	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
 
 import { organizations, users } from "./auth";
 import {
+	commandStatusValues,
+	deviceTypeValues,
 	integrationProviderValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
@@ -26,6 +29,8 @@ export const integrationProvider = pgEnum(
 	"integration_provider",
 	integrationProviderValues,
 );
+export const deviceType = pgEnum("device_type", deviceTypeValues);
+export const commandStatus = pgEnum("command_status", commandStatusValues);
 
 export const repositories = pgTable(
 	"repositories",
@@ -100,7 +105,7 @@ export const tasks = pgTable(
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Core fields
-		slug: text().notNull().unique(),
+		slug: text().notNull(),
 		title: text().notNull(),
 		description: text(),
 		statusId: uuid("status_id")
@@ -164,6 +169,7 @@ export const tasks = pgTable(
 			table.externalProvider,
 			table.externalId,
 		),
+		unique("tasks_org_slug_unique").on(table.organizationId, table.slug),
 	],
 );
 
@@ -250,3 +256,77 @@ export const subscriptions = pgTable(
 
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
+
+// Device presence - tracks online devices for command routing
+export const devicePresence = pgTable(
+	"device_presence",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		deviceId: text("device_id").notNull(),
+		deviceName: text("device_name").notNull(),
+		deviceType: deviceType("device_type").notNull(),
+		lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("device_presence_user_org_idx").on(
+			table.userId,
+			table.organizationId,
+		),
+		uniqueIndex("device_presence_user_device_idx").on(
+			table.userId,
+			table.deviceId,
+		),
+		index("device_presence_last_seen_idx").on(table.lastSeenAt),
+	],
+);
+
+export type InsertDevicePresence = typeof devicePresence.$inferInsert;
+export type SelectDevicePresence = typeof devicePresence.$inferSelect;
+
+// Agent commands - synced via Electric SQL to executors
+export const agentCommands = pgTable(
+	"agent_commands",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		targetDeviceId: text("target_device_id"),
+		targetDeviceType: text("target_device_type"),
+		tool: text().notNull(),
+		params: jsonb().$type<Record<string, unknown>>(),
+		parentCommandId: uuid("parent_command_id"),
+		status: commandStatus().notNull().default("pending"),
+		claimedBy: text("claimed_by"),
+		claimedAt: timestamp("claimed_at"),
+		result: jsonb().$type<Record<string, unknown>>(),
+		error: text(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		executedAt: timestamp("executed_at"),
+		timeoutAt: timestamp("timeout_at"),
+	},
+	(table) => [
+		index("agent_commands_user_status_idx").on(table.userId, table.status),
+		index("agent_commands_target_device_status_idx").on(
+			table.targetDeviceId,
+			table.status,
+		),
+		index("agent_commands_org_created_idx").on(
+			table.organizationId,
+			table.createdAt,
+		),
+	],
+);
+
+export type InsertAgentCommand = typeof agentCommands.$inferInsert;
+export type SelectAgentCommand = typeof agentCommands.$inferSelect;

@@ -1,3 +1,4 @@
+import { COMPANY, FEATURE_FLAGS } from "@superset/shared/constants";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -7,13 +8,17 @@ import {
 	CardHeader,
 } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useState } from "react";
-import { FaGithub } from "react-icons/fa";
+import { FaGithub, FaSlack } from "react-icons/fa";
 import { HiCheckCircle, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -22,16 +27,6 @@ import {
 
 interface IntegrationsSettingsProps {
 	visibleItems?: SettingItemId[] | null;
-}
-
-interface IntegrationConnection {
-	id: string;
-	provider: string;
-	externalOrgId: string | null;
-	externalOrgName: string | null;
-	config: unknown;
-	createdAt: Date;
-	updatedAt: Date;
 }
 
 interface GithubInstallation {
@@ -48,58 +43,70 @@ export function IntegrationsSettings({
 }: IntegrationsSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
+	const collections = useCollections();
+	const { gateFeature } = usePaywall();
 
-	const [integrations, setIntegrations] = useState<IntegrationConnection[]>([]);
+	const { data: integrations, isLoading: isLoadingIntegrations } = useLiveQuery(
+		(q) =>
+			q
+				.from({ integrationConnections: collections.integrationConnections })
+				.select(({ integrationConnections }) => integrationConnections),
+		[collections],
+	);
+
 	const [githubInstallation, setGithubInstallation] =
 		useState<GithubInstallation | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const [isLoadingGithub, setIsLoadingGithub] = useState(true);
+
+	const hasGithubAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.GITHUB_INTEGRATION_ACCESS,
+	);
+	const hasSlackAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.SLACK_INTEGRATION_ACCESS,
+	);
 
 	const showLinear = isItemVisible(
 		SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
 		visibleItems,
 	);
-	const showGithub = isItemVisible(
-		SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
-		visibleItems,
-	);
+	const showGithub =
+		hasGithubAccess &&
+		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_GITHUB, visibleItems);
 
-	const fetchIntegrations = useCallback(async () => {
+	const fetchGithubInstallation = useCallback(async () => {
 		if (!activeOrganizationId) {
-			setIsLoading(false);
+			setIsLoadingGithub(false);
 			return;
 		}
 
-		setIsLoading(true);
-		setError(null);
-
 		try {
-			const [integrationsResult, githubResult] = await Promise.all([
-				apiTrpcClient.integration.list.query({
+			const result =
+				await apiTrpcClient.integration.github.getInstallation.query({
 					organizationId: activeOrganizationId,
-				}),
-				apiTrpcClient.integration.github.getInstallation.query({
-					organizationId: activeOrganizationId,
-				}),
-			]);
-			setIntegrations(integrationsResult);
-			setGithubInstallation(githubResult);
+				});
+			setGithubInstallation(result);
 		} catch (err) {
-			console.error("[integrations] Failed to fetch integrations:", err);
-			setError("Failed to load integrations");
+			console.error("[integrations] Failed to fetch GitHub installation:", err);
 		} finally {
-			setIsLoading(false);
+			setIsLoadingGithub(false);
 		}
 	}, [activeOrganizationId]);
 
 	useEffect(() => {
-		fetchIntegrations();
-	}, [fetchIntegrations]);
+		fetchGithubInstallation();
+	}, [fetchGithubInstallation]);
 
-	const linearConnection = integrations.find((i) => i.provider === "linear");
+	const linearConnection = integrations?.find((i) => i.provider === "linear");
+	const slackConnection = integrations?.find((i) => i.provider === "slack");
 	const isLinearConnected = !!linearConnection;
+	const isSlackConnected = !!slackConnection;
 	const isGithubConnected =
 		!!githubInstallation && !githubInstallation.suspended;
+	const isLoading = isLoadingIntegrations || isLoadingGithub;
+
+	const showSlack =
+		hasSlackAccess &&
+		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_SLACK, visibleItems);
 
 	const handleOpenWeb = (path: string) => {
 		window.open(`${env.NEXT_PUBLIC_WEB_URL}${path}`, "_blank");
@@ -130,12 +137,6 @@ export function IntegrationsSettings({
 				</p>
 			</div>
 
-			{error && (
-				<div className="mb-6 p-4 bg-destructive/10 text-destructive rounded-md text-sm">
-					{error}
-				</div>
-			)}
-
 			<div className="grid gap-4">
 				{showLinear && (
 					<IntegrationCard
@@ -145,7 +146,11 @@ export function IntegrationsSettings({
 						isConnected={isLinearConnected}
 						connectedOrgName={linearConnection?.externalOrgName}
 						isLoading={isLoading}
-						onManage={() => handleOpenWeb("/integrations/linear")}
+						onManage={() =>
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
+								handleOpenWeb("/integrations/linear"),
+							)
+						}
 					/>
 				)}
 
@@ -157,13 +162,42 @@ export function IntegrationsSettings({
 						isConnected={isGithubConnected}
 						connectedOrgName={githubInstallation?.accountLogin}
 						isLoading={isLoading}
-						onManage={() => handleOpenWeb("/integrations/github")}
+						onManage={() =>
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
+								handleOpenWeb("/integrations/github"),
+							)
+						}
+					/>
+				)}
+
+				{showSlack && (
+					<IntegrationCard
+						name="Slack"
+						description="Manage tasks from Slack conversations"
+						icon={<FaSlack className="size-6" />}
+						isConnected={isSlackConnected}
+						connectedOrgName={slackConnection?.externalOrgName}
+						isLoading={isLoading}
+						onManage={() =>
+							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
+								handleOpenWeb("/integrations/slack"),
+							)
+						}
 					/>
 				)}
 			</div>
 
 			<p className="mt-6 text-xs text-muted-foreground">
-				Manage integrations in the web app to connect and configure services.
+				Manage integrations in the web app to connect and configure services.{" "}
+				<a
+					href={`${COMPANY.DOCS_URL}/integrations`}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="inline-flex items-center gap-1 text-primary hover:underline"
+				>
+					Learn more
+					<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
+				</a>
 			</p>
 		</div>
 	);

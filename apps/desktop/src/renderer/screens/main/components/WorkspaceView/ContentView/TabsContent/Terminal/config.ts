@@ -25,6 +25,9 @@ const TERMINAL_FONT_FAMILY = [
 	"Menlo",
 	"Monaco",
 	'"Courier New"',
+	// SF fonts for Apple tools (swift, xcodebuild) that use SF Symbols private use area characters
+	"SF Mono",
+	"SF Pro",
 	"monospace",
 ].join(", ");
 
@@ -35,11 +38,10 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	theme: TERMINAL_THEME,
 	allowProposedApi: true,
 	scrollback: 10000,
-	macOptionIsMeta: true,
+	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
+	macOptionIsMeta: false,
 	cursorStyle: "block",
 	cursorInactiveStyle: "outline",
-	fastScrollModifier: "alt",
-	fastScrollSensitivity: 5,
 	screenReaderMode: false,
 };
 

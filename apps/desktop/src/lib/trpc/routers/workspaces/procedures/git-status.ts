@@ -13,6 +13,7 @@ import {
 	checkNeedsRebase,
 	fetchDefaultBranch,
 	getDefaultBranch,
+	listExternalWorktrees,
 	refreshDefaultBranch,
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
@@ -130,9 +131,11 @@ export const createGitStatusProcedures = () => {
 
 				// Extract worktree name from path (last segment)
 				const worktreeName = worktree.path.split("/").pop() ?? worktree.branch;
+				const branchName = worktree.branch;
 
 				return {
 					worktreeName,
+					branchName,
 					createdAt: worktree.createdAt,
 					gitStatus: worktree.gitStatus ?? null,
 					githubStatus: worktree.githubStatus ?? null,
@@ -165,6 +168,39 @@ export const createGitStatusProcedures = () => {
 						workspace: workspace ?? null,
 					};
 				});
+			}),
+
+		getExternalWorktrees: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const project = getProject(input.projectId);
+				if (!project) {
+					return [];
+				}
+
+				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
+
+				const trackedWorktrees = localDb
+					.select({ path: worktrees.path })
+					.from(worktrees)
+					.where(eq(worktrees.projectId, input.projectId))
+					.all();
+				const trackedPaths = new Set(trackedWorktrees.map((wt) => wt.path));
+
+				return allWorktrees
+					.filter((wt) => {
+						if (wt.path === project.mainRepoPath) return false;
+						if (wt.isBare) return false;
+						if (wt.isDetached) return false;
+						if (!wt.branch) return false;
+						if (trackedPaths.has(wt.path)) return false;
+						return true;
+					})
+					.map((wt) => ({
+						path: wt.path,
+						// biome-ignore lint/style/noNonNullAssertion: filtered above
+						branch: wt.branch!,
+					}));
 			}),
 	});
 };

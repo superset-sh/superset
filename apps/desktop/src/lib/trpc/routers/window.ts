@@ -1,4 +1,6 @@
+import fs from "node:fs/promises";
 import { homedir } from "node:os";
+import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { publicProcedure, router } from "..";
@@ -72,9 +74,6 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 				return { canceled: true, dataUrl: null };
 			}
 
-			// Read the file and convert to base64 data URL
-			const fs = await import("node:fs/promises");
-			const path = await import("node:path");
 			const filePath = result.filePaths[0];
 			const buffer = await fs.readFile(filePath);
 			const ext = path.extname(filePath).slice(1).toLowerCase();

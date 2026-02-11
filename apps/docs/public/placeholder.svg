@@ -1,0 +1,6 @@
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#f4f4f5"/>
+  <rect x="20" y="20" width="760" height="410" rx="8" fill="#e4e4e7" stroke="#d4d4d8" stroke-width="2" stroke-dasharray="8 4"/>
+  <text x="400" y="210" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" fill="#71717a">Screenshot Placeholder</text>
+  <text x="400" y="250" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#a1a1aa">Image to be added</text>
+</svg>

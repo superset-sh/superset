@@ -1,12 +1,17 @@
 import { cpSync, existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
-import { CONFIG_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
+import {
+	CONFIG_FILE_NAME,
+	PROJECT_SUPERSET_DIR_NAME,
+	PROJECTS_DIR_NAME,
+	SUPERSET_DIR_NAME,
+} from "shared/constants";
 import type { SetupConfig } from "shared/types";
 
 /**
- * Copies the .superset directory from main repo to worktree if it exists in main but not in worktree.
- * This handles the case where .superset is gitignored - worktrees won't have it since git only
- * includes tracked files. By copying it, setup scripts like "./.superset/setup.sh" will work.
+ * Worktrees don't include gitignored files, so copy .superset from main repo
+ * if it's missing — ensures setup scripts like "./.superset/setup.sh" work.
  */
 export function copySupersetConfigToWorktree(
 	mainRepoPath: string,
@@ -15,7 +20,6 @@ export function copySupersetConfigToWorktree(
 	const mainSupersetDir = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME);
 	const worktreeSupersetDir = join(worktreePath, PROJECT_SUPERSET_DIR_NAME);
 
-	// Only copy if it exists in main repo but not in worktree
 	if (existsSync(mainSupersetDir) && !existsSync(worktreeSupersetDir)) {
 		try {
 			cpSync(mainSupersetDir, worktreeSupersetDir, { recursive: true });
@@ -27,13 +31,7 @@ export function copySupersetConfigToWorktree(
 	}
 }
 
-export function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
-	const configPath = join(
-		mainRepoPath,
-		PROJECT_SUPERSET_DIR_NAME,
-		CONFIG_FILE_NAME,
-	);
-
+function readConfigFile(configPath: string): SetupConfig | null {
 	if (!existsSync(configPath)) {
 		return null;
 	}
@@ -46,6 +44,10 @@ export function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
 			throw new Error("'setup' field must be an array of strings");
 		}
 
+		if (parsed.teardown && !Array.isArray(parsed.teardown)) {
+			throw new Error("'teardown' field must be an array of strings");
+		}
+
 		return parsed;
 	} catch (error) {
 		console.error(
@@ -53,4 +55,65 @@ export function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
 		);
 		return null;
 	}
+}
+
+function readConfigFromPath(basePath: string): SetupConfig | null {
+	return readConfigFile(
+		join(basePath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME),
+	);
+}
+
+/**
+ * Resolves setup/teardown config with a three-tier priority:
+ *   1. User override:  ~/.superset/projects/<projectName>/config.json
+ *   2. Worktree:       <worktreePath>/.superset/config.json
+ *   3. Main repo:      <mainRepoPath>/.superset/config.json
+ *
+ * First config found wins entirely (no merging between levels).
+ */
+export function loadSetupConfig({
+	mainRepoPath,
+	worktreePath,
+	projectName,
+}: {
+	mainRepoPath: string;
+	worktreePath?: string;
+	projectName?: string;
+}): SetupConfig | null {
+	if (
+		projectName &&
+		!projectName.includes("/") &&
+		!projectName.includes("\\")
+	) {
+		const userConfigPath = join(
+			homedir(),
+			SUPERSET_DIR_NAME,
+			PROJECTS_DIR_NAME,
+			projectName,
+			CONFIG_FILE_NAME,
+		);
+		const config = readConfigFile(userConfigPath);
+		if (config) {
+			console.log(`[setup] Using user override config from ${userConfigPath}`);
+			return config;
+		}
+	}
+
+	if (worktreePath) {
+		const config = readConfigFromPath(worktreePath);
+		if (config) {
+			console.log(
+				`[setup] Using worktree config from ${join(worktreePath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME)}`,
+			);
+			return config;
+		}
+	}
+
+	const config = readConfigFromPath(mainRepoPath);
+	if (config) {
+		console.log(
+			`[setup] Using main repo config from ${join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME)}`,
+		);
+	}
+	return config;
 }

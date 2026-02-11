@@ -3,16 +3,13 @@ import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { getPresetsForTrigger } from "../../settings";
 import { getProject, getWorkspaceWithRelations } from "../utils/db-helpers";
 import { loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
 export const createInitProcedures = () => {
 	return router({
-		/**
-		 * Subscribe to workspace initialization progress events.
-		 * Streams progress updates for workspaces that are currently initializing.
-		 */
 		onInitProgress: publicProcedure
 			.input(
 				z.object({ workspaceIds: z.array(z.string()).optional() }).optional(),
@@ -29,7 +26,6 @@ export const createInitProcedures = () => {
 						emit.next(progress);
 					};
 
-					// Send current state for initializing/failed workspaces
 					for (const progress of workspaceInitManager.getAllProgress()) {
 						if (
 							!input?.workspaceIds ||
@@ -47,10 +43,6 @@ export const createInitProcedures = () => {
 				});
 			}),
 
-		/**
-		 * Retry initialization for a failed workspace.
-		 * Clears the failed state and restarts the initialization process.
-		 */
 		retryInit: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
@@ -79,9 +71,7 @@ export const createInitProcedures = () => {
 				workspaceInitManager.clearJob(input.workspaceId);
 				workspaceInitManager.startJob(input.workspaceId, workspace.projectId);
 
-				// Run initialization in background (DO NOT await)
-				// On retry, the worktree.baseBranch is already correct (either originally explicit
-				// or auto-corrected by P1 fix), so we treat it as explicit to prevent further updates
+				// baseBranch is treated as explicit on retry to prevent further auto-correction
 				initializeWorkspaceWorktree({
 					workspaceId: input.workspaceId,
 					projectId: workspace.projectId,
@@ -96,21 +86,12 @@ export const createInitProcedures = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Get current initialization progress for a workspace.
-		 * Returns null if the workspace is not initializing.
-		 */
 		getInitProgress: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }) => {
 				return workspaceInitManager.getProgress(input.workspaceId) ?? null;
 			}),
 
-		/**
-		 * Get setup commands for a workspace.
-		 * Used as a fallback when pending terminal setup data is lost (e.g., after retry or app restart).
-		 * Re-reads the project config to get fresh commands.
-		 */
 		getSetupCommands: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }) => {
@@ -126,11 +107,17 @@ export const createInitProcedures = () => {
 					return null;
 				}
 
-				const setupConfig = loadSetupConfig(project.mainRepoPath);
+				const setupConfig = loadSetupConfig({
+					mainRepoPath: project.mainRepoPath,
+					worktreePath: relations.worktree?.path,
+					projectName: project.name,
+				});
+				const defaultPresets = getPresetsForTrigger("applyOnWorkspaceCreated");
 
 				return {
 					projectId: project.id,
 					initialCommands: setupConfig?.setup ?? null,
+					defaultPresets,
 				};
 			}),
 	});

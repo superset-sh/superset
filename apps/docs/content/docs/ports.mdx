@@ -1,0 +1,57 @@
+---
+title: Port Management
+description: View and manage active ports per workspace
+---
+
+## Overview
+
+Each workspace gets its own port range. View active ports and kill processes directly from the UI.
+
+![Port Panel](/images/ports.png)
+
+## Features
+
+- **View active ports** - See which processes are using which ports
+- **Kill processes** - Stop a process by clicking its port
+- **No conflicts** - Each workspace has dedicated ports
+
+## Static Port Configuration
+
+Override automatic port discovery with a static configuration file. Useful for:
+
+- Documenting ports that aren't auto-detected (databases, external services)
+- Providing meaningful labels for your team
+- Projects where dynamic scanning doesn't work well
+
+Create `.superset/ports.json` in your repository:
+
+```json
+{
+  "ports": [
+    { "port": 3000, "label": "Frontend Dev Server" },
+    { "port": 8080, "label": "API Server" },
+    { "port": 5432, "label": "PostgreSQL" }
+  ]
+}
+```
+
+**Fields:**
+- `port` - Port number (1-65535)
+- `label` - Display text shown in tooltip
+
+**Behavior:**
+- Static config replaces dynamic port discovery
+- Each workspace reads from its own worktree's file
+- Changes are detected automatically
+- Ports open `localhost:PORT` in browser when clicked
+
+**Error Handling:**
+
+If `ports.json` is malformed:
+- Error toast appears with details
+- No ports displayed until fixed
+- Dynamic detection is NOT used as fallback
+
+**Tips:**
+- Commit `.superset/ports.json` to share with team
+- Delete the file to restore dynamic detection

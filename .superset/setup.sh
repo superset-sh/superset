@@ -341,6 +341,7 @@ step_write_env() {
     if [ -n "${ELECTRIC_SECRET:-}" ]; then
       echo "ELECTRIC_SECRET=$ELECTRIC_SECRET"
     fi
+
   } >> .env
 
   success "Workspace .env written"

@@ -1,15 +1,21 @@
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
-import { Skeleton } from "@superset/ui/skeleton";
+import { Card, CardContent } from "@superset/ui/card";
+import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { LuCopy } from "react-icons/lu";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useEffect, useState } from "react";
+import { HiOutlinePencil } from "react-icons/hi2";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { ProfileSkeleton } from "./components/ProfileSkeleton";
 
 interface AccountSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -20,22 +26,77 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 		SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		visibleItems,
 	);
-	const showVersion = isItemVisible(
-		SETTING_ITEM_ID.ACCOUNT_VERSION,
-		visibleItems,
-	);
 	const showSignOut = isItemVisible(
 		SETTING_ITEM_ID.ACCOUNT_SIGNOUT,
 		visibleItems,
 	);
 
-	const { data: session, isPending: isLoading } = authClient.useSession();
-	const user = session?.user;
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user?.id;
+	const collections = useCollections();
+
+	const [nameValue, setNameValue] = useState("");
+	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+	const { data: usersData, isLoading } = useLiveQuery(
+		(q) => q.from({ users: collections.users }),
+		[collections],
+	);
+
+	const user = usersData?.find((u) => u.id === currentUserId);
+
 	const signOutMutation = electronTrpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
 
-	const signOut = () => signOutMutation.mutate();
+	const selectImageMutation = electronTrpc.window.selectImageFile.useMutation();
+
+	useEffect(() => {
+		if (!user) return;
+		setNameValue(user.name ?? "");
+		setAvatarPreview(user.image ?? null);
+	}, [user]);
+
+	async function handleAvatarUpload() {
+		if (!user) return;
+
+		try {
+			const result = await selectImageMutation.mutateAsync();
+			if (result.canceled || !result.dataUrl) return;
+
+			const mimeMatch = result.dataUrl.match(/^data:([^;]+);/);
+			const mimeType = mimeMatch?.[1] || "image/png";
+			const ext = mimeType.split("/")[1] || "png";
+
+			const uploadResult = await apiTrpcClient.user.uploadAvatar.mutate({
+				fileData: result.dataUrl,
+				fileName: `avatar.${ext}`,
+				mimeType,
+			});
+
+			setAvatarPreview(uploadResult.url);
+			toast.success("Avatar updated!");
+		} catch {
+			toast.error("Failed to update avatar");
+		}
+	}
+
+	async function handleNameBlur() {
+		if (!user || nameValue === user.name) return;
+
+		if (!nameValue) {
+			setNameValue(user.name ?? "");
+			return;
+		}
+
+		try {
+			await apiTrpcClient.user.updateProfile.mutate({ name: nameValue });
+			toast.success("Name updated!");
+		} catch {
+			toast.error("Failed to update name");
+			setNameValue(user.name ?? "");
+		}
+	}
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -47,80 +108,84 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 			</div>
 
 			<div className="space-y-8">
-				{/* Profile Section */}
 				{showProfile && (
 					<div>
 						<h3 className="text-sm font-medium mb-4">Profile</h3>
-						<div className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-							{isLoading ? (
-								<>
-									<Skeleton className="h-16 w-16 rounded-full" />
-									<div className="space-y-2">
-										<Skeleton className="h-5 w-32" />
-										<Skeleton className="h-4 w-48" />
-									</div>
-								</>
-							) : user ? (
-								<>
-									<Avatar size="xl" fullName={user.name} image={user.image} />
-									<div>
-										<p className="font-medium text-lg">{user.name}</p>
-										<p className="text-sm text-muted-foreground">
-											{user.email}
-										</p>
-									</div>
-								</>
-							) : (
-								<p className="text-muted-foreground">
-									Unable to load user info
-								</p>
-							)}
-						</div>
+						{isLoading ? (
+							<ProfileSkeleton />
+						) : user ? (
+							<Card>
+								<CardContent>
+									<ul className="space-y-6">
+										<li className="flex items-center justify-between gap-8 pb-6 border-b border-border">
+											<div className="flex-1">
+												<div className="text-sm font-medium mb-1">Avatar</div>
+												<div className="text-xs text-muted-foreground">
+													Recommended size is 256x256px
+												</div>
+											</div>
+											<button
+												type="button"
+												onClick={handleAvatarUpload}
+												className="relative w-8 h-8 group cursor-pointer"
+											>
+												<Avatar
+													size="md"
+													fullName={user.name}
+													image={avatarPreview}
+												/>
+												<div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+													<HiOutlinePencil className="h-4 w-4 text-white" />
+												</div>
+											</button>
+										</li>
+
+										<li className="flex items-center justify-between gap-8 pb-6 border-b border-border">
+											<div className="flex-1 text-sm font-medium">Name</div>
+											<div className="flex-1">
+												<Input
+													value={nameValue}
+													onChange={(e) => setNameValue(e.target.value)}
+													onBlur={handleNameBlur}
+													placeholder="Your name"
+													className="w-full"
+												/>
+											</div>
+										</li>
+
+										<li className="flex items-center justify-between gap-8">
+											<div className="flex-1 text-sm font-medium">Email</div>
+											<div className="flex-1">
+												<Input
+													value={user.email}
+													readOnly
+													disabled
+													className="w-full"
+												/>
+											</div>
+										</li>
+									</ul>
+								</CardContent>
+							</Card>
+						) : (
+							<Card>
+								<CardContent>
+									<p className="text-muted-foreground">
+										Unable to load user info
+									</p>
+								</CardContent>
+							</Card>
+						)}
 					</div>
 				)}
 
-				{/* Version Section */}
-				{showVersion && (
-					<div className={showProfile ? "pt-6 border-t" : ""}>
-						<h3 className="text-sm font-medium mb-2">Version</h3>
-						<div className="flex items-center gap-2">
-							<p className="text-sm text-muted-foreground">
-								Superset Desktop v{window.App?.appVersion ?? "unknown"}
-							</p>
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-6 w-6"
-								aria-label="Copy version to clipboard"
-								title="Copy version to clipboard"
-								onClick={async () => {
-									const version = `Superset Desktop v${window.App?.appVersion ?? "unknown"}`;
-									try {
-										await navigator.clipboard.writeText(version);
-										toast.success("Version copied to clipboard");
-									} catch (error) {
-										console.error(
-											"[account/copy-version] Failed to copy version to clipboard:",
-											error,
-										);
-										toast.error("Copy failed, please try again");
-									}
-								}}
-							>
-								<LuCopy className="size-3.5" />
-							</Button>
-						</div>
-					</div>
-				)}
-
-				{/* Sign Out Section */}
 				{showSignOut && (
-					<div className={showProfile || showVersion ? "pt-6 border-t" : ""}>
+					<div className={showProfile ? "pt-6 border-t" : ""}>
 						<h3 className="text-sm font-medium mb-2">Sign Out</h3>
 						<p className="text-sm text-muted-foreground mb-4">
 							Sign out of your Superset account on this device.
 						</p>
-						<Button variant="outline" onClick={() => signOut()}>
+						<Button variant="outline" onClick={() => signOutMutation.mutate()}>
 							Sign Out
 						</Button>
 					</div>

@@ -1,0 +1,16 @@
+{
+	"name": "Superset",
+	"short_name": "Superset",
+	"description": "Run 10+ parallel coding agents on your machine",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#0a0a0a",
+	"theme_color": "#0a0a0a",
+	"icons": [
+		{
+			"src": "/favicon-192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		}
+	]
+}

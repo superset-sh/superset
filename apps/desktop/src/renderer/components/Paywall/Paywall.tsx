@@ -1,11 +1,12 @@
-import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
-import { MeshGradient } from "@superset/ui/mesh-gradient";
-import { cn } from "@superset/ui/utils";
-import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { posthog } from "../../lib/posthog";
+import { FeaturePreview } from "./components/FeaturePreview";
+import { FeatureSidebar } from "./components/FeatureSidebar";
+import type { GatedFeature } from "./constants";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
-import type { GatedFeature } from "./usePaywall";
 
 type PaywallOptions = {
 	feature: GatedFeature;
@@ -15,10 +16,13 @@ type PaywallOptions = {
 let showPaywallFn: ((options: PaywallOptions) => void) | null = null;
 
 export const Paywall = () => {
+	const navigate = useNavigate();
 	const [paywallOptions, setPaywallOptions] = useState<PaywallOptions | null>(
 		null,
 	);
 	const [isOpen, setIsOpen] = useState(false);
+	const openTimeRef = useRef<number | null>(null);
+	const featuresViewedRef = useRef<Set<string>>(new Set());
 
 	showPaywallFn = (options: PaywallOptions) => {
 		setPaywallOptions(options);
@@ -31,13 +35,29 @@ export const Paywall = () => {
 		};
 	}, []);
 
+	const triggerSource = paywallOptions?.feature;
 	const initialFeatureId =
-		(paywallOptions?.feature && FEATURE_ID_MAP[paywallOptions.feature]) ||
+		(triggerSource && FEATURE_ID_MAP[triggerSource]) ||
 		PRO_FEATURES[0]?.id ||
 		"team-collaboration";
 
 	const [selectedFeatureId, setSelectedFeatureId] =
 		useState<string>(initialFeatureId);
+
+	// Track paywall_opened when modal opens
+	useEffect(() => {
+		if (isOpen && paywallOptions) {
+			openTimeRef.current = Date.now();
+			featuresViewedRef.current = new Set([initialFeatureId]);
+
+			const feature = PRO_FEATURES.find((f) => f.id === initialFeatureId);
+			posthog.capture("paywall_opened", {
+				trigger_source: paywallOptions.feature,
+				feature_id: initialFeatureId,
+				feature_title: feature?.title,
+			});
+		}
+	}, [isOpen, paywallOptions, initialFeatureId]);
 
 	useEffect(() => {
 		if (paywallOptions?.feature && isOpen) {
@@ -49,8 +69,31 @@ export const Paywall = () => {
 		}
 	}, [paywallOptions?.feature, isOpen]);
 
+	const handleSelectFeature = (featureId: string) => {
+		if (featureId !== selectedFeatureId) {
+			const feature = PRO_FEATURES.find((f) => f.id === featureId);
+			posthog.capture("paywall_feature_clicked", {
+				trigger_source: triggerSource,
+				feature_id: featureId,
+				feature_title: feature?.title,
+				previous_feature_id: selectedFeatureId,
+			});
+			featuresViewedRef.current.add(featureId);
+		}
+		setSelectedFeatureId(featureId);
+	};
+
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
+			const timeSpent = openTimeRef.current
+				? Date.now() - openTimeRef.current
+				: 0;
+			posthog.capture("paywall_cancelled", {
+				trigger_source: triggerSource,
+				feature_id: selectedFeatureId,
+				features_viewed_count: featuresViewedRef.current.size,
+				time_spent_ms: timeSpent,
+			});
 			setIsOpen(false);
 		}
 	};
@@ -63,103 +106,37 @@ export const Paywall = () => {
 	}
 
 	const handleUpgrade = () => {
+		const timeSpent = openTimeRef.current
+			? Date.now() - openTimeRef.current
+			: 0;
+		posthog.capture("paywall_upgrade_clicked", {
+			trigger_source: triggerSource,
+			feature_id: selectedFeatureId,
+			feature_title: selectedFeature.title,
+			features_viewed_count: featuresViewedRef.current.size,
+			time_spent_ms: timeSpent,
+		});
 		setIsOpen(false);
+		navigate({ to: "/settings/billing/plans" });
 	};
 
 	return (
 		<Dialog open={isOpen} onOpenChange={handleOpenChange}>
 			<DialogContent
-				className="!w-[744px] !max-w-[744px] p-0 gap-0 overflow-hidden"
+				className="!w-[744px] !max-w-[744px] p-0 gap-0 overflow-hidden !rounded-none"
 				showCloseButton={false}
 			>
 				<div className="flex">
-					<div className="flex flex-col border-r bg-neutral-900">
-						<div className="px-5 py-2.5">
-							<h1 className="mb-0 mt-1.5 text-lg font-bold text-foreground">
-								Pro Features
-							</h1>
-						</div>
-
-						<div className="flex flex-col gap-2.5 px-5 py-2.5">
-							{PRO_FEATURES.map((proFeature) => {
-								const Icon = proFeature.icon;
-								const isSelected = selectedFeatureId === proFeature.id;
-
-								return (
-									<button
-										key={proFeature.id}
-										type="button"
-										onClick={() => setSelectedFeatureId(proFeature.id)}
-										className={cn(
-											"group flex w-[209px] h-16 items-center gap-3 px-4 py-3.5 transition-all duration-200 ease-out",
-											"cursor-pointer text-left",
-											isSelected
-												? "bg-muted text-foreground"
-												: "text-foreground/70 hover:text-foreground hover:bg-foreground/5",
-										)}
-									>
-										<Icon
-											className={cn(
-												"shrink-0 text-xl transition-all duration-200 ease-out",
-												isSelected
-													? proFeature.iconColor
-													: "text-foreground/40 group-hover:text-foreground/60",
-											)}
-										/>
-										<span
-											className={cn(
-												"text-sm font-semibold transition-all duration-200",
-												isSelected ? "text-foreground" : "",
-											)}
-										>
-											{proFeature.title}
-										</span>
-									</button>
-								);
-							})}
-						</div>
-					</div>
-
-					<div className="flex h-[487px] w-[495px] flex-col">
-						<div className="relative h-[346px] overflow-hidden">
-							{PRO_FEATURES.map((proFeature) => (
-								<div
-									key={`gradient-${proFeature.id}`}
-									className={cn(
-										"absolute inset-0 transition-opacity duration-1000 ease-in-out",
-										selectedFeature.id === proFeature.id
-											? "opacity-100"
-											: "opacity-0",
-									)}
-								>
-									<MeshGradient
-										colors={proFeature.gradientColors}
-										className="absolute inset-0 w-full h-full"
-									/>
-								</div>
-							))}
-
-							<div className="absolute inset-0 flex items-center justify-center">
-								<selectedFeature.icon className="text-white/20 text-[120px] select-none pointer-events-none" />
-							</div>
-						</div>
-
-						<div className="flex min-h-[141px] w-full flex-col border-t bg-background px-6 py-4 items-center justify-center">
-							<div className="mb-2 flex w-full items-center justify-center gap-2">
-								<span className="text-lg font-semibold text-foreground">
-									{selectedFeature.title}
-								</span>
-								<Badge variant="default">PRO</Badge>
-							</div>
-							<span className="text-center text-sm font-normal text-muted-foreground">
-								{selectedFeature.description}
-							</span>
-						</div>
-					</div>
+					<FeatureSidebar
+						selectedFeatureId={selectedFeatureId}
+						highlightedFeatureId={initialFeatureId}
+						onSelectFeature={handleSelectFeature}
+					/>
+					<FeaturePreview selectedFeature={selectedFeature} />
 				</div>
 
 				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
-					<Button variant="outline" onClick={() => setIsOpen(false)}>
+					<Button variant="outline" onClick={() => handleOpenChange(false)}>
 						Cancel
 					</Button>
 					<Button onClick={handleUpgrade}>Get Superset Pro</Button>

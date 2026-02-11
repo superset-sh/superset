@@ -1,4 +1,7 @@
 import {
+	BRANCH_PREFIX_MODES,
+	EXECUTION_MODES,
+	FILE_OPEN_MODES,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -8,13 +11,15 @@ import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { localDb } from "main/lib/local-db";
 import {
+	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
-	DEFAULT_TERMINAL_PERSISTENCE,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
@@ -24,6 +29,18 @@ function getSettings() {
 		row = localDb.insert(settings).values({ id: 1 }).returning().get();
 	}
 	return row;
+}
+
+/** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
+export function getPresetsForTrigger(
+	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
+) {
+	const row = getSettings();
+	const presets = row.terminalPresets ?? [];
+	const tagged = presets.filter((p) => p[field]);
+	if (tagged.length > 0) return tagged;
+	const defaultPreset = presets.find((p) => p.isDefault);
+	return defaultPreset ? [defaultPreset] : [];
 }
 
 export const createSettingsRouter = () => {
@@ -43,6 +60,7 @@ export const createSettingsRouter = () => {
 					description: z.string().optional(),
 					cwd: z.string(),
 					commands: z.array(z.string()),
+					executionMode: z.enum(EXECUTION_MODES).optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -76,6 +94,7 @@ export const createSettingsRouter = () => {
 						description: z.string().optional(),
 						cwd: z.string().optional(),
 						commands: z.array(z.string()).optional(),
+						executionMode: z.enum(EXECUTION_MODES).optional(),
 					}),
 				}),
 			)
@@ -97,6 +116,8 @@ export const createSettingsRouter = () => {
 				if (input.patch.cwd !== undefined) preset.cwd = input.patch.cwd;
 				if (input.patch.commands !== undefined)
 					preset.commands = input.patch.commands;
+				if (input.patch.executionMode !== undefined)
+					preset.executionMode = input.patch.executionMode;
 
 				localDb
 					.insert(settings)
@@ -135,7 +156,6 @@ export const createSettingsRouter = () => {
 				const row = getSettings();
 				const presets = row.terminalPresets ?? [];
 
-				// Clear existing default and set new one (if id is provided)
 				const updatedPresets = presets.map((p) => ({
 					...p,
 					isDefault: input.id === p.id ? true : undefined,
@@ -153,11 +173,108 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		setPresetAutoApply: publicProcedure
+			.input(
+				z.object({
+					id: z.string(),
+					field: z.enum(["applyOnWorkspaceCreated", "applyOnNewTab"]),
+					enabled: z.boolean(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const row = getSettings();
+				const presets = row.terminalPresets ?? [];
+
+				const updatedPresets = presets.map((p) => {
+					if (p.id !== input.id) return p;
+
+					// Migrate legacy isDefault preset to explicit fields on first toggle
+					const needsMigration =
+						p.isDefault &&
+						p.applyOnWorkspaceCreated === undefined &&
+						p.applyOnNewTab === undefined;
+
+					const base = needsMigration
+						? {
+								...p,
+								isDefault: undefined,
+								applyOnWorkspaceCreated: true as const,
+								applyOnNewTab: true as const,
+							}
+						: p;
+
+					return {
+						...base,
+						[input.field]: input.enabled ? true : undefined,
+					};
+				});
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPresets: updatedPresets })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPresets: updatedPresets },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		reorderTerminalPresets: publicProcedure
+			.input(
+				z.object({
+					presetId: z.string(),
+					targetIndex: z.number().int().min(0),
+				}),
+			)
+			.mutation(({ input }) => {
+				const row = getSettings();
+				const presets = row.terminalPresets ?? [];
+
+				const currentIndex = presets.findIndex((p) => p.id === input.presetId);
+				if (currentIndex === -1) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Preset not found",
+					});
+				}
+
+				if (input.targetIndex < 0 || input.targetIndex >= presets.length) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid target index for reordering presets",
+					});
+				}
+
+				const [removed] = presets.splice(currentIndex, 1);
+				presets.splice(input.targetIndex, 0, removed);
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPresets: presets })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPresets: presets },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getDefaultPreset: publicProcedure.query(() => {
 			const row = getSettings();
 			const presets = row.terminalPresets ?? [];
 			return presets.find((p) => p.isDefault) ?? null;
 		}),
+
+		getWorkspaceCreationPresets: publicProcedure.query(() =>
+			getPresetsForTrigger("applyOnWorkspaceCreated"),
+		),
+
+		getNewTabPresets: publicProcedure.query(() =>
+			getPresetsForTrigger("applyOnNewTab"),
+		),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();
@@ -209,7 +326,6 @@ export const createSettingsRouter = () => {
 
 		getConfirmOnQuit: publicProcedure.query(() => {
 			const row = getSettings();
-			// Default to true (confirm on quit enabled by default)
 			return row.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
 		}),
 
@@ -248,20 +364,40 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		getTerminalPersistence: publicProcedure.query(() => {
+		getFileOpenMode: publicProcedure.query(() => {
 			const row = getSettings();
-			return row.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
+			return row.fileOpenMode ?? DEFAULT_FILE_OPEN_MODE;
 		}),
 
-		setTerminalPersistence: publicProcedure
+		setFileOpenMode: publicProcedure
+			.input(z.object({ mode: z.enum(FILE_OPEN_MODES) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, fileOpenMode: input.mode })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { fileOpenMode: input.mode },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getAutoApplyDefaultPreset: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
+		}),
+
+		setAutoApplyDefaultPreset: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
 			.mutation(({ input }) => {
 				localDb
 					.insert(settings)
-					.values({ id: 1, terminalPersistence: input.enabled })
+					.values({ id: 1, autoApplyDefaultPreset: input.enabled })
 					.onConflictDoUpdate({
 						target: settings.id,
-						set: { terminalPersistence: input.enabled },
+						set: { autoApplyDefaultPreset: input.enabled },
 					})
 					.run();
 
@@ -273,5 +409,101 @@ export const createSettingsRouter = () => {
 			quitWithoutConfirmation();
 			return { success: true };
 		}),
+
+		getBranchPrefix: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				mode: row.branchPrefixMode ?? "none",
+				customPrefix: row.branchPrefixCustom ?? null,
+			};
+		}),
+
+		setBranchPrefix: publicProcedure
+			.input(
+				z.object({
+					mode: z.enum(BRANCH_PREFIX_MODES),
+					customPrefix: z.string().nullable().optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({
+						id: 1,
+						branchPrefixMode: input.mode,
+						branchPrefixCustom: input.customPrefix ?? null,
+					})
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: {
+							branchPrefixMode: input.mode,
+							branchPrefixCustom: input.customPrefix ?? null,
+						},
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getGitInfo: publicProcedure.query(async () => {
+			const githubUsername = await getGitHubUsername();
+			const authorName = await getGitAuthorName();
+			return {
+				githubUsername,
+				authorName,
+				authorPrefix: authorName?.toLowerCase().replace(/\s+/g, "-") ?? null,
+			};
+		}),
+
+		getDeleteLocalBranch: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.deleteLocalBranch ?? false;
+		}),
+
+		setDeleteLocalBranch: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, deleteLocalBranch: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { deleteLocalBranch: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getNotificationSoundsMuted: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.notificationSoundsMuted ?? false;
+		}),
+
+		setNotificationSoundsMuted: publicProcedure
+			.input(z.object({ muted: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, notificationSoundsMuted: input.muted })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		// TODO: remove telemetry procedures once telemetry_enabled column is dropped
+		getTelemetryEnabled: publicProcedure.query(() => {
+			return true;
+		}),
+
+		setTelemetryEnabled: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(() => {
+				return { success: true };
+			}),
 	});
 };

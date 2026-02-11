@@ -23,6 +23,21 @@ export const taskPriorityValues = [
 export const taskPriorityEnum = z.enum(taskPriorityValues);
 export type TaskPriority = z.infer<typeof taskPriorityEnum>;
 
-export const integrationProviderValues = ["linear", "github"] as const;
+export const integrationProviderValues = ["linear", "github", "slack"] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
+
+export const deviceTypeValues = ["desktop", "mobile", "web"] as const;
+export const deviceTypeEnum = z.enum(deviceTypeValues);
+export type DeviceType = z.infer<typeof deviceTypeEnum>;
+
+export const commandStatusValues = [
+	"pending",
+	"claimed",
+	"executing",
+	"completed",
+	"failed",
+	"timeout",
+] as const;
+export const commandStatusEnum = z.enum(commandStatusValues);
+export type CommandStatus = z.infer<typeof commandStatusEnum>;

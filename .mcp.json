@@ -1,3 +1,41 @@
 {
-	"mcpServers": {}
+	"mcpServers": {
+		"superset": {
+			"type": "http",
+			"url": "https://api.superset.sh/api/agent/mcp"
+		},
+		"expo-mcp": {
+			"type": "http",
+			"url": "https://mcp.expo.dev/mcp"
+		},
+		"maestro": {
+			"command": "maestro",
+			"args": ["mcp"]
+		},
+		"neon": {
+			"type": "http",
+			"url": "https://mcp.neon.tech/mcp"
+		},
+		"linear": {
+			"type": "http",
+			"url": "https://mcp.linear.app/mcp"
+		},
+		"sentry": {
+			"type": "http",
+			"url": "https://mcp.sentry.dev/mcp"
+		},
+		"posthog": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"mcp-remote@latest",
+				"https://mcp.posthog.com/mcp",
+				"--header",
+				"Authorization:${POSTHOG_AUTH_HEADER}"
+			],
+			"env": {
+				"POSTHOG_AUTH_HEADER": "Bearer ${POSTHOG_API_KEY}"
+			}
+		}
+	}
 }

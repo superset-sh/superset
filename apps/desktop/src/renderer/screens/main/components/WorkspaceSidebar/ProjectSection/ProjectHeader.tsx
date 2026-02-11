@@ -14,15 +14,25 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
-import { LuFolderOpen, LuPalette, LuSettings, LuX } from "react-icons/lu";
+import {
+	LuFolderOpen,
+	LuImage,
+	LuImageOff,
+	LuPalette,
+	LuPencil,
+	LuSettings,
+	LuX,
+} from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
 import { STROKE_WIDTH } from "../constants";
+import { RenameInput } from "../RenameInput";
 import { CloseProjectDialog } from "./CloseProjectDialog";
 import { ProjectThumbnail } from "./ProjectThumbnail";
 
@@ -32,6 +42,8 @@ interface ProjectHeaderProps {
 	projectColor: string;
 	githubOwner: string | null;
 	mainRepoPath: string;
+	hideImage: boolean;
+	iconUrl: string | null;
 	/** Whether the project section is collapsed (workspaces hidden) */
 	isCollapsed: boolean;
 	/** Whether the sidebar is in collapsed mode (icon-only view) */
@@ -47,6 +59,8 @@ export function ProjectHeader({
 	projectColor,
 	githubOwner,
 	mainRepoPath,
+	hideImage,
+	iconUrl,
 	isCollapsed,
 	isSidebarCollapsed = false,
 	onToggleCollapse,
@@ -57,6 +71,7 @@ export function ProjectHeader({
 	const navigate = useNavigate();
 	const params = useParams({ strict: false }) as { workspaceId?: string };
 	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+	const rename = useProjectRename(projectId, projectName);
 
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onMutate: async ({ id }) => {
@@ -133,6 +148,10 @@ export function ProjectHeader({
 		updateProject.mutate({ id: projectId, patch: { color } });
 	};
 
+	const handleToggleImage = () => {
+		updateProject.mutate({ id: projectId, patch: { hideImage: !hideImage } });
+	};
+
 	// Color picker submenu used in both collapsed and expanded context menus
 	const colorPickerSubmenu = (
 		<ContextMenuSub>
@@ -188,11 +207,12 @@ export function ProjectHeader({
 										projectName={projectName}
 										projectColor={projectColor}
 										githubOwner={githubOwner}
+										iconUrl={iconUrl}
 									/>
 								</button>
 							</TooltipTrigger>
 						</ContextMenuTrigger>
-						<TooltipContent side="right" className="flex flex-col gap-0.5">
+						<TooltipContent className="flex flex-col gap-0.5">
 							<span className="font-medium">{projectName}</span>
 							<span className="text-xs text-muted-foreground">
 								{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
@@ -200,6 +220,11 @@ export function ProjectHeader({
 						</TooltipContent>
 					</Tooltip>
 					<ContextMenuContent>
+						<ContextMenuItem onSelect={rename.startRename}>
+							<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Rename
+						</ContextMenuItem>
+						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={handleOpenInFinder}>
 							<LuFolderOpen
 								className="size-4 mr-2"
@@ -249,22 +274,45 @@ export function ProjectHeader({
 						)}
 					>
 						{/* Main clickable area */}
-						<button
-							type="button"
-							onClick={onToggleCollapse}
-							className="flex items-center gap-2 flex-1 min-w-0 py-0.5 text-left cursor-pointer"
-						>
-							<ProjectThumbnail
-								projectId={projectId}
-								projectName={projectName}
-								projectColor={projectColor}
-								githubOwner={githubOwner}
-							/>
-							<span className="truncate">{projectName}</span>
-							<span className="text-xs text-muted-foreground tabular-nums">
-								({workspaceCount})
-							</span>
-						</button>
+						{rename.isRenaming ? (
+							<div className="flex items-center gap-2 flex-1 min-w-0 py-0.5">
+								<ProjectThumbnail
+									projectId={projectId}
+									projectName={projectName}
+									projectColor={projectColor}
+									githubOwner={githubOwner}
+									hideImage={hideImage}
+									iconUrl={iconUrl}
+								/>
+								<RenameInput
+									value={rename.renameValue}
+									onChange={rename.setRenameValue}
+									onSubmit={rename.submitRename}
+									onCancel={rename.cancelRename}
+									className="h-6 px-1 py-0 text-sm -ml-1 font-medium bg-transparent border-none outline-none flex-1 min-w-0"
+								/>
+							</div>
+						) : (
+							<button
+								type="button"
+								onClick={onToggleCollapse}
+								onDoubleClick={rename.startRename}
+								className="flex items-center gap-2 flex-1 min-w-0 py-0.5 text-left cursor-pointer"
+							>
+								<ProjectThumbnail
+									projectId={projectId}
+									projectName={projectName}
+									projectColor={projectColor}
+									githubOwner={githubOwner}
+									hideImage={hideImage}
+									iconUrl={iconUrl}
+								/>
+								<span className="truncate">{projectName}</span>
+								<span className="text-xs text-muted-foreground tabular-nums font-normal">
+									({workspaceCount})
+								</span>
+							</button>
+						)}
 
 						{/* Add workspace button */}
 						<Tooltip delayDuration={500}>
@@ -304,6 +352,11 @@ export function ProjectHeader({
 					</div>
 				</ContextMenuTrigger>
 				<ContextMenuContent>
+					<ContextMenuItem onSelect={rename.startRename}>
+						<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						Rename
+					</ContextMenuItem>
+					<ContextMenuSeparator />
 					<ContextMenuItem onSelect={handleOpenInFinder}>
 						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Open in Finder
@@ -313,6 +366,14 @@ export function ProjectHeader({
 						Project Settings
 					</ContextMenuItem>
 					{colorPickerSubmenu}
+					<ContextMenuItem onSelect={handleToggleImage}>
+						{hideImage ? (
+							<LuImage className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						) : (
+							<LuImageOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						)}
+						{hideImage ? "Show Image" : "Hide Image"}
+					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem
 						onSelect={handleCloseProject}

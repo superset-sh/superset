@@ -23,7 +23,6 @@ export default async function DesktopSuccessPage({
 		);
 	}
 
-	// Get session from Better Auth
 	let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
 	try {
 		session = await auth.api.getSession({ headers: await headers() });
@@ -50,8 +49,7 @@ export default async function DesktopSuccessPage({
 		);
 	}
 
-	// Create a separate session for the desktop app instead of reusing the browser session
-	// This ensures desktop and web have independent sessions with separate activeOrganizationId
+	// Desktop and web need independent sessions with separate activeOrganizationId
 	const headersObj = await headers();
 	const userAgent = headersObj.get("user-agent") || "Superset Desktop App";
 	const ipAddress =
@@ -59,15 +57,11 @@ export default async function DesktopSuccessPage({
 		headersObj.get("x-real-ip") ||
 		undefined;
 
-	// Generate a unique session token for the desktop app
 	const crypto = await import("node:crypto");
 	const token = crypto.randomBytes(32).toString("base64url");
 	const now = new Date();
-	const expiresAt = new Date(
-		Date.now() + 60 * 60 * 24 * 30 * 1000, // 30 days (matching auth config)
-	);
+	const expiresAt = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000);
 
-	// Create a new session record in the database
 	await db.insert(sessions).values({
 		token,
 		userId: session.user.id,

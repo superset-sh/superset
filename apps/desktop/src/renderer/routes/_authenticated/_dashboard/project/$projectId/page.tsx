@@ -46,10 +46,16 @@ export const Route = createFileRoute(
 	},
 });
 
-function generateBranchFromTitle(title: string): string {
+function generateBranchFromTitle({
+	title,
+	authorPrefix,
+}: {
+	title: string;
+	authorPrefix?: string;
+}): string {
 	if (!title.trim()) return "";
 
-	return title
+	const slug = title
 		.toLowerCase()
 		.trim()
 		.replace(/[^a-z0-9\s-]/g, "")
@@ -57,6 +63,13 @@ function generateBranchFromTitle(title: string): string {
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "")
 		.slice(0, 50);
+
+	if (!slug) return "";
+
+	if (authorPrefix) {
+		return `${authorPrefix}/${slug}`;
+	}
+	return slug;
 }
 
 function ProjectPage() {
@@ -73,8 +86,13 @@ function ProjectPage() {
 		{ projectId },
 		{ enabled: !!projectId },
 	);
+	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery(
+		{ id: projectId },
+		{ enabled: !!projectId },
+	);
 
 	const createWorkspace = useCreateWorkspace();
+	const authorPrefix = gitAuthor?.prefix;
 
 	const [title, setTitle] = useState("");
 	const [baseBranch, setBaseBranch] = useState<string | null>(null);
@@ -110,11 +128,16 @@ function ProjectPage() {
 
 	const handleCreateWorkspace = async () => {
 		const workspaceName = title.trim() || undefined;
+		const generatedBranchName = generateBranchFromTitle({
+			title,
+			authorPrefix,
+		});
 
 		try {
 			await createWorkspace.mutateAsync({
 				projectId,
 				name: workspaceName,
+				branchName: generatedBranchName || undefined,
 				baseBranch: effectiveBaseBranch || undefined,
 			});
 
@@ -136,44 +159,45 @@ function ProjectPage() {
 		<div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
 			<div className="flex-1 flex overflow-y-auto">
 				{/* Main content */}
-				<div className="flex-1 flex items-center justify-center py-12">
+				<div className="flex-1 flex items-center justify-center">
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: Form container handles Enter key for submission */}
-					<div className="w-full max-w-xl" onKeyDown={handleKeyDown}>
+					<div className="w-full max-w-xl mx-6" onKeyDown={handleKeyDown}>
 						{/* Project context */}
-						<div className="flex items-center gap-2 mb-6">
-							<span className="text-sm text-muted-foreground">
+						<div className="flex items-center gap-1.5 mb-8">
+							<span className="text-xs text-muted-foreground/70">
 								{project.name}
 							</span>
 							<span className="text-muted-foreground/30">·</span>
-							<span className="text-sm text-muted-foreground/70 font-mono">
+							<span className="text-xs text-muted-foreground/50 font-mono">
 								{branchData?.defaultBranch ?? "main"}
 							</span>
 						</div>
 
 						{/* Headline */}
-						<h1 className="text-4xl font-semibold text-foreground tracking-tight mb-3">
+						<h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
 							What are you building?
 						</h1>
 
 						{/* Subtext */}
-						<p className="text-lg text-muted-foreground mb-10">
-							Each workspace is an isolated copy of your codebase. Work on
-							multiple tasks without conflicts.
+						<p className="text-sm text-muted-foreground leading-relaxed mb-8">
+							Each workspace is an isolated copy of your codebase.
+							<br />
+							Work on multiple tasks without conflicts.
 						</p>
 
 						{/* Form */}
 						<div className="space-y-4 max-w-md">
-							<div className="space-y-1.5">
+							<div className="space-y-2">
 								<label
 									htmlFor="task-title"
-									className="text-sm text-muted-foreground"
+									className="text-xs font-medium text-muted-foreground"
 								>
 									Name your task
 								</label>
 								<Input
 									id="task-title"
 									ref={titleInputRef}
-									className="h-12 text-base"
+									className="h-11 text-base bg-card/50 border-border/60 focus:border-primary/40 focus:ring-primary/20 transition-all"
 									placeholder="e.g. Add dark mode, Fix checkout bug"
 									value={title}
 									onChange={(e) => setTitle(e.target.value)}
@@ -181,11 +205,12 @@ function ProjectPage() {
 							</div>
 
 							<p
-								className={`text-sm text-muted-foreground flex items-center gap-2 transition-opacity ${title ? "opacity-100" : "opacity-0"}`}
+								className={`text-xs text-muted-foreground flex items-center gap-2 transition-all duration-200 ${title ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"}`}
 							>
-								<GoGitBranch className="size-3.5" />
+								<GoGitBranch className="size-3" />
 								<span className="font-mono">
-									{generateBranchFromTitle(title) || "branch-name"}
+									{generateBranchFromTitle({ title, authorPrefix }) ||
+										"branch-name"}
 								</span>
 								<span className="text-muted-foreground/50">
 									from {effectiveBaseBranch}
@@ -193,11 +218,11 @@ function ProjectPage() {
 							</p>
 
 							<Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-								<CollapsibleTrigger className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+								<CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors py-1">
 									<HiChevronDown
-										className={`size-3.5 transition-transform ${showAdvanced ? "" : "-rotate-90"}`}
+										className={`size-3 transition-transform duration-200 ${showAdvanced ? "" : "-rotate-90"}`}
 									/>
-									Advanced
+									Advanced options
 								</CollapsibleTrigger>
 								<AnimatePresence initial={false}>
 									{showAdvanced && (
@@ -208,9 +233,9 @@ function ProjectPage() {
 											transition={{ duration: 0.2, ease: "easeInOut" }}
 											className="overflow-hidden"
 										>
-											<div className="pt-4 space-y-2">
-												<span className="text-sm text-muted-foreground">
-													Change base branch
+											<div className="pt-3 space-y-2">
+												<span className="text-xs font-medium text-muted-foreground">
+													Base branch
 												</span>
 												{isBranchesError ? (
 													<div className="flex items-center gap-2 h-10 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-sm">
@@ -225,22 +250,22 @@ function ProjectPage() {
 														<PopoverTrigger asChild>
 															<Button
 																variant="outline"
-																className="w-full h-10 justify-between font-normal"
+																className="w-full h-10 justify-between font-normal bg-card/50 border-border/60 hover:border-primary/40 transition-colors"
 																disabled={isBranchesLoading}
 															>
 																<span className="flex items-center gap-2 truncate">
-																	<GoGitBranch className="size-4 shrink-0 text-muted-foreground" />
-																	<span className="truncate font-mono">
+																	<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+																	<span className="truncate font-mono text-sm">
 																		{effectiveBaseBranch || "Select branch..."}
 																	</span>
 																	{effectiveBaseBranch ===
 																		branchData?.defaultBranch && (
-																		<span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																		<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 																			default
 																		</span>
 																	)}
 																</span>
-																<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+																<HiChevronUpDown className="size-3.5 shrink-0 text-muted-foreground" />
 															</Button>
 														</PopoverTrigger>
 														<PopoverContent
@@ -307,7 +332,7 @@ function ProjectPage() {
 
 							<Button
 								size="lg"
-								className="w-full"
+								className="w-full mt-2 h-11 text-sm font-medium transition-all hover:scale-[1.01] active:scale-[0.99]"
 								onClick={handleCreateWorkspace}
 								disabled={createWorkspace.isPending || isBranchesError}
 							>

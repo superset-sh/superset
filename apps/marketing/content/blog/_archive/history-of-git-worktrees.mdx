@@ -1,0 +1,62 @@
+---
+title: The History of Git Worktrees
+description: How git worktrees evolved from a niche feature to the foundation of modern parallel development workflows.
+author: avi
+date: 2025-01-18
+category: Research
+---
+
+Git worktrees have become an essential tool for developers managing multiple tasks simultaneously. But where did they come from, and why are they suddenly so relevant?
+
+![Git worktrees visualization](/blog/history-of-git-worktrees/worktrees-visualization.png)
+
+## The Early Days
+
+Git worktrees were introduced in Git 2.5 (July 2015) as a way to have multiple working directories attached to a single repository. Before worktrees, developers had two options for working on multiple branches simultaneously:
+
+1. **Stash and switch** - Constantly stashing changes and switching branches
+2. **Multiple clones** - Maintaining separate clones of the same repository
+
+Both approaches had significant drawbacks. Stashing was error-prone and disruptive. Multiple clones wasted disk space and made it difficult to share local commits between workspaces.
+
+## How Worktrees Work
+
+A git worktree creates a new working directory that shares the same `.git` directory as your main repository. This means:
+
+- All branches and commits are instantly available
+- No need to push/pull between directories
+- Minimal disk space overhead
+- Each worktree can have its own branch checked out
+
+```bash
+# Create a new worktree
+git worktree add ../feature-branch feature/new-feature
+
+# List all worktrees
+git worktree list
+
+# Remove a worktree
+git worktree remove ../feature-branch
+```
+
+## The AI Agent Revolution
+
+With the rise of AI coding agents, worktrees have found a new purpose. When you're running multiple agents in parallel, each one needs:
+
+- Its own working directory
+- Isolation from other agents' changes
+- Access to the full repository history
+
+Worktrees provide all of this out of the box. That's why Superset uses them as the foundation for parallel agent workspaces.
+
+## Best Practices
+
+When using worktrees for parallel development:
+
+- **Use descriptive paths** - Name your worktree directories after the feature or task
+- **Clean up regularly** - Remove worktrees when you're done with them
+- **Avoid long-lived worktrees** - Merge or rebase frequently to avoid drift
+
+## Conclusion
+
+What started as a niche feature for advanced Git users has become essential infrastructure for the age of AI-assisted development. As coding agents become more capable, the ability to run them in parallel—powered by git worktrees—will only become more important.

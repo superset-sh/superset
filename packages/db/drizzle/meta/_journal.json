@@ -92,6 +92,41 @@
       "when": 1769106861342,
       "tag": "0012_add_stripe_subscription_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1769225155008,
+      "tag": "0013_add_mcp_actions_and_presence",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1769383267153,
+      "tag": "0014_better_auth_mcp_oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1769719998551,
+      "tag": "0015_scope_tasks_slug_unique_to_org",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1769727642212,
+      "tag": "0016_slack_integration",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1770583877762,
+      "tag": "0017_switch_to_oauth2",
+      "breakpoints": true
     }
   ]
 }

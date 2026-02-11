@@ -2,21 +2,27 @@ import { join } from "node:path";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
-import { Notification } from "electron";
+import { app, Notification, nativeTheme } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
-import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
+import { NOTIFICATION_EVENTS, PLATFORM, PORTS } from "shared/constants";
+import type { AgentLifecycleEvent } from "shared/notification-types";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
+import { NotificationManager } from "../lib/notifications/notification-manager";
 import {
-	type AgentLifecycleEvent,
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
+import {
+	extractWorkspaceIdFromUrl,
+	getNotificationTitle,
+	getWorkspaceName,
+} from "../lib/notifications/utils";
 import {
 	getInitialWindowBounds,
 	loadWindowState,
@@ -27,11 +33,54 @@ import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
 
-// Current window reference - updated on window create/close
+function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
+	if (!workspaceId) return "Workspace";
+	try {
+		const workspace = localDb
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, workspaceId))
+			.get();
+		const worktree = workspace?.worktreeId
+			? localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.id, workspace.worktreeId))
+					.get()
+			: undefined;
+		return getWorkspaceName({ workspace, worktree });
+	} catch (error) {
+		console.error("[notifications] Failed to get workspace name:", error);
+		return "Workspace";
+	}
+}
+
 let currentWindow: BrowserWindow | null = null;
 
-// Getter for routers to access current window without stale references
+// Routers receive this getter so they always see the current window, not a stale reference
 const getWindow = () => currentWindow;
+
+// invalidate() alone may not rebuild corrupted GPU layers — a tiny resize
+// forces Chromium to reconstruct the compositor layer tree.
+const forceRepaint = (win: BrowserWindow) => {
+	if (win.isDestroyed()) return;
+	win.webContents.invalidate();
+	if (win.isMaximized() || win.isFullScreen()) return;
+	const [width, height] = win.getSize();
+	win.setSize(width + 1, height);
+	setTimeout(() => {
+		if (!win.isDestroyed()) win.setSize(width, height);
+	}, 32);
+};
+
+// GPU process restarts don't repaint existing compositor layers automatically.
+app.on("child-process-gone", (_event, details) => {
+	if (details.type === "GPU") {
+		console.warn("[main-window] GPU process gone:", details.reason);
+		const win = getWindow();
+		if (win) forceRepaint(win);
+	}
+});
 
 export async function MainWindow() {
 	const savedWindowState = loadWindowState();
@@ -47,6 +96,7 @@ export async function MainWindow() {
 		minWidth: 400,
 		minHeight: 400,
 		show: false,
+		backgroundColor: nativeTheme.shouldUseDarkColors ? "#252525" : "#ffffff",
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
@@ -69,6 +119,11 @@ export async function MainWindow() {
 
 	currentWindow = window;
 
+	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
+	if (PLATFORM.IS_MAC) {
+		window.webContents.setBackgroundThrottling(false);
+	}
+
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);
 	} else {
@@ -78,7 +133,6 @@ export async function MainWindow() {
 		});
 	}
 
-	// Start notifications HTTP server
 	const server = notificationsApp.listen(
 		PORTS.NOTIFICATIONS,
 		"127.0.0.1",
@@ -89,84 +143,37 @@ export async function MainWindow() {
 		},
 	);
 
-	// Handle agent lifecycle notifications (Stop = completion, PermissionRequest = needs input)
+	const notificationManager = new NotificationManager({
+		isSupported: () => Notification.isSupported(),
+		createNotification: (opts) => new Notification(opts),
+		playSound: playNotificationSound,
+		onNotificationClick: (ids) => {
+			window.show();
+			window.focus();
+			notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, ids);
+		},
+		getVisibilityContext: () => ({
+			isFocused: window.isFocused(),
+			currentWorkspaceId: extractWorkspaceIdFromUrl(
+				window.webContents.getURL(),
+			),
+			tabsState: appState.data?.tabsState,
+		}),
+		getWorkspaceName: getWorkspaceNameFromDb,
+		getNotificationTitle: (event) =>
+			getNotificationTitle({
+				tabId: event.tabId,
+				paneId: event.paneId,
+				tabs: appState.data?.tabsState?.tabs,
+				panes: appState.data?.tabsState?.panes,
+			}),
+	});
+	notificationManager.start();
+
 	notificationsEmitter.on(
 		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 		(event: AgentLifecycleEvent) => {
-			// Only notify on Stop (completion) and PermissionRequest - not on Start
-			if (event.eventType === "Start") return;
-
-			if (Notification.isSupported()) {
-				const isPermissionRequest = event.eventType === "PermissionRequest";
-
-				// Derive workspace name from workspaceId with safe fallbacks
-				let workspaceName = "Workspace";
-				try {
-					if (event.workspaceId) {
-						const workspace = localDb
-							.select()
-							.from(workspaces)
-							.where(eq(workspaces.id, event.workspaceId))
-							.get();
-						const worktree = workspace?.worktreeId
-							? localDb
-									.select()
-									.from(worktrees)
-									.where(eq(worktrees.id, workspace.worktreeId))
-									.get()
-							: undefined;
-						workspaceName = workspace?.name || worktree?.branch || "Workspace";
-					}
-				} catch (error) {
-					console.error(
-						"[notifications] Failed to access db for workspace name:",
-						error,
-					);
-				}
-
-				// Derive title from tab name, falling back to pane name
-				// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
-				let title = "Terminal";
-				try {
-					const { paneId, tabId } = event;
-					const tabsState = appState.data?.tabsState;
-					const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
-					const tab = tabId
-						? tabsState?.tabs?.find((t) => t.id === tabId)
-						: undefined;
-					title =
-						tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
-				} catch (error) {
-					console.error(
-						"[notifications] Failed to access appState for tab title:",
-						error,
-					);
-				}
-
-				const notification = new Notification({
-					title: isPermissionRequest
-						? `Input Needed — ${workspaceName}`
-						: `Agent Complete — ${workspaceName}`,
-					body: isPermissionRequest
-						? `"${title}" needs your attention`
-						: `"${title}" has finished its task`,
-					silent: true,
-				});
-
-				playNotificationSound();
-
-				notification.on("click", () => {
-					window.show();
-					window.focus();
-					notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
-						paneId: event.paneId,
-						tabId: event.tabId,
-						workspaceId: event.workspaceId,
-					});
-				});
-
-				notification.show();
-			}
+			notificationManager.handleAgentLifecycle(event);
 		},
 	);
 
@@ -177,20 +184,38 @@ export async function MainWindow() {
 		.getDefault()
 		.terminal.on(
 			"terminalExit",
-			(event: { paneId: string; exitCode: number; signal?: number }) => {
+			(event: {
+				paneId: string;
+				exitCode: number;
+				signal?: number;
+				reason?: "killed" | "exited" | "error";
+			}) => {
 				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
 					paneId: event.paneId,
 					exitCode: event.exitCode,
 					signal: event.signal,
+					reason: event.reason,
 				});
 			},
 		);
 
+	// macOS Sequoia+: occluded/minimized windows can lose compositor layers
+	if (PLATFORM.IS_MAC) {
+		window.on("restore", () => {
+			window.webContents.invalidate();
+		});
+		window.on("show", () => {
+			window.webContents.invalidate();
+		});
+	}
+
 	window.webContents.on("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
-		// Restore maximized state if it was saved
 		if (initialBounds.isMaximized) {
 			window.maximize();
+		}
+		if (savedWindowState?.zoomLevel !== undefined) {
+			window.webContents.setZoomLevel(savedWindowState.zoomLevel);
 		}
 		window.show();
 	});
@@ -221,21 +246,23 @@ export async function MainWindow() {
 		// Save window state first, before any cleanup
 		const isMaximized = window.isMaximized();
 		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
+		const zoomLevel = window.webContents.getZoomLevel();
 		saveWindowState({
 			x: bounds.x,
 			y: bounds.y,
 			width: bounds.width,
 			height: bounds.height,
 			isMaximized,
+			zoomLevel,
 		});
 
 		server.close();
+		notificationManager.dispose();
 		notificationsEmitter.removeAllListeners();
 		// Remove terminal listeners to prevent duplicates when window reopens on macOS
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		// Detach window from IPC handler (handler stays alive for window reopen)
 		ipcHandler?.detachWindow(window);
-		// Clear current window reference
 		currentWindow = null;
 	});
 

@@ -13,10 +13,11 @@ const APP_NAMES: Record<ExternalApp, string | null> = {
 	iterm: "iTerm",
 	warp: "Warp",
 	terminal: "Terminal",
+	ghostty: "Ghostty",
 	sublime: "Sublime Text",
-	intellij: "IntelliJ IDEA",
+	intellij: null, // Multi-edition, uses bundle IDs
 	webstorm: "WebStorm",
-	pycharm: "PyCharm",
+	pycharm: null, // Multi-edition, uses bundle IDs
 	phpstorm: "PhpStorm",
 	rubymine: "RubyMine",
 	goland: "GoLand",
@@ -29,16 +30,36 @@ const APP_NAMES: Record<ExternalApp, string | null> = {
 };
 
 /**
- * Get the command and args to open a path in the specified app.
- * Uses `open -a` for macOS apps to avoid PATH issues in production builds.
+ * Bundle ID candidates for JetBrains IDEs with multiple editions.
+ * `open -b <bundleId>` works regardless of the .app display name,
+ * so "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
+ */
+const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
+	intellij: ["com.jetbrains.intellij", "com.jetbrains.intellij.ce"],
+	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
+};
+
+/**
+ * Get candidate commands to open a path in the specified app.
+ * Returns an array of commands to try in order — for multi-edition apps (IntelliJ, PyCharm),
+ * multiple bundle IDs are returned so the caller can fall back if one isn't installed.
+ * Uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
  */
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
-): { command: string; args: string[] } | null {
+): { command: string; args: string[] }[] | null {
+	const bundleIds = BUNDLE_ID_CANDIDATES[app];
+	if (bundleIds) {
+		return bundleIds.map((id) => ({
+			command: "open",
+			args: ["-b", id, targetPath],
+		}));
+	}
+
 	const appName = APP_NAMES[app];
 	if (!appName) return null;
-	return { command: "open", args: ["-a", appName, targetPath] };
+	return [{ command: "open", args: ["-a", appName, targetPath] }];
 }
 
 /**

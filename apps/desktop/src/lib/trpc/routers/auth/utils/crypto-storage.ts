@@ -1,12 +1,10 @@
-import { execFileSync } from "node:child_process";
 import {
 	createCipheriv,
 	createDecipheriv,
 	randomBytes,
 	scryptSync,
 } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { homedir, hostname, platform } from "node:os";
+import { getMachineId } from "main/lib/device-info";
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LENGTH = 32;
@@ -14,59 +12,8 @@ const SALT_LENGTH = 16;
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
-/**
- * Gets a stable machine identifier for key derivation.
- */
-function getMachineId(): string {
-	try {
-		const os = platform();
-
-		if (os === "darwin") {
-			// macOS: Use IOPlatformUUID (hardware UUID)
-			const output = execFileSync(
-				"ioreg",
-				["-rd1", "-c", "IOPlatformExpertDevice"],
-				{ encoding: "utf8" },
-			);
-			const match = output.match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/);
-			if (match?.[1]) return match[1];
-		} else if (os === "linux") {
-			// Linux: Use machine-id
-			try {
-				return readFileSync("/etc/machine-id", "utf8").trim();
-			} catch {
-				return readFileSync("/var/lib/dbus/machine-id", "utf8").trim();
-			}
-		} else if (os === "win32") {
-			// Windows: Use MachineGuid from registry
-			const output = execFileSync(
-				"reg",
-				[
-					"query",
-					"HKLM\\SOFTWARE\\Microsoft\\Cryptography",
-					"/v",
-					"MachineGuid",
-				],
-				{ encoding: "utf8" },
-			);
-			const match = output.match(/MachineGuid\s+REG_SZ\s+(\S+)/);
-			if (match?.[1]) return match[1];
-		}
-	} catch {
-		// Fallback if platform-specific method fails
-	}
-
-	// Fallback: Use a combination of stable system properties
-	// This is less secure but ensures the app still works
-	return `${hostname()}-${homedir()}-superset-fallback`;
-}
-
-/**
- * Derives an encryption key from the machine ID and a salt.
- */
 function deriveKey(salt: Buffer): Buffer {
-	const machineId = getMachineId();
-	return scryptSync(machineId, salt, KEY_LENGTH);
+	return scryptSync(getMachineId(), salt, KEY_LENGTH);
 }
 
 /**

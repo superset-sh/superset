@@ -1,11 +1,16 @@
+import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { usePresets } from "renderer/react-query/presets";
+import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
+import { usePRStatus } from "renderer/screens/main/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -29,6 +34,10 @@ export const Route = createFileRoute(
 )({
 	component: WorkspacePage,
 	notFoundComponent: NotFound,
+	validateSearch: (search: Record<string, unknown>): WorkspaceSearchParams => ({
+		tabId: typeof search.tabId === "string" ? search.tabId : undefined,
+		paneId: typeof search.paneId === "string" ? search.paneId : undefined,
+	}),
 	loader: async ({ params, context }) => {
 		const queryKey = [
 			["workspaces", "get"],
@@ -58,6 +67,27 @@ function WorkspacePage() {
 		id: workspaceId,
 	});
 	const navigate = useNavigate();
+	const routeNavigate = Route.useNavigate();
+	const { tabId: searchTabId, paneId: searchPaneId } = Route.useSearch();
+
+	// Handle search-param-driven tab/pane activation (e.g. from notification clicks)
+	useEffect(() => {
+		if (!searchTabId) return;
+
+		const state = useTabsStore.getState();
+		const tab = state.tabs.find(
+			(t) => t.id === searchTabId && t.workspaceId === workspaceId,
+		);
+		if (!tab) return;
+
+		state.setActiveTab(workspaceId, searchTabId);
+
+		if (searchPaneId && state.panes[searchPaneId]) {
+			state.setFocusedPane(searchTabId, searchPaneId);
+		}
+
+		routeNavigate({ search: {}, replace: true });
+	}, [searchTabId, searchPaneId, workspaceId, routeNavigate]);
 
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);
@@ -79,8 +109,14 @@ function WorkspacePage() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
-	const { addTab, splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
-		useTabsWithPresets();
+	const {
+		addTab,
+		splitPaneAuto,
+		splitPaneVertical,
+		splitPaneHorizontal,
+		openPreset,
+	} = useTabsWithPresets();
+	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -111,15 +147,29 @@ function WorkspacePage() {
 
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Tab management shortcuts
-	useAppHotkey(
-		"NEW_GROUP",
-		() => {
-			addTab(workspaceId);
+	const { presets } = usePresets();
+
+	const openTabWithPreset = useCallback(
+		(presetIndex: number) => {
+			const preset = presets[presetIndex];
+			if (preset) {
+				openPreset(workspaceId, preset);
+			} else {
+				addTab(workspaceId);
+			}
 		},
-		undefined,
-		[workspaceId, addTab],
+		[presets, workspaceId, addTab, openPreset],
 	);
+
+	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
+		workspaceId,
+		addTab,
+	]);
+	useAppHotkey("NEW_CHAT", () => addChatTab(workspaceId), undefined, [
+		workspaceId,
+		addChatTab,
+	]);
+	usePresetHotkeys(openTabWithPreset);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",
@@ -132,34 +182,76 @@ function WorkspacePage() {
 		[focusedPaneId, removePane],
 	);
 
-	// Switch between tabs
 	useAppHotkey(
-		"PREV_TERMINAL",
+		"PREV_TAB",
 		() => {
-			if (!activeTabId) return;
+			if (!activeTabId || tabs.length === 0) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index > 0) {
-				setActiveTab(workspaceId, tabs[index - 1].id);
-			}
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
 	useAppHotkey(
-		"NEXT_TERMINAL",
+		"NEXT_TAB",
 		() => {
-			if (!activeTabId) return;
+			if (!activeTabId || tabs.length === 0) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index < tabs.length - 1) {
-				setActiveTab(workspaceId, tabs[index + 1].id);
-			}
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
-	// Switch between panes within a tab
+	useAppHotkey(
+		"PREV_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	useAppHotkey(
+		"NEXT_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	const switchToTab = useCallback(
+		(index: number) => {
+			const tab = tabs[index];
+			if (tab) {
+				setActiveTab(workspaceId, tab.id);
+			}
+		},
+		[tabs, workspaceId, setActiveTab],
+	);
+
+	useAppHotkey("JUMP_TO_TAB_1", () => switchToTab(0), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_2", () => switchToTab(1), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_3", () => switchToTab(2), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_4", () => switchToTab(3), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_5", () => switchToTab(4), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_6", () => switchToTab(5), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_7", () => switchToTab(6), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_8", () => switchToTab(7), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_9", () => switchToTab(8), undefined, [switchToTab]);
+
 	useAppHotkey(
 		"PREV_PANE",
 		() => {
@@ -215,6 +307,25 @@ function WorkspacePage() {
 		},
 		undefined,
 		[workspace?.worktreePath],
+	);
+
+	// Open PR shortcut (⌘⇧P)
+	const { pr } = usePRStatus({ workspaceId });
+	const createPRMutation = electronTrpc.changes.createPR.useMutation({
+		onSuccess: () => toast.success("Opening GitHub..."),
+		onError: (error) => toast.error(`Failed: ${error.message}`),
+	});
+	useAppHotkey(
+		"OPEN_PR",
+		() => {
+			if (pr?.url) {
+				window.open(pr.url, "_blank");
+			} else if (workspace?.worktreePath) {
+				createPRMutation.mutate({ worktreePath: workspace.worktreePath });
+			}
+		},
+		undefined,
+		[pr?.url, workspace?.worktreePath],
 	);
 
 	// Toggle changes sidebar (⌘L)

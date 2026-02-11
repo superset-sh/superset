@@ -1,0 +1,1 @@
+export { useEscapeToNavigate } from "./useEscapeToNavigate";

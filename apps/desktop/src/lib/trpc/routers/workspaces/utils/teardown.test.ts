@@ -6,12 +6,21 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
+import { PROJECTS_DIR_NAME, SUPERSET_DIR_NAME } from "shared/constants";
 import { runTeardown } from "./teardown";
 
 const TEST_DIR = join(__dirname, ".test-tmp-teardown");
 const MAIN_REPO = join(TEST_DIR, "main-repo");
 const WORKTREE = join(TEST_DIR, "worktree");
+const PROJECT_NAME = "test-teardown-project";
+const USER_CONFIG_DIR = join(
+	homedir(),
+	SUPERSET_DIR_NAME,
+	PROJECTS_DIR_NAME,
+	PROJECT_NAME,
+);
 
 describe("runTeardown", () => {
 	beforeEach(() => {
@@ -25,10 +34,18 @@ describe("runTeardown", () => {
 		if (existsSync(TEST_DIR)) {
 			rmSync(TEST_DIR, { recursive: true, force: true });
 		}
+		// Clean up user override dir
+		if (existsSync(USER_CONFIG_DIR)) {
+			rmSync(USER_CONFIG_DIR, { recursive: true, force: true });
+		}
 	});
 
 	test("returns success when no config exists", async () => {
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 		expect(result.success).toBe(true);
 		expect(result.error).toBeUndefined();
 	});
@@ -39,7 +56,11 @@ describe("runTeardown", () => {
 			JSON.stringify({ setup: ["echo setup"] }),
 		);
 
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 		expect(result.success).toBe(true);
 	});
 
@@ -49,7 +70,11 @@ describe("runTeardown", () => {
 			JSON.stringify({ teardown: [] }),
 		);
 
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 		expect(result.success).toBe(true);
 	});
 
@@ -63,32 +88,37 @@ describe("runTeardown", () => {
 			JSON.stringify({ teardown: [`echo "executed" > "${markerFile}"`] }),
 		);
 
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 
 		expect(result.success).toBe(true);
 		expect(existsSync(markerFile)).toBe(true);
 		expect(readFileSync(markerFile, "utf-8").trim()).toBe("executed");
 	});
 
-	test("ignores config in worktreePath", async () => {
-		// Put a config ONLY in worktree that would create a marker file
+	test("uses worktreePath config when present", async () => {
 		const worktreeMarker = join(WORKTREE, "worktree-config-executed.txt");
 		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
 		writeFileSync(
 			join(WORKTREE, ".superset", "config.json"),
-			JSON.stringify({ teardown: [`echo "wrong" > "${worktreeMarker}"`] }),
+			JSON.stringify({ teardown: [`echo "executed" > "${worktreeMarker}"`] }),
 		);
 
-		// Main repo has no config, so nothing should execute
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 
 		expect(result.success).toBe(true);
-		// The worktree config should NOT have been read/executed
-		expect(existsSync(worktreeMarker)).toBe(false);
+		expect(existsSync(worktreeMarker)).toBe(true);
+		expect(readFileSync(worktreeMarker, "utf-8").trim()).toBe("executed");
 	});
 
-	test("uses mainRepoPath config even when worktreePath has different config", async () => {
-		// Both locations have config - only mainRepoPath should be used
+	test("prefers worktreePath config over mainRepoPath config", async () => {
 		const mainMarker = join(WORKTREE, "from-main.txt");
 		const worktreeMarker = join(WORKTREE, "from-worktree.txt");
 
@@ -103,11 +133,15 @@ describe("runTeardown", () => {
 			JSON.stringify({ teardown: [`echo "worktree" > "${worktreeMarker}"`] }),
 		);
 
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 
 		expect(result.success).toBe(true);
-		expect(existsSync(mainMarker)).toBe(true);
-		expect(existsSync(worktreeMarker)).toBe(false);
+		expect(existsSync(worktreeMarker)).toBe(true);
+		expect(existsSync(mainMarker)).toBe(false);
 	});
 
 	test("returns error when teardown command fails", async () => {
@@ -116,7 +150,11 @@ describe("runTeardown", () => {
 			JSON.stringify({ teardown: ["exit 1"] }),
 		);
 
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 		expect(result.success).toBe(false);
 		expect(result.error).toBeDefined();
 	});
@@ -130,7 +168,11 @@ describe("runTeardown", () => {
 			}),
 		);
 
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+		});
 		expect(result.success).toBe(true);
 		expect(existsSync(testFile)).toBe(true);
 	});
@@ -146,10 +188,62 @@ describe("runTeardown", () => {
 			}),
 		);
 
-		const result = await runTeardown(MAIN_REPO, WORKTREE, "my-workspace");
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "my-workspace",
+		});
 		expect(result.success).toBe(true);
 
 		const content = readFileSync(envFile, "utf-8").trim();
 		expect(content).toBe(`my-workspace|${MAIN_REPO}`);
+	});
+
+	test("reads from user override when projectName is provided", async () => {
+		const mainMarker = join(WORKTREE, "from-main.txt");
+		const userMarker = join(WORKTREE, "from-user.txt");
+
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ teardown: [`echo "main" > "${mainMarker}"`] }),
+		);
+
+		mkdirSync(USER_CONFIG_DIR, { recursive: true });
+		writeFileSync(
+			join(USER_CONFIG_DIR, "config.json"),
+			JSON.stringify({ teardown: [`echo "user" > "${userMarker}"`] }),
+		);
+
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+			projectName: PROJECT_NAME,
+		});
+
+		expect(result.success).toBe(true);
+		expect(existsSync(userMarker)).toBe(true);
+		expect(readFileSync(userMarker, "utf-8").trim()).toBe("user");
+		expect(existsSync(mainMarker)).toBe(false);
+	});
+
+	test("falls back to mainRepoPath when no user override exists", async () => {
+		const mainMarker = join(WORKTREE, "from-main.txt");
+
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({ teardown: [`echo "main" > "${mainMarker}"`] }),
+		);
+
+		const result = await runTeardown({
+			mainRepoPath: MAIN_REPO,
+			worktreePath: WORKTREE,
+			workspaceName: "test-workspace",
+			projectName: PROJECT_NAME,
+		});
+
+		expect(result.success).toBe(true);
+		expect(existsSync(mainMarker)).toBe(true);
+		expect(readFileSync(mainMarker, "utf-8").trim()).toBe("main");
 	});
 });
