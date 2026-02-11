@@ -49,10 +49,7 @@ export class ChunkBatcher {
 				this.consecutiveFailures = 0;
 				return;
 			} catch (err) {
-				if (
-					err instanceof DOMException &&
-					err.name === "AbortError"
-				) {
+				if (err instanceof DOMException && err.name === "AbortError") {
 					throw err;
 				}
 

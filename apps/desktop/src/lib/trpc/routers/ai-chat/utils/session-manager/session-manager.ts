@@ -400,8 +400,7 @@ export class ChatSessionManager extends EventEmitter {
 					} satisfies ErrorEvent);
 				}
 			} catch (err) {
-				const detail =
-					err instanceof Error ? err.message : String(err);
+				const detail = err instanceof Error ? err.message : String(err);
 				console.error(
 					`[chat/session] POST /generations/finish failed for ${sessionId}:`,
 					detail,

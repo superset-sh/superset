@@ -26,7 +26,11 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 			body = chunkBodySchema.parse(rawBody);
 		} catch (error) {
 			return c.json(
-				{ error: "Invalid request body", code: "INVALID_BODY", details: (error as Error).message },
+				{
+					error: "Invalid request body",
+					code: "INVALID_BODY",
+					details: (error as Error).message,
+				},
 				400,
 			);
 		}
@@ -35,7 +39,10 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 
 		const stream = protocol.getSession(sessionId);
 		if (!stream) {
-			return c.json({ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId }, 404);
+			return c.json(
+				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
+				404,
+			);
 		}
 
 		try {
@@ -79,18 +86,33 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 			const rawBody = await c.req.json();
 			chunks = rawBody?.chunks;
 			if (!Array.isArray(chunks) || chunks.length === 0) {
-				return c.json({ error: "chunks must be a non-empty array", code: "INVALID_BODY", sessionId }, 400);
+				return c.json(
+					{
+						error: "chunks must be a non-empty array",
+						code: "INVALID_BODY",
+						sessionId,
+					},
+					400,
+				);
 			}
 		} catch (error) {
 			return c.json(
-				{ error: "Invalid request body", code: "INVALID_BODY", sessionId, details: (error as Error).message },
+				{
+					error: "Invalid request body",
+					code: "INVALID_BODY",
+					sessionId,
+					details: (error as Error).message,
+				},
 				400,
 			);
 		}
 
 		const stream = protocol.getSession(sessionId);
 		if (!stream) {
-			return c.json({ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId }, 404);
+			return c.json(
+				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
+				404,
+			);
 		}
 
 		try {
@@ -124,7 +146,10 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 
 		const stream = protocol.getSession(sessionId);
 		if (!stream) {
-			return c.json({ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId }, 404);
+			return c.json(
+				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
+				404,
+			);
 		}
 
 		const messageId = crypto.randomUUID();
@@ -138,7 +163,10 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 
 		const stream = protocol.getSession(sessionId);
 		if (!stream) {
-			return c.json({ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId }, 404);
+			return c.json(
+				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
+				404,
+			);
 		}
 
 		let messageId: string | undefined;

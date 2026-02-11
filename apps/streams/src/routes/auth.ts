@@ -16,7 +16,14 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 			};
 
 			if (!actorId || !deviceId) {
-				return c.json({ error: "actorId and deviceId are required", code: "INVALID_BODY", sessionId }, 400);
+				return c.json(
+					{
+						error: "actorId and deviceId are required",
+						code: "INVALID_BODY",
+						sessionId,
+					},
+					400,
+				);
 			}
 
 			const stream = await protocol.getOrCreateSession(sessionId);
@@ -35,7 +42,12 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 		} catch (error) {
 			console.error("Failed to login:", error);
 			return c.json(
-				{ error: "Failed to login", code: "LOGIN_FAILED", sessionId, details: (error as Error).message },
+				{
+					error: "Failed to login",
+					code: "LOGIN_FAILED",
+					sessionId,
+					details: (error as Error).message,
+				},
 				500,
 			);
 		}
@@ -52,22 +64,38 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 				body = JSON.parse(rawBody);
 			} catch (parseError) {
 				console.error("[AUTH] Failed to parse logout body:", parseError);
-				return c.json({ error: "Invalid JSON body", code: "INVALID_BODY", sessionId }, 400);
+				return c.json(
+					{ error: "Invalid JSON body", code: "INVALID_BODY", sessionId },
+					400,
+				);
 			}
 
 			const { actorId, deviceId, allDevices } = body;
 
 			if (!actorId) {
-				return c.json({ error: "actorId is required", code: "INVALID_BODY", sessionId }, 400);
+				return c.json(
+					{ error: "actorId is required", code: "INVALID_BODY", sessionId },
+					400,
+				);
 			}
 
 			if (!allDevices && !deviceId) {
-				return c.json({ error: "deviceId or allDevices is required", code: "INVALID_BODY", sessionId }, 400);
+				return c.json(
+					{
+						error: "deviceId or allDevices is required",
+						code: "INVALID_BODY",
+						sessionId,
+					},
+					400,
+				);
 			}
 
 			const stream = protocol.getSession(sessionId);
 			if (!stream) {
-				return c.json({ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId }, 404);
+				return c.json(
+					{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
+					404,
+				);
 			}
 
 			if (allDevices) {
@@ -108,7 +136,12 @@ export function createAuthRoutes(protocol: AIDBSessionProtocol) {
 		} catch (error) {
 			console.error("[AUTH] Failed to logout:", error);
 			return c.json(
-				{ error: "Failed to logout", code: "LOGOUT_FAILED", sessionId, details: (error as Error).message },
+				{
+					error: "Failed to logout",
+					code: "LOGOUT_FAILED",
+					sessionId,
+					details: (error as Error).message,
+				},
 				500,
 			);
 		}

@@ -52,7 +52,7 @@ export class AIDBSessionProtocol {
 			if (this.sessionLocks.get(sessionId) === current) {
 				this.sessionLocks.delete(sessionId);
 			}
-			resolve!();
+			resolve?.();
 		}
 	}
 
@@ -90,24 +90,17 @@ export class AIDBSessionProtocol {
 		this.producerErrors.set(sessionId, []);
 		this.producerHealthy.set(sessionId, true);
 
-		const producer = new IdempotentProducer(
-			stream,
-			`session-${sessionId}`,
-			{
-				autoClaim: true,
-				// Desktop ChunkBatcher coalesces at 5ms; keep producer linger
-				// minimal to avoid double-buffering latency.
-				lingerMs: 1,
-				maxInFlight: 5,
-				onError: (err) => {
-					console.error(
-						`[protocol] Producer error for ${sessionId}:`,
-						err,
-					);
-					this.recordProducerError(sessionId, err);
-				},
+		const producer = new IdempotentProducer(stream, `session-${sessionId}`, {
+			autoClaim: true,
+			// Desktop ChunkBatcher coalesces at 5ms; keep producer linger
+			// minimal to avoid double-buffering latency.
+			lingerMs: 1,
+			maxInFlight: 5,
+			onError: (err) => {
+				console.error(`[protocol] Producer error for ${sessionId}:`, err);
+				this.recordProducerError(sessionId, err);
 			},
-		);
+		});
 		this.producers.set(sessionId, producer);
 
 		await this.initializeSessionState(sessionId);
@@ -164,10 +157,7 @@ export class AIDBSessionProtocol {
 		});
 	}
 
-	async resetSession(
-		sessionId: string,
-		_clearPresence = false,
-	): Promise<void> {
+	async resetSession(sessionId: string, _clearPresence = false): Promise<void> {
 		return this.withSessionLock(sessionId, async () => {
 			const stream = this.streams.get(sessionId);
 			if (!stream) {
@@ -245,7 +235,7 @@ export class AIDBSessionProtocol {
 	}
 
 	async writeChunk(
-		stream: DurableStream,
+		_stream: DurableStream,
 		sessionId: string,
 		messageId: string,
 		actorId: string,
@@ -423,7 +413,7 @@ export class AIDBSessionProtocol {
 	}
 
 	async writePresence(
-		stream: DurableStream,
+		_stream: DurableStream,
 		sessionId: string,
 		actorId: string,
 		deviceId: string,
