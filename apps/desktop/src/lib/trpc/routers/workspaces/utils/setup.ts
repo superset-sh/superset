@@ -65,7 +65,7 @@ function readConfigFromPath(basePath: string): SetupConfig | null {
 
 /**
  * Resolves setup/teardown config with a three-tier priority:
- *   1. User override:  ~/.superset/projects/<projectName>/config.json
+ *   1. User override:  ~/.superset/projects/<projectId>/config.json
  *   2. Worktree:       <worktreePath>/.superset/config.json
  *   3. Main repo:      <mainRepoPath>/.superset/config.json
  *
@@ -74,22 +74,18 @@ function readConfigFromPath(basePath: string): SetupConfig | null {
 export function loadSetupConfig({
 	mainRepoPath,
 	worktreePath,
-	projectName,
+	projectId,
 }: {
 	mainRepoPath: string;
 	worktreePath?: string;
-	projectName?: string;
+	projectId?: string;
 }): SetupConfig | null {
-	if (
-		projectName &&
-		!projectName.includes("/") &&
-		!projectName.includes("\\")
-	) {
+	if (projectId && !projectId.includes("/") && !projectId.includes("\\")) {
 		const userConfigPath = join(
 			homedir(),
 			SUPERSET_DIR_NAME,
 			PROJECTS_DIR_NAME,
-			projectName,
+			projectId,
 			CONFIG_FILE_NAME,
 		);
 		const config = readConfigFile(userConfigPath);
