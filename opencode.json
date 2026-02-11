@@ -6,7 +6,8 @@
 	"mcp": {
 		"superset": {
 			"type": "remote",
-			"url": "https://api.superset.sh/api/agent/mcp"
+			"url": "https://api.superset.sh/api/agent/mcp",
+			"oauth": {}
 		}
 	}
 }
