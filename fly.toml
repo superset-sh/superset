@@ -2,7 +2,7 @@ app = "superset-electric"
 primary_region = "iad"
 
 [build]
-image = "electricsql/electric:latest"
+image = "electricsql/electric:1.4.3"
 
 [[vm]]
 memory = "4096mb"
@@ -15,6 +15,9 @@ ELECTRIC_DATABASE_USE_IPV6 = "true"
 [http_service]
 internal_port = 3000
 force_https = true
+auto_stop_machines = "off"
+auto_start_machines = true
+min_machines_running = 1
 
 [[http_service.checks]]
 interval = "10s"

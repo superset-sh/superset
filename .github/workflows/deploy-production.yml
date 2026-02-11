@@ -424,6 +424,33 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: flyctl deploy . --config apps/streams/fly.toml --remote-only
 
+  deploy-electric:
+    name: Deploy Electric to Fly.io
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Stage secrets
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl secrets set \
+            DATABASE_URL="${{ secrets.DATABASE_URL_UNPOOLED }}" \
+            ELECTRIC_SECRET="${{ secrets.ELECTRIC_SECRET }}" \
+            --app superset-electric \
+            --stage
+
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy . --config fly.toml --remote-only
+
   deploy-docs:
     name: Deploy Docs to Vercel
     runs-on: ubuntu-latest
