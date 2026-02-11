@@ -338,9 +338,11 @@ export class AIDBSessionProtocol {
 			...(txid && { headers: { txid } }),
 		});
 
-		await this.appendToStream(sessionId, JSON.stringify(event), {
-			flush: true,
-		});
+		// Flush buffered producer chunks first to preserve ordering, then
+		// write directly to the stream so the txid header is immediately
+		// visible to subscribers (avoids producer queue latency).
+		await this.flushSession(sessionId);
+		await stream.append(JSON.stringify(event));
 		this.updateLastActivity(sessionId);
 	}
 
