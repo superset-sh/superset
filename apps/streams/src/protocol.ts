@@ -26,6 +26,25 @@ export class AIDBSessionProtocol {
 	}
 
 	// ═══════════════════════════════════════════════════════════════════════
+	// Producer Error Tracking
+	// ═══════════════════════════════════════════════════════════════════════
+
+	private recordProducerError(sessionId: string, err: unknown): void {
+		const errors = this.producerErrors.get(sessionId);
+		if (errors) {
+			errors.push(err instanceof Error ? err : new Error(String(err)));
+		}
+	}
+
+	private drainProducerErrors(sessionId: string): Error[] {
+		const errors = this.producerErrors.get(sessionId);
+		if (!errors || errors.length === 0) return [];
+		const drained = [...errors];
+		errors.length = 0;
+		return drained;
+	}
+
+	// ═══════════════════════════════════════════════════════════════════════
 	// Session Management
 	// ═══════════════════════════════════════════════════════════════════════
 
@@ -49,12 +68,7 @@ export class AIDBSessionProtocol {
 						`[protocol] Producer error for ${sessionId}:`,
 						err,
 					);
-					const errors = this.producerErrors.get(sessionId);
-					if (errors) {
-						errors.push(
-							err instanceof Error ? err : new Error(String(err)),
-						);
-					}
+					this.recordProducerError(sessionId, err);
 				},
 			},
 		);
@@ -222,13 +236,10 @@ export class AIDBSessionProtocol {
 			this.clearSeq(messageId);
 		}
 
-		const errors = this.producerErrors.get(sessionId);
-		if (errors && errors.length > 0) {
-			const count = errors.length;
-			const errorMessages = errors.map((e) => e.message).join("; ");
-			errors.length = 0;
+		const errors = this.drainProducerErrors(sessionId);
+		if (errors.length > 0) {
 			throw new Error(
-				`Producer encountered ${count} background error(s) during generation: ${errorMessages}`,
+				`Producer encountered ${errors.length} background error(s) during generation: ${errors.map((e) => e.message).join("; ")}`,
 			);
 		}
 	}
