@@ -25,9 +25,14 @@ function getSupersetDirName(): string {
 // Paths require Node.js/Electron APIs that aren't available in renderer.
 export const SUPERSET_DIR_NAME = getSupersetDirName();
 
-// Deep link protocol scheme (environment-aware)
-export const PROTOCOL_SCHEME =
-	env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;
+// Deep link protocol scheme (workspace-aware)
+// Named workspaces get "superset-{name}", default dev gets "superset-dev", prod gets "superset"
+function getProtocolScheme(): string {
+	const workspace = getWorkspaceName();
+	if (workspace) return `superset-${workspace}`;
+	return env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;
+}
+export const PROTOCOL_SCHEME = getProtocolScheme();
 // Project-level directory name (always .superset, not conditional)
 export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
