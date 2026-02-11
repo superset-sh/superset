@@ -39,6 +39,10 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		}
 
 		try {
+			if (!protocol.getActiveGeneration(sessionId)) {
+				protocol.startGeneration({ sessionId, messageId });
+			}
+
 			await protocol.writeChunk(
 				stream,
 				sessionId,
@@ -87,6 +91,11 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		}
 
 		try {
+			const firstMessageId = chunks[0]?.messageId;
+			if (firstMessageId && !protocol.getActiveGeneration(sessionId)) {
+				protocol.startGeneration({ sessionId, messageId: firstMessageId });
+			}
+
 			await protocol.writeChunks({
 				sessionId,
 				chunks: chunks as never,
@@ -114,6 +123,7 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		}
 
 		const messageId = crypto.randomUUID();
+		protocol.startGeneration({ sessionId, messageId });
 
 		return c.json({ messageId }, 200);
 	});

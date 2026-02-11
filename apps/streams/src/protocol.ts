@@ -23,6 +23,7 @@ export class AIDBSessionProtocol {
 	private sessionStates = new Map<string, ProxySessionState>();
 	private producerErrors = new Map<string, Error[]>();
 	private producerHealthy = new Map<string, boolean>();
+	private activeGenerationIds = new Map<string, string>();
 	private sessionLocks = new Map<string, Promise<void>>();
 
 	constructor(options: AIDBProtocolOptions) {
@@ -159,6 +160,7 @@ export class AIDBSessionProtocol {
 			this.sessionStates.delete(sessionId);
 			this.producerErrors.delete(sessionId);
 			this.producerHealthy.delete(sessionId);
+			this.activeGenerationIds.delete(sessionId);
 		});
 	}
 
@@ -182,6 +184,7 @@ export class AIDBSessionProtocol {
 			this.messageSeqs.clear();
 			this.producerErrors.set(sessionId, []);
 			this.producerHealthy.set(sessionId, true);
+			this.activeGenerationIds.delete(sessionId);
 			const state = this.sessionStates.get(sessionId);
 			if (state) {
 				state.activeGenerations = [];
@@ -338,6 +341,26 @@ export class AIDBSessionProtocol {
 		this.producerHealthy.set(sessionId, true);
 	}
 
+	startGeneration({
+		sessionId,
+		messageId,
+	}: {
+		sessionId: string;
+		messageId: string;
+	}): void {
+		const existing = this.activeGenerationIds.get(sessionId);
+		if (existing) {
+			console.warn(
+				`[protocol] Overwriting active generation ${existing} with ${messageId} for ${sessionId}`,
+			);
+		}
+		this.activeGenerationIds.set(sessionId, messageId);
+	}
+
+	getActiveGeneration(sessionId: string): string | undefined {
+		return this.activeGenerationIds.get(sessionId);
+	}
+
 	async finishGeneration({
 		sessionId,
 		messageId,
@@ -350,6 +373,7 @@ export class AIDBSessionProtocol {
 		if (messageId) {
 			this.clearSeq(messageId);
 		}
+		this.activeGenerationIds.delete(sessionId);
 
 		const errors = this.drainProducerErrors(sessionId);
 		if (errors.length > 0) {
