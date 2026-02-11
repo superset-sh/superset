@@ -26,7 +26,7 @@ export function register(server: McpServer) {
 		async (_args, extra) => {
 			const ctx = getMcpContext(extra);
 
-			const statuses = await db
+			const allStatuses = await db
 				.select({
 					id: taskStatuses.id,
 					name: taskStatuses.name,
@@ -37,6 +37,14 @@ export function register(server: McpServer) {
 				.from(taskStatuses)
 				.where(eq(taskStatuses.organizationId, ctx.organizationId))
 				.orderBy(taskStatuses.position);
+
+			const seen = new Set<string>();
+			const statuses = allStatuses.filter((s) => {
+				const key = `${s.name}:${s.type}`;
+				if (seen.has(key)) return false;
+				seen.add(key);
+				return true;
+			});
 
 			return {
 				structuredContent: { statuses },

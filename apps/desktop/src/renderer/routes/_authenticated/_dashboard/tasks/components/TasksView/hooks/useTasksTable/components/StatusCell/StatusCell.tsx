@@ -13,7 +13,10 @@ import {
 	type StatusType,
 } from "../../../../components/shared/StatusIcon";
 import { StatusMenuItems } from "../../../../components/shared/StatusMenuItems";
-import { compareStatusesForDropdown } from "../../../../utils/sorting";
+import {
+	compareStatusesForDropdown,
+	deduplicateStatuses,
+} from "../../../../utils/sorting";
 import type { TaskWithStatus } from "../../useTasksTable";
 
 interface StatusCellProps {
@@ -33,7 +36,7 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const currentStatus = taskWithStatus.status;
 
 	const sortedStatuses = useMemo(() => {
-		return statuses.sort(compareStatusesForDropdown);
+		return deduplicateStatuses(statuses.sort(compareStatusesForDropdown));
 	}, [statuses]);
 
 	const handleSelectStatus = (newStatus: SelectTaskStatus) => {

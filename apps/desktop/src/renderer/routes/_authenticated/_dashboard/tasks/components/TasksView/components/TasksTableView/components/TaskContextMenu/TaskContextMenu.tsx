@@ -17,7 +17,10 @@ import {
 } from "react-icons/hi2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
-import { compareStatusesForDropdown } from "../../../../utils/sorting";
+import {
+	compareStatusesForDropdown,
+	deduplicateStatuses,
+} from "../../../../utils/sorting";
 import { AssigneeMenuItems } from "../../../shared/AssigneeMenuItems";
 import { ActiveIcon } from "../../../shared/icons/ActiveIcon";
 import { PriorityMenuIcon } from "../../../shared/icons/PriorityMenuIcon";
@@ -51,7 +54,9 @@ export function TaskContextMenu({
 
 	const sortedStatuses = useMemo(() => {
 		if (!allStatuses) return [];
-		return [...allStatuses].sort(compareStatusesForDropdown);
+		return deduplicateStatuses(
+			[...allStatuses].sort(compareStatusesForDropdown),
+		);
 	}, [allStatuses]);
 
 	const users = useMemo(() => allUsers || [], [allUsers]);
