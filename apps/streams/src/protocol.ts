@@ -13,6 +13,8 @@ import type {
 
 type MessageRole = "user" | "assistant" | "system";
 
+const FLUSH_TIMEOUT_MS = 10_000;
+
 export class AIDBSessionProtocol {
 	private readonly baseUrl: string;
 	private streams = new Map<string, DurableStream>();
@@ -89,7 +91,10 @@ export class AIDBSessionProtocol {
 			`session-${sessionId}`,
 			{
 				autoClaim: true,
-				lingerMs: 5,
+				// Desktop ChunkBatcher coalesces at 5ms; keep producer linger
+				// minimal to avoid double-buffering latency.
+				lingerMs: 1,
+				maxInFlight: 5,
 				onError: (err) => {
 					console.error(
 						`[protocol] Producer error for ${sessionId}:`,
@@ -313,9 +318,15 @@ export class AIDBSessionProtocol {
 
 	async flushSession(sessionId: string): Promise<void> {
 		const producer = this.producers.get(sessionId);
-		if (producer) {
-			await producer.flush();
-		}
+		if (!producer) return;
+
+		const timeout = new Promise<never>((_, reject) => {
+			setTimeout(
+				() => reject(new Error(`Flush timed out for session ${sessionId}`)),
+				FLUSH_TIMEOUT_MS,
+			);
+		});
+		await Promise.race([producer.flush(), timeout]);
 	}
 
 	async finishGeneration({
