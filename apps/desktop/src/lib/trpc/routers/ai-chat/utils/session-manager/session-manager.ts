@@ -399,14 +399,21 @@ export class ChatSessionManager extends EventEmitter {
 				}
 
 				try {
-					await fetch(
+					const finishRes = await fetch(
 						`${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
 						{
 							method: "POST",
 							headers,
-							body: JSON.stringify({}),
+							body: JSON.stringify({ messageId }),
 						},
 					);
+					if (!finishRes.ok) {
+						const body = await finishRes.json().catch(() => null);
+						console.error(
+							`[chat/session] POST /generations/finish failed for ${sessionId}: ${finishRes.status}`,
+							body,
+						);
+					}
 				} catch (err) {
 					console.error(
 						`[chat/session] POST /generations/finish failed for ${sessionId}:`,
