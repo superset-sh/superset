@@ -57,12 +57,15 @@ print_summary() {
 step_load_env() {
   echo "📂 Loading environment variables..."
 
+  local sourced_any=false
+
   # Source root .env first (contains NEON_PROJECT_ID), then local .env for overrides
   if [ -n "${SUPERSET_ROOT_PATH:-}" ] && [ -f "$SUPERSET_ROOT_PATH/.env" ]; then
     set -a
     # shellcheck source=/dev/null
     source "$SUPERSET_ROOT_PATH/.env"
     set +a
+    sourced_any=true
   fi
 
   if [ -f ".env" ]; then
@@ -70,9 +73,10 @@ step_load_env() {
     # shellcheck source=/dev/null
     source .env
     set +a
+    sourced_any=true
   fi
 
-  if [ -z "${SUPERSET_ROOT_PATH:-}" ] && [ ! -f ".env" ]; then
+  if [ "$sourced_any" = false ]; then
     error "No .env file found (set SUPERSET_ROOT_PATH or run from a workspace with .env)"
     return 1
   fi
@@ -110,6 +114,7 @@ step_stop_electric() {
 
   if ! command -v docker &> /dev/null; then
     warn "Docker not available, skipping"
+    step_skipped "electric (docker missing)"
     return 0
   fi
 
@@ -139,18 +144,21 @@ step_delete_neon_branch() {
 
   if ! command -v neonctl &> /dev/null; then
     warn "neonctl not available, skipping"
+    step_skipped "neon (neonctl missing)"
     return 0
   fi
 
   NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
   if [ -z "$NEON_PROJECT_ID" ]; then
     warn "NEON_PROJECT_ID not set, skipping branch deletion"
+    step_skipped "neon (NEON_PROJECT_ID not set)"
     return 0
   fi
 
   BRANCH_ID="${NEON_BRANCH_ID:-}"
   if [ -z "$BRANCH_ID" ]; then
     warn "No NEON_BRANCH_ID found, skipping branch deletion"
+    step_skipped "neon (NEON_BRANCH_ID not set)"
     return 0
   fi
 
