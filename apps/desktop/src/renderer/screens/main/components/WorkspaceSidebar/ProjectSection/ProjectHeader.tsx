@@ -43,6 +43,7 @@ interface ProjectHeaderProps {
 	githubOwner: string | null;
 	mainRepoPath: string;
 	hideImage: boolean;
+	iconUrl: string | null;
 	/** Whether the project section is collapsed (workspaces hidden) */
 	isCollapsed: boolean;
 	/** Whether the sidebar is in collapsed mode (icon-only view) */
@@ -59,6 +60,7 @@ export function ProjectHeader({
 	githubOwner,
 	mainRepoPath,
 	hideImage,
+	iconUrl,
 	isCollapsed,
 	isSidebarCollapsed = false,
 	onToggleCollapse,
@@ -205,6 +207,7 @@ export function ProjectHeader({
 										projectName={projectName}
 										projectColor={projectColor}
 										githubOwner={githubOwner}
+										iconUrl={iconUrl}
 									/>
 								</button>
 							</TooltipTrigger>
@@ -279,6 +282,7 @@ export function ProjectHeader({
 									projectColor={projectColor}
 									githubOwner={githubOwner}
 									hideImage={hideImage}
+									iconUrl={iconUrl}
 								/>
 								<RenameInput
 									value={rename.renameValue}
@@ -301,6 +305,7 @@ export function ProjectHeader({
 									projectColor={projectColor}
 									githubOwner={githubOwner}
 									hideImage={hideImage}
+									iconUrl={iconUrl}
 								/>
 								<span className="truncate">{projectName}</span>
 								<span className="text-xs text-muted-foreground tabular-nums font-normal">

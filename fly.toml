@@ -2,12 +2,12 @@ app = "superset-electric"
 primary_region = "iad"
 
 [build]
-image = "electricsql/electric:1.2.9"
+image = "electricsql/electric:latest"
 
 [[vm]]
-memory = "512mb"
+memory = "4096mb"
 cpu_kind = "shared"
-cpus = 1
+cpus = 2
 
 [env]
 ELECTRIC_DATABASE_USE_IPV6 = "true"

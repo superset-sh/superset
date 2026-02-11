@@ -11,8 +11,9 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HiOutlineCog6Tooth, HiOutlinePaintBrush } from "react-icons/hi2";
+import { LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	PROJECT_COLOR_DEFAULT,
@@ -83,6 +84,44 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 			utils.workspaces.getAllGrouped.invalidate();
 		},
 	});
+
+	const setProjectIcon = electronTrpc.projects.setProjectIcon.useMutation({
+		onError: (err) => {
+			console.error("[project-settings/setProjectIcon] Failed:", err);
+		},
+		onSettled: () => {
+			utils.projects.get.invalidate({ id: projectId });
+			utils.workspaces.getAllGrouped.invalidate();
+		},
+	});
+
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const handleIconUpload = useCallback(() => {
+		fileInputRef.current?.click();
+	}, []);
+
+	const handleFileChange = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			const file = e.target.files?.[0];
+			if (!file) return;
+
+			const reader = new FileReader();
+			reader.onload = () => {
+				const dataUrl = reader.result as string;
+				setProjectIcon.mutate({ id: projectId, icon: dataUrl });
+			};
+			reader.readAsDataURL(file);
+
+			// Reset input so the same file can be re-selected
+			e.target.value = "";
+		},
+		[projectId, setProjectIcon],
+	);
+
+	const handleRemoveIcon = useCallback(() => {
+		setProjectIcon.mutate({ id: projectId, icon: null });
+	}, [projectId, setProjectIcon]);
 
 	const handleBranchPrefixModeChange = (value: string) => {
 		if (value === "default") {
@@ -257,6 +296,58 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 									})
 								}
 							/>
+						</div>
+					</div>
+
+					{/* Project Icon */}
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Project Icon</Label>
+							<p className="text-xs text-muted-foreground">
+								Upload a custom icon for the sidebar.
+							</p>
+						</div>
+						<div className="flex items-center gap-2">
+							{project.iconUrl && (
+								<img
+									src={project.iconUrl}
+									alt="Project icon"
+									className="size-8 rounded object-cover border"
+								/>
+							)}
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept="image/png,image/jpeg,image/svg+xml,image/x-icon"
+								className="hidden"
+								onChange={handleFileChange}
+							/>
+							<button
+								type="button"
+								onClick={handleIconUpload}
+								disabled={setProjectIcon.isPending}
+								className={cn(
+									"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+									"hover:bg-muted transition-colors",
+								)}
+							>
+								<LuImagePlus className="size-4" />
+								{project.iconUrl ? "Replace" : "Upload"}
+							</button>
+							{project.iconUrl && (
+								<button
+									type="button"
+									onClick={handleRemoveIcon}
+									disabled={setProjectIcon.isPending}
+									className={cn(
+										"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+										"hover:bg-destructive/10 text-destructive transition-colors",
+									)}
+								>
+									<LuTrash2 className="size-4" />
+									Remove
+								</button>
+							)}
 						</div>
 					</div>
 				</SettingsSection>

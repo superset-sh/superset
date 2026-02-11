@@ -1,10 +1,7 @@
 import { auth } from "@superset/auth/server";
-import { db } from "@superset/db/client";
-import { members } from "@superset/db/schema";
 import { registerTools } from "@superset/mcp";
 import type { McpContext } from "@superset/mcp/auth";
 import { verifyAccessToken } from "better-auth/oauth2";
-import { desc, eq } from "drizzle-orm";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { env } from "@/env";
 
@@ -40,24 +37,29 @@ async function verifyToken(req: Request, bearerToken?: string) {
 			});
 			if (result.valid && result.key) {
 				const userId = result.key.userId;
-				const membership = await db.query.members.findFirst({
-					where: eq(members.userId, userId),
-					orderBy: desc(members.createdAt),
-				});
-				if (!membership?.organizationId) {
+				if (!userId) {
+					console.error("[mcp/auth] API key missing userId");
+					return undefined;
+				}
+				const metadata =
+					typeof result.key.metadata === "string"
+						? JSON.parse(result.key.metadata)
+						: result.key.metadata;
+				const organizationId = metadata?.organizationId as string | undefined;
+				if (!organizationId) {
 					console.error(
-						"[mcp/auth] API key user has no organization membership",
+						"[mcp/auth] API key missing organizationId in metadata",
 					);
 					return undefined;
 				}
 				return {
-					token: bearerToken,
+					token: "api-key",
 					clientId: "api-key",
 					scopes: ["mcp:full"],
 					extra: {
 						mcpContext: {
 							userId,
-							organizationId: membership.organizationId,
+							organizationId,
 						} satisfies McpContext,
 					},
 				};

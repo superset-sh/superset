@@ -47,6 +47,7 @@ export function WorkspaceSidebar({
 						githubOwner={group.project.githubOwner}
 						mainRepoPath={group.project.mainRepoPath}
 						hideImage={group.project.hideImage}
+						iconUrl={group.project.iconUrl}
 						workspaces={group.workspaces}
 						shortcutBaseIndex={projectShortcutIndices[index]}
 						index={index}

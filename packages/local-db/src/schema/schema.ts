@@ -39,6 +39,7 @@ export const projects = sqliteTable(
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
 		hideImage: integer("hide_image", { mode: "boolean" }),
+		iconUrl: text("icon_url"),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),

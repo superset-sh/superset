@@ -1,3 +1,4 @@
+import { StreamError } from "@superset/durable-session";
 import { useDurableChat } from "@superset/durable-session/react";
 import {
 	Conversation,
@@ -42,6 +43,8 @@ interface ChatInterfaceProps {
 	paneId: string;
 	tabId: string;
 }
+
+const SEND_PENDING_TIMEOUT_MS = 20_000;
 
 export function ChatInterface({
 	sessionId,
@@ -92,6 +95,15 @@ export function ChatInterface({
 	const connectRef = useRef(connect);
 	connectRef.current = connect;
 	const hasConnected = useRef(false);
+	const sendPendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+
+	const clearSendPendingTimer = useCallback(() => {
+		if (!sendPendingTimerRef.current) return;
+		clearTimeout(sendPendingTimerRef.current);
+		sendPendingTimerRef.current = null;
+	}, []);
 
 	const doConnect = useCallback(() => {
 		if (hasConnected.current) return;
@@ -198,27 +210,44 @@ export function ChatInterface({
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
-			if (!message.text.trim()) return;
+			const text = message.text.trim();
+			if (!text) return;
+
 			setIsSending(true);
-			sendMessage(message.text)
+			clearSendPendingTimer();
+			sendPendingTimerRef.current = setTimeout(() => {
+				console.warn(
+					`[chat] no assistant stream started within ${SEND_PENDING_TIMEOUT_MS}ms; clearing pending state`,
+				);
+				setIsSending(false);
+			}, SEND_PENDING_TIMEOUT_MS);
+
+			sendMessage(text)
 				.then(() => {
-					// Trigger the local agent to process the message
-					triggerAgent.mutate({ sessionId, text: message.text });
+					triggerAgent.mutate({ sessionId, text });
 				})
 				.catch((err) => {
+					clearSendPendingTimer();
 					console.error("[chat] Send failed:", err);
 					setIsSending(false);
 				});
 		},
-		[sendMessage, triggerAgent, sessionId],
+		[clearSendPendingTimer, sendMessage, triggerAgent, sessionId],
 	);
 
 	// Clear isSending once the server starts streaming (isLoading takes over)
 	useEffect(() => {
 		if (isLoading) {
+			clearSendPendingTimer();
 			setIsSending(false);
 		}
-	}, [isLoading]);
+	}, [clearSendPendingTimer, isLoading]);
+
+	useEffect(() => {
+		return () => {
+			clearSendPendingTimer();
+		};
+	}, [clearSendPendingTimer]);
 
 	const handleApprove = useCallback(
 		(approvalId: string) => {
@@ -320,10 +349,15 @@ export function ChatInterface({
 							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
 						/>
 					) : (
-						allMessages.map((msg) => (
+						allMessages.map((msg, index) => (
 							<ChatMessageItem
 								key={msg.id}
 								message={msg}
+								isStreaming={
+									isLoading &&
+									msg.role === "assistant" &&
+									index === allMessages.length - 1
+								}
 								onApprove={handleApprove}
 								onDeny={handleDeny}
 								onAnswer={handleAnswer}
@@ -343,11 +377,16 @@ export function ChatInterface({
 
 			<div className="border-t bg-background px-4 py-3">
 				<div className="mx-auto w-full max-w-3xl">
-					{error && (
-						<div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive mb-3">
-							{error.message}
-						</div>
-					)}
+					{error &&
+						(() => {
+							const { message, code } = StreamError.friendly(error);
+							return (
+								<div className="select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive mb-3">
+									{message}
+									{code && <span className="ml-1 opacity-50">({code})</span>}
+								</div>
+							);
+						})()}
 					<PromptInputProvider>
 						<FileMentionProvider cwd={cwd}>
 							<SlashCommandInput

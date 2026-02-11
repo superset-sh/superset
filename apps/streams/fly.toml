@@ -1,13 +1,14 @@
-# fly.toml for Superset Stream Server
 app = "superset-stream"
 primary_region = "iad"
 
 [build]
-  # Deploy from repo root so Docker build context includes workspaces.
-  dockerfile = "apps/streams/Dockerfile"
+  # Relative to this fly.toml; build context set to repo root via `flyctl deploy .`
+  dockerfile = "Dockerfile"
 
 [env]
   STREAMS_PORT = "8080"
+  STREAMS_INTERNAL_PORT = "8081"
+  STREAMS_INTERNAL_URL = "http://127.0.0.1:8081"
   NODE_ENV = "production"
   STREAMS_DATA_DIR = "/data"
 

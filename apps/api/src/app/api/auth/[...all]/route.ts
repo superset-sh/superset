@@ -31,7 +31,8 @@ const GET = async (req: Request) => {
 const POST = async (req: Request) => {
 	const url = new URL(req.url);
 	if (url.pathname.endsWith("/oauth2/register")) {
-		const body = await req.json().catch(() => null);
+		const cloned = req.clone();
+		const body = await cloned.json().catch(() => null);
 		if (body?.redirect_uris && Array.isArray(body.redirect_uris)) {
 			body.redirect_uris = body.redirect_uris.map(normalizeLocalhostUri);
 			return _POST(
@@ -41,6 +42,42 @@ const POST = async (req: Request) => {
 					body: JSON.stringify(body),
 				}),
 			);
+		}
+	}
+	if (url.pathname.endsWith("/oauth2/token")) {
+		const cloned = req.clone();
+		const contentType = req.headers.get("content-type") ?? "";
+		if (contentType.includes("application/json")) {
+			const body = await cloned.json().catch(() => null);
+			if (body?.redirect_uri && typeof body.redirect_uri === "string") {
+				const normalized = normalizeLocalhostUri(body.redirect_uri);
+				if (normalized !== body.redirect_uri) {
+					body.redirect_uri = normalized;
+					return _POST(
+						new Request(req.url, {
+							method: req.method,
+							headers: req.headers,
+							body: JSON.stringify(body),
+						}),
+					);
+				}
+			}
+		} else {
+			const params = new URLSearchParams(await cloned.text());
+			const redirectUri = params.get("redirect_uri");
+			if (redirectUri) {
+				const normalized = normalizeLocalhostUri(redirectUri);
+				if (normalized !== redirectUri) {
+					params.set("redirect_uri", normalized);
+					return _POST(
+						new Request(req.url, {
+							method: req.method,
+							headers: req.headers,
+							body: params.toString(),
+						}),
+					);
+				}
+			}
 		}
 	}
 	return _POST(req);

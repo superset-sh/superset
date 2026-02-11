@@ -24,6 +24,7 @@ import {
 	createToolResultsCollection,
 	updateConnectionStatus,
 } from "./collections";
+import { StreamError } from "./errors";
 import { extractTextContent, messageRowToUIMessage } from "./materialize";
 import type {
 	ActorType,
@@ -39,6 +40,8 @@ import type {
 	SessionMetaRow,
 	ToolResultInput,
 } from "./types";
+
+const AWAIT_TXID_TIMEOUT_MS = 12_000;
 
 /**
  * Unified input for all message optimistic actions.
@@ -131,7 +134,10 @@ export class DurableChatClient<
 	// ═══════════════════════════════════════════════════════════════════════
 
 	constructor(options: DurableChatClientOptions<TTools>) {
-		this.options = options;
+		this.options = {
+			...options,
+			proxyUrl: options.proxyUrl.replace(/\/+$/, ""),
+		};
 		this.sessionId = options.sessionId;
 		this.actorId = options.actorId ?? crypto.randomUUID();
 		this.actorType = options.actorType ?? "user";
@@ -335,8 +341,36 @@ export class DurableChatClient<
 		});
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(`Request failed: ${response.status} ${errorText}`);
+			throw StreamError.fromResponse(response);
+		}
+	}
+
+	private async awaitTxIdWithTimeout({
+		txid,
+		operation,
+		timeoutMs = AWAIT_TXID_TIMEOUT_MS,
+	}: {
+		txid: string;
+		operation: string;
+		timeoutMs?: number;
+	}): Promise<void> {
+		let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+		const timeoutPromise = new Promise<never>((_, reject) => {
+			timeoutHandle = setTimeout(() => {
+				reject(
+					new Error(
+						`[durable-session/${operation}] Timed out waiting for txid sync after ${timeoutMs}ms`,
+					),
+				);
+			}, timeoutMs);
+		});
+
+		try {
+			await Promise.race([this._db.utils.awaitTxId(txid), timeoutPromise]);
+		} finally {
+			if (timeoutHandle) {
+				clearTimeout(timeoutHandle);
+			}
 		}
 	}
 
@@ -375,23 +409,20 @@ export class DurableChatClient<
 					...(agent && { agent }),
 				});
 
-				// Wait for txid to appear in synced stream
-				await this._db.utils.awaitTxId(txid);
+				await this.awaitTxIdWithTimeout({
+					txid,
+					operation: "send-message",
+				});
 			},
 		});
 	}
 
-	stop(): void {
-		fetch(`${this.options.proxyUrl}/v1/sessions/${this.sessionId}/stop`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ messageId: null }), // null = stop all
-		}).catch((err) => {
-			console.warn("Failed to stop generation:", err);
+	async stop(): Promise<void> {
+		await this.postToProxy(`/v1/sessions/${this.sessionId}/stop`, {
+			messageId: null,
 		});
 	}
 
-	/** Local-only clear — does not affect the durable stream. */
 	clear(): void {
 		this.options.onMessagesChange?.([]);
 	}
@@ -447,8 +478,10 @@ export class DurableChatClient<
 					{ actorIdHeader: true },
 				);
 
-				// Wait for txid to appear in synced stream
-				await this._db.utils.awaitTxId(txid);
+				await this.awaitTxIdWithTimeout({
+					txid,
+					operation: "add-tool-result",
+				});
 			},
 		});
 	}
@@ -508,8 +541,10 @@ export class DurableChatClient<
 					{ actorIdHeader: true },
 				);
 
-				// Wait for txid to appear in synced stream
-				await this._db.utils.awaitTxId(txid);
+				await this.awaitTxIdWithTimeout({
+					txid,
+					operation: "approval-response",
+				});
 			},
 		});
 	}
@@ -589,10 +624,7 @@ export class DurableChatClient<
 		);
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(
-				`Failed to fork session: ${response.status} ${errorText}`,
-			);
+			throw StreamError.fromResponse(response);
 		}
 
 		return (await response.json()) as ForkResult;
@@ -614,10 +646,7 @@ export class DurableChatClient<
 		);
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(
-				`Failed to register agents: ${response.status} ${errorText}`,
-			);
+			throw StreamError.fromResponse(response);
 		}
 	}
 
@@ -635,10 +664,7 @@ export class DurableChatClient<
 		);
 
 		if (!response.ok) {
-			const errorText = await response.text();
-			throw new Error(
-				`Failed to unregister agent: ${response.status} ${errorText}`,
-			);
+			throw StreamError.fromResponse(response);
 		}
 	}
 
@@ -660,7 +686,6 @@ export class DurableChatClient<
 				updateConnectionStatus(meta, "connecting"),
 			);
 
-			// Skip server call in test mode (injected sessionDB)
 			if (!this.options.sessionDB) {
 				const response = await fetch(
 					`${this.options.proxyUrl}/v1/sessions/${this.sessionId}`,
@@ -671,12 +696,8 @@ export class DurableChatClient<
 					},
 				);
 
-				if (
-					!response.ok &&
-					response.status !== 200 &&
-					response.status !== 201
-				) {
-					throw new Error(`Failed to create session: ${response.status}`);
+				if (!response.ok) {
+					throw StreamError.fromResponse(response);
 				}
 			}
 

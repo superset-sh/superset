@@ -70,10 +70,6 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_POSTHOG_HOST": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
-			"process.env.STREAMS_URL": defineEnv(
-				process.env.STREAMS_URL,
-				"https://superset-stream.fly.dev",
-			),
 		},
 
 		build: {

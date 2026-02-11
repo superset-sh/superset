@@ -4,7 +4,13 @@ on:
   schedule:
     # Every 12 hours at 12 AM and 12 PM UTC
     - cron: "0 0,12 * * *"
-  workflow_dispatch: # Manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "Force build even if no changes detected"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -40,18 +46,25 @@ jobs:
           VERSION_TIMESTAMP=$(date -u +'%Y%m%d%H%M%S')
           echo "version_timestamp=$VERSION_TIMESTAMP" >> $GITHUB_OUTPUT
 
-          # Get the commit SHA of the last canary release
-          LAST_CANARY_SHA=$(git rev-parse desktop-canary 2>/dev/null || echo "")
+          FORCE_BUILD="${{ github.event.inputs.force_build }}"
 
-          if [ -z "$LAST_CANARY_SHA" ]; then
-            echo "No previous canary release found, building..."
+          if [ "$FORCE_BUILD" = "true" ]; then
+            echo "Force build requested, skipping change detection..."
             echo "should_build=true" >> $GITHUB_OUTPUT
-          elif [ "$LAST_CANARY_SHA" = "$(git rev-parse HEAD)" ]; then
-            echo "No changes since last canary release, skipping..."
-            echo "should_build=false" >> $GITHUB_OUTPUT
           else
-            echo "Changes detected since last canary, building..."
-            echo "should_build=true" >> $GITHUB_OUTPUT
+            # Get the commit SHA of the last canary release
+            LAST_CANARY_SHA=$(git rev-parse desktop-canary 2>/dev/null || echo "")
+
+            if [ -z "$LAST_CANARY_SHA" ]; then
+              echo "No previous canary release found, building..."
+              echo "should_build=true" >> $GITHUB_OUTPUT
+            elif [ "$LAST_CANARY_SHA" = "$(git rev-parse HEAD)" ]; then
+              echo "No changes since last canary release, skipping..."
+              echo "should_build=false" >> $GITHUB_OUTPUT
+            else
+              echo "Changes detected since last canary, building..."
+              echo "should_build=true" >> $GITHUB_OUTPUT
+            fi
           fi
 
   build:

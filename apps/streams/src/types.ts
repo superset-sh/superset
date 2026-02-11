@@ -99,6 +99,20 @@ export interface ForkSessionResponse {
 	offset: string;
 }
 
+/**
+ * Terminal semantics:
+ *
+ * - `message-end` chunk: UI signal — client flips isLoading → false
+ *   and renders the message as complete. Sent by desktop after agent
+ *   execution finishes (or errors).
+ *
+ * - `/generations/finish`: server lifecycle signal — flushes the
+ *   producer, clears seq state, drains producer errors, and removes
+ *   the active generation. Always called after the `message-end` chunk.
+ *
+ * Both are required. `message-end` is the user-visible terminal event;
+ * `finish` is the durable-state cleanup boundary.
+ */
 export interface StreamChunk {
 	type: string;
 	[key: string]: unknown;

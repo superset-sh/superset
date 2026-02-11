@@ -109,7 +109,7 @@ export function createServer(options: AIDBProxyServerOptions) {
 				toolResults: "/v1/sessions/:sessionId/tool-results",
 				approvals: "/v1/sessions/:sessionId/approvals/:approvalId",
 				chunks: "/v1/sessions/:sessionId/chunks",
-				generationsStart: "/v1/sessions/:sessionId/generations/start",
+				chunksBatch: "/v1/sessions/:sessionId/chunks/batch",
 				generationsFinish: "/v1/sessions/:sessionId/generations/finish",
 				fork: "/v1/sessions/:sessionId/fork",
 				stop: "/v1/sessions/:sessionId/stop",

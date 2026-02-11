@@ -1,4 +1,4 @@
-import { DurableStream } from "@durable-streams/client";
+import { DurableStream, IdempotentProducer } from "@durable-streams/client";
 import {
 	createMessagesCollection,
 	createModelMessagesCollection,
@@ -13,19 +13,62 @@ import type {
 
 type MessageRole = "user" | "assistant" | "system";
 
+const FLUSH_TIMEOUT_MS = 10_000;
+
 export class AIDBSessionProtocol {
 	private readonly baseUrl: string;
 	private streams = new Map<string, DurableStream>();
+	private producers = new Map<string, IdempotentProducer>();
 	private messageSeqs = new Map<string, number>();
 	private sessionStates = new Map<string, ProxySessionState>();
+	private producerErrors = new Map<string, Error[]>();
+	private producerHealthy = new Map<string, boolean>();
+	private activeGenerationIds = new Map<string, string>();
+	private sessionLocks = new Map<string, Promise<void>>();
 
 	constructor(options: AIDBProtocolOptions) {
 		this.baseUrl = options.baseUrl;
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Session Management
-	// ═══════════════════════════════════════════════════════════════════════
+	private async withSessionLock<T>(
+		sessionId: string,
+		fn: () => Promise<T>,
+	): Promise<T> {
+		const prev = this.sessionLocks.get(sessionId) ?? Promise.resolve();
+		let release: (() => void) | undefined;
+		const current = new Promise<void>((r) => {
+			release = r;
+		});
+		this.sessionLocks.set(sessionId, current);
+
+		await prev;
+		try {
+			return await fn();
+		} finally {
+			if (this.sessionLocks.get(sessionId) === current) {
+				this.sessionLocks.delete(sessionId);
+			}
+			if (release) {
+				release();
+			}
+		}
+	}
+
+	private recordProducerError(sessionId: string, err: unknown): void {
+		const errors = this.producerErrors.get(sessionId);
+		if (errors) {
+			errors.push(err instanceof Error ? err : new Error(String(err)));
+		}
+		this.producerHealthy.set(sessionId, false);
+	}
+
+	private drainProducerErrors(sessionId: string): Error[] {
+		const errors = this.producerErrors.get(sessionId);
+		if (!errors || errors.length === 0) return [];
+		const drained = [...errors];
+		errors.length = 0;
+		return drained;
+	}
 
 	async createSession(sessionId: string): Promise<DurableStream> {
 		const stream = new DurableStream({
@@ -34,6 +77,21 @@ export class AIDBSessionProtocol {
 
 		await stream.create({ contentType: "application/json" });
 		this.streams.set(sessionId, stream);
+		this.producerErrors.set(sessionId, []);
+		this.producerHealthy.set(sessionId, true);
+
+		const producer = new IdempotentProducer(stream, `session-${sessionId}`, {
+			autoClaim: true,
+			lingerMs: 1, // Desktop ChunkBatcher already coalesces at 5ms
+
+			maxInFlight: 5,
+			onError: (err) => {
+				console.error(`[protocol] Producer error for ${sessionId}:`, err);
+				this.recordProducerError(sessionId, err);
+			},
+		});
+		this.producers.set(sessionId, producer);
+
 		await this.initializeSessionState(sessionId);
 
 		return stream;
@@ -51,34 +109,78 @@ export class AIDBSessionProtocol {
 		return this.streams.get(sessionId);
 	}
 
-	deleteSession(sessionId: string): void {
-		const state = this.sessionStates.get(sessionId);
-		if (state) {
-			state.changeSubscription?.unsubscribe();
-			state.sessionDB.close();
-		}
+	async deleteSession(sessionId: string): Promise<void> {
+		return this.withSessionLock(sessionId, async () => {
+			const producer = this.producers.get(sessionId);
+			if (producer) {
+				try {
+					await producer.flush();
+				} catch (err) {
+					console.error(
+						`[protocol] Failed to flush producer for ${sessionId}:`,
+						err,
+					);
+				}
+				try {
+					await producer.detach();
+				} catch (err) {
+					console.error(
+						`[protocol] Failed to detach producer for ${sessionId}:`,
+						err,
+					);
+				}
+				this.producers.delete(sessionId);
+			}
 
-		this.streams.delete(sessionId);
-		this.sessionStates.delete(sessionId);
+			const state = this.sessionStates.get(sessionId);
+			if (state) {
+				state.changeSubscription?.unsubscribe();
+				state.sessionDB.close();
+			}
+
+			this.streams.delete(sessionId);
+			this.sessionStates.delete(sessionId);
+			this.producerErrors.delete(sessionId);
+			this.producerHealthy.delete(sessionId);
+			this.activeGenerationIds.delete(sessionId);
+		});
 	}
 
 	async resetSession(sessionId: string, _clearPresence = false): Promise<void> {
-		const stream = this.streams.get(sessionId);
-		if (!stream) {
-			throw new Error(`Session ${sessionId} not found`);
-		}
+		return this.withSessionLock(sessionId, async () => {
+			const stream = this.streams.get(sessionId);
+			if (!stream) {
+				throw new Error(`Session ${sessionId} not found`);
+			}
 
-		await stream.append(
-			JSON.stringify({ headers: { control: "reset" as const } }),
-		);
+			// Flush before reset so queued chunks are ordered before the control event
+			await this.flushSession(sessionId);
 
-		this.messageSeqs.clear();
-		const state = this.sessionStates.get(sessionId);
-		if (state) {
-			state.activeGenerations = [];
-		}
+			await stream.append(
+				JSON.stringify({ headers: { control: "reset" as const } }),
+			);
 
-		this.updateLastActivity(sessionId);
+			const state = this.sessionStates.get(sessionId);
+			const generationMessageIds = new Set<string>(
+				state?.activeGenerations ?? [],
+			);
+			const activeMessageId = this.activeGenerationIds.get(sessionId);
+			if (activeMessageId) {
+				generationMessageIds.add(activeMessageId);
+			}
+			for (const generationMessageId of generationMessageIds) {
+				this.messageSeqs.delete(generationMessageId);
+			}
+
+			this.producerErrors.set(sessionId, []);
+			this.producerHealthy.set(sessionId, true);
+			this.activeGenerationIds.delete(sessionId);
+			if (state) {
+				state.activeGenerations = [];
+			}
+
+			this.updateLastActivity(sessionId);
+		});
 	}
 
 	private updateLastActivity(sessionId: string): void {
@@ -116,10 +218,6 @@ export class AIDBSessionProtocol {
 		});
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Chunk Writing (STATE-PROTOCOL)
-	// ═══════════════════════════════════════════════════════════════════════
-
 	private getNextSeq(messageId: string): number {
 		const current = this.messageSeqs.get(messageId) ?? -1;
 		const next = current + 1;
@@ -132,7 +230,7 @@ export class AIDBSessionProtocol {
 	}
 
 	async writeChunk(
-		stream: DurableStream,
+		_stream: DurableStream,
 		sessionId: string,
 		messageId: string,
 		actorId: string,
@@ -155,10 +253,133 @@ export class AIDBSessionProtocol {
 			...(txid && { headers: { txid } }),
 		});
 
-		const result = await stream.append(JSON.stringify(event));
+		await this.appendToStream(sessionId, JSON.stringify(event));
 		this.updateLastActivity(sessionId);
+	}
 
-		return result;
+	async writeChunks({
+		sessionId,
+		chunks,
+	}: {
+		sessionId: string;
+		chunks: Array<{
+			messageId: string;
+			actorId: string;
+			role: MessageRole;
+			chunk: StreamChunk;
+			txid?: string;
+		}>;
+	}): Promise<void> {
+		for (const c of chunks) {
+			const seq = this.getNextSeq(c.messageId);
+			const event = sessionStateSchema.chunks.insert({
+				key: `${c.messageId}:${seq}`,
+				value: {
+					messageId: c.messageId,
+					actorId: c.actorId,
+					role: c.role,
+					chunk: JSON.stringify(c.chunk),
+					seq,
+					createdAt: new Date().toISOString(),
+				},
+				...(c.txid && { headers: { txid: c.txid } }),
+			});
+			await this.appendToStream(sessionId, JSON.stringify(event));
+		}
+		this.updateLastActivity(sessionId);
+	}
+
+	private async appendToStream(
+		sessionId: string,
+		data: string,
+		{ flush = false }: { flush?: boolean } = {},
+	): Promise<void> {
+		const producer = this.producers.get(sessionId);
+		const healthy = this.producerHealthy.get(sessionId) !== false;
+
+		if (producer && healthy) {
+			producer.append(data);
+			if (flush) {
+				await producer.flush();
+			}
+			return;
+		}
+
+		const stream = this.streams.get(sessionId);
+		if (!stream) {
+			throw new Error(`Session ${sessionId} not found`);
+		}
+		await stream.append(data);
+	}
+
+	async flushSession(sessionId: string): Promise<void> {
+		const producer = this.producers.get(sessionId);
+		if (!producer) return;
+
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const timeout = new Promise<never>((_, reject) => {
+			timer = setTimeout(
+				() => reject(new Error(`Flush timed out for session ${sessionId}`)),
+				FLUSH_TIMEOUT_MS,
+			);
+		});
+		try {
+			await Promise.race([producer.flush(), timeout]);
+		} finally {
+			clearTimeout(timer);
+		}
+		this.producerHealthy.set(sessionId, true);
+	}
+
+	startGeneration({
+		sessionId,
+		messageId,
+	}: {
+		sessionId: string;
+		messageId: string;
+	}): void {
+		const existing = this.activeGenerationIds.get(sessionId);
+		if (existing) {
+			console.warn(
+				`[protocol] Overwriting active generation ${existing} with ${messageId} for ${sessionId}`,
+			);
+		}
+		this.activeGenerationIds.set(sessionId, messageId);
+	}
+
+	getActiveGeneration(sessionId: string): string | undefined {
+		return this.activeGenerationIds.get(sessionId);
+	}
+
+	async finishGeneration({
+		sessionId,
+		messageId,
+	}: {
+		sessionId: string;
+		messageId?: string;
+	}): Promise<void> {
+		await this.flushSession(sessionId);
+
+		if (messageId) {
+			this.clearSeq(messageId);
+		}
+		const activeMessageId = this.activeGenerationIds.get(sessionId);
+		if (!activeMessageId) {
+			// no-op
+		} else if (!messageId || messageId === activeMessageId) {
+			this.activeGenerationIds.delete(sessionId);
+		} else {
+			console.warn(
+				`[protocol] Ignoring stale finish for ${sessionId}: got ${messageId}, active is ${activeMessageId}`,
+			);
+		}
+
+		const errors = this.drainProducerErrors(sessionId);
+		if (errors.length > 0) {
+			throw new Error(
+				`Producer encountered ${errors.length} background error(s) during generation: ${errors.map((e) => e.message).join("; ")}`,
+			);
+		}
 	}
 
 	async writeUserMessage(
@@ -192,14 +413,15 @@ export class AIDBSessionProtocol {
 			...(txid && { headers: { txid } }),
 		});
 
-		const result = await stream.append(JSON.stringify(event));
+		// Flush producer for ordering, then write directly to stream
+		// so the txid header is immediately visible to subscribers.
+		await this.flushSession(sessionId);
+		await stream.append(JSON.stringify(event));
 		this.updateLastActivity(sessionId);
-
-		return result;
 	}
 
 	async writePresence(
-		stream: DurableStream,
+		_stream: DurableStream,
 		sessionId: string,
 		actorId: string,
 		deviceId: string,
@@ -219,7 +441,9 @@ export class AIDBSessionProtocol {
 			},
 		});
 
-		await stream.append(JSON.stringify(event));
+		await this.appendToStream(sessionId, JSON.stringify(event), {
+			flush: true,
+		});
 		this.updateLastActivity(sessionId);
 	}
 
@@ -250,10 +474,6 @@ export class AIDBSessionProtocol {
 		// still exists so clients don't get 404.
 	}
 
-	// ═══════════════════════════════════════════════════════════════════════
-	// Tool Results & Approvals
-	// ═══════════════════════════════════════════════════════════════════════
-
 	async writeToolResult(
 		stream: DurableStream,
 		sessionId: string,
@@ -264,7 +484,7 @@ export class AIDBSessionProtocol {
 		error: string | null,
 		txid?: string,
 	): Promise<void> {
-		const result = await this.writeChunk(
+		await this.writeChunk(
 			stream,
 			sessionId,
 			messageId,
@@ -279,8 +499,8 @@ export class AIDBSessionProtocol {
 			txid,
 		);
 
+		await this.flushSession(sessionId);
 		this.clearSeq(messageId);
-		return result;
 	}
 
 	async writeApprovalResponse(
@@ -293,7 +513,7 @@ export class AIDBSessionProtocol {
 	): Promise<void> {
 		const messageId = crypto.randomUUID();
 
-		const result = await this.writeChunk(
+		await this.writeChunk(
 			stream,
 			sessionId,
 			messageId,
@@ -307,13 +527,9 @@ export class AIDBSessionProtocol {
 			txid,
 		);
 
+		await this.flushSession(sessionId);
 		this.clearSeq(messageId);
-		return result;
 	}
-
-	// ═══════════════════════════════════════════════════════════════════════
-	// Session Forking
-	// ═══════════════════════════════════════════════════════════════════════
 
 	async forkSession(
 		sessionId: string,
@@ -345,10 +561,6 @@ export class AIDBSessionProtocol {
 			offset: "-1",
 		};
 	}
-
-	// ═══════════════════════════════════════════════════════════════════════
-	// Message History
-	// ═══════════════════════════════════════════════════════════════════════
 
 	async getMessageHistory(
 		sessionId: string,

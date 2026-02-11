@@ -9,6 +9,7 @@ interface ProjectThumbnailProps {
 	projectColor: string;
 	githubOwner: string | null;
 	hideImage?: boolean;
+	iconUrl?: string | null;
 	className?: string;
 }
 
@@ -39,9 +40,11 @@ export function ProjectThumbnail({
 	projectColor,
 	githubOwner,
 	hideImage,
+	iconUrl,
 	className,
 }: ProjectThumbnailProps) {
 	const [imageError, setImageError] = useState(false);
+	const [iconError, setIconError] = useState(false);
 
 	const { data: avatarData } = electronTrpc.projects.getGitHubAvatar.useQuery(
 		{ id: projectId },
@@ -64,7 +67,28 @@ export function ProjectThumbnail({
 		? { borderColor: hexToRgba(projectColor, 0.6) }
 		: undefined;
 
-	// Show GitHub avatar if available and not hidden
+	// Priority 1: Show project icon if available (works for both superset-icon:// and https://)
+	if (iconUrl && !iconError) {
+		return (
+			<div
+				className={cn(
+					"relative size-6 rounded overflow-hidden flex-shrink-0 bg-muted",
+					borderClasses,
+					className,
+				)}
+				style={borderStyle}
+			>
+				<img
+					src={iconUrl}
+					alt={`${projectName} icon`}
+					className="size-full object-cover"
+					onError={() => setIconError(true)}
+				/>
+			</div>
+		);
+	}
+
+	// Priority 2: Show GitHub avatar if available and not hidden
 	if (owner && !imageError && !hideImage) {
 		return (
 			<div

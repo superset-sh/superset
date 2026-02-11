@@ -17,6 +17,12 @@ interface CommandEntry {
 	argumentHint: string;
 }
 
+const permissionModeSchema = z.enum([
+	"default",
+	"acceptEdits",
+	"bypassPermissions",
+]);
+
 function scanCustomCommands(cwd: string): CommandEntry[] {
 	const dirs = [
 		join(cwd, ".claude", "commands"),
@@ -59,7 +65,7 @@ export const createAiChatRouter = () => {
 		getConfig: publicProcedure.query(async () => {
 			const { token } = await loadToken();
 			return {
-				proxyUrl: env.STREAMS_URL,
+				proxyUrl: `${env.NEXT_PUBLIC_API_URL}/api/streams`,
 				authToken: token,
 			};
 		}),
@@ -79,7 +85,7 @@ export const createAiChatRouter = () => {
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
 					model: z.string().optional(),
-					permissionMode: z.string().optional(),
+					permissionMode: permissionModeSchema.optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -103,7 +109,7 @@ export const createAiChatRouter = () => {
 					paneId: z.string().optional(),
 					tabId: z.string().optional(),
 					model: z.string().optional(),
-					permissionMode: z.string().optional(),
+					permissionMode: permissionModeSchema.optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -151,10 +157,7 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					maxThinkingTokens: z.number().nullable().optional(),
 					model: z.string().nullable().optional(),
-					permissionMode: z
-						.enum(["default", "acceptEdits", "bypassPermissions"])
-						.nullable()
-						.optional(),
+					permissionMode: permissionModeSchema.nullable().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -175,8 +178,9 @@ export const createAiChatRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await chatSessionManager.updateSessionMeta(input.sessionId, {
-					title: input.title,
+				await chatSessionManager.updateSessionMeta({
+					sessionId: input.sessionId,
+					patch: { title: input.title },
 				});
 				return { success: true };
 			}),
@@ -229,10 +233,17 @@ export const createAiChatRouter = () => {
 			.input(z.object({ sessionId: z.string(), text: z.string() }))
 			.mutation(({ input }) => {
 				// Fire-and-forget: agent runs in background, errors surface via streamEvents
-				chatSessionManager.startAgent({
-					sessionId: input.sessionId,
-					prompt: input.text,
-				});
+				void chatSessionManager
+					.startAgent({
+						sessionId: input.sessionId,
+						prompt: input.text,
+					})
+					.catch((error: unknown) => {
+						console.error(
+							"[ai-chat/sendMessage] Failed to start agent:",
+							error,
+						);
+					});
 				return { success: true };
 			}),
 

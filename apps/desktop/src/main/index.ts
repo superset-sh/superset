@@ -1,6 +1,7 @@
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
-import { app, BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, dialog, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	handleAuthCallback,
@@ -11,6 +12,7 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
+import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import { reconcileDaemonSessions } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
@@ -210,6 +212,19 @@ if (process.env.NODE_ENV === "development") {
 	parentCheckInterval.unref();
 }
 
+// Register superset-icon:// protocol for serving project icons from disk
+protocol.registerSchemesAsPrivileged([
+	{
+		scheme: "superset-icon",
+		privileges: {
+			standard: true,
+			secure: true,
+			bypassCSP: true,
+			supportFetchAPI: true,
+		},
+	},
+]);
+
 // Single instance lock - required for second-instance event on Windows/Linux
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -228,6 +243,25 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
+
+		// Register protocol handler for superset-icon:// URLs
+		// Must register on BOTH default session and the app's custom partition
+		const iconProtocolHandler = (request: Request) => {
+			const url = new URL(request.url);
+			// superset-icon://projects/{projectId} → file on disk
+			const projectId = url.pathname.replace(/^\//, "");
+			const iconPath = getProjectIconPath(projectId);
+			if (!iconPath) {
+				return new Response("Not found", { status: 404 });
+			}
+			return net.fetch(pathToFileURL(iconPath).toString());
+		};
+		protocol.handle("superset-icon", iconProtocolHandler);
+		session
+			.fromPartition("persist:superset")
+			.protocol.handle("superset-icon", iconProtocolHandler);
+
+		ensureProjectIconsDir();
 
 		initSentry();
 
