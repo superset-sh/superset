@@ -321,10 +321,15 @@ export function ChatInterface({
 							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
 						/>
 					) : (
-						allMessages.map((msg) => (
+						allMessages.map((msg, index) => (
 							<ChatMessageItem
 								key={msg.id}
 								message={msg}
+								isStreaming={
+									isLoading &&
+									msg.role === "assistant" &&
+									index === allMessages.length - 1
+								}
 								onApprove={handleApprove}
 								onDeny={handleDeny}
 								onAnswer={handleAnswer}

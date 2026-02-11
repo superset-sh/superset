@@ -25,6 +25,7 @@ import { ToolCallBlock } from "../ToolCallBlock";
 
 interface ChatMessageItemProps {
 	message: UIMessage;
+	isStreaming?: boolean;
 	onApprove?: (approvalId: string) => void;
 	onDeny?: (approvalId: string) => void;
 	onAnswer?: (toolUseId: string, answers: Record<string, string>) => void;
@@ -122,6 +123,7 @@ function buildGroupItem({
 
 export function ChatMessageItem({
 	message,
+	isStreaming,
 	onApprove,
 	onDeny,
 	onAnswer,
@@ -198,7 +200,13 @@ export function ChatMessageItem({
 							);
 						case "text":
 							return part.content ? (
-								<MessageResponse key={key}>{part.content}</MessageResponse>
+								<MessageResponse
+									key={key}
+									animated={{ animation: "blurIn" }}
+									isAnimating={isStreaming}
+								>
+									{part.content}
+								</MessageResponse>
 							) : null;
 						case "tool-call": {
 							const tc = part as ToolCallPart;
