@@ -45,6 +45,7 @@ interface ChatInterfaceProps {
 }
 
 const START_AGENT_AFTER_MS = 400;
+const SEND_PENDING_TIMEOUT_MS = 20_000;
 
 export function ChatInterface({
 	sessionId,
@@ -95,6 +96,15 @@ export function ChatInterface({
 	const connectRef = useRef(connect);
 	connectRef.current = connect;
 	const hasConnected = useRef(false);
+	const sendPendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+
+	const clearSendPendingTimer = useCallback(() => {
+		if (!sendPendingTimerRef.current) return;
+		clearTimeout(sendPendingTimerRef.current);
+		sendPendingTimerRef.current = null;
+	}, []);
 
 	const doConnect = useCallback(() => {
 		if (hasConnected.current) return;
@@ -205,6 +215,13 @@ export function ChatInterface({
 			if (!text) return;
 
 			setIsSending(true);
+			clearSendPendingTimer();
+			sendPendingTimerRef.current = setTimeout(() => {
+				console.warn(
+					`[chat] no assistant stream started within ${SEND_PENDING_TIMEOUT_MS}ms; clearing pending state`,
+				);
+				setIsSending(false);
+			}, SEND_PENDING_TIMEOUT_MS);
 
 			let agentTriggered = false;
 			const triggerAgentOnce = () => {
@@ -227,19 +244,27 @@ export function ChatInterface({
 				})
 				.catch((err) => {
 					clearTimeout(triggerTimeout);
+					clearSendPendingTimer();
 					console.error("[chat] Send failed:", err);
 					setIsSending(false);
 				});
 		},
-		[sendMessage, triggerAgent, sessionId],
+		[clearSendPendingTimer, sendMessage, triggerAgent, sessionId],
 	);
 
 	// Clear isSending once the server starts streaming (isLoading takes over)
 	useEffect(() => {
 		if (isLoading) {
+			clearSendPendingTimer();
 			setIsSending(false);
 		}
-	}, [isLoading]);
+	}, [clearSendPendingTimer, isLoading]);
+
+	useEffect(() => {
+		return () => {
+			clearSendPendingTimer();
+		};
+	}, [clearSendPendingTimer]);
 
 	const handleApprove = useCallback(
 		(approvalId: string) => {

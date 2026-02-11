@@ -9,17 +9,17 @@ import {
 } from "@superset/agent";
 import { app } from "electron";
 import { env } from "main/env.main";
-import { loadToken } from "../../../auth/utils/auth-functions";
 import { buildClaudeEnv } from "../auth";
 import type { SessionStore } from "../session-store";
 import { ChunkBatcher } from "./chunk-batcher";
+import { GenerationWatchdog } from "./generation-watchdog";
+import { buildProxyHeaders, postJsonWithRetry } from "./proxy-requests";
 
 const PROXY_URL = env.STREAMS_URL;
 const FIRST_CHUNK_TIMEOUT_MS = 30_000;
 const CHUNK_INACTIVITY_TIMEOUT_MS = 45_000;
 const TERMINAL_CHUNK_MAX_ATTEMPTS = 3;
 const FINISH_MAX_ATTEMPTS = 3;
-const RETRY_BASE_DELAY_MS = 150;
 
 function getClaudeBinaryPath(): string {
 	if (app.isPackaged) {
@@ -33,72 +33,6 @@ function getClaudeBinaryPath(): string {
 		"bin",
 		`${platform}-${arch}`,
 		"claude",
-	);
-}
-
-async function buildProxyHeaders(): Promise<Record<string, string>> {
-	const { token } = await loadToken();
-	if (!token) {
-		throw new Error("User not authenticated");
-	}
-	return {
-		"Content-Type": "application/json",
-		Authorization: `Bearer ${token}`,
-	};
-}
-
-async function sleep({ ms }: { ms: number }): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function postJsonWithRetry({
-	url,
-	headers,
-	body,
-	maxAttempts,
-	operation,
-	signal,
-}: {
-	url: string;
-	headers: Record<string, string>;
-	body: Record<string, unknown>;
-	maxAttempts: number;
-	operation: string;
-	signal?: AbortSignal;
-}): Promise<void> {
-	let lastError: Error | null = null;
-
-	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-		try {
-			const res = await fetch(url, {
-				method: "POST",
-				headers,
-				signal,
-				body: JSON.stringify(body),
-			});
-			if (!res.ok) {
-				const rawDetail = await res.text().catch(() => "");
-				const detail = rawDetail.trim();
-				throw new Error(
-					`${operation} failed: status ${res.status}${detail ? ` (${detail.slice(0, 300)})` : ""}`,
-				);
-			}
-			return;
-		} catch (error) {
-			if (error instanceof DOMException && error.name === "AbortError") {
-				throw error;
-			}
-
-			lastError = error instanceof Error ? error : new Error(String(error));
-			if (attempt === maxAttempts) {
-				break;
-			}
-			await sleep({ ms: RETRY_BASE_DELAY_MS * 2 ** (attempt - 1) });
-		}
-	}
-
-	throw (
-		lastError ?? new Error(`${operation} failed after ${maxAttempts} attempts`)
 	);
 }
 
@@ -181,6 +115,388 @@ export class ChatSessionManager extends EventEmitter {
 			permissionMode,
 			maxThinkingTokens,
 		});
+	}
+
+	private emitSessionError({
+		sessionId,
+		error,
+	}: {
+		sessionId: string;
+		error: string;
+	}): void {
+		this.emit("event", {
+			type: "error",
+			sessionId,
+			error,
+		} satisfies ErrorEvent);
+	}
+
+	private abortExistingAgent({ sessionId }: { sessionId: string }): void {
+		const existingController = this.runningAgents.get(sessionId);
+		if (!existingController) return;
+		console.warn(`[chat/session] Aborting previous agent run for ${sessionId}`);
+		existingController.abort();
+	}
+
+	private createWatchdog({
+		sessionId,
+		abortController,
+	}: {
+		sessionId: string;
+		abortController: AbortController;
+	}): GenerationWatchdog {
+		return new GenerationWatchdog(({ reason }) => {
+			if (abortController.signal.aborted) return;
+			console.error(`[chat/session] ${reason}`);
+			this.emitSessionError({ sessionId, error: reason });
+			abortController.abort();
+		});
+	}
+
+	private createChunkBatcher({
+		sessionId,
+		session,
+		proxyHeaders,
+		abortController,
+	}: {
+		sessionId: string;
+		session: ActiveSession;
+		proxyHeaders: Record<string, string>;
+		abortController: AbortController;
+	}): ChunkBatcher {
+		return new ChunkBatcher({
+			sendBatch: async (chunks) => {
+				await this.postWithSessionRecovery({
+					sessionId,
+					session,
+					url: `${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
+					headers: proxyHeaders,
+					body: { chunks },
+					maxAttempts: 1,
+					operation: "write chunk batch",
+					signal: abortController.signal,
+				});
+			},
+			onFatalError: (error) => {
+				if (abortController.signal.aborted) return;
+				const detail = error instanceof Error ? error.message : String(error);
+				console.error(
+					`[chat/session] Chunk persistence failed for ${sessionId}:`,
+					detail,
+				);
+				this.emitSessionError({
+					sessionId,
+					error: `Chunk persistence failed: ${detail}`,
+				});
+				abortController.abort();
+			},
+		});
+	}
+
+	private isSessionNotFoundError(error: unknown): boolean {
+		const message = error instanceof Error ? error.message : String(error);
+		const normalized = message.toLowerCase();
+		return (
+			normalized.includes("status 404") &&
+			(normalized.includes("session_not_found") ||
+				normalized.includes("session not found"))
+		);
+	}
+
+	private async recoverRemoteSession({
+		sessionId,
+		session,
+	}: {
+		sessionId: string;
+		session: ActiveSession;
+	}): Promise<void> {
+		console.warn(
+			`[chat/session] Remote session missing for ${sessionId}; recreating`,
+		);
+		await this.ensureSessionReady({
+			sessionId,
+			cwd: session.cwd,
+			model: session.model,
+			permissionMode: session.permissionMode,
+			maxThinkingTokens: session.maxThinkingTokens,
+		});
+	}
+
+	private async postWithSessionRecovery({
+		sessionId,
+		session,
+		url,
+		headers,
+		body,
+		maxAttempts,
+		operation,
+		signal,
+	}: {
+		sessionId: string;
+		session: ActiveSession;
+		url: string;
+		headers: Record<string, string>;
+		body: unknown;
+		maxAttempts: number;
+		operation: string;
+		signal?: AbortSignal;
+	}): Promise<void> {
+		try {
+			await postJsonWithRetry({
+				url,
+				headers,
+				body,
+				maxAttempts,
+				operation,
+				signal,
+			});
+		} catch (error) {
+			if (!this.isSessionNotFoundError(error)) {
+				throw error;
+			}
+
+			await this.recoverRemoteSession({ sessionId, session });
+			const refreshedHeaders = await buildProxyHeaders();
+			await postJsonWithRetry({
+				url,
+				headers: refreshedHeaders,
+				body,
+				maxAttempts,
+				operation: `${operation} (after session restore)`,
+				signal,
+			});
+		}
+	}
+
+	private async executeAgentRun({
+		session,
+		sessionId,
+		prompt,
+		messageId,
+		abortController,
+		watchdog,
+		batcher,
+	}: {
+		session: ActiveSession;
+		sessionId: string;
+		prompt: string;
+		messageId: string;
+		abortController: AbortController;
+		watchdog: GenerationWatchdog;
+		batcher: ChunkBatcher;
+	}): Promise<void> {
+		const agentEnv = buildClaudeEnv();
+
+		await executeAgent({
+			sessionId,
+			prompt,
+			cwd: session.cwd,
+			pathToClaudeCodeExecutable: getClaudeBinaryPath(),
+			env: agentEnv,
+			model: session.model,
+			permissionMode:
+				(session.permissionMode as
+					| "default"
+					| "acceptEdits"
+					| "bypassPermissions"
+					| undefined) ?? "bypassPermissions",
+			maxThinkingTokens: session.maxThinkingTokens,
+			signal: abortController.signal,
+			onChunk: (chunk) => {
+				watchdog.arm({
+					timeoutMs: CHUNK_INACTIVITY_TIMEOUT_MS,
+					reason: `Assistant stream stalled for ${CHUNK_INACTIVITY_TIMEOUT_MS}ms`,
+				});
+				batcher.push({
+					messageId,
+					actorId: "claude",
+					role: "assistant",
+					chunk,
+				});
+			},
+			onPermissionRequest: async (params: PermissionRequestParams) => {
+				this.emit("event", {
+					type: "permission_request",
+					sessionId,
+					toolUseId: params.toolUseId,
+					toolName: params.toolName,
+					input: params.input,
+				} satisfies PermissionRequestEvent);
+
+				return createPermissionRequest({
+					toolUseId: params.toolUseId,
+					signal: params.signal,
+				});
+			},
+			onEvent: (event) => {
+				if (event.type === "session_initialized") {
+					this.store
+						.update(sessionId, {
+							providerSessionId: event.claudeSessionId,
+							lastActiveAt: Date.now(),
+						})
+						.catch((err: unknown) => {
+							console.error(
+								`[chat/session] Failed to update providerSessionId:`,
+								err,
+							);
+						});
+				}
+			},
+		});
+	}
+
+	private async drainChunkBatcher({
+		sessionId,
+		batcher,
+		abortController,
+	}: {
+		sessionId: string;
+		batcher: ChunkBatcher | null;
+		abortController: AbortController;
+	}): Promise<void> {
+		if (!batcher) return;
+
+		try {
+			await batcher.drain();
+		} catch (err) {
+			const detail = err instanceof Error ? err.message : String(err);
+			const isAbortError =
+				err instanceof DOMException && err.name === "AbortError";
+			if (isAbortError && abortController.signal.aborted) {
+				console.debug(`[chat/session] Chunk drain aborted for ${sessionId}`);
+				return;
+			}
+			console.error(
+				`[chat/session] Failed to drain chunk batcher for ${sessionId}:`,
+				detail,
+			);
+			this.emitSessionError({
+				sessionId,
+				error: `Chunk drain failed: ${detail}`,
+			});
+		}
+	}
+
+	private async persistTerminalChunk({
+		sessionId,
+		session,
+		messageId,
+		headers,
+	}: {
+		sessionId: string;
+		session: ActiveSession;
+		messageId: string;
+		headers: Record<string, string>;
+	}): Promise<boolean> {
+		const terminalChunkPayload = {
+			messageId,
+			actorId: "claude",
+			role: "assistant",
+			chunk: { type: "message-end" as const },
+		};
+
+		try {
+			await this.postWithSessionRecovery({
+				sessionId,
+				session,
+				url: `${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
+				headers,
+				body: terminalChunkPayload,
+				maxAttempts: TERMINAL_CHUNK_MAX_ATTEMPTS,
+				operation: "write terminal chunk",
+			});
+			return true;
+		} catch (err) {
+			console.error(
+				`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
+				err,
+			);
+		}
+
+		try {
+			await this.postWithSessionRecovery({
+				sessionId,
+				session,
+				url: `${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
+				headers,
+				body: { chunks: [terminalChunkPayload] },
+				maxAttempts: TERMINAL_CHUNK_MAX_ATTEMPTS,
+				operation: "write terminal chunk (batch fallback)",
+			});
+			return true;
+		} catch (err) {
+			console.error(
+				`[chat/session] Failed to write terminal chunk fallback for ${sessionId}:`,
+				err,
+			);
+		}
+
+		return false;
+	}
+
+	private async finishGeneration({
+		sessionId,
+		session,
+		messageId,
+		headers,
+	}: {
+		sessionId: string;
+		session: ActiveSession;
+		messageId: string;
+		headers: Record<string, string>;
+	}): Promise<void> {
+		try {
+			await this.postWithSessionRecovery({
+				sessionId,
+				session,
+				url: `${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
+				headers,
+				body: { messageId },
+				maxAttempts: FINISH_MAX_ATTEMPTS,
+				operation: "finish generation",
+			});
+		} catch (err) {
+			const detail = err instanceof Error ? err.message : String(err);
+			console.error(
+				`[chat/session] POST /generations/finish failed for ${sessionId}:`,
+				detail,
+			);
+			this.emitSessionError({
+				sessionId,
+				error: `Generation finish failed: ${detail}`,
+			});
+		}
+	}
+
+	private async finalizeGeneration({
+		sessionId,
+		session,
+		messageId,
+		headers,
+	}: {
+		sessionId: string;
+		session: ActiveSession;
+		messageId: string;
+		headers: Record<string, string> | null;
+	}): Promise<void> {
+		if (!headers) return;
+
+		const terminalChunkPersisted = await this.persistTerminalChunk({
+			sessionId,
+			session,
+			messageId,
+			headers,
+		});
+		if (!terminalChunkPersisted) {
+			this.emitSessionError({
+				sessionId,
+				error:
+					"Assistant completion marker failed to persist. Message may stay loading.",
+			});
+		}
+
+		await this.finishGeneration({ sessionId, session, messageId, headers });
 	}
 
 	async startSession({
@@ -304,156 +620,53 @@ export class ChatSessionManager extends EventEmitter {
 			console.error(
 				`[chat/session] Session ${sessionId} not found for startAgent`,
 			);
-			this.emit("event", {
-				type: "error",
+			this.emitSessionError({
 				sessionId,
 				error: "Session not active",
-			} satisfies ErrorEvent);
+			});
 			return;
 		}
 
-		const existingController = this.runningAgents.get(sessionId);
-		if (existingController) {
-			console.warn(
-				`[chat/session] Aborting previous agent run for ${sessionId}`,
-			);
-			existingController.abort();
-		}
+		this.abortExistingAgent({ sessionId });
 
 		const abortController = new AbortController();
 		this.runningAgents.set(sessionId, abortController);
 
 		const messageId = crypto.randomUUID();
-		let chunkWatchdogTimer: ReturnType<typeof setTimeout> | null = null;
-		let chunkWatchdogTriggered = false;
-		const clearChunkWatchdog = () => {
-			if (!chunkWatchdogTimer) return;
-			clearTimeout(chunkWatchdogTimer);
-			chunkWatchdogTimer = null;
-		};
-		const armChunkWatchdog = ({
-			timeoutMs,
-			reason,
-		}: {
-			timeoutMs: number;
-			reason: string;
-		}) => {
-			clearChunkWatchdog();
-			chunkWatchdogTimer = setTimeout(() => {
-				if (abortController.signal.aborted) return;
-				chunkWatchdogTriggered = true;
-				console.error(`[chat/session] ${reason}`);
-				this.emit("event", {
-					type: "error",
-					sessionId,
-					error: reason,
-				} satisfies ErrorEvent);
-				abortController.abort();
-			}, timeoutMs);
-		};
+		const watchdog = this.createWatchdog({ sessionId, abortController });
 		let headers: Record<string, string> | null = null;
 		let batcher: ChunkBatcher | null = null;
 
 		try {
-			const proxyHeaders = await buildProxyHeaders();
-			headers = proxyHeaders;
-			batcher = new ChunkBatcher({
-				sendBatch: async (chunks) => {
-					const res = await fetch(
-						`${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
-						{
-							method: "POST",
-							headers: proxyHeaders,
-							signal: abortController.signal,
-							body: JSON.stringify({ chunks }),
-						},
-					);
-					if (!res.ok) {
-						throw new Error(`POST batch failed: ${res.status}`);
-					}
-				},
-				onFatalError: (error) => {
-					if (abortController.signal.aborted) return;
-					const detail = error instanceof Error ? error.message : String(error);
-					console.error(
-						`[chat/session] Chunk persistence failed for ${sessionId}:`,
-						detail,
-					);
-					this.emit("event", {
-						type: "error",
-						sessionId,
-						error: `Chunk persistence failed: ${detail}`,
-					} satisfies ErrorEvent);
-					abortController.abort();
-				},
+			// Streams process can restart independently; make sure remote session exists.
+			await this.ensureSessionReady({
+				sessionId,
+				cwd: session.cwd,
+				model: session.model,
+				permissionMode: session.permissionMode,
+				maxThinkingTokens: session.maxThinkingTokens,
+			});
+			headers = await buildProxyHeaders();
+			batcher = this.createChunkBatcher({
+				sessionId,
+				session,
+				proxyHeaders: headers,
+				abortController,
 			});
 
-			armChunkWatchdog({
+			watchdog.arm({
 				timeoutMs: FIRST_CHUNK_TIMEOUT_MS,
 				reason: `No assistant response within ${FIRST_CHUNK_TIMEOUT_MS}ms`,
 			});
 
-			const agentEnv = buildClaudeEnv();
-
-			await executeAgent({
+			await this.executeAgentRun({
+				session,
 				sessionId,
 				prompt,
-				cwd: session.cwd,
-				pathToClaudeCodeExecutable: getClaudeBinaryPath(),
-				env: agentEnv,
-				model: session.model,
-				permissionMode:
-					(session.permissionMode as
-						| "default"
-						| "acceptEdits"
-						| "bypassPermissions"
-						| undefined) ?? "bypassPermissions",
-				maxThinkingTokens: session.maxThinkingTokens,
-				signal: abortController.signal,
-
-				onChunk: (chunk) => {
-					armChunkWatchdog({
-						timeoutMs: CHUNK_INACTIVITY_TIMEOUT_MS,
-						reason: `Assistant stream stalled for ${CHUNK_INACTIVITY_TIMEOUT_MS}ms`,
-					});
-					batcher?.push({
-						messageId,
-						actorId: "claude",
-						role: "assistant",
-						chunk,
-					});
-				},
-
-				onPermissionRequest: async (params: PermissionRequestParams) => {
-					this.emit("event", {
-						type: "permission_request",
-						sessionId,
-						toolUseId: params.toolUseId,
-						toolName: params.toolName,
-						input: params.input,
-					} satisfies PermissionRequestEvent);
-
-					return createPermissionRequest({
-						toolUseId: params.toolUseId,
-						signal: params.signal,
-					});
-				},
-
-				onEvent: (event) => {
-					if (event.type === "session_initialized") {
-						this.store
-							.update(sessionId, {
-								providerSessionId: event.claudeSessionId,
-								lastActiveAt: Date.now(),
-							})
-							.catch((err: unknown) => {
-								console.error(
-									`[chat/session] Failed to update providerSessionId:`,
-									err,
-								);
-							});
-					}
-				},
+				messageId,
+				abortController,
+				watchdog,
+				batcher,
 			});
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
@@ -462,121 +675,22 @@ export class ChatSessionManager extends EventEmitter {
 					`[chat/session] Agent execution failed for ${sessionId}:`,
 					message,
 				);
-				this.emit("event", {
-					type: "error",
-					sessionId,
-					error: message,
-				} satisfies ErrorEvent);
-			} else if (chunkWatchdogTriggered) {
+				this.emitSessionError({ sessionId, error: message });
+			} else if (watchdog.wasTriggered) {
 				console.warn(
 					`[chat/session] Agent aborted by watchdog for ${sessionId}:`,
 					message,
 				);
 			}
 		} finally {
-			clearChunkWatchdog();
-
-			// Drain buffered chunks before sending terminal chunk.
-			// Never let drain failure skip generation finish cleanup.
-			if (batcher) {
-				try {
-					await batcher.drain();
-				} catch (err) {
-					const detail = err instanceof Error ? err.message : String(err);
-					const isAbortError =
-						err instanceof DOMException && err.name === "AbortError";
-					if (isAbortError && abortController.signal.aborted) {
-						console.debug(
-							`[chat/session] Chunk drain aborted for ${sessionId}`,
-						);
-					} else {
-						console.error(
-							`[chat/session] Failed to drain chunk batcher for ${sessionId}:`,
-							detail,
-						);
-						this.emit("event", {
-							type: "error",
-							sessionId,
-							error: `Chunk drain failed: ${detail}`,
-						} satisfies ErrorEvent);
-					}
-				}
-			}
-
-			if (headers) {
-				// Client uses terminal chunk + finish to mark message complete (isLoading → false)
-				const terminalChunkPayload = {
-					messageId,
-					actorId: "claude",
-					role: "assistant",
-					chunk: { type: "message-end" },
-				};
-				let terminalChunkPersisted = false;
-
-				try {
-					await postJsonWithRetry({
-						url: `${PROXY_URL}/v1/sessions/${sessionId}/chunks`,
-						headers,
-						body: terminalChunkPayload,
-						maxAttempts: TERMINAL_CHUNK_MAX_ATTEMPTS,
-						operation: "write terminal chunk",
-					});
-					terminalChunkPersisted = true;
-				} catch (err) {
-					console.error(
-						`[chat/session] Failed to write terminal chunk for ${sessionId}:`,
-						err,
-					);
-				}
-
-				try {
-					if (!terminalChunkPersisted) {
-						await postJsonWithRetry({
-							url: `${PROXY_URL}/v1/sessions/${sessionId}/chunks/batch`,
-							headers,
-							body: { chunks: [terminalChunkPayload] },
-							maxAttempts: TERMINAL_CHUNK_MAX_ATTEMPTS,
-							operation: "write terminal chunk (batch fallback)",
-						});
-						terminalChunkPersisted = true;
-					}
-				} catch (err) {
-					console.error(
-						`[chat/session] Failed to write terminal chunk fallback for ${sessionId}:`,
-						err,
-					);
-				}
-
-				if (!terminalChunkPersisted) {
-					this.emit("event", {
-						type: "error",
-						sessionId,
-						error:
-							"Assistant completion marker failed to persist. Message may stay loading.",
-					} satisfies ErrorEvent);
-				}
-
-				try {
-					await postJsonWithRetry({
-						url: `${PROXY_URL}/v1/sessions/${sessionId}/generations/finish`,
-						headers,
-						body: { messageId },
-						maxAttempts: FINISH_MAX_ATTEMPTS,
-						operation: "finish generation",
-					});
-				} catch (err) {
-					const detail = err instanceof Error ? err.message : String(err);
-					console.error(
-						`[chat/session] POST /generations/finish failed for ${sessionId}:`,
-						detail,
-					);
-					this.emit("event", {
-						type: "error",
-						sessionId,
-						error: `Generation finish failed: ${detail}`,
-					} satisfies ErrorEvent);
-				}
-			}
+			watchdog.clear();
+			await this.drainChunkBatcher({ sessionId, batcher, abortController });
+			await this.finalizeGeneration({
+				sessionId,
+				session,
+				messageId,
+				headers,
+			});
 
 			this.runningAgents.delete(sessionId);
 		}

@@ -37,15 +37,9 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 
 		const { messageId, actorId, role, chunk, txid } = body;
 
-		const stream = protocol.getSession(sessionId);
-		if (!stream) {
-			return c.json(
-				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
-				404,
-			);
-		}
-
 		try {
+			const stream = await protocol.getOrCreateSession(sessionId);
+
 			if (!protocol.getActiveGeneration(sessionId)) {
 				protocol.startGeneration({ sessionId, messageId });
 			}
@@ -107,15 +101,9 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 			);
 		}
 
-		const stream = protocol.getSession(sessionId);
-		if (!stream) {
-			return c.json(
-				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
-				404,
-			);
-		}
-
 		try {
+			await protocol.getOrCreateSession(sessionId);
+
 			const firstMessageId = chunks[0]?.messageId;
 			if (firstMessageId && !protocol.getActiveGeneration(sessionId)) {
 				protocol.startGeneration({ sessionId, messageId: firstMessageId });
@@ -144,14 +132,6 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 	app.post("/:id/generations/finish", async (c) => {
 		const sessionId = c.req.param("id");
 
-		const stream = protocol.getSession(sessionId);
-		if (!stream) {
-			return c.json(
-				{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
-				404,
-			);
-		}
-
 		let messageId: string | undefined;
 		try {
 			const rawBody = await c.req.json();
@@ -162,6 +142,7 @@ export function createChunkRoutes(protocol: AIDBSessionProtocol) {
 		}
 
 		try {
+			await protocol.getOrCreateSession(sessionId);
 			await protocol.finishGeneration({ sessionId, messageId });
 			return c.json({ ok: true, sessionId, messageId }, 200);
 		} catch (error) {
