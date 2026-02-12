@@ -116,6 +116,10 @@ step_check_dependencies() {
     missing+=("docker (Install from https://docker.com)")
   fi
 
+  if ! command -v caddy &> /dev/null; then
+    warn "caddy not found — HTTP/2 proxy for Electric won't work (Run: brew install caddy && caddy trust)"
+  fi
+
   if [ ${#missing[@]} -gt 0 ]; then
     error "Missing dependencies:"
     for dep in "${missing[@]}"; do
@@ -359,7 +363,7 @@ step_write_env() {
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
-    #          +10 code inspector
+    #          +10 caddy (HTTP/2 reverse proxy for API), +11 code inspector
     if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
       local BASE=$SUPERSET_PORT_BASE
 
@@ -374,7 +378,8 @@ step_write_env() {
       local STREAMS_PORT=$((BASE + 7))
       local STREAMS_INTERNAL_PORT=$((BASE + 8))
       local ELECTRIC_PORT=$((BASE + 9))
-      local CODE_INSPECTOR_PORT=$((BASE + 10))
+      local CADDY_API_PORT=$((BASE + 10))
+      local CODE_INSPECTOR_PORT=$((BASE + 11))
 
       echo ""
       echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -389,10 +394,12 @@ step_write_env() {
       echo "STREAMS_PORT=$STREAMS_PORT"
       echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
       echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+      echo "CADDY_API_PORT=$CADDY_API_PORT"
       echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
       echo ""
       echo "# Cross-app URLs (overrides from root .env)"
-      echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"
+      echo "# Uses Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric)"
+      echo "NEXT_PUBLIC_API_URL=https://localhost:$CADDY_API_PORT"
       echo "NEXT_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
       echo "NEXT_PUBLIC_MARKETING_URL=http://localhost:$MARKETING_PORT"
       echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"

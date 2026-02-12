@@ -1,0 +1,5 @@
+https://localhost:{$CADDY_API_PORT} {
+	reverse_proxy localhost:{$API_PORT} {
+		flush_interval -1
+	}
+}

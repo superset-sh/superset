@@ -1,24 +1,42 @@
 import {
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
-	useEffect,
 	useMemo,
+	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import { disposeCollections, getCollections } from "./collections";
+import { getCollections } from "./collections";
 
-type Collections = ReturnType<typeof getCollections>;
+type CollectionsContextType = ReturnType<typeof getCollections> & {
+	switchOrganization: (organizationId: string) => Promise<void>;
+};
 
-const CollectionsContext = createContext<Collections | null>(null);
+const CollectionsContext = createContext<CollectionsContextType | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-	const { data: session } = authClient.useSession();
+	const { data: session, refetch: refetchSession } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
+	const [isSwitching, setIsSwitching] = useState(false);
+
+	const switchOrganization = useCallback(
+		async (organizationId: string) => {
+			if (organizationId === activeOrganizationId) return;
+			setIsSwitching(true);
+			try {
+				await authClient.organization.setActive({ organizationId });
+				await refetchSession();
+			} finally {
+				setIsSwitching(false);
+			}
+		},
+		[activeOrganizationId, refetchSession],
+	);
 
 	const collections = useMemo(() => {
 		if (!activeOrganizationId) {
@@ -28,25 +46,18 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		return getCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	useEffect(() => {
-		if (!activeOrganizationId) return;
-		return () => {
-			disposeCollections(activeOrganizationId);
-		};
-	}, [activeOrganizationId]);
-
-	if (!collections) {
+	if (!collections || isSwitching) {
 		return null;
 	}
 
 	return (
-		<CollectionsContext.Provider value={collections}>
+		<CollectionsContext.Provider value={{ ...collections, switchOrganization }}>
 			{children}
 		</CollectionsContext.Provider>
 	);
 }
 
-export function useCollections(): Collections {
+export function useCollections(): CollectionsContextType {
 	const context = useContext(CollectionsContext);
 	if (!context) {
 		throw new Error("useCollections must be used within CollectionsProvider");

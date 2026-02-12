@@ -11,12 +11,16 @@ export async function GET(request: Request): Promise<Response> {
 		return new Response("Unauthorized", { status: 401 });
 	}
 
-	const organizationId = sessionData.session.activeOrganizationId;
-	if (!organizationId) {
-		return new Response("No active organization", { status: 400 });
+	const url = new URL(request.url);
+
+	// Use client-sent organizationId, validated against session membership
+	const organizationId = url.searchParams.get("organizationId");
+	const allowedOrgIds = sessionData.session.organizationIds ?? [];
+
+	if (organizationId && !allowedOrgIds.includes(organizationId)) {
+		return new Response("Not a member of this organization", { status: 403 });
 	}
 
-	const url = new URL(request.url);
 	const originUrl = new URL(env.ELECTRIC_URL);
 	originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
 
@@ -33,7 +37,7 @@ export async function GET(request: Request): Promise<Response> {
 
 	const whereClause = await buildWhereClause(
 		tableName,
-		organizationId,
+		organizationId ?? "",
 		sessionData.user.id,
 	);
 	if (!whereClause) {
