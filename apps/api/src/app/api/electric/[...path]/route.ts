@@ -13,8 +13,11 @@ export async function GET(request: Request): Promise<Response> {
 
 	const url = new URL(request.url);
 
-	// Use client-sent organizationId, validated against session membership
-	const organizationId = url.searchParams.get("organizationId");
+	// Use client-sent organizationId, falling back to session for older clients.
+	// TODO(2026-02-26): Remove activeOrganizationId fallback once all clients send organizationId param.
+	const organizationId =
+		url.searchParams.get("organizationId") ??
+		sessionData.session.activeOrganizationId;
 	const allowedOrgIds = sessionData.session.organizationIds ?? [];
 
 	if (organizationId && !allowedOrgIds.includes(organizationId)) {
