@@ -85,6 +85,16 @@ mock.module("main/lib/workspace-runtime", () => ({
 	}),
 }));
 
+// Mock @superset/local-db to avoid drizzle-orm resolution failures in CI.
+mock.module("@superset/local-db", () => ({
+	projects: { id: "id" },
+	workspaces: { id: "id" },
+	worktrees: { id: "id" },
+	settings: { id: "id" },
+	EXTERNAL_APPS: [],
+	EXECUTION_MODES: ["sequential", "parallel"],
+}));
+
 // Avoid importing Electron/local-db during test bootstrap.
 mock.module("main/lib/local-db", () => ({
 	localDb: {
