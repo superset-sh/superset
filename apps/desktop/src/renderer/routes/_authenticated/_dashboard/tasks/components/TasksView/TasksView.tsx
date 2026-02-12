@@ -1,4 +1,3 @@
-import { ScrollArea } from "@superset/ui/scroll-area";
 import { Spinner } from "@superset/ui/spinner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -78,13 +77,11 @@ export function TasksView() {
 					</div>
 				</div>
 			) : showTable ? (
-				<ScrollArea className="flex-1 min-h-0">
-					<TasksTableView
-						table={table}
-						slugColumnWidth={slugColumnWidth}
-						onTaskClick={handleTaskClick}
-					/>
-				</ScrollArea>
+				<TasksTableView
+					table={table}
+					slugColumnWidth={slugColumnWidth}
+					onTaskClick={handleTaskClick}
+				/>
 			) : null}
 		</div>
 	);
