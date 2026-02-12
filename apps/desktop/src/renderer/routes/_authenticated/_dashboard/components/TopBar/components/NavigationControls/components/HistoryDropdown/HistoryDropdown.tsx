@@ -167,7 +167,16 @@ export function HistoryDropdown() {
 		[collections],
 	);
 
-	if (recentEntries.length === 0) {
+	const filteredEntries = recentEntries.filter((entry) => {
+		if (entry.type === "workspace") {
+			return workspaceData.some((w) => w.id === entry.entityId);
+		}
+		return (taskData ?? []).some(
+			(t) => t.id === entry.entityId || t.slug === entry.entityId,
+		);
+	});
+
+	if (filteredEntries.length === 0) {
 		return (
 			<Tooltip delayDuration={300}>
 				<TooltipTrigger asChild>
@@ -202,7 +211,7 @@ export function HistoryDropdown() {
 			<DropdownMenuContent align="start" className="w-80">
 				<DropdownMenuLabel>Recently Viewed</DropdownMenuLabel>
 				<DropdownMenuSeparator />
-				{recentEntries.map((entry) =>
+				{filteredEntries.map((entry) =>
 					entry.type === "task" ? (
 						<TaskRow
 							key={entry.path}
