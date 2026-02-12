@@ -48,6 +48,7 @@ type ComparisonValue = string | boolean | null;
 type ComparisonRow = {
 	label: string;
 	values: ComparisonValue[];
+	comingSoon?: boolean;
 };
 
 type ComparisonSection = {
@@ -136,10 +137,12 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			{
 				label: "Cloud workspaces",
 				values: [null, true, true],
+				comingSoon: true,
 			},
 			{
 				label: "Mobile app",
 				values: [null, true, true],
+				comingSoon: true,
 			},
 			{
 				label: "Linear integration",
@@ -524,8 +527,13 @@ function PlansPage() {
 
 									return (
 										<Fragment key={row.label}>
-											<div className="flex items-center px-2 py-2.5 text-xs text-muted-foreground">
+											<div className="flex items-center gap-1.5 px-2 py-2.5 text-xs text-muted-foreground">
 												{row.label}
+												{row.comingSoon && (
+													<span className="text-[10px] text-muted-foreground/60">
+														(Coming Soon)
+													</span>
+												)}
 											</div>
 											{row.values.map((value, valueIndex) => (
 												<div
