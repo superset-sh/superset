@@ -260,10 +260,18 @@ step_start_electric() {
     docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
   fi
 
-  # Start Electric container with auto-assigned port
+  # Use reserved port from SUPERSET_PORT_BASE if available, otherwise auto-assign
+  local port_flag
+  if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
+    ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
+    port_flag="-p $ELECTRIC_PORT:3000"
+  else
+    port_flag="-p 3000"
+  fi
+
   if ! docker run -d \
       --name "$ELECTRIC_CONTAINER" \
-      -p 3000 \
+      $port_flag \
       -e DATABASE_URL="$DIRECT_URL" \
       -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \
       electricsql/electric:latest &> /dev/null; then
@@ -271,8 +279,10 @@ step_start_electric() {
     return 1
   fi
 
-  # Get the auto-assigned port
-  ELECTRIC_PORT=$(docker port "$ELECTRIC_CONTAINER" 3000 | cut -d: -f2)
+  # Resolve actual port (needed when auto-assigned)
+  if [ -z "${ELECTRIC_PORT:-}" ]; then
+    ELECTRIC_PORT=$(docker port "$ELECTRIC_CONTAINER" 3000 | cut -d: -f2)
+  fi
 
   # Wait for Electric to be ready
   echo "  Waiting for Electric to be ready on port $ELECTRIC_PORT..."
