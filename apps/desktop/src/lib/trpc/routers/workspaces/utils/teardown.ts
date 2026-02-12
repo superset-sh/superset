@@ -1,7 +1,11 @@
 import { spawn } from "node:child_process";
+import {
+	getCommandShellArgs,
+	getShellEnv,
+} from "main/lib/agent-setup/shell-wrappers";
+import { buildSafeEnv, sanitizeEnv } from "main/lib/terminal/env";
 import { removeWorktree } from "./git";
 import { loadSetupConfig } from "./setup";
-import { getShellEnvironment } from "./shell-env";
 
 const TEARDOWN_TIMEOUT_MS = 60_000;
 
@@ -35,19 +39,22 @@ export async function runTeardown({
 	console.log(`[teardown] Running for "${workspaceName}": ${command}`);
 
 	try {
-		const shellEnv = await getShellEnvironment();
-
 		const shell =
 			process.env.SHELL ||
 			(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
 
+		const baseEnv = buildSafeEnv(sanitizeEnv(process.env) || {});
+		const wrapperEnv = getShellEnv(shell);
+		const args = getCommandShellArgs(shell, command);
+
 		const output = await new Promise<string>((resolve, reject) => {
-			const child = spawn(shell, ["-lc", command], {
+			const child = spawn(shell, args, {
 				cwd: worktreePath,
 				detached: true,
 				stdio: ["ignore", "pipe", "pipe"],
 				env: {
-					...shellEnv,
+					...baseEnv,
+					...wrapperEnv,
 					SUPERSET_WORKSPACE_NAME: workspaceName,
 					SUPERSET_ROOT_PATH: mainRepoPath,
 				},
@@ -77,8 +84,7 @@ export async function runTeardown({
 				fn();
 			};
 
-			// Resolve on process exit, NOT stream close — prevents hanging
-			// when teardown spawns background processes that inherit stdio
+			// Listen on "exit" not "close" — background children may hold stdio open
 			child.on("exit", (code) => {
 				settle(() => {
 					if (code === 0) resolve(combined);

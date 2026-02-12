@@ -4,6 +4,9 @@ import path from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { BASH_DIR, ZSH_DIR } from "./paths";
 
+const ZSH_RC = path.join(ZSH_DIR, ".zshrc");
+const BASH_RCFILE = path.join(BASH_DIR, "rcfile");
+
 /**
  * Creates zsh initialization wrapper that intercepts shell startup
  * Sources user's real shell config files then prepends our bin to PATH
@@ -78,17 +81,31 @@ export function getShellEnv(shell: string): Record<string, string> {
 }
 
 /**
- * Returns shell-specific arguments for intercepting shell initialization
+ * Returns shell args for interactive terminal sessions.
  */
 export function getShellArgs(shell: string): string[] {
 	if (shell.includes("zsh")) {
-		// Zsh uses ZDOTDIR env var, no special args needed
-		// -l for login shell behavior
 		return ["-l"];
 	}
 	if (shell.includes("bash")) {
-		// Use our custom rcfile that sources user's files then fixes PATH
-		return ["--rcfile", path.join(BASH_DIR, "rcfile")];
+		return ["--rcfile", BASH_RCFILE];
 	}
 	return [];
+}
+
+/**
+ * Returns shell args for non-interactive command execution that sources
+ * user profiles via wrappers (same env as terminal sessions).
+ * Falls back to login shell if wrappers don't exist yet.
+ */
+export function getCommandShellArgs(shell: string, command: string): string[] {
+	if (shell.includes("zsh") && fs.existsSync(ZSH_RC)) {
+		// -l sources wrapper .zprofile via ZDOTDIR; explicit .zshrc adds ~/.superset/bin to PATH
+		return ["-lc", `source "${ZSH_RC}" && ${command}`];
+	}
+	if (shell.includes("bash") && fs.existsSync(BASH_RCFILE)) {
+		// rcfile already sources all profiles; skip -l to avoid double-sourcing
+		return ["-c", `source "${BASH_RCFILE}" && ${command}`];
+	}
+	return ["-lc", command];
 }

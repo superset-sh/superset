@@ -17,6 +17,7 @@ import {
 import {
 	createBashWrapper,
 	createZshWrapper,
+	getCommandShellArgs,
 	getShellArgs,
 	getShellEnv,
 } from "./shell-wrappers";
@@ -59,5 +60,4 @@ export function getSupersetBinDir(): string {
 	return BIN_DIR;
 }
 
-// Re-export shell utilities for terminal usage
-export { getShellArgs, getShellEnv };
+export { getCommandShellArgs, getShellArgs, getShellEnv };
