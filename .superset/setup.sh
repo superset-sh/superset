@@ -421,6 +421,17 @@ step_write_env() {
   } >> .env
 
   success "Workspace .env written"
+
+  # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric)
+  cat > Caddyfile <<CADDYEOF
+https://localhost:{\$CADDY_API_PORT} {
+	reverse_proxy localhost:{\$API_PORT} {
+		flush_interval -1
+	}
+}
+CADDYEOF
+  success "Caddyfile written"
+
   return 0
 }
 
