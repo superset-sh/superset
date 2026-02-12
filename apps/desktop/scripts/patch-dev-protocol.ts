@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
 /**
- * Patches the development Electron.app's Info.plist to register
- * the superset-dev:// URL scheme for deep linking.
+ * Patches the development Electron.app's Info.plist to register a
+ * workspace-specific URL scheme (superset-{workspace}://) for deep linking.
+ *
+ * Each worktree gets a unique bundle ID and protocol scheme so macOS Launch
+ * Services treats them as distinct apps and routes deep links correctly.
  *
  * This is needed because on macOS, app.setAsDefaultProtocolClient()
  * only works when the app is packaged. In development, we need to
@@ -45,14 +48,18 @@ if (!existsSync(PLIST_PATH)) {
 	process.exit(0);
 }
 
-// Check if already patched
+// Check if already correctly patched (right bundle ID + right scheme)
 try {
-	const result = execSync(
+	const currentBundleId = execSync(
+		`/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "${PLIST_PATH}" 2>/dev/null`,
+		{ encoding: "utf-8" },
+	).trim();
+	const currentScheme = execSync(
 		`/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes:0:CFBundleURLSchemes:0" "${PLIST_PATH}" 2>/dev/null`,
 		{ encoding: "utf-8" },
 	).trim();
 
-	if (result === PROTOCOL_SCHEME) {
+	if (currentBundleId === BUNDLE_ID && currentScheme === PROTOCOL_SCHEME) {
 		console.log(
 			`[patch-dev-protocol] ${PROTOCOL_SCHEME}:// already registered`,
 		);
@@ -64,13 +71,18 @@ try {
 
 console.log(`[patch-dev-protocol] Registering ${PROTOCOL_SCHEME}:// scheme...`);
 
-// Set unique bundle ID to avoid conflicts with other Electron apps
+// Set unique bundle ID so macOS treats each worktree's Electron as a distinct app
+execSync(
+	`/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "${PLIST_PATH}"`,
+);
+
+// Remove any existing URL types to avoid stale/duplicate entries from previous patches
 try {
 	execSync(
-		`/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "${PLIST_PATH}"`,
+		`/usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes" "${PLIST_PATH}" 2>/dev/null`,
 	);
 } catch {
-	// Ignore errors
+	// Doesn't exist yet, that's fine
 }
 
 // Add URL scheme to Info.plist
@@ -84,11 +96,7 @@ const commands = [
 ];
 
 for (const cmd of commands) {
-	try {
-		execSync(`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}" 2>/dev/null`);
-	} catch {
-		// Ignore errors (e.g., key already exists)
-	}
+	execSync(`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}"`);
 }
 
 // Register with Launch Services
