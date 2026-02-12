@@ -1,7 +1,8 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
-import { useState } from "react";
+import { useScroll } from "framer-motion";
+import { useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
@@ -10,6 +11,12 @@ import { TypewriterText } from "./components/TypewriterText";
 
 export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+	const demoRef = useRef<HTMLDivElement>(null);
+
+	const { scrollYProgress } = useScroll({
+		target: demoRef,
+		offset: ["start 0.45", "start 0"],
+	});
 
 	return (
 		<div>
@@ -61,8 +68,8 @@ export function HeroSection() {
 						</div>
 					</div>
 
-					<div className="relative w-full mt-12 sm:mt-16 lg:mt-20">
-						<ProductDemo />
+					<div ref={demoRef} className="relative w-full mt-12 sm:mt-16 lg:mt-20">
+						<ProductDemo scrollYProgress={scrollYProgress} />
 					</div>
 				</div>
 			</div>
