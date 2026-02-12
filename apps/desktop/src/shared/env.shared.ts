@@ -11,6 +11,7 @@
  * For renderer-only env vars (PostHog, etc.), use src/renderer/env.renderer.ts
  */
 import { z } from "zod/v4";
+import { sanitizeWorkspaceName } from "./workspace-hash";
 
 const envSchema = z.object({
 	NODE_ENV: z
@@ -42,8 +43,5 @@ export const env = envSchema.parse({
 export function getWorkspaceName(): string | undefined {
 	const name = env.SUPERSET_WORKSPACE_NAME;
 	if (name === "superset") return undefined;
-	return name
-		.toLowerCase()
-		.replace(/[^a-z0-9-]/g, "-")
-		.slice(0, 32);
+	return sanitizeWorkspaceName(name);
 }

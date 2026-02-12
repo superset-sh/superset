@@ -4,11 +4,10 @@
  *
  * In-app code should use getWorkspaceName() from env.shared.ts instead.
  */
+import { sanitizeWorkspaceName } from "./workspace-hash";
+
 export function getWorkspaceName(): string | undefined {
 	const name = process.env.SUPERSET_WORKSPACE_NAME;
 	if (!name) return undefined;
-	return name
-		.toLowerCase()
-		.replace(/[^a-z0-9-]/g, "-")
-		.slice(0, 32);
+	return sanitizeWorkspaceName(name);
 }
