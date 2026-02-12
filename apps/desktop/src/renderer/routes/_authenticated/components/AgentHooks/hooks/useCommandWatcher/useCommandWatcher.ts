@@ -11,7 +11,8 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider";
 import { executeTool, type ToolContext } from "./tools";
 
-const processingCommands = new Set<string>();
+/** Tracks command IDs that have been or are being processed to prevent duplicate execution. */
+const handledCommands = new Set<string>();
 
 export function useCommandWatcher() {
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
@@ -79,9 +80,9 @@ export function useCommandWatcher() {
 			tool: string,
 			params: Record<string, unknown> | null,
 		) => {
-			if (processingCommands.has(commandId)) return;
+			if (handledCommands.has(commandId)) return;
 
-			processingCommands.add(commandId);
+			handledCommands.add(commandId);
 			console.log(`[command-watcher] Processing: ${commandId} (${tool})`);
 
 			try {
@@ -123,8 +124,6 @@ export function useCommandWatcher() {
 						error instanceof Error ? error.message : "Execution error";
 					draft.executedAt = new Date();
 				});
-			} finally {
-				processingCommands.delete(commandId);
 			}
 		},
 		[collections.agentCommands, deviceInfo?.deviceId, toolContext],
@@ -143,7 +142,7 @@ export function useCommandWatcher() {
 		const now = new Date();
 		const commandsForThisDevice = pendingCommands.filter((cmd) => {
 			if (cmd.targetDeviceId !== deviceInfo.deviceId) return false;
-			if (processingCommands.has(cmd.id)) return false;
+			if (handledCommands.has(cmd.id)) return false;
 
 			// Security: verify org matches (don't trust Electric filtering alone)
 			if (cmd.organizationId !== organizationId) {
