@@ -13,6 +13,10 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { config } from "dotenv";
+
+// Load .env before reading env vars (predev runs before electron-vite loads .env)
+config({ path: resolve(import.meta.dirname, "../../../.env"), override: true, quiet: true });
 
 // Import getWorkspaceName directly (not shared/constants.ts which imports env.ts
 // and would trigger Zod validation of env vars not yet available during predev)
