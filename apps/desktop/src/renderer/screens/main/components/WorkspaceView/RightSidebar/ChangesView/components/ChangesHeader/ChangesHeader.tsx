@@ -39,7 +39,11 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 			{ enabled: !!worktreePath },
 		);
 
-	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
+	const effectiveBaseBranch =
+		baseBranch ??
+		branchData?.worktreeBaseBranch ??
+		branchData?.defaultBranch ??
+		"main";
 	const sortedBranches = [...(branchData?.remote ?? [])].sort((a, b) => {
 		if (a === branchData?.defaultBranch) return -1;
 		if (b === branchData?.defaultBranch) return 1;

@@ -47,7 +47,11 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		{ enabled: !!worktreePath },
 	);
 
-	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
+	const effectiveBaseBranch =
+		baseBranch ??
+		branchData?.worktreeBaseBranch ??
+		branchData?.defaultBranch ??
+		"main";
 
 	const {
 		data: status,

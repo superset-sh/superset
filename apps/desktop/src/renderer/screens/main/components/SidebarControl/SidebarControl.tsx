@@ -39,7 +39,11 @@ export function SidebarControl() {
 		{ worktreePath: worktreePath || "" },
 		{ enabled: !!worktreePath && !isSidebarOpen },
 	);
-	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
+	const effectiveBaseBranch =
+		baseBranch ??
+		branchData?.worktreeBaseBranch ??
+		branchData?.defaultBranch ??
+		"main";
 
 	const { data: status } = electronTrpc.changes.getStatus.useQuery(
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },

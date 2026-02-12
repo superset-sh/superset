@@ -30,7 +30,8 @@ export function useFileContent({
 		{ worktreePath },
 		{ enabled: !!worktreePath && diffCategory === "against-base" },
 	);
-	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
+	const effectiveBaseBranch =
+		branchData?.worktreeBaseBranch ?? branchData?.defaultBranch ?? "main";
 
 	const isImage = isImageFile(filePath);
 
