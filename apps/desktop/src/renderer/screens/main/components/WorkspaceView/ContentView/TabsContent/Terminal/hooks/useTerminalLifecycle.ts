@@ -18,6 +18,7 @@ import {
 	setupResizeHandlers,
 	type TerminalRendererRef,
 } from "../helpers";
+import type { LinkDecorationManager } from "../link-providers";
 import { isPaneDestroyed } from "../pane-guards";
 import { coldRestoreState, pendingDetaches } from "../state";
 import type {
@@ -86,6 +87,7 @@ export interface UseTerminalLifecycleOptions {
 	fitAddonRef: MutableRefObject<FitAddon | null>;
 	searchAddonRef: MutableRefObject<SearchAddon | null>;
 	rendererRef: MutableRefObject<TerminalRendererRef | null>;
+	linkDecorationManagerRef: MutableRefObject<LinkDecorationManager | null>;
 	isExitedRef: MutableRefObject<boolean>;
 	wasKilledByUserRef: MutableRefObject<boolean>;
 	commandBufferRef: MutableRefObject<string>;
@@ -140,6 +142,7 @@ export function useTerminalLifecycle({
 	fitAddonRef,
 	searchAddonRef,
 	rendererRef,
+	linkDecorationManagerRef,
 	isExitedRef,
 	wasKilledByUserRef,
 	commandBufferRef,
@@ -207,6 +210,7 @@ export function useTerminalLifecycle({
 			xterm,
 			fitAddon,
 			renderer,
+			linkDecorationManager,
 			cleanup: cleanupQuerySuppression,
 		} = createTerminalInstance(container, {
 			cwd: workspaceCwdRef.current ?? undefined,
@@ -225,6 +229,7 @@ export function useTerminalLifecycle({
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		rendererRef.current = renderer;
+		linkDecorationManagerRef.current = linkDecorationManager;
 		isExitedRef.current = false;
 		setXtermInstance(xterm);
 		isStreamReadyRef.current = false;
@@ -584,6 +589,7 @@ export function useTerminalLifecycle({
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 			rendererRef.current = null;
+			linkDecorationManagerRef.current = null;
 			setXtermInstance(null);
 		};
 	}, [
