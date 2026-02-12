@@ -358,7 +358,8 @@ step_write_env() {
     # Port allocation for multi-worktree dev instances
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
-    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric
+    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
+    #          +10 code inspector
     if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
       local BASE=$SUPERSET_PORT_BASE
 
@@ -373,6 +374,7 @@ step_write_env() {
       local STREAMS_PORT=$((BASE + 7))
       local STREAMS_INTERNAL_PORT=$((BASE + 8))
       local ELECTRIC_PORT=$((BASE + 9))
+      local CODE_INSPECTOR_PORT=$((BASE + 10))
 
       echo ""
       echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -387,6 +389,7 @@ step_write_env() {
       echo "STREAMS_PORT=$STREAMS_PORT"
       echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
       echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+      echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
       echo ""
       echo "# Cross-app URLs (overrides from root .env)"
       echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"

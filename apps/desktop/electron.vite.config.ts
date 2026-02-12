@@ -209,6 +209,7 @@ export default defineConfig({
 				bundler: "vite",
 				hotKeys: ["altKey"],
 				hideConsole: true,
+				port: Number(process.env.CODE_INSPECTOR_PORT) || undefined,
 			}),
 			htmlEnvTransformPlugin(),
 		],
