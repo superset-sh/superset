@@ -1,66 +1,31 @@
-import { Button } from "@superset/ui/button";
-import { Input } from "@superset/ui/input";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
-import { useCallback, useEffect, useState } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { MONACO_EDITOR_OPTIONS } from "renderer/providers/MonacoProvider";
-import {
-	DEFAULT_TERMINAL_FONT_FAMILY,
-	DEFAULT_TERMINAL_FONT_SIZE,
-} from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/config";
-import {
-	type MarkdownStyle,
-	SYSTEM_THEME_ID,
-	useMarkdownStyle,
-	useSetMarkdownStyle,
-	useSetTheme,
-	useThemeId,
-	useThemeStore,
-} from "renderer/stores";
-import { builtInThemes } from "shared/themes";
+import type { ReactNode } from "react";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { SystemThemeCard } from "./components/SystemThemeCard";
-import { ThemeCard } from "./components/ThemeCard";
+import { CustomThemesSection } from "./components/CustomThemesSection";
+import { FontSettingSection } from "./components/FontSettingSection";
+import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
+import { ThemeSection } from "./components/ThemeSection";
 
-const DEFAULT_EDITOR_FONT_FAMILY = MONACO_EDITOR_OPTIONS.fontFamily;
-const DEFAULT_EDITOR_FONT_SIZE = MONACO_EDITOR_OPTIONS.fontSize;
-
-const FONT_PREVIEW_TEXT =
-	"The quick brown fox jumps over the lazy dog.\n0O1lI {}[]() => !== +- @#$%";
-
-function FontPreview({
-	fontFamily,
-	fontSize,
-	variant,
-}: {
-	fontFamily: string;
-	fontSize: number;
-	variant: "editor" | "terminal";
-}) {
-	const isTerminal = variant === "terminal";
+/**
+ * Renders a list of visible sections with automatic border separators.
+ * Each section is its own component that owns its data-fetching,
+ * so query resolutions in one section don't re-render others.
+ */
+function SectionList({ children }: { children: ReactNode[] }) {
+	const visibleChildren = children.filter(Boolean);
 	return (
-		<div
-			className={`rounded-md border p-3 ${
-				isTerminal ? "bg-[#1e1e1e] text-[#cccccc] border-[#333]" : "bg-muted/50"
-			}`}
-			style={{
-				fontFamily: fontFamily || undefined,
-				fontSize: `${fontSize}px`,
-				lineHeight: 1.5,
-				whiteSpace: "pre-wrap",
-			}}
-		>
-			{FONT_PREVIEW_TEXT}
+		<div>
+			{visibleChildren.map((child, i) => (
+				<div
+					key={(child as React.ReactElement).key ?? i}
+					className={i > 0 ? "pt-6 border-t mt-6" : ""}
+				>
+					{child}
+				</div>
+			))}
 		</div>
 	);
 }
@@ -78,10 +43,6 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_MARKDOWN,
 		visibleItems,
 	);
-	const showCustomThemes = isItemVisible(
-		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
-		visibleItems,
-	);
 	const showEditorFont = isItemVisible(
 		SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT,
 		visibleItems,
@@ -90,122 +51,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT,
 		visibleItems,
 	);
-
-	const activeThemeId = useThemeId();
-	const setTheme = useSetTheme();
-	const customThemes = useThemeStore((state) => state.customThemes);
-	const markdownStyle = useMarkdownStyle();
-	const setMarkdownStyle = useSetMarkdownStyle();
-
-	const allThemes = [...builtInThemes, ...customThemes];
-
-	const utils = electronTrpc.useUtils();
-
-	const { data: fontSettings, isLoading: isFontLoading } =
-		electronTrpc.settings.getFontSettings.useQuery();
-
-	const setFontSettings = electronTrpc.settings.setFontSettings.useMutation({
-		onMutate: async (input) => {
-			await utils.settings.getFontSettings.cancel();
-			const previous = utils.settings.getFontSettings.getData();
-			utils.settings.getFontSettings.setData(undefined, (old) => ({
-				terminalFontFamily: old?.terminalFontFamily ?? null,
-				terminalFontSize: old?.terminalFontSize ?? null,
-				editorFontFamily: old?.editorFontFamily ?? null,
-				editorFontSize: old?.editorFontSize ?? null,
-				...input,
-			}));
-			return { previous };
-		},
-		onError: (_err, _vars, context) => {
-			if (context?.previous !== undefined) {
-				utils.settings.getFontSettings.setData(undefined, context.previous);
-			}
-		},
-		onSettled: () => {
-			utils.settings.getFontSettings.invalidate();
-		},
-	});
-
-	const handleEditorFontFamilyBlur = useCallback(
-		(e: React.FocusEvent<HTMLInputElement>) => {
-			const value = e.target.value.trim();
-			setFontSettings.mutate({
-				editorFontFamily: value || null,
-			});
-		},
-		[setFontSettings],
+	const showCustomThemes = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
+		visibleItems,
 	);
-
-	const handleEditorFontSizeBlur = useCallback(
-		(e: React.FocusEvent<HTMLInputElement>) => {
-			const value = Number.parseInt(e.target.value, 10);
-			if (!Number.isNaN(value) && value >= 10 && value <= 24) {
-				setFontSettings.mutate({ editorFontSize: value });
-			}
-		},
-		[setFontSettings],
-	);
-
-	const handleTerminalFontFamilyBlur = useCallback(
-		(e: React.FocusEvent<HTMLInputElement>) => {
-			const value = e.target.value.trim();
-			setFontSettings.mutate({
-				terminalFontFamily: value || null,
-			});
-		},
-		[setFontSettings],
-	);
-
-	const handleTerminalFontSizeBlur = useCallback(
-		(e: React.FocusEvent<HTMLInputElement>) => {
-			const value = Number.parseInt(e.target.value, 10);
-			if (!Number.isNaN(value) && value >= 10 && value <= 24) {
-				setFontSettings.mutate({ terminalFontSize: value });
-			}
-		},
-		[setFontSettings],
-	);
-
-	const [editorFontDraft, setEditorFontDraft] = useState<string | null>(null);
-	const [terminalFontDraft, setTerminalFontDraft] = useState<string | null>(
-		null,
-	);
-	const [editorFontSizeDraft, setEditorFontSizeDraft] = useState<string | null>(
-		null,
-	);
-	const [terminalFontSizeDraft, setTerminalFontSizeDraft] = useState<
-		string | null
-	>(null);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: sync draft state when fontSettings changes
-	useEffect(() => {
-		setEditorFontSizeDraft(null);
-		setTerminalFontSizeDraft(null);
-	}, [fontSettings]);
-
-	const editorPreviewFamily =
-		editorFontDraft ??
-		fontSettings?.editorFontFamily ??
-		DEFAULT_EDITOR_FONT_FAMILY;
-	const editorPreviewSize =
-		(editorFontSizeDraft != null
-			? Number.parseInt(editorFontSizeDraft, 10)
-			: undefined) ||
-		fontSettings?.editorFontSize ||
-		DEFAULT_EDITOR_FONT_SIZE;
-	const terminalPreviewFamily =
-		terminalFontDraft ??
-		fontSettings?.terminalFontFamily ??
-		DEFAULT_TERMINAL_FONT_FAMILY;
-	const terminalPreviewSize =
-		(terminalFontSizeDraft != null
-			? Number.parseInt(terminalFontSizeDraft, 10)
-			: undefined) ||
-		fontSettings?.terminalFontSize ||
-		DEFAULT_TERMINAL_FONT_SIZE;
-
-	const hasPrecedingSection = showTheme || showMarkdown;
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -216,217 +65,17 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				</p>
 			</div>
 
-			<div className="space-y-8">
-				{/* Theme Section */}
-				{showTheme && (
-					<div>
-						<h3 className="text-sm font-medium mb-4">Theme</h3>
-						<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-							<SystemThemeCard
-								isSelected={activeThemeId === SYSTEM_THEME_ID}
-								onSelect={() => setTheme(SYSTEM_THEME_ID)}
-							/>
-							{allThemes.map((theme) => (
-								<ThemeCard
-									key={theme.id}
-									theme={theme}
-									isSelected={activeThemeId === theme.id}
-									onSelect={() => setTheme(theme.id)}
-								/>
-							))}
-						</div>
-					</div>
-				)}
-
-				{showMarkdown && (
-					<div className={showTheme ? "pt-6 border-t" : ""}>
-						<h3 className="text-sm font-medium mb-2">Markdown Style</h3>
-						<p className="text-sm text-muted-foreground mb-4">
-							Rendering style for markdown files when viewing rendered content
-						</p>
-						<Select
-							value={markdownStyle}
-							onValueChange={(value) =>
-								setMarkdownStyle(value as MarkdownStyle)
-							}
-						>
-							<SelectTrigger className="w-[200px]">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="default">Default</SelectItem>
-								<SelectItem value="tufte">Tufte</SelectItem>
-							</SelectContent>
-						</Select>
-						<p className="text-xs text-muted-foreground mt-2">
-							Tufte style uses elegant serif typography inspired by Edward
-							Tufte's books
-						</p>
-					</div>
-				)}
-
+			<SectionList>
+				{showTheme && <ThemeSection key="theme" />}
+				{showMarkdown && <MarkdownStyleSection key="markdown" />}
 				{showEditorFont && (
-					<div className={hasPrecedingSection ? "pt-6 border-t" : ""}>
-						<h3 className="text-sm font-medium mb-1">Editor Font</h3>
-						<p className="text-sm text-muted-foreground mb-3">
-							Font used in diff views and file editors
-						</p>
-						<div className="flex items-center gap-2">
-							<Input
-								placeholder={DEFAULT_EDITOR_FONT_FAMILY}
-								value={editorFontDraft ?? fontSettings?.editorFontFamily ?? ""}
-								onChange={(e) => setEditorFontDraft(e.target.value)}
-								onBlur={(e) => {
-									handleEditorFontFamilyBlur(e);
-									setEditorFontDraft(null);
-								}}
-								disabled={isFontLoading}
-								className="flex-1"
-							/>
-							<Input
-								type="number"
-								min={10}
-								max={24}
-								value={
-									editorFontSizeDraft ??
-									String(
-										fontSettings?.editorFontSize ?? DEFAULT_EDITOR_FONT_SIZE,
-									)
-								}
-								onChange={(e) => setEditorFontSizeDraft(e.target.value)}
-								onBlur={(e) => {
-									handleEditorFontSizeBlur(e);
-									setEditorFontSizeDraft(null);
-								}}
-								disabled={isFontLoading}
-								className="w-20"
-							/>
-							{(fontSettings?.editorFontFamily ||
-								fontSettings?.editorFontSize) && (
-								<Button
-									variant="ghost"
-									size="sm"
-									className="text-xs text-muted-foreground shrink-0"
-									onClick={() => {
-										setFontSettings.mutate({
-											editorFontFamily: null,
-											editorFontSize: null,
-										});
-										setEditorFontDraft(null);
-										setEditorFontSizeDraft(null);
-									}}
-								>
-									Reset
-								</Button>
-							)}
-						</div>
-						<div className="mt-3">
-							<FontPreview
-								fontFamily={editorPreviewFamily}
-								fontSize={editorPreviewSize}
-								variant="editor"
-							/>
-						</div>
-					</div>
+					<FontSettingSection key="editor-font" variant="editor" />
 				)}
-
 				{showTerminalFont && (
-					<div
-						className={
-							hasPrecedingSection || showEditorFont ? "pt-6 border-t" : ""
-						}
-					>
-						<h3 className="text-sm font-medium mb-1">Terminal Font</h3>
-						<p className="text-sm text-muted-foreground mb-3">
-							Font used in terminal panels.{" "}
-							<a
-								href="https://www.nerdfonts.com"
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-primary hover:underline"
-							>
-								Nerd Fonts
-							</a>{" "}
-							recommended for shell theme icons.
-						</p>
-						<div className="flex items-center gap-2">
-							<Input
-								placeholder={DEFAULT_TERMINAL_FONT_FAMILY}
-								value={
-									terminalFontDraft ?? fontSettings?.terminalFontFamily ?? ""
-								}
-								onChange={(e) => setTerminalFontDraft(e.target.value)}
-								onBlur={(e) => {
-									handleTerminalFontFamilyBlur(e);
-									setTerminalFontDraft(null);
-								}}
-								disabled={isFontLoading}
-								className="flex-1"
-							/>
-							<Input
-								type="number"
-								min={10}
-								max={24}
-								value={
-									terminalFontSizeDraft ??
-									String(
-										fontSettings?.terminalFontSize ??
-											DEFAULT_TERMINAL_FONT_SIZE,
-									)
-								}
-								onChange={(e) => setTerminalFontSizeDraft(e.target.value)}
-								onBlur={(e) => {
-									handleTerminalFontSizeBlur(e);
-									setTerminalFontSizeDraft(null);
-								}}
-								disabled={isFontLoading}
-								className="w-20"
-							/>
-							{(fontSettings?.terminalFontFamily ||
-								fontSettings?.terminalFontSize) && (
-								<Button
-									variant="ghost"
-									size="sm"
-									className="text-xs text-muted-foreground shrink-0"
-									onClick={() => {
-										setFontSettings.mutate({
-											terminalFontFamily: null,
-											terminalFontSize: null,
-										});
-										setTerminalFontDraft(null);
-										setTerminalFontSizeDraft(null);
-									}}
-								>
-									Reset
-								</Button>
-							)}
-						</div>
-						<div className="mt-3">
-							<FontPreview
-								fontFamily={terminalPreviewFamily}
-								fontSize={terminalPreviewSize}
-								variant="terminal"
-							/>
-						</div>
-					</div>
+					<FontSettingSection key="terminal-font" variant="terminal" />
 				)}
-
-				{showCustomThemes && (
-					<div
-						className={
-							hasPrecedingSection || showEditorFont || showTerminalFont
-								? "pt-6 border-t"
-								: ""
-						}
-					>
-						<h3 className="text-sm font-medium mb-2">Custom Themes</h3>
-						<p className="text-sm text-muted-foreground">
-							Custom theme import coming soon. You'll be able to import JSON
-							theme files to create your own themes.
-						</p>
-					</div>
-				)}
-			</div>
+				{showCustomThemes && <CustomThemesSection key="custom-themes" />}
+			</SectionList>
 		</div>
 	);
 }
