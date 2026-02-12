@@ -12,6 +12,47 @@ import {
 	parseToolName,
 } from "./mcp-clients";
 
+/**
+ * Collect unique Slack user IDs from `<@U...>` mentions in text,
+ * resolve them via `users.info`, and return a replacer function.
+ */
+export async function resolveUserMentions({
+	texts,
+	slack,
+}: {
+	texts: string[];
+	slack: WebClient;
+}): Promise<(text: string) => string> {
+	const userIds = new Set<string>();
+	for (const text of texts) {
+		for (const match of text.matchAll(/<@(U[A-Z0-9]+)>/g)) {
+			if (match[1]) userIds.add(match[1]);
+		}
+	}
+
+	if (userIds.size === 0) {
+		return (text) => text;
+	}
+
+	const userMap = new Map<string, string>();
+	await Promise.all(
+		[...userIds].map(async (id) => {
+			try {
+				const info = await slack.users.info({ user: id });
+				const name = info.user?.real_name || info.user?.name || info.user?.id;
+				if (name) {
+					userMap.set(id, name);
+				}
+			} catch (error) {
+				console.warn(`[slack-agent] Failed to resolve user ${id}:`, error);
+			}
+		}),
+	);
+
+	return (text: string) =>
+		text.replace(/<@(U[A-Z0-9]+)>/g, (_, id) => `@${userMap.get(id) ?? id}`);
+}
+
 async function fetchThreadContext({
 	token,
 	channelId,
@@ -41,8 +82,22 @@ async function fetchThreadContext({
 			return "";
 		}
 
+		// Collect mention texts + message author IDs for resolution
+		const textsToResolve = messages.flatMap((msg) => {
+			const parts = [msg.text ?? ""];
+			if (msg.user) parts.push(`<@${msg.user}>`);
+			return parts;
+		});
+		const resolve = await resolveUserMentions({
+			texts: textsToResolve,
+			slack,
+		});
+
 		const formatted = messages
-			.map((msg) => `<${msg.user}>: ${msg.text}`)
+			.map(
+				(msg) =>
+					`${msg.user ? resolve(`<@${msg.user}>`) : "unknown"}: ${resolve(msg.text ?? "")}`,
+			)
 			.join("\n");
 
 		return `--- Thread Context (${messages.length} previous messages) ---\n${formatted}\n--- End Thread Context ---`;
@@ -248,9 +303,19 @@ async function handleGetChannelHistory({
 		return JSON.stringify({ messages: [] });
 	}
 
+	const textsToResolve = result.messages.flatMap((msg) => {
+		const parts = [msg.text ?? ""];
+		if (msg.user) parts.push(`<@${msg.user}>`);
+		return parts;
+	});
+	const resolve = await resolveUserMentions({
+		texts: textsToResolve,
+		slack,
+	});
+
 	const messages = result.messages.map((msg) => ({
-		user: msg.user,
-		text: msg.text,
+		user: msg.user ? resolve(`<@${msg.user}>`) : msg.user,
+		text: msg.text ? resolve(msg.text) : msg.text,
 		ts: msg.ts,
 		thread_ts: msg.thread_ts,
 	}));

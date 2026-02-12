@@ -2,7 +2,11 @@ import type { AppMentionEvent } from "@slack/types";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { formatErrorForSlack, runSlackAgent } from "../utils/run-agent";
+import {
+	formatErrorForSlack,
+	resolveUserMentions,
+	runSlackAgent,
+} from "../utils/run-agent";
 import { formatSideEffectsMessage } from "../utils/slack-blocks";
 import { createSlackClient } from "../utils/slack-client";
 
@@ -70,8 +74,13 @@ export async function processSlackMention({
 	}
 
 	try {
+		const resolve = await resolveUserMentions({
+			texts: [event.text],
+			slack,
+		});
+
 		const result = await runSlackAgent({
-			prompt: event.text,
+			prompt: resolve(event.text),
 			channelId: event.channel,
 			threadTs,
 			organizationId: connection.organizationId,
