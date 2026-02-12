@@ -169,6 +169,13 @@
       "when": 1770879851897,
       "tag": "0023_add_show_presets_bar_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1770884219595,
+      "tag": "0024_generate_migration",
+      "breakpoints": true
     }
   ]
 }
