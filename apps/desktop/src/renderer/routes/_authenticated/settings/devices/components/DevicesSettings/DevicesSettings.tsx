@@ -23,10 +23,8 @@ export function DevicesSettings() {
 		(q) =>
 			q
 				.from({ devicePresence: collections.devicePresence })
-				.innerJoin(
-					{ users: collections.users },
-					({ devicePresence, users }) =>
-						eq(devicePresence.userId, users.id),
+				.innerJoin({ users: collections.users }, ({ devicePresence, users }) =>
+					eq(devicePresence.userId, users.id),
 				)
 				.select(({ devicePresence, users }) => ({
 					...devicePresence,

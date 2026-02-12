@@ -266,7 +266,7 @@ function PlansPage() {
 						},
 					},
 				);
-				} finally {
+			} finally {
 				setIsCanceling(false);
 			}
 			return;
