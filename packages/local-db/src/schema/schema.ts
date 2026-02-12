@@ -114,6 +114,9 @@ export const workspaces = sqliteTable(
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),
+		// Allocated port base for multi-worktree dev instances.
+		// Each workspace gets a range of 10 ports starting from this base.
+		portBase: integer("port_base"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
@@ -160,6 +163,7 @@ export const settings = sqliteTable("settings", {
 	}),
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
+	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
 	terminalFontFamily: text("terminal_font_family"),
 	terminalFontSize: integer("terminal_font_size"),
 	editorFontFamily: text("editor_font_family"),

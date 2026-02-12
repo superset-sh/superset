@@ -10,6 +10,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
 	activateProject,
+	allocatePortBase,
 	findOrphanedWorktreeByBranch,
 	findWorktreeWorkspaceByBranch,
 	getBranchWorkspace,
@@ -147,7 +148,7 @@ function handleExistingWorktree({
 	const setupConfig = loadSetupConfig({
 		mainRepoPath: project.mainRepoPath,
 		worktreePath: existingWorktree.path,
-		projectName: project.name,
+		projectId: project.id,
 	});
 
 	return {
@@ -253,7 +254,7 @@ async function handleNewWorktree({
 	const setupConfig = loadSetupConfig({
 		mainRepoPath: project.mainRepoPath,
 		worktreePath,
-		projectName: project.name,
+		projectId: project.id,
 	});
 
 	return {
@@ -396,7 +397,7 @@ export const createCreateProcedures = () => {
 						const setupConfig = loadSetupConfig({
 							mainRepoPath: project.mainRepoPath,
 							worktreePath: orphanedWorktree.path,
-							projectName: project.name,
+							projectId: project.id,
 						});
 						return {
 							workspace,
@@ -433,6 +434,7 @@ export const createCreateProcedures = () => {
 					.get();
 
 				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const portBase = allocatePortBase();
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -444,6 +446,7 @@ export const createCreateProcedures = () => {
 						name: input.name ?? branch,
 						isUnnamed: !input.name,
 						tabOrder: maxTabOrder + 1,
+						portBase,
 					})
 					.returning()
 					.get();
@@ -475,7 +478,7 @@ export const createCreateProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath,
-					projectName: project.name,
+					projectId: project.id,
 				});
 
 				return {
@@ -538,6 +541,7 @@ export const createCreateProcedures = () => {
 					};
 				}
 
+				const portBase = allocatePortBase();
 				const insertResult = localDb
 					.insert(workspaces)
 					.values({
@@ -546,6 +550,7 @@ export const createCreateProcedures = () => {
 						branch,
 						name: branch,
 						tabOrder: 0,
+						portBase,
 					})
 					.onConflictDoNothing()
 					.returning()
@@ -645,6 +650,7 @@ export const createCreateProcedures = () => {
 				}
 
 				const maxTabOrder = getMaxWorkspaceTabOrder(worktree.projectId);
+				const portBase = allocatePortBase();
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -656,6 +662,7 @@ export const createCreateProcedures = () => {
 						name: input.name ?? worktree.branch,
 						isUnnamed: !input.name,
 						tabOrder: maxTabOrder + 1,
+						portBase,
 					})
 					.returning()
 					.get();
@@ -666,7 +673,7 @@ export const createCreateProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath: worktree.path,
-					projectName: project.name,
+					projectId: project.id,
 				});
 
 				track("workspace_opened", {
@@ -779,7 +786,7 @@ export const createCreateProcedures = () => {
 					const setupConfig = loadSetupConfig({
 						mainRepoPath: project.mainRepoPath,
 						worktreePath: existingWorktree.path,
-						projectName: project.name,
+						projectId: project.id,
 					});
 
 					track("workspace_opened", {
@@ -836,7 +843,7 @@ export const createCreateProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath: input.worktreePath,
-					projectName: project.name,
+					projectId: project.id,
 				});
 
 				track("workspace_created", {

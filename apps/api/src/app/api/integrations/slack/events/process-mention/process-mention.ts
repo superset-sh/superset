@@ -1,8 +1,12 @@
 import type { AppMentionEvent } from "@slack/types";
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { formatErrorForSlack, runSlackAgent } from "../utils/run-agent";
+import {
+	formatErrorForSlack,
+	resolveUserMentions,
+	runSlackAgent,
+} from "../utils/run-agent";
 import { formatSideEffectsMessage } from "../utils/slack-blocks";
 import { createSlackClient } from "../utils/slack-client";
 
@@ -41,6 +45,16 @@ export async function processSlackMention({
 
 	const slack = createSlackClient(connection.accessToken);
 
+	const slackUserLink = event.user
+		? await db.query.usersSlackUsers.findFirst({
+				where: and(
+					eq(usersSlackUsers.slackUserId, event.user),
+					eq(usersSlackUsers.teamId, teamId),
+				),
+				columns: { modelPreference: true },
+			})
+		: undefined;
+
 	try {
 		await slack.reactions.add({
 			channel: event.channel,
@@ -70,12 +84,18 @@ export async function processSlackMention({
 	}
 
 	try {
+		const resolve = await resolveUserMentions({
+			texts: [event.text],
+			slack,
+		});
+
 		const result = await runSlackAgent({
-			prompt: event.text,
+			prompt: resolve(event.text),
 			channelId: event.channel,
 			threadTs,
 			organizationId: connection.organizationId,
 			slackToken: connection.accessToken,
+			model: slackUserLink?.modelPreference ?? undefined,
 			onProgress: messageTs
 				? async (status) => {
 						try {

@@ -133,7 +133,7 @@ export function register(server: McpServer) {
 		"start_claude_session",
 		{
 			description:
-				"Start an autonomous Claude Code session for a task in an existing workspace. Launches Claude with the task context in the specified workspace.",
+				"Start an autonomous Claude Code session for a task in an existing workspace. Launches Claude with the task context in the specified workspace. The target device must belong to the current user.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				taskId: z.string().describe("Task ID to work on"),
@@ -172,7 +172,7 @@ export function register(server: McpServer) {
 		"start_claude_subagent",
 		{
 			description:
-				"Start a Claude Code subagent for a task in an existing workspace. Adds a new terminal pane to the active workspace instead of creating a new one. Use this when you want to run Claude alongside your current work.",
+				"Start a Claude Code subagent for a task in an existing workspace. Adds a new terminal pane to the active workspace instead of creating a new one. Use this when you want to run Claude alongside your current work. The target device must belong to the current user.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				taskId: z.string().describe("Task ID to work on"),

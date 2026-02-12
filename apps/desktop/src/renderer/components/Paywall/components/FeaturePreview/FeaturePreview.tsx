@@ -58,7 +58,7 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 					<Badge variant="default">PRO</Badge>
 					{selectedFeature.comingSoon && (
 						<Badge variant="secondary" className="text-[10px]">
-							Coming Soon
+							(Coming Soon)
 						</Badge>
 					)}
 				</div>

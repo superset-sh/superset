@@ -127,6 +127,13 @@
       "when": 1770583877762,
       "tag": "0017_switch_to_oauth2",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1770869009148,
+      "tag": "0018_add_users_slack_users",
+      "breakpoints": true
     }
   ]
 }

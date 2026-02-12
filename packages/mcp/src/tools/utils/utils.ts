@@ -70,6 +70,18 @@ export async function executeOnDevice({
 		};
 	}
 
+	if (device.userId !== ctx.userId) {
+		return {
+			content: [
+				{
+					type: "text" as const,
+					text: `Error: Device ${deviceId} does not belong to you. You can only execute commands on your own devices.`,
+				},
+			],
+			isError: true,
+		};
+	}
+
 	const [cmd] = await db
 		.insert(agentCommands)
 		.values({

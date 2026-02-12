@@ -14,6 +14,7 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -33,6 +34,56 @@ function getSettings() {
 		row = localDb.insert(settings).values({ id: 1 }).returning().get();
 	}
 	return row;
+}
+
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
+	{
+		name: "claude",
+		description: "Danger mode: All permissions auto-approved",
+		cwd: "",
+		commands: ["claude --dangerously-skip-permissions"],
+	},
+	{
+		name: "codex",
+		description: "Danger mode: All permissions auto-approved",
+		cwd: "",
+		commands: [
+			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+		],
+	},
+];
+
+function initializeDefaultPresets() {
+	const row = getSettings();
+	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
+
+	const existingPresets: TerminalPreset[] = row.terminalPresets ?? [];
+
+	const mergedPresets =
+		existingPresets.length > 0
+			? existingPresets
+			: DEFAULT_PRESETS.map((p) => ({
+					id: crypto.randomUUID(),
+					...p,
+				}));
+
+	localDb
+		.insert(settings)
+		.values({
+			id: 1,
+			terminalPresets: mergedPresets,
+			terminalPresetsInitialized: true,
+		})
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: {
+				terminalPresets: mergedPresets,
+				terminalPresetsInitialized: true,
+			},
+		})
+		.run();
+
+	return mergedPresets;
 }
 
 /** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
@@ -55,6 +106,9 @@ export const createSettingsRouter = () => {
 		}),
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
+			if (!row.terminalPresetsInitialized) {
+				return initializeDefaultPresets();
+			}
 			return row.terminalPresets ?? [];
 		}),
 		createTerminalPreset: publicProcedure
@@ -342,6 +396,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { confirmOnQuit: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getShowPresetsBar: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR;
+		}),
+
+		setShowPresetsBar: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, showPresetsBar: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showPresetsBar: input.enabled },
 					})
 					.run();
 

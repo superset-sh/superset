@@ -12,7 +12,6 @@ import tsconfigPathsPlugin from "vite-tsconfig-paths";
 import { resources, version } from "./package.json";
 import {
 	copyResourcesPlugin,
-	DEV_SERVER_PORT,
 	defineEnv,
 	devPath,
 	htmlEnvTransformPlugin,
@@ -20,6 +19,8 @@ import {
 
 // override: true ensures .env values take precedence over inherited env vars
 config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
+
+const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
 
 // Validate required env vars at build time using the Zod schema (single source of truth)
 await import("./src/main/env.main");
@@ -52,6 +53,10 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_API_URL,
 				"https://api.superset.sh",
 			),
+			"process.env.NEXT_PUBLIC_STREAMS_URL": defineEnv(
+				process.env.NEXT_PUBLIC_STREAMS_URL,
+				"https://streams.superset.sh",
+			),
 			"process.env.NEXT_PUBLIC_WEB_URL": defineEnv(
 				process.env.NEXT_PUBLIC_WEB_URL,
 				"https://app.superset.sh",
@@ -69,6 +74,18 @@ export default defineConfig({
 			),
 			"process.env.NEXT_PUBLIC_POSTHOG_HOST": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
+			),
+			"process.env.STREAMS_URL": defineEnv(
+				process.env.STREAMS_URL,
+				"https://superset-stream.fly.dev",
+			),
+			"process.env.DESKTOP_VITE_PORT": defineEnv(process.env.DESKTOP_VITE_PORT),
+			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
+				process.env.DESKTOP_NOTIFICATIONS_PORT,
+			),
+			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
+			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
+				process.env.SUPERSET_WORKSPACE_NAME,
 			),
 		},
 
@@ -154,6 +171,18 @@ export default defineConfig({
 			),
 			"import.meta.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
+			),
+			"process.env.STREAMS_URL": defineEnv(
+				process.env.STREAMS_URL,
+				"https://superset-stream.fly.dev",
+			),
+			"process.env.DESKTOP_VITE_PORT": defineEnv(process.env.DESKTOP_VITE_PORT),
+			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
+				process.env.DESKTOP_NOTIFICATIONS_PORT,
+			),
+			"process.env.ELECTRIC_PORT": defineEnv(process.env.ELECTRIC_PORT),
+			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
+				process.env.SUPERSET_WORKSPACE_NAME,
 			),
 		},
 

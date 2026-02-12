@@ -51,7 +51,7 @@ export function NewWorkspaceButton({
 					<button
 						type="button"
 						onClick={handleClick}
-						className="group flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors"
+						className="group flex items-center justify-center size-8 rounded-md bg-accent/40 hover:bg-accent/60 transition-colors"
 					>
 						<div className="flex items-center justify-center size-5 rounded bg-accent">
 							<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
@@ -69,7 +69,7 @@ export function NewWorkspaceButton({
 		<button
 			type="button"
 			onClick={handleClick}
-			className="group flex items-center gap-2 px-2 py-1.5 w-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors"
+			className="group flex items-center gap-2 px-2 py-1.5 w-full text-sm font-medium text-muted-foreground hover:text-foreground bg-accent/40 hover:bg-accent/60 rounded-md transition-colors"
 		>
 			<div className="flex items-center justify-center size-5 rounded bg-accent">
 				<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />

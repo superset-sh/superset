@@ -11,6 +11,7 @@ export const env = createEnv({
 		STREAMS_INTERNAL_URL: z.string().url().optional(),
 		STREAMS_DATA_DIR: z.string().min(1).default("./data"),
 		DATABASE_URL: z.string().url(),
+		CORS_ORIGINS: z.string().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

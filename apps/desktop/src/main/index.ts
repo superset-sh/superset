@@ -8,6 +8,7 @@ import {
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
+import { getWorkspaceName } from "shared/env.shared";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
@@ -21,9 +22,9 @@ import { MainWindow } from "./windows/main";
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
 console.log("[main] Local database ready:", !!localDb);
 
-// Set different app name for dev to avoid singleton lock conflicts with production
-if (process.env.NODE_ENV === "development") {
-	app.setName("Superset Dev");
+const workspaceName = getWorkspaceName();
+if (workspaceName) {
+	app.setName(`Superset (${workspaceName})`);
 }
 
 // Register protocol handler for deep linking
@@ -225,14 +226,11 @@ protocol.registerSchemesAsPrivileged([
 	},
 ]);
 
-// Single instance lock - required for second-instance event on Windows/Linux
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-	// Another instance is already running, exit immediately without triggering before-quit
 	app.exit(0);
 } else {
-	// Handle deep links when second instance is launched (Windows/Linux)
 	app.on("second-instance", async (_event, argv) => {
 		focusMainWindow();
 		const url = findDeepLinkInArgv(argv);

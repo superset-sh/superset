@@ -24,7 +24,7 @@ import {
 } from "./session-lifecycle";
 import type { ActiveSession } from "./session-types";
 
-const PROXY_URL = `${env.NEXT_PUBLIC_API_URL}/api/streams`;
+const PROXY_URL = env.NEXT_PUBLIC_STREAMS_URL;
 
 export class ChatSessionManager extends EventEmitter {
 	private readonly sessions = new Map<string, ActiveSession>();
