@@ -1,9 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { WebClient } from "@slack/web-api";
-import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 import { DEFAULT_SLACK_MODEL } from "../../../constants";
 import type { AgentAction } from "../slack-blocks";
@@ -113,6 +110,7 @@ interface RunSlackAgentParams {
 	channelId: string;
 	threadTs: string;
 	organizationId: string;
+	userId: string;
 	slackToken: string;
 	model?: string;
 	onProgress?: (status: string) => void | Promise<void>;
@@ -417,18 +415,6 @@ export async function runSlackAgent(
 	const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 	const actions: AgentAction[] = [];
 
-	const connection = await db.query.integrationConnections.findFirst({
-		where: and(
-			eq(integrationConnections.organizationId, params.organizationId),
-			eq(integrationConnections.provider, "slack"),
-		),
-		columns: { connectedByUserId: true },
-	});
-
-	if (!connection) {
-		throw new Error("Slack connection not found");
-	}
-
 	let supersetMcp: Client | null = null;
 	let cleanupSuperset: (() => Promise<void>) | null = null;
 
@@ -441,7 +427,7 @@ export async function runSlackAgent(
 			}),
 			createSupersetMcpClient({
 				organizationId: params.organizationId,
-				userId: connection.connectedByUserId,
+				userId: params.userId,
 			}),
 		]);
 
@@ -452,7 +438,7 @@ export async function runSlackAgent(
 			supersetMcp.listTools(),
 			fetchAgentContext({
 				mcpClient: supersetMcp,
-				userId: connection.connectedByUserId,
+				userId: params.userId,
 			}),
 		]);
 
