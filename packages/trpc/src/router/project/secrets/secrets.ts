@@ -4,15 +4,15 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { decryptSecret, encryptSecret } from "../../lib/crypto";
+import { protectedProcedure } from "../../../trpc";
+import { verifyOrgMembership } from "../../integration/utils";
+import { decryptSecret, encryptSecret } from "./utils/crypto";
 import {
 	MAX_SECRETS_PER_PROJECT,
 	MAX_TOTAL_SIZE,
 	validateSecretKey,
 	validateSecretValue,
-} from "../../lib/secrets-validation";
-import { protectedProcedure } from "../../trpc";
-import { verifyOrgMembership } from "../integration/utils";
+} from "./utils/secrets-validation";
 
 export const secretsRouter = {
 	upsert: protectedProcedure
@@ -81,6 +81,7 @@ export const secretsRouter = {
 					key: input.key,
 					encryptedValue,
 					sensitive: input.sensitive ?? false,
+					createdByUserId: ctx.session.user.id,
 				})
 				.onConflictDoUpdate({
 					target: [secrets.projectId, secrets.key],
@@ -124,14 +125,18 @@ export const secretsRouter = {
 					eq(secrets.projectId, input.projectId),
 					eq(secrets.organizationId, input.organizationId),
 				),
+				with: {
+					createdBy: { columns: { id: true, name: true, image: true } },
+				},
 			});
 			return rows.map((row) => ({
 				id: row.id,
 				key: row.key,
-				value: decryptSecret(row.encryptedValue),
+				value: row.sensitive ? "" : decryptSecret(row.encryptedValue),
 				sensitive: row.sensitive,
 				createdAt: row.createdAt,
 				updatedAt: row.updatedAt,
+				createdBy: row.createdBy ?? null,
 			}));
 		}),
 } satisfies TRPCRouterRecord;

@@ -8,7 +8,7 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
-import { Switch } from "@superset/ui/switch";
+import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 
@@ -34,14 +34,13 @@ export function EditSecretDialog({
 	secret,
 	onSaved,
 }: EditSecretDialogProps) {
-	const [value, setValue] = useState(secret.value);
-	const [sensitive, setSensitive] = useState(secret.sensitive);
+	const [value, setValue] = useState("");
 	const [isSaving, setIsSaving] = useState(false);
 
 	useEffect(() => {
 		if (open) {
-			setValue(secret.value);
-			setSensitive(secret.sensitive);
+			// Sensitive secrets never have their value sent from the server
+			setValue(secret.sensitive ? "" : secret.value);
 		}
 	}, [open, secret]);
 
@@ -55,12 +54,14 @@ export function EditSecretDialog({
 				organizationId,
 				key: secret.key,
 				value: value.trim(),
-				sensitive,
+				sensitive: secret.sensitive,
 			});
+			toast.success(`Updated ${secret.key}`);
 			onSaved();
 			onOpenChange(false);
 		} catch (err) {
 			console.error("[secrets/edit] Failed to update:", err);
+			toast.error("Failed to update environment variable");
 		} finally {
 			setIsSaving(false);
 		}
@@ -92,17 +93,13 @@ export function EditSecretDialog({
 					<div className="space-y-2">
 						<span className="text-sm font-medium">Value</span>
 						<Input
-							placeholder="Value"
+							placeholder={secret.sensitive ? "Enter new value" : "Value"}
 							value={value}
 							onChange={(e) => setValue(e.target.value)}
 							className="font-mono text-sm"
+							type={secret.sensitive ? "password" : "text"}
 							autoFocus
 						/>
-					</div>
-
-					<div className="flex items-center gap-2">
-						<Switch checked={sensitive} onCheckedChange={setSensitive} />
-						<span className="text-sm text-muted-foreground">Sensitive</span>
 					</div>
 				</div>
 

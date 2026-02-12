@@ -210,10 +210,16 @@ export function AddSecretSheet({
 					sensitive,
 				});
 			}
+			toast.success(
+				validEntries.length === 1
+					? `Added ${validEntries[0].key.trim()}`
+					: `Added ${validEntries.length} environment variables`,
+			);
 			onSaved();
 			onOpenChange(false);
 		} catch (err) {
 			console.error("[secrets/upsert] Failed to save:", err);
+			toast.error("Failed to save environment variables");
 		} finally {
 			setIsSaving(false);
 		}

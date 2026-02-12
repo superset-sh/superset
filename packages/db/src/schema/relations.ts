@@ -248,6 +248,10 @@ export const secretsRelations = relations(secrets, ({ one }) => ({
 		fields: [secrets.projectId],
 		references: [projects.id],
 	}),
+	createdBy: one(users, {
+		fields: [secrets.createdByUserId],
+		references: [users.id],
+	}),
 }));
 
 export const sandboxImagesRelations = relations(sandboxImages, ({ one }) => ({

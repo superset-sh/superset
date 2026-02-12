@@ -373,6 +373,9 @@ export const secrets = pgTable(
 		key: text().notNull(),
 		encryptedValue: text("encrypted_value").notNull(),
 		sensitive: boolean().notNull().default(false),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()
