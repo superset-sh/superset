@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useCallback, useMemo, useState } from "react";
-import { HiOutlineCheck, HiOutlineCloud } from "react-icons/hi2";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { HiOutlineCloud } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -40,7 +40,6 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 		(q) =>
 			q.from({ projects: collections.projects }).select(({ projects }) => ({
 				id: projects.id,
-				name: projects.name,
 				repoOwner: projects.repoOwner,
 				repoName: projects.repoName,
 			})),
@@ -56,6 +55,15 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 				cloud.repoOwner === project.githubOwner && cloud.repoName === repoName,
 		);
 	}, [project, cloudProjects]);
+
+	useEffect(() => {
+		if (suggestedMatch) {
+			linkToNeon.mutate({
+				id: projectId,
+				neonProjectId: suggestedMatch.id,
+			});
+		}
+	}, [suggestedMatch, linkToNeon.mutate, projectId]);
 
 	const linkedCloudProject = useMemo(() => {
 		if (!project?.neonProjectId || !cloudProjects) return null;
@@ -128,46 +136,13 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 						title="Cloud Project"
 						description="Link this project to a cloud project for sandboxes and environment variables."
 					>
-						{linkedCloudProject ? (
-							<div className="flex items-center justify-between">
-								<div className="flex items-center gap-2 text-sm">
-									<HiOutlineCheck className="h-4 w-4 text-green-500" />
-									<span>
-										Connected to{" "}
-										<span className="font-medium">
-											{linkedCloudProject.repoOwner}/
-											{linkedCloudProject.repoName}
-										</span>
-									</span>
-								</div>
-							</div>
-						) : suggestedMatch ? (
-							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">
-									Found matching cloud project:{" "}
-									<span className="font-medium text-foreground">
-										{suggestedMatch.repoOwner}/{suggestedMatch.repoName}
-									</span>
-								</p>
-								<Button
-									size="sm"
-									variant="outline"
-									disabled={linkToNeon.isPending}
-									onClick={() =>
-										linkToNeon.mutate({
-											id: projectId,
-											neonProjectId: suggestedMatch.id,
-										})
-									}
-								>
-									Connect
-								</Button>
-							</div>
-						) : (
-							<div className="flex items-center justify-between">
-								<p className="text-sm text-muted-foreground">
-									Not connected to a cloud project.
-								</p>
+						<div className="flex items-center justify-between">
+							<p className="text-sm text-muted-foreground">
+								{linkToNeon.isPending
+									? "Connecting..."
+									: "Not connected to a cloud project."}
+							</p>
+							{!linkToNeon.isPending && (
 								<Button
 									size="sm"
 									variant="outline"
@@ -176,8 +151,8 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 								>
 									{isCreatingCloud ? "Connecting..." : "Connect to Cloud"}
 								</Button>
-							</div>
-						)}
+							)}
+						</div>
 					</SettingsSection>
 				)}
 			</div>

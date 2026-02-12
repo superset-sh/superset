@@ -23,7 +23,6 @@ import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { MOCK_ORG_ID } from "shared/constants";
 import { AgentHooks } from "./components/AgentHooks";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
-import { useNeonProjectLink } from "./hooks/useNeonProjectLink";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -114,7 +113,6 @@ function AuthenticatedLayout() {
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
 				<AgentHooks />
-				<NeonProjectLinker />
 				<Outlet />
 				<WorkspaceInitEffects />
 				<NewWorkspaceModal />
@@ -123,9 +121,4 @@ function AuthenticatedLayout() {
 			</CollectionsProvider>
 		</DndProvider>
 	);
-}
-
-function NeonProjectLinker() {
-	useNeonProjectLink();
-	return null;
 }
