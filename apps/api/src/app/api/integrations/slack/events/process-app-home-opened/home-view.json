@@ -1,0 +1,55 @@
+{
+	"blocks": [
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Welcome to Superset",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "Superset is your AI coding assistant - spin up cloud agents, plan tasks, do code reviews, and more, all without leaving Slack."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "header",
+			"text": {
+				"type": "plain_text",
+				"text": "Getting Started",
+				"emoji": true
+			}
+		},
+		{
+			"type": "section",
+			"text": {
+				"type": "mrkdwn",
+				"text": "*DM the bot* - Start a direct message with Superset for instant access to AI assistance.\n\n*@mention in channels* - Mention @Superset in any channel to get help in context.\n\n*Link unfurling* - Paste a Superset task link and it will automatically preview in the conversation."
+			}
+		},
+		{
+			"type": "divider"
+		},
+		{
+			"type": "actions",
+			"elements": [
+				{
+					"type": "button",
+					"text": {
+						"type": "plain_text",
+						"text": "Open Superset",
+						"emoji": true
+					},
+					"url": "https://app.superset.sh",
+					"style": "primary"
+				}
+			]
+		}
+	]
+}

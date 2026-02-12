@@ -58,6 +58,7 @@
 			"request_url": "https://api.superset.sh/api/integrations/slack/events",
 			"bot_events": [
 				"app_mention",
+				"app_home_opened",
 				"message.im",
 				"assistant_thread_started",
 				"assistant_thread_context_changed",

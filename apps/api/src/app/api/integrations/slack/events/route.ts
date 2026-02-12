@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { Client } from "@upstash/qstash";
 
 import { env } from "@/env";
+import { processAppHomeOpened } from "./process-app-home-opened";
 import { processEntityDetails } from "./process-entity-details";
 import { processLinkShared } from "./process-link-shared";
 
@@ -121,6 +122,16 @@ export async function POST(request: Request) {
 				eventId: event_id,
 			}).catch((err: unknown) => {
 				console.error("[slack/events] Process entity details error:", err);
+			});
+		}
+
+		if (event.type === "app_home_opened") {
+			processAppHomeOpened({
+				event,
+				teamId: team_id,
+				eventId: event_id,
+			}).catch((err: unknown) => {
+				console.error("[slack/events] Process app home opened error:", err);
 			});
 		}
 	}
