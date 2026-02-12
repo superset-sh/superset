@@ -2,6 +2,7 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -24,6 +25,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -55,6 +57,27 @@ export function GroupStrip() {
 	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
+	const utils = electronTrpc.useUtils();
+	const { data: showPresetsBar } =
+		electronTrpc.settings.getShowPresetsBar.useQuery();
+	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
+		{
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowPresetsBar.cancel();
+				const previous = utils.settings.getShowPresetsBar.getData();
+				utils.settings.getShowPresetsBar.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowPresetsBar.setData(undefined, context.previous);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowPresetsBar.invalidate();
+			},
+		},
+	);
 	const navigate = useNavigate();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -269,6 +292,17 @@ export function GroupStrip() {
 								})}
 								<DropdownMenuSeparator />
 							</>
+						)}
+						{presets.length > 0 && (
+							<DropdownMenuCheckboxItem
+								checked={showPresetsBar ?? false}
+								onCheckedChange={(checked) =>
+									setShowPresetsBar.mutate({ enabled: checked })
+								}
+								onSelect={(e) => e.preventDefault()}
+							>
+								Show Preset Bar
+							</DropdownMenuCheckboxItem>
 						)}
 						<DropdownMenuItem
 							onClick={handleOpenPresetsSettings}

@@ -14,6 +14,7 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -391,6 +392,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { confirmOnQuit: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getShowPresetsBar: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR;
+		}),
+
+		setShowPresetsBar: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, showPresetsBar: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showPresetsBar: input.enabled },
 					})
 					.run();
 
