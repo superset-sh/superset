@@ -52,28 +52,33 @@ function initializeDefaultPresets() {
 	const row = getSettings();
 	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
 
-	const presets: TerminalPreset[] = DEFAULT_PRESETS.map((p) => ({
-		id: crypto.randomUUID(),
-		...p,
-	}));
+	const existingPresets: TerminalPreset[] = row.terminalPresets ?? [];
+
+	const mergedPresets =
+		existingPresets.length > 0
+			? existingPresets
+			: DEFAULT_PRESETS.map((p) => ({
+					id: crypto.randomUUID(),
+					...p,
+				}));
 
 	localDb
 		.insert(settings)
 		.values({
 			id: 1,
-			terminalPresets: presets,
+			terminalPresets: mergedPresets,
 			terminalPresetsInitialized: true,
 		})
 		.onConflictDoUpdate({
 			target: settings.id,
 			set: {
-				terminalPresets: presets,
+				terminalPresets: mergedPresets,
 				terminalPresetsInitialized: true,
 			},
 		})
 		.run();
 
-	return presets;
+	return mergedPresets;
 }
 
 /** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
