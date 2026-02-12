@@ -7,6 +7,7 @@ import type {
 	SelectMember,
 	SelectOrganization,
 	SelectRepository,
+	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
@@ -34,6 +35,7 @@ interface OrgCollections {
 	agentCommands: Collection<SelectAgentCommand>;
 	devicePresence: Collection<SelectDevicePresence>;
 	integrationConnections: Collection<SelectIntegrationConnection>;
+	subscriptions: Collection<SelectSubscription>;
 }
 
 // Per-org collections cache
@@ -295,6 +297,22 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const subscriptions = createCollection(
+		electricCollectionOptions<SelectSubscription>({
+			id: `subscriptions-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "subscriptions",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -305,7 +323,25 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		agentCommands,
 		devicePresence,
 		integrationConnections,
+		subscriptions,
 	};
+}
+
+/**
+ * Preload collections for an organization by starting Electric sync.
+ * Collections are lazy — they don't fetch data until subscribed or preloaded.
+ * Call this eagerly so data is ready when the user switches orgs.
+ */
+export async function preloadCollections(
+	organizationId: string,
+): Promise<void> {
+	const { organizations, apiKeys, ...orgCollections } =
+		getCollections(organizationId);
+	await Promise.allSettled(
+		Object.values(orgCollections).map((c) =>
+			(c as Collection<object>).preload(),
+		),
+	);
 }
 
 /**

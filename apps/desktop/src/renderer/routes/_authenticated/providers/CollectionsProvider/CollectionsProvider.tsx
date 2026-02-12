@@ -3,13 +3,14 @@ import {
 	type ReactNode,
 	useCallback,
 	useContext,
+	useEffect,
 	useMemo,
 	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { MOCK_ORG_ID } from "shared/constants";
-import { getCollections } from "./collections";
+import { getCollections, preloadCollections } from "./collections";
 
 type CollectionsContextType = ReturnType<typeof getCollections> & {
 	switchOrganization: (organizationId: string) => Promise<void>;
@@ -18,7 +19,7 @@ type CollectionsContextType = ReturnType<typeof getCollections> & {
 const CollectionsContext = createContext<CollectionsContextType | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-	const { data: session } = authClient.useSession();
+	const { data: session, refetch: refetchSession } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
@@ -30,12 +31,27 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			setIsSwitching(true);
 			try {
 				await authClient.organization.setActive({ organizationId });
+				// Wait for target org's collections to finish initial Electric sync.
+				// If already preloaded by the background useEffect, this resolves instantly.
+				await preloadCollections(organizationId);
+				await refetchSession();
 			} finally {
 				setIsSwitching(false);
 			}
 		},
-		[activeOrganizationId],
+		[activeOrganizationId, refetchSession],
 	);
+
+	// Preload collections for all orgs the user belongs to.
+	// Collections are lazy — they don't sync until subscribed or preloaded.
+	// This starts Electric subscriptions eagerly so data is ready on org switch.
+	const organizationIds = session?.session?.organizationIds;
+	useEffect(() => {
+		if (!organizationIds) return;
+		for (const orgId of organizationIds) {
+			preloadCollections(orgId);
+		}
+	}, [organizationIds]);
 
 	const collections = useMemo(() => {
 		if (!activeOrganizationId) {

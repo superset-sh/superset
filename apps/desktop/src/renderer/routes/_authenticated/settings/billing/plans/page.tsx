@@ -3,7 +3,6 @@ import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { Fragment, useState } from "react";
@@ -204,17 +203,14 @@ function PlansPage() {
 
 	const activeOrgId = session?.session?.activeOrganizationId;
 
-	const { data: subscriptionData, refetch: refetchSubscription } = useQuery({
-		queryKey: ["subscription", activeOrgId],
-		queryFn: async () => {
-			if (!activeOrgId) return null;
-			const result = await authClient.subscription.list({
-				query: { referenceId: activeOrgId },
-			});
-			return result.data?.find((s) => s.status === "active");
-		},
-		enabled: !!activeOrgId,
-	});
+	// Get subscription from Electric (preloaded, instant)
+	const { data: subscriptionsData } = useLiveQuery(
+		(q) => q.from({ subscriptions: collections.subscriptions }),
+		[collections],
+	);
+	const subscriptionData = subscriptionsData?.find(
+		(s) => s.status === "active",
+	);
 
 	const currentPlan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
 	const cancelAt = subscriptionData?.cancelAt;
@@ -270,8 +266,7 @@ function PlansPage() {
 						},
 					},
 				);
-				await refetchSubscription();
-			} finally {
+				} finally {
 				setIsCanceling(false);
 			}
 			return;
@@ -283,7 +278,6 @@ function PlansPage() {
 				await authClient.subscription.restore({
 					referenceId: activeOrgId,
 				});
-				await refetchSubscription();
 				toast.success("Plan restored");
 			} finally {
 				setIsRestoring(false);
