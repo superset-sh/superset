@@ -31,6 +31,9 @@ const sessionAbortControllers = new Map<string, AbortController>();
 /** Per-session runId for tool approval (maps sessionId → runId) */
 const sessionRunIds = new Map<string, string>();
 
+/** Per-session context needed for approval resumption (maps sessionId → { cwd, modelId }) */
+const sessionContext = new Map<string, { cwd: string; modelId: string }>();
+
 /** Track whether a session stream is suspended (waiting for tool approval) */
 const sessionSuspended = new Set<string>();
 
@@ -493,6 +496,9 @@ export const createAiChatRouter = () => {
 					const abortController = new AbortController();
 					sessionAbortControllers.set(input.sessionId, abortController);
 
+					// Store context for approval resumption
+					sessionContext.set(input.sessionId, { cwd: input.cwd, modelId: input.modelId });
+
 					try {
 						// --- Auto-context ---
 						const projectContext = gatherProjectContext(input.cwd);
@@ -600,6 +606,7 @@ export const createAiChatRouter = () => {
 								type: "done",
 							});
 							sessionRunIds.delete(input.sessionId);
+							sessionContext.delete(input.sessionId);
 						}
 					} catch (error) {
 						// Don't emit error for intentional aborts
@@ -679,16 +686,35 @@ export const createAiChatRouter = () => {
 			)
 			.mutation(({ input }) => {
 				sessionSuspended.delete(input.sessionId);
+				console.log(`[ai-chat/approveToolCall] Received:`, {
+					sessionId: input.sessionId,
+					runId: input.runId,
+					approved: input.approved,
+				});
 
 				// Fire-and-forget: pipe the resumed stream back through the emitter
 				void (async () => {
 					try {
+						// Restore the requestContext so dynamic workspace tools are available
+						const ctx = sessionContext.get(input.sessionId);
+						const reqCtx = ctx
+							? new RequestContext([
+								["modelId", ctx.modelId],
+								["cwd", ctx.cwd],
+							])
+							: undefined;
+
+						console.log(`[ai-chat/approveToolCall] Calling ${input.approved ? "approveToolCall" : "declineToolCall"} with runId: ${input.runId}, cwd: ${ctx?.cwd}`);
+						const approvalOpts = {
+							runId: input.runId,
+							...(reqCtx ? { requestContext: reqCtx } : {}),
+						};
 						const stream = input.approved
-							? await superagent.approveToolCall({ runId: input.runId })
-							: await superagent.declineToolCall({ runId: input.runId });
+							? await superagent.approveToolCall(approvalOpts)
+							: await superagent.declineToolCall(approvalOpts);
 
 						let chunkCount = 0;
-						console.log(`[ai-chat/approveToolCall] Resuming stream for ${input.sessionId}, approved: ${input.approved}`);
+						console.log(`[ai-chat/approveToolCall] Got stream, starting to iterate. Listeners: ${superagentEmitter.listenerCount(input.sessionId)}`);
 
 						for await (const chunk of stream.fullStream) {
 							chunkCount++;
@@ -714,6 +740,7 @@ export const createAiChatRouter = () => {
 								type: "done",
 							});
 							sessionRunIds.delete(input.sessionId);
+							sessionContext.delete(input.sessionId);
 						}
 					} catch (error) {
 						console.error("[ai-chat/approveToolCall] Stream failed:", error);

@@ -628,6 +628,7 @@ export function ChatInterface({
 					console.error("[chat] stream error:", event.error);
 					activeAgentCallIdRef.current = null;
 					setIsStreaming(false);
+					setError(typeof event.error === "string" ? event.error : "An error occurred");
 					return;
 				}
 				if (event.type === "chunk") {

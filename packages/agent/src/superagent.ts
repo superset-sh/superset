@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent";
+import { Mastra } from "@mastra/core/mastra";
 import { Memory } from "@mastra/memory";
 import { PostgresStore } from "@mastra/pg";
 import {
@@ -156,7 +157,7 @@ const instructions = [
     TONE_AND_STYLE,
 ].join("\n\n");
 
-export const superagent = new Agent({
+const superagentInstance = new Agent({
     id: "superagent",
     name: "Super Agent",
     instructions,
@@ -181,3 +182,15 @@ export const superagent = new Agent({
     },
     memory,
 });
+
+// Register agents with Mastra instance so storage is available for tool approval snapshots
+export const mastra = new Mastra({
+    agents: {
+        superagent: superagentInstance,
+        planner: planningAgent,
+    },
+    storage,
+});
+
+// Export the Mastra-registered agent (has storage context for approvals)
+export const superagent = mastra.getAgent("superagent");
