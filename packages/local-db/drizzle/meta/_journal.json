@@ -155,13 +155,6 @@
       "when": 1770783531923,
       "tag": "0021_add_image_project",
       "breakpoints": true
-    },
-    {
-      "idx": 22,
-      "version": "6",
-      "when": 1770837585251,
-      "tag": "0022_add_font_settings",
-      "breakpoints": true
     }
   ]
 }
