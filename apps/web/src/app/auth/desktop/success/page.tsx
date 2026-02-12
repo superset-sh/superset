@@ -10,9 +10,10 @@ export default async function DesktopSuccessPage({
 }: {
 	searchParams: Promise<{ desktop_state?: string; desktop_protocol?: string }>;
 }) {
-	const { desktop_state: state, desktop_protocol } = await searchParams;
+	const { desktop_state: state, desktop_protocol = "superset" } =
+		await searchParams;
 
-	if (!state || !desktop_protocol) {
+	if (!state) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 				<p className="text-xl text-muted-foreground">Missing auth state</p>
