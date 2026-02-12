@@ -19,7 +19,6 @@ import { reconcileDaemonSessions } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
-// Initialize local SQLite database (runs migrations + legacy data migration on import)
 console.log("[main] Local database ready:", !!localDb);
 
 const workspaceName = getWorkspaceName();
@@ -27,8 +26,7 @@ if (workspaceName) {
 	app.setName(`Superset (${workspaceName})`);
 }
 
-// Register protocol handler for deep linking
-// In development, we need to provide the execPath and args
+// Dev mode: register with execPath + app script so macOS launches Electron with our entry point
 if (process.defaultApp) {
 	if (process.argv.length >= 2) {
 		app.setAsDefaultProtocolClient(PROTOCOL_SCHEME, process.execPath, [
@@ -42,7 +40,6 @@ if (process.defaultApp) {
 async function processDeepLink(url: string): Promise<void> {
 	console.log("[main] Processing deep link:", url);
 
-	// Try auth deep link first (special handling)
 	const authParams = parseAuthDeepLink(url);
 	if (authParams) {
 		const result = await handleAuthCallback(authParams);
@@ -54,32 +51,21 @@ async function processDeepLink(url: string): Promise<void> {
 		return;
 	}
 
-	// For all other deep links, extract path and navigate in renderer
+	// Non-auth deep links: extract path and navigate in renderer
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
-	// e.g. superset://settings/integrations -> /settings/integrations
 	const path = `/${url.split("://")[1]}`;
-
 	focusMainWindow();
 
-	// Navigate in renderer via loading the route directly
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
-		const mainWindow = windows[0];
-		// Send navigation request to renderer
-		mainWindow.webContents.send("deep-link-navigate", path);
+		windows[0].webContents.send("deep-link-navigate", path);
 	}
 }
 
-/**
- * Find a deep link URL in argv
- */
 function findDeepLinkInArgv(argv: string[]): string | undefined {
 	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 }
 
-/**
- * Focus the main window (show and bring to front)
- */
 function focusMainWindow(): void {
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
@@ -92,18 +78,23 @@ function focusMainWindow(): void {
 	}
 }
 
-// Handle deep links when app is already running (macOS)
+// macOS open-url can fire before the window exists (cold-start via protocol link).
+// Queue the URL and process it after initialization.
+let pendingDeepLinkUrl: string | null = null;
+let appReady = false;
+
 app.on("open-url", async (event, url) => {
 	event.preventDefault();
-	await processDeepLink(url);
+	if (appReady) {
+		await processDeepLink(url);
+	} else {
+		pendingDeepLinkUrl = url;
+	}
 });
 
 let isQuitting = false;
 let skipConfirmation = false;
 
-/**
- * Check if the user has enabled the confirm-on-quit setting
- */
 function getConfirmOnQuitSetting(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
@@ -113,16 +104,10 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
-/**
- * Skip the confirmation dialog for the next quit (e.g., auto-updater)
- */
 export function setSkipQuitConfirmation(): void {
 	skipConfirmation = true;
 }
 
-/**
- * Skip the confirmation dialog and quit immediately
- */
 export function quitWithoutConfirmation(): void {
 	skipConfirmation = true;
 	app.exit(0);
@@ -148,17 +133,12 @@ app.on("before-quit", async (event) => {
 				message: "Are you sure you want to quit?",
 			});
 
-			if (response === 1) {
-				// User cancelled
-				return;
-			}
+			if (response === 1) return;
 		} catch (error) {
 			console.error("[main] Quit confirmation dialog failed:", error);
 		}
 	}
 
-	// Quit confirmed or no confirmation needed - exit immediately
-	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
 	disposeTray();
 	app.exit(0);
@@ -174,26 +154,20 @@ process.on("unhandledRejection", (reason) => {
 	console.error("[main] Unhandled rejection:", reason);
 });
 
-// Handle termination signals (e.g., when dev server stops via Ctrl+C)
 // Without these handlers, Electron may not quit when electron-vite sends SIGTERM
 if (process.env.NODE_ENV === "development") {
 	const handleTerminationSignal = (signal: string) => {
 		console.log(`[main] Received ${signal}, quitting...`);
-		// Use app.exit() to bypass before-quit async cleanup which can hang
 		app.exit(0);
 	};
 
 	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
 	process.on("SIGINT", () => handleTerminationSignal("SIGINT"));
 
-	// Monitor parent process (electron-vite CLI) and quit if it exits.
-	// This is a fallback for when signals don't propagate correctly.
-	// When electron-vite receives Ctrl+C, it may exit without properly
-	// signaling the child Electron process to quit.
+	// Fallback: electron-vite may exit without signaling the child Electron process
 	const parentPid = process.ppid;
-	const checkParentAlive = (): boolean => {
+	const isParentAlive = (): boolean => {
 		try {
-			// Signal 0 doesn't actually send a signal, just checks if process exists
 			process.kill(parentPid, 0);
 			return true;
 		} catch {
@@ -202,18 +176,15 @@ if (process.env.NODE_ENV === "development") {
 	};
 
 	const parentCheckInterval = setInterval(() => {
-		if (!checkParentAlive()) {
+		if (!isParentAlive()) {
 			console.log("[main] Parent process exited, quitting...");
 			clearInterval(parentCheckInterval);
-			// Use app.exit() instead of app.quit() to bypass the before-quit
-			// handler's async cleanup which can hang in dev mode
 			app.exit(0);
 		}
 	}, 1000);
 	parentCheckInterval.unref();
 }
 
-// Register superset-icon:// protocol for serving project icons from disk
 protocol.registerSchemesAsPrivileged([
 	{
 		scheme: "superset-icon",
@@ -231,6 +202,7 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
 	app.exit(0);
 } else {
+	// Windows/Linux: protocol URL arrives as argv on the second instance
 	app.on("second-instance", async (_event, argv) => {
 		focusMainWindow();
 		const url = findDeepLinkInArgv(argv);
@@ -242,11 +214,9 @@ if (!gotTheLock) {
 	(async () => {
 		await app.whenReady();
 
-		// Register protocol handler for superset-icon:// URLs
-		// Must register on BOTH default session and the app's custom partition
+		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
 			const url = new URL(request.url);
-			// superset-icon://projects/{projectId} → file on disk
 			const projectId = url.pathname.replace(/^\//, "");
 			const iconPath = getProjectIconPath(projectId);
 			if (!iconPath) {
@@ -260,32 +230,32 @@ if (!gotTheLock) {
 			.protocol.handle("superset-icon", iconProtocolHandler);
 
 		ensureProjectIconsDir();
-
 		initSentry();
-
 		await initAppState();
 
-		// Clean up stale daemon sessions from previous app runs
-		// Must happen BEFORE renderer restore runs
+		// Must happen before renderer restore runs
 		await reconcileDaemonSessions();
 
 		try {
 			setupAgentHooks();
 		} catch (error) {
 			console.error("[main] Failed to set up agent hooks:", error);
-			// App can continue without agent hooks, but log the failure
 		}
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
-
-		// Initialize system tray (macOS menu bar icon for daemon management)
 		initTray();
 
-		// Handle cold-start deep links (Windows/Linux - app launched via deep link)
+		// Process any deep links from cold start
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);
 		}
+		if (pendingDeepLinkUrl) {
+			await processDeepLink(pendingDeepLinkUrl);
+			pendingDeepLinkUrl = null;
+		}
+
+		appReady = true;
 	})();
 }
