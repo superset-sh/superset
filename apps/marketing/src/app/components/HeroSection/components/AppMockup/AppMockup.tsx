@@ -268,7 +268,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 	return (
 		<div
-			className="relative w-full min-w-[600px] rounded-xl overflow-hidden bg-black/40 backdrop-blur-xl border border-white/[0.08] shadow-2xl"
+			className="relative w-full min-w-[600px] rounded-2xl overflow-hidden bg-black/60 backdrop-blur-xl border border-white/[0.06] shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7)]"
 			style={{ aspectRatio: "16/10" }}
 		>
 			{/* Window chrome */}

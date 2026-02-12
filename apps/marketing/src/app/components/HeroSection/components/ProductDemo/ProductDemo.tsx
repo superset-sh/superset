@@ -1,58 +1,50 @@
 "use client";
 
 import { motion } from "framer-motion";
-import dynamic from "next/dynamic";
 import { useState } from "react";
 import { type ActiveDemo, AppMockup } from "../AppMockup";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
-
-const MeshGradient = dynamic(
-	() => import("@superset/ui/mesh-gradient").then((mod) => mod.MeshGradient),
-	{ ssr: false },
-);
 
 export function ProductDemo() {
 	const [activeOption, setActiveOption] =
 		useState<ActiveDemo>("Use Any Agents");
 
 	return (
-		<div className="relative w-full max-w-full rounded-lg overflow-hidden">
-			{/* Animated mesh gradient backgrounds - all rendered, opacity controlled */}
-			{DEMO_OPTIONS.map((option) => (
-				<motion.div
-					key={`gradient-${option.label}`}
-					className="absolute inset-0"
-					initial={false}
-					animate={{ opacity: activeOption === option.label ? 1 : 0 }}
-					transition={{ duration: 0.5, ease: "easeInOut" }}
-				>
-					<MeshGradient
-						colors={option.colors}
-						className="absolute inset-0 w-full h-full"
+		<motion.div
+			className="relative w-full max-w-full"
+			initial={{ opacity: 0, y: 24 }}
+			animate={{ opacity: 1, y: 0 }}
+			transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+		>
+			{/* Selector pills - centered above mockup */}
+			<div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
+				{DEMO_OPTIONS.map((option) => (
+					<SelectorPill
+						key={option.label}
+						label={option.label}
+						active={activeOption === option.label}
+						onSelect={() => setActiveOption(option.label as ActiveDemo)}
 					/>
-				</motion.div>
-			))}
+				))}
+			</div>
 
-			{/* Content wrapper - no right padding on mobile so content touches edge */}
-			<div className="relative flex flex-col gap-3 sm:gap-4 py-4 pl-4 sm:p-6">
+			{/* Mockup with fade overlays */}
+			<div className="relative">
 				{/* App mockup - horizontally scrollable on mobile */}
 				<div className="overflow-x-auto scrollbar-hide">
 					<AppMockup activeDemo={activeOption} />
 				</div>
 
-				{/* Selector pills - horizontally scrollable on mobile */}
-				<div className="flex items-center gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
-					{DEMO_OPTIONS.map((option) => (
-						<SelectorPill
-							key={option.label}
-							label={option.label}
-							active={activeOption === option.label}
-							onSelect={() => setActiveOption(option.label as ActiveDemo)}
-						/>
-					))}
-				</div>
+				{/* Bottom gradient fade */}
+				<div className="absolute bottom-0 left-0 right-0 h-24 sm:h-32 bg-gradient-to-t from-background to-transparent pointer-events-none" />
+
+				{/* Left edge gradient fade */}
+				<div className="absolute top-0 bottom-0 left-0 w-12 sm:w-20 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+
+				{/* Right edge gradient fade */}
+				<div className="absolute top-0 bottom-0 right-0 w-12 sm:w-20 bg-gradient-to-l from-background to-transparent pointer-events-none" />
 			</div>
-		</div>
+		</motion.div>
 	);
 }
