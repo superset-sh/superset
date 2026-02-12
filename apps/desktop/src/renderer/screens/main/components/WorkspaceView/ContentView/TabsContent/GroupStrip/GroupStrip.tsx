@@ -171,12 +171,12 @@ export function GroupStrip() {
 	}, []);
 
 	return (
-		<div className="flex items-center h-10 flex-1 min-w-0">
+		<div
+			className="flex items-center h-10 flex-1 min-w-0 overflow-x-auto overflow-y-hidden"
+			style={{ scrollbarWidth: "none" }}
+		>
 			{tabs.length > 0 && (
-				<div
-					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border"
-					style={{ scrollbarWidth: "none" }}
-				>
+				<div className="flex items-center h-full shrink-0 border-l border-border">
 					{tabs.map((tab, index) => {
 						const isPrevOfActive = index === activeTabIndex - 1;
 						const isNextOfActive = index === activeTabIndex + 1;
