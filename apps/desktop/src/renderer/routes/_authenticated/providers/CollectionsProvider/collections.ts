@@ -1,4 +1,4 @@
-import { snakeCamelMapper } from "@electric-sql/client";
+import { FetchError, snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
 	SelectDevicePresence,
@@ -23,6 +23,42 @@ import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
+
+function createShapeErrorHandler({ collectionId }: { collectionId: string }) {
+	let consecutiveErrors = 0;
+
+	return async (error: Error): Promise<Record<string, unknown>> => {
+		consecutiveErrors++;
+
+		if (consecutiveErrors > 50) {
+			console.error(
+				`[electric/${collectionId}] ${consecutiveErrors} consecutive errors, backing off 30s`,
+			);
+			await new Promise((r) => setTimeout(r, 30_000));
+			consecutiveErrors = 0;
+			return {};
+		}
+
+		if (
+			error instanceof FetchError &&
+			(error.status === 401 || error.status === 403)
+		) {
+			console.warn(
+				`[electric/${collectionId}] Auth error (${error.status}), refreshing token`,
+			);
+			await new Promise((r) => setTimeout(r, 2_000));
+			const token = getAuthToken();
+			return { headers: { Authorization: token ? `Bearer ${token}` : "" } };
+		}
+
+		console.warn(
+			`[electric/${collectionId}] Stream error, retrying:`,
+			error.message,
+		);
+		await new Promise((r) => setTimeout(r, 2_000));
+		return {};
+	};
+}
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
@@ -66,6 +102,7 @@ const organizationsCollection = createCollection(
 				},
 			},
 			columnMapper,
+			onError: createShapeErrorHandler({ collectionId: "organizations" }),
 		},
 		getKey: (item) => item.id,
 	}),
@@ -94,6 +131,7 @@ const apiKeysCollection = createCollection(
 				},
 			},
 			columnMapper,
+			onError: createShapeErrorHandler({ collectionId: "apikeys" }),
 		},
 		getKey: (item) => item.id,
 	}),
@@ -118,6 +156,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `tasks-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
@@ -152,6 +193,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `task_statuses-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 		}),
@@ -168,6 +212,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `repositories-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 			onInsert: async ({ transaction }) => {
@@ -194,6 +241,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `members-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 		}),
@@ -210,6 +260,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `users-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 		}),
@@ -226,6 +279,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `invitations-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 		}),
@@ -242,6 +298,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `agent_commands-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 			onUpdate: async ({ transaction }) => {
@@ -274,6 +333,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `device_presence-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 		}),
@@ -290,6 +352,9 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				},
 				headers,
 				columnMapper,
+				onError: createShapeErrorHandler({
+					collectionId: `integration_connections-${organizationId}`,
+				}),
 			},
 			getKey: (item) => item.id,
 		}),
@@ -306,6 +371,23 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		devicePresence,
 		integrationConnections,
 	};
+}
+
+export async function disposeCollections(
+	organizationId: string,
+): Promise<void> {
+	const orgCollections = collectionsCache.get(organizationId);
+	if (!orgCollections) return;
+
+	await Promise.allSettled(
+		Object.values(orgCollections).map((c) =>
+			(c as Collection<object>).cleanup(),
+		),
+	);
+	collectionsCache.delete(organizationId);
+	console.log(
+		`[electric/cleanup] Disposed collections for org: ${organizationId}`,
+	);
 }
 
 /**

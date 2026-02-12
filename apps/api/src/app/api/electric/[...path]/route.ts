@@ -53,18 +53,19 @@ export async function GET(request: Request): Promise<Response> {
 		);
 	}
 
-	let response = await fetch(originUrl.toString());
+	const response = await fetch(originUrl.toString());
 
-	if (response.headers.get("content-encoding")) {
-		const headers = new Headers(response.headers);
+	const headers = new Headers(response.headers);
+	headers.append("Vary", "Authorization");
+
+	if (headers.get("content-encoding")) {
 		headers.delete("content-encoding");
 		headers.delete("content-length");
-		response = new Response(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers,
-		});
 	}
 
-	return response;
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
 }
