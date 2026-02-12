@@ -18,7 +18,7 @@ type CollectionsContextType = ReturnType<typeof getCollections> & {
 const CollectionsContext = createContext<CollectionsContextType | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-	const { data: session, refetch: refetchSession } = authClient.useSession();
+	const { data: session } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
@@ -30,12 +30,11 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			setIsSwitching(true);
 			try {
 				await authClient.organization.setActive({ organizationId });
-				await refetchSession();
 			} finally {
 				setIsSwitching(false);
 			}
 		},
-		[activeOrganizationId, refetchSession],
+		[activeOrganizationId],
 	);
 
 	const collections = useMemo(() => {
