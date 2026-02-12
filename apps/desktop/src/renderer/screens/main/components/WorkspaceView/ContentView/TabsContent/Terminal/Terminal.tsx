@@ -8,6 +8,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
 import {
+	DEFAULT_LINK_COLOR,
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "./config";
@@ -309,7 +310,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		if (!xterm || !terminalTheme) return;
 		xterm.options.theme = terminalTheme;
 		linkDecorationManagerRef.current?.updateColor(
-			terminalTheme.blue ?? "#57c7ff",
+			terminalTheme.blue ?? DEFAULT_LINK_COLOR,
 		);
 	}, [terminalTheme]);
 

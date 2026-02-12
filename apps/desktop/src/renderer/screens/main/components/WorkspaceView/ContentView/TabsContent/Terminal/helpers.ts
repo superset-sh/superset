@@ -22,7 +22,7 @@ import {
 	DEFAULT_THEME_ID,
 	getTerminalColors,
 } from "shared/themes";
-import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
+import { DEFAULT_LINK_COLOR, RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import {
 	FilePathLinkProvider,
 	LinkDecorationManager,
@@ -281,8 +281,10 @@ export function createTerminalInstance(
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
 
-	const urlColor = theme.blue ?? "#57c7ff";
-	const linkDecorationManager = new LinkDecorationManager(xterm, urlColor);
+	const linkDecorationManager = new LinkDecorationManager(
+		xterm,
+		theme.blue ?? DEFAULT_LINK_COLOR,
+	);
 
 	xterm.unicode.activeVersion = "11";
 	fitAddon.fit();
