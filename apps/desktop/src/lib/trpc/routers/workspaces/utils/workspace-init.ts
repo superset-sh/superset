@@ -265,31 +265,43 @@ export async function initializeWorkspaceWorktree({
 				effectiveBaseBranch,
 			);
 
-			if (branchCheck.status === "error") {
-				const sanitizedError = sanitizeGitError(branchCheck.message);
+			if (branchCheck.status === "exists") {
+				startPoint = `origin/${effectiveBaseBranch}`;
+			} else {
+				// Branch not available on remote (network error or not found) — fall back to local
+				const isNetworkError = branchCheck.status === "error";
+				const fallbackReason = isNetworkError
+					? sanitizeGitError(branchCheck.message)
+					: `Branch "${effectiveBaseBranch}" not found on remote`;
+
 				console.warn(
-					`[workspace-init] Cannot verify remote branch: ${sanitizedError}. Falling back to local ref.`,
+					`[workspace-init] ${fallbackReason}. Falling back to local ref.`,
 				);
 
 				manager.updateProgress(
 					workspaceId,
 					"verifying",
-					"Using local reference (remote unavailable)",
-					sanitizedError,
+					isNetworkError
+						? "Using local reference (remote unavailable)"
+						: "Using local reference (not on remote)",
+					fallbackReason,
 				);
 
 				const localResult = await resolveLocalStartPoint(
-					"Remote unavailable",
+					isNetworkError ? "Remote unavailable" : "Not found on remote",
 					true,
 				);
 				if (!localResult) {
+					const failureDetail = isNetworkError
+						? "Cannot reach remote"
+						: "Does not exist on remote";
 					manager.updateProgress(
 						workspaceId,
 						"failed",
 						"No local reference available",
 						baseBranchWasExplicit
-							? `Cannot reach remote and branch "${effectiveBaseBranch}" doesn't exist locally. Please check your network connection and try again.`
-							: `Cannot reach remote and no local ref for "${effectiveBaseBranch}" exists. Please check your network connection and try again.`,
+							? `${failureDetail} and branch "${effectiveBaseBranch}" doesn't exist locally.${isNetworkError ? " Please check your network connection and try again." : " Please try again with a different base branch."}`
+							: `${failureDetail} and no local ref for "${effectiveBaseBranch}" exists.${isNetworkError ? " Please check your network connection and try again." : ""}`,
 					);
 					return;
 				}
@@ -299,20 +311,10 @@ export async function initializeWorkspaceWorktree({
 						workspaceId,
 						"verifying",
 						`Using "${localResult.fallbackBranch}" branch`,
-						`Branch "${baseBranch}" not found locally. Using "${localResult.fallbackBranch}" instead.`,
+						`Branch "${effectiveBaseBranch}" not found. Using "${localResult.fallbackBranch}" instead.`,
 					);
 				}
 				startPoint = localResult.ref;
-			} else if (branchCheck.status === "not_found") {
-				manager.updateProgress(
-					workspaceId,
-					"failed",
-					"Branch does not exist on remote",
-					`Branch "${effectiveBaseBranch}" does not exist on origin. Please delete this workspace and try again with a different base branch.`,
-				);
-				return;
-			} else {
-				startPoint = `origin/${effectiveBaseBranch}`;
 			}
 		} else {
 			const localResult = await resolveLocalStartPoint(
