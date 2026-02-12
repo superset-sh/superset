@@ -45,7 +45,8 @@ if (!existsSync(PLIST_PATH)) {
 	process.exit(0);
 }
 
-// Check if already patched
+// Check if already patched with the correct scheme
+let alreadyPatched = false;
 try {
 	const result = execSync(
 		`/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes:0:CFBundleURLSchemes:0" "${PLIST_PATH}" 2>/dev/null`,
@@ -58,8 +59,10 @@ try {
 		);
 		process.exit(0);
 	}
+	// Plist has a stale scheme from a different worktree — need to update
+	alreadyPatched = true;
 } catch {
-	// Not patched yet, continue
+	// No URL scheme entries yet
 }
 
 console.log(`[patch-dev-protocol] Registering ${PROTOCOL_SCHEME}:// scheme...`);
@@ -73,21 +76,40 @@ try {
 	// Ignore errors
 }
 
-// Add URL scheme to Info.plist
-const commands = [
-	`Add :CFBundleURLTypes array`,
-	`Add :CFBundleURLTypes:0 dict`,
-	`Add :CFBundleURLTypes:0:CFBundleURLName string 'Superset Dev'`,
-	`Add :CFBundleURLTypes:0:CFBundleURLSchemes array`,
-	`Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string '${PROTOCOL_SCHEME}'`,
-	`Add :CFBundleURLTypes:0:CFBundleTypeRole string 'Editor'`,
-];
-
-for (const cmd of commands) {
-	try {
-		execSync(`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}" 2>/dev/null`);
-	} catch {
-		// Ignore errors (e.g., key already exists)
+if (alreadyPatched) {
+	// Update existing entries (Set) when plist has a stale scheme
+	const updates = [
+		`Set :CFBundleURLTypes:0:CFBundleURLName 'Superset Dev'`,
+		`Set :CFBundleURLTypes:0:CFBundleURLSchemes:0 '${PROTOCOL_SCHEME}'`,
+		`Set :CFBundleURLTypes:0:CFBundleTypeRole 'Editor'`,
+	];
+	for (const cmd of updates) {
+		try {
+			execSync(
+				`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}" 2>/dev/null`,
+			);
+		} catch {
+			// Ignore errors
+		}
+	}
+} else {
+	// Add fresh entries when plist has no URL scheme at all
+	const commands = [
+		`Add :CFBundleURLTypes array`,
+		`Add :CFBundleURLTypes:0 dict`,
+		`Add :CFBundleURLTypes:0:CFBundleURLName string 'Superset Dev'`,
+		`Add :CFBundleURLTypes:0:CFBundleURLSchemes array`,
+		`Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string '${PROTOCOL_SCHEME}'`,
+		`Add :CFBundleURLTypes:0:CFBundleTypeRole string 'Editor'`,
+	];
+	for (const cmd of commands) {
+		try {
+			execSync(
+				`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}" 2>/dev/null`,
+			);
+		} catch {
+			// Ignore errors
+		}
 	}
 }
 
