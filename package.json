@@ -19,7 +19,6 @@
 		"dev": "turbo dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=@superset/streams",
 		"dev:all": "turbo dev",
 		"dev:docs": "turbo dev --filter=@superset/docs",
-		"dev:cli": "turbo dev --filter=@superset/cli",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test",

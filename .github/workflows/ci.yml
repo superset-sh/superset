@@ -124,5 +124,5 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
-      - name: Build CLI and Desktop
-        run: bun turbo run build --filter=@superset/cli --filter=@superset/desktop
+      - name: Build Desktop
+        run: bun turbo run build --filter=@superset/desktop
