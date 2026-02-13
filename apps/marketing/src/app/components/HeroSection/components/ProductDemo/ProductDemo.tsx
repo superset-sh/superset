@@ -16,26 +16,36 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 
 	// Starts full size, shrinks as user scrolls down
 	const scale = useTransform(scrollYProgress, [0, 1], [1, 0.82]);
+	// Pills shift down to follow the shrinking mockup (without scaling)
+	const pillsY = useTransform(scrollYProgress, [0, 1], [0, 80]);
 	// Fade overlays start visible, disappear as user scrolls
 	const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
 	return (
 		<div className="relative w-full max-w-full">
-			{/* Mockup + pills with scroll-driven scale + fade */}
+			{/* Selector pills - move down but don't scale */}
+			<motion.div
+				className="flex items-center justify-center gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 scrollbar-hide"
+				style={{ y: pillsY }}
+			>
+				{DEMO_OPTIONS.map((option) => (
+					<SelectorPill
+						key={option.label}
+						label={option.label}
+						active={activeOption === option.label}
+						onSelect={() => setActiveOption(option.label as ActiveDemo)}
+					/>
+				))}
+			</motion.div>
+
+			{/* Mockup with scroll-driven scale */}
 			<motion.div className="relative" style={{ scale }}>
-				{/* Selector pills - centered above mockup */}
-				<div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 overflow-x-auto pb-1 scrollbar-hide">
-					{DEMO_OPTIONS.map((option) => (
-						<SelectorPill
-							key={option.label}
-							label={option.label}
-							active={activeOption === option.label}
-							onSelect={() => setActiveOption(option.label as ActiveDemo)}
-						/>
-					))}
-				</div>
-				<div className="overflow-x-auto scrollbar-hide">
-					<AppMockup activeDemo={activeOption} />
+				<div className="relative">
+					{/* Large diffuse back-shadow */}
+					<div className="absolute inset-[10%] top-[20%] rounded-3xl bg-white/[0.07] blur-[60px] pointer-events-none" />
+					<div className="relative overflow-x-auto scrollbar-hide">
+						<AppMockup activeDemo={activeOption} />
+					</div>
 				</div>
 
 				{/* Gradient fade overlays - dissolve away as you scroll down */}

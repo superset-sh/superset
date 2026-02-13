@@ -262,7 +262,7 @@ interface AppMockupProps {
 export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 	return (
 		<div
-			className="relative w-full min-w-[700px] rounded-2xl overflow-hidden bg-black/60 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/[0.04]"
+			className="relative w-full min-w-[700px] rounded-2xl overflow-hidden bg-black/60 backdrop-blur-xl border-2 border-white/[0.12] shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/[0.06]"
 			style={{ aspectRatio: "16/10" }}
 		>
 			{/* Window chrome */}
@@ -350,7 +350,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</div>
 
 					{/* Ports section */}
-					<div className="border-t border-white/[0.06]">
+					<div className="border-t border-white/[0.06] mb-2">
 						<div className="flex items-center justify-between px-2.5 py-2">
 							<div className="flex items-center gap-1 text-xs text-muted-foreground/40">
 								<span>⌥</span>
