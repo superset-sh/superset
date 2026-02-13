@@ -15,7 +15,17 @@
 
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { config } from "dotenv";
+
+// Load .env from monorepo root (same path as electron.vite.config.ts)
+// override: true ensures .env values take precedence over inherited env vars
+config({
+	path: resolve(import.meta.dirname, "../../../.env"),
+	override: true,
+	quiet: true,
+});
 
 // Import getWorkspaceName directly (not shared/constants.ts which imports env.ts
 // and would trigger Zod validation of env vars not yet available during predev)
@@ -27,8 +37,32 @@ if (process.platform !== "darwin") {
 	process.exit(0);
 }
 
+/**
+ * Derive workspace name from CWD if under ~/.superset/worktrees/.
+ * Path pattern: ~/.superset/worktrees/<project>/<owner>/<workspace>/apps/desktop
+ * We use the last segment of the worktree root as the workspace name.
+ */
+function deriveWorkspaceNameFromPath(): string | undefined {
+	const worktreeBase = resolve(homedir(), ".superset/worktrees");
+	const cwd = process.cwd();
+	if (!cwd.startsWith(worktreeBase)) return undefined;
+
+	// Strip the worktree base prefix and split remaining path
+	const relative = cwd.slice(worktreeBase.length + 1);
+	const segments = relative.split("/").filter(Boolean);
+	// Pattern: <project>/<owner>/<workspace>[/apps/desktop/...]
+	if (segments.length < 3) return undefined;
+
+	const name = segments[2];
+	if (!name || name === "superset") return undefined;
+	return name
+		.toLowerCase()
+		.replace(/[^a-z0-9-]/g, "-")
+		.slice(0, 32);
+}
+
 // Workspace-aware protocol scheme and bundle ID for multi-worktree isolation
-const workspaceName = getWorkspaceName();
+const workspaceName = getWorkspaceName() ?? deriveWorkspaceNameFromPath();
 if (!workspaceName) {
 	console.log(
 		"[patch-dev-protocol] Skipping - SUPERSET_WORKSPACE_NAME not set",

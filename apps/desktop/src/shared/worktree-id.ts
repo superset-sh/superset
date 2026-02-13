@@ -6,7 +6,7 @@
  */
 export function getWorkspaceName(): string | undefined {
 	const name = process.env.SUPERSET_WORKSPACE_NAME;
-	if (!name) return undefined;
+	if (!name || name === "superset") return undefined;
 	return name
 		.toLowerCase()
 		.replace(/[^a-z0-9-]/g, "-")
