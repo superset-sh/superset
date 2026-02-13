@@ -1,5 +1,7 @@
-export { executeAgent } from "./agent-executor";
+export { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
 export { PROVIDER_REGISTRY } from "@mastra/core/llm";
+export { RequestContext } from "@mastra/core/request-context";
+export { executeAgent } from "./agent-executor";
 export {
 	createPermissionRequest,
 	resolvePendingPermission,
@@ -10,8 +12,6 @@ export {
 	initSessionStore,
 	setClaudeSessionId,
 } from "./session-store";
-export { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
-export { RequestContext } from "@mastra/core/request-context";
 export { memory, superagent } from "./superagent";
 export type {
 	AgentEvent,

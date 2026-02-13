@@ -1,23 +1,23 @@
 import { Agent } from "@mastra/core/agent";
 import { Mastra } from "@mastra/core/mastra";
+import {
+	LocalFilesystem,
+	LocalSandbox,
+	Workspace,
+} from "@mastra/core/workspace";
 import { Memory } from "@mastra/memory";
 import { PostgresStore } from "@mastra/pg";
-import {
-    LocalFilesystem,
-    LocalSandbox,
-    Workspace,
-} from "@mastra/core/workspace";
 
 export const storage = new PostgresStore({
-    connectionString: process.env.DATABASE_URL!,
-    id: "superagent-db",
+	connectionString: process.env.DATABASE_URL!,
+	id: "superagent-db",
 });
 
 export const memory = new Memory({
-    options: {
-        observationalMemory: false,
-    },
-    storage,
+	options: {
+		observationalMemory: false,
+	},
+	storage,
 });
 
 // --- Planning agent prompt ---
@@ -64,31 +64,31 @@ List the 3-5 files most critical for implementing this plan:
 Be concise. No emojis. No time estimates.`;
 
 const planningAgent = new Agent({
-    id: "planning-agent",
-    name: "Planner",
-    instructions: PLANNING_AGENT_INSTRUCTIONS,
-    model: ({ requestContext }) => {
-        if (requestContext.get("modelId")) {
-            return requestContext.get("modelId");
-        }
-        return "anthropic/claude-sonnet-4-5";
-    },
-    workspace: ({ requestContext }) => {
-        const cwd = requestContext.get("cwd") as string | undefined;
-        if (!cwd) return undefined;
-        return new Workspace({
-            id: `planner-workspace-${cwd}`,
-            name: `${cwd} (read-only)`,
-            filesystem: new LocalFilesystem({ basePath: cwd }),
-            sandbox: new LocalSandbox({ workingDirectory: cwd }),
-            tools: {
-                mastra_workspace_write_file: { enabled: false },
-                mastra_workspace_edit_file: { enabled: false },
-                mastra_workspace_delete: { enabled: false },
-                mastra_workspace_mkdir: { enabled: false },
-            },
-        });
-    },
+	id: "planning-agent",
+	name: "Planner",
+	instructions: PLANNING_AGENT_INSTRUCTIONS,
+	model: ({ requestContext }) => {
+		if (requestContext.get("modelId")) {
+			return requestContext.get("modelId");
+		}
+		return "anthropic/claude-sonnet-4-5";
+	},
+	workspace: ({ requestContext }) => {
+		const cwd = requestContext.get("cwd") as string | undefined;
+		if (!cwd) return undefined;
+		return new Workspace({
+			id: `planner-workspace-${cwd}`,
+			name: `${cwd} (read-only)`,
+			filesystem: new LocalFilesystem({ basePath: cwd }),
+			sandbox: new LocalSandbox({ workingDirectory: cwd }),
+			tools: {
+				mastra_workspace_write_file: { enabled: false },
+				mastra_workspace_edit_file: { enabled: false },
+				mastra_workspace_delete: { enabled: false },
+				mastra_workspace_mkdir: { enabled: false },
+			},
+		});
+	},
 });
 
 // --- Super agent prompt sections (tweak individually) ---
@@ -150,46 +150,46 @@ const TONE_AND_STYLE = `# Tone and style
  * Compose all prompt sections. Add, remove, or reorder sections here.
  */
 const instructions = [
-    IDENTITY,
-    DOING_TASKS,
-    TOOL_USAGE,
-    CAREFUL_EXECUTION,
-    TONE_AND_STYLE,
+	IDENTITY,
+	DOING_TASKS,
+	TOOL_USAGE,
+	CAREFUL_EXECUTION,
+	TONE_AND_STYLE,
 ].join("\n\n");
 
 const superagentInstance = new Agent({
-    id: "superagent",
-    name: "Super Agent",
-    instructions,
-    model: ({ requestContext }) => {
-        if (requestContext.get("modelId")) {
-            return requestContext.get("modelId");
-        }
-        return "anthropic/claude-sonnet-4-5";
-    },
-    workspace: ({ requestContext }) => {
-        const cwd = requestContext.get("cwd") as string | undefined;
-        if (!cwd) return undefined;
-        return new Workspace({
-            id: `workspace-${cwd}`,
-            name: cwd,
-            filesystem: new LocalFilesystem({ basePath: cwd }),
-            sandbox: new LocalSandbox({ workingDirectory: cwd }),
-        });
-    },
-    agents: {
-        planner: planningAgent,
-    },
-    memory,
+	id: "superagent",
+	name: "Super Agent",
+	instructions,
+	model: ({ requestContext }) => {
+		if (requestContext.get("modelId")) {
+			return requestContext.get("modelId");
+		}
+		return "anthropic/claude-sonnet-4-5";
+	},
+	workspace: ({ requestContext }) => {
+		const cwd = requestContext.get("cwd") as string | undefined;
+		if (!cwd) return undefined;
+		return new Workspace({
+			id: `workspace-${cwd}`,
+			name: cwd,
+			filesystem: new LocalFilesystem({ basePath: cwd }),
+			sandbox: new LocalSandbox({ workingDirectory: cwd }),
+		});
+	},
+	agents: {
+		planner: planningAgent,
+	},
+	memory,
 });
 
 // Register agents with Mastra instance so storage is available for tool approval snapshots
 export const mastra = new Mastra({
-    agents: {
-        superagent: superagentInstance,
-        planner: planningAgent,
-    },
-    storage,
+	agents: {
+		superagent: superagentInstance,
+		planner: planningAgent,
+	},
+	storage,
 });
 
 // Export the Mastra-registered agent (has storage context for approvals)

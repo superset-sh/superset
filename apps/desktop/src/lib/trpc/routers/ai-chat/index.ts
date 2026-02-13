@@ -1,12 +1,12 @@
-import { EventEmitter } from "node:events";
 import { execSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import {
+	memory,
 	PROVIDER_REGISTRY,
 	RequestContext,
-	memory,
 	superagent,
 	toAISdkV5Messages,
 } from "@superset/agent";
@@ -65,7 +65,13 @@ function buildFileTree(cwd: string, maxDepth = 2, prefix = ""): string[] {
 	const lines: string[] = [];
 	try {
 		const entries = readdirSync(cwd, { withFileTypes: true })
-			.filter((e) => !e.name.startsWith(".") && e.name !== "node_modules" && e.name !== "dist" && e.name !== "build")
+			.filter(
+				(e) =>
+					!e.name.startsWith(".") &&
+					e.name !== "node_modules" &&
+					e.name !== "dist" &&
+					e.name !== "build",
+			)
 			.sort((a, b) => {
 				// Directories first
 				if (a.isDirectory() && !b.isDirectory()) return -1;
@@ -78,7 +84,9 @@ function buildFileTree(cwd: string, maxDepth = 2, prefix = ""): string[] {
 			const isDir = entry.isDirectory();
 			lines.push(`${prefix}${isDir ? `${entry.name}/` : entry.name}`);
 			if (isDir && maxDepth > 1) {
-				lines.push(...buildFileTree(join(cwd, entry.name), maxDepth - 1, `${prefix}  `));
+				lines.push(
+					...buildFileTree(join(cwd, entry.name), maxDepth - 1, `${prefix}  `),
+				);
 			}
 		}
 	} catch {
@@ -104,7 +112,9 @@ function gatherProjectContext(cwd: string): string {
 	for (const file of conventionFiles) {
 		const content = safeReadFile(join(cwd, file));
 		if (content) {
-			sections.push(`<project-conventions file="${file}">\n${content}\n</project-conventions>`);
+			sections.push(
+				`<project-conventions file="${file}">\n${content}\n</project-conventions>`,
+			);
 		}
 	}
 
@@ -117,10 +127,16 @@ function gatherProjectContext(cwd: string): string {
 				name: pkg.name,
 				description: pkg.description,
 				scripts: pkg.scripts ? Object.keys(pkg.scripts) : [],
-				dependencies: pkg.dependencies ? Object.keys(pkg.dependencies).length : 0,
-				devDependencies: pkg.devDependencies ? Object.keys(pkg.devDependencies).length : 0,
+				dependencies: pkg.dependencies
+					? Object.keys(pkg.dependencies).length
+					: 0,
+				devDependencies: pkg.devDependencies
+					? Object.keys(pkg.devDependencies).length
+					: 0,
 			};
-			sections.push(`<package-info>\n${JSON.stringify(summary, null, 2)}\n</package-info>`);
+			sections.push(
+				`<package-info>\n${JSON.stringify(summary, null, 2)}\n</package-info>`,
+			);
 		} catch {
 			// malformed package.json
 		}
@@ -129,14 +145,16 @@ function gatherProjectContext(cwd: string): string {
 	// 3. File tree (2 levels)
 	const tree = buildFileTree(cwd);
 	if (tree.length > 0) {
-		sections.push(`<file-tree root="${basename(cwd)}">\n${tree.join("\n")}\n</file-tree>`);
+		sections.push(
+			`<file-tree root="${basename(cwd)}">\n${tree.join("\n")}\n</file-tree>`,
+		);
 	}
 
 	// 4. Git state
 	const gitBranch = safeExec("git branch --show-current", cwd);
 	if (gitBranch) {
 		const gitStatus = safeExec("git status --short", cwd);
-		const gitLog = safeExec('git log --oneline -5 --no-decorate', cwd);
+		const gitLog = safeExec("git log --oneline -5 --no-decorate", cwd);
 		const gitParts = [`Branch: ${gitBranch}`];
 		if (gitStatus) gitParts.push(`Dirty files:\n${gitStatus}`);
 		if (gitLog) gitParts.push(`Recent commits:\n${gitLog}`);
@@ -280,12 +298,22 @@ export const createAiChatRouter = () => {
 				const uiMessages = toAISdkV5Messages(result.messages);
 				// Debug: log tool parts to verify shape
 				for (const msg of uiMessages.slice(0, 3)) {
-					const parts = (msg as Record<string, unknown>).parts as Array<Record<string, unknown>> | undefined;
+					const parts = (msg as Record<string, unknown>).parts as
+						| Array<Record<string, unknown>>
+						| undefined;
 					if (parts) {
 						for (const p of parts) {
 							if (String(p.type ?? "").startsWith("tool-")) {
-								console.log("[getMessages] V5 tool part keys:", Object.keys(p), "type:", p.type);
-								console.log("[getMessages] V5 tool part:", JSON.stringify(p, null, 2).slice(0, 500));
+								console.log(
+									"[getMessages] V5 tool part keys:",
+									Object.keys(p),
+									"type:",
+									p.type,
+								);
+								console.log(
+									"[getMessages] V5 tool part:",
+									JSON.stringify(p, null, 2).slice(0, 500),
+								);
 							}
 						}
 					}
@@ -455,7 +483,7 @@ export const createAiChatRouter = () => {
 		sendMessage: publicProcedure
 			.input(z.object({ sessionId: z.string(), text: z.string() }))
 			.mutation(({ input }) => {
-				console.log('sendMessage', input);
+				console.log("sendMessage", input);
 				// // Fire-and-forget: agent runs in background, errors surface via streamEvents
 				// void chatSessionManager
 				// 	.startAgent({
@@ -497,7 +525,10 @@ export const createAiChatRouter = () => {
 					sessionAbortControllers.set(input.sessionId, abortController);
 
 					// Store context for approval resumption
-					sessionContext.set(input.sessionId, { cwd: input.cwd, modelId: input.modelId });
+					sessionContext.set(input.sessionId, {
+						cwd: input.cwd,
+						modelId: input.modelId,
+					});
 
 					try {
 						// --- Auto-context ---
@@ -508,11 +539,11 @@ export const createAiChatRouter = () => {
 						const fileMentionContext = buildFileMentionContext(mentions);
 
 						// Build the full context to inject as supplemental instructions
-						const contextInstructions = projectContext + fileMentionContext || undefined;
+						const contextInstructions =
+							projectContext + fileMentionContext || undefined;
 
 						// --- Permission mode ---
-						const requireToolApproval =
-							input.permissionMode === "default"; // "Manual" mode: all tools need approval
+						const requireToolApproval = input.permissionMode === "default"; // "Manual" mode: all tools need approval
 
 						const reqCtx = new RequestContext([
 							["modelId", input.modelId],
@@ -527,15 +558,19 @@ export const createAiChatRouter = () => {
 								resource: input.sessionId,
 							},
 							abortSignal: abortController.signal,
-							...(contextInstructions ? { instructions: contextInstructions } : {}),
+							...(contextInstructions
+								? { instructions: contextInstructions }
+								: {}),
 							...(requireToolApproval ? { requireToolApproval: true } : {}),
 							onStepFinish: (event) => {
 								// Emit token usage after each step
-								const usage = (event as Record<string, unknown>).usage as {
-									promptTokens?: number;
-									completionTokens?: number;
-									totalTokens?: number;
-								} | undefined;
+								const usage = (event as Record<string, unknown>).usage as
+									| {
+											promptTokens?: number;
+											completionTokens?: number;
+											totalTokens?: number;
+									  }
+									| undefined;
 								if (usage) {
 									superagentEmitter.emit(input.sessionId, {
 										type: "chunk",
@@ -560,8 +595,9 @@ export const createAiChatRouter = () => {
 
 						let chunkCount = 0;
 						let suspended = false;
-						const listenerCount =
-							superagentEmitter.listenerCount(input.sessionId);
+						const listenerCount = superagentEmitter.listenerCount(
+							input.sessionId,
+						);
 						console.log(
 							`[ai-chat/superagent] Starting stream. Listeners for "${input.sessionId}": ${listenerCount}`,
 						);
@@ -587,7 +623,9 @@ export const createAiChatRouter = () => {
 							if (c.type === "tool-call-approval") {
 								suspended = true;
 								sessionSuspended.add(input.sessionId);
-								console.log(`[ai-chat/superagent] Tool approval required — stream suspended`);
+								console.log(
+									`[ai-chat/superagent] Tool approval required — stream suspended`,
+								);
 							}
 
 							superagentEmitter.emit(input.sessionId, {
@@ -617,16 +655,10 @@ export const createAiChatRouter = () => {
 							});
 							return;
 						}
-						console.error(
-							"[ai-chat/superagent] Stream failed:",
-							error,
-						);
+						console.error("[ai-chat/superagent] Stream failed:", error);
 						superagentEmitter.emit(input.sessionId, {
 							type: "error",
-							error:
-								error instanceof Error
-									? error.message
-									: String(error),
+							error: error instanceof Error ? error.message : String(error),
 						});
 					} finally {
 						sessionAbortControllers.delete(input.sessionId);
@@ -667,7 +699,9 @@ export const createAiChatRouter = () => {
 			.mutation(({ input }) => {
 				const controller = sessionAbortControllers.get(input.sessionId);
 				if (controller) {
-					console.log(`[ai-chat/abortSuperagent] Aborting session ${input.sessionId}`);
+					console.log(
+						`[ai-chat/abortSuperagent] Aborting session ${input.sessionId}`,
+					);
 					controller.abort();
 					sessionAbortControllers.delete(input.sessionId);
 					return { success: true, aborted: true };
@@ -699,12 +733,14 @@ export const createAiChatRouter = () => {
 						const ctx = sessionContext.get(input.sessionId);
 						const reqCtx = ctx
 							? new RequestContext([
-								["modelId", ctx.modelId],
-								["cwd", ctx.cwd],
-							])
+									["modelId", ctx.modelId],
+									["cwd", ctx.cwd],
+								])
 							: undefined;
 
-						console.log(`[ai-chat/approveToolCall] Calling ${input.approved ? "approveToolCall" : "declineToolCall"} with runId: ${input.runId}, cwd: ${ctx?.cwd}`);
+						console.log(
+							`[ai-chat/approveToolCall] Calling ${input.approved ? "approveToolCall" : "declineToolCall"} with runId: ${input.runId}, cwd: ${ctx?.cwd}`,
+						);
 						const approvalOpts = {
 							runId: input.runId,
 							...(reqCtx ? { requestContext: reqCtx } : {}),
@@ -714,7 +750,9 @@ export const createAiChatRouter = () => {
 							: await superagent.declineToolCall(approvalOpts);
 
 						let chunkCount = 0;
-						console.log(`[ai-chat/approveToolCall] Got stream, starting to iterate. Listeners: ${superagentEmitter.listenerCount(input.sessionId)}`);
+						console.log(
+							`[ai-chat/approveToolCall] Got stream, starting to iterate. Listeners: ${superagentEmitter.listenerCount(input.sessionId)}`,
+						);
 
 						for await (const chunk of stream.fullStream) {
 							chunkCount++;
@@ -723,7 +761,9 @@ export const createAiChatRouter = () => {
 							// Check if the resumed stream itself hits another approval
 							if (c.type === "tool-call-approval") {
 								sessionSuspended.add(input.sessionId);
-								console.log(`[ai-chat/approveToolCall] Another tool approval required`);
+								console.log(
+									`[ai-chat/approveToolCall] Another tool approval required`,
+								);
 							}
 
 							superagentEmitter.emit(input.sessionId, {
@@ -732,7 +772,9 @@ export const createAiChatRouter = () => {
 							});
 						}
 
-						console.log(`[ai-chat/approveToolCall] Resumed stream complete. Chunks: ${chunkCount}`);
+						console.log(
+							`[ai-chat/approveToolCall] Resumed stream complete. Chunks: ${chunkCount}`,
+						);
 
 						// Only emit done if not suspended again
 						if (!sessionSuspended.has(input.sessionId)) {
