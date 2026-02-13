@@ -44,13 +44,13 @@
 		"@vercel/blob": "^2.0.0",
 		"@vercel/kv": "^3.0.0",
 		"drizzle-orm": "0.45.1",
-		"react": "19.2.0",
+		"react": "^19.2.0",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/react": "~19.2.2",
+		"@types/react": "^19.1.8",
 		"typescript": "^5.9.3"
 	}
 }
