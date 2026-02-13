@@ -149,6 +149,62 @@ step_install_dependencies() {
   return 0
 }
 
+step_clone_local_db() {
+  echo "💾 Cloning local database..."
+
+  WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+
+  # Sanitize workspace name the same way as env.shared.ts getWorkspaceName()
+  # lowercase, replace non-alphanumeric (except -) with -, truncate to 32 chars
+  local sanitized
+  sanitized=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | cut -c1-32)
+
+  # "superset" is the default (production) — no suffix, so no clone needed
+  if [ -z "$sanitized" ] || [ "$sanitized" = "superset" ]; then
+    warn "Default workspace — skipping local DB clone"
+    step_skipped "Clone local database"
+    return 0
+  fi
+
+  local source_db="$HOME/.superset/local.db"
+  local dest_dir="$HOME/.superset-${sanitized}"
+  local dest_db="$dest_dir/local.db"
+
+  if [ ! -f "$source_db" ]; then
+    warn "Source database not found at $source_db — skipping clone"
+    step_skipped "Clone local database"
+    return 0
+  fi
+
+  if [ -f "$dest_db" ]; then
+    echo "  Local database already exists at $dest_db — skipping"
+    success "Local database already present"
+    return 0
+  fi
+
+  # Ensure destination directory exists with secure permissions
+  mkdir -p "$dest_dir"
+  chmod 700 "$dest_dir"
+
+  # Copy the database file (and WAL/SHM files if they exist)
+  if ! cp "$source_db" "$dest_db"; then
+    error "Failed to copy local database"
+    return 1
+  fi
+  chmod 600 "$dest_db"
+
+  # Copy WAL and SHM files if present for consistency
+  for suffix in "-wal" "-shm"; do
+    if [ -f "${source_db}${suffix}" ]; then
+      cp "${source_db}${suffix}" "${dest_db}${suffix}" 2>/dev/null || true
+      chmod 600 "${dest_db}${suffix}" 2>/dev/null || true
+    fi
+  done
+
+  success "Local database cloned to $dest_db"
+  return 0
+}
+
 step_setup_neon_branch() {
   echo "🗄️  Setting up Neon branch..."
 
@@ -469,17 +525,22 @@ main() {
     step_failed "Install dependencies"
   fi
 
-  # Step 4: Setup Neon branch
+  # Step 4: Clone local database
+  if ! step_clone_local_db; then
+    step_failed "Clone local database"
+  fi
+
+  # Step 5: Setup Neon branch
   if ! step_setup_neon_branch; then
     step_failed "Setup Neon branch"
   fi
 
-  # Step 5: Start Electric SQL
+  # Step 6: Start Electric SQL
   if ! step_start_electric; then
     step_failed "Start Electric SQL"
   fi
 
-  # Step 6: Write .env file
+  # Step 7: Write .env file
   if ! step_write_env; then
     step_failed "Write .env file"
   fi
