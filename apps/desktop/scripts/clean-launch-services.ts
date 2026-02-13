@@ -4,15 +4,8 @@
  *
  * Over time, `lsregister` accumulates entries for Electron.app bundles under
  * ~/.superset/worktrees/ that no longer exist (worktree deleted, node_modules
- * cleaned). These stale entries can cause macOS to route deep links to the
- * wrong (or non-existent) Electron binary.
- *
- * This script:
- * 1. Dumps Launch Services database entries
- * 2. Finds all registered Electron.app paths under ~/.superset/worktrees/
- * 3. Unregisters any that no longer exist on disk
- *
- * Runs automatically as part of `bun dev` (via predev).
+ * cleaned). These stale entries cause macOS to route deep links to the wrong
+ * (or non-existent) Electron binary.
  */
 
 import { execFileSync } from "node:child_process";
@@ -20,12 +13,10 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
-// Only needed on macOS
 if (process.platform !== "darwin") {
 	process.exit(0);
 }
 
-// This script is only intended for development predev flow.
 if (process.env.NODE_ENV !== "development") {
 	console.log("[clean-launch-services] Skipping - non-development mode");
 	process.exit(0);
@@ -35,7 +26,6 @@ const LSREGISTER =
 	"/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister";
 const WORKTREE_BASE = resolve(homedir(), ".superset/worktrees");
 
-// Current worktree's Electron.app — never unregister it
 const currentElectronApp = resolve(
 	import.meta.dirname,
 	"../node_modules/electron/dist/Electron.app",
@@ -47,7 +37,6 @@ try {
 		maxBuffer: 50 * 1024 * 1024, // 50 MB — lsregister dump can be large
 	});
 
-	// Find all registered Electron.app paths under the worktrees directory
 	const pathRegex = /^\s*path:\s*(.+Electron\.app)\s*$/gm;
 	const staleApps = new Set<string>();
 

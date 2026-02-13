@@ -6,11 +6,7 @@
  * Each worktree gets a unique bundle ID and protocol scheme so macOS Launch
  * Services treats them as distinct apps and routes deep links correctly.
  *
- * This is needed because on macOS, app.setAsDefaultProtocolClient()
- * only works when the app is packaged. In development, we need to
- * manually add the URL scheme to the Electron binary's Info.plist.
- *
- * Runs automatically as part of `bun dev`.
+ * Needed because app.setAsDefaultProtocolClient() only works when packaged.
  */
 
 import { execSync } from "node:child_process";
@@ -19,7 +15,6 @@ import { homedir } from "node:os";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { config } from "dotenv";
 
-// Load .env from monorepo root (same path as electron.vite.config.ts)
 // override: true ensures .env values take precedence over inherited env vars
 config({
 	path: resolve(import.meta.dirname, "../../../.env"),
@@ -27,36 +22,26 @@ config({
 	quiet: true,
 });
 
-// Import getWorkspaceName directly (not shared/constants.ts which imports env.ts
-// and would trigger Zod validation of env vars not yet available during predev)
+// Import directly — shared/constants.ts would trigger Zod env validation during predev
 import {
 	deriveWorkspaceNameFromWorktreeSegments,
 	getWorkspaceName,
 } from "../src/shared/worktree-id";
 
-// Only needed on macOS
 if (process.platform !== "darwin") {
 	console.log("[patch-dev-protocol] Skipping - not macOS");
 	process.exit(0);
 }
 
-// This script is only intended for development predev flow.
 if (process.env.NODE_ENV !== "development") {
 	console.log("[patch-dev-protocol] Skipping - non-development mode");
 	process.exit(0);
 }
 
-/**
- * Derive workspace name from CWD if under ~/.superset/worktrees/.
- * Supports both:
- * - ~/.superset/worktrees/<project>/<branch>/apps/desktop
- * - ~/.superset/worktrees/<project>/<owner>/<workspace>/apps/desktop
- */
 function deriveWorkspaceNameFromPath(): string | undefined {
 	const worktreeBase = resolve(homedir(), ".superset/worktrees");
 	const cwdRelative = relative(worktreeBase, process.cwd());
 
-	// Not inside ~/.superset/worktrees
 	if (!cwdRelative || cwdRelative.startsWith("..") || isAbsolute(cwdRelative)) {
 		return undefined;
 	}
@@ -65,7 +50,6 @@ function deriveWorkspaceNameFromPath(): string | undefined {
 	return deriveWorkspaceNameFromWorktreeSegments(segments);
 }
 
-// Workspace-aware protocol scheme and bundle ID for multi-worktree isolation
 const workspaceName = getWorkspaceName() ?? deriveWorkspaceNameFromPath();
 if (!workspaceName) {
 	console.log("[patch-dev-protocol] Skipping - workspace name not resolved");
@@ -84,7 +68,6 @@ if (!existsSync(PLIST_PATH)) {
 	process.exit(0);
 }
 
-// Check if already correctly patched (right bundle ID + right scheme)
 try {
 	const currentBundleId = execSync(
 		`/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "${PLIST_PATH}" 2>/dev/null`,
@@ -101,27 +84,21 @@ try {
 		);
 		process.exit(0);
 	}
-} catch {
-	// Not patched yet, continue
-}
+} catch {}
 
 console.log(`[patch-dev-protocol] Registering ${PROTOCOL_SCHEME}:// scheme...`);
 
-// Set unique bundle ID so macOS treats each worktree's Electron as a distinct app
 execSync(
 	`/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "${PLIST_PATH}"`,
 );
 
-// Remove any existing URL types to avoid stale/duplicate entries from previous patches
+// Remove existing URL types to avoid stale entries from previous patches
 try {
 	execSync(
 		`/usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes" "${PLIST_PATH}" 2>/dev/null`,
 	);
-} catch {
-	// Doesn't exist yet, that's fine
-}
+} catch {}
 
-// Add URL scheme to Info.plist
 const commands = [
 	`Add :CFBundleURLTypes array`,
 	`Add :CFBundleURLTypes:0 dict`,
@@ -135,7 +112,6 @@ for (const cmd of commands) {
 	execSync(`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}"`);
 }
 
-// Register with Launch Services
 try {
 	execSync(
 		`/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "${ELECTRON_APP_PATH}"`,
