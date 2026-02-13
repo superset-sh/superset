@@ -159,14 +159,14 @@ step_clone_local_db() {
   local sanitized
   sanitized=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | cut -c1-32)
 
-  # "superset" is the default (production) — no suffix, so no clone needed
-  if [ -z "$sanitized" ] || [ "$sanitized" = "superset" ]; then
-    warn "Default workspace — skipping local DB clone"
+  # "superset" is the default (production), "dev" is the dev workspace — skip cloning from self
+  if [ -z "$sanitized" ] || [ "$sanitized" = "superset" ] || [ "$sanitized" = "dev" ]; then
+    warn "Default/dev workspace — skipping local DB clone"
     step_skipped "Clone local database"
     return 0
   fi
 
-  local source_db="$HOME/.superset/local.db"
+  local source_db="$HOME/.superset-dev/local.db"
   local dest_dir="$HOME/.superset-${sanitized}"
   local dest_db="$dest_dir/local.db"
 
