@@ -195,16 +195,7 @@ fi
 # Navigate to desktop app directory
 cd "${DESKTOP_DIR}"
 
-# 1. Check for uncommitted changes
-info "Checking for uncommitted changes..."
-# Refresh index to avoid false positives from stat cache mismatches
-git update-index --refresh > /dev/null 2>&1 || true
-if ! git diff-index --quiet HEAD --; then
-    error "You have uncommitted changes. Please commit or stash them first."
-fi
-success "Working directory is clean"
-
-# 2. Check if tag/release already exists
+# 1. Check if tag/release already exists
 info "Checking if tag ${TAG_NAME} already exists..."
 if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
     echo ""

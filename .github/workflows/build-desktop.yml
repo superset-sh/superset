@@ -91,8 +91,10 @@ jobs:
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
+          NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SUPERSET_WORKSPACE_NAME: superset
         run: bun run compile:app
 
       - name: Build Electron app
@@ -104,6 +106,15 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+
+      - name: Verify app-update.yml exists
+        working-directory: apps/desktop
+        run: |
+          APP_DIR=$(ls -d release/mac-arm64/*.app | head -1)
+          test -f "$APP_DIR/Contents/Resources/app-update.yml" || {
+            echo "::error::app-update.yml missing from $APP_DIR/Contents/Resources/ — auto-update will be broken"
+            exit 1
+          }
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4

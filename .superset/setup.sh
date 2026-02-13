@@ -116,6 +116,10 @@ step_check_dependencies() {
     missing+=("docker (Install from https://docker.com)")
   fi
 
+  if ! command -v caddy &> /dev/null; then
+    warn "caddy not found — HTTP/2 proxy for Electric won't work (Run: brew install caddy && caddy trust)"
+  fi
+
   if [ ${#missing[@]} -gt 0 ]; then
     error "Missing dependencies:"
     for dep in "${missing[@]}"; do
@@ -260,10 +264,18 @@ step_start_electric() {
     docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
   fi
 
-  # Start Electric container with auto-assigned port
+  # Use reserved port from SUPERSET_PORT_BASE if available, otherwise auto-assign
+  local port_flag
+  if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
+    ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
+    port_flag="-p $ELECTRIC_PORT:3000"
+  else
+    port_flag="-p 3000"
+  fi
+
   if ! docker run -d \
       --name "$ELECTRIC_CONTAINER" \
-      -p 3000 \
+      $port_flag \
       -e DATABASE_URL="$DIRECT_URL" \
       -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \
       electricsql/electric:latest &> /dev/null; then
@@ -271,8 +283,10 @@ step_start_electric() {
     return 1
   fi
 
-  # Get the auto-assigned port
-  ELECTRIC_PORT=$(docker port "$ELECTRIC_CONTAINER" 3000 | cut -d: -f2)
+  # Resolve actual port (needed when auto-assigned)
+  if [ -z "${ELECTRIC_PORT:-}" ]; then
+    ELECTRIC_PORT=$(docker port "$ELECTRIC_CONTAINER" 3000 | cut -d: -f2)
+  fi
 
   # Wait for Electric to be ready
   echo "  Waiting for Electric to be ready on port $ELECTRIC_PORT..."
@@ -316,6 +330,9 @@ step_write_env() {
   # Append workspace-specific values
   {
     echo ""
+    echo "# Workspace Identity"
+    echo "SUPERSET_WORKSPACE_NAME=${WORKSPACE_NAME:-$(basename "$PWD")}"
+    echo ""
     echo "# Workspace Database (Neon Branch)"
     if [ -n "${BRANCH_ID:-}" ]; then
       echo "NEON_BRANCH_ID=$BRANCH_ID"
@@ -342,9 +359,79 @@ step_write_env() {
       echo "ELECTRIC_SECRET=$ELECTRIC_SECRET"
     fi
 
+    # Port allocation for multi-worktree dev instances
+    # Each workspace gets a range of 20 ports from its base.
+    # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
+    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
+    #          +10 caddy (HTTP/2 reverse proxy for API), +11 code inspector
+    if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
+      local BASE=$SUPERSET_PORT_BASE
+
+      # App ports (fixed offsets from base)
+      local WEB_PORT=$((BASE))
+      local API_PORT=$((BASE + 1))
+      local MARKETING_PORT=$((BASE + 2))
+      local ADMIN_PORT=$((BASE + 3))
+      local DOCS_PORT=$((BASE + 4))
+      local DESKTOP_VITE_PORT=$((BASE + 5))
+      local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
+      local STREAMS_PORT=$((BASE + 7))
+      local STREAMS_INTERNAL_PORT=$((BASE + 8))
+      local ELECTRIC_PORT=$((BASE + 9))
+      local CADDY_API_PORT=$((BASE + 10))
+      local CODE_INSPECTOR_PORT=$((BASE + 11))
+
+      echo ""
+      echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
+      echo "SUPERSET_PORT_BASE=$BASE"
+      echo "WEB_PORT=$WEB_PORT"
+      echo "API_PORT=$API_PORT"
+      echo "MARKETING_PORT=$MARKETING_PORT"
+      echo "ADMIN_PORT=$ADMIN_PORT"
+      echo "DOCS_PORT=$DOCS_PORT"
+      echo "DESKTOP_VITE_PORT=$DESKTOP_VITE_PORT"
+      echo "DESKTOP_NOTIFICATIONS_PORT=$DESKTOP_NOTIFICATIONS_PORT"
+      echo "STREAMS_PORT=$STREAMS_PORT"
+      echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
+      echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+      echo "CADDY_API_PORT=$CADDY_API_PORT"
+      echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
+      echo ""
+      echo "# Cross-app URLs (overrides from root .env)"
+      echo "# Uses Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric)"
+      echo "NEXT_PUBLIC_API_URL=https://localhost:$CADDY_API_PORT"
+      echo "NEXT_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
+      echo "NEXT_PUBLIC_MARKETING_URL=http://localhost:$MARKETING_PORT"
+      echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"
+      echo "NEXT_PUBLIC_DOCS_URL=http://localhost:$DOCS_PORT"
+      echo "NEXT_PUBLIC_DESKTOP_URL=http://localhost:$DESKTOP_VITE_PORT"
+      echo "EXPO_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
+      echo "EXPO_PUBLIC_API_URL=http://localhost:$API_PORT"
+      echo ""
+      echo "# Streams URLs (overrides from root .env)"
+      echo "PORT=$STREAMS_PORT"
+      echo "STREAMS_URL=http://localhost:$STREAMS_PORT"
+      echo "NEXT_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
+      echo "EXPO_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
+      echo "STREAMS_INTERNAL_URL=http://127.0.0.1:$STREAMS_INTERNAL_PORT"
+      echo ""
+      echo "# Electric URL (overrides from root .env)"
+      echo "ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape"
+    fi
   } >> .env
 
   success "Workspace .env written"
+
+  # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric)
+  cat > Caddyfile <<CADDYEOF
+https://localhost:{\$CADDY_API_PORT} {
+	reverse_proxy localhost:{\$API_PORT} {
+		flush_interval -1
+	}
+}
+CADDYEOF
+  success "Caddyfile written"
+
   return 0
 }
 

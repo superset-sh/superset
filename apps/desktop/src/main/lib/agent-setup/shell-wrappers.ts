@@ -4,14 +4,11 @@ import path from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { BASH_DIR, ZSH_DIR } from "./paths";
 
-/**
- * Creates zsh initialization wrapper that intercepts shell startup
- * Sources user's real shell config files then prepends our bin to PATH
- */
+const ZSH_RC = path.join(ZSH_DIR, ".zshrc");
+const BASH_RCFILE = path.join(BASH_DIR, "rcfile");
+
 export function createZshWrapper(): void {
-	// Create .zprofile to source user's .zprofile (runs for login shells before .zshrc)
-	// This is critical - without it, brew/nvm PATH setup in ~/.zprofile is skipped
-	// Don't change ZDOTDIR here - we need our .zshrc to run after this
+	// .zprofile must NOT reset ZDOTDIR — our .zshrc needs to run after it
 	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
 	const zprofileScript = `# Superset zsh profile wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
@@ -19,7 +16,7 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 `;
 	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
 
-	// Create .zshrc - reset ZDOTDIR before sourcing so Oh My Zsh works correctly
+	// Reset ZDOTDIR before sourcing so Oh My Zsh works correctly
 	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
 	const zshrcScript = `# Superset zsh rc wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
@@ -31,10 +28,6 @@ export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
 	console.log("[agent-setup] Created zsh wrapper");
 }
 
-/**
- * Creates bash initialization wrapper that intercepts shell startup
- * Sources user's real bashrc/profile then prepends our bin to PATH
- */
 export function createBashWrapper(): void {
 	const rcfilePath = path.join(BASH_DIR, "rcfile");
 	const script = `# Superset bash rcfile wrapper
@@ -63,9 +56,6 @@ export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 	console.log("[agent-setup] Created bash wrapper");
 }
 
-/**
- * Returns shell-specific environment variables for intercepting shell initialization
- */
 export function getShellEnv(shell: string): Record<string, string> {
 	if (shell.includes("zsh")) {
 		return {
@@ -73,22 +63,34 @@ export function getShellEnv(shell: string): Record<string, string> {
 			ZDOTDIR: ZSH_DIR,
 		};
 	}
-	// Bash doesn't need special env vars - we use --rcfile instead
 	return {};
 }
 
-/**
- * Returns shell-specific arguments for intercepting shell initialization
- */
 export function getShellArgs(shell: string): string[] {
 	if (shell.includes("zsh")) {
-		// Zsh uses ZDOTDIR env var, no special args needed
-		// -l for login shell behavior
 		return ["-l"];
 	}
 	if (shell.includes("bash")) {
-		// Use our custom rcfile that sources user's files then fixes PATH
-		return ["--rcfile", path.join(BASH_DIR, "rcfile")];
+		return ["--rcfile", BASH_RCFILE];
 	}
 	return [];
+}
+
+/**
+ * Shell args for non-interactive command execution (`-c`) that sources
+ * user profiles via wrappers. Falls back to login shell if wrappers
+ * don't exist yet (e.g. before setupAgentHooks runs).
+ *
+ * Unlike getShellArgs (interactive), we must source profiles inline because:
+ * - zsh skips .zshrc for non-interactive shells
+ * - bash ignores --rcfile when -c is present
+ */
+export function getCommandShellArgs(shell: string, command: string): string[] {
+	if (shell.includes("zsh") && fs.existsSync(ZSH_RC)) {
+		return ["-lc", `source "${ZSH_RC}" && ${command}`];
+	}
+	if (shell.includes("bash") && fs.existsSync(BASH_RCFILE)) {
+		return ["-c", `source "${BASH_RCFILE}" && ${command}`];
+	}
+	return ["-lc", command];
 }

@@ -50,15 +50,15 @@ Commands run sequentially in the workspace directory.
 Override project setup/teardown scripts without modifying the repo by placing a `config.json` in your home directory:
 
 ```
-~/.superset/projects/<project-name>/config.json
+~/.superset/projects/<project-id>/config.json
 ```
 
-Where `<project-name>` matches your project's name in Superset (the same name used in `~/.superset/worktrees/<project-name>/`).
+Where `<project-id>` is your project's unique ID in Superset (visible in the app's project settings).
 
 ### Priority Order
 
 Config is resolved in this order (first found wins, for both setup and teardown):
-1. `~/.superset/projects/<project-name>/config.json` — user override
+1. `~/.superset/projects/<project-id>/config.json` — user override
 2. `<worktree>/.superset/config.json` — worktree-specific
 3. `<repo>/.superset/config.json` — project default
 
@@ -69,8 +69,8 @@ No merging occurs between levels—the first config found is used entirely.
 **Custom setup script:**
 ```json
 {
-  "setup": ["~/.superset/projects/my-project/setup.sh"],
-  "teardown": ["~/.superset/projects/my-project/teardown.sh"]
+  "setup": ["~/.superset/projects/<project-id>/setup.sh"],
+  "teardown": ["~/.superset/projects/<project-id>/teardown.sh"]
 }
 ```
 

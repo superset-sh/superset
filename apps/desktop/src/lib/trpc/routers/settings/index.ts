@@ -14,12 +14,17 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
+import {
+	setFontSettingsSchema,
+	transformFontSettings,
+} from "./font-settings.utils";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
@@ -52,28 +57,33 @@ function initializeDefaultPresets() {
 	const row = getSettings();
 	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
 
-	const presets: TerminalPreset[] = DEFAULT_PRESETS.map((p) => ({
-		id: crypto.randomUUID(),
-		...p,
-	}));
+	const existingPresets: TerminalPreset[] = row.terminalPresets ?? [];
+
+	const mergedPresets =
+		existingPresets.length > 0
+			? existingPresets
+			: DEFAULT_PRESETS.map((p) => ({
+					id: crypto.randomUUID(),
+					...p,
+				}));
 
 	localDb
 		.insert(settings)
 		.values({
 			id: 1,
-			terminalPresets: presets,
+			terminalPresets: mergedPresets,
 			terminalPresetsInitialized: true,
 		})
 		.onConflictDoUpdate({
 			target: settings.id,
 			set: {
-				terminalPresets: presets,
+				terminalPresets: mergedPresets,
 				terminalPresetsInitialized: true,
 			},
 		})
 		.run();
 
-	return presets;
+	return mergedPresets;
 }
 
 /** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
@@ -392,6 +402,26 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getShowPresetsBar: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR;
+		}),
+
+		setShowPresetsBar: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, showPresetsBar: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showPresetsBar: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getTerminalLinkBehavior: publicProcedure.query(() => {
 			const row = getSettings();
 			return row.terminalLinkBehavior ?? DEFAULT_TERMINAL_LINK_BEHAVIOR;
@@ -537,6 +567,37 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { notificationSoundsMuted: input.muted },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getFontSettings: publicProcedure.query(() => {
+			const row = getSettings();
+			return {
+				terminalFontFamily: row.terminalFontFamily ?? null,
+				terminalFontSize: row.terminalFontSize ?? null,
+				editorFontFamily: row.editorFontFamily ?? null,
+				editorFontSize: row.editorFontSize ?? null,
+			};
+		}),
+
+		setFontSettings: publicProcedure
+			.input(setFontSettingsSchema)
+			.mutation(({ input }) => {
+				const set = transformFontSettings(input);
+
+				if (Object.keys(set).length === 0) {
+					return { success: true };
+				}
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, ...set })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set,
 					})
 					.run();
 

@@ -1,7 +1,6 @@
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
-import { SUPERSET_DIR_NAMES } from "shared/constants";
 import { getDefaultShell } from "../terminal/env";
 
 /**
@@ -29,7 +28,7 @@ function findBinaryPathsWindows(name: string): string[] {
 
 /**
  * Finds the real path of a binary, skipping our wrapper scripts.
- * Filters out both dev and prod superset bin directories
+ * Filters out all superset bin directories (prod, dev, and workspace-specific)
  * to avoid wrapper scripts calling each other.
  */
 export function findRealBinary(name: string): string | null {
@@ -40,12 +39,16 @@ export function findRealBinary(name: string): string | null {
 			: findBinaryPathsUnix(name);
 
 		const homedir = os.homedir();
-		const supersetBinDirs = [
-			path.join(homedir, SUPERSET_DIR_NAMES.PROD, "bin"),
-			path.join(homedir, SUPERSET_DIR_NAMES.DEV, "bin"),
-		];
+		// Filter out wrapper scripts from all superset directories:
+		// - ~/.superset/bin
+		// - ~/.superset-*/bin (workspace-specific instances)
+		const supersetBinDir = path.join(homedir, ".superset", "bin");
+		const supersetPrefix = path.join(homedir, ".superset-");
 		const paths = allPaths.filter(
-			(p) => p && !supersetBinDirs.some((dir) => p.startsWith(dir)),
+			(p) =>
+				p &&
+				!p.startsWith(supersetBinDir) &&
+				!(p.startsWith(supersetPrefix) && p.includes("/bin/")),
 		);
 		return paths[0] || null;
 	} catch {

@@ -1,7 +1,6 @@
 import { execSync } from "node:child_process";
 import os from "node:os";
 import defaultShell from "default-shell";
-import { PORTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 
@@ -331,6 +330,7 @@ export function buildTerminalEnv(params: {
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
+	portBase?: number | null;
 }): Record<string, string> {
 	const {
 		shell,
@@ -340,6 +340,7 @@ export function buildTerminalEnv(params: {
 		workspaceName,
 		workspacePath,
 		rootPath,
+		portBase,
 	} = params;
 
 	// Get Electron's process.env and filter to only allowlisted safe vars
@@ -365,11 +366,13 @@ export function buildTerminalEnv(params: {
 		SUPERSET_WORKSPACE_NAME: workspaceName || "",
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
-		SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
+		SUPERSET_PORT: String(env.DESKTOP_NOTIFICATIONS_PORT),
 		// Environment identifier for dev/prod separation
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
 		// Hook protocol version for forward compatibility
 		SUPERSET_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
+		// Port base for multi-worktree dev instances (setup.sh uses this to calculate all ports)
+		...(portBase != null && { SUPERSET_PORT_BASE: String(portBase) }),
 	};
 
 	delete terminalEnv.GOOGLE_API_KEY;

@@ -1,21 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import {
 	HiOutlineComputerDesktop,
 	HiOutlineDevicePhoneMobile,
 	HiOutlineGlobeAlt,
 } from "react-icons/hi2";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-
-interface OnlineDevice {
-	id: string;
-	deviceId: string;
-	deviceName: string;
-	deviceType: "desktop" | "mobile" | "web";
-	lastSeenAt: Date;
-	ownerId: string;
-	ownerName: string;
-	ownerEmail: string;
-}
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 const DEVICE_ICONS = {
 	desktop: HiOutlineComputerDesktop,
@@ -23,30 +14,34 @@ const DEVICE_ICONS = {
 	web: HiOutlineGlobeAlt,
 };
 
+const ONLINE_THRESHOLD_MS = 30_000;
+
 export function DevicesSettings() {
-	const [devices, setDevices] = useState<OnlineDevice[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
+	const collections = useCollections();
 
-	const fetchDevices = useCallback(async () => {
-		try {
-			setLoading(true);
-			setError(null);
-			const result = await apiTrpcClient.device.listOnlineDevices.query();
-			setDevices(result);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to fetch devices");
-		} finally {
-			setLoading(false);
-		}
-	}, []);
+	const { data: allDevices } = useLiveQuery(
+		(q) =>
+			q
+				.from({ devicePresence: collections.devicePresence })
+				.innerJoin({ users: collections.users }, ({ devicePresence, users }) =>
+					eq(devicePresence.userId, users.id),
+				)
+				.select(({ devicePresence, users }) => ({
+					...devicePresence,
+					ownerName: users.name,
+				})),
+		[collections],
+	);
 
-	useEffect(() => {
-		fetchDevices();
-		// Refresh every 10 seconds
-		const interval = setInterval(fetchDevices, 10_000);
-		return () => clearInterval(interval);
-	}, [fetchDevices]);
+	// Filter to only devices seen within the last 30s
+	const devices = useMemo(
+		() =>
+			allDevices?.filter(
+				(d) =>
+					Date.now() - new Date(d.lastSeenAt).getTime() < ONLINE_THRESHOLD_MS,
+			),
+		[allDevices],
+	);
 
 	const formatLastSeen = (date: Date) => {
 		const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -61,27 +56,16 @@ export function DevicesSettings() {
 			<div className="mb-6">
 				<h1 className="text-2xl font-semibold mb-2">Online Devices</h1>
 				<p className="text-muted-foreground text-sm">
-					Devices currently connected to your account. Refreshes every 10
-					seconds.
+					Devices currently connected to your organization.
 				</p>
 			</div>
 
-			{loading && devices.length === 0 && (
-				<div className="text-muted-foreground">Loading...</div>
-			)}
-
-			{error && (
-				<div className="text-red-500 bg-red-500/10 p-3 rounded-md mb-4">
-					{error}
-				</div>
-			)}
-
-			{!loading && devices.length === 0 && !error && (
+			{devices?.length === 0 && (
 				<div className="text-muted-foreground">No devices online</div>
 			)}
 
 			<div className="space-y-3">
-				{devices.map((device) => {
+				{devices?.map((device) => {
 					const Icon =
 						DEVICE_ICONS[device.deviceType] || HiOutlineComputerDesktop;
 					return (
@@ -95,8 +79,8 @@ export function DevicesSettings() {
 							<div className="flex-1 min-w-0">
 								<div className="font-medium truncate">{device.deviceName}</div>
 								<div className="text-sm text-muted-foreground">
-									{device.ownerName} &middot; {device.deviceType} &middot;{" "}
-									{formatLastSeen(device.lastSeenAt)}
+									{device.ownerName ?? "Unknown"} &middot; {device.deviceType}{" "}
+									&middot; {formatLastSeen(device.lastSeenAt)}
 								</div>
 							</div>
 							<div className="flex items-center gap-2">
@@ -107,14 +91,6 @@ export function DevicesSettings() {
 					);
 				})}
 			</div>
-
-			<button
-				type="button"
-				onClick={fetchDevices}
-				className="mt-4 text-sm text-muted-foreground hover:text-foreground underline"
-			>
-				Refresh now
-			</button>
 		</div>
 	);
 }

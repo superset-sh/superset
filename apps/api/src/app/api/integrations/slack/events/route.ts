@@ -1,41 +1,12 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { Client } from "@upstash/qstash";
 
 import { env } from "@/env";
+import { verifySlackSignature } from "../verify-signature";
+import { processAppHomeOpened } from "./process-app-home-opened";
 import { processEntityDetails } from "./process-entity-details";
 import { processLinkShared } from "./process-link-shared";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
-
-function verifySlackSignature({
-	body,
-	signature,
-	timestamp,
-}: {
-	body: string;
-	signature: string;
-	timestamp: string;
-}): boolean {
-	// Reject timestamps >5 min old to prevent replay attacks
-	const timestampSec = Number.parseInt(timestamp, 10);
-	const now = Math.floor(Date.now() / 1000);
-	if (Math.abs(now - timestampSec) > 60 * 5) {
-		console.error("[slack/events] Timestamp too old or in future");
-		return false;
-	}
-
-	const sigBase = `v0:${timestamp}:${body}`;
-	const mySignature = `v0=${createHmac("sha256", env.SLACK_SIGNING_SECRET).update(sigBase).digest("hex")}`;
-
-	try {
-		return timingSafeEqual(
-			Buffer.from(mySignature, "utf8"),
-			Buffer.from(signature, "utf8"),
-		);
-	} catch {
-		return false;
-	}
-}
 
 export async function POST(request: Request) {
 	const body = await request.text();
@@ -121,6 +92,16 @@ export async function POST(request: Request) {
 				eventId: event_id,
 			}).catch((err: unknown) => {
 				console.error("[slack/events] Process entity details error:", err);
+			});
+		}
+
+		if (event.type === "app_home_opened") {
+			processAppHomeOpened({
+				event,
+				teamId: team_id,
+				eventId: event_id,
+			}).catch((err: unknown) => {
+				console.error("[slack/events] Process app home opened error:", err);
 			});
 		}
 	}

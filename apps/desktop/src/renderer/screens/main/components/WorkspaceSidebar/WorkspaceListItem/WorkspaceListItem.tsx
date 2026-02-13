@@ -22,9 +22,9 @@ import {
 	LuCopy,
 	LuEye,
 	LuEyeOff,
-	LuFolder,
 	LuFolderGit2,
 	LuFolderOpen,
+	LuLaptop,
 	LuPencil,
 	LuX,
 } from "react-icons/lu";
@@ -300,7 +300,7 @@ export function WorkspaceListItem({
 	const showDiffStats = !!diffStats;
 
 	// Determine if we should show the branch subtitle
-	const showBranchSubtitle = !isBranchWorkspace || (!!name && name !== branch);
+	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
 
 	// Collapsed sidebar: show just the icon with hover card (worktree) or tooltip (branch)
 	if (isCollapsed) {
@@ -321,7 +321,7 @@ export function WorkspaceListItem({
 				{workspaceStatus === "working" ? (
 					<AsciiSpinner className="text-base" />
 				) : isBranchWorkspace ? (
-					<LuFolder
+					<LuLaptop
 						className={cn(
 							"size-4",
 							isActive ? "text-foreground" : "text-muted-foreground",
@@ -358,14 +358,9 @@ export function WorkspaceListItem({
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
-						<span className="font-medium">{name || branch}</span>
-						{showBranchSubtitle && (
-							<span className="text-xs text-muted-foreground font-mono">
-								{branch}
-							</span>
-						)}
-						<span className="text-xs text-muted-foreground">
-							Local workspace
+						<span className="font-medium">local</span>
+						<span className="text-xs text-muted-foreground font-mono">
+							{branch}
 						</span>
 					</TooltipContent>
 				</Tooltip>
@@ -429,10 +424,10 @@ export function WorkspaceListItem({
 			onMouseEnter={handleMouseEnter}
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
-				"flex items-center w-full pl-3 pr-2 text-sm",
+				"flex w-full pl-3 pr-2 text-sm",
 				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
 				"group relative",
-				showBranchSubtitle ? "py-1.5" : "py-2",
+				showBranchSubtitle ? "py-1.5" : "py-2 items-center",
 				isActive && "bg-muted",
 				isDragging && "opacity-30",
 			)}
@@ -446,11 +441,16 @@ export function WorkspaceListItem({
 			{/* Icon with status indicator */}
 			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
-					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
+					<div
+						className={cn(
+							"relative shrink-0 size-5 flex items-center justify-center mr-2.5",
+							showBranchSubtitle && "mt-0.5",
+						)}
+					>
 						{workspaceStatus === "working" ? (
 							<AsciiSpinner className="text-base" />
 						) : isBranchWorkspace ? (
-							<LuFolder
+							<LuLaptop
 								className={cn(
 									"size-4 transition-colors",
 									isActive ? "text-foreground" : "text-muted-foreground",
@@ -526,7 +526,7 @@ export function WorkspaceListItem({
 										: "text-foreground/80",
 								)}
 							>
-								{name || branch}
+								{isBranchWorkspace ? "local" : name || branch}
 							</span>
 
 							{/* Keyboard shortcut */}

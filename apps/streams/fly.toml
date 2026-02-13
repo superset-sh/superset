@@ -10,6 +10,7 @@ primary_region = "iad"
   STREAMS_INTERNAL_PORT = "8081"
   STREAMS_INTERNAL_URL = "http://127.0.0.1:8081"
   NODE_ENV = "production"
+  CORS_ORIGINS = "https://app.superset.sh,https://admin.superset.sh,tauri://localhost"
   STREAMS_DATA_DIR = "/data"
 
 [http_service]

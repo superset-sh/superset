@@ -110,7 +110,7 @@ export const createInitProcedures = () => {
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath: relations.worktree?.path,
-					projectName: project.name,
+					projectId: project.id,
 				});
 				const defaultPresets = getPresetsForTrigger("applyOnWorkspaceCreated");
 

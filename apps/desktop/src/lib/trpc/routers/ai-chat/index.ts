@@ -253,7 +253,7 @@ export const createAiChatRouter = () => {
 		getConfig: publicProcedure.query(async () => {
 			const { token } = await loadToken();
 			return {
-				proxyUrl: `${env.NEXT_PUBLIC_API_URL}/api/streams`,
+				proxyUrl: env.NEXT_PUBLIC_STREAMS_URL,
 				authToken: token,
 			};
 		}),

@@ -460,8 +460,6 @@ export async function createWorktree(
 		await execFileAsync(
 			"git",
 			[
-				"-c",
-				"core.hooksPath=/dev/null",
 				"-C",
 				mainRepoPath,
 				"worktree",
@@ -569,16 +567,7 @@ export async function createWorktreeFromExistingBranch({
 			// Branch exists locally - just checkout into the worktree
 			await execFileAsync(
 				"git",
-				[
-					"-c",
-					"core.hooksPath=/dev/null",
-					"-C",
-					mainRepoPath,
-					"worktree",
-					"add",
-					worktreePath,
-					branch,
-				],
+				["-C", mainRepoPath, "worktree", "add", worktreePath, branch],
 				{ env, timeout: 120_000 },
 			);
 		} else {
@@ -591,8 +580,6 @@ export async function createWorktreeFromExistingBranch({
 				await execFileAsync(
 					"git",
 					[
-						"-c",
-						"core.hooksPath=/dev/null",
 						"-C",
 						mainRepoPath,
 						"worktree",
@@ -1723,16 +1710,7 @@ export async function createWorktreeFromPr({
 
 			await execFileAsync(
 				"git",
-				[
-					"-c",
-					"core.hooksPath=/dev/null",
-					"-C",
-					mainRepoPath,
-					"worktree",
-					"add",
-					worktreePath,
-					branchName,
-				],
+				["-C", mainRepoPath, "worktree", "add", worktreePath, branchName],
 				{ env, timeout: 120_000 },
 			);
 
@@ -1744,14 +1722,7 @@ export async function createWorktreeFromPr({
 				);
 			}
 		} else {
-			const args = [
-				"-c",
-				"core.hooksPath=/dev/null",
-				"-C",
-				mainRepoPath,
-				"worktree",
-				"add",
-			];
+			const args = ["-C", mainRepoPath, "worktree", "add"];
 			if (!prInfo.isCrossRepository) {
 				args.push("--track");
 			}

@@ -210,7 +210,7 @@ export const createDeleteProcedures = () => {
 							mainRepoPath: project.mainRepoPath,
 							worktreePath: worktree.path,
 							workspaceName: workspace.name,
-							projectName: project.name,
+							projectId: project.id,
 						});
 					} else {
 						console.warn(
@@ -446,7 +446,7 @@ export const createDeleteProcedures = () => {
 							mainRepoPath: project.mainRepoPath,
 							worktreePath: worktree.path,
 							workspaceName: worktree.branch,
-							projectName: project.name,
+							projectId: project.id,
 						});
 						if (!teardownResult.success) {
 							if (input.force) {

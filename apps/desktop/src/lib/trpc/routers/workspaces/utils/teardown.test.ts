@@ -14,12 +14,12 @@ import { runTeardown } from "./teardown";
 const TEST_DIR = join(__dirname, ".test-tmp-teardown");
 const MAIN_REPO = join(TEST_DIR, "main-repo");
 const WORKTREE = join(TEST_DIR, "worktree");
-const PROJECT_NAME = "test-teardown-project";
+const PROJECT_ID = "test-teardown-project";
 const USER_CONFIG_DIR = join(
 	homedir(),
 	SUPERSET_DIR_NAME,
 	PROJECTS_DIR_NAME,
-	PROJECT_NAME,
+	PROJECT_ID,
 );
 
 describe("runTeardown", () => {
@@ -199,7 +199,7 @@ describe("runTeardown", () => {
 		expect(content).toBe(`my-workspace|${MAIN_REPO}`);
 	});
 
-	test("reads from user override when projectName is provided", async () => {
+	test("reads from user override when projectId is provided", async () => {
 		const mainMarker = join(WORKTREE, "from-main.txt");
 		const userMarker = join(WORKTREE, "from-user.txt");
 
@@ -218,7 +218,7 @@ describe("runTeardown", () => {
 			mainRepoPath: MAIN_REPO,
 			worktreePath: WORKTREE,
 			workspaceName: "test-workspace",
-			projectName: PROJECT_NAME,
+			projectId: PROJECT_ID,
 		});
 
 		expect(result.success).toBe(true);
@@ -239,7 +239,7 @@ describe("runTeardown", () => {
 			mainRepoPath: MAIN_REPO,
 			worktreePath: WORKTREE,
 			workspaceName: "test-workspace",
-			projectName: PROJECT_NAME,
+			projectId: PROJECT_ID,
 		});
 
 		expect(result.success).toBe(true);

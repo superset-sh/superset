@@ -8,6 +8,7 @@ import {
 	members,
 	organizations,
 	repositories,
+	subscriptions,
 	taskStatuses,
 	tasks,
 } from "@superset/db/schema";
@@ -26,7 +27,8 @@ export type AllowedTable =
 	| "auth.apikeys"
 	| "device_presence"
 	| "agent_commands"
-	| "integration_connections";
+	| "integration_connections"
+	| "subscriptions";
 
 interface WhereClause {
 	fragment: string;
@@ -116,6 +118,9 @@ export async function buildWhereClause(
 				integrationConnections.organizationId,
 				organizationId,
 			);
+
+		case "subscriptions":
+			return build(subscriptions, subscriptions.referenceId, organizationId);
 
 		default:
 			return null;

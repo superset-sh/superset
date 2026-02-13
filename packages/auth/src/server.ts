@@ -430,15 +430,19 @@ export const auth = betterAuth({
 
 			let activeOrganizationId = session.activeOrganizationId;
 
-			const membership = await db.query.members.findFirst({
-				where: activeOrganizationId
-					? and(
-							eq(members.userId, session.userId ?? user.id),
-							eq(members.organizationId, activeOrganizationId),
-						)
-					: eq(members.userId, session.userId ?? user.id),
+			const allMemberships = await db.query.members.findMany({
+				where: eq(members.userId, session.userId ?? user.id),
 				orderBy: desc(members.createdAt),
 			});
+
+			const organizationIds = [
+				...new Set(allMemberships.map((m) => m.organizationId)),
+			];
+
+			// Find membership for active org, or fall back to most recent
+			const membership = activeOrganizationId
+				? allMemberships.find((m) => m.organizationId === activeOrganizationId)
+				: allMemberships[0];
 
 			if (!activeOrganizationId && membership?.organizationId) {
 				activeOrganizationId = membership.organizationId;
@@ -464,6 +468,7 @@ export const auth = betterAuth({
 				session: {
 					...session,
 					activeOrganizationId,
+					organizationIds,
 					role: membership?.role,
 					plan,
 				},

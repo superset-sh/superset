@@ -1,11 +1,10 @@
-import { settings } from "@superset/local-db";
+import { EXTERNAL_APPS, settings } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	EXTERNAL_APPS,
 	type ExternalApp,
 	getAppCommand,
 	resolvePath,

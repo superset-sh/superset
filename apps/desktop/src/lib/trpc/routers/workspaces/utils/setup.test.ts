@@ -8,12 +8,12 @@ import { loadSetupConfig } from "./setup";
 const TEST_DIR = join(__dirname, ".test-tmp");
 const MAIN_REPO = join(TEST_DIR, "main-repo");
 const WORKTREE = join(TEST_DIR, "worktree");
-const PROJECT_NAME = "test-project";
+const PROJECT_ID = "test-project-id";
 const USER_CONFIG_DIR = join(
 	homedir(),
 	SUPERSET_DIR_NAME,
 	PROJECTS_DIR_NAME,
-	PROJECT_NAME,
+	PROJECT_ID,
 );
 
 describe("loadSetupConfig", () => {
@@ -127,7 +127,7 @@ describe("loadSetupConfig", () => {
 
 		const config = loadSetupConfig({
 			mainRepoPath: MAIN_REPO,
-			projectName: PROJECT_NAME,
+			projectId: PROJECT_ID,
 		});
 		expect(config).toEqual(userConfig);
 	});
@@ -151,7 +151,7 @@ describe("loadSetupConfig", () => {
 		const config = loadSetupConfig({
 			mainRepoPath: MAIN_REPO,
 			worktreePath: WORKTREE,
-			projectName: PROJECT_NAME,
+			projectId: PROJECT_ID,
 		});
 		expect(config).toEqual(userConfig);
 	});
@@ -166,12 +166,12 @@ describe("loadSetupConfig", () => {
 
 		const config = loadSetupConfig({
 			mainRepoPath: MAIN_REPO,
-			projectName: PROJECT_NAME,
+			projectId: PROJECT_ID,
 		});
 		expect(config).toEqual(mainConfig);
 	});
 
-	test("works when projectName is not provided (backwards compat)", () => {
+	test("works when projectId is not provided (backwards compat)", () => {
 		const mainConfig = { setup: ["npm install"] };
 
 		writeFileSync(
@@ -202,7 +202,7 @@ describe("loadSetupConfig", () => {
 
 		const config = loadSetupConfig({
 			mainRepoPath: MAIN_REPO,
-			projectName: PROJECT_NAME,
+			projectId: PROJECT_ID,
 		});
 		expect(config).toEqual(userConfig);
 		expect(config?.setup).toEqual([]);
@@ -221,7 +221,7 @@ describe("loadSetupConfig", () => {
 
 		const config = loadSetupConfig({
 			mainRepoPath: MAIN_REPO,
-			projectName: PROJECT_NAME,
+			projectId: PROJECT_ID,
 		});
 		expect(config).toEqual(mainConfig);
 	});
