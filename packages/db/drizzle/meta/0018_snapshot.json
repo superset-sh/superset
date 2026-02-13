@@ -1,5 +1,5 @@
 {
-  "id": "c1610b42-20ac-4353-9f36-602fd68a5423",
+  "id": "05ee7aa5-2712-498d-bd5b-4ec93f526e83",
   "prevId": "02acb4cb-aaf7-4617-8d27-cb6f1c492d95",
   "version": "7",
   "dialect": "postgresql",
@@ -2626,8 +2626,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.repositories": {
-      "name": "repositories",
+    "public.projects": {
+      "name": "projects",
       "schema": "",
       "columns": {
         "id": {
@@ -2655,11 +2655,11 @@
           "primaryKey": false,
           "notNull": true
         },
-        "repo_url": {
-          "name": "repo_url",
-          "type": "text",
+        "github_repository_id": {
+          "name": "github_repository_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "repo_owner": {
           "name": "repo_owner",
@@ -2669,6 +2669,12 @@
         },
         "repo_name": {
           "name": "repo_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "repo_url": {
+          "name": "repo_url",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -2696,8 +2702,8 @@
         }
       },
       "indexes": {
-        "repositories_organization_id_idx": {
-          "name": "repositories_organization_id_idx",
+        "projects_organization_id_idx": {
+          "name": "projects_organization_id_idx",
           "columns": [
             {
               "expression": "organization_id",
@@ -2710,12 +2716,116 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        }
+      },
+      "foreignKeys": {
+        "projects_organization_id_organizations_id_fk": {
+          "name": "projects_organization_id_organizations_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "organizations",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         },
-        "repositories_slug_idx": {
-          "name": "repositories_slug_idx",
+        "projects_github_repository_id_github_repositories_id_fk": {
+          "name": "projects_github_repository_id_github_repositories_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "github_repositories",
+          "columnsFrom": [
+            "github_repository_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "projects_org_slug_unique": {
+          "name": "projects_org_slug_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "slug"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sandbox_images": {
+      "name": "sandbox_images",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "setup_commands": {
+          "name": "setup_commands",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'[]'::jsonb"
+        },
+        "base_image": {
+          "name": "base_image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "system_packages": {
+          "name": "system_packages",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'[]'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sandbox_images_organization_id_idx": {
+          "name": "sandbox_images_organization_id_idx",
           "columns": [
             {
-              "expression": "slug",
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2728,9 +2838,9 @@
         }
       },
       "foreignKeys": {
-        "repositories_organization_id_organizations_id_fk": {
-          "name": "repositories_organization_id_organizations_id_fk",
-          "tableFrom": "repositories",
+        "sandbox_images_organization_id_organizations_id_fk": {
+          "name": "sandbox_images_organization_id_organizations_id_fk",
+          "tableFrom": "sandbox_images",
           "tableTo": "organizations",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -2741,16 +2851,181 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "sandbox_images_project_id_projects_id_fk": {
+          "name": "sandbox_images_project_id_projects_id_fk",
+          "tableFrom": "sandbox_images",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "repositories_org_slug_unique": {
-          "name": "repositories_org_slug_unique",
+        "sandbox_images_project_unique": {
+          "name": "sandbox_images_project_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "organization_id",
-            "slug"
+            "project_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.secrets": {
+      "name": "secrets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "encrypted_value": {
+          "name": "encrypted_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sensitive": {
+          "name": "sensitive",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "secrets_project_id_idx": {
+          "name": "secrets_project_id_idx",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "secrets_organization_id_idx": {
+          "name": "secrets_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "secrets_organization_id_organizations_id_fk": {
+          "name": "secrets_organization_id_organizations_id_fk",
+          "tableFrom": "secrets",
+          "tableTo": "organizations",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "secrets_project_id_projects_id_fk": {
+          "name": "secrets_project_id_projects_id_fk",
+          "tableFrom": "secrets",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "secrets_created_by_user_id_users_id_fk": {
+          "name": "secrets_created_by_user_id_users_id_fk",
+          "tableFrom": "secrets",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "secrets_project_key_unique": {
+          "name": "secrets_project_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "project_id",
+            "key"
           ]
         }
       },
@@ -3127,12 +3402,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "repository_id": {
-          "name": "repository_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "assignee_id": {
           "name": "assignee_id",
           "type": "uuid",
@@ -3277,21 +3546,6 @@
           "method": "btree",
           "with": {}
         },
-        "tasks_repository_id_idx": {
-          "name": "tasks_repository_id_idx",
-          "columns": [
-            {
-              "expression": "repository_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "tasks_assignee_id_idx": {
           "name": "tasks_assignee_id_idx",
           "columns": [
@@ -3396,19 +3650,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tasks_repository_id_repositories_id_fk": {
-          "name": "tasks_repository_id_repositories_id_fk",
-          "tableFrom": "tasks",
-          "tableTo": "repositories",
-          "columnsFrom": [
-            "repository_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "tasks_assignee_id_users_id_fk": {
           "name": "tasks_assignee_id_users_id_fk",
           "tableFrom": "tasks",
@@ -3462,8 +3703,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.users__slack_users": {
-      "name": "users__slack_users",
+    "public.workspaces": {
+      "name": "workspaces",
       "schema": "",
       "columns": {
         "id": {
@@ -3473,33 +3714,40 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "slack_user_id": {
-          "name": "slack_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "team_id": {
-          "name": "team_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
         "organization_id": {
           "name": "organization_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "model_preference": {
-          "name": "model_preference",
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "workspace_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "config": {
+          "name": "config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -3509,14 +3757,21 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
-        "users__slack_users_user_idx": {
-          "name": "users__slack_users_user_idx",
+        "workspaces_project_id_idx": {
+          "name": "workspaces_project_id_idx",
           "columns": [
             {
-              "expression": "user_id",
+              "expression": "project_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -3527,8 +3782,8 @@
           "method": "btree",
           "with": {}
         },
-        "users__slack_users_org_idx": {
-          "name": "users__slack_users_org_idx",
+        "workspaces_organization_id_idx": {
+          "name": "workspaces_organization_id_idx",
           "columns": [
             {
               "expression": "organization_id",
@@ -3541,26 +3796,27 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "workspaces_type_idx": {
+          "name": "workspaces_type_idx",
+          "columns": [
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "users__slack_users_user_id_users_id_fk": {
-          "name": "users__slack_users_user_id_users_id_fk",
-          "tableFrom": "users__slack_users",
-          "tableTo": "users",
-          "schemaTo": "auth",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "users__slack_users_organization_id_organizations_id_fk": {
-          "name": "users__slack_users_organization_id_organizations_id_fk",
-          "tableFrom": "users__slack_users",
+        "workspaces_organization_id_organizations_id_fk": {
+          "name": "workspaces_organization_id_organizations_id_fk",
+          "tableFrom": "workspaces",
           "tableTo": "organizations",
           "schemaTo": "auth",
           "columnsFrom": [
@@ -3571,19 +3827,37 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "workspaces_project_id_projects_id_fk": {
+          "name": "workspaces_project_id_projects_id_fk",
+          "tableFrom": "workspaces",
+          "tableTo": "projects",
+          "columnsFrom": [
+            "project_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workspaces_created_by_user_id_users_id_fk": {
+          "name": "workspaces_created_by_user_id_users_id_fk",
+          "tableFrom": "workspaces",
+          "tableTo": "users",
+          "schemaTo": "auth",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "users__slack_users_unique": {
-          "name": "users__slack_users_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slack_user_id",
-            "team_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -3643,6 +3917,14 @@
         "ready-to-merge",
         "completed",
         "canceled"
+      ]
+    },
+    "public.workspace_type": {
+      "name": "workspace_type",
+      "schema": "public",
+      "values": [
+        "local",
+        "cloud"
       ]
     }
   },

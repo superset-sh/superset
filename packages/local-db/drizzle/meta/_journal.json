@@ -176,6 +176,13 @@
       "when": 1770884219595,
       "tag": "0024_generate_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1770857983374,
+      "tag": "0025_sandbox_start",
+      "breakpoints": true
     }
   ]
 }
