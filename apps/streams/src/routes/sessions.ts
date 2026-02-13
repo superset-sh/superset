@@ -22,6 +22,8 @@ export function createSessionRoutes(protocol: AIDBSessionProtocol) {
 			return c.json(
 				{
 					error: "Failed to create session",
+					code: "CREATE_FAILED",
+					sessionId,
 					details: (error as Error).message,
 				},
 				500,
@@ -36,7 +38,10 @@ export function createSessionRoutes(protocol: AIDBSessionProtocol) {
 			const stream = await protocol.getSession(sessionId);
 
 			if (!stream) {
-				return c.json({ error: "Session not found" }, 404);
+				return c.json(
+					{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
+					404,
+				);
 			}
 
 			return c.json({
@@ -46,7 +51,12 @@ export function createSessionRoutes(protocol: AIDBSessionProtocol) {
 		} catch (error) {
 			console.error("Failed to get session:", error);
 			return c.json(
-				{ error: "Failed to get session", details: (error as Error).message },
+				{
+					error: "Failed to get session",
+					code: "GET_FAILED",
+					sessionId,
+					details: (error as Error).message,
+				},
 				500,
 			);
 		}
@@ -63,6 +73,8 @@ export function createSessionRoutes(protocol: AIDBSessionProtocol) {
 			return c.json(
 				{
 					error: "Failed to delete session",
+					code: "DELETE_FAILED",
+					sessionId,
 					details: (error as Error).message,
 				},
 				500,
@@ -93,11 +105,19 @@ export function createSessionRoutes(protocol: AIDBSessionProtocol) {
 			console.error("Failed to reset session:", error);
 
 			if ((error as Error).message.includes("not found")) {
-				return c.json({ error: "Session not found" }, 404);
+				return c.json(
+					{ error: "Session not found", code: "SESSION_NOT_FOUND", sessionId },
+					404,
+				);
 			}
 
 			return c.json(
-				{ error: "Failed to reset session", details: (error as Error).message },
+				{
+					error: "Failed to reset session",
+					code: "RESET_FAILED",
+					sessionId,
+					details: (error as Error).message,
+				},
 				500,
 			);
 		}

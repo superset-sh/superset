@@ -127,6 +127,55 @@
       "when": 1770103994672,
       "tag": "0017_add_is_unnamed_to_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1770414833599,
+      "tag": "0018_add_delete_local_branch_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1770438863796,
+      "tag": "0019_add_hide_image_to_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1770754481921,
+      "tag": "0020_add_file_open_mode_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1770783531923,
+      "tag": "0021_add_image_project",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1770786023683,
+      "tag": "0022_add_port_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1770879851897,
+      "tag": "0023_add_show_presets_bar_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1770884219595,
+      "tag": "0024_generate_migration",
+      "breakpoints": true
     }
   ]
 }

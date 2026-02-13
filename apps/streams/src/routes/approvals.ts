@@ -1,6 +1,12 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import type { AIDBSessionProtocol } from "../protocol";
 import { approvalResponseRequestSchema } from "../types";
+
+const answerRequestSchema = z.object({
+	answers: z.record(z.string(), z.string()),
+	originalInput: z.record(z.string(), z.unknown()).optional(),
+});
 
 export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 	const app = new Hono();
@@ -32,6 +38,37 @@ export function createApprovalRoutes(protocol: AIDBSessionProtocol) {
 			return c.json(
 				{
 					error: "Failed to respond to approval",
+					details: (error as Error).message,
+				},
+				500,
+			);
+		}
+	});
+
+	app.post("/:sessionId/answers/:toolUseId", async (c) => {
+		const sessionId = c.req.param("sessionId");
+		const toolUseId = c.req.param("toolUseId");
+
+		try {
+			const rawBody = await c.req.json();
+			const parsed = answerRequestSchema.safeParse(rawBody);
+			if (!parsed.success) {
+				return c.json(
+					{ error: "Invalid request body", details: parsed.error.message },
+					400,
+				);
+			}
+
+			console.log(
+				`[approvals] Received answer for ${toolUseId} in session ${sessionId}`,
+			);
+
+			return new Response(null, { status: 204 });
+		} catch (error) {
+			console.error("Failed to process answer:", error);
+			return c.json(
+				{
+					error: "Failed to process answer",
 					details: (error as Error).message,
 				},
 				500,

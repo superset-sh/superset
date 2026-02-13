@@ -16,6 +16,8 @@ import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuFolderOpen,
+	LuImage,
+	LuImageOff,
 	LuPalette,
 	LuPencil,
 	LuSettings,
@@ -40,6 +42,8 @@ interface ProjectHeaderProps {
 	projectColor: string;
 	githubOwner: string | null;
 	mainRepoPath: string;
+	hideImage: boolean;
+	iconUrl: string | null;
 	/** Whether the project section is collapsed (workspaces hidden) */
 	isCollapsed: boolean;
 	/** Whether the sidebar is in collapsed mode (icon-only view) */
@@ -55,6 +59,8 @@ export function ProjectHeader({
 	projectColor,
 	githubOwner,
 	mainRepoPath,
+	hideImage,
+	iconUrl,
 	isCollapsed,
 	isSidebarCollapsed = false,
 	onToggleCollapse,
@@ -142,6 +148,10 @@ export function ProjectHeader({
 		updateProject.mutate({ id: projectId, patch: { color } });
 	};
 
+	const handleToggleImage = () => {
+		updateProject.mutate({ id: projectId, patch: { hideImage: !hideImage } });
+	};
+
 	// Color picker submenu used in both collapsed and expanded context menus
 	const colorPickerSubmenu = (
 		<ContextMenuSub>
@@ -197,6 +207,7 @@ export function ProjectHeader({
 										projectName={projectName}
 										projectColor={projectColor}
 										githubOwner={githubOwner}
+										iconUrl={iconUrl}
 									/>
 								</button>
 							</TooltipTrigger>
@@ -270,6 +281,8 @@ export function ProjectHeader({
 									projectName={projectName}
 									projectColor={projectColor}
 									githubOwner={githubOwner}
+									hideImage={hideImage}
+									iconUrl={iconUrl}
 								/>
 								<RenameInput
 									value={rename.renameValue}
@@ -291,6 +304,8 @@ export function ProjectHeader({
 									projectName={projectName}
 									projectColor={projectColor}
 									githubOwner={githubOwner}
+									hideImage={hideImage}
+									iconUrl={iconUrl}
 								/>
 								<span className="truncate">{projectName}</span>
 								<span className="text-xs text-muted-foreground tabular-nums font-normal">
@@ -351,6 +366,14 @@ export function ProjectHeader({
 						Project Settings
 					</ContextMenuItem>
 					{colorPickerSubmenu}
+					<ContextMenuItem onSelect={handleToggleImage}>
+						{hideImage ? (
+							<LuImage className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						) : (
+							<LuImageOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						)}
+						{hideImage ? "Show Image" : "Hide Image"}
+					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem
 						onSelect={handleCloseProject}

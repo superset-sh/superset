@@ -1,5 +1,6 @@
 "use client";
 
+import { authClient } from "@superset/auth/client";
 import { Button } from "@superset/ui/button";
 import {
 	Select,
@@ -24,8 +25,8 @@ interface Organization {
 }
 
 interface ConsentFormProps {
-	consentCode: string;
 	clientId: string;
+	clientName?: string;
 	scopes: string[];
 	userName: string;
 	organizations: Organization[];
@@ -55,8 +56,8 @@ const SCOPE_DESCRIPTIONS: Record<
 };
 
 export function ConsentForm({
-	consentCode,
 	clientId,
+	clientName,
 	scopes,
 	userName,
 	organizations,
@@ -72,78 +73,56 @@ export function ConsentForm({
 	const selectedOrg = organizations.find((o) => o.id === selectedOrgId);
 
 	const handleConsent = async (accept: boolean) => {
+		if (accept && !selectedOrgId) {
+			setError("Please select an organization");
+			return;
+		}
+
 		setIsLoading(true);
 		setError(null);
 
 		try {
-			// Add organization scope to verification value before consent
-			// (Better Auth's consent endpoint doesn't accept scope in body)
-			if (accept && selectedOrgId) {
-				const addScopeResponse = await fetch(
-					`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth/add-org-scope`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-						},
-						credentials: "include",
-						body: JSON.stringify({
-							consent_code: consentCode,
-							organizationId: selectedOrgId,
-						}),
-					},
-				);
-
-				if (!addScopeResponse.ok) {
-					const data = await addScopeResponse.json();
-					throw new Error(data.error || "Failed to set organization scope");
+			if (accept) {
+				const { error: setActiveError } =
+					await authClient.organization.setActive({
+						organizationId: selectedOrgId,
+					});
+				if (setActiveError) {
+					throw new Error(
+						setActiveError.message ?? "Failed to set organization",
+					);
 				}
 			}
 
-			const response = await fetch(
-				`${process.env.NEXT_PUBLIC_API_URL}/api/auth/oauth2/consent`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
-					body: JSON.stringify({
-						accept,
-						consent_code: consentCode,
-					}),
-				},
-			);
+			const { data, error: consentError } = await authClient.oauth2.consent({
+				accept,
+				scope: accept ? scopes.join(" ") : undefined,
+			});
 
-			const data = await response.json();
-
-			if (!response.ok) {
-				throw new Error(
-					data.error_description || data.message || "Failed to process consent",
-				);
+			if (consentError) {
+				throw new Error(consentError.message ?? "Failed to process consent");
 			}
 
-			const redirectUrl = data.redirectURI || data.redirectTo;
-			if (redirectUrl) {
-				window.location.href = redirectUrl;
+			if (data?.uri) {
+				window.location.href = data.uri;
 			}
 		} catch (err) {
-			console.error("Consent error:", err);
+			console.error("[oauth/consent] Error:", err);
 			setError(err instanceof Error ? err.message : "An error occurred");
 			setIsLoading(false);
 		}
 	};
 
-	const clientName = getClientDisplayName(clientId);
+	const displayName = clientName ?? getClientDisplayName(clientId);
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
 			<div className="flex flex-col space-y-2 text-center">
 				<h1 className="text-2xl font-semibold tracking-tight">
-					Authorize {clientName}
+					Authorize {displayName}
 				</h1>
 				<p className="text-muted-foreground text-sm">
-					<span className="font-medium text-foreground">{clientName}</span> is
+					<span className="font-medium text-foreground">{displayName}</span> is
 					requesting access to your Superset account
 				</p>
 			</div>

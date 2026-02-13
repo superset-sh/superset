@@ -1,4 +1,4 @@
-import type { BranchPrefixMode } from "@superset/local-db";
+import type { BranchPrefixMode, FileOpenMode } from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -28,12 +28,20 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
 	);
+	const showDeleteLocalBranch = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_DELETE_LOCAL_BRANCH,
+		visibleItems,
+	);
 	const showBranchPrefix = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
 		visibleItems,
 	);
 	const showTelemetry = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_TELEMETRY,
+		visibleItems,
+	);
+	const showFileOpenMode = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
 		visibleItems,
 	);
 
@@ -60,6 +68,33 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 
 	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
+	};
+
+	const { data: deleteLocalBranch, isLoading: isDeleteBranchLoading } =
+		electronTrpc.settings.getDeleteLocalBranch.useQuery();
+	const setDeleteLocalBranch =
+		electronTrpc.settings.setDeleteLocalBranch.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getDeleteLocalBranch.cancel();
+				const previous = utils.settings.getDeleteLocalBranch.getData();
+				utils.settings.getDeleteLocalBranch.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getDeleteLocalBranch.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getDeleteLocalBranch.invalidate();
+			},
+		});
+
+	const handleDeleteBranchToggle = (enabled: boolean) => {
+		setDeleteLocalBranch.mutate({ enabled });
 	};
 
 	// TODO: remove telemetry query/mutation/handler once telemetry procedures are removed
@@ -129,6 +164,25 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		});
 	};
 
+	const { data: fileOpenMode, isLoading: isFileOpenModeLoading } =
+		electronTrpc.settings.getFileOpenMode.useQuery();
+	const setFileOpenMode = electronTrpc.settings.setFileOpenMode.useMutation({
+		onMutate: async ({ mode }) => {
+			await utils.settings.getFileOpenMode.cancel();
+			const previous = utils.settings.getFileOpenMode.getData();
+			utils.settings.getFileOpenMode.setData(undefined, mode);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getFileOpenMode.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getFileOpenMode.invalidate();
+		},
+	});
+
 	const previewPrefix =
 		resolveBranchPrefix({
 			mode: branchPrefix?.mode ?? "none",
@@ -167,6 +221,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							checked={confirmOnQuit ?? true}
 							onCheckedChange={handleConfirmToggle}
 							disabled={isConfirmLoading || setConfirmOnQuit.isPending}
+						/>
+					</div>
+				)}
+
+				{showDeleteLocalBranch && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="delete-local-branch"
+								className="text-sm font-medium"
+							>
+								Delete local branch on workspace removal
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Also delete the local git branch when deleting a worktree
+								workspace
+							</p>
+						</div>
+						<Switch
+							id="delete-local-branch"
+							checked={deleteLocalBranch ?? false}
+							onCheckedChange={handleDeleteBranchToggle}
+							disabled={isDeleteBranchLoading || setDeleteLocalBranch.isPending}
 						/>
 					</div>
 				)}
@@ -219,6 +296,32 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								/>
 							)}
 						</div>
+					</div>
+				)}
+
+				{showFileOpenMode && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">File open mode</Label>
+							<p className="text-xs text-muted-foreground">
+								Choose how files open when no preview pane exists
+							</p>
+						</div>
+						<Select
+							value={fileOpenMode ?? "split-pane"}
+							onValueChange={(value) =>
+								setFileOpenMode.mutate({ mode: value as FileOpenMode })
+							}
+							disabled={isFileOpenModeLoading || setFileOpenMode.isPending}
+						>
+							<SelectTrigger className="w-[180px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="split-pane">Split pane</SelectItem>
+								<SelectItem value="new-tab">New tab</SelectItem>
+							</SelectContent>
+						</Select>
 					</div>
 				)}
 

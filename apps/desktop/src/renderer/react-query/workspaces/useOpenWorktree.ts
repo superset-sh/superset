@@ -1,16 +1,13 @@
-import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 /**
  * Mutation hook for opening an existing worktree as a new workspace
  * Automatically invalidates all workspace queries on success
  * Creates a terminal tab with setup commands if present
- * Shows config toast if no setup commands are configured
  */
 export function useOpenWorktree(
 	options?: Parameters<
@@ -22,9 +19,6 @@ export function useOpenWorktree(
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = useCreateOrAttachWithTheme();
-	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast =
-		electronTrpc.config.dismissConfigToast.useMutation();
 
 	return electronTrpc.workspaces.openWorktree.useMutation({
 		...options,
@@ -47,19 +41,6 @@ export function useOpenWorktree(
 				workspaceId: data.workspace.id,
 				initialCommands,
 			});
-
-			if (!initialCommands) {
-				toast.info("No setup script configured", {
-					description: "Automate workspace setup with a config.json file",
-					action: {
-						label: "Configure",
-						onClick: () => openConfigModal(data.projectId),
-					},
-					onDismiss: () => {
-						dismissConfigToast.mutate({ projectId: data.projectId });
-					},
-				});
-			}
 
 			navigateToWorkspace(data.workspace.id, navigate);
 

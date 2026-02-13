@@ -5,6 +5,7 @@
 import type { AnyClientTool, UIMessage } from "@tanstack/ai";
 import type {
 	AgentSpec,
+	AnswerResponseInput,
 	ApprovalResponseInput,
 	ConnectionStatus,
 	DurableChatClient,
@@ -56,9 +57,6 @@ export interface UseDurableChatReturn<
 		message: UIMessage | { role: string; content: string },
 	) => Promise<void>;
 
-	/** Reload and regenerate the last response */
-	reload: () => Promise<void>;
-
 	/** Stop all active generations */
 	stop: () => void;
 
@@ -76,6 +74,9 @@ export interface UseDurableChatReturn<
 
 	/** Add an approval response */
 	addToolApprovalResponse: (response: ApprovalResponseInput) => Promise<void>;
+
+	/** Submit an answer to a user question tool call */
+	addToolAnswerResponse: (response: AnswerResponseInput) => Promise<void>;
 
 	// ═══════════════════════════════════════════════════════════════════════
 	// Durable extensions

@@ -30,7 +30,7 @@ const REAL_BINARY_RESOLVER = `find_real_binary() {
     [ -z "$dir" ] && continue
     dir="\${dir%/}"
     case "$dir" in
-      "$HOME/.superset/bin"|"$HOME/.superset-dev/bin") continue ;;
+      "$HOME"/.superset/bin|"$HOME"/.superset-*/bin) continue ;;
     esac
     if [ -x "$dir/$name" ] && [ ! -d "$dir/$name" ]; then
       printf "%s\\n" "$dir/$name"

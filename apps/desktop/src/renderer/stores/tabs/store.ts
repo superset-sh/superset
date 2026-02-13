@@ -1,6 +1,7 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
+import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
@@ -13,6 +14,7 @@ import type {
 import {
 	buildMultiPaneLayout,
 	type CreatePaneOptions,
+	createChatTabWithPane,
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
@@ -81,6 +83,15 @@ const findNextTab = (state: TabsState, tabIdToClose: string): string | null => {
 	return workspaceTabs[0]?.id || null;
 };
 
+const deriveTabName = (
+	panes: Record<string, { tabId: string; name: string }>,
+	tabId: string,
+): string => {
+	const tabPanes = Object.values(panes).filter((p) => p.tabId === tabId);
+	if (tabPanes.length === 1) return tabPanes[0].name;
+	return `Multiple panes (${tabPanes.length})`;
+};
+
 export const useTabsStore = create<TabsStore>()(
 	devtools(
 		persist(
@@ -100,6 +111,40 @@ export const useTabsStore = create<TabsStore>()(
 						state.tabs,
 						options,
 					);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addChatTab: (workspaceId: string) => {
+					const state = get();
+
+					const { tab, pane } = createChatTabWithPane(workspaceId, state.tabs);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -281,17 +326,11 @@ export const useTabsStore = create<TabsStore>()(
 					const newPanes = { ...state.panes };
 					let hasChanges = false;
 					for (const paneId of tabPaneIds) {
-						const currentStatus = newPanes[paneId]?.status;
-						if (currentStatus === "review") {
-							// User acknowledged completion
-							newPanes[paneId] = { ...newPanes[paneId], status: "idle" };
-							hasChanges = true;
-						} else if (currentStatus === "permission") {
-							// Assume permission granted, agent is now working
-							newPanes[paneId] = { ...newPanes[paneId], status: "working" };
+						const resolved = acknowledgedStatus(newPanes[paneId]?.status);
+						if (resolved !== (newPanes[paneId]?.status ?? "idle")) {
+							newPanes[paneId] = { ...newPanes[paneId], status: resolved };
 							hasChanges = true;
 						}
-						// "working" status is NOT cleared by click - persists until Stop
 					}
 
 					set({
@@ -424,11 +463,14 @@ export const useTabsStore = create<TabsStore>()(
 						splitPercentage: 50,
 					};
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, layout: newLayout } : t,
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
@@ -466,9 +508,11 @@ export const useTabsStore = create<TabsStore>()(
 						panesRecord[pane.id] = pane;
 					}
 
+					const tabName = deriveTabName(panesRecord, tabId);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, layout: newLayout } : t,
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
 						),
 						panes: panesRecord,
 						focusedPaneIds: {
@@ -633,6 +677,48 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					// No reusable pane found, create a new one
+					if (options.openInNewTab) {
+						const workspaceId = activeTab.workspaceId;
+						const newTabId = generateId("tab");
+						const newPane = createFileViewerPane(newTabId, options);
+
+						const newTab = {
+							id: newTabId,
+							workspaceId,
+							name: newPane.name,
+							layout: newPane.id as MosaicNode<string>,
+							createdAt: Date.now(),
+						};
+
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+						const newHistoryStack = currentActiveId
+							? [
+									currentActiveId,
+									...historyStack.filter((id) => id !== currentActiveId),
+								]
+							: historyStack;
+
+						set({
+							tabs: [...state.tabs, newTab],
+							panes: { ...state.panes, [newPane.id]: newPane },
+							activeTabIds: {
+								...state.activeTabIds,
+								[workspaceId]: newTab.id,
+							},
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[newTab.id]: newPane.id,
+							},
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						});
+
+						return newPane.id;
+					}
+
 					const newPane = createFileViewerPane(activeTab.id, options);
 
 					const newLayout: MosaicNode<string> = {
@@ -642,11 +728,16 @@ export const useTabsStore = create<TabsStore>()(
 						splitPercentage: 50,
 					};
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, activeTab.id);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === activeTab.id ? { ...t, layout: newLayout } : t,
+							t.id === activeTab.id
+								? { ...t, layout: newLayout, name: tabName }
+								: t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[activeTab.id]: newPane.id,
@@ -696,9 +787,11 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
+					const tabName = deriveTabName(newPanes, tab.id);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tab.id ? { ...t, layout: newLayout } : t,
+							t.id === tab.id ? { ...t, layout: newLayout, name: tabName } : t,
 						),
 						panes: newPanes,
 						focusedPaneIds: newFocusedPaneIds,
@@ -711,6 +804,10 @@ export const useTabsStore = create<TabsStore>()(
 					if (!pane || pane.tabId !== tabId) return;
 
 					set({
+						panes: {
+							...state.panes,
+							[paneId]: { ...pane, status: acknowledgedStatus(pane.status) },
+						},
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: paneId,
@@ -744,6 +841,25 @@ export const useTabsStore = create<TabsStore>()(
 					});
 				},
 
+				setPaneName: (paneId, name) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane || pane.name === name) return;
+
+					const newPanes = {
+						...state.panes,
+						[paneId]: { ...pane, name },
+					};
+					const tabName = deriveTabName(newPanes, pane.tabId);
+
+					set({
+						panes: newPanes,
+						tabs: state.tabs.map((t) =>
+							t.id === pane.tabId ? { ...t, name: tabName } : t,
+						),
+					});
+				},
+
 				clearWorkspaceAttentionStatus: (workspaceId) => {
 					const state = get();
 					const workspaceTabs = state.tabs.filter(
@@ -760,17 +876,11 @@ export const useTabsStore = create<TabsStore>()(
 					const newPanes = { ...state.panes };
 					let hasChanges = false;
 					for (const paneId of workspacePaneIds) {
-						const currentStatus = newPanes[paneId]?.status;
-						if (currentStatus === "review") {
-							// User acknowledged completion
-							newPanes[paneId] = { ...newPanes[paneId], status: "idle" };
-							hasChanges = true;
-						} else if (currentStatus === "permission") {
-							// Assume permission granted, Claude is now working
-							newPanes[paneId] = { ...newPanes[paneId], status: "working" };
+						const resolved = acknowledgedStatus(newPanes[paneId]?.status);
+						if (resolved !== (newPanes[paneId]?.status ?? "idle")) {
+							newPanes[paneId] = { ...newPanes[paneId], status: resolved };
 							hasChanges = true;
 						}
-						// "working" status is NOT cleared by click - persists until Stop
 					}
 
 					if (hasChanges) {
@@ -879,11 +989,14 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, layout: newLayout } : t,
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
@@ -928,11 +1041,14 @@ export const useTabsStore = create<TabsStore>()(
 						};
 					}
 
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
 					set({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, layout: newLayout } : t,
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
 						),
-						panes: { ...state.panes, [newPane.id]: newPane },
+						panes: newPanes,
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
@@ -949,8 +1065,21 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				movePaneToTab: (paneId, targetTabId) => {
-					const result = movePaneToTab(get(), paneId, targetTabId);
-					if (result) set(result);
+					const state = get();
+					const pane = state.panes[paneId];
+					const result = movePaneToTab(state, paneId, targetTabId);
+					if (!result) return;
+
+					// Re-derive tab names for affected tabs
+					const sourceTabId = pane?.tabId;
+					result.tabs = result.tabs.map((t) => {
+						if (t.id === targetTabId || t.id === sourceTabId) {
+							return { ...t, name: deriveTabName(result.panes, t.id) };
+						}
+						return t;
+					});
+
+					set(result);
 				},
 
 				movePaneToNewTab: (paneId) => {
@@ -967,8 +1096,36 @@ export const useTabsStore = create<TabsStore>()(
 					const moveResult = movePaneToNewTab(state, paneId);
 					if (!moveResult) return "";
 
+					// Re-derive tab names for affected tabs
+					moveResult.result.tabs = moveResult.result.tabs.map((t) => {
+						if (t.id === moveResult.newTabId || t.id === sourceTab.id) {
+							return {
+								...t,
+								name: deriveTabName(moveResult.result.panes, t.id),
+							};
+						}
+						return t;
+					});
+
 					set(moveResult.result);
 					return moveResult.newTabId;
+				},
+
+				// Chat operations
+				switchChatSession: (paneId, sessionId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.chat) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								chat: { sessionId },
+							},
+						},
+					});
 				},
 
 				// Query helpers

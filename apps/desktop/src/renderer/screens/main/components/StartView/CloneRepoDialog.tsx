@@ -81,7 +81,7 @@ export function CloneRepoDialog({
 						id="repo-url"
 						value={url}
 						onChange={(e) => setUrl(e.target.value)}
-						placeholder="https://github.com/user/repo.git"
+						placeholder="https:// or git@github.com:user/repo.git"
 						disabled={isLoading}
 						onKeyDown={(e) => {
 							if (e.key === "Enter" && !isLoading) {

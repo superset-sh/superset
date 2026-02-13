@@ -1,7 +1,3 @@
-/**
- * Type definitions for the durable session proxy.
- */
-
 import type {
 	MessageRow,
 	ModelMessage,
@@ -9,10 +5,6 @@ import type {
 } from "@superset/durable-session";
 import type { Collection } from "@tanstack/db";
 import { z } from "zod";
-
-// ============================================================================
-// Stream Row Types
-// ============================================================================
 
 export type ActorType = "user" | "agent";
 
@@ -36,43 +28,12 @@ export const streamRowSchema = z.object({
 	seq: z.number(),
 });
 
-// ============================================================================
-// Agent Types
-// ============================================================================
-
-export type AgentTrigger = "all" | "user-messages";
-
-export interface AgentSpec {
-	id: string;
-	name?: string;
-	endpoint: string;
-	method?: "POST";
-	headers?: Record<string, string>;
-	triggers?: AgentTrigger;
-	bodyTemplate?: Record<string, unknown>;
-}
-
-export const agentSpecSchema = z.object({
-	id: z.string(),
-	name: z.string().optional(),
-	endpoint: z.string().url(),
-	method: z.literal("POST").optional(),
-	headers: z.record(z.string(), z.string()).optional(),
-	triggers: z.enum(["all", "user-messages"]).optional(),
-	bodyTemplate: z.record(z.string(), z.unknown()).optional(),
-});
-
-// ============================================================================
-// Request Types
-// ============================================================================
-
 export interface SendMessageRequest {
 	messageId?: string;
 	content: string;
 	role?: "user" | "assistant" | "system";
 	actorId?: string;
 	actorType?: ActorType;
-	agent?: AgentSpec;
 	txid?: string;
 }
 
@@ -82,7 +43,6 @@ export const sendMessageRequestSchema = z.object({
 	role: z.enum(["user", "assistant", "system"]).optional(),
 	actorId: z.string().optional(),
 	actorType: z.enum(["user", "agent"]).optional(),
-	agent: agentSpecSchema.optional(),
 	txid: z.string().uuid().optional(),
 });
 
@@ -112,14 +72,6 @@ export const approvalResponseRequestSchema = z.object({
 	txid: z.string().uuid().optional(),
 });
 
-export interface RegisterAgentsRequest {
-	agents: AgentSpec[];
-}
-
-export const registerAgentsRequestSchema = z.object({
-	agents: z.array(agentSpecSchema),
-});
-
 export interface ForkSessionRequest {
 	atMessageId?: string | null;
 	newSessionId?: string | null;
@@ -138,24 +90,6 @@ export const stopGenerationRequestSchema = z.object({
 	messageId: z.string().nullable().optional(),
 });
 
-export interface RegenerateRequest {
-	fromMessageId: string;
-	content: string;
-	actorId?: string;
-	actorType?: ActorType;
-}
-
-export const regenerateRequestSchema = z.object({
-	fromMessageId: z.string(),
-	content: z.string(),
-	actorId: z.string().optional(),
-	actorType: z.enum(["user", "agent"]).optional(),
-});
-
-// ============================================================================
-// Response Types
-// ============================================================================
-
 export interface SendMessageResponse {
 	messageId: string;
 }
@@ -165,23 +99,28 @@ export interface ForkSessionResponse {
 	offset: string;
 }
 
-// ============================================================================
-// Stream Chunk Types (TanStack AI compatible)
-// ============================================================================
-
+/**
+ * Terminal semantics:
+ *
+ * - `message-end` chunk: UI signal — client flips isLoading → false
+ *   and renders the message as complete. Sent by desktop after agent
+ *   execution finishes (or errors).
+ *
+ * - `/generations/finish`: server lifecycle signal — flushes the
+ *   producer, clears seq state, drains producer errors, and removes
+ *   the active generation. Always called after the `message-end` chunk.
+ *
+ * Both are required. `message-end` is the user-visible terminal event;
+ * `finish` is the durable-state cleanup boundary.
+ */
 export interface StreamChunk {
 	type: string;
 	[key: string]: unknown;
 }
 
-// ============================================================================
-// Session State Types
-// ============================================================================
-
 export interface SessionState {
 	createdAt: string;
 	lastActivityAt: string;
-	agents: AgentSpec[];
 	activeGenerations: string[];
 }
 
@@ -192,10 +131,6 @@ export interface ProxySessionState extends SessionState {
 	changeSubscription: { unsubscribe: () => void } | null;
 	isReady: boolean;
 }
-
-// ============================================================================
-// Protocol Options
-// ============================================================================
 
 export interface AIDBProtocolOptions {
 	baseUrl: string;

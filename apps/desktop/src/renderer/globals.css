@@ -1,8 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "../../../../packages/ui/node_modules/streamdown/styles.css";
 
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
 
 /**
  * Theme CSS Variables

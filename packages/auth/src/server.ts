@@ -1,4 +1,5 @@
 import { expo } from "@better-auth/expo";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { stripe } from "@better-auth/stripe";
 import { db } from "@superset/db/client";
 import { members, subscriptions } from "@superset/db/schema";
@@ -20,15 +21,14 @@ import {
 	apiKey,
 	bearer,
 	customSession,
-	mcp,
 	organization,
 } from "better-auth/plugins";
-import { and, count, eq } from "drizzle-orm";
+import { jwt } from "better-auth/plugins/jwt";
+import { and, count, desc, eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
-import { oauthOrgScopeEndpoint } from "./lib/oauth-org-scope-endpoint";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import { stripeClient } from "./stripe";
@@ -49,6 +49,7 @@ const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/job
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
 	secret: env.BETTER_AUTH_SECRET,
+	disabledPaths: [],
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		usePlural: true,
@@ -69,6 +70,7 @@ export const auth = betterAuth({
 	session: {
 		expiresIn: 60 * 60 * 24 * 30,
 		updateAge: 60 * 60 * 24,
+		storeSessionInDatabase: true,
 		cookieCache: {
 			enabled: true,
 			maxAge: 60 * 5,
@@ -121,14 +123,58 @@ export const auth = betterAuth({
 			enableSessionForAPIKeys: true,
 			defaultPrefix: "sk_live_",
 		}),
-		mcp({
-			loginPage: `${env.NEXT_PUBLIC_WEB_URL}/sign-in`,
-			oidcConfig: {
-				loginPage: `${env.NEXT_PUBLIC_WEB_URL}/sign-in`,
-				consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
-				accessTokenExpiresIn: 3600,
-				refreshTokenExpiresIn: 2592000,
+		jwt({
+			jwks: {
+				keyPairConfig: { alg: "RS256" },
 			},
+			jwt: {
+				issuer: env.NEXT_PUBLIC_API_URL,
+				audience: env.NEXT_PUBLIC_API_URL,
+				expirationTime: "1h",
+				definePayload: async ({
+					user,
+				}: {
+					user: { id: string; email: string };
+					session: Record<string, unknown>;
+				}) => {
+					const userMemberships = await db.query.members.findMany({
+						where: eq(members.userId, user.id),
+						columns: { organizationId: true },
+					});
+					const organizationIds = [
+						...new Set(userMemberships.map((m) => m.organizationId)),
+					];
+					return { sub: user.id, email: user.email, organizationIds };
+				},
+			},
+		}),
+		oauthProvider({
+			loginPage: `${env.NEXT_PUBLIC_WEB_URL}/sign-in`,
+			consentPage: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
+			allowDynamicClientRegistration: true,
+			allowUnauthenticatedClientRegistration: true,
+			validAudiences: [env.NEXT_PUBLIC_API_URL, `${env.NEXT_PUBLIC_API_URL}/`],
+			silenceWarnings: {
+				oauthAuthServerConfig: true,
+				openidConfig: true,
+			},
+			postLogin: {
+				// Org selection is handled in the consent page, so never redirect to a separate page
+				page: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
+				shouldRedirect: () => false,
+				consentReferenceId: ({ session }) => {
+					const activeOrganizationId = (
+						session as { activeOrganizationId?: string }
+					).activeOrganizationId;
+					if (!activeOrganizationId) {
+						throw new Error("Organization must be selected before consent");
+					}
+					return activeOrganizationId;
+				},
+			},
+			customAccessTokenClaims: ({ referenceId }) => ({
+				organizationId: referenceId ?? undefined,
+			}),
 		}),
 		expo(),
 		organization({
@@ -399,14 +445,19 @@ export const auth = betterAuth({
 
 			let activeOrganizationId = session.activeOrganizationId;
 
-			const membership = await db.query.members.findFirst({
-				where: activeOrganizationId
-					? and(
-							eq(members.userId, session.userId ?? user.id),
-							eq(members.organizationId, activeOrganizationId),
-						)
-					: eq(members.userId, session.userId ?? user.id),
+			const allMemberships = await db.query.members.findMany({
+				where: eq(members.userId, session.userId ?? user.id),
+				orderBy: desc(members.createdAt),
 			});
+
+			const organizationIds = [
+				...new Set(allMemberships.map((m) => m.organizationId)),
+			];
+
+			// Find membership for active org, or fall back to most recent
+			const membership = activeOrganizationId
+				? allMemberships.find((m) => m.organizationId === activeOrganizationId)
+				: allMemberships[0];
 
 			if (!activeOrganizationId && membership?.organizationId) {
 				activeOrganizationId = membership.organizationId;
@@ -432,6 +483,7 @@ export const auth = betterAuth({
 				session: {
 					...session,
 					activeOrganizationId,
+					organizationIds,
 					role: membership?.role,
 					plan,
 				},
@@ -794,7 +846,6 @@ export const auth = betterAuth({
 			},
 		}),
 		acceptInvitationEndpoint,
-		oauthOrgScopeEndpoint,
 	],
 });
 

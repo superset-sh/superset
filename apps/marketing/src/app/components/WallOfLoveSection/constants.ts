@@ -57,29 +57,20 @@ export const TESTIMONIALS: Testimonial[] = [
 	{
 		id: "6",
 		content:
-			"@superset_sh is a sick product - love OS since I don't have to wait for someone else to fix bugs",
-		author: "Chase McDougall",
-		handle: "@ChaseMcDou",
-		avatar: "https://unavatar.io/twitter/ChaseMcDou",
-		url: "https://x.com/ChaseMcDou/status/2013458004977373643",
-	},
-	{
-		id: "7",
-		content:
-			"Dang @superset_sh might have just let me uninstall the @claudeai mobile app",
-		author: "Chase McDougall",
-		handle: "@ChaseMcDou",
-		avatar: "https://unavatar.io/twitter/ChaseMcDou",
-		url: "https://x.com/ChaseMcDou/status/2014174535155683408",
-	},
-	{
-		id: "8",
-		content:
 			"If you prefer a more GUI-oriented approach to multiple agents in parallel, it seems like @superset_sh is doing a tremendous job.",
 		author: "Felipe Coury",
 		handle: "@fcoury",
 		avatar: "https://unavatar.io/twitter/fcoury",
 		url: "https://x.com/fcoury/status/2010477904472281220",
+	},
+	{
+		id: "8",
+		content:
+			"@superset_sh is a sick product - love OS since I don't have to wait for someone else to fix bugs",
+		author: "Chase McDougall",
+		handle: "@ChaseMcDou",
+		avatar: "https://unavatar.io/twitter/ChaseMcDou",
+		url: "https://x.com/ChaseMcDou/status/2013458004977373643",
 	},
 	{
 		id: "9",
@@ -114,6 +105,15 @@ export const TESTIMONIALS: Testimonial[] = [
 	},
 	{
 		id: "12",
+		content:
+			"just started using remote desktop instead of ssh just to be able to use @superset_sh on my mac mini from my macbook pro\n\ngenerational product in the making, mark my words",
+		author: "Elias Ståvik",
+		handle: "@eliasstravik",
+		avatar: "https://unavatar.io/twitter/eliasstravik",
+		url: "https://x.com/eliasstravik/status/2020580091449708978",
+	},
+	{
+		id: "13",
 		content: "Use @superset_sh, go into debt if you have to",
 		author: "Abhi Aiyer",
 		handle: "@abhiaiyer",

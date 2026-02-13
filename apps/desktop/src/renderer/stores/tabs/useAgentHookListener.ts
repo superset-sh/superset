@@ -94,24 +94,12 @@ export function useAgentHookListener() {
 					state.setPaneStatus(paneId, "idle");
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
-				navigateToWorkspace(workspaceId, navigate);
-
-				// Re-fetch state after navigation since router nav is async but state updates are immediate
-				const freshState = useTabsStore.getState();
-				const freshTarget = resolveNotificationTarget(event.data, freshState);
-
-				const tabIdToActivate = freshTarget?.tabId ?? event.data?.tabId;
-				if (!tabIdToActivate) return;
-
-				const freshTab = freshState.tabs.find((t) => t.id === tabIdToActivate);
-				if (!freshTab || freshTab.workspaceId !== workspaceId) return;
-
-				freshState.setActiveTab(workspaceId, tabIdToActivate);
-
-				const paneIdToFocus = freshTarget?.paneId ?? event.data?.paneId;
-				if (paneIdToFocus && freshState.panes[paneIdToFocus]) {
-					freshState.setFocusedPane(tabIdToActivate, paneIdToFocus);
-				}
+				navigateToWorkspace(workspaceId, navigate, {
+					search: {
+						tabId: target.tabId,
+						paneId: target.paneId,
+					},
+				});
 			}
 		},
 	});

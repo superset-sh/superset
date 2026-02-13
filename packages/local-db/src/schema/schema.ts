@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import type {
 	BranchPrefixMode,
 	ExternalApp,
+	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
 	TerminalLinkBehavior,
@@ -37,6 +38,8 @@ export const projects = sqliteTable(
 		githubOwner: text("github_owner"),
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		hideImage: integer("hide_image", { mode: "boolean" }),
+		iconUrl: text("icon_url"),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -111,6 +114,9 @@ export const workspaces = sqliteTable(
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),
+		// Allocated port base for multi-worktree dev instances.
+		// Each workspace gets a range of 10 ports starting from this base.
+		portBase: integer("port_base"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
@@ -155,6 +161,13 @@ export const settings = sqliteTable("settings", {
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),
+	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
+	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
+	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
+	terminalFontFamily: text("terminal_font_family"),
+	terminalFontSize: integer("terminal_font_size"),
+	editorFontFamily: text("editor_font_family"),
+	editorFontSize: integer("editor_font_size"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

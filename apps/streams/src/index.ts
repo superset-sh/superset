@@ -1,32 +1,47 @@
+import { existsSync, mkdirSync } from "node:fs";
 import { DurableStreamTestServer } from "@durable-streams/server";
 import { serve } from "@hono/node-server";
+import { env } from "./env";
 import { createServer } from "./server";
 
-const PORT = parseInt(process.env.PORT ?? "8080", 10);
-const INTERNAL_PORT = parseInt(process.env.INTERNAL_PORT ?? "8081", 10);
-const DURABLE_STREAMS_URL =
-	process.env.DURABLE_STREAMS_URL ?? `http://127.0.0.1:${INTERNAL_PORT}`;
+if (!existsSync(env.STREAMS_DATA_DIR)) {
+	mkdirSync(env.STREAMS_DATA_DIR, { recursive: true });
+}
 
-// Start internal durable stream server
 const durableStreamServer = new DurableStreamTestServer({
-	port: INTERNAL_PORT,
+	port: env.STREAMS_INTERNAL_PORT,
+	dataDir: env.STREAMS_DATA_DIR,
 });
 await durableStreamServer.start();
-console.log(`[streams] Durable stream server on port ${INTERNAL_PORT}`);
+console.log(
+	`[streams] Durable stream server on port ${env.STREAMS_INTERNAL_PORT}`,
+);
 
-// Start proxy server
+const internalUrl =
+	env.STREAMS_INTERNAL_URL ?? `http://localhost:${env.STREAMS_INTERNAL_PORT}`;
+
+const corsOrigins = env.CORS_ORIGINS
+	? env.CORS_ORIGINS.split(",").map((o) => o.trim())
+	: undefined;
+
 const { app } = createServer({
-	baseUrl: DURABLE_STREAMS_URL,
+	baseUrl: internalUrl,
 	cors: true,
+	corsOrigins,
 	logging: true,
 });
 
-serve({ fetch: app.fetch, port: PORT }, (info) => {
-	console.log(`[streams] Proxy running on http://localhost:${info.port}`);
-});
+const proxyServer = serve(
+	{ fetch: app.fetch, port: env.STREAMS_PORT },
+	(info) => {
+		console.log(`[streams] Proxy running on http://localhost:${info.port}`);
+	},
+);
 
-// Graceful shutdown
-process.on("SIGINT", async () => {
-	await durableStreamServer.stop();
-	process.exit(0);
-});
+for (const signal of ["SIGINT", "SIGTERM"]) {
+	process.on(signal, async () => {
+		proxyServer.close();
+		await durableStreamServer.stop();
+		process.exit(0);
+	});
+}

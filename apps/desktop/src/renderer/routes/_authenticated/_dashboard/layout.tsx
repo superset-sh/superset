@@ -102,7 +102,11 @@ function DashboardLayout() {
 						handleSide="right"
 						clampWidth={false}
 					>
-						<WorkspaceSidebar isCollapsed={isWorkspaceSidebarCollapsed()} />
+						<WorkspaceSidebar
+							isCollapsed={isWorkspaceSidebarCollapsed()}
+							activeProjectId={currentWorkspace?.projectId ?? null}
+							activeProjectName={currentWorkspace?.project?.name ?? null}
+						/>
 					</ResizablePanel>
 				)}
 				<Outlet />

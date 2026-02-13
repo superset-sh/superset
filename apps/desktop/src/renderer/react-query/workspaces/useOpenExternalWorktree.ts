@@ -1,9 +1,7 @@
-import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
-import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 export function useOpenExternalWorktree(
@@ -16,9 +14,6 @@ export function useOpenExternalWorktree(
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = useCreateOrAttachWithTheme();
-	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast =
-		electronTrpc.config.dismissConfigToast.useMutation();
 
 	return electronTrpc.workspaces.openExternalWorktree.useMutation({
 		...options,
@@ -41,19 +36,6 @@ export function useOpenExternalWorktree(
 				workspaceId: data.workspace.id,
 				initialCommands,
 			});
-
-			if (!initialCommands) {
-				toast.info("No setup script configured", {
-					description: "Automate workspace setup with a config.json file",
-					action: {
-						label: "Configure",
-						onClick: () => openConfigModal(data.projectId),
-					},
-					onDismiss: () => {
-						dismissConfigToast.mutate({ projectId: data.projectId });
-					},
-				});
-			}
 
 			navigateToWorkspace(data.workspace.id, navigate);
 

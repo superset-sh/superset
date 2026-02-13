@@ -1,17 +1,14 @@
-/**
- * AI DB Proxy Server
- *
- * Hono-based HTTP server implementing the AI DB Wrapper Protocol.
- */
-
+import { db } from "@superset/db";
+import { sessions } from "@superset/db/schema/auth";
+import { and, eq, gt } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { AIDBSessionProtocol } from "./protocol";
 import {
-	createAgentRoutes,
 	createApprovalRoutes,
 	createAuthRoutes,
+	createChunkRoutes,
 	createForkRoutes,
 	createHealthRoutes,
 	createMessageRoutes,
@@ -22,30 +19,45 @@ import {
 } from "./routes";
 import type { AIDBProtocolOptions } from "./types";
 
+type SessionEnv = {
+	Variables: {
+		userId: string;
+	};
+};
+
 export interface AIDBProxyServerOptions extends AIDBProtocolOptions {
-	/** Enable CORS */
 	cors?: boolean;
-	/** Enable request logging */
 	logging?: boolean;
-	/** Custom CORS origins */
 	corsOrigins?: string | string[];
 }
 
 export function createServer(options: AIDBProxyServerOptions) {
-	const app = new Hono();
+	const app = new Hono<SessionEnv>();
 
-	// Create protocol instance
 	const protocol = new AIDBSessionProtocol({
 		baseUrl: options.baseUrl,
 		storage: options.storage,
 	});
 
-	// Middleware
 	if (options.cors !== false) {
+		const allowedOrigins = options.corsOrigins
+			? Array.isArray(options.corsOrigins)
+				? options.corsOrigins
+				: [options.corsOrigins]
+			: null;
+
 		app.use(
 			"*",
 			cors({
-				origin: options.corsOrigins ?? "*",
+				// When allowedOrigins is configured, use a function that also permits
+				// null origins (Electron file://, non-browser clients).
+				// Auth is enforced via Bearer tokens, not cookies, so this is safe.
+				origin: allowedOrigins
+					? (origin) => {
+							if (!origin || origin === "null") return origin ?? "*";
+							return allowedOrigins.includes(origin) ? origin : "";
+						}
+					: "*",
 				allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 				allowHeaders: [
 					"Content-Type",
@@ -54,7 +66,6 @@ export function createServer(options: AIDBProxyServerOptions) {
 					"X-Actor-Type",
 					"X-Session-Id",
 				],
-				// Expose Durable Streams protocol headers to browser clients
 				exposeHeaders: [...PROTOCOL_RESPONSE_HEADERS],
 			}),
 		);
@@ -64,39 +75,42 @@ export function createServer(options: AIDBProxyServerOptions) {
 		app.use("*", logger());
 	}
 
-	// Health routes
 	app.route("/health", createHealthRoutes());
 
-	// API v1 routes
+	// No auth on health; Bearer token required on /v1/*
+	app.use("/v1/*", async (c, next) => {
+		const authorization = c.req.header("Authorization");
+		if (!authorization?.startsWith("Bearer ")) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+
+		const token = authorization.slice(7);
+		const [session] = await db
+			.select({ userId: sessions.userId })
+			.from(sessions)
+			.where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())))
+			.limit(1);
+
+		if (!session) {
+			return c.json({ error: "Unauthorized" }, 401);
+		}
+
+		c.set("userId", session.userId);
+		return next();
+	});
+
 	const v1 = new Hono();
-
-	// Session management
 	v1.route("/sessions", createSessionRoutes(protocol));
-
-	// Auth (login/logout - nested under sessions)
 	v1.route("/sessions", createAuthRoutes(protocol));
-
-	// Messages (nested under sessions)
 	v1.route("/sessions", createMessageRoutes(protocol));
-
-	// Agents (nested under sessions)
-	v1.route("/sessions", createAgentRoutes(protocol));
-
-	// Tool results (nested under sessions)
 	v1.route("/sessions", createToolResultRoutes(protocol));
-
-	// Approvals (nested under sessions)
 	v1.route("/sessions", createApprovalRoutes(protocol));
-
-	// Fork (nested under sessions)
 	v1.route("/sessions", createForkRoutes(protocol));
-
-	// Stream proxy - forwards to Durable Streams server
+	v1.route("/sessions", createChunkRoutes(protocol));
 	v1.route("/stream", createStreamRoutes(options.baseUrl));
 
 	app.route("/v1", v1);
 
-	// Root info
 	app.get("/", (c) => {
 		return c.json({
 			name: "@superset/streams",
@@ -106,12 +120,13 @@ export function createServer(options: AIDBProxyServerOptions) {
 				stream: "/v1/stream/sessions/:sessionId",
 				sessions: "/v1/sessions/:sessionId",
 				messages: "/v1/sessions/:sessionId/messages",
-				agents: "/v1/sessions/:sessionId/agents",
 				toolResults: "/v1/sessions/:sessionId/tool-results",
 				approvals: "/v1/sessions/:sessionId/approvals/:approvalId",
+				chunks: "/v1/sessions/:sessionId/chunks",
+				chunksBatch: "/v1/sessions/:sessionId/chunks/batch",
+				generationsFinish: "/v1/sessions/:sessionId/generations/finish",
 				fork: "/v1/sessions/:sessionId/fork",
 				stop: "/v1/sessions/:sessionId/stop",
-				regenerate: "/v1/sessions/:sessionId/regenerate",
 				reset: "/v1/sessions/:sessionId/reset",
 			},
 		});

@@ -14,6 +14,10 @@ import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
+import {
+	deleteProjectIcon,
+	saveProjectIconFromDataUrl,
+} from "main/lib/project-icons";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
@@ -34,23 +38,30 @@ import {
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getDefaultProjectColor } from "./utils/colors";
+import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
 
-// Return types for openNew procedure
+// Return types for openNew procedure (single project)
 type OpenNewCanceled = { canceled: true };
-type OpenNewSuccess = { canceled: false; project: Project };
-type OpenNewNeedsGitInit = {
-	canceled: false;
-	needsGitInit: true;
-	selectedPath: string;
-};
 type OpenNewError = { canceled: false; error: string };
-export type OpenNewResult =
+type OpenNewResult =
 	| OpenNewCanceled
-	| OpenNewSuccess
-	| OpenNewNeedsGitInit
+	| { canceled: false; project: Project }
+	| { canceled: false; needsGitInit: true; selectedPath: string }
+	| OpenNewError;
+
+// Per-folder outcome for multi-select
+type FolderOutcome =
+	| { status: "success"; project: Project }
+	| { status: "needsGitInit"; selectedPath: string }
+	| { status: "error"; selectedPath: string; error: string };
+
+// Return types for openNew procedure (multi-select)
+type OpenNewMultiResult =
+	| OpenNewCanceled
+	| { canceled: false; multi: true; results: FolderOutcome[] }
 	| OpenNewError;
 
 /**
@@ -122,7 +133,7 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 			projectId: project.id,
 			type: "branch",
 			branch,
-			name: branch,
+			name: "default",
 			tabOrder: 0,
 		})
 		.onConflictDoNothing()
@@ -183,6 +194,8 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 // Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
 // Allows most valid Git repo names while avoiding path traversal characters
 const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
+const ALLOWED_URL_PROTOCOLS = new Set(["http:", "https:", "ssh:", "git:"]);
+const SSH_GIT_URL_REGEX = /^[\w.-]+@[\w.-]+:[\w./-]+$/;
 
 /**
  * Extracts and validates a repository name from a git URL.
@@ -453,13 +466,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				},
 			),
 
-		openNew: publicProcedure.mutation(async (): Promise<OpenNewResult> => {
+		openNew: publicProcedure.mutation(async (): Promise<OpenNewMultiResult> => {
 			const window = getWindow();
 			if (!window) {
 				return { canceled: false, error: "No window available" };
 			}
 			const result = await dialog.showOpenDialog(window, {
-				properties: ["openDirectory"],
+				properties: ["openDirectory", "multiSelections"],
 				title: "Open Project",
 			});
 
@@ -467,35 +480,43 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				return { canceled: true };
 			}
 
-			const selectedPath = result.filePaths[0];
+			const outcomes: FolderOutcome[] = [];
 
-			let mainRepoPath: string;
-			try {
-				mainRepoPath = await getGitRoot(selectedPath);
-			} catch (_error) {
-				// Return a special response so the UI can offer to initialize git
-				return {
-					canceled: false,
-					needsGitInit: true,
-					selectedPath,
-				};
+			for (const selectedPath of result.filePaths) {
+				let mainRepoPath: string;
+				try {
+					mainRepoPath = await getGitRoot(selectedPath);
+				} catch {
+					outcomes.push({ status: "needsGitInit", selectedPath });
+					continue;
+				}
+
+				try {
+					const defaultBranch = await getDefaultBranch(mainRepoPath);
+					const project = upsertProject(mainRepoPath, defaultBranch);
+					await ensureMainWorkspace(project);
+
+					track("project_opened", {
+						project_id: project.id,
+						method: "open",
+					});
+
+					outcomes.push({ status: "success", project });
+				} catch (error) {
+					console.error(
+						"[projects/openNew] Failed to open project:",
+						selectedPath,
+						error,
+					);
+					outcomes.push({
+						status: "error",
+						selectedPath,
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}
 			}
 
-			const defaultBranch = await getDefaultBranch(mainRepoPath);
-			const project = upsertProject(mainRepoPath, defaultBranch);
-
-			// Auto-create main workspace if it doesn't exist
-			await ensureMainWorkspace(project);
-
-			track("project_opened", {
-				project_id: project.id,
-				method: "open",
-			});
-
-			return {
-				canceled: false,
-				project,
-			};
+			return { canceled: false, multi: true, results: outcomes };
 		}),
 
 		openFromPath: publicProcedure
@@ -611,7 +632,20 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		cloneRepo: publicProcedure
 			.input(
 				z.object({
-					url: z.string().url(),
+					url: z
+						.string()
+						.min(1)
+						.refine(
+							(val) => {
+								try {
+									const parsed = new URL(val);
+									return ALLOWED_URL_PROTOCOLS.has(parsed.protocol);
+								} catch {
+									return SSH_GIT_URL_REGEX.test(val);
+								}
+							},
+							{ message: "Must be a valid Git URL (HTTPS or SSH)" },
+						),
 					// Trim and convert empty/whitespace strings to undefined
 					targetDirectory: z
 						.string()
@@ -766,6 +800,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							.optional(),
 						branchPrefixMode: z.enum(BRANCH_PREFIX_MODES).nullable().optional(),
 						branchPrefixCustom: z.string().nullable().optional(),
+						hideImage: z.boolean().optional(),
 					}),
 				}),
 			)
@@ -791,6 +826,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}),
 						...(input.patch.branchPrefixCustom !== undefined && {
 							branchPrefixCustom: input.patch.branchPrefixCustom,
+						}),
+						...(input.patch.hideImage !== undefined && {
+							hideImage: input.patch.hideImage,
 						}),
 						lastOpenedAt: Date.now(),
 					})
@@ -1035,6 +1073,90 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					name: authorName,
 					prefix: sanitizeAuthorPrefix(authorName),
 				};
+			}),
+
+		triggerFaviconDiscovery: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				// Skip if the project already has an icon
+				if (project.iconUrl) {
+					return { iconUrl: project.iconUrl };
+				}
+
+				const iconUrl = await discoverAndSaveProjectIcon({
+					projectId: project.id,
+					repoPath: project.mainRepoPath,
+				});
+
+				if (iconUrl) {
+					localDb
+						.update(projects)
+						.set({ iconUrl })
+						.where(eq(projects.id, input.id))
+						.run();
+				}
+
+				return { iconUrl };
+			}),
+
+		setProjectIcon: publicProcedure
+			.input(
+				z.object({
+					id: z.string(),
+					icon: z.string().nullable(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				if (input.icon === null) {
+					// Remove icon
+					deleteProjectIcon(input.id);
+					localDb
+						.update(projects)
+						.set({ iconUrl: null })
+						.where(eq(projects.id, input.id))
+						.run();
+					return { iconUrl: null };
+				}
+
+				// Save icon from data URL
+				const iconUrl = await saveProjectIconFromDataUrl({
+					projectId: input.id,
+					dataUrl: input.icon,
+				});
+
+				localDb
+					.update(projects)
+					.set({ iconUrl })
+					.where(eq(projects.id, input.id))
+					.run();
+
+				return { iconUrl };
 			}),
 	});
 };

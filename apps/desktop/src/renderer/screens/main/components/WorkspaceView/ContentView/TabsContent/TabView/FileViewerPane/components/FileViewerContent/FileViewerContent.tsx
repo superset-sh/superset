@@ -4,9 +4,9 @@ import { type MutableRefObject, useCallback, useEffect, useRef } from "react";
 import { LuLoader } from "react-icons/lu";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import {
-	MONACO_EDITOR_OPTIONS,
 	registerSaveAction,
 	SUPERSET_THEME,
+	useMonacoEditorOptions,
 	useMonacoReady,
 } from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
@@ -124,6 +124,7 @@ export function FileViewerContent({
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
 	const isMonacoReady = useMonacoReady();
+	const monacoEditorOptions = useMonacoEditorOptions();
 	const hasAppliedInitialLocationRef = useRef(false);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
@@ -346,7 +347,7 @@ export function FileViewerContent({
 						</div>
 					}
 					options={{
-						...MONACO_EDITOR_OPTIONS,
+						...monacoEditorOptions,
 						contextmenu: false, // Disable Monaco's native context menu to use our custom one
 					}}
 				/>

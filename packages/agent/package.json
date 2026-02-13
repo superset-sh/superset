@@ -1,0 +1,27 @@
+{
+	"name": "@superset/agent",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@anthropic-ai/claude-agent-sdk": "^0.2.38",
+		"@superset/durable-session": "workspace:*",
+		"@tanstack/ai": "^0.3.0",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"bun-types": "^1.3.1",
+		"typescript": "^5.9.3"
+	}
+}

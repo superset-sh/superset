@@ -57,15 +57,30 @@ print_summary() {
 step_load_env() {
   echo "📂 Loading environment variables..."
 
-  if [ ! -f ".env" ]; then
-    error "No .env file found in current directory"
-    return 1
+  local sourced_any=false
+
+  # Source root .env first (contains NEON_PROJECT_ID), then local .env for overrides
+  if [ -n "${SUPERSET_ROOT_PATH:-}" ] && [ -f "$SUPERSET_ROOT_PATH/.env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$SUPERSET_ROOT_PATH/.env"
+    set +a
+    sourced_any=true
   fi
 
-  set -a
-  # shellcheck source=/dev/null
-  source .env
-  set +a
+  if [ -f ".env" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source .env
+    set +a
+    sourced_any=true
+  fi
+
+  if [ "$sourced_any" = false ]; then
+    warn "No .env file found (set SUPERSET_ROOT_PATH or run from a workspace with .env); using existing environment"
+    step_skipped "env sourcing (no .env files found)"
+    return 0
+  fi
 
   success "Environment variables loaded"
   return 0
@@ -84,11 +99,11 @@ step_check_dependencies() {
   fi
 
   if [ ${#missing[@]} -gt 0 ]; then
-    error "Missing dependencies:"
+    warn "Missing optional dependencies (some steps may be skipped):"
     for dep in "${missing[@]}"; do
       echo "  - $dep"
     done
-    return 1
+    return 0
   fi
 
   success "All dependencies found"
@@ -99,8 +114,9 @@ step_stop_electric() {
   echo "⚡ Stopping Electric SQL container..."
 
   if ! command -v docker &> /dev/null; then
-    error "Docker not available"
-    return 1
+    warn "Docker not available, skipping"
+    step_skipped "electric (docker missing)"
+    return 0
   fi
 
   WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
@@ -127,29 +143,40 @@ step_stop_electric() {
 step_delete_neon_branch() {
   echo "🗄️  Deleting Neon branch..."
 
+  if ! command -v neonctl &> /dev/null; then
+    warn "neonctl not available, skipping"
+    step_skipped "neon (neonctl missing)"
+    return 0
+  fi
+
   NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
   if [ -z "$NEON_PROJECT_ID" ]; then
-    error "NEON_PROJECT_ID environment variable is required"
-    return 1
+    warn "NEON_PROJECT_ID not set, skipping branch deletion"
+    step_skipped "neon (NEON_PROJECT_ID not set)"
+    return 0
   fi
 
   BRANCH_ID="${NEON_BRANCH_ID:-}"
   if [ -z "$BRANCH_ID" ]; then
-    error "No NEON_BRANCH_ID found in .env; cannot delete branch"
-    return 1
-  fi
-
-  if ! command -v neonctl &> /dev/null; then
-    error "neonctl not available"
-    return 1
+    warn "No NEON_BRANCH_ID found, skipping branch deletion"
+    step_skipped "neon (NEON_BRANCH_ID not set)"
+    return 0
   fi
 
   WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 
-  if neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force; then
+  # Check if branch exists before attempting deletion
+  if ! neonctl branches get "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" &> /dev/null; then
+    warn "Neon branch not found or already deleted: $WORKSPACE_NAME ($BRANCH_ID)"
+    return 0
+  fi
+
+  local output
+  if output=$(neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force 2>&1); then
     success "Neon branch deleted: $WORKSPACE_NAME ($BRANCH_ID)"
   else
     error "Failed to delete Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
+    error "Output: $output"
     return 1
   fi
 
@@ -165,10 +192,8 @@ main() {
     step_failed "Load environment variables"
   fi
 
-  # Step 2: Check dependencies
-  if ! step_check_dependencies; then
-    step_failed "Check dependencies"
-  fi
+  # Step 2: Check dependencies (informational only)
+  step_check_dependencies
 
   # Step 3: Stop Electric SQL
   if ! step_stop_electric; then

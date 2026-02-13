@@ -9,7 +9,10 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
-import { useOpenNew } from "renderer/react-query/projects";
+import {
+	processOpenNewResults,
+	useOpenNew,
+} from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { CloneRepoDialog } from "../StartView/CloneRepoDialog";
 import { STROKE_WIDTH } from "./constants";
@@ -37,23 +40,28 @@ export function WorkspaceSidebarFooter({
 				});
 				return;
 			}
-			if ("needsGitInit" in result) {
-				toast.error("Selected folder is not a git repository", {
-					description:
-						"Please use 'Open project' from the start view to initialize git.",
+
+			if ("results" in result) {
+				const { successes } = processOpenNewResults({
+					results: result.results,
+					showGitInitToast: true,
 				});
-				return;
+
+				for (const s of successes) {
+					try {
+						await createBranchWorkspace.mutateAsync({
+							projectId: s.project.id,
+						});
+					} catch (err) {
+						toast.error(`Failed to open ${s.project.name}`, {
+							description:
+								err instanceof Error
+									? err.message
+									: "Failed to create workspace",
+						});
+					}
+				}
 			}
-			// Create a main workspace on the current branch for the new project
-			toast.promise(
-				createBranchWorkspace.mutateAsync({ projectId: result.project.id }),
-				{
-					loading: "Opening project...",
-					success: "Project opened",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to open project",
-				},
-			);
 		} catch (error) {
 			toast.error("Failed to open project", {
 				description:

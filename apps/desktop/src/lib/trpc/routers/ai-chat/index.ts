@@ -1,100 +1,269 @@
-/**
- * AI Chat tRPC Router
- *
- * Provides local control of Claude sessions via tRPC.
- * Uses observable pattern for streaming (required by trpc-electron).
- */
-
-import { observable } from "@trpc/server/observable";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { loadToken } from "../auth/utils/auth-functions";
 import {
-	type ClaudeStreamEvent,
-	claudeSessionManager,
-} from "./utils/session-manager";
+	readClaudeSessionMessages,
+	scanClaudeSessions,
+} from "./utils/claude-session-scanner";
+import { chatSessionManager, sessionStore } from "./utils/session-manager";
+
+interface CommandEntry {
+	name: string;
+	description: string;
+	argumentHint: string;
+}
+
+const permissionModeSchema = z.enum([
+	"default",
+	"acceptEdits",
+	"bypassPermissions",
+]);
+
+function scanCustomCommands(cwd: string): CommandEntry[] {
+	const dirs = [
+		join(cwd, ".claude", "commands"),
+		join(homedir(), ".claude", "commands"),
+	];
+	const commands: CommandEntry[] = [];
+	const seen = new Set<string>();
+
+	for (const dir of dirs) {
+		if (!existsSync(dir)) continue;
+		try {
+			for (const file of readdirSync(dir)) {
+				if (!file.endsWith(".md")) continue;
+				const name = file.replace(/\.md$/, "");
+				if (seen.has(name)) continue;
+				seen.add(name);
+				const raw = readFileSync(join(dir, file), "utf-8");
+				const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/);
+				const descMatch = fmMatch?.[1]?.match(/^description:\s*(.+)$/m);
+				const argMatch = fmMatch?.[1]?.match(/^argument-hint:\s*(.+)$/m);
+				commands.push({
+					name,
+					description: descMatch?.[1]?.trim() ?? "",
+					argumentHint: argMatch?.[1]?.trim() ?? "",
+				});
+			}
+		} catch (err) {
+			console.warn(
+				`[ai-chat/scanCustomCommands] Failed to read commands from ${dir}:`,
+				err,
+			);
+		}
+	}
+
+	return commands;
+}
 
 export const createAiChatRouter = () => {
 	return router({
-		/**
-		 * Start a Claude session.
-		 */
+		getConfig: publicProcedure.query(async () => {
+			const { token } = await loadToken();
+			return {
+				proxyUrl: env.NEXT_PUBLIC_STREAMS_URL,
+				authToken: token,
+			};
+		}),
+
+		getSlashCommands: publicProcedure
+			.input(z.object({ cwd: z.string() }))
+			.query(({ input }) => {
+				return { commands: scanCustomCommands(input.cwd) };
+			}),
+
 		startSession: publicProcedure
 			.input(
 				z.object({
 					sessionId: z.string(),
+					workspaceId: z.string(),
 					cwd: z.string(),
-					claudeSessionId: z.string().optional(),
+					paneId: z.string().optional(),
+					tabId: z.string().optional(),
+					model: z.string().optional(),
+					permissionMode: permissionModeSchema.optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await claudeSessionManager.startSession({
+				await chatSessionManager.startSession({
 					sessionId: input.sessionId,
+					workspaceId: input.workspaceId,
 					cwd: input.cwd,
-					claudeSessionId: input.claudeSessionId,
+					paneId: input.paneId,
+					tabId: input.tabId,
+					model: input.model,
+					permissionMode: input.permissionMode,
 				});
 				return { success: true };
 			}),
 
-		/**
-		 * Interrupt an active Claude session (SIGINT).
-		 */
+		restoreSession: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					cwd: z.string(),
+					paneId: z.string().optional(),
+					tabId: z.string().optional(),
+					model: z.string().optional(),
+					permissionMode: permissionModeSchema.optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await chatSessionManager.restoreSession({
+					sessionId: input.sessionId,
+					cwd: input.cwd,
+					paneId: input.paneId,
+					tabId: input.tabId,
+					model: input.model,
+					permissionMode: input.permissionMode,
+				});
+				return { success: true };
+			}),
+
 		interrupt: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
-				await claudeSessionManager.interrupt({ sessionId: input.sessionId });
+				await chatSessionManager.interrupt({
+					sessionId: input.sessionId,
+				});
 				return { success: true };
 			}),
 
-		/**
-		 * Stop a Claude session completely.
-		 */
 		stopSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
-				await claudeSessionManager.stopSession({ sessionId: input.sessionId });
+				await chatSessionManager.deactivateSession({
+					sessionId: input.sessionId,
+				});
 				return { success: true };
 			}),
 
-		/**
-		 * Check if a session is active.
-		 */
+		deleteSession: publicProcedure
+			.input(z.object({ sessionId: z.string() }))
+			.mutation(async ({ input }) => {
+				await chatSessionManager.deleteSession({
+					sessionId: input.sessionId,
+				});
+				return { success: true };
+			}),
+
+		updateSessionConfig: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					maxThinkingTokens: z.number().nullable().optional(),
+					model: z.string().nullable().optional(),
+					permissionMode: permissionModeSchema.nullable().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await chatSessionManager.updateAgentConfig({
+					sessionId: input.sessionId,
+					maxThinkingTokens: input.maxThinkingTokens,
+					model: input.model,
+					permissionMode: input.permissionMode,
+				});
+				return { success: true };
+			}),
+
+		renameSession: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					title: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await chatSessionManager.updateSessionMeta({
+					sessionId: input.sessionId,
+					patch: { title: input.title },
+				});
+				return { success: true };
+			}),
+
+		listSessions: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async ({ input }) => {
+				return sessionStore.listByWorkspace(input.workspaceId);
+			}),
+
+		getSession: publicProcedure
+			.input(z.object({ sessionId: z.string() }))
+			.query(async ({ input }) => {
+				return (await sessionStore.get(input.sessionId)) ?? null;
+			}),
+
 		isSessionActive: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.query(({ input }) => {
-				return claudeSessionManager.isSessionActive(input.sessionId);
+				return chatSessionManager.isSessionActive(input.sessionId);
 			}),
 
-		/**
-		 * Get all active session IDs.
-		 */
 		getActiveSessions: publicProcedure.query(() => {
-			return claudeSessionManager.getActiveSessions();
+			return chatSessionManager.getActiveSessions();
 		}),
 
-		/**
-		 * Subscribe to stream events from Claude sessions.
-		 *
-		 * This uses the observable pattern required by trpc-electron.
-		 * Events are filtered by sessionId if provided.
-		 */
-		streamEvents: publicProcedure
-			.input(z.object({ sessionId: z.string().optional() }))
-			.subscription(({ input }) => {
-				return observable<ClaudeStreamEvent>((emit) => {
-					const onEvent = (event: ClaudeStreamEvent) => {
-						// Filter by sessionId if specified
-						if (input.sessionId && event.sessionId !== input.sessionId) {
-							return;
-						}
-						emit.next(event);
-					};
+		getClaudeSessionMessages: publicProcedure
+			.input(z.object({ sessionId: z.string() }))
+			.query(async ({ input }) => {
+				return readClaudeSessionMessages({ sessionId: input.sessionId });
+			}),
 
-					claudeSessionManager.on("event", onEvent);
-
-					return () => {
-						claudeSessionManager.off("event", onEvent);
-					};
+		scanClaudeSessions: publicProcedure
+			.input(
+				z
+					.object({
+						cursor: z.number().optional(),
+						limit: z.number().min(1).max(100).optional(),
+					})
+					.optional(),
+			)
+			.query(async ({ input }) => {
+				return scanClaudeSessions({
+					cursor: input?.cursor ?? 0,
+					limit: input?.limit ?? 30,
 				});
+			}),
+
+		sendMessage: publicProcedure
+			.input(z.object({ sessionId: z.string(), text: z.string() }))
+			.mutation(({ input }) => {
+				// Fire-and-forget: agent runs in background, errors surface via streamEvents
+				void chatSessionManager
+					.startAgent({
+						sessionId: input.sessionId,
+						prompt: input.text,
+					})
+					.catch((error: unknown) => {
+						console.error(
+							"[ai-chat/sendMessage] Failed to start agent:",
+							error,
+						);
+					});
+				return { success: true };
+			}),
+
+		approveToolUse: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					toolUseId: z.string(),
+					approved: z.boolean(),
+					updatedInput: z.record(z.string(), z.unknown()).optional(),
+				}),
+			)
+			.mutation(({ input }) => {
+				chatSessionManager.resolvePermission({
+					sessionId: input.sessionId,
+					toolUseId: input.toolUseId,
+					approved: input.approved,
+					updatedInput: input.updatedInput,
+				});
+				return { success: true };
 			}),
 	});
 };

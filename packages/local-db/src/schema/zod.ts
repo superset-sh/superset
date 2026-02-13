@@ -61,6 +61,8 @@ export const terminalPresetSchema = z.object({
 	cwd: z.string(),
 	commands: z.array(z.string()),
 	isDefault: z.boolean().optional(),
+	applyOnWorkspaceCreated: z.boolean().optional(),
+	applyOnNewTab: z.boolean().optional(),
 	executionMode: z.enum(EXECUTION_MODES).optional(),
 });
 
@@ -126,3 +128,7 @@ export const BRANCH_PREFIX_MODES = [
 ] as const;
 
 export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+
+export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
+
+export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];

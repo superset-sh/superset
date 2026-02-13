@@ -1,1 +1,0 @@
-export { SetupConfigModal } from "./SetupConfigModal";

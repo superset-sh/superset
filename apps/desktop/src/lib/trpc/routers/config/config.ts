@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { projects } from "@superset/local-db";
 import { eq } from "drizzle-orm";
@@ -6,9 +7,21 @@ import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-function configExists(mainRepoPath: string): boolean {
+async function hasConfiguredScripts(mainRepoPath: string): Promise<boolean> {
 	const configPath = join(mainRepoPath, ".superset", "config.json");
-	return existsSync(configPath);
+	try {
+		const content = await readFile(configPath, "utf-8");
+		const parsed = JSON.parse(content);
+		const setup = Array.isArray(parsed.setup)
+			? parsed.setup.filter((s: string) => s.trim().length > 0)
+			: [];
+		const teardown = Array.isArray(parsed.teardown)
+			? parsed.teardown.filter((s: string) => s.trim().length > 0)
+			: [];
+		return setup.length > 0 || teardown.length > 0;
+	} catch {
+		return false;
+	}
 }
 
 const CONFIG_TEMPLATE = `{
@@ -39,10 +52,10 @@ function ensureConfigExists(mainRepoPath: string): string {
 
 export const createConfigRouter = () => {
 	return router({
-		// Check if we should show the config toast for a project
-		shouldShowConfigToast: publicProcedure
+		// Check if we should show the setup card for a project
+		shouldShowSetupCard: publicProcedure
 			.input(z.object({ projectId: z.string() }))
-			.query(({ input }) => {
+			.query(async ({ input }) => {
 				const project = localDb
 					.select()
 					.from(projects)
@@ -52,16 +65,16 @@ export const createConfigRouter = () => {
 					return false;
 				}
 
-				// Don't show if already dismissed or if config exists
+				// Don't show if already dismissed or if config has scripts
 				if (project.configToastDismissed) {
 					return false;
 				}
 
-				return !configExists(project.mainRepoPath);
+				return !(await hasConfiguredScripts(project.mainRepoPath));
 			}),
 
-		// Mark the config toast as dismissed for a project
-		dismissConfigToast: publicProcedure
+		// Mark the setup card as dismissed for a project
+		dismissSetupCard: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.mutation(({ input }) => {
 				localDb

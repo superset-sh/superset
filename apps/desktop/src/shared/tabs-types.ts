@@ -8,7 +8,7 @@ import type { ChangeCategory } from "./changes-types";
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType = "terminal" | "webview" | "file-viewer";
+export type PaneType = "terminal" | "webview" | "file-viewer" | "chat";
 
 /**
  * Pane status for agent lifecycle indicators
@@ -69,6 +69,21 @@ export function getHighestPriorityStatus(
 }
 
 /**
+ * Resolve what a pane's status should become when the user acknowledges it
+ * (e.g. clicking a tab, focusing a pane, selecting a workspace).
+ *
+ * - "review"     → "idle"    (user saw the completion)
+ * - "permission" → "working" (user saw the prompt; assume granted)
+ * - "working"    → unchanged (persists until agent stops)
+ * - "idle"       → unchanged
+ */
+export function acknowledgedStatus(status: PaneStatus | undefined): PaneStatus {
+	if (status === "review") return "idle";
+	if (status === "permission") return "working";
+	return status ?? "idle";
+}
+
+/**
  * File viewer display modes
  */
 export type FileViewerMode = "rendered" | "raw" | "diff";
@@ -118,6 +133,15 @@ export interface Pane {
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
+	chat?: ChatPaneState; // For chat panes
+}
+
+/**
+ * Chat pane-specific properties
+ */
+export interface ChatPaneState {
+	/** Session ID for the chat session */
+	sessionId: string;
 }
 
 /**

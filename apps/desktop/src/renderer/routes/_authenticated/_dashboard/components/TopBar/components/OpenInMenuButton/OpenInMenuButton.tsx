@@ -84,8 +84,9 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 						type="button"
 						onClick={handleOpenInEditor}
 						disabled={isLoading}
+						aria-label={`Open in ${currentApp.displayLabel ?? currentApp.label}`}
 						className={cn(
-							"group flex items-center gap-1.5 h-6 pl-1.5 pr-2 rounded-l border border-r-0 border-border/60 bg-secondary/50 text-xs font-medium",
+							"group flex items-center gap-1.5 h-6 px-1.5 sm:pl-1.5 sm:pr-2 rounded-l border border-r-0 border-border/60 bg-secondary/50 text-xs font-medium",
 							"transition-all duration-150 ease-out",
 							"hover:bg-secondary hover:border-border",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -99,11 +100,13 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							className="size-3.5 object-contain shrink-0"
 						/>
 						{branch && (
-							<span className="text-muted-foreground truncate max-w-[140px] tabular-nums">
+							<span className="hidden lg:inline text-muted-foreground truncate max-w-[140px] tabular-nums">
 								/{branch}
 							</span>
 						)}
-						<span className="text-foreground font-medium">Open</span>
+						<span className="hidden sm:inline text-foreground font-medium">
+							Open
+						</span>
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>

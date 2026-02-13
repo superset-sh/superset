@@ -45,8 +45,52 @@ Commands run sequentially in the workspace directory.
 }
 ```
 
+## User Overrides
+
+Override project setup/teardown scripts without modifying the repo by placing a `config.json` in your home directory:
+
+```
+~/.superset/projects/<project-id>/config.json
+```
+
+Where `<project-id>` is your project's unique ID in Superset (visible in the app's project settings).
+
+### Priority Order
+
+Config is resolved in this order (first found wins, for both setup and teardown):
+1. `~/.superset/projects/<project-id>/config.json` — user override
+2. `<worktree>/.superset/config.json` — worktree-specific
+3. `<repo>/.superset/config.json` — project default
+
+No merging occurs between levels—the first config found is used entirely.
+
+### Examples
+
+**Custom setup script:**
+```json
+{
+  "setup": ["~/.superset/projects/<project-id>/setup.sh"],
+  "teardown": ["~/.superset/projects/<project-id>/teardown.sh"]
+}
+```
+
+**Skip setup entirely:**
+```json
+{ "setup": [], "teardown": [] }
+```
+
+## Force Delete
+
+If teardown scripts fail during workspace deletion, you can force-delete to skip the failed teardown and continue cleanup.
+
+When teardown fails:
+1. Error toast appears with "Delete Anyway" and "View Logs" buttons
+2. Click "Delete Anyway" to force-delete immediately
+3. Or click "View Logs" to review the failure, then force-delete from the dialog
+
 ## Tips
 
 - Keep setup fast—runs every workspace creation
 - Commit `.superset/` to share with team
 - Use shell scripts for complex logic: `"setup": ["./.superset/setup.sh"]`
+- Use user overrides to customize scripts without creating git noise

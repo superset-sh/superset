@@ -263,7 +263,6 @@ export const createGitOperationsRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					strategy: z.enum(["merge", "squash", "rebase"]).default("squash"),
-					deleteBranch: z.boolean().default(true),
 				}),
 			)
 			.mutation(
@@ -271,9 +270,6 @@ export const createGitOperationsRouter = () => {
 					assertRegisteredWorktree(input.worktreePath);
 
 					const args = ["pr", "merge", `--${input.strategy}`];
-					if (input.deleteBranch) {
-						args.push("--delete-branch");
-					}
 
 					try {
 						await execWithShellEnv("gh", args, { cwd: input.worktreePath });

@@ -39,7 +39,10 @@ import {
 import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
-import { useOpenNew } from "renderer/react-query/projects";
+import {
+	processOpenNewResults,
+	useOpenNew,
+} from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
@@ -200,15 +203,27 @@ export function NewWorkspaceModal() {
 		try {
 			const result = await openNew.mutateAsync(undefined);
 			if (result.canceled) return;
+
 			if ("error" in result) {
 				toast.error("Failed to open project", { description: result.error });
 				return;
 			}
-			if ("needsGitInit" in result) {
-				toast.error("Selected folder is not a git repository");
-				return;
+
+			if ("results" in result) {
+				const { successes } = processOpenNewResults({
+					results: result.results,
+					showSuccessToast: false,
+					showGitInitToast: true,
+				});
+
+				if (successes.length > 1) {
+					toast.success(`${successes.length} projects imported`);
+				}
+
+				if (successes.length > 0) {
+					setSelectedProjectId(successes[0].project.id);
+				}
 			}
-			setSelectedProjectId(result.project.id);
 		} catch (error) {
 			toast.error("Failed to open project", {
 				description:
@@ -226,6 +241,8 @@ export function NewWorkspaceModal() {
 
 		const workspaceName = title.trim() || undefined;
 
+		handleClose();
+
 		try {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
@@ -234,8 +251,6 @@ export function NewWorkspaceModal() {
 				baseBranch: effectiveBaseBranch || undefined,
 				applyPrefix,
 			});
-
-			handleClose();
 
 			if (result.isInitializing) {
 				toast.success("Workspace created", {

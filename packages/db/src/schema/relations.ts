@@ -21,6 +21,7 @@ import {
 	subscriptions,
 	taskStatuses,
 	tasks,
+	usersSlackUsers,
 } from "./schema";
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -217,3 +218,17 @@ export const agentCommandsRelations = relations(agentCommands, ({ one }) => ({
 		relationName: "parentCommand",
 	}),
 }));
+
+export const usersSlackUsersRelations = relations(
+	usersSlackUsers,
+	({ one }) => ({
+		user: one(users, {
+			fields: [usersSlackUsers.userId],
+			references: [users.id],
+		}),
+		organization: one(organizations, {
+			fields: [usersSlackUsers.organizationId],
+			references: [organizations.id],
+		}),
+	}),
+);

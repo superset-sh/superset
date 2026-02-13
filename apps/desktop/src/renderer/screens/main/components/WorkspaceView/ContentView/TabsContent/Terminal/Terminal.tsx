@@ -7,6 +7,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
+import {
+	DEFAULT_TERMINAL_FONT_FAMILY,
+	DEFAULT_TERMINAL_FONT_SIZE,
+} from "./config";
 import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
 import {
 	useFileLinkClick,
@@ -78,7 +82,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const tabIdRef = useRef(tabId);
 	tabIdRef.current = tabId;
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const setPaneName = useTabsStore((s) => s.setPaneName);
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const terminalTheme = useTerminalTheme();
 
@@ -139,7 +143,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		clearPaneInitialDataRef,
 		workspaceCwdRef,
 		handleFileLinkClickRef,
-		debouncedSetTabAutoTitleRef,
+		setPaneNameRef,
 		handleTerminalFocusRef,
 		registerClearCallbackRef,
 		unregisterClearCallbackRef,
@@ -155,7 +159,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		clearPaneInitialData,
 		workspaceCwd,
 		handleFileLinkClick,
-		setTabAutoTitle,
+		setPaneName,
 		setFocusedPane,
 	});
 
@@ -288,7 +292,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		resetModes,
 		isAlternateScreenRef,
 		isBracketedPasteRef,
-		debouncedSetTabAutoTitleRef,
+		setPaneNameRef,
 		renameUnnamedWorkspaceRef,
 		handleTerminalFocusRef,
 		registerClearCallbackRef,
@@ -302,6 +306,24 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		if (!xterm || !terminalTheme) return;
 		xterm.options.theme = terminalTheme;
 	}, [terminalTheme]);
+
+	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
+		undefined,
+		{
+			staleTime: 30_000,
+		},
+	);
+
+	useEffect(() => {
+		const xterm = xtermRef.current;
+		if (!xterm || !fontSettings) return;
+		const family =
+			fontSettings.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY;
+		const size = fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE;
+		xterm.options.fontFamily = family;
+		xterm.options.fontSize = size;
+		fitAddonRef.current?.fit();
+	}, [fontSettings]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 

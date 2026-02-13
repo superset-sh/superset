@@ -4,9 +4,6 @@ import type { Plugin } from "vite";
 
 import { main, resources } from "../package.json";
 
-// Must match PORTS.VITE_DEV_SERVER in src/shared/constants.ts
-export const DEV_SERVER_PORT = 5927;
-
 export const devPath = normalize(dirname(main)).split(/\/|\\/g)[0];
 
 function copyDir({ src, dest }: { src: string; dest: string }): void {
@@ -68,10 +65,20 @@ export function htmlEnvTransformPlugin(): Plugin {
 	return {
 		name: "html-env-transform",
 		transformIndexHtml(html) {
-			return html.replace(
-				/%NEXT_PUBLIC_API_URL%/g,
-				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
-			);
+			return html
+				.replace(
+					/%NEXT_PUBLIC_API_URL%/g,
+					process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+				)
+				.replace(
+					/%NEXT_PUBLIC_ELECTRIC_URL%/g,
+					process.env.NEXT_PUBLIC_ELECTRIC_URL ||
+						"https://electric.superset.sh",
+				)
+				.replace(
+					/%NEXT_PUBLIC_STREAMS_URL%/g,
+					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
+				);
 		},
 	};
 }

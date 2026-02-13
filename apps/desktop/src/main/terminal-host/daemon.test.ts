@@ -22,8 +22,8 @@ import {
 	PROTOCOL_VERSION,
 } from "../lib/terminal-host/types";
 
-// Test uses development paths
-const SUPERSET_DIR_NAME = ".superset-dev";
+// Test uses a dedicated workspace name for isolation
+const SUPERSET_DIR_NAME = ".superset-test";
 const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
 const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
 const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
@@ -103,6 +103,7 @@ describe("Terminal Host Daemon", () => {
 					env: {
 						...process.env,
 						NODE_ENV: "development",
+						SUPERSET_WORKSPACE_NAME: "test",
 					},
 					stdio: ["ignore", "pipe", "pipe"],
 					detached: true,

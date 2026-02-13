@@ -33,7 +33,7 @@ const fileViewerStateSchema = z.object({
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum(["terminal", "webview", "file-viewer"]),
+	type: z.enum(["terminal", "webview", "file-viewer", "chat"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
@@ -43,6 +43,7 @@ const paneSchema = z.object({
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
+	chat: z.object({ sessionId: z.string() }).optional(),
 });
 
 /**

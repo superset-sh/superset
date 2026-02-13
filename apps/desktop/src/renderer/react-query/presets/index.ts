@@ -48,18 +48,19 @@ function useDeleteTerminalPreset(
 	});
 }
 
-function useSetDefaultPreset(
+function useSetPresetAutoApply(
 	options?: Parameters<
-		typeof electronTrpc.settings.setDefaultPreset.useMutation
+		typeof electronTrpc.settings.setPresetAutoApply.useMutation
 	>[0],
 ) {
 	const utils = electronTrpc.useUtils();
 
-	return electronTrpc.settings.setDefaultPreset.useMutation({
+	return electronTrpc.settings.setPresetAutoApply.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
-			await utils.settings.getDefaultPreset.invalidate();
+			await utils.settings.getWorkspaceCreationPresets.invalidate();
+			await utils.settings.getNewTabPresets.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});
@@ -81,31 +82,23 @@ function useReorderTerminalPresets(
 	});
 }
 
-/**
- * Combined hook for accessing terminal presets with all CRUD operations
- * Provides easy access to presets data and mutations from anywhere in the app
- */
 export function usePresets() {
 	const { data: presets = [], isLoading } =
 		electronTrpc.settings.getTerminalPresets.useQuery();
 
-	const { data: defaultPreset } =
-		electronTrpc.settings.getDefaultPreset.useQuery();
-
 	const createPreset = useCreateTerminalPreset();
 	const updatePreset = useUpdateTerminalPreset();
 	const deletePreset = useDeleteTerminalPreset();
-	const setDefaultPreset = useSetDefaultPreset();
+	const setPresetAutoApply = useSetPresetAutoApply();
 	const reorderPresets = useReorderTerminalPresets();
 
 	return {
 		presets,
-		defaultPreset,
 		isLoading,
 		createPreset,
 		updatePreset,
 		deletePreset,
-		setDefaultPreset,
+		setPresetAutoApply,
 		reorderPresets,
 	};
 }

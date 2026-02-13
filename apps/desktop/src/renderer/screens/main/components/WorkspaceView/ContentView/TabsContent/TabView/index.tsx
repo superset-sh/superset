@@ -1,6 +1,8 @@
 import "react-mosaic-component/react-mosaic-component.css";
 import "./mosaic-theme.css";
 
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useMemo } from "react";
 import {
 	Mosaic,
@@ -17,6 +19,7 @@ import {
 	extractPaneIdsFromLayout,
 } from "renderer/stores/tabs/utils";
 import { useTheme } from "renderer/stores/theme";
+import { ChatPane } from "./ChatPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
@@ -35,6 +38,7 @@ export function TabView({ tab }: TabViewProps) {
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tab.id]);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
+	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const allTabs = useTabsStore((s) => s.tabs);
 	const allPanes = useTabsStore((s) => s.panes);
 
@@ -159,6 +163,22 @@ export function TabView({ tab }: TabViewProps) {
 				);
 			}
 
+			// Route chat panes to ChatPane component
+			if (paneInfo.type === "chat" && hasAiChat) {
+				return (
+					<ChatPane
+						paneId={paneId}
+						path={path}
+						isActive={isActive}
+						tabId={tab.id}
+						workspaceId={tab.workspaceId}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
 			// Default: terminal panes
 			return (
 				<TabPane
@@ -192,6 +212,7 @@ export function TabView({ tab }: TabViewProps) {
 			workspaceTabs,
 			movePaneToTab,
 			movePaneToNewTab,
+			hasAiChat,
 		],
 	);
 

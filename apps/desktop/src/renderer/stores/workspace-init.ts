@@ -7,7 +7,8 @@ export interface PendingTerminalSetup {
 	workspaceId: string;
 	projectId: string;
 	initialCommands: string[] | null;
-	defaultPreset?: TerminalPreset | null;
+	/** When undefined, signals that presets haven't been fetched yet and should be loaded from the backend */
+	defaultPresets?: TerminalPreset[];
 }
 
 interface WorkspaceInitState {

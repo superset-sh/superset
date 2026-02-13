@@ -1,4 +1,5 @@
 import { COMPANY } from "@superset/shared/constants";
+import { GeistPixelGrid, GeistPixelSquare } from "geist/font/pixel";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Micro_5 } from "next/font/google";
 import Script from "next/script";
@@ -114,7 +115,7 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable}`}
+			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable}`}
 			suppressHydrationWarning
 		>
 			<head>

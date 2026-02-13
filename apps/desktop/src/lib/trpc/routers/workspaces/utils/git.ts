@@ -249,7 +249,6 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 	const attributeFiles = [
 		join(repoPath, ".gitattributes"),
 		join(repoPath, ".git", "info", "attributes"),
-		join(repoPath, ".lfsconfig"),
 	];
 
 	for (const filePath of attributeFiles) {
@@ -312,9 +311,20 @@ export async function getGitAuthorName(
 	}
 }
 
+let cachedGitHubUsername: { value: string | null; timestamp: number } | null =
+	null;
+const GITHUB_USERNAME_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function getGitHubUsername(
 	_repoPath?: string,
 ): Promise<string | null> {
+	if (
+		cachedGitHubUsername &&
+		Date.now() - cachedGitHubUsername.timestamp < GITHUB_USERNAME_CACHE_TTL
+	) {
+		return cachedGitHubUsername.value;
+	}
+
 	const env = await getGitEnv();
 
 	try {
@@ -323,12 +333,15 @@ export async function getGitHubUsername(
 			["api", "user", "--jq", ".login"],
 			{ env, timeout: 10_000 },
 		);
-		return stdout.trim() || null;
+		const value = stdout.trim() || null;
+		cachedGitHubUsername = { value, timestamp: Date.now() };
+		return value;
 	} catch (error) {
 		console.warn(
 			"[git/getGitHubUsername] Failed to get GitHub username:",
 			error instanceof Error ? error.message : String(error),
 		);
+		cachedGitHubUsername = { value: null, timestamp: Date.now() };
 		return null;
 	}
 }
@@ -462,6 +475,14 @@ export async function createWorktree(
 			{ env, timeout: 120_000 },
 		);
 
+		// Enable autoSetupRemote so the first `git push` automatically creates
+		// the remote branch and sets upstream (like `git push -u origin <branch>`).
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
+
 		console.log(
 			`Created worktree at ${worktreePath} with branch ${branch} from ${startPoint}`,
 		);
@@ -578,6 +599,14 @@ export async function createWorktreeFromExistingBranch({
 			}
 		}
 
+		// Enable autoSetupRemote so the first `git push` automatically creates
+		// the remote branch and sets upstream (like `git push -u origin <branch>`).
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
+
 		console.log(
 			`Created worktree at ${worktreePath} using existing branch ${branch}`,
 		);
@@ -630,6 +659,32 @@ export async function createWorktreeFromExistingBranch({
 
 		console.error(`Failed to create worktree: ${errorMessage}`);
 		throw new Error(`Failed to create worktree: ${errorMessage}`);
+	}
+}
+
+export async function deleteLocalBranch({
+	mainRepoPath,
+	branch,
+}: {
+	mainRepoPath: string;
+	branch: string;
+}): Promise<void> {
+	const env = await getGitEnv();
+
+	try {
+		await execFileAsync("git", ["-C", mainRepoPath, "branch", "-D", branch], {
+			env,
+			timeout: 10_000,
+		});
+		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		console.error(
+			`[workspace/delete] Failed to delete local branch "${branch}": ${errorMessage}`,
+		);
+		throw new Error(
+			`Failed to delete local branch "${branch}": ${errorMessage}`,
+		);
 	}
 }
 
@@ -1674,6 +1729,13 @@ export async function createWorktreeFromPr({
 			args.push("-b", branchName, worktreePath, remoteRef);
 			await execFileAsync("git", args, { env, timeout: 120_000 });
 		}
+
+		// Enable autoSetupRemote so `git push` just works without -u flag.
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
+			{ env, timeout: 10_000 },
+		);
 
 		console.log(
 			`[git] Created worktree at ${worktreePath} for PR #${prInfo.number}`,

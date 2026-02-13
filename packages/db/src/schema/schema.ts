@@ -330,3 +330,28 @@ export const agentCommands = pgTable(
 
 export type InsertAgentCommand = typeof agentCommands.$inferInsert;
 export type SelectAgentCommand = typeof agentCommands.$inferSelect;
+
+export const usersSlackUsers = pgTable(
+	"users__slack_users",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		slackUserId: text("slack_user_id").notNull(),
+		teamId: text("team_id").notNull(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		modelPreference: text("model_preference"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		unique("users__slack_users_unique").on(table.slackUserId, table.teamId),
+		index("users__slack_users_user_idx").on(table.userId),
+		index("users__slack_users_org_idx").on(table.organizationId),
+	],
+);
+
+export type InsertUsersSlackUsers = typeof usersSlackUsers.$inferInsert;
+export type SelectUsersSlackUsers = typeof usersSlackUsers.$inferSelect;

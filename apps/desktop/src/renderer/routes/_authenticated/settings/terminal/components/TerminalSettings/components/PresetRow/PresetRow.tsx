@@ -1,5 +1,5 @@
 import { EXECUTION_MODES, type ExecutionMode } from "@superset/local-db";
-import { Button } from "@superset/ui/button";
+import { Checkbox } from "@superset/ui/checkbox";
 import { Input } from "@superset/ui/input";
 import {
 	Select,
@@ -8,10 +8,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiOutlineStar, HiStar } from "react-icons/hi2";
 import { LuGripVertical, LuTrash } from "react-icons/lu";
 import {
 	PRESET_COLUMNS,
@@ -67,6 +65,8 @@ function PresetCell({
 	);
 }
 
+type AutoApplyField = "applyOnWorkspaceCreated" | "applyOnNewTab";
+
 interface PresetRowProps {
 	preset: TerminalPreset;
 	rowIndex: number;
@@ -77,7 +77,11 @@ interface PresetRowProps {
 	onCommandsBlur: (rowIndex: number) => void;
 	onExecutionModeChange: (rowIndex: number, mode: ExecutionMode) => void;
 	onDelete: (rowIndex: number) => void;
-	onSetDefault: (presetId: string | null) => void;
+	onToggleAutoApply: (
+		presetId: string,
+		field: AutoApplyField,
+		enabled: boolean,
+	) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
 }
@@ -92,7 +96,7 @@ export function PresetRow({
 	onCommandsBlur,
 	onExecutionModeChange,
 	onDelete,
-	onSetDefault,
+	onToggleAutoApply,
 	onLocalReorder,
 	onPersistReorder,
 }: PresetRowProps) {
@@ -125,12 +129,19 @@ export function PresetRow({
 		},
 	});
 
-	preview(drop(rowRef));
-	drag(dragHandleRef);
+	useEffect(() => {
+		preview(drop(rowRef));
+		drag(dragHandleRef);
+	}, [preview, drop, drag]);
 
-	const handleToggleDefault = () => {
-		onSetDefault(preset.isDefault ? null : preset.id);
-	};
+	const isWorkspaceCreation = !!(
+		preset.applyOnWorkspaceCreated ||
+		(!preset.applyOnNewTab && preset.isDefault)
+	);
+	const isNewTab = !!(
+		preset.applyOnNewTab ||
+		(!preset.applyOnWorkspaceCreated && preset.isDefault)
+	);
 
 	return (
 		<div
@@ -176,40 +187,35 @@ export function PresetRow({
 					</SelectContent>
 				</Select>
 			</div>
-			<div className="w-20 flex justify-center gap-1 shrink-0 pt-1">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleToggleDefault}
-							className={`h-8 w-8 p-0 ${preset.isDefault ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-foreground"}`}
-							aria-label={
-								preset.isDefault ? "Remove default" : "Set as default"
-							}
-						>
-							{preset.isDefault ? (
-								<HiStar className="h-4 w-4" />
-							) : (
-								<HiOutlineStar className="h-4 w-4" />
-							)}
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="top">
-						{preset.isDefault
-							? "Remove as default"
-							: "Set as default for new terminals"}
-					</TooltipContent>
-				</Tooltip>
-				<Button
-					variant="ghost"
-					size="sm"
+			<div className="w-[7rem] flex justify-center shrink-0 pt-1.5">
+				<Checkbox
+					checked={isWorkspaceCreation}
+					onCheckedChange={(checked) =>
+						onToggleAutoApply(
+							preset.id,
+							"applyOnWorkspaceCreated",
+							checked === true,
+						)
+					}
+				/>
+			</div>
+			<div className="w-14 flex justify-center shrink-0 pt-1.5">
+				<Checkbox
+					checked={isNewTab}
+					onCheckedChange={(checked) =>
+						onToggleAutoApply(preset.id, "applyOnNewTab", checked === true)
+					}
+				/>
+			</div>
+			<div className="w-10 flex justify-center shrink-0 pt-0.5">
+				<button
+					type="button"
 					onClick={() => onDelete(rowIndex)}
-					className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+					className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
 					aria-label="Delete row"
 				>
-					<LuTrash className="h-4 w-4" />
-				</Button>
+					<LuTrash className="h-3.5 w-3.5" />
+				</button>
 			</div>
 		</div>
 	);

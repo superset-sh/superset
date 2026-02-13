@@ -7,17 +7,17 @@ export function register(server: McpServer) {
 		"navigate_to_workspace",
 		{
 			description:
-				"Navigate the desktop app to a specific workspace (git worktree)",
+				"Open a workspace (git worktree) in the user's desktop app UI. This only changes what the user sees on screen — it does NOT change the agent's working directory, project context, or current workspace. Use switch_workspace to change the active workspace context.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				workspaceId: z
 					.string()
 					.optional()
-					.describe("Workspace ID to navigate to"),
+					.describe("Workspace ID to open in the desktop app UI"),
 				workspaceName: z
 					.string()
 					.optional()
-					.describe("Workspace name to navigate to"),
+					.describe("Workspace name to open in the desktop app UI"),
 			},
 		},
 		async (args, extra) => {

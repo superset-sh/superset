@@ -1,11 +1,10 @@
-import { settings } from "@superset/local-db";
+import { EXTERNAL_APPS, settings } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	EXTERNAL_APPS,
 	type ExternalApp,
 	getAppCommand,
 	resolvePath,
@@ -23,10 +22,23 @@ async function openPathInApp(
 		return;
 	}
 
-	const cmd = getAppCommand(app, filePath);
-	if (cmd) {
-		await spawnAsync(cmd.command, cmd.args);
-		return;
+	const candidates = getAppCommand(app, filePath);
+	if (candidates) {
+		let lastError: Error | undefined;
+		for (const cmd of candidates) {
+			try {
+				await spawnAsync(cmd.command, cmd.args);
+				return;
+			} catch (error) {
+				lastError = error instanceof Error ? error : new Error(String(error));
+				if (candidates.length > 1) {
+					console.warn(
+						`[external/openInApp] ${cmd.args[1]} not found, trying next candidate`,
+					);
+				}
+			}
+		}
+		throw lastError;
 	}
 
 	await shell.openPath(filePath);
