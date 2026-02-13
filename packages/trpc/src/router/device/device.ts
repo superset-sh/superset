@@ -1,10 +1,11 @@
 import { db } from "@superset/db/client";
 import { devicePresence, deviceTypeValues, users } from "@superset/db/schema";
-import { DEVICE_ONLINE_THRESHOLD_MS } from "@superset/shared/constants";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
+
+const OFFLINE_THRESHOLD_MS = 60_000;
 
 export const deviceRouter = {
 	/**
@@ -65,7 +66,7 @@ export const deviceRouter = {
 			return [];
 		}
 
-		const threshold = new Date(Date.now() - DEVICE_ONLINE_THRESHOLD_MS);
+		const threshold = new Date(Date.now() - OFFLINE_THRESHOLD_MS);
 
 		const devices = await db
 			.select({

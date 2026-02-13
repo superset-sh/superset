@@ -6,7 +6,6 @@ import type {
 } from "@modelcontextprotocol/sdk/types.js";
 import { db } from "@superset/db/client";
 import { agentCommands, devicePresence } from "@superset/db/schema";
-import { DEVICE_ONLINE_THRESHOLD_MS } from "@superset/shared/constants";
 import { and, eq, gt, inArray } from "drizzle-orm";
 import type { McpContext } from "../../auth";
 
@@ -28,7 +27,7 @@ export function getMcpContext(
 
 // --- Device execution ---
 
-export { DEVICE_ONLINE_THRESHOLD_MS };
+export const DEVICE_ONLINE_THRESHOLD_MS = 60_000;
 const POLL_INTERVAL_MS = 500;
 const DEFAULT_TIMEOUT_MS = 30_000;
 
