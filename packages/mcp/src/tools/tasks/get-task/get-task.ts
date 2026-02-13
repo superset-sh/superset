@@ -5,6 +5,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
+import { formatMcpResponse, taskIdCondition } from "../utils";
 
 export function register(server: McpServer) {
 	server.registerTool(
@@ -41,7 +42,6 @@ export function register(server: McpServer) {
 		async (args, extra) => {
 			const ctx = getMcpContext(extra);
 			const taskId = args.taskId as string;
-			const isUuid = z.string().uuid().safeParse(taskId).success;
 
 			const assignee = alias(users, "assignee");
 			const creator = alias(users, "creator");
@@ -75,7 +75,7 @@ export function register(server: McpServer) {
 				.leftJoin(status, eq(tasks.statusId, status.id))
 				.where(
 					and(
-						isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
+						taskIdCondition(taskId),
 						eq(tasks.organizationId, ctx.organizationId),
 						isNull(tasks.deletedAt),
 					),
@@ -93,15 +93,7 @@ export function register(server: McpServer) {
 				...task,
 				dueDate: task.dueDate?.toISOString() ?? null,
 			};
-			return {
-				structuredContent: { task: serializedTask },
-				content: [
-					{
-						type: "text",
-						text: JSON.stringify({ task: serializedTask }, null, 2),
-					},
-				],
-			};
+			return formatMcpResponse({ task: serializedTask });
 		},
 	);
 }

@@ -6,6 +6,7 @@ import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
+import { formatMcpResponse, isPriority, taskPriorityValues } from "../utils";
 
 type TaskStatusType =
 	| "backlog"
@@ -13,13 +14,6 @@ type TaskStatusType =
 	| "started"
 	| "completed"
 	| "canceled";
-
-const PRIORITIES = ["urgent", "high", "medium", "low", "none"] as const;
-type TaskPriority = (typeof PRIORITIES)[number];
-
-function isPriority(value: unknown): value is TaskPriority {
-	return PRIORITIES.includes(value as TaskPriority);
-}
 
 export function register(server: McpServer) {
 	server.registerTool(
@@ -42,9 +36,7 @@ export function register(server: McpServer) {
 					.boolean()
 					.optional()
 					.describe("Filter to tasks created by current user"),
-				priority: z
-					.enum(["urgent", "high", "medium", "low", "none"])
-					.optional(),
+				priority: z.enum(taskPriorityValues).optional(),
 				labels: z
 					.array(z.string())
 					.optional()
@@ -164,16 +156,7 @@ export function register(server: McpServer) {
 						conditions.push(statusCondition);
 					}
 				} else {
-					const data = { tasks: [], count: 0, hasMore: false };
-					return {
-						structuredContent: data,
-						content: [
-							{
-								type: "text",
-								text: JSON.stringify(data, null, 2),
-							},
-						],
-					};
+					return formatMcpResponse({ tasks: [], count: 0, hasMore: false });
 				}
 			}
 
@@ -214,10 +197,7 @@ export function register(server: McpServer) {
 				count: tasksList.length,
 				hasMore: tasksList.length === limit,
 			};
-			return {
-				structuredContent: data,
-				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-			};
+			return formatMcpResponse(data);
 		},
 	);
 }

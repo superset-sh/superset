@@ -4,19 +4,18 @@ import { taskStatuses, tasks } from "@superset/db/schema";
 import { and, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
-
-const PRIORITIES = ["urgent", "high", "medium", "low", "none"] as const;
-type TaskPriority = (typeof PRIORITIES)[number];
-
-function isPriority(value: unknown): value is TaskPriority {
-	return PRIORITIES.includes(value as TaskPriority);
-}
+import {
+	formatMcpResponse,
+	isPriority,
+	type TaskPriority,
+	taskPriorityValues,
+} from "../utils";
 
 const taskInputSchema = z.object({
 	title: z.string().min(1).describe("Task title"),
 	description: z.string().optional().describe("Task description (markdown)"),
 	priority: z
-		.enum(["urgent", "high", "medium", "low", "none"])
+		.enum(taskPriorityValues)
 		.default("none")
 		.describe("Task priority"),
 	assigneeId: z.string().uuid().optional().describe("User ID to assign to"),
@@ -176,15 +175,7 @@ export function register(server: McpServer) {
 					.returning({ id: tasks.id, slug: tasks.slug, title: tasks.title });
 			});
 
-			return {
-				structuredContent: { created: createdTasks },
-				content: [
-					{
-						type: "text",
-						text: JSON.stringify({ created: createdTasks }, null, 2),
-					},
-				],
-			};
+			return formatMcpResponse({ created: createdTasks });
 		},
 	);
 }

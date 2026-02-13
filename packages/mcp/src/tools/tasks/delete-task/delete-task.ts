@@ -1,9 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { db, dbWs } from "@superset/db/client";
+import { dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
+import { formatMcpResponse, resolveTaskId } from "../utils";
 
 export function register(server: McpServer) {
 	server.registerTool(
@@ -28,19 +29,10 @@ export function register(server: McpServer) {
 			const resolvedTasks: { id: string; identifier: string }[] = [];
 
 			for (const taskId of taskIds) {
-				const isUuid = z.string().uuid().safeParse(taskId).success;
-
-				const [existingTask] = await db
-					.select({ id: tasks.id })
-					.from(tasks)
-					.where(
-						and(
-							isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
-							eq(tasks.organizationId, ctx.organizationId),
-							isNull(tasks.deletedAt),
-						),
-					)
-					.limit(1);
+				const existingTask = await resolveTaskId({
+					taskId,
+					organizationId: ctx.organizationId,
+				});
 
 				if (!existingTask) {
 					return {
@@ -62,11 +54,7 @@ export function register(server: McpServer) {
 				.set({ deletedAt })
 				.where(inArray(tasks.id, taskIdsToDelete));
 
-			const data = { deleted: taskIdsToDelete };
-			return {
-				structuredContent: data,
-				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-			};
+			return formatMcpResponse({ deleted: taskIdsToDelete });
 		},
 	);
 }
