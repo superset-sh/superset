@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { type ChangelogEntry, slugify } from "./changelog-utils";
+import { normalizeContentDate } from "./content-utils";
 
 export {
 	type ChangelogEntry,
@@ -17,15 +18,7 @@ function parseFrontmatter(filePath: string): ChangelogEntry | null {
 		const { data, content } = matter(fileContent);
 
 		const slug = path.basename(filePath, ".mdx");
-
-		let dateValue: string;
-		if (data.date instanceof Date) {
-			dateValue = data.date.toISOString().split("T")[0] as string;
-		} else if (data.date) {
-			dateValue = String(data.date);
-		} else {
-			dateValue = new Date().toISOString().split("T")[0] as string;
-		}
+		const dateValue = normalizeContentDate(data.date) as string;
 
 		return {
 			slug,

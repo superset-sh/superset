@@ -3,6 +3,8 @@
  * These can be safely imported in both server and client components.
  */
 
+import { formatContentDate } from "./content-utils";
+
 export interface ChangelogEntry {
 	slug: string;
 	url: string;
@@ -13,17 +15,8 @@ export interface ChangelogEntry {
 	content: string;
 }
 
-export function formatChangelogDate(date: string): string {
-	return new Date(date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-}
+export { slugify } from "./content-utils";
 
-export function slugify(text: string): string {
-	return text
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/(^-|-$)/g, "");
+export function formatChangelogDate(date: string): string {
+	return formatContentDate(date, "long");
 }
