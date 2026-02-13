@@ -5,6 +5,7 @@ import {
 	sessions as authSessions,
 	invitations,
 } from "@superset/db/schema/auth";
+import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { del, put } from "@vercel/blob";
@@ -146,11 +147,9 @@ export const organizationRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
-			const membership = await db.query.members.findFirst({
-				where: and(
-					eq(members.organizationId, id),
-					eq(members.userId, ctx.session.user.id),
-				),
+			const membership = await findOrgMembership({
+				userId: ctx.session.user.id,
+				organizationId: id,
 			});
 
 			if (!membership) {
@@ -215,11 +214,9 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const membership = await db.query.members.findFirst({
-				where: and(
-					eq(members.organizationId, input.organizationId),
-					eq(members.userId, ctx.session.user.id),
-				),
+			const membership = await findOrgMembership({
+				userId: ctx.session.user.id,
+				organizationId: input.organizationId,
 			});
 
 			if (!membership) {
