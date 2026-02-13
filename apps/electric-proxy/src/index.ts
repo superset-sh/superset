@@ -41,7 +41,6 @@ function corsResponse(status: number, body: string): Response {
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		// Handle CORS preflight
 		if (request.method === "OPTIONS") {
 			return new Response(null, { status: 204, headers: CORS_HEADERS });
 		}
@@ -52,19 +51,17 @@ export default {
 
 		const url = new URL(request.url);
 
-		// Only handle /v1/shape
 		if (!url.pathname.startsWith("/v1/shape")) {
 			return corsResponse(404, "Not found");
 		}
 
-		// Extract and verify JWT
 		const authHeader = request.headers.get("Authorization");
 		if (!authHeader?.startsWith("Bearer ")) {
 			return corsResponse(401, "Missing or invalid Authorization header");
 		}
 
 		const token = authHeader.slice(7);
-		let claims: { userId: string; organizationIds: string[] };
+		let claims: { organizationIds: string[] };
 		try {
 			claims = await verifyJWT({
 				token,
@@ -77,7 +74,6 @@ export default {
 			return corsResponse(401, "Invalid token");
 		}
 
-		// Validate request params
 		const table = url.searchParams.get("table");
 		if (!table) {
 			return corsResponse(400, "Missing table parameter");
@@ -85,8 +81,7 @@ export default {
 
 		const organizationId = url.searchParams.get("organizationId") ?? "";
 
-		// For tables that require an org, verify membership
-		if (table !== "auth.organizations" && table !== "auth.apikeys") {
+		if (table !== "auth.organizations") {
 			if (!organizationId) {
 				return corsResponse(400, "Missing organizationId parameter");
 			}
@@ -95,11 +90,9 @@ export default {
 			}
 		}
 
-		// Build WHERE clause
 		const whereClause = buildWhereClause({
 			table,
 			organizationId,
-			userId: claims.userId,
 			organizationIds: claims.organizationIds,
 		});
 
@@ -107,7 +100,6 @@ export default {
 			return corsResponse(400, `Unknown table: ${table}`);
 		}
 
-		// Build upstream Electric URL
 		const originUrl = new URL(env.ELECTRIC_URL);
 		originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
 		originUrl.searchParams.set("table", table);
@@ -121,26 +113,24 @@ export default {
 			originUrl.searchParams.set("columns", whereClause.columns);
 		}
 
-		// Forward Electric protocol params
 		for (const [key, value] of url.searchParams) {
 			if (ELECTRIC_PROTOCOL_PARAMS.has(key)) {
 				originUrl.searchParams.set(key, value);
 			}
 		}
 
-		// Proxy to Electric
-		const response = await fetch(originUrl.toString());
+		const response = await fetch(originUrl.toString(), {
+			cf: { cacheEverything: true },
+		});
 
 		const headers = new Headers(response.headers);
 		headers.set("Vary", "Authorization");
 
-		// Strip content-encoding since we're not passing through compressed body
 		if (headers.has("content-encoding")) {
 			headers.delete("content-encoding");
 			headers.delete("content-length");
 		}
 
-		// Add CORS headers
 		for (const [key, value] of Object.entries(CORS_HEADERS)) {
 			headers.set(key, value);
 		}

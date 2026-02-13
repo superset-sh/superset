@@ -7,12 +7,10 @@ interface WhereClause {
 export function buildWhereClause({
 	table,
 	organizationId,
-	userId,
 	organizationIds,
 }: {
 	table: string;
 	organizationId: string;
-	userId: string;
 	organizationIds: string[];
 }): WhereClause | null {
 	switch (table) {
@@ -37,8 +35,8 @@ export function buildWhereClause({
 
 		case "auth.apikeys":
 			return {
-				fragment: '"user_id" = $1',
-				params: [userId],
+				fragment: `"metadata"::jsonb->>'organizationId' = $1`,
+				params: [organizationId],
 				columns: "id,name,start,created_at,last_request",
 			};
 
