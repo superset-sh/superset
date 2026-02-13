@@ -1,16 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { dbWs } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { tasks } from "@superset/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { getMcpContext } from "../../utils";
-import { formatMcpResponse, resolveTaskId, taskPriorityValues } from "../utils";
 
 const updateSchema = z.object({
 	taskId: z.string().describe("Task ID (uuid) or slug"),
 	title: z.string().min(1).optional().describe("New title"),
 	description: z.string().optional().describe("New description"),
-	priority: z.enum(taskPriorityValues).optional(),
+	priority: z.enum(["urgent", "high", "medium", "low", "none"]).optional(),
 	assigneeId: z
 		.string()
 		.uuid()
@@ -63,11 +62,19 @@ export function register(server: McpServer) {
 
 			for (const [i, update] of updates.entries()) {
 				const taskId = update.taskId;
+				const isUuid = z.string().uuid().safeParse(taskId).success;
 
-				const existingTask = await resolveTaskId({
-					taskId,
-					organizationId: ctx.organizationId,
-				});
+				const [existingTask] = await db
+					.select({ id: tasks.id })
+					.from(tasks)
+					.where(
+						and(
+							isUuid ? eq(tasks.id, taskId) : eq(tasks.slug, taskId),
+							eq(tasks.organizationId, ctx.organizationId),
+							isNull(tasks.deletedAt),
+						),
+					)
+					.limit(1);
 
 				if (!existingTask) {
 					return {
@@ -130,7 +137,11 @@ export function register(server: McpServer) {
 				}
 			}
 
-			return formatMcpResponse({ updated: updatedTasks });
+			const data = { updated: updatedTasks };
+			return {
+				structuredContent: data,
+				content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+			};
 		},
 	);
 }
