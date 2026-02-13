@@ -354,10 +354,7 @@ export function buildTerminalEnv(params: {
 	const shellEnv = getShellEnv(shell);
 	const locale = getLocale(rawBaseEnv);
 
-	// COLORFGBG tells TUI applications about terminal foreground/background colors
-	// Format: "foreground;background" using ANSI color indices (0=black, 15=white)
-	// Light mode: dark fg on light bg = "0;15"
-	// Dark mode: light fg on dark bg = "15;0"
+	// COLORFGBG: "foreground;background" ANSI color indices — TUI apps use this to detect light/dark
 	const colorFgBg = themeType === "light" ? "0;15" : "15;0";
 
 	const terminalEnv: Record<string, string> = {

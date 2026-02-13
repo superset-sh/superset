@@ -18,7 +18,7 @@ export function resolveTerminalThemeType(params?: {
 			return persistedThemeType;
 		}
 	} catch {
-		// localStorage can be unavailable in some test/runtime contexts
+		// localStorage unavailable in some contexts
 	}
 
 	return "dark";

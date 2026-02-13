@@ -104,7 +104,6 @@ export interface CreateSessionParams {
 	skipColdRestore?: boolean;
 	/** Allow restarting a session that was explicitly killed */
 	allowKilled?: boolean;
-	/** Theme type for setting COLORFGBG env var (light mode detection) */
 	themeType?: "dark" | "light";
 }
 
