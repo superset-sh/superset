@@ -38,9 +38,7 @@ export async function uploadImage({
 	if (existingUrl) {
 		try {
 			await del(existingUrl);
-		} catch {
-			// Old image doesn't exist or isn't in blob storage
-		}
+		} catch {}
 	}
 
 	const blob = await put(pathname, buffer, {
