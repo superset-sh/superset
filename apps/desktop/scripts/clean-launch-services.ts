@@ -26,7 +26,8 @@ if (process.platform !== "darwin") {
 }
 
 // This script is only intended for development predev flow.
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV !== "development") {
+	console.log("[clean-launch-services] Skipping - non-development mode");
 	process.exit(0);
 }
 
@@ -48,18 +49,18 @@ try {
 
 	// Find all registered Electron.app paths under the worktrees directory
 	const pathRegex = /^\s*path:\s*(.+Electron\.app)\s*$/gm;
-	const staleApps: string[] = [];
+	const staleApps = new Set<string>();
 
 	for (const match of dump.matchAll(pathRegex)) {
 		const appPath = match[1].trim();
 		if (!appPath.startsWith(WORKTREE_BASE)) continue;
 		if (appPath === currentElectronApp) continue;
 		if (!existsSync(appPath)) {
-			staleApps.push(appPath);
+			staleApps.add(appPath);
 		}
 	}
 
-	if (staleApps.length === 0) {
+	if (staleApps.size === 0) {
 		console.log("[clean-launch-services] No stale registrations found");
 		process.exit(0);
 	}
@@ -74,7 +75,7 @@ try {
 	}
 
 	console.log(
-		`[clean-launch-services] Cleaned ${staleApps.length} stale registration(s)`,
+		`[clean-launch-services] Cleaned ${staleApps.size} stale registration(s)`,
 	);
 } catch (err) {
 	// Non-fatal — don't block dev startup if cleanup fails
