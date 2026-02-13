@@ -4,11 +4,14 @@
  *
  * In-app code should use getWorkspaceName() from env.shared.ts instead.
  */
-export function getWorkspaceName(): string | undefined {
-	const name = process.env.SUPERSET_WORKSPACE_NAME;
+export function normalizeWorkspaceName(name?: string): string | undefined {
 	if (!name || name === "superset") return undefined;
 	return name
 		.toLowerCase()
 		.replace(/[^a-z0-9-]/g, "-")
 		.slice(0, 32);
+}
+
+export function getWorkspaceName(): string | undefined {
+	return normalizeWorkspaceName(process.env.SUPERSET_WORKSPACE_NAME);
 }

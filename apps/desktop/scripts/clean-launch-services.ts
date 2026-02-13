@@ -15,13 +15,18 @@
  * Runs automatically as part of `bun dev` (via predev).
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 
 // Only needed on macOS
 if (process.platform !== "darwin") {
+	process.exit(0);
+}
+
+// This script is only intended for development predev flow.
+if (process.env.NODE_ENV === "production") {
 	process.exit(0);
 }
 
@@ -36,7 +41,7 @@ const currentElectronApp = resolve(
 );
 
 try {
-	const dump = execSync(`"${LSREGISTER}" -dump`, {
+	const dump = execFileSync(LSREGISTER, ["-dump"], {
 		encoding: "utf-8",
 		maxBuffer: 50 * 1024 * 1024, // 50 MB — lsregister dump can be large
 	});
@@ -61,7 +66,7 @@ try {
 
 	for (const appPath of staleApps) {
 		try {
-			execSync(`"${LSREGISTER}" -u "${appPath}"`, { stdio: "ignore" });
+			execFileSync(LSREGISTER, ["-u", appPath], { stdio: "ignore" });
 			console.log(`[clean-launch-services] Unregistered: ${appPath}`);
 		} catch {
 			// Best-effort — lsregister -u can fail for already-removed entries
