@@ -16,7 +16,7 @@
 	"packageManager": "bun@1.3.6",
 	"private": true,
 	"scripts": {
-		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=@superset/streams --filter=//",
+		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=@superset/streams --filter=@superset/electric-proxy --filter=//",
 		"dev:all": "turbo dev",
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
 		"dev:docs": "turbo dev --filter=@superset/docs",

@@ -363,7 +363,7 @@ step_write_env() {
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
-    #          +10 caddy (HTTP/2 reverse proxy for API), +11 code inspector
+    #          +10 caddy (HTTP/2 reverse proxy for electric-proxy), +11 code inspector, +12 electric-proxy (wrangler dev)
     if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
       local BASE=$SUPERSET_PORT_BASE
 
@@ -378,8 +378,9 @@ step_write_env() {
       local STREAMS_PORT=$((BASE + 7))
       local STREAMS_INTERNAL_PORT=$((BASE + 8))
       local ELECTRIC_PORT=$((BASE + 9))
-      local CADDY_API_PORT=$((BASE + 10))
+      local CADDY_ELECTRIC_PORT=$((BASE + 10))
       local CODE_INSPECTOR_PORT=$((BASE + 11))
+      local ELECTRIC_PROXY_PORT=$((BASE + 12))
 
       echo ""
       echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -394,12 +395,12 @@ step_write_env() {
       echo "STREAMS_PORT=$STREAMS_PORT"
       echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
       echo "ELECTRIC_PORT=$ELECTRIC_PORT"
-      echo "CADDY_API_PORT=$CADDY_API_PORT"
+      echo "CADDY_ELECTRIC_PORT=$CADDY_ELECTRIC_PORT"
       echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
+      echo "ELECTRIC_PROXY_PORT=$ELECTRIC_PROXY_PORT"
       echo ""
       echo "# Cross-app URLs (overrides from root .env)"
-      echo "# Uses Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric)"
-      echo "NEXT_PUBLIC_API_URL=https://localhost:$CADDY_API_PORT"
+      echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"
       echo "NEXT_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
       echo "NEXT_PUBLIC_MARKETING_URL=http://localhost:$MARKETING_PORT"
       echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"
@@ -415,17 +416,31 @@ step_write_env() {
       echo "EXPO_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
       echo "STREAMS_INTERNAL_URL=http://127.0.0.1:$STREAMS_INTERNAL_PORT"
       echo ""
-      echo "# Electric URL (overrides from root .env)"
+      echo "# Electric URLs (overrides from root .env)"
       echo "ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape"
+      echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
+      echo "NEXT_PUBLIC_ELECTRIC_URL=https://localhost:$CADDY_ELECTRIC_PORT"
     fi
   } >> .env
 
   success "Workspace .env written"
 
-  # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric)
+  # Generate Electric proxy .dev.vars for wrangler dev
+  local api_port="${API_PORT:-3041}"
+  local electric_port="${ELECTRIC_PORT:-3049}"
+  cat > apps/electric-proxy/.dev.vars <<DEVVARS
+ELECTRIC_URL=http://localhost:${electric_port}/v1/shape
+ELECTRIC_SECRET=${ELECTRIC_SECRET:-local_electric_dev_secret}
+JWKS_URL=http://localhost:${api_port}/api/auth/jwks
+JWT_ISSUER=http://localhost:${api_port}
+JWT_AUDIENCE=http://localhost:${api_port}
+DEVVARS
+  success "Electric proxy .dev.vars written"
+
+  # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
   cat > Caddyfile <<CADDYEOF
-https://localhost:{\$CADDY_API_PORT} {
-	reverse_proxy localhost:{\$API_PORT} {
+https://localhost:{\$CADDY_ELECTRIC_PORT} {
+	reverse_proxy localhost:{\$ELECTRIC_PROXY_PORT} {
 		flush_interval -1
 	}
 }

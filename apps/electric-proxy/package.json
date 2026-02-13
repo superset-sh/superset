@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "wrangler dev",
+		"dev": "dotenv -e ../../.env -- sh -c 'wrangler dev --port ${ELECTRIC_PROXY_PORT:-8787} --inspector-port 0'",
 		"build": "wrangler deploy --dry-run --outdir=dist",
 		"deploy": "wrangler deploy",
 		"typecheck": "tsc --noEmit"
