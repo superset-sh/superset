@@ -1,13 +1,8 @@
 import { verifyJWT } from "./auth";
+import type { Env } from "./env";
 import { buildWhereClause } from "./where-clauses";
 
-export interface Env {
-	JWKS_URL: string;
-	JWT_ISSUER: string;
-	JWT_AUDIENCE: string;
-	ELECTRIC_URL: string;
-	ELECTRIC_SECRET: string;
-}
+export type { Env } from "./env";
 
 const ELECTRIC_PROTOCOL_PARAMS = new Set([
 	"live",
@@ -100,8 +95,8 @@ export default {
 			return corsResponse(400, `Unknown table: ${table}`);
 		}
 
+		// Build Electric query params
 		const originUrl = new URL(env.ELECTRIC_URL);
-		originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
 		originUrl.searchParams.set("table", table);
 		originUrl.searchParams.set("where", whereClause.fragment);
 
@@ -117,6 +112,10 @@ export default {
 			if (ELECTRIC_PROTOCOL_PARAMS.has(key)) {
 				originUrl.searchParams.set(key, value);
 			}
+		}
+
+		if (env.ELECTRIC_SECRET) {
+			originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
 		}
 
 		const response = await fetch(originUrl.toString(), {

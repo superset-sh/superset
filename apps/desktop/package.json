@@ -16,7 +16,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist dist-electron release node_modules",
 		"start": "electron-vite preview",
-		"predev": "bun run clean:dev && bun run scripts/patch-dev-protocol.ts",
+		"predev": "cross-env NODE_ENV=development bun run clean:dev && cross-env NODE_ENV=development bun run scripts/clean-launch-services.ts && cross-env NODE_ENV=development bun run scripts/patch-dev-protocol.ts",
 		"dev": "cross-env NODE_ENV=development electron-vite dev --watch",
 		"compile:app": "cross-env NODE_OPTIONS=--max-old-space-size=8192 electron-vite build",
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",

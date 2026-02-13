@@ -46,10 +46,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_PATH: "project-path",
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
-
-	WORKSPACE_NAME: "workspace-name",
-	WORKSPACE_BRANCH: "workspace-branch",
-	WORKSPACE_PATH: "workspace-path",
+	PROJECT_ENV_VARS: "project-env-vars",
 
 	// API Keys
 	API_KEYS_LIST: "api-keys-list",
@@ -683,35 +680,19 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.WORKSPACE_NAME,
-		section: "workspace",
-		title: "Workspace Name",
-		description: "The name of this workspace",
-		keywords: ["workspace", "name", "rename", "title", "label"],
-	},
-	{
-		id: SETTING_ITEM_ID.WORKSPACE_BRANCH,
-		section: "workspace",
-		title: "Branch",
-		description: "The git branch for this workspace",
+		id: SETTING_ITEM_ID.PROJECT_ENV_VARS,
+		section: "project",
+		title: "Environment Variables",
+		description: "Manage environment variables and secrets for cloud sandboxes",
 		keywords: [
-			"workspace",
-			"branch",
-			"git",
-			"worktree",
-			"checkout",
-			"switch",
-			"feature",
+			"environment",
+			"variables",
+			"secrets",
+			"env",
+			"cloud",
+			"sandbox",
 		],
 	},
-	{
-		id: SETTING_ITEM_ID.WORKSPACE_PATH,
-		section: "workspace",
-		title: "File Path",
-		description: "The file path to this workspace",
-		keywords: ["workspace", "path", "folder", "directory", "location", "root"],
-	},
-
 	// API Keys
 	{
 		id: SETTING_ITEM_ID.API_KEYS_LIST,
