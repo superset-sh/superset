@@ -18,6 +18,7 @@ import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
 } from "renderer/stores/tabs/utils";
+import { useTheme } from "renderer/stores/theme";
 import { ChatPane } from "./ChatPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
@@ -27,6 +28,7 @@ interface TabViewProps {
 }
 
 export function TabView({ tab }: TabViewProps) {
+	const activeTheme = useTheme();
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
@@ -225,7 +227,11 @@ export function TabView({ tab }: TabViewProps) {
 				renderTile={renderPane}
 				value={cleanedLayout}
 				onChange={handleLayoutChange}
-				className="mosaic-theme-dark"
+				className={
+					activeTheme?.type === "light"
+						? "mosaic-theme-light"
+						: "mosaic-theme-dark"
+				}
 				dragAndDropManager={dragDropManager}
 			/>
 		</div>

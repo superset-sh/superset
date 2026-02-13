@@ -93,6 +93,7 @@ export async function createSession(
 		rows,
 		existingScrollback,
 		useFallbackShell = false,
+		themeType,
 		portBase,
 	} = params;
 
@@ -120,6 +121,7 @@ export async function createSession(
 		workspaceName,
 		workspacePath,
 		rootPath,
+		themeType,
 		portBase,
 	});
 
