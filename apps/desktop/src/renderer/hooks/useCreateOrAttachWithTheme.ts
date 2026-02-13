@@ -9,8 +9,11 @@ export function useCreateOrAttachWithTheme() {
 	const themeType = resolveTerminalThemeType({
 		activeThemeType: activeTheme?.type,
 	});
-	const { mutate: baseMutate, mutateAsync: baseMutateAsync, ...mutationState } =
-		mutation;
+	const {
+		mutate: baseMutate,
+		mutateAsync: baseMutateAsync,
+		...mutationState
+	} = mutation;
 	type CreateOrAttachInput = Parameters<typeof mutation.mutate>[0];
 
 	const withTheme = useCallback(
