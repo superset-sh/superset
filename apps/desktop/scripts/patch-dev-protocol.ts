@@ -30,8 +30,8 @@ config({
 // Import getWorkspaceName directly (not shared/constants.ts which imports env.ts
 // and would trigger Zod validation of env vars not yet available during predev)
 import {
+	deriveWorkspaceNameFromWorktreeSegments,
 	getWorkspaceName,
-	normalizeWorkspaceName,
 } from "../src/shared/worktree-id";
 
 // Only needed on macOS
@@ -66,13 +66,7 @@ function deriveWorkspaceNameFromPath(): string | undefined {
 	}
 
 	const segments = cwdRelative.split(sep).filter(Boolean);
-	const appsIndex = segments.lastIndexOf("apps");
-	const candidate =
-		appsIndex > 0 && segments[appsIndex + 1] === "desktop"
-			? segments[appsIndex - 1]
-			: segments.at(-1);
-
-	return normalizeWorkspaceName(candidate);
+	return deriveWorkspaceNameFromWorktreeSegments(segments);
 }
 
 // Workspace-aware protocol scheme and bundle ID for multi-worktree isolation
