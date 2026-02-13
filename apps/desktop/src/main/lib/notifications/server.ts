@@ -1,8 +1,10 @@
 import { EventEmitter } from "node:events";
 import express from "express";
+import { BrowserWindow } from "electron";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
+import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 
@@ -174,6 +176,38 @@ app.get("/hook/complete", (req, res) => {
 // Health check
 app.get("/health", (_req, res) => {
 	res.json({ status: "ok" });
+});
+
+// OAuth callback fallback for Linux/dev environments where custom URI handlers
+// are unreliable. Browser can hit localhost directly to complete sign-in.
+app.get("/auth/callback", async (req, res) => {
+	const token = req.query.token;
+	const expiresAt = req.query.expiresAt;
+	const state = req.query.state;
+
+	if (
+		typeof token !== "string" ||
+		typeof expiresAt !== "string" ||
+		typeof state !== "string"
+	) {
+		return res.status(400).json({ success: false, error: "Missing auth params" });
+	}
+
+	const result = await handleAuthCallback({ token, expiresAt, state });
+	if (!result.success) {
+		return res.status(400).json(result);
+	}
+
+	const mainWindow = BrowserWindow.getAllWindows()[0];
+	if (mainWindow) {
+		if (mainWindow.isMinimized()) {
+			mainWindow.restore();
+		}
+		mainWindow.show();
+		mainWindow.focus();
+	}
+
+	return res.json({ success: true });
 });
 
 // 404

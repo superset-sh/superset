@@ -96,6 +96,26 @@ jobs:
           pattern: desktop-canary-*
           merge-multiple: true
 
+      - name: Create canary-named copies for updater URLs
+        run: |
+          cd release-artifacts
+          for file in *.AppImage; do
+            if [[ -f "$file" ]]; then
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.AppImage$/\1/')
+              cp "$file" "Superset-Canary-${arch}.AppImage"
+              echo "Created canary copy: Superset-Canary-${arch}.AppImage"
+            fi
+          done
+          # Prerelease builds may request canary-linux.yml; keep latest-linux.yml as fallback.
+          for file in *-linux.yml; do
+            if [[ -f "$file" ]]; then
+              cp "$file" "canary-linux.yml"
+              cp "$file" "latest-linux.yml"
+              echo "Created canary manifests: canary-linux.yml, latest-linux.yml"
+              break
+            fi
+          done
+
       - name: List artifacts
         run: |
           echo "Release artifacts:"

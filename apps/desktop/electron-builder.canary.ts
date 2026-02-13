@@ -8,11 +8,15 @@
  */
 
 import { join } from "node:path";
+import { existsSync } from "node:fs";
 import type { Configuration } from "electron-builder";
 import baseConfig from "./electron-builder";
 import pkg from "./package.json";
 
 const productName = "Superset Canary";
+const canaryMacIconPath = join(pkg.resources, "build/icons/icon-canary.icns");
+const canaryLinuxIconPath = join(pkg.resources, "build/icons/icon-canary.png");
+const canaryWinIconPath = join(pkg.resources, "build/icons/icon-canary.ico");
 
 const config: Configuration = {
 	...baseConfig,
@@ -28,7 +32,7 @@ const config: Configuration = {
 
 	mac: {
 		...baseConfig.mac,
-		icon: join(pkg.resources, "build/icons/icon-canary.icns"),
+		...(existsSync(canaryMacIconPath) ? { icon: canaryMacIconPath } : {}),
 		artifactName: `Superset-Canary-\${version}-\${arch}.\${ext}`,
 		extendInfo: {
 			CFBundleName: productName,
@@ -38,14 +42,16 @@ const config: Configuration = {
 
 	linux: {
 		...baseConfig.linux,
-		icon: join(pkg.resources, "build/icons/icon-canary.png"),
+		...(existsSync(canaryLinuxIconPath)
+			? { icon: canaryLinuxIconPath }
+			: {}),
 		synopsis: `${pkg.description} (Canary)`,
 		artifactName: `superset-canary-\${version}-\${arch}.\${ext}`,
 	},
 
 	win: {
 		...baseConfig.win,
-		icon: join(pkg.resources, "build/icons/icon-canary.ico"),
+		...(existsSync(canaryWinIconPath) ? { icon: canaryWinIconPath } : {}),
 		artifactName: `Superset-Canary-\${version}-\${arch}.\${ext}`,
 	},
 };
