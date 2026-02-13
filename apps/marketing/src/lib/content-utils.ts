@@ -28,18 +28,19 @@ export function normalizeContentDate(
 	options: { fallbackToNow?: boolean } = {},
 ): string | undefined {
 	const { fallbackToNow = true } = options;
+	const fallback = fallbackToNow ? toDateInput(Date.now()) : undefined;
 
 	if (value instanceof Date) {
 		return toDateInput(value);
 	}
 
 	if (typeof value === "string" || typeof value === "number") {
-		return String(value);
+		return value ? String(value) : fallback;
 	}
 
 	if (value) {
 		return String(value);
 	}
 
-	return fallbackToNow ? toDateInput(Date.now()) : undefined;
+	return fallback;
 }
