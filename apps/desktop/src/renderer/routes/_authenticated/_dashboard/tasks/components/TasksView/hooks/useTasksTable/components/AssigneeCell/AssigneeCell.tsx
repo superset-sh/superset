@@ -46,7 +46,11 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
-				<button type="button" className="cursor-pointer">
+				<button
+					type="button"
+					className="cursor-pointer"
+					onClick={(e) => e.stopPropagation()}
+				>
 					{task.assignee ? (
 						<Avatar
 							size="xs"
@@ -58,7 +62,11 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 					)}
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-56">
+			<DropdownMenuContent
+				align="start"
+				className="w-56"
+				onClick={(e) => e.stopPropagation()}
+			>
 				<div className="max-h-64 overflow-y-auto">
 					<DropdownMenuItem
 						onSelect={() => handleSelectUser(null)}
