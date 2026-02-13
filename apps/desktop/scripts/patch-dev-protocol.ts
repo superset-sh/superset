@@ -57,11 +57,7 @@ function deriveWorkspaceNameFromPath(): string | undefined {
 	const cwdRelative = relative(worktreeBase, process.cwd());
 
 	// Not inside ~/.superset/worktrees
-	if (
-		!cwdRelative ||
-		cwdRelative.startsWith("..") ||
-		isAbsolute(cwdRelative)
-	) {
+	if (!cwdRelative || cwdRelative.startsWith("..") || isAbsolute(cwdRelative)) {
 		return undefined;
 	}
 
@@ -72,9 +68,7 @@ function deriveWorkspaceNameFromPath(): string | undefined {
 // Workspace-aware protocol scheme and bundle ID for multi-worktree isolation
 const workspaceName = getWorkspaceName() ?? deriveWorkspaceNameFromPath();
 if (!workspaceName) {
-	console.log(
-		"[patch-dev-protocol] Skipping - workspace name not resolved",
-	);
+	console.log("[patch-dev-protocol] Skipping - workspace name not resolved");
 	process.exit(0);
 }
 const PROTOCOL_SCHEME = `superset-${workspaceName}`;

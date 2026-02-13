@@ -47,11 +47,7 @@ describe("deriveWorkspaceNameFromWorktreeSegments", () => {
 
 	it("falls back to the remaining path when apps/desktop suffix is absent", () => {
 		expect(
-			deriveWorkspaceNameFromWorktreeSegments([
-				"superset",
-				"feature",
-				"path",
-			]),
+			deriveWorkspaceNameFromWorktreeSegments(["superset", "feature", "path"]),
 		).toBe("feature-path");
 	});
 
