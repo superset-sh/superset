@@ -4,7 +4,11 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import {
+	disconnectIntegration,
+	verifyOrgAdmin,
+	verifyOrgMembership,
+} from "../utils";
 
 export const slackRouter = {
 	getConnection: protectedProcedure
@@ -37,21 +41,9 @@ export const slackRouter = {
 		.input(z.object({ organizationId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
-
-			const result = await db
-				.delete(integrationConnections)
-				.where(
-					and(
-						eq(integrationConnections.organizationId, input.organizationId),
-						eq(integrationConnections.provider, "slack"),
-					),
-				)
-				.returning({ id: integrationConnections.id });
-
-			if (result.length === 0) {
-				return { success: false, error: "No connection found" };
-			}
-
-			return { success: true };
+			return disconnectIntegration({
+				organizationId: input.organizationId,
+				provider: "slack",
+			});
 		}),
 } satisfies TRPCRouterRecord;
