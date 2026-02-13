@@ -1,7 +1,6 @@
 import { db } from "@superset/db/client";
 import {
 	agentCommands,
-	apikeys,
 	devicePresence,
 	integrationConnections,
 	invitations,
@@ -109,8 +108,10 @@ export async function buildWhereClause(
 		case "agent_commands":
 			return build(agentCommands, agentCommands.organizationId, organizationId);
 
-		case "auth.apikeys":
-			return build(apikeys, apikeys.userId, userId);
+		case "auth.apikeys": {
+			const fragment = `"metadata"::jsonb->>'organizationId' = $1`;
+			return { fragment, params: [organizationId] };
+		}
 
 		case "integration_connections":
 			return build(

@@ -25,6 +25,16 @@ import { z } from "zod";
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
 
+const apiKeyDisplaySchema = z.object({
+	id: z.string(),
+	name: z.string().nullable(),
+	start: z.string().nullable(),
+	createdAt: z.coerce.date(),
+	lastRequest: z.coerce.date().nullable(),
+});
+
+type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
+
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
@@ -36,6 +46,7 @@ interface OrgCollections {
 	devicePresence: Collection<SelectDevicePresence>;
 	integrationConnections: Collection<SelectIntegrationConnection>;
 	subscriptions: Collection<SelectSubscription>;
+	apiKeys: Collection<ApiKeyDisplay>;
 }
 
 // Per-org collections cache
@@ -61,34 +72,6 @@ const organizationsCollection = createCollection(
 		shapeOptions: {
 			url: electricUrl,
 			params: { table: "auth.organizations" },
-			headers: {
-				Authorization: () => {
-					const token = getAuthToken();
-					return token ? `Bearer ${token}` : "";
-				},
-			},
-			columnMapper,
-		},
-		getKey: (item) => item.id,
-	}),
-);
-
-const apiKeyDisplaySchema = z.object({
-	id: z.string(),
-	name: z.string().nullable(),
-	start: z.string().nullable(),
-	createdAt: z.coerce.date(),
-	lastRequest: z.coerce.date().nullable(),
-});
-
-type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
-
-const apiKeysCollection = createCollection(
-	electricCollectionOptions<ApiKeyDisplay>({
-		id: "apikeys",
-		shapeOptions: {
-			url: electricUrl,
-			params: { table: "auth.apikeys" },
 			headers: {
 				Authorization: () => {
 					const token = getAuthToken();
@@ -313,6 +296,22 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const apiKeys = createCollection(
+		electricCollectionOptions<ApiKeyDisplay>({
+			id: `apikeys-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "auth.apikeys",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -324,6 +323,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		devicePresence,
 		integrationConnections,
 		subscriptions,
+		apiKeys,
 	};
 }
 
@@ -335,8 +335,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 export async function preloadCollections(
 	organizationId: string,
 ): Promise<void> {
-	const { organizations, apiKeys, ...orgCollections } =
-		getCollections(organizationId);
+	const { organizations, ...orgCollections } = getCollections(organizationId);
 	await Promise.allSettled(
 		Object.values(orgCollections).map((c) =>
 			(c as Collection<object>).preload(),
@@ -363,6 +362,5 @@ export function getCollections(organizationId: string) {
 	return {
 		...orgCollections,
 		organizations: organizationsCollection,
-		apiKeys: apiKeysCollection,
 	};
 }
