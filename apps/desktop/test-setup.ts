@@ -146,7 +146,50 @@ mock.module("main/lib/analytics", () => ({
 }));
 
 // =============================================================================
-// @superset/local-db Schema Mock (drizzle-orm/sqlite-core not available in Bun tests)
+// drizzle-orm Mocks (fallback so @superset/local-db can load if mock.module
+// fails to intercept the workspace package on Linux CI)
+// =============================================================================
+
+// biome-ignore lint/suspicious/noExplicitAny: Mock setup
+const mockColumn = (name: string): any => ({
+	name,
+	notNull: () => mockColumn(name),
+	primaryKey: () => mockColumn(name),
+	unique: () => mockColumn(name),
+	default: () => mockColumn(name),
+	references: () => mockColumn(name),
+	$defaultFn: () => mockColumn(name),
+	$type: () => mockColumn(name),
+});
+
+// biome-ignore lint/suspicious/noExplicitAny: Mock setup
+const mockSqliteTable = (tableName: string, columns: Record<string, any>) => {
+	const table = { ...columns };
+	for (const [key, col] of Object.entries(columns)) {
+		table[key] = { ...col, name: key, tableName };
+	}
+	return table;
+};
+
+mock.module("drizzle-orm/sqlite-core", () => ({
+	sqliteTable: mockSqliteTable,
+	text: (name: string) => mockColumn(name),
+	integer: (name: string) => mockColumn(name),
+	index: (name: string) => ({
+		on: () => ({ name }),
+	}),
+}));
+
+mock.module("drizzle-orm", () => ({
+	relations: () => ({}),
+	eq: () => true,
+	and: () => true,
+	or: () => true,
+	sql: () => "",
+}));
+
+// =============================================================================
+// @superset/local-db Schema Mock (primary mock for the workspace package)
 // =============================================================================
 
 const mockTable = (name: string) => ({ id: `${name}_id` });
