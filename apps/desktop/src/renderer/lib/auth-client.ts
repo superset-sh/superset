@@ -9,6 +9,7 @@ import { createAuthClient } from "better-auth/react";
 import { env } from "renderer/env.renderer";
 
 let authToken: string | null = null;
+let electricToken: string | null = null;
 
 export function setAuthToken(token: string | null) {
 	authToken = token;
@@ -16,6 +17,14 @@ export function setAuthToken(token: string | null) {
 
 export function getAuthToken(): string | null {
 	return authToken;
+}
+
+export function setElectricToken(token: string | null) {
+	electricToken = token;
+}
+
+export function getElectricToken(): string | null {
+	return electricToken;
 }
 
 /**

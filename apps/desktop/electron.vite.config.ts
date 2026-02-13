@@ -158,6 +158,10 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_WEB_URL,
 				"https://app.superset.sh",
 			),
+			"process.env.NEXT_PUBLIC_ELECTRIC_URL": defineEnv(
+				process.env.NEXT_PUBLIC_ELECTRIC_URL,
+				"https://electric.superset.sh",
+			),
 			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",

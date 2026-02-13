@@ -49,7 +49,7 @@ const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/job
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
 	secret: env.BETTER_AUTH_SECRET,
-	disabledPaths: ["/token"],
+	disabledPaths: [],
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		usePlural: true,
@@ -131,6 +131,21 @@ export const auth = betterAuth({
 				issuer: env.NEXT_PUBLIC_API_URL,
 				audience: env.NEXT_PUBLIC_API_URL,
 				expirationTime: "1h",
+				definePayload: async ({
+					user,
+				}: {
+					user: { id: string; email: string };
+					session: Record<string, unknown>;
+				}) => {
+					const userMemberships = await db.query.members.findMany({
+						where: eq(members.userId, user.id),
+						columns: { organizationId: true },
+					});
+					const organizationIds = [
+						...new Set(userMemberships.map((m) => m.organizationId)),
+					];
+					return { sub: user.id, email: user.email, organizationIds };
+				},
 			},
 		}),
 		oauthProvider({

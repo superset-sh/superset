@@ -1,0 +1,11 @@
+{
+	"name": "electric-proxy",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-01-01",
+	"vars": {
+		"JWKS_URL": "https://api.superset.sh/api/auth/jwks",
+		"JWT_ISSUER": "https://api.superset.sh",
+		"JWT_AUDIENCE": "https://api.superset.sh"
+	}
+	// ELECTRIC_URL and ELECTRIC_SECRET are set via `wrangler secret put`
+}

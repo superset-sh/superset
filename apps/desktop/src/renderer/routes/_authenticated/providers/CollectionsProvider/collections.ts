@@ -18,12 +18,12 @@ import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
-import { getAuthToken } from "renderer/lib/auth-client";
+import { getAuthToken, getElectricToken } from "renderer/lib/auth-client";
 import superjson from "superjson";
 import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
-const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
+const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
@@ -63,7 +63,7 @@ const organizationsCollection = createCollection(
 			params: { table: "auth.organizations" },
 			headers: {
 				Authorization: () => {
-					const token = getAuthToken();
+					const token = getElectricToken();
 					return token ? `Bearer ${token}` : "";
 				},
 			},
@@ -91,7 +91,7 @@ const apiKeysCollection = createCollection(
 			params: { table: "auth.apikeys" },
 			headers: {
 				Authorization: () => {
-					const token = getAuthToken();
+					const token = getElectricToken();
 					return token ? `Bearer ${token}` : "";
 				},
 			},
@@ -104,7 +104,7 @@ const apiKeysCollection = createCollection(
 function createOrgCollections(organizationId: string): OrgCollections {
 	const headers = {
 		Authorization: () => {
-			const token = getAuthToken();
+			const token = getElectricToken();
 			return token ? `Bearer ${token}` : "";
 		},
 	};

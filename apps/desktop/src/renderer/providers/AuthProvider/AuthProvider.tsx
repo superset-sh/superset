@@ -1,7 +1,21 @@
 import { Spinner } from "@superset/ui/spinner";
-import { type ReactNode, useEffect, useState } from "react";
-import { authClient, setAuthToken } from "renderer/lib/auth-client";
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
+import { env } from "renderer/env.renderer";
+import {
+	authClient,
+	getAuthToken,
+	setAuthToken,
+	setElectricToken,
+} from "renderer/lib/auth-client";
 import { electronTrpc } from "../../lib/electron-trpc";
+
+const TOKEN_REFRESH_INTERVAL = 55 * 60 * 1000; // 55 minutes (JWT expires in 1h)
 
 /**
  * AuthProvider: Manages token synchronization between memory and encrypted disk storage.
@@ -10,9 +24,11 @@ import { electronTrpc } from "../../lib/electron-trpc";
  * 1. Load token from disk on mount
  * 2. If valid (not expired), set in memory and validate session in background
  * 3. Render children immediately without blocking on network
+ * 4. Fetch and periodically refresh an Electric JWT for edge-authenticated sync
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
+	const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
 	// Get session refetch to bust cache when token changes
 	const { refetch: refetchSession } = authClient.useSession();
@@ -24,6 +40,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			refetchOnReconnect: false,
 		});
 
+	const fetchElectricToken = useCallback(async () => {
+		const sessionToken = getAuthToken();
+		if (!sessionToken) return;
+
+		try {
+			const response = await fetch(
+				`${env.NEXT_PUBLIC_API_URL}/api/auth/token`,
+				{
+					method: "GET",
+					headers: {
+						Authorization: `Bearer ${sessionToken}`,
+					},
+				},
+			);
+
+			if (!response.ok) {
+				console.error(
+					"[auth/electric-token] Failed to fetch JWT:",
+					response.status,
+				);
+				return;
+			}
+
+			const data = (await response.json()) as { token?: string };
+			if (data.token) {
+				setElectricToken(data.token);
+			}
+		} catch (error) {
+			console.error("[auth/electric-token] Error fetching JWT:", error);
+		}
+	}, []);
+
+	const startTokenRefresh = useCallback(() => {
+		if (refreshTimerRef.current) {
+			clearInterval(refreshTimerRef.current);
+		}
+		refreshTimerRef.current = setInterval(
+			fetchElectricToken,
+			TOKEN_REFRESH_INTERVAL,
+		);
+	}, [fetchElectricToken]);
+
+	const stopTokenRefresh = useCallback(() => {
+		if (refreshTimerRef.current) {
+			clearInterval(refreshTimerRef.current);
+			refreshTimerRef.current = null;
+		}
+	}, []);
+
 	useEffect(() => {
 		if (!isSuccess || isHydrated) return;
 
@@ -32,11 +97,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			if (!isExpired) {
 				setAuthToken(storedToken.token);
 				refetchSession().catch(() => {});
+				fetchElectricToken().then(startTokenRefresh);
 			}
 		}
 
 		setIsHydrated(true);
-	}, [storedToken, isSuccess, isHydrated, refetchSession]);
+	}, [
+		storedToken,
+		isSuccess,
+		isHydrated,
+		refetchSession,
+		fetchElectricToken,
+		startTokenRefresh,
+	]);
 
 	// Listen for auth events from main process (new auth or sign-out only, not hydration)
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
@@ -44,17 +117,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			if (data?.token && data?.expiresAt) {
 				// New authentication - clear old session state first, then set new token
 				setAuthToken(null);
+				setElectricToken(null);
+				stopTokenRefresh();
 				await authClient.signOut({ fetchOptions: { throw: false } });
 				setAuthToken(data.token);
 				setIsHydrated(true);
 				refetchSession();
+				fetchElectricToken().then(startTokenRefresh);
 			} else if (data === null) {
 				// Sign-out
 				setAuthToken(null);
+				setElectricToken(null);
+				stopTokenRefresh();
 				refetchSession();
 			}
 		},
 	});
+
+	// Cleanup refresh timer on unmount
+	useEffect(() => {
+		return () => stopTokenRefresh();
+	}, [stopTokenRefresh]);
 
 	// Show loading spinner until initial hydration completes
 	if (!isHydrated) {
