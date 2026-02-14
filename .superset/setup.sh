@@ -297,15 +297,15 @@ step_start_electric() {
     docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
   fi
 
-  # Use reserved port from SUPERSET_PORT_BASE if available, otherwise auto-assign
-  local port_flag
-  if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
-    ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
-    port_flag="-p $ELECTRIC_PORT:3000"
-  else
-    # Fallback: auto-assign if setup.sh electric step runs before write_env (shouldn't happen in normal flow)
-    port_flag="-p 3000"
+  # Step 6 allocates SUPERSET_PORT_BASE; Electric must use that reserved port.
+  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
+    error "SUPERSET_PORT_BASE not set before starting Electric"
+    return 1
   fi
+
+  local port_flag
+  ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
+  port_flag="-p $ELECTRIC_PORT:3000"
 
   if ! docker run -d \
       --name "$ELECTRIC_CONTAINER" \
@@ -315,11 +315,6 @@ step_start_electric() {
       electricsql/electric:latest &> /dev/null; then
     error "Failed to start Electric container"
     return 1
-  fi
-
-  # Resolve actual port (needed when auto-assigned)
-  if [ -z "${ELECTRIC_PORT:-}" ]; then
-    ELECTRIC_PORT=$(docker port "$ELECTRIC_CONTAINER" 3000 | cut -d: -f2)
   fi
 
   # Wait for Electric to be ready
@@ -349,6 +344,7 @@ step_start_electric() {
 
 allocate_port_base() {
   local alloc_file="$HOME/.superset/port-allocations.json"
+  local lock_dir="$HOME/.superset/port-allocations.lock"
   local start=3000
   local range=20
 
@@ -358,18 +354,39 @@ allocate_port_base() {
     echo '{}' > "$alloc_file"
   fi
 
+  # Acquire lock (mkdir is atomic across processes)
+  local waited=0
+  local timeout=30
+  while ! mkdir "$lock_dir" 2>/dev/null; do
+    if [ "$waited" -ge "$timeout" ]; then
+      error "Timed out waiting for port allocation lock: $lock_dir"
+      return 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+
   local key="$PWD"
   local existing
-  existing=$(jq -r --arg k "$key" '.[$k] // empty' "$alloc_file")
+  if ! existing=$(jq -r --arg k "$key" '.[$k] // empty' "$alloc_file" 2>/dev/null); then
+    error "Failed to read port allocations: $alloc_file"
+    rmdir "$lock_dir" 2>/dev/null || true
+    return 1
+  fi
 
   if [ -n "$existing" ]; then
     export SUPERSET_PORT_BASE="$existing"
+    rmdir "$lock_dir" 2>/dev/null || true
     return 0
   fi
 
   # Collect used port bases
   local used
-  used=$(jq '[.[]] | sort | .[]' "$alloc_file")
+  if ! used=$(jq -r '[.[]] | sort | .[]' "$alloc_file" 2>/dev/null); then
+    error "Failed to parse used port allocations: $alloc_file"
+    rmdir "$lock_dir" 2>/dev/null || true
+    return 1
+  fi
 
   # Find first available slot
   local candidate=$start
@@ -378,10 +395,23 @@ allocate_port_base() {
   done
 
   # Write allocation
-  jq --arg k "$key" --argjson v "$candidate" '. + {($k): $v}' "$alloc_file" > "${alloc_file}.tmp" \
-    && mv "${alloc_file}.tmp" "$alloc_file"
+  local tmp_file="${alloc_file}.tmp.$$"
+  if ! jq --arg k "$key" --argjson v "$candidate" '. + {($k): $v}' "$alloc_file" > "$tmp_file"; then
+    error "Failed to write updated port allocations"
+    rm -f "$tmp_file"
+    rmdir "$lock_dir" 2>/dev/null || true
+    return 1
+  fi
+  if ! mv "$tmp_file" "$alloc_file"; then
+    error "Failed to persist port allocations"
+    rm -f "$tmp_file"
+    rmdir "$lock_dir" 2>/dev/null || true
+    return 1
+  fi
 
   export SUPERSET_PORT_BASE="$candidate"
+  rmdir "$lock_dir" 2>/dev/null || true
+  return 0
 }
 
 step_write_env() {
@@ -391,9 +421,6 @@ step_write_env() {
     error "Root .env file not available"
     return 1
   fi
-
-  # Allocate a port base for this workspace
-  allocate_port_base
 
   # Copy root .env
   if ! cp "$SUPERSET_ROOT_PATH/.env" .env; then
@@ -634,12 +661,17 @@ main() {
     step_failed "Setup Neon branch"
   fi
 
-  # Step 6: Start Electric SQL
+  # Step 6: Allocate port base (file-backed)
+  if ! allocate_port_base; then
+    step_failed "Allocate port base"
+  fi
+
+  # Step 7: Start Electric SQL
   if ! step_start_electric; then
     step_failed "Start Electric SQL"
   fi
 
-  # Step 7: Write .env file
+  # Step 8: Write .env file
   if ! step_write_env; then
     step_failed "Write .env file"
   fi

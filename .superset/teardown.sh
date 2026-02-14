@@ -131,6 +131,10 @@ step_check_dependencies() {
     missing+=("docker (Install from https://docker.com)")
   fi
 
+  if ! command -v jq &> /dev/null; then
+    missing+=("jq (Run: brew install jq)")
+  fi
+
   if [ ${#missing[@]} -gt 0 ]; then
     warn "Missing optional dependencies (some steps may be skipped):"
     for dep in "${missing[@]}"; do
@@ -246,6 +250,7 @@ step_deallocate_port() {
   echo "🔌 Deallocating port base..."
 
   local alloc_file="$HOME/.superset/port-allocations.json"
+  local lock_dir="$HOME/.superset/port-allocations.lock"
 
   if [ ! -f "$alloc_file" ]; then
     warn "No port allocations file found, skipping"
@@ -253,20 +258,49 @@ step_deallocate_port() {
     return 0
   fi
 
+  # Acquire lock (mkdir is atomic across processes)
+  local waited=0
+  local timeout=30
+  while ! mkdir "$lock_dir" 2>/dev/null; do
+    if [ "$waited" -ge "$timeout" ]; then
+      error "Timed out waiting for port allocation lock: $lock_dir"
+      return 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+
   local key="$PWD"
   local existing
-  existing=$(jq -r --arg k "$key" '.[$k] // empty' "$alloc_file" 2>/dev/null)
+  if ! existing=$(jq -r --arg k "$key" '.[$k] // empty' "$alloc_file" 2>/dev/null); then
+    error "Failed to read port allocations: $alloc_file"
+    rmdir "$lock_dir" 2>/dev/null || true
+    return 1
+  fi
 
   if [ -z "$existing" ]; then
     warn "No port allocation found for $key"
     step_skipped "Deallocate port (no allocation for this workspace)"
+    rmdir "$lock_dir" 2>/dev/null || true
     return 0
   fi
 
-  jq --arg k "$key" 'del(.[$k])' "$alloc_file" > "${alloc_file}.tmp" \
-    && mv "${alloc_file}.tmp" "$alloc_file"
+  local tmp_file="${alloc_file}.tmp.$$"
+  if ! jq --arg k "$key" 'del(.[$k])' "$alloc_file" > "$tmp_file"; then
+    error "Failed to write updated port allocations"
+    rm -f "$tmp_file"
+    rmdir "$lock_dir" 2>/dev/null || true
+    return 1
+  fi
+  if ! mv "$tmp_file" "$alloc_file"; then
+    error "Failed to persist port allocations"
+    rm -f "$tmp_file"
+    rmdir "$lock_dir" 2>/dev/null || true
+    return 1
+  fi
 
   success "Deallocated port base $existing for $key"
+  rmdir "$lock_dir" 2>/dev/null || true
   return 0
 }
 
