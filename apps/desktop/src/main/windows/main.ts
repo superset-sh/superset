@@ -180,6 +180,34 @@ export async function MainWindow() {
 	});
 	notificationManager.start();
 
+	// Register with macOS Notification Center on startup
+	// This ensures the app appears in System Settings > Notifications
+	// Fixes https://github.com/superset-sh/superset/issues/1461
+	if (PLATFORM.IS_MAC && Notification.isSupported()) {
+		const registrationNotification = new Notification({
+			title: productName,
+			body: " ",
+			silent: true,
+		});
+
+		let handled = false;
+		const cleanup = () => {
+			if (handled) return;
+			handled = true;
+			registrationNotification.close();
+		};
+
+		registrationNotification.on("show", () => {
+			cleanup();
+			console.log("[notifications] Registered with Notification Center");
+		});
+
+		// Fallback timeout in case macOS doesn't fire events
+		setTimeout(cleanup, 1000);
+
+		registrationNotification.show();
+	}
+
 	notificationsEmitter.on(
 		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 		(event: AgentLifecycleEvent) => {
