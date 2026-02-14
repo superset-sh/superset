@@ -673,7 +673,9 @@ export async function createWorktreeFromExistingBranch({
 					worktreePath,
 				});
 			} else {
-				throw new Error(`Branch "${branch}" does not exist locally or on remote`);
+				throw new Error(
+					`Branch "${branch}" does not exist locally or on remote`,
+				);
 			}
 		}
 

@@ -339,11 +339,19 @@ describe("createWorktree hook tolerance", () => {
 		seedCommit(repoPath);
 
 		const hookPath = join(repoPath, ".git", "hooks", "post-checkout");
-		writeFileSync(hookPath, "#!/bin/sh\necho 'post-checkout failed' >&2\nexit 1\n");
+		writeFileSync(
+			hookPath,
+			"#!/bin/sh\necho 'post-checkout failed' >&2\nexit 1\n",
+		);
 		execSync(`chmod +x "${hookPath}"`);
 
 		const worktreePath = join(TEST_DIR, "worktree-hook-failure-wt");
-		await createWorktree(repoPath, "feature/hook-failure", worktreePath, "HEAD");
+		await createWorktree(
+			repoPath,
+			"feature/hook-failure",
+			worktreePath,
+			"HEAD",
+		);
 
 		expect(existsSync(worktreePath)).toBe(true);
 		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
