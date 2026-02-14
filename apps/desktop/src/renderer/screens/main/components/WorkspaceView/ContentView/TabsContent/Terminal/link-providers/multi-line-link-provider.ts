@@ -1,4 +1,6 @@
 import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import { calculateLinkRange } from "./link-range";
+import { TerminalLinkTooltip } from "./link-tooltip";
 
 export interface LinkMatch {
 	text: string;
@@ -14,7 +16,11 @@ export interface LinkMatch {
  * lines will be truncated.
  */
 export abstract class MultiLineLinkProvider implements ILinkProvider {
-	constructor(protected readonly terminal: Terminal) {}
+	private readonly tooltipHelper: TerminalLinkTooltip;
+
+	constructor(protected readonly terminal: Terminal) {
+		this.tooltipHelper = new TerminalLinkTooltip(terminal);
+	}
 
 	protected abstract getPattern(): RegExp;
 	protected abstract shouldSkipMatch(match: LinkMatch): boolean;
@@ -30,6 +36,10 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 	 */
 	protected transformMatch(match: LinkMatch): LinkMatch | null {
 		return match;
+	}
+
+	protected getTooltipText(): string | null {
+		return null;
 	}
 
 	provideLinks(
@@ -64,6 +74,11 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		const links: ILink[] = [];
 		const regex = this.getPattern();
 
+		const tooltipText = this.getTooltipText();
+		const hoverCallbacks = tooltipText
+			? this.tooltipHelper.buildHoverCallbacks(tooltipText)
+			: {};
+
 		for (const match of combinedText.matchAll(regex)) {
 			const matchText = match[0];
 			const matchIndex = match.index ?? 0;
@@ -93,71 +108,27 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 				continue;
 			}
 
-			const range = this.calculateLinkRange(
-				linkMatch.index,
-				linkMatch.end,
+			const range = calculateLinkRange({
+				linkStart: linkMatch.index,
+				linkEnd: linkMatch.end,
 				prevLineLength,
 				lineLength,
 				bufferLineNumber,
 				isCurrentLineWrapped,
 				nextLineIsWrapped,
-			);
+			});
 
 			links.push({
 				range,
 				text: linkMatch.text,
+				decorations: { pointerCursor: true, underline: true },
 				activate: (event: MouseEvent, text: string) => {
 					this.handleActivation(event, text, match);
 				},
+				...hoverCallbacks,
 			});
 		}
 
 		callback(links.length > 0 ? links : undefined);
-	}
-
-	private calculateLinkRange(
-		matchIndex: number,
-		matchEnd: number,
-		prevLineLength: number,
-		lineLength: number,
-		bufferLineNumber: number,
-		isCurrentLineWrapped: boolean,
-		nextLineIsWrapped: boolean,
-	): ILink["range"] {
-		const currentLineStart = prevLineLength;
-		const currentLineEnd = prevLineLength + lineLength;
-
-		const startsInPrevLine =
-			isCurrentLineWrapped && matchIndex < currentLineStart;
-		const endsInNextLine = nextLineIsWrapped && matchEnd > currentLineEnd;
-
-		let startY: number;
-		let startX: number;
-		let endY: number;
-		let endX: number;
-
-		if (startsInPrevLine) {
-			startY = bufferLineNumber - 1;
-			startX = matchIndex + 1;
-		} else {
-			startY = bufferLineNumber;
-			startX = matchIndex - currentLineStart + 1;
-		}
-
-		if (endsInNextLine) {
-			endY = bufferLineNumber + 1;
-			endX = matchEnd - currentLineEnd + 1;
-		} else if (matchEnd <= currentLineStart) {
-			endY = bufferLineNumber - 1;
-			endX = matchEnd + 1;
-		} else {
-			endY = bufferLineNumber;
-			endX = matchEnd - currentLineStart + 1;
-		}
-
-		return {
-			start: { x: startX, y: startY },
-			end: { x: endX, y: endY },
-		};
 	}
 }

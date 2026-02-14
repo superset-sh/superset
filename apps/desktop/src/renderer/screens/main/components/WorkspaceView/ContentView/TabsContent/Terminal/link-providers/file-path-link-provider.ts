@@ -8,6 +8,8 @@ import {
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
 import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import { calculateLinkRange } from "./link-range";
+import { getFileTooltipText, TerminalLinkTooltip } from "./link-tooltip";
 
 /**
  * A link provider that detects file paths in terminal output using VSCode's
@@ -24,6 +26,8 @@ import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
  * Also handles multi-line wrapped paths spanning up to 3 terminal lines.
  */
 export class FilePathLinkProvider implements ILinkProvider {
+	private readonly tooltipHelper: TerminalLinkTooltip;
+
 	constructor(
 		private readonly terminal: Terminal,
 		private readonly onOpen: (
@@ -34,7 +38,9 @@ export class FilePathLinkProvider implements ILinkProvider {
 			lineEnd?: number,
 			columnEnd?: number,
 		) => void,
-	) {}
+	) {
+		this.tooltipHelper = new TerminalLinkTooltip(terminal);
+	}
 
 	provideLinks(
 		bufferLineNumber: number,
@@ -73,6 +79,9 @@ export class FilePathLinkProvider implements ILinkProvider {
 		const detectedLinks = detectLinks(combinedText, os);
 
 		const links: ILink[] = [];
+		const hoverCallbacks = this.tooltipHelper.buildHoverCallbacks(
+			getFileTooltipText(),
+		);
 
 		for (let parsedLink of detectedLinks) {
 			// Strip trailing punctuation from paths without suffixes
@@ -119,7 +128,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 			}
 
 			// Calculate the range for highlighting
-			const range = this.calculateLinkRange(
+			const range = calculateLinkRange({
 				linkStart,
 				linkEnd,
 				prevLineLength,
@@ -127,7 +136,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 				bufferLineNumber,
 				isCurrentLineWrapped,
 				nextLineIsWrapped,
-			);
+			});
 
 			// Build the full link text for display
 			const fullLinkText = combinedText.substring(linkStart, linkEnd);
@@ -135,9 +144,11 @@ export class FilePathLinkProvider implements ILinkProvider {
 			links.push({
 				range,
 				text: fullLinkText,
+				decorations: { pointerCursor: true, underline: true },
 				activate: (event: MouseEvent) => {
 					this.handleActivation(event, parsedLink);
 				},
+				...hoverCallbacks,
 			});
 		}
 
@@ -157,7 +168,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 				}
 
 				// Calculate the range for highlighting
-				const range = this.calculateLinkRange(
+				const range = calculateLinkRange({
 					linkStart,
 					linkEnd,
 					prevLineLength,
@@ -165,14 +176,16 @@ export class FilePathLinkProvider implements ILinkProvider {
 					bufferLineNumber,
 					isCurrentLineWrapped,
 					nextLineIsWrapped,
-				);
+				});
 
 				links.push({
 					range,
 					text: fallback.link,
+					decorations: { pointerCursor: true, underline: true },
 					activate: (event: MouseEvent) => {
 						this.handleFallbackActivation(event, fallback);
 					},
+					...hoverCallbacks,
 				});
 			}
 		}
@@ -325,51 +338,5 @@ export class FilePathLinkProvider implements ILinkProvider {
 		}
 
 		this.onOpen(event, cleanPath, fallback.line, fallback.col);
-	}
-
-	private calculateLinkRange(
-		matchIndex: number,
-		matchEnd: number,
-		prevLineLength: number,
-		lineLength: number,
-		bufferLineNumber: number,
-		isCurrentLineWrapped: boolean,
-		nextLineIsWrapped: boolean,
-	): ILink["range"] {
-		const currentLineStart = prevLineLength;
-		const currentLineEnd = prevLineLength + lineLength;
-
-		const startsInPrevLine =
-			isCurrentLineWrapped && matchIndex < currentLineStart;
-		const endsInNextLine = nextLineIsWrapped && matchEnd > currentLineEnd;
-
-		let startY: number;
-		let startX: number;
-		let endY: number;
-		let endX: number;
-
-		if (startsInPrevLine) {
-			startY = bufferLineNumber - 1;
-			startX = matchIndex + 1;
-		} else {
-			startY = bufferLineNumber;
-			startX = matchIndex - currentLineStart + 1;
-		}
-
-		if (endsInNextLine) {
-			endY = bufferLineNumber + 1;
-			endX = matchEnd - currentLineEnd + 1;
-		} else if (matchEnd <= currentLineStart) {
-			endY = bufferLineNumber - 1;
-			endX = matchEnd + 1;
-		} else {
-			endY = bufferLineNumber;
-			endX = matchEnd - currentLineStart + 1;
-		}
-
-		return {
-			start: { x: startX, y: startY },
-			end: { x: endX, y: endY },
-		};
 	}
 }
