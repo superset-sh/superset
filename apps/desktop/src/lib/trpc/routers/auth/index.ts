@@ -5,8 +5,8 @@ import { observable } from "@trpc/server/observable";
 import { shell } from "electron";
 import { env } from "main/env.main";
 import { getDeviceName, getHashedDeviceId } from "main/lib/device-info";
-import { env as sharedEnv } from "shared/env.shared";
 import { PROTOCOL_SCHEME } from "shared/constants";
+import { env as sharedEnv } from "shared/env.shared";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {

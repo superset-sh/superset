@@ -7,8 +7,8 @@
  * @see https://www.electron.build/configuration/configuration
  */
 
-import { join } from "node:path";
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { Configuration } from "electron-builder";
 import baseConfig from "./electron-builder";
 import pkg from "./package.json";
@@ -42,9 +42,7 @@ const config: Configuration = {
 
 	linux: {
 		...baseConfig.linux,
-		...(existsSync(canaryLinuxIconPath)
-			? { icon: canaryLinuxIconPath }
-			: {}),
+		...(existsSync(canaryLinuxIconPath) ? { icon: canaryLinuxIconPath } : {}),
 		synopsis: `${pkg.description} (Canary)`,
 		artifactName: `superset-canary-\${version}-\${arch}.\${ext}`,
 	},

@@ -1,10 +1,10 @@
 import { EventEmitter } from "node:events";
-import express from "express";
 import { BrowserWindow } from "electron";
+import express from "express";
+import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
-import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 
@@ -190,7 +190,9 @@ app.get("/auth/callback", async (req, res) => {
 		typeof expiresAt !== "string" ||
 		typeof state !== "string"
 	) {
-		return res.status(400).json({ success: false, error: "Missing auth params" });
+		return res
+			.status(400)
+			.json({ success: false, error: "Missing auth params" });
 	}
 
 	const result = await handleAuthCallback({ token, expiresAt, state });

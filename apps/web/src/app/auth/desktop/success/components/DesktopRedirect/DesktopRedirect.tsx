@@ -11,7 +11,9 @@ export function DesktopRedirect({
 	url: string;
 	localCallbackUrl?: string;
 }) {
-	const [status, setStatus] = useState<"redirecting" | "connected">("redirecting");
+	const [status, setStatus] = useState<"redirecting" | "connected">(
+		"redirecting",
+	);
 
 	useEffect(() => {
 		let isCancelled = false;
@@ -56,7 +58,13 @@ export function DesktopRedirect({
 	if (status === "connected") {
 		return (
 			<div className="flex flex-col items-center gap-6">
-				<Image src="/title.svg" alt="Superset" width={280} height={86} priority />
+				<Image
+					src="/title.svg"
+					alt="Superset"
+					width={280}
+					height={86}
+					priority
+				/>
 				<p className="text-xl text-muted-foreground">Signed in successfully.</p>
 				<p className="text-sm text-muted-foreground/70 text-center">
 					You can return to the desktop app now.
