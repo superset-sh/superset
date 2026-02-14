@@ -18,12 +18,14 @@ interface MessagePartsRendererProps {
 	parts: MessagePart[];
 	isLastAssistant: boolean;
 	isStreaming: boolean;
+	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
 export function MessagePartsRenderer({
 	parts,
 	isLastAssistant,
 	isStreaming,
+	onAnswer,
 }: MessagePartsRendererProps): React.ReactNode[] {
 	const renderParts = ({
 		parts,
@@ -146,8 +148,14 @@ export function MessagePartsRenderer({
 					continue;
 				}
 
-				// Non-read-only tool: render as BashTool/FileDiffTool/generic
-				nodes.push(<MastraToolCallBlock key={part.toolCallId} part={part} />);
+				// Non-read-only tool: render as BashTool/FileDiffTool/WebSearch/etc.
+				nodes.push(
+					<MastraToolCallBlock
+						key={part.toolCallId}
+						part={part}
+						onAnswer={onAnswer}
+					/>,
+				);
 				i++;
 				continue;
 			}

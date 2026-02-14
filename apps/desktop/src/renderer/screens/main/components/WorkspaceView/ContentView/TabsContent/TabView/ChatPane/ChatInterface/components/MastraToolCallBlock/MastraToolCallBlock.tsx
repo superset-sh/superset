@@ -7,6 +7,11 @@ import {
 	ToolInput,
 	ToolOutput,
 } from "@superset/ui/ai-elements/tool";
+import { ToolCall } from "@superset/ui/ai-elements/tool-call";
+import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
+import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
+import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
+import { MessageCircleQuestionIcon } from "lucide-react";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolCallPart } from "../../types";
 import {
@@ -17,7 +22,15 @@ import {
 } from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 
-export function MastraToolCallBlock({ part }: { part: ToolCallPart }) {
+interface MastraToolCallBlockProps {
+	part: ToolCallPart;
+	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
+}
+
+export function MastraToolCallBlock({
+	part,
+	onAnswer,
+}: MastraToolCallBlockProps) {
 	const args = getArgs(part);
 	const result = getResult(part);
 	const state = toWsToolState(part);
@@ -65,6 +78,74 @@ export function MastraToolCallBlock({ part }: { part: ToolCallPart }) {
 				oldString={oldString}
 				newString={newString}
 				state={state}
+			/>
+		);
+	}
+
+	// --- Web search → WebSearchTool ---
+	if (part.toolName === "web_search") {
+		const query = String(args.query ?? "");
+		const rawResults = Array.isArray(result.results) ? result.results : [];
+		const results = (
+			rawResults as Array<{ title?: string; url?: string }>
+		).filter(
+			(r): r is { title: string; url: string } =>
+				typeof r.title === "string" && typeof r.url === "string",
+		);
+		return <WebSearchTool query={query} results={results} state={state} />;
+	}
+
+	// --- Web fetch → WebFetchTool ---
+	if (part.toolName === "web_fetch") {
+		const url = String(args.url ?? "");
+		const content =
+			typeof result.content === "string" ? result.content : undefined;
+		const bytes =
+			typeof result.bytes === "number" ? result.bytes : undefined;
+		const statusCode =
+			typeof result.status_code === "number"
+				? result.status_code
+				: typeof result.statusCode === "number"
+					? result.statusCode
+					: undefined;
+		return (
+			<WebFetchTool
+				url={url}
+				content={content}
+				bytes={bytes}
+				statusCode={statusCode}
+				state={state}
+			/>
+		);
+	}
+
+	// --- Ask user question → UserQuestionTool ---
+	if (part.toolName === "ask_user_question") {
+		const questions = Array.isArray(args.questions) ? args.questions : [];
+
+		if (part.status === "done" && part.result != null) {
+			const answers = result.answers as
+				| Record<string, string>
+				| undefined;
+			return (
+				<ToolCall
+					icon={MessageCircleQuestionIcon}
+					isError={false}
+					isPending={false}
+					title={
+						answers
+							? `Answered ${Object.keys(answers).length} question(s)`
+							: "Question skipped"
+					}
+				/>
+			);
+		}
+
+		return (
+			<UserQuestionTool
+				questions={questions}
+				onAnswer={(answers) => onAnswer?.(part.toolCallId, answers)}
+				onSkip={() => onAnswer?.(part.toolCallId, {})}
 			/>
 		);
 	}

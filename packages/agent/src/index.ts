@@ -12,7 +12,7 @@ export {
 	initSessionStore,
 	setClaudeSessionId,
 } from "./session-store";
-export { memory, superagent } from "./superagent";
+export { memory, setAnthropicAuthToken, superagent } from "./superagent";
 export type {
 	AgentEvent,
 	ExecuteAgentParams,

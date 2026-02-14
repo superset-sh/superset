@@ -7,6 +7,7 @@ import {
 	memory,
 	PROVIDER_REGISTRY,
 	RequestContext,
+	setAnthropicAuthToken,
 	superagent,
 	toAISdkV5Messages,
 } from "@superset/agent";
@@ -25,13 +26,20 @@ import {
 } from "./utils/claude-session-scanner";
 import { chatSessionManager, sessionStore } from "./utils/session-manager";
 
-// Prefer Claude CLI credentials (OAuth from ~/.claude/.credentials.json) over .env ANTHROPIC_API_KEY for Mastra
+// Prefer Claude CLI credentials (OAuth from ~/.claude/.credentials.json) over .env ANTHROPIC_API_KEY.
+// OAuth tokens require `Authorization: Bearer` (not `x-api-key`), so we configure the Anthropic
+// provider directly via setAnthropicAuthToken rather than setting the env var.
 const cliCredentials =
 	getCredentialsFromConfig() ?? getCredentialsFromKeychain();
-if (cliCredentials) {
+if (cliCredentials?.kind === "oauth") {
+	setAnthropicAuthToken(cliCredentials.apiKey);
+	console.log(
+		`[ai-chat] Using Claude OAuth credentials from ${cliCredentials.source} (Bearer auth)`,
+	);
+} else if (cliCredentials) {
 	process.env.ANTHROPIC_API_KEY = cliCredentials.apiKey;
 	console.log(
-		`[ai-chat] Using Claude ${cliCredentials.kind} credentials from ${cliCredentials.source} for Mastra`,
+		`[ai-chat] Using Claude ${cliCredentials.kind} credentials from ${cliCredentials.source}`,
 	);
 }
 
@@ -291,14 +299,25 @@ export const createAiChatRouter = () => {
 		}),
 
 		getModels: publicProcedure.query(() => {
-			return Object.entries(PROVIDER_REGISTRY).flatMap(
-				([providerId, config]: [string, { name: string; models: string[] }]) =>
-					config.models.map((modelId: string) => ({
-						id: `${providerId}/${modelId}`,
-						name: modelId,
-						provider: config.name,
-					})),
-			);
+			const ALLOWED_PROVIDERS = new Set(["anthropic", "openai"]);
+			return Object.entries(PROVIDER_REGISTRY)
+				.filter(([providerId]) => ALLOWED_PROVIDERS.has(providerId))
+				.flatMap(
+					([providerId, config]: [
+						string,
+						{ name: string; models: string[] },
+					]) => {
+						const models =
+							providerId === "openai"
+								? config.models.filter((m: string) => m.includes("codex"))
+								: config.models;
+						return models.map((modelId: string) => ({
+							id: `${providerId}/${modelId}`,
+							name: modelId,
+							provider: providerId === "openai" ? "Codex" : config.name,
+						}));
+					},
+				);
 		}),
 
 		getMessages: publicProcedure

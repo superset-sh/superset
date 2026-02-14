@@ -1,3 +1,4 @@
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@mastra/core/agent";
 import { Mastra } from "@mastra/core/mastra";
 import {
@@ -7,6 +8,56 @@ import {
 } from "@mastra/core/workspace";
 import { Memory } from "@mastra/memory";
 import { PostgresStore } from "@mastra/pg";
+
+// ---------------------------------------------------------------------------
+// Anthropic OAuth support
+// ---------------------------------------------------------------------------
+
+/**
+ * When set, Anthropic models will use `Authorization: Bearer` (via the
+ * provider's `authToken` option) instead of the default `x-api-key` header.
+ * Call `setAnthropicAuthToken` before the first agent invocation.
+ */
+let anthropicAuthToken: string | null = null;
+
+export function setAnthropicAuthToken(token: string) {
+	anthropicAuthToken = token;
+}
+
+/**
+ * Resolve the model for a Mastra Agent.
+ *
+ * When an OAuth token is configured and the requested provider is Anthropic,
+ * returns a concrete LanguageModel instance created with `authToken` so the
+ * SDK sends `Authorization: Bearer` instead of `x-api-key`.  Otherwise falls
+ * back to the magic string (e.g. `"anthropic/claude-sonnet-4-5"`) which
+ * Mastra's gateway resolves via `process.env.ANTHROPIC_API_KEY`.
+ */
+function resolveModel({
+	requestContext,
+}: {
+	requestContext: { get: (key: string) => string | undefined };
+}) {
+	const modelId =
+		requestContext.get("modelId") ?? "anthropic/claude-sonnet-4-5";
+
+	if (anthropicAuthToken) {
+		const slashIdx = modelId.indexOf("/");
+		const provider = slashIdx > -1 ? modelId.slice(0, slashIdx) : "anthropic";
+		const model = slashIdx > -1 ? modelId.slice(slashIdx + 1) : modelId;
+
+		if (provider === "anthropic") {
+			return createAnthropic({
+				authToken: anthropicAuthToken,
+				headers: {
+					"anthropic-beta": "oauth-2025-04-20",
+				},
+			})(model);
+		}
+	}
+
+	return modelId;
+}
 
 export const storage = new PostgresStore({
 	connectionString: process.env.DATABASE_URL!,
@@ -67,12 +118,7 @@ const planningAgent = new Agent({
 	id: "planning-agent",
 	name: "Planner",
 	instructions: PLANNING_AGENT_INSTRUCTIONS,
-	model: ({ requestContext }) => {
-		if (requestContext.get("modelId")) {
-			return requestContext.get("modelId");
-		}
-		return "anthropic/claude-sonnet-4-5";
-	},
+	model: resolveModel,
 	workspace: ({ requestContext }) => {
 		const cwd = requestContext.get("cwd") as string | undefined;
 		if (!cwd) return undefined;
@@ -161,12 +207,7 @@ const superagentInstance = new Agent({
 	id: "superagent",
 	name: "Super Agent",
 	instructions,
-	model: ({ requestContext }) => {
-		if (requestContext.get("modelId")) {
-			return requestContext.get("modelId");
-		}
-		return "anthropic/claude-sonnet-4-5";
-	},
+	model: resolveModel,
 	workspace: ({ requestContext }) => {
 		const cwd = requestContext.get("cwd") as string | undefined;
 		if (!cwd) return undefined;
