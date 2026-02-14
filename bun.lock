@@ -105,7 +105,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.73",
+      "version": "0.0.76",
       "dependencies": {
         "@better-auth/stripe": "1.4.18",
         "@dnd-kit/core": "^6.3.1",
@@ -684,6 +684,7 @@
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.25.3",
         "@superset/db": "workspace:*",
+        "@superset/shared": "workspace:*",
         "drizzle-orm": "0.45.1",
         "zod": "^4.3.5",
       },

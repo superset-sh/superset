@@ -2,10 +2,20 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { env } from "./env";
 
+const desktopDevPort = process.env.DESKTOP_VITE_PORT || "5173";
+const desktopDevOrigins =
+	process.env.NODE_ENV === "development"
+		? [
+				`http://localhost:${desktopDevPort}`,
+				`http://127.0.0.1:${desktopDevPort}`,
+			]
+		: [];
+
 const allowedOrigins = [
 	env.NEXT_PUBLIC_WEB_URL,
 	env.NEXT_PUBLIC_ADMIN_URL,
 	env.NEXT_PUBLIC_DESKTOP_URL,
+	...desktopDevOrigins,
 ].filter(Boolean);
 
 function getCorsHeaders(origin: string | null) {

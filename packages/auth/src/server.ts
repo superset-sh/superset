@@ -45,6 +45,14 @@ import {
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 const NOTIFY_SLACK_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/stripe/jobs/notify-slack`;
+const desktopDevPort = process.env.DESKTOP_VITE_PORT || "5173";
+const desktopDevOrigins =
+	process.env.NODE_ENV === "development"
+		? [
+				`http://localhost:${desktopDevPort}`,
+				`http://127.0.0.1:${desktopDevPort}`,
+			]
+		: [];
 
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
@@ -61,6 +69,7 @@ export const auth = betterAuth({
 		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
 		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []),
+		...desktopDevOrigins,
 		"superset://app",
 		"superset://",
 		...(process.env.NODE_ENV === "development"

@@ -10,10 +10,43 @@ NC='\033[0m'
 # Step tracking
 declare -a FAILED_STEPS=()
 declare -a SKIPPED_STEPS=()
+REMOVE_DEV_DATA=0
 
 error() { echo -e "${RED}✗${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}!${NC} $1"; }
+
+print_usage() {
+  cat <<EOF
+Usage: .superset/teardown.sh [options]
+
+Options:
+  -f, --force              Remove superset-dev-data/ in current workspace
+  -h, --help               Show this help message
+EOF
+}
+
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f|--force)
+        REMOVE_DEV_DATA=1
+        shift
+        ;;
+      -h|--help)
+        print_usage
+        exit 0
+        ;;
+      *)
+        error "Unknown argument: $1"
+        print_usage
+        return 1
+        ;;
+    esac
+  done
+
+  return 0
+}
 
 # Track step failure
 step_failed() {
@@ -209,7 +242,36 @@ step_delete_neon_branch() {
   return 0
 }
 
+step_remove_dev_data() {
+  local dev_data_dir="superset-dev-data"
+
+  if [ "$REMOVE_DEV_DATA" != "1" ]; then
+    step_skipped "Remove superset-dev-data (flag not set)"
+    return 0
+  fi
+
+  echo "🗑️  Removing $dev_data_dir/..."
+
+  if [ ! -d "$dev_data_dir" ]; then
+    warn "$dev_data_dir/ not found, skipping"
+    step_skipped "Remove superset-dev-data (not found)"
+    return 0
+  fi
+
+  if ! rm -rf "$dev_data_dir"; then
+    error "Failed to remove $dev_data_dir/"
+    return 1
+  fi
+
+  success "Removed $dev_data_dir/"
+  return 0
+}
+
 main() {
+  if ! parse_args "$@"; then
+    return 1
+  fi
+
   echo "🧹 Tearing down Superset workspace..."
   echo ""
 
@@ -234,6 +296,11 @@ main() {
   # Step 5: Delete Neon branch
   if ! step_delete_neon_branch; then
     step_failed "Delete Neon branch"
+  fi
+
+  # Step 6: Remove superset-dev-data (optional)
+  if ! step_remove_dev_data; then
+    step_failed "Remove superset-dev-data"
   fi
 
   # Print summary and exit with appropriate code

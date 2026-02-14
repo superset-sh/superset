@@ -1,4 +1,5 @@
 import simpleGit from "simple-git";
+import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
 import {
 	assertRegisteredWorktree,
 	assertValidGitPath,
@@ -15,6 +16,22 @@ import {
  * 2. Validates paths/refs as appropriate
  * 3. Uses the correct git command syntax
  */
+
+async function isCurrentBranch({
+	worktreePath,
+	expectedBranch,
+}: {
+	worktreePath: string;
+	expectedBranch: string;
+}): Promise<boolean> {
+	try {
+		const git = simpleGit(worktreePath);
+		const currentBranch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+		return currentBranch === expectedBranch;
+	} catch {
+		return false;
+	}
+}
 
 /**
  * Switch to a branch.
@@ -42,21 +59,28 @@ export async function gitSwitchBranch(
 
 	const git = simpleGit(worktreePath);
 
-	try {
-		// Prefer `git switch` - unambiguous branch operation (git 2.23+)
-		await git.raw(["switch", branch]);
-	} catch (switchError) {
-		// Check if it's because `switch` command doesn't exist (old git < 2.23)
-		// Git outputs: "git: 'switch' is not a git command. See 'git --help'."
-		const errorMessage = String(switchError);
-		if (errorMessage.includes("is not a git command")) {
-			// Fallback for older git versions
-			// Note: checkout WITHOUT -- is correct for branches
-			await git.checkout(branch);
-		} else {
-			throw switchError;
-		}
-	}
+	await runWithPostCheckoutHookTolerance({
+		context: `Switched branch to "${branch}" in ${worktreePath}`,
+		run: async () => {
+			try {
+				// Prefer `git switch` - unambiguous branch operation (git 2.23+)
+				await git.raw(["switch", branch]);
+			} catch (switchError) {
+				// Check if it's because `switch` command doesn't exist (old git < 2.23)
+				// Git outputs: "git: 'switch' is not a git command. See 'git --help'."
+				const errorMessage = String(switchError);
+				if (errorMessage.includes("is not a git command")) {
+					// Fallback for older git versions
+					// Note: checkout WITHOUT -- is correct for branches
+					await git.checkout(branch);
+				} else {
+					throw switchError;
+				}
+			}
+		},
+		didSucceed: async () =>
+			isCurrentBranch({ worktreePath, expectedBranch: branch }),
+	});
 }
 
 /**

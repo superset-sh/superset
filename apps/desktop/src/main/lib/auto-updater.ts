@@ -21,8 +21,10 @@ function isPrereleaseBuild(): boolean {
 }
 
 const IS_PRERELEASE = isPrereleaseBuild();
+const IS_AUTO_UPDATE_PLATFORM = PLATFORM.IS_MAC || PLATFORM.IS_LINUX;
 
-// Use explicit feed URLs to ensure we always fetch latest-mac.yml from the correct release
+// Use explicit feed URLs to ensure we always fetch platform-specific manifests
+// (for example latest-mac.yml and latest-linux.yml) from the correct release.
 // - Stable: fetches from /releases/latest/download/ (latest non-prerelease)
 // - Canary: fetches from /releases/download/desktop-canary/ (rolling canary tag)
 const UPDATE_FEED_URL = IS_PRERELEASE
@@ -100,7 +102,7 @@ export function dismissUpdate(): void {
 }
 
 export function checkForUpdates(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
 		return;
 	}
 	isDismissed = false;
@@ -125,11 +127,11 @@ export function checkForUpdatesInteractive(): void {
 		});
 		return;
 	}
-	if (!PLATFORM.IS_MAC) {
+	if (!IS_AUTO_UPDATE_PLATFORM) {
 		dialog.showMessageBox({
 			type: "info",
 			title: "Updates",
-			message: "Auto-updates are only available on macOS.",
+			message: "Auto-updates are only available on macOS and Linux.",
 		});
 		return;
 	}
@@ -198,7 +200,7 @@ export function simulateError(): void {
 }
 
 export function setupAutoUpdater(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
 		return;
 	}
 
@@ -209,8 +211,8 @@ export function setupAutoUpdater(): void {
 	// Allow downgrade for prerelease builds so users can switch back to stable
 	autoUpdater.allowDowngrade = IS_PRERELEASE;
 
-	// Use generic provider with explicit feed URL
-	// This ensures we always fetch latest-mac.yml from the correct GitHub release
+	// Use generic provider with explicit feed URL so electron-updater can request
+	// the correct manifest for the current platform from GitHub release assets.
 	autoUpdater.setFeedURL({
 		provider: "generic",
 		url: UPDATE_FEED_URL,

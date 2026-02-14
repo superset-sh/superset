@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9d8dbaa6-986b-46c9-b051-9870fc51fe81",
-  "prevId": "7839ea29-60e5-4574-aecf-50532dbb369e",
+  "id": "f6298ba7-2776-433c-a491-4d8198217a31",
+  "prevId": "e2712e7d-e4cd-4d3c-a949-70761f94e051",
   "tables": {
     "organization_members": {
       "name": "organization_members",
@@ -429,6 +429,41 @@
         "file_open_mode": {
           "name": "file_open_mode",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "show_presets_bar": {
+          "name": "show_presets_bar",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_font_family": {
+          "name": "terminal_font_family",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_font_size": {
+          "name": "terminal_font_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "editor_font_family": {
+          "name": "editor_font_family",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "editor_font_size": {
+          "name": "editor_font_size",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
