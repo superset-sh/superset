@@ -63,22 +63,52 @@ step_check_dependencies() {
 step_kill_terminal_daemons() {
   echo "🔪 Killing terminal daemon processes..."
 
+  kill_process_tree() {
+    local pid="$1"
+    local signal="${2:-TERM}"
+    local children=""
+    local child=""
+
+    children=$(pgrep -P "$pid" 2>/dev/null || true)
+    for child in $children; do
+      kill_process_tree "$child" "$signal"
+    done
+
+    kill -s "$signal" "$pid" 2>/dev/null || true
+  }
+
   local worktree_path
   worktree_path="$(pwd)"
-  local killed=0
+  local matched_pids=""
+  local root_killed=0
+  local force_killed=0
 
-  for pattern in "terminal-host.js" "pty-subprocess.js"; do
-    local pids
-    pids=$(pgrep -f "${worktree_path}/.*${pattern}" 2>/dev/null || true)
-    if [ -n "$pids" ]; then
-      for pid in $pids; do
-        kill "$pid" 2>/dev/null && ((killed++)) || true
-      done
+  matched_pids=$(
+    {
+      pgrep -f "${worktree_path}/.*terminal-host\\.js" 2>/dev/null || true
+      pgrep -f "${worktree_path}/.*pty-subprocess\\.js" 2>/dev/null || true
+    } | sort -u
+  )
+
+  for pid in $matched_pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill_process_tree "$pid" TERM
+      root_killed=$((root_killed + 1))
     fi
   done
 
-  if [ "$killed" -gt 0 ]; then
-    success "Killed $killed terminal daemon process(es)"
+  # Escalate to SIGKILL for any survivors after graceful termination.
+  for pid in $matched_pids; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill_process_tree "$pid" KILL
+      force_killed=$((force_killed + 1))
+    fi
+  done
+
+  if [ "$root_killed" -gt 0 ] && [ "$force_killed" -gt 0 ]; then
+    success "Killed process trees for $root_killed terminal daemon root process(es), force-killed $force_killed stuck root process(es)"
+  elif [ "$root_killed" -gt 0 ]; then
+    success "Killed process trees for $root_killed terminal daemon root process(es)"
   else
     success "No terminal daemon processes found"
   fi
