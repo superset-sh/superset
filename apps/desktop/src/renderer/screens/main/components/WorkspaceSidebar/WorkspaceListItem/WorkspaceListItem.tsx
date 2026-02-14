@@ -44,11 +44,13 @@ import { getHighestPriorityStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import {
+	AHEAD_BEHIND_STALE_TIME,
 	GITHUB_STATUS_STALE_TIME,
 	HOVER_CARD_CLOSE_DELAY,
 	HOVER_CARD_OPEN_DELAY,
 	MAX_KEYBOARD_SHORTCUT_INDEX,
 } from "./constants";
+import { WorkspaceAheadBehind } from "./WorkspaceAheadBehind";
 import { WorkspaceDiffStats } from "./WorkspaceDiffStats";
 import { WorkspaceStatusBadge } from "./WorkspaceStatusBadge";
 
@@ -93,7 +95,6 @@ export function WorkspaceListItem({
 	);
 	const utils = electronTrpc.useUtils();
 
-	// Derive isActive from route
 	const isActive = !!matchRoute({
 		to: "/workspace/$workspaceId",
 		params: { workspaceId: id },
@@ -118,11 +119,9 @@ export function WorkspaceListItem({
 			toast.error(`Failed to update unread status: ${error.message}`),
 	});
 
-	// Shared delete logic
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
 
-	// Lazy-load GitHub status on hover to avoid N+1 queries
 	const { data: githubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: id },
@@ -132,12 +131,20 @@ export function WorkspaceListItem({
 			},
 		);
 
-	// Lazy-load local git changes on hover
 	const { data: localChanges } = electronTrpc.changes.getStatus.useQuery(
 		{ worktreePath },
 		{
 			enabled: hasHovered && type === "worktree" && !!worktreePath,
 			staleTime: GITHUB_STATUS_STALE_TIME,
+		},
+	);
+
+	const { data: aheadBehind } = electronTrpc.workspaces.getAheadBehind.useQuery(
+		{ workspaceId: id },
+		{
+			enabled: isBranchWorkspace,
+			staleTime: AHEAD_BEHIND_STALE_TIME,
+			refetchInterval: AHEAD_BEHIND_STALE_TIME,
 		},
 	);
 
@@ -147,7 +154,6 @@ export function WorkspaceListItem({
 		workspaceId: id,
 	});
 
-	// Calculate total local changes (staged + unstaged + untracked)
 	const localDiffStats = useMemo(() => {
 		if (!localChanges) return null;
 		const allFiles = [
@@ -161,7 +167,6 @@ export function WorkspaceListItem({
 		return { additions, deletions };
 	}, [localChanges]);
 
-	// Memoize workspace pane IDs to avoid recalculating on every render
 	const workspacePaneIds = useMemo(() => {
 		const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
 		return new Set(
@@ -169,9 +174,7 @@ export function WorkspaceListItem({
 		);
 	}, [tabs, id]);
 
-	// Compute aggregate status for workspace using shared priority logic
 	const workspaceStatus = useMemo(() => {
-		// Generator avoids array allocation
 		function* paneStatuses() {
 			for (const paneId of workspacePaneIds) {
 				yield panes[paneId]?.status;
@@ -214,7 +217,6 @@ export function WorkspaceListItem({
 		}
 	};
 
-	// Drag and drop
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: WORKSPACE_TYPE,
@@ -291,7 +293,6 @@ export function WorkspaceListItem({
 	});
 
 	const pr = githubStatus?.pr;
-	// Show diff stats from PR if available, otherwise from local changes
 	const diffStats =
 		localDiffStats ||
 		(pr && (pr.additions > 0 || pr.deletions > 0)
@@ -299,10 +300,11 @@ export function WorkspaceListItem({
 			: null);
 	const showDiffStats = !!diffStats;
 
-	// Determine if we should show the branch subtitle
 	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
+	const hasAheadBehind =
+		!!aheadBehind && (aheadBehind.ahead > 0 || aheadBehind.behind > 0);
+	const showRow2 = showBranchSubtitle || pr || hasAheadBehind;
 
-	// Collapsed sidebar: show just the icon with hover card (worktree) or tooltip (branch)
 	if (isCollapsed) {
 		const collapsedButton = (
 			<button
@@ -337,13 +339,11 @@ export function WorkspaceListItem({
 						strokeWidth={STROKE_WIDTH}
 					/>
 				)}
-				{/* Status indicator - only show for non-working statuses */}
 				{workspaceStatus && workspaceStatus !== "working" && (
 					<span className="absolute top-1 right-1">
 						<StatusIndicator status={workspaceStatus} />
 					</span>
 				)}
-				{/* Unread dot (only when no status) */}
 				{isUnread && !workspaceStatus && (
 					<span className="absolute top-1 right-1 flex size-2">
 						<span className="relative inline-flex size-2 rounded-full bg-blue-500" />
@@ -352,7 +352,6 @@ export function WorkspaceListItem({
 			</button>
 		);
 
-		// Branch workspaces get a simple tooltip
 		if (isBranchWorkspace) {
 			return (
 				<Tooltip delayDuration={300}>
@@ -367,7 +366,6 @@ export function WorkspaceListItem({
 			);
 		}
 
-		// Worktree workspaces get the full hover card with context menu
 		return (
 			<>
 				<HoverCard
@@ -427,24 +425,22 @@ export function WorkspaceListItem({
 				"flex w-full pl-3 pr-2 text-sm",
 				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
 				"group relative",
-				showBranchSubtitle ? "py-1.5" : "py-2 items-center",
+				showRow2 ? "py-1.5" : "py-2 items-center",
 				isActive && "bg-muted",
 				isDragging && "opacity-30",
 			)}
 			style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 		>
-			{/* Active indicator - left border */}
 			{isActive && (
 				<div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
 			)}
 
-			{/* Icon with status indicator */}
 			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
 					<div
 						className={cn(
 							"relative shrink-0 size-5 flex items-center justify-center mr-2.5",
-							showBranchSubtitle && "mt-0.5",
+							showRow2 && "mt-0.5",
 						)}
 					>
 						{workspaceStatus === "working" ? (
@@ -497,7 +493,6 @@ export function WorkspaceListItem({
 				</TooltipContent>
 			</Tooltip>
 
-			{/* Content area */}
 			<div className="flex-1 min-w-0">
 				{rename.isRenaming ? (
 					<Input
@@ -516,7 +511,6 @@ export function WorkspaceListItem({
 					/>
 				) : (
 					<div className="flex flex-col gap-0.5">
-						{/* Row 1: Title + actions */}
 						<div className="flex items-center gap-1.5">
 							<span
 								className={cn(
@@ -529,7 +523,6 @@ export function WorkspaceListItem({
 								{isBranchWorkspace ? "local" : name || branch}
 							</span>
 
-							{/* Keyboard shortcut */}
 							{shortcutIndex !== undefined &&
 								shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
 									<span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
@@ -537,7 +530,6 @@ export function WorkspaceListItem({
 									</span>
 								)}
 
-							{/* Diff stats (transforms to X on hover) or close button for worktree workspaces */}
 							{!isBranchWorkspace &&
 								(showDiffStats && diffStats ? (
 									<WorkspaceDiffStats
@@ -571,13 +563,18 @@ export function WorkspaceListItem({
 								))}
 						</div>
 
-						{/* Row 2: Git info (branch + PR badge) */}
-						{(showBranchSubtitle || pr) && (
+						{showRow2 && (
 							<div className="flex items-center gap-2 text-[11px] w-full">
 								{showBranchSubtitle && (
 									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
 										{branch}
 									</span>
+								)}
+								{aheadBehind && (
+									<WorkspaceAheadBehind
+										ahead={aheadBehind.ahead}
+										behind={aheadBehind.behind}
+									/>
 								)}
 								{pr && (
 									<WorkspaceStatusBadge
@@ -611,7 +608,6 @@ export function WorkspaceListItem({
 		</ContextMenuItem>
 	);
 
-	// Wrap with context menu and hover card
 	if (isBranchWorkspace) {
 		return (
 			<>

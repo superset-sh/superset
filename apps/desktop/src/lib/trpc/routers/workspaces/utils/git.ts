@@ -1010,6 +1010,31 @@ export async function checkNeedsRebase(
 	return Number.parseInt(behindCount.trim(), 10) > 0;
 }
 
+export async function getAheadBehindCount({
+	repoPath,
+	defaultBranch,
+}: {
+	repoPath: string;
+	defaultBranch: string;
+}): Promise<{ ahead: number; behind: number }> {
+	const git = simpleGit(repoPath);
+	try {
+		const output = await git.raw([
+			"rev-list",
+			"--left-right",
+			"--count",
+			`origin/${defaultBranch}...HEAD`,
+		]);
+		const [behindStr, aheadStr] = output.trim().split(/\s+/);
+		return {
+			ahead: Number.parseInt(aheadStr || "0", 10),
+			behind: Number.parseInt(behindStr || "0", 10),
+		};
+	} catch {
+		return { ahead: 0, behind: 0 };
+	}
+}
+
 export async function hasUncommittedChanges(
 	worktreePath: string,
 ): Promise<boolean> {

@@ -44,6 +44,7 @@ export function WorkspaceHoverCardContent({
 	);
 
 	const needsRebase = worktreeInfo?.gitStatus?.needsRebase;
+	const behindCount = worktreeInfo?.gitStatus?.behind;
 
 	const worktreeName = worktreeInfo?.worktreeName;
 	const branchName = worktreeInfo?.branchName;
@@ -52,7 +53,6 @@ export function WorkspaceHoverCardContent({
 
 	return (
 		<div className="space-y-3">
-			{/* Header: Alias + Worktree name + age */}
 			<div className="space-y-1.5">
 				{hasCustomAlias && (
 					<div className="text-sm font-medium">{workspaceAlias}</div>
@@ -91,18 +91,19 @@ export function WorkspaceHoverCardContent({
 				)}
 			</div>
 
-			{/* Needs Rebase Warning */}
 			{needsRebase && (
 				<div className="flex items-center gap-2 text-amber-500 text-xs bg-amber-500/10 px-2 py-1.5 rounded-md">
 					<LuTriangleAlert
 						className="size-3.5 shrink-0"
 						strokeWidth={STROKE_WIDTH}
 					/>
-					<span>Behind main, needs rebase</span>
+					<span>
+						Behind main by {behindCount ?? "?"} commit
+						{behindCount !== 1 && "s"}, needs rebase
+					</span>
 				</div>
 			)}
 
-			{/* PR Section */}
 			{isLoadingGithub ? (
 				<div className="flex items-center gap-2 text-muted-foreground pt-2 border-t border-border">
 					<LuLoaderCircle
@@ -113,7 +114,6 @@ export function WorkspaceHoverCardContent({
 				</div>
 			) : pr ? (
 				<div className="pt-2 border-t border-border space-y-2">
-					{/* PR Header: Number + Status + Diff Stats */}
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							<span className="text-xs font-medium text-muted-foreground">
@@ -129,10 +129,8 @@ export function WorkspaceHoverCardContent({
 						</div>
 					</div>
 
-					{/* PR Title */}
 					<p className="text-xs leading-relaxed line-clamp-2">{pr.title}</p>
 
-					{/* Checks & Review - only for open PRs */}
 					{pr.state === "open" && (
 						<div className="space-y-2 pt-1">
 							<div className="flex items-center gap-2 text-xs">
@@ -144,7 +142,6 @@ export function WorkspaceHoverCardContent({
 						</div>
 					)}
 
-					{/* View on GitHub button */}
 					<Button
 						variant="outline"
 						size="sm"

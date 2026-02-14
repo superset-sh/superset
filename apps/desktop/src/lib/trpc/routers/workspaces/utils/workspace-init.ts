@@ -118,6 +118,8 @@ export async function initializeWorkspaceWorktree({
 					gitStatus: {
 						branch,
 						needsRebase: false,
+						ahead: 0,
+						behind: 0,
 						lastRefreshed: Date.now(),
 					},
 				})
@@ -438,6 +440,8 @@ export async function initializeWorkspaceWorktree({
 				gitStatus: {
 					branch,
 					needsRebase: false,
+					ahead: 0,
+					behind: 0,
 					lastRefreshed: Date.now(),
 				},
 			})

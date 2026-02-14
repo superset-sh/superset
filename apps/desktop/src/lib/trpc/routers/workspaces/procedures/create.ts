@@ -732,6 +732,8 @@ export const createCreateProcedures = () => {
 								gitStatus: {
 									branch: existingWorktree.branch,
 									needsRebase: false,
+									ahead: 0,
+									behind: 0,
 									lastRefreshed: Date.now(),
 								},
 							})
@@ -816,6 +818,8 @@ export const createCreateProcedures = () => {
 						gitStatus: {
 							branch: input.branch,
 							needsRebase: false,
+							ahead: 0,
+							behind: 0,
 							lastRefreshed: Date.now(),
 						},
 					})
