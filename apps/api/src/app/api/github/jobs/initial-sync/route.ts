@@ -1,14 +1,21 @@
 import { db } from "@superset/db/client";
+import type { GithubConfig } from "@superset/db/schema";
 import {
 	githubInstallations,
 	githubPullRequests,
 	githubRepositories,
+	integrationConnections,
+	tasks,
 } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
+import {
+	mapGithubIssueToTask,
+	resolveTaskStatusIds,
+} from "../../lib/map-issue-to-task";
 import { githubApp } from "../../octokit";
 
 const receiver = new Receiver({
@@ -225,6 +232,97 @@ export async function POST(request: Request) {
 							updatedAt: new Date(),
 						},
 					});
+			}
+		}
+
+		const { organizationId } = parsed.data;
+		const connection = await db.query.integrationConnections.findFirst({
+			where: and(
+				eq(integrationConnections.organizationId, organizationId),
+				eq(integrationConnections.provider, "github"),
+			),
+			columns: { config: true },
+		});
+
+		const config = connection?.config as GithubConfig | null;
+		const syncIssues = config?.syncIssues !== false;
+
+		if (syncIssues) {
+			const statusIds = await resolveTaskStatusIds({ organizationId });
+
+			if (!statusIds) {
+				console.warn(
+					"[github/initial-sync] Missing unstarted/completed status types, skipping issue sync",
+				);
+			} else {
+				for (const repo of repos) {
+					const issues = await octokit.paginate(
+						octokit.rest.issues.listForRepo,
+						{
+							owner: repo.owner.login,
+							repo: repo.name,
+							state: "open",
+							per_page: 100,
+						},
+					);
+
+					// Filter out pull requests (GitHub issues API includes PRs)
+					const realIssues = issues.filter(
+						(issue) => !("pull_request" in issue && issue.pull_request),
+					);
+
+					console.log(
+						`[github/initial-sync] Found ${realIssues.length} issues for ${repo.full_name}`,
+					);
+
+					for (const issue of realIssues) {
+						const statusId =
+							issue.state === "closed"
+								? statusIds.completedStatusId
+								: statusIds.unstartedStatusId;
+
+						const taskData = mapGithubIssueToTask({
+							issue: {
+								id: issue.id,
+								number: issue.number,
+								title: issue.title,
+								body: issue.body,
+								html_url: issue.html_url,
+								state: issue.state,
+								assignee: issue.assignee
+									? {
+											login: issue.assignee.login,
+											email:
+												"email" in issue.assignee
+													? (issue.assignee.email as string | null)
+													: null,
+										}
+									: null,
+								labels: issue.labels,
+							},
+							repoName: repo.name,
+							statusId,
+							assigneeId: null,
+						});
+
+						await db
+							.insert(tasks)
+							.values({
+								...taskData,
+								organizationId,
+								creatorId: installation.connectedByUserId,
+								priority: "none",
+							})
+							.onConflictDoUpdate({
+								target: [
+									tasks.organizationId,
+									tasks.externalProvider,
+									tasks.externalId,
+								],
+								set: { ...taskData, syncError: null },
+							});
+					}
+				}
 			}
 		}
 

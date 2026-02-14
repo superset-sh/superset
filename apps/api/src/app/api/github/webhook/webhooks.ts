@@ -1,14 +1,17 @@
 import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Webhooks } from "@octokit/webhooks";
 import { db } from "@superset/db/client";
+import type { GithubConfig } from "@superset/db/schema";
 import {
 	githubInstallations,
 	githubPullRequests,
 	githubRepositories,
+	integrationConnections,
 } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
+import { processGithubIssueEvent } from "../lib/map-issue-to-task";
 
 export const webhooks = new Webhooks({ secret: env.GH_WEBHOOK_SECRET });
 
@@ -375,5 +378,99 @@ webhooks.on(
 				})
 				.where(eq(githubPullRequests.id, currentPr.id));
 		}
+	},
+);
+
+webhooks.on(
+	[
+		"issues.opened",
+		"issues.edited",
+		"issues.closed",
+		"issues.reopened",
+		"issues.assigned",
+		"issues.unassigned",
+		"issues.labeled",
+		"issues.unlabeled",
+		"issues.deleted",
+	],
+	async ({
+		payload,
+	}: EmitterWebhookEvent<
+		| "issues.opened"
+		| "issues.edited"
+		| "issues.closed"
+		| "issues.reopened"
+		| "issues.assigned"
+		| "issues.unassigned"
+		| "issues.labeled"
+		| "issues.unlabeled"
+		| "issues.deleted"
+	>) => {
+		const { issue, repository } = payload;
+
+		const [repo] = await db
+			.select()
+			.from(githubRepositories)
+			.where(eq(githubRepositories.repoId, String(repository.id)))
+			.limit(1);
+
+		if (!repo) {
+			console.warn(
+				"[github/webhook] Repository not found for issue event:",
+				repository.id,
+			);
+			return;
+		}
+
+		const [installation] = await db
+			.select()
+			.from(githubInstallations)
+			.where(eq(githubInstallations.id, repo.installationId))
+			.limit(1);
+
+		if (!installation) {
+			console.warn(
+				"[github/webhook] Installation not found:",
+				repo.installationId,
+			);
+			return;
+		}
+
+		const connection = await db.query.integrationConnections.findFirst({
+			where: and(
+				eq(integrationConnections.organizationId, installation.organizationId),
+				eq(integrationConnections.provider, "github"),
+			),
+			columns: { config: true },
+		});
+
+		const config = connection?.config as GithubConfig | null;
+		if (config && config.syncIssues === false) {
+			return;
+		}
+
+		console.log(
+			`[github/webhook] Issue ${payload.action}:`,
+			`${repository.full_name}#${issue.number}`,
+		);
+
+		await processGithubIssueEvent({
+			issue: {
+				id: issue.id,
+				number: issue.number,
+				title: issue.title,
+				body: issue.body,
+				html_url: issue.html_url,
+				state: issue.state ?? "open",
+				assignee: issue.assignee ? { login: issue.assignee.login } : null,
+				labels: (issue.labels ?? [])
+					.map((l) => (typeof l === "string" ? l : (l?.name ?? "")))
+					.filter(Boolean),
+			},
+			repoName: repository.name,
+			organizationId: installation.organizationId,
+			creatorId: installation.connectedByUserId,
+			action: payload.action,
+		});
 	},
 );

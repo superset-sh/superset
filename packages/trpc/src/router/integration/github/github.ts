@@ -1,8 +1,10 @@
 import { db } from "@superset/db/client";
+import type { GithubConfig } from "@superset/db/schema";
 import {
 	githubInstallations,
 	githubPullRequests,
 	githubRepositories,
+	integrationConnections,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
@@ -240,5 +242,102 @@ export const githubRouter = {
 				pendingChecksCount,
 				failedChecksCount,
 			};
+		}),
+
+	getConfig: protectedProcedure
+		.input(z.object({ organizationId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+
+			const connection = await db.query.integrationConnections.findFirst({
+				where: and(
+					eq(integrationConnections.organizationId, input.organizationId),
+					eq(integrationConnections.provider, "github"),
+				),
+				columns: { config: true },
+			});
+
+			const config = connection?.config as GithubConfig | null;
+			return {
+				syncIssues: config?.syncIssues !== false,
+			};
+		}),
+
+	updateConfig: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				syncIssues: z.boolean(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+
+			const result = await db
+				.update(integrationConnections)
+				.set({
+					config: {
+						provider: "github",
+						syncIssues: input.syncIssues,
+					} satisfies GithubConfig,
+				})
+				.where(
+					and(
+						eq(integrationConnections.organizationId, input.organizationId),
+						eq(integrationConnections.provider, "github"),
+					),
+				)
+				.returning({ id: integrationConnections.id });
+
+			if (result.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "GitHub integration connection not found",
+				});
+			}
+
+			return { success: true };
+		}),
+
+	triggerIssueSync: protectedProcedure
+		.input(z.object({ organizationId: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+
+			const installation = await db.query.githubInstallations.findFirst({
+				where: eq(githubInstallations.organizationId, input.organizationId),
+				columns: { id: true },
+			});
+
+			if (!installation) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "GitHub installation not found",
+				});
+			}
+
+			const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
+			const syncBody = {
+				installationDbId: installation.id,
+				organizationId: input.organizationId,
+			};
+
+			if (env.NODE_ENV === "development") {
+				fetch(syncUrl, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(syncBody),
+				}).catch((error) => {
+					console.error("[github/triggerIssueSync] Dev sync failed:", error);
+				});
+			} else {
+				await qstash.publishJSON({
+					url: syncUrl,
+					body: syncBody,
+					retries: 3,
+				});
+			}
+
+			return { success: true };
 		}),
 } satisfies TRPCRouterRecord;
