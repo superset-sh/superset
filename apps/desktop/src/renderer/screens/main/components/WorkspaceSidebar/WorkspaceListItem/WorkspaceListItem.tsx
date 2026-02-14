@@ -37,6 +37,7 @@ import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/u
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
+import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
@@ -131,13 +132,11 @@ export function WorkspaceListItem({
 			},
 		);
 
-	const { data: localChanges } = electronTrpc.changes.getStatus.useQuery(
-		{ worktreePath },
-		{
-			enabled: hasHovered && !!worktreePath,
-			staleTime: GITHUB_STATUS_STALE_TIME,
-		},
-	);
+	const { status: localChanges } = useGitChangesStatus({
+		worktreePath,
+		enabled: hasHovered && !!worktreePath,
+		staleTime: GITHUB_STATUS_STALE_TIME,
+	});
 
 	const { data: aheadBehind } = electronTrpc.workspaces.getAheadBehind.useQuery(
 		{ workspaceId: id },
@@ -156,11 +155,14 @@ export function WorkspaceListItem({
 
 	const localDiffStats = useMemo(() => {
 		if (!localChanges) return null;
-		const allFiles = [
-			...localChanges.staged,
-			...localChanges.unstaged,
-			...localChanges.untracked,
-		];
+		const allFiles =
+			localChanges.againstBase.length > 0
+				? localChanges.againstBase
+				: [
+						...localChanges.staged,
+						...localChanges.unstaged,
+						...localChanges.untracked,
+					];
 		const additions = allFiles.reduce((sum, f) => sum + (f.additions || 0), 0);
 		const deletions = allFiles.reduce((sum, f) => sum + (f.deletions || 0), 0);
 		if (additions === 0 && deletions === 0) return null;
