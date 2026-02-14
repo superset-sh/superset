@@ -7,7 +7,7 @@ import {
 	type IParsedLink,
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
-import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
+import type { ILink, ILinkProvider, Terminal } from "ghostty-web";
 
 /**
  * A link provider that detects file paths in terminal output using VSCode's

@@ -1,26 +1,17 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronDown, HiChevronUp, HiMiniXMark } from "react-icons/hi2";
 import { PiTextAa } from "react-icons/pi";
+import type { TerminalSearchEngine } from "../search/terminal-search-engine";
 
 interface TerminalSearchProps {
-	searchAddon: SearchAddon | null;
+	searchEngine: TerminalSearchEngine | null;
 	isOpen: boolean;
 	onClose: () => void;
 }
 
-const SEARCH_DECORATIONS: ISearchOptions["decorations"] = {
-	matchBackground: "#515c6a",
-	matchBorder: "#74879f",
-	matchOverviewRuler: "#d186167e",
-	activeMatchBackground: "#515c6a",
-	activeMatchBorder: "#ffd33d",
-	activeMatchColorOverviewRuler: "#ffd33d",
-};
-
 export function TerminalSearch({
-	searchAddon,
+	searchEngine,
 	isOpen,
 	onClose,
 }: TerminalSearchProps) {
@@ -29,11 +20,9 @@ export function TerminalSearch({
 	const [matchCount, setMatchCount] = useState<number | null>(null);
 	const [caseSensitive, setCaseSensitive] = useState(false);
 
-	const searchOptions: ISearchOptions = useMemo(
+	const searchOptions = useMemo(
 		() => ({
 			caseSensitive,
-			regex: false,
-			decorations: SEARCH_DECORATIONS,
 		}),
 		[caseSensitive],
 	);
@@ -48,37 +37,35 @@ export function TerminalSearch({
 
 	// Clear search highlighting when closing
 	useEffect(() => {
-		if (!isOpen && searchAddon) {
-			searchAddon.clearDecorations();
+		if (!isOpen && searchEngine) {
+			searchEngine.clearDecorations();
 		}
-	}, [isOpen, searchAddon]);
+	}, [isOpen, searchEngine]);
 
 	const handleSearch = useCallback(
 		(direction: "next" | "previous") => {
-			if (!searchAddon || !query) return;
+			if (!searchEngine || !query) return;
 
 			const found =
 				direction === "next"
-					? searchAddon.findNext(query, searchOptions)
-					: searchAddon.findPrevious(query, searchOptions);
+					? searchEngine.findNext(query, searchOptions)
+					: searchEngine.findPrevious(query, searchOptions);
 
-			// xterm search addon doesn't provide match count directly
-			// We just indicate if there are matches or not
-			setMatchCount(found ? 1 : 0);
+			setMatchCount(found ? searchEngine.matchCount : 0);
 		},
-		[searchAddon, query, searchOptions],
+		[searchEngine, query, searchOptions],
 	);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const newQuery = e.target.value;
 		setQuery(newQuery);
 
-		if (searchAddon && newQuery) {
-			const found = searchAddon.findNext(newQuery, searchOptions);
-			setMatchCount(found ? 1 : 0);
+		if (searchEngine && newQuery) {
+			const found = searchEngine.findNext(newQuery, searchOptions);
+			setMatchCount(found ? searchEngine.matchCount : 0);
 		} else {
 			setMatchCount(null);
-			searchAddon?.clearDecorations();
+			searchEngine?.clearDecorations();
 		}
 	};
 
@@ -88,11 +75,11 @@ export function TerminalSearch({
 
 	// Re-run search when case sensitivity changes
 	useEffect(() => {
-		if (searchAddon && query) {
-			const found = searchAddon.findNext(query, searchOptions);
-			setMatchCount(found ? 1 : 0);
+		if (searchEngine && query) {
+			const found = searchEngine.findNext(query, searchOptions);
+			setMatchCount(found ? searchEngine.matchCount : 0);
 		}
-	}, [searchAddon, query, searchOptions]);
+	}, [searchEngine, query, searchOptions]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Escape") {

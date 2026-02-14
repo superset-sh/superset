@@ -2,6 +2,11 @@ import { initSentry } from "./lib/sentry";
 
 initSentry();
 
+// Eagerly start loading ghostty-web WASM so it's ready before any terminal mounts
+import(
+	"./screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ghostty-init"
+).then(({ ensureGhosttyReady }) => ensureGhosttyReady());
+
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
 import { BootErrorBoundary } from "./components/BootErrorBoundary";

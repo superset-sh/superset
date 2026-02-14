@@ -1,7 +1,4 @@
-import type { FitAddon } from "@xterm/addon-fit";
-import type { SearchAddon } from "@xterm/addon-search";
-import type { Terminal as XTerm } from "@xterm/xterm";
-import "@xterm/xterm/css/xterm.css";
+import type { FitAddon, Terminal as XTerm } from "ghostty-web";
 import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -11,7 +8,7 @@ import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "./config";
-import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
+import { getDefaultTerminalBg } from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
@@ -25,6 +22,7 @@ import {
 	useTerminalStream,
 } from "./hooks";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
+import type { TerminalSearchEngine } from "./search/terminal-search-engine";
 import { TerminalSearch } from "./TerminalSearch";
 import type {
 	TerminalExitReason,
@@ -70,8 +68,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
-	const searchAddonRef = useRef<SearchAddon | null>(null);
-	const rendererRef = useRef<TerminalRendererRef | null>(null);
+	const searchEngineRef = useRef<TerminalSearchEngine | null>(null);
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
@@ -261,8 +258,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		terminalRef,
 		xtermRef,
 		fitAddonRef,
-		searchAddonRef,
-		rendererRef,
+		searchEngineRef,
 		isExitedRef,
 		wasKilledByUserRef,
 		commandBufferRef,
@@ -360,7 +356,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			onDrop={handleDrop}
 		>
 			<TerminalSearch
-				searchAddon={searchAddonRef.current}
+				searchEngine={searchEngineRef.current}
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
@@ -371,7 +367,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{connectionError && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			{/* caret-color: transparent hides the DOM cursor from ghostty-web's contenteditable container */}
+			<div
+				ref={terminalRef}
+				className="h-full w-full"
+				style={{ caretColor: "transparent" }}
+			/>
 		</div>
 	);
 };

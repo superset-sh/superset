@@ -1,15 +1,15 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
+import type { ILink, Terminal } from "ghostty-web";
 import { FilePathLinkProvider } from "./file-path-link-provider";
 
-function createMockLine(text: string, isWrapped = false): IBufferLine {
+function createMockLine(text: string, isWrapped = false) {
 	return {
 		translateToString: () => text,
 		isWrapped,
 		length: text.length,
 		getCell: mock(() => null),
 		getCells: mock(() => []),
-	} as unknown as IBufferLine;
+	};
 }
 
 function createMockTerminal(
@@ -315,7 +315,7 @@ describe("FilePathLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "/path/file.ts");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).not.toHaveBeenCalled();
 		});
@@ -332,7 +332,7 @@ describe("FilePathLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "/path/file.ts");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
@@ -350,7 +350,7 @@ describe("FilePathLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "/path/file.ts");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 		});
@@ -367,7 +367,7 @@ describe("FilePathLinkProvider", () => {
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
 
-			links[0].activate(mockEvent, "/path/file.ts:42:10");
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
@@ -394,7 +394,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
@@ -417,7 +417,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
@@ -441,7 +441,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
@@ -464,7 +464,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
@@ -487,7 +487,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
@@ -511,7 +511,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
@@ -534,7 +534,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
@@ -580,7 +580,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 			expect(onOpen.mock.calls[0][1]).toBe(
@@ -603,7 +603,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 			expect(onOpen.mock.calls[0][1]).toBe("src/file.ts");
@@ -627,7 +627,7 @@ describe("FilePathLinkProvider", () => {
 				ctrlKey: false,
 				preventDefault: mock(),
 			} as unknown as MouseEvent;
-			links[0].activate(mockEvent, links[0].text);
+			links[0].activate(mockEvent);
 
 			expect(onOpen).toHaveBeenCalled();
 			expect(onOpen.mock.calls[0][1]).toBe("./path/to file/name.ts");

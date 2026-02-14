@@ -1,4 +1,4 @@
-import type { ITheme } from "@xterm/xterm";
+import type { ITheme } from "ghostty-web";
 import type { MutableRefObject } from "react";
 import { useRef } from "react";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";

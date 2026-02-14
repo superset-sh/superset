@@ -224,6 +224,7 @@ export default defineConfig({
 
 		optimizeDeps: {
 			include: ["monaco-editor"],
+			exclude: ["ghostty-web"],
 		},
 
 		publicDir: resolve(resources, "public"),
