@@ -5,6 +5,7 @@ import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
+import { mapEventType } from "./map-event-type";
 
 // Re-export types for backwards compatibility
 export type {
@@ -35,36 +36,6 @@ app.use((req, res, next) => {
 	}
 	next();
 });
-
-/**
- * Maps incoming event types to canonical lifecycle events.
- * Handles variations from different agent CLIs.
- *
- * Returns null for unknown events - caller should ignore these gracefully
- * to maintain forward compatibility with newer hook versions.
- *
- * Note: We no longer default missing eventType to "Stop" to prevent
- * parse failures from being treated as completions.
- *
- * @internal Exported for testing
- */
-export function mapEventType(
-	eventType: string | undefined,
-): "Start" | "Stop" | "PermissionRequest" | null {
-	if (!eventType) {
-		return null; // Missing eventType should be ignored, not treated as Stop
-	}
-	if (eventType === "Start" || eventType === "UserPromptSubmit") {
-		return "Start";
-	}
-	if (eventType === "PermissionRequest") {
-		return "PermissionRequest";
-	}
-	if (eventType === "Stop" || eventType === "agent-turn-complete") {
-		return "Stop";
-	}
-	return null; // Unknown events are ignored for forward compatibility
-}
 
 /**
  * Resolves paneId from tabId or workspaceId using synced tabs state.
