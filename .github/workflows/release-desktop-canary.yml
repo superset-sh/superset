@@ -108,10 +108,10 @@ jobs:
           done
           # Prerelease builds may request canary-linux.yml; keep latest-linux.yml as fallback.
           for file in *-linux.yml; do
-            if [[ -f "$file" ]]; then
+            if [[ -f "$file" && "$file" != "canary-linux.yml" && "$file" != "latest-linux.yml" ]]; then
               cp "$file" "canary-linux.yml"
               cp "$file" "latest-linux.yml"
-              echo "Created canary manifests: canary-linux.yml, latest-linux.yml"
+              echo "Created canary manifests: canary-linux.yml, latest-linux.yml from $file"
               break
             fi
           done
