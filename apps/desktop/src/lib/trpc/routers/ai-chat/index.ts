@@ -16,10 +16,24 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { loadToken } from "../auth/utils/auth-functions";
 import {
+	getCredentialsFromConfig,
+	getCredentialsFromKeychain,
+} from "./utils/auth/auth";
+import {
 	readClaudeSessionMessages,
 	scanClaudeSessions,
 } from "./utils/claude-session-scanner";
 import { chatSessionManager, sessionStore } from "./utils/session-manager";
+
+// Prefer Claude CLI credentials (OAuth from ~/.claude/.credentials.json) over .env ANTHROPIC_API_KEY for Mastra
+const cliCredentials =
+	getCredentialsFromConfig() ?? getCredentialsFromKeychain();
+if (cliCredentials) {
+	process.env.ANTHROPIC_API_KEY = cliCredentials.apiKey;
+	console.log(
+		`[ai-chat] Using Claude ${cliCredentials.kind} credentials from ${cliCredentials.source} for Mastra`,
+	);
+}
 
 /** Per-session event bus for streaming superagent chunks to the renderer */
 const superagentEmitter = new EventEmitter();

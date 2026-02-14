@@ -1,17 +1,30 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
-import { app, BrowserWindow, dialog, net, protocol, session } from "electron";
+import {
+	app,
+	BrowserWindow,
+	dialog,
+	Notification,
+	net,
+	protocol,
+	session,
+} from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	handleAuthCallback,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
-import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
+import {
+	DEFAULT_CONFIRM_ON_QUIT,
+	PLATFORM,
+	PROTOCOL_SCHEME,
+} from "shared/constants";
 import { getWorkspaceName } from "shared/env.shared";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
@@ -21,9 +34,12 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 
-const workspaceName = getWorkspaceName();
-if (workspaceName) {
-	app.setName(`Superset (${workspaceName})`);
+// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+if (process.env.NODE_ENV === "development") {
+	const workspaceName = getWorkspaceName();
+	if (workspaceName) {
+		app.setName(`Superset (${workspaceName})`);
+	}
 }
 
 // Dev mode: register with execPath + app script so macOS launches Electron with our entry point
@@ -76,6 +92,33 @@ function focusMainWindow(): void {
 		mainWindow.show();
 		mainWindow.focus();
 	}
+}
+
+function registerWithMacOSNotificationCenter() {
+	if (!PLATFORM.IS_MAC || !Notification.isSupported()) return;
+
+	const registrationNotification = new Notification({
+		title: app.name,
+		body: " ",
+		silent: true,
+	});
+
+	let handled = false;
+	const cleanup = () => {
+		if (handled) return;
+		handled = true;
+		registrationNotification.close();
+	};
+
+	registrationNotification.on("show", () => {
+		cleanup();
+		console.log("[notifications] Registered with Notification Center");
+	});
+
+	// Fallback timeout in case macOS doesn't fire events
+	setTimeout(cleanup, 1000);
+
+	registrationNotification.show();
 }
 
 // macOS open-url can fire before the window exists (cold-start via protocol link).
@@ -213,6 +256,7 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
+		registerWithMacOSNotificationCenter();
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {
@@ -230,6 +274,7 @@ if (!gotTheLock) {
 			.protocol.handle("superset-icon", iconProtocolHandler);
 
 		ensureProjectIconsDir();
+		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
 

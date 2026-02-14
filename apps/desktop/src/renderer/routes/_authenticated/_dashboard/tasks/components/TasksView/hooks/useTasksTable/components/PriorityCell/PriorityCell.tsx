@@ -55,6 +55,7 @@ export function PriorityCell({ info }: PriorityCellProps) {
 					type="button"
 					className="group p-0 cursor-pointer border-0 transition-all"
 					title={PRIORITY_LABELS[currentPriority]}
+					onClick={(e) => e.stopPropagation()}
 				>
 					<PriorityIcon
 						priority={currentPriority}
@@ -63,7 +64,11 @@ export function PriorityCell({ info }: PriorityCellProps) {
 					/>
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-52 p-1">
+			<DropdownMenuContent
+				align="start"
+				className="w-52 p-1"
+				onClick={(e) => e.stopPropagation()}
+			>
 				{ALL_PRIORITIES.map((priority) => (
 					<DropdownMenuItem
 						key={priority}

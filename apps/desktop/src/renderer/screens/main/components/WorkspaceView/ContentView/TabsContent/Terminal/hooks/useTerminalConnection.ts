@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 export interface UseTerminalConnectionOptions {
@@ -23,8 +24,7 @@ export function useTerminalConnection({
 	const [connectionError, setConnectionError] = useState<string | null>(null);
 
 	// tRPC mutations
-	const createOrAttachMutation =
-		electronTrpc.terminal.createOrAttach.useMutation();
+	const createOrAttachMutation = useCreateOrAttachWithTheme();
 	const writeMutation = electronTrpc.terminal.write.useMutation();
 	const resizeMutation = electronTrpc.terminal.resize.useMutation();
 	const detachMutation = electronTrpc.terminal.detach.useMutation();

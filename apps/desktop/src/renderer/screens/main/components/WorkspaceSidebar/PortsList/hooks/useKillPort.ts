@@ -1,13 +1,11 @@
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { MergedPort } from "shared/types";
+import type { EnrichedPort } from "shared/types";
 
 export function useKillPort() {
 	const killMutation = electronTrpc.ports.kill.useMutation();
 
-	const killPort = async (port: MergedPort) => {
-		if (!port.isActive || port.paneId == null) return;
-
+	const killPort = async (port: EnrichedPort) => {
 		const result = await killMutation.mutateAsync({
 			paneId: port.paneId,
 			port: port.port,
@@ -19,14 +17,13 @@ export function useKillPort() {
 		}
 	};
 
-	const killPorts = async (ports: MergedPort[]) => {
-		const portsToKill = ports.filter((p) => p.isActive && p.paneId != null);
-		if (portsToKill.length === 0) return;
+	const killPorts = async (ports: EnrichedPort[]) => {
+		if (ports.length === 0) return;
 
 		const results = await Promise.all(
-			portsToKill.map((port) =>
+			ports.map((port) =>
 				killMutation.mutateAsync({
-					paneId: port.paneId as string,
+					paneId: port.paneId,
 					port: port.port,
 				}),
 			),

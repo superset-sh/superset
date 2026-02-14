@@ -330,7 +330,7 @@ export function buildTerminalEnv(params: {
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
-	portBase?: number | null;
+	themeType?: "dark" | "light";
 }): Record<string, string> {
 	const {
 		shell,
@@ -340,7 +340,7 @@ export function buildTerminalEnv(params: {
 		workspaceName,
 		workspacePath,
 		rootPath,
-		portBase,
+		themeType,
 	} = params;
 
 	// Get Electron's process.env and filter to only allowlisted safe vars
@@ -353,12 +353,16 @@ export function buildTerminalEnv(params: {
 	const shellEnv = getShellEnv(shell);
 	const locale = getLocale(rawBaseEnv);
 
+	// COLORFGBG: "foreground;background" ANSI color indices — TUI apps use this to detect light/dark
+	const colorFgBg = themeType === "light" ? "0;15" : "15;0";
+
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
 		TERM_PROGRAM: "Superset",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
+		COLORFGBG: colorFgBg,
 		LANG: locale,
 		SUPERSET_PANE_ID: paneId,
 		SUPERSET_TAB_ID: tabId,
@@ -371,8 +375,6 @@ export function buildTerminalEnv(params: {
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
 		// Hook protocol version for forward compatibility
 		SUPERSET_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
-		// Port base for multi-worktree dev instances (setup.sh uses this to calculate all ports)
-		...(portBase != null && { SUPERSET_PORT_BASE: String(portBase) }),
 	};
 
 	delete terminalEnv.GOOGLE_API_KEY;

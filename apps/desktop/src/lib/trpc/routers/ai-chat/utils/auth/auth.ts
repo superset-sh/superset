@@ -45,7 +45,7 @@ function getCredentialsFromEnv(): ClaudeCredentials | null {
 /**
  * Get Claude credentials from config file.
  */
-function getCredentialsFromConfig(): ClaudeCredentials | null {
+export function getCredentialsFromConfig(): ClaudeCredentials | null {
 	const home = homedir();
 	// Check Claude Code CLI credentials first (most common case)
 	const configPaths = [
@@ -108,7 +108,7 @@ function getCredentialsFromConfig(): ClaudeCredentials | null {
 /**
  * Get Claude credentials from macOS Keychain.
  */
-function getCredentialsFromKeychain(): ClaudeCredentials | null {
+export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 	if (platform() !== "darwin") {
 		return null;
 	}

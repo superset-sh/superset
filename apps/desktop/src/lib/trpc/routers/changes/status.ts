@@ -1,6 +1,3 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
-import { and, eq, isNull, not } from "drizzle-orm";
-import { localDb } from "main/lib/local-db";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -29,16 +26,9 @@ export const createStatusRouter = () => {
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
 
-				// First, get status (needed for subsequent operations)
-				// Use --no-optional-locks to avoid holding locks on the repository
 				const status = await getStatusNoLock(input.worktreePath);
 				const parsed = parseGitStatus(status);
-				syncWorkspaceBranch({
-					worktreePath: input.worktreePath,
-					currentBranch: parsed.branch,
-				});
 
-				// Run independent operations in parallel
 				const [branchComparison, trackingStatus] = await Promise.all([
 					getBranchComparison(git, defaultBranch),
 					getTrackingBranchStatus(git),
@@ -101,81 +91,6 @@ export const createStatusRouter = () => {
 	});
 };
 
-/**
- * Update local DB branch fields to match the current git branch for a worktree
- * or main repo workspace path.
- */
-function syncWorkspaceBranch({
-	worktreePath,
-	currentBranch,
-}: {
-	worktreePath: string;
-	currentBranch: string;
-}): void {
-	if (!currentBranch || currentBranch === "HEAD") {
-		return;
-	}
-
-	try {
-		const worktree = localDb
-			.select({ id: worktrees.id })
-			.from(worktrees)
-			.where(eq(worktrees.path, worktreePath))
-			.get();
-
-		if (worktree) {
-			localDb
-				.update(worktrees)
-				.set({ branch: currentBranch })
-				.where(
-					and(
-						eq(worktrees.id, worktree.id),
-						not(eq(worktrees.branch, currentBranch)),
-					),
-				)
-				.run();
-
-			localDb
-				.update(workspaces)
-				.set({ branch: currentBranch })
-				.where(
-					and(
-						eq(workspaces.worktreeId, worktree.id),
-						isNull(workspaces.deletingAt),
-						not(eq(workspaces.branch, currentBranch)),
-					),
-				)
-				.run();
-
-			return;
-		}
-
-		const project = localDb
-			.select({ id: projects.id })
-			.from(projects)
-			.where(eq(projects.mainRepoPath, worktreePath))
-			.get();
-		if (!project) {
-			return;
-		}
-
-		localDb
-			.update(workspaces)
-			.set({ branch: currentBranch })
-			.where(
-				and(
-					eq(workspaces.projectId, project.id),
-					eq(workspaces.type, "branch"),
-					isNull(workspaces.deletingAt),
-					not(eq(workspaces.branch, currentBranch)),
-				),
-			)
-			.run();
-	} catch (error) {
-		console.warn("[changes/status] Failed to sync branch:", error);
-	}
-}
-
 interface BranchComparison {
 	commits: GitChangesStatus["commits"];
 	againstBase: ChangedFile[];
@@ -229,7 +144,6 @@ async function getBranchComparison(
 	return { commits, againstBase, ahead, behind };
 }
 
-/** Max file size for line counting (1 MiB) - skip larger files to avoid OOM */
 const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 
 async function applyUntrackedLineCount(
@@ -245,9 +159,7 @@ async function applyUntrackedLineCount(
 			const lineCount = content.split("\n").length;
 			file.additions = lineCount;
 			file.deletions = 0;
-		} catch {
-			// Skip files that fail validation or reading
-		}
+		} catch {}
 	}
 }
 

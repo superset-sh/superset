@@ -1,2 +1,1 @@
-export { hasStaticPortsConfig, loadStaticPorts } from "./loader";
-export { staticPortsWatcher } from "./watcher";
+export { loadStaticPorts } from "./loader";
