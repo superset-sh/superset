@@ -82,6 +82,15 @@ export function getClaudeSettingsContent(notifyPath: string): string {
 			PermissionRequest: [
 				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
 			],
+			// Notification hook fires when Claude Code needs user attention
+			// - permission_prompt: permission dialogs
+			// - elicitation_dialog: when Claude asks questions via MCP tool elicitation
+			Notification: [
+				{
+					matcher: "permission_prompt|elicitation_dialog",
+					hooks: [{ type: "command", command: notifyPath }],
+				},
+			],
 		},
 	};
 
