@@ -23,15 +23,12 @@ export function usePortsData() {
 	const { data: allStaticPortsData } =
 		electronTrpc.ports.getAllStatic.useQuery();
 
-	// Subscribe to all static port changes
-	electronTrpc.ports.subscribeStatic.useSubscription(
-		{ workspaceId: "" },
-		{
-			onData: () => {
-				utils.ports.getAllStatic.invalidate();
-			},
+	// Subscribe to all static port changes across all workspaces
+	electronTrpc.ports.subscribeAllStatic.useSubscription(undefined, {
+		onData: () => {
+			utils.ports.getAllStatic.invalidate();
 		},
-	);
+	});
 
 	const { data: initialPorts } = electronTrpc.ports.getAll.useQuery();
 

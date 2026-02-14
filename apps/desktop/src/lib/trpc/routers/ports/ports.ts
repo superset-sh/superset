@@ -186,5 +186,33 @@ export const createPortsRouter = () => {
 					};
 				});
 			}),
+
+		subscribeAllStatic: publicProcedure.subscription(() => {
+			return observable<{ type: "change"; workspaceId: string }>((emit) => {
+				const allWorkspaces = localDb.select().from(workspaces).all();
+				const watchedIds: string[] = [];
+
+				for (const workspace of allWorkspaces) {
+					const workspacePath = getWorkspacePath(workspace);
+					if (!workspacePath) continue;
+
+					staticPortsWatcher.watch(workspace.id, workspacePath);
+					watchedIds.push(workspace.id);
+				}
+
+				const onChange = (changedWorkspaceId: string) => {
+					emit.next({ type: "change", workspaceId: changedWorkspaceId });
+				};
+
+				staticPortsWatcher.on("change", onChange);
+
+				return () => {
+					staticPortsWatcher.off("change", onChange);
+					for (const id of watchedIds) {
+						staticPortsWatcher.unwatch(id);
+					}
+				};
+			});
+		}),
 	});
 };

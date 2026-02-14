@@ -447,6 +447,32 @@ https://localhost:{\$CADDY_ELECTRIC_PORT} {
 CADDYEOF
   success "Caddyfile written"
 
+  # Generate .superset/ports.json for static port name mapping in the desktop app
+  if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
+    local superset_dir
+    superset_dir="$(dirname "$0")"
+    cat > "$superset_dir/ports.json" <<PORTSJSON
+{
+  "ports": [
+    { "port": $WEB_PORT, "label": "Web" },
+    { "port": $API_PORT, "label": "API" },
+    { "port": $MARKETING_PORT, "label": "Marketing" },
+    { "port": $ADMIN_PORT, "label": "Admin" },
+    { "port": $DOCS_PORT, "label": "Docs" },
+    { "port": $DESKTOP_VITE_PORT, "label": "Desktop Vite" },
+    { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
+    { "port": $STREAMS_PORT, "label": "Streams" },
+    { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
+    { "port": $ELECTRIC_PORT, "label": "Electric" },
+    { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
+    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" },
+    { "port": $ELECTRIC_PROXY_PORT, "label": "Electric Proxy" }
+  ]
+}
+PORTSJSON
+    success "Port name mapping written to .superset/ports.json"
+  fi
+
   return 0
 }
 
