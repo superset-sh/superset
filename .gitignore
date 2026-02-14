@@ -50,12 +50,8 @@ mise.toml
 out
 next-env.d.ts
 
-# Superset
-# Ignore .superset directory except for config and scripts
-.superset/*
-!.superset/config.json
-!.superset/setup.sh
-!.superset/teardown.sh
+# Superset (track scripts/config; ignore generated workspace artifacts)
+.superset/ports.json
 
 # tsbuildinfo
 *.tsbuildinfo
