@@ -4,6 +4,7 @@ import {
 } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
+import { GIT_TIMEOUT_LOCAL, GIT_TIMEOUT_NETWORK } from "./git-timeouts";
 
 const execFileAsync = promisify(execFile);
 
@@ -46,7 +47,7 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 		// -c: execute command
 		// Avoids -i (interactive) to skip TTY prompts and reduce latency
 		const { stdout } = await execFileAsync(shell, ["-lc", "env"], {
-			timeout: 10_000,
+			timeout: GIT_TIMEOUT_LOCAL,
 			env: {
 				...process.env,
 				HOME: os.homedir(),
@@ -124,8 +125,13 @@ export async function execWithShellEnv(
 	args: string[],
 	options?: Omit<ExecFileOptionsWithStringEncoding, "encoding">,
 ): Promise<{ stdout: string; stderr: string }> {
+	const defaultTimeout = options?.timeout ?? GIT_TIMEOUT_NETWORK;
 	try {
-		return await execFileAsync(cmd, args, { ...options, encoding: "utf8" });
+		return await execFileAsync(cmd, args, {
+			...options,
+			timeout: defaultTimeout,
+			encoding: "utf8",
+		});
 	} catch (error) {
 		// Only retry on ENOENT (command not found), only on macOS
 		// Skip if we've already successfully fixed PATH, or if a fix attempt is in progress
@@ -160,6 +166,7 @@ export async function execWithShellEnv(
 
 			return await execFileAsync(cmd, args, {
 				...options,
+				timeout: defaultTimeout,
 				encoding: "utf8",
 				env: retryEnv,
 			});

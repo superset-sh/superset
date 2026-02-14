@@ -1,11 +1,20 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { TRPCError } from "@trpc/server";
 import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	GIT_TIMEOUT_NETWORK,
+	GIT_TIMEOUT_NETWORK_HEAVY,
+	wrapTimeoutError,
+} from "../workspaces/utils/git-timeouts";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security";
+
+const execFileAsync = promisify(execFile);
 
 export { isUpstreamMissingError };
 
@@ -20,17 +29,22 @@ async function hasUpstreamBranch(
 	}
 }
 
-async function fetchCurrentBranch(
-	git: ReturnType<typeof simpleGit>,
-): Promise<void> {
+async function fetchCurrentBranch(worktreePath: string): Promise<void> {
+	const git = simpleGit(worktreePath);
 	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 	try {
-		await git.fetch(["origin", branch]);
+		await execFileAsync(
+			"git",
+			["-C", worktreePath, "fetch", "origin", branch],
+			{ timeout: GIT_TIMEOUT_NETWORK },
+		);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (isUpstreamMissingError(message)) {
 			try {
-				await git.fetch(["origin"]);
+				await execFileAsync("git", ["-C", worktreePath, "fetch", "origin"], {
+					timeout: GIT_TIMEOUT_NETWORK,
+				});
 			} catch (fallbackError) {
 				const fallbackMessage =
 					fallbackError instanceof Error
@@ -41,20 +55,20 @@ async function fetchCurrentBranch(
 						`[git/fetch] failed fallback fetch for branch ${branch}:`,
 						fallbackError,
 					);
-					throw fallbackError;
+					throw wrapTimeoutError(fallbackError, "Fetch");
 				}
 			}
 			return;
 		}
-		throw error;
+		throw wrapTimeoutError(error, "Fetch");
 	}
 }
 
 async function pushWithSetUpstream({
-	git,
+	worktreePath,
 	branch,
 }: {
-	git: ReturnType<typeof simpleGit>;
+	worktreePath: string;
 	branch: string;
 }): Promise<void> {
 	const trimmedBranch = branch.trim();
@@ -68,11 +82,22 @@ async function pushWithSetUpstream({
 
 	// Use HEAD refspec to avoid resolving the branch name as a local ref.
 	// This is more reliable for worktrees where upstream tracking isn't set yet.
-	await git.push([
-		"--set-upstream",
-		"origin",
-		`HEAD:refs/heads/${trimmedBranch}`,
-	]);
+	try {
+		await execFileAsync(
+			"git",
+			[
+				"-C",
+				worktreePath,
+				"push",
+				"--set-upstream",
+				"origin",
+				`HEAD:refs/heads/${trimmedBranch}`,
+			],
+			{ timeout: GIT_TIMEOUT_NETWORK_HEAVY },
+		);
+	} catch (error) {
+		throw wrapTimeoutError(error, "Push");
+	}
 }
 
 function shouldRetryPushWithUpstream(message: string): boolean {
@@ -125,22 +150,30 @@ export const createGitOperationsRouter = () => {
 
 				if (input.setUpstream && !hasUpstream) {
 					const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
-					await pushWithSetUpstream({ git, branch });
+					await pushWithSetUpstream({
+						worktreePath: input.worktreePath,
+						branch,
+					});
 				} else {
 					try {
-						await git.push();
+						await execFileAsync("git", ["-C", input.worktreePath, "push"], {
+							timeout: GIT_TIMEOUT_NETWORK_HEAVY,
+						});
 					} catch (error) {
 						const message =
 							error instanceof Error ? error.message : String(error);
 						if (shouldRetryPushWithUpstream(message)) {
 							const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
-							await pushWithSetUpstream({ git, branch });
+							await pushWithSetUpstream({
+								worktreePath: input.worktreePath,
+								branch,
+							});
 						} else {
-							throw error;
+							throw wrapTimeoutError(error, "Push");
 						}
 					}
 				}
-				await fetchCurrentBranch(git);
+				await fetchCurrentBranch(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -153,9 +186,12 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
 				try {
-					await git.pull(["--rebase"]);
+					await execFileAsync(
+						"git",
+						["-C", input.worktreePath, "pull", "--rebase"],
+						{ timeout: GIT_TIMEOUT_NETWORK_HEAVY },
+					);
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
@@ -164,7 +200,7 @@ export const createGitOperationsRouter = () => {
 							"No upstream branch to pull from. The remote branch may have been deleted.",
 						);
 					}
-					throw error;
+					throw wrapTimeoutError(error, "Pull");
 				}
 				return { success: true };
 			}),
@@ -180,20 +216,33 @@ export const createGitOperationsRouter = () => {
 
 				const git = simpleGit(input.worktreePath);
 				try {
-					await git.pull(["--rebase"]);
+					await execFileAsync(
+						"git",
+						["-C", input.worktreePath, "pull", "--rebase"],
+						{ timeout: GIT_TIMEOUT_NETWORK_HEAVY },
+					);
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
 					if (isUpstreamMissingError(message)) {
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
-						await pushWithSetUpstream({ git, branch });
-						await fetchCurrentBranch(git);
+						await pushWithSetUpstream({
+							worktreePath: input.worktreePath,
+							branch,
+						});
+						await fetchCurrentBranch(input.worktreePath);
 						return { success: true };
 					}
-					throw error;
+					throw wrapTimeoutError(error, "Sync");
 				}
-				await git.push();
-				await fetchCurrentBranch(git);
+				try {
+					await execFileAsync("git", ["-C", input.worktreePath, "push"], {
+						timeout: GIT_TIMEOUT_NETWORK_HEAVY,
+					});
+				} catch (error) {
+					throw wrapTimeoutError(error, "Push");
+				}
+				await fetchCurrentBranch(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -201,8 +250,7 @@ export const createGitOperationsRouter = () => {
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
-				const git = simpleGit(input.worktreePath);
-				await fetchCurrentBranch(git);
+				await fetchCurrentBranch(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -222,18 +270,26 @@ export const createGitOperationsRouter = () => {
 
 					// Ensure branch is pushed first
 					if (!hasUpstream) {
-						await pushWithSetUpstream({ git, branch });
+						await pushWithSetUpstream({
+							worktreePath: input.worktreePath,
+							branch,
+						});
 					} else {
 						// Push any unpushed commits
 						try {
-							await git.push();
+							await execFileAsync("git", ["-C", input.worktreePath, "push"], {
+								timeout: GIT_TIMEOUT_NETWORK_HEAVY,
+							});
 						} catch (error) {
 							const message =
 								error instanceof Error ? error.message : String(error);
 							if (shouldRetryPushWithUpstream(message)) {
-								await pushWithSetUpstream({ git, branch });
+								await pushWithSetUpstream({
+									worktreePath: input.worktreePath,
+									branch,
+								});
 							} else {
-								throw error;
+								throw wrapTimeoutError(error, "Push");
 							}
 						}
 					}
@@ -252,7 +308,7 @@ export const createGitOperationsRouter = () => {
 					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
 
 					await shell.openExternal(url);
-					await fetchCurrentBranch(git);
+					await fetchCurrentBranch(input.worktreePath);
 
 					return { success: true, url };
 				},

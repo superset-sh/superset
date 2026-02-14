@@ -8,6 +8,12 @@ import friendlyWords = require("friendly-words");
 
 import type { BranchPrefixMode } from "@superset/local-db";
 import simpleGit, { type StatusResult } from "simple-git";
+import {
+	GIT_TIMEOUT_LOCAL,
+	GIT_TIMEOUT_LONG,
+	GIT_TIMEOUT_NETWORK,
+	wrapTimeoutError,
+} from "./git-timeouts";
 import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -76,7 +82,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 				"-z",
 				"-uall",
 			],
-			{ env, timeout: 30_000 },
+			{ env, timeout: GIT_TIMEOUT_NETWORK },
 		);
 
 		return parsePortelainStatus(stdout);
@@ -331,7 +337,7 @@ export async function getGitHubUsername(
 		const { stdout } = await execFileAsync(
 			"gh",
 			["api", "user", "--jq", ".login"],
-			{ env, timeout: 10_000 },
+			{ env, timeout: GIT_TIMEOUT_LOCAL },
 		);
 		const value = stdout.trim() || null;
 		cachedGitHubUsername = { value, timestamp: Date.now() };
@@ -472,7 +478,7 @@ export async function createWorktree(
 				// creating a new branch from a remote branch like origin/main.
 				`${startPoint}^{commit}`,
 			],
-			{ env, timeout: 120_000 },
+			{ env, timeout: GIT_TIMEOUT_LONG },
 		);
 
 		// Enable autoSetupRemote so the first `git push` automatically creates
@@ -480,7 +486,7 @@ export async function createWorktree(
 		await execFileAsync(
 			"git",
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ env, timeout: GIT_TIMEOUT_LOCAL },
 		);
 
 		console.log(
@@ -568,7 +574,7 @@ export async function createWorktreeFromExistingBranch({
 			await execFileAsync(
 				"git",
 				["-C", mainRepoPath, "worktree", "add", worktreePath, branch],
-				{ env, timeout: 120_000 },
+				{ env, timeout: GIT_TIMEOUT_LONG },
 			);
 		} else {
 			// Branch doesn't exist locally - check if it's a remote branch
@@ -590,7 +596,7 @@ export async function createWorktreeFromExistingBranch({
 						worktreePath,
 						remoteBranchName,
 					],
-					{ env, timeout: 120_000 },
+					{ env, timeout: GIT_TIMEOUT_LONG },
 				);
 			} else {
 				throw new Error(
@@ -604,7 +610,7 @@ export async function createWorktreeFromExistingBranch({
 		await execFileAsync(
 			"git",
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ env, timeout: GIT_TIMEOUT_LOCAL },
 		);
 
 		console.log(
@@ -674,7 +680,7 @@ export async function deleteLocalBranch({
 	try {
 		await execFileAsync("git", ["-C", mainRepoPath, "branch", "-D", branch], {
 			env,
-			timeout: 10_000,
+			timeout: GIT_TIMEOUT_LOCAL,
 		});
 		console.log(`[workspace/delete] Deleted local branch "${branch}"`);
 	} catch (error) {
@@ -705,7 +711,7 @@ export async function removeWorktree(
 
 		await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
 			env,
-			timeout: 10_000,
+			timeout: GIT_TIMEOUT_LOCAL,
 		});
 
 		// Delete the moved directory in the background — don't block the caller.
@@ -737,7 +743,7 @@ export async function removeWorktree(
 				const env = await getGitEnv();
 				await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
 					env,
-					timeout: 10_000,
+					timeout: GIT_TIMEOUT_LOCAL,
 				});
 			} catch {}
 			return;
@@ -911,8 +917,13 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 
 		// Try ls-remote as last resort for remote repos
 		try {
-			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
-			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
+			const env = await getGitEnv();
+			const { stdout } = await execFileAsync(
+				"git",
+				["-C", mainRepoPath, "ls-remote", "--symref", "origin", "HEAD"],
+				{ env, timeout: GIT_TIMEOUT_NETWORK },
+			);
+			const symrefMatch = stdout.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
 			if (symrefMatch) {
 				return symrefMatch[1];
 			}
@@ -948,8 +959,17 @@ export async function fetchDefaultBranch(
 	mainRepoPath: string,
 	defaultBranch: string,
 ): Promise<string> {
+	const env = await getGitEnv();
+	try {
+		await execFileAsync(
+			"git",
+			["-C", mainRepoPath, "fetch", "origin", defaultBranch],
+			{ env, timeout: GIT_TIMEOUT_NETWORK },
+		);
+	} catch (error) {
+		throw wrapTimeoutError(error, "Fetch default branch");
+	}
 	const git = simpleGit(mainRepoPath);
-	await git.fetch("origin", defaultBranch);
 	const commit = await git.revparse(`origin/${defaultBranch}`);
 	return commit.trim();
 }
@@ -964,6 +984,7 @@ export async function refreshDefaultBranch(
 	mainRepoPath: string,
 ): Promise<string | null> {
 	const git = simpleGit(mainRepoPath);
+	const env = await getGitEnv();
 
 	const hasRemote = await hasOriginRemote(mainRepoPath);
 	if (!hasRemote) {
@@ -973,7 +994,11 @@ export async function refreshDefaultBranch(
 	try {
 		// Git doesn't auto-update origin/HEAD on fetch, so we must explicitly
 		// sync it to detect when the remote's default branch changes
-		await git.remote(["set-head", "origin", "--auto"]);
+		await execFileAsync(
+			"git",
+			["-C", mainRepoPath, "remote", "set-head", "origin", "--auto"],
+			{ env, timeout: GIT_TIMEOUT_NETWORK },
+		);
 
 		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
@@ -984,8 +1009,12 @@ export async function refreshDefaultBranch(
 		// set-head requires network access; fall back to ls-remote which may
 		// work in some edge cases or provide a more specific error
 		try {
-			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
-			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
+			const { stdout } = await execFileAsync(
+				"git",
+				["-C", mainRepoPath, "ls-remote", "--symref", "origin", "HEAD"],
+				{ env, timeout: GIT_TIMEOUT_NETWORK },
+			);
+			const symrefMatch = stdout.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
 			if (symrefMatch) {
 				return symrefMatch[1];
 			}
@@ -1145,7 +1174,7 @@ export async function branchExistsOnRemote(
 				"origin",
 				branchName,
 			],
-			{ env, timeout: 30_000 },
+			{ env, timeout: GIT_TIMEOUT_NETWORK },
 		);
 		// Exit code 0 = branch exists (--exit-code flag ensures this)
 		return { status: "exists" };
@@ -1266,9 +1295,13 @@ export async function listBranches(
 	// Optionally fetch and prune to get up-to-date remote refs
 	if (options?.fetch) {
 		try {
-			await git.fetch(["--prune"]);
+			const env = await getGitEnv();
+			await execFileAsync("git", ["-C", repoPath, "fetch", "--prune"], {
+				env,
+				timeout: GIT_TIMEOUT_NETWORK,
+			});
 		} catch {
-			// Ignore fetch errors (e.g., offline)
+			// Ignore fetch errors (e.g., offline or timeout)
 		}
 	}
 
@@ -1359,10 +1392,13 @@ export async function checkBranchCheckoutSafety(
 
 		// Fetch and prune stale remote refs (best-effort, ignore errors if offline)
 		try {
-			const git = simpleGit(repoPath);
-			await git.fetch(["--prune"]);
+			const env = await getGitEnv();
+			await execFileAsync("git", ["-C", repoPath, "fetch", "--prune"], {
+				env,
+				timeout: GIT_TIMEOUT_NETWORK,
+			});
 		} catch {
-			// Ignore fetch errors
+			// Ignore fetch errors (e.g., offline or timeout)
 		}
 
 		return {
@@ -1572,7 +1608,7 @@ export async function getPrInfo({
 				"--json",
 				"number,title,headRefName,headRepository,headRepositoryOwner,isCrossRepository",
 			],
-			{ env, timeout: 30_000 },
+			{ env, timeout: GIT_TIMEOUT_NETWORK },
 		);
 
 		return JSON.parse(stdout) as PullRequestInfo;
@@ -1635,7 +1671,7 @@ export async function fetchPrBranch({
 		await execFileAsync(
 			"git",
 			["-C", repoPath, "fetch", remoteName, headBranch],
-			{ env, timeout: 120_000 },
+			{ env, timeout: GIT_TIMEOUT_LONG },
 		);
 
 		return `${remoteName}/${headBranch}`;
@@ -1644,7 +1680,7 @@ export async function fetchPrBranch({
 	await execFileAsync(
 		"git",
 		["-C", repoPath, "fetch", "origin", prInfo.headRefName],
-		{ env, timeout: 120_000 },
+		{ env, timeout: GIT_TIMEOUT_LONG },
 	);
 
 	return prInfo.headRefName;
@@ -1698,7 +1734,7 @@ export async function createWorktreeFromPr({
 							localCommit,
 							remoteCommit,
 						],
-						{ env, timeout: 10_000 },
+						{ env, timeout: GIT_TIMEOUT_LOCAL },
 					);
 				} catch {
 					throw new Error(
@@ -1711,14 +1747,14 @@ export async function createWorktreeFromPr({
 			await execFileAsync(
 				"git",
 				["-C", mainRepoPath, "worktree", "add", worktreePath, branchName],
-				{ env, timeout: 120_000 },
+				{ env, timeout: GIT_TIMEOUT_LONG },
 			);
 
 			if (localCommit !== remoteCommit) {
 				await execFileAsync(
 					"git",
 					["-C", worktreePath, "reset", "--hard", remoteRef],
-					{ env, timeout: 30_000 },
+					{ env, timeout: GIT_TIMEOUT_NETWORK },
 				);
 			}
 		} else {
@@ -1727,14 +1763,14 @@ export async function createWorktreeFromPr({
 				args.push("--track");
 			}
 			args.push("-b", branchName, worktreePath, remoteRef);
-			await execFileAsync("git", args, { env, timeout: 120_000 });
+			await execFileAsync("git", args, { env, timeout: GIT_TIMEOUT_LONG });
 		}
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
 		await execFileAsync(
 			"git",
 			["-C", worktreePath, "config", "--local", "push.autoSetupRemote", "true"],
-			{ env, timeout: 10_000 },
+			{ env, timeout: GIT_TIMEOUT_LOCAL },
 		);
 
 		console.log(

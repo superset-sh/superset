@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
 import { branchExistsOnRemote } from "../git";
+import { GIT_TIMEOUT_LOCAL } from "../git-timeouts";
 import { execWithShellEnv } from "../shell-env";
 import {
 	type GHPRResponse,
@@ -145,7 +146,7 @@ async function findPRByHeadCommit(
 		const { stdout: headOutput } = await execFileAsync(
 			"git",
 			["-C", worktreePath, "rev-parse", "HEAD"],
-			{ timeout: 10_000 },
+			{ timeout: GIT_TIMEOUT_LOCAL },
 		);
 		const headSha = headOutput.trim();
 
@@ -234,7 +235,7 @@ async function sharesAncestry(
 		const { stdout: localHead } = await execFileAsync(
 			"git",
 			["-C", worktreePath, "rev-parse", "HEAD"],
-			{ timeout: 10_000 },
+			{ timeout: GIT_TIMEOUT_LOCAL },
 		);
 		const localOid = localHead.trim();
 
@@ -258,7 +259,7 @@ async function sharesAncestry(
 						ancestor,
 						descendant,
 					],
-					{ timeout: 10_000 },
+					{ timeout: GIT_TIMEOUT_LOCAL },
 				);
 				return true;
 			} catch {
