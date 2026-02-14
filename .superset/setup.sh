@@ -10,10 +10,43 @@ NC='\033[0m'
 # Step tracking
 declare -a FAILED_STEPS=()
 declare -a SKIPPED_STEPS=()
+FORCE_OVERWRITE_DATA=0
 
 error() { echo -e "${RED}✗${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}!${NC} $1"; }
+
+print_usage() {
+  cat <<EOF
+Usage: .superset/setup.sh [options]
+
+Options:
+  -f, --force              Reset superset-dev-data/ before seeding local DB
+  -h, --help               Show this help message
+EOF
+}
+
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f|--force)
+        FORCE_OVERWRITE_DATA=1
+        shift
+        ;;
+      -h|--help)
+        print_usage
+        exit 0
+        ;;
+      *)
+        error "Unknown argument: $1"
+        print_usage
+        return 1
+        ;;
+    esac
+  done
+
+  return 0
+}
 
 # Track step failure
 step_failed() {
@@ -483,10 +516,25 @@ step_seed_local_db() {
   local source_db="$HOME/.superset/local.db"
   local dev_data_dir="superset-dev-data"
   local dest_db="$dev_data_dir/local.db"
+  local force_overwrite="$FORCE_OVERWRITE_DATA"
+
+  if [ "$force_overwrite" = "1" ] && [ -d "$dev_data_dir" ]; then
+    warn "Force overwrite enabled — removing existing $dev_data_dir/"
+    if ! rm -rf "$dev_data_dir"; then
+      error "Failed to remove existing $dev_data_dir/"
+      return 1
+    fi
+  fi
 
   if [ ! -f "$source_db" ]; then
     warn "No source local.db found at $source_db — skipping (app will create a fresh one)"
     step_skipped "Seed local DB (no source DB)"
+    return 0
+  fi
+
+  if [ -f "$dest_db" ] && [ "$force_overwrite" != "1" ]; then
+    warn "Destination DB already exists at $dest_db — skipping seed (use -f/--force)"
+    step_skipped "Seed local DB (already exists)"
     return 0
   fi
 
@@ -517,6 +565,10 @@ step_seed_local_db() {
 }
 
 main() {
+  if ! parse_args "$@"; then
+    return 1
+  fi
+
   echo "🚀 Setting up Superset workspace..."
   echo ""
 
