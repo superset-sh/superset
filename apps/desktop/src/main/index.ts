@@ -12,6 +12,7 @@ import { getWorkspaceName } from "shared/env.shared";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
@@ -230,6 +231,7 @@ if (!gotTheLock) {
 			.protocol.handle("superset-icon", iconProtocolHandler);
 
 		ensureProjectIconsDir();
+		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
 
