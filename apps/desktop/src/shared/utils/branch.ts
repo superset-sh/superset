@@ -2,10 +2,13 @@ export function sanitizeSegment(text: string, maxLength = 50): string {
 	return text
 		.toLowerCase()
 		.trim()
-		.replace(/[^a-z0-9\s-]/g, "")
 		.replace(/\s+/g, "-")
+		.replace(/[^a-z0-9._+@-]/g, "")
+		.replace(/\.{2,}/g, ".")
+		.replace(/@\{/g, "@")
 		.replace(/-+/g, "-")
-		.replace(/^-|-$/g, "")
+		.replace(/^[-.]|[-.]+$/g, "")
+		.replace(/\.lock$/g, "")
 		.slice(0, maxLength);
 }
 

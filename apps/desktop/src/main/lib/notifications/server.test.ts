@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mapEventType } from "./server";
+import { mapEventType } from "./map-event-type";
 
 describe("notifications/server", () => {
 	describe("mapEventType", () => {

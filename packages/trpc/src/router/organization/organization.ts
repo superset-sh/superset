@@ -5,11 +5,12 @@ import {
 	sessions as authSessions,
 	invitations,
 } from "@superset/db/schema/auth";
+import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { del, put } from "@vercel/blob";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
+import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 
 export const organizationRouter = {
@@ -146,11 +147,9 @@ export const organizationRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
-			const membership = await db.query.members.findFirst({
-				where: and(
-					eq(members.organizationId, id),
-					eq(members.userId, ctx.session.user.id),
-				),
+			const membership = await findOrgMembership({
+				userId: ctx.session.user.id,
+				organizationId: id,
 			});
 
 			if (!membership) {
@@ -215,11 +214,9 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const membership = await db.query.members.findFirst({
-				where: and(
-					eq(members.organizationId, input.organizationId),
-					eq(members.userId, ctx.session.user.id),
-				),
+			const membership = await findOrgMembership({
+				userId: ctx.session.user.id,
+				organizationId: input.organizationId,
 			});
 
 			if (!membership) {
@@ -247,57 +244,28 @@ export const organizationRouter = {
 				});
 			}
 
-			if (organization.logo) {
-				try {
-					await del(organization.logo);
-				} catch {
-					// Old logo doesn't exist or isn't in blob storage - that's fine
-				}
-			}
-
-			const allowedMimeTypes = ["image/png", "image/jpeg", "image/webp"];
-			if (!allowedMimeTypes.includes(input.mimeType)) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
-				});
-			}
-
-			const ext = input.mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
-			const randomId = Math.random().toString(36).substring(2, 15);
-			const pathname = `organization/${input.organizationId}/logo/${randomId}.${ext}`;
-
-			const base64Data = input.fileData.includes("base64,")
-				? input.fileData.split("base64,")[1] || input.fileData
-				: input.fileData;
-			const buffer = Buffer.from(base64Data, "base64");
-
-			const sizeInMB = buffer.length / (1024 * 1024);
-			if (sizeInMB > 4.5) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `File too large (${sizeInMB.toFixed(2)}MB). Maximum size is 4.5MB`,
-				});
-			}
+			const pathname = generateImagePathname({
+				prefix: `organization/${input.organizationId}/logo`,
+				mimeType: input.mimeType,
+			});
 
 			try {
-				const blob = await put(pathname, buffer, {
-					access: "public",
-					contentType: input.mimeType,
+				const url = await uploadImage({
+					fileData: input.fileData,
+					mimeType: input.mimeType,
+					pathname,
+					existingUrl: organization.logo,
 				});
 
 				const [updatedOrg] = await db
 					.update(organizations)
-					.set({ logo: blob.url })
+					.set({ logo: url })
 					.where(eq(organizations.id, input.organizationId))
 					.returning();
 
-				return {
-					success: true,
-					url: blob.url,
-					organization: updatedOrg,
-				};
+				return { success: true, url, organization: updatedOrg };
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				console.error("[organization/uploadLogo] Upload failed:", error);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",

@@ -55,8 +55,10 @@ This creates a draft release. Publish it manually at GitHub Releases.
 
 The app checks for updates at launch and every x hours using:
 
-- **Manifest**: `https://github.com/superset-sh/superset/releases/latest/download/latest-mac.yml`
-- **Installer**: `https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg`
+- **macOS manifest**: `https://github.com/superset-sh/superset/releases/latest/download/latest-mac.yml`
+- **Linux manifest**: `https://github.com/superset-sh/superset/releases/latest/download/latest-linux.yml`
+- **macOS installer**: `https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg`
+- **Linux installer**: `https://github.com/superset-sh/superset/releases/latest/download/Superset-x64.AppImage`
 
 The workflow creates stable-named copies (without version) so these URLs always point to the latest build.
 
@@ -78,7 +80,13 @@ bun run package
 
 Output: `apps/desktop/release/`
 
+Linux output should include:
+
+- `*.AppImage`
+- `*-linux.yml` (auto-update manifest)
+
 ## Troubleshooting
 
-- **Build fails**: Check `src/resources/build/icons/icon.icns` exists
+- **Linux auto-update not working**: Verify `release/*-linux.yml` is uploaded to the GitHub release
+- **Build icon warnings/failures**: Add icons under `src/resources/build/icons/` (`icon.icns`, `icon.ico`, optional Linux `.png`)
 - **Native module errors**: Ensure `node-pty` is in externals in both `electron.vite.config.ts` and `electron-builder.ts`

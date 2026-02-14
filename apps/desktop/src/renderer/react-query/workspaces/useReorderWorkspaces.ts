@@ -14,6 +14,8 @@ export function useReorderWorkspaces(
 		onSuccess: async (...args) => {
 			await utils.workspaces.getAll.invalidate();
 			await utils.workspaces.getAllGrouped.invalidate();
+			await utils.workspaces.getPreviousWorkspace.invalidate();
+			await utils.workspaces.getNextWorkspace.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});

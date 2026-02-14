@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import { type BlogPost, slugify, type TocItem } from "./blog-utils";
+import { normalizeContentDate } from "./content-utils";
 import { getPersonById } from "./people";
 
 export { BLOG_CATEGORIES, type BlogCategory } from "./blog-constants";
@@ -21,15 +22,7 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 		const { data, content } = matter(fileContent);
 
 		const slug = path.basename(filePath, ".mdx");
-
-		let dateValue: string;
-		if (data.date instanceof Date) {
-			dateValue = data.date.toISOString().split("T")[0] as string;
-		} else if (data.date) {
-			dateValue = String(data.date);
-		} else {
-			dateValue = new Date().toISOString().split("T")[0] as string;
-		}
+		const dateValue = normalizeContentDate(data.date) as string;
 
 		const authorId: string = data.author ?? "unknown";
 		const author = getPersonById(authorId) ?? {

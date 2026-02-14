@@ -23,15 +23,12 @@ export function usePortsData() {
 	const { data: allStaticPortsData } =
 		electronTrpc.ports.getAllStatic.useQuery();
 
-	// Subscribe to all static port changes
-	electronTrpc.ports.subscribeStatic.useSubscription(
-		{ workspaceId: "" },
-		{
-			onData: () => {
-				utils.ports.getAllStatic.invalidate();
-			},
+	// Subscribe to all static port changes across all workspaces
+	electronTrpc.ports.subscribeAllStatic.useSubscription(undefined, {
+		onData: () => {
+			utils.ports.getAllStatic.invalidate();
 		},
-	);
+	});
 
 	const { data: initialPorts } = electronTrpc.ports.getAll.useQuery();
 
@@ -117,10 +114,10 @@ export function usePortsData() {
 			},
 		);
 
-		// Sort alphabetically by workspace name
-		groups.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
-
-		return groups;
+		// Remove workspaces with no active ports and sort alphabetically
+		return groups
+			.filter((g) => g.ports.length > 0)
+			.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
 	}, [allWorkspaceIds, allStaticPortsData?.ports, ports, workspaceNames]);
 
 	const totalPortCount = workspacePortGroups.reduce(
