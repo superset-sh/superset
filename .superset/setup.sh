@@ -16,6 +16,22 @@ error() { echo -e "${RED}✗${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}!${NC} $1"; }
 
+escape_env_value() {
+  local value="${1-}"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//\$/\\$}"
+  value="${value//\`/\\\`}"
+  value="${value//$'\n'/\\n}"
+  printf '%s' "$value"
+}
+
+write_env_var() {
+  local key="$1"
+  local value="${2-}"
+  printf '%s="%s"\n' "$key" "$(escape_env_value "$value")"
+}
+
 print_usage() {
   cat <<EOF
 Usage: .superset/setup.sh [options]
@@ -432,33 +448,33 @@ step_write_env() {
   {
     echo ""
     echo "# Workspace Identity"
-    echo "SUPERSET_WORKSPACE_NAME=${WORKSPACE_NAME:-$(basename "$PWD")}"
-    echo "SUPERSET_HOME_DIR=$PWD/superset-dev-data"
+    write_env_var "SUPERSET_WORKSPACE_NAME" "${WORKSPACE_NAME:-$(basename "$PWD")}"
+    write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
     echo ""
     echo "# Workspace Database (Neon Branch)"
     if [ -n "${BRANCH_ID:-}" ]; then
-      echo "NEON_BRANCH_ID=$BRANCH_ID"
+      write_env_var "NEON_BRANCH_ID" "$BRANCH_ID"
     fi
     if [ -n "${POOLED_URL:-}" ]; then
-      echo "DATABASE_URL=$POOLED_URL"
+      write_env_var "DATABASE_URL" "$POOLED_URL"
     fi
     if [ -n "${DIRECT_URL:-}" ]; then
-      echo "DATABASE_URL_UNPOOLED=$DIRECT_URL"
+      write_env_var "DATABASE_URL_UNPOOLED" "$DIRECT_URL"
     fi
 
     echo ""
     echo "# Workspace Electric SQL (Docker)"
     if [ -n "${ELECTRIC_CONTAINER:-}" ]; then
-      echo "ELECTRIC_CONTAINER=$ELECTRIC_CONTAINER"
+      write_env_var "ELECTRIC_CONTAINER" "$ELECTRIC_CONTAINER"
     fi
     if [ -n "${ELECTRIC_PORT:-}" ]; then
-      echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+      write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
     fi
     if [ -n "${ELECTRIC_URL:-}" ]; then
-      echo "ELECTRIC_URL=$ELECTRIC_URL"
+      write_env_var "ELECTRIC_URL" "$ELECTRIC_URL"
     fi
     if [ -n "${ELECTRIC_SECRET:-}" ]; then
-      echo "ELECTRIC_SECRET=$ELECTRIC_SECRET"
+      write_env_var "ELECTRIC_SECRET" "$ELECTRIC_SECRET"
     fi
 
     # Port allocation for multi-worktree dev instances
@@ -485,42 +501,42 @@ step_write_env() {
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
-    echo "SUPERSET_PORT_BASE=$BASE"
-    echo "WEB_PORT=$WEB_PORT"
-    echo "API_PORT=$API_PORT"
-    echo "MARKETING_PORT=$MARKETING_PORT"
-    echo "ADMIN_PORT=$ADMIN_PORT"
-    echo "DOCS_PORT=$DOCS_PORT"
-    echo "DESKTOP_VITE_PORT=$DESKTOP_VITE_PORT"
-    echo "DESKTOP_NOTIFICATIONS_PORT=$DESKTOP_NOTIFICATIONS_PORT"
-    echo "STREAMS_PORT=$STREAMS_PORT"
-    echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
-    echo "ELECTRIC_PORT=$ELECTRIC_PORT"
-    echo "CADDY_ELECTRIC_PORT=$CADDY_ELECTRIC_PORT"
-    echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
-    echo "ELECTRIC_PROXY_PORT=$ELECTRIC_PROXY_PORT"
+    write_env_var "SUPERSET_PORT_BASE" "$BASE"
+    write_env_var "WEB_PORT" "$WEB_PORT"
+    write_env_var "API_PORT" "$API_PORT"
+    write_env_var "MARKETING_PORT" "$MARKETING_PORT"
+    write_env_var "ADMIN_PORT" "$ADMIN_PORT"
+    write_env_var "DOCS_PORT" "$DOCS_PORT"
+    write_env_var "DESKTOP_VITE_PORT" "$DESKTOP_VITE_PORT"
+    write_env_var "DESKTOP_NOTIFICATIONS_PORT" "$DESKTOP_NOTIFICATIONS_PORT"
+    write_env_var "STREAMS_PORT" "$STREAMS_PORT"
+    write_env_var "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
+    write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
+    write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
+    write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
+    write_env_var "ELECTRIC_PROXY_PORT" "$ELECTRIC_PROXY_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
-    echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"
-    echo "NEXT_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
-    echo "NEXT_PUBLIC_MARKETING_URL=http://localhost:$MARKETING_PORT"
-    echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"
-    echo "NEXT_PUBLIC_DOCS_URL=http://localhost:$DOCS_PORT"
-    echo "NEXT_PUBLIC_DESKTOP_URL=http://localhost:$DESKTOP_VITE_PORT"
-    echo "EXPO_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
-    echo "EXPO_PUBLIC_API_URL=http://localhost:$API_PORT"
+    write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
+    write_env_var "NEXT_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
+    write_env_var "NEXT_PUBLIC_MARKETING_URL" "http://localhost:$MARKETING_PORT"
+    write_env_var "NEXT_PUBLIC_ADMIN_URL" "http://localhost:$ADMIN_PORT"
+    write_env_var "NEXT_PUBLIC_DOCS_URL" "http://localhost:$DOCS_PORT"
+    write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
+    write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
+    write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"
-    echo "PORT=$STREAMS_PORT"
-    echo "STREAMS_URL=http://localhost:$STREAMS_PORT"
-    echo "NEXT_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
-    echo "EXPO_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
-    echo "STREAMS_INTERNAL_URL=http://127.0.0.1:$STREAMS_INTERNAL_PORT"
+    write_env_var "PORT" "$STREAMS_PORT"
+    write_env_var "STREAMS_URL" "http://localhost:$STREAMS_PORT"
+    write_env_var "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
+    write_env_var "EXPO_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
+    write_env_var "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
     echo ""
     echo "# Electric URLs (overrides from root .env)"
-    echo "ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape"
+    write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
     echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
-    echo "NEXT_PUBLIC_ELECTRIC_URL=https://localhost:$CADDY_ELECTRIC_PORT"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
   } >> .env
 
   success "Workspace .env written"
@@ -528,13 +544,13 @@ step_write_env() {
   # Generate Electric proxy .dev.vars for wrangler dev
   local api_port="${API_PORT:-3041}"
   local electric_port="${ELECTRIC_PORT:-3049}"
-  cat > apps/electric-proxy/.dev.vars <<DEVVARS
-ELECTRIC_URL=http://localhost:${electric_port}/v1/shape
-ELECTRIC_SECRET=${ELECTRIC_SECRET:-local_electric_dev_secret}
-JWKS_URL=http://localhost:${api_port}/api/auth/jwks
-JWT_ISSUER=http://localhost:${api_port}
-JWT_AUDIENCE=http://localhost:${api_port}
-DEVVARS
+  {
+    write_env_var "ELECTRIC_URL" "http://localhost:${electric_port}/v1/shape"
+    write_env_var "ELECTRIC_SECRET" "${ELECTRIC_SECRET:-local_electric_dev_secret}"
+    write_env_var "JWKS_URL" "http://localhost:${api_port}/api/auth/jwks"
+    write_env_var "JWT_ISSUER" "http://localhost:${api_port}"
+    write_env_var "JWT_AUDIENCE" "http://localhost:${api_port}"
+  } > apps/electric-proxy/.dev.vars
   success "Electric proxy .dev.vars written"
 
   # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
