@@ -1,29 +1,13 @@
-import { join } from "node:path";
 import {
 	createPermissionRequest,
 	executeAgent,
 	resolvePendingPermission,
 } from "@superset/agent";
-import { app } from "electron";
+import { ensureClaudeBinary } from "main/lib/claude-binary-manager";
 import { buildClaudeEnv } from "../auth";
 import type { SessionStore } from "../session-store";
 import type { PermissionRequestEvent } from "./session-events";
 import type { ActiveSession } from "./session-types";
-
-function getClaudeBinaryPath(): string {
-	if (app.isPackaged) {
-		return join(process.resourcesPath, "bin", "claude");
-	}
-	const platform = process.platform;
-	const arch = process.arch;
-	return join(
-		app.getAppPath(),
-		"resources",
-		"bin",
-		`${platform}-${arch}`,
-		"claude",
-	);
-}
 
 export interface ResolvePermissionInput {
 	sessionId: string;
@@ -56,12 +40,13 @@ export class AgentExecution {
 		onChunk,
 	}: ExecuteAgentInput): Promise<void> {
 		const agentEnv = buildClaudeEnv();
+		const claudeBinaryPath = await ensureClaudeBinary();
 
 		await executeAgent({
 			sessionId,
 			prompt,
 			cwd: session.cwd,
-			pathToClaudeCodeExecutable: getClaudeBinaryPath(),
+			pathToClaudeCodeExecutable: claudeBinaryPath,
 			env: agentEnv,
 			model: session.model,
 			permissionMode: session.permissionMode ?? "default",
