@@ -1,7 +1,12 @@
 import type { GenericMessageEvent } from "@slack/types";
 import { db } from "@superset/db/client";
-import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
+import {
+	integrationConnections,
+	subscriptions,
+	usersSlackUsers,
+} from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
+import { generateConnectUrl } from "../utils/generate-connect-url";
 import {
 	formatErrorForSlack,
 	resolveUserMentions,
@@ -45,15 +50,91 @@ export async function processAssistantMessage({
 
 	const slack = createSlackClient(connection.accessToken);
 
-	const slackUserLink = event.user
-		? await db.query.usersSlackUsers.findFirst({
-				where: and(
-					eq(usersSlackUsers.slackUserId, event.user),
-					eq(usersSlackUsers.teamId, teamId),
-				),
-				columns: { modelPreference: true },
-			})
-		: undefined;
+	const [slackUserLink, activeSubscription] = await Promise.all([
+		event.user
+			? db.query.usersSlackUsers.findFirst({
+					where: and(
+						eq(usersSlackUsers.slackUserId, event.user),
+						eq(usersSlackUsers.teamId, teamId),
+					),
+					columns: { userId: true, modelPreference: true },
+				})
+			: undefined,
+		db.query.subscriptions.findFirst({
+			where: and(
+				eq(subscriptions.referenceId, connection.organizationId),
+				eq(subscriptions.status, "active"),
+			),
+			columns: { id: true },
+		}),
+	]);
+
+	if (!activeSubscription) {
+		await slack.chat.postMessage({
+			channel: event.channel,
+			thread_ts: event.thread_ts ?? event.ts,
+			text: "The Superset Slack integration requires a Pro plan.",
+			blocks: [
+				{
+					type: "section",
+					text: {
+						type: "mrkdwn",
+						text: "The Superset Slack integration requires a Pro plan.",
+					},
+				},
+				{
+					type: "actions",
+					elements: [
+						{
+							type: "button",
+							text: { type: "plain_text", text: "Upgrade to Pro", emoji: true },
+							url: "https://app.superset.sh/settings/billing",
+							style: "primary",
+						},
+					],
+				},
+			],
+		});
+		return;
+	}
+
+	if (!slackUserLink) {
+		if (!event.user) return;
+		const connectUrl = generateConnectUrl({
+			slackUserId: event.user,
+			teamId,
+		});
+		await slack.chat.postMessage({
+			channel: event.channel,
+			thread_ts: event.thread_ts ?? event.ts,
+			text: "To use Superset, you need to link your Slack account first.",
+			blocks: [
+				{
+					type: "section",
+					text: {
+						type: "mrkdwn",
+						text: "To use Superset, you need to link your Slack account first.",
+					},
+				},
+				{
+					type: "actions",
+					elements: [
+						{
+							type: "button",
+							text: {
+								type: "plain_text",
+								text: "Connect Account",
+								emoji: true,
+							},
+							url: connectUrl,
+							style: "primary",
+						},
+					],
+				},
+			],
+		});
+		return;
+	}
 
 	const threadTs = event.thread_ts ?? event.ts;
 
@@ -84,8 +165,9 @@ export async function processAssistantMessage({
 			channelId: event.channel,
 			threadTs,
 			organizationId: connection.organizationId,
+			userId: slackUserLink.userId,
 			slackToken: connection.accessToken,
-			model: slackUserLink?.modelPreference ?? undefined,
+			model: slackUserLink.modelPreference ?? undefined,
 			onProgress: messageTs
 				? async (status) => {
 						try {

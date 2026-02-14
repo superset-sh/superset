@@ -35,14 +35,6 @@ export const taskRouter = {
 			.orderBy(desc(tasks.createdAt));
 	}),
 
-	byRepository: publicProcedure.input(z.string().uuid()).query(({ input }) => {
-		return db
-			.select()
-			.from(tasks)
-			.where(and(eq(tasks.repositoryId, input), isNull(tasks.deletedAt)))
-			.orderBy(desc(tasks.createdAt));
-	}),
-
 	byOrganization: publicProcedure
 		.input(z.string().uuid())
 		.query(({ input }) => {

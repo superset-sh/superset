@@ -20,6 +20,7 @@ const envSchema = z.object({
 	DESKTOP_VITE_PORT: z.coerce.number().default(5173),
 	DESKTOP_NOTIFICATIONS_PORT: z.coerce.number().default(5174),
 	ELECTRIC_PORT: z.coerce.number().default(5133),
+	DESKTOP_AUTOMATION_PORT: z.coerce.number().default(9223),
 	// Workspace name for instance isolation
 	SUPERSET_WORKSPACE_NAME: z.string().default("superset"),
 });
@@ -36,6 +37,7 @@ export const env = envSchema.parse({
 	DESKTOP_VITE_PORT: process.env.DESKTOP_VITE_PORT,
 	DESKTOP_NOTIFICATIONS_PORT: process.env.DESKTOP_NOTIFICATIONS_PORT,
 	ELECTRIC_PORT: process.env.ELECTRIC_PORT,
+	DESKTOP_AUTOMATION_PORT: process.env.DESKTOP_AUTOMATION_PORT,
 	SUPERSET_WORKSPACE_NAME: process.env.SUPERSET_WORKSPACE_NAME,
 });
 

@@ -10,10 +10,43 @@ NC='\033[0m'
 # Step tracking
 declare -a FAILED_STEPS=()
 declare -a SKIPPED_STEPS=()
+FORCE_OVERWRITE_DATA=0
 
 error() { echo -e "${RED}✗${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
 warn() { echo -e "${YELLOW}!${NC} $1"; }
+
+print_usage() {
+  cat <<EOF
+Usage: .superset/setup.sh [options]
+
+Options:
+  -f, --force              Reset superset-dev-data/ before seeding local DB
+  -h, --help               Show this help message
+EOF
+}
+
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -f|--force)
+        FORCE_OVERWRITE_DATA=1
+        shift
+        ;;
+      -h|--help)
+        print_usage
+        exit 0
+        ;;
+      *)
+        error "Unknown argument: $1"
+        print_usage
+        return 1
+        ;;
+    esac
+  done
+
+  return 0
+}
 
 # Track step failure
 step_failed() {
@@ -114,6 +147,10 @@ step_check_dependencies() {
 
   if ! command -v docker &> /dev/null; then
     missing+=("docker (Install from https://docker.com)")
+  fi
+
+  if ! command -v caddy &> /dev/null; then
+    warn "caddy not found — HTTP/2 proxy for Electric won't work (Run: brew install caddy && caddy trust)"
   fi
 
   if [ ${#missing[@]} -gt 0 ]; then
@@ -328,6 +365,7 @@ step_write_env() {
     echo ""
     echo "# Workspace Identity"
     echo "SUPERSET_WORKSPACE_NAME=${WORKSPACE_NAME:-$(basename "$PWD")}"
+    echo "SUPERSET_HOME_DIR=$PWD/superset-dev-data"
     echo ""
     echo "# Workspace Database (Neon Branch)"
     if [ -n "${BRANCH_ID:-}" ]; then
@@ -358,7 +396,8 @@ step_write_env() {
     # Port allocation for multi-worktree dev instances
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
-    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric
+    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
+    #          +10 caddy (HTTP/2 reverse proxy for electric-proxy), +11 code inspector, +12 electric-proxy (wrangler dev)
     if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
       local BASE=$SUPERSET_PORT_BASE
 
@@ -373,6 +412,9 @@ step_write_env() {
       local STREAMS_PORT=$((BASE + 7))
       local STREAMS_INTERNAL_PORT=$((BASE + 8))
       local ELECTRIC_PORT=$((BASE + 9))
+      local CADDY_ELECTRIC_PORT=$((BASE + 10))
+      local CODE_INSPECTOR_PORT=$((BASE + 11))
+      local ELECTRIC_PROXY_PORT=$((BASE + 12))
 
       echo ""
       echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -387,6 +429,9 @@ step_write_env() {
       echo "STREAMS_PORT=$STREAMS_PORT"
       echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
       echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+      echo "CADDY_ELECTRIC_PORT=$CADDY_ELECTRIC_PORT"
+      echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
+      echo "ELECTRIC_PROXY_PORT=$ELECTRIC_PROXY_PORT"
       echo ""
       echo "# Cross-app URLs (overrides from root .env)"
       echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"
@@ -405,16 +450,125 @@ step_write_env() {
       echo "EXPO_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
       echo "STREAMS_INTERNAL_URL=http://127.0.0.1:$STREAMS_INTERNAL_PORT"
       echo ""
-      echo "# Electric URL (overrides from root .env)"
+      echo "# Electric URLs (overrides from root .env)"
       echo "ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape"
+      echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
+      echo "NEXT_PUBLIC_ELECTRIC_URL=https://localhost:$CADDY_ELECTRIC_PORT"
     fi
   } >> .env
 
   success "Workspace .env written"
+
+  # Generate Electric proxy .dev.vars for wrangler dev
+  local api_port="${API_PORT:-3041}"
+  local electric_port="${ELECTRIC_PORT:-3049}"
+  cat > apps/electric-proxy/.dev.vars <<DEVVARS
+ELECTRIC_URL=http://localhost:${electric_port}/v1/shape
+ELECTRIC_SECRET=${ELECTRIC_SECRET:-local_electric_dev_secret}
+JWKS_URL=http://localhost:${api_port}/api/auth/jwks
+JWT_ISSUER=http://localhost:${api_port}
+JWT_AUDIENCE=http://localhost:${api_port}
+DEVVARS
+  success "Electric proxy .dev.vars written"
+
+  # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
+  cat > Caddyfile <<CADDYEOF
+https://localhost:{\$CADDY_ELECTRIC_PORT} {
+	reverse_proxy localhost:{\$ELECTRIC_PROXY_PORT} {
+		flush_interval -1
+	}
+}
+CADDYEOF
+  success "Caddyfile written"
+
+  # Generate .superset/ports.json for static port name mapping in the desktop app
+  if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
+    local superset_dir
+    superset_dir="$(dirname "$0")"
+    cat > "$superset_dir/ports.json" <<PORTSJSON
+{
+  "ports": [
+    { "port": $WEB_PORT, "label": "Web" },
+    { "port": $API_PORT, "label": "API" },
+    { "port": $MARKETING_PORT, "label": "Marketing" },
+    { "port": $ADMIN_PORT, "label": "Admin" },
+    { "port": $DOCS_PORT, "label": "Docs" },
+    { "port": $DESKTOP_VITE_PORT, "label": "Desktop Vite" },
+    { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
+    { "port": $STREAMS_PORT, "label": "Streams" },
+    { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
+    { "port": $ELECTRIC_PORT, "label": "Electric" },
+    { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
+    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" },
+    { "port": $ELECTRIC_PROXY_PORT, "label": "Electric Proxy" }
+  ]
+}
+PORTSJSON
+    success "Port name mapping written to .superset/ports.json"
+  fi
+
+  return 0
+}
+
+step_seed_local_db() {
+  echo "💾 Seeding local DB into superset-dev-data/..."
+
+  local source_db="$HOME/.superset/local.db"
+  local dev_data_dir="superset-dev-data"
+  local dest_db="$dev_data_dir/local.db"
+  local force_overwrite="$FORCE_OVERWRITE_DATA"
+
+  if [ "$force_overwrite" = "1" ] && [ -d "$dev_data_dir" ]; then
+    warn "Force overwrite enabled — removing existing $dev_data_dir/"
+    if ! rm -rf "$dev_data_dir"; then
+      error "Failed to remove existing $dev_data_dir/"
+      return 1
+    fi
+  fi
+
+  if [ ! -f "$source_db" ]; then
+    warn "No source local.db found at $source_db — skipping (app will create a fresh one)"
+    step_skipped "Seed local DB (no source DB)"
+    return 0
+  fi
+
+  if [ -f "$dest_db" ] && [ "$force_overwrite" != "1" ]; then
+    warn "Destination DB already exists at $dest_db — skipping seed (use -f/--force)"
+    step_skipped "Seed local DB (already exists)"
+    return 0
+  fi
+
+  mkdir -p "$dev_data_dir"
+  chmod 700 "$dev_data_dir"
+
+  # Copy all SQLite files so WAL data isn't lost when source is held open.
+  for ext in "" "-shm" "-wal"; do
+    local source_file="${source_db}${ext}"
+    local dest_file="${dest_db}${ext}"
+
+    if [ -f "$source_file" ]; then
+      if ! cp "$source_file" "$dest_file"; then
+        error "Failed to copy $source_file to $dest_file"
+        return 1
+      fi
+      chmod 600 "$dest_file"
+    fi
+  done
+
+  # Checkpoint the copy's WAL (no lock contention since nothing else has it open).
+  if command -v sqlite3 &> /dev/null; then
+    sqlite3 "$dest_db" "PRAGMA wal_checkpoint(TRUNCATE);" &> /dev/null || true
+  fi
+
+  success "Local DB seeded from $source_db"
   return 0
 }
 
 main() {
+  if ! parse_args "$@"; then
+    return 1
+  fi
+
   echo "🚀 Setting up Superset workspace..."
   echo ""
 
@@ -433,17 +587,22 @@ main() {
     step_failed "Install dependencies"
   fi
 
-  # Step 4: Setup Neon branch
+  # Step 4: Seed local DB into superset-dev-data/
+  if ! step_seed_local_db; then
+    step_failed "Seed local DB"
+  fi
+
+  # Step 5: Setup Neon branch
   if ! step_setup_neon_branch; then
     step_failed "Setup Neon branch"
   fi
 
-  # Step 5: Start Electric SQL
+  # Step 6: Start Electric SQL
   if ! step_start_electric; then
     step_failed "Start Electric SQL"
   fi
 
-  # Step 6: Write .env file
+  # Step 7: Write .env file
   if ! step_write_env; then
     step_failed "Write .env file"
   fi

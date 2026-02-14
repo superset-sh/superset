@@ -24,7 +24,7 @@ import { ClickablePath } from "../../../../components/ClickablePath";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
-function SettingsSection({
+export function SettingsSection({
 	icon,
 	title,
 	description,

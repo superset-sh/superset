@@ -12,6 +12,7 @@ import { getWorkspaceName } from "shared/env.shared";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
@@ -21,9 +22,12 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 
-const workspaceName = getWorkspaceName();
-if (workspaceName) {
-	app.setName(`Superset (${workspaceName})`);
+// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+if (process.env.NODE_ENV === "development") {
+	const workspaceName = getWorkspaceName();
+	if (workspaceName) {
+		app.setName(`Superset (${workspaceName})`);
+	}
 }
 
 // Dev mode: register with execPath + app script so macOS launches Electron with our entry point
@@ -230,6 +234,7 @@ if (!gotTheLock) {
 			.protocol.handle("superset-icon", iconProtocolHandler);
 
 		ensureProjectIconsDir();
+		setWorkspaceDockIcon();
 		initSentry();
 		await initAppState();
 

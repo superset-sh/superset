@@ -1,5 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef } from "react";
+import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -30,7 +31,7 @@ export function WorkspaceInitEffects() {
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const { openPreset } = useTabsWithPresets();
-	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
+	const createOrAttach = useCreateOrAttachWithTheme();
 	const utils = electronTrpc.useUtils();
 
 	const handleTerminalSetup = useCallback(

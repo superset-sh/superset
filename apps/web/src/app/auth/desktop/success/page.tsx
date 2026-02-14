@@ -8,10 +8,17 @@ import { DesktopRedirect } from "./components/DesktopRedirect";
 export default async function DesktopSuccessPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ desktop_state?: string; desktop_protocol?: string }>;
+	searchParams: Promise<{
+		desktop_state?: string;
+		desktop_protocol?: string;
+		desktop_local_callback?: string;
+	}>;
 }) {
-	const { desktop_state: state, desktop_protocol = "superset" } =
-		await searchParams;
+	const {
+		desktop_state: state,
+		desktop_protocol = "superset",
+		desktop_local_callback: localCallbackBase,
+	} = await searchParams;
 
 	if (!state) {
 		return (
@@ -73,10 +80,13 @@ export default async function DesktopSuccessPage({
 		updatedAt: now,
 	});
 	const desktopUrl = `${desktop_protocol}://auth/callback?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`;
+	const localCallbackUrl = localCallbackBase
+		? `${localCallbackBase}?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`
+		: undefined;
 
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-			<DesktopRedirect url={desktopUrl} />
+			<DesktopRedirect url={desktopUrl} localCallbackUrl={localCallbackUrl} />
 		</div>
 	);
 }

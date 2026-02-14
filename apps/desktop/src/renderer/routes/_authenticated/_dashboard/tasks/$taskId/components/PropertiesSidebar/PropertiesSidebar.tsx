@@ -2,6 +2,7 @@ import { Badge } from "@superset/ui/badge";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import type { TaskWithStatus } from "../../../components/TasksView/hooks/useTasksTable";
 import { AssigneeProperty } from "./components/AssigneeProperty";
+import { OpenInWorkspace } from "./components/OpenInWorkspace";
 import { PriorityProperty } from "./components/PriorityProperty";
 import { StatusProperty } from "./components/StatusProperty";
 
@@ -41,6 +42,8 @@ export function PropertiesSidebar({ task }: PropertiesSidebarProps) {
 							<span className="text-sm text-muted-foreground">No labels</span>
 						)}
 					</div>
+
+					<OpenInWorkspace task={task} />
 				</div>
 			</ScrollArea>
 		</div>

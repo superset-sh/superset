@@ -179,6 +179,11 @@ if ! command -v gh &> /dev/null; then
     error "GitHub CLI (gh) is required but not installed.\nInstall it from: https://cli.github.com/"
 fi
 
+# Check if jq is installed (required for package.json version updates)
+if ! command -v jq &> /dev/null; then
+    error "jq is required but not installed.\nInstall it with your package manager (e.g. sudo apt install jq)"
+fi
+
 # Check if authenticated with gh
 if ! gh auth status &> /dev/null; then
     error "Not authenticated with GitHub CLI.\nRun: gh auth login"
@@ -195,16 +200,7 @@ fi
 # Navigate to desktop app directory
 cd "${DESKTOP_DIR}"
 
-# 1. Check for uncommitted changes
-info "Checking for uncommitted changes..."
-# Refresh index to avoid false positives from stat cache mismatches
-git update-index --refresh > /dev/null 2>&1 || true
-if ! git diff-index --quiet HEAD --; then
-    error "You have uncommitted changes. Please commit or stash them first."
-fi
-success "Working directory is clean"
-
-# 2. Check if tag/release already exists
+# 1. Check if tag/release already exists
 info "Checking if tag ${TAG_NAME} already exists..."
 if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
     echo ""
@@ -342,6 +338,7 @@ REPO=$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')
 # 6. Monitor the workflow
 info "Monitoring GitHub Actions workflow..."
 echo "  Waiting for workflow to start (this may take a few seconds)..."
+TAG_SHA=$(git rev-list -n 1 "${TAG_NAME}")
 
 # Wait and retry to find the workflow run
 MAX_RETRIES=6
@@ -350,7 +347,11 @@ WORKFLOW_RUN=""
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ -z "$WORKFLOW_RUN" ]; do
     sleep 5
-    WORKFLOW_RUN=$(gh run list --workflow=release-desktop.yml --json databaseId,headBranch,status --jq ".[] | select(.headBranch == \"${TAG_NAME}\") | .databaseId" | head -1)
+    WORKFLOW_RUN=$(gh run list \
+        --workflow=release-desktop.yml \
+        --json databaseId,headSha,event,createdAt \
+        --jq ".[] | select(.headSha == \"${TAG_SHA}\" and .event == \"push\") | .databaseId" \
+        | head -1)
     RETRY_COUNT=$((RETRY_COUNT + 1))
 
     if [ -z "$WORKFLOW_RUN" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
@@ -439,6 +440,7 @@ else
         echo ""
         echo -e "${BLUE}Direct download:${NC}"
         echo "  • ${LATEST_URL}/download/Superset-arm64.dmg"
+        echo "  • ${LATEST_URL}/download/Superset-x64.AppImage"
         echo ""
     else
         success "Draft release created!"

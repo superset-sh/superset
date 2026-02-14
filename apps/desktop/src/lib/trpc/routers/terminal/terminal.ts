@@ -2,6 +2,7 @@ import { projects, workspaces, worktrees } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
+import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
 import { getDaemonTerminalManager } from "main/lib/terminal";
 import {
@@ -14,6 +15,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
+import { resolveTerminalThemeType } from "./theme-type";
 import { resolveCwd } from "./utils";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
@@ -66,6 +68,7 @@ export const createTerminalRouter = () => {
 					initialCommands: z.array(z.string()).optional(),
 					skipColdRestore: z.boolean().optional(),
 					allowKilled: z.boolean().optional(),
+					themeType: z.enum(["dark", "light"]).optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -81,6 +84,7 @@ export const createTerminalRouter = () => {
 					initialCommands,
 					skipColdRestore,
 					allowKilled,
+					themeType,
 				} = input;
 
 				const workspace = localDb
@@ -115,6 +119,10 @@ export const createTerminalRouter = () => {
 							.where(eq(projects.id, workspace.projectId))
 							.get()
 					: undefined;
+				const resolvedThemeType = resolveTerminalThemeType({
+					requestedThemeType: themeType,
+					persistedThemeState: appState.data.themeState,
+				});
 
 				try {
 					const result = await terminal.createOrAttach({
@@ -130,6 +138,7 @@ export const createTerminalRouter = () => {
 						initialCommands,
 						skipColdRestore,
 						allowKilled,
+						themeType: resolvedThemeType,
 						portBase: workspace?.portBase,
 					});
 
