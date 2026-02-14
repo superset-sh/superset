@@ -476,6 +476,45 @@ PORTSJSON
   return 0
 }
 
+step_seed_local_db() {
+  echo "💾 Seeding local DB into superset-dev-data/..."
+
+  local source_db="$HOME/.superset/local.db"
+  local dev_data_dir="superset-dev-data"
+  local dest_db="$dev_data_dir/local.db"
+
+  if [ ! -f "$source_db" ]; then
+    warn "No source local.db found at $source_db — skipping (app will create a fresh one)"
+    step_skipped "Seed local DB (no source DB)"
+    return 0
+  fi
+
+  mkdir -p "$dev_data_dir"
+  chmod 700 "$dev_data_dir"
+
+  # Copy all SQLite files so WAL data isn't lost when source is held open.
+  for ext in "" "-shm" "-wal"; do
+    local source_file="${source_db}${ext}"
+    local dest_file="${dest_db}${ext}"
+
+    if [ -f "$source_file" ]; then
+      if ! cp "$source_file" "$dest_file"; then
+        error "Failed to copy $source_file to $dest_file"
+        return 1
+      fi
+      chmod 600 "$dest_file"
+    fi
+  done
+
+  # Checkpoint the copy's WAL (no lock contention since nothing else has it open).
+  if command -v sqlite3 &> /dev/null; then
+    sqlite3 "$dest_db" "PRAGMA wal_checkpoint(TRUNCATE);" &> /dev/null || true
+  fi
+
+  success "Local DB seeded from $source_db"
+  return 0
+}
+
 main() {
   echo "🚀 Setting up Superset workspace..."
   echo ""
@@ -495,17 +534,22 @@ main() {
     step_failed "Install dependencies"
   fi
 
-  # Step 4: Setup Neon branch
+  # Step 4: Seed local DB into superset-dev-data/
+  if ! step_seed_local_db; then
+    step_failed "Seed local DB"
+  fi
+
+  # Step 5: Setup Neon branch
   if ! step_setup_neon_branch; then
     step_failed "Setup Neon branch"
   fi
 
-  # Step 5: Start Electric SQL
+  # Step 6: Start Electric SQL
   if ! step_start_electric; then
     step_failed "Start Electric SQL"
   fi
 
-  # Step 6: Write .env file
+  # Step 7: Write .env file
   if ! step_write_env; then
     step_failed "Write .env file"
   fi
