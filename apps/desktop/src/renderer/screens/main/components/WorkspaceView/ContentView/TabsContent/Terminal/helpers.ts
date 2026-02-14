@@ -106,7 +106,7 @@ function getPreferredRenderer(): PreferredRenderer {
 	return "auto";
 }
 
-function loadRenderer(xterm: XTerm): TerminalRenderer {
+export function loadRenderer(xterm: XTerm): TerminalRenderer {
 	let webglAddon: WebglAddon | null = null;
 	let kind: TerminalRenderer["kind"] = "dom";
 

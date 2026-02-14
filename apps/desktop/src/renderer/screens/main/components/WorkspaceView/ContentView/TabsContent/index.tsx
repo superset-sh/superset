@@ -7,11 +7,14 @@ import { TabView } from "./TabView";
 
 /**
  * Maximum number of recently-visited tabs to keep mounted in the DOM.
- * Cached tabs use `visibility: hidden` so their xterm.js instances,
- * WebGL contexts, and stream subscriptions stay alive — eliminating
- * the expensive destroy/recreate cycle on tab switch.
+ * Cached tabs use `visibility: hidden` so their xterm.js instances
+ * and stream subscriptions stay alive — eliminating the expensive
+ * destroy/recreate cycle on tab switch.
+ *
+ * Kept at 3 to limit WebGL context usage (browsers cap ~8-16 contexts;
+ * each terminal pane uses one, and split panes multiply the count).
  */
-const MAX_CACHED_TABS = 5;
+const MAX_CACHED_TABS = 3;
 
 export function TabsContent() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });

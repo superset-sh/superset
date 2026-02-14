@@ -11,7 +11,11 @@ import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "./config";
-import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
+import {
+	getDefaultTerminalBg,
+	loadRenderer,
+	type TerminalRendererRef,
+} from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
@@ -259,14 +263,47 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		enabled: true,
 	});
 
-	// When tab becomes visible: flush buffered data and re-fit terminal
-	// in case the container was resized while hidden.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: resizeRef is a stable mutation ref
+	// Track whether *we* disposed the WebGL renderer so we know to reload it
+	// (avoids double-loading on initial mount when createTerminalInstance already loads WebGL).
+	const webglDisposedByHideRef = useRef(false);
+
+	// Manage terminal resources when tab visibility changes:
+	//  - Hidden: dispose WebGL to free GPU context, stop wasteful rendering
+	//  - Visible: flush buffered data, reload WebGL, refit dimensions
+	// biome-ignore lint/correctness/useExhaustiveDependencies: resizeRef/rendererRef are stable mutation refs
 	useEffect(() => {
-		if (!isTabActive) return;
+		if (!isTabActive) {
+			// Dispose WebGL renderer to free the GPU context.
+			// Browsers limit active WebGL contexts (~8-16); each split pane
+			// uses one, so hidden terminals must release theirs.
+			const renderer = rendererRef.current;
+			if (renderer?.current.kind === "webgl") {
+				renderer.current.dispose();
+				renderer.current = {
+					kind: "dom",
+					dispose: () => {},
+					clearTextureAtlas: undefined,
+				};
+				webglDisposedByHideRef.current = true;
+			}
+			return;
+		}
+
+		// Tab became visible
 		flushBackgroundBuffer();
-		const fitAddon = fitAddonRef.current;
+
+		// Reload WebGL if we previously disposed it
 		const xterm = xtermRef.current;
+		if (webglDisposedByHideRef.current && xterm) {
+			webglDisposedByHideRef.current = false;
+			const renderer = rendererRef.current;
+			if (renderer) {
+				renderer.current = loadRenderer(xterm);
+			}
+		}
+
+		// Refit in case the container was resized while hidden
+		const fitAddon = fitAddonRef.current;
 		if (fitAddon && xterm) {
 			fitAddon.fit();
 			resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });

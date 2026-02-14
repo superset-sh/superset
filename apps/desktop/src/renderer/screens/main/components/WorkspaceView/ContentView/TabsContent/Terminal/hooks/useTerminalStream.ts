@@ -79,9 +79,9 @@ export function useTerminalStream({
 		backgroundBufferRef.current = [];
 		backgroundBufferBytesRef.current = 0;
 
-		updateModesRef.current(data);
+		// Modes and CWD were already tracked per-event during buffering,
+		// so only the xterm write is needed here.
 		xterm.write(data);
-		updateCwdRef.current(data);
 
 		if (DEBUG_TERMINAL) {
 			console.log(
