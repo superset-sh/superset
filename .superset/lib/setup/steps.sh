@@ -423,13 +423,13 @@ step_write_env() {
   success "Electric proxy .dev.vars written"
 
   # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
-  cat > Caddyfile <<CADDYEOF
-https://localhost:{\$CADDY_ELECTRIC_PORT} {
-\treverse_proxy localhost:{\$ELECTRIC_PROXY_PORT} {
-\t\tflush_interval -1
-\t}
-}
-CADDYEOF
+  cat > Caddyfile <<-CADDYEOF
+	https://localhost:{\$CADDY_ELECTRIC_PORT} {
+		reverse_proxy localhost:{\$ELECTRIC_PROXY_PORT} {
+			flush_interval -1
+		}
+	}
+	CADDYEOF
   success "Caddyfile written"
 
   # Generate .superset/ports.json for static port name mapping in the desktop app
