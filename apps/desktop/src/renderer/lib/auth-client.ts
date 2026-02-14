@@ -19,6 +19,16 @@ export function getAuthToken(): string | null {
 	return authToken;
 }
 
+let jwt: string | null = null;
+
+export function setJwt(token: string | null) {
+	jwt = token;
+}
+
+export function getJwt(): string | null {
+	return jwt;
+}
+
 /**
  * Better Auth client for Electron desktop app.
  *
