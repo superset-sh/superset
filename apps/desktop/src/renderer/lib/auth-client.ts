@@ -3,7 +3,6 @@ import type { auth } from "@superset/auth/server";
 import {
 	apiKeyClient,
 	customSessionClient,
-	jwtClient,
 	organizationClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
@@ -19,16 +18,6 @@ export function getAuthToken(): string | null {
 	return authToken;
 }
 
-let jwt: string | null = null;
-
-export function setJwt(token: string | null) {
-	jwt = token;
-}
-
-export function getJwt(): string | null {
-	return jwt;
-}
-
 /**
  * Better Auth client for Electron desktop app.
  *
@@ -42,7 +31,6 @@ export const authClient = createAuthClient({
 		customSessionClient<typeof auth>(),
 		stripeClient({ subscription: true }),
 		apiKeyClient(),
-		jwtClient(),
 	],
 	fetchOptions: {
 		credentials: "include",

@@ -13,7 +13,6 @@
 		"NEXT_PUBLIC_MARKETING_URL",
 		"NEXT_PUBLIC_DOCS_URL",
 		"NEXT_PUBLIC_ADMIN_URL",
-		"NEXT_PUBLIC_ELECTRIC_URL",
 		"POSTHOG_API_KEY",
 		"POSTHOG_PROJECT_ID",
 		"KV_REST_API_URL",
@@ -25,8 +24,7 @@
 		"VERCEL",
 		"VERCEL_ENV",
 		"VERCEL_URL",
-		"npm_lifecycle_event",
-		"ELECTRIC_PROXY_PORT"
+		"npm_lifecycle_event"
 	],
 	"tasks": {
 		"build": {
@@ -42,10 +40,6 @@
 			]
 		},
 		"dev": {
-			"cache": false,
-			"persistent": true
-		},
-		"//#dev:caddy": {
 			"cache": false,
 			"persistent": true
 		},
