@@ -111,7 +111,7 @@ if (PLATFORM.IS_MAC && Notification.isSupported()) {
 Enable extra logging for notification debugging:
 
 ```bash
-ELECTRON_DEBUG_NOTIFICATIONS=1 bun run dev
+SUPERSET_DEBUG=1 bun run desktop
 ```
 
 ## Prevention
