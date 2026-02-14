@@ -323,7 +323,6 @@ export class DaemonTerminalManager extends EventEmitter {
 			initialCommands,
 			skipColdRestore,
 			themeType,
-			portBase,
 		} = params;
 
 		try {
@@ -382,7 +381,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				workspacePath,
 				rootPath,
 				themeType,
-				portBase,
 			});
 
 			if (DEBUG_TERMINAL) {

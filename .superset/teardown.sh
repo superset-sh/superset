@@ -242,6 +242,34 @@ step_delete_neon_branch() {
   return 0
 }
 
+step_deallocate_port() {
+  echo "🔌 Deallocating port base..."
+
+  local alloc_file="$HOME/.superset/port-allocations.json"
+
+  if [ ! -f "$alloc_file" ]; then
+    warn "No port allocations file found, skipping"
+    step_skipped "Deallocate port (no allocations file)"
+    return 0
+  fi
+
+  local key="$PWD"
+  local existing
+  existing=$(jq -r --arg k "$key" '.[$k] // empty' "$alloc_file" 2>/dev/null)
+
+  if [ -z "$existing" ]; then
+    warn "No port allocation found for $key"
+    step_skipped "Deallocate port (no allocation for this workspace)"
+    return 0
+  fi
+
+  jq --arg k "$key" 'del(.[$k])' "$alloc_file" > "${alloc_file}.tmp" \
+    && mv "${alloc_file}.tmp" "$alloc_file"
+
+  success "Deallocated port base $existing for $key"
+  return 0
+}
+
 step_remove_dev_data() {
   local dev_data_dir="superset-dev-data"
 
@@ -298,7 +326,12 @@ main() {
     step_failed "Delete Neon branch"
   fi
 
-  # Step 6: Remove superset-dev-data (optional)
+  # Step 6: Deallocate port base
+  if ! step_deallocate_port; then
+    step_failed "Deallocate port base"
+  fi
+
+  # Step 7: Remove superset-dev-data (optional)
   if ! step_remove_dev_data; then
     step_failed "Remove superset-dev-data"
   fi

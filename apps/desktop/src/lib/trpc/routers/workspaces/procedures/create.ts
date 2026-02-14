@@ -10,7 +10,6 @@ import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
 	activateProject,
-	allocatePortBase,
 	findOrphanedWorktreeByBranch,
 	findWorktreeWorkspaceByBranch,
 	getBranchWorkspace,
@@ -434,7 +433,6 @@ export const createCreateProcedures = () => {
 					.get();
 
 				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
-				const portBase = allocatePortBase();
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -446,7 +444,6 @@ export const createCreateProcedures = () => {
 						name: input.name ?? branch,
 						isUnnamed: !input.name,
 						tabOrder: maxTabOrder + 1,
-						portBase,
 					})
 					.returning()
 					.get();
@@ -541,7 +538,6 @@ export const createCreateProcedures = () => {
 					};
 				}
 
-				const portBase = allocatePortBase();
 				const insertResult = localDb
 					.insert(workspaces)
 					.values({
@@ -550,7 +546,6 @@ export const createCreateProcedures = () => {
 						branch,
 						name: branch,
 						tabOrder: 0,
-						portBase,
 					})
 					.onConflictDoNothing()
 					.returning()
@@ -650,7 +645,6 @@ export const createCreateProcedures = () => {
 				}
 
 				const maxTabOrder = getMaxWorkspaceTabOrder(worktree.projectId);
-				const portBase = allocatePortBase();
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -662,7 +656,6 @@ export const createCreateProcedures = () => {
 						name: input.name ?? worktree.branch,
 						isUnnamed: !input.name,
 						tabOrder: maxTabOrder + 1,
-						portBase,
 					})
 					.returning()
 					.get();

@@ -303,6 +303,7 @@ step_start_electric() {
     ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
     port_flag="-p $ELECTRIC_PORT:3000"
   else
+    # Fallback: auto-assign if setup.sh electric step runs before write_env (shouldn't happen in normal flow)
     port_flag="-p 3000"
   fi
 
@@ -346,6 +347,43 @@ step_start_electric() {
   return 0
 }
 
+allocate_port_base() {
+  local alloc_file="$HOME/.superset/port-allocations.json"
+  local start=3000
+  local range=20
+
+  # Ensure directory and file exist
+  mkdir -p "$HOME/.superset"
+  if [ ! -f "$alloc_file" ]; then
+    echo '{}' > "$alloc_file"
+  fi
+
+  local key="$PWD"
+  local existing
+  existing=$(jq -r --arg k "$key" '.[$k] // empty' "$alloc_file")
+
+  if [ -n "$existing" ]; then
+    export SUPERSET_PORT_BASE="$existing"
+    return 0
+  fi
+
+  # Collect used port bases
+  local used
+  used=$(jq '[.[]] | sort | .[]' "$alloc_file")
+
+  # Find first available slot
+  local candidate=$start
+  while echo "$used" | grep -qx "$candidate" 2>/dev/null; do
+    candidate=$((candidate + range))
+  done
+
+  # Write allocation
+  jq --arg k "$key" --argjson v "$candidate" '. + {($k): $v}' "$alloc_file" > "${alloc_file}.tmp" \
+    && mv "${alloc_file}.tmp" "$alloc_file"
+
+  export SUPERSET_PORT_BASE="$candidate"
+}
+
 step_write_env() {
   echo "📝 Writing .env file..."
 
@@ -353,6 +391,9 @@ step_write_env() {
     error "Root .env file not available"
     return 1
   fi
+
+  # Allocate a port base for this workspace
+  allocate_port_base
 
   # Copy root .env
   if ! cp "$SUPERSET_ROOT_PATH/.env" .env; then
@@ -398,63 +439,61 @@ step_write_env() {
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
     #          +10 caddy (HTTP/2 reverse proxy for electric-proxy), +11 code inspector, +12 electric-proxy (wrangler dev)
-    if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
-      local BASE=$SUPERSET_PORT_BASE
+    local BASE=$SUPERSET_PORT_BASE
 
-      # App ports (fixed offsets from base)
-      local WEB_PORT=$((BASE))
-      local API_PORT=$((BASE + 1))
-      local MARKETING_PORT=$((BASE + 2))
-      local ADMIN_PORT=$((BASE + 3))
-      local DOCS_PORT=$((BASE + 4))
-      local DESKTOP_VITE_PORT=$((BASE + 5))
-      local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
-      local STREAMS_PORT=$((BASE + 7))
-      local STREAMS_INTERNAL_PORT=$((BASE + 8))
-      local ELECTRIC_PORT=$((BASE + 9))
-      local CADDY_ELECTRIC_PORT=$((BASE + 10))
-      local CODE_INSPECTOR_PORT=$((BASE + 11))
-      local ELECTRIC_PROXY_PORT=$((BASE + 12))
+    # App ports (fixed offsets from base)
+    local WEB_PORT=$((BASE))
+    local API_PORT=$((BASE + 1))
+    local MARKETING_PORT=$((BASE + 2))
+    local ADMIN_PORT=$((BASE + 3))
+    local DOCS_PORT=$((BASE + 4))
+    local DESKTOP_VITE_PORT=$((BASE + 5))
+    local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
+    local STREAMS_PORT=$((BASE + 7))
+    local STREAMS_INTERNAL_PORT=$((BASE + 8))
+    local ELECTRIC_PORT=$((BASE + 9))
+    local CADDY_ELECTRIC_PORT=$((BASE + 10))
+    local CODE_INSPECTOR_PORT=$((BASE + 11))
+    local ELECTRIC_PROXY_PORT=$((BASE + 12))
 
-      echo ""
-      echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
-      echo "SUPERSET_PORT_BASE=$BASE"
-      echo "WEB_PORT=$WEB_PORT"
-      echo "API_PORT=$API_PORT"
-      echo "MARKETING_PORT=$MARKETING_PORT"
-      echo "ADMIN_PORT=$ADMIN_PORT"
-      echo "DOCS_PORT=$DOCS_PORT"
-      echo "DESKTOP_VITE_PORT=$DESKTOP_VITE_PORT"
-      echo "DESKTOP_NOTIFICATIONS_PORT=$DESKTOP_NOTIFICATIONS_PORT"
-      echo "STREAMS_PORT=$STREAMS_PORT"
-      echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
-      echo "ELECTRIC_PORT=$ELECTRIC_PORT"
-      echo "CADDY_ELECTRIC_PORT=$CADDY_ELECTRIC_PORT"
-      echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
-      echo "ELECTRIC_PROXY_PORT=$ELECTRIC_PROXY_PORT"
-      echo ""
-      echo "# Cross-app URLs (overrides from root .env)"
-      echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"
-      echo "NEXT_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
-      echo "NEXT_PUBLIC_MARKETING_URL=http://localhost:$MARKETING_PORT"
-      echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"
-      echo "NEXT_PUBLIC_DOCS_URL=http://localhost:$DOCS_PORT"
-      echo "NEXT_PUBLIC_DESKTOP_URL=http://localhost:$DESKTOP_VITE_PORT"
-      echo "EXPO_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
-      echo "EXPO_PUBLIC_API_URL=http://localhost:$API_PORT"
-      echo ""
-      echo "# Streams URLs (overrides from root .env)"
-      echo "PORT=$STREAMS_PORT"
-      echo "STREAMS_URL=http://localhost:$STREAMS_PORT"
-      echo "NEXT_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
-      echo "EXPO_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
-      echo "STREAMS_INTERNAL_URL=http://127.0.0.1:$STREAMS_INTERNAL_PORT"
-      echo ""
-      echo "# Electric URLs (overrides from root .env)"
-      echo "ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape"
-      echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
-      echo "NEXT_PUBLIC_ELECTRIC_URL=https://localhost:$CADDY_ELECTRIC_PORT"
-    fi
+    echo ""
+    echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
+    echo "SUPERSET_PORT_BASE=$BASE"
+    echo "WEB_PORT=$WEB_PORT"
+    echo "API_PORT=$API_PORT"
+    echo "MARKETING_PORT=$MARKETING_PORT"
+    echo "ADMIN_PORT=$ADMIN_PORT"
+    echo "DOCS_PORT=$DOCS_PORT"
+    echo "DESKTOP_VITE_PORT=$DESKTOP_VITE_PORT"
+    echo "DESKTOP_NOTIFICATIONS_PORT=$DESKTOP_NOTIFICATIONS_PORT"
+    echo "STREAMS_PORT=$STREAMS_PORT"
+    echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
+    echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+    echo "CADDY_ELECTRIC_PORT=$CADDY_ELECTRIC_PORT"
+    echo "CODE_INSPECTOR_PORT=$CODE_INSPECTOR_PORT"
+    echo "ELECTRIC_PROXY_PORT=$ELECTRIC_PROXY_PORT"
+    echo ""
+    echo "# Cross-app URLs (overrides from root .env)"
+    echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"
+    echo "NEXT_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
+    echo "NEXT_PUBLIC_MARKETING_URL=http://localhost:$MARKETING_PORT"
+    echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"
+    echo "NEXT_PUBLIC_DOCS_URL=http://localhost:$DOCS_PORT"
+    echo "NEXT_PUBLIC_DESKTOP_URL=http://localhost:$DESKTOP_VITE_PORT"
+    echo "EXPO_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
+    echo "EXPO_PUBLIC_API_URL=http://localhost:$API_PORT"
+    echo ""
+    echo "# Streams URLs (overrides from root .env)"
+    echo "PORT=$STREAMS_PORT"
+    echo "STREAMS_URL=http://localhost:$STREAMS_PORT"
+    echo "NEXT_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
+    echo "EXPO_PUBLIC_STREAMS_URL=http://localhost:$STREAMS_PORT"
+    echo "STREAMS_INTERNAL_URL=http://127.0.0.1:$STREAMS_INTERNAL_PORT"
+    echo ""
+    echo "# Electric URLs (overrides from root .env)"
+    echo "ELECTRIC_URL=http://localhost:$ELECTRIC_PORT/v1/shape"
+    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
+    echo "NEXT_PUBLIC_ELECTRIC_URL=https://localhost:$CADDY_ELECTRIC_PORT"
   } >> .env
 
   success "Workspace .env written"
@@ -482,10 +521,9 @@ CADDYEOF
   success "Caddyfile written"
 
   # Generate .superset/ports.json for static port name mapping in the desktop app
-  if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
-    local superset_dir
-    superset_dir="$(dirname "$0")"
-    cat > "$superset_dir/ports.json" <<PORTSJSON
+  local superset_dir
+  superset_dir="$(dirname "$0")"
+  cat > "$superset_dir/ports.json" <<PORTSJSON
 {
   "ports": [
     { "port": $WEB_PORT, "label": "Web" },
@@ -504,8 +542,7 @@ CADDYEOF
   ]
 }
 PORTSJSON
-    success "Port name mapping written to .superset/ports.json"
-  fi
+  success "Port name mapping written to .superset/ports.json"
 
   return 0
 }

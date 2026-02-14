@@ -139,7 +139,6 @@ export const createTerminalRouter = () => {
 						skipColdRestore,
 						allowKilled,
 						themeType: resolvedThemeType,
-						portBase: workspace?.portBase,
 					});
 
 					if (DEBUG_TERMINAL) {

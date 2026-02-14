@@ -331,7 +331,6 @@ export function buildTerminalEnv(params: {
 	workspacePath?: string;
 	rootPath?: string;
 	themeType?: "dark" | "light";
-	portBase?: number | null;
 }): Record<string, string> {
 	const {
 		shell,
@@ -342,7 +341,6 @@ export function buildTerminalEnv(params: {
 		workspacePath,
 		rootPath,
 		themeType,
-		portBase,
 	} = params;
 
 	// Get Electron's process.env and filter to only allowlisted safe vars
@@ -377,8 +375,6 @@ export function buildTerminalEnv(params: {
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
 		// Hook protocol version for forward compatibility
 		SUPERSET_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
-		// Port base for multi-worktree dev instances (setup.sh uses this to calculate all ports)
-		...(portBase != null && { SUPERSET_PORT_BASE: String(portBase) }),
 	};
 
 	delete terminalEnv.GOOGLE_API_KEY;
