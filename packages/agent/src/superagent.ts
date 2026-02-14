@@ -47,10 +47,14 @@ function resolveModel({
 		const model = slashIdx > -1 ? modelId.slice(slashIdx + 1) : modelId;
 
 		if (provider === "anthropic") {
+			// OAuth requires specific beta flags and Claude CLI identity headers.
+			// See: https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/providers/anthropic.ts
 			return createAnthropic({
 				authToken: anthropicAuthToken,
 				headers: {
-					"anthropic-beta": "oauth-2025-04-20",
+					"anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+					"user-agent": "claude-cli/2.1.2 (external, cli)",
+					"x-app": "cli",
 				},
 			})(model);
 		}
