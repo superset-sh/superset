@@ -129,7 +129,7 @@ SUPERSET_DEBUG=1 bun run desktop
 |-------|----------|-------------|
 | `show` | All | Emitted when notification is displayed |
 | `click` | All | User clicked notification |
-| `close` | All | Notification closed |
+| `close` | All | Notification closed (may not fire on all platforms — reliability varies) |
 | `failed` | Windows only | Error during show |
 | `action` | macOS | Button click |
 | `reply` | macOS | Inline reply |
