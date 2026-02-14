@@ -332,6 +332,7 @@ step_write_env() {
     echo ""
     echo "# Workspace Identity"
     echo "SUPERSET_WORKSPACE_NAME=${WORKSPACE_NAME:-$(basename "$PWD")}"
+    echo "SUPERSET_HOME_DIR=$PWD/superset-dev-data"
     echo ""
     echo "# Workspace Database (Neon Branch)"
     if [ -n "${BRANCH_ID:-}" ]; then
