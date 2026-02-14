@@ -114,10 +114,10 @@ export function usePortsData() {
 			},
 		);
 
-		// Sort alphabetically by workspace name
-		groups.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
-
-		return groups;
+		// Remove workspaces with no active ports and sort alphabetically
+		return groups
+			.filter((g) => g.ports.length > 0)
+			.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
 	}, [allWorkspaceIds, allStaticPortsData?.ports, ports, workspaceNames]);
 
 	const totalPortCount = workspacePortGroups.reduce(
