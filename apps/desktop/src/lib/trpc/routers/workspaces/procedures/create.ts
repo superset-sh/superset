@@ -29,6 +29,7 @@ import {
 	getPrInfo,
 	getPrLocalBranchName,
 	listBranches,
+	listExternalWorktrees,
 	type PullRequestInfo,
 	parsePrUrl,
 	safeCheckoutBranch,
@@ -915,6 +916,123 @@ export const createCreateProcedures = () => {
 					localBranchName,
 					workspaceName,
 				});
+			}),
+
+		importAllWorktrees: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = getProject(input.projectId);
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				let imported = 0;
+
+				// 1. Import closed worktrees (tracked in DB but no active workspace)
+				const projectWorktrees = localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.projectId, input.projectId))
+					.all();
+
+				for (const wt of projectWorktrees) {
+					const existingWorkspace = localDb
+						.select()
+						.from(workspaces)
+						.where(
+							and(
+								eq(workspaces.worktreeId, wt.id),
+								isNull(workspaces.deletingAt),
+							),
+						)
+						.get();
+
+					if (existingWorkspace) continue;
+
+					const exists = await worktreeExists(project.mainRepoPath, wt.path);
+					if (!exists) continue;
+
+					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					localDb
+						.insert(workspaces)
+						.values({
+							projectId: input.projectId,
+							worktreeId: wt.id,
+							type: "worktree",
+							branch: wt.branch,
+							name: wt.branch,
+							isUnnamed: true,
+							tabOrder: maxTabOrder + 1,
+						})
+						.run();
+
+					imported++;
+				}
+
+				// 2. Import external worktrees (on disk, not tracked in DB)
+				const allExternalWorktrees = await listExternalWorktrees(
+					project.mainRepoPath,
+				);
+				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
+				const defaultBranch = project.defaultBranch || "main";
+
+				const externalWorktrees = allExternalWorktrees.filter((wt) => {
+					if (wt.path === project.mainRepoPath) return false;
+					if (wt.isBare) return false;
+					if (wt.isDetached) return false;
+					if (!wt.branch) return false;
+					if (trackedPaths.has(wt.path)) return false;
+					return true;
+				});
+
+				for (const ext of externalWorktrees) {
+					// biome-ignore lint/style/noNonNullAssertion: filtered above
+					const branch = ext.branch!;
+
+					const worktree = localDb
+						.insert(worktrees)
+						.values({
+							projectId: input.projectId,
+							path: ext.path,
+							branch,
+							baseBranch: defaultBranch,
+							gitStatus: {
+								branch,
+								needsRebase: false,
+								ahead: 0,
+								behind: 0,
+								lastRefreshed: Date.now(),
+							},
+						})
+						.returning()
+						.get();
+
+					const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+					localDb
+						.insert(workspaces)
+						.values({
+							projectId: input.projectId,
+							worktreeId: worktree.id,
+							type: "worktree",
+							branch,
+							name: branch,
+							tabOrder: maxTabOrder + 1,
+						})
+						.run();
+
+					copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
+					imported++;
+				}
+
+				if (imported > 0) {
+					activateProject(project);
+					track("workspaces_bulk_imported", {
+						project_id: project.id,
+						imported_count: imported,
+					});
+				}
+
+				return { imported };
 			}),
 	});
 };
