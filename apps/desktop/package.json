@@ -52,6 +52,7 @@
 		"@superset/agent": "workspace:*",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/desktop-mcp": "workspace:*",
 		"@superset/durable-session": "workspace:*",
 		"@superset/local-db": "workspace:*",
 		"@superset/shared": "workspace:*",
