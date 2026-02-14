@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { treeKillAsync } from "../lib/tree-kill";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
@@ -340,24 +341,7 @@ export class Session {
 			this.ptyReadyResolve = null;
 		}
 
-		this.subprocess = null;
-		this.subprocessReady = false;
-		this.subprocessDecoder = null;
-		this.subprocessStdinQueue = [];
-		this.subprocessStdinQueuedBytes = 0;
-		this.subprocessStdinDrainArmed = false;
-		this.subprocessStdoutPaused = false;
-
-		this.emulatorWriteQueue = [];
-		this.emulatorWriteQueuedBytes = 0;
-		this.emulatorWriteScheduled = false;
-		this.snapshotBoundaryIndex = null;
-		const waiters = this.emulatorFlushWaiters;
-		this.emulatorFlushWaiters = [];
-		for (const resolve of waiters) resolve();
-		const boundaryWaiters = this.snapshotBoundaryWaiters;
-		this.snapshotBoundaryWaiters = [];
-		for (const resolve of boundaryWaiters) resolve();
+		this.resetProcessState();
 	}
 
 	/**
@@ -815,32 +799,59 @@ export class Session {
 	}
 
 	/**
-	 * Dispose of the session
+	 * Dispose of the session.
+	 * Tree-kills the subprocess and PTY process trees, then resolves.
+	 * Callers that don't need to wait can fire-and-forget.
 	 */
-	dispose(): void {
-		if (this.disposed) return;
+	dispose(): Promise<void> {
+		if (this.disposed) return Promise.resolve();
 		this.disposed = true;
 
+		// Collect PIDs to kill before clearing references
+		const pidsToKill = this.collectProcessPids();
+
 		if (this.subprocess) {
-			// Capture reference before nullifying - the timeout needs it
-			const subprocess = this.subprocess;
 			this.sendDisposeToSubprocess();
-			// Force kill after timeout if dispose frame didn't terminate it
-			const killTimer = setTimeout(() => {
-				try {
-					subprocess.kill("SIGKILL");
-				} catch {
-					// Process may already be dead
-				}
-			}, 1000);
-			killTimer.unref(); // Don't keep daemon alive for this timer
-			this.subprocess = null;
 		}
+
+		this.resetProcessState();
+		this.emulator.dispose();
+		this.attachedClients.clear();
+		this.clientSocketsWaitingForDrain.clear();
+
+		if (pidsToKill.length === 0) return Promise.resolve();
+
+		// treeKill enumerates descendants via ps/pgrep before sending signals,
+		// so we must wait for callbacks to ensure all children are killed.
+		return Promise.all(
+			pidsToKill.map((pid) => treeKillAsync(pid, "SIGKILL")),
+		).then(() => {});
+	}
+
+	/**
+	 * Collect PIDs that need tree-killing: the subprocess and PTY shell.
+	 * The PTY PID is included as a safety net in case the shell was
+	 * reparented (orphaned) after the subprocess exited.
+	 */
+	private collectProcessPids(): number[] {
+		const pids: number[] = [];
+		if (this.subprocess?.pid) pids.push(this.subprocess.pid);
+		if (this.ptyPid) pids.push(this.ptyPid);
+		return pids;
+	}
+
+	/**
+	 * Reset subprocess and write-queue state.
+	 * Shared by handleSubprocessExit (natural exit) and dispose (forced teardown).
+	 */
+	private resetProcessState(): void {
+		this.subprocess = null;
 		this.subprocessReady = false;
 		this.subprocessDecoder = null;
 		this.subprocessStdinQueue = [];
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
+		this.subprocessStdoutPaused = false;
 
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
@@ -852,11 +863,6 @@ export class Session {
 		const boundaryWaiters = this.snapshotBoundaryWaiters;
 		this.snapshotBoundaryWaiters = [];
 		for (const resolve of boundaryWaiters) resolve();
-
-		this.emulator.dispose();
-		this.attachedClients.clear();
-		this.clientSocketsWaitingForDrain.clear();
-		this.subprocessStdoutPaused = false;
 	}
 
 	/**

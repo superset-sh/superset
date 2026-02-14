@@ -759,14 +759,14 @@ async function startServer(): Promise<void> {
 	});
 }
 
-function stopServer(): Promise<void> {
-	return new Promise((resolve) => {
-		// Dispose terminal host (kills all sessions)
-		if (terminalHost) {
-			terminalHost.dispose();
-			log("info", "Terminal host disposed");
-		}
+async function stopServer(): Promise<void> {
+	// Dispose terminal host - tree-kills all session process trees and waits
+	if (terminalHost) {
+		await terminalHost.dispose();
+		log("info", "Terminal host disposed");
+	}
 
+	await new Promise<void>((resolve) => {
 		if (server) {
 			server.close(() => {
 				log("info", "Server closed");
@@ -775,15 +775,15 @@ function stopServer(): Promise<void> {
 		} else {
 			resolve();
 		}
-
-		// Clean up socket and PID files
-		try {
-			if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
-			if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
-		} catch {
-			// Best effort cleanup
-		}
 	});
+
+	// Clean up socket and PID files
+	try {
+		if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
+		if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
+	} catch {
+		// Best effort cleanup
+	}
 }
 
 // =============================================================================

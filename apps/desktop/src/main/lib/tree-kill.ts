@@ -4,6 +4,15 @@ const DEFAULT_ESCALATION_TIMEOUT_MS = 2000;
 const POLL_INTERVAL_MS = 50;
 
 /**
+ * Promisified tree-kill. Resolves when all descendants have been signaled.
+ */
+export function treeKillAsync(pid: number, signal: string): Promise<void> {
+	return new Promise<void>((resolve) => {
+		treeKill(pid, signal, () => resolve());
+	});
+}
+
+/**
  * Kill a process tree with escalation to SIGKILL if the process survives.
  * Sends SIGTERM, polls for exit, escalates to SIGKILL after timeout.
  */

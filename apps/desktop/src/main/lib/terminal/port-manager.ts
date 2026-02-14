@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import type { DetectedPort } from "shared/types";
-import { treeKillWithEscalation } from "../tree-kill-with-escalation";
+import { treeKillWithEscalation } from "../tree-kill";
 import {
 	getListeningPortsForPids,
 	getProcessTree,
