@@ -134,7 +134,7 @@ export function WorkspaceListItem({
 	const { data: localChanges } = electronTrpc.changes.getStatus.useQuery(
 		{ worktreePath },
 		{
-			enabled: hasHovered && type === "worktree" && !!worktreePath,
+			enabled: hasHovered && !!worktreePath,
 			staleTime: GITHUB_STATUS_STALE_TIME,
 		},
 	);
@@ -301,9 +301,6 @@ export function WorkspaceListItem({
 	const showDiffStats = !!diffStats;
 
 	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
-	const hasAheadBehind =
-		!!aheadBehind && (aheadBehind.ahead > 0 || aheadBehind.behind > 0);
-	const showRow2 = showBranchSubtitle || pr || hasAheadBehind;
 
 	if (isCollapsed) {
 		const collapsedButton = (
@@ -425,7 +422,7 @@ export function WorkspaceListItem({
 				"flex w-full pl-3 pr-2 text-sm",
 				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
 				"group relative",
-				showRow2 ? "py-1.5" : "py-2 items-center",
+				showBranchSubtitle ? "py-1.5" : "py-2 items-center",
 				isActive && "bg-muted",
 				isDragging && "opacity-30",
 			)}
@@ -440,7 +437,7 @@ export function WorkspaceListItem({
 					<div
 						className={cn(
 							"relative shrink-0 size-5 flex items-center justify-center mr-2.5",
-							showRow2 && "mt-0.5",
+							showBranchSubtitle && "mt-0.5",
 						)}
 					>
 						{workspaceStatus === "working" ? (
@@ -530,6 +527,21 @@ export function WorkspaceListItem({
 									</span>
 								)}
 
+							{isBranchWorkspace && aheadBehind && (
+								<WorkspaceAheadBehind
+									ahead={aheadBehind.ahead}
+									behind={aheadBehind.behind}
+								/>
+							)}
+
+							{isBranchWorkspace && showDiffStats && diffStats && (
+								<WorkspaceDiffStats
+									additions={diffStats.additions}
+									deletions={diffStats.deletions}
+									isActive={isActive}
+								/>
+							)}
+
 							{!isBranchWorkspace &&
 								(showDiffStats && diffStats ? (
 									<WorkspaceDiffStats
@@ -563,18 +575,12 @@ export function WorkspaceListItem({
 								))}
 						</div>
 
-						{showRow2 && (
+						{(showBranchSubtitle || pr) && (
 							<div className="flex items-center gap-2 text-[11px] w-full">
 								{showBranchSubtitle && (
 									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
 										{branch}
 									</span>
-								)}
-								{aheadBehind && (
-									<WorkspaceAheadBehind
-										ahead={aheadBehind.ahead}
-										behind={aheadBehind.behind}
-									/>
 								)}
 								{pr && (
 									<WorkspaceStatusBadge
