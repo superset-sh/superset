@@ -2,27 +2,20 @@ import { Spinner } from "@superset/ui/spinner";
 import { type ReactNode, useEffect, useState } from "react";
 import { authClient, setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "../../lib/electron-trpc";
+import { useJwtRefresh } from "./hooks/useJwtRefresh";
 
-/**
- * AuthProvider: Manages token synchronization between memory and encrypted disk storage.
- *
- * Flow:
- * 1. Load token from disk on mount
- * 2. If valid (not expired), set in memory and validate session in background
- * 3. Render children immediately without blocking on network
- *
- * Electric JWT tokens are fetched on-demand via async headers in collections.ts
- * using authClient.token() from better-auth's JWT plugin.
- */
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
+	const { fetchJwt, clearJwt, isReady: isJwtReady } = useJwtRefresh();
 
 	const { data: storedToken, isSuccess } =
 		electronTrpc.auth.getStoredToken.useQuery(undefined, {
 			refetchOnWindowFocus: false,
 			refetchOnReconnect: false,
 		});
+
+	const [needsJwt, setNeedsJwt] = useState(false);
 
 	useEffect(() => {
 		if (!isSuccess || isHydrated) return;
@@ -32,28 +25,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			if (!isExpired) {
 				setAuthToken(storedToken.token);
 				refetchSession().catch(() => {});
+				setNeedsJwt(true);
+				fetchJwt();
 			}
 		}
 
 		setIsHydrated(true);
-	}, [storedToken, isSuccess, isHydrated, refetchSession]);
+	}, [storedToken, isSuccess, isHydrated, refetchSession, fetchJwt]);
 
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: async (data) => {
 			if (data?.token && data?.expiresAt) {
 				setAuthToken(null);
+				clearJwt();
 				await authClient.signOut({ fetchOptions: { throw: false } });
 				setAuthToken(data.token);
 				setIsHydrated(true);
 				refetchSession();
+				fetchJwt();
 			} else if (data === null) {
 				setAuthToken(null);
+				clearJwt();
 				refetchSession();
 			}
 		},
 	});
 
-	if (!isHydrated) {
+	if (!isHydrated || (needsJwt && !isJwtReady)) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
 				<Spinner className="size-8" />
