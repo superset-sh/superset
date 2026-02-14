@@ -166,7 +166,7 @@ step_clone_local_db() {
     return 0
   fi
 
-  local source_db="$HOME/.superset-dev/local.db"
+  local source_db="$HOME/.superset/local.db"
   local dest_dir="$HOME/.superset-${sanitized}"
   local dest_db="$dest_dir/local.db"
 
