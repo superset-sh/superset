@@ -90,7 +90,8 @@ export async function MainWindow() {
 	const savedWindowState = loadWindowState();
 	const initialBounds = getInitialWindowBounds(savedWindowState);
 
-	const workspaceName = getEnvWorkspaceName();
+	const isDev = env.NODE_ENV === "development";
+	const workspaceName = isDev ? getEnvWorkspaceName() : undefined;
 	const windowTitle = workspaceName
 		? `${productName} — ${workspaceName}`
 		: productName;

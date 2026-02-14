@@ -208,6 +208,7 @@ function drawBorder({
  */
 export function setWorkspaceDockIcon(): void {
 	if (process.platform !== "darwin") return;
+	if (env.NODE_ENV !== "development") return;
 
 	const workspaceName = getWorkspaceName();
 	if (!workspaceName) return;

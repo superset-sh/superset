@@ -22,9 +22,12 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 
-const workspaceName = getWorkspaceName();
-if (workspaceName) {
-	app.setName(`Superset (${workspaceName})`);
+// Dev mode: label the app with the workspace name so multiple worktrees are distinguishable
+if (process.env.NODE_ENV === "development") {
+	const workspaceName = getWorkspaceName();
+	if (workspaceName) {
+		app.setName(`Superset (${workspaceName})`);
+	}
 }
 
 // Dev mode: register with execPath + app script so macOS launches Electron with our entry point
