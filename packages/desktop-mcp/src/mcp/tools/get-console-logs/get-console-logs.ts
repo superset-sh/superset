@@ -1,7 +1,5 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { ConsoleLogsResponse } from "../../../zod.js";
-import { automationFetch } from "../../client/index.js";
+import type { ToolContext } from "../index.js";
 
 const LEVEL_NAMES: Record<number, string> = {
 	0: "DEBUG",
@@ -10,7 +8,15 @@ const LEVEL_NAMES: Record<number, string> = {
 	3: "ERROR",
 };
 
-export function register(server: McpServer) {
+const LEVEL_MAP: Record<string, number> = {
+	debug: 0,
+	log: 1,
+	info: 1,
+	warn: 2,
+	error: 3,
+};
+
+export function register({ server, consoleCapture }: ToolContext) {
 	server.registerTool(
 		"get_console_logs",
 		{
@@ -34,17 +40,15 @@ export function register(server: McpServer) {
 			},
 		},
 		async (args) => {
-			const params = new URLSearchParams();
-			if (args.level) params.set("level", args.level as string);
-			if (args.limit) params.set("limit", String(args.limit));
-			if (args.clear) params.set("clear", "true");
-			const qs = params.toString();
+			const levelNum = args.level ? LEVEL_MAP[args.level as string] : undefined;
+			const logs = consoleCapture.getLogs({
+				level: levelNum,
+				limit: args.limit as number | undefined,
+			});
 
-			const data = await automationFetch<ConsoleLogsResponse>(
-				`/console-logs${qs ? `?${qs}` : ""}`,
-			);
+			if (args.clear) consoleCapture.clear();
 
-			const lines = data.logs.map((log) => {
+			const lines = logs.map((log) => {
 				const level = LEVEL_NAMES[log.level] || String(log.level);
 				const time = new Date(log.timestamp).toISOString().slice(11, 23);
 				return `[${time}] ${level}: ${log.message}`;
@@ -53,7 +57,7 @@ export function register(server: McpServer) {
 			return {
 				content: [
 					{
-						type: "text",
+						type: "text" as const,
 						text: lines.length > 0 ? lines.join("\n") : "No console logs",
 					},
 				],

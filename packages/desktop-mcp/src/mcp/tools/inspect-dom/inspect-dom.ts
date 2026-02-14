@@ -1,9 +1,20 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { DomResponse } from "../../../zod.js";
-import { automationFetch } from "../../client/index.js";
+import { DOM_INSPECTOR_SCRIPT } from "../../dom-inspector/index.js";
+import type { ToolContext } from "../index.js";
 
-export function register(server: McpServer) {
+interface DomElement {
+	tag: string;
+	selector: string;
+	text?: string;
+	interactive?: boolean;
+	disabled?: boolean;
+	focused?: boolean;
+	role?: string;
+	testId?: string;
+	bounds: { x: number; y: number; width: number; height: number };
+}
+
+export function register({ server, getPage }: ToolContext) {
 	server.registerTool(
 		"inspect_dom",
 		{
@@ -23,16 +34,12 @@ export function register(server: McpServer) {
 			},
 		},
 		async (args) => {
-			const params = new URLSearchParams();
-			if (args.selector) params.set("selector", args.selector as string);
-			if (args.interactiveOnly) params.set("interactiveOnly", "true");
-			const qs = params.toString();
+			const page = await getPage();
+			const elements = (await page.evaluate(
+				`(${DOM_INSPECTOR_SCRIPT})(${JSON.stringify({ selector: args.selector, interactiveOnly: args.interactiveOnly })})`,
+			)) as DomElement[];
 
-			const data = await automationFetch<DomResponse>(
-				`/dom${qs ? `?${qs}` : ""}`,
-			);
-
-			const lines = data.elements.map((el) => {
+			const lines = elements.map((el) => {
 				const attrs = [
 					el.interactive ? "interactive" : "",
 					el.disabled ? "disabled" : "",
@@ -49,7 +56,7 @@ export function register(server: McpServer) {
 			return {
 				content: [
 					{
-						type: "text",
+						type: "text" as const,
 						text: lines.length > 0 ? lines.join("\n") : "No elements found",
 					},
 				],

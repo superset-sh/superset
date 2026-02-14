@@ -17,15 +17,11 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.25.3",
-		"express": "^5.1.0",
+		"puppeteer-core": "^24.37.3",
 		"zod": "^4.3.5"
-	},
-	"peerDependencies": {
-		"electron": "*"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/express": "^5.0.5",
 		"@types/node": "^24.9.1",
 		"typescript": "^5.9.3"
 	}

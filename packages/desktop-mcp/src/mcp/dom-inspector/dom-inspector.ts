@@ -1,5 +1,5 @@
 /**
- * JavaScript source to inject into the renderer via executeJavaScript().
+ * JavaScript source to inject into the renderer via page.evaluate().
  * Walks the DOM and returns a flat list of visible elements with metadata.
  */
 export const DOM_INSPECTOR_SCRIPT = `function inspectDom({ selector, interactiveOnly }) {

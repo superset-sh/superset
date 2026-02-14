@@ -1,9 +1,7 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { TypeResponse } from "../../../zod.js";
-import { automationFetch } from "../../client/index.js";
+import type { ToolContext } from "../index.js";
 
-export function register(server: McpServer) {
+export function register({ server, getPage }: ToolContext) {
 	server.registerTool(
 		"type_text",
 		{
@@ -22,15 +20,26 @@ export function register(server: McpServer) {
 			},
 		},
 		async (args) => {
-			const data = await automationFetch<TypeResponse>("/type", {
-				method: "POST",
-				body: JSON.stringify(args),
-			});
+			const page = await getPage();
+
+			if (args.selector) {
+				await page.click(args.selector as string);
+			}
+
+			if (args.clearFirst) {
+				// Select all then type to replace
+				await page.keyboard.down("Meta");
+				await page.keyboard.press("a");
+				await page.keyboard.up("Meta");
+			}
+
+			await page.keyboard.type(args.text as string);
+
 			return {
 				content: [
 					{
-						type: "text",
-						text: data.success ? `Typed "${args.text}"` : "Failed to type",
+						type: "text" as const,
+						text: `Typed "${args.text}"`,
 					},
 				],
 			};

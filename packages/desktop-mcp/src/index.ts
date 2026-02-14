@@ -1,4 +1,4 @@
-export { createAutomationServer } from "./server/index.js";
+export { createMcpServer } from "./mcp/index.js";
 export type {
 	ClickResponse,
 	ConsoleLogEntry,

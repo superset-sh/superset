@@ -1,9 +1,7 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { ScreenshotResponse } from "../../../zod.js";
-import { automationFetch } from "../../client/index.js";
+import type { ToolContext } from "../index.js";
 
-export function register(server: McpServer) {
+export function register({ server, getPage }: ToolContext) {
 	server.registerTool(
 		"take_screenshot",
 		{
@@ -24,18 +22,25 @@ export function register(server: McpServer) {
 			},
 		},
 		async (args) => {
-			const params = args.rect
-				? `?rect=${args.rect.x},${args.rect.y},${args.rect.width},${args.rect.height}`
-				: "";
-			const data = await automationFetch<ScreenshotResponse>(
-				`/screenshot${params}`,
-			);
+			const page = await getPage();
+			const base64 = await page.screenshot({
+				encoding: "base64",
+				type: "png",
+				clip: args.rect
+					? {
+							x: args.rect.x as number,
+							y: args.rect.y as number,
+							width: args.rect.width as number,
+							height: args.rect.height as number,
+						}
+					: undefined,
+			});
 			return {
 				content: [
 					{
-						type: "image",
-						data: data.image,
-						mimeType: "image/png",
+						type: "image" as const,
+						data: base64,
+						mimeType: "image/png" as const,
 					},
 				],
 			};

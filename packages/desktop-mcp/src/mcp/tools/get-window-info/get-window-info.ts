@@ -1,8 +1,14 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { WindowInfoResponse } from "../../../zod.js";
-import { automationFetch } from "../../client/index.js";
+import type { ToolContext } from "../index.js";
 
-export function register(server: McpServer) {
+const WINDOW_INFO_SCRIPT = `(() => ({
+	title: document.title,
+	url: window.location.href,
+	viewportWidth: window.innerWidth,
+	viewportHeight: window.innerHeight,
+	focused: document.hasFocus(),
+}))()`;
+
+export function register({ server, getPage }: ToolContext) {
 	server.registerTool(
 		"get_window_info",
 		{
@@ -11,20 +17,25 @@ export function register(server: McpServer) {
 			inputSchema: {},
 		},
 		async () => {
-			const data = await automationFetch<WindowInfoResponse>("/window-info");
+			const page = await getPage();
+			const info = (await page.evaluate(WINDOW_INFO_SCRIPT)) as {
+				title: string;
+				url: string;
+				viewportWidth: number;
+				viewportHeight: number;
+				focused: boolean;
+			};
 
+			const viewport = page.viewport();
 			const lines = [
-				`Title: ${data.title}`,
-				`URL: ${data.url}`,
-				`Bounds: ${data.bounds.x},${data.bounds.y} ${data.bounds.width}x${data.bounds.height}`,
-				`Focused: ${data.focused}`,
-				`Maximized: ${data.maximized}`,
-				`Fullscreen: ${data.fullscreen}`,
-				`Visible: ${data.visible}`,
+				`Title: ${info.title}`,
+				`URL: ${info.url}`,
+				`Viewport: ${viewport?.width ?? info.viewportWidth}x${viewport?.height ?? info.viewportHeight}`,
+				`Focused: ${info.focused}`,
 			];
 
 			return {
-				content: [{ type: "text", text: lines.join("\n") }],
+				content: [{ type: "text" as const, text: lines.join("\n") }],
 			};
 		},
 	);

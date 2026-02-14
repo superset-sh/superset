@@ -1,9 +1,7 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { NavigateResponse } from "../../../zod.js";
-import { automationFetch } from "../../client/index.js";
+import type { ToolContext } from "../index.js";
 
-export function register(server: McpServer) {
+export function register({ server, getPage }: ToolContext) {
 	server.registerTool(
 		"navigate",
 		{
@@ -18,17 +16,32 @@ export function register(server: McpServer) {
 			},
 		},
 		async (args) => {
-			const data = await automationFetch<NavigateResponse>("/navigate", {
-				method: "POST",
-				body: JSON.stringify(args),
-			});
+			const page = await getPage();
+
+			if (args.url) {
+				await page.goto(args.url as string);
+			} else if (args.path) {
+				await page.evaluate(
+					`window.location.hash = ${JSON.stringify(`#${args.path}`)}`,
+				);
+			} else {
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: "Must provide url or path",
+						},
+					],
+					isError: true,
+				};
+			}
+
+			const currentUrl = page.url();
 			return {
 				content: [
 					{
-						type: "text",
-						text: data.success
-							? `Navigated to ${data.url}`
-							: "Navigation failed",
+						type: "text" as const,
+						text: `Navigated to ${currentUrl}`,
 					},
 				],
 			};

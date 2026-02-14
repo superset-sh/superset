@@ -1,9 +1,0 @@
-export { clickHandler } from "./click/index.js";
-export { consoleLogsHandler } from "./console-logs/index.js";
-export { domHandler } from "./dom/index.js";
-export { evaluateHandler } from "./evaluate/index.js";
-export { navigateHandler } from "./navigate/index.js";
-export { screenshotHandler } from "./screenshot/index.js";
-export { sendKeysHandler } from "./send-keys/index.js";
-export { typeHandler } from "./type/index.js";
-export { windowInfoHandler } from "./window-info/index.js";
