@@ -27,13 +27,6 @@ export function register(server: McpServer) {
 			const deviceId = args.deviceId as string;
 			const updates = args.updates as z.infer<typeof workspaceUpdateSchema>[];
 
-			if (!deviceId) {
-				return {
-					content: [{ type: "text", text: "Error: deviceId is required" }],
-					isError: true,
-				};
-			}
-
 			return executeOnDevice({
 				ctx,
 				deviceId,

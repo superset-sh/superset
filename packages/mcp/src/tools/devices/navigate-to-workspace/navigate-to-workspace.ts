@@ -26,13 +26,6 @@ export function register(server: McpServer) {
 			const workspaceId = args.workspaceId as string | undefined;
 			const workspaceName = args.workspaceName as string | undefined;
 
-			if (!deviceId) {
-				return {
-					content: [{ type: "text", text: "Error: deviceId is required" }],
-					isError: true,
-				};
-			}
-
 			if (!workspaceId && !workspaceName) {
 				return {
 					content: [

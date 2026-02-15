@@ -41,18 +41,6 @@ export function register(server: McpServer) {
 				typeof workspaceInputSchema
 			>[];
 
-			if (!deviceId || !projectId) {
-				return {
-					content: [
-						{
-							type: "text",
-							text: "Error: deviceId and projectId are required",
-						},
-					],
-					isError: true,
-				};
-			}
-
 			return executeOnDevice({
 				ctx,
 				deviceId,

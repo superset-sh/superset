@@ -15,13 +15,6 @@ export function register(server: McpServer) {
 			const ctx = getMcpContext(extra);
 			const deviceId = args.deviceId as string;
 
-			if (!deviceId) {
-				return {
-					content: [{ type: "text", text: "Error: deviceId is required" }],
-					isError: true,
-				};
-			}
-
 			return executeOnDevice({
 				ctx,
 				deviceId,
