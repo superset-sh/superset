@@ -648,9 +648,16 @@ export const createAiChatRouter = () => {
 					sessionId: z.string(),
 					runId: z.string(),
 					approved: z.boolean(),
+					permissionMode: permissionModeSchema.optional(),
 				}),
 			)
 			.mutation(({ input }) => {
+				if (input.permissionMode) {
+					const ctx = sessionContext.get(input.sessionId);
+					if (ctx) {
+						ctx.permissionMode = input.permissionMode;
+					}
+				}
 				resumeApprovedStream({
 					sessionId: input.sessionId,
 					runId: input.runId,

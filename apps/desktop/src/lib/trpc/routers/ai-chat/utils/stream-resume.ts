@@ -40,6 +40,26 @@ export async function drainStreamToEmitter(
 		if (c.type === "tool-call-approval") {
 			const toolName = c.toolName ?? c.payload?.toolName;
 
+			// Bypass mode: auto-approve ALL tool calls
+			if (permissionMode === "bypassPermissions") {
+				const runId = stream.runId ?? state.runIds.get(sessionId);
+				if (runId) {
+					const ctx = state.context.get(sessionId);
+					const reqCtx = ctx
+						? new RequestContext(ctx.requestEntries)
+						: undefined;
+
+					const resumed = await superagent.approveToolCall({
+						runId,
+						...(reqCtx ? { requestContext: reqCtx } : {}),
+					});
+
+					await drainStreamToEmitter(resumed, sessionId, state, permissionMode);
+					return;
+				}
+			}
+
+			// Accept-edits mode: auto-approve only edit tools
 			if (
 				permissionMode === "acceptEdits" &&
 				toolName &&

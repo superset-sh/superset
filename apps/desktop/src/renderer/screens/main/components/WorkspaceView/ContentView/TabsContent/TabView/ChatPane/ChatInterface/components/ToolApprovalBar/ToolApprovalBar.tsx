@@ -1,15 +1,26 @@
+import { Button } from "@superset/ui/button";
+import { ButtonGroup } from "@superset/ui/button-group";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { HiChevronDown, HiShieldExclamation } from "react-icons/hi2";
 import type { ToolApprovalRequest } from "../../types";
 
 interface ToolApprovalBarProps {
 	pendingApproval: ToolApprovalRequest;
 	onApprove: () => void;
 	onDecline: () => void;
+	onAlwaysAllow: () => void;
 }
 
 export function ToolApprovalBar({
 	pendingApproval,
 	onApprove,
 	onDecline,
+	onAlwaysAllow,
 }: ToolApprovalBarProps) {
 	return (
 		<div className="border-t border-amber-500/30 bg-amber-500/10 px-4 py-3">
@@ -33,13 +44,31 @@ export function ToolApprovalBar({
 					>
 						Decline
 					</button>
-					<button
-						type="button"
-						onClick={onApprove}
-						className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
-					>
-						Approve
-					</button>
+					<ButtonGroup>
+						<Button
+							size="sm"
+							className="h-7 bg-amber-600 text-xs text-white hover:bg-amber-700"
+							onClick={onApprove}
+						>
+							Approve
+						</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									size="sm"
+									className="h-7 px-1.5 bg-amber-600 text-white hover:bg-amber-700"
+								>
+									<HiChevronDown className="size-3.5" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end" className="w-44 text-xs">
+								<DropdownMenuItem onClick={onAlwaysAllow} className="text-xs">
+									<HiShieldExclamation className="size-3.5" />
+									Always Allow
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					</ButtonGroup>
 				</div>
 				{pendingApproval.args != null && (
 					<pre className="max-h-32 overflow-auto rounded-md bg-background/60 p-2 font-mono text-[11px] text-muted-foreground">

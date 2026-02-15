@@ -184,6 +184,18 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		setPendingApproval(null);
 	}, [pendingApproval, approveToolCallMutation, sessionId]);
 
+	const handleAlwaysAllow = useCallback(() => {
+		if (!pendingApproval) return;
+		setPermissionMode("bypassPermissions");
+		approveToolCallMutation.mutate({
+			sessionId,
+			runId: pendingApproval.runId,
+			approved: true,
+			permissionMode: "bypassPermissions",
+		});
+		setPendingApproval(null);
+	}, [pendingApproval, approveToolCallMutation, sessionId]);
+
 	const handleDecline = useCallback(() => {
 		if (!pendingApproval) return;
 		approveToolCallMutation.mutate({
@@ -296,6 +308,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 					pendingApproval={pendingApproval}
 					onApprove={handleApprove}
 					onDecline={handleDecline}
+					onAlwaysAllow={handleAlwaysAllow}
 				/>
 			)}
 
