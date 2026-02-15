@@ -1,0 +1,1 @@
+export { ChatInputFooter } from "./ChatInputFooter";
