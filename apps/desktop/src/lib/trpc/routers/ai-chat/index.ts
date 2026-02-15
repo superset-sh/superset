@@ -2,7 +2,7 @@ import { exec } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import {
 	memory,
@@ -51,7 +51,6 @@ if (cliCredentials?.kind === "oauth") {
 	);
 }
 
-/** Per-session event bus for streaming superagent chunks to the renderer */
 const superagentEmitter = new EventEmitter();
 superagentEmitter.setMaxListeners(50);
 
@@ -67,10 +66,6 @@ const sessionState: SessionState = {
 	runIds: sessionRunIds,
 	abortControllers: sessionAbortControllers,
 };
-
-// ---------------------------------------------------------------------------
-// Auto-Context: gather project intelligence on each turn
-// ---------------------------------------------------------------------------
 
 function safeReadFile(path: string, maxBytes = 8_000): string | null {
 	try {
@@ -98,7 +93,6 @@ async function safeExec(
 	}
 }
 
-/** Build a shallow file tree (2 levels) for project awareness */
 function buildFileTree(cwd: string, maxDepth = 2, prefix = ""): string[] {
 	const lines: string[] = [];
 	try {
@@ -127,20 +121,13 @@ function buildFileTree(cwd: string, maxDepth = 2, prefix = ""): string[] {
 				);
 			}
 		}
-	} catch {
-		// permission error, etc.
-	}
+	} catch {}
 	return lines;
 }
 
-/**
- * Gather all project context for a given workspace directory.
- * Returns a formatted string to inject as additional instructions.
- */
 async function gatherProjectContext(cwd: string): Promise<string> {
 	const sections: string[] = [];
 
-	// 1. Project conventions (AGENTS.md, CLAUDE.md, .cursorrules)
 	const conventionFiles = [
 		"AGENTS.md",
 		"CLAUDE.md",
@@ -156,7 +143,6 @@ async function gatherProjectContext(cwd: string): Promise<string> {
 		}
 	}
 
-	// 2. Package.json summary
 	const pkgContent = safeReadFile(join(cwd, "package.json"));
 	if (pkgContent) {
 		try {
@@ -175,12 +161,9 @@ async function gatherProjectContext(cwd: string): Promise<string> {
 			sections.push(
 				`<package-info>\n${JSON.stringify(summary, null, 2)}\n</package-info>`,
 			);
-		} catch {
-			// malformed package.json
-		}
+		} catch {}
 	}
 
-	// 3. File tree (2 levels)
 	const tree = buildFileTree(cwd);
 	if (tree.length > 0) {
 		sections.push(
@@ -188,7 +171,6 @@ async function gatherProjectContext(cwd: string): Promise<string> {
 		);
 	}
 
-	// 4. Git state
 	const gitBranch = await safeExec("git branch --show-current", cwd);
 	if (gitBranch) {
 		const gitStatus = await safeExec("git status --short", cwd);
@@ -204,18 +186,10 @@ async function gatherProjectContext(cwd: string): Promise<string> {
 	return `\n\n# Project context (auto-injected)\n\nThe following is automatically gathered context about the current project workspace at \`${cwd}\`. Use this to understand the project without needing to explore from scratch.\n\n${sections.join("\n\n")}`;
 }
 
-// ---------------------------------------------------------------------------
-// File mentions: parse @filepath patterns from the user message
-// ---------------------------------------------------------------------------
-
 interface FileMention {
-	/** The original @path text in the message */
 	raw: string;
-	/** Absolute path to the file */
 	absPath: string;
-	/** Relative path used in the mention */
 	relPath: string;
-	/** File contents (null if unreadable) */
 	content: string | null;
 }
 
@@ -232,8 +206,9 @@ function parseFileMentions(text: string, cwd: string): FileMention[] {
 			seen.add(relPath);
 
 			const absPath = resolve(cwd, relPath);
-			// Prevent path traversal outside the workspace root
-			if (!absPath.startsWith(`${resolve(cwd)}/`)) {
+			// Prevent path traversal outside the workspace root (cross-platform)
+			const rel = relative(resolve(cwd), absPath);
+			if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
 				match = mentionRegex.exec(text);
 				continue;
 			}
@@ -329,8 +304,6 @@ export const createAiChatRouter = () => {
 				const result = await memory.recall({
 					threadId: input.threadId,
 				});
-				// Convert Mastra DB messages → AI SDK V5 UIMessage format
-				// This normalizes tool invocations with proper toolName, toolCallId, etc.
 				return toAISdkV5Messages(result.messages);
 			}),
 
@@ -400,7 +373,6 @@ export const createAiChatRouter = () => {
 		stopSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
-				// Abort running stream and purge in-memory state
 				const controller = sessionAbortControllers.get(input.sessionId);
 				if (controller) controller.abort();
 				sessionAbortControllers.delete(input.sessionId);
@@ -417,7 +389,6 @@ export const createAiChatRouter = () => {
 		deleteSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
-				// Abort running stream and purge in-memory state
 				const controller = sessionAbortControllers.get(input.sessionId);
 				if (controller) controller.abort();
 				sessionAbortControllers.delete(input.sessionId);
@@ -529,8 +500,6 @@ export const createAiChatRouter = () => {
 					permissionMode: input.permissionMode,
 				});
 
-				// Fire-and-forget: stream runs in background, chunks emitted to subscription
-				// Abort any existing stream for this session before starting a new one
 				const existingController = sessionAbortControllers.get(input.sessionId);
 				if (existingController) existingController.abort();
 
@@ -553,8 +522,7 @@ export const createAiChatRouter = () => {
 
 				void (async () => {
 					try {
-						// --- Auto-context ---
-						const projectContext = await gatherProjectContext(input.cwd);
+							const projectContext = await gatherProjectContext(input.cwd);
 						const mentions = parseFileMentions(input.text, input.cwd);
 						const fileMentionContext = buildFileMentionContext(mentions);
 						const contextInstructions =
@@ -605,7 +573,6 @@ export const createAiChatRouter = () => {
 							},
 						});
 
-						// Store runId for approval flow
 						if (output.runId) {
 							sessionRunIds.set(input.sessionId, output.runId);
 							superagentEmitter.emit(input.sessionId, {
@@ -621,7 +588,6 @@ export const createAiChatRouter = () => {
 							input.permissionMode,
 						);
 					} catch (error) {
-						// Clean up session state on error/abort
 						sessionRunIds.delete(input.sessionId);
 						sessionContext.delete(input.sessionId);
 						sessionSuspended.delete(input.sessionId);
@@ -632,7 +598,12 @@ export const createAiChatRouter = () => {
 						}
 						emitStreamError(input.sessionId, superagentEmitter, error);
 					} finally {
-						sessionAbortControllers.delete(input.sessionId);
+						// Only clean up if this is still our controller (not replaced by a new run)
+						if (
+							sessionAbortControllers.get(input.sessionId) === abortController
+						) {
+							sessionAbortControllers.delete(input.sessionId);
+						}
 					}
 				})();
 
@@ -664,7 +635,6 @@ export const createAiChatRouter = () => {
 				});
 			}),
 
-		/** Abort a running superagent stream */
 		abortSuperagent: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(({ input }) => {
@@ -673,14 +643,14 @@ export const createAiChatRouter = () => {
 					console.log(
 						`[ai-chat/abortSuperagent] Aborting session ${input.sessionId}`,
 					);
+					// Signal abort but don't delete — the drain loop needs to observe
+					// the aborted signal, and the run's finally block handles cleanup.
 					controller.abort();
-					sessionAbortControllers.delete(input.sessionId);
 					return { success: true, aborted: true };
 				}
 				return { success: true, aborted: false };
 			}),
 
-		/** Approve or decline a tool call (Mastra native approval) */
 		approveToolCall: publicProcedure
 			.input(
 				z.object({
@@ -706,7 +676,6 @@ export const createAiChatRouter = () => {
 				return { success: true };
 			}),
 
-		/** Answer an ask_user_question tool: inject answers then approve */
 		answerQuestion: publicProcedure
 			.input(
 				z.object({

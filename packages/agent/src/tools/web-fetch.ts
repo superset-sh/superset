@@ -1,10 +1,11 @@
+import { lookup } from "node:dns/promises";
 import { createTool } from "@mastra/core/tools";
 import * as cheerio from "cheerio";
 import { z } from "zod";
 
 const MAX_CONTENT_BYTES = 50_000;
+const MAX_REDIRECTS = 10;
 
-/** Tags whose content should be removed entirely (not just the tag) */
 const REMOVE_TAGS = [
 	"script",
 	"style",
@@ -16,15 +17,11 @@ const REMOVE_TAGS = [
 	"header",
 ];
 
-/** Block requests to private/internal network addresses */
-function isBlockedHost(hostname: string): boolean {
-	// Normalize
-	const h = hostname.toLowerCase();
+function isPrivateAddress(addr: string): boolean {
+	const h = addr.toLowerCase().replace(/^\[|\]$/g, "");
 
-	// Localhost variants
-	if (h === "localhost" || h === "[::1]") return true;
+	if (h === "localhost" || h === "::1" || h === "[::1]") return true;
 
-	// IPv4 private/reserved ranges
 	if (
 		/^127\./.test(h) ||
 		/^10\./.test(h) ||
@@ -35,15 +32,27 @@ function isBlockedHost(hostname: string): boolean {
 	)
 		return true;
 
-	// IPv6 loopback/private (bracket-wrapped or raw)
-	const raw = h.replace(/^\[|\]$/g, "");
 	if (
-		raw === "::1" ||
-		raw.startsWith("fe80:") ||
-		raw.startsWith("fc00:") ||
-		raw.startsWith("fd")
+		h === "::1" ||
+		h.startsWith("fe80:") ||
+		h.startsWith("fc00:") ||
+		/^fd[0-9a-f]{2}:/i.test(h) // ULA fd00::/8, avoids false positives on domains like fd.dev
 	)
 		return true;
+
+	return false;
+}
+
+/** Check hostname string AND resolve DNS to prevent SSRF via DNS rebinding */
+async function isBlockedHost(hostname: string): Promise<boolean> {
+	if (isPrivateAddress(hostname)) return true;
+
+	try {
+		const { address } = await lookup(hostname);
+		if (isPrivateAddress(address)) return true;
+	} catch {
+		// DNS resolution failure — allow the fetch to fail naturally
+	}
 
 	return false;
 }
@@ -67,34 +76,58 @@ export const webFetchTool = createTool({
 		status_code: z.number(),
 	}),
 	execute: async (input) => {
-		// Validate URL protocol and hostname
-		const parsed = new URL(input.url);
-		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-			return {
-				content: `Blocked: only http/https URLs are allowed (got ${parsed.protocol})`,
-				bytes: 0,
-				status_code: 0,
-			};
-		}
-		if (isBlockedHost(parsed.hostname)) {
-			return {
-				content:
-					"Blocked: requests to private/internal network addresses are not allowed",
-				bytes: 0,
-				status_code: 0,
-			};
-		}
+		const blocked = (msg: string) => ({ content: msg, bytes: 0, status_code: 0 });
 
-		const response = await fetch(input.url, {
-			headers: {
-				"User-Agent":
-					"Mozilla/5.0 (compatible; SupersetAgent/1.0; +https://superset.sh)",
-				Accept:
-					"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-			},
-			redirect: "follow",
-			signal: AbortSignal.timeout(15_000),
-		});
+		const validateUrl = async (url: string) => {
+			const parsed = new URL(url);
+			if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+				return `Blocked: only http/https URLs are allowed (got ${parsed.protocol})`;
+			}
+			if (await isBlockedHost(parsed.hostname)) {
+				return "Blocked: requests to private/internal network addresses are not allowed";
+			}
+			return null;
+		};
+
+		const blockReason = await validateUrl(input.url);
+		if (blockReason) return blocked(blockReason);
+
+		let url = input.url;
+		let response: Response;
+		let redirects = 0;
+
+		// Follow redirects manually so we can SSRF-check each hop before requesting
+		while (true) {
+			response = await fetch(url, {
+				headers: {
+					"User-Agent":
+						"Mozilla/5.0 (compatible; SupersetAgent/1.0; +https://superset.sh)",
+					Accept:
+						"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+				},
+				redirect: "manual",
+				signal: AbortSignal.timeout(15_000),
+			});
+
+			if (
+				response.status >= 300 &&
+				response.status < 400 &&
+				response.headers.get("location")
+			) {
+				if (++redirects > MAX_REDIRECTS) {
+					return blocked("Blocked: too many redirects");
+				}
+				const nextUrl = new URL(
+					response.headers.get("location")!,
+					url,
+				).toString();
+				const redirectBlockReason = await validateUrl(nextUrl);
+				if (redirectBlockReason) return blocked(redirectBlockReason);
+				url = nextUrl;
+				continue;
+			}
+			break;
+		}
 
 		const statusCode = response.status;
 		const contentType = response.headers.get("content-type") ?? "";
@@ -115,7 +148,6 @@ export const webFetchTool = createTool({
 			for (const tag of REMOVE_TAGS) {
 				$(tag).remove();
 			}
-			// Prefer <article> or <main> content, fall back to <body>
 			const main = $("article").length
 				? $("article")
 				: $("main").length

@@ -8,7 +8,6 @@ const EDIT_TOOLS = new Set([
 	"mastra_workspace_mkdir",
 ]);
 
-/** Per-session context stored at stream start and reused on every resume. */
 export interface SessionContext {
 	cwd: string;
 	modelId: string;
@@ -32,7 +31,6 @@ export async function drainStreamToEmitter(
 	permissionMode?: string,
 ): Promise<void> {
 	for await (const chunk of stream.fullStream) {
-		// Check if this session was aborted (supports resumed streams)
 		if (state.abortControllers.get(sessionId)?.signal.aborted) {
 			state.emitter.emit(sessionId, { type: "done" });
 			return;
@@ -47,7 +45,6 @@ export async function drainStreamToEmitter(
 		if (c.type === "tool-call-approval") {
 			const toolName = c.toolName ?? c.payload?.toolName;
 
-			// Bypass mode: auto-approve ALL tool calls
 			if (permissionMode === "bypassPermissions") {
 				const runId = stream.runId ?? state.runIds.get(sessionId);
 				if (runId) {
@@ -66,7 +63,6 @@ export async function drainStreamToEmitter(
 				}
 			}
 
-			// Accept-edits mode: auto-approve only edit tools
 			if (
 				permissionMode === "acceptEdits" &&
 				toolName &&
@@ -125,7 +121,6 @@ export function resumeApprovedStream(opts: {
 
 	state.suspended.delete(sessionId);
 
-	// Register an abort controller so resumed streams can be aborted
 	const abortController = new AbortController();
 	state.abortControllers.set(sessionId, abortController);
 
@@ -154,7 +149,6 @@ export function resumeApprovedStream(opts: {
 
 			await drainStreamToEmitter(stream, sessionId, state, ctx?.permissionMode);
 		} catch (error) {
-			// Clean up session state on error
 			state.runIds.delete(sessionId);
 			state.context.delete(sessionId);
 			state.suspended.delete(sessionId);
@@ -165,7 +159,10 @@ export function resumeApprovedStream(opts: {
 			}
 			emitStreamError(sessionId, state.emitter, error);
 		} finally {
-			state.abortControllers.delete(sessionId);
+			// Only clean up if this is still our controller (not replaced by a new run)
+			if (state.abortControllers.get(sessionId) === abortController) {
+				state.abortControllers.delete(sessionId);
+			}
 		}
 	})();
 }
