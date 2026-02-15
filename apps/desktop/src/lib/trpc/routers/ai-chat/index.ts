@@ -34,9 +34,9 @@ import {
 	type SessionState,
 } from "./utils/stream-resume";
 
-// Prefer Claude CLI credentials (OAuth from ~/.claude/.credentials.json) over .env ANTHROPIC_API_KEY.
-// OAuth tokens require `Authorization: Bearer` (not `x-api-key`), so we configure the Anthropic
-// provider directly via setAnthropicAuthToken rather than setting the env var.
+// Resolve Claude OAuth credentials from config files / keychain.
+// Only OAuth is supported — ANTHROPIC_API_KEY / OPENAI_API_KEY are never
+// read from or written to process.env.
 const cliCredentials =
 	getCredentialsFromConfig() ?? getCredentialsFromKeychain();
 if (cliCredentials?.kind === "oauth") {
@@ -45,9 +45,8 @@ if (cliCredentials?.kind === "oauth") {
 		`[ai-chat] Using Claude OAuth credentials from ${cliCredentials.source} (Bearer auth)`,
 	);
 } else if (cliCredentials) {
-	process.env.ANTHROPIC_API_KEY = cliCredentials.apiKey;
-	console.log(
-		`[ai-chat] Using Claude ${cliCredentials.kind} credentials from ${cliCredentials.source}`,
+	console.warn(
+		`[ai-chat] Ignoring non-OAuth credentials from ${cliCredentials.source} — only OAuth is supported`,
 	);
 }
 

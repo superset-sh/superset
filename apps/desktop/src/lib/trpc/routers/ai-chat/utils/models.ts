@@ -1,33 +1,11 @@
-import { PROVIDER_REGISTRY } from "@superset/agent";
-
-interface ProviderFilter {
-	displayName?: string;
-	modelFilter?: (modelId: string) => boolean;
-}
-
-const ALLOWED_PROVIDERS: Record<string, ProviderFilter> = {
-	anthropic: {},
-	openai: {
-		displayName: "Codex",
-		modelFilter: (m) => m.includes("codex"),
-	},
-};
+const AVAILABLE_MODELS = [
+	{ id: "anthropic/claude-haiku-4-5", name: "claude-haiku-4-5", provider: "Anthropic" },
+	{ id: "anthropic/claude-sonnet-4-5", name: "claude-sonnet-4-5", provider: "Anthropic" },
+	{ id: "anthropic/claude-opus-4-6", name: "claude-opus-4-6", provider: "Anthropic" },
+	{ id: "openai/gpt-5.3-codex", name: "gpt-5.3-codex", provider: "Codex" },
+	{ id: "openai/gpt-5.3-codex-spark", name: "gpt-5.3-codex-spark", provider: "Codex" },
+] as const;
 
 export function getAvailableModels() {
-	return Object.entries(ALLOWED_PROVIDERS).flatMap(([providerId, filter]) => {
-		const registry = (
-			PROVIDER_REGISTRY as Record<string, { name: string; models: string[] }>
-		)[providerId];
-		if (!registry) return [];
-
-		const models = filter.modelFilter
-			? registry.models.filter(filter.modelFilter)
-			: registry.models;
-
-		return models.map((modelId) => ({
-			id: `${providerId}/${modelId}`,
-			name: modelId,
-			provider: filter.displayName ?? registry.name,
-		}));
-	});
+	return [...AVAILABLE_MODELS];
 }
