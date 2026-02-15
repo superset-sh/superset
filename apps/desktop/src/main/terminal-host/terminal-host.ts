@@ -324,16 +324,25 @@ export class TerminalHost {
 		}
 	}
 
-	dispose(): void {
+	/**
+	 * Dispose all sessions, tree-killing their process trees.
+	 * Waits for tree-kills to complete (up to 5s hard timeout).
+	 */
+	async dispose(): Promise<void> {
 		for (const timer of this.killTimers.values()) {
 			clearTimeout(timer);
 		}
 		this.killTimers.clear();
 
-		for (const session of this.sessions.values()) {
-			session.dispose();
-		}
+		const sessions = [...this.sessions.values()];
 		this.sessions.clear();
+
+		if (sessions.length === 0) return;
+
+		await Promise.race([
+			Promise.all(sessions.map((s) => s.dispose())),
+			new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+		]);
 	}
 
 	/**
