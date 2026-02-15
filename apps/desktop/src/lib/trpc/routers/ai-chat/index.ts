@@ -216,20 +216,22 @@ function parseFileMentions(text: string, cwd: string): FileMention[] {
 	const mentions: FileMention[] = [];
 	const seen = new Set<string>();
 
-	let match: RegExpExecArray | null;
-	while ((match = mentionRegex.exec(text)) !== null) {
+	let match: RegExpExecArray | null = mentionRegex.exec(text);
+	while (match !== null) {
 		const relPath = match[1];
-		if (seen.has(relPath)) continue;
-		seen.add(relPath);
+		if (!seen.has(relPath)) {
+			seen.add(relPath);
 
-		const absPath = join(cwd, relPath);
-		const content = safeReadFile(absPath, 50_000); // allow larger files for explicit mentions
-		mentions.push({
-			raw: match[0],
-			absPath,
-			relPath,
-			content,
-		});
+			const absPath = join(cwd, relPath);
+			const content = safeReadFile(absPath, 50_000); // allow larger files for explicit mentions
+			mentions.push({
+				raw: match[0],
+				absPath,
+				relPath,
+				content,
+			});
+		}
+		match = mentionRegex.exec(text);
 	}
 
 	return mentions;
