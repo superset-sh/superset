@@ -1,9 +1,20 @@
-import { Readability } from "@mozilla/readability";
+import * as cheerio from "cheerio";
 import { createTool } from "@mastra/core/tools";
-import { parseHTML } from "linkedom";
 import { z } from "zod";
 
 const MAX_CONTENT_BYTES = 50_000;
+
+/** Tags whose content should be removed entirely (not just the tag) */
+const REMOVE_TAGS = [
+	"script",
+	"style",
+	"noscript",
+	"iframe",
+	"svg",
+	"nav",
+	"footer",
+	"header",
+];
 
 export const webFetchTool = createTool({
 	id: "web_fetch",
@@ -45,16 +56,27 @@ export const webFetchTool = createTool({
 			};
 		}
 
-		const rawHtml = await response.text();
+		const rawText = await response.text();
 		let content: string;
 
 		if (contentType.includes("text/html") || contentType.includes("xhtml")) {
-			const { document } = parseHTML(rawHtml);
-			const reader = new Readability(document);
-			const article = reader.parse();
-			content = article?.textContent?.trim() ?? rawHtml;
+			const $ = cheerio.load(rawText);
+			for (const tag of REMOVE_TAGS) {
+				$(tag).remove();
+			}
+			// Prefer <article> or <main> content, fall back to <body>
+			const main = $("article").length
+				? $("article")
+				: $("main").length
+					? $("main")
+					: $("body");
+			content = main
+				.text()
+				.replace(/[ \t]+/g, " ")
+				.replace(/\n{3,}/g, "\n\n")
+				.trim();
 		} else {
-			content = rawHtml;
+			content = rawText;
 		}
 
 		const bytes = new TextEncoder().encode(content).length;

@@ -25,6 +25,10 @@ import {
 } from "./utils/claude-session-scanner";
 import { getAvailableModels } from "./utils/models";
 import { chatSessionManager, sessionStore } from "./utils/session-manager";
+import {
+	type SessionState,
+	resumeApprovedStream,
+} from "./utils/stream-resume";
 
 // Prefer Claude CLI credentials (OAuth from ~/.claude/.credentials.json) over .env ANTHROPIC_API_KEY.
 // OAuth tokens require `Authorization: Bearer` (not `x-api-key`), so we configure the Anthropic
@@ -59,8 +63,13 @@ const sessionContext = new Map<string, { cwd: string; modelId: string }>();
 /** Track whether a session stream is suspended (waiting for tool approval) */
 const sessionSuspended = new Set<string>();
 
-/** Pending answers for ask_user_question tool (maps sessionId → answers) */
-const sessionToolAnswers = new Map<string, Record<string, string>>();
+/** Shared session state for stream resume helper */
+const sessionState: SessionState = {
+	emitter: superagentEmitter,
+	context: sessionContext,
+	suspended: sessionSuspended,
+	runIds: sessionRunIds,
+};
 
 // ---------------------------------------------------------------------------
 // Auto-Context: gather project intelligence on each turn
@@ -311,30 +320,7 @@ export const createAiChatRouter = () => {
 				});
 				// Convert Mastra DB messages → AI SDK V5 UIMessage format
 				// This normalizes tool invocations with proper toolName, toolCallId, etc.
-				const uiMessages = toAISdkV5Messages(result.messages);
-				// Debug: log tool parts to verify shape
-				for (const msg of uiMessages.slice(0, 3)) {
-					const parts = (msg as Record<string, unknown>).parts as
-						| Array<Record<string, unknown>>
-						| undefined;
-					if (parts) {
-						for (const p of parts) {
-							if (String(p.type ?? "").startsWith("tool-")) {
-								console.log(
-									"[getMessages] V5 tool part keys:",
-									Object.keys(p),
-									"type:",
-									p.type,
-								);
-								console.log(
-									"[getMessages] V5 tool part:",
-									JSON.stringify(p, null, 2).slice(0, 500),
-								);
-							}
-						}
-					}
-				}
-				return uiMessages;
+				return toAISdkV5Messages(result.messages);
 			}),
 
 		getSlashCommands: publicProcedure
@@ -494,25 +480,6 @@ export const createAiChatRouter = () => {
 					cursor: input?.cursor ?? 0,
 					limit: input?.limit ?? 30,
 				});
-			}),
-
-		sendMessage: publicProcedure
-			.input(z.object({ sessionId: z.string(), text: z.string() }))
-			.mutation(({ input }) => {
-				console.log("sendMessage", input);
-				// // Fire-and-forget: agent runs in background, errors surface via streamEvents
-				// void chatSessionManager
-				// 	.startAgent({
-				// 		sessionId: input.sessionId,
-				// 		prompt: input.text,
-				// 	})
-				// 	.catch((error: unknown) => {
-				// 		console.error(
-				// 			"[ai-chat/sendMessage] Failed to start agent:",
-				// 			error,
-				// 		);
-				// 	});
-				return { success: true };
 			}),
 
 		superagent: publicProcedure
@@ -735,101 +702,16 @@ export const createAiChatRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				sessionSuspended.delete(input.sessionId);
-				console.log(`[ai-chat/approveToolCall] Received:`, {
+				resumeApprovedStream({
 					sessionId: input.sessionId,
 					runId: input.runId,
 					approved: input.approved,
+					state: sessionState,
 				});
-
-				// Fire-and-forget: pipe the resumed stream back through the emitter
-				void (async () => {
-					try {
-						// Restore the requestContext so dynamic workspace tools are available
-						const ctx = sessionContext.get(input.sessionId);
-						const ctxEntries: [string, string][] = ctx
-							? [
-									["modelId", ctx.modelId],
-									["cwd", ctx.cwd],
-								]
-							: [];
-
-						// Inject pending answers for ask_user_question tool
-						const pendingAnswers = sessionToolAnswers.get(
-							input.sessionId,
-						);
-						if (pendingAnswers) {
-							ctxEntries.push([
-								"toolAnswers",
-								JSON.stringify(pendingAnswers),
-							]);
-							sessionToolAnswers.delete(input.sessionId);
-						}
-
-						const reqCtx =
-							ctxEntries.length > 0
-								? new RequestContext(ctxEntries)
-								: undefined;
-
-						console.log(
-							`[ai-chat/approveToolCall] Calling ${input.approved ? "approveToolCall" : "declineToolCall"} with runId: ${input.runId}, cwd: ${ctx?.cwd}`,
-						);
-						const approvalOpts = {
-							runId: input.runId,
-							...(reqCtx ? { requestContext: reqCtx } : {}),
-						};
-						const stream = input.approved
-							? await superagent.approveToolCall(approvalOpts)
-							: await superagent.declineToolCall(approvalOpts);
-
-						let chunkCount = 0;
-						console.log(
-							`[ai-chat/approveToolCall] Got stream, starting to iterate. Listeners: ${superagentEmitter.listenerCount(input.sessionId)}`,
-						);
-
-						for await (const chunk of stream.fullStream) {
-							chunkCount++;
-							const c = chunk as { type?: string };
-
-							// Check if the resumed stream itself hits another approval
-							if (c.type === "tool-call-approval") {
-								sessionSuspended.add(input.sessionId);
-								console.log(
-									`[ai-chat/approveToolCall] Another tool approval required`,
-								);
-							}
-
-							superagentEmitter.emit(input.sessionId, {
-								type: "chunk",
-								chunk,
-							});
-						}
-
-						console.log(
-							`[ai-chat/approveToolCall] Resumed stream complete. Chunks: ${chunkCount}`,
-						);
-
-						// Only emit done if not suspended again
-						if (!sessionSuspended.has(input.sessionId)) {
-							superagentEmitter.emit(input.sessionId, {
-								type: "done",
-							});
-							sessionRunIds.delete(input.sessionId);
-							sessionContext.delete(input.sessionId);
-						}
-					} catch (error) {
-						console.error("[ai-chat/approveToolCall] Stream failed:", error);
-						superagentEmitter.emit(input.sessionId, {
-							type: "error",
-							error: error instanceof Error ? error.message : String(error),
-						});
-					}
-				})();
-
 				return { success: true };
 			}),
 
-		/** Answer an ask_user_question tool: store answers then approve */
+		/** Answer an ask_user_question tool: inject answers then approve */
 		answerQuestion: publicProcedure
 			.input(
 				z.object({
@@ -839,86 +721,15 @@ export const createAiChatRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				console.log("[ai-chat/answerQuestion] Received:", {
+				resumeApprovedStream({
 					sessionId: input.sessionId,
 					runId: input.runId,
-					answerKeys: Object.keys(input.answers),
+					approved: true,
+					state: sessionState,
+					extraContext: {
+						toolAnswers: JSON.stringify(input.answers),
+					},
 				});
-
-				// Store answers so approveToolCall can inject them into RequestContext
-				sessionToolAnswers.set(input.sessionId, input.answers);
-
-				// Clear suspended state and approve
-				sessionSuspended.delete(input.sessionId);
-
-				// Fire-and-forget: reuse the same approval resume logic
-				void (async () => {
-					try {
-						const ctx = sessionContext.get(input.sessionId);
-						const ctxEntries: [string, string][] = ctx
-							? [
-									["modelId", ctx.modelId],
-									["cwd", ctx.cwd],
-								]
-							: [];
-
-						// Inject answers into RequestContext
-						const pendingAnswers = sessionToolAnswers.get(
-							input.sessionId,
-						);
-						if (pendingAnswers) {
-							ctxEntries.push([
-								"toolAnswers",
-								JSON.stringify(pendingAnswers),
-							]);
-							sessionToolAnswers.delete(input.sessionId);
-						}
-
-						const reqCtx =
-							ctxEntries.length > 0
-								? new RequestContext(ctxEntries)
-								: undefined;
-
-						const stream = await superagent.approveToolCall({
-							runId: input.runId,
-							...(reqCtx ? { requestContext: reqCtx } : {}),
-						});
-
-						let suspended = false;
-						for await (const chunk of stream.fullStream) {
-							const c = chunk as { type?: string };
-							if (c.type === "tool-call-approval") {
-								suspended = true;
-								sessionSuspended.add(input.sessionId);
-							}
-							superagentEmitter.emit(input.sessionId, {
-								type: "chunk",
-								chunk,
-							});
-						}
-
-						if (!suspended) {
-							superagentEmitter.emit(input.sessionId, {
-								type: "done",
-							});
-							sessionRunIds.delete(input.sessionId);
-							sessionContext.delete(input.sessionId);
-						}
-					} catch (error) {
-						console.error(
-							"[ai-chat/answerQuestion] Stream failed:",
-							error,
-						);
-						superagentEmitter.emit(input.sessionId, {
-							type: "error",
-							error:
-								error instanceof Error
-									? error.message
-									: String(error),
-						});
-					}
-				})();
-
 				return { success: true };
 			}),
 

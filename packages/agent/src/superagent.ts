@@ -8,9 +8,11 @@ import {
 } from "@mastra/core/workspace";
 import { Memory } from "@mastra/memory";
 import { PostgresStore } from "@mastra/pg";
-import { askUserQuestionTool } from "./tools/ask-user-question";
-import { webFetchTool } from "./tools/web-fetch";
-import { webSearchTool } from "./tools/web-search";
+import {
+	askUserQuestionTool,
+	webFetchTool,
+	webSearchTool,
+} from "./tools";
 
 // ---------------------------------------------------------------------------
 // Anthropic OAuth support
