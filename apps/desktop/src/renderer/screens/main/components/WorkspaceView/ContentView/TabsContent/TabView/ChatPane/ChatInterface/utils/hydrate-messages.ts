@@ -7,30 +7,6 @@ import type { ChatMessage, MessagePart } from "../types";
 export function hydrateMessages(
 	historyMessages: Array<Record<string, unknown>>,
 ): ChatMessage[] {
-	// Debug: log the raw shape from the server to verify toAISdkV5Messages output
-	console.log(
-		"[hydrate] raw historyMessages sample:",
-		JSON.stringify(
-			historyMessages.slice(0, 2).map((m) => ({
-				id: m.id,
-				role: m.role,
-				hasTopLevelParts: Array.isArray(m.parts),
-				hasContentParts:
-					!!m.content &&
-					Array.isArray((m.content as Record<string, unknown>)?.parts),
-				partTypes: (
-					(m.parts as Array<Record<string, unknown>>) ??
-					((m.content as Record<string, unknown>)?.parts as Array<
-						Record<string, unknown>
-					>) ??
-					[]
-				).map((p) => ({ type: p.type, toolName: p.toolName })),
-			})),
-			null,
-			2,
-		),
-	);
-
 	return (
 		historyMessages as Array<{
 			id: string;
