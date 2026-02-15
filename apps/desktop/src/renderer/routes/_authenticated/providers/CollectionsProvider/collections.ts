@@ -23,7 +23,7 @@ import superjson from "superjson";
 import { z } from "zod";
 
 const columnMapper = snakeCamelMapper();
-const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/api/electric/v1/shape`;
+const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 const apiKeyDisplaySchema = z.object({
 	id: z.string(),

@@ -403,7 +403,7 @@ step_write_env() {
     echo "# Electric URLs (overrides from root .env)"
     write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
     echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
   } >> .env
 
   success "Workspace .env written"
