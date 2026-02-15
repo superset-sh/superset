@@ -492,6 +492,7 @@ export const createAiChatRouter = () => {
 					modelId: z.string(),
 					cwd: z.string(),
 					permissionMode: permissionModeSchema.optional(),
+					thinkingEnabled: z.boolean().optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -526,6 +527,11 @@ export const createAiChatRouter = () => {
 							requestContext: new RequestContext([
 								["modelId", input.modelId],
 								["cwd", input.cwd],
+								...(input.thinkingEnabled
+									? ([["thinkingEnabled", "true"]] as [
+											[string, string],
+										])
+									: []),
 							]),
 							maxSteps: 100,
 							memory: {

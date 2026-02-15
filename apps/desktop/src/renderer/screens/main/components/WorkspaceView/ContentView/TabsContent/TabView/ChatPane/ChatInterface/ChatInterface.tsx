@@ -142,6 +142,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 				modelId: selectedModel.id,
 				cwd,
 				permissionMode,
+				thinkingEnabled,
 			});
 		},
 		[
@@ -150,6 +151,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			selectedModel.id,
 			cwd,
 			permissionMode,
+			thinkingEnabled,
 			activeAgentCallIdRef,
 			runIdRef,
 		],

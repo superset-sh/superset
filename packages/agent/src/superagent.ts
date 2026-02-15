@@ -45,24 +45,27 @@ function resolveModel({
 }) {
 	const modelId =
 		requestContext.get("modelId") ?? "anthropic/claude-sonnet-4-5";
+	const thinkingEnabled = requestContext.get("thinkingEnabled") === "true";
 
-	if (anthropicAuthToken) {
-		const slashIdx = modelId.indexOf("/");
-		const provider = slashIdx > -1 ? modelId.slice(0, slashIdx) : "anthropic";
-		const model = slashIdx > -1 ? modelId.slice(slashIdx + 1) : modelId;
+	const slashIdx = modelId.indexOf("/");
+	const provider = slashIdx > -1 ? modelId.slice(0, slashIdx) : "anthropic";
+	const model = slashIdx > -1 ? modelId.slice(slashIdx + 1) : modelId;
 
-		if (provider === "anthropic") {
-			// OAuth requires specific beta flags and Claude CLI identity headers.
-			// See: https://github.com/badlogic/pi-mono/blob/main/packages/ai/src/providers/anthropic.ts
-			return createAnthropic({
-				authToken: anthropicAuthToken,
-				headers: {
-					"anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
-					"user-agent": "claude-cli/2.1.2 (external, cli)",
-					"x-app": "cli",
-				},
-			})(model);
-		}
+	if (anthropicAuthToken && provider === "anthropic") {
+		return createAnthropic({
+			authToken: anthropicAuthToken,
+			headers: {
+				"anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+				"user-agent": "claude-cli/2.1.2 (external, cli)",
+				"x-app": "cli",
+			},
+		})(model, thinkingEnabled ? { thinking: { type: "enabled", budgetTokens: 10000 } } : {});
+	}
+
+	if (thinkingEnabled && provider === "anthropic") {
+		return createAnthropic()(model, {
+			thinking: { type: "enabled", budgetTokens: 10000 },
+		});
 	}
 
 	return modelId;
