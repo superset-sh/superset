@@ -5,7 +5,6 @@ import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import {
 	memory,
-	PROVIDER_REGISTRY,
 	RequestContext,
 	setAnthropicAuthToken,
 	superagent,
@@ -24,6 +23,7 @@ import {
 	readClaudeSessionMessages,
 	scanClaudeSessions,
 } from "./utils/claude-session-scanner";
+import { getAvailableModels } from "./utils/models";
 import { chatSessionManager, sessionStore } from "./utils/session-manager";
 
 // Prefer Claude CLI credentials (OAuth from ~/.claude/.credentials.json) over .env ANTHROPIC_API_KEY.
@@ -298,27 +298,7 @@ export const createAiChatRouter = () => {
 			};
 		}),
 
-		getModels: publicProcedure.query(() => {
-			const ALLOWED_PROVIDERS = new Set(["anthropic", "openai"]);
-			return Object.entries(PROVIDER_REGISTRY)
-				.filter(([providerId]) => ALLOWED_PROVIDERS.has(providerId))
-				.flatMap(
-					([providerId, config]: [
-						string,
-						{ name: string; models: string[] },
-					]) => {
-						const models =
-							providerId === "openai"
-								? config.models.filter((m: string) => m.includes("codex"))
-								: config.models;
-						return models.map((modelId: string) => ({
-							id: `${providerId}/${modelId}`,
-							name: modelId,
-							provider: providerId === "openai" ? "Codex" : config.name,
-						}));
-					},
-				);
-		}),
+		getModels: publicProcedure.query(() => getAvailableModels()),
 
 		getMessages: publicProcedure
 			.input(z.object({ threadId: z.string() }))
