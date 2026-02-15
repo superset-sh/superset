@@ -71,6 +71,10 @@ export function htmlEnvTransformPlugin(): Plugin {
 					process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
 				)
 				.replace(
+					/%NEXT_PUBLIC_ELECTRIC_URL%/g,
+					process.env.NEXT_PUBLIC_ELECTRIC_URL || "https://api.superset.sh",
+				)
+				.replace(
 					/%NEXT_PUBLIC_STREAMS_URL%/g,
 					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
 				);
