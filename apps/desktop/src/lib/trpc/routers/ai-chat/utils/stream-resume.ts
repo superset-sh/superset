@@ -32,6 +32,9 @@ export async function drainStreamToEmitter(
 ): Promise<void> {
 	for await (const chunk of stream.fullStream) {
 		if (state.abortControllers.get(sessionId)?.signal.aborted) {
+			state.runIds.delete(sessionId);
+			state.context.delete(sessionId);
+			state.suspended.delete(sessionId);
 			state.emitter.emit(sessionId, { type: "done" });
 			return;
 		}
@@ -44,30 +47,13 @@ export async function drainStreamToEmitter(
 
 		if (c.type === "tool-call-approval") {
 			const toolName = c.toolName ?? c.payload?.toolName;
+			const shouldAutoApprove =
+				permissionMode === "bypassPermissions" ||
+				(permissionMode === "acceptEdits" &&
+					toolName &&
+					EDIT_TOOLS.has(toolName));
 
-			if (permissionMode === "bypassPermissions") {
-				const runId = stream.runId ?? state.runIds.get(sessionId);
-				if (runId) {
-					const ctx = state.context.get(sessionId);
-					const reqCtx = ctx
-						? new RequestContext(ctx.requestEntries)
-						: undefined;
-
-					const resumed = await superagent.approveToolCall({
-						runId,
-						...(reqCtx ? { requestContext: reqCtx } : {}),
-					});
-
-					await drainStreamToEmitter(resumed, sessionId, state, permissionMode);
-					return;
-				}
-			}
-
-			if (
-				permissionMode === "acceptEdits" &&
-				toolName &&
-				EDIT_TOOLS.has(toolName)
-			) {
+			if (shouldAutoApprove) {
 				const runId = stream.runId ?? state.runIds.get(sessionId);
 				if (runId) {
 					const ctx = state.context.get(sessionId);

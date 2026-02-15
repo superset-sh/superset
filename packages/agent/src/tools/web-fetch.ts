@@ -20,7 +20,7 @@ const REMOVE_TAGS = [
 function isPrivateAddress(addr: string): boolean {
 	const h = addr.toLowerCase().replace(/^\[|\]$/g, "");
 
-	if (h === "localhost" || h === "::1" || h === "[::1]") return true;
+	if (h === "localhost" || h === "::1") return true;
 
 	if (
 		/^127\./.test(h) ||
@@ -33,7 +33,6 @@ function isPrivateAddress(addr: string): boolean {
 		return true;
 
 	if (
-		h === "::1" ||
 		h.startsWith("fe80:") ||
 		h.startsWith("fc00:") ||
 		/^fd[0-9a-f]{2}:/i.test(h) // ULA fd00::/8, avoids false positives on domains like fd.dev
@@ -48,8 +47,8 @@ async function isBlockedHost(hostname: string): Promise<boolean> {
 	if (isPrivateAddress(hostname)) return true;
 
 	try {
-		const { address } = await lookup(hostname);
-		if (isPrivateAddress(address)) return true;
+		const addresses = await lookup(hostname, { all: true });
+		if (addresses.some((a) => isPrivateAddress(a.address))) return true;
 	} catch {
 		// DNS resolution failure — allow the fetch to fail naturally
 	}
@@ -76,7 +75,11 @@ export const webFetchTool = createTool({
 		status_code: z.number(),
 	}),
 	execute: async (input) => {
-		const blocked = (msg: string) => ({ content: msg, bytes: 0, status_code: 0 });
+		const blocked = (msg: string) => ({
+			content: msg,
+			bytes: 0,
+			status_code: 0,
+		});
 
 		const validateUrl = async (url: string) => {
 			const parsed = new URL(url);
@@ -109,18 +112,12 @@ export const webFetchTool = createTool({
 				signal: AbortSignal.timeout(15_000),
 			});
 
-			if (
-				response.status >= 300 &&
-				response.status < 400 &&
-				response.headers.get("location")
-			) {
+			const location = response.headers.get("location");
+			if (response.status >= 300 && response.status < 400 && location) {
 				if (++redirects > MAX_REDIRECTS) {
 					return blocked("Blocked: too many redirects");
 				}
-				const nextUrl = new URL(
-					response.headers.get("location")!,
-					url,
-				).toString();
+				const nextUrl = new URL(location, url).toString();
 				const redirectBlockReason = await validateUrl(nextUrl);
 				if (redirectBlockReason) return blocked(redirectBlockReason);
 				url = nextUrl;

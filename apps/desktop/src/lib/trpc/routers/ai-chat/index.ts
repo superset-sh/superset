@@ -105,7 +105,6 @@ function buildFileTree(cwd: string, maxDepth = 2, prefix = ""): string[] {
 					e.name !== "build",
 			)
 			.sort((a, b) => {
-				// Directories first
 				if (a.isDirectory() && !b.isDirectory()) return -1;
 				if (!a.isDirectory() && b.isDirectory()) return 1;
 				return a.name.localeCompare(b.name);
@@ -522,7 +521,7 @@ export const createAiChatRouter = () => {
 
 				void (async () => {
 					try {
-							const projectContext = await gatherProjectContext(input.cwd);
+						const projectContext = await gatherProjectContext(input.cwd);
 						const mentions = parseFileMentions(input.text, input.cwd);
 						const fileMentionContext = buildFileMentionContext(mentions);
 						const contextInstructions =
