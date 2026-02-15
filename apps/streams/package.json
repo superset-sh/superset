@@ -28,7 +28,7 @@
 	"devDependencies": {
 		"@durable-streams/server-conformance-tests": "^0.2.0",
 		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
+		"@types/node": "^25.2.3",
 		"fast-check": "^4.5.3",
 		"tsup": "^8.5.0",
 		"typescript": "^5.9.3",

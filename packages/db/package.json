@@ -45,7 +45,7 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
+		"@types/node": "^25.2.3",
 		"drizzle-kit": "0.31.8",
 		"typescript": "^5.9.3"
 	}
