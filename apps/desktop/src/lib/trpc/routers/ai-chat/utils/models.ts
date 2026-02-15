@@ -16,9 +16,12 @@ const ALLOWED_PROVIDERS: Record<string, ProviderFilter> = {
 export function getAvailableModels() {
 	return Object.entries(ALLOWED_PROVIDERS).flatMap(
 		([providerId, filter]) => {
-			const registry = PROVIDER_REGISTRY[providerId] as
-				| { name: string; models: string[] }
-				| undefined;
+			const registry = (
+				PROVIDER_REGISTRY as Record<
+					string,
+					{ name: string; models: string[] }
+				>
+			)[providerId];
 			if (!registry) return [];
 
 			const models = filter.modelFilter
