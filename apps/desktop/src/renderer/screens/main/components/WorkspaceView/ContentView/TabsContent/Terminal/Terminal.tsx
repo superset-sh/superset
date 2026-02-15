@@ -8,6 +8,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { ConnectionErrorOverlay, SessionKilledOverlay } from "./components";
 import {
+	DEFAULT_LINK_COLOR,
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "./config";
@@ -24,6 +25,7 @@ import {
 	useTerminalRestore,
 	useTerminalStream,
 } from "./hooks";
+import type { LinkDecorationManager } from "./link-providers";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type {
@@ -72,6 +74,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const rendererRef = useRef<TerminalRendererRef | null>(null);
+	const linkDecorationManagerRef = useRef<LinkDecorationManager | null>(null);
 	const isExitedRef = useRef(false);
 	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
 		null,
@@ -263,6 +266,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		fitAddonRef,
 		searchAddonRef,
 		rendererRef,
+		linkDecorationManagerRef,
 		isExitedRef,
 		wasKilledByUserRef,
 		commandBufferRef,
@@ -305,6 +309,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
 		xterm.options.theme = terminalTheme;
+		linkDecorationManagerRef.current?.updateColor(
+			terminalTheme.blue ?? DEFAULT_LINK_COLOR,
+		);
 	}, [terminalTheme]);
 
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(

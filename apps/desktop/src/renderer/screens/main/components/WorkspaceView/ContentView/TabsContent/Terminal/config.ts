@@ -48,3 +48,5 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 };
 
 export const RESIZE_DEBOUNCE_MS = 150;
+
+export const DEFAULT_LINK_COLOR = "#57c7ff";

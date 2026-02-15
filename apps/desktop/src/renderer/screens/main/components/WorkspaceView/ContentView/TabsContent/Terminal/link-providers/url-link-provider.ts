@@ -1,40 +1,12 @@
 import type { Terminal } from "@xterm/xterm";
+import { getUrlTooltipText } from "./link-tooltip";
 import {
 	type LinkMatch,
 	MultiLineLinkProvider,
 } from "./multi-line-link-provider";
-
-const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
-
-function trimUnbalancedParens(url: string): string {
-	let openCount = 0;
-	let endIndex = url.length;
-
-	for (let i = 0; i < url.length; i++) {
-		if (url[i] === "(") {
-			openCount++;
-		} else if (url[i] === ")") {
-			if (openCount > 0) {
-				openCount--;
-			} else {
-				endIndex = i;
-				break;
-			}
-		}
-	}
-
-	let result = url.slice(0, endIndex);
-
-	while (result.endsWith("(")) {
-		result = result.slice(0, -1);
-	}
-
-	return result;
-}
+import { cleanUrlMatch, URL_PATTERN_SOURCE } from "./url-utils";
 
 export class UrlLinkProvider extends MultiLineLinkProvider {
-	private readonly URL_PATTERN = /\bhttps?:\/\/[^\s<>[\]'"]+/g;
-
 	constructor(
 		terminal: Terminal,
 		private readonly onOpen: (event: MouseEvent, uri: string) => void,
@@ -42,8 +14,12 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		super(terminal);
 	}
 
+	protected getTooltipText(): string {
+		return getUrlTooltipText();
+	}
+
 	protected getPattern(): RegExp {
-		return new RegExp(this.URL_PATTERN.source, "g");
+		return new RegExp(URL_PATTERN_SOURCE, "g");
 	}
 
 	protected shouldSkipMatch(_match: LinkMatch): boolean {
@@ -51,9 +27,7 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 	}
 
 	protected transformMatch(match: LinkMatch): LinkMatch | null {
-		let text = match.text;
-		text = trimUnbalancedParens(text);
-		text = text.replace(TRAILING_PUNCTUATION, "");
+		const text = cleanUrlMatch(match.text);
 
 		if (text === match.text) {
 			return match;
