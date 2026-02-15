@@ -2,7 +2,11 @@ import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
+import {
+	HiChatBubbleLeftRight,
+	HiMiniMinus,
+	HiMiniPlus,
+} from "react-icons/hi2";
 import {
 	LuCheck,
 	LuChevronDown,
@@ -33,6 +37,7 @@ interface FileDiffHeaderProps {
 	onUnstage?: () => void;
 	onDiscard?: () => void;
 	isActioning: boolean;
+	commentCount?: number;
 }
 
 export function FileDiffHeader({
@@ -54,6 +59,7 @@ export function FileDiffHeader({
 	onUnstage,
 	onDiscard,
 	isActioning,
+	commentCount = 0,
 }: FileDiffHeaderProps) {
 	const hasAction = onStage || onUnstage;
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
@@ -142,6 +148,13 @@ export function FileDiffHeader({
 			)}
 
 			<div className="flex-1" />
+
+			{commentCount > 0 && (
+				<span className="flex items-center gap-0.5 text-[10px] text-muted-foreground shrink-0">
+					<HiChatBubbleLeftRight className="size-3" />
+					{commentCount}
+				</span>
+			)}
 
 			{showStats && (
 				<span className="flex items-center gap-1 text-xs font-mono shrink-0">
