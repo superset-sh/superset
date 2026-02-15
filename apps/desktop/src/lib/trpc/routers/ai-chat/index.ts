@@ -27,6 +27,8 @@ import { getAvailableModels } from "./utils/models";
 import { chatSessionManager, sessionStore } from "./utils/session-manager";
 import {
 	type SessionState,
+	drainStreamToEmitter,
+	emitStreamError,
 	resumeApprovedStream,
 } from "./utils/stream-resume";
 
@@ -502,39 +504,29 @@ export const createAiChatRouter = () => {
 				});
 
 				// Fire-and-forget: stream runs in background, chunks emitted to subscription
+				const abortController = new AbortController();
+				sessionAbortControllers.set(input.sessionId, abortController);
+				sessionContext.set(input.sessionId, {
+					cwd: input.cwd,
+					modelId: input.modelId,
+				});
+
 				void (async () => {
-					// --- Abort controller ---
-					const abortController = new AbortController();
-					sessionAbortControllers.set(input.sessionId, abortController);
-
-					// Store context for approval resumption
-					sessionContext.set(input.sessionId, {
-						cwd: input.cwd,
-						modelId: input.modelId,
-					});
-
 					try {
 						// --- Auto-context ---
 						const projectContext = gatherProjectContext(input.cwd);
-
-						// --- File mentions ---
 						const mentions = parseFileMentions(input.text, input.cwd);
 						const fileMentionContext = buildFileMentionContext(mentions);
-
-						// Build the full context to inject as supplemental instructions
 						const contextInstructions =
 							projectContext + fileMentionContext || undefined;
 
-						// --- Permission mode ---
-						const requireToolApproval = input.permissionMode === "default"; // "Manual" mode: all tools need approval
-
-						const reqCtx = new RequestContext([
-							["modelId", input.modelId],
-							["cwd", input.cwd],
-						]);
+						const requireToolApproval = input.permissionMode === "default";
 
 						const output = await superagent.stream(input.text, {
-							requestContext: reqCtx,
+							requestContext: new RequestContext([
+								["modelId", input.modelId],
+								["cwd", input.cwd],
+							]),
 							maxSteps: 100,
 							memory: {
 								thread: input.sessionId,
@@ -546,7 +538,6 @@ export const createAiChatRouter = () => {
 								: {}),
 							...(requireToolApproval ? { requireToolApproval: true } : {}),
 							onStepFinish: (event) => {
-								// Emit token usage after each step
 								const usage = (event as Record<string, unknown>).usage as
 									| {
 											promptTokens?: number;
@@ -557,92 +548,28 @@ export const createAiChatRouter = () => {
 								if (usage) {
 									superagentEmitter.emit(input.sessionId, {
 										type: "chunk",
-										chunk: {
-											type: "usage",
-											payload: usage,
-										},
+										chunk: { type: "usage", payload: usage },
 									});
 								}
 							},
 						});
 
 						// Store runId for approval flow
-						const runId = output.runId;
-						if (runId) {
-							sessionRunIds.set(input.sessionId, runId);
+						if (output.runId) {
+							sessionRunIds.set(input.sessionId, output.runId);
 							superagentEmitter.emit(input.sessionId, {
 								type: "chunk",
-								chunk: { type: "run-id", payload: { runId } },
+								chunk: { type: "run-id", payload: { runId: output.runId } },
 							});
 						}
 
-						let chunkCount = 0;
-						let suspended = false;
-						const listenerCount = superagentEmitter.listenerCount(
-							input.sessionId,
-						);
-						console.log(
-							`[ai-chat/superagent] Starting stream. Listeners for "${input.sessionId}": ${listenerCount}`,
-						);
-
-						for await (const chunk of output.fullStream) {
-							chunkCount++;
-							const c = chunk as { type?: string };
-							if (
-								c.type?.startsWith("tool") ||
-								c.type === "text-delta" ||
-								c.type === "finish" ||
-								c.type === "start" ||
-								c.type === "step-start" ||
-								c.type === "step-finish" ||
-								chunkCount <= 5
-							) {
-								console.log(
-									`[ai-chat/superagent] Chunk #${chunkCount}: type=${c.type}, listeners=${superagentEmitter.listenerCount(input.sessionId)}`,
-								);
-							}
-
-							// Detect tool approval suspension
-							if (c.type === "tool-call-approval") {
-								suspended = true;
-								sessionSuspended.add(input.sessionId);
-								console.log(
-									`[ai-chat/superagent] Tool approval required — stream suspended`,
-								);
-							}
-
-							superagentEmitter.emit(input.sessionId, {
-								type: "chunk",
-								chunk,
-							});
-						}
-
-						console.log(
-							`[ai-chat/superagent] Stream complete. Total chunks: ${chunkCount}, suspended: ${suspended}`,
-						);
-
-						// Only emit "done" if the stream truly finished (not suspended for approval)
-						if (!suspended) {
-							superagentEmitter.emit(input.sessionId, {
-								type: "done",
-							});
-							sessionRunIds.delete(input.sessionId);
-							sessionContext.delete(input.sessionId);
-						}
+						await drainStreamToEmitter(output, input.sessionId, sessionState);
 					} catch (error) {
-						// Don't emit error for intentional aborts
 						if (abortController.signal.aborted) {
-							console.log("[ai-chat/superagent] Stream aborted by user.");
-							superagentEmitter.emit(input.sessionId, {
-								type: "done",
-							});
+							superagentEmitter.emit(input.sessionId, { type: "done" });
 							return;
 						}
-						console.error("[ai-chat/superagent] Stream failed:", error);
-						superagentEmitter.emit(input.sessionId, {
-							type: "error",
-							error: error instanceof Error ? error.message : String(error),
-						});
+						emitStreamError(input.sessionId, superagentEmitter, error);
 					} finally {
 						sessionAbortControllers.delete(input.sessionId);
 					}

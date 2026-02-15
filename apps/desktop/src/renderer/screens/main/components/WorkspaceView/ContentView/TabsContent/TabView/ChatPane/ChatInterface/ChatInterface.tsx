@@ -83,7 +83,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		);
 	}, [historyMessages]);
 
-	const { activeAgentCallIdRef, runIdRef } = useSuperagentStream({
+	const { activeAgentCallIdRef, runIdRef, endStream } = useSuperagentStream({
 		sessionId,
 		setMessages,
 		setIsStreaming,
@@ -96,8 +96,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const triggerAgent = electronTrpc.aiChat.superagent.useMutation({
 		onError: (err) => {
 			console.error("[chat] Agent trigger failed:", err);
-			setIsStreaming(false);
-			setError(err instanceof Error ? err.message : String(err.message ?? err));
+			endStream(err.message);
 		},
 	});
 

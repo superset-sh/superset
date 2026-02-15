@@ -24,6 +24,8 @@ interface UseSuperagentStreamParams {
 interface UseSuperagentStreamReturn {
 	activeAgentCallIdRef: React.MutableRefObject<string | null>;
 	runIdRef: React.MutableRefObject<string | null>;
+	/** Call when the stream ends (done, error, abort, or mutation failure). */
+	endStream: (error?: string) => void;
 }
 
 export function useSuperagentStream({
@@ -72,34 +74,38 @@ export function useSuperagentStream({
 		[setMessages],
 	);
 
+	// Centralised cleanup for every stream-ending path (done, error, abort, mutation failure).
+	const endStream = useCallback(
+		(error?: string) => {
+			const activeId = activeAgentCallIdRef.current;
+			if (activeId) {
+				updateLastAssistant((parts) =>
+					parts.map((part) =>
+						part.type === "agent-call" && part.toolCallId === activeId
+							? { ...part, status: "done" as const }
+							: part,
+					),
+				);
+				activeAgentCallIdRef.current = null;
+			}
+			setIsStreaming(false);
+			if (error) setError(error);
+		},
+		[updateLastAssistant, setIsStreaming, setError],
+	);
+
 	electronTrpc.aiChat.superagentStream.useSubscription(
 		{ sessionId },
 		{
 			onData: (event) => {
 				if (event.type === "done" || event.type === "error") {
-					// If a sub-agent was active when the stream ended (abort/error),
-					// mark its agent-call part as done so the UI doesn't stay stuck on "Running"
-					const activeId = activeAgentCallIdRef.current;
-					if (activeId) {
-						updateLastAssistant((parts) =>
-							parts.map((part) =>
-								part.type === "agent-call" && part.toolCallId === activeId
-									? { ...part, status: "done" as const }
-									: part,
-							),
-						);
-						activeAgentCallIdRef.current = null;
-					}
-					setIsStreaming(false);
-
-					if (event.type === "error") {
-						console.error("[chat] stream error:", event.error);
-						setError(
-							typeof event.error === "string"
+					endStream(
+						event.type === "error"
+							? typeof event.error === "string"
 								? event.error
-								: "An error occurred",
-						);
-					}
+								: "An error occurred"
+							: undefined,
+					);
 					return;
 				}
 				if (event.type === "chunk") {
@@ -180,16 +186,14 @@ export function useSuperagentStream({
 			},
 			onError: (err) => {
 				console.error("[chat] Subscription error:", err);
-				activeAgentCallIdRef.current = null;
-				setIsStreaming(false);
-				setError(
+				endStream(
 					err instanceof Error ? err.message : "Subscription connection failed",
 				);
 			},
 		},
 	);
 
-	return { activeAgentCallIdRef, runIdRef };
+	return { activeAgentCallIdRef, runIdRef, endStream };
 }
 
 // --- Sub-agent chunk handler ---

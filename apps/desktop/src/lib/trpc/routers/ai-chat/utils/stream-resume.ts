@@ -10,6 +10,46 @@ export interface SessionState {
 }
 
 /**
+ * Iterate a Mastra stream, emitting each chunk to the session emitter.
+ * Detects tool-call-approval suspensions and emits "done" when the stream
+ * finishes without suspension. Handles cleanup of runIds + context.
+ */
+export async function drainStreamToEmitter(
+	stream: { fullStream: AsyncIterable<unknown> },
+	sessionId: string,
+	state: SessionState,
+): Promise<void> {
+	for await (const chunk of stream.fullStream) {
+		const c = chunk as { type?: string };
+
+		if (c.type === "tool-call-approval") {
+			state.suspended.add(sessionId);
+		}
+
+		state.emitter.emit(sessionId, { type: "chunk", chunk });
+	}
+
+	if (!state.suspended.has(sessionId)) {
+		state.emitter.emit(sessionId, { type: "done" });
+		state.runIds.delete(sessionId);
+		state.context.delete(sessionId);
+	}
+}
+
+/** Emit a standardised error event to the session emitter. */
+export function emitStreamError(
+	sessionId: string,
+	emitter: EventEmitter,
+	error: unknown,
+): void {
+	console.error(`[ai-chat] Stream error for ${sessionId}:`, error);
+	emitter.emit(sessionId, {
+		type: "error",
+		error: error instanceof Error ? error.message : String(error),
+	});
+}
+
+/**
  * Resume a superagent stream after a tool call approval (or answer).
  *
  * Shared by `approveToolCall` and `answerQuestion` mutations to avoid
@@ -56,30 +96,9 @@ export function resumeApprovedStream(opts: {
 				? await superagent.approveToolCall(approvalOpts)
 				: await superagent.declineToolCall(approvalOpts);
 
-			for await (const chunk of stream.fullStream) {
-				const c = chunk as { type?: string };
-
-				if (c.type === "tool-call-approval") {
-					state.suspended.add(sessionId);
-				}
-
-				state.emitter.emit(sessionId, { type: "chunk", chunk });
-			}
-
-			if (!state.suspended.has(sessionId)) {
-				state.emitter.emit(sessionId, { type: "done" });
-				state.runIds.delete(sessionId);
-				state.context.delete(sessionId);
-			}
+			await drainStreamToEmitter(stream, sessionId, state);
 		} catch (error) {
-			console.error(
-				`[ai-chat/resumeApprovedStream] Stream failed for ${sessionId}:`,
-				error,
-			);
-			state.emitter.emit(sessionId, {
-				type: "error",
-				error: error instanceof Error ? error.message : String(error),
-			});
+			emitStreamError(sessionId, state.emitter, error);
 		}
 	})();
 }
