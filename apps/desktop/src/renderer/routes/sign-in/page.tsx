@@ -5,9 +5,9 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { posthog } from "renderer/lib/posthog";
 import { SupersetLogo } from "./components/SupersetLogo";
 
 export const Route = createFileRoute("/sign-in/")({
@@ -38,7 +38,7 @@ function SignInPage() {
 	}
 
 	const signIn = (provider: AuthProvider) => {
-		posthog.capture("auth_started", { provider });
+		track("auth_started", { provider });
 		signInMutation.mutate({ provider });
 	};
 
