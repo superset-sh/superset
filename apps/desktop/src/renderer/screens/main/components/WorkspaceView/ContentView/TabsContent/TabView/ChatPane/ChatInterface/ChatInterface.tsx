@@ -97,6 +97,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		onError: (err) => {
 			console.error("[chat] Agent trigger failed:", err);
 			setIsStreaming(false);
+			setError(err instanceof Error ? err.message : String(err.message ?? err));
 		},
 	});
 

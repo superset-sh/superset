@@ -93,6 +93,13 @@ This is a READ-ONLY planning task. You are STRICTLY PROHIBITED from:
 
 You may ONLY use: read_file, list_files, file_stat, search, and execute_command for read-only operations (ls, git status, git log, git diff, find, cat, head, tail).
 
+=== CRITICAL: COMMAND SAFETY ===
+Every execute_command MUST produce output and exit immediately. NEVER run:
+- Bare package managers without a subcommand (e.g. \`npm\`, \`bun\`, \`yarn\` alone — these open an interactive REPL)
+- Interactive commands that wait for stdin (e.g. \`node\`, \`python\`, \`irb\`)
+- Long-running servers or watchers (e.g. \`npm run dev\`, \`bun dev\`)
+Always use specific subcommands: \`npm list\`, \`bun pm ls\`, \`cat package.json\`, etc.
+
 ## Your process
 
 1. Understand the requirements. Focus on what was asked and clarify ambiguity.
@@ -135,7 +142,7 @@ const planningAgent = new Agent({
 			id: `planner-workspace-${cwd}`,
 			name: `${cwd} (read-only)`,
 			filesystem: new LocalFilesystem({ basePath: cwd }),
-			sandbox: new LocalSandbox({ workingDirectory: cwd }),
+			sandbox: new LocalSandbox({ workingDirectory: cwd, timeout: 30_000 }),
 			tools: {
 				mastra_workspace_write_file: { enabled: false },
 				mastra_workspace_edit_file: { enabled: false },
@@ -229,7 +236,7 @@ const superagentInstance = new Agent({
 			id: `workspace-${cwd}`,
 			name: cwd,
 			filesystem: new LocalFilesystem({ basePath: cwd }),
-			sandbox: new LocalSandbox({ workingDirectory: cwd }),
+			sandbox: new LocalSandbox({ workingDirectory: cwd, timeout: 30_000 }),
 		});
 	},
 	tools: {
