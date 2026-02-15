@@ -29,6 +29,7 @@ import {
 	drainStreamToEmitter,
 	emitStreamError,
 	resumeApprovedStream,
+	type SessionContext,
 	type SessionState,
 } from "./utils/stream-resume";
 
@@ -55,10 +56,7 @@ superagentEmitter.setMaxListeners(50);
 
 const sessionAbortControllers = new Map<string, AbortController>();
 const sessionRunIds = new Map<string, string>();
-const sessionContext = new Map<
-	string,
-	{ cwd: string; modelId: string; permissionMode?: string }
->();
+const sessionContext = new Map<string, SessionContext>();
 const sessionSuspended = new Set<string>();
 
 const sessionState: SessionState = {
@@ -502,10 +500,19 @@ export const createAiChatRouter = () => {
 				// Fire-and-forget: stream runs in background, chunks emitted to subscription
 				const abortController = new AbortController();
 				sessionAbortControllers.set(input.sessionId, abortController);
+				const requestEntries: [string, string][] = [
+					["modelId", input.modelId],
+					["cwd", input.cwd],
+					...(input.thinkingEnabled
+						? ([["thinkingEnabled", "true"]] as [string, string][])
+						: []),
+				];
+
 				sessionContext.set(input.sessionId, {
 					cwd: input.cwd,
 					modelId: input.modelId,
 					permissionMode: input.permissionMode,
+					requestEntries,
 				});
 
 				void (async () => {
@@ -522,13 +529,7 @@ export const createAiChatRouter = () => {
 							input.permissionMode === "acceptEdits";
 
 						const output = await superagent.stream(input.text, {
-							requestContext: new RequestContext([
-								["modelId", input.modelId],
-								["cwd", input.cwd],
-								...(input.thinkingEnabled
-									? ([["thinkingEnabled", "true"]] as [[string, string]])
-									: []),
-							]),
+							requestContext: new RequestContext(requestEntries),
 							maxSteps: 100,
 							memory: {
 								thread: input.sessionId,
@@ -539,6 +540,18 @@ export const createAiChatRouter = () => {
 								? { instructions: contextInstructions }
 								: {}),
 							...(requireToolApproval ? { requireToolApproval: true } : {}),
+							...(input.thinkingEnabled
+								? {
+										providerOptions: {
+											anthropic: {
+												thinking: {
+													type: "enabled",
+													budgetTokens: 10000,
+												},
+											},
+										},
+									}
+								: {}),
 							onStepFinish: (event) => {
 								const usage = (event as Record<string, unknown>).usage as
 									| {

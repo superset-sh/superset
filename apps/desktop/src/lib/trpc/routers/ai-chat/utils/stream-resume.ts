@@ -8,12 +8,18 @@ const EDIT_TOOLS = new Set([
 	"mastra_workspace_mkdir",
 ]);
 
+/** Per-session context stored at stream start and reused on every resume. */
+export interface SessionContext {
+	cwd: string;
+	modelId: string;
+	permissionMode?: string;
+	/** All key/value pairs forwarded to RequestContext (includes cwd, modelId, thinkingEnabled, etc.) */
+	requestEntries: [string, string][];
+}
+
 export interface SessionState {
 	emitter: EventEmitter;
-	context: Map<
-		string,
-		{ cwd: string; modelId: string; permissionMode?: string }
-	>;
+	context: Map<string, SessionContext>;
 	suspended: Set<string>;
 	runIds: Map<string, string>;
 }
@@ -43,10 +49,7 @@ export async function drainStreamToEmitter(
 				if (runId) {
 					const ctx = state.context.get(sessionId);
 					const reqCtx = ctx
-						? new RequestContext([
-								["modelId", ctx.modelId],
-								["cwd", ctx.cwd],
-							])
+						? new RequestContext(ctx.requestEntries)
 						: undefined;
 
 					const resumed = await superagent.approveToolCall({
@@ -98,12 +101,7 @@ export function resumeApprovedStream(opts: {
 	void (async () => {
 		try {
 			const ctx = state.context.get(sessionId);
-			const ctxEntries: [string, string][] = ctx
-				? [
-						["modelId", ctx.modelId],
-						["cwd", ctx.cwd],
-					]
-				: [];
+			const ctxEntries: [string, string][] = ctx ? [...ctx.requestEntries] : [];
 
 			if (extraContext) {
 				for (const [key, value] of Object.entries(extraContext)) {

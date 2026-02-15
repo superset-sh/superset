@@ -41,7 +41,6 @@ function resolveModel({
 }) {
 	const modelId =
 		requestContext.get("modelId") ?? "anthropic/claude-sonnet-4-5";
-	const thinkingEnabled = requestContext.get("thinkingEnabled") === "true";
 
 	const slashIdx = modelId.indexOf("/");
 	const provider = slashIdx > -1 ? modelId.slice(0, slashIdx) : "anthropic";
@@ -55,24 +54,14 @@ function resolveModel({
 				"user-agent": "claude-cli/2.1.2 (external, cli)",
 				"x-app": "cli",
 			},
-		})(
-			model,
-			thinkingEnabled
-				? { thinking: { type: "enabled", budgetTokens: 10000 } }
-				: {},
-		);
-	}
-
-	if (thinkingEnabled && provider === "anthropic") {
-		return createAnthropic()(model, {
-			thinking: { type: "enabled", budgetTokens: 10000 },
-		});
+		})(model);
 	}
 
 	return modelId;
 }
 
 export const storage = new PostgresStore({
+	// biome-ignore lint/style/noNonNullAssertion: required env var
 	connectionString: process.env.DATABASE_URL!,
 	id: "superagent-db",
 });

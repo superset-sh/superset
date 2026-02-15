@@ -223,7 +223,7 @@ function handleAgentChunk(
 						},
 					];
 				}
-				return [...parts, { type: "text", text: p.text! }];
+				return [...parts, { type: "text", text: p.text ?? "" }];
 			});
 			break;
 		}
@@ -412,7 +412,7 @@ function handleTopLevelChunk(
 						{ ...lastPart, text: lastPart.text + p.text },
 					];
 				}
-				return [...parts, { type: "text", text: p.text! }];
+				return [...parts, { type: "text", text: p.text ?? "" }];
 			});
 			break;
 		}
