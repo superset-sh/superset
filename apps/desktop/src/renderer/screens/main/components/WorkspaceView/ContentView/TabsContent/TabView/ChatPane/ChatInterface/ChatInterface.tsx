@@ -103,6 +103,8 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const abortAgent = electronTrpc.aiChat.abortSuperagent.useMutation();
 	const approveToolCallMutation =
 		electronTrpc.aiChat.approveToolCall.useMutation();
+	const answerQuestionMutation =
+		electronTrpc.aiChat.answerQuestion.useMutation();
 
 	const handleSend = useCallback(
 		(message: { text: string }) => {
@@ -190,6 +192,40 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		setPendingApproval(null);
 	}, [pendingApproval, approveToolCallMutation, sessionId]);
 
+	const handleAnswer = useCallback(
+		(toolCallId: string, answers: Record<string, string>) => {
+			// Update local state to mark the tool call as answered
+			setMessages((prev) =>
+				prev.map((msg) => {
+					if (msg.role !== "assistant") return msg;
+					return {
+						...msg,
+						parts: msg.parts.map((part) =>
+							part.type === "tool-call" && part.toolCallId === toolCallId
+								? {
+										...part,
+										status: "done" as const,
+										result: { answers },
+									}
+								: part,
+						),
+					};
+				}),
+			);
+
+			// Resume the agent stream with answers injected into RequestContext
+			if (pendingApproval) {
+				answerQuestionMutation.mutate({
+					sessionId,
+					runId: pendingApproval.runId,
+					answers,
+				});
+				setPendingApproval(null);
+			}
+		},
+		[pendingApproval, answerQuestionMutation, sessionId],
+	);
+
 	const handleSlashCommandSend = useCallback(
 		(command: SlashCommand) => {
 			handleSend({ text: `/${command.name}` });
@@ -243,6 +279,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 												parts={msg.parts}
 												isLastAssistant={isLastAssistant}
 												isStreaming={isStreaming}
+												onAnswer={handleAnswer}
 											/>
 										)}
 									</MessageContent>
@@ -254,7 +291,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 				<ConversationScrollButton />
 			</Conversation>
 
-			{pendingApproval && (
+			{pendingApproval && pendingApproval.toolName !== "ask_user_question" && (
 				<ToolApprovalBar
 					pendingApproval={pendingApproval}
 					onApprove={handleApprove}

@@ -8,6 +8,9 @@ import {
 } from "@mastra/core/workspace";
 import { Memory } from "@mastra/memory";
 import { PostgresStore } from "@mastra/pg";
+import { askUserQuestionTool } from "./tools/ask-user-question";
+import { webFetchTool } from "./tools/web-fetch";
+import { webSearchTool } from "./tools/web-search";
 
 // ---------------------------------------------------------------------------
 // Anthropic OAuth support
@@ -167,6 +170,11 @@ You have filesystem tools (read_file, write_file, edit_file, list_files, delete,
 - Search or list_files to understand project structure before making assumptions about where code lives.
 - When exploring the codebase to gather context or answer a broad question, search first rather than reading files one by one.
 
+You also have web tools:
+- web_search: Search the web for current information using a query.
+- web_fetch: Fetch and read a web page by URL.
+- ask_user_question: Present structured questions with options to the user and get their answers. Use when you need clarification or the user needs to choose between options.
+
 # Sub-agents
 
 You have a planning sub-agent available:
@@ -221,6 +229,11 @@ const superagentInstance = new Agent({
 			filesystem: new LocalFilesystem({ basePath: cwd }),
 			sandbox: new LocalSandbox({ workingDirectory: cwd }),
 		});
+	},
+	tools: {
+		web_search: webSearchTool,
+		web_fetch: webFetchTool,
+		ask_user_question: askUserQuestionTool,
 	},
 	agents: {
 		planner: planningAgent,

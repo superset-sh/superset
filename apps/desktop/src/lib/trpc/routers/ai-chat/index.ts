@@ -59,6 +59,9 @@ const sessionContext = new Map<string, { cwd: string; modelId: string }>();
 /** Track whether a session stream is suspended (waiting for tool approval) */
 const sessionSuspended = new Set<string>();
 
+/** Pending answers for ask_user_question tool (maps sessionId → answers) */
+const sessionToolAnswers = new Map<string, Record<string, string>>();
+
 // ---------------------------------------------------------------------------
 // Auto-Context: gather project intelligence on each turn
 // ---------------------------------------------------------------------------
@@ -744,12 +747,29 @@ export const createAiChatRouter = () => {
 					try {
 						// Restore the requestContext so dynamic workspace tools are available
 						const ctx = sessionContext.get(input.sessionId);
-						const reqCtx = ctx
-							? new RequestContext([
+						const ctxEntries: [string, string][] = ctx
+							? [
 									["modelId", ctx.modelId],
 									["cwd", ctx.cwd],
-								])
-							: undefined;
+								]
+							: [];
+
+						// Inject pending answers for ask_user_question tool
+						const pendingAnswers = sessionToolAnswers.get(
+							input.sessionId,
+						);
+						if (pendingAnswers) {
+							ctxEntries.push([
+								"toolAnswers",
+								JSON.stringify(pendingAnswers),
+							]);
+							sessionToolAnswers.delete(input.sessionId);
+						}
+
+						const reqCtx =
+							ctxEntries.length > 0
+								? new RequestContext(ctxEntries)
+								: undefined;
 
 						console.log(
 							`[ai-chat/approveToolCall] Calling ${input.approved ? "approveToolCall" : "declineToolCall"} with runId: ${input.runId}, cwd: ${ctx?.cwd}`,
@@ -802,6 +822,99 @@ export const createAiChatRouter = () => {
 						superagentEmitter.emit(input.sessionId, {
 							type: "error",
 							error: error instanceof Error ? error.message : String(error),
+						});
+					}
+				})();
+
+				return { success: true };
+			}),
+
+		/** Answer an ask_user_question tool: store answers then approve */
+		answerQuestion: publicProcedure
+			.input(
+				z.object({
+					sessionId: z.string(),
+					runId: z.string(),
+					answers: z.record(z.string(), z.string()),
+				}),
+			)
+			.mutation(({ input }) => {
+				console.log("[ai-chat/answerQuestion] Received:", {
+					sessionId: input.sessionId,
+					runId: input.runId,
+					answerKeys: Object.keys(input.answers),
+				});
+
+				// Store answers so approveToolCall can inject them into RequestContext
+				sessionToolAnswers.set(input.sessionId, input.answers);
+
+				// Clear suspended state and approve
+				sessionSuspended.delete(input.sessionId);
+
+				// Fire-and-forget: reuse the same approval resume logic
+				void (async () => {
+					try {
+						const ctx = sessionContext.get(input.sessionId);
+						const ctxEntries: [string, string][] = ctx
+							? [
+									["modelId", ctx.modelId],
+									["cwd", ctx.cwd],
+								]
+							: [];
+
+						// Inject answers into RequestContext
+						const pendingAnswers = sessionToolAnswers.get(
+							input.sessionId,
+						);
+						if (pendingAnswers) {
+							ctxEntries.push([
+								"toolAnswers",
+								JSON.stringify(pendingAnswers),
+							]);
+							sessionToolAnswers.delete(input.sessionId);
+						}
+
+						const reqCtx =
+							ctxEntries.length > 0
+								? new RequestContext(ctxEntries)
+								: undefined;
+
+						const stream = await superagent.approveToolCall({
+							runId: input.runId,
+							...(reqCtx ? { requestContext: reqCtx } : {}),
+						});
+
+						let suspended = false;
+						for await (const chunk of stream.fullStream) {
+							const c = chunk as { type?: string };
+							if (c.type === "tool-call-approval") {
+								suspended = true;
+								sessionSuspended.add(input.sessionId);
+							}
+							superagentEmitter.emit(input.sessionId, {
+								type: "chunk",
+								chunk,
+							});
+						}
+
+						if (!suspended) {
+							superagentEmitter.emit(input.sessionId, {
+								type: "done",
+							});
+							sessionRunIds.delete(input.sessionId);
+							sessionContext.delete(input.sessionId);
+						}
+					} catch (error) {
+						console.error(
+							"[ai-chat/answerQuestion] Stream failed:",
+							error,
+						);
+						superagentEmitter.emit(input.sessionId, {
+							type: "error",
+							error:
+								error instanceof Error
+									? error.message
+									: String(error),
 						});
 					}
 				})();
