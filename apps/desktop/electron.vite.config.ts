@@ -102,7 +102,7 @@ export default defineConfig({
 				output: {
 					dir: resolve(devPath, "main"),
 				},
-				external: ["electron", "better-sqlite3", "node-pty"],
+				external: ["electron", "better-sqlite3", "node-pty", "pg-native"],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
 		},

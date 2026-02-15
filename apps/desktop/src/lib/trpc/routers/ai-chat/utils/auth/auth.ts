@@ -1,10 +1,13 @@
 /**
  * Claude Code authentication resolution.
  *
- * Reads Claude credentials from various sources:
- * 1. Environment variable (ANTHROPIC_API_KEY)
- * 2. Claude config file (~/.claude.json or ~/.config/claude/credentials.json)
- * 3. macOS Keychain (via security command)
+ * Reads Claude credentials from:
+ * 1. Claude config file (~/.claude.json or ~/.config/claude/credentials.json)
+ * 2. macOS Keychain (via security command)
+ *
+ * IMPORTANT: ANTHROPIC_API_KEY and OPENAI_API_KEY are never read from or
+ * written to process.env.  Credentials are passed in-memory via the agent
+ * package's setAnthropicAuthToken helper (OAuth only).
  */
 
 import { execSync } from "node:child_process";
@@ -14,7 +17,7 @@ import { delimiter, join } from "node:path";
 
 interface ClaudeCredentials {
 	apiKey: string;
-	source: "env" | "config" | "keychain";
+	source: "config" | "keychain";
 	kind: "apiKey" | "oauth";
 }
 
@@ -32,20 +35,9 @@ interface ClaudeConfigFile {
 }
 
 /**
- * Get Claude credentials from environment variable.
- */
-function getCredentialsFromEnv(): ClaudeCredentials | null {
-	const apiKey = process.env.ANTHROPIC_API_KEY;
-	if (apiKey) {
-		return { apiKey, source: "env", kind: "apiKey" };
-	}
-	return null;
-}
-
-/**
  * Get Claude credentials from config file.
  */
-function getCredentialsFromConfig(): ClaudeCredentials | null {
+export function getCredentialsFromConfig(): ClaudeCredentials | null {
 	const home = homedir();
 	// Check Claude Code CLI credentials first (most common case)
 	const configPaths = [
@@ -108,7 +100,7 @@ function getCredentialsFromConfig(): ClaudeCredentials | null {
 /**
  * Get Claude credentials from macOS Keychain.
  */
-function getCredentialsFromKeychain(): ClaudeCredentials | null {
+export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 	if (platform() !== "darwin") {
 		return null;
 	}
@@ -152,25 +144,20 @@ function getCredentialsFromKeychain(): ClaudeCredentials | null {
  * Get existing Claude credentials from any available source.
  *
  * Priority:
- * 1. Environment variable (ANTHROPIC_API_KEY)
- * 2. Config file (~/.claude.json, ~/.config/claude/credentials.json)
- * 3. macOS Keychain
+ * 1. Config file (~/.claude.json, ~/.config/claude/credentials.json)
+ * 2. macOS Keychain
+ *
+ * Note: Environment variables are intentionally NOT checked — the desktop app
+ * must never read ANTHROPIC_API_KEY or OPENAI_API_KEY from process.env.
  */
 export function getExistingClaudeCredentials(): ClaudeCredentials | null {
-	// 1. Check environment variable
-	const envCredentials = getCredentialsFromEnv();
-	if (envCredentials) {
-		console.log("[claude/auth] Using credentials from environment variable");
-		return envCredentials;
-	}
-
-	// 2. Check config file
+	// 1. Check config file
 	const configCredentials = getCredentialsFromConfig();
 	if (configCredentials) {
 		return configCredentials;
 	}
 
-	// 3. Check macOS Keychain
+	// 2. Check macOS Keychain
 	const keychainCredentials = getCredentialsFromKeychain();
 	if (keychainCredentials) {
 		return keychainCredentials;
@@ -180,36 +167,23 @@ export function getExistingClaudeCredentials(): ClaudeCredentials | null {
 	return null;
 }
 
+/** Keys that must never leak into spawned processes. */
+const STRIPPED_ENV_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
+
 /**
  * Build environment variables for running Claude CLI.
  *
- * IMPORTANT: We do NOT set ANTHROPIC_API_KEY when using OAuth credentials.
- * The Claude binary handles its own OAuth authentication from ~/.claude/.credentials.json.
- * Setting ANTHROPIC_API_KEY to an OAuth token causes authentication failure.
- *
- * We only set ANTHROPIC_API_KEY if:
- * 1. It's already in the environment (user explicitly set it)
- * 2. We found a raw API key (not OAuth) in config
+ * OAuth credentials are handled by the binary itself (from ~/.claude/.credentials.json).
+ * ANTHROPIC_API_KEY and OPENAI_API_KEY are explicitly stripped to prevent leakage.
  */
 export function buildClaudeEnv(): Record<string, string> {
 	const env: Record<string, string> = {
 		...process.env,
 	} as Record<string, string>;
 
-	// Check if user has OAuth credentials - if so, let the binary handle auth
-	const hasOAuth = hasClaudeOAuthCredentials();
-	if (hasOAuth) {
-		console.log(
-			"[claude/auth] OAuth credentials found - letting binary handle authentication",
-		);
-		// Don't set ANTHROPIC_API_KEY, let the binary use its own OAuth flow
-	} else {
-		// Only set ANTHROPIC_API_KEY if we have a raw API key (not OAuth)
-		const credentials = getExistingClaudeCredentials();
-		if (credentials?.kind === "apiKey") {
-			env.ANTHROPIC_API_KEY = credentials.apiKey;
-			console.log(`[claude/auth] Using API key from ${credentials.source}`);
-		}
+	// Strip secret API keys — the desktop app uses OAuth only
+	for (const key of STRIPPED_ENV_KEYS) {
+		delete env[key];
 	}
 
 	// Ensure PATH includes common binary locations (non-Windows only)
@@ -231,25 +205,6 @@ export function buildClaudeEnv(): Record<string, string> {
 	env.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
 
 	return env;
-}
-
-/**
- * Check if Claude OAuth credentials are available.
- */
-function hasClaudeOAuthCredentials(): boolean {
-	const home = homedir();
-	const credentialsPath = join(home, ".claude", ".credentials.json");
-
-	if (existsSync(credentialsPath)) {
-		try {
-			const content = readFileSync(credentialsPath, "utf-8");
-			const config: ClaudeConfigFile = JSON.parse(content);
-			return !!config.claudeAiOauth?.accessToken;
-		} catch {
-			return false;
-		}
-	}
-	return false;
 }
 
 /**

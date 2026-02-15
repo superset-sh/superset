@@ -200,11 +200,7 @@ export function ChatMessageItem({
 							);
 						case "text":
 							return part.content ? (
-								<MessageResponse
-									key={key}
-									animated={{ animation: "blurIn" }}
-									isAnimating={isStreaming}
-								>
+								<MessageResponse key={key} isAnimating={isStreaming}>
 									{part.content}
 								</MessageResponse>
 							) : null;
