@@ -634,11 +634,6 @@ function handleTopLevelChunk(
 		}
 
 		case "tool-call-approval": {
-			// Mastra emits this when a tool requires approval.
-			console.log(
-				"[chat] tool-call-approval chunk:",
-				JSON.stringify(chunk).slice(0, 500),
-			);
 			const approvalData = {
 				toolCallId: String(
 					p?.toolCallId ?? raw.toolCallId ?? chunkToolCallId ?? "",

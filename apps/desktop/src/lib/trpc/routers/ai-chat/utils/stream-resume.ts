@@ -22,6 +22,7 @@ export interface SessionState {
 	context: Map<string, SessionContext>;
 	suspended: Set<string>;
 	runIds: Map<string, string>;
+	abortControllers: Map<string, AbortController>;
 }
 
 export async function drainStreamToEmitter(
@@ -31,6 +32,12 @@ export async function drainStreamToEmitter(
 	permissionMode?: string,
 ): Promise<void> {
 	for await (const chunk of stream.fullStream) {
+		// Check if this session was aborted (supports resumed streams)
+		if (state.abortControllers.get(sessionId)?.signal.aborted) {
+			state.emitter.emit(sessionId, { type: "done" });
+			return;
+		}
+
 		const c = chunk as {
 			type?: string;
 			toolName?: string;
@@ -118,6 +125,10 @@ export function resumeApprovedStream(opts: {
 
 	state.suspended.delete(sessionId);
 
+	// Register an abort controller so resumed streams can be aborted
+	const abortController = new AbortController();
+	state.abortControllers.set(sessionId, abortController);
+
 	void (async () => {
 		try {
 			const ctx = state.context.get(sessionId);
@@ -143,7 +154,18 @@ export function resumeApprovedStream(opts: {
 
 			await drainStreamToEmitter(stream, sessionId, state, ctx?.permissionMode);
 		} catch (error) {
+			// Clean up session state on error
+			state.runIds.delete(sessionId);
+			state.context.delete(sessionId);
+			state.suspended.delete(sessionId);
+
+			if (abortController.signal.aborted) {
+				state.emitter.emit(sessionId, { type: "done" });
+				return;
+			}
 			emitStreamError(sessionId, state.emitter, error);
+		} finally {
+			state.abortControllers.delete(sessionId);
 		}
 	})();
 }

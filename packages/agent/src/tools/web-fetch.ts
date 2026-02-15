@@ -16,6 +16,38 @@ const REMOVE_TAGS = [
 	"header",
 ];
 
+/** Block requests to private/internal network addresses */
+function isBlockedHost(hostname: string): boolean {
+	// Normalize
+	const h = hostname.toLowerCase();
+
+	// Localhost variants
+	if (h === "localhost" || h === "[::1]") return true;
+
+	// IPv4 private/reserved ranges
+	if (
+		/^127\./.test(h) ||
+		/^10\./.test(h) ||
+		/^192\.168\./.test(h) ||
+		/^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+		/^169\.254\./.test(h) || // link-local
+		/^0\./.test(h)
+	)
+		return true;
+
+	// IPv6 loopback/private (bracket-wrapped or raw)
+	const raw = h.replace(/^\[|\]$/g, "");
+	if (
+		raw === "::1" ||
+		raw.startsWith("fe80:") ||
+		raw.startsWith("fc00:") ||
+		raw.startsWith("fd")
+	)
+		return true;
+
+	return false;
+}
+
 export const webFetchTool = createTool({
 	id: "web_fetch",
 	description:
@@ -35,6 +67,24 @@ export const webFetchTool = createTool({
 		status_code: z.number(),
 	}),
 	execute: async (input) => {
+		// Validate URL protocol and hostname
+		const parsed = new URL(input.url);
+		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+			return {
+				content: `Blocked: only http/https URLs are allowed (got ${parsed.protocol})`,
+				bytes: 0,
+				status_code: 0,
+			};
+		}
+		if (isBlockedHost(parsed.hostname)) {
+			return {
+				content:
+					"Blocked: requests to private/internal network addresses are not allowed",
+				bytes: 0,
+				status_code: 0,
+			};
+		}
+
 		const response = await fetch(input.url, {
 			headers: {
 				"User-Agent":
@@ -80,11 +130,12 @@ export const webFetchTool = createTool({
 			content = rawText;
 		}
 
-		const bytes = new TextEncoder().encode(content).length;
+		const encoded = new TextEncoder().encode(content);
+		const bytes = encoded.length;
 
 		if (bytes > MAX_CONTENT_BYTES) {
 			content =
-				content.slice(0, MAX_CONTENT_BYTES) +
+				new TextDecoder().decode(encoded.slice(0, MAX_CONTENT_BYTES)) +
 				`\n\n[Content truncated — ${bytes} bytes total, showing first ${MAX_CONTENT_BYTES}]`;
 		}
 

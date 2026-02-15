@@ -1,8 +1,9 @@
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { promisify } from "node:util";
 import {
 	memory,
 	RequestContext,
@@ -64,6 +65,7 @@ const sessionState: SessionState = {
 	context: sessionContext,
 	suspended: sessionSuspended,
 	runIds: sessionRunIds,
+	abortControllers: sessionAbortControllers,
 };
 
 // ---------------------------------------------------------------------------
@@ -81,9 +83,16 @@ function safeReadFile(path: string, maxBytes = 8_000): string | null {
 	}
 }
 
-function safeExec(cmd: string, cwd: string, timeoutMs = 3_000): string {
+const execAsync = promisify(exec);
+
+async function safeExec(
+	cmd: string,
+	cwd: string,
+	timeoutMs = 3_000,
+): Promise<string> {
 	try {
-		return execSync(cmd, { cwd, timeout: timeoutMs, encoding: "utf-8" }).trim();
+		const { stdout } = await execAsync(cmd, { cwd, timeout: timeoutMs });
+		return stdout.trim();
 	} catch {
 		return "";
 	}
@@ -128,7 +137,7 @@ function buildFileTree(cwd: string, maxDepth = 2, prefix = ""): string[] {
  * Gather all project context for a given workspace directory.
  * Returns a formatted string to inject as additional instructions.
  */
-function gatherProjectContext(cwd: string): string {
+async function gatherProjectContext(cwd: string): Promise<string> {
 	const sections: string[] = [];
 
 	// 1. Project conventions (AGENTS.md, CLAUDE.md, .cursorrules)
@@ -180,10 +189,10 @@ function gatherProjectContext(cwd: string): string {
 	}
 
 	// 4. Git state
-	const gitBranch = safeExec("git branch --show-current", cwd);
+	const gitBranch = await safeExec("git branch --show-current", cwd);
 	if (gitBranch) {
-		const gitStatus = safeExec("git status --short", cwd);
-		const gitLog = safeExec("git log --oneline -5 --no-decorate", cwd);
+		const gitStatus = await safeExec("git status --short", cwd);
+		const gitLog = await safeExec("git log --oneline -5 --no-decorate", cwd);
 		const gitParts = [`Branch: ${gitBranch}`];
 		if (gitStatus) gitParts.push(`Dirty files:\n${gitStatus}`);
 		if (gitLog) gitParts.push(`Recent commits:\n${gitLog}`);
@@ -222,7 +231,12 @@ function parseFileMentions(text: string, cwd: string): FileMention[] {
 		if (!seen.has(relPath)) {
 			seen.add(relPath);
 
-			const absPath = join(cwd, relPath);
+			const absPath = resolve(cwd, relPath);
+			// Prevent path traversal outside the workspace root
+			if (!absPath.startsWith(`${resolve(cwd)}/`)) {
+				match = mentionRegex.exec(text);
+				continue;
+			}
 			const content = safeReadFile(absPath, 50_000); // allow larger files for explicit mentions
 			mentions.push({
 				raw: match[0],
@@ -386,6 +400,14 @@ export const createAiChatRouter = () => {
 		stopSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
+				// Abort running stream and purge in-memory state
+				const controller = sessionAbortControllers.get(input.sessionId);
+				if (controller) controller.abort();
+				sessionAbortControllers.delete(input.sessionId);
+				sessionRunIds.delete(input.sessionId);
+				sessionContext.delete(input.sessionId);
+				sessionSuspended.delete(input.sessionId);
+
 				await chatSessionManager.deactivateSession({
 					sessionId: input.sessionId,
 				});
@@ -395,6 +417,14 @@ export const createAiChatRouter = () => {
 		deleteSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(async ({ input }) => {
+				// Abort running stream and purge in-memory state
+				const controller = sessionAbortControllers.get(input.sessionId);
+				if (controller) controller.abort();
+				sessionAbortControllers.delete(input.sessionId);
+				sessionRunIds.delete(input.sessionId);
+				sessionContext.delete(input.sessionId);
+				sessionSuspended.delete(input.sessionId);
+
 				await chatSessionManager.deleteSession({
 					sessionId: input.sessionId,
 				});
@@ -500,6 +530,10 @@ export const createAiChatRouter = () => {
 				});
 
 				// Fire-and-forget: stream runs in background, chunks emitted to subscription
+				// Abort any existing stream for this session before starting a new one
+				const existingController = sessionAbortControllers.get(input.sessionId);
+				if (existingController) existingController.abort();
+
 				const abortController = new AbortController();
 				sessionAbortControllers.set(input.sessionId, abortController);
 				const requestEntries: [string, string][] = [
@@ -520,7 +554,7 @@ export const createAiChatRouter = () => {
 				void (async () => {
 					try {
 						// --- Auto-context ---
-						const projectContext = gatherProjectContext(input.cwd);
+						const projectContext = await gatherProjectContext(input.cwd);
 						const mentions = parseFileMentions(input.text, input.cwd);
 						const fileMentionContext = buildFileMentionContext(mentions);
 						const contextInstructions =
@@ -587,6 +621,11 @@ export const createAiChatRouter = () => {
 							input.permissionMode,
 						);
 					} catch (error) {
+						// Clean up session state on error/abort
+						sessionRunIds.delete(input.sessionId);
+						sessionContext.delete(input.sessionId);
+						sessionSuspended.delete(input.sessionId);
+
 						if (abortController.signal.aborted) {
 							superagentEmitter.emit(input.sessionId, { type: "done" });
 							return;
