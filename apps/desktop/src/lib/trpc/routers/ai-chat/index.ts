@@ -26,10 +26,10 @@ import {
 import { getAvailableModels } from "./utils/models";
 import { chatSessionManager, sessionStore } from "./utils/session-manager";
 import {
-	type SessionState,
 	drainStreamToEmitter,
 	emitStreamError,
 	resumeApprovedStream,
+	type SessionState,
 } from "./utils/stream-resume";
 
 // Prefer Claude CLI credentials (OAuth from ~/.claude/.credentials.json) over .env ANTHROPIC_API_KEY.
@@ -53,22 +53,14 @@ if (cliCredentials?.kind === "oauth") {
 const superagentEmitter = new EventEmitter();
 superagentEmitter.setMaxListeners(50);
 
-/** Per-session AbortController for cancelling running streams */
 const sessionAbortControllers = new Map<string, AbortController>();
-
-/** Per-session runId for tool approval (maps sessionId → runId) */
 const sessionRunIds = new Map<string, string>();
-
-/** Per-session context needed for approval resumption (maps sessionId → { cwd, modelId, permissionMode }) */
 const sessionContext = new Map<
 	string,
 	{ cwd: string; modelId: string; permissionMode?: string }
 >();
-
-/** Track whether a session stream is suspended (waiting for tool approval) */
 const sessionSuspended = new Set<string>();
 
-/** Shared session state for stream resume helper */
 const sessionState: SessionState = {
 	emitter: superagentEmitter,
 	context: sessionContext,
@@ -534,9 +526,7 @@ export const createAiChatRouter = () => {
 								["modelId", input.modelId],
 								["cwd", input.cwd],
 								...(input.thinkingEnabled
-									? ([["thinkingEnabled", "true"]] as [
-											[string, string],
-										])
+									? ([["thinkingEnabled", "true"]] as [[string, string]])
 									: []),
 							]),
 							maxSteps: 100,

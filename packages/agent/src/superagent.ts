@@ -8,11 +8,7 @@ import {
 } from "@mastra/core/workspace";
 import { Memory } from "@mastra/memory";
 import { PostgresStore } from "@mastra/pg";
-import {
-	askUserQuestionTool,
-	webFetchTool,
-	webSearchTool,
-} from "./tools";
+import { askUserQuestionTool, webFetchTool, webSearchTool } from "./tools";
 
 // ---------------------------------------------------------------------------
 // Anthropic OAuth support
@@ -59,7 +55,12 @@ function resolveModel({
 				"user-agent": "claude-cli/2.1.2 (external, cli)",
 				"x-app": "cli",
 			},
-		})(model, thinkingEnabled ? { thinking: { type: "enabled", budgetTokens: 10000 } } : {});
+		})(
+			model,
+			thinkingEnabled
+				? { thinking: { type: "enabled", budgetTokens: 10000 } }
+				: {},
+		);
 	}
 
 	if (thinkingEnabled && provider === "anthropic") {

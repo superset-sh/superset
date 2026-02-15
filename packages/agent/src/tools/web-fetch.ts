@@ -1,5 +1,5 @@
-import * as cheerio from "cheerio";
 import { createTool } from "@mastra/core/tools";
+import * as cheerio from "cheerio";
 import { z } from "zod";
 
 const MAX_CONTENT_BYTES = 50_000;
@@ -39,7 +39,8 @@ export const webFetchTool = createTool({
 			headers: {
 				"User-Agent":
 					"Mozilla/5.0 (compatible; SupersetAgent/1.0; +https://superset.sh)",
-				Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+				Accept:
+					"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 			},
 			redirect: "follow",
 			signal: AbortSignal.timeout(15_000),

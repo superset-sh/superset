@@ -11,11 +11,7 @@ import { ToolCall } from "@superset/ui/ai-elements/tool-call";
 import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
-import {
-	FileIcon,
-	FolderIcon,
-	MessageCircleQuestionIcon,
-} from "lucide-react";
+import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolCallPart } from "../../types";
 import {
@@ -104,8 +100,7 @@ export function MastraToolCallBlock({
 		const url = String(args.url ?? "");
 		const content =
 			typeof result.content === "string" ? result.content : undefined;
-		const bytes =
-			typeof result.bytes === "number" ? result.bytes : undefined;
+		const bytes = typeof result.bytes === "number" ? result.bytes : undefined;
 		const statusCode =
 			typeof result.status_code === "number"
 				? result.status_code
@@ -128,9 +123,7 @@ export function MastraToolCallBlock({
 		const questions = Array.isArray(args.questions) ? args.questions : [];
 
 		if (part.status === "done" && part.result != null) {
-			const answers = result.answers as
-				| Record<string, string>
-				| undefined;
+			const answers = result.answers as Record<string, string> | undefined;
 			return (
 				<ToolCall
 					icon={MessageCircleQuestionIcon}
@@ -164,7 +157,7 @@ export function MastraToolCallBlock({
 		const isPending = part.status !== "done";
 		const subtitle = String(args.path ?? "");
 		const shortName = subtitle.includes("/")
-			? subtitle.split("/").pop() ?? subtitle
+			? (subtitle.split("/").pop() ?? subtitle)
 			: subtitle;
 		return (
 			<ToolCall
@@ -181,7 +174,7 @@ export function MastraToolCallBlock({
 		const isPending = part.status !== "done";
 		const subtitle = String(args.path ?? "");
 		const shortName = subtitle.includes("/")
-			? subtitle.split("/").pop() ?? subtitle
+			? (subtitle.split("/").pop() ?? subtitle)
 			: subtitle;
 		return (
 			<ToolCall

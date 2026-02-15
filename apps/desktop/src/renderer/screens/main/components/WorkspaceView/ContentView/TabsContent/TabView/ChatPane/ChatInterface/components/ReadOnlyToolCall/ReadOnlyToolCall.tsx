@@ -41,7 +41,7 @@ export function ReadOnlyToolCall({ part }: { part: ToolCallPart }) {
 			title = isPending ? "Indexing" : "Indexed";
 			icon = SearchIcon;
 			break;
-		}
+	}
 
 	// Show just the filename for paths
 	if (subtitle.includes("/")) {

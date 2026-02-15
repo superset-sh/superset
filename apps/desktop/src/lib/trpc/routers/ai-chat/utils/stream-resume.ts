@@ -1,7 +1,6 @@
 import type { EventEmitter } from "node:events";
 import { RequestContext, superagent } from "@superset/agent";
 
-/** Tool names that count as "edit" operations for acceptEdits mode. */
 const EDIT_TOOLS = new Set([
 	"mastra_workspace_write_file",
 	"mastra_workspace_edit_file",
@@ -9,22 +8,16 @@ const EDIT_TOOLS = new Set([
 	"mastra_workspace_mkdir",
 ]);
 
-/** Module-level session state maps, passed in to avoid tight coupling. */
 export interface SessionState {
 	emitter: EventEmitter;
-	context: Map<string, { cwd: string; modelId: string; permissionMode?: string }>;
+	context: Map<
+		string,
+		{ cwd: string; modelId: string; permissionMode?: string }
+	>;
 	suspended: Set<string>;
 	runIds: Map<string, string>;
 }
 
-/**
- * Iterate a Mastra stream, emitting each chunk to the session emitter.
- * Detects tool-call-approval suspensions and emits "done" when the stream
- * finishes without suspension. Handles cleanup of runIds + context.
- *
- * When `permissionMode` is `"acceptEdits"`, edit tools are auto-approved
- * without surfacing the approval to the frontend.
- */
 export async function drainStreamToEmitter(
 	stream: { fullStream: AsyncIterable<unknown>; runId?: string },
 	sessionId: string,
@@ -41,8 +34,11 @@ export async function drainStreamToEmitter(
 		if (c.type === "tool-call-approval") {
 			const toolName = c.toolName ?? c.payload?.toolName;
 
-			if (permissionMode === "acceptEdits" && toolName && EDIT_TOOLS.has(toolName)) {
-				// Auto-approve edit tools — don't suspend or emit the approval chunk
+			if (
+				permissionMode === "acceptEdits" &&
+				toolName &&
+				EDIT_TOOLS.has(toolName)
+			) {
 				const runId = stream.runId ?? state.runIds.get(sessionId);
 				if (runId) {
 					const ctx = state.context.get(sessionId);
@@ -58,7 +54,6 @@ export async function drainStreamToEmitter(
 						...(reqCtx ? { requestContext: reqCtx } : {}),
 					});
 
-					// Continue draining the resumed stream (may encounter more approvals)
 					await drainStreamToEmitter(resumed, sessionId, state, permissionMode);
 					return;
 				}
@@ -77,7 +72,6 @@ export async function drainStreamToEmitter(
 	}
 }
 
-/** Emit a standardised error event to the session emitter. */
 export function emitStreamError(
 	sessionId: string,
 	emitter: EventEmitter,
@@ -90,12 +84,6 @@ export function emitStreamError(
 	});
 }
 
-/**
- * Resume a superagent stream after a tool call approval (or answer).
- *
- * Shared by `approveToolCall` and `answerQuestion` mutations to avoid
- * duplicating the build-context → iterate-stream → emit-chunks logic.
- */
 export function resumeApprovedStream(opts: {
 	sessionId: string;
 	runId: string;
@@ -124,9 +112,7 @@ export function resumeApprovedStream(opts: {
 			}
 
 			const reqCtx =
-				ctxEntries.length > 0
-					? new RequestContext(ctxEntries)
-					: undefined;
+				ctxEntries.length > 0 ? new RequestContext(ctxEntries) : undefined;
 
 			const approvalOpts = {
 				runId,
