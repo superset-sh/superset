@@ -171,10 +171,16 @@ export const auth = betterAuth({
 				// Org selection is handled in the consent page, so never redirect to a separate page
 				page: `${env.NEXT_PUBLIC_WEB_URL}/oauth/consent`,
 				shouldRedirect: () => false,
-				consentReferenceId: ({ session }) => {
-					const activeOrganizationId = (
-						session as { activeOrganizationId?: string }
-					).activeOrganizationId;
+				consentReferenceId: async ({ session }) => {
+					// Bypass cookie cache by reading directly from DB.
+					// The consent page calls setActive() then consent() sequentially,
+					// but the cookie cache (5 min TTL) may serve a stale session
+					// without the updated activeOrganizationId.
+					const freshSession = await db.query.sessions.findFirst({
+						where: eq(authSchema.sessions.id, (session as { id: string }).id),
+						columns: { activeOrganizationId: true },
+					});
+					const activeOrganizationId = freshSession?.activeOrganizationId;
 					if (!activeOrganizationId) {
 						throw new Error("Organization must be selected before consent");
 					}
