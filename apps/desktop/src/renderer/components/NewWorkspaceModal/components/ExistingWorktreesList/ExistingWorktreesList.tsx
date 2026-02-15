@@ -1,9 +1,11 @@
+import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCreateFromPr,
 	useCreateWorkspace,
+	useImportAllWorktrees,
 	useOpenExternalWorktree,
 	useOpenWorktree,
 } from "renderer/react-query/workspaces";
@@ -30,6 +32,7 @@ export function ExistingWorktreesList({
 	const openExternalWorktree = useOpenExternalWorktree();
 	const createWorkspace = useCreateWorkspace();
 	const createFromPr = useCreateFromPr();
+	const importAllWorktrees = useImportAllWorktrees();
 
 	const [branchOpen, setBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
@@ -153,13 +156,30 @@ export function ExistingWorktreesList({
 		);
 	};
 
+	const handleImportAll = async () => {
+		try {
+			const result = await importAllWorktrees.mutateAsync({ projectId });
+			onOpenSuccess();
+			toast.success(
+				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
+			);
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to import worktrees",
+			);
+		}
+	};
+
 	const isLoading =
 		isWorktreesLoading || isExternalWorktreesLoading || isBranchesLoading;
 	const isPending =
 		openWorktree.isPending ||
 		openExternalWorktree.isPending ||
 		createWorkspace.isPending ||
-		createFromPr.isPending;
+		createFromPr.isPending ||
+		importAllWorktrees.isPending;
+
+	const importableCount = closedWorktrees.length + externalWorktrees.length;
 
 	if (isLoading) {
 		return (
@@ -210,6 +230,25 @@ export function ExistingWorktreesList({
 					onOpenExternalWorktree={handleOpenExternalWorktree}
 					disabled={isPending}
 				/>
+			)}
+
+			{importableCount > 0 && (
+				<div className="space-y-1.5">
+					<p className="text-xs text-muted-foreground">
+						Import all worktrees into Superset as workspaces without opening
+						them.
+					</p>
+					<Button
+						variant="outline"
+						className="w-full h-8 text-sm"
+						onClick={handleImportAll}
+						disabled={isPending}
+					>
+						{importAllWorktrees.isPending
+							? "Importing..."
+							: `Import all (${importableCount})`}
+					</Button>
+				</div>
 			)}
 
 			{!hasWorktrees && !hasBranches && (
