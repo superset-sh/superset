@@ -42,6 +42,7 @@ export const DEFAULT_FILE_OPEN_MODE = "split-pane" as const;
 export const DEFAULT_AUTO_APPLY_DEFAULT_PRESET = true;
 export const DEFAULT_SHOW_PRESETS_BAR = false;
 export const DEFAULT_TELEMETRY_ENABLED = true;
+export const DEFAULT_TERMINAL_SCROLLBACK = 5000;
 
 // External links (documentation, help resources, etc.)
 export const EXTERNAL_LINKS = {

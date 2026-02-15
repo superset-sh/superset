@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
@@ -136,7 +137,7 @@ export class Session {
 		this.emulator = new HeadlessEmulator({
 			cols: options.cols,
 			rows: options.rows,
-			scrollback: options.scrollbackLines ?? 10000,
+			scrollback: options.scrollbackLines ?? DEFAULT_TERMINAL_SCROLLBACK,
 		});
 
 		// Set initial CWD
