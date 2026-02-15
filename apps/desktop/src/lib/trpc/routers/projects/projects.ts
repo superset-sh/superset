@@ -26,6 +26,7 @@ import { publicProcedure, router } from "../..";
 import {
 	activateProject,
 	getBranchWorkspace,
+	selectNextActiveWorkspace,
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../workspaces/utils/db-helpers";
@@ -946,48 +947,49 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					.where(eq(workspaces.projectId, input.id))
 					.all();
 
-				let totalFailed = 0;
-				const registry = getWorkspaceRuntimeRegistry();
-				for (const workspace of projectWorkspaces) {
-					const terminal = registry.getForWorkspaceId(workspace.id).terminal;
-					const terminalResult = await terminal.killByWorkspaceId(workspace.id);
-					totalFailed += terminalResult.failed;
-				}
-
 				const closedWorkspaceIds = projectWorkspaces.map((w) => w.id);
 
+				// Must run before the async terminal kill so queries exclude
+				// these workspaces while terminals are still shutting down.
 				if (closedWorkspaceIds.length > 0) {
 					localDb
-						.delete(workspaces)
+						.update(workspaces)
+						.set({ deletingAt: Date.now() })
 						.where(inArray(workspaces.id, closedWorkspaceIds))
 						.run();
 				}
 
-				// Hide the project by setting tabOrder to null
 				localDb
 					.update(projects)
 					.set({ tabOrder: null })
 					.where(eq(projects.id, input.id))
 					.run();
 
-				// Update active workspace if it was in this project
 				const currentSettings = localDb.select().from(settings).get();
 				if (
 					currentSettings?.lastActiveWorkspaceId &&
 					closedWorkspaceIds.includes(currentSettings.lastActiveWorkspaceId)
 				) {
-					const remainingWorkspaces = localDb
-						.select()
-						.from(workspaces)
-						.orderBy(desc(workspaces.lastOpenedAt))
-						.all();
+					setLastActiveWorkspace(selectNextActiveWorkspace());
+				}
 
+				const registry = getWorkspaceRuntimeRegistry();
+				const terminalResults = await Promise.all(
+					projectWorkspaces.map((workspace) =>
+						registry
+							.getForWorkspaceId(workspace.id)
+							.terminal.killByWorkspaceId(workspace.id),
+					),
+				);
+				const totalFailed = terminalResults.reduce(
+					(sum, r) => sum + r.failed,
+					0,
+				);
+
+				if (closedWorkspaceIds.length > 0) {
 					localDb
-						.update(settings)
-						.set({
-							lastActiveWorkspaceId: remainingWorkspaces[0]?.id ?? null,
-						})
-						.where(eq(settings.id, 1))
+						.delete(workspaces)
+						.where(inArray(workspaces.id, closedWorkspaceIds))
 						.run();
 				}
 
