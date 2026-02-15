@@ -11,7 +11,11 @@ import { ToolCall } from "@superset/ui/ai-elements/tool-call";
 import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
-import { MessageCircleQuestionIcon } from "lucide-react";
+import {
+	FileIcon,
+	FolderIcon,
+	MessageCircleQuestionIcon,
+} from "lucide-react";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolCallPart } from "../../types";
 import {
@@ -153,6 +157,41 @@ export function MastraToolCallBlock({
 	// --- Read-only exploration tools → compact ToolCall ---
 	if (READ_ONLY_TOOLS.has(part.toolName)) {
 		return <ReadOnlyToolCall part={part} />;
+	}
+
+	// --- Destructive workspace tools → compact ToolCall ---
+	if (part.toolName === "mastra_workspace_mkdir") {
+		const isPending = part.status !== "done";
+		const subtitle = String(args.path ?? "");
+		const shortName = subtitle.includes("/")
+			? subtitle.split("/").pop() ?? subtitle
+			: subtitle;
+		return (
+			<ToolCall
+				icon={FolderIcon}
+				title={isPending ? "Creating directory" : "Created directory"}
+				subtitle={shortName}
+				isPending={isPending}
+				isError={!!part.isError}
+			/>
+		);
+	}
+
+	if (part.toolName === "mastra_workspace_delete") {
+		const isPending = part.status !== "done";
+		const subtitle = String(args.path ?? "");
+		const shortName = subtitle.includes("/")
+			? subtitle.split("/").pop() ?? subtitle
+			: subtitle;
+		return (
+			<ToolCall
+				icon={FileIcon}
+				title={isPending ? "Deleting" : "Deleted"}
+				subtitle={shortName}
+				isPending={isPending}
+				isError={!!part.isError}
+			/>
+		);
 	}
 
 	// --- Fallback: generic tool UI ---

@@ -1,10 +1,18 @@
 import type { EventEmitter } from "node:events";
 import { RequestContext, superagent } from "@superset/agent";
 
+/** Tool names that count as "edit" operations for acceptEdits mode. */
+const EDIT_TOOLS = new Set([
+	"mastra_workspace_write_file",
+	"mastra_workspace_edit_file",
+	"mastra_workspace_delete",
+	"mastra_workspace_mkdir",
+]);
+
 /** Module-level session state maps, passed in to avoid tight coupling. */
 export interface SessionState {
 	emitter: EventEmitter;
-	context: Map<string, { cwd: string; modelId: string }>;
+	context: Map<string, { cwd: string; modelId: string; permissionMode?: string }>;
 	suspended: Set<string>;
 	runIds: Map<string, string>;
 }
@@ -13,16 +21,49 @@ export interface SessionState {
  * Iterate a Mastra stream, emitting each chunk to the session emitter.
  * Detects tool-call-approval suspensions and emits "done" when the stream
  * finishes without suspension. Handles cleanup of runIds + context.
+ *
+ * When `permissionMode` is `"acceptEdits"`, edit tools are auto-approved
+ * without surfacing the approval to the frontend.
  */
 export async function drainStreamToEmitter(
-	stream: { fullStream: AsyncIterable<unknown> },
+	stream: { fullStream: AsyncIterable<unknown>; runId?: string },
 	sessionId: string,
 	state: SessionState,
+	permissionMode?: string,
 ): Promise<void> {
 	for await (const chunk of stream.fullStream) {
-		const c = chunk as { type?: string };
+		const c = chunk as {
+			type?: string;
+			toolName?: string;
+			payload?: { toolName?: string };
+		};
 
 		if (c.type === "tool-call-approval") {
+			const toolName = c.toolName ?? c.payload?.toolName;
+
+			if (permissionMode === "acceptEdits" && toolName && EDIT_TOOLS.has(toolName)) {
+				// Auto-approve edit tools — don't suspend or emit the approval chunk
+				const runId = stream.runId ?? state.runIds.get(sessionId);
+				if (runId) {
+					const ctx = state.context.get(sessionId);
+					const reqCtx = ctx
+						? new RequestContext([
+								["modelId", ctx.modelId],
+								["cwd", ctx.cwd],
+							])
+						: undefined;
+
+					const resumed = await superagent.approveToolCall({
+						runId,
+						...(reqCtx ? { requestContext: reqCtx } : {}),
+					});
+
+					// Continue draining the resumed stream (may encounter more approvals)
+					await drainStreamToEmitter(resumed, sessionId, state, permissionMode);
+					return;
+				}
+			}
+
 			state.suspended.add(sessionId);
 		}
 
@@ -96,7 +137,7 @@ export function resumeApprovedStream(opts: {
 				? await superagent.approveToolCall(approvalOpts)
 				: await superagent.declineToolCall(approvalOpts);
 
-			await drainStreamToEmitter(stream, sessionId, state);
+			await drainStreamToEmitter(stream, sessionId, state, ctx?.permissionMode);
 		} catch (error) {
 			emitStreamError(sessionId, state.emitter, error);
 		}

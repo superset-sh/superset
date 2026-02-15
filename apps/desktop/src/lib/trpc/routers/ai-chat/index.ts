@@ -59,8 +59,11 @@ const sessionAbortControllers = new Map<string, AbortController>();
 /** Per-session runId for tool approval (maps sessionId → runId) */
 const sessionRunIds = new Map<string, string>();
 
-/** Per-session context needed for approval resumption (maps sessionId → { cwd, modelId }) */
-const sessionContext = new Map<string, { cwd: string; modelId: string }>();
+/** Per-session context needed for approval resumption (maps sessionId → { cwd, modelId, permissionMode }) */
+const sessionContext = new Map<
+	string,
+	{ cwd: string; modelId: string; permissionMode?: string }
+>();
 
 /** Track whether a session stream is suspended (waiting for tool approval) */
 const sessionSuspended = new Set<string>();
@@ -510,6 +513,7 @@ export const createAiChatRouter = () => {
 				sessionContext.set(input.sessionId, {
 					cwd: input.cwd,
 					modelId: input.modelId,
+					permissionMode: input.permissionMode,
 				});
 
 				void (async () => {
@@ -521,7 +525,9 @@ export const createAiChatRouter = () => {
 						const contextInstructions =
 							projectContext + fileMentionContext || undefined;
 
-						const requireToolApproval = input.permissionMode === "default";
+						const requireToolApproval =
+							input.permissionMode === "default" ||
+							input.permissionMode === "acceptEdits";
 
 						const output = await superagent.stream(input.text, {
 							requestContext: new RequestContext([
@@ -569,7 +575,12 @@ export const createAiChatRouter = () => {
 							});
 						}
 
-						await drainStreamToEmitter(output, input.sessionId, sessionState);
+						await drainStreamToEmitter(
+							output,
+							input.sessionId,
+							sessionState,
+							input.permissionMode,
+						);
 					} catch (error) {
 						if (abortController.signal.aborted) {
 							superagentEmitter.emit(input.sessionId, { type: "done" });

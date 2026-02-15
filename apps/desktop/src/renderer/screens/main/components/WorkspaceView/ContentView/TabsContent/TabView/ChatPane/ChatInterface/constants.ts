@@ -20,6 +20,4 @@ export const READ_ONLY_TOOLS = new Set([
 	"mastra_workspace_file_stat",
 	"mastra_workspace_search",
 	"mastra_workspace_index",
-	"mastra_workspace_mkdir",
-	"mastra_workspace_delete",
 ]);

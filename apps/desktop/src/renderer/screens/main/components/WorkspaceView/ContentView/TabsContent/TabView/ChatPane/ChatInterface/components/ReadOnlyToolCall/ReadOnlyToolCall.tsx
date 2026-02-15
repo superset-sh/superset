@@ -2,7 +2,6 @@ import { ToolCall } from "@superset/ui/ai-elements/tool-call";
 import {
 	FileIcon,
 	FileSearchIcon,
-	FolderIcon,
 	FolderTreeIcon,
 	SearchIcon,
 } from "lucide-react";
@@ -42,17 +41,7 @@ export function ReadOnlyToolCall({ part }: { part: ToolCallPart }) {
 			title = isPending ? "Indexing" : "Indexed";
 			icon = SearchIcon;
 			break;
-		case "mastra_workspace_mkdir":
-			title = isPending ? "Creating directory" : "Created directory";
-			subtitle = String(args.path ?? "");
-			icon = FolderIcon;
-			break;
-		case "mastra_workspace_delete":
-			title = isPending ? "Deleting" : "Deleted";
-			subtitle = String(args.path ?? "");
-			icon = FileIcon;
-			break;
-	}
+		}
 
 	// Show just the filename for paths
 	if (subtitle.includes("/")) {
