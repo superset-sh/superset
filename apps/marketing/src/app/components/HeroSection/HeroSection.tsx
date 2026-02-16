@@ -48,8 +48,8 @@ export function HeroSection() {
 								</span>
 							</h1>
 							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
-								Orchestrate swarms of Claude Code, Codex, etc. in
-								parallel. Works for any agents. Built for the AI era.
+								Orchestrate swarms of Claude Code, Codex, etc. in parallel.
+								Works for any agents. Built for the AI era.
 							</p>
 						</div>
 
