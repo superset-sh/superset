@@ -15,8 +15,7 @@ The version number is provided at the top of the prompt as `Version: X.Y.Z`.
 
 2. **Check for existing changelog**
    - Before creating a new file, check if a changelog already exists for this version
-   - Use `ls apps/marketing/content/changelog/*-v{VERSION}.mdx` to check for existing files matching the version suffix
-   - Match on the version portion only (e.g., `*-vX.Y.Z.mdx`) since the date prefix may differ if a tag was re-pushed
+   - Use `grep -rl "version: X.Y.Z" apps/marketing/content/changelog/` to search for existing files with this version in frontmatter
    - If a file for this version already exists, skip creation and report that a changelog already exists
 
 3. **Prioritize content**
@@ -25,9 +24,10 @@ The version number is provided at the top of the prompt as `Version: X.Y.Z`.
    - **Bug fixes go in a footnote section** - Brief one-liner summaries at the bottom
 
 4. **Create the changelog file**
-   - Create a new file at: `apps/marketing/content/changelog/YYYY-MM-DD-vX.Y.Z.mdx`
-   - Use today's date and the version for the filename (e.g., `2026-02-16-v0.0.76.mdx`)
-   - The slug includes the version number for easy identification
+   - Create a new file at: `apps/marketing/content/changelog/YYYY-MM-DD-descriptive-slug.mdx`
+   - Use today's date and a short descriptive slug based on the main features (e.g., `2026-02-16-in-app-browser.mdx`)
+   - The slug should be SEO-friendly and summarize the key changes (e.g., `terminal-improvements`, `sidebar-workspaces`)
+   - Do NOT put the version number in the filename — the version lives in frontmatter only
 
 5. **Follow this exact format**:
 
