@@ -11,7 +11,6 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
-import { treeKillAsync } from "../lib/tree-kill";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
@@ -23,6 +22,7 @@ import type {
 	TerminalExitEvent,
 	TerminalSnapshot,
 } from "../lib/terminal-host/types";
+import { treeKillAsync } from "../lib/tree-kill";
 import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
