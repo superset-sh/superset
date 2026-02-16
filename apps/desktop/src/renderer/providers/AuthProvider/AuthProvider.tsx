@@ -36,7 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					setAuthToken(storedToken.token);
 					try {
 						await refetchSession();
-					} catch {}
+					} catch (err) {
+						console.warn(
+							"[AuthProvider] session refetch failed during hydration",
+							err,
+						);
+					}
 				}
 			}
 			if (!cancelled) {
@@ -58,11 +63,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				setAuthToken(data.token);
 				try {
 					await refetchSession();
-				} catch {}
+				} catch (err) {
+					console.warn(
+						"[AuthProvider] session refetch failed after token change",
+						err,
+					);
+				}
 				setIsHydrated(true);
 			} else if (data === null) {
 				setAuthToken(null);
-				refetchSession();
+				try {
+					await refetchSession();
+				} catch (err) {
+					console.warn(
+						"[AuthProvider] session refetch failed after token cleared",
+						err,
+					);
+				}
 			}
 		},
 	});
