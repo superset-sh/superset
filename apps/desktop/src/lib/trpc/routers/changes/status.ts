@@ -11,6 +11,13 @@ import {
 	parseNameStatus,
 } from "./utils/parse-status";
 
+/** Server-side cache to avoid re-running git commands when polled frequently */
+const STATUS_CACHE_TTL_MS = 2_000;
+const statusCache = new Map<
+	string,
+	{ result: GitChangesStatus; timestamp: number }
+>();
+
 export const createStatusRouter = () => {
 	return router({
 		getStatus: publicProcedure
@@ -23,8 +30,14 @@ export const createStatusRouter = () => {
 			.query(async ({ input }): Promise<GitChangesStatus> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
+				const cacheKey = `${input.worktreePath}:${defaultBranch}`;
+				const cached = statusCache.get(cacheKey);
+				if (cached && Date.now() - cached.timestamp < STATUS_CACHE_TTL_MS) {
+					return cached.result;
+				}
+
+				const git = simpleGit(input.worktreePath);
 
 				const status = await getStatusNoLock(input.worktreePath);
 				const parsed = parseGitStatus(status);
@@ -41,7 +54,7 @@ export const createStatusRouter = () => {
 					applyUntrackedLineCount(input.worktreePath, parsed.untracked),
 				]);
 
-				return {
+				const result: GitChangesStatus = {
 					branch: parsed.branch,
 					defaultBranch,
 					againstBase: branchComparison.againstBase,
@@ -55,6 +68,9 @@ export const createStatusRouter = () => {
 					pullCount: trackingStatus.pullCount,
 					hasUpstream: trackingStatus.hasUpstream,
 				};
+
+				statusCache.set(cacheKey, { result, timestamp: Date.now() });
+				return result;
 			}),
 
 		getCommitFiles: publicProcedure
