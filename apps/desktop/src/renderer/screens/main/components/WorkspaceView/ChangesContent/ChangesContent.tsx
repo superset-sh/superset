@@ -13,7 +13,7 @@ export function ChangesContent() {
 
 	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
 		worktreePath,
-		refetchInterval: 10_000,
+		refetchInterval: 2500,
 		refetchOnWindowFocus: true,
 	});
 
