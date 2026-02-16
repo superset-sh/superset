@@ -19,7 +19,7 @@ export function CommitSection({
 	onToggleFile,
 	scrollElementRef,
 }: CommitSectionProps) {
-	const [isCommitExpanded, setIsCommitExpanded] = useState(true);
+	const [isCommitExpanded, setIsCommitExpanded] = useState(false);
 
 	const { data: commitFiles } = electronTrpc.changes.getCommitFiles.useQuery(
 		{
