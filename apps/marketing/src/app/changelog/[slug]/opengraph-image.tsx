@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ImageResponse } from "next/og";
 import { getChangelogEntry } from "@/lib/changelog";
-import { formatChangelogDate } from "@/lib/changelog-utils";
+import { formatVersionDate } from "@/lib/changelog-utils";
 
 export const alt = "Superset Changelog";
 export const size = { width: 1200, height: 630 };
@@ -142,9 +142,7 @@ export default async function Image({
 						{entry.title}
 					</div>
 					<div style={{ fontSize: 24, color: "#999999" }}>
-						{entry.version
-							? `v${entry.version} · ${formatChangelogDate(entry.date)}`
-							: formatChangelogDate(entry.date)}
+						{formatVersionDate(entry.version, entry.date)}
 					</div>
 				</div>
 

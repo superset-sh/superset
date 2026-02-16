@@ -21,3 +21,12 @@ export { slugify } from "./content-utils";
 export function formatChangelogDate(date: string): string {
 	return formatContentDate(date, "long");
 }
+
+export function formatVersionDate(
+	version: string | undefined,
+	date: string,
+	separator = "·",
+): string {
+	const formatted = formatChangelogDate(date);
+	return version ? `v${version} ${separator} ${formatted}` : formatted;
+}

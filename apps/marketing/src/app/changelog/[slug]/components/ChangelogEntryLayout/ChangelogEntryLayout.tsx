@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { GridCross } from "@/app/blog/components/GridCross";
 import {
 	type ChangelogEntry,
-	formatChangelogDate,
+	formatVersionDate,
 } from "@/lib/changelog-utils";
 
 interface ChangelogEntryLayoutProps {
@@ -18,8 +18,6 @@ export function ChangelogEntryLayout({
 	entry,
 	children,
 }: ChangelogEntryLayoutProps) {
-	const formattedDate = formatChangelogDate(entry.date);
-
 	return (
 		<article className="relative min-h-screen">
 			{/* Grid background with dashed lines */}
@@ -44,9 +42,7 @@ export function ChangelogEntryLayout({
 							dateTime={entry.date}
 							className="text-sm font-mono text-muted-foreground uppercase tracking-wider"
 						>
-							{entry.version
-								? `v${entry.version} · ${formattedDate}`
-								: formattedDate}
+							{formatVersionDate(entry.version, entry.date)}
 						</time>
 
 						<h1 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-foreground mt-4 mb-4">

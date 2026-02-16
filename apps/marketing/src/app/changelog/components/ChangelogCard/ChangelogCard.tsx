@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
 	type ChangelogEntry,
-	formatChangelogDate,
+	formatVersionDate,
 } from "@/lib/changelog-utils";
 
 interface ChangelogCardProps {
@@ -10,8 +10,6 @@ interface ChangelogCardProps {
 }
 
 export function ChangelogCard({ entry }: ChangelogCardProps) {
-	const formattedDate = formatChangelogDate(entry.date);
-
 	return (
 		<Link href={entry.url} className="block group">
 			<article className="border border-border bg-background transition-all hover:bg-muted/50 hover:border-foreground/20">
@@ -30,9 +28,7 @@ export function ChangelogCard({ entry }: ChangelogCardProps) {
 						dateTime={entry.date}
 						className="text-sm font-mono text-muted-foreground"
 					>
-						{entry.version
-							? `v${entry.version} · ${formattedDate}`
-							: formattedDate}
+						{formatVersionDate(entry.version, entry.date)}
 					</time>
 					<h2 className="text-xl font-medium text-foreground mt-2 mb-2 group-hover:text-foreground/90">
 						{entry.title}

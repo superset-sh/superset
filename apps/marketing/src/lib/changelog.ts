@@ -6,7 +6,7 @@ import { normalizeContentDate } from "./content-utils";
 
 export {
 	type ChangelogEntry,
-	formatChangelogDate,
+	formatVersionDate,
 	slugify,
 } from "./changelog-utils";
 

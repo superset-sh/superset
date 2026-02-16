@@ -36,6 +36,10 @@ jobs:
             # Extract version from tag ref: refs/tags/desktop-v0.0.76 -> 0.0.76
             VERSION="${GITHUB_REF#refs/tags/desktop-v}"
           fi
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Invalid version format: $VERSION (expected X.Y.Z)"
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -54,7 +58,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: bun install -g @anthropic-ai/claude-code
 
       - name: Create branch
         run: |

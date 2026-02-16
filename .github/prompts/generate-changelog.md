@@ -7,7 +7,7 @@ The version number is provided at the top of the prompt as `Version: X.Y.Z`.
 ## Instructions
 
 1. **Find PRs merged since the previous tag**
-   - Find the previous `desktop-v*` tag: `git describe --tags --abbrev=0 --match "desktop-v*" HEAD^ 2>/dev/null` or use `git tag --sort=-v:refname -l "desktop-v*" | head -2 | tail -1` to get the second-most-recent tag
+   - Find the previous `desktop-v*` tag: `git tag --sort=-v:refname -l "desktop-v*" | head -2 | tail -1` to get the second-most-recent tag (alternatively try `git describe --tags --abbrev=0 --match "desktop-v*" HEAD^ 2>/dev/null` if HEAD is the tagged commit)
    - Get the date of that tag: `git log -1 --format=%aI <previous-tag>`
    - Use `gh pr list --state merged --search "merged:>=$(date -d '<tag-date>' +%Y-%m-%d 2>/dev/null || date -j -f '%Y-%m-%dT%H:%M:%S%z' '<tag-date>' +%Y-%m-%d)" --json number,title,body,url,mergedAt --limit 50` to get all PRs merged since the previous tag
    - Categorize PRs into: **Major features**, **Improvements**, **Bug fixes**
@@ -15,7 +15,8 @@ The version number is provided at the top of the prompt as `Version: X.Y.Z`.
 
 2. **Check for existing changelog**
    - Before creating a new file, check if a changelog already exists for this version
-   - Use `ls apps/marketing/content/changelog/` to see existing files
+   - Use `ls apps/marketing/content/changelog/*-v{VERSION}.mdx` to check for existing files matching the version suffix
+   - Match on the version portion only (e.g., `*-vX.Y.Z.mdx`) since the date prefix may differ if a tag was re-pushed
    - If a file for this version already exists, skip creation and report that a changelog already exists
 
 3. **Prioritize content**
