@@ -1,13 +1,13 @@
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { Agent } from "@mastra/core/agent";
 import { Mastra } from "@mastra/core/mastra";
+import { InMemoryStore } from "@mastra/core/storage";
 import {
 	LocalFilesystem,
 	LocalSandbox,
 	Workspace,
 } from "@mastra/core/workspace";
 import { Memory } from "@mastra/memory";
-import { PostgresStore } from "@mastra/pg";
 import { askUserQuestionTool, webFetchTool, webSearchTool } from "./tools";
 
 // ---------------------------------------------------------------------------
@@ -60,11 +60,7 @@ function resolveModel({
 	return modelId;
 }
 
-export const storage = new PostgresStore({
-	// biome-ignore lint/style/noNonNullAssertion: required env var
-	connectionString: process.env.DATABASE_URL!,
-	id: "superagent-db",
-});
+export const storage = new InMemoryStore({ id: "superagent-db" });
 
 export const memory = new Memory({
 	options: {
