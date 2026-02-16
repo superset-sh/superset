@@ -21,7 +21,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.25.3",
+		"@modelcontextprotocol/sdk": "1.26.0",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"drizzle-orm": "0.45.1",
