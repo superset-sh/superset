@@ -262,9 +262,23 @@ interface AppMockupProps {
 export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 	return (
 		<div
-			className="relative w-full min-w-[700px] rounded-2xl overflow-hidden bg-black/60 backdrop-blur-xl border border-white/[0.2] shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.15),inset_0_0_0_0.5px_rgba(255,255,255,0.1),0_0_0_1px_rgba(255,255,255,0.07)] ring-1 ring-white/[0.1]"
+			className="relative w-full min-w-[700px] rounded-2xl overflow-hidden bg-black/60 backdrop-blur-xl shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7)]"
 			style={{ aspectRatio: "16/10" }}
 		>
+			{/* Diagonal gradient glass border — bright on top-left & bottom-right corners */}
+			<div
+				className="absolute inset-0 rounded-2xl pointer-events-none z-10"
+				style={{
+					background:
+						"linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.15) 100%)",
+					mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+					WebkitMask:
+						"linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+					maskComposite: "exclude",
+					WebkitMaskComposite: "xor",
+					padding: "1.5px",
+				}}
+			/>
 			{/* Window chrome */}
 			<div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.03] backdrop-blur-md border-b border-white/[0.06]">
 				<div className="flex items-center gap-1.5">
@@ -828,7 +842,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 			{/* External IDE Popup - shown when "Open in Any IDE" is active */}
 			<motion.div
-				className="absolute bottom-6 right-6 w-[55%] rounded-xl overflow-hidden bg-black/50 backdrop-blur-xl border border-white/[0.2] shadow-[0_8px_40px_-8px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.15),inset_0_0_0_0.5px_rgba(255,255,255,0.1),0_0_0_1px_rgba(255,255,255,0.07)] ring-1 ring-white/[0.1]"
+				className="absolute bottom-6 right-6 w-[55%] rounded-xl overflow-hidden bg-black/50 backdrop-blur-xl shadow-[0_8px_40px_-8px_rgba(0,0,0,0.6)]"
 				style={{ aspectRatio: "16/10" }}
 				initial={{ opacity: 0, scale: 0.9, y: 20 }}
 				animate={{
@@ -838,6 +852,20 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 				}}
 				transition={{ duration: 0.3, ease: "easeOut" }}
 			>
+				{/* Diagonal gradient glass border */}
+				<div
+					className="absolute inset-0 rounded-xl pointer-events-none z-10"
+					style={{
+						background:
+							"linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.13) 100%)",
+						mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+						WebkitMask:
+							"linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+						maskComposite: "exclude",
+						WebkitMaskComposite: "xor",
+						padding: "1.5px",
+					}}
+				/>
 				{/* IDE window chrome */}
 				<div className="flex items-center justify-between px-3 py-2 bg-white/[0.04] backdrop-blur-md border-b border-white/[0.06]">
 					<div className="flex items-center gap-1.5">
