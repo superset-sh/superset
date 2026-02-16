@@ -1,4 +1,6 @@
+import { useLiveQuery } from "@tanstack/react-db";
 import { authClient } from "renderer/lib/auth-client";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { GatedFeature } from "./constants";
 import { paywall } from "./Paywall";
 
@@ -6,8 +8,16 @@ type UserPlan = "free" | "pro";
 
 export function usePaywall() {
 	const { data: session } = authClient.useSession();
+	const collections = useCollections();
 
-	const userPlan: UserPlan = (session?.session?.plan as UserPlan) ?? "free";
+	const { data: subscriptionsData } = useLiveQuery(
+		(q) => q.from({ subscriptions: collections.subscriptions }),
+		[collections],
+	);
+	const activeSubscription = subscriptionsData?.find(
+		(s) => s.status === "active",
+	);
+	const userPlan: UserPlan = (activeSubscription?.plan as UserPlan) ?? "free";
 
 	function hasAccess(feature: GatedFeature): boolean {
 		void feature;
