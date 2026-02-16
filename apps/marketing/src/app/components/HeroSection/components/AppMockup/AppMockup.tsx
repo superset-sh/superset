@@ -47,14 +47,14 @@ function StatusIndicator({
 	}[status];
 
 	return (
-		<span className="relative flex size-2.5 shrink-0">
+		<span className="relative flex size-1.5 shrink-0">
 			{config.pulse && (
 				<span
 					className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${config.ping}`}
 				/>
 			)}
 			<span
-				className={`relative inline-flex size-2.5 rounded-full ${config.dot}`}
+				className={`relative inline-flex size-1.5 rounded-full ${config.dot}`}
 			/>
 		</span>
 	);
@@ -232,7 +232,7 @@ function FileChangeItem({
 			style={{ paddingLeft: `${12 + (indent || 0) * 16}px` }}
 		>
 			<div className="flex items-center gap-2 min-w-0">
-				<Icon className={`size-4 shrink-0 ${iconColor}`} />
+				<Icon className={`size-3.5 shrink-0 ${iconColor}`} />
 				<span
 					className={`truncate ${isFolder ? "text-muted-foreground/60 text-[11px]" : "text-muted-foreground/80 text-xs"}`}
 				>
