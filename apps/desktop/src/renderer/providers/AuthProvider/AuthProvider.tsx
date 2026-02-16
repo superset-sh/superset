@@ -3,17 +3,6 @@ import { type ReactNode, useEffect, useState } from "react";
 import { authClient, setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "../../lib/electron-trpc";
 
-/**
- * AuthProvider: Manages token synchronization between memory and encrypted disk storage.
- *
- * Flow:
- * 1. Load token from disk on mount
- * 2. If valid (not expired), set in memory and validate session in background
- * 3. Render children immediately without blocking on network
- *
- * Electric JWT tokens are fetched on-demand via async headers in collections.ts
- * using authClient.token() from better-auth's JWT plugin.
- */
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
