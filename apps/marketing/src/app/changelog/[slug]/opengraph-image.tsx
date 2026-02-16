@@ -142,7 +142,9 @@ export default async function Image({
 						{entry.title}
 					</div>
 					<div style={{ fontSize: 24, color: "#999999" }}>
-						{formatChangelogDate(entry.date)}
+						{entry.version
+							? `v${entry.version} · ${formatChangelogDate(entry.date)}`
+							: formatChangelogDate(entry.date)}
 					</div>
 				</div>
 

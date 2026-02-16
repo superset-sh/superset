@@ -11,6 +11,7 @@ export interface ChangelogEntry {
 	title: string;
 	description?: string;
 	date: string;
+	version?: string;
 	image?: string;
 	content: string;
 }

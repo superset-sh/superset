@@ -26,7 +26,7 @@ export async function GET() {
 			.map(
 				(entry) => `
     <item>
-      <title>${escapeXml(entry.title)}</title>
+      <title>${entry.version ? `v${entry.version} — ` : ""}${escapeXml(entry.title)}</title>
       <link>${baseUrl}/changelog/${entry.slug}</link>
       <description>${escapeXml(entry.description || "")}</description>
       <pubDate>${new Date(entry.date).toUTCString()}</pubDate>

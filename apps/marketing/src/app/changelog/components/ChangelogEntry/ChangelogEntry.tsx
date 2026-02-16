@@ -25,7 +25,9 @@ export async function ChangelogEntry({ entry }: ChangelogEntryProps) {
 			>
 				<div className="sticky top-24 flex items-center gap-3 pt-1">
 					<span className="text-sm font-mono text-muted-foreground whitespace-nowrap">
-						{formattedDate}
+						{entry.version
+							? `v${entry.version} · ${formattedDate}`
+							: formattedDate}
 					</span>
 					<div className="w-0.5 h-5 bg-orange-500" />
 				</div>
@@ -36,7 +38,7 @@ export async function ChangelogEntry({ entry }: ChangelogEntryProps) {
 				dateTime={entry.date}
 				className="lg:hidden block text-sm font-mono text-muted-foreground mb-4"
 			>
-				{formattedDate}
+				{entry.version ? `v${entry.version} · ${formattedDate}` : formattedDate}
 			</time>
 
 			{/* Title */}

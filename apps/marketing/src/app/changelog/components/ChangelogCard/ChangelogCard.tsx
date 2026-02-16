@@ -30,7 +30,9 @@ export function ChangelogCard({ entry }: ChangelogCardProps) {
 						dateTime={entry.date}
 						className="text-sm font-mono text-muted-foreground"
 					>
-						{formattedDate}
+						{entry.version
+							? `v${entry.version} · ${formattedDate}`
+							: formattedDate}
 					</time>
 					<h2 className="text-xl font-medium text-foreground mt-2 mb-2 group-hover:text-foreground/90">
 						{entry.title}

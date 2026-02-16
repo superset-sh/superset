@@ -26,6 +26,7 @@ function parseFrontmatter(filePath: string): ChangelogEntry | null {
 			title: data.title ?? "Untitled",
 			description: data.description,
 			date: dateValue,
+			version: data.version,
 			image: data.image,
 			content,
 		};

@@ -44,7 +44,9 @@ export function ChangelogEntryLayout({
 							dateTime={entry.date}
 							className="text-sm font-mono text-muted-foreground uppercase tracking-wider"
 						>
-							{formattedDate}
+							{entry.version
+								? `v${entry.version} · ${formattedDate}`
+								: formattedDate}
 						</time>
 
 						<h1 className="text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight text-foreground mt-4 mb-4">

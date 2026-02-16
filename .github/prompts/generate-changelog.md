@@ -1,18 +1,22 @@
-# Weekly Changelog Generation
+# Changelog Generation for Release
 
-Generate a new changelog entry for this week based on merged PRs.
+Generate a new changelog entry for this release based on merged PRs since the previous tag.
+
+The version number is provided at the top of the prompt as `Version: X.Y.Z`.
 
 ## Instructions
 
-1. **Find PRs merged since last Monday**
-   - Use `gh pr list --state merged --search "merged:>=$(date -d 'last monday' +%Y-%m-%d)" --json number,title,body,url,mergedAt --limit 50` to get all PRs merged in the past week
+1. **Find PRs merged since the previous tag**
+   - Find the previous `desktop-v*` tag: `git describe --tags --abbrev=0 --match "desktop-v*" HEAD^ 2>/dev/null` or use `git tag --sort=-v:refname -l "desktop-v*" | head -2 | tail -1` to get the second-most-recent tag
+   - Get the date of that tag: `git log -1 --format=%aI <previous-tag>`
+   - Use `gh pr list --state merged --search "merged:>=$(date -d '<tag-date>' +%Y-%m-%d 2>/dev/null || date -j -f '%Y-%m-%dT%H:%M:%S%z' '<tag-date>' +%Y-%m-%d)" --json number,title,body,url,mergedAt --limit 50` to get all PRs merged since the previous tag
    - Categorize PRs into: **Major features**, **Improvements**, **Bug fixes**
    - Skip PRs that are purely internal (CI/CD, dev tooling, refactors) unless they affect users
 
 2. **Check for existing changelog**
-   - Before creating a new file, check if a changelog already exists for this week's date
+   - Before creating a new file, check if a changelog already exists for this version
    - Use `ls apps/marketing/content/changelog/` to see existing files
-   - If a file for today's date already exists, skip creation and report that a changelog already exists
+   - If a file for this version already exists, skip creation and report that a changelog already exists
 
 3. **Prioritize content**
    - **Lead with 2-4 major features** - These get their own sections with full descriptions
@@ -20,9 +24,9 @@ Generate a new changelog entry for this week based on merged PRs.
    - **Bug fixes go in a footnote section** - Brief one-liner summaries at the bottom
 
 4. **Create the changelog file**
-   - Create a new file at: `apps/marketing/content/changelog/YYYY-MM-DD-slug.mdx`
-   - Use today's date for the filename (e.g., `2026-01-27-descriptive-slug.mdx`)
-   - The slug should summarize the main features (e.g., `terminal-improvements`, `sidebar-workspaces`)
+   - Create a new file at: `apps/marketing/content/changelog/YYYY-MM-DD-vX.Y.Z.mdx`
+   - Use today's date and the version for the filename (e.g., `2026-02-16-v0.0.76.mdx`)
+   - The slug includes the version number for easy identification
 
 5. **Follow this exact format**:
 
@@ -30,6 +34,7 @@ Generate a new changelog entry for this week based on merged PRs.
 ---
 title: Brief title highlighting 1-2 main features
 date: YYYY-MM-DD
+version: X.Y.Z
 image: /changelog/IMAGE_PLACEHOLDER.png
 ---
 
@@ -59,6 +64,7 @@ Brief description of the feature and its benefit to users.
 6. **Important formatting rules**
    - Frontmatter (`---`) must be at the very top of the file with no content before it
    - MDX comments (`{/* ... */}`) must come AFTER the frontmatter, not before
+   - Include `version: X.Y.Z` in the frontmatter (use the version number provided, without the `v` prefix)
    - Set `image:` in frontmatter to `/changelog/IMAGE_PLACEHOLDER.png` - reviewers will replace this
    - Add TODO comments for features that would benefit from screenshots
    - Use a horizontal rule (`---`) before the bug fixes footnote
@@ -89,4 +95,4 @@ Read these files to understand the expected format:
 
 ## Output
 
-Create exactly one new changelog file. If there are no significant PRs to report or a changelog already exists for this week, do not create a file and report why.
+Create exactly one new changelog file. If there are no significant PRs to report or a changelog already exists for this version, do not create a file and report why.
