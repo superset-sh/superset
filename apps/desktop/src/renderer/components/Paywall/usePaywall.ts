@@ -17,7 +17,8 @@ export function usePaywall() {
 	const activeSubscription = subscriptionsData?.find(
 		(s) => s.status === "active",
 	);
-	const userPlan: UserPlan = (activeSubscription?.plan as UserPlan) ?? "free";
+	const rawPlan = activeSubscription?.plan;
+	const userPlan: UserPlan = rawPlan === "pro" ? "pro" : "free";
 
 	function hasAccess(feature: GatedFeature): boolean {
 		void feature;
