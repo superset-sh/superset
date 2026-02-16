@@ -27,7 +27,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		aiChat: createAiChatRouter(),
 		analytics: createAnalyticsRouter(),
-		browser: createBrowserRouter(),
+		browser: createBrowserRouter(getWindow),
 		browserHistory: createBrowserHistoryRouter(),
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),

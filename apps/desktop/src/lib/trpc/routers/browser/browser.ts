@@ -1,31 +1,76 @@
 import { observable } from "@trpc/server/observable";
+import type { BrowserWindow } from "electron";
 import { session } from "electron";
 import { browserManager } from "main/lib/browser/browser-manager";
+import type { NavigationEvent } from "shared/browser-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-export const createBrowserRouter = () => {
+export const createBrowserRouter = (_getWindow: () => BrowserWindow | null) => {
 	return router({
-		register: publicProcedure
-			.input(z.object({ paneId: z.string(), webContentsId: z.number() }))
+		create: publicProcedure
+			.input(z.object({ paneId: z.string(), initialUrl: z.string() }))
 			.mutation(({ input }) => {
-				browserManager.register(input.paneId, input.webContentsId);
+				const webContentsId = browserManager.create(
+					input.paneId,
+					input.initialUrl,
+				);
+				return { webContentsId };
+			}),
+
+		destroy: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.mutation(({ input }) => {
+				browserManager.destroy(input.paneId);
 				return { success: true };
 			}),
 
-		unregister: publicProcedure
-			.input(z.object({ paneId: z.string() }))
+		setBounds: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+					bounds: z.object({
+						x: z.number(),
+						y: z.number(),
+						width: z.number(),
+						height: z.number(),
+					}),
+				}),
+			)
 			.mutation(({ input }) => {
-				browserManager.unregister(input.paneId);
+				browserManager.setBounds(input.paneId, input.bounds);
 				return { success: true };
+			}),
+
+		setVisibility: publicProcedure
+			.input(z.object({ paneId: z.string(), visible: z.boolean() }))
+			.mutation(({ input }) => {
+				if (input.visible) {
+					browserManager.show(input.paneId);
+				} else {
+					browserManager.hide(input.paneId);
+				}
+				return { success: true };
+			}),
+
+		onNavigation: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<NavigationEvent>((emit) => {
+					const handler = (event: NavigationEvent) => {
+						emit.next(event);
+					};
+					browserManager.on(`navigation:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`navigation:${input.paneId}`, handler);
+					};
+				});
 			}),
 
 		navigate: publicProcedure
 			.input(z.object({ paneId: z.string(), url: z.string() }))
 			.mutation(({ input }) => {
-				const wc = browserManager.getWebContents(input.paneId);
-				if (!wc) throw new Error(`No webContents for pane ${input.paneId}`);
-				wc.loadURL(input.url);
+				browserManager.navigate(input.paneId, input.url);
 				return { success: true };
 			}),
 

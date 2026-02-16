@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
-import { useCallback, useRef } from "react";
+import { useCallback, useState } from "react";
 import { TbDeviceDesktop } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -45,12 +45,10 @@ export function BrowserPane({
 	const loadError = browserState?.error ?? null;
 	const isBlankPage = currentUrl === "about:blank";
 
-	// Capture the initial URL on first render only — subsequent navigations
-	// are handled via webview.loadURL() to preserve browser history.
-	const initialUrlRef = useRef(currentUrl);
+	const [isUrlBarFocused, setIsUrlBarFocused] = useState(false);
 
 	const {
-		setWebviewRef,
+		contentRef,
 		goBack,
 		goForward,
 		reload,
@@ -59,15 +57,9 @@ export function BrowserPane({
 		canGoForward,
 	} = useBrowserNavigation({
 		paneId,
-		initialUrl: initialUrlRef.current,
+		initialUrl: currentUrl,
+		isUrlBarFocused,
 	});
-
-	const webviewRefCallback = useCallback(
-		(node: HTMLElement | null) => {
-			setWebviewRef(node as Electron.WebviewTag | null);
-		},
-		[setWebviewRef],
-	);
 
 	const handleOpenDevTools = useCallback(() => {
 		openDevToolsPane(tabId, paneId, path);
@@ -94,6 +86,7 @@ export function BrowserPane({
 						onGoForward={goForward}
 						onReload={reload}
 						onNavigate={navigateTo}
+						onEditingChange={setIsUrlBarFocused}
 					/>
 					<div className="flex items-center shrink-0">
 						<div className="mx-1.5 h-3.5 w-px bg-muted-foreground/60" />
@@ -127,16 +120,7 @@ export function BrowserPane({
 			)}
 		>
 			<div className="relative flex flex-1 h-full">
-				<webview
-					ref={webviewRefCallback}
-					src={initialUrlRef.current}
-					partition="persist:superset"
-					// @ts-expect-error -- allowpopups is a valid webview attribute but not in React types
-					allowpopups="true"
-					data-pane-id={paneId}
-					className="w-full h-full"
-					style={{ display: "flex", flex: 1 }}
-				/>
+				<div ref={contentRef} className="w-full h-full" style={{ flex: 1 }} />
 				{loadError && !isLoading && (
 					<BrowserErrorOverlay error={loadError} onRetry={reload} />
 				)}

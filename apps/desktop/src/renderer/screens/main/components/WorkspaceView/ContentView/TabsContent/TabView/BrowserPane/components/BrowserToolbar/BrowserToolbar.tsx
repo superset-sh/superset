@@ -25,6 +25,7 @@ interface BrowserToolbarProps {
 	onGoForward: () => void;
 	onReload: () => void;
 	onNavigate: (url: string) => void;
+	onEditingChange?: (editing: boolean) => void;
 }
 
 export function BrowserToolbar({
@@ -37,6 +38,7 @@ export function BrowserToolbar({
 	onGoForward,
 	onReload,
 	onNavigate,
+	onEditingChange,
 }: BrowserToolbarProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [urlInputValue, setUrlInputValue] = useState("");
@@ -51,6 +53,11 @@ export function BrowserToolbar({
 			setIsEditing(false);
 		},
 	});
+
+	// Notify parent when editing state changes
+	useEffect(() => {
+		onEditingChange?.(isEditing);
+	}, [isEditing, onEditingChange]);
 
 	// Focus and select input when entering edit mode
 	useEffect(() => {

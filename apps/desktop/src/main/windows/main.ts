@@ -15,6 +15,7 @@ import type { AgentLifecycleEvent } from "shared/notification-types";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
+import { browserManager } from "../lib/browser/browser-manager";
 import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
@@ -128,6 +129,7 @@ export async function MainWindow() {
 	registerMenuHotkeyUpdates();
 
 	currentWindow = window;
+	browserManager.init(getWindow);
 
 	// macOS Sequoia+: background throttling can corrupt GPU compositor layers
 	if (PLATFORM.IS_MAC) {
@@ -266,6 +268,7 @@ export async function MainWindow() {
 			zoomLevel,
 		});
 
+		browserManager.destroyAll();
 		server.close();
 		notificationManager.dispose();
 		notificationsEmitter.removeAllListeners();

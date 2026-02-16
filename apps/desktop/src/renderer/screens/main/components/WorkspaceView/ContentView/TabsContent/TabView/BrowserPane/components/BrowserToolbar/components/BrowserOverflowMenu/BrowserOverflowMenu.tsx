@@ -30,6 +30,7 @@ export function BrowserOverflowMenu({
 	const clearBrowsingDataMutation =
 		electronTrpc.browser.clearBrowsingData.useMutation();
 	const clearHistoryMutation = electronTrpc.browserHistory.clear.useMutation();
+	const pageInfoQuery = electronTrpc.browser.getPageInfo.useQuery({ paneId });
 
 	const handleScreenshot = () => {
 		screenshotMutation.mutate({ paneId });
@@ -40,11 +41,9 @@ export function BrowserOverflowMenu({
 	};
 
 	const handleCopyUrl = () => {
-		const webview = document.querySelector(
-			`webview[data-pane-id="${paneId}"]`,
-		) as Electron.WebviewTag | null;
-		if (webview) {
-			navigator.clipboard.writeText(webview.getURL());
+		const url = pageInfoQuery.data?.url;
+		if (url) {
+			navigator.clipboard.writeText(url);
 		}
 	};
 
