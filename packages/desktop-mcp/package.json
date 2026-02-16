@@ -1,0 +1,28 @@
+{
+	"name": "@superset/desktop-mcp",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"bin": {
+		"desktop-mcp": "./src/bin.ts"
+	},
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.25.3",
+		"puppeteer-core": "^24.37.3",
+		"zod": "^4.3.5"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"typescript": "^5.9.3"
+	}
+}

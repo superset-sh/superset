@@ -104,8 +104,7 @@ export interface CreateSessionParams {
 	skipColdRestore?: boolean;
 	/** Allow restarting a session that was explicitly killed */
 	allowKilled?: boolean;
-	/** Port base for multi-worktree dev instances */
-	portBase?: number | null;
+	themeType?: "dark" | "light";
 }
 
 export interface InternalCreateSessionParams extends CreateSessionParams {

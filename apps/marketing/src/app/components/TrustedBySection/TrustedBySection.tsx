@@ -11,6 +11,7 @@ const CLIENT_LOGOS = [
 	// { name: "a16z", logo: "/logos/a16z.svg", height: 32 }, // they use it but need to go through approvals
 	{ name: "webflow", logo: "/logos/webflow.svg", height: 24 },
 	{ name: "vercel", logo: "/logos/vercel.svg", height: 22 },
+	{ name: "oracle", logo: "/logos/oracle.svg", height: 20 },
 	{ name: "servicenow", logo: "/logos/servicenow.svg", height: 22 },
 	{ name: "scribe", logo: "/logos/scribe.svg", height: 34 },
 	{ name: "browseruse", logo: "/logos/browseruse.svg", height: 26 },
@@ -21,15 +22,6 @@ const CLIENT_LOGOS = [
 		height: 36,
 		borderRadius: 8,
 		text: "Courier",
-	},
-	{ name: "adamcad", logo: "/logos/adam.svg", height: 30, marginTop: -5 },
-	{ name: "onlook", logo: "/logos/onlook.svg", height: 32 },
-	{
-		name: "trainloop",
-		logo: "/logos/trainloop.jpeg",
-		height: 38,
-		borderRadius: 10,
-		text: "Trainloop",
 	},
 ] as {
 	name: string;

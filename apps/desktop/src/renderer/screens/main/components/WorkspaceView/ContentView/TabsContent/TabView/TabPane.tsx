@@ -64,6 +64,10 @@ export function TabPane({
 	const getScrollToBottomCallback = useTerminalCallbacksStore(
 		(s) => s.getScrollToBottomCallback,
 	);
+	const getGetSelectionCallback = useTerminalCallbacksStore(
+		(s) => s.getGetSelectionCallback,
+	);
+	const getPasteCallback = useTerminalCallbacksStore((s) => s.getPasteCallback);
 
 	useEffect(() => {
 		const container = terminalContainerRef.current;
@@ -117,6 +121,8 @@ export function TabPane({
 				onClosePane={() => removePane(paneId)}
 				onClearTerminal={handleClearTerminal}
 				onScrollToBottom={handleScrollToBottom}
+				getSelection={() => getGetSelectionCallback(paneId)?.() ?? ""}
+				onPaste={(text) => getPasteCallback(paneId)?.(text)}
 				currentTabId={tabId}
 				availableTabs={availableTabs}
 				onMoveToTab={onMoveToTab}

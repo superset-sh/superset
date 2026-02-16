@@ -3,6 +3,7 @@
  * @see https://www.electron.build/configuration/configuration
  */
 
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Configuration } from "electron-builder";
 import pkg from "./package.json";
@@ -10,6 +11,9 @@ import pkg from "./package.json";
 const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
 const productName = pkg.productName;
+const macIconPath = join(pkg.resources, "build/icons/icon.icns");
+const linuxIconPath = join(pkg.resources, "build/icons");
+const winIconPath = join(pkg.resources, "build/icons/icon.ico");
 
 const config: Configuration = {
 	appId: "com.superset.desktop",
@@ -56,13 +60,13 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
-		// Claude Code binary - bundled for AI chat functionality
-		{
-			// biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder variable interpolation
-			from: "resources/bin/${platform}-${arch}",
-			to: "bin",
-			filter: ["**/*"],
-		},
+		// Claude Code binary - no longer bundled; the SDK resolves it at runtime
+		// {
+		// 	// biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder variable interpolation
+		// 	from: "resources/bin/${platform}-${arch}",
+		// 	to: "bin",
+		// 	filter: ["**/*"],
+		// },
 	],
 
 	files: [
@@ -113,7 +117,7 @@ const config: Configuration = {
 
 	// macOS
 	mac: {
-		icon: join(pkg.resources, "build/icons/icon.icns"),
+		...(existsSync(macIconPath) ? { icon: macIconPath } : {}),
 		category: "public.app-category.utilities",
 		target: [
 			{
@@ -143,16 +147,16 @@ const config: Configuration = {
 
 	// Linux
 	linux: {
-		icon: join(pkg.resources, "build/icons"),
+		...(existsSync(linuxIconPath) ? { icon: linuxIconPath } : {}),
 		category: "Utility",
 		synopsis: pkg.description,
-		target: ["AppImage", "deb"],
+		target: ["AppImage"],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 	},
 
 	// Windows
 	win: {
-		icon: join(pkg.resources, "build/icons/icon.ico"),
+		...(existsSync(winIconPath) ? { icon: winIconPath } : {}),
 		target: [
 			{
 				target: "nsis",

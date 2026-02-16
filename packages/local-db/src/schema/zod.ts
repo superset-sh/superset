@@ -6,6 +6,8 @@ import { z } from "zod";
 export const gitStatusSchema = z.object({
 	branch: z.string(),
 	needsRebase: z.boolean(),
+	ahead: z.number().optional(),
+	behind: z.number().optional(),
 	lastRefreshed: z.number(),
 });
 

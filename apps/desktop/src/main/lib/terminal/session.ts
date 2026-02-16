@@ -93,7 +93,7 @@ export async function createSession(
 		rows,
 		existingScrollback,
 		useFallbackShell = false,
-		portBase,
+		themeType,
 	} = params;
 
 	const shell = useFallbackShell ? FALLBACK_SHELL : getDefaultShell();
@@ -120,7 +120,7 @@ export async function createSession(
 		workspaceName,
 		workspacePath,
 		rootPath,
-		portBase,
+		themeType,
 	});
 
 	const { headless, serializer } = createHeadlessTerminal({

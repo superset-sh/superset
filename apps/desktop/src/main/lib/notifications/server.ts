@@ -1,10 +1,13 @@
 import { EventEmitter } from "node:events";
+import { BrowserWindow } from "electron";
 import express from "express";
+import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
+import { mapEventType } from "./map-event-type";
 
 // Re-export types for backwards compatibility
 export type {
@@ -35,36 +38,6 @@ app.use((req, res, next) => {
 	}
 	next();
 });
-
-/**
- * Maps incoming event types to canonical lifecycle events.
- * Handles variations from different agent CLIs.
- *
- * Returns null for unknown events - caller should ignore these gracefully
- * to maintain forward compatibility with newer hook versions.
- *
- * Note: We no longer default missing eventType to "Stop" to prevent
- * parse failures from being treated as completions.
- *
- * @internal Exported for testing
- */
-export function mapEventType(
-	eventType: string | undefined,
-): "Start" | "Stop" | "PermissionRequest" | null {
-	if (!eventType) {
-		return null; // Missing eventType should be ignored, not treated as Stop
-	}
-	if (eventType === "Start" || eventType === "UserPromptSubmit") {
-		return "Start";
-	}
-	if (eventType === "PermissionRequest") {
-		return "PermissionRequest";
-	}
-	if (eventType === "Stop" || eventType === "agent-turn-complete") {
-		return "Stop";
-	}
-	return null; // Unknown events are ignored for forward compatibility
-}
 
 /**
  * Resolves paneId from tabId or workspaceId using synced tabs state.
@@ -174,6 +147,49 @@ app.get("/hook/complete", (req, res) => {
 // Health check
 app.get("/health", (_req, res) => {
 	res.json({ status: "ok" });
+});
+
+// OAuth callback fallback for Linux/dev environments where custom URI handlers
+// are unreliable. Browser can hit localhost directly to complete sign-in.
+app.get("/auth/callback", async (req, res) => {
+	const token = req.query.token;
+	const expiresAt = req.query.expiresAt;
+	const state = req.query.state;
+
+	if (
+		typeof token !== "string" ||
+		typeof expiresAt !== "string" ||
+		typeof state !== "string"
+	) {
+		return res
+			.status(400)
+			.json({ success: false, error: "Missing auth params" });
+	}
+
+	const result = await handleAuthCallback({ token, expiresAt, state });
+	if (!result.success) {
+		return res.status(400).json(result);
+	}
+
+	const mainWindow = BrowserWindow.getAllWindows()[0];
+	if (mainWindow) {
+		if (mainWindow.isMinimized()) {
+			mainWindow.restore();
+		}
+		mainWindow.show();
+		mainWindow.focus();
+	}
+
+	// Return HTML since the browser navigated here directly (not fetch).
+	res.setHeader("Content-Type", "text/html");
+	return res.send(`<!DOCTYPE html>
+<html><head><title>Superset</title></head>
+<body style="font-family:system-ui,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#0a0a0a;color:#fafafa;">
+<div style="text-align:center">
+<h2 style="margin-bottom:8px">Signed in successfully</h2>
+<p style="opacity:0.6">You can close this tab and return to the desktop app.</p>
+</div>
+</body></html>`);
 });
 
 // 404

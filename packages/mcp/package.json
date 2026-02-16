@@ -23,6 +23,7 @@
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.25.3",
 		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
 		"drizzle-orm": "0.45.1",
 		"zod": "^4.3.5"
 	},

@@ -1,5 +1,5 @@
-import { workspaces } from "@superset/local-db";
-import { and, eq, isNull } from "drizzle-orm";
+import { workspaces, worktrees } from "@superset/local-db";
+import { and, eq, isNull, not } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
@@ -128,6 +128,51 @@ export const createStatusProcedures = () => {
 				setLastActiveWorkspace(input.workspaceId);
 
 				return { success: true, workspaceId: input.workspaceId };
+			}),
+
+		syncBranch: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					branch: z.string(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const { workspaceId, branch } = input;
+
+				if (!branch || branch === "HEAD") {
+					return { success: false as const, reason: "invalid-branch" as const };
+				}
+
+				const workspace = getWorkspaceNotDeleting(workspaceId);
+				if (!workspace) {
+					return { success: false as const, reason: "not-found" as const };
+				}
+
+				if (workspace.branch === branch) {
+					return { success: true as const, changed: false as const };
+				}
+
+				localDb
+					.update(workspaces)
+					.set({ branch })
+					.where(eq(workspaces.id, workspaceId))
+					.run();
+
+				if (workspace.worktreeId) {
+					localDb
+						.update(worktrees)
+						.set({ branch })
+						.where(
+							and(
+								eq(worktrees.id, workspace.worktreeId),
+								not(eq(worktrees.branch, branch)),
+							),
+						)
+						.run();
+				}
+
+				return { success: true as const, changed: true as const };
 			}),
 	});
 };

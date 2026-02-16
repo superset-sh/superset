@@ -1,8 +1,7 @@
-import { createHmac } from "node:crypto";
 import { db } from "@superset/db/client";
 import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { env } from "@/env";
+import { generateConnectUrl } from "../utils/generate-connect-url";
 import { createSlackClient } from "../utils/slack-client";
 import { buildHomeView } from "./build-home-view";
 
@@ -10,25 +9,6 @@ interface ProcessAppHomeOpenedParams {
 	event: { user: string; tab: string };
 	teamId: string;
 	eventId: string;
-}
-
-function generateConnectUrl({
-	slackUserId,
-	teamId,
-}: {
-	slackUserId: string;
-	teamId: string;
-}): string {
-	const payload = JSON.stringify({
-		slackUserId,
-		teamId,
-		exp: Date.now() + 10 * 60 * 1000,
-	});
-	const signature = createHmac("sha256", env.SLACK_SIGNING_SECRET)
-		.update(payload)
-		.digest("hex");
-	const token = Buffer.from(payload).toString("base64url");
-	return `${env.NEXT_PUBLIC_API_URL}/api/integrations/slack/link?token=${token}&sig=${signature}`;
 }
 
 export async function processAppHomeOpened({

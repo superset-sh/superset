@@ -13,6 +13,8 @@ export function useReorderProjects(
 		...options,
 		onSuccess: async (...args) => {
 			await utils.workspaces.getAllGrouped.invalidate();
+			await utils.workspaces.getPreviousWorkspace.invalidate();
+			await utils.workspaces.getNextWorkspace.invalidate();
 			await utils.projects.getRecents.invalidate();
 			await options?.onSuccess?.(...args);
 		},

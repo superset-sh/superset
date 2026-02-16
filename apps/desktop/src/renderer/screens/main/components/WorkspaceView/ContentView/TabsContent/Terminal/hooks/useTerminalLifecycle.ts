@@ -124,6 +124,14 @@ export interface UseTerminalLifecycleOptions {
 	unregisterClearCallbackRef: MutableRefObject<UnregisterCallback>;
 	registerScrollToBottomCallbackRef: MutableRefObject<RegisterCallback>;
 	unregisterScrollToBottomCallbackRef: MutableRefObject<UnregisterCallback>;
+	registerGetSelectionCallbackRef: MutableRefObject<
+		(paneId: string, callback: () => string) => void
+	>;
+	unregisterGetSelectionCallbackRef: MutableRefObject<UnregisterCallback>;
+	registerPasteCallbackRef: MutableRefObject<
+		(paneId: string, callback: (text: string) => void) => void
+	>;
+	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
 }
 
 export interface UseTerminalLifecycleReturn {
@@ -176,6 +184,10 @@ export function useTerminalLifecycle({
 	unregisterClearCallbackRef,
 	registerScrollToBottomCallbackRef,
 	unregisterScrollToBottomCallbackRef,
+	registerGetSelectionCallbackRef,
+	unregisterGetSelectionCallbackRef,
+	registerPasteCallbackRef,
+	unregisterPasteCallbackRef,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
@@ -490,6 +502,23 @@ export function useTerminalLifecycle({
 		registerClearCallbackRef.current(paneId, handleClear);
 		registerScrollToBottomCallbackRef.current(paneId, handleScrollToBottom);
 
+		const handleGetSelection = () => {
+			const selection = xterm.getSelection();
+			if (!selection) return "";
+			return selection
+				.split("\n")
+				.map((line) => line.trimEnd())
+				.join("\n");
+		};
+
+		const handlePaste = (text: string) => {
+			if (isExitedRef.current) return;
+			xterm.paste(text);
+		};
+
+		registerGetSelectionCallbackRef.current(paneId, handleGetSelection);
+		registerPasteCallbackRef.current(paneId, handlePaste);
+
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
@@ -558,6 +587,8 @@ export function useTerminalLifecycle({
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
+			unregisterGetSelectionCallbackRef.current(paneId);
+			unregisterPasteCallbackRef.current(paneId);
 
 			if (isPaneDestroyedInStore()) {
 				// Pane was explicitly destroyed, so kill the session.

@@ -19,27 +19,30 @@ export function WindowControls() {
 	};
 
 	return (
-		<div className="flex items-center h-full">
+		<div className="no-drag flex items-center h-full gap-1 pr-1">
 			<button
 				type="button"
-				className="h-full w-12 flex items-center justify-center hover:bg-accent transition-colors"
+				aria-label="Minimize window"
+				className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				onClick={handleMinimize}
 			>
-				<HiMiniMinus className="h-4 w-4" />
+				<HiMiniMinus className="h-3.5 w-3.5" />
 			</button>
 			<button
 				type="button"
-				className="h-full w-12 flex items-center justify-center hover:bg-accent transition-colors"
+				aria-label="Maximize window"
+				className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				onClick={handleMaximize}
 			>
 				<HiMiniStop className="h-3 w-3" />
 			</button>
 			<button
 				type="button"
-				className="h-full w-12 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+				aria-label="Close window"
+				className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground"
 				onClick={handleClose}
 			>
-				<HiMiniXMark className="h-4 w-4" />
+				<HiMiniXMark className="h-3.5 w-3.5" />
 			</button>
 		</div>
 	);

@@ -4,6 +4,7 @@
  */
 
 import type { BlogCategory } from "./blog-constants";
+import { formatContentDate } from "./content-utils";
 import type { Person } from "./people";
 
 export interface TocItem {
@@ -25,17 +26,8 @@ export interface BlogPost {
 	content: string;
 }
 
-export function formatBlogDate(date: string): string {
-	return new Date(date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
-}
+export { slugify } from "./content-utils";
 
-export function slugify(text: string): string {
-	return text
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, "-")
-		.replace(/(^-|-$)/g, "");
+export function formatBlogDate(date: string): string {
+	return formatContentDate(date, "short");
 }

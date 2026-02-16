@@ -20,6 +20,7 @@ import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { NotFound } from "renderer/routes/not-found";
+import { sanitizeSegment } from "shared/utils/branch";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/project/$projectId/",
@@ -53,17 +54,7 @@ function generateBranchFromTitle({
 	title: string;
 	authorPrefix?: string;
 }): string {
-	if (!title.trim()) return "";
-
-	const slug = title
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9\s-]/g, "")
-		.replace(/\s+/g, "-")
-		.replace(/-+/g, "-")
-		.replace(/^-|-$/g, "")
-		.slice(0, 50);
-
+	const slug = sanitizeSegment(title);
 	if (!slug) return "";
 
 	if (authorPrefix) {

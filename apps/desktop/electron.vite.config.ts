@@ -102,7 +102,7 @@ export default defineConfig({
 				output: {
 					dir: resolve(devPath, "main"),
 				},
-				external: ["electron", "better-sqlite3", "node-pty"],
+				external: ["electron", "better-sqlite3", "node-pty", "pg-native"],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
 		},
@@ -157,6 +157,10 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_WEB_URL": defineEnv(
 				process.env.NEXT_PUBLIC_WEB_URL,
 				"https://app.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_ELECTRIC_URL": defineEnv(
+				process.env.NEXT_PUBLIC_ELECTRIC_URL,
+				"https://api.superset.sh/api/electric",
 			),
 			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
 				process.env.NEXT_PUBLIC_DOCS_URL,

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
 	createPermissionRequest,
@@ -10,19 +11,30 @@ import type { SessionStore } from "../session-store";
 import type { PermissionRequestEvent } from "./session-events";
 import type { ActiveSession } from "./session-types";
 
-function getClaudeBinaryPath(): string {
+function getClaudeBinaryPath(): string | null {
+	let binaryPath: string;
 	if (app.isPackaged) {
-		return join(process.resourcesPath, "bin", "claude");
+		binaryPath = join(process.resourcesPath, "bin", "claude");
+	} else {
+		const platform = process.platform;
+		const arch = process.arch;
+		binaryPath = join(
+			app.getAppPath(),
+			"resources",
+			"bin",
+			`${platform}-${arch}`,
+			"claude",
+		);
 	}
-	const platform = process.platform;
-	const arch = process.arch;
-	return join(
-		app.getAppPath(),
-		"resources",
-		"bin",
-		`${platform}-${arch}`,
-		"claude",
-	);
+
+	if (!existsSync(binaryPath)) {
+		console.warn(
+			`[chat/agent] Claude binary not found at ${binaryPath} — will rely on SDK to resolve`,
+		);
+		return null;
+	}
+
+	return binaryPath;
 }
 
 export interface ResolvePermissionInput {
@@ -56,12 +68,15 @@ export class AgentExecution {
 		onChunk,
 	}: ExecuteAgentInput): Promise<void> {
 		const agentEnv = buildClaudeEnv();
+		const claudeBinaryPath = getClaudeBinaryPath();
 
 		await executeAgent({
 			sessionId,
 			prompt,
 			cwd: session.cwd,
-			pathToClaudeCodeExecutable: getClaudeBinaryPath(),
+			...(claudeBinaryPath && {
+				pathToClaudeCodeExecutable: claudeBinaryPath,
+			}),
 			env: agentEnv,
 			model: session.model,
 			permissionMode: session.permissionMode ?? "default",

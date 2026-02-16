@@ -18,12 +18,41 @@ describe("sanitizeSegment", () => {
 		expect(sanitizeSegment("Hello's World!")).toBe("hellos-world");
 	});
 
+	test("preserves underscores", () => {
+		expect(sanitizeSegment("hello_world")).toBe("hello_world");
+	});
+
+	test("preserves dots", () => {
+		expect(sanitizeSegment("v1.0.0")).toBe("v1.0.0");
+	});
+
+	test("preserves plus signs", () => {
+		expect(sanitizeSegment("c++fix")).toBe("c++fix");
+	});
+
+	test("preserves at signs", () => {
+		expect(sanitizeSegment("user@feature")).toBe("user@feature");
+	});
+
+	test("strips @{ sequence", () => {
+		expect(sanitizeSegment("test@{0}")).toBe("test@0");
+	});
+
+	test("collapses consecutive dots", () => {
+		expect(sanitizeSegment("hello..world")).toBe("hello.world");
+	});
+
+	test("removes .lock suffix", () => {
+		expect(sanitizeSegment("hello.lock")).toBe("hello");
+	});
+
 	test("collapses multiple hyphens", () => {
 		expect(sanitizeSegment("hello--world")).toBe("hello-world");
 	});
 
-	test("removes leading/trailing hyphens", () => {
+	test("removes leading/trailing hyphens and dots", () => {
 		expect(sanitizeSegment("-hello-")).toBe("hello");
+		expect(sanitizeSegment(".hello.")).toBe("hello");
 	});
 
 	test("respects maxLength", () => {
@@ -44,8 +73,9 @@ describe("sanitizeAuthorPrefix", () => {
 		expect(sanitizeAuthorPrefix("John Doe")).toBe("john-doe");
 	});
 
-	test("removes special characters", () => {
+	test("removes special characters but keeps underscores and dots", () => {
 		expect(sanitizeAuthorPrefix("John's Name!")).toBe("johns-name");
+		expect(sanitizeAuthorPrefix("user_name")).toBe("user_name");
 	});
 
 	test("collapses multiple hyphens", () => {
@@ -76,6 +106,26 @@ describe("sanitizeBranchName", () => {
 
 	test("handles prefix with special characters", () => {
 		expect(sanitizeBranchName("John's/Feature!")).toBe("johns/feature");
+	});
+
+	test("preserves underscores and dots in branch names", () => {
+		expect(sanitizeBranchName("user/fix_bug")).toBe("user/fix_bug");
+		expect(sanitizeBranchName("release/v1.0.0")).toBe("release/v1.0.0");
+	});
+
+	test("preserves plus and at signs", () => {
+		expect(sanitizeBranchName("user/c++fix")).toBe("user/c++fix");
+		expect(sanitizeBranchName("user@org/feature")).toBe("user@org/feature");
+	});
+
+	test("strips git-forbidden characters", () => {
+		expect(sanitizeBranchName("feat/test~1")).toBe("feat/test1");
+		expect(sanitizeBranchName("feat/test^2")).toBe("feat/test2");
+		expect(sanitizeBranchName("feat/test:foo")).toBe("feat/testfoo");
+		expect(sanitizeBranchName("feat/test?foo")).toBe("feat/testfoo");
+		expect(sanitizeBranchName("feat/test*foo")).toBe("feat/testfoo");
+		expect(sanitizeBranchName("feat/test[foo")).toBe("feat/testfoo");
+		expect(sanitizeBranchName("feat/test\\foo")).toBe("feat/testfoo");
 	});
 
 	test("handles empty string", () => {

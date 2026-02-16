@@ -1,10 +1,10 @@
 import { db } from "@superset/db/client";
 import { members, users } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { del, put } from "@vercel/blob";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
+import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure } from "../../trpc";
 
 export const userRouter = {
@@ -74,57 +74,28 @@ export const userRouter = {
 				});
 			}
 
-			const allowedMimeTypes = ["image/png", "image/jpeg", "image/webp"];
-			if (!allowedMimeTypes.includes(input.mimeType)) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
-				});
-			}
-
-			const base64Data = input.fileData.includes("base64,")
-				? input.fileData.split("base64,")[1] || input.fileData
-				: input.fileData;
-			const buffer = Buffer.from(base64Data, "base64");
-
-			const sizeInMB = buffer.length / (1024 * 1024);
-			if (sizeInMB > 4.5) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `File too large (${sizeInMB.toFixed(2)}MB). Maximum size is 4.5MB`,
-				});
-			}
-
-			if (user.image) {
-				try {
-					await del(user.image);
-				} catch {
-					// Old avatar doesn't exist or isn't in blob storage - that's fine
-				}
-			}
-
-			const ext = input.mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
-			const randomId = Math.random().toString(36).substring(2, 15);
-			const pathname = `user/${userId}/avatar/${randomId}.${ext}`;
+			const pathname = generateImagePathname({
+				prefix: `user/${userId}/avatar`,
+				mimeType: input.mimeType,
+			});
 
 			try {
-				const blob = await put(pathname, buffer, {
-					access: "public",
-					contentType: input.mimeType,
+				const url = await uploadImage({
+					fileData: input.fileData,
+					mimeType: input.mimeType,
+					pathname,
+					existingUrl: user.image,
 				});
 
 				const [updatedUser] = await db
 					.update(users)
-					.set({ image: blob.url })
+					.set({ image: url })
 					.where(eq(users.id, userId))
 					.returning();
 
-				return {
-					success: true,
-					url: blob.url,
-					user: updatedUser,
-				};
+				return { success: true, url, user: updatedUser };
 			} catch (error) {
+				if (error instanceof TRPCError) throw error;
 				console.error("[user/uploadAvatar] Upload failed:", error);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",

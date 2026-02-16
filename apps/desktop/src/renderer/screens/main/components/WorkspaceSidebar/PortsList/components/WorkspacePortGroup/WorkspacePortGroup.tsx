@@ -4,11 +4,11 @@ import { LuX } from "react-icons/lu";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "../../../constants";
 import { useKillPort } from "../../hooks/useKillPort";
-import type { MergedWorkspaceGroup } from "../../hooks/usePortsData";
+import type { WorkspacePortGroup as WorkspacePortGroupType } from "../../hooks/usePortsData";
 import { MergedPortBadge } from "../MergedPortBadge";
 
 interface WorkspacePortGroupProps {
-	group: MergedWorkspaceGroup;
+	group: WorkspacePortGroupType;
 }
 
 export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
@@ -18,8 +18,6 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 	const handleWorkspaceClick = () => {
 		navigateToWorkspace(group.workspaceId, navigate);
 	};
-
-	const activePorts = group.ports.filter((p) => p.isActive && p.paneId != null);
 
 	const handleCloseAll = () => {
 		killPorts(group.ports);
@@ -35,22 +33,20 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 				>
 					{group.workspaceName}
 				</button>
-				{activePorts.length > 0 && (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleCloseAll}
-								className="ml-auto p-0.5 rounded hover:bg-muted/50 text-muted-foreground hover:text-primary"
-							>
-								<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<p className="text-xs">Close all ports</p>
-						</TooltipContent>
-					</Tooltip>
-				)}
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleCloseAll}
+							className="ml-auto p-0.5 rounded hover:bg-muted/50 text-muted-foreground hover:text-primary"
+						>
+							<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="top" sideOffset={4}>
+						<p className="text-xs">Close all ports</p>
+					</TooltipContent>
+				</Tooltip>
 			</div>
 			<div className="flex flex-wrap gap-1 px-3">
 				{group.ports.map((port) => (

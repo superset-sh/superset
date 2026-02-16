@@ -19,6 +19,10 @@
 		"./auth": {
 			"types": "./src/auth/index.ts",
 			"default": "./src/auth/index.ts"
+		},
+		"./claude-command": {
+			"types": "./src/claude-command.ts",
+			"default": "./src/claude-command.ts"
 		}
 	},
 	"scripts": {

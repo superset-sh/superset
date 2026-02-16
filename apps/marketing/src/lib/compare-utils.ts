@@ -3,6 +3,8 @@
  * These can be safely imported in both server and client components.
  */
 
+import { formatContentDate } from "./content-utils";
+
 export interface ComparisonPage {
 	slug: string;
 	url: string;
@@ -18,9 +20,5 @@ export interface ComparisonPage {
 }
 
 export function formatCompareDate(date: string): string {
-	return new Date(date).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	});
+	return formatContentDate(date, "short");
 }

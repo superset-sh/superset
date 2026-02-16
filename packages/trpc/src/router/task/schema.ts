@@ -7,7 +7,7 @@ export const createTaskSchema = z.object({
 	description: z.string().nullish(),
 	statusId: z.string().uuid(),
 	priority: z.enum(taskPriorityValues).default("none"),
-	repositoryId: z.string().uuid().nullish(),
+
 	organizationId: z.string().uuid(),
 	assigneeId: z.string().uuid().nullish(),
 	branch: z.string().nullish(),
@@ -22,7 +22,7 @@ export const updateTaskSchema = z.object({
 	description: z.string().nullish(),
 	statusId: z.string().uuid().optional(),
 	priority: z.enum(taskPriorityValues).optional(),
-	repositoryId: z.string().uuid().nullish(),
+
 	assigneeId: z.string().uuid().nullish(),
 	branch: z.string().nullish(),
 	prUrl: z.string().url().nullish(),

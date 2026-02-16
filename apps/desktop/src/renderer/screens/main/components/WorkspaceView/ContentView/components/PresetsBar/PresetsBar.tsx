@@ -6,7 +6,9 @@ import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent/HotkeyTooltipContent";
 import { usePresets } from "renderer/react-query/presets";
+import { PRESET_HOTKEY_IDS } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 
 export function PresetsBar() {
@@ -22,8 +24,10 @@ export function PresetsBar() {
 			className="flex items-center h-8 border-b border-border bg-background px-2 gap-0.5 overflow-x-auto shrink-0"
 			style={{ scrollbarWidth: "none" }}
 		>
-			{presets.map((preset) => {
+			{presets.map((preset, index) => {
 				const icon = getPresetIcon(preset.name, isDark);
+				const hotkeyId = PRESET_HOTKEY_IDS[index];
+				const label = preset.description || preset.name || "default";
 				return (
 					<Tooltip key={preset.id}>
 						<TooltipTrigger asChild>
@@ -47,11 +51,9 @@ export function PresetsBar() {
 								</span>
 							</Button>
 						</TooltipTrigger>
-						{preset.description && (
-							<TooltipContent side="bottom" sideOffset={4}>
-								{preset.description}
-							</TooltipContent>
-						)}
+						<TooltipContent side="bottom" sideOffset={4}>
+							<HotkeyTooltipContent label={label} hotkeyId={hotkeyId} />
+						</TooltipContent>
 					</Tooltip>
 				);
 			})}

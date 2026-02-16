@@ -10,8 +10,8 @@ import {
 	updateProjectDefaultBranch,
 } from "../utils/db-helpers";
 import {
-	checkNeedsRebase,
 	fetchDefaultBranch,
+	getAheadBehindCount,
 	getDefaultBranch,
 	listExternalWorktrees,
 	refreshDefaultBranch,
@@ -42,7 +42,6 @@ export const createGitStatusProcedures = () => {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
 
-				// Sync with remote in case the default branch changed (e.g. master -> main)
 				const remoteDefaultBranch = await refreshDefaultBranch(
 					project.mainRepoPath,
 				);
@@ -59,22 +58,21 @@ export const createGitStatusProcedures = () => {
 					updateProjectDefaultBranch(project.id, defaultBranch);
 				}
 
-				// Fetch default branch to get latest
 				await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
 
-				// Check if worktree branch is behind origin/{defaultBranch}
-				const needsRebase = await checkNeedsRebase(
-					worktree.path,
+				const { ahead, behind } = await getAheadBehindCount({
+					repoPath: worktree.path,
 					defaultBranch,
-				);
+				});
 
 				const gitStatus = {
 					branch: worktree.branch,
-					needsRebase,
+					needsRebase: behind > 0,
+					ahead,
+					behind,
 					lastRefreshed: Date.now(),
 				};
 
-				// Update worktree in db
 				localDb
 					.update(worktrees)
 					.set({ gitStatus })
@@ -82,6 +80,25 @@ export const createGitStatusProcedures = () => {
 					.run();
 
 				return { gitStatus, defaultBranch };
+			}),
+
+		getAheadBehind: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async ({ input }) => {
+				const workspace = getWorkspace(input.workspaceId);
+				if (!workspace) {
+					return { ahead: 0, behind: 0 };
+				}
+
+				const project = getProject(workspace.projectId);
+				if (!project) {
+					return { ahead: 0, behind: 0 };
+				}
+
+				return getAheadBehindCount({
+					repoPath: project.mainRepoPath,
+					defaultBranch: workspace.branch,
+				});
 			}),
 
 		getGitHubStatus: publicProcedure
@@ -99,10 +116,8 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				// Always fetch fresh data on hover
 				const freshStatus = await fetchGitHubPRStatus(worktree.path);
 
-				// Update cache if we got data
 				if (freshStatus) {
 					localDb
 						.update(worktrees)
@@ -129,7 +144,6 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				// Extract worktree name from path (last segment)
 				const worktreeName = worktree.path.split("/").pop() ?? worktree.branch;
 				const branchName = worktree.branch;
 

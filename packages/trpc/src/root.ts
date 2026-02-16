@@ -7,9 +7,10 @@ import { apiKeyRouter } from "./router/api-key";
 import { deviceRouter } from "./router/device";
 import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
-import { repositoryRouter } from "./router/repository";
+import { projectRouter } from "./router/project";
 import { taskRouter } from "./router/task";
 import { userRouter } from "./router/user";
+import { workspaceRouter } from "./router/workspace";
 import { createCallerFactory, createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
@@ -20,9 +21,10 @@ export const appRouter = createTRPCRouter({
 	device: deviceRouter,
 	integration: integrationRouter,
 	organization: organizationRouter,
-	repository: repositoryRouter,
+	project: projectRouter,
 	task: taskRouter,
 	user: userRouter,
+	workspace: workspaceRouter,
 });
 
 export type AppRouter = typeof appRouter;

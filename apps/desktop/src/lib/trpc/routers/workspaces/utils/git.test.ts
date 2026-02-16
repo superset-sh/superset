@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createWorktree } from "./git";
 
 // We need to test the internal functions, so we'll import the module
 // and test the exported functions that use them
@@ -18,6 +19,14 @@ function createTestRepo(name: string): string {
 	});
 	execSync("git config user.name 'Test'", { cwd: repoPath, stdio: "ignore" });
 	return repoPath;
+}
+
+function seedCommit(repoPath: string): void {
+	writeFileSync(join(repoPath, "README.md"), "# test\n");
+	execSync("git add . && git commit -m 'init'", {
+		cwd: repoPath,
+		stdio: "ignore",
+	});
 }
 
 describe("LFS Detection", () => {
@@ -311,5 +320,58 @@ describe("Shell Environment", () => {
 		// Should work again (cache was cleared)
 		const env = await getShellEnvironment();
 		expect(env.PATH || env.Path).toBeDefined();
+	});
+});
+
+describe("createWorktree hook tolerance", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("continues when post-checkout hook fails but worktree is created", async () => {
+		const repoPath = createTestRepo("worktree-hook-failure");
+		seedCommit(repoPath);
+
+		const hookPath = join(repoPath, ".git", "hooks", "post-checkout");
+		writeFileSync(
+			hookPath,
+			"#!/bin/sh\necho 'post-checkout failed' >&2\nexit 1\n",
+		);
+		execSync(`chmod +x "${hookPath}"`);
+
+		const worktreePath = join(TEST_DIR, "worktree-hook-failure-wt");
+		await createWorktree(
+			repoPath,
+			"feature/hook-failure",
+			worktreePath,
+			"HEAD",
+		);
+
+		expect(existsSync(worktreePath)).toBe(true);
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/hook-failure");
+	});
+
+	test("throws when destination path exists but worktree is not created", async () => {
+		const repoPath = createTestRepo("worktree-existing-path");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "worktree-existing-path-wt");
+		mkdirSync(worktreePath, { recursive: true });
+		writeFileSync(join(worktreePath, "keep.txt"), "keep");
+
+		await expect(
+			createWorktree(repoPath, "feature/existing-path", worktreePath, "HEAD"),
+		).rejects.toThrow("already exists");
 	});
 });

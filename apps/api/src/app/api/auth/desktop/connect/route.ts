@@ -8,6 +8,7 @@ export async function GET(request: Request) {
 	const provider = url.searchParams.get("provider");
 	const state = url.searchParams.get("state");
 	const protocol = url.searchParams.get("protocol");
+	const localCallback = url.searchParams.get("local_callback");
 
 	if (!provider || !state) {
 		return new Response("Missing provider or state", { status: 400 });
@@ -21,6 +22,23 @@ export async function GET(request: Request) {
 	successUrl.searchParams.set("desktop_state", state);
 	if (protocol) {
 		successUrl.searchParams.set("desktop_protocol", protocol);
+	}
+	if (localCallback) {
+		try {
+			const callbackUrl = new URL(localCallback);
+			const isLoopback =
+				callbackUrl.protocol === "http:" &&
+				(callbackUrl.hostname === "127.0.0.1" ||
+					callbackUrl.hostname === "localhost");
+			if (isLoopback && callbackUrl.pathname === "/auth/callback") {
+				successUrl.searchParams.set(
+					"desktop_local_callback",
+					callbackUrl.toString(),
+				);
+			}
+		} catch {
+			// Ignore invalid callback URLs and continue with deep-link flow.
+		}
 	}
 
 	const result = await auth.api.signInSocial({

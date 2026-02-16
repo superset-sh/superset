@@ -24,18 +24,15 @@ export function WorkspaceDiffStats({
 					: "bg-muted/50 group-hover:bg-transparent",
 			)}
 		>
-			{/* Diff stats - hidden on card hover when onClose provided */}
 			<div
-				className={
-					onClose
-						? "flex items-center gap-1.5 group-hover:hidden"
-						: "flex items-center gap-1.5"
-				}
+				className={cn(
+					"flex items-center gap-1.5",
+					onClose && "group-hover:hidden",
+				)}
 			>
 				<span className="text-emerald-500/90">+{additions}</span>
 				<span className="text-red-400/90">−{deletions}</span>
 			</div>
-			{/* X icon - shown on card hover */}
 			{onClose && (
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>

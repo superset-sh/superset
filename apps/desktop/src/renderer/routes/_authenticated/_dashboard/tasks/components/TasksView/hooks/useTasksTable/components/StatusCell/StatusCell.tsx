@@ -55,7 +55,11 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
-				<button type="button" className="p-0 cursor-pointer border-0">
+				<button
+					type="button"
+					className="p-0 cursor-pointer border-0"
+					onClick={(e) => e.stopPropagation()}
+				>
 					<StatusIcon
 						type={currentStatus.type as StatusType}
 						color={currentStatus.color}
@@ -64,7 +68,11 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 					/>
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-48 p-1">
+			<DropdownMenuContent
+				align="start"
+				className="w-48 p-1"
+				onClick={(e) => e.stopPropagation()}
+			>
 				<div className="max-h-64 overflow-y-auto">
 					<StatusMenuItems
 						statuses={sortedStatuses}

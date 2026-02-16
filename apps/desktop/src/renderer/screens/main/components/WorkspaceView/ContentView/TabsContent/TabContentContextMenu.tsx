@@ -10,8 +10,11 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import {
 	LuArrowDownToLine,
+	LuClipboard,
+	LuClipboardCopy,
 	LuColumns2,
 	LuEraser,
 	LuMoveRight,
@@ -22,6 +25,11 @@ import {
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import type { Tab } from "renderer/stores/tabs/types";
 
+function getModifierKeyLabel() {
+	const isMac = navigator.platform.toLowerCase().includes("mac");
+	return isMac ? "⌘" : "Ctrl+";
+}
+
 interface TabContentContextMenuProps {
 	children: ReactNode;
 	onSplitHorizontal: () => void;
@@ -29,6 +37,8 @@ interface TabContentContextMenuProps {
 	onClosePane: () => void;
 	onClearTerminal: () => void;
 	onScrollToBottom: () => void;
+	getSelection?: () => string;
+	onPaste?: (text: string) => void;
 	currentTabId: string;
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
@@ -42,6 +52,8 @@ export function TabContentContextMenu({
 	onClosePane,
 	onClearTerminal,
 	onScrollToBottom,
+	getSelection,
+	onPaste,
 	currentTabId,
 	availableTabs,
 	onMoveToTab,
@@ -53,11 +65,57 @@ export function TabContentContextMenu({
 	const showClearShortcut = clearShortcut !== "Unassigned";
 	const scrollToBottomShortcut = useHotkeyText("SCROLL_TO_BOTTOM");
 	const showScrollToBottomShortcut = scrollToBottomShortcut !== "Unassigned";
+	const modKey = getModifierKeyLabel();
+
+	const [hasSelection, setHasSelection] = useState(false);
+	const [hasClipboard, setHasClipboard] = useState(false);
+
+	const handleOpenChange = async (open: boolean) => {
+		if (!open) return;
+		setHasSelection(!!getSelection?.()?.length);
+		try {
+			const text = await navigator.clipboard.readText();
+			setHasClipboard(!!text);
+		} catch {
+			setHasClipboard(false);
+		}
+	};
+
+	const handleCopy = async () => {
+		const text = getSelection?.();
+		if (!text) return;
+		await navigator.clipboard.writeText(text);
+	};
+
+	const handlePaste = async () => {
+		if (!onPaste) return;
+		try {
+			const text = await navigator.clipboard.readText();
+			if (text) onPaste(text);
+		} catch {
+			// Clipboard access denied
+		}
+	};
 
 	return (
-		<ContextMenu>
+		<ContextMenu onOpenChange={handleOpenChange}>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
+				{getSelection && (
+					<ContextMenuItem disabled={!hasSelection} onSelect={handleCopy}>
+						<LuClipboardCopy className="size-4" />
+						Copy
+						<ContextMenuShortcut>{modKey}C</ContextMenuShortcut>
+					</ContextMenuItem>
+				)}
+				{onPaste && (
+					<ContextMenuItem disabled={!hasClipboard} onSelect={handlePaste}>
+						<LuClipboard className="size-4" />
+						Paste
+						<ContextMenuShortcut>{modKey}V</ContextMenuShortcut>
+					</ContextMenuItem>
+				)}
+				{(getSelection || onPaste) && <ContextMenuSeparator />}
 				<ContextMenuItem onSelect={onSplitHorizontal}>
 					<LuRows2 className="size-4" />
 					Split Horizontally

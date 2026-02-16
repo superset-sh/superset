@@ -5,12 +5,13 @@ primary_region = "iad"
 image = "electricsql/electric:1.4.3"
 
 [[vm]]
-memory = "4096mb"
-cpu_kind = "shared"
-cpus = 2
+memory = "8192mb"
+cpu_kind = "performance"
+cpus = 4
 
 [env]
 ELECTRIC_DATABASE_USE_IPV6 = "true"
+ELECTRIC_MAX_CONCURRENT_REQUESTS = '{"initial": 3000, "existing": 10000}'
 
 [http_service]
 internal_port = 3000

@@ -53,14 +53,6 @@ export function OrganizationDropdown() {
 
 	const userEmail = session?.user?.email;
 
-	const clearCacheMutation =
-		electronTrpc.cache.clearElectricCache.useMutation();
-
-	async function switchOrganization(newOrgId: string): Promise<void> {
-		await authClient.organization.setActive({ organizationId: newOrgId });
-		clearCacheMutation.mutate();
-	}
-
 	async function handleSignOut(): Promise<void> {
 		await authClient.signOut();
 		signOutMutation.mutate();
@@ -124,7 +116,9 @@ export function OrganizationDropdown() {
 							{organizations.map((organization) => (
 								<DropdownMenuItem
 									key={organization.id}
-									onSelect={() => switchOrganization(organization.id)}
+									onSelect={() =>
+										collections.switchOrganization(organization.id)
+									}
 									className="gap-2"
 								>
 									<Avatar

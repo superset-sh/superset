@@ -1,7 +1,5 @@
 import { auth } from "@superset/auth/server";
-import { db } from "@superset/db/client";
-import { members } from "@superset/db/schema";
-import { and, eq } from "drizzle-orm";
+import { findOrgMembership } from "@superset/db/utils";
 
 import { env } from "@/env";
 import { createSignedState } from "@/lib/oauth-state";
@@ -42,12 +40,7 @@ export async function GET(request: Request) {
 
 	const userId = session.user.id;
 
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.userId, userId),
-		),
-	});
+	const membership = await findOrgMembership({ userId, organizationId });
 
 	if (!membership) {
 		return Response.json(

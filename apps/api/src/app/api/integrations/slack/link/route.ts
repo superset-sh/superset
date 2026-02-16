@@ -1,11 +1,8 @@
 import { createHmac } from "node:crypto";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
-import {
-	integrationConnections,
-	members,
-	usersSlackUsers,
-} from "@superset/db/schema";
+import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
+import { findOrgMembership } from "@superset/db/utils";
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { env } from "@/env";
@@ -65,11 +62,9 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.organizationId, connection.organizationId),
-			eq(members.userId, session.user.id),
-		),
+	const membership = await findOrgMembership({
+		userId: session.user.id,
+		organizationId: connection.organizationId,
 	});
 
 	if (!membership) {

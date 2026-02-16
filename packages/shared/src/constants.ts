@@ -59,4 +59,6 @@ export const FEATURE_FLAGS = {
 	AI_CHAT: "ai-chat",
 	/** Gates access to Slack integration (internal only). */
 	SLACK_INTEGRATION_ACCESS: "slack-integration-access",
+	/** Gates access to Cloud features (environment variables, sandboxes). */
+	CLOUD_ACCESS: "cloud-access",
 } as const;

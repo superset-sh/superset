@@ -3,6 +3,7 @@ import path from "node:path";
 import matter from "gray-matter";
 import { slugify, type TocItem } from "./blog-utils";
 import type { ComparisonPage } from "./compare-utils";
+import { normalizeContentDate } from "./content-utils";
 
 export { type ComparisonPage, formatCompareDate } from "./compare-utils";
 
@@ -14,22 +15,10 @@ function parseFrontmatter(filePath: string): ComparisonPage | null {
 		const { data, content } = matter(fileContent);
 
 		const slug = path.basename(filePath, ".mdx");
-
-		let dateValue: string;
-		if (data.date instanceof Date) {
-			dateValue = data.date.toISOString().split("T")[0] as string;
-		} else if (data.date) {
-			dateValue = String(data.date);
-		} else {
-			dateValue = new Date().toISOString().split("T")[0] as string;
-		}
-
-		let lastUpdated: string | undefined;
-		if (data.lastUpdated instanceof Date) {
-			lastUpdated = data.lastUpdated.toISOString().split("T")[0] as string;
-		} else if (data.lastUpdated) {
-			lastUpdated = String(data.lastUpdated);
-		}
+		const dateValue = normalizeContentDate(data.date) as string;
+		const lastUpdated = normalizeContentDate(data.lastUpdated, {
+			fallbackToNow: false,
+		});
 
 		return {
 			slug,

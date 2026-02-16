@@ -41,3 +41,23 @@ export const commandStatusValues = [
 ] as const;
 export const commandStatusEnum = z.enum(commandStatusValues);
 export type CommandStatus = z.infer<typeof commandStatusEnum>;
+
+export const sandboxStatusValues = [
+	"pending",
+	"spawning",
+	"connecting",
+	"warming",
+	"syncing",
+	"ready",
+	"running",
+	"stale",
+	"snapshotting",
+	"stopped",
+	"failed",
+] as const;
+export const sandboxStatusEnum = z.enum(sandboxStatusValues);
+export type SandboxStatus = z.infer<typeof sandboxStatusEnum>;
+
+export const workspaceTypeValues = ["local", "cloud"] as const;
+export const workspaceTypeEnum = z.enum(workspaceTypeValues);
+export type WorkspaceType = z.infer<typeof workspaceTypeEnum>;
