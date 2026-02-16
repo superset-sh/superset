@@ -262,7 +262,7 @@ interface AppMockupProps {
 export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 	return (
 		<div
-			className="relative w-full min-w-[700px] rounded-2xl overflow-hidden bg-black/60 backdrop-blur-xl border-2 border-white/[0.12] shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7)] ring-1 ring-white/[0.06]"
+			className="relative w-full min-w-[700px] rounded-2xl overflow-hidden bg-black/60 backdrop-blur-xl border border-white/[0.2] shadow-[0_8px_60px_-12px_rgba(0,0,0,0.7),inset_0_1px_0_0_rgba(255,255,255,0.15),inset_0_0_0_0.5px_rgba(255,255,255,0.1),0_0_0_1px_rgba(255,255,255,0.07)] ring-1 ring-white/[0.1]"
 			style={{ aspectRatio: "16/10" }}
 		>
 			{/* Window chrome */}
@@ -828,7 +828,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 
 			{/* External IDE Popup - shown when "Open in Any IDE" is active */}
 			<motion.div
-				className="absolute bottom-6 right-6 w-[55%] rounded-xl overflow-hidden bg-black/50 backdrop-blur-xl border border-white/[0.1] shadow-2xl"
+				className="absolute bottom-6 right-6 w-[55%] rounded-xl overflow-hidden bg-black/50 backdrop-blur-xl border border-white/[0.2] shadow-[0_8px_40px_-8px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.15),inset_0_0_0_0.5px_rgba(255,255,255,0.1),0_0_0_1px_rgba(255,255,255,0.07)] ring-1 ring-white/[0.1]"
 				style={{ aspectRatio: "16/10" }}
 				initial={{ opacity: 0, scale: 0.9, y: 20 }}
 				animate={{
