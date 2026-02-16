@@ -1,8 +1,8 @@
 "use client";
 
+import { useIsMobile } from "@superset/ui/hooks/use-mobile";
 import { type MotionValue, motion, useTransform } from "framer-motion";
 import { useState } from "react";
-import { useIsMobile } from "@superset/ui/hooks/use-mobile";
 import { type ActiveDemo, AppMockup } from "../AppMockup";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";

@@ -29,28 +29,27 @@ export function HeroSection() {
 								style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 							>
 								<span className="invisible" aria-hidden="true">
-									The Terminal for Coding Agents.
+									The Code Editor for AI Agents.
 								</span>
 								<span className="absolute inset-0">
 									<TypewriterText
 										segments={[
-											{ text: "The Terminal for " },
+											{ text: "The Code Editor for " },
 											{
-												text: "Coding Agents",
+												text: "AI Agents.",
 												style: {
 													fontFamily: "var(--font-geist-pixel-grid)",
 												},
 											},
-											{ text: "." },
 										]}
 										speed={40}
 										delay={600}
 									/>
 								</span>
 							</h1>
-							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-xl mx-auto">
-								Orchestrate a team of Claude Code, Codex, or any other coding
-								agents
+							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
+								Superset helps you orchestrate swarms of coding agents in
+								parallel. Built for the AI era.
 							</p>
 						</div>
 
@@ -68,7 +67,10 @@ export function HeroSection() {
 						</div>
 					</div>
 
-					<div ref={demoRef} className="relative w-full mt-12 sm:mt-16 lg:mt-20">
+					<div
+						ref={demoRef}
+						className="relative w-full mt-12 sm:mt-16 lg:mt-20"
+					>
 						<ProductDemo scrollYProgress={scrollYProgress} />
 					</div>
 				</div>
