@@ -17,10 +17,7 @@ import {
 	useCloseWorkspace,
 	useDeleteWorkspace,
 } from "renderer/react-query/workspaces";
-import {
-	forceDeleteWithToast,
-	showTeardownFailedToast,
-} from "renderer/routes/_authenticated/components/TeardownLogsDialog";
+import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
@@ -101,17 +98,6 @@ export function DeleteWorkspaceDialog({
 		});
 	};
 
-	const handleForceDelete = () =>
-		forceDeleteWithToast({
-			name: workspaceName,
-			deleteFn: () =>
-				deleteWorkspace.mutateAsync({
-					id: workspaceId,
-					deleteLocalBranch: deleteLocalBranchChecked,
-					force: true,
-				}),
-		});
-
 	const handleDelete = async () => {
 		onOpenChange(false);
 
@@ -119,42 +105,20 @@ export function DeleteWorkspaceDialog({
 			enabled: deleteLocalBranchChecked,
 		});
 
-		const toastId = toast.loading(`Deleting "${workspaceName}"...`);
-
-		try {
-			const result = await deleteWorkspace.mutateAsync({
-				id: workspaceId,
-				deleteLocalBranch: deleteLocalBranchChecked,
-			});
-
-			if (!result.success) {
-				const { output } = result;
-				if (output) {
-					showTeardownFailedToast({
-						toastId,
-						output,
-						onForceDelete: handleForceDelete,
-					});
-				} else {
-					toast.error(result.error ?? "Failed to delete", { id: toastId });
-				}
-				return;
-			}
-
-			toast.success(`Deleted "${workspaceName}"`, { id: toastId });
-
-			if (result.terminalWarning) {
-				setTimeout(() => {
-					toast.warning("Terminal warning", {
-						description: result.terminalWarning,
-					});
-				}, 100);
-			}
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to delete", {
-				id: toastId,
-			});
-		}
+		await deleteWithToast({
+			name: workspaceName,
+			deleteFn: () =>
+				deleteWorkspace.mutateAsync({
+					id: workspaceId,
+					deleteLocalBranch: deleteLocalBranchChecked,
+				}),
+			forceDeleteFn: () =>
+				deleteWorkspace.mutateAsync({
+					id: workspaceId,
+					deleteLocalBranch: deleteLocalBranchChecked,
+					force: true,
+				}),
+		});
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;

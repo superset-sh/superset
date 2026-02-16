@@ -12,6 +12,8 @@ import { useEffect, useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCheck, LuCircle, LuGitBranch, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useDeleteWorkspace } from "renderer/react-query/workspaces";
+import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 import {
 	useHasWorkspaceFailed,
 	useWorkspaceInitProgress,
@@ -56,7 +58,7 @@ export function WorkspaceInitializingView({
 	}, [isInterrupted, progress]);
 
 	const retryMutation = electronTrpc.workspaces.retryInit.useMutation();
-	const deleteMutation = electronTrpc.workspaces.delete.useMutation();
+	const deleteWorkspace = useDeleteWorkspace();
 	const utils = electronTrpc.useUtils();
 
 	const handleRetry = () => {
@@ -70,16 +72,15 @@ export function WorkspaceInitializingView({
 		);
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		setShowDeleteConfirm(false);
-		deleteMutation.mutate(
-			{ id: workspaceId },
-			{
-				onSuccess: () => {
-					utils.workspaces.invalidate();
-				},
-			},
-		);
+
+		await deleteWithToast({
+			name: workspaceName,
+			deleteFn: () => deleteWorkspace.mutateAsync({ id: workspaceId }),
+			forceDeleteFn: () =>
+				deleteWorkspace.mutateAsync({ id: workspaceId, force: true }),
+		});
 	};
 
 	const currentStep = progress?.step ?? "pending";
@@ -113,9 +114,9 @@ export function WorkspaceInitializingView({
 								variant="outline"
 								size="sm"
 								onClick={() => setShowDeleteConfirm(true)}
-								disabled={deleteMutation.isPending}
+								disabled={deleteWorkspace.isPending}
 							>
-								{deleteMutation.isPending ? "Deleting..." : "Delete Workspace"}
+								{deleteWorkspace.isPending ? "Deleting..." : "Delete Workspace"}
 							</Button>
 							<Button
 								size="sm"
@@ -206,9 +207,9 @@ export function WorkspaceInitializingView({
 								variant="outline"
 								size="sm"
 								onClick={() => setShowDeleteConfirm(true)}
-								disabled={deleteMutation.isPending}
+								disabled={deleteWorkspace.isPending}
 							>
-								{deleteMutation.isPending ? "Deleting..." : "Delete Workspace"}
+								{deleteWorkspace.isPending ? "Deleting..." : "Delete Workspace"}
 							</Button>
 							<Button
 								size="sm"

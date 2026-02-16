@@ -1,6 +1,5 @@
 export {
-	forceDeleteWithToast,
-	showTeardownFailedToast,
+	deleteWithToast,
 	showTeardownLogs,
 	TeardownLogsDialog,
 } from "./TeardownLogsDialog";

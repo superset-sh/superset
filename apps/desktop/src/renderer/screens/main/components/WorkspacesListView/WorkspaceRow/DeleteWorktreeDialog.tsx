@@ -7,14 +7,10 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
-import {
-	forceDeleteWithToast,
-	showTeardownFailedToast,
-} from "renderer/routes/_authenticated/components/TeardownLogsDialog";
+import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
@@ -40,40 +36,15 @@ export function DeleteWorktreeDialog({
 			},
 		);
 
-	const handleForceDelete = () =>
-		forceDeleteWithToast({
-			name: worktreeName,
-			deleteFn: () => deleteWorktree.mutateAsync({ worktreeId, force: true }),
-		});
-
 	const handleDelete = async () => {
 		onOpenChange(false);
 
-		const toastId = toast.loading(`Deleting "${worktreeName}"...`);
-
-		try {
-			const result = await deleteWorktree.mutateAsync({ worktreeId });
-
-			if (!result.success) {
-				const { output } = result;
-				if (output) {
-					showTeardownFailedToast({
-						toastId,
-						output,
-						onForceDelete: handleForceDelete,
-					});
-				} else {
-					toast.error(result.error ?? "Failed to delete", { id: toastId });
-				}
-				return;
-			}
-
-			toast.success(`Deleted "${worktreeName}"`, { id: toastId });
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to delete", {
-				id: toastId,
-			});
-		}
+		await deleteWithToast({
+			name: worktreeName,
+			deleteFn: () => deleteWorktree.mutateAsync({ worktreeId }),
+			forceDeleteFn: () =>
+				deleteWorktree.mutateAsync({ worktreeId, force: true }),
+		});
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;
