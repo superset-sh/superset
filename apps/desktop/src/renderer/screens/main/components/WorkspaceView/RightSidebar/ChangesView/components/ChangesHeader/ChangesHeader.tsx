@@ -56,11 +56,13 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 		branchData?.worktreeBaseBranch ?? branchData?.defaultBranch ?? "main";
 	const sortedBranches = useMemo(() => {
 		return [...(branchData?.remote ?? [])].sort((a, b) => {
+			if (a === effectiveBaseBranch) return -1;
+			if (b === effectiveBaseBranch) return 1;
 			if (a === branchData?.defaultBranch) return -1;
 			if (b === branchData?.defaultBranch) return 1;
 			return a.localeCompare(b);
 		});
-	}, [branchData?.remote, branchData?.defaultBranch]);
+	}, [branchData?.remote, branchData?.defaultBranch, effectiveBaseBranch]);
 
 	const filteredBranches = useMemo(() => {
 		if (!search) return sortedBranches.filter(Boolean);
