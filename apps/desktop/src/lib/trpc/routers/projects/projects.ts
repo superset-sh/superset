@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { access } from "node:fs/promises";
+import { access, mkdir, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
 	BRANCH_PREFIX_MODES,
@@ -189,6 +189,51 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 			auto_created: true,
 		});
 	}
+}
+
+/**
+ * Initializes a git repository, creates an initial commit, and returns the default branch name.
+ * Handles --initial-branch=main fallback for older Git versions and git config error detection.
+ */
+async function initGitRepo(
+	repoPath: string,
+	options?: { stageAll?: boolean; commitMessage?: string },
+): Promise<string> {
+	const git = simpleGit(repoPath);
+
+	try {
+		await git.init(["--initial-branch=main"]);
+	} catch {
+		await git.init();
+	}
+
+	const message = options?.commitMessage ?? "Initial commit";
+
+	try {
+		if (options?.stageAll) {
+			await git.add(".");
+			await git.commit(message);
+		} else {
+			await git.raw(["commit", "--allow-empty", "-m", message]);
+		}
+	} catch (err) {
+		const errorMessage = err instanceof Error ? err.message : String(err);
+		if (
+			errorMessage.includes("empty ident") ||
+			errorMessage.includes("user.email") ||
+			errorMessage.includes("user.name")
+		) {
+			throw new Error(
+				"Git user not configured. Please run:\n" +
+					'  git config --global user.name "Your Name"\n' +
+					'  git config --global user.email "you@example.com"',
+			);
+		}
+		throw new Error(`Failed to create initial commit: ${errorMessage}`);
+	}
+
+	const branchSummary = await git.branch();
+	return branchSummary.current || "main";
 }
 
 // Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
@@ -577,48 +622,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
-				const git = simpleGit(input.path);
-
-				// Initialize git repository with 'main' as default branch
-				// Try with --initial-branch=main (Git 2.28+), fall back to plain init
-				try {
-					await git.init(["--initial-branch=main"]);
-				} catch (err) {
-					// Likely an older Git version that doesn't support --initial-branch
-					console.warn(
-						"Git init with --initial-branch failed, using fallback:",
-						err,
-					);
-					await git.init();
-				}
-
-				// Create initial commit so we have a valid branch ref
-				try {
-					await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
-				} catch (err) {
-					const errorMessage = err instanceof Error ? err.message : String(err);
-					// Check for common git config issues
-					if (
-						errorMessage.includes("empty ident") ||
-						errorMessage.includes("user.email") ||
-						errorMessage.includes("user.name")
-					) {
-						throw new Error(
-							"Git user not configured. Please run:\n" +
-								'  git config --global user.name "Your Name"\n' +
-								'  git config --global user.email "you@example.com"',
-						);
-					}
-					throw new Error(`Failed to create initial commit: ${errorMessage}`);
-				}
-
-				// Get the current branch name (will be 'main' or 'master' depending on git version/config)
-				const branchSummary = await git.branch();
-				const defaultBranch = branchSummary.current || "main";
-
+				const defaultBranch = await initGitRepo(input.path);
 				const project = upsertProject(input.path, defaultBranch);
-
-				// Auto-create main workspace if it doesn't exist
 				await ensureMainWorkspace(project);
 
 				track("project_opened", {
@@ -781,6 +786,177 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						canceled: false as const,
 						success: false as const,
 						error: `Failed to clone repository: ${errorMessage}`,
+					};
+				}
+			}),
+
+		createEmptyRepo: publicProcedure
+			.input(
+				z.object({
+					name: z
+						.string()
+						.min(1)
+						.refine((val) => SAFE_REPO_NAME_REGEX.test(val), {
+							message:
+								"Name can only contain letters, numbers, dots, underscores, hyphens, and spaces",
+						}),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					const window = getWindow();
+					if (!window) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: "No window available",
+						};
+					}
+
+					const result = await dialog.showOpenDialog(window, {
+						properties: ["openDirectory", "createDirectory"],
+						title: "Select Location for New Repository",
+					});
+
+					if (result.canceled || result.filePaths.length === 0) {
+						return { canceled: true as const, success: false as const };
+					}
+
+					const parentDir = result.filePaths[0];
+					const repoPath = join(parentDir, input.name);
+
+					if (existsSync(repoPath)) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: `A folder named "${input.name}" already exists at this location.`,
+						};
+					}
+
+					await mkdir(repoPath, { recursive: true });
+
+					const defaultBranch = await initGitRepo(repoPath);
+					const project = upsertProject(repoPath, defaultBranch);
+					await ensureMainWorkspace(project);
+
+					track("project_opened", {
+						project_id: project.id,
+						method: "create_empty",
+					});
+
+					return {
+						canceled: false as const,
+						success: true as const,
+						project,
+					};
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					return {
+						canceled: false as const,
+						success: false as const,
+						error: `Failed to create repository: ${errorMessage}`,
+					};
+				}
+			}),
+
+		createFromTemplate: publicProcedure
+			.input(
+				z.object({
+					templateUrl: z
+						.string()
+						.min(1)
+						.refine(
+							(val) => {
+								try {
+									const parsed = new URL(val);
+									return ALLOWED_URL_PROTOCOLS.has(parsed.protocol);
+								} catch {
+									return SSH_GIT_URL_REGEX.test(val);
+								}
+							},
+							{ message: "Must be a valid Git URL (HTTPS or SSH)" },
+						),
+					name: z
+						.string()
+						.trim()
+						.optional()
+						.transform((v) => (v && v.length > 0 ? v : undefined)),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					const window = getWindow();
+					if (!window) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: "No window available",
+						};
+					}
+
+					const result = await dialog.showOpenDialog(window, {
+						properties: ["openDirectory", "createDirectory"],
+						title: "Select Location for New Project",
+					});
+
+					if (result.canceled || result.filePaths.length === 0) {
+						return { canceled: true as const, success: false as const };
+					}
+
+					const parentDir = result.filePaths[0];
+					const repoName = input.name || extractRepoName(input.templateUrl);
+
+					if (!repoName) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: "Could not determine project name from template URL",
+						};
+					}
+
+					const repoPath = join(parentDir, repoName);
+
+					if (existsSync(repoPath)) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: `A folder named "${repoName}" already exists at this location.`,
+						};
+					}
+
+					// Clone the template repo (shallow), then strip its history
+					const git = simpleGit();
+					await git.clone(input.templateUrl, repoPath, ["--depth", "1"]);
+					await rm(join(repoPath, ".git"), {
+						recursive: true,
+						force: true,
+					});
+
+					const defaultBranch = await initGitRepo(repoPath, {
+						stageAll: true,
+						commitMessage: "Initial commit from template",
+					});
+					const project = upsertProject(repoPath, defaultBranch);
+					await ensureMainWorkspace(project);
+
+					track("project_opened", {
+						project_id: project.id,
+						method: "create_from_template",
+					});
+
+					return {
+						canceled: false as const,
+						success: true as const,
+						project,
+					};
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					return {
+						canceled: false as const,
+						success: false as const,
+						error: `Failed to create project from template: ${errorMessage}`,
 					};
 				}
 			}),

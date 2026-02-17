@@ -1,0 +1,66 @@
+import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
+import { useState } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useProjectCreationHandler } from "../../hooks/useProjectCreationHandler";
+
+interface EmptyRepoTabProps {
+	onClose: () => void;
+	onError: (error: string) => void;
+}
+
+export function EmptyRepoTab({ onClose, onError }: EmptyRepoTabProps) {
+	const [name, setName] = useState("");
+	const createEmptyRepo = electronTrpc.projects.createEmptyRepo.useMutation();
+	const { handleResult, handleError, isCreatingWorkspace } =
+		useProjectCreationHandler(onClose, onError);
+
+	const isLoading = createEmptyRepo.isPending || isCreatingWorkspace;
+
+	const handleCreate = () => {
+		const trimmed = name.trim();
+		if (!trimmed) {
+			onError("Please enter a repository name");
+			return;
+		}
+
+		createEmptyRepo.mutate(
+			{ name: trimmed },
+			{
+				onSuccess: (result) => handleResult(result, () => setName("")),
+				onError: handleError,
+			},
+		);
+	};
+
+	return (
+		<div className="flex flex-col gap-4 px-4 pb-4">
+			<div>
+				<label
+					htmlFor="repo-name"
+					className="block text-sm font-medium text-foreground mb-2"
+				>
+					Repository Name
+				</label>
+				<Input
+					id="repo-name"
+					value={name}
+					onChange={(e) => setName(e.target.value)}
+					placeholder="my-project"
+					disabled={isLoading}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && !isLoading) {
+							handleCreate();
+						}
+					}}
+					autoFocus
+				/>
+			</div>
+			<div className="flex justify-end gap-2">
+				<Button onClick={handleCreate} disabled={isLoading} size="sm">
+					{isLoading ? "Creating..." : "Create Repository"}
+				</Button>
+			</div>
+		</div>
+	);
+}

@@ -9,8 +9,8 @@ import {
 	useOpenNew,
 } from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
-import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
+import { NewProjectDialog } from "./NewProjectDialog";
 
 export function StartView() {
 	const navigate = useNavigate();
@@ -25,7 +25,7 @@ export function StartView() {
 	const [pendingNavigateProjectId, setPendingNavigateProjectId] = useState<
 		string | null
 	>(null);
-	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+	const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
 
 	const isLoading = openNew.isPending || openFromPath.isPending;
@@ -190,7 +190,7 @@ export function StartView() {
 		[openFromPath, isLoading, navigate],
 	);
 
-	const handleCloneError = (errorMessage: string) => {
+	const handleNewProjectError = (errorMessage: string) => {
 		setError(errorMessage);
 	};
 
@@ -256,16 +256,16 @@ export function StartView() {
 							)}
 						>
 							<span className="text-sm text-muted-foreground">
-								Don't have a local repo?
+								Or start a new project
 							</span>
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => setIsCloneDialogOpen(true)}
+								onClick={() => setIsNewProjectDialogOpen(true)}
 								disabled={isLoading}
 								className="text-sm"
 							>
-								Clone Repository
+								New Project
 							</Button>
 						</div>
 					</div>
@@ -307,10 +307,10 @@ export function StartView() {
 				}}
 			/>
 
-			<CloneRepoDialog
-				isOpen={isCloneDialogOpen}
-				onClose={() => setIsCloneDialogOpen(false)}
-				onError={handleCloneError}
+			<NewProjectDialog
+				isOpen={isNewProjectDialogOpen}
+				onClose={() => setIsNewProjectDialogOpen(false)}
+				onError={handleNewProjectError}
 			/>
 		</div>
 	);

@@ -14,7 +14,7 @@ import {
 	useOpenNew,
 } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
-import { CloneRepoDialog } from "../StartView/CloneRepoDialog";
+import { NewProjectDialog } from "../StartView/NewProjectDialog";
 import { STROKE_WIDTH } from "./constants";
 
 interface WorkspaceSidebarFooterProps {
@@ -26,7 +26,7 @@ export function WorkspaceSidebarFooter({
 }: WorkspaceSidebarFooterProps) {
 	const openNew = useOpenNew();
 	const createBranchWorkspace = useCreateBranchWorkspace();
-	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+	const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
 
 	const handleOpenProject = async () => {
 		try {
@@ -70,8 +70,8 @@ export function WorkspaceSidebarFooter({
 		}
 	};
 
-	const handleCloneError = (error: string) => {
-		toast.error("Failed to clone repository", {
+	const handleNewProjectError = (error: string) => {
+		toast.error("Failed to create project", {
 			description: error,
 		});
 	};
@@ -110,19 +110,19 @@ export function WorkspaceSidebarFooter({
 								Open project
 							</DropdownMenuItem>
 							<DropdownMenuItem
-								onClick={() => setIsCloneDialogOpen(true)}
+								onClick={() => setIsNewProjectDialogOpen(true)}
 								disabled={isLoading}
 							>
 								<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
-								Clone repo
+								New project
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
-				<CloneRepoDialog
-					isOpen={isCloneDialogOpen}
-					onClose={() => setIsCloneDialogOpen(false)}
-					onError={handleCloneError}
+				<NewProjectDialog
+					isOpen={isNewProjectDialogOpen}
+					onClose={() => setIsNewProjectDialogOpen(false)}
+					onError={handleNewProjectError}
 				/>
 			</>
 		);
@@ -149,19 +149,19 @@ export function WorkspaceSidebarFooter({
 							Open project
 						</DropdownMenuItem>
 						<DropdownMenuItem
-							onClick={() => setIsCloneDialogOpen(true)}
+							onClick={() => setIsNewProjectDialogOpen(true)}
 							disabled={isLoading}
 						>
 							<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
-							Clone repo
+							New project
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
-			<CloneRepoDialog
-				isOpen={isCloneDialogOpen}
-				onClose={() => setIsCloneDialogOpen(false)}
-				onError={handleCloneError}
+			<NewProjectDialog
+				isOpen={isNewProjectDialogOpen}
+				onClose={() => setIsNewProjectDialogOpen(false)}
+				onError={handleNewProjectError}
 			/>
 		</>
 	);
