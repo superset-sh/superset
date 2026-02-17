@@ -134,6 +134,13 @@
       "when": 1771034439575,
       "tag": "0018_sandbox_and_slack_users",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1771218285573,
+      "tag": "0019_device_presence_timestamptz",
+      "breakpoints": true
     }
   ]
 }

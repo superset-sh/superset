@@ -2,6 +2,8 @@ import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { ChangeCategory } from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
+	BrowserPaneState,
+	DevToolsPaneState,
 	DiffLayout,
 	FileViewerMode,
 	FileViewerState,
@@ -227,6 +229,85 @@ export const createChatPane = (tabId: string): Pane => {
 			sessionId: generateId("chat-session"),
 		},
 	};
+};
+
+/**
+ * Options for creating a browser pane
+ */
+export interface CreateBrowserPaneOptions {
+	url?: string;
+}
+
+const DEFAULT_BROWSER_URL = "about:blank";
+
+/**
+ * Creates a new browser (webview) pane
+ */
+export const createBrowserPane = (
+	tabId: string,
+	options?: CreateBrowserPaneOptions,
+): Pane => {
+	const id = generateId("pane");
+	const url = options?.url ?? DEFAULT_BROWSER_URL;
+
+	const browser: BrowserPaneState = {
+		currentUrl: url,
+		history: [{ url, title: "", timestamp: Date.now() }],
+		historyIndex: 0,
+		isLoading: false,
+	};
+
+	return {
+		id,
+		tabId,
+		type: "webview",
+		name: "Browser",
+		browser,
+	};
+};
+
+/**
+ * Creates a new DevTools pane targeting a browser pane
+ */
+export const createDevToolsPane = (
+	tabId: string,
+	targetPaneId: string,
+): Pane => {
+	const id = generateId("pane");
+	const devtools: DevToolsPaneState = { targetPaneId };
+	return {
+		id,
+		tabId,
+		type: "devtools",
+		name: "DevTools",
+		devtools,
+	};
+};
+
+/**
+ * Creates a new tab with a browser pane atomically
+ */
+export const createBrowserTabWithPane = (
+	workspaceId: string,
+	existingTabs: Tab[] = [],
+	url?: string,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createBrowserPane(tabId, url ? { url } : undefined);
+
+	const workspaceTabs = existingTabs.filter(
+		(t) => t.workspaceId === workspaceId,
+	);
+
+	const tab: Tab = {
+		id: tabId,
+		name: `Browser ${workspaceTabs.filter((t) => t.name.startsWith("Browser")).length + 1}`,
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
+
+	return { tab, pane };
 };
 
 /**

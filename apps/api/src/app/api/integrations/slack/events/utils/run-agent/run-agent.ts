@@ -246,6 +246,22 @@ function parseTextContent(content: any): Record<string, unknown> | null {
 	}
 }
 
+/**
+ * Strip server-side web search content blocks (search results + tool invocations)
+ * from assistant messages to prevent context bloat in subsequent API calls.
+ * The text blocks already contain the synthesized answer with citations,
+ * so the raw search results aren't needed for tool execution.
+ */
+function stripServerToolBlocks(
+	content: Anthropic.ContentBlock[],
+): Anthropic.ContentBlockParam[] {
+	return content.filter(
+		(block) =>
+			block.type !== "web_search_tool_result" &&
+			block.type !== "server_tool_use",
+	) as unknown as Anthropic.ContentBlockParam[];
+}
+
 const TOOL_PROGRESS_STATUS: Record<string, string> = {
 	create_task: "Creating task...",
 	update_task: "Updating task...",
@@ -452,7 +468,7 @@ export async function runSlackAgent(
 			{
 				type: "web_search_20250305" as const,
 				name: "web_search" as const,
-				max_uses: 1,
+				max_uses: 5,
 			},
 		];
 
@@ -595,7 +611,10 @@ ${agentContext}`;
 				}
 			}
 
-			messages.push({ role: "assistant", content: response.content });
+			messages.push({
+				role: "assistant",
+				content: stripServerToolBlocks(response.content),
+			});
 			messages.push({ role: "user", content: toolResults });
 
 			response = await anthropic.messages.create({

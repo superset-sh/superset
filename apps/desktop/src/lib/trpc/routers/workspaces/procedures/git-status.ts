@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -179,6 +180,7 @@ export const createGitStatusProcedures = () => {
 					return {
 						...wt,
 						hasActiveWorkspace: workspace !== undefined,
+						existsOnDisk: existsSync(wt.path),
 						workspace: workspace ?? null,
 					};
 				});

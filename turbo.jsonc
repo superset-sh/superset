@@ -25,8 +25,7 @@
 		"VERCEL",
 		"VERCEL_ENV",
 		"VERCEL_URL",
-		"npm_lifecycle_event",
-		"ELECTRIC_PROXY_PORT"
+		"npm_lifecycle_event"
 	],
 	"tasks": {
 		"build": {

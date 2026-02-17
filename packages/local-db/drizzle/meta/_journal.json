@@ -183,6 +183,13 @@
       "when": 1771046337924,
       "tag": "0025_add_neon_project_id",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1771214717763,
+      "tag": "0026_browser_history",
+      "breakpoints": true
     }
   ]
 }

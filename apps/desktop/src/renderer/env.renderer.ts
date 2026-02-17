@@ -17,7 +17,9 @@ const envSchema = z.object({
 		.default("development"),
 	NEXT_PUBLIC_API_URL: z.url().default("https://api.superset.sh"),
 	NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
-	NEXT_PUBLIC_ELECTRIC_URL: z.url().default("https://electric.superset.sh"),
+	NEXT_PUBLIC_ELECTRIC_URL: z
+		.url()
+		.default("https://api.superset.sh/api/electric"),
 	NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 	NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
 	SENTRY_DSN_DESKTOP: z.string().optional(),

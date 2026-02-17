@@ -14,7 +14,9 @@ import type {
 import {
 	buildMultiPaneLayout,
 	type CreatePaneOptions,
+	createBrowserTabWithPane,
 	createChatTabWithPane,
+	createDevToolsPane,
 	createFileViewerPane,
 	createPane,
 	createTabWithPane,
@@ -755,8 +757,19 @@ export const useTabsStore = create<TabsStore>()(
 					const tab = state.tabs.find((t) => t.id === pane.tabId);
 					if (!tab) return;
 
-					// If this is the last pane, remove the entire tab
-					if (isLastPaneInTab(state.panes, tab.id)) {
+					// Collect this pane + any devtools panes targeting it
+					const paneIdsToRemove = [paneId];
+					for (const [id, p] of Object.entries(state.panes)) {
+						if (p.type === "devtools" && p.devtools?.targetPaneId === paneId) {
+							paneIdsToRemove.push(id);
+						}
+					}
+
+					// If removing all these panes leaves the tab empty, remove the tab
+					const remainingPanes = Object.entries(state.panes).filter(
+						([id, p]) => p.tabId === tab.id && !paneIdsToRemove.includes(id),
+					);
+					if (remainingPanes.length === 0) {
 						get().removeTab(tab.id);
 						return;
 					}
@@ -764,23 +777,31 @@ export const useTabsStore = create<TabsStore>()(
 					// Must get adjacent pane BEFORE removing from layout
 					const adjacentPaneId = getAdjacentPaneId(tab.layout, paneId);
 
-					// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
-					if (pane.type === "terminal") {
-						killTerminalForPane(paneId);
+					// Kill terminal sessions for terminal panes
+					for (const id of paneIdsToRemove) {
+						if (state.panes[id]?.type === "terminal") {
+							killTerminalForPane(id);
+						}
 					}
 
-					const newLayout = removePaneFromLayout(tab.layout, paneId);
-					if (!newLayout) {
-						// This shouldn't happen since we checked isLastPaneInTab
-						get().removeTab(tab.id);
-						return;
+					// Remove all panes from layout
+					let newLayout = tab.layout;
+					for (const id of paneIdsToRemove) {
+						const result = removePaneFromLayout(newLayout, id);
+						if (!result) {
+							get().removeTab(tab.id);
+							return;
+						}
+						newLayout = result;
 					}
 
 					const newPanes = { ...state.panes };
-					delete newPanes[paneId];
+					for (const id of paneIdsToRemove) {
+						delete newPanes[id];
+					}
 
 					let newFocusedPaneIds = state.focusedPaneIds;
-					if (state.focusedPaneIds[tab.id] === paneId) {
+					if (paneIdsToRemove.includes(state.focusedPaneIds[tab.id])) {
 						newFocusedPaneIds = {
 							...state.focusedPaneIds,
 							[tab.id]: adjacentPaneId ?? getFirstPaneId(newLayout),
@@ -1111,6 +1132,253 @@ export const useTabsStore = create<TabsStore>()(
 					return moveResult.newTabId;
 				},
 
+				// Browser operations
+				addBrowserTab: (workspaceId: string, url?: string) => {
+					const state = get();
+
+					const { tab, pane } = createBrowserTabWithPane(
+						workspaceId,
+						state.tabs,
+						url,
+					);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				updateBrowserUrl: (
+					paneId: string,
+					url: string,
+					title: string,
+					faviconUrl?: string,
+				) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.browser) return;
+
+					const { history: prevHistory, historyIndex } = pane.browser;
+					const currentEntry = prevHistory[historyIndex];
+
+					// If the URL matches the current entry, just update the title/favicon
+					if (currentEntry && currentEntry.url === url) {
+						const titleChanged = currentEntry.title !== title;
+						const faviconChanged =
+							faviconUrl !== undefined &&
+							currentEntry.faviconUrl !== faviconUrl;
+						if (!titleChanged && !faviconChanged) return;
+						const history = [...prevHistory];
+						history[historyIndex] = {
+							...currentEntry,
+							title,
+							...(faviconUrl !== undefined ? { faviconUrl } : {}),
+						};
+						set({
+							panes: {
+								...state.panes,
+								[paneId]: {
+									...pane,
+									name: title || "Browser",
+									browser: { ...pane.browser, history },
+								},
+							},
+						});
+						return;
+					}
+
+					// Truncate forward entries when navigating from a non-end position
+					const history = prevHistory.slice(0, historyIndex + 1);
+					history.push({
+						url,
+						title,
+						timestamp: Date.now(),
+						...(faviconUrl ? { faviconUrl } : {}),
+					});
+					if (history.length > 100) {
+						history.splice(0, history.length - 100);
+					}
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								name: title || "Browser",
+								browser: {
+									...pane.browser,
+									currentUrl: url,
+									history,
+									historyIndex: history.length - 1,
+								},
+							},
+						},
+					});
+				},
+
+				navigateBrowserHistory: (
+					paneId: string,
+					direction: "back" | "forward",
+				): string | null => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.browser) return null;
+
+					const { history, historyIndex } = pane.browser;
+					const newIndex =
+						direction === "back" ? historyIndex - 1 : historyIndex + 1;
+
+					if (newIndex < 0 || newIndex >= history.length) return null;
+
+					const entry = history[newIndex];
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								name: entry.title || "Browser",
+								browser: {
+									...pane.browser,
+									currentUrl: entry.url,
+									historyIndex: newIndex,
+								},
+							},
+						},
+					});
+
+					return entry.url;
+				},
+
+				updateBrowserLoading: (paneId: string, isLoading: boolean) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.browser || pane.browser.isLoading === isLoading) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								browser: {
+									...pane.browser,
+									isLoading,
+								},
+							},
+						},
+					});
+				},
+
+				setBrowserError: (paneId, error) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.browser) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								browser: {
+									...pane.browser,
+									error,
+								},
+							},
+						},
+					});
+				},
+
+				setBrowserViewport: (paneId, viewport) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.browser) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								browser: {
+									...pane.browser,
+									viewport,
+								},
+							},
+						},
+					});
+				},
+
+				openDevToolsPane: (tabId, browserPaneId, path) => {
+					const state = get();
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab) return null;
+
+					const sourcePane = state.panes[browserPaneId];
+					if (!sourcePane || sourcePane.tabId !== tabId) return null;
+
+					const newPane = createDevToolsPane(tabId, browserPaneId);
+
+					let newLayout: MosaicNode<string>;
+					if (path && path.length > 0) {
+						newLayout = updateTree(tab.layout, [
+							{
+								path,
+								spec: {
+									$set: {
+										direction: "row",
+										first: browserPaneId,
+										second: newPane.id,
+										splitPercentage: 50,
+									},
+								},
+							},
+						]);
+					} else {
+						newLayout = {
+							direction: "row",
+							first: tab.layout,
+							second: newPane.id,
+							splitPercentage: 50,
+						};
+					}
+
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, layout: newLayout } : t,
+						),
+						panes: newPanes,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tabId]: browserPaneId,
+						},
+					});
+
+					return newPane.id;
+				},
+
 				// Chat operations
 				switchChatSession: (paneId, sessionId) => {
 					const state = get();
@@ -1159,7 +1427,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 3,
+				version: 4,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -1186,6 +1454,7 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
+					// v4: browser field is optional, no migration needed
 					return state;
 				},
 				merge: (persistedState, currentState) => {

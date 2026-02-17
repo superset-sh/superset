@@ -341,7 +341,7 @@ export function NewWorkspaceModal() {
 											: "text-muted-foreground hover:text-foreground"
 									}`}
 								>
-									Existing
+									Import
 								</button>
 								<button
 									type="button"

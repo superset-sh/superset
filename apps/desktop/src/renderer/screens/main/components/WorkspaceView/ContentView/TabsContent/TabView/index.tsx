@@ -19,7 +19,9 @@ import {
 	extractPaneIdsFromLayout,
 } from "renderer/stores/tabs/utils";
 import { useTheme } from "renderer/stores/theme";
+import { BrowserPane } from "./BrowserPane";
 import { ChatPane } from "./ChatPane";
+import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
@@ -62,11 +64,22 @@ export function TabView({ tab }: TabViewProps) {
 
 	// Memoize the filtered panes to avoid creating new objects on every render
 	const tabPanes = useMemo(() => {
-		const result: Record<string, { tabId: string; type: string }> = {};
+		const result: Record<
+			string,
+			{
+				tabId: string;
+				type: string;
+				devtools?: { targetPaneId: string };
+			}
+		> = {};
 		for (const paneId of layoutPaneIds) {
 			const pane = allPanes[paneId];
 			if (pane?.tabId === tab.id) {
-				result[paneId] = { tabId: pane.tabId, type: pane.type };
+				result[paneId] = {
+					tabId: pane.tabId,
+					type: pane.type,
+					devtools: pane.devtools,
+				};
 			}
 		}
 		return result;
@@ -172,6 +185,37 @@ export function TabView({ tab }: TabViewProps) {
 						isActive={isActive}
 						tabId={tab.id}
 						workspaceId={tab.workspaceId}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route browser panes to BrowserPane component
+			if (paneInfo.type === "webview") {
+				return (
+					<BrowserPane
+						paneId={paneId}
+						path={path}
+						isActive={isActive}
+						tabId={tab.id}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route devtools panes
+			if (paneInfo.type === "devtools" && paneInfo.devtools) {
+				return (
+					<DevToolsPane
+						paneId={paneId}
+						path={path}
+						isActive={isActive}
+						tabId={tab.id}
+						targetPaneId={paneInfo.devtools.targetPaneId}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}

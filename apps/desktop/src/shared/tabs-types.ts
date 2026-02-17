@@ -8,7 +8,12 @@ import type { ChangeCategory } from "./changes-types";
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType = "terminal" | "webview" | "file-viewer" | "chat";
+export type PaneType =
+	| "terminal"
+	| "webview"
+	| "file-viewer"
+	| "chat"
+	| "devtools";
 
 /**
  * Pane status for agent lifecycle indicators
@@ -133,6 +138,8 @@ export interface Pane {
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
 	chat?: ChatPaneState; // For chat panes
+	browser?: BrowserPaneState; // For browser (webview) panes
+	devtools?: DevToolsPaneState; // For devtools panes
 }
 
 /**
@@ -141,6 +148,51 @@ export interface Pane {
 export interface ChatPaneState {
 	/** Session ID for the chat session */
 	sessionId: string;
+}
+
+/**
+ * Single entry in the browser pane's navigation history
+ */
+export interface BrowserHistoryEntry {
+	url: string;
+	title: string;
+	timestamp: number;
+	faviconUrl?: string;
+}
+
+/**
+ * Named viewport size preset for responsive testing
+ */
+export interface ViewportPreset {
+	name: string;
+	width: number;
+	height: number;
+}
+
+/**
+ * Browser pane-specific properties
+ */
+export interface BrowserLoadError {
+	code: number;
+	description: string;
+	url: string;
+}
+
+export interface BrowserPaneState {
+	currentUrl: string;
+	history: BrowserHistoryEntry[];
+	historyIndex: number;
+	isLoading: boolean;
+	error?: BrowserLoadError | null;
+	viewport?: ViewportPreset | null;
+}
+
+/**
+ * DevTools pane-specific properties
+ */
+export interface DevToolsPaneState {
+	/** The pane ID of the browser pane being inspected */
+	targetPaneId: string;
 }
 
 /**

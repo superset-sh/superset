@@ -4,6 +4,7 @@ import type {
 	SelectUser,
 } from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
+import { Checkbox } from "@superset/ui/checkbox";
 import { eq, isNull } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
@@ -14,13 +15,15 @@ import {
 	getExpandedRowModel,
 	getFilteredRowModel,
 	getGroupedRowModel,
+	type RowSelectionState,
 	type Table,
 	useReactTable,
 } from "@tanstack/react-table";
 import { format } from "date-fns";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight } from "react-icons/hi2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { create } from "zustand";
 import {
 	StatusIcon,
 	type StatusType,
@@ -39,6 +42,22 @@ export type TaskWithStatus = SelectTask & {
 
 const columnHelper = createColumnHelper<TaskWithStatus>();
 
+const useRowSelectionStore = create<{
+	rowSelection: RowSelectionState;
+	setRowSelection: (
+		updater:
+			| RowSelectionState
+			| ((prev: RowSelectionState) => RowSelectionState),
+	) => void;
+}>((set) => ({
+	rowSelection: {},
+	setRowSelection: (updater) =>
+		set((state) => ({
+			rowSelection:
+				typeof updater === "function" ? updater(state.rowSelection) : updater,
+		})),
+}));
+
 interface UseTasksTableParams {
 	filterTab: TabValue;
 	searchQuery: string;
@@ -53,11 +72,19 @@ export function useTasksTable({
 	table: Table<TaskWithStatus>;
 	isLoading: boolean;
 	slugColumnWidth: string;
+	rowSelection: RowSelectionState;
+	setRowSelection: (
+		updater:
+			| RowSelectionState
+			| ((prev: RowSelectionState) => RowSelectionState),
+	) => void;
 } {
 	const collections = useCollections();
 	const [grouping, setGrouping] = useState<string[]>(["status"]);
 	const [expanded, setExpanded] = useState<ExpandedState>(true);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+	const rowSelection = useRowSelectionStore((s) => s.rowSelection);
+	const setRowSelection = useRowSelectionStore((s) => s.setRowSelection);
 
 	const { data: allData, isLoading } = useLiveQuery(
 		(q) =>
@@ -93,6 +120,7 @@ export function useTasksTable({
 		return results.map((r) => r.item);
 	}, [sortedData, searchQuery, search]);
 
+	const isFirstMount = useRef(true);
 	useEffect(() => {
 		const newColumnFilters: ColumnFiltersState = [];
 		if (filterTab !== "all") {
@@ -108,7 +136,12 @@ export function useTasksTable({
 			});
 		}
 		setColumnFilters(newColumnFilters);
-	}, [filterTab, assigneeFilter]);
+		if (isFirstMount.current) {
+			isFirstMount.current = false;
+		} else {
+			setRowSelection({});
+		}
+	}, [filterTab, assigneeFilter, setRowSelection]);
 
 	const slugColumnWidth = useMemo(() => {
 		if (!data || data.length === 0) return "5rem";
@@ -187,8 +220,19 @@ export function useTasksTable({
 			columnHelper.display({
 				id: "checkbox",
 				header: "",
-				cell: () => {
-					return <div className="w-4" />;
+				cell: ({ row }) => {
+					if (row.getIsGrouped()) return null;
+					return (
+						<Checkbox
+							checked={row.getIsSelected()}
+							onCheckedChange={(checked) =>
+								row.toggleSelected(Boolean(checked))
+							}
+							onClick={(e) => e.stopPropagation()}
+							aria-label="Select task"
+							className="cursor-pointer"
+						/>
+					);
 				},
 			}),
 
@@ -283,7 +327,11 @@ export function useTasksTable({
 			grouping,
 			expanded,
 			columnFilters,
+			rowSelection,
 		},
+		getRowId: (row) => row.id,
+		enableRowSelection: (row) => !row.getIsGrouped(),
+		onRowSelectionChange: setRowSelection,
 		onGroupingChange: setGrouping,
 		onExpandedChange: setExpanded,
 		onColumnFiltersChange: setColumnFilters,
@@ -294,5 +342,5 @@ export function useTasksTable({
 		autoResetExpanded: false,
 	});
 
-	return { table, isLoading, slugColumnWidth };
+	return { table, isLoading, slugColumnWidth, rowSelection, setRowSelection };
 }

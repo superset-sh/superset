@@ -19,6 +19,7 @@
 		"dist",
 		"dist-electron",
 		"release",
-		"src/**/templates/**"
+		"src/**/templates/**",
+		"src/resources/browser-extension"
 	]
 }

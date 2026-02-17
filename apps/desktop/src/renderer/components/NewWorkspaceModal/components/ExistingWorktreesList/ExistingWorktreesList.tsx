@@ -1,9 +1,22 @@
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
+import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCreateFromPr,
 	useCreateWorkspace,
+	useImportAllWorktrees,
 	useOpenExternalWorktree,
 	useOpenWorktree,
 } from "renderer/react-query/workspaces";
@@ -30,6 +43,7 @@ export function ExistingWorktreesList({
 	const openExternalWorktree = useOpenExternalWorktree();
 	const createWorkspace = useCreateWorkspace();
 	const createFromPr = useCreateFromPr();
+	const importAllWorktrees = useImportAllWorktrees();
 
 	const [branchOpen, setBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
@@ -38,7 +52,7 @@ export function ExistingWorktreesList({
 	const [prUrl, setPrUrl] = useState("");
 
 	const closedWorktrees = worktrees
-		.filter((wt) => !wt.hasActiveWorkspace)
+		.filter((wt) => !wt.hasActiveWorkspace && wt.existsOnDisk)
 		.sort((a, b) => b.createdAt - a.createdAt);
 	const openWorktrees = worktrees
 		.filter((wt) => wt.hasActiveWorkspace)
@@ -153,13 +167,30 @@ export function ExistingWorktreesList({
 		);
 	};
 
+	const handleImportAll = async () => {
+		try {
+			const result = await importAllWorktrees.mutateAsync({ projectId });
+			onOpenSuccess();
+			toast.success(
+				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
+			);
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to import worktrees",
+			);
+		}
+	};
+
 	const isLoading =
 		isWorktreesLoading || isExternalWorktreesLoading || isBranchesLoading;
 	const isPending =
 		openWorktree.isPending ||
 		openExternalWorktree.isPending ||
 		createWorkspace.isPending ||
-		createFromPr.isPending;
+		createFromPr.isPending ||
+		importAllWorktrees.isPending;
+
+	const importableCount = closedWorktrees.length + externalWorktrees.length;
 
 	if (isLoading) {
 		return (
@@ -210,6 +241,40 @@ export function ExistingWorktreesList({
 					onOpenExternalWorktree={handleOpenExternalWorktree}
 					disabled={isPending}
 				/>
+			)}
+
+			{importableCount > 0 && (
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="w-full h-7 text-xs text-muted-foreground"
+							disabled={isPending}
+						>
+							{importAllWorktrees.isPending
+								? "Importing..."
+								: `Import all external worktrees (${importableCount})`}
+						</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Import all worktrees</AlertDialogTitle>
+							<AlertDialogDescription>
+								This will import {importableCount} external worktree
+								{importableCount === 1 ? "" : "s"} into Superset as workspaces.
+								Each worktree on disk will be tracked and appear in your
+								sidebar. No files will be modified.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction onClick={handleImportAll}>
+								Import all
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 			)}
 
 			{!hasWorktrees && !hasBranches && (

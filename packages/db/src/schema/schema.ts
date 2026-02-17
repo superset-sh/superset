@@ -241,8 +241,12 @@ export const devicePresence = pgTable(
 		deviceId: text("device_id").notNull(),
 		deviceName: text("device_name").notNull(),
 		deviceType: deviceType("device_type").notNull(),
-		lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
+		lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
 	},
 	(table) => [
 		index("device_presence_user_org_idx").on(

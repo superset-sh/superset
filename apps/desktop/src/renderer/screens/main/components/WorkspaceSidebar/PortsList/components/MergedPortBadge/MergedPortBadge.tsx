@@ -15,6 +15,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	const navigate = useNavigate();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const { killPort } = useKillPort();
 
 	const displayContent = port.label ? (
@@ -42,7 +43,8 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	};
 
 	const handleOpenInBrowser = () => {
-		window.open(`http://localhost:${port.port}`, "_blank");
+		navigateToWorkspace(port.workspaceId, navigate);
+		addBrowserTab(port.workspaceId, `http://localhost:${port.port}`);
 	};
 
 	const handleClose = () => {

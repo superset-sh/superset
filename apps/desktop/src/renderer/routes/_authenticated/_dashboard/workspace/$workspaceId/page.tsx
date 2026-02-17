@@ -117,6 +117,7 @@ function WorkspacePage() {
 		openPreset,
 	} = useTabsWithPresets();
 	const addChatTab = useTabsStore((s) => s.addChatTab);
+	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -168,6 +169,10 @@ function WorkspacePage() {
 	useAppHotkey("NEW_CHAT", () => addChatTab(workspaceId), undefined, [
 		workspaceId,
 		addChatTab,
+	]);
+	useAppHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId), undefined, [
+		workspaceId,
+		addBrowserTab,
 	]);
 	usePresetHotkeys(openTabWithPreset);
 

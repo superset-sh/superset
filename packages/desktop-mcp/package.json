@@ -16,7 +16,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "^1.25.3",
+		"@modelcontextprotocol/sdk": "^1.26.0",
 		"puppeteer-core": "^24.37.3",
 		"zod": "^4.3.5"
 	},

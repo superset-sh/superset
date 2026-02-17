@@ -37,7 +37,7 @@ export const showTeardownLogs = (
 	showLogsFn(logs, options);
 };
 
-export function showTeardownFailedToast({
+function showTeardownFailedToast({
 	toastId,
 	output,
 	onForceDelete,
@@ -60,7 +60,7 @@ export function showTeardownFailedToast({
 	});
 }
 
-export async function forceDeleteWithToast({
+async function forceDeleteWithToast({
 	name,
 	deleteFn,
 }: {
@@ -75,6 +75,56 @@ export async function forceDeleteWithToast({
 			toast.success(`Deleted "${name}"`, { id: toastId });
 		} else {
 			toast.error(result.error ?? "Failed to delete", { id: toastId });
+		}
+	} catch (error) {
+		toast.error(error instanceof Error ? error.message : "Failed to delete", {
+			id: toastId,
+		});
+	}
+}
+
+export async function deleteWithToast({
+	name,
+	deleteFn,
+	forceDeleteFn,
+}: {
+	name: string;
+	deleteFn: () => Promise<{
+		success: boolean;
+		error?: string;
+		output?: string;
+		terminalWarning?: string;
+	}>;
+	forceDeleteFn: () => Promise<{ success: boolean; error?: string }>;
+}) {
+	const toastId = toast.loading(`Deleting "${name}"...`);
+
+	try {
+		const result = await deleteFn();
+
+		if (!result.success) {
+			const { output } = result;
+			if (output) {
+				showTeardownFailedToast({
+					toastId,
+					output,
+					onForceDelete: () =>
+						forceDeleteWithToast({ name, deleteFn: forceDeleteFn }),
+				});
+			} else {
+				toast.error(result.error ?? "Failed to delete", { id: toastId });
+			}
+			return;
+		}
+
+		toast.success(`Deleted "${name}"`, { id: toastId });
+
+		if (result.terminalWarning) {
+			setTimeout(() => {
+				toast.warning("Terminal warning", {
+					description: result.terminalWarning,
+				});
+			}, 100);
 		}
 	} catch (error) {
 		toast.error(error instanceof Error ? error.message : "Failed to delete", {
