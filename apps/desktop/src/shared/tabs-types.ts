@@ -185,6 +185,7 @@ export interface BrowserPaneState {
 	isLoading: boolean;
 	error?: BrowserLoadError | null;
 	viewport?: ViewportPreset | null;
+	annotation?: { isActive: boolean };
 }
 
 /**

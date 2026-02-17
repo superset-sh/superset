@@ -20,6 +20,7 @@
 		"dist-electron",
 		"release",
 		"src/**/templates/**",
-		"src/resources/browser-extension"
+		"src/resources/browser-extension",
+		"src/main/lib/browser/annotation/annotation-bundle.js"
 	]
 }

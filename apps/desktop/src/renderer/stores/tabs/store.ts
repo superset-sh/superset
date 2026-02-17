@@ -1379,6 +1379,47 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 
+				// Annotation operations
+				toggleAnnotation: (paneId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.browser) return;
+
+					const isActive = !pane.browser.annotation?.isActive;
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								browser: {
+									...pane.browser,
+									annotation: { isActive },
+								},
+							},
+						},
+					});
+				},
+
+				setAnnotationActive: (paneId, isActive) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.browser) return;
+
+					if (pane.browser.annotation?.isActive === isActive) return;
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								browser: {
+									...pane.browser,
+									annotation: { isActive },
+								},
+							},
+						},
+					});
+				},
+
 				// Chat operations
 				switchChatSession: (paneId, sessionId) => {
 					const state = get();

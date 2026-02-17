@@ -1,14 +1,16 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
 import { useCallback, useRef } from "react";
-import { TbDeviceDesktop } from "react-icons/tb";
+import { TbDeviceDesktop, TbPencil } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { BrowserErrorOverlay } from "./components/BrowserErrorOverlay";
 import { BrowserToolbar } from "./components/BrowserToolbar";
 import { BrowserOverflowMenu } from "./components/BrowserToolbar/components/BrowserOverflowMenu";
+import { SendAnnotationsDialog } from "./components/SendAnnotationsDialog";
 import { DEFAULT_BROWSER_URL } from "./constants";
+import { useAnnotationMode } from "./hooks/useAnnotationMode";
 import { useBrowserNavigation } from "./hooks/useBrowserNavigation";
 
 interface BrowserPaneProps {
@@ -16,6 +18,7 @@ interface BrowserPaneProps {
 	path: MosaicBranch[];
 	isActive: boolean;
 	tabId: string;
+	workspaceId: string;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -31,6 +34,7 @@ export function BrowserPane({
 	path,
 	isActive,
 	tabId,
+	workspaceId,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,
@@ -61,6 +65,16 @@ export function BrowserPane({
 		paneId,
 		initialUrl: initialUrlRef.current,
 	});
+
+	const {
+		isActive: isAnnotationActive,
+		toggle: toggleAnnotation,
+		dialogOpen,
+		annotationData,
+		closeDialog,
+		agent,
+		setAgent,
+	} = useAnnotationMode({ paneId, workspaceId });
 
 	const webviewRefCallback = useCallback(
 		(node: HTMLElement | null) => {
@@ -104,6 +118,24 @@ export function BrowserPane({
 							closeHotkeyId="CLOSE_TERMINAL"
 							leadingActions={
 								<>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<button
+												type="button"
+												onClick={toggleAnnotation}
+												className={`rounded p-0.5 transition-colors ${
+													isAnnotationActive
+														? "text-primary"
+														: "text-muted-foreground/60 hover:text-muted-foreground"
+												}`}
+											>
+												<TbPencil className="size-3.5" />
+											</button>
+										</TooltipTrigger>
+										<TooltipContent side="bottom" showArrow={false}>
+											{isAnnotationActive ? "Stop annotating" : "Annotate page"}
+										</TooltipContent>
+									</Tooltip>
 									<Tooltip>
 										<TooltipTrigger asChild>
 											<button
@@ -156,6 +188,16 @@ export function BrowserPane({
 					</div>
 				)}
 			</div>
+			<SendAnnotationsDialog
+				open={dialogOpen}
+				onOpenChange={(open) => {
+					if (!open) closeDialog();
+				}}
+				annotationData={annotationData}
+				workspaceId={workspaceId}
+				agent={agent}
+				onAgentChange={setAgent}
+			/>
 		</BasePaneWindow>
 	);
 }

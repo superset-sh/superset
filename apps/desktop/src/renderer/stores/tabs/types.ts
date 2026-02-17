@@ -163,6 +163,12 @@ export interface TabsStore extends TabsState {
 		path?: MosaicBranch[],
 	) => string | null;
 
+	// Annotation operations
+	/** Toggle annotation mode on a browser pane */
+	toggleAnnotation: (paneId: string) => void;
+	/** Set annotation active state on a browser pane */
+	setAnnotationActive: (paneId: string, isActive: boolean) => void;
+
 	// Chat operations
 	/** Switch a chat pane to a different session */
 	switchChatSession: (paneId: string, sessionId: string) => void;

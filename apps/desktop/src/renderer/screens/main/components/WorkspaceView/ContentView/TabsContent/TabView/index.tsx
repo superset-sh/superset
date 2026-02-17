@@ -200,6 +200,7 @@ export function TabView({ tab }: TabViewProps) {
 						path={path}
 						isActive={isActive}
 						tabId={tab.id}
+						workspaceId={tab.workspaceId}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}

@@ -2,6 +2,7 @@ import type { BrowserWindow } from "electron";
 import { router } from "..";
 import { createAiChatRouter } from "./ai-chat";
 import { createAnalyticsRouter } from "./analytics";
+import { createAnnotationRouter } from "./annotation/annotation";
 import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
 import { createBrowserRouter } from "./browser/browser";
@@ -27,6 +28,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		aiChat: createAiChatRouter(),
 		analytics: createAnalyticsRouter(),
+		annotation: createAnnotationRouter(),
 		browser: createBrowserRouter(),
 		browserHistory: createBrowserHistoryRouter(),
 		auth: createAuthRouter(),
