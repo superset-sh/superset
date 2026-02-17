@@ -1,3 +1,14 @@
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useMemo, useState } from "react";
@@ -233,22 +244,37 @@ export function ExistingWorktreesList({
 			)}
 
 			{importableCount > 0 && (
-				<div className="space-y-1.5">
-					<p className="text-xs text-muted-foreground">
-						Import all worktrees into Superset as workspaces without opening
-						them.
-					</p>
-					<Button
-						variant="outline"
-						className="w-full h-8 text-sm"
-						onClick={handleImportAll}
-						disabled={isPending}
-					>
-						{importAllWorktrees.isPending
-							? "Importing..."
-							: `Import all (${importableCount})`}
-					</Button>
-				</div>
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="w-full h-7 text-xs text-muted-foreground"
+							disabled={isPending}
+						>
+							{importAllWorktrees.isPending
+								? "Importing..."
+								: `Import all external worktrees (${importableCount})`}
+						</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Import all worktrees</AlertDialogTitle>
+							<AlertDialogDescription>
+								This will import {importableCount} external worktree
+								{importableCount === 1 ? "" : "s"} into Superset as workspaces.
+								Each worktree on disk will be tracked and appear in your
+								sidebar. No files will be modified.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction onClick={handleImportAll}>
+								Import all
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
 			)}
 
 			{!hasWorktrees && !hasBranches && (
