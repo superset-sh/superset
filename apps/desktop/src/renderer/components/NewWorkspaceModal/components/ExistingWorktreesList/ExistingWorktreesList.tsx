@@ -52,7 +52,7 @@ export function ExistingWorktreesList({
 	const [prUrl, setPrUrl] = useState("");
 
 	const closedWorktrees = worktrees
-		.filter((wt) => !wt.hasActiveWorkspace)
+		.filter((wt) => !wt.hasActiveWorkspace && wt.existsOnDisk)
 		.sort((a, b) => b.createdAt - a.createdAt);
 	const openWorktrees = worktrees
 		.filter((wt) => wt.hasActiveWorkspace)
