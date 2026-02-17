@@ -4,6 +4,7 @@ import { localDb } from "main/lib/local-db";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getCurrentBranch } from "../workspaces/utils/git";
 import {
 	assertRegisteredWorktree,
 	getRegisteredWorktree,
@@ -29,13 +30,13 @@ export const createBranchesRouter = () => {
 					const git = simpleGit(input.worktreePath);
 
 					const branchSummary = await git.branch(["-a"]);
-					const currentBranch = (
-						await git.raw(["rev-parse", "--abbrev-ref", "HEAD"])
-					).trim();
+					const currentBranch = await getCurrentBranch(input.worktreePath);
 
-					const gitConfigBase = await git
-						.raw(["config", `branch.${currentBranch}.base`])
-						.catch(() => "");
+					const gitConfigBase = currentBranch
+						? await git
+								.raw(["config", `branch.${currentBranch}.base`])
+								.catch(() => "")
+						: "";
 
 					const localBranches: string[] = [];
 					const remote: string[] = [];
@@ -78,7 +79,6 @@ export const createBranchesRouter = () => {
 				const worktree = getRegisteredWorktree(input.worktreePath);
 				await gitSwitchBranch(input.worktreePath, input.branch);
 
-				// Update the branch in the worktree record
 				const gitStatus = worktree.gitStatus
 					? { ...worktree.gitStatus, branch: input.branch }
 					: null;
@@ -106,9 +106,10 @@ export const createBranchesRouter = () => {
 				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
-				const currentBranch = (
-					await git.raw(["rev-parse", "--abbrev-ref", "HEAD"])
-				).trim();
+				const currentBranch = await getCurrentBranch(input.worktreePath);
+				if (!currentBranch) {
+					throw new Error("Could not determine current branch");
+				}
 
 				if (input.baseBranch) {
 					await git.raw([

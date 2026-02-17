@@ -364,7 +364,6 @@ export const createCreateProcedures = () => {
 					});
 				}
 
-				// Idempotency check: only for explicit branch names (auto-generated are intentionally new)
 				if (input.branchName?.trim()) {
 					const existing = findWorktreeWorkspaceByBranch({
 						projectId: input.projectId,

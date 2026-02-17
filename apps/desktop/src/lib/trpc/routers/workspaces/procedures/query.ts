@@ -100,7 +100,6 @@ export const createQueryProcedures = () => {
 				.where(isNotNull(projects.tabOrder))
 				.all();
 
-			// Preload all worktrees once to avoid N+1 queries in the loop below
 			const allWorktrees = localDb.select().from(worktrees).all();
 			const worktreePathMap: WorktreePathMap = new Map(
 				allWorktrees.map((wt) => [wt.id, wt.path]),
@@ -164,7 +163,6 @@ export const createQueryProcedures = () => {
 			for (const workspace of allWorkspaces) {
 				const group = groupsMap.get(workspace.projectId);
 				if (group) {
-					// Resolve path from preloaded data instead of per-workspace DB queries
 					let worktreePath = "";
 					if (workspace.type === "worktree" && workspace.worktreeId) {
 						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";

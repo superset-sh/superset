@@ -59,7 +59,6 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
-		// Read base branch from git config (set during workspace creation)
 		const project = localDb
 			.select()
 			.from(projects)
@@ -142,7 +141,7 @@ export async function initializeWorkspaceWorktree({
 				workspace_id: workspaceId,
 				project_id: projectId,
 				branch,
-				base_branch: branch, // For existing branch, base = branch
+				base_branch: branch,
 				use_existing_branch: true,
 			});
 
@@ -229,11 +228,6 @@ export async function initializeWorkspaceWorktree({
 			return null;
 		};
 
-		/**
-		 * Resolves a local git ref to use as the start point, applying any
-		 * fallback branch if the original wasn't found. Returns the ref
-		 * string or null if no usable ref exists.
-		 */
 		const resolveLocalRef = async ({
 			reason,
 			checkOriginRefs,

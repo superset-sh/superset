@@ -92,7 +92,6 @@ async function getPRForBranch(
 /**
  * Looks up a PR using `gh pr view` (no args), which matches via the branch's
  * tracking ref. Essential for fork PRs that track refs/pull/XXX/head.
- * Returns the PR, null (no match), or undefined (branch name mismatch — caller should try commit-based).
  */
 async function getPRByBranchTracking(
 	worktreePath: string,
@@ -121,7 +120,6 @@ async function getPRByBranchTracking(
 			error instanceof Error &&
 			error.message.includes("no pull requests found")
 		) {
-			// Branch name didn't match any PR — signal caller to try commit-based
 			return undefined;
 		}
 		throw error;

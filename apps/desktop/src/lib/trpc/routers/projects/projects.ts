@@ -612,9 +612,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					throw new Error(`Failed to create initial commit: ${errorMessage}`);
 				}
 
-				// Get the current branch name (will be 'main' or 'master' depending on git version/config)
-				const branchSummary = await git.branch();
-				const defaultBranch = branchSummary.current || "main";
+				const defaultBranch = (await getCurrentBranch(input.path)) || "main";
 
 				const project = upsertProject(input.path, defaultBranch);
 
