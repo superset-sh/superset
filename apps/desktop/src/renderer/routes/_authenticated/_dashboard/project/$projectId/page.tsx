@@ -154,23 +154,19 @@ function ProjectPage() {
 			</AnimatePresence>
 
 			<div className="flex-1 flex overflow-y-auto">
-				{/* Main content */}
 				<div className="flex-1 flex items-center justify-center">
-					{/* biome-ignore lint/a11y/noStaticElementInteractions: Form container handles Enter key for submission */}
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: onKeyDown for Enter-to-submit */}
 					<div className="w-full max-w-md mx-6" onKeyDown={handleKeyDown}>
-						{/* Headline */}
 						<h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
 							Create your first workspace
 						</h1>
 
-						{/* Subtext */}
 						<p className="text-sm text-muted-foreground leading-relaxed mb-8">
 							Each workspace is an isolated copy of your codebase.
 							<br />
 							Work on multiple tasks without conflicts.
 						</p>
 
-						{/* Form */}
 						<div className="space-y-4">
 							<div className="space-y-2">
 								<Input
@@ -318,7 +314,6 @@ function ProjectPage() {
 								{createWorkspace.isPending ? "Creating..." : "Create workspace"}
 							</Button>
 						</div>
-
 					</div>
 				</div>
 			</div>
