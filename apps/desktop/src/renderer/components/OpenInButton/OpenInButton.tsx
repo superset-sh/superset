@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuCopy } from "react-icons/lu";
+import antigravityIcon from "renderer/assets/app-icons/antigravity.svg";
 import appcodeIcon from "renderer/assets/app-icons/appcode.svg";
 import clionIcon from "renderer/assets/app-icons/clion.svg";
 import cursorIcon from "renderer/assets/app-icons/cursor.svg";
@@ -52,6 +53,7 @@ interface AppOption {
 export const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
+	{ id: "antigravity", label: "Antigravity", icon: antigravityIcon },
 	{ id: "zed", label: "Zed", icon: zedIcon },
 	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
 	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
