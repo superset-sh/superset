@@ -350,7 +350,8 @@ step_write_env() {
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
-    #          +10 caddy (HTTP/2 reverse proxy for electric-proxy), +11 code inspector, +12 electric-proxy (wrangler dev)
+    #          +10 caddy (HTTP/2 reverse proxy for API electric endpoint), +11 code inspector,
+    #          +12 desktop automation (CDP)
     local BASE=$SUPERSET_PORT_BASE
 
     # App ports (fixed offsets from base)
@@ -366,7 +367,7 @@ step_write_env() {
     local ELECTRIC_PORT=$((BASE + 9))
     local CADDY_ELECTRIC_PORT=$((BASE + 10))
     local CODE_INSPECTOR_PORT=$((BASE + 11))
-    local ELECTRIC_PROXY_PORT=$((BASE + 12))
+    local DESKTOP_AUTOMATION_PORT=$((BASE + 12))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -383,7 +384,7 @@ step_write_env() {
     write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
     write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
-    write_env_var "ELECTRIC_PROXY_PORT" "$ELECTRIC_PROXY_PORT"
+    write_env_var "DESKTOP_AUTOMATION_PORT" "$DESKTOP_AUTOMATION_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -405,27 +406,16 @@ step_write_env() {
     echo "# Electric URLs (overrides from root .env)"
     write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
     echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with 10+ SSE streams)"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
+    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT/api/electric"
   } >> .env
 
   success "Workspace .env written"
 
-  # Generate Electric proxy .dev.vars for wrangler dev
-  local api_port="${API_PORT:-3041}"
-  local electric_port="${ELECTRIC_PORT:-3049}"
-  {
-    write_env_var "ELECTRIC_URL" "http://localhost:${electric_port}/v1/shape"
-    write_env_var "ELECTRIC_SECRET" "${ELECTRIC_SECRET:-local_electric_dev_secret}"
-    write_env_var "JWKS_URL" "http://localhost:${api_port}/api/auth/jwks"
-    write_env_var "JWT_ISSUER" "http://localhost:${api_port}"
-    write_env_var "JWT_AUDIENCE" "http://localhost:${api_port}"
-  } > apps/electric-proxy/.dev.vars
-  success "Electric proxy .dev.vars written"
-
   # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
+  # Caddy proxies to the API server which handles auth and forwards to Electric Docker
   cat > Caddyfile <<-CADDYEOF
 	https://localhost:{\$CADDY_ELECTRIC_PORT} {
-		reverse_proxy localhost:{\$ELECTRIC_PROXY_PORT} {
+		reverse_proxy localhost:{\$API_PORT} {
 			flush_interval -1
 		}
 	}
@@ -449,8 +439,7 @@ step_write_env() {
     { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
     { "port": $ELECTRIC_PORT, "label": "Electric" },
     { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
-    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" },
-    { "port": $ELECTRIC_PROXY_PORT, "label": "Electric Proxy" }
+    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" }
   ]
 }
 PORTSJSON

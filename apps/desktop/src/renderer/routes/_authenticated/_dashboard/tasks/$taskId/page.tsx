@@ -6,9 +6,11 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
-import { LuExternalLink } from "react-icons/lu";
+import { LuExternalLink, LuPlay } from "react-icons/lu";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOpenStartWorkingModal } from "renderer/stores/start-working-modal";
 import type { TaskWithStatus } from "../components/TasksView/hooks/useTasksTable";
+import { Route as TasksLayoutRoute } from "../layout";
 import { ActivitySection } from "./components/ActivitySection";
 import { CommentInput } from "./components/CommentInput";
 import { EditableTitle } from "./components/EditableTitle";
@@ -24,10 +26,13 @@ export const Route = createFileRoute(
 
 function TaskDetailPage() {
 	const { taskId } = Route.useParams();
+	const { tab } = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
+	const openStartWorkingModal = useOpenStartWorkingModal();
 
-	useEscapeToNavigate("/tasks");
+	const backSearch = useMemo(() => (tab ? { tab } : {}), [tab]);
+	useEscapeToNavigate("/tasks", { search: backSearch });
 
 	// Support both UUID and slug lookups
 	const { data: taskData } = useLiveQuery(
@@ -55,7 +60,7 @@ function TaskDetailPage() {
 	}, [taskData]);
 
 	const handleBack = () => {
-		navigate({ to: "/tasks" });
+		navigate({ to: "/tasks", search: backSearch });
 	};
 
 	const handleSaveTitle = (title: string) => {
@@ -82,9 +87,7 @@ function TaskDetailPage() {
 
 	return (
 		<div className="flex-1 flex min-h-0">
-			{/* Main content area */}
 			<div className="flex-1 flex flex-col min-h-0 min-w-0">
-				{/* Header */}
 				<div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
 					<Button
 						variant="ghost"
@@ -106,9 +109,17 @@ function TaskDetailPage() {
 							<LuExternalLink className="w-4 h-4" />
 						</a>
 					)}
+					<Button
+						variant="default"
+						size="xs"
+						className="ml-auto"
+						onClick={() => openStartWorkingModal(task)}
+					>
+						<LuPlay />
+						Run with Claude
+					</Button>
 				</div>
 
-				{/* Content */}
 				<ScrollArea className="flex-1 min-h-0">
 					<div className="px-6 py-6 max-w-4xl">
 						<EditableTitle value={task.title} onSave={handleSaveTitle} />

@@ -3,10 +3,12 @@ import type { ChangeCategory } from "shared/changes-types";
 import type {
 	BaseTab,
 	BaseTabsState,
+	BrowserLoadError,
 	FileViewerMode,
 	Pane,
 	PaneStatus,
 	PaneType,
+	ViewportPreset,
 } from "shared/tabs-types";
 
 // Re-export shared types
@@ -136,6 +138,30 @@ export interface TabsStore extends TabsState {
 	// Move operations
 	movePaneToTab: (paneId: string, targetTabId: string) => void;
 	movePaneToNewTab: (paneId: string) => string;
+
+	// Browser operations
+	addBrowserTab: (
+		workspaceId: string,
+		url?: string,
+	) => { tabId: string; paneId: string };
+	updateBrowserUrl: (
+		paneId: string,
+		url: string,
+		title: string,
+		faviconUrl?: string,
+	) => void;
+	navigateBrowserHistory: (
+		paneId: string,
+		direction: "back" | "forward",
+	) => string | null;
+	updateBrowserLoading: (paneId: string, isLoading: boolean) => void;
+	setBrowserError: (paneId: string, error: BrowserLoadError | null) => void;
+	setBrowserViewport: (paneId: string, viewport: ViewportPreset | null) => void;
+	openDevToolsPane: (
+		tabId: string,
+		browserPaneId: string,
+		path?: MosaicBranch[],
+	) => string | null;
 
 	// Chat operations
 	/** Switch a chat pane to a different session */

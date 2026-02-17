@@ -18,7 +18,7 @@ import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
-import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import { getAuthToken } from "renderer/lib/auth-client";
 import superjson from "superjson";
 import { z } from "zod";
 
@@ -66,18 +66,20 @@ const apiClient = createTRPCProxyClient<AppRouter>({
 	],
 });
 
+const electricHeaders = {
+	Authorization: () => {
+		const token = getAuthToken();
+		return token ? `Bearer ${token}` : "";
+	},
+};
+
 const organizationsCollection = createCollection(
 	electricCollectionOptions<SelectOrganization>({
 		id: "organizations",
 		shapeOptions: {
 			url: electricUrl,
 			params: { table: "auth.organizations" },
-			headers: {
-				Authorization: async () => {
-					const { data } = await authClient.token();
-					return data?.token ? `Bearer ${data.token}` : "";
-				},
-			},
+			headers: electricHeaders,
 			columnMapper,
 		},
 		getKey: (item) => item.id,
@@ -85,13 +87,6 @@ const organizationsCollection = createCollection(
 );
 
 function createOrgCollections(organizationId: string): OrgCollections {
-	const headers = {
-		Authorization: async () => {
-			const { data } = await authClient.token();
-			return data?.token ? `Bearer ${data.token}` : "";
-		},
-	};
-
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,
@@ -101,7 +96,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "tasks",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -135,7 +130,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "task_statuses",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -151,7 +146,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "projects",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -167,7 +162,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "auth.members",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -183,7 +178,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "auth.users",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -199,7 +194,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "auth.invitations",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -215,7 +210,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "agent_commands",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -247,7 +242,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "device_presence",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -263,7 +258,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "integration_connections",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -279,7 +274,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "subscriptions",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -295,7 +290,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 					table: "auth.apikeys",
 					organizationId,
 				},
-				headers,
+				headers: electricHeaders,
 				columnMapper,
 			},
 			getKey: (item) => item.id,

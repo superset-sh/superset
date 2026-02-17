@@ -53,15 +53,16 @@ export async function makeAppSetup(
 		}
 	});
 
-	app.on("web-contents-created", (_, contents) =>
+	app.on("web-contents-created", (_, contents) => {
+		if (contents.getType() === "webview") return;
 		contents.on("will-navigate", (event, url) => {
 			// Always prevent in-app navigation for external URLs
 			if (url.startsWith("http://") || url.startsWith("https://")) {
 				event.preventDefault();
 				shell.openExternal(url);
 			}
-		}),
-	);
+		});
+	});
 
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
 	app.on("before-quit", () => {});

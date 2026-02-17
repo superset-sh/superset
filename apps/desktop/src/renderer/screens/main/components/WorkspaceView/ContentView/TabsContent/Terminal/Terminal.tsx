@@ -149,6 +149,10 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterClearCallbackRef,
 		registerScrollToBottomCallbackRef,
 		unregisterScrollToBottomCallbackRef,
+		registerGetSelectionCallbackRef,
+		unregisterGetSelectionCallbackRef,
+		registerPasteCallbackRef,
+		unregisterPasteCallbackRef,
 	} = useTerminalRefs({
 		paneId,
 		tabId,
@@ -299,6 +303,10 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterClearCallbackRef,
 		registerScrollToBottomCallbackRef,
 		unregisterScrollToBottomCallbackRef,
+		registerGetSelectionCallbackRef,
+		unregisterGetSelectionCallbackRef,
+		registerPasteCallbackRef,
+		unregisterPasteCallbackRef,
 	});
 
 	useEffect(() => {

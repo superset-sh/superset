@@ -518,6 +518,11 @@ export const HOTKEYS = {
 		label: "New Chat",
 		category: "Terminal",
 	}),
+	NEW_BROWSER: defineHotkey({
+		keys: "meta+shift+b",
+		label: "New Browser",
+		category: "Terminal",
+	}),
 	CLOSE_TERMINAL: defineHotkey({
 		keys: "meta+w",
 		label: "Close Terminal",

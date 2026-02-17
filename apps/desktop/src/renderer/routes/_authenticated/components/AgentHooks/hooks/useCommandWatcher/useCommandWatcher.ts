@@ -109,12 +109,26 @@ export function useCommandWatcher() {
 						draft.executedAt = new Date();
 					});
 				} else {
+					// Include per-item errors from bulk operations in the error message
+					const itemErrors = (
+						result.data?.errors as Array<{ error: string }> | undefined
+					)
+						?.map((e) => e.error)
+						.join("; ");
+					const fullError = itemErrors
+						? `${result.error ?? "Unknown error"}: ${itemErrors}`
+						: (result.error ?? "Unknown error");
+
 					collections.agentCommands.update(commandId, (draft) => {
 						draft.status = "failed";
-						draft.error = result.error ?? "Unknown error";
+						draft.error = fullError;
 						draft.executedAt = new Date();
 					});
-					console.error(`[command-watcher] Failed: ${commandId}`, result.error);
+					console.error(
+						`[command-watcher] Failed: ${commandId}`,
+						fullError,
+						result.data,
+					);
 				}
 			} catch (error) {
 				console.error(`[command-watcher] Error: ${commandId}`, error);

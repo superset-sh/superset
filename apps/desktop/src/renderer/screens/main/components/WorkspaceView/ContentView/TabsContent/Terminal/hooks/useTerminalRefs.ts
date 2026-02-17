@@ -4,6 +4,14 @@ import { useRef } from "react";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 
 type RegisterCallback = (paneId: string, callback: () => void) => void;
+type RegisterGetSelectionCallback = (
+	paneId: string,
+	callback: () => string,
+) => void;
+type RegisterPasteCallback = (
+	paneId: string,
+	callback: (text: string) => void,
+) => void;
 type UnregisterCallback = (paneId: string) => void;
 
 export interface UseTerminalRefsOptions {
@@ -37,6 +45,10 @@ export interface UseTerminalRefsReturn {
 	unregisterClearCallbackRef: MutableRefObject<UnregisterCallback>;
 	registerScrollToBottomCallbackRef: MutableRefObject<RegisterCallback>;
 	unregisterScrollToBottomCallbackRef: MutableRefObject<UnregisterCallback>;
+	registerGetSelectionCallbackRef: MutableRefObject<RegisterGetSelectionCallback>;
+	unregisterGetSelectionCallbackRef: MutableRefObject<UnregisterCallback>;
+	registerPasteCallbackRef: MutableRefObject<RegisterPasteCallback>;
+	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
 }
 
 export function useTerminalRefs({
@@ -90,6 +102,18 @@ export function useTerminalRefs({
 	const unregisterScrollToBottomCallbackRef = useRef(
 		useTerminalCallbacksStore.getState().unregisterScrollToBottomCallback,
 	);
+	const registerGetSelectionCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().registerGetSelectionCallback,
+	);
+	const unregisterGetSelectionCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().unregisterGetSelectionCallback,
+	);
+	const registerPasteCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().registerPasteCallback,
+	);
+	const unregisterPasteCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().unregisterPasteCallback,
+	);
 
 	return {
 		isFocused,
@@ -106,5 +130,9 @@ export function useTerminalRefs({
 		unregisterClearCallbackRef,
 		registerScrollToBottomCallbackRef,
 		unregisterScrollToBottomCallbackRef,
+		registerGetSelectionCallbackRef,
+		unregisterGetSelectionCallbackRef,
+		registerPasteCallbackRef,
+		unregisterPasteCallbackRef,
 	};
 }

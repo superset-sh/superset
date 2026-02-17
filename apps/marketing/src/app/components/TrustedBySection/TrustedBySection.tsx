@@ -11,6 +11,7 @@ const CLIENT_LOGOS = [
 	// { name: "a16z", logo: "/logos/a16z.svg", height: 32 }, // they use it but need to go through approvals
 	{ name: "webflow", logo: "/logos/webflow.svg", height: 24 },
 	{ name: "vercel", logo: "/logos/vercel.svg", height: 22 },
+	{ name: "oracle", logo: "/logos/oracle.svg", height: 20 },
 	{ name: "servicenow", logo: "/logos/servicenow.svg", height: 22 },
 	{ name: "scribe", logo: "/logos/scribe.svg", height: 34 },
 	{ name: "browseruse", logo: "/logos/browseruse.svg", height: 26 },
@@ -21,15 +22,6 @@ const CLIENT_LOGOS = [
 		height: 36,
 		borderRadius: 8,
 		text: "Courier",
-	},
-	{ name: "adamcad", logo: "/logos/adam.svg", height: 30, marginTop: -5 },
-	{ name: "onlook", logo: "/logos/onlook.svg", height: 32 },
-	{
-		name: "trainloop",
-		logo: "/logos/trainloop.jpeg",
-		height: 38,
-		borderRadius: 10,
-		text: "Trainloop",
 	},
 ] as {
 	name: string;
@@ -45,7 +37,7 @@ export function TrustedBySection() {
 		<section className="py-6 sm:py-12 md:py-18 bg-background overflow-hidden">
 			<div className="max-w-7xl mx-auto">
 				<div>
-					<h2 className="text-lg sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
+					<h2 className="hidden sm:block text-lg sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
 						Trusted by builders from
 					</h2>
 				</div>
@@ -57,7 +49,7 @@ export function TrustedBySection() {
 						{CLIENT_LOGOS.map((client) => (
 							<div
 								key={client.name}
-								className="flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity cursor-pointer whitespace-nowrap h-14 gap-2 mx-10"
+								className="flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity cursor-pointer whitespace-nowrap h-10 sm:h-14 gap-1.5 sm:gap-2 mx-5 sm:mx-10"
 								style={{ willChange: "transform" }}
 							>
 								<Image
@@ -65,7 +57,7 @@ export function TrustedBySection() {
 									alt={client.name}
 									width={160}
 									height={client.height}
-									className="object-contain"
+									className="object-contain scale-75 sm:scale-100"
 									style={{
 										height: client.height,
 										width: "auto",
@@ -75,7 +67,7 @@ export function TrustedBySection() {
 									unoptimized
 								/>
 								{client.text && (
-									<span className="ml-2 mt-1 font-medium text-foreground text-[1.3rem]">
+									<span className="ml-2 mt-1 font-medium text-foreground text-[1rem] sm:text-[1.3rem]">
 										{client.text}
 									</span>
 								)}

@@ -1,8 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-export function useEscapeToNavigate(to: string) {
+export function useEscapeToNavigate(
+	to: string,
+	options?: { search?: Record<string, unknown> },
+) {
 	const navigate = useNavigate();
+	const search = options?.search;
 
 	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
@@ -32,11 +36,11 @@ export function useEscapeToNavigate(to: string) {
 
 			// Nothing focused, navigate back
 			if (isBody) {
-				navigate({ to });
+				navigate({ to, search });
 			}
 		};
 
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [navigate, to]);
+	}, [navigate, to, search]);
 }

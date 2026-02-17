@@ -19,7 +19,7 @@ import {
 	HiMiniCommandLine,
 	HiStar,
 } from "react-icons/hi2";
-import { TbMessageCirclePlus } from "react-icons/tb";
+import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -47,6 +47,7 @@ export function GroupStrip() {
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const { addTab, openPreset } = useTabsWithPresets();
 	const addChatTab = useTabsStore((s) => s.addChatTab);
+	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -120,6 +121,11 @@ export function GroupStrip() {
 	const handleAddChat = () => {
 		if (!activeWorkspaceId) return;
 		addChatTab(activeWorkspaceId);
+	};
+
+	const handleAddBrowser = () => {
+		if (!activeWorkspaceId) return;
+		addBrowserTab(activeWorkspaceId);
 	};
 
 	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
@@ -250,6 +256,24 @@ export function GroupStrip() {
 								</TooltipContent>
 							</Tooltip>
 						)}
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="outline"
+									className="h-7 rounded-none border-l-0 px-1.5 gap-1 text-xs"
+									onClick={handleAddBrowser}
+								>
+									<TbWorld className="size-3.5" />
+									Browser
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="top" sideOffset={4}>
+								<HotkeyTooltipContent
+									label="New Browser"
+									hotkeyId="NEW_BROWSER"
+								/>
+							</TooltipContent>
+						</Tooltip>
 						<DropdownMenuTrigger asChild>
 							<Button
 								variant="outline"

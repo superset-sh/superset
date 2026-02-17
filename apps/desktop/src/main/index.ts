@@ -278,6 +278,19 @@ if (!gotTheLock) {
 		initSentry();
 		await initAppState();
 
+		// Load browser extension for webview panes
+		try {
+			const extensionPath = app.isPackaged
+				? path.join(process.resourcesPath, "browser-extension")
+				: path.join(__dirname, "../src/resources/browser-extension");
+			await session
+				.fromPartition("persist:superset")
+				.loadExtension(extensionPath);
+			console.log("[main] Browser extension loaded");
+		} catch (error) {
+			console.error("[main] Failed to load browser extension:", error);
+		}
+
 		// Must happen before renderer restore runs
 		await reconcileDaemonSessions();
 

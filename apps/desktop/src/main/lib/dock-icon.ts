@@ -2,58 +2,80 @@ import { join } from "node:path";
 import { app, nativeImage } from "electron";
 import { env } from "main/env.main";
 import { getWorkspaceName } from "shared/env.shared";
+import twColors from "tailwindcss/colors";
 
 /**
- * Generates a deterministic HSL hue from a string seed.
+ * Deterministic hash of a string, returned as a non-negative integer.
  */
-function hashToHue(seed: string): number {
+function hashString(seed: string): number {
 	let hash = 0;
 	for (let i = 0; i < seed.length; i++) {
 		hash = seed.charCodeAt(i) + ((hash << 5) - hash);
 		hash |= 0;
 	}
-	return ((hash % 360) + 360) % 360;
+	return Math.abs(hash);
 }
 
 /**
- * Converts HSL to RGB (all values 0-255).
+ * Parses an OKLCH CSS string like "oklch(63.7% 0.237 25.331)".
  */
-function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-	const sNorm = s / 100;
-	const lNorm = l / 100;
-	const c = (1 - Math.abs(2 * lNorm - 1)) * sNorm;
-	const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-	const m = lNorm - c / 2;
+function parseOklch(str: string): { l: number; c: number; h: number } | null {
+	const match = str.match(/oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\)/);
+	if (!match) return null;
+	return {
+		l: Number(match[1]) / 100,
+		c: Number(match[2]),
+		h: Number(match[3]),
+	};
+}
 
-	let r = 0;
-	let g = 0;
-	let b = 0;
-	if (h < 60) {
-		r = c;
-		g = x;
-	} else if (h < 120) {
-		r = x;
-		g = c;
-	} else if (h < 180) {
-		g = c;
-		b = x;
-	} else if (h < 240) {
-		g = x;
-		b = c;
-	} else if (h < 300) {
-		r = x;
-		b = c;
-	} else {
-		r = c;
-		b = x;
-	}
+/**
+ * Converts OKLCH to sRGB (all values 0-255).
+ */
+function oklchToRgb(l: number, c: number, h: number): [number, number, number] {
+	const hRad = (h * Math.PI) / 180;
+	const a = c * Math.cos(hRad);
+	const b = c * Math.sin(hRad);
+
+	// OKLab → LMS (cube-root space)
+	const l_ = l + 0.3963377774 * a + 0.2158037573 * b;
+	const m_ = l - 0.1055613458 * a - 0.0638541728 * b;
+	const s_ = l - 0.0894841775 * a - 1.291485548 * b;
+
+	const lc = l_ * l_ * l_;
+	const mc = m_ * m_ * m_;
+	const sc = s_ * s_ * s_;
+
+	// LMS → linear sRGB
+	const rLin = +4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc;
+	const gLin = -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc;
+	const bLin = -0.0041960863 * lc + 0.7034186147 * mc + 0.2967775076 * sc;
+
+	const toSrgb = (v: number) => {
+		const clamped = Math.max(0, Math.min(1, v));
+		return clamped <= 0.0031308
+			? 12.92 * clamped
+			: 1.055 * clamped ** (1 / 2.4) - 0.055;
+	};
 
 	return [
-		Math.round((r + m) * 255),
-		Math.round((g + m) * 255),
-		Math.round((b + m) * 255),
+		Math.round(toSrgb(rLin) * 255),
+		Math.round(toSrgb(gLin) * 255),
+		Math.round(toSrgb(bLin) * 255),
 	];
 }
+
+/** All Tailwind 500-level colors as RGB tuples. */
+const TAILWIND_500_COLORS: [number, number, number][] = (() => {
+	const skip = new Set(["inherit", "current", "transparent", "black", "white"]);
+	const result: [number, number, number][] = [];
+	for (const [name, val] of Object.entries(twColors)) {
+		if (skip.has(name) || typeof val !== "object" || !("500" in val)) continue;
+		const parsed = parseOklch((val as Record<string, string>)["500"] as string);
+		if (parsed) result.push(oklchToRgb(parsed.l, parsed.c, parsed.h));
+	}
+	return result;
+})();
 
 /**
  * Gets the path to the app icon PNG.
@@ -224,8 +246,10 @@ export function setWorkspaceDockIcon(): void {
 		const size = icon.getSize();
 		const bitmap = icon.toBitmap();
 
-		const hue = hashToHue(workspaceName);
-		const rgb = hslToRgb(hue, 75, 55);
+		const hash = hashString(workspaceName);
+		const rgb =
+			TAILWIND_500_COLORS[hash % TAILWIND_500_COLORS.length] ??
+			([59, 130, 246] as [number, number, number]); // blue-500 fallback
 
 		// Find the actual icon content area (skip transparent padding)
 		const bounds = findContentBounds(bitmap, size.width, size.height);
@@ -252,7 +276,7 @@ export function setWorkspaceDockIcon(): void {
 
 		app.dock?.setIcon(newIcon);
 		console.log(
-			`[dock-icon] Set workspace dock icon border with hue ${hue} for "${workspaceName}"`,
+			`[dock-icon] Set workspace dock icon border rgb(${rgb.join(",")}) for "${workspaceName}"`,
 		);
 	} catch (error) {
 		console.error("[dock-icon] Failed to set dock icon:", error);
