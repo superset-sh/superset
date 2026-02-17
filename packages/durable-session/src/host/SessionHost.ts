@@ -123,6 +123,29 @@ export class SessionHost {
 			signal: this.abortController.signal,
 		});
 
+		// preload() starts the SSE consumer and waits for initial sync.
+		// Without this call, no data flows to the collections and
+		// subscribeChanges never fires.
+		this.sessionDB
+			.preload()
+			.then(() => this.onPreloaded())
+			.catch((err) => {
+				if (this.abortController?.signal.aborted) return;
+				console.error(
+					`[SessionHost] Preload failed for ${this.sessionId}:`,
+					err,
+				);
+				this.emit(
+					"error",
+					err instanceof Error ? err : new Error(String(err)),
+				);
+			});
+	}
+
+	/** Called after preload completes — seeds history, subscribes to live changes. */
+	private onPreloaded(): void {
+		if (!this.sessionDB) return; // stopped before preload finished
+
 		const chunks = this.sessionDB.collections.chunks;
 
 		// Seed seenMessageIds from existing chunks (prevents re-triggering history).
@@ -151,7 +174,11 @@ export class SessionHost {
 			this.applyConfig(latestConfig);
 		}
 
-		// Subscribe to chunk changes
+		console.log(
+			`[SessionHost] Session ${this.sessionId} — seeded ${this.seenMessageIds.size} seen message IDs, chunks size: ${chunks.size}`,
+		);
+
+		// Subscribe to chunk changes (live updates via SSE)
 		const subscription = chunks.subscribeChanges(
 			(changes: Array<{ type: string; value: unknown }>) => {
 				for (const change of changes) {
@@ -179,7 +206,10 @@ export class SessionHost {
 		this.unsubscribe = null;
 		this.abortController?.abort();
 		this.abortController = null;
-		this.sessionDB = null;
+		if (this.sessionDB) {
+			this.sessionDB.close();
+			this.sessionDB = null;
+		}
 		this.emit("disconnected", { reason: "stopped" });
 		console.log(`[SessionHost] Stopped for session ${this.sessionId}`);
 	}
@@ -293,10 +323,23 @@ export class SessionHost {
 			parsed.message !== null
 		) {
 			const msg = parsed.message as Record<string, unknown>;
-			if (msg.role !== "user") return;
-			if (this.seenMessageIds.has(row.messageId)) return;
+			if (msg.role !== "user") {
+				console.log(
+					`[SessionHost] Skipping non-user message: role=${msg.role}`,
+				);
+				return;
+			}
+			if (this.seenMessageIds.has(row.messageId)) {
+				console.log(
+					`[SessionHost] Skipping already-seen message: ${row.messageId}`,
+				);
+				return;
+			}
 			this.seenMessageIds.add(row.messageId);
 
+			console.log(
+				`[SessionHost] Emitting "message" event for ${row.messageId}`,
+			);
 			this.emit("message", {
 				messageId: row.messageId,
 				message: parsed.message as UIMessage,

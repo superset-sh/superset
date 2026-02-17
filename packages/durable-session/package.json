@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./host": {
+			"types": "./src/host/index.ts",
+			"default": "./src/host/index.ts"
+		},
 		"./react": {
 			"types": "./src/react/index.ts",
 			"default": "./src/react/index.ts"

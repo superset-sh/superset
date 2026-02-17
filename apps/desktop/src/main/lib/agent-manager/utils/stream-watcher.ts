@@ -1,4 +1,4 @@
-import { SessionHost } from "@superset/durable-session";
+import { SessionHost } from "@superset/durable-session/host";
 import type { UIMessage } from "ai";
 import { env } from "main/env.main";
 import { getAvailableModels } from "./models";
@@ -29,9 +29,31 @@ export class StreamWatcher {
 			headers: { Authorization: `Bearer ${options.authToken}` },
 		});
 
+		this.host.on("connected", () => {
+			console.log(
+				`[stream-watcher] SessionHost connected for ${this.sessionId}`,
+			);
+		});
+
+		this.host.on("config", (config) => {
+			console.log(
+				`[stream-watcher] Config event for ${this.sessionId}:`,
+				config,
+			);
+		});
+
 		this.host.on("message", ({ messageId, message }) => {
+			console.log(
+				`[stream-watcher] Received "message" event: ${messageId}`,
+				JSON.stringify(message).slice(0, 200),
+			);
 			const text = extractTextFromMessage(message);
-			if (!text.trim()) return;
+			if (!text.trim()) {
+				console.log(
+					`[stream-watcher] Empty text extracted, skipping`,
+				);
+				return;
+			}
 
 			console.log(
 				`[stream-watcher] New user message in ${this.sessionId}: "${text.slice(0, 50)}"`,
@@ -95,7 +117,14 @@ export class StreamWatcher {
 
 	start(): void {
 		this.host.start();
-		void this.host.postConfig({ availableModels: getAvailableModels() });
+		this.host
+			.postConfig({ availableModels: getAvailableModels() })
+			.catch((err) => {
+				console.warn(
+					`[stream-watcher] Failed to post initial config for ${this.sessionId}:`,
+					err,
+				);
+			});
 	}
 
 	stop(): void {

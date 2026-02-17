@@ -5,12 +5,6 @@ export {
 	type SessionDBConfig,
 } from "./collection";
 export {
-	SessionHost,
-	type SessionHostConfig,
-	type SessionHostEventMap,
-	type SessionHostOptions,
-} from "./host";
-export {
 	type AgentValue,
 	agentValueSchema,
 	type ChunkRow,
