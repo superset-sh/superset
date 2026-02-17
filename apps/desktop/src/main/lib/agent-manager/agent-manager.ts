@@ -57,34 +57,49 @@ export class AgentManager {
 		);
 
 		// Subscribe to session_hosts via Electric ShapeStream
+		const shapeUrl = `${electricUrl}/v1/shape`;
+		const shapeParams = {
+			table: "session_hosts",
+			organizationId: this.organizationId,
+		};
+		console.log(`[agent-manager] Connecting to Electric: ${shapeUrl}`, shapeParams);
+
 		this.shapeStream = new ShapeStream({
-			url: `${electricUrl}/v1/shape`,
-			params: {
-				table: "session_hosts",
-				organizationId: this.organizationId,
-			},
+			url: shapeUrl,
+			params: shapeParams,
+		});
+
+		this.shapeStream.subscribe((messages) => {
+			console.log(`[agent-manager] ShapeStream raw messages: ${messages.length}`);
+		}, (error) => {
+			console.error("[agent-manager] ShapeStream error:", error);
 		});
 
 		this.shape = new Shape(this.shapeStream);
 
 		// Wait for initial data then process
+		console.log("[agent-manager] Waiting for initial shape.rows...");
 		const initialRows = await this.shape.rows;
+		console.log(
+			`[agent-manager] Initial session_hosts rows: ${initialRows.length}`,
+		);
 		for (const row of initialRows) {
+			console.log(`[agent-manager] Row: device_id=${row.device_id} session_id=${row.session_id} (match=${row.device_id === this.deviceId})`);
 			if (row.device_id === this.deviceId) {
-				this.startWatcher(row.id as string);
+				this.startWatcher(row.session_id as string);
 			}
 		}
 
-		// Subscribe to ongoing changes
 		this.unsubscribe = this.shape.subscribe(({ rows }) => {
+			console.log(`[agent-manager] Electric subscription fired — ${rows.length} total rows`);
 			const activeSessionIds = new Set<string>();
 
 			for (const row of rows) {
+				console.log(`[agent-manager] Row: device_id=${row.device_id} session_id=${row.session_id} (match=${row.device_id === this.deviceId})`);
 				if (row.device_id === this.deviceId) {
-					const sessionId = row.id as string;
+					const sessionId = row.session_id as string;
 					activeSessionIds.add(sessionId);
 
-					// Start watcher if we don't have one yet
 					if (!this.watchers.has(sessionId)) {
 						this.startWatcher(sessionId);
 					}

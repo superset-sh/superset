@@ -4,7 +4,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { env } from "renderer/env.renderer";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { generateId } from "renderer/stores/tabs/utils";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatInterface } from "./ChatInterface";
 import { SessionSelector } from "./components/SessionSelector";
@@ -39,7 +38,7 @@ export function ChatPane({
 }: ChatPaneProps) {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const switchChatSession = useTabsStore((s) => s.switchChatSession);
-	const sessionId = pane?.chat?.sessionId ?? "";
+	const sessionId = pane?.chat?.sessionId ?? null;
 
 	const { data: session } = authClient.useSession();
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
@@ -49,6 +48,9 @@ export function ChatPane({
 		{ enabled: !!workspaceId },
 	);
 
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const deviceId = deviceInfo?.deviceId ?? null;
+
 	const handleSelectSession = useCallback(
 		(newSessionId: string) => {
 			switchChatSession(paneId, newSessionId);
@@ -56,28 +58,9 @@ export function ChatPane({
 		[paneId, switchChatSession],
 	);
 
-	const handleNewChat = useCallback(async () => {
-		const organizationId = session?.session?.activeOrganizationId;
-		if (!organizationId) return;
-
-		const newSessionId = generateId("chat-session");
-
-		// Create session in DB + durable stream
-		const token = getAuthToken();
-		await fetch(`${apiUrl}/api/streams/v1/sessions/${newSessionId}`, {
-			method: "PUT",
-			headers: {
-				"Content-Type": "application/json",
-				...(token ? { Authorization: `Bearer ${token}` } : {}),
-			},
-			body: JSON.stringify({
-				organizationId,
-				deviceId: deviceInfo?.deviceId,
-			}),
-		});
-
-		switchChatSession(paneId, newSessionId);
-	}, [paneId, switchChatSession, session?.session?.activeOrganizationId, deviceInfo?.deviceId]);
+	const handleNewChat = useCallback(() => {
+		switchChatSession(paneId, null);
+	}, [paneId, switchChatSession]);
 
 	const handleDeleteSession = useCallback(
 		(sessionIdToDelete: string) => {
@@ -91,10 +74,10 @@ export function ChatPane({
 			).catch(console.error);
 
 			if (sessionIdToDelete === sessionId) {
-				void handleNewChat();
+				switchChatSession(paneId, null);
 			}
 		},
-		[sessionId, handleNewChat],
+		[sessionId, paneId, switchChatSession],
 	);
 
 	return (
@@ -127,6 +110,8 @@ export function ChatPane({
 		>
 			<ChatInterface
 				sessionId={sessionId}
+				organizationId={organizationId}
+				deviceId={deviceId}
 				workspaceId={workspaceId}
 				cwd={workspace?.worktreePath ?? ""}
 				paneId={paneId}

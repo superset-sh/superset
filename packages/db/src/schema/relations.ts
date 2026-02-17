@@ -13,14 +13,15 @@ import {
 	githubPullRequests,
 	githubRepositories,
 } from "./github";
-import { sessionHosts } from "./chat";
 import {
 	agentCommands,
+	chatSessions,
 	devicePresence,
 	integrationConnections,
 	projects,
 	sandboxImages,
 	secrets,
+	sessionHosts,
 	subscriptions,
 	taskStatuses,
 	tasks,
@@ -39,6 +40,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
+	chatSessions: many(chatSessions),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -69,7 +71,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
-	sessionHosts: many(sessionHosts),
+	chatSessions: many(chatSessions),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -282,13 +284,28 @@ export const workspacesRelations = relations(workspaces, ({ one }) => ({
 	}),
 }));
 
+export const chatSessionsRelations = relations(
+	chatSessions,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [chatSessions.organizationId],
+			references: [organizations.id],
+		}),
+		createdBy: one(users, {
+			fields: [chatSessions.createdBy],
+			references: [users.id],
+		}),
+		sessionHosts: many(sessionHosts),
+	}),
+);
+
 export const sessionHostsRelations = relations(sessionHosts, ({ one }) => ({
+	chatSession: one(chatSessions, {
+		fields: [sessionHosts.sessionId],
+		references: [chatSessions.id],
+	}),
 	organization: one(organizations, {
 		fields: [sessionHosts.organizationId],
 		references: [organizations.id],
-	}),
-	createdBy: one(users, {
-		fields: [sessionHosts.createdBy],
-		references: [users.id],
 	}),
 }));

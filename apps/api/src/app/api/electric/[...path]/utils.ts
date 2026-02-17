@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import {
 	agentCommands,
+	chatSessions,
 	sessionHosts,
 	devicePresence,
 	integrationConnections,
@@ -29,6 +30,7 @@ export type AllowedTable =
 	| "agent_commands"
 	| "integration_connections"
 	| "subscriptions"
+	| "chat_sessions"
 	| "session_hosts";
 
 interface WhereClause {
@@ -124,6 +126,13 @@ export async function buildWhereClause(
 
 		case "subscriptions":
 			return build(subscriptions, subscriptions.referenceId, organizationId);
+
+		case "chat_sessions":
+			return build(
+				chatSessions,
+				chatSessions.organizationId,
+				organizationId,
+			);
 
 		case "session_hosts":
 			return build(

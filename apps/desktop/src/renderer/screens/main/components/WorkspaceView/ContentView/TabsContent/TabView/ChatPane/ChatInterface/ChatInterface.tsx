@@ -7,6 +7,7 @@ import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
 import { DEFAULT_MODEL } from "./constants";
@@ -24,7 +25,39 @@ function getAuthHeaders(): Record<string, string> {
 	return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
+async function createSession(
+	sessionId: string,
+	organizationId: string,
+	deviceId: string | null,
+): Promise<void> {
+	const token = getAuthToken();
+	await fetch(`${apiUrl}/api/streams/v1/sessions/${sessionId}`, {
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+			...(token ? { Authorization: `Bearer ${token}` } : {}),
+		},
+		body: JSON.stringify({
+			organizationId,
+			...(deviceId ? { deviceId } : {}),
+		}),
+	});
+}
+
+export function ChatInterface(props: ChatInterfaceProps) {
+	if (props.sessionId) {
+		return <ActiveChatInterface {...props} sessionId={props.sessionId} />;
+	}
+	return <EmptyChatInterface {...props} />;
+}
+
+function EmptyChatInterface({
+	organizationId,
+	deviceId,
+	cwd,
+	paneId,
+}: ChatInterfaceProps) {
+	const switchChatSession = useTabsStore((s) => s.switchChatSession);
 	const [selectedModel, setSelectedModel] =
 		useState<ModelOption>(DEFAULT_MODEL);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -33,7 +66,70 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		useState<PermissionMode>("bypassPermissions");
 	const [error, setError] = useState<string | null>(null);
 
-	// SessionDB: one SSE connection, reactive TanStack DB collections
+	const handleSend = useCallback(
+		async (message: { text: string }) => {
+			const text = message.text.trim();
+			if (!text || !organizationId) return;
+
+			setError(null);
+			const newSessionId = crypto.randomUUID();
+			await createSession(newSessionId, organizationId, deviceId);
+
+			// Send the first message before switching so it isn't lost
+			await fetch(
+				`${apiUrl}/api/streams/v1/sessions/${newSessionId}/messages`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						...getAuthHeaders(),
+					},
+					body: JSON.stringify({ content: text }),
+				},
+			);
+
+			switchChatSession(paneId, newSessionId);
+		},
+		[organizationId, deviceId, paneId, switchChatSession],
+	);
+
+	return (
+		<div className="flex h-full flex-col bg-background">
+			<MessageList messages={[]} isStreaming={false} />
+			<ChatInputFooter
+				cwd={cwd}
+				error={error}
+				isStreaming={false}
+				availableModels={[]}
+				selectedModel={selectedModel}
+				setSelectedModel={setSelectedModel}
+				modelSelectorOpen={modelSelectorOpen}
+				setModelSelectorOpen={setModelSelectorOpen}
+				permissionMode={permissionMode}
+				setPermissionMode={setPermissionMode}
+				thinkingEnabled={thinkingEnabled}
+				setThinkingEnabled={setThinkingEnabled}
+				slashCommands={[]}
+				onSend={handleSend}
+				onStop={() => {}}
+				onSlashCommandSend={() => {}}
+			/>
+		</div>
+	);
+}
+
+function ActiveChatInterface({
+	sessionId,
+	cwd,
+}: Omit<ChatInterfaceProps, "sessionId"> & { sessionId: string }) {
+	const [selectedModel, setSelectedModel] =
+		useState<ModelOption>(DEFAULT_MODEL);
+	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+	const [permissionMode, setPermissionMode] =
+		useState<PermissionMode>("bypassPermissions");
+	const [error, setError] = useState<string | null>(null);
+
 	const sessionDB = useMemo(() => {
 		return createSessionDB({
 			sessionId,
@@ -42,7 +138,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		});
 	}, [sessionId]);
 
-	// Session metadata: config, title, presence
 	const metadata = useChatMetadata({
 		sessionDB,
 		proxyUrl: apiUrl,
@@ -50,7 +145,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		getHeaders: getAuthHeaders,
 	});
 
-	// Post initial config on mount
 	const registeredRef = useRef(false);
 	useEffect(() => {
 		if (registeredRef.current) return;
@@ -61,10 +155,8 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			thinkingEnabled,
 			cwd,
 		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [sessionId]);
 
-	// Post config when settings change
 	const prevConfigRef = useRef({
 		modelId: selectedModel.id,
 		permissionMode,
@@ -92,10 +184,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		});
 	}, [selectedModel.id, permissionMode, thinkingEnabled, sessionId, cwd, metadata.updateConfig]);
 
-	// DurableChatTransport: bridges SessionDB -> useChat
-	// Abort is handled internally by the transport (sends control event)
 	const transport = useMemo(() => {
-		if (!sessionDB) return undefined;
 		return new DurableChatTransport({
 			proxyUrl: apiUrl,
 			sessionId,
@@ -116,11 +205,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		(message: { text: string }) => {
 			const text = message.text.trim();
 			if (!text) return;
-
 			setError(null);
-
-			// Write user message to durable stream via transport.
-			// StreamWatcher on main process detects it and triggers the agent.
 			chat.sendMessage({ text });
 		},
 		[chat],
@@ -129,7 +214,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
-			// chat.stop() triggers abort signal -> transport sends control event
 			chat.stop();
 		},
 		[chat],
@@ -148,7 +232,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 				messages={chat.messages}
 				isStreaming={isStreaming}
 			/>
-
 			<ChatInputFooter
 				cwd={cwd}
 				error={error}

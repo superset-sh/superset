@@ -112,11 +112,17 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 				: {}),
 		});
 
+		console.log(`[run-agent] Mastra stream returned for ${sessionId}`, {
+			runId: output.runId,
+			hasStream: !!output,
+		});
+
 		if (output.runId) {
 			sessionRunIds.set(sessionId, output.runId);
 		}
 
 		await writeToDurableStream(output, sessionId, abortController.signal);
+		console.log(`[run-agent] Finished writing to durable stream for ${sessionId}`);
 	} catch (error) {
 		sessionRunIds.delete(sessionId);
 		sessionContext.delete(sessionId);

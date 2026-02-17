@@ -28,7 +28,13 @@ export async function ensureProxySession(sessionId: string): Promise<void> {
 		headers: getStreamHeaders(),
 	});
 
-	await stream.create({ contentType: "application/json" });
+	try {
+		await stream.create({ contentType: "application/json" });
+		console.log(`[write-agent] Created stream for ${sessionId}`);
+	} catch (err) {
+		// Stream likely already exists (409) — that's fine
+		console.log(`[write-agent] ensureProxySession for ${sessionId}:`, err);
+	}
 }
 
 interface WriteAgentStreamOptions {
@@ -68,11 +74,18 @@ export async function writeAgentStream(
 
 	let seq = 0;
 	const reader = stream.getReader();
+	console.log(`[write-agent] Starting to read agent stream for ${sessionId}`);
 
 	try {
 		while (true) {
 			const { done, value } = await reader.read();
-			if (done || abortSignal?.aborted) break;
+			if (done || abortSignal?.aborted) {
+				console.log(`[write-agent] Stream ended for ${sessionId}: done=${done} aborted=${abortSignal?.aborted} seq=${seq}`);
+				break;
+			}
+			if (seq === 0) {
+				console.log(`[write-agent] First chunk from agent for ${sessionId}:`, JSON.stringify(value).slice(0, 200));
+			}
 
 			const event = sessionStateSchema.chunks.insert({
 				key: `${messageId}:${seq}`,
@@ -93,6 +106,7 @@ export async function writeAgentStream(
 		try {
 			await producer.flush();
 			await producer.detach();
+			console.log(`[write-agent] Flushed ${seq} chunks for ${sessionId}`);
 		} catch (err) {
 			if (!abortSignal?.aborted) {
 				console.error(

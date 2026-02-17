@@ -1,37 +1,13 @@
-/**
- * Durable Streams proxy — follows the @electric-sql/durable-session-proxy pattern.
- *
- * Reads (GET) are proxied directly to the hosted Durable Streams service.
- * Writes go through REST endpoints that use DurableStream + sessionStateSchema
- * to write STATE-PROTOCOL events.
- *
- * Postgres side-effects: session_hosts rows are created/deleted alongside
- * durable stream operations for Electric-powered session discovery.
- *
- * Routes:
- *   GET    /api/streams/v1/stream/sessions/:id            — SSE proxy (reads)
- *   PUT    /api/streams/v1/sessions/:id                   — Create session + host row
- *   POST   /api/streams/v1/sessions/:id/messages          — Send user message
- *   POST   /api/streams/v1/sessions/:id/tool-results      — Send tool results
- *   POST   /api/streams/v1/sessions/:id/approvals/:aid    — Approve/decline tool
- *   POST   /api/streams/v1/sessions/:id/control           — Control events (abort)
- *   POST   /api/streams/v1/sessions/:id/config            — Config events (model, cwd, etc.)
- *   DELETE /api/streams/v1/stream/sessions/:id            — Delete stream + host row
- *   HEAD   /api/streams/v1/stream/sessions/:id            — Proxy HEAD
- */
-
 import { DurableStream } from "@durable-streams/client";
 import { sessionStateSchema } from "@superset/durable-session";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
-import { sessionHosts } from "@superset/db/schema";
+import { chatSessions, sessionHosts } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "@/env";
 
-// Durable Streams protocol query params to forward on reads
 const PROTOCOL_QUERY_PARAMS = ["offset", "live", "cursor"];
 
-// Protocol response headers to pass through
 const PROTOCOL_RESPONSE_HEADERS = [
 	"stream-next-offset",
 	"stream-cursor",
@@ -42,16 +18,11 @@ const PROTOCOL_RESPONSE_HEADERS = [
 	"etag",
 ];
 
-// Headers to strip from proxied responses (Next.js re-encodes)
 const STRIP_HEADERS = new Set([
 	"content-encoding",
 	"content-length",
 	"transfer-encoding",
 ]);
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 async function requireAuth(request: Request) {
 	const sessionData = await auth.api.getSession({
@@ -80,6 +51,21 @@ function getDurableStream(sessionId: string) {
 	});
 }
 
+async function appendToStream(sessionId: string, event: string) {
+	const response = await fetch(streamUrl(sessionId), {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${env.DURABLE_STREAMS_SECRET}`,
+			"Content-Type": "application/json",
+		},
+		body: event,
+	});
+	if (!response.ok) {
+		const text = await response.text().catch(() => "");
+		throw new Error(`Stream append failed: ${response.status} ${text}`);
+	}
+}
+
 async function ensureStream(sessionId: string) {
 	const stream = getDurableStream(sessionId);
 	try {
@@ -91,17 +77,12 @@ async function ensureStream(sessionId: string) {
 	return stream;
 }
 
-// ---------------------------------------------------------------------------
-// GET — Proxy SSE reads to hosted Durable Streams
-// ---------------------------------------------------------------------------
-
 export async function GET(request: Request): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
 	const segments = parsePath(request);
 
-	// Expected: v1/stream/sessions/:sessionId
 	if (
 		segments[0] !== "v1" ||
 		segments[1] !== "stream" ||
@@ -114,7 +95,6 @@ export async function GET(request: Request): Promise<Response> {
 	const sessionId = segments[3];
 	const url = new URL(request.url);
 
-	// Build upstream URL with protocol query params only
 	const upstream = new URL(streamUrl(sessionId));
 	for (const param of PROTOCOL_QUERY_PARAMS) {
 		const value = url.searchParams.get(param);
@@ -140,7 +120,6 @@ export async function GET(request: Request): Promise<Response> {
 		);
 	}
 
-	// 204 No Content (long-poll timeout)
 	if (response.status === 204) {
 		const headers = new Headers();
 		for (const h of PROTOCOL_RESPONSE_HEADERS) {
@@ -150,7 +129,6 @@ export async function GET(request: Request): Promise<Response> {
 		return new Response(null, { status: 204, headers });
 	}
 
-	// Stream response through with protocol headers
 	const headers = new Headers();
 	for (const h of PROTOCOL_RESPONSE_HEADERS) {
 		const v = response.headers.get(h);
@@ -163,17 +141,12 @@ export async function GET(request: Request): Promise<Response> {
 	});
 }
 
-// ---------------------------------------------------------------------------
-// PUT — Create session (DurableStream.create + session_hosts row)
-// ---------------------------------------------------------------------------
-
 export async function PUT(request: Request): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
 	const segments = parsePath(request);
 
-	// Expected: v1/sessions/:sessionId
 	if (segments[0] !== "v1" || segments[1] !== "sessions" || !segments[2]) {
 		return new Response("Not found", { status: 404 });
 	}
@@ -191,17 +164,22 @@ export async function PUT(request: Request): Promise<Response> {
 		);
 	}
 
-	// Create durable stream
 	const stream = getDurableStream(sessionId);
 	await stream.create({ contentType: "application/json" });
 
-	// Insert session_hosts row for Electric discovery
-	await db.insert(sessionHosts).values({
+	await db.insert(chatSessions).values({
 		id: sessionId,
 		organizationId: body.organizationId,
 		createdBy: session.user.id,
-		deviceId: body.deviceId ?? null,
 	});
+
+	if (body.deviceId) {
+		await db.insert(sessionHosts).values({
+			sessionId,
+			organizationId: body.organizationId,
+			deviceId: body.deviceId,
+		});
+	}
 
 	return Response.json(
 		{
@@ -212,17 +190,12 @@ export async function PUT(request: Request): Promise<Response> {
 	);
 }
 
-// ---------------------------------------------------------------------------
-// POST — Send user message / tool results / approvals / control / config
-// ---------------------------------------------------------------------------
-
 export async function POST(request: Request): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
 	const segments = parsePath(request);
 
-	// v1/sessions/:sessionId/messages
 	if (
 		segments[0] === "v1" &&
 		segments[1] === "sessions" &&
@@ -232,7 +205,6 @@ export async function POST(request: Request): Promise<Response> {
 		return handleSendMessage(request, segments[2], session.user.id);
 	}
 
-	// v1/sessions/:sessionId/tool-results
 	if (
 		segments[0] === "v1" &&
 		segments[1] === "sessions" &&
@@ -242,7 +214,6 @@ export async function POST(request: Request): Promise<Response> {
 		return handleToolResult(request, segments[2], session.user.id);
 	}
 
-	// v1/sessions/:sessionId/approvals/:approvalId
 	if (
 		segments[0] === "v1" &&
 		segments[1] === "sessions" &&
@@ -253,7 +224,6 @@ export async function POST(request: Request): Promise<Response> {
 		return handleApproval(request, segments[2], segments[4], session.user.id);
 	}
 
-	// v1/sessions/:sessionId/control
 	if (
 		segments[0] === "v1" &&
 		segments[1] === "sessions" &&
@@ -263,7 +233,6 @@ export async function POST(request: Request): Promise<Response> {
 		return handleControl(request, segments[2], session.user.id);
 	}
 
-	// v1/sessions/:sessionId/config
 	if (
 		segments[0] === "v1" &&
 		segments[1] === "sessions" &&
@@ -276,9 +245,28 @@ export async function POST(request: Request): Promise<Response> {
 	return new Response("Not found", { status: 404 });
 }
 
-// ---------------------------------------------------------------------------
-// DELETE — Delete stream + session_hosts row
-// ---------------------------------------------------------------------------
+export async function PATCH(request: Request): Promise<Response> {
+	const session = await requireAuth(request);
+	if (!session) return new Response("Unauthorized", { status: 401 });
+
+	const segments = parsePath(request);
+
+	if (segments[0] !== "v1" || segments[1] !== "sessions" || !segments[2]) {
+		return new Response("Not found", { status: 404 });
+	}
+
+	const sessionId = segments[2];
+	const body = (await request.json()) as { title?: string };
+
+	if (body.title !== undefined) {
+		await db
+			.update(chatSessions)
+			.set({ title: body.title })
+			.where(eq(chatSessions.id, sessionId));
+	}
+
+	return Response.json({ success: true }, { status: 200 });
+}
 
 export async function DELETE(request: Request): Promise<Response> {
 	const session = await requireAuth(request);
@@ -286,7 +274,6 @@ export async function DELETE(request: Request): Promise<Response> {
 
 	const segments = parsePath(request);
 
-	// v1/stream/sessions/:id
 	if (
 		segments[0] !== "v1" ||
 		segments[1] !== "stream" ||
@@ -298,7 +285,6 @@ export async function DELETE(request: Request): Promise<Response> {
 
 	const sessionId = segments[3];
 
-	// Delete durable stream
 	const response = await fetch(streamUrl(sessionId), {
 		method: "DELETE",
 		headers: {
@@ -306,8 +292,7 @@ export async function DELETE(request: Request): Promise<Response> {
 		},
 	});
 
-	// Delete session_hosts row
-	await db.delete(sessionHosts).where(eq(sessionHosts.id, sessionId));
+	await db.delete(chatSessions).where(eq(chatSessions.id, sessionId));
 
 	const headers = new Headers();
 	for (const [key, value] of response.headers.entries()) {
@@ -321,10 +306,6 @@ export async function DELETE(request: Request): Promise<Response> {
 		headers,
 	});
 }
-
-// ---------------------------------------------------------------------------
-// HEAD — Proxy to hosted Durable Streams
-// ---------------------------------------------------------------------------
 
 export async function HEAD(request: Request): Promise<Response> {
 	const session = await requireAuth(request);
@@ -362,10 +343,6 @@ export async function HEAD(request: Request): Promise<Response> {
 	});
 }
 
-// ---------------------------------------------------------------------------
-// Handlers
-// ---------------------------------------------------------------------------
-
 async function handleSendMessage(
 	request: Request,
 	sessionId: string,
@@ -382,7 +359,6 @@ async function handleSendMessage(
 
 	const messageId = body.messageId ?? crypto.randomUUID();
 
-	// Write user message as STATE-PROTOCOL chunk event
 	const message = {
 		id: messageId,
 		role: "user" as const,
@@ -402,14 +378,13 @@ async function handleSendMessage(
 		},
 	});
 
-	const stream = await ensureStream(sessionId);
-	await stream.append(JSON.stringify(event));
+	await ensureStream(sessionId);
+	await appendToStream(sessionId, JSON.stringify(event));
 
-	// Update last_active_at
 	await db
-		.update(sessionHosts)
+		.update(chatSessions)
 		.set({ lastActiveAt: new Date() })
-		.where(eq(sessionHosts.id, sessionId));
+		.where(eq(chatSessions.id, sessionId));
 
 	return Response.json({ messageId }, { status: 200 });
 }
@@ -452,8 +427,7 @@ async function handleToolResult(
 		},
 	});
 
-	const stream = getDurableStream(sessionId);
-	await stream.append(JSON.stringify(event));
+	await appendToStream(sessionId, JSON.stringify(event));
 
 	return Response.json({ messageId }, { status: 200 });
 }
@@ -488,8 +462,7 @@ async function handleApproval(
 		},
 	});
 
-	const stream = getDurableStream(sessionId);
-	await stream.append(JSON.stringify(event));
+	await appendToStream(sessionId, JSON.stringify(event));
 
 	return Response.json({ messageId }, { status: 200 });
 }
@@ -522,8 +495,7 @@ async function handleControl(
 		},
 	});
 
-	const stream = getDurableStream(sessionId);
-	await stream.append(JSON.stringify(event));
+	await appendToStream(sessionId, JSON.stringify(event));
 
 	return Response.json({ success: true }, { status: 200 });
 }
@@ -564,8 +536,7 @@ async function handleConfig(
 		},
 	});
 
-	const stream = getDurableStream(sessionId);
-	await stream.append(JSON.stringify(event));
+	await appendToStream(sessionId, JSON.stringify(event));
 
 	return Response.json({ success: true }, { status: 200 });
 }

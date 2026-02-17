@@ -1427,7 +1427,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 4,
+				version: 5,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -1454,7 +1454,13 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
-					// v4: browser field is optional, no migration needed
+					if (version < 5 && state.panes) {
+						for (const pane of Object.values(state.panes)) {
+							if (pane.chat) {
+								pane.chat.sessionId = null;
+							}
+						}
+					}
 					return state;
 				},
 				merge: (persistedState, currentState) => {

@@ -57,6 +57,9 @@ export class StreamWatcher {
 		// Seed seenMessageIds from existing chunks so we don't re-trigger on history.
 		// Also replay the latest config event to initialize config from stream.
 		const chunks = this.sessionDB.collections.chunks;
+		console.log(
+			`[stream-watcher] Session ${this.sessionId} — chunks collection exists: ${!!chunks}, size: ${chunks?.size ?? 0}`,
+		);
 		let latestConfig: Record<string, unknown> | null = null;
 
 		for (const row of chunks.values()) {
@@ -81,12 +84,21 @@ export class StreamWatcher {
 
 		// Subscribe to chunk changes
 		const subscription = chunks.subscribeChanges((changes) => {
+			console.log(
+				`[stream-watcher] Session ${this.sessionId} — ${changes.length} chunk changes`,
+			);
 			for (const change of changes) {
+				console.log(
+					`[stream-watcher] Change: type=${change.type}`,
+				);
 				if (change.type !== "insert" && change.type !== "update") continue;
 				const row = change.value as ChunkRow;
 
 				try {
 					const parsed = JSON.parse(row.chunk);
+					console.log(
+						`[stream-watcher] Parsed chunk: type=${parsed.type} messageId=${row.messageId} role=${row.role}`,
+					);
 					this.handleChunk(parsed, row);
 				} catch {
 					// skip unparseable

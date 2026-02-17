@@ -165,7 +165,7 @@ export interface TabsStore extends TabsState {
 
 	// Chat operations
 	/** Switch a chat pane to a different session */
-	switchChatSession: (paneId: string, sessionId: string) => void;
+	switchChatSession: (paneId: string, sessionId: string | null) => void;
 
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
