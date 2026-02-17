@@ -2,26 +2,23 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { env } from "./env";
-import { SessionProtocol } from "./protocol";
-import {
-	createApprovalRoutes,
-	createChunkRoutes,
-	createGenerationRoutes,
-	createHealthRoutes,
-	createMessageRoutes,
-	createPresenceRoutes,
-	createSessionRoutes,
-	createStopRoutes,
-	createStreamRoutes,
-	PROTOCOL_RESPONSE_HEADERS,
-} from "./routes";
+
+/** Hop-by-hop headers that should NOT be forwarded through a proxy. */
+const HOP_BY_HOP = new Set([
+	"connection",
+	"keep-alive",
+	"transfer-encoding",
+	"te",
+	"trailer",
+	"upgrade",
+	"host",
+]);
 
 export function createServer(options: {
 	baseUrl: string;
 	corsOrigins?: string[];
 }) {
 	const app = new Hono();
-	const protocol = new SessionProtocol({ baseUrl: options.baseUrl });
 
 	const allowedOrigins = options.corsOrigins ?? null;
 
@@ -34,20 +31,15 @@ export function createServer(options: {
 						return allowedOrigins.includes(origin) ? origin : "";
 					}
 				: "*",
-			allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-			allowHeaders: [
-				"Content-Type",
-				"Authorization",
-				"X-Actor-Id",
-				"X-Session-Id",
-			],
-			exposeHeaders: [...PROTOCOL_RESPONSE_HEADERS],
+			allowMethods: ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+			allowHeaders: ["*"],
+			exposeHeaders: ["*"],
 		}),
 	);
 
 	app.use("*", logger());
 
-	app.route("/health", createHealthRoutes());
+	app.get("/health", (c) => c.json({ status: "ok" }));
 
 	if (env.STREAMS_AUTH_TOKEN) {
 		const token = env.STREAMS_AUTH_TOKEN;
@@ -63,37 +55,68 @@ export function createServer(options: {
 		});
 	}
 
-	const v1 = new Hono();
-	v1.route("/sessions", createSessionRoutes(protocol));
-	v1.route("/sessions", createMessageRoutes(protocol));
-	v1.route("/sessions", createChunkRoutes(protocol));
-	v1.route("/sessions", createGenerationRoutes(protocol));
-	v1.route("/sessions", createStopRoutes(protocol));
-	v1.route("/sessions", createApprovalRoutes(protocol));
-	v1.route("/sessions", createPresenceRoutes(protocol));
-	v1.route("/stream", createStreamRoutes(options.baseUrl));
+	// Transparent proxy — forward all methods to the internal durable stream server
+	app.all("/v1/stream/sessions/:sessionId", async (c) => {
+		const sessionId = c.req.param("sessionId");
+		const upstream = new URL(
+			`${options.baseUrl}/v1/stream/sessions/${sessionId}`,
+		);
 
-	app.route("/v1", v1);
+		// Forward query params
+		for (const [key, value] of Object.entries(c.req.query())) {
+			if (value !== undefined) upstream.searchParams.set(key, value);
+		}
 
-	app.get("/", (c) => {
-		return c.json({
-			name: "@superset/streams",
-			version: "0.1.0",
-			endpoints: {
-				health: "/health",
-				stream: "/v1/stream/sessions/:sessionId",
-				sessions: "/v1/sessions/:sessionId",
-				messages: "/v1/sessions/:sessionId/messages",
-				chunks: "/v1/sessions/:sessionId/chunks",
-				chunksBatch: "/v1/sessions/:sessionId/chunks/batch",
-				approvals: "/v1/sessions/:sessionId/approvals/:approvalId",
-				presence: "/v1/sessions/:sessionId/login",
-				generationsStart: "/v1/sessions/:sessionId/generations/start",
-				generationsFinish: "/v1/sessions/:sessionId/generations/finish",
-				stop: "/v1/sessions/:sessionId/stop",
-			},
-		});
+		// Forward all non-hop-by-hop headers
+		const headers: Record<string, string> = {};
+		for (const [key, value] of c.req.raw.headers.entries()) {
+			if (!HOP_BY_HOP.has(key.toLowerCase())) {
+				headers[key] = value;
+			}
+		}
+
+		const method = c.req.method;
+		const hasBody = method === "POST" || method === "PUT";
+		const init: RequestInit = { method, headers };
+		if (hasBody) {
+			init.body = c.req.raw.body;
+			(init as Record<string, unknown>).duplex = "half";
+		}
+
+		try {
+			const res = await fetch(upstream.toString(), init);
+
+			// Forward all response headers
+			for (const [key, value] of res.headers.entries()) {
+				if (!HOP_BY_HOP.has(key.toLowerCase())) {
+					c.header(key, value);
+				}
+			}
+
+			if (res.status === 204 || !res.body) {
+				return c.body(null, res.status as 204);
+			}
+
+			c.status(res.status as 200);
+			return c.body(res.body as ReadableStream);
+		} catch (error) {
+			console.error(`[stream] ${method} proxy error:`, error);
+			return c.json(
+				{
+					error: "Failed to proxy request",
+					details: (error as Error).message,
+				},
+				502,
+			);
+		}
 	});
 
-	return { app, protocol };
+	app.get("/", (c) =>
+		c.json({
+			name: "@superset/streams",
+			version: "0.1.0",
+		}),
+	);
+
+	return { app };
 }

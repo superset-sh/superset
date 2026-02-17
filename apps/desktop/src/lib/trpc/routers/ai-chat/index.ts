@@ -9,6 +9,7 @@ import {
 	RequestContext,
 	setAnthropicAuthToken,
 	superagent,
+	toAISdkStream,
 	toAISdkV5Messages,
 } from "@superset/agent";
 import { observable } from "@trpc/server/observable";
@@ -33,6 +34,10 @@ import {
 	type SessionContext,
 	type SessionState,
 } from "./utils/stream-resume";
+import {
+	ensureProxySession,
+	writeAgentStream,
+} from "./utils/write-stream-to-proxy";
 
 // Resolve Claude OAuth credentials from config files / keychain.
 // Only OAuth is supported — ANTHROPIC_API_KEY / OPENAI_API_KEY are never
@@ -530,6 +535,16 @@ export const createAiChatRouter = () => {
 							input.permissionMode === "default" ||
 							input.permissionMode === "acceptEdits";
 
+						// Resolve hosted durable streams config for direct writes
+						const streamsUrl = env.NEXT_PUBLIC_STREAMS_URL;
+						let streamsAuthToken: string | undefined;
+						try {
+							const { token } = await loadToken();
+							streamsAuthToken = token ?? undefined;
+						} catch {
+							// Continue without auth token
+						}
+
 						const output = await superagent.stream(input.text, {
 							requestContext: new RequestContext(requestEntries),
 							maxSteps: 100,
@@ -579,12 +594,39 @@ export const createAiChatRouter = () => {
 							});
 						}
 
-						await drainStreamToEmitter(
-							output,
-							input.sessionId,
-							sessionState,
-							input.permissionMode,
-						);
+						if (streamsUrl) {
+							// Durable stream path: write STATE-PROTOCOL events directly via @durable-streams/client
+							// Note: user message is written by DurableChatTransport in the renderer
+							const assistantMessageId = crypto.randomUUID();
+							await ensureProxySession(
+								streamsUrl,
+								input.sessionId,
+								streamsAuthToken,
+							);
+							const aiStream = toAISdkStream(output, {
+								from: "agent",
+							});
+							await writeAgentStream(
+								aiStream as unknown as ReadableStream,
+								{
+									sessionId: input.sessionId,
+									messageId: assistantMessageId,
+									streamsUrl,
+									authToken: streamsAuthToken,
+									abortSignal: abortController.signal,
+								},
+							);
+							// Signal done to any legacy tRPC subscription listeners
+							superagentEmitter.emit(input.sessionId, { type: "done" });
+						} else {
+							// Legacy path: drain to EventEmitter for tRPC subscription
+							await drainStreamToEmitter(
+								output,
+								input.sessionId,
+								sessionState,
+								input.permissionMode,
+							);
+						}
 					} catch (error) {
 						sessionRunIds.delete(input.sessionId);
 						sessionContext.delete(input.sessionId);

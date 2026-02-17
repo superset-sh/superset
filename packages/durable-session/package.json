@@ -11,10 +11,6 @@
 		"./react": {
 			"types": "./src/react/index.ts",
 			"default": "./src/react/index.ts"
-		},
-		"./transport": {
-			"types": "./src/transport/index.ts",
-			"default": "./src/transport/index.ts"
 		}
 	},
 	"dependencies": {
@@ -24,7 +20,7 @@
 	},
 	"peerDependencies": {
 		"ai": "^5.0.0",
-		"@ai-sdk/react": "^1.0.0",
+		"@ai-sdk/react": "^2.0.0",
 		"react": "^18.0.0 || ^19.0.0"
 	},
 	"devDependencies": {

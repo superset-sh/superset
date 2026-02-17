@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.72.1",
+		"@durable-streams/client": "^0.2.1",
 		"@better-auth/oauth-provider": "1.4.18",
 		"@electric-sql/client": "1.5.2",
 		"@linear/sdk": "^68.1.0",
@@ -23,6 +24,7 @@
 		"@slack/types": "^2.19.0",
 		"@slack/web-api": "^7.13.0",
 		"@superset/auth": "workspace:*",
+		"@superset/durable-session": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/mcp": "workspace:*",
 		"@superset/shared": "workspace:*",

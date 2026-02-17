@@ -1,3 +1,4 @@
+export { toAISdkStream } from "@mastra/ai-sdk";
 export { toAISdkV5Messages } from "@mastra/ai-sdk/ui";
 export { PROVIDER_REGISTRY } from "@mastra/core/llm";
 export { RequestContext } from "@mastra/core/request-context";

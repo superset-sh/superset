@@ -1,21 +1,23 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+	createSessionDB,
+	DurableChatTransport,
+} from "@superset/durable-session";
+import { useChat } from "@ai-sdk/react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
 import { ToolApprovalBar } from "./components/ToolApprovalBar";
 import { DEFAULT_MODEL } from "./constants";
-import { useChatActions } from "./hooks/useChatActions";
 import type { SlashCommand } from "./hooks/useSlashCommands";
-import { useSuperagentStream } from "./hooks/useSuperagentStream";
 import { useToolApproval } from "./hooks/useToolApproval";
 import type {
 	ChatInterfaceProps,
-	ChatMessage,
 	ModelOption,
 	PermissionMode,
 	TokenUsage,
 } from "./types";
-import { hydrateMessages } from "./utils/hydrate-messages";
+import { adaptUIMessages } from "./utils/adapt-ui-message";
 
 export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] =
@@ -24,8 +26,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
-	const [isStreaming, setIsStreaming] = useState(false);
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const [error, setError] = useState<string | null>(null);
 	const [turnUsage, setTurnUsage] = useState<TokenUsage>({
 		promptTokens: 0,
@@ -38,20 +38,90 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		totalTokens: 0,
 	});
 
-	// Load conversation history from Mastra Memory
-	const { data: historyMessages } = electronTrpc.aiChat.getMessages.useQuery(
-		{ threadId: sessionId },
-		{ enabled: !!sessionId },
+	// Fetch proxy config from main process
+	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
+
+	// tRPC mutation to trigger the agent on the desktop main process
+	const triggerAgent = electronTrpc.aiChat.superagent.useMutation({
+		onError: (err) => {
+			console.error("[chat] Agent trigger failed:", err);
+			setError(err.message);
+		},
+	});
+	const abortAgent = electronTrpc.aiChat.abortSuperagent.useMutation();
+
+	// Ref holds current settings so the transport callback doesn't go stale
+	const settingsRef = useRef({
+		sessionId,
+		selectedModel,
+		cwd,
+		permissionMode,
+		thinkingEnabled,
+	});
+	settingsRef.current = {
+		sessionId,
+		selectedModel,
+		cwd,
+		permissionMode,
+		thinkingEnabled,
+	};
+
+	// Stable ref for triggerAgent.mutate — tRPC mutation object is stable but we ref it for safety
+	const triggerAgentRef = useRef(triggerAgent);
+	triggerAgentRef.current = triggerAgent;
+
+	// SessionDB: one SSE connection, reactive TanStack DB collections
+	const sessionDB = useMemo(() => {
+		if (!config?.proxyUrl) return null;
+		return createSessionDB({
+			sessionId,
+			baseUrl: config.proxyUrl,
+			headers: config.authToken
+				? { Authorization: `Bearer ${config.authToken}` }
+				: undefined,
+		});
+	}, [sessionId, config?.proxyUrl, config?.authToken]);
+
+	// DurableChatTransport: bridges SessionDB → useChat
+	const transport = useMemo(() => {
+		if (!config?.proxyUrl || !sessionDB) return undefined;
+		return new DurableChatTransport({
+			proxyUrl: config.proxyUrl,
+			sessionId,
+			headers: config.authToken
+				? { Authorization: `Bearer ${config.authToken}` }
+				: undefined,
+			sessionDB,
+			onSend: (text) => {
+				const s = settingsRef.current;
+				triggerAgentRef.current.mutate({
+					sessionId: s.sessionId,
+					text,
+					modelId: s.selectedModel.id,
+					cwd: s.cwd,
+					permissionMode: s.permissionMode,
+					thinkingEnabled: s.thinkingEnabled,
+				});
+			},
+		});
+	}, [sessionId, config?.proxyUrl, config?.authToken, sessionDB]);
+
+	// useChat: AI SDK v5 hook with custom transport
+	const chat = useChat({
+		id: sessionId,
+		transport,
+		experimental_throttle: 50,
+	});
+
+	const isStreaming = chat.status === "streaming" || chat.status === "submitted";
+
+	// Adapt UIMessage[] → ChatMessage[] for the existing rendering pipeline
+	const messages = useMemo(
+		() => adaptUIMessages(chat.messages),
+		[chat.messages],
 	);
 
-	useEffect(() => {
-		if (!historyMessages || historyMessages.length === 0) return;
-		setMessages(
-			hydrateMessages(historyMessages as Array<Record<string, unknown>>),
-		);
-	}, [historyMessages]);
-
-	// 1. Tool approval state + handlers
+	// Tool approval state + handlers (stays via tRPC for now)
 	const {
 		pendingApproval,
 		setPendingApproval,
@@ -59,35 +129,36 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		handleAlwaysAllow,
 		handleDecline,
 		handleAnswer,
-	} = useToolApproval({ sessionId, setPermissionMode, setMessages });
+	} = useToolApproval({ sessionId, setPermissionMode, setMessages: () => {} });
 
-	// 2. Stream subscription (depends on setPendingApproval)
-	const { activeAgentCallIdRef, runIdRef, endStream } = useSuperagentStream({
-		sessionId,
-		setMessages,
-		setIsStreaming,
-		setError,
-		setTurnUsage,
-		setSessionUsage,
-		setPendingApproval,
-	});
+	// Send: delegate to useChat which calls transport.sendMessages → onSend → tRPC
+	const handleSend = useCallback(
+		(message: { text: string }) => {
+			const text = message.text.trim();
+			if (!text) return;
 
-	// 3. Send + stop actions (depends on refs + endStream)
-	const { handleSend, handleStop } = useChatActions({
-		sessionId,
-		selectedModel,
-		cwd,
-		permissionMode,
-		thinkingEnabled,
-		setIsStreaming,
-		setMessages,
-		setError,
-		setTurnUsage,
-		setPendingApproval,
-		activeAgentCallIdRef,
-		runIdRef,
-		endStream,
-	});
+			setError(null);
+			setTurnUsage({
+				promptTokens: 0,
+				completionTokens: 0,
+				totalTokens: 0,
+			});
+			setPendingApproval(null);
+
+			chat.sendMessage({ text });
+		},
+		[chat, setPendingApproval],
+	);
+
+	// Stop: abort via tRPC + useChat.stop()
+	const handleStop = useCallback(
+		(e: React.MouseEvent) => {
+			e.preventDefault();
+			abortAgent.mutate({ sessionId });
+			chat.stop();
+		},
+		[abortAgent, sessionId, chat],
+	);
 
 	const handleSlashCommandSend = useCallback(
 		(command: SlashCommand) => {
