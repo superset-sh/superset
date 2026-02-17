@@ -15,9 +15,7 @@ export function SidebarControl() {
 					variant="ghost"
 					size="sm"
 					onClick={toggleSidebar}
-					aria-label={
-						isSidebarOpen ? "Hide Code Sidebar" : "Show Code Sidebar"
-					}
+					aria-label={isSidebarOpen ? "Hide Code Sidebar" : "Show Code Sidebar"}
 					aria-pressed={isSidebarOpen}
 					className={cn(
 						"no-drag gap-1.5 h-6 px-1.5 rounded",
