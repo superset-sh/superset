@@ -71,9 +71,11 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          claude -p "Version: $VERSION
-
-          $(cat .github/prompts/generate-changelog.md)" --allowedTools "Bash(git*)" "Bash(gh*)" "Bash(date*)" "Bash(ls*)" "Read" "Write" "Edit" "Glob" "Grep"
+          {
+            echo "Version: $VERSION"
+            echo ""
+            cat .github/prompts/generate-changelog.md
+          } | claude -p --allowedTools "Bash(git*)" "Bash(gh*)" "Bash(date*)" "Bash(ls*)" "Read" "Write" "Edit" "Glob" "Grep"
 
       - name: Check for changes
         id: check-changes
@@ -101,7 +103,13 @@ jobs:
         if: steps.check-changes.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
+          TAG_LINE=""
+          if [ "$EVENT_NAME" = "release" ]; then
+            TAG_LINE="- **Tag**: desktop-v${VERSION}"
+          fi
+
           gh pr create \
             --reviewer kitenite --reviewer saddlepaddle --reviewer AviPeltz \
             --title "docs: changelog for v${VERSION}" \
@@ -111,7 +119,7 @@ jobs:
           ## Details
           - **Prompt file**: \`.github/prompts/generate-changelog.md\`
           - **Version**: v${VERSION}
-          - **Tag**: desktop-v${VERSION}
+          ${TAG_LINE}
 
           ## Review Checklist
           - [ ] Replace \`IMAGE_PLACEHOLDER.png\` with actual screenshot
