@@ -14,6 +14,11 @@ import {
 	githubRepositories,
 } from "./github";
 import {
+	chatSessions,
+	sessionAgents,
+	sessionMembers,
+} from "./chat";
+import {
 	agentCommands,
 	devicePresence,
 	integrationConnections,

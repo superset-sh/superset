@@ -3,7 +3,7 @@ import {
 	DurableChatTransport,
 } from "@superset/durable-session";
 import { useChat } from "@ai-sdk/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
@@ -14,7 +14,6 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "./types";
-import { adaptUIMessages } from "./utils/adapt-ui-message";
 
 export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] =
@@ -26,38 +25,64 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [error, setError] = useState<string | null>(null);
 
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
+	const abortAgent = electronTrpc.aiChat.abortSuperagent.useMutation();
 
-	// tRPC mutation to trigger the agent on the desktop main process
-	// TODO: Replace with StreamWatcher (Phase 4) — the desktop main process
-	// should detect new user messages in the durable stream and trigger the
-	// agent automatically, instead of the renderer calling tRPC.
-	const triggerAgent = electronTrpc.aiChat.superagent.useMutation({
-		onError: (err) => {
-			console.error("[chat] Agent trigger failed:", err);
+	// Register session with StreamWatcher on main process.
+	// The StreamWatcher monitors the durable stream for new user messages
+	// and triggers the agent automatically — any client can send a message.
+	const registerSession = electronTrpc.aiChat.registerSession.useMutation({
+		onError: (err: { message: string }) => {
+			console.error("[chat] Session registration failed:", err);
 			setError(err.message);
 		},
 	});
-	const abortAgent = electronTrpc.aiChat.abortSuperagent.useMutation();
+	const updateSessionConfig =
+		electronTrpc.aiChat.updateSessionConfig.useMutation();
 
-	const settingsRef = useRef({
-		sessionId,
-		selectedModel,
-		cwd,
+	// Register on mount
+	const registeredRef = useRef(false);
+	useEffect(() => {
+		if (registeredRef.current) return;
+		registeredRef.current = true;
+		registerSession.mutate({
+			sessionId,
+			cwd,
+			modelId: selectedModel.id,
+			permissionMode,
+			thinkingEnabled,
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [sessionId]);
+
+	// Update config when settings change
+	const prevConfigRef = useRef({
+		modelId: selectedModel.id,
 		permissionMode,
 		thinkingEnabled,
 	});
-	settingsRef.current = {
-		sessionId,
-		selectedModel,
-		cwd,
-		permissionMode,
-		thinkingEnabled,
-	};
-	const triggerAgentRef = useRef(triggerAgent);
-	triggerAgentRef.current = triggerAgent;
+	useEffect(() => {
+		const prev = prevConfigRef.current;
+		if (
+			prev.modelId === selectedModel.id &&
+			prev.permissionMode === permissionMode &&
+			prev.thinkingEnabled === thinkingEnabled
+		) {
+			return;
+		}
+		prevConfigRef.current = {
+			modelId: selectedModel.id,
+			permissionMode,
+			thinkingEnabled,
+		};
+		updateSessionConfig.mutate({
+			sessionId,
+			modelId: selectedModel.id,
+			permissionMode,
+			thinkingEnabled,
+		});
+	}, [selectedModel.id, permissionMode, thinkingEnabled, sessionId, updateSessionConfig]);
 
 	// SessionDB: one SSE connection, reactive TanStack DB collections
-	// Auth is handled by Better Auth cookies (credentials: "include")
 	const sessionDB = useMemo(() => {
 		if (!config?.apiUrl) return null;
 		return createSessionDB({
@@ -84,17 +109,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 
 	const isStreaming = chat.status === "streaming" || chat.status === "submitted";
 
-	// TODO: Remove this adapter — update MessageList/MessagePartsRenderer to
-	// use UIMessage parts directly instead of the legacy ChatMessage types.
-	const messages = useMemo(
-		() => adaptUIMessages(chat.messages),
-		[chat.messages],
-	);
-
-	// TODO: Tool approvals and ask_user_question should use AI SDK's
-	// chat.addToolOutput() to send results back through the transport.
-	// The old useToolApproval hook was broken (setPendingApproval never called).
-
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			const text = message.text.trim();
@@ -102,19 +116,9 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 
 			setError(null);
 
-			// Write user message to durable stream via transport
+			// Write user message to durable stream via transport.
+			// StreamWatcher on main process detects it and triggers the agent.
 			chat.sendMessage({ text });
-
-			// Trigger agent on desktop main process
-			const s = settingsRef.current;
-			triggerAgentRef.current.mutate({
-				sessionId: s.sessionId,
-				text,
-				modelId: s.selectedModel.id,
-				cwd: s.cwd,
-				permissionMode: s.permissionMode,
-				thinkingEnabled: s.thinkingEnabled,
-			});
 		},
 		[chat],
 	);
@@ -138,7 +142,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	return (
 		<div className="flex h-full flex-col bg-background">
 			<MessageList
-				messages={messages}
+				messages={chat.messages}
 				isStreaming={isStreaming}
 			/>
 

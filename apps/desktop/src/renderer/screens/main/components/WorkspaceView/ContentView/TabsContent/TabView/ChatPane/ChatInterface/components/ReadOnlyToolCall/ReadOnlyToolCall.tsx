@@ -1,22 +1,25 @@
 import { ToolCall } from "@superset/ui/ai-elements/tool-call";
+import { getToolName } from "ai";
 import {
 	FileIcon,
 	FileSearchIcon,
 	FolderTreeIcon,
 	SearchIcon,
 } from "lucide-react";
-import type { ToolCallPart } from "../../types";
+import type { ToolPart } from "../../utils/tool-helpers";
 import { getArgs } from "../../utils/tool-helpers";
 
-export function ReadOnlyToolCall({ part }: { part: ToolCallPart }) {
+export function ReadOnlyToolCall({ part }: { part: ToolPart }) {
 	const args = getArgs(part);
-	const isPending = part.status !== "done";
+	const toolName = getToolName(part);
+	const isPending =
+		part.state !== "output-available" && part.state !== "output-error";
 
 	let title = "Read file";
 	let subtitle = String(args.path ?? args.filePath ?? args.query ?? "");
 	let icon = FileIcon;
 
-	switch (part.toolName) {
+	switch (toolName) {
 		case "mastra_workspace_read_file":
 			title = isPending ? "Reading" : "Read";
 			subtitle = String(args.path ?? args.filePath ?? "");
@@ -54,7 +57,7 @@ export function ReadOnlyToolCall({ part }: { part: ToolCallPart }) {
 			title={title}
 			subtitle={subtitle}
 			isPending={isPending}
-			isError={!!part.isError}
+			isError={part.state === "output-error"}
 		/>
 	);
 }
