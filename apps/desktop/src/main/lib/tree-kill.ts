@@ -3,12 +3,17 @@ import treeKill from "tree-kill";
 const DEFAULT_ESCALATION_TIMEOUT_MS = 2000;
 const POLL_INTERVAL_MS = 50;
 
-/**
- * Promisified tree-kill. Resolves when all descendants have been signaled.
- */
 export function treeKillAsync(pid: number, signal: string): Promise<void> {
 	return new Promise<void>((resolve) => {
-		treeKill(pid, signal, () => resolve());
+		treeKill(pid, signal, (err) => {
+			if (err) {
+				console.warn(
+					`[treeKillAsync] Failed to ${signal} pid ${pid}:`,
+					err.message,
+				);
+			}
+			resolve();
+		});
 	});
 }
 

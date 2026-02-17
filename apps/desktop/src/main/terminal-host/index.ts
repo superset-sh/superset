@@ -760,7 +760,6 @@ async function startServer(): Promise<void> {
 }
 
 async function stopServer(): Promise<void> {
-	// Dispose terminal host - tree-kills all session process trees and waits
 	if (terminalHost) {
 		await terminalHost.dispose();
 		log("info", "Terminal host disposed");
@@ -777,7 +776,6 @@ async function stopServer(): Promise<void> {
 		}
 	});
 
-	// Clean up socket and PID files
 	try {
 		if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
 		if (existsSync(PID_PATH)) unlinkSync(PID_PATH);

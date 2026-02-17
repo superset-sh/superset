@@ -798,16 +798,11 @@ export class Session {
 		}
 	}
 
-	/**
-	 * Dispose of the session.
-	 * Tree-kills the subprocess and PTY process trees, then resolves.
-	 * Callers that don't need to wait can fire-and-forget.
-	 */
+	/** Callers that don't need to wait can fire-and-forget. */
 	dispose(): Promise<void> {
 		if (this.disposed) return Promise.resolve();
 		this.disposed = true;
 
-		// Collect PIDs to kill before clearing references
 		const pidsToKill = this.collectProcessPids();
 
 		if (this.subprocess) {
@@ -821,18 +816,13 @@ export class Session {
 
 		if (pidsToKill.length === 0) return Promise.resolve();
 
-		// treeKill enumerates descendants via ps/pgrep before sending signals,
-		// so we must wait for callbacks to ensure all children are killed.
+		// Must await: treeKill enumerates descendants via ps/pgrep before signaling
 		return Promise.all(
 			pidsToKill.map((pid) => treeKillAsync(pid, "SIGKILL")),
 		).then(() => {});
 	}
 
-	/**
-	 * Collect PIDs that need tree-killing: the subprocess and PTY shell.
-	 * The PTY PID is included as a safety net in case the shell was
-	 * reparented (orphaned) after the subprocess exited.
-	 */
+	/** Includes PTY PID as safety net in case the shell was reparented after subprocess exit. */
 	private collectProcessPids(): number[] {
 		const pids: number[] = [];
 		if (this.subprocess?.pid) pids.push(this.subprocess.pid);
@@ -840,10 +830,6 @@ export class Session {
 		return pids;
 	}
 
-	/**
-	 * Reset subprocess and write-queue state.
-	 * Shared by handleSubprocessExit (natural exit) and dispose (forced teardown).
-	 */
 	private resetProcessState(): void {
 		this.subprocess = null;
 		this.subprocessReady = false;
