@@ -13,7 +13,7 @@ import { MessagePartsRenderer } from "../MessagePartsRenderer";
 interface MessageListProps {
 	messages: ChatMessage[];
 	isStreaming: boolean;
-	onAnswer: (toolCallId: string, answers: Record<string, string>) => void;
+	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
 export function MessageList({

@@ -1,22 +1,30 @@
+// TODO: The desktop main process currently writes directly to the hosted Durable
+// Streams service using DURABLE_STREAMS_SECRET. This should be migrated to go
+// through the proxy (apps/api) with Better Auth cookies instead, so that:
+// 1. DURABLE_STREAMS_SECRET stays server-side only (not on user devices)
+// 2. All clients use the same auth path (Better Auth)
+// 3. The proxy owns all write logic (validation, STATE-PROTOCOL events)
+// The proxy needs a POST /:id/chunks/batch endpoint for efficient agent streaming.
+
 import { DurableStream, IdempotentProducer } from "@durable-streams/client";
 import { sessionStateSchema } from "@superset/durable-session";
 import type { UIMessageChunk } from "ai";
+import { env } from "main/env.main";
 
-/**
- * Ensure a session stream exists on the hosted Durable Streams service.
- * Uses DurableStream.create() directly — the desktop has the service secret.
- */
-export async function ensureProxySession(
-	streamsUrl: string,
-	sessionId: string,
-	authToken?: string,
-): Promise<void> {
-	const headers: Record<string, string> = {};
-	if (authToken) headers.Authorization = `Bearer ${authToken}`;
+function getStreamHeaders(): Record<string, string> {
+	const secret = env.DURABLE_STREAMS_SECRET;
+	if (secret) return { Authorization: `Bearer ${secret}` };
+	return {};
+}
 
+function streamUrl(sessionId: string): string {
+	return `${env.NEXT_PUBLIC_STREAMS_URL}/v1/stream/sessions/${sessionId}`;
+}
+
+export async function ensureProxySession(sessionId: string): Promise<void> {
 	const stream = new DurableStream({
-		url: `${streamsUrl}/v1/stream/sessions/${sessionId}`,
-		headers,
+		url: streamUrl(sessionId),
+		headers: getStreamHeaders(),
 	});
 
 	await stream.create({ contentType: "application/json" });
@@ -25,31 +33,18 @@ export async function ensureProxySession(
 interface WriteAgentStreamOptions {
 	sessionId: string;
 	messageId: string;
-	streamsUrl: string;
-	authToken?: string;
 	abortSignal?: AbortSignal;
 }
 
-/**
- * Drain a ReadableStream<UIMessageChunk> (from toAISdkStream) into the
- * durable stream as STATE-PROTOCOL chunk events.
- *
- * Uses @durable-streams/client IdempotentProducer directly against the
- * hosted Durable Streams service for automatic batching and exactly-once delivery.
- */
 export async function writeAgentStream(
 	stream: ReadableStream<UIMessageChunk>,
 	options: WriteAgentStreamOptions,
 ): Promise<void> {
-	const { sessionId, messageId, streamsUrl, authToken, abortSignal } = options;
-
-	const streamUrl = `${streamsUrl}/v1/stream/sessions/${sessionId}`;
-	const headers: Record<string, string> = {};
-	if (authToken) headers.Authorization = `Bearer ${authToken}`;
+	const { sessionId, messageId, abortSignal } = options;
 
 	const durableStream = new DurableStream({
-		url: streamUrl,
-		headers,
+		url: streamUrl(sessionId),
+		headers: getStreamHeaders(),
 	});
 
 	const producer = new IdempotentProducer(

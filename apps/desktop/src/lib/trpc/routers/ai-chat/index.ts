@@ -14,7 +14,6 @@ import {
 import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { loadToken } from "../auth/utils/auth-functions";
 import {
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
@@ -58,23 +57,12 @@ async function writeToDurableStream(
 	sessionId: string,
 	abortSignal: AbortSignal,
 ) {
-	const streamsUrl = env.NEXT_PUBLIC_STREAMS_URL;
-	if (!streamsUrl) return;
-
-	let authToken: string | undefined;
-	try {
-		const { token } = await loadToken();
-		authToken = token ?? undefined;
-	} catch {}
-
 	const messageId = crypto.randomUUID();
-	await ensureProxySession(streamsUrl, sessionId, authToken);
+	await ensureProxySession(sessionId);
 	const aiStream = toAISdkStream(stream, { from: "agent" });
 	await writeAgentStream(aiStream as unknown as ReadableStream, {
 		sessionId,
 		messageId,
-		streamsUrl,
-		authToken,
 		abortSignal,
 	});
 }
@@ -297,13 +285,9 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 
 export const createAiChatRouter = () => {
 	return router({
-		getConfig: publicProcedure.query(async () => {
-			const { token } = await loadToken();
-			return {
-				proxyUrl: env.NEXT_PUBLIC_STREAMS_URL,
-				authToken: token,
-			};
-		}),
+		getConfig: publicProcedure.query(() => ({
+			apiUrl: env.NEXT_PUBLIC_API_URL,
+		})),
 
 		getModels: publicProcedure.query(() => getAvailableModels()),
 

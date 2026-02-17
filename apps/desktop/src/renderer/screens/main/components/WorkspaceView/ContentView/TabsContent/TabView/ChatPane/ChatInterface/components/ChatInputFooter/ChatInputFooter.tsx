@@ -11,7 +11,7 @@ import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import type React from "react";
 import { HiMiniPaperClip } from "react-icons/hi2";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
-import type { ModelOption, PermissionMode, TokenUsage } from "../../types";
+import type { ModelOption, PermissionMode } from "../../types";
 import {
 	FileMentionAnchor,
 	FileMentionProvider,
@@ -33,8 +33,6 @@ interface ChatInputFooterProps {
 	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
 	thinkingEnabled: boolean;
 	setThinkingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
-	turnUsage: TokenUsage;
-	sessionUsage: TokenUsage;
 	onSend: (message: { text: string }) => void;
 	onStop: (e: React.MouseEvent) => void;
 	onSlashCommandSend: (command: SlashCommand) => void;
@@ -52,8 +50,6 @@ export function ChatInputFooter({
 	setPermissionMode,
 	thinkingEnabled,
 	setThinkingEnabled,
-	turnUsage,
-	sessionUsage,
 	onSend,
 	onStop,
 	onSlashCommandSend,
@@ -93,22 +89,10 @@ export function ChatInputFooter({
 												onSelectMode={setPermissionMode}
 											/>
 										</PromptInputTools>
-										<div className="flex items-center gap-2">
-											{sessionUsage.totalTokens > 0 && (
-												<span
-													className="text-[10px] tabular-nums text-muted-foreground"
-													title={`Turn: ${turnUsage.totalTokens.toLocaleString()} tokens | Session: ${sessionUsage.totalTokens.toLocaleString()} tokens`}
-												>
-													{turnUsage.totalTokens > 0 && isStreaming
-														? `${turnUsage.totalTokens.toLocaleString()} tok`
-														: `${sessionUsage.totalTokens.toLocaleString()} tok`}
-												</span>
-											)}
-											<PromptInputSubmit
-												status={isStreaming ? "streaming" : undefined}
-												onClick={isStreaming ? onStop : undefined}
-											/>
-										</div>
+										<PromptInputSubmit
+											status={isStreaming ? "streaming" : undefined}
+											onClick={isStreaming ? onStop : undefined}
+										/>
 									</PromptInputFooter>
 								</PromptInput>
 							</FileMentionAnchor>

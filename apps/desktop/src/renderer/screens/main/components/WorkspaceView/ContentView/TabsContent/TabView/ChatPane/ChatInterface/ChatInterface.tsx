@@ -7,15 +7,12 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
-import { ToolApprovalBar } from "./components/ToolApprovalBar";
 import { DEFAULT_MODEL } from "./constants";
 import type { SlashCommand } from "./hooks/useSlashCommands";
-import { useToolApproval } from "./hooks/useToolApproval";
 import type {
 	ChatInterfaceProps,
 	ModelOption,
 	PermissionMode,
-	TokenUsage,
 } from "./types";
 import { adaptUIMessages } from "./utils/adapt-ui-message";
 
@@ -27,21 +24,13 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
 	const [error, setError] = useState<string | null>(null);
-	const [turnUsage, setTurnUsage] = useState<TokenUsage>({
-		promptTokens: 0,
-		completionTokens: 0,
-		totalTokens: 0,
-	});
-	const [sessionUsage, setSessionUsage] = useState<TokenUsage>({
-		promptTokens: 0,
-		completionTokens: 0,
-		totalTokens: 0,
-	});
 
-	// Fetch proxy config from main process
 	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
 
 	// tRPC mutation to trigger the agent on the desktop main process
+	// TODO: Replace with StreamWatcher (Phase 4) — the desktop main process
+	// should detect new user messages in the durable stream and trigger the
+	// agent automatically, instead of the renderer calling tRPC.
 	const triggerAgent = electronTrpc.aiChat.superagent.useMutation({
 		onError: (err) => {
 			console.error("[chat] Agent trigger failed:", err);
@@ -50,7 +39,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	});
 	const abortAgent = electronTrpc.aiChat.abortSuperagent.useMutation();
 
-	// Ref holds current settings so the transport callback doesn't go stale
 	const settingsRef = useRef({
 		sessionId,
 		selectedModel,
@@ -65,48 +53,29 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		permissionMode,
 		thinkingEnabled,
 	};
-
-	// Stable ref for triggerAgent.mutate — tRPC mutation object is stable but we ref it for safety
 	const triggerAgentRef = useRef(triggerAgent);
 	triggerAgentRef.current = triggerAgent;
 
 	// SessionDB: one SSE connection, reactive TanStack DB collections
+	// Auth is handled by Better Auth cookies (credentials: "include")
 	const sessionDB = useMemo(() => {
-		if (!config?.proxyUrl) return null;
+		if (!config?.apiUrl) return null;
 		return createSessionDB({
 			sessionId,
-			baseUrl: config.proxyUrl,
-			headers: config.authToken
-				? { Authorization: `Bearer ${config.authToken}` }
-				: undefined,
+			baseUrl: `${config.apiUrl}/api/streams`,
 		});
-	}, [sessionId, config?.proxyUrl, config?.authToken]);
+	}, [sessionId, config?.apiUrl]);
 
 	// DurableChatTransport: bridges SessionDB → useChat
 	const transport = useMemo(() => {
-		if (!config?.proxyUrl || !sessionDB) return undefined;
+		if (!config?.apiUrl || !sessionDB) return undefined;
 		return new DurableChatTransport({
-			proxyUrl: config.proxyUrl,
+			proxyUrl: config.apiUrl,
 			sessionId,
-			headers: config.authToken
-				? { Authorization: `Bearer ${config.authToken}` }
-				: undefined,
 			sessionDB,
-			onSend: (text) => {
-				const s = settingsRef.current;
-				triggerAgentRef.current.mutate({
-					sessionId: s.sessionId,
-					text,
-					modelId: s.selectedModel.id,
-					cwd: s.cwd,
-					permissionMode: s.permissionMode,
-					thinkingEnabled: s.thinkingEnabled,
-				});
-			},
 		});
-	}, [sessionId, config?.proxyUrl, config?.authToken, sessionDB]);
+	}, [sessionId, config?.apiUrl, sessionDB]);
 
-	// useChat: AI SDK v5 hook with custom transport
 	const chat = useChat({
 		id: sessionId,
 		transport,
@@ -115,42 +84,41 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 
 	const isStreaming = chat.status === "streaming" || chat.status === "submitted";
 
-	// Adapt UIMessage[] → ChatMessage[] for the existing rendering pipeline
+	// TODO: Remove this adapter — update MessageList/MessagePartsRenderer to
+	// use UIMessage parts directly instead of the legacy ChatMessage types.
 	const messages = useMemo(
 		() => adaptUIMessages(chat.messages),
 		[chat.messages],
 	);
 
-	// Tool approval state + handlers (stays via tRPC for now)
-	const {
-		pendingApproval,
-		setPendingApproval,
-		handleApprove,
-		handleAlwaysAllow,
-		handleDecline,
-		handleAnswer,
-	} = useToolApproval({ sessionId, setPermissionMode, setMessages: () => {} });
+	// TODO: Tool approvals and ask_user_question should use AI SDK's
+	// chat.addToolOutput() to send results back through the transport.
+	// The old useToolApproval hook was broken (setPendingApproval never called).
 
-	// Send: delegate to useChat which calls transport.sendMessages → onSend → tRPC
 	const handleSend = useCallback(
 		(message: { text: string }) => {
 			const text = message.text.trim();
 			if (!text) return;
 
 			setError(null);
-			setTurnUsage({
-				promptTokens: 0,
-				completionTokens: 0,
-				totalTokens: 0,
-			});
-			setPendingApproval(null);
 
+			// Write user message to durable stream via transport
 			chat.sendMessage({ text });
+
+			// Trigger agent on desktop main process
+			const s = settingsRef.current;
+			triggerAgentRef.current.mutate({
+				sessionId: s.sessionId,
+				text,
+				modelId: s.selectedModel.id,
+				cwd: s.cwd,
+				permissionMode: s.permissionMode,
+				thinkingEnabled: s.thinkingEnabled,
+			});
 		},
-		[chat, setPendingApproval],
+		[chat],
 	);
 
-	// Stop: abort via tRPC + useChat.stop()
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
@@ -172,17 +140,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			<MessageList
 				messages={messages}
 				isStreaming={isStreaming}
-				onAnswer={handleAnswer}
 			/>
-
-			{pendingApproval && pendingApproval.toolName !== "ask_user_question" && (
-				<ToolApprovalBar
-					pendingApproval={pendingApproval}
-					onApprove={handleApprove}
-					onDecline={handleDecline}
-					onAlwaysAllow={handleAlwaysAllow}
-				/>
-			)}
 
 			<ChatInputFooter
 				cwd={cwd}
@@ -196,8 +154,6 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 				setPermissionMode={setPermissionMode}
 				thinkingEnabled={thinkingEnabled}
 				setThinkingEnabled={setThinkingEnabled}
-				turnUsage={turnUsage}
-				sessionUsage={sessionUsage}
 				onSend={handleSend}
 				onStop={handleStop}
 				onSlashCommandSend={handleSlashCommandSend}

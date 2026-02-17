@@ -11,23 +11,17 @@ export interface DurableChatTransportOptions {
 	proxyUrl: string;
 	sessionId: string;
 	sessionDB: SessionDB;
-	headers?: Record<string, string>;
-	onSend?: (content: string) => void | Promise<void>;
 }
 
 export class DurableChatTransport implements ChatTransport<UIMessage> {
 	private readonly proxyUrl: string;
 	private readonly sessionId: string;
 	private readonly sessionDB: SessionDB;
-	private readonly headers: Record<string, string>;
-	private readonly onSend?: (content: string) => void | Promise<void>;
 
 	constructor(options: DurableChatTransportOptions) {
 		this.proxyUrl = options.proxyUrl;
 		this.sessionId = options.sessionId;
 		this.sessionDB = options.sessionDB;
-		this.headers = options.headers ?? {};
-		this.onSend = options.onSend;
 	}
 
 	private url(path: string): string {
@@ -54,20 +48,14 @@ export class DurableChatTransport implements ChatTransport<UIMessage> {
 
 			await fetch(this.url("/messages"), {
 				method: "POST",
-				headers: { "Content-Type": "application/json", ...this.headers },
+				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ content, messageId: lastMessage.id }),
 				signal: abortSignal,
 				credentials: "include",
 			});
-
-			if (this.onSend) {
-				Promise.resolve(this.onSend(content)).catch((err) =>
-					console.error("[DurableChatTransport] onSend failed:", err),
-				);
-			}
 		}
 
-		// TODO: handle tool output and approval cases
+		// TODO: handle tool output via addToolOutput() → sendAutomaticallyWhen
 
 		return this.createChunkStream(abortSignal);
 	};

@@ -14,18 +14,6 @@ export interface ChatInterfaceProps {
 	tabId: string;
 }
 
-export interface TokenUsage {
-	promptTokens: number;
-	completionTokens: number;
-	totalTokens: number;
-}
-
-export interface ToolApprovalRequest {
-	runId: string;
-	toolCallId: string;
-	toolName: string;
-	args: unknown;
-}
 
 export interface TextPart {
 	type: "text";
