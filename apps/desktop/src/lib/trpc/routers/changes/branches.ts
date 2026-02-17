@@ -29,7 +29,9 @@ export const createBranchesRouter = () => {
 					const git = simpleGit(input.worktreePath);
 
 					const branchSummary = await git.branch(["-a"]);
-					const currentBranch = branchSummary.current;
+					const currentBranch = (
+						await git.raw(["rev-parse", "--abbrev-ref", "HEAD"])
+					).trim();
 
 					const gitConfigBase = await git
 						.raw(["config", `branch.${currentBranch}.base`])
@@ -104,8 +106,9 @@ export const createBranchesRouter = () => {
 				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
-				const branchSummary = await git.branch([]);
-				const currentBranch = branchSummary.current;
+				const currentBranch = (
+					await git.raw(["rev-parse", "--abbrev-ref", "HEAD"])
+				).trim();
 
 				if (input.baseBranch) {
 					await git.raw([

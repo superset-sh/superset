@@ -33,7 +33,7 @@ export function useGitChangesStatus({
 			defaultBranch: effectiveBaseBranch,
 		},
 		{
-			enabled: enabled && !!worktreePath,
+			enabled: enabled && !!worktreePath && !!branchData,
 			refetchInterval,
 			refetchOnWindowFocus,
 			staleTime,
