@@ -241,8 +241,6 @@ export function NewWorkspaceModal() {
 
 		const workspaceName = title.trim() || undefined;
 
-		handleClose();
-
 		try {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
@@ -252,6 +250,8 @@ export function NewWorkspaceModal() {
 				applyPrefix,
 			});
 
+			handleClose();
+
 			if (result.isInitializing) {
 				toast.success("Workspace created", {
 					description: "Setting up in the background...",
@@ -260,9 +260,14 @@ export function NewWorkspaceModal() {
 				toast.success("Workspace created");
 			}
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to create workspace",
-			);
+			const message =
+				err instanceof Error ? err.message : "Failed to create workspace";
+			// CONFLICT: branch already exists and is checked out elsewhere
+			if (message.includes("already exists and is checked out")) {
+				toast.error("Branch already in use", { description: message });
+			} else {
+				toast.error(message);
+			}
 		}
 	};
 

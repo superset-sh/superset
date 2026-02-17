@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { projects, settings, workspaces, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -23,6 +24,7 @@ import {
 	createWorktreeFromPr,
 	fetchPrBranch,
 	generateBranchName,
+	generateDedupBranchName,
 	getBranchPrefix,
 	getBranchWorktreePath,
 	getCurrentBranch,
@@ -39,6 +41,34 @@ import {
 } from "../utils/git";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
+
+/**
+ * Checks whether `branch` is already checked out in a git worktree.
+ * If it is, throws a CONFLICT error with a suggested dedup name.
+ */
+async function assertBranchNotCheckedOut({
+	mainRepoPath,
+	branch,
+	existingBranches,
+}: {
+	mainRepoPath: string;
+	branch: string;
+	existingBranches?: string[];
+}): Promise<void> {
+	const checkedOutPath = await getBranchWorktreePath({
+		mainRepoPath,
+		branch,
+	});
+	if (!checkedOutPath) return;
+
+	const dedupHint = existingBranches
+		? ` Create a new branch "${generateDedupBranchName(branch, existingBranches)}" instead.`
+		: "";
+	throw new TRPCError({
+		code: "CONFLICT",
+		message: `Branch "${branch}" already exists and is checked out at "${checkedOutPath}".${dedupHint}`,
+	});
+}
 
 interface CreateWorkspaceFromWorktreeParams {
 	projectId: string;
@@ -175,15 +205,10 @@ async function handleNewWorktree({
 	localBranchName,
 	workspaceName,
 }: HandleNewWorktreeParams): Promise<PrWorkspaceResult> {
-	const existingWorktreePath = await getBranchWorktreePath({
+	await assertBranchNotCheckedOut({
 		mainRepoPath: project.mainRepoPath,
 		branch: localBranchName,
 	});
-	if (existingWorktreePath) {
-		throw new Error(
-			`This PR's branch is already checked out in a worktree at: ${existingWorktreePath}`,
-		);
-	}
 
 	await fetchPrBranch({
 		repoPath: project.mainRepoPath,
@@ -300,15 +325,10 @@ export const createCreateProcedures = () => {
 						);
 					}
 
-					const existingWorktreePath = await getBranchWorktreePath({
+					await assertBranchNotCheckedOut({
 						mainRepoPath: project.mainRepoPath,
 						branch: existingBranchName,
 					});
-					if (existingWorktreePath) {
-						throw new Error(
-							`Branch "${existingBranchName}" is already checked out in another worktree at: ${existingWorktreePath}`,
-						);
-					}
 				}
 
 				const { local, remote } = await listBranches(project.mainRepoPath);
@@ -360,6 +380,18 @@ export const createCreateProcedures = () => {
 						existingBranches,
 						authorPrefix: branchPrefix,
 					});
+				}
+
+				// Detect collision: generated branch name matches an existing branch
+				let useExistingBranch = input.useExistingBranch ?? false;
+				if (!useExistingBranch && existingBranches.includes(branch)) {
+					await assertBranchNotCheckedOut({
+						mainRepoPath: project.mainRepoPath,
+						branch,
+						existingBranches,
+					});
+					// Branch exists but not checked out anywhere — use it instead of creating
+					useExistingBranch = true;
 				}
 
 				// Idempotency check: only for explicit branch names (auto-generated are intentionally new)
@@ -457,7 +489,7 @@ export const createCreateProcedures = () => {
 					project_id: project.id,
 					branch: branch,
 					base_branch: targetBranch,
-					use_existing_branch: input.useExistingBranch ?? false,
+					use_existing_branch: useExistingBranch,
 				});
 
 				workspaceInitManager.startJob(workspace.id, input.projectId);
@@ -470,7 +502,7 @@ export const createCreateProcedures = () => {
 					baseBranch: targetBranch,
 					baseBranchWasExplicit: !!input.baseBranch,
 					mainRepoPath: project.mainRepoPath,
-					useExistingBranch: input.useExistingBranch,
+					useExistingBranch,
 				});
 
 				const setupConfig = loadSetupConfig({

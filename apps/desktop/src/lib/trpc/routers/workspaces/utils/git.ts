@@ -515,6 +515,24 @@ export function generateBranchName({
 	return addPrefix(`${baseWord}-${Date.now()}`);
 }
 
+/**
+ * Generates a deduplicated branch name by appending a numeric suffix.
+ * e.g., "kitenite/hero-cleanup" → "kitenite/hero-cleanup-2"
+ */
+export function generateDedupBranchName(
+	branch: string,
+	existingBranches: string[],
+): string {
+	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
+	for (let i = 2; i < 100; i++) {
+		const candidate = `${branch}-${i}`;
+		if (!existingSet.has(candidate.toLowerCase())) {
+			return candidate;
+		}
+	}
+	return `${branch}-${Date.now()}`;
+}
+
 export async function createWorktree(
 	mainRepoPath: string,
 	branch: string,
@@ -656,22 +674,51 @@ export async function createWorktreeFromExistingBranch({
 			const remoteBranches = await git.branch(["-r"]);
 			const remoteBranchName = `origin/${branch}`;
 			if (remoteBranches.all.includes(remoteBranchName)) {
-				await execWorktreeAdd({
-					mainRepoPath,
-					args: [
-						"-C",
+				try {
+					await execWorktreeAdd({
 						mainRepoPath,
-						"worktree",
-						"add",
-						"--track",
-						"-b",
-						branch,
+						args: [
+							"-C",
+							mainRepoPath,
+							"worktree",
+							"add",
+							"--track",
+							"-b",
+							branch,
+							worktreePath,
+							remoteBranchName,
+						],
+						env,
 						worktreePath,
-						remoteBranchName,
-					],
-					env,
-					worktreePath,
-				});
+					});
+				} catch (trackingError) {
+					// If creating a tracking branch fails because a local branch
+					// already exists (race condition or stale data), use the local branch
+					const msg =
+						trackingError instanceof Error
+							? trackingError.message
+							: String(trackingError);
+					if (msg.includes("already exists")) {
+						console.log(
+							`[git] Tracking branch creation failed (branch exists locally), falling back to local checkout for "${branch}"`,
+						);
+						await execWorktreeAdd({
+							mainRepoPath,
+							args: [
+								"-C",
+								mainRepoPath,
+								"worktree",
+								"add",
+								worktreePath,
+								branch,
+							],
+							env,
+							worktreePath,
+						});
+					} else {
+						throw trackingError;
+					}
+				}
 			} else {
 				throw new Error(
 					`Branch "${branch}" does not exist locally or on remote`,

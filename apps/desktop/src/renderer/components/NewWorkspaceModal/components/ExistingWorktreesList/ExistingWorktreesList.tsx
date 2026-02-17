@@ -114,9 +114,13 @@ export function ExistingWorktreesList({
 				toast.success("Workspace created");
 			}
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to create workspace",
-			);
+			const message =
+				err instanceof Error ? err.message : "Failed to create workspace";
+			if (message.includes("already exists and is checked out")) {
+				toast.error("Branch already in use", { description: message });
+			} else {
+				toast.error(message);
+			}
 		}
 	};
 
