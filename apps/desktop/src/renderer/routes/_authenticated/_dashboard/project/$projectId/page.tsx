@@ -21,6 +21,7 @@ import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { NotFound } from "renderer/routes/not-found";
 import { sanitizeSegment } from "shared/utils/branch";
+import { ExternalWorktreesBanner } from "./components/ExternalWorktreesBanner";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/project/$projectId/",
@@ -148,25 +149,18 @@ function ProjectPage() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
+			<AnimatePresence>
+				<ExternalWorktreesBanner projectId={projectId} />
+			</AnimatePresence>
+
 			<div className="flex-1 flex overflow-y-auto">
 				{/* Main content */}
 				<div className="flex-1 flex items-center justify-center">
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: Form container handles Enter key for submission */}
-					<div className="w-full max-w-xl mx-6" onKeyDown={handleKeyDown}>
-						{/* Project context */}
-						<div className="flex items-center gap-1.5 mb-8">
-							<span className="text-xs text-muted-foreground/70">
-								{project.name}
-							</span>
-							<span className="text-muted-foreground/30">·</span>
-							<span className="text-xs text-muted-foreground/50 font-mono">
-								{branchData?.defaultBranch ?? "main"}
-							</span>
-						</div>
-
+					<div className="w-full max-w-md mx-6" onKeyDown={handleKeyDown}>
 						{/* Headline */}
 						<h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
-							What are you building?
+							Create your first workspace
 						</h1>
 
 						{/* Subtext */}
@@ -177,14 +171,8 @@ function ProjectPage() {
 						</p>
 
 						{/* Form */}
-						<div className="space-y-4 max-w-md">
+						<div className="space-y-4">
 							<div className="space-y-2">
-								<label
-									htmlFor="task-title"
-									className="text-xs font-medium text-muted-foreground"
-								>
-									Name your task
-								</label>
 								<Input
 									id="task-title"
 									ref={titleInputRef}
@@ -330,6 +318,7 @@ function ProjectPage() {
 								{createWorkspace.isPending ? "Creating..." : "Create workspace"}
 							</Button>
 						</div>
+
 					</div>
 				</div>
 			</div>
