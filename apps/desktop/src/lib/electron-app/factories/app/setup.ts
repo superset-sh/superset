@@ -84,9 +84,7 @@ PLATFORM.IS_WINDOWS &&
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
 
-// Enable CDP for desktop automation MCP (playwright-core connects via this port)
-if (env.NODE_ENV === "development") {
-	const cdpPort = String(process.env.DESKTOP_AUTOMATION_PORT || 9223);
-	app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
-	app.commandLine.appendSwitch("remote-allow-origins", "*");
-}
+// Enable CDP for DevTools panes and desktop automation MCP
+const cdpPort = String(process.env.DESKTOP_AUTOMATION_PORT || 9223);
+app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
+app.commandLine.appendSwitch("remote-allow-origins", "*");

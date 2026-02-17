@@ -78,6 +78,7 @@ class BrowserManager extends EventEmitter {
 		if (!cdpPort) return null;
 
 		const targetUrl = wc.getURL();
+		const targetId = wc.id;
 
 		try {
 			const res = await fetch(`http://127.0.0.1:${cdpPort}/json`);
@@ -88,11 +89,22 @@ class BrowserManager extends EventEmitter {
 				webSocketDebuggerUrl?: string;
 			}>;
 
-			// Webview guests have type "webview", not "page"
-			const target = targets.find(
-				(t) =>
-					(t.type === "webview" || t.type === "page") && t.url === targetUrl,
+			// Filter to webview/page targets only
+			const candidates = targets.filter(
+				(t) => t.type === "webview" || t.type === "page",
 			);
+
+			// Try exact URL match first, then fall back to webContentsId-based matching
+			const target =
+				candidates.find((t) => t.url === targetUrl) ??
+				candidates.find((t) => {
+					// CDP websocket URLs contain the target id; for Electron webviews
+					// the webContentsId can help disambiguate when URLs don't match exactly
+					if (t.webSocketDebuggerUrl) {
+						return t.webSocketDebuggerUrl.includes(`/${targetId}/`);
+					}
+					return false;
+				});
 			if (!target) return null;
 
 			return `http://127.0.0.1:${cdpPort}/devtools/inspector.html?ws=127.0.0.1:${cdpPort}/devtools/page/${target.id}`;

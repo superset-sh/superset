@@ -28,10 +28,14 @@ export function DevToolsPane({
 	removePane,
 	setFocusedPane,
 }: DevToolsPaneProps) {
-	// Query the CDP debug server for the DevTools frontend URL
+	// Query the CDP debug server for the DevTools frontend URL.
+	// Retry every second until the URL is available (CDP target may not be ready immediately).
 	const { data } = electronTrpc.browser.getDevToolsUrl.useQuery(
 		{ browserPaneId: targetPaneId },
-		{ refetchOnWindowFocus: false },
+		{
+			refetchOnWindowFocus: false,
+			refetchInterval: (query) => (query.state.data?.url ? false : 1000),
+		},
 	);
 	const devToolsUrl = data?.url;
 
