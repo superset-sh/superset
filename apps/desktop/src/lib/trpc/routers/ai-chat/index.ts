@@ -1,5 +1,4 @@
 import { exec } from "node:child_process";
-import { EventEmitter } from "node:events";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
@@ -12,7 +11,6 @@ import {
 	toAISdkStream,
 	toAISdkV5Messages,
 } from "@superset/agent";
-import { observable } from "@trpc/server/observable";
 import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -26,22 +24,11 @@ import {
 	scanClaudeSessions,
 } from "./utils/claude-session-scanner";
 import { getAvailableModels } from "./utils/models";
-import { chatSessionManager, sessionStore } from "./utils/session-manager";
-import {
-	drainStreamToEmitter,
-	emitStreamError,
-	resumeApprovedStream,
-	type SessionContext,
-	type SessionState,
-} from "./utils/stream-resume";
 import {
 	ensureProxySession,
 	writeAgentStream,
 } from "./utils/write-stream-to-proxy";
 
-// Resolve Claude OAuth credentials from config files / keychain.
-// Only OAuth is supported — ANTHROPIC_API_KEY / OPENAI_API_KEY are never
-// read from or written to process.env.
 const cliCredentials =
 	getCredentialsFromConfig() ?? getCredentialsFromKeychain();
 if (cliCredentials?.kind === "oauth") {
@@ -55,21 +42,42 @@ if (cliCredentials?.kind === "oauth") {
 	);
 }
 
-const superagentEmitter = new EventEmitter();
-superagentEmitter.setMaxListeners(50);
+interface SessionContext {
+	cwd: string;
+	modelId: string;
+	permissionMode?: string;
+	requestEntries: [string, string][];
+}
 
 const sessionAbortControllers = new Map<string, AbortController>();
 const sessionRunIds = new Map<string, string>();
 const sessionContext = new Map<string, SessionContext>();
-const sessionSuspended = new Set<string>();
 
-const sessionState: SessionState = {
-	emitter: superagentEmitter,
-	context: sessionContext,
-	suspended: sessionSuspended,
-	runIds: sessionRunIds,
-	abortControllers: sessionAbortControllers,
-};
+async function writeToDurableStream(
+	stream: Parameters<typeof toAISdkStream>[0],
+	sessionId: string,
+	abortSignal: AbortSignal,
+) {
+	const streamsUrl = env.NEXT_PUBLIC_STREAMS_URL;
+	if (!streamsUrl) return;
+
+	let authToken: string | undefined;
+	try {
+		const { token } = await loadToken();
+		authToken = token ?? undefined;
+	} catch {}
+
+	const messageId = crypto.randomUUID();
+	await ensureProxySession(streamsUrl, sessionId, authToken);
+	const aiStream = toAISdkStream(stream, { from: "agent" });
+	await writeAgentStream(aiStream as unknown as ReadableStream, {
+		sessionId,
+		messageId,
+		streamsUrl,
+		authToken,
+		abortSignal,
+	});
+}
 
 function safeReadFile(path: string, maxBytes = 8_000): string | null {
 	try {
@@ -113,7 +121,7 @@ function buildFileTree(cwd: string, maxDepth = 2, prefix = ""): string[] {
 				if (!a.isDirectory() && b.isDirectory()) return 1;
 				return a.name.localeCompare(b.name);
 			})
-			.slice(0, 40); // cap to avoid huge listings
+			.slice(0, 40);
 
 		for (const entry of entries) {
 			const isDir = entry.isDirectory();
@@ -197,7 +205,6 @@ interface FileMention {
 }
 
 function parseFileMentions(text: string, cwd: string): FileMention[] {
-	// Match @some/path/to/file.ext patterns (must have at least one / or . to avoid false positives)
 	const mentionRegex = /@([\w./-]+(?:\/[\w./-]+|\.[\w]+))/g;
 	const mentions: FileMention[] = [];
 	const seen = new Set<string>();
@@ -209,13 +216,12 @@ function parseFileMentions(text: string, cwd: string): FileMention[] {
 			seen.add(relPath);
 
 			const absPath = resolve(cwd, relPath);
-			// Prevent path traversal outside the workspace root (cross-platform)
 			const rel = relative(resolve(cwd), absPath);
 			if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
 				match = mentionRegex.exec(text);
 				continue;
 			}
-			const content = safeReadFile(absPath, 50_000); // allow larger files for explicit mentions
+			const content = safeReadFile(absPath, 50_000);
 			mentions.push({
 				raw: match[0],
 				absPath,
@@ -316,150 +322,28 @@ export const createAiChatRouter = () => {
 				return { commands: scanCustomCommands(input.cwd) };
 			}),
 
-		startSession: publicProcedure
-			.input(
-				z.object({
-					sessionId: z.string(),
-					workspaceId: z.string(),
-					cwd: z.string(),
-					paneId: z.string().optional(),
-					tabId: z.string().optional(),
-					model: z.string().optional(),
-					permissionMode: permissionModeSchema.optional(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				await chatSessionManager.startSession({
-					sessionId: input.sessionId,
-					workspaceId: input.workspaceId,
-					cwd: input.cwd,
-					paneId: input.paneId,
-					tabId: input.tabId,
-					model: input.model,
-					permissionMode: input.permissionMode,
-				});
-				return { success: true };
-			}),
-
-		restoreSession: publicProcedure
-			.input(
-				z.object({
-					sessionId: z.string(),
-					cwd: z.string(),
-					paneId: z.string().optional(),
-					tabId: z.string().optional(),
-					model: z.string().optional(),
-					permissionMode: permissionModeSchema.optional(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				await chatSessionManager.restoreSession({
-					sessionId: input.sessionId,
-					cwd: input.cwd,
-					paneId: input.paneId,
-					tabId: input.tabId,
-					model: input.model,
-					permissionMode: input.permissionMode,
-				});
-				return { success: true };
-			}),
-
-		interrupt: publicProcedure
-			.input(z.object({ sessionId: z.string() }))
-			.mutation(async ({ input }) => {
-				await chatSessionManager.interrupt({
-					sessionId: input.sessionId,
-				});
-				return { success: true };
-			}),
-
-		stopSession: publicProcedure
-			.input(z.object({ sessionId: z.string() }))
-			.mutation(async ({ input }) => {
-				const controller = sessionAbortControllers.get(input.sessionId);
-				if (controller) controller.abort();
-				sessionAbortControllers.delete(input.sessionId);
-				sessionRunIds.delete(input.sessionId);
-				sessionContext.delete(input.sessionId);
-				sessionSuspended.delete(input.sessionId);
-
-				await chatSessionManager.deactivateSession({
-					sessionId: input.sessionId,
-				});
-				return { success: true };
+		// TODO: session listing will move to server-side (Postgres) storage
+		listSessions: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async () => {
+				return [] as Array<{
+					sessionId: string;
+					title: string;
+					lastActiveAt: number;
+					messagePreview?: string;
+				}>;
 			}),
 
 		deleteSession: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
-			.mutation(async ({ input }) => {
+			.mutation(({ input }) => {
 				const controller = sessionAbortControllers.get(input.sessionId);
 				if (controller) controller.abort();
 				sessionAbortControllers.delete(input.sessionId);
 				sessionRunIds.delete(input.sessionId);
 				sessionContext.delete(input.sessionId);
-				sessionSuspended.delete(input.sessionId);
-
-				await chatSessionManager.deleteSession({
-					sessionId: input.sessionId,
-				});
 				return { success: true };
 			}),
-
-		updateSessionConfig: publicProcedure
-			.input(
-				z.object({
-					sessionId: z.string(),
-					maxThinkingTokens: z.number().nullable().optional(),
-					model: z.string().nullable().optional(),
-					permissionMode: permissionModeSchema.nullable().optional(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				await chatSessionManager.updateAgentConfig({
-					sessionId: input.sessionId,
-					maxThinkingTokens: input.maxThinkingTokens,
-					model: input.model,
-					permissionMode: input.permissionMode,
-				});
-				return { success: true };
-			}),
-
-		renameSession: publicProcedure
-			.input(
-				z.object({
-					sessionId: z.string(),
-					title: z.string(),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				await chatSessionManager.updateSessionMeta({
-					sessionId: input.sessionId,
-					patch: { title: input.title },
-				});
-				return { success: true };
-			}),
-
-		listSessions: publicProcedure
-			.input(z.object({ workspaceId: z.string() }))
-			.query(async ({ input }) => {
-				return sessionStore.listByWorkspace(input.workspaceId);
-			}),
-
-		getSession: publicProcedure
-			.input(z.object({ sessionId: z.string() }))
-			.query(async ({ input }) => {
-				return (await sessionStore.get(input.sessionId)) ?? null;
-			}),
-
-		isSessionActive: publicProcedure
-			.input(z.object({ sessionId: z.string() }))
-			.query(({ input }) => {
-				return chatSessionManager.isSessionActive(input.sessionId);
-			}),
-
-		getActiveSessions: publicProcedure.query(() => {
-			return chatSessionManager.getActiveSessions();
-		}),
 
 		getClaudeSessionMessages: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
@@ -535,16 +419,6 @@ export const createAiChatRouter = () => {
 							input.permissionMode === "default" ||
 							input.permissionMode === "acceptEdits";
 
-						// Resolve hosted durable streams config for direct writes
-						const streamsUrl = env.NEXT_PUBLIC_STREAMS_URL;
-						let streamsAuthToken: string | undefined;
-						try {
-							const { token } = await loadToken();
-							streamsAuthToken = token ?? undefined;
-						} catch {
-							// Continue without auth token
-						}
-
 						const output = await superagent.stream(input.text, {
 							requestContext: new RequestContext(requestEntries),
 							maxSteps: 100,
@@ -569,76 +443,27 @@ export const createAiChatRouter = () => {
 										},
 									}
 								: {}),
-							onStepFinish: (event) => {
-								const usage = (event as Record<string, unknown>).usage as
-									| {
-											promptTokens?: number;
-											completionTokens?: number;
-											totalTokens?: number;
-									  }
-									| undefined;
-								if (usage) {
-									superagentEmitter.emit(input.sessionId, {
-										type: "chunk",
-										chunk: { type: "usage", payload: usage },
-									});
-								}
-							},
 						});
 
 						if (output.runId) {
 							sessionRunIds.set(input.sessionId, output.runId);
-							superagentEmitter.emit(input.sessionId, {
-								type: "chunk",
-								chunk: { type: "run-id", payload: { runId: output.runId } },
-							});
 						}
 
-						if (streamsUrl) {
-							// Durable stream path: write STATE-PROTOCOL events directly via @durable-streams/client
-							// Note: user message is written by DurableChatTransport in the renderer
-							const assistantMessageId = crypto.randomUUID();
-							await ensureProxySession(
-								streamsUrl,
-								input.sessionId,
-								streamsAuthToken,
-							);
-							const aiStream = toAISdkStream(output, {
-								from: "agent",
-							});
-							await writeAgentStream(
-								aiStream as unknown as ReadableStream,
-								{
-									sessionId: input.sessionId,
-									messageId: assistantMessageId,
-									streamsUrl,
-									authToken: streamsAuthToken,
-									abortSignal: abortController.signal,
-								},
-							);
-							// Signal done to any legacy tRPC subscription listeners
-							superagentEmitter.emit(input.sessionId, { type: "done" });
-						} else {
-							// Legacy path: drain to EventEmitter for tRPC subscription
-							await drainStreamToEmitter(
-								output,
-								input.sessionId,
-								sessionState,
-								input.permissionMode,
-							);
-						}
+						await writeToDurableStream(
+							output,
+							input.sessionId,
+							abortController.signal,
+						);
 					} catch (error) {
 						sessionRunIds.delete(input.sessionId);
 						sessionContext.delete(input.sessionId);
-						sessionSuspended.delete(input.sessionId);
 
-						if (abortController.signal.aborted) {
-							superagentEmitter.emit(input.sessionId, { type: "done" });
-							return;
-						}
-						emitStreamError(input.sessionId, superagentEmitter, error);
+						if (abortController.signal.aborted) return;
+						console.error(
+							`[ai-chat] Stream error for ${input.sessionId}:`,
+							error,
+						);
 					} finally {
-						// Only clean up if this is still our controller (not replaced by a new run)
 						if (
 							sessionAbortControllers.get(input.sessionId) === abortController
 						) {
@@ -649,42 +474,12 @@ export const createAiChatRouter = () => {
 
 				return { success: true };
 			}),
-		superagentStream: publicProcedure
-			.input(z.object({ sessionId: z.string() }))
-			.subscription(({ input }) => {
-				return observable<
-					| { type: "chunk"; chunk: unknown }
-					| { type: "done" }
-					| { type: "error"; error: string }
-				>((emit) => {
-					const handler = (
-						event:
-							| { type: "chunk"; chunk: unknown }
-							| { type: "done" }
-							| { type: "error"; error: string },
-					) => {
-						emit.next(event);
-						// Don't complete the observable — keep it alive for the session lifetime.
-						// This allows resumed streams (after tool approval) to continue emitting.
-						// The frontend handles "done"/"error" by setting isStreaming=false.
-					};
-					superagentEmitter.on(input.sessionId, handler);
-					return () => {
-						superagentEmitter.off(input.sessionId, handler);
-					};
-				});
-			}),
 
 		abortSuperagent: publicProcedure
 			.input(z.object({ sessionId: z.string() }))
 			.mutation(({ input }) => {
 				const controller = sessionAbortControllers.get(input.sessionId);
 				if (controller) {
-					console.log(
-						`[ai-chat/abortSuperagent] Aborting session ${input.sessionId}`,
-					);
-					// Signal abort but don't delete — the drain loop needs to observe
-					// the aborted signal, and the run's finally block handles cleanup.
 					controller.abort();
 					return { success: true, aborted: true };
 				}
@@ -703,16 +498,50 @@ export const createAiChatRouter = () => {
 			.mutation(({ input }) => {
 				if (input.permissionMode) {
 					const ctx = sessionContext.get(input.sessionId);
-					if (ctx) {
-						ctx.permissionMode = input.permissionMode;
-					}
+					if (ctx) ctx.permissionMode = input.permissionMode;
 				}
-				resumeApprovedStream({
-					sessionId: input.sessionId,
-					runId: input.runId,
-					approved: input.approved,
-					state: sessionState,
-				});
+
+				const ctx = sessionContext.get(input.sessionId);
+				const reqCtx = ctx
+					? new RequestContext(ctx.requestEntries)
+					: undefined;
+
+				const abortController = new AbortController();
+				sessionAbortControllers.set(input.sessionId, abortController);
+
+				void (async () => {
+					try {
+						const approvalOpts = {
+							runId: input.runId,
+							...(reqCtx ? { requestContext: reqCtx } : {}),
+						};
+						const stream = input.approved
+							? await superagent.approveToolCall(approvalOpts)
+							: await superagent.declineToolCall(approvalOpts);
+
+						await writeToDurableStream(
+							stream,
+							input.sessionId,
+							abortController.signal,
+						);
+					} catch (error) {
+						sessionRunIds.delete(input.sessionId);
+						sessionContext.delete(input.sessionId);
+
+						if (abortController.signal.aborted) return;
+						console.error(
+							`[ai-chat] Approval stream error for ${input.sessionId}:`,
+							error,
+						);
+					} finally {
+						if (
+							sessionAbortControllers.get(input.sessionId) === abortController
+						) {
+							sessionAbortControllers.delete(input.sessionId);
+						}
+					}
+				})();
+
 				return { success: true };
 			}),
 
@@ -725,35 +554,46 @@ export const createAiChatRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				resumeApprovedStream({
-					sessionId: input.sessionId,
-					runId: input.runId,
-					approved: true,
-					state: sessionState,
-					extraContext: {
-						toolAnswers: JSON.stringify(input.answers),
-					},
-				});
-				return { success: true };
-			}),
+				const ctx = sessionContext.get(input.sessionId);
+				const ctxEntries: [string, string][] = ctx
+					? [...ctx.requestEntries]
+					: [];
+				ctxEntries.push(["toolAnswers", JSON.stringify(input.answers)]);
+				const reqCtx = new RequestContext(ctxEntries);
 
-		/** Legacy: approve tool use via session manager */
-		approveToolUse: publicProcedure
-			.input(
-				z.object({
-					sessionId: z.string(),
-					toolUseId: z.string(),
-					approved: z.boolean(),
-					updatedInput: z.record(z.string(), z.unknown()).optional(),
-				}),
-			)
-			.mutation(({ input }) => {
-				chatSessionManager.resolvePermission({
-					sessionId: input.sessionId,
-					toolUseId: input.toolUseId,
-					approved: input.approved,
-					updatedInput: input.updatedInput,
-				});
+				const abortController = new AbortController();
+				sessionAbortControllers.set(input.sessionId, abortController);
+
+				void (async () => {
+					try {
+						const stream = await superagent.approveToolCall({
+							runId: input.runId,
+							requestContext: reqCtx,
+						});
+
+						await writeToDurableStream(
+							stream,
+							input.sessionId,
+							abortController.signal,
+						);
+					} catch (error) {
+						sessionRunIds.delete(input.sessionId);
+						sessionContext.delete(input.sessionId);
+
+						if (abortController.signal.aborted) return;
+						console.error(
+							`[ai-chat] Answer stream error for ${input.sessionId}:`,
+							error,
+						);
+					} finally {
+						if (
+							sessionAbortControllers.get(input.sessionId) === abortController
+						) {
+							sessionAbortControllers.delete(input.sessionId);
+						}
+					}
+				})();
+
 				return { success: true };
 			}),
 	});
