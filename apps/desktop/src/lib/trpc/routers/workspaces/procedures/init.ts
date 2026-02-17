@@ -71,15 +71,12 @@ export const createInitProcedures = () => {
 				workspaceInitManager.clearJob(input.workspaceId);
 				workspaceInitManager.startJob(input.workspaceId, workspace.projectId);
 
-				// baseBranch is treated as explicit on retry to prevent further auto-correction
 				initializeWorkspaceWorktree({
 					workspaceId: input.workspaceId,
 					projectId: workspace.projectId,
 					worktreeId: worktree.id,
 					worktreePath: worktree.path,
 					branch: worktree.branch,
-					baseBranch: worktree.baseBranch ?? project.defaultBranch ?? "main",
-					baseBranchWasExplicit: true,
 					mainRepoPath: project.mainRepoPath,
 				});
 

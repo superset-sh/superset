@@ -6,6 +6,7 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
@@ -236,6 +237,10 @@ async function handleNewWorktree({
 		is_fork: prInfo.isCrossRepository,
 	});
 
+	await simpleGit(project.mainRepoPath)
+		.raw(["config", `branch.${localBranchName}.base`, defaultBranch])
+		.catch(() => {});
+
 	workspaceInitManager.startJob(workspace.id, project.id);
 	initializeWorkspaceWorktree({
 		workspaceId: workspace.id,
@@ -243,8 +248,6 @@ async function handleNewWorktree({
 		worktreeId: worktree.id,
 		worktreePath,
 		branch: localBranchName,
-		baseBranch: defaultBranch,
-		baseBranchWasExplicit: false,
 		mainRepoPath: project.mainRepoPath,
 		useExistingBranch: true,
 		skipWorktreeCreation: true,
@@ -459,6 +462,10 @@ export const createCreateProcedures = () => {
 					use_existing_branch: input.useExistingBranch ?? false,
 				});
 
+				await simpleGit(project.mainRepoPath)
+					.raw(["config", `branch.${branch}.base`, targetBranch])
+					.catch(() => {});
+
 				workspaceInitManager.startJob(workspace.id, input.projectId);
 				initializeWorkspaceWorktree({
 					workspaceId: workspace.id,
@@ -466,8 +473,6 @@ export const createCreateProcedures = () => {
 					worktreeId: worktree.id,
 					worktreePath,
 					branch,
-					baseBranch: targetBranch,
-					baseBranchWasExplicit: !!input.baseBranch,
 					mainRepoPath: project.mainRepoPath,
 					useExistingBranch: input.useExistingBranch,
 				});
@@ -835,6 +840,10 @@ export const createCreateProcedures = () => {
 
 				setLastActiveWorkspace(workspace.id);
 				activateProject(project);
+
+				await simpleGit(project.mainRepoPath)
+					.raw(["config", `branch.${input.branch}.base`, defaultBranch])
+					.catch(() => {});
 
 				copySupersetConfigToWorktree(project.mainRepoPath, input.worktreePath);
 				const setupConfig = loadSetupConfig({

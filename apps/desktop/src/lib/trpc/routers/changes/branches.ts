@@ -26,12 +26,6 @@ export const createBranchesRouter = () => {
 				}> => {
 					assertRegisteredWorktree(input.worktreePath);
 
-					const worktreeRecord = localDb
-						.select({ baseBranch: worktrees.baseBranch })
-						.from(worktrees)
-						.where(eq(worktrees.path, input.worktreePath))
-						.get();
-
 					const git = simpleGit(input.worktreePath);
 
 					const branchSummary = await git.branch(["-a"]);
@@ -66,8 +60,7 @@ export const createBranchesRouter = () => {
 						remote: remote.sort(),
 						defaultBranch,
 						checkedOutBranches,
-						worktreeBaseBranch:
-							gitConfigBase.trim() || worktreeRecord?.baseBranch || null,
+						worktreeBaseBranch: gitConfigBase.trim() || null,
 					};
 				},
 			),

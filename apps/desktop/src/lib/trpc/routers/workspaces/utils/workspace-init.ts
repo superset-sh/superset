@@ -4,6 +4,7 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
+import simpleGit from "simple-git";
 import {
 	branchExistsOnRemote,
 	createWorktree,
@@ -23,9 +24,6 @@ export interface WorkspaceInitParams {
 	worktreeId: string;
 	worktreePath: string;
 	branch: string;
-	baseBranch: string;
-	/** If true, user explicitly specified baseBranch - don't auto-update it */
-	baseBranchWasExplicit: boolean;
 	mainRepoPath: string;
 	/** If true, use an existing branch instead of creating a new one */
 	useExistingBranch?: boolean;
@@ -45,8 +43,6 @@ export async function initializeWorkspaceWorktree({
 	worktreeId,
 	worktreePath,
 	branch,
-	baseBranch,
-	baseBranchWasExplicit,
 	mainRepoPath,
 	useExistingBranch,
 	skipWorktreeCreation,
@@ -62,6 +58,20 @@ export async function initializeWorkspaceWorktree({
 		if (manager.isCancellationRequested(workspaceId)) {
 			return;
 		}
+
+		// Read base branch from git config (set during workspace creation)
+		const project = localDb
+			.select()
+			.from(projects)
+			.where(eq(projects.id, projectId))
+			.get();
+
+		const gitConfigBase = await simpleGit(mainRepoPath)
+			.raw(["config", `branch.${branch}.base`])
+			.catch(() => "");
+		const baseBranchWasConfigured = !!gitConfigBase.trim();
+		let effectiveBaseBranch =
+			gitConfigBase.trim() || project?.defaultBranch || "main";
 
 		if (useExistingBranch) {
 			if (skipWorktreeCreation) {
@@ -142,32 +152,12 @@ export async function initializeWorkspaceWorktree({
 		manager.updateProgress(workspaceId, "syncing", "Syncing with remote...");
 		const remoteDefaultBranch = await refreshDefaultBranch(mainRepoPath);
 
-		let effectiveBaseBranch = baseBranch;
-
 		if (remoteDefaultBranch) {
-			const project = localDb
-				.select()
-				.from(projects)
-				.where(eq(projects.id, projectId))
-				.get();
 			if (project && remoteDefaultBranch !== project.defaultBranch) {
 				localDb
 					.update(projects)
 					.set({ defaultBranch: remoteDefaultBranch })
 					.where(eq(projects.id, projectId))
-					.run();
-			}
-
-			// Update worktree record so retries use the correct branch
-			if (!baseBranchWasExplicit && remoteDefaultBranch !== baseBranch) {
-				console.log(
-					`[workspace-init] Auto-updating baseBranch from "${baseBranch}" to "${remoteDefaultBranch}" for workspace ${workspaceId}`,
-				);
-				effectiveBaseBranch = remoteDefaultBranch;
-				localDb
-					.update(worktrees)
-					.set({ baseBranch: remoteDefaultBranch })
-					.where(eq(worktrees.id, worktreeId))
 					.run();
 			}
 		}
@@ -209,7 +199,7 @@ export async function initializeWorkspaceWorktree({
 				return { ref: effectiveBaseBranch };
 			}
 
-			if (baseBranchWasExplicit) {
+			if (baseBranchWasConfigured) {
 				console.log(
 					`[workspace-init] ${reason}. Base branch "${effectiveBaseBranch}" was explicitly set, not using fallback.`,
 				);
@@ -262,11 +252,9 @@ export async function initializeWorkspaceWorktree({
 					`[workspace-init] Updating baseBranch from "${originalBranch}" to "${result.fallbackBranch}" for workspace ${workspaceId}`,
 				);
 				effectiveBaseBranch = result.fallbackBranch;
-				localDb
-					.update(worktrees)
-					.set({ baseBranch: result.fallbackBranch })
-					.where(eq(worktrees.id, worktreeId))
-					.run();
+				await simpleGit(mainRepoPath)
+					.raw(["config", `branch.${branch}.base`, result.fallbackBranch])
+					.catch(() => {});
 				manager.updateProgress(
 					workspaceId,
 					progressStep,
@@ -317,7 +305,7 @@ export async function initializeWorkspaceWorktree({
 						workspaceId,
 						"failed",
 						"No local reference available",
-						baseBranchWasExplicit
+						baseBranchWasConfigured
 							? `${failureDetail} and branch "${effectiveBaseBranch}" doesn't exist locally.${isNetworkError ? " Please check your network connection and try again." : " Please try again with a different base branch."}`
 							: `${failureDetail} and no local ref for "${effectiveBaseBranch}" exists.${isNetworkError ? " Please check your network connection and try again." : ""}`,
 					);
@@ -336,7 +324,7 @@ export async function initializeWorkspaceWorktree({
 					workspaceId,
 					"failed",
 					"No local reference available",
-					baseBranchWasExplicit
+					baseBranchWasConfigured
 						? `No remote configured and branch "${effectiveBaseBranch}" doesn't exist locally.`
 						: `No remote configured and no local ref for "${effectiveBaseBranch}" exists.`,
 				);

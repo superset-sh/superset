@@ -5,7 +5,6 @@ import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
-import { detectBaseBranch, hasOriginRemote } from "../utils/git";
 import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
@@ -64,47 +63,6 @@ export const createQueryProcedures = () => {
 							.get()
 					: null;
 
-				// Detect and persist base branch for existing worktrees that don't have it
-				// We use undefined to mean "not yet attempted" and null to mean "attempted but not found"
-				let baseBranch = worktree?.baseBranch;
-				if (worktree && baseBranch === undefined && project) {
-					// Only attempt detection if there's a remote origin
-					const hasRemote = await hasOriginRemote(project.mainRepoPath);
-					if (hasRemote) {
-						try {
-							const defaultBranch = project.defaultBranch || "main";
-							const detected = await detectBaseBranch(
-								worktree.path,
-								worktree.branch,
-								defaultBranch,
-							);
-							if (detected) {
-								baseBranch = detected;
-							}
-							// Persist the result (detected branch or null sentinel)
-							localDb
-								.update(worktrees)
-								.set({ baseBranch: detected ?? null })
-								.where(eq(worktrees.id, worktree.id))
-								.run();
-						} catch {
-							// Detection failed, persist null to avoid retrying
-							localDb
-								.update(worktrees)
-								.set({ baseBranch: null })
-								.where(eq(worktrees.id, worktree.id))
-								.run();
-						}
-					} else {
-						// No remote - persist null to avoid retrying
-						localDb
-							.update(worktrees)
-							.set({ baseBranch: null })
-							.where(eq(worktrees.id, worktree.id))
-							.run();
-					}
-				}
-
 				return {
 					...workspace,
 					type: workspace.type as "worktree" | "branch",
@@ -119,7 +77,6 @@ export const createQueryProcedures = () => {
 					worktree: worktree
 						? {
 								branch: worktree.branch,
-								baseBranch,
 								// Normalize to null to ensure consistent "incomplete init" detection in UI
 								gitStatus: worktree.gitStatus ?? null,
 							}
