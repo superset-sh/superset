@@ -8,6 +8,10 @@ import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dash
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
+import {
+	CommandPalette,
+	useCommandPalette,
+} from "renderer/screens/main/components/CommandPalette";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { usePRStatus } from "renderer/screens/main/hooks";
@@ -333,6 +337,14 @@ function WorkspacePage() {
 		[pr?.url, workspace?.worktreePath],
 	);
 
+	const commandPalette = useCommandPalette({
+		workspaceId,
+		worktreePath: workspace?.worktreePath,
+	});
+	useAppHotkey("QUICK_OPEN", () => commandPalette.toggle(), undefined, [
+		commandPalette.toggle,
+	]);
+
 	// Toggle changes sidebar (⌘L)
 	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
 		toggleSidebar,
@@ -483,6 +495,14 @@ function WorkspacePage() {
 					<WorkspaceLayout />
 				)}
 			</div>
+			<CommandPalette
+				open={commandPalette.open}
+				onOpenChange={commandPalette.handleOpenChange}
+				query={commandPalette.query}
+				onQueryChange={commandPalette.setQuery}
+				searchResults={commandPalette.searchResults}
+				onSelectFile={commandPalette.selectFile}
+			/>
 		</div>
 	);
 }

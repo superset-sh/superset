@@ -719,6 +719,13 @@ export const HOTKEYS = {
 		description: "Copy the workspace path to the clipboard",
 	}),
 
+	QUICK_OPEN: defineHotkey({
+		keys: "meta+p",
+		label: "Quick Open File",
+		category: "Navigation",
+		description: "Search and open files in the current workspace",
+	}),
+
 	// Help
 	OPEN_SETTINGS: defineHotkey({
 		keys: "meta+,",
