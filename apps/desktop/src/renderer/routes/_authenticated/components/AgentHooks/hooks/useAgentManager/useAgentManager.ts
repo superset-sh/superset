@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { authClient } from "renderer/lib/auth-client";
+import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
@@ -18,7 +18,10 @@ export function useAgentManager() {
 		if (!organizationId) return;
 		if (organizationId === prevOrgRef.current) return;
 
+		const authToken = getAuthToken();
+		if (!authToken) return;
+
 		prevOrgRef.current = organizationId;
-		mutateRef.current({ organizationId });
+		mutateRef.current({ organizationId, authToken });
 	}, [organizationId]);
 }

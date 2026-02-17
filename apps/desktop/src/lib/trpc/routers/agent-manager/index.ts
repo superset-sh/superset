@@ -12,7 +12,9 @@ export const createAgentManagerRouter = () => {
 		 * Called by the renderer when auth is ready and the active org is known.
 		 */
 		start: publicProcedure
-			.input(z.object({ organizationId: z.string() }))
+			.input(
+				z.object({ organizationId: z.string(), authToken: z.string() }),
+			)
 			.mutation(async ({ input }) => {
 				const deviceId = getHashedDeviceId();
 
@@ -20,11 +22,13 @@ export const createAgentManagerRouter = () => {
 					await agentManager.restart({
 						organizationId: input.organizationId,
 						deviceId,
+						authToken: input.authToken,
 					});
 				} else {
 					agentManager = new AgentManager({
 						deviceId,
 						organizationId: input.organizationId,
+						authToken: input.authToken,
 					});
 					await agentManager.start();
 				}

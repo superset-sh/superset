@@ -14,8 +14,12 @@ import { env } from "main/env.main";
 import {
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
-} from "./utils/auth/auth";
-import { sessionAbortControllers, sessionRunIds, sessionContext } from "./utils/run-agent";
+} from "./utils/anthropic/auth";
+import {
+	sessionAbortControllers,
+	sessionRunIds,
+	sessionContext,
+} from "./utils/run-agent";
 import { StreamWatcher } from "./utils/stream-watcher";
 
 export class AgentManager {
@@ -25,13 +29,24 @@ export class AgentManager {
 	private unsubscribe: (() => void) | null = null;
 	private deviceId: string;
 	private organizationId: string;
+	private authToken: string;
 
-	constructor(options: { deviceId: string; organizationId: string }) {
+	constructor(options: {
+		deviceId: string;
+		organizationId: string;
+		authToken: string;
+	}) {
 		this.deviceId = options.deviceId;
 		this.organizationId = options.organizationId;
+		this.authToken = options.authToken;
 	}
 
 	async start(): Promise<void> {
+		// In development, localhost uses self-signed certs that Node.js rejects
+		if (env.NODE_ENV === "development") {
+			process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+		}
+
 		// Initialize Claude credentials
 		const cliCredentials =
 			getCredentialsFromConfig() ?? getCredentialsFromKeychain();
@@ -62,18 +77,48 @@ export class AgentManager {
 			table: "session_hosts",
 			organizationId: this.organizationId,
 		};
-		console.log(`[agent-manager] Connecting to Electric: ${shapeUrl}`, shapeParams);
+		console.log(
+			`[agent-manager] Connecting to Electric: ${shapeUrl}`,
+			shapeParams,
+		);
+		console.log(
+			`[agent-manager] Auth token present: ${!!this.authToken} (len=${this.authToken?.length ?? 0})`,
+		);
+
+		// Diagnostic: test the Electric proxy directly before creating ShapeStream
+		try {
+			const testUrl = `${shapeUrl}?table=session_hosts&organizationId=${this.organizationId}&offset=-1`;
+			const testRes = await fetch(testUrl, {
+				headers: this.authToken
+					? { Authorization: `Bearer ${this.authToken}` }
+					: {},
+			});
+			const testBody = await testRes.text();
+			console.log(
+				`[agent-manager] Electric probe: status=${testRes.status} body=${testBody.slice(0, 500)}`,
+			);
+		} catch (err) {
+			console.error("[agent-manager] Electric probe failed:", err);
+		}
 
 		this.shapeStream = new ShapeStream({
 			url: shapeUrl,
 			params: shapeParams,
+			headers: this.authToken
+				? { Authorization: `Bearer ${this.authToken}` }
+				: {},
 		});
 
-		this.shapeStream.subscribe((messages) => {
-			console.log(`[agent-manager] ShapeStream raw messages: ${messages.length}`);
-		}, (error) => {
-			console.error("[agent-manager] ShapeStream error:", error);
-		});
+		this.shapeStream.subscribe(
+			(messages) => {
+				console.log(
+					`[agent-manager] ShapeStream raw messages: ${messages.length}`,
+				);
+			},
+			(error) => {
+				console.error("[agent-manager] ShapeStream error:", error);
+			},
+		);
 
 		this.shape = new Shape(this.shapeStream);
 
@@ -84,18 +129,24 @@ export class AgentManager {
 			`[agent-manager] Initial session_hosts rows: ${initialRows.length}`,
 		);
 		for (const row of initialRows) {
-			console.log(`[agent-manager] Row: device_id=${row.device_id} session_id=${row.session_id} (match=${row.device_id === this.deviceId})`);
+			console.log(
+				`[agent-manager] Row: device_id=${row.device_id} session_id=${row.session_id} (match=${row.device_id === this.deviceId})`,
+			);
 			if (row.device_id === this.deviceId) {
 				this.startWatcher(row.session_id as string);
 			}
 		}
 
 		this.unsubscribe = this.shape.subscribe(({ rows }) => {
-			console.log(`[agent-manager] Electric subscription fired — ${rows.length} total rows`);
+			console.log(
+				`[agent-manager] Electric subscription fired — ${rows.length} total rows`,
+			);
 			const activeSessionIds = new Set<string>();
 
 			for (const row of rows) {
-				console.log(`[agent-manager] Row: device_id=${row.device_id} session_id=${row.session_id} (match=${row.device_id === this.deviceId})`);
+				console.log(
+					`[agent-manager] Row: device_id=${row.device_id} session_id=${row.session_id} (match=${row.device_id === this.deviceId})`,
+				);
 				if (row.device_id === this.deviceId) {
 					const sessionId = row.session_id as string;
 					activeSessionIds.add(sessionId);
@@ -125,10 +176,13 @@ export class AgentManager {
 	}
 
 	private startWatcher(sessionId: string): void {
-		console.log(`[agent-manager] Creating StreamWatcher for session ${sessionId}`);
+		console.log(
+			`[agent-manager] Creating StreamWatcher for session ${sessionId}`,
+		);
 
 		const watcher = new StreamWatcher({
 			sessionId,
+			authToken: this.authToken,
 			config: {
 				// Default config — will be overridden by config events from the stream
 				cwd: process.env.HOME || "/",
@@ -170,10 +224,12 @@ export class AgentManager {
 	async restart(options: {
 		organizationId: string;
 		deviceId?: string;
+		authToken?: string;
 	}): Promise<void> {
 		this.stop();
 		this.organizationId = options.organizationId;
 		if (options.deviceId) this.deviceId = options.deviceId;
+		if (options.authToken) this.authToken = options.authToken;
 		await this.start();
 	}
 }

@@ -4,10 +4,6 @@
  * Reads Claude credentials from:
  * 1. Claude config file (~/.claude.json or ~/.config/claude/credentials.json)
  * 2. macOS Keychain (via security command)
- *
- * IMPORTANT: ANTHROPIC_API_KEY and OPENAI_API_KEY are never read from or
- * written to process.env.  Credentials are passed in-memory via the agent
- * package's setAnthropicAuthToken helper (OAuth only).
  */
 
 import { execSync } from "node:child_process";

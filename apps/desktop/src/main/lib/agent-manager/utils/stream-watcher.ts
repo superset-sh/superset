@@ -32,12 +32,16 @@ export class StreamWatcher {
 	private unsubscribe: (() => void) | null = null;
 	private abortController: AbortController;
 
+	private readonly authToken: string;
+
 	constructor(options: {
 		sessionId: string;
 		config: SessionConfig;
+		authToken: string;
 	}) {
 		this.sessionId = options.sessionId;
 		this.config = options.config;
+		this.authToken = options.authToken;
 		this.abortController = new AbortController();
 	}
 
@@ -51,6 +55,7 @@ export class StreamWatcher {
 		this.sessionDB = createSessionDB({
 			sessionId: this.sessionId,
 			baseUrl: `${apiUrl}/api/streams`,
+			headers: { Authorization: `Bearer ${this.authToken}` },
 			signal: this.abortController.signal,
 		});
 
@@ -122,7 +127,10 @@ export class StreamWatcher {
 				`${apiUrl}/api/streams/v1/sessions/${this.sessionId}/config`,
 				{
 					method: "POST",
-					headers: { "Content-Type": "application/json" },
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${this.authToken}`,
+					},
 					body: JSON.stringify({
 						availableModels: getAvailableModels(),
 					}),
