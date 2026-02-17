@@ -18,7 +18,7 @@ const envSchema = z.object({
 		.default("development"),
 	// Port env vars (set in root .env or written by setup.sh for inner worktrees)
 	DESKTOP_VITE_PORT: z.coerce.number().default(5173),
-	DESKTOP_NOTIFICATIONS_PORT: z.coerce.number().default(5174),
+	DESKTOP_NOTIFICATIONS_PORT: z.coerce.number().default(51741),
 	ELECTRIC_PORT: z.coerce.number().default(5133),
 	DESKTOP_AUTOMATION_PORT: z.coerce.number().default(9223),
 	// Workspace name for instance isolation
