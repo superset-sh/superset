@@ -27,6 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setIsHydrated(true);
 	}, [storedToken, isSuccess, isHydrated, refetchSession]);
 
+	electronTrpc.auth.onSessionRefetch.useSubscription(undefined, {
+		onData: () => {
+			refetchSession();
+		},
+	});
+
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: async (data) => {
 			if (data?.token && data?.expiresAt) {

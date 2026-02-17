@@ -10,6 +10,7 @@ import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { PROTOCOL_SCHEME } from "shared/constants";
 import type { PlanTier } from "../constants";
 
 export const Route = createFileRoute("/_authenticated/settings/billing/plans/")(
@@ -293,7 +294,7 @@ function PlansPage() {
 					referenceId: activeOrgId,
 					annual: isYearly,
 					seats: memberCount,
-					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
+					successUrl: `${PROTOCOL_SCHEME}://settings/billing?success=true`,
 					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
 					disableRedirect: true,
 				},
