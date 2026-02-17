@@ -9,10 +9,11 @@ type UserPlan = "free" | "pro";
 export function usePaywall() {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
+	const subscriptions = collections.subscriptions;
 
 	const { data: subscriptionsData } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
+		(q) => q.from({ subscriptions }),
+		[subscriptions],
 	);
 	const activeSubscription = subscriptionsData?.find(
 		(s) => s.status === "active",
