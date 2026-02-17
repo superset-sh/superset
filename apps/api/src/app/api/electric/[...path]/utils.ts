@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
 import {
 	agentCommands,
+	sessionHosts,
 	devicePresence,
 	integrationConnections,
 	invitations,
@@ -27,7 +28,8 @@ export type AllowedTable =
 	| "device_presence"
 	| "agent_commands"
 	| "integration_connections"
-	| "subscriptions";
+	| "subscriptions"
+	| "session_hosts";
 
 interface WhereClause {
 	fragment: string;
@@ -122,6 +124,13 @@ export async function buildWhereClause(
 
 		case "subscriptions":
 			return build(subscriptions, subscriptions.referenceId, organizationId);
+
+		case "session_hosts":
+			return build(
+				sessionHosts,
+				sessionHosts.organizationId,
+				organizationId,
+			);
 
 		default:
 			return null;

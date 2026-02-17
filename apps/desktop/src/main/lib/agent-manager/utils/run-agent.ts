@@ -188,7 +188,7 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers — moved from index.ts
+// Helpers
 // ---------------------------------------------------------------------------
 
 async function writeToDurableStream(

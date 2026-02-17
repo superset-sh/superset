@@ -10,7 +10,7 @@ import {
 import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import type React from "react";
 import { HiMiniPaperClip } from "react-icons/hi2";
-import type { SlashCommand } from "../../hooks/useSlashCommands";
+import type { SlashCommand } from "@superset/durable-session/react";
 import type { ModelOption, PermissionMode } from "../../types";
 import {
 	FileMentionAnchor,
@@ -25,6 +25,7 @@ interface ChatInputFooterProps {
 	cwd: string;
 	error: string | null;
 	isStreaming: boolean;
+	availableModels: ModelOption[];
 	selectedModel: ModelOption;
 	setSelectedModel: React.Dispatch<React.SetStateAction<ModelOption>>;
 	modelSelectorOpen: boolean;
@@ -33,6 +34,7 @@ interface ChatInputFooterProps {
 	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
 	thinkingEnabled: boolean;
 	setThinkingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+	slashCommands: SlashCommand[];
 	onSend: (message: { text: string }) => void;
 	onStop: (e: React.MouseEvent) => void;
 	onSlashCommandSend: (command: SlashCommand) => void;
@@ -42,6 +44,7 @@ export function ChatInputFooter({
 	cwd,
 	error,
 	isStreaming,
+	availableModels,
 	selectedModel,
 	setSelectedModel,
 	modelSelectorOpen,
@@ -50,6 +53,7 @@ export function ChatInputFooter({
 	setPermissionMode,
 	thinkingEnabled,
 	setThinkingEnabled,
+	slashCommands,
 	onSend,
 	onStop,
 	onSlashCommandSend,
@@ -64,7 +68,7 @@ export function ChatInputFooter({
 				)}
 				<PromptInputProvider>
 					<FileMentionProvider cwd={cwd}>
-						<SlashCommandInput onCommandSend={onSlashCommandSend} cwd={cwd}>
+						<SlashCommandInput onCommandSend={onSlashCommandSend} commands={slashCommands}>
 							<FileMentionAnchor>
 								<PromptInput onSubmit={onSend}>
 									<PromptInputTextarea placeholder="Ask anything..." />
@@ -79,6 +83,7 @@ export function ChatInputFooter({
 												onToggle={setThinkingEnabled}
 											/>
 											<ModelPicker
+												models={availableModels}
 												selectedModel={selectedModel}
 												onSelectModel={setSelectedModel}
 												open={modelSelectorOpen}

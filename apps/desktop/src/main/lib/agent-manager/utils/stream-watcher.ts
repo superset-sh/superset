@@ -4,6 +4,7 @@ import { env } from "main/env.main";
 import {
 	runAgent,
 	resumeAgent,
+	sessionAbortControllers,
 	sessionRunIds,
 	type RunAgentOptions,
 } from "./run-agent";
@@ -19,8 +20,8 @@ export interface SessionConfig {
  * StreamWatcher monitors a durable stream session for new user messages
  * from any client (web, desktop, mobile) and triggers the agent automatically.
  *
- * It also detects tool result / approval chunks flowing back from clients
- * and resumes the agent accordingly.
+ * It also detects tool result / approval / control / config chunks flowing
+ * back from clients and handles them accordingly.
  */
 export class StreamWatcher {
 	private sessionDB: SessionDB | null = null;
@@ -52,8 +53,11 @@ export class StreamWatcher {
 			signal: this.abortController.signal,
 		});
 
-		// Seed seenMessageIds from existing chunks so we don't re-trigger on history
+		// Seed seenMessageIds from existing chunks so we don't re-trigger on history.
+		// Also replay the latest config event to initialize config from stream.
 		const chunks = this.sessionDB.collections.chunks;
+		let latestConfig: Record<string, unknown> | null = null;
+
 		for (const row of chunks.values()) {
 			const chunkRow = row as ChunkRow;
 			try {
@@ -61,9 +65,17 @@ export class StreamWatcher {
 				if (parsed.type === "whole-message" && parsed.message?.role === "user") {
 					this.seenMessageIds.add(chunkRow.messageId);
 				}
+				if (parsed.type === "config") {
+					latestConfig = parsed;
+				}
 			} catch {
 				// skip unparseable
 			}
+		}
+
+		// Apply latest config from stream history
+		if (latestConfig) {
+			this.applyConfig(latestConfig);
 		}
 
 		// Subscribe to chunk changes
@@ -171,15 +183,42 @@ export class StreamWatcher {
 						: undefined,
 			});
 		}
+
+		// --- Control event: abort agent ---
+		if (parsed.type === "control") {
+			if (parsed.action === "abort") {
+				const controller = sessionAbortControllers.get(this.sessionId);
+				if (controller) {
+					console.log(
+						`[stream-watcher] Aborting agent for session ${this.sessionId}`,
+					);
+					controller.abort();
+				}
+			}
+		}
+
+		// --- Config event: update runtime config ---
+		if (parsed.type === "config") {
+			this.applyConfig(parsed);
+		}
 	}
 
-	updateConfig(config: Partial<SessionConfig>): void {
-		if (config.cwd !== undefined) this.config.cwd = config.cwd;
-		if (config.modelId !== undefined) this.config.modelId = config.modelId;
-		if (config.permissionMode !== undefined)
+	private applyConfig(config: Record<string, unknown>): void {
+		if (typeof config.model === "string") this.config.modelId = config.model;
+		if (typeof config.cwd === "string") this.config.cwd = config.cwd;
+		if (typeof config.permissionMode === "string")
 			this.config.permissionMode = config.permissionMode;
-		if (config.thinkingEnabled !== undefined)
+		if (typeof config.thinkingEnabled === "boolean")
 			this.config.thinkingEnabled = config.thinkingEnabled;
+		console.log(
+			`[stream-watcher] Config updated for session ${this.sessionId}:`,
+			{
+				modelId: this.config.modelId,
+				cwd: this.config.cwd,
+				permissionMode: this.config.permissionMode,
+				thinkingEnabled: this.config.thinkingEnabled,
+			},
+		);
 	}
 
 	stop(): void {

@@ -66,6 +66,19 @@ export class DurableChatTransport implements ChatTransport<UIMessage> {
 		return this.createChunkStream(undefined);
 	};
 
+	/**
+	 * Send a control event to the durable stream (e.g. abort the agent).
+	 * Called automatically when the user stops a streaming response.
+	 */
+	private sendControl(action: string): void {
+		fetch(this.url("/control"), {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ action }),
+			credentials: "include",
+		}).catch(console.error);
+	}
+
 	private createChunkStream(
 		abortSignal: AbortSignal | undefined,
 	): ReadableStream<UIMessageChunk> {
@@ -122,6 +135,8 @@ export class DurableChatTransport implements ChatTransport<UIMessage> {
 				abortSignal?.addEventListener("abort", () => {
 					subscription.unsubscribe();
 					controller.close();
+					// Tell the agent to stop generating
+					this.sendControl("abort");
 				});
 			},
 		});

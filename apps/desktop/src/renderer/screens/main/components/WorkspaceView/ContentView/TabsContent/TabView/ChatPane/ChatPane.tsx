@@ -1,11 +1,14 @@
 import { useCallback } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { env } from "renderer/env.renderer";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { generateId } from "renderer/stores/tabs/utils";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatInterface } from "./ChatInterface";
 import { SessionSelector } from "./components/SessionSelector";
+
+const apiUrl = env.NEXT_PUBLIC_API_URL;
 
 interface ChatPaneProps {
 	paneId: string;
@@ -42,8 +45,6 @@ export function ChatPane({
 		{ enabled: !!workspaceId },
 	);
 
-	const deleteSession = electronTrpc.aiChat.deleteSession.useMutation();
-
 	const handleSelectSession = useCallback(
 		(newSessionId: string) => {
 			switchChatSession(paneId, newSessionId);
@@ -58,12 +59,16 @@ export function ChatPane({
 
 	const handleDeleteSession = useCallback(
 		(sessionIdToDelete: string) => {
-			deleteSession.mutate({ sessionId: sessionIdToDelete });
+			fetch(
+				`${apiUrl}/api/streams/v1/stream/sessions/${sessionIdToDelete}`,
+				{ method: "DELETE", credentials: "include" },
+			).catch(console.error);
+
 			if (sessionIdToDelete === sessionId) {
 				handleNewChat();
 			}
 		},
-		[deleteSession, sessionId, handleNewChat],
+		[sessionId, handleNewChat],
 	);
 
 	return (
@@ -79,7 +84,6 @@ export function ChatPane({
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
 						<SessionSelector
-							workspaceId={workspaceId}
 							currentSessionId={sessionId}
 							onSelectSession={handleSelectSession}
 							onNewChat={handleNewChat}

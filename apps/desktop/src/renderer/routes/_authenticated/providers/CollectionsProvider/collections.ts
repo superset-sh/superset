@@ -7,6 +7,7 @@ import type {
 	SelectMember,
 	SelectOrganization,
 	SelectProject,
+	SelectSessionHost,
 	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
@@ -47,6 +48,7 @@ interface OrgCollections {
 	integrationConnections: Collection<SelectIntegrationConnection>;
 	subscriptions: Collection<SelectSubscription>;
 	apiKeys: Collection<ApiKeyDisplay>;
+	sessionHosts: Collection<SelectSessionHost>;
 }
 
 // Per-org collections cache
@@ -297,6 +299,22 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const sessionHosts = createCollection(
+		electricCollectionOptions<SelectSessionHost>({
+			id: `session_hosts-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "session_hosts",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -309,6 +327,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		integrationConnections,
 		subscriptions,
 		apiKeys,
+		sessionHosts,
 	};
 }
 

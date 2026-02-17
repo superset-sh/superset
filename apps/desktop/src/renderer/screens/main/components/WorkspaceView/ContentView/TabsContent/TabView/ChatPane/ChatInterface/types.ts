@@ -1,8 +1,4 @@
-export interface ModelOption {
-	id: string;
-	name: string;
-	provider: string;
-}
+export type { ModelOption } from "@superset/durable-session/react";
 
 export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions";
 

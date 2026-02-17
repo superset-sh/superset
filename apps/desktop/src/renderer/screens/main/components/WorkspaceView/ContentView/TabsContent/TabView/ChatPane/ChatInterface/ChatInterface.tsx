@@ -2,18 +2,21 @@ import {
 	createSessionDB,
 	DurableChatTransport,
 } from "@superset/durable-session";
+import { useChatMetadata } from "@superset/durable-session/react";
 import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { env } from "renderer/env.renderer";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
 import { DEFAULT_MODEL } from "./constants";
-import type { SlashCommand } from "./hooks/useSlashCommands";
+import type { SlashCommand } from "@superset/durable-session/react";
 import type {
 	ChatInterfaceProps,
 	ModelOption,
 	PermissionMode,
 } from "./types";
+
+const apiUrl = env.NEXT_PUBLIC_API_URL;
 
 export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const [selectedModel, setSelectedModel] =
@@ -24,37 +27,36 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 		useState<PermissionMode>("bypassPermissions");
 	const [error, setError] = useState<string | null>(null);
 
-	const { data: config } = electronTrpc.aiChat.getConfig.useQuery();
-	const abortAgent = electronTrpc.aiChat.abortSuperagent.useMutation();
+	// SessionDB: one SSE connection, reactive TanStack DB collections
+	const sessionDB = useMemo(() => {
+		return createSessionDB({
+			sessionId,
+			baseUrl: `${apiUrl}/api/streams`,
+		});
+	}, [sessionId]);
 
-	// Register session with StreamWatcher on main process.
-	// The StreamWatcher monitors the durable stream for new user messages
-	// and triggers the agent automatically — any client can send a message.
-	const registerSession = electronTrpc.aiChat.registerSession.useMutation({
-		onError: (err: { message: string }) => {
-			console.error("[chat] Session registration failed:", err);
-			setError(err.message);
-		},
+	// Session metadata: config, title, presence
+	const metadata = useChatMetadata({
+		sessionDB,
+		proxyUrl: apiUrl,
+		sessionId,
 	});
-	const updateSessionConfig =
-		electronTrpc.aiChat.updateSessionConfig.useMutation();
 
-	// Register on mount
+	// Post initial config on mount
 	const registeredRef = useRef(false);
 	useEffect(() => {
 		if (registeredRef.current) return;
 		registeredRef.current = true;
-		registerSession.mutate({
-			sessionId,
-			cwd,
-			modelId: selectedModel.id,
+		metadata.updateConfig({
+			model: selectedModel.id,
 			permissionMode,
 			thinkingEnabled,
+			cwd,
 		});
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [sessionId]);
 
-	// Update config when settings change
+	// Post config when settings change
 	const prevConfigRef = useRef({
 		modelId: selectedModel.id,
 		permissionMode,
@@ -74,32 +76,24 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 			permissionMode,
 			thinkingEnabled,
 		};
-		updateSessionConfig.mutate({
-			sessionId,
-			modelId: selectedModel.id,
+		metadata.updateConfig({
+			model: selectedModel.id,
 			permissionMode,
 			thinkingEnabled,
+			cwd,
 		});
-	}, [selectedModel.id, permissionMode, thinkingEnabled, sessionId, updateSessionConfig]);
+	}, [selectedModel.id, permissionMode, thinkingEnabled, sessionId, cwd, metadata]);
 
-	// SessionDB: one SSE connection, reactive TanStack DB collections
-	const sessionDB = useMemo(() => {
-		if (!config?.apiUrl) return null;
-		return createSessionDB({
-			sessionId,
-			baseUrl: `${config.apiUrl}/api/streams`,
-		});
-	}, [sessionId, config?.apiUrl]);
-
-	// DurableChatTransport: bridges SessionDB → useChat
+	// DurableChatTransport: bridges SessionDB -> useChat
+	// Abort is handled internally by the transport (sends control event)
 	const transport = useMemo(() => {
-		if (!config?.apiUrl || !sessionDB) return undefined;
+		if (!sessionDB) return undefined;
 		return new DurableChatTransport({
-			proxyUrl: config.apiUrl,
+			proxyUrl: apiUrl,
 			sessionId,
 			sessionDB,
 		});
-	}, [sessionId, config?.apiUrl, sessionDB]);
+	}, [sessionId, sessionDB]);
 
 	const chat = useChat({
 		id: sessionId,
@@ -126,10 +120,10 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
-			abortAgent.mutate({ sessionId });
+			// chat.stop() triggers abort signal -> transport sends control event
 			chat.stop();
 		},
-		[abortAgent, sessionId, chat],
+		[chat],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -150,6 +144,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 				cwd={cwd}
 				error={error}
 				isStreaming={isStreaming}
+				availableModels={metadata.config.availableModels ?? []}
 				selectedModel={selectedModel}
 				setSelectedModel={setSelectedModel}
 				modelSelectorOpen={modelSelectorOpen}
@@ -158,6 +153,7 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 				setPermissionMode={setPermissionMode}
 				thinkingEnabled={thinkingEnabled}
 				setThinkingEnabled={setThinkingEnabled}
+				slashCommands={metadata.config.slashCommands ?? []}
 				onSend={handleSend}
 				onStop={handleStop}
 				onSlashCommandSend={handleSlashCommandSend}

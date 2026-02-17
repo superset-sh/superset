@@ -13,11 +13,7 @@ import {
 	githubPullRequests,
 	githubRepositories,
 } from "./github";
-import {
-	chatSessions,
-	sessionAgents,
-	sessionMembers,
-} from "./chat";
+import { sessionHosts } from "./chat";
 import {
 	agentCommands,
 	devicePresence,
@@ -73,6 +69,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
+	sessionHosts: many(sessionHosts),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -281,6 +278,17 @@ export const workspacesRelations = relations(workspaces, ({ one }) => ({
 	}),
 	createdBy: one(users, {
 		fields: [workspaces.createdByUserId],
+		references: [users.id],
+	}),
+}));
+
+export const sessionHostsRelations = relations(sessionHosts, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [sessionHosts.organizationId],
+		references: [organizations.id],
+	}),
+	createdBy: one(users, {
+		fields: [sessionHosts.createdBy],
 		references: [users.id],
 	}),
 }));
