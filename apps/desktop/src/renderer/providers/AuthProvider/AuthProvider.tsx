@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	electronTrpc.auth.onSessionRefetch.useSubscription(undefined, {
 		onData: () => {
-			refetchSession();
+			refetchSession().catch(() => {});
 		},
 	});
 
