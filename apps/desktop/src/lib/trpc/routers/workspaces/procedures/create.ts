@@ -733,12 +733,6 @@ export const createCreateProcedures = () => {
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
-				const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
-				const baseBranch = resolveWorkspaceBaseBranch({
-					workspaceBaseBranch: project.workspaceBaseBranch,
-					defaultBranch: project.defaultBranch,
-					knownBranches,
-				});
 
 				const exists = await worktreeExists(
 					project.mainRepoPath,
@@ -842,6 +836,13 @@ export const createCreateProcedures = () => {
 						wasExisting: false,
 					};
 				}
+
+				const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
+				const baseBranch = resolveWorkspaceBaseBranch({
+					workspaceBaseBranch: project.workspaceBaseBranch,
+					defaultBranch: project.defaultBranch,
+					knownBranches,
+				});
 
 				const worktree = localDb
 					.insert(worktrees)

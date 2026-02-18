@@ -41,4 +41,16 @@ describe("resolveWorkspaceBaseBranch", () => {
 
 		expect(resolved).toBe("main");
 	});
+
+	test("uses workspace base branch when knownBranches is unavailable (offline)", () => {
+		const resolved = resolveWorkspaceBaseBranch({
+			workspaceBaseBranch: "feature/long-lived",
+			defaultBranch: "main",
+		});
+		expect(resolved).toBe("feature/long-lived");
+	});
+	test('falls back to "main" when no defaultBranch or workspaceBaseBranch is provided', () => {
+		const resolved = resolveWorkspaceBaseBranch({});
+		expect(resolved).toBe("main");
+	});
 });

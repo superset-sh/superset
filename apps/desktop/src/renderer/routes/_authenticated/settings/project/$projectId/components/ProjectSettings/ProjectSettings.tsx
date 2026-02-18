@@ -88,7 +88,6 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		},
 		onSettled: () => {
 			utils.projects.get.invalidate({ id: projectId });
-			utils.projects.getBranches.invalidate({ projectId });
 			utils.workspaces.getAllGrouped.invalidate();
 		},
 	});
@@ -170,6 +169,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				workspaceBaseBranch: value === REPO_DEFAULT_BASE_BRANCH ? null : value,
 			},
 		});
+		utils.projects.getBranches.invalidate({ projectId });
 	};
 
 	const getPreviewPrefix = (
