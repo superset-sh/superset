@@ -23,7 +23,7 @@ export function MessageList({
 }: MessageListProps) {
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-[90%] gap-6 py-6">
+			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
 				{messages.length === 0 ? (
 					<ConversationEmptyState
 						title="Start a conversation"
