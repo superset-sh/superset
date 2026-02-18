@@ -52,12 +52,11 @@ import {
 import {
 	resolveBranchPrefix,
 	sanitizeBranchName,
-	sanitizeSegment,
 } from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
 function generateSlugFromTitle(title: string): string {
-	return sanitizeSegment(title);
+	return sanitizeBranchName(title);
 }
 
 type Mode = "existing" | "new" | "cloud";
