@@ -103,6 +103,7 @@ export const useTabsStore = create<TabsStore>()(
 				activeTabIds: {},
 				focusedPaneIds: {},
 				tabHistoryStacks: {},
+				closedTabsStack: [],
 
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
@@ -245,6 +246,21 @@ export const useTabsStore = create<TabsStore>()(
 					if (!tabToRemove) return;
 
 					const paneIds = getPaneIdsForTab(state.panes, tabId);
+
+					// Snapshot the tab + panes for "reopen closed tab"
+					const closedPanes = paneIds
+						.map((id) => state.panes[id])
+						.filter(Boolean);
+					const closedEntry = {
+						tab: tabToRemove,
+						panes: closedPanes,
+						closedAt: Date.now(),
+					};
+					const closedTabsStack = [
+						closedEntry,
+						...state.closedTabsStack,
+					].slice(0, 20);
+
 					for (const paneId of paneIds) {
 						// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
 						const pane = state.panes[paneId];
@@ -278,6 +294,7 @@ export const useTabsStore = create<TabsStore>()(
 						panes: newPanes,
 						activeTabIds: newActiveTabIds,
 						focusedPaneIds: newFocusedPaneIds,
+						closedTabsStack,
 						tabHistoryStacks: {
 							...state.tabHistoryStacks,
 							[workspaceId]: newHistoryStack,
@@ -1377,6 +1394,90 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					return newPane.id;
+				},
+
+				// Reopen operations
+				reopenClosedTab: (workspaceId: string): boolean => {
+					const state = get();
+					// Find the most recently closed tab for this workspace
+					const idx = state.closedTabsStack.findIndex(
+						(entry) => entry.tab.workspaceId === workspaceId,
+					);
+					if (idx === -1) return false;
+
+					const entry = state.closedTabsStack[idx];
+					const newStack = [
+						...state.closedTabsStack.slice(0, idx),
+						...state.closedTabsStack.slice(idx + 1),
+					];
+
+					// Restore the tab with a new ID to avoid collisions
+					const newTabId = generateId("tab");
+					const restoredTab = {
+						...entry.tab,
+						id: newTabId,
+					};
+
+					// Restore panes with updated tabId references
+					const idMap = new Map<string, string>();
+					const restoredPanes: Record<string, (typeof entry.panes)[number]> =
+						{};
+					for (const pane of entry.panes) {
+						const newPaneId = generateId("pane");
+						idMap.set(pane.id, newPaneId);
+						restoredPanes[newPaneId] = {
+							...pane,
+							id: newPaneId,
+							tabId: newTabId,
+							status: "idle",
+						};
+					}
+
+					// Remap layout leaf IDs
+					const remapLayout = (
+						node: MosaicNode<string>,
+					): MosaicNode<string> => {
+						if (typeof node === "string") {
+							return idMap.get(node) ?? node;
+						}
+						return {
+							...node,
+							first: remapLayout(node.first),
+							second: remapLayout(node.second),
+						};
+					};
+					restoredTab.layout = remapLayout(restoredTab.layout);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					const firstPaneId = getFirstPaneId(restoredTab.layout);
+
+					set({
+						tabs: [...state.tabs, restoredTab],
+						panes: { ...state.panes, ...restoredPanes },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: newTabId,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[newTabId]: firstPaneId,
+						},
+						closedTabsStack: newStack,
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return true;
 				},
 
 				// Chat operations

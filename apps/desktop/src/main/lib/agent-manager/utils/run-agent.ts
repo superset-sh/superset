@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
+import type { UIMessageChunk } from "ai";
 import type { SessionHost } from "@superset/durable-session/host";
 
 // ---------------------------------------------------------------------------
@@ -112,6 +113,13 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		sessionContext.delete(sessionId);
 
 		if (abortController.signal.aborted) return;
+
+		// Write error chunk to stream so client sees isComplete = true
+		try {
+			await writeErrorChunk(host, error);
+		} catch {
+			/* best effort */
+		}
 		console.error(`[run-agent] Stream error for ${sessionId}:`, error);
 	} finally {
 		if (sessionAbortControllers.get(sessionId) === abortController) {
@@ -168,6 +176,12 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 		sessionContext.delete(sessionId);
 
 		if (abortController.signal.aborted) return;
+
+		try {
+			await writeErrorChunk(host, error);
+		} catch {
+			/* best effort */
+		}
 		console.error(`[run-agent] Resume error for ${sessionId}:`, error);
 	} finally {
 		if (sessionAbortControllers.get(sessionId) === abortController) {
@@ -179,6 +193,22 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+async function writeErrorChunk(
+	host: SessionHost,
+	error: unknown,
+): Promise<void> {
+	const messageId = crypto.randomUUID();
+	const errorText = error instanceof Error ? error.message : "Agent error";
+	const stream = new ReadableStream<UIMessageChunk>({
+		start(controller) {
+			controller.enqueue({ type: "error", errorText } as UIMessageChunk);
+			controller.enqueue({ type: "abort" } as UIMessageChunk);
+			controller.close();
+		},
+	});
+	await host.writeStream(messageId, stream);
+}
 
 async function writeToDurableStream(
 	stream: Parameters<typeof toAISdkStream>[0],

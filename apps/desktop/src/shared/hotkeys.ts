@@ -513,9 +513,9 @@ export const HOTKEYS = {
 		label: "New Terminal",
 		category: "Terminal",
 	}),
-	NEW_CHAT: defineHotkey({
+	REOPEN_TAB: defineHotkey({
 		keys: "meta+shift+t",
-		label: "New Chat",
+		label: "Reopen Closed Tab",
 		category: "Terminal",
 	}),
 	NEW_BROWSER: defineHotkey({

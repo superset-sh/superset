@@ -41,4 +41,6 @@ export interface MessageRow {
 	isComplete: boolean;
 	/** Message creation timestamp (from first chunk) */
 	createdAt: Date;
+	/** Timestamp of the most recent chunk (for staleness detection) */
+	lastChunkAt: Date;
 }

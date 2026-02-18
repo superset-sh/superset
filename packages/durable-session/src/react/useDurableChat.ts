@@ -2,7 +2,7 @@
  * Self-contained chat hook that owns the entire session lifecycle.
  *
  * Clients just pass sessionId + auth config. Internally this hook:
- * 1. Creates and manages the SessionDB
+ * 1. Acquires a cached SessionDB (ref-counted, survives tab switches)
  * 2. Handles preload → ready state
  * 3. Subscribes to the messages collection via useSyncExternalStore
  * 4. Exposes metadata (title, config, presence) via embedded useChatMetadata
@@ -12,10 +12,9 @@
 import { createOptimisticAction } from "@durable-streams/state";
 import type { UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createSessionDB } from "../collection";
 import type { ChunkRow } from "../schema";
-import { createMessagesCollection } from "../collections/messages";
 import { messageRowToUIMessage } from "../materialize";
+import { acquireSessionDB, releaseSessionDB } from "../sessionDBCache";
 import { type UseChatMetadataReturn, useChatMetadata } from "./useChatMetadata";
 import { useCollectionData } from "./useCollectionData";
 
@@ -41,15 +40,25 @@ export interface UseDurableChatReturn {
 	metadata: UseChatMetadataReturn;
 }
 
+const STALE_THRESHOLD_MS = 30_000;
+
 export function useDurableChat(
 	options: UseDurableChatOptions,
 ): UseDurableChatReturn {
 	const { sessionId, proxyUrl, getHeaders } = options;
 
-	// --- SessionDB lifecycle ---
-	const sessionDB = useMemo(
+	// --- SessionDB lifecycle (cached, ref-counted) ---
+	// messagesCollection is cached alongside the SessionDB so on remount
+	// the already-computed derived collection is reused (avoids empty state
+	// from creating a new live query against a pre-populated source).
+	const {
+		db: sessionDB,
+		messagesCollection,
+		preloadPromise,
+		preloaded,
+	} = useMemo(
 		() =>
-			createSessionDB({
+			acquireSessionDB({
 				sessionId,
 				baseUrl: `${proxyUrl}/api/streams`,
 				headers: getHeaders?.(),
@@ -57,12 +66,13 @@ export function useDurableChat(
 		[sessionId, proxyUrl],
 	);
 
-	const [ready, setReady] = useState(false);
+	// For cached (already-preloaded) sessions, start ready immediately so
+	// messages render on the very first frame — no "Connecting…" flash.
+	const [ready, setReady] = useState(preloaded);
 
 	useEffect(() => {
 		let cancelled = false;
-		sessionDB
-			.preload()
+		preloadPromise
 			.then(() => {
 				if (!cancelled) setReady(true);
 			})
@@ -72,9 +82,9 @@ export function useDurableChat(
 		return () => {
 			cancelled = true;
 			setReady(false);
-			sessionDB.close();
+			releaseSessionDB(sessionId);
 		};
-	}, [sessionDB]);
+	}, [sessionDB, sessionId, preloadPromise]);
 
 	// --- URL + headers helpers ---
 	const headers = useCallback(
@@ -92,22 +102,27 @@ export function useDurableChat(
 	);
 
 	// --- Messages via collection pipeline ---
-	const messagesCollection = useMemo(
-		() =>
-			createMessagesCollection({
-				chunksCollection: sessionDB.collections.chunks,
-			}),
-		[sessionDB],
-	);
-
 	const rows = useCollectionData(messagesCollection);
 
 	const messages = useMemo(() => rows.map(messageRowToUIMessage), [rows]);
 
-	const isLoading = useMemo(
-		() => rows.some((row) => !row.isComplete),
-		[rows],
-	);
+	// --- Staleness-aware isLoading ---
+	// Tick forces re-evaluation so time-based staleness actually triggers.
+	const [tick, setTick] = useState(0);
+	useEffect(() => {
+		if (!rows.some((r) => !r.isComplete)) return;
+		const timer = setInterval(() => setTick((t) => t + 1), 5_000);
+		return () => clearInterval(timer);
+	}, [rows]);
+
+	const isLoading = useMemo(() => {
+		const now = Date.now();
+		return rows.some(
+			(row) =>
+				!row.isComplete &&
+				now - row.lastChunkAt.getTime() < STALE_THRESHOLD_MS,
+		);
+	}, [rows, tick]);
 
 	// --- Metadata (title, config, presence, agents) ---
 	const metadata = useChatMetadata({

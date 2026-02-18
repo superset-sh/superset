@@ -295,11 +295,15 @@ export class SessionHost {
 
 		let seq = 0;
 		const reader = stream.getReader();
+		const t0 = performance.now();
+		let firstChunkAt = 0;
 
 		try {
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done || options?.signal?.aborted) break;
+
+				if (seq === 0) firstChunkAt = performance.now();
 
 				const event = sessionStateSchema.chunks.insert({
 					key: `${messageId}:${seq}`,
@@ -316,10 +320,35 @@ export class SessionHost {
 				producer.append(JSON.stringify(event));
 				seq++;
 			}
+
+			const streamDone = performance.now();
+			console.log(
+				`[durable-stream] agent done: ${seq} chunks in ${((streamDone - t0) / 1000).toFixed(1)}s (first chunk at ${firstChunkAt ? `+${((firstChunkAt - t0) / 1000).toFixed(2)}s` : "n/a"})`,
+			);
+
+			// Write abort chunk so clients see isComplete = true
+			if (options?.signal?.aborted) {
+				const abortEvent = sessionStateSchema.chunks.insert({
+					key: `${messageId}:${seq}`,
+					value: {
+						messageId,
+						actorId: "agent",
+						role: "assistant",
+						chunk: JSON.stringify({ type: "abort" }),
+						seq,
+						createdAt: new Date().toISOString(),
+					},
+				});
+				producer.append(JSON.stringify(abortEvent));
+				seq++;
+			}
 		} finally {
 			try {
 				await producer.flush();
 				await producer.detach();
+				console.log(
+					`[durable-stream] flush+detach done: ${((performance.now() - t0) / 1000).toFixed(1)}s total`,
+				);
 			} catch (err) {
 				if (!options?.signal?.aborted) {
 					this.emit(

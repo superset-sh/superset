@@ -4,6 +4,7 @@ export {
 	type SessionDB,
 	type SessionDBConfig,
 } from "./collection";
+export { acquireSessionDB, releaseSessionDB } from "./sessionDBCache";
 export { createMessagesCollection } from "./collections/messages";
 export {
 	extractTextContent,

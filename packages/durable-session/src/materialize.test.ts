@@ -427,6 +427,7 @@ describe("messageRowToUIMessage", () => {
 			actorId: "actor-1",
 			isComplete: true,
 			createdAt: new Date("2025-01-01"),
+			lastChunkAt: new Date("2025-01-01"),
 		};
 
 		const msg = messageRowToUIMessage(row);

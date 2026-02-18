@@ -68,6 +68,9 @@ function materializeWholeMessage(
 	chunk: WholeMessageChunk,
 ): MessageRow {
 	const { message } = chunk;
+	const createdAt = message.createdAt
+		? new Date(message.createdAt as string | number)
+		: new Date(row.createdAt);
 
 	return {
 		id: message.id,
@@ -75,9 +78,8 @@ function materializeWholeMessage(
 		parts: message.parts as AnyUIMessagePart[],
 		actorId: row.actorId,
 		isComplete: true,
-		createdAt: message.createdAt
-			? new Date(message.createdAt as string | number)
-			: new Date(row.createdAt),
+		createdAt,
+		lastChunkAt: createdAt,
 	};
 }
 
@@ -315,6 +317,7 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 		}
 	}
 
+	const lastRow = sorted[sorted.length - 1]!;
 	return {
 		id: first.messageId,
 		role: first.role as MessageRole,
@@ -322,6 +325,7 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 		actorId: first.actorId,
 		isComplete,
 		createdAt: new Date(first.createdAt),
+		lastChunkAt: new Date(lastRow.createdAt),
 	};
 }
 
