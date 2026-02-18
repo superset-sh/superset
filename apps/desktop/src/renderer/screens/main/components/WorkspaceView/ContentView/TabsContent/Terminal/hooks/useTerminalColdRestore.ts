@@ -70,6 +70,11 @@ export function useTerminalColdRestore({
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
+	const dropQueuedDisconnectEvents = useCallback(() => {
+		pendingEventsRef.current = pendingEventsRef.current.filter(
+			(event) => event.type !== "disconnect",
+		);
+	}, [pendingEventsRef]);
 
 	// Ref for restoredCwd to use in callbacks
 	const restoredCwdRef = useRef(restoredCwd);
@@ -100,6 +105,7 @@ export function useTerminalColdRestore({
 					if (!currentXterm) return;
 
 					setConnectionError(null);
+					dropQueuedDisconnectEvents();
 
 					if (result.isColdRestore) {
 						const scrollback =
@@ -164,6 +170,7 @@ export function useTerminalColdRestore({
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
+		dropQueuedDisconnectEvents,
 	]);
 
 	const handleStartShell = useCallback(() => {

@@ -14,7 +14,7 @@ import type { SFTPService } from "./sftp-service";
 const CLIPBOARD_DIR = ".superset/clipboard";
 const BIN_DIR = ".superset/bin";
 const MAX_CLIPBOARD_FILES = 5;
-const PROXY_MARKER = "# superset-clipboard-proxy v5";
+const PROXY_MARKER = "# superset-clipboard-proxy v6";
 
 export class RemoteClipboardService {
 	private connection: SSHConnection;
@@ -70,7 +70,7 @@ export class RemoteClipboardService {
 			[
 				'export PATH="$HOME/.superset/bin:$PATH"',
 				`if [ -f '${clipboardDir}/latest' ]; then echo latest_exists; else echo latest_missing; fi`,
-				"if xclip -selection clipboard -t image/png -o >/dev/null 2>&1 || wl-paste --type image/png >/dev/null 2>&1 || pbpaste >/dev/null 2>&1; then echo readImage_ok; else echo readImage_fail; fi",
+				"if xclip -selection clipboard -t image/png -o >/dev/null 2>&1 || wl-paste --type image/png >/dev/null 2>&1 || SUPERSET_CLIPBOARD_IMAGE=1 pbpaste >/dev/null 2>&1; then echo readImage_ok; else echo readImage_fail; fi",
 			].join("; "),
 		);
 
@@ -255,12 +255,27 @@ exit 1
 
 	const pbpaste = `#!/bin/bash
 ${PROXY_MARKER}
-# Proxy pbpaste: serve Superset clipboard images for SSH sessions.
+# Proxy pbpaste: serve Superset clipboard images for agent image reads only.
+# Plain text pbpaste calls must fall through to the real binary.
 
 _f="${clipboardDir}/latest"
 if [[ -f "$_f" ]]; then
-  cat "$_f"
-  exit 0
+  # Explicit opt-in for image clipboard reads.
+  if [[ "$SUPERSET_CLIPBOARD_IMAGE" == "1" ]]; then
+    cat "$_f"
+    exit 0
+  fi
+
+  # Heuristic fallback: allow known agent CLI callers.
+  # Examples:
+  # - claude code
+  # - codex
+  # - opencode / cursor-agent
+  _parent_cmd="$(ps -o command= -p "$PPID" 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+  if [[ "$_parent_cmd" == *"claude"* || "$_parent_cmd" == *"codex"* || "$_parent_cmd" == *"opencode"* || "$_parent_cmd" == *"cursor-agent"* ]]; then
+    cat "$_f"
+    exit 0
+  fi
 fi
 ${findReal("pbpaste")}
 [[ -n "$_real" ]] && exec "$_real" "$@"

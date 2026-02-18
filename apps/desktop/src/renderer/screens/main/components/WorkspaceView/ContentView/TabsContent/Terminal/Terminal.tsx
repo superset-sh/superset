@@ -37,14 +37,6 @@ import { shellEscapePaths } from "./utils";
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
 
-const isTerminalDaemonDisconnect = (message: string) => {
-	const normalized = message.toLowerCase();
-	return (
-		normalized.includes("terminal daemon") &&
-		(normalized.includes("lost") || normalized.includes("disconnect"))
-	);
-};
-
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCommands = pane?.initialCommands;
@@ -316,6 +308,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		isStreamReadyRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
+		pendingEventsRef,
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
@@ -360,13 +353,20 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	}, [fontSettings]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
-	const autoRetryAttemptsRef = useRef(0);
+	const [autoRetryAttempts, setAutoRetryAttempts] = useState(0);
 	const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const hasCompletedSuccessfulAttachRef = useRef(false);
+
+	useEffect(() => {
+		if (connectionError) return;
+		// Once we observe a healthy state, retry policy can be more conservative.
+		hasCompletedSuccessfulAttachRef.current = true;
+	}, [connectionError]);
 
 	useEffect(() => {
 		// Connection recovered: reset retry state.
 		if (!connectionError) {
-			autoRetryAttemptsRef.current = 0;
+			setAutoRetryAttempts(0);
 			if (autoRetryTimerRef.current) {
 				clearTimeout(autoRetryTimerRef.current);
 				autoRetryTimerRef.current = null;
@@ -374,8 +374,8 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			return;
 		}
 
-		// Only auto-retry daemon disconnect overlays.
-		if (!isTerminalDaemonDisconnect(connectionError)) {
+		const normalized = connectionError.toLowerCase();
+		if (normalized.includes("terminal_session_killed")) {
 			return;
 		}
 
@@ -385,16 +385,21 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		}
 
 		// Limit to 3 automatic retries; then keep manual Retry button.
-		if (autoRetryAttemptsRef.current >= 3) {
+		if (autoRetryAttempts >= 3) {
 			return;
 		}
 
+		// First startup/reopen retry should be fast (equivalent to manual Retry).
+		const delayMs =
+			!hasCompletedSuccessfulAttachRef.current && autoRetryAttempts === 0
+				? 250
+				: 3000;
 		autoRetryTimerRef.current = setTimeout(() => {
 			autoRetryTimerRef.current = null;
-			autoRetryAttemptsRef.current += 1;
+			setAutoRetryAttempts((attempts) => attempts + 1);
 			handleRetryConnection();
-		}, 3000);
-	}, [connectionError, handleRetryConnection]);
+		}, delayMs);
+	}, [autoRetryAttempts, connectionError, handleRetryConnection]);
 
 	useEffect(() => {
 		return () => {
@@ -445,7 +450,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<SessionKilledOverlay onRestart={restartTerminal} />
 			)}
-			{connectionError && (
+			{connectionError && autoRetryAttempts >= 3 && (
 				<ConnectionErrorOverlay onRetry={handleRetryConnection} />
 			)}
 			<div ref={terminalRef} className="h-full w-full" />

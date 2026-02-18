@@ -26,6 +26,7 @@ import type {
 	TerminalClearScrollbackMutate,
 	TerminalDetachMutate,
 	TerminalResizeMutate,
+	TerminalStreamEvent,
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
@@ -112,6 +113,7 @@ export interface UseTerminalLifecycleOptions {
 	isStreamReadyRef: MutableRefObject<boolean>;
 	didFirstRenderRef: MutableRefObject<boolean>;
 	pendingInitialStateRef: MutableRefObject<CreateOrAttachResult | null>;
+	pendingEventsRef: MutableRefObject<TerminalStreamEvent[]>;
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
 	resetModes: () => void;
@@ -174,6 +176,7 @@ export function useTerminalLifecycle({
 	isStreamReadyRef,
 	didFirstRenderRef,
 	pendingInitialStateRef,
+	pendingEventsRef,
 	maybeApplyInitialState,
 	flushPendingEvents,
 	resetModes,
@@ -195,6 +198,18 @@ export function useTerminalLifecycle({
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
 	const restartTerminal = useCallback(() => restartTerminalRef.current(), []);
+	const dropQueuedDisconnectEvents = useCallback(() => {
+		const before = pendingEventsRef.current.length;
+		if (before === 0) return;
+		pendingEventsRef.current = pendingEventsRef.current.filter(
+			(event) => event.type !== "disconnect",
+		);
+		if (DEBUG_TERMINAL && pendingEventsRef.current.length !== before) {
+			console.log(
+				`[Terminal] Dropped ${before - pendingEventsRef.current.length} stale disconnect event(s): ${paneId}`,
+			);
+		}
+	}, [paneId, pendingEventsRef]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally
 	useEffect(() => {
@@ -295,6 +310,7 @@ export function useTerminalLifecycle({
 				},
 				{
 					onSuccess: (result) => {
+						dropQueuedDisconnectEvents();
 						pendingInitialStateRef.current = result;
 						maybeApplyInitialState();
 					},
@@ -408,6 +424,7 @@ export function useTerminalLifecycle({
 							onSuccess: (result) => {
 								if (!isAttachActive()) return;
 								setConnectionError(null);
+								dropQueuedDisconnectEvents();
 								if (initialCommands || initialCwd) {
 									clearPaneInitialDataRef.current(paneId);
 								}
@@ -632,6 +649,7 @@ export function useTerminalLifecycle({
 		resetModes,
 		setIsRestoredMode,
 		setRestoredCwd,
+		dropQueuedDisconnectEvents,
 	]);
 
 	return { xtermInstance, restartTerminal };
