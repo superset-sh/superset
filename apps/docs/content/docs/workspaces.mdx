@@ -25,14 +25,11 @@ Each workspace gets:
 
 ## Jujutsu (jj) Support
 
-Superset auto-detects Jujutsu repos in colocated mode (`.jj` + `.git` side by side) and uses native jj commands:
+Superset auto-detects [Jujutsu](https://jj-vcs.github.io/jj/) colocated repos and uses native jj workspaces. No configuration needed — just open a jj repo and Superset handles the rest.
 
-- **Workspace creation** uses `jj workspace add` instead of `git worktree add`
-- **Bookmarks** are listed instead of git branches in the branch selector
-- **jj commands work** inside workspaces (auto-rebasing, `jj log`, etc.)
-- **Changes UI** (staging, commits, push) continues to work via git in colocated mode
-
-No configuration needed — just open a jj colocated repo and Superset handles the rest. If the `jj` CLI is not installed, Superset falls back to git.
+- jj bookmarks are shown in the branch selector
+- jj commands work inside workspaces (auto-rebasing, `jj log`, etc.)
+- Requires the `jj` CLI to be installed (`brew install jj`)
 
 ## Use Cases
 
