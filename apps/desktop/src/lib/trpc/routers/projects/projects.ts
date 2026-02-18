@@ -156,9 +156,11 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 		return;
 	}
 
-	// Get current branch from main repo
+	// Get current branch from main repo (jj repos may have no bookmark on @)
 	const vcs = getVcsProvider(project.mainRepoPath);
-	const branch = await vcs.getCurrentBranch(project.mainRepoPath);
+	const branch =
+		(await vcs.getCurrentBranch(project.mainRepoPath)) ||
+		project.defaultBranch;
 	if (!branch) {
 		console.warn(
 			`[ensureMainWorkspace] Could not determine current branch for project ${project.id}`,
