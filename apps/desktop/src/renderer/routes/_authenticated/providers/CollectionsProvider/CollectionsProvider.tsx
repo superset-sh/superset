@@ -45,10 +45,8 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	// Preload collections for all orgs the user belongs to.
 	// Collections are lazy — they don't sync until subscribed or preloaded.
 	// This starts Electric subscriptions eagerly so data is ready on org switch.
-	// Skip preloading in local-only mode to avoid unnecessary network requests.
 	const organizationIds = session?.session?.organizationIds;
 	useEffect(() => {
-		if (env.SKIP_ENV_VALIDATION) return;
 		if (!organizationIds) return;
 		for (const orgId of organizationIds) {
 			preloadCollections(orgId);

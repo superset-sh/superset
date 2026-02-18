@@ -1,5 +1,6 @@
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
+import { Card, CardContent } from "@superset/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -96,106 +97,124 @@ export function SshConnectionsSettings({
 		: null;
 
 	return (
-		<div className="space-y-6">
-			<div>
-				<h2 className="text-lg font-semibold">SSH Connections</h2>
-				<p className="text-sm text-muted-foreground">
-					Manage SSH host configurations for remote workspaces.
-				</p>
+		<div className="p-6 max-w-7xl w-full">
+			<div className="mb-8">
+				<div>
+					<h2 className="text-xl font-semibold">SSH Connections</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Manage SSH host configurations for remote workspaces.
+					</p>
+				</div>
 			</div>
 
-			{isItemVisible(SETTING_ITEM_ID.SSH_CONNECTIONS_LIST, visibleItems) && (
-				<div className="space-y-3">
-					{connections.length === 0 ? (
-						<div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
-							<LuServer className="size-8 text-muted-foreground mb-3" />
-							<p className="text-sm font-medium">No SSH connections</p>
-							<p className="text-xs text-muted-foreground mt-1">
-								Add a connection to create remote workspaces.
-							</p>
-						</div>
-					) : (
-						<div className="space-y-2">
-							{connections.map((conn) => {
-								const status = conn.connectionStatus as {
-									status: string;
-									error?: string;
-								} | null;
-								const statusValue = status?.status ?? "untested";
-
-								return (
-									<div
-										key={conn.id}
-										className="flex items-center gap-3 rounded-lg border p-3"
-									>
-										<LuServer className="size-5 text-muted-foreground shrink-0" />
-										<div className="flex-1 min-w-0">
-											<div className="flex items-center gap-2">
-												<span className="text-sm font-medium truncate">
-													{conn.name}
-												</span>
-												<Badge
-													variant={
-														statusValue === "connected"
-															? "default"
-															: statusValue === "failed"
-																? "destructive"
-																: "secondary"
-													}
-													className="text-[10px] px-1.5 py-0"
-												>
-													{statusValue}
-												</Badge>
-											</div>
-											<p className="text-xs text-muted-foreground font-mono truncate">
-												{conn.username}@{conn.host}:{conn.port}
-											</p>
-										</div>
-										<div className="flex items-center gap-1 shrink-0">
-											<Button
-												variant="ghost"
-												size="sm"
-												className="h-7 px-2 text-xs"
-												onClick={() => testMutation.mutate({ id: conn.id })}
-												disabled={testMutation.isPending}
-											>
-												{testMutation.isPending ? (
-													<LuLoader className="size-3 animate-spin" />
-												) : (
-													"Test"
-												)}
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="size-7"
-												onClick={() => handleOpenEdit(conn.id)}
-											>
-												<LuPencil className="size-3.5" />
-											</Button>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="size-7 text-destructive hover:text-destructive"
-												onClick={() => deleteMutation.mutate({ id: conn.id })}
-											>
-												<LuTrash2 className="size-3.5" />
-											</Button>
-										</div>
-									</div>
-								);
-							})}
-						</div>
+			<div className="space-y-4">
+				<div className="flex items-center justify-between">
+					<div className="space-y-0.5">
+						<p className="text-sm font-medium">Saved SSH Connections</p>
+						<p className="text-xs text-muted-foreground">
+							Use saved hosts when creating remote workspaces.
+						</p>
+					</div>
+					{isItemVisible(SETTING_ITEM_ID.SSH_CONNECTIONS_ADD, visibleItems) && (
+						<Button variant="outline" size="sm" onClick={handleOpenCreate}>
+							<LuPlus className="size-4 mr-1.5" />
+							Add SSH Connection
+						</Button>
 					)}
 				</div>
-			)}
 
-			{isItemVisible(SETTING_ITEM_ID.SSH_CONNECTIONS_ADD, visibleItems) && (
-				<Button variant="outline" size="sm" onClick={handleOpenCreate}>
-					<LuPlus className="size-4 mr-1.5" />
-					Add SSH Connection
-				</Button>
-			)}
+				{isItemVisible(SETTING_ITEM_ID.SSH_CONNECTIONS_LIST, visibleItems) && (
+					<div className="space-y-3">
+						{connections.length === 0 ? (
+							<Card className="border-dashed bg-muted/20">
+								<CardContent className="flex flex-col items-center justify-center p-8 text-center">
+									<LuServer className="size-8 text-muted-foreground mb-3" />
+									<p className="text-sm font-medium">No SSH connections</p>
+									<p className="text-xs text-muted-foreground mt-1">
+										Add a connection to create remote workspaces.
+									</p>
+								</CardContent>
+							</Card>
+						) : (
+							<Card className="rounded-lg border border-border overflow-hidden">
+								{connections.map((conn) => {
+									const status = conn.connectionStatus as {
+										status: string;
+										error?: string;
+									} | null;
+									const statusValue = status?.status ?? "untested";
+
+									return (
+										<div
+											key={conn.id}
+											className={cn(
+												"flex items-center gap-3 py-3 px-4 transition-colors",
+												"not-last:border-b",
+												"hover:bg-muted/30",
+											)}
+										>
+											<LuServer className="size-5 text-muted-foreground shrink-0" />
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-2">
+													<span className="text-sm font-medium truncate">
+														{conn.name}
+													</span>
+													<Badge
+														variant={
+															statusValue === "connected"
+																? "default"
+																: statusValue === "failed"
+																	? "destructive"
+																	: "secondary"
+														}
+														className="text-[10px] px-1.5 py-0 capitalize"
+													>
+														{statusValue.replace("-", " ")}
+													</Badge>
+												</div>
+												<p className="text-xs text-muted-foreground font-mono truncate">
+													{conn.username}@{conn.host}:{conn.port}
+												</p>
+											</div>
+											<div className="flex items-center gap-1 shrink-0">
+												<Button
+													variant="secondary"
+													size="sm"
+													className="h-7 px-2.5 text-xs"
+													onClick={() => testMutation.mutate({ id: conn.id })}
+													disabled={testMutation.isPending}
+												>
+													{testMutation.isPending ? (
+														<LuLoader className="size-3 animate-spin" />
+													) : (
+														"Test"
+													)}
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="size-7 text-muted-foreground hover:text-foreground"
+													onClick={() => handleOpenEdit(conn.id)}
+												>
+													<LuPencil className="size-3.5" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="size-7 text-destructive hover:text-destructive"
+													onClick={() => deleteMutation.mutate({ id: conn.id })}
+												>
+													<LuTrash2 className="size-3.5" />
+												</Button>
+											</div>
+										</div>
+									);
+								})}
+							</Card>
+						)}
+					</div>
+				)}
+			</div>
 
 			<SshConnectionDialog
 				open={isDialogOpen}

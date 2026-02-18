@@ -8,12 +8,18 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
-import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
+import {
+	LuFolderGit,
+	LuFolderOpen,
+	LuFolderPlus,
+	LuServer,
+} from "react-icons/lu";
 import {
 	processOpenNewResults,
 	useOpenNew,
 } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { CloneRepoDialog } from "../StartView/CloneRepoDialog";
 import { STROKE_WIDTH } from "./constants";
 
@@ -26,6 +32,7 @@ export function WorkspaceSidebarFooter({
 }: WorkspaceSidebarFooterProps) {
 	const openNew = useOpenNew();
 	const createBranchWorkspace = useCreateBranchWorkspace();
+	const openWorkspaceModal = useOpenNewWorkspaceModal();
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 
 	const handleOpenProject = async () => {
@@ -116,6 +123,13 @@ export function WorkspaceSidebarFooter({
 								<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
 								Clone repo
 							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() => openWorkspaceModal()}
+								disabled={isLoading}
+							>
+								<LuServer className="size-4" strokeWidth={STROKE_WIDTH} />
+								SSH Remote
+							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
@@ -154,6 +168,13 @@ export function WorkspaceSidebarFooter({
 						>
 							<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
 							Clone repo
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={() => openWorkspaceModal()}
+							disabled={isLoading}
+						>
+							<LuServer className="size-4" strokeWidth={STROKE_WIDTH} />
+							SSH Remote
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

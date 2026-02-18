@@ -37,6 +37,14 @@ import { shellEscapePaths } from "./utils";
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
 
+const isTerminalDaemonDisconnect = (message: string) => {
+	const normalized = message.toLowerCase();
+	return (
+		normalized.includes("terminal daemon") &&
+		(normalized.includes("lost") || normalized.includes("disconnect"))
+	);
+};
+
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCommands = pane?.initialCommands;
@@ -352,6 +360,49 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	}, [fontSettings]);
 
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
+	const autoRetryAttemptsRef = useRef(0);
+	const autoRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	useEffect(() => {
+		// Connection recovered: reset retry state.
+		if (!connectionError) {
+			autoRetryAttemptsRef.current = 0;
+			if (autoRetryTimerRef.current) {
+				clearTimeout(autoRetryTimerRef.current);
+				autoRetryTimerRef.current = null;
+			}
+			return;
+		}
+
+		// Only auto-retry daemon disconnect overlays.
+		if (!isTerminalDaemonDisconnect(connectionError)) {
+			return;
+		}
+
+		// Already scheduled a retry for the current error state.
+		if (autoRetryTimerRef.current) {
+			return;
+		}
+
+		// Limit to 3 automatic retries; then keep manual Retry button.
+		if (autoRetryAttemptsRef.current >= 3) {
+			return;
+		}
+
+		autoRetryTimerRef.current = setTimeout(() => {
+			autoRetryTimerRef.current = null;
+			autoRetryAttemptsRef.current += 1;
+			handleRetryConnection();
+		}, 3000);
+	}, [connectionError, handleRetryConnection]);
+
+	useEffect(() => {
+		return () => {
+			if (autoRetryTimerRef.current) {
+				clearTimeout(autoRetryTimerRef.current);
+			}
+		};
+	}, []);
 
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();

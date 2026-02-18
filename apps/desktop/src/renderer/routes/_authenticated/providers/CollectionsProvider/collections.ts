@@ -15,10 +15,7 @@ import type {
 import type { AppRouter } from "@superset/trpc";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import type { Collection } from "@tanstack/react-db";
-import {
-	createCollection,
-	localOnlyCollectionOptions,
-} from "@tanstack/react-db";
+import { createCollection } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
@@ -55,21 +52,19 @@ interface OrgCollections {
 // Per-org collections cache
 const collectionsCache = new Map<string, OrgCollections>();
 
-// Singleton API client with dynamic auth headers (only used when not in local-only mode)
-const apiClient = env.SKIP_ENV_VALIDATION
-	? (null as unknown as ReturnType<typeof createTRPCProxyClient<AppRouter>>)
-	: createTRPCProxyClient<AppRouter>({
-			links: [
-				httpBatchLink({
-					url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-					headers: () => {
-						const token = getAuthToken();
-						return token ? { Authorization: `Bearer ${token}` } : {};
-					},
-					transformer: superjson,
-				}),
-			],
-		});
+// Singleton API client with dynamic auth headers
+const apiClient = createTRPCProxyClient<AppRouter>({
+	links: [
+		httpBatchLink({
+			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+			headers: () => {
+				const token = getAuthToken();
+				return token ? { Authorization: `Bearer ${token}` } : {};
+			},
+			transformer: superjson,
+		}),
+	],
+});
 
 const electricHeaders = {
 	Authorization: () => {
@@ -78,68 +73,20 @@ const electricHeaders = {
 	},
 };
 
-/**
- * Create a local-only collection stub (no Electric sync, no network).
- * Used in local-only mode when auth is bypassed.
- */
-function createLocalStub<T extends object>(id: string): Collection<T> {
-	return createCollection<T>(
-		localOnlyCollectionOptions<T>({
-			id,
-			getKey: (item: T) => (item as Record<string, unknown>).id as string,
-		}),
-	);
-}
-
-const organizationsCollection = env.SKIP_ENV_VALIDATION
-	? createLocalStub<SelectOrganization>("organizations")
-	: createCollection(
-			electricCollectionOptions<SelectOrganization>({
-				id: "organizations",
-				shapeOptions: {
-					url: electricUrl,
-					params: { table: "auth.organizations" },
-					headers: electricHeaders,
-					columnMapper,
-				},
-				getKey: (item) => item.id,
-			}),
-		);
-
-function createLocalOrgCollections(organizationId: string): OrgCollections {
-	return {
-		tasks: createLocalStub<SelectTask>(`tasks-${organizationId}`),
-		taskStatuses: createLocalStub<SelectTaskStatus>(
-			`task_statuses-${organizationId}`,
-		),
-		projects: createLocalStub<SelectProject>(`projects-${organizationId}`),
-		members: createLocalStub<SelectMember>(`members-${organizationId}`),
-		users: createLocalStub<SelectUser>(`users-${organizationId}`),
-		invitations: createLocalStub<SelectInvitation>(
-			`invitations-${organizationId}`,
-		),
-		agentCommands: createLocalStub<SelectAgentCommand>(
-			`agent_commands-${organizationId}`,
-		),
-		devicePresence: createLocalStub<SelectDevicePresence>(
-			`device_presence-${organizationId}`,
-		),
-		integrationConnections: createLocalStub<SelectIntegrationConnection>(
-			`integration_connections-${organizationId}`,
-		),
-		subscriptions: createLocalStub<SelectSubscription>(
-			`subscriptions-${organizationId}`,
-		),
-		apiKeys: createLocalStub<ApiKeyDisplay>(`apikeys-${organizationId}`),
-	};
-}
+const organizationsCollection = createCollection(
+	electricCollectionOptions<SelectOrganization>({
+		id: "organizations",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.organizations" },
+			headers: electricHeaders,
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
 
 function createOrgCollections(organizationId: string): OrgCollections {
-	// Local-only mode: return empty local stubs (no Electric sync)
-	if (env.SKIP_ENV_VALIDATION) {
-		return createLocalOrgCollections(organizationId);
-	}
-
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,

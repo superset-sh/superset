@@ -1,19 +1,9 @@
 import { Spinner } from "@superset/ui/spinner";
 import { type ReactNode, useEffect, useState } from "react";
-import { env } from "renderer/env.renderer";
 import { authClient, setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "../../lib/electron-trpc";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-	// Local-only mode: skip all token hydration
-	if (env.SKIP_ENV_VALIDATION) {
-		return <>{children}</>;
-	}
-
-	return <AuthProviderInner>{children}</AuthProviderInner>;
-}
-
-function AuthProviderInner({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
 

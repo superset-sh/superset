@@ -26,16 +26,6 @@ export function useVersionCheck(): UseVersionCheckResult {
 	const hasVerified = useRef(false);
 
 	const checkVersion = useCallback(async () => {
-		if (env.SKIP_ENV_VALIDATION) {
-			setState({
-				isLoading: false,
-				isBlocked: false,
-				requirements: null,
-				error: null,
-			});
-			return;
-		}
-
 		// Don't show loading state on re-checks (only on initial load)
 		if (!hasVerified.current) {
 			setState((prev) => ({ ...prev, isLoading: true }));
