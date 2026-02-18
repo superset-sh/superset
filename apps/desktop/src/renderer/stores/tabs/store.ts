@@ -1,5 +1,6 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
+import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
@@ -530,6 +531,13 @@ export const useTabsStore = create<TabsStore>()(
 					workspaceId: string,
 					options: AddFileViewerPaneOptions,
 				) => {
+					if (options.openInNewTab === undefined) {
+						options = {
+							...options,
+							openInNewTab: getFileOpenMode() === "new-tab",
+						};
+					}
+
 					const state = get();
 					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
 						workspaceId,

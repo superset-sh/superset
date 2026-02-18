@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
+import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
@@ -73,6 +74,9 @@ function WorkspacePage() {
 	const navigate = useNavigate();
 	const routeNavigate = Route.useNavigate();
 	const { tabId: searchTabId, paneId: searchPaneId } = Route.useSearch();
+
+	// Keep the file open mode cache warm for addFileViewerPane
+	useFileOpenMode();
 
 	// Handle search-param-driven tab/pane activation (e.g. from notification clicks)
 	useEffect(() => {
