@@ -140,6 +140,8 @@ export function usePersistentWebview({
 			webview = document.createElement("webview") as Electron.WebviewTag;
 			webview.setAttribute("partition", "persist:superset");
 			webview.setAttribute("allowpopups", "");
+			webview.style.display = "flex";
+			webview.style.flex = "1";
 			webview.style.width = "100%";
 			webview.style.height = "100%";
 			webview.style.border = "none";
