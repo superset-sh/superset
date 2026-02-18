@@ -31,13 +31,12 @@ import {
 	touchWorkspace,
 } from "../workspaces/utils/db-helpers";
 import {
-	getCurrentBranch,
-	getDefaultBranch,
+	detectVcsType,
 	getGitAuthorName,
-	getGitRoot,
-	refreshDefaultBranch,
+	getRepoRoot,
+	getVcsProvider,
 	sanitizeAuthorPrefix,
-} from "../workspaces/utils/git";
+} from "../workspaces/utils/vcs";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
@@ -99,7 +98,8 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 		throw new Error(`Failed to create initial commit: ${errorMessage}`);
 	}
 
-	const defaultBranch = (await getCurrentBranch(path)) || "main";
+	const vcs = getVcsProvider(path);
+	const defaultBranch = (await vcs.getCurrentBranch(path)) || "main";
 	return { defaultBranch };
 }
 
@@ -110,6 +110,7 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
  */
 function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	const name = basename(mainRepoPath);
+	const vcsType = detectVcsType(mainRepoPath);
 
 	const existing = localDb
 		.select()
@@ -120,10 +121,10 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	if (existing) {
 		localDb
 			.update(projects)
-			.set({ lastOpenedAt: Date.now(), defaultBranch })
+			.set({ lastOpenedAt: Date.now(), defaultBranch, vcsType })
 			.where(eq(projects.id, existing.id))
 			.run();
-		return { ...existing, lastOpenedAt: Date.now(), defaultBranch };
+		return { ...existing, lastOpenedAt: Date.now(), defaultBranch, vcsType };
 	}
 
 	const project = localDb
@@ -133,6 +134,7 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 			name,
 			color: getDefaultProjectColor(),
 			defaultBranch,
+			vcsType,
 		})
 		.returning()
 		.get();
@@ -156,7 +158,8 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 	}
 
 	// Get current branch from main repo
-	const branch = await getCurrentBranch(project.mainRepoPath);
+	const vcs = getVcsProvider(project.mainRepoPath);
+	const branch = await vcs.getCurrentBranch(project.mainRepoPath);
 	if (!branch) {
 		console.warn(
 			`[ensureMainWorkspace] Could not determine current branch for project ${project.id}`,
@@ -489,14 +492,15 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					);
 
 					// Sync with remote in case the default branch changed (e.g. master -> main)
-					const remoteDefaultBranch = await refreshDefaultBranch(
+					const vcsForBranches = getVcsProvider(project.mainRepoPath);
+					const remoteDefaultBranch = await vcsForBranches.refreshDefaultBranch(
 						project.mainRepoPath,
 					);
 
 					const defaultBranch =
 						remoteDefaultBranch ||
 						project.defaultBranch ||
-						(await getDefaultBranch(project.mainRepoPath));
+						(await vcsForBranches.getDefaultBranch(project.mainRepoPath));
 
 					if (defaultBranch !== project.defaultBranch) {
 						localDb
@@ -534,10 +538,17 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			const outcomes: FolderOutcome[] = [];
 
 			for (const selectedPath of result.filePaths) {
+				let mainRepoPath: string;
 				try {
-					const mainRepoPath = await getGitRoot(selectedPath);
-					const defaultBranch = await getDefaultBranch(mainRepoPath);
+					mainRepoPath = await getRepoRoot(selectedPath);
+				} catch {
+					outcomes.push({ status: "needsGitInit", selectedPath });
+					continue;
+				}
 
+				try {
+					const vcsForOpen = getVcsProvider(mainRepoPath);
+					const defaultBranch = await vcsForOpen.getDefaultBranch(mainRepoPath);
 					const project = upsertProject(mainRepoPath, defaultBranch);
 					await ensureMainWorkspace(project);
 
@@ -600,7 +611,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				let mainRepoPath: string;
 				try {
-					mainRepoPath = await getGitRoot(selectedPath);
+					mainRepoPath = await getRepoRoot(selectedPath);
 				} catch {
 					return {
 						canceled: false,
@@ -609,8 +620,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					};
 				}
 
-				const defaultBranch = await getDefaultBranch(mainRepoPath);
-
+				const vcsForPath = getVcsProvider(mainRepoPath);
+				const defaultBranch = await vcsForPath.getDefaultBranch(mainRepoPath);
 				const project = upsertProject(mainRepoPath, defaultBranch);
 				await ensureMainWorkspace(project);
 
@@ -761,7 +772,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					// Create new project
 					const name = basename(clonePath);
-					const defaultBranch = await getDefaultBranch(clonePath);
+					const vcsForClone = getVcsProvider(clonePath);
+					const defaultBranch = await vcsForClone.getDefaultBranch(clonePath);
+					const vcsType = detectVcsType(clonePath);
 					const project = localDb
 						.insert(projects)
 						.values({
@@ -769,6 +782,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 							name,
 							color: getDefaultProjectColor(),
 							defaultBranch,
+							vcsType,
 						})
 						.returning()
 						.get();
@@ -912,7 +926,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					throw new Error(`Project ${input.id} not found`);
 				}
 
-				const remoteDefaultBranch = await refreshDefaultBranch(
+				const vcsForRefresh = getVcsProvider(project.mainRepoPath);
+				const remoteDefaultBranch = await vcsForRefresh.refreshDefaultBranch(
 					project.mainRepoPath,
 				);
 
@@ -938,7 +953,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const defaultBranch =
 					project.defaultBranch ??
 					remoteDefaultBranch ??
-					(await getDefaultBranch(project.mainRepoPath));
+					(await vcsForRefresh.getDefaultBranch(project.mainRepoPath));
 
 				return {
 					success: true,

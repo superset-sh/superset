@@ -6,18 +6,8 @@ import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
 import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { getBranchBaseConfig, setBranchBaseConfig } from "./base-branch-config";
-import {
-	branchExistsOnRemote,
-	createWorktree,
-	createWorktreeFromExistingBranch,
-	fetchDefaultBranch,
-	hasOriginRemote,
-	refExistsLocally,
-	refreshDefaultBranch,
-	removeWorktree,
-	sanitizeGitError,
-} from "./git";
 import { copySupersetConfigToWorktree } from "./setup";
+import { getVcsProvider, sanitizeGitError } from "./vcs";
 
 export interface WorkspaceInitParams {
 	workspaceId: string;
@@ -60,6 +50,8 @@ export async function initializeWorkspaceWorktree({
 			return;
 		}
 
+		const vcs = getVcsProvider(mainRepoPath);
+
 		const project = localDb
 			.select()
 			.from(projects)
@@ -87,17 +79,17 @@ export async function initializeWorkspaceWorktree({
 					"creating_worktree",
 					"Creating git worktree...",
 				);
-				await createWorktreeFromExistingBranch({
+				await vcs.createWorkspaceFromExistingBranch({
 					mainRepoPath,
 					branch,
-					worktreePath,
+					workspacePath: worktreePath,
 				});
 				manager.markWorktreeCreated(workspaceId);
 			}
 
 			if (manager.isCancellationRequested(workspaceId)) {
 				try {
-					await removeWorktree(mainRepoPath, worktreePath);
+					await vcs.removeWorkspace(mainRepoPath, worktreePath);
 				} catch (e) {
 					console.error(
 						"[workspace-init] Failed to cleanup worktree after cancel:",
@@ -116,7 +108,7 @@ export async function initializeWorkspaceWorktree({
 
 			if (manager.isCancellationRequested(workspaceId)) {
 				try {
-					await removeWorktree(mainRepoPath, worktreePath);
+					await vcs.removeWorkspace(mainRepoPath, worktreePath);
 				} catch (e) {
 					console.error(
 						"[workspace-init] Failed to cleanup worktree after cancel:",
@@ -155,7 +147,7 @@ export async function initializeWorkspaceWorktree({
 		}
 
 		manager.updateProgress(workspaceId, "syncing", "Syncing with remote...");
-		const remoteDefaultBranch = await refreshDefaultBranch(mainRepoPath);
+		const remoteDefaultBranch = await vcs.refreshDefaultBranch(mainRepoPath);
 
 		if (remoteDefaultBranch) {
 			if (project && remoteDefaultBranch !== project.defaultBranch) {
@@ -176,7 +168,7 @@ export async function initializeWorkspaceWorktree({
 			"verifying",
 			"Verifying base branch...",
 		);
-		const hasRemote = await hasOriginRemote(mainRepoPath);
+		const hasRemote = await vcs.hasOriginRemote(mainRepoPath);
 
 		type LocalStartPointResult = {
 			ref: string;
@@ -189,7 +181,7 @@ export async function initializeWorkspaceWorktree({
 		): Promise<LocalStartPointResult> => {
 			if (checkOriginRefs) {
 				const originRef = `origin/${effectiveBaseBranch}`;
-				if (await refExistsLocally(mainRepoPath, originRef)) {
+				if (await vcs.refExistsLocally(mainRepoPath, originRef)) {
 					console.log(
 						`[workspace-init] ${reason}. Using local tracking ref: ${originRef}`,
 					);
@@ -197,7 +189,7 @@ export async function initializeWorkspaceWorktree({
 				}
 			}
 
-			if (await refExistsLocally(mainRepoPath, effectiveBaseBranch)) {
+			if (await vcs.refExistsLocally(mainRepoPath, effectiveBaseBranch)) {
 				console.log(
 					`[workspace-init] ${reason}. Using local branch: ${effectiveBaseBranch}`,
 				);
@@ -216,14 +208,14 @@ export async function initializeWorkspaceWorktree({
 				if (branch === effectiveBaseBranch) continue;
 				if (checkOriginRefs) {
 					const fallbackOriginRef = `origin/${branch}`;
-					if (await refExistsLocally(mainRepoPath, fallbackOriginRef)) {
+					if (await vcs.refExistsLocally(mainRepoPath, fallbackOriginRef)) {
 						console.log(
 							`[workspace-init] ${reason}. Using fallback tracking ref: ${fallbackOriginRef}`,
 						);
 						return { ref: fallbackOriginRef, fallbackBranch: branch };
 					}
 				}
-				if (await refExistsLocally(mainRepoPath, branch)) {
+				if (await vcs.refExistsLocally(mainRepoPath, branch)) {
 					console.log(
 						`[workspace-init] ${reason}. Using fallback local branch: ${branch}`,
 					);
@@ -275,7 +267,7 @@ export async function initializeWorkspaceWorktree({
 
 		let startPoint: string;
 		if (hasRemote) {
-			const branchCheck = await branchExistsOnRemote(
+			const branchCheck = await vcs.branchExistsOnRemote(
 				mainRepoPath,
 				effectiveBaseBranch,
 			);
@@ -352,10 +344,10 @@ export async function initializeWorkspaceWorktree({
 		);
 		if (hasRemote) {
 			try {
-				await fetchDefaultBranch(mainRepoPath, effectiveBaseBranch);
+				await vcs.fetchDefaultBranch(mainRepoPath, effectiveBaseBranch);
 			} catch (fetchError) {
 				const originRef = `origin/${effectiveBaseBranch}`;
-				if (!(await refExistsLocally(mainRepoPath, originRef))) {
+				if (!(await vcs.refExistsLocally(mainRepoPath, originRef))) {
 					console.warn(
 						`[workspace-init] Fetch failed and local ref "${originRef}" doesn't exist. Attempting local fallback.`,
 					);
@@ -394,12 +386,17 @@ export async function initializeWorkspaceWorktree({
 			"creating_worktree",
 			"Creating git worktree...",
 		);
-		await createWorktree(mainRepoPath, branch, worktreePath, startPoint);
+		await vcs.createWorkspace({
+			mainRepoPath,
+			branch,
+			workspacePath: worktreePath,
+			startPoint,
+		});
 		manager.markWorktreeCreated(workspaceId);
 
 		if (manager.isCancellationRequested(workspaceId)) {
 			try {
-				await removeWorktree(mainRepoPath, worktreePath);
+				await vcs.removeWorkspace(mainRepoPath, worktreePath);
 			} catch (e) {
 				console.error(
 					"[workspace-init] Failed to cleanup worktree after cancel:",
@@ -418,7 +415,7 @@ export async function initializeWorkspaceWorktree({
 
 		if (manager.isCancellationRequested(workspaceId)) {
 			try {
-				await removeWorktree(mainRepoPath, worktreePath);
+				await vcs.removeWorkspace(mainRepoPath, worktreePath);
 			} catch (e) {
 				console.error(
 					"[workspace-init] Failed to cleanup worktree after cancel:",
@@ -461,7 +458,7 @@ export async function initializeWorkspaceWorktree({
 
 		if (manager.wasWorktreeCreated(workspaceId)) {
 			try {
-				await removeWorktree(mainRepoPath, worktreePath);
+				await vcs.removeWorkspace(mainRepoPath, worktreePath);
 				console.log(
 					`[workspace-init] Cleaned up partial worktree at ${worktreePath}`,
 				);

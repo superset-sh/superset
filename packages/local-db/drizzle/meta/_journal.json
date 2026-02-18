@@ -211,6 +211,13 @@
       "when": 1771547603399,
       "tag": "0029_add_workspace_base_branch",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1771408464209,
+      "tag": "0030_add_vcs_type_to_projects",
+      "breakpoints": true
     }
   ]
 }

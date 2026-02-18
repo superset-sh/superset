@@ -1,4 +1,4 @@
-import { worktrees } from "@superset/local-db";
+import { projects, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import simpleGit from "simple-git";
@@ -9,12 +9,29 @@ import {
 	setBranchBaseConfig,
 	unsetBranchBaseConfig,
 } from "../workspaces/utils/base-branch-config";
-import { getCurrentBranch } from "../workspaces/utils/git";
+import { getVcsProvider } from "../workspaces/utils/vcs";
 import {
 	assertRegisteredWorktree,
 	getRegisteredWorktree,
 	gitSwitchBranch,
 } from "./security";
+
+function getMainRepoPath(worktreePath: string): string {
+	const wt = localDb
+		.select()
+		.from(worktrees)
+		.where(eq(worktrees.path, worktreePath))
+		.get();
+	if (!wt) throw new Error(`Worktree not found: ${worktreePath}`);
+	const project = localDb
+		.select()
+		.from(projects)
+		.where(eq(projects.id, wt.projectId))
+		.get();
+	if (!project)
+		throw new Error(`Project not found for worktree: ${worktreePath}`);
+	return project.mainRepoPath;
+}
 
 export const createBranchesRouter = () => {
 	return router({
@@ -32,10 +49,13 @@ export const createBranchesRouter = () => {
 				}> => {
 					assertRegisteredWorktree(input.worktreePath);
 
+					const mainRepoPath = getMainRepoPath(input.worktreePath);
+					const vcs = getVcsProvider(mainRepoPath);
 					const git = simpleGit(input.worktreePath);
 
-					const branchSummary = await git.branch(["-a"]);
-					const currentBranch = await getCurrentBranch(input.worktreePath);
+					const { local: localBranches, remote } =
+						await vcs.listBranches(mainRepoPath);
+					const currentBranch = await vcs.getCurrentBranch(input.worktreePath);
 					const { baseBranch: configuredBaseBranch } = currentBranch
 						? await getBranchBaseConfig({
 								repoPath: input.worktreePath,
@@ -56,21 +76,8 @@ export const createBranchesRouter = () => {
 							? (persistedWorktree.baseBranch?.trim() ?? null)
 							: null;
 
-					const localBranches: string[] = [];
-					const remote: string[] = [];
-
-					for (const name of Object.keys(branchSummary.branches)) {
-						if (name.startsWith("remotes/origin/")) {
-							if (name === "remotes/origin/HEAD") continue;
-							const remoteName = name.replace("remotes/origin/", "");
-							remote.push(remoteName);
-						} else {
-							localBranches.push(name);
-						}
-					}
-
 					const local = await getLocalBranchesWithDates(git, localBranches);
-					const defaultBranch = await getDefaultBranch(git, remote);
+					const defaultBranch = await vcs.getDefaultBranch(mainRepoPath);
 					const checkedOutBranches = await getCheckedOutBranches(
 						git,
 						input.worktreePath,
@@ -124,7 +131,9 @@ export const createBranchesRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const currentBranch = await getCurrentBranch(input.worktreePath);
+				const mainRepoPath = getMainRepoPath(input.worktreePath);
+				const vcs = getVcsProvider(mainRepoPath);
+				const currentBranch = await vcs.getCurrentBranch(input.worktreePath);
 				if (!currentBranch) {
 					throw new Error("Could not determine current branch");
 				}
@@ -183,24 +192,6 @@ async function getLocalBranchesWithDates(
 	} catch {
 		return localBranches.map((branch) => ({ branch, lastCommitDate: 0 }));
 	}
-}
-
-async function getDefaultBranch(
-	git: ReturnType<typeof simpleGit>,
-	remoteBranches: string[],
-): Promise<string> {
-	try {
-		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
-		const match = headRef.match(/refs\/remotes\/origin\/(.+)/);
-		if (match) {
-			return match[1].trim();
-		}
-	} catch {
-		if (remoteBranches.includes("master") && !remoteBranches.includes("main")) {
-			return "master";
-		}
-	}
-	return "main";
 }
 
 async function getCheckedOutBranches(

@@ -9,6 +9,7 @@ import type {
 	GitStatus,
 	TerminalLinkBehavior,
 	TerminalPreset,
+	VcsType,
 	WorkspaceType,
 } from "./zod";
 
@@ -43,6 +44,7 @@ export const projects = sqliteTable(
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
 		defaultApp: text("default_app").$type<ExternalApp>(),
+		vcsType: text("vcs_type").$type<VcsType>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),

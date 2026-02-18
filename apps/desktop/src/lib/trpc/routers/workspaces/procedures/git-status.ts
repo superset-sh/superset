@@ -10,14 +10,8 @@ import {
 	getWorktree,
 	updateProjectDefaultBranch,
 } from "../utils/db-helpers";
-import {
-	fetchDefaultBranch,
-	getAheadBehindCount,
-	getDefaultBranch,
-	listExternalWorktrees,
-	refreshDefaultBranch,
-} from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
+import { getVcsProvider } from "../utils/vcs";
 
 export const createGitStatusProcedures = () => {
 	return router({
@@ -43,13 +37,15 @@ export const createGitStatusProcedures = () => {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
 
-				const remoteDefaultBranch = await refreshDefaultBranch(
+				const vcs = getVcsProvider(project.mainRepoPath);
+
+				const remoteDefaultBranch = await vcs.refreshDefaultBranch(
 					project.mainRepoPath,
 				);
 
 				let defaultBranch = project.defaultBranch;
 				if (!defaultBranch) {
-					defaultBranch = await getDefaultBranch(project.mainRepoPath);
+					defaultBranch = await vcs.getDefaultBranch(project.mainRepoPath);
 				}
 				if (remoteDefaultBranch && remoteDefaultBranch !== defaultBranch) {
 					defaultBranch = remoteDefaultBranch;
@@ -59,9 +55,9 @@ export const createGitStatusProcedures = () => {
 					updateProjectDefaultBranch(project.id, defaultBranch);
 				}
 
-				await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
+				await vcs.fetchDefaultBranch(project.mainRepoPath, defaultBranch);
 
-				const { ahead, behind } = await getAheadBehindCount({
+				const { ahead, behind } = await vcs.getAheadBehindCount({
 					repoPath: worktree.path,
 					defaultBranch,
 				});
@@ -96,7 +92,8 @@ export const createGitStatusProcedures = () => {
 					return { ahead: 0, behind: 0 };
 				}
 
-				return getAheadBehindCount({
+				const vcs = getVcsProvider(project.mainRepoPath);
+				return vcs.getAheadBehindCount({
 					repoPath: project.mainRepoPath,
 					defaultBranch: workspace.branch,
 				});
@@ -194,7 +191,10 @@ export const createGitStatusProcedures = () => {
 					return [];
 				}
 
-				const allWorktrees = await listExternalWorktrees(project.mainRepoPath);
+				const vcs = getVcsProvider(project.mainRepoPath);
+				const allWorktrees = await vcs.listExternalWorkspaces(
+					project.mainRepoPath,
+				);
 
 				const trackedWorktrees = localDb
 					.select({ path: worktrees.path })

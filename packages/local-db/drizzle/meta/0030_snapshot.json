@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "fc0209b1-4dbd-460d-baf5-2b672178d4f6",
-  "prevId": "f9a3301f-7c42-4e88-a95d-bca4ce39da98",
+  "id": "bfa502be-8952-4c8e-9650-c6cb09266de9",
+  "prevId": "63568533-c315-4206-a426-d69f23b77874",
   "tables": {
     "browser_history": {
       "name": "browser_history",
@@ -328,6 +328,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "workspace_base_branch": {
+          "name": "workspace_base_branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "github_owner": {
           "name": "github_owner",
           "type": "text",
@@ -365,6 +372,13 @@
         },
         "neon_project_id": {
           "name": "neon_project_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "default_app": {
+          "name": "default_app",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -412,13 +426,6 @@
         },
         "last_active_workspace_id": {
           "name": "last_active_workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_used_app": {
-          "name": "last_used_app",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -546,6 +553,13 @@
         },
         "editor_font_size": {
           "name": "editor_font_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "show_resource_monitor": {
+          "name": "show_resource_monitor",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,

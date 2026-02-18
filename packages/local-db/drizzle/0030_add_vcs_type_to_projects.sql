@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `vcs_type` text;
