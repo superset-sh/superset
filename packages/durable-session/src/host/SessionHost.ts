@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { DurableStream, IdempotentProducer } from "@durable-streams/client";
+import { DurableStream } from "@durable-streams/client";
 import type { UIMessage, UIMessageChunk } from "ai";
 import { createSessionDB, type SessionDB } from "../collection";
 import { type ChunkRow, sessionStateSchema } from "../schema";
@@ -268,66 +268,55 @@ export class SessionHost {
 			contentType: "application/json",
 		});
 
-		// IdempotentProducer doesn't forward DurableStream.headers on POSTs,
-		// so inject auth via a custom fetch wrapper.
-		const authHeaders = this.writeHeaders;
-		const authFetch = ((input: RequestInfo | URL, init?: RequestInit) =>
-			fetch(input, {
-				...init,
-				headers: { ...authHeaders, ...init?.headers },
-			})) as typeof fetch;
+		let seq = 0;
+		let aborted = false;
 
-		const producer = new IdempotentProducer(
-			durableStream,
-			`agent-${this.sessionId}`,
-			{
-				autoClaim: true,
-				lingerMs: 5,
-				maxInFlight: 5,
-				signal: options?.signal,
-				fetch: authFetch,
-				onError: (err) => {
-					if (options?.signal?.aborted) return;
-					this.emit("error", err);
+		// Transform UIMessageChunks into serialized durable-stream events,
+		// piped as a single streaming HTTP request via appendStream().
+		const serialized = stream.pipeThrough(
+			new TransformStream<UIMessageChunk, string>({
+				transform: (value, controller) => {
+					if (options?.signal?.aborted) {
+						aborted = true;
+						controller.terminate();
+						return;
+					}
+
+					const event = sessionStateSchema.chunks.insert({
+						key: `${messageId}:${seq}`,
+						value: {
+							messageId,
+							actorId: "agent",
+							role: "assistant",
+							chunk: JSON.stringify(value),
+							seq,
+							createdAt: new Date().toISOString(),
+						},
+					});
+
+					controller.enqueue(JSON.stringify(event));
+					seq++;
 				},
-			},
+			}),
 		);
 
-		let seq = 0;
-		const reader = stream.getReader();
-		const t0 = performance.now();
-		let firstChunkAt = 0;
-
 		try {
-			while (true) {
-				const { done, value } = await reader.read();
-				if (done || options?.signal?.aborted) break;
-
-				if (seq === 0) firstChunkAt = performance.now();
-
-				const event = sessionStateSchema.chunks.insert({
-					key: `${messageId}:${seq}`,
-					value: {
-						messageId,
-						actorId: "agent",
-						role: "assistant",
-						chunk: JSON.stringify(value),
-						seq,
-						createdAt: new Date().toISOString(),
-					},
-				});
-
-				producer.append(JSON.stringify(event));
-				seq++;
+			await durableStream.appendStream(serialized, {
+				signal: options?.signal,
+			});
+		} catch (err) {
+			if (!options?.signal?.aborted) {
+				this.emit(
+					"error",
+					err instanceof Error ? err : new Error(String(err)),
+				);
 			}
+			aborted = options?.signal?.aborted ?? false;
+		}
 
-			const streamDone = performance.now();
-			console.log(
-				`[durable-stream] agent done: ${seq} chunks in ${((streamDone - t0) / 1000).toFixed(1)}s (first chunk at ${firstChunkAt ? `+${((firstChunkAt - t0) / 1000).toFixed(2)}s` : "n/a"})`,
-			);
-
-			// Write abort chunk so clients see isComplete = true
-			if (options?.signal?.aborted) {
+		// Write abort chunk so clients see isComplete = true
+		if (aborted) {
+			try {
 				const abortEvent = sessionStateSchema.chunks.insert({
 					key: `${messageId}:${seq}`,
 					value: {
@@ -339,23 +328,9 @@ export class SessionHost {
 						createdAt: new Date().toISOString(),
 					},
 				});
-				producer.append(JSON.stringify(abortEvent));
-				seq++;
-			}
-		} finally {
-			try {
-				await producer.flush();
-				await producer.detach();
-				console.log(
-					`[durable-stream] flush+detach done: ${((performance.now() - t0) / 1000).toFixed(1)}s total`,
-				);
-			} catch (err) {
-				if (!options?.signal?.aborted) {
-					this.emit(
-						"error",
-						err instanceof Error ? err : new Error(String(err)),
-					);
-				}
+				await durableStream.append(JSON.stringify(abortEvent));
+			} catch {
+				/* best effort */
 			}
 		}
 	}

@@ -218,28 +218,7 @@ async function writeToDurableStream(
 	const messageId = crypto.randomUUID();
 	const aiStream = toAISdkStream(stream, { from: "agent" });
 
-	// Instrumentation: measure Mastra token throughput (single summary line)
-	let chunkCount = 0;
-	let textDeltaCount = 0;
-	const t0 = performance.now();
-	const instrumented = (aiStream as unknown as ReadableStream).pipeThrough(
-		new TransformStream({
-			transform(chunk, controller) {
-				chunkCount++;
-				if ((chunk as { type?: string }).type === "text-delta")
-					textDeltaCount++;
-				controller.enqueue(chunk);
-			},
-			flush() {
-				const elapsed = (performance.now() - t0) / 1000;
-				console.log(
-					`[mastra] ${elapsed.toFixed(1)}s, ${chunkCount} chunks, ${textDeltaCount} text-deltas (${(textDeltaCount / elapsed).toFixed(0)} deltas/s)`,
-				);
-			},
-		}),
-	);
-
-	await host.writeStream(messageId, instrumented as ReadableStream, {
+	await host.writeStream(messageId, aiStream as unknown as ReadableStream, {
 		signal: abortSignal,
 	});
 }
