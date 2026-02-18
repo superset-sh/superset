@@ -30,6 +30,21 @@ fi
 # Map UserPromptSubmit to Start for simpler handling
 [ "$EVENT_TYPE" = "UserPromptSubmit" ] && EVENT_TYPE="Start"
 
+# Handle Notification hook - check notification_type for user attention events
+if [ "$EVENT_TYPE" = "Notification" ]; then
+  NOTIFICATION_TYPE=$(echo "$INPUT" | grep -oE '"notification_type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  case "$NOTIFICATION_TYPE" in
+    permission_prompt|elicitation_dialog)
+      # Both permission prompts and question dialogs need user attention
+      EVENT_TYPE="PermissionRequest"
+      ;;
+    *)
+      # Ignore other notification types
+      exit 0
+      ;;
+  esac
+fi
+
 # If no event type was found, skip the notification
 # This prevents parse failures from causing false completion notifications
 [ -z "$EVENT_TYPE" ] && exit 0
