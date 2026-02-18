@@ -190,6 +190,13 @@
       "when": 1771214717763,
       "tag": "0026_browser_history",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1771408464209,
+      "tag": "0027_add_vcs_type_to_projects",
+      "breakpoints": true
     }
   ]
 }
