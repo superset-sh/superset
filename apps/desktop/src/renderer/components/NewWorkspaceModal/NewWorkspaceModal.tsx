@@ -49,10 +49,7 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
-import {
-	resolveBranchPrefix,
-	sanitizeBranchName,
-} from "shared/utils/branch";
+import { resolveBranchPrefix, sanitizeBranchName } from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
 function generateSlugFromTitle(title: string): string {
