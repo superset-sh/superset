@@ -1,7 +1,7 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import type { AgentValue, ChunkRow, RawPresenceRow } from "../../../../schema";
 import type { SessionDB } from "../../../../session-db/session-db";
+import { useCollectionData } from "../useCollectionData";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -98,19 +98,13 @@ export function useChatMetadata(
 	// Config + Title — derived from config-type chunks
 	// -----------------------------------------------------------------------
 
-	const { data: chunks } = useLiveQuery(
-		(q) =>
-			q
-				.from({ chunks: sessionDB.collections.chunks })
-				.select(({ chunks }) => chunks),
-		[sessionDB.collections.chunks],
-	);
+	const chunks = useCollectionData(sessionDB.collections.chunks) as ChunkRow[];
 
 	const { title, config } = useMemo(() => {
 		let title: string | null = null;
 		const config: SessionConfig = {};
 
-		for (const row of (chunks ?? []) as ChunkRow[]) {
+		for (const row of chunks) {
 			try {
 				const parsed = JSON.parse(row.chunk);
 				if (parsed.type === "config") {
@@ -149,17 +143,13 @@ export function useChatMetadata(
 	// Presence — users from presence collection
 	// -----------------------------------------------------------------------
 
-	const { data: presenceRows } = useLiveQuery(
-		(q) =>
-			q
-				.from({ presence: sessionDB.collections.presence })
-				.select(({ presence }) => presence),
-		[sessionDB.collections.presence],
-	);
+	const presenceRows = useCollectionData(
+		sessionDB.collections.presence,
+	) as RawPresenceRow[];
 
 	const users = useMemo(
 		(): ChatUserPresence[] =>
-			((presenceRows ?? []) as RawPresenceRow[])
+			presenceRows
 				.filter((r) => r.status !== "offline")
 				.map((r) => ({
 					userId: r.userId,
@@ -177,17 +167,13 @@ export function useChatMetadata(
 	// Agents — from agents collection
 	// -----------------------------------------------------------------------
 
-	const { data: agentRows } = useLiveQuery(
-		(q) =>
-			q
-				.from({ agents: sessionDB.collections.agents })
-				.select(({ agents }) => agents),
-		[sessionDB.collections.agents],
-	);
+	const agentRows = useCollectionData(
+		sessionDB.collections.agents,
+	) as AgentValue[];
 
 	const agents = useMemo(
 		(): ChatAgentPresence[] =>
-			((agentRows ?? []) as AgentValue[]).map((r) => ({
+			agentRows.map((r) => ({
 				agentId: r.agentId,
 				name: r.name,
 				endpoint: r.endpoint,
