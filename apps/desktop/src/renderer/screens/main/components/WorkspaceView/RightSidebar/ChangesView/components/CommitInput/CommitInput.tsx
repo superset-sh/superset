@@ -24,7 +24,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface CommitInputProps {
 	worktreePath: string;
-	workspaceId?: string;
 	hasStagedChanges: boolean;
 	pushCount: number;
 	pullCount: number;
@@ -36,7 +35,6 @@ interface CommitInputProps {
 
 export function CommitInput({
 	worktreePath,
-	workspaceId,
 	hasStagedChanges,
 	pushCount,
 	pullCount,
@@ -109,43 +107,38 @@ export function CommitInput({
 
 	const handleCommit = () => {
 		if (!canCommit) return;
-		commitMutation.mutate({
-			worktreePath,
-			message: commitMessage.trim(),
-			workspaceId,
-		});
+		commitMutation.mutate({ worktreePath, message: commitMessage.trim() });
 	};
 
 	const handlePush = () => {
 		const isPublishing = !hasUpstream;
 		pushMutation.mutate(
-			{ worktreePath, setUpstream: true, workspaceId },
+			{ worktreePath, setUpstream: true },
 			{
 				onSuccess: () => {
 					if (isPublishing) {
-						createPRMutation.mutate({ worktreePath, workspaceId });
+						createPRMutation.mutate({ worktreePath });
 					}
 				},
 			},
 		);
 	};
-	const handlePull = () => pullMutation.mutate({ worktreePath, workspaceId });
-	const handleSync = () => syncMutation.mutate({ worktreePath, workspaceId });
-	const handleFetch = () => fetchMutation.mutate({ worktreePath, workspaceId });
+	const handlePull = () => pullMutation.mutate({ worktreePath });
+	const handleSync = () => syncMutation.mutate({ worktreePath });
+	const handleFetch = () => fetchMutation.mutate({ worktreePath });
 	const handleFetchAndPull = () => {
 		fetchMutation.mutate(
-			{ worktreePath, workspaceId },
-			{ onSuccess: () => pullMutation.mutate({ worktreePath, workspaceId }) },
+			{ worktreePath },
+			{ onSuccess: () => pullMutation.mutate({ worktreePath }) },
 		);
 	};
-	const handleCreatePR = () =>
-		createPRMutation.mutate({ worktreePath, workspaceId });
+	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
 	const handleOpenPR = () => prUrl && window.open(prUrl, "_blank");
 
 	const handleCommitAndPush = () => {
 		if (!canCommit) return;
 		commitMutation.mutate(
-			{ worktreePath, message: commitMessage.trim(), workspaceId },
+			{ worktreePath, message: commitMessage.trim() },
 			{ onSuccess: handlePush },
 		);
 	};
@@ -153,11 +146,11 @@ export function CommitInput({
 	const handleCommitPushAndCreatePR = () => {
 		if (!canCommit) return;
 		commitMutation.mutate(
-			{ worktreePath, message: commitMessage.trim(), workspaceId },
+			{ worktreePath, message: commitMessage.trim() },
 			{
 				onSuccess: () => {
 					pushMutation.mutate(
-						{ worktreePath, setUpstream: true, workspaceId },
+						{ worktreePath, setUpstream: true },
 						{ onSuccess: handleCreatePR },
 					);
 				},

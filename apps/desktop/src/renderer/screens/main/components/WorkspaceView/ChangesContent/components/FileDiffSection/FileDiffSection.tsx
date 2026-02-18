@@ -20,7 +20,6 @@ interface FileDiffSectionProps {
 	category: ChangeCategory;
 	commitHash?: string;
 	worktreePath: string;
-	workspaceId?: string;
 	baseBranch?: string;
 	isExpanded: boolean;
 	onToggleExpanded: () => void;
@@ -64,7 +63,6 @@ export function FileDiffSection({
 	category,
 	commitHash,
 	worktreePath,
-	workspaceId,
 	baseBranch,
 	isExpanded,
 	onToggleExpanded,
@@ -91,7 +89,6 @@ export function FileDiffSection({
 		category,
 		worktreePath,
 		filePath: file.path,
-		workspaceId,
 	});
 
 	const totalChanges = file.additions + file.deletions;
@@ -207,7 +204,6 @@ export function FileDiffSection({
 				category,
 				commitHash,
 				defaultBranch: category === "against-base" ? baseBranch : undefined,
-				workspaceId,
 			},
 			{
 				enabled:

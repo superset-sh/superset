@@ -1,37 +1,36 @@
 import { TRPCError } from "@trpc/server";
 import { shell } from "electron";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { isUpstreamMissingError } from "./git-utils";
-import { assertRegisteredWorkspacePath } from "./security";
-import type { GitRunner } from "./utils/git-runner";
-import { resolveGitTarget } from "./utils/git-runner";
+import { assertRegisteredWorktree } from "./security";
 
 export { isUpstreamMissingError };
 
-async function hasUpstreamBranch(runner: GitRunner): Promise<boolean> {
+async function hasUpstreamBranch(
+	git: ReturnType<typeof simpleGit>,
+): Promise<boolean> {
 	try {
-		await runner.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
+		await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
 		return true;
 	} catch {
 		return false;
 	}
 }
 
-async function getCurrentBranch(runner: GitRunner): Promise<string> {
-	return (await runner.raw(["rev-parse", "--abbrev-ref", "HEAD"])).trim();
-}
-
-async function fetchCurrentBranchViaRunner(runner: GitRunner): Promise<void> {
-	const branch = await getCurrentBranch(runner);
+async function fetchCurrentBranch(
+	git: ReturnType<typeof simpleGit>,
+): Promise<void> {
+	const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 	try {
-		await runner.raw(["fetch", "origin", branch]);
+		await git.fetch(["origin", branch]);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (isUpstreamMissingError(message)) {
 			try {
-				await runner.raw(["fetch", "origin"]);
+				await git.fetch(["origin"]);
 			} catch (fallbackError) {
 				const fallbackMessage =
 					fallbackError instanceof Error
@@ -51,11 +50,11 @@ async function fetchCurrentBranchViaRunner(runner: GitRunner): Promise<void> {
 	}
 }
 
-async function pushWithSetUpstreamViaRunner({
-	runner,
+async function pushWithSetUpstream({
+	git,
 	branch,
 }: {
-	runner: GitRunner;
+	git: ReturnType<typeof simpleGit>;
 	branch: string;
 }): Promise<void> {
 	const trimmedBranch = branch.trim();
@@ -67,8 +66,9 @@ async function pushWithSetUpstreamViaRunner({
 		});
 	}
 
-	await runner.raw([
-		"push",
+	// Use HEAD refspec to avoid resolving the branch name as a local ref.
+	// This is more reliable for worktrees where upstream tracking isn't set yet.
+	await git.push([
 		"--set-upstream",
 		"origin",
 		`HEAD:refs/heads/${trimmedBranch}`,
@@ -98,25 +98,15 @@ export const createGitOperationsRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					message: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; hash: string }> => {
-					assertRegisteredWorkspacePath(input.worktreePath);
+					assertRegisteredWorktree(input.worktreePath);
 
-					const { runner } = resolveGitTarget(
-						input.worktreePath,
-						input.workspaceId,
-					);
-
-					const output = await runner.raw(["commit", "-m", input.message]);
-					// Extract commit hash from output like "[branch abc1234] message"
-					const hashMatch = output.match(/\[[\w/.-]+\s+([a-f0-9]+)\]/);
-					return {
-						success: true,
-						hash: hashMatch?.[1] ?? "",
-					};
+					const git = simpleGit(input.worktreePath);
+					const result = await git.commit(input.message);
+					return { success: true, hash: result.commit };
 				},
 			),
 
@@ -125,37 +115,32 @@ export const createGitOperationsRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					setUpstream: z.boolean().optional(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				assertRegisteredWorkspacePath(input.worktreePath);
+				assertRegisteredWorktree(input.worktreePath);
 
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
+				const git = simpleGit(input.worktreePath);
+				const hasUpstream = await hasUpstreamBranch(git);
 
-				const upstream = await hasUpstreamBranch(runner);
-
-				if (input.setUpstream && !upstream) {
-					const branch = await getCurrentBranch(runner);
-					await pushWithSetUpstreamViaRunner({ runner, branch });
+				if (input.setUpstream && !hasUpstream) {
+					const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
+					await pushWithSetUpstream({ git, branch });
 				} else {
 					try {
-						await runner.raw(["push"]);
+						await git.push();
 					} catch (error) {
 						const message =
 							error instanceof Error ? error.message : String(error);
 						if (shouldRetryPushWithUpstream(message)) {
-							const branch = await getCurrentBranch(runner);
-							await pushWithSetUpstreamViaRunner({ runner, branch });
+							const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
+							await pushWithSetUpstream({ git, branch });
 						} else {
 							throw error;
 						}
 					}
 				}
-				await fetchCurrentBranchViaRunner(runner);
+				await fetchCurrentBranch(git);
 				return { success: true };
 			}),
 
@@ -163,19 +148,14 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				assertRegisteredWorkspacePath(input.worktreePath);
+				assertRegisteredWorktree(input.worktreePath);
 
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-
+				const git = simpleGit(input.worktreePath);
 				try {
-					await runner.raw(["pull", "--rebase"]);
+					await git.pull(["--rebase"]);
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
@@ -193,49 +173,36 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				assertRegisteredWorkspacePath(input.worktreePath);
+				assertRegisteredWorktree(input.worktreePath);
 
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-
+				const git = simpleGit(input.worktreePath);
 				try {
-					await runner.raw(["pull", "--rebase"]);
+					await git.pull(["--rebase"]);
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
 					if (isUpstreamMissingError(message)) {
-						const branch = await getCurrentBranch(runner);
-						await pushWithSetUpstreamViaRunner({ runner, branch });
-						await fetchCurrentBranchViaRunner(runner);
+						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
+						await pushWithSetUpstream({ git, branch });
+						await fetchCurrentBranch(git);
 						return { success: true };
 					}
 					throw error;
 				}
-				await runner.raw(["push"]);
-				await fetchCurrentBranchViaRunner(runner);
+				await git.push();
+				await fetchCurrentBranch(git);
 				return { success: true };
 			}),
 
 		fetch: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				assertRegisteredWorkspacePath(input.worktreePath);
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await fetchCurrentBranchViaRunner(runner);
+				assertRegisteredWorktree(input.worktreePath);
+				const git = simpleGit(input.worktreePath);
+				await fetchCurrentBranch(git);
 				return { success: true };
 			}),
 
@@ -243,41 +210,39 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; url: string }> => {
-					assertRegisteredWorkspacePath(input.worktreePath);
+					assertRegisteredWorktree(input.worktreePath);
 
-					const { runner } = resolveGitTarget(
-						input.worktreePath,
-						input.workspaceId,
-					);
+					const git = simpleGit(input.worktreePath);
+					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+					const hasUpstream = await hasUpstreamBranch(git);
 
-					const branch = await getCurrentBranch(runner);
-					const upstream = await hasUpstreamBranch(runner);
-
-					if (!upstream) {
-						await pushWithSetUpstreamViaRunner({ runner, branch });
+					// Ensure branch is pushed first
+					if (!hasUpstream) {
+						await pushWithSetUpstream({ git, branch });
 					} else {
+						// Push any unpushed commits
 						try {
-							await runner.raw(["push"]);
+							await git.push();
 						} catch (error) {
 							const message =
 								error instanceof Error ? error.message : String(error);
 							if (shouldRetryPushWithUpstream(message)) {
-								await pushWithSetUpstreamViaRunner({ runner, branch });
+								await pushWithSetUpstream({ git, branch });
 							} else {
 								throw error;
 							}
 						}
 					}
 
-					const remoteUrl = (
-						await runner.raw(["remote", "get-url", "origin"])
-					).trim();
-					const repoMatch = remoteUrl.match(/github\.com[:/](.+?)(?:\.git)?$/);
+					// Get the remote URL to construct the GitHub compare URL
+					const remoteUrl = (await git.remote(["get-url", "origin"])) || "";
+					const repoMatch = remoteUrl
+						.trim()
+						.match(/github\.com[:/](.+?)(?:\.git)?$/);
 
 					if (!repoMatch) {
 						throw new Error("Could not determine GitHub repository URL");
@@ -287,7 +252,7 @@ export const createGitOperationsRouter = () => {
 					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
 
 					await shell.openExternal(url);
-					await fetchCurrentBranchViaRunner(runner);
+					await fetchCurrentBranch(git);
 
 					return { success: true, url };
 				},
@@ -298,32 +263,16 @@ export const createGitOperationsRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					strategy: z.enum(["merge", "squash", "rebase"]).default("squash"),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; mergedAt?: string }> => {
-					assertRegisteredWorkspacePath(input.worktreePath);
-
-					const target = resolveGitTarget(
-						input.worktreePath,
-						input.workspaceId,
-					);
+					assertRegisteredWorktree(input.worktreePath);
 
 					const args = ["pr", "merge", `--${input.strategy}`];
 
 					try {
-						if (target.kind === "remote") {
-							// For remote: run gh via SSH exec
-							const result = await target.runner.exec(`gh ${args.join(" ")}`);
-							if (result.code !== 0) {
-								throw new Error(result.stderr || "gh pr merge failed");
-							}
-						} else {
-							await execWithShellEnv("gh", args, {
-								cwd: input.worktreePath,
-							});
-						}
+						await execWithShellEnv("gh", args, { cwd: input.worktreePath });
 						return { success: true, mergedAt: new Date().toISOString() };
 					} catch (error) {
 						const message =

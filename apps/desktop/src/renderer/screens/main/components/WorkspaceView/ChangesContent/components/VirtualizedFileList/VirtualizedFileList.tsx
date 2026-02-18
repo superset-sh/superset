@@ -8,7 +8,6 @@ interface VirtualizedFileListProps {
 	category: ChangeCategory;
 	commitHash?: string;
 	worktreePath: string;
-	workspaceId?: string;
 	baseBranch?: string;
 	collapsedFiles: Set<string>;
 	onToggleFile: (key: string) => void;
@@ -27,7 +26,6 @@ export function VirtualizedFileList({
 	category,
 	commitHash,
 	worktreePath,
-	workspaceId,
 	baseBranch,
 	collapsedFiles,
 	onToggleFile,
@@ -77,7 +75,6 @@ export function VirtualizedFileList({
 								category={category}
 								commitHash={commitHash}
 								worktreePath={worktreePath}
-								workspaceId={workspaceId}
 								baseBranch={baseBranch}
 								isExpanded={!collapsedFiles.has(fileKey)}
 								onToggleExpanded={() => onToggleFile(fileKey)}

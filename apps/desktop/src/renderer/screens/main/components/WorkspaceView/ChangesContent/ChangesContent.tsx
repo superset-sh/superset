@@ -13,7 +13,6 @@ export function ChangesContent() {
 
 	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
 		worktreePath,
-		workspaceId,
 		refetchInterval: 2500,
 		refetchOnWindowFocus: true,
 	});
@@ -48,7 +47,6 @@ export function ChangesContent() {
 				status={status}
 				worktreePath={worktreePath}
 				baseBranch={effectiveBaseBranch}
-				workspaceId={workspaceId}
 			/>
 		</div>
 	);

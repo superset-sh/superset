@@ -47,7 +47,7 @@ export function PRButton({
 	});
 
 	const handleMergePR = (strategy: "merge" | "squash" | "rebase") =>
-		mergePRMutation.mutate({ worktreePath, strategy, workspaceId });
+		mergePRMutation.mutate({ worktreePath, strategy });
 
 	if (isLoading) {
 		return (
@@ -62,9 +62,7 @@ export function PRButton({
 					<button
 						type="button"
 						className="flex items-center ml-auto hover:opacity-80 transition-opacity disabled:opacity-50"
-						onClick={() =>
-							createPRMutation.mutate({ worktreePath, workspaceId })
-						}
+						onClick={() => createPRMutation.mutate({ worktreePath })}
 						disabled={createPRMutation.isPending}
 					>
 						{createPRMutation.isPending ? (

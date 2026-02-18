@@ -1,4 +1,3 @@
-import { useParams } from "@tanstack/react-router";
 import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
@@ -59,7 +58,6 @@ export function FileViewerPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: FileViewerPaneProps) {
-	const { workspaceId } = useParams({ strict: false });
 	// Use granular selector to only get this pane's fileViewer data
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
 	const {
@@ -99,7 +97,6 @@ export function FileViewerPane({
 		originalDiffContentRef,
 		draftContentRef,
 		setIsDirty,
-		workspaceId,
 	});
 
 	const {
@@ -119,7 +116,6 @@ export function FileViewerPane({
 		isDirty,
 		originalContentRef,
 		originalDiffContentRef,
-		workspaceId,
 	});
 
 	const handleEditorChange = useCallback((value: string | undefined) => {

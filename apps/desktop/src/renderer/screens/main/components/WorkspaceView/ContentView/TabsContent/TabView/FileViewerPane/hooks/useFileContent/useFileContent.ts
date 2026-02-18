@@ -13,7 +13,6 @@ interface UseFileContentParams {
 	isDirty: boolean;
 	originalContentRef: React.MutableRefObject<string>;
 	originalDiffContentRef: React.MutableRefObject<string>;
-	workspaceId?: string;
 }
 
 export function useFileContent({
@@ -26,10 +25,9 @@ export function useFileContent({
 	isDirty,
 	originalContentRef,
 	originalDiffContentRef,
-	workspaceId,
 }: UseFileContentParams) {
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
-		{ worktreePath, workspaceId },
+		{ worktreePath },
 		{ enabled: !!worktreePath && diffCategory === "against-base" },
 	);
 	const effectiveBaseBranch =
@@ -39,7 +37,7 @@ export function useFileContent({
 
 	const { data: rawFileData, isLoading: isLoadingRaw } =
 		electronTrpc.changes.readWorkingFile.useQuery(
-			{ worktreePath, filePath, workspaceId },
+			{ worktreePath, filePath },
 			{
 				enabled:
 					viewMode !== "diff" && !isImage && !!filePath && !!worktreePath,
@@ -48,7 +46,7 @@ export function useFileContent({
 
 	const { data: imageData, isLoading: isLoadingImage } =
 		electronTrpc.changes.readWorkingFileImage.useQuery(
-			{ worktreePath, filePath, workspaceId },
+			{ worktreePath, filePath },
 			{
 				enabled:
 					viewMode === "rendered" && isImage && !!filePath && !!worktreePath,
@@ -65,7 +63,6 @@ export function useFileContent({
 				commitHash,
 				defaultBranch:
 					diffCategory === "against-base" ? effectiveBaseBranch : undefined,
-				workspaceId,
 			},
 			{
 				enabled:

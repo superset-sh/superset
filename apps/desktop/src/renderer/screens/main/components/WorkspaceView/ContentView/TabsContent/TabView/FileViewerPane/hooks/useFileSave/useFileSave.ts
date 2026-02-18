@@ -14,7 +14,6 @@ interface UseFileSaveParams {
 	originalDiffContentRef: MutableRefObject<string>;
 	draftContentRef: MutableRefObject<string | null>;
 	setIsDirty: (dirty: boolean) => void;
-	workspaceId?: string;
 }
 
 export function useFileSave({
@@ -27,7 +26,6 @@ export function useFileSave({
 	originalDiffContentRef,
 	draftContentRef,
 	setIsDirty,
-	workspaceId,
 }: UseFileSaveParams) {
 	const savingFromRawRef = useRef(false);
 	const savingDiffContentRef = useRef<string | null>(null);
@@ -80,9 +78,8 @@ export function useFileSave({
 			worktreePath,
 			filePath,
 			content: editorRef.current.getValue(),
-			workspaceId,
 		});
-	}, [worktreePath, filePath, workspaceId, saveFileMutation, editorRef]);
+	}, [worktreePath, filePath, saveFileMutation, editorRef]);
 
 	const handleSaveDiff = useCallback(
 		async (content: string) => {
@@ -93,10 +90,9 @@ export function useFileSave({
 				worktreePath,
 				filePath,
 				content,
-				workspaceId,
 			});
 		},
-		[worktreePath, filePath, workspaceId, saveFileMutation],
+		[worktreePath, filePath, saveFileMutation],
 	);
 
 	return {

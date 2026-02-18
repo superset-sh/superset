@@ -36,19 +36,13 @@ interface ChangesHeaderProps {
 	isStashPending: boolean;
 }
 
-function BaseBranchSelector({
-	worktreePath,
-	workspaceId,
-}: {
-	worktreePath: string;
-	workspaceId?: string;
-}) {
+function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const utils = electronTrpc.useUtils();
 	const { data: branchData, isLoading } =
 		electronTrpc.changes.getBranches.useQuery(
-			{ worktreePath, workspaceId },
+			{ worktreePath },
 			{ enabled: !!worktreePath },
 		);
 
@@ -82,7 +76,6 @@ function BaseBranchSelector({
 		updateBaseBranch.mutate({
 			worktreePath,
 			baseBranch: branch === branchData?.defaultBranch ? null : branch,
-			workspaceId,
 		});
 		setOpen(false);
 		setSearch("");
@@ -244,10 +237,7 @@ export function ChangesHeader({
 }: ChangesHeaderProps) {
 	return (
 		<div className="flex items-center gap-0.5 px-2 py-1.5">
-			<BaseBranchSelector
-				worktreePath={worktreePath}
-				workspaceId={workspaceId}
-			/>
+			<BaseBranchSelector worktreePath={worktreePath} />
 			<StashDropdown
 				onStash={onStash}
 				onStashIncludeUntracked={onStashIncludeUntracked}

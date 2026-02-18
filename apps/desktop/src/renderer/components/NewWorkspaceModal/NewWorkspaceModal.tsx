@@ -622,7 +622,6 @@ function RemoteWorkspaceForm({
 	onSuccess: () => void;
 }) {
 	const navigate = useNavigate();
-	const utils = electronTrpc.useUtils();
 	const [sshConnectionId, setSshConnectionId] = useState<string>("");
 	const [remotePath, setRemotePath] = useState("");
 	const [workspaceName, setWorkspaceName] = useState("");
@@ -634,7 +633,6 @@ function RemoteWorkspaceForm({
 		electronTrpc.workspaces.createRemoteWorkspace.useMutation({
 			onSuccess: (data) => {
 				toast.success("Remote workspace created");
-				utils.workspaces.getAllGrouped.invalidate();
 				onSuccess();
 				navigateToWorkspace(data.workspace.id, navigate, { replace: true });
 			},

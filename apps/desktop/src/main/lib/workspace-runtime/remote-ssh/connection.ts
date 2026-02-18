@@ -29,7 +29,6 @@ export interface SSHConnectionEvents {
 export class SSHConnection extends EventEmitter {
 	private client: Client | null = null;
 	private _state: SSHConnectionState = { status: "disconnected" };
-	private connectInFlight: Promise<void> | null = null;
 	private reconnectAbort: AbortController | null = null;
 	private intentionalDisconnect = false;
 
@@ -63,39 +62,23 @@ export class SSHConnection extends EventEmitter {
 	 */
 	async connect(): Promise<void> {
 		if (this._state.status === "connected") return;
-		if (this.connectInFlight) return this.connectInFlight;
-
-		// If a background reconnect loop is already active, wait for its outcome
-		// instead of starting a second parallel connection attempt.
-		if (this._state.status === "reconnecting") {
-			await this.waitForReconnectResult();
-			return;
-		}
 
 		this.intentionalDisconnect = false;
 		this.setState({ status: "connecting" });
 
-		const attempt = (async () => {
-			try {
-				this.client = await this.createClient();
-				this.setState({ status: "connected" });
-				this.emit("connected");
-			} catch (err) {
-				const error = err instanceof Error ? err : new Error(String(err));
-				this.setState({
-					status: "disconnected",
-					lastError: error.message,
-				});
-				this.emit("error", error);
-				throw error;
-			}
-		})();
-
-		this.connectInFlight = attempt.finally(() => {
-			this.connectInFlight = null;
-		});
-
-		await this.connectInFlight;
+		try {
+			this.client = await this.createClient();
+			this.setState({ status: "connected" });
+			this.emit("connected");
+		} catch (err) {
+			const error = err instanceof Error ? err : new Error(String(err));
+			this.setState({
+				status: "disconnected",
+				lastError: error.message,
+			});
+			this.emit("error", error);
+			throw error;
+		}
 	}
 
 	/**
@@ -268,38 +251,6 @@ export class SSHConnection extends EventEmitter {
 		this.reconnectAbort?.abort();
 		this.reconnectAbort = new AbortController();
 		void this.reconnectLoop(this.reconnectAbort.signal);
-	}
-
-	private waitForReconnectResult(timeoutMs = 35_000): Promise<void> {
-		if (this._state.status === "connected") return Promise.resolve();
-
-		return new Promise((resolve, reject) => {
-			const timeout = setTimeout(() => {
-				cleanup();
-				reject(new Error("Timed out waiting for SSH reconnection"));
-			}, timeoutMs);
-
-			const onConnected = () => {
-				cleanup();
-				resolve();
-			};
-
-			const onStateChange = (state: SSHConnectionState) => {
-				if (state.status === "disconnected") {
-					cleanup();
-					reject(new Error(state.lastError || "SSH reconnection failed"));
-				}
-			};
-
-			const cleanup = () => {
-				clearTimeout(timeout);
-				this.removeListener("connected", onConnected);
-				this.removeListener("stateChange", onStateChange);
-			};
-
-			this.on("connected", onConnected);
-			this.on("stateChange", onStateChange);
-		});
 	}
 
 	private async reconnectLoop(signal: AbortSignal): Promise<void> {

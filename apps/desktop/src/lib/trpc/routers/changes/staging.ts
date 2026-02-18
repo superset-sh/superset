@@ -1,8 +1,8 @@
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { parsePortelainStatus } from "../workspaces/utils/git";
 import {
-	assertRegisteredWorkspacePath,
+	assertRegisteredWorktree,
 	gitCheckoutFile,
 	gitDiscardAllStaged,
 	gitDiscardAllUnstaged,
@@ -15,53 +15,28 @@ import {
 	gitUnstageFile,
 	secureFs,
 } from "./security";
-import type { GitRunner } from "./utils/git-runner";
-import { resolveGitTarget } from "./utils/git-runner";
 import { parseGitStatus } from "./utils/parse-status";
 
-async function getStatusViaRunner(runner: GitRunner) {
-	const raw = await runner.raw([
-		"--no-optional-locks",
-		"status",
-		"--porcelain=v1",
-		"-b",
-		"-z",
-		"-uall",
-	]);
-	return parseGitStatus(parsePortelainStatus(raw));
+async function getUntrackedFilePaths(worktreePath: string): Promise<string[]> {
+	assertRegisteredWorktree(worktreePath);
+	const git = simpleGit(worktreePath);
+	const status = await git.status();
+	return parseGitStatus(status).untracked.map((f) => f.path);
 }
 
-async function getUntrackedFilePaths(
-	worktreePath: string,
-	runner: GitRunner,
-): Promise<string[]> {
-	assertRegisteredWorkspacePath(worktreePath);
-	const parsed = await getStatusViaRunner(runner);
-	return parsed.untracked.map((f) => f.path);
-}
-
-async function getStagedNewFilePaths(
-	worktreePath: string,
-	runner: GitRunner,
-): Promise<string[]> {
-	assertRegisteredWorkspacePath(worktreePath);
-	const parsed = await getStatusViaRunner(runner);
-	return parsed.staged.filter((f) => f.status === "added").map((f) => f.path);
+async function getStagedNewFilePaths(worktreePath: string): Promise<string[]> {
+	assertRegisteredWorktree(worktreePath);
+	const git = simpleGit(worktreePath);
+	const status = await git.status();
+	return parseGitStatus(status)
+		.staged.filter((f) => f.status === "added")
+		.map((f) => f.path);
 }
 
 async function deleteFiles(
 	worktreePath: string,
 	filePaths: string[],
-	runner: GitRunner,
 ): Promise<void> {
-	if (runner.isRemote) {
-		// For remote: use git clean for targeted file deletion
-		if (filePaths.length > 0) {
-			await runner.raw(["clean", "-f", "--", ...filePaths]);
-		}
-		return;
-	}
-
 	await Promise.all(
 		filePaths.map((filePath) => secureFs.delete(worktreePath, filePath)),
 	);
@@ -74,15 +49,10 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitStageFile(input.worktreePath, input.filePath, runner);
+				await gitStageFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
@@ -91,15 +61,10 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitUnstageFile(input.worktreePath, input.filePath, runner);
+				await gitUnstageFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
@@ -108,47 +73,24 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitCheckoutFile(input.worktreePath, input.filePath, runner);
+				await gitCheckoutFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
 		stageAll: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitStageAll(input.worktreePath, runner);
+				await gitStageAll(input.worktreePath);
 				return { success: true };
 			}),
 
 		unstageAll: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitUnstageAll(input.worktreePath, runner);
+				await gitUnstageAll(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -157,109 +99,51 @@ export const createStagingRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				if (runner.isRemote) {
-					await runner.raw(["clean", "-f", "--", input.filePath]);
-				} else {
-					await secureFs.delete(input.worktreePath, input.filePath);
-				}
+				await secureFs.delete(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
 		discardAllUnstaged: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				const untrackedFiles = await getUntrackedFilePaths(
-					input.worktreePath,
-					runner,
-				);
-				await gitDiscardAllUnstaged(input.worktreePath, runner);
-				await deleteFiles(input.worktreePath, untrackedFiles, runner);
+				// Must capture untracked files before git checkout removes status info
+				const untrackedFiles = await getUntrackedFilePaths(input.worktreePath);
+				await gitDiscardAllUnstaged(input.worktreePath);
+				await deleteFiles(input.worktreePath, untrackedFiles);
 				return { success: true };
 			}),
 
 		discardAllStaged: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				const stagedNewFiles = await getStagedNewFilePaths(
-					input.worktreePath,
-					runner,
-				);
-				await gitDiscardAllStaged(input.worktreePath, runner);
-				await deleteFiles(input.worktreePath, stagedNewFiles, runner);
+				// Must capture staged new files before reset makes them untracked
+				const stagedNewFiles = await getStagedNewFilePaths(input.worktreePath);
+				await gitDiscardAllStaged(input.worktreePath);
+				await deleteFiles(input.worktreePath, stagedNewFiles);
 				return { success: true };
 			}),
 
 		stash: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitStash(input.worktreePath, runner);
+				await gitStash(input.worktreePath);
 				return { success: true };
 			}),
 
 		stashIncludeUntracked: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitStashIncludeUntracked(input.worktreePath, runner);
+				await gitStashIncludeUntracked(input.worktreePath);
 				return { success: true };
 			}),
 
 		stashPop: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { runner } = resolveGitTarget(
-					input.worktreePath,
-					input.workspaceId,
-				);
-				await gitStashPop(input.worktreePath, runner);
+				await gitStashPop(input.worktreePath);
 				return { success: true };
 			}),
 	});

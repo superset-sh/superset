@@ -1,25 +1,20 @@
-import { workspaces, worktrees } from "@superset/local-db";
+import { worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getCurrentBranch } from "../workspaces/utils/git";
 import {
-	assertRegisteredWorkspacePath,
+	assertRegisteredWorktree,
 	getRegisteredWorktree,
 	gitSwitchBranch,
 } from "./security";
-import type { GitRunner } from "./utils/git-runner";
-import { resolveGitTarget } from "./utils/git-runner";
 
 export const createBranchesRouter = () => {
 	return router({
 		getBranches: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					workspaceId: z.string().optional(),
-				}),
-			)
+			.input(z.object({ worktreePath: z.string() }))
 			.query(
 				async ({
 					input,
@@ -30,66 +25,46 @@ export const createBranchesRouter = () => {
 					checkedOutBranches: Record<string, string>;
 					worktreeBaseBranch: string | null;
 				}> => {
-					assertRegisteredWorkspacePath(input.worktreePath);
+					assertRegisteredWorktree(input.worktreePath);
 
-					try {
-						const target = resolveGitTarget(
-							input.worktreePath,
-							input.workspaceId,
-						);
-						const { runner } = target;
+					const git = simpleGit(input.worktreePath);
 
-						const currentBranch = await getCurrentBranch(runner);
+					const branchSummary = await git.branch(["-a"]);
+					const currentBranch = await getCurrentBranch(input.worktreePath);
 
-						const gitConfigBase = currentBranch
-							? await runner
-									.raw(["config", `branch.${currentBranch}.base`])
-									.catch(() => "")
-							: "";
+					const gitConfigBase = currentBranch
+						? await git
+								.raw(["config", `branch.${currentBranch}.base`])
+								.catch(() => "")
+						: "";
 
-						const branchOutput = await runner.raw(["branch", "-a"]);
-						const localBranches: string[] = [];
-						const remote: string[] = [];
+					const localBranches: string[] = [];
+					const remote: string[] = [];
 
-						for (const line of branchOutput.split("\n")) {
-							const name = line.replace(/^\*?\s+/, "").trim();
-							if (!name) continue;
-							if (name.startsWith("remotes/origin/")) {
-								if (name === "remotes/origin/HEAD") continue;
-								const remoteName = name.replace("remotes/origin/", "");
-								remote.push(remoteName);
-							} else {
-								// Skip detached HEAD indicators
-								if (name.startsWith("(HEAD detached")) continue;
-								localBranches.push(name);
-							}
+					for (const name of Object.keys(branchSummary.branches)) {
+						if (name.startsWith("remotes/origin/")) {
+							if (name === "remotes/origin/HEAD") continue;
+							const remoteName = name.replace("remotes/origin/", "");
+							remote.push(remoteName);
+						} else {
+							localBranches.push(name);
 						}
-
-						const local = await getLocalBranchesWithDates(
-							runner,
-							localBranches,
-						);
-						const defaultBranch = await getDefaultBranch(runner, remote);
-						const checkedOutBranches = await getCheckedOutBranches(
-							runner,
-							input.worktreePath,
-						);
-
-						return {
-							local,
-							remote: remote.sort(),
-							defaultBranch,
-							checkedOutBranches,
-							worktreeBaseBranch: gitConfigBase.trim() || null,
-						};
-					} catch (error) {
-						console.error(
-							"[getBranches] Failed for",
-							input.worktreePath,
-							error,
-						);
-						throw error;
 					}
+
+					const local = await getLocalBranchesWithDates(git, localBranches);
+					const defaultBranch = await getDefaultBranch(git, remote);
+					const checkedOutBranches = await getCheckedOutBranches(
+						git,
+						input.worktreePath,
+					);
+
+					return {
+						local,
+						remote: remote.sort(),
+						defaultBranch,
+						checkedOutBranches,
+						worktreeBaseBranch: gitConfigBase.trim() || null,
+					};
 				},
 			),
 
@@ -98,44 +73,24 @@ export const createBranchesRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					branch: z.string(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const target = resolveGitTarget(input.worktreePath, input.workspaceId);
+				const worktree = getRegisteredWorktree(input.worktreePath);
+				await gitSwitchBranch(input.worktreePath, input.branch);
 
-				await gitSwitchBranch(input.worktreePath, input.branch, target.runner);
+				const gitStatus = worktree.gitStatus
+					? { ...worktree.gitStatus, branch: input.branch }
+					: null;
 
-				if (target.kind === "remote") {
-					// Update the workspaces table for remote workspaces
-					localDb
-						.update(workspaces)
-						.set({
-							branch: input.branch,
-							updatedAt: Date.now(),
-						})
-						.where(eq(workspaces.id, target.workspaceId))
-						.run();
-				} else {
-					// Update the worktrees table for local workspaces
-					try {
-						const worktree = getRegisteredWorktree(input.worktreePath);
-						const gitStatus = worktree.gitStatus
-							? { ...worktree.gitStatus, branch: input.branch }
-							: null;
-
-						localDb
-							.update(worktrees)
-							.set({
-								branch: input.branch,
-								gitStatus,
-							})
-							.where(eq(worktrees.path, input.worktreePath))
-							.run();
-					} catch {
-						// Not a worktree entry (e.g. project mainRepoPath) — skip DB update
-					}
-				}
+				localDb
+					.update(worktrees)
+					.set({
+						branch: input.branch,
+						gitStatus,
+					})
+					.where(eq(worktrees.path, input.worktreePath))
+					.run();
 
 				return { success: true };
 			}),
@@ -145,28 +100,25 @@ export const createBranchesRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					baseBranch: z.string().nullable(),
-					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				assertRegisteredWorkspacePath(input.worktreePath);
+				assertRegisteredWorktree(input.worktreePath);
 
-				const target = resolveGitTarget(input.worktreePath, input.workspaceId);
-				const { runner } = target;
-
-				const currentBranch = await getCurrentBranch(runner);
+				const git = simpleGit(input.worktreePath);
+				const currentBranch = await getCurrentBranch(input.worktreePath);
 				if (!currentBranch) {
 					throw new Error("Could not determine current branch");
 				}
 
 				if (input.baseBranch) {
-					await runner.raw([
+					await git.raw([
 						"config",
 						`branch.${currentBranch}.base`,
 						input.baseBranch,
 					]);
 				} else {
-					await runner
+					await git
 						.raw(["config", "--unset", `branch.${currentBranch}.base`])
 						.catch(() => {});
 				}
@@ -176,20 +128,12 @@ export const createBranchesRouter = () => {
 	});
 };
 
-async function getCurrentBranch(runner: GitRunner): Promise<string | null> {
-	try {
-		return (await runner.raw(["rev-parse", "--abbrev-ref", "HEAD"])).trim();
-	} catch {
-		return null;
-	}
-}
-
 async function getLocalBranchesWithDates(
-	runner: GitRunner,
+	git: ReturnType<typeof simpleGit>,
 	localBranches: string[],
 ): Promise<Array<{ branch: string; lastCommitDate: number }>> {
 	try {
-		const branchInfo = await runner.raw([
+		const branchInfo = await git.raw([
 			"for-each-ref",
 			"--sort=-committerdate",
 			"--format=%(refname:short) %(committerdate:unix)",
@@ -216,14 +160,11 @@ async function getLocalBranchesWithDates(
 }
 
 async function getDefaultBranch(
-	runner: GitRunner,
+	git: ReturnType<typeof simpleGit>,
 	remoteBranches: string[],
 ): Promise<string> {
 	try {
-		const headRef = await runner.raw([
-			"symbolic-ref",
-			"refs/remotes/origin/HEAD",
-		]);
+		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		const match = headRef.match(/refs\/remotes\/origin\/(.+)/);
 		if (match) {
 			return match[1].trim();
@@ -237,13 +178,13 @@ async function getDefaultBranch(
 }
 
 async function getCheckedOutBranches(
-	runner: GitRunner,
+	git: ReturnType<typeof simpleGit>,
 	currentWorktreePath: string,
 ): Promise<Record<string, string>> {
 	const checkedOutBranches: Record<string, string> = {};
 
 	try {
-		const worktreeList = await runner.raw(["worktree", "list", "--porcelain"]);
+		const worktreeList = await git.raw(["worktree", "list", "--porcelain"]);
 		const lines = worktreeList.split("\n");
 		let currentPath: string | null = null;
 
