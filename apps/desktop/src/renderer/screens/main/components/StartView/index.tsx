@@ -10,21 +10,12 @@ import {
 } from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
 import { CloneRepoDialog } from "./CloneRepoDialog";
-import { InitGitDialog } from "./InitGitDialog";
 
 export function StartView() {
 	const navigate = useNavigate();
 	const openNew = useOpenNew();
 	const openFromPath = useOpenFromPath();
 	const [error, setError] = useState<string | null>(null);
-	const [initGitDialog, setInitGitDialog] = useState<{
-		isOpen: boolean;
-		selectedPath: string;
-		selectedPaths?: string[];
-	}>({ isOpen: false, selectedPath: "" });
-	const [pendingNavigateProjectId, setPendingNavigateProjectId] = useState<
-		string | null
-	>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
 
@@ -64,24 +55,12 @@ export function StartView() {
 				}
 
 				if ("results" in result) {
-					const { successes, needsGitInit } = processOpenNewResults({
+					const { successes } = processOpenNewResults({
 						results: result.results,
 					});
 
 					const firstProjectId = successes[0]?.project.id;
-
-					if (needsGitInit.length > 0) {
-						const paths = needsGitInit.map((r) => r.selectedPath);
-						// Defer navigation until git-init dialog is closed
-						if (firstProjectId) {
-							setPendingNavigateProjectId(firstProjectId);
-						}
-						setInitGitDialog({
-							isOpen: true,
-							selectedPath: paths[0],
-							selectedPaths: paths,
-						});
-					} else if (firstProjectId) {
+					if (firstProjectId) {
 						navigate({
 							to: "/project/$projectId",
 							params: { projectId: firstProjectId },
@@ -162,14 +141,6 @@ export function StartView() {
 
 						if ("error" in result) {
 							setError(result.error);
-							return;
-						}
-
-						if ("needsGitInit" in result) {
-							setInitGitDialog({
-								isOpen: true,
-								selectedPath: result.selectedPath,
-							});
 							return;
 						}
 
@@ -285,27 +256,6 @@ export function StartView() {
 					)}
 				</div>
 			</div>
-
-			<InitGitDialog
-				isOpen={initGitDialog.isOpen}
-				selectedPath={initGitDialog.selectedPath}
-				selectedPaths={initGitDialog.selectedPaths}
-				onClose={() => {
-					setInitGitDialog({ isOpen: false, selectedPath: "" });
-					if (pendingNavigateProjectId) {
-						navigate({
-							to: "/project/$projectId",
-							params: { projectId: pendingNavigateProjectId },
-							replace: true,
-						});
-						setPendingNavigateProjectId(null);
-					}
-				}}
-				onError={(msg) => {
-					setError(msg);
-					setPendingNavigateProjectId(null);
-				}}
-			/>
 
 			<CloneRepoDialog
 				isOpen={isCloneDialogOpen}

@@ -128,7 +128,6 @@ export function StartWorkingDialog() {
 				const { successes } = processOpenNewResults({
 					results: result.results,
 					showSuccessToast: false,
-					showGitInitToast: true,
 				});
 
 				if (successes.length > 0) {

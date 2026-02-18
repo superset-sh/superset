@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { LuFolderPlus, LuLoader, LuX } from "react-icons/lu";
 import { useOpenFromPath } from "renderer/react-query/projects";
-import { InitGitDialog } from "../../StartView/InitGitDialog";
 
 interface SidebarDropZoneProps {
 	children: ReactNode;
@@ -15,10 +14,6 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 	const navigate = useNavigate();
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [initGitDialog, setInitGitDialog] = useState<{
-		isOpen: boolean;
-		selectedPath: string;
-	}>({ isOpen: false, selectedPath: "" });
 
 	const openFromPath = useOpenFromPath();
 
@@ -128,15 +123,6 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 							return;
 						}
 
-						if ("needsGitInit" in result) {
-							// Show dialog to offer git initialization
-							setInitGitDialog({
-								isOpen: true,
-								selectedPath: result.selectedPath,
-							});
-							return;
-						}
-
 						// Navigate to project view
 						if ("project" in result && result.project) {
 							navigate({
@@ -235,13 +221,6 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 					</motion.div>
 				)}
 			</AnimatePresence>
-
-			<InitGitDialog
-				isOpen={initGitDialog.isOpen}
-				selectedPath={initGitDialog.selectedPath}
-				onClose={() => setInitGitDialog({ isOpen: false, selectedPath: "" })}
-				onError={setError}
-			/>
 		</div>
 	);
 }

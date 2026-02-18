@@ -49,13 +49,11 @@ type OpenNewError = { canceled: false; error: string };
 type OpenNewResult =
 	| OpenNewCanceled
 	| { canceled: false; project: Project }
-	| { canceled: false; needsGitInit: true; selectedPath: string }
 	| OpenNewError;
 
 // Per-folder outcome for multi-select
 type FolderOutcome =
 	| { status: "success"; project: Project }
-	| { status: "needsGitInit"; selectedPath: string }
 	| { status: "error"; selectedPath: string; error: string };
 
 // Return types for openNew procedure (multi-select)
@@ -63,6 +61,47 @@ type OpenNewMultiResult =
 	| OpenNewCanceled
 	| { canceled: false; multi: true; results: FolderOutcome[] }
 	| OpenNewError;
+
+/**
+ * Initializes a git repository in the given path with an initial commit.
+ * Reused by openNew, openFromPath, and initGitAndOpen.
+ */
+async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
+	const git = simpleGit(path);
+
+	// Initialize git repository with 'main' as default branch
+	// Try with --initial-branch=main (Git 2.28+), fall back to plain init
+	try {
+		await git.init(["--initial-branch=main"]);
+	} catch (err) {
+		// Likely an older Git version that doesn't support --initial-branch
+		console.warn("Git init with --initial-branch failed, using fallback:", err);
+		await git.init();
+	}
+
+	// Create initial commit so we have a valid branch ref
+	try {
+		await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
+	} catch (err) {
+		const errorMessage = err instanceof Error ? err.message : String(err);
+		// Check for common git config issues
+		if (
+			errorMessage.includes("empty ident") ||
+			errorMessage.includes("user.email") ||
+			errorMessage.includes("user.name")
+		) {
+			throw new Error(
+				"Git user not configured. Please run:\n" +
+					'  git config --global user.name "Your Name"\n' +
+					'  git config --global user.email "you@example.com"',
+			);
+		}
+		throw new Error(`Failed to create initial commit: ${errorMessage}`);
+	}
+
+	const defaultBranch = (await getCurrentBranch(path)) || "main";
+	return { defaultBranch };
+}
 
 /**
  * Creates or updates a project record in the database.
@@ -483,22 +522,29 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			const outcomes: FolderOutcome[] = [];
 
 			for (const selectedPath of result.filePaths) {
-				let mainRepoPath: string;
 				try {
-					mainRepoPath = await getGitRoot(selectedPath);
-				} catch {
-					outcomes.push({ status: "needsGitInit", selectedPath });
-					continue;
-				}
+					let mainRepoPath: string;
+					let defaultBranch: string;
+					let method: string;
 
-				try {
-					const defaultBranch = await getDefaultBranch(mainRepoPath);
+					try {
+						mainRepoPath = await getGitRoot(selectedPath);
+						defaultBranch = await getDefaultBranch(mainRepoPath);
+						method = "open";
+					} catch {
+						// Not a git repo — auto-initialize git
+						const initResult = await initGitRepo(selectedPath);
+						mainRepoPath = selectedPath;
+						defaultBranch = initResult.defaultBranch;
+						method = "init";
+					}
+
 					const project = upsertProject(mainRepoPath, defaultBranch);
 					await ensureMainWorkspace(project);
 
 					track("project_opened", {
 						project_id: project.id,
-						method: "open",
+						method,
 					});
 
 					outcomes.push({ status: "success", project });
@@ -546,18 +592,21 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 
 				let mainRepoPath: string;
+				let defaultBranch: string;
+				let method: string;
+
 				try {
 					mainRepoPath = await getGitRoot(selectedPath);
-				} catch (_error) {
-					// Return a special response so the UI can offer to initialize git
-					return {
-						canceled: false,
-						needsGitInit: true,
-						selectedPath,
-					};
+					defaultBranch = await getDefaultBranch(mainRepoPath);
+					method = "drop";
+				} catch {
+					// Not a git repo — auto-initialize git
+					const initResult = await initGitRepo(selectedPath);
+					mainRepoPath = selectedPath;
+					defaultBranch = initResult.defaultBranch;
+					method = "init";
 				}
 
-				const defaultBranch = await getDefaultBranch(mainRepoPath);
 				const project = upsertProject(mainRepoPath, defaultBranch);
 
 				// Auto-create main workspace if it doesn't exist
@@ -565,7 +614,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				track("project_opened", {
 					project_id: project.id,
-					method: "drop",
+					method,
 				});
 
 				return {
@@ -577,42 +626,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
-				const git = simpleGit(input.path);
-
-				// Initialize git repository with 'main' as default branch
-				// Try with --initial-branch=main (Git 2.28+), fall back to plain init
-				try {
-					await git.init(["--initial-branch=main"]);
-				} catch (err) {
-					// Likely an older Git version that doesn't support --initial-branch
-					console.warn(
-						"Git init with --initial-branch failed, using fallback:",
-						err,
-					);
-					await git.init();
-				}
-
-				// Create initial commit so we have a valid branch ref
-				try {
-					await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
-				} catch (err) {
-					const errorMessage = err instanceof Error ? err.message : String(err);
-					// Check for common git config issues
-					if (
-						errorMessage.includes("empty ident") ||
-						errorMessage.includes("user.email") ||
-						errorMessage.includes("user.name")
-					) {
-						throw new Error(
-							"Git user not configured. Please run:\n" +
-								'  git config --global user.name "Your Name"\n' +
-								'  git config --global user.email "you@example.com"',
-						);
-					}
-					throw new Error(`Failed to create initial commit: ${errorMessage}`);
-				}
-
-				const defaultBranch = (await getCurrentBranch(input.path)) || "main";
+				const { defaultBranch } = await initGitRepo(input.path);
 
 				const project = upsertProject(input.path, defaultBranch);
 

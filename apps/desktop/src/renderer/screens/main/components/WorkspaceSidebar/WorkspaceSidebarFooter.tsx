@@ -44,7 +44,6 @@ export function WorkspaceSidebarFooter({
 			if ("results" in result) {
 				const { successes } = processOpenNewResults({
 					results: result.results,
-					showGitInitToast: true,
 				});
 
 				for (const s of successes) {

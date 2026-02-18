@@ -213,7 +213,6 @@ export function NewWorkspaceModal() {
 				const { successes } = processOpenNewResults({
 					results: result.results,
 					showSuccessToast: false,
-					showGitInitToast: true,
 				});
 
 				if (successes.length > 1) {
