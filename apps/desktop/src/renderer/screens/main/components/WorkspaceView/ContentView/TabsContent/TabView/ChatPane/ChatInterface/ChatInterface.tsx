@@ -1,5 +1,6 @@
 import type { SlashCommand } from "@superset/durable-session/react";
 import { useDurableChat } from "@superset/durable-session/react";
+import { acquireSessionDB } from "@superset/durable-session";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
@@ -36,10 +37,19 @@ async function createSession(
 }
 
 export function ChatInterface(props: ChatInterfaceProps) {
+	const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+
 	if (props.sessionId) {
-		return <ActiveChatInterface {...props} sessionId={props.sessionId} />;
+		return (
+			<ActiveChatInterface
+				{...props}
+				sessionId={props.sessionId}
+				pendingMessage={pendingMessage}
+				clearPendingMessage={() => setPendingMessage(null)}
+			/>
+		);
 	}
-	return <EmptyChatInterface {...props} />;
+	return <EmptyChatInterface {...props} onMessageSent={setPendingMessage} />;
 }
 
 function EmptyChatInterface({
@@ -47,7 +57,8 @@ function EmptyChatInterface({
 	deviceId,
 	cwd,
 	paneId,
-}: ChatInterfaceProps) {
+	onMessageSent,
+}: ChatInterfaceProps & { onMessageSent: (text: string) => void }) {
 	const switchChatSession = useTabsStore((s) => s.switchChatSession);
 	const [selectedModel, setSelectedModel] =
 		useState<ModelOption>(DEFAULT_MODEL);
@@ -56,54 +67,66 @@ function EmptyChatInterface({
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
 	const [error, setError] = useState<string | null>(null);
+	const [sentMessage, setSentMessage] = useState<string | null>(null);
 
 	const handleSend = useCallback(
-		async (message: { text: string }) => {
+		(message: { text: string }) => {
 			const text = message.text.trim();
 			if (!text || !organizationId) return;
 
 			setError(null);
+
+			// Show the message in the UI immediately — no awaits before this.
+			setSentMessage(text);
+
+			// All network work happens in the background.
 			const newSessionId = crypto.randomUUID();
-			await createSession(newSessionId, organizationId, deviceId);
+			createSession(newSessionId, organizationId, deviceId)
+				.then(() => {
+					// Config is fire-and-forget
+					fetch(
+						`${apiUrl}/api/streams/v1/sessions/${newSessionId}/config`,
+						{
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+								...getAuthHeaders(),
+							},
+							body: JSON.stringify({
+								model: selectedModel.id,
+								permissionMode,
+								thinkingEnabled,
+								cwd,
+							}),
+						},
+					);
 
-			// Post config BEFORE the first message so the agent has cwd/model/etc
-			await fetch(
-				`${apiUrl}/api/streams/v1/sessions/${newSessionId}/config`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						...getAuthHeaders(),
-					},
-					body: JSON.stringify({
-						model: selectedModel.id,
-						permissionMode,
-						thinkingEnabled,
-						cwd,
-					}),
-				},
-			);
+					// Pre-warm cache AFTER session exists on server
+					acquireSessionDB({
+						sessionId: newSessionId,
+						baseUrl: `${apiUrl}/api/streams`,
+						headers: getAuthHeaders(),
+					});
 
-			// Send the first message before switching so it isn't lost
-			await fetch(
-				`${apiUrl}/api/streams/v1/sessions/${newSessionId}/messages`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						...getAuthHeaders(),
-					},
-					body: JSON.stringify({ content: text }),
-				},
-			);
-
-			switchChatSession(paneId, newSessionId);
+					// Hand off to ActiveChatInterface
+					onMessageSent(text);
+					switchChatSession(paneId, newSessionId);
+				})
+				.catch((err) => {
+					setSentMessage(null);
+					setError(
+						err instanceof Error
+							? err.message
+							: "Failed to create session",
+					);
+				});
 		},
 		[
 			organizationId,
 			deviceId,
 			paneId,
 			switchChatSession,
+			onMessageSent,
 			selectedModel.id,
 			permissionMode,
 			thinkingEnabled,
@@ -111,13 +134,27 @@ function EmptyChatInterface({
 		],
 	);
 
+	const displayMessages = sentMessage
+		? [
+				{
+					id: "pending",
+					role: "user" as const,
+					parts: [{ type: "text" as const, text: sentMessage }],
+					createdAt: new Date(),
+				},
+			]
+		: [];
+
 	return (
 		<div className="flex h-full flex-col bg-background">
-			<MessageList messages={[]} isStreaming={false} />
+			<MessageList
+				messages={displayMessages}
+				isStreaming={!!sentMessage}
+			/>
 			<ChatInputFooter
 				cwd={cwd}
 				error={error}
-				isStreaming={false}
+				isStreaming={!!sentMessage}
 				availableModels={[]}
 				selectedModel={selectedModel}
 				setSelectedModel={setSelectedModel}
@@ -143,7 +180,13 @@ function EmptyChatInterface({
 function ActiveChatInterface({
 	sessionId,
 	cwd,
-}: Omit<ChatInterfaceProps, "sessionId"> & { sessionId: string }) {
+	pendingMessage,
+	clearPendingMessage,
+}: Omit<ChatInterfaceProps, "sessionId"> & {
+	sessionId: string;
+	pendingMessage: string | null;
+	clearPendingMessage: () => void;
+}) {
 	const [selectedModel, setSelectedModel] =
 		useState<ModelOption>(DEFAULT_MODEL);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -151,14 +194,44 @@ function ActiveChatInterface({
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
 
-	const { ready, messages, isLoading, sendMessage, stop, error, metadata } =
-		useDurableChat({
-			sessionId,
-			proxyUrl: apiUrl,
-			getHeaders: getAuthHeaders,
-		});
+	const {
+		ready,
+		messages,
+		isLoading: isStreaming,
+		sendMessage,
+		stop,
+		error,
+		metadata,
+	} = useDurableChat({
+		sessionId,
+		proxyUrl: apiUrl,
+		getHeaders: getAuthHeaders,
+	});
 
-	const isStreaming = isLoading;
+	// Once ready, send the pending message through useDurableChat's optimistic
+	// path — the optimistic insert replaces the synthetic message seamlessly.
+	const sentPendingRef = useRef(false);
+	useEffect(() => {
+		if (!ready || !pendingMessage || sentPendingRef.current) return;
+		sentPendingRef.current = true;
+		sendMessage(pendingMessage);
+		clearPendingMessage();
+	}, [ready, pendingMessage, sendMessage, clearPendingMessage]);
+
+	// Show pending message immediately while useDurableChat preloads.
+	// Once sendMessage's optimistic insert fires, `messages` populates
+	// and the synthetic entry is no longer needed.
+	const displayMessages =
+		messages.length === 0 && pendingMessage
+			? [
+					{
+						id: "pending",
+						role: "user" as const,
+						parts: [{ type: "text" as const, text: pendingMessage }],
+						createdAt: new Date(),
+					},
+				]
+			: messages;
 
 	const registeredRef = useRef(false);
 	useEffect(() => {
@@ -236,21 +309,16 @@ function ActiveChatInterface({
 		[handleSend],
 	);
 
-	if (!ready) {
-		return (
-			<div className="flex h-full flex-col items-center justify-center bg-background">
-				<p className="text-muted-foreground text-sm">Connecting…</p>
-			</div>
-		);
-	}
-
 	return (
 		<div className="flex h-full flex-col bg-background">
-			<MessageList messages={messages} isStreaming={isStreaming} />
+			<MessageList
+				messages={displayMessages}
+				isStreaming={isStreaming || !!pendingMessage}
+			/>
 			<ChatInputFooter
 				cwd={cwd}
 				error={error}
-				isStreaming={isStreaming}
+				isStreaming={isStreaming || !!pendingMessage}
 				availableModels={metadata.config.availableModels ?? []}
 				selectedModel={selectedModel}
 				setSelectedModel={setSelectedModel}

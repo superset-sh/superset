@@ -146,10 +146,7 @@ export class SessionHost {
 					`[SessionHost] Preload failed for ${this.sessionId}:`,
 					err,
 				);
-				this.emit(
-					"error",
-					err instanceof Error ? err : new Error(String(err)),
-				);
+				this.emit("error", err instanceof Error ? err : new Error(String(err)));
 			});
 	}
 
@@ -227,9 +224,7 @@ export class SessionHost {
 		// This handles the race where a message was written to the stream before
 		// the SessionHost started (e.g. first message triggers session creation,
 		// but the watcher only starts after Electric syncs the session_hosts row).
-		const pending = userMessages.filter(
-			(m) => m.createdAt > lastAssistantTime,
-		);
+		const pending = userMessages.filter((m) => m.createdAt > lastAssistantTime);
 		if (pending.length > 0) {
 			pending.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 			const latest = pending.at(-1)!;
@@ -283,7 +278,7 @@ export class SessionHost {
 			{
 				autoClaim: true,
 				lingerMs: 250,
-				maxInFlight: 10,
+				maxInFlight: 20,
 				signal: options?.signal,
 				fetch: authFetch,
 				onError: (err) => {

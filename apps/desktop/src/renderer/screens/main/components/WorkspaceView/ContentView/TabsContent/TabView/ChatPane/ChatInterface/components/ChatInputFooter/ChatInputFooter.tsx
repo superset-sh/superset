@@ -60,7 +60,7 @@ export function ChatInputFooter({
 }: ChatInputFooterProps) {
 	return (
 		<div className="border-t bg-background px-4 py-3">
-			<div className="mx-auto w-full max-w-3xl">
+			<div className="mx-auto w-[90%]">
 				{error && (
 					<div className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
 						{error}
