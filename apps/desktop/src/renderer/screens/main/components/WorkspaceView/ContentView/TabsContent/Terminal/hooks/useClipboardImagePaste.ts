@@ -15,7 +15,6 @@ type PasteMode = "ctrlv" | "path";
 interface PendingImagePaste {
 	remotePath: string;
 	mode: PasteMode;
-	startedAt: number;
 	timeoutId: ReturnType<typeof setTimeout> | null;
 }
 
@@ -152,7 +151,6 @@ export function useClipboardImagePaste({
 				pendingPasteRef.current = {
 					remotePath: result.remotePath,
 					mode: "ctrlv",
-					startedAt: Date.now(),
 					timeoutId,
 				};
 

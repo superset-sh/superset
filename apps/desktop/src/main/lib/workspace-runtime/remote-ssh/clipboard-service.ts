@@ -70,11 +70,7 @@ export class RemoteClipboardService {
 			[
 				'export PATH="$HOME/.superset/bin:$PATH"',
 				`if [ -f '${clipboardDir}/latest' ]; then echo latest_exists; else echo latest_missing; fi`,
-				'if xclip -selection clipboard -t TARGETS -o 2>/dev/null | grep -E "image/(png|jpeg|jpg|gif|webp)" >/dev/null || wl-paste -l 2>/dev/null | grep -E "image/(png|jpeg|jpg|gif|webp)" >/dev/null; then echo checkImage_ok; else echo checkImage_fail; fi',
 				"if xclip -selection clipboard -t image/png -o >/dev/null 2>&1 || wl-paste --type image/png >/dev/null 2>&1 || pbpaste >/dev/null 2>&1; then echo readImage_ok; else echo readImage_fail; fi",
-				"if command -v xclip >/dev/null 2>&1; then echo xclip_path:$(command -v xclip); fi",
-				"if command -v wl-paste >/dev/null 2>&1; then echo wl_paste_path:$(command -v wl-paste); fi",
-				"if command -v pbpaste >/dev/null 2>&1; then echo pbpaste_path:$(command -v pbpaste); fi",
 			].join("; "),
 		);
 
