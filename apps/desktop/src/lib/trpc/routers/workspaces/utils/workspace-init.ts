@@ -4,7 +4,7 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
-import simpleGit from "simple-git";
+import { getBranchBaseConfig, setBranchBaseConfig } from "./base-branch-config";
 import {
 	branchExistsOnRemote,
 	createWorktree,
@@ -65,12 +65,12 @@ export async function initializeWorkspaceWorktree({
 			.where(eq(projects.id, projectId))
 			.get();
 
-		const gitConfigBase = await simpleGit(mainRepoPath)
-			.raw(["config", `branch.${branch}.base`])
-			.catch(() => "");
-		const baseBranchWasConfigured = !!gitConfigBase.trim();
-		let effectiveBaseBranch =
-			gitConfigBase.trim() || project?.defaultBranch || "main";
+		const { baseBranch: gitConfigBase, isExplicit: baseBranchWasExplicit } =
+			await getBranchBaseConfig({
+				repoPath: mainRepoPath,
+				branch,
+			});
+		let effectiveBaseBranch = gitConfigBase || project?.defaultBranch || "main";
 
 		if (useExistingBranch) {
 			if (skipWorktreeCreation) {
@@ -198,7 +198,7 @@ export async function initializeWorkspaceWorktree({
 				return { ref: effectiveBaseBranch };
 			}
 
-			if (baseBranchWasConfigured) {
+			if (baseBranchWasExplicit) {
 				console.log(
 					`[workspace-init] ${reason}. Base branch "${effectiveBaseBranch}" was explicitly set, not using fallback.`,
 				);
@@ -246,9 +246,12 @@ export async function initializeWorkspaceWorktree({
 					`[workspace-init] Updating baseBranch from "${originalBranch}" to "${result.fallbackBranch}" for workspace ${workspaceId}`,
 				);
 				effectiveBaseBranch = result.fallbackBranch;
-				await simpleGit(mainRepoPath)
-					.raw(["config", `branch.${branch}.base`, result.fallbackBranch])
-					.catch(() => {});
+				await setBranchBaseConfig({
+					repoPath: mainRepoPath,
+					branch,
+					baseBranch: result.fallbackBranch,
+					isExplicit: false,
+				});
 				manager.updateProgress(
 					workspaceId,
 					progressStep,
@@ -299,7 +302,7 @@ export async function initializeWorkspaceWorktree({
 						workspaceId,
 						"failed",
 						"No local reference available",
-						baseBranchWasConfigured
+						baseBranchWasExplicit
 							? `${failureDetail} and branch "${effectiveBaseBranch}" doesn't exist locally.${isNetworkError ? " Please check your network connection and try again." : " Please try again with a different base branch."}`
 							: `${failureDetail} and no local ref for "${effectiveBaseBranch}" exists.${isNetworkError ? " Please check your network connection and try again." : ""}`,
 					);
@@ -318,7 +321,7 @@ export async function initializeWorkspaceWorktree({
 					workspaceId,
 					"failed",
 					"No local reference available",
-					baseBranchWasConfigured
+					baseBranchWasExplicit
 						? `No remote configured and branch "${effectiveBaseBranch}" doesn't exist locally.`
 						: `No remote configured and no local ref for "${effectiveBaseBranch}" exists.`,
 				);

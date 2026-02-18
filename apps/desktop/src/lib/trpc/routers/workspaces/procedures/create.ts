@@ -6,10 +6,10 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
+import { setBranchBaseConfig } from "../utils/base-branch-config";
 import {
 	activateProject,
 	findOrphanedWorktreeByBranch,
@@ -260,9 +260,12 @@ async function handleNewWorktree({
 		is_fork: prInfo.isCrossRepository,
 	});
 
-	await simpleGit(project.mainRepoPath)
-		.raw(["config", `branch.${localBranchName}.base`, baseBranch])
-		.catch(() => {});
+	await setBranchBaseConfig({
+		repoPath: project.mainRepoPath,
+		branch: localBranchName,
+		baseBranch,
+		isExplicit: false,
+	});
 
 	workspaceInitManager.startJob(workspace.id, project.id);
 	initializeWorkspaceWorktree({
@@ -488,9 +491,12 @@ export const createCreateProcedures = () => {
 					use_existing_branch: input.useExistingBranch ?? false,
 				});
 
-				await simpleGit(project.mainRepoPath)
-					.raw(["config", `branch.${branch}.base`, targetBranch])
-					.catch(() => {});
+				await setBranchBaseConfig({
+					repoPath: project.mainRepoPath,
+					branch,
+					baseBranch: targetBranch,
+					isExplicit: Boolean(input.baseBranch?.trim()),
+				});
 
 				workspaceInitManager.startJob(workspace.id, input.projectId);
 				initializeWorkspaceWorktree({
@@ -872,10 +878,6 @@ export const createCreateProcedures = () => {
 				setLastActiveWorkspace(workspace.id);
 				activateProject(project);
 
-				await simpleGit(project.mainRepoPath)
-					.raw(["config", `branch.${input.branch}.base`, baseBranch])
-					.catch(() => {});
-
 				copySupersetConfigToWorktree(project.mainRepoPath, input.worktreePath);
 				const setupConfig = loadSetupConfig({
 					mainRepoPath: project.mainRepoPath,
@@ -889,6 +891,13 @@ export const createCreateProcedures = () => {
 					branch: input.branch,
 					base_branch: baseBranch,
 					source: "external_import",
+				});
+
+				await setBranchBaseConfig({
+					repoPath: project.mainRepoPath,
+					branch: input.branch,
+					baseBranch,
+					isExplicit: false,
 				});
 
 				return {
@@ -1064,6 +1073,13 @@ export const createCreateProcedures = () => {
 							tabOrder: maxTabOrder + 1,
 						})
 						.run();
+
+					await setBranchBaseConfig({
+						repoPath: project.mainRepoPath,
+						branch,
+						baseBranch,
+						isExplicit: false,
+					});
 
 					copySupersetConfigToWorktree(project.mainRepoPath, ext.path);
 					imported++;
