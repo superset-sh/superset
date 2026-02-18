@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
-import type { SessionDB } from "../../session-db/session-db";
 import type { AgentValue, RawPresenceRow } from "../../schema";
+import type { SessionDB } from "../../session-db/session-db";
 
 export interface ChatUserPresence {
 	userId: string;

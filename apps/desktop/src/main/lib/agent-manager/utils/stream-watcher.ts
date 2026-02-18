@@ -23,21 +23,10 @@ export class StreamWatcher {
 	constructor(options: { sessionId: string; authToken: string }) {
 		this.sessionId = options.sessionId;
 
-		const writeStreamUrl =
-			env.DURABLE_STREAMS_URL && env.DURABLE_STREAMS_SECRET
-				? `${env.DURABLE_STREAMS_URL}/sessions/${options.sessionId}`
-				: undefined;
-		const writeHeaders =
-			env.DURABLE_STREAMS_URL && env.DURABLE_STREAMS_SECRET
-				? { Authorization: `Bearer ${env.DURABLE_STREAMS_SECRET}` }
-				: undefined;
-
 		this.host = new SessionHost({
 			sessionId: options.sessionId,
 			baseUrl: `${env.NEXT_PUBLIC_API_URL}/api/streams`,
 			headers: { Authorization: `Bearer ${options.authToken}` },
-			writeStreamUrl,
-			writeHeaders,
 		});
 
 		this.host.on("message", ({ messageId, message }) => {

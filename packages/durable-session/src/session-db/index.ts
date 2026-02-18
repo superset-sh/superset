@@ -1,3 +1,4 @@
+export { createMessagesCollection } from "./collections/messages";
 export {
 	createSessionDB,
 	type SessionCollections,
@@ -5,4 +6,3 @@ export {
 	type SessionDBConfig,
 } from "./session-db";
 export { acquireSessionDB, releaseSessionDB } from "./session-db-cache";
-export { createMessagesCollection } from "./collections/messages";

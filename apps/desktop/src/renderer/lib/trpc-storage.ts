@@ -92,8 +92,7 @@ export const trpcThemeStorage = createJSONStorage(() =>
 export const trpcHotkeysStorage = createJSONStorage(() =>
 	createTrpcStorageAdapter({
 		get: async () => {
-			const hotkeysState =
-				await electronTrpcClient.uiState.hotkeys.get.query();
+			const hotkeysState = await electronTrpcClient.uiState.hotkeys.get.query();
 			return { hotkeysState };
 		},
 		set: (input) => {
@@ -103,9 +102,7 @@ export const trpcHotkeysStorage = createJSONStorage(() =>
 				return Promise.resolve();
 			}
 			const state = input as { hotkeysState: HotkeysState };
-			return electronTrpcClient.uiState.hotkeys.set.mutate(
-				state.hotkeysState,
-			);
+			return electronTrpcClient.uiState.hotkeys.set.mutate(state.hotkeysState);
 		},
 	}),
 );

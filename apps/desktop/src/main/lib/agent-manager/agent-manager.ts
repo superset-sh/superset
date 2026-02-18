@@ -154,7 +154,6 @@ export class AgentManager {
 	}
 
 	stop(): void {
-
 		this.unsubscribe?.();
 		this.unsubscribe = null;
 

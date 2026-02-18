@@ -256,10 +256,10 @@ export const useTabsStore = create<TabsStore>()(
 						panes: closedPanes,
 						closedAt: Date.now(),
 					};
-					const closedTabsStack = [
-						closedEntry,
-						...state.closedTabsStack,
-					].slice(0, 20);
+					const closedTabsStack = [closedEntry, ...state.closedTabsStack].slice(
+						0,
+						20,
+					);
 
 					for (const paneId of paneIds) {
 						// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)

@@ -1,4 +1,11 @@
 export {
+	type ChatAgentPresence,
+	type ChatUserPresence,
+	type UseChatPresenceOptions,
+	type UseChatPresenceReturn,
+	useChatPresence,
+} from "./useChatPresence";
+export {
 	type ModelOption,
 	type SessionConfig,
 	type SlashCommand,
@@ -8,10 +15,3 @@ export {
 	type UseDurableChatReturn,
 	useDurableChat,
 } from "./useDurableChat";
-export {
-	type ChatAgentPresence,
-	type ChatUserPresence,
-	type UseChatPresenceOptions,
-	type UseChatPresenceReturn,
-	useChatPresence,
-} from "./useChatPresence";

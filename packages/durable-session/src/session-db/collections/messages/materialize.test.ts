@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import type { ChunkRow } from "../../../schema";
 import {
 	extractTextContent,
 	materializeMessage,
 	messageRowToUIMessage,
 	parseChunk,
 } from "./materialize";
-import type { ChunkRow } from "../../../schema";
 
 function makeRow(
 	overrides: Partial<ChunkRow> & { chunk: string; seq: number },

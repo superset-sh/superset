@@ -403,4 +403,3 @@ export function messageRowToUIMessage(
 		actorId: row.actorId,
 	} as UIMessage & { actorId: string; createdAt: Date };
 }
-

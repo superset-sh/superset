@@ -14,8 +14,14 @@ import type { UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChunkRow } from "../../schema";
 import { messageRowToUIMessage } from "../../session-db/collections/messages/materialize";
-import { acquireSessionDB, releaseSessionDB } from "../../session-db/session-db-cache";
-import { type UseChatMetadataReturn, useChatMetadata } from "./hooks/useChatMetadata";
+import {
+	acquireSessionDB,
+	releaseSessionDB,
+} from "../../session-db/session-db-cache";
+import {
+	type UseChatMetadataReturn,
+	useChatMetadata,
+} from "./hooks/useChatMetadata";
 import { useCollectionData } from "./hooks/useCollectionData";
 
 export interface UseDurableChatOptions {
@@ -63,7 +69,7 @@ export function useDurableChat(
 				baseUrl: `${proxyUrl}/api/streams`,
 				headers: getHeaders?.(),
 			}),
-		[sessionId, proxyUrl],
+		[sessionId, proxyUrl, getHeaders],
 	);
 
 	// For cached (already-preloaded) sessions, start ready immediately so
@@ -76,15 +82,13 @@ export function useDurableChat(
 			.then(() => {
 				if (!cancelled) setReady(true);
 			})
-			.catch((err) =>
-				console.error("[useDurableChat] preload failed:", err),
-			);
+			.catch((err) => console.error("[useDurableChat] preload failed:", err));
 		return () => {
 			cancelled = true;
 			setReady(false);
 			releaseSessionDB(sessionId);
 		};
-	}, [sessionDB, sessionId, preloadPromise]);
+	}, [sessionId, preloadPromise]);
 
 	// --- URL + headers helpers ---
 	const headers = useCallback(
@@ -96,8 +100,7 @@ export function useDurableChat(
 	);
 
 	const url = useCallback(
-		(path: string) =>
-			`${proxyUrl}/api/streams/v1/sessions/${sessionId}${path}`,
+		(path: string) => `${proxyUrl}/api/streams/v1/sessions/${sessionId}${path}`,
 		[proxyUrl, sessionId],
 	);
 
@@ -108,7 +111,7 @@ export function useDurableChat(
 
 	// --- Staleness-aware isLoading ---
 	// Tick forces re-evaluation so time-based staleness actually triggers.
-	const [tick, setTick] = useState(0);
+	const [_tick, setTick] = useState(0);
 	useEffect(() => {
 		if (!rows.some((r) => !r.isComplete)) return;
 		const timer = setInterval(() => setTick((t) => t + 1), 5_000);
@@ -119,10 +122,9 @@ export function useDurableChat(
 		const now = Date.now();
 		return rows.some(
 			(row) =>
-				!row.isComplete &&
-				now - row.lastChunkAt.getTime() < STALE_THRESHOLD_MS,
+				!row.isComplete && now - row.lastChunkAt.getTime() < STALE_THRESHOLD_MS,
 		);
-	}, [rows, tick]);
+	}, [rows]);
 
 	// --- Metadata (title, config, presence, agents) ---
 	const metadata = useChatMetadata({
@@ -198,9 +200,7 @@ export function useDurableChat(
 				const tx = optimisticSend({ text, messageId, txid });
 				await tx.isPersisted.promise;
 			} catch (err) {
-				setError(
-					err instanceof Error ? err.message : "Failed to send message",
-				);
+				setError(err instanceof Error ? err.message : "Failed to send message");
 			}
 		},
 		[optimisticSend],
@@ -252,9 +252,7 @@ export function useDurableChat(
 					setError(`Failed to submit approval: ${res.status}`);
 				}
 			} catch (e) {
-				setError(
-					e instanceof Error ? e.message : "Failed to submit approval",
-				);
+				setError(e instanceof Error ? e.message : "Failed to submit approval");
 			}
 		},
 		[url, headers],

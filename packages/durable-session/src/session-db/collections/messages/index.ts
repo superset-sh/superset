@@ -1,4 +1,3 @@
-export { createMessagesCollection } from "./messages";
 export {
 	extractTextContent,
 	isAssistantMessage,
@@ -7,3 +6,4 @@ export {
 	messageRowToUIMessage,
 	parseChunk,
 } from "./materialize";
+export { createMessagesCollection } from "./messages";

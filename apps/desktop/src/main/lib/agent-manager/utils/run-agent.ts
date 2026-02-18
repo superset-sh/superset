@@ -3,8 +3,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
-import type { UIMessageChunk } from "ai";
 import type { SessionHost } from "@superset/durable-session/host";
+import type { UIMessageChunk } from "ai";
 
 // ---------------------------------------------------------------------------
 // Shared session state

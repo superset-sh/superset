@@ -12,9 +12,9 @@
 
 import type { Collection } from "@tanstack/db";
 import { count, createLiveQueryCollection, min } from "@tanstack/db";
-import { materializeMessage } from "./materialize";
 import type { ChunkRow } from "../../../schema";
 import type { MessageRow } from "../../../types";
+import { materializeMessage } from "./materialize";
 
 /** Chunk types that are non-content signals — not real messages. */
 const NON_CONTENT_TYPES = new Set([

@@ -1,6 +1,6 @@
+import { acquireSessionDB } from "@superset/durable-session";
 import type { SlashCommand } from "@superset/durable-session/react";
 import { useDurableChat } from "@superset/durable-session/react";
-import { acquireSessionDB } from "@superset/durable-session";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
@@ -84,22 +84,19 @@ function EmptyChatInterface({
 			createSession(newSessionId, organizationId, deviceId)
 				.then(() => {
 					// Config is fire-and-forget
-					fetch(
-						`${apiUrl}/api/streams/v1/sessions/${newSessionId}/config`,
-						{
-							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-								...getAuthHeaders(),
-							},
-							body: JSON.stringify({
-								model: selectedModel.id,
-								permissionMode,
-								thinkingEnabled,
-								cwd,
-							}),
+					fetch(`${apiUrl}/api/streams/v1/sessions/${newSessionId}/config`, {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							...getAuthHeaders(),
 						},
-					);
+						body: JSON.stringify({
+							model: selectedModel.id,
+							permissionMode,
+							thinkingEnabled,
+							cwd,
+						}),
+					});
 
 					// Pre-warm cache AFTER session exists on server
 					acquireSessionDB({
@@ -115,9 +112,7 @@ function EmptyChatInterface({
 				.catch((err) => {
 					setSentMessage(null);
 					setError(
-						err instanceof Error
-							? err.message
-							: "Failed to create session",
+						err instanceof Error ? err.message : "Failed to create session",
 					);
 				});
 		},
@@ -147,10 +142,7 @@ function EmptyChatInterface({
 
 	return (
 		<div className="flex h-full flex-col bg-background">
-			<MessageList
-				messages={displayMessages}
-				isStreaming={!!sentMessage}
-			/>
+			<MessageList messages={displayMessages} isStreaming={!!sentMessage} />
 			<ChatInputFooter
 				cwd={cwd}
 				error={error}

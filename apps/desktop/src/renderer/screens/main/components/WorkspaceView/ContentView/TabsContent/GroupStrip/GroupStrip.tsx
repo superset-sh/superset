@@ -252,7 +252,10 @@ export function GroupStrip() {
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent side="top" sideOffset={4}>
-									<HotkeyTooltipContent label="New Chat" hotkeyId="REOPEN_TAB" />
+									<HotkeyTooltipContent
+										label="New Chat"
+										hotkeyId="REOPEN_TAB"
+									/>
 								</TooltipContent>
 							</Tooltip>
 						)}
