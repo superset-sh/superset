@@ -4,8 +4,10 @@ export {
 	type SlashCommand,
 	type UseChatMetadataOptions,
 	type UseChatMetadataReturn,
-	useChatMetadata,
-} from "./useChatMetadata";
+	type UseDurableChatOptions,
+	type UseDurableChatReturn,
+	useDurableChat,
+} from "./useDurableChat";
 export {
 	type ChatAgentPresence,
 	type ChatUserPresence,
@@ -13,10 +15,3 @@ export {
 	type UseChatPresenceReturn,
 	useChatPresence,
 } from "./useChatPresence";
-export { useCollectionData } from "./useCollectionData";
-export {
-	type UseDurableChatOptions,
-	type UseDurableChatReturn,
-	useDurableChat,
-} from "./useDurableChat";
-export { useMessages } from "./useMessages";

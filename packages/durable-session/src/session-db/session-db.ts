@@ -9,7 +9,7 @@ import {
 	type ChunkRow,
 	type RawPresenceRow,
 	sessionStateSchema,
-} from "./schema";
+} from "../schema";
 
 export interface SessionDBConfig {
 	sessionId: string;

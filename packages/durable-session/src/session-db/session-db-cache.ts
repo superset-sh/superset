@@ -1,7 +1,7 @@
 import type { Collection } from "@tanstack/db";
-import { createSessionDB, type SessionDB, type SessionDBConfig } from "./collection";
+import { createSessionDB, type SessionDB, type SessionDBConfig } from "./session-db";
 import { createMessagesCollection } from "./collections/messages";
-import type { MessageRow } from "./types";
+import type { MessageRow } from "../types";
 
 interface CacheEntry {
 	db: SessionDB;

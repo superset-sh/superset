@@ -5,7 +5,7 @@ import {
 	messageRowToUIMessage,
 	parseChunk,
 } from "./materialize";
-import type { ChunkRow } from "./schema";
+import type { ChunkRow } from "../../../schema";
 
 function makeRow(
 	overrides: Partial<ChunkRow> & { chunk: string; seq: number },

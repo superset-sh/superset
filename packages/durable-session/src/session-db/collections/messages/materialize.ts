@@ -10,14 +10,14 @@
  */
 
 import type { UIMessage, UIMessageChunk } from "ai";
-import type { ChunkRow } from "./schema";
+import type { ChunkRow } from "../../../schema";
 import type {
 	AnyUIMessagePart,
 	DurableStreamChunk,
 	MessageRole,
 	MessageRow,
 	WholeMessageChunk,
-} from "./types";
+} from "../../../types";
 
 // ============================================================================
 // Type Guards

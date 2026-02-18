@@ -1,7 +1,7 @@
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
-import type { SessionDB } from "../collection";
-import type { AgentValue, ChunkRow, RawPresenceRow } from "../schema";
+import type { SessionDB } from "../../../../session-db/session-db";
+import type { AgentValue, ChunkRow, RawPresenceRow } from "../../../../schema";
 
 // ---------------------------------------------------------------------------
 // Types

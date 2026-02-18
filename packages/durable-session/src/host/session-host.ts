@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { DurableStream, IdempotentProducer } from "@durable-streams/client";
 import type { UIMessage, UIMessageChunk } from "ai";
-import { createSessionDB, type SessionDB } from "../collection";
+import { createSessionDB, type SessionDB } from "../session-db";
 import { type ChunkRow, sessionStateSchema } from "../schema";
 
 // ---------------------------------------------------------------------------

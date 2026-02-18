@@ -12,11 +12,11 @@
 import { createOptimisticAction } from "@durable-streams/state";
 import type { UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChunkRow } from "../schema";
-import { messageRowToUIMessage } from "../materialize";
-import { acquireSessionDB, releaseSessionDB } from "../sessionDBCache";
-import { type UseChatMetadataReturn, useChatMetadata } from "./useChatMetadata";
-import { useCollectionData } from "./useCollectionData";
+import type { ChunkRow } from "../../schema";
+import { messageRowToUIMessage } from "../../session-db/collections/messages/materialize";
+import { acquireSessionDB, releaseSessionDB } from "../../session-db/session-db-cache";
+import { type UseChatMetadataReturn, useChatMetadata } from "./hooks/useChatMetadata";
+import { useCollectionData } from "./hooks/useCollectionData";
 
 export interface UseDurableChatOptions {
 	sessionId: string;

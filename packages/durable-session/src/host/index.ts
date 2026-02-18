@@ -3,4 +3,4 @@ export {
 	type SessionHostConfig,
 	type SessionHostEventMap,
 	type SessionHostOptions,
-} from "./SessionHost";
+} from "./session-host";
