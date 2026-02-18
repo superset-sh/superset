@@ -3,13 +3,17 @@
  *
  * Designed for colocated repos (.jj + .git side by side).
  * Uses `jj` CLI for workspace lifecycle, status, and bookmark operations.
+ *
+ * In colocated mode, `.git` still exists so git-based operations
+ * (Changes UI, PR handling, etc.) continue to work via git.
  */
 
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdir, rename } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
+import simpleGit from "simple-git";
 import { getShellEnvironment } from "../shell-env";
 import type {
 	BranchExistsOnRemoteResult,
@@ -18,6 +22,28 @@ import type {
 } from "./types";
 
 const execFileAsync = promisify(execFile);
+
+// --- Per-repo mutex to serialize jj operations ---
+// jj uses internal store locks; concurrent CLI invocations against the same
+// repo can fail with lock contention errors.
+const repoLocks = new Map<string, Promise<unknown>>();
+
+function withRepoLock<T>(repoPath: string, fn: () => Promise<T>): Promise<T> {
+	const key = resolve(repoPath);
+	const prev = repoLocks.get(key) ?? Promise.resolve();
+	const next = prev.then(fn, fn);
+	repoLocks.set(key, next);
+	// Clean up when the chain settles so the map doesn't grow unbounded
+	next.then(
+		() => {
+			if (repoLocks.get(key) === next) repoLocks.delete(key);
+		},
+		() => {
+			if (repoLocks.get(key) === next) repoLocks.delete(key);
+		},
+	);
+	return next;
+}
 
 /**
  * Get a merged environment with the user's shell PATH.
@@ -44,70 +70,61 @@ async function getJjEnv(): Promise<Record<string, string>> {
 /**
  * Execute a jj command and return stdout.
  * Automatically adds --no-pager, --color=never, and -R for repo path.
+ * Serialized per-repo to avoid jj store lock contention.
  */
 async function jj(
 	repoPath: string,
 	args: string[],
 	timeout = 30_000,
 ): Promise<string> {
-	const env = await getJjEnv();
-	const { stdout } = await execFileAsync(
-		"jj",
-		["--no-pager", "--color=never", "-R", repoPath, ...args],
-		{ env, timeout },
-	);
-	return stdout;
+	return withRepoLock(repoPath, async () => {
+		const env = await getJjEnv();
+		const { stdout } = await execFileAsync(
+			"jj",
+			["--no-pager", "--color=never", "-R", repoPath, ...args],
+			{ env, timeout },
+		);
+		return stdout;
+	});
+}
+
+/**
+ * Check if jj CLI is available.
+ */
+export async function isJjAvailable(): Promise<boolean> {
+	try {
+		const env = await getJjEnv();
+		await execFileAsync("jj", ["version"], { env, timeout: 5_000 });
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 /**
  * Derive a jj workspace name from a workspace path.
- * jj workspace names must be simple identifiers. We use the directory basename.
+ * Uses the directory basename, which is always a sanitized slug generated
+ * by Superset (e.g., "feature-foo-abc123"), so it's unique within a project.
  */
 function workspaceNameFromPath(workspacePath: string): string {
 	return basename(workspacePath);
 }
 
 /**
- * Parse `jj workspace list` output into workspace entries.
- * Default output format: "name: <commit_id> <description>"
- * Each line starts with the workspace name followed by a colon.
+ * Parse `jj workspace list` output to extract workspace names.
+ * Output format: "name: <commit_id> <description>" per line.
  */
-async function parseWorkspaceList(
-	repoPath: string,
-): Promise<Array<{ name: string; path: string }>> {
-	// Use template to get structured output: "name path\n"
-	// The `self.name()` and `self.path()` aren't available on workspace list,
-	// so we parse the porcelain output manually and cross-reference with `jj workspace root`
-	const output = await jj(repoPath, ["workspace", "list"]);
-	const workspaces: Array<{ name: string; path: string }> = [];
-
+function parseWorkspaceNames(output: string): string[] {
+	const names: string[] = [];
 	for (const line of output.split("\n")) {
 		const trimmed = line.trim();
 		if (!trimmed) continue;
-
-		// Format: "name: <change_id> <description>"
 		const colonIdx = trimmed.indexOf(":");
 		if (colonIdx > 0) {
-			const name = trimmed.slice(0, colonIdx).trim();
-			workspaces.push({ name, path: "" });
+			names.push(trimmed.slice(0, colonIdx).trim());
 		}
 	}
-
-	// Resolve paths: the default workspace is at repo root, others are siblings
-	// jj stores workspace paths internally. We use `jj workspace root` from each.
-	// For now, use the convention that workspaces are created as siblings.
-	const repoRoot = await jj(repoPath, ["root"]).then((s) => s.trim());
-
-	for (const ws of workspaces) {
-		if (ws.name === "default") {
-			ws.path = repoRoot;
-		} else {
-			// Workspaces created by us are siblings of the main repo's parent
-			ws.path = join(dirname(repoRoot), ws.name);
-		}
-	}
-
-	return workspaces;
+	return names;
 }
 
 export class JjProvider implements VcsProvider {
@@ -126,9 +143,6 @@ export class JjProvider implements VcsProvider {
 		const args = ["workspace", "add", params.workspacePath, "--name", wsName];
 
 		if (params.startPoint) {
-			// For jj, startPoint is a revset. Callers pass things like "origin/main"
-			// which in jj should be "main@origin". However, jj also accepts bookmark
-			// names directly and remote tracking refs, so we normalize.
 			const jjRef = gitRefToJjRevset(params.startPoint);
 			args.push("-r", jjRef);
 		}
@@ -184,6 +198,20 @@ export class JjProvider implements VcsProvider {
 			],
 			120_000,
 		);
+
+		// Move the bookmark to point at the new workspace's working copy
+		// so getCurrentBranch() returns the expected branch name.
+		try {
+			await jj(params.workspacePath, [
+				"bookmark",
+				"set",
+				params.branch,
+				"-r",
+				"@",
+			]);
+		} catch {
+			// Best-effort: bookmark may not exist locally yet
+		}
 	}
 
 	async removeWorkspace(
@@ -266,9 +294,10 @@ export class JjProvider implements VcsProvider {
 		workspacePath: string,
 	): Promise<boolean> {
 		try {
-			const workspaces = await parseWorkspaceList(mainRepoPath);
+			const output = await jj(mainRepoPath, ["workspace", "list"]);
+			const names = parseWorkspaceNames(output);
 			const wsName = workspaceNameFromPath(workspacePath);
-			return workspaces.some((ws) => ws.name === wsName);
+			return names.includes(wsName);
 		} catch {
 			return false;
 		}
@@ -277,38 +306,48 @@ export class JjProvider implements VcsProvider {
 	async listExternalWorkspaces(
 		mainRepoPath: string,
 	): Promise<ExternalWorkspace[]> {
+		// In colocated mode, external workspaces may be either:
+		// 1. Git worktrees (created before jj support was added)
+		// 2. jj workspaces (created by us or the user)
+		//
+		// Since jj's CLI doesn't expose workspace paths, and git worktree list
+		// DOES show paths, we use git worktree list for discovery. This works
+		// because in colocated mode .git exists and git worktree metadata is valid.
+		// jj workspaces created by Superset are already tracked in our DB and
+		// don't need discovery.
 		try {
-			const workspaces = await parseWorkspaceList(mainRepoPath);
+			const git = simpleGit(mainRepoPath);
+			const output = await git.raw(["worktree", "list", "--porcelain"]);
+
 			const result: ExternalWorkspace[] = [];
+			let current: Partial<ExternalWorkspace> = {};
 
-			for (const ws of workspaces) {
-				if (ws.name === "default") continue; // Skip the main workspace
-
-				// Get the bookmark on the workspace's working copy
-				let branch: string | null = null;
-				try {
-					const bookmarkOutput = await jj(mainRepoPath, [
-						"log",
-						"-r",
-						`${ws.name}@`,
-						"--no-graph",
-						"-T",
-						'bookmarks ++ "\\n"',
-					]);
-					const firstLine = bookmarkOutput.trim().split("\n")[0]?.trim();
-					if (firstLine) {
-						// bookmarks template may return "name name2", take the first
-						branch = firstLine.split(/\s+/)[0] || null;
+			for (const line of output.split("\n")) {
+				if (line.startsWith("worktree ")) {
+					if (current.path) {
+						result.push({
+							path: current.path,
+							branch: current.branch ?? null,
+							isDetached: current.isDetached ?? false,
+							isBare: current.isBare ?? false,
+						});
 					}
-				} catch {
-					// Workspace may not be accessible
+					current = { path: line.slice("worktree ".length) };
+				} else if (line.startsWith("branch refs/heads/")) {
+					current.branch = line.slice("branch refs/heads/".length);
+				} else if (line === "detached") {
+					current.isDetached = true;
+				} else if (line === "bare") {
+					current.isBare = true;
 				}
+			}
 
+			if (current.path) {
 				result.push({
-					path: ws.path,
-					branch,
-					isDetached: branch === null,
-					isBare: false,
+					path: current.path,
+					branch: current.branch ?? null,
+					isDetached: current.isDetached ?? false,
+					isBare: current.isBare ?? false,
 				});
 			}
 
@@ -325,24 +364,25 @@ export class JjProvider implements VcsProvider {
 		mainRepoPath: string;
 		branch: string;
 	}): Promise<string | null> {
+		// In colocated mode, use git worktree list for path resolution
+		// (same reason as listExternalWorkspaces — jj doesn't expose paths via CLI)
 		try {
-			const workspaces = await parseWorkspaceList(params.mainRepoPath);
+			const git = simpleGit(params.mainRepoPath);
+			const output = await git.raw(["worktree", "list", "--porcelain"]);
 
-			for (const ws of workspaces) {
-				try {
-					const bookmarkOutput = await jj(params.mainRepoPath, [
-						"log",
-						"-r",
-						`${ws.name}@`,
-						"--no-graph",
-						"-T",
-						"bookmarks",
-					]);
-					const bookmarks = bookmarkOutput.trim().split(/\s+/);
-					if (bookmarks.includes(params.branch)) {
-						return ws.path;
+			const lines = output.split("\n");
+			let currentPath: string | null = null;
+
+			for (const line of lines) {
+				if (line.startsWith("worktree ")) {
+					currentPath = line.slice("worktree ".length);
+				} else if (line.startsWith("branch refs/heads/")) {
+					const branchName = line.slice("branch refs/heads/".length);
+					if (branchName === params.branch && currentPath) {
+						return currentPath;
 					}
-				} catch {}
+					currentPath = null;
+				}
 			}
 
 			return null;
@@ -382,7 +422,7 @@ export class JjProvider implements VcsProvider {
 		defaultBranch: string;
 	}): Promise<{ ahead: number; behind: number }> {
 		try {
-			// Ahead: commits reachable from @ but not from trunk
+			// Ahead: commits reachable from @ but not from the default branch
 			const aheadOutput = await jj(params.repoPath, [
 				"log",
 				"-r",
@@ -396,7 +436,7 @@ export class JjProvider implements VcsProvider {
 				.split("\n")
 				.filter((l) => l.trim().length > 0);
 
-			// Behind: commits reachable from trunk but not from @
+			// Behind: commits reachable from the default branch but not from @
 			const behindOutput = await jj(params.repoPath, [
 				"log",
 				"-r",
@@ -600,10 +640,17 @@ export class JjProvider implements VcsProvider {
 		try {
 			const output = await jj(repoPath, ["bookmark", "list", "--all-remotes"]);
 
-			// Look for "branch@origin:" in the output
+			// Look for "branch@origin" in the output, handling potential markers
 			const remotePattern = `${branch}@origin`;
 			for (const line of output.split("\n")) {
-				if (line.trim().startsWith(remotePattern)) {
+				const trimmed = line.trim();
+				// Match "branch@origin:" or "branch@origin :" accounting for
+				// potential markers like * between name and colon
+				if (
+					trimmed.startsWith(remotePattern) &&
+					(trimmed[remotePattern.length] === ":" ||
+						trimmed[remotePattern.length] === " ")
+				) {
 					return { status: "exists" };
 				}
 			}
@@ -628,11 +675,8 @@ export class JjProvider implements VcsProvider {
 		repoPath: string,
 		branch: string,
 	): Promise<string | null> {
-		// jj repos don't use git config for base branch.
-		// We store this in the superset local DB via the worktrees table.
-		// However, the VcsProvider interface is called with the repo path, not the DB.
-		// For colocated repos, fall back to reading git config (which may exist
-		// from before jj support was added, or was set by the git provider).
+		// For colocated repos, use git config (same storage as GitProvider)
+		// since .git exists alongside .jj
 		try {
 			const env = await getJjEnv();
 			const { stdout } = await execFileAsync(
@@ -670,8 +714,17 @@ export class JjProvider implements VcsProvider {
  *   "origin/main" → "main@origin"
  *   "main" → "main"
  *   "origin/feature/foo" → "feature/foo@origin"
+ *   "refs/remotes/origin/main" → "main@origin"
+ *   "refs/heads/main" → "main"
  */
 function gitRefToJjRevset(ref: string): string {
+	if (ref.startsWith("refs/remotes/origin/")) {
+		const branch = ref.slice("refs/remotes/origin/".length);
+		return `${branch}@origin`;
+	}
+	if (ref.startsWith("refs/heads/")) {
+		return ref.slice("refs/heads/".length);
+	}
 	if (ref.startsWith("origin/")) {
 		const branch = ref.slice("origin/".length);
 		return `${branch}@origin`;
