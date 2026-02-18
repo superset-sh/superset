@@ -9,6 +9,7 @@ export {
 	extractTextContent,
 	isAssistantMessage,
 	isUserMessage,
+	materializeInitialMessages,
 	materializeMessage,
 	messageRowToUIMessage,
 	parseChunk,

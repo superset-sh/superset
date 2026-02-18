@@ -7,6 +7,16 @@ import type {
 import type { SessionDB } from "../collection";
 import type { ChunkRow } from "../schema";
 
+/** Chunk types that are NOT AI SDK UIMessageChunks — skip these in the stream. */
+const NON_CONTENT_TYPES = new Set([
+	"whole-message",
+	"config",
+	"control",
+	"tool-result",
+	"approval-response",
+	"tool-approval",
+]);
+
 export interface DurableChatTransportOptions {
 	proxyUrl: string;
 	sessionId: string;
@@ -40,28 +50,37 @@ export class DurableChatTransport implements ChatTransport<UIMessage> {
 			abortSignal: AbortSignal | undefined;
 		} & ChatRequestOptions,
 	): Promise<ReadableStream<UIMessageChunk>> => {
-		console.log("[DurableChatTransport] sendMessages called", {
-			trigger: options.trigger,
-			messageCount: options.messages.length,
-		});
-		const { messages, abortSignal } = options;
-		const lastMessage = messages[messages.length - 1];
+		const { trigger, messages, abortSignal } = options;
 
-		if (lastMessage?.role === "user") {
-			const textPart = lastMessage.parts.find((p) => p.type === "text");
-			const content = textPart
-				? (textPart as { type: "text"; text: string }).text
-				: "";
+		if (trigger === "submit-message") {
+			const lastMessage = messages[messages.length - 1];
+			if (lastMessage?.role === "user") {
+				const textPart = lastMessage.parts.find((p) => p.type === "text");
+				const content = textPart
+					? (textPart as { type: "text"; text: string }).text
+					: "";
 
-			await fetch(this.url("/messages"), {
+				await fetch(this.url("/messages"), {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						...this.getHeaders(),
+					},
+					body: JSON.stringify({ content, messageId: lastMessage.id }),
+					signal: abortSignal,
+				});
+			}
+		} else if (trigger === "regenerate-message") {
+			await fetch(this.url("/control"), {
 				method: "POST",
-				headers: { "Content-Type": "application/json", ...this.getHeaders() },
-				body: JSON.stringify({ content, messageId: lastMessage.id }),
+				headers: {
+					"Content-Type": "application/json",
+					...this.getHeaders(),
+				},
+				body: JSON.stringify({ action: "regenerate" }),
 				signal: abortSignal,
 			});
 		}
-
-		// TODO: handle tool output via addToolOutput() → sendAutomaticallyWhen
 
 		return this.createChunkStream(abortSignal);
 	};
@@ -69,9 +88,108 @@ export class DurableChatTransport implements ChatTransport<UIMessage> {
 	reconnectToStream = async (
 		_options: { chatId: string } & ChatRequestOptions,
 	): Promise<ReadableStream<UIMessageChunk> | null> => {
-		console.log("[DurableChatTransport] reconnectToStream called");
-		return this.createChunkStream(undefined);
+		const chunks = this.sessionDB.collections.chunks;
+
+		// Find assistant messageIds that have NOT finished
+		const finished = new Set<string>();
+		const assistantMessageIds = new Set<string>();
+		for (const row of chunks.values()) {
+			const r = row as ChunkRow;
+			if (r.role !== "assistant") continue;
+			assistantMessageIds.add(r.messageId);
+			try {
+				const parsed = JSON.parse(r.chunk);
+				if (parsed.type === "finish" || parsed.type === "abort")
+					finished.add(r.messageId);
+			} catch {}
+		}
+
+		const incompleteId = [...assistantMessageIds].find(
+			(id) => !finished.has(id),
+		);
+		if (!incompleteId) return null; // nothing streaming
+
+		// Snapshot existing chunks for the incomplete message, then subscribe.
+		// The race window between snapshot and subscribe is microseconds —
+		// acceptable since the host writes orders of magnitude slower.
+		const existingRows: ChunkRow[] = [];
+		const seenKeys = new Set<string>();
+		for (const row of chunks.values()) {
+			const r = row as ChunkRow;
+			if (r.messageId !== incompleteId) continue;
+			existingRows.push(r);
+			seenKeys.add(r.id);
+		}
+		existingRows.sort((a, b) => a.seq - b.seq);
+
+		return new ReadableStream<UIMessageChunk>({
+			start: (controller) => {
+				// Replay existing chunks
+				for (const row of existingRows) {
+					try {
+						const parsed = JSON.parse(row.chunk);
+						const type = parsed.type as string;
+						if (NON_CONTENT_TYPES.has(type)) continue;
+
+						controller.enqueue(parsed as UIMessageChunk);
+
+						if (type === "finish" || type === "abort") {
+							controller.close();
+							return;
+						}
+					} catch {}
+				}
+
+				// Forward new chunks as they arrive
+				const subscription = chunks.subscribeChanges((changes) => {
+					for (const change of changes) {
+						if (change.type !== "insert" && change.type !== "update") continue;
+						const row = change.value as ChunkRow;
+
+						if (row.messageId !== incompleteId) continue;
+						if (seenKeys.has(row.id)) continue;
+						seenKeys.add(row.id);
+
+						try {
+							const parsed = JSON.parse(row.chunk);
+							const type = parsed.type as string;
+							if (NON_CONTENT_TYPES.has(type)) continue;
+
+							controller.enqueue(parsed as UIMessageChunk);
+
+							if (type === "finish" || type === "abort") {
+								subscription.unsubscribe();
+								controller.close();
+							}
+						} catch {}
+					}
+				});
+			},
+		});
 	};
+
+	async submitToolResult(
+		toolCallId: string,
+		output: unknown,
+		error?: string,
+	): Promise<void> {
+		await fetch(this.url("/tool-results"), {
+			method: "POST",
+			headers: { "Content-Type": "application/json", ...this.getHeaders() },
+			body: JSON.stringify({ toolCallId, output, error: error ?? null }),
+		});
+	}
+
+	async submitApproval(
+		approvalId: string,
+		approved: boolean,
+	): Promise<void> {
+		await fetch(this.url(`/approvals/${approvalId}`), {
+			method: "POST",
+			headers: { "Content-Type": "application/json", ...this.getHeaders() },
+			body: JSON.stringify({ approved }),
+		});
+	}
 
 	/**
 	 * Send a control event to the durable stream (e.g. abort the agent).
@@ -95,18 +213,9 @@ export class DurableChatTransport implements ChatTransport<UIMessage> {
 			seenKeys.add((row as ChunkRow).id);
 		}
 
-		console.log(
-			"[DurableChatTransport] createChunkStream — seenKeys:",
-			seenKeys.size,
-		);
-
 		return new ReadableStream<UIMessageChunk>({
 			start: (controller) => {
 				const subscription = chunks.subscribeChanges((changes) => {
-					console.log(
-						"[DurableChatTransport] subscribeChanges fired — changes:",
-						changes.length,
-					);
 					for (const change of changes) {
 						if (change.type === "insert" || change.type === "update") {
 							const row = change.value as ChunkRow;
@@ -115,37 +224,17 @@ export class DurableChatTransport implements ChatTransport<UIMessage> {
 
 							try {
 								const parsed = JSON.parse(row.chunk);
+								const type = parsed.type as string;
 
-								console.log(
-									"[DurableChatTransport] enqueuing chunk type:",
-									parsed.type,
-									"role:",
-									row.role,
-								);
+								// Skip non-AI-SDK chunk types
+								if (NON_CONTENT_TYPES.has(type)) continue;
 
-								if (parsed.type === "whole-message") {
-									// User messages stored as whole — convert to UIMessageChunk sequence
-									const msg = parsed.message;
-									for (const part of msg.parts ?? []) {
-										if (part.type === "text") {
-											const id = crypto.randomUUID();
-											controller.enqueue({
-												type: "text-start",
-												id,
-											} as UIMessageChunk);
-											controller.enqueue({
-												type: "text-delta",
-												id,
-												delta: part.text,
-											} as UIMessageChunk);
-											controller.enqueue({
-												type: "text-end",
-												id,
-											} as UIMessageChunk);
-										}
-									}
-								} else {
-									controller.enqueue(parsed as UIMessageChunk);
+								controller.enqueue(parsed as UIMessageChunk);
+
+								// Close after finish/abort — useChat reads until done:true
+								if (type === "finish" || type === "abort") {
+									subscription.unsubscribe();
+									controller.close();
 								}
 							} catch {
 								// skip unparseable chunks

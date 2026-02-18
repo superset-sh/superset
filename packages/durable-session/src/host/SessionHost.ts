@@ -47,6 +47,7 @@ export interface SessionHostEventMap {
 		},
 	];
 	abort: [];
+	regenerate: [];
 	config: [config: SessionHostConfig];
 	connected: [];
 	disconnected: [data: { reason?: string }];
@@ -402,9 +403,13 @@ export class SessionHost {
 			});
 		}
 
-		// Control: abort → emit "abort"
-		if (parsed.type === "control" && parsed.action === "abort") {
-			this.emit("abort");
+		// Control events
+		if (parsed.type === "control") {
+			if (parsed.action === "abort") {
+				this.emit("abort");
+			} else if (parsed.action === "regenerate") {
+				this.emit("regenerate");
+			}
 		}
 
 		// Config → merge and emit "config"

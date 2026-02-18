@@ -399,3 +399,41 @@ export function messageRowToUIMessage(
 		actorId: row.actorId,
 	} as UIMessage & { actorId: string; createdAt: Date };
 }
+
+// ============================================================================
+// Initial Messages (for useChat)
+// ============================================================================
+
+/**
+ * Materialize completed messages from chunk rows for use as `useChat` initial messages.
+ * Excludes incomplete assistant messages — those are handled by `reconnectToStream`.
+ */
+export function materializeInitialMessages(chunks: Iterable<ChunkRow>): UIMessage[] {
+	// Group chunks by messageId, skipping non-content types
+	const groups = new Map<string, ChunkRow[]>();
+	for (const row of chunks) {
+		try {
+			const parsed = JSON.parse(row.chunk);
+			const t = parsed.type as string;
+			if (
+				t === "config" ||
+				t === "control" ||
+				t === "tool-result" ||
+				t === "approval-response" ||
+				t === "tool-approval"
+			)
+				continue;
+		} catch {
+			continue;
+		}
+		const existing = groups.get(row.messageId) ?? [];
+		existing.push(row);
+		groups.set(row.messageId, existing);
+	}
+
+	return [...groups.values()]
+		.map(materializeMessage)
+		.filter((row) => row.isComplete)
+		.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+		.map(messageRowToUIMessage);
+}

@@ -1,14 +1,13 @@
 import {
-	createMessagesCollection,
 	createSessionDB,
-	messageRowToUIMessage,
+	DurableChatTransport,
+	materializeInitialMessages,
+	type ChunkRow,
 	type SessionDB,
 } from "@superset/durable-session";
 import type { SlashCommand } from "@superset/durable-session/react";
-import {
-	useChatMetadata,
-	useCollectionData,
-} from "@superset/durable-session/react";
+import { useChatMetadata } from "@superset/durable-session/react";
+import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { getAuthToken } from "renderer/lib/auth-client";
@@ -181,7 +180,34 @@ function ChatSession({
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
-	const [error, setError] = useState<string | null>(null);
+
+	const transport = useMemo(
+		() =>
+			new DurableChatTransport({
+				proxyUrl: apiUrl,
+				sessionId,
+				sessionDB,
+				getHeaders: getAuthHeaders,
+			}),
+		[sessionId, sessionDB],
+	);
+
+	const initialMessages = useMemo(
+		() =>
+			materializeInitialMessages(
+				sessionDB.collections.chunks.values() as Iterable<ChunkRow>,
+			),
+		[sessionDB],
+	);
+
+	const { messages, status, sendMessage, stop, error } = useChat({
+		id: sessionId,
+		messages: initialMessages,
+		transport,
+		resume: true,
+	});
+
+	const isStreaming = status === "streaming" || status === "submitted";
 
 	const metadata = useChatMetadata({
 		sessionDB,
@@ -241,62 +267,21 @@ function ChatSession({
 		metadata.updateConfig,
 	]);
 
-	// Materialized messages from the chunks collection
-	const messagesCollection = useMemo(
-		() =>
-			createMessagesCollection({
-				chunksCollection: sessionDB.collections.chunks,
-			}),
-		[sessionDB],
-	);
-
-	const messageRows = useCollectionData(messagesCollection);
-	const messages = useMemo(
-		() => messageRows.map(messageRowToUIMessage),
-		[messageRows],
-	);
-
-	// Streaming if the last assistant message is incomplete
-	const lastRow = messageRows[messageRows.length - 1];
-	const isStreaming =
-		lastRow !== undefined &&
-		lastRow.role === "assistant" &&
-		!lastRow.isComplete;
-
 	const handleSend = useCallback(
-		async (message: { text: string }) => {
+		(message: { text: string }) => {
 			const text = message.text.trim();
 			if (!text) return;
-			setError(null);
-			try {
-				await fetch(`${apiUrl}/api/streams/v1/sessions/${sessionId}/messages`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						...getAuthHeaders(),
-					},
-					body: JSON.stringify({ content: text }),
-				});
-			} catch (err) {
-				setError(err instanceof Error ? err.message : "Failed to send message");
-			}
+			sendMessage({ text });
 		},
-		[sessionId],
+		[sendMessage],
 	);
 
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
-			fetch(`${apiUrl}/api/streams/v1/sessions/${sessionId}/control`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					...getAuthHeaders(),
-				},
-				body: JSON.stringify({ action: "abort" }),
-			}).catch(console.error);
+			stop();
 		},
-		[sessionId],
+		[stop],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -311,7 +296,7 @@ function ChatSession({
 			<MessageList messages={messages} isStreaming={isStreaming} />
 			<ChatInputFooter
 				cwd={cwd}
-				error={error}
+				error={error?.message ?? null}
 				isStreaming={isStreaming}
 				availableModels={metadata.config.availableModels ?? []}
 				selectedModel={selectedModel}
