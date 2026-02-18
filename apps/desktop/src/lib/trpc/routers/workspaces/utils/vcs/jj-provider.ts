@@ -10,6 +10,7 @@
 
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -71,13 +72,21 @@ async function getJjEnv(): Promise<Record<string, string>> {
  * Execute a jj command and return stdout.
  * Automatically adds --no-pager, --color=never, and -R for repo path.
  * Serialized per-repo to avoid jj store lock contention.
+ *
+ * @param repoPath - The path to pass to jj's -R flag (workspace or repo root)
+ * @param args - Arguments for the jj command
+ * @param timeout - Timeout in milliseconds
+ * @param lockKey - Optional lock key (should be the main repo path). If not
+ *   provided, falls back to repoPath. Use this when repoPath is a workspace
+ *   path to ensure all operations on the same repo serialize correctly.
  */
 async function jj(
 	repoPath: string,
 	args: string[],
 	timeout = 30_000,
+	lockKey?: string,
 ): Promise<string> {
-	return withRepoLock(repoPath, async () => {
+	return withRepoLock(lockKey ?? repoPath, async () => {
 		const env = await getJjEnv();
 		const { stdout } = await execFileAsync(
 			"jj",
@@ -138,13 +147,12 @@ export class JjProvider implements VcsProvider {
 
 		// Create a bookmark for the branch on the new workspace's working copy
 		try {
-			await jj(params.workspacePath, [
-				"bookmark",
-				"create",
-				params.branch,
-				"-r",
-				"@",
-			]);
+			await jj(
+				params.workspacePath,
+				["bookmark", "create", params.branch, "-r", "@"],
+				30_000,
+				params.mainRepoPath,
+			);
 		} catch (error) {
 			// Bookmark may already exist if it was an existing branch name
 			const msg = error instanceof Error ? error.message : String(error);
@@ -152,13 +160,12 @@ export class JjProvider implements VcsProvider {
 				throw error;
 			}
 			// If it already exists, move it to point at @
-			await jj(params.workspacePath, [
-				"bookmark",
-				"set",
-				params.branch,
-				"-r",
-				"@",
-			]);
+			await jj(
+				params.workspacePath,
+				["bookmark", "set", params.branch, "-r", "@"],
+				30_000,
+				params.mainRepoPath,
+			);
 		}
 	}
 
@@ -189,13 +196,12 @@ export class JjProvider implements VcsProvider {
 		// Move the bookmark to point at the new workspace's working copy
 		// so getCurrentBranch() returns the expected branch name.
 		try {
-			await jj(params.workspacePath, [
-				"bookmark",
-				"set",
-				params.branch,
-				"-r",
-				"@",
-			]);
+			await jj(
+				params.workspacePath,
+				["bookmark", "set", params.branch, "-r", "@"],
+				30_000,
+				params.mainRepoPath,
+			);
 		} catch {
 			// Best-effort: bookmark may not exist locally yet
 		}
@@ -286,6 +292,12 @@ export class JjProvider implements VcsProvider {
 		mainRepoPath: string,
 		workspacePath: string,
 	): Promise<boolean> {
+		// Check both jj workspace registration AND disk presence.
+		// A workspace might be registered but directory deleted (stale), or
+		// directory might exist without registration (orphaned). Either case
+		// means the workspace "exists" and needs proper cleanup.
+		if (existsSync(workspacePath)) return true;
+
 		try {
 			const output = await jj(mainRepoPath, ["workspace", "list"]);
 			const names = parseWorkspaceNames(output);
