@@ -1,0 +1,210 @@
+---
+title: "The Complete Guide to Running Parallel AI Coding Agents"
+description: "How to run multiple AI coding agents in parallel without conflicts. Covers isolation strategies, orchestration patterns, and practical workflows for scaling from 1 to 10+ agents."
+author: avi
+date: 2026-02-18
+category: Engineering
+relatedSlugs:
+  - working-with-worktrees-in-superset
+  - roadmap-to-100-agents
+  - git-worktrees-history-deep-dive
+---
+
+Running one AI coding agent is straightforward. Running ten at once introduces problems that most developers haven't encountered before: file conflicts, branch collisions, resource contention, and a review bottleneck that grows linearly with agent count. This guide covers the patterns that work and the mistakes to avoid.
+
+---
+
+## Why Parallel Agents?
+
+A single coding agent handles one task at a time. You prompt, it works, you review, you iterate. At best, you're doing one unit of agent work per cycle.
+
+But most codebases have dozens of parallelizable tasks at any given time:
+
+- Writing tests for module A doesn't conflict with refactoring module B
+- Updating API docs doesn't conflict with fixing a database query
+- Adding input validation doesn't conflict with migrating a config format
+
+These tasks are independent. They can — and should — run simultaneously. The bottleneck isn't the agent or the model. It's the human orchestrating one task at a time.
+
+---
+
+## The Isolation Problem
+
+Running two agents in the same directory creates immediate problems:
+
+```
+Agent 1: Opens src/auth/login.ts, starts refactoring
+Agent 2: Opens src/auth/login.ts, starts adding validation
+Agent 1: Writes its version of login.ts
+Agent 2: Writes its version of login.ts (overwrites Agent 1)
+Agent 1: Commits — but the file is Agent 2's version
+```
+
+This isn't a theoretical risk. It happens every time two agents touch overlapping files. Even if they're editing different files, a shared `git index` means their commits can include each other's uncommitted changes.
+
+### Solution: One Worktree Per Agent
+
+Git worktrees solve this at the filesystem level:
+
+```
+~/project/                  # Your main working tree
+~/project-agent-tests/      # Agent 1: writing tests (own branch, own files)
+~/project-agent-refactor/   # Agent 2: refactoring auth (own branch, own files)
+~/project-agent-docs/       # Agent 3: updating docs (own branch, own files)
+```
+
+Each worktree has:
+- Its own copy of the working directory
+- Its own branch
+- Its own staging area (git index)
+
+They share the git object store, so creating a worktree takes seconds and costs minimal disk space.
+
+---
+
+## Orchestration Patterns
+
+### Pattern 1: Manual Worktrees
+
+The simplest approach — create worktrees yourself and run agents manually:
+
+```bash
+git worktree add ../project-tests -b agent/tests
+cd ../project-tests
+claude-code "Write unit tests for the auth module"
+```
+
+This works for 2-3 agents but breaks down at scale. You're managing worktrees, branches, and terminals manually.
+
+### Pattern 2: Scripted Orchestration
+
+A shell script that automates worktree creation and agent launching:
+
+```bash
+#!/bin/bash
+TASK_NAME="$1"
+AGENT_CMD="$2"
+BRANCH="agent/$TASK_NAME"
+WORKTREE_DIR="../$(basename $(pwd))-$TASK_NAME"
+
+git worktree add "$WORKTREE_DIR" -b "$BRANCH"
+cd "$WORKTREE_DIR"
+eval "$AGENT_CMD"
+```
+
+Better, but still no unified view of all tasks, no session persistence, and no diff review workflow.
+
+### Pattern 3: Dedicated Orchestrator
+
+Tools like [Superset](https://superset.sh) handle orchestration end-to-end:
+
+1. **Task creation** — describe the task, pick an agent
+2. **Automatic isolation** — worktree and branch created automatically
+3. **Session management** — persistent daemon keeps sessions alive across crashes
+4. **Diff review** — built-in diff viewer for reviewing agent output
+5. **Editor integration** — open any worktree in VS Code, Cursor, JetBrains, or Xcode
+
+This is the approach that scales to 5-10+ concurrent agents without operational overhead.
+
+---
+
+## Choosing the Right Agent Per Task
+
+Different agents have different strengths. A parallel workflow lets you match agents to tasks:
+
+### Claude Code
+- Complex multi-file refactors
+- Architectural changes (new patterns, module restructuring)
+- Debugging subtle issues that require deep codebase understanding
+- Tasks requiring MCP tool integration
+
+### Codex CLI
+- Well-scoped, clearly defined tasks
+- Full Auto mode for autonomous execution
+- Tasks where OpenAI models (o3, o4-mini) perform well
+- Cost-sensitive tasks using cheaper models
+
+### OpenCode
+- Tasks where model flexibility matters (75+ providers)
+- Cost optimization across different providers
+- Teams running local models via Ollama
+- Tasks that benefit from LSP integration
+
+### Aider
+- Iterative pair programming tasks
+- Small, focused changes with tight feedback loops
+- Tasks requiring frequent back-and-forth
+
+The key insight: you don't have to choose one agent for everything. Run Claude Code on the complex refactor and Codex on the test generation simultaneously.
+
+---
+
+## The Review Bottleneck
+
+Parallel agents create a new problem: review throughput. If you run 10 agents and each produces a diff in 15 minutes, you have 10 diffs to review per hour.
+
+### Strategies for Fast Review
+
+**Prioritize by risk:** A test addition is low-risk and can be reviewed quickly. A database migration is high-risk and needs careful review. Triage diffs by impact.
+
+**Review diffs, not files:** Don't re-read the entire file. Focus on what changed. If the diff is scoped to what you asked for and the tests pass, a quick review is usually sufficient.
+
+**Let agents verify their own work:** Before reviewing, check if the agent ran tests. If tests pass and the diff is clean, your review is a sanity check rather than a first-pass audit.
+
+**Use structured task descriptions:** "Add input validation to the signup form: email must be valid, password must be 8+ characters, display inline errors" produces a reviewable diff. "Improve the signup form" produces something unpredictable.
+
+**Batch similar tasks:** Review all test additions together, then all refactors. Context switching between different types of changes is the biggest time sink in review.
+
+---
+
+## Resource Management
+
+### CPU and Memory
+
+Each agent consumes local resources for:
+- The agent process itself (terminal, file I/O)
+- Language servers (TypeScript, Go, Python) if the agent uses them
+- Build processes if the agent runs builds
+- Test suites if the agent runs tests
+
+On a modern laptop, 5-7 concurrent agents are comfortable. Beyond that, you may want to stagger agent launches or limit concurrent builds.
+
+### API Rate Limits
+
+Each agent makes API calls to its model provider. Running 10 Claude Code instances hits Anthropic's rate limits faster than one. Monitor your provider's rate limit headers and throttle if needed.
+
+### Disk Space
+
+Each worktree is a full checkout of your working directory. For a 1GB repo, 10 worktrees use ~10GB. The git object store is shared, so history isn't duplicated. Clean up completed worktrees promptly.
+
+---
+
+## Common Mistakes
+
+### Running Too Many Agents at Once
+
+Start with 2-3 until you're comfortable with the review workflow. Scaling to 10 before you can review at speed creates a backlog that slows everything down.
+
+### Vague Task Descriptions
+
+"Fix the bugs" will produce unpredictable results. "Fix the null pointer in UserService.getProfile when user.avatar is null — add a null check and return a default avatar URL" gives the agent exactly what it needs.
+
+### Ignoring Branch Conflicts
+
+If two agents modify the same file on different branches, you'll hit merge conflicts when merging. Plan your task allocation to minimize overlap. If tasks must touch the same files, run them sequentially.
+
+### Not Running Tests
+
+If the agent doesn't run tests, you're reviewing blind. Either include "run tests and fix any failures" in your prompt, or verify tests pass before reviewing the diff.
+
+---
+
+## Getting Started
+
+1. **Pick an orchestrator** — [Superset](https://superset.sh) handles worktrees, sessions, and review
+2. **Pick your agents** — Start with Claude Code or Codex, expand later
+3. **Start with 2-3 tasks** — Parallelizable, non-overlapping tasks
+4. **Review quickly** — Focus on diffs, not full file reads
+5. **Scale gradually** — Add more agents as your review speed improves
+
+The goal isn't to run the most agents possible. It's to maximize useful throughput — tasks completed per hour that meet your quality bar. Parallel agents get you there faster than sequential work, but only if the orchestration and review workflow supports it.
