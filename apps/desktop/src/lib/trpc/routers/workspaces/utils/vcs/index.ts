@@ -4,6 +4,7 @@
  * Detects whether a repository uses Git or Jujutsu (jj) and returns the
  * appropriate VcsProvider implementation.
  */
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { GitProvider } from "./git-provider";
@@ -34,11 +35,27 @@ export function detectVcsType(mainRepoPath: string): VcsType {
 	return "git";
 }
 
+/** Cached jj CLI availability check (runs once per app session) */
+let jjAvailabilityResult: boolean | null = null;
+
+function isJjCliAvailable(): boolean {
+	if (jjAvailabilityResult !== null) return jjAvailabilityResult;
+
+	try {
+		execFileSync("jj", ["version"], { timeout: 5_000, stdio: "ignore" });
+		jjAvailabilityResult = true;
+	} catch {
+		jjAvailabilityResult = false;
+	}
+	return jjAvailabilityResult;
+}
+
 /**
  * Get the VcsProvider for a repository. Results are cached per repo path.
  *
- * Returns JjProvider for jj repos (detected by `.jj` directory) and
- * GitProvider for git-only repos.
+ * Returns JjProvider for jj repos (detected by `.jj` directory + jj CLI available)
+ * and GitProvider for git-only repos or when jj is not installed.
+ * In colocated mode, falls back to GitProvider if jj CLI is unavailable.
  */
 export function getVcsProvider(mainRepoPath: string): VcsProvider {
 	const cached = providerCache.get(mainRepoPath);
@@ -48,8 +65,17 @@ export function getVcsProvider(mainRepoPath: string): VcsProvider {
 	let provider: VcsProvider;
 
 	if (vcsType === "jj") {
-		console.log(`[vcs] Detected jj repo at ${mainRepoPath}, using JjProvider`);
-		provider = new JjProvider();
+		if (isJjCliAvailable()) {
+			console.log(
+				`[vcs] Detected jj repo at ${mainRepoPath}, using JjProvider`,
+			);
+			provider = new JjProvider();
+		} else {
+			console.warn(
+				`[vcs] Detected jj repo at ${mainRepoPath}, but jj CLI not found — using GitProvider`,
+			);
+			provider = new GitProvider();
+		}
 	} else {
 		provider = new GitProvider();
 	}
