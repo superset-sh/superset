@@ -458,7 +458,7 @@ export async function initializeWorkspaceWorktree({
 
 		if (manager.wasWorktreeCreated(workspaceId)) {
 			try {
-				await vcs.removeWorkspace(mainRepoPath, worktreePath);
+				await getVcsProvider(mainRepoPath).removeWorkspace(mainRepoPath, worktreePath);
 				console.log(
 					`[workspace-init] Cleaned up partial worktree at ${worktreePath}`,
 				);
