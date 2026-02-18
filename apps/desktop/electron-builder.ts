@@ -127,7 +127,17 @@ const config: Configuration = {
 		],
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
-		notarize: true,
+		entitlements: join(pkg.resources, "build/entitlements.mac.plist"),
+		entitlementsInherit: join(
+			pkg.resources,
+			"build/entitlements.mac.inherit.plist",
+		),
+		notarize:
+			process.env.APPLE_NOTARIZE === "true"
+				? {
+						teamId: process.env.APPLE_TEAM_ID || "",
+					}
+				: false,
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,

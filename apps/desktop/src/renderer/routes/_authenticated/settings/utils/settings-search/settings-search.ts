@@ -51,6 +51,10 @@ export const SETTING_ITEM_ID = {
 	// API Keys
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
+
+	// SSH Connections
+	SSH_CONNECTIONS_LIST: "ssh-connections-list",
+	SSH_CONNECTIONS_ADD: "ssh-connections-add",
 } as const;
 
 export type SettingItemId =
@@ -726,6 +730,42 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mcp",
 			"claude desktop",
 			"claude code",
+		],
+	},
+	// SSH Connections
+	{
+		id: SETTING_ITEM_ID.SSH_CONNECTIONS_LIST,
+		section: "ssh-connections",
+		title: "SSH Connections",
+		description: "Manage SSH host configurations for remote workspaces",
+		keywords: [
+			"ssh",
+			"remote",
+			"server",
+			"host",
+			"connection",
+			"key",
+			"identity",
+			"agent",
+			"port",
+			"username",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.SSH_CONNECTIONS_ADD,
+		section: "ssh-connections",
+		title: "Add SSH Connection",
+		description: "Configure a new SSH host for remote workspaces",
+		keywords: [
+			"ssh",
+			"add",
+			"new",
+			"create",
+			"remote",
+			"server",
+			"host",
+			"connect",
+			"configure",
 		],
 	},
 ];

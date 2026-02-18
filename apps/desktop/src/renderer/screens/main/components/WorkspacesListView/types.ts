@@ -8,7 +8,7 @@ export interface WorkspaceItem {
 	projectId: string;
 	projectName: string;
 	worktreePath: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "remote";
 	branch: string;
 	name: string;
 	lastOpenedAt: number;
@@ -20,6 +20,7 @@ export interface WorkspaceItem {
 export interface ProjectGroup {
 	projectId: string;
 	projectName: string;
+	projectType: string;
 	workspaces: WorkspaceItem[];
 }
 

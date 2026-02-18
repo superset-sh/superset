@@ -89,6 +89,7 @@ export type CreateOrAttachMutate = (
 
 export interface TerminalWriteInput {
 	paneId: string;
+	workspaceId?: string;
 	data: string;
 }
 
@@ -96,6 +97,7 @@ export type TerminalWriteMutate = (input: TerminalWriteInput) => void;
 
 export interface TerminalResizeInput {
 	paneId: string;
+	workspaceId?: string;
 	cols: number;
 	rows: number;
 }
@@ -104,12 +106,14 @@ export type TerminalResizeMutate = (input: TerminalResizeInput) => void;
 
 export interface TerminalDetachInput {
 	paneId: string;
+	workspaceId?: string;
 }
 
 export type TerminalDetachMutate = (input: TerminalDetachInput) => void;
 
 export interface TerminalClearScrollbackInput {
 	paneId: string;
+	workspaceId?: string;
 }
 
 export type TerminalClearScrollbackMutate = (

@@ -15,11 +15,15 @@ interface Workspace {
 	id: string;
 	projectId: string;
 	worktreePath: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "remote";
 	branch: string;
 	name: string;
 	tabOrder: number;
 	isUnread: boolean;
+	sshConnectionId?: string | null;
+	remotePath?: string | null;
+	sshHost?: string | null;
+	sshUsername?: string | null;
 }
 
 interface ProjectSectionProps {
@@ -175,6 +179,8 @@ export function ProjectSection({
 										index={wsIndex}
 										shortcutIndex={shortcutBaseIndex + wsIndex}
 										isCollapsed={isSidebarCollapsed}
+										sshHost={workspace.sshHost}
+										sshUsername={workspace.sshUsername}
 									/>
 								))}
 							</div>
@@ -233,6 +239,8 @@ export function ProjectSection({
 									isUnread={workspace.isUnread}
 									index={wsIndex}
 									shortcutIndex={shortcutBaseIndex + wsIndex}
+									sshHost={workspace.sshHost}
+									sshUsername={workspace.sshUsername}
 								/>
 							))}
 						</div>

@@ -32,8 +32,8 @@ const SAFE_ID = z
 	);
 
 /**
- * Terminal router using daemon-backed terminal runtime
- * Sessions are keyed by paneId and linked to workspaces for cwd resolution
+ * Terminal router using workspace-selected terminal runtimes.
+ * Sessions are keyed by paneId and linked to workspaces for runtime + cwd resolution.
  *
  * Environment variables set for terminal sessions:
  * - PATH: Prepends ~/.superset/bin so wrapper scripts intercept agent commands
@@ -47,11 +47,15 @@ const SAFE_ID = z
  */
 export const createTerminalRouter = () => {
 	const registry = getWorkspaceRuntimeRegistry();
-	const terminal = registry.getDefault().terminal;
+	const defaultTerminal = registry.getDefault().terminal;
+	const getTerminalForWorkspace = (workspaceId?: string) => {
+		if (!workspaceId) return defaultTerminal;
+		return registry.getForWorkspaceId(workspaceId).terminal;
+	};
 	if (DEBUG_TERMINAL) {
 		console.log(
 			"[Terminal Router] Using terminal runtime, capabilities:",
-			terminal.capabilities,
+			defaultTerminal.capabilities,
 		);
 	}
 
@@ -98,7 +102,10 @@ export const createTerminalRouter = () => {
 				if (workspace?.type === "worktree") {
 					assertWorkspaceUsable(workspaceId, workspacePath);
 				}
-				const cwd = resolveCwd(cwdOverride, workspacePath);
+				const cwd =
+					workspace?.type === "remote"
+						? (cwdOverride ?? workspacePath ?? undefined)
+						: resolveCwd(cwdOverride, workspacePath);
 
 				if (DEBUG_TERMINAL) {
 					console.log("[Terminal Router] createOrAttach called:", {
@@ -125,6 +132,7 @@ export const createTerminalRouter = () => {
 				});
 
 				try {
+					const terminal = getTerminalForWorkspace(workspaceId);
 					const result = await terminal.createOrAttach({
 						paneId,
 						tabId,
@@ -199,10 +207,12 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
+					workspaceId: z.string().optional(),
 					data: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForWorkspace(input.workspaceId);
 				try {
 					terminal.write(input);
 				} catch (error) {
@@ -225,19 +235,21 @@ export const createTerminalRouter = () => {
 		ackColdRestore: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {
-				terminal.ackColdRestore(input.paneId);
+				defaultTerminal.ackColdRestore(input.paneId);
 			}),
 
 		resize: publicProcedure
 			.input(
 				z.object({
 					paneId: z.string(),
+					workspaceId: z.string().optional(),
 					cols: z.number(),
 					rows: z.number(),
 					seq: z.number().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForWorkspace(input.workspaceId);
 				terminal.resize(input);
 			}),
 
@@ -245,10 +257,12 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
+					workspaceId: z.string().optional(),
 					signal: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForWorkspace(input.workspaceId);
 				terminal.signal(input);
 			}),
 
@@ -256,9 +270,11 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
+					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForWorkspace(input.workspaceId);
 				await terminal.kill(input);
 			}),
 
@@ -266,9 +282,11 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
+					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForWorkspace(input.workspaceId);
 				terminal.detach(input);
 			}),
 
@@ -276,20 +294,22 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
+					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForWorkspace(input.workspaceId);
 				await terminal.clearScrollback(input);
 			}),
 
 		listDaemonSessions: publicProcedure.query(async () => {
-			const { sessions } = await terminal.management.listSessions();
+			const { sessions } = await defaultTerminal.management.listSessions();
 			return { sessions };
 		}),
 
 		killAllDaemonSessions: publicProcedure.mutation(async () => {
 			const client = getTerminalHostClient();
-			const before = await terminal.management.listSessions();
+			const before = await defaultTerminal.management.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
 			console.log(
 				"[killAllDaemonSessions] Before kill:",
@@ -300,7 +320,7 @@ export const createTerminalRouter = () => {
 
 			if (beforeIds.length > 0) {
 				const results = await Promise.allSettled(
-					beforeIds.map((paneId) => terminal.kill({ paneId })),
+					beforeIds.map((paneId) => defaultTerminal.kill({ paneId })),
 				);
 				for (const [index, result] of results.entries()) {
 					if (result.status === "rejected") {
@@ -354,7 +374,7 @@ export const createTerminalRouter = () => {
 		killDaemonSessionsForWorkspace: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				const { sessions } = await terminal.management.listSessions();
+				const { sessions } = await defaultTerminal.management.listSessions();
 				const toKill = sessions.filter(
 					(session) => session.workspaceId === input.workspaceId,
 				);
@@ -362,7 +382,7 @@ export const createTerminalRouter = () => {
 				if (toKill.length > 0) {
 					const paneIds = toKill.map((session) => session.sessionId);
 					const results = await Promise.allSettled(
-						paneIds.map((paneId) => terminal.kill({ paneId })),
+						paneIds.map((paneId) => defaultTerminal.kill({ paneId })),
 					);
 					for (const [index, result] of results.entries()) {
 						if (result.status === "rejected") {
@@ -383,7 +403,7 @@ export const createTerminalRouter = () => {
 			}),
 
 		clearTerminalHistory: publicProcedure.mutation(async () => {
-			await terminal.management.resetHistoryPersistence();
+			await defaultTerminal.management.resetHistoryPersistence();
 			return { success: true };
 		}),
 
@@ -403,12 +423,14 @@ export const createTerminalRouter = () => {
 					);
 
 					for (const session of sessions) {
-						void terminal.kill({ paneId: session.sessionId }).catch((error) => {
-							console.warn(
-								"[restartDaemon] Failed to mark session killed:",
-								error,
-							);
-						});
+						void defaultTerminal
+							.kill({ paneId: session.sessionId })
+							.catch((error) => {
+								console.warn(
+									"[restartDaemon] Failed to mark session killed:",
+									error,
+								);
+							});
 					}
 
 					await client.shutdownIfRunning({ killSessions: true });
@@ -431,8 +453,14 @@ export const createTerminalRouter = () => {
 		}),
 
 		getSession: publicProcedure
-			.input(z.string())
-			.query(async ({ input: paneId }) => {
+			.input(
+				z.object({
+					paneId: z.string(),
+					workspaceId: z.string().optional(),
+				}),
+			)
+			.query(async ({ input: { paneId, workspaceId } }) => {
+				const terminal = getTerminalForWorkspace(workspaceId);
 				return terminal.getSession(paneId);
 			}),
 
@@ -448,6 +476,10 @@ export const createTerminalRouter = () => {
 					return null;
 				}
 
+				if (workspace.type === "remote") {
+					return workspace.remotePath ?? null;
+				}
+
 				if (!workspace.worktreeId) {
 					return null;
 				}
@@ -461,8 +493,14 @@ export const createTerminalRouter = () => {
 			}),
 
 		stream: publicProcedure
-			.input(z.string())
-			.subscription(({ input: paneId }) => {
+			.input(
+				z.object({
+					paneId: z.string(),
+					workspaceId: z.string().optional(),
+				}),
+			)
+			.subscription(({ input: { paneId, workspaceId } }) => {
+				const terminal = getTerminalForWorkspace(workspaceId);
 				return observable<
 					| { type: "data"; data: string }
 					| {
@@ -526,6 +564,67 @@ export const createTerminalRouter = () => {
 						terminal.off(`error:${paneId}`, onError);
 					};
 				});
+			}),
+
+		/**
+		 * Upload a clipboard image to a remote workspace for TUI app consumption.
+		 * The image is stored on the remote host and made available through
+		 * clipboard proxy scripts (xclip, pngpaste, etc.) in ~/.superset/bin/.
+		 */
+		uploadClipboardImage: publicProcedure
+			.input(
+				z.object({
+					workspaceId: SAFE_ID,
+					/** Base64-encoded image data */
+					imageData: z.string(),
+					/** MIME type: image/png, image/jpeg, etc. */
+					mimeType: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const { workspaceId, imageData, mimeType } = input;
+
+				const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+				const estimatedSize = imageData.length * 0.75;
+				if (estimatedSize > MAX_IMAGE_SIZE) {
+					throw new TRPCError({
+						code: "PAYLOAD_TOO_LARGE",
+						message: "Image too large (max 10 MB)",
+					});
+				}
+
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, workspaceId))
+					.get();
+
+				if (!workspace || workspace.type !== "remote") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Clipboard image upload is only supported for remote workspaces",
+					});
+				}
+
+				const runtime = registry.getForWorkspaceId(workspaceId);
+
+				if (!("clipboard" in runtime)) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Remote runtime does not support clipboard operations",
+					});
+				}
+
+				const remoteRuntime =
+					runtime as import("main/lib/workspace-runtime/remote-ssh").RemoteSSHWorkspaceRuntime;
+				const imageBuffer = Buffer.from(imageData, "base64");
+				const remotePath = await remoteRuntime.clipboard.uploadImage(
+					imageBuffer,
+					mimeType,
+				);
+
+				return { remotePath };
 			}),
 	});
 };

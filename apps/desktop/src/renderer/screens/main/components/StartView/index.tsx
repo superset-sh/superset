@@ -1,14 +1,17 @@
 import { Button } from "@superset/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
+import { CiSettings } from "react-icons/ci";
+import { LuFolderGit, LuFolderOpen, LuServer, LuX } from "react-icons/lu";
 import {
 	processOpenNewResults,
 	useOpenFromPath,
 	useOpenNew,
 } from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
 
@@ -27,6 +30,7 @@ export function StartView() {
 	>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
+	const openWorkspaceModal = useOpenNewWorkspaceModal();
 
 	const isLoading = openNew.isPending || openFromPath.isPending;
 
@@ -196,6 +200,26 @@ export function StartView() {
 
 	return (
 		<div className="flex flex-col h-full w-full relative overflow-hidden bg-background">
+			{/* Top bar with settings button */}
+			<div className="drag flex items-center justify-end h-10 px-3 shrink-0">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={() => navigate({ to: "/settings/account" })}
+							aria-label="Open settings"
+							className="no-drag"
+						>
+							<CiSettings className="size-5" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" sideOffset={8}>
+						Settings
+					</TooltipContent>
+				</Tooltip>
+			</div>
+
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external files */}
 			<div
 				className="relative flex flex-1 items-center justify-center"
@@ -266,6 +290,16 @@ export function StartView() {
 								className="text-sm"
 							>
 								Clone Repository
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => openWorkspaceModal()}
+								disabled={isLoading}
+								className="text-sm"
+							>
+								<LuServer className="size-3.5" />
+								SSH Remote
 							</Button>
 						</div>
 					</div>

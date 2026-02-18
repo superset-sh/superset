@@ -18,6 +18,7 @@ export {
 	getWorkspaceRuntimeRegistry,
 	resetWorkspaceRuntimeRegistry,
 } from "./registry";
+export { RemoteSSHWorkspaceRuntime } from "./remote-ssh";
 export type {
 	TerminalCapabilities,
 	TerminalEventSource,

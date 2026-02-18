@@ -71,11 +71,36 @@ export const terminalPresetSchema = z.object({
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
 
 /**
+ * Project type
+ */
+export const projectTypeSchema = z.enum(["local", "remote"]);
+
+export type ProjectType = z.infer<typeof projectTypeSchema>;
+
+/**
  * Workspace type
  */
-export const workspaceTypeSchema = z.enum(["worktree", "branch"]);
+export const workspaceTypeSchema = z.enum(["worktree", "branch", "remote"]);
 
 export type WorkspaceType = z.infer<typeof workspaceTypeSchema>;
+
+/**
+ * SSH connection auth methods
+ */
+export const sshAuthMethodSchema = z.enum(["key-file", "ssh-agent"]);
+
+export type SSHAuthMethod = z.infer<typeof sshAuthMethodSchema>;
+
+/**
+ * SSH connection status
+ */
+export const sshConnectionStatusSchema = z.object({
+	status: z.enum(["untested", "connected", "failed"]),
+	lastTestedAt: z.number().optional(),
+	error: z.string().optional(),
+});
+
+export type SSHConnectionStatus = z.infer<typeof sshConnectionStatusSchema>;
 
 /**
  * External apps that can be opened

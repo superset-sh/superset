@@ -17,6 +17,7 @@ export type SettingsSection =
 	| "billing"
 	| "devices"
 	| "apikeys"
+	| "ssh-connections"
 	| "project";
 
 interface SettingsState {

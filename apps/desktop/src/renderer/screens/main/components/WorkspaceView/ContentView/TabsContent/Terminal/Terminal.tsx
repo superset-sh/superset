@@ -24,6 +24,7 @@ import {
 	useTerminalRestore,
 	useTerminalStream,
 } from "./hooks";
+import { useClipboardImagePaste } from "./hooks/useClipboardImagePaste";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type {
@@ -99,6 +100,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			clearScrollback: clearScrollbackRef,
 		},
 	} = useTerminalConnection({ workspaceId });
+
+	// Remote clipboard image paste support
+	const isRemoteWorkspace = workspaceData?.type === "remote";
+	const { onImagePasteRef } = useClipboardImagePaste({
+		workspaceId,
+		isRemote: isRemoteWorkspace ?? false,
+		onWrite: (data) => writeRef.current({ paneId, data }),
+	});
 
 	// Terminal CWD management
 	const { updateCwdFromData } = useTerminalCwd({
@@ -245,10 +254,13 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	handleStreamErrorRef.current = handleStreamError;
 
 	// Stream subscription
-	electronTrpc.terminal.stream.useSubscription(paneId, {
-		onData: handleStreamData,
-		enabled: true,
-	});
+	electronTrpc.terminal.stream.useSubscription(
+		{ paneId, workspaceId },
+		{
+			onData: handleStreamData,
+			enabled: true,
+		},
+	);
 
 	const { isSearchOpen, setIsSearchOpen } = useTerminalHotkeys({
 		isFocused,
@@ -307,6 +319,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		unregisterGetSelectionCallbackRef,
 		registerPasteCallbackRef,
 		unregisterPasteCallbackRef,
+		onImagePasteRef,
 	});
 
 	useEffect(() => {

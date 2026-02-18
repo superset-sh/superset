@@ -309,6 +309,9 @@ export interface PasteHandlerOptions {
 	onWrite?: (data: string) => void;
 	/** Whether bracketed paste mode is enabled for the current terminal */
 	isBracketedPasteEnabled?: () => boolean;
+	/** Callback when an image is pasted (clipboard has no text but has image data).
+	 *  Should return true if the image was handled. */
+	onImagePaste?: (file: File) => Promise<boolean>;
 }
 
 /**
@@ -371,6 +374,26 @@ export function setupPasteHandler(
 
 	const handlePaste = (event: ClipboardEvent) => {
 		const text = event.clipboardData?.getData("text/plain");
+
+		// When clipboard has no text but contains an image, delegate to the
+		// image handler (used for remote SSH terminals where the TUI app
+		// cannot access the local clipboard directly).
+		if (!text && options.onImagePaste && event.clipboardData) {
+			const items = Array.from(event.clipboardData.items);
+			const imageItem = items.find(
+				(item) => item.kind === "file" && item.type.startsWith("image/"),
+			);
+			if (imageItem) {
+				const file = imageItem.getAsFile();
+				if (file) {
+					event.preventDefault();
+					event.stopImmediatePropagation();
+					void options.onImagePaste(file);
+					return;
+				}
+			}
+		}
+
 		if (!text) return;
 
 		event.preventDefault();

@@ -249,7 +249,7 @@ export const useTabsStore = create<TabsStore>()(
 						// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
 						const pane = state.panes[paneId];
 						if (pane?.type === "terminal") {
-							killTerminalForPane(paneId);
+							killTerminalForPane(paneId, tabToRemove.workspaceId);
 						}
 					}
 
@@ -422,7 +422,7 @@ export const useTabsStore = create<TabsStore>()(
 						// in layouts - we must not delete those when they're "removed"
 						if (pane && pane.tabId === tabId) {
 							if (pane.type === "terminal") {
-								killTerminalForPane(paneId);
+								killTerminalForPane(paneId, tab.workspaceId);
 							}
 							delete newPanes[paneId];
 						}
@@ -780,7 +780,7 @@ export const useTabsStore = create<TabsStore>()(
 					// Kill terminal sessions for terminal panes
 					for (const id of paneIdsToRemove) {
 						if (state.panes[id]?.type === "terminal") {
-							killTerminalForPane(id);
+							killTerminalForPane(id, tab.workspaceId);
 						}
 					}
 

@@ -132,6 +132,8 @@ export interface UseTerminalLifecycleOptions {
 		(paneId: string, callback: (text: string) => void) => void
 	>;
 	unregisterPasteCallbackRef: MutableRefObject<UnregisterCallback>;
+	/** Handler for clipboard image paste in remote terminals */
+	onImagePasteRef?: MutableRefObject<(file: File) => Promise<boolean>>;
 }
 
 export interface UseTerminalLifecycleReturn {
@@ -188,6 +190,7 @@ export function useTerminalLifecycle({
 	unregisterGetSelectionCallbackRef,
 	registerPasteCallbackRef,
 	unregisterPasteCallbackRef,
+	onImagePasteRef,
 }: UseTerminalLifecycleOptions): UseTerminalLifecycleReturn {
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const restartTerminalRef = useRef<() => void>(() => {});
@@ -534,6 +537,9 @@ export function useTerminalLifecycle({
 			},
 			onWrite: handleWrite,
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
+			onImagePaste: onImagePasteRef
+				? (file) => onImagePasteRef.current(file)
+				: undefined,
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
 
@@ -592,7 +598,7 @@ export function useTerminalLifecycle({
 
 			if (isPaneDestroyedInStore()) {
 				// Pane was explicitly destroyed, so kill the session.
-				killTerminalForPane(paneId);
+				killTerminalForPane(paneId, workspaceId);
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
 			} else {

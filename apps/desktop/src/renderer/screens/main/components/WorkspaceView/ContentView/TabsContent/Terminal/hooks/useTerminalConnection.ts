@@ -1,6 +1,12 @@
 import { useRef, useState } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type {
+	TerminalClearScrollbackMutate,
+	TerminalDetachMutate,
+	TerminalResizeMutate,
+	TerminalWriteMutate,
+} from "../types";
 
 export interface UseTerminalConnectionOptions {
 	workspaceId: string;
@@ -37,17 +43,33 @@ export function useTerminalConnection({
 
 	// Stable refs to mutation functions - these don't change identity on re-render
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
-	const writeRef = useRef(writeMutation.mutate);
-	const resizeRef = useRef(resizeMutation.mutate);
-	const detachRef = useRef(detachMutation.mutate);
-	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
+	const writeRef = useRef<TerminalWriteMutate>((input) => {
+		writeMutation.mutate({ ...input, workspaceId });
+	});
+	const resizeRef = useRef<TerminalResizeMutate>((input) => {
+		resizeMutation.mutate({ ...input, workspaceId });
+	});
+	const detachRef = useRef<TerminalDetachMutate>((input) => {
+		detachMutation.mutate({ ...input, workspaceId });
+	});
+	const clearScrollbackRef = useRef<TerminalClearScrollbackMutate>((input) => {
+		clearScrollbackMutation.mutate({ ...input, workspaceId });
+	});
 
 	// Keep refs up to date
 	createOrAttachRef.current = createOrAttachMutation.mutate;
-	writeRef.current = writeMutation.mutate;
-	resizeRef.current = resizeMutation.mutate;
-	detachRef.current = detachMutation.mutate;
-	clearScrollbackRef.current = clearScrollbackMutation.mutate;
+	writeRef.current = (input) => {
+		writeMutation.mutate({ ...input, workspaceId });
+	};
+	resizeRef.current = (input) => {
+		resizeMutation.mutate({ ...input, workspaceId });
+	};
+	detachRef.current = (input) => {
+		detachMutation.mutate({ ...input, workspaceId });
+	};
+	clearScrollbackRef.current = (input) => {
+		clearScrollbackMutation.mutate({ ...input, workspaceId });
+	};
 
 	return {
 		// Connection error state

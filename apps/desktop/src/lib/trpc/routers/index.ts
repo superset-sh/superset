@@ -18,6 +18,7 @@ import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
+import { createSshConnectionsRouter } from "./ssh-connections";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
@@ -44,6 +45,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		hotkeys: createHotkeysRouter(getWindow),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
+		sshConnections: createSshConnectionsRouter(),
 		config: createConfigRouter(),
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(),

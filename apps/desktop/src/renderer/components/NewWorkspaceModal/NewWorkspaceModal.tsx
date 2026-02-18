@@ -25,7 +25,15 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -36,7 +44,7 @@ import {
 	HiChevronUpDown,
 	HiOutlinePencil,
 } from "react-icons/hi2";
-import { LuFolderOpen } from "react-icons/lu";
+import { LuArrowLeft, LuFolderOpen, LuLoader, LuServer } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import {
@@ -44,6 +52,7 @@ import {
 	useOpenNew,
 } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -60,7 +69,7 @@ function generateSlugFromTitle(title: string): string {
 	return sanitizeSegment(title);
 }
 
-type Mode = "existing" | "new" | "cloud";
+type Mode = "existing" | "new" | "cloud" | "remote";
 
 export function NewWorkspaceModal() {
 	const navigate = useNavigate();
@@ -78,6 +87,7 @@ export function NewWorkspaceModal() {
 	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
+	const [showSshForm, setShowSshForm] = useState(false);
 	const titleInputRef = useRef<HTMLInputElement>(null);
 
 	const { data: recentProjects = [] } =
@@ -140,6 +150,13 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
+	// Auto-select "remote" mode when a remote project is selected
+	useEffect(() => {
+		if (project?.projectType === "remote") {
+			setMode("remote");
+		}
+	}, [project?.projectType]);
+
 	const branchSlug = branchNameEdited
 		? sanitizeBranchName(branchName)
 		: generateSlugFromTitle(title);
@@ -160,6 +177,7 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 		setBranchSearch("");
 		setShowAdvanced(false);
+		setShowSshForm(false);
 	};
 
 	useEffect(() => {
@@ -313,6 +331,15 @@ export function NewWorkspaceModal() {
 								<LuFolderOpen className="size-4" />
 								Import repo
 							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() => {
+									setSelectedProjectId(null);
+									setShowSshForm(true);
+								}}
+							>
+								<LuServer className="size-4" />
+								Add SSH Remote
+							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
@@ -321,28 +348,32 @@ export function NewWorkspaceModal() {
 					<>
 						<div className="px-4 pb-3">
 							<div className="flex p-0.5 bg-muted rounded-md">
-								<button
-									type="button"
-									onClick={() => setMode("new")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "new"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									New
-								</button>
-								<button
-									type="button"
-									onClick={() => setMode("existing")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "existing"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									Import
-								</button>
+								{project?.projectType !== "remote" && (
+									<>
+										<button
+											type="button"
+											onClick={() => setMode("new")}
+											className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
+												mode === "new"
+													? "bg-background text-foreground shadow-sm"
+													: "text-muted-foreground hover:text-foreground"
+											}`}
+										>
+											New
+										</button>
+										<button
+											type="button"
+											onClick={() => setMode("existing")}
+											className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
+												mode === "existing"
+													? "bg-background text-foreground shadow-sm"
+													: "text-muted-foreground hover:text-foreground"
+											}`}
+										>
+											Import
+										</button>
+									</>
+								)}
 								<button
 									type="button"
 									onClick={() => setMode("cloud")}
@@ -353,6 +384,17 @@ export function NewWorkspaceModal() {
 									}`}
 								>
 									Cloud
+								</button>
+								<button
+									type="button"
+									onClick={() => setMode("remote")}
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
+										mode === "remote"
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground"
+									}`}
+								>
+									Remote
 								</button>
 							</div>
 						</div>
@@ -543,18 +585,279 @@ export function NewWorkspaceModal() {
 									<p className="text-xs text-muted-foreground">Coming soon</p>
 								</div>
 							)}
+							{mode === "remote" && (
+								<RemoteWorkspaceForm
+									projectId={selectedProjectId}
+									onSuccess={handleClose}
+								/>
+							)}
 						</div>
 					</>
 				)}
 
 				{!selectedProjectId && (
 					<div className="px-4 pb-4 pt-2">
-						<div className="text-center text-sm text-muted-foreground py-8">
-							Select a project to get started
-						</div>
+						{showSshForm ? (
+							<SshRemoteProjectForm
+								onSuccess={handleClose}
+								onBack={() => setShowSshForm(false)}
+							/>
+						) : (
+							<div className="text-center text-sm text-muted-foreground py-8">
+								Select a project to get started
+							</div>
+						)}
 					</div>
 				)}
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+function RemoteWorkspaceForm({
+	projectId,
+	onSuccess,
+}: {
+	projectId: string;
+	onSuccess: () => void;
+}) {
+	const navigate = useNavigate();
+	const [sshConnectionId, setSshConnectionId] = useState<string>("");
+	const [remotePath, setRemotePath] = useState("");
+	const [workspaceName, setWorkspaceName] = useState("");
+
+	const { data: connections = [] } =
+		electronTrpc.sshConnections.list.useQuery();
+
+	const createRemote =
+		electronTrpc.workspaces.createRemoteWorkspace.useMutation({
+			onSuccess: (data) => {
+				toast.success("Remote workspace created");
+				onSuccess();
+				navigateToWorkspace(data.workspace.id, navigate, { replace: true });
+			},
+			onError: (err) => {
+				toast.error(err.message);
+			},
+		});
+
+	const handleCreate = () => {
+		if (!sshConnectionId || !remotePath.trim()) return;
+		createRemote.mutate({
+			projectId,
+			sshConnectionId,
+			remotePath: remotePath.trim(),
+			name: workspaceName.trim() || undefined,
+		});
+	};
+
+	if (connections.length === 0) {
+		return (
+			<div className="flex flex-col items-center justify-center py-8 text-center">
+				<LuServer className="size-8 text-muted-foreground mb-3" />
+				<p className="text-sm font-medium">No SSH connections</p>
+				<p className="text-xs text-muted-foreground mt-1 mb-3">
+					Configure an SSH connection first.
+				</p>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => {
+						onSuccess();
+						navigate({ to: "/settings/ssh-connections" });
+					}}
+				>
+					Go to SSH Settings
+				</Button>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-3">
+			<div className="space-y-1.5">
+				<Label className="text-xs text-muted-foreground">SSH Connection</Label>
+				<Select value={sshConnectionId} onValueChange={setSshConnectionId}>
+					<SelectTrigger className="h-9 text-sm">
+						<SelectValue placeholder="Select connection..." />
+					</SelectTrigger>
+					<SelectContent>
+						{connections.map((conn) => (
+							<SelectItem key={conn.id} value={conn.id}>
+								{conn.name} ({conn.username}@{conn.host})
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
+
+			<div className="space-y-1.5">
+				<Label className="text-xs text-muted-foreground">
+					Remote Repository Path
+				</Label>
+				<Input
+					className="h-9 text-sm font-mono"
+					placeholder="/home/user/project"
+					value={remotePath}
+					onChange={(e) => setRemotePath(e.target.value)}
+				/>
+			</div>
+
+			<div className="space-y-1.5">
+				<Label className="text-xs text-muted-foreground">
+					Workspace Name (optional)
+				</Label>
+				<Input
+					className="h-9 text-sm"
+					placeholder="Auto-generated from path"
+					value={workspaceName}
+					onChange={(e) => setWorkspaceName(e.target.value)}
+				/>
+			</div>
+
+			<Button
+				className="w-full h-8 text-sm"
+				onClick={handleCreate}
+				disabled={
+					!sshConnectionId || !remotePath.trim() || createRemote.isPending
+				}
+			>
+				{createRemote.isPending && (
+					<LuLoader className="size-4 animate-spin mr-1.5" />
+				)}
+				Create Remote Workspace
+			</Button>
+		</div>
+	);
+}
+
+function SshRemoteProjectForm({
+	onSuccess,
+	onBack,
+}: {
+	onSuccess: () => void;
+	onBack: () => void;
+}) {
+	const navigate = useNavigate();
+	const [sshConnectionId, setSshConnectionId] = useState<string>("");
+	const [remotePath, setRemotePath] = useState("");
+	const [projectName, setProjectName] = useState("");
+
+	const { data: connections = [] } =
+		electronTrpc.sshConnections.list.useQuery();
+	const utils = electronTrpc.useUtils();
+
+	const createRemote = electronTrpc.projects.createRemote.useMutation({
+		onSuccess: (data) => {
+			toast.success("Remote project created");
+			utils.projects.getRecents.invalidate();
+			utils.workspaces.getAllGrouped.invalidate();
+			onSuccess();
+			navigateToWorkspace(data.workspace.id, navigate, { replace: true });
+		},
+		onError: (err) => {
+			toast.error(err.message);
+		},
+	});
+
+	const handleCreate = () => {
+		if (!sshConnectionId || !remotePath.trim()) return;
+		createRemote.mutate({
+			sshConnectionId,
+			remotePath: remotePath.trim(),
+			name: projectName.trim() || undefined,
+		});
+	};
+
+	if (connections.length === 0) {
+		return (
+			<div className="flex flex-col items-center justify-center py-8 text-center">
+				<LuServer className="size-8 text-muted-foreground mb-3" />
+				<p className="text-sm font-medium">No SSH connections</p>
+				<p className="text-xs text-muted-foreground mt-1 mb-3">
+					Configure an SSH connection first.
+				</p>
+				<div className="flex gap-2">
+					<Button variant="outline" size="sm" onClick={onBack}>
+						<LuArrowLeft className="size-3.5" />
+						Back
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => {
+							onSuccess();
+							navigate({ to: "/settings/ssh-connections" });
+						}}
+					>
+						Go to SSH Settings
+					</Button>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-3">
+			<button
+				type="button"
+				onClick={onBack}
+				className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+			>
+				<LuArrowLeft className="size-3" />
+				Back to project selection
+			</button>
+
+			<div className="space-y-1.5">
+				<Label className="text-xs text-muted-foreground">SSH Connection</Label>
+				<Select value={sshConnectionId} onValueChange={setSshConnectionId}>
+					<SelectTrigger className="h-9 text-sm">
+						<SelectValue placeholder="Select connection..." />
+					</SelectTrigger>
+					<SelectContent>
+						{connections.map((conn) => (
+							<SelectItem key={conn.id} value={conn.id}>
+								{conn.name} ({conn.username}@{conn.host})
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
+
+			<div className="space-y-1.5">
+				<Label className="text-xs text-muted-foreground">Remote Path</Label>
+				<Input
+					className="h-9 text-sm font-mono"
+					placeholder="/home/user/project"
+					value={remotePath}
+					onChange={(e) => setRemotePath(e.target.value)}
+				/>
+			</div>
+
+			<div className="space-y-1.5">
+				<Label className="text-xs text-muted-foreground">
+					Project Name (optional)
+				</Label>
+				<Input
+					className="h-9 text-sm"
+					placeholder="Auto-generated from path"
+					value={projectName}
+					onChange={(e) => setProjectName(e.target.value)}
+				/>
+			</div>
+
+			<Button
+				className="w-full h-8 text-sm"
+				onClick={handleCreate}
+				disabled={
+					!sshConnectionId || !remotePath.trim() || createRemote.isPending
+				}
+			>
+				{createRemote.isPending && (
+					<LuLoader className="size-4 animate-spin mr-1.5" />
+				)}
+				Connect
+			</Button>
+		</div>
 	);
 }

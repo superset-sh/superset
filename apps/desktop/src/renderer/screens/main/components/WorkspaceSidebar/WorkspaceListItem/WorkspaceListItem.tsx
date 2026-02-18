@@ -67,11 +67,13 @@ interface WorkspaceListItemProps {
 	worktreePath: string;
 	name: string;
 	branch: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "remote";
 	isUnread?: boolean;
 	index: number;
 	shortcutIndex?: number;
 	isCollapsed?: boolean;
+	sshHost?: string | null;
+	sshUsername?: string | null;
 }
 
 export function WorkspaceListItem({
@@ -85,8 +87,11 @@ export function WorkspaceListItem({
 	index,
 	shortcutIndex,
 	isCollapsed = false,
+	sshHost,
+	sshUsername,
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const isRemoteWorkspace = type === "remote";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
@@ -267,7 +272,8 @@ export function WorkspaceListItem({
 			? { additions: pr.additions, deletions: pr.deletions }
 			: null);
 
-	const showBranchSubtitle = isBranchWorkspace || (!!name && name !== branch);
+	const showBranchSubtitle =
+		isBranchWorkspace || isRemoteWorkspace || (!!name && name !== branch);
 
 	if (isCollapsed) {
 		return (
@@ -332,6 +338,7 @@ export function WorkspaceListItem({
 					>
 						<WorkspaceIcon
 							isBranchWorkspace={isBranchWorkspace}
+							isRemoteWorkspace={isRemoteWorkspace}
 							isActive={isActive}
 							isUnread={isUnread}
 							workspaceStatus={workspaceStatus}
@@ -340,7 +347,16 @@ export function WorkspaceListItem({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="right" sideOffset={8}>
-					{isBranchWorkspace ? (
+					{isRemoteWorkspace ? (
+						<>
+							<p className="text-xs font-medium">Remote workspace</p>
+							<p className="text-xs text-muted-foreground">
+								{sshUsername && sshHost
+									? `${sshUsername}@${sshHost}`
+									: "Connected via SSH"}
+							</p>
+						</>
+					) : isBranchWorkspace ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>
 							<p className="text-xs text-muted-foreground">
@@ -385,7 +401,11 @@ export function WorkspaceListItem({
 										: "text-foreground/80",
 								)}
 							>
-								{isBranchWorkspace ? "local" : name || branch}
+								{isRemoteWorkspace
+									? name || worktreePath.split("/").pop() || "remote"
+									: isBranchWorkspace
+										? "local"
+										: name || branch}
 							</span>
 
 							{shortcutIndex !== undefined &&
@@ -447,7 +467,9 @@ export function WorkspaceListItem({
 							<div className="flex items-center gap-2 text-[11px] w-full">
 								{showBranchSubtitle && (
 									<span className="text-muted-foreground/60 truncate font-mono leading-tight">
-										{branch}
+										{isRemoteWorkspace && sshUsername && sshHost
+											? `${sshUsername}@${sshHost}`
+											: branch}
 									</span>
 								)}
 								{pr && (
@@ -484,7 +506,16 @@ export function WorkspaceListItem({
 		</ContextMenuItem>
 	);
 
-	const commonContextMenuItems = (
+	const commonContextMenuItems = isRemoteWorkspace ? (
+		<>
+			<ContextMenuItem onSelect={handleCopyPath}>
+				<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Copy Remote Path
+			</ContextMenuItem>
+			<ContextMenuSeparator />
+			{unreadMenuItem}
+		</>
+	) : (
 		<>
 			<ContextMenuItem onSelect={handleOpenInFinder}>
 				<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />

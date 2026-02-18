@@ -24,7 +24,7 @@ interface CollapsedWorkspaceItemProps {
 	id: string;
 	name: string;
 	branch: string;
-	type: "worktree" | "branch";
+	type: "worktree" | "branch" | "remote";
 	isActive: boolean;
 	isUnread: boolean;
 	workspaceStatus: ActivePaneStatus | null;
@@ -35,6 +35,8 @@ interface CollapsedWorkspaceItemProps {
 	onClick: () => void;
 	onDeleteClick: () => void;
 	onCopyPath: () => void;
+	sshHost?: string | null;
+	sshUsername?: string | null;
 }
 
 export function CollapsedWorkspaceItem({
@@ -52,8 +54,11 @@ export function CollapsedWorkspaceItem({
 	onClick,
 	onDeleteClick,
 	onCopyPath,
+	sshHost,
+	sshUsername,
 }: CollapsedWorkspaceItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const isRemoteWorkspace = type === "remote";
 
 	const collapsedButton = (
 		<button
@@ -71,6 +76,7 @@ export function CollapsedWorkspaceItem({
 		>
 			<WorkspaceIcon
 				isBranchWorkspace={isBranchWorkspace}
+				isRemoteWorkspace={isRemoteWorkspace}
 				isActive={isActive}
 				isUnread={isUnread}
 				workspaceStatus={workspaceStatus}
@@ -78,6 +84,20 @@ export function CollapsedWorkspaceItem({
 			/>
 		</button>
 	);
+
+	if (isRemoteWorkspace) {
+		return (
+			<Tooltip delayDuration={300}>
+				<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
+				<TooltipContent side="right" className="flex flex-col gap-0.5">
+					<span className="font-medium">{name || "remote"}</span>
+					<span className="text-xs text-muted-foreground font-mono">
+						{sshUsername && sshHost ? `${sshUsername}@${sshHost}` : "SSH"}
+					</span>
+				</TooltipContent>
+			</Tooltip>
+		);
+	}
 
 	if (isBranchWorkspace) {
 		return (

@@ -7,6 +7,9 @@ import type {
 	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
+	ProjectType,
+	SSHAuthMethod,
+	SSHConnectionStatus,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -41,6 +44,10 @@ export const projects = sqliteTable(
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
+		projectType: text("project_type")
+			.notNull()
+			.default("local")
+			.$type<ProjectType>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -82,7 +89,38 @@ export type InsertWorktree = typeof worktrees.$inferInsert;
 export type SelectWorktree = typeof worktrees.$inferSelect;
 
 /**
- * Workspaces table - represents an active workspace (worktree or branch-based)
+ * SSH Connections table - stores SSH host configurations for remote workspaces
+ */
+export const sshConnections = sqliteTable(
+	"ssh_connections",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		name: text("name").notNull(),
+		host: text("host").notNull(),
+		port: integer("port").notNull().default(22),
+		username: text("username").notNull(),
+		authMethod: text("auth_method").notNull().$type<SSHAuthMethod>(),
+		privateKeyPath: text("private_key_path"),
+		connectionStatus: text("connection_status", {
+			mode: "json",
+		}).$type<SSHConnectionStatus>(),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [index("ssh_connections_name_idx").on(table.name)],
+);
+
+export type InsertSSHConnection = typeof sshConnections.$inferInsert;
+export type SelectSSHConnection = typeof sshConnections.$inferSelect;
+
+/**
+ * Workspaces table - represents an active workspace (worktree, branch-based, or remote)
  */
 export const workspaces = sqliteTable(
 	"workspaces",
@@ -96,6 +134,8 @@ export const workspaces = sqliteTable(
 		worktreeId: text("worktree_id").references(() => worktrees.id, {
 			onDelete: "cascade",
 		}), // Only set for type="worktree"
+		sshConnectionId: text("ssh_connection_id"), // Only set for type="remote"
+		remotePath: text("remote_path"), // Absolute path on remote host
 		type: text("type").notNull().$type<WorkspaceType>(),
 		branch: text("branch").notNull(), // Branch name for both types
 		name: text("name").notNull(),

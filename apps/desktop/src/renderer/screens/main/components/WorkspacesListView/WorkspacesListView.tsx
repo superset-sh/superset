@@ -139,6 +139,7 @@ export function WorkspacesListView() {
 				groupsMap.set(item.projectId, {
 					projectId: item.projectId,
 					projectName: item.projectName,
+					projectType: "local",
 					workspaces: [],
 				});
 			}

@@ -6,6 +6,7 @@ import {
 	projects,
 	type SelectProject,
 	settings,
+	sshConnections,
 	workspaces,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
@@ -26,6 +27,7 @@ import { publicProcedure, router } from "../..";
 import {
 	activateProject,
 	getBranchWorkspace,
+	getMaxWorkspaceTabOrder,
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../workspaces/utils/db-helpers";
@@ -42,6 +44,10 @@ import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
+
+function isRemoteProject(project: Project): boolean {
+	return project.projectType === "remote";
+}
 
 // Return types for openNew procedure (single project)
 type OpenNewCanceled = { canceled: true };
@@ -304,6 +310,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.get();
 					if (!project) {
 						throw new Error(`Project ${input.projectId} not found`);
+					}
+
+					if (isRemoteProject(project)) {
+						return { branches: [], defaultBranch: "main" };
 					}
 
 					const git = simpleGit(project.mainRepoPath);
@@ -890,6 +900,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					throw new Error(`Project ${input.id} not found`);
 				}
 
+				if (isRemoteProject(project)) {
+					return { success: true, defaultBranch: "main", changed: false };
+				}
+
 				const remoteDefaultBranch = await refreshDefaultBranch(
 					project.mainRepoPath,
 				);
@@ -1024,6 +1038,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					return null;
 				}
 
+				if (isRemoteProject(project)) {
+					return null;
+				}
+
 				if (project.githubOwner) {
 					console.log(
 						"[getGitHubAvatar] Using cached owner:",
@@ -1073,6 +1091,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					return null;
 				}
 
+				if (isRemoteProject(project)) {
+					return null;
+				}
+
 				const authorName = await getGitAuthorName(project.mainRepoPath);
 				if (!authorName) {
 					return null;
@@ -1098,6 +1120,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						code: "NOT_FOUND",
 						message: `Project ${input.id} not found`,
 					});
+				}
+
+				if (isRemoteProject(project)) {
+					return { iconUrl: null };
 				}
 
 				// Skip if the project already has an icon
@@ -1166,6 +1192,109 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					.run();
 
 				return { iconUrl };
+			}),
+
+		createRemote: publicProcedure
+			.input(
+				z.object({
+					sshConnectionId: z.string(),
+					remotePath: z.string().min(1),
+					name: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				// Validate SSH connection exists
+				const sshConn = localDb
+					.select()
+					.from(sshConnections)
+					.where(eq(sshConnections.id, input.sshConnectionId))
+					.get();
+				if (!sshConn) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `SSH connection ${input.sshConnectionId} not found`,
+					});
+				}
+
+				// Dedup: check for existing remote project with same path and SSH connection
+				const allRemoteProjects = localDb
+					.select()
+					.from(projects)
+					.where(
+						and(
+							eq(projects.mainRepoPath, input.remotePath),
+							eq(projects.projectType, "remote"),
+						),
+					)
+					.all();
+
+				for (const existingProject of allRemoteProjects) {
+					const existingWorkspace = localDb
+						.select()
+						.from(workspaces)
+						.where(
+							and(
+								eq(workspaces.projectId, existingProject.id),
+								eq(workspaces.type, "remote"),
+								eq(workspaces.sshConnectionId, input.sshConnectionId),
+								isNull(workspaces.deletingAt),
+							),
+						)
+						.get();
+
+					if (existingWorkspace) {
+						// Reactivate existing project + workspace
+						touchWorkspace(existingWorkspace.id);
+						setLastActiveWorkspace(existingWorkspace.id);
+						activateProject(existingProject);
+						return { project: existingProject, workspace: existingWorkspace };
+					}
+				}
+
+				// Create new remote project
+				const projectName =
+					input.name || input.remotePath.split("/").pop() || "remote-project";
+
+				const project = localDb
+					.insert(projects)
+					.values({
+						mainRepoPath: input.remotePath,
+						name: projectName,
+						color: getDefaultProjectColor(),
+						defaultBranch: "main",
+						projectType: "remote",
+					})
+					.returning()
+					.get();
+
+				// Create remote workspace
+				const maxTabOrder = getMaxWorkspaceTabOrder(project.id);
+				const workspaceName = `${sshConn.name}:${input.remotePath.split("/").pop() || "remote"}`;
+
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: project.id,
+						type: "remote",
+						branch: "remote",
+						name: workspaceName,
+						sshConnectionId: input.sshConnectionId,
+						remotePath: input.remotePath,
+						tabOrder: maxTabOrder + 1,
+					})
+					.returning()
+					.get();
+
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
+
+				track("project_created", {
+					project_id: project.id,
+					type: "remote",
+					ssh_host: sshConn.host,
+				});
+
+				return { project, workspace };
 			}),
 	});
 };

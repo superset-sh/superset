@@ -12,7 +12,7 @@ import {
 	HiOutlineSparkles,
 	HiOutlineUser,
 } from "react-icons/hi2";
-import { LuKeyboard } from "react-icons/lu";
+import { LuKeyboard, LuServer } from "react-icons/lu";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface GeneralSettingsProps {
@@ -30,7 +30,8 @@ type SettingsRoute =
 	| "/settings/integrations"
 	| "/settings/billing"
 	| "/settings/devices"
-	| "/settings/api-keys";
+	| "/settings/api-keys"
+	| "/settings/ssh-connections";
 
 const GENERAL_SECTIONS: {
 	id: SettingsRoute;
@@ -103,6 +104,12 @@ const GENERAL_SECTIONS: {
 		section: "apikeys",
 		label: "API Keys",
 		icon: <HiOutlineKey className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/ssh-connections",
+		section: "ssh-connections",
+		label: "SSH Connections",
+		icon: <LuServer className="h-4 w-4" />,
 	},
 ];
 

@@ -34,6 +34,9 @@ export const NOTIFICATION_EVENTS = {
 
 // Development/testing mock values (used when SKIP_ENV_VALIDATION is set)
 export const MOCK_ORG_ID = "mock-org-id";
+export const MOCK_USER_ID = "mock-user-id";
+export const MOCK_USER_EMAIL = "dev@localhost";
+export const MOCK_USER_NAME = "Local Dev";
 
 // Default user preference values
 export const DEFAULT_CONFIRM_ON_QUIT = true;

@@ -1,6 +1,12 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { projects, settings, workspaces, worktrees } from "@superset/local-db";
+import {
+	projects,
+	settings,
+	sshConnections,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -924,6 +930,73 @@ export const createCreateProcedures = () => {
 					localBranchName,
 					workspaceName,
 				});
+			}),
+
+		createRemoteWorkspace: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					sshConnectionId: z.string(),
+					remotePath: z.string().min(1),
+					name: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				const sshConn = localDb
+					.select()
+					.from(sshConnections)
+					.where(eq(sshConnections.id, input.sshConnectionId))
+					.get();
+				if (!sshConn) {
+					throw new Error(`SSH connection ${input.sshConnectionId} not found`);
+				}
+
+				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
+				const workspaceName =
+					input.name ||
+					`${sshConn.name}:${input.remotePath.split("/").pop() || "remote"}`;
+
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: input.projectId,
+						type: "remote",
+						branch: "remote",
+						name: workspaceName,
+						sshConnectionId: input.sshConnectionId,
+						remotePath: input.remotePath,
+						tabOrder: maxTabOrder + 1,
+					})
+					.returning()
+					.get();
+
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
+
+				track("workspace_created", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					type: "remote",
+					ssh_host: sshConn.host,
+				});
+
+				return {
+					workspace,
+					initialCommands: null,
+					worktreePath: input.remotePath,
+					projectId: project.id,
+					isInitializing: false,
+					wasExisting: false,
+				};
 			}),
 
 		importAllWorktrees: publicProcedure

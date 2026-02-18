@@ -1,4 +1,9 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import {
+	projects,
+	sshConnections,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -63,9 +68,17 @@ export const createQueryProcedures = () => {
 							.get()
 					: null;
 
+				const sshConnection = workspace.sshConnectionId
+					? localDb
+							.select()
+							.from(sshConnections)
+							.where(eq(sshConnections.id, workspace.sshConnectionId))
+							.get()
+					: null;
+
 				return {
 					...workspace,
-					type: workspace.type as "worktree" | "branch",
+					type: workspace.type as "worktree" | "branch" | "remote",
 					worktreePath: getWorkspacePath(workspace) ?? "",
 					project: project
 						? {
@@ -79,6 +92,16 @@ export const createQueryProcedures = () => {
 								branch: worktree.branch,
 								// Normalize to null to ensure consistent "incomplete init" detection in UI
 								gitStatus: worktree.gitStatus ?? null,
+							}
+						: null,
+					sshConnection: sshConnection
+						? {
+								id: sshConnection.id,
+								name: sshConnection.name,
+								host: sshConnection.host,
+								port: sshConnection.port,
+								username: sshConnection.username,
+								connectionStatus: sshConnection.connectionStatus,
 							}
 						: null,
 				};
@@ -105,6 +128,9 @@ export const createQueryProcedures = () => {
 				allWorktrees.map((wt) => [wt.id, wt.path]),
 			);
 
+			const allSshConns = localDb.select().from(sshConnections).all();
+			const sshConnectionMap = new Map(allSshConns.map((c) => [c.id, c]));
+
 			const groupsMap = new Map<
 				string,
 				{
@@ -117,13 +143,14 @@ export const createQueryProcedures = () => {
 						mainRepoPath: string;
 						hideImage: boolean;
 						iconUrl: string | null;
+						projectType: string;
 					};
 					workspaces: Array<{
 						id: string;
 						projectId: string;
 						worktreeId: string | null;
 						worktreePath: string;
-						type: "worktree" | "branch";
+						type: "worktree" | "branch" | "remote";
 						branch: string;
 						name: string;
 						tabOrder: number;
@@ -132,6 +159,10 @@ export const createQueryProcedures = () => {
 						lastOpenedAt: number;
 						isUnread: boolean;
 						isUnnamed: boolean;
+						sshConnectionId: string | null;
+						remotePath: string | null;
+						sshHost: string | null;
+						sshUsername: string | null;
 					}>;
 				}
 			>();
@@ -148,6 +179,7 @@ export const createQueryProcedures = () => {
 						mainRepoPath: project.mainRepoPath,
 						hideImage: project.hideImage ?? false,
 						iconUrl: project.iconUrl ?? null,
+						projectType: project.projectType ?? "local",
 					},
 					workspaces: [],
 				});
@@ -168,14 +200,24 @@ export const createQueryProcedures = () => {
 						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";
 					} else if (workspace.type === "branch") {
 						worktreePath = group.project.mainRepoPath;
+					} else if (workspace.type === "remote") {
+						worktreePath = workspace.remotePath ?? "";
 					}
+
+					const sshConn = workspace.sshConnectionId
+						? sshConnectionMap.get(workspace.sshConnectionId)
+						: null;
 
 					group.workspaces.push({
 						...workspace,
-						type: workspace.type as "worktree" | "branch",
+						type: workspace.type as "worktree" | "branch" | "remote",
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
 						isUnnamed: workspace.isUnnamed ?? false,
+						sshConnectionId: workspace.sshConnectionId ?? null,
+						remotePath: workspace.remotePath ?? null,
+						sshHost: sshConn?.host ?? null,
+						sshUsername: sshConn?.username ?? null,
 					});
 				}
 			}
