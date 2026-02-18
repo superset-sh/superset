@@ -1,6 +1,6 @@
 ---
 description: Create a task, workspace, and start a Claude Code session to work on it
-allowed-tools: mcp__superset__create_task, mcp__superset__list_task_statuses, mcp__superset__list_devices, mcp__superset__list_projects, mcp__superset__create_workspace, mcp__superset__start_claude_session
+allowed-tools: mcp__superset__create_task, mcp__superset__list_members, mcp__superset__list_devices, mcp__superset__list_projects, mcp__superset__create_workspace, mcp__superset__start_claude_session, Bash(git config user.email)
 ---
 
 Create a new task in Superset, spin up a workspace, and start a Claude Code session to work on it.
@@ -13,6 +13,13 @@ Parse `$ARGUMENTS` for:
 
 ## Steps
 
+### 0. Resolve current user and environment
+
+Run these in parallel:
+- Call `mcp__superset__list_members` and match against the git user email (`git config user.email`) to get the current user's member ID
+- Call `mcp__superset__list_devices` and select the device owned by the current user
+- Call `mcp__superset__list_projects` on the resolved device and select the project matching the current git repo
+
 ### 1. Create the task
 
 - Parse the arguments to extract the task description and optional priority
@@ -22,14 +29,19 @@ Parse `$ARGUMENTS` for:
   - `title`: The generated title
   - `description`: Expanded detail if provided, otherwise omit
   - `priority`: Parsed priority or `none`
-  - `assigneeId`: `2dacb80b-7af1-41c4-8611-1e1e425ef720`
+  - `assigneeId`: The resolved member ID from step 0
 
 ### 2. Create a workspace
 
-- Device ID: `2918d81578e8e4035a630f0eca401d7b` (Kiets-Macbook-Pro)
-- Project ID: `WfSZYEbP5ncqATcrE4Yin` (superset)
+- Use the device ID and project ID resolved in step 0
 - Generate a kebab-case workspace name from the task title (short, max 4-5 words)
-- Generate a branch name in the format `fix/...` for bugs or `feat/...` for features, based on the task type
+- Generate a branch name based on task type:
+  - `fix/...` for bugs and defects
+  - `feat/...` for new features
+  - `chore/...` for maintenance, dependency updates, or configuration changes
+  - `docs/...` for documentation-only changes
+  - `refactor/...` for code refactors with no behavior change
+  - Default to `feat/...` if the type is ambiguous
 - Create the workspace using `mcp__superset__create_workspace`
 
 ### 3. Start Claude Code session
