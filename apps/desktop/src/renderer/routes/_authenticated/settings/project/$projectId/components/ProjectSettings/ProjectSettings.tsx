@@ -24,6 +24,8 @@ import { ClickablePath } from "../../../../components/ClickablePath";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
+const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
+
 export function SettingsSection({
 	icon,
 	title,
@@ -60,6 +62,10 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
+	const { data: branchData } = electronTrpc.projects.getBranches.useQuery(
+		{ projectId },
+		{ enabled: !!projectId },
+	);
 	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery({
 		id: projectId,
 	});
@@ -81,6 +87,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		},
 		onSettled: () => {
 			utils.projects.get.invalidate({ id: projectId });
+			utils.projects.getBranches.invalidate({ projectId });
 			utils.workspaces.getAllGrouped.invalidate();
 		},
 	});
@@ -155,6 +162,15 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		});
 	};
 
+	const handleWorkspaceBaseBranchChange = (value: string) => {
+		updateProject.mutate({
+			id: projectId,
+			patch: {
+				workspaceBaseBranch: value === REPO_DEFAULT_BASE_BRANCH ? null : value,
+			},
+		});
+	};
+
 	const getPreviewPrefix = (
 		mode: BranchPrefixMode | "default",
 	): string | null => {
@@ -182,6 +198,15 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 
 	const currentMode = project.branchPrefixMode ?? "default";
 	const previewPrefix = getPreviewPrefix(currentMode);
+	const repoDefaultBranch =
+		branchData?.defaultBranch ?? project.defaultBranch ?? "main";
+	const workspaceBaseBranchValue =
+		project.workspaceBaseBranch ?? REPO_DEFAULT_BASE_BRANCH;
+	const workspaceBaseBranchMissing =
+		!!project.workspaceBaseBranch &&
+		!branchData?.branches.some(
+			(branch) => branch.name === project.workspaceBaseBranch,
+		);
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">
@@ -241,6 +266,46 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 								/>
 							)}
 						</div>
+					</div>
+				</SettingsSection>
+
+				<SettingsSection
+					icon={<HiOutlineCog6Tooth className="h-4 w-4" />}
+					title="Workspace Base Branch"
+					description="Set the default base branch for new workspaces in this repository."
+				>
+					<div className="flex items-center justify-between gap-4">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Default Base Branch</Label>
+							<p className="text-xs text-muted-foreground">
+								Used when creating a workspace unless you choose a one-off base
+								branch.
+							</p>
+						</div>
+						<Select
+							value={workspaceBaseBranchValue}
+							onValueChange={handleWorkspaceBaseBranchChange}
+							disabled={updateProject.isPending}
+						>
+							<SelectTrigger className="w-[260px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value={REPO_DEFAULT_BASE_BRANCH}>
+									Use repository default ({repoDefaultBranch})
+								</SelectItem>
+								{workspaceBaseBranchMissing && project.workspaceBaseBranch && (
+									<SelectItem value={project.workspaceBaseBranch}>
+										{project.workspaceBaseBranch} (missing)
+									</SelectItem>
+								)}
+								{(branchData?.branches ?? []).map((branch) => (
+									<SelectItem key={branch.name} value={branch.name}>
+										{branch.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 				</SettingsSection>
 

@@ -49,10 +49,7 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
-import {
-	resolveBranchPrefix,
-	sanitizeBranchName,
-} from "shared/utils/branch";
+import { resolveBranchPrefix, sanitizeBranchName } from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
 function generateSlugFromTitle(title: string): string {
@@ -132,7 +129,11 @@ export function NewWorkspaceModal() {
 		}
 	}, [isOpen, selectedProjectId, preSelectedProjectId]);
 
-	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
+	const effectiveBaseBranch =
+		baseBranch ??
+		project?.workspaceBaseBranch ??
+		branchData?.defaultBranch ??
+		null;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
 	useEffect(() => {
@@ -247,7 +248,7 @@ export function NewWorkspaceModal() {
 				projectId: selectedProjectId,
 				name: workspaceName,
 				branchName: branchSlug || undefined,
-				baseBranch: effectiveBaseBranch || undefined,
+				baseBranch: baseBranch || undefined,
 				applyPrefix,
 			});
 

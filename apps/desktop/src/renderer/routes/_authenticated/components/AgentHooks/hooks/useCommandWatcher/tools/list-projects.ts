@@ -21,6 +21,7 @@ async function execute(
 				name: p.name,
 				mainRepoPath: p.mainRepoPath,
 				defaultBranch: p.defaultBranch,
+				workspaceBaseBranch: p.workspaceBaseBranch,
 				color: p.color,
 				lastOpenedAt: p.lastOpenedAt,
 				tabOrder: p.tabOrder,

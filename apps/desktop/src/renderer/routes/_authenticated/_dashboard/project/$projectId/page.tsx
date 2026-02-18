@@ -102,7 +102,11 @@ function ProjectPage() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
+	const effectiveBaseBranch =
+		baseBranch ??
+		project?.workspaceBaseBranch ??
+		branchData?.defaultBranch ??
+		null;
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -130,7 +134,7 @@ function ProjectPage() {
 				projectId,
 				name: workspaceName,
 				branchName: generatedBranchName || undefined,
-				baseBranch: effectiveBaseBranch || undefined,
+				baseBranch: baseBranch || undefined,
 			});
 
 			toast.success("Workspace created", {

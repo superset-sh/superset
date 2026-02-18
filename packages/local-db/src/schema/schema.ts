@@ -35,6 +35,7 @@ export const projects = sqliteTable(
 			mode: "boolean",
 		}),
 		defaultBranch: text("default_branch"),
+		workspaceBaseBranch: text("workspace_base_branch"),
 		githubOwner: text("github_owner"),
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),

@@ -9,6 +9,7 @@ import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import {
 	activateProject,
 	findOrphanedWorktreeByBranch,
@@ -170,6 +171,21 @@ interface HandleNewWorktreeParams {
 	workspaceName: string;
 }
 
+async function getKnownBranchesSafe(
+	repoPath: string,
+): Promise<string[] | undefined> {
+	try {
+		const { local, remote } = await listBranches(repoPath);
+		return [...local, ...remote];
+	} catch (error) {
+		console.warn(
+			`[workspaces/create] Failed to list branches for ${repoPath}:`,
+			error,
+		);
+		return undefined;
+	}
+}
+
 async function handleNewWorktree({
 	project,
 	prInfo,
@@ -206,7 +222,12 @@ async function handleNewWorktree({
 		localBranchName,
 	});
 
-	const defaultBranch = project.defaultBranch || "main";
+	const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
+	const baseBranch = resolveWorkspaceBaseBranch({
+		workspaceBaseBranch: project.workspaceBaseBranch,
+		defaultBranch: project.defaultBranch,
+		knownBranches,
+	});
 
 	const worktree = localDb
 		.insert(worktrees)
@@ -214,7 +235,7 @@ async function handleNewWorktree({
 			projectId: project.id,
 			path: worktreePath,
 			branch: localBranchName,
-			baseBranch: defaultBranch,
+			baseBranch,
 			gitStatus: null,
 		})
 		.returning()
@@ -233,13 +254,14 @@ async function handleNewWorktree({
 		workspace_id: workspace.id,
 		project_id: project.id,
 		branch: localBranchName,
+		base_branch: baseBranch,
 		source: "pr",
 		pr_number: prInfo.number,
 		is_fork: prInfo.isCrossRepository,
 	});
 
 	await simpleGit(project.mainRepoPath)
-		.raw(["config", `branch.${localBranchName}.base`, defaultBranch])
+		.raw(["config", `branch.${localBranchName}.base`, baseBranch])
 		.catch(() => {});
 
 	workspaceInitManager.startJob(workspace.id, project.id);
@@ -420,8 +442,12 @@ export const createCreateProcedures = () => {
 					branch,
 				);
 
-				const defaultBranch = project.defaultBranch || "main";
-				const targetBranch = input.baseBranch || defaultBranch;
+				const targetBranch = resolveWorkspaceBaseBranch({
+					explicitBaseBranch: input.baseBranch,
+					workspaceBaseBranch: project.workspaceBaseBranch,
+					defaultBranch: project.defaultBranch,
+					knownBranches: existingBranches,
+				});
 
 				const worktree = localDb
 					.insert(worktrees)
@@ -701,6 +727,12 @@ export const createCreateProcedures = () => {
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
+				const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
+				const baseBranch = resolveWorkspaceBaseBranch({
+					workspaceBaseBranch: project.workspaceBaseBranch,
+					defaultBranch: project.defaultBranch,
+					knownBranches,
+				});
 
 				const exists = await worktreeExists(
 					project.mainRepoPath,
@@ -805,14 +837,13 @@ export const createCreateProcedures = () => {
 					};
 				}
 
-				const defaultBranch = project.defaultBranch || "main";
 				const worktree = localDb
 					.insert(worktrees)
 					.values({
 						projectId: input.projectId,
 						path: input.worktreePath,
 						branch: input.branch,
-						baseBranch: defaultBranch,
+						baseBranch,
 						gitStatus: {
 							branch: input.branch,
 							needsRebase: false,
@@ -842,7 +873,7 @@ export const createCreateProcedures = () => {
 				activateProject(project);
 
 				await simpleGit(project.mainRepoPath)
-					.raw(["config", `branch.${input.branch}.base`, defaultBranch])
+					.raw(["config", `branch.${input.branch}.base`, baseBranch])
 					.catch(() => {});
 
 				copySupersetConfigToWorktree(project.mainRepoPath, input.worktreePath);
@@ -856,6 +887,7 @@ export const createCreateProcedures = () => {
 					workspace_id: workspace.id,
 					project_id: project.id,
 					branch: input.branch,
+					base_branch: baseBranch,
 					source: "external_import",
 				});
 
@@ -933,6 +965,12 @@ export const createCreateProcedures = () => {
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
+				const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
+				const baseBranch = resolveWorkspaceBaseBranch({
+					workspaceBaseBranch: project.workspaceBaseBranch,
+					defaultBranch: project.defaultBranch,
+					knownBranches,
+				});
 
 				let imported = 0;
 
@@ -982,7 +1020,6 @@ export const createCreateProcedures = () => {
 					project.mainRepoPath,
 				);
 				const trackedPaths = new Set(projectWorktrees.map((wt) => wt.path));
-				const defaultBranch = project.defaultBranch || "main";
 
 				const externalWorktrees = allExternalWorktrees.filter((wt) => {
 					if (wt.path === project.mainRepoPath) return false;
@@ -1003,7 +1040,7 @@ export const createCreateProcedures = () => {
 							projectId: input.projectId,
 							path: ext.path,
 							branch,
-							baseBranch: defaultBranch,
+							baseBranch,
 							gitStatus: {
 								branch,
 								needsRebase: false,
