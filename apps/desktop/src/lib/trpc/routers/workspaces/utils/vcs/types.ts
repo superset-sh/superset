@@ -2,7 +2,9 @@
  * VCS abstraction types for supporting both Git and Jujutsu (jj).
  */
 
-export type VcsType = "git" | "jj";
+import type { VcsType } from "@superset/local-db";
+
+export type { VcsType };
 
 /**
  * A workspace discovered on disk that isn't tracked in the Superset DB.
