@@ -89,19 +89,6 @@ async function jj(
 }
 
 /**
- * Check if jj CLI is available.
- */
-export async function isJjAvailable(): Promise<boolean> {
-	try {
-		const env = await getJjEnv();
-		await execFileAsync("jj", ["version"], { env, timeout: 5_000 });
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-/**
  * Derive a jj workspace name from a workspace path.
  * Uses the directory basename, which is always a sanitized slug generated
  * by Superset (e.g., "feature-foo-abc123"), so it's unique within a project.
@@ -252,10 +239,16 @@ export class JjProvider implements VcsProvider {
 			);
 			await rename(workspacePath, tempPath);
 
-			const child = spawn("/bin/rm", ["-rf", tempPath], {
-				detached: true,
-				stdio: "ignore",
-			});
+			const isWin = process.platform === "win32";
+			const child = isWin
+				? spawn("cmd", ["/c", "rmdir", "/s", "/q", tempPath], {
+						detached: true,
+						stdio: "ignore",
+					})
+				: spawn("/bin/rm", ["-rf", tempPath], {
+						detached: true,
+						stdio: "ignore",
+					});
 			child.unref();
 			child.on("error", (err) => {
 				console.error(
@@ -426,7 +419,7 @@ export class JjProvider implements VcsProvider {
 			const aheadOutput = await jj(params.repoPath, [
 				"log",
 				"-r",
-				`::@ ~ ::${params.defaultBranch}`,
+				`::@ ~ ::"${params.defaultBranch}"`,
 				"--no-graph",
 				"-T",
 				'change_id ++ "\\n"',
@@ -440,7 +433,7 @@ export class JjProvider implements VcsProvider {
 			const behindOutput = await jj(params.repoPath, [
 				"log",
 				"-r",
-				`::${params.defaultBranch} ~ ::@`,
+				`::"${params.defaultBranch}" ~ ::@`,
 				"--no-graph",
 				"-T",
 				'change_id ++ "\\n"',

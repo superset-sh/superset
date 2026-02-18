@@ -68,7 +68,7 @@ export async function initializeWorkspaceWorktree({
 				manager.updateProgress(
 					workspaceId,
 					"creating_worktree",
-					"Creating git worktree...",
+					"Creating workspace...",
 				);
 				await vcs.createWorkspaceFromExistingBranch({
 					mainRepoPath,
@@ -352,7 +352,7 @@ export async function initializeWorkspaceWorktree({
 							"failed",
 							"Cannot fetch branch",
 							`Failed to fetch "${effectiveBaseBranch}" and no local reference exists. ` +
-								`Please check your network connection or try running "git fetch origin ${effectiveBaseBranch}" manually. ` +
+								`Please check your network connection or try fetching "${effectiveBaseBranch}" manually. ` +
 								`Error: ${sanitizedError}`,
 						);
 						return;
@@ -369,7 +369,7 @@ export async function initializeWorkspaceWorktree({
 		manager.updateProgress(
 			workspaceId,
 			"creating_worktree",
-			"Creating git worktree...",
+			"Creating workspace...",
 		);
 		await vcs.createWorkspace({
 			mainRepoPath,
@@ -443,7 +443,10 @@ export async function initializeWorkspaceWorktree({
 
 		if (manager.wasWorktreeCreated(workspaceId)) {
 			try {
-				await getVcsProvider(mainRepoPath).removeWorkspace(mainRepoPath, worktreePath);
+				await getVcsProvider(mainRepoPath).removeWorkspace(
+					mainRepoPath,
+					worktreePath,
+				);
 				console.log(
 					`[workspace-init] Cleaned up partial worktree at ${worktreePath}`,
 				);
