@@ -103,7 +103,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	// Remote clipboard image paste support
 	const isRemoteWorkspace = workspaceData?.type === "remote";
-	const { onImagePasteRef } = useClipboardImagePaste({
+	const { onImagePasteRef, onTerminalDataRef } = useClipboardImagePaste({
 		workspaceId,
 		isRemote: isRemoteWorkspace ?? false,
 		onWrite: (data) => writeRef.current({ paneId, data }),
@@ -257,7 +257,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	electronTrpc.terminal.stream.useSubscription(
 		{ paneId, workspaceId },
 		{
-			onData: handleStreamData,
+			onData: (event) => {
+				if (event.type === "data") {
+					onTerminalDataRef.current(event.data);
+				}
+				handleStreamData(event);
+			},
 			enabled: true,
 		},
 	);

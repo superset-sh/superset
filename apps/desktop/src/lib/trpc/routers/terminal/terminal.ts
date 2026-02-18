@@ -618,13 +618,20 @@ export const createTerminalRouter = () => {
 
 				const remoteRuntime =
 					runtime as import("main/lib/workspace-runtime/remote-ssh").RemoteSSHWorkspaceRuntime;
+				await remoteRuntime.ensureConnected();
 				const imageBuffer = Buffer.from(imageData, "base64");
 				const remotePath = await remoteRuntime.clipboard.uploadImage(
 					imageBuffer,
 					mimeType,
 				);
+				const verification = await remoteRuntime.clipboard
+					.verifyImageReadPath()
+					.catch(() => ({
+						ok: false,
+						details: ["verification_exception"],
+					}));
 
-				return { remotePath };
+				return { remotePath, verification };
 			}),
 	});
 };

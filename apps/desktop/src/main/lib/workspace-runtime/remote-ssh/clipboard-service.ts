@@ -14,7 +14,7 @@ import type { SFTPService } from "./sftp-service";
 const CLIPBOARD_DIR = ".superset/clipboard";
 const BIN_DIR = ".superset/bin";
 const MAX_CLIPBOARD_FILES = 5;
-const PROXY_MARKER = "# superset-clipboard-proxy v1";
+const PROXY_MARKER = "# superset-clipboard-proxy v5";
 
 export class RemoteClipboardService {
 	private connection: SSHConnection;
@@ -58,6 +58,33 @@ export class RemoteClipboardService {
 		void this.cleanupOldFiles(clipboardDir).catch(() => {});
 
 		return remotePath;
+	}
+
+	/**
+	 * Verify remote clipboard read path across Linux and macOS style commands.
+	 */
+	async verifyImageReadPath(): Promise<{ ok: boolean; details: string[] }> {
+		const homeDir = await this.getHomeDir();
+		const clipboardDir = `${homeDir}/${CLIPBOARD_DIR}`;
+		const result = await this.connection.exec(
+			[
+				'export PATH="$HOME/.superset/bin:$PATH"',
+				`if [ -f '${clipboardDir}/latest' ]; then echo latest_exists; else echo latest_missing; fi`,
+				'if xclip -selection clipboard -t TARGETS -o 2>/dev/null | grep -E "image/(png|jpeg|jpg|gif|webp)" >/dev/null || wl-paste -l 2>/dev/null | grep -E "image/(png|jpeg|jpg|gif|webp)" >/dev/null; then echo checkImage_ok; else echo checkImage_fail; fi',
+				"if xclip -selection clipboard -t image/png -o >/dev/null 2>&1 || wl-paste --type image/png >/dev/null 2>&1 || pbpaste >/dev/null 2>&1; then echo readImage_ok; else echo readImage_fail; fi",
+				"if command -v xclip >/dev/null 2>&1; then echo xclip_path:$(command -v xclip); fi",
+				"if command -v wl-paste >/dev/null 2>&1; then echo wl_paste_path:$(command -v wl-paste); fi",
+				"if command -v pbpaste >/dev/null 2>&1; then echo pbpaste_path:$(command -v pbpaste); fi",
+			].join("; "),
+		);
+
+		const details = result.stdout
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		const ok =
+			details.includes("latest_exists") && details.includes("readImage_ok");
+		return { ok, details };
 	}
 
 	/**
@@ -133,11 +160,19 @@ _args=("$@")
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -o) _output=true; shift ;;
-    -t|-target) _target="$2"; shift 2 ;;
+    -o|-out|--output) _output=true; shift ;;
+    -t|-target|--target) _target="$2"; shift 2 ;;
     *) shift ;;
   esac
 done
+
+if [[ "$_output" == true ]] && [[ "$_target" == TARGETS || "$_target" == targets ]]; then
+  _f="${clipboardDir}/latest"
+  if [[ -f "$_f" ]]; then
+    printf '%s\n' "TARGETS" "image/png" "image/jpeg" "image/webp"
+    exit 0
+  fi
+fi
 
 if [[ "$_output" == true ]] && [[ "$_target" == image/* ]]; then
   _f="${clipboardDir}/latest"
@@ -169,7 +204,15 @@ ${PROXY_MARKER}
 # Proxy xsel: serve Superset clipboard images.
 
 _args=("$@")
-if [[ "$*" == *"--clipboard"* ]] && [[ "$*" == *"--output"* ]]; then
+_clipboard=false _output=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --clipboard|-b) _clipboard=true; shift ;;
+    --output|-o) _output=true; shift ;;
+    *) shift ;;
+  esac
+done
+if [[ "$_clipboard" == true ]] && [[ "$_output" == true ]]; then
   _f="${clipboardDir}/latest"
   [[ -f "$_f" ]] && { cat "$_f"; exit 0; }
 fi
@@ -183,7 +226,29 @@ ${PROXY_MARKER}
 # Proxy wl-paste: serve Superset clipboard images.
 
 _args=("$@")
-if [[ "$*" == *image* ]]; then
+for _arg in "$@"; do
+  if [[ "$_arg" == "--list-types" || "$_arg" == "-l" ]]; then
+    _f="${clipboardDir}/latest"
+    if [[ -f "$_f" ]]; then
+      printf '%s\n' "image/png" "image/jpeg" "image/webp"
+      exit 0
+    fi
+  fi
+done
+_is_image=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --type|-t)
+      [[ "$2" == image/* ]] && _is_image=true
+      shift 2
+      ;;
+    *)
+      [[ "$1" == image/* ]] && _is_image=true
+      shift
+      ;;
+  esac
+done
+if [[ "$_is_image" == true ]]; then
   _f="${clipboardDir}/latest"
   [[ -f "$_f" ]] && { cat "$_f"; exit 0; }
 fi
@@ -192,10 +257,25 @@ ${findReal("wl-paste")}
 exit 1
 `;
 
+	const pbpaste = `#!/bin/bash
+${PROXY_MARKER}
+# Proxy pbpaste: serve Superset clipboard images for SSH sessions.
+
+_f="${clipboardDir}/latest"
+if [[ -f "$_f" ]]; then
+  cat "$_f"
+  exit 0
+fi
+${findReal("pbpaste")}
+[[ -n "$_real" ]] && exec "$_real" "$@"
+exit 1
+`;
+
 	return {
 		xclip,
 		pngpaste,
 		xsel,
 		"wl-paste": wlPaste,
+		pbpaste,
 	};
 }
