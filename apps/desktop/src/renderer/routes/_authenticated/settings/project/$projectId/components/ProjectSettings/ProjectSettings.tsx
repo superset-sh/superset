@@ -62,10 +62,11 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
-	const { data: branchData } = electronTrpc.projects.getBranches.useQuery(
-		{ projectId },
-		{ enabled: !!projectId },
-	);
+	const { data: branchData, isLoading: isBranchDataLoading } =
+		electronTrpc.projects.getBranches.useQuery(
+			{ projectId },
+			{ enabled: !!projectId },
+		);
 	const { data: gitAuthor } = electronTrpc.projects.getGitAuthor.useQuery({
 		id: projectId,
 	});
@@ -203,8 +204,10 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 	const workspaceBaseBranchValue =
 		project.workspaceBaseBranch ?? REPO_DEFAULT_BASE_BRANCH;
 	const workspaceBaseBranchMissing =
+		!isBranchDataLoading &&
 		!!project.workspaceBaseBranch &&
-		!branchData?.branches.some(
+		!!branchData &&
+		!branchData.branches.some(
 			(branch) => branch.name === project.workspaceBaseBranch,
 		);
 

@@ -39,6 +39,7 @@ import {
 import { LuFolderOpen } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import {
 	processOpenNewResults,
 	useOpenNew,
@@ -129,11 +130,12 @@ export function NewWorkspaceModal() {
 		}
 	}, [isOpen, selectedProjectId, preSelectedProjectId]);
 
-	const effectiveBaseBranch =
-		baseBranch ??
-		project?.workspaceBaseBranch ??
-		branchData?.defaultBranch ??
-		null;
+	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
+		explicitBaseBranch: baseBranch,
+		workspaceBaseBranch: project?.workspaceBaseBranch,
+		defaultBranch: branchData?.defaultBranch,
+		branches: branchData?.branches,
+	});
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
 	useEffect(() => {
