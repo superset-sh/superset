@@ -184,7 +184,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
  * The -z format uses NUL characters to separate entries, which safely handles
  * filenames containing spaces, newlines, or other special characters.
  */
-function parsePortelainStatus(stdout: string): StatusResult {
+export function parsePortelainStatus(stdout: string): StatusResult {
 	// Split by NUL character - the -z format separates entries with NUL
 	const entries = stdout.split("\0").filter(Boolean);
 

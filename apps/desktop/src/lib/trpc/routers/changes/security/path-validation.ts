@@ -1,5 +1,5 @@
 import { isAbsolute, normalize, resolve, sep } from "node:path";
-import { projects, worktrees } from "@superset/local-db";
+import { projects, workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 
@@ -80,6 +80,40 @@ export function assertRegisteredWorktree(workspacePath: string): void {
 		.get();
 
 	if (projectExists) {
+		return;
+	}
+
+	throw new PathValidationError(
+		"Workspace path not registered in database",
+		"UNREGISTERED_WORKTREE",
+	);
+}
+
+/**
+ * Validates that a workspace path is registered — either as a local
+ * worktree/project path OR as a remote workspace's remotePath.
+ *
+ * This extends assertRegisteredWorktree to support SSH workspaces.
+ *
+ * @throws PathValidationError if path is not registered anywhere
+ */
+export function assertRegisteredWorkspacePath(workspacePath: string): void {
+	// Try existing local validation first
+	try {
+		assertRegisteredWorktree(workspacePath);
+		return;
+	} catch {
+		// Not a local worktree/project — check remote workspaces
+	}
+
+	// Check workspaces table for remote workspaces
+	const remoteWorkspace = localDb
+		.select()
+		.from(workspaces)
+		.where(eq(workspaces.remotePath, workspacePath))
+		.get();
+
+	if (remoteWorkspace && remoteWorkspace.type === "remote") {
 		return;
 	}
 

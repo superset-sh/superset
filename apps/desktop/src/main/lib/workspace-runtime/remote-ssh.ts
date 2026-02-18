@@ -34,7 +34,6 @@ export class RemoteSSHWorkspaceRuntime implements WorkspaceRuntime {
 	private connection: SSHConnection | null = null;
 
 	constructor(config: SSHHostConfig) {
-		this.config = config;
 		this.id = `remote-ssh:${getPoolKey(config)}`;
 
 		// Create a standalone connection for this runtime
@@ -69,6 +68,17 @@ export class RemoteSSHWorkspaceRuntime implements WorkspaceRuntime {
 				err,
 			);
 		});
+	}
+
+	/**
+	 * Get the underlying SSH connection for direct exec access.
+	 * Used by GitRunner for remote git commands.
+	 */
+	getConnection(): SSHConnection {
+		if (!this.connection) {
+			throw new Error("SSH connection is not initialized");
+		}
+		return this.connection;
 	}
 
 	/**

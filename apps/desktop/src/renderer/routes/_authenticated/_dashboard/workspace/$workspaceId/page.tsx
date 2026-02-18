@@ -326,7 +326,10 @@ function WorkspacePage() {
 			if (pr?.url) {
 				window.open(pr.url, "_blank");
 			} else if (workspace?.worktreePath) {
-				createPRMutation.mutate({ worktreePath: workspace.worktreePath });
+				createPRMutation.mutate({
+					worktreePath: workspace.worktreePath,
+					workspaceId,
+				});
 			}
 		},
 		undefined,

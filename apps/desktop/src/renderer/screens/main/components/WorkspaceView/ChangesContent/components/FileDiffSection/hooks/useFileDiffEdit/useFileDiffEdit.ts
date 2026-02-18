@@ -7,12 +7,14 @@ interface UseFileDiffEditParams {
 	category: ChangeCategory;
 	worktreePath: string;
 	filePath: string;
+	workspaceId?: string;
 }
 
 export function useFileDiffEdit({
 	category,
 	worktreePath,
 	filePath,
+	workspaceId,
 }: UseFileDiffEditParams) {
 	const [isEditing, setIsEditing] = useState(false);
 	const editable = isDiffEditable(category);
@@ -28,9 +30,9 @@ export function useFileDiffEdit({
 	const handleSave = useCallback(
 		(content: string) => {
 			if (!worktreePath || !filePath) return;
-			saveFileMutation.mutate({ worktreePath, filePath, content });
+			saveFileMutation.mutate({ worktreePath, filePath, content, workspaceId });
 		},
-		[worktreePath, filePath, saveFileMutation],
+		[worktreePath, filePath, workspaceId, saveFileMutation],
 	);
 
 	const toggleEdit = editable ? () => setIsEditing((prev) => !prev) : undefined;

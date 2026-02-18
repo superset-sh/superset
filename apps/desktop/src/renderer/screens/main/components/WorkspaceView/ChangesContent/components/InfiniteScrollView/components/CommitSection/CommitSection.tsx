@@ -7,6 +7,7 @@ import { VirtualizedFileList } from "../../../VirtualizedFileList";
 interface CommitSectionProps {
 	commit: CommitInfo;
 	worktreePath: string;
+	workspaceId?: string;
 	collapsedFiles: Set<string>;
 	onToggleFile: (key: string) => void;
 	scrollElementRef: RefObject<HTMLDivElement | null>;
@@ -15,6 +16,7 @@ interface CommitSectionProps {
 export function CommitSection({
 	commit,
 	worktreePath,
+	workspaceId,
 	collapsedFiles,
 	onToggleFile,
 	scrollElementRef,
@@ -25,6 +27,7 @@ export function CommitSection({
 		{
 			worktreePath,
 			commitHash: commit.hash,
+			workspaceId,
 		},
 		{ enabled: isCommitExpanded },
 	);
@@ -58,6 +61,7 @@ export function CommitSection({
 						category="committed"
 						commitHash={commit.hash}
 						worktreePath={worktreePath}
+						workspaceId={workspaceId}
 						collapsedFiles={collapsedFiles}
 						onToggleFile={onToggleFile}
 						scrollElementRef={scrollElementRef}

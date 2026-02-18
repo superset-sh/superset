@@ -44,6 +44,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const { status, isLoading, effectiveBaseBranch, refetch } =
 		useGitChangesStatus({
 			worktreePath,
+			workspaceId,
 			refetchInterval: 2500,
 			refetchOnWindowFocus: true,
 		});
@@ -189,11 +190,13 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 			deleteUntrackedMutation.mutate({
 				worktreePath,
 				filePath: file.path,
+				workspaceId,
 			});
 		} else {
 			discardChangesMutation.mutate({
 				worktreePath,
 				filePath: file.path,
+				workspaceId,
 			});
 		}
 	};
@@ -225,6 +228,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 			t.changes.getCommitFiles({
 				worktreePath: worktreePath || "",
 				commitHash: hash,
+				workspaceId,
 			}),
 		),
 	);
@@ -324,11 +328,16 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
 				workspaceId={workspaceId}
-				onStash={() => stashMutation.mutate({ worktreePath })}
+				onStash={() => stashMutation.mutate({ worktreePath, workspaceId })}
 				onStashIncludeUntracked={() =>
-					stashIncludeUntrackedMutation.mutate({ worktreePath })
+					stashIncludeUntrackedMutation.mutate({
+						worktreePath,
+						workspaceId,
+					})
 				}
-				onStashPop={() => stashPopMutation.mutate({ worktreePath })}
+				onStashPop={() =>
+					stashPopMutation.mutate({ worktreePath, workspaceId })
+				}
 				isStashPending={
 					stashMutation.isPending ||
 					stashIncludeUntrackedMutation.isPending ||
@@ -338,6 +347,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 
 			<CommitInput
 				worktreePath={worktreePath}
+				workspaceId={workspaceId}
 				hasStagedChanges={hasStagedChanges}
 				pushCount={status.pushCount}
 				pullCount={status.pullCount}
@@ -425,6 +435,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 											onClick={() =>
 												unstageAllMutation.mutate({
 													worktreePath: worktreePath || "",
+													workspaceId,
 												})
 											}
 											disabled={unstageAllMutation.isPending}
@@ -447,6 +458,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 								unstageFileMutation.mutate({
 									worktreePath: worktreePath || "",
 									filePath: file.path,
+									workspaceId,
 								})
 							}
 							isActioning={unstageFileMutation.isPending}
@@ -488,6 +500,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 											onClick={() =>
 												stageAllMutation.mutate({
 													worktreePath: worktreePath || "",
+													workspaceId,
 												})
 											}
 											disabled={stageAllMutation.isPending}
@@ -510,6 +523,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 								stageFileMutation.mutate({
 									worktreePath: worktreePath || "",
 									filePath: file.path,
+									workspaceId,
 								})
 							}
 							isActioning={
@@ -557,6 +571,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 								setShowDiscardUnstagedDialog(false);
 								discardAllUnstagedMutation.mutate({
 									worktreePath: worktreePath || "",
+									workspaceId,
 								});
 							}}
 						>
@@ -597,6 +612,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 								setShowDiscardStagedDialog(false);
 								discardAllStagedMutation.mutate({
 									worktreePath: worktreePath || "",
+									workspaceId,
 								});
 							}}
 						>

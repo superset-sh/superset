@@ -6,9 +6,11 @@ import type { ChangedFile } from "shared/changes-types";
 export function useFileMutations({
 	worktreePath,
 	baseBranch,
+	workspaceId,
 }: {
 	worktreePath: string;
 	baseBranch: string;
+	workspaceId?: string;
 }) {
 	const trpcUtils = electronTrpc.useUtils();
 	const refetch = useCallback(() => {
@@ -70,15 +72,22 @@ export function useFileMutations({
 				deleteUntrackedMutation.mutate({
 					worktreePath,
 					filePath: file.path,
+					workspaceId,
 				});
 			} else {
 				discardChangesMutation.mutate({
 					worktreePath,
 					filePath: file.path,
+					workspaceId,
 				});
 			}
 		},
-		[worktreePath, deleteUntrackedMutation, discardChangesMutation],
+		[
+			worktreePath,
+			workspaceId,
+			deleteUntrackedMutation,
+			discardChangesMutation,
+		],
 	);
 
 	const isActioning =

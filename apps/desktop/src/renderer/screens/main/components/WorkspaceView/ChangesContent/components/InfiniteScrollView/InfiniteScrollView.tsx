@@ -15,12 +15,14 @@ interface InfiniteScrollViewProps {
 	status: GitChangesStatus;
 	worktreePath: string;
 	baseBranch: string;
+	workspaceId?: string;
 }
 
 export function InfiniteScrollView({
 	status,
 	worktreePath,
 	baseBranch,
+	workspaceId,
 }: InfiniteScrollViewProps) {
 	const { containerRef, viewedCount } = useScrollContext();
 	const {
@@ -35,7 +37,7 @@ export function InfiniteScrollView({
 	const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
 
 	const { stageFileMutation, unstageFileMutation, handleDiscard, isActioning } =
-		useFileMutations({ worktreePath, baseBranch });
+		useFileMutations({ worktreePath, baseBranch, workspaceId });
 
 	const totals = useMemo(() => {
 		const allFiles = [
@@ -169,6 +171,7 @@ export function InfiniteScrollView({
 						category={focusedEntry.category}
 						commitHash={focusedEntry.commitHash}
 						worktreePath={worktreePath}
+						workspaceId={workspaceId}
 						baseBranch={
 							focusedEntry.category === "against-base" ? baseBranch : undefined
 						}
@@ -193,6 +196,7 @@ export function InfiniteScrollView({
 									files={sortedAgainstBase}
 									category="against-base"
 									worktreePath={worktreePath}
+									workspaceId={workspaceId}
 									baseBranch={baseBranch}
 									collapsedFiles={collapsedFiles}
 									onToggleFile={toggleFile}
@@ -217,6 +221,7 @@ export function InfiniteScrollView({
 											key={commit.hash}
 											commit={commit}
 											worktreePath={worktreePath}
+											workspaceId={workspaceId}
 											collapsedFiles={collapsedFiles}
 											onToggleFile={toggleFile}
 											scrollElementRef={containerRef}
@@ -247,6 +252,7 @@ export function InfiniteScrollView({
 										unstageFileMutation.mutate({
 											worktreePath,
 											filePath: file.path,
+											workspaceId,
 										})
 									}
 									onDiscard={handleDiscard}
@@ -276,6 +282,7 @@ export function InfiniteScrollView({
 										stageFileMutation.mutate({
 											worktreePath,
 											filePath: file.path,
+											workspaceId,
 										})
 									}
 									onDiscard={handleDiscard}

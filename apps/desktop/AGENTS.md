@@ -1,3 +1,13 @@
+# Post-task verification
+
+After completing each implementation task, run the fresh-dev script to kill stale processes, clean all caches/build artifacts, and restart the dev server:
+
+```bash
+bash apps/desktop/scripts/fresh-dev.sh
+```
+
+This ensures changes are tested against a clean state (no stale turbo cache, tsbuildinfo, or dist artifacts).
+
 # Implementation details
 For Electron interprocess communication, ALWAYS use trpc as defined in `src/lib/trpc`
 Please use alias as defined in `tsconfig.json` when possible

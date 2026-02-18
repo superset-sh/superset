@@ -1,14 +1,15 @@
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { getImageMimeType } from "shared/file-types";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	assertRegisteredWorktree,
+	assertRegisteredWorkspacePath,
 	PathValidationError,
 	secureFs,
 } from "./security";
+import type { GitRunner } from "./utils/git-runner";
+import { resolveGitTarget } from "./utils/git-runner";
 
 /** Maximum file size for reading (2 MiB) */
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
@@ -19,9 +20,6 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 /** Bytes to scan for binary detection */
 const BINARY_CHECK_SIZE = 8192;
 
-/**
- * Result type for readWorkingFile procedure
- */
 type ReadWorkingFileResult =
 	| { ok: true; content: string; truncated: boolean; byteLength: number }
 	| {
@@ -34,9 +32,6 @@ type ReadWorkingFileResult =
 				| "symlink-escape";
 	  };
 
-/**
- * Result type for readWorkingFileImage procedure
- */
 type ReadWorkingFileImageResult =
 	| { ok: true; dataUrl: string; byteLength: number }
 	| {
@@ -49,9 +44,6 @@ type ReadWorkingFileImageResult =
 				| "symlink-escape";
 	  };
 
-/**
- * Detects if a buffer contains binary content by checking for NUL bytes
- */
 function isBinaryContent(buffer: Buffer): boolean {
 	const checkLength = Math.min(buffer.length, BINARY_CHECK_SIZE);
 	for (let i = 0; i < checkLength; i++) {
@@ -60,6 +52,11 @@ function isBinaryContent(buffer: Buffer): boolean {
 		}
 	}
 	return false;
+}
+
+function isBinaryString(content: string): boolean {
+	const checkLength = Math.min(content.length, BINARY_CHECK_SIZE);
+	return content.slice(0, checkLength).includes("\0");
 }
 
 export const createFileContentsRouter = () => {
@@ -73,17 +70,19 @@ export const createFileContentsRouter = () => {
 					category: z.enum(["against-base", "committed", "staged", "unstaged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
+					workspaceId: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<FileContents> => {
-				assertRegisteredWorktree(input.worktreePath);
+				assertRegisteredWorkspacePath(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
+				const target = resolveGitTarget(input.worktreePath, input.workspaceId);
+				const { runner } = target;
 				const defaultBranch = input.defaultBranch || "main";
 				const originalPath = input.oldPath || input.filePath;
 
 				const { original, modified } = await getFileVersions(
-					git,
+					runner,
 					input.worktreePath,
 					input.filePath,
 					originalPath,
@@ -105,9 +104,26 @@ export const createFileContentsRouter = () => {
 					worktreePath: z.string(),
 					filePath: z.string(),
 					content: z.string(),
+					workspaceId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				assertRegisteredWorkspacePath(input.worktreePath);
+
+				const target = resolveGitTarget(input.worktreePath, input.workspaceId);
+
+				if (target.kind === "remote") {
+					const escapedPath = input.filePath.replace(/'/g, "'\\''");
+					// Use heredoc-style write to handle content with special chars
+					const result = await target.runner.exec(
+						`cat > '${escapedPath}' << 'SUPERSET_EOF'\n${input.content}\nSUPERSET_EOF`,
+					);
+					if (result.code !== 0) {
+						throw new Error(result.stderr || "Failed to write file on remote");
+					}
+					return { success: true };
+				}
+
 				await secureFs.writeFile(
 					input.worktreePath,
 					input.filePath,
@@ -116,59 +132,32 @@ export const createFileContentsRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Read a working tree file safely with size cap and binary detection.
-		 * Used for File Viewer raw/rendered modes.
-		 */
 		readWorkingFile: publicProcedure
 			.input(
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					workspaceId: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
-				try {
-					const stats = await secureFs.stat(input.worktreePath, input.filePath);
-					if (stats.size > MAX_FILE_SIZE) {
-						return { ok: false, reason: "too-large" };
-					}
+				assertRegisteredWorkspacePath(input.worktreePath);
 
-					const buffer = await secureFs.readFileBuffer(
-						input.worktreePath,
-						input.filePath,
-					);
+				const target = resolveGitTarget(input.worktreePath, input.workspaceId);
 
-					if (isBinaryContent(buffer)) {
-						return { ok: false, reason: "binary" };
-					}
-
-					return {
-						ok: true,
-						content: buffer.toString("utf-8"),
-						truncated: false,
-						byteLength: buffer.length,
-					};
-				} catch (error) {
-					if (error instanceof PathValidationError) {
-						if (error.code === "SYMLINK_ESCAPE") {
-							return { ok: false, reason: "symlink-escape" };
-						}
-						return { ok: false, reason: "outside-worktree" };
-					}
-					return { ok: false, reason: "not-found" };
+				if (target.kind === "remote") {
+					return readWorkingFileRemote(target.runner, input.filePath);
 				}
+
+				return readWorkingFileLocal(input.worktreePath, input.filePath);
 			}),
 
-		/**
-		 * Read an image file and return as base64 data URL.
-		 * Used for File Viewer rendered mode for images.
-		 */
 		readWorkingFileImage: publicProcedure
 			.input(
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					workspaceId: z.string().optional(),
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileImageResult> => {
@@ -177,37 +166,30 @@ export const createFileContentsRouter = () => {
 					return { ok: false, reason: "not-image" };
 				}
 
-				try {
-					const stats = await secureFs.stat(input.worktreePath, input.filePath);
-					if (stats.size > MAX_IMAGE_SIZE) {
-						return { ok: false, reason: "too-large" };
-					}
+				assertRegisteredWorkspacePath(input.worktreePath);
 
-					const buffer = await secureFs.readFileBuffer(
-						input.worktreePath,
+				const target = resolveGitTarget(input.worktreePath, input.workspaceId);
+
+				if (target.kind === "remote") {
+					return readWorkingFileImageRemote(
+						target.runner,
 						input.filePath,
+						mimeType,
 					);
-
-					const base64 = buffer.toString("base64");
-					const dataUrl = `data:${mimeType};base64,${base64}`;
-
-					return {
-						ok: true,
-						dataUrl,
-						byteLength: buffer.length,
-					};
-				} catch (error) {
-					if (error instanceof PathValidationError) {
-						if (error.code === "SYMLINK_ESCAPE") {
-							return { ok: false, reason: "symlink-escape" };
-						}
-						return { ok: false, reason: "outside-worktree" };
-					}
-					return { ok: false, reason: "not-found" };
 				}
+
+				return readWorkingFileImageLocal(
+					input.worktreePath,
+					input.filePath,
+					mimeType,
+				);
 			}),
 	});
 };
+
+// =============================================================================
+// File Version Resolution (for diffs)
+// =============================================================================
 
 type DiffCategory = "against-base" | "committed" | "staged" | "unstaged";
 
@@ -217,7 +199,7 @@ interface FileVersions {
 }
 
 async function getFileVersions(
-	git: ReturnType<typeof simpleGit>,
+	runner: GitRunner,
 	worktreePath: string,
 	filePath: string,
 	originalPath: string,
@@ -227,112 +209,271 @@ async function getFileVersions(
 ): Promise<FileVersions> {
 	switch (category) {
 		case "against-base":
-			return getAgainstBaseVersions(git, filePath, originalPath, defaultBranch);
+			return getAgainstBaseVersions(
+				runner,
+				filePath,
+				originalPath,
+				defaultBranch,
+			);
 
 		case "committed":
 			if (!commitHash) {
 				throw new Error("commitHash required for committed category");
 			}
-			return getCommittedVersions(git, filePath, originalPath, commitHash);
+			return getCommittedVersions(runner, filePath, originalPath, commitHash);
 
 		case "staged":
-			return getStagedVersions(git, filePath, originalPath);
+			return getStagedVersions(runner, filePath, originalPath);
 
 		case "unstaged":
-			return getUnstagedVersions(git, worktreePath, filePath, originalPath);
+			return getUnstagedVersions(runner, worktreePath, filePath, originalPath);
 	}
 }
 
-/** Helper to safely get git show content with size limit and memory protection */
-async function safeGitShow(
-	git: ReturnType<typeof simpleGit>,
-	spec: string,
-): Promise<string> {
+async function safeGitShow(runner: GitRunner, spec: string): Promise<string> {
 	try {
-		// Preflight: check blob size before loading into memory
-		// This prevents memory spikes from large files in git history
-		try {
-			const sizeOutput = await git.raw(["cat-file", "-s", spec]);
-			const blobSize = Number.parseInt(sizeOutput.trim(), 10);
+		const sizeResult = await runner.rawSafe(["cat-file", "-s", spec]);
+		if (sizeResult.code === 0) {
+			const blobSize = Number.parseInt(sizeResult.stdout.trim(), 10);
 			if (!Number.isNaN(blobSize) && blobSize > MAX_FILE_SIZE) {
 				return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 			}
-		} catch {
-			// cat-file failed (blob doesn't exist) - let git.show handle the error
 		}
 
-		const content = await git.show([spec]);
-		return content;
+		return await runner.raw(["show", spec]);
 	} catch {
 		return "";
 	}
 }
 
 async function getAgainstBaseVersions(
-	git: ReturnType<typeof simpleGit>,
+	runner: GitRunner,
 	filePath: string,
 	originalPath: string,
 	defaultBranch: string,
 ): Promise<FileVersions> {
 	const [original, modified] = await Promise.all([
-		safeGitShow(git, `origin/${defaultBranch}:${originalPath}`),
-		safeGitShow(git, `HEAD:${filePath}`),
+		safeGitShow(runner, `origin/${defaultBranch}:${originalPath}`),
+		safeGitShow(runner, `HEAD:${filePath}`),
 	]);
-
 	return { original, modified };
 }
 
 async function getCommittedVersions(
-	git: ReturnType<typeof simpleGit>,
+	runner: GitRunner,
 	filePath: string,
 	originalPath: string,
 	commitHash: string,
 ): Promise<FileVersions> {
 	const [original, modified] = await Promise.all([
-		safeGitShow(git, `${commitHash}^:${originalPath}`),
-		safeGitShow(git, `${commitHash}:${filePath}`),
+		safeGitShow(runner, `${commitHash}^:${originalPath}`),
+		safeGitShow(runner, `${commitHash}:${filePath}`),
 	]);
-
 	return { original, modified };
 }
 
 async function getStagedVersions(
-	git: ReturnType<typeof simpleGit>,
+	runner: GitRunner,
 	filePath: string,
 	originalPath: string,
 ): Promise<FileVersions> {
 	const [original, modified] = await Promise.all([
-		safeGitShow(git, `HEAD:${originalPath}`),
-		safeGitShow(git, `:0:${filePath}`),
+		safeGitShow(runner, `HEAD:${originalPath}`),
+		safeGitShow(runner, `:0:${filePath}`),
 	]);
-
 	return { original, modified };
 }
 
 async function getUnstagedVersions(
-	git: ReturnType<typeof simpleGit>,
+	runner: GitRunner,
 	worktreePath: string,
 	filePath: string,
 	originalPath: string,
 ): Promise<FileVersions> {
 	// Try staged version first, fall back to HEAD
-	let original = await safeGitShow(git, `:0:${originalPath}`);
+	let original = await safeGitShow(runner, `:0:${originalPath}`);
 	if (!original) {
-		original = await safeGitShow(git, `HEAD:${originalPath}`);
+		original = await safeGitShow(runner, `HEAD:${originalPath}`);
 	}
 
 	let modified = "";
-	try {
-		const stats = await secureFs.stat(worktreePath, filePath);
-		if (stats.size <= MAX_FILE_SIZE) {
-			modified = await secureFs.readFile(worktreePath, filePath);
-		} else {
-			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+
+	if (runner.isRemote) {
+		try {
+			const escapedPath = filePath.replace(/'/g, "'\\''");
+			const statResult = await runner.exec(`stat -c '%s' '${escapedPath}'`);
+			if (statResult.code === 0) {
+				const size = Number.parseInt(statResult.stdout.trim(), 10);
+				if (size > MAX_FILE_SIZE) {
+					modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+					return { original, modified };
+				}
+			}
+
+			const catResult = await runner.exec(`cat '${escapedPath}'`);
+			if (catResult.code === 0) {
+				modified = catResult.stdout;
+			}
+		} catch {
+			modified = "";
 		}
-	} catch {
-		// File doesn't exist or validation failed - that's ok for diff display
-		modified = "";
+	} else {
+		try {
+			const stats = await secureFs.stat(worktreePath, filePath);
+			if (stats.size <= MAX_FILE_SIZE) {
+				modified = await secureFs.readFile(worktreePath, filePath);
+			} else {
+				modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+			}
+		} catch {
+			modified = "";
+		}
 	}
 
 	return { original, modified };
+}
+
+// =============================================================================
+// Working File Readers
+// =============================================================================
+
+async function readWorkingFileRemote(
+	runner: GitRunner,
+	filePath: string,
+): Promise<ReadWorkingFileResult> {
+	try {
+		const escapedPath = filePath.replace(/'/g, "'\\''");
+
+		// Check size
+		const statResult = await runner.exec(`stat -c '%s' '${escapedPath}'`);
+		if (statResult.code !== 0) {
+			return { ok: false, reason: "not-found" };
+		}
+		const size = Number.parseInt(statResult.stdout.trim(), 10);
+		if (size > MAX_FILE_SIZE) {
+			return { ok: false, reason: "too-large" };
+		}
+
+		// Binary check (first 8KB)
+		const headResult = await runner.exec(
+			`head -c ${BINARY_CHECK_SIZE} '${escapedPath}'`,
+		);
+		if (headResult.code === 0 && isBinaryString(headResult.stdout)) {
+			return { ok: false, reason: "binary" };
+		}
+
+		// Read full file
+		const catResult = await runner.exec(`cat '${escapedPath}'`);
+		if (catResult.code !== 0) {
+			return { ok: false, reason: "not-found" };
+		}
+
+		return {
+			ok: true,
+			content: catResult.stdout,
+			truncated: false,
+			byteLength: Buffer.byteLength(catResult.stdout, "utf-8"),
+		};
+	} catch {
+		return { ok: false, reason: "not-found" };
+	}
+}
+
+async function readWorkingFileLocal(
+	worktreePath: string,
+	filePath: string,
+): Promise<ReadWorkingFileResult> {
+	try {
+		const stats = await secureFs.stat(worktreePath, filePath);
+		if (stats.size > MAX_FILE_SIZE) {
+			return { ok: false, reason: "too-large" };
+		}
+
+		const buffer = await secureFs.readFileBuffer(worktreePath, filePath);
+
+		if (isBinaryContent(buffer)) {
+			return { ok: false, reason: "binary" };
+		}
+
+		return {
+			ok: true,
+			content: buffer.toString("utf-8"),
+			truncated: false,
+			byteLength: buffer.length,
+		};
+	} catch (error) {
+		if (error instanceof PathValidationError) {
+			if (error.code === "SYMLINK_ESCAPE") {
+				return { ok: false, reason: "symlink-escape" };
+			}
+			return { ok: false, reason: "outside-worktree" };
+		}
+		return { ok: false, reason: "not-found" };
+	}
+}
+
+async function readWorkingFileImageRemote(
+	runner: GitRunner,
+	filePath: string,
+	mimeType: string,
+): Promise<ReadWorkingFileImageResult> {
+	try {
+		const escapedPath = filePath.replace(/'/g, "'\\''");
+
+		const statResult = await runner.exec(`stat -c '%s' '${escapedPath}'`);
+		if (statResult.code !== 0) {
+			return { ok: false, reason: "not-found" };
+		}
+		const size = Number.parseInt(statResult.stdout.trim(), 10);
+		if (size > MAX_IMAGE_SIZE) {
+			return { ok: false, reason: "too-large" };
+		}
+
+		const result = await runner.exec(`base64 '${escapedPath}'`);
+		if (result.code !== 0) {
+			return { ok: false, reason: "not-found" };
+		}
+
+		const base64 = result.stdout.replace(/\s/g, "");
+		const dataUrl = `data:${mimeType};base64,${base64}`;
+
+		return {
+			ok: true,
+			dataUrl,
+			byteLength: size,
+		};
+	} catch {
+		return { ok: false, reason: "not-found" };
+	}
+}
+
+async function readWorkingFileImageLocal(
+	worktreePath: string,
+	filePath: string,
+	mimeType: string,
+): Promise<ReadWorkingFileImageResult> {
+	try {
+		const stats = await secureFs.stat(worktreePath, filePath);
+		if (stats.size > MAX_IMAGE_SIZE) {
+			return { ok: false, reason: "too-large" };
+		}
+
+		const buffer = await secureFs.readFileBuffer(worktreePath, filePath);
+		const base64 = buffer.toString("base64");
+		const dataUrl = `data:${mimeType};base64,${base64}`;
+
+		return {
+			ok: true,
+			dataUrl,
+			byteLength: buffer.length,
+		};
+	} catch (error) {
+		if (error instanceof PathValidationError) {
+			if (error.code === "SYMLINK_ESCAPE") {
+				return { ok: false, reason: "symlink-escape" };
+			}
+			return { ok: false, reason: "outside-worktree" };
+		}
+		return { ok: false, reason: "not-found" };
+	}
 }

@@ -23,6 +23,7 @@ export {
 } from "./git-commands";
 
 export {
+	assertRegisteredWorkspacePath,
 	assertRegisteredWorktree,
 	assertValidGitPath,
 	getRegisteredWorktree,

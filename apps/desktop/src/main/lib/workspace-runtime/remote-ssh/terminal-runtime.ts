@@ -117,6 +117,12 @@ export class RemoteSSHTerminalRuntime
 			initialCommands,
 		} = params;
 
+		// Ensure SSH is connected before trying to open a shell channel.
+		// Registry warmup is async, so attach can race ahead on first mount.
+		if (!this.connection.isConnected) {
+			await this.connection.connect();
+		}
+
 		// Try to reattach to an existing alive session (e.g. after navigation away/back)
 		const existing = this.sessions.get(paneId);
 		if (existing?.isAlive) {
