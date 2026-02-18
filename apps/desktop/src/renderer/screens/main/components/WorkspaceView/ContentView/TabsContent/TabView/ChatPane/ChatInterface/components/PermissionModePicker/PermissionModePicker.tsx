@@ -25,7 +25,7 @@ interface PermissionModeOption {
 const PERMISSION_MODES: PermissionModeOption[] = [
 	{
 		value: "bypassPermissions",
-		label: "Autonomous",
+		label: "Auto",
 		description: "Tools run without approval",
 		icon: ShieldOffIcon,
 	},
@@ -59,9 +59,9 @@ export function PermissionModePicker({
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<PromptInputButton className="gap-1 text-xs">
-					<ActiveIcon className="size-3.5" />
-					<span>{active.label}</span>
-					<ChevronDownIcon className="size-3" />
+					<ActiveIcon className="size-3.5 shrink-0" />
+					<span className="hidden @xs:inline">{active.label}</span>
+					<ChevronDownIcon className="size-3 hidden @xs:block" />
 				</PromptInputButton>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-64">

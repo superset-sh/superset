@@ -1,14 +1,7 @@
 import { EventEmitter } from "node:events";
-import { env } from "main/env.main";
 import type { SessionStore } from "../session-store";
-import {
-	AgentRunner,
-	type ResolvePermissionInput,
-	type StartAgentInput,
-} from "./agent-runner";
 import type {
 	ErrorEvent,
-	PermissionRequestEvent,
 	SessionEndEvent,
 	SessionStartEvent,
 } from "./session-events";
@@ -24,13 +17,10 @@ import {
 } from "./session-lifecycle";
 import type { ActiveSession } from "./session-types";
 
-const PROXY_URL = env.NEXT_PUBLIC_STREAMS_URL;
-
 export class ChatSessionManager extends EventEmitter {
 	private readonly sessions = new Map<string, ActiveSession>();
 	private readonly runningAgents = new Map<string, AbortController>();
 	private readonly lifecycle: SessionLifecycle;
-	private readonly agentRunner: AgentRunner;
 
 	constructor(readonly store: SessionStore) {
 		super();
@@ -39,7 +29,6 @@ export class ChatSessionManager extends EventEmitter {
 			store,
 			sessions: this.sessions,
 			runningAgents: this.runningAgents,
-			proxyUrl: PROXY_URL,
 			emitSessionStart: ({ sessionId }) => {
 				this.emit("event", {
 					type: "session_start",
@@ -61,24 +50,6 @@ export class ChatSessionManager extends EventEmitter {
 				} satisfies ErrorEvent);
 			},
 		});
-
-		this.agentRunner = new AgentRunner({
-			store,
-			sessions: this.sessions,
-			runningAgents: this.runningAgents,
-			proxyUrl: PROXY_URL,
-			ensureSessionReady: (input) => this.lifecycle.ensureSessionReady(input),
-			emitSessionError: ({ sessionId, error }) => {
-				this.emit("event", {
-					type: "error",
-					sessionId,
-					error,
-				} satisfies ErrorEvent);
-			},
-			emitPermissionRequest: (event: PermissionRequestEvent) => {
-				this.emit("event", event);
-			},
-		});
 	}
 
 	async startSession(input: StartSessionInput): Promise<void> {
@@ -87,14 +58,6 @@ export class ChatSessionManager extends EventEmitter {
 
 	async restoreSession(input: RestoreSessionInput): Promise<void> {
 		await this.lifecycle.restoreSession(input);
-	}
-
-	async startAgent(input: StartAgentInput): Promise<void> {
-		await this.agentRunner.startAgent(input);
-	}
-
-	resolvePermission(input: ResolvePermissionInput): void {
-		this.agentRunner.resolvePermission(input);
 	}
 
 	async interrupt(input: InterruptInput): Promise<void> {

@@ -20,7 +20,12 @@ function providerToLogo(provider: string): string {
 	const lower = provider.toLowerCase();
 	if (lower.includes("anthropic") || lower.includes("claude"))
 		return "anthropic";
-	if (lower.includes("openai") || lower.includes("gpt")) return "openai";
+	if (
+		lower.includes("openai") ||
+		lower.includes("gpt") ||
+		lower.includes("codex")
+	)
+		return "openai";
 	if (lower.includes("google") || lower.includes("gemini")) return "google";
 	if (lower.includes("mistral")) return "mistral";
 	if (lower.includes("deepseek")) return "deepseek";

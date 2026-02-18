@@ -1,7 +1,3 @@
-import type {
-	ToolCallPart,
-	ToolResultPart,
-} from "@superset/durable-session/react";
 import { BashTool } from "@superset/ui/ai-elements/bash-tool";
 import {
 	Confirmation,
@@ -15,6 +11,7 @@ import { ToolCall } from "@superset/ui/ai-elements/tool-call";
 import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
+import type { ToolCallPart, ToolResultPart } from "@tanstack/ai";
 import { MessageCircleQuestionIcon } from "lucide-react";
 import {
 	mapApproval,

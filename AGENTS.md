@@ -13,7 +13,6 @@ Bun + Turbo monorepo with:
   - `apps/desktop` - Electron desktop application
   - `apps/docs` - Documentation site
   - `apps/mobile` - React Native mobile app (Expo)
-  - `apps/streams` - Streams service
   - `apps/electric-proxy` - Electric proxy service
 - **Packages**:
   - `packages/ui` - Shared UI components (shadcn/ui + TailwindCSS v4).
@@ -26,7 +25,6 @@ Bun + Turbo monorepo with:
   - `packages/mcp` - MCP integration
   - `packages/desktop-mcp` - Desktop MCP server
   - `packages/local-db` - Local SQLite database
-  - `packages/durable-session` - Durable session management
   - `packages/email` - Email templates/sending
   - `packages/scripts` - CLI tooling
 - **Tooling**:

@@ -6,7 +6,6 @@ import { ChatSessionManager } from "./session-manager";
 export type {
 	ClaudeStreamEvent,
 	ErrorEvent,
-	PermissionRequestEvent,
 	SessionEndEvent,
 	SessionStartEvent,
 } from "./session-events";

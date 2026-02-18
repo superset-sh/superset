@@ -59,7 +59,7 @@ export function ChatInputFooter({
 	onSlashCommandSend,
 }: ChatInputFooterProps) {
 	return (
-		<div className="border-t bg-background px-4 py-3">
+		<div className="bg-background px-4 py-3">
 			<div className="mx-auto w-full max-w-3xl">
 				{error && (
 					<div className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">

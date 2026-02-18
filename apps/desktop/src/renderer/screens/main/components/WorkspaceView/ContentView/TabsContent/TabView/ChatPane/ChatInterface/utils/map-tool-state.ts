@@ -1,8 +1,5 @@
-import type {
-	ToolCallPart,
-	ToolResultPart,
-} from "@superset/durable-session/react";
 import type { ToolDisplayState } from "@superset/ui/ai-elements/tool";
+import type { ToolCallPart, ToolResultPart } from "@tanstack/ai";
 
 export function mapToolCallState(
 	tc: ToolCallPart,

@@ -76,10 +76,6 @@ export function htmlEnvTransformPlugin(): Plugin {
 						process.env.NEXT_PUBLIC_ELECTRIC_URL ||
 							"https://api.superset.sh/api/electric",
 					).origin,
-				)
-				.replace(
-					/%NEXT_PUBLIC_STREAMS_URL%/g,
-					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
 				);
 		},
 	};

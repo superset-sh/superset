@@ -11,8 +11,8 @@
  * - RUN_ERROR             — error during execution
  */
 
-import { createTextSegmentEnricher } from "@superset/durable-session";
 import type { StreamChunk } from "@tanstack/ai";
+import { createTextSegmentEnricher } from "./enrich-text-segments";
 
 interface SDKPartialAssistantMessage {
 	type: "stream_event";

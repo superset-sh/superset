@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { AuthPrompt } from "./components/AuthPrompt";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
 import { ToolApprovalBar } from "./components/ToolApprovalBar";
@@ -18,6 +19,8 @@ import type {
 import { hydrateMessages } from "./utils/hydrate-messages";
 
 export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
+	const { data: authStatus } = electronTrpc.aiChat.getAuthStatus.useQuery();
+
 	const [selectedModel, setSelectedModel] =
 		useState<ModelOption>(DEFAULT_MODEL);
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -113,24 +116,28 @@ export function ChatInterface({ sessionId, cwd }: ChatInterfaceProps) {
 				/>
 			)}
 
-			<ChatInputFooter
-				cwd={cwd}
-				error={error}
-				isStreaming={isStreaming}
-				selectedModel={selectedModel}
-				setSelectedModel={setSelectedModel}
-				modelSelectorOpen={modelSelectorOpen}
-				setModelSelectorOpen={setModelSelectorOpen}
-				permissionMode={permissionMode}
-				setPermissionMode={setPermissionMode}
-				thinkingEnabled={thinkingEnabled}
-				setThinkingEnabled={setThinkingEnabled}
-				turnUsage={turnUsage}
-				sessionUsage={sessionUsage}
-				onSend={handleSend}
-				onStop={handleStop}
-				onSlashCommandSend={handleSlashCommandSend}
-			/>
+			{authStatus?.authenticated === false ? (
+				<AuthPrompt />
+			) : (
+				<ChatInputFooter
+					cwd={cwd}
+					error={error}
+					isStreaming={isStreaming}
+					selectedModel={selectedModel}
+					setSelectedModel={setSelectedModel}
+					modelSelectorOpen={modelSelectorOpen}
+					setModelSelectorOpen={setModelSelectorOpen}
+					permissionMode={permissionMode}
+					setPermissionMode={setPermissionMode}
+					thinkingEnabled={thinkingEnabled}
+					setThinkingEnabled={setThinkingEnabled}
+					turnUsage={turnUsage}
+					sessionUsage={sessionUsage}
+					onSend={handleSend}
+					onStop={handleStop}
+					onSlashCommandSend={handleSlashCommandSend}
+				/>
+			)}
 		</div>
 	);
 }

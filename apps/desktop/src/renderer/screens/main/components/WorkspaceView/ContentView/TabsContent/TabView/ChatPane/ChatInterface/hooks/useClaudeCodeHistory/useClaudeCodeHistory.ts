@@ -1,4 +1,4 @@
-import type { UIMessage } from "@superset/durable-session/react";
+import type { UIMessage } from "@tanstack/ai";
 import { useEffect, useMemo, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { extractTitleFromMessages } from "../../utils/extract-title";

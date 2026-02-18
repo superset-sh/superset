@@ -12,13 +12,12 @@ import {
 	toAISdkV5Messages,
 } from "@superset/agent";
 import { observable } from "@trpc/server/observable";
-import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { loadToken } from "../auth/utils/auth-functions";
 import {
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
+	getExistingClaudeCredentials,
 } from "./utils/auth/auth";
 import {
 	readClaudeSessionMessages,
@@ -286,13 +285,39 @@ function scanCustomCommands(cwd: string): CommandEntry[] {
 
 export const createAiChatRouter = () => {
 	return router({
-		getConfig: publicProcedure.query(async () => {
-			const { token } = await loadToken();
+		getAuthStatus: publicProcedure.query(() => {
+			const creds = getExistingClaudeCredentials();
+			if (creds) {
+				return {
+					authenticated: true as const,
+					source: creds.source,
+					kind: creds.kind,
+				};
+			}
 			return {
-				proxyUrl: env.NEXT_PUBLIC_STREAMS_URL,
-				authToken: token,
+				authenticated: false as const,
+				source: null,
+				kind: null,
 			};
 		}),
+
+		setApiKey: publicProcedure
+			.input(z.object({ apiKey: z.string().min(1) }))
+			.mutation(({ input }) => {
+				const isOauth = input.apiKey.startsWith("sk-ant-oat");
+				if (isOauth) {
+					setAnthropicAuthToken(input.apiKey);
+					console.log(
+						"[ai-chat/setApiKey] Set OAuth token via setAnthropicAuthToken",
+					);
+				} else {
+					setAnthropicAuthToken(input.apiKey);
+					console.log(
+						"[ai-chat/setApiKey] Set API key via setAnthropicAuthToken",
+					);
+				}
+				return { success: true };
+			}),
 
 		getModels: publicProcedure.query(() => getAvailableModels()),
 
@@ -355,15 +380,6 @@ export const createAiChatRouter = () => {
 					tabId: input.tabId,
 					model: input.model,
 					permissionMode: input.permissionMode,
-				});
-				return { success: true };
-			}),
-
-		interrupt: publicProcedure
-			.input(z.object({ sessionId: z.string() }))
-			.mutation(async ({ input }) => {
-				await chatSessionManager.interrupt({
-					sessionId: input.sessionId,
 				});
 				return { success: true };
 			}),
@@ -691,26 +707,6 @@ export const createAiChatRouter = () => {
 					extraContext: {
 						toolAnswers: JSON.stringify(input.answers),
 					},
-				});
-				return { success: true };
-			}),
-
-		/** Legacy: approve tool use via session manager */
-		approveToolUse: publicProcedure
-			.input(
-				z.object({
-					sessionId: z.string(),
-					toolUseId: z.string(),
-					approved: z.boolean(),
-					updatedInput: z.record(z.string(), z.unknown()).optional(),
-				}),
-			)
-			.mutation(({ input }) => {
-				chatSessionManager.resolvePermission({
-					sessionId: input.sessionId,
-					toolUseId: input.toolUseId,
-					approved: input.approved,
-					updatedInput: input.updatedInput,
 				});
 				return { success: true };
 			}),

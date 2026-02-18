@@ -1,9 +1,3 @@
-import type {
-	MessagePart,
-	ToolCallPart,
-	ToolResultPart,
-	UIMessage,
-} from "@superset/durable-session/react";
 import type { ExploringGroupItem } from "@superset/ui/ai-elements/exploring-group";
 import { ExploringGroup } from "@superset/ui/ai-elements/exploring-group";
 import {
@@ -18,6 +12,12 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from "@superset/ui/ai-elements/reasoning";
+import type {
+	MessagePart,
+	ToolCallPart,
+	ToolResultPart,
+	UIMessage,
+} from "@tanstack/ai";
 import { HiMiniArrowPath, HiMiniClipboard } from "react-icons/hi2";
 import { safeParseJson } from "../../utils/map-tool-state";
 import { getToolMeta, getToolStatus } from "../../utils/tool-registry";

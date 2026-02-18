@@ -362,8 +362,6 @@ step_write_env() {
     local DOCS_PORT=$((BASE + 4))
     local DESKTOP_VITE_PORT=$((BASE + 5))
     local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
-    local STREAMS_PORT=$((BASE + 7))
-    local STREAMS_INTERNAL_PORT=$((BASE + 8))
     local ELECTRIC_PORT=$((BASE + 9))
     local CADDY_ELECTRIC_PORT=$((BASE + 10))
     local CODE_INSPECTOR_PORT=$((BASE + 11))
@@ -379,8 +377,6 @@ step_write_env() {
     write_env_var "DOCS_PORT" "$DOCS_PORT"
     write_env_var "DESKTOP_VITE_PORT" "$DESKTOP_VITE_PORT"
     write_env_var "DESKTOP_NOTIFICATIONS_PORT" "$DESKTOP_NOTIFICATIONS_PORT"
-    write_env_var "STREAMS_PORT" "$STREAMS_PORT"
-    write_env_var "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
     write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
     write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
@@ -395,13 +391,6 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_DESKTOP_URL" "http://localhost:$DESKTOP_VITE_PORT"
     write_env_var "EXPO_PUBLIC_WEB_URL" "http://localhost:$WEB_PORT"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
-    echo ""
-    echo "# Streams URLs (overrides from root .env)"
-    write_env_var "PORT" "$STREAMS_PORT"
-    write_env_var "STREAMS_URL" "http://localhost:$STREAMS_PORT"
-    write_env_var "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
-    write_env_var "EXPO_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
-    write_env_var "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
     echo ""
     echo "# Electric URLs (overrides from root .env)"
     write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
@@ -435,8 +424,6 @@ step_write_env() {
     { "port": $DOCS_PORT, "label": "Docs" },
     { "port": $DESKTOP_VITE_PORT, "label": "Desktop Vite" },
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
-    { "port": $STREAMS_PORT, "label": "Streams" },
-    { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
     { "port": $ELECTRIC_PORT, "label": "Electric" },
     { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
     { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" }

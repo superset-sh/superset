@@ -105,8 +105,40 @@ export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 		return null;
 	}
 
+	// Claude Code stores OAuth credentials under "Claude Code-credentials"
+	// as a JSON blob with the same shape as ClaudeConfigFile.
 	try {
-		// Claude CLI stores credentials in the keychain with this service/account
+		const raw = execSync(
+			'security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null',
+			{ encoding: "utf-8" },
+		).trim();
+
+		if (raw) {
+			try {
+				const config: ClaudeConfigFile = JSON.parse(raw);
+				if (config.claudeAiOauth?.accessToken) {
+					console.log(
+						"[claude/auth] Found OAuth credentials in macOS Keychain (Claude Code-credentials)",
+					);
+					return {
+						apiKey: config.claudeAiOauth.accessToken,
+						source: "keychain",
+						kind: "oauth",
+					};
+				}
+			} catch {
+				// Not valid JSON — treat as raw API key
+				console.log(
+					"[claude/auth] Found raw credentials in macOS Keychain (Claude Code-credentials)",
+				);
+				return { apiKey: raw, source: "keychain", kind: "apiKey" };
+			}
+		}
+	} catch {
+		// Not found in keychain, this is fine
+	}
+
+	try {
 		const result = execSync(
 			'security find-generic-password -s "claude-cli" -a "api-key" -w 2>/dev/null',
 			{ encoding: "utf-8" },
@@ -120,7 +152,6 @@ export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 		// Not found in keychain, this is fine
 	}
 
-	// Try alternate keychain entry format
 	try {
 		const result = execSync(
 			'security find-generic-password -s "anthropic-api-key" -w 2>/dev/null',

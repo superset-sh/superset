@@ -951,7 +951,10 @@ export const PromptInputTools = ({
 	className,
 	...props
 }: PromptInputToolsProps) => (
-	<div className={cn("flex items-center gap-1", className)} {...props} />
+	<div
+		className={cn("@container flex items-center gap-1", className)}
+		{...props}
+	/>
 );
 
 export type PromptInputButtonProps = ComponentProps<typeof InputGroupButton>;
@@ -967,7 +970,10 @@ export const PromptInputButton = ({
 
 	return (
 		<InputGroupButton
-			className={cn(className)}
+			className={cn(
+				"border-[0.5px] border-neutral-400/60 dark:border-[#303030] dark:bg-[#212121]",
+				className,
+			)}
 			size={newSize}
 			type="button"
 			variant={variant}
@@ -1043,7 +1049,7 @@ export const PromptInputSubmit = ({
 	return (
 		<InputGroupButton
 			aria-label="Submit"
-			className={cn(className)}
+			className={cn("rounded-full", className)}
 			size={size}
 			type="submit"
 			variant={variant}
