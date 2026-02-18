@@ -429,6 +429,12 @@ export function useTerminalLifecycle({
 									clearPaneInitialDataRef.current(paneId);
 								}
 
+								// If the session was recovered from a live detached
+								// channel, stale cold-restore state is no longer relevant.
+								if (result.wasRecovered) {
+									coldRestoreState.delete(paneId);
+								}
+
 								const storedColdRestore = coldRestoreState.get(paneId);
 								if (storedColdRestore?.isRestored) {
 									setIsRestoredMode(true);
@@ -622,7 +628,6 @@ export function useTerminalLifecycle({
 				const detachTimeout = setTimeout(() => {
 					detachRef.current({ paneId });
 					pendingDetaches.delete(paneId);
-					coldRestoreState.delete(paneId);
 				}, 50);
 				pendingDetaches.set(paneId, detachTimeout);
 			}

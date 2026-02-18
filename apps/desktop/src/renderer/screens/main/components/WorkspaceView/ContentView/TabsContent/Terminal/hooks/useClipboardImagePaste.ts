@@ -140,19 +140,7 @@ export function useClipboardImagePaste({
 					imageData: base64,
 					mimeType,
 				});
-
-				const timeoutId = setTimeout(() => {
-					const pending = pendingPasteRef.current;
-					if (!pending) return;
-					if (pending.remotePath !== result.remotePath) return;
-					pendingPasteRef.current = null;
-				}, 8000);
-
-				pendingPasteRef.current = {
-					remotePath: result.remotePath,
-					mode: "ctrlv",
-					timeoutId,
-				};
+				pendingPasteRef.current = null;
 
 				toast.success("Image uploaded to remote clipboard", {
 					id: toastId,
@@ -167,9 +155,9 @@ export function useClipboardImagePaste({
 					});
 				}
 
-				// Send Ctrl+V (\x16) to the terminal so the TUI app triggers
-				// its own clipboard read — our proxy scripts will serve the image.
-				onWrite("\x16");
+				// Paste uploaded remote image path directly to avoid initial
+				// clipboard-probe warnings from SSH'd TUI apps.
+				onWrite(`${quoteForShellInput(result.remotePath)} `);
 
 				return true;
 			} catch (error) {
@@ -190,13 +178,15 @@ export function useClipboardImagePaste({
 
 			if (!hasClaudeClipboardMiss(data)) return;
 
+			// In path mode we bypass clipboard reads, so ignore clipboard-miss
+			// output that may be emitted by the app for unrelated reasons.
+			if (pending.mode === "path") {
+				return;
+			}
+
 			if (pending.mode === "ctrlv") {
 				pending.mode = "path";
 				onWrite(`${quoteForShellInput(pending.remotePath)} `);
-				toast.info("Remote clipboard fallback applied", {
-					description: "Pasted remote image path after clipboard miss",
-					duration: 3000,
-				});
 				return;
 			}
 

@@ -202,7 +202,13 @@ export function SshConnectionsSettings({
 													variant="ghost"
 													size="icon"
 													className="size-7 text-destructive hover:text-destructive"
-													onClick={() => deleteMutation.mutate({ id: conn.id })}
+													onClick={() => {
+														const confirmed = window.confirm(
+															`Delete SSH connection "${conn.name}"?`,
+														);
+														if (!confirmed) return;
+														deleteMutation.mutate({ id: conn.id });
+													}}
 												>
 													<LuTrash2 className="size-3.5" />
 												</Button>
@@ -307,10 +313,12 @@ function SshConnectionDialog({
 	};
 
 	const handleSave = async () => {
+		if (!isValid) return;
+
 		await onSave({
 			name,
 			host,
-			port: Number.parseInt(port, 10) || 22,
+			port: parsedPort,
 			username,
 			authMethod,
 			privateKeyPath: authMethod === "key-file" ? privateKeyPath : null,
@@ -322,9 +330,17 @@ function SshConnectionDialog({
 		if (path) setPrivateKeyPath(path);
 	};
 
+	const parsedPort = Number(port);
+	const isPortValid =
+		Number.isInteger(parsedPort) && parsedPort >= 1 && parsedPort <= 65535;
+	const portError =
+		port.trim() && !isPortValid
+			? "Port must be an integer between 1 and 65535."
+			: null;
 	const isValid =
 		name.trim() &&
 		host.trim() &&
+		isPortValid &&
 		username.trim() &&
 		(authMethod === "ssh-agent" || privateKeyPath.trim());
 
@@ -366,6 +382,9 @@ function SshConnectionDialog({
 								value={port}
 								onChange={(e) => setPort(e.target.value)}
 							/>
+							{portError && (
+								<p className="text-xs text-destructive">{portError}</p>
+							)}
 						</div>
 					</div>
 

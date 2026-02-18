@@ -16,6 +16,29 @@ const BIN_DIR = ".superset/bin";
 const MAX_CLIPBOARD_FILES = 5;
 const PROXY_MARKER = "# superset-clipboard-proxy v6";
 
+function resolveImageExtension(mimeType: string): string {
+	const normalized = mimeType.trim().toLowerCase();
+	const known: Record<string, string> = {
+		"image/jpeg": "jpg",
+		"image/png": "png",
+		"image/webp": "webp",
+		"image/gif": "gif",
+		"image/svg+xml": "svg",
+	};
+
+	const mapped = known[normalized];
+	if (mapped) return mapped;
+
+	const [, subtypeRaw = ""] = normalized.split("/", 2);
+	const subtype = subtypeRaw.split("+")[0] ?? "";
+	const sanitized = subtype.replace(/[^a-z0-9]/g, "");
+	return sanitized || "bin";
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\"'\"'")}'`;
+}
+
 export class RemoteClipboardService {
 	private connection: SSHConnection;
 	private sftp: SFTPService;
@@ -30,6 +53,7 @@ export class RemoteClipboardService {
 	setConnection(connection: SSHConnection): void {
 		this.connection = connection;
 		this.proxyDeployed = false;
+		this._homeDir = null;
 	}
 
 	/**
@@ -39,19 +63,22 @@ export class RemoteClipboardService {
 	async uploadImage(imageBuffer: Buffer, mimeType: string): Promise<string> {
 		const homeDir = await this.getHomeDir();
 		const clipboardDir = `${homeDir}/${CLIPBOARD_DIR}`;
-		const ext = mimeType === "image/jpeg" ? "jpg" : "png";
+		const ext = resolveImageExtension(mimeType);
 		const filename = `clipboard-${Date.now()}.${ext}`;
 		const remotePath = `${clipboardDir}/${filename}`;
+		const quotedClipboardDir = shellQuote(clipboardDir);
+		const quotedRemotePath = shellQuote(remotePath);
+		const quotedLatestPath = shellQuote(`${clipboardDir}/latest`);
 
 		// Ensure directory exists
-		await this.connection.exec(`mkdir -p '${clipboardDir}'`);
+		await this.connection.exec(`mkdir -p ${quotedClipboardDir}`);
 
 		// Write the image file
 		await this.sftp.writeFile(remotePath, imageBuffer);
 
 		// Update the "latest" symlink so proxy scripts always serve the newest image
 		await this.connection.exec(
-			`ln -sf '${remotePath}' '${clipboardDir}/latest'`,
+			`ln -sf ${quotedRemotePath} ${quotedLatestPath}`,
 		);
 
 		// Cleanup old files in the background
@@ -69,7 +96,7 @@ export class RemoteClipboardService {
 		const result = await this.connection.exec(
 			[
 				'export PATH="$HOME/.superset/bin:$PATH"',
-				`if [ -f '${clipboardDir}/latest' ]; then echo latest_exists; else echo latest_missing; fi`,
+				`if [ -f ${shellQuote(`${clipboardDir}/latest`)} ]; then echo latest_exists; else echo latest_missing; fi`,
 				"if xclip -selection clipboard -t image/png -o >/dev/null 2>&1 || wl-paste --type image/png >/dev/null 2>&1 || SUPERSET_CLIPBOARD_IMAGE=1 pbpaste >/dev/null 2>&1; then echo readImage_ok; else echo readImage_fail; fi",
 			].join("; "),
 		);
@@ -93,38 +120,60 @@ export class RemoteClipboardService {
 		const homeDir = await this.getHomeDir();
 		const binDir = `${homeDir}/${BIN_DIR}`;
 		const clipboardDir = `${homeDir}/${CLIPBOARD_DIR}`;
+		const quotedBinDir = shellQuote(binDir);
+		const quotedClipboardDir = shellQuote(clipboardDir);
 
-		await this.connection.exec(`mkdir -p '${binDir}' '${clipboardDir}'`);
+		await this.connection.exec(
+			`mkdir -p ${quotedBinDir} ${quotedClipboardDir}`,
+		);
 
 		const scripts = buildProxyScripts(clipboardDir);
 
 		for (const [name, content] of Object.entries(scripts)) {
 			const scriptPath = `${binDir}/${name}`;
+			const quotedScriptPath = shellQuote(scriptPath);
 
 			// Check if our proxy is already installed
 			const check = await this.connection
-				.exec(`head -2 '${scriptPath}' 2>/dev/null`)
+				.exec(`head -2 ${quotedScriptPath} 2>/dev/null`)
 				.catch(() => ({ stdout: "", stderr: "", code: 1 }));
 
 			if (check.stdout.includes(PROXY_MARKER)) continue;
 
 			await this.sftp.writeFile(scriptPath, content);
-			await this.connection.exec(`chmod +x '${scriptPath}'`);
+			await this.connection.exec(`chmod +x ${quotedScriptPath}`);
 		}
 
 		this.proxyDeployed = true;
 	}
 
 	private async cleanupOldFiles(clipboardDir: string): Promise<void> {
+		const quotedClipboardDir = shellQuote(clipboardDir);
 		await this.connection.exec(
-			`cd '${clipboardDir}' && ls -t clipboard-* 2>/dev/null | tail -n +${MAX_CLIPBOARD_FILES + 1} | xargs rm -f 2>/dev/null`,
+			`cd ${quotedClipboardDir} && ls -t clipboard-* 2>/dev/null | tail -n +${MAX_CLIPBOARD_FILES + 1} | xargs rm -f 2>/dev/null`,
 		);
 	}
 
 	private async getHomeDir(): Promise<string> {
 		if (this._homeDir) return this._homeDir;
-		const result = await this.connection.exec("echo $HOME");
-		this._homeDir = result.stdout.trim();
+
+		let result: { stdout: string };
+		try {
+			result = await this.connection.exec("echo $HOME");
+		} catch (error) {
+			throw new Error(
+				`Failed to resolve remote HOME directory: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		}
+
+		const homeDir = result.stdout.trim();
+		if (!homeDir || !homeDir.startsWith("/")) {
+			throw new Error(
+				`Invalid remote HOME directory resolved: "${homeDir || "<empty>"}"`,
+			);
+		}
+
+		this._homeDir = homeDir;
 		return this._homeDir;
 	}
 }

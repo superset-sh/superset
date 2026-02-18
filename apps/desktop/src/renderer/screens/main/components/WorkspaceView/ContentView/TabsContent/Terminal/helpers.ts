@@ -388,7 +388,24 @@ export function setupPasteHandler(
 				if (file) {
 					event.preventDefault();
 					event.stopImmediatePropagation();
-					void options.onImagePaste(file);
+					options
+						.onImagePaste(file)
+						.then((handled) => {
+							if (!handled) {
+								console.warn(
+									"[Terminal] Image paste was not handled by onImagePaste",
+								);
+							}
+						})
+						.catch((error) => {
+							console.error("[Terminal] Image paste failed:", error);
+							toast.error("Image paste failed", {
+								description:
+									error instanceof Error
+										? error.message
+										: "Unexpected image paste error",
+							});
+						});
 					return;
 				}
 			}

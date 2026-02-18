@@ -1,4 +1,10 @@
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+	index,
+	integer,
+	sqliteTable,
+	text,
+	uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { v4 as uuidv4 } from "uuid";
 
 import type {
@@ -134,7 +140,12 @@ export const workspaces = sqliteTable(
 		worktreeId: text("worktree_id").references(() => worktrees.id, {
 			onDelete: "cascade",
 		}), // Only set for type="worktree"
-		sshConnectionId: text("ssh_connection_id"), // Only set for type="remote"
+		sshConnectionId: text("ssh_connection_id").references(
+			() => sshConnections.id,
+			{
+				onDelete: "set null",
+			},
+		), // Only set for type="remote"
 		remotePath: text("remote_path"), // Absolute path on remote host
 		type: text("type").notNull().$type<WorkspaceType>(),
 		branch: text("branch").notNull(), // Branch name for both types
@@ -289,6 +300,10 @@ export const organizationMembers = sqliteTable(
 	(table) => [
 		index("organization_members_organization_id_idx").on(table.organization_id),
 		index("organization_members_user_id_idx").on(table.user_id),
+		uniqueIndex("organization_members_org_user_unique").on(
+			table.organization_id,
+			table.user_id,
+		),
 	],
 );
 
