@@ -6,14 +6,18 @@ type OpenNewResult = ElectronRouterOutputs["projects"]["openNew"];
 type MultiResults = Extract<OpenNewResult, { multi: true }>["results"];
 
 type SuccessOutcome = Extract<MultiResults[number], { status: "success" }>;
+type NeedsGitInitOutcome = Extract<
+	MultiResults[number],
+	{ status: "needsGitInit" }
+>;
 type ErrorOutcome = Extract<MultiResults[number], { status: "error" }>;
 
 export interface CategorizedResults {
 	successes: SuccessOutcome[];
+	needsGitInit: NeedsGitInitOutcome[];
 	errors: ErrorOutcome[];
 }
 
-/** Categorizes open-project results and shows appropriate toasts. */
 export function processOpenNewResults({
 	results,
 	showSuccessToast = true,
@@ -23,6 +27,9 @@ export function processOpenNewResults({
 }): CategorizedResults {
 	const successes = results.filter(
 		(r): r is SuccessOutcome => r.status === "success",
+	);
+	const needsGitInit = results.filter(
+		(r): r is NeedsGitInitOutcome => r.status === "needsGitInit",
 	);
 	const errors = results.filter((r): r is ErrorOutcome => r.status === "error");
 
@@ -40,5 +47,5 @@ export function processOpenNewResults({
 		);
 	}
 
-	return { successes, errors };
+	return { successes, needsGitInit, errors };
 }

@@ -43,20 +43,19 @@ import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
 
-// Return types for openNew procedure (single project)
 type OpenNewCanceled = { canceled: true };
 type OpenNewError = { canceled: false; error: string };
 type OpenNewResult =
 	| OpenNewCanceled
 	| { canceled: false; project: Project }
+	| { canceled: false; needsGitInit: true; selectedPath: string }
 	| OpenNewError;
 
-// Per-folder outcome for multi-select
 type FolderOutcome =
 	| { status: "success"; project: Project }
+	| { status: "needsGitInit"; selectedPath: string }
 	| { status: "error"; selectedPath: string; error: string };
 
-// Return types for openNew procedure (multi-select)
 type OpenNewMultiResult =
 	| OpenNewCanceled
 	| { canceled: false; multi: true; results: FolderOutcome[] }
@@ -523,42 +522,39 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 			for (const selectedPath of result.filePaths) {
 				try {
-					let mainRepoPath: string;
-					let defaultBranch: string;
-					let method: string;
-
-					try {
-						mainRepoPath = await getGitRoot(selectedPath);
-						defaultBranch = await getDefaultBranch(mainRepoPath);
-						method = "open";
-					} catch {
-						// Not a git repo — auto-initialize git
-						const initResult = await initGitRepo(selectedPath);
-						mainRepoPath = selectedPath;
-						defaultBranch = initResult.defaultBranch;
-						method = "init";
-					}
+					const mainRepoPath = await getGitRoot(selectedPath);
+					const defaultBranch = await getDefaultBranch(mainRepoPath);
 
 					const project = upsertProject(mainRepoPath, defaultBranch);
 					await ensureMainWorkspace(project);
 
 					track("project_opened", {
 						project_id: project.id,
-						method,
+						method: "open",
 					});
 
 					outcomes.push({ status: "success", project });
-				} catch (error) {
-					console.error(
-						"[projects/openNew] Failed to open project:",
-						selectedPath,
-						error,
-					);
-					outcomes.push({
-						status: "error",
-						selectedPath,
-						error: error instanceof Error ? error.message : String(error),
-					});
+				} catch (gitError) {
+					const msg =
+						gitError instanceof Error ? gitError.message : String(gitError);
+					const msgLower = msg.toLowerCase();
+					if (
+						msgLower.includes("not a git repository") ||
+						msgLower.includes("cannot find git root")
+					) {
+						outcomes.push({ status: "needsGitInit", selectedPath });
+					} else {
+						console.error(
+							"[projects/openNew] Failed to open project:",
+							selectedPath,
+							gitError,
+						);
+						outcomes.push({
+							status: "error",
+							selectedPath,
+							error: msg,
+						});
+					}
 				}
 			}
 
@@ -570,12 +566,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			.mutation(async ({ input }): Promise<OpenNewResult> => {
 				const selectedPath = input.path;
 
-				// Check if path exists
 				if (!existsSync(selectedPath)) {
 					return { canceled: false, error: "Path does not exist" };
 				}
 
-				// Check if path is a directory
 				try {
 					const stats = statSync(selectedPath);
 					if (!stats.isDirectory()) {
@@ -593,28 +587,24 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				let mainRepoPath: string;
 				let defaultBranch: string;
-				let method: string;
 
 				try {
 					mainRepoPath = await getGitRoot(selectedPath);
 					defaultBranch = await getDefaultBranch(mainRepoPath);
-					method = "drop";
 				} catch {
-					// Not a git repo — auto-initialize git
-					const initResult = await initGitRepo(selectedPath);
-					mainRepoPath = selectedPath;
-					defaultBranch = initResult.defaultBranch;
-					method = "init";
+					return {
+						canceled: false,
+						needsGitInit: true as const,
+						selectedPath,
+					};
 				}
 
 				const project = upsertProject(mainRepoPath, defaultBranch);
-
-				// Auto-create main workspace if it doesn't exist
 				await ensureMainWorkspace(project);
 
 				track("project_opened", {
 					project_id: project.id,
-					method,
+					method: "drop",
 				});
 
 				return {
@@ -629,8 +619,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const { defaultBranch } = await initGitRepo(input.path);
 
 				const project = upsertProject(input.path, defaultBranch);
-
-				// Auto-create main workspace if it doesn't exist
 				await ensureMainWorkspace(project);
 
 				track("project_opened", {
