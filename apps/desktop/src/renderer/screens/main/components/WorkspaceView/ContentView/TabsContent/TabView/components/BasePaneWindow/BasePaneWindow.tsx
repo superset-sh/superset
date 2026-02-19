@@ -2,6 +2,7 @@ import { useContext, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow, MosaicWindowContext } from "react-mosaic-component";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
 
@@ -28,7 +29,6 @@ interface BasePaneWindowProps {
 	paneId: string;
 	path: MosaicBranch[];
 	tabId: string;
-	isActive: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -46,7 +46,6 @@ export function BasePaneWindow({
 	paneId,
 	path,
 	tabId,
-	isActive,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,
@@ -54,6 +53,7 @@ export function BasePaneWindow({
 	children,
 	contentClassName = "w-full h-full overflow-hidden",
 }: BasePaneWindowProps) {
+	const isActive = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const splitOrientation = useSplitOrientation(containerRef);
 	const isDragging = useDragPaneStore((s) => s.draggingPaneId !== null);

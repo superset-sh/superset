@@ -6,6 +6,11 @@ export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
 // Fallback timeout for first render (in case xterm doesn't emit onRender)
 export const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
 
+// Safety timeout: force stream readiness if it hasn't been established.
+// Prevents permanently blank terminals when createOrAttach fails silently
+// or the restore sequence doesn't complete.
+export const STREAM_READY_TIMEOUT_MS = 5000;
+
 // Debug logging for terminal lifecycle (enable via localStorage)
 // Run in DevTools console: localStorage.setItem('SUPERSET_TERMINAL_DEBUG', '1')
 export const DEBUG_TERMINAL =

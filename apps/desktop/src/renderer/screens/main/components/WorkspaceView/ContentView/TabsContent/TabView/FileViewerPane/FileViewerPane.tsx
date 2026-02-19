@@ -17,7 +17,6 @@ import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 interface FileViewerPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	worktreePath: string;
 	splitPaneAuto: (
@@ -46,7 +45,6 @@ interface FileViewerPaneProps {
 export function FileViewerPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	worktreePath,
 	splitPaneAuto,
@@ -158,7 +156,6 @@ export function FileViewerPane({
 				paneId={paneId}
 				path={path}
 				tabId={tabId}
-				isActive={isActive}
 				splitPaneAuto={splitPaneAuto}
 				removePane={removePane}
 				setFocusedPane={setFocusedPane}
@@ -269,7 +266,6 @@ export function FileViewerPane({
 				paneId={paneId}
 				path={path}
 				tabId={tabId}
-				isActive={isActive}
 				splitPaneAuto={splitPaneAuto}
 				removePane={removePane}
 				setFocusedPane={setFocusedPane}

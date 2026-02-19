@@ -13,7 +13,6 @@ const apiUrl = env.NEXT_PUBLIC_API_URL;
 interface ChatPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	workspaceId: string;
 	splitPaneAuto: (
@@ -29,7 +28,6 @@ interface ChatPaneProps {
 export function ChatPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	workspaceId,
 	splitPaneAuto,
@@ -82,7 +80,6 @@ export function ChatPane({
 			paneId={paneId}
 			path={path}
 			tabId={tabId}
-			isActive={isActive}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}

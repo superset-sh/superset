@@ -5,7 +5,6 @@ import { BasePaneWindow, PaneToolbarActions } from "../components";
 interface DevToolsPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	targetPaneId: string;
 	splitPaneAuto: (
@@ -21,7 +20,6 @@ interface DevToolsPaneProps {
 export function DevToolsPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	targetPaneId,
 	splitPaneAuto,
@@ -44,7 +42,6 @@ export function DevToolsPane({
 			paneId={paneId}
 			path={path}
 			tabId={tabId}
-			isActive={isActive}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}
