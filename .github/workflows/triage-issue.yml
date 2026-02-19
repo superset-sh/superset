@@ -53,10 +53,16 @@ jobs:
             echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
           fi
 
+      - name: Configure git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
       - name: Create branch
         run: |
           BRANCH_NAME="triage/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
           git checkout -B "$BRANCH_NAME"
+          git push -u origin "$BRANCH_NAME"
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
       - name: Triage issue with Claude Code
@@ -65,71 +71,4 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           claude -p "$(cat .github/prompts/triage-issue.md)" \
-            --allowedTools "Bash(bun test*)" "Bash(git*)" "Bash(gh*)" "Bash(ls*)" "Bash(cat /tmp/triage*)" "Read" "Write" "Edit" "Glob" "Grep"
-
-      - name: Read triage result
-        id: triage
-        run: |
-          if [ -f /tmp/triage-result.json ]; then
-            OUTCOME=$(cat /tmp/triage-result.json | jq -r '.outcome')
-            SUMMARY=$(cat /tmp/triage-result.json | jq -r '.summary')
-            echo "outcome=$OUTCOME" >> $GITHUB_OUTPUT
-            echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
-          else
-            echo "outcome=not_reproduced" >> $GITHUB_OUTPUT
-            echo "summary=Claude Code did not produce a triage result." >> $GITHUB_OUTPUT
-          fi
-
-      - name: Lint fix
-        if: steps.triage.outputs.outcome == 'confirmed'
-        run: bun run lint:fix
-        continue-on-error: true
-
-      - name: Commit, push, and create PR
-        if: steps.triage.outputs.outcome == 'confirmed'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add -A
-          git commit -m "test: add reproduction test for issue #${ISSUE_NUMBER}"
-          git push origin "$BRANCH_NAME"
-          gh pr create \
-            --title "test: reproduction test for issue #${ISSUE_NUMBER}" \
-            --body "$(cat <<EOF
-          ## Summary
-
-          - Automated triage for #${ISSUE_NUMBER}
-          - Added a failing unit test that reproduces the reported bug
-
-          ## Triage Result
-
-          ${{ steps.triage.outputs.summary }}
-
-          ## Next Steps
-
-          - [ ] Review the reproduction test
-          - [ ] Fix the underlying bug so the test passes
-
-          Closes #${ISSUE_NUMBER}
-          EOF
-          )" \
-            --base main \
-            --head "$BRANCH_NAME"
-
-      - name: Comment on issue if not reproduced
-        if: steps.triage.outputs.outcome == 'not_reproduced'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh issue comment "$ISSUE_NUMBER" --body "$(cat <<EOF
-          ## Automated Triage Result
-
-          Claude Code was unable to reproduce this issue via a unit test.
-
-          **Summary:** ${{ steps.triage.outputs.summary }}
-
-          This does not mean the bug isn't real — it may require manual investigation or an integration test to reproduce.
-          EOF
-          )"
+            --allowedTools "Bash(bun *)" "Bash(git *)" "Bash(gh *)" "Read" "Write" "Edit" "Glob" "Grep"
