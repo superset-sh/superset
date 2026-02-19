@@ -6,8 +6,8 @@ import {
 	PRODUCER_RESPONSE_HEADERS,
 	PROTOCOL_QUERY_PARAMS,
 	PROTOCOL_RESPONSE_HEADERS,
-	STRIP_HEADERS,
 	requireAuth,
+	STRIP_HEADERS,
 	streamUrl,
 } from "../../lib";
 

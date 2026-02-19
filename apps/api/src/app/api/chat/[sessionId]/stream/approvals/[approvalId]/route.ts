@@ -3,9 +3,7 @@ import { appendToStream, requireAuth } from "../../../../lib";
 
 export async function POST(
 	request: Request,
-	{
-		params,
-	}: { params: Promise<{ sessionId: string; approvalId: string }> },
+	{ params }: { params: Promise<{ sessionId: string; approvalId: string }> },
 ): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
