@@ -52,6 +52,7 @@ export function TopBar() {
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}
 						branch={workspace.worktree?.branch}
+						projectId={workspace.project?.id}
 					/>
 				)}
 				<OrganizationDropdown />

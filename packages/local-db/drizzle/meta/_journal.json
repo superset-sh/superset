@@ -194,8 +194,15 @@
     {
       "idx": 27,
       "version": "6",
-      "when": 1771412499604,
-      "tag": "0027_add_workspace_base_branch",
+      "when": 1771524526706,
+      "tag": "0027_per_project_default_app",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1771530855795,
+      "tag": "0028_add_workspace_base_branch",
       "breakpoints": true
     }
   ]

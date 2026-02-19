@@ -1,5 +1,6 @@
 "use client";
 
+import { mermaid } from "@streamdown/mermaid";
 import type { FileUIPart, UIMessage } from "ai";
 import {
 	ChevronLeftIcon,
@@ -19,6 +20,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "../ui/tooltip";
+
+const streamdownPlugins = { mermaid };
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 	from: UIMessage["role"];
@@ -304,19 +307,22 @@ export const MessageBranchPage = ({
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 export const MessageResponse = memo(
-	({ className, animated, ...props }: MessageResponseProps) => (
+	({ className, animated, isAnimating, ...props }: MessageResponseProps) => (
 		<Streamdown
 			animated={animated ?? { animation: "fadeIn", sep: "char" }}
 			className={cn(
 				"text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ol]:list-outside [&_ol]:pl-6 [&_ul]:list-outside [&_ul]:pl-6 [&_:not(pre)>code]:break-all",
 				className,
 			)}
+			isAnimating={isAnimating}
+			plugins={isAnimating ? undefined : streamdownPlugins}
 			{...props}
 		/>
 	),
 	(prevProps, nextProps) =>
 		prevProps.children === nextProps.children &&
-		prevProps.isAnimating === nextProps.isAnimating,
+		prevProps.isAnimating === nextProps.isAnimating &&
+		prevProps.mermaid?.config?.theme === nextProps.mermaid?.config?.theme,
 );
 
 MessageResponse.displayName = "MessageResponse";

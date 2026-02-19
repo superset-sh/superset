@@ -17,6 +17,7 @@ interface FileListGroupedProps {
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
+	projectId?: string;
 }
 
 interface FolderGroup {
@@ -71,6 +72,7 @@ interface FolderGroupItemProps {
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
+	projectId?: string;
 }
 
 function FolderGroupItem({
@@ -86,6 +88,7 @@ function FolderGroupItem({
 	category,
 	commitHash,
 	isExpandedView,
+	projectId,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const displayName = group.folderPath || "Root Path";
@@ -120,6 +123,7 @@ function FolderGroupItem({
 			variant="grouped"
 			folderPath={group.folderPath}
 			worktreePath={worktreePath}
+			projectId={projectId}
 			onStageAll={onStage ? handleStageAll : undefined}
 			onUnstageAll={onUnstage ? handleUnstageAll : undefined}
 			onDiscardAll={onDiscard ? handleDiscardAll : undefined}
@@ -136,6 +140,7 @@ function FolderGroupItem({
 					onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
+					projectId={projectId}
 					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 					category={category}
 					commitHash={commitHash}
@@ -159,6 +164,7 @@ export function FileListGrouped({
 	category,
 	commitHash,
 	isExpandedView,
+	projectId,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
@@ -179,6 +185,7 @@ export function FileListGrouped({
 					category={category}
 					commitHash={commitHash}
 					isExpandedView={isExpandedView}
+					projectId={projectId}
 				/>
 			))}
 		</div>

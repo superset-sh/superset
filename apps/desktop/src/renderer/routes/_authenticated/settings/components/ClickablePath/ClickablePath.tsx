@@ -27,17 +27,12 @@ interface ClickablePathProps {
 	className?: string;
 }
 
+const defaultApp: ExternalApp = "cursor";
+
 export function ClickablePath({ path, className }: ClickablePathProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const utils = electronTrpc.useUtils();
-
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery(undefined, {
-			staleTime: 30000,
-		});
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
-		onSuccess: () => utils.settings.getLastUsedApp.invalidate(),
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
 
@@ -81,7 +76,7 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 					>
 						<img src={app.icon} alt="" className="size-4 object-contain" />
 						<span>{app.label}</span>
-						{app.id === lastUsedApp && (
+						{app.id === defaultApp && (
 							<span className="ml-auto text-xs text-muted-foreground">
 								Default
 							</span>
@@ -106,7 +101,7 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 							>
 								<img src={app.icon} alt="" className="size-4 object-contain" />
 								<span>{app.label}</span>
-								{app.id === lastUsedApp && (
+								{app.id === defaultApp && (
 									<span className="ml-auto text-xs text-muted-foreground">
 										Default
 									</span>
@@ -133,7 +128,7 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 							>
 								<img src={app.icon} alt="" className="size-4 object-contain" />
 								<span>{app.label}</span>
-								{app.id === lastUsedApp && (
+								{app.id === defaultApp && (
 									<span className="ml-auto text-xs text-muted-foreground">
 										Default
 									</span>

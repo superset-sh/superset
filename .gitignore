@@ -64,12 +64,8 @@ next-env.d.ts
 # Reference material downloaded for agents
 examples
 
-# Claude binaries - only darwin-arm64 tracked with Git LFS, others downloaded at build time
-apps/desktop/resources/bin/VERSION
-apps/desktop/resources/bin/darwin-x64/
-apps/desktop/resources/bin/linux-arm64/
-apps/desktop/resources/bin/linux-x64/
-apps/desktop/resources/bin/win32-x64/
+# Claude binaries - downloaded at build time
+apps/desktop/resources/bin/
 
 # Streams data
 apps/streams/data/

@@ -62,6 +62,12 @@ export function CollapsedWorkspaceItem({
 			}}
 			type="button"
 			onClick={onClick}
+			onAuxClick={(e) => {
+				if (e.button === 1) {
+					e.preventDefault();
+					onDeleteClick();
+				}
+			}}
 			onMouseEnter={onMouseEnter}
 			className={cn(
 				"relative flex items-center justify-center size-8 rounded-md",
@@ -81,15 +87,24 @@ export function CollapsedWorkspaceItem({
 
 	if (isBranchWorkspace) {
 		return (
-			<Tooltip delayDuration={300}>
-				<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
-				<TooltipContent side="right" className="flex flex-col gap-0.5">
-					<span className="font-medium">local</span>
-					<span className="text-xs text-muted-foreground font-mono">
-						{branch}
-					</span>
-				</TooltipContent>
-			</Tooltip>
+			<>
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
+					<TooltipContent side="right" className="flex flex-col gap-0.5">
+						<span className="font-medium">local</span>
+						<span className="text-xs text-muted-foreground font-mono">
+							{branch}
+						</span>
+					</TooltipContent>
+				</Tooltip>
+				<DeleteWorkspaceDialog
+					workspaceId={id}
+					workspaceName={name}
+					workspaceType={type}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			</>
 		);
 	}
 

@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "0a13d4fc-215b-41bb-9a42-29becaf02803",
-  "prevId": "f9a3301f-7c42-4e88-a95d-bca4ce39da98",
+  "id": "61988631-3497-4083-9a47-fcfb743788a3",
+  "prevId": "0a13d4fc-215b-41bb-9a42-29becaf02803",
   "tables": {
     "browser_history": {
       "name": "browser_history",
@@ -323,6 +323,13 @@
         },
         "default_branch": {
           "name": "default_branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "workspace_base_branch": {
+          "name": "workspace_base_branch",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

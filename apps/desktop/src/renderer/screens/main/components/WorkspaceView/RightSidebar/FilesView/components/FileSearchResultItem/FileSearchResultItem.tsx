@@ -24,6 +24,7 @@ import { getFileIcon } from "../../utils";
 interface FileSearchResultItemProps {
 	entry: DirectoryEntry;
 	worktreePath: string;
+	projectId?: string;
 	onActivate: (entry: DirectoryEntry) => void;
 	onOpenInEditor: (entry: DirectoryEntry) => void;
 	onNewFile: (parentPath: string) => void;
@@ -54,6 +55,7 @@ function truncatePathStart(value: string, maxLength: number): string {
 export function FileSearchResultItem({
 	entry,
 	worktreePath,
+	projectId,
 	onActivate,
 	onOpenInEditor,
 	onNewFile,
@@ -81,6 +83,7 @@ export function FileSearchResultItem({
 			absolutePath: entry.path,
 			relativePath: entry.relativePath,
 			cwd: worktreePath,
+			projectId,
 		});
 
 	const fileDragProps = useFileDrag({ absolutePath: entry.path });

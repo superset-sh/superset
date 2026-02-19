@@ -100,10 +100,6 @@ export function getPresetsForTrigger(
 
 export const createSettingsRouter = () => {
 	return router({
-		getLastUsedApp: publicProcedure.query(() => {
-			const row = getSettings();
-			return row.lastUsedApp ?? "cursor";
-		}),
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			if (!row.terminalPresetsInitialized) {

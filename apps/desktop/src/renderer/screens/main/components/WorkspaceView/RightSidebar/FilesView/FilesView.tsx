@@ -170,9 +170,13 @@ export function FilesView() {
 	const handleOpenInEditor = useCallback(
 		(entry: DirectoryEntry) => {
 			if (!worktreePath) return;
-			openFileInEditorMutation.mutate({ path: entry.path, cwd: worktreePath });
+			openFileInEditorMutation.mutate({
+				path: entry.path,
+				cwd: worktreePath,
+				projectId,
+			});
 		},
-		[worktreePath, openFileInEditorMutation],
+		[worktreePath, projectId, openFileInEditorMutation],
 	);
 
 	const handleNewFile = useCallback(
@@ -351,6 +355,7 @@ export function FilesView() {
 													key={entry.id}
 													entry={entry}
 													worktreePath={worktreePath}
+													projectId={projectId}
 													onActivate={handleFileActivate}
 													onOpenInEditor={handleOpenInEditor}
 													onNewFile={handleNewFile}
@@ -394,6 +399,7 @@ export function FilesView() {
 														rowHeight={ROW_HEIGHT}
 														indent={TREE_INDENT}
 														worktreePath={worktreePath}
+														projectId={projectId}
 														onActivate={handleFileActivate}
 														onOpenInEditor={handleOpenInEditor}
 														onNewFile={handleNewFile}

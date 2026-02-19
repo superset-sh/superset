@@ -21,7 +21,7 @@ let pathFixSucceeded = false;
 /**
  * Gets the full shell environment by spawning a login shell.
  * This captures PATH and other environment variables set in shell profiles
- * which includes tools like git-lfs installed via homebrew.
+ * which includes tools installed via homebrew.
  *
  * Uses -lc (login, command) instead of -ilc to avoid interactive prompts
  * and TTY issues from dotfiles expecting a terminal.
@@ -83,23 +83,6 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 		cacheTime = now;
 		isFallbackCache = true;
 		return { ...fallback };
-	}
-}
-
-/**
- * Checks if git-lfs is available in the given environment.
- */
-export async function checkGitLfsAvailable(
-	env: Record<string, string>,
-): Promise<boolean> {
-	try {
-		await execFileAsync("git", ["lfs", "version"], {
-			timeout: 5_000,
-			env,
-		});
-		return true;
-	} catch {
-		return false;
 	}
 }
 

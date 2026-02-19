@@ -3,12 +3,15 @@ import { MessageResponse } from "@superset/ui/ai-elements/message";
 import type { UIMessage } from "ai";
 import { getToolName, isToolUIPart } from "ai";
 import {
+	AlertCircleIcon,
 	FileIcon,
 	FileSearchIcon,
 	FolderTreeIcon,
 	SearchIcon,
 } from "lucide-react";
 import type React from "react";
+import { useMemo } from "react";
+import { useTheme } from "renderer/stores";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolPart } from "../../utils/tool-helpers";
 import { getArgs } from "../../utils/tool-helpers";
@@ -29,6 +32,17 @@ export function MessagePartsRenderer({
 	isStreaming,
 	onAnswer,
 }: MessagePartsRendererProps): React.ReactNode[] {
+	const theme = useTheme();
+	const mermaidConfig = useMemo(
+		() => ({
+			config: {
+				theme:
+					theme?.type !== "light" ? ("dark" as const) : ("default" as const),
+			},
+		}),
+		[theme?.type],
+	);
+
 	const renderParts = ({
 		parts,
 		isLastAssistant,
@@ -44,9 +58,28 @@ export function MessagePartsRenderer({
 
 			if (part.type === "text") {
 				nodes.push(
-					<MessageResponse key={i} isAnimating={isLastAssistant && isStreaming}>
+					<MessageResponse
+						key={i}
+						isAnimating={isLastAssistant && isStreaming}
+						mermaid={mermaidConfig}
+					>
 						{part.text}
 					</MessageResponse>,
+				);
+				i++;
+				continue;
+			}
+
+			if ((part as { type: string }).type === "error") {
+				const errorPart = part as unknown as { type: "error"; text: string };
+				nodes.push(
+					<div
+						key={i}
+						className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+					>
+						<AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+						<span className="select-text">{errorPart.text}</span>
+					</div>,
 				);
 				i++;
 				continue;
