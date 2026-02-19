@@ -19,7 +19,7 @@ const envSchema = z.object({
 	NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
 	NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 	NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
-	NEXT_PUBLIC_OUTLIT_KEY: z.string(),
+	NEXT_PUBLIC_OUTLIT_KEY: z.string().optional(),
 	SENTRY_DSN_DESKTOP: z.string().optional(),
 });
 

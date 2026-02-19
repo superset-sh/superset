@@ -30,7 +30,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])
 			.optional(),
-		NEXT_PUBLIC_OUTLIT_KEY: z.string(),
+		NEXT_PUBLIC_OUTLIT_KEY: z.string().optional(),
 	},
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
