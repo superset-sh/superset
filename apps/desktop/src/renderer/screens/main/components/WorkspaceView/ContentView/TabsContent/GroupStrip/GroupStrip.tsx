@@ -182,7 +182,7 @@ export function GroupStrip() {
 			style={{ scrollbarWidth: "none" }}
 		>
 			{tabs.length > 0 && (
-				<div className="flex items-center h-full shrink-0 border-l border-border">
+				<div className="flex items-center h-full shrink-0">
 					{tabs.map((tab, index) => {
 						const isPrevOfActive = index === activeTabIndex - 1;
 						const isNextOfActive = index === activeTabIndex + 1;
