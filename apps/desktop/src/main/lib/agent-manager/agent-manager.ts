@@ -80,9 +80,12 @@ export class AgentManager {
 		this.shapeStream = new ShapeStream({
 			url: shapeUrl,
 			params: shapeParams,
-			headers: this.authToken
-				? { Authorization: `Bearer ${this.authToken}` }
-				: {},
+			headers: {
+				...(this.authToken
+					? { Authorization: `Bearer ${this.authToken}` }
+					: {}),
+				"X-Electric-Backend": "cloud",
+			},
 		});
 
 		this.shapeStream.subscribe(

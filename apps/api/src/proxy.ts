@@ -24,14 +24,25 @@ function getCorsHeaders(origin: string | null) {
 		"Access-Control-Allow-Origin": isAllowed ? origin : "",
 		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 		"Access-Control-Allow-Headers":
-			"Content-Type, Authorization, x-trpc-source, trpc-accept, X-Electric-Backend",
+			"Content-Type, Authorization, x-trpc-source, trpc-accept, X-Electric-Backend, Producer-Id, Producer-Epoch, Producer-Seq, Stream-Closed",
 		"Access-Control-Expose-Headers": [
+			// Electric sync headers
 			"electric-offset",
 			"electric-handle",
 			"electric-schema",
 			"electric-cursor",
 			"electric-chunk-last-offset",
 			"electric-up-to-date",
+			// Durable stream headers
+			"Stream-Next-Offset",
+			"Stream-Cursor",
+			"Stream-Up-To-Date",
+			"Stream-Closed",
+			"Stream-Total-Size",
+			"Stream-Write-Units",
+			"Producer-Epoch",
+			"Producer-Expected-Seq",
+			"Producer-Received-Seq",
 			"ETag",
 		].join(", "),
 		"Access-Control-Allow-Credentials": "true",
