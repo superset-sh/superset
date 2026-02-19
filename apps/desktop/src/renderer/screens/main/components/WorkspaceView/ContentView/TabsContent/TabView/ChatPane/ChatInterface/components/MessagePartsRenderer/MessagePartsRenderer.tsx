@@ -9,6 +9,8 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import type React from "react";
+import { useMemo } from "react";
+import { useTheme } from "renderer/stores";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolPart } from "../../utils/tool-helpers";
 import { getArgs } from "../../utils/tool-helpers";
@@ -29,6 +31,17 @@ export function MessagePartsRenderer({
 	isStreaming,
 	onAnswer,
 }: MessagePartsRendererProps): React.ReactNode[] {
+	const theme = useTheme();
+	const mermaidConfig = useMemo(
+		() => ({
+			config: {
+				theme:
+					theme?.type !== "light" ? ("dark" as const) : ("default" as const),
+			},
+		}),
+		[theme?.type],
+	);
+
 	const renderParts = ({
 		parts,
 		isLastAssistant,
@@ -44,7 +57,11 @@ export function MessagePartsRenderer({
 
 			if (part.type === "text") {
 				nodes.push(
-					<MessageResponse key={i} isAnimating={isLastAssistant && isStreaming}>
+					<MessageResponse
+						key={i}
+						isAnimating={isLastAssistant && isStreaming}
+						mermaid={mermaidConfig}
+					>
 						{part.text}
 					</MessageResponse>,
 				);

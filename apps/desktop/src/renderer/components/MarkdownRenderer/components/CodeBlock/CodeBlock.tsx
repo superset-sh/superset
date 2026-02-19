@@ -45,7 +45,11 @@ export function CodeBlock({ children, className, node }: CodeBlockProps) {
 
 	if (language === "mermaid") {
 		return (
-			<Streamdown mode="static" plugins={mermaidPlugins}>
+			<Streamdown
+				mode="static"
+				plugins={mermaidPlugins}
+				mermaid={{ config: { theme: isDark ? "dark" : "default" } }}
+			>
 				{`\`\`\`mermaid\n${codeString}\n\`\`\``}
 			</Streamdown>
 		);

@@ -321,7 +321,8 @@ export const MessageResponse = memo(
 	),
 	(prevProps, nextProps) =>
 		prevProps.children === nextProps.children &&
-		prevProps.isAnimating === nextProps.isAnimating,
+		prevProps.isAnimating === nextProps.isAnimating &&
+		prevProps.mermaid?.config?.theme === nextProps.mermaid?.config?.theme,
 );
 
 MessageResponse.displayName = "MessageResponse";
