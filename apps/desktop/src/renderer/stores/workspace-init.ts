@@ -9,6 +9,8 @@ export interface PendingTerminalSetup {
 	initialCommands: string[] | null;
 	/** When undefined, signals that presets haven't been fetched yet and should be loaded from the backend */
 	defaultPresets?: TerminalPreset[];
+	/** Agent command to run in a separate pane from the setup script */
+	agentCommand?: string;
 }
 
 interface WorkspaceInitState {
