@@ -9,6 +9,7 @@
 
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal } from "@xterm/headless";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	DEFAULT_MODES,
 	type TerminalModes,
@@ -75,7 +76,11 @@ export class HeadlessEmulator {
 	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
 
 	constructor(options: HeadlessEmulatorOptions = {}) {
-		const { cols = 80, rows = 24, scrollback = 10000 } = options;
+		const {
+			cols = 80,
+			rows = 24,
+			scrollback = DEFAULT_TERMINAL_SCROLLBACK,
+		} = options;
 
 		this.terminal = new Terminal({
 			cols,
@@ -224,7 +229,8 @@ export class HeadlessEmulator {
 	 */
 	getSnapshot(): TerminalSnapshot {
 		const snapshotAnsi = this.serializeAddon.serialize({
-			scrollback: this.terminal.options.scrollback ?? 10000,
+			scrollback:
+				this.terminal.options.scrollback ?? DEFAULT_TERMINAL_SCROLLBACK,
 		});
 
 		const rehydrateSequences = this.generateRehydrateSequences();
@@ -323,6 +329,9 @@ export class HeadlessEmulator {
 	dispose(): void {
 		if (this.disposed) return;
 		this.disposed = true;
+		// Clear scrollback buffer before disposing to release memory immediately
+		// rather than waiting for GC to collect the terminal instance.
+		this.terminal.clear();
 		this.terminal.dispose();
 	}
 

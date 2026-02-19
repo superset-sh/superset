@@ -2,6 +2,7 @@ import os from "node:os";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import * as pty from "node-pty";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
 import {
@@ -14,7 +15,6 @@ import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
-const DEFAULT_SCROLLBACK = 10000;
 /** Max time to wait for agent hooks before running initial commands */
 const AGENT_HOOKS_TIMEOUT_MS = 2000;
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
@@ -24,7 +24,7 @@ export function createHeadlessTerminal(params: {
 	rows: number;
 	scrollback?: number;
 }): { headless: HeadlessTerminal; serializer: SerializeAddon } {
-	const { cols, rows, scrollback = DEFAULT_SCROLLBACK } = params;
+	const { cols, rows, scrollback = DEFAULT_TERMINAL_SCROLLBACK } = params;
 
 	const headless = new HeadlessTerminal({
 		cols,

@@ -1,4 +1,5 @@
 import type { ITerminalOptions } from "@xterm/xterm";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
@@ -39,7 +40,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
 	allowProposedApi: true,
-	scrollback: 10000,
+	scrollback: DEFAULT_TERMINAL_SCROLLBACK,
 	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
 	macOptionIsMeta: false,
 	cursorStyle: "block",
