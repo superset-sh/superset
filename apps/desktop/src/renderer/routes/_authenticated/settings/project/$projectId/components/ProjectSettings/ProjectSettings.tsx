@@ -290,7 +290,9 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 							disabled={updateProject.isPending || isBranchDataLoading}
 						>
 							<SelectTrigger className="w-[260px]">
-								<SelectValue />
+								<SelectValue
+									placeholder={isBranchDataLoading ? "Loading…" : undefined}
+								/>
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value={REPO_DEFAULT_BASE_BRANCH}>
