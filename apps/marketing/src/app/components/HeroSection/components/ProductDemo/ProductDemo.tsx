@@ -33,7 +33,7 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 			{/* Mockup with scroll-driven scale */}
 			<motion.div
 				className="relative"
-				style={{ scale, willChange: "transform" }}
+				style={{ scale }}
 			>
 				<div className="relative">
 					{/* Large diffuse back-shadow */}
@@ -47,7 +47,7 @@ export function ProductDemo({ scrollYProgress }: ProductDemoProps) {
 			{/* Selector pills - below mockup, shift up as mockup scales */}
 			<motion.div
 				className="flex items-center gap-2 -mt-2 sm:-mt-4 px-4 sm:px-0 sm:justify-center overflow-x-auto pb-1 scrollbar-hide"
-				style={{ y: pillsY, willChange: "transform" }}
+				style={{ y: pillsY }}
 			>
 				{DEMO_OPTIONS.map((option) => (
 					<SelectorPill

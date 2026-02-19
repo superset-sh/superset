@@ -193,6 +193,23 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 	},
 ];
 
+function ComparisonValueCell({ value }: { value: ComparisonValue }) {
+	if (value === null || value === false) {
+		return <span className="sr-only">Not included</span>;
+	}
+
+	if (value === true) {
+		return <HiCheck className="h-3.5 w-3.5 text-muted-foreground" />;
+	}
+
+	return (
+		<>
+			<HiCheck className="h-3.5 w-3.5 text-muted-foreground" />
+			<span className="text-sm">{value}</span>
+		</>
+	);
+}
+
 function PlansPage() {
 	const [isYearly, setIsYearly] = useState(true);
 	const [isUpgrading, setIsUpgrading] = useState(false);
@@ -308,23 +325,6 @@ function PlansPage() {
 		} finally {
 			setIsUpgrading(false);
 		}
-	};
-
-	const renderComparisonValue = (value: ComparisonValue) => {
-		if (value === null || value === false) {
-			return <span className="sr-only">Not included</span>;
-		}
-
-		if (value === true) {
-			return <HiCheck className="h-3.5 w-3.5 text-muted-foreground" />;
-		}
-
-		return (
-			<>
-				<HiCheck className="h-3.5 w-3.5 text-muted-foreground" />
-				<span className="text-sm">{value}</span>
-			</>
-		);
 	};
 
 	const highlightColumnIndex = 1;
@@ -534,7 +534,7 @@ function PlansPage() {
 													key={`${row.label}-${valueIndex}`}
 													className="flex items-center justify-start gap-2 px-4 py-2.5"
 												>
-													{renderComparisonValue(value)}
+													<ComparisonValueCell value={value} />
 												</div>
 											))}
 											{!isLastRow && (

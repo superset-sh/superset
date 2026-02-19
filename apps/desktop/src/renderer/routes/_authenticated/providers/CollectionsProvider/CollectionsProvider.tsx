@@ -31,10 +31,10 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			setIsSwitching(true);
 			try {
 				await authClient.organization.setActive({ organizationId });
-				// Wait for target org's collections to finish initial Electric sync.
-				// If already preloaded by the background useEffect, this resolves instantly.
-				await preloadCollections(organizationId);
-				await refetchSession();
+				await Promise.all([
+					preloadCollections(organizationId),
+					refetchSession(),
+				]);
 			} finally {
 				setIsSwitching(false);
 			}

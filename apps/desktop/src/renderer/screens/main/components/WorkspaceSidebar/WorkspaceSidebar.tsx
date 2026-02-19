@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
@@ -20,18 +19,16 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
 
-	// Calculate shortcut base indices for each project group using cumulative offsets
-	const projectShortcutIndices = useMemo(
-		() =>
-			groups.reduce<{ indices: number[]; cumulative: number }>(
-				(acc, group) => ({
-					indices: [...acc.indices, acc.cumulative],
-					cumulative: acc.cumulative + group.workspaces.length,
-				}),
-				{ indices: [], cumulative: 0 },
-			).indices,
-		[groups],
-	);
+	const projectShortcutIndices = groups.reduce<{
+		indices: number[];
+		cumulative: number;
+	}>(
+		(acc, group) => ({
+			indices: [...acc.indices, acc.cumulative],
+			cumulative: acc.cumulative + group.workspaces.length,
+		}),
+		{ indices: [], cumulative: 0 },
+	).indices;
 
 	return (
 		<SidebarDropZone className="flex flex-col h-full bg-background">

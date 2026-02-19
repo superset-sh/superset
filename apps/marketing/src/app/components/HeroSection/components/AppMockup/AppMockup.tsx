@@ -711,9 +711,9 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							}}
 							transition={{ duration: 0.3, ease: "easeOut" }}
 						>
-							{FILE_CHANGES.map((file, i) => (
+							{FILE_CHANGES.map((file) => (
 								<FileChangeItem
-									key={`${file.path}-${i}`}
+									key={file.path}
 									path={file.path}
 									add={file.add}
 									del={file.del}

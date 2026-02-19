@@ -155,8 +155,7 @@ function ProjectPage() {
 
 			<div className="flex-1 flex overflow-y-auto">
 				<div className="flex-1 flex items-center justify-center">
-					{/* biome-ignore lint/a11y/noStaticElementInteractions: onKeyDown for Enter-to-submit */}
-					<div className="w-full max-w-md mx-6" onKeyDown={handleKeyDown}>
+					<div role="form" className="w-full max-w-md mx-6" onKeyDown={handleKeyDown}>
 						<h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
 							Create your first workspace
 						</h1>

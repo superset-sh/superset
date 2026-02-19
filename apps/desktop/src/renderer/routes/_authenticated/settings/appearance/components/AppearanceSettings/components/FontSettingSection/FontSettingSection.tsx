@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { MONACO_EDITOR_OPTIONS } from "renderer/providers/MonacoProvider";
 import {
@@ -68,11 +68,6 @@ export function FontSettingSection({ variant }: FontSettingSectionProps) {
 
 	const [fontDraft, setFontDraft] = useState<string | null>(null);
 	const [fontSizeDraft, setFontSizeDraft] = useState<string | null>(null);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: sync draft state when fontSettings changes
-	useEffect(() => {
-		setFontSizeDraft(null);
-	}, [fontSettings]);
 
 	const currentFamily = fontSettings?.[config.familyKey] ?? null;
 	const currentSize = fontSettings?.[config.sizeKey] ?? null;

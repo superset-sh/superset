@@ -50,7 +50,6 @@ export function TrustedBySection() {
 							<div
 								key={client.name}
 								className="flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity cursor-pointer whitespace-nowrap h-10 sm:h-14 gap-1.5 sm:gap-2 mx-5 sm:mx-10"
-								style={{ willChange: "transform" }}
 							>
 								<Image
 									src={client.logo}

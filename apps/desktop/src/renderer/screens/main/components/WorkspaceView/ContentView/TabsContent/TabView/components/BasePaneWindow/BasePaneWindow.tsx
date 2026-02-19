@@ -102,12 +102,16 @@ export function BasePaneWindow({
 			onDragStart={() => setDragging(paneId, tabId)}
 			onDragEnd={() => clearDragging()}
 		>
-			{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Focus handler for pane */}
 			<div
+				role="group"
 				ref={containerRef}
 				className={contentClassName}
 				style={isDragging ? { pointerEvents: "none" } : undefined}
 				onClick={handleFocus}
+				onKeyDown={(e) => {
+					if (e.target !== e.currentTarget) return;
+					if (e.key === "Enter" || e.key === " ") handleFocus();
+				}}
 			>
 				{children}
 			</div>

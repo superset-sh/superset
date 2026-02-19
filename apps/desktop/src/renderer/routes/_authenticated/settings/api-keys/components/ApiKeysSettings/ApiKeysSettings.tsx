@@ -160,8 +160,8 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 						{showApiKeysList &&
 							(isLoading ? (
 								<div className="space-y-2 border rounded-lg">
-									{[1, 2, 3].map((i) => (
-										<div key={i} className="flex items-center gap-4 p-4">
+									{["skeleton-1", "skeleton-2", "skeleton-3"].map((id) => (
+										<div key={id} className="flex items-center gap-4 p-4">
 											<Skeleton className="h-8 w-8 rounded" />
 											<div className="flex-1 space-y-2">
 												<Skeleton className="h-4 w-48" />
