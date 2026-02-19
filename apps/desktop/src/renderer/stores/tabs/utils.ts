@@ -226,7 +226,7 @@ export const createChatPane = (tabId: string): Pane => {
 		type: "chat",
 		name: "Chat",
 		chat: {
-			sessionId: generateId("chat-session"),
+			sessionId: null,
 		},
 	};
 };

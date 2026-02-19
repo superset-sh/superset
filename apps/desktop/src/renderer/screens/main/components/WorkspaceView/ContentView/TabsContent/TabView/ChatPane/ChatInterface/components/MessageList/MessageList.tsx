@@ -6,14 +6,14 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
+import type { UIMessage } from "ai";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
-import type { ChatMessage } from "../../types";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 
 interface MessageListProps {
-	messages: ChatMessage[];
+	messages: UIMessage[];
 	isStreaming: boolean;
-	onAnswer: (toolCallId: string, answers: Record<string, string>) => void;
+	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
 export function MessageList({
@@ -39,9 +39,10 @@ export function MessageList({
 							return (
 								<div key={msg.id} className="flex justify-end">
 									<div className="max-w-[85%] rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground">
-										{msg.parts.map((part) =>
-											part.type === "text" ? part.text : null,
-										)}
+										{msg.parts
+											.filter((p) => p.type === "text")
+											.map((p) => p.text)
+											.join("")}
 									</div>
 								</div>
 							);

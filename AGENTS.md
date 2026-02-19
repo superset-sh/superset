@@ -13,8 +13,6 @@ Bun + Turbo monorepo with:
   - `apps/desktop` - Electron desktop application
   - `apps/docs` - Documentation site
   - `apps/mobile` - React Native mobile app (Expo)
-  - `apps/streams` - Streams service
-  - `apps/electric-proxy` - Electric proxy service
 - **Packages**:
   - `packages/ui` - Shared UI components (shadcn/ui + TailwindCSS v4).
     - Add components: `npx shadcn@latest add <component>` (run in `packages/ui/`)

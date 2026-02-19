@@ -9,7 +9,11 @@ import friendlyWords = require("friendly-words");
 import type { BranchPrefixMode } from "@superset/local-db";
 import simpleGit, { type StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
+import {
+	checkGitLfsAvailable,
+	execWithShellEnv,
+	getShellEnvironment,
+} from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -1681,10 +1685,8 @@ export async function getPrInfo({
 	repo: string;
 	prNumber: number;
 }): Promise<PullRequestInfo> {
-	const env = await getGitEnv();
-
 	try {
-		const { stdout } = await execFileAsync(
+		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
@@ -1695,7 +1697,7 @@ export async function getPrInfo({
 				"--json",
 				"number,title,headRefName,headRepository,headRepositoryOwner,isCrossRepository",
 			],
-			{ env, timeout: 30_000 },
+			{ timeout: 30_000 },
 		);
 
 		return JSON.parse(stdout) as PullRequestInfo;

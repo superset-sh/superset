@@ -14,7 +14,6 @@ import {
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFile, LuFolder } from "react-icons/lu";
-import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFileExplorerStore } from "renderer/stores/file-explorer";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -149,7 +148,6 @@ export function FilesView() {
 	});
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
-	const fileOpenMode = useFileOpenMode();
 	const openFileInEditorMutation =
 		electronTrpc.external.openFileInEditor.useMutation();
 
@@ -164,10 +162,9 @@ export function FilesView() {
 			if (!workspaceId || !worktreePath || entry.isDirectory) return;
 			addFileViewerPane(workspaceId, {
 				filePath: entry.relativePath,
-				openInNewTab: fileOpenMode === "new-tab",
 			});
 		},
-		[workspaceId, worktreePath, addFileViewerPane, fileOpenMode],
+		[workspaceId, worktreePath, addFileViewerPane],
 	);
 
 	const handleOpenInEditor = useCallback(

@@ -1,0 +1,213 @@
+diff --git a/node_modules/@durable-streams/state/.bun-tag-57751d9ce5947a5e b/.bun-tag-57751d9ce5947a5e
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/dist/index.cjs b/dist/index.cjs
+index 9f83ed43326b28544df32d6ca88f0b8422aebd80..e2134fe2f07c8bab449c011b68bc3c853ef9dde3 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -461,12 +461,6 @@ function createStreamDB(options) {
+ 			startSync: true,
+ 			gcTime: 0
+ 		});
+-		console.log(`[StreamDB] Created collection "${name}":`, {
+-			type: typeof collection,
+-			constructor: collection.constructor.name,
+-			isCollection: collection instanceof Object,
+-			hasSize: `size` in collection
+-		});
+ 		collectionInstances[name] = collection;
+ 	}
+ 	let streamResponse = null;
+@@ -488,15 +482,11 @@ function createStreamDB(options) {
+ 			try {
+ 				batchCount++;
+ 				lastBatchTime = Date.now();
+-				if (batch.items.length > 0) console.log(`[StreamDB] Processing batch #${batchCount}: ${batch.items.length} items, upToDate=${batch.upToDate}`);
+-				for (const event of batch.items) if (isChangeEvent(event)) dispatcher.dispatchChange(event);
++					for (const event of batch.items) if (isChangeEvent(event)) dispatcher.dispatchChange(event);
+ 				else if (isControlEvent(event)) dispatcher.dispatchControl(event);
+ 				if (batch.upToDate) {
+-					console.log(`[StreamDB] Marking up-to-date after batch #${batchCount}`);
+ 					dispatcher.markUpToDate();
+-					console.log(`[StreamDB] Successfully marked up-to-date`);
+ 				}
+-				if (batch.items.length > 0) console.log(`[StreamDB] Successfully processed batch #${batchCount}`);
+ 			} catch (error) {
+ 				console.error(`[StreamDB] Error processing batch:`, error);
+ 				console.error(`[StreamDB] Failed batch:`, batch);
+@@ -507,11 +497,9 @@ function createStreamDB(options) {
+ 		});
+ 		const healthCheck = setInterval(() => {
+ 			const timeSinceLastBatch = Date.now() - lastBatchTime;
+-			console.log(`[StreamDB] Health: ${batchCount} batches processed, last batch ${(timeSinceLastBatch / 1e3).toFixed(1)}s ago`);
+ 		}, 15e3);
+ 		abortController.signal.addEventListener(`abort`, () => {
+ 			clearInterval(healthCheck);
+-			console.log(`[StreamDB] Aborted - cleaning up health check`);
+ 		});
+ 	};
+ 	const dbMethods = {
+@@ -526,13 +514,10 @@ function createStreamDB(options) {
+ 		},
+ 		utils: { awaitTxId: (txid, timeout) => dispatcher.awaitTxId(txid, timeout) }
+ 	};
+-	console.log(`[StreamDB] Creating db object with collections:`, Object.keys(collectionInstances));
+ 	const db = {
+ 		collections: collectionInstances,
+ 		...dbMethods
+ 	};
+-	console.log(`[StreamDB] db.collections:`, Object.keys(db.collections));
+-	console.log(`[StreamDB] db.collections.events:`, db.collections.events);
+ 	if (actionsFactory) {
+ 		const actionDefs = actionsFactory({
+ 			db,
+diff --git a/dist/index.js b/dist/index.js
+index 56bbb3d590eab7cf79893b5f459d12dd61a0a5ad..0521fb9ff99b674f88ff1437b3896ffbfb43d51c 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -437,12 +437,6 @@ function createStreamDB(options) {
+ 			startSync: true,
+ 			gcTime: 0
+ 		});
+-		console.log(`[StreamDB] Created collection "${name}":`, {
+-			type: typeof collection,
+-			constructor: collection.constructor.name,
+-			isCollection: collection instanceof Object,
+-			hasSize: `size` in collection
+-		});
+ 		collectionInstances[name] = collection;
+ 	}
+ 	let streamResponse = null;
+@@ -464,16 +458,12 @@ function createStreamDB(options) {
+ 			try {
+ 				batchCount++;
+ 				lastBatchTime = Date.now();
+-				if (batch.items.length > 0) console.log(`[StreamDB] Processing batch #${batchCount}: ${batch.items.length} items, upToDate=${batch.upToDate}`);
+-				for (const event of batch.items) if (isChangeEvent(event)) dispatcher.dispatchChange(event);
++								for (const event of batch.items) if (isChangeEvent(event)) dispatcher.dispatchChange(event);
+ 				else if (isControlEvent(event)) dispatcher.dispatchControl(event);
+ 				if (batch.upToDate) {
+-					console.log(`[StreamDB] Marking up-to-date after batch #${batchCount}`);
+-					dispatcher.markUpToDate();
+-					console.log(`[StreamDB] Successfully marked up-to-date`);
+-				}
+-				if (batch.items.length > 0) console.log(`[StreamDB] Successfully processed batch #${batchCount}`);
+-			} catch (error) {
++										dispatcher.markUpToDate();
++									}
++							} catch (error) {
+ 				console.error(`[StreamDB] Error processing batch:`, error);
+ 				console.error(`[StreamDB] Failed batch:`, batch);
+ 				dispatcher.rejectAll(error);
+@@ -483,12 +473,10 @@ function createStreamDB(options) {
+ 		});
+ 		const healthCheck = setInterval(() => {
+ 			const timeSinceLastBatch = Date.now() - lastBatchTime;
+-			console.log(`[StreamDB] Health: ${batchCount} batches processed, last batch ${(timeSinceLastBatch / 1e3).toFixed(1)}s ago`);
+-		}, 15e3);
++					}, 15e3);
+ 		abortController.signal.addEventListener(`abort`, () => {
+ 			clearInterval(healthCheck);
+-			console.log(`[StreamDB] Aborted - cleaning up health check`);
+-		});
++					});
+ 	};
+ 	const dbMethods = {
+ 		stream,
+@@ -502,13 +490,10 @@ function createStreamDB(options) {
+ 		},
+ 		utils: { awaitTxId: (txid, timeout) => dispatcher.awaitTxId(txid, timeout) }
+ 	};
+-	console.log(`[StreamDB] Creating db object with collections:`, Object.keys(collectionInstances));
+-	const db = {
++		const db = {
+ 		collections: collectionInstances,
+ 		...dbMethods
+ 	};
+-	console.log(`[StreamDB] db.collections:`, Object.keys(db.collections));
+-	console.log(`[StreamDB] db.collections.events:`, db.collections.events);
+ 	if (actionsFactory) {
+ 		const actionDefs = actionsFactory({
+ 			db,
+diff --git a/src/stream-db.ts b/src/stream-db.ts
+index 26bc8f07abac1bd4b57c9dd89b3d66fa83ca4048..9d1a31995ef92f3d8a7e2ee223b6a25f85b43e83 100644
+--- a/src/stream-db.ts
++++ b/src/stream-db.ts
+@@ -790,13 +790,6 @@ export function createStreamDB<
+       gcTime: 0,
+     })
+ 
+-    console.log(`[StreamDB] Created collection "${name}":`, {
+-      type: typeof collection,
+-      constructor: collection.constructor.name,
+-      isCollection: collection instanceof Object,
+-      hasSize: `size` in collection,
+-    })
+-
+     collectionInstances[name] = collection
+   }
+ 
+@@ -828,12 +821,6 @@ export function createStreamDB<
+         batchCount++
+         lastBatchTime = Date.now()
+ 
+-        if (batch.items.length > 0) {
+-          console.log(
+-            `[StreamDB] Processing batch #${batchCount}: ${batch.items.length} items, upToDate=${batch.upToDate}`
+-          )
+-        }
+-
+         for (const event of batch.items) {
+           if (isChangeEvent(event)) {
+             dispatcher.dispatchChange(event)
+@@ -844,15 +831,7 @@ export function createStreamDB<
+ 
+         // Check batch-level up-to-date signal
+         if (batch.upToDate) {
+-          console.log(
+-            `[StreamDB] Marking up-to-date after batch #${batchCount}`
+-          )
+           dispatcher.markUpToDate()
+-          console.log(`[StreamDB] Successfully marked up-to-date`)
+-        }
+-
+-        if (batch.items.length > 0) {
+-          console.log(`[StreamDB] Successfully processed batch #${batchCount}`)
+         }
+       } catch (error) {
+         console.error(`[StreamDB] Error processing batch:`, error)
+@@ -868,16 +847,12 @@ export function createStreamDB<
+ 
+     // Health check to detect silent stalls
+     const healthCheck = setInterval(() => {
+-      const timeSinceLastBatch = Date.now() - lastBatchTime
+-      console.log(
+-        `[StreamDB] Health: ${batchCount} batches processed, last batch ${(timeSinceLastBatch / 1000).toFixed(1)}s ago`
+-      )
++      // silent health check — no logging
+     }, 15000)
+ 
+     // Clean up health check on abort
+     abortController.signal.addEventListener(`abort`, () => {
+       clearInterval(healthCheck)
+-      console.log(`[StreamDB] Aborted - cleaning up health check`)
+     })
+   }
+ 
+@@ -900,16 +875,10 @@ export function createStreamDB<
+   }
+ 
+   // Combine collections with methods
+-  console.log(
+-    `[StreamDB] Creating db object with collections:`,
+-    Object.keys(collectionInstances)
+-  )
+   const db = {
+     collections: collectionInstances,
+     ...dbMethods,
+   } as unknown as StreamDB<TDef>
+-  console.log(`[StreamDB] db.collections:`, Object.keys(db.collections))
+-  console.log(`[StreamDB] db.collections.events:`, db.collections.events)
+ 
+   // If actions factory is provided, wrap actions and return db with actions
+   if (actionsFactory) {

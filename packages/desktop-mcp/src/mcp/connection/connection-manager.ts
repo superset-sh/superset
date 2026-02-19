@@ -2,7 +2,7 @@ import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { ConsoleCapture } from "../console-capture/index.js";
 import { FocusLock } from "../focus-lock/index.js";
 
-const CDP_PORT = Number(process.env.DESKTOP_AUTOMATION_PORT) || 9223;
+const CDP_PORT = Number(process.env.DESKTOP_AUTOMATION_PORT) || 41729;
 
 /**
  * Manages a CDP connection to the Electron renderer via puppeteer-core.

@@ -142,12 +142,8 @@ export interface Pane {
 	devtools?: DevToolsPaneState; // For devtools panes
 }
 
-/**
- * Chat pane-specific properties
- */
 export interface ChatPaneState {
-	/** Session ID for the chat session */
-	sessionId: string;
+	sessionId: string | null;
 }
 
 /**

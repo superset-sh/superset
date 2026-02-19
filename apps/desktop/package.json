@@ -2,7 +2,7 @@
 	"name": "@superset/desktop",
 	"productName": "Superset",
 	"description": "The last developer tool you'll ever need",
-	"version": "0.0.79",
+	"version": "0.0.80",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
 	"repository": {
@@ -35,6 +35,7 @@
 		"test": "bun test"
 	},
 	"dependencies": {
+		"@ai-sdk/react": "^3.0.0",
 		"@better-auth/stripe": "1.4.18",
 		"@dnd-kit/core": "^6.3.1",
 		"@dnd-kit/sortable": "^10.0.0",
@@ -109,6 +110,7 @@
 		"@xterm/addon-webgl": "0.20.0-beta.147",
 		"@xterm/headless": "6.1.0-beta.148",
 		"@xterm/xterm": "6.1.0-beta.148",
+		"ai": "^6.0.0",
 		"better-auth": "1.4.18",
 		"better-sqlite3": "12.6.2",
 		"bindings": "^1.5.0",

@@ -15,6 +15,15 @@ import type {
 export type { Pane, PaneStatus, PaneType };
 
 /**
+ * Snapshot of a closed tab + its panes, used for "reopen closed tab".
+ */
+export interface ClosedTabEntry {
+	tab: Tab;
+	panes: Pane[];
+	closedAt: number;
+}
+
+/**
  * A Tab is a container that holds one or more Panes in a Mosaic layout.
  * Extends BaseTab with renderer-specific layout field.
  */
@@ -28,6 +37,7 @@ export interface Tab extends BaseTab {
  */
 export interface TabsState extends Omit<BaseTabsState, "tabs"> {
 	tabs: Tab[];
+	closedTabsStack: ClosedTabEntry[];
 }
 
 /**
@@ -163,9 +173,13 @@ export interface TabsStore extends TabsState {
 		path?: MosaicBranch[],
 	) => string | null;
 
+	// Reopen operations
+	/** Reopen the last closed tab for a workspace. Returns true if a tab was reopened. */
+	reopenClosedTab: (workspaceId: string) => boolean;
+
 	// Chat operations
 	/** Switch a chat pane to a different session */
-	switchChatSession: (paneId: string, sessionId: string) => void;
+	switchChatSession: (paneId: string, sessionId: string | null) => void;
 
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];

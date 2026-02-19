@@ -1,1 +1,1 @@
-export { useFileOpenMode } from "./useFileOpenMode";
+export { getFileOpenMode, useFileOpenMode } from "./useFileOpenMode";

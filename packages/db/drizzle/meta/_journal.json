@@ -141,6 +141,13 @@
       "when": 1771218285573,
       "tag": "0019_device_presence_timestamptz",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1771357800887,
+      "tag": "0020_session_hosts_and_chat_tables",
+      "breakpoints": true
     }
   ]
 }

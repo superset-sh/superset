@@ -24,8 +24,23 @@ export async function GET(request: Request): Promise<Response> {
 		return new Response("Not a member of this organization", { status: 403 });
 	}
 
-	const originUrl = new URL(env.ELECTRIC_URL);
-	originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
+	const useCloud =
+		request.headers.get("x-electric-backend") === "cloud" &&
+		env.ELECTRIC_SOURCE_ID &&
+		env.ELECTRIC_SOURCE_SECRET;
+
+	const originUrl = useCloud
+		? new URL("/v1/shape", "https://api.electric-sql.cloud")
+		: new URL(env.ELECTRIC_URL);
+
+	if (useCloud) {
+		// biome-ignore lint/style/noNonNullAssertion: guarded by useCloud check above
+		originUrl.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID!);
+		// biome-ignore lint/style/noNonNullAssertion: guarded by useCloud check above
+		originUrl.searchParams.set("source_secret", env.ELECTRIC_SOURCE_SECRET!);
+	} else {
+		originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
+	}
 
 	url.searchParams.forEach((value, key) => {
 		if (ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key)) {
@@ -63,7 +78,7 @@ export async function GET(request: Request): Promise<Response> {
 	const response = await fetch(originUrl.toString());
 
 	const headers = new Headers(response.headers);
-	headers.append("Vary", "Authorization");
+	headers.append("Vary", "Authorization, X-Electric-Backend");
 
 	if (headers.get("content-encoding")) {
 		headers.delete("content-encoding");
