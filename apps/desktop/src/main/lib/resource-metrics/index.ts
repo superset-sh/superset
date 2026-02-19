@@ -39,7 +39,6 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		.getDefault()
 		.terminal.management.listSessions();
 
-	// Collect alive session PIDs grouped by workspace
 	const workspaceSessionMap = new Map<
 		string,
 		Array<{ sessionId: string; paneId: string; pid: number }>
@@ -60,7 +59,6 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		});
 	}
 
-	// Get full process trees (root + children) for each session PID
 	const allEntries = [...workspaceSessionMap.values()].flat();
 	const sessionPidTrees = await Promise.all(
 		allEntries.map(async (entry) => ({
@@ -69,27 +67,24 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		})),
 	);
 
-	// Batch query all PIDs (root + children) at once
 	const allPids = sessionPidTrees.flatMap((s) => s.treePids);
 	let pidStats: Record<number, pidusage.Status> = {};
 	if (allPids.length > 0) {
 		try {
 			pidStats = await pidusage(allPids);
 		} catch {
-			// Some PIDs may have exited between listing and querying
+			// PIDs may have exited between listing and querying
 		}
 	}
 
-	// Get app (Electron main process) metrics
 	const cpuUsage = process.cpuUsage();
 	const memUsage = process.memoryUsage();
 	const appMetrics: ProcessMetrics = {
-		// Convert microseconds to a rough percentage (scaled to 1 core)
+		// cpuUsage returns cumulative microseconds; convert to seconds as a rough proxy
 		cpu: (cpuUsage.user + cpuUsage.system) / 1_000_000,
 		memory: memUsage.rss,
 	};
 
-	// Build a lookup: sessionId → aggregated metrics (sum over entire tree)
 	const sessionAggregated = new Map<string, { cpu: number; memory: number }>();
 	for (const { entry, treePids } of sessionPidTrees) {
 		let cpu = 0;
@@ -104,12 +99,10 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		sessionAggregated.set(entry.sessionId, { cpu, memory });
 	}
 
-	// Build per-workspace metrics
 	const workspaceMetricsList: WorkspaceMetrics[] = [];
 	const nameCache = new Map<string, string>();
 
 	for (const [workspaceId, entries] of workspaceSessionMap) {
-		// Look up workspace name
 		if (!nameCache.has(workspaceId)) {
 			const ws = localDb
 				.select({ name: workspaces.name })
@@ -150,7 +143,6 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		});
 	}
 
-	// Compute totals (app + all sessions)
 	const sessionCpuTotal = workspaceMetricsList.reduce(
 		(sum, ws) => sum + ws.cpu,
 		0,

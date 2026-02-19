@@ -83,7 +83,6 @@ export function ResourceConsumption() {
 				</div>
 
 				<div className="max-h-64 overflow-y-auto">
-					{/* App process */}
 					{snapshot && (
 						<div className="px-3 py-2 border-b border-border/50">
 							<div className="flex items-center justify-between">
@@ -95,7 +94,6 @@ export function ResourceConsumption() {
 						</div>
 					)}
 
-					{/* Per-workspace */}
 					{snapshot?.workspaces.map((ws) => (
 						<div
 							key={ws.workspaceId}
@@ -111,7 +109,6 @@ export function ResourceConsumption() {
 								</div>
 							</div>
 
-							{/* Per-pane sessions */}
 							{ws.sessions.map((session) => (
 								<div
 									key={session.sessionId}
@@ -129,7 +126,6 @@ export function ResourceConsumption() {
 						</div>
 					))}
 
-					{/* Empty state */}
 					{snapshot && snapshot.workspaces.length === 0 && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
 							No active terminal sessions
