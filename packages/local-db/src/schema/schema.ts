@@ -169,18 +169,7 @@ export const settings = sqliteTable("settings", {
 	terminalFontSize: integer("terminal_font_size"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
-	oauthCredentials: text("oauth_credentials", { mode: "json" }).$type<
-		Record<string, OAuthCredentialEntry>
-	>(),
 });
-
-export interface OAuthCredentialEntry {
-	accessToken: string;
-	refreshToken?: string;
-	expiresAt?: number;
-	scope?: string;
-	tokenType?: string;
-}
 
 export type InsertSettings = typeof settings.$inferInsert;
 export type SelectSettings = typeof settings.$inferSelect;

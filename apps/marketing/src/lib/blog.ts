@@ -42,6 +42,8 @@ function parseFrontmatter(filePath: string): BlogPost | null {
 			category: data.category ?? "News",
 			image: data.image,
 			relatedSlugs: data.relatedSlugs,
+			faq: data.faq,
+			keywords: data.keywords,
 			content,
 		};
 	} catch {

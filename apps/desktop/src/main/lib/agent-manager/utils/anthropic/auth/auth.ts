@@ -9,7 +9,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { delimiter, join } from "node:path";
+import { join } from "node:path";
 
 interface ClaudeCredentials {
 	apiKey: string;
@@ -134,78 +134,4 @@ export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 	}
 
 	return null;
-}
-
-/**
- * Get existing Claude credentials from any available source.
- *
- * Priority:
- * 1. Config file (~/.claude.json, ~/.config/claude/credentials.json)
- * 2. macOS Keychain
- *
- * Note: Environment variables are intentionally NOT checked — the desktop app
- * must never read ANTHROPIC_API_KEY or OPENAI_API_KEY from process.env.
- */
-export function getExistingClaudeCredentials(): ClaudeCredentials | null {
-	// 1. Check config file
-	const configCredentials = getCredentialsFromConfig();
-	if (configCredentials) {
-		return configCredentials;
-	}
-
-	// 2. Check macOS Keychain
-	const keychainCredentials = getCredentialsFromKeychain();
-	if (keychainCredentials) {
-		return keychainCredentials;
-	}
-
-	console.warn("[claude/auth] No Claude credentials found");
-	return null;
-}
-
-/** Keys that must never leak into spawned processes. */
-const STRIPPED_ENV_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
-
-/**
- * Build environment variables for running Claude CLI.
- *
- * OAuth credentials are handled by the binary itself (from ~/.claude/.credentials.json).
- * ANTHROPIC_API_KEY and OPENAI_API_KEY are explicitly stripped to prevent leakage.
- */
-export function buildClaudeEnv(): Record<string, string> {
-	const env: Record<string, string> = {
-		...process.env,
-	} as Record<string, string>;
-
-	// Strip secret API keys — the desktop app uses OAuth only
-	for (const key of STRIPPED_ENV_KEYS) {
-		delete env[key];
-	}
-
-	// Ensure PATH includes common binary locations (non-Windows only)
-	if (platform() !== "win32") {
-		const pathAdditions = ["/usr/local/bin", "/opt/homebrew/bin", "/usr/bin"];
-		const currentPath = env.PATH || "";
-		const pathParts = currentPath.split(delimiter);
-
-		for (const addition of pathAdditions) {
-			if (!pathParts.includes(addition)) {
-				pathParts.push(addition);
-			}
-		}
-
-		env.PATH = pathParts.join(delimiter);
-	}
-
-	// Mark as SDK entry (like 1code does)
-	env.CLAUDE_CODE_ENTRYPOINT = "sdk-ts";
-
-	return env;
-}
-
-/**
- * Check if Claude credentials are available.
- */
-export function hasClaudeCredentials(): boolean {
-	return getExistingClaudeCredentials() !== null;
 }

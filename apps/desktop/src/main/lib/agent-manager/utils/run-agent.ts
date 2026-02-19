@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
 import type { SessionHost } from "@superset/durable-session/host";
 import type { UIMessageChunk } from "ai";
+import { env } from "main/env.main";
 
 // ---------------------------------------------------------------------------
 // Shared session state
@@ -34,6 +35,7 @@ export interface RunAgentOptions {
 	cwd: string;
 	permissionMode?: string;
 	thinkingEnabled?: boolean;
+	authToken?: string;
 }
 
 export async function runAgent(options: RunAgentOptions): Promise<void> {
@@ -45,6 +47,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		cwd,
 		permissionMode,
 		thinkingEnabled,
+		authToken,
 	} = options;
 
 	// Abort any existing agent for this session
@@ -57,6 +60,8 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 	const requestEntries: [string, string][] = [
 		["modelId", modelId],
 		["cwd", cwd],
+		["apiUrl", env.NEXT_PUBLIC_API_URL],
+		...(authToken ? ([["authToken", authToken]] as [string, string][]) : []),
 		...(thinkingEnabled
 			? ([["thinkingEnabled", "true"]] as [string, string][])
 			: []),

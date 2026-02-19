@@ -23,6 +23,8 @@ export interface BlogPost {
 	category: BlogCategory;
 	image?: string;
 	relatedSlugs?: string[];
+	faq?: Array<{ question: string; answer: string }>;
+	keywords?: string[];
 	content: string;
 }
 

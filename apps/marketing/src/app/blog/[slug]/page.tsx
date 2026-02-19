@@ -2,7 +2,11 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
-import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/JsonLd";
+import {
+	ArticleJsonLd,
+	BreadcrumbJsonLd,
+	FAQPageJsonLd,
+} from "@/components/JsonLd";
 import {
 	extractToc,
 	getAllSlugs,
@@ -65,6 +69,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 					{ name: post.title, url },
 				]}
 			/>
+			{post.faq && post.faq.length > 0 && <FAQPageJsonLd items={post.faq} />}
 			<BlogPostLayout post={post} toc={toc} relatedPosts={relatedPosts}>
 				<MDXRemote source={post.content} components={mdxComponents} />
 			</BlogPostLayout>
@@ -91,6 +96,8 @@ export async function generateMetadata({
 	return {
 		title: post.title,
 		description: post.description,
+		...(post.keywords &&
+			post.keywords.length > 0 && { keywords: post.keywords }),
 		alternates: {
 			canonical: url,
 		},

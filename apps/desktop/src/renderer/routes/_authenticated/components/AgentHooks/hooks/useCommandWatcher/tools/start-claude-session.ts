@@ -32,8 +32,9 @@ async function execute(
 		store.addPendingTerminalSetup({
 			workspaceId: workspace.id,
 			projectId: pending?.projectId ?? workspace.projectId,
-			initialCommands: [...(pending?.initialCommands ?? []), params.command],
+			initialCommands: pending?.initialCommands ?? null,
 			defaultPresets: pending?.defaultPresets,
+			agentCommand: params.command,
 		});
 
 		return {

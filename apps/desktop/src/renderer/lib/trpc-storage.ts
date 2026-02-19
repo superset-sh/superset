@@ -34,7 +34,6 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 					localStorage.getItem(`${name}:version`) ?? "0",
 					10,
 				);
-				console.log(`[trpc-storage] getItem "${name}" version=${version}`);
 				return JSON.stringify({ state, version });
 			} catch (error) {
 				console.error("[trpc-storage] Failed to get state:", error);
@@ -48,9 +47,6 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 					version: number;
 				};
 				// Persist version in localStorage, bare state via tRPC.
-				console.log(
-					`[trpc-storage] setItem "${name}" version=${parsed.version}`,
-				);
 				localStorage.setItem(`${name}:version`, String(parsed.version));
 				await config.set(parsed.state);
 			} catch (error) {
