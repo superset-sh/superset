@@ -57,24 +57,22 @@ export function StartWorkingDialog() {
 
 	// Single-task workspace creation (navigates after)
 	const createWorkspace = useCreateWorkspace({
-		resolveInitialCommands: () => {
-			if (!singleTask) return null;
-			const command = formatTaskContext({
+		resolveAgentCommand: () => {
+			if (!singleTask) return undefined;
+			return formatTaskContext({
 				task: singleTask,
 				additionalContext: additionalContext.trim() || undefined,
 			});
-			return [command];
 		},
 	});
 
 	// Batch workspace creation (skips navigation)
 	const createBatchWorkspace = useCreateWorkspace({
 		skipNavigation: true,
-		resolveInitialCommands: () => {
+		resolveAgentCommand: () => {
 			const task = currentBatchTaskRef.current;
-			if (!task) return null;
-			const command = formatTaskContext({ task });
-			return [command];
+			if (!task) return undefined;
+			return formatTaskContext({ task });
 		},
 	});
 

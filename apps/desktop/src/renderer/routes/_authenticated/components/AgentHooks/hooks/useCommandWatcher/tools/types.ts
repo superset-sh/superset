@@ -57,6 +57,12 @@ export interface ToolContext {
 	getActiveWorkspaceId: () => string | null;
 	// Navigation
 	navigateToWorkspace: (workspaceId: string) => Promise<void>;
+	// Setup commands
+	fetchSetupCommands: (workspaceId: string) => Promise<{
+		projectId: string;
+		initialCommands: string[] | null;
+		defaultPresets?: unknown[];
+	} | null>;
 }
 
 // Tool definition with schema and execute function

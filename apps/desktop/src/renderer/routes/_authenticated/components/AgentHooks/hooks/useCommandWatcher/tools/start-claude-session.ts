@@ -29,11 +29,32 @@ async function execute(
 		// Append command to pending terminal setup for the existing workspace
 		const store = useWorkspaceInitStore.getState();
 		const pending = store.pendingTerminalSetups[workspace.id];
+
+		let initialCommands = pending?.initialCommands ?? null;
+		let defaultPresets = pending?.defaultPresets;
+
+		// When no pending setup exists (e.g. workspace was pre-existing),
+		// fetch setup commands from the server so setup scripts still run.
+		if (!initialCommands && ctx.fetchSetupCommands) {
+			try {
+				const setupData = await ctx.fetchSetupCommands(workspace.id);
+				if (setupData) {
+					initialCommands = setupData.initialCommands ?? null;
+					defaultPresets = defaultPresets ?? setupData.defaultPresets;
+				}
+			} catch (e) {
+				console.warn(
+					"[start_claude_session] Failed to fetch setup commands:",
+					e,
+				);
+			}
+		}
+
 		store.addPendingTerminalSetup({
 			workspaceId: workspace.id,
 			projectId: pending?.projectId ?? workspace.projectId,
-			initialCommands: pending?.initialCommands ?? null,
-			defaultPresets: pending?.defaultPresets,
+			initialCommands,
+			defaultPresets,
 			agentCommand: params.command,
 		});
 

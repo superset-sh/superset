@@ -11,6 +11,7 @@ type MutationOptions = Parameters<
 interface UseCreateWorkspaceOptions extends NonNullable<MutationOptions> {
 	skipNavigation?: boolean;
 	resolveInitialCommands?: (serverCommands: string[] | null) => string[] | null;
+	resolveAgentCommand?: () => string | undefined;
 }
 
 export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
@@ -35,13 +36,16 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 				updateProgress(optimisticProgress);
 			}
 
-			if (!data.wasExisting) {
+			const resolvedCommands = options?.resolveInitialCommands
+					? options.resolveInitialCommands(data.initialCommands)
+					: data.initialCommands;
+			const agentCommand = options?.resolveAgentCommand?.();
+			if (!data.wasExisting || resolvedCommands || agentCommand) {
 				addPendingTerminalSetup({
 					workspaceId: data.workspace.id,
 					projectId: data.projectId,
-					initialCommands: options?.resolveInitialCommands
-						? options.resolveInitialCommands(data.initialCommands)
-						: data.initialCommands,
+					initialCommands: resolvedCommands,
+					agentCommand,
 				});
 			}
 

@@ -39,6 +39,8 @@ export function useCommandWatcher() {
 		return match ? match[1] : null;
 	}, []);
 
+	const utils = electronTrpc.useUtils();
+
 	const toolContext: ToolContext = useMemo(
 		() => ({
 			createWorktree,
@@ -51,6 +53,8 @@ export function useCommandWatcher() {
 			getActiveWorkspaceId: getCurrentWorkspaceIdFromRoute,
 			navigateToWorkspace: (workspaceId: string) =>
 				navigateToWorkspace(workspaceId, navigate),
+			fetchSetupCommands: (workspaceId: string) =>
+				utils.workspaces.getSetupCommands.fetch({ workspaceId }),
 		}),
 		[
 			createWorktree,
@@ -62,6 +66,7 @@ export function useCommandWatcher() {
 			projects,
 			getCurrentWorkspaceIdFromRoute,
 			navigate,
+			utils,
 		],
 	);
 
