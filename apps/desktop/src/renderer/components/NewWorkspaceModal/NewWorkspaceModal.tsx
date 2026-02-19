@@ -135,11 +135,14 @@ export function NewWorkspaceModal() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset form each time the modal opens
 	useEffect(() => {
-		if (isOpen && !selectedProjectId && preSelectedProjectId) {
+		if (!isOpen) return;
+		resetForm();
+		if (preSelectedProjectId) {
 			setSelectedProjectId(preSelectedProjectId);
 		}
-	}, [isOpen, selectedProjectId, preSelectedProjectId]);
+	}, [isOpen]);
 
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
 
@@ -250,7 +253,7 @@ export function NewWorkspaceModal() {
 
 		const workspaceName = title.trim() || undefined;
 
-		handleClose();
+		closeModal();
 
 		try {
 			const result = await createWorkspace.mutateAsync({
