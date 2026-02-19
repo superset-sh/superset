@@ -107,11 +107,6 @@ export function useTerminalRestore({
 	}, [xtermRef, pendingEventsRef]);
 
 	const maybeApplyInitialState = useCallback(() => {
-		// If the stream is already ready (e.g., safety timeout forced readiness),
-		// skip applying initial state to prevent out-of-order writes where a
-		// stale snapshot would be appended after live stream data.
-		if (isStreamReadyRef.current) return;
-
 		if (!didFirstRenderRef.current) return;
 		const result = pendingInitialStateRef.current;
 		if (!result) return;

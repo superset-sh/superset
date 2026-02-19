@@ -7,11 +7,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { killTerminalForPane } from "renderer/stores/tabs/utils/terminal-cleanup";
 import { scheduleTerminalAttach } from "../attach-scheduler";
 import { sanitizeForTitle } from "../commandBuffer";
-import {
-	DEBUG_TERMINAL,
-	FIRST_RENDER_RESTORE_FALLBACK_MS,
-	STREAM_READY_TIMEOUT_MS,
-} from "../config";
+import { DEBUG_TERMINAL, FIRST_RENDER_RESTORE_FALLBACK_MS } from "../config";
 import {
 	createTerminalInstance,
 	setupClickToMoveCursor,
@@ -474,28 +470,6 @@ export function useTerminalLifecycle({
 			},
 		});
 
-		// Safety timeout: if the stream isn't ready within STREAM_READY_TIMEOUT_MS,
-		// force readiness and flush queued events. This prevents permanently blank
-		// terminals when the restore sequence doesn't complete (e.g., createOrAttach
-		// never settles, attach scheduler is congested, or the subscription died).
-		const streamReadyTimeout = setTimeout(() => {
-			if (isUnmounted || isStreamReadyRef.current) return;
-			// Don't force ready during cold restore or exit — those are intentionally gated
-			if (isRestoredModeRef.current || isExitedRef.current) return;
-
-			console.warn(
-				`[Terminal] Stream readiness timeout after ${STREAM_READY_TIMEOUT_MS}ms, forcing ready: ${paneId}`,
-			);
-			// Cancel the in-flight attach so a late onSuccess (e.g., slow cold-restore
-			// response) won't write stale snapshot data after we've already flushed
-			// live events. onSettled still fires to release the scheduler slot.
-			attachCanceled = true;
-			// Skip any pending initial state to avoid out-of-order writes
-			pendingInitialStateRef.current = null;
-			isStreamReadyRef.current = true;
-			flushPendingEvents();
-		}, STREAM_READY_TIMEOUT_MS);
-
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 		const titleDisposable = xterm.onTitleChange((title) => {
@@ -600,7 +574,6 @@ export function useTerminalLifecycle({
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
-			clearTimeout(streamReadyTimeout);
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			inputDisposable.dispose();
 			keyDisposable.dispose();
