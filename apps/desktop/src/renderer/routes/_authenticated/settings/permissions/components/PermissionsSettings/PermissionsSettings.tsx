@@ -90,7 +90,7 @@ export function PermissionsSettings({
 				) && (
 					<PermissionRow
 						label="Accessibility"
-						description="Control other apps, send keystrokes, and manage windows"
+						description="Send keystrokes, manage windows, and control other applications"
 						granted={status?.accessibility}
 						onRequest={() => requestA11y.mutate()}
 					/>
