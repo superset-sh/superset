@@ -25,7 +25,15 @@ function getCorsHeaders(origin: string | null) {
 		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 		"Access-Control-Allow-Headers":
 			"Content-Type, Authorization, x-trpc-source, trpc-accept, X-Electric-Backend",
-		"Access-Control-Expose-Headers": "*",
+		"Access-Control-Expose-Headers": [
+			"electric-offset",
+			"electric-handle",
+			"electric-schema",
+			"electric-cursor",
+			"electric-chunk-last-offset",
+			"electric-up-to-date",
+			"ETag",
+		].join(", "),
 		"Access-Control-Allow-Credentials": "true",
 	};
 }
