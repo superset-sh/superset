@@ -12,7 +12,6 @@ import {
 } from "@superset/ui/ai-elements/model-selector";
 import { PromptInputButton } from "@superset/ui/ai-elements/prompt-input";
 import { useMemo } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ModelOption } from "../../types";
 
 /** Derive a logo provider slug from the provider name */
@@ -29,20 +28,19 @@ function providerToLogo(provider: string): string {
 }
 
 export function ModelPicker({
+	models,
 	selectedModel,
 	onSelectModel,
 	open,
 	onOpenChange,
 }: {
+	models: ModelOption[];
 	selectedModel: ModelOption;
 	onSelectModel: (model: ModelOption) => void;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
-	const { data: models } = electronTrpc.aiChat.getModels.useQuery();
-
 	const groupedModels = useMemo(() => {
-		if (!models) return {};
 		const groups: Record<string, ModelOption[]> = {};
 		for (const model of models) {
 			const group = model.provider;

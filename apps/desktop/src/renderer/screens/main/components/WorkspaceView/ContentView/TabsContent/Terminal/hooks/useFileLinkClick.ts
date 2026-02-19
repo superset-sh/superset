@@ -1,6 +1,5 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
-import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -26,7 +25,6 @@ export function useFileLinkClick({
 	workspaceCwd,
 }: UseFileLinkClickOptions): UseFileLinkClickReturn {
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
-	const fileOpenMode = useFileOpenMode();
 
 	// Query terminal link behavior setting
 	const { data: terminalLinkBehavior } =
@@ -91,19 +89,12 @@ export function useFileLinkClick({
 					filePath,
 					line,
 					column,
-					openInNewTab: fileOpenMode === "new-tab",
 				});
 			} else {
 				openInExternalEditor();
 			}
 		},
-		[
-			terminalLinkBehavior,
-			workspaceId,
-			workspaceCwd,
-			addFileViewerPane,
-			fileOpenMode,
-		],
+		[terminalLinkBehavior, workspaceId, workspaceCwd, addFileViewerPane],
 	);
 
 	return {

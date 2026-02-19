@@ -448,6 +448,38 @@ PORTSJSON
   return 0
 }
 
+step_seed_auth_token() {
+  echo "🔑 Seeding auth token into superset-dev-data/..."
+
+  local source_token="$HOME/.superset/auth-token.enc"
+  local dev_data_dir="superset-dev-data"
+  local dest_token="$dev_data_dir/auth-token.enc"
+
+  if [ ! -f "$source_token" ]; then
+    warn "No auth token found at $source_token — skipping (you'll need to sign in)"
+    step_skipped "Seed auth token (no source token)"
+    return 0
+  fi
+
+  mkdir -p "$dev_data_dir"
+  chmod 700 "$dev_data_dir"
+
+  if [ -f "$dest_token" ] && [ "$FORCE_OVERWRITE_DATA" != "1" ]; then
+    warn "Auth token already exists at $dest_token — skipping (use -f/--force)"
+    step_skipped "Seed auth token (already exists)"
+    return 0
+  fi
+
+  if ! cp "$source_token" "$dest_token"; then
+    error "Failed to copy auth token"
+    return 1
+  fi
+  chmod 600 "$dest_token"
+
+  success "Auth token seeded from $source_token"
+  return 0
+}
+
 step_seed_local_db() {
   echo "💾 Seeding local DB into superset-dev-data/..."
 

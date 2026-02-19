@@ -9,10 +9,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
-import {
-	processOpenNewResults,
-	useOpenNew,
-} from "renderer/react-query/projects";
+import { useOpenProject } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { CloneRepoDialog } from "../StartView/CloneRepoDialog";
 import { STROKE_WIDTH } from "./constants";
@@ -24,42 +21,24 @@ interface WorkspaceSidebarFooterProps {
 export function WorkspaceSidebarFooter({
 	isCollapsed = false,
 }: WorkspaceSidebarFooterProps) {
-	const openNew = useOpenNew();
+	const { openNew, isPending: isOpenPending } = useOpenProject();
 	const createBranchWorkspace = useCreateBranchWorkspace();
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 
 	const handleOpenProject = async () => {
 		try {
-			const result = await openNew.mutateAsync(undefined);
-			if (result.canceled) {
-				return;
-			}
-			if ("error" in result) {
-				toast.error("Failed to open project", {
-					description: result.error,
-				});
-				return;
-			}
+			const projects = await openNew();
 
-			if ("results" in result) {
-				const { successes } = processOpenNewResults({
-					results: result.results,
-					showGitInitToast: true,
-				});
-
-				for (const s of successes) {
-					try {
-						await createBranchWorkspace.mutateAsync({
-							projectId: s.project.id,
-						});
-					} catch (err) {
-						toast.error(`Failed to open ${s.project.name}`, {
-							description:
-								err instanceof Error
-									? err.message
-									: "Failed to create workspace",
-						});
-					}
+			for (const project of projects) {
+				try {
+					await createBranchWorkspace.mutateAsync({
+						projectId: project.id,
+					});
+				} catch (err) {
+					toast.error(`Failed to open ${project.name}`, {
+						description:
+							err instanceof Error ? err.message : "Failed to create workspace",
+					});
 				}
 			}
 		} catch (error) {
@@ -76,7 +55,7 @@ export function WorkspaceSidebarFooter({
 		});
 	};
 
-	const isLoading = openNew.isPending || createBranchWorkspace.isPending;
+	const isLoading = isOpenPending || createBranchWorkspace.isPending;
 
 	if (isCollapsed) {
 		return (

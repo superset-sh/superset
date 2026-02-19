@@ -9,10 +9,12 @@ import {
 	HiOutlineKey,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
+	HiOutlineShieldCheck,
 	HiOutlineSparkles,
 	HiOutlineUser,
 } from "react-icons/hi2";
 import { LuKeyboard } from "react-icons/lu";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface GeneralSettingsProps {
@@ -30,13 +32,15 @@ type SettingsRoute =
 	| "/settings/integrations"
 	| "/settings/billing"
 	| "/settings/devices"
-	| "/settings/api-keys";
+	| "/settings/api-keys"
+	| "/settings/permissions";
 
 const GENERAL_SECTIONS: {
 	id: SettingsRoute;
 	section: SettingsSection;
 	label: string;
 	icon: React.ReactNode;
+	macOnly?: boolean;
 }[] = [
 	{
 		id: "/settings/account",
@@ -104,17 +108,28 @@ const GENERAL_SECTIONS: {
 		label: "API Keys",
 		icon: <HiOutlineKey className="h-4 w-4" />,
 	},
+	{
+		id: "/settings/permissions",
+		section: "permissions",
+		label: "Permissions",
+		icon: <HiOutlineShieldCheck className="h-4 w-4" />,
+		macOnly: true,
+	},
 ];
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isMac = platform === "darwin";
 
-	// When searching, only show sections that have matches
+	const platformSections = GENERAL_SECTIONS.filter(
+		(section) => !section.macOnly || isMac,
+	);
 	const filteredSections = matchCounts
-		? GENERAL_SECTIONS.filter(
+		? platformSections.filter(
 				(section) => (matchCounts[section.section] ?? 0) > 0,
 			)
-		: GENERAL_SECTIONS;
+		: platformSections;
 
 	if (filteredSections.length === 0) {
 		return null;

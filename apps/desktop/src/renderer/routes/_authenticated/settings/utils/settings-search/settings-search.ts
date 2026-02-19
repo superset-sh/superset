@@ -51,6 +51,12 @@ export const SETTING_ITEM_ID = {
 	// API Keys
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
+
+	// Permissions
+	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
+	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
+	PERMISSIONS_APPLE_EVENTS: "permissions-apple-events",
+	PERMISSIONS_LOCAL_NETWORK: "permissions-local-network",
 } as const;
 
 export type SettingItemId =
@@ -726,6 +732,76 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mcp",
 			"claude desktop",
 			"claude code",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PERMISSIONS_FULL_DISK_ACCESS,
+		section: "permissions",
+		title: "Full Disk Access",
+		description:
+			"Access files in Documents, Downloads, Desktop, and iCloud from the terminal",
+		keywords: [
+			"permissions",
+			"full disk access",
+			"fda",
+			"files",
+			"documents",
+			"downloads",
+			"desktop",
+			"icloud",
+			"macos",
+			"security",
+			"privacy",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PERMISSIONS_ACCESSIBILITY,
+		section: "permissions",
+		title: "Accessibility",
+		description:
+			"Send keystrokes, manage windows, and control other applications",
+		keywords: [
+			"permissions",
+			"accessibility",
+			"a11y",
+			"keystrokes",
+			"window management",
+			"macos",
+			"security",
+			"privacy",
+			"trusted",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PERMISSIONS_APPLE_EVENTS,
+		section: "permissions",
+		title: "Automation",
+		description: "Run terminal commands and interact with other applications",
+		keywords: [
+			"permissions",
+			"automation",
+			"apple events",
+			"applescript",
+			"macos",
+			"security",
+			"privacy",
+			"system events",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK,
+		section: "permissions",
+		title: "Local Network",
+		description: "Discover and connect to development servers on your network",
+		keywords: [
+			"permissions",
+			"local network",
+			"bonjour",
+			"mdns",
+			"macos",
+			"security",
+			"privacy",
+			"development servers",
 		],
 	},
 ];

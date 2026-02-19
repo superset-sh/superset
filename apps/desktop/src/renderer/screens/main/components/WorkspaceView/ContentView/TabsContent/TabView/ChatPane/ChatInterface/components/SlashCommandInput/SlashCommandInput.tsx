@@ -10,20 +10,20 @@ import { SlashCommandMenu } from "../SlashCommandMenu";
 
 interface SlashCommandInputProps {
 	onCommandSend: (command: SlashCommand) => void;
-	cwd: string;
+	commands: SlashCommand[];
 	children: React.ReactNode;
 }
 
 export function SlashCommandInput({
 	onCommandSend,
-	cwd,
+	commands,
 	children,
 }: SlashCommandInputProps) {
 	const { textInput } = usePromptInputController();
 
 	const slashCommands = useSlashCommands({
 		inputValue: textInput.value,
-		cwd,
+		commands,
 	});
 
 	const executeCommand = useCallback(

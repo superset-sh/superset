@@ -15,7 +15,6 @@ import { BasePaneWindow, PaneToolbarActions } from "./components";
 interface TabPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	workspaceId: string;
 	splitPaneAuto: (
@@ -44,7 +43,6 @@ interface TabPaneProps {
 export function TabPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	workspaceId,
 	splitPaneAuto,
@@ -92,7 +90,6 @@ export function TabPane({
 			paneId={paneId}
 			path={path}
 			tabId={tabId}
-			isActive={isActive}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}

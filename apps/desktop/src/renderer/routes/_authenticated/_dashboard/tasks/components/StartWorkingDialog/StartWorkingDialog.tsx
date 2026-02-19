@@ -21,10 +21,7 @@ import { useEffect, useRef, useState } from "react";
 import { HiCheck, HiChevronDown, HiXMark } from "react-icons/hi2";
 import { LuFolderOpen, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import {
-	processOpenNewResults,
-	useOpenNew,
-} from "renderer/react-query/projects";
+import { useOpenProject } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseStartWorkingModal,
@@ -81,7 +78,7 @@ export function StartWorkingDialog() {
 		},
 	});
 
-	const openNew = useOpenNew();
+	const { openNew } = useOpenProject();
 
 	const selectedProject = recentProjects.find(
 		(p) => p.id === selectedProjectId,
@@ -116,24 +113,10 @@ export function StartWorkingDialog() {
 
 	const handleImportRepo = async () => {
 		try {
-			const result = await openNew.mutateAsync(undefined);
-			if (result.canceled) return;
+			const projects = await openNew();
 
-			if ("error" in result) {
-				toast.error("Failed to open project", { description: result.error });
-				return;
-			}
-
-			if ("results" in result) {
-				const { successes } = processOpenNewResults({
-					results: result.results,
-					showSuccessToast: false,
-					showGitInitToast: true,
-				});
-
-				if (successes.length > 0) {
-					setSelectedProjectId(successes[0].project.id);
-				}
+			if (projects.length > 0) {
+				setSelectedProjectId(projects[0].id);
 			}
 		} catch (error) {
 			toast.error("Failed to open project", {

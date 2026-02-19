@@ -34,10 +34,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 0.8,
 		},
 		{
+			url: `${baseUrl}/compare`,
+			lastModified: new Date(),
+			changeFrequency: "weekly",
+			priority: 0.9,
+		},
+		{
 			url: `${baseUrl}/community`,
 			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.5,
+		},
+		{
+			url: `${baseUrl}/llms.txt`,
+			lastModified: new Date(),
+			changeFrequency: "weekly",
+			priority: 0.3,
 		},
 		{
 			url: `${baseUrl}/privacy`,
@@ -83,8 +95,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		(page) => ({
 			url: `${baseUrl}/compare/${page.slug}`,
 			lastModified: new Date(page.lastUpdated || page.date),
-			changeFrequency: "monthly" as const,
-			priority: 0.7,
+			changeFrequency: "weekly" as const,
+			priority: 0.9,
 		}),
 	);
 

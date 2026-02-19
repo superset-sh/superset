@@ -33,7 +33,7 @@ export function ViewModeToggle({
 					)}
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="bottom" showArrow={false}>
+			<TooltipContent side="top" showArrow={false}>
 				{viewMode === "grouped"
 					? "Switch to tree view"
 					: "Switch to grouped view"}

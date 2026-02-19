@@ -96,7 +96,7 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent side="top" showArrow={false}>
 					Change base branch
 				</TooltipContent>
 			</Tooltip>
@@ -162,7 +162,7 @@ function StashDropdown({
 						</Button>
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent side="top" showArrow={false}>
 					Stash operations
 				</TooltipContent>
 			</Tooltip>
@@ -217,7 +217,7 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 					/>
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="bottom" showArrow={false}>
+			<TooltipContent side="top" showArrow={false}>
 				Refresh changes
 			</TooltipContent>
 		</Tooltip>

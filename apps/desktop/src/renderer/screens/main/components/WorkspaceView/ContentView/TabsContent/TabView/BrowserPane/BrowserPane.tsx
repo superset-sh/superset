@@ -14,7 +14,6 @@ import { usePersistentWebview } from "./hooks/usePersistentWebview";
 interface BrowserPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	splitPaneAuto: (
 		tabId: string,
@@ -29,7 +28,6 @@ interface BrowserPaneProps {
 export function BrowserPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	splitPaneAuto,
 	removePane,
@@ -67,7 +65,6 @@ export function BrowserPane({
 			paneId={paneId}
 			path={path}
 			tabId={tabId}
-			isActive={isActive}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}

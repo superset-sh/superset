@@ -1,33 +1,15 @@
+import type { SlashCommand } from "@superset/durable-session/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 
-export interface SlashCommand {
-	name: string;
-	description: string;
-	argumentHint: string;
-}
-
-const DEFAULT_COMMANDS: SlashCommand[] = [];
+export type { SlashCommand };
 
 export function useSlashCommands({
 	inputValue,
-	cwd,
+	commands,
 }: {
 	inputValue: string;
-	cwd: string;
+	commands: SlashCommand[];
 }) {
-	const utils = electronTrpc.useUtils();
-
-	const { data } = electronTrpc.aiChat.getSlashCommands.useQuery(
-		{ cwd },
-		{ staleTime: 5 * 60 * 1000 },
-	);
-
-	const commands = useMemo(() => {
-		const fetched = data?.commands;
-		return fetched && fetched.length > 0 ? fetched : DEFAULT_COMMANDS;
-	}, [data]);
-
 	const [selectedIndex, setSelectedIndex] = useState(0);
 
 	const isOpen =
@@ -50,14 +32,6 @@ export function useSlashCommands({
 			prevQuery.current = query;
 		}
 	}, [query]);
-
-	const prevIsOpen = useRef(false);
-	useEffect(() => {
-		if (isOpen && !prevIsOpen.current) {
-			void utils.aiChat.getSlashCommands.invalidate();
-		}
-		prevIsOpen.current = isOpen;
-	}, [isOpen, utils]);
 
 	const navigateUp = useCallback(() => {
 		setSelectedIndex((prev) =>

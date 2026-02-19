@@ -23,6 +23,7 @@ import {
 import { getWorkspaceName } from "shared/env.shared";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
+import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { localDb } from "./lib/local-db";
@@ -257,6 +258,7 @@ if (!gotTheLock) {
 	(async () => {
 		await app.whenReady();
 		registerWithMacOSNotificationCenter();
+		requestAppleEventsAccess();
 
 		// Must register on both default session and the app's custom partition
 		const iconProtocolHandler = (request: Request) => {

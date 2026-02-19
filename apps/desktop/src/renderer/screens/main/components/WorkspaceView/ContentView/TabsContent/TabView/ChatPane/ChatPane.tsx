@@ -1,16 +1,18 @@
 import { useCallback } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
+import { env } from "renderer/env.renderer";
+import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { generateId } from "renderer/stores/tabs/utils";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatInterface } from "./ChatInterface";
 import { SessionSelector } from "./components/SessionSelector";
 
+const apiUrl = env.NEXT_PUBLIC_API_URL;
+
 interface ChatPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	workspaceId: string;
 	splitPaneAuto: (
@@ -26,7 +28,6 @@ interface ChatPaneProps {
 export function ChatPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	workspaceId,
 	splitPaneAuto,
@@ -35,14 +36,18 @@ export function ChatPane({
 }: ChatPaneProps) {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const switchChatSession = useTabsStore((s) => s.switchChatSession);
-	const sessionId = pane?.chat?.sessionId ?? "";
+	const sessionId = pane?.chat?.sessionId ?? null;
+
+	const { data: session } = authClient.useSession();
+	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId },
 		{ enabled: !!workspaceId },
 	);
 
-	const deleteSession = electronTrpc.aiChat.deleteSession.useMutation();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const deviceId = deviceInfo?.deviceId ?? null;
 
 	const handleSelectSession = useCallback(
 		(newSessionId: string) => {
@@ -52,18 +57,22 @@ export function ChatPane({
 	);
 
 	const handleNewChat = useCallback(() => {
-		const newSessionId = generateId("chat-session");
-		switchChatSession(paneId, newSessionId);
+		switchChatSession(paneId, null);
 	}, [paneId, switchChatSession]);
 
 	const handleDeleteSession = useCallback(
 		(sessionIdToDelete: string) => {
-			deleteSession.mutate({ sessionId: sessionIdToDelete });
+			const token = getAuthToken();
+			fetch(`${apiUrl}/api/chat/${sessionIdToDelete}/stream`, {
+				method: "DELETE",
+				headers: token ? { Authorization: `Bearer ${token}` } : {},
+			}).catch(console.error);
+
 			if (sessionIdToDelete === sessionId) {
-				handleNewChat();
+				switchChatSession(paneId, null);
 			}
 		},
-		[deleteSession, sessionId, handleNewChat],
+		[sessionId, paneId, switchChatSession],
 	);
 
 	return (
@@ -71,7 +80,6 @@ export function ChatPane({
 			paneId={paneId}
 			path={path}
 			tabId={tabId}
-			isActive={isActive}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}
@@ -79,7 +87,6 @@ export function ChatPane({
 				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
 						<SessionSelector
-							workspaceId={workspaceId}
 							currentSessionId={sessionId}
 							onSelectSession={handleSelectSession}
 							onNewChat={handleNewChat}
@@ -97,6 +104,8 @@ export function ChatPane({
 		>
 			<ChatInterface
 				sessionId={sessionId}
+				organizationId={organizationId}
+				deviceId={deviceId}
 				workspaceId={workspaceId}
 				cwd={workspace?.worktreePath ?? ""}
 				paneId={paneId}

@@ -43,7 +43,7 @@ const paneSchema = z.object({
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
-	chat: z.object({ sessionId: z.string() }).optional(),
+	chat: z.object({ sessionId: z.string().nullable() }).optional(),
 	browser: z
 		.object({
 			currentUrl: z.string(),

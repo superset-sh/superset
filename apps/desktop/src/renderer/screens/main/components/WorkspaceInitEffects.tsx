@@ -29,6 +29,7 @@ export function WorkspaceInitEffects() {
 	const processingRef = useRef<Set<string>>(new Set());
 
 	const addTab = useTabsStore((state) => state.addTab);
+	const addPane = useTabsStore((state) => state.addPane);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const { openPreset } = useTabsWithPresets();
 	const createOrAttach = useCreateOrAttachWithTheme();
@@ -43,6 +44,7 @@ export function WorkspaceInitEffects() {
 				(p) => p.commands.length > 0,
 			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
+			const { agentCommand } = setup;
 
 			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
@@ -51,6 +53,12 @@ export function WorkspaceInitEffects() {
 				setTabAutoTitle(setupTabId, "Workspace Setup");
 				for (const preset of presets) {
 					openPreset(setup.workspaceId, preset);
+				}
+
+				if (agentCommand) {
+					addPane(setupTabId, {
+						initialCommands: [agentCommand],
+					});
 				}
 
 				createOrAttach.mutate(
@@ -81,6 +89,13 @@ export function WorkspaceInitEffects() {
 			if (hasSetupScript) {
 				const { tabId, paneId } = addTab(setup.workspaceId);
 				setTabAutoTitle(tabId, "Workspace Setup");
+
+				if (agentCommand) {
+					addPane(tabId, {
+						initialCommands: [agentCommand],
+					});
+				}
+
 				createOrAttach.mutate(
 					{
 						paneId,
@@ -124,13 +139,35 @@ export function WorkspaceInitEffects() {
 				for (const preset of presets) {
 					openPreset(setup.workspaceId, preset);
 				}
+				if (agentCommand) {
+					const { tabId: agentTabId } = addTab(setup.workspaceId, {
+						initialCommands: [agentCommand],
+					});
+					setTabAutoTitle(agentTabId, "Agent");
+				}
+				onComplete();
+				return;
+			}
+
+			if (agentCommand) {
+				const { tabId: agentTabId } = addTab(setup.workspaceId, {
+					initialCommands: [agentCommand],
+				});
+				setTabAutoTitle(agentTabId, "Agent");
 				onComplete();
 				return;
 			}
 
 			onComplete();
 		},
-		[addTab, setTabAutoTitle, createOrAttach, openPreset, shouldApplyPreset],
+		[
+			addTab,
+			addPane,
+			setTabAutoTitle,
+			createOrAttach,
+			openPreset,
+			shouldApplyPreset,
+		],
 	);
 
 	useEffect(() => {

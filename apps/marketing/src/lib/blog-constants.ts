@@ -1,6 +1,7 @@
 export const BLOG_CATEGORIES = [
 	"All Posts",
 	"Product",
+	"Engineering",
 	"Research",
 	"Company",
 	"News",

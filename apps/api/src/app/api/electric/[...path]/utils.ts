@@ -1,12 +1,14 @@
 import { db } from "@superset/db/client";
 import {
 	agentCommands,
+	chatSessions,
 	devicePresence,
 	integrationConnections,
 	invitations,
 	members,
 	organizations,
 	projects,
+	sessionHosts,
 	subscriptions,
 	taskStatuses,
 	tasks,
@@ -27,7 +29,9 @@ export type AllowedTable =
 	| "device_presence"
 	| "agent_commands"
 	| "integration_connections"
-	| "subscriptions";
+	| "subscriptions"
+	| "chat_sessions"
+	| "session_hosts";
 
 interface WhereClause {
 	fragment: string;
@@ -109,7 +113,7 @@ export async function buildWhereClause(
 			return build(agentCommands, agentCommands.organizationId, organizationId);
 
 		case "auth.apikeys": {
-			const fragment = `"metadata"::jsonb->>'organizationId' = $1`;
+			const fragment = `"metadata" LIKE '%"organizationId":"' || $1 || '"%'`;
 			return { fragment, params: [organizationId] };
 		}
 
@@ -122,6 +126,12 @@ export async function buildWhereClause(
 
 		case "subscriptions":
 			return build(subscriptions, subscriptions.referenceId, organizationId);
+
+		case "chat_sessions":
+			return build(chatSessions, chatSessions.organizationId, organizationId);
+
+		case "session_hosts":
+			return build(sessionHosts, sessionHosts.organizationId, organizationId);
 
 		default:
 			return null;

@@ -24,19 +24,30 @@ interface TrpcStorageConfig {
 
 function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 	return {
-		getItem: async (_name: string): Promise<string | null> => {
+		getItem: async (name: string): Promise<string | null> => {
 			try {
 				const state = await config.get();
 				if (!state) return null;
-				return JSON.stringify({ state, version: 0 });
+				// Version is stored in localStorage as a sidecar since the
+				// tRPC backend validates bare state and rejects envelopes.
+				const version = Number.parseInt(
+					localStorage.getItem(`${name}:version`) ?? "0",
+					10,
+				);
+				return JSON.stringify({ state, version });
 			} catch (error) {
 				console.error("[trpc-storage] Failed to get state:", error);
 				return null;
 			}
 		},
-		setItem: async (_name: string, value: string): Promise<void> => {
+		setItem: async (name: string, value: string): Promise<void> => {
 			try {
-				const parsed = JSON.parse(value) as { state: unknown; version: number };
+				const parsed = JSON.parse(value) as {
+					state: unknown;
+					version: number;
+				};
+				// Persist version in localStorage, bare state via tRPC.
+				localStorage.setItem(`${name}:version`, String(parsed.version));
 				await config.set(parsed.state);
 			} catch (error) {
 				console.error("[trpc-storage] Failed to set state:", error);
