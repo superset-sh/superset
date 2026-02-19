@@ -486,6 +486,10 @@ export function useTerminalLifecycle({
 			console.warn(
 				`[Terminal] Stream readiness timeout after ${STREAM_READY_TIMEOUT_MS}ms, forcing ready: ${paneId}`,
 			);
+			// Cancel the in-flight attach so a late onSuccess (e.g., slow cold-restore
+			// response) won't write stale snapshot data after we've already flushed
+			// live events. onSettled still fires to release the scheduler slot.
+			attachCanceled = true;
 			// Skip any pending initial state to avoid out-of-order writes
 			pendingInitialStateRef.current = null;
 			isStreamReadyRef.current = true;
