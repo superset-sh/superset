@@ -48,7 +48,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          claude -p "$(cat .github/prompts/generate-changelog.md)" --allowedTools "Bash(git*)" "Bash(gh*)" "Bash(date*)" "Bash(ls*)" "Read" "Write" "Edit" "Glob" "Grep"
+          claude -p "$(cat .github/prompts/generate-changelog.md)" --dangerously-skip-permissions
 
       - name: Check for changes
         id: check-changes
