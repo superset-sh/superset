@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
-import { LuCheck, LuExternalLink } from "react-icons/lu";
+import { LuExternalLink } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	isItemVisible,
@@ -30,7 +30,11 @@ function PermissionRow({
 				<p className="text-xs text-muted-foreground">{description}</p>
 			</div>
 			<div className="flex items-center gap-3">
-				{granted && <LuCheck className="h-4 w-4 text-green-500" />}
+				{granted && (
+					<span className="text-xs font-medium text-green-500 bg-green-500/10 px-2 py-1 rounded-md">
+						Granted
+					</span>
+				)}
 				<Button variant="outline" size="sm" onClick={onRequest}>
 					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
 					Edit in System Settings
