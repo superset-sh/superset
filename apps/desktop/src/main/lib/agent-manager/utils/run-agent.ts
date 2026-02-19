@@ -103,10 +103,19 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 										mimeType: f.mediaType as `image/${string}`,
 									};
 								}
+								// Anthropic only supports text/plain, application/pdf, and
+								// image/* for file parts. Normalize other text-based types
+								// (e.g. text/markdown, text/csv, application/json) to
+								// text/plain so they don't throw
+								// AI_UnsupportedFunctionalityError.
+								const normalizedMimeType =
+									f.mediaType === "application/pdf"
+										? f.mediaType
+										: "text/plain";
 								return {
 									type: "file" as const,
 									data: new URL(f.url),
-									mimeType: f.mediaType,
+									mimeType: normalizedMimeType,
 								};
 							}),
 						],

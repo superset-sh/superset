@@ -3,6 +3,7 @@ import { MessageResponse } from "@superset/ui/ai-elements/message";
 import type { UIMessage } from "ai";
 import { getToolName, isToolUIPart } from "ai";
 import {
+	AlertCircleIcon,
 	FileIcon,
 	FileSearchIcon,
 	FolderTreeIcon,
@@ -64,6 +65,21 @@ export function MessagePartsRenderer({
 					>
 						{part.text}
 					</MessageResponse>,
+				);
+				i++;
+				continue;
+			}
+
+			if ((part as { type: string }).type === "error") {
+				const errorPart = part as unknown as { type: "error"; text: string };
+				nodes.push(
+					<div
+						key={i}
+						className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+					>
+						<AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+						<span className="select-text">{errorPart.text}</span>
+					</div>,
 				);
 				i++;
 				continue;

@@ -305,7 +305,10 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 				isComplete = true;
 				break;
 			case "error":
-				parts.push({ type: "text", text: `Error: ${c.errorText}` });
+				parts.push({
+					type: "error",
+					text: c.errorText ?? "An error occurred",
+				} as unknown as AnyUIMessagePart);
 				break;
 			case "message-metadata":
 				// No-op
