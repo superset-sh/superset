@@ -5,6 +5,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { NavigationControls } from "./components/NavigationControls";
 import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
+import { ResourceConsumption } from "./components/ResourceConsumption";
 import { SidebarToggle } from "./components/SidebarToggle";
 import { WindowControls } from "./components/WindowControls";
 
@@ -29,6 +30,7 @@ export function TopBar() {
 			>
 				<SidebarToggle />
 				<NavigationControls />
+				<ResourceConsumption />
 			</div>
 
 			{workspace?.project?.name && (
