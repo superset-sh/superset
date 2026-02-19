@@ -1,13 +1,12 @@
 import {
 	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
 	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
+import { Button } from "@superset/ui/button";
 import { useGitInitDialogStore } from "renderer/stores/git-init-dialog";
 
 export function InitGitDialog() {
@@ -17,7 +16,12 @@ export function InitGitDialog() {
 	const isSingle = paths.length === 1;
 
 	return (
-		<AlertDialog open={isOpen} onOpenChange={(open) => !open && onCancel?.()}>
+		<AlertDialog
+			open={isOpen}
+			onOpenChange={(open) => {
+				if (!open && !isPending) onCancel?.();
+			}}
+		>
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>Initialize Git Repository?</AlertDialogTitle>
@@ -54,12 +58,16 @@ export function InitGitDialog() {
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={isPending} onClick={() => onCancel?.()}>
+					<Button
+						variant="outline"
+						disabled={isPending}
+						onClick={() => onCancel?.()}
+					>
 						Cancel
-					</AlertDialogCancel>
-					<AlertDialogAction disabled={isPending} onClick={() => onConfirm?.()}>
+					</Button>
+					<Button disabled={isPending} onClick={() => onConfirm?.()}>
 						{isPending ? "Initializing..." : "Initialize Git"}
-					</AlertDialogAction>
+					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>

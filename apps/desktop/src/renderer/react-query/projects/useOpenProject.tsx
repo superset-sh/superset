@@ -36,24 +36,26 @@ export function useOpenProject() {
 
 					const projects: Project[] = [...p.immediateSuccesses];
 
-					for (const path of p.paths) {
-						try {
-							const result = await initGitAndOpen.mutateAsync({ path });
-							projects.push(result.project);
-						} catch (error) {
-							console.error(
-								"[useOpenProject] Failed to init git:",
-								path,
-								error,
-							);
+					try {
+						for (const path of p.paths) {
+							try {
+								const result = await initGitAndOpen.mutateAsync({ path });
+								projects.push(result.project);
+							} catch (error) {
+								console.error(
+									"[useOpenProject] Failed to init git:",
+									path,
+									error,
+								);
+							}
 						}
+
+						await utils.projects.getRecents.invalidate();
+					} finally {
+						useGitInitDialogStore.getState().close();
+						pendingRef.current = null;
+						p.resolve(projects);
 					}
-
-					await utils.projects.getRecents.invalidate();
-
-					useGitInitDialogStore.getState().close();
-					pendingRef.current = null;
-					p.resolve(projects);
 				},
 				onCancel: () => {
 					const p = pendingRef.current;
