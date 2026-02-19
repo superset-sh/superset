@@ -15,9 +15,7 @@ import {
 	HiOutlineTrash,
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
-import { LuPlay } from "react-icons/lu";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useOpenStartWorkingModal } from "renderer/stores/start-working-modal";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
 import { AssigneeMenuItems } from "../../../shared/AssigneeMenuItems";
@@ -38,7 +36,6 @@ export function TaskContextMenu({
 	onDelete,
 }: TaskContextMenuProps) {
 	const collections = useCollections();
-	const openStartWorkingModal = useOpenStartWorkingModal();
 
 	// Load statuses for the status submenu
 	const { data: allStatuses } = useLiveQuery(
@@ -152,13 +149,6 @@ export function TaskContextMenu({
 						/>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
-
-				<ContextMenuSeparator />
-
-				<ContextMenuItem onClick={() => openStartWorkingModal(task)}>
-					<LuPlay />
-					Run with Claude
-				</ContextMenuItem>
 
 				<ContextMenuSeparator />
 

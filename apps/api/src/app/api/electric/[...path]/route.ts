@@ -75,6 +75,13 @@ export async function GET(request: Request): Promise<Response> {
 		);
 	}
 
+	if (tableName === "integration_connections") {
+		originUrl.searchParams.set(
+			"columns",
+			"id,organization_id,connected_by_user_id,provider,token_expires_at,external_org_id,external_org_name,config,created_at,updated_at",
+		);
+	}
+
 	const response = await fetch(originUrl.toString());
 
 	const headers = new Headers(response.headers);
