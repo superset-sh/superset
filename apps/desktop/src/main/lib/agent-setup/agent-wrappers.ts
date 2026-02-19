@@ -48,16 +48,8 @@ function getMissingBinaryMessage(name: string): string {
 	return `Superset: ${name} not found in PATH. Install it and ensure it is on PATH, then retry.`;
 }
 
-export function getClaudeWrapperPath(): string {
-	return path.join(BIN_DIR, "claude");
-}
-
-export function getCodexWrapperPath(): string {
-	return path.join(BIN_DIR, "codex");
-}
-
-export function getOpenCodeWrapperPath(): string {
-	return path.join(BIN_DIR, "opencode");
+export function getWrapperPath(binaryName: string): string {
+	return path.join(BIN_DIR, binaryName);
 }
 
 export function getClaudeSettingsPath(): string {
@@ -97,55 +89,22 @@ export function getClaudeSettingsContent(notifyPath: string): string {
 	return JSON.stringify(settings);
 }
 
-export function buildClaudeWrapperScript(settingsPath: string): string {
+export function buildWrapperScript(
+	binaryName: string,
+	execLine: string,
+): string {
 	return `#!/bin/bash
 ${WRAPPER_MARKER}
-# Superset wrapper for Claude Code
-# Injects notification hook settings
+# Superset wrapper for ${binaryName}
 
 ${buildRealBinaryResolver()}
-REAL_BIN="$(find_real_binary "claude")"
+REAL_BIN="$(find_real_binary "${binaryName}")"
 if [ -z "$REAL_BIN" ]; then
-  echo "${getMissingBinaryMessage("claude")}" >&2
+  echo "${getMissingBinaryMessage(binaryName)}" >&2
   exit 127
 fi
 
-exec "$REAL_BIN" --settings "${settingsPath}" "$@"
-`;
-}
-
-export function buildCodexWrapperScript(notifyPath: string): string {
-	return `#!/bin/bash
-${WRAPPER_MARKER}
-# Superset wrapper for Codex
-# Injects notification hook settings
-
-${buildRealBinaryResolver()}
-REAL_BIN="$(find_real_binary "codex")"
-if [ -z "$REAL_BIN" ]; then
-  echo "${getMissingBinaryMessage("codex")}" >&2
-  exit 127
-fi
-
-exec "$REAL_BIN" -c 'notify=["bash","${notifyPath}"]' "$@"
-`;
-}
-
-export function buildOpenCodeWrapperScript(opencodeConfigDir: string): string {
-	return `#!/bin/bash
-${WRAPPER_MARKER}
-# Superset wrapper for OpenCode
-# Injects OPENCODE_CONFIG_DIR for notification plugin
-
-${buildRealBinaryResolver()}
-REAL_BIN="$(find_real_binary "opencode")"
-if [ -z "$REAL_BIN" ]; then
-  echo "${getMissingBinaryMessage("opencode")}" >&2
-  exit 127
-fi
-
-export OPENCODE_CONFIG_DIR="${opencodeConfigDir}"
-exec "$REAL_BIN" "$@"
+${execLine}
 `;
 }
 
@@ -165,20 +124,27 @@ function createClaudeSettings(): string {
 	return settingsPath;
 }
 
+function createWrapper(binaryName: string, script: string): void {
+	fs.writeFileSync(getWrapperPath(binaryName), script, { mode: 0o755 });
+	console.log(`[agent-setup] Created ${binaryName} wrapper`);
+}
+
 export function createClaudeWrapper(): void {
-	const wrapperPath = getClaudeWrapperPath();
 	const settingsPath = createClaudeSettings();
-	const script = buildClaudeWrapperScript(settingsPath);
-	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
-	console.log("[agent-setup] Created Claude wrapper");
+	const script = buildWrapperScript(
+		"claude",
+		`exec "$REAL_BIN" --settings "${settingsPath}" "$@"`,
+	);
+	createWrapper("claude", script);
 }
 
 export function createCodexWrapper(): void {
-	const wrapperPath = getCodexWrapperPath();
 	const notifyPath = getNotifyScriptPath();
-	const script = buildCodexWrapperScript(notifyPath);
-	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
-	console.log("[agent-setup] Created Codex wrapper");
+	const script = buildWrapperScript(
+		"codex",
+		`exec "$REAL_BIN" -c 'notify=["bash","${notifyPath}"]' "$@"`,
+	);
+	createWrapper("codex", script);
 }
 
 /**
@@ -218,10 +184,11 @@ export function cleanupGlobalOpenCodePlugin(): void {
 }
 
 export function createOpenCodeWrapper(): void {
-	const wrapperPath = getOpenCodeWrapperPath();
-	const script = buildOpenCodeWrapperScript(OPENCODE_CONFIG_DIR);
-	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
-	console.log("[agent-setup] Created OpenCode wrapper");
+	const script = buildWrapperScript(
+		"opencode",
+		`export OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR}"\nexec "$REAL_BIN" "$@"`,
+	);
+	createWrapper("opencode", script);
 }
 
 // --- Cursor agent support ---
@@ -238,33 +205,12 @@ const CURSOR_HOOK_TEMPLATE_PATH = path.join(
 	"cursor-hook.template.sh",
 );
 
-export function getCursorAgentWrapperPath(): string {
-	return path.join(BIN_DIR, "cursor-agent");
-}
-
 export function getCursorHookScriptPath(): string {
 	return path.join(HOOKS_DIR, CURSOR_HOOK_SCRIPT_NAME);
 }
 
 export function getCursorGlobalHooksJsonPath(): string {
 	return path.join(os.homedir(), ".cursor", "hooks.json");
-}
-
-export function buildCursorAgentWrapperScript(): string {
-	return `#!/bin/bash
-${WRAPPER_MARKER}
-# Superset wrapper for cursor-agent
-# Injects notification hook via ~/.cursor/hooks.json
-
-${buildRealBinaryResolver()}
-REAL_BIN="$(find_real_binary "cursor-agent")"
-if [ -z "$REAL_BIN" ]; then
-  echo "${getMissingBinaryMessage("cursor-agent")}" >&2
-  exit 127
-fi
-
-exec "$REAL_BIN" "$@"
-`;
 }
 
 export function getCursorHookScriptContent(): string {
@@ -346,10 +292,8 @@ export function createCursorHookScript(): void {
 }
 
 export function createCursorAgentWrapper(): void {
-	const wrapperPath = getCursorAgentWrapperPath();
-	const script = buildCursorAgentWrapperScript();
-	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
-	console.log("[agent-setup] Created cursor-agent wrapper");
+	const script = buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`);
+	createWrapper("cursor-agent", script);
 }
 
 export function createCursorHooksJson(): void {
