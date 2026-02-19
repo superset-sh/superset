@@ -152,26 +152,9 @@ export function useDurableChat(
 			}>({
 				onMutate: ({ text, files, messageId }) => {
 					const now = new Date().toISOString();
-					const parts: Array<
-						| { type: "text"; text: string }
-						| {
-								type: "file";
-								url: string;
-								mediaType: string;
-								filename?: string;
-						  }
-					> = [];
+					const parts: ({ type: "text"; text: string } | FileUIPart)[] = [];
 					if (text) parts.push({ type: "text", text });
-					if (files) {
-						for (const f of files) {
-							parts.push({
-								type: "file",
-								url: f.url,
-								mediaType: f.mediaType,
-								...(f.filename ? { filename: f.filename } : {}),
-							});
-						}
-					}
+					if (files) parts.push(...files);
 					const chunk: ChunkRow = {
 						id: `${messageId}:0`,
 						messageId,
@@ -200,15 +183,7 @@ export function useDurableChat(
 							content: text || undefined,
 							messageId,
 							txid,
-							...(files && files.length > 0
-								? {
-										files: files.map((f) => ({
-											url: f.url,
-											mediaType: f.mediaType,
-											...(f.filename ? { filename: f.filename } : {}),
-										})),
-									}
-								: {}),
+							...(files && files.length > 0 ? { files } : {}),
 						}),
 					});
 					if (!res.ok) {

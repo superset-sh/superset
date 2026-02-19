@@ -43,7 +43,7 @@ async function createSession(
 async function uploadFile(
 	sessionId: string,
 	file: FileUIPart,
-): Promise<{ url: string; mediaType: string; filename?: string }> {
+): Promise<FileUIPart> {
 	// Convert the data URL to a File object for upload
 	const response = await fetch(file.url);
 	const blob = await response.blob();
@@ -64,7 +64,9 @@ async function uploadFile(
 		throw new Error(err.error || `Upload failed: ${res.status}`);
 	}
 
-	return res.json();
+	const result: { url: string; mediaType: string; filename?: string } =
+		await res.json();
+	return { type: "file", ...result };
 }
 
 export function ChatInterface(props: ChatInterfaceProps) {
@@ -153,12 +155,7 @@ function EmptyChatInterface({
 						const results = await Promise.all(
 							files.map((f) => uploadFile(newSessionId, f)),
 						);
-						uploadedFiles = results.map((r) => ({
-							type: "file" as const,
-							url: r.url,
-							mediaType: r.mediaType,
-							...(r.filename ? { filename: r.filename } : {}),
-						}));
+						uploadedFiles = results;
 					}
 
 					// Pre-warm cache AFTER session exists on server
@@ -200,12 +197,7 @@ function EmptyChatInterface({
 						...(sentMessage.text
 							? [{ type: "text" as const, text: sentMessage.text }]
 							: []),
-						...sentMessage.files.map((f) => ({
-							type: "file" as const,
-							url: f.url,
-							mediaType: f.mediaType,
-							...(f.filename ? { filename: f.filename } : {}),
-						})),
+						...sentMessage.files,
 					],
 					createdAt: new Date(),
 				},
@@ -306,12 +298,7 @@ function ActiveChatInterface({
 							...(pendingMessage
 								? [{ type: "text" as const, text: pendingMessage }]
 								: []),
-							...pendingFiles.map((f) => ({
-								type: "file" as const,
-								url: f.url,
-								mediaType: f.mediaType,
-								...(f.filename ? { filename: f.filename } : {}),
-							})),
+							...pendingFiles,
 						],
 						createdAt: new Date(),
 					},
@@ -382,12 +369,7 @@ function ActiveChatInterface({
 				const results = await Promise.all(
 					files.map((f) => uploadFile(sessionId, f)),
 				);
-				uploadedFiles = results.map((r) => ({
-					type: "file" as const,
-					url: r.url,
-					mediaType: r.mediaType,
-					...(r.filename ? { filename: r.filename } : {}),
-				}));
+				uploadedFiles = results;
 			}
 
 			sendMessage(text, uploadedFiles);
