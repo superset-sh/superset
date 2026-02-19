@@ -1,4 +1,5 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiOutlineArrowPath, HiOutlineCpuChip } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -17,7 +18,10 @@ function formatCpu(percent: number): string {
 
 export function ResourceConsumption() {
 	const [open, setOpen] = useState(false);
+	const navigate = useNavigate();
 	const panes = useTabsStore((s) => s.panes);
+	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 
 	const { data: enabled } =
 		electronTrpc.settings.getShowResourceMonitor.useQuery();
@@ -36,6 +40,21 @@ export function ResourceConsumption() {
 	const getPaneName = (paneId: string): string => {
 		const pane = panes[paneId];
 		return pane?.name || `Pane ${paneId.slice(0, 6)}`;
+	};
+
+	const navigateToWorkspace = (workspaceId: string) => {
+		navigate({ to: `/workspace/${workspaceId}` });
+		setOpen(false);
+	};
+
+	const navigateToPane = (workspaceId: string, paneId: string) => {
+		const pane = panes[paneId];
+		if (pane) {
+			setActiveTab(workspaceId, pane.tabId);
+			setFocusedPane(pane.tabId, paneId);
+		}
+		navigate({ to: `/workspace/${workspaceId}` });
+		setOpen(false);
 	};
 
 	return (
@@ -99,7 +118,11 @@ export function ResourceConsumption() {
 							key={ws.workspaceId}
 							className="border-b border-border/50 last:border-b-0"
 						>
-							<div className="px-3 py-2 flex items-center justify-between">
+							<button
+								type="button"
+								onClick={() => navigateToWorkspace(ws.workspaceId)}
+								className="w-full px-3 py-2 flex items-center justify-between hover:bg-muted/50 transition-colors"
+							>
 								<span className="text-xs font-medium truncate max-w-40">
 									{ws.workspaceName}
 								</span>
@@ -107,12 +130,14 @@ export function ResourceConsumption() {
 									<span>{formatCpu(ws.cpu)}</span>
 									<span>{formatMemory(ws.memory)}</span>
 								</div>
-							</div>
+							</button>
 
 							{ws.sessions.map((session) => (
-								<div
+								<button
+									type="button"
 									key={session.sessionId}
-									className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30"
+									onClick={() => navigateToPane(ws.workspaceId, session.paneId)}
+									className="w-full px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30 hover:bg-muted/60 transition-colors"
 								>
 									<span className="text-[11px] text-muted-foreground truncate max-w-32">
 										{getPaneName(session.paneId)}
@@ -121,7 +146,7 @@ export function ResourceConsumption() {
 										<span>{formatCpu(session.cpu)}</span>
 										<span>{formatMemory(session.memory)}</span>
 									</div>
-								</div>
+								</button>
 							))}
 						</div>
 					))}
