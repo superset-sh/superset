@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { register as createWorkspace } from "./devices/create-workspace";
 import { register as deleteWorkspace } from "./devices/delete-workspace";
 import { register as getAppContext } from "./devices/get-app-context";
+import { register as getWorkspaceDetails } from "./devices/get-workspace-details";
 import { register as listDevices } from "./devices/list-devices";
 import { register as listProjects } from "./devices/list-projects";
 import { register as listWorkspaces } from "./devices/list-workspaces";
@@ -29,6 +30,7 @@ const allTools = [
 	listWorkspaces,
 	listProjects,
 	getAppContext,
+	getWorkspaceDetails,
 	navigateToWorkspace,
 	createWorkspace,
 	switchWorkspace,

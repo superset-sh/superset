@@ -2,7 +2,7 @@
 	"mcpServers": {
 		"superset": {
 			"type": "http",
-			"url": "https://api.superset.sh/api/agent/mcp"
+			"url": "http://localhost:3041/api/agent/mcp"
 		},
 		"expo-mcp": {
 			"type": "http",

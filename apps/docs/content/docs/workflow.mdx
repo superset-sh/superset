@@ -1,0 +1,68 @@
+---
+title: Workflow
+description: The end-to-end development workflow in Superset
+---
+
+## The Loop
+
+Superset is built around a simple loop: **create a workspace, do the work, review, merge, delete**.
+
+1. **Pick a task** — from your task board, a GitHub issue, or your head
+2. **Create a workspace** — `⌘N` spins up an isolated git worktree on a new branch
+3. **Work** — code manually, run an AI agent, or both
+4. **Review** — check the diff viewer, run tests, iterate
+5. **Ship** — commit, push, and create a PR from the sidebar
+6. **Clean up** — delete the workspace after merge
+
+The power comes from running steps 1–6 for multiple tasks **at the same time**.
+
+## Creating Workspaces
+
+Every workspace is a git worktree — a real directory with its own branch, terminal sessions, and port range. No stashing, no context switching.
+
+Create from:
+- **New branch** — start fresh from main
+- **Existing branch** — pick up where you left off
+- **Pull request** — review or continue someone else's work
+- **Task** — click "Start Working" on any task to auto-create a workspace with context
+
+## Running Agents
+
+Once a workspace is ready, launch an AI agent in the terminal:
+
+```bash
+claude "Implement the auth middleware"
+```
+
+Or use [terminal presets](/terminal-presets) to auto-launch agents when workspaces are created.
+
+While one agent works, create another workspace and start a second task. Superset's sidebar shows live status for every workspace — spinning means working, amber means needs attention, green means ready to review.
+
+See [Parallel Agents](/parallel-agents) for more.
+
+## Reviewing Changes
+
+The right sidebar shows all changes in the workspace:
+
+- **Stage/unstage files** — select exactly what to commit
+- **View diffs** — split or unified, with [focus mode](/diff-viewer) for one file at a time
+- **Commit and push** — write a message and push in one step
+- **Create a PR** — open a pull request directly from Superset
+
+## From Task to PR
+
+The fastest path from idea to pull request:
+
+1. Open the Tasks view and find your task
+2. Click **Start Working** — Superset creates a workspace and launches Claude with your task description as context
+3. Monitor progress in the sidebar
+4. When Claude finishes, review the diff and create a PR
+5. Delete the workspace
+
+Repeat for every task in your backlog. Run as many in parallel as your machine can handle.
+
+## Next Steps
+
+- [Parallel Agents](/parallel-agents) — Run multiple agents simultaneously
+- [Task Management](/task-management) — Organize and track your work
+- [Setup Scripts](/setup-teardown-scripts) — Automate workspace initialization

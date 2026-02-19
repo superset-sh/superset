@@ -1,22 +1,87 @@
 ---
-title: Overview
-description: Learn what Superset is and how it works
+title: Welcome
+description: Superset is a desktop app for running multiple AI coding agents in parallel
 ---
 
 ## What is Superset?
 
-Superset is a desktop app for managing multiple codebases with git worktrees. Work on several branches simultaneously, each in its own isolated workspace.
+Superset is a macOS desktop app for running multiple AI coding agents simultaneously. Each agent works in its own isolated workspace (a git worktree), so you can hand off parallel tasks and review results as they come in.
 
-## Key Features
+**Wait less, ship more.**
 
-- **Workspaces** - Each branch gets its own directory via git worktrees. No more stashing.
-- **Terminal** - Built-in terminal with persistent sessions per workspace.
-- **Diff Viewer** - Review changes, stage files, commit, and push.
-- **AI Agents** - Run Claude Code or other agents in isolated workspaces.
-- **IDE Integration** - Open any workspace in Cursor or VS Code.
+<DownloadButton />
 
-## How It Works
+## Get Started
 
-Superset uses [git worktrees](https://git-scm.com/docs/git-worktree) to give each branch its own directory. Switch contexts instantly without losing your place.
+<ResourceGrid resources={[
+  {
+    title: "Installation",
+    description: "Download Superset and get up and running in minutes.",
+    href: "/installation"
+  },
+  {
+    title: "Your First Workspace",
+    description: "Create a workspace, run a command, and review changes.",
+    href: "/first-workspace"
+  },
+  {
+    title: "Workflow",
+    description: "The end-to-end loop: create, work, review, ship.",
+    href: "/workflow"
+  }
+]} />
 
-Your data stays local. Superset works offline and syncs when connected.
+## Core Features
+
+<ResourceGrid resources={[
+  {
+    title: "Parallel Agents",
+    description: "Run multiple AI agents at once in isolated workspaces.",
+    href: "/parallel-agents"
+  },
+  {
+    title: "Workspaces",
+    description: "Isolated git worktrees for every branch you work on.",
+    href: "/workspaces"
+  },
+  {
+    title: "Task Management",
+    description: "Track tasks, assign priorities, and launch agents from one place.",
+    href: "/task-management"
+  },
+  {
+    title: "MCP Server",
+    description: "Let AI agents control Superset programmatically.",
+    href: "/mcp"
+  },
+  {
+    title: "Terminal",
+    description: "Built-in terminal with split panes and session persistence.",
+    href: "/terminal-integration"
+  },
+  {
+    title: "Diff Viewer",
+    description: "Review changes, stage files, commit, and create PRs.",
+    href: "/diff-viewer"
+  }
+]} />
+
+## Guides
+
+<ResourceGrid resources={[
+  {
+    title: "Setup Scripts",
+    description: "Automate workspace initialization with setup and teardown commands.",
+    href: "/setup-teardown-scripts"
+  },
+  {
+    title: "IDE Integration",
+    description: "Open workspaces in Cursor, VS Code, or your preferred editor.",
+    href: "/use-with-ide"
+  },
+  {
+    title: "Terminal Presets",
+    description: "Save and reuse terminal configurations for quick launches.",
+    href: "/terminal-presets"
+  }
+]} />

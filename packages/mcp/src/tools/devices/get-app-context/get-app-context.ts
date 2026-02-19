@@ -7,7 +7,7 @@ export function register(server: McpServer) {
 		"get_app_context",
 		{
 			description:
-				"Get the current app context including pathname and active workspace",
+				"Get the current app context on a device, including pathname and active workspace. The target device must belong to the current user.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 			},

@@ -1,5 +1,6 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
+	CommandStatus,
 	SelectAgentCommand,
 	SelectChatSession,
 	SelectDevicePresence,
@@ -219,21 +220,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				if (!changes.status) {
-					return { txid: Date.now() };
-				}
-				const result = await apiClient.agent.updateCommand.mutate({
-					id: original.id,
-					status: changes.status,
-					claimedBy: changes.claimedBy ?? undefined,
-					claimedAt: changes.claimedAt ?? undefined,
-					result: changes.result ?? undefined,
-					error: changes.error ?? undefined,
-					executedAt: changes.executedAt ?? undefined,
-				});
-				return { txid: Number(result.txid) };
+			// No-op: command status persistence is handled directly by useCommandWatcher
+			// via persistCommandStatus() with retry logic.
+			onUpdate: async () => {
+				return { txid: Date.now() };
 			},
 		}),
 	);
@@ -387,4 +377,42 @@ export function getCollections(organizationId: string) {
 		...orgCollections,
 		organizations: organizationsCollection,
 	};
+}
+
+/**
+ * Persist a command's final status directly to the API with exponential backoff retry.
+ * Bypasses the collection's onUpdate handler for reliable final-status writes.
+ */
+export async function persistCommandStatus(params: {
+	id: string;
+	status: CommandStatus;
+	claimedBy?: string;
+	claimedAt?: Date;
+	result?: Record<string, unknown>;
+	error?: string;
+	executedAt?: Date;
+}): Promise<void> {
+	const delays = [500, 1000, 2000];
+	let lastError: unknown;
+
+	for (let attempt = 0; attempt <= delays.length; attempt++) {
+		try {
+			await apiClient.agent.updateCommand.mutate(params);
+			return;
+		} catch (err) {
+			lastError = err;
+			console.warn(
+				`[persistCommandStatus] Attempt ${attempt + 1} failed for ${params.id}:`,
+				err,
+			);
+			if (attempt < delays.length) {
+				await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+			}
+		}
+	}
+
+	console.error(
+		`[persistCommandStatus] All retries exhausted for ${params.id}:`,
+		lastError,
+	);
 }

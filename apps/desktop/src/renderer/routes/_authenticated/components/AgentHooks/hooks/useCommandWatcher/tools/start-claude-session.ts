@@ -1,3 +1,4 @@
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { z } from "zod";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
@@ -6,6 +7,7 @@ const schema = z.object({
 	command: z.string(),
 	name: z.string(),
 	workspaceId: z.string(),
+	paneId: z.string().optional(),
 });
 
 async function execute(
@@ -26,7 +28,31 @@ async function execute(
 	}
 
 	try {
-		// Append command to pending terminal setup for the existing workspace
+		if (params.paneId) {
+			const tabsStore = useTabsStore.getState();
+			const pane = tabsStore.panes[params.paneId];
+			if (!pane) {
+				return {
+					success: false,
+					error: `Pane not found: ${params.paneId}`,
+				};
+			}
+
+			const newPaneId = tabsStore.addPane(pane.tabId, {
+				initialCommands: [params.command],
+			});
+
+			if (!newPaneId) {
+				return { success: false, error: "Failed to add pane" };
+			}
+
+			return {
+				success: true,
+				data: { workspaceId: workspace.id, paneId: newPaneId },
+			};
+		}
+
+		// Without paneId: init workspace path
 		const store = useWorkspaceInitStore.getState();
 		const pending = store.pendingTerminalSetups[workspace.id];
 		store.addPendingTerminalSetup({

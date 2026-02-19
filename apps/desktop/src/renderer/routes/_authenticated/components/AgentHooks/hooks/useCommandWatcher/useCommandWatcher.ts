@@ -9,6 +9,7 @@ import { useDeleteWorkspace } from "renderer/react-query/workspaces/useDeleteWor
 import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider";
+import { persistCommandStatus } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import { executeTool, type ToolContext } from "./tools";
 
 /** Tracks command IDs that have been or are being processed to prevent duplicate execution. */
@@ -86,13 +87,12 @@ export function useCommandWatcher() {
 			console.log(`[command-watcher] Processing: ${commandId} (${tool})`);
 
 			try {
+				// Optimistic local updates for intermediate statuses (no HTTP persistence)
 				collections.agentCommands.update(commandId, (draft) => {
 					draft.status = "claimed";
 					draft.claimedBy = deviceInfo?.deviceId ?? null;
 					draft.claimedAt = new Date();
 				});
-
-				await new Promise((resolve) => setTimeout(resolve, 100));
 
 				collections.agentCommands.update(commandId, (draft) => {
 					draft.status = "executing";
@@ -100,16 +100,21 @@ export function useCommandWatcher() {
 
 				const result = await executeTool(tool, params, toolContext);
 
-				await new Promise((resolve) => setTimeout(resolve, 100));
-
 				if (result.success) {
+					const executedAt = new Date();
 					collections.agentCommands.update(commandId, (draft) => {
 						draft.status = "completed";
 						draft.result = result.data ?? {};
-						draft.executedAt = new Date();
+						draft.executedAt = executedAt;
+					});
+					await persistCommandStatus({
+						id: commandId,
+						status: "completed",
+						claimedBy: deviceInfo?.deviceId,
+						result: result.data ?? {},
+						executedAt,
 					});
 				} else {
-					// Include per-item errors from bulk operations in the error message
 					const itemErrors = (
 						result.data?.errors as Array<{ error: string }> | undefined
 					)
@@ -119,24 +124,41 @@ export function useCommandWatcher() {
 						? `${result.error ?? "Unknown error"}: ${itemErrors}`
 						: (result.error ?? "Unknown error");
 
+					const executedAt = new Date();
 					collections.agentCommands.update(commandId, (draft) => {
 						draft.status = "failed";
 						draft.error = fullError;
-						draft.executedAt = new Date();
+						draft.executedAt = executedAt;
 					});
 					console.error(
 						`[command-watcher] Failed: ${commandId}`,
 						fullError,
 						result.data,
 					);
+					await persistCommandStatus({
+						id: commandId,
+						status: "failed",
+						claimedBy: deviceInfo?.deviceId,
+						error: fullError,
+						executedAt,
+					});
 				}
 			} catch (error) {
 				console.error(`[command-watcher] Error: ${commandId}`, error);
+				const errorMsg =
+					error instanceof Error ? error.message : "Execution error";
+				const executedAt = new Date();
 				collections.agentCommands.update(commandId, (draft) => {
 					draft.status = "failed";
-					draft.error =
-						error instanceof Error ? error.message : "Execution error";
-					draft.executedAt = new Date();
+					draft.error = errorMsg;
+					draft.executedAt = executedAt;
+				});
+				await persistCommandStatus({
+					id: commandId,
+					status: "failed",
+					claimedBy: deviceInfo?.deviceId,
+					error: errorMsg,
+					executedAt,
 				});
 			}
 		},
@@ -168,6 +190,11 @@ export function useCommandWatcher() {
 				collections.agentCommands.update(cmd.id, (draft) => {
 					draft.status = "timeout";
 					draft.error = "Command expired before execution";
+				});
+				persistCommandStatus({
+					id: cmd.id,
+					status: "timeout",
+					error: "Command expired before execution",
 				});
 				return false;
 			}

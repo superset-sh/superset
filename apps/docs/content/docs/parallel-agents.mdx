@@ -1,0 +1,61 @@
+---
+title: Parallel Agents
+description: Run multiple AI coding agents simultaneously in isolated workspaces
+---
+
+## Overview
+
+Run multiple AI agents at the same time, each in its own isolated workspace. This is the core value of Superset — instead of waiting for one agent to finish before starting the next, run them all in parallel.
+
+## How It Works
+
+Each workspace is a separate git worktree with its own branch and directory. Agents can't interfere with each other because they're working on different files in different directories.
+
+1. Create workspace A → launch Claude on task A
+2. Create workspace B → launch Claude on task B
+3. Create workspace C → launch Claude on task C
+4. Monitor all three from the sidebar
+5. Review and merge as each finishes
+
+## Supported Agents
+
+| Agent | Command |
+|-------|---------|
+| **Claude Code** | `claude` |
+| **Codex** | `codex` |
+| **Gemini CLI** | `gemini` |
+| **OpenCode** | `opencode` |
+| **Any CLI agent** | Works in the terminal |
+
+## Monitoring
+
+The workspace sidebar shows live status for every workspace:
+
+- **Spinning** — agent is actively working
+- **Amber** — agent needs input or hit an error
+- **Green** — work is done, ready for review
+
+Audio notifications alert you when agents finish. Configure sounds in Settings → Notifications.
+
+## Auto-Launch with Presets
+
+Set up a [terminal preset](/terminal-presets) for your preferred agent and mark it as default. New workspaces will automatically launch the agent when created.
+
+Quick-add templates are available for Claude, Codex, Gemini, Cursor Agent, and OpenCode.
+
+## Subagents
+
+Use the [MCP server](/mcp) `start_claude_session` tool to spawn subagents within an existing workspace. Pass a `paneId` to add a new terminal pane to an existing tab — useful for breaking a large task into parallel subtasks.
+
+## Tips
+
+- Start with 2-3 agents and scale up as you get comfortable
+- Use descriptive branch names so you can tell workspaces apart at a glance
+- Set up [setup scripts](/setup-teardown-scripts) to automate `bun install` and env file copying — each workspace needs its own dependencies
+- Delete workspaces after merging to keep things clean
+
+## Next Steps
+
+- [Terminal Presets](/terminal-presets) — Auto-launch agents on workspace creation
+- [Task Management](/task-management) — Manage what each agent works on
+- [Workflow](/workflow) — The full development loop

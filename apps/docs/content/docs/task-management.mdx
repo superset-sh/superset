@@ -1,0 +1,53 @@
+---
+title: Task Management
+description: Organize, track, and execute tasks from a single interface
+---
+
+## Overview
+
+Superset has a built-in task tracker. Create tasks, assign them, set priorities, and launch agents — all without leaving the app.
+
+## Creating Tasks
+
+Create tasks from the Tasks view or via the [MCP server](/mcp). Each task has:
+
+| Field | Description |
+|-------|-------------|
+| **Title** | Short description of the work |
+| **Description** | Detailed context, requirements, or instructions |
+| **Status** | Backlog, Todo, In Progress, Done, Cancelled |
+| **Priority** | Urgent, High, Medium, Low, None |
+| **Labels** | Tags for categorization |
+| **Assignee** | Team member responsible |
+
+## Start Working
+
+The "Start Working" button on any task:
+
+1. Creates a new workspace (git worktree + branch)
+2. Feeds the task title and description to Claude as context
+3. Launches Claude Code in the workspace terminal
+
+The agent starts working immediately with full context about what needs to be done.
+
+## Batch Mode
+
+Select multiple tasks and click "Start Working" to create workspaces for all of them at once. Each gets its own isolated workspace with its own Claude session.
+
+## MCP Integration
+
+AI agents can manage tasks programmatically via the [MCP server](/mcp):
+
+```
+"Create a task for fixing the login validation bug"
+"List all my high-priority tasks"
+"Update the auth task status to done"
+```
+
+Available MCP tools: `create_task`, `update_task`, `list_tasks`, `get_task`, `delete_task`, `list_task_statuses`.
+
+## Next Steps
+
+- [Workflow](/workflow) — See how tasks fit into the development loop
+- [MCP Server](/mcp) — Automate task management with AI agents
+- [Parallel Agents](/parallel-agents) — Run multiple tasks simultaneously

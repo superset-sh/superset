@@ -1,11 +1,11 @@
 import { createWorkspace } from "./create-worktree";
 import { deleteWorkspace } from "./delete-workspace";
 import { getAppContext } from "./get-app-context";
+import { getWorkspaceDetails } from "./get-workspace-details";
 import { listProjects } from "./list-projects";
 import { listWorkspaces } from "./list-workspaces";
 import { navigateToWorkspace } from "./navigate-to-workspace";
 import { startClaudeSession } from "./start-claude-session";
-import { startClaudeSubagent } from "./start-claude-subagent";
 import { switchWorkspace } from "./switch-workspace";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 import { updateWorkspace } from "./update-workspace";
@@ -16,11 +16,11 @@ const tools: ToolDefinition<any>[] = [
 	createWorkspace,
 	deleteWorkspace,
 	getAppContext,
+	getWorkspaceDetails,
 	listProjects,
 	listWorkspaces,
 	navigateToWorkspace,
 	startClaudeSession,
-	startClaudeSubagent,
 	switchWorkspace,
 	updateWorkspace,
 ];
