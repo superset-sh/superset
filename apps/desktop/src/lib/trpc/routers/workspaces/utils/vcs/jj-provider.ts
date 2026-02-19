@@ -539,7 +539,7 @@ export class JjProvider implements VcsProvider {
 			const output = await jj(mainRepoPath, [
 				"config",
 				"get",
-				"revset-aliases.trunk()",
+				'revset-aliases."trunk()"',
 			]);
 			const trimmed = output.trim();
 			if (trimmed) {
@@ -628,7 +628,8 @@ export class JjProvider implements VcsProvider {
 		try {
 			const output = await jj(mainRepoPath, ["git", "remote", "list"]);
 			for (const line of output.split("\n")) {
-				if (line.trim().startsWith("origin")) {
+				const remoteName = line.trim().split(/\s+/)[0];
+				if (remoteName === "origin") {
 					return true;
 				}
 			}

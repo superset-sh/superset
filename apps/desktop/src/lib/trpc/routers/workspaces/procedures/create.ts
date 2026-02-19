@@ -170,7 +170,8 @@ async function getKnownBranchesSafe(
 	repoPath: string,
 ): Promise<string[] | undefined> {
 	try {
-		const { local, remote } = await listBranches(repoPath);
+		const vcs = getVcsProvider(repoPath);
+		const { local, remote } = await vcs.listBranches(repoPath);
 		return [...local, ...remote];
 	} catch (error) {
 		console.warn(
