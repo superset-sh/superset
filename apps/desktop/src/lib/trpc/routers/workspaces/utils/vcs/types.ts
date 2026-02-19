@@ -197,15 +197,13 @@ export interface VcsProvider {
 
 	/**
 	 * Get the configured base branch for a workspace branch.
-	 * Git: reads `git config branch.<name>.base`
-	 * Jj: reads from local DB (worktrees.baseBranch)
+	 * Both git and jj (colocated) use `git config branch.<name>.base`.
 	 */
 	getBaseBranchConfig(repoPath: string, branch: string): Promise<string | null>;
 
 	/**
 	 * Set the base branch config for a workspace branch.
-	 * Git: writes `git config branch.<name>.base`
-	 * Jj: writes to local DB (worktrees.baseBranch)
+	 * Both git and jj (colocated) use `git config branch.<name>.base`.
 	 */
 	setBaseBranchConfig(
 		repoPath: string,
