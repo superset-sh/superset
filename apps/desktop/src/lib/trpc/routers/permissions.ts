@@ -1,4 +1,3 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
@@ -23,23 +22,12 @@ function checkAccessibility(): boolean {
 	return systemPreferences.isTrustedAccessibilityClient(false);
 }
 
-function checkAppleEvents(): Promise<boolean> {
-	return new Promise((resolve) => {
-		execFile(
-			"osascript",
-			["-e", 'tell application "System Events" to return 1'],
-			(err) => resolve(!err),
-		);
-	});
-}
-
 export const createPermissionsRouter = () => {
 	return router({
-		getStatus: publicProcedure.query(async () => {
+		getStatus: publicProcedure.query(() => {
 			return {
 				fullDiskAccess: checkFullDiskAccess(),
 				accessibility: checkAccessibility(),
-				appleEvents: await checkAppleEvents(),
 			};
 		}),
 
@@ -61,9 +49,10 @@ export const createPermissionsRouter = () => {
 			);
 		}),
 
+		// No deep link exists for Local Network — open the general Privacy & Security pane
 		requestLocalNetwork: publicProcedure.mutation(async () => {
 			await shell.openExternal(
-				"x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork",
+				"x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension",
 			);
 		}),
 	});

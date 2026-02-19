@@ -103,7 +103,7 @@ export function PermissionsSettings({
 					<PermissionRow
 						label="Automation"
 						description="Run terminal commands and interact with other applications"
-						granted={status?.appleEvents}
+						granted={undefined}
 						onRequest={() => requestAppleEvents.mutate()}
 					/>
 				)}
