@@ -29,17 +29,13 @@ function PermissionRow({
 				<Label className="text-sm font-medium">{label}</Label>
 				<p className="text-xs text-muted-foreground">{description}</p>
 			</div>
-			{granted ? (
-				<div className="flex items-center gap-1.5 text-sm text-green-500">
-					<LuCheck className="h-4 w-4" />
-					<span>Granted</span>
-				</div>
-			) : (
+			<div className="flex items-center gap-3">
+				{granted && <LuCheck className="h-4 w-4 text-green-500" />}
 				<Button variant="outline" size="sm" onClick={onRequest}>
 					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
-					Open System Settings
+					Edit in System Settings
 				</Button>
-			)}
+			</div>
 		</div>
 	);
 }
