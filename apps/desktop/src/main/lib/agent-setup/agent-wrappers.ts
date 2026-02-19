@@ -2,19 +2,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { getNotifyScriptPath } from "./notify-hook";
-import {
-	BIN_DIR,
-	HOOKS_DIR,
-	OPENCODE_CONFIG_DIR,
-	OPENCODE_PLUGIN_DIR,
-} from "./paths";
+import { BIN_DIR, HOOKS_DIR } from "./paths";
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
 export const CLAUDE_SETTINGS_FILE = "claude-settings.json";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
 
 const OPENCODE_PLUGIN_SIGNATURE = "// Superset opencode plugin";
-const OPENCODE_PLUGIN_VERSION = "v8";
+const OPENCODE_PLUGIN_VERSION = "v9";
 export const OPENCODE_PLUGIN_MARKER = `${OPENCODE_PLUGIN_SIGNATURE} ${OPENCODE_PLUGIN_VERSION}`;
 
 const OPENCODE_PLUGIN_TEMPLATE_PATH = path.join(
@@ -59,10 +54,6 @@ export function getOpenCodeWrapperPath(): string {
 
 export function getClaudeSettingsPath(): string {
 	return path.join(HOOKS_DIR, CLAUDE_SETTINGS_FILE);
-}
-
-export function getOpenCodePluginPath(): string {
-	return path.join(OPENCODE_PLUGIN_DIR, OPENCODE_PLUGIN_FILE);
 }
 
 /** @see https://opencode.ai/docs/plugins */
@@ -122,11 +113,10 @@ exec "$REAL_BIN" -c 'notify=["bash","${notifyPath}"]' "$@"
 `;
 }
 
-export function buildOpenCodeWrapperScript(opencodeConfigDir: string): string {
+export function buildOpenCodeWrapperScript(): string {
 	return `#!/bin/bash
 ${WRAPPER_MARKER}
 # Superset wrapper for OpenCode
-# Injects OPENCODE_CONFIG_DIR for notification plugin
 
 ${REAL_BINARY_RESOLVER}
 REAL_BIN="$(find_real_binary "opencode")"
@@ -135,23 +125,19 @@ if [ -z "$REAL_BIN" ]; then
   exit 127
 fi
 
-export OPENCODE_CONFIG_DIR="${opencodeConfigDir}"
 exec "$REAL_BIN" "$@"
 `;
 }
 
-export function getOpenCodePluginContent(notifyPath: string): string {
+export function getOpenCodePluginContent(): string {
 	const template = fs.readFileSync(OPENCODE_PLUGIN_TEMPLATE_PATH, "utf-8");
-	return template
-		.replace("{{MARKER}}", OPENCODE_PLUGIN_MARKER)
-		.replace("{{NOTIFY_PATH}}", notifyPath);
+	return template.replace("{{MARKER}}", OPENCODE_PLUGIN_MARKER);
 }
 
 function createClaudeSettings(): string {
 	const settingsPath = getClaudeSettingsPath();
 	const notifyPath = getNotifyScriptPath();
 	const settings = getClaudeSettingsContent(notifyPath);
-
 	fs.writeFileSync(settingsPath, settings, { mode: 0o644 });
 	return settingsPath;
 }
@@ -173,44 +159,21 @@ export function createCodexWrapper(): void {
 }
 
 /**
- * Writes to environment-specific path only, NOT the global path.
- * Global path causes dev/prod conflicts when both are running.
+ * Writes plugin to the global OpenCode config path (~/.config/opencode/plugin/).
+ * The plugin reads SUPERSET_NOTIFY_PATH from env at runtime, so the file content
+ * is identical across dev/prod — no conflicts when both are running.
  */
 export function createOpenCodePlugin(): void {
-	const pluginPath = getOpenCodePluginPath();
-	const notifyPath = getNotifyScriptPath();
-	const content = getOpenCodePluginContent(notifyPath);
+	const pluginPath = getOpenCodeGlobalPluginPath();
+	fs.mkdirSync(path.dirname(pluginPath), { recursive: true });
+	const content = getOpenCodePluginContent();
 	fs.writeFileSync(pluginPath, content, { mode: 0o644 });
 	console.log("[agent-setup] Created OpenCode plugin");
 }
 
-/**
- * Removes stale global plugin written by older versions.
- * Only removes if the file contains our signature to avoid deleting user plugins.
- */
-export function cleanupGlobalOpenCodePlugin(): void {
-	try {
-		const globalPluginPath = getOpenCodeGlobalPluginPath();
-		if (!fs.existsSync(globalPluginPath)) return;
-
-		const content = fs.readFileSync(globalPluginPath, "utf-8");
-		if (content.includes(OPENCODE_PLUGIN_SIGNATURE)) {
-			fs.unlinkSync(globalPluginPath);
-			console.log(
-				"[agent-setup] Removed stale global OpenCode plugin to prevent dev/prod conflicts",
-			);
-		}
-	} catch (error) {
-		console.warn(
-			"[agent-setup] Failed to cleanup global OpenCode plugin:",
-			error,
-		);
-	}
-}
-
 export function createOpenCodeWrapper(): void {
 	const wrapperPath = getOpenCodeWrapperPath();
-	const script = buildOpenCodeWrapperScript(OPENCODE_CONFIG_DIR);
+	const script = buildOpenCodeWrapperScript();
 	fs.writeFileSync(wrapperPath, script, { mode: 0o755 });
 	console.log("[agent-setup] Created OpenCode wrapper");
 }

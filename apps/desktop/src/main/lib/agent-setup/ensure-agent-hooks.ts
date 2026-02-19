@@ -10,7 +10,6 @@ import {
 	getCodexWrapperPath,
 	getOpenCodeGlobalPluginPath,
 	getOpenCodePluginContent,
-	getOpenCodePluginPath,
 	getOpenCodeWrapperPath,
 	OPENCODE_PLUGIN_MARKER,
 	WRAPPER_MARKER,
@@ -20,12 +19,7 @@ import {
 	getNotifyScriptPath,
 	NOTIFY_SCRIPT_MARKER,
 } from "./notify-hook";
-import {
-	BIN_DIR,
-	HOOKS_DIR,
-	OPENCODE_CONFIG_DIR,
-	OPENCODE_PLUGIN_DIR,
-} from "./paths";
+import { BIN_DIR, HOOKS_DIR } from "./paths";
 
 let inFlight: Promise<void> | null = null;
 
@@ -100,8 +94,7 @@ export function ensureAgentHooks(): Promise<void> {
 
 		await fs.mkdir(BIN_DIR, { recursive: true });
 		await fs.mkdir(HOOKS_DIR, { recursive: true });
-		await fs.mkdir(OPENCODE_CONFIG_DIR, { recursive: true });
-		await fs.mkdir(OPENCODE_PLUGIN_DIR, { recursive: true });
+
 		const globalOpenCodePluginPath = getOpenCodeGlobalPluginPath();
 		try {
 			await fs.mkdir(path.dirname(globalOpenCodePluginPath), {
@@ -141,32 +134,24 @@ export function ensureAgentHooks(): Promise<void> {
 			logLabel: "Codex wrapper",
 		});
 
-		await ensureScriptFile({
-			filePath: getOpenCodePluginPath(),
-			content: getOpenCodePluginContent(notifyPath),
-			mode: 0o644,
-			marker: OPENCODE_PLUGIN_MARKER,
-			logLabel: "OpenCode plugin",
-		});
-
 		try {
 			await ensureScriptFile({
 				filePath: globalOpenCodePluginPath,
-				content: getOpenCodePluginContent(notifyPath),
+				content: getOpenCodePluginContent(),
 				mode: 0o644,
 				marker: OPENCODE_PLUGIN_MARKER,
-				logLabel: "OpenCode global plugin",
+				logLabel: "OpenCode plugin",
 			});
 		} catch (error) {
 			console.warn(
-				"[agent-setup] Failed to write global OpenCode plugin:",
+				"[agent-setup] Failed to write OpenCode plugin:",
 				error,
 			);
 		}
 
 		await ensureScriptFile({
 			filePath: getOpenCodeWrapperPath(),
-			content: buildOpenCodeWrapperScript(OPENCODE_CONFIG_DIR),
+			content: buildOpenCodeWrapperScript(),
 			mode: 0o755,
 			marker: WRAPPER_MARKER,
 			logLabel: "OpenCode wrapper",

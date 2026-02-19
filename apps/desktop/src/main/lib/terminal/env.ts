@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import os from "node:os";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
+import { getNotifyScriptPath } from "../agent-setup/notify-hook";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 
 /**
@@ -371,6 +372,7 @@ export function buildTerminalEnv(params: {
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
 		SUPERSET_PORT: String(env.DESKTOP_NOTIFICATIONS_PORT),
+		SUPERSET_NOTIFY_PATH: getNotifyScriptPath(),
 		// Environment identifier for dev/prod separation
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
 		// Hook protocol version for forward compatibility

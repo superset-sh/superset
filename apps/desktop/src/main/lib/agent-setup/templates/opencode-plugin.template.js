@@ -5,7 +5,7 @@
  * This plugin sends desktop notifications when OpenCode sessions need attention.
  * It hooks into session.status (busy/idle), session.idle, session.error, and permission.ask events.
  *
- * ROBUSTNESS FEATURES (v8):
+ * ROBUSTNESS FEATURES (v9):
  * - Session-scoped: Tracks root sessionID, ignores events from other sessions
  * - Deduplication: Only sends Start on idle→busy, Stop on busy→idle transitions
  * - Safe defaults: On error, assumes child session to avoid false positives
@@ -23,13 +23,14 @@
  * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx
  */
 export const SupersetNotifyPlugin = async ({ $, client }) => {
-  if (globalThis.__supersetOpencodeNotifyPluginV8) return {};
-  globalThis.__supersetOpencodeNotifyPluginV8 = true;
+  if (globalThis.__supersetOpencodeNotifyPluginV9) return {};
+  globalThis.__supersetOpencodeNotifyPluginV9 = true;
 
   // Only run inside a Superset terminal session
   if (!process?.env?.SUPERSET_TAB_ID) return {};
 
-  const notifyPath = "{{NOTIFY_PATH}}";
+  const notifyPath = process?.env?.SUPERSET_NOTIFY_PATH;
+  if (!notifyPath) return {};
   const debug = process?.env?.SUPERSET_DEBUG === '1';
 
   // State tracking for deduplication and session-scoping
