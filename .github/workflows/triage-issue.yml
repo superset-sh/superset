@@ -1,0 +1,135 @@
+name: Triage Issue
+
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to triage"
+        required: true
+        type: number
+
+concurrency:
+  group: triage-issue-${{ github.event.issue.number || github.event.inputs.issue_number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    name: Triage Issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.6
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Set issue number
+        run: |
+          if [ -n "${{ github.event.inputs.issue_number }}" ]; then
+            echo "ISSUE_NUMBER=${{ github.event.inputs.issue_number }}" >> $GITHUB_ENV
+          else
+            echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+          fi
+
+      - name: Create branch
+        run: |
+          BRANCH_NAME="triage/issue-${ISSUE_NUMBER}-${GITHUB_RUN_ID}"
+          git checkout -B "$BRANCH_NAME"
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
+      - name: Triage issue with Claude Code
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          claude -p "$(cat .github/prompts/triage-issue.md)" \
+            --allowedTools "Bash(bun test*)" "Bash(git*)" "Bash(gh*)" "Bash(ls*)" "Bash(cat /tmp/triage*)" "Read" "Write" "Edit" "Glob" "Grep"
+
+      - name: Read triage result
+        id: triage
+        run: |
+          if [ -f /tmp/triage-result.json ]; then
+            OUTCOME=$(cat /tmp/triage-result.json | jq -r '.outcome')
+            SUMMARY=$(cat /tmp/triage-result.json | jq -r '.summary')
+            echo "outcome=$OUTCOME" >> $GITHUB_OUTPUT
+            echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+          else
+            echo "outcome=not_reproduced" >> $GITHUB_OUTPUT
+            echo "summary=Claude Code did not produce a triage result." >> $GITHUB_OUTPUT
+          fi
+
+      - name: Lint fix
+        if: steps.triage.outputs.outcome == 'confirmed'
+        run: bun run lint:fix
+        continue-on-error: true
+
+      - name: Commit, push, and create PR
+        if: steps.triage.outputs.outcome == 'confirmed'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -m "test: add reproduction test for issue #${ISSUE_NUMBER}"
+          git push origin "$BRANCH_NAME"
+          gh pr create \
+            --title "test: reproduction test for issue #${ISSUE_NUMBER}" \
+            --body "$(cat <<EOF
+          ## Summary
+
+          - Automated triage for #${ISSUE_NUMBER}
+          - Added a failing unit test that reproduces the reported bug
+
+          ## Triage Result
+
+          ${{ steps.triage.outputs.summary }}
+
+          ## Next Steps
+
+          - [ ] Review the reproduction test
+          - [ ] Fix the underlying bug so the test passes
+
+          Closes #${ISSUE_NUMBER}
+          EOF
+          )" \
+            --base main \
+            --head "$BRANCH_NAME"
+
+      - name: Comment on issue if not reproduced
+        if: steps.triage.outputs.outcome == 'not_reproduced'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --body "$(cat <<EOF
+          ## Automated Triage Result
+
+          Claude Code was unable to reproduce this issue via a unit test.
+
+          **Summary:** ${{ steps.triage.outputs.summary }}
+
+          This does not mean the bug isn't real — it may require manual investigation or an integration test to reproduce.
+          EOF
+          )"
