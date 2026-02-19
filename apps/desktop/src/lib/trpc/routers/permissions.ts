@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
@@ -22,12 +23,23 @@ function checkAccessibility(): boolean {
 	return systemPreferences.isTrustedAccessibilityClient(false);
 }
 
+function checkAppleEvents(): Promise<boolean> {
+	return new Promise((resolve) => {
+		execFile(
+			"osascript",
+			["-e", 'tell application "System Events" to return 1'],
+			(err) => resolve(!err),
+		);
+	});
+}
+
 export const createPermissionsRouter = () => {
 	return router({
-		getStatus: publicProcedure.query(() => {
+		getStatus: publicProcedure.query(async () => {
 			return {
 				fullDiskAccess: checkFullDiskAccess(),
 				accessibility: checkAccessibility(),
+				appleEvents: await checkAppleEvents(),
 			};
 		}),
 
@@ -40,6 +52,18 @@ export const createPermissionsRouter = () => {
 		requestAccessibility: publicProcedure.mutation(async () => {
 			await shell.openExternal(
 				"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
+			);
+		}),
+
+		requestAppleEvents: publicProcedure.mutation(async () => {
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.preference.security?Privacy_Automation",
+			);
+		}),
+
+		requestLocalNetwork: publicProcedure.mutation(async () => {
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork",
 			);
 		}),
 	});

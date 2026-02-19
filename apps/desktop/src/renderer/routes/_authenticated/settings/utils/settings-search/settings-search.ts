@@ -55,6 +55,8 @@ export const SETTING_ITEM_ID = {
 	// Permissions
 	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
 	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
+	PERMISSIONS_APPLE_EVENTS: "permissions-apple-events",
+	PERMISSIONS_LOCAL_NETWORK: "permissions-local-network",
 } as const;
 
 export type SettingItemId =
@@ -767,6 +769,38 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"security",
 			"privacy",
 			"trusted",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PERMISSIONS_APPLE_EVENTS,
+		section: "permissions",
+		title: "Automation",
+		description: "Run terminal commands and interact with other applications",
+		keywords: [
+			"permissions",
+			"automation",
+			"apple events",
+			"applescript",
+			"macos",
+			"security",
+			"privacy",
+			"system events",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK,
+		section: "permissions",
+		title: "Local Network",
+		description: "Discover and connect to development servers on your network",
+		keywords: [
+			"permissions",
+			"local network",
+			"bonjour",
+			"mdns",
+			"macos",
+			"security",
+			"privacy",
+			"development servers",
 		],
 	},
 ];

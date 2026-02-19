@@ -12,18 +12,41 @@ interface PermissionsSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
+function PermissionRow({
+	label,
+	description,
+	granted,
+	onRequest,
+}: {
+	label: string;
+	description: string;
+	granted: boolean | undefined;
+	onRequest: () => void;
+}) {
+	return (
+		<div className="flex items-center justify-between">
+			<div className="space-y-0.5">
+				<Label className="text-sm font-medium">{label}</Label>
+				<p className="text-xs text-muted-foreground">{description}</p>
+			</div>
+			{granted ? (
+				<div className="flex items-center gap-1.5 text-sm text-green-500">
+					<LuCheck className="h-4 w-4" />
+					<span>Granted</span>
+				</div>
+			) : (
+				<Button variant="outline" size="sm" onClick={onRequest}>
+					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
+					Open System Settings
+				</Button>
+			)}
+		</div>
+	);
+}
+
 export function PermissionsSettings({
 	visibleItems,
 }: PermissionsSettingsProps) {
-	const showFDA = isItemVisible(
-		SETTING_ITEM_ID.PERMISSIONS_FULL_DISK_ACCESS,
-		visibleItems,
-	);
-	const showA11y = isItemVisible(
-		SETTING_ITEM_ID.PERMISSIONS_ACCESSIBILITY,
-		visibleItems,
-	);
-
 	const { data: status } = electronTrpc.permissions.getStatus.useQuery(
 		undefined,
 		{ refetchInterval: 2000 },
@@ -33,6 +56,10 @@ export function PermissionsSettings({
 		electronTrpc.permissions.requestFullDiskAccess.useMutation();
 	const requestA11y =
 		electronTrpc.permissions.requestAccessibility.useMutation();
+	const requestAppleEvents =
+		electronTrpc.permissions.requestAppleEvents.useMutation();
+	const requestLocalNetwork =
+		electronTrpc.permissions.requestLocalNetwork.useMutation();
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -45,57 +72,52 @@ export function PermissionsSettings({
 			</div>
 
 			<div className="space-y-6">
-				{showFDA && (
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Full Disk Access</Label>
-							<p className="text-xs text-muted-foreground">
-								Access files in Documents, Downloads, Desktop, and iCloud from
-								the terminal
-							</p>
-						</div>
-						{status?.fullDiskAccess ? (
-							<div className="flex items-center gap-1.5 text-sm text-green-500">
-								<LuCheck className="h-4 w-4" />
-								<span>Granted</span>
-							</div>
-						) : (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => requestFDA.mutate()}
-							>
-								<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
-								Open System Settings
-							</Button>
-						)}
-					</div>
+				{isItemVisible(
+					SETTING_ITEM_ID.PERMISSIONS_FULL_DISK_ACCESS,
+					visibleItems,
+				) && (
+					<PermissionRow
+						label="Full Disk Access"
+						description="Access files in Documents, Downloads, Desktop, and iCloud from the terminal"
+						granted={status?.fullDiskAccess}
+						onRequest={() => requestFDA.mutate()}
+					/>
 				)}
 
-				{showA11y && (
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Accessibility</Label>
-							<p className="text-xs text-muted-foreground">
-								Control other apps, send keystrokes, and manage windows
-							</p>
-						</div>
-						{status?.accessibility ? (
-							<div className="flex items-center gap-1.5 text-sm text-green-500">
-								<LuCheck className="h-4 w-4" />
-								<span>Granted</span>
-							</div>
-						) : (
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => requestA11y.mutate()}
-							>
-								<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
-								Open System Settings
-							</Button>
-						)}
-					</div>
+				{isItemVisible(
+					SETTING_ITEM_ID.PERMISSIONS_ACCESSIBILITY,
+					visibleItems,
+				) && (
+					<PermissionRow
+						label="Accessibility"
+						description="Control other apps, send keystrokes, and manage windows"
+						granted={status?.accessibility}
+						onRequest={() => requestA11y.mutate()}
+					/>
+				)}
+
+				{isItemVisible(
+					SETTING_ITEM_ID.PERMISSIONS_APPLE_EVENTS,
+					visibleItems,
+				) && (
+					<PermissionRow
+						label="Automation"
+						description="Run terminal commands and interact with other applications"
+						granted={status?.appleEvents}
+						onRequest={() => requestAppleEvents.mutate()}
+					/>
+				)}
+
+				{isItemVisible(
+					SETTING_ITEM_ID.PERMISSIONS_LOCAL_NETWORK,
+					visibleItems,
+				) && (
+					<PermissionRow
+						label="Local Network"
+						description="Discover and connect to development servers on your network"
+						granted={undefined}
+						onRequest={() => requestLocalNetwork.mutate()}
+					/>
 				)}
 			</div>
 		</div>
