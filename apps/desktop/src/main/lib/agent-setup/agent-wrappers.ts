@@ -23,14 +23,15 @@ const OPENCODE_PLUGIN_TEMPLATE_PATH = path.join(
 	"opencode-plugin.template.js",
 );
 
-const REAL_BINARY_RESOLVER = `find_real_binary() {
+function buildRealBinaryResolver(): string {
+	return `find_real_binary() {
   local name="$1"
   local IFS=:
   for dir in $PATH; do
     [ -z "$dir" ] && continue
     dir="\${dir%/}"
     case "$dir" in
-      "$HOME"/.superset/bin|"$HOME"/.superset-*/bin) continue ;;
+      "${BIN_DIR}"|"$HOME"/.superset/bin|"$HOME"/.superset-*/bin) continue ;;
     esac
     if [ -x "$dir/$name" ] && [ ! -d "$dir/$name" ]; then
       printf "%s\\n" "$dir/$name"
@@ -40,6 +41,7 @@ const REAL_BINARY_RESOLVER = `find_real_binary() {
   return 1
 }
 `;
+}
 
 function getMissingBinaryMessage(name: string): string {
 	return `Superset: ${name} not found in PATH. Install it and ensure it is on PATH, then retry.`;
@@ -94,7 +96,7 @@ ${WRAPPER_MARKER}
 # Superset wrapper for Claude Code
 # Injects notification hook settings
 
-${REAL_BINARY_RESOLVER}
+${buildRealBinaryResolver()}
 REAL_BIN="$(find_real_binary "claude")"
 if [ -z "$REAL_BIN" ]; then
   echo "${getMissingBinaryMessage("claude")}" >&2
@@ -111,7 +113,7 @@ ${WRAPPER_MARKER}
 # Superset wrapper for Codex
 # Injects notification hook settings
 
-${REAL_BINARY_RESOLVER}
+${buildRealBinaryResolver()}
 REAL_BIN="$(find_real_binary "codex")"
 if [ -z "$REAL_BIN" ]; then
   echo "${getMissingBinaryMessage("codex")}" >&2
@@ -128,7 +130,7 @@ ${WRAPPER_MARKER}
 # Superset wrapper for OpenCode
 # Injects OPENCODE_CONFIG_DIR for notification plugin
 
-${REAL_BINARY_RESOLVER}
+${buildRealBinaryResolver()}
 REAL_BIN="$(find_real_binary "opencode")"
 if [ -z "$REAL_BIN" ]; then
   echo "${getMissingBinaryMessage("opencode")}" >&2
