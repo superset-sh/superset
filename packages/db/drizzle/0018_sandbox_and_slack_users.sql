@@ -64,7 +64,7 @@ CREATE TABLE "workspaces" (
 --> statement-breakpoint
 ALTER TABLE "repositories" DISABLE ROW LEVEL SECURITY;--> statement-breakpoint
 DROP TABLE "repositories" CASCADE;--> statement-breakpoint
-ALTER TABLE "tasks" DROP CONSTRAINT "tasks_repository_id_repositories_id_fk";
+ALTER TABLE "tasks" DROP CONSTRAINT IF EXISTS "tasks_repository_id_repositories_id_fk";
 --> statement-breakpoint
 DROP INDEX "tasks_repository_id_idx";--> statement-breakpoint
 ALTER TABLE "projects" ADD CONSTRAINT "projects_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "auth"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
