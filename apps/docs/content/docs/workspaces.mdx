@@ -1,11 +1,11 @@
 ---
 title: Workspaces
-description: Isolated environments for each git branch
+description: Isolated environments for each branch
 ---
 
 ## Core Concept
 
-Each workspace = one git branch. Workspaces are isolated git worktrees with their own directory, terminal, and ports.
+Each workspace = one branch. Workspaces are isolated environments with their own directory, terminal, and ports. Superset uses git worktrees for Git repos and native jj workspaces for Jujutsu repos.
 
 <YouTubeVideo id="8PuptrsyNvM" title="Superset Workspaces" thumbnail="/images/branches.png" />
 
@@ -18,10 +18,18 @@ Press **⌘N** or click "New Workspace". Create from:
 - **Pull request** - Review or continue a PR
 
 Each workspace gets:
-- Own git branch
+- Own branch (git branch or jj bookmark)
 - Own working directory
 - Own terminal sessions
 - Own port range
+
+## Jujutsu (jj) Support
+
+Superset auto-detects [Jujutsu](https://docs.jj-vcs.dev/latest/) colocated repos (`.jj` + `.git` side by side) and uses native jj workspaces. No configuration needed — just open a jj repo and Superset handles the rest.
+
+- jj bookmarks are shown in the branch selector
+- jj commands work inside workspaces (auto-rebasing, `jj log`, etc.)
+- Requires the `jj` CLI to be installed ([installation guide](https://docs.jj-vcs.dev/latest/install-and-setup/))
 
 ## Use Cases
 

@@ -5,11 +5,11 @@ description: Learn what Superset is and how it works
 
 ## What is Superset?
 
-Superset is a desktop app for managing multiple codebases with git worktrees. Work on several branches simultaneously, each in its own isolated workspace.
+Superset is a desktop app for managing multiple codebases with isolated workspaces. Work on several branches simultaneously, each in its own workspace.
 
 ## Key Features
 
-- **Workspaces** - Each branch gets its own directory via git worktrees. No more stashing.
+- **Workspaces** - Each branch gets its own directory. No more stashing.
 - **Terminal** - Built-in terminal with persistent sessions per workspace.
 - **Diff Viewer** - Review changes, stage files, commit, and push.
 - **AI Agents** - Run Claude Code or other agents in isolated workspaces.
@@ -17,6 +17,6 @@ Superset is a desktop app for managing multiple codebases with git worktrees. Wo
 
 ## How It Works
 
-Superset uses [git worktrees](https://git-scm.com/docs/git-worktree) to give each branch its own directory. Switch contexts instantly without losing your place.
+Superset uses [git worktrees](https://git-scm.com/docs/git-worktree) to give each branch its own directory. [Jujutsu (jj)](https://docs.jj-vcs.dev/latest/) repos are also supported natively. Switch contexts instantly without losing your place.
 
 Your data stays local. Superset works offline and syncs when connected.

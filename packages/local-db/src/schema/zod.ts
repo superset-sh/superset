@@ -135,3 +135,10 @@ export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 
 export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];
+
+/**
+ * VCS type for a project (git or jj)
+ */
+export const VCS_TYPES = ["git", "jj"] as const;
+
+export type VcsType = (typeof VCS_TYPES)[number];

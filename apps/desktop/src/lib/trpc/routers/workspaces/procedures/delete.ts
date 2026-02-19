@@ -16,13 +16,8 @@ import {
 	markWorkspaceAsDeleting,
 	updateActiveWorkspaceIfRemoved,
 } from "../utils/db-helpers";
-import {
-	deleteLocalBranch,
-	hasUncommittedChanges,
-	hasUnpushedCommits,
-	worktreeExists,
-} from "../utils/git";
 import { removeWorktreeFromDisk, runTeardown } from "../utils/teardown";
+import { getVcsProvider } from "../utils/vcs";
 
 export const createDeleteProcedures = () => {
 	return router({
@@ -93,7 +88,8 @@ export const createDeleteProcedures = () => {
 
 				if (worktree && project) {
 					try {
-						const exists = await worktreeExists(
+						const vcs = getVcsProvider(project.mainRepoPath);
+						const exists = await vcs.workspaceExists(
 							project.mainRepoPath,
 							worktree.path,
 						);
@@ -112,8 +108,8 @@ export const createDeleteProcedures = () => {
 						}
 
 						const [hasChanges, unpushedCommits] = await Promise.all([
-							hasUncommittedChanges(worktree.path),
-							hasUnpushedCommits(worktree.path),
+							vcs.hasUncommittedChanges(worktree.path),
+							vcs.hasUnpushedCommits(worktree.path),
 						]);
 
 						return {
@@ -266,7 +262,8 @@ export const createDeleteProcedures = () => {
 
 					if (input.deleteLocalBranch && workspace.branch) {
 						try {
-							await deleteLocalBranch({
+							const vcs = getVcsProvider(project.mainRepoPath);
+							await vcs.deleteLocalBranch({
 								mainRepoPath: project.mainRepoPath,
 								branch: workspace.branch,
 							});
@@ -372,7 +369,8 @@ export const createDeleteProcedures = () => {
 				}
 
 				try {
-					const exists = await worktreeExists(
+					const vcs = getVcsProvider(project.mainRepoPath);
+					const exists = await vcs.workspaceExists(
 						project.mainRepoPath,
 						worktree.path,
 					);
@@ -390,8 +388,8 @@ export const createDeleteProcedures = () => {
 					}
 
 					const [hasChanges, unpushedCommits] = await Promise.all([
-						hasUncommittedChanges(worktree.path),
-						hasUnpushedCommits(worktree.path),
+						vcs.hasUncommittedChanges(worktree.path),
+						vcs.hasUnpushedCommits(worktree.path),
 					]);
 
 					return {
@@ -436,7 +434,8 @@ export const createDeleteProcedures = () => {
 				await workspaceInitManager.acquireProjectLock(project.id);
 
 				try {
-					const exists = await worktreeExists(
+					const vcs = getVcsProvider(project.mainRepoPath);
+					const exists = await vcs.workspaceExists(
 						project.mainRepoPath,
 						worktree.path,
 					);

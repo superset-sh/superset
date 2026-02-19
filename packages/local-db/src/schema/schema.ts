@@ -9,6 +9,7 @@ import type {
 	GitStatus,
 	TerminalLinkBehavior,
 	TerminalPreset,
+	VcsType,
 	WorkspaceType,
 } from "./zod";
 
@@ -41,6 +42,8 @@ export const projects = sqliteTable(
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
+		/** VCS type: "git" or "jj". Null means git (backward compatible). */
+		vcsType: text("vcs_type").$type<VcsType>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),

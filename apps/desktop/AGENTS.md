@@ -2,6 +2,10 @@
 For Electron interprocess communication, ALWAYS use trpc as defined in `src/lib/trpc`
 Please use alias as defined in `tsconfig.json` when possible
 
+## VCS Provider Abstraction
+
+Git and Jujutsu (jj) are supported via a `VcsProvider` interface in `src/lib/trpc/routers/workspaces/utils/vcs/`. Use `getVcsProvider(mainRepoPath)` for workspace lifecycle, status, and branch operations — never call `git.ts` functions directly for these. Git-specific utilities not in `VcsProvider` (PR handling, branch naming) are re-exported from `vcs/index.ts`.
+
 ## tRPC Subscriptions (trpc-electron)
 
 **Important:** While standard tRPC recommends async generators for subscriptions, `trpc-electron` (used for Electron IPC) **only supports observables**. The library explicitly checks `isObservable(result)` and throws an error otherwise. Use the `observable` pattern:
