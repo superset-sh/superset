@@ -140,10 +140,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 										key={project.id}
 										onClick={() => {
 											setSelectedProjectId(project.id);
-											localStorage.setItem(
-												"lastOpenedInProjectId",
-												project.id,
-											);
+											localStorage.setItem("lastOpenedInProjectId", project.id);
 										}}
 										className="flex items-center gap-2"
 									>

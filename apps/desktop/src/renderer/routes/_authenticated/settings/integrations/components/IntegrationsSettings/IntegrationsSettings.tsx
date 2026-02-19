@@ -50,7 +50,9 @@ export function IntegrationsSettings({
 		(q) =>
 			q
 				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({ ...integrationConnections })),
+				.select(({ integrationConnections }) => ({
+					...integrationConnections,
+				})),
 		[collections],
 	);
 

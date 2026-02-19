@@ -24,7 +24,9 @@ export function TasksView({ initialTab }: TasksViewProps) {
 		(q) =>
 			q
 				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({ ...integrationConnections })),
+				.select(({ integrationConnections }) => ({
+					...integrationConnections,
+				})),
 		[collections],
 	);
 
