@@ -656,6 +656,7 @@ export const useTabsStore = create<TabsStore>()(
 							filePath: options.filePath,
 							diffCategory: options.diffCategory,
 							viewMode: options.viewMode,
+							fileStatus: options.fileStatus,
 						});
 
 						set({

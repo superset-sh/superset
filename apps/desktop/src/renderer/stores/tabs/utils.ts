@@ -1,5 +1,5 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import type { ChangeCategory } from "shared/changes-types";
+import { type ChangeCategory, type FileStatus, isNewFile } from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
 	BrowserPaneState,
@@ -14,14 +14,21 @@ export const resolveFileViewerMode = ({
 	filePath,
 	diffCategory,
 	viewMode,
+	fileStatus,
 }: {
 	filePath: string;
 	diffCategory?: ChangeCategory;
 	viewMode?: FileViewerMode;
+	fileStatus?: FileStatus;
 }): FileViewerMode => {
 	if (viewMode) return viewMode;
 	// Images always default to rendered (no meaningful diff for binary files)
 	if (isImageFile(filePath)) return "rendered";
+	// New files have no previous version — show raw/rendered instead of an all-green diff
+	if (diffCategory && fileStatus && isNewFile(fileStatus)) {
+		if (hasRenderedPreview(filePath)) return "rendered";
+		return "raw";
+	}
 	if (diffCategory) return "diff";
 	if (hasRenderedPreview(filePath)) return "rendered";
 	return "raw";
@@ -167,6 +174,8 @@ export interface CreateFileViewerPaneOptions {
 	isPinned?: boolean;
 	diffLayout?: DiffLayout;
 	diffCategory?: ChangeCategory;
+	/** File status from git — used to determine default view mode for new files */
+	fileStatus?: FileStatus;
 	commitHash?: string;
 	oldPath?: string;
 	/** Line to scroll to (raw mode only) */
@@ -188,6 +197,7 @@ export const createFileViewerPane = (
 		filePath: options.filePath,
 		diffCategory: options.diffCategory,
 		viewMode: options.viewMode,
+		fileStatus: options.fileStatus,
 	});
 
 	const fileViewer: FileViewerState = {

@@ -133,6 +133,7 @@ export function RightSidebar() {
 			addFileViewerPane(workspaceId, {
 				filePath: file.path,
 				diffCategory: category,
+				fileStatus: file.status,
 				commitHash,
 				oldPath: file.oldPath,
 			});

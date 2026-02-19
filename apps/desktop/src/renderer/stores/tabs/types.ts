@@ -1,5 +1,5 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import type { ChangeCategory } from "shared/changes-types";
+import type { ChangeCategory, FileStatus } from "shared/changes-types";
 import type {
 	BaseTab,
 	BaseTabsState,
@@ -51,6 +51,8 @@ export interface AddFileViewerPaneOptions {
 	/** Override default view mode (raw/diff/rendered) */
 	viewMode?: FileViewerMode;
 	diffCategory?: ChangeCategory;
+	/** File status from git — used to determine default view mode for new files */
+	fileStatus?: FileStatus;
 	commitHash?: string;
 	oldPath?: string;
 	/** Line to scroll to (raw mode only) */
