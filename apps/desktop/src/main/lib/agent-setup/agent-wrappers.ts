@@ -81,6 +81,12 @@ export function getClaudeSettingsContent(notifyPath: string): string {
 		hooks: {
 			UserPromptSubmit: [{ hooks: [{ type: "command", command: notifyPath }] }],
 			Stop: [{ hooks: [{ type: "command", command: notifyPath }] }],
+			PostToolUse: [
+				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
+			],
+			PostToolUseFailure: [
+				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
+			],
 			PermissionRequest: [
 				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
 			],

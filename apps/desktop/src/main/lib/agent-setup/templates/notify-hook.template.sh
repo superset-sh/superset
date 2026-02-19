@@ -27,7 +27,8 @@ fi
 # Parse failures should not trigger completion notifications.
 # The server will ignore requests with missing eventType (forward compatibility).
 
-# Map UserPromptSubmit to Start for simpler handling
+# Only UserPromptSubmit is mapped here; other events are normalized
+# server-side by mapEventType() to keep a single source of truth.
 [ "$EVENT_TYPE" = "UserPromptSubmit" ] && EVENT_TYPE="Start"
 
 # If no event type was found, skip the notification

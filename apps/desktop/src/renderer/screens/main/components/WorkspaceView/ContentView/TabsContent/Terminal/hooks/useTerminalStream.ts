@@ -31,9 +31,6 @@ export interface UseTerminalStreamReturn {
 	handleStreamData: (event: TerminalStreamEvent) => void;
 }
 
-/**
- * Hook to handle terminal stream events (data, exit, disconnect, error).
- */
 export function useTerminalStream({
 	paneId,
 	xtermRef,
@@ -149,6 +146,7 @@ export function useTerminalStream({
 						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
 					);
 				}
+
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
