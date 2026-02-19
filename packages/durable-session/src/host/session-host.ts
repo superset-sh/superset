@@ -10,7 +10,7 @@ import { createSessionDB, type SessionDB } from "../session-db";
 
 export interface SessionHostOptions {
 	sessionId: string;
-	/** Proxy base URL (e.g. "https://api.example.com/api/streams"). All reads and writes go through the proxy. */
+	/** Proxy base URL (e.g. "https://api.example.com/api/chat"). All reads and writes go through the proxy. */
 	baseUrl: string;
 	headers?: Record<string, string>;
 	signal?: AbortSignal;
@@ -249,7 +249,7 @@ export class SessionHost {
 		stream: ReadableStream<UIMessageChunk>,
 		options?: { signal?: AbortSignal },
 	): Promise<void> {
-		const streamUrl = `${this.baseUrl}/v1/stream/sessions/${this.sessionId}`;
+		const streamUrl = `${this.baseUrl}/${this.sessionId}/stream`;
 		const durableStream = new DurableStream({
 			url: streamUrl,
 			headers: this.headers,
@@ -337,7 +337,7 @@ export class SessionHost {
 
 	async postConfig(config: Partial<SessionHostConfig>): Promise<void> {
 		const response = await fetch(
-			`${this.baseUrl}/v1/sessions/${this.sessionId}/config`,
+			`${this.baseUrl}/${this.sessionId}/stream/config`,
 			{
 				method: "POST",
 				headers: {
@@ -353,17 +353,14 @@ export class SessionHost {
 	}
 
 	async postTitle(title: string): Promise<void> {
-		const response = await fetch(
-			`${this.baseUrl}/v1/sessions/${this.sessionId}`,
-			{
-				method: "PATCH",
-				headers: {
-					...this.headers,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ title }),
+		const response = await fetch(`${this.baseUrl}/${this.sessionId}`, {
+			method: "PATCH",
+			headers: {
+				...this.headers,
+				"Content-Type": "application/json",
 			},
-		);
+			body: JSON.stringify({ title }),
+		});
 		if (!response.ok) {
 			throw new Error(`Failed to post title: ${response.status}`);
 		}

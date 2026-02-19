@@ -25,17 +25,19 @@ export class StreamWatcher {
 
 		this.host = new SessionHost({
 			sessionId: options.sessionId,
-			baseUrl: `${env.NEXT_PUBLIC_API_URL}/api/streams`,
+			baseUrl: `${env.NEXT_PUBLIC_API_URL}/api/chat`,
 			headers: { Authorization: `Bearer ${options.authToken}` },
 		});
 
 		this.host.on("message", ({ message }) => {
 			const text = extractTextFromMessage(message);
-			if (!text.trim()) return;
+			const hasFiles = message.parts?.some((p) => p.type === "file");
+			if (!text.trim() && !hasFiles) return;
 
 			void runAgent({
 				sessionId: options.sessionId,
 				text,
+				message,
 				host: this.host,
 				modelId: this.host.config.model ?? "anthropic/claude-sonnet-4-5",
 				cwd: this.host.config.cwd ?? process.env.HOME ?? "/",

@@ -65,7 +65,7 @@ export function ChatPane({
 	const handleDeleteSession = useCallback(
 		(sessionIdToDelete: string) => {
 			const token = getAuthToken();
-			fetch(`${apiUrl}/api/streams/v1/stream/sessions/${sessionIdToDelete}`, {
+			fetch(`${apiUrl}/api/chat/${sessionIdToDelete}/stream`, {
 				method: "DELETE",
 				headers: token ? { Authorization: `Bearer ${token}` } : {},
 			}).catch(console.error);

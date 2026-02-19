@@ -4,7 +4,7 @@ import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
 import type { SessionHost } from "@superset/durable-session/host";
-import type { UIMessageChunk } from "ai";
+import type { UIMessage, UIMessageChunk } from "ai";
 import { env } from "main/env.main";
 
 // ---------------------------------------------------------------------------
@@ -30,6 +30,7 @@ export const sessionContext = new Map<string, SessionContext>();
 export interface RunAgentOptions {
 	sessionId: string;
 	text: string;
+	message?: UIMessage;
 	host: SessionHost;
 	modelId: string;
 	cwd: string;
@@ -42,6 +43,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 	const {
 		sessionId,
 		text,
+		message,
 		host,
 		modelId,
 		cwd,
@@ -84,7 +86,34 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		const requireToolApproval =
 			permissionMode === "default" || permissionMode === "acceptEdits";
 
-		const output = await superagent.stream(text, {
+		// When the message has file parts, build a CoreUserMessage with
+		// multimodal content so the model receives images/files.
+		const fileParts = message?.parts?.filter((p) => p.type === "file") ?? [];
+		const streamInput =
+			fileParts.length > 0
+				? {
+						role: "user" as const,
+						content: [
+							...(text ? [{ type: "text" as const, text }] : []),
+							...fileParts.map((f) => {
+								if (f.mediaType.startsWith("image/")) {
+									return {
+										type: "image" as const,
+										image: new URL(f.url),
+										mimeType: f.mediaType as `image/${string}`,
+									};
+								}
+								return {
+									type: "file" as const,
+									data: new URL(f.url),
+									mimeType: f.mediaType,
+								};
+							}),
+						],
+					}
+				: text;
+
+		const output = await superagent.stream(streamInput, {
 			requestContext: new RequestContext(requestEntries),
 			maxSteps: 100,
 			memory: {

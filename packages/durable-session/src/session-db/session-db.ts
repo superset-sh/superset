@@ -32,7 +32,7 @@ type RawSessionDB = StreamDB<typeof sessionStateSchema>;
 
 export function createSessionDB(config: SessionDBConfig): SessionDB {
 	const { sessionId, baseUrl, headers, signal } = config;
-	const streamUrl = `${baseUrl}/v1/stream/sessions/${sessionId}`;
+	const streamUrl = `${baseUrl}/${sessionId}/stream`;
 
 	const rawDb: RawSessionDB = createStreamDB({
 		streamOptions: {

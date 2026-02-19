@@ -10,7 +10,7 @@
  */
 
 import { createOptimisticAction } from "@durable-streams/state";
-import type { UIMessage } from "ai";
+import type { FileUIPart, UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChunkRow } from "../../schema";
 import { messageRowToUIMessage } from "../../session-db/collections/messages/materialize";
@@ -34,7 +34,7 @@ export interface UseDurableChatReturn {
 	ready: boolean;
 	messages: (UIMessage & { actorId: string; createdAt: Date })[];
 	isLoading: boolean;
-	sendMessage: (text: string) => Promise<void>;
+	sendMessage: (text: string, files?: FileUIPart[]) => Promise<void>;
 	stop: () => void;
 	submitToolResult: (
 		toolCallId: string,
@@ -66,7 +66,7 @@ export function useDurableChat(
 		() =>
 			acquireSessionDB({
 				sessionId,
-				baseUrl: `${proxyUrl}/api/streams`,
+				baseUrl: `${proxyUrl}/api/chat`,
 				headers: getHeaders?.(),
 			}),
 		[sessionId, proxyUrl, getHeaders],
@@ -100,7 +100,7 @@ export function useDurableChat(
 	);
 
 	const url = useCallback(
-		(path: string) => `${proxyUrl}/api/streams/v1/sessions/${sessionId}${path}`,
+		(path: string) => `${proxyUrl}/api/chat/${sessionId}/stream${path}`,
 		[proxyUrl, sessionId],
 	);
 
@@ -146,11 +146,32 @@ export function useDurableChat(
 		() =>
 			createOptimisticAction<{
 				text: string;
+				files?: FileUIPart[];
 				messageId: string;
 				txid: string;
 			}>({
-				onMutate: ({ text, messageId }) => {
+				onMutate: ({ text, files, messageId }) => {
 					const now = new Date().toISOString();
+					const parts: Array<
+						| { type: "text"; text: string }
+						| {
+								type: "file";
+								url: string;
+								mediaType: string;
+								filename?: string;
+						  }
+					> = [];
+					if (text) parts.push({ type: "text", text });
+					if (files) {
+						for (const f of files) {
+							parts.push({
+								type: "file",
+								url: f.url,
+								mediaType: f.mediaType,
+								...(f.filename ? { filename: f.filename } : {}),
+							});
+						}
+					}
 					const chunk: ChunkRow = {
 						id: `${messageId}:0`,
 						messageId,
@@ -161,7 +182,7 @@ export function useDurableChat(
 							message: {
 								id: messageId,
 								role: "user",
-								parts: [{ type: "text", text }],
+								parts,
 								createdAt: now,
 							},
 						}),
@@ -170,15 +191,24 @@ export function useDurableChat(
 					};
 					depsRef.current.sessionDB.collections.chunks.insert(chunk);
 				},
-				mutationFn: async ({ text, messageId, txid }) => {
+				mutationFn: async ({ text, files, messageId, txid }) => {
 					const { url, headers, sessionDB } = depsRef.current;
 					const res = await fetch(url("/messages"), {
 						method: "POST",
 						headers: headers(),
 						body: JSON.stringify({
-							content: text,
+							content: text || undefined,
 							messageId,
 							txid,
+							...(files && files.length > 0
+								? {
+										files: files.map((f) => ({
+											url: f.url,
+											mediaType: f.mediaType,
+											...(f.filename ? { filename: f.filename } : {}),
+										})),
+									}
+								: {}),
 						}),
 					});
 					if (!res.ok) {
@@ -192,12 +222,12 @@ export function useDurableChat(
 	);
 
 	const sendMessage = useCallback(
-		async (text: string) => {
+		async (text: string, files?: FileUIPart[]) => {
 			setError(null);
 			const messageId = crypto.randomUUID();
 			const txid = crypto.randomUUID();
 			try {
-				const tx = optimisticSend({ text, messageId, txid });
+				const tx = optimisticSend({ text, files, messageId, txid });
 				await tx.isPersisted.promise;
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "Failed to send message");

@@ -92,7 +92,7 @@ export function useChatMetadata(
 	const { sessionDB, proxyUrl, sessionId, getHeaders } = options;
 
 	const authHeaders = getHeaders ?? (() => ({}));
-	const configUrl = `${proxyUrl}/api/streams/v1/sessions/${sessionId}/config`;
+	const configUrl = `${proxyUrl}/api/chat/${sessionId}/stream/config`;
 
 	// -----------------------------------------------------------------------
 	// Config + Title — derived from config-type chunks
@@ -188,7 +188,7 @@ export function useChatMetadata(
 	// Presence mutations
 	// -----------------------------------------------------------------------
 
-	const basePresenceUrl = `${proxyUrl}/api/streams/v1/sessions/${sessionId}`;
+	const basePresenceUrl = `${proxyUrl}/api/chat/${sessionId}/stream`;
 
 	const updateStatus = useCallback(
 		(userId: string, deviceId: string, status: ChatUserPresence["status"]) => {

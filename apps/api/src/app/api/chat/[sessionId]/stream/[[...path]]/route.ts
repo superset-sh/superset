@@ -1,98 +1,46 @@
-import { DurableStream } from "@durable-streams/client";
-import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
-import { chatSessions, sessionHosts } from "@superset/db/schema";
+import { chatSessions } from "@superset/db/schema";
 import { sessionStateSchema } from "@superset/durable-session";
 import { eq } from "drizzle-orm";
 import { env } from "@/env";
+import {
+	appendToStream,
+	ensureStream,
+	PRODUCER_RESPONSE_HEADERS,
+	PROTOCOL_QUERY_PARAMS,
+	PROTOCOL_RESPONSE_HEADERS,
+	requireAuth,
+	STRIP_HEADERS,
+	streamUrl,
+} from "../../../lib";
 
-const PROTOCOL_QUERY_PARAMS = ["offset", "live", "cursor"];
-
-const PROTOCOL_RESPONSE_HEADERS = [
-	"stream-next-offset",
-	"stream-cursor",
-	"stream-up-to-date",
-	"stream-closed",
-	"content-type",
-	"cache-control",
-	"etag",
-];
-
-const STRIP_HEADERS = new Set([
-	"content-encoding",
-	"content-length",
-	"transfer-encoding",
-]);
-
-async function requireAuth(request: Request) {
-	const sessionData = await auth.api.getSession({
-		headers: request.headers,
-	});
-	if (!sessionData?.user) return null;
-	return sessionData;
-}
-
-function streamUrl(sessionId: string) {
-	return `${env.DURABLE_STREAMS_URL}/sessions/${sessionId}`;
-}
-
-function parsePath(request: Request): string[] {
+/**
+ * Parse the catch-all path segments from the URL.
+ * e.g. /api/chat/{id}/stream/messages → ["messages"]
+ *      /api/chat/{id}/stream/approvals/abc → ["approvals", "abc"]
+ *      /api/chat/{id}/stream → [] (no sub-path)
+ */
+function parseSubPath(request: Request): string[] {
 	const url = new URL(request.url);
-	const prefix = "/api/streams/";
-	const idx = url.pathname.indexOf(prefix);
-	const rest = idx !== -1 ? url.pathname.slice(idx + prefix.length) : "";
+	// Match /stream at the end or /stream/ followed by more segments
+	const match = url.pathname.match(/\/stream(?:\/(.*))?$/);
+	if (!match) return [];
+	const rest = match[1] ?? "";
 	return rest.split("/").filter(Boolean);
 }
 
-function getDurableStream(sessionId: string) {
-	return new DurableStream({
-		url: streamUrl(sessionId),
-		headers: { Authorization: `Bearer ${env.DURABLE_STREAMS_SECRET}` },
-	});
-}
+// ---------------------------------------------------------------------------
+// GET — SSE proxy (read from durable stream)
+// ---------------------------------------------------------------------------
 
-async function appendToStream(sessionId: string, event: string) {
-	const response = await fetch(streamUrl(sessionId), {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${env.DURABLE_STREAMS_SECRET}`,
-			"Content-Type": "application/json",
-		},
-		body: event,
-	});
-	if (!response.ok) {
-		const text = await response.text().catch(() => "");
-		throw new Error(`Stream append failed: ${response.status} ${text}`);
-	}
-}
-
-async function ensureStream(sessionId: string) {
-	const stream = getDurableStream(sessionId);
-	try {
-		await stream.create({ contentType: "application/json" });
-		console.log(`[streams] Created stream for session ${sessionId}`);
-	} catch (err) {
-		console.log(`[streams] Stream create for ${sessionId} returned:`, err);
-	}
-	return stream;
-}
-
-export async function GET(request: Request): Promise<Response> {
+export async function GET(
+	request: Request,
+	{ params }: { params: Promise<{ sessionId: string }> },
+): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
-	const segments = parsePath(request);
-
-	if (
-		segments[0] !== "v1" ||
-		segments[1] !== "stream" ||
-		segments[2] !== "sessions" ||
-		!segments[3]
-	) {
-		return new Response("Not found", { status: 404 });
-	}
-
-	const sessionId = segments[3];
+	const { sessionId } = await params;
 	const url = new URL(request.url);
 
 	const upstream = new URL(streamUrl(sessionId));
@@ -141,159 +89,65 @@ export async function GET(request: Request): Promise<Response> {
 	});
 }
 
-export async function PUT(request: Request): Promise<Response> {
+// ---------------------------------------------------------------------------
+// POST — messages, tool-results, approvals, control, config, producer writes
+// ---------------------------------------------------------------------------
+
+export async function POST(
+	request: Request,
+	{ params }: { params: Promise<{ sessionId: string }> },
+): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
-	const segments = parsePath(request);
+	const { sessionId } = await params;
+	const subPath = parseSubPath(request);
 
-	if (segments[0] !== "v1" || segments[1] !== "sessions" || !segments[2]) {
-		return new Response("Not found", { status: 404 });
+	// POST /api/chat/{id}/stream/messages
+	if (subPath[0] === "messages" && subPath.length === 1) {
+		return handleSendMessage(request, sessionId, session.user.id);
 	}
 
-	const sessionId = segments[2];
-	const body = (await request.json()) as {
-		organizationId: string;
-		deviceId?: string;
-	};
-
-	if (!body.organizationId) {
-		return Response.json(
-			{ error: "organizationId is required" },
-			{ status: 400 },
-		);
+	// POST /api/chat/{id}/stream/tool-results
+	if (subPath[0] === "tool-results" && subPath.length === 1) {
+		return handleToolResult(request, sessionId, session.user.id);
 	}
 
-	const stream = getDurableStream(sessionId);
-	await stream.create({ contentType: "application/json" });
-
-	await db.insert(chatSessions).values({
-		id: sessionId,
-		organizationId: body.organizationId,
-		createdBy: session.user.id,
-	});
-
-	if (body.deviceId) {
-		await db.insert(sessionHosts).values({
-			sessionId,
-			organizationId: body.organizationId,
-			deviceId: body.deviceId,
-		});
+	// POST /api/chat/{id}/stream/approvals/{approvalId}
+	if (subPath[0] === "approvals" && subPath[1]) {
+		return handleApproval(request, sessionId, subPath[1], session.user.id);
 	}
 
-	return Response.json(
-		{
-			sessionId,
-			streamUrl: `/api/streams/v1/stream/sessions/${sessionId}`,
-		},
-		{ status: 200 },
-	);
-}
-
-export async function POST(request: Request): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
-	const segments = parsePath(request);
-
-	if (
-		segments[0] === "v1" &&
-		segments[1] === "sessions" &&
-		segments[2] &&
-		segments[3] === "messages"
-	) {
-		return handleSendMessage(request, segments[2], session.user.id);
+	// POST /api/chat/{id}/stream/control
+	if (subPath[0] === "control" && subPath.length === 1) {
+		return handleControl(request, sessionId, session.user.id);
 	}
 
-	if (
-		segments[0] === "v1" &&
-		segments[1] === "sessions" &&
-		segments[2] &&
-		segments[3] === "tool-results"
-	) {
-		return handleToolResult(request, segments[2], session.user.id);
+	// POST /api/chat/{id}/stream/config
+	if (subPath[0] === "config" && subPath.length === 1) {
+		return handleConfig(request, sessionId, session.user.id);
 	}
 
-	if (
-		segments[0] === "v1" &&
-		segments[1] === "sessions" &&
-		segments[2] &&
-		segments[3] === "approvals" &&
-		segments[4]
-	) {
-		return handleApproval(request, segments[2], segments[4], session.user.id);
-	}
-
-	if (
-		segments[0] === "v1" &&
-		segments[1] === "sessions" &&
-		segments[2] &&
-		segments[3] === "control"
-	) {
-		return handleControl(request, segments[2], session.user.id);
-	}
-
-	if (
-		segments[0] === "v1" &&
-		segments[1] === "sessions" &&
-		segments[2] &&
-		segments[3] === "config"
-	) {
-		return handleConfig(request, segments[2], session.user.id);
-	}
-
-	// Producer writes (IdempotentProducer → durable stream via proxy)
-	if (
-		segments[0] === "v1" &&
-		segments[1] === "stream" &&
-		segments[2] === "sessions" &&
-		segments[3]
-	) {
-		return handleProducerWrite(request, segments[3]);
+	// POST /api/chat/{id}/stream (no sub-path) — producer writes
+	if (subPath.length === 0) {
+		return handleProducerWrite(request, sessionId);
 	}
 
 	return new Response("Not found", { status: 404 });
 }
 
-export async function PATCH(request: Request): Promise<Response> {
+// ---------------------------------------------------------------------------
+// DELETE — delete stream + DB row
+// ---------------------------------------------------------------------------
+
+export async function DELETE(
+	request: Request,
+	{ params }: { params: Promise<{ sessionId: string }> },
+): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
-	const segments = parsePath(request);
-
-	if (segments[0] !== "v1" || segments[1] !== "sessions" || !segments[2]) {
-		return new Response("Not found", { status: 404 });
-	}
-
-	const sessionId = segments[2];
-	const body = (await request.json()) as { title?: string };
-
-	if (body.title !== undefined) {
-		await db
-			.update(chatSessions)
-			.set({ title: body.title })
-			.where(eq(chatSessions.id, sessionId));
-	}
-
-	return Response.json({ success: true }, { status: 200 });
-}
-
-export async function DELETE(request: Request): Promise<Response> {
-	const session = await requireAuth(request);
-	if (!session) return new Response("Unauthorized", { status: 401 });
-
-	const segments = parsePath(request);
-
-	if (
-		segments[0] !== "v1" ||
-		segments[1] !== "stream" ||
-		segments[2] !== "sessions" ||
-		!segments[3]
-	) {
-		return new Response("Not found", { status: 404 });
-	}
-
-	const sessionId = segments[3];
+	const { sessionId } = await params;
 
 	const response = await fetch(streamUrl(sessionId), {
 		method: "DELETE",
@@ -317,22 +171,19 @@ export async function DELETE(request: Request): Promise<Response> {
 	});
 }
 
-export async function HEAD(request: Request): Promise<Response> {
+// ---------------------------------------------------------------------------
+// HEAD — head check on stream
+// ---------------------------------------------------------------------------
+
+export async function HEAD(
+	request: Request,
+	{ params }: { params: Promise<{ sessionId: string }> },
+): Promise<Response> {
 	const session = await requireAuth(request);
 	if (!session) return new Response("Unauthorized", { status: 401 });
 
-	const segments = parsePath(request);
+	const { sessionId } = await params;
 
-	if (
-		segments[0] !== "v1" ||
-		segments[1] !== "stream" ||
-		segments[2] !== "sessions" ||
-		!segments[3]
-	) {
-		return new Response("Not found", { status: 404 });
-	}
-
-	const sessionId = segments[3];
 	const response = await fetch(streamUrl(sessionId), {
 		method: "HEAD",
 		headers: {
@@ -353,27 +204,55 @@ export async function HEAD(request: Request): Promise<Response> {
 	});
 }
 
+// ---------------------------------------------------------------------------
+// POST sub-handlers
+// ---------------------------------------------------------------------------
+
 async function handleSendMessage(
 	request: Request,
 	sessionId: string,
 	actorId: string,
 ): Promise<Response> {
 	const body = (await request.json()) as {
-		content: string;
+		content?: string;
 		messageId?: string;
 		txid?: string;
+		files?: Array<{ url: string; mediaType: string; filename?: string }>;
 	};
 
-	if (!body.content) {
-		return Response.json({ error: "content is required" }, { status: 400 });
+	if (!body.content && (!body.files || body.files.length === 0)) {
+		return Response.json(
+			{ error: "content or files is required" },
+			{ status: 400 },
+		);
 	}
 
 	const messageId = body.messageId ?? crypto.randomUUID();
 
+	const parts: Array<
+		| { type: "text"; text: string }
+		| { type: "file"; url: string; mediaType: string; filename?: string }
+	> = [];
+
+	if (body.content) {
+		parts.push({ type: "text", text: body.content });
+	}
+
+	if (body.files) {
+		for (const file of body.files) {
+			parts.push({
+				type: "file",
+				url: file.url,
+				mediaType: file.mediaType,
+				...(file.filename ? { filename: file.filename } : {}),
+			});
+		}
+	}
+
 	const message = {
 		id: messageId,
 		role: "user" as const,
-		parts: [{ type: "text" as const, text: body.content }],
+		parts,
 		createdAt: new Date().toISOString(),
 	};
 
@@ -551,14 +430,6 @@ async function handleConfig(
 
 	return Response.json({ success: true }, { status: 200 });
 }
-
-const PRODUCER_RESPONSE_HEADERS = [
-	"stream-next-offset",
-	"stream-closed",
-	"producer-received-seq",
-	"producer-expected-seq",
-	"content-type",
-];
 
 async function handleProducerWrite(
 	request: Request,
