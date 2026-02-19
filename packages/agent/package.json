@@ -15,7 +15,6 @@
 	},
 	"dependencies": {
 		"@ai-sdk/anthropic": "^3.0.43",
-		"@anthropic-ai/claude-agent-sdk": "^0.2.38",
 		"@mastra/ai-sdk": "^1.0.4",
 		"@mastra/core": "^1.3.0",
 		"@mastra/memory": "^1.2.0",

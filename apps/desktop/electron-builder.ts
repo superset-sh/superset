@@ -60,13 +60,6 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
-		// Claude Code binary - no longer bundled; the SDK resolves it at runtime
-		// {
-		// 	// biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder variable interpolation
-		// 	from: "resources/bin/${platform}-${arch}",
-		// 	to: "bin",
-		// 	filter: ["**/*"],
-		// },
 	],
 
 	files: [

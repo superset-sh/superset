@@ -20,7 +20,6 @@
 		"dev": "cross-env NODE_ENV=development electron-vite dev --watch",
 		"compile:app": "cross-env NODE_OPTIONS=--max-old-space-size=8192 electron-vite build",
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",
-		"download:claude": "bun run scripts/download-claude-binary.ts",
 		"prebuild": "bun run clean:dev && bun run compile:app && bun run copy:native-modules",
 		"build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
 		"prepackage": "bun run copy:native-modules",
