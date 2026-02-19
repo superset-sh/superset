@@ -1,5 +1,6 @@
-import { EXTERNAL_APPS, settings } from "@superset/local-db";
+import { EXTERNAL_APPS, projects } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -75,17 +76,17 @@ export const createExternalRouter = () => {
 				z.object({
 					path: z.string(),
 					app: ExternalAppSchema,
+					projectId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, lastUsedApp: input.app })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { lastUsedApp: input.app },
-					})
-					.run();
+				if (input.projectId) {
+					localDb
+						.update(projects)
+						.set({ defaultApp: input.app })
+						.where(eq(projects.id, input.projectId))
+						.run();
+				}
 				await openPathInApp(input.path, input.app);
 			}),
 
@@ -100,12 +101,20 @@ export const createExternalRouter = () => {
 					line: z.number().optional(),
 					column: z.number().optional(),
 					cwd: z.string().optional(),
+					projectId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				const filePath = resolvePath(input.path, input.cwd);
-				const settingsRow = localDb.select().from(settings).get();
-				const app = settingsRow?.lastUsedApp ?? "cursor";
+				let app: ExternalApp = "cursor";
+				if (input.projectId) {
+					const project = localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.id, input.projectId))
+						.get();
+					app = project?.defaultApp ?? "cursor";
+				}
 				await openPathInApp(filePath, app);
 			}),
 	});

@@ -42,6 +42,7 @@ interface FileListTreeProps {
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
+	projectId?: string;
 }
 
 function buildFileTree(files: ChangedFile[]): FileTreeNode[] {
@@ -111,6 +112,7 @@ interface TreeNodeComponentProps {
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
+	projectId?: string;
 }
 
 function TreeNodeComponent({
@@ -128,6 +130,7 @@ function TreeNodeComponent({
 	category,
 	commitHash,
 	isExpandedView,
+	projectId,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
@@ -168,6 +171,7 @@ function TreeNodeComponent({
 				variant="tree"
 				folderPath={node.path}
 				worktreePath={worktreePath}
+				projectId={projectId}
 				onStageAll={onStage ? handleStageAll : undefined}
 				onUnstageAll={onUnstage ? handleUnstageAll : undefined}
 				onDiscardAll={onDiscard ? handleDiscardAll : undefined}
@@ -190,6 +194,7 @@ function TreeNodeComponent({
 						category={category}
 						commitHash={commitHash}
 						isExpandedView={isExpandedView}
+						projectId={projectId}
 					/>
 				))}
 			</FolderRow>
@@ -209,6 +214,7 @@ function TreeNodeComponent({
 				onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 				isActioning={isActioning}
 				worktreePath={worktreePath}
+				projectId={projectId}
 				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 				category={category}
 				commitHash={commitHash}
@@ -234,6 +240,7 @@ export function FileListTree({
 	category,
 	commitHash,
 	isExpandedView,
+	projectId,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
 
@@ -255,6 +262,7 @@ export function FileListTree({
 					category={category}
 					commitHash={commitHash}
 					isExpandedView={isExpandedView}
+					projectId={projectId}
 				/>
 			))}
 		</div>

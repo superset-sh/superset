@@ -41,6 +41,7 @@ export const projects = sqliteTable(
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
+		defaultApp: text("default_app").$type<ExternalApp>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -138,7 +139,6 @@ export type SelectWorkspace = typeof workspaces.$inferSelect;
 export const settings = sqliteTable("settings", {
 	id: integer("id").primaryKey().default(1),
 	lastActiveWorkspaceId: text("last_active_workspace_id"),
-	lastUsedApp: text("last_used_app").$type<ExternalApp>(),
 	terminalPresets: text("terminal_presets", { mode: "json" }).$type<
 		TerminalPreset[]
 	>(),

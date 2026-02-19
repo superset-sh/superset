@@ -299,21 +299,33 @@ function WorkspacePage() {
 	);
 
 	// Open in last used app shortcut
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery();
-	const openInApp = electronTrpc.external.openInApp.useMutation();
+	const projectId = workspace?.projectId;
+	const { data: defaultApp = "cursor" } =
+		electronTrpc.projects.getDefaultApp.useQuery(
+			{ projectId: projectId as string },
+			{ enabled: !!projectId },
+		);
+	const utils = electronTrpc.useUtils();
+	const openInApp = electronTrpc.external.openInApp.useMutation({
+		onSuccess: () => {
+			if (projectId) {
+				utils.projects.getDefaultApp.invalidate({ projectId });
+			}
+		},
+	});
 	useAppHotkey(
 		"OPEN_IN_APP",
 		() => {
 			if (workspace?.worktreePath) {
 				openInApp.mutate({
 					path: workspace.worktreePath,
-					app: lastUsedApp,
+					app: defaultApp,
+					projectId,
 				});
 			}
 		},
 		undefined,
-		[workspace?.worktreePath, lastUsedApp],
+		[workspace?.worktreePath, defaultApp, projectId],
 	);
 
 	// Copy path shortcut
