@@ -306,6 +306,12 @@ export function WorkspaceListItem({
 					handleClick();
 				}
 			}}
+			onAuxClick={(e) => {
+				if (e.button === 1) {
+					e.preventDefault();
+					handleDeleteClick();
+				}
+			}}
 			onMouseEnter={handleMouseEnter}
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
