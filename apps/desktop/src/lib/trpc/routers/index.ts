@@ -14,6 +14,7 @@ import { createFilesystemRouter } from "./filesystem";
 import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
+import { createPermissionsRouter } from "./permissions";
 import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
 import { createRingtoneRouter } from "./ringtone";
@@ -39,6 +40,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		changes: createChangesRouter(),
 		filesystem: createFilesystemRouter(),
 		notifications: createNotificationsRouter(),
+		permissions: createPermissionsRouter(),
 		ports: createPortsRouter(),
 		menu: createMenuRouter(),
 		hotkeys: createHotkeysRouter(getWindow),
