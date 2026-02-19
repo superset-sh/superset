@@ -314,6 +314,12 @@ export function getCursorHooksJsonContent(hookScriptPath: string): string {
 	const ourHooks: Record<string, CursorHookEntry> = {
 		beforeSubmitPrompt: { command: `${hookScriptPath} Start` },
 		stop: { command: `${hookScriptPath} Stop` },
+		beforeShellExecution: {
+			command: `${hookScriptPath} PermissionRequest`,
+		},
+		beforeMCPExecution: {
+			command: `${hookScriptPath} PermissionRequest`,
+		},
 	};
 
 	for (const [eventName, ourEntry] of Object.entries(ourHooks)) {
