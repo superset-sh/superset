@@ -72,7 +72,7 @@ export function PRButton({
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Create Pull Request</TooltipContent>
+				<TooltipContent side="top">Create Pull Request</TooltipContent>
 			</Tooltip>
 		);
 	}
