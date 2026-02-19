@@ -46,6 +46,7 @@ export const env = createEnv({
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 		DURABLE_STREAMS_URL: z.string().url().optional(),
 		DURABLE_STREAMS_SECRET: z.string().min(1).optional(),
+		TAVILY_API_KEY: z.string().optional(),
 	},
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),

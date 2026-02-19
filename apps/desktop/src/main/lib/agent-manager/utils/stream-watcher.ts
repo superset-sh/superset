@@ -41,6 +41,7 @@ export class StreamWatcher {
 				cwd: this.host.config.cwd ?? process.env.HOME ?? "/",
 				permissionMode: this.host.config.permissionMode,
 				thinkingEnabled: this.host.config.thinkingEnabled,
+				authToken: options.authToken,
 			});
 		});
 

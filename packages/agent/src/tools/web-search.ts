@@ -1,6 +1,15 @@
 import { createTool } from "@mastra/core/tools";
-import { tavily } from "@tavily/core";
 import { z } from "zod";
+
+const resultSchema = z.object({
+	results: z.array(
+		z.object({
+			title: z.string(),
+			url: z.string(),
+			content: z.string(),
+		}),
+	),
+});
 
 export const webSearchTool = createTool({
 	id: "web_search",
@@ -16,34 +25,35 @@ export const webSearchTool = createTool({
 			.default(5)
 			.describe("Maximum number of results to return (1-10)"),
 	}),
-	outputSchema: z.object({
-		results: z.array(
-			z.object({
-				title: z.string(),
-				url: z.string(),
-				content: z.string(),
-			}),
-		),
-	}),
-	execute: async (input) => {
-		const apiKey = process.env.TAVILY_API_KEY;
-		if (!apiKey) {
+	outputSchema: resultSchema,
+	execute: async (input, context) => {
+		const apiUrl = context?.requestContext?.get("apiUrl");
+		const authToken = context?.requestContext?.get("authToken");
+
+		if (!apiUrl || !authToken) {
 			throw new Error(
-				"TAVILY_API_KEY environment variable is not set. Web search is unavailable.",
+				"Web search requires apiUrl and authToken in request context.",
 			);
 		}
 
-		const client = tavily({ apiKey });
-		const response = await client.search(input.query, {
-			maxResults: input.maxResults,
+		const response = await fetch(`${apiUrl}/api/chat/tools/web-search`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${authToken}`,
+			},
+			body: JSON.stringify({
+				query: input.query,
+				maxResults: input.maxResults,
+			}),
 		});
 
-		return {
-			results: response.results.map((r) => ({
-				title: r.title,
-				url: r.url,
-				content: r.content,
-			})),
-		};
+		if (!response.ok) {
+			throw new Error(
+				`Web search proxy returned ${response.status}: ${await response.text()}`,
+			);
+		}
+
+		return resultSchema.parse(await response.json());
 	},
 });
