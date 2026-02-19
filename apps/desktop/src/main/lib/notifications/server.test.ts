@@ -19,6 +19,14 @@ describe("notifications/server", () => {
 			expect(mapEventType("agent-turn-complete")).toBe("Stop");
 		});
 
+		it("should map 'PostToolUse' to 'Start'", () => {
+			expect(mapEventType("PostToolUse")).toBe("Start");
+		});
+
+		it("should map 'PostToolUseFailure' to 'Start'", () => {
+			expect(mapEventType("PostToolUseFailure")).toBe("Start");
+		});
+
 		it("should map 'PermissionRequest' to 'PermissionRequest'", () => {
 			expect(mapEventType("PermissionRequest")).toBe("PermissionRequest");
 		});
@@ -30,7 +38,6 @@ describe("notifications/server", () => {
 		});
 
 		it("should return null for undefined eventType (not default to Stop)", () => {
-			// This is critical: missing eventType should NOT trigger a completion notification
 			expect(mapEventType(undefined)).toBeNull();
 		});
 
