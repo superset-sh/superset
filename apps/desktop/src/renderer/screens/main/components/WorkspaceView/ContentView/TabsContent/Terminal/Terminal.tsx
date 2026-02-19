@@ -247,7 +247,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Stream subscription
 	electronTrpc.terminal.stream.useSubscription(paneId, {
 		onData: (event) => {
-			// Defensively clear stale connection error if we're receiving data
 			if (connectionErrorRef.current && event.type === "data") {
 				setConnectionError(null);
 			}
