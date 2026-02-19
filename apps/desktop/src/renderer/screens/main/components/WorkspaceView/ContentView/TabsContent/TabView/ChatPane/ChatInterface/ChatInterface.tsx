@@ -99,6 +99,7 @@ export function ChatInterface(props: ChatInterfaceProps) {
 function EmptyChatInterface({
 	organizationId,
 	deviceId,
+	workspaceId,
 	cwd,
 	paneId,
 	onMessageSent,
@@ -214,7 +215,11 @@ function EmptyChatInterface({
 	return (
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
-				<MessageList messages={displayMessages} isStreaming={!!sentMessage} />
+				<MessageList
+					messages={displayMessages}
+					isStreaming={!!sentMessage}
+					workspaceId={workspaceId}
+				/>
 				<ChatInputFooter
 					cwd={cwd}
 					error={error}
@@ -244,6 +249,7 @@ function EmptyChatInterface({
 
 function ActiveChatInterface({
 	sessionId,
+	workspaceId,
 	cwd,
 	pendingMessage,
 	pendingFiles,
@@ -410,6 +416,7 @@ function ActiveChatInterface({
 				<MessageList
 					messages={displayMessages}
 					isStreaming={isStreaming || !!pendingMessage}
+					workspaceId={workspaceId}
 				/>
 				<ChatInputFooter
 					cwd={cwd}

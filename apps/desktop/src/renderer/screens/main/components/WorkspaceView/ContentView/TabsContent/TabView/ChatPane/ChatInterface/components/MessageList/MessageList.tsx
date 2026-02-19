@@ -8,12 +8,15 @@ import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
 import type { UIMessage } from "ai";
 import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
+import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 
 interface MessageListProps {
 	messages: UIMessage[];
 	isStreaming: boolean;
+	workspaceId?: string;
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
@@ -43,8 +46,19 @@ function FileChip({
 export function MessageList({
 	messages,
 	isStreaming,
+	workspaceId,
 	onAnswer,
 }: MessageListProps) {
+	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+
+	const handleImageClick = useCallback(
+		(url: string) => {
+			if (!workspaceId) return;
+			addFileViewerPane(workspaceId, { filePath: url, isPinned: true });
+		},
+		[workspaceId, addFileViewerPane],
+	);
+
 	return (
 		<Conversation className="flex-1">
 			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
@@ -78,12 +92,18 @@ export function MessageList({
 										<div className="flex max-w-[85%] flex-wrap gap-2">
 											{imageParts.map((p, i) =>
 												p.type === "file" ? (
-													<img
+													<button
 														key={`${msg.id}-img-${i}`}
-														src={p.url}
-														alt={p.filename || "Attached image"}
-														className="max-h-48 rounded-lg object-contain"
-													/>
+														type="button"
+														className="cursor-zoom-in"
+														onClick={() => handleImageClick(p.url)}
+													>
+														<img
+															src={p.url}
+															alt={p.filename || "Attached image"}
+															className="max-h-48 rounded-lg object-contain"
+														/>
+													</button>
 												) : null,
 											)}
 										</div>
