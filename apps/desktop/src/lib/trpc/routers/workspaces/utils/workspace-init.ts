@@ -258,6 +258,11 @@ export async function initializeWorkspaceWorktree({
 					baseBranch: result.fallbackBranch,
 					isExplicit: false,
 				});
+				localDb
+					.update(worktrees)
+					.set({ baseBranch: result.fallbackBranch })
+					.where(eq(worktrees.id, worktreeId))
+					.run();
 				manager.updateProgress(
 					workspaceId,
 					progressStep,
