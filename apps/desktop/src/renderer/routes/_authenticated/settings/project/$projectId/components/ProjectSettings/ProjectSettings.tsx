@@ -287,7 +287,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 						<Select
 							value={workspaceBaseBranchValue}
 							onValueChange={handleWorkspaceBaseBranchChange}
-							disabled={updateProject.isPending}
+							disabled={updateProject.isPending || isBranchDataLoading}
 						>
 							<SelectTrigger className="w-[260px]">
 								<SelectValue />
