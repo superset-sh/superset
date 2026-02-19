@@ -1,6 +1,7 @@
 import { workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { getProcessTree } from "main/lib/terminal/port-scanner";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
 import pidusage from "pidusage";
 
@@ -59,9 +60,17 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		});
 	}
 
-	// Batch query all PIDs at once
-	const allPids = [...workspaceSessionMap.values()].flat().map((s) => s.pid);
+	// Get full process trees (root + children) for each session PID
+	const allEntries = [...workspaceSessionMap.values()].flat();
+	const sessionPidTrees = await Promise.all(
+		allEntries.map(async (entry) => ({
+			entry,
+			treePids: await getProcessTree(entry.pid),
+		})),
+	);
 
+	// Batch query all PIDs (root + children) at once
+	const allPids = sessionPidTrees.flatMap((s) => s.treePids);
 	let pidStats: Record<number, pidusage.Status> = {};
 	if (allPids.length > 0) {
 		try {
@@ -79,6 +88,21 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		cpu: (cpuUsage.user + cpuUsage.system) / 1_000_000,
 		memory: memUsage.rss,
 	};
+
+	// Build a lookup: sessionId → aggregated metrics (sum over entire tree)
+	const sessionAggregated = new Map<string, { cpu: number; memory: number }>();
+	for (const { entry, treePids } of sessionPidTrees) {
+		let cpu = 0;
+		let memory = 0;
+		for (const pid of treePids) {
+			const stats = pidStats[pid];
+			if (stats) {
+				cpu += stats.cpu;
+				memory += stats.memory;
+			}
+		}
+		sessionAggregated.set(entry.sessionId, { cpu, memory });
+	}
 
 	// Build per-workspace metrics
 	const workspaceMetricsList: WorkspaceMetrics[] = [];
@@ -100,20 +124,21 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		let wsMemory = 0;
 
 		for (const entry of entries) {
-			const stats = pidStats[entry.pid];
-			const cpu = stats?.cpu ?? 0;
-			const memory = stats?.memory ?? 0;
+			const agg = sessionAggregated.get(entry.sessionId) ?? {
+				cpu: 0,
+				memory: 0,
+			};
 
 			sessionMetrics.push({
 				sessionId: entry.sessionId,
 				paneId: entry.paneId,
 				pid: entry.pid,
-				cpu,
-				memory,
+				cpu: agg.cpu,
+				memory: agg.memory,
 			});
 
-			wsCpu += cpu;
-			wsMemory += memory;
+			wsCpu += agg.cpu;
+			wsMemory += agg.memory;
 		}
 
 		workspaceMetricsList.push({

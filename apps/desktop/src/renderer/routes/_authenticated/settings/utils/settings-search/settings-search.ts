@@ -27,6 +27,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
 	BEHAVIOR_TELEMETRY: "behavior-telemetry",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
+	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -423,6 +424,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"split pane",
 			"viewer",
 			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
+		section: "behavior",
+		title: "Resource monitor",
+		description:
+			"Show CPU and memory usage for workspaces and terminal sessions in the top bar",
+		keywords: [
+			"features",
+			"resource",
+			"monitor",
+			"cpu",
+			"memory",
+			"ram",
+			"usage",
+			"performance",
+			"process",
+			"terminal",
 		],
 	},
 	{

@@ -2,6 +2,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
 import { HiOutlineArrowPath, HiOutlineCpuChip } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useTabsStore } from "renderer/stores/tabs/store";
 
 function formatMemory(bytes: number): string {
 	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -16,14 +17,26 @@ function formatCpu(percent: number): string {
 
 export function ResourceConsumption() {
 	const [open, setOpen] = useState(false);
+	const panes = useTabsStore((s) => s.panes);
+
+	const { data: enabled } =
+		electronTrpc.settings.getShowResourceMonitor.useQuery();
 
 	const {
 		data: snapshot,
 		refetch,
 		isFetching,
 	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(undefined, {
+		enabled: enabled === true,
 		refetchInterval: open ? 2000 : false,
 	});
+
+	if (!enabled) return null;
+
+	const getPaneName = (paneId: string): string => {
+		const pane = panes[paneId];
+		return pane?.name || `Pane ${paneId.slice(0, 6)}`;
+	};
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -105,7 +118,7 @@ export function ResourceConsumption() {
 									className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30"
 								>
 									<span className="text-[11px] text-muted-foreground truncate max-w-32">
-										Pane {session.paneId.slice(0, 6)}
+										{getPaneName(session.paneId)}
 									</span>
 									<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
 										<span>{formatCpu(session.cpu)}</span>
