@@ -758,7 +758,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.PERMISSIONS_ACCESSIBILITY,
 		section: "permissions",
 		title: "Accessibility",
-		description: "Send keystrokes, manage windows, and control other applications",
+		description:
+			"Send keystrokes, manage windows, and control other applications",
 		keywords: [
 			"permissions",
 			"accessibility",
