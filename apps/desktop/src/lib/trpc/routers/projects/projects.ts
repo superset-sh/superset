@@ -586,11 +586,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 
 				let mainRepoPath: string;
-				let defaultBranch: string;
-
 				try {
 					mainRepoPath = await getGitRoot(selectedPath);
-					defaultBranch = await getDefaultBranch(mainRepoPath);
 				} catch {
 					return {
 						canceled: false,
@@ -598,6 +595,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						selectedPath,
 					};
 				}
+
+				const defaultBranch = await getDefaultBranch(mainRepoPath);
 
 				const project = upsertProject(mainRepoPath, defaultBranch);
 				await ensureMainWorkspace(project);
