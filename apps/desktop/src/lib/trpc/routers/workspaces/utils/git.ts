@@ -1,6 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rename, stat } from "node:fs/promises";
+import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -9,11 +9,7 @@ import friendlyWords = require("friendly-words");
 import type { BranchPrefixMode } from "@superset/local-db";
 import simpleGit, { type StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import {
-	checkGitLfsAvailable,
-	execWithShellEnv,
-	getShellEnvironment,
-} from "./shell-env";
+import { execWithShellEnv, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -319,66 +315,6 @@ function parsePortelainStatus(stdout: string): StatusResult {
 	};
 }
 
-async function repoUsesLfs(repoPath: string): Promise<boolean> {
-	try {
-		const lfsDir = join(repoPath, ".git", "lfs");
-		const stats = await stat(lfsDir);
-		if (stats.isDirectory()) {
-			return true;
-		}
-	} catch (error) {
-		if (!isEnoent(error)) {
-			console.warn(`[git] Could not check .git/lfs directory: ${error}`);
-		}
-	}
-
-	const attributeFiles = [
-		join(repoPath, ".gitattributes"),
-		join(repoPath, ".git", "info", "attributes"),
-	];
-
-	for (const filePath of attributeFiles) {
-		try {
-			const content = await readFile(filePath, "utf-8");
-			if (content.includes("filter=lfs") || content.includes("[lfs]")) {
-				return true;
-			}
-		} catch (error) {
-			if (!isEnoent(error)) {
-				console.warn(`[git] Could not read ${filePath}: ${error}`);
-			}
-		}
-	}
-
-	try {
-		const git = simpleGit(repoPath);
-		const lsFiles = await git.raw(["ls-files"]);
-		const sampleFiles = lsFiles.split("\n").filter(Boolean).slice(0, 20);
-
-		if (sampleFiles.length > 0) {
-			const checkAttr = await git.raw([
-				"check-attr",
-				"filter",
-				"--",
-				...sampleFiles,
-			]);
-			if (checkAttr.includes("filter: lfs")) {
-				return true;
-			}
-		}
-	} catch {}
-
-	return false;
-}
-
-function isEnoent(error: unknown): boolean {
-	return (
-		error instanceof Error &&
-		"code" in error &&
-		(error as NodeJS.ErrnoException).code === "ENOENT"
-	);
-}
-
 /** Maximum attempts to find a unique word before falling back to suffixed names */
 const MAX_ATTEMPTS = 10;
 /** Maximum suffix value to try in fallback (exclusive), e.g., 0-99 */
@@ -525,23 +461,11 @@ export async function createWorktree(
 	worktreePath: string,
 	startPoint = "origin/main",
 ): Promise<void> {
-	const usesLfs = await repoUsesLfs(mainRepoPath);
-
 	try {
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
 		const env = await getGitEnv();
-
-		if (usesLfs) {
-			const lfsAvailable = await checkGitLfsAvailable(env);
-			if (!lfsAvailable) {
-				throw new Error(
-					`This repository uses Git LFS, but git-lfs was not found. ` +
-						`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
-				);
-			}
-		}
 
 		await execWorktreeAdd({
 			mainRepoPath,
@@ -594,21 +518,6 @@ export async function createWorktree(
 			);
 		}
 
-		const isLfsError =
-			lowerError.includes("git-lfs") ||
-			lowerError.includes("filter-process") ||
-			lowerError.includes("smudge filter") ||
-			(lowerError.includes("lfs") && lowerError.includes("not")) ||
-			(lowerError.includes("lfs") && usesLfs);
-
-		if (isLfsError) {
-			console.error(`Git LFS error during worktree creation: ${errorMessage}`);
-			throw new Error(
-				`Failed to create worktree: This repository uses Git LFS, but git-lfs was not found or failed. ` +
-					`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
-			);
-		}
-
 		console.error(`Failed to create worktree: ${errorMessage}`);
 		throw new Error(`Failed to create worktree: ${errorMessage}`);
 	}
@@ -627,23 +536,11 @@ export async function createWorktreeFromExistingBranch({
 	branch: string;
 	worktreePath: string;
 }): Promise<void> {
-	const usesLfs = await repoUsesLfs(mainRepoPath);
-
 	try {
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
 		const env = await getGitEnv();
-
-		if (usesLfs) {
-			const lfsAvailable = await checkGitLfsAvailable(env);
-			if (!lfsAvailable) {
-				throw new Error(
-					`This repository uses Git LFS, but git-lfs was not found. ` +
-						`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
-				);
-			}
-		}
 
 		const git = simpleGit(mainRepoPath);
 		const localBranches = await git.branchLocal();
@@ -712,21 +609,6 @@ export async function createWorktreeFromExistingBranch({
 					`This usually happens when another git operation is in progress, or a previous operation crashed. ` +
 					`Please wait for the other operation to complete, or manually remove the lock file ` +
 					`(e.g., .git/config.lock or .git/index.lock) if you're sure no git operations are running.`,
-			);
-		}
-
-		const isLfsError =
-			lowerError.includes("git-lfs") ||
-			lowerError.includes("filter-process") ||
-			lowerError.includes("smudge filter") ||
-			(lowerError.includes("lfs") && lowerError.includes("not")) ||
-			(lowerError.includes("lfs") && usesLfs);
-
-		if (isLfsError) {
-			console.error(`Git LFS error during worktree creation: ${errorMessage}`);
-			throw new Error(
-				`Failed to create worktree: This repository uses Git LFS, but git-lfs was not found or failed. ` +
-					`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
 			);
 		}
 
