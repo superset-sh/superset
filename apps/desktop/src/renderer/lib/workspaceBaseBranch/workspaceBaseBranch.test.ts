@@ -34,10 +34,39 @@ describe("resolveEffectiveWorkspaceBaseBranch", () => {
 	});
 
 	test("returns null when nothing resolves", () => {
-		const resolved = resolveEffectiveWorkspaceBaseBranch({
-			workspaceBaseBranch: "feature/deleted",
-		});
+		const resolved = resolveEffectiveWorkspaceBaseBranch({});
 
 		expect(resolved).toBeNull();
+	});
+
+	test("trusts workspace base branch when branches are undefined (offline/loading)", () => {
+		const resolved = resolveEffectiveWorkspaceBaseBranch({
+			workspaceBaseBranch: "develop",
+			defaultBranch: "main",
+			branches: undefined,
+		});
+
+		expect(resolved).toBe("develop");
+	});
+
+	test("falls back to default branch when branches array is empty", () => {
+		const resolved = resolveEffectiveWorkspaceBaseBranch({
+			workspaceBaseBranch: "develop",
+			defaultBranch: "main",
+			branches: [],
+		});
+
+		expect(resolved).toBe("main");
+	});
+
+	test("ignores empty string explicit base branch", () => {
+		const resolved = resolveEffectiveWorkspaceBaseBranch({
+			explicitBaseBranch: "",
+			workspaceBaseBranch: "develop",
+			defaultBranch: "main",
+			branches: [{ name: "main" }, { name: "develop" }],
+		});
+
+		expect(resolved).toBe("develop");
 	});
 });

@@ -26,10 +26,13 @@ export function resolveEffectiveWorkspaceBaseBranch({
 	}
 
 	const preferred = normalizeBranch(workspaceBaseBranch);
-	const preferredExists =
-		!!preferred && !!branches?.some((branch) => branch.name === preferred);
-	if (preferredExists) {
-		return preferred;
+	if (preferred) {
+		if (!branches) {
+			return preferred;
+		}
+		if (branches.some((branch) => branch.name === preferred)) {
+			return preferred;
+		}
 	}
 
 	return normalizeBranch(defaultBranch);

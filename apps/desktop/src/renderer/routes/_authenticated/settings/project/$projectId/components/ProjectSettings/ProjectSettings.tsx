@@ -169,7 +169,6 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 				workspaceBaseBranch: value === REPO_DEFAULT_BASE_BRANCH ? null : value,
 			},
 		});
-		utils.projects.getBranches.invalidate({ projectId });
 	};
 
 	const getPreviewPrefix = (
@@ -310,6 +309,12 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 							</SelectContent>
 						</Select>
 					</div>
+					{workspaceBaseBranchMissing && (
+						<p className="text-xs text-destructive">
+							Branch "{project.workspaceBaseBranch}" no longer exists. New
+							workspaces will fall back to "{repoDefaultBranch}".
+						</p>
+					)}
 				</SettingsSection>
 
 				<div className="pt-3 border-t">

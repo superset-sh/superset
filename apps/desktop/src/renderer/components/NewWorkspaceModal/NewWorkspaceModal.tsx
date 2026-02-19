@@ -378,7 +378,7 @@ export function NewWorkspaceModal() {
 												{branchPreview || "branch-name"}
 											</span>
 											<span className="text-muted-foreground/60">
-												from {effectiveBaseBranch}
+												from {effectiveBaseBranch ?? "..."}
 											</span>
 										</p>
 									)}

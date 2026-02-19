@@ -4,6 +4,7 @@ import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import type { WorkspaceInitStep } from "shared/types/workspace-init";
+import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { getBranchBaseConfig, setBranchBaseConfig } from "./base-branch-config";
 import {
 	branchExistsOnRemote,
@@ -70,7 +71,12 @@ export async function initializeWorkspaceWorktree({
 				repoPath: mainRepoPath,
 				branch,
 			});
-		let effectiveBaseBranch = gitConfigBase || project?.defaultBranch || "main";
+		let effectiveBaseBranch =
+			gitConfigBase ||
+			resolveWorkspaceBaseBranch({
+				workspaceBaseBranch: project?.workspaceBaseBranch,
+				defaultBranch: project?.defaultBranch,
+			});
 
 		if (useExistingBranch) {
 			if (skipWorktreeCreation) {
