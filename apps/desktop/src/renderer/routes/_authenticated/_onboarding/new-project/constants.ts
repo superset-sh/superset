@@ -1,1 +1,1 @@
-export type NewProjectMode = "empty" | "clone";
+export type NewProjectMode = "empty" | "clone" | "template";

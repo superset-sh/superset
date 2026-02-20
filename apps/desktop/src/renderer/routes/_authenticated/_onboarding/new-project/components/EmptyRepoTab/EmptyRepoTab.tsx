@@ -38,7 +38,7 @@ export function EmptyRepoTab({ onError, parentDir }: EmptyRepoTabProps) {
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-5">
 			<div>
 				<label
 					htmlFor="repo-name"
@@ -60,9 +60,9 @@ export function EmptyRepoTab({ onError, parentDir }: EmptyRepoTabProps) {
 					autoFocus
 				/>
 			</div>
-			<div className="flex justify-end gap-2">
+			<div className="flex justify-end pt-2 border-t border-border/40">
 				<Button onClick={handleCreate} disabled={isLoading} size="sm">
-					{isLoading ? "Creating..." : "Create Repository"}
+					{isLoading ? "Creating..." : "Create"}
 				</Button>
 			</div>
 		</div>

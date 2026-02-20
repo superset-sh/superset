@@ -37,7 +37,7 @@ export function CloneRepoTab({ onError, parentDir }: CloneRepoTabProps) {
 	};
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="flex flex-col gap-5">
 			<div>
 				<label
 					htmlFor="clone-url"
@@ -59,7 +59,7 @@ export function CloneRepoTab({ onError, parentDir }: CloneRepoTabProps) {
 					autoFocus
 				/>
 			</div>
-			<div className="flex justify-end gap-2">
+			<div className="flex justify-end pt-2 border-t border-border/40">
 				<Button onClick={handleClone} disabled={isLoading} size="sm">
 					{isLoading ? "Cloning..." : "Clone"}
 				</Button>
