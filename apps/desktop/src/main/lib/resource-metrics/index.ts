@@ -27,8 +27,13 @@ interface WorkspaceMetrics {
 	sessions: SessionMetrics[];
 }
 
+interface AppMetrics extends ProcessMetrics {
+	main: ProcessMetrics;
+	renderer: ProcessMetrics;
+}
+
 export interface ResourceMetricsSnapshot {
-	app: ProcessMetrics;
+	app: AppMetrics;
 	workspaces: WorkspaceMetrics[];
 	totalCpu: number;
 	totalMemory: number;
@@ -79,16 +84,21 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 	}
 
 	const electronMetrics = app.getAppMetrics();
-	let appCpu = 0;
-	let appMemory = 0;
+	const main: ProcessMetrics = { cpu: 0, memory: 0 };
+	const renderer: ProcessMetrics = { cpu: 0, memory: 0 };
 	for (const proc of electronMetrics) {
-		appCpu += proc.cpu.percentCPUUsage;
+		const cpu = proc.cpu.percentCPUUsage;
 		// workingSetSize is in KB
-		appMemory += proc.memory.workingSetSize * 1024;
+		const memory = proc.memory.workingSetSize * 1024;
+		const target = proc.type === "Browser" ? main : renderer;
+		target.cpu += cpu;
+		target.memory += memory;
 	}
-	const appMetrics: ProcessMetrics = {
-		cpu: appCpu,
-		memory: appMemory,
+	const appMetrics: AppMetrics = {
+		cpu: main.cpu + renderer.cpu,
+		memory: main.memory + renderer.memory,
+		main,
+		renderer,
 	};
 
 	const sessionAggregated = new Map<string, { cpu: number; memory: number }>();

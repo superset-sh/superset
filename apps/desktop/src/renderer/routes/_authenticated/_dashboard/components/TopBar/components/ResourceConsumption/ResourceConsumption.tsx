@@ -123,12 +123,28 @@ export function ResourceConsumption() {
 
 				<div className="max-h-[50vh] overflow-y-auto">
 					{snapshot && (
-						<div className="px-3 py-2 border-b border-border/50">
-							<div className="flex items-center justify-between">
+						<div className="border-b border-border/50">
+							<div className="px-3 py-2 flex items-center justify-between">
 								<span className="text-xs font-medium">Superset App</span>
 								<div className="flex items-center gap-3 text-xs text-muted-foreground">
 									<span>{formatCpu(snapshot.app.cpu)}</span>
 									<span>{formatMemory(snapshot.app.memory)}</span>
+								</div>
+							</div>
+							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
+								<span className="text-[11px] text-muted-foreground">Main</span>
+								<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+									<span>{formatCpu(snapshot.app.main.cpu)}</span>
+									<span>{formatMemory(snapshot.app.main.memory)}</span>
+								</div>
+							</div>
+							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
+								<span className="text-[11px] text-muted-foreground">
+									Renderer
+								</span>
+								<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+									<span>{formatCpu(snapshot.app.renderer.cpu)}</span>
+									<span>{formatMemory(snapshot.app.renderer.memory)}</span>
 								</div>
 							</div>
 						</div>
