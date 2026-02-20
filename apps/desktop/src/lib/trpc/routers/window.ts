@@ -6,13 +6,6 @@ import { dialog } from "electron";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
-/**
- * Window router for window controls
- * Handles minimize, maximize, close, and platform detection
- *
- * Uses a getter function to always access the current window,
- * allowing window recreation on macOS without stale references.
- */
 export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		minimize: publicProcedure.mutation(() => {
