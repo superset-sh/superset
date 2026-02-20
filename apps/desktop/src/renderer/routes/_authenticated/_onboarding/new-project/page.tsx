@@ -76,6 +76,8 @@ function NewProjectPage() {
 					<div className="w-full flex flex-col gap-5">
 						<h1 className="text-lg font-medium text-foreground">New Project</h1>
 
+						<PathSelector value={parentDir} onChange={setParentDir} />
+
 						<div className="grid grid-cols-3 gap-3">
 							{OPTIONS.map((option) => {
 								const selected = mode === option.mode;
@@ -113,17 +115,13 @@ function NewProjectPage() {
 							})}
 						</div>
 
-						<div className="border-t border-border/40 pt-6 flex flex-col gap-5">
-							<PathSelector value={parentDir} onChange={setParentDir} />
-
-							{mode === "empty" && (
-								<EmptyRepoTab onError={setError} parentDir={parentDir} />
-							)}
-							{mode === "clone" && (
-								<CloneRepoTab onError={setError} parentDir={parentDir} />
-							)}
-							{mode === "template" && <TemplateTab />}
-						</div>
+						{mode === "empty" && (
+							<EmptyRepoTab onError={setError} parentDir={parentDir} />
+						)}
+						{mode === "clone" && (
+							<CloneRepoTab onError={setError} parentDir={parentDir} />
+						)}
+						{mode === "template" && <TemplateTab />}
 
 						{error && (
 							<div className="w-full flex items-start gap-2 rounded-md px-4 py-3 bg-destructive/10 border border-destructive/20">
