@@ -52,6 +52,23 @@ const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
 			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
 		],
 	},
+	{
+		name: "copilot",
+		description: "Danger mode: All permissions auto-approved",
+		cwd: "",
+		commands: ["copilot --allow-all"],
+	},
+	{
+		name: "opencode",
+		cwd: "",
+		commands: ["opencode"],
+	},
+	{
+		name: "gemini",
+		description: "Danger mode: All permissions auto-approved",
+		cwd: "",
+		commands: ["gemini -y"],
+	},
 ];
 
 function initializeDefaultPresets() {
