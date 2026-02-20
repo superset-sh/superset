@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { authClient, setAuthToken } from "renderer/lib/auth-client";
+import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
