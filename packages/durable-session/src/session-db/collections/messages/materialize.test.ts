@@ -295,9 +295,7 @@ describe("materializeMessage", () => {
 		];
 
 		const result = materializeMessage(rows);
-		expect(result.parts).toEqual([
-			{ type: "text", text: "Error: something broke" },
-		]);
+		expect(result.parts).toEqual([{ type: "error", text: "something broke" }]);
 	});
 
 	it("skips custom chunk types (config, control)", () => {

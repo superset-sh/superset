@@ -44,6 +44,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE,
 		visibleItems,
 	);
+	const showResourceMonitor = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -182,6 +186,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			utils.settings.getFileOpenMode.invalidate();
 		},
 	});
+
+	const { data: resourceMonitorEnabled, isLoading: isResourceMonitorLoading } =
+		electronTrpc.settings.getShowResourceMonitor.useQuery();
+	const setShowResourceMonitor =
+		electronTrpc.settings.setShowResourceMonitor.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowResourceMonitor.cancel();
+				const previous = utils.settings.getShowResourceMonitor.getData();
+				utils.settings.getShowResourceMonitor.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowResourceMonitor.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowResourceMonitor.invalidate();
+			},
+		});
 
 	const previewPrefix =
 		resolveBranchPrefix({
@@ -322,6 +349,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								<SelectItem value="new-tab">New tab</SelectItem>
 							</SelectContent>
 						</Select>
+					</div>
+				)}
+
+				{showResourceMonitor && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="resource-monitor" className="text-sm font-medium">
+								Resource monitor
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show CPU and memory usage in the top bar
+							</p>
+						</div>
+						<Switch
+							id="resource-monitor"
+							checked={resourceMonitorEnabled ?? false}
+							onCheckedChange={(enabled) =>
+								setShowResourceMonitor.mutate({ enabled })
+							}
+							disabled={
+								isResourceMonitorLoading || setShowResourceMonitor.isPending
+							}
+						/>
 					</div>
 				)}
 

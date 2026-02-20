@@ -1,13 +1,20 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createWorktree } from "./git";
 
-// We need to test the internal functions, so we'll import the module
-// and test the exported functions that use them
-
-const TEST_DIR = join(__dirname, ".test-git-tmp");
+const TEST_DIR = join(
+	realpathSync(tmpdir()),
+	`superset-test-git-${process.pid}`,
+);
 
 function createTestRepo(name: string): string {
 	const repoPath = join(TEST_DIR, name);
@@ -73,8 +80,8 @@ describe("getDefaultBranch", () => {
 		cleanup: () => void;
 	} {
 		const testDir = join(
-			__dirname,
-			`.test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+			realpathSync(tmpdir()),
+			`superset-test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
 		);
 		mkdirSync(testDir, { recursive: true });
 		execSync("git init", { cwd: testDir, stdio: "ignore" });

@@ -37,6 +37,11 @@ const apiKeyDisplaySchema = z.object({
 
 type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
 
+type IntegrationConnectionDisplay = Omit<
+	SelectIntegrationConnection,
+	"accessToken" | "refreshToken"
+>;
+
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
@@ -46,7 +51,7 @@ interface OrgCollections {
 	invitations: Collection<SelectInvitation>;
 	agentCommands: Collection<SelectAgentCommand>;
 	devicePresence: Collection<SelectDevicePresence>;
-	integrationConnections: Collection<SelectIntegrationConnection>;
+	integrationConnections: Collection<IntegrationConnectionDisplay>;
 	subscriptions: Collection<SelectSubscription>;
 	apiKeys: Collection<ApiKeyDisplay>;
 	chatSessions: Collection<SelectChatSession>;
@@ -255,7 +260,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const integrationConnections = createCollection(
-		electricCollectionOptions<SelectIntegrationConnection>({
+		electricCollectionOptions<IntegrationConnectionDisplay>({
 			id: `integration_connections-${organizationId}`,
 			shapeOptions: {
 				url: electricUrl,

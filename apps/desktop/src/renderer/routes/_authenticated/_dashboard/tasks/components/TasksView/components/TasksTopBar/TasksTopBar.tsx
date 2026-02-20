@@ -3,7 +3,6 @@ import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useRef } from "react";
 import { HiOutlineMagnifyingGlass, HiXMark } from "react-icons/hi2";
-import { LuPlay } from "react-icons/lu";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { ActiveIcon } from "../shared/icons/ActiveIcon";
 import { AllIssuesIcon } from "../shared/icons/AllIssuesIcon";
@@ -20,7 +19,6 @@ interface TasksTopBarProps {
 	assigneeFilter: string | null;
 	onAssigneeFilterChange: (value: string | null) => void;
 	selectedCount?: number;
-	onStartWorking?: () => void;
 	onClearSelection?: () => void;
 }
 
@@ -50,7 +48,6 @@ export function TasksTopBar({
 	assigneeFilter,
 	onAssigneeFilterChange,
 	selectedCount = 0,
-	onStartWorking,
 	onClearSelection,
 }: TasksTopBarProps) {
 	const searchInputRef = useRef<HTMLInputElement>(null);
@@ -83,11 +80,6 @@ export function TasksTopBar({
 						<span className="text-sm font-medium">
 							{selectedCount} selected
 						</span>
-						<div className="h-4 w-px bg-border" />
-						<Button variant="default" size="xs" onClick={onStartWorking}>
-							<LuPlay />
-							Run with Claude
-						</Button>
 					</>
 				) : (
 					<>

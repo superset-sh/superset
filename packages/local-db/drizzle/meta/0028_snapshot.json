@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d837674a-3c6f-44b4-835a-ac7e385647ec",
+  "id": "64e86972-e7d7-435c-8d6e-402b74ba1432",
   "prevId": "0a13d4fc-215b-41bb-9a42-29becaf02803",
   "tables": {
     "browser_history": {
@@ -328,13 +328,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "workspace_base_branch": {
-          "name": "workspace_base_branch",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
         "github_owner": {
           "name": "github_owner",
           "type": "text",
@@ -546,6 +539,13 @@
         },
         "editor_font_size": {
           "name": "editor_font_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "show_resource_monitor": {
+          "name": "show_resource_monitor",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,

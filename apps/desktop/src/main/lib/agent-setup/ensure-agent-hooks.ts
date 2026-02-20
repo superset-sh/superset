@@ -1,17 +1,18 @@
 import { promises as fs, constants as fsConstants } from "node:fs";
 import path from "node:path";
 import {
-	buildClaudeWrapperScript,
-	buildCodexWrapperScript,
-	buildOpenCodeWrapperScript,
+	buildWrapperScript,
+	CURSOR_HOOK_MARKER,
 	getClaudeSettingsContent,
 	getClaudeSettingsPath,
-	getClaudeWrapperPath,
-	getCodexWrapperPath,
+	getCursorGlobalHooksJsonPath,
+	getCursorHookScriptContent,
+	getCursorHookScriptPath,
+	getCursorHooksJsonContent,
 	getOpenCodeGlobalPluginPath,
 	getOpenCodePluginContent,
 	getOpenCodePluginPath,
-	getOpenCodeWrapperPath,
+	getWrapperPath,
 	OPENCODE_PLUGIN_MARKER,
 	WRAPPER_MARKER,
 } from "./agent-wrappers";
@@ -74,6 +75,19 @@ async function ensureScriptFile(params: {
 	}
 }
 
+async function ensureCursorHooksJson(): Promise<void> {
+	const globalPath = getCursorGlobalHooksJsonPath();
+	const hookScriptPath = getCursorHookScriptPath();
+	const existing = await readFileIfExists(globalPath);
+
+	if (!existing || !existing.includes(hookScriptPath)) {
+		const content = getCursorHooksJsonContent(hookScriptPath);
+		await fs.mkdir(path.dirname(globalPath), { recursive: true });
+		await fs.writeFile(globalPath, content, { mode: 0o644 });
+		console.log("[agent-setup] Rewrote Cursor hooks.json");
+	}
+}
+
 async function ensureClaudeSettings(): Promise<void> {
 	const settingsPath = getClaudeSettingsPath();
 	const notifyPath = getNotifyScriptPath();
@@ -125,21 +139,43 @@ export function ensureAgentHooks(): Promise<void> {
 
 		await ensureClaudeSettings();
 
-		await ensureScriptFile({
-			filePath: getClaudeWrapperPath(),
-			content: buildClaudeWrapperScript(getClaudeSettingsPath()),
-			mode: 0o755,
-			marker: WRAPPER_MARKER,
-			logLabel: "Claude wrapper",
-		});
+		const wrappers: Array<{ binaryName: string; content: string }> = [
+			{
+				binaryName: "claude",
+				content: buildWrapperScript(
+					"claude",
+					`exec "$REAL_BIN" --settings "${getClaudeSettingsPath()}" "$@"`,
+				),
+			},
+			{
+				binaryName: "codex",
+				content: buildWrapperScript(
+					"codex",
+					`exec "$REAL_BIN" -c 'notify=["bash","${notifyPath}"]' "$@"`,
+				),
+			},
+			{
+				binaryName: "opencode",
+				content: buildWrapperScript(
+					"opencode",
+					`export OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR}"\nexec "$REAL_BIN" "$@"`,
+				),
+			},
+			{
+				binaryName: "cursor-agent",
+				content: buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`),
+			},
+		];
 
-		await ensureScriptFile({
-			filePath: getCodexWrapperPath(),
-			content: buildCodexWrapperScript(notifyPath),
-			mode: 0o755,
-			marker: WRAPPER_MARKER,
-			logLabel: "Codex wrapper",
-		});
+		for (const { binaryName, content } of wrappers) {
+			await ensureScriptFile({
+				filePath: getWrapperPath(binaryName),
+				content,
+				mode: 0o755,
+				marker: WRAPPER_MARKER,
+				logLabel: `${binaryName} wrapper`,
+			});
+		}
 
 		await ensureScriptFile({
 			filePath: getOpenCodePluginPath(),
@@ -165,12 +201,18 @@ export function ensureAgentHooks(): Promise<void> {
 		}
 
 		await ensureScriptFile({
-			filePath: getOpenCodeWrapperPath(),
-			content: buildOpenCodeWrapperScript(OPENCODE_CONFIG_DIR),
+			filePath: getCursorHookScriptPath(),
+			content: getCursorHookScriptContent(),
 			mode: 0o755,
-			marker: WRAPPER_MARKER,
-			logLabel: "OpenCode wrapper",
+			marker: CURSOR_HOOK_MARKER,
+			logLabel: "Cursor hook script",
 		});
+
+		try {
+			await ensureCursorHooksJson();
+		} catch (error) {
+			console.warn("[agent-setup] Failed to write Cursor hooks.json:", error);
+		}
 	})().finally(() => {
 		inFlight = null;
 	});

@@ -1,14 +1,9 @@
 import { Spinner } from "@superset/ui/spinner";
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	useOpenStartWorkingModal,
-	useStartWorkingModalOpen,
-} from "renderer/stores/start-working-modal";
 import { LinearCTA } from "./components/LinearCTA";
 import { TasksTableView } from "./components/TasksTableView";
 import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
@@ -21,8 +16,6 @@ interface TasksViewProps {
 export function TasksView({ initialTab }: TasksViewProps) {
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const openStartWorkingModal = useOpenStartWorkingModal();
-	const isModalOpen = useStartWorkingModalOpen();
 	const currentTab: TabValue = initialTab ?? "all";
 	const [searchQuery, setSearchQuery] = useState("");
 	const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
@@ -31,14 +24,14 @@ export function TasksView({ initialTab }: TasksViewProps) {
 		(q) =>
 			q
 				.from({ integrationConnections: collections.integrationConnections })
-				.where(({ integrationConnections }) =>
-					eq(integrationConnections.provider, "linear"),
-				)
-				.select(({ integrationConnections }) => integrationConnections),
+				.select(({ integrationConnections }) => ({
+					...integrationConnections,
+				})),
 		[collections],
 	);
 
-	const isLinearConnected = integrations && integrations.length > 0;
+	const isLinearConnected =
+		integrations?.some((i) => i.provider === "linear") ?? false;
 
 	const { table, isLoading, slugColumnWidth, rowSelection, setRowSelection } =
 		useTasksTable({
@@ -56,15 +49,6 @@ export function TasksView({ initialTab }: TasksViewProps) {
 			.map((row) => row.original);
 	}, [rowSelection, table]);
 
-	// Clear row selection when modal transitions from open → closed
-	const prevModalOpen = useRef(isModalOpen);
-	useEffect(() => {
-		if (prevModalOpen.current && !isModalOpen) {
-			setRowSelection({});
-		}
-		prevModalOpen.current = isModalOpen;
-	}, [isModalOpen, setRowSelection]);
-
 	const handleTabChange = (tab: TabValue) => {
 		navigate({
 			to: "/tasks",
@@ -79,11 +63,6 @@ export function TasksView({ initialTab }: TasksViewProps) {
 			params: { taskId: task.id },
 			search: currentTab === "all" ? {} : { tab: currentTab },
 		});
-	};
-
-	const handleStartWorking = () => {
-		if (selectedTasks.length === 0) return;
-		openStartWorkingModal(selectedTasks);
 	};
 
 	const handleClearSelection = () => {
@@ -108,7 +87,6 @@ export function TasksView({ initialTab }: TasksViewProps) {
 					assigneeFilter={assigneeFilter}
 					onAssigneeFilterChange={setAssigneeFilter}
 					selectedCount={selectedTasks.length}
-					onStartWorking={handleStartWorking}
 					onClearSelection={handleClearSelection}
 				/>
 			)}
