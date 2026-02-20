@@ -35,12 +35,14 @@ export const projects = sqliteTable(
 			mode: "boolean",
 		}),
 		defaultBranch: text("default_branch"),
+		workspaceBaseBranch: text("workspace_base_branch"),
 		githubOwner: text("github_owner"),
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
+		defaultApp: text("default_app").$type<ExternalApp>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -138,7 +140,6 @@ export type SelectWorkspace = typeof workspaces.$inferSelect;
 export const settings = sqliteTable("settings", {
 	id: integer("id").primaryKey().default(1),
 	lastActiveWorkspaceId: text("last_active_workspace_id"),
-	lastUsedApp: text("last_used_app").$type<ExternalApp>(),
 	terminalPresets: text("terminal_presets", { mode: "json" }).$type<
 		TerminalPreset[]
 	>(),
@@ -169,6 +170,7 @@ export const settings = sqliteTable("settings", {
 	terminalFontSize: integer("terminal_font_size"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
+	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

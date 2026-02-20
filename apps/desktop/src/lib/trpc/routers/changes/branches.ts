@@ -4,6 +4,11 @@ import { localDb } from "main/lib/local-db";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	getBranchBaseConfig,
+	setBranchBaseConfig,
+	unsetBranchBaseConfig,
+} from "../workspaces/utils/base-branch-config";
 import { getCurrentBranch } from "../workspaces/utils/git";
 import {
 	assertRegisteredWorktree,
@@ -31,12 +36,25 @@ export const createBranchesRouter = () => {
 
 					const branchSummary = await git.branch(["-a"]);
 					const currentBranch = await getCurrentBranch(input.worktreePath);
-
-					const gitConfigBase = currentBranch
-						? await git
-								.raw(["config", `branch.${currentBranch}.base`])
-								.catch(() => "")
-						: "";
+					const { baseBranch: configuredBaseBranch } = currentBranch
+						? await getBranchBaseConfig({
+								repoPath: input.worktreePath,
+								branch: currentBranch,
+							})
+						: { baseBranch: null };
+					const persistedWorktree = localDb
+						.select({
+							branch: worktrees.branch,
+							baseBranch: worktrees.baseBranch,
+						})
+						.from(worktrees)
+						.where(eq(worktrees.path, input.worktreePath))
+						.get();
+					const persistedBaseBranch =
+						persistedWorktree &&
+						(!currentBranch || persistedWorktree.branch === currentBranch)
+							? (persistedWorktree.baseBranch?.trim() ?? null)
+							: null;
 
 					const localBranches: string[] = [];
 					const remote: string[] = [];
@@ -63,7 +81,7 @@ export const createBranchesRouter = () => {
 						remote: remote.sort(),
 						defaultBranch,
 						checkedOutBranches,
-						worktreeBaseBranch: gitConfigBase.trim() || null,
+						worktreeBaseBranch: configuredBaseBranch ?? persistedBaseBranch,
 					};
 				},
 			),
@@ -87,6 +105,7 @@ export const createBranchesRouter = () => {
 					.update(worktrees)
 					.set({
 						branch: input.branch,
+						baseBranch: null,
 						gitStatus,
 					})
 					.where(eq(worktrees.path, input.worktreePath))
@@ -105,23 +124,30 @@ export const createBranchesRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
 				const currentBranch = await getCurrentBranch(input.worktreePath);
 				if (!currentBranch) {
 					throw new Error("Could not determine current branch");
 				}
 
 				if (input.baseBranch) {
-					await git.raw([
-						"config",
-						`branch.${currentBranch}.base`,
-						input.baseBranch,
-					]);
+					await setBranchBaseConfig({
+						repoPath: input.worktreePath,
+						branch: currentBranch,
+						baseBranch: input.baseBranch,
+						isExplicit: true,
+					});
 				} else {
-					await git
-						.raw(["config", "--unset", `branch.${currentBranch}.base`])
-						.catch(() => {});
+					await unsetBranchBaseConfig({
+						repoPath: input.worktreePath,
+						branch: currentBranch,
+					});
 				}
+
+				localDb
+					.update(worktrees)
+					.set({ baseBranch: input.baseBranch })
+					.where(eq(worktrees.path, input.worktreePath))
+					.run();
 
 				return { success: true };
 			}),

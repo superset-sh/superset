@@ -120,50 +120,6 @@ jobs:
           name: electric-status
           path: electric-status.env
 
-  deploy-streams-preview:
-    name: Deploy Streams (Fly.io)
-    runs-on: ubuntu-latest
-    needs: deploy-database
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download database info
-        uses: actions/download-artifact@v4
-        with:
-          name: database-status
-
-      - name: Load database URL
-        run: |
-          source database-status.env
-          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
-
-      - name: Deploy Streams to Fly.io
-        uses: superfly/fly-pr-review-apps@1.3.0
-        with:
-          name: superset-stream-pr-${{ github.event.pull_request.number }}
-          region: iad
-          org: ${{ vars.FLY_ORG }}
-          config: apps/streams/fly.toml
-          secrets: |
-            DATABASE_URL=${{ env.DATABASE_URL }}
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Save streams status
-        run: |
-          cat > streams-status.env << EOF
-          STREAMS_STATUS="✅"
-          STREAMS_LINK="<a href=\"https://fly.io/apps/superset-stream-pr-${{ github.event.pull_request.number }}\">View App</a>"
-          EOF
-
-      - name: Upload streams status
-        uses: actions/upload-artifact@v4
-        with:
-          name: streams-status
-          path: streams-status.env
-
   deploy-api:
     name: Deploy API
     runs-on: ubuntu-latest
@@ -251,6 +207,7 @@ jobs:
           STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -296,7 +253,8 @@ jobs:
             --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
             --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
-            --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY)
+            --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
+            --env TAVILY_API_KEY=$TAVILY_API_KEY)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -703,7 +661,7 @@ jobs:
     name: Post Deployment Comment
     runs-on: ubuntu-latest
     if: always()
-    needs: [deploy-database, deploy-electric, deploy-streams-preview, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
+    needs: [deploy-database, deploy-electric, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
     permissions:
       contents: read
       pull-requests: write
@@ -724,8 +682,6 @@ jobs:
           DATABASE_LINK="Failed to create"
           ELECTRIC_STATUS="❌"
           ELECTRIC_LINK="Failed to deploy"
-          STREAMS_STATUS="❌"
-          STREAMS_LINK="Failed to deploy"
           API_STATUS="❌"
           API_LINK="Failed to deploy"
           WEB_STATUS="❌"
@@ -743,10 +699,6 @@ jobs:
 
           if [[ "${{ needs.deploy-electric.result }}" == "success" ]]; then
             source electric-status.env
-          fi
-
-          if [[ "${{ needs.deploy-streams-preview.result }}" == "success" ]]; then
-            source streams-status.env
           fi
 
           if [[ "${{ needs.deploy-api.result }}" == "success" ]]; then
@@ -769,7 +721,7 @@ jobs:
             source docs-status.env
           fi
 
-          export DATABASE_STATUS DATABASE_LINK ELECTRIC_STATUS ELECTRIC_LINK STREAMS_STATUS STREAMS_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
+          export DATABASE_STATUS DATABASE_LINK ELECTRIC_STATUS ELECTRIC_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
           envsubst < .github/templates/preview-comment.md > final-comment.md
 
       - name: Post final deployment comment

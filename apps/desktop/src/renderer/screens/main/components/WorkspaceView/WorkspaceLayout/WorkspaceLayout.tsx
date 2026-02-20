@@ -7,9 +7,11 @@ import {
 import { ResizablePanel } from "../../ResizablePanel";
 import { ChangesContent, ScrollProvider } from "../ChangesContent";
 import { ContentView } from "../ContentView";
+import { useBrowserLifecycle } from "../hooks/useBrowserLifecycle";
 import { RightSidebar } from "../RightSidebar";
 
 export function WorkspaceLayout() {
+	useBrowserLifecycle();
 	const {
 		isSidebarOpen,
 		sidebarWidth,

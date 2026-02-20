@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { TbDeviceDesktop } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -9,12 +9,11 @@ import { BrowserErrorOverlay } from "./components/BrowserErrorOverlay";
 import { BrowserToolbar } from "./components/BrowserToolbar";
 import { BrowserOverflowMenu } from "./components/BrowserToolbar/components/BrowserOverflowMenu";
 import { DEFAULT_BROWSER_URL } from "./constants";
-import { useBrowserNavigation } from "./hooks/useBrowserNavigation";
+import { usePersistentWebview } from "./hooks/usePersistentWebview";
 
 interface BrowserPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	splitPaneAuto: (
 		tabId: string,
@@ -29,7 +28,6 @@ interface BrowserPaneProps {
 export function BrowserPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	splitPaneAuto,
 	removePane,
@@ -45,29 +43,18 @@ export function BrowserPane({
 	const loadError = browserState?.error ?? null;
 	const isBlankPage = currentUrl === "about:blank";
 
-	// Capture the initial URL on first render only — subsequent navigations
-	// are handled via webview.loadURL() to preserve browser history.
-	const initialUrlRef = useRef(currentUrl);
-
 	const {
-		setWebviewRef,
+		containerRef,
 		goBack,
 		goForward,
 		reload,
 		navigateTo,
 		canGoBack,
 		canGoForward,
-	} = useBrowserNavigation({
+	} = usePersistentWebview({
 		paneId,
-		initialUrl: initialUrlRef.current,
+		initialUrl: currentUrl,
 	});
-
-	const webviewRefCallback = useCallback(
-		(node: HTMLElement | null) => {
-			setWebviewRef(node as Electron.WebviewTag | null);
-		},
-		[setWebviewRef],
-	);
 
 	const handleOpenDevTools = useCallback(() => {
 		openDevToolsPane(tabId, paneId, path);
@@ -78,7 +65,6 @@ export function BrowserPane({
 			paneId={paneId}
 			path={path}
 			tabId={tabId}
-			isActive={isActive}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}
@@ -127,16 +113,7 @@ export function BrowserPane({
 			)}
 		>
 			<div className="relative flex flex-1 h-full">
-				<webview
-					ref={webviewRefCallback}
-					src={initialUrlRef.current}
-					partition="persist:superset"
-					// @ts-expect-error -- allowpopups is a valid webview attribute but not in React types
-					allowpopups="true"
-					data-pane-id={paneId}
-					className="w-full h-full"
-					style={{ display: "flex", flex: 1 }}
-				/>
+				<div ref={containerRef} className="w-full h-full" style={{ flex: 1 }} />
 				{loadError && !isLoading && (
 					<BrowserErrorOverlay error={loadError} onRetry={reload} />
 				)}

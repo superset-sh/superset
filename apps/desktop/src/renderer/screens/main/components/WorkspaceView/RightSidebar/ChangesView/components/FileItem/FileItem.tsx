@@ -47,6 +47,7 @@ interface FileItemProps {
 	commitHash?: string;
 	/** Expanded view uses scroll-sync highlighting; collapsed view uses selection highlighting */
 	isExpandedView?: boolean;
+	projectId?: string;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -80,6 +81,7 @@ export function FileItem({
 	category,
 	commitHash,
 	isExpandedView = false,
+	projectId,
 }: FileItemProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const { activeFileKey } = useScrollContext();
@@ -104,6 +106,7 @@ export function FileItem({
 			absolutePath,
 			relativePath: file.path,
 			cwd: worktreePath,
+			projectId,
 		});
 
 	const fileDragProps = useFileDrag({ absolutePath });

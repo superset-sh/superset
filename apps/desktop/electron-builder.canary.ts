@@ -35,6 +35,7 @@ const config: Configuration = {
 		...(existsSync(canaryMacIconPath) ? { icon: canaryMacIconPath } : {}),
 		artifactName: `Superset-Canary-\${version}-\${arch}.\${ext}`,
 		extendInfo: {
+			...baseConfig.mac?.extendInfo,
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
 		},

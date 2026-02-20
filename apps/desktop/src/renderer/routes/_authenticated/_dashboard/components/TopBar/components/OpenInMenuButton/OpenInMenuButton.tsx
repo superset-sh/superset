@@ -30,19 +30,26 @@ import { useHotkeyText } from "renderer/stores/hotkeys";
 interface OpenInMenuButtonProps {
 	worktreePath: string;
 	branch?: string;
+	projectId?: string;
 }
 
 export const OpenInMenuButton = memo(function OpenInMenuButton({
 	worktreePath,
 	branch,
+	projectId,
 }: OpenInMenuButtonProps) {
 	const utils = electronTrpc.useUtils();
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery(undefined, {
-			staleTime: 30000,
-		});
+	const { data: defaultApp = "cursor" } =
+		electronTrpc.projects.getDefaultApp.useQuery(
+			{ projectId: projectId as string },
+			{ enabled: !!projectId, staleTime: 30000 },
+		);
 	const openInApp = electronTrpc.external.openInApp.useMutation({
-		onSuccess: () => utils.settings.getLastUsedApp.invalidate(),
+		onSuccess: () => {
+			if (projectId) {
+				utils.projects.getDefaultApp.invalidate({ projectId });
+			}
+		},
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
 	const copyPath = electronTrpc.external.copyPath.useMutation({
@@ -50,7 +57,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		onError: (error) => toast.error(`Failed to copy path: ${error.message}`),
 	});
 
-	const currentApp = useMemo(() => getAppOption(lastUsedApp), [lastUsedApp]);
+	const currentApp = useMemo(() => getAppOption(defaultApp), [defaultApp]);
 	const openInShortcut = useHotkeyText("OPEN_IN_APP");
 	const copyPathShortcut = useHotkeyText("COPY_PATH");
 	const showOpenInShortcut = openInShortcut !== "Unassigned";
@@ -59,15 +66,15 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
-		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
-	}, [worktreePath, lastUsedApp, openInApp, copyPath.isPending]);
+		openInApp.mutate({ path: worktreePath, app: defaultApp, projectId });
+	}, [worktreePath, defaultApp, projectId, openInApp, copyPath.isPending]);
 
 	const handleOpenInOtherApp = useCallback(
 		(appId: ExternalApp) => {
 			if (openInApp.isPending || copyPath.isPending) return;
-			openInApp.mutate({ path: worktreePath, app: appId });
+			openInApp.mutate({ path: worktreePath, app: appId, projectId });
 		},
-		[worktreePath, openInApp, copyPath.isPending],
+		[worktreePath, projectId, openInApp, copyPath.isPending],
 	);
 
 	const handleCopyPath = useCallback(() => {
@@ -159,7 +166,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 								className="size-4 object-contain mr-2"
 							/>
 							{app.label}
-							{app.id === lastUsedApp && showOpenInShortcut && (
+							{app.id === defaultApp && showOpenInShortcut && (
 								<DropdownMenuShortcut>{openInShortcut}</DropdownMenuShortcut>
 							)}
 						</DropdownMenuItem>
@@ -185,7 +192,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 										className="size-4 object-contain mr-2"
 									/>
 									{app.label}
-									{app.id === lastUsedApp && showOpenInShortcut && (
+									{app.id === defaultApp && showOpenInShortcut && (
 										<DropdownMenuShortcut>
 											{openInShortcut}
 										</DropdownMenuShortcut>

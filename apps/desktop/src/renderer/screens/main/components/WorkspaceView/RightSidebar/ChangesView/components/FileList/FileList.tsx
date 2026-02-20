@@ -18,6 +18,7 @@ interface FileListProps {
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
+	projectId?: string;
 }
 
 export function FileList({
@@ -35,6 +36,7 @@ export function FileList({
 	category,
 	commitHash,
 	isExpandedView,
+	projectId,
 }: FileListProps) {
 	if (files.length === 0) {
 		return null;
@@ -56,6 +58,7 @@ export function FileList({
 				category={category}
 				commitHash={commitHash}
 				isExpandedView={isExpandedView}
+				projectId={projectId}
 			/>
 		);
 	}
@@ -75,6 +78,7 @@ export function FileList({
 			category={category}
 			commitHash={commitHash}
 			isExpandedView={isExpandedView}
+			projectId={projectId}
 		/>
 	);
 }

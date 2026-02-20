@@ -1,12 +1,14 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectAgentCommand,
+	SelectChatSession,
 	SelectDevicePresence,
 	SelectIntegrationConnection,
 	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
 	SelectProject,
+	SelectSessionHost,
 	SelectSubscription,
 	SelectTask,
 	SelectTaskStatus,
@@ -35,6 +37,11 @@ const apiKeyDisplaySchema = z.object({
 
 type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
 
+type IntegrationConnectionDisplay = Omit<
+	SelectIntegrationConnection,
+	"accessToken" | "refreshToken"
+>;
+
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
 	taskStatuses: Collection<SelectTaskStatus>;
@@ -44,9 +51,11 @@ interface OrgCollections {
 	invitations: Collection<SelectInvitation>;
 	agentCommands: Collection<SelectAgentCommand>;
 	devicePresence: Collection<SelectDevicePresence>;
-	integrationConnections: Collection<SelectIntegrationConnection>;
+	integrationConnections: Collection<IntegrationConnectionDisplay>;
 	subscriptions: Collection<SelectSubscription>;
 	apiKeys: Collection<ApiKeyDisplay>;
+	chatSessions: Collection<SelectChatSession>;
+	sessionHosts: Collection<SelectSessionHost>;
 }
 
 // Per-org collections cache
@@ -71,6 +80,7 @@ const electricHeaders = {
 		const token = getAuthToken();
 		return token ? `Bearer ${token}` : "";
 	},
+	"X-Electric-Backend": "cloud",
 };
 
 const organizationsCollection = createCollection(
@@ -250,7 +260,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const integrationConnections = createCollection(
-		electricCollectionOptions<SelectIntegrationConnection>({
+		electricCollectionOptions<IntegrationConnectionDisplay>({
 			id: `integration_connections-${organizationId}`,
 			shapeOptions: {
 				url: electricUrl,
@@ -297,6 +307,38 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
+	const chatSessions = createCollection(
+		electricCollectionOptions<SelectChatSession>({
+			id: `chat_sessions-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "chat_sessions",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const sessionHosts = createCollection(
+		electricCollectionOptions<SelectSessionHost>({
+			id: `session_hosts-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "session_hosts",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	return {
 		tasks,
 		taskStatuses,
@@ -309,6 +351,8 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		integrationConnections,
 		subscriptions,
 		apiKeys,
+		chatSessions,
+		sessionHosts,
 	};
 }
 

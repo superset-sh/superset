@@ -6,9 +6,8 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
-import { LuExternalLink, LuPlay } from "react-icons/lu";
+import { LuExternalLink } from "react-icons/lu";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useOpenStartWorkingModal } from "renderer/stores/start-working-modal";
 import type { TaskWithStatus } from "../components/TasksView/hooks/useTasksTable";
 import { Route as TasksLayoutRoute } from "../layout";
 import { ActivitySection } from "./components/ActivitySection";
@@ -29,7 +28,6 @@ function TaskDetailPage() {
 	const { tab } = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const openStartWorkingModal = useOpenStartWorkingModal();
 
 	const backSearch = useMemo(() => (tab ? { tab } : {}), [tab]);
 	useEscapeToNavigate("/tasks", { search: backSearch });
@@ -109,15 +107,6 @@ function TaskDetailPage() {
 							<LuExternalLink className="w-4 h-4" />
 						</a>
 					)}
-					<Button
-						variant="default"
-						size="xs"
-						className="ml-auto"
-						onClick={() => openStartWorkingModal(task)}
-					>
-						<LuPlay />
-						Run with Claude
-					</Button>
 				</div>
 
 				<ScrollArea className="flex-1 min-h-0">

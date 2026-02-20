@@ -23,9 +23,7 @@ export const createBrowserRouter = () => {
 		navigate: publicProcedure
 			.input(z.object({ paneId: z.string(), url: z.string() }))
 			.mutation(({ input }) => {
-				const wc = browserManager.getWebContents(input.paneId);
-				if (!wc) throw new Error(`No webContents for pane ${input.paneId}`);
-				wc.loadURL(input.url);
+				browserManager.navigate(input.paneId, input.url);
 				return { success: true };
 			}),
 

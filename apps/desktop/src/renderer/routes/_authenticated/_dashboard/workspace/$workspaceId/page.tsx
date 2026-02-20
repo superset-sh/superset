@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
+import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { usePresets } from "renderer/react-query/presets";
@@ -8,6 +9,10 @@ import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dash
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
+import {
+	CommandPalette,
+	useCommandPalette,
+} from "renderer/screens/main/components/CommandPalette";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { usePRStatus } from "renderer/screens/main/hooks";
@@ -70,6 +75,9 @@ function WorkspacePage() {
 	const routeNavigate = Route.useNavigate();
 	const { tabId: searchTabId, paneId: searchPaneId } = Route.useSearch();
 
+	// Keep the file open mode cache warm for addFileViewerPane
+	useFileOpenMode();
+
 	// Handle search-param-driven tab/pane activation (e.g. from notification clicks)
 	useEffect(() => {
 		if (!searchTabId) return;
@@ -117,6 +125,7 @@ function WorkspacePage() {
 		openPreset,
 	} = useTabsWithPresets();
 	const addChatTab = useTabsStore((s) => s.addChatTab);
+	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
@@ -166,10 +175,16 @@ function WorkspacePage() {
 		workspaceId,
 		addTab,
 	]);
-	useAppHotkey("NEW_CHAT", () => addChatTab(workspaceId), undefined, [
-		workspaceId,
-		addChatTab,
-	]);
+	useAppHotkey(
+		"REOPEN_TAB",
+		() => {
+			if (!reopenClosedTab(workspaceId)) {
+				addChatTab(workspaceId);
+			}
+		},
+		undefined,
+		[workspaceId, reopenClosedTab, addChatTab],
+	);
 	useAppHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId), undefined, [
 		workspaceId,
 		addBrowserTab,
@@ -284,21 +299,33 @@ function WorkspacePage() {
 	);
 
 	// Open in last used app shortcut
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery();
-	const openInApp = electronTrpc.external.openInApp.useMutation();
+	const projectId = workspace?.projectId;
+	const { data: defaultApp = "cursor" } =
+		electronTrpc.projects.getDefaultApp.useQuery(
+			{ projectId: projectId as string },
+			{ enabled: !!projectId },
+		);
+	const utils = electronTrpc.useUtils();
+	const openInApp = electronTrpc.external.openInApp.useMutation({
+		onSuccess: () => {
+			if (projectId) {
+				utils.projects.getDefaultApp.invalidate({ projectId });
+			}
+		},
+	});
 	useAppHotkey(
 		"OPEN_IN_APP",
 		() => {
 			if (workspace?.worktreePath) {
 				openInApp.mutate({
 					path: workspace.worktreePath,
-					app: lastUsedApp,
+					app: defaultApp,
+					projectId,
 				});
 			}
 		},
 		undefined,
-		[workspace?.worktreePath, lastUsedApp],
+		[workspace?.worktreePath, defaultApp, projectId],
 	);
 
 	// Copy path shortcut
@@ -332,6 +359,14 @@ function WorkspacePage() {
 		undefined,
 		[pr?.url, workspace?.worktreePath],
 	);
+
+	const commandPalette = useCommandPalette({
+		workspaceId,
+		worktreePath: workspace?.worktreePath,
+	});
+	useAppHotkey("QUICK_OPEN", () => commandPalette.toggle(), undefined, [
+		commandPalette.toggle,
+	]);
 
 	// Toggle changes sidebar (⌘L)
 	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
@@ -483,6 +518,14 @@ function WorkspacePage() {
 					<WorkspaceLayout />
 				)}
 			</div>
+			<CommandPalette
+				open={commandPalette.open}
+				onOpenChange={commandPalette.handleOpenChange}
+				query={commandPalette.query}
+				onQueryChange={commandPalette.setQuery}
+				searchResults={commandPalette.searchResults}
+				onSelectFile={commandPalette.selectFile}
+			/>
 		</div>
 	);
 }

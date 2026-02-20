@@ -14,6 +14,7 @@ import {
 	TbTrash,
 } from "react-icons/tb";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useTabsStore } from "renderer/stores/tabs/store";
 
 interface BrowserOverflowMenuProps {
 	paneId: string;
@@ -30,6 +31,7 @@ export function BrowserOverflowMenu({
 	const clearBrowsingDataMutation =
 		electronTrpc.browser.clearBrowsingData.useMutation();
 	const clearHistoryMutation = electronTrpc.browserHistory.clear.useMutation();
+	const currentUrl = useTabsStore((s) => s.panes[paneId]?.browser?.currentUrl);
 
 	const handleScreenshot = () => {
 		screenshotMutation.mutate({ paneId });
@@ -40,11 +42,8 @@ export function BrowserOverflowMenu({
 	};
 
 	const handleCopyUrl = () => {
-		const webview = document.querySelector(
-			`webview[data-pane-id="${paneId}"]`,
-		) as Electron.WebviewTag | null;
-		if (webview) {
-			navigator.clipboard.writeText(webview.getURL());
+		if (currentUrl) {
+			navigator.clipboard.writeText(currentUrl);
 		}
 	};
 

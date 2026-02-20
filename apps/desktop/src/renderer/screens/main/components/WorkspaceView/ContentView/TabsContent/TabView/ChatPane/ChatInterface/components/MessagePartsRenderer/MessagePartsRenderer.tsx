@@ -1,21 +1,26 @@
 import { ExploringGroup } from "@superset/ui/ai-elements/exploring-group";
 import { MessageResponse } from "@superset/ui/ai-elements/message";
+import type { UIMessage } from "ai";
+import { getToolName, isToolUIPart } from "ai";
 import {
+	AlertCircleIcon,
 	FileIcon,
 	FileSearchIcon,
 	FolderTreeIcon,
 	SearchIcon,
 } from "lucide-react";
 import type React from "react";
+import { useMemo } from "react";
+import { useTheme } from "renderer/stores";
 import { READ_ONLY_TOOLS } from "../../constants";
-import type { MessagePart, ToolCallPart } from "../../types";
+import type { ToolPart } from "../../utils/tool-helpers";
 import { getArgs } from "../../utils/tool-helpers";
-import { AgentCallBlock } from "../AgentCallBlock";
 import { MastraToolCallBlock } from "../MastraToolCallBlock";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
+import { ReasoningBlock } from "../ReasoningBlock";
 
 interface MessagePartsRendererProps {
-	parts: MessagePart[];
+	parts: UIMessage["parts"];
 	isLastAssistant: boolean;
 	isStreaming: boolean;
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
@@ -27,11 +32,22 @@ export function MessagePartsRenderer({
 	isStreaming,
 	onAnswer,
 }: MessagePartsRendererProps): React.ReactNode[] {
+	const theme = useTheme();
+	const mermaidConfig = useMemo(
+		() => ({
+			config: {
+				theme:
+					theme?.type !== "light" ? ("dark" as const) : ("default" as const),
+			},
+		}),
+		[theme?.type],
+	);
+
 	const renderParts = ({
 		parts,
 		isLastAssistant,
 	}: {
-		parts: MessagePart[];
+		parts: UIMessage["parts"];
 		isLastAssistant: boolean;
 	}): React.ReactNode[] => {
 		const nodes: React.ReactNode[] = [];
@@ -42,7 +58,11 @@ export function MessagePartsRenderer({
 
 			if (part.type === "text") {
 				nodes.push(
-					<MessageResponse key={i} isAnimating={isLastAssistant && isStreaming}>
+					<MessageResponse
+						key={i}
+						isAnimating={isLastAssistant && isStreaming}
+						mermaid={mermaidConfig}
+					>
 						{part.text}
 					</MessageResponse>,
 				);
@@ -50,30 +70,40 @@ export function MessagePartsRenderer({
 				continue;
 			}
 
-			if (part.type === "agent-call") {
+			if ((part as { type: string }).type === "error") {
+				const errorPart = part as unknown as { type: "error"; text: string };
 				nodes.push(
-					<AgentCallBlock
-						key={part.toolCallId}
-						part={part}
-						isStreaming={isStreaming}
-						renderParts={renderParts}
-					/>,
+					<div
+						key={i}
+						className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+					>
+						<AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+						<span className="select-text">{errorPart.text}</span>
+					</div>,
 				);
 				i++;
 				continue;
 			}
 
-			if (part.type === "tool-call") {
+			if (part.type === "reasoning") {
+				nodes.push(<ReasoningBlock key={i} reasoning={part.text} />);
+				i++;
+				continue;
+			}
+
+			if (isToolUIPart(part)) {
+				const toolName = getToolName(part);
+
 				// Group consecutive read-only tools into ExploringGroup
-				if (READ_ONLY_TOOLS.has(part.toolName)) {
+				if (READ_ONLY_TOOLS.has(toolName)) {
 					const groupStart = i;
-					const groupParts: ToolCallPart[] = [];
+					const groupParts: ToolPart[] = [];
 					while (
 						i < parts.length &&
-						parts[i].type === "tool-call" &&
-						READ_ONLY_TOOLS.has((parts[i] as ToolCallPart).toolName)
+						isToolUIPart(parts[i]) &&
+						READ_ONLY_TOOLS.has(getToolName(parts[i] as ToolPart))
 					) {
-						groupParts.push(parts[i] as ToolCallPart);
+						groupParts.push(parts[i] as ToolPart);
 						i++;
 					}
 
@@ -89,39 +119,57 @@ export function MessagePartsRenderer({
 					}
 
 					// Multiple consecutive read-only tools: group them
-					const anyPending = groupParts.some((p) => p.status !== "done");
+					const anyPending = groupParts.some(
+						(p) => p.state !== "output-available" && p.state !== "output-error",
+					);
 					const exploringItems = groupParts.map((p) => {
 						const args = getArgs(p);
+						const name = getToolName(p);
 						let title = "Read";
 						let subtitle = "";
 						let icon = FileIcon;
-						switch (p.toolName) {
+						switch (name) {
 							case "mastra_workspace_read_file":
-								title = p.status !== "done" ? "Reading" : "Read";
+								title =
+									p.state !== "output-available" && p.state !== "output-error"
+										? "Reading"
+										: "Read";
 								subtitle = String(args.path ?? args.filePath ?? "");
 								icon = FileIcon;
 								break;
 							case "mastra_workspace_list_files":
-								title = p.status !== "done" ? "Listing" : "Listed";
+								title =
+									p.state !== "output-available" && p.state !== "output-error"
+										? "Listing"
+										: "Listed";
 								subtitle = String(args.path ?? args.directory ?? "");
 								icon = FolderTreeIcon;
 								break;
 							case "mastra_workspace_file_stat":
-								title = p.status !== "done" ? "Checking" : "Checked";
+								title =
+									p.state !== "output-available" && p.state !== "output-error"
+										? "Checking"
+										: "Checked";
 								subtitle = String(args.path ?? "");
 								icon = FileSearchIcon;
 								break;
 							case "mastra_workspace_search":
-								title = p.status !== "done" ? "Searching" : "Searched";
+								title =
+									p.state !== "output-available" && p.state !== "output-error"
+										? "Searching"
+										: "Searched";
 								subtitle = String(args.query ?? args.pattern ?? "");
 								icon = SearchIcon;
 								break;
 							case "mastra_workspace_index":
-								title = p.status !== "done" ? "Indexing" : "Indexed";
+								title =
+									p.state !== "output-available" && p.state !== "output-error"
+										? "Indexing"
+										: "Indexed";
 								icon = SearchIcon;
 								break;
 							default:
-								title = p.toolName.replace("mastra_workspace_", "");
+								title = name.replace("mastra_workspace_", "");
 								icon = FileIcon;
 								break;
 						}
@@ -133,8 +181,9 @@ export function MessagePartsRenderer({
 							icon,
 							title,
 							subtitle,
-							isPending: p.status !== "done",
-							isError: !!p.isError,
+							isPending:
+								p.state !== "output-available" && p.state !== "output-error",
+							isError: p.state === "output-error",
 						};
 					});
 
@@ -152,7 +201,7 @@ export function MessagePartsRenderer({
 				nodes.push(
 					<MastraToolCallBlock
 						key={part.toolCallId}
-						part={part}
+						part={part as ToolPart}
 						onAnswer={onAnswer}
 					/>,
 				);
@@ -160,7 +209,7 @@ export function MessagePartsRenderer({
 				continue;
 			}
 
-			// Unknown part type
+			// Unknown part type (source, file, step-start, etc.) — skip
 			i++;
 		}
 

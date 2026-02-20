@@ -6,19 +6,25 @@ interface UsePathActionsProps {
 	relativePath?: string;
 	/** For files: pass cwd to use openFileInEditor. For folders: omit to use openInApp */
 	cwd?: string;
+	/** Project ID for per-project default app resolution */
+	projectId?: string;
 }
 
 export function usePathActions({
 	absolutePath,
 	relativePath,
 	cwd,
+	projectId,
 }: UsePathActionsProps) {
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
 	const openInAppMutation = electronTrpc.external.openInApp.useMutation();
 	const openFileInEditorMutation =
 		electronTrpc.external.openFileInEditor.useMutation();
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery();
+	const { data: defaultApp = "cursor" } =
+		electronTrpc.projects.getDefaultApp.useQuery(
+			{ projectId: projectId as string },
+			{ enabled: !!projectId },
+		);
 
 	const copyPath = useCallback(async () => {
 		if (absolutePath) {
@@ -42,14 +48,19 @@ export function usePathActions({
 		if (!absolutePath) return;
 
 		if (cwd) {
-			openFileInEditorMutation.mutate({ path: absolutePath, cwd });
+			openFileInEditorMutation.mutate({ path: absolutePath, cwd, projectId });
 		} else {
-			openInAppMutation.mutate({ path: absolutePath, app: lastUsedApp });
+			openInAppMutation.mutate({
+				path: absolutePath,
+				app: defaultApp,
+				projectId,
+			});
 		}
 	}, [
 		absolutePath,
 		cwd,
-		lastUsedApp,
+		projectId,
+		defaultApp,
 		openInAppMutation,
 		openFileInEditorMutation,
 	]);

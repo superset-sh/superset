@@ -40,6 +40,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
+	const projectId = workspace?.projectId;
 
 	const { status, isLoading, effectiveBaseBranch, refetch } =
 		useGitChangesStatus({
@@ -366,6 +367,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "against-base")}
 							worktreePath={worktreePath}
+							projectId={projectId}
 							category="against-base"
 							isExpandedView={isExpandedView}
 						/>
@@ -388,6 +390,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 								onFileSelect={handleCommitFileSelect}
 								viewMode={fileListViewMode}
 								worktreePath={worktreePath}
+								projectId={projectId}
 								isExpandedView={isExpandedView}
 							/>
 						))}
@@ -451,6 +454,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 							}
 							isActioning={unstageFileMutation.isPending}
 							worktreePath={worktreePath}
+							projectId={projectId}
 							category="staged"
 							isExpandedView={isExpandedView}
 						/>
@@ -518,6 +522,7 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 								deleteUntrackedMutation.isPending
 							}
 							worktreePath={worktreePath}
+							projectId={projectId}
 							onDiscard={handleDiscard}
 							category="unstaged"
 							isExpandedView={isExpandedView}

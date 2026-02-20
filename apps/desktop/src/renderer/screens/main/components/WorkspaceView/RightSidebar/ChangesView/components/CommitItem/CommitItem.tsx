@@ -14,6 +14,7 @@ interface CommitItemProps {
 	viewMode: ChangesViewMode;
 	worktreePath: string;
 	isExpandedView?: boolean;
+	projectId?: string;
 }
 
 function CommitHeader({
@@ -48,6 +49,7 @@ export function CommitItem({
 	viewMode,
 	worktreePath,
 	isExpandedView,
+	projectId,
 }: CommitItemProps) {
 	const hasFiles = commit.files.length > 0;
 
@@ -79,6 +81,7 @@ export function CommitItem({
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={handleFileSelect}
 					worktreePath={worktreePath}
+					projectId={projectId}
 					category="committed"
 					commitHash={commit.hash}
 					isExpandedView={isExpandedView}

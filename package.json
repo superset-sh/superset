@@ -16,7 +16,7 @@
 	"packageManager": "bun@1.3.6",
 	"private": true,
 	"scripts": {
-		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=@superset/streams --filter=//",
+		"dev": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/web --filter=@superset/desktop --filter=//",
 		"dev:all": "turbo dev",
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
 		"dev:docs": "turbo dev --filter=@superset/docs",
@@ -33,7 +33,10 @@
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",
-		"release:canary": "gh workflow run release-desktop-canary.yml -f force_build=true && sleep 2 && gh run list --workflow=release-desktop-canary.yml --limit=1 --json url -q '.[0].url'"
+		"release:canary": "gh workflow run release-desktop-canary.yml -f force_build=true && sleep 2 && gh run list --workflow=release-desktop-canary.yml --limit=1 --json url -q '.[0].url'",
+		"db:push": "bun run --cwd packages/db push",
+		"db:migrate": "bun run --cwd packages/db migrate",
+		"db:generate:desktop": "bun run --cwd packages/local-db generate"
 	},
 	"type": "module",
 	"workspaces": [
@@ -41,5 +44,8 @@
 		"apps/*",
 		"tooling/*"
 	],
-	"resolutions": {}
+	"resolutions": {},
+	"patchedDependencies": {
+		"@durable-streams/state@0.2.1": "patches/@durable-streams%2Fstate@0.2.1.patch"
+	}
 }

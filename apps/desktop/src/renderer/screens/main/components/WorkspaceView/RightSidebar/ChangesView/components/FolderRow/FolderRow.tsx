@@ -37,6 +37,7 @@ interface FolderRowProps {
 	onUnstageAll?: () => void;
 	onDiscardAll?: () => void;
 	isActioning?: boolean;
+	projectId?: string;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -112,6 +113,7 @@ export function FolderRow({
 	onUnstageAll,
 	onDiscardAll,
 	isActioning = false,
+	projectId,
 }: FolderRowProps) {
 	const isGrouped = variant === "grouped";
 	const isRoot = folderPath === "";
@@ -121,6 +123,7 @@ export function FolderRow({
 		usePathActions({
 			absolutePath,
 			relativePath: folderPath || undefined,
+			projectId,
 		});
 
 	const triggerContent = (

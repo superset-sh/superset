@@ -1,21 +1,34 @@
 import type { ToolDisplayState } from "@superset/ui/ai-elements/tool";
-import type { ToolCallPart, WsToolState } from "../types";
+import type { UIMessage } from "ai";
 
-export function toToolDisplayState(part: ToolCallPart): ToolDisplayState {
-	if (part.status === "streaming") return "input-streaming";
-	if (part.status === "calling") return "input-complete";
-	if (part.isError) return "output-error";
-	if (part.result != null) return "output-available";
-	return "input-available";
+// Extract tool part type from UIMessage
+type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>;
+
+export type { ToolPart };
+
+export function toToolDisplayState(part: ToolPart): ToolDisplayState {
+	switch (part.state) {
+		case "input-streaming":
+			return "input-streaming";
+		case "input-available":
+			return "input-complete";
+		case "output-error":
+			return "output-error";
+		case "output-available":
+			return "output-available";
+		default:
+			return "input-available";
+	}
 }
 
-export function getArgs(part: ToolCallPart): Record<string, unknown> {
-	if (typeof part.args === "object" && part.args !== null) {
-		return part.args as Record<string, unknown>;
+export function getArgs(part: ToolPart): Record<string, unknown> {
+	const input = part.input;
+	if (typeof input === "object" && input !== null) {
+		return input as Record<string, unknown>;
 	}
-	if (typeof part.args === "string") {
+	if (typeof input === "string") {
 		try {
-			return JSON.parse(part.args);
+			return JSON.parse(input);
 		} catch {
 			return {};
 		}
@@ -23,24 +36,37 @@ export function getArgs(part: ToolCallPart): Record<string, unknown> {
 	return {};
 }
 
-export function getResult(part: ToolCallPart): Record<string, unknown> {
-	if (typeof part.result === "object" && part.result !== null) {
-		return part.result as Record<string, unknown>;
+export function getResult(part: ToolPart): Record<string, unknown> {
+	const output = part.output;
+	if (typeof output === "object" && output !== null) {
+		return output as Record<string, unknown>;
 	}
-	if (typeof part.result === "string") {
+	if (typeof output === "string") {
 		try {
-			return JSON.parse(part.result);
+			return JSON.parse(output);
 		} catch {
-			return { text: part.result };
+			return { text: output };
 		}
 	}
 	return {};
 }
 
-export function toWsToolState(part: ToolCallPart): WsToolState {
-	if (part.status === "streaming") return "input-streaming";
-	if (part.status === "calling") return "input-available";
-	if (part.isError) return "output-error";
-	if (part.result != null) return "output-available";
-	return "input-available";
+type ToolStateUnion =
+	| "input-streaming"
+	| "input-available"
+	| "output-available"
+	| "output-error";
+
+// Map part.state to the 4-value union expected by UI tool components
+export function toWsToolState(part: ToolPart): ToolStateUnion {
+	switch (part.state) {
+		case "input-streaming":
+			return "input-streaming";
+		case "output-available":
+			return "output-available";
+		case "output-error":
+			return "output-error";
+		default:
+			return "input-available";
+	}
 }

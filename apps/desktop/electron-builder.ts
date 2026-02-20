@@ -60,13 +60,6 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
-		// Claude Code binary - no longer bundled; the SDK resolves it at runtime
-		// {
-		// 	// biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder variable interpolation
-		// 	from: "resources/bin/${platform}-${arch}",
-		// 	to: "bin",
-		// 	filter: ["**/*"],
-		// },
 	],
 
 	files: [
@@ -128,6 +121,11 @@ const config: Configuration = {
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
 		notarize: true,
+		entitlements: join(pkg.resources, "build/entitlements.mac.plist"),
+		entitlementsInherit: join(
+			pkg.resources,
+			"build/entitlements.mac.inherit.plist",
+		),
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
@@ -136,6 +134,9 @@ const config: Configuration = {
 				"Superset needs access to your local network to discover and connect to development servers running on your network.",
 			// Bonjour service types to browse for (triggers the permission prompt)
 			NSBonjourServices: ["_http._tcp", "_https._tcp"],
+			// Required for Apple Events / Automation permission prompt
+			NSAppleEventsUsageDescription:
+				"Superset needs to interact with other applications to run terminal commands and development tools.",
 		},
 	},
 

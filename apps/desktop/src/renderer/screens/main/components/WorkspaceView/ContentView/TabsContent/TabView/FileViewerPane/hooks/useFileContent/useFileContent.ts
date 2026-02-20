@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
 import { isImageFile } from "shared/file-types";
@@ -26,9 +26,15 @@ export function useFileContent({
 	originalContentRef,
 	originalDiffContentRef,
 }: UseFileContentParams) {
+	// For remote URLs (e.g. Vercel Blob), skip all IPC queries
+	const isRemote =
+		filePath.startsWith("https://") || filePath.startsWith("http://");
+
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath },
-		{ enabled: !!worktreePath && diffCategory === "against-base" },
+		{
+			enabled: !isRemote && !!worktreePath && diffCategory === "against-base",
+		},
 	);
 	const effectiveBaseBranch =
 		branchData?.worktreeBaseBranch ?? branchData?.defaultBranch ?? "main";
@@ -40,7 +46,11 @@ export function useFileContent({
 			{ worktreePath, filePath },
 			{
 				enabled:
-					viewMode !== "diff" && !isImage && !!filePath && !!worktreePath,
+					!isRemote &&
+					viewMode !== "diff" &&
+					!isImage &&
+					!!filePath &&
+					!!worktreePath,
 			},
 		);
 
@@ -49,7 +59,11 @@ export function useFileContent({
 			{ worktreePath, filePath },
 			{
 				enabled:
-					viewMode === "rendered" && isImage && !!filePath && !!worktreePath,
+					!isRemote &&
+					viewMode === "rendered" &&
+					isImage &&
+					!!filePath &&
+					!!worktreePath,
 			},
 		);
 
@@ -66,7 +80,11 @@ export function useFileContent({
 			},
 			{
 				enabled:
-					viewMode === "diff" && !!diffCategory && !!filePath && !!worktreePath,
+					!isRemote &&
+					viewMode === "diff" &&
+					!!diffCategory &&
+					!!filePath &&
+					!!worktreePath,
 			},
 		);
 
@@ -84,11 +102,20 @@ export function useFileContent({
 		}
 	}, [diffData]);
 
+	// For remote URLs, return the URL directly as imageData (works with <img src=>)
+	const remoteImageData = useMemo(
+		() =>
+			isRemote
+				? { ok: true as const, dataUrl: filePath, byteLength: 0 }
+				: undefined,
+		[isRemote, filePath],
+	);
+
 	return {
 		rawFileData,
 		isLoadingRaw: isLoadingRaw || (isImage && isLoadingImage),
-		imageData,
-		isLoadingImage,
+		imageData: isRemote ? remoteImageData : imageData,
+		isLoadingImage: isRemote ? false : isLoadingImage,
 		diffData,
 		isLoadingDiff,
 	};

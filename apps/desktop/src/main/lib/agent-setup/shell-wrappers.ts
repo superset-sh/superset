@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { SUPERSET_DIR_NAME } from "shared/constants";
-import { BASH_DIR, ZSH_DIR } from "./paths";
+import { BASH_DIR, BIN_DIR, ZSH_DIR } from "./paths";
 
 const ZSH_RC = path.join(ZSH_DIR, ".zshrc");
 const BASH_RCFILE = path.join(BASH_DIR, "rcfile");
@@ -22,7 +21,7 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
-export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+export PATH="${BIN_DIR}:$PATH"
 `;
 	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
 	console.log("[agent-setup] Created zsh wrapper");
@@ -48,7 +47,7 @@ fi
 [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
 
 # Prepend superset bin to PATH
-export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+export PATH="${BIN_DIR}:$PATH"
 # Minimal prompt (path/env shown in toolbar) - emerald to match app theme
 export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;

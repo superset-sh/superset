@@ -37,7 +37,6 @@ export function TabView({ tab }: TabViewProps) {
 	const { splitPaneAuto, splitPaneHorizontal, splitPaneVertical } =
 		useTabsWithPresets();
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tab.id]);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
@@ -52,8 +51,9 @@ export function TabView({ tab }: TabViewProps) {
 	const worktreePath = workspace?.worktreePath ?? "";
 
 	// Get tabs in the same workspace for move targets
-	const workspaceTabs = allTabs.filter(
-		(t) => t.workspaceId === tab.workspaceId,
+	const workspaceTabs = useMemo(
+		() => allTabs.filter((t) => t.workspaceId === tab.workspaceId),
+		[allTabs, tab.workspaceId],
 	);
 
 	// Extract pane IDs from layout
@@ -138,7 +138,6 @@ export function TabView({ tab }: TabViewProps) {
 	const renderPane = useCallback(
 		(paneId: string, path: MosaicBranch[]) => {
 			const paneInfo = tabPanes[paneId];
-			const isActive = paneId === focusedPaneId;
 
 			if (!paneInfo) {
 				return (
@@ -161,7 +160,6 @@ export function TabView({ tab }: TabViewProps) {
 					<FileViewerPane
 						paneId={paneId}
 						path={path}
-						isActive={isActive}
 						tabId={tab.id}
 						worktreePath={worktreePath}
 						splitPaneAuto={splitPaneAuto}
@@ -182,7 +180,6 @@ export function TabView({ tab }: TabViewProps) {
 					<ChatPane
 						paneId={paneId}
 						path={path}
-						isActive={isActive}
 						tabId={tab.id}
 						workspaceId={tab.workspaceId}
 						splitPaneAuto={splitPaneAuto}
@@ -198,7 +195,6 @@ export function TabView({ tab }: TabViewProps) {
 					<BrowserPane
 						paneId={paneId}
 						path={path}
-						isActive={isActive}
 						tabId={tab.id}
 						splitPaneAuto={splitPaneAuto}
 						removePane={removePane}
@@ -213,7 +209,6 @@ export function TabView({ tab }: TabViewProps) {
 					<DevToolsPane
 						paneId={paneId}
 						path={path}
-						isActive={isActive}
 						tabId={tab.id}
 						targetPaneId={paneInfo.devtools.targetPaneId}
 						splitPaneAuto={splitPaneAuto}
@@ -228,7 +223,6 @@ export function TabView({ tab }: TabViewProps) {
 				<TabPane
 					paneId={paneId}
 					path={path}
-					isActive={isActive}
 					tabId={tab.id}
 					workspaceId={tab.workspaceId}
 					splitPaneAuto={splitPaneAuto}
@@ -244,7 +238,6 @@ export function TabView({ tab }: TabViewProps) {
 		},
 		[
 			tabPanes,
-			focusedPaneId,
 			tab.id,
 			tab.workspaceId,
 			worktreePath,

@@ -5,7 +5,6 @@ import { BasePaneWindow, PaneToolbarActions } from "../components";
 interface DevToolsPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	isActive: boolean;
 	tabId: string;
 	targetPaneId: string;
 	splitPaneAuto: (
@@ -21,17 +20,20 @@ interface DevToolsPaneProps {
 export function DevToolsPane({
 	paneId,
 	path,
-	isActive,
 	tabId,
 	targetPaneId,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,
 }: DevToolsPaneProps) {
-	// Query the CDP debug server for the DevTools frontend URL
+	// Query the CDP debug server for the DevTools frontend URL.
+	// Poll every 1s until a URL is obtained (the browser webview may still be loading).
 	const { data } = electronTrpc.browser.getDevToolsUrl.useQuery(
 		{ browserPaneId: targetPaneId },
-		{ refetchOnWindowFocus: false },
+		{
+			refetchOnWindowFocus: false,
+			refetchInterval: (query) => (query.state.data?.url ? false : 1000),
+		},
 	);
 	const devToolsUrl = data?.url;
 
@@ -40,7 +42,6 @@ export function DevToolsPane({
 			paneId={paneId}
 			path={path}
 			tabId={tabId}
-			isActive={isActive}
 			splitPaneAuto={splitPaneAuto}
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}

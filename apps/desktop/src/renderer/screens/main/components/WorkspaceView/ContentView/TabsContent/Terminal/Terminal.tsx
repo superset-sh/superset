@@ -246,7 +246,21 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	// Stream subscription
 	electronTrpc.terminal.stream.useSubscription(paneId, {
-		onData: handleStreamData,
+		onData: (event) => {
+			if (connectionErrorRef.current && event.type === "data") {
+				setConnectionError(null);
+			}
+			handleStreamData(event);
+		},
+		onError: (error) => {
+			console.error("[Terminal] Stream subscription error:", {
+				paneId,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			setConnectionError(
+				error instanceof Error ? error.message : "Connection to terminal lost",
+			);
+		},
 		enabled: true,
 	});
 

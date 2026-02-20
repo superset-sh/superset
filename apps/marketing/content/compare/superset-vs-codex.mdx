@@ -1,0 +1,113 @@
+---
+title: "Superset vs Codex CLI (2026): Agent Orchestrator vs OpenAI's Coding Agent"
+description: "Compare Superset and OpenAI Codex CLI for AI-powered development. See how parallel agent orchestration differs from a single cloud-backed coding agent."
+date: 2026-02-18
+lastUpdated: 2026-02-18
+type: "1v1"
+competitors:
+  - codex
+keywords:
+  - superset vs codex
+  - codex alternative
+  - codex cli alternative
+  - openai codex alternative
+  - codex parallel agents
+  - ai coding agent comparison
+---
+
+Codex CLI is OpenAI's terminal-based coding agent. Superset is an orchestration layer that runs multiple Codex instances (and other agents) in parallel, each in its own Git worktree. They solve different problems: Codex does the coding, Superset scales it horizontally.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Codex CLI** |
+|---|---|---|
+| **Category** | Agent orchestration terminal | AI coding agent (terminal-native) |
+| **What it does** | Runs 10+ coding agents in parallel with Git worktree isolation | AI assistant that reads, writes, and executes code via OpenAI models |
+| **AI approach** | Agent-agnostic — works with Codex, Claude Code, Aider, OpenCode, etc. | OpenAI models only (o3, o4-mini, GPT-4.1) |
+| **Parallelism** | Core feature — many agents on separate branches simultaneously | Single session; cloud Codex runs tasks remotely |
+| **Isolation** | Automatic Git worktree per task | Sandbox modes (network-disabled, full-auto) per session |
+| **Pricing** | Free tier + Pro $20/seat/mo | Free and open source (Apache 2.0); pay for OpenAI API usage |
+| **Open source** | Yes (Apache 2.0) | Yes (Apache 2.0) |
+
+---
+
+## What Is Superset?
+
+Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Codex, Claude Code, Aider, OpenCode, or any CLI process — gets its own branch and working directory. A persistent daemon manages sessions so they survive app restarts and crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Open source (Apache 2.0) with zero telemetry.
+
+---
+
+## What Is Codex CLI?
+
+Codex CLI is OpenAI's open-source terminal agent for software engineering. It runs locally, understands your codebase through file reading and command execution, and can write code, fix bugs, and refactor across files. It offers three operational modes: Suggest (proposes changes for approval), Auto Edit (applies file changes, asks before commands), and Full Auto (executes everything autonomously). It uses OpenAI's models, primarily codex-1 for cloud tasks and o3/o4-mini for local sessions.
+
+---
+
+## Key Differences
+
+### Orchestrator vs Agent
+
+Codex CLI is the agent — it reads code, talks to OpenAI models, and writes changes. Superset is the orchestrator — it runs many Codex instances in parallel, each in its own isolated environment. Run Codex inside Superset to get automatic worktree isolation and parallel execution with zero manual setup.
+
+### Local vs Cloud
+
+Codex CLI runs locally by default but also offers cloud-based Codex (via the Codex dashboard) for heavier tasks. Cloud Codex runs in a sandboxed VM, creates branches, and produces pull requests. Superset is entirely local — all agents run on your machine in Git worktrees. No code leaves your environment unless the agent's API calls send it.
+
+### Single Agent vs Many Agents
+
+With Codex CLI alone, you work one task at a time: prompt, review, iterate. With Superset, you assign tasks to multiple Codex instances simultaneously — one writing tests, another refactoring a service, a third fixing lint errors — each on its own branch with its own worktree.
+
+### Agent Flexibility
+
+Codex CLI only works with OpenAI's models. Superset doesn't care which agent you use — run Codex for tasks where OpenAI models excel, Claude Code for complex architectural work, and Aider for iterative changes. Mix and match per task based on what works best.
+
+### Session Persistence
+
+Codex CLI sessions end when the terminal closes. Superset's persistent daemon keeps sessions alive across crashes and restarts. Start a long-running Codex task, close your laptop, and it's still running when you come back.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Codex CLI is free and open source — you pay for OpenAI API usage only. Cloud Codex is included in ChatGPT Pro ($200/mo) and Plus ($20/mo with limited tasks). When using Codex CLI inside Superset, you pay Superset's plan plus OpenAI API costs — no markup.
+
+---
+
+## Which Should You Choose?
+
+**Choose Codex CLI alone if you:**
+- Work on one task at a time and prefer a simple terminal workflow
+- Want OpenAI's models (o3, o4-mini) for coding tasks
+- Prefer Full Auto mode for autonomous execution in a sandboxed environment
+- Need cloud-based Codex for heavy tasks that benefit from remote compute
+
+**Choose Superset + Codex CLI if you:**
+- Want to run 5-10+ Codex instances in parallel across separate tasks
+- Need automatic Git worktree isolation so agents never conflict
+- Want sessions that survive crashes and app restarts
+- Plan to mix Codex with other agents (Claude Code, Aider, OpenCode) per task
+- Work on large codebases where parallel execution saves hours
+
+Superset and Codex CLI work together naturally. Each Superset task launches Codex in its own worktree — you get Codex's coding ability with Superset's parallelism and isolation.
+
+---
+
+## Frequently Asked Questions
+
+### Is Superset a Codex replacement?
+
+No. Superset does not talk to AI models or write code. It orchestrates agents like Codex in parallel, each in its own Git worktree. Think of Superset as a multiplier for Codex, not a substitute.
+
+### Can I run Codex in Full Auto mode inside Superset?
+
+Yes. Each Superset task runs Codex in its own isolated worktree. You can use any Codex mode — Suggest, Auto Edit, or Full Auto — safely, because worktree isolation means an autonomous agent can't affect your main working directory.
+
+### How does cloud Codex compare to Superset?
+
+Cloud Codex runs in OpenAI's VMs and produces pull requests. Superset runs agents locally in Git worktrees. Cloud Codex offloads compute but sends code to OpenAI's servers. Superset keeps everything local with zero telemetry. They serve different trust and infrastructure models.
+
+### Are both tools open source?
+
+Yes. Both Superset and Codex CLI are open source under Apache 2.0. You can inspect, modify, and self-host either.

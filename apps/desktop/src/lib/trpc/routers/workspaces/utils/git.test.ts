@@ -1,13 +1,20 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createWorktree } from "./git";
 
-// We need to test the internal functions, so we'll import the module
-// and test the exported functions that use them
-
-const TEST_DIR = join(__dirname, ".test-git-tmp");
+const TEST_DIR = join(
+	realpathSync(tmpdir()),
+	`superset-test-git-${process.pid}`,
+);
 
 function createTestRepo(name: string): string {
 	const repoPath = join(TEST_DIR, name);
@@ -28,79 +35,6 @@ function seedCommit(repoPath: string): void {
 		stdio: "ignore",
 	});
 }
-
-describe("LFS Detection", () => {
-	beforeEach(() => {
-		mkdirSync(TEST_DIR, { recursive: true });
-	});
-
-	afterEach(() => {
-		if (existsSync(TEST_DIR)) {
-			rmSync(TEST_DIR, { recursive: true, force: true });
-		}
-	});
-
-	test("detects LFS via .git/lfs directory", async () => {
-		const repoPath = createTestRepo("lfs-dir-test");
-
-		// Create .git/lfs directory (simulates LFS being initialized)
-		mkdirSync(join(repoPath, ".git", "lfs"), { recursive: true });
-
-		// Import and test - we need to test via the exported createWorktree behavior
-		// For now, just verify the directory structure is correct
-		expect(existsSync(join(repoPath, ".git", "lfs"))).toBe(true);
-	});
-
-	test("detects LFS via root .gitattributes", async () => {
-		const repoPath = createTestRepo("lfs-gitattributes-test");
-
-		// Create .gitattributes with LFS filter
-		writeFileSync(
-			join(repoPath, ".gitattributes"),
-			"*.bin filter=lfs diff=lfs merge=lfs -text\n",
-		);
-
-		const content = await Bun.file(join(repoPath, ".gitattributes")).text();
-		expect(content.includes("filter=lfs")).toBe(true);
-	});
-
-	test("detects LFS via .git/info/attributes", async () => {
-		const repoPath = createTestRepo("lfs-info-attributes-test");
-
-		// Create .git/info/attributes with LFS filter
-		mkdirSync(join(repoPath, ".git", "info"), { recursive: true });
-		writeFileSync(
-			join(repoPath, ".git", "info", "attributes"),
-			"*.png filter=lfs diff=lfs merge=lfs -text\n",
-		);
-
-		const content = await Bun.file(
-			join(repoPath, ".git", "info", "attributes"),
-		).text();
-		expect(content.includes("filter=lfs")).toBe(true);
-	});
-
-	test("does not detect LFS from .lfsconfig alone", async () => {
-		const repoPath = createTestRepo("lfs-config-test");
-
-		// .lfsconfig configures LFS behaviour but does not indicate file tracking
-		writeFileSync(
-			join(repoPath, ".lfsconfig"),
-			"[lfs]\n\tlocksverify = false\n",
-		);
-
-		expect(existsSync(join(repoPath, ".git", "lfs"))).toBe(false);
-		expect(existsSync(join(repoPath, ".gitattributes"))).toBe(false);
-	});
-
-	test("no LFS detected in plain repo", async () => {
-		const repoPath = createTestRepo("no-lfs-test");
-
-		// Just a plain repo with no LFS
-		expect(existsSync(join(repoPath, ".git", "lfs"))).toBe(false);
-		expect(existsSync(join(repoPath, ".gitattributes"))).toBe(false);
-	});
-});
 
 describe("getDefaultBranch", () => {
 	// Import simpleGit directly to bypass any module mocks from other test files
@@ -146,8 +80,8 @@ describe("getDefaultBranch", () => {
 		cleanup: () => void;
 	} {
 		const testDir = join(
-			__dirname,
-			`.test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+			realpathSync(tmpdir()),
+			`superset-test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
 		);
 		mkdirSync(testDir, { recursive: true });
 		execSync("git init", { cwd: testDir, stdio: "ignore" });

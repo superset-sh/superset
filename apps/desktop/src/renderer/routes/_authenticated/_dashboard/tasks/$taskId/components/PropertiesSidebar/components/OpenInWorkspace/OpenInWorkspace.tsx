@@ -25,7 +25,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-		null,
+		() => localStorage.getItem("lastOpenedInProjectId"),
 	);
 
 	// Default to the first recent project
@@ -38,6 +38,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	useEffect(() => {
 		if (!selectedProjectId && recentProjects.length > 0) {
 			setSelectedProjectId(recentProjects[0].id);
+			localStorage.setItem("lastOpenedInProjectId", recentProjects[0].id);
 		}
 	}, [selectedProjectId, recentProjects]);
 
@@ -137,7 +138,10 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 								.map((project) => (
 									<DropdownMenuItem
 										key={project.id}
-										onClick={() => setSelectedProjectId(project.id)}
+										onClick={() => {
+											setSelectedProjectId(project.id);
+											localStorage.setItem("lastOpenedInProjectId", project.id);
+										}}
 										className="flex items-center gap-2"
 									>
 										<ProjectThumbnail

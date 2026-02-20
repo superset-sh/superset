@@ -1,5 +1,6 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
+import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
@@ -103,6 +104,7 @@ export const useTabsStore = create<TabsStore>()(
 				activeTabIds: {},
 				focusedPaneIds: {},
 				tabHistoryStacks: {},
+				closedTabsStack: [],
 
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
@@ -245,6 +247,21 @@ export const useTabsStore = create<TabsStore>()(
 					if (!tabToRemove) return;
 
 					const paneIds = getPaneIdsForTab(state.panes, tabId);
+
+					// Snapshot the tab + panes for "reopen closed tab"
+					const closedPanes = paneIds
+						.map((id) => state.panes[id])
+						.filter(Boolean);
+					const closedEntry = {
+						tab: tabToRemove,
+						panes: closedPanes,
+						closedAt: Date.now(),
+					};
+					const closedTabsStack = [closedEntry, ...state.closedTabsStack].slice(
+						0,
+						20,
+					);
+
 					for (const paneId of paneIds) {
 						// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
 						const pane = state.panes[paneId];
@@ -278,6 +295,7 @@ export const useTabsStore = create<TabsStore>()(
 						panes: newPanes,
 						activeTabIds: newActiveTabIds,
 						focusedPaneIds: newFocusedPaneIds,
+						closedTabsStack,
 						tabHistoryStacks: {
 							...state.tabHistoryStacks,
 							[workspaceId]: newHistoryStack,
@@ -530,6 +548,13 @@ export const useTabsStore = create<TabsStore>()(
 					workspaceId: string,
 					options: AddFileViewerPaneOptions,
 				) => {
+					if (options.openInNewTab === undefined) {
+						options = {
+							...options,
+							openInNewTab: getFileOpenMode() === "new-tab",
+						};
+					}
+
 					const state = get();
 					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
 						workspaceId,
@@ -1197,15 +1222,20 @@ export const useTabsStore = create<TabsStore>()(
 							title,
 							...(faviconUrl !== undefined ? { faviconUrl } : {}),
 						};
-						set({
-							panes: {
-								...state.panes,
-								[paneId]: {
-									...pane,
-									name: title || "Browser",
-									browser: { ...pane.browser, history },
-								},
+						const newPanes = {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								name: title || "Browser",
+								browser: { ...pane.browser, history },
 							},
+						};
+						const tabName = deriveTabName(newPanes, pane.tabId);
+						set({
+							panes: newPanes,
+							tabs: state.tabs.map((t) =>
+								t.id === pane.tabId ? { ...t, name: tabName } : t,
+							),
 						});
 						return;
 					}
@@ -1222,20 +1252,25 @@ export const useTabsStore = create<TabsStore>()(
 						history.splice(0, history.length - 100);
 					}
 
-					set({
-						panes: {
-							...state.panes,
-							[paneId]: {
-								...pane,
-								name: title || "Browser",
-								browser: {
-									...pane.browser,
-									currentUrl: url,
-									history,
-									historyIndex: history.length - 1,
-								},
+					const newPanes = {
+						...state.panes,
+						[paneId]: {
+							...pane,
+							name: title || "Browser",
+							browser: {
+								...pane.browser,
+								currentUrl: url,
+								history,
+								historyIndex: history.length - 1,
 							},
 						},
+					};
+					const tabName = deriveTabName(newPanes, pane.tabId);
+					set({
+						panes: newPanes,
+						tabs: state.tabs.map((t) =>
+							t.id === pane.tabId ? { ...t, name: tabName } : t,
+						),
 					});
 				},
 
@@ -1254,19 +1289,24 @@ export const useTabsStore = create<TabsStore>()(
 					if (newIndex < 0 || newIndex >= history.length) return null;
 
 					const entry = history[newIndex];
-					set({
-						panes: {
-							...state.panes,
-							[paneId]: {
-								...pane,
-								name: entry.title || "Browser",
-								browser: {
-									...pane.browser,
-									currentUrl: entry.url,
-									historyIndex: newIndex,
-								},
+					const newPanes = {
+						...state.panes,
+						[paneId]: {
+							...pane,
+							name: entry.title || "Browser",
+							browser: {
+								...pane.browser,
+								currentUrl: entry.url,
+								historyIndex: newIndex,
 							},
 						},
+					};
+					const tabName = deriveTabName(newPanes, pane.tabId);
+					set({
+						panes: newPanes,
+						tabs: state.tabs.map((t) =>
+							t.id === pane.tabId ? { ...t, name: tabName } : t,
+						),
 					});
 
 					return entry.url;
@@ -1379,6 +1419,90 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 
+				// Reopen operations
+				reopenClosedTab: (workspaceId: string): boolean => {
+					const state = get();
+					// Find the most recently closed tab for this workspace
+					const idx = state.closedTabsStack.findIndex(
+						(entry) => entry.tab.workspaceId === workspaceId,
+					);
+					if (idx === -1) return false;
+
+					const entry = state.closedTabsStack[idx];
+					const newStack = [
+						...state.closedTabsStack.slice(0, idx),
+						...state.closedTabsStack.slice(idx + 1),
+					];
+
+					// Restore the tab with a new ID to avoid collisions
+					const newTabId = generateId("tab");
+					const restoredTab = {
+						...entry.tab,
+						id: newTabId,
+					};
+
+					// Restore panes with updated tabId references
+					const idMap = new Map<string, string>();
+					const restoredPanes: Record<string, (typeof entry.panes)[number]> =
+						{};
+					for (const pane of entry.panes) {
+						const newPaneId = generateId("pane");
+						idMap.set(pane.id, newPaneId);
+						restoredPanes[newPaneId] = {
+							...pane,
+							id: newPaneId,
+							tabId: newTabId,
+							status: "idle",
+						};
+					}
+
+					// Remap layout leaf IDs
+					const remapLayout = (
+						node: MosaicNode<string>,
+					): MosaicNode<string> => {
+						if (typeof node === "string") {
+							return idMap.get(node) ?? node;
+						}
+						return {
+							...node,
+							first: remapLayout(node.first),
+							second: remapLayout(node.second),
+						};
+					};
+					restoredTab.layout = remapLayout(restoredTab.layout);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					const firstPaneId = getFirstPaneId(restoredTab.layout);
+
+					set({
+						tabs: [...state.tabs, restoredTab],
+						panes: { ...state.panes, ...restoredPanes },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: newTabId,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[newTabId]: firstPaneId,
+						},
+						closedTabsStack: newStack,
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return true;
+				},
+
 				// Chat operations
 				switchChatSession: (paneId, sessionId) => {
 					const state = get();
@@ -1427,7 +1551,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 4,
+				version: 5,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -1454,7 +1578,13 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
-					// v4: browser field is optional, no migration needed
+					if (version < 5 && state.panes) {
+						for (const pane of Object.values(state.panes)) {
+							if (pane.chat) {
+								pane.chat.sessionId = null;
+							}
+						}
+					}
 					return state;
 				},
 				merge: (persistedState, currentState) => {

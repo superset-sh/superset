@@ -11,11 +11,13 @@
       - default-src 'self': Only allow resources from same origin
       - script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com: Allow scripts from same origin + WebAssembly (for xterm ImageAddon) + PostHog
       - style-src 'self' 'unsafe-inline': Allow styles from same origin + inline (needed for CSS-in-JS)
-      - connect-src 'self' ws: wss: %NEXT_PUBLIC_API_URL% %NEXT_PUBLIC_ELECTRIC_URL% %NEXT_PUBLIC_STREAMS_URL% https://*.posthog.com https://*.sentry.io sentry-ipc:: Allow WebSocket + API + Electric proxy + Streams server + PostHog + Sentry
-      - img-src 'self' data: https: Allow images from same origin + data URIs + any HTTPS source (needed for favicons from arbitrary sites in browser history)
+      - connect-src 'self' data: blob: ws: wss: %NEXT_PUBLIC_API_URL% %NEXT_PUBLIC_ELECTRIC_URL% https://*.posthog.com https://*.sentry.io sentry-ipc:: Allow WebSocket + API + Electric proxy + PostHog + Sentry + data URIs (file attachment upload via data URL) + blob URIs
+      - img-src 'self' data: blob: https: http:: Allow images from any source (needed for favicons, browser pane webview content, and file attachment previews)
       - font-src 'self': Allow fonts from same origin
+      - frame-src https: http: data: blob:: Allow webview browser pane to load any URL
+      - child-src 'self' blob:: Allow workers from same origin + blob workers
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: %NEXT_PUBLIC_API_URL% %NEXT_PUBLIC_ELECTRIC_URL% %NEXT_PUBLIC_STREAMS_URL% https://*.posthog.com https://*.sentry.io sentry-ipc:; img-src 'self' data: https:; font-src 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' data: blob: ws: wss: %NEXT_PUBLIC_API_URL% %NEXT_PUBLIC_ELECTRIC_URL% https://*.posthog.com https://*.sentry.io sentry-ipc:; img-src 'self' data: blob: https: http:; font-src 'self'; frame-src https: http: data: blob:; child-src 'self' blob:;" />
   </head>
 
   <body>

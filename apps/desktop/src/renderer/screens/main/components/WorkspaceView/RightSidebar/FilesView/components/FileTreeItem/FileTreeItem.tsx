@@ -29,6 +29,7 @@ interface FileTreeItemProps {
 	rowHeight: number;
 	indent: number;
 	worktreePath: string;
+	projectId?: string;
 	onActivate: (entry: DirectoryEntry) => void;
 	onOpenInEditor: (entry: DirectoryEntry) => void;
 	onNewFile: (parentPath: string) => void;
@@ -43,6 +44,7 @@ export function FileTreeItem({
 	rowHeight,
 	indent,
 	worktreePath,
+	projectId,
 	onActivate,
 	onOpenInEditor,
 	onNewFile,
@@ -64,6 +66,7 @@ export function FileTreeItem({
 			absolutePath: entry.path,
 			relativePath: entry.relativePath,
 			cwd: worktreePath,
+			projectId,
 		});
 
 	const fileDragProps = useFileDrag({ absolutePath: entry.path });

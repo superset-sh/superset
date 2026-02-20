@@ -15,6 +15,7 @@ import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_SHOW_PRESETS_BAR,
+	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -100,10 +101,6 @@ export function getPresetsForTrigger(
 
 export const createSettingsRouter = () => {
 	return router({
-		getLastUsedApp: publicProcedure.query(() => {
-			const row = getSettings();
-			return row.lastUsedApp ?? "cursor";
-		}),
 		getTerminalPresets: publicProcedure.query(() => {
 			const row = getSettings();
 			if (!row.terminalPresetsInitialized) {
@@ -598,6 +595,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set,
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getShowResourceMonitor: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showResourceMonitor ?? DEFAULT_SHOW_RESOURCE_MONITOR;
+		}),
+
+		setShowResourceMonitor: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, showResourceMonitor: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showResourceMonitor: input.enabled },
 					})
 					.run();
 

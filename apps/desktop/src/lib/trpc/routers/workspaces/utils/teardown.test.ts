@@ -6,12 +6,12 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { PROJECTS_DIR_NAME, SUPERSET_DIR_NAME } from "shared/constants";
 import { runTeardown } from "./teardown";
 
-const TEST_DIR = join(__dirname, ".test-tmp-teardown");
+const TEST_DIR = join(tmpdir(), `superset-test-teardown-${process.pid}`);
 const MAIN_REPO = join(TEST_DIR, "main-repo");
 const WORKTREE = join(TEST_DIR, "worktree");
 const PROJECT_ID = "test-teardown-project";

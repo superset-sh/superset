@@ -3,6 +3,9 @@ import {
 	cleanupGlobalOpenCodePlugin,
 	createClaudeWrapper,
 	createCodexWrapper,
+	createCursorAgentWrapper,
+	createCursorHookScript,
+	createCursorHooksJson,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
 } from "./agent-wrappers";
@@ -38,6 +41,9 @@ export function setupAgentHooks(): void {
 	createCodexWrapper();
 	createOpenCodePlugin();
 	createOpenCodeWrapper();
+	createCursorHookScript();
+	createCursorAgentWrapper();
+	createCursorHooksJson();
 
 	createZshWrapper();
 	createBashWrapper();

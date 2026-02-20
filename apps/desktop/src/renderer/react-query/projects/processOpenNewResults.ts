@@ -18,15 +18,12 @@ export interface CategorizedResults {
 	errors: ErrorOutcome[];
 }
 
-/** Categorizes open-project results and shows appropriate toasts. */
 export function processOpenNewResults({
 	results,
 	showSuccessToast = true,
-	showGitInitToast = false,
 }: {
 	results: MultiResults;
 	showSuccessToast?: boolean;
-	showGitInitToast?: boolean;
 }): CategorizedResults {
 	const successes = results.filter(
 		(r): r is SuccessOutcome => r.status === "success",
@@ -47,20 +44,6 @@ export function processOpenNewResults({
 			successes.length === 1
 				? "Project opened"
 				: `${successes.length} projects opened`,
-		);
-	}
-
-	if (showGitInitToast && needsGitInit.length > 0) {
-		const names = needsGitInit
-			.map((r) => r.selectedPath.split("/").pop())
-			.join(", ");
-		toast.error(
-			needsGitInit.length === 1
-				? "Folder is not a git repository"
-				: `${needsGitInit.length} folders are not git repositories`,
-			{
-				description: `${names} - use 'Open project' from the start view to initialize git.`,
-			},
 		);
 	}
 

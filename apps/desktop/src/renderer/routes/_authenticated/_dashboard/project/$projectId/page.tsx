@@ -18,9 +18,11 @@ import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { NotFound } from "renderer/routes/not-found";
 import { sanitizeSegment } from "shared/utils/branch";
+import { ExternalWorktreesBanner } from "./components/ExternalWorktreesBanner";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/project/$projectId/",
@@ -101,7 +103,12 @@ function ProjectPage() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
+	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
+		explicitBaseBranch: baseBranch,
+		workspaceBaseBranch: project?.workspaceBaseBranch,
+		defaultBranch: branchData?.defaultBranch,
+		branches: branchData?.branches,
+	});
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -129,7 +136,7 @@ function ProjectPage() {
 				projectId,
 				name: workspaceName,
 				branchName: generatedBranchName || undefined,
-				baseBranch: effectiveBaseBranch || undefined,
+				baseBranch: baseBranch || undefined,
 			});
 
 			toast.success("Workspace created", {
@@ -148,43 +155,26 @@ function ProjectPage() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
-			<div className="flex-1 flex overflow-y-auto">
-				{/* Main content */}
-				<div className="flex-1 flex items-center justify-center">
-					{/* biome-ignore lint/a11y/noStaticElementInteractions: Form container handles Enter key for submission */}
-					<div className="w-full max-w-xl mx-6" onKeyDown={handleKeyDown}>
-						{/* Project context */}
-						<div className="flex items-center gap-1.5 mb-8">
-							<span className="text-xs text-muted-foreground/70">
-								{project.name}
-							</span>
-							<span className="text-muted-foreground/30">·</span>
-							<span className="text-xs text-muted-foreground/50 font-mono">
-								{branchData?.defaultBranch ?? "main"}
-							</span>
-						</div>
+			<AnimatePresence>
+				<ExternalWorktreesBanner projectId={projectId} />
+			</AnimatePresence>
 
-						{/* Headline */}
+			<div className="flex-1 flex overflow-y-auto">
+				<div className="flex-1 flex items-center justify-center">
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: onKeyDown for Enter-to-submit */}
+					<div className="w-full max-w-md mx-6" onKeyDown={handleKeyDown}>
 						<h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
-							What are you building?
+							Create your first workspace
 						</h1>
 
-						{/* Subtext */}
 						<p className="text-sm text-muted-foreground leading-relaxed mb-8">
 							Each workspace is an isolated copy of your codebase.
 							<br />
 							Work on multiple tasks without conflicts.
 						</p>
 
-						{/* Form */}
-						<div className="space-y-4 max-w-md">
+						<div className="space-y-4">
 							<div className="space-y-2">
-								<label
-									htmlFor="task-title"
-									className="text-xs font-medium text-muted-foreground"
-								>
-									Name your task
-								</label>
 								<Input
 									id="task-title"
 									ref={titleInputRef}

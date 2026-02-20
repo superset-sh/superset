@@ -2,7 +2,7 @@ import puppeteer, { type Browser, type Page } from "puppeteer-core";
 import { ConsoleCapture } from "../console-capture/index.js";
 import { FocusLock } from "../focus-lock/index.js";
 
-const CDP_PORT = Number(process.env.DESKTOP_AUTOMATION_PORT) || 9223;
+const CDP_PORT = Number(process.env.DESKTOP_AUTOMATION_PORT) || 41729;
 
 /**
  * Manages a CDP connection to the Electron renderer via puppeteer-core.
@@ -34,13 +34,18 @@ export class ConnectionManager {
 		});
 		const pages = await this.browser.pages();
 
-		// Find the actual app page, skipping chrome-extension:// background pages
-		const appPage = pages.find(
-			(p) => !p.url().startsWith("chrome-extension://"),
-		);
+		// Find the main Electron renderer page.
+		// With browser pane <webview> tags, CDP exposes multiple "page"
+		// targets. The renderer is the one loaded from Vite (localhost) in dev
+		// or from a local file in production. Browser pane webviews will have
+		// arbitrary user URLs (or about:blank).
+		const appPage = pages.find((p) => {
+			const url = p.url();
+			return url.startsWith("http://localhost:") || url.startsWith("file://");
+		});
 		if (!appPage) {
 			throw new Error(
-				`[desktop-mcp] No app pages found via CDP (found ${pages.length} pages, all extensions)`,
+				`[desktop-mcp] No app pages found via CDP (found ${pages.length} pages: ${pages.map((p) => p.url()).join(", ")})`,
 			);
 		}
 		this.page = appPage;

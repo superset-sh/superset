@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuCopy } from "react-icons/lu";
+import antigravityIcon from "renderer/assets/app-icons/antigravity.svg";
 import appcodeIcon from "renderer/assets/app-icons/appcode.svg";
 import clionIcon from "renderer/assets/app-icons/clion.svg";
 import cursorIcon from "renderer/assets/app-icons/cursor.svg";
@@ -52,6 +53,7 @@ interface AppOption {
 export const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
+	{ id: "antigravity", label: "Antigravity", icon: antigravityIcon },
 	{ id: "zed", label: "Zed", icon: zedIcon },
 	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
 	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
@@ -106,12 +108,15 @@ export interface OpenInButtonProps {
 	label?: string;
 	/** Show keyboard shortcut hints */
 	showShortcuts?: boolean;
+	/** Project ID for per-project default app */
+	projectId?: string;
 }
 
 export function OpenInButton({
 	path,
 	label,
 	showShortcuts = false,
+	projectId,
 }: OpenInButtonProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
@@ -121,19 +126,26 @@ export function OpenInButton({
 	const showCopyPathShortcut =
 		showShortcuts && copyPathShortcut !== "Unassigned";
 
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery();
+	const { data: defaultApp = "cursor" } =
+		electronTrpc.projects.getDefaultApp.useQuery(
+			{ projectId: projectId as string },
+			{ enabled: !!projectId },
+		);
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
-		onSuccess: () => utils.settings.getLastUsedApp.invalidate(),
+		onSuccess: () => {
+			if (projectId) {
+				utils.projects.getDefaultApp.invalidate({ projectId });
+			}
+		},
 	});
 	const copyPath = electronTrpc.external.copyPath.useMutation();
 
-	const currentApp = getAppOption(lastUsedApp);
+	const currentApp = getAppOption(defaultApp);
 
 	const handleOpenIn = (app: ExternalApp) => {
 		if (!path) return;
-		openInApp.mutate({ path, app });
+		openInApp.mutate({ path, app, projectId });
 		setIsOpen(false);
 	};
 
@@ -145,7 +157,7 @@ export function OpenInButton({
 
 	const handleOpenLastUsed = () => {
 		if (!path) return;
-		openInApp.mutate({ path, app: lastUsedApp });
+		openInApp.mutate({ path, app: defaultApp, projectId });
 	};
 
 	return (
@@ -202,7 +214,7 @@ export function OpenInButton({
 								/>
 								<span>{app.label}</span>
 							</div>
-							{showOpenInShortcut && app.id === lastUsedApp && (
+							{showOpenInShortcut && app.id === defaultApp && (
 								<span className="text-xs text-muted-foreground">
 									{openInShortcut}
 								</span>
@@ -233,7 +245,7 @@ export function OpenInButton({
 										/>
 										<span>{app.label}</span>
 									</div>
-									{showShortcuts && app.id === lastUsedApp && (
+									{showShortcuts && app.id === defaultApp && (
 										<span className="text-xs text-muted-foreground">⌘O</span>
 									)}
 								</DropdownMenuItem>
@@ -264,7 +276,7 @@ export function OpenInButton({
 										/>
 										<span>{app.label}</span>
 									</div>
-									{showOpenInShortcut && app.id === lastUsedApp && (
+									{showOpenInShortcut && app.id === defaultApp && (
 										<span className="text-xs text-muted-foreground">
 											{openInShortcut}
 										</span>

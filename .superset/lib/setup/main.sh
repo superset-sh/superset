@@ -36,22 +36,27 @@ setup_main() {
     step_failed "Seed local DB"
   fi
 
-  # Step 5: Setup Neon branch
+  # Step 5: Seed auth token into superset-dev-data/
+  if ! step_seed_auth_token; then
+    step_failed "Seed auth token"
+  fi
+
+  # Step 6: Setup Neon branch
   if ! step_setup_neon_branch; then
     step_failed "Setup Neon branch"
   fi
 
-  # Step 6: Allocate port base (file-backed)
+  # Step 7: Allocate port base (file-backed)
   if ! allocate_port_base; then
     step_failed "Allocate port base"
   fi
 
-  # Step 7: Start Electric SQL
+  # Step 8: Start Electric SQL
   if ! step_start_electric; then
     step_failed "Start Electric SQL"
   fi
 
-  # Step 8: Write .env file
+  # Step 9: Write .env file
   if ! step_write_env; then
     step_failed "Write .env file"
   fi

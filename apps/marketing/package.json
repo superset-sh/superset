@@ -51,7 +51,7 @@
 		"@types/three": "^0.181.0",
 		"@types/ua-parser-js": "^0.7.39",
 		"babel-plugin-react-compiler": "^1.0.0",
-		"dotenv": "^17.2.3",
+		"dotenv": "^17.3.1",
 		"tailwindcss": "^4.1.18",
 		"typescript": "^5.9.3"
 	}

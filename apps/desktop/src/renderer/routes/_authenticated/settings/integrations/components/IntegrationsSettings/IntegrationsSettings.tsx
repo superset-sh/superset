@@ -46,11 +46,13 @@ export function IntegrationsSettings({
 	const collections = useCollections();
 	const { gateFeature } = usePaywall();
 
-	const { data: integrations, isLoading: isLoadingIntegrations } = useLiveQuery(
+	const { data: integrations } = useLiveQuery(
 		(q) =>
 			q
 				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => integrationConnections),
+				.select(({ integrationConnections }) => ({
+					...integrationConnections,
+				})),
 		[collections],
 	);
 
@@ -102,8 +104,6 @@ export function IntegrationsSettings({
 	const isSlackConnected = !!slackConnection;
 	const isGithubConnected =
 		!!githubInstallation && !githubInstallation.suspended;
-	const isLoading = isLoadingIntegrations || isLoadingGithub;
-
 	const showSlack =
 		hasSlackAccess &&
 		isItemVisible(SETTING_ITEM_ID.INTEGRATIONS_SLACK, visibleItems);
@@ -145,7 +145,6 @@ export function IntegrationsSettings({
 						icon={<SiLinear className="size-6" />}
 						isConnected={isLinearConnected}
 						connectedOrgName={linearConnection?.externalOrgName}
-						isLoading={isLoading}
 						onManage={() =>
 							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
 								handleOpenWeb("/integrations/linear"),
@@ -161,7 +160,7 @@ export function IntegrationsSettings({
 						icon={<FaGithub className="size-6" />}
 						isConnected={isGithubConnected}
 						connectedOrgName={githubInstallation?.accountLogin}
-						isLoading={isLoading}
+						isLoading={isLoadingGithub}
 						onManage={() =>
 							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
 								handleOpenWeb("/integrations/github"),
@@ -177,7 +176,6 @@ export function IntegrationsSettings({
 						icon={<FaSlack className="size-6" />}
 						isConnected={isSlackConnected}
 						connectedOrgName={slackConnection?.externalOrgName}
-						isLoading={isLoading}
 						onManage={() =>
 							gateFeature(GATED_FEATURES.INTEGRATIONS, () =>
 								handleOpenWeb("/integrations/slack"),
@@ -209,7 +207,7 @@ interface IntegrationCardProps {
 	icon: React.ReactNode;
 	isConnected: boolean;
 	connectedOrgName?: string | null;
-	isLoading: boolean;
+	isLoading?: boolean;
 	onManage: () => void;
 	comingSoon?: boolean;
 }

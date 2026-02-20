@@ -51,8 +51,6 @@ export const POSTHOG_COOKIE_NAME = "superset";
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
-	/** Gates access to billing features. */
-	BILLING_ENABLED: "billing-enabled",
 	/** Gates access to GitHub integration (currently buggy, internal only). */
 	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
 	/** Gates access to AI chat (@superset.sh internal only). */

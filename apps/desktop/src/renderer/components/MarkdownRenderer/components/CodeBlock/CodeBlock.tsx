@@ -1,3 +1,4 @@
+import { mermaid } from "@streamdown/mermaid";
 import type { ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
@@ -5,6 +6,9 @@ import {
 	oneLight,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "renderer/stores";
+import { Streamdown } from "streamdown";
+
+const mermaidPlugins = { mermaid };
 
 interface CodeNode {
 	position?: {
@@ -36,6 +40,18 @@ export function CodeBlock({ children, className, node }: CodeBlockProps) {
 			<code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
 				{children}
 			</code>
+		);
+	}
+
+	if (language === "mermaid") {
+		return (
+			<Streamdown
+				mode="static"
+				plugins={mermaidPlugins}
+				mermaid={{ config: { theme: isDark ? "dark" : "default" } }}
+			>
+				{`\`\`\`mermaid\n${codeString}\n\`\`\``}
+			</Streamdown>
 		);
 	}
 
