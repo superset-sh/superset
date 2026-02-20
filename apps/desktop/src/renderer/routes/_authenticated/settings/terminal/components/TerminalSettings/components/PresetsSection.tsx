@@ -77,6 +77,15 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 			commands: ["opencode"],
 		},
 	},
+	{
+		name: "copilot",
+		preset: {
+			name: "copilot",
+			description: "GitHub Copilot: AI-powered coding in your terminal",
+			cwd: "",
+			commands: ["copilot"],
+		},
+	},
 ];
 
 interface PresetsSectionProps {

@@ -51,6 +51,9 @@ Superset works with any CLI-based coding agent, including:
 |:------|:-------|
 | [Claude Code](https://github.com/anthropics/claude-code) | Fully supported |
 | [OpenAI Codex CLI](https://github.com/openai/codex) | Fully supported |
+| [Cursor Agent](https://docs.cursor.com/agent) | Fully supported |
+| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
+| [GitHub Copilot](https://github.com/features/copilot) | Fully supported |
 | [OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
 | Any CLI agent | Will work |
 

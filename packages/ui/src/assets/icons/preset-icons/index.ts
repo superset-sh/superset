@@ -1,6 +1,8 @@
 import claudeIcon from "./claude.svg";
 import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
+import copilotIcon from "./copilot.svg";
+import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
 import geminiIcon from "./gemini.svg";
 import opencodeIcon from "./opencode.svg";
@@ -14,6 +16,7 @@ export interface PresetIconSet {
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
+	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
@@ -33,6 +36,8 @@ export {
 	claudeIcon,
 	codexIcon,
 	codexWhiteIcon,
+	copilotIcon,
+	copilotWhiteIcon,
 	cursorAgentIcon,
 	geminiIcon,
 	opencodeIcon,

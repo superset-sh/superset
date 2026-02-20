@@ -424,3 +424,40 @@ export function createGeminiSettingsJson(): void {
 	fs.writeFileSync(globalPath, content, { mode: 0o644 });
 	console.log("[agent-setup] Created Gemini settings.json");
 }
+
+// --- GitHub Copilot CLI support ---
+
+export const COPILOT_HOOK_SCRIPT_NAME = "copilot-hook.sh";
+
+const COPILOT_HOOK_SIGNATURE = "# Superset copilot hook";
+const COPILOT_HOOK_VERSION = "v1";
+export const COPILOT_HOOK_MARKER = `${COPILOT_HOOK_SIGNATURE} ${COPILOT_HOOK_VERSION}`;
+
+const COPILOT_HOOK_TEMPLATE_PATH = path.join(
+	__dirname,
+	"templates",
+	"copilot-hook.template.sh",
+);
+
+export function getCopilotHookScriptPath(): string {
+	return path.join(HOOKS_DIR, COPILOT_HOOK_SCRIPT_NAME);
+}
+
+export function getCopilotHookScriptContent(): string {
+	const template = fs.readFileSync(COPILOT_HOOK_TEMPLATE_PATH, "utf-8");
+	return template
+		.replace("{{MARKER}}", COPILOT_HOOK_MARKER)
+		.replace(/\{\{DEFAULT_PORT\}\}/g, String(env.DESKTOP_NOTIFICATIONS_PORT));
+}
+
+export function createCopilotHookScript(): void {
+	const scriptPath = getCopilotHookScriptPath();
+	const content = getCopilotHookScriptContent();
+	fs.writeFileSync(scriptPath, content, { mode: 0o755 });
+	console.log("[agent-setup] Created Copilot hook script");
+}
+
+export function createCopilotWrapper(): void {
+	const script = buildWrapperScript("copilot", `exec "$REAL_BIN" "$@"`);
+	createWrapper("copilot", script);
+}

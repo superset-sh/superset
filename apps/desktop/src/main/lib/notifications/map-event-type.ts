@@ -10,17 +10,21 @@ export function mapEventType(
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||
 		eventType === "BeforeAgent" ||
-		eventType === "AfterTool"
+		eventType === "AfterTool" ||
+		eventType === "sessionStart" ||
+		eventType === "userPromptSubmitted" ||
+		eventType === "postToolUse"
 	) {
 		return "Start";
 	}
-	if (eventType === "PermissionRequest") {
+	if (eventType === "PermissionRequest" || eventType === "preToolUse") {
 		return "PermissionRequest";
 	}
 	if (
 		eventType === "Stop" ||
 		eventType === "agent-turn-complete" ||
-		eventType === "AfterAgent"
+		eventType === "AfterAgent" ||
+		eventType === "sessionEnd"
 	) {
 		return "Stop";
 	}
