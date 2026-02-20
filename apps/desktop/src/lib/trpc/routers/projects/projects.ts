@@ -76,7 +76,6 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 		await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
 	} catch (err) {
 		const errorMessage = err instanceof Error ? err.message : String(err);
-		// Check for common git config issues
 		if (
 			errorMessage.includes("empty ident") ||
 			errorMessage.includes("user.email") ||
@@ -207,8 +206,7 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 	}
 }
 
-// Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
-// Allows most valid Git repo names while avoiding path traversal characters
+// Callers must additionally reject dot-only names (".", "..") to prevent path traversal
 const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
 const ALLOWED_URL_PROTOCOLS = new Set(["http:", "https:", "ssh:", "git:"]);
 const SSH_GIT_URL_REGEX = /^[\w.-]+@[\w.-]+:[\w./-]+$/;
