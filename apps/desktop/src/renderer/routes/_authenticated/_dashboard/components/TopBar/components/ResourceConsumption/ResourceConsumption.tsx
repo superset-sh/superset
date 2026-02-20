@@ -21,6 +21,10 @@ function formatCpu(percent: number): string {
 	return `${percent.toFixed(1)}%`;
 }
 
+const METRIC_COLS = "flex items-center shrink-0 tabular-nums";
+const CPU_COL = "w-12 text-right";
+const MEM_COL = "w-16 text-right";
+
 export function ResourceConsumption() {
 	const [open, setOpen] = useState(false);
 	const [collapsedWorkspaces, setCollapsedWorkspaces] = useState<Set<string>>(
@@ -87,7 +91,7 @@ export function ResourceConsumption() {
 				>
 					<HiOutlineCpuChip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 					{snapshot && (
-						<span className="text-xs text-muted-foreground font-medium">
+						<span className="text-xs text-muted-foreground font-medium tabular-nums">
 							{formatMemory(snapshot.totalMemory)}
 						</span>
 					)}
@@ -125,26 +129,44 @@ export function ResourceConsumption() {
 					{snapshot && (
 						<div className="border-b border-border/50">
 							<div className="px-3 py-2 flex items-center justify-between">
-								<span className="text-xs font-medium">Superset App</span>
-								<div className="flex items-center gap-3 text-xs text-muted-foreground">
-									<span>{formatCpu(snapshot.app.cpu)}</span>
-									<span>{formatMemory(snapshot.app.memory)}</span>
+								<span className="text-xs font-medium min-w-0 truncate">
+									Superset App
+								</span>
+								<div className={`${METRIC_COLS} text-xs text-muted-foreground`}>
+									<span className={CPU_COL}>{formatCpu(snapshot.app.cpu)}</span>
+									<span className={MEM_COL}>
+										{formatMemory(snapshot.app.memory)}
+									</span>
 								</div>
 							</div>
 							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
-								<span className="text-[11px] text-muted-foreground">Main</span>
-								<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-									<span>{formatCpu(snapshot.app.main.cpu)}</span>
-									<span>{formatMemory(snapshot.app.main.memory)}</span>
+								<span className="text-[11px] text-muted-foreground min-w-0 truncate">
+									Main
+								</span>
+								<div
+									className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
+								>
+									<span className={CPU_COL}>
+										{formatCpu(snapshot.app.main.cpu)}
+									</span>
+									<span className={MEM_COL}>
+										{formatMemory(snapshot.app.main.memory)}
+									</span>
 								</div>
 							</div>
 							<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
-								<span className="text-[11px] text-muted-foreground">
+								<span className="text-[11px] text-muted-foreground min-w-0 truncate">
 									Renderer
 								</span>
-								<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-									<span>{formatCpu(snapshot.app.renderer.cpu)}</span>
-									<span>{formatMemory(snapshot.app.renderer.memory)}</span>
+								<div
+									className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
+								>
+									<span className={CPU_COL}>
+										{formatCpu(snapshot.app.renderer.cpu)}
+									</span>
+									<span className={MEM_COL}>
+										{formatMemory(snapshot.app.renderer.memory)}
+									</span>
 								</div>
 							</div>
 						</div>
@@ -177,14 +199,16 @@ export function ResourceConsumption() {
 									<button
 										type="button"
 										onClick={() => navigateToWorkspace(ws.workspaceId)}
-										className={`flex-1 py-2 pr-3 flex items-center justify-between hover:bg-muted/50 transition-colors ${ws.sessions.length > 0 ? "pl-1" : "pl-3"}`}
+										className={`flex-1 min-w-0 py-2 pr-3 flex items-center justify-between hover:bg-muted/50 transition-colors ${ws.sessions.length > 0 ? "pl-1" : "pl-3"}`}
 									>
-										<span className="text-xs font-medium truncate max-w-40">
+										<span className="text-xs font-medium truncate min-w-0 mr-2">
 											{ws.workspaceName}
 										</span>
-										<div className="flex items-center gap-3 text-xs text-muted-foreground">
-											<span>{formatCpu(ws.cpu)}</span>
-											<span>{formatMemory(ws.memory)}</span>
+										<div
+											className={`${METRIC_COLS} text-xs text-muted-foreground`}
+										>
+											<span className={CPU_COL}>{formatCpu(ws.cpu)}</span>
+											<span className={MEM_COL}>{formatMemory(ws.memory)}</span>
 										</div>
 									</button>
 								</div>
@@ -199,12 +223,18 @@ export function ResourceConsumption() {
 											}
 											className="w-full px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30 hover:bg-muted/60 transition-colors"
 										>
-											<span className="text-[11px] text-muted-foreground truncate max-w-32">
+											<span className="text-[11px] text-muted-foreground truncate min-w-0 mr-2">
 												{getPaneName(session.paneId)}
 											</span>
-											<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-												<span>{formatCpu(session.cpu)}</span>
-												<span>{formatMemory(session.memory)}</span>
+											<div
+												className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
+											>
+												<span className={CPU_COL}>
+													{formatCpu(session.cpu)}
+												</span>
+												<span className={MEM_COL}>
+													{formatMemory(session.memory)}
+												</span>
 											</div>
 										</button>
 									))}
@@ -233,7 +263,7 @@ function MetricBadge({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="flex items-center gap-1.5">
 			<span className="text-xs text-muted-foreground">{label}</span>
-			<span className="text-sm font-medium">{value}</span>
+			<span className="text-sm font-medium tabular-nums">{value}</span>
 		</div>
 	);
 }
