@@ -48,6 +48,7 @@ export function PathSelector({ value, onChange, disabled }: PathSelectorProps) {
 					onClick={handleBrowse}
 					disabled={disabled || selectDirectory.isPending}
 					className="shrink-0"
+					aria-label="Browse for directory"
 				>
 					<LuFolderOpen className="size-4" />
 				</Button>

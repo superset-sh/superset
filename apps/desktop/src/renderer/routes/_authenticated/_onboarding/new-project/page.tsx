@@ -42,6 +42,7 @@ function NewProjectPage() {
 						<button
 							type="button"
 							onClick={() => navigate({ to: "/", replace: true })}
+							aria-label="Back to start"
 							className="p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
 						>
 							<LuArrowLeft className="size-4" />

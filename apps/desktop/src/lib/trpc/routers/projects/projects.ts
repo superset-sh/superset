@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { access, mkdir } from "node:fs/promises";
+import { access, mkdir, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
 	BRANCH_PREFIX_MODES,
@@ -95,11 +95,6 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 	return { defaultBranch };
 }
 
-/**
- * Creates or updates a project record in the database.
- * If a project with the same mainRepoPath exists, updates lastOpenedAt.
- * Otherwise, creates a new project.
- */
 function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	const name = basename(mainRepoPath);
 
@@ -132,22 +127,15 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	return project;
 }
 
-/**
- * Ensures a project has a main (branch) workspace.
- * If one doesn't exist, creates it automatically.
- * This is called after opening/creating a project to provide a default workspace.
- */
 async function ensureMainWorkspace(project: Project): Promise<void> {
 	const existingBranchWorkspace = getBranchWorkspace(project.id);
 
-	// If branch workspace already exists, just touch it and return
 	if (existingBranchWorkspace) {
 		touchWorkspace(existingBranchWorkspace.id);
 		setLastActiveWorkspace(existingBranchWorkspace.id);
 		return;
 	}
 
-	// Get current branch from main repo
 	const branch = await getCurrentBranch(project.mainRepoPath);
 	if (!branch) {
 		console.warn(
@@ -156,8 +144,7 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 		return;
 	}
 
-	// Insert new branch workspace with conflict handling for race conditions
-	// The unique partial index (projectId WHERE type='branch') prevents duplicates
+	// Unique partial index (projectId WHERE type='branch') prevents duplicates
 	const insertResult = localDb
 		.insert(workspaces)
 		.values({
@@ -173,7 +160,6 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 
 	const wasExisting = insertResult.length === 0;
 
-	// Only shift existing workspaces if we successfully inserted
 	if (!wasExisting) {
 		const newWorkspaceId = insertResult[0].id;
 		const projectWorkspaces = localDb
@@ -197,7 +183,6 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 		}
 	}
 
-	// Get the workspace (either newly created or existing from race condition)
 	const workspace = insertResult[0] ?? getBranchWorkspace(project.id);
 
 	if (!workspace) {
@@ -228,39 +213,28 @@ const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
 const ALLOWED_URL_PROTOCOLS = new Set(["http:", "https:", "ssh:", "git:"]);
 const SSH_GIT_URL_REGEX = /^[\w.-]+@[\w.-]+:[\w./-]+$/;
 
-/**
- * Extracts and validates a repository name from a git URL.
- * Handles HTTP/HTTPS URLs, SSH-style URLs (git@host:user/repo), and edge cases.
- */
 function extractRepoName(urlInput: string): string | null {
-	// Normalize: trim whitespace and strip trailing slashes
 	let normalized = urlInput.trim().replace(/\/+$/, "");
 
 	if (!normalized) return null;
 
 	let repoSegment: string | undefined;
 
-	// Try parsing as HTTP/HTTPS URL first
 	try {
 		const parsed = new URL(normalized);
 		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-			// Get pathname and strip query/hash (URL constructor handles this)
 			const pathname = parsed.pathname;
 			repoSegment = pathname.split("/").filter(Boolean).pop();
 		}
 	} catch {
-		// Not a valid URL, try SSH-style parsing
+		// Not a standard URL — fall through to SSH-style parsing
 	}
 
-	// Fallback to SSH-style parsing (git@github.com:user/repo.git)
 	if (!repoSegment) {
-		// Handle SSH format: git@host:path or just path segments
 		const colonIndex = normalized.indexOf(":");
 		if (colonIndex !== -1 && !normalized.includes("://")) {
-			// SSH-style: take everything after the colon
 			normalized = normalized.slice(colonIndex + 1);
 		}
-		// Split by '/' and get the last segment
 		repoSegment = normalized.split("/").filter(Boolean).pop();
 	}
 
@@ -271,13 +245,10 @@ function extractRepoName(urlInput: string): string | null {
 
 	try {
 		repoSegment = decodeURIComponent(repoSegment);
-	} catch {
-		// Invalid encoding, continue with raw value
-	}
+	} catch {}
 
 	repoSegment = repoSegment.trim();
 
-	// Validate against safe filename regex
 	if (!repoSegment || !SAFE_REPO_NAME_REGEX.test(repoSegment)) {
 		return null;
 	}
@@ -373,14 +344,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					const git = simpleGit(project.mainRepoPath);
 
-					// Check if origin remote exists
 					let hasOrigin = false;
 					try {
 						const remotes = await git.getRemotes();
 						hasOrigin = remotes.some((r) => r.name === "origin");
-					} catch {
-						// If we can't get remotes, assume no origin
-					}
+					} catch {}
 
 					const branchSummary = await git.branch(["-a"]);
 
@@ -397,13 +365,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}
 					}
 
-					// Get branch dates for sorting - fetch from both local and remote
 					const branchMap = new Map<
 						string,
 						{ lastCommitDate: number; isLocal: boolean; isRemote: boolean }
 					>();
 
-					// First, get remote branch dates (if origin exists)
 					if (hasOrigin) {
 						try {
 							const remoteBranchInfo = await git.raw([
@@ -436,7 +402,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								});
 							}
 						} catch {
-							// Fallback for remote branches
 							for (const name of remoteBranchSet) {
 								branchMap.set(name, {
 									lastCommitDate: 0,
@@ -447,7 +412,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}
 					}
 
-					// Then, add local-only branches
 					try {
 						const localBranchInfo = await git.raw([
 							"for-each-ref",
@@ -817,10 +781,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					name: z
 						.string()
 						.min(1)
-						.refine((val) => SAFE_REPO_NAME_REGEX.test(val), {
-							message:
-								"Name can only contain letters, numbers, dots, underscores, hyphens, and spaces",
-						}),
+						.refine(
+							(val) => SAFE_REPO_NAME_REGEX.test(val) && !/^\.+$/.test(val),
+							{
+								message:
+									"Name can only contain letters, numbers, dots, underscores, hyphens, and spaces",
+							},
+						),
 					parentDir: z.string().min(1),
 				}),
 			)
@@ -838,7 +805,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					await mkdir(repoPath, { recursive: true });
 
-					const { defaultBranch } = await initGitRepo(repoPath);
+					let defaultBranch: string;
+					try {
+						({ defaultBranch } = await initGitRepo(repoPath));
+					} catch (gitErr) {
+						await rm(repoPath, { recursive: true, force: true });
+						throw gitErr;
+					}
 					const project = upsertProject(repoPath, defaultBranch);
 					await ensureMainWorkspace(project);
 

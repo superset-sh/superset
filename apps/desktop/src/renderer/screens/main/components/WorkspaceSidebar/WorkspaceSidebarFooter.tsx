@@ -74,10 +74,7 @@ export function WorkspaceSidebarFooter({
 							<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 							Open project
 						</DropdownMenuItem>
-						<DropdownMenuItem
-							onClick={() => navigate({ to: "/new-project" })}
-							disabled={isLoading}
-						>
+						<DropdownMenuItem onClick={() => navigate({ to: "/new-project" })}>
 							<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
 							New project
 						</DropdownMenuItem>
@@ -106,10 +103,7 @@ export function WorkspaceSidebarFooter({
 						<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 						Open project
 					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={() => navigate({ to: "/new-project" })}
-						disabled={isLoading}
-					>
+					<DropdownMenuItem onClick={() => navigate({ to: "/new-project" })}>
 						<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
 						New project
 					</DropdownMenuItem>

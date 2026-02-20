@@ -17,8 +17,13 @@ export function useProjectCreationHandler(onError: (error: string) => void) {
 		if (result.canceled) return;
 		if (result.success && result.project) {
 			utils.projects.getRecents.invalidate();
-			createWorkspace.mutate({ projectId: result.project.id });
-			resetState?.();
+			createWorkspace.mutate(
+				{ projectId: result.project.id },
+				{
+					onSuccess: () => resetState?.(),
+					onError: (err) => onError(err.message || "Failed to open project"),
+				},
+			);
 		} else if (!result.success && result.error) {
 			onError(result.error);
 		}
