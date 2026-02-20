@@ -2,16 +2,14 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
+import { LuFolderOpen, LuPlus, LuX } from "react-icons/lu";
 import { useOpenProject } from "renderer/react-query/projects";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
-import { CloneRepoDialog } from "./CloneRepoDialog";
 
 export function StartView() {
 	const navigate = useNavigate();
 	const { openNew, openFromPath, isPending } = useOpenProject();
 	const [error, setError] = useState<string | null>(null);
-	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [isDragOver, setIsDragOver] = useState(false);
 
 	useEffect(() => {
@@ -121,10 +119,6 @@ export function StartView() {
 		[isPending, openFromPath, navigate],
 	);
 
-	const handleCloneError = (errorMessage: string) => {
-		setError(errorMessage);
-	};
-
 	return (
 		<div className="flex flex-col h-full w-full relative overflow-hidden bg-background">
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external files */}
@@ -159,7 +153,7 @@ export function StartView() {
 							>
 								{isDragOver ? (
 									<div className="flex flex-col items-center gap-3">
-										<LuFolderGit className="w-10 h-10 text-primary" />
+										<LuFolderOpen className="w-10 h-10 text-primary" />
 										<span className="text-lg font-medium text-foreground">
 											Drop git project
 										</span>
@@ -187,16 +181,17 @@ export function StartView() {
 							)}
 						>
 							<span className="text-sm text-muted-foreground">
-								Don't have a local repo?
+								Or start a new project
 							</span>
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => setIsCloneDialogOpen(true)}
+								onClick={() => navigate({ to: "/new-project", replace: true })}
 								disabled={isPending}
 								className="text-sm"
 							>
-								Clone Repository
+								<LuPlus className="size-3.5" />
+								New Project
 							</Button>
 						</div>
 					</div>
@@ -216,12 +211,6 @@ export function StartView() {
 					)}
 				</div>
 			</div>
-
-			<CloneRepoDialog
-				isOpen={isCloneDialogOpen}
-				onClose={() => setIsCloneDialogOpen(false)}
-				onError={handleCloneError}
-			/>
 		</div>
 	);
 }

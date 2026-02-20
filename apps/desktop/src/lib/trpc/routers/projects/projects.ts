@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { access } from "node:fs/promises";
+import { access, mkdir, rm } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
 	BRANCH_PREFIX_MODES,
@@ -62,26 +62,28 @@ type OpenNewMultiResult =
 	| { canceled: false; multi: true; results: FolderOutcome[] }
 	| OpenNewError;
 
-/**
- * Initializes a git repository in the given path with an initial commit.
- * Reused by openNew, openFromPath, and initGitAndOpen.
- */
-async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
+async function initGitRepo(
+	path: string,
+	options?: { stageAll?: boolean; commitMessage?: string },
+): Promise<{ defaultBranch: string }> {
 	const git = simpleGit(path);
 
-	// Initialize git repository with 'main' as default branch
-	// Try with --initial-branch=main (Git 2.28+), fall back to plain init
 	try {
 		await git.init(["--initial-branch=main"]);
 	} catch (err) {
-		// Likely an older Git version that doesn't support --initial-branch
 		console.warn("Git init with --initial-branch failed, using fallback:", err);
 		await git.init();
 	}
 
-	// Create initial commit so we have a valid branch ref
+	const message = options?.commitMessage ?? "Initial commit";
+
 	try {
-		await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
+		if (options?.stageAll) {
+			await git.add(".");
+			await git.commit(message);
+		} else {
+			await git.raw(["commit", "--allow-empty", "-m", message]);
+		}
 	} catch (err) {
 		const errorMessage = err instanceof Error ? err.message : String(err);
 		// Check for common git config issues
@@ -333,6 +335,28 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				.orderBy(desc(projects.lastOpenedAt))
 				.all();
 		}),
+
+		selectDirectory: publicProcedure
+			.input(
+				z.object({
+					defaultPath: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const window = getWindow();
+				if (!window) {
+					return { canceled: true as const, path: null };
+				}
+				const result = await dialog.showOpenDialog(window, {
+					properties: ["openDirectory", "createDirectory"],
+					title: "Select Directory",
+					defaultPath: input.defaultPath,
+				});
+				if (result.canceled || result.filePaths.length === 0) {
+					return { canceled: true as const, path: null };
+				}
+				return { canceled: false as const, path: result.filePaths[0] };
+			}),
 
 		getBranches: publicProcedure
 			.input(z.object({ projectId: z.string() }))
@@ -793,6 +817,142 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						canceled: false as const,
 						success: false as const,
 						error: `Failed to clone repository: ${errorMessage}`,
+					};
+				}
+			}),
+
+		createEmptyRepo: publicProcedure
+			.input(
+				z.object({
+					name: z
+						.string()
+						.min(1)
+						.refine((val) => SAFE_REPO_NAME_REGEX.test(val), {
+							message:
+								"Name can only contain letters, numbers, dots, underscores, hyphens, and spaces",
+						}),
+					parentDir: z.string().min(1),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					const repoPath = join(input.parentDir, input.name);
+
+					if (existsSync(repoPath)) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: `A folder named "${input.name}" already exists at this location.`,
+						};
+					}
+
+					await mkdir(repoPath, { recursive: true });
+
+					const { defaultBranch } = await initGitRepo(repoPath);
+					const project = upsertProject(repoPath, defaultBranch);
+					await ensureMainWorkspace(project);
+
+					track("project_opened", {
+						project_id: project.id,
+						method: "create_empty",
+					});
+
+					return {
+						canceled: false as const,
+						success: true as const,
+						project,
+					};
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					return {
+						canceled: false as const,
+						success: false as const,
+						error: `Failed to create repository: ${errorMessage}`,
+					};
+				}
+			}),
+
+		createFromTemplate: publicProcedure
+			.input(
+				z.object({
+					templateUrl: z
+						.string()
+						.min(1)
+						.refine(
+							(val) => {
+								try {
+									const parsed = new URL(val);
+									return ALLOWED_URL_PROTOCOLS.has(parsed.protocol);
+								} catch {
+									return SSH_GIT_URL_REGEX.test(val);
+								}
+							},
+							{ message: "Must be a valid Git URL (HTTPS or SSH)" },
+						),
+					name: z
+						.string()
+						.trim()
+						.optional()
+						.transform((v) => (v && v.length > 0 ? v : undefined)),
+					parentDir: z.string().min(1),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					const repoName = input.name ?? extractRepoName(input.templateUrl);
+					if (!repoName) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error:
+								"Could not determine project name from template URL. Please provide a name.",
+						};
+					}
+
+					const repoPath = join(input.parentDir, repoName);
+
+					if (existsSync(repoPath)) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: `A folder named "${repoName}" already exists at this location.`,
+						};
+					}
+
+					const git = simpleGit();
+					await git.clone(input.templateUrl, repoPath, ["--depth", "1"]);
+
+					await rm(join(repoPath, ".git"), {
+						recursive: true,
+						force: true,
+					});
+
+					const { defaultBranch } = await initGitRepo(repoPath, {
+						stageAll: true,
+						commitMessage: `Initial commit from template`,
+					});
+
+					const project = upsertProject(repoPath, defaultBranch);
+					await ensureMainWorkspace(project);
+
+					track("project_opened", {
+						project_id: project.id,
+						method: "create_from_template",
+					});
+
+					return {
+						canceled: false as const,
+						success: true as const,
+						project,
+					};
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					return {
+						canceled: false as const,
+						success: false as const,
+						error: `Failed to create from template: ${errorMessage}`,
 					};
 				}
 			}),
