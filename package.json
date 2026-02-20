@@ -24,7 +24,7 @@
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test",
 		"lint": "./scripts/lint.sh",
-		"lint:fix": "biome check --write --unsafe .",
+		"lint:fix": "biome migrate --write && biome check --write --unsafe .",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"typecheck": "turbo typecheck",

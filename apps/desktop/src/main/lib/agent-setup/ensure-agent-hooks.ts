@@ -3,12 +3,17 @@ import path from "node:path";
 import {
 	buildWrapperScript,
 	CURSOR_HOOK_MARKER,
+	GEMINI_HOOK_MARKER,
 	getClaudeSettingsContent,
 	getClaudeSettingsPath,
 	getCursorGlobalHooksJsonPath,
 	getCursorHookScriptContent,
 	getCursorHookScriptPath,
 	getCursorHooksJsonContent,
+	getGeminiHookScriptContent,
+	getGeminiHookScriptPath,
+	getGeminiSettingsJsonContent,
+	getGeminiSettingsJsonPath,
 	getOpenCodeGlobalPluginPath,
 	getOpenCodePluginContent,
 	getOpenCodePluginPath,
@@ -85,6 +90,19 @@ async function ensureCursorHooksJson(): Promise<void> {
 		await fs.mkdir(path.dirname(globalPath), { recursive: true });
 		await fs.writeFile(globalPath, content, { mode: 0o644 });
 		console.log("[agent-setup] Rewrote Cursor hooks.json");
+	}
+}
+
+async function ensureGeminiSettings(): Promise<void> {
+	const globalPath = getGeminiSettingsJsonPath();
+	const hookScriptPath = getGeminiHookScriptPath();
+	const existing = await readFileIfExists(globalPath);
+
+	if (!existing || !existing.includes(hookScriptPath)) {
+		const content = getGeminiSettingsJsonContent(hookScriptPath);
+		await fs.mkdir(path.dirname(globalPath), { recursive: true });
+		await fs.writeFile(globalPath, content, { mode: 0o644 });
+		console.log("[agent-setup] Rewrote Gemini settings.json");
 	}
 }
 
@@ -165,6 +183,10 @@ export function ensureAgentHooks(): Promise<void> {
 				binaryName: "cursor-agent",
 				content: buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`),
 			},
+			{
+				binaryName: "gemini",
+				content: buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`),
+			},
 		];
 
 		for (const { binaryName, content } of wrappers) {
@@ -212,6 +234,23 @@ export function ensureAgentHooks(): Promise<void> {
 			await ensureCursorHooksJson();
 		} catch (error) {
 			console.warn("[agent-setup] Failed to write Cursor hooks.json:", error);
+		}
+
+		await ensureScriptFile({
+			filePath: getGeminiHookScriptPath(),
+			content: getGeminiHookScriptContent(),
+			mode: 0o755,
+			marker: GEMINI_HOOK_MARKER,
+			logLabel: "Gemini hook script",
+		});
+
+		try {
+			await ensureGeminiSettings();
+		} catch (error) {
+			console.warn(
+				"[agent-setup] Failed to write Gemini settings.json:",
+				error,
+			);
 		}
 	})().finally(() => {
 		inFlight = null;

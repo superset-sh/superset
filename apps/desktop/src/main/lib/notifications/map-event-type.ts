@@ -8,14 +8,20 @@ export function mapEventType(
 		eventType === "Start" ||
 		eventType === "UserPromptSubmit" ||
 		eventType === "PostToolUse" ||
-		eventType === "PostToolUseFailure"
+		eventType === "PostToolUseFailure" ||
+		eventType === "BeforeAgent" ||
+		eventType === "AfterTool"
 	) {
 		return "Start";
 	}
 	if (eventType === "PermissionRequest") {
 		return "PermissionRequest";
 	}
-	if (eventType === "Stop" || eventType === "agent-turn-complete") {
+	if (
+		eventType === "Stop" ||
+		eventType === "agent-turn-complete" ||
+		eventType === "AfterAgent"
+	) {
 		return "Stop";
 	}
 	return null;

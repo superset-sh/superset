@@ -550,6 +550,7 @@ describe("env", () => {
 			"NEXT_PUBLIC_TEST",
 			"DATABASE_URL",
 			"CLERK_SECRET_KEY",
+			"SSL_CERT_FILE",
 		];
 
 		beforeEach(() => {
@@ -676,6 +677,22 @@ describe("env", () => {
 			const result = buildTerminalEnv(baseParams);
 			expect(result.SUPERSET_HOOK_VERSION).toBeDefined();
 			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
+		});
+
+		describe("SSL_CERT_FILE fallback on macOS", () => {
+			it("should set SSL_CERT_FILE to system cert bundle on macOS when not already set", () => {
+				delete process.env.SSL_CERT_FILE;
+				const result = buildTerminalEnv(baseParams);
+				if (process.platform === "darwin") {
+					expect(result.SSL_CERT_FILE).toBe("/etc/ssl/cert.pem");
+				}
+			});
+
+			it("should not override user-set SSL_CERT_FILE", () => {
+				process.env.SSL_CERT_FILE = "/custom/certs/ca-bundle.crt";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SSL_CERT_FILE).toBe("/custom/certs/ca-bundle.crt");
+			});
 		});
 
 		describe("COLORFGBG for light mode detection", () => {

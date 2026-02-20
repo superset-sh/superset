@@ -6,6 +6,9 @@ import {
 	createCursorAgentWrapper,
 	createCursorHookScript,
 	createCursorHooksJson,
+	createGeminiHookScript,
+	createGeminiSettingsJson,
+	createGeminiWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
 } from "./agent-wrappers";
@@ -44,6 +47,9 @@ export function setupAgentHooks(): void {
 	createCursorHookScript();
 	createCursorAgentWrapper();
 	createCursorHooksJson();
+	createGeminiHookScript();
+	createGeminiWrapper();
+	createGeminiSettingsJson();
 
 	createZshWrapper();
 	createBashWrapper();

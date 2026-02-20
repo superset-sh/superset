@@ -25,8 +25,10 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
@@ -72,6 +74,9 @@ export function NewWorkspaceModal() {
 	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
+	const [runSetupScript, setRunSetupScript] = useState(true);
+	const runSetupScriptRef = useRef(true);
+	runSetupScriptRef.current = runSetupScript;
 	const titleInputRef = useRef<HTMLInputElement>(null);
 
 	const { data: recentProjects = [] } =
@@ -95,7 +100,10 @@ export function NewWorkspaceModal() {
 	const { data: globalBranchPrefix } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
-	const createWorkspace = useCreateWorkspace();
+	const createWorkspace = useCreateWorkspace({
+		resolveInitialCommands: (commands) =>
+			runSetupScriptRef.current ? commands : null,
+	});
 	const { openNew } = useOpenProject();
 
 	const resolvedPrefix = useMemo(() => {
@@ -121,11 +129,14 @@ export function NewWorkspaceModal() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reset form each time the modal opens
 	useEffect(() => {
-		if (isOpen && !selectedProjectId && preSelectedProjectId) {
+		if (!isOpen) return;
+		resetForm();
+		if (preSelectedProjectId) {
 			setSelectedProjectId(preSelectedProjectId);
 		}
-	}, [isOpen, selectedProjectId, preSelectedProjectId]);
+	}, [isOpen]);
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -159,6 +170,7 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 		setBranchSearch("");
 		setShowAdvanced(false);
+		setRunSetupScript(true);
 	};
 
 	useEffect(() => {
@@ -226,7 +238,7 @@ export function NewWorkspaceModal() {
 
 		const workspaceName = title.trim() || undefined;
 
-		handleClose();
+		closeModal();
 
 		try {
 			const result = await createWorkspace.mutateAsync({
@@ -501,6 +513,19 @@ export function NewWorkspaceModal() {
 														</PopoverContent>
 													</Popover>
 												)}
+											</div>
+											<div className="flex items-center justify-between">
+												<Label
+													htmlFor="run-setup-script"
+													className="text-xs text-muted-foreground"
+												>
+													Run setup script
+												</Label>
+												<Switch
+													id="run-setup-script"
+													checked={runSetupScript}
+													onCheckedChange={setRunSetupScript}
+												/>
 											</div>
 										</CollapsibleContent>
 									</Collapsible>
