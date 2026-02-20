@@ -46,7 +46,7 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@types/node": "^24.9.1",
+		"@types/node": "^25.3.0",
 		"typescript": "^5.9.3"
 	}
 }
