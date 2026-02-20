@@ -1,10 +1,17 @@
 import { Button } from "@superset/ui/button";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
-import { HiMiniXMark, HiOutlinePencil } from "react-icons/hi2";
+import { HiMiniXMark } from "react-icons/hi2";
+import { LuPencil } from "react-icons/lu";
 import { MosaicDragType } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
@@ -151,100 +158,96 @@ export function GroupItem({
 	};
 
 	const tabStyles = cn(
-		"flex items-center gap-2 transition-all w-full shrink-0 pl-3 pr-14 h-full",
+		"flex items-center gap-2 transition-all w-full shrink-0 pl-3 pr-8 h-full",
 		isActive
 			? "text-foreground bg-border/30"
 			: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
 	);
 
 	return (
-		<div
-			ref={(node) => {
-				drag(drop(node));
-			}}
-			className={cn(
-				"group relative flex items-center shrink-0 h-full border-r border-border",
-				isOver && canDrop && "bg-primary/5",
-				isDragging && "opacity-50 text-muted-foreground/50",
-			)}
-			style={{ cursor: isDragging ? "grabbing" : undefined }}
-		>
-			{isEditing ? (
-				<div className="flex items-center w-full shrink-0 px-2 h-full">
-					<input
-						ref={inputRef}
-						type="text"
-						value={editValue}
-						onChange={(e) => setEditValue(e.target.value)}
-						onBlur={handleSave}
-						onKeyDown={handleKeyDown}
-						maxLength={64}
-						className="text-sm w-full min-w-0 px-1 py-0.5 rounded border border-border bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
-					/>
-				</div>
-			) : (
-				<button
-					type="button"
-					onClick={onSelect}
-					onDoubleClick={startEditing}
-					onAuxClick={(e) => {
-						if (e.button === 1) {
-							e.preventDefault();
-							onClose();
-						}
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<div
+					ref={(node) => {
+						drag(drop(node));
 					}}
-					className={tabStyles}
+					className={cn(
+						"group relative flex items-center shrink-0 h-full border-r border-border",
+						isOver && canDrop && "bg-primary/5",
+						isDragging && "opacity-50 text-muted-foreground/50",
+					)}
+					style={{ cursor: isDragging ? "grabbing" : undefined }}
 				>
-					<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
-						{displayName}
-					</span>
-					{status && status !== "idle" && <StatusIndicator status={status} />}
-				</button>
-			)}
-			{!isEditing && (
-				<div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 hidden group-hover:flex">
-					<Tooltip delayDuration={500}>
-						<TooltipTrigger asChild>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={(e) => {
-									e.stopPropagation();
-									startEditing();
-								}}
-								className="cursor-pointer size-6 hover:bg-muted"
-								aria-label="Rename group"
-							>
-								<HiOutlinePencil className="size-3.5" />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="top" showArrow={false}>
-							Rename
-						</TooltipContent>
-					</Tooltip>
-					<Tooltip delayDuration={500}>
-						<TooltipTrigger asChild>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={(e) => {
-									e.stopPropagation();
+					{isEditing ? (
+						<div className="flex items-center w-full shrink-0 px-2 h-full">
+							<input
+								ref={inputRef}
+								type="text"
+								value={editValue}
+								onChange={(e) => setEditValue(e.target.value)}
+								onBlur={handleSave}
+								onKeyDown={handleKeyDown}
+								maxLength={64}
+								className="text-sm w-full min-w-0 px-1 py-0.5 rounded border border-border bg-background text-foreground outline-none focus:ring-1 focus:ring-ring"
+							/>
+						</div>
+					) : (
+						<button
+							type="button"
+							onClick={onSelect}
+							onDoubleClick={startEditing}
+							onAuxClick={(e) => {
+								if (e.button === 1) {
+									e.preventDefault();
 									onClose();
-								}}
-								className="cursor-pointer size-6 hover:bg-muted"
-								aria-label="Close pane"
-							>
-								<HiMiniXMark className="size-4" />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="top" showArrow={false}>
-							Close pane
-						</TooltipContent>
-					</Tooltip>
+								}
+							}}
+							className={tabStyles}
+						>
+							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
+								{displayName}
+							</span>
+							{status && status !== "idle" && (
+								<StatusIndicator status={status} />
+							)}
+						</button>
+					)}
+					{!isEditing && (
+						<div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 hidden group-hover:flex">
+							<Tooltip delayDuration={500}>
+								<TooltipTrigger asChild>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										onClick={(e) => {
+											e.stopPropagation();
+											onClose();
+										}}
+										className="cursor-pointer size-6 hover:bg-muted"
+										aria-label="Close pane"
+									>
+										<HiMiniXMark className="size-4" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="top" showArrow={false}>
+									Close pane
+								</TooltipContent>
+							</Tooltip>
+						</div>
+					)}
 				</div>
-			)}
-		</div>
+			</ContextMenuTrigger>
+			<ContextMenuContent>
+				<ContextMenuItem onSelect={startEditing}>
+					<LuPencil className="size-4 mr-2" />
+					Rename
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onClose}>
+					<HiMiniXMark className="size-4 mr-2" />
+					Close
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }
