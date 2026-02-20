@@ -337,19 +337,29 @@ export function getGeminiHookScriptContent(): string {
 }
 
 /**
- * Reads existing ~/.gemini/settings.json, merges our hook entries (identified by
+ * Reads existing ~/.gemini/settings.json, merges our hook definitions (identified by
  * hook script path), and preserves any user-defined settings/hooks.
+ *
+ * Gemini CLI uses a two-level nesting format:
+ *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
  */
 export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 	const globalPath = getGeminiSettingsJsonPath();
 
-	interface GeminiHookEntry {
+	interface GeminiHookConfig {
+		type: string;
 		command: string;
 		[key: string]: unknown;
 	}
 
+	interface GeminiHookDefinition {
+		matcher?: string;
+		hooks?: GeminiHookConfig[];
+		[key: string]: unknown;
+	}
+
 	interface GeminiSettingsJson {
-		hooks?: Record<string, GeminiHookEntry[]>;
+		hooks?: Record<string, GeminiHookDefinition[]>;
 		[key: string]: unknown;
 	}
 
@@ -368,22 +378,24 @@ export function getGeminiSettingsJsonContent(hookScriptPath: string): string {
 		existing.hooks = {};
 	}
 
-	const ourHooks: Record<string, GeminiHookEntry> = {
-		BeforeAgent: { command: hookScriptPath },
-		AfterAgent: { command: hookScriptPath },
-		AfterTool: { command: hookScriptPath },
+	const ourHookDef: GeminiHookDefinition = {
+		hooks: [{ type: "command", command: hookScriptPath }],
 	};
 
-	for (const [eventName, ourEntry] of Object.entries(ourHooks)) {
+	const eventNames = ["BeforeAgent", "AfterAgent", "AfterTool"];
+
+	for (const eventName of eventNames) {
 		const current = existing.hooks[eventName];
 		if (Array.isArray(current)) {
+			// Remove any existing definitions that reference our hook script
 			const filtered = current.filter(
-				(entry: GeminiHookEntry) => !entry.command?.includes(hookScriptPath),
+				(def: GeminiHookDefinition) =>
+					!def.hooks?.some((h) => h.command?.includes(hookScriptPath)),
 			);
-			filtered.push(ourEntry);
+			filtered.push(ourHookDef);
 			existing.hooks[eventName] = filtered;
 		} else {
-			existing.hooks[eventName] = [ourEntry];
+			existing.hooks[eventName] = [ourHookDef];
 		}
 	}
 
