@@ -9,6 +9,7 @@ import {
 	LuChevronRight,
 	LuCopy,
 	LuExternalLink,
+	LuMessageSquare,
 	LuPencil,
 	LuUndo2,
 } from "react-icons/lu";
@@ -33,6 +34,7 @@ interface FileDiffHeaderProps {
 	onUnstage?: () => void;
 	onDiscard?: () => void;
 	isActioning: boolean;
+	commentCount?: number;
 }
 
 export function FileDiffHeader({
@@ -54,6 +56,7 @@ export function FileDiffHeader({
 	onUnstage,
 	onDiscard,
 	isActioning,
+	commentCount,
 }: FileDiffHeaderProps) {
 	const hasAction = onStage || onUnstage;
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
@@ -155,6 +158,13 @@ export function FileDiffHeader({
 							-{file.deletions}
 						</span>
 					)}
+				</span>
+			)}
+
+			{commentCount != null && commentCount > 0 && (
+				<span className="flex items-center gap-0.5 text-xs text-blue-600 dark:text-blue-400 shrink-0">
+					<LuMessageSquare className="size-3.5" />
+					{commentCount}
 				</span>
 			)}
 

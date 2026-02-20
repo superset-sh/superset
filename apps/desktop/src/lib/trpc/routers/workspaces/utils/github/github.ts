@@ -1,12 +1,17 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { CheckItem, GitHubStatus } from "@superset/local-db";
+import type {
+	CheckItem,
+	GitHubStatus,
+	PRCommentThread,
+} from "@superset/local-db";
 import { branchExistsOnRemote } from "../git";
 import { execWithShellEnv } from "../shell-env";
 import {
 	type GHPRResponse,
 	GHPRResponseSchema,
 	GHRepoResponseSchema,
+	GHReviewCommentsResponseSchema,
 } from "./types";
 
 const execFileAsync = promisify(execFile);
@@ -341,4 +346,147 @@ function computeChecksStatus(
 	if (hasFailure) return "failure";
 	if (hasPending) return "pending";
 	return "success";
+}
+
+const commentsCache = new Map<
+	string,
+	{ data: PRCommentThread[]; timestamp: number }
+>();
+const COMMENTS_CACHE_TTL_MS = 10_000;
+
+/**
+ * Fetches PR review comments from GitHub for a given worktree and PR number.
+ * Returns threaded comments grouped by root comment, or null on error.
+ */
+export async function fetchPRReviewComments(
+	worktreePath: string,
+	prNumber: number,
+): Promise<PRCommentThread[] | null> {
+	const cacheKey = `${worktreePath}:${prNumber}`;
+	const cached = commentsCache.get(cacheKey);
+	if (cached && Date.now() - cached.timestamp < COMMENTS_CACHE_TTL_MS) {
+		return cached.data;
+	}
+
+	try {
+		const repoUrl = await getRepoUrl(worktreePath);
+		if (!repoUrl) return null;
+
+		const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
+		if (!match) return null;
+		const [, owner, repo] = match;
+
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"api",
+				`repos/${owner}/${repo}/pulls/${prNumber}/comments`,
+				"--paginate",
+			],
+			{ cwd: worktreePath },
+		);
+
+		// gh api --paginate may concatenate JSON arrays: [...][...] → merge them
+		let rawJson: string = stdout;
+		if (rawJson.includes("][")) {
+			rawJson = `[${rawJson.replace(/\]\s*\[/g, ",")}]`;
+		}
+
+		const raw = JSON.parse(rawJson);
+		const result = GHReviewCommentsResponseSchema.safeParse(raw);
+		if (!result.success) {
+			console.error(
+				"[GitHub] PR comments schema validation failed:",
+				result.error,
+			);
+			return null;
+		}
+
+		const comments = result.data;
+
+		// Normalize and group into threads
+		const rootComments = new Map<number, PRCommentThread>();
+		const parentOf = new Map<number, number>(); // commentId → in_reply_to_id
+		const rootCache = new Map<number, number>(); // commentId → resolved rootId
+
+		// First pass: identify root comments and build parent map
+		for (const c of comments) {
+			if (!c.in_reply_to_id) {
+				rootCache.set(c.id, c.id);
+				rootComments.set(c.id, {
+					rootId: c.id,
+					path: c.path,
+					line: c.line,
+					originalLine: c.original_line,
+					side: c.side,
+					comments: [
+						{
+							id: c.id,
+							body: c.body,
+							authorLogin: c.user.login,
+							authorAvatarUrl: c.user.avatar_url,
+							path: c.path,
+							line: c.line,
+							originalLine: c.original_line,
+							side: c.side,
+							startLine: c.start_line,
+							startSide: c.start_side,
+							createdAt: c.created_at,
+							updatedAt: c.updated_at,
+							htmlUrl: c.html_url,
+						},
+					],
+				});
+			} else {
+				parentOf.set(c.id, c.in_reply_to_id);
+			}
+		}
+
+		// Resolve root via parent map with path compression (O(n) total)
+		function findRoot(id: number): number {
+			const cached = rootCache.get(id);
+			if (cached !== undefined) return cached;
+			const parent = parentOf.get(id);
+			if (parent === undefined) return id;
+			const root = findRoot(parent);
+			rootCache.set(id, root);
+			return root;
+		}
+
+		// Second pass: attach replies to root threads
+		for (const c of comments) {
+			if (c.in_reply_to_id) {
+				const rootId = findRoot(c.id);
+				const thread = rootComments.get(rootId);
+				if (thread) {
+					thread.comments.push({
+						id: c.id,
+						body: c.body,
+						authorLogin: c.user.login,
+						authorAvatarUrl: c.user.avatar_url,
+						path: c.path,
+						line: c.line,
+						originalLine: c.original_line,
+						side: c.side,
+						startLine: c.start_line,
+						startSide: c.start_side,
+						inReplyToId: c.in_reply_to_id,
+						createdAt: c.created_at,
+						updatedAt: c.updated_at,
+						htmlUrl: c.html_url,
+					});
+				}
+			}
+		}
+
+		const threads = Array.from(rootComments.values());
+		commentsCache.set(cacheKey, { data: threads, timestamp: Date.now() });
+		return threads;
+	} catch (error) {
+		console.error(
+			"[GitHub] Failed to fetch PR review comments:",
+			error instanceof Error ? error.message : String(error),
+		);
+		return null;
+	}
 }

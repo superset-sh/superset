@@ -22,11 +22,14 @@ import {
 	LuClipboard,
 	LuExternalLink,
 	LuFolderOpen,
+	LuMessageSquare,
 	LuMinus,
 	LuPlus,
 	LuTrash2,
 	LuUndo2,
 } from "react-icons/lu";
+import { useParams } from "@tanstack/react-router";
+import { usePRComments } from "renderer/screens/main/hooks";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../ChangesContent";
 import { useFileDrag, usePathActions } from "../../hooks";
@@ -83,6 +86,9 @@ export function FileItem({
 	isExpandedView = false,
 	projectId,
 }: FileItemProps) {
+	const { workspaceId } = useParams({ strict: false });
+	const { commentsByFile } = usePRComments({ workspaceId });
+	const commentCount = commentsByFile.get(file.path)?.length;
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const { activeFileKey } = useScrollContext();
 	const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -213,6 +219,13 @@ export function FileItem({
 					)}
 				</span>
 			</button>
+
+			{commentCount != null && commentCount > 0 && (
+				<span className="flex items-center gap-0.5 text-[10px] text-blue-600 dark:text-blue-400 shrink-0 pr-1">
+					<LuMessageSquare className="size-2.5" />
+					{commentCount}
+				</span>
+			)}
 
 			{hasAction && (
 				<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">

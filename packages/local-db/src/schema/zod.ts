@@ -25,6 +25,37 @@ export const checkItemSchema = z.object({
 export type CheckItem = z.infer<typeof checkItemSchema>;
 
 /**
+ * GitHub PR review comment
+ */
+export const prReviewCommentSchema = z.object({
+	id: z.number(),
+	body: z.string(),
+	authorLogin: z.string(),
+	authorAvatarUrl: z.string(),
+	path: z.string(),
+	line: z.number().nullable(),
+	originalLine: z.number().nullable(),
+	side: z.enum(["LEFT", "RIGHT"]),
+	startLine: z.number().nullable(),
+	startSide: z.enum(["LEFT", "RIGHT"]).nullable(),
+	inReplyToId: z.number().optional(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+	htmlUrl: z.string(),
+});
+export type PRReviewComment = z.infer<typeof prReviewCommentSchema>;
+
+export const prCommentThreadSchema = z.object({
+	rootId: z.number(),
+	path: z.string(),
+	line: z.number().nullable(),
+	originalLine: z.number().nullable(),
+	side: z.enum(["LEFT", "RIGHT"]),
+	comments: z.array(prReviewCommentSchema),
+});
+export type PRCommentThread = z.infer<typeof prCommentThreadSchema>;
+
+/**
  * GitHub PR status
  */
 export const gitHubStatusSchema = z.object({

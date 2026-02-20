@@ -1,8 +1,10 @@
 import { Button } from "@superset/ui/button";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
+import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { usePRComments } from "renderer/screens/main/hooks";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import {
@@ -71,6 +73,9 @@ export function FileDiffSection({
 	onDiscard,
 	isActioning = false,
 }: FileDiffSectionProps) {
+	const { workspaceId } = useParams({ strict: false });
+	const { commentsByFile } = usePRComments({ workspaceId });
+	const commentThreads = commentsByFile.get(file.path);
 	const sectionRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const {
@@ -244,6 +249,7 @@ export function FileDiffSection({
 					onUnstage={onUnstage}
 					onDiscard={onDiscard}
 					isActioning={isActioning}
+					commentCount={commentThreads?.length}
 				/>
 
 				<CollapsibleContent>
@@ -286,6 +292,7 @@ export function FileDiffSection({
 								viewMode={diffViewMode}
 								hideUnchangedRegions={hideUnchangedRegions}
 								filePath={file.path}
+								commentThreads={commentThreads}
 							/>
 						)
 					) : (

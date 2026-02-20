@@ -2,11 +2,12 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import {
 	LuExpand,
 	LuFile,
 	LuGitCompareArrows,
+	LuMessageSquare,
 	LuShrink,
 	LuX,
 } from "react-icons/lu";
@@ -21,6 +22,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { useScrollContext } from "../ChangesContent";
 import { ChangesView } from "./ChangesView";
+import { CommentsView } from "./CommentsView";
 import { FilesView } from "./FilesView";
 
 function TabButton({
@@ -93,8 +95,30 @@ export function RightSidebar() {
 		sidebarWidth,
 	} = useSidebarStore();
 	const isExpanded = currentMode === SidebarMode.Changes;
-	const compactTabs = sidebarWidth < 250;
 	const showChangesTab = !!worktreePath;
+
+	const headerRef = useRef<HTMLDivElement>(null);
+	const actionsRef = useRef<HTMLDivElement>(null);
+	const tabsRef = useRef<HTMLDivElement>(null);
+	const [compactTabs, setCompactTabs] = useState(false);
+	const compactThreshold = useRef(0);
+
+	useLayoutEffect(() => {
+		const tabs = tabsRef.current;
+		const header = headerRef.current;
+		const actions = actionsRef.current;
+		if (!tabs || !header || !actions) return;
+
+		if (!compactTabs) {
+			const available = header.clientWidth - actions.offsetWidth;
+			if (tabs.scrollWidth > available) {
+				compactThreshold.current = sidebarWidth;
+				setCompactTabs(true);
+			}
+		} else if (sidebarWidth > compactThreshold.current) {
+			setCompactTabs(false);
+		}
+	}, [sidebarWidth, compactTabs]);
 
 	const handleExpandToggle = () => {
 		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
@@ -157,8 +181,11 @@ export function RightSidebar() {
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<div className="flex items-center bg-background shrink-0 h-10 border-b">
-				<div className="flex items-center h-full">
+			<div
+				ref={headerRef}
+				className="flex items-center bg-background shrink-0 h-10 border-b"
+			>
+				<div ref={tabsRef} className="flex items-center h-full">
 					{showChangesTab && (
 						<TabButton
 							isActive={rightSidebarTab === RightSidebarTab.Changes}
@@ -175,9 +202,18 @@ export function RightSidebar() {
 						label="Files"
 						compact={compactTabs}
 					/>
+					{showChangesTab && (
+						<TabButton
+							isActive={rightSidebarTab === RightSidebarTab.Comments}
+							onClick={() => setRightSidebarTab(RightSidebarTab.Comments)}
+							icon={<LuMessageSquare className="size-3.5" />}
+							label="Comments"
+							compact={compactTabs}
+						/>
+					)}
 				</div>
 				<div className="flex-1" />
-				<div className="flex items-center h-10 pr-2 gap-0.5">
+				<div ref={actionsRef} className="flex items-center h-10 pr-2 gap-0.5">
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
@@ -220,29 +256,24 @@ export function RightSidebar() {
 					</Tooltip>
 				</div>
 			</div>
-			{showChangesTab && (
-				<div
-					className={
-						rightSidebarTab === RightSidebarTab.Changes
-							? "flex-1 min-h-0 flex flex-col overflow-hidden"
-							: "hidden"
-					}
-				>
+			{showChangesTab && rightSidebarTab === RightSidebarTab.Changes && (
+				<div className="flex-1 min-h-0 flex flex-col overflow-hidden">
 					<ChangesView
 						onFileOpen={handleFileOpen}
 						isExpandedView={isExpanded}
 					/>
 				</div>
 			)}
-			<div
-				className={
-					rightSidebarTab === RightSidebarTab.Changes && showChangesTab
-						? "hidden"
-						: "flex-1 min-h-0 flex flex-col overflow-hidden"
-				}
-			>
-				<FilesView />
-			</div>
+			{showChangesTab && rightSidebarTab === RightSidebarTab.Comments && (
+				<div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+					<CommentsView isExpandedView={isExpanded} />
+				</div>
+			)}
+			{rightSidebarTab === RightSidebarTab.Files && (
+				<div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+					<FilesView />
+				</div>
+			)}
 		</aside>
 	);
 }

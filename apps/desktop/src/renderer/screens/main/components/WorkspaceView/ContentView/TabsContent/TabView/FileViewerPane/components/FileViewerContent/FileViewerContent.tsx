@@ -1,7 +1,9 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
+import { useParams } from "@tanstack/react-router";
 import { type MutableRefObject, useCallback, useEffect, useRef } from "react";
 import { LuLoader } from "react-icons/lu";
+import { usePRComments } from "renderer/screens/main/hooks";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import {
 	registerSaveAction,
@@ -15,6 +17,7 @@ import { detectLanguage } from "shared/detect-language";
 import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { DiffViewer } from "../../../../../../ChangesContent/components/DiffViewer";
+import { LightDiffViewer } from "../../../../../../ChangesContent/components/LightDiffViewer";
 import { registerCopyPathLineAction } from "../../../../../components/EditorContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 
@@ -122,6 +125,10 @@ export function FileViewerContent({
 	onMoveToTab,
 	onMoveToNewTab,
 }: FileViewerContentProps) {
+	const { workspaceId } = useParams({ strict: false });
+	const { commentsByFile } = usePRComments({ workspaceId });
+	const commentThreads = filePath ? commentsByFile.get(filePath) : undefined;
+
 	const isImage = isImageFile(filePath);
 	const isMonacoReady = useMonacoReady();
 	const monacoEditorOptions = useMonacoEditorOptions();
@@ -208,29 +215,41 @@ export function FileViewerContent({
 				</div>
 			);
 		}
+		if (isDiffEditable) {
+			return (
+				<DiffViewer
+					key={filePath}
+					contents={{
+						original: diffData.original,
+						modified: diffData.modified,
+						language: diffData.language,
+					}}
+					viewMode={diffViewMode}
+					hideUnchangedRegions={hideUnchangedRegions}
+					filePath={filePath}
+					editable
+					onSave={onSaveDiff}
+					onChange={onDiffChange}
+					contextMenuProps={{
+						onSplitHorizontal,
+						onSplitVertical,
+						onClosePane,
+						currentTabId,
+						availableTabs,
+						onMoveToTab,
+						onMoveToNewTab,
+					}}
+				/>
+			);
+		}
 		return (
-			<DiffViewer
+			<LightDiffViewer
 				key={filePath}
-				contents={{
-					original: diffData.original,
-					modified: diffData.modified,
-					language: diffData.language,
-				}}
+				contents={diffData}
 				viewMode={diffViewMode}
 				hideUnchangedRegions={hideUnchangedRegions}
 				filePath={filePath}
-				editable={isDiffEditable}
-				onSave={isDiffEditable ? onSaveDiff : undefined}
-				onChange={isDiffEditable ? onDiffChange : undefined}
-				contextMenuProps={{
-					onSplitHorizontal,
-					onSplitVertical,
-					onClosePane,
-					currentTabId,
-					availableTabs,
-					onMoveToTab,
-					onMoveToNewTab,
-				}}
+				commentThreads={commentThreads}
 			/>
 		);
 	}

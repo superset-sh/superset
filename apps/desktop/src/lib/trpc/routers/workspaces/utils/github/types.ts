@@ -47,3 +47,21 @@ export const GHRepoResponseSchema = z.object({
 });
 
 export type GHPRResponse = z.infer<typeof GHPRResponseSchema>;
+
+export const GHReviewCommentSchema = z.object({
+	id: z.number(),
+	body: z.string(),
+	user: z.object({ login: z.string(), avatar_url: z.string() }),
+	path: z.string(),
+	line: z.number().nullable(),
+	original_line: z.number().nullable(),
+	side: z.enum(["LEFT", "RIGHT"]).default("RIGHT"),
+	start_line: z.number().nullable(),
+	start_side: z.enum(["LEFT", "RIGHT"]).nullable(),
+	in_reply_to_id: z.number().optional(),
+	created_at: z.string(),
+	updated_at: z.string(),
+	html_url: z.string(),
+});
+export const GHReviewCommentsResponseSchema = z.array(GHReviewCommentSchema);
+export type GHReviewComment = z.infer<typeof GHReviewCommentSchema>;

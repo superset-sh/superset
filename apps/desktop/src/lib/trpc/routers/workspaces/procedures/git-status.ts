@@ -17,7 +17,7 @@ import {
 	listExternalWorktrees,
 	refreshDefaultBranch,
 } from "../utils/git";
-import { fetchGitHubPRStatus } from "../utils/github";
+import { fetchGitHubPRStatus, fetchPRReviewComments } from "../utils/github";
 
 export const createGitStatusProcedures = () => {
 	return router({
@@ -128,6 +128,29 @@ export const createGitStatusProcedures = () => {
 				}
 
 				return freshStatus;
+			}),
+
+		getPRComments: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async ({ input }) => {
+				const workspace = getWorkspace(input.workspaceId);
+				if (!workspace) {
+					return null;
+				}
+
+				const worktree = workspace.worktreeId
+					? getWorktree(workspace.worktreeId)
+					: null;
+				if (!worktree) {
+					return null;
+				}
+
+				const prNumber = worktree.githubStatus?.pr?.number;
+				if (!prNumber) {
+					return null;
+				}
+
+				return fetchPRReviewComments(worktree.path, prNumber);
 			}),
 
 		getWorktreeInfo: publicProcedure
