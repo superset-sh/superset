@@ -14,7 +14,7 @@ import {
 import { localDb } from "main/lib/local-db";
 import { menuEmitter } from "main/lib/menu-events";
 import {
-	getDaemonTerminalManager,
+	restartDaemon as restartDaemonShared,
 	tryListExistingDaemonSessions,
 } from "main/lib/terminal";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
@@ -243,34 +243,14 @@ async function restartDaemon(): Promise<void> {
 		title: "Restart Terminal Daemon?",
 		message: "Restart Terminal Daemon?",
 		detail:
-			"This will shut down the terminal daemon and kill all running sessions. Use this to fix terminals that are stuck or unresponsive.\n\nA fresh daemon will start automatically when you open a new terminal.",
+			"This will kill all running sessions and restart the terminal daemon. The app will restart terminals with a fresh daemon.\n\nUse this to fix terminals that are stuck or unresponsive.",
 	});
 
 	if (response === 0) {
 		return;
 	}
 
-	console.log("[Tray] Restarting daemon...");
-
-	try {
-		const client = getTerminalHostClient();
-		const connected = await client.tryConnectAndAuthenticate();
-
-		if (connected) {
-			await client.shutdownIfRunning({ killSessions: true });
-			console.log("[Tray] Daemon shutdown complete");
-		} else {
-			console.log("[Tray] Daemon was not running");
-		}
-	} catch (error) {
-		console.warn("[Tray] Error during shutdown (continuing):", error);
-	}
-
-	const manager = getDaemonTerminalManager();
-	manager.reset();
-
-	console.log("[Tray] Daemon restart complete");
-
+	await restartDaemonShared();
 	await updateTrayMenu();
 }
 

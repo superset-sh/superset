@@ -30,6 +30,40 @@ export async function reconcileDaemonSessions(): Promise<void> {
 	}
 }
 
+/**
+ * Restart the terminal daemon. Kills all sessions, shuts down the daemon,
+ * and resets the manager so a fresh daemon spawns on next use.
+ */
+export async function restartDaemon(): Promise<{ success: boolean }> {
+	console.log("[restartDaemon] Starting daemon restart...");
+
+	try {
+		const client = getTerminalHostClient();
+		const connected = await client.tryConnectAndAuthenticate();
+
+		if (connected) {
+			const { sessions } = await client.listSessions();
+			const aliveCount = sessions.filter((s) => s.isAlive).length;
+			console.log(
+				`[restartDaemon] Shutting down daemon with ${aliveCount} alive sessions`,
+			);
+
+			await client.shutdownIfRunning({ killSessions: true });
+		} else {
+			console.log("[restartDaemon] Daemon was not running");
+		}
+	} catch (error) {
+		console.warn("[restartDaemon] Error during shutdown (continuing):", error);
+	}
+
+	const manager = getDaemonTerminalManager();
+	manager.reset();
+
+	console.log("[restartDaemon] Complete");
+
+	return { success: true };
+}
+
 export async function tryListExistingDaemonSessions(): Promise<{
 	sessions: ListSessionsResponse["sessions"];
 }> {

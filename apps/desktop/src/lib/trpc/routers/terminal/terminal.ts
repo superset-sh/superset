@@ -4,7 +4,7 @@ import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
-import { getDaemonTerminalManager } from "main/lib/terminal";
+import { restartDaemon as restartDaemonShared } from "main/lib/terminal";
 import {
 	TERMINAL_SESSION_KILLED_MESSAGE,
 	TerminalKilledError,
@@ -389,45 +389,7 @@ export const createTerminalRouter = () => {
 
 		/** Restart daemon to recover from stuck state. Kills all sessions. */
 		restartDaemon: publicProcedure.mutation(async () => {
-			console.log("[restartDaemon] Starting daemon restart...");
-
-			try {
-				const client = getTerminalHostClient();
-				const connected = await client.tryConnectAndAuthenticate();
-
-				if (connected) {
-					const { sessions } = await client.listSessions();
-					const aliveCount = sessions.filter((s) => s.isAlive).length;
-					console.log(
-						`[restartDaemon] Shutting down daemon with ${aliveCount} alive sessions`,
-					);
-
-					for (const session of sessions) {
-						void terminal.kill({ paneId: session.sessionId }).catch((error) => {
-							console.warn(
-								"[restartDaemon] Failed to mark session killed:",
-								error,
-							);
-						});
-					}
-
-					await client.shutdownIfRunning({ killSessions: true });
-				} else {
-					console.log("[restartDaemon] Daemon was not running");
-				}
-			} catch (error) {
-				console.warn(
-					"[restartDaemon] Error during shutdown (continuing):",
-					error,
-				);
-			}
-
-			const manager = getDaemonTerminalManager();
-			manager.reset();
-
-			console.log("[restartDaemon] Complete");
-
-			return { success: true };
+			return restartDaemonShared();
 		}),
 
 		getSession: publicProcedure

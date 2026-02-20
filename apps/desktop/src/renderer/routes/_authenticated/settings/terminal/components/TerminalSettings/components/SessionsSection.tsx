@@ -111,7 +111,7 @@ export function SessionsSection() {
 		onSuccess: () => {
 			toast.success("Daemon restarted", {
 				description:
-					"Terminal daemon has been restarted. Open a terminal to spawn a fresh daemon.",
+					"All sessions killed and daemon restarted. The app will use a fresh daemon.",
 			});
 			utils.terminal.listDaemonSessions.invalidate();
 		},
@@ -404,13 +404,11 @@ export function SessionsSection() {
 						<AlertDialogDescription asChild>
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
-									This will shut down the terminal daemon process and kill all
-									running sessions. Use this to fix terminals that are stuck or
-									unresponsive.
+									This will kill all running sessions and restart the terminal
+									daemon. The app will restart terminals with a fresh daemon.
 								</span>
 								<span className="block">
-									A fresh daemon will start automatically when you open a new
-									terminal.
+									Use this to fix terminals that are stuck or unresponsive.
 								</span>
 							</div>
 						</AlertDialogDescription>
