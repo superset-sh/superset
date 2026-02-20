@@ -62,7 +62,7 @@ function NewProjectPage() {
 
 	return (
 		<div className="flex flex-col h-full w-full relative overflow-hidden bg-background">
-			<div className="absolute top-4 left-4">
+			<div className="absolute top-4 left-4 z-10">
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/">
 						<HiArrowLeft className="size-4" />
