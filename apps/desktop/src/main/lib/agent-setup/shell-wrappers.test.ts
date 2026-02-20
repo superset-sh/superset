@@ -10,11 +10,17 @@ const TEST_ROOT = path.join(
 const TEST_BIN_DIR = path.join(TEST_ROOT, "bin");
 const TEST_ZSH_DIR = path.join(TEST_ROOT, "zsh");
 const TEST_BASH_DIR = path.join(TEST_ROOT, "bash");
+const TEST_HOOKS_DIR = path.join(TEST_ROOT, "hooks");
+const TEST_OPENCODE_CONFIG_DIR = path.join(TEST_HOOKS_DIR, "opencode");
+const TEST_OPENCODE_PLUGIN_DIR = path.join(TEST_OPENCODE_CONFIG_DIR, "plugin");
 
 mock.module("./paths", () => ({
-	BASH_DIR: TEST_BASH_DIR,
 	BIN_DIR: TEST_BIN_DIR,
+	HOOKS_DIR: TEST_HOOKS_DIR,
 	ZSH_DIR: TEST_ZSH_DIR,
+	BASH_DIR: TEST_BASH_DIR,
+	OPENCODE_CONFIG_DIR: TEST_OPENCODE_CONFIG_DIR,
+	OPENCODE_PLUGIN_DIR: TEST_OPENCODE_PLUGIN_DIR,
 }));
 
 const { createBashWrapper, createZshWrapper, getCommandShellArgs } =

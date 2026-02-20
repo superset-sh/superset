@@ -16,6 +16,8 @@ const TEST_ROOT = path.join(
 );
 const TEST_BIN_DIR = path.join(TEST_ROOT, "superset", "bin");
 const TEST_HOOKS_DIR = path.join(TEST_ROOT, "superset", "hooks");
+const TEST_ZSH_DIR = path.join(TEST_ROOT, "superset", "zsh");
+const TEST_BASH_DIR = path.join(TEST_ROOT, "superset", "bash");
 const TEST_OPENCODE_CONFIG_DIR = path.join(TEST_HOOKS_DIR, "opencode");
 const TEST_OPENCODE_PLUGIN_DIR = path.join(TEST_OPENCODE_CONFIG_DIR, "plugin");
 
@@ -23,15 +25,22 @@ mock.module("shared/env.shared", () => ({
 	env: {
 		DESKTOP_NOTIFICATIONS_PORT: 7777,
 	},
+	getWorkspaceName: () => undefined,
 }));
 
 mock.module("./notify-hook", () => ({
+	NOTIFY_SCRIPT_NAME: "notify.sh",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
+	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
+	createNotifyScript: () => {},
 }));
 
 mock.module("./paths", () => ({
 	BIN_DIR: TEST_BIN_DIR,
 	HOOKS_DIR: TEST_HOOKS_DIR,
+	ZSH_DIR: TEST_ZSH_DIR,
+	BASH_DIR: TEST_BASH_DIR,
 	OPENCODE_CONFIG_DIR: TEST_OPENCODE_CONFIG_DIR,
 	OPENCODE_PLUGIN_DIR: TEST_OPENCODE_PLUGIN_DIR,
 }));
