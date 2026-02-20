@@ -1,7 +1,12 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { HiOutlineArrowPath, HiOutlineCpuChip } from "react-icons/hi2";
+import {
+	HiOutlineArrowPath,
+	HiOutlineChevronDown,
+	HiOutlineChevronRight,
+	HiOutlineCpuChip,
+} from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
@@ -18,6 +23,9 @@ function formatCpu(percent: number): string {
 
 export function ResourceConsumption() {
 	const [open, setOpen] = useState(false);
+	const [collapsedWorkspaces, setCollapsedWorkspaces] = useState<Set<string>>(
+		new Set(),
+	);
 	const navigate = useNavigate();
 	const panes = useTabsStore((s) => s.panes);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -55,6 +63,18 @@ export function ResourceConsumption() {
 		}
 		navigate({ to: `/workspace/${workspaceId}` });
 		setOpen(false);
+	};
+
+	const toggleWorkspace = (workspaceId: string) => {
+		setCollapsedWorkspaces((prev) => {
+			const next = new Set(prev);
+			if (next.has(workspaceId)) {
+				next.delete(workspaceId);
+			} else {
+				next.add(workspaceId);
+			}
+			return next;
+		});
 	};
 
 	return (
@@ -101,55 +121,80 @@ export function ResourceConsumption() {
 					)}
 				</div>
 
-				<div className="max-h-64 overflow-y-auto">
+				<div className="max-h-[50vh] overflow-y-auto">
 					{snapshot && (
 						<div className="px-3 py-2 border-b border-border/50">
 							<div className="flex items-center justify-between">
 								<span className="text-xs font-medium">Superset App</span>
-								<span className="text-xs text-muted-foreground">
-									{formatMemory(snapshot.app.memory)}
-								</span>
+								<div className="flex items-center gap-3 text-xs text-muted-foreground">
+									<span>{formatCpu(snapshot.app.cpu)}</span>
+									<span>{formatMemory(snapshot.app.memory)}</span>
+								</div>
 							</div>
 						</div>
 					)}
 
-					{snapshot?.workspaces.map((ws) => (
-						<div
-							key={ws.workspaceId}
-							className="border-b border-border/50 last:border-b-0"
-						>
-							<button
-								type="button"
-								onClick={() => navigateToWorkspace(ws.workspaceId)}
-								className="w-full px-3 py-2 flex items-center justify-between hover:bg-muted/50 transition-colors"
+					{snapshot?.workspaces.map((ws) => {
+						const isCollapsed = collapsedWorkspaces.has(ws.workspaceId);
+						return (
+							<div
+								key={ws.workspaceId}
+								className="border-b border-border/50 last:border-b-0"
 							>
-								<span className="text-xs font-medium truncate max-w-40">
-									{ws.workspaceName}
-								</span>
-								<div className="flex items-center gap-3 text-xs text-muted-foreground">
-									<span>{formatCpu(ws.cpu)}</span>
-									<span>{formatMemory(ws.memory)}</span>
+								<div className="flex items-center">
+									{ws.sessions.length > 0 && (
+										<button
+											type="button"
+											onClick={() => toggleWorkspace(ws.workspaceId)}
+											className="pl-2 py-2 pr-0.5 hover:bg-muted/50 transition-colors"
+											aria-label={
+												isCollapsed ? "Expand workspace" : "Collapse workspace"
+											}
+										>
+											{isCollapsed ? (
+												<HiOutlineChevronRight className="h-3 w-3 text-muted-foreground" />
+											) : (
+												<HiOutlineChevronDown className="h-3 w-3 text-muted-foreground" />
+											)}
+										</button>
+									)}
+									<button
+										type="button"
+										onClick={() => navigateToWorkspace(ws.workspaceId)}
+										className={`flex-1 py-2 pr-3 flex items-center justify-between hover:bg-muted/50 transition-colors ${ws.sessions.length > 0 ? "pl-1" : "pl-3"}`}
+									>
+										<span className="text-xs font-medium truncate max-w-40">
+											{ws.workspaceName}
+										</span>
+										<div className="flex items-center gap-3 text-xs text-muted-foreground">
+											<span>{formatCpu(ws.cpu)}</span>
+											<span>{formatMemory(ws.memory)}</span>
+										</div>
+									</button>
 								</div>
-							</button>
 
-							{ws.sessions.map((session) => (
-								<button
-									type="button"
-									key={session.sessionId}
-									onClick={() => navigateToPane(ws.workspaceId, session.paneId)}
-									className="w-full px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30 hover:bg-muted/60 transition-colors"
-								>
-									<span className="text-[11px] text-muted-foreground truncate max-w-32">
-										{getPaneName(session.paneId)}
-									</span>
-									<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-										<span>{formatCpu(session.cpu)}</span>
-										<span>{formatMemory(session.memory)}</span>
-									</div>
-								</button>
-							))}
-						</div>
-					))}
+								{!isCollapsed &&
+									ws.sessions.map((session) => (
+										<button
+											type="button"
+											key={session.sessionId}
+											onClick={() =>
+												navigateToPane(ws.workspaceId, session.paneId)
+											}
+											className="w-full px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30 hover:bg-muted/60 transition-colors"
+										>
+											<span className="text-[11px] text-muted-foreground truncate max-w-32">
+												{getPaneName(session.paneId)}
+											</span>
+											<div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+												<span>{formatCpu(session.cpu)}</span>
+												<span>{formatMemory(session.memory)}</span>
+											</div>
+										</button>
+									))}
+							</div>
+						);
+					})}
 
 					{snapshot && snapshot.workspaces.length === 0 && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">

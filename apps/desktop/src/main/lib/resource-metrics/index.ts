@@ -1,5 +1,6 @@
 import { workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
+import { app } from "electron";
 import { localDb } from "main/lib/local-db";
 import { getProcessTree } from "main/lib/terminal/port-scanner";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime/registry";
@@ -77,12 +78,17 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		}
 	}
 
-	const cpuUsage = process.cpuUsage();
-	const memUsage = process.memoryUsage();
+	const electronMetrics = app.getAppMetrics();
+	let appCpu = 0;
+	let appMemory = 0;
+	for (const proc of electronMetrics) {
+		appCpu += proc.cpu.percentCPUUsage;
+		// workingSetSize is in KB
+		appMemory += proc.memory.workingSetSize * 1024;
+	}
 	const appMetrics: ProcessMetrics = {
-		// cpuUsage returns cumulative microseconds; convert to seconds as a rough proxy
-		cpu: (cpuUsage.user + cpuUsage.system) / 1_000_000,
-		memory: memUsage.rss,
+		cpu: appCpu,
+		memory: appMemory,
 	};
 
 	const sessionAggregated = new Map<string, { cpu: number; memory: number }>();
