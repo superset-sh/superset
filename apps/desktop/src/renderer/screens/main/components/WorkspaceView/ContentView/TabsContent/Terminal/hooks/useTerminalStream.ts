@@ -99,7 +99,7 @@ export function useTerminalStream({
 				event.code === "WRITE_FAILED" &&
 				event.error?.includes("Session not found")
 			) {
-				setConnectionError("Session lost - click to reconnect");
+				setConnectionError("Session lost");
 				return;
 			}
 

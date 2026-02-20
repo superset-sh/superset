@@ -83,9 +83,6 @@ export function useTerminalColdRestore({
 		isStreamReadyRef.current = false;
 		pendingInitialStateRef.current = null;
 
-		xterm.clear();
-		xterm.writeln("Retrying connection...\r\n");
-
 		createOrAttachRef.current(
 			{
 				paneId,
@@ -100,6 +97,7 @@ export function useTerminalColdRestore({
 					if (!currentXterm) return;
 
 					setConnectionError(null);
+					currentXterm.writeln("\x1b[90m[Reconnected]\x1b[0m");
 
 					if (result.isColdRestore) {
 						const scrollback =
