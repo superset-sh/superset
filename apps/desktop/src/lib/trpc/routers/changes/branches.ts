@@ -105,6 +105,7 @@ export const createBranchesRouter = () => {
 					.update(worktrees)
 					.set({
 						branch: input.branch,
+						baseBranch: null,
 						gitStatus,
 					})
 					.where(eq(worktrees.path, input.worktreePath))
