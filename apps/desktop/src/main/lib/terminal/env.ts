@@ -1,8 +1,11 @@
 import { execSync } from "node:child_process";
+import fs from "node:fs";
 import os from "node:os";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
+
+const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 
 /**
  * Current hook protocol version.
@@ -378,6 +381,16 @@ export function buildTerminalEnv(params: {
 	};
 
 	delete terminalEnv.GOOGLE_API_KEY;
+
+	// Electron child processes can't access macOS Keychain for TLS cert verification,
+	// causing "x509: OSStatus -26276" in Go binaries like `gh`. File-based fallback.
+	if (
+		os.platform() === "darwin" &&
+		!terminalEnv.SSL_CERT_FILE &&
+		fs.existsSync(MACOS_SYSTEM_CERT_FILE)
+	) {
+		terminalEnv.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+	}
 
 	return terminalEnv;
 }
