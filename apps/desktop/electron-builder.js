@@ -1,0 +1,149 @@
+/**
+ * Electron Builder Configuration
+ * @see https://www.electron.build/configuration/configuration
+ */
+
+const { join } = require("node:path");
+const pkg = require("./package.json");
+
+const currentYear = new Date().getFullYear();
+const author = pkg.author?.name ?? pkg.author;
+const productName = pkg.productName;
+
+/** @type {import('electron-builder').Configuration} */
+const config = {
+	appId: "com.superset.desktop",
+	productName,
+	copyright: `Copyright © ${currentYear} — ${author}`,
+	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
+
+	// Generate latest-mac.yml for auto-update (workflow handles actual upload)
+	publish: {
+		provider: "github",
+		owner: "superset-sh",
+		repo: "superset",
+	},
+
+	// Directories
+	directories: {
+		output: "release",
+		buildResources: join(pkg.resources, "build"),
+	},
+
+	// ASAR configuration for native modules and external resources
+	asar: true,
+	asarUnpack: [
+		"**/node_modules/better-sqlite3/**/*",
+		// better-sqlite3 uses `bindings` to locate native modules - must be unpacked together
+		"**/node_modules/bindings/**/*",
+		"**/node_modules/file-uri-to-path/**/*",
+		"**/node_modules/node-pty/**/*",
+		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
+		"**/resources/sounds/**/*",
+	],
+
+	// Extra resources placed outside asar archive (accessible via process.resourcesPath)
+	extraResources: [
+		// Database migrations - must be outside asar for drizzle-orm to read
+		{
+			from: "dist/resources/migrations",
+			to: "resources/migrations",
+			filter: ["**/*"],
+		},
+	],
+
+	files: [
+		"dist/**/*",
+		"package.json",
+		{
+			from: pkg.resources,
+			to: "resources",
+			filter: ["**/*"],
+		},
+		// Native modules that can't be bundled by Vite.
+		// bun creates symlinks for direct deps in workspace node_modules.
+		// The copy:native-modules script replaces symlinks with real files
+		// before building (required for Bun 1.3+ isolated installs).
+		{
+			from: "node_modules/better-sqlite3",
+			to: "node_modules/better-sqlite3",
+			filter: ["**/*"],
+		},
+		// better-sqlite3 uses `bindings` package to locate its native .node file
+		{
+			from: "node_modules/bindings",
+			to: "node_modules/bindings",
+			filter: ["**/*"],
+		},
+		// `bindings` requires `file-uri-to-path` for file:// URL handling
+		{
+			from: "node_modules/file-uri-to-path",
+			to: "node_modules/file-uri-to-path",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/node-pty",
+			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
+		"!**/.DS_Store",
+	],
+
+	// Rebuild native modules for Electron's Node.js version
+	// Disabled on Windows - native modules already copied by copy-native-modules script
+	npmRebuild: false,
+
+	// macOS
+	mac: {
+		icon: join(pkg.resources, "build/icons/icon.icns"),
+		category: "public.app-category.utilities",
+		target: [
+			{
+				target: "default",
+				arch: ["arm64"],
+			},
+		],
+		hardenedRuntime: true,
+		gatekeeperAssess: false,
+		notarize: true,
+		extendInfo: {
+			CFBundleName: productName,
+			CFBundleDisplayName: productName,
+		},
+	},
+
+	// Deep linking protocol
+	protocols: {
+		name: productName,
+		schemes: ["superset"],
+	},
+
+	// Linux
+	linux: {
+		icon: join(pkg.resources, "build/icons"),
+		category: "Utility",
+		synopsis: pkg.description,
+		target: ["AppImage", "deb"],
+		artifactName: `superset-\${version}-\${arch}.\${ext}`,
+	},
+
+	// Windows
+	win: {
+		icon: join(pkg.resources, "build/icons/icon.ico"),
+		target: [
+			{
+				target: "nsis",
+				arch: ["x64"],
+			},
+		],
+		artifactName: `${productName}-${pkg.version}-\${arch}.\${ext}`,
+	},
+
+	// NSIS installer (Windows)
+	nsis: {
+		oneClick: false,
+		allowToChangeInstallationDirectory: true,
+	},
+};
+
+module.exports = config;
