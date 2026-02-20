@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import {
+	LuBellOff,
 	LuCopy,
 	LuEye,
 	LuEyeOff,
@@ -97,6 +98,7 @@ export function WorkspaceListItem({
 	const clearWorkspaceAttentionStatus = useTabsStore(
 		(s) => s.clearWorkspaceAttentionStatus,
 	);
+	const resetWorkspaceStatus = useTabsStore((s) => s.resetWorkspaceStatus);
 	const utils = electronTrpc.useUtils();
 
 	const isActive = !!matchRoute({
@@ -502,6 +504,12 @@ export function WorkspaceListItem({
 			</ContextMenuItem>
 			<ContextMenuSeparator />
 			{unreadMenuItem}
+			{workspaceStatus && (
+				<ContextMenuItem onSelect={() => resetWorkspaceStatus(id)}>
+					<LuBellOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+					Clear Status
+				</ContextMenuItem>
+			)}
 		</>
 	);
 
