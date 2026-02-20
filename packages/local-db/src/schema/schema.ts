@@ -39,6 +39,7 @@ export const projects = sqliteTable(
 		githubOwner: text("github_owner"),
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		worktreeBaseDir: text("worktree_base_dir"),
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
@@ -171,6 +172,7 @@ export const settings = sqliteTable("settings", {
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
+	worktreeBaseDir: text("worktree_base_dir"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

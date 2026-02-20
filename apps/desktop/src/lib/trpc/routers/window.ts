@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
+import { z } from "zod";
 import { publicProcedure, router } from "..";
 
 /**
@@ -52,6 +53,34 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 		getHomeDir: publicProcedure.query(() => {
 			return homedir();
 		}),
+
+		selectDirectory: publicProcedure
+			.input(
+				z
+					.object({
+						title: z.string().optional(),
+						defaultPath: z.string().optional(),
+					})
+					.optional(),
+			)
+			.mutation(async ({ input }) => {
+				const window = getWindow();
+				if (!window) {
+					return { canceled: true, path: null };
+				}
+
+				const result = await dialog.showOpenDialog(window, {
+					properties: ["openDirectory", "createDirectory"],
+					title: input?.title ?? "Select Directory",
+					defaultPath: input?.defaultPath ?? undefined,
+				});
+
+				if (result.canceled || result.filePaths.length === 0) {
+					return { canceled: true, path: null };
+				}
+
+				return { canceled: false, path: result.filePaths[0] };
+			}),
 
 		selectImageFile: publicProcedure.mutation(async () => {
 			const window = getWindow();

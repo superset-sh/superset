@@ -1,11 +1,8 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
 import { projects, settings, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
-import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
@@ -39,6 +36,7 @@ import {
 	sanitizeBranchName,
 	worktreeExists,
 } from "../utils/git";
+import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
@@ -207,13 +205,7 @@ async function handleNewWorktree({
 		prInfo,
 	});
 
-	const worktreePath = join(
-		homedir(),
-		SUPERSET_DIR_NAME,
-		WORKTREES_DIR_NAME,
-		project.name,
-		localBranchName,
-	);
+	const worktreePath = resolveWorktreePath(project, localBranchName);
 
 	await createWorktreeFromPr({
 		mainRepoPath: project.mainRepoPath,
@@ -437,13 +429,7 @@ export const createCreateProcedures = () => {
 					}
 				}
 
-				const worktreePath = join(
-					homedir(),
-					SUPERSET_DIR_NAME,
-					WORKTREES_DIR_NAME,
-					project.name,
-					branch,
-				);
+				const worktreePath = resolveWorktreePath(project, branch);
 
 				const targetBranch = resolveWorkspaceBaseBranch({
 					explicitBaseBranch: input.baseBranch,

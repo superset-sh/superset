@@ -621,6 +621,26 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		getWorktreeBaseDir: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.worktreeBaseDir ?? null;
+		}),
+
+		setWorktreeBaseDir: publicProcedure
+			.input(z.object({ path: z.string().nullable() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, worktreeBaseDir: input.path })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { worktreeBaseDir: input.path },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		// TODO: remove telemetry procedures once telemetry_enabled column is dropped
 		getTelemetryEnabled: publicProcedure.query(() => {
 			return true;

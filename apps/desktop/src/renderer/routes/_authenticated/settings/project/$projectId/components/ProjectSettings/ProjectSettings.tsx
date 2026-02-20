@@ -12,7 +12,11 @@ import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiOutlineCog6Tooth, HiOutlinePaintBrush } from "react-icons/hi2";
+import {
+	HiOutlineCog6Tooth,
+	HiOutlineFolderOpen,
+	HiOutlinePaintBrush,
+} from "react-icons/hi2";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -21,6 +25,10 @@ import {
 } from "shared/constants/project-colors";
 import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
 import { ClickablePath } from "../../../../components/ClickablePath";
+import {
+	useDefaultWorktreePath,
+	WorktreeLocationPicker,
+} from "../../../../components/WorktreeLocationPicker";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
@@ -171,6 +179,11 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 		});
 	};
 
+	const { data: globalWorktreeBaseDir } =
+		electronTrpc.settings.getWorktreeBaseDir.useQuery();
+	const defaultWorktreePath = useDefaultWorktreePath();
+	const globalPath = globalWorktreeBaseDir ?? defaultWorktreePath;
+
 	const getPreviewPrefix = (
 		mode: BranchPrefixMode | "default",
 	): string | null => {
@@ -319,6 +332,32 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 							workspaces will fall back to "{repoDefaultBranch}".
 						</p>
 					)}
+				</SettingsSection>
+
+				<SettingsSection
+					icon={<HiOutlineFolderOpen className="h-4 w-4" />}
+					title="Worktree Location"
+					description="Override the global worktree directory for this project."
+				>
+					<WorktreeLocationPicker
+						currentPath={project.worktreeBaseDir}
+						defaultPathLabel={`Using global default: ${globalPath}`}
+						dialogTitle="Select worktree location for this project"
+						defaultBrowsePath={project.worktreeBaseDir ?? globalWorktreeBaseDir}
+						disabled={updateProject.isPending}
+						onSelect={(path) =>
+							updateProject.mutate({
+								id: projectId,
+								patch: { worktreeBaseDir: path },
+							})
+						}
+						onReset={() =>
+							updateProject.mutate({
+								id: projectId,
+								patch: { worktreeBaseDir: null },
+							})
+						}
+					/>
 				</SettingsSection>
 
 				<div className="pt-3 border-t">
