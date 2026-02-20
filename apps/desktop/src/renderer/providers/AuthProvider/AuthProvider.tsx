@@ -1,6 +1,6 @@
-import { Spinner } from "@superset/ui/spinner";
 import { type ReactNode, useEffect, useState } from "react";
 import { authClient, setAuthToken } from "renderer/lib/auth-client";
+import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	if (!isHydrated) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<Spinner className="size-8" />
+				<SupersetLogo className="h-8 w-auto animate-pulse opacity-80" />
 			</div>
 		);
 	}
