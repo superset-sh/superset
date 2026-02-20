@@ -1,6 +1,7 @@
 import { promises as fs, constants as fsConstants } from "node:fs";
 import path from "node:path";
 import {
+	buildCopilotWrapperExecLine,
 	buildWrapperScript,
 	COPILOT_HOOK_MARKER,
 	CURSOR_HOOK_MARKER,
@@ -192,7 +193,7 @@ export function ensureAgentHooks(): Promise<void> {
 			},
 			{
 				binaryName: "copilot",
-				content: buildWrapperScript("copilot", `exec "$REAL_BIN" "$@"`),
+				content: buildWrapperScript("copilot", buildCopilotWrapperExecLine()),
 			},
 		];
 

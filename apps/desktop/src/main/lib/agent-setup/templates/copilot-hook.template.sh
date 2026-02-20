@@ -5,16 +5,13 @@
 #         postToolUse → Start, preToolUse → PermissionRequest
 # Copilot CLI hooks receive JSON via stdin and MUST output valid JSON to stdout
 
-# Read JSON from stdin
-INPUT=$(cat)
+# Drain stdin — Copilot pipes JSON context that we don't need, but we must
+# consume it to prevent broken-pipe errors from blocking the agent
+cat > /dev/null 2>&1
 
-# Extract hook event name from the Copilot CLI JSON payload
-# The event name is passed as the hook key, but we infer it from the
-# "hook_name" or context. We receive it as the first argument from our
-# hooks.json configuration (passed via the bash command).
+# Event name is passed as $1 from our hooks.json bash command
 EVENT_TYPE="$1"
 
-# Map Copilot CLI event names to Superset event types
 case "$EVENT_TYPE" in
   sessionStart)         EVENT_TYPE="Start" ;;
   sessionEnd)           EVENT_TYPE="Stop" ;;
@@ -22,16 +19,14 @@ case "$EVENT_TYPE" in
   postToolUse)          EVENT_TYPE="Start" ;;
   preToolUse)           EVENT_TYPE="PermissionRequest" ;;
   *)
-    # Unknown event — output required JSON and exit
     printf '{}\n'
     exit 0
     ;;
 esac
 
-# Output required JSON response immediately to avoid blocking the agent
+# Must output valid JSON to avoid blocking the agent
 printf '{}\n'
 
-# Skip notification if not inside a Superset terminal
 [ -z "$SUPERSET_TAB_ID" ] && exit 0
 
 curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
