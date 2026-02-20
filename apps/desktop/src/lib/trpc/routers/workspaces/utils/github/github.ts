@@ -85,8 +85,14 @@ const PR_JSON_FIELDS =
 async function getPRForBranch(
 	worktreePath: string,
 ): Promise<GitHubStatus["pr"]> {
+	// Try branch tracking first (fast, works for `gh pr checkout` forks),
+	// then fall back to explicit head-branch lookup.
 	const branchResult = await getPRByBranchTracking(worktreePath);
-	return branchResult ?? null;
+	if (branchResult !== undefined) {
+		return branchResult;
+	}
+
+	return findPRByHeadBranch(worktreePath);
 }
 
 /**
@@ -123,6 +129,55 @@ async function getPRByBranchTracking(
 			return undefined;
 		}
 		throw error;
+	}
+}
+
+/**
+ * Finds a PR by explicitly searching for the current branch name as the head ref.
+ * Covers cases where `gh pr view` (no args) fails to match.
+ */
+async function findPRByHeadBranch(
+	worktreePath: string,
+): Promise<GitHubStatus["pr"]> {
+	try {
+		const { stdout: branchOutput } = await execFileAsync(
+			"git",
+			["-C", worktreePath, "rev-parse", "--abbrev-ref", "HEAD"],
+			{ timeout: 10_000 },
+		);
+		const branchName = branchOutput.trim();
+
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"list",
+				"--head",
+				branchName,
+				"--json",
+				PR_JSON_FIELDS,
+				"--jq",
+				".[0]",
+			],
+			{ cwd: worktreePath },
+		);
+
+		if (!stdout.trim()) {
+			return null;
+		}
+
+		const data = parsePRResponse(stdout);
+		if (!data) {
+			return null;
+		}
+
+		if (!(await sharesAncestry(worktreePath, data.headRefOid))) {
+			return null;
+		}
+
+		return formatPRData(data);
+	} catch {
+		return null;
 	}
 }
 
