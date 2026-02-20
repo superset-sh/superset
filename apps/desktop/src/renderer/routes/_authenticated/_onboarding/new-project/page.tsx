@@ -6,7 +6,6 @@ import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
 import { CloneRepoTab } from "./components/CloneRepoTab";
 import { EmptyRepoTab } from "./components/EmptyRepoTab";
 import { PathSelector } from "./components/PathSelector";
-import { TemplateRepoTab } from "./components/TemplateRepoTab";
 import type { NewProjectMode } from "./constants";
 
 export const Route = createFileRoute(
@@ -18,7 +17,6 @@ export const Route = createFileRoute(
 const TABS: { mode: NewProjectMode; label: string }[] = [
 	{ mode: "empty", label: "Empty" },
 	{ mode: "clone", label: "Clone" },
-	{ mode: "template", label: "Template" },
 ];
 
 function NewProjectPage() {
@@ -83,9 +81,6 @@ function NewProjectPage() {
 						)}
 						{mode === "clone" && (
 							<CloneRepoTab onError={setError} parentDir={parentDir} />
-						)}
-						{mode === "template" && (
-							<TemplateRepoTab onError={setError} parentDir={parentDir} />
 						)}
 					</div>
 

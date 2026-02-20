@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { access, mkdir, rm } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
 	BRANCH_PREFIX_MODES,
@@ -62,10 +62,7 @@ type OpenNewMultiResult =
 	| { canceled: false; multi: true; results: FolderOutcome[] }
 	| OpenNewError;
 
-async function initGitRepo(
-	path: string,
-	options?: { stageAll?: boolean; commitMessage?: string },
-): Promise<{ defaultBranch: string }> {
+async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 	const git = simpleGit(path);
 
 	try {
@@ -75,15 +72,8 @@ async function initGitRepo(
 		await git.init();
 	}
 
-	const message = options?.commitMessage ?? "Initial commit";
-
 	try {
-		if (options?.stageAll) {
-			await git.add(".");
-			await git.commit(message);
-		} else {
-			await git.raw(["commit", "--allow-empty", "-m", message]);
-		}
+		await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
 	} catch (err) {
 		const errorMessage = err instanceof Error ? err.message : String(err);
 		// Check for common git config issues
@@ -869,90 +859,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						canceled: false as const,
 						success: false as const,
 						error: `Failed to create repository: ${errorMessage}`,
-					};
-				}
-			}),
-
-		createFromTemplate: publicProcedure
-			.input(
-				z.object({
-					templateUrl: z
-						.string()
-						.min(1)
-						.refine(
-							(val) => {
-								try {
-									const parsed = new URL(val);
-									return ALLOWED_URL_PROTOCOLS.has(parsed.protocol);
-								} catch {
-									return SSH_GIT_URL_REGEX.test(val);
-								}
-							},
-							{ message: "Must be a valid Git URL (HTTPS or SSH)" },
-						),
-					name: z
-						.string()
-						.trim()
-						.optional()
-						.transform((v) => (v && v.length > 0 ? v : undefined)),
-					parentDir: z.string().min(1),
-				}),
-			)
-			.mutation(async ({ input }) => {
-				try {
-					const repoName = input.name ?? extractRepoName(input.templateUrl);
-					if (!repoName) {
-						return {
-							canceled: false as const,
-							success: false as const,
-							error:
-								"Could not determine project name from template URL. Please provide a name.",
-						};
-					}
-
-					const repoPath = join(input.parentDir, repoName);
-
-					if (existsSync(repoPath)) {
-						return {
-							canceled: false as const,
-							success: false as const,
-							error: `A folder named "${repoName}" already exists at this location.`,
-						};
-					}
-
-					const git = simpleGit();
-					await git.clone(input.templateUrl, repoPath, ["--depth", "1"]);
-
-					await rm(join(repoPath, ".git"), {
-						recursive: true,
-						force: true,
-					});
-
-					const { defaultBranch } = await initGitRepo(repoPath, {
-						stageAll: true,
-						commitMessage: `Initial commit from template`,
-					});
-
-					const project = upsertProject(repoPath, defaultBranch);
-					await ensureMainWorkspace(project);
-
-					track("project_opened", {
-						project_id: project.id,
-						method: "create_from_template",
-					});
-
-					return {
-						canceled: false as const,
-						success: true as const,
-						project,
-					};
-				} catch (error) {
-					const errorMessage =
-						error instanceof Error ? error.message : String(error);
-					return {
-						canceled: false as const,
-						success: false as const,
-						error: `Failed to create from template: ${errorMessage}`,
 					};
 				}
 			}),

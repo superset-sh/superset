@@ -6,6 +6,31 @@ import { BASH_DIR, BIN_DIR, ZSH_DIR } from "./paths";
 const ZSH_RC = path.join(ZSH_DIR, ".zshrc");
 const BASH_RCFILE = path.join(BASH_DIR, "rcfile");
 
+/** Agent binaries that get wrapper shims to guarantee resolution. */
+const SHIMMED_BINARIES = ["claude", "codex", "opencode", "gemini", "copilot"];
+
+/**
+ * Shell function shims that override PATH-based lookup.
+ * Functions take precedence over PATH in both zsh and bash,
+ * so even if a precmd hook or .zlogin re-orders PATH, the
+ * wrapped binary is always invoked.
+ */
+function buildShimFunctions(): string {
+	return SHIMMED_BINARIES.map(
+		(name) => `${name}() { "${BIN_DIR}/${name}" "$@"; }`,
+	).join("\n");
+}
+
+function buildPathPrependFunction(): string {
+	return `_superset_prepend_bin() {
+  case ":$PATH:" in
+    *:"${BIN_DIR}":*) ;;
+    *) export PATH="${BIN_DIR}:$PATH" ;;
+  esac
+}
+_superset_prepend_bin`;
+}
+
 export function createZshWrapper(): void {
 	// .zprofile must NOT reset ZDOTDIR — our .zshrc needs to run after it
 	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
@@ -21,9 +46,32 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
-export PATH="${BIN_DIR}:$PATH"
+${buildPathPrependFunction()}
+${buildShimFunctions()}
+rehash 2>/dev/null || true
+# Restore ZDOTDIR so our .zlogin runs after user's .zlogin
+export ZDOTDIR="${ZSH_DIR}"
 `;
 	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
+
+	// .zlogin runs AFTER .zshrc in login shells. By restoring ZDOTDIR above,
+	// zsh sources our .zlogin instead of the user's directly. We source the
+	// user's .zlogin only for interactive shells, then re-apply command shims
+	// and prepend BIN_DIR so tools like mise, nvm, or PATH exports in .zlogin
+	// can't shadow our wrappers.
+	const zloginPath = path.join(ZSH_DIR, ".zlogin");
+	const zloginScript = `# Superset zsh login wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+if [[ -o interactive ]]; then
+  [[ -f "$_superset_home/.zlogin" ]] && source "$_superset_home/.zlogin"
+fi
+${buildPathPrependFunction()}
+${buildShimFunctions()}
+rehash 2>/dev/null || true
+export ZDOTDIR="$_superset_home"
+`;
+	fs.writeFileSync(zloginPath, zloginScript, { mode: 0o644 });
+
 	console.log("[agent-setup] Created zsh wrapper");
 }
 
@@ -46,8 +94,10 @@ fi
 # Source bashrc if separate
 [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
 
-# Prepend superset bin to PATH
-export PATH="${BIN_DIR}:$PATH"
+# Keep superset bin first without duplicating entries
+${buildPathPrependFunction()}
+${buildShimFunctions()}
+hash -r 2>/dev/null || true
 # Minimal prompt (path/env shown in toolbar) - emerald to match app theme
 export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;

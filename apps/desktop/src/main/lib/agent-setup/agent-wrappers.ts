@@ -505,10 +505,10 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "${hookScriptPath}" ]; then
   COPILOT_HOOKS_DIR=".github/hooks"
   COPILOT_HOOK_FILE="$COPILOT_HOOKS_DIR/superset-notify.json"
 
-  if [ ! -f "$COPILOT_HOOK_FILE" ] || ! grep -q "superset" "$COPILOT_HOOK_FILE" 2>/dev/null; then
-    mkdir -p "$COPILOT_HOOKS_DIR" 2>/dev/null
-    printf '%s\\n' '${escapedJson}' > "$COPILOT_HOOK_FILE" 2>/dev/null
-  fi
+  # Always refresh our dedicated hook file so stale absolute hook paths from
+  # older installs/workspaces cannot silently break notifications.
+  mkdir -p "$COPILOT_HOOKS_DIR" 2>/dev/null
+  printf '%s\\n' '${escapedJson}' > "$COPILOT_HOOK_FILE" 2>/dev/null
 
   if [ -d ".git/info" ]; then
     grep -qF ".github/hooks/superset-notify.json" ".git/info/exclude" 2>/dev/null || \\
