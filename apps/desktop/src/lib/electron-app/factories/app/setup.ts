@@ -5,6 +5,7 @@ import {
 	REACT_DEVELOPER_TOOLS,
 } from "electron-extension-installer";
 import { env } from "main/env.main";
+import { exitTrayOnlyMode, getIsTrayOnlyMode } from "main/lib/tray-only-mode";
 import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
@@ -42,6 +43,10 @@ export async function makeAppSetup(
 	}
 
 	app.on("activate", async () => {
+		if (getIsTrayOnlyMode()) {
+			exitTrayOnlyMode();
+		}
+
 		const windows = BrowserWindow.getAllWindows();
 
 		if (!windows.length) {
@@ -64,7 +69,10 @@ export async function makeAppSetup(
 		});
 	});
 
-	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
+	app.on("window-all-closed", () => {
+		if (getIsTrayOnlyMode()) return;
+		if (!PLATFORM.IS_MAC) app.quit();
+	});
 	app.on("before-quit", () => {});
 
 	return window;

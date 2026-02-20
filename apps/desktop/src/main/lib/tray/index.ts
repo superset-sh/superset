@@ -19,6 +19,11 @@ import {
 } from "main/lib/terminal";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
+import {
+	exitTrayOnlyMode,
+	getIsTrayOnlyMode,
+	setSkipQuitConfirmation,
+} from "main/lib/tray-only-mode";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -86,6 +91,11 @@ function createTrayIcon(): Electron.NativeImage | null {
 }
 
 function showWindow(): void {
+	if (getIsTrayOnlyMode()) {
+		exitTrayOnlyMode();
+		unrefTrayPollInterval();
+	}
+
 	const windows = BrowserWindow.getAllWindows();
 
 	if (windows.length > 0) {
@@ -114,21 +124,6 @@ function openTerminalSettings(): void {
 function openSessionInSuperset(workspaceId: string): void {
 	showWindow();
 	menuEmitter.emit("open-workspace", workspaceId);
-}
-
-async function killAllSessions(): Promise<void> {
-	try {
-		const client = getTerminalHostClient();
-		const connected = await client.tryConnectAndAuthenticate();
-		if (connected) {
-			await client.killAll({});
-			console.log("[Tray] Killed all daemon sessions");
-		}
-	} catch (error) {
-		console.error("[Tray] Failed to kill sessions:", error);
-	}
-
-	await updateTrayMenu();
 }
 
 async function killSession(paneId: string): Promise<void> {
@@ -213,12 +208,6 @@ function buildSessionsSubmenu(
 
 			isFirst = false;
 		}
-
-		menuItems.push({ type: "separator" });
-		menuItems.push({
-			label: "Kill All Sessions",
-			click: killAllSessions,
-		});
 	}
 
 	menuItems.push({ type: "separator" });
@@ -226,32 +215,45 @@ function buildSessionsSubmenu(
 		label: "Terminal Settings",
 		click: openTerminalSettings,
 	});
-	menuItems.push({
-		label: "Restart Daemon",
-		click: restartDaemon,
-	});
 
 	return menuItems;
 }
 
-async function restartDaemon(): Promise<void> {
+async function quitApp(): Promise<void> {
+	const { sessions } = await tryListExistingDaemonSessions();
+	const hasActiveSessions = sessions.some((s) => s.isAlive);
+
+	if (!hasActiveSessions) {
+		forceQuit();
+		return;
+	}
+
 	const { response } = await dialog.showMessageBox({
-		type: "warning",
-		buttons: ["Cancel", "Restart Daemon"],
-		defaultId: 0,
+		type: "question",
+		buttons: ["Cancel", "Keep Sessions", "Kill Sessions"],
+		defaultId: 1,
 		cancelId: 0,
-		title: "Restart Terminal Daemon?",
-		message: "Restart Terminal Daemon?",
+		title: "Quit Superset?",
+		message: "Quit Superset?",
 		detail:
-			"This will kill all running sessions and restart the terminal daemon. The app will restart terminals with a fresh daemon.\n\nUse this to fix terminals that are stuck or unresponsive.",
+			"Keep sessions running in the background, or kill all sessions and shut down the daemon?",
 	});
 
 	if (response === 0) {
 		return;
 	}
 
-	await restartDaemonShared();
-	await updateTrayMenu();
+	if (response === 2) {
+		await restartDaemonShared();
+	}
+
+	forceQuit();
+}
+
+/** Quit without triggering the before-quit tray-only mode logic */
+function forceQuit(): void {
+	setSkipQuitConfirmation();
+	app.quit();
 }
 
 async function updateTrayMenu(): Promise<void> {
@@ -282,7 +284,7 @@ async function updateTrayMenu(): Promise<void> {
 		},
 		{
 			label: "Quit",
-			click: () => app.quit(),
+			click: quitApp,
 		},
 	]);
 
@@ -326,6 +328,14 @@ export function initTray(): void {
 	} catch (error) {
 		console.error("[Tray] Failed to initialize:", error);
 	}
+}
+
+export function refTrayPollInterval(): void {
+	pollIntervalId?.ref();
+}
+
+export function unrefTrayPollInterval(): void {
+	pollIntervalId?.unref();
 }
 
 /** Call on app quit */
