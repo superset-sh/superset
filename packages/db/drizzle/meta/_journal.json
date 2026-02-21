@@ -155,6 +155,13 @@
       "when": 1771473303728,
       "tag": "0021_add_workspace_id_to_chat_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1771638261134,
+      "tag": "0022_workspace_id_uuid_to_text",
+      "breakpoints": true
     }
   ]
 }

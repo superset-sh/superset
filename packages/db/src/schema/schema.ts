@@ -427,7 +427,9 @@ export type SelectSandboxImage = typeof sandboxImages.$inferSelect;
 export const workspaces = pgTable(
 	"workspaces",
 	{
-		id: uuid().primaryKey().defaultRandom(),
+		id: text()
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
@@ -466,7 +468,7 @@ export const chatSessions = pgTable(
 		createdBy: uuid("created_by")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
-		workspaceId: uuid("workspace_id").references(() => workspaces.id, {
+		workspaceId: text("workspace_id").references(() => workspaces.id, {
 			onDelete: "set null",
 		}),
 		title: text(),

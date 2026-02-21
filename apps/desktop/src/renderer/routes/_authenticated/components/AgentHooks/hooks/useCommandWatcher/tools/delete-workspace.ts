@@ -8,7 +8,7 @@ import type {
 import { buildBulkResult } from "./types";
 
 const schema = z.object({
-	workspaceIds: z.array(z.string().uuid()).min(1).max(5),
+	workspaceIds: z.array(z.string().min(1)).min(1).max(5),
 });
 
 interface DeletedWorkspace {

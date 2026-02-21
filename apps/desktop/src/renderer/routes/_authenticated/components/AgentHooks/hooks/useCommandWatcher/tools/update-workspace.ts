@@ -8,7 +8,7 @@ import type {
 import { buildBulkResult } from "./types";
 
 const workspaceUpdateSchema = z.object({
-	workspaceId: z.string().uuid(),
+	workspaceId: z.string().min(1),
 	name: z.string().min(1),
 });
 

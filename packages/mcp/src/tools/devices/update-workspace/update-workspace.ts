@@ -3,7 +3,7 @@ import { z } from "zod";
 import { executeOnDevice, getMcpContext } from "../../utils";
 
 const workspaceUpdateSchema = z.object({
-	workspaceId: z.string().uuid().describe("Workspace ID to update"),
+	workspaceId: z.string().min(1).describe("Workspace ID to update"),
 	name: z.string().min(1).describe("New workspace name"),
 });
 

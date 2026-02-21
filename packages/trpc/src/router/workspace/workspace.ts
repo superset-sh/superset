@@ -27,7 +27,7 @@ export const workspaceRouter = {
 					defaultBranch: z.string().default("main"),
 				}),
 				workspace: z.object({
-					id: z.string().uuid(),
+					id: z.string().min(1),
 					name: z.string().min(1),
 					type: workspaceTypeEnum,
 					config: workspaceConfigSchema,
@@ -129,7 +129,7 @@ export const workspaceRouter = {
 
 	delete: protectedProcedure
 		.input(
-			z.object({ id: z.string().uuid(), organizationId: z.string().uuid() }),
+			z.object({ id: z.string().min(1), organizationId: z.string().uuid() }),
 		)
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
