@@ -174,6 +174,7 @@ export const settings = sqliteTable("settings", {
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
+	defaultEditor: text("default_editor").$type<ExternalApp>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

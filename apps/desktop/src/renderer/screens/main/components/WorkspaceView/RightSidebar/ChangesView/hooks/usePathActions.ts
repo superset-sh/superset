@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
@@ -17,10 +18,20 @@ export function usePathActions({
 	projectId,
 }: UsePathActionsProps) {
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
-	const openInAppMutation = electronTrpc.external.openInApp.useMutation();
+	const openInAppMutation = electronTrpc.external.openInApp.useMutation({
+		onError: (error) =>
+			toast.error("Failed to open in app", {
+				description: error.message,
+			}),
+	});
 	const openFileInEditorMutation =
-		electronTrpc.external.openFileInEditor.useMutation();
-	const { data: defaultApp = "cursor" } =
+		electronTrpc.external.openFileInEditor.useMutation({
+			onError: (error) =>
+				toast.error("Failed to open in editor", {
+					description: error.message,
+				}),
+		});
+	const { data: defaultApp } =
 		electronTrpc.projects.getDefaultApp.useQuery(
 			{ projectId: projectId as string },
 			{ enabled: !!projectId },
@@ -49,11 +60,16 @@ export function usePathActions({
 
 		if (cwd) {
 			openFileInEditorMutation.mutate({ path: absolutePath, cwd, projectId });
-		} else {
+		} else if (defaultApp) {
 			openInAppMutation.mutate({
 				path: absolutePath,
 				app: defaultApp,
 				projectId,
+			});
+		} else {
+			toast.error("No default editor configured", {
+				description:
+					"Open a project in an editor first to set a default.",
 			});
 		}
 	}, [

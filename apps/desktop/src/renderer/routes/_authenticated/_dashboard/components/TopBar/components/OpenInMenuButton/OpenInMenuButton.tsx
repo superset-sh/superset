@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { memo, useCallback, useMemo } from "react";
 import { HiChevronDown } from "react-icons/hi2";
-import { LuCopy } from "react-icons/lu";
+import { LuCopy, LuExternalLink } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import {
@@ -39,11 +39,10 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	projectId,
 }: OpenInMenuButtonProps) {
 	const utils = electronTrpc.useUtils();
-	const { data: defaultApp = "cursor" } =
-		electronTrpc.projects.getDefaultApp.useQuery(
-			{ projectId: projectId as string },
-			{ enabled: !!projectId, staleTime: 30000 },
-		);
+	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
+		{ projectId: projectId as string },
+		{ enabled: !!projectId, staleTime: 30000 },
+	);
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: () => {
 			if (projectId) {
@@ -57,7 +56,10 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 		onError: (error) => toast.error(`Failed to copy path: ${error.message}`),
 	});
 
-	const currentApp = useMemo(() => getAppOption(defaultApp), [defaultApp]);
+	const currentApp = useMemo(
+		() => (defaultApp ? (getAppOption(defaultApp) ?? null) : null),
+		[defaultApp],
+	);
 	const openInShortcut = useHotkeyText("OPEN_IN_APP");
 	const copyPathShortcut = useHotkeyText("COPY_PATH");
 	const showOpenInShortcut = openInShortcut !== "Unassigned";
@@ -66,6 +68,12 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
+		if (!defaultApp) {
+			toast.error("No default editor configured", {
+				description: "Open a project in an editor first to set a default.",
+			});
+			return;
+		}
 		openInApp.mutate({ path: worktreePath, app: defaultApp, projectId });
 	}, [worktreePath, defaultApp, projectId, openInApp, copyPath.isPending]);
 
@@ -90,8 +98,12 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 					<button
 						type="button"
 						onClick={handleOpenInEditor}
-						disabled={isLoading}
-						aria-label={`Open in ${currentApp.displayLabel ?? currentApp.label}`}
+						disabled={isLoading || !currentApp}
+						aria-label={
+							currentApp
+								? `Open in ${currentApp.displayLabel ?? currentApp.label}`
+								: "Open in editor"
+						}
 						className={cn(
 							"group flex items-center gap-1.5 h-6 px-1.5 sm:pl-1.5 sm:pr-2 rounded-l border border-r-0 border-border/60 bg-secondary/50 text-xs font-medium",
 							"transition-all duration-150 ease-out",
@@ -99,13 +111,18 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
 							isLoading && "opacity-50 pointer-events-none",
+							!currentApp && "opacity-50",
 						)}
 					>
-						<img
-							src={currentApp.icon}
-							alt=""
-							className="size-3.5 object-contain shrink-0"
-						/>
+						{currentApp ? (
+							<img
+								src={currentApp.icon}
+								alt=""
+								className="size-3.5 object-contain shrink-0"
+							/>
+						) : (
+							<LuExternalLink className="size-3.5 shrink-0" />
+						)}
 						{branch && (
 							<span className="hidden lg:inline text-muted-foreground truncate max-w-[140px] tabular-nums">
 								/{branch}
@@ -119,8 +136,10 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 				<TooltipContent side="bottom" sideOffset={6}>
 					<div className="flex flex-col gap-1">
 						<span className="flex items-center gap-1.5">
-							Open in {currentApp.displayLabel ?? currentApp.label}
-							{showOpenInShortcut && (
+							{currentApp
+								? `Open in ${currentApp.displayLabel ?? currentApp.label}`
+								: "Select an editor from the dropdown"}
+							{currentApp && showOpenInShortcut && (
 								<kbd className="px-1 py-0.5 text-[10px] font-mono bg-foreground/10 text-foreground/70 rounded">
 									{openInShortcut}
 								</kbd>

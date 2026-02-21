@@ -1,7 +1,9 @@
 import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
+	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
+	NON_EDITOR_APPS,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -673,6 +675,35 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { openLinksInApp: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getDefaultEditor: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.defaultEditor ?? null;
+		}),
+
+		setDefaultEditor: publicProcedure
+			.input(
+				z.object({
+					editor: z
+						.enum(EXTERNAL_APPS)
+						.nullable()
+						.refine((val) => val === null || !NON_EDITOR_APPS.includes(val), {
+							message: "Non-editor apps cannot be set as the global default",
+						}),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, defaultEditor: input.editor })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { defaultEditor: input.editor },
 					})
 					.run();
 
