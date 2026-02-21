@@ -12,6 +12,7 @@ import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
+import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 
 interface MessageListProps {
 	messages: UIMessage[];
@@ -61,7 +62,7 @@ export function MessageList({
 
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6">
+			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 pl-4 pr-16">
 				{messages.length === 0 ? (
 					<ConversationEmptyState
 						title="Start a conversation"
@@ -87,13 +88,18 @@ export function MessageList({
 							);
 
 							return (
-								<div key={msg.id} className="flex flex-col items-end gap-2">
+								<div
+									key={msg.id}
+									className="flex flex-col items-end gap-2"
+									data-chat-user-message="true"
+									data-message-id={msg.id}
+								>
 									{imageParts.length > 0 && (
 										<div className="flex max-w-[85%] flex-wrap gap-2">
-											{imageParts.map((p, i) =>
+											{imageParts.map((p) =>
 												p.type === "file" ? (
 													<button
-														key={`${msg.id}-img-${i}`}
+														key={`${msg.id}-img-${p.url}`}
 														type="button"
 														className="cursor-zoom-in"
 														onClick={() => handleImageClick(p.url)}
@@ -110,10 +116,10 @@ export function MessageList({
 									)}
 									{nonImageParts.length > 0 && (
 										<div className="flex max-w-[85%] flex-wrap gap-1.5">
-											{nonImageParts.map((p, i) =>
+											{nonImageParts.map((p) =>
 												p.type === "file" ? (
 													<FileChip
-														key={`${msg.id}-file-${i}`}
+														key={`${msg.id}-file-${p.url}`}
 														filename={p.filename || ""}
 														mediaType={p.mediaType}
 													/>
@@ -154,6 +160,7 @@ export function MessageList({
 					})
 				)}
 			</ConversationContent>
+			<MessageScrollbackRail messages={messages} />
 			<ConversationScrollButton />
 		</Conversation>
 	);

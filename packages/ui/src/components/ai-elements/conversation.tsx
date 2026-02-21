@@ -98,3 +98,5 @@ export const ConversationScrollButton = ({
 		)
 	);
 };
+
+export const useConversationContext = useStickToBottomContext;
