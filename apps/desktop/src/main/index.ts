@@ -29,23 +29,8 @@ import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
-import {
-	reconcileDaemonSessions,
-	tryListExistingDaemonSessions,
-} from "./lib/terminal";
-import {
-	disposeTray,
-	initTray,
-	refTrayPollInterval,
-	unrefTrayPollInterval,
-} from "./lib/tray";
-import {
-	enterTrayOnlyMode,
-	exitTrayOnlyMode,
-	getIsTrayOnlyMode,
-	getSkipQuitConfirmation,
-	setSkipQuitConfirmation,
-} from "./lib/tray-only-mode";
+import { reconcileDaemonSessions } from "./lib/terminal";
+import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -99,11 +84,6 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 }
 
 function focusMainWindow(): void {
-	if (getIsTrayOnlyMode()) {
-		exitTrayOnlyMode();
-		unrefTrayPollInterval();
-	}
-
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
 		const mainWindow = windows[0];
@@ -112,8 +92,6 @@ function focusMainWindow(): void {
 		}
 		mainWindow.show();
 		mainWindow.focus();
-	} else {
-		app.emit("activate");
 	}
 }
 
@@ -158,9 +136,8 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
-export { setSkipQuitConfirmation };
-
 let isQuitting = false;
+let skipConfirmation = false;
 
 function getConfirmOnQuitSetting(): boolean {
 	try {
@@ -171,43 +148,25 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
+export function setSkipQuitConfirmation(): void {
+	skipConfirmation = true;
+}
+
 export function quitWithoutConfirmation(): void {
-	setSkipQuitConfirmation();
+	skipConfirmation = true;
 	app.exit(0);
 }
 
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
 
-	if (getSkipQuitConfirmation()) {
-		isQuitting = true;
-		disposeTray();
-		app.exit(0);
-		return;
-	}
-
-	// All paths below are async, so prevent default up front
-	event.preventDefault();
-
 	const isDev = process.env.NODE_ENV === "development";
+	const shouldConfirm =
+		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
 
-	// If daemon has active sessions, minimize to tray instead of quitting
-	if (!isDev) {
-		try {
-			const { sessions } = await tryListExistingDaemonSessions();
-			const hasActiveSessions = sessions.some((s) => s.isAlive);
-			if (hasActiveSessions) {
-				enterTrayOnlyMode();
-				refTrayPollInterval();
-				return;
-			}
-		} catch (error) {
-			console.warn("[main] Failed to check daemon sessions:", error);
-		}
-	}
-
-	const shouldConfirm = !isDev && getConfirmOnQuitSetting();
 	if (shouldConfirm) {
+		event.preventDefault();
+
 		try {
 			const { response } = await dialog.showMessageBox({
 				type: "question",

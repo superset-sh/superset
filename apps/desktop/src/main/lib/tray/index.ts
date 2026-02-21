@@ -19,11 +19,6 @@ import {
 } from "main/lib/terminal";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
-import {
-	exitTrayOnlyMode,
-	getIsTrayOnlyMode,
-	setSkipQuitConfirmation,
-} from "main/lib/tray-only-mode";
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -91,11 +86,6 @@ function createTrayIcon(): Electron.NativeImage | null {
 }
 
 function showWindow(): void {
-	if (getIsTrayOnlyMode()) {
-		exitTrayOnlyMode();
-		unrefTrayPollInterval();
-	}
-
 	const windows = BrowserWindow.getAllWindows();
 
 	if (windows.length > 0) {
@@ -224,7 +214,7 @@ async function quitApp(): Promise<void> {
 	const hasActiveSessions = sessions.some((s) => s.isAlive);
 
 	if (!hasActiveSessions) {
-		forceQuit();
+		app.quit();
 		return;
 	}
 
@@ -247,12 +237,6 @@ async function quitApp(): Promise<void> {
 		await restartDaemonShared();
 	}
 
-	forceQuit();
-}
-
-/** Quit without triggering the before-quit tray-only mode logic */
-function forceQuit(): void {
-	setSkipQuitConfirmation();
 	app.quit();
 }
 
@@ -328,14 +312,6 @@ export function initTray(): void {
 	} catch (error) {
 		console.error("[Tray] Failed to initialize:", error);
 	}
-}
-
-export function refTrayPollInterval(): void {
-	pollIntervalId?.ref();
-}
-
-export function unrefTrayPollInterval(): void {
-	pollIntervalId?.unref();
 }
 
 /** Call on app quit */
