@@ -1,8 +1,10 @@
+import { TRPCError } from "@trpc/server";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
+import type { StatusResult } from "simple-git";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getStatusNoLock } from "../workspaces/utils/git";
+import { getStatusNoLock, NotGitRepoError } from "../workspaces/utils/git";
 import { assertRegisteredWorktree, secureFs } from "./security";
 import { applyNumstatToFiles } from "./utils/apply-numstat";
 import {
@@ -26,7 +28,18 @@ export const createStatusRouter = () => {
 				const defaultBranch = input.defaultBranch || "main";
 				const git = simpleGit(input.worktreePath);
 
-				const status = await getStatusNoLock(input.worktreePath);
+				let status: StatusResult;
+				try {
+					status = await getStatusNoLock(input.worktreePath);
+				} catch (error) {
+					if (error instanceof NotGitRepoError) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: error.message,
+						});
+					}
+					throw error;
+				}
 				const parsed = parseGitStatus(status);
 
 				const [branchComparison, trackingStatus] = await Promise.all([

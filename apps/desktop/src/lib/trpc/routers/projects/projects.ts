@@ -35,6 +35,7 @@ import {
 	getDefaultBranch,
 	getGitAuthorName,
 	getGitRoot,
+	NotGitRepoError,
 	refreshDefaultBranch,
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
@@ -524,15 +525,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					outcomes.push({ status: "success", project });
 				} catch (gitError) {
-					const msg =
-						gitError instanceof Error ? gitError.message : String(gitError);
-					const msgLower = msg.toLowerCase();
-					if (
-						msgLower.includes("not a git repository") ||
-						msgLower.includes("cannot find git root")
-					) {
+					if (gitError instanceof NotGitRepoError) {
 						outcomes.push({ status: "needsGitInit", selectedPath });
 					} else {
+						const msg =
+							gitError instanceof Error ? gitError.message : String(gitError);
 						console.error(
 							"[projects/openNew] Failed to open project:",
 							selectedPath,
@@ -577,12 +574,15 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				let mainRepoPath: string;
 				try {
 					mainRepoPath = await getGitRoot(selectedPath);
-				} catch {
-					return {
-						canceled: false,
-						needsGitInit: true as const,
-						selectedPath,
-					};
+				} catch (error) {
+					if (error instanceof NotGitRepoError) {
+						return {
+							canceled: false,
+							needsGitInit: true as const,
+							selectedPath,
+						};
+					}
+					throw error;
 				}
 
 				const defaultBranch = await getDefaultBranch(mainRepoPath);

@@ -13,6 +13,13 @@ import { execWithShellEnv, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
+export class NotGitRepoError extends Error {
+	constructor(repoPath: string) {
+		super(`Not a git repository: ${repoPath}`);
+		this.name = "NotGitRepoError";
+	}
+}
+
 /**
  * Error thrown by execFile when the command fails.
  * `code` can be a number (exit code) or string (spawn error like "ENOENT").
@@ -170,7 +177,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 			}
 			const stderr = error.stderr || error.message || "";
 			if (stderr.includes("not a git repository")) {
-				throw new Error(`Not a git repository: ${repoPath}`);
+				throw new NotGitRepoError(repoPath);
 			}
 		}
 		throw new Error(
@@ -719,8 +726,12 @@ export async function getGitRoot(path: string): Promise<string> {
 		const git = simpleGit(path);
 		const root = await git.revparse(["--show-toplevel"]);
 		return root.trim();
-	} catch (_error) {
-		throw new Error(`Not a git repository: ${path}`);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (message.toLowerCase().includes("not a git repository")) {
+			throw new NotGitRepoError(path);
+		}
+		throw error;
 	}
 }
 
