@@ -32,7 +32,6 @@ export function DeleteWorktreeDialog({
 			{ worktreeId },
 			{
 				enabled: open,
-				staleTime: Number.POSITIVE_INFINITY,
 			},
 		);
 

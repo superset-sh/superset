@@ -55,7 +55,6 @@ export function DeleteWorkspaceDialog({
 			{ id: workspaceId },
 			{
 				enabled: open,
-				staleTime: Number.POSITIVE_INFINITY,
 			},
 		);
 
