@@ -65,6 +65,10 @@ export const emberTheme: Theme = {
 		chart3: "#d4a84b",
 		chart4: "#7b68ee",
 		chart5: "#dc6b6b",
+
+		// Search highlights - warm orange tint matching ember's accent
+		highlightMatch: "rgba(224, 120, 80, 0.2)",
+		highlightActive: "rgba(224, 120, 80, 0.5)",
 	},
 
 	terminal: {

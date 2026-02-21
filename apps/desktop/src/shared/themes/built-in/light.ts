@@ -45,6 +45,10 @@ export const lightTheme: Theme = {
 		chart3: "oklch(0.398 0.07 227.392)",
 		chart4: "oklch(0.828 0.189 84.429)",
 		chart5: "oklch(0.769 0.188 70.08)",
+
+		// Search highlights
+		highlightMatch: "rgba(255, 211, 61, 0.35)",
+		highlightActive: "rgba(255, 150, 50, 0.55)",
 	},
 
 	terminal: {

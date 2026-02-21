@@ -45,6 +45,10 @@ export const darkTheme: Theme = {
 		chart3: "oklch(0.769 0.188 70.08)",
 		chart4: "oklch(0.627 0.265 303.9)",
 		chart5: "oklch(0.645 0.246 16.439)",
+
+		// Search highlights
+		highlightMatch: "#515c6a",
+		highlightActive: "rgba(255, 211, 61, 0.4)",
 	},
 
 	terminal: {

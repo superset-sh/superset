@@ -35,10 +35,15 @@ export function useMarkdownSearch({
 	const [activeMatchIndex, setActiveMatchIndex] = useState(0);
 
 	const rangesRef = useRef<Range[]>([]);
+	const activeMatchIndexRef = useRef(0);
+	activeMatchIndexRef.current = activeMatchIndex;
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	// Only clear CSS.highlights if this instance owns them (has non-empty ranges),
-	// so one pane's cleanup doesn't nuke another pane's highlights.
+	// CSS.highlights is a global singleton — the fixed keys "markdown-search-matches"
+	// and "markdown-search-active" are shared across all panes, so only one pane's
+	// search can own them at a time. This is mitigated by auto-closing search on
+	// focus loss (see effect below), and the rangesRef guard here prevents one
+	// pane's cleanup from clearing highlights that belong to another pane.
 	const clearHighlights = useCallback(() => {
 		if (rangesRef.current.length === 0) return;
 		if (typeof CSS !== "undefined" && CSS.highlights) {
@@ -135,17 +140,18 @@ export function useMarkdownSearch({
 
 	const findNext = useCallback(() => {
 		if (rangesRef.current.length === 0) return;
-		const nextIndex = (activeMatchIndex + 1) % rangesRef.current.length;
+		const nextIndex =
+			(activeMatchIndexRef.current + 1) % rangesRef.current.length;
 		setActiveMatch(nextIndex);
-	}, [activeMatchIndex, setActiveMatch]);
+	}, [setActiveMatch]);
 
 	const findPrevious = useCallback(() => {
 		if (rangesRef.current.length === 0) return;
 		const prevIndex =
-			(activeMatchIndex - 1 + rangesRef.current.length) %
+			(activeMatchIndexRef.current - 1 + rangesRef.current.length) %
 			rangesRef.current.length;
 		setActiveMatch(prevIndex);
-	}, [activeMatchIndex, setActiveMatch]);
+	}, [setActiveMatch]);
 
 	const closeSearch = useCallback(() => {
 		if (searchTimerRef.current) {

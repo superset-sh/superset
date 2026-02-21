@@ -158,6 +158,8 @@ const uiColorsSchema = z.object({
 	chart3: z.string(),
 	chart4: z.string(),
 	chart5: z.string(),
+	highlightMatch: z.string(),
+	highlightActive: z.string(),
 });
 
 /**

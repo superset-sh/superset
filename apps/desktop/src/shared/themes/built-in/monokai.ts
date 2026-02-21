@@ -46,6 +46,10 @@ export const monokaiTheme: Theme = {
 		chart3: "#66d9ef",
 		chart4: "#f4bf75",
 		chart5: "#ae81ff",
+
+		// Search highlights - warm yellow matching monokai's palette
+		highlightMatch: "rgba(244, 191, 117, 0.25)",
+		highlightActive: "rgba(244, 191, 117, 0.55)",
 	},
 
 	terminal: {
