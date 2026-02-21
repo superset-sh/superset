@@ -37,6 +37,13 @@ export interface CommitInfo {
 	files: ChangedFile[];
 }
 
+/** Indicates which enrichment steps were skipped due to large changeset size */
+export interface TruncatedStatus {
+	numstat?: boolean;
+	untrackedLineCount?: boolean;
+	againstBase?: boolean;
+}
+
 /** Full git changes status for a worktree */
 export interface GitChangesStatus {
 	branch: string;
@@ -52,6 +59,7 @@ export interface GitChangesStatus {
 	pushCount: number; // Commits to push to tracking branch
 	pullCount: number; // Commits to pull from tracking branch
 	hasUpstream: boolean; // Whether branch has an upstream tracking branch
+	truncated?: TruncatedStatus; // Which enrichment steps were skipped
 }
 
 /** Whether a diff category supports editing (saving changes back to disk) */

@@ -139,6 +139,7 @@ export function WorkspaceListItem({
 		worktreePath,
 		enabled: hasHovered && !!worktreePath,
 		staleTime: GITHUB_STATUS_STALE_TIME,
+		quickOnly: true,
 	});
 
 	const { data: aheadBehind } = electronTrpc.workspaces.getAheadBehind.useQuery(
