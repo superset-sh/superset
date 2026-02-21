@@ -1,8 +1,10 @@
 import { AgentManager, type AgentManagerConfig } from "./agent-manager";
+import type { DataResolver } from "./data-resolver";
 
 export interface ChatServiceHostConfig {
 	deviceId: string;
 	apiUrl: string;
+	dataResolver?: DataResolver;
 }
 
 export class ChatService {
@@ -22,6 +24,7 @@ export class ChatService {
 			organizationId: options.organizationId,
 			authToken: options.authToken,
 			apiUrl: this.hostConfig.apiUrl,
+			dataResolver: this.hostConfig.dataResolver,
 		};
 
 		if (this.agentManager) {

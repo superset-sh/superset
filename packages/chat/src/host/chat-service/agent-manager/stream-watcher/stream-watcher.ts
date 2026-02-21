@@ -1,4 +1,5 @@
 import type { UIMessage } from "ai";
+import type { DataResolver } from "../../data-resolver";
 import { sessionAbortControllers, sessionRunIds } from "../session-state";
 import { resumeAgent, runAgent } from "./run-agent";
 import { SessionHost } from "./session-host";
@@ -14,6 +15,7 @@ export class StreamWatcher {
 	private host: SessionHost;
 	private readonly sessionId: string;
 	private readonly cwd: string;
+	private readonly dataResolver: DataResolver;
 	private status: "idle" | "starting" | "ready" = "idle";
 	private startPromise: Promise<void> | null = null;
 
@@ -22,9 +24,11 @@ export class StreamWatcher {
 		authToken: string;
 		apiUrl: string;
 		cwd: string;
+		dataResolver: DataResolver;
 	}) {
 		this.sessionId = options.sessionId;
 		this.cwd = options.cwd;
+		this.dataResolver = options.dataResolver;
 
 		this.host = new SessionHost({
 			sessionId: options.sessionId,
@@ -48,6 +52,7 @@ export class StreamWatcher {
 				thinkingEnabled: metadata?.thinkingEnabled ?? false,
 				authToken: options.authToken,
 				apiUrl: options.apiUrl,
+				dataResolver: this.dataResolver,
 			});
 		});
 

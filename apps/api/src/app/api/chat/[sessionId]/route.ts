@@ -1,7 +1,38 @@
 import { db } from "@superset/db/client";
-import { chatSessions } from "@superset/db/schema";
+import { chatSessions, workspaces } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import { getDurableStream, requireAuth } from "../lib";
+
+export async function GET(
+	request: Request,
+	{ params }: { params: Promise<{ sessionId: string }> },
+): Promise<Response> {
+	const session = await requireAuth(request);
+	if (!session) return new Response("Unauthorized", { status: 401 });
+
+	const { sessionId } = await params;
+
+	const chatSession = await db.query.chatSessions.findFirst({
+		where: eq(chatSessions.id, sessionId),
+		columns: { workspaceId: true },
+	});
+
+	if (!chatSession?.workspaceId) {
+		return Response.json({ workspacePath: null });
+	}
+
+	const workspace = await db.query.workspaces.findFirst({
+		where: eq(workspaces.id, chatSession.workspaceId),
+		columns: { config: true },
+	});
+
+	const path =
+		workspace?.config && "path" in workspace.config
+			? workspace.config.path
+			: null;
+
+	return Response.json({ workspacePath: path });
+}
 
 export async function PUT(
 	request: Request,

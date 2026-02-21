@@ -5,4 +5,4 @@ export {
 	safeExec,
 	safeReadFile,
 } from "./project-context";
-export { buildTaskMentionContext, parseTaskMentions } from "./task-mentions";
+export { parseTaskMentions } from "./task-mentions";

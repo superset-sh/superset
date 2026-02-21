@@ -1,5 +1,6 @@
 import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
 import type { UIMessage, UIMessageChunk } from "ai";
+import type { DataResolver } from "../../../data-resolver";
 import {
 	sessionAbortControllers,
 	sessionContext,
@@ -11,10 +12,7 @@ import {
 	parseFileMentions,
 } from "./context/file-mentions";
 import { gatherProjectContext } from "./context/project-context";
-import {
-	buildTaskMentionContext,
-	parseTaskMentions,
-} from "./context/task-mentions";
+import { parseTaskMentions } from "./context/task-mentions";
 
 // ---------------------------------------------------------------------------
 // runAgent — core agent execution
@@ -31,6 +29,7 @@ export interface RunAgentOptions {
 	thinkingEnabled?: boolean;
 	authToken?: string;
 	apiUrl?: string;
+	dataResolver: DataResolver;
 }
 
 export async function runAgent(options: RunAgentOptions): Promise<void> {
@@ -45,6 +44,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		thinkingEnabled,
 		authToken,
 		apiUrl,
+		dataResolver,
 	} = options;
 
 	// Abort any existing agent for this session
@@ -76,7 +76,8 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		const fileMentions = parseFileMentions(text, cwd);
 		const fileMentionContext = buildFileMentionContext(fileMentions);
 		const taskSlugs = parseTaskMentions(text);
-		const taskMentionContext = await buildTaskMentionContext(taskSlugs);
+		const taskMentionContext =
+			await dataResolver.buildTaskMentionContext(taskSlugs);
 		const contextInstructions =
 			projectContext + fileMentionContext + taskMentionContext || undefined;
 

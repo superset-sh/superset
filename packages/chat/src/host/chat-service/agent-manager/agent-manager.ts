@@ -7,13 +7,12 @@
  */
 
 import { setAnthropicAuthToken } from "@superset/agent";
-import { db } from "@superset/db/client";
-import { chatSessions, workspaces } from "@superset/db/schema";
-import { eq } from "drizzle-orm";
 import {
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
 } from "../../auth/anthropic";
+import { createApiDataResolver } from "../api-data-resolver";
+import type { DataResolver } from "../data-resolver";
 import {
 	sessionAbortControllers,
 	sessionContext,
@@ -26,6 +25,7 @@ export interface AgentManagerConfig {
 	organizationId: string;
 	authToken: string;
 	apiUrl: string;
+	dataResolver?: DataResolver;
 }
 
 export class AgentManager {
@@ -35,12 +35,16 @@ export class AgentManager {
 	private organizationId: string;
 	private authToken: string;
 	private apiUrl: string;
+	private dataResolver: DataResolver;
 
 	constructor(config: AgentManagerConfig) {
 		this.deviceId = config.deviceId;
 		this.organizationId = config.organizationId;
 		this.authToken = config.authToken;
 		this.apiUrl = config.apiUrl;
+		this.dataResolver =
+			config.dataResolver ??
+			createApiDataResolver(config.apiUrl, config.authToken);
 	}
 
 	async start(): Promise<void> {
@@ -123,6 +127,7 @@ export class AgentManager {
 			authToken: this.authToken,
 			apiUrl: this.apiUrl,
 			cwd,
+			dataResolver: this.dataResolver,
 		});
 		try {
 			await watcher.start();
@@ -135,29 +140,14 @@ export class AgentManager {
 
 	private async resolveCwd(sessionId: string): Promise<string> {
 		try {
-			const session = await db.query.chatSessions.findFirst({
-				where: eq(chatSessions.id, sessionId),
-				columns: { workspaceId: true },
-			});
-
-			if (session?.workspaceId) {
-				const workspace = await db.query.workspaces.findFirst({
-					where: eq(workspaces.id, session.workspaceId),
-					columns: { config: true },
-				});
-
-				if (workspace?.config && "path" in workspace.config) {
-					return workspace.config.path;
-				}
-			}
+			return await this.dataResolver.resolveCwd(sessionId);
 		} catch (err) {
 			console.warn(
 				`[agent-manager] Could not resolve workspace path for ${sessionId}:`,
 				err,
 			);
+			return process.env.HOME ?? "/";
 		}
-
-		return process.env.HOME ?? "/";
 	}
 
 	private cleanupSession(sessionId: string): void {
