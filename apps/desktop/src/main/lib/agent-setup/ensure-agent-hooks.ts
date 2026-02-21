@@ -135,6 +135,27 @@ async function ensureClaudeSettings(): Promise<void> {
 	}
 }
 
+function ensureExternalToolSettingsInBackground(): void {
+	void Promise.allSettled([
+		ensureCursorHooksJson(),
+		ensureGeminiSettings(),
+	]).then((results) => {
+		const [cursorResult, geminiResult] = results;
+		if (cursorResult.status === "rejected") {
+			console.warn(
+				"[agent-setup] Failed to write Cursor hooks.json:",
+				cursorResult.reason,
+			);
+		}
+		if (geminiResult.status === "rejected") {
+			console.warn(
+				"[agent-setup] Failed to write Gemini settings.json:",
+				geminiResult.reason,
+			);
+		}
+	});
+}
+
 export function ensureAgentHooks(): Promise<void> {
 	if (process.platform === "win32") {
 		return Promise.resolve();
@@ -171,7 +192,7 @@ export function ensureAgentHooks(): Promise<void> {
 			ensureClaudeSettings(),
 		]);
 
-		// Phase 3: everything else in parallel
+		// Phase 3: terminal-critical files in parallel
 		await Promise.all([
 			// Agent wrappers
 			ensureScriptFile({
@@ -258,17 +279,6 @@ export function ensureAgentHooks(): Promise<void> {
 				logLabel: "Copilot hook script",
 			}),
 
-			// External tool settings (may fail if dirs don't exist)
-			ensureCursorHooksJson().catch((error) =>
-				console.warn("[agent-setup] Failed to write Cursor hooks.json:", error),
-			),
-			ensureGeminiSettings().catch((error) =>
-				console.warn(
-					"[agent-setup] Failed to write Gemini settings.json:",
-					error,
-				),
-			),
-
 			// Shell wrappers
 			ensureScriptFile({
 				filePath: getZshProfilePath(),
@@ -299,6 +309,9 @@ export function ensureAgentHooks(): Promise<void> {
 				logLabel: "bash rcfile",
 			}),
 		]);
+
+		// Do not block terminal startup on global tool config writes.
+		ensureExternalToolSettingsInBackground();
 	})().finally(() => {
 		inFlight = null;
 	});
