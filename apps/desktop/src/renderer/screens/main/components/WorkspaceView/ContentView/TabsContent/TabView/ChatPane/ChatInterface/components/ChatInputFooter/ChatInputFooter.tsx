@@ -47,25 +47,31 @@ interface ChatInputFooterProps {
 	onSlashCommandSend: (command: SlashCommand) => void;
 }
 
+type DragType = "files" | "path" | null;
+
 function useDocumentDrag() {
-	const [isDragging, setIsDragging] = useState(false);
+	const [dragType, setDragType] = useState<DragType>(null);
 	const counter = useRef(0);
 
 	const onEnter = useCallback((e: DragEvent) => {
-		if (e.dataTransfer?.types?.includes("Files")) {
+		const types = e.dataTransfer?.types;
+		if (types?.includes("Files")) {
 			counter.current++;
-			setIsDragging(true);
+			setDragType("files");
+		} else if (types?.includes("text/plain")) {
+			counter.current++;
+			setDragType("path");
 		}
 	}, []);
 
 	const onLeave = useCallback(() => {
 		counter.current--;
-		if (counter.current === 0) setIsDragging(false);
+		if (counter.current === 0) setDragType(null);
 	}, []);
 
 	const onDrop = useCallback(() => {
 		counter.current = 0;
-		setIsDragging(false);
+		setDragType(null);
 	}, []);
 
 	useEffect(() => {
@@ -79,7 +85,7 @@ function useDocumentDrag() {
 		};
 	}, [onEnter, onLeave, onDrop]);
 
-	return isDragging;
+	return dragType;
 }
 
 function ChatShortcuts({
@@ -163,11 +169,46 @@ export function ChatInputFooter({
 	onStop,
 	onSlashCommandSend,
 }: ChatInputFooterProps) {
-	const isDragging = useDocumentDrag();
+	const dragType = useDocumentDrag();
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
+	const { textInput } = usePromptInputController();
+
+	const handlePathDragOver = useCallback((e: React.DragEvent) => {
+		if (
+			!e.dataTransfer.types.includes("Files") &&
+			e.dataTransfer.types.includes("text/plain")
+		) {
+			e.preventDefault();
+			e.dataTransfer.dropEffect = "copy";
+		}
+	}, []);
+
+	const handlePathDrop = useCallback(
+		(e: React.DragEvent) => {
+			if (e.dataTransfer.types.includes("Files")) return;
+			const path = e.dataTransfer.getData("text/plain");
+			if (!path) return;
+			e.preventDefault();
+			e.stopPropagation();
+			const current = textInput.value;
+			const needsSpace = current.length > 0 && !current.endsWith(" ");
+			textInput.setInput(`${current}${needsSpace ? " " : ""}${path} `);
+
+			const textarea = document.querySelector<HTMLTextAreaElement>(
+				"[data-slot=input-group-control]",
+			);
+			textarea?.focus();
+		},
+		[textInput],
+	);
 
 	return (
-		<div className="border-t bg-background px-4 py-3">
+		// biome-ignore lint/a11y/noStaticElementInteractions: drop target for file path drags
+		<div
+			className="border-t bg-background px-4 py-3"
+			onDragOver={handlePathDragOver}
+			onDrop={handlePathDrop}
+		>
 			<div className="mx-auto w-full max-w-3xl">
 				{error && (
 					<div className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
@@ -180,7 +221,13 @@ export function ChatInputFooter({
 				>
 					<MentionProvider cwd={cwd}>
 						<MentionAnchor>
-							<div className="relative">
+							<div
+								className={
+									dragType === "path"
+										? "relative opacity-50 transition-opacity"
+										: "relative"
+								}
+							>
 								<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
 									⌘F to focus
 								</span>
@@ -196,7 +243,7 @@ export function ChatInputFooter({
 										issueLinkOpen={issueLinkOpen}
 										setIssueLinkOpen={setIssueLinkOpen}
 									/>
-									{isDragging && (
+									{dragType === "files" && (
 										<div className="mx-3 mt-3 flex self-stretch flex-col items-center gap-2 bg-muted py-6">
 											<div className="flex size-8 items-center justify-center rounded-full bg-muted-foreground/20">
 												<UploadIcon className="size-4 text-muted-foreground" />
