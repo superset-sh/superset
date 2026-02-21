@@ -33,7 +33,7 @@
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean",
 		"release:desktop": "./apps/desktop/create-release.sh",
-		"release:canary": "gh workflow run release-desktop-canary.yml -f force_build=true && sleep 2 && gh run list --workflow=release-desktop-canary.yml --limit=1 --json url -q '.[0].url'",
+		"release:canary": "./scripts/release-canary.sh",
 		"db:push": "bun run --cwd packages/db push",
 		"db:migrate": "bun run --cwd packages/db migrate",
 		"db:generate:desktop": "bun run --cwd packages/local-db generate"
