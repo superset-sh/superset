@@ -1,10 +1,16 @@
-import fs from "node:fs";
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { BASH_DIR, BIN_DIR, ZSH_DIR } from "./paths";
 
+const ZSH_PROFILE = path.join(ZSH_DIR, ".zprofile");
 const ZSH_RC = path.join(ZSH_DIR, ".zshrc");
+const ZSH_LOGIN = path.join(ZSH_DIR, ".zlogin");
 const BASH_RCFILE = path.join(BASH_DIR, "rcfile");
+
+const SHELL_WRAPPER_SIGNATURE = "# Superset shell-wrapper";
+const SHELL_WRAPPER_VERSION = "v2";
+export const SHELL_WRAPPER_MARKER = `${SHELL_WRAPPER_SIGNATURE} ${SHELL_WRAPPER_VERSION}`;
 
 /** Agent binaries that get wrapper shims to guarantee resolution. */
 const SHIMMED_BINARIES = ["claude", "codex", "opencode", "gemini", "copilot"];
@@ -31,36 +37,56 @@ function buildPathPrependFunction(): string {
 _superset_prepend_bin`;
 }
 
-export function createZshWrapper(): void {
-	// .zprofile must NOT reset ZDOTDIR — our .zshrc needs to run after it
-	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
-	const zprofileScript = `# Superset zsh profile wrapper
+// --- Content getters (pure, no I/O) ---
+
+export function getZshProfilePath(): string {
+	return path.join(ZSH_DIR, ".zprofile");
+}
+
+export function getZshRcPath(): string {
+	return path.join(ZSH_DIR, ".zshrc");
+}
+
+export function getZshLoginPath(): string {
+	return path.join(ZSH_DIR, ".zlogin");
+}
+
+export function getBashRcfilePath(): string {
+	return path.join(BASH_DIR, "rcfile");
+}
+
+export function getZshProfileContent(): string {
+	return `${SHELL_WRAPPER_MARKER}
+# Superset zsh profile wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 [[ -f "$_superset_home/.zprofile" ]] && source "$_superset_home/.zprofile"
 `;
-	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
+}
 
-	// Reset ZDOTDIR before sourcing so Oh My Zsh works correctly
-	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
-	const zshrcScript = `# Superset zsh rc wrapper
+export function getZshRcContent(): string {
+	// .zshrc applies PATH + shims after sourcing the user's .zshrc.
+	// No rehash here — .zlogin re-applies everything after .zlogin runs,
+	// so a single rehash there covers both phases.
+	return `${SHELL_WRAPPER_MARKER}
+# Superset zsh rc wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
 ${buildPathPrependFunction()}
 ${buildShimFunctions()}
-rehash 2>/dev/null || true
 # Restore ZDOTDIR so our .zlogin runs after user's .zlogin
 export ZDOTDIR="${ZSH_DIR}"
 `;
-	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
+}
 
+export function getZshLoginContent(): string {
 	// .zlogin runs AFTER .zshrc in login shells. By restoring ZDOTDIR above,
 	// zsh sources our .zlogin instead of the user's directly. We source the
 	// user's .zlogin only for interactive shells, then re-apply command shims
 	// and prepend BIN_DIR so tools like mise, nvm, or PATH exports in .zlogin
 	// can't shadow our wrappers.
-	const zloginPath = path.join(ZSH_DIR, ".zlogin");
-	const zloginScript = `# Superset zsh login wrapper
+	return `${SHELL_WRAPPER_MARKER}
+# Superset zsh login wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 if [[ -o interactive ]]; then
   [[ -f "$_superset_home/.zlogin" ]] && source "$_superset_home/.zlogin"
@@ -70,14 +96,11 @@ ${buildShimFunctions()}
 rehash 2>/dev/null || true
 export ZDOTDIR="$_superset_home"
 `;
-	fs.writeFileSync(zloginPath, zloginScript, { mode: 0o644 });
-
-	console.log("[agent-setup] Created zsh wrapper");
 }
 
-export function createBashWrapper(): void {
-	const rcfilePath = path.join(BASH_DIR, "rcfile");
-	const script = `# Superset bash rcfile wrapper
+export function getBashRcfileContent(): string {
+	return `${SHELL_WRAPPER_MARKER}
+# Superset bash rcfile wrapper
 
 # Source system profile
 [[ -f /etc/profile ]] && source /etc/profile
@@ -101,12 +124,20 @@ hash -r 2>/dev/null || true
 # Minimal prompt (path/env shown in toolbar) - emerald to match app theme
 export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;
-	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
-	console.log("[agent-setup] Created bash wrapper");
+}
+
+// --- Runtime helpers ---
+
+function hasZshWrappers(): boolean {
+	return existsSync(ZSH_PROFILE) && existsSync(ZSH_RC) && existsSync(ZSH_LOGIN);
+}
+
+function hasBashWrapper(): boolean {
+	return existsSync(BASH_RCFILE);
 }
 
 export function getShellEnv(shell: string): Record<string, string> {
-	if (shell.includes("zsh")) {
+	if (shell.includes("zsh") && hasZshWrappers()) {
 		return {
 			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
 			ZDOTDIR: ZSH_DIR,
@@ -120,6 +151,9 @@ export function getShellArgs(shell: string): string[] {
 		return ["-l"];
 	}
 	if (shell.includes("bash")) {
+		if (!hasBashWrapper()) {
+			return ["-l"];
+		}
 		return ["--rcfile", BASH_RCFILE];
 	}
 	return [];
@@ -128,17 +162,17 @@ export function getShellArgs(shell: string): string[] {
 /**
  * Shell args for non-interactive command execution (`-c`) that sources
  * user profiles via wrappers. Falls back to login shell if wrappers
- * don't exist yet (e.g. before setupAgentHooks runs).
+ * don't exist yet (e.g. before ensureAgentHooks runs).
  *
  * Unlike getShellArgs (interactive), we must source profiles inline because:
  * - zsh skips .zshrc for non-interactive shells
  * - bash ignores --rcfile when -c is present
  */
 export function getCommandShellArgs(shell: string, command: string): string[] {
-	if (shell.includes("zsh") && fs.existsSync(ZSH_RC)) {
+	if (shell.includes("zsh") && existsSync(ZSH_RC)) {
 		return ["-lc", `source "${ZSH_RC}" && ${command}`];
 	}
-	if (shell.includes("bash") && fs.existsSync(BASH_RCFILE)) {
+	if (shell.includes("bash") && existsSync(BASH_RCFILE)) {
 		return ["-c", `source "${BASH_RCFILE}" && ${command}`];
 	}
 	return ["-lc", command];

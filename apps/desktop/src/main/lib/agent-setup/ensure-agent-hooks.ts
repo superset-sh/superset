@@ -5,6 +5,7 @@ import {
 	buildWrapperScript,
 	COPILOT_HOOK_MARKER,
 	CURSOR_HOOK_MARKER,
+	cleanupGlobalOpenCodePlugin,
 	GEMINI_HOOK_MARKER,
 	getClaudeSettingsContent,
 	getClaudeSettingsPath,
@@ -18,7 +19,6 @@ import {
 	getGeminiHookScriptPath,
 	getGeminiSettingsJsonContent,
 	getGeminiSettingsJsonPath,
-	getOpenCodeGlobalPluginPath,
 	getOpenCodePluginContent,
 	getOpenCodePluginPath,
 	getWrapperPath,
@@ -31,11 +31,24 @@ import {
 	NOTIFY_SCRIPT_MARKER,
 } from "./notify-hook";
 import {
+	BASH_DIR,
 	BIN_DIR,
 	HOOKS_DIR,
 	OPENCODE_CONFIG_DIR,
 	OPENCODE_PLUGIN_DIR,
+	ZSH_DIR,
 } from "./paths";
+import {
+	getBashRcfileContent,
+	getBashRcfilePath,
+	getZshLoginContent,
+	getZshLoginPath,
+	getZshProfileContent,
+	getZshProfilePath,
+	getZshRcContent,
+	getZshRcPath,
+	SHELL_WRAPPER_MARKER,
+} from "./shell-wrappers";
 
 let inFlight: Promise<void> | null = null;
 
@@ -134,140 +147,158 @@ export function ensureAgentHooks(): Promise<void> {
 	inFlight = (async () => {
 		await new Promise<void>((resolve) => setImmediate(resolve));
 
-		await fs.mkdir(BIN_DIR, { recursive: true });
-		await fs.mkdir(HOOKS_DIR, { recursive: true });
-		await fs.mkdir(OPENCODE_CONFIG_DIR, { recursive: true });
-		await fs.mkdir(OPENCODE_PLUGIN_DIR, { recursive: true });
-		const globalOpenCodePluginPath = getOpenCodeGlobalPluginPath();
-		try {
-			await fs.mkdir(path.dirname(globalOpenCodePluginPath), {
-				recursive: true,
-			});
-		} catch (error) {
-			console.warn(
-				"[agent-setup] Failed to create global OpenCode plugin directory:",
-				error,
-			);
-		}
+		// Phase 1: create all directories in parallel
+		await Promise.all([
+			fs.mkdir(BIN_DIR, { recursive: true }),
+			fs.mkdir(HOOKS_DIR, { recursive: true }),
+			fs.mkdir(ZSH_DIR, { recursive: true }),
+			fs.mkdir(BASH_DIR, { recursive: true }),
+			fs.mkdir(OPENCODE_CONFIG_DIR, { recursive: true }),
+			fs.mkdir(OPENCODE_PLUGIN_DIR, { recursive: true }),
+		]);
+		cleanupGlobalOpenCodePlugin();
 
+		// Phase 2: notify script + claude settings (other files depend on these)
 		const notifyPath = getNotifyScriptPath();
-		await ensureScriptFile({
-			filePath: notifyPath,
-			content: getNotifyScriptContent(),
-			mode: 0o755,
-			marker: NOTIFY_SCRIPT_MARKER,
-			logLabel: "notify hook",
-		});
+		await Promise.all([
+			ensureScriptFile({
+				filePath: notifyPath,
+				content: getNotifyScriptContent(),
+				mode: 0o755,
+				marker: NOTIFY_SCRIPT_MARKER,
+				logLabel: "notify hook",
+			}),
+			ensureClaudeSettings(),
+		]);
 
-		await ensureClaudeSettings();
-
-		const wrappers: Array<{ binaryName: string; content: string }> = [
-			{
-				binaryName: "claude",
+		// Phase 3: everything else in parallel
+		await Promise.all([
+			// Agent wrappers
+			ensureScriptFile({
+				filePath: getWrapperPath("claude"),
 				content: buildWrapperScript(
 					"claude",
 					`exec "$REAL_BIN" --settings "${getClaudeSettingsPath()}" "$@"`,
 				),
-			},
-			{
-				binaryName: "codex",
+				mode: 0o755,
+				marker: WRAPPER_MARKER,
+				logLabel: "claude wrapper",
+			}),
+			ensureScriptFile({
+				filePath: getWrapperPath("codex"),
 				content: buildWrapperScript(
 					"codex",
 					`exec "$REAL_BIN" -c 'notify=["bash","${notifyPath}"]' "$@"`,
 				),
-			},
-			{
-				binaryName: "opencode",
+				mode: 0o755,
+				marker: WRAPPER_MARKER,
+				logLabel: "codex wrapper",
+			}),
+			ensureScriptFile({
+				filePath: getWrapperPath("opencode"),
 				content: buildWrapperScript(
 					"opencode",
 					`export OPENCODE_CONFIG_DIR="${OPENCODE_CONFIG_DIR}"\nexec "$REAL_BIN" "$@"`,
 				),
-			},
-			{
-				binaryName: "cursor-agent",
-				content: buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`),
-			},
-			{
-				binaryName: "gemini",
-				content: buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`),
-			},
-			{
-				binaryName: "copilot",
-				content: buildWrapperScript("copilot", buildCopilotWrapperExecLine()),
-			},
-		];
-
-		for (const { binaryName, content } of wrappers) {
-			await ensureScriptFile({
-				filePath: getWrapperPath(binaryName),
-				content,
 				mode: 0o755,
 				marker: WRAPPER_MARKER,
-				logLabel: `${binaryName} wrapper`,
-			});
-		}
+				logLabel: "opencode wrapper",
+			}),
+			ensureScriptFile({
+				filePath: getWrapperPath("cursor-agent"),
+				content: buildWrapperScript("cursor-agent", `exec "$REAL_BIN" "$@"`),
+				mode: 0o755,
+				marker: WRAPPER_MARKER,
+				logLabel: "cursor-agent wrapper",
+			}),
+			ensureScriptFile({
+				filePath: getWrapperPath("gemini"),
+				content: buildWrapperScript("gemini", `exec "$REAL_BIN" "$@"`),
+				mode: 0o755,
+				marker: WRAPPER_MARKER,
+				logLabel: "gemini wrapper",
+			}),
+			ensureScriptFile({
+				filePath: getWrapperPath("copilot"),
+				content: buildWrapperScript("copilot", buildCopilotWrapperExecLine()),
+				mode: 0o755,
+				marker: WRAPPER_MARKER,
+				logLabel: "copilot wrapper",
+			}),
 
-		await ensureScriptFile({
-			filePath: getOpenCodePluginPath(),
-			content: getOpenCodePluginContent(notifyPath),
-			mode: 0o644,
-			marker: OPENCODE_PLUGIN_MARKER,
-			logLabel: "OpenCode plugin",
-		});
-
-		try {
-			await ensureScriptFile({
-				filePath: globalOpenCodePluginPath,
+			// Plugins
+			ensureScriptFile({
+				filePath: getOpenCodePluginPath(),
 				content: getOpenCodePluginContent(notifyPath),
 				mode: 0o644,
 				marker: OPENCODE_PLUGIN_MARKER,
-				logLabel: "OpenCode global plugin",
-			});
-		} catch (error) {
-			console.warn(
-				"[agent-setup] Failed to write global OpenCode plugin:",
-				error,
-			);
-		}
+				logLabel: "OpenCode plugin",
+			}),
 
-		await ensureScriptFile({
-			filePath: getCursorHookScriptPath(),
-			content: getCursorHookScriptContent(),
-			mode: 0o755,
-			marker: CURSOR_HOOK_MARKER,
-			logLabel: "Cursor hook script",
-		});
+			// Hook scripts
+			ensureScriptFile({
+				filePath: getCursorHookScriptPath(),
+				content: getCursorHookScriptContent(),
+				mode: 0o755,
+				marker: CURSOR_HOOK_MARKER,
+				logLabel: "Cursor hook script",
+			}),
+			ensureScriptFile({
+				filePath: getGeminiHookScriptPath(),
+				content: getGeminiHookScriptContent(),
+				mode: 0o755,
+				marker: GEMINI_HOOK_MARKER,
+				logLabel: "Gemini hook script",
+			}),
+			ensureScriptFile({
+				filePath: getCopilotHookScriptPath(),
+				content: getCopilotHookScriptContent(),
+				mode: 0o755,
+				marker: COPILOT_HOOK_MARKER,
+				logLabel: "Copilot hook script",
+			}),
 
-		try {
-			await ensureCursorHooksJson();
-		} catch (error) {
-			console.warn("[agent-setup] Failed to write Cursor hooks.json:", error);
-		}
+			// External tool settings (may fail if dirs don't exist)
+			ensureCursorHooksJson().catch((error) =>
+				console.warn("[agent-setup] Failed to write Cursor hooks.json:", error),
+			),
+			ensureGeminiSettings().catch((error) =>
+				console.warn(
+					"[agent-setup] Failed to write Gemini settings.json:",
+					error,
+				),
+			),
 
-		await ensureScriptFile({
-			filePath: getGeminiHookScriptPath(),
-			content: getGeminiHookScriptContent(),
-			mode: 0o755,
-			marker: GEMINI_HOOK_MARKER,
-			logLabel: "Gemini hook script",
-		});
-
-		try {
-			await ensureGeminiSettings();
-		} catch (error) {
-			console.warn(
-				"[agent-setup] Failed to write Gemini settings.json:",
-				error,
-			);
-		}
-
-		await ensureScriptFile({
-			filePath: getCopilotHookScriptPath(),
-			content: getCopilotHookScriptContent(),
-			mode: 0o755,
-			marker: COPILOT_HOOK_MARKER,
-			logLabel: "Copilot hook script",
-		});
+			// Shell wrappers
+			ensureScriptFile({
+				filePath: getZshProfilePath(),
+				content: getZshProfileContent(),
+				mode: 0o644,
+				marker: SHELL_WRAPPER_MARKER,
+				logLabel: "zsh .zprofile",
+			}),
+			ensureScriptFile({
+				filePath: getZshRcPath(),
+				content: getZshRcContent(),
+				mode: 0o644,
+				marker: SHELL_WRAPPER_MARKER,
+				logLabel: "zsh .zshrc",
+			}),
+			ensureScriptFile({
+				filePath: getZshLoginPath(),
+				content: getZshLoginContent(),
+				mode: 0o644,
+				marker: SHELL_WRAPPER_MARKER,
+				logLabel: "zsh .zlogin",
+			}),
+			ensureScriptFile({
+				filePath: getBashRcfilePath(),
+				content: getBashRcfileContent(),
+				mode: 0o644,
+				marker: SHELL_WRAPPER_MARKER,
+				logLabel: "bash rcfile",
+			}),
+		]);
 	})().finally(() => {
 		inFlight = null;
 	});

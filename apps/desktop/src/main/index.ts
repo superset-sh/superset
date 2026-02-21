@@ -21,7 +21,7 @@ import {
 	PROTOCOL_SCHEME,
 } from "shared/constants";
 import { getWorkspaceName } from "shared/env.shared";
-import { setupAgentHooks } from "./lib/agent-setup";
+import { ensureAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { setupAutoUpdater } from "./lib/auto-updater";
@@ -296,11 +296,9 @@ if (!gotTheLock) {
 		// Must happen before renderer restore runs
 		await reconcileDaemonSessions();
 
-		try {
-			setupAgentHooks();
-		} catch (error) {
+		void ensureAgentHooks().catch((error) => {
 			console.error("[main] Failed to set up agent hooks:", error);
-		}
+		});
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();

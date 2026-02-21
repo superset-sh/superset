@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { getShellArgs as getAgentShellArgs } from "../lib/agent-setup";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
@@ -939,9 +940,14 @@ export class Session {
 	 * Get shell arguments for login shell
 	 */
 	private getShellArgs(shell: string): string[] {
+		const args = getAgentShellArgs(shell);
+		if (args.length > 0) {
+			return args;
+		}
+
 		const shellName = shell.split("/").pop() || "";
 
-		if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
+		if (["sh", "ksh", "fish"].includes(shellName)) {
 			return ["-l"];
 		}
 

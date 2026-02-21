@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { workspaces } from "@superset/local-db";
+import { ensureAgentHooks } from "main/lib/agent-setup";
 import { track } from "main/lib/analytics";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
@@ -24,6 +25,8 @@ import {
 import { HistoryManager } from "./history-manager";
 import { PrioritySemaphore } from "./priority-semaphore";
 import type { ColdRestoreInfo, SessionInfo } from "./types";
+
+const AGENT_HOOKS_TIMEOUT_MS = 2000;
 
 export class DaemonTerminalManager extends EventEmitter {
 	private client!: TerminalHostClient;
@@ -371,6 +374,10 @@ export class DaemonTerminalManager extends EventEmitter {
 				await this.historyManager.cleanupHistory(paneId, workspaceId);
 			}
 
+			if (!daemonHasSession) {
+				await this.waitForAgentHooks();
+			}
+
 			const shell = getDefaultShell();
 			const env = buildTerminalEnv({
 				shell,
@@ -715,6 +722,21 @@ export class DaemonTerminalManager extends EventEmitter {
 					);
 				}
 			}
+		}
+	}
+
+	private async waitForAgentHooks(): Promise<void> {
+		const timeout = new Promise<void>((resolve) => {
+			const timer = setTimeout(resolve, AGENT_HOOKS_TIMEOUT_MS);
+			timer.unref?.();
+		});
+		try {
+			await Promise.race([ensureAgentHooks(), timeout]);
+		} catch (error) {
+			console.warn(
+				"[DaemonTerminalManager] Failed to ensure agent hooks:",
+				error,
+			);
 		}
 	}
 

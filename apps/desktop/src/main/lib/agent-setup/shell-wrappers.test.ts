@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 
 const TEST_ROOT = path.join(
@@ -23,8 +23,29 @@ mock.module("./paths", () => ({
 	OPENCODE_PLUGIN_DIR: TEST_OPENCODE_PLUGIN_DIR,
 }));
 
-const { createBashWrapper, createZshWrapper, getCommandShellArgs } =
-	await import("./shell-wrappers");
+const {
+	getBashRcfileContent,
+	getBashRcfilePath,
+	getCommandShellArgs,
+	getShellArgs,
+	getShellEnv,
+	getZshLoginContent,
+	getZshLoginPath,
+	getZshProfileContent,
+	getZshProfilePath,
+	getZshRcContent,
+	getZshRcPath,
+} = await import("./shell-wrappers");
+
+function writeZshWrappers(): void {
+	writeFileSync(getZshProfilePath(), getZshProfileContent(), { mode: 0o644 });
+	writeFileSync(getZshRcPath(), getZshRcContent(), { mode: 0o644 });
+	writeFileSync(getZshLoginPath(), getZshLoginContent(), { mode: 0o644 });
+}
+
+function writeBashWrapper(): void {
+	writeFileSync(getBashRcfilePath(), getBashRcfileContent(), { mode: 0o644 });
+}
 
 describe("shell-wrappers", () => {
 	beforeEach(() => {
@@ -38,7 +59,7 @@ describe("shell-wrappers", () => {
 	});
 
 	it("creates zsh wrappers with interactive .zlogin sourcing and command shims", () => {
-		createZshWrapper();
+		writeZshWrappers();
 
 		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
 		const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
@@ -48,7 +69,8 @@ describe("shell-wrappers", () => {
 		expect(zshrc).toContain(`codex() { "${TEST_BIN_DIR}/codex" "$@"; }`);
 		expect(zshrc).toContain(`opencode() { "${TEST_BIN_DIR}/opencode" "$@"; }`);
 		expect(zshrc).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
-		expect(zshrc).toContain("rehash 2>/dev/null || true");
+		// rehash only runs in .zlogin (after all init files), not in .zshrc
+		expect(zshrc).not.toContain("rehash");
 
 		expect(zlogin).toContain("if [[ -o interactive ]]; then");
 		expect(zlogin).toContain('source "$_superset_home/.zlogin"');
@@ -59,7 +81,7 @@ describe("shell-wrappers", () => {
 	});
 
 	it("creates bash wrapper with command shims and idempotent PATH prepend", () => {
-		createBashWrapper();
+		writeBashWrapper();
 
 		const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
 		expect(rcfile).toContain("_superset_prepend_bin()");
@@ -71,7 +93,7 @@ describe("shell-wrappers", () => {
 	});
 
 	it("uses login zsh command args when wrappers exist", () => {
-		createZshWrapper();
+		writeZshWrappers();
 
 		const args = getCommandShellArgs("/bin/zsh", "echo ok");
 		expect(args).toEqual([
@@ -83,5 +105,26 @@ describe("shell-wrappers", () => {
 	it("falls back to login shell args when zsh wrappers are missing", () => {
 		const args = getCommandShellArgs("/bin/zsh", "echo ok");
 		expect(args).toEqual(["-lc", "echo ok"]);
+	});
+
+	it("only injects zsh wrapper env when wrapper files exist", () => {
+		expect(getShellEnv("/bin/zsh")).toEqual({});
+
+		writeZshWrappers();
+
+		expect(getShellEnv("/bin/zsh")).toEqual({
+			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || homedir(),
+			ZDOTDIR: TEST_ZSH_DIR,
+		});
+	});
+
+	it("falls back to login bash when wrapper is missing", () => {
+		expect(getShellArgs("/bin/bash")).toEqual(["-l"]);
+
+		writeBashWrapper();
+		expect(getShellArgs("/bin/bash")).toEqual([
+			"--rcfile",
+			path.join(TEST_BASH_DIR, "rcfile"),
+		]);
 	});
 });
