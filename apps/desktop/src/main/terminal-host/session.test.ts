@@ -1,9 +1,15 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import type { ChildProcess } from "node:child_process";
-import * as realChildProcess from "node:child_process";
 import { EventEmitter } from "node:events";
 import path from "node:path";
+import {
+	createFrameHeader,
+	PtySubprocessFrameDecoder,
+	PtySubprocessIpcType,
+} from "./pty-subprocess-ipc";
 import "./xterm-env-polyfill";
+
+const { Session } = await import("./session");
 
 class FakeStdout extends EventEmitter {}
 
@@ -30,26 +36,6 @@ class FakeChildProcess extends EventEmitter {
 let fakeChildProcess: FakeChildProcess;
 let spawnCalls: Array<{ command: string; args: string[] }> = [];
 
-mock.module("node:child_process", () => ({
-	...realChildProcess,
-	spawn: (command: string, args: string[]) => {
-		spawnCalls.push({ command, args });
-		return fakeChildProcess as unknown as ChildProcess;
-	},
-	default: {
-		...realChildProcess,
-		spawn: (command: string, args: string[]) => {
-			spawnCalls.push({ command, args });
-			return fakeChildProcess as unknown as ChildProcess;
-		},
-	},
-}));
-
-const { Session } = await import("./session");
-const { BASH_DIR } = await import("../lib/agent-setup/paths");
-const { createFrameHeader, PtySubprocessFrameDecoder, PtySubprocessIpcType } =
-	await import("./pty-subprocess-ipc");
-
 describe("Terminal Host Session shell args", () => {
 	beforeEach(() => {
 		fakeChildProcess = new FakeChildProcess();
@@ -66,6 +52,10 @@ describe("Terminal Host Session shell args", () => {
 			rows: 24,
 			cwd: "/tmp",
 			shell: "/bin/bash",
+			spawnProcess: (command: string, args: readonly string[]) => {
+				spawnCalls.push({ command, args: [...args] });
+				return fakeChildProcess as unknown as ChildProcess;
+			},
 		});
 
 		session.spawn({
@@ -95,9 +85,9 @@ describe("Terminal Host Session shell args", () => {
 			spawnFrame?.payload.toString("utf8") ?? "{}",
 		) as { args?: string[] } | undefined;
 
-		expect(spawnPayload?.args).toEqual([
-			"--rcfile",
-			path.join(BASH_DIR, "rcfile"),
-		]);
+		expect(spawnPayload?.args?.[0]).toBe("--rcfile");
+		expect(spawnPayload?.args?.[1]?.endsWith(path.join("bash", "rcfile"))).toBe(
+			true,
+		);
 	});
 });

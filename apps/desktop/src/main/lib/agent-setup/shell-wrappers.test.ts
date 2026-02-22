@@ -1,7 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import {
+	createBashWrapper,
+	createZshWrapper,
+	getCommandShellArgs,
+	getShellArgs,
+	type ShellWrapperPaths,
+} from "./shell-wrappers";
 
 const TEST_ROOT = path.join(
 	tmpdir(),
@@ -10,25 +17,11 @@ const TEST_ROOT = path.join(
 const TEST_BIN_DIR = path.join(TEST_ROOT, "bin");
 const TEST_ZSH_DIR = path.join(TEST_ROOT, "zsh");
 const TEST_BASH_DIR = path.join(TEST_ROOT, "bash");
-const TEST_HOOKS_DIR = path.join(TEST_ROOT, "hooks");
-const TEST_OPENCODE_CONFIG_DIR = path.join(TEST_HOOKS_DIR, "opencode");
-const TEST_OPENCODE_PLUGIN_DIR = path.join(TEST_OPENCODE_CONFIG_DIR, "plugin");
-
-mock.module("./paths", () => ({
+const TEST_PATHS: ShellWrapperPaths = {
 	BIN_DIR: TEST_BIN_DIR,
-	HOOKS_DIR: TEST_HOOKS_DIR,
 	ZSH_DIR: TEST_ZSH_DIR,
 	BASH_DIR: TEST_BASH_DIR,
-	OPENCODE_CONFIG_DIR: TEST_OPENCODE_CONFIG_DIR,
-	OPENCODE_PLUGIN_DIR: TEST_OPENCODE_PLUGIN_DIR,
-}));
-
-const {
-	createBashWrapper,
-	createZshWrapper,
-	getCommandShellArgs,
-	getShellArgs,
-} = await import("./shell-wrappers");
+};
 
 describe("shell-wrappers", () => {
 	beforeEach(() => {
@@ -42,7 +35,7 @@ describe("shell-wrappers", () => {
 	});
 
 	it("creates zsh wrappers with interactive .zlogin sourcing and command shims", () => {
-		createZshWrapper();
+		createZshWrapper(TEST_PATHS);
 
 		const zshenv = readFileSync(path.join(TEST_ZSH_DIR, ".zshenv"), "utf-8");
 		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
@@ -67,7 +60,7 @@ describe("shell-wrappers", () => {
 	});
 
 	it("creates bash wrapper with command shims and idempotent PATH prepend", () => {
-		createBashWrapper();
+		createBashWrapper(TEST_PATHS);
 
 		const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
 		expect(rcfile).toContain("_superset_prepend_bin()");
@@ -79,9 +72,9 @@ describe("shell-wrappers", () => {
 	});
 
 	it("uses login zsh command args when wrappers exist", () => {
-		createZshWrapper();
+		createZshWrapper(TEST_PATHS);
 
-		const args = getCommandShellArgs("/bin/zsh", "echo ok");
+		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
 		expect(args).toEqual([
 			"-lc",
 			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" && echo ok`,
@@ -89,12 +82,12 @@ describe("shell-wrappers", () => {
 	});
 
 	it("falls back to login shell args when zsh wrappers are missing", () => {
-		const args = getCommandShellArgs("/bin/zsh", "echo ok");
+		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
 		expect(args).toEqual(["-lc", "echo ok"]);
 	});
 
 	it("uses bash rcfile args for interactive bash shells", () => {
-		expect(getShellArgs("/bin/bash")).toEqual([
+		expect(getShellArgs("/bin/bash", TEST_PATHS)).toEqual([
 			"--rcfile",
 			path.join(TEST_BASH_DIR, "rcfile"),
 		]);

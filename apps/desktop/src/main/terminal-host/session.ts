@@ -65,6 +65,7 @@ export interface SessionOptions {
 	workspacePath?: string;
 	rootPath?: string;
 	scrollbackLines?: number;
+	spawnProcess?: typeof spawn;
 }
 
 export interface AttachedClient {
@@ -83,6 +84,7 @@ export class Session {
 	readonly tabId: string;
 	readonly shell: string;
 	readonly createdAt: Date;
+	private readonly spawnProcess: typeof spawn;
 
 	private subprocess: ChildProcess | null = null;
 	private subprocessReady = false;
@@ -133,6 +135,7 @@ export class Session {
 		this.shell = options.shell || this.getDefaultShell();
 		this.createdAt = new Date();
 		this.lastAttachedAt = new Date();
+		this.spawnProcess = options.spawnProcess ?? spawn;
 
 		// Initialize PTY ready promise
 		this.ptyReadyPromise = new Promise((resolve) => {
@@ -188,7 +191,7 @@ export class Session {
 
 		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
 		const electronPath = process.execPath;
-		this.subprocess = spawn(electronPath, [subprocessPath], {
+		this.subprocess = this.spawnProcess(electronPath, [subprocessPath], {
 			stdio: ["pipe", "pipe", "inherit"],
 			env: { ...processEnv, ELECTRON_RUN_AS_NODE: "1" },
 		});
