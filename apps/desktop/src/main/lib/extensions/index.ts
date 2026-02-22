@@ -85,7 +85,11 @@ function getChromeExtensionRoots(): string[] {
 		for (const profileEntry of profileEntries) {
 			if (!profileEntry.isDirectory()) continue;
 
-			const extensionsDir = path.join(userDataDir, profileEntry.name, "Extensions");
+			const extensionsDir = path.join(
+				userDataDir,
+				profileEntry.name,
+				"Extensions",
+			);
 			if (existsSync(extensionsDir)) roots.push(extensionsDir);
 		}
 	}
