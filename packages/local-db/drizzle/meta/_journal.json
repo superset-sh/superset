@@ -218,6 +218,13 @@
       "when": 1771569145144,
       "tag": "0030_shallow_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1771700000000,
+      "tag": "0031_migrate_workspace_ids_to_uuid",
+      "breakpoints": true
     }
   ]
 }
