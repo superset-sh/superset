@@ -7,6 +7,7 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
+import * as realOs from "node:os";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -47,7 +48,10 @@ mock.module("./paths", () => ({
 }));
 
 mock.module("node:os", () => ({
+	...realOs,
+	homedir: () => mockedHomeDir,
 	default: {
+		...realOs,
 		homedir: () => mockedHomeDir,
 	},
 }));

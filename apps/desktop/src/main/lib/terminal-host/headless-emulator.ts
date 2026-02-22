@@ -7,6 +7,7 @@
  * - Rehydration sequence generation for mode restoration
  */
 
+import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal } from "@xterm/headless";
 import {

@@ -1,17 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Terminal as HeadlessTerminal } from "@xterm/headless";
-import {
-	flushSession,
-	getSerializedScrollback,
-	recoverScrollback,
-} from "./session";
 import type { TerminalSession } from "./types";
 
-function createTestHeadless(): {
-	headless: HeadlessTerminal;
-	serializer: SerializeAddon;
-} {
+if (typeof window === "undefined") {
+	(globalThis as Record<string, unknown>).window = globalThis;
+}
+
+const { SerializeAddon } = await import("@xterm/addon-serialize");
+const { Terminal: HeadlessTerminal } = await import("@xterm/headless");
+const { flushSession, getSerializedScrollback, recoverScrollback } =
+	await import("./session");
+
+function createTestHeadless() {
 	const headless = new HeadlessTerminal({
 		cols: 80,
 		rows: 24,

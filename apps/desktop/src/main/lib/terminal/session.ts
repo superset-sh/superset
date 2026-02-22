@@ -1,4 +1,5 @@
 import os from "node:os";
+import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import * as pty from "node-pty";
