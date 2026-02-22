@@ -56,7 +56,7 @@ function CommitHeader({
 						</div>
 					</ContextMenuTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="top">{message}</TooltipContent>
+				<TooltipContent side="right">{message}</TooltipContent>
 			</Tooltip>
 			<ContextMenuContent className="w-52">
 				<ContextMenuItem onClick={handleCopyCommitHash}>
