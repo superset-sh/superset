@@ -158,16 +158,16 @@ describe("agent-wrappers copilot", () => {
 		expect(
 			beforeSubmitPrompt.some((entry) => entry.command.includes(staleHookPath)),
 		).toBe(false);
-			expect(
-				beforeSubmitPrompt.some(
-					(entry) => entry.command === "/usr/local/bin/custom-hook Start",
-				),
-			).toBe(true);
-			expect(Array.isArray(parsed.hooks.stop)).toBe(true);
-			expect(Array.isArray(parsed.hooks.beforeShellExecution)).toBe(true);
-			expect(Array.isArray(parsed.hooks.beforeMCPExecution)).toBe(true);
-			expect(JSON.parse(content2)).toEqual(JSON.parse(content));
-		});
+		expect(
+			beforeSubmitPrompt.some(
+				(entry) => entry.command === "/usr/local/bin/custom-hook Start",
+			),
+		).toBe(true);
+		expect(Array.isArray(parsed.hooks.stop)).toBe(true);
+		expect(Array.isArray(parsed.hooks.beforeShellExecution)).toBe(true);
+		expect(Array.isArray(parsed.hooks.beforeMCPExecution)).toBe(true);
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
 
 	it("replaces stale Gemini hook commands from old superset paths", () => {
 		const geminiSettingsPath = path.join(
@@ -183,96 +183,96 @@ describe("agent-wrappers copilot", () => {
 			geminiSettingsPath,
 			JSON.stringify(
 				{
-						hooks: {
-							BeforeAgent: [
-								{
-									hooks: [{ type: "command", command: staleHookPath }],
-								},
-								{
-									hooks: [{ type: "command", command: "/opt/custom-hook.sh" }],
-								},
-							],
-							AfterAgent: [
-								{
-									hooks: [{ type: "command", command: staleHookPath }],
-								},
-							],
-							AfterTool: [
-								{
-									hooks: [{ type: "command", command: staleHookPath }],
-								},
-							],
-						},
+					hooks: {
+						BeforeAgent: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+							{
+								hooks: [{ type: "command", command: "/opt/custom-hook.sh" }],
+							},
+						],
+						AfterAgent: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
+						AfterTool: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+						],
 					},
-					null,
-					2,
-				),
+				},
+				null,
+				2,
+			),
 		);
 
 		const content = getGeminiSettingsJsonContent(currentHookPath);
 		writeFileSync(geminiSettingsPath, content);
 		const content2 = getGeminiSettingsJsonContent(currentHookPath);
 
-			const parsed = JSON.parse(content) as {
-				hooks: Record<
-					string,
-					Array<{ hooks: Array<{ type: string; command: string }> }>
-				>;
-			};
-			const parsed2 = JSON.parse(content2) as {
-				hooks: Record<
-					string,
-					Array<{ hooks: Array<{ type: string; command: string }> }>
-				>;
-			};
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{ hooks: Array<{ type: string; command: string }> }>
+			>;
+		};
+		const parsed2 = JSON.parse(content2) as {
+			hooks: Record<
+				string,
+				Array<{ hooks: Array<{ type: string; command: string }> }>
+			>;
+		};
 
-			const eventNames = ["BeforeAgent", "AfterAgent", "AfterTool"] as const;
+		const eventNames = ["BeforeAgent", "AfterAgent", "AfterTool"] as const;
 
-			for (const eventName of eventNames) {
-				const hooks = parsed.hooks[eventName];
-				expect(Array.isArray(hooks)).toBe(true);
-				expect(
-					hooks.some(
-						(def) =>
-							def.hooks?.length === 1 &&
-							def.hooks[0]?.command === currentHookPath,
-					),
-				).toBe(true);
-				expect(
-					hooks.some((def) =>
-						def.hooks.some((hook) => hook.command.includes(staleHookPath)),
-					),
-				).toBe(false);
-			}
-
-			const beforeAgent = parsed.hooks.BeforeAgent;
+		for (const eventName of eventNames) {
+			const hooks = parsed.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
 			expect(
-				beforeAgent.some((def) =>
-					def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
+				hooks.some(
+					(def) =>
+						def.hooks?.length === 1 &&
+						def.hooks[0]?.command === currentHookPath,
 				),
 			).toBe(true);
-
-			for (const eventName of eventNames) {
-				const hooks = parsed2.hooks[eventName];
-				expect(Array.isArray(hooks)).toBe(true);
-				expect(
-					hooks.some(
-						(def) =>
-							def.hooks?.length === 1 &&
-							def.hooks[0]?.command === currentHookPath,
-					),
-				).toBe(true);
-				expect(
-					hooks.some((def) =>
-						def.hooks.some((hook) => hook.command.includes(staleHookPath)),
-					),
-				).toBe(false);
-			}
 			expect(
-				parsed2.hooks.BeforeAgent.some((def) =>
-					def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				),
+			).toBe(false);
+		}
+
+		const beforeAgent = parsed.hooks.BeforeAgent;
+		expect(
+			beforeAgent.some((def) =>
+				def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
+			),
+		).toBe(true);
+
+		for (const eventName of eventNames) {
+			const hooks = parsed2.hooks[eventName];
+			expect(Array.isArray(hooks)).toBe(true);
+			expect(
+				hooks.some(
+					(def) =>
+						def.hooks?.length === 1 &&
+						def.hooks[0]?.command === currentHookPath,
 				),
 			).toBe(true);
-			expect(JSON.parse(content2)).toEqual(JSON.parse(content));
-		});
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				),
+			).toBe(false);
+		}
+		expect(
+			parsed2.hooks.BeforeAgent.some((def) =>
+				def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
+			),
+		).toBe(true);
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
+});
