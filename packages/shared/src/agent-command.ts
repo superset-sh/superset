@@ -9,6 +9,35 @@ export const AGENT_TYPES = [
 
 export type AgentType = (typeof AGENT_TYPES)[number];
 
+export const AGENT_LABELS: Record<AgentType, string> = {
+	claude: "Claude",
+	codex: "Codex",
+	gemini: "Gemini",
+	opencode: "OpenCode",
+	copilot: "Copilot",
+	"cursor-agent": "Cursor Agent",
+};
+
+export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
+	claude: ["claude --dangerously-skip-permissions"],
+	codex: [
+		'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+	],
+	gemini: ["gemini --yolo"],
+	opencode: ["opencode"],
+	copilot: ["copilot"],
+	"cursor-agent": ["cursor-agent"],
+};
+
+export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
+	claude: "Danger mode: All permissions auto-approved",
+	codex: "Danger mode: All permissions auto-approved",
+	gemini: "Danger mode: All permissions auto-approved",
+	opencode: "OpenCode: Open-source AI coding agent",
+	copilot: "GitHub Copilot: AI-powered coding in your terminal",
+	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
+};
+
 export interface TaskInput {
 	id: string;
 	slug: string;
@@ -58,9 +87,12 @@ function buildHeredoc(
 	suffix?: string,
 ): string {
 	const closing = suffix ? `)" ${suffix}` : ')"';
-	return [`${command} "$(cat <<'${delimiter}'`, prompt, delimiter, closing].join(
-		"\n",
-	);
+	return [
+		`${command} "$(cat <<'${delimiter}'`,
+		prompt,
+		delimiter,
+		closing,
+	].join("\n");
 }
 
 const AGENT_COMMANDS: Record<

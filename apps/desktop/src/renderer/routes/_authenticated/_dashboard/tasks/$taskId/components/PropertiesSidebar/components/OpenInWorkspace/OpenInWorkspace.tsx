@@ -1,3 +1,8 @@
+import {
+	AGENT_LABELS,
+	AGENT_TYPES,
+	type AgentType,
+} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -5,9 +10,20 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
@@ -24,8 +40,12 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const isDark = useIsDarkTheme();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
+	);
+	const [selectedAgent, setSelectedAgent] = useState<AgentType>(
+		() => (localStorage.getItem("lastSelectedAgent") as AgentType) || "claude",
 	);
 
 	// Default to the first recent project
@@ -72,6 +92,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 						labels: task.labels,
 					},
 					randomId: window.crypto.randomUUID(),
+					agent: selectedAgent,
 				});
 
 				const store = useWorkspaceInitStore.getState();
@@ -93,6 +114,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			);
 		}
 	};
+
+	const agentIcon = getPresetIcon(selectedAgent, isDark);
 
 	return (
 		<div className="flex flex-col gap-2">
@@ -168,6 +191,41 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					<HiArrowRight className="w-3.5 h-3.5" />
 				</Button>
 			</div>
+			<Select
+				value={selectedAgent}
+				onValueChange={(value: AgentType) => {
+					setSelectedAgent(value);
+					localStorage.setItem("lastSelectedAgent", value);
+				}}
+			>
+				<SelectTrigger className="h-8 text-xs">
+					<span className="flex items-center gap-2">
+						{agentIcon && (
+							<img src={agentIcon} alt="" className="size-3.5 object-contain" />
+						)}
+						<SelectValue />
+					</span>
+				</SelectTrigger>
+				<SelectContent>
+					{AGENT_TYPES.map((agent) => {
+						const icon = getPresetIcon(agent, isDark);
+						return (
+							<SelectItem key={agent} value={agent}>
+								<span className="flex items-center gap-2">
+									{icon && (
+										<img
+											src={icon}
+											alt=""
+											className="size-3.5 object-contain"
+										/>
+									)}
+									{AGENT_LABELS[agent]}
+								</span>
+							</SelectItem>
+						);
+					})}
+				</SelectContent>
+			</Select>
 		</div>
 	);
 }

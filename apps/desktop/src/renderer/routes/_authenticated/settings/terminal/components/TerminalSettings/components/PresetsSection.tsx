@@ -1,4 +1,9 @@
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
+import {
+	AGENT_PRESET_COMMANDS,
+	AGENT_PRESET_DESCRIPTIONS,
+	AGENT_TYPES,
+} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -29,64 +34,15 @@ interface PresetTemplate {
 	};
 }
 
-const PRESET_TEMPLATES: PresetTemplate[] = [
-	{
-		name: "codex",
-		preset: {
-			name: "codex",
-			description: "Danger mode: All permissions auto-approved",
-			cwd: "",
-			commands: [
-				'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
-			],
-		},
+const PRESET_TEMPLATES: PresetTemplate[] = AGENT_TYPES.map((agent) => ({
+	name: agent,
+	preset: {
+		name: agent,
+		description: AGENT_PRESET_DESCRIPTIONS[agent],
+		cwd: "",
+		commands: AGENT_PRESET_COMMANDS[agent],
 	},
-	{
-		name: "claude",
-		preset: {
-			name: "claude",
-			description: "Danger mode: All permissions auto-approved",
-			cwd: "",
-			commands: ["claude --dangerously-skip-permissions"],
-		},
-	},
-	{
-		name: "gemini",
-		preset: {
-			name: "gemini",
-			description: "Danger mode: All permissions auto-approved",
-			cwd: "",
-			commands: ["gemini --yolo"],
-		},
-	},
-	{
-		name: "cursor-agent",
-		preset: {
-			name: "cursor-agent",
-			description: "Cursor AI agent for terminal-based coding assistance",
-			cwd: "",
-			commands: ["cursor-agent"],
-		},
-	},
-	{
-		name: "opencode",
-		preset: {
-			name: "opencode",
-			description: "OpenCode: Open-source AI coding agent",
-			cwd: "",
-			commands: ["opencode"],
-		},
-	},
-	{
-		name: "copilot",
-		preset: {
-			name: "copilot",
-			description: "GitHub Copilot: AI-powered coding in your terminal",
-			cwd: "",
-			commands: ["copilot"],
-		},
-	},
-];
+}));
 
 interface PresetsSectionProps {
 	showPresets: boolean;
