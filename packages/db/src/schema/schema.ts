@@ -281,8 +281,6 @@ export const agentCommands = pgTable(
 		params: jsonb().$type<Record<string, unknown>>(),
 		parentCommandId: uuid("parent_command_id"),
 		status: commandStatus().notNull().default("pending"),
-		claimedBy: text("claimed_by"),
-		claimedAt: timestamp("claimed_at"),
 		result: jsonb().$type<Record<string, unknown>>(),
 		error: text(),
 		createdAt: timestamp("created_at").notNull().defaultNow(),

@@ -242,6 +242,14 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				const result = await apiClient.agent.updateCommand.mutate({
+					...changes,
+					id: original.id,
+				});
+				return { txid: result.txid };
+			},
 		}),
 	);
 

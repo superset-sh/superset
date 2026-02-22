@@ -9,7 +9,6 @@ import { useDeleteWorkspace } from "renderer/react-query/workspaces/useDeleteWor
 import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider";
-import { persistCommandStatus } from "./persistCommandStatus";
 import { executeTool, type ToolContext } from "./tools";
 
 /** Tracks command IDs that have been or are being processed to prevent duplicate execution. */
@@ -86,34 +85,14 @@ export function useCommandWatcher() {
 			handledCommands.add(commandId);
 			console.log(`[command-watcher] Processing: ${commandId} (${tool})`);
 
-			const claimedAt = new Date();
 			try {
-				collections.agentCommands.update(commandId, (draft) => {
-					draft.status = "claimed";
-					draft.claimedBy = deviceInfo?.deviceId ?? null;
-					draft.claimedAt = claimedAt;
-				});
-
-				collections.agentCommands.update(commandId, (draft) => {
-					draft.status = "executing";
-				});
-
 				const result = await executeTool(tool, params, toolContext);
 
 				if (result.success) {
-					const executedAt = new Date();
 					collections.agentCommands.update(commandId, (draft) => {
 						draft.status = "completed";
 						draft.result = result.data ?? {};
-						draft.executedAt = executedAt;
-					});
-					await persistCommandStatus({
-						id: commandId,
-						status: "completed",
-						claimedBy: deviceInfo?.deviceId,
-						claimedAt,
-						result: result.data ?? {},
-						executedAt,
+						draft.executedAt = new Date();
 					});
 				} else {
 					const itemErrors = (
@@ -125,47 +104,29 @@ export function useCommandWatcher() {
 						? `${result.error ?? "Unknown error"}: ${itemErrors}`
 						: (result.error ?? "Unknown error");
 
-					const executedAt = new Date();
 					collections.agentCommands.update(commandId, (draft) => {
 						draft.status = "failed";
 						draft.error = fullError;
-						draft.executedAt = executedAt;
+						draft.executedAt = new Date();
 					});
 					console.error(
 						`[command-watcher] Failed: ${commandId}`,
 						fullError,
 						result.data,
 					);
-					await persistCommandStatus({
-						id: commandId,
-						status: "failed",
-						claimedBy: deviceInfo?.deviceId,
-						claimedAt,
-						error: fullError,
-						executedAt,
-					});
 				}
 			} catch (error) {
 				console.error(`[command-watcher] Error: ${commandId}`, error);
 				const errorMsg =
 					error instanceof Error ? error.message : "Execution error";
-				const executedAt = new Date();
 				collections.agentCommands.update(commandId, (draft) => {
 					draft.status = "failed";
 					draft.error = errorMsg;
-					draft.executedAt = executedAt;
-				});
-				await persistCommandStatus({
-					id: commandId,
-					status: "failed",
-					claimedBy: deviceInfo?.deviceId,
-					claimedAt,
-					error: errorMsg,
-					executedAt,
+					draft.executedAt = new Date();
 				});
 			}
 		},
-		[collections.agentCommands, deviceInfo?.deviceId, toolContext],
+		[collections.agentCommands, toolContext],
 	);
 
 	useEffect(() => {
@@ -179,6 +140,21 @@ export function useCommandWatcher() {
 		}
 
 		const now = new Date();
+
+		// Expire timed-out commands before filtering for execution
+		for (const cmd of pendingCommands) {
+			if (cmd.targetDeviceId !== deviceInfo.deviceId) continue;
+			if (cmd.organizationId !== organizationId) continue;
+			if (handledCommands.has(cmd.id)) continue;
+			if (cmd.timeoutAt && new Date(cmd.timeoutAt) < now) {
+				collections.agentCommands.update(cmd.id, (draft) => {
+					draft.status = "timeout";
+					draft.error = "Command expired before execution";
+				});
+				handledCommands.add(cmd.id);
+			}
+		}
+
 		const commandsForThisDevice = pendingCommands.filter((cmd) => {
 			if (cmd.targetDeviceId !== deviceInfo.deviceId) return false;
 			if (handledCommands.has(cmd.id)) return false;
@@ -186,19 +162,6 @@ export function useCommandWatcher() {
 			// Security: verify org matches (don't trust Electric filtering alone)
 			if (cmd.organizationId !== organizationId) {
 				console.warn(`[command-watcher] Org mismatch for ${cmd.id}`);
-				return false;
-			}
-
-			if (cmd.timeoutAt && new Date(cmd.timeoutAt) < now) {
-				collections.agentCommands.update(cmd.id, (draft) => {
-					draft.status = "timeout";
-					draft.error = "Command expired before execution";
-				});
-				persistCommandStatus({
-					id: cmd.id,
-					status: "timeout",
-					error: "Command expired before execution",
-				});
 				return false;
 			}
 

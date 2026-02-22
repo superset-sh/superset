@@ -33,8 +33,6 @@ export type DeviceType = z.infer<typeof deviceTypeEnum>;
 
 export const commandStatusValues = [
 	"pending",
-	"claimed",
-	"executing",
 	"completed",
 	"failed",
 	"timeout",
