@@ -47,6 +47,12 @@ const ATTACH_FLUSH_TIMEOUT_MS = 500;
  */
 const MAX_SUBPROCESS_STDIN_QUEUE_BYTES = 2_000_000;
 
+type SpawnProcess = (
+	command: string,
+	args: readonly string[],
+	options: Parameters<typeof spawn>[2],
+) => ChildProcess;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -65,7 +71,7 @@ export interface SessionOptions {
 	workspacePath?: string;
 	rootPath?: string;
 	scrollbackLines?: number;
-	spawnProcess?: typeof spawn;
+	spawnProcess?: SpawnProcess;
 }
 
 export interface AttachedClient {
@@ -84,7 +90,7 @@ export class Session {
 	readonly tabId: string;
 	readonly shell: string;
 	readonly createdAt: Date;
-	private readonly spawnProcess: typeof spawn;
+	private readonly spawnProcess: SpawnProcess;
 
 	private subprocess: ChildProcess | null = null;
 	private subprocessReady = false;

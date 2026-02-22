@@ -52,7 +52,7 @@ describe("Terminal Host Session shell args", () => {
 			rows: 24,
 			cwd: "/tmp",
 			shell: "/bin/bash",
-			spawnProcess: (command: string, args: readonly string[]) => {
+			spawnProcess: (command: string, args: readonly string[], _options) => {
 				spawnCalls.push({ command, args: [...args] });
 				return fakeChildProcess as unknown as ChildProcess;
 			},
