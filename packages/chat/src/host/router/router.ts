@@ -22,10 +22,15 @@ export const sessionIdInput = z.object({
 	sessionId: z.string().uuid(),
 });
 
+export const ensureRuntimeInput = z.object({
+	sessionId: z.string().uuid(),
+	cwd: z.string().optional(),
+});
+
 export function createChatServiceRouter(service: ChatService) {
 	return t.router({
 		start: t.procedure
-			.input(z.object({ organizationId: z.string(), authToken: z.string() }))
+			.input(z.object({ organizationId: z.string() }))
 			.mutation(async ({ input }) => {
 				await service.start(input);
 				return { success: true };
@@ -63,9 +68,9 @@ export function createChatServiceRouter(service: ChatService) {
 			}),
 
 			ensureRuntime: t.procedure
-				.input(sessionIdInput)
+				.input(ensureRuntimeInput)
 				.mutation(async ({ input }) => {
-					return service.ensureWatcher(input.sessionId);
+					return service.ensureWatcher(input.sessionId, input.cwd);
 				}),
 
 			config: t.procedure

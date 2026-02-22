@@ -212,12 +212,12 @@ export const UserQuestionTool = ({
 	return (
 		<div
 			className={cn(
-				"overflow-hidden rounded-t-xl border border-b-0 border-border bg-muted/30",
+				"overflow-hidden rounded-xl border border-border bg-card/95 shadow-sm",
 				className,
 			)}
 		>
 			{/* Header */}
-			<div className="flex items-center justify-between px-3 py-1.5">
+			<div className="flex items-center justify-between border-border/60 border-b bg-muted/20 px-3 py-1.5">
 				<div className="flex items-center gap-1.5">
 					<span className="text-xs text-muted-foreground">
 						{current.header ?? "Question"}
@@ -325,7 +325,7 @@ export const UserQuestionTool = ({
 			</div>
 
 			{/* Footer */}
-			<div className="flex items-center justify-end gap-2 px-2 py-2">
+			<div className="flex items-center justify-end gap-2 border-border/60 border-t bg-muted/10 px-2 py-2">
 				<Button
 					className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
 					disabled={isSubmitting}

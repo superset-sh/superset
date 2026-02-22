@@ -1,8 +1,10 @@
+import type { ChatHostAuthProvider } from "../lib/auth/auth";
 import { AgentManager, type AgentManagerConfig } from "./agent-manager";
 
 export interface ChatServiceHostConfig {
 	deviceId: string;
 	apiUrl: string;
+	authProvider: ChatHostAuthProvider;
 }
 
 export class ChatService {
@@ -13,22 +15,18 @@ export class ChatService {
 		this.hostConfig = hostConfig;
 	}
 
-	async start(options: {
-		organizationId: string;
-		authToken: string;
-	}): Promise<void> {
+	async start(options: { organizationId: string }): Promise<void> {
 		const config: AgentManagerConfig = {
 			deviceId: this.hostConfig.deviceId,
 			organizationId: options.organizationId,
-			authToken: options.authToken,
 			apiUrl: this.hostConfig.apiUrl,
+			authProvider: this.hostConfig.authProvider,
 		};
 
 		if (this.agentManager) {
 			await this.agentManager.restart({
 				organizationId: options.organizationId,
 				deviceId: this.hostConfig.deviceId,
-				authToken: options.authToken,
 			});
 		} else {
 			this.agentManager = new AgentManager(config);
@@ -49,10 +47,11 @@ export class ChatService {
 
 	async ensureWatcher(
 		sessionId: string,
+		cwd?: string,
 	): Promise<{ ready: boolean; reason?: string }> {
 		if (!this.agentManager) {
 			return { ready: false, reason: "Chat service is not started" };
 		}
-		return this.agentManager.ensureWatcher(sessionId);
+		return this.agentManager.ensureWatcher(sessionId, cwd);
 	}
 }

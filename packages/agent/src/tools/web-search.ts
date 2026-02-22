@@ -28,20 +28,43 @@ export const webSearchTool = createTool({
 	outputSchema: resultSchema,
 	execute: async (input, context) => {
 		const apiUrl = context?.requestContext?.get("apiUrl");
-		const authToken = context?.requestContext?.get("authToken");
+		const rawAuthHeaders = context?.requestContext?.get("authHeaders");
+		const rawAuthToken = context?.requestContext?.get("authToken");
+		let authHeaders: Record<string, string> = {};
+		const authToken =
+			typeof rawAuthToken === "string" ? rawAuthToken : undefined;
 
-		if (!apiUrl || !authToken) {
+		if (typeof rawAuthHeaders === "string") {
+			try {
+				authHeaders = JSON.parse(rawAuthHeaders) as Record<string, string>;
+			} catch (error) {
+				console.warn(
+					"[web-search] Invalid authHeaders in request context:",
+					error,
+				);
+			}
+		}
+
+		if (typeof apiUrl !== "string" || apiUrl.length === 0) {
+			throw new Error("Web search requires apiUrl in request context.");
+		}
+		if (Object.keys(authHeaders).length === 0 && !authToken) {
 			throw new Error(
-				"Web search requires apiUrl and authToken in request context.",
+				"Web search requires authHeaders or authToken in request context.",
 			);
+		}
+
+		const headers: Record<string, string> = {
+			"Content-Type": "application/json",
+			...authHeaders,
+		};
+		if (!headers.Authorization && authToken) {
+			headers.Authorization = `Bearer ${authToken}`;
 		}
 
 		const response = await fetch(`${apiUrl}/api/chat/tools/web-search`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${authToken}`,
-			},
+			headers,
 			body: JSON.stringify({
 				query: input.query,
 				maxResults: input.maxResults,

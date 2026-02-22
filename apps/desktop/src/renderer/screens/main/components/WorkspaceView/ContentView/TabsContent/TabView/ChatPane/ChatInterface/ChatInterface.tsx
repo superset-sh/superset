@@ -146,7 +146,10 @@ export function ChatInterface({
 
 		void (async () => {
 			try {
-				const runtime = await ensureRuntimeMutation.mutateAsync({ sessionId });
+				const runtime = await ensureRuntimeMutation.mutateAsync({
+					sessionId,
+					cwd,
+				});
 				if (!runtime.ready) {
 					throw new Error(runtime.reason ?? "Session runtime is not ready");
 				}
@@ -182,6 +185,7 @@ export function ChatInterface({
 		messageMetadata,
 		sessionId,
 		ensureRuntimeMutation,
+		cwd,
 	]);
 
 	// Reset ref when sessionId changes so pending message is re-sent for new sessions
@@ -250,7 +254,10 @@ export function ChatInterface({
 
 			if (sessionId) {
 				setRuntimeError(null);
-				const runtime = await ensureRuntimeMutation.mutateAsync({ sessionId });
+				const runtime = await ensureRuntimeMutation.mutateAsync({
+					sessionId,
+					cwd,
+				});
 				if (!runtime.ready) {
 					setRuntimeError(
 						runtime.reason ?? "Session runtime is not ready on this device",
@@ -305,6 +312,7 @@ export function ChatInterface({
 			paneId,
 			switchChatSession,
 			ensureRuntimeMutation,
+			cwd,
 			chat.sendMessage,
 			messageMetadata,
 		],

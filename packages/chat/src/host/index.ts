@@ -4,5 +4,6 @@ export {
 } from "./auth/anthropic";
 export type { ChatServiceHostConfig } from "./chat-service";
 export { ChatService } from "./chat-service";
+export type { ChatHostAuthProvider } from "./lib/auth/auth";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";

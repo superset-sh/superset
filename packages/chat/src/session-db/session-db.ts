@@ -1,3 +1,4 @@
+import type { DurableStreamOptions } from "@durable-streams/client";
 import {
 	createStreamDB,
 	type StreamDB,
@@ -14,7 +15,8 @@ import {
 export interface SessionDBConfig {
 	sessionId: string;
 	baseUrl: string;
-	headers?: Record<string, string>;
+	headers?: DurableStreamOptions["headers"];
+	fetch?: DurableStreamOptions["fetch"];
 	signal?: AbortSignal;
 }
 
@@ -31,13 +33,14 @@ export type SessionDB = {
 type RawSessionDB = StreamDB<typeof sessionStateSchema>;
 
 export function createSessionDB(config: SessionDBConfig): SessionDB {
-	const { sessionId, baseUrl, headers, signal } = config;
+	const { sessionId, baseUrl, headers, fetch, signal } = config;
 	const streamUrl = `${baseUrl}/${sessionId}/stream`;
 
 	const rawDb: RawSessionDB = createStreamDB({
 		streamOptions: {
 			url: streamUrl,
 			headers,
+			fetch,
 			signal,
 		},
 		state: sessionStateSchema,

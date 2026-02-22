@@ -1,5 +1,6 @@
 import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
 import type { UIMessage, UIMessageChunk } from "ai";
+import type { ChatHostAuthProvider } from "../../../../lib/auth/auth";
 import {
 	sessionAbortControllers,
 	sessionContext,
@@ -29,8 +30,8 @@ export interface RunAgentOptions {
 	cwd: string;
 	permissionMode?: string;
 	thinkingEnabled?: boolean;
-	authToken?: string;
-	apiUrl?: string;
+	apiUrl: string;
+	authProvider: ChatHostAuthProvider;
 }
 
 export async function runAgent(options: RunAgentOptions): Promise<void> {
@@ -43,8 +44,8 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		cwd,
 		permissionMode,
 		thinkingEnabled,
-		authToken,
 		apiUrl,
+		authProvider,
 	} = options;
 
 	// Abort any existing agent for this session
@@ -54,15 +55,24 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 	const abortController = new AbortController();
 	sessionAbortControllers.set(sessionId, abortController);
 
+	let authHeaders: Record<string, string> = {};
+	try {
+		authHeaders = await authProvider.getHeaders();
+	} catch (error) {
+		console.warn("[run-agent] Failed to resolve auth headers:", error);
+	}
+
 	const requestEntries: [string, string][] = [
 		["modelId", modelId],
 		["cwd", cwd],
-		...(apiUrl ? ([["apiUrl", apiUrl]] as [string, string][]) : []),
-		...(authToken ? ([["authToken", authToken]] as [string, string][]) : []),
-		...(thinkingEnabled
-			? ([["thinkingEnabled", "true"]] as [string, string][])
-			: []),
+		["apiUrl", apiUrl],
 	];
+	if (Object.keys(authHeaders).length > 0) {
+		requestEntries.push(["authHeaders", JSON.stringify(authHeaders)]);
+	}
+	if (thinkingEnabled) {
+		requestEntries.push(["thinkingEnabled", "true"]);
+	}
 
 	sessionContext.set(sessionId, {
 		cwd,
@@ -76,7 +86,10 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		const fileMentions = parseFileMentions(text, cwd);
 		const fileMentionContext = buildFileMentionContext(fileMentions);
 		const taskSlugs = parseTaskMentions(text);
-		const taskMentionContext = await buildTaskMentionContext(taskSlugs);
+		const taskMentionContext = await buildTaskMentionContext(taskSlugs, {
+			apiUrl,
+			authProvider,
+		});
 		const contextInstructions =
 			projectContext + fileMentionContext + taskMentionContext || undefined;
 

@@ -1,6 +1,7 @@
-import { db } from "@superset/db/client";
-import { tasks } from "@superset/db/schema";
-import { and, inArray, isNull } from "drizzle-orm";
+import {
+	type ChatHostAuthProvider,
+	createApiTrpcClient,
+} from "../../../../../../lib/auth/auth";
 
 const TASK_MENTION_REGEX = /@task:([\w-]+)/g;
 
@@ -16,14 +17,22 @@ export function parseTaskMentions(text: string): string[] {
 
 export async function buildTaskMentionContext(
 	slugs: string[],
+	options: { apiUrl?: string; authProvider?: ChatHostAuthProvider },
 ): Promise<string> {
 	if (slugs.length === 0) return "";
+	if (!options.apiUrl || !options.authProvider) return "";
 
 	try {
-		const rows = await db
-			.select()
-			.from(tasks)
-			.where(and(inArray(tasks.slug, slugs), isNull(tasks.deletedAt)));
+		const client = createApiTrpcClient({
+			apiUrl: options.apiUrl,
+			authProvider: options.authProvider,
+		});
+		const tasksBySlug = await Promise.all(
+			slugs.map((slug) => client.task.bySlug.query(slug)),
+		);
+		const rows = tasksBySlug.filter(
+			(task): task is NonNullable<typeof task> => task !== null,
+		);
 
 		if (rows.length === 0) return "";
 

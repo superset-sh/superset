@@ -7,13 +7,11 @@
  */
 
 import { setAnthropicAuthToken } from "@superset/agent";
-import { db } from "@superset/db/client";
-import { chatSessions, workspaces } from "@superset/db/schema";
-import { eq } from "drizzle-orm";
 import {
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
 } from "../../auth/anthropic";
+import type { ChatHostAuthProvider } from "../../lib/auth/auth";
 import {
 	sessionAbortControllers,
 	sessionContext,
@@ -24,8 +22,8 @@ import { StreamWatcher } from "./stream-watcher";
 export interface AgentManagerConfig {
 	deviceId: string;
 	organizationId: string;
-	authToken: string;
 	apiUrl: string;
+	authProvider: ChatHostAuthProvider;
 }
 
 export class AgentManager {
@@ -33,14 +31,14 @@ export class AgentManager {
 	private startingWatchers = new Map<string, Promise<StreamWatcher>>();
 	private deviceId: string;
 	private organizationId: string;
-	private authToken: string;
 	private apiUrl: string;
+	private authProvider: ChatHostAuthProvider;
 
 	constructor(config: AgentManagerConfig) {
 		this.deviceId = config.deviceId;
 		this.organizationId = config.organizationId;
-		this.authToken = config.authToken;
 		this.apiUrl = config.apiUrl;
+		this.authProvider = config.authProvider;
 	}
 
 	async start(): Promise<void> {
@@ -69,6 +67,7 @@ export class AgentManager {
 
 	async ensureWatcher(
 		sessionId: string,
+		cwd?: string,
 	): Promise<{ ready: boolean; reason?: string }> {
 		const existing = this.watchers.get(sessionId);
 		if (existing) {
@@ -97,7 +96,7 @@ export class AgentManager {
 			}
 		}
 
-		const startPromise = this.createStartedWatcher(sessionId);
+		const startPromise = this.createStartedWatcher(sessionId, cwd);
 		this.startingWatchers.set(sessionId, startPromise);
 		try {
 			const watcher = await startPromise;
@@ -116,13 +115,14 @@ export class AgentManager {
 
 	private async createStartedWatcher(
 		sessionId: string,
+		cwd?: string,
 	): Promise<StreamWatcher> {
-		const cwd = await this.resolveCwd(sessionId);
+		const resolvedCwd = cwd || process.env.HOME || "/";
 		const watcher = new StreamWatcher({
 			sessionId,
-			authToken: this.authToken,
 			apiUrl: this.apiUrl,
-			cwd,
+			cwd: resolvedCwd,
+			authProvider: this.authProvider,
 		});
 		try {
 			await watcher.start();
@@ -131,33 +131,6 @@ export class AgentManager {
 			watcher.stop();
 			throw err;
 		}
-	}
-
-	private async resolveCwd(sessionId: string): Promise<string> {
-		try {
-			const session = await db.query.chatSessions.findFirst({
-				where: eq(chatSessions.id, sessionId),
-				columns: { workspaceId: true },
-			});
-
-			if (session?.workspaceId) {
-				const workspace = await db.query.workspaces.findFirst({
-					where: eq(workspaces.id, session.workspaceId),
-					columns: { config: true },
-				});
-
-				if (workspace?.config && "path" in workspace.config) {
-					return workspace.config.path;
-				}
-			}
-		} catch (err) {
-			console.warn(
-				`[agent-manager] Could not resolve workspace path for ${sessionId}:`,
-				err,
-			);
-		}
-
-		return process.env.HOME ?? "/";
 	}
 
 	private cleanupSession(sessionId: string): void {
@@ -188,12 +161,10 @@ export class AgentManager {
 	async restart(options: {
 		organizationId: string;
 		deviceId?: string;
-		authToken?: string;
 	}): Promise<void> {
 		this.stop();
 		this.organizationId = options.organizationId;
 		if (options.deviceId) this.deviceId = options.deviceId;
-		if (options.authToken) this.authToken = options.authToken;
 		await this.start();
 	}
 }

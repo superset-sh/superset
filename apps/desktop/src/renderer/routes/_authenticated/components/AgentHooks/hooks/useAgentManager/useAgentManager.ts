@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { authClient, getAuthToken } from "renderer/lib/auth-client";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
@@ -9,7 +9,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 export function useAgentManager() {
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId;
-	const authToken = getAuthToken();
 	const startMutation = electronTrpc.chatService.start.useMutation();
 	const mutateRef = useRef(startMutation.mutateAsync);
 	mutateRef.current = startMutation.mutateAsync;
@@ -17,17 +16,16 @@ export function useAgentManager() {
 
 	useEffect(() => {
 		if (!organizationId) return;
-		if (!authToken) return;
-		const startKey = `${organizationId}:${authToken}`;
+		const startKey = organizationId;
 		if (startKey === prevStartKeyRef.current) return;
 
 		void mutateRef
-			.current({ organizationId, authToken })
+			.current({ organizationId })
 			.then(() => {
 				prevStartKeyRef.current = startKey;
 			})
 			.catch((error) => {
 				console.error("[useAgentManager] Failed to start chat service:", error);
 			});
-	}, [organizationId, authToken]);
+	}, [organizationId]);
 }
