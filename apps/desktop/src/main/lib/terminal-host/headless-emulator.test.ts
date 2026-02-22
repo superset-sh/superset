@@ -526,7 +526,7 @@ describe("Edge Cases", () => {
 
 // Helper function to apply snapshot asynchronously
 async function applySnapshotAsync(
-	emulator: HeadlessEmulator,
+	emulator: InstanceType<typeof HeadlessEmulator>,
 	snapshot: { rehydrateSequences: string; snapshotAnsi: string },
 ): Promise<void> {
 	await emulator.writeSync(snapshot.rehydrateSequences);

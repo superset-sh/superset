@@ -6,6 +6,10 @@ import { BASH_DIR, BIN_DIR, ZSH_DIR } from "./paths";
 const ZSH_RC = path.join(ZSH_DIR, ".zshrc");
 const BASH_RCFILE = path.join(BASH_DIR, "rcfile");
 
+function getShellName(shell: string): string {
+	return shell.split("/").pop() || shell;
+}
+
 function writeFileIfChanged(
 	filePath: string,
 	content: string,
@@ -144,7 +148,8 @@ export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 }
 
 export function getShellEnv(shell: string): Record<string, string> {
-	if (shell.includes("zsh")) {
+	const shellName = getShellName(shell);
+	if (shellName === "zsh") {
 		return {
 			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
 			ZDOTDIR: ZSH_DIR,
@@ -154,7 +159,7 @@ export function getShellEnv(shell: string): Record<string, string> {
 }
 
 export function getShellArgs(shell: string): string[] {
-	const shellName = shell.split("/").pop() || shell;
+	const shellName = getShellName(shell);
 	if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
 		return ["-l"];
 	}
@@ -171,10 +176,11 @@ export function getShellArgs(shell: string): string[] {
  * - bash ignores --rcfile when -c is present
  */
 export function getCommandShellArgs(shell: string, command: string): string[] {
-	if (shell.includes("zsh") && fs.existsSync(ZSH_RC)) {
+	const shellName = getShellName(shell);
+	if (shellName === "zsh" && fs.existsSync(ZSH_RC)) {
 		return ["-lc", `source "${ZSH_RC}" && ${command}`];
 	}
-	if (shell.includes("bash") && fs.existsSync(BASH_RCFILE)) {
+	if (shellName === "bash" && fs.existsSync(BASH_RCFILE)) {
 		return ["-c", `source "${BASH_RCFILE}" && ${command}`];
 	}
 	return ["-lc", command];

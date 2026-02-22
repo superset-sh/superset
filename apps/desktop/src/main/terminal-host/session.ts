@@ -175,14 +175,11 @@ export class Session {
 			throw new Error("PTY already spawned");
 		}
 
-		const { cwd, cols, rows, env = {} } = options;
+		const { cwd, cols, rows, env } = options;
 
 		// In normal flow, caller provides a prebuilt terminal env.
 		// Fall back to process.env only if env was omitted.
-		const envSource =
-			Object.keys(env).length > 0
-				? env
-				: (process.env as Record<string, string>);
+		const envSource = env ?? (process.env as Record<string, string>);
 		const processEnv = buildSafeEnv(envSource);
 		processEnv.TERM = "xterm-256color";
 
@@ -577,12 +574,12 @@ export class Session {
 	 * even with continuous output - we only wait for data received BEFORE this call.
 	 */
 	private async flushToSnapshotBoundary(timeoutMs: number): Promise<boolean> {
-		const targetProcessedItems =
-			this.emulatorWriteProcessedItems + this.emulatorWriteQueue.length;
-
-		if (targetProcessedItems <= this.emulatorWriteProcessedItems) {
+		if (this.emulatorWriteQueue.length === 0) {
 			return true; // Already flushed
 		}
+
+		const targetProcessedItems =
+			this.emulatorWriteProcessedItems + this.emulatorWriteQueue.length;
 
 		const waiterId = this.nextSnapshotBoundaryWaiterId++;
 		let reachedBoundary = false;

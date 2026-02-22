@@ -120,12 +120,10 @@ describe("agent-wrappers copilot", () => {
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {
-		const homeDir = path.join(TEST_ROOT, "home");
-		const cursorHooksPath = path.join(homeDir, ".cursor", "hooks.json");
+		const cursorHooksPath = path.join(mockedHomeDir, ".cursor", "hooks.json");
 		const staleHookPath = "/tmp/.superset-old/hooks/cursor-hook.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/cursor-hook.sh";
 
-		mockedHomeDir = homeDir;
 		mkdirSync(path.dirname(cursorHooksPath), { recursive: true });
 		writeFileSync(
 			cursorHooksPath,
@@ -145,6 +143,9 @@ describe("agent-wrappers copilot", () => {
 		);
 
 		const content = getCursorHooksJsonContent(currentHookPath);
+		writeFileSync(cursorHooksPath, content);
+		const content2 = getCursorHooksJsonContent(currentHookPath);
+
 		const parsed = JSON.parse(content) as {
 			hooks: Record<string, Array<{ command: string }>>;
 		};
@@ -163,15 +164,18 @@ describe("agent-wrappers copilot", () => {
 				(entry) => entry.command === "/usr/local/bin/custom-hook Start",
 			),
 		).toBe(true);
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 
 	it("replaces stale Gemini hook commands from old superset paths", () => {
-		const homeDir = path.join(TEST_ROOT, "home");
-		const geminiSettingsPath = path.join(homeDir, ".gemini", "settings.json");
+		const geminiSettingsPath = path.join(
+			mockedHomeDir,
+			".gemini",
+			"settings.json",
+		);
 		const staleHookPath = "/tmp/.superset-old/hooks/gemini-hook.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/gemini-hook.sh";
 
-		mockedHomeDir = homeDir;
 		mkdirSync(path.dirname(geminiSettingsPath), { recursive: true });
 		writeFileSync(
 			geminiSettingsPath,
@@ -194,6 +198,9 @@ describe("agent-wrappers copilot", () => {
 		);
 
 		const content = getGeminiSettingsJsonContent(currentHookPath);
+		writeFileSync(geminiSettingsPath, content);
+		const content2 = getGeminiSettingsJsonContent(currentHookPath);
+
 		const parsed = JSON.parse(content) as {
 			hooks: Record<
 				string,
@@ -218,5 +225,6 @@ describe("agent-wrappers copilot", () => {
 				def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
 			),
 		).toBe(true);
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 });

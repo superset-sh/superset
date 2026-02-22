@@ -97,6 +97,12 @@ describe("shell-wrappers", () => {
 		expect(getShellArgs("/bin/zsh")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/bash")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/sh")).toEqual(["-l"]);
+		expect(getShellArgs("/bin/ksh")).toEqual(["-l"]);
 		expect(getShellArgs("/opt/homebrew/bin/fish")).toEqual(["-l"]);
+	});
+
+	it("returns empty args for unrecognized shells", () => {
+		expect(getShellArgs("/bin/csh")).toEqual([]);
+		expect(getShellArgs("powershell")).toEqual([]);
 	});
 });
