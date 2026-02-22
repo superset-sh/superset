@@ -47,9 +47,12 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
 	);
-	const [selectedAgent, setSelectedAgent] = useState<AgentType>(
-		() => (localStorage.getItem("lastSelectedAgent") as AgentType) || "claude",
-	);
+	const [selectedAgent, setSelectedAgent] = useState<AgentType>(() => {
+		const stored = localStorage.getItem("lastSelectedAgent");
+		return stored && (AGENT_TYPES as readonly string[]).includes(stored)
+			? (stored as AgentType)
+			: "claude";
+	});
 
 	const effectiveProjectId = selectedProjectId ?? recentProjects[0]?.id ?? null;
 	const selectedProject = recentProjects.find(

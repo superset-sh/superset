@@ -463,7 +463,7 @@ step_setup_local_mcp() {
     return 1
   fi
 
-  local api_port="${API_PORT:-3001}"
+  local api_port="${API_PORT:-$((${SUPERSET_PORT_BASE:-3000} + 1))}"
   local local_url="http://localhost:${api_port}/api/agent/mcp"
 
   # Add or update superset-local entry
@@ -473,7 +473,11 @@ step_setup_local_mcp() {
     rm -f "$tmp_file"
     return 1
   fi
-  mv "$tmp_file" "$mcp_file"
+  if ! mv "$tmp_file" "$mcp_file"; then
+    error "Failed to write $mcp_file"
+    rm -f "$tmp_file"
+    return 1
+  fi
   success "Local MCP set to $local_url"
 
   return 0

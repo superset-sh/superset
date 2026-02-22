@@ -123,7 +123,10 @@ export function buildAgentCommand({
 	agent?: AgentType;
 }): string {
 	const prompt = buildPrompt(task);
-	const delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
+	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
+	while (prompt.includes(delimiter)) {
+		delimiter = `${delimiter}_X`;
+	}
 	const builder = AGENT_COMMANDS[agent];
 	return builder(prompt, delimiter);
 }
