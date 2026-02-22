@@ -1,11 +1,28 @@
 import { existsSync, readdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { Dirent } from "node:fs";
 import { app, session } from "electron";
 import { env } from "main/env.main";
 
 const APP_PARTITION = "persist:superset";
 const REACT_DEVTOOLS_EXTENSION_ID = "fmkadmapgofadopljbjfkapdkoienihi";
+
+function safeReadDir(pathname: string): string[] {
+	try {
+		return readdirSync(pathname);
+	} catch {
+		return [];
+	}
+}
+
+function safeReadDirents(pathname: string): Dirent[] {
+	try {
+		return readdirSync(pathname, { withFileTypes: true });
+	} catch {
+		return [];
+	}
+}
 
 function compareVersionLikeStrings(a: string, b: string): number {
 	const aParts = a.split(/[._-]/).map((part) => Number.parseInt(part, 10));
@@ -65,7 +82,7 @@ function resolveExtensionVersionPath(basePath: string): string | null {
 	if (existsSync(path.join(basePath, "manifest.json"))) return basePath;
 	if (!existsSync(basePath)) return null;
 
-	const versionDirs = readdirSync(basePath, { withFileTypes: true })
+	const versionDirs = safeReadDirents(basePath)
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => entry.name)
 		.sort(compareVersionLikeStrings)
@@ -81,7 +98,7 @@ function getChromeExtensionRoots(): string[] {
 	for (const userDataDir of getChromiumUserDataDirs()) {
 		if (!existsSync(userDataDir)) continue;
 
-		const profileEntries = readdirSync(userDataDir, { withFileTypes: true });
+		const profileEntries = safeReadDirents(userDataDir);
 		for (const profileEntry of profileEntries) {
 			if (!profileEntry.isDirectory()) continue;
 
@@ -111,6 +128,23 @@ function resolveReactDevToolsPath(): string | null {
 		const extensionRoot = path.join(root, REACT_DEVTOOLS_EXTENSION_ID);
 		const resolvedPath = resolveExtensionVersionPath(extensionRoot);
 		if (resolvedPath) return resolvedPath;
+	}
+
+	// Fallback to common legacy path patterns for profiles that use
+	// non-standard folder layouts.
+	for (const userDataDir of getChromiumUserDataDirs()) {
+		if (!existsSync(userDataDir)) continue;
+
+		for (const profileName of safeReadDir(userDataDir)) {
+			const extensionRoot = path.join(
+				userDataDir,
+				profileName,
+				"Extensions",
+				REACT_DEVTOOLS_EXTENSION_ID,
+			);
+			const resolvedPath = resolveExtensionVersionPath(extensionRoot);
+			if (resolvedPath) return resolvedPath;
+		}
 	}
 
 	return null;
