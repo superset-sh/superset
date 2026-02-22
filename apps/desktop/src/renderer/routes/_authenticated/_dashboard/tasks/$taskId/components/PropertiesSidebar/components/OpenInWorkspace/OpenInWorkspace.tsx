@@ -115,8 +115,6 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		}
 	};
 
-	const agentIcon = getPresetIcon(selectedAgent, isDark);
-
 	return (
 		<div className="flex flex-col gap-2">
 			<span className="text-xs text-muted-foreground">Open in workspace</span>
@@ -199,19 +197,26 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				}}
 			>
 				<SelectTrigger className="h-8 text-xs">
-					<span className="flex items-center gap-2">
-						{agentIcon && (
-							<img src={agentIcon} alt="" className="size-3.5 object-contain" />
-						)}
-						<SelectValue placeholder="Select agent" />
-					</span>
+					<SelectValue placeholder="Select agent" />
 				</SelectTrigger>
 				<SelectContent>
-					{AGENT_TYPES.map((agent) => (
-						<SelectItem key={agent} value={agent}>
-							{AGENT_LABELS[agent]}
-						</SelectItem>
-					))}
+					{AGENT_TYPES.map((agent) => {
+						const icon = getPresetIcon(agent, isDark);
+						return (
+							<SelectItem key={agent} value={agent}>
+								<span className="flex items-center gap-2">
+									{icon && (
+										<img
+											src={icon}
+											alt=""
+											className="size-3.5 object-contain"
+										/>
+									)}
+									{AGENT_LABELS[agent]}
+								</span>
+							</SelectItem>
+						);
+					})}
 				</SelectContent>
 			</Select>
 		</div>
