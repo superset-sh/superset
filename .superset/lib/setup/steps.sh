@@ -176,14 +176,26 @@ cleanup_stale_electric_replication_sessions() {
   local terminated_count
   terminated_count=$(
     PGCONNECT_TIMEOUT=5 psql "$DIRECT_URL" -Atq <<'SQL' 2>/dev/null || true
-WITH victims AS (
+WITH lock_pids AS (
+  SELECT DISTINCT l.pid
+  FROM pg_locks l
+  JOIN pg_stat_activity a ON a.pid = l.pid
+  WHERE l.locktype = 'advisory'
+    AND l.classid = 4294967295
+    AND l.objid = hashtext('electric_slot_default')
+    AND l.objsubid = 1
+    AND a.pid <> pg_backend_pid()
+),
+repl_pids AS (
   SELECT pid
   FROM pg_stat_activity
-  WHERE backend_type = 'walsender'
-    AND (
-      query LIKE 'START_REPLICATION SLOT "electric_slot_default"%'
-      OR query LIKE 'SELECT pg_advisory_lock(hashtext(''electric_slot_default''))%'
-    )
+  WHERE query LIKE 'START_REPLICATION SLOT "electric_slot_default"%'
+    AND pid <> pg_backend_pid()
+),
+victims AS (
+  SELECT pid FROM lock_pids
+  UNION
+  SELECT pid FROM repl_pids
 )
 SELECT COALESCE(SUM((pg_terminate_backend(pid))::int), 0)
 FROM victims;
