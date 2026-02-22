@@ -69,6 +69,11 @@ export function htmlEnvTransformPlugin(): Plugin {
 	return {
 		name: "html-env-transform",
 		transformIndexHtml(html) {
+			const devConnectSrc =
+				process.env.NODE_ENV === "development"
+					? "http://localhost:* https://localhost:*"
+					: "";
+
 			return html
 				.replace(
 					/%NEXT_PUBLIC_API_URL%/g,
@@ -84,7 +89,8 @@ export function htmlEnvTransformPlugin(): Plugin {
 				.replace(
 					/%NEXT_PUBLIC_STREAMS_URL%/g,
 					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
-				);
+				)
+				.replace(/%DEV_CONNECT_SRC%/g, devConnectSrc);
 		},
 	};
 }
