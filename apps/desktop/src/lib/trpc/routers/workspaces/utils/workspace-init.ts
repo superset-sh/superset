@@ -12,6 +12,7 @@ import {
 	createWorktreeFromExistingBranch,
 	fetchDefaultBranch,
 	hasOriginRemote,
+	isRepoEmpty,
 	refExistsLocally,
 	refreshDefaultBranch,
 	removeWorktree,
@@ -151,6 +152,18 @@ export async function initializeWorkspaceWorktree({
 				use_existing_branch: true,
 			});
 
+			return;
+		}
+
+		// Empty repos (no commits) can't create worktrees — fail early with
+		// a clear message instead of a cryptic git error later.
+		if (await isRepoEmpty(mainRepoPath)) {
+			manager.updateProgress(
+				workspaceId,
+				"failed",
+				"Repository has no commits",
+				"This repository has no commits yet. Make your first commit, then try creating a workspace.",
+			);
 			return;
 		}
 

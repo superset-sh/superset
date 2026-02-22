@@ -1434,6 +1434,46 @@ export async function checkoutBranch(
  * @throws Error if safety checks fail or checkout fails
  */
 /**
+ * Checks if a repository is empty (has no commits).
+ * An empty repo is one that has been initialized or cloned but has no commits yet.
+ */
+export async function isRepoEmpty(repoPath: string): Promise<boolean> {
+	const git = simpleGit(repoPath);
+	try {
+		await git.raw(["rev-parse", "HEAD"]);
+		return false;
+	} catch {
+		return true;
+	}
+}
+
+/**
+ * Creates an initial empty commit in a repository that has no commits.
+ * This is needed to bootstrap empty repos so that git worktree can work.
+ * @throws Error if git user is not configured or commit fails
+ */
+export async function createInitialCommit(repoPath: string): Promise<void> {
+	const git = simpleGit(repoPath);
+	try {
+		await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
+	} catch (err) {
+		const errorMessage = err instanceof Error ? err.message : String(err);
+		if (
+			errorMessage.includes("empty ident") ||
+			errorMessage.includes("user.email") ||
+			errorMessage.includes("user.name")
+		) {
+			throw new Error(
+				"Git user not configured. Please run:\n" +
+					'  git config --global user.name "Your Name"\n' +
+					'  git config --global user.email "you@example.com"',
+			);
+		}
+		throw new Error(`Failed to create initial commit: ${errorMessage}`);
+	}
+}
+
+/**
  * Checks if a git ref exists locally (without network access).
  * Uses --verify --quiet to only check exit code without output.
  * @param repoPath - Path to the repository

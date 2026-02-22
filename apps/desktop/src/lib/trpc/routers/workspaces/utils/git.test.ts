@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createWorktree } from "./git";
+import { createInitialCommit, createWorktree, isRepoEmpty } from "./git";
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -307,5 +307,106 @@ describe("createWorktree hook tolerance", () => {
 		await expect(
 			createWorktree(repoPath, "feature/existing-path", worktreePath, "HEAD"),
 		).rejects.toThrow("already exists");
+	});
+});
+
+describe("isRepoEmpty", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("returns true for a repo with no commits", async () => {
+		const repoPath = createTestRepo("empty-repo");
+		expect(await isRepoEmpty(repoPath)).toBe(true);
+	});
+
+	test("returns false for a repo with commits", async () => {
+		const repoPath = createTestRepo("non-empty-repo");
+		seedCommit(repoPath);
+		expect(await isRepoEmpty(repoPath)).toBe(false);
+	});
+
+	test("returns true for a cloned empty repo", async () => {
+		const barePath = join(TEST_DIR, "bare-remote.git");
+		mkdirSync(barePath, { recursive: true });
+		execSync("git init --bare", { cwd: barePath, stdio: "ignore" });
+
+		const clonePath = join(TEST_DIR, "cloned-empty");
+		execSync(`git clone "${barePath}" "${clonePath}"`, { stdio: "pipe" });
+
+		expect(await isRepoEmpty(clonePath)).toBe(true);
+	});
+});
+
+describe("createInitialCommit", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("creates an initial commit in an empty repo", async () => {
+		const repoPath = createTestRepo("init-commit");
+		expect(await isRepoEmpty(repoPath)).toBe(true);
+
+		await createInitialCommit(repoPath);
+
+		expect(await isRepoEmpty(repoPath)).toBe(false);
+		const log = execSync("git log --oneline", { cwd: repoPath })
+			.toString()
+			.trim();
+		expect(log).toContain("Initial commit");
+	});
+
+	test("allows worktree creation after bootstrapping empty repo", async () => {
+		const repoPath = createTestRepo("bootstrap-worktree");
+		await createInitialCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "bootstrap-worktree-wt");
+		await createWorktree(repoPath, "feature/test", worktreePath, "HEAD");
+
+		expect(existsSync(worktreePath)).toBe(true);
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/test");
+	});
+
+	test("allows worktree creation for cloned empty repo after bootstrap", async () => {
+		const barePath = join(TEST_DIR, "bare-for-wt.git");
+		mkdirSync(barePath, { recursive: true });
+		execSync("git init --bare", { cwd: barePath, stdio: "ignore" });
+
+		const clonePath = join(TEST_DIR, "cloned-for-wt");
+		execSync(`git clone "${barePath}" "${clonePath}"`, { stdio: "pipe" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: clonePath,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", {
+			cwd: clonePath,
+			stdio: "ignore",
+		});
+
+		expect(await isRepoEmpty(clonePath)).toBe(true);
+		await createInitialCommit(clonePath);
+		expect(await isRepoEmpty(clonePath)).toBe(false);
+
+		const worktreePath = join(TEST_DIR, "cloned-for-wt-worktree");
+		await createWorktree(clonePath, "feature/empty-repo", worktreePath, "HEAD");
+
+		expect(existsSync(worktreePath)).toBe(true);
 	});
 });

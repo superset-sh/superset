@@ -31,6 +31,7 @@ import {
 	touchWorkspace,
 } from "../workspaces/utils/db-helpers";
 import {
+	createInitialCommit,
 	getCurrentBranch,
 	getDefaultBranch,
 	getGitAuthorName,
@@ -73,23 +74,7 @@ async function initGitRepo(path: string): Promise<{ defaultBranch: string }> {
 		await git.init();
 	}
 
-	try {
-		await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
-	} catch (err) {
-		const errorMessage = err instanceof Error ? err.message : String(err);
-		if (
-			errorMessage.includes("empty ident") ||
-			errorMessage.includes("user.email") ||
-			errorMessage.includes("user.name")
-		) {
-			throw new Error(
-				"Git user not configured. Please run:\n" +
-					'  git config --global user.name "Your Name"\n' +
-					'  git config --global user.email "you@example.com"',
-			);
-		}
-		throw new Error(`Failed to create initial commit: ${errorMessage}`);
-	}
+	await createInitialCommit(path);
 
 	const defaultBranch = (await getCurrentBranch(path)) || "main";
 	return { defaultBranch };
@@ -136,13 +121,13 @@ async function ensureMainWorkspace(project: Project): Promise<void> {
 		return;
 	}
 
-	const branch = await getCurrentBranch(project.mainRepoPath);
-	if (!branch) {
-		console.warn(
-			`[ensureMainWorkspace] Could not determine current branch for project ${project.id}`,
-		);
-		return;
-	}
+	// getCurrentBranch fails on empty repos (HEAD is unborn), so fall back
+	// to the project's default branch. This ensures cloned empty repos still
+	// get a workspace that opens the repo directory.
+	const branch =
+		(await getCurrentBranch(project.mainRepoPath)) ||
+		project.defaultBranch ||
+		"main";
 
 	// Unique partial index (projectId WHERE type='branch') prevents duplicates
 	const insertResult = localDb
