@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import type { ChildProcess } from "node:child_process";
 import * as realChildProcess from "node:child_process";
 import { EventEmitter } from "node:events";
 import path from "node:path";
-import type { ChildProcess } from "node:child_process";
 import "./xterm-env-polyfill";
 
 class FakeStdout extends EventEmitter {}
@@ -91,9 +91,9 @@ describe("Terminal Host Session shell args", () => {
 		);
 
 		expect(spawnFrame).toBeDefined();
-		const spawnPayload = JSON.parse(spawnFrame?.payload.toString("utf8") ?? "{}") as
-			| { args?: string[] }
-			| undefined;
+		const spawnPayload = JSON.parse(
+			spawnFrame?.payload.toString("utf8") ?? "{}",
+		) as { args?: string[] } | undefined;
 
 		expect(spawnPayload?.args).toEqual([
 			"--rcfile",
