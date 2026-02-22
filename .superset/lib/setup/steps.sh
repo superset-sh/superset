@@ -448,6 +448,37 @@ PORTSJSON
   return 0
 }
 
+step_setup_local_mcp() {
+  echo "🔌 Setting up local MCP server in .mcp.json..."
+
+  local mcp_file=".mcp.json"
+  if [ ! -f "$mcp_file" ]; then
+    warn "No .mcp.json found — skipping local MCP setup"
+    step_skipped "Setup local MCP (no .mcp.json)"
+    return 0
+  fi
+
+  if ! command -v jq &> /dev/null; then
+    error "jq not available"
+    return 1
+  fi
+
+  local api_port="${API_PORT:-3001}"
+  local local_url="http://localhost:${api_port}/api/agent/mcp"
+
+  # Add or update superset-local entry
+  local tmp_file="${mcp_file}.tmp.$$"
+  if ! jq --arg url "$local_url" '.mcpServers["superset-local"] = {"type": "http", "url": $url}' "$mcp_file" > "$tmp_file"; then
+    error "Failed to set local MCP entry"
+    rm -f "$tmp_file"
+    return 1
+  fi
+  mv "$tmp_file" "$mcp_file"
+  success "Local MCP set to $local_url"
+
+  return 0
+}
+
 step_seed_auth_token() {
   echo "🔑 Seeding auth token into superset-dev-data/..."
 

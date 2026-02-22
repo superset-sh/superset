@@ -61,6 +61,13 @@ setup_main() {
     step_failed "Write .env file"
   fi
 
+  # Step 10: Setup local MCP in .mcp.json (opt-in)
+  if [ "$SETUP_LOCAL_MCP" = "1" ]; then
+    if ! step_setup_local_mcp; then
+      step_failed "Setup local MCP"
+    fi
+  fi
+
   # Print summary and exit with appropriate code
   print_summary "Setup"
 }
