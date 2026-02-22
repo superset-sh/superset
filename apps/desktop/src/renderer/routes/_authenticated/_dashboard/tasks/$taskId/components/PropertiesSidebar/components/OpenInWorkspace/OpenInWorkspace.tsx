@@ -27,6 +27,7 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { buildAgentCommand } from "../../../../utils/buildAgentCommand";
@@ -40,6 +41,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const addTab = useTabsStore((s) => s.addTab);
+	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const isDark = useIsDarkTheme();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
@@ -80,21 +83,26 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				branchName,
 			});
 
-			if (!result.wasExisting) {
-				const command = buildAgentCommand({
-					task: {
-						id: task.id,
-						slug: task.slug,
-						title: task.title,
-						description: task.description,
-						priority: task.priority,
-						statusName: task.status.name,
-						labels: task.labels,
-					},
-					randomId: window.crypto.randomUUID(),
-					agent: selectedAgent,
-				});
+			const command = buildAgentCommand({
+				task: {
+					id: task.id,
+					slug: task.slug,
+					title: task.title,
+					description: task.description,
+					priority: task.priority,
+					statusName: task.status.name,
+					labels: task.labels,
+				},
+				randomId: window.crypto.randomUUID(),
+				agent: selectedAgent,
+			});
 
+			if (result.wasExisting) {
+				const { tabId } = addTab(result.workspace.id, {
+					initialCommands: [command],
+				});
+				setTabAutoTitle(tabId, "Agent");
+			} else {
 				const store = useWorkspaceInitStore.getState();
 				const pending = store.pendingTerminalSetups[result.workspace.id];
 				store.addPendingTerminalSetup({
