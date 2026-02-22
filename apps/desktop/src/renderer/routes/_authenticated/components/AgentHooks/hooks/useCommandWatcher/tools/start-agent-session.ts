@@ -76,13 +76,13 @@ async function execute(
 			error:
 				error instanceof Error
 					? error.message
-					: "Failed to start Claude session",
+					: "Failed to start agent session",
 		};
 	}
 }
 
-export const startClaudeSession: ToolDefinition<typeof schema> = {
-	name: "start_claude_session",
+export const startAgentSession: ToolDefinition<typeof schema> = {
+	name: "start_agent_session",
 	schema,
 	execute,
 };

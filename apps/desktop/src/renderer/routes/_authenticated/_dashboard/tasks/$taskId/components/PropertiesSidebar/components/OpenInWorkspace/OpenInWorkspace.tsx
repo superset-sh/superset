@@ -13,7 +13,7 @@ import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { buildClaudeCommand } from "../../../../utils/buildClaudeCommand";
+import { buildAgentCommand } from "../../../../utils/buildAgentCommand";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 interface OpenInWorkspaceProps {
@@ -61,7 +61,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			});
 
 			if (!result.wasExisting) {
-				const command = buildClaudeCommand({
+				const command = buildAgentCommand({
 					task: {
 						id: task.id,
 						slug: task.slug,

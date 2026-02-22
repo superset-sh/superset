@@ -7,7 +7,7 @@ export function register(server: McpServer) {
 		"get_workspace_details",
 		{
 			description:
-				"Get detailed information about a workspace on a device, including its tabs and panes. Use this to discover pane IDs needed for start_claude_session's paneId parameter. The target device must belong to the current user.",
+				"Get detailed information about a workspace on a device, including its tabs and panes. Use this to discover pane IDs needed for start_agent_session's paneId parameter. The target device must belong to the current user.",
 			inputSchema: {
 				deviceId: z.string().describe("Target device ID"),
 				workspaceId: z.string().describe("Workspace ID to get details for"),

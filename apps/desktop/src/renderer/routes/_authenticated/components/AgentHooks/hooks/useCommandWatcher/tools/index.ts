@@ -5,7 +5,7 @@ import { getWorkspaceDetails } from "./get-workspace-details";
 import { listProjects } from "./list-projects";
 import { listWorkspaces } from "./list-workspaces";
 import { navigateToWorkspace } from "./navigate-to-workspace";
-import { startClaudeSession } from "./start-claude-session";
+import { startAgentSession } from "./start-agent-session";
 import { switchWorkspace } from "./switch-workspace";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 import { updateWorkspace } from "./update-workspace";
@@ -20,7 +20,7 @@ const tools: ToolDefinition<any>[] = [
 	listProjects,
 	listWorkspaces,
 	navigateToWorkspace,
-	startClaudeSession,
+	startAgentSession,
 	switchWorkspace,
 	updateWorkspace,
 ];

@@ -1,9 +1,9 @@
 ---
-description: Create a task, workspace, and start a Claude Code session to work on it
-allowed-tools: mcp__superset__create_task, mcp__superset__list_members, mcp__superset__list_devices, mcp__superset__list_projects, mcp__superset__create_workspace, mcp__superset__start_claude_session, Bash(git config user.email)
+description: Create a task, workspace, and start an AI agent session to work on it
+allowed-tools: mcp__superset__create_task, mcp__superset__list_members, mcp__superset__list_devices, mcp__superset__list_projects, mcp__superset__create_workspace, mcp__superset__start_agent_session, Bash(git config user.email)
 ---
 
-Create a new task in Superset, spin up a workspace, and start a Claude Code session to work on it.
+Create a new task in Superset, spin up a workspace, and start an AI agent session to work on it.
 
 ## Input
 
@@ -44,15 +44,15 @@ Run these in parallel:
   - Default to `feat/...` if the type is ambiguous
 - Create the workspace using `mcp__superset__create_workspace`
 
-### 3. Start Claude Code session
+### 3. Start AI agent session
 
-- Start a Claude Code session using `mcp__superset__start_claude_session` with the created task ID and workspace ID
+- Start an AI agent session using `mcp__superset__start_agent_session` with the created task ID and workspace ID
 
 ## Output
 
 Confirm with a summary:
 - Task: title, priority, slug
 - Workspace: name, branch
-- Claude Code: running
+- Agent session: running
 
 $ARGUMENTS

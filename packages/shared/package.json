@@ -20,6 +20,10 @@
 			"types": "./src/auth/index.ts",
 			"default": "./src/auth/index.ts"
 		},
+		"./agent-command": {
+			"types": "./src/agent-command.ts",
+			"default": "./src/agent-command.ts"
+		},
 		"./claude-command": {
 			"types": "./src/claude-command.ts",
 			"default": "./src/claude-command.ts"

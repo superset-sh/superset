@@ -15,7 +15,7 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 | **Workspaces** | Create, update, switch, delete, list, navigate workspaces |
 | **Devices** | List devices, projects, and app context |
 | **Organization** | List members and task statuses |
-| **AI Sessions** | Start autonomous Claude sessions and subagents |
+| **AI Sessions** | Start autonomous AI agent sessions (Claude, Codex, Gemini, OpenCode, Copilot, Cursor Agent) and subagents |
 
 ## Setup
 
@@ -43,27 +43,27 @@ Run `opencode mcp add` and follow the interactive prompts:
 ```ansi title="terminal"
 opencode mcp add
 
-[2m┌[0m  Add MCP server
-[2m│[0m
-[2m◇[0m  Location
-[2m│[0m  [36mCurrent project[0m
-[2m│[0m
-[2m◇[0m  Enter MCP server name
-[2m│[0m  [36msuperset[0m
-[2m│[0m
-[2m◇[0m  Select MCP server type
-[2m│[0m  [36mRemote[0m
-[2m│[0m
-[2m◇[0m  Enter MCP server URL
-[2m│[0m  [36mhttps://api.superset.sh/api/agent/mcp[0m
-[2m│[0m
-[2m◇[0m  Does this server require OAuth authentication?
-[2m│[0m  [36mYes[0m
-[2m│[0m
-[2m◇[0m  Do you have a pre-registered client ID?
-[2m│[0m  [36mNo[0m
-[2m│[0m
-[2m└[0m  [32mMCP server added successfully[0m
+[2m┌[0m  Add MCP server
+[2m│[0m
+[2m◇[0m  Location
+[2m│[0m  [36mCurrent project[0m
+[2m│[0m
+[2m◇[0m  Enter MCP server name
+[2m│[0m  [36msuperset[0m
+[2m│[0m
+[2m◇[0m  Select MCP server type
+[2m│[0m  [36mRemote[0m
+[2m│[0m
+[2m◇[0m  Enter MCP server URL
+[2m│[0m  [36mhttps://api.superset.sh/api/agent/mcp[0m
+[2m│[0m
+[2m◇[0m  Does this server require OAuth authentication?
+[2m│[0m  [36mYes[0m
+[2m│[0m
+[2m◇[0m  Do you have a pre-registered client ID?
+[2m│[0m  [36mNo[0m
+[2m│[0m
+[2m└[0m  [32mMCP server added successfully[0m
 ```
 </Tab>
 </Tabs>
@@ -240,7 +240,7 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `start_claude_session` | Start an autonomous Claude Code session for a task. Launches Claude with the task context in the specified workspace. When `paneId` is provided, adds a new terminal pane to the tab containing that pane (subagent behavior) instead of initializing the workspace. |
+| `start_agent_session` | Start an autonomous AI agent session for a task. Supports multiple agents: Claude, Codex, Gemini, OpenCode, Copilot, and Cursor Agent (defaults to Claude). Launches the agent with task context in the specified workspace. When `paneId` is provided, adds a new terminal pane to the tab containing that pane (subagent behavior) instead of initializing the workspace. |
 
 ## Example Usage
 
@@ -251,4 +251,5 @@ Once connected, you can ask your AI agent to:
 - "Create a new workspace for the auth feature"
 - "Show me who's online in my team"
 - "Start a Claude session on my MacBook to work on the auth task"
+- "Start a Codex session to fix the failing tests"
 - "Spin up a subagent to fix the failing tests"
