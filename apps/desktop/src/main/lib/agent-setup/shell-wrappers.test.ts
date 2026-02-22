@@ -93,9 +93,15 @@ describe("shell-wrappers", () => {
 		expect(args).toEqual(["-lc", "echo ok"]);
 	});
 
-	it("uses login args for interactive shells", () => {
+	it("uses bash rcfile args for interactive bash shells", () => {
+		expect(getShellArgs("/bin/bash")).toEqual([
+			"--rcfile",
+			path.join(TEST_BASH_DIR, "rcfile"),
+		]);
+	});
+
+	it("uses login args for other interactive shells", () => {
 		expect(getShellArgs("/bin/zsh")).toEqual(["-l"]);
-		expect(getShellArgs("/bin/bash")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/sh")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/ksh")).toEqual(["-l"]);
 		expect(getShellArgs("/opt/homebrew/bin/fish")).toEqual(["-l"]);

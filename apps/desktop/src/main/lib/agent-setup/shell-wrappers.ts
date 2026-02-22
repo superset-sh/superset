@@ -160,7 +160,10 @@ export function getShellEnv(shell: string): Record<string, string> {
 
 export function getShellArgs(shell: string): string[] {
 	const shellName = getShellName(shell);
-	if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
+	if (shellName === "bash") {
+		return ["--rcfile", BASH_RCFILE];
+	}
+	if (["zsh", "sh", "ksh", "fish"].includes(shellName)) {
 		return ["-l"];
 	}
 	return [];
