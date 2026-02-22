@@ -393,10 +393,12 @@ export function useChatSendController(
 		setRuntimeError(null);
 	}, [abortAllInFlightSends]);
 
-	const canAbort = chat.isLoading || pendingMessages.length > 0;
+	const isSubmitted = pendingMessages.length > 0;
+	const isStreaming = chat.isLoading;
+	const canAbort = isStreaming || isSubmitted;
 	const submitStatus: ChatStatus | undefined = useMemo(
-		() => (canAbort ? "streaming" : undefined),
-		[canAbort],
+		() => (isStreaming ? "streaming" : isSubmitted ? "submitted" : undefined),
+		[isStreaming, isSubmitted],
 	);
 
 	return {
