@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import type { MosaicNode } from "react-mosaic-component";
-import type { FileStatus } from "shared/changes-types";
 import type { Tab } from "./types";
 import {
 	buildMultiPaneLayout,

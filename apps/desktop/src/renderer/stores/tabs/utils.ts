@@ -1,5 +1,9 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import { type ChangeCategory, type FileStatus, isNewFile } from "shared/changes-types";
+import {
+	type ChangeCategory,
+	type FileStatus,
+	isNewFile,
+} from "shared/changes-types";
 import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
 	BrowserPaneState,
