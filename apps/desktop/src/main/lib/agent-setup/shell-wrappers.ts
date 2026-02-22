@@ -15,6 +15,11 @@ function writeFileIfChanged(
 		? fs.readFileSync(filePath, "utf-8")
 		: null;
 	if (existing === content) {
+		try {
+			fs.chmodSync(filePath, mode);
+		} catch {
+			// Best effort.
+		}
 		return false;
 	}
 

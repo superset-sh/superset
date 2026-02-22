@@ -109,9 +109,14 @@ export class Session {
 	private emulatorWriteScheduled = false;
 	private emulatorFlushWaiters: Array<() => void> = [];
 
-	// Snapshot boundary tracking - allows capturing consistent state with continuous output
-	private snapshotBoundaryIndex: number | null = null;
-	private snapshotBoundaryWaiters: Array<() => void> = [];
+	// Snapshot boundary tracking for concurrent attaches.
+	private emulatorWriteProcessedItems = 0;
+	private nextSnapshotBoundaryWaiterId = 1;
+	private snapshotBoundaryWaiters: Array<{
+		id: number;
+		targetProcessedItems: number;
+		resolve: () => void;
+	}> = [];
 
 	// Callbacks
 	private onSessionExit?: (
@@ -493,14 +498,13 @@ export class Session {
 		if (this.disposed) {
 			this.emulatorWriteQueue = [];
 			this.emulatorWriteQueuedBytes = 0;
+			this.emulatorWriteProcessedItems = 0;
+			this.nextSnapshotBoundaryWaiterId = 1;
 			this.emulatorWriteScheduled = false;
-			this.snapshotBoundaryIndex = null;
+			this.resolveAllSnapshotBoundaryWaiters();
 			const waiters = this.emulatorFlushWaiters;
 			this.emulatorFlushWaiters = [];
 			for (const resolve of waiters) resolve();
-			const boundaryWaiters = this.snapshotBoundaryWaiters;
-			this.snapshotBoundaryWaiters = [];
-			for (const resolve of boundaryWaiters) resolve();
 			return;
 		}
 
@@ -523,35 +527,12 @@ export class Session {
 				chunk = chunk.slice(0, MAX_CHUNK_CHARS);
 			} else {
 				this.emulatorWriteQueue.shift();
-
-				// Decrement boundary counter if tracking
-				if (this.snapshotBoundaryIndex !== null) {
-					this.snapshotBoundaryIndex--;
-				}
+				this.emulatorWriteProcessedItems++;
+				this.resolveReachedSnapshotBoundaryWaiters();
 			}
 
 			this.emulatorWriteQueuedBytes -= chunk.length;
 			this.emulator.write(chunk);
-
-			// Check if we've reached the snapshot boundary (processed all items up to it)
-			if (this.snapshotBoundaryIndex === 0) {
-				this.snapshotBoundaryIndex = null;
-				const boundaryWaiters = this.snapshotBoundaryWaiters;
-				this.snapshotBoundaryWaiters = [];
-				for (const resolve of boundaryWaiters) resolve();
-				// Continue processing remaining items (arrived after boundary was set)
-				if (this.emulatorWriteQueue.length > 0) {
-					setImmediate(() => {
-						this.processEmulatorWriteQueue();
-					});
-					return;
-				}
-				this.emulatorWriteScheduled = false;
-				const waiters = this.emulatorFlushWaiters;
-				this.emulatorFlushWaiters = [];
-				for (const resolve of waiters) resolve();
-				return;
-			}
 		}
 
 		if (this.emulatorWriteQueue.length > 0) {
@@ -562,43 +543,61 @@ export class Session {
 		}
 
 		this.emulatorWriteScheduled = false;
-
-		// If we've drained the queue, any pending boundary is also reached
-		if (this.snapshotBoundaryIndex !== null) {
-			this.snapshotBoundaryIndex = null;
-			const boundaryWaiters = this.snapshotBoundaryWaiters;
-			this.snapshotBoundaryWaiters = [];
-			for (const resolve of boundaryWaiters) resolve();
-		}
+		this.resolveReachedSnapshotBoundaryWaiters();
 
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
 	}
 
+	private resolveReachedSnapshotBoundaryWaiters(): void {
+		if (this.snapshotBoundaryWaiters.length === 0) return;
+
+		const remainingWaiters: typeof this.snapshotBoundaryWaiters = [];
+		for (const waiter of this.snapshotBoundaryWaiters) {
+			if (this.emulatorWriteProcessedItems >= waiter.targetProcessedItems) {
+				waiter.resolve();
+			} else {
+				remainingWaiters.push(waiter);
+			}
+		}
+		this.snapshotBoundaryWaiters = remainingWaiters;
+	}
+
+	private resolveAllSnapshotBoundaryWaiters(): void {
+		if (this.snapshotBoundaryWaiters.length === 0) return;
+		const waiters = this.snapshotBoundaryWaiters;
+		this.snapshotBoundaryWaiters = [];
+		for (const waiter of waiters) waiter.resolve();
+	}
+
 	/**
 	 * Flush emulator writes up to current queue position (snapshot boundary).
 	 * Unlike flushEmulatorWrites, this captures a consistent point-in-time state
 	 * even with continuous output - we only wait for data received BEFORE this call.
-	 *
-	 * The key insight: snapshotBoundaryIndex tracks how many items REMAIN that
-	 * need to be processed. Each time we shift an item, we decrement it.
-	 * When it reaches 0, we've processed everything up to the boundary.
 	 */
 	private async flushToSnapshotBoundary(timeoutMs: number): Promise<boolean> {
-		// Mark the current queue length as how many items we need to process
-		const itemsToProcess = this.emulatorWriteQueue.length;
+		const targetProcessedItems =
+			this.emulatorWriteProcessedItems + this.emulatorWriteQueue.length;
 
-		if (itemsToProcess === 0 && !this.emulatorWriteScheduled) {
+		if (targetProcessedItems <= this.emulatorWriteProcessedItems) {
 			return true; // Already flushed
 		}
 
-		// Set the boundary counter - processEmulatorWriteQueue will decrement this
-		this.snapshotBoundaryIndex = itemsToProcess;
+		const waiterId = this.nextSnapshotBoundaryWaiterId++;
+		let reachedBoundary = false;
 
 		const boundaryPromise = new Promise<void>((resolve) => {
-			this.snapshotBoundaryWaiters.push(resolve);
+			this.snapshotBoundaryWaiters.push({
+				id: waiterId,
+				targetProcessedItems,
+				resolve: () => {
+					reachedBoundary = true;
+					resolve();
+				},
+			});
 			this.scheduleEmulatorWrite();
+			this.resolveReachedSnapshotBoundaryWaiters();
 		});
 
 		const timeoutPromise = new Promise<void>((resolve) =>
@@ -607,14 +606,10 @@ export class Session {
 
 		await Promise.race([boundaryPromise, timeoutPromise]);
 
-		// Check if we actually reached the boundary or timed out
-		const reachedBoundary = this.snapshotBoundaryIndex === null;
-
-		// Clean up if timed out (boundary wasn't reached)
 		if (!reachedBoundary) {
-			this.snapshotBoundaryIndex = null;
-			// Remove our waiter from the list
-			this.snapshotBoundaryWaiters = [];
+			this.snapshotBoundaryWaiters = this.snapshotBoundaryWaiters.filter(
+				(waiter) => waiter.id !== waiterId,
+			);
 		}
 
 		return reachedBoundary;
@@ -844,14 +839,13 @@ export class Session {
 
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
+		this.emulatorWriteProcessedItems = 0;
+		this.nextSnapshotBoundaryWaiterId = 1;
 		this.emulatorWriteScheduled = false;
-		this.snapshotBoundaryIndex = null;
+		this.resolveAllSnapshotBoundaryWaiters();
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
-		const boundaryWaiters = this.snapshotBoundaryWaiters;
-		this.snapshotBoundaryWaiters = [];
-		for (const resolve of boundaryWaiters) resolve();
 	}
 
 	/**

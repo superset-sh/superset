@@ -20,6 +20,7 @@ const TEST_ZSH_DIR = path.join(TEST_ROOT, "superset", "zsh");
 const TEST_BASH_DIR = path.join(TEST_ROOT, "superset", "bash");
 const TEST_OPENCODE_CONFIG_DIR = path.join(TEST_HOOKS_DIR, "opencode");
 const TEST_OPENCODE_PLUGIN_DIR = path.join(TEST_OPENCODE_CONFIG_DIR, "plugin");
+let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("shared/env.shared", () => ({
 	env: {
@@ -45,14 +46,23 @@ mock.module("./paths", () => ({
 	OPENCODE_PLUGIN_DIR: TEST_OPENCODE_PLUGIN_DIR,
 }));
 
+mock.module("node:os", () => ({
+	default: {
+		homedir: () => mockedHomeDir,
+	},
+}));
+
 const {
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
+	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
+	getGeminiSettingsJsonContent,
 } = await import("./agent-wrappers");
 
 describe("agent-wrappers copilot", () => {
 	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
 	});
@@ -103,5 +113,106 @@ describe("agent-wrappers copilot", () => {
 		const updated = readFileSync(hookFile, "utf-8");
 		expect(updated).toContain(hookScriptPath);
 		expect(updated).not.toContain("/tmp/old-hook.sh");
+	});
+
+	it("replaces stale Cursor hook commands from old superset paths", () => {
+		const homeDir = path.join(TEST_ROOT, "home");
+		const cursorHooksPath = path.join(homeDir, ".cursor", "hooks.json");
+		const staleHookPath = "/tmp/.superset-old/hooks/cursor-hook.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/cursor-hook.sh";
+
+		mockedHomeDir = homeDir;
+		mkdirSync(path.dirname(cursorHooksPath), { recursive: true });
+		writeFileSync(
+			cursorHooksPath,
+			JSON.stringify(
+				{
+					version: 1,
+					hooks: {
+						beforeSubmitPrompt: [
+							{ command: `${staleHookPath} Start` },
+							{ command: "/usr/local/bin/custom-hook Start" },
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getCursorHooksJsonContent(currentHookPath);
+		const parsed = JSON.parse(content) as {
+			hooks: Record<string, Array<{ command: string }>>;
+		};
+		const beforeSubmitPrompt = parsed.hooks.beforeSubmitPrompt;
+
+		expect(
+			beforeSubmitPrompt.some(
+				(entry) => entry.command === `${currentHookPath} Start`,
+			),
+		).toBe(true);
+		expect(
+			beforeSubmitPrompt.some((entry) => entry.command.includes(staleHookPath)),
+		).toBe(false);
+		expect(
+			beforeSubmitPrompt.some(
+				(entry) => entry.command === "/usr/local/bin/custom-hook Start",
+			),
+		).toBe(true);
+	});
+
+	it("replaces stale Gemini hook commands from old superset paths", () => {
+		const homeDir = path.join(TEST_ROOT, "home");
+		const geminiSettingsPath = path.join(homeDir, ".gemini", "settings.json");
+		const staleHookPath = "/tmp/.superset-old/hooks/gemini-hook.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/gemini-hook.sh";
+
+		mockedHomeDir = homeDir;
+		mkdirSync(path.dirname(geminiSettingsPath), { recursive: true });
+		writeFileSync(
+			geminiSettingsPath,
+			JSON.stringify(
+				{
+					hooks: {
+						BeforeAgent: [
+							{
+								hooks: [{ type: "command", command: staleHookPath }],
+							},
+							{
+								hooks: [{ type: "command", command: "/opt/custom-hook.sh" }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getGeminiSettingsJsonContent(currentHookPath);
+		const parsed = JSON.parse(content) as {
+			hooks: Record<
+				string,
+				Array<{ hooks: Array<{ type: string; command: string }> }>
+			>;
+		};
+		const beforeAgent = parsed.hooks.BeforeAgent;
+
+		expect(
+			beforeAgent.some(
+				(def) =>
+					def.hooks?.length === 1 && def.hooks[0]?.command === currentHookPath,
+			),
+		).toBe(true);
+		expect(
+			beforeAgent.some((def) =>
+				def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+			),
+		).toBe(false);
+		expect(
+			beforeAgent.some((def) =>
+				def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
+			),
+		).toBe(true);
 	});
 });

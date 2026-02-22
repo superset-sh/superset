@@ -8,10 +8,14 @@ import { getDefaultShell } from "../terminal/env";
  */
 function findBinaryPathsUnix(name: string): string[] {
 	const shell = getDefaultShell();
-	const result = execFileSync(shell, ["-l", "-c", `which -a ${name}`], {
-		encoding: "utf-8",
-		stdio: ["pipe", "pipe", "ignore"],
-	});
+	const result = execFileSync(
+		shell,
+		["-l", "-c", 'which -a -- "$1"', "superset-find-binary", name],
+		{
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "ignore"],
+		},
+	);
 	return result.trim().split("\n").filter(Boolean);
 }
 
