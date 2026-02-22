@@ -1,7 +1,7 @@
+import type { Dirent } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { Dirent } from "node:fs";
 import { app, session } from "electron";
 import { env } from "main/env.main";
 
