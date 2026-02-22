@@ -1,0 +1,22 @@
+[mcp_servers.superset]
+url = "https://api.superset.sh/api/agent/mcp"
+
+[mcp_servers.expo-mcp]
+url = "https://mcp.expo.dev/mcp"
+
+[mcp_servers.maestro]
+command = "maestro"
+args = ["mcp"]
+
+[mcp_servers.neon]
+url = "https://mcp.neon.tech/mcp"
+
+[mcp_servers.linear]
+url = "https://mcp.linear.app/mcp"
+
+[mcp_servers.sentry]
+url = "https://mcp.sentry.dev/mcp"
+
+[mcp_servers.desktop-automation]
+command = "bun"
+args = ["run", "packages/desktop-mcp/src/bin.ts"]
