@@ -146,6 +146,55 @@ step_stop_electric() {
   return 0
 }
 
+step_cleanup_electric_replication() {
+  echo "🧽 Cleaning up stale Electric replication sessions..."
+
+  if ! command -v psql &> /dev/null; then
+    warn "psql not available, skipping"
+    step_skipped "Cleanup Electric replication (psql missing)"
+    return 0
+  fi
+
+  local direct_url
+  direct_url="${DATABASE_URL_UNPOOLED:-}"
+  if [ -z "$direct_url" ]; then
+    warn "DATABASE_URL_UNPOOLED not set, skipping"
+    step_skipped "Cleanup Electric replication (DATABASE_URL_UNPOOLED not set)"
+    return 0
+  fi
+
+  local terminated_count
+  terminated_count=$(
+    PGCONNECT_TIMEOUT=5 psql "$direct_url" -Atq <<'SQL' 2>/dev/null || true
+WITH victims AS (
+  SELECT pid
+  FROM pg_stat_activity
+  WHERE backend_type = 'walsender'
+    AND (
+      query LIKE 'START_REPLICATION SLOT "electric_slot_default"%'
+      OR query LIKE 'SELECT pg_advisory_lock(hashtext(''electric_slot_default''))%'
+    )
+)
+SELECT COALESCE(SUM((pg_terminate_backend(pid))::int), 0)
+FROM victims;
+SQL
+  )
+
+  if [ -z "$terminated_count" ]; then
+    warn "Unable to verify stale Electric replication sessions, skipping"
+    step_skipped "Cleanup Electric replication (verification failed)"
+    return 0
+  fi
+
+  if [ "$terminated_count" -gt 0 ] 2>/dev/null; then
+    success "Terminated $terminated_count stale Electric replication session(s)"
+  else
+    success "No stale Electric replication sessions found"
+  fi
+
+  return 0
+}
+
 step_delete_neon_branch() {
   echo "🗄️  Deleting Neon branch..."
 
