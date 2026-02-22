@@ -203,27 +203,15 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 						{agentIcon && (
 							<img src={agentIcon} alt="" className="size-3.5 object-contain" />
 						)}
-						<SelectValue />
+						<SelectValue placeholder="Select agent" />
 					</span>
 				</SelectTrigger>
 				<SelectContent>
-					{AGENT_TYPES.map((agent) => {
-						const icon = getPresetIcon(agent, isDark);
-						return (
-							<SelectItem key={agent} value={agent}>
-								<span className="flex items-center gap-2">
-									{icon && (
-										<img
-											src={icon}
-											alt=""
-											className="size-3.5 object-contain"
-										/>
-									)}
-									{AGENT_LABELS[agent]}
-								</span>
-							</SelectItem>
-						);
-					})}
+					{AGENT_TYPES.map((agent) => (
+						<SelectItem key={agent} value={agent}>
+							{AGENT_LABELS[agent]}
+						</SelectItem>
+					))}
 				</SelectContent>
 			</Select>
 		</div>
