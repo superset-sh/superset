@@ -26,27 +26,20 @@ function compareVersionLikeStrings(a: string, b: string): number {
 	return 0;
 }
 
-function getChromeExtensionRoots(): string[] {
+function getChromiumUserDataDirs(): string[] {
 	const homeDir = os.homedir();
 
 	if (process.platform === "darwin") {
 		return [
+			path.join(homeDir, "Library/Application Support/Google/Chrome"),
+			path.join(homeDir, "Library/Application Support/Google/Chrome Beta"),
+			path.join(homeDir, "Library/Application Support/Google/Chrome Canary"),
+			path.join(homeDir, "Library/Application Support/Chromium"),
 			path.join(
 				homeDir,
-				"Library/Application Support/Google/Chrome/Default/Extensions",
+				"Library/Application Support/BraveSoftware/Brave-Browser",
 			),
-			path.join(
-				homeDir,
-				"Library/Application Support/Google/Chrome Beta/Default/Extensions",
-			),
-			path.join(
-				homeDir,
-				"Library/Application Support/Google/Chrome Canary/Default/Extensions",
-			),
-			path.join(
-				homeDir,
-				"Library/Application Support/Chromium/Default/Extensions",
-			),
+			path.join(homeDir, "Library/Application Support/Arc/User Data"),
 		];
 	}
 
@@ -55,28 +48,65 @@ function getChromeExtensionRoots(): string[] {
 		if (!localAppData) return [];
 
 		return [
-			path.join(localAppData, "Google/Chrome/User Data/Default/Extensions"),
-			path.join(
-				localAppData,
-				"Google/Chrome Beta/User Data/Default/Extensions",
-			),
-			path.join(localAppData, "Google/Chrome SxS/User Data/Default/Extensions"),
-			path.join(localAppData, "Chromium/User Data/Default/Extensions"),
+			path.join(localAppData, "Google/Chrome/User Data"),
+			path.join(localAppData, "Google/Chrome Beta/User Data"),
+			path.join(localAppData, "Google/Chrome SxS/User Data"),
+			path.join(localAppData, "Chromium/User Data"),
+			path.join(localAppData, "BraveSoftware/Brave-Browser/User Data"),
+			path.join(localAppData, "Arc/User Data"),
 		];
 	}
 
 	return [
-		path.join(homeDir, ".config/google-chrome/Default/Extensions"),
-		path.join(homeDir, ".config/google-chrome-beta/Default/Extensions"),
-		path.join(homeDir, ".config/google-chrome-canary/Default/Extensions"),
-		path.join(homeDir, ".config/chromium/Default/Extensions"),
+		path.join(homeDir, ".config/google-chrome"),
+		path.join(homeDir, ".config/google-chrome-beta"),
+		path.join(homeDir, ".config/google-chrome-canary"),
+		path.join(homeDir, ".config/chromium"),
+		path.join(homeDir, ".config/BraveSoftware/Brave-Browser"),
 	];
+}
+
+function resolveExtensionVersionPath(basePath: string): string | null {
+	if (existsSync(path.join(basePath, "manifest.json"))) return basePath;
+
+	if (!existsSync(basePath)) return null;
+
+	const versionDirs = readdirSync(basePath, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => entry.name)
+		.sort(compareVersionLikeStrings)
+		.reverse();
+
+	if (versionDirs.length === 0) return null;
+	return path.join(basePath, versionDirs[0]);
+}
+
+function getChromeExtensionRoots(): string[] {
+	const roots: string[] = [];
+	for (const userDataDir of getChromiumUserDataDirs()) {
+		if (!existsSync(userDataDir)) continue;
+
+		// Browsers keep extension folders under profile directories such as
+		// "Default", "Profile 1", "Profile 11", etc.
+		const profileEntries = readdirSync(userDataDir, { withFileTypes: true });
+		for (const profileEntry of profileEntries) {
+			if (!profileEntry.isDirectory()) continue;
+
+			const extensionsDir = path.join(userDataDir, profileEntry.name, "Extensions");
+			if (existsSync(extensionsDir)) {
+				roots.push(extensionsDir);
+			}
+		}
+	}
+
+	return roots;
 }
 
 function resolveReactDevToolsPath(): string | null {
 	const overridePath = process.env.ELECTRON_REACT_DEVTOOLS_PATH;
 	if (overridePath) {
-		if (existsSync(overridePath)) return overridePath;
+		const resolvedOverridePath = resolveExtensionVersionPath(overridePath);
+		if (resolvedOverridePath) return resolvedOverridePath;
 		console.warn(
 			`[main] ELECTRON_REACT_DEVTOOLS_PATH does not exist: ${overridePath}`,
 		);
@@ -84,17 +114,8 @@ function resolveReactDevToolsPath(): string | null {
 
 	for (const root of getChromeExtensionRoots()) {
 		const extensionRoot = path.join(root, REACT_DEVTOOLS_EXTENSION_ID);
-		if (!existsSync(extensionRoot)) continue;
-
-		const versionDirs = readdirSync(extensionRoot, { withFileTypes: true })
-			.filter((entry) => entry.isDirectory())
-			.map((entry) => entry.name)
-			.sort(compareVersionLikeStrings)
-			.reverse();
-
-		if (versionDirs.length > 0) {
-			return path.join(extensionRoot, versionDirs[0]);
-		}
+		const resolvedPath = resolveExtensionVersionPath(extensionRoot);
+		if (resolvedPath) return resolvedPath;
 	}
 
 	return null;
