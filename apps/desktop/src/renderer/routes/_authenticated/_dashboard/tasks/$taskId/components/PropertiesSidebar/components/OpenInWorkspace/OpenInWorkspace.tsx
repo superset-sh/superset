@@ -51,13 +51,11 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		() => (localStorage.getItem("lastSelectedAgent") as AgentType) || "claude",
 	);
 
-	// Default to the first recent project
 	const effectiveProjectId = selectedProjectId ?? recentProjects[0]?.id ?? null;
 	const selectedProject = recentProjects.find(
 		(p) => p.id === effectiveProjectId,
 	);
 
-	// Sync default once projects load
 	useEffect(() => {
 		if (!selectedProjectId && recentProjects.length > 0) {
 			setSelectedProjectId(recentProjects[0].id);
