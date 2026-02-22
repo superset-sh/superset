@@ -37,6 +37,11 @@ function writeFileIfChanged(
 	}
 
 	fs.writeFileSync(filePath, content, { mode });
+	try {
+		fs.chmodSync(filePath, mode);
+	} catch {
+		// Best effort.
+	}
 	return true;
 }
 

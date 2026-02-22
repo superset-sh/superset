@@ -80,10 +80,10 @@ describe("Terminal Host Session shell args", () => {
 			(frame) => frame.type === PtySubprocessIpcType.Spawn,
 		);
 
-		expect(spawnFrame).toBeDefined();
-		const spawnPayload = JSON.parse(
-			spawnFrame?.payload.toString("utf8") ?? "{}",
-		) as { args?: string[] } | undefined;
+			expect(spawnFrame).toBeDefined();
+			const spawnPayload = JSON.parse(
+				spawnFrame?.payload.toString("utf8") ?? "{}",
+			) as { args?: string[] };
 
 		expect(spawnPayload?.args?.[0]).toBe("--rcfile");
 		expect(spawnPayload?.args?.[1]?.endsWith(path.join("bash", "rcfile"))).toBe(
