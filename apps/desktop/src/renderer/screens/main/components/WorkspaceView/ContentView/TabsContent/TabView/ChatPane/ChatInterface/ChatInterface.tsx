@@ -150,12 +150,35 @@ export function ChatInterface({
 	const ensureRuntimeMutationRef = useRef(ensureRuntimeMutation);
 	ensureRuntimeMutationRef.current = ensureRuntimeMutation;
 	const sendAbortControllersRef = useRef(new Map<string, AbortController>());
+	const sendingQueuedMessageIdRef = useRef<string | null>(null);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
+
+	const setRuntimeErrorMessage = useCallback(
+		(error: unknown, fallback: string) => {
+			setRuntimeError(error instanceof Error ? error.message : fallback);
+		},
+		[],
+	);
+
 	const removePendingMessage = useCallback((messageId: string) => {
 		setPendingMessages((prev) => {
 			const next = prev.filter((message) => message.id !== messageId);
 			return next.length === prev.length ? prev : next;
 		});
+	}, []);
+
+	const clearQueuedPendingMessage = useCallback((messageId: string) => {
+		setQueuedPendingMessage((prev) => (prev?.id === messageId ? null : prev));
+	}, []);
+
+	const abortAllInFlightSends = useCallback(() => {
+		for (const controller of sendAbortControllersRef.current.values()) {
+			controller.abort();
+		}
+		sendAbortControllersRef.current.clear();
+		sendingQueuedMessageIdRef.current = null;
+		setQueuedPendingMessage(null);
+		setPendingMessages([]);
 	}, []);
 
 	// --- Per-message metadata (sent with every message) ---
@@ -168,8 +191,58 @@ export function ChatInterface({
 		[activeModel?.id, permissionMode, thinkingEnabled],
 	);
 
-	// --- Send queued pending message after switching into a new session ---
-	const sendingQueuedMessageIdRef = useRef<string | null>(null);
+	const ensureRuntimeReady = useCallback(
+		async (targetSessionId: string) => {
+			const runtime = await ensureRuntimeMutationRef.current.mutateAsync({
+				sessionId: targetSessionId,
+				cwd,
+			});
+			if (!runtime.ready) {
+				throw new Error(
+					runtime.reason ?? "Session runtime is not ready on this device",
+				);
+			}
+		},
+		[cwd],
+	);
+
+	const uploadAttachments = useCallback(
+		async (
+			targetSessionId: string,
+			files: FileUIPart[],
+			signal?: AbortSignal,
+		): Promise<FileUIPart[] | undefined> => {
+			if (files.length === 0) return undefined;
+			return Promise.all(
+				files.map((file) => uploadFile(targetSessionId, file, signal)),
+			);
+		},
+		[],
+	);
+
+	const sendPreparedMessage = useCallback(
+		async ({
+			messageId,
+			text,
+			files,
+			signal,
+		}: {
+			messageId: string;
+			text: string;
+			files?: FileUIPart[];
+			signal?: AbortSignal;
+		}) => {
+			if (signal?.aborted) return;
+			setRuntimeError(null);
+			await chat.sendMessage(text, files, messageMetadata, {
+				messageId,
+				signal,
+			});
+		},
+		[chat.sendMessage, messageMetadata],
+	);
+
+	// --- Send queued message after the pane switches into its new session ---
 	useEffect(() => {
 		if (!chat.ready) return;
 		if (!queuedPendingMessage) return;
@@ -187,47 +260,25 @@ export function ChatInterface({
 				if (abortController?.signal.aborted) {
 					return;
 				}
-				const runtime = await ensureRuntimeMutationRef.current.mutateAsync({
-					sessionId,
-					cwd,
+				await ensureRuntimeReady(sessionId);
+				if (cancelled) return;
+				await sendPreparedMessage({
+					messageId: queuedPendingMessage.id,
+					text: queuedPendingMessage.text,
+					files:
+						queuedPendingMessage.files.length > 0
+							? queuedPendingMessage.files
+							: undefined,
+					signal: abortController?.signal,
 				});
-				if (!runtime.ready) {
-					throw new Error(
-						runtime.reason ?? "Session runtime is not ready on this device",
-					);
-				}
 				if (cancelled) return;
-				if (abortController?.signal.aborted) {
-					return;
-				}
-				setRuntimeError(null);
-				await chat.sendMessage(
-					queuedPendingMessage.text,
-					queuedPendingMessage.files.length > 0
-						? queuedPendingMessage.files
-						: undefined,
-					messageMetadata,
-					{
-						messageId: queuedPendingMessage.id,
-						signal: abortController?.signal,
-					},
-				);
-				if (cancelled) return;
-				setQueuedPendingMessage((prev) =>
-					prev?.id === queuedPendingMessage.id ? null : prev,
-				);
+				clearQueuedPendingMessage(queuedPendingMessage.id);
 			} catch (err) {
 				if (cancelled) return;
 				if (isAbortError(err)) return;
 				removePendingMessage(queuedPendingMessage.id);
-				setQueuedPendingMessage((prev) =>
-					prev?.id === queuedPendingMessage.id ? null : prev,
-				);
-				setRuntimeError(
-					err instanceof Error
-						? err.message
-						: "Failed to start session runtime",
-				);
+				clearQueuedPendingMessage(queuedPendingMessage.id);
+				setRuntimeErrorMessage(err, "Failed to start session runtime");
 			} finally {
 				if (
 					!cancelled &&
@@ -246,10 +297,11 @@ export function ChatInterface({
 		chat.ready,
 		queuedPendingMessage,
 		sessionId,
-		cwd,
-		chat.sendMessage,
-		messageMetadata,
+		clearQueuedPendingMessage,
+		ensureRuntimeReady,
 		removePendingMessage,
+		sendPreparedMessage,
+		setRuntimeErrorMessage,
 	]);
 
 	useEffect(() => {
@@ -341,34 +393,24 @@ export function ChatInterface({
 						return;
 					}
 					if (sessionId) {
-						setRuntimeError(null);
-						const runtime = await ensureRuntimeMutationRef.current.mutateAsync({
+						await ensureRuntimeReady(sessionId);
+						if (abortController.signal.aborted) {
+							return;
+						}
+
+						const uploadedFiles = await uploadAttachments(
 							sessionId,
-							cwd,
-						});
-						if (!runtime.ready) {
-							throw new Error(
-								runtime.reason ?? "Session runtime is not ready on this device",
-							);
-						}
+							files,
+							abortController.signal,
+						);
 						if (abortController.signal.aborted) {
 							return;
 						}
 
-						let uploadedFiles: FileUIPart[] | undefined;
-						if (files.length > 0) {
-							uploadedFiles = await Promise.all(
-								files.map((file) =>
-									uploadFile(sessionId, file, abortController.signal),
-								),
-							);
-						}
-						if (abortController.signal.aborted) {
-							return;
-						}
-
-						await chat.sendMessage(text, uploadedFiles, messageMetadata, {
+						await sendPreparedMessage({
 							messageId,
+							text,
+							files: uploadedFiles,
 							signal: abortController.signal,
 						});
 						return;
@@ -390,14 +432,12 @@ export function ChatInterface({
 						return;
 					}
 
-					let uploadedFiles: FileUIPart[] = [];
-					if (files.length > 0) {
-						uploadedFiles = await Promise.all(
-							files.map((file) =>
-								uploadFile(newSessionId, file, abortController.signal),
-							),
-						);
-					}
+					const uploadedFiles =
+						(await uploadAttachments(
+							newSessionId,
+							files,
+							abortController.signal,
+						)) ?? [];
 					if (abortController.signal.aborted) {
 						return;
 					}
@@ -412,9 +452,7 @@ export function ChatInterface({
 				} catch (err) {
 					if (isAbortError(err)) return;
 					removePendingMessage(messageId);
-					setRuntimeError(
-						err instanceof Error ? err.message : "Failed to send message",
-					);
+					setRuntimeErrorMessage(err, "Failed to send message");
 				} finally {
 					if (
 						!handedOffToQueue &&
@@ -432,27 +470,22 @@ export function ChatInterface({
 			workspaceId,
 			paneId,
 			switchChatSession,
-			cwd,
-			chat.sendMessage,
-			messageMetadata,
+			ensureRuntimeReady,
+			sendPreparedMessage,
+			uploadAttachments,
 			removePendingMessage,
+			setRuntimeErrorMessage,
 		],
 	);
 
 	const handleStop = useCallback(
 		(e: React.MouseEvent) => {
 			e.preventDefault();
-			for (const controller of sendAbortControllersRef.current.values()) {
-				controller.abort();
-			}
-			sendAbortControllersRef.current.clear();
-			sendingQueuedMessageIdRef.current = null;
-			setQueuedPendingMessage(null);
-			setPendingMessages([]);
+			abortAllInFlightSends();
 			setRuntimeError(null);
 			chat.stop();
 		},
-		[chat.stop],
+		[abortAllInFlightSends, chat.stop],
 	);
 
 	const handleSlashCommandSend = useCallback(
