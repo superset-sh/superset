@@ -100,8 +100,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				store.addPendingTerminalSetup({
 					workspaceId: result.workspace.id,
 					projectId: result.projectId,
-					initialCommands: [...(pending?.initialCommands ?? []), command],
+					initialCommands: pending?.initialCommands ?? null,
 					defaultPresets: pending?.defaultPresets,
+					agentCommand: command,
 				});
 			}
 
