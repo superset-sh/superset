@@ -108,9 +108,9 @@ const AGENT_COMMANDS: Record<
 	opencode: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "opencode --prompt"),
 	copilot: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "copilot -p", "--yolo"),
+		buildHeredoc(prompt, delimiter, "copilot -i", "--yolo"),
 	"cursor-agent": (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "cursor-agent -p", "--yolo"),
+		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
 };
 
 export function buildAgentCommand({
