@@ -164,6 +164,7 @@ export function ChatInterface({
 				<MessageList
 					messages={displayMessages}
 					isStreaming={chat.isLoading}
+					submitStatus={submitStatus}
 					workspaceId={workspaceId}
 				/>
 				<ChatInputFooter

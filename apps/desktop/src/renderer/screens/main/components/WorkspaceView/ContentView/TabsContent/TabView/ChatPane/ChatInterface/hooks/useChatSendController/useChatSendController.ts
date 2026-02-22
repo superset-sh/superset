@@ -140,6 +140,9 @@ export function useChatSendController(
 	const [queuedPendingMessage, setQueuedPendingMessage] =
 		useState<QueuedPendingMessage | null>(null);
 	const [isPreparingSubmit, setIsPreparingSubmit] = useState(false);
+	const [awaitingAssistantIds, setAwaitingAssistantIds] = useState<string[]>(
+		[],
+	);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
 	const ensureRuntimeMutation =
@@ -168,6 +171,23 @@ export function useChatSendController(
 		setQueuedPendingMessage((prev) => (prev?.id === messageId ? null : prev));
 	}, []);
 
+	const addAwaitingAssistant = useCallback((messageId: string) => {
+		setAwaitingAssistantIds((prev) =>
+			prev.includes(messageId) ? prev : [...prev, messageId],
+		);
+	}, []);
+
+	const removeAwaitingAssistant = useCallback((messageId: string) => {
+		setAwaitingAssistantIds((prev) => {
+			const next = prev.filter((id) => id !== messageId);
+			return next.length === prev.length ? prev : next;
+		});
+	}, []);
+
+	const clearAwaitingAssistant = useCallback(() => {
+		setAwaitingAssistantIds((prev) => (prev.length === 0 ? prev : []));
+	}, []);
+
 	const abortAllInFlightSends = useCallback(() => {
 		for (const controller of sendAbortControllersRef.current.values()) {
 			controller.abort();
@@ -176,7 +196,8 @@ export function useChatSendController(
 		sendingQueuedMessageIdRef.current = null;
 		setQueuedPendingMessage(null);
 		setPendingMessages([]);
-	}, []);
+		clearAwaitingAssistant();
+	}, [clearAwaitingAssistant]);
 
 	const ensureRuntimeReady = useCallback(
 		async (targetSessionId: string) => {
@@ -256,8 +277,13 @@ export function useChatSendController(
 				if (cancelled) return;
 				clearQueuedPendingMessage(queuedPendingMessage.id);
 			} catch (err) {
-				if (cancelled || isAbortError(err)) return;
+				if (cancelled) return;
+				if (isAbortError(err)) {
+					removeAwaitingAssistant(queuedPendingMessage.id);
+					return;
+				}
 				removePendingMessage(queuedPendingMessage.id);
+				removeAwaitingAssistant(queuedPendingMessage.id);
 				clearQueuedPendingMessage(queuedPendingMessage.id);
 				setRuntimeErrorMessage(err, "Failed to start session runtime");
 			} finally {
@@ -281,6 +307,7 @@ export function useChatSendController(
 		clearQueuedPendingMessage,
 		ensureRuntimeReady,
 		removePendingMessage,
+		removeAwaitingAssistant,
 		sendPreparedMessage,
 		setRuntimeErrorMessage,
 	]);
@@ -299,6 +326,28 @@ export function useChatSendController(
 		});
 	}, [chat.messages]);
 
+	const assistantMessageCount = useMemo(
+		() =>
+			chat.messages.filter((message) => message.role === "assistant").length,
+		[chat.messages],
+	);
+
+	const prevAssistantMessageCountRef = useRef(assistantMessageCount);
+	useEffect(() => {
+		const prevCount = prevAssistantMessageCountRef.current;
+		const assistantCountAdvanced = assistantMessageCount > prevCount;
+		prevAssistantMessageCountRef.current = assistantMessageCount;
+		if (awaitingAssistantIds.length === 0) return;
+
+		if (!assistantCountAdvanced && !chat.isLoading) return;
+		clearAwaitingAssistant();
+	}, [
+		chat.isLoading,
+		assistantMessageCount,
+		awaitingAssistantIds.length,
+		clearAwaitingAssistant,
+	]);
+
 	const handleSend = useCallback(
 		(message: PromptInputMessage) => {
 			const text = message.text.trim();
@@ -310,6 +359,7 @@ export function useChatSendController(
 			setIsPreparingSubmit(false);
 
 			const messageId = crypto.randomUUID();
+			addAwaitingAssistant(messageId);
 			const abortController = new AbortController();
 			sendAbortControllersRef.current.set(messageId, abortController);
 			setPendingMessages((prev) => [
@@ -367,8 +417,12 @@ export function useChatSendController(
 					});
 					switchChatSession(paneId, newSessionId);
 				} catch (err) {
-					if (isAbortError(err)) return;
+					if (isAbortError(err)) {
+						removeAwaitingAssistant(messageId);
+						return;
+					}
 					removePendingMessage(messageId);
+					removeAwaitingAssistant(messageId);
 					setRuntimeErrorMessage(err, "Failed to send message");
 				} finally {
 					if (
@@ -391,6 +445,8 @@ export function useChatSendController(
 			sendPreparedMessage,
 			uploadAttachments,
 			removePendingMessage,
+			addAwaitingAssistant,
+			removeAwaitingAssistant,
 			setRuntimeErrorMessage,
 		],
 	);
@@ -409,7 +465,10 @@ export function useChatSendController(
 		setIsPreparingSubmit(false);
 	}, []);
 
-	const isSubmitted = isPreparingSubmit || pendingMessages.length > 0;
+	const isSubmitted =
+		isPreparingSubmit ||
+		pendingMessages.length > 0 ||
+		awaitingAssistantIds.length > 0;
 	const isStreaming = chat.isLoading;
 	const canAbort = isStreaming || isSubmitted;
 	const submitStatus: ChatStatus | undefined = useMemo(

@@ -6,7 +6,7 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { Shimmer } from "@superset/ui/ai-elements/shimmer";
-import type { UIMessage } from "ai";
+import type { ChatStatus, UIMessage } from "ai";
 import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
@@ -17,6 +17,7 @@ import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 interface MessageListProps {
 	messages: UIMessage[];
 	isStreaming: boolean;
+	submitStatus?: ChatStatus;
 	workspaceId?: string;
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
@@ -47,10 +48,13 @@ function FileChip({
 export function MessageList({
 	messages,
 	isStreaming,
+	submitStatus,
 	workspaceId,
 	onAnswer,
 }: MessageListProps) {
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+	const isThinking =
+		submitStatus === "submitted" || submitStatus === "streaming";
 
 	const handleImageClick = useCallback(
 		(url: string) => {
@@ -139,7 +143,7 @@ export function MessageList({
 						return (
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
-									{isLastAssistant && isStreaming && msg.parts.length === 0 ? (
+									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
 										<Shimmer
 											className="text-sm text-muted-foreground"
 											duration={1}
@@ -158,6 +162,15 @@ export function MessageList({
 							</Message>
 						);
 					})
+				)}
+				{isThinking && messages[messages.length - 1]?.role === "user" && (
+					<Message from="assistant">
+						<MessageContent>
+							<Shimmer className="text-sm text-muted-foreground" duration={1}>
+								Thinking...
+							</Shimmer>
+						</MessageContent>
+					</Message>
 				)}
 			</ConversationContent>
 			<MessageScrollbackRail messages={messages} />
