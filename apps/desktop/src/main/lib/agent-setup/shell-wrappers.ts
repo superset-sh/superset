@@ -32,11 +32,26 @@ _superset_prepend_bin`;
 }
 
 export function createZshWrapper(): void {
-	// .zprofile must NOT reset ZDOTDIR — our .zshrc needs to run after it
+	// .zshenv is always sourced first by zsh (interactive + non-interactive).
+	// Temporarily restore the user's ZDOTDIR while sourcing user config, then
+	// switch back so zsh continues through our wrapper chain.
+	const zshenvPath = path.join(ZSH_DIR, ".zshenv");
+	const zshenvScript = `# Superset zsh env wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
+[[ -f "$_superset_home/.zshenv" ]] && source "$_superset_home/.zshenv"
+export ZDOTDIR="${ZSH_DIR}"
+`;
+	fs.writeFileSync(zshenvPath, zshenvScript, { mode: 0o644 });
+
+	// Source user .zprofile with their ZDOTDIR, then restore wrapper ZDOTDIR
+	// so startup continues into our .zshrc wrapper.
 	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
 	const zprofileScript = `# Superset zsh profile wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zprofile" ]] && source "$_superset_home/.zprofile"
+export ZDOTDIR="${ZSH_DIR}"
 `;
 	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
 
@@ -116,11 +131,9 @@ export function getShellEnv(shell: string): Record<string, string> {
 }
 
 export function getShellArgs(shell: string): string[] {
-	if (shell.includes("zsh")) {
+	const shellName = shell.split("/").pop() || shell;
+	if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
 		return ["-l"];
-	}
-	if (shell.includes("bash")) {
-		return ["--rcfile", BASH_RCFILE];
 	}
 	return [];
 }

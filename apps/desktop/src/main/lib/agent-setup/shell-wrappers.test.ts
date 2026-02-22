@@ -23,8 +23,12 @@ mock.module("./paths", () => ({
 	OPENCODE_PLUGIN_DIR: TEST_OPENCODE_PLUGIN_DIR,
 }));
 
-const { createBashWrapper, createZshWrapper, getCommandShellArgs } =
-	await import("./shell-wrappers");
+const {
+	createBashWrapper,
+	createZshWrapper,
+	getCommandShellArgs,
+	getShellArgs,
+} = await import("./shell-wrappers");
 
 describe("shell-wrappers", () => {
 	beforeEach(() => {
@@ -40,8 +44,12 @@ describe("shell-wrappers", () => {
 	it("creates zsh wrappers with interactive .zlogin sourcing and command shims", () => {
 		createZshWrapper();
 
+		const zshenv = readFileSync(path.join(TEST_ZSH_DIR, ".zshenv"), "utf-8");
 		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
 		const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
+
+		expect(zshenv).toContain('source "$_superset_home/.zshenv"');
+		expect(zshenv).toContain(`export ZDOTDIR="${TEST_ZSH_DIR}"`);
 
 		expect(zshrc).toContain("_superset_prepend_bin()");
 		expect(zshrc).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
@@ -83,5 +91,12 @@ describe("shell-wrappers", () => {
 	it("falls back to login shell args when zsh wrappers are missing", () => {
 		const args = getCommandShellArgs("/bin/zsh", "echo ok");
 		expect(args).toEqual(["-lc", "echo ok"]);
+	});
+
+	it("uses login args for interactive shells", () => {
+		expect(getShellArgs("/bin/zsh")).toEqual(["-l"]);
+		expect(getShellArgs("/bin/bash")).toEqual(["-l"]);
+		expect(getShellArgs("/bin/sh")).toEqual(["-l"]);
+		expect(getShellArgs("/opt/homebrew/bin/fish")).toEqual(["-l"]);
 	});
 });

@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { getShellArgs } from "../lib/agent-setup/shell-wrappers";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
@@ -178,7 +179,7 @@ export class Session {
 		>);
 		processEnv.TERM = "xterm-256color";
 
-		const shellArgs = this.getShellArgs(this.shell);
+		const shellArgs = getShellArgs(this.shell);
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
 		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
@@ -933,19 +934,6 @@ export class Session {
 			return process.env.COMSPEC || "cmd.exe";
 		}
 		return process.env.SHELL || "/bin/zsh";
-	}
-
-	/**
-	 * Get shell arguments for login shell
-	 */
-	private getShellArgs(shell: string): string[] {
-		const shellName = shell.split("/").pop() || "";
-
-		if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
-			return ["-l"];
-		}
-
-		return [];
 	}
 }
 
