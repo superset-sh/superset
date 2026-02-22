@@ -14,7 +14,7 @@ export function WorkspaceDiffStats({
 	return (
 		<div
 			className={cn(
-				"flex h-5 shrink-0 items-center rounded px-1.5 text-[10px] font-mono tabular-nums transition-opacity group-hover:opacity-0",
+				"flex h-5 shrink-0 items-center rounded px-1.5 text-[10px] font-mono tabular-nums transition-[opacity,visibility] group-hover:opacity-0 group-hover:invisible",
 				isActive ? "bg-foreground/10" : "bg-muted/50",
 			)}
 		>
