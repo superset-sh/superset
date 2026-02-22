@@ -44,6 +44,8 @@ interface UseChatSendControllerReturn {
 	runtimeError: string | null;
 	handleSend: (message: PromptInputMessage) => void;
 	stopPendingSends: () => void;
+	markSubmitStarted: () => void;
+	markSubmitEnded: () => void;
 	canAbort: boolean;
 	submitStatus: ChatStatus | undefined;
 }
@@ -137,6 +139,7 @@ export function useChatSendController(
 	);
 	const [queuedPendingMessage, setQueuedPendingMessage] =
 		useState<QueuedPendingMessage | null>(null);
+	const [isPreparingSubmit, setIsPreparingSubmit] = useState(false);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
 	const ensureRuntimeMutation =
@@ -300,7 +303,11 @@ export function useChatSendController(
 		(message: PromptInputMessage) => {
 			const text = message.text.trim();
 			const files = message.files ?? [];
-			if (!text && files.length === 0) return;
+			if (!text && files.length === 0) {
+				setIsPreparingSubmit(false);
+				return;
+			}
+			setIsPreparingSubmit(false);
 
 			const messageId = crypto.randomUUID();
 			const abortController = new AbortController();
@@ -390,10 +397,19 @@ export function useChatSendController(
 
 	const stopPendingSends = useCallback(() => {
 		abortAllInFlightSends();
+		setIsPreparingSubmit(false);
 		setRuntimeError(null);
 	}, [abortAllInFlightSends]);
 
-	const isSubmitted = pendingMessages.length > 0;
+	const markSubmitStarted = useCallback(() => {
+		setIsPreparingSubmit(true);
+	}, []);
+
+	const markSubmitEnded = useCallback(() => {
+		setIsPreparingSubmit(false);
+	}, []);
+
+	const isSubmitted = isPreparingSubmit || pendingMessages.length > 0;
 	const isStreaming = chat.isLoading;
 	const canAbort = isStreaming || isSubmitted;
 	const submitStatus: ChatStatus | undefined = useMemo(
@@ -406,6 +422,8 @@ export function useChatSendController(
 		runtimeError,
 		handleSend,
 		stopPendingSends,
+		markSubmitStarted,
+		markSubmitEnded,
 		canAbort,
 		submitStatus,
 	};

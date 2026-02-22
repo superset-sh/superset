@@ -44,6 +44,8 @@ interface ChatInputFooterProps {
 	thinkingEnabled: boolean;
 	setThinkingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
 	slashCommands: SlashCommand[];
+	onSubmitStart?: () => void;
+	onSubmitEnd?: () => void;
 	onSend: (message: PromptInputMessage) => void;
 	onStop: (e: React.MouseEvent) => void;
 	onSlashCommandSend: (command: SlashCommand) => void;
@@ -168,6 +170,8 @@ export function ChatInputFooter({
 	thinkingEnabled,
 	setThinkingEnabled,
 	slashCommands,
+	onSubmitStart,
+	onSubmitEnd,
 	onSend,
 	onStop,
 	onSlashCommandSend,
@@ -235,6 +239,8 @@ export function ChatInputFooter({
 									⌘F to focus
 								</span>
 								<PromptInput
+									onSubmitStart={onSubmitStart}
+									onSubmitEnd={onSubmitEnd}
 									onSubmit={onSend}
 									multiple
 									maxFiles={5}

@@ -77,6 +77,8 @@ export function ChatInterface({
 		runtimeError,
 		handleSend,
 		stopPendingSends,
+		markSubmitStarted,
+		markSubmitEnded,
 		canAbort,
 		submitStatus,
 	} = useChatSendController({
@@ -180,6 +182,8 @@ export function ChatInterface({
 					setThinkingEnabled={setThinkingEnabled}
 					slashCommands={slashCommands}
 					onSend={handleSend}
+					onSubmitStart={markSubmitStarted}
+					onSubmitEnd={markSubmitEnded}
 					onStop={handleStop}
 					onSlashCommandSend={handleSlashCommandSend}
 				/>
