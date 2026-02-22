@@ -172,11 +172,13 @@ export class Session {
 
 		const { cwd, cols, rows, env = {} } = options;
 
-		// Merge process.env with passed env (passed takes precedence), then filter
-		const processEnv = buildSafeEnv({ ...process.env, ...env } as Record<
-			string,
-			string
-		>);
+		// In normal flow, caller provides a prebuilt terminal env.
+		// Fall back to process.env only if env was omitted.
+		const envSource =
+			Object.keys(env).length > 0
+				? env
+				: (process.env as Record<string, string>);
+		const processEnv = buildSafeEnv(envSource);
 		processEnv.TERM = "xterm-256color";
 
 		const shellArgs = getShellArgs(this.shell);
