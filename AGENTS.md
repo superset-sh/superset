@@ -70,7 +70,7 @@ bun run clean:workspaces   # Clean all workspace node_modules
 ## Agent Rules
 1. **Type safety** - avoid `any` unless necessary
 2. **Prefer `gh` CLI** - when performing git operations (PRs, issues, checkout, etc.), prefer the GitHub CLI (`gh`) over raw `git` commands where possible
-3. **Shared command source** - keep command definitions in `.agents/commands/` only. `.claude/commands/` and `.cursor/commands/` contain thin wrapper files that delegate to `.agents/commands/`.
+3. **Shared command source** - keep command definitions in `.agents/commands/` only. `.claude/commands` and `.cursor/commands` should be symlinks to `../.agents/commands`.
 4. **Workspace MCP config** - keep shared workspace MCP servers in `.mcp.json`; `.cursor/mcp.json` should be a link to `../.mcp.json` (single source of truth).
 
 ---
