@@ -7,6 +7,12 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks/")({
 });
 
 function TasksPage() {
-	const { tab, assignee } = TasksLayoutRoute.useSearch();
-	return <TasksView initialTab={tab} initialAssignee={assignee} />;
+	const { tab, assignee, search } = TasksLayoutRoute.useSearch();
+	return (
+		<TasksView
+			initialTab={tab}
+			initialAssignee={assignee}
+			initialSearch={search}
+		/>
+	);
 }

@@ -3,6 +3,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 export type TasksSearch = {
 	tab?: "all" | "active" | "backlog";
 	assignee?: string;
+	search?: string;
 };
 
 export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 			? (search.tab as TasksSearch["tab"])
 			: undefined,
 		assignee: typeof search.assignee === "string" ? search.assignee : undefined,
+		search: typeof search.search === "string" ? search.search : undefined,
 	}),
 });
 

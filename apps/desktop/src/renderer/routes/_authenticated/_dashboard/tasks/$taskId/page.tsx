@@ -25,11 +25,17 @@ export const Route = createFileRoute(
 
 function TaskDetailPage() {
 	const { taskId } = Route.useParams();
-	const { tab } = TasksLayoutRoute.useSearch();
+	const { tab, assignee, search } = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
 
-	const backSearch = useMemo(() => (tab ? { tab } : {}), [tab]);
+	const backSearch = useMemo(() => {
+		const s: Record<string, string> = {};
+		if (tab) s.tab = tab;
+		if (assignee) s.assignee = assignee;
+		if (search) s.search = search;
+		return s;
+	}, [tab, assignee, search]);
 	useEscapeToNavigate("/tasks", { search: backSearch });
 
 	// Support both UUID and slug lookups

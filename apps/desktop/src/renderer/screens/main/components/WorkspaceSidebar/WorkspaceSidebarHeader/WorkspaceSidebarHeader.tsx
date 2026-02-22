@@ -31,13 +31,18 @@ export function WorkspaceSidebarHeader({
 		}
 	};
 
-	const { tab: lastTab, assignee: lastAssignee } = useTasksFilterStore();
+	const {
+		tab: lastTab,
+		assignee: lastAssignee,
+		search: lastSearch,
+	} = useTasksFilterStore();
 
 	const handleTasksClick = () => {
 		gateFeature(GATED_FEATURES.TASKS, () => {
 			const search: Record<string, string> = {};
 			if (lastTab !== "all") search.tab = lastTab;
 			if (lastAssignee) search.assignee = lastAssignee;
+			if (lastSearch) search.search = lastSearch;
 			navigate({ to: "/tasks", search });
 		});
 	};

@@ -1,7 +1,7 @@
 import { Spinner } from "@superset/ui/spinner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTasksFilterStore } from "../../stores/tasks-filter-state";
@@ -13,17 +13,56 @@ import { type TaskWithStatus, useTasksTable } from "./hooks/useTasksTable";
 interface TasksViewProps {
 	initialTab?: "all" | "active" | "backlog";
 	initialAssignee?: string;
+	initialSearch?: string;
 }
 
-export function TasksView({ initialTab, initialAssignee }: TasksViewProps) {
+export function TasksView({
+	initialTab,
+	initialAssignee,
+	initialSearch,
+}: TasksViewProps) {
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const currentTab: TabValue = initialTab ?? "all";
-	const [searchQuery, setSearchQuery] = useState("");
+	const [searchQuery, setSearchQuery] = useState(initialSearch ?? "");
 	const assigneeFilter = initialAssignee ?? null;
 
-	const { setTab: storeSetTab, setAssignee: storeSetAssignee } =
-		useTasksFilterStore();
+	const {
+		setTab: storeSetTab,
+		setAssignee: storeSetAssignee,
+		setSearch: storeSetSearch,
+	} = useTasksFilterStore();
+
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+	const syncSearchToUrl = useCallback(
+		(query: string) => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+			debounceRef.current = setTimeout(() => {
+				const search: Record<string, string> = {};
+				if (currentTab !== "all") search.tab = currentTab;
+				if (assigneeFilter) search.assignee = assigneeFilter;
+				if (query) search.search = query;
+				navigate({ to: "/tasks", search, replace: true });
+			}, 300);
+		},
+		[navigate, currentTab, assigneeFilter],
+	);
+
+	useEffect(() => {
+		return () => {
+			if (debounceRef.current) clearTimeout(debounceRef.current);
+		};
+	}, []);
+
+	const handleSearchChange = useCallback(
+		(query: string) => {
+			setSearchQuery(query);
+			storeSetSearch(query);
+			syncSearchToUrl(query);
+		},
+		[storeSetSearch, syncSearchToUrl],
+	);
 
 	useEffect(() => {
 		storeSetTab(currentTab);
@@ -32,6 +71,10 @@ export function TasksView({ initialTab, initialAssignee }: TasksViewProps) {
 	useEffect(() => {
 		storeSetAssignee(assigneeFilter);
 	}, [assigneeFilter, storeSetAssignee]);
+
+	useEffect(() => {
+		storeSetSearch(searchQuery);
+	}, [searchQuery, storeSetSearch]);
 
 	const { data: integrations, isLoading: isCheckingLinear } = useLiveQuery(
 		(q) =>
@@ -66,6 +109,7 @@ export function TasksView({ initialTab, initialAssignee }: TasksViewProps) {
 		const search: Record<string, string> = {};
 		if (tab !== "all") search.tab = tab;
 		if (assigneeFilter) search.assignee = assigneeFilter;
+		if (searchQuery) search.search = searchQuery;
 		navigate({
 			to: "/tasks",
 			search,
@@ -77,6 +121,7 @@ export function TasksView({ initialTab, initialAssignee }: TasksViewProps) {
 		const search: Record<string, string> = {};
 		if (currentTab !== "all") search.tab = currentTab;
 		if (assignee) search.assignee = assignee;
+		if (searchQuery) search.search = searchQuery;
 		navigate({
 			to: "/tasks",
 			search,
@@ -88,6 +133,7 @@ export function TasksView({ initialTab, initialAssignee }: TasksViewProps) {
 		const search: Record<string, string> = {};
 		if (currentTab !== "all") search.tab = currentTab;
 		if (assigneeFilter) search.assignee = assigneeFilter;
+		if (searchQuery) search.search = searchQuery;
 		navigate({
 			to: "/tasks/$taskId",
 			params: { taskId: task.id },
@@ -113,7 +159,7 @@ export function TasksView({ initialTab, initialAssignee }: TasksViewProps) {
 					currentTab={currentTab}
 					onTabChange={handleTabChange}
 					searchQuery={searchQuery}
-					onSearchChange={setSearchQuery}
+					onSearchChange={handleSearchChange}
 					assigneeFilter={assigneeFilter}
 					onAssigneeFilterChange={handleAssigneeFilterChange}
 					selectedCount={selectedTasks.length}
