@@ -11,6 +11,7 @@ import {
 	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
+import type { ChatStatus } from "ai";
 import { UploadIcon } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -31,7 +32,8 @@ import { SlashCommandInput } from "../SlashCommandInput";
 interface ChatInputFooterProps {
 	cwd: string;
 	error: string | null;
-	isStreaming: boolean;
+	canAbort: boolean;
+	submitStatus?: ChatStatus;
 	availableModels: ModelOption[];
 	selectedModel: ModelOption | null;
 	setSelectedModel: React.Dispatch<React.SetStateAction<ModelOption | null>>;
@@ -154,7 +156,8 @@ function IssueLinkInserter({
 export function ChatInputFooter({
 	cwd,
 	error,
-	isStreaming,
+	canAbort,
+	submitStatus,
 	availableModels,
 	selectedModel,
 	setSelectedModel,
@@ -281,8 +284,8 @@ export function ChatInputFooter({
 										<div className="flex items-center space-x-2">
 											<PlusMenu onLinkIssue={() => setIssueLinkOpen(true)} />
 											<PromptInputSubmit
-												status={isStreaming ? "streaming" : undefined}
-												onClick={isStreaming ? onStop : undefined}
+												status={submitStatus}
+												onClick={canAbort ? onStop : undefined}
 											/>
 										</div>
 									</PromptInputFooter>
