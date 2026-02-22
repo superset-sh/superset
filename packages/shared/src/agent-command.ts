@@ -105,7 +105,8 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(prompt, delimiter, "codex --full-auto"),
 	gemini: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
-	opencode: () => "opencode",
+	opencode: (prompt, delimiter) =>
+		buildHeredoc(prompt, delimiter, "opencode"),
 	copilot: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "copilot -p", "--yolo"),
 	"cursor-agent": (prompt, delimiter) =>
