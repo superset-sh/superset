@@ -1,9 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
 
-const readFileSyncMock = mock(() => {
-	throw new Error("EACCES");
-});
-
 const buildSlashCommandRegistryMock = mock(() => [
 	{
 		name: "broken",
@@ -12,13 +8,9 @@ const buildSlashCommandRegistryMock = mock(() => [
 		argumentHint: "",
 		kind: "custom" as const,
 		source: "project" as const,
-		filePath: "/tmp/missing.md",
+		filePath: "/tmp/__nonexistent_slash_cmd_test__.md",
 	},
 ]);
-
-mock.module("node:fs", () => ({
-	readFileSync: readFileSyncMock,
-}));
 
 mock.module("./registry", () => ({
 	buildSlashCommandRegistry: buildSlashCommandRegistryMock,
@@ -41,7 +33,6 @@ describe("resolveSlashCommand template read hardening", () => {
 			console.warn = originalWarn;
 		}
 
-		expect(readFileSyncMock).toHaveBeenCalled();
 		expect(warn).toHaveBeenCalled();
 	});
 });
