@@ -97,6 +97,7 @@ export function ChatInterface({
 	const [selectedModel, setSelectedModel] = useState<ModelOption | null>(null);
 	const activeModel = selectedModel ?? defaultModel;
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+	const [mcpSelectorOpen, setMcpSelectorOpen] = useState(false);
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
 	const titleRequestedRef = useRef(false);
 	const titleRequestSessionRef = useRef<string | null>(null);
@@ -173,6 +174,7 @@ export function ChatInterface({
 		onStopActiveResponse: stopActiveResponse,
 		onSelectModel: setSelectedModel,
 		onOpenModelPicker: () => setModelSelectorOpen(true),
+		onOpenMcpPicker: () => setMcpSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
 	});
@@ -298,6 +300,9 @@ export function ChatInterface({
 					setSelectedModel={setSelectedModel}
 					modelSelectorOpen={modelSelectorOpen}
 					setModelSelectorOpen={setModelSelectorOpen}
+					mcpStatus={chat.metadata.mcp}
+					mcpSelectorOpen={mcpSelectorOpen}
+					setMcpSelectorOpen={setMcpSelectorOpen}
 					permissionMode={permissionMode}
 					setPermissionMode={setPermissionMode}
 					thinkingEnabled={thinkingEnabled}

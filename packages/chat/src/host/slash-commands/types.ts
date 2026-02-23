@@ -2,6 +2,7 @@ export type SlashCommandKind = "custom" | "builtin";
 export type SlashCommandActionType =
 	| "new_session"
 	| "set_model"
+	| "show_mcp"
 	| "stop_stream";
 
 export interface SlashCommandActionDefinition {

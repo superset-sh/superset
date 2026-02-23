@@ -1,3 +1,4 @@
+import type { ChatMcpStatus } from "@superset/chat/client";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -35,6 +36,9 @@ interface ChatInputFooterProps {
 	setSelectedModel: React.Dispatch<React.SetStateAction<ModelOption | null>>;
 	modelSelectorOpen: boolean;
 	setModelSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	mcpStatus: ChatMcpStatus | null;
+	mcpSelectorOpen: boolean;
+	setMcpSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	permissionMode: PermissionMode;
 	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
 	thinkingEnabled: boolean;
@@ -120,6 +124,9 @@ export function ChatInputFooter({
 	setSelectedModel,
 	modelSelectorOpen,
 	setModelSelectorOpen,
+	mcpStatus,
+	mcpSelectorOpen,
+	setMcpSelectorOpen,
 	permissionMode,
 	setPermissionMode,
 	thinkingEnabled,
@@ -187,6 +194,9 @@ export function ChatInputFooter({
 											setSelectedModel={setSelectedModel}
 											modelSelectorOpen={modelSelectorOpen}
 											setModelSelectorOpen={setModelSelectorOpen}
+											mcpStatus={mcpStatus}
+											mcpSelectorOpen={mcpSelectorOpen}
+											setMcpSelectorOpen={setMcpSelectorOpen}
 											permissionMode={permissionMode}
 											setPermissionMode={setPermissionMode}
 											thinkingEnabled={thinkingEnabled}

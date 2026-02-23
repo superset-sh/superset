@@ -1,4 +1,10 @@
-import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
+import {
+	type LoadedMcpToolsetsResult,
+	loadMcpToolsetsForChat,
+	RequestContext,
+	superagent,
+	toAISdkStream,
+} from "@superset/agent";
 import type { UIMessage, UIMessageChunk } from "ai";
 import type { GetHeaders } from "../../../../lib/auth/auth";
 import {
@@ -32,6 +38,7 @@ export interface RunAgentOptions {
 	thinkingEnabled?: boolean;
 	apiUrl: string;
 	getHeaders: GetHeaders;
+	mcpToolsets?: LoadedMcpToolsetsResult;
 }
 
 export async function runAgent(options: RunAgentOptions): Promise<void> {
@@ -46,6 +53,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		thinkingEnabled,
 		apiUrl,
 		getHeaders,
+		mcpToolsets: preloadedMcpToolsets,
 	} = options;
 
 	// Abort any existing agent for this session
@@ -54,6 +62,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 
 	const abortController = new AbortController();
 	sessionAbortControllers.set(sessionId, abortController);
+	let disconnectMcpToolsets: (() => Promise<void>) | null = null;
 
 	let authHeaders: Record<string, string> = {};
 	try {
@@ -96,6 +105,36 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		const requireToolApproval =
 			permissionMode === "default" || permissionMode === "acceptEdits";
 
+		const mcpToolsets =
+			preloadedMcpToolsets ??
+			(await loadMcpToolsetsForChat({
+				cwd,
+				apiUrl,
+				authHeaders,
+			}));
+		if (!preloadedMcpToolsets) {
+			disconnectMcpToolsets = mcpToolsets.disconnect;
+		}
+
+		try {
+			await writeMcpConfigChunk(host, {
+				serverNames: mcpToolsets.serverNames,
+				sources: mcpToolsets.sources,
+				errors: mcpToolsets.errors,
+			});
+		} catch (error) {
+			console.warn("[run-agent] Failed to persist MCP config chunk:", error);
+		}
+
+		for (const message of mcpToolsets.errors) {
+			console.warn("[run-agent] MCP:", message);
+		}
+		if (mcpToolsets.serverNames.length > 0) {
+			console.log(
+				`[run-agent] Loaded MCP servers for ${sessionId}: ${mcpToolsets.serverNames.join(", ")}`,
+			);
+		}
+
 		// When the message has file parts, build a CoreUserMessage with
 		// multimodal content so the model receives images/files.
 		const fileParts = message?.parts?.filter((p) => p.type === "file") ?? [];
@@ -133,6 +172,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 			abortSignal: abortController.signal,
 			...(contextInstructions ? { instructions: contextInstructions } : {}),
 			...(requireToolApproval ? { requireToolApproval: true } : {}),
+			...(mcpToolsets.toolsets ? { toolsets: mcpToolsets.toolsets } : {}),
 			...(thinkingEnabled
 				? {
 						providerOptions: {
@@ -166,6 +206,14 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		}
 		console.error(`[run-agent] Stream error for ${sessionId}:`, error);
 	} finally {
+		if (disconnectMcpToolsets) {
+			try {
+				await disconnectMcpToolsets();
+			} catch (error) {
+				console.warn("[run-agent] Failed to disconnect MCP toolsets:", error);
+			}
+		}
+
 		if (sessionAbortControllers.get(sessionId) === abortController) {
 			sessionAbortControllers.delete(sessionId);
 		}
@@ -238,6 +286,12 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 // Helpers
 // ---------------------------------------------------------------------------
 
+export interface McpConfigSnapshot {
+	serverNames: string[];
+	sources: string[];
+	errors: string[];
+}
+
 async function writeErrorChunk(
 	host: SessionHost,
 	error: unknown,
@@ -252,6 +306,37 @@ async function writeErrorChunk(
 		},
 	});
 	await host.writeStream(messageId, stream);
+}
+
+async function writeConfigChunk(
+	host: SessionHost,
+	payload: Record<string, unknown>,
+): Promise<void> {
+	const messageId = crypto.randomUUID();
+	const stream = new ReadableStream<UIMessageChunk>({
+		start(controller) {
+			controller.enqueue({
+				type: "config",
+				...payload,
+			} as unknown as UIMessageChunk);
+			controller.close();
+		},
+	});
+	await host.writeStream(messageId, stream);
+}
+
+export async function writeMcpConfigChunk(
+	host: SessionHost,
+	snapshot: McpConfigSnapshot,
+): Promise<void> {
+	await writeConfigChunk(host, {
+		mcp: {
+			serverNames: snapshot.serverNames,
+			sources: snapshot.sources,
+			errors: snapshot.errors,
+			updatedAt: new Date().toISOString(),
+		},
+	});
 }
 
 async function writeToDurableStream(

@@ -203,6 +203,7 @@ export function useChatSendController(
 	const sendAbortControllersRef = useRef(new Map<string, AbortController>());
 	const sendingQueuedMessageIdRef = useRef<string | null>(null);
 	const freshSessionAbortControllerRef = useRef<AbortController | null>(null);
+	const warmedRuntimeSessionsRef = useRef(new Set<string>());
 
 	const setRuntimeErrorFromUnknown = useCallback(
 		(error: unknown, fallback: string) => {
@@ -274,6 +275,27 @@ export function useChatSendController(
 		},
 		[cwd],
 	);
+
+	useEffect(() => {
+		if (!chat.ready || !sessionId) return;
+		if (warmedRuntimeSessionsRef.current.has(sessionId)) return;
+
+		let cancelled = false;
+		warmedRuntimeSessionsRef.current.add(sessionId);
+
+		void ensureRuntimeReady(sessionId).catch((error) => {
+			if (cancelled) return;
+			warmedRuntimeSessionsRef.current.delete(sessionId);
+			console.warn(
+				`[chat] Failed to warm session runtime for ${sessionId}:`,
+				error,
+			);
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [chat.ready, ensureRuntimeReady, sessionId]);
 
 	const uploadAttachments = useCallback(
 		async (

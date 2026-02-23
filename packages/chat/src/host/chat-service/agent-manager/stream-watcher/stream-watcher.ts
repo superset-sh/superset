@@ -1,7 +1,11 @@
+import {
+	type LoadedMcpToolsetsResult,
+	loadMcpToolsetsForChat,
+} from "@superset/agent";
 import type { UIMessage } from "ai";
 import type { GetHeaders } from "../../../lib/auth/auth";
 import { sessionAbortControllers, sessionRunIds } from "../session-state";
-import { resumeAgent, runAgent } from "./run-agent";
+import { resumeAgent, runAgent, writeMcpConfigChunk } from "./run-agent";
 import { SessionHost } from "./session-host";
 
 /**
@@ -15,6 +19,10 @@ export class StreamWatcher {
 	private host: SessionHost;
 	private readonly sessionId: string;
 	private readonly cwd: string;
+	private readonly apiUrl: string;
+	private readonly getHeaders: GetHeaders;
+	private mcpToolsets: LoadedMcpToolsetsResult | null = null;
+	private mcpLoadPromise: Promise<LoadedMcpToolsetsResult> | null = null;
 	private status: "idle" | "starting" | "ready" = "idle";
 	private startPromise: Promise<void> | null = null;
 
@@ -26,6 +34,8 @@ export class StreamWatcher {
 	}) {
 		this.sessionId = options.sessionId;
 		this.cwd = options.cwd;
+		this.apiUrl = options.apiUrl;
+		this.getHeaders = options.getHeaders;
 
 		this.host = new SessionHost({
 			sessionId: options.sessionId,
@@ -38,18 +48,29 @@ export class StreamWatcher {
 			const hasFiles = message.parts?.some((p) => p.type === "file");
 			if (!text.trim() && !hasFiles) return;
 
-			void runAgent({
-				sessionId: options.sessionId,
-				text,
-				message,
-				host: this.host,
-				modelId: metadata?.model ?? "anthropic/claude-sonnet-4-6",
-				cwd: this.cwd,
-				permissionMode: metadata?.permissionMode ?? "bypassPermissions",
-				thinkingEnabled: metadata?.thinkingEnabled ?? false,
-				apiUrl: options.apiUrl,
-				getHeaders: options.getHeaders,
-			});
+			void (async () => {
+				const mcpToolsets = await this.ensureMcpToolsets().catch((error) => {
+					console.warn(
+						`[stream-watcher] MCP preload failed for ${options.sessionId}:`,
+						error,
+					);
+					return undefined;
+				});
+
+				await runAgent({
+					sessionId: options.sessionId,
+					text,
+					message,
+					host: this.host,
+					modelId: metadata?.model ?? "anthropic/claude-sonnet-4-6",
+					cwd: this.cwd,
+					permissionMode: metadata?.permissionMode ?? "bypassPermissions",
+					thinkingEnabled: metadata?.thinkingEnabled ?? false,
+					apiUrl: options.apiUrl,
+					getHeaders: options.getHeaders,
+					...(mcpToolsets ? { mcpToolsets } : {}),
+				});
+			})();
 		});
 
 		this.host.on("toolResult", ({ answers }) => {
@@ -112,6 +133,7 @@ export class StreamWatcher {
 			const onConnected = () => {
 				cleanup();
 				this.status = "ready";
+				void this.loadMcpStatusOnStart();
 				resolve();
 			};
 
@@ -150,9 +172,66 @@ export class StreamWatcher {
 	}
 
 	stop(): void {
+		const mcpToolsets = this.mcpToolsets;
+		this.mcpToolsets = null;
+		this.mcpLoadPromise = null;
+		if (mcpToolsets) {
+			void mcpToolsets.disconnect().catch((error) => {
+				console.warn(
+					`[stream-watcher] Failed to disconnect MCP toolsets for ${this.sessionId}:`,
+					error,
+				);
+			});
+		}
+
 		this.host.stop();
 		this.status = "idle";
 		this.startPromise = null;
+	}
+
+	private async ensureMcpToolsets(): Promise<LoadedMcpToolsetsResult> {
+		if (this.mcpToolsets) return this.mcpToolsets;
+		if (this.mcpLoadPromise) return this.mcpLoadPromise;
+
+		this.mcpLoadPromise = (async () => {
+			let authHeaders: Record<string, string> = {};
+			try {
+				authHeaders = await this.getHeaders();
+			} catch (error) {
+				console.warn(
+					`[stream-watcher] Failed to resolve auth headers for ${this.sessionId}:`,
+					error,
+				);
+			}
+
+			const loaded = await loadMcpToolsetsForChat({
+				cwd: this.cwd,
+				apiUrl: this.apiUrl,
+				authHeaders,
+			});
+			this.mcpToolsets = loaded;
+			return loaded;
+		})().finally(() => {
+			this.mcpLoadPromise = null;
+		});
+
+		return this.mcpLoadPromise;
+	}
+
+	private async loadMcpStatusOnStart(): Promise<void> {
+		try {
+			const mcpToolsets = await this.ensureMcpToolsets();
+			await writeMcpConfigChunk(this.host, {
+				serverNames: mcpToolsets.serverNames,
+				sources: mcpToolsets.sources,
+				errors: mcpToolsets.errors,
+			});
+		} catch (error) {
+			console.warn(
+				`[stream-watcher] Failed to load MCP status for ${this.sessionId}:`,
+				error,
+			);
+		}
 	}
 }
 

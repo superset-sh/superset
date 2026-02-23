@@ -1,3 +1,4 @@
+import type { ChatMcpStatus } from "@superset/chat/client";
 import {
 	PromptInputFooter,
 	PromptInputSubmit,
@@ -7,6 +8,7 @@ import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus } from "ai";
 import type React from "react";
 import type { ModelOption, PermissionMode } from "../../../../types";
+import { McpStatusPicker } from "../../../McpStatusPicker";
 import { ModelPicker } from "../../../ModelPicker";
 import { PermissionModePicker } from "../../../PermissionModePicker";
 import { PlusMenu } from "../../../PlusMenu";
@@ -17,6 +19,9 @@ interface ChatComposerControlsProps {
 	setSelectedModel: React.Dispatch<React.SetStateAction<ModelOption | null>>;
 	modelSelectorOpen: boolean;
 	setModelSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	mcpStatus: ChatMcpStatus | null;
+	mcpSelectorOpen: boolean;
+	setMcpSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	permissionMode: PermissionMode;
 	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
 	thinkingEnabled: boolean;
@@ -33,6 +38,9 @@ export function ChatComposerControls({
 	setSelectedModel,
 	modelSelectorOpen,
 	setModelSelectorOpen,
+	mcpStatus,
+	mcpSelectorOpen,
+	setMcpSelectorOpen,
 	permissionMode,
 	setPermissionMode,
 	thinkingEnabled,
@@ -51,6 +59,11 @@ export function ChatComposerControls({
 					onSelectModel={setSelectedModel}
 					open={modelSelectorOpen}
 					onOpenChange={setModelSelectorOpen}
+				/>
+				<McpStatusPicker
+					mcp={mcpStatus}
+					open={mcpSelectorOpen}
+					onOpenChange={setMcpSelectorOpen}
 				/>
 				<ThinkingToggle
 					enabled={thinkingEnabled}

@@ -26,6 +26,13 @@ export interface ChatAgentPresence {
 	generationMessageId?: string;
 }
 
+export interface ChatMcpStatus {
+	serverNames: string[];
+	sources: string[];
+	errors: string[];
+	updatedAt?: string;
+}
+
 export interface UseChatMetadataOptions {
 	sessionDB: SessionDB | null;
 	proxyUrl: string;
@@ -36,6 +43,8 @@ export interface UseChatMetadataOptions {
 export interface UseChatMetadataReturn {
 	/** Current session title (derived from stream config events). */
 	title: string | null;
+	/** MCP status emitted by the host for the latest run in this session. */
+	mcp: ChatMcpStatus | null;
 	/** Online users in this session. */
 	users: ChatUserPresence[];
 	/** Registered agents in this session. */
@@ -55,6 +64,29 @@ export interface UseChatMetadataReturn {
 	) => void;
 	/** Users currently typing with draft content. */
 	drafts: Array<{ userId: string; name?: string; text: string }>;
+}
+
+function parseStringArray(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return value.filter((item): item is string => typeof item === "string");
+}
+
+function parseMcpStatus(value: unknown): ChatMcpStatus | null {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return null;
+	}
+	const record = value as Record<string, unknown>;
+	const serverNames = parseStringArray(record.serverNames);
+	const sources = parseStringArray(record.sources);
+	const errors = parseStringArray(record.errors);
+	const updatedAt =
+		typeof record.updatedAt === "string" ? record.updatedAt : undefined;
+	return {
+		serverNames,
+		sources,
+		errors,
+		...(updatedAt ? { updatedAt } : {}),
+	};
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +123,26 @@ export function useChatMetadata(
 		}
 
 		return title;
+	}, [chunks]);
+
+	const mcp = useMemo(() => {
+		let latestMcp: ChatMcpStatus | null = null;
+
+		for (const row of chunks) {
+			try {
+				const parsed = JSON.parse(row.chunk);
+				if (parsed.type === "config") {
+					const mcpStatus = parseMcpStatus(parsed.mcp);
+					if (mcpStatus) {
+						latestMcp = mcpStatus;
+					}
+				}
+			} catch {
+				// skip unparseable
+			}
+		}
+
+		return latestMcp;
 	}, [chunks]);
 
 	// -----------------------------------------------------------------------
@@ -194,6 +246,7 @@ export function useChatMetadata(
 
 	return {
 		title,
+		mcp,
 		users,
 		agents,
 		updateStatus,

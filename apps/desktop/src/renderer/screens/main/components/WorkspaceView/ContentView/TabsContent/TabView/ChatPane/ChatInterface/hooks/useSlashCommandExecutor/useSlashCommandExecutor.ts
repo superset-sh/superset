@@ -19,6 +19,7 @@ interface UseSlashCommandExecutorOptions {
 	onStopActiveResponse: () => void;
 	onSelectModel: (model: ModelOption) => void;
 	onOpenModelPicker: () => void;
+	onOpenMcpPicker: () => void;
 	onSetErrorMessage: (message: string) => void;
 	onClearError: () => void;
 }
@@ -36,6 +37,7 @@ export function useSlashCommandExecutor({
 	onStopActiveResponse,
 	onSelectModel,
 	onOpenModelPicker,
+	onOpenMcpPicker,
 	onSetErrorMessage,
 	onClearError,
 }: UseSlashCommandExecutorOptions) {
@@ -109,6 +111,11 @@ export function useSlashCommandExecutor({
 							toast.success(`Model set to ${matchedModel.name}`);
 							return { handled: true, nextText: "" };
 						}
+						case "show_mcp": {
+							onClearError();
+							onOpenMcpPicker();
+							return { handled: true, nextText: "" };
+						}
 						default: {
 							const unknownActionType = String(
 								(resolvedCommand.action as { type: unknown }).type,
@@ -155,6 +162,7 @@ export function useSlashCommandExecutor({
 			canAbort,
 			cwd,
 			onClearError,
+			onOpenMcpPicker,
 			onOpenModelPicker,
 			onSelectModel,
 			onSetErrorMessage,
