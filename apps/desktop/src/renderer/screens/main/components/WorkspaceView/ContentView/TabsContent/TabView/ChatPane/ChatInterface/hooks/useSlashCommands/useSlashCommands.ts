@@ -1,3 +1,4 @@
+import { findSlashCommandByNameOrAlias } from "@superset/chat/shared";
 import type { ChatServiceRouter } from "@superset/chat/host";
 import type { inferRouterOutputs } from "@trpc/server";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -41,22 +42,12 @@ function getCommandMatchRank(
 	return bestAliasRank;
 }
 
-function isExactCommandOrAliasMatch(
-	command: SlashCommand,
-	query: string,
-): boolean {
-	if (command.name.toLowerCase() === query) return true;
-	return command.aliases.some((alias) => alias.toLowerCase() === query);
-}
-
 export function shouldSuppressSlashMenuForCommittedCommand(
 	query: string | null,
 	commands: SlashCommand[],
 ): boolean {
 	if (!query) return false;
-	const exactCommandMatch =
-		commands.find((command) => isExactCommandOrAliasMatch(command, query)) ??
-		null;
+	const exactCommandMatch = findSlashCommandByNameOrAlias(commands, query);
 	if (!exactCommandMatch) return false;
 	return exactCommandMatch.argumentHint.trim().length > 0;
 }

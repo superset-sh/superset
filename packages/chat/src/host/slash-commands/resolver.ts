@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
-import { tokenizeSlashCommandArguments } from "../../shared";
+import {
+	findSlashCommandByNameOrAlias,
+	parseNamedSlashArgumentToken,
+	tokenizeSlashCommandArguments,
+} from "../../shared";
 import { buildSlashCommandRegistry } from "./registry";
 import type { SlashCommandActionType } from "./types";
 
@@ -37,14 +41,9 @@ function parseNamedSlashCommandArguments(
 	const namedArguments = new Map<string, string>();
 
 	for (const token of argumentTokens) {
-		const match = token.match(/^(?:--?)?([A-Za-z_][\w-]*)=(.*)$/);
-		if (!match) continue;
-		const rawKey = match[1];
-		const rawValue = match[2];
-		if (rawKey === undefined || rawValue === undefined) continue;
-
-		const key = rawKey.replace(/-/g, "_").toUpperCase();
-		namedArguments.set(key, rawValue);
+		const parsed = parseNamedSlashArgumentToken(token);
+		if (!parsed) continue;
+		namedArguments.set(parsed.keyUpper, parsed.value);
 	}
 
 	return namedArguments;
@@ -132,15 +131,8 @@ export function resolveSlashCommand(
 	const invocation = parseSlashCommandInvocation(text);
 	if (!invocation) return { handled: false };
 
-	const normalizedInvocation = invocation.name.toLowerCase();
 	const registry = buildSlashCommandRegistry(cwd);
-	const commandByName = registry.find(
-		(entry) => entry.name.toLowerCase() === normalizedInvocation,
-	);
-	const commandByAlias = registry.find((entry) =>
-		entry.aliases.some((alias) => alias.toLowerCase() === normalizedInvocation),
-	);
-	const command = commandByName ?? commandByAlias;
+	const command = findSlashCommandByNameOrAlias(registry, invocation.name);
 	if (!command) return { handled: false };
 
 	const template = resolveCommandTemplate(command);

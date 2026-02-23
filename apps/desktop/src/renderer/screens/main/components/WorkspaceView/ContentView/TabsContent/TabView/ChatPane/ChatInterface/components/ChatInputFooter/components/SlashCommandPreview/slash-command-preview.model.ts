@@ -1,10 +1,12 @@
-import { tokenizeSlashCommandArguments } from "@superset/chat/shared";
+import {
+	findSlashCommandByNameOrAlias,
+	normalizeSlashNamedArgumentKey,
+	parseNamedSlashArgumentToken,
+	tokenizeSlashCommandArguments,
+	type ParsedNamedSlashArgument,
+} from "@superset/chat/shared";
 
-export interface NamedArgEntry {
-	keyRaw: string;
-	keyUpper: string;
-	value: string;
-}
+export type NamedArgEntry = ParsedNamedSlashArgument;
 
 export interface ParsedSlashInput {
 	commandName: string;
@@ -32,25 +34,6 @@ export interface SlashCommandDefinition {
 function getSlashCommandToken(input: string): string {
 	const match = input.match(/^\/[^\s]+/);
 	return match?.[0] ?? input;
-}
-
-function parseNamedArgToken(token: string): NamedArgEntry | null {
-	const match = token.match(/^(?:--?)?([A-Za-z_][\w-]*)=(.*)$/);
-	if (!match) return null;
-
-	const keyRaw = match[1];
-	const value = match[2];
-	if (keyRaw === undefined || value === undefined) return null;
-
-	return {
-		keyRaw,
-		keyUpper: normalizeNamedKey(keyRaw),
-		value,
-	};
-}
-
-function normalizeNamedKey(rawKey: string): string {
-	return rawKey.replace(/-/g, "_").toUpperCase();
 }
 
 function quoteArgumentToken(token: string): string {
@@ -88,7 +71,7 @@ function extractParamFieldsFromHint(argumentHint: string): ParamField[] {
 		for (const match of segment.matchAll(/(?:--?)?([A-Za-z_][\w-]*)\s*=/g)) {
 			const rawKey = match[1];
 			if (!rawKey) continue;
-			const namedKeyUpper = normalizeNamedKey(rawKey);
+			const namedKeyUpper = normalizeSlashNamedArgumentKey(rawKey);
 			mergeParamField(fieldById, {
 				id: `named:${namedKeyUpper}`,
 				kind: "named",
@@ -190,7 +173,7 @@ export function parseSlashInput(input: string): ParsedSlashInput | null {
 	const positionalTokens: string[] = [];
 	const namedEntries: NamedArgEntry[] = [];
 	for (const token of argumentTokens) {
-		const named = parseNamedArgToken(token);
+		const named = parseNamedSlashArgumentToken(token);
 		if (named) {
 			namedEntries.push(named);
 			continue;
@@ -312,18 +295,7 @@ export function resolveSlashCommandDefinition(
 	commands: SlashCommandDefinition[],
 	commandName: string,
 ): SlashCommandDefinition | null {
-	const targetName = commandName.toLowerCase();
-
-	const directMatch =
-		commands.find((command) => command.name.toLowerCase() === targetName) ??
-		null;
-	if (directMatch) return directMatch;
-
-	return (
-		commands.find((command) =>
-			command.aliases.some((alias) => alias.toLowerCase() === targetName),
-		) ?? null
-	);
+	return findSlashCommandByNameOrAlias(commands, commandName);
 }
 
 export function getNamedValueMap(
