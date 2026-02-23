@@ -29,6 +29,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_WORKTREE_LOCATION: "behavior-worktree-location",
+	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -461,6 +462,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"storage",
 			"base",
 			"default",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
+		section: "behavior",
+		title: "Open links in app browser",
+		description:
+			"Open links from chat and terminal in the built-in browser instead of your default browser",
+		keywords: [
+			"browser",
+			"links",
+			"in-app",
+			"external",
+			"open",
+			"chat",
+			"terminal",
+			"url",
 		],
 	},
 	{

@@ -15,6 +15,7 @@ import type {
 import {
 	buildMultiPaneLayout,
 	type CreatePaneOptions,
+	createBrowserPane,
 	createBrowserTabWithPane,
 	createChatTabWithPane,
 	createDevToolsPane,
@@ -1225,6 +1226,126 @@ export const useTabsStore = create<TabsStore>()(
 					});
 
 					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				openInBrowserPane: (workspaceId: string, url: string) => {
+					const state = get();
+
+					// Find an existing browser pane in this workspace
+					const workspaceTabIds = new Set(
+						state.tabs
+							.filter((t) => t.workspaceId === workspaceId)
+							.map((t) => t.id),
+					);
+					const existingPane = Object.values(state.panes).find(
+						(p) =>
+							p.type === "webview" && p.browser && workspaceTabIds.has(p.tabId),
+					);
+
+					if (existingPane?.browser) {
+						// Navigate existing pane and make its tab active
+						const { history: prevHistory, historyIndex } = existingPane.browser;
+						const history = prevHistory.slice(0, historyIndex + 1);
+						history.push({
+							url,
+							title: "",
+							timestamp: Date.now(),
+						});
+						if (history.length > 100) {
+							history.splice(0, history.length - 100);
+						}
+
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+						const newHistoryStack = currentActiveId
+							? [
+									currentActiveId,
+									...historyStack.filter((id) => id !== currentActiveId),
+								]
+							: historyStack;
+
+						const newPanes = {
+							...state.panes,
+							[existingPane.id]: {
+								...existingPane,
+								name: "Browser",
+								browser: {
+									...existingPane.browser,
+									currentUrl: url,
+									history,
+									historyIndex: history.length - 1,
+								},
+							},
+						};
+						const tabName = deriveTabName(newPanes, existingPane.tabId);
+
+						set({
+							panes: newPanes,
+							tabs: state.tabs.map((t) =>
+								t.id === existingPane.tabId ? { ...t, name: tabName } : t,
+							),
+							activeTabIds: {
+								...state.activeTabIds,
+								[workspaceId]: existingPane.tabId,
+							},
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[existingPane.tabId]: existingPane.id,
+							},
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						});
+					} else {
+						// No existing browser pane — add one to the active tab
+						const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
+							workspaceId,
+							tabs: state.tabs,
+							activeTabIds: state.activeTabIds,
+							tabHistoryStacks: state.tabHistoryStacks,
+						});
+						const activeTab = resolvedActiveTabId
+							? state.tabs.find((t) => t.id === resolvedActiveTabId)
+							: null;
+
+						if (!activeTab) {
+							get().addBrowserTab(workspaceId, url);
+							return;
+						}
+
+						const newPane = createBrowserPane(activeTab.id, {
+							url,
+						});
+						const newLayout: MosaicNode<string> = {
+							direction: "row",
+							first: activeTab.layout,
+							second: newPane.id,
+							splitPercentage: 50,
+						};
+						const newPanes = {
+							...state.panes,
+							[newPane.id]: newPane,
+						};
+						const tabName = deriveTabName(newPanes, activeTab.id);
+
+						set({
+							tabs: state.tabs.map((t) =>
+								t.id === activeTab.id
+									? {
+											...t,
+											layout: newLayout,
+											name: tabName,
+										}
+									: t,
+							),
+							panes: newPanes,
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[activeTab.id]: newPane.id,
+							},
+						});
+					}
 				},
 
 				updateBrowserUrl: (

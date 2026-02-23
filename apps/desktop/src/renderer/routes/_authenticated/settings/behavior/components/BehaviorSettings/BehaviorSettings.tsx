@@ -56,6 +56,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_WORKTREE_LOCATION,
 		visibleItems,
 	);
+	const showOpenLinksInApp = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -242,6 +246,27 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		});
 	const defaultWorktreePath = useDefaultWorktreePath();
 
+	const { data: openLinksInApp, isLoading: isOpenLinksInAppLoading } =
+		electronTrpc.settings.getOpenLinksInApp.useQuery();
+	const setOpenLinksInApp = electronTrpc.settings.setOpenLinksInApp.useMutation(
+		{
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getOpenLinksInApp.cancel();
+				const previous = utils.settings.getOpenLinksInApp.getData();
+				utils.settings.getOpenLinksInApp.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getOpenLinksInApp.setData(undefined, context.previous);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getOpenLinksInApp.invalidate();
+			},
+		},
+	);
+
 	const previewPrefix =
 		resolveBranchPrefix({
 			mode: branchPrefix?.mode ?? "none",
@@ -403,6 +428,31 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							disabled={
 								isResourceMonitorLoading || setShowResourceMonitor.isPending
 							}
+						/>
+					</div>
+				)}
+
+				{showOpenLinksInApp && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="open-links-in-app"
+								className="text-sm font-medium"
+							>
+								Open links in app browser
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Open links from chat and terminal in the built-in browser
+								instead of your default browser
+							</p>
+						</div>
+						<Switch
+							id="open-links-in-app"
+							checked={openLinksInApp ?? false}
+							onCheckedChange={(enabled) =>
+								setOpenLinksInApp.mutate({ enabled })
+							}
+							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
 						/>
 					</div>
 				)}

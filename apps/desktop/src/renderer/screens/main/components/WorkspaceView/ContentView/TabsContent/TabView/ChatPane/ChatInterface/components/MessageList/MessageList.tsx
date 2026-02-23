@@ -155,6 +155,7 @@ export function MessageList({
 											parts={msg.parts}
 											isLastAssistant={isLastAssistant}
 											isStreaming={isStreaming}
+											workspaceId={workspaceId}
 											onAnswer={onAnswer}
 										/>
 									)}

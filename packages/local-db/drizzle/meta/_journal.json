@@ -218,6 +218,13 @@
       "when": 1771569145144,
       "tag": "0030_shallow_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1771797962833,
+      "tag": "0031_add_open_links_in_app_setting",
+      "breakpoints": true
     }
   ]
 }

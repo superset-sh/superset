@@ -94,7 +94,7 @@ export function usePersistentWebview({
 				if (!pane) return;
 				const tab = state.tabs.find((t) => t.id === pane.tabId);
 				if (!tab) return;
-				state.addBrowserTab(tab.workspaceId, url);
+				state.openInBrowserPane(tab.workspaceId, url);
 			},
 		},
 	);

@@ -122,6 +122,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		workspaceCwd,
 	});
 
+	// URL click handler - opens in app browser or system browser based on setting
+	const { data: openLinksInApp } =
+		electronTrpc.settings.getOpenLinksInApp.useQuery();
+	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
+	const handleUrlClickRef = useRef<((url: string) => void) | undefined>(
+		undefined,
+	);
+	handleUrlClickRef.current = openLinksInApp
+		? (url: string) => openInBrowserPane(workspaceId, url)
+		: undefined;
+
 	// Refs for stream event handlers (populated after useTerminalStream)
 	// These allow flushPendingEvents to call the handlers via refs
 	const handleTerminalExitRef = useRef<
@@ -314,6 +325,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		initialThemeRef,
 		workspaceCwdRef,
 		handleFileLinkClickRef,
+		handleUrlClickRef,
 		paneInitialCommandsRef,
 		paneInitialCwdRef,
 		clearPaneInitialDataRef,

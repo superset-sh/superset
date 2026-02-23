@@ -161,6 +161,7 @@ export interface CreateTerminalOptions {
 	cwd?: string;
 	initialTheme?: ITheme | null;
 	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
+	onUrlClickRef?: { current: ((url: string) => void) | undefined };
 }
 
 /**
@@ -180,7 +181,12 @@ export function createTerminalInstance(
 	renderer: TerminalRendererRef;
 	cleanup: () => void;
 } {
-	const { cwd, initialTheme, onFileLinkClick } = options;
+	const {
+		cwd,
+		initialTheme,
+		onFileLinkClick,
+		onUrlClickRef: urlClickRef,
+	} = options;
 
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
@@ -238,6 +244,11 @@ export function createTerminalInstance(
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
+		const handler = urlClickRef?.current;
+		if (handler) {
+			handler(uri);
+			return;
+		}
 		trpcClient.external.openUrl.mutate(uri).catch((error) => {
 			console.error("[Terminal] Failed to open URL:", uri, error);
 			toast.error("Failed to open URL", {

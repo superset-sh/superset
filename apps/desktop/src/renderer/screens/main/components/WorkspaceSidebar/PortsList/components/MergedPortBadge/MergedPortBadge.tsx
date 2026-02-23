@@ -15,7 +15,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	const navigate = useNavigate();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
+	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
 	const { killPort } = useKillPort();
 
 	const displayContent = port.label ? (
@@ -44,7 +44,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 
 	const handleOpenInBrowser = () => {
 		navigateToWorkspace(port.workspaceId, navigate);
-		addBrowserTab(port.workspaceId, `http://localhost:${port.port}`);
+		openInBrowserPane(port.workspaceId, `http://localhost:${port.port}`);
 	};
 
 	const handleClose = () => {

@@ -14,6 +14,7 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
@@ -652,6 +653,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { worktreeBaseDir: input.path },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getOpenLinksInApp: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.openLinksInApp ?? DEFAULT_OPEN_LINKS_IN_APP;
+		}),
+
+		setOpenLinksInApp: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, openLinksInApp: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { openLinksInApp: input.enabled },
 					})
 					.run();
 

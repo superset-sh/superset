@@ -97,6 +97,7 @@ export interface UseTerminalLifecycleOptions {
 	handleFileLinkClickRef: MutableRefObject<
 		(path: string, line?: number, column?: number) => void
 	>;
+	handleUrlClickRef: MutableRefObject<((url: string) => void) | undefined>;
 	paneInitialCommandsRef: MutableRefObject<string[] | undefined>;
 	paneInitialCwdRef: MutableRefObject<string | undefined>;
 	clearPaneInitialDataRef: MutableRefObject<(paneId: string) => void>;
@@ -157,6 +158,7 @@ export function useTerminalLifecycle({
 	initialThemeRef,
 	workspaceCwdRef,
 	handleFileLinkClickRef,
+	handleUrlClickRef,
 	paneInitialCommandsRef,
 	paneInitialCwdRef,
 	clearPaneInitialDataRef,
@@ -225,6 +227,7 @@ export function useTerminalLifecycle({
 			initialTheme: initialThemeRef.current,
 			onFileLinkClick: (path, line, column) =>
 				handleFileLinkClickRef.current(path, line, column),
+			onUrlClickRef: handleUrlClickRef,
 		});
 
 		const scheduleScrollToBottom = () => {
