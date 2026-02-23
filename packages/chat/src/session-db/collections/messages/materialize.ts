@@ -40,7 +40,7 @@ function isUIMessageChunk(chunk: DurableStreamChunk): boolean {
 		t !== "config" &&
 		t !== "control" &&
 		t !== "approval-response" &&
-		t !== "tool-result"
+		t !== "tool-output"
 	);
 }
 
@@ -102,6 +102,32 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 	let currentTextId: string | null = null;
 	let currentReasoningId: string | null = null;
 
+	const appendToLastTextPart = (text: string) => {
+		const last = parts[parts.length - 1];
+		if (last?.type === "text") {
+			(last as { type: "text"; text: string }).text += text;
+			return;
+		}
+		parts.push({ type: "text", text });
+	};
+
+	const appendToLastReasoningPart = (text: string) => {
+		const last = parts[parts.length - 1];
+		if (last?.type === "reasoning") {
+			(last as { type: "reasoning"; text: string }).text += text;
+			return;
+		}
+		parts.push({ type: "reasoning", text });
+	};
+
+	const getStringField = (
+		value: Record<string, unknown>,
+		key: string,
+	): string | undefined => {
+		const field = value[key];
+		return typeof field === "string" ? field : undefined;
+	};
+
 	for (const row of sorted) {
 		const chunk = parseChunk(row.chunk);
 		if (!chunk || !isUIMessageChunk(chunk)) continue;
@@ -111,15 +137,27 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 		switch (c.type) {
 			// --- Text ---
 			case "text-start":
-				currentTextId = c.id;
+				currentTextId = typeof c.id === "string" ? c.id : "__text__";
 				parts.push({ type: "text", text: "" });
 				break;
 			case "text-delta":
-				if (currentTextId) {
-					const last = parts[parts.length - 1];
-					if (last?.type === "text") {
-						(last as { type: "text"; text: string }).text += c.delta;
+				{
+					const rawChunk = c as unknown as Record<string, unknown>;
+					const delta =
+						(typeof c.delta === "string"
+							? c.delta
+							: typeof getStringField(rawChunk, "textDelta") === "string"
+								? (getStringField(rawChunk, "textDelta") ?? "")
+								: typeof getStringField(rawChunk, "text") === "string"
+									? (getStringField(rawChunk, "text") ?? "")
+									: "") || "";
+					if (!delta) break;
+					// Some providers omit text-start ids; don't drop those deltas.
+					if (currentTextId) {
+						appendToLastTextPart(delta);
+						break;
 					}
+					appendToLastTextPart(delta);
 				}
 				break;
 			case "text-end":
@@ -236,15 +274,26 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 
 			// --- Reasoning ---
 			case "reasoning-start":
-				currentReasoningId = c.id;
+				currentReasoningId = typeof c.id === "string" ? c.id : "__reasoning__";
 				parts.push({ type: "reasoning", text: "" });
 				break;
 			case "reasoning-delta":
-				if (currentReasoningId) {
-					const last = parts[parts.length - 1];
-					if (last?.type === "reasoning") {
-						(last as { type: "reasoning"; text: string }).text += c.delta;
+				{
+					const rawChunk = c as unknown as Record<string, unknown>;
+					const delta =
+						(typeof c.delta === "string"
+							? c.delta
+							: typeof getStringField(rawChunk, "textDelta") === "string"
+								? (getStringField(rawChunk, "textDelta") ?? "")
+								: typeof getStringField(rawChunk, "text") === "string"
+									? (getStringField(rawChunk, "text") ?? "")
+									: "") || "";
+					if (!delta) break;
+					if (currentReasoningId) {
+						appendToLastReasoningPart(delta);
+						break;
 					}
+					appendToLastReasoningPart(delta);
 				}
 				break;
 			case "reasoning-end":

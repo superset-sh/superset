@@ -52,7 +52,7 @@ export function getDefaultTerminalTheme(): ITheme {
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
 		? toXtermTheme(getTerminalColors(defaultTheme))
-		: { background: "#1a1a1a", foreground: "#d4d4d4" };
+		: { background: "#151110", foreground: "#eae8e6" };
 }
 
 /**
@@ -60,7 +60,7 @@ export function getDefaultTerminalTheme(): ITheme {
  * This reads from localStorage before store hydration to prevent flash.
  */
 export function getDefaultTerminalBg(): string {
-	return getDefaultTerminalTheme().background ?? "#1a1a1a";
+	return getDefaultTerminalTheme().background ?? "#151110";
 }
 
 /**

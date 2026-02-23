@@ -1,11 +1,12 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
+const answersSchema = z.record(z.string(), z.string());
+
 export const askUserQuestionTool = createTool({
 	id: "ask_user_question",
 	description:
 		"Present structured questions with options to the user and get their answers. Use when you need clarification, the user needs to choose between options, or you want to confirm an approach before proceeding.",
-	requireApproval: true,
 	inputSchema: z.object({
 		questions: z.array(
 			z.object({
@@ -40,21 +41,24 @@ export const askUserQuestionTool = createTool({
 		),
 	}),
 	outputSchema: z.object({
-		answers: z.record(z.string(), z.string()),
+		answers: answersSchema,
+	}),
+	resumeSchema: z.object({
+		answers: answersSchema,
 	}),
 	execute: async (_input, context) => {
-		// After approval, answers are injected into RequestContext by the tRPC router
-		const raw = context?.requestContext?.get("toolAnswers") as
-			| string
+		const resumeData = context?.agent?.resumeData as
+			| { answers?: Record<string, string> }
 			| undefined;
-		if (raw) {
-			try {
-				const answers = JSON.parse(raw) as Record<string, string>;
-				return { answers };
-			} catch {
-				return { answers: {} };
+
+		if (!resumeData) {
+			if (context?.agent?.suspend) {
+				await context.agent.suspend({});
+				return undefined;
 			}
+			return { answers: {} };
 		}
-		return { answers: {} };
+
+		return { answers: resumeData.answers ?? {} };
 	},
 });

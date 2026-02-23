@@ -50,7 +50,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		settings: createSettingsRouter(),
 		config: createConfigRouter(),
 		uiState: createUiStateRouter(),
-		ringtone: createRingtoneRouter(),
+		ringtone: createRingtoneRouter(getWindow),
 	});
 };
 

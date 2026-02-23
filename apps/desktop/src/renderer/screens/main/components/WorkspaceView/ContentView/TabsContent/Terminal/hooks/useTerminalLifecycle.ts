@@ -539,25 +539,89 @@ export function useTerminalLifecycle({
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
+		const reattachRecovery = {
+			throttleMs: 120,
+			pendingFrame: null as number | null,
+			lastRunAt: 0,
+			pendingForceResize: false,
+		};
 
-		const handleVisibilityChange = () => {
-			if (document.hidden || isUnmounted) return;
-			const buffer = xterm.buffer.active;
-			const wasAtBottom = buffer.viewportY >= buffer.baseY;
+		const isCurrentTerminalRenderable = () => {
+			if (isUnmounted || xtermRef.current !== xterm) return false;
+			if (!container.isConnected) return false;
+
+			const style = window.getComputedStyle(container);
+			if (style.display === "none" || style.visibility === "hidden") {
+				return false;
+			}
+
+			const rect = container.getBoundingClientRect();
+			return rect.width > 1 && rect.height > 1;
+		};
+
+		const runReattachRecovery = (forceResize: boolean) => {
+			if (!isCurrentTerminalRenderable()) return;
+
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
+			const wasAtBottom =
+				xterm.buffer.active.viewportY >= xterm.buffer.active.baseY;
+
+			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
+			rendererRef.current?.current.clearTextureAtlas?.();
+
 			fitAddon.fit();
-			if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+			xterm.refresh(0, Math.max(0, xterm.rows - 1));
+
+			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
 				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 			}
-			if (wasAtBottom) {
-				requestAnimationFrame(() => {
-					if (isUnmounted || xtermRef.current !== xterm) return;
-					scrollToBottom(xterm);
-				});
+
+			if (isFocusedRef.current && document.hasFocus()) {
+				xterm.focus();
 			}
+
+			if (!wasAtBottom) return;
+			requestAnimationFrame(() => {
+				if (isUnmounted || xtermRef.current !== xterm) return;
+				scrollToBottom(xterm);
+			});
 		};
+
+		const scheduleReattachRecovery = (forceResize: boolean) => {
+			reattachRecovery.pendingForceResize ||= forceResize;
+			if (reattachRecovery.pendingFrame !== null) return;
+
+			reattachRecovery.pendingFrame = requestAnimationFrame(() => {
+				reattachRecovery.pendingFrame = null;
+
+				const now = Date.now();
+				if (now - reattachRecovery.lastRunAt < reattachRecovery.throttleMs)
+					return;
+				reattachRecovery.lastRunAt = now;
+
+				const shouldForceResize = reattachRecovery.pendingForceResize;
+				reattachRecovery.pendingForceResize = false;
+				runReattachRecovery(shouldForceResize);
+			});
+		};
+
+		const cancelReattachRecovery = () => {
+			if (reattachRecovery.pendingFrame === null) return;
+			cancelAnimationFrame(reattachRecovery.pendingFrame);
+			reattachRecovery.pendingFrame = null;
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.hidden) return;
+			scheduleReattachRecovery(isFocusedRef.current);
+		};
+		const handleWindowFocus = () => {
+			scheduleReattachRecovery(isFocusedRef.current);
+		};
+
 		document.addEventListener("visibilitychange", handleVisibilityChange);
+		window.addEventListener("focus", handleWindowFocus);
 
 		const isPaneDestroyedInStore = () =>
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);
@@ -577,7 +641,9 @@ export function useTerminalLifecycle({
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
+			cancelReattachRecovery();
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			titleDisposable.dispose();

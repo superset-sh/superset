@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { chmodSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import * as schema from "@superset/local-db";
@@ -6,6 +7,7 @@ import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { app } from "electron";
+import { validate as uuidValidate, version as uuidVersion } from "uuid";
 import { env } from "../../env.main";
 import {
 	ensureSupersetHomeDirExists,
@@ -81,6 +83,12 @@ try {
 }
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = OFF");
+sqlite.function("uuid_v4", () => randomUUID());
+sqlite.function("uuid_is_valid_v4", (value: unknown) => {
+	if (typeof value !== "string") return 0;
+	if (!uuidValidate(value)) return 0;
+	return uuidVersion(value) === 4 ? 1 : 0;
+});
 
 console.log(`[local-db] Database initialized at: ${DB_PATH}`);
 console.log(`[local-db] Running migrations from: ${migrationsFolder}`);

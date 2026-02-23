@@ -198,6 +198,7 @@ export function PresetsSection({
 			name: "",
 			cwd: "",
 			commands: [""],
+			executionMode: "split-pane",
 		});
 	}, [createPreset]);
 
@@ -348,14 +349,14 @@ export function PresetsSection({
 								</div>
 							</TooltipTrigger>
 							<TooltipContent side="top" className="max-w-xs">
-								<p className="font-medium mb-1">Execution Mode</p>
+								<p className="font-medium mb-1">Launch Mode</p>
 								<p className="text-xs">
-									<strong>Sequential:</strong> Commands run one after another in
-									a single terminal (joined with &&)
+									<strong>Split Pane:</strong> Commands run in parallel in a
+									single tab, one pane per command
 								</p>
 								<p className="text-xs mt-1">
-									<strong>Parallel:</strong> Each command runs in its own split
-									pane within a single tab
+									<strong>New Tab:</strong> Commands run in parallel in separate
+									tabs, one tab per command
 								</p>
 							</TooltipContent>
 						</Tooltip>

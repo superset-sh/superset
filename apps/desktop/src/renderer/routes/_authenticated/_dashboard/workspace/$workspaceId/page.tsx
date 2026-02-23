@@ -163,7 +163,7 @@ function WorkspacePage() {
 		(presetIndex: number) => {
 			const preset = presets[presetIndex];
 			if (preset) {
-				openPreset(workspaceId, preset);
+				openPreset(workspaceId, preset, { target: "active-tab" });
 			} else {
 				addTab(workspaceId);
 			}

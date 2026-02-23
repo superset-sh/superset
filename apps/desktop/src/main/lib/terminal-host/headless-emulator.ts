@@ -76,7 +76,7 @@ export class HeadlessEmulator {
 	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
 
 	constructor(options: HeadlessEmulatorOptions = {}) {
-		const { cols = 80, rows = 24, scrollback = 10000 } = options;
+		const { cols = 80, rows = 24, scrollback = 2000 } = options;
 
 		this.terminal = new Terminal({
 			cols,
@@ -225,7 +225,7 @@ export class HeadlessEmulator {
 	 */
 	getSnapshot(): TerminalSnapshot {
 		const snapshotAnsi = this.serializeAddon.serialize({
-			scrollback: this.terminal.options.scrollback ?? 10000,
+			scrollback: this.terminal.options.scrollback ?? 2000,
 		});
 
 		const rehydrateSequences = this.generateRehydrateSequences();

@@ -4,6 +4,7 @@ import type { UIMessage, UIMessageChunk } from "ai";
 import { type ChunkRow, sessionStateSchema } from "../../../../../schema";
 import { createSessionDB, type SessionDB } from "../../../../../session-db";
 import type { GetHeaders } from "../../../../lib/auth/auth";
+import { sessionRunIds } from "../../session-state";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,19 +28,22 @@ export interface SessionHostEventMap {
 	message: [
 		data: { messageId: string; message: UIMessage; metadata?: MessageMetadata },
 	];
+	toolApprovalRequest: [];
 	toolApproval: [
 		data: {
 			approvalId: string;
 			approved: boolean;
+			toolCallId?: string;
 			permissionMode?: string;
 		},
 	];
-	toolResult: [
+	toolOutput: [
 		data: {
 			toolCallId: string;
+			tool: string;
+			state: "output-available" | "output-error";
 			output: unknown;
-			error?: string | null;
-			answers?: Record<string, string>;
+			errorText?: string;
 		},
 	];
 	abort: [];
@@ -160,17 +164,33 @@ export class SessionHost {
 		// Seed seenMessageIds from existing chunks (prevents re-triggering history).
 		// Track user messages and the latest assistant timestamp for catch-up.
 		let lastAssistantTime = "";
+		let latestRunId: string | null = null;
+		let latestRunIdTime = "";
+		let latestToolApprovalRequestTime = "";
+		let latestToolApprovalResponseTime = "";
 		const userMessages: Array<{
 			messageId: string;
 			message: UIMessage;
 			metadata?: MessageMetadata;
 			createdAt: string;
 		}> = [];
+		const pendingSignals: Array<{
+			parsed: Record<string, unknown>;
+			row: ChunkRow;
+		}> = [];
 
 		for (const row of chunks.values()) {
 			const chunkRow = row as ChunkRow;
 			try {
 				const parsed = JSON.parse(chunkRow.chunk);
+				const runId = this.extractRunId(parsed as Record<string, unknown>);
+				if (
+					runId &&
+					(latestRunId === null || chunkRow.createdAt >= latestRunIdTime)
+				) {
+					latestRunId = runId;
+					latestRunIdTime = chunkRow.createdAt;
+				}
 				if (
 					parsed.type === "whole-message" &&
 					parsed.message?.role === "user"
@@ -189,9 +209,35 @@ export class SessionHost {
 				) {
 					lastAssistantTime = chunkRow.createdAt;
 				}
+				if (
+					parsed.type === "tool-approval-request" &&
+					chunkRow.createdAt > latestToolApprovalRequestTime
+				) {
+					latestToolApprovalRequestTime = chunkRow.createdAt;
+				}
+				if (
+					(parsed.type === "approval-response" ||
+						parsed.type === "tool-approval") &&
+					chunkRow.createdAt > latestToolApprovalResponseTime
+				) {
+					latestToolApprovalResponseTime = chunkRow.createdAt;
+				}
+				if (
+					parsed.type === "tool-output" ||
+					parsed.type === "approval-response" ||
+					parsed.type === "tool-approval"
+				) {
+					pendingSignals.push({
+						parsed: parsed as Record<string, unknown>,
+						row: chunkRow,
+					});
+				}
 			} catch {
 				// skip unparseable
 			}
+		}
+		if (latestRunId) {
+			sessionRunIds.set(this.sessionId, latestRunId);
 		}
 
 		// Subscribe to chunk changes (live updates via SSE)
@@ -232,6 +278,20 @@ export class SessionHost {
 					metadata: latest.metadata,
 				});
 			}
+		}
+
+		if (
+			latestToolApprovalRequestTime &&
+			latestToolApprovalRequestTime > latestToolApprovalResponseTime
+		) {
+			this.emit("toolApprovalRequest");
+		}
+
+		const pendingToolSignals = pendingSignals
+			.filter(({ row }) => row.createdAt > lastAssistantTime)
+			.sort((a, b) => a.row.createdAt.localeCompare(b.row.createdAt));
+		for (const pendingSignal of pendingToolSignals) {
+			this.handleChunk(pendingSignal.parsed, pendingSignal.row);
 		}
 	}
 
@@ -382,6 +442,30 @@ export class SessionHost {
 		}
 	}
 
+	getLatestRunId(): string | null {
+		if (!this.sessionDB) return null;
+
+		let latestRunId: string | null = null;
+		let latestCreatedAt = "";
+
+		for (const row of this.sessionDB.collections.chunks.values()) {
+			const chunkRow = row as ChunkRow;
+			try {
+				const parsed = JSON.parse(chunkRow.chunk) as Record<string, unknown>;
+				const runId = this.extractRunId(parsed);
+				if (!runId) continue;
+				if (latestRunId === null || chunkRow.createdAt >= latestCreatedAt) {
+					latestRunId = runId;
+					latestCreatedAt = chunkRow.createdAt;
+				}
+			} catch {
+				// skip unparseable
+			}
+		}
+
+		return latestRunId;
+	}
+
 	async postTitle(title: string): Promise<void> {
 		const response = await this.fetchWithAuth(
 			`${this.baseUrl}/${this.sessionId}`,
@@ -401,6 +485,11 @@ export class SessionHost {
 	// -- Internal -------------------------------------------------------------
 
 	private handleChunk(parsed: Record<string, unknown>, row: ChunkRow): void {
+		const runId = this.extractRunId(parsed);
+		if (runId) {
+			sessionRunIds.set(this.sessionId, runId);
+		}
+
 		// User message -> emit "message" with per-message metadata
 		if (
 			parsed.type === "whole-message" &&
@@ -419,17 +508,27 @@ export class SessionHost {
 			});
 		}
 
-		// Tool result -> emit "toolResult"
-		if (parsed.type === "tool-result") {
-			this.emit("toolResult", {
-				toolCallId: parsed.toolCallId as string,
+		// Tool output -> emit "toolOutput"
+		if (parsed.type === "tool-output") {
+			if (
+				typeof parsed.toolCallId !== "string" ||
+				typeof parsed.tool !== "string"
+			) {
+				return;
+			}
+			this.emit("toolOutput", {
+				toolCallId: parsed.toolCallId,
+				tool: parsed.tool,
+				state:
+					parsed.state === "output-error" ? "output-error" : "output-available",
 				output: parsed.output,
-				error: typeof parsed.error === "string" ? parsed.error : null,
-				answers:
-					typeof parsed.answers === "object" && parsed.answers !== null
-						? (parsed.answers as Record<string, string>)
-						: undefined,
+				errorText:
+					typeof parsed.errorText === "string" ? parsed.errorText : undefined,
 			});
+		}
+
+		if (parsed.type === "tool-approval-request") {
+			this.emit("toolApprovalRequest");
 		}
 
 		// Tool approval -> emit "toolApproval"
@@ -440,6 +539,8 @@ export class SessionHost {
 			this.emit("toolApproval", {
 				approvalId: parsed.approvalId as string,
 				approved: parsed.approved === true,
+				toolCallId:
+					typeof parsed.toolCallId === "string" ? parsed.toolCallId : undefined,
 				permissionMode:
 					typeof parsed.permissionMode === "string"
 						? parsed.permissionMode
@@ -455,5 +556,32 @@ export class SessionHost {
 				this.emit("regenerate");
 			}
 		}
+	}
+
+	private extractRunId(parsed: Record<string, unknown>): string | null {
+		const candidates = [
+			parsed.runId,
+			parsed.run_id,
+			typeof parsed.metadata === "object" && parsed.metadata !== null
+				? (parsed.metadata as Record<string, unknown>).runId
+				: undefined,
+			typeof parsed.metadata === "object" && parsed.metadata !== null
+				? (parsed.metadata as Record<string, unknown>).run_id
+				: undefined,
+			typeof parsed.message === "object" && parsed.message !== null
+				? (parsed.message as Record<string, unknown>).runId
+				: undefined,
+			typeof parsed.message === "object" && parsed.message !== null
+				? (parsed.message as Record<string, unknown>).run_id
+				: undefined,
+		];
+
+		for (const candidate of candidates) {
+			if (typeof candidate === "string" && candidate.trim().length > 0) {
+				return candidate;
+			}
+		}
+
+		return null;
 	}
 }

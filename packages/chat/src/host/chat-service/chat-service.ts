@@ -1,10 +1,18 @@
 import type { GetHeaders } from "../lib/auth/auth";
 import { AgentManager, type AgentManagerConfig } from "./agent-manager";
 
+export type ChatLifecycleEventType = "Start" | "PermissionRequest" | "Stop";
+
+export interface ChatLifecycleEvent {
+	sessionId: string;
+	eventType: ChatLifecycleEventType;
+}
+
 export interface ChatServiceHostConfig {
 	deviceId: string;
 	apiUrl: string;
 	getHeaders: GetHeaders;
+	onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
 }
 
 export class ChatService {
@@ -21,6 +29,7 @@ export class ChatService {
 			organizationId: options.organizationId,
 			apiUrl: this.hostConfig.apiUrl,
 			getHeaders: this.hostConfig.getHeaders,
+			onLifecycleEvent: this.hostConfig.onLifecycleEvent,
 		};
 
 		if (this.agentManager) {

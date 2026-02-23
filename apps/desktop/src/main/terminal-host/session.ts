@@ -152,7 +152,7 @@ export class Session {
 		this.emulator = new HeadlessEmulator({
 			cols: options.cols,
 			rows: options.rows,
-			scrollback: options.scrollbackLines ?? 10000,
+			scrollback: options.scrollbackLines ?? 2000,
 		});
 
 		// Set initial CWD
