@@ -13,7 +13,7 @@ Presets let you quickly launch terminals with pre-configured commands. Save comm
 
 - **Custom commands for new tabs** - Define commands that run when opening a terminal
 - **Working directory** - Specify where commands run in your project (e.g., `apps/web`)
-- **Sequential or parallel execution** - Run commands one after another, or in split panes
+- **Split pane or new tab launch mode** - Run commands in parallel in one tab, or one tab per command
 - **Default preset** - Auto-apply a preset to new workspaces
 - **Quick-add templates** - One-click setup for Claude, Codex, Gemini, and other agents
 
@@ -29,17 +29,15 @@ Each preset has:
 | **Description** | Optional description |
 | **Working Directory** | Relative path in your project (leave empty for root) |
 | **Commands** | One or more commands to run |
-| **Mode** | Sequential (&&) or Parallel (split panes) |
+| **Mode** | Split Pane (parallel panes) or New Tab (parallel tabs) |
 
-## Execution Modes
+## Launch Modes
 
-**Sequential** - Commands run one after another in a single terminal, joined with `&&`:
+**Split Pane** - Commands run in parallel in a single tab, with one split pane per command.
 
-```bash
-bun install && bun dev
-```
+**New Tab** - Commands run in parallel in separate tabs, with one tab per command.
 
-**Parallel** - Each command runs in its own split pane within a single tab. Useful for running a dev server and tests simultaneously.
+Presets are parallel by default.
 
 ## Quick-Add Templates
 

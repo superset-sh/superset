@@ -23,6 +23,7 @@ jobs:
   deploy-database:
     name: Deploy Database (Neon)
     runs-on: ubuntu-latest
+    environment: preview
 
     steps:
       - name: Checkout repository

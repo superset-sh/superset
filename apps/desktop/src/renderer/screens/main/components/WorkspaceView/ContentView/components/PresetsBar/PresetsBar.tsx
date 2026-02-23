@@ -37,7 +37,9 @@ export function PresetsBar() {
 								className="h-6 px-2 gap-1.5 text-xs shrink-0"
 								onClick={() => {
 									if (workspaceId) {
-										openPreset(workspaceId, preset);
+										openPreset(workspaceId, preset, {
+											target: "active-tab",
+										});
 									}
 								}}
 							>

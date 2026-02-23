@@ -130,7 +130,7 @@ export function GroupStrip() {
 
 	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
 		if (!activeWorkspaceId) return;
-		openPreset(activeWorkspaceId, preset);
+		openPreset(activeWorkspaceId, preset, { target: "active-tab" });
 		setDropdownOpen(false);
 	};
 

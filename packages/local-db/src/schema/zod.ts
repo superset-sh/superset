@@ -49,7 +49,7 @@ export const gitHubStatusSchema = z.object({
 
 export type GitHubStatus = z.infer<typeof gitHubStatusSchema>;
 
-export const EXECUTION_MODES = ["sequential", "parallel"] as const;
+export const EXECUTION_MODES = ["split-pane", "new-tab"] as const;
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
 

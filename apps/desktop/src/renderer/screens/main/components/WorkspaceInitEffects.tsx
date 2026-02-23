@@ -35,6 +35,16 @@ export function WorkspaceInitEffects() {
 	const createOrAttach = useCreateOrAttachWithTheme();
 	const utils = electronTrpc.useUtils();
 
+	const openPresetsInActiveTab = useCallback(
+		(workspaceId: string, presets: PendingTerminalSetup["defaultPresets"]) => {
+			for (const preset of presets ?? []) {
+				if (preset.commands.length === 0) continue;
+				openPreset(workspaceId, preset, { target: "active-tab" });
+			}
+		},
+		[openPreset],
+	);
+
 	const handleTerminalSetup = useCallback(
 		(setup: PendingTerminalSetup, onComplete: () => void) => {
 			const hasSetupScript =
@@ -51,9 +61,7 @@ export function WorkspaceInitEffects() {
 					setup.workspaceId,
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
-				for (const preset of presets) {
-					openPreset(setup.workspaceId, preset);
-				}
+				openPresetsInActiveTab(setup.workspaceId, presets);
 
 				if (agentCommand) {
 					addPane(setupTabId, {
@@ -136,9 +144,7 @@ export function WorkspaceInitEffects() {
 			}
 
 			if (hasPresets) {
-				for (const preset of presets) {
-					openPreset(setup.workspaceId, preset);
-				}
+				openPresetsInActiveTab(setup.workspaceId, presets);
 				if (agentCommand) {
 					const { tabId: agentTabId } = addTab(setup.workspaceId, {
 						initialCommands: [agentCommand],
@@ -165,7 +171,7 @@ export function WorkspaceInitEffects() {
 			addPane,
 			setTabAutoTitle,
 			createOrAttach,
-			openPreset,
+			openPresetsInActiveTab,
 			shouldApplyPreset,
 		],
 	);
