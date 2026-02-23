@@ -8,6 +8,30 @@
 			"type": "remote",
 			"url": "https://api.superset.sh/api/agent/mcp",
 			"oauth": {}
+		},
+		"expo-mcp": {
+			"type": "remote",
+			"url": "https://mcp.expo.dev/mcp"
+		},
+		"maestro": {
+			"type": "local",
+			"command": ["maestro", "mcp"]
+		},
+		"neon": {
+			"type": "remote",
+			"url": "https://mcp.neon.tech/mcp"
+		},
+		"linear": {
+			"type": "remote",
+			"url": "https://mcp.linear.app/mcp"
+		},
+		"sentry": {
+			"type": "remote",
+			"url": "https://mcp.sentry.dev/mcp"
+		},
+		"desktop-automation": {
+			"type": "local",
+			"command": ["bun", "run", "packages/desktop-mcp/src/bin.ts"]
 		}
 	}
 }
