@@ -1,6 +1,7 @@
 import { chatServiceTrpc, useChat } from "@superset/chat/client";
 import type { PromptInputMessage } from "@superset/ui/ai-elements/prompt-input";
 import { PromptInputProvider } from "@superset/ui/ai-elements/prompt-input";
+import { toast } from "@superset/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
 import type { FileUIPart } from "ai";
 import type React from "react";
@@ -15,6 +16,32 @@ import type { SlashCommand } from "./hooks/useSlashCommands";
 import type { ChatInterfaceProps, ModelOption, PermissionMode } from "./types";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;
+
+function findModelByQuery(
+	models: ModelOption[],
+	query: string,
+): ModelOption | null {
+	const normalizedQuery = query.trim().toLowerCase();
+	if (!normalizedQuery) return null;
+
+	const exactById = models.find(
+		(model) => model.id.toLowerCase() === normalizedQuery,
+	);
+	if (exactById) return exactById;
+
+	const exactByName = models.find(
+		(model) => model.name.toLowerCase() === normalizedQuery,
+	);
+	if (exactByName) return exactByName;
+
+	return (
+		models.find(
+			(model) =>
+				model.id.toLowerCase().includes(normalizedQuery) ||
+				model.name.toLowerCase().includes(normalizedQuery),
+		) ?? null
+	);
+}
 
 function useAvailableModels(): {
 	models: ModelOption[];
@@ -135,6 +162,26 @@ export function ChatInterface({
 		}),
 		[activeModel?.id, permissionMode, thinkingEnabled],
 	);
+
+	const createFreshSession = useCallback(async (): Promise<boolean> => {
+		if (!organizationId) {
+			setRuntimeError("Cannot create a new session without an organization");
+			return false;
+		}
+
+		const newSessionId = crypto.randomUUID();
+		try {
+			await createSession(newSessionId, organizationId, deviceId, workspaceId);
+			setPendingMessage(null);
+			setPendingFiles([]);
+			setRuntimeError(null);
+			switchChatSession(paneId, newSessionId);
+			return true;
+		} catch {
+			setRuntimeError("Failed to create a new session");
+			return false;
+		}
+	}, [organizationId, deviceId, workspaceId, paneId, switchChatSession]);
 
 	// --- Send pending message once the session is ready ---
 	const sentPendingRef = useRef(false);
@@ -263,6 +310,60 @@ export function ChatInterface({
 					);
 
 					if (resolvedCommand.handled) {
+						if (resolvedCommand.action) {
+							switch (resolvedCommand.action.type) {
+								case "new_session": {
+									const created = await createFreshSession();
+									if (created) {
+										toast.success(
+											resolvedCommand.invokedAs?.toLowerCase() === "clear"
+												? "Context cleared in a new chat session"
+												: "Started a new chat session",
+										);
+									} else {
+										toast.error("Failed to start a new chat session");
+									}
+									return;
+								}
+								case "stop_stream":
+									if (chat.isLoading || pendingMessage) {
+										toast.success("Stopped current response");
+									} else {
+										toast.warning("No active response to stop");
+									}
+									chat.stop();
+									setRuntimeError(null);
+									return;
+								case "set_model": {
+									const modelQuery = (
+										resolvedCommand.action.argument ?? ""
+									).trim();
+									if (!modelQuery) {
+										const message = "Usage: /model <model-id-or-name>";
+										setRuntimeError(message);
+										toast.error(message);
+										return;
+									}
+
+									const matchedModel = findModelByQuery(
+										availableModels,
+										modelQuery,
+									);
+									if (!matchedModel) {
+										const message = `Model not found: ${modelQuery}`;
+										setRuntimeError(message);
+										toast.error(message);
+										return;
+									}
+
+									setSelectedModel(matchedModel);
+									setRuntimeError(null);
+									toast.success(`Model set to ${matchedModel.name}`);
+									return;
+								}
+							}
+						}
+
 						text = (resolvedCommand.prompt ?? "").trim();
 					}
 				} catch (error) {
@@ -334,10 +435,15 @@ export function ChatInterface({
 			workspaceId,
 			paneId,
 			switchChatSession,
+			createFreshSession,
 			ensureRuntimeMutation,
 			resolveSlashCommandMutation,
 			cwd,
+			chat.isLoading,
+			chat.stop,
 			chat.sendMessage,
+			availableModels,
+			pendingMessage,
 			messageMetadata,
 		],
 	);

@@ -8,9 +8,11 @@ import type { SlashCommand } from "./types";
 export function getSlashCommands(cwd: string): SlashCommand[] {
 	return buildSlashCommandRegistry(cwd).map((command) => ({
 		name: command.name,
+		aliases: command.aliases,
 		description: command.description,
 		argumentHint: command.argumentHint,
 		kind: command.kind,
 		source: command.source,
+		action: command.action,
 	}));
 }

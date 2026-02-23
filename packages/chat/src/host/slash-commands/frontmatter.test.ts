@@ -6,6 +6,7 @@ describe("parseSlashCommandFrontmatter", () => {
 		expect(parseSlashCommandFrontmatter("# hello")).toEqual({
 			description: "",
 			argumentHint: "",
+			aliases: [],
 		});
 	});
 
@@ -19,6 +20,7 @@ Body`;
 		expect(parseSlashCommandFrontmatter(raw)).toEqual({
 			description: "Stage selected files",
 			argumentHint: "<glob>",
+			aliases: [],
 		});
 	});
 
@@ -32,6 +34,21 @@ Body`;
 		expect(parseSlashCommandFrontmatter(raw)).toEqual({
 			description: "Run checks: lint + typecheck",
 			argumentHint: "$PATH",
+			aliases: [],
+		});
+	});
+
+	it("parses aliases from comma-separated or bracket values", () => {
+		const raw = `---
+description: Alias example
+aliases: [clear, "cleanup", 'reset']
+---
+Body`;
+
+		expect(parseSlashCommandFrontmatter(raw)).toEqual({
+			description: "Alias example",
+			argumentHint: "",
+			aliases: ["clear", "cleanup", "reset"],
 		});
 	});
 
@@ -42,6 +59,7 @@ description: Missing closing delimiter`;
 		expect(parseSlashCommandFrontmatter(raw)).toEqual({
 			description: "",
 			argumentHint: "",
+			aliases: [],
 		});
 	});
 });

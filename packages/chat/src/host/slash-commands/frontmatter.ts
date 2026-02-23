@@ -1,11 +1,13 @@
 interface SlashCommandFrontmatter {
 	description: string;
 	argumentHint: string;
+	aliases: string[];
 }
 
 const EMPTY_FRONTMATTER: SlashCommandFrontmatter = {
 	description: "",
 	argumentHint: "",
+	aliases: [],
 };
 
 function parseQuotedValue(rawValue: string): string {
@@ -64,6 +66,34 @@ function parseFrontmatterBlock(raw: string): Map<string, string> {
 	return metadata;
 }
 
+function parseAliasesValue(rawValue: string | undefined): string[] {
+	if (!rawValue) return [];
+
+	const normalized = rawValue.trim();
+	if (!normalized) return [];
+
+	const listValue =
+		normalized.startsWith("[") && normalized.endsWith("]")
+			? normalized.slice(1, -1)
+			: normalized;
+
+	return listValue
+		.split(",")
+		.map((item) => item.trim())
+		.map((item) => {
+			if (
+				item.length >= 2 &&
+				((item.startsWith('"') && item.endsWith('"')) ||
+					(item.startsWith("'") && item.endsWith("'")))
+			) {
+				return item.slice(1, -1);
+			}
+			return item;
+		})
+		.map((item) => item.replace(/^\//, ""))
+		.filter((item) => item.length > 0);
+}
+
 export function parseSlashCommandFrontmatter(
 	raw: string,
 ): SlashCommandFrontmatter {
@@ -75,5 +105,8 @@ export function parseSlashCommandFrontmatter(
 		description: metadata.get("description") ?? "",
 		argumentHint:
 			metadata.get("argument-hint") ?? metadata.get("argument_hint") ?? "",
+		aliases: parseAliasesValue(
+			metadata.get("aliases") ?? metadata.get("alias"),
+		),
 	};
 }

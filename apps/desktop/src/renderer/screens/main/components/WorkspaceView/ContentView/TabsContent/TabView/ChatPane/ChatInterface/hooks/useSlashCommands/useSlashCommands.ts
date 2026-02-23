@@ -21,6 +21,26 @@ function getMatchRank(commandName: string, query: string): number | null {
 	return null;
 }
 
+function getCommandMatchRank(
+	command: SlashCommand,
+	query: string,
+): number | null {
+	const nameRank = getMatchRank(command.name.toLowerCase(), query);
+	if (nameRank !== null) return nameRank;
+
+	let bestAliasRank: number | null = null;
+	for (const alias of command.aliases) {
+		const rank = getMatchRank(alias.toLowerCase(), query);
+		if (rank === null) continue;
+		const aliasRank = rank + 3;
+		if (bestAliasRank === null || aliasRank < bestAliasRank) {
+			bestAliasRank = aliasRank;
+		}
+	}
+
+	return bestAliasRank;
+}
+
 export function useSlashCommands({
 	inputValue,
 	commands,
@@ -38,7 +58,7 @@ export function useSlashCommands({
 
 		const rankedCommands = commands
 			.map((command) => {
-				const rank = getMatchRank(command.name.toLowerCase(), query);
+				const rank = getCommandMatchRank(command, query);
 				return rank === null ? null : { command, rank };
 			})
 			.filter(

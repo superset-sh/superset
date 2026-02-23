@@ -2,7 +2,38 @@ import type { SlashCommandRegistryEntry } from "./types";
 
 const BUILTIN_COMMANDS: SlashCommandRegistryEntry[] = [
 	{
+		name: "new",
+		aliases: ["clear"],
+		description: "Start a fresh chat session in this pane.",
+		argumentHint: "",
+		kind: "builtin",
+		source: "builtin",
+		action: { type: "new_session" },
+		template: "Start a fresh chat session in this pane.",
+	},
+	{
+		name: "stop",
+		aliases: [],
+		description: "Stop the currently running response.",
+		argumentHint: "",
+		kind: "builtin",
+		source: "builtin",
+		action: { type: "stop_stream" },
+		template: "Stop the currently running response.",
+	},
+	{
+		name: "model",
+		aliases: [],
+		description: "Switch the active model for this chat.",
+		argumentHint: "<model-id-or-name>",
+		kind: "builtin",
+		source: "builtin",
+		action: { type: "set_model", passArguments: true },
+		template: "Switch active model to: $ARGUMENTS",
+	},
+	{
 		name: "review",
+		aliases: [],
 		description: "Review code for bugs, regressions, and missing tests.",
 		argumentHint: "<scope>",
 		kind: "builtin",
@@ -15,6 +46,7 @@ const BUILTIN_COMMANDS: SlashCommandRegistryEntry[] = [
 	},
 	{
 		name: "plan",
+		aliases: [],
 		description: "Draft an implementation plan before coding.",
 		argumentHint: "<goal>",
 		kind: "builtin",
@@ -27,6 +59,7 @@ const BUILTIN_COMMANDS: SlashCommandRegistryEntry[] = [
 	},
 	{
 		name: "test",
+		aliases: [],
 		description: "Design tests and edge cases for a target.",
 		argumentHint: "<target>",
 		kind: "builtin",
@@ -40,6 +73,7 @@ const BUILTIN_COMMANDS: SlashCommandRegistryEntry[] = [
 	},
 	{
 		name: "refactor",
+		aliases: [],
 		description: "Propose a refactor with constraints and safeguards.",
 		argumentHint: "<scope> [goal=...]",
 		kind: "builtin",

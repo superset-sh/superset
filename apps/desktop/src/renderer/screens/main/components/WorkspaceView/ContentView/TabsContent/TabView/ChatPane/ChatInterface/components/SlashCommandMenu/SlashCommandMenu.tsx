@@ -71,6 +71,11 @@ export function SlashCommandMenu({
 								{cmd.description}
 							</span>
 						)}
+						{cmd.aliases.length > 0 && (
+							<span className="text-muted-foreground pl-4 font-mono">
+								aliases: {cmd.aliases.map((alias) => `/${alias}`).join(", ")}
+							</span>
+						)}
 					</button>
 				))}
 			</div>

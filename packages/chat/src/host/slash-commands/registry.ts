@@ -77,6 +77,25 @@ function toCommandName(relativeFilePath: string): string {
 	return relativeFilePath.replace(/\.md$/, "").split(sep).join("/");
 }
 
+function normalizeAliases(name: string, aliases: string[]): string[] {
+	const normalizedName = name.toLowerCase();
+	const seen = new Set<string>();
+	const result: string[] = [];
+
+	for (const alias of aliases) {
+		const normalizedAlias = alias.trim().replace(/^\//, "");
+		if (!normalizedAlias) continue;
+
+		const key = normalizedAlias.toLowerCase();
+		if (key === normalizedName) continue;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		result.push(normalizedAlias);
+	}
+
+	return result;
+}
+
 export function buildSlashCommandRegistry(
 	cwd: string,
 	options?: SlashCommandRegistryOptions,
@@ -102,6 +121,7 @@ export function buildSlashCommandRegistry(
 
 				commands.push({
 					name,
+					aliases: normalizeAliases(name, metadata.aliases),
 					description: metadata.description,
 					argumentHint: metadata.argumentHint,
 					kind: "custom",
@@ -122,7 +142,10 @@ export function buildSlashCommandRegistry(
 		for (const command of getBuiltInSlashCommands()) {
 			if (seenNames.has(command.name)) continue;
 			seenNames.add(command.name);
-			commands.push(command);
+			commands.push({
+				...command,
+				aliases: normalizeAliases(command.name, command.aliases),
+			});
 		}
 	}
 

@@ -139,6 +139,29 @@ Body`,
 		);
 	});
 
+	it("loads aliases from frontmatter and normalizes them", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		writeCommandFile(
+			cwd,
+			"ship",
+			`---
+description: Ship
+aliases: [/release, publish, ship, publish]
+---
+Body`,
+		);
+
+		const registry = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
+		const ship = registry.find((command) => command.name === "ship");
+
+		expect(ship?.aliases).toEqual(["release", "publish"]);
+	});
+
 	it("includes built-in commands by default", () => {
 		const cwd = makeTempDirectory("slash-cwd-");
 		const home = makeTempDirectory("slash-home-");
@@ -146,6 +169,12 @@ Body`,
 		const registry = buildSlashCommandRegistry(cwd, { homeDirectory: home });
 		expect(registry.some((command) => command.source === "builtin")).toBe(true);
 		expect(registry.some((command) => command.name === "review")).toBe(true);
+		expect(
+			registry.some(
+				(command) =>
+					command.name === "new" && command.aliases.includes("clear"),
+			),
+		).toBe(true);
 	});
 
 	it("allows custom commands to override built-in names", () => {

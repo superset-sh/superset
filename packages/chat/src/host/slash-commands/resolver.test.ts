@@ -93,6 +93,32 @@ Clean up this branch.`,
 		expect(result.handled).toBe(true);
 		expect(result.commandName).toBe("plan");
 		expect(result.prompt).toContain("Goal: improve caching");
+		expect(result.action).toBeUndefined();
+	});
+
+	it("resolves non-prompt built-in actions", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+
+		const stop = resolveSlashCommand(cwd, "/stop");
+		expect(stop.handled).toBe(true);
+		expect(stop.action?.type).toBe("stop_stream");
+
+		const model = resolveSlashCommand(cwd, "/model gpt-4.1");
+		expect(model.handled).toBe(true);
+		expect(model.action?.type).toBe("set_model");
+		expect(model.action?.argument).toBe("gpt-4.1");
+		expect(model.prompt).toContain("Switch active model to: gpt-4.1");
+	});
+
+	it("resolves built-in aliases to the canonical command", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+
+		const result = resolveSlashCommand(cwd, "/clear");
+
+		expect(result.handled).toBe(true);
+		expect(result.commandName).toBe("new");
+		expect(result.invokedAs).toBe("clear");
+		expect(result.action?.type).toBe("new_session");
 	});
 
 	it("resolves namespaced command names", () => {
@@ -144,5 +170,25 @@ Command: ${"$"}COMMAND`,
 		expect(result.prompt).toContain("Unknown should remain: $NOT_SET");
 		expect(result.prompt).toContain(`Cwd: ${cwd}`);
 		expect(result.prompt).toContain("Command: refactor-local");
+	});
+
+	it("resolves custom aliases from frontmatter", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		writeCommandFile(
+			cwd,
+			"ship",
+			`---
+description: Ship helper
+aliases: release, publish
+---
+Ship: $1`,
+		);
+
+		const result = resolveSlashCommand(cwd, "/release stable");
+
+		expect(result.handled).toBe(true);
+		expect(result.commandName).toBe("ship");
+		expect(result.invokedAs).toBe("release");
+		expect(result.prompt).toBe("Ship: stable");
 	});
 });

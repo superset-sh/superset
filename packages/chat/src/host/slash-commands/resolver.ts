@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { buildSlashCommandRegistry } from "./registry";
+import type { SlashCommandActionType } from "./types";
 
 interface SlashCommandInvocation {
 	name: string;
@@ -9,7 +10,12 @@ interface SlashCommandInvocation {
 export interface ResolvedSlashCommand {
 	handled: boolean;
 	commandName?: string;
+	invokedAs?: string;
 	prompt?: string;
+	action?: {
+		type: SlashCommandActionType;
+		argument?: string;
+	};
 }
 
 function parseSlashCommandInvocation(
@@ -141,9 +147,15 @@ export function resolveSlashCommand(
 	const invocation = parseSlashCommandInvocation(text);
 	if (!invocation) return { handled: false };
 
-	const command = buildSlashCommandRegistry(cwd).find(
-		(entry) => entry.name.toLowerCase() === invocation.name.toLowerCase(),
+	const normalizedInvocation = invocation.name.toLowerCase();
+	const registry = buildSlashCommandRegistry(cwd);
+	const commandByName = registry.find(
+		(entry) => entry.name.toLowerCase() === normalizedInvocation,
 	);
+	const commandByAlias = registry.find((entry) =>
+		entry.aliases.some((alias) => alias.toLowerCase() === normalizedInvocation),
+	);
+	const command = commandByName ?? commandByAlias;
 	if (!command) return { handled: false };
 
 	const template = resolveCommandTemplate(command);
@@ -159,6 +171,15 @@ export function resolveSlashCommand(
 	return {
 		handled: true,
 		commandName: command.name,
+		invokedAs: invocation.name,
 		prompt,
+		action: command.action
+			? {
+					type: command.action.type,
+					argument: command.action.passArguments
+						? invocation.argumentsRaw
+						: undefined,
+				}
+			: undefined,
 	};
 }
