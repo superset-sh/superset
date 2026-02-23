@@ -146,9 +146,14 @@ export function MessageList({
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
 									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
-										<Shimmer className="m-0 inline-flex h-4 items-center text-xs leading-none text-muted-foreground">
-											Thinking...
-										</Shimmer>
+										<span className="shrink-0 whitespace-nowrap font-medium text-xs text-muted-foreground">
+											<Shimmer
+												as="span"
+												className="m-0 inline-flex h-4 items-center text-xs leading-none"
+											>
+												Thinking...
+											</Shimmer>
+										</span>
 									) : (
 										<MessagePartsRenderer
 											parts={msg.parts}
@@ -166,9 +171,14 @@ export function MessageList({
 				{isThinking && messages[messages.length - 1]?.role === "user" && (
 					<Message from="assistant">
 						<MessageContent>
-							<Shimmer className="m-0 inline-flex h-4 items-center text-xs leading-none text-muted-foreground">
-								Thinking...
-							</Shimmer>
+							<span className="shrink-0 whitespace-nowrap font-medium text-xs text-muted-foreground">
+								<Shimmer
+									as="span"
+									className="m-0 inline-flex h-4 items-center text-xs leading-none"
+								>
+									Thinking...
+								</Shimmer>
+							</span>
 						</MessageContent>
 					</Message>
 				)}
