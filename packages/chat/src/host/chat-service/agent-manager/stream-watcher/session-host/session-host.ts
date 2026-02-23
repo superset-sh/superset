@@ -28,6 +28,7 @@ export interface SessionHostEventMap {
 	message: [
 		data: { messageId: string; message: UIMessage; metadata?: MessageMetadata },
 	];
+	toolApprovalRequest: [];
 	toolApproval: [
 		data: {
 			approvalId: string;
@@ -165,6 +166,8 @@ export class SessionHost {
 		let lastAssistantTime = "";
 		let latestRunId: string | null = null;
 		let latestRunIdTime = "";
+		let latestToolApprovalRequestTime = "";
+		let latestToolApprovalResponseTime = "";
 		const userMessages: Array<{
 			messageId: string;
 			message: UIMessage;
@@ -205,6 +208,19 @@ export class SessionHost {
 					chunkRow.createdAt > lastAssistantTime
 				) {
 					lastAssistantTime = chunkRow.createdAt;
+				}
+				if (
+					parsed.type === "tool-approval-request" &&
+					chunkRow.createdAt > latestToolApprovalRequestTime
+				) {
+					latestToolApprovalRequestTime = chunkRow.createdAt;
+				}
+				if (
+					(parsed.type === "approval-response" ||
+						parsed.type === "tool-approval") &&
+					chunkRow.createdAt > latestToolApprovalResponseTime
+				) {
+					latestToolApprovalResponseTime = chunkRow.createdAt;
 				}
 				if (
 					parsed.type === "tool-output" ||
@@ -262,6 +278,13 @@ export class SessionHost {
 					metadata: latest.metadata,
 				});
 			}
+		}
+
+		if (
+			latestToolApprovalRequestTime &&
+			latestToolApprovalRequestTime > latestToolApprovalResponseTime
+		) {
+			this.emit("toolApprovalRequest");
 		}
 
 		const pendingToolSignals = pendingSignals
@@ -502,6 +525,10 @@ export class SessionHost {
 				errorText:
 					typeof parsed.errorText === "string" ? parsed.errorText : undefined,
 			});
+		}
+
+		if (parsed.type === "tool-approval-request") {
+			this.emit("toolApprovalRequest");
 		}
 
 		// Tool approval -> emit "toolApproval"
