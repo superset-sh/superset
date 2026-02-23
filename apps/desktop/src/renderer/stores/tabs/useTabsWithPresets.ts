@@ -6,6 +6,8 @@ import { useTabsStore } from "./store";
 import type { AddTabOptions } from "./types";
 import { resolveActiveTabIdForWorkspace } from "./utils";
 
+type PresetOpenTarget = "new-tab" | "active-tab";
+
 function resolvePresetMode(mode?: string) {
 	if (mode === "new-tab") {
 		return "new-tab";
@@ -14,7 +16,7 @@ function resolvePresetMode(mode?: string) {
 }
 
 interface OpenPresetOptions {
-	target?: "new-tab" | "active-tab";
+	target?: PresetOpenTarget;
 }
 
 interface PreparedPreset {
@@ -22,6 +24,15 @@ interface PreparedPreset {
 	commands: string[];
 	initialCwd?: string;
 	name?: string;
+}
+
+function preparePreset(preset: TerminalPreset): PreparedPreset {
+	return {
+		mode: resolvePresetMode(preset.executionMode),
+		commands: preset.commands,
+		initialCwd: preset.cwd || undefined,
+		name: preset.name || undefined,
+	};
 }
 
 export function useTabsWithPresets() {
@@ -49,18 +60,6 @@ export function useTabsWithPresets() {
 		};
 	}, [firstPreset]);
 
-	const preparePreset = useCallback(
-		(preset: TerminalPreset): PreparedPreset => {
-			return {
-				mode: resolvePresetMode(preset.executionMode),
-				commands: preset.commands,
-				initialCwd: preset.cwd || undefined,
-				name: preset.name || undefined,
-			};
-		},
-		[],
-	);
-
 	const applyTabName = useCallback(
 		(tabId: string, name?: string) => {
 			if (name) {
@@ -69,6 +68,16 @@ export function useTabsWithPresets() {
 		},
 		[renameTab],
 	);
+
+	const resolveActiveWorkspaceTabId = useCallback((workspaceId: string) => {
+		const state = useTabsStore.getState();
+		return resolveActiveTabIdForWorkspace({
+			workspaceId,
+			tabs: state.tabs,
+			activeTabIds: state.activeTabIds,
+			tabHistoryStacks: state.tabHistoryStacks,
+		});
+	}, []);
 
 	const executePresetInNewTab = useCallback(
 		(workspaceId: string, preset: PreparedPreset) => {
@@ -88,16 +97,15 @@ export function useTabsWithPresets() {
 					applyTabName(result.tabId, preset.name);
 				}
 
-				return (
-					firstResult ??
-					(() => {
-						const fallback = storeAddTab(workspaceId, {
-							initialCwd: preset.initialCwd,
-						});
-						applyTabName(fallback.tabId, preset.name);
-						return fallback;
-					})()
-				);
+				if (firstResult) {
+					return firstResult;
+				}
+
+				const fallback = storeAddTab(workspaceId, {
+					initialCwd: preset.initialCwd,
+				});
+				applyTabName(fallback.tabId, preset.name);
+				return fallback;
 			}
 
 			if (hasMultipleCommands) {
@@ -125,13 +133,7 @@ export function useTabsWithPresets() {
 				return executePresetInNewTab(workspaceId, preset);
 			}
 
-			const state = useTabsStore.getState();
-			const activeTabId = resolveActiveTabIdForWorkspace({
-				workspaceId,
-				tabs: state.tabs,
-				activeTabIds: state.activeTabIds,
-				tabHistoryStacks: state.tabHistoryStacks,
-			});
+			const activeTabId = resolveActiveWorkspaceTabId(workspaceId);
 
 			if (!activeTabId) {
 				return executePresetInNewTab(workspaceId, preset);
@@ -158,7 +160,22 @@ export function useTabsWithPresets() {
 
 			return executePresetInNewTab(workspaceId, preset);
 		},
-		[executePresetInNewTab, storeAddPanesToTab, storeAddPane],
+		[
+			executePresetInNewTab,
+			storeAddPanesToTab,
+			storeAddPane,
+			resolveActiveWorkspaceTabId,
+		],
+	);
+
+	const executePreset = useCallback(
+		(workspaceId: string, preset: PreparedPreset, target: PresetOpenTarget) => {
+			if (target === "active-tab") {
+				return executePresetInActiveTab(workspaceId, preset);
+			}
+			return executePresetInNewTab(workspaceId, preset);
+		},
+		[executePresetInActiveTab, executePresetInNewTab],
 	);
 
 	const openPreset = useCallback(
@@ -168,12 +185,10 @@ export function useTabsWithPresets() {
 			options?: OpenPresetOptions,
 		) => {
 			const prepared = preparePreset(preset);
-			if (options?.target === "active-tab") {
-				return executePresetInActiveTab(workspaceId, prepared);
-			}
-			return executePresetInNewTab(workspaceId, prepared);
+			const target = options?.target ?? "new-tab";
+			return executePreset(workspaceId, prepared, target);
 		},
-		[preparePreset, executePresetInActiveTab, executePresetInNewTab],
+		[executePreset],
 	);
 
 	const addTab = useCallback(
