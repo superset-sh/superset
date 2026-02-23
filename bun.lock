@@ -109,7 +109,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.82",
+      "version": "0.0.83",
       "dependencies": {
         "@ai-sdk/react": "^3.0.0",
         "@better-auth/stripe": "1.4.18",
