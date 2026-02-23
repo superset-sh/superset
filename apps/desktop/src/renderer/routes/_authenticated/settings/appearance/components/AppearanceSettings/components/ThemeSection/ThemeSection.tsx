@@ -1,7 +1,12 @@
+import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { type ChangeEvent, useRef, useState } from "react";
-import { HiOutlineArrowDownTray, HiOutlineArrowUpTray } from "react-icons/hi2";
+import {
+	HiOutlineArrowDownTray,
+	HiOutlineArrowTopRightOnSquare,
+	HiOutlineArrowUpTray,
+} from "react-icons/hi2";
 import {
 	SYSTEM_THEME_ID,
 	useSetTheme,
@@ -121,7 +126,7 @@ export function ThemeSection() {
 		<div>
 			<div className="mb-4 flex flex-wrap items-center justify-between gap-2">
 				<h3 className="text-sm font-medium">Theme</h3>
-				<div className="flex flex-wrap items-center gap-2">
+				<div className="flex flex-wrap items-center gap-2 justify-end">
 					<input
 						ref={fileInputRef}
 						type="file"
@@ -148,6 +153,15 @@ export function ThemeSection() {
 						<HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
 						Download Base File
 					</Button>
+					<a
+						href={`${COMPANY.DOCS_URL}/custom-themes`}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+					>
+						Theme docs
+						<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
+					</a>
 				</div>
 			</div>
 			<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
