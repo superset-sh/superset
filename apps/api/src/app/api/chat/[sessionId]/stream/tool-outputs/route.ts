@@ -40,14 +40,6 @@ export async function POST(
 	}
 
 	const messageId = crypto.randomUUID();
-	console.log("[askq] tool-output: accepted", {
-		sessionId,
-		actorId,
-		tool: body.tool,
-		toolCallId: body.toolCallId,
-		state: body.state ?? "output-available",
-		messageId,
-	});
 	const event = sessionStateSchema.chunks.insert({
 		key: `${messageId}:0`,
 		value: {
@@ -68,10 +60,5 @@ export async function POST(
 	});
 
 	await appendToStream(sessionId, JSON.stringify(event));
-	console.log("[askq] tool-output: appended", {
-		sessionId,
-		toolCallId: body.toolCallId,
-		messageId,
-	});
 	return Response.json({ messageId }, { status: 200 });
 }

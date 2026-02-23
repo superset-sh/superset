@@ -272,6 +272,9 @@ export async function continueAgentWithToolOutput(
 			output.answers !== null,
 	});
 
+	const existingController = sessionAbortControllers.get(sessionId);
+	if (existingController) existingController.abort();
+
 	const abortController = new AbortController();
 	sessionAbortControllers.set(sessionId, abortController);
 
