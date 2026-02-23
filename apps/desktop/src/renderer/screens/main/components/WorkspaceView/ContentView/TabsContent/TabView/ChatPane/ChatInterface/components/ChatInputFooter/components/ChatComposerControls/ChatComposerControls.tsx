@@ -8,6 +8,7 @@ import { ThinkingToggle } from "@superset/ui/ai-elements/thinking-toggle";
 import type { ChatStatus } from "ai";
 import { ArrowUpIcon, Loader2Icon, SquareIcon } from "lucide-react";
 import type React from "react";
+import type { ChatPickerState } from "../../../../hooks/useChatPickerState";
 import { PILL_BUTTON_CLASS } from "../../../../styles";
 import type { ModelOption, PermissionMode } from "../../../../types";
 import { McpStatusPicker } from "../../../McpStatusPicker";
@@ -19,11 +20,8 @@ interface ChatComposerControlsProps {
 	availableModels: ModelOption[];
 	selectedModel: ModelOption | null;
 	setSelectedModel: React.Dispatch<React.SetStateAction<ModelOption | null>>;
-	modelSelectorOpen: boolean;
-	setModelSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	pickerState: ChatPickerState;
 	mcpStatus: ChatMcpStatus | null;
-	mcpSelectorOpen: boolean;
-	setMcpSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	permissionMode: PermissionMode;
 	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
 	thinkingEnabled: boolean;
@@ -38,11 +36,8 @@ export function ChatComposerControls({
 	availableModels,
 	selectedModel,
 	setSelectedModel,
-	modelSelectorOpen,
-	setModelSelectorOpen,
+	pickerState,
 	mcpStatus,
-	mcpSelectorOpen,
-	setMcpSelectorOpen,
 	permissionMode,
 	setPermissionMode,
 	thinkingEnabled,
@@ -63,13 +58,13 @@ export function ChatComposerControls({
 					models={availableModels}
 					selectedModel={selectedModel}
 					onSelectModel={setSelectedModel}
-					open={modelSelectorOpen}
-					onOpenChange={setModelSelectorOpen}
+					open={pickerState.model.open}
+					onOpenChange={pickerState.model.setOpen}
 				/>
 				<McpStatusPicker
 					mcp={mcpStatus}
-					open={mcpSelectorOpen}
-					onOpenChange={setMcpSelectorOpen}
+					open={pickerState.mcp.open}
+					onOpenChange={pickerState.mcp.setOpen}
 				/>
 				<ThinkingToggle
 					enabled={thinkingEnabled}

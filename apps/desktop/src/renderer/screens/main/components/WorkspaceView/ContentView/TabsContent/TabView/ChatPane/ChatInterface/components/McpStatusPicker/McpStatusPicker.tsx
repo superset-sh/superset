@@ -1,4 +1,4 @@
-import type { ChatMcpStatus } from "@superset/chat/client";
+import type { ChatMcpIssue, ChatMcpStatus } from "@superset/chat/client";
 import {
 	ModelSelector,
 	ModelSelectorContent,
@@ -11,14 +11,15 @@ import {
 } from "@superset/ui/ai-elements/model-selector";
 import { PromptInputButton } from "@superset/ui/ai-elements/prompt-input";
 
-interface ParsedMcpIssue {
+interface DisplayMcpIssue {
 	id: string;
 	serverName: string | null;
 	summary: string;
 	detail: string | null;
+	authRequired?: boolean;
 }
 
-function parseMcpIssue(error: string, index: number): ParsedMcpIssue {
+function parseLegacyMcpIssue(error: string, index: number): DisplayMcpIssue {
 	const skipMatch = error.match(
 		/^Skipping MCP server "([^"]+)" from (.+?): (.+)$/,
 	);
@@ -51,6 +52,27 @@ function parseMcpIssue(error: string, index: number): ParsedMcpIssue {
 	};
 }
 
+function parseStructuredIssue(
+	issue: ChatMcpIssue,
+	index: number,
+): DisplayMcpIssue {
+	return {
+		id: `${issue.code}-${index}`,
+		serverName: issue.serverName ?? null,
+		summary: issue.message,
+		detail: issue.source ?? null,
+		authRequired: issue.authRequired,
+	};
+}
+
+function getDisplayIssues(mcp: ChatMcpStatus | null): DisplayMcpIssue[] {
+	if (!mcp) return [];
+	if (mcp.issues.length > 0) {
+		return mcp.issues.map((issue, index) => parseStructuredIssue(issue, index));
+	}
+	return mcp.errors.map((error, index) => parseLegacyMcpIssue(error, index));
+}
+
 export function McpStatusPicker({
 	mcp,
 	open,
@@ -61,10 +83,8 @@ export function McpStatusPicker({
 	onOpenChange: (open: boolean) => void;
 }) {
 	const loadedCount = mcp?.serverNames.length ?? 0;
-	const issueCount = mcp?.errors.length ?? 0;
-	const issues = (mcp?.errors ?? []).map((error, index) =>
-		parseMcpIssue(error, index),
-	);
+	const issues = getDisplayIssues(mcp);
+	const issueCount = issues.length;
 
 	return (
 		<ModelSelector open={open} onOpenChange={onOpenChange}>
@@ -120,6 +140,11 @@ export function McpStatusPicker({
 												<span className="text-muted-foreground text-xs">
 													{issue.summary}
 												</span>
+												{issue.authRequired && (
+													<span className="text-amber-600 text-xs">
+														Authentication required
+													</span>
+												)}
 												{issue.detail && (
 													<span className="text-muted-foreground/80 text-xs">
 														{issue.detail}

@@ -1,6 +1,5 @@
 import {
 	type LoadedMcpToolsetsResult,
-	loadMcpToolsetsForChat,
 	RequestContext,
 	superagent,
 	toAISdkStream,
@@ -62,7 +61,6 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 
 	const abortController = new AbortController();
 	sessionAbortControllers.set(sessionId, abortController);
-	let disconnectMcpToolsets: (() => Promise<void>) | null = null;
 
 	let authHeaders: Record<string, string> = {};
 	try {
@@ -106,34 +104,28 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		const requireToolApproval =
 			permissionMode === "default" || permissionMode === "acceptEdits";
 
-		const mcpToolsets =
-			preloadedMcpToolsets ??
-			(await loadMcpToolsetsForChat({
-				cwd,
-				apiUrl,
-				authHeaders,
-			}));
-		if (!preloadedMcpToolsets) {
-			disconnectMcpToolsets = mcpToolsets.disconnect;
-		}
+		const mcpToolsets = preloadedMcpToolsets;
 
-		try {
-			await writeMcpConfigChunk(host, {
-				serverNames: mcpToolsets.serverNames,
-				sources: mcpToolsets.sources,
-				errors: mcpToolsets.errors,
-			});
-		} catch (error) {
-			console.warn("[run-agent] Failed to persist MCP config chunk:", error);
-		}
+		if (mcpToolsets) {
+			try {
+				await writeMcpConfigChunk(host, {
+					serverNames: mcpToolsets.serverNames,
+					sources: mcpToolsets.sources,
+					issues: mcpToolsets.issues,
+					errors: mcpToolsets.errors,
+				});
+			} catch (error) {
+				console.warn("[run-agent] Failed to persist MCP config chunk:", error);
+			}
 
-		for (const message of mcpToolsets.errors) {
-			console.warn("[run-agent] MCP:", message);
-		}
-		if (mcpToolsets.serverNames.length > 0) {
-			console.log(
-				`[run-agent] Loaded MCP servers for ${sessionId}: ${mcpToolsets.serverNames.join(", ")}`,
-			);
+			for (const issue of mcpToolsets.errors) {
+				console.warn("[run-agent] MCP:", issue);
+			}
+			if (mcpToolsets.serverNames.length > 0) {
+				console.log(
+					`[run-agent] Loaded MCP servers for ${sessionId}: ${mcpToolsets.serverNames.join(", ")}`,
+				);
+			}
 		}
 
 		// When the message has file parts, build a CoreUserMessage with
@@ -173,7 +165,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 			abortSignal: abortController.signal,
 			...(contextInstructions ? { instructions: contextInstructions } : {}),
 			...(requireToolApproval ? { requireToolApproval: true } : {}),
-			...(mcpToolsets.toolsets ? { toolsets: mcpToolsets.toolsets } : {}),
+			...(mcpToolsets?.toolsets ? { toolsets: mcpToolsets.toolsets } : {}),
 			...(thinkingEnabled
 				? {
 						providerOptions: {
@@ -208,14 +200,6 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		}
 		console.error(`[run-agent] Stream error for ${sessionId}:`, error);
 	} finally {
-		if (disconnectMcpToolsets) {
-			try {
-				await disconnectMcpToolsets();
-			} catch (error) {
-				console.warn("[run-agent] Failed to disconnect MCP toolsets:", error);
-			}
-		}
-
 		if (sessionAbortControllers.get(sessionId) === abortController) {
 			sessionAbortControllers.delete(sessionId);
 		}
@@ -437,6 +421,7 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 export interface McpConfigSnapshot {
 	serverNames: string[];
 	sources: string[];
+	issues: LoadedMcpToolsetsResult["issues"];
 	errors: string[];
 }
 
@@ -481,6 +466,7 @@ export async function writeMcpConfigChunk(
 		mcp: {
 			serverNames: snapshot.serverNames,
 			sources: snapshot.sources,
+			issues: snapshot.issues,
 			errors: snapshot.errors,
 			updatedAt: new Date().toISOString(),
 		},

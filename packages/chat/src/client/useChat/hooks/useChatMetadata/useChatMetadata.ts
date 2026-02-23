@@ -27,10 +27,19 @@ export interface ChatAgentPresence {
 }
 
 export interface ChatMcpStatus {
+	issues: ChatMcpIssue[];
 	serverNames: string[];
 	sources: string[];
 	errors: string[];
 	updatedAt?: string;
+}
+
+export interface ChatMcpIssue {
+	code: string;
+	message: string;
+	serverName?: string;
+	source?: string;
+	authRequired?: boolean;
 }
 
 export interface UseChatMetadataOptions {
@@ -71,17 +80,55 @@ function parseStringArray(value: unknown): string[] {
 	return value.filter((item): item is string => typeof item === "string");
 }
 
+function parseMcpIssues(value: unknown): ChatMcpIssue[] {
+	if (!Array.isArray(value)) return [];
+	return value
+		.map((item) => {
+			if (!item || typeof item !== "object" || Array.isArray(item)) {
+				return null;
+			}
+			const record = item as Record<string, unknown>;
+			if (
+				typeof record.message !== "string" ||
+				typeof record.code !== "string"
+			) {
+				return null;
+			}
+			const issue: ChatMcpIssue = {
+				code: record.code,
+				message: record.message,
+			};
+			if (typeof record.serverName === "string") {
+				issue.serverName = record.serverName;
+			}
+			if (typeof record.source === "string") {
+				issue.source = record.source;
+			}
+			if (typeof record.authRequired === "boolean") {
+				issue.authRequired = record.authRequired;
+			}
+			return issue;
+		})
+		.filter((item): item is ChatMcpIssue => Boolean(item));
+}
+
 function parseMcpStatus(value: unknown): ChatMcpStatus | null {
 	if (!value || typeof value !== "object" || Array.isArray(value)) {
 		return null;
 	}
 	const record = value as Record<string, unknown>;
+	const issues = parseMcpIssues(record.issues);
 	const serverNames = parseStringArray(record.serverNames);
 	const sources = parseStringArray(record.sources);
-	const errors = parseStringArray(record.errors);
+	const parsedErrors = parseStringArray(record.errors);
+	const errors =
+		parsedErrors.length > 0
+			? parsedErrors
+			: issues.map((issue) => issue.message);
 	const updatedAt =
 		typeof record.updatedAt === "string" ? record.updatedAt : undefined;
 	return {
+		issues,
 		serverNames,
 		sources,
 		errors,

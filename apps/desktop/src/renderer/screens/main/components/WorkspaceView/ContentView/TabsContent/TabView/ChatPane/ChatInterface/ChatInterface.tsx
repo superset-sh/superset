@@ -12,6 +12,7 @@ import { getAuthToken } from "renderer/lib/auth-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
+import { useChatPickerState } from "./hooks/useChatPickerState";
 import { useChatSendController } from "./hooks/useChatSendController";
 import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "./hooks/useSlashCommands";
@@ -96,8 +97,7 @@ export function ChatInterface({
 
 	const [selectedModel, setSelectedModel] = useState<ModelOption | null>(null);
 	const activeModel = selectedModel ?? defaultModel;
-	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-	const [mcpSelectorOpen, setMcpSelectorOpen] = useState(false);
+	const pickerState = useChatPickerState();
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
 	const titleRequestedRef = useRef(false);
 	const titleRequestSessionRef = useRef<string | null>(null);
@@ -173,8 +173,8 @@ export function ChatInterface({
 		onStartFreshSession: startFreshSession,
 		onStopActiveResponse: stopActiveResponse,
 		onSelectModel: setSelectedModel,
-		onOpenModelPicker: () => setModelSelectorOpen(true),
-		onOpenMcpPicker: () => setMcpSelectorOpen(true),
+		onOpenModelPicker: pickerState.model.openPanel,
+		onOpenMcpPicker: pickerState.mcp.openPanel,
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
 	});
@@ -311,11 +311,8 @@ export function ChatInterface({
 					availableModels={availableModels}
 					selectedModel={activeModel}
 					setSelectedModel={setSelectedModel}
-					modelSelectorOpen={modelSelectorOpen}
-					setModelSelectorOpen={setModelSelectorOpen}
+					pickerState={pickerState}
 					mcpStatus={chat.metadata.mcp}
-					mcpSelectorOpen={mcpSelectorOpen}
-					setMcpSelectorOpen={setMcpSelectorOpen}
 					permissionMode={permissionMode}
 					setPermissionMode={setPermissionMode}
 					thinkingEnabled={thinkingEnabled}

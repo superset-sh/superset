@@ -14,6 +14,20 @@ type MCPServersConfig = NonNullable<MCPClientConfig["servers"]>;
 type MCPServerConfig = MCPServersConfig[string];
 type LoadedToolsets = Awaited<ReturnType<MCPClient["listToolsets"]>>;
 
+export type McpLoadIssueCode =
+	| "parse_error"
+	| "missing_command"
+	| "invalid_config"
+	| "connect_error";
+
+export interface McpLoadIssue {
+	code: McpLoadIssueCode;
+	message: string;
+	serverName?: string;
+	source?: string;
+	authRequired?: boolean;
+}
+
 interface ParsedServerBase {
 	name: string;
 	source: string;
@@ -43,6 +57,7 @@ export interface LoadedMcpToolsetsResult {
 	toolsets?: LoadedToolsets;
 	serverNames: string[];
 	sources: string[];
+	issues: McpLoadIssue[];
 	errors: string[];
 	disconnect: () => Promise<void>;
 }
@@ -503,6 +518,24 @@ function getErrorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
+function formatMcpIssue(issue: McpLoadIssue): string {
+	if (issue.serverName && issue.source) {
+		if (issue.code === "connect_error") {
+			return `Failed to connect MCP server "${issue.serverName}": ${issue.message}`;
+		}
+		if (issue.code === "missing_command") {
+			return `Skipping MCP server "${issue.serverName}" from ${issue.source}: ${issue.message}`;
+		}
+		if (issue.code === "invalid_config") {
+			return `Skipping MCP server "${issue.serverName}" from ${issue.source}: ${issue.message}`;
+		}
+	}
+	if (issue.serverName) {
+		return `MCP server "${issue.serverName}": ${issue.message}`;
+	}
+	return issue.message;
+}
+
 function extractEndpointErrorDescription(message: string): string | null {
 	const jsonMatch = message.match(
 		/\{[^{}]*"error_description"\s*:\s*"([^"]+)"[^{}]*\}/,
@@ -517,16 +550,21 @@ function isAuthRelatedError(text: string): boolean {
 	);
 }
 
-function sanitizeConnectionErrorMessage(error: unknown): string {
+function sanitizeConnectionError(error: unknown): {
+	message: string;
+	authRequired: boolean;
+} {
 	const rawMessage = getErrorMessage(error).trim();
-	if (!rawMessage) return "Unknown connection error";
+	if (!rawMessage) {
+		return { message: "Unknown connection error", authRequired: false };
+	}
 
 	const endpointDescription = extractEndpointErrorDescription(rawMessage);
 	if (endpointDescription) {
 		if (isAuthRelatedError(endpointDescription)) {
-			return "Authentication required";
+			return { message: "Authentication required", authRequired: true };
 		}
-		return endpointDescription;
+		return { message: endpointDescription, authRequired: false };
 	}
 
 	// Drop stack frames and transport internals; keep first human-meaningful line.
@@ -537,17 +575,20 @@ function sanitizeConnectionErrorMessage(error: unknown): string {
 		.trim();
 
 	if (isAuthRelatedError(noStackSuffix)) {
-		return "Authentication required";
+		return { message: "Authentication required", authRequired: true };
 	}
 
-	return noStackSuffix || "Unknown connection error";
+	return {
+		message: noStackSuffix || "Unknown connection error",
+		authRequired: false,
+	};
 }
 
 export async function loadMcpToolsetsForChat(
 	options: LoadMcpToolsetsOptions,
 ): Promise<LoadedMcpToolsetsResult> {
 	const { cwd, authHeaders, apiUrl } = options;
-	const errors: string[] = [];
+	const issues: McpLoadIssue[] = [];
 
 	const mcpJsonPath = findNearestUpwards(cwd, ".mcp.json");
 	const codexPath = findNearestUpwards(cwd, path.join(".codex", "config.toml"));
@@ -563,7 +604,12 @@ export async function loadMcpToolsetsForChat(
 	if (opencodePath) parseResults.push(parseOpenCodeFile(opencodePath));
 
 	for (const result of parseResults) {
-		errors.push(...result.errors);
+		for (const message of result.errors) {
+			issues.push({
+				code: "parse_error",
+				message,
+			});
+		}
 	}
 
 	const mergedServers = new Map<string, ParsedServer>();
@@ -592,28 +638,37 @@ export async function loadMcpToolsetsForChat(
 	}
 
 	const serverEntries: Array<[string, MCPServerConfig]> = [];
+	const serverSources = new Map<string, string>();
 	for (const server of mergedServers.values()) {
 		if (server.kind === "local" && !isCommandAvailable(server.command)) {
-			errors.push(
-				`Skipping MCP server "${server.name}" from ${server.source}: command "${server.command}" not found in PATH`,
-			);
+			issues.push({
+				code: "missing_command",
+				serverName: server.name,
+				source: server.source,
+				message: `command "${server.command}" not found in PATH`,
+			});
 			continue;
 		}
 
 		const config = toMcpServerConfig(server);
 		if (!config) {
-			errors.push(
-				`Skipping MCP server "${server.name}" from ${server.source}: invalid configuration`,
-			);
+			issues.push({
+				code: "invalid_config",
+				serverName: server.name,
+				source: server.source,
+				message: "invalid configuration",
+			});
 			continue;
 		}
 		serverEntries.push([server.name, config]);
+		serverSources.set(server.name, server.source);
 	}
 
 	if (serverEntries.length === 0) {
 		return {
 			sources,
-			errors,
+			issues,
+			errors: issues.map(formatMcpIssue),
 			serverNames: [],
 			disconnect: async () => {},
 		};
@@ -634,9 +689,14 @@ export async function loadMcpToolsetsForChat(
 			clients.push(client);
 			connectedServerNames.push(name);
 		} catch (error) {
-			errors.push(
-				`Failed to connect MCP server "${name}": ${sanitizeConnectionErrorMessage(error)}`,
-			);
+			const sanitized = sanitizeConnectionError(error);
+			issues.push({
+				code: "connect_error",
+				serverName: name,
+				source: serverSources.get(name),
+				message: sanitized.message,
+				authRequired: sanitized.authRequired,
+			});
 		}
 	}
 
@@ -644,7 +704,8 @@ export async function loadMcpToolsetsForChat(
 		toolsets: mergedToolsets,
 		serverNames: connectedServerNames,
 		sources,
-		errors,
+		issues,
+		errors: issues.map(formatMcpIssue),
 		disconnect: async () => {
 			if (clients.length === 0) return;
 			await Promise.allSettled(clients.map((client) => client.disconnect()));

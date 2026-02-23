@@ -16,6 +16,7 @@ import {
 	HOTKEYS,
 	matchesHotkeyEvent,
 } from "shared/hotkeys";
+import type { ChatPickerState } from "../../hooks/useChatPickerState";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
 import { IssueLinkCommand } from "../IssueLinkCommand";
@@ -34,11 +35,8 @@ interface ChatInputFooterProps {
 	availableModels: ModelOption[];
 	selectedModel: ModelOption | null;
 	setSelectedModel: React.Dispatch<React.SetStateAction<ModelOption | null>>;
-	modelSelectorOpen: boolean;
-	setModelSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	pickerState: ChatPickerState;
 	mcpStatus: ChatMcpStatus | null;
-	mcpSelectorOpen: boolean;
-	setMcpSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	permissionMode: PermissionMode;
 	setPermissionMode: React.Dispatch<React.SetStateAction<PermissionMode>>;
 	thinkingEnabled: boolean;
@@ -122,11 +120,8 @@ export function ChatInputFooter({
 	availableModels,
 	selectedModel,
 	setSelectedModel,
-	modelSelectorOpen,
-	setModelSelectorOpen,
+	pickerState,
 	mcpStatus,
-	mcpSelectorOpen,
-	setMcpSelectorOpen,
 	permissionMode,
 	setPermissionMode,
 	thinkingEnabled,
@@ -193,11 +188,8 @@ export function ChatInputFooter({
 											availableModels={availableModels}
 											selectedModel={selectedModel}
 											setSelectedModel={setSelectedModel}
-											modelSelectorOpen={modelSelectorOpen}
-											setModelSelectorOpen={setModelSelectorOpen}
+											pickerState={pickerState}
 											mcpStatus={mcpStatus}
-											mcpSelectorOpen={mcpSelectorOpen}
-											setMcpSelectorOpen={setMcpSelectorOpen}
 											permissionMode={permissionMode}
 											setPermissionMode={setPermissionMode}
 											thinkingEnabled={thinkingEnabled}
