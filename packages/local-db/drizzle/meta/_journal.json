@@ -225,13 +225,6 @@
       "when": 1771797962833,
       "tag": "0031_add_open_links_in_app_setting",
       "breakpoints": true
-    },
-    {
-      "idx": 32,
-      "version": "6",
-      "when": 1771815935193,
-      "tag": "0032_add_default_editor_setting",
-      "breakpoints": true
     }
   ]
 }
