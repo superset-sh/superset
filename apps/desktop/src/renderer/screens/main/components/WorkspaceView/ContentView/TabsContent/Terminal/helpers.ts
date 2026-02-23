@@ -52,7 +52,7 @@ export function getDefaultTerminalTheme(): ITheme {
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
 		? toXtermTheme(getTerminalColors(defaultTheme))
-		: { background: "#151110", foreground: "#d4d4d4" };
+		: { background: "#151110", foreground: "#eae8e6" };
 }
 
 /**
