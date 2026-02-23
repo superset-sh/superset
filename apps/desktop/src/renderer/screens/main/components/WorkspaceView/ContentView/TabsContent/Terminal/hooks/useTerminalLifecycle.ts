@@ -539,9 +539,26 @@ export function useTerminalLifecycle({
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
+		const REATTACH_RECOVERY_MIN_INTERVAL_MS = 120;
+		let pendingRecoveryFrame: number | null = null;
+		let pendingForceResize = false;
+		let lastRecoveryAt = 0;
+
+		const isContainerRenderable = () => {
+			if (isUnmounted || xtermRef.current !== xterm) return false;
+			if (!container.isConnected) return false;
+
+			const style = window.getComputedStyle(container);
+			if (style.display === "none" || style.visibility === "hidden") {
+				return false;
+			}
+
+			const rect = container.getBoundingClientRect();
+			return rect.width > 1 && rect.height > 1;
+		};
 
 		const recoverAfterWindowReattach = (forceResize: boolean) => {
-			if (isUnmounted || xtermRef.current !== xterm) return;
+			if (!isContainerRenderable()) return;
 
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
@@ -570,12 +587,29 @@ export function useTerminalLifecycle({
 			}
 		};
 
+		const scheduleReattachRecovery = (forceResize: boolean) => {
+			pendingForceResize = pendingForceResize || forceResize;
+			if (pendingRecoveryFrame !== null) return;
+
+			pendingRecoveryFrame = requestAnimationFrame(() => {
+				pendingRecoveryFrame = null;
+
+				const now = Date.now();
+				if (now - lastRecoveryAt < REATTACH_RECOVERY_MIN_INTERVAL_MS) return;
+				lastRecoveryAt = now;
+
+				const shouldForceResize = pendingForceResize;
+				pendingForceResize = false;
+				recoverAfterWindowReattach(shouldForceResize);
+			});
+		};
+
 		const handleVisibilityChange = () => {
 			if (document.hidden) return;
-			recoverAfterWindowReattach(true);
+			scheduleReattachRecovery(isFocusedRef.current);
 		};
 		const handleWindowFocus = () => {
-			recoverAfterWindowReattach(true);
+			scheduleReattachRecovery(isFocusedRef.current);
 		};
 
 		document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -599,6 +633,10 @@ export function useTerminalLifecycle({
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
+			if (pendingRecoveryFrame !== null) {
+				cancelAnimationFrame(pendingRecoveryFrame);
+				pendingRecoveryFrame = null;
+			}
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
