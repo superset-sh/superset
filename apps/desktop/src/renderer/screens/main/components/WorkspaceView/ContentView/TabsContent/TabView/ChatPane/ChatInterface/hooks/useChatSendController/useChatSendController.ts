@@ -51,6 +51,31 @@ interface UseChatSendControllerReturn {
 	submitStatus: ChatStatus | undefined;
 }
 
+interface SendPreparedMessageArgs {
+	messageId: string;
+	text: string;
+	files?: FileUIPart[];
+	metadata?: ChatMessageMetadata;
+	signal?: AbortSignal;
+}
+
+interface SendToSessionArgs {
+	targetSessionId: string;
+	messageId: string;
+	text: string;
+	files: FileUIPart[];
+	metadata: ChatMessageMetadata;
+	signal?: AbortSignal;
+}
+
+interface CreateAndQueueSessionSendArgs {
+	messageId: string;
+	text: string;
+	files: FileUIPart[];
+	metadata: ChatMessageMetadata;
+	signal: AbortSignal;
+}
+
 async function getHttpErrorDetail(response: Response): Promise<string> {
 	const errorBody = await response
 		.text()
@@ -113,8 +138,8 @@ async function uploadFile(
 	});
 
 	if (!res.ok) {
-		const err = await res.json().catch(() => ({ error: "Upload failed" }));
-		throw new Error(err.error || `Upload failed: ${res.status}`);
+		const detail = await getHttpErrorDetail(res);
+		throw new Error(`Upload failed for session ${sessionId}: ${detail}`);
 	}
 
 	const result: { url: string; mediaType: string; filename?: string } =
@@ -254,13 +279,7 @@ export function useChatSendController(
 			files,
 			metadata,
 			signal,
-		}: {
-			messageId: string;
-			text: string;
-			files?: FileUIPart[];
-			metadata?: ChatMessageMetadata;
-			signal?: AbortSignal;
-		}) => {
+		}: SendPreparedMessageArgs) => {
 			throwIfAborted(signal);
 			setRuntimeError(null);
 			await chat.sendMessage(text, files, metadata, {
@@ -269,6 +288,74 @@ export function useChatSendController(
 			});
 		},
 		[chat.sendMessage],
+	);
+
+	const sendToSession = useCallback(
+		async ({
+			targetSessionId,
+			messageId,
+			text,
+			files,
+			metadata,
+			signal,
+		}: SendToSessionArgs) => {
+			await ensureRuntimeReady(targetSessionId);
+			const uploadedFiles = await uploadAttachments(
+				targetSessionId,
+				files,
+				signal,
+			);
+			await sendPreparedMessage({
+				messageId,
+				text,
+				files: uploadedFiles,
+				metadata,
+				signal,
+			});
+		},
+		[ensureRuntimeReady, uploadAttachments, sendPreparedMessage],
+	);
+
+	const createAndQueueSessionSend = useCallback(
+		async ({
+			messageId,
+			text,
+			files,
+			metadata,
+			signal,
+		}: CreateAndQueueSessionSendArgs) => {
+			if (!organizationId) {
+				throw new Error("Organization is required to start a chat session");
+			}
+
+			const newSessionId = crypto.randomUUID();
+			await createSession(
+				newSessionId,
+				organizationId,
+				deviceId,
+				workspaceId,
+				signal,
+			);
+			const uploadedFiles =
+				(await uploadAttachments(newSessionId, files, signal)) ?? [];
+			throwIfAborted(signal);
+
+			setQueuedPendingMessage({
+				id: messageId,
+				text,
+				files: uploadedFiles,
+				metadata,
+			});
+			switchChatSession(paneId, newSessionId);
+		},
+		[
+			organizationId,
+			deviceId,
+			workspaceId,
+			uploadAttachments,
+			switchChatSession,
+			paneId,
+		],
 	);
 
 	useEffect(() => {
@@ -397,50 +484,25 @@ export function useChatSendController(
 					throwIfAborted(abortController.signal);
 
 					if (sessionId) {
-						await ensureRuntimeReady(sessionId);
-						const uploadedFiles = await uploadAttachments(
-							sessionId,
-							files,
-							abortController.signal,
-						);
-						await sendPreparedMessage({
+						await sendToSession({
+							targetSessionId: sessionId,
 							messageId,
 							text,
-							files: uploadedFiles,
+							files,
 							metadata: metadataSnapshot,
 							signal: abortController.signal,
 						});
 						return;
 					}
 
-					if (!organizationId) {
-						throw new Error("Organization is required to start a chat session");
-					}
-
-					const newSessionId = crypto.randomUUID();
-					await createSession(
-						newSessionId,
-						organizationId,
-						deviceId,
-						workspaceId,
-						abortController.signal,
-					);
-					const uploadedFiles =
-						(await uploadAttachments(
-							newSessionId,
-							files,
-							abortController.signal,
-						)) ?? [];
-					throwIfAborted(abortController.signal);
-
-					handedOffToQueue = true;
-					setQueuedPendingMessage({
-						id: messageId,
+					await createAndQueueSessionSend({
+						messageId,
 						text,
-						files: uploadedFiles,
+						files,
 						metadata: metadataSnapshot,
+						signal: abortController.signal,
 					});
-					switchChatSession(paneId, newSessionId);
+					handedOffToQueue = true;
 				} catch (err) {
 					if (isAbortError(err)) {
 						removeAwaitingAssistant(messageId);
@@ -461,15 +523,9 @@ export function useChatSendController(
 		},
 		[
 			sessionId,
-			organizationId,
-			deviceId,
-			workspaceId,
 			messageMetadata,
-			paneId,
-			switchChatSession,
-			ensureRuntimeReady,
-			sendPreparedMessage,
-			uploadAttachments,
+			sendToSession,
+			createAndQueueSessionSend,
 			removePendingMessage,
 			addAwaitingAssistant,
 			removeAwaitingAssistant,

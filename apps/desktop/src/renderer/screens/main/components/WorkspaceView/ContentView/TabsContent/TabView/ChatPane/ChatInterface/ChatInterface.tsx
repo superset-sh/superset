@@ -33,6 +33,35 @@ function getAuthHeaders(): Record<string, string> {
 	return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+interface TitleMessagePartLike {
+	type: string;
+	text?: string;
+}
+
+interface TitleMessageLike {
+	role: string;
+	parts?: TitleMessagePartLike[];
+}
+
+interface TitleDigestMessage {
+	role: string;
+	text: string;
+}
+
+function hasAssistantMessage(messages: TitleMessageLike[]): boolean {
+	return messages.some((message) => message.role === "assistant");
+}
+
+function buildTitleDigest(messages: TitleMessageLike[]): TitleDigestMessage[] {
+	return messages.slice(-20).map((message) => {
+		const text = (message.parts ?? [])
+			.filter((part) => part.type === "text")
+			.map((part) => part.text?.slice(0, 500) ?? "")
+			.join(" ");
+		return { role: message.role, text };
+	});
+}
+
 export function ChatInterface({
 	sessionId,
 	sessionTitle,
@@ -103,27 +132,22 @@ export function ChatInterface({
 			titleRequestedRef.current = false;
 		}
 		if (titleRequestedRef.current) return;
-		if (!chat.messages.some((message) => message.role === "assistant")) return;
+		if (!hasAssistantMessage(chat.messages)) return;
 		titleRequestedRef.current = true;
 
-		const digest = chat.messages.slice(-20).map((message) => {
-			const text = message.parts
-				?.filter(
-					(part): part is { type: "text"; text: string } =>
-						part.type === "text",
-				)
-				.map((part) => part.text.slice(0, 500))
-				.join(" ");
-			return { role: message.role, text: text ?? "" };
-		});
+		const requestedSessionId = sessionId;
+		const digest = buildTitleDigest(chat.messages);
 
 		apiTrpcClient.chat.generateTitle
-			.mutate({ sessionId, messages: digest })
+			.mutate({ sessionId: requestedSessionId, messages: digest })
 			.then(({ title }) => {
+				if (titleRequestSessionRef.current !== requestedSessionId) return;
 				setTabAutoTitle(tabId, title);
 			})
 			.catch((error) => {
-				titleRequestedRef.current = false;
+				if (titleRequestSessionRef.current === requestedSessionId) {
+					titleRequestedRef.current = false;
+				}
 				console.error(error);
 			});
 	}, [
