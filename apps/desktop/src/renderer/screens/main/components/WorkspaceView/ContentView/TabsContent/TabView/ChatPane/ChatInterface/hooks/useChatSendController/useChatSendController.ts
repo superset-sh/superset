@@ -19,6 +19,7 @@ interface QueuedPendingMessage {
 	id: string;
 	text: string;
 	files: FileUIPart[];
+	metadata: ChatMessageMetadata;
 }
 
 interface ChatMessageMetadata {
@@ -50,6 +51,16 @@ interface UseChatSendControllerReturn {
 	submitStatus: ChatStatus | undefined;
 }
 
+async function getHttpErrorDetail(response: Response): Promise<string> {
+	const errorBody = await response
+		.text()
+		.then((text) => text.trim())
+		.catch(() => "");
+	const statusText = response.statusText ? ` ${response.statusText}` : "";
+	const detail = errorBody ? ` - ${errorBody.slice(0, 500)}` : "";
+	return `${response.status}${statusText}${detail}`;
+}
+
 async function createSession(
 	sessionId: string,
 	organizationId: string,
@@ -58,7 +69,7 @@ async function createSession(
 	signal?: AbortSignal,
 ): Promise<void> {
 	const token = getAuthToken();
-	await fetch(`${apiUrl}/api/chat/${sessionId}`, {
+	const response = await fetch(`${apiUrl}/api/chat/${sessionId}`, {
 		method: "PUT",
 		signal,
 		headers: {
@@ -71,6 +82,10 @@ async function createSession(
 			...(workspaceId ? { workspaceId } : {}),
 		}),
 	});
+	if (!response.ok) {
+		const detail = await getHttpErrorDetail(response);
+		throw new Error(`Failed to create session ${sessionId}: ${detail}`);
+	}
 }
 
 async function uploadFile(
@@ -79,6 +94,10 @@ async function uploadFile(
 	signal?: AbortSignal,
 ): Promise<FileUIPart> {
 	const response = await fetch(file.url, { signal });
+	if (!response.ok) {
+		const detail = await getHttpErrorDetail(response);
+		throw new Error(`Failed to fetch attachment ${file.url}: ${detail}`);
+	}
 	const blob = await response.blob();
 	const filename = file.filename || "attachment";
 
@@ -233,21 +252,23 @@ export function useChatSendController(
 			messageId,
 			text,
 			files,
+			metadata,
 			signal,
 		}: {
 			messageId: string;
 			text: string;
 			files?: FileUIPart[];
+			metadata?: ChatMessageMetadata;
 			signal?: AbortSignal;
 		}) => {
 			throwIfAborted(signal);
 			setRuntimeError(null);
-			await chat.sendMessage(text, files, messageMetadata, {
+			await chat.sendMessage(text, files, metadata, {
 				messageId,
 				signal,
 			});
 		},
-		[chat.sendMessage, messageMetadata],
+		[chat.sendMessage],
 	);
 
 	useEffect(() => {
@@ -272,6 +293,7 @@ export function useChatSendController(
 						queuedPendingMessage.files.length > 0
 							? queuedPendingMessage.files
 							: undefined,
+					metadata: queuedPendingMessage.metadata,
 					signal: abortController?.signal,
 				});
 				if (cancelled) return;
@@ -352,6 +374,7 @@ export function useChatSendController(
 		(message: PromptInputMessage) => {
 			const text = message.text.trim();
 			const files = message.files ?? [];
+			const metadataSnapshot = { ...messageMetadata };
 			if (!text && files.length === 0) {
 				setIsPreparingSubmit(false);
 				return;
@@ -384,6 +407,7 @@ export function useChatSendController(
 							messageId,
 							text,
 							files: uploadedFiles,
+							metadata: metadataSnapshot,
 							signal: abortController.signal,
 						});
 						return;
@@ -414,6 +438,7 @@ export function useChatSendController(
 						id: messageId,
 						text,
 						files: uploadedFiles,
+						metadata: metadataSnapshot,
 					});
 					switchChatSession(paneId, newSessionId);
 				} catch (err) {
@@ -439,6 +464,7 @@ export function useChatSendController(
 			organizationId,
 			deviceId,
 			workspaceId,
+			messageMetadata,
 			paneId,
 			switchChatSession,
 			ensureRuntimeReady,

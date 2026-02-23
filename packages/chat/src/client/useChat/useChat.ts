@@ -251,6 +251,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 		) => {
 			if (!sessionId) return;
 			setError(null);
+			if (options?.signal?.aborted) return;
 			const messageId = options?.messageId ?? crypto.randomUUID();
 			const txid = options?.txid ?? crypto.randomUUID();
 			try {

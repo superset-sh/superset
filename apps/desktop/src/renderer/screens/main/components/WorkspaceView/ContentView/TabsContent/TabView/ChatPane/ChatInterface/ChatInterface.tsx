@@ -2,7 +2,7 @@ import { chatServiceTrpc, useChat } from "@superset/chat/client";
 import { PromptInputProvider } from "@superset/ui/ai-elements/prompt-input";
 import { useQuery } from "@tanstack/react-query";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getAuthToken } from "renderer/lib/auth-client";
@@ -51,6 +51,8 @@ export function ChatInterface({
 	const activeModel = selectedModel ?? defaultModel;
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+	const titleRequestedRef = useRef(false);
+	const titleRequestSessionRef = useRef<string | null>(null);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
 
@@ -96,7 +98,13 @@ export function ChatInterface({
 	useEffect(() => {
 		if (chat.isLoading) return;
 		if (!sessionId || sessionTitle) return;
+		if (titleRequestSessionRef.current !== sessionId) {
+			titleRequestSessionRef.current = sessionId;
+			titleRequestedRef.current = false;
+		}
+		if (titleRequestedRef.current) return;
 		if (!chat.messages.some((message) => message.role === "assistant")) return;
+		titleRequestedRef.current = true;
 
 		const digest = chat.messages.slice(-20).map((message) => {
 			const text = message.parts
@@ -114,7 +122,10 @@ export function ChatInterface({
 			.then(({ title }) => {
 				setTabAutoTitle(tabId, title);
 			})
-			.catch(console.error);
+			.catch((error) => {
+				titleRequestedRef.current = false;
+				console.error(error);
+			});
 	}, [
 		chat.isLoading,
 		chat.messages,
