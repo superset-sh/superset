@@ -1,9 +1,9 @@
 import { chatServiceTrpc } from "@superset/chat/client";
+import { usePromptInputController } from "@superset/ui/ai-elements/prompt-input";
 import { useEffect, useState } from "react";
 
 interface SlashCommandPreviewProps {
 	cwd: string;
-	inputValue: string;
 }
 
 function normalizeSlashPreviewInput(input: string): string {
@@ -11,10 +11,9 @@ function normalizeSlashPreviewInput(input: string): string {
 	return trimmed.startsWith("/") ? trimmed : "";
 }
 
-export function SlashCommandPreview({
-	cwd,
-	inputValue,
-}: SlashCommandPreviewProps) {
+export function SlashCommandPreview({ cwd }: SlashCommandPreviewProps) {
+	const { textInput } = usePromptInputController();
+	const inputValue = textInput.value;
 	const slashPreviewInput = normalizeSlashPreviewInput(inputValue);
 	const [debouncedSlashPreviewInput, setDebouncedSlashPreviewInput] =
 		useState("");
