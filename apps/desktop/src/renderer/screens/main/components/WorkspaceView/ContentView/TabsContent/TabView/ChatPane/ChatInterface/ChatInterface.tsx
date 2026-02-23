@@ -1,9 +1,10 @@
 import { chatServiceTrpc, useChat } from "@superset/chat/client";
-import type { PromptInputMessage } from "@superset/ui/ai-elements/prompt-input";
-import { PromptInputProvider } from "@superset/ui/ai-elements/prompt-input";
+import {
+	PromptInputProvider,
+	type PromptInputMessage,
+} from "@superset/ui/ai-elements/prompt-input";
 import { toast } from "@superset/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
-import type { FileUIPart } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
@@ -12,6 +13,7 @@ import { getAuthToken } from "renderer/lib/auth-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
+import { useChatSendController } from "./hooks/useChatSendController";
 import type { SlashCommand } from "./hooks/useSlashCommands";
 import type { ChatInterfaceProps, ModelOption, PermissionMode } from "./types";
 
@@ -68,7 +70,7 @@ async function createSession(
 	workspaceId?: string,
 ): Promise<void> {
 	const token = getAuthToken();
-	await fetch(`${apiUrl}/api/chat/${sessionId}`, {
+	const response = await fetch(`${apiUrl}/api/chat/${sessionId}`, {
 		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
@@ -80,34 +82,38 @@ async function createSession(
 			...(workspaceId ? { workspaceId } : {}),
 		}),
 	});
+	if (!response.ok) {
+		throw new Error("Failed to create a new session");
+	}
 }
 
-async function uploadFile(
-	sessionId: string,
-	file: FileUIPart,
-): Promise<FileUIPart> {
-	const response = await fetch(file.url);
-	const blob = await response.blob();
-	const filename = file.filename || "attachment";
+interface TitleMessagePartLike {
+	type: string;
+	text?: string;
+}
 
-	const formData = new FormData();
-	formData.append("file", new File([blob], filename, { type: file.mediaType }));
+interface TitleMessageLike {
+	role: string;
+	parts?: TitleMessagePartLike[];
+}
 
-	const token = getAuthToken();
-	const res = await fetch(`${apiUrl}/api/chat/${sessionId}/attachments`, {
-		method: "POST",
-		headers: token ? { Authorization: `Bearer ${token}` } : {},
-		body: formData,
+interface TitleDigestMessage {
+	role: string;
+	text: string;
+}
+
+function hasAssistantMessage(messages: TitleMessageLike[]): boolean {
+	return messages.some((message) => message.role === "assistant");
+}
+
+function buildTitleDigest(messages: TitleMessageLike[]): TitleDigestMessage[] {
+	return messages.slice(-20).map((message) => {
+		const text = (message.parts ?? [])
+			.filter((part) => part.type === "text")
+			.map((part) => part.text?.slice(0, 500) ?? "")
+			.join(" ");
+		return { role: message.role, text };
 	});
-
-	if (!res.ok) {
-		const err = await res.json().catch(() => ({ error: "Upload failed" }));
-		throw new Error(err.error || `Upload failed: ${res.status}`);
-	}
-
-	const result: { url: string; mediaType: string; filename?: string } =
-		await res.json();
-	return { type: "file", ...result };
 }
 
 export function ChatInterface({
@@ -120,40 +126,30 @@ export function ChatInterface({
 	paneId,
 	tabId,
 }: ChatInterfaceProps) {
-	const switchChatSession = useTabsStore((s) => s.switchChatSession);
-	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const switchChatSession = useTabsStore((state) => state.switchChatSession);
+	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const { models: availableModels, defaultModel } = useAvailableModels();
 
-	// --- Shared UI state (declared once) ---
 	const [selectedModel, setSelectedModel] = useState<ModelOption | null>(null);
 	const activeModel = selectedModel ?? defaultModel;
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
+	const titleRequestedRef = useRef(false);
+	const titleRequestSessionRef = useRef<string | null>(null);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
 
-	// --- Pending message bridge (no-session → session) ---
-	const [pendingMessage, setPendingMessage] = useState<string | null>(null);
-	const [pendingFiles, setPendingFiles] = useState<FileUIPart[]>([]);
-
-	// --- useChat — always called, inert when sessionId is null ---
 	const chat = useChat({
 		sessionId,
 		proxyUrl: apiUrl,
 		getHeaders: getAuthHeaders,
 	});
 
-	// --- Slash commands (always active) ---
 	const { data: slashCommands = [] } =
 		chatServiceTrpc.workspace.getSlashCommands.useQuery({ cwd });
 	const resolveSlashCommandMutation =
 		chatServiceTrpc.workspace.resolveSlashCommand.useMutation();
 
-	const ensureRuntimeMutation =
-		chatServiceTrpc.session.ensureRuntime.useMutation();
-	const [runtimeError, setRuntimeError] = useState<string | null>(null);
-
-	// --- Per-message metadata (sent with every message) ---
 	const messageMetadata = useMemo(
 		() => ({
 			model: activeModel?.id,
@@ -163,138 +159,54 @@ export function ChatInterface({
 		[activeModel?.id, permissionMode, thinkingEnabled],
 	);
 
+	const {
+		pendingMessages,
+		runtimeError,
+		handleSend: sendThroughController,
+		stopPendingSends,
+		markSubmitStarted,
+		markSubmitEnded,
+		canAbort,
+		submitStatus,
+	} = useChatSendController({
+		chat,
+		sessionId,
+		organizationId,
+		deviceId,
+		workspaceId,
+		paneId,
+		cwd,
+		messageMetadata,
+		switchChatSession,
+	});
+	const [slashCommandError, setSlashCommandError] = useState<string | null>(
+		null,
+	);
+
 	const createFreshSession = useCallback(async (): Promise<boolean> => {
 		if (!organizationId) {
-			setRuntimeError("Cannot create a new session without an organization");
+			setSlashCommandError("Cannot create a new session without an organization");
 			return false;
 		}
 
-		const newSessionId = crypto.randomUUID();
 		try {
+			const newSessionId = crypto.randomUUID();
 			await createSession(newSessionId, organizationId, deviceId, workspaceId);
-			setPendingMessage(null);
-			setPendingFiles([]);
-			setRuntimeError(null);
+			setSlashCommandError(null);
 			switchChatSession(paneId, newSessionId);
 			return true;
 		} catch {
-			setRuntimeError("Failed to create a new session");
+			setSlashCommandError("Failed to create a new session");
 			return false;
 		}
-	}, [organizationId, deviceId, workspaceId, paneId, switchChatSession]);
-
-	// --- Send pending message once the session is ready ---
-	const sentPendingRef = useRef(false);
-	useEffect(() => {
-		if (!chat.ready || sentPendingRef.current) return;
-		if (!pendingMessage && pendingFiles.length === 0) return;
-		if (!sessionId) return;
-
-		let cancelled = false;
-		sentPendingRef.current = true;
-
-		void (async () => {
-			try {
-				const runtime = await ensureRuntimeMutation.mutateAsync({
-					sessionId,
-					cwd,
-				});
-				if (!runtime.ready) {
-					throw new Error(runtime.reason ?? "Session runtime is not ready");
-				}
-				if (cancelled) return;
-				setRuntimeError(null);
-				await chat.sendMessage(
-					pendingMessage ?? "",
-					pendingFiles.length > 0 ? pendingFiles : undefined,
-					messageMetadata,
-				);
-				if (cancelled) return;
-				setPendingMessage(null);
-				setPendingFiles([]);
-			} catch (err) {
-				if (cancelled) return;
-				sentPendingRef.current = false;
-				setRuntimeError(
-					err instanceof Error
-						? err.message
-						: "Failed to start session runtime",
-				);
-			}
-		})();
-
-		return () => {
-			cancelled = true;
-		};
 	}, [
-		chat.ready,
-		chat.sendMessage,
-		pendingMessage,
-		pendingFiles,
-		messageMetadata,
-		sessionId,
-		ensureRuntimeMutation,
-		cwd,
+		deviceId,
+		organizationId,
+		paneId,
+		switchChatSession,
+		workspaceId,
 	]);
 
-	// Reset ref when sessionId changes so pending message is re-sent for new sessions
-	// biome-ignore lint/correctness/useExhaustiveDependencies: sessionId triggers the reset intentionally
-	useEffect(() => {
-		sentPendingRef.current = false;
-	}, [sessionId]);
-
-	useEffect(() => {
-		if (chat.isLoading) return;
-		if (!sessionId) return;
-		if (sessionTitle) return;
-
-		const hasAssistantMessage = chat.messages.some(
-			(m) => m.role === "assistant",
-		);
-		if (!hasAssistantMessage) return;
-
-		const digest = chat.messages.slice(-20).map((m) => {
-			const text = m.parts
-				?.filter((p): p is { type: "text"; text: string } => p.type === "text")
-				.map((p) => p.text.slice(0, 500))
-				.join(" ");
-			return { role: m.role, text: text ?? "" };
-		});
-
-		apiTrpcClient.chat.generateTitle
-			.mutate({ sessionId, messages: digest })
-			.then(({ title }) => {
-				setTabAutoTitle(tabId, title);
-			})
-			.catch(console.error);
-	}, [
-		chat.isLoading,
-		chat.messages,
-		sessionId,
-		sessionTitle,
-		tabId,
-		setTabAutoTitle,
-	]);
-
-	// --- Display messages: show synthetic pending while useChat preloads ---
-	const displayMessages =
-		chat.messages.length === 0 && (pendingMessage || pendingFiles.length > 0)
-			? [
-					{
-						id: "pending",
-						role: "user" as const,
-						parts: [
-							...(pendingMessage
-								? [{ type: "text" as const, text: pendingMessage }]
-								: []),
-							...pendingFiles,
-						],
-						createdAt: new Date(),
-					},
-				]
-			: chat.messages;
-
-	// --- Send handler: creates session if needed, otherwise sends directly ---
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
 			let text = message.text.trim();
@@ -302,12 +214,10 @@ export function ChatInterface({
 
 			if (text.startsWith("/")) {
 				try {
-					const resolvedCommand = await resolveSlashCommandMutation.mutateAsync(
-						{
-							cwd,
-							text,
-						},
-					);
+					const resolvedCommand = await resolveSlashCommandMutation.mutateAsync({
+						cwd,
+						text,
+					});
 
 					if (resolvedCommand.handled) {
 						if (resolvedCommand.action) {
@@ -326,22 +236,23 @@ export function ChatInterface({
 									return;
 								}
 								case "stop_stream":
-									if (chat.isLoading || pendingMessage) {
+									if (canAbort) {
 										toast.success("Stopped current response");
 									} else {
 										toast.warning("No active response to stop");
 									}
+									stopPendingSends();
 									chat.stop();
-									setRuntimeError(null);
+									setSlashCommandError(null);
 									return;
 								case "set_model": {
 									const modelQuery = (
 										resolvedCommand.action.argument ?? ""
 									).trim();
 									if (!modelQuery) {
-										const message = "Usage: /model <model-id-or-name>";
-										setRuntimeError(message);
-										toast.error(message);
+										const usage = "Usage: /model <model-id-or-name>";
+										setSlashCommandError(usage);
+										toast.error(usage);
 										return;
 									}
 
@@ -350,14 +261,14 @@ export function ChatInterface({
 										modelQuery,
 									);
 									if (!matchedModel) {
-										const message = `Model not found: ${modelQuery}`;
-										setRuntimeError(message);
-										toast.error(message);
+										const modelError = `Model not found: ${modelQuery}`;
+										setSlashCommandError(modelError);
+										toast.error(modelError);
 										return;
 									}
 
 									setSelectedModel(matchedModel);
-									setRuntimeError(null);
+									setSlashCommandError(null);
 									toast.success(`Model set to ${matchedModel.name}`);
 									return;
 								}
@@ -376,84 +287,82 @@ export function ChatInterface({
 
 			if (!text && files.length === 0) return;
 
-			if (sessionId) {
-				setRuntimeError(null);
-				const runtime = await ensureRuntimeMutation.mutateAsync({
-					sessionId,
-					cwd,
-				});
-				if (!runtime.ready) {
-					setRuntimeError(
-						runtime.reason ?? "Session runtime is not ready on this device",
-					);
-					return;
-				}
-
-				// Active session — send directly
-				let uploadedFiles: FileUIPart[] | undefined;
-				if (files.length > 0) {
-					const results = await Promise.all(
-						files.map((f) => uploadFile(sessionId, f)),
-					);
-					uploadedFiles = results;
-				}
-
-				await chat.sendMessage(text, uploadedFiles, messageMetadata);
-			} else {
-				// No session — create one, then switch (re-renders with sessionId)
-				if (!organizationId) return;
-
-				const newSessionId = crypto.randomUUID();
-				try {
-					await createSession(
-						newSessionId,
-						organizationId,
-						deviceId,
-						workspaceId,
-					);
-
-					// Upload files immediately
-					let uploadedFiles: FileUIPart[] = [];
-					if (files.length > 0) {
-						uploadedFiles = await Promise.all(
-							files.map((f) => uploadFile(newSessionId, f)),
-						);
-					}
-
-					setPendingMessage(text);
-					setPendingFiles(uploadedFiles);
-					switchChatSession(paneId, newSessionId);
-				} catch {
-					// Session creation failed — don't navigate
-				}
-			}
+			setSlashCommandError(null);
+			sendThroughController({ text, files });
 		},
 		[
-			sessionId,
-			organizationId,
-			deviceId,
-			workspaceId,
-			paneId,
-			switchChatSession,
-			createFreshSession,
-			ensureRuntimeMutation,
-			resolveSlashCommandMutation,
-			cwd,
-			chat.isLoading,
-			chat.stop,
-			chat.sendMessage,
 			availableModels,
-			pendingMessage,
-			messageMetadata,
+			canAbort,
+			createFreshSession,
+			cwd,
+			resolveSlashCommandMutation,
+			sendThroughController,
+			stopPendingSends,
+			chat.stop,
 		],
 	);
 
+	useEffect(() => {
+		if (chat.isLoading) return;
+		if (!sessionId || sessionTitle) return;
+		if (titleRequestSessionRef.current !== sessionId) {
+			titleRequestSessionRef.current = sessionId;
+			titleRequestedRef.current = false;
+		}
+		if (titleRequestedRef.current) return;
+		if (!hasAssistantMessage(chat.messages)) return;
+		titleRequestedRef.current = true;
+
+		const requestedSessionId = sessionId;
+		const digest = buildTitleDigest(chat.messages);
+
+		apiTrpcClient.chat.generateTitle
+			.mutate({ sessionId: requestedSessionId, messages: digest })
+			.then(({ title }) => {
+				if (titleRequestSessionRef.current !== requestedSessionId) return;
+				setTabAutoTitle(tabId, title);
+			})
+			.catch((error) => {
+				if (titleRequestSessionRef.current === requestedSessionId) {
+					titleRequestedRef.current = false;
+				}
+				console.error(error);
+			});
+	}, [
+		chat.isLoading,
+		chat.messages,
+		sessionId,
+		sessionTitle,
+		tabId,
+		setTabAutoTitle,
+	]);
+
+	const displayMessages = useMemo(() => {
+		const persistedIds = new Set(chat.messages.map((message) => message.id));
+		const optimisticMessages = pendingMessages
+			.filter((pending) => !persistedIds.has(pending.id))
+			.map((pending) => ({
+				id: pending.id,
+				role: "user" as const,
+				parts: [
+					...(pending.text
+						? [{ type: "text" as const, text: pending.text }]
+						: []),
+					...pending.files,
+				],
+				createdAt: pending.createdAt,
+			}));
+		return [...chat.messages, ...optimisticMessages];
+	}, [chat.messages, pendingMessages]);
+
 	const handleStop = useCallback(
-		(e: React.MouseEvent) => {
-			e.preventDefault();
+		(event: React.MouseEvent) => {
+			event.preventDefault();
+			setSlashCommandError(null);
+			stopPendingSends();
 			chat.stop();
 		},
-		[chat.stop],
+		[stopPendingSends, chat.stop],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -463,20 +372,20 @@ export function ChatInterface({
 		[handleSend],
 	);
 
-	const isStreaming = chat.isLoading || !!pendingMessage;
-
 	return (
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
 				<MessageList
 					messages={displayMessages}
-					isStreaming={isStreaming}
+					isStreaming={chat.isLoading}
+					submitStatus={submitStatus}
 					workspaceId={workspaceId}
 				/>
 				<ChatInputFooter
 					cwd={cwd}
-					error={runtimeError ?? chat.error}
-					isStreaming={isStreaming}
+					error={slashCommandError ?? runtimeError ?? chat.error}
+					canAbort={canAbort}
+					submitStatus={submitStatus}
 					availableModels={availableModels}
 					selectedModel={activeModel}
 					setSelectedModel={setSelectedModel}
@@ -488,6 +397,8 @@ export function ChatInterface({
 					setThinkingEnabled={setThinkingEnabled}
 					slashCommands={slashCommands}
 					onSend={handleSend}
+					onSubmitStart={markSubmitStarted}
+					onSubmitEnd={markSubmitEnded}
 					onStop={handleStop}
 					onSlashCommandSend={handleSlashCommandSend}
 				/>

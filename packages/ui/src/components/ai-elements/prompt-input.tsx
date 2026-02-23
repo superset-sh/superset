@@ -449,6 +449,8 @@ export type PromptInputProps = Omit<
 		code: "max_files" | "max_file_size" | "accept";
 		message: string;
 	}) => void;
+	onSubmitStart?: () => void;
+	onSubmitEnd?: () => void;
 	onSubmit: (
 		message: PromptInputMessage,
 		event: FormEvent<HTMLFormElement>,
@@ -464,6 +466,8 @@ export const PromptInput = ({
 	maxFiles,
 	maxFileSize,
 	onError,
+	onSubmitStart,
+	onSubmitEnd,
 	onSubmit,
 	children,
 	...props
@@ -724,6 +728,15 @@ export const PromptInput = ({
 			form.reset();
 		}
 
+		let didFinish = false;
+		const finishSubmit = () => {
+			if (didFinish) return;
+			didFinish = true;
+			onSubmitEnd?.();
+		};
+
+		onSubmitStart?.();
+
 		// Convert blob URLs to data URLs asynchronously
 		Promise.all(
 			files.map(async ({ id, ...item }) => {
@@ -750,9 +763,11 @@ export const PromptInput = ({
 								if (usingProvider) {
 									controller.textInput.clear();
 								}
+								finishSubmit();
 							})
 							.catch(() => {
 								// Don't clear on error - user may want to retry
+								finishSubmit();
 							});
 					} else {
 						// Sync function completed without throwing, clear attachments
@@ -760,13 +775,16 @@ export const PromptInput = ({
 						if (usingProvider) {
 							controller.textInput.clear();
 						}
+						finishSubmit();
 					}
 				} catch {
 					// Don't clear on error - user may want to retry
+					finishSubmit();
 				}
 			})
 			.catch(() => {
 				// Don't clear on error - user may want to retry
+				finishSubmit();
 			});
 	};
 

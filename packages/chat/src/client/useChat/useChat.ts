@@ -33,6 +33,12 @@ export interface MessageMetadata {
 	thinkingEnabled?: boolean;
 }
 
+export interface SendMessageOptions {
+	messageId?: string;
+	txid?: string;
+	signal?: AbortSignal;
+}
+
 export interface UseChatReturn {
 	ready: boolean;
 	messages: (UIMessage & { actorId: string; createdAt: Date })[];
@@ -41,6 +47,7 @@ export interface UseChatReturn {
 		text: string,
 		files?: FileUIPart[],
 		metadata?: MessageMetadata,
+		options?: SendMessageOptions,
 	) => Promise<void>;
 	stop: () => void;
 	submitToolResult: (
@@ -175,6 +182,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 				metadata?: MessageMetadata;
 				messageId: string;
 				txid: string;
+				signal?: AbortSignal;
 			}>({
 				onMutate: ({ text, files, metadata, messageId }) => {
 					const { sessionDB } = depsRef.current;
@@ -203,10 +211,18 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 					};
 					sessionDB.collections.chunks.insert(chunk);
 				},
-				mutationFn: async ({ text, files, metadata, messageId, txid }) => {
+				mutationFn: async ({
+					text,
+					files,
+					metadata,
+					messageId,
+					txid,
+					signal,
+				}) => {
 					const { url, headers, sessionDB } = depsRef.current;
 					const res = await fetch(url("/messages"), {
 						method: "POST",
+						signal,
 						headers: headers(),
 						body: JSON.stringify({
 							content: text || undefined,
@@ -227,15 +243,29 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 	);
 
 	const sendMessage = useCallback(
-		async (text: string, files?: FileUIPart[], metadata?: MessageMetadata) => {
+		async (
+			text: string,
+			files?: FileUIPart[],
+			metadata?: MessageMetadata,
+			options?: SendMessageOptions,
+		) => {
 			if (!sessionId) return;
 			setError(null);
-			const messageId = crypto.randomUUID();
-			const txid = crypto.randomUUID();
+			if (options?.signal?.aborted) return;
+			const messageId = options?.messageId ?? crypto.randomUUID();
+			const txid = options?.txid ?? crypto.randomUUID();
 			try {
-				const tx = optimisticSend({ text, files, metadata, messageId, txid });
+				const tx = optimisticSend({
+					text,
+					files,
+					metadata,
+					messageId,
+					txid,
+					signal: options?.signal,
+				});
 				await tx.isPersisted.promise;
 			} catch (err) {
+				if (err instanceof Error && err.name === "AbortError") return;
 				setError(err instanceof Error ? err.message : "Failed to send message");
 			}
 		},

@@ -1,3 +1,11 @@
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { LuClipboard } from "react-icons/lu";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
 import { formatRelativeDate } from "../../utils";
@@ -18,24 +26,45 @@ interface CommitItemProps {
 }
 
 function CommitHeader({
+	hash,
 	shortHash,
 	message,
 	date,
 }: {
+	hash: string;
 	shortHash: string;
 	message: string;
 	date: Date;
 }) {
+	const handleCopyCommitHash = () => {
+		void navigator.clipboard.writeText(hash);
+	};
+
 	return (
-		<>
-			<span className="text-[10px] font-mono text-muted-foreground shrink-0">
-				{shortHash}
-			</span>
-			<span className="text-xs flex-1 truncate">{message}</span>
-			<span className="text-[10px] text-muted-foreground shrink-0">
-				{formatRelativeDate(date)}
-			</span>
-		</>
+		<ContextMenu>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<ContextMenuTrigger asChild>
+						<div className="flex min-w-0 flex-1 items-center gap-1.5">
+							<span className="text-[10px] font-mono text-muted-foreground shrink-0">
+								{shortHash}
+							</span>
+							<span className="text-xs flex-1 truncate">{message}</span>
+							<span className="text-[10px] text-muted-foreground shrink-0">
+								{formatRelativeDate(date)}
+							</span>
+						</div>
+					</ContextMenuTrigger>
+				</TooltipTrigger>
+				<TooltipContent side="right">{message}</TooltipContent>
+			</Tooltip>
+			<ContextMenuContent className="w-52">
+				<ContextMenuItem onClick={handleCopyCommitHash}>
+					<LuClipboard className="mr-2 size-4" />
+					Copy Commit Hash
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }
 
@@ -67,6 +96,7 @@ export function CommitItem({
 			contentClassName="ml-4 pl-1.5 border-l border-border mt-0.5 mb-0.5"
 			header={
 				<CommitHeader
+					hash={commit.hash}
 					shortHash={commit.shortHash}
 					message={commit.message}
 					date={commit.date}

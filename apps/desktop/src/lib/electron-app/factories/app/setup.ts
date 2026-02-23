@@ -1,10 +1,6 @@
 import { app, BrowserWindow, shell } from "electron";
-
-import {
-	installExtension,
-	REACT_DEVELOPER_TOOLS,
-} from "electron-extension-installer";
 import { env } from "main/env.main";
+import { loadReactDevToolsExtension } from "main/lib/extensions";
 import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
@@ -15,17 +11,7 @@ export async function makeAppSetup(
 	createWindow: () => Promise<BrowserWindow>,
 	restoreWindows?: () => Promise<void>,
 ) {
-	if (env.NODE_ENV === "development") {
-		try {
-			await installExtension([REACT_DEVELOPER_TOOLS], {
-				loadExtensionOptions: {
-					allowFileAccess: true,
-				},
-			});
-		} catch {
-			// DevTools installation can fail in CI/headless environments
-		}
-	}
+	await loadReactDevToolsExtension();
 
 	// Restore windows from previous session if available
 	if (restoreWindows) {

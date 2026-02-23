@@ -4,6 +4,7 @@ step_load_env() {
   echo "📂 Loading environment variables..."
 
   local sourced_any=false
+  WORKSPACE_ENV_LOADED=false
 
   # Source root .env first (contains NEON_PROJECT_ID), then local .env for overrides
   if [ -n "${SUPERSET_ROOT_PATH:-}" ] && [ -f "$SUPERSET_ROOT_PATH/.env" ]; then
@@ -20,6 +21,7 @@ step_load_env() {
     source .env
     set +a
     sourced_any=true
+    WORKSPACE_ENV_LOADED=true
   fi
 
   if [ "$sourced_any" = false ]; then
@@ -29,6 +31,9 @@ step_load_env() {
   fi
 
   success "Environment variables loaded"
+  if [ "$WORKSPACE_ENV_LOADED" = false ]; then
+    warn "Workspace .env not found in current directory; teardown will skip workspace-specific DB cleanup/deletion steps"
+  fi
   return 0
 }
 
@@ -132,8 +137,22 @@ step_stop_electric() {
   container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
   local default_container
   default_container=$(echo "superset-electric-$container_suffix" | cut -c1-64)
-
-  ELECTRIC_CONTAINER="${ELECTRIC_CONTAINER:-$default_container}"
+  local local_container=""
+  if [ "$WORKSPACE_ENV_LOADED" = true ] && [ -f ".env" ]; then
+    local_container=$(
+      (
+        set -a
+        # shellcheck source=/dev/null
+        source .env
+        printf '%s' "${ELECTRIC_CONTAINER:-}"
+      ) 2>/dev/null
+    )
+  fi
+  if [ -n "$local_container" ]; then
+    ELECTRIC_CONTAINER="$local_container"
+  else
+    ELECTRIC_CONTAINER="$default_container"
+  fi
 
   if docker ps -a --format '{{.Names}}' | grep -q "^${ELECTRIC_CONTAINER}$"; then
     docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
@@ -141,6 +160,80 @@ step_stop_electric() {
     success "Electric container stopped: $ELECTRIC_CONTAINER"
   else
     warn "Electric container '$ELECTRIC_CONTAINER' not found or already removed"
+  fi
+
+  return 0
+}
+
+step_cleanup_electric_replication() {
+  echo "🧽 Cleaning up stale Electric replication sessions..."
+
+  if [ "${WORKSPACE_ENV_LOADED:-false}" != "true" ] || [ ! -f ".env" ]; then
+    warn "Workspace .env not loaded, skipping"
+    step_skipped "Cleanup Electric replication (workspace .env missing)"
+    return 0
+  fi
+
+  if ! command -v psql &> /dev/null; then
+    warn "psql not available, skipping"
+    step_skipped "Cleanup Electric replication (psql missing)"
+    return 0
+  fi
+
+  local direct_url
+  direct_url=$(
+    (
+      set -a
+      # shellcheck source=/dev/null
+      source .env
+      printf '%s' "${DATABASE_URL_UNPOOLED:-}"
+    ) 2>/dev/null
+  )
+  if [ -z "$direct_url" ]; then
+    warn "DATABASE_URL_UNPOOLED not set in workspace .env, skipping"
+    step_skipped "Cleanup Electric replication (DATABASE_URL_UNPOOLED not set)"
+    return 0
+  fi
+
+  local terminated_count
+  terminated_count=$(
+    PGCONNECT_TIMEOUT=5 psql "$direct_url" -Atq <<'SQL' 2>/dev/null || true
+WITH lock_pids AS (
+  SELECT DISTINCT l.pid
+  FROM pg_locks l
+  JOIN pg_stat_activity a ON a.pid = l.pid
+  WHERE l.locktype = 'advisory'
+    AND l.classid = 4294967295
+    AND l.objid = hashtext('electric_slot_default')
+    AND l.objsubid = 1
+    AND a.pid <> pg_backend_pid()
+),
+repl_pids AS (
+  SELECT pid
+  FROM pg_stat_activity
+  WHERE query LIKE 'START_REPLICATION SLOT "electric_slot_default"%'
+    AND pid <> pg_backend_pid()
+),
+victims AS (
+  SELECT pid FROM lock_pids
+  UNION
+  SELECT pid FROM repl_pids
+)
+SELECT COALESCE(SUM((pg_terminate_backend(pid))::int), 0)
+FROM victims;
+SQL
+  )
+
+  if [ -z "$terminated_count" ]; then
+    warn "Unable to verify stale Electric replication sessions, skipping"
+    step_skipped "Cleanup Electric replication (verification failed)"
+    return 0
+  fi
+
+  if [ "$terminated_count" -gt 0 ] 2>/dev/null; then
+    success "Terminated $terminated_count stale Electric replication session(s)"
+  else
+    success "No stale Electric replication sessions found"
   fi
 
   return 0
@@ -162,9 +255,22 @@ step_delete_neon_branch() {
     return 0
   fi
 
-  BRANCH_ID="${NEON_BRANCH_ID:-}"
+  if [ "${WORKSPACE_ENV_LOADED:-false}" != "true" ] || [ ! -f ".env" ]; then
+    warn "Workspace .env not loaded, skipping branch deletion"
+    step_skipped "neon (workspace .env missing)"
+    return 0
+  fi
+
+  BRANCH_ID=$(
+    (
+      set -a
+      # shellcheck source=/dev/null
+      source .env
+      printf '%s' "${NEON_BRANCH_ID:-}"
+    ) 2>/dev/null
+  )
   if [ -z "$BRANCH_ID" ]; then
-    warn "No NEON_BRANCH_ID found, skipping branch deletion"
+    warn "No NEON_BRANCH_ID found in workspace .env, skipping branch deletion"
     step_skipped "neon (NEON_BRANCH_ID not set)"
     return 0
   fi

@@ -44,8 +44,8 @@ export const env = createEnv({
 		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SECRETS_ENCRYPTION_KEY: z.string().min(1),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
-		DURABLE_STREAMS_URL: z.string().url().optional(),
-		DURABLE_STREAMS_SECRET: z.string().min(1).optional(),
+		DURABLE_STREAMS_URL: z.string().url(),
+		DURABLE_STREAMS_SECRET: z.string().min(1),
 		TAVILY_API_KEY: z.string().optional(),
 	},
 	client: {

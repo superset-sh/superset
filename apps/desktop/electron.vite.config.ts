@@ -208,13 +208,13 @@ export default defineConfig({
 			}),
 			tsconfigPaths,
 			tailwindcss(),
-			reactPlugin(),
 			codeInspectorPlugin({
 				bundler: "vite",
 				hotKeys: ["altKey"],
 				hideConsole: true,
 				port: Number(process.env.CODE_INSPECTOR_PORT) || undefined,
 			}),
+			reactPlugin(),
 			htmlEnvTransformPlugin(),
 		],
 
