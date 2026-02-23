@@ -539,12 +539,14 @@ export function useTerminalLifecycle({
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
-		const REATTACH_RECOVERY_MIN_INTERVAL_MS = 120;
-		let pendingRecoveryFrame: number | null = null;
-		let pendingForceResize = false;
-		let lastRecoveryAt = 0;
+		const reattachRecovery = {
+			throttleMs: 120,
+			pendingFrame: null as number | null,
+			lastRunAt: 0,
+			pendingForceResize: false,
+		};
 
-		const isContainerRenderable = () => {
+		const isCurrentTerminalRenderable = () => {
 			if (isUnmounted || xtermRef.current !== xterm) return false;
 			if (!container.isConnected) return false;
 
@@ -557,13 +559,13 @@ export function useTerminalLifecycle({
 			return rect.width > 1 && rect.height > 1;
 		};
 
-		const recoverAfterWindowReattach = (forceResize: boolean) => {
-			if (!isContainerRenderable()) return;
+		const runReattachRecovery = (forceResize: boolean) => {
+			if (!isCurrentTerminalRenderable()) return;
 
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
-			const buffer = xterm.buffer.active;
-			const wasAtBottom = buffer.viewportY >= buffer.baseY;
+			const wasAtBottom =
+				xterm.buffer.active.viewportY >= xterm.buffer.active.baseY;
 
 			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
 			rendererRef.current?.current.clearTextureAtlas?.();
@@ -579,29 +581,35 @@ export function useTerminalLifecycle({
 				xterm.focus();
 			}
 
-			if (wasAtBottom) {
-				requestAnimationFrame(() => {
-					if (isUnmounted || xtermRef.current !== xterm) return;
-					scrollToBottom(xterm);
-				});
-			}
+			if (!wasAtBottom) return;
+			requestAnimationFrame(() => {
+				if (isUnmounted || xtermRef.current !== xterm) return;
+				scrollToBottom(xterm);
+			});
 		};
 
 		const scheduleReattachRecovery = (forceResize: boolean) => {
-			pendingForceResize = pendingForceResize || forceResize;
-			if (pendingRecoveryFrame !== null) return;
+			reattachRecovery.pendingForceResize ||= forceResize;
+			if (reattachRecovery.pendingFrame !== null) return;
 
-			pendingRecoveryFrame = requestAnimationFrame(() => {
-				pendingRecoveryFrame = null;
+			reattachRecovery.pendingFrame = requestAnimationFrame(() => {
+				reattachRecovery.pendingFrame = null;
 
 				const now = Date.now();
-				if (now - lastRecoveryAt < REATTACH_RECOVERY_MIN_INTERVAL_MS) return;
-				lastRecoveryAt = now;
+				if (now - reattachRecovery.lastRunAt < reattachRecovery.throttleMs)
+					return;
+				reattachRecovery.lastRunAt = now;
 
-				const shouldForceResize = pendingForceResize;
-				pendingForceResize = false;
-				recoverAfterWindowReattach(shouldForceResize);
+				const shouldForceResize = reattachRecovery.pendingForceResize;
+				reattachRecovery.pendingForceResize = false;
+				runReattachRecovery(shouldForceResize);
 			});
+		};
+
+		const cancelReattachRecovery = () => {
+			if (reattachRecovery.pendingFrame === null) return;
+			cancelAnimationFrame(reattachRecovery.pendingFrame);
+			reattachRecovery.pendingFrame = null;
 		};
 
 		const handleVisibilityChange = () => {
@@ -633,10 +641,7 @@ export function useTerminalLifecycle({
 			}
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
-			if (pendingRecoveryFrame !== null) {
-				cancelAnimationFrame(pendingRecoveryFrame);
-				pendingRecoveryFrame = null;
-			}
+			cancelReattachRecovery();
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
