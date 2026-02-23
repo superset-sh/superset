@@ -2,6 +2,10 @@ import { chatServiceTrpc } from "@superset/chat/client";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import type { ModelOption } from "../../types";
+import {
+	findModelByQuery,
+	normalizeModelQueryFromActionArgument,
+} from "./model-query";
 import { resolveSlashPromptResult } from "./prompt-result";
 
 interface UseSlashCommandExecutorOptions {
@@ -22,32 +26,6 @@ interface UseSlashCommandExecutorOptions {
 interface ResolveSlashCommandResult {
 	handled: boolean;
 	nextText: string;
-}
-
-function findModelByQuery(
-	models: ModelOption[],
-	query: string,
-): ModelOption | null {
-	const normalizedQuery = query.trim().toLowerCase();
-	if (!normalizedQuery) return null;
-
-	const exactById = models.find(
-		(model) => model.id.toLowerCase() === normalizedQuery,
-	);
-	if (exactById) return exactById;
-
-	const exactByName = models.find(
-		(model) => model.name.toLowerCase() === normalizedQuery,
-	);
-	if (exactByName) return exactByName;
-
-	return (
-		models.find(
-			(model) =>
-				model.id.toLowerCase().includes(normalizedQuery) ||
-				model.name.toLowerCase().includes(normalizedQuery),
-		) ?? null
-	);
 }
 
 export function useSlashCommandExecutor({
@@ -106,7 +84,9 @@ export function useSlashCommandExecutor({
 							onStopActiveResponse();
 							return { handled: true, nextText: "" };
 						case "set_model": {
-							const modelQuery = (resolvedCommand.action.argument ?? "").trim();
+							const modelQuery = normalizeModelQueryFromActionArgument(
+								resolvedCommand.action.argument ?? "",
+							);
 							if (!modelQuery) {
 								onClearError();
 								onOpenModelPicker();

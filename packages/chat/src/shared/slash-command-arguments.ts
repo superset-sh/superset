@@ -44,15 +44,6 @@ export function tokenizeSlashCommandArguments(argumentsRaw: string): string[] {
 			continue;
 		}
 
-		if (character === "\\") {
-			const nextCharacter = argumentsRaw[i + 1];
-			if (nextCharacter !== undefined) {
-				current += nextCharacter;
-				i += 1;
-				continue;
-			}
-		}
-
 		current += character;
 	}
 
