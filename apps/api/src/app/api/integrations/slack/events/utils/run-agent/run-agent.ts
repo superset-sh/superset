@@ -212,10 +212,7 @@ function getActionFromToolResult(
 		};
 	}
 
-	if (
-		(toolName === "switch_workspace" || toolName === "navigate_to_workspace") &&
-		data.workspaceId
-	) {
+	if (toolName === "switch_workspace" && data.workspaceId) {
 		return {
 			type: "workspace_switched",
 			workspaces: [
@@ -278,7 +275,6 @@ const TOOL_PROGRESS_STATUS: Record<string, string> = {
 
 // Tools excluded from Slack agent context
 const DENIED_SUPERSET_TOOLS = new Set([
-	"navigate_to_workspace",
 	"switch_workspace",
 	"get_app_context",
 	"list_members",

@@ -1,13 +1,11 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces/useCreateWorkspace";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces/useDeleteWorkspace";
 import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";
-import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/CollectionsProvider";
 import { executeTool, type ToolContext } from "./tools";
 
@@ -18,7 +16,6 @@ export function useCommandWatcher() {
 	const { data: deviceInfo } = electronTrpc.auth.getDeviceInfo.useQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const navigate = useNavigate();
 
 	const organizationId = session?.session?.activeOrganizationId;
 	const shouldWatch = !!deviceInfo && !!organizationId;
@@ -49,8 +46,6 @@ export function useCommandWatcher() {
 			getWorkspaces: () => workspaces,
 			getProjects: () => projects,
 			getActiveWorkspaceId: getCurrentWorkspaceIdFromRoute,
-			navigateToWorkspace: (workspaceId: string) =>
-				navigateToWorkspace(workspaceId, navigate),
 		}),
 		[
 			createWorktree,
@@ -61,7 +56,6 @@ export function useCommandWatcher() {
 			workspaces,
 			projects,
 			getCurrentWorkspaceIdFromRoute,
-			navigate,
 		],
 	);
 

@@ -6,7 +6,6 @@ import { register as getWorkspaceDetails } from "./devices/get-workspace-details
 import { register as listDevices } from "./devices/list-devices";
 import { register as listProjects } from "./devices/list-projects";
 import { register as listWorkspaces } from "./devices/list-workspaces";
-import { register as navigateToWorkspace } from "./devices/navigate-to-workspace";
 import { register as startAgentSession } from "./devices/start-agent-session";
 import { register as switchWorkspace } from "./devices/switch-workspace";
 import { register as updateWorkspace } from "./devices/update-workspace";
@@ -31,7 +30,6 @@ const allTools = [
 	listProjects,
 	getAppContext,
 	getWorkspaceDetails,
-	navigateToWorkspace,
 	createWorkspace,
 	switchWorkspace,
 	deleteWorkspace,

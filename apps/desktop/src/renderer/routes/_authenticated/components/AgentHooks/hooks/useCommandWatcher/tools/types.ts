@@ -55,8 +55,6 @@ export interface ToolContext {
 	getWorkspaces: () => SelectWorkspace[] | undefined;
 	getProjects: () => SelectProject[] | undefined;
 	getActiveWorkspaceId: () => string | null;
-	// Navigation
-	navigateToWorkspace: (workspaceId: string) => Promise<void>;
 }
 
 // Tool definition with schema and execute function
