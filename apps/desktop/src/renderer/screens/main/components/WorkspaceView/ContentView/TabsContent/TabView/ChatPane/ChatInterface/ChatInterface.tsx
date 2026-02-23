@@ -3,7 +3,6 @@ import {
 	type PromptInputMessage,
 	PromptInputProvider,
 } from "@superset/ui/ai-elements/prompt-input";
-import { toast } from "@superset/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,36 +13,11 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatInputFooter } from "./components/ChatInputFooter";
 import { MessageList } from "./components/MessageList";
 import { useChatSendController } from "./hooks/useChatSendController";
+import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "./hooks/useSlashCommands";
 import type { ChatInterfaceProps, ModelOption, PermissionMode } from "./types";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;
-
-function findModelByQuery(
-	models: ModelOption[],
-	query: string,
-): ModelOption | null {
-	const normalizedQuery = query.trim().toLowerCase();
-	if (!normalizedQuery) return null;
-
-	const exactById = models.find(
-		(model) => model.id.toLowerCase() === normalizedQuery,
-	);
-	if (exactById) return exactById;
-
-	const exactByName = models.find(
-		(model) => model.name.toLowerCase() === normalizedQuery,
-	);
-	if (exactByName) return exactByName;
-
-	return (
-		models.find(
-			(model) =>
-				model.id.toLowerCase().includes(normalizedQuery) ||
-				model.name.toLowerCase().includes(normalizedQuery),
-		) ?? null
-	);
-}
 
 function useAvailableModels(): {
 	models: ModelOption[];
@@ -61,30 +35,6 @@ function useAvailableModels(): {
 function getAuthHeaders(): Record<string, string> {
 	const token = getAuthToken();
 	return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function createSession(
-	sessionId: string,
-	organizationId: string,
-	deviceId: string | null,
-	workspaceId?: string,
-): Promise<void> {
-	const token = getAuthToken();
-	const response = await fetch(`${apiUrl}/api/chat/${sessionId}`, {
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
-		},
-		body: JSON.stringify({
-			organizationId,
-			...(deviceId ? { deviceId } : {}),
-			...(workspaceId ? { workspaceId } : {}),
-		}),
-	});
-	if (!response.ok) {
-		throw new Error("Failed to create a new session");
-	}
 }
 
 interface TitleMessagePartLike {
@@ -147,8 +97,6 @@ export function ChatInterface({
 
 	const { data: slashCommands = [] } =
 		chatServiceTrpc.workspace.getSlashCommands.useQuery({ cwd });
-	const resolveSlashCommandMutation =
-		chatServiceTrpc.workspace.resolveSlashCommand.useMutation();
 
 	const messageMetadata = useMemo(
 		() => ({
@@ -163,6 +111,7 @@ export function ChatInterface({
 		pendingMessages,
 		runtimeError,
 		handleSend: sendThroughController,
+		startFreshSession,
 		stopPendingSends,
 		markSubmitStarted,
 		markSubmitEnded,
@@ -179,125 +128,39 @@ export function ChatInterface({
 		messageMetadata,
 		switchChatSession,
 	});
-	const [slashCommandError, setSlashCommandError] = useState<string | null>(
-		null,
-	);
 
-	const createFreshSession = useCallback(async (): Promise<boolean> => {
-		if (!organizationId) {
-			setSlashCommandError(
-				"Cannot create a new session without an organization",
-			);
-			return false;
-		}
+	const stopActiveResponse = useCallback(() => {
+		stopPendingSends();
+		chat.stop();
+	}, [stopPendingSends, chat.stop]);
 
-		try {
-			const newSessionId = crypto.randomUUID();
-			await createSession(newSessionId, organizationId, deviceId, workspaceId);
-			setSlashCommandError(null);
-			switchChatSession(paneId, newSessionId);
-			return true;
-		} catch {
-			setSlashCommandError("Failed to create a new session");
-			return false;
-		}
-	}, [deviceId, organizationId, paneId, switchChatSession, workspaceId]);
+	const { commandError, clearCommandError, resolveSlashCommandInput } =
+		useSlashCommandExecutor({
+			cwd,
+			availableModels,
+			canAbort,
+			onStartFreshSession: startFreshSession,
+			onStopActiveResponse: stopActiveResponse,
+			onSelectModel: setSelectedModel,
+		});
 
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
 			let text = message.text.trim();
 			const files = message.files ?? [];
 
-			if (text.startsWith("/")) {
-				try {
-					const resolvedCommand = await resolveSlashCommandMutation.mutateAsync(
-						{
-							cwd,
-							text,
-						},
-					);
-
-					if (resolvedCommand.handled) {
-						if (resolvedCommand.action) {
-							switch (resolvedCommand.action.type) {
-								case "new_session": {
-									const created = await createFreshSession();
-									if (created) {
-										toast.success(
-											resolvedCommand.invokedAs?.toLowerCase() === "clear"
-												? "Context cleared in a new chat session"
-												: "Started a new chat session",
-										);
-									} else {
-										toast.error("Failed to start a new chat session");
-									}
-									return;
-								}
-								case "stop_stream":
-									if (canAbort) {
-										toast.success("Stopped current response");
-									} else {
-										toast.warning("No active response to stop");
-									}
-									stopPendingSends();
-									chat.stop();
-									setSlashCommandError(null);
-									return;
-								case "set_model": {
-									const modelQuery = (
-										resolvedCommand.action.argument ?? ""
-									).trim();
-									if (!modelQuery) {
-										const usage = "Usage: /model <model-id-or-name>";
-										setSlashCommandError(usage);
-										toast.error(usage);
-										return;
-									}
-
-									const matchedModel = findModelByQuery(
-										availableModels,
-										modelQuery,
-									);
-									if (!matchedModel) {
-										const modelError = `Model not found: ${modelQuery}`;
-										setSlashCommandError(modelError);
-										toast.error(modelError);
-										return;
-									}
-
-									setSelectedModel(matchedModel);
-									setSlashCommandError(null);
-									toast.success(`Model set to ${matchedModel.name}`);
-									return;
-								}
-							}
-						}
-
-						text = (resolvedCommand.prompt ?? "").trim();
-					}
-				} catch (error) {
-					console.warn(
-						"[chat] Failed to resolve slash command, sending raw input",
-						error,
-					);
-				}
+			const slashCommandResult = await resolveSlashCommandInput(text);
+			if (slashCommandResult.handled) {
+				return;
 			}
+			text = slashCommandResult.nextText.trim();
 
 			if (!text && files.length === 0) return;
 
-			setSlashCommandError(null);
+			clearCommandError();
 			sendThroughController({ text, files });
 		},
-		[
-			availableModels,
-			canAbort,
-			createFreshSession,
-			cwd,
-			resolveSlashCommandMutation,
-			sendThroughController,
-			stopPendingSends,
-			chat.stop,
-		],
+		[clearCommandError, resolveSlashCommandInput, sendThroughController],
 	);
 
 	useEffect(() => {
@@ -356,11 +219,10 @@ export function ChatInterface({
 	const handleStop = useCallback(
 		(event: React.MouseEvent) => {
 			event.preventDefault();
-			setSlashCommandError(null);
-			stopPendingSends();
-			chat.stop();
+			clearCommandError();
+			stopActiveResponse();
 		},
-		[stopPendingSends, chat.stop],
+		[clearCommandError, stopActiveResponse],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -381,7 +243,7 @@ export function ChatInterface({
 				/>
 				<ChatInputFooter
 					cwd={cwd}
-					error={slashCommandError ?? runtimeError ?? chat.error}
+					error={commandError ?? runtimeError ?? chat.error}
 					canAbort={canAbort}
 					submitStatus={submitStatus}
 					availableModels={availableModels}

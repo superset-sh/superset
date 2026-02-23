@@ -31,11 +31,27 @@ function getCommandDirectoryEntries(
 			source: "project",
 		},
 		{
+			directory: join(projectDirectory, ".agents", "commands"),
+			source: "project",
+		},
+		{
+			directory: join(projectDirectory, ".agents", "command"),
+			source: "project",
+		},
+		{
 			directory: join(homeDirectory, ".claude", "commands"),
 			source: "global",
 		},
 		{
 			directory: join(homeDirectory, ".claude", "command"),
+			source: "global",
+		},
+		{
+			directory: join(homeDirectory, ".agents", "commands"),
+			source: "global",
+		},
+		{
+			directory: join(homeDirectory, ".agents", "command"),
 			source: "global",
 		},
 	];

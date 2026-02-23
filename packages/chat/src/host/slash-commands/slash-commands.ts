@@ -2,7 +2,7 @@ import { buildSlashCommandRegistry } from "./registry";
 import type { SlashCommand } from "./types";
 
 /**
- * Scan Markdown files under `.claude/commands` and `.claude/command` for custom slash commands.
+ * Scan Markdown files under `.claude/*` and `.agents/*` command directories for custom slash commands.
  * Project-local commands (under `cwd`) take priority over user-global ones.
  */
 export function getSlashCommands(cwd: string): SlashCommand[] {

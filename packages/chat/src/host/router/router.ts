@@ -33,6 +33,10 @@ export const ensureRuntimeInput = z.object({
 	cwd: z.string().optional(),
 });
 
+function resolveWorkspaceSlashCommand(input: { cwd: string; text: string }) {
+	return resolveSlashCommand(input.cwd, input.text);
+}
+
 export function createChatServiceRouter(service: ChatService) {
 	return t.router({
 		start: t.procedure
@@ -68,13 +72,13 @@ export function createChatServiceRouter(service: ChatService) {
 			resolveSlashCommand: t.procedure
 				.input(resolveSlashCommandInput)
 				.mutation(async ({ input }) => {
-					return resolveSlashCommand(input.cwd, input.text);
+					return resolveWorkspaceSlashCommand(input);
 				}),
 
 			previewSlashCommand: t.procedure
 				.input(resolveSlashCommandInput)
 				.query(async ({ input }) => {
-					return resolveSlashCommand(input.cwd, input.text);
+					return resolveWorkspaceSlashCommand(input);
 				}),
 		}),
 

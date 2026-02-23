@@ -12,8 +12,13 @@ function makeTempDirectory(prefix: string): string {
 	return directory;
 }
 
-function writeCommandFile(root: string, name: string, body: string): void {
-	const commandFilePath = join(root, ".claude", "commands", `${name}.md`);
+function writeCommandFile(
+	root: string,
+	name: string,
+	body: string,
+	commandRoot: ".claude" | ".agents" = ".claude",
+): void {
+	const commandFilePath = join(root, commandRoot, "commands", `${name}.md`);
 	mkdirSync(dirname(commandFilePath), { recursive: true });
 	writeFileSync(commandFilePath, body);
 }
@@ -190,5 +195,24 @@ Ship: $1`,
 		expect(result.commandName).toBe("ship");
 		expect(result.invokedAs).toBe("release");
 		expect(result.prompt).toBe("Ship: stable");
+	});
+
+	it("resolves custom commands from .agents/commands", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		writeCommandFile(
+			cwd,
+			"agents-only",
+			`---
+description: Agents command
+---
+Run from agents root.`,
+			".agents",
+		);
+
+		const result = resolveSlashCommand(cwd, "/agents-only");
+
+		expect(result.handled).toBe(true);
+		expect(result.commandName).toBe("agents-only");
+		expect(result.prompt).toBe("Run from agents root.");
 	});
 });

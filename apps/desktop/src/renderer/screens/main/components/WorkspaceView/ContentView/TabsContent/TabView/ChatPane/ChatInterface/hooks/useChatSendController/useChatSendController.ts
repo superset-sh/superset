@@ -44,6 +44,7 @@ interface UseChatSendControllerReturn {
 	pendingMessages: PendingUserMessage[];
 	runtimeError: string | null;
 	handleSend: (message: PromptInputMessage) => void;
+	startFreshSession: () => Promise<boolean>;
 	stopPendingSends: () => void;
 	markSubmitStarted: () => void;
 	markSubmitEnded: () => void;
@@ -539,6 +540,37 @@ export function useChatSendController(
 		setRuntimeError(null);
 	}, [abortAllInFlightSends]);
 
+	const startFreshSession = useCallback(async (): Promise<boolean> => {
+		if (!organizationId) {
+			setRuntimeError("Organization is required to start a chat session");
+			return false;
+		}
+
+		try {
+			abortAllInFlightSends();
+			setIsPreparingSubmit(false);
+			chat.stop();
+
+			const newSessionId = crypto.randomUUID();
+			await createSession(newSessionId, organizationId, deviceId, workspaceId);
+			setRuntimeError(null);
+			switchChatSession(paneId, newSessionId);
+			return true;
+		} catch (err) {
+			setRuntimeErrorMessage(err, "Failed to create a new session");
+			return false;
+		}
+	}, [
+		organizationId,
+		abortAllInFlightSends,
+		chat.stop,
+		deviceId,
+		workspaceId,
+		switchChatSession,
+		paneId,
+		setRuntimeErrorMessage,
+	]);
+
 	const markSubmitStarted = useCallback(() => {
 		setIsPreparingSubmit(true);
 	}, []);
@@ -562,6 +594,7 @@ export function useChatSendController(
 		pendingMessages,
 		runtimeError,
 		handleSend,
+		startFreshSession,
 		stopPendingSends,
 		markSubmitStarted,
 		markSubmitEnded,

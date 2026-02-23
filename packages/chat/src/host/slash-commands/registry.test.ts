@@ -17,8 +17,9 @@ function writeCommandFile(
 	name: string,
 	body: string,
 	container: "commands" | "command" = "commands",
+	commandRoot: ".claude" | ".agents" = ".claude",
 ): void {
-	const commandFilePath = join(root, ".claude", container, `${name}.md`);
+	const commandFilePath = join(root, commandRoot, container, `${name}.md`);
 	mkdirSync(dirname(commandFilePath), { recursive: true });
 	writeFileSync(commandFilePath, body);
 }
@@ -137,6 +138,28 @@ Body`,
 		expect(registry.every((command) => command.source === "project")).toBe(
 			true,
 		);
+	});
+
+	it("loads commands from .agents/commands when .claude commands are absent", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		writeCommandFile(
+			cwd,
+			"ship",
+			"---\ndescription: ship from agents\n---",
+			"commands",
+			".agents",
+		);
+
+		const registry = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
+
+		expect(registry.map((command) => command.name)).toEqual(["ship"]);
+		expect(registry[0]?.description).toBe("ship from agents");
+		expect(registry[0]?.source).toBe("project");
 	});
 
 	it("loads aliases from frontmatter and normalizes them", () => {
