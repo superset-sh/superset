@@ -24,7 +24,7 @@ function getCorsHeaders(origin: string | null) {
 		"Access-Control-Allow-Origin": isAllowed ? origin : "",
 		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 		"Access-Control-Allow-Headers":
-			"Content-Type, Authorization, x-trpc-source, trpc-accept, Producer-Id, Producer-Epoch, Producer-Seq, Stream-Closed",
+			"Content-Type, Authorization, x-trpc-source, trpc-accept, X-Electric-Backend, Producer-Id, Producer-Epoch, Producer-Seq, Stream-Closed",
 		"Access-Control-Expose-Headers": [
 			// Electric sync headers
 			"electric-offset",
