@@ -1,7 +1,7 @@
 "use client";
 
-import type { TextShimmerProps } from "./shimmer";
 import { cn } from "../../lib/utils";
+import type { TextShimmerProps } from "./shimmer";
 import { Shimmer } from "./shimmer";
 
 export type ShimmerLabelProps = Omit<

@@ -7,8 +7,8 @@ import {
 	CircleIcon,
 	ClockIcon,
 	WrenchIcon,
-	XIcon,
 	XCircleIcon,
+	XIcon,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
@@ -63,12 +63,8 @@ const getStatusIcon = (status: ToolDisplayState) => {
 		"input-streaming": <CircleIcon className="size-3" />,
 		"input-complete": <ClockIcon className="size-3 animate-pulse" />,
 		"input-available": <ClockIcon className="size-3 animate-pulse" />,
-		"approval-requested": (
-			<ClockIcon className="size-3 text-yellow-600" />
-		),
-		"approval-responded": (
-			<CheckCircleIcon className="size-3 text-blue-600" />
-		),
+		"approval-requested": <ClockIcon className="size-3 text-yellow-600" />,
+		"approval-responded": <CheckCircleIcon className="size-3 text-blue-600" />,
 		"output-available": <CheckIcon className="size-3 text-green-600" />,
 		"output-error": <XIcon className="size-3 text-red-600" />,
 		"output-denied": <XCircleIcon className="size-3 text-orange-600" />,
