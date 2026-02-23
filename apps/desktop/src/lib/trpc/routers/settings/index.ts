@@ -9,6 +9,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
+import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
@@ -19,7 +20,11 @@ import {
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
-import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
+import {
+	CUSTOM_RINGTONE_ID,
+	DEFAULT_RINGTONE_ID,
+	isBuiltInRingtoneId,
+} from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
@@ -28,7 +33,17 @@ import {
 	transformFontSettings,
 } from "./font-settings.utils";
 
-const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
+function isValidRingtoneId(ringtoneId: string): boolean {
+	if (isBuiltInRingtoneId(ringtoneId)) {
+		return true;
+	}
+
+	if (ringtoneId === CUSTOM_RINGTONE_ID) {
+		return hasCustomRingtone();
+	}
+
+	return false;
+}
 
 function getSettings() {
 	let row = localDb.select().from(settings).get();
@@ -357,7 +372,7 @@ export const createSettingsRouter = () => {
 				return DEFAULT_RINGTONE_ID;
 			}
 
-			if (VALID_RINGTONE_IDS.includes(storedId)) {
+			if (isValidRingtoneId(storedId)) {
 				return storedId;
 			}
 
@@ -378,7 +393,7 @@ export const createSettingsRouter = () => {
 		setSelectedRingtoneId: publicProcedure
 			.input(z.object({ ringtoneId: z.string() }))
 			.mutation(({ input }) => {
-				if (!VALID_RINGTONE_IDS.includes(input.ringtoneId)) {
+				if (!isValidRingtoneId(input.ringtoneId)) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: `Invalid ringtone ID: ${input.ringtoneId}`,

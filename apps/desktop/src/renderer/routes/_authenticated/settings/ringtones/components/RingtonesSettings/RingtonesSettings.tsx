@@ -1,8 +1,9 @@
+import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiCheck, HiPlay, HiStop } from "react-icons/hi2";
+import { HiCheck, HiPlay, HiPlus, HiStop } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
@@ -11,6 +12,7 @@ import {
 	useSelectedRingtoneId,
 	useSetRingtone,
 } from "renderer/stores";
+import { CUSTOM_RINGTONE_ID } from "shared/ringtones";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -129,9 +131,21 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const utils = electronTrpc.useUtils();
+	const { data: customRingtoneData } =
+		electronTrpc.ringtone.getCustom.useQuery();
 	const { data: isMutedData, isLoading: isMutedLoading } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
 	const isMuted = isMutedData ?? false;
+	const customRingtone: Ringtone | null = customRingtoneData
+		? {
+				...customRingtoneData,
+				filename: "",
+				color: "from-slate-400 to-slate-500",
+			}
+		: null;
+	const ringtoneOptions = customRingtone
+		? [...AVAILABLE_RINGTONES, customRingtone]
+		: AVAILABLE_RINGTONES;
 
 	const setMuted = electronTrpc.settings.setNotificationSoundsMuted.useMutation(
 		{
@@ -151,10 +165,26 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 			},
 		},
 	);
+	const importCustomRingtone = electronTrpc.ringtone.importCustom.useMutation({
+		onError: (error) => {
+			console.error("Failed to import custom ringtone:", error);
+		},
+		onSuccess: async (result) => {
+			if (result.canceled) {
+				return;
+			}
+			await utils.ringtone.getCustom.invalidate();
+			setRingtone(CUSTOM_RINGTONE_ID);
+		},
+	});
 
 	const handleMutedToggle = (enabled: boolean) => {
 		setMuted.mutate({ muted: !enabled });
 	};
+
+	const handleImportCustomRingtone = useCallback(() => {
+		importCustomRingtone.mutate();
+	}, [importCustomRingtone]);
 
 	// Clean up timer and stop any playing sound on unmount
 	useEffect(() => {
@@ -171,10 +201,6 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 
 	const handleTogglePlay = useCallback(
 		async (ringtone: Ringtone) => {
-			if (!ringtone.filename) {
-				return;
-			}
-
 			// Clear any pending timer
 			if (previewTimerRef.current) {
 				clearTimeout(previewTimerRef.current);
@@ -204,7 +230,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 
 			try {
 				await electronTrpcClient.ringtone.preview.mutate({
-					filename: ringtone.filename,
+					ringtoneId: ringtone.id,
 				});
 			} catch (error) {
 				console.error("Failed to play ringtone:", error);
@@ -264,9 +290,21 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 				{/* Ringtone Section */}
 				{showNotification && !isMuted && (
 					<div>
-						<h3 className="text-sm font-medium mb-4">Notification Sound</h3>
+						<div className="mb-4 flex items-center justify-between gap-2">
+							<h3 className="text-sm font-medium">Notification Sound</h3>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								onClick={handleImportCustomRingtone}
+								disabled={importCustomRingtone.isPending}
+							>
+								<HiPlus className="mr-1.5 h-3.5 w-3.5" />
+								{customRingtone ? "Replace Custom Audio" : "Add Custom Audio"}
+							</Button>
+						</div>
 						<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-							{AVAILABLE_RINGTONES.map((ringtone) => (
+							{ringtoneOptions.map((ringtone) => (
 								<RingtoneCard
 									key={ringtone.id}
 									ringtone={ringtone}
@@ -284,8 +322,8 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 				{showNotification && !isMuted && (
 					<div className="pt-6 border-t">
 						<p className="text-sm text-muted-foreground">
-							Click the play button to preview a sound. Click stop or play
-							another to stop the current sound.
+							Click the play button to preview a sound. Use Add Custom Audio to
+							import your own .mp3, .wav, or .ogg file.
 						</p>
 					</div>
 				)}

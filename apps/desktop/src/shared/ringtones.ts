@@ -14,6 +14,8 @@ export interface RingtoneData {
 	duration?: number;
 }
 
+export const CUSTOM_RINGTONE_ID = "custom";
+
 /**
  * Built-in ringtones available in the app.
  * Files are located in src/resources/sounds/
@@ -127,6 +129,10 @@ export const DEFAULT_RINGTONE_ID = "arcade";
  */
 export function getRingtoneById(id: string): RingtoneData | undefined {
 	return RINGTONES.find((r) => r.id === id);
+}
+
+export function isBuiltInRingtoneId(id: string): boolean {
+	return RINGTONES.some((r) => r.id === id);
 }
 
 /**

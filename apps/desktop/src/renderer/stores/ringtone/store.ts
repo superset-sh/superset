@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import {
+	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
 	RINGTONES,
 	type RingtoneData,
@@ -25,7 +26,9 @@ interface RingtoneState {
 
 /** Check if a ringtone ID is valid */
 function isValidRingtoneId(id: string): boolean {
-	return AVAILABLE_RINGTONES.some((r) => r.id === id);
+	return (
+		id === CUSTOM_RINGTONE_ID || AVAILABLE_RINGTONES.some((r) => r.id === id)
+	);
 }
 
 /** Get default ringtone (guaranteed to exist) */
@@ -46,8 +49,7 @@ export const useRingtoneStore = create<RingtoneState>()(
 				selectedRingtoneId: DEFAULT_RINGTONE_ID,
 
 				setRingtone: (ringtoneId: string) => {
-					const ringtone = AVAILABLE_RINGTONES.find((r) => r.id === ringtoneId);
-					if (!ringtone) {
+					if (!isValidRingtoneId(ringtoneId)) {
 						console.error(`Ringtone not found: ${ringtoneId}`);
 						return;
 					}
@@ -59,6 +61,10 @@ export const useRingtoneStore = create<RingtoneState>()(
 					const ringtone = AVAILABLE_RINGTONES.find(
 						(r) => r.id === state.selectedRingtoneId,
 					);
+					if (state.selectedRingtoneId === CUSTOM_RINGTONE_ID) {
+						// Custom ringtones are resolved by backend file state, not the built-in list.
+						return getDefaultRingtone();
+					}
 					// Fall back to default if persisted ID is stale/invalid
 					if (!ringtone) {
 						set({ selectedRingtoneId: DEFAULT_RINGTONE_ID });
