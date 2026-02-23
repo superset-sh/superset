@@ -12,6 +12,7 @@ import {
 	getCredentialsFromKeychain,
 } from "../../auth/anthropic";
 import type { GetHeaders } from "../../lib/auth/auth";
+import type { ChatLifecycleEvent } from "../chat-service";
 import {
 	sessionAbortControllers,
 	sessionContext,
@@ -24,6 +25,7 @@ export interface AgentManagerConfig {
 	organizationId: string;
 	apiUrl: string;
 	getHeaders: GetHeaders;
+	onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
 }
 
 export class AgentManager {
@@ -33,12 +35,14 @@ export class AgentManager {
 	private organizationId: string;
 	private apiUrl: string;
 	private getHeaders: GetHeaders;
+	private onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
 
 	constructor(config: AgentManagerConfig) {
 		this.deviceId = config.deviceId;
 		this.organizationId = config.organizationId;
 		this.apiUrl = config.apiUrl;
 		this.getHeaders = config.getHeaders;
+		this.onLifecycleEvent = config.onLifecycleEvent;
 	}
 
 	async start(): Promise<void> {
@@ -123,6 +127,7 @@ export class AgentManager {
 			apiUrl: this.apiUrl,
 			cwd: resolvedCwd,
 			getHeaders: this.getHeaders,
+			onLifecycleEvent: this.onLifecycleEvent,
 		});
 		try {
 			await watcher.start();

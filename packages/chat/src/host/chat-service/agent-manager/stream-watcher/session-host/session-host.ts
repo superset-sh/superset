@@ -27,6 +27,12 @@ export interface SessionHostEventMap {
 	message: [
 		data: { messageId: string; message: UIMessage; metadata?: MessageMetadata },
 	];
+	toolApprovalRequest: [
+		data: {
+			approvalId: string;
+			toolCallId: string;
+		},
+	];
 	toolApproval: [
 		data: {
 			approvalId: string;
@@ -430,6 +436,19 @@ export class SessionHost {
 						? (parsed.answers as Record<string, string>)
 						: undefined,
 			});
+		}
+
+		if (parsed.type === "tool-approval-request") {
+			const approvalId =
+				typeof parsed.approvalId === "string" ? parsed.approvalId : null;
+			const toolCallId =
+				typeof parsed.toolCallId === "string" ? parsed.toolCallId : null;
+			if (approvalId && toolCallId) {
+				this.emit("toolApprovalRequest", {
+					approvalId,
+					toolCallId,
+				});
+			}
 		}
 
 		// Tool approval -> emit "toolApproval"

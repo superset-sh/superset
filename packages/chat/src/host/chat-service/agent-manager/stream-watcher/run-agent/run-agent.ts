@@ -34,7 +34,11 @@ export interface RunAgentOptions {
 	getHeaders: GetHeaders;
 }
 
-export async function runAgent(options: RunAgentOptions): Promise<void> {
+export type AgentRunOutcome = "finished" | "error" | "aborted";
+
+export async function runAgent(
+	options: RunAgentOptions,
+): Promise<AgentRunOutcome> {
 	const {
 		sessionId,
 		text,
@@ -152,11 +156,12 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		}
 
 		await writeToDurableStream(output, host, abortController.signal);
+		return abortController.signal.aborted ? "aborted" : "finished";
 	} catch (error) {
 		sessionRunIds.delete(sessionId);
 		sessionContext.delete(sessionId);
 
-		if (abortController.signal.aborted) return;
+		if (abortController.signal.aborted) return "aborted";
 
 		// Write error chunk to stream so client sees isComplete = true
 		try {
@@ -165,6 +170,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 			/* best effort */
 		}
 		console.error(`[run-agent] Stream error for ${sessionId}:`, error);
+		return "error";
 	} finally {
 		if (sessionAbortControllers.get(sessionId) === abortController) {
 			sessionAbortControllers.delete(sessionId);
@@ -185,7 +191,9 @@ export interface ResumeAgentOptions {
 	permissionMode?: string;
 }
 
-export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
+export async function resumeAgent(
+	options: ResumeAgentOptions,
+): Promise<AgentRunOutcome> {
 	const { sessionId, runId, host, approved, answers, permissionMode } = options;
 
 	if (permissionMode) {
@@ -215,11 +223,12 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 			: await superagent.declineToolCall(approvalOpts);
 
 		await writeToDurableStream(stream, host, abortController.signal);
+		return abortController.signal.aborted ? "aborted" : "finished";
 	} catch (error) {
 		sessionRunIds.delete(sessionId);
 		sessionContext.delete(sessionId);
 
-		if (abortController.signal.aborted) return;
+		if (abortController.signal.aborted) return "aborted";
 
 		try {
 			await writeErrorChunk(host, error);
@@ -227,6 +236,7 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 			/* best effort */
 		}
 		console.error(`[run-agent] Resume error for ${sessionId}:`, error);
+		return "error";
 	} finally {
 		if (sessionAbortControllers.get(sessionId) === abortController) {
 			sessionAbortControllers.delete(sessionId);
