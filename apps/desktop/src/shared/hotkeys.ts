@@ -545,6 +545,13 @@ export const HOTKEYS = {
 		category: "Terminal",
 		description: "Scroll the active terminal to the bottom",
 	}),
+	TOGGLE_MARKDOWN_VIEW: defineHotkey({
+		keys: "meta+shift+m",
+		label: "Toggle Markdown View",
+		category: "Terminal",
+		description:
+			"Toggle rendered Markdown view of terminal output (useful for AI agent output)",
+	}),
 	PREV_TAB: defineHotkey({
 		keys: "meta+alt+left",
 		label: "Previous Tab",

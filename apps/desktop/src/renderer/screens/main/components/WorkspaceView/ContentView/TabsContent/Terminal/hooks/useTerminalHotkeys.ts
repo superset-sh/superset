@@ -12,6 +12,8 @@ export interface UseTerminalHotkeysOptions {
 export interface UseTerminalHotkeysReturn {
 	isSearchOpen: boolean;
 	setIsSearchOpen: Dispatch<SetStateAction<boolean>>;
+	isMarkdownViewOpen: boolean;
+	setIsMarkdownViewOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 export function useTerminalHotkeys({
@@ -19,6 +21,7 @@ export function useTerminalHotkeys({
 	xtermRef,
 }: UseTerminalHotkeysOptions): UseTerminalHotkeysReturn {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [isMarkdownViewOpen, setIsMarkdownViewOpen] = useState(false);
 
 	useEffect(() => {
 		if (!isFocused) {
@@ -52,5 +55,17 @@ export function useTerminalHotkeys({
 		[isFocused],
 	);
 
-	return { isSearchOpen, setIsSearchOpen };
+	useAppHotkey(
+		"TOGGLE_MARKDOWN_VIEW",
+		() => setIsMarkdownViewOpen((prev) => !prev),
+		{ enabled: isFocused, preventDefault: true },
+		[isFocused],
+	);
+
+	return {
+		isSearchOpen,
+		setIsSearchOpen,
+		isMarkdownViewOpen,
+		setIsMarkdownViewOpen,
+	};
 }

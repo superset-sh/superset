@@ -24,6 +24,7 @@ import {
 	useTerminalRestore,
 	useTerminalStream,
 } from "./hooks";
+import { MarkdownOverlay } from "./MarkdownOverlay";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type {
@@ -299,7 +300,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		return () => clearTimeout(timeout);
 	}, [connectionError, handleRetryConnection]);
 
-	const { isSearchOpen, setIsSearchOpen } = useTerminalHotkeys({
+	const {
+		isSearchOpen,
+		setIsSearchOpen,
+		isMarkdownViewOpen,
+		setIsMarkdownViewOpen,
+	} = useTerminalHotkeys({
 		isFocused,
 		xtermRef,
 	});
@@ -425,6 +431,12 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			<ScrollToBottomButton terminal={xtermInstance} />
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<SessionKilledOverlay onRestart={restartTerminal} />
+			)}
+			{isMarkdownViewOpen && (
+				<MarkdownOverlay
+					xterm={xtermRef.current}
+					onClose={() => setIsMarkdownViewOpen(false)}
+				/>
 			)}
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
