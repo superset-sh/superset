@@ -6,6 +6,6 @@ export {
 } from "./slash-command-matching";
 export {
 	normalizeSlashNamedArgumentKey,
-	parseNamedSlashArgumentToken,
 	type ParsedNamedSlashArgument,
+	parseNamedSlashArgumentToken,
 } from "./slash-command-named-arguments";

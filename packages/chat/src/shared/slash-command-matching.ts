@@ -14,14 +14,18 @@ export function matchesSlashCommandIdentity(
 	const target = normalizeSlashCommandName(nameOrAlias);
 	if (!target) return false;
 	if (normalizeSlashCommandName(command.name) === target) return true;
-	return command.aliases.some((alias) => normalizeSlashCommandName(alias) === target);
+	return command.aliases.some(
+		(alias) => normalizeSlashCommandName(alias) === target,
+	);
 }
 
 export function findSlashCommandByNameOrAlias<T extends SlashCommandIdentity>(
 	commands: T[],
 	nameOrAlias: string,
 ): T | null {
-	return commands.find((command) =>
-		matchesSlashCommandIdentity(command, nameOrAlias),
-	) ?? null;
+	return (
+		commands.find((command) =>
+			matchesSlashCommandIdentity(command, nameOrAlias),
+		) ?? null
+	);
 }

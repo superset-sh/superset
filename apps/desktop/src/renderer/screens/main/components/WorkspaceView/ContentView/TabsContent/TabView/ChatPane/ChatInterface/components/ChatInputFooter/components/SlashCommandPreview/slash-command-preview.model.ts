@@ -1,9 +1,9 @@
 import {
 	findSlashCommandByNameOrAlias,
 	normalizeSlashNamedArgumentKey,
+	type ParsedNamedSlashArgument,
 	parseNamedSlashArgumentToken,
 	tokenizeSlashCommandArguments,
-	type ParsedNamedSlashArgument,
 } from "@superset/chat/shared";
 
 export type NamedArgEntry = ParsedNamedSlashArgument;

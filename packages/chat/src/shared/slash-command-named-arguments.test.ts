@@ -6,7 +6,9 @@ import {
 
 describe("normalizeSlashNamedArgumentKey", () => {
 	it("normalizes kebab-case to uppercase snake case", () => {
-		expect(normalizeSlashNamedArgumentKey("no-api-change")).toBe("NO_API_CHANGE");
+		expect(normalizeSlashNamedArgumentKey("no-api-change")).toBe(
+			"NO_API_CHANGE",
+		);
 	});
 });
 

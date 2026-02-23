@@ -7,19 +7,13 @@ import {
 describe("matchesSlashCommandIdentity", () => {
 	it("matches canonical names case-insensitively", () => {
 		expect(
-			matchesSlashCommandIdentity(
-				{ name: "Review", aliases: [] },
-				"review",
-			),
+			matchesSlashCommandIdentity({ name: "Review", aliases: [] }, "review"),
 		).toBe(true);
 	});
 
 	it("matches aliases case-insensitively", () => {
 		expect(
-			matchesSlashCommandIdentity(
-				{ name: "new", aliases: ["clear"] },
-				"CLEAR",
-			),
+			matchesSlashCommandIdentity({ name: "new", aliases: ["clear"] }, "CLEAR"),
 		).toBe(true);
 	});
 });
