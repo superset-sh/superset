@@ -209,6 +209,8 @@ SQL
 
   if [ "$terminated_count" -gt 0 ] 2>/dev/null; then
     warn "Terminated $terminated_count stale Electric replication session(s)"
+  else
+    success "No stale Electric replication sessions found"
   fi
 
   return 0
