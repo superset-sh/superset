@@ -320,6 +320,22 @@ describe("materializeMessage", () => {
 		]);
 	});
 
+	it("preserves empty-string error chunk code", () => {
+		const rows = [
+			makeRow({
+				seq: 0,
+				chunk: JSON.stringify({
+					type: "error",
+					errorText: "custom",
+					code: "",
+				}),
+			}),
+		];
+
+		const result = materializeMessage(rows);
+		expect(result.parts).toEqual([{ type: "error", text: "custom", code: "" }]);
+	});
+
 	it("skips custom chunk types (config, control)", () => {
 		const rows = [
 			makeRow({

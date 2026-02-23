@@ -313,7 +313,7 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 					parts.push({
 						type: "error",
 						text: errorChunk.errorText ?? "An error occurred",
-						...(errorChunk.code ? { code: errorChunk.code } : {}),
+						...(errorChunk.code != null ? { code: errorChunk.code } : {}),
 					} as unknown as AnyUIMessagePart);
 				}
 				break;

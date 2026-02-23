@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -126,6 +126,46 @@ describe("getOrRefreshAnthropicOAuthCredentials", () => {
 		expect(saved.claudeAiOauth?.expiresAt).toBe(now + 3_600_000);
 	});
 
+	it("uses a fresh fallback expiry when refresh response omits expires_in", async () => {
+		const now = 1_700_000_000_000;
+		const configPath = createConfigFile({
+			claudeAiOauth: {
+				accessToken: "expired-access",
+				refreshToken: "refresh-old",
+				expiresAt: now - 60_000,
+			},
+		});
+		const fetchImpl = mock(async () => {
+			return new Response(
+				JSON.stringify({
+					access_token: "access-new",
+					refresh_token: "refresh-new",
+				}),
+				{ status: 200 },
+			);
+		});
+
+		const result = await getOrRefreshAnthropicOAuthCredentials({
+			configPaths: [configPath],
+			fetchImpl: fetchImpl as unknown as typeof fetch,
+			nowMs: () => now,
+		});
+
+		expect(result?.apiKey).toBe("access-new");
+		expect(result?.refreshToken).toBe("refresh-new");
+		expect(result?.expiresAt).toBeGreaterThan(now);
+		expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+		const saved = JSON.parse(readFileSync(configPath, "utf-8")) as {
+			claudeAiOauth?: {
+				refreshToken?: string;
+				expiresAt?: number;
+			};
+		};
+		expect(saved.claudeAiOauth?.refreshToken).toBe("refresh-new");
+		expect(saved.claudeAiOauth?.expiresAt).toBeGreaterThan(now);
+	});
+
 	it("returns existing token when best-effort refresh fails but token is not expired", async () => {
 		const now = 1_700_000_000_000;
 		const configPath = createConfigFile({
@@ -133,8 +173,7 @@ describe("getOrRefreshAnthropicOAuthCredentials", () => {
 			oauth_refresh_token: "refresh-old",
 			oauth_expires_at: now + 60_000,
 		});
-		const originalWarn = console.warn;
-		console.warn = mock(() => {}) as unknown as typeof console.warn;
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
 		const fetchImpl = mock(async () => {
 			return new Response("bad refresh", { status: 401 });
 		});
@@ -149,7 +188,7 @@ describe("getOrRefreshAnthropicOAuthCredentials", () => {
 			expect(result?.apiKey).toBe("access-stale");
 			expect(result?.refreshToken).toBe("refresh-old");
 		} finally {
-			console.warn = originalWarn;
+			warnSpy.mockRestore();
 		}
 	});
 
@@ -160,8 +199,7 @@ describe("getOrRefreshAnthropicOAuthCredentials", () => {
 			oauthRefreshToken: "refresh-old",
 			oauthExpiresAt: now + 60_000,
 		});
-		const originalWarn = console.warn;
-		console.warn = mock(() => {}) as unknown as typeof console.warn;
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
 		const fetchImpl = mock(async () => {
 			return new Response("refresh failed", { status: 500 });
 		});
@@ -175,7 +213,34 @@ describe("getOrRefreshAnthropicOAuthCredentials", () => {
 			});
 			expect(result).toBeNull();
 		} finally {
-			console.warn = originalWarn;
+			warnSpy.mockRestore();
+		}
+	});
+
+	it("returns null when forced refresh times out", async () => {
+		const now = 1_700_000_000_000;
+		const configPath = createConfigFile({
+			oauthAccessToken: "access-old",
+			oauthRefreshToken: "refresh-old",
+			oauthExpiresAt: now + 60_000,
+		});
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+		const fetchImpl = mock(async () => {
+			const timeoutError = new Error("aborted");
+			timeoutError.name = "AbortError";
+			throw timeoutError;
+		});
+
+		try {
+			const result = await getOrRefreshAnthropicOAuthCredentials({
+				forceRefresh: true,
+				configPaths: [configPath],
+				fetchImpl: fetchImpl as unknown as typeof fetch,
+				nowMs: () => now,
+			});
+			expect(result).toBeNull();
+		} finally {
+			warnSpy.mockRestore();
 		}
 	});
 

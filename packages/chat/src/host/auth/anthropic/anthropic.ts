@@ -18,6 +18,7 @@ const ANTHROPIC_OAUTH_CLIENT_ID = Buffer.from(
 	"base64",
 ).toString("utf8");
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
+const REFRESH_REQUEST_TIMEOUT_MS = 30_000;
 
 interface ClaudeCredentialBase {
 	apiKey: string;
@@ -213,15 +214,36 @@ async function refreshAnthropicOAuthCredentials(
 		return null;
 	}
 
-	const response = await deps.fetchImpl(ANTHROPIC_OAUTH_TOKEN_URL, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			grant_type: "refresh_token",
-			client_id: ANTHROPIC_OAUTH_CLIENT_ID,
-			refresh_token: credentials.refreshToken,
-		}),
-	});
+	const abortController = new AbortController();
+	const timeout = setTimeout(() => {
+		abortController.abort();
+	}, REFRESH_REQUEST_TIMEOUT_MS);
+
+	let response: Response;
+	try {
+		response = await deps.fetchImpl(ANTHROPIC_OAUTH_TOKEN_URL, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				grant_type: "refresh_token",
+				client_id: ANTHROPIC_OAUTH_CLIENT_ID,
+				refresh_token: credentials.refreshToken,
+			}),
+			signal: abortController.signal,
+		});
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			(error.name === "AbortError" || error.name === "TimeoutError")
+		) {
+			throw new Error(
+				`Anthropic OAuth refresh timed out after ${REFRESH_REQUEST_TIMEOUT_MS}ms`,
+			);
+		}
+		throw error;
+	} finally {
+		clearTimeout(timeout);
+	}
 
 	if (!response.ok) {
 		const errorText = await response.text();
@@ -241,10 +263,11 @@ async function refreshAnthropicOAuthCredentials(
 	}
 
 	const nextRefreshToken = data.refresh_token || credentials.refreshToken;
+	const now = deps.nowMs();
 	const nextExpiresAt =
 		typeof data.expires_in === "number"
-			? deps.nowMs() + data.expires_in * 1000
-			: (credentials.expiresAt ?? deps.nowMs() + 60 * 60 * 1000);
+			? now + data.expires_in * 1000
+			: Math.max(now + 60 * 60 * 1000, credentials.expiresAt ?? 0);
 
 	saveOAuthCredentialsToConfig(credentials, {
 		accessToken: data.access_token,
