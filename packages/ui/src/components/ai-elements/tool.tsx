@@ -7,6 +7,7 @@ import {
 	CircleIcon,
 	ClockIcon,
 	WrenchIcon,
+	XIcon,
 	XCircleIcon,
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
@@ -69,7 +70,7 @@ const getStatusIcon = (status: ToolDisplayState) => {
 			<CheckCircleIcon className="size-3 text-blue-600" />
 		),
 		"output-available": <CheckIcon className="size-3 text-green-600" />,
-		"output-error": <XCircleIcon className="size-3 text-red-600" />,
+		"output-error": <XIcon className="size-3 text-red-600" />,
 		"output-denied": <XCircleIcon className="size-3 text-orange-600" />,
 	};
 

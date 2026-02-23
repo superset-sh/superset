@@ -68,51 +68,54 @@ export const BashTool = ({
 			onOpenChange={(open) => hasOutput && setIsOutputExpanded(open)}
 			open={hasOutput ? isOutputExpanded : false}
 		>
-			<CollapsibleTrigger
-				className={cn(
-					"flex h-7 items-center justify-between px-2.5",
-					hasOutput
-						? "cursor-pointer transition-colors duration-150 hover:bg-muted/50"
-						: "cursor-default",
-				)}
-				disabled={!hasOutput}
-			>
-				<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-					<TerminalIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
-					{isPending ? (
-						<ShimmerLabel className="text-xs text-muted-foreground">
-							{commandSummary ? "Running command" : "Generating command"}
-						</ShimmerLabel>
-					) : (
-						<span className="text-xs text-muted-foreground">Ran command</span>
+			<CollapsibleTrigger asChild>
+				<button
+					className={cn(
+						"flex h-7 w-full items-center justify-between px-2.5 text-left",
+						hasOutput
+							? "cursor-pointer transition-colors duration-150 hover:bg-muted/50"
+							: "cursor-default",
 					)}
-					{commandSummary && (
-						<span className="truncate text-foreground">{commandSummary}</span>
-					)}
-				</div>
-
-				{/* Status */}
-				<div className="ml-2 flex shrink-0 items-center gap-2">
-					{!isPending && (
-						<div className="flex items-center gap-1 text-xs text-muted-foreground">
-							{isSuccess && (
-								<>
-									<CheckIcon className="h-3 w-3" />
-									<span>Success</span>
-								</>
-							)}
-							{isError && (
-								<>
-									<XIcon className="h-3 w-3" />
-									<span>Failed</span>
-								</>
-							)}
-						</div>
-					)}
-					<div className="flex h-6 w-6 items-center justify-center">
-						{isPending && <Loader size={12} />}
+					disabled={!hasOutput}
+					type="button"
+				>
+					<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
+						<TerminalIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+						{isPending ? (
+							<ShimmerLabel className="text-xs text-muted-foreground">
+								{commandSummary ? "Running command" : "Generating command"}
+							</ShimmerLabel>
+						) : (
+							<span className="text-xs text-muted-foreground">Ran command</span>
+						)}
+						{commandSummary && (
+							<span className="truncate text-foreground">{commandSummary}</span>
+						)}
 					</div>
-				</div>
+
+					{/* Status */}
+					<div className="ml-2 flex shrink-0 items-center gap-2">
+						{!isPending && (
+							<div className="flex items-center gap-1 text-xs text-muted-foreground">
+								{isSuccess && (
+									<>
+										<CheckIcon className="h-3 w-3" />
+										<span>Success</span>
+									</>
+								)}
+								{isError && (
+									<>
+										<XIcon className="h-3 w-3" />
+										<span>Failed</span>
+									</>
+								)}
+							</div>
+						)}
+						<div className="flex h-6 w-6 items-center justify-center">
+							{isPending && <Loader size={12} />}
+						</div>
+					</div>
+				</button>
 			</CollapsibleTrigger>
 
 			{hasOutput && (
