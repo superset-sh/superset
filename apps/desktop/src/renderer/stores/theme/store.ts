@@ -41,6 +41,12 @@ interface ThemeState {
 
 	/** Add a custom theme */
 	addCustomTheme: (theme: Theme) => void;
+	/** Add or replace custom themes by ID */
+	upsertCustomThemes: (themes: Theme[]) => {
+		added: number;
+		updated: number;
+		skipped: number;
+	};
 
 	/** Remove a custom theme by ID */
 	removeCustomTheme: (themeId: string) => void;
@@ -82,6 +88,8 @@ function findTheme(themeId: string, customThemes: Theme[]): Theme | undefined {
 		customThemes.find((t) => t.id === themeId)
 	);
 }
+
+const builtInThemeIds = new Set(builtInThemes.map((theme) => theme.id));
 
 /**
  * Sync theme data to localStorage for instant access before hydration.
@@ -155,10 +163,56 @@ export const useThemeStore = create<ThemeState>()(
 				},
 
 				addCustomTheme: (theme: Theme) => {
-					const customTheme = { ...theme, isCustom: true, isBuiltIn: false };
-					set((state) => ({
-						customThemes: [...state.customThemes, customTheme],
-					}));
+					get().upsertCustomThemes([theme]);
+				},
+
+				upsertCustomThemes: (themes: Theme[]) => {
+					const state = get();
+					const customThemesById = new Map(
+						state.customThemes.map((theme) => [theme.id, theme]),
+					);
+
+					let added = 0;
+					let updated = 0;
+					let skipped = 0;
+
+					for (const theme of themes) {
+						if (theme.id === SYSTEM_THEME_ID || builtInThemeIds.has(theme.id)) {
+							skipped++;
+							continue;
+						}
+
+						const customTheme = { ...theme, isCustom: true, isBuiltIn: false };
+						if (customThemesById.has(customTheme.id)) {
+							updated++;
+						} else {
+							added++;
+						}
+						customThemesById.set(customTheme.id, customTheme);
+					}
+
+					if (added + updated === 0) {
+						return { added, updated, skipped };
+					}
+
+					const customThemes = Array.from(customThemesById.values());
+					const resolvedId = resolveThemeId(state.activeThemeId);
+					const resolvedTheme = findTheme(resolvedId, customThemes);
+
+					if (!resolvedTheme) {
+						set({ customThemes });
+						return { added, updated, skipped };
+					}
+
+					const { terminalTheme, monacoTheme } = applyTheme(resolvedTheme);
+					set({
+						customThemes,
+						activeTheme: resolvedTheme,
+						terminalTheme,
+						monacoTheme,
+					});
+
+					return { added, updated, skipped };
 				},
 
 				removeCustomTheme: (themeId: string) => {
