@@ -52,7 +52,7 @@ export function WorkspaceInitEffects() {
 				);
 				setTabAutoTitle(setupTabId, "Workspace Setup");
 				for (const preset of presets) {
-					openPreset(setup.workspaceId, preset);
+					openPreset(setup.workspaceId, preset, { target: "active-tab" });
 				}
 
 				if (agentCommand) {
@@ -137,7 +137,7 @@ export function WorkspaceInitEffects() {
 
 			if (hasPresets) {
 				for (const preset of presets) {
-					openPreset(setup.workspaceId, preset);
+					openPreset(setup.workspaceId, preset, { target: "active-tab" });
 				}
 				if (agentCommand) {
 					const { tabId: agentTabId } = addTab(setup.workspaceId, {
