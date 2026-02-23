@@ -49,6 +49,25 @@ function parseSlashCommandArguments(argumentsRaw: string): string[] {
 	return tokens;
 }
 
+function parseNamedSlashCommandArguments(
+	argumentTokens: string[],
+): Map<string, string> {
+	const namedArguments = new Map<string, string>();
+
+	for (const token of argumentTokens) {
+		const match = token.match(/^(?:--?)?([A-Za-z_][\w-]*)=(.*)$/);
+		if (!match) continue;
+		const rawKey = match[1];
+		const rawValue = match[2];
+		if (rawKey === undefined || rawValue === undefined) continue;
+
+		const key = rawKey.replace(/-/g, "_").toUpperCase();
+		namedArguments.set(key, rawValue);
+	}
+
+	return namedArguments;
+}
+
 function stripFrontmatter(raw: string): string {
 	if (!raw.startsWith("---")) return raw;
 
@@ -73,14 +92,46 @@ function stripFrontmatter(raw: string): string {
 
 function renderSlashCommandPrompt(
 	template: string,
+	commandName: string,
+	cwd: string,
 	argumentsRaw: string,
 	argumentTokens: string[],
 ): string {
+	const namedArguments = parseNamedSlashCommandArguments(argumentTokens);
+	namedArguments.set("COMMAND", commandName);
+	namedArguments.set("CWD", cwd);
+
 	const withAllArguments = template.replaceAll("$ARGUMENTS", argumentsRaw);
-	return withAllArguments.replace(/\$(\d+)/g, (_, index: string) => {
-		const argumentIndex = Number.parseInt(index, 10) - 1;
-		return argumentTokens[argumentIndex] ?? "";
-	});
+	const withPositionalArguments = withAllArguments.replace(
+		/\$\{(\d+)\}|\$(\d+)/g,
+		(_, bracedIndex: string | undefined, plainIndex: string | undefined) => {
+			const index = bracedIndex ?? plainIndex;
+			if (!index) return "";
+			const argumentIndex = Number.parseInt(index, 10) - 1;
+			return argumentTokens[argumentIndex] ?? "";
+		},
+	);
+
+	return withPositionalArguments.replace(
+		/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g,
+		(match, bracedName: string | undefined, plainName: string | undefined) => {
+			const name = (bracedName ?? plainName)?.toUpperCase();
+			if (!name) return match;
+			return namedArguments.get(name) ?? match;
+		},
+	);
+}
+
+function resolveCommandTemplate(command: {
+	kind: "custom" | "builtin";
+	filePath?: string;
+	template?: string;
+}): string {
+	if (command.kind === "builtin") return command.template ?? "";
+	if (!command.filePath) return "";
+
+	const rawCommand = readFileSync(command.filePath, "utf-8");
+	return stripFrontmatter(rawCommand);
 }
 
 export function resolveSlashCommand(
@@ -95,11 +146,12 @@ export function resolveSlashCommand(
 	);
 	if (!command) return { handled: false };
 
-	const rawCommand = readFileSync(command.filePath, "utf-8");
-	const template = stripFrontmatter(rawCommand);
+	const template = resolveCommandTemplate(command);
 	const argumentTokens = parseSlashCommandArguments(invocation.argumentsRaw);
 	const prompt = renderSlashCommandPrompt(
 		template,
+		command.name,
+		cwd,
 		invocation.argumentsRaw,
 		argumentTokens,
 	).trim();

@@ -1,12 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
+import { getBuiltInSlashCommands } from "./builtins";
 import { parseSlashCommandFrontmatter } from "./frontmatter";
 import type { SlashCommandRegistryEntry, SlashCommandSource } from "./types";
 
 interface SlashCommandRegistryOptions {
 	homeDirectory?: string;
 	projectDirectory?: string;
+	includeBuiltIns?: boolean;
 }
 
 function getCommandDirectoryEntries(
@@ -112,6 +114,15 @@ export function buildSlashCommandRegistry(
 				`[slash-commands] Failed to read commands from ${directory}:`,
 				error,
 			);
+		}
+	}
+
+	const includeBuiltIns = options?.includeBuiltIns ?? true;
+	if (includeBuiltIns) {
+		for (const command of getBuiltInSlashCommands()) {
+			if (seenNames.has(command.name)) continue;
+			seenNames.add(command.name);
+			commands.push(command);
 		}
 	}
 

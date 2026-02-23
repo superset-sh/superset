@@ -1,4 +1,4 @@
-export type SlashCommandKind = "custom";
+export type SlashCommandKind = "custom" | "builtin";
 
 export interface SlashCommand {
 	name: string;
@@ -8,8 +8,9 @@ export interface SlashCommand {
 	source: SlashCommandSource;
 }
 
-export type SlashCommandSource = "project" | "global";
+export type SlashCommandSource = "project" | "global" | "builtin";
 
 export interface SlashCommandRegistryEntry extends SlashCommand {
-	filePath: string;
+	filePath?: string;
+	template?: string;
 }

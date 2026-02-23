@@ -22,6 +22,7 @@ export const resolveSlashCommandInput = z.object({
 	cwd: z.string(),
 	text: z.string(),
 });
+export const previewSlashCommandInput = resolveSlashCommandInput;
 
 export const sessionIdInput = z.object({
 	sessionId: z.string().uuid(),
@@ -67,6 +68,12 @@ export function createChatServiceRouter(service: ChatService) {
 			resolveSlashCommand: t.procedure
 				.input(resolveSlashCommandInput)
 				.mutation(async ({ input }) => {
+					return resolveSlashCommand(input.cwd, input.text);
+				}),
+
+			previewSlashCommand: t.procedure
+				.input(resolveSlashCommandInput)
+				.query(async ({ input }) => {
 					return resolveSlashCommand(input.cwd, input.text);
 				}),
 		}),

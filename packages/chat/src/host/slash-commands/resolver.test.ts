@@ -85,6 +85,16 @@ Clean up this branch.`,
 		expect(result.prompt).toBe("Clean up this branch.");
 	});
 
+	it("resolves built-in commands when no custom command exists", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+
+		const result = resolveSlashCommand(cwd, "/plan improve caching");
+
+		expect(result.handled).toBe(true);
+		expect(result.commandName).toBe("plan");
+		expect(result.prompt).toContain("Goal: improve caching");
+	});
+
 	it("resolves namespaced command names", () => {
 		const cwd = makeTempDirectory("slash-cwd-");
 		writeCommandFile(
@@ -104,5 +114,35 @@ Create component in $1`,
 		expect(result.handled).toBe(true);
 		expect(result.commandName).toBe("frontend/component");
 		expect(result.prompt).toBe("Create component in src/components");
+	});
+
+	it("supports named placeholders and braced positional placeholders", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		writeCommandFile(
+			cwd,
+			"refactor-local",
+			`---
+description: Refactor helper
+---
+Scope: ${"$"}{1}
+Goal: ${"$"}{GOAL}
+Constraints: ${"$"}CONSTRAINTS
+Unknown should remain: ${"$"}NOT_SET
+Cwd: ${"$"}{CWD}
+Command: ${"$"}COMMAND`,
+		);
+
+		const result = resolveSlashCommand(
+			cwd,
+			"/refactor-local src/features goal=simplify --constraints=no-api-change",
+		);
+
+		expect(result.handled).toBe(true);
+		expect(result.prompt).toContain("Scope: src/features");
+		expect(result.prompt).toContain("Goal: simplify");
+		expect(result.prompt).toContain("Constraints: no-api-change");
+		expect(result.prompt).toContain("Unknown should remain: $NOT_SET");
+		expect(result.prompt).toContain(`Cwd: ${cwd}`);
+		expect(result.prompt).toContain("Command: refactor-local");
 	});
 });

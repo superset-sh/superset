@@ -59,7 +59,10 @@ description: Global cleanup
 Body`,
 		);
 
-		const registry = buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		const registry = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
 
 		expect(registry.map((command) => command.name)).toEqual([
 			"review",
@@ -79,7 +82,10 @@ Body`,
 		writeCommandFile(home, "omega", "---\ndescription: omega\n---");
 		writeCommandFile(home, "beta", "---\ndescription: beta\n---");
 
-		const registry = buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		const registry = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
 
 		expect(registry.map((command) => command.name)).toEqual([
 			"alpha",
@@ -96,7 +102,10 @@ Body`,
 		writeCommandFile(cwd, "frontend/component", "---\ndescription: c\n---");
 		writeCommandFile(cwd, "frontend/fix", "---\ndescription: f\n---");
 
-		const registry = buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		const registry = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
 
 		expect(registry.map((command) => command.name)).toEqual([
 			"frontend/component",
@@ -116,7 +125,10 @@ Body`,
 		);
 		writeCommandFile(cwd, "commit", "---\ndescription: commit\n---", "command");
 
-		const registry = buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		const registry = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
 
 		expect(registry.map((command) => command.name)).toEqual([
 			"review",
@@ -125,5 +137,35 @@ Body`,
 		expect(registry.every((command) => command.source === "project")).toBe(
 			true,
 		);
+	});
+
+	it("includes built-in commands by default", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		const registry = buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		expect(registry.some((command) => command.source === "builtin")).toBe(true);
+		expect(registry.some((command) => command.name === "review")).toBe(true);
+	});
+
+	it("allows custom commands to override built-in names", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		writeCommandFile(
+			cwd,
+			"review",
+			`---
+description: custom review
+---
+Body`,
+		);
+
+		const registry = buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		const review = registry.find((command) => command.name === "review");
+
+		expect(review?.source).toBe("project");
+		expect(review?.kind).toBe("custom");
+		expect(review?.description).toBe("custom review");
 	});
 });
