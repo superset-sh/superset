@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { buildSlashCommandRegistry } from "./registry";
+import {
+	buildSlashCommandRegistry,
+	clearSlashCommandRegistryCache,
+	getSlashCommandRegistryCacheStats,
+} from "./registry";
 
 const testDirectories: string[] = [];
 
@@ -25,6 +29,7 @@ function writeCommandFile(
 }
 
 afterEach(() => {
+	clearSlashCommandRegistryCache();
 	for (const directory of testDirectories.splice(0)) {
 		rmSync(directory, { recursive: true, force: true });
 	}
@@ -241,5 +246,22 @@ Body`,
 		expect(review?.source).toBe("project");
 		expect(review?.kind).toBe("custom");
 		expect(review?.description).toBe("custom review");
+	});
+
+	it("uses cache for repeated lookups with the same options", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+		writeCommandFile(cwd, "review", "---\ndescription: cached\n---");
+
+		const before = getSlashCommandRegistryCacheStats();
+		buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		const afterFirst = getSlashCommandRegistryCacheStats();
+		buildSlashCommandRegistry(cwd, { homeDirectory: home });
+		const afterSecond = getSlashCommandRegistryCacheStats();
+
+		expect(afterFirst.misses - before.misses).toBe(1);
+		expect(afterFirst.hits - before.hits).toBe(0);
+		expect(afterSecond.misses - afterFirst.misses).toBe(0);
+		expect(afterSecond.hits - afterFirst.hits).toBe(1);
 	});
 });

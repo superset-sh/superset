@@ -2,12 +2,16 @@ import { chatServiceTrpc } from "@superset/chat/client";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import type { ModelOption } from "../../types";
+import { resolveSlashPromptResult } from "./prompt-result";
 
 interface UseSlashCommandExecutorOptions {
 	cwd: string;
 	availableModels: ModelOption[];
 	canAbort: boolean;
-	onStartFreshSession: () => Promise<boolean>;
+	onStartFreshSession: () => Promise<{
+		created: boolean;
+		errorMessage?: string;
+	}>;
 	onStopActiveResponse: () => void;
 	onSelectModel: (model: ModelOption) => void;
 	onSetErrorMessage: (message: string) => void;
@@ -79,15 +83,15 @@ export function useSlashCommandExecutor({
 					switch (resolvedCommand.action.type) {
 						case "new_session": {
 							onClearError();
-							const created = await onStartFreshSession();
-							if (created) {
+							const startResult = await onStartFreshSession();
+							if (startResult.created) {
 								toast.success(
 									resolvedCommand.invokedAs?.toLowerCase() === "clear"
 										? "Context cleared in a new chat session"
 										: "Started a new chat session",
 								);
-							} else {
-								toast.error("Failed to start a new chat session");
+							} else if (startResult.errorMessage) {
+								toast.error(startResult.errorMessage);
 							}
 							return { handled: true, nextText: "" };
 						}
@@ -127,10 +131,22 @@ export function useSlashCommandExecutor({
 					}
 				}
 
+				const promptResolution = resolveSlashPromptResult({
+					handled: resolvedCommand.handled,
+					prompt: resolvedCommand.prompt,
+					commandName: resolvedCommand.commandName,
+					invokedAs: resolvedCommand.invokedAs,
+				});
+				if (promptResolution.errorMessage) {
+					onSetErrorMessage(promptResolution.errorMessage);
+					toast.error(promptResolution.errorMessage);
+					return { handled: true, nextText: "" };
+				}
+
 				onClearError();
 				return {
-					handled: false,
-					nextText: (resolvedCommand.prompt ?? "").trim(),
+					handled: promptResolution.handled,
+					nextText: promptResolution.nextText,
 				};
 			} catch (error) {
 				console.warn(

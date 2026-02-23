@@ -44,7 +44,10 @@ interface UseChatSendControllerReturn {
 	pendingMessages: PendingUserMessage[];
 	runtimeError: string | null;
 	handleSend: (message: PromptInputMessage) => void;
-	startFreshSession: () => Promise<boolean>;
+	startFreshSession: () => Promise<{
+		created: boolean;
+		errorMessage?: string;
+	}>;
 	setRuntimeErrorMessage: (message: string) => void;
 	clearRuntimeError: () => void;
 	stopPendingSends: () => void;
@@ -199,6 +202,7 @@ export function useChatSendController(
 
 	const sendAbortControllersRef = useRef(new Map<string, AbortController>());
 	const sendingQueuedMessageIdRef = useRef<string | null>(null);
+	const freshSessionAbortControllerRef = useRef<AbortController | null>(null);
 
 	const setRuntimeErrorFromUnknown = useCallback(
 		(error: unknown, fallback: string) => {
@@ -244,6 +248,8 @@ export function useChatSendController(
 	}, []);
 
 	const abortAllInFlightSends = useCallback(() => {
+		freshSessionAbortControllerRef.current?.abort();
+		freshSessionAbortControllerRef.current = null;
 		for (const controller of sendAbortControllersRef.current.values()) {
 			controller.abort();
 		}
@@ -550,10 +556,14 @@ export function useChatSendController(
 		clearRuntimeError();
 	}, [abortAllInFlightSends, clearRuntimeError]);
 
-	const startFreshSession = useCallback(async (): Promise<boolean> => {
+	const startFreshSession = useCallback(async (): Promise<{
+		created: boolean;
+		errorMessage?: string;
+	}> => {
 		if (!organizationId) {
-			setRuntimeError("Organization is required to start a chat session");
-			return false;
+			const errorMessage = "Organization is required to start a chat session";
+			setRuntimeError(errorMessage);
+			return { created: false, errorMessage };
 		}
 
 		try {
@@ -561,14 +571,29 @@ export function useChatSendController(
 			setIsPreparingSubmit(false);
 			chat.stop();
 
+			const freshSessionAbortController = new AbortController();
+			freshSessionAbortControllerRef.current = freshSessionAbortController;
 			const newSessionId = crypto.randomUUID();
-			await createSession(newSessionId, organizationId, deviceId, workspaceId);
+			await createSession(
+				newSessionId,
+				organizationId,
+				deviceId,
+				workspaceId,
+				freshSessionAbortController.signal,
+			);
 			clearRuntimeError();
 			switchChatSession(paneId, newSessionId);
-			return true;
+			return { created: true };
 		} catch (err) {
-			setRuntimeErrorFromUnknown(err, "Failed to create a new session");
-			return false;
+			if (isAbortError(err)) {
+				return { created: false };
+			}
+			const errorMessage =
+				err instanceof Error ? err.message : "Failed to create a new session";
+			setRuntimeError(errorMessage);
+			return { created: false, errorMessage };
+		} finally {
+			freshSessionAbortControllerRef.current = null;
 		}
 	}, [
 		organizationId,
@@ -579,7 +604,6 @@ export function useChatSendController(
 		workspaceId,
 		switchChatSession,
 		paneId,
-		setRuntimeErrorFromUnknown,
 	]);
 
 	const markSubmitStarted = useCallback(() => {

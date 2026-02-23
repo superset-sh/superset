@@ -9,49 +9,154 @@ interface SlashCommandRegistryOptions {
 	homeDirectory?: string;
 	projectDirectory?: string;
 	includeBuiltIns?: boolean;
+	useCache?: boolean;
 }
 
-function getCommandDirectoryEntries(
+const REGISTRY_CACHE_TTL_MS = 1000;
+const REGISTRY_CACHE_MAX_ENTRIES = 64;
+
+interface ResolvedRegistryOptions {
+	homeDirectory: string;
+	projectDirectory: string;
+	includeBuiltIns: boolean;
+	useCache: boolean;
+}
+
+interface RegistryCacheValue {
+	expiresAt: number;
+	commands: SlashCommandRegistryEntry[];
+}
+
+interface RegistryCacheStats {
+	hits: number;
+	misses: number;
+}
+
+const registryCache = new Map<string, RegistryCacheValue>();
+const registryCacheStats: RegistryCacheStats = {
+	hits: 0,
+	misses: 0,
+};
+
+function resolveRegistryOptions(
 	cwd: string,
 	options?: SlashCommandRegistryOptions,
-): Array<{
+): ResolvedRegistryOptions {
+	return {
+		homeDirectory: options?.homeDirectory ?? homedir(),
+		projectDirectory: options?.projectDirectory ?? cwd,
+		includeBuiltIns: options?.includeBuiltIns ?? true,
+		useCache: options?.useCache ?? true,
+	};
+}
+
+function getRegistryCacheKey(options: ResolvedRegistryOptions): string {
+	return [
+		options.projectDirectory,
+		options.homeDirectory,
+		options.includeBuiltIns ? "builtin:1" : "builtin:0",
+	].join("|");
+}
+
+function cloneSlashCommandRegistryEntry(
+	command: SlashCommandRegistryEntry,
+): SlashCommandRegistryEntry {
+	return {
+		...command,
+		aliases: [...command.aliases],
+		action: command.action ? { ...command.action } : undefined,
+	};
+}
+
+function cloneSlashCommandRegistry(
+	commands: SlashCommandRegistryEntry[],
+): SlashCommandRegistryEntry[] {
+	return commands.map(cloneSlashCommandRegistryEntry);
+}
+
+function pruneRegistryCache(now = Date.now()): void {
+	for (const [key, value] of registryCache) {
+		if (value.expiresAt <= now) {
+			registryCache.delete(key);
+		}
+	}
+}
+
+function readRegistryCache(
+	cacheKey: string,
+): SlashCommandRegistryEntry[] | null {
+	pruneRegistryCache();
+	const cached = registryCache.get(cacheKey);
+	if (!cached) return null;
+	return cloneSlashCommandRegistry(cached.commands);
+}
+
+function writeRegistryCache(
+	cacheKey: string,
+	commands: SlashCommandRegistryEntry[],
+): void {
+	pruneRegistryCache();
+	registryCache.delete(cacheKey);
+	while (registryCache.size >= REGISTRY_CACHE_MAX_ENTRIES) {
+		const oldestKey = registryCache.keys().next().value;
+		if (!oldestKey) break;
+		registryCache.delete(oldestKey);
+	}
+
+	registryCache.set(cacheKey, {
+		expiresAt: Date.now() + REGISTRY_CACHE_TTL_MS,
+		commands: cloneSlashCommandRegistry(commands),
+	});
+}
+
+export function clearSlashCommandRegistryCache(): void {
+	registryCache.clear();
+	registryCacheStats.hits = 0;
+	registryCacheStats.misses = 0;
+}
+
+export function getSlashCommandRegistryCacheStats(): RegistryCacheStats {
+	return {
+		hits: registryCacheStats.hits,
+		misses: registryCacheStats.misses,
+	};
+}
+
+function getCommandDirectoryEntries(options: ResolvedRegistryOptions): Array<{
 	directory: string;
 	source: SlashCommandSource;
 }> {
-	const projectDirectory = options?.projectDirectory ?? cwd;
-	const homeDirectory = options?.homeDirectory ?? homedir();
-
 	return [
 		{
-			directory: join(projectDirectory, ".claude", "commands"),
+			directory: join(options.projectDirectory, ".claude", "commands"),
 			source: "project",
 		},
 		{
-			directory: join(projectDirectory, ".claude", "command"),
+			directory: join(options.projectDirectory, ".claude", "command"),
 			source: "project",
 		},
 		{
-			directory: join(projectDirectory, ".agents", "commands"),
+			directory: join(options.projectDirectory, ".agents", "commands"),
 			source: "project",
 		},
 		{
-			directory: join(projectDirectory, ".agents", "command"),
+			directory: join(options.projectDirectory, ".agents", "command"),
 			source: "project",
 		},
 		{
-			directory: join(homeDirectory, ".claude", "commands"),
+			directory: join(options.homeDirectory, ".claude", "commands"),
 			source: "global",
 		},
 		{
-			directory: join(homeDirectory, ".claude", "command"),
+			directory: join(options.homeDirectory, ".claude", "command"),
 			source: "global",
 		},
 		{
-			directory: join(homeDirectory, ".agents", "commands"),
+			directory: join(options.homeDirectory, ".agents", "commands"),
 			source: "global",
 		},
 		{
-			directory: join(homeDirectory, ".agents", "command"),
+			directory: join(options.homeDirectory, ".agents", "command"),
 			source: "global",
 		},
 	];
@@ -116,12 +221,22 @@ export function buildSlashCommandRegistry(
 	cwd: string,
 	options?: SlashCommandRegistryOptions,
 ): SlashCommandRegistryEntry[] {
+	const resolvedOptions = resolveRegistryOptions(cwd, options);
+	const cacheKey = getRegistryCacheKey(resolvedOptions);
+	if (resolvedOptions.useCache) {
+		const cached = readRegistryCache(cacheKey);
+		if (cached) {
+			registryCacheStats.hits += 1;
+			return cached;
+		}
+		registryCacheStats.misses += 1;
+	}
+
 	const commands: SlashCommandRegistryEntry[] = [];
 	const seenNames = new Set<string>();
 
 	for (const { directory, source } of getCommandDirectoryEntries(
-		cwd,
-		options,
+		resolvedOptions,
 	)) {
 		if (!existsSync(directory)) continue;
 
@@ -153,8 +268,7 @@ export function buildSlashCommandRegistry(
 		}
 	}
 
-	const includeBuiltIns = options?.includeBuiltIns ?? true;
-	if (includeBuiltIns) {
+	if (resolvedOptions.includeBuiltIns) {
 		for (const command of getBuiltInSlashCommands()) {
 			if (seenNames.has(command.name)) continue;
 			seenNames.add(command.name);
@@ -165,5 +279,9 @@ export function buildSlashCommandRegistry(
 		}
 	}
 
-	return commands;
+	if (resolvedOptions.useCache) {
+		writeRegistryCache(cacheKey, commands);
+	}
+
+	return cloneSlashCommandRegistry(commands);
 }

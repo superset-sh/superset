@@ -174,14 +174,23 @@ function renderSlashCommandPrompt(
 
 function resolveCommandTemplate(command: {
 	kind: "custom" | "builtin";
+	name: string;
 	filePath?: string;
 	template?: string;
 }): string {
 	if (command.kind === "builtin") return command.template ?? "";
 	if (!command.filePath) return "";
 
-	const rawCommand = readFileSync(command.filePath, "utf-8");
-	return stripFrontmatter(rawCommand);
+	try {
+		const rawCommand = readFileSync(command.filePath, "utf-8");
+		return stripFrontmatter(rawCommand);
+	} catch (error) {
+		console.warn(
+			`[slash-commands] Failed to load template for "${command.name}" from ${command.filePath}:`,
+			error,
+		);
+		return "";
+	}
 }
 
 export function resolveSlashCommand(
