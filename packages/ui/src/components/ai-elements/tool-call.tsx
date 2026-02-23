@@ -2,7 +2,7 @@
 
 import type { ComponentType } from "react";
 import { cn } from "../../lib/utils";
-import { Shimmer } from "./shimmer";
+import { ShimmerLabel } from "./shimmer-label";
 
 export type ToolCallProps = {
 	icon: ComponentType<{ className?: string }>;
@@ -33,18 +33,7 @@ export const ToolCall = ({
 		>
 			<div className="min-w-0 flex flex-1 items-center gap-1.5">
 				<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-					<span className="shrink-0 whitespace-nowrap font-medium">
-						{isPending ? (
-							<Shimmer
-								as="span"
-								className="m-0 inline-flex h-4 items-center text-xs leading-none"
-							>
-								{title}
-							</Shimmer>
-						) : (
-							title
-						)}
-					</span>
+					<ShimmerLabel isShimmering={isPending}>{title}</ShimmerLabel>
 					{subtitle && (
 						// biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: clickable subtitle
 						<span

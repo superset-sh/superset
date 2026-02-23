@@ -4,7 +4,7 @@ import { CheckIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Loader } from "./loader";
-import { Shimmer } from "./shimmer";
+import { ShimmerLabel } from "./shimmer-label";
 
 type BashToolState =
 	| "input-streaming"
@@ -86,14 +86,7 @@ export const BashTool = ({
 			>
 				<div className="min-w-0 flex flex-1 items-center gap-1.5">
 					<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-						<span className="shrink-0 whitespace-nowrap font-medium">
-							<Shimmer
-								as="span"
-								className="m-0 inline-flex h-4 items-center text-xs leading-none"
-							>
-								Generating command
-							</Shimmer>
-						</span>
+						<ShimmerLabel>Generating command</ShimmerLabel>
 					</div>
 				</div>
 			</div>

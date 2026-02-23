@@ -5,7 +5,7 @@ import {
 	ConversationScrollButton,
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
-import { Shimmer } from "@superset/ui/ai-elements/shimmer";
+import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import type { ChatStatus, UIMessage } from "ai";
 import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
@@ -146,14 +146,9 @@ export function MessageList({
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
 									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
-										<span className="shrink-0 whitespace-nowrap font-medium text-xs text-muted-foreground">
-											<Shimmer
-												as="span"
-												className="m-0 inline-flex h-4 items-center text-xs leading-none"
-											>
-												Thinking...
-											</Shimmer>
-										</span>
+										<ShimmerLabel className="text-xs text-muted-foreground">
+											Thinking...
+										</ShimmerLabel>
 									) : (
 										<MessagePartsRenderer
 											parts={msg.parts}
@@ -171,14 +166,9 @@ export function MessageList({
 				{isThinking && messages[messages.length - 1]?.role === "user" && (
 					<Message from="assistant">
 						<MessageContent>
-							<span className="shrink-0 whitespace-nowrap font-medium text-xs text-muted-foreground">
-								<Shimmer
-									as="span"
-									className="m-0 inline-flex h-4 items-center text-xs leading-none"
-								>
-									Thinking...
-								</Shimmer>
-							</span>
+							<ShimmerLabel className="text-xs text-muted-foreground">
+								Thinking...
+							</ShimmerLabel>
 						</MessageContent>
 					</Message>
 				)}

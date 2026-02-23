@@ -4,7 +4,7 @@ import { ExternalLinkIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { Loader } from "./loader";
-import { Shimmer } from "./shimmer";
+import { ShimmerLabel } from "./shimmer-label";
 
 type WebSearchToolState =
 	| "input-streaming"
@@ -55,12 +55,9 @@ export const WebSearchTool = ({
 				<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs">
 					<SearchIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
 					{isPending ? (
-						<Shimmer
-							as="span"
-							className="text-xs text-muted-foreground"
-						>
+						<ShimmerLabel className="text-xs text-muted-foreground">
 							Searching
-						</Shimmer>
+						</ShimmerLabel>
 					) : (
 						<span className="text-xs text-muted-foreground">Searched</span>
 					)}

@@ -4,7 +4,7 @@ import { GlobeIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 import { Loader } from "./loader";
-import { Shimmer } from "./shimmer";
+import { ShimmerLabel } from "./shimmer-label";
 
 type WebFetchToolState =
 	| "input-streaming"
@@ -71,12 +71,9 @@ export const WebFetchTool = ({
 				<div className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs">
 					<GlobeIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
 					{isPending ? (
-						<Shimmer
-							as="span"
-							className="text-xs text-muted-foreground"
-						>
+						<ShimmerLabel className="text-xs text-muted-foreground">
 							Fetching
-						</Shimmer>
+						</ShimmerLabel>
 					) : (
 						<span className="text-xs text-muted-foreground">Fetched</span>
 					)}

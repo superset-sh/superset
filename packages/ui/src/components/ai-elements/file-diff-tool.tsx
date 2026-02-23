@@ -3,7 +3,7 @@
 import { FileCode2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
-import { Shimmer } from "./shimmer";
+import { ShimmerLabel } from "./shimmer-label";
 
 type FileDiffToolState =
 	| "input-streaming"
@@ -143,12 +143,9 @@ export const FileDiffTool = ({
 				<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
 					<FileCode2Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
 					{isStreaming && !filePath ? (
-						<Shimmer
-							as="span"
-							className="text-xs text-muted-foreground"
-						>
+						<ShimmerLabel className="text-xs text-muted-foreground">
 							{isWriteMode ? "Writing file..." : "Editing file..."}
-						</Shimmer>
+						</ShimmerLabel>
 					) : (
 						<span className="min-w-0 truncate text-muted-foreground">
 							{isWriteMode ? "Wrote" : "Edited"}{" "}
