@@ -45,6 +45,8 @@ interface UseChatSendControllerReturn {
 	runtimeError: string | null;
 	handleSend: (message: PromptInputMessage) => void;
 	startFreshSession: () => Promise<boolean>;
+	setRuntimeErrorMessage: (message: string) => void;
+	clearRuntimeError: () => void;
 	stopPendingSends: () => void;
 	markSubmitStarted: () => void;
 	markSubmitEnded: () => void;
@@ -198,12 +200,20 @@ export function useChatSendController(
 	const sendAbortControllersRef = useRef(new Map<string, AbortController>());
 	const sendingQueuedMessageIdRef = useRef<string | null>(null);
 
-	const setRuntimeErrorMessage = useCallback(
+	const setRuntimeErrorFromUnknown = useCallback(
 		(error: unknown, fallback: string) => {
 			setRuntimeError(error instanceof Error ? error.message : fallback);
 		},
 		[],
 	);
+
+	const setRuntimeErrorMessage = useCallback((message: string) => {
+		setRuntimeError(message);
+	}, []);
+
+	const clearRuntimeError = useCallback(() => {
+		setRuntimeError(null);
+	}, []);
 
 	const removePendingMessage = useCallback((messageId: string) => {
 		setPendingMessages((prev) => {
@@ -395,7 +405,7 @@ export function useChatSendController(
 				removePendingMessage(queuedPendingMessage.id);
 				removeAwaitingAssistant(queuedPendingMessage.id);
 				clearQueuedPendingMessage(queuedPendingMessage.id);
-				setRuntimeErrorMessage(err, "Failed to start session runtime");
+				setRuntimeErrorFromUnknown(err, "Failed to start session runtime");
 			} finally {
 				if (
 					!cancelled &&
@@ -419,7 +429,7 @@ export function useChatSendController(
 		removePendingMessage,
 		removeAwaitingAssistant,
 		sendPreparedMessage,
-		setRuntimeErrorMessage,
+		setRuntimeErrorFromUnknown,
 	]);
 
 	useEffect(() => {
@@ -511,7 +521,7 @@ export function useChatSendController(
 					}
 					removePendingMessage(messageId);
 					removeAwaitingAssistant(messageId);
-					setRuntimeErrorMessage(err, "Failed to send message");
+					setRuntimeErrorFromUnknown(err, "Failed to send message");
 				} finally {
 					if (
 						!handedOffToQueue &&
@@ -530,15 +540,15 @@ export function useChatSendController(
 			removePendingMessage,
 			addAwaitingAssistant,
 			removeAwaitingAssistant,
-			setRuntimeErrorMessage,
+			setRuntimeErrorFromUnknown,
 		],
 	);
 
 	const stopPendingSends = useCallback(() => {
 		abortAllInFlightSends();
 		setIsPreparingSubmit(false);
-		setRuntimeError(null);
-	}, [abortAllInFlightSends]);
+		clearRuntimeError();
+	}, [abortAllInFlightSends, clearRuntimeError]);
 
 	const startFreshSession = useCallback(async (): Promise<boolean> => {
 		if (!organizationId) {
@@ -553,22 +563,23 @@ export function useChatSendController(
 
 			const newSessionId = crypto.randomUUID();
 			await createSession(newSessionId, organizationId, deviceId, workspaceId);
-			setRuntimeError(null);
+			clearRuntimeError();
 			switchChatSession(paneId, newSessionId);
 			return true;
 		} catch (err) {
-			setRuntimeErrorMessage(err, "Failed to create a new session");
+			setRuntimeErrorFromUnknown(err, "Failed to create a new session");
 			return false;
 		}
 	}, [
 		organizationId,
 		abortAllInFlightSends,
 		chat.stop,
+		clearRuntimeError,
 		deviceId,
 		workspaceId,
 		switchChatSession,
 		paneId,
-		setRuntimeErrorMessage,
+		setRuntimeErrorFromUnknown,
 	]);
 
 	const markSubmitStarted = useCallback(() => {
@@ -595,6 +606,8 @@ export function useChatSendController(
 		runtimeError,
 		handleSend,
 		startFreshSession,
+		setRuntimeErrorMessage,
+		clearRuntimeError,
 		stopPendingSends,
 		markSubmitStarted,
 		markSubmitEnded,

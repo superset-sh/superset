@@ -1,6 +1,6 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { toast } from "@superset/ui/sonner";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import type { ModelOption } from "../../types";
 
 interface UseSlashCommandExecutorOptions {
@@ -10,6 +10,8 @@ interface UseSlashCommandExecutorOptions {
 	onStartFreshSession: () => Promise<boolean>;
 	onStopActiveResponse: () => void;
 	onSelectModel: (model: ModelOption) => void;
+	onSetErrorMessage: (message: string) => void;
+	onClearError: () => void;
 }
 
 interface ResolveSlashCommandResult {
@@ -50,14 +52,11 @@ export function useSlashCommandExecutor({
 	onStartFreshSession,
 	onStopActiveResponse,
 	onSelectModel,
+	onSetErrorMessage,
+	onClearError,
 }: UseSlashCommandExecutorOptions) {
 	const resolveSlashCommandMutation =
 		chatServiceTrpc.workspace.resolveSlashCommand.useMutation();
-	const [commandError, setCommandError] = useState<string | null>(null);
-
-	const clearCommandError = useCallback(() => {
-		setCommandError(null);
-	}, []);
 
 	const resolveSlashCommandInput = useCallback(
 		async (inputText: string): Promise<ResolveSlashCommandResult> => {
@@ -79,7 +78,7 @@ export function useSlashCommandExecutor({
 				if (resolvedCommand.action) {
 					switch (resolvedCommand.action.type) {
 						case "new_session": {
-							setCommandError(null);
+							onClearError();
 							const created = await onStartFreshSession();
 							if (created) {
 								toast.success(
@@ -88,9 +87,7 @@ export function useSlashCommandExecutor({
 										: "Started a new chat session",
 								);
 							} else {
-								const errorMessage = "Failed to start a new chat session";
-								setCommandError(errorMessage);
-								toast.error(errorMessage);
+								toast.error("Failed to start a new chat session");
 							}
 							return { handled: true, nextText: "" };
 						}
@@ -106,7 +103,7 @@ export function useSlashCommandExecutor({
 							const modelQuery = (resolvedCommand.action.argument ?? "").trim();
 							if (!modelQuery) {
 								const usage = "Usage: /model <model-id-or-name>";
-								setCommandError(usage);
+								onSetErrorMessage(usage);
 								toast.error(usage);
 								return { handled: true, nextText: "" };
 							}
@@ -117,20 +114,20 @@ export function useSlashCommandExecutor({
 							);
 							if (!matchedModel) {
 								const modelError = `Model not found: ${modelQuery}`;
-								setCommandError(modelError);
+								onSetErrorMessage(modelError);
 								toast.error(modelError);
 								return { handled: true, nextText: "" };
 							}
 
 							onSelectModel(matchedModel);
-							setCommandError(null);
+							onClearError();
 							toast.success(`Model set to ${matchedModel.name}`);
 							return { handled: true, nextText: "" };
 						}
 					}
 				}
 
-				setCommandError(null);
+				onClearError();
 				return {
 					handled: false,
 					nextText: (resolvedCommand.prompt ?? "").trim(),
@@ -147,7 +144,9 @@ export function useSlashCommandExecutor({
 			availableModels,
 			canAbort,
 			cwd,
+			onClearError,
 			onSelectModel,
+			onSetErrorMessage,
 			onStartFreshSession,
 			onStopActiveResponse,
 			resolveSlashCommandMutation,
@@ -155,8 +154,6 @@ export function useSlashCommandExecutor({
 	);
 
 	return {
-		commandError,
-		clearCommandError,
 		resolveSlashCommandInput,
 	};
 }

@@ -112,6 +112,8 @@ export function ChatInterface({
 		runtimeError,
 		handleSend: sendThroughController,
 		startFreshSession,
+		setRuntimeErrorMessage,
+		clearRuntimeError,
 		stopPendingSends,
 		markSubmitStarted,
 		markSubmitEnded,
@@ -134,15 +136,16 @@ export function ChatInterface({
 		chat.stop();
 	}, [stopPendingSends, chat.stop]);
 
-	const { commandError, clearCommandError, resolveSlashCommandInput } =
-		useSlashCommandExecutor({
-			cwd,
-			availableModels,
-			canAbort,
-			onStartFreshSession: startFreshSession,
-			onStopActiveResponse: stopActiveResponse,
-			onSelectModel: setSelectedModel,
-		});
+	const { resolveSlashCommandInput } = useSlashCommandExecutor({
+		cwd,
+		availableModels,
+		canAbort,
+		onStartFreshSession: startFreshSession,
+		onStopActiveResponse: stopActiveResponse,
+		onSelectModel: setSelectedModel,
+		onSetErrorMessage: setRuntimeErrorMessage,
+		onClearError: clearRuntimeError,
+	});
 
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
@@ -157,10 +160,10 @@ export function ChatInterface({
 
 			if (!text && files.length === 0) return;
 
-			clearCommandError();
+			clearRuntimeError();
 			sendThroughController({ text, files });
 		},
-		[clearCommandError, resolveSlashCommandInput, sendThroughController],
+		[clearRuntimeError, resolveSlashCommandInput, sendThroughController],
 	);
 
 	useEffect(() => {
@@ -219,10 +222,10 @@ export function ChatInterface({
 	const handleStop = useCallback(
 		(event: React.MouseEvent) => {
 			event.preventDefault();
-			clearCommandError();
+			clearRuntimeError();
 			stopActiveResponse();
 		},
-		[clearCommandError, stopActiveResponse],
+		[clearRuntimeError, stopActiveResponse],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -243,7 +246,7 @@ export function ChatInterface({
 				/>
 				<ChatInputFooter
 					cwd={cwd}
-					error={commandError ?? runtimeError ?? chat.error}
+					error={runtimeError ?? chat.error}
 					canAbort={canAbort}
 					submitStatus={submitStatus}
 					availableModels={availableModels}
