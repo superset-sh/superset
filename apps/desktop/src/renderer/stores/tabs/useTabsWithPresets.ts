@@ -17,6 +17,13 @@ interface OpenPresetOptions {
 	target?: "new-tab" | "active-tab";
 }
 
+interface PreparedPreset {
+	mode: "split-pane" | "new-tab";
+	commands: string[];
+	initialCwd?: string;
+	name?: string;
+}
+
 export function useTabsWithPresets() {
 	const { data: newTabPresets = [] } =
 		electronTrpc.settings.getNewTabPresets.useQuery();
@@ -42,73 +49,80 @@ export function useTabsWithPresets() {
 		};
 	}, [firstPreset]);
 
-	const openPresetAsNewTab = useCallback(
-		(workspaceId: string, preset: TerminalPreset) => {
-			const mode = resolvePresetMode(preset.executionMode);
-			const commands = preset.commands;
-			const hasMultipleCommands = commands.length > 1;
+	const preparePreset = useCallback(
+		(preset: TerminalPreset): PreparedPreset => {
+			return {
+				mode: resolvePresetMode(preset.executionMode),
+				commands: preset.commands,
+				initialCwd: preset.cwd || undefined,
+				name: preset.name || undefined,
+			};
+		},
+		[],
+	);
 
-			if (mode === "new-tab" && hasMultipleCommands) {
-				let firstResult: {
-					tabId: string;
-					paneId: string;
-				} | null = null;
+	const applyTabName = useCallback(
+		(tabId: string, name?: string) => {
+			if (name) {
+				renameTab(tabId, name);
+			}
+		},
+		[renameTab],
+	);
 
-				for (const command of commands) {
+	const executePresetInNewTab = useCallback(
+		(workspaceId: string, preset: PreparedPreset) => {
+			const hasMultipleCommands = preset.commands.length > 1;
+
+			if (preset.mode === "new-tab" && hasMultipleCommands) {
+				let firstResult: { tabId: string; paneId: string } | null = null;
+
+				for (const command of preset.commands) {
 					const result = storeAddTab(workspaceId, {
 						initialCommands: [command],
-						initialCwd: preset.cwd || undefined,
+						initialCwd: preset.initialCwd,
 					});
-
 					if (!firstResult) {
 						firstResult = result;
 					}
-
-					if (preset.name) {
-						renameTab(result.tabId, preset.name);
-					}
+					applyTabName(result.tabId, preset.name);
 				}
 
-				if (!firstResult) {
-					const fallback = storeAddTab(workspaceId, {
-						initialCwd: preset.cwd || undefined,
-					});
-					if (preset.name) {
-						renameTab(fallback.tabId, preset.name);
-					}
-					return fallback;
-				}
-
-				return firstResult;
+				return (
+					firstResult ??
+					(() => {
+						const fallback = storeAddTab(workspaceId, {
+							initialCwd: preset.initialCwd,
+						});
+						applyTabName(fallback.tabId, preset.name);
+						return fallback;
+					})()
+				);
 			}
 
-			let result: { tabId: string; paneId: string };
 			if (hasMultipleCommands) {
 				const multiPane = storeAddTabWithMultiplePanes(workspaceId, {
-					commands,
-					initialCwd: preset.cwd || undefined,
+					commands: preset.commands,
+					initialCwd: preset.initialCwd,
 				});
-				result = { tabId: multiPane.tabId, paneId: multiPane.paneIds[0] };
-			} else {
-				result = storeAddTab(workspaceId, {
-					initialCommands: commands,
-					initialCwd: preset.cwd || undefined,
-				});
+				applyTabName(multiPane.tabId, preset.name);
+				return { tabId: multiPane.tabId, paneId: multiPane.paneIds[0] };
 			}
 
-			if (preset.name) {
-				renameTab(result.tabId, preset.name);
-			}
-
+			const result = storeAddTab(workspaceId, {
+				initialCommands: preset.commands,
+				initialCwd: preset.initialCwd,
+			});
+			applyTabName(result.tabId, preset.name);
 			return result;
 		},
-		[storeAddTab, storeAddTabWithMultiplePanes, renameTab],
+		[storeAddTab, storeAddTabWithMultiplePanes, applyTabName],
 	);
 
-	const openPresetInActiveTab = useCallback(
-		(workspaceId: string, preset: TerminalPreset) => {
-			if (resolvePresetMode(preset.executionMode) === "new-tab") {
-				return openPresetAsNewTab(workspaceId, preset);
+	const executePresetInActiveTab = useCallback(
+		(workspaceId: string, preset: PreparedPreset) => {
+			if (preset.mode === "new-tab") {
+				return executePresetInNewTab(workspaceId, preset);
 			}
 
 			const state = useTabsStore.getState();
@@ -120,31 +134,31 @@ export function useTabsWithPresets() {
 			});
 
 			if (!activeTabId) {
-				return openPresetAsNewTab(workspaceId, preset);
+				return executePresetInNewTab(workspaceId, preset);
 			}
 
 			if (preset.commands.length > 1) {
 				const paneIds = storeAddPanesToTab(activeTabId, {
 					commands: preset.commands,
-					initialCwd: preset.cwd || undefined,
+					initialCwd: preset.initialCwd,
 				});
 				if (paneIds.length > 0) {
 					return { tabId: activeTabId, paneId: paneIds[0] };
 				}
-				return openPresetAsNewTab(workspaceId, preset);
+				return executePresetInNewTab(workspaceId, preset);
 			}
 
 			const paneId = storeAddPane(activeTabId, {
 				initialCommands: preset.commands,
-				initialCwd: preset.cwd || undefined,
+				initialCwd: preset.initialCwd,
 			});
 			if (paneId) {
 				return { tabId: activeTabId, paneId };
 			}
 
-			return openPresetAsNewTab(workspaceId, preset);
+			return executePresetInNewTab(workspaceId, preset);
 		},
-		[openPresetAsNewTab, storeAddPanesToTab, storeAddPane],
+		[executePresetInNewTab, storeAddPanesToTab, storeAddPane],
 	);
 
 	const openPreset = useCallback(
@@ -153,12 +167,13 @@ export function useTabsWithPresets() {
 			preset: TerminalPreset,
 			options?: OpenPresetOptions,
 		) => {
+			const prepared = preparePreset(preset);
 			if (options?.target === "active-tab") {
-				return openPresetInActiveTab(workspaceId, preset);
+				return executePresetInActiveTab(workspaceId, prepared);
 			}
-			return openPresetAsNewTab(workspaceId, preset);
+			return executePresetInNewTab(workspaceId, prepared);
 		},
-		[openPresetAsNewTab, openPresetInActiveTab],
+		[preparePreset, executePresetInActiveTab, executePresetInNewTab],
 	);
 
 	const addTab = useCallback(
@@ -171,14 +186,16 @@ export function useTabsWithPresets() {
 				return storeAddTab(workspaceId);
 			}
 
-			const firstResult = openPresetAsNewTab(workspaceId, newTabPresets[0]);
+			const firstResult = openPreset(workspaceId, newTabPresets[0], {
+				target: "new-tab",
+			});
 			for (let i = 1; i < newTabPresets.length; i++) {
-				openPresetAsNewTab(workspaceId, newTabPresets[i]);
+				openPreset(workspaceId, newTabPresets[i], { target: "new-tab" });
 			}
 
 			return { tabId: firstResult.tabId, paneId: firstResult.paneId };
 		},
-		[storeAddTab, newTabPresets, openPresetAsNewTab],
+		[storeAddTab, newTabPresets, openPreset],
 	);
 
 	const addPane = useCallback(
