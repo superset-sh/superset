@@ -40,7 +40,16 @@ export function MastraToolCallBlock({
 	// --- Execute command → BashTool ---
 	if (toolName === "mastra_workspace_execute_command") {
 		const command = String(args.command ?? args.cmd ?? "");
-		const stdout = result.stdout != null ? String(result.stdout) : undefined;
+		const stdout =
+			result.stdout != null
+				? String(result.stdout)
+				: result.output != null
+					? typeof result.output === "string"
+						? result.output
+						: JSON.stringify(result.output, null, 2)
+					: result.text != null
+						? String(result.text)
+						: undefined;
 		const stderr = result.stderr != null ? String(result.stderr) : undefined;
 		const exitCode =
 			result.exitCode != null ? Number(result.exitCode) : undefined;
