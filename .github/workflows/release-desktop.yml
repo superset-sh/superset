@@ -27,7 +27,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: build
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/desktop-v')
 
     steps:

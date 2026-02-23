@@ -8,7 +8,7 @@ on:
 jobs:
   deploy-database:
     name: Deploy Database Migrations
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
 
     steps:
@@ -38,7 +38,7 @@ jobs:
 
   deploy-api:
     name: Deploy API to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
     needs: deploy-database
 
@@ -166,7 +166,7 @@ jobs:
 
   deploy-web:
     name: Deploy Web to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
     needs: deploy-database
 
@@ -252,7 +252,7 @@ jobs:
 
   deploy-marketing:
     name: Deploy Marketing to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
     needs: deploy-database
 
@@ -332,7 +332,7 @@ jobs:
 
   deploy-admin:
     name: Deploy Admin to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
     needs: deploy-database
 
@@ -420,7 +420,7 @@ jobs:
 
   deploy-electric:
     name: Deploy Electric to Fly.io
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
 
     steps:
@@ -447,7 +447,7 @@ jobs:
 
   deploy-docs:
     name: Deploy Docs to Vercel
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     environment: production
     needs: deploy-database
 

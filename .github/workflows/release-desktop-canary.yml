@@ -18,7 +18,7 @@ permissions:
 jobs:
   check-changes:
     name: Check for changes
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
       short_sha: ${{ steps.check.outputs.short_sha }}
@@ -83,7 +83,7 @@ jobs:
     name: Update Canary Release
     needs: [check-changes, build]
     if: needs.check-changes.outputs.should_build == 'true'
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
