@@ -194,11 +194,24 @@ export function MastraToolCallBlock({
 	// --- Fallback: generic tool UI ---
 	const output =
 		"output" in part ? (part as { output: unknown }).output : undefined;
-	const isError = part.state === "output-error";
+	const isOutputError =
+		output != null &&
+		typeof output === "object" &&
+		"error" in output &&
+		(output as { error?: boolean }).error === true;
+	const isError = part.state === "output-error" || isOutputError;
+	const displayState =
+		isOutputError && toToolDisplayState(part) === "output-available"
+			? "output-error"
+			: toToolDisplayState(part);
+	const errorText =
+		isError && output && typeof output === "object" && "message" in output
+			? String((output as { message?: unknown }).message ?? "")
+			: undefined;
 
 	return (
 		<Tool>
-			<ToolHeader title={toolName} state={toToolDisplayState(part)} />
+			<ToolHeader title={toolName} state={displayState} />
 			<ToolContent>
 				{part.input != null && <ToolInput input={part.input} />}
 				{(output != null || isError) && (
@@ -208,7 +221,7 @@ export function MastraToolCallBlock({
 							isError
 								? typeof output === "string"
 									? output
-									: JSON.stringify(output)
+									: errorText
 								: undefined
 						}
 					/>

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, XIcon } from "lucide-react";
+import { CheckIcon, TerminalIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
 import { Loader } from "./loader";
@@ -78,20 +78,7 @@ export const BashTool = ({
 		[command],
 	);
 
-	// Input still streaming
-	if (state === "input-streaming") {
-		return (
-			<div
-				className={cn("flex items-start gap-1.5 rounded-md py-0.5", className)}
-			>
-				<div className="min-w-0 flex flex-1 items-center gap-1.5">
-					<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-						<ShimmerLabel>Generating command</ShimmerLabel>
-					</div>
-				</div>
-			</div>
-		);
-	}
+	const hasOutput = Boolean(command || stdout || stderr);
 
 	return (
 		<div
@@ -100,26 +87,32 @@ export const BashTool = ({
 				className,
 			)}
 		>
-			{/* Header - fixed height to prevent layout shift */}
+			{/* Header */}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
 			<div
 				className={cn(
-					"flex h-7 items-center justify-between pl-2.5 pr-0.5",
-					hasMoreOutput &&
-						!isPending &&
+					"flex h-7 items-center justify-between px-2.5",
+					hasOutput &&
 						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
 				)}
-				onClick={() =>
-					hasMoreOutput && !isPending && setIsOutputExpanded(!isOutputExpanded)
-				}
+				onClick={() => hasOutput && setIsOutputExpanded((prev) => !prev)}
 			>
-				<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-					{isPending ? "Running command: " : "Ran command: "}
-					{commandSummary}
-				</span>
+				<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
+					<TerminalIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+					{isPending ? (
+						<ShimmerLabel className="text-xs text-muted-foreground">
+							{commandSummary ? "Running command" : "Generating command"}
+						</ShimmerLabel>
+					) : (
+						<span className="text-xs text-muted-foreground">Ran command</span>
+					)}
+					{commandSummary && (
+						<span className="truncate text-foreground">{commandSummary}</span>
+					)}
+				</div>
 
-				{/* Status and expand */}
-				<div className="ml-2 flex shrink-0 items-center gap-1.5">
+				{/* Status */}
+				<div className="ml-2 flex shrink-0 items-center gap-2">
 					{!isPending && (
 						<div className="flex items-center gap-1 text-xs text-muted-foreground">
 							{isSuccess && (
@@ -142,50 +135,51 @@ export const BashTool = ({
 				</div>
 			</div>
 
-			{/* Content - always visible */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: clickable to expand */}
-			<div
-				className={cn(
-					"border-t border-border px-2.5 py-1.5 transition-colors duration-150",
-					hasMoreOutput &&
-						!isOutputExpanded &&
-						"cursor-pointer hover:bg-muted/50",
-				)}
-				onClick={() =>
-					hasMoreOutput && !isOutputExpanded && setIsOutputExpanded(true)
-				}
-			>
-				{/* Command */}
-				{command && (
-					<div className="font-mono text-xs">
-						<span className="text-amber-600 dark:text-amber-400">$ </span>
-						<span className="whitespace-pre-wrap break-all text-foreground">
-							{command}
-						</span>
-					</div>
-				)}
-
-				{/* Stdout */}
-				{stdout && (
-					<div className="mt-1.5 whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
-						{isOutputExpanded ? stdout : stdoutLimited.text}
-					</div>
-				)}
-
-				{/* Stderr */}
-				{stderr && (
-					<div
-						className={cn(
-							"mt-1.5 whitespace-pre-wrap break-all font-mono text-xs",
-							exitCode === 0 || exitCode === undefined
-								? "text-amber-600 dark:text-amber-400"
-								: "text-rose-500 dark:text-rose-400",
+			{/* Content */}
+			{hasOutput && (
+				<div
+					className={cn(
+						"overflow-hidden border-t border-border transition-[max-height] duration-200",
+						isOutputExpanded ? "overflow-y-auto" : "",
+					)}
+					style={{
+						maxHeight: isOutputExpanded ? 320 : 120,
+					}}
+				>
+					<div className="px-2.5 py-1.5">
+						{/* Command */}
+						{command && (
+							<div className="font-mono text-xs">
+								<span className="text-amber-600 dark:text-amber-400">$ </span>
+								<span className="whitespace-pre-wrap break-all text-foreground">
+									{command}
+								</span>
+							</div>
 						)}
-					>
-						{isOutputExpanded ? stderr : stderrLimited.text}
+
+						{/* Stdout */}
+						{stdout && (
+							<div className="mt-1.5 whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
+								{isOutputExpanded ? stdout : stdoutLimited.text}
+							</div>
+						)}
+
+						{/* Stderr */}
+						{stderr && (
+							<div
+								className={cn(
+									"mt-1.5 whitespace-pre-wrap break-all font-mono text-xs",
+									exitCode === 0 || exitCode === undefined
+										? "text-amber-600 dark:text-amber-400"
+										: "text-rose-500 dark:text-rose-400",
+								)}
+							>
+								{isOutputExpanded ? stderr : stderrLimited.text}
+							</div>
+						)}
 					</div>
-				)}
-			</div>
+				</div>
+			)}
 		</div>
 	);
 };
