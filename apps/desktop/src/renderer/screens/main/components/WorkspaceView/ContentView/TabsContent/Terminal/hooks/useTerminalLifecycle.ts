@@ -540,16 +540,28 @@ export function useTerminalLifecycle({
 		});
 		const cleanupCopy = setupCopyHandler(xterm);
 
-		const handleVisibilityChange = () => {
-			if (document.hidden || isUnmounted) return;
-			const buffer = xterm.buffer.active;
-			const wasAtBottom = buffer.viewportY >= buffer.baseY;
+		const recoverAfterWindowReattach = (forceResize: boolean) => {
+			if (isUnmounted || xtermRef.current !== xterm) return;
+
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
+			const buffer = xterm.buffer.active;
+			const wasAtBottom = buffer.viewportY >= buffer.baseY;
+
+			// Rebuild stale WebGL glyph cache after occlusion and force a paint pass.
+			rendererRef.current?.current.clearTextureAtlas?.();
+
 			fitAddon.fit();
-			if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
+			xterm.refresh(0, Math.max(0, xterm.rows - 1));
+
+			if (forceResize || xterm.cols !== prevCols || xterm.rows !== prevRows) {
 				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 			}
+
+			if (isFocusedRef.current && document.hasFocus()) {
+				xterm.focus();
+			}
+
 			if (wasAtBottom) {
 				requestAnimationFrame(() => {
 					if (isUnmounted || xtermRef.current !== xterm) return;
@@ -557,7 +569,17 @@ export function useTerminalLifecycle({
 				});
 			}
 		};
+
+		const handleVisibilityChange = () => {
+			if (document.hidden) return;
+			recoverAfterWindowReattach(true);
+		};
+		const handleWindowFocus = () => {
+			recoverAfterWindowReattach(true);
+		};
+
 		document.addEventListener("visibilitychange", handleVisibilityChange);
+		window.addEventListener("focus", handleWindowFocus);
 
 		const isPaneDestroyedInStore = () =>
 			isPaneDestroyed(useTabsStore.getState().panes, paneId);
@@ -578,6 +600,7 @@ export function useTerminalLifecycle({
 			clearAttachInFlight(paneId, cleanupAttachId);
 			if (firstRenderFallback) clearTimeout(firstRenderFallback);
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			titleDisposable.dispose();
