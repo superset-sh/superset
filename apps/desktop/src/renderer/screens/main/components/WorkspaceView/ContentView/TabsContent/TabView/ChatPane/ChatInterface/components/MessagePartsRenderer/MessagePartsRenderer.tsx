@@ -1,8 +1,4 @@
 import { ExploringGroup } from "@superset/ui/ai-elements/exploring-group";
-import {
-	MessageResponse,
-	type MessageResponseProps,
-} from "@superset/ui/ai-elements/message";
 import type { UIMessage } from "ai";
 import { getToolName, isToolUIPart } from "ai";
 import {
@@ -13,7 +9,7 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTheme } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -23,6 +19,7 @@ import { getArgs } from "../../utils/tool-helpers";
 import { MastraToolCallBlock } from "../MastraToolCallBlock";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { ReasoningBlock } from "../ReasoningBlock";
+import { StreamingMessageText } from "./components/StreamingMessageText";
 
 interface MessagePartsRendererProps {
 	parts: UIMessage["parts"];
@@ -30,56 +27,6 @@ interface MessagePartsRendererProps {
 	isStreaming: boolean;
 	workspaceId?: string;
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
-}
-
-const STREAM_TEXT_TICK_MS = 16;
-const STREAM_TEXT_CHARS_PER_TICK = 2;
-
-function StreamingMessageText({
-	text,
-	isAnimating,
-	mermaid,
-	components,
-}: {
-	text: string;
-	isAnimating: boolean;
-	mermaid: MessageResponseProps["mermaid"];
-	components?: MessageResponseProps["components"];
-}) {
-	const [displayText, setDisplayText] = useState(text);
-
-	useEffect(() => {
-		if (!isAnimating) {
-			setDisplayText(text);
-			return;
-		}
-
-		setDisplayText((previous) => (text.startsWith(previous) ? previous : text));
-
-		const intervalId = window.setInterval(() => {
-			setDisplayText((previous) => {
-				if (previous.length >= text.length) return previous;
-				const nextLength = Math.min(
-					text.length,
-					previous.length + STREAM_TEXT_CHARS_PER_TICK,
-				);
-				return text.slice(0, nextLength);
-			});
-		}, STREAM_TEXT_TICK_MS);
-
-		return () => window.clearInterval(intervalId);
-	}, [text, isAnimating]);
-
-	return (
-		<MessageResponse
-			animated={false}
-			isAnimating={false}
-			mermaid={mermaid}
-			components={components}
-		>
-			{displayText}
-		</MessageResponse>
-	);
 }
 
 export function MessagePartsRenderer({
