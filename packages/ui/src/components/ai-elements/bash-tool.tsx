@@ -3,6 +3,11 @@
 import { CheckIcon, TerminalIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "../ui/collapsible";
 import { Loader } from "./loader";
 import { ShimmerLabel } from "./shimmer-label";
 
@@ -33,21 +38,6 @@ function extractCommandSummary(command: string): string {
 	return limited.join(", ");
 }
 
-/** Limit text to N lines, returning whether it was truncated. */
-function limitLines(
-	text: string,
-	maxLines: number,
-): { text: string; truncated: boolean } {
-	if (!text) return { text: "", truncated: false };
-	const lines = text.split("\n");
-	if (lines.length <= maxLines) {
-		return { text, truncated: false };
-	}
-	return { text: lines.slice(0, maxLines).join("\n"), truncated: true };
-}
-
-const MAX_COLLAPSED_LINES = 3;
-
 export const BashTool = ({
 	command,
 	stdout,
@@ -61,17 +51,6 @@ export const BashTool = ({
 	const isPending = state === "input-streaming" || state === "input-available";
 	const isSuccess = exitCode === 0;
 	const isError = exitCode !== undefined && exitCode !== 0;
-	const _hasOutput = Boolean(stdout || stderr);
-
-	const stdoutLimited = useMemo(
-		() => limitLines(stdout ?? "", MAX_COLLAPSED_LINES),
-		[stdout],
-	);
-	const stderrLimited = useMemo(
-		() => limitLines(stderr ?? "", MAX_COLLAPSED_LINES),
-		[stderr],
-	);
-	const hasMoreOutput = stdoutLimited.truncated || stderrLimited.truncated;
 
 	const commandSummary = useMemo(
 		() => (command ? extractCommandSummary(command) : ""),
@@ -81,21 +60,22 @@ export const BashTool = ({
 	const hasOutput = Boolean(command || stdout || stderr);
 
 	return (
-		<div
+		<Collapsible
 			className={cn(
 				"overflow-hidden rounded-lg border border-border bg-muted/30",
 				className,
 			)}
+			onOpenChange={(open) => hasOutput && setIsOutputExpanded(open)}
+			open={hasOutput ? isOutputExpanded : false}
 		>
-			{/* Header */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
-			<div
+			<CollapsibleTrigger
 				className={cn(
 					"flex h-7 items-center justify-between px-2.5",
-					hasOutput &&
-						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
+					hasOutput
+						? "cursor-pointer transition-colors duration-150 hover:bg-muted/50"
+						: "cursor-default",
 				)}
-				onClick={() => hasOutput && setIsOutputExpanded((prev) => !prev)}
+				disabled={!hasOutput}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
 					<TerminalIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
@@ -133,18 +113,13 @@ export const BashTool = ({
 						{isPending && <Loader size={12} />}
 					</div>
 				</div>
-			</div>
+			</CollapsibleTrigger>
 
-			{/* Content */}
 			{hasOutput && (
-				<div
+				<CollapsibleContent
 					className={cn(
-						"overflow-hidden border-t border-border transition-[max-height] duration-200",
-						isOutputExpanded ? "overflow-y-auto" : "",
+						"border-t border-border data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
 					)}
-					style={{
-						maxHeight: isOutputExpanded ? 320 : 120,
-					}}
 				>
 					<div className="px-2.5 py-1.5">
 						{/* Command */}
@@ -160,7 +135,7 @@ export const BashTool = ({
 						{/* Stdout */}
 						{stdout && (
 							<div className="mt-1.5 whitespace-pre-wrap break-all font-mono text-xs text-muted-foreground">
-								{isOutputExpanded ? stdout : stdoutLimited.text}
+								{stdout}
 							</div>
 						)}
 
@@ -174,12 +149,12 @@ export const BashTool = ({
 										: "text-rose-500 dark:text-rose-400",
 								)}
 							>
-								{isOutputExpanded ? stderr : stderrLimited.text}
+								{stderr}
 							</div>
 						)}
 					</div>
-				</div>
+				</CollapsibleContent>
 			)}
-		</div>
+		</Collapsible>
 	);
 };
