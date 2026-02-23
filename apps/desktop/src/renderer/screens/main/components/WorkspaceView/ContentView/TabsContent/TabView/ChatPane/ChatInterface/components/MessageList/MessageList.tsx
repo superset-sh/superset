@@ -146,7 +146,7 @@ export function MessageList({
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
 									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
-										<ShimmerLabel className="text-xs text-muted-foreground">
+										<ShimmerLabel className="text-sm text-muted-foreground">
 											Thinking...
 										</ShimmerLabel>
 									) : (
@@ -166,7 +166,7 @@ export function MessageList({
 				{isThinking && messages[messages.length - 1]?.role === "user" && (
 					<Message from="assistant">
 						<MessageContent>
-							<ShimmerLabel className="text-xs text-muted-foreground">
+							<ShimmerLabel className="text-sm text-muted-foreground">
 								Thinking...
 							</ShimmerLabel>
 						</MessageContent>
