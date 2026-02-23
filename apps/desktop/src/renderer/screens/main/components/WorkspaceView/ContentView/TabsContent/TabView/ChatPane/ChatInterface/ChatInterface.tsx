@@ -260,7 +260,7 @@ export function ChatInterface({
 
 	useEffect(() => {
 		setInterruptedMessage(null);
-	}, [sessionId]);
+	}, []);
 
 	const handleStop = useCallback(
 		(event: React.MouseEvent) => {
