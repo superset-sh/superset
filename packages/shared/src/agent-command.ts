@@ -102,7 +102,11 @@ const AGENT_COMMANDS: Record<
 	claude: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions"),
 	codex: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "codex --full-auto"),
+		buildHeredoc(
+			prompt,
+			delimiter,
+			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access',
+		),
 	gemini: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
 	opencode: (prompt, delimiter) =>
