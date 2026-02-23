@@ -2,7 +2,11 @@ import type { UIMessage } from "ai";
 import type { GetHeaders } from "../../../lib/auth/auth";
 import type { ChatLifecycleEvent } from "../../chat-service";
 import { sessionAbortControllers, sessionRunIds } from "../session-state";
-import { resumeAgent, runAgent } from "./run-agent";
+import {
+	continueAgentWithToolOutput,
+	resumeAgent,
+	runAgent,
+} from "./run-agent";
 import { SessionHost } from "./session-host";
 
 /**
@@ -17,6 +21,7 @@ export class StreamWatcher {
 	private readonly sessionId: string;
 	private readonly cwd: string;
 	private readonly onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
+	private readonly defaultModelId = "anthropic/claude-sonnet-4-6";
 	private status: "idle" | "starting" | "ready" = "idle";
 	private startPromise: Promise<void> | null = null;
 
@@ -48,7 +53,7 @@ export class StreamWatcher {
 					text,
 					message,
 					host: this.host,
-					modelId: metadata?.model ?? "anthropic/claude-sonnet-4-6",
+					modelId: metadata?.model ?? this.defaultModelId,
 					cwd: this.cwd,
 					permissionMode: metadata?.permissionMode ?? "bypassPermissions",
 					thinkingEnabled: metadata?.thinkingEnabled ?? false,
@@ -62,22 +67,43 @@ export class StreamWatcher {
 			this.emitLifecycle("PermissionRequest");
 		});
 
-		this.host.on("toolResult", ({ answers }) => {
-			const runId = sessionRunIds.get(options.sessionId);
-			if (runId) {
+		this.host.on(
+			"toolOutput",
+			({ toolCallId, tool, state, output, errorText }) => {
+				const recoveredRunId = this.host.getLatestRunId();
+				const runId =
+					sessionRunIds.get(options.sessionId) ?? recoveredRunId ?? undefined;
+				if (runId) {
+					sessionRunIds.set(options.sessionId, runId);
+				}
+
 				void this.executeWithLifecycle(async () => {
-					await resumeAgent({
+					await continueAgentWithToolOutput({
 						sessionId: options.sessionId,
-						runId,
 						host: this.host,
-						approved: true,
-						answers,
+						runId,
+						toolCallId,
+						toolName: tool,
+						state,
+						output,
+						errorText,
+						fallbackContext: {
+							cwd: this.cwd,
+							modelId: this.defaultModelId,
+							permissionMode: "bypassPermissions",
+							thinkingEnabled: false,
+							requestEntries: [
+								["modelId", this.defaultModelId],
+								["cwd", this.cwd],
+								["apiUrl", options.apiUrl],
+							],
+						},
 					});
 				});
-			}
-		});
+			},
+		);
 
-		this.host.on("toolApproval", ({ approved, permissionMode }) => {
+		this.host.on("toolApproval", ({ approved, permissionMode, toolCallId }) => {
 			const runId = sessionRunIds.get(options.sessionId);
 			if (runId) {
 				void this.executeWithLifecycle(async () => {
@@ -86,6 +112,7 @@ export class StreamWatcher {
 						runId,
 						host: this.host,
 						approved,
+						toolCallId,
 						permissionMode,
 					});
 				});

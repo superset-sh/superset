@@ -78,6 +78,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 		cwd,
 		modelId,
 		permissionMode,
+		thinkingEnabled,
 		requestEntries,
 	});
 
@@ -151,12 +152,13 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 			sessionRunIds.set(sessionId, output.runId);
 		}
 
-		await writeToDurableStream(output, host, abortController.signal);
+		await writeToDurableStream(output, host, abortController.signal, {
+			runId: output.runId,
+		});
 	} catch (error) {
+		if (abortController.signal.aborted) return;
 		sessionRunIds.delete(sessionId);
 		sessionContext.delete(sessionId);
-
-		if (abortController.signal.aborted) return;
 
 		// Write error chunk to stream so client sees isComplete = true
 		try {
@@ -173,7 +175,154 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// resumeAgent — approve/decline tool calls, answer questions
+// continueAgentWithToolOutput — resume after client tool outputs
+// ---------------------------------------------------------------------------
+
+export interface ContinueAgentWithToolOutputOptions {
+	sessionId: string;
+	host: SessionHost;
+	runId?: string;
+	toolCallId: string;
+	toolName: string;
+	state: "output-available" | "output-error";
+	output: unknown;
+	errorText?: string;
+	fallbackContext?: {
+		cwd: string;
+		modelId: string;
+		permissionMode?: string;
+		thinkingEnabled?: boolean;
+		requestEntries: [string, string][];
+	};
+}
+
+export async function continueAgentWithToolOutput(
+	options: ContinueAgentWithToolOutputOptions,
+): Promise<void> {
+	const {
+		sessionId,
+		host,
+		runId: explicitRunId,
+		toolCallId,
+		toolName,
+		state,
+		output,
+		errorText,
+		fallbackContext,
+	} = options;
+
+	let ctx = sessionContext.get(sessionId);
+	if (!ctx && fallbackContext) {
+		ctx = {
+			cwd: fallbackContext.cwd,
+			modelId: fallbackContext.modelId,
+			permissionMode: fallbackContext.permissionMode,
+			thinkingEnabled: fallbackContext.thinkingEnabled,
+			requestEntries: [...fallbackContext.requestEntries],
+		};
+		sessionContext.set(sessionId, ctx);
+	}
+	if (!ctx) {
+		console.warn(
+			`[run-agent] Ignoring tool output for ${sessionId}: missing session context`,
+			{ toolCallId, toolName },
+		);
+		return;
+	}
+	const runId = explicitRunId ?? sessionRunIds.get(sessionId);
+	if (!runId) {
+		console.warn(
+			`[run-agent] Ignoring tool output for ${sessionId}: missing runId`,
+			{ toolCallId, toolName },
+		);
+		return;
+	}
+	const normalizedToolCallId =
+		typeof toolCallId === "string" ? toolCallId.trim().replace(/^-+/, "") : "";
+	const toolCallIdForResume = normalizedToolCallId || toolCallId;
+
+	const existingController = sessionAbortControllers.get(sessionId);
+	if (existingController) existingController.abort();
+
+	const abortController = new AbortController();
+	sessionAbortControllers.set(sessionId, abortController);
+
+	const requireToolApproval =
+		ctx.permissionMode === "default" || ctx.permissionMode === "acceptEdits";
+
+	const resumeData =
+		state === "output-error"
+			? { answers: {} as Record<string, string> }
+			: typeof output === "object" &&
+					output !== null &&
+					"answers" in output &&
+					typeof output.answers === "object" &&
+					output.answers !== null
+				? { answers: output.answers as Record<string, string> }
+				: { answers: {} as Record<string, string> };
+
+	try {
+		const stream = await superagent.resumeStream(resumeData, {
+			runId,
+			toolCallId: toolCallIdForResume,
+			requestContext: new RequestContext([...ctx.requestEntries]),
+			maxSteps: 100,
+			memory: {
+				thread: sessionId,
+				resource: sessionId,
+			},
+			abortSignal: abortController.signal,
+			...(requireToolApproval ? { requireToolApproval: true } : {}),
+			...(ctx.thinkingEnabled
+				? {
+						providerOptions: {
+							anthropic: {
+								thinking: {
+									type: "enabled",
+									budgetTokens: 10000,
+								},
+							},
+						},
+					}
+				: {}),
+		});
+
+		if (stream.runId) {
+			sessionRunIds.set(sessionId, stream.runId);
+		}
+
+		await writeToDurableStream(stream, host, abortController.signal, {
+			runId: stream.runId ?? runId,
+		});
+	} catch (error) {
+		if (abortController.signal.aborted) return;
+		sessionRunIds.delete(sessionId);
+		sessionContext.delete(sessionId);
+
+		try {
+			await writeErrorChunk(host, error);
+		} catch {
+			/* best effort */
+		}
+		console.error(
+			`[run-agent] Tool output continue error for ${sessionId}:`,
+			error,
+			{
+				toolCallId,
+				toolName,
+				state,
+				errorText,
+			},
+		);
+	} finally {
+		if (sessionAbortControllers.get(sessionId) === abortController) {
+			sessionAbortControllers.delete(sessionId);
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// resumeAgent — approve/decline tool calls
 // ---------------------------------------------------------------------------
 
 export interface ResumeAgentOptions {
@@ -181,12 +330,13 @@ export interface ResumeAgentOptions {
 	runId: string;
 	host: SessionHost;
 	approved: boolean;
-	answers?: Record<string, string>;
+	toolCallId?: string;
 	permissionMode?: string;
 }
 
 export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
-	const { sessionId, runId, host, approved, answers, permissionMode } = options;
+	const { sessionId, runId, host, approved, toolCallId, permissionMode } =
+		options;
 
 	if (permissionMode) {
 		const ctx = sessionContext.get(sessionId);
@@ -196,10 +346,6 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 	const ctx = sessionContext.get(sessionId);
 	const ctxEntries: [string, string][] = ctx ? [...ctx.requestEntries] : [];
 
-	if (answers) {
-		ctxEntries.push(["toolAnswers", JSON.stringify(answers)]);
-	}
-
 	const reqCtx = new RequestContext(ctxEntries);
 	const abortController = new AbortController();
 	sessionAbortControllers.set(sessionId, abortController);
@@ -207,6 +353,7 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 	try {
 		const approvalOpts = {
 			runId,
+			...(toolCallId ? { toolCallId } : {}),
 			requestContext: reqCtx,
 		};
 
@@ -214,12 +361,13 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 			? await superagent.approveToolCall(approvalOpts)
 			: await superagent.declineToolCall(approvalOpts);
 
-		await writeToDurableStream(stream, host, abortController.signal);
+		await writeToDurableStream(stream, host, abortController.signal, {
+			runId,
+		});
 	} catch (error) {
+		if (abortController.signal.aborted) return;
 		sessionRunIds.delete(sessionId);
 		sessionContext.delete(sessionId);
-
-		if (abortController.signal.aborted) return;
 
 		try {
 			await writeErrorChunk(host, error);
@@ -258,11 +406,52 @@ async function writeToDurableStream(
 	stream: Parameters<typeof toAISdkStream>[0],
 	host: SessionHost,
 	abortSignal: AbortSignal,
+	options?: { runId?: string },
 ) {
 	const messageId = crypto.randomUUID();
-	const aiStream = toAISdkStream(stream, { from: "agent" });
+	const aiStream = toAISdkStream(stream, {
+		from: "agent",
+	}) as unknown as ReadableStream<UIMessageChunk>;
+	const streamWithMetadata =
+		typeof options?.runId === "string" && options.runId.length > 0
+			? prependRunMetadata(aiStream, options.runId)
+			: aiStream;
 
-	await host.writeStream(messageId, aiStream as unknown as ReadableStream, {
-		signal: abortSignal,
+	await host.writeStream(
+		messageId,
+		streamWithMetadata as unknown as ReadableStream,
+		{
+			signal: abortSignal,
+		},
+	);
+}
+
+function prependRunMetadata(
+	stream: ReadableStream<UIMessageChunk>,
+	runId: string,
+): ReadableStream<UIMessageChunk> {
+	const reader = stream.getReader();
+	let metadataSent = false;
+
+	return new ReadableStream<UIMessageChunk>({
+		async pull(controller) {
+			if (!metadataSent) {
+				metadataSent = true;
+				controller.enqueue({
+					type: "message-metadata",
+					messageMetadata: { runId },
+				} as UIMessageChunk);
+				return;
+			}
+			const { done, value } = await reader.read();
+			if (done) {
+				controller.close();
+				return;
+			}
+			controller.enqueue(value as UIMessageChunk);
+		},
+		cancel(reason) {
+			return reader.cancel(reason);
+		},
 	});
 }

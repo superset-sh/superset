@@ -10,7 +10,7 @@
  */
 
 import { createOptimisticAction } from "@durable-streams/state";
-import type { FileUIPart, UIMessage } from "ai";
+import { type FileUIPart, isToolUIPart, type UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChunkRow } from "../../schema";
 import { messageRowToUIMessage } from "../../session-db/collections/messages/materialize";
@@ -39,6 +39,20 @@ export interface SendMessageOptions {
 	signal?: AbortSignal;
 }
 
+export type AddToolOutputOptions =
+	| {
+			tool: string;
+			toolCallId: string;
+			output: unknown;
+			state?: "output-available";
+	  }
+	| {
+			tool: string;
+			toolCallId: string;
+			state: "output-error";
+			errorText: string;
+	  };
+
 export interface UseChatReturn {
 	ready: boolean;
 	messages: (UIMessage & { actorId: string; createdAt: Date })[];
@@ -50,17 +64,104 @@ export interface UseChatReturn {
 		options?: SendMessageOptions,
 	) => Promise<void>;
 	stop: () => void;
-	submitToolResult: (
-		toolCallId: string,
-		output: unknown,
-		error?: string,
+	addToolOutput: (options: AddToolOutputOptions) => Promise<void>;
+	submitApproval: (
+		approvalId: string,
+		approved: boolean,
+		toolCallId?: string,
 	) => Promise<void>;
-	submitApproval: (approvalId: string, approved: boolean) => Promise<void>;
 	error: string | null;
 	metadata: UseChatMetadataReturn;
 }
 
 const STALE_THRESHOLD_MS = 30_000;
+
+type ToolOutputSnapshot =
+	| { state: "output-available"; output: unknown }
+	| { state: "output-error"; errorText: string };
+
+function parseToolOutputs(rows: ChunkRow[]): Map<string, ToolOutputSnapshot> {
+	const outputs = new Map<string, ToolOutputSnapshot>();
+	const sorted = [...rows].sort((a, b) => {
+		const time = a.createdAt.localeCompare(b.createdAt);
+		return time !== 0 ? time : a.seq - b.seq;
+	});
+
+	for (const row of sorted) {
+		try {
+			const parsed = JSON.parse(row.chunk) as
+				| {
+						type?: string;
+						toolCallId?: string;
+						state?: "output-available" | "output-error";
+						output?: unknown;
+						errorText?: string;
+				  }
+				| undefined;
+
+			if (
+				parsed?.type !== "tool-output" ||
+				typeof parsed.toolCallId !== "string"
+			) {
+				continue;
+			}
+
+			if (parsed.state === "output-error") {
+				outputs.set(parsed.toolCallId, {
+					state: "output-error",
+					errorText: parsed.errorText ?? "Tool output error",
+				});
+				continue;
+			}
+
+			outputs.set(parsed.toolCallId, {
+				state: "output-available",
+				output: parsed.output,
+			});
+		} catch {
+			// ignore malformed custom chunks
+		}
+	}
+
+	return outputs;
+}
+
+function applyToolOutputs(
+	messages: (UIMessage & { actorId: string; createdAt: Date })[],
+	toolOutputs: Map<string, ToolOutputSnapshot>,
+): (UIMessage & { actorId: string; createdAt: Date })[] {
+	if (toolOutputs.size === 0) return messages;
+
+	return messages.map((message) => {
+		if (message.role !== "assistant" || !Array.isArray(message.parts)) {
+			return message;
+		}
+
+		let changed = false;
+		const parts = message.parts.map((part) => {
+			if (!isToolUIPart(part)) return part;
+
+			const output = toolOutputs.get(part.toolCallId);
+			if (!output) return part;
+
+			changed = true;
+			const next = { ...part } as Record<string, unknown>;
+			next.state = output.state;
+
+			if (output.state === "output-error") {
+				next.errorText = output.errorText;
+				delete next.output;
+			} else {
+				next.output = output.output;
+				delete next.errorText;
+			}
+
+			return next as typeof part;
+		});
+
+		return changed ? { ...message, parts } : message;
+	});
+}
 
 export function useChat(options: UseChatOptions): UseChatReturn {
 	const { sessionId, proxyUrl, getHeaders } = options;
@@ -118,6 +219,8 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 
 	// --- Messages via collection pipeline (null-safe) ---
 	const rows = useCollectionData(session?.messagesCollection ?? null);
+	const chunks = useCollectionData(session?.db.collections.chunks ?? null);
+	const chunkRows = chunks as ChunkRow[];
 
 	const [dismissedIncompleteMessageIds, setDismissedIncompleteMessageIds] =
 		useState<string[]>([]);
@@ -137,9 +240,11 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 		});
 	})();
 
+	const toolOutputs = useMemo(() => parseToolOutputs(chunkRows), [chunkRows]);
+
 	const messages = useMemo(
-		() => visibleRows.map(messageRowToUIMessage),
-		[visibleRows],
+		() => applyToolOutputs(visibleRows.map(messageRowToUIMessage), toolOutputs),
+		[visibleRows, toolOutputs],
 	);
 
 	// --- Staleness-aware isLoading ---
@@ -291,41 +396,41 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 		}).catch(console.error);
 	}, [url, headers, sessionId, rows]);
 
-	const submitToolResult = useCallback(
-		async (toolCallId: string, output: unknown, err?: string) => {
+	const addToolOutput = useCallback(
+		async (options: AddToolOutputOptions) => {
 			if (!sessionId) return;
 			setError(null);
 			try {
-				const res = await fetch(url("/tool-results"), {
+				const res = await fetch(url("/tool-outputs"), {
 					method: "POST",
 					headers: headers(),
-					body: JSON.stringify({
-						toolCallId,
-						output,
-						error: err ?? null,
-					}),
+					body: JSON.stringify(options),
 				});
 				if (!res.ok) {
-					setError(`Failed to submit tool result: ${res.status}`);
+					throw new Error(`Failed to submit tool output: ${res.status}`);
 				}
 			} catch (e) {
-				setError(
-					e instanceof Error ? e.message : "Failed to submit tool result",
-				);
+				const message =
+					e instanceof Error ? e.message : "Failed to submit tool output";
+				setError(message);
+				throw e instanceof Error ? e : new Error(message);
 			}
 		},
 		[url, headers, sessionId],
 	);
 
 	const submitApproval = useCallback(
-		async (approvalId: string, approved: boolean) => {
+		async (approvalId: string, approved: boolean, toolCallId?: string) => {
 			if (!sessionId) return;
 			setError(null);
 			try {
 				const res = await fetch(url(`/approvals/${approvalId}`), {
 					method: "POST",
 					headers: headers(),
-					body: JSON.stringify({ approved }),
+					body: JSON.stringify({
+						approved,
+						...(toolCallId ? { toolCallId } : {}),
+					}),
 				});
 				if (!res.ok) {
 					setError(`Failed to submit approval: ${res.status}`);
@@ -343,7 +448,7 @@ export function useChat(options: UseChatOptions): UseChatReturn {
 		isLoading,
 		sendMessage,
 		stop,
-		submitToolResult,
+		addToolOutput,
 		submitApproval,
 		error,
 		metadata,

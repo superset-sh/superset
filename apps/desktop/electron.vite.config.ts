@@ -77,7 +77,7 @@ export default defineConfig({
 			),
 			"process.env.STREAMS_URL": defineEnv(
 				process.env.STREAMS_URL,
-				"https://streams.superset.sh",
+				"https://superset-stream.fly.dev",
 			),
 			"process.env.DESKTOP_VITE_PORT": defineEnv(process.env.DESKTOP_VITE_PORT),
 			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
@@ -178,7 +178,7 @@ export default defineConfig({
 			),
 			"process.env.STREAMS_URL": defineEnv(
 				process.env.STREAMS_URL,
-				"https://streams.superset.sh",
+				"https://superset-stream.fly.dev",
 			),
 			"process.env.DESKTOP_VITE_PORT": defineEnv(process.env.DESKTOP_VITE_PORT),
 			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
