@@ -3,6 +3,7 @@ import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { HistoryDropdown } from "./components/HistoryDropdown";
 
@@ -16,7 +17,15 @@ export function NavigationControls() {
 	useAppHotkey("NAVIGATE_BACK", () => router.history.back());
 	useAppHotkey("NAVIGATE_FORWARD", () => router.history.forward());
 
+	const { data: mouseNavigationEnabled } =
+		electronTrpc.settings.getMouseNavigationEnabled.useQuery();
+	const isMouseNavigationEnabled = mouseNavigationEnabled ?? false;
+
 	useEffect(() => {
+		if (!isMouseNavigationEnabled) {
+			return;
+		}
+
 		const handleMouseUp = (event: MouseEvent) => {
 			if (event.button === 3) {
 				event.preventDefault();
@@ -29,7 +38,7 @@ export function NavigationControls() {
 
 		window.addEventListener("mouseup", handleMouseUp);
 		return () => window.removeEventListener("mouseup", handleMouseUp);
-	}, [router]);
+	}, [isMouseNavigationEnabled, router]);
 
 	return (
 		<div className="flex items-center">

@@ -29,6 +29,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_WORKTREE_LOCATION: "behavior-worktree-location",
+	BEHAVIOR_MOUSE_NAVIGATION: "behavior-mouse-navigation",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
 
 	TERMINAL_PRESETS: "terminal-presets",
@@ -462,6 +463,22 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"storage",
 			"base",
 			"default",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION,
+		section: "behavior",
+		title: "Mouse back/forward navigation",
+		description: "Use mouse buttons 3/4 to move between workspace tabs",
+		keywords: [
+			"mouse",
+			"back",
+			"forward",
+			"buttons",
+			"navigation",
+			"workspace",
+			"tabs",
+			"accessibility",
 		],
 	},
 	{

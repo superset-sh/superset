@@ -225,6 +225,13 @@
       "when": 1771797962833,
       "tag": "0031_add_open_links_in_app_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1771855095227,
+      "tag": "0032_normal_cardiac",
+      "breakpoints": true
     }
   ]
 }
