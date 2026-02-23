@@ -2,8 +2,8 @@ import type { ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
-import { dialog } from "electron";
 import type { BrowserWindow, OpenDialogOptions } from "electron";
+import { dialog } from "electron";
 import {
 	getCustomRingtoneInfo,
 	getCustomRingtonePath,
