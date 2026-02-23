@@ -141,6 +141,7 @@ describe("agent-wrappers copilot", () => {
 		const execLine = buildCodexWrapperExecLine(
 			path.join(TEST_HOOKS_DIR, "notify.sh"),
 		);
+		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
 		expect(wrapper).toContain(execLine);
 	});
 
