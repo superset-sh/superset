@@ -177,6 +177,49 @@ Command: ${"$"}COMMAND`,
 		expect(result.prompt).toContain("Command: refactor-local");
 	});
 
+	it("supports quoted named argument values with spaces", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		writeCommandFile(
+			cwd,
+			"refactor-local",
+			`---
+description: Refactor helper
+---
+Scope: $1
+Goal: ${"$"}{GOAL}
+Raw: $ARGUMENTS`,
+		);
+
+		const result = resolveSlashCommand(
+			cwd,
+			'/refactor-local src/features goal="improve readability"',
+		);
+
+		expect(result.handled).toBe(true);
+		expect(result.prompt).toContain("Scope: src/features");
+		expect(result.prompt).toContain("Goal: improve readability");
+		expect(result.prompt).toContain(
+			'Raw: src/features goal="improve readability"',
+		);
+	});
+
+	it("keeps raw arguments literal when using $ARGUMENTS", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		writeCommandFile(
+			cwd,
+			"echo",
+			`---
+description: Echo helper
+---
+Raw: $ARGUMENTS`,
+		);
+
+		const result = resolveSlashCommand(cwd, '/echo "literal $1"');
+
+		expect(result.handled).toBe(true);
+		expect(result.prompt).toBe('Raw: "literal $1"');
+	});
+
 	it("resolves custom aliases from frontmatter", () => {
 		const cwd = makeTempDirectory("slash-cwd-");
 		writeCommandFile(

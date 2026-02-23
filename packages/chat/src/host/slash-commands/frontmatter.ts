@@ -4,11 +4,13 @@ interface SlashCommandFrontmatter {
 	aliases: string[];
 }
 
-const EMPTY_FRONTMATTER: SlashCommandFrontmatter = {
-	description: "",
-	argumentHint: "",
-	aliases: [],
-};
+function createEmptyFrontmatter(): SlashCommandFrontmatter {
+	return {
+		description: "",
+		argumentHint: "",
+		aliases: [],
+	};
+}
 
 function parseQuotedValue(rawValue: string): string {
 	if (
@@ -77,19 +79,59 @@ function parseAliasesValue(rawValue: string | undefined): string[] {
 			? normalized.slice(1, -1)
 			: normalized;
 
-	return listValue
-		.split(",")
-		.map((item) => item.trim())
-		.map((item) => {
-			if (
-				item.length >= 2 &&
-				((item.startsWith('"') && item.endsWith('"')) ||
-					(item.startsWith("'") && item.endsWith("'")))
-			) {
-				return item.slice(1, -1);
+	const values: string[] = [];
+	let current = "";
+	let quote: '"' | "'" | null = null;
+	let escaping = false;
+
+	for (let i = 0; i < listValue.length; i++) {
+		const character = listValue[i];
+		if (character === undefined) continue;
+
+		if (quote) {
+			if (escaping) {
+				current += character;
+				escaping = false;
+				continue;
 			}
-			return item;
-		})
+
+			if (character === "\\") {
+				escaping = true;
+				current += character;
+				continue;
+			}
+
+			if (character === quote) {
+				quote = null;
+				current += character;
+				continue;
+			}
+
+			current += character;
+			continue;
+		}
+
+		if (character === '"' || character === "'") {
+			quote = character;
+			current += character;
+			continue;
+		}
+
+		if (character === ",") {
+			values.push(current.trim());
+			current = "";
+			continue;
+		}
+
+		current += character;
+	}
+
+	if (current.trim() || values.length > 0) {
+		values.push(current.trim());
+	}
+
+	return values
+		.map((item) => parseQuotedValue(item.trim()))
 		.map((item) => item.replace(/^\//, ""))
 		.filter((item) => item.length > 0);
 }
@@ -99,7 +141,7 @@ export function parseSlashCommandFrontmatter(
 ): SlashCommandFrontmatter {
 	const metadata = parseFrontmatterBlock(raw);
 
-	if (metadata.size === 0) return EMPTY_FRONTMATTER;
+	if (metadata.size === 0) return createEmptyFrontmatter();
 
 	return {
 		description: metadata.get("description") ?? "",

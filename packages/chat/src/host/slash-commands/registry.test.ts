@@ -162,6 +162,28 @@ Body`,
 		expect(registry[0]?.source).toBe("project");
 	});
 
+	it("loads commands from .agents/command when .claude commands are absent", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		writeCommandFile(
+			cwd,
+			"sync",
+			"---\ndescription: sync from agents singular\n---",
+			"command",
+			".agents",
+		);
+
+		const registry = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
+
+		expect(registry.map((command) => command.name)).toEqual(["sync"]);
+		expect(registry[0]?.description).toBe("sync from agents singular");
+		expect(registry[0]?.source).toBe("project");
+	});
+
 	it("loads aliases from frontmatter and normalizes them", () => {
 		const cwd = makeTempDirectory("slash-cwd-");
 		const home = makeTempDirectory("slash-home-");

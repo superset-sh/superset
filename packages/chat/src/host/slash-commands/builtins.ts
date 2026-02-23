@@ -89,5 +89,9 @@ const BUILTIN_COMMANDS: SlashCommandRegistryEntry[] = [
 ];
 
 export function getBuiltInSlashCommands(): SlashCommandRegistryEntry[] {
-	return BUILTIN_COMMANDS.map((command) => ({ ...command }));
+	return BUILTIN_COMMANDS.map((command) => ({
+		...command,
+		aliases: [...command.aliases],
+		action: command.action ? { ...command.action } : undefined,
+	}));
 }

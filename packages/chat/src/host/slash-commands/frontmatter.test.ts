@@ -52,11 +52,39 @@ Body`;
 		});
 	});
 
+	it("parses aliases containing commas inside quoted values", () => {
+		const raw = `---
+description: Alias example
+aliases: [clear, "release,stable", 'qa,prod']
+---
+Body`;
+
+		expect(parseSlashCommandFrontmatter(raw)).toEqual({
+			description: "Alias example",
+			argumentHint: "",
+			aliases: ["clear", "release,stable", "qa,prod"],
+		});
+	});
+
 	it("returns empty metadata for unclosed frontmatter", () => {
 		const raw = `---
 description: Missing closing delimiter`;
 
 		expect(parseSlashCommandFrontmatter(raw)).toEqual({
+			description: "",
+			argumentHint: "",
+			aliases: [],
+		});
+	});
+
+	it("returns a fresh empty object for each parse call", () => {
+		const first = parseSlashCommandFrontmatter("No frontmatter");
+		first.aliases.push("mutated");
+		first.description = "changed";
+		first.argumentHint = "changed";
+
+		const second = parseSlashCommandFrontmatter("No frontmatter");
+		expect(second).toEqual({
 			description: "",
 			argumentHint: "",
 			aliases: [],

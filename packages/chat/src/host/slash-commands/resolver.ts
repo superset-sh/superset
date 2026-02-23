@@ -34,22 +34,66 @@ function parseSlashCommandArguments(argumentsRaw: string): string[] {
 	if (!argumentsRaw) return [];
 
 	const tokens: string[] = [];
-	const tokenPattern = /"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|(\S+)/g;
+	let current = "";
+	let quote: '"' | "'" | null = null;
+	let escaping = false;
 
-	for (const match of argumentsRaw.matchAll(tokenPattern)) {
-		if (match[1] !== undefined) {
-			tokens.push(match[1].replace(/\\(["\\])/g, "$1"));
+	for (let i = 0; i < argumentsRaw.length; i++) {
+		const character = argumentsRaw[i];
+		if (character === undefined) continue;
+
+		if (quote) {
+			if (escaping) {
+				current += character;
+				escaping = false;
+				continue;
+			}
+
+			if (character === "\\") {
+				escaping = true;
+				continue;
+			}
+
+			if (character === quote) {
+				quote = null;
+				continue;
+			}
+
+			current += character;
 			continue;
 		}
 
-		if (match[2] !== undefined) {
-			tokens.push(match[2].replace(/\\(['\\])/g, "$1"));
+		if (/\s/.test(character)) {
+			if (current) {
+				tokens.push(current);
+				current = "";
+			}
 			continue;
 		}
 
-		if (match[3] !== undefined) {
-			tokens.push(match[3]);
+		if (character === '"' || character === "'") {
+			quote = character;
+			continue;
 		}
+
+		if (character === "\\") {
+			const nextCharacter = argumentsRaw[i + 1];
+			if (nextCharacter !== undefined) {
+				current += nextCharacter;
+				i += 1;
+				continue;
+			}
+		}
+
+		current += character;
+	}
+
+	if (escaping) {
+		current += "\\";
+	}
+
+	if (current) {
+		tokens.push(current);
 	}
 
 	return tokens;
@@ -106,9 +150,7 @@ function renderSlashCommandPrompt(
 	const namedArguments = parseNamedSlashCommandArguments(argumentTokens);
 	namedArguments.set("COMMAND", commandName);
 	namedArguments.set("CWD", cwd);
-
-	const withAllArguments = template.replaceAll("$ARGUMENTS", argumentsRaw);
-	const withPositionalArguments = withAllArguments.replace(
+	const withPositionalArguments = template.replace(
 		/\$\{(\d+)\}|\$(\d+)/g,
 		(_, bracedIndex: string | undefined, plainIndex: string | undefined) => {
 			const index = bracedIndex ?? plainIndex;
@@ -117,15 +159,17 @@ function renderSlashCommandPrompt(
 			return argumentTokens[argumentIndex] ?? "";
 		},
 	);
-
-	return withPositionalArguments.replace(
+	const withNamedArguments = withPositionalArguments.replace(
 		/\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g,
 		(match, bracedName: string | undefined, plainName: string | undefined) => {
 			const name = (bracedName ?? plainName)?.toUpperCase();
 			if (!name) return match;
+			if (name === "ARGUMENTS") return match;
 			return namedArguments.get(name) ?? match;
 		},
 	);
+
+	return withNamedArguments.replaceAll("$ARGUMENTS", argumentsRaw);
 }
 
 function resolveCommandTemplate(command: {
