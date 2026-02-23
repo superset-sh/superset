@@ -129,13 +129,23 @@ export class StreamWatcher {
 	}
 
 	private emitLifecycle(eventType: ChatLifecycleEvent["eventType"]): void {
-		this.onLifecycleEvent?.({
-			sessionId: this.sessionId,
-			eventType,
-		});
+		if (!this.onLifecycleEvent) return;
+		try {
+			this.onLifecycleEvent({
+				sessionId: this.sessionId,
+				eventType,
+			});
+		} catch (error) {
+			console.error(
+				`[stream-watcher] lifecycle callback failed for ${this.sessionId}:`,
+				error,
+			);
+		}
 	}
 
-	private async executeWithLifecycle(action: () => Promise<void>) {
+	private async executeWithLifecycle(
+		action: () => Promise<void>,
+	): Promise<void> {
 		this.emitLifecycle("Start");
 		try {
 			await action();
