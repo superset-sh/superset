@@ -20,7 +20,6 @@ export function setSkipNextHotkeysPersist(skip: boolean): void {
 interface TrpcStorageConfig {
 	get: () => Promise<unknown>;
 	set: (input: unknown) => Promise<unknown>;
-	onSetError?: (error: unknown) => Promise<void> | void;
 }
 
 function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
@@ -52,7 +51,6 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 				await config.set(parsed.state);
 			} catch (error) {
 				console.error("[trpc-storage] Failed to set state:", error);
-				await config.onSetError?.(error);
 			}
 		},
 		removeItem: async (_name: string): Promise<void> => {
@@ -105,15 +103,6 @@ export const trpcHotkeysStorage = createJSONStorage(() =>
 	}),
 );
 
-type RingtonePersistErrorHandler = (canonicalRingtoneId: string) => void;
-let ringtonePersistErrorHandler: RingtonePersistErrorHandler | null = null;
-
-export function setRingtonePersistErrorHandler(
-	handler: RingtonePersistErrorHandler | null,
-): void {
-	ringtonePersistErrorHandler = handler;
-}
-
 /**
  * Zustand storage adapter for ringtone state using tRPC.
  * Only the selectedRingtoneId is persisted.
@@ -130,19 +119,6 @@ export const trpcRingtoneStorage = createJSONStorage(() =>
 			await electronTrpcClient.settings.setSelectedRingtoneId.mutate({
 				ringtoneId: state.selectedRingtoneId,
 			});
-		},
-		onSetError: async () => {
-			if (!ringtonePersistErrorHandler) {
-				return;
-			}
-
-			try {
-				const canonicalRingtoneId =
-					await electronTrpcClient.settings.getSelectedRingtoneId.query();
-				ringtonePersistErrorHandler(canonicalRingtoneId);
-			} catch {
-				// Ignore secondary failures while already handling persistence failure.
-			}
 		},
 	}),
 );
