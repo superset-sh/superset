@@ -2,7 +2,7 @@ import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { z } from "zod";
 import type { ChatService } from "../chat-service";
-import { getSlashCommands } from "../slash-commands";
+import { getSlashCommands, resolveSlashCommand } from "../slash-commands";
 import { searchFiles } from "./file-search";
 
 const t = initTRPC.create({ transformer: superjson });
@@ -16,6 +16,11 @@ export const searchFilesInput = z.object({
 
 export const getSlashCommandsInput = z.object({
 	cwd: z.string(),
+});
+
+export const resolveSlashCommandInput = z.object({
+	cwd: z.string(),
+	text: z.string(),
 });
 
 export const sessionIdInput = z.object({
@@ -57,6 +62,12 @@ export function createChatServiceRouter(service: ChatService) {
 				.input(getSlashCommandsInput)
 				.query(async ({ input }) => {
 					return getSlashCommands(input.cwd);
+				}),
+
+			resolveSlashCommand: t.procedure
+				.input(resolveSlashCommandInput)
+				.mutation(async ({ input }) => {
+					return resolveSlashCommand(input.cwd, input.text);
 				}),
 		}),
 

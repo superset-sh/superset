@@ -29,7 +29,7 @@ export function SlashCommandMenu({
 			side="top"
 			align="start"
 			sideOffset={0}
-			className="w-80 p-0 text-xs"
+			className="w-[min(44rem,calc(100vw-2rem))] p-0 text-xs"
 			onOpenAutoFocus={(e) => e.preventDefault()}
 			onCloseAutoFocus={(e) => e.preventDefault()}
 		>

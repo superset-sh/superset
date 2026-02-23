@@ -6,6 +6,21 @@ type ChatServiceOutputs = inferRouterOutputs<ChatServiceRouter>;
 export type SlashCommand =
 	ChatServiceOutputs["workspace"]["getSlashCommands"][number];
 
+function getSlashQuery(inputValue: string): string | null {
+	if (inputValue.includes("\n")) return null;
+	const match = inputValue.match(/^\/([^\s]*)$/);
+	if (!match) return null;
+	return match[1]?.toLowerCase() ?? "";
+}
+
+function getMatchRank(commandName: string, query: string): number | null {
+	if (query === "") return 0;
+	if (commandName === query) return 0;
+	if (commandName.startsWith(query)) return 1;
+	if (commandName.includes(query)) return 2;
+	return null;
+}
+
 export function useSlashCommands({
 	inputValue,
 	commands,
@@ -15,17 +30,27 @@ export function useSlashCommands({
 }) {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 
-	const isOpen =
-		inputValue.startsWith("/") &&
-		!inputValue.includes("\n") &&
-		!inputValue.includes(" ");
-
-	const query = isOpen ? inputValue.slice(1).toLowerCase() : "";
+	const query = getSlashQuery(inputValue);
+	const isOpen = query !== null;
 
 	const filteredCommands = useMemo(() => {
-		if (!isOpen) return [];
-		if (query === "") return commands;
-		return commands.filter((cmd) => cmd.name.startsWith(query));
+		if (!isOpen || query === null) return [];
+
+		const rankedCommands = commands
+			.map((command) => {
+				const rank = getMatchRank(command.name.toLowerCase(), query);
+				return rank === null ? null : { command, rank };
+			})
+			.filter(
+				(item): item is { command: SlashCommand; rank: number } =>
+					item !== null,
+			)
+			.sort((a, b) => {
+				if (a.rank !== b.rank) return a.rank - b.rank;
+				return a.command.name.localeCompare(b.command.name);
+			});
+
+		return rankedCommands.map((item) => item.command);
 	}, [commands, isOpen, query]);
 
 	const prevQuery = useRef(query);

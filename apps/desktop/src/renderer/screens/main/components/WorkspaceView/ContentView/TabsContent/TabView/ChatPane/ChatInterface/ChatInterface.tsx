@@ -119,6 +119,8 @@ export function ChatInterface({
 	// --- Slash commands (always active) ---
 	const { data: slashCommands = [] } =
 		chatServiceTrpc.workspace.getSlashCommands.useQuery({ cwd });
+	const resolveSlashCommandMutation =
+		chatServiceTrpc.workspace.resolveSlashCommand.useMutation();
 
 	const ensureRuntimeMutation =
 		chatServiceTrpc.session.ensureRuntime.useMutation();
@@ -248,8 +250,29 @@ export function ChatInterface({
 	// --- Send handler: creates session if needed, otherwise sends directly ---
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
-			const text = message.text.trim();
+			let text = message.text.trim();
 			const files = message.files ?? [];
+
+			if (text.startsWith("/")) {
+				try {
+					const resolvedCommand = await resolveSlashCommandMutation.mutateAsync(
+						{
+							cwd,
+							text,
+						},
+					);
+
+					if (resolvedCommand.handled) {
+						text = (resolvedCommand.prompt ?? "").trim();
+					}
+				} catch (error) {
+					console.warn(
+						"[chat] Failed to resolve slash command, sending raw input",
+						error,
+					);
+				}
+			}
+
 			if (!text && files.length === 0) return;
 
 			if (sessionId) {
@@ -312,6 +335,7 @@ export function ChatInterface({
 			paneId,
 			switchChatSession,
 			ensureRuntimeMutation,
+			resolveSlashCommandMutation,
 			cwd,
 			chat.sendMessage,
 			messageMetadata,
