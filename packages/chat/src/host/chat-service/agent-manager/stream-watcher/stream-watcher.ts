@@ -42,8 +42,7 @@ export class StreamWatcher {
 			const hasFiles = message.parts?.some((p) => p.type === "file");
 			if (!text.trim() && !hasFiles) return;
 
-			void (async () => {
-				this.emitLifecycle("Start");
+			void this.executeWithLifecycle(async () => {
 				await runAgent({
 					sessionId: options.sessionId,
 					text,
@@ -56,8 +55,7 @@ export class StreamWatcher {
 					apiUrl: options.apiUrl,
 					getHeaders: options.getHeaders,
 				});
-				this.emitLifecycle("Stop");
-			})();
+			});
 		});
 
 		this.host.on("toolApprovalRequest", () => {
@@ -67,8 +65,7 @@ export class StreamWatcher {
 		this.host.on("toolResult", ({ answers }) => {
 			const runId = sessionRunIds.get(options.sessionId);
 			if (runId) {
-				void (async () => {
-					this.emitLifecycle("Start");
+				void this.executeWithLifecycle(async () => {
 					await resumeAgent({
 						sessionId: options.sessionId,
 						runId,
@@ -76,16 +73,14 @@ export class StreamWatcher {
 						approved: true,
 						answers,
 					});
-					this.emitLifecycle("Stop");
-				})();
+				});
 			}
 		});
 
 		this.host.on("toolApproval", ({ approved, permissionMode }) => {
 			const runId = sessionRunIds.get(options.sessionId);
 			if (runId) {
-				void (async () => {
-					this.emitLifecycle("Start");
+				void this.executeWithLifecycle(async () => {
 					await resumeAgent({
 						sessionId: options.sessionId,
 						runId,
@@ -93,8 +88,7 @@ export class StreamWatcher {
 						approved,
 						permissionMode,
 					});
-					this.emitLifecycle("Stop");
-				})();
+				});
 			}
 		});
 
@@ -112,6 +106,15 @@ export class StreamWatcher {
 			sessionId: this.sessionId,
 			eventType,
 		});
+	}
+
+	private async executeWithLifecycle(action: () => Promise<void>) {
+		this.emitLifecycle("Start");
+		try {
+			await action();
+		} finally {
+			this.emitLifecycle("Stop");
+		}
 	}
 
 	get sessionHost() {

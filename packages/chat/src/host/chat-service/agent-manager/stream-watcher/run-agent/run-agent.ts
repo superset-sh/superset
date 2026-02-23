@@ -34,11 +34,7 @@ export interface RunAgentOptions {
 	getHeaders: GetHeaders;
 }
 
-export type AgentRunOutcome = "finished" | "error" | "aborted";
-
-export async function runAgent(
-	options: RunAgentOptions,
-): Promise<AgentRunOutcome> {
+export async function runAgent(options: RunAgentOptions): Promise<void> {
 	const {
 		sessionId,
 		text,
@@ -156,12 +152,11 @@ export async function runAgent(
 		}
 
 		await writeToDurableStream(output, host, abortController.signal);
-		return abortController.signal.aborted ? "aborted" : "finished";
 	} catch (error) {
 		sessionRunIds.delete(sessionId);
 		sessionContext.delete(sessionId);
 
-		if (abortController.signal.aborted) return "aborted";
+		if (abortController.signal.aborted) return;
 
 		// Write error chunk to stream so client sees isComplete = true
 		try {
@@ -170,7 +165,6 @@ export async function runAgent(
 			/* best effort */
 		}
 		console.error(`[run-agent] Stream error for ${sessionId}:`, error);
-		return "error";
 	} finally {
 		if (sessionAbortControllers.get(sessionId) === abortController) {
 			sessionAbortControllers.delete(sessionId);
@@ -191,9 +185,7 @@ export interface ResumeAgentOptions {
 	permissionMode?: string;
 }
 
-export async function resumeAgent(
-	options: ResumeAgentOptions,
-): Promise<AgentRunOutcome> {
+export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 	const { sessionId, runId, host, approved, answers, permissionMode } = options;
 
 	if (permissionMode) {
@@ -223,12 +215,11 @@ export async function resumeAgent(
 			: await superagent.declineToolCall(approvalOpts);
 
 		await writeToDurableStream(stream, host, abortController.signal);
-		return abortController.signal.aborted ? "aborted" : "finished";
 	} catch (error) {
 		sessionRunIds.delete(sessionId);
 		sessionContext.delete(sessionId);
 
-		if (abortController.signal.aborted) return "aborted";
+		if (abortController.signal.aborted) return;
 
 		try {
 			await writeErrorChunk(host, error);
@@ -236,7 +227,6 @@ export async function resumeAgent(
 			/* best effort */
 		}
 		console.error(`[run-agent] Resume error for ${sessionId}:`, error);
-		return "error";
 	} finally {
 		if (sessionAbortControllers.get(sessionId) === abortController) {
 			sessionAbortControllers.delete(sessionId);
