@@ -31,11 +31,10 @@ export function usePathActions({
 					description: error.message,
 				}),
 		});
-	const { data: defaultApp } =
-		electronTrpc.projects.getDefaultApp.useQuery(
-			{ projectId: projectId as string },
-			{ enabled: !!projectId },
-		);
+	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
+		{ projectId: projectId as string },
+		{ enabled: !!projectId },
+	);
 
 	const copyPath = useCallback(async () => {
 		if (absolutePath) {
@@ -68,8 +67,7 @@ export function usePathActions({
 			});
 		} else {
 			toast.error("No default editor configured", {
-				description:
-					"Open a project in an editor first to set a default.",
+				description: "Open a project in an editor first to set a default.",
 			});
 		}
 	}, [
