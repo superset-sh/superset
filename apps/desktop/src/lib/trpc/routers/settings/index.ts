@@ -27,6 +27,11 @@ import {
 	setFontSettingsSchema,
 	transformFontSettings,
 } from "./font-settings.utils";
+import {
+	normalizeTerminalPresets,
+	type PresetWithUnknownMode,
+	shouldPersistNormalizedPresetModes,
+} from "./preset-execution-mode";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
@@ -36,6 +41,28 @@ function getSettings() {
 		row = localDb.insert(settings).values({ id: 1 }).returning().get();
 	}
 	return row;
+}
+
+function getNormalizedTerminalPresets() {
+	const row = getSettings();
+	const rawPresets = (row.terminalPresets ?? []) as PresetWithUnknownMode[];
+	if (rawPresets.length === 0) return [];
+	if (!shouldPersistNormalizedPresetModes(rawPresets)) {
+		return rawPresets as TerminalPreset[];
+	}
+
+	const normalizedPresets = normalizeTerminalPresets(rawPresets);
+
+	localDb
+		.insert(settings)
+		.values({ id: 1, terminalPresets: normalizedPresets })
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { terminalPresets: normalizedPresets },
+		})
+		.run();
+
+	return normalizedPresets;
 }
 
 const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
@@ -76,7 +103,9 @@ function initializeDefaultPresets() {
 	const row = getSettings();
 	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
 
-	const existingPresets: TerminalPreset[] = row.terminalPresets ?? [];
+	const existingPresets = normalizeTerminalPresets(
+		(row.terminalPresets ?? []) as PresetWithUnknownMode[],
+	);
 
 	const mergedPresets =
 		existingPresets.length > 0
@@ -110,8 +139,7 @@ function initializeDefaultPresets() {
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
 ) {
-	const row = getSettings();
-	const presets = row.terminalPresets ?? [];
+	const presets = getNormalizedTerminalPresets();
 	const tagged = presets.filter((p) => p[field]);
 	if (tagged.length > 0) return tagged;
 	const defaultPreset = presets.find((p) => p.isDefault);
@@ -125,7 +153,7 @@ export const createSettingsRouter = () => {
 			if (!row.terminalPresetsInitialized) {
 				return initializeDefaultPresets();
 			}
-			return row.terminalPresets ?? [];
+			return getNormalizedTerminalPresets();
 		}),
 		createTerminalPreset: publicProcedure
 			.input(
@@ -144,8 +172,7 @@ export const createSettingsRouter = () => {
 					executionMode: input.executionMode ?? "split-pane",
 				};
 
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 				presets.push(preset);
 
 				localDb
@@ -174,8 +201,7 @@ export const createSettingsRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 				const preset = presets.find((p) => p.id === input.id);
 
 				if (!preset) {
@@ -209,8 +235,7 @@ export const createSettingsRouter = () => {
 		deleteTerminalPreset: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 				const filteredPresets = presets.filter((p) => p.id !== input.id);
 
 				localDb
@@ -228,8 +253,7 @@ export const createSettingsRouter = () => {
 		setDefaultPreset: publicProcedure
 			.input(z.object({ id: z.string().nullable() }))
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 
 				const updatedPresets = presets.map((p) => ({
 					...p,
@@ -257,8 +281,7 @@ export const createSettingsRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 
 				const updatedPresets = presets.map((p) => {
 					if (p.id !== input.id) return p;
@@ -304,8 +327,7 @@ export const createSettingsRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 
 				const currentIndex = presets.findIndex((p) => p.id === input.presetId);
 				if (currentIndex === -1) {
@@ -338,8 +360,7 @@ export const createSettingsRouter = () => {
 			}),
 
 		getDefaultPreset: publicProcedure.query(() => {
-			const row = getSettings();
-			const presets = row.terminalPresets ?? [];
+			const presets = getNormalizedTerminalPresets();
 			return presets.find((p) => p.isDefault) ?? null;
 		}),
 

@@ -2,25 +2,22 @@ import type { TerminalPreset } from "@superset/local-db";
 import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getPresetLaunchPlan,
+	normalizePresetMode,
+	type PresetMode,
+	type PresetOpenTarget,
+} from "./preset-launch";
 import { useTabsStore } from "./store";
 import type { AddTabOptions } from "./types";
 import { resolveActiveTabIdForWorkspace } from "./utils";
-
-type PresetOpenTarget = "new-tab" | "active-tab";
-
-function resolvePresetMode(mode?: string) {
-	if (mode === "new-tab") {
-		return "new-tab";
-	}
-	return "split-pane";
-}
 
 interface OpenPresetOptions {
 	target?: PresetOpenTarget;
 }
 
 interface PreparedPreset {
-	mode: "split-pane" | "new-tab";
+	mode: PresetMode;
 	commands: string[];
 	initialCwd?: string;
 	name?: string;
@@ -28,7 +25,7 @@ interface PreparedPreset {
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
 	return {
-		mode: resolvePresetMode(preset.executionMode),
+		mode: normalizePresetMode(preset.executionMode),
 		commands: preset.commands,
 		initialCwd: preset.cwd || undefined,
 		name: preset.name || undefined,
@@ -127,19 +124,21 @@ export function useTabsWithPresets() {
 		[storeAddTab, storeAddTabWithMultiplePanes, applyTabName],
 	);
 
-	const executePresetInActiveTab = useCallback(
-		(workspaceId: string, preset: PreparedPreset) => {
-			if (preset.mode === "new-tab") {
-				return executePresetInNewTab(workspaceId, preset);
-			}
+	const executePreset = useCallback(
+		(workspaceId: string, preset: PreparedPreset, target: PresetOpenTarget) => {
+			const activeTabId =
+				target === "active-tab" && preset.mode === "split-pane"
+					? resolveActiveWorkspaceTabId(workspaceId)
+					: null;
 
-			const activeTabId = resolveActiveWorkspaceTabId(workspaceId);
+			const plan = getPresetLaunchPlan({
+				mode: preset.mode,
+				target,
+				commandCount: preset.commands.length,
+				hasActiveTab: !!activeTabId,
+			});
 
-			if (!activeTabId) {
-				return executePresetInNewTab(workspaceId, preset);
-			}
-
-			if (preset.commands.length > 1) {
+			if (plan === "active-tab-multi-pane" && activeTabId) {
 				const paneIds = storeAddPanesToTab(activeTabId, {
 					commands: preset.commands,
 					initialCwd: preset.initialCwd,
@@ -150,32 +149,25 @@ export function useTabsWithPresets() {
 				return executePresetInNewTab(workspaceId, preset);
 			}
 
-			const paneId = storeAddPane(activeTabId, {
-				initialCommands: preset.commands,
-				initialCwd: preset.initialCwd,
-			});
-			if (paneId) {
-				return { tabId: activeTabId, paneId };
+			if (plan === "active-tab-single" && activeTabId) {
+				const paneId = storeAddPane(activeTabId, {
+					initialCommands: preset.commands,
+					initialCwd: preset.initialCwd,
+				});
+				if (paneId) {
+					return { tabId: activeTabId, paneId };
+				}
+				return executePresetInNewTab(workspaceId, preset);
 			}
 
 			return executePresetInNewTab(workspaceId, preset);
 		},
 		[
-			executePresetInNewTab,
+			resolveActiveWorkspaceTabId,
 			storeAddPanesToTab,
 			storeAddPane,
-			resolveActiveWorkspaceTabId,
+			executePresetInNewTab,
 		],
-	);
-
-	const executePreset = useCallback(
-		(workspaceId: string, preset: PreparedPreset, target: PresetOpenTarget) => {
-			if (target === "active-tab") {
-				return executePresetInActiveTab(workspaceId, preset);
-			}
-			return executePresetInNewTab(workspaceId, preset);
-		},
-		[executePresetInActiveTab, executePresetInNewTab],
 	);
 
 	const openPreset = useCallback(
