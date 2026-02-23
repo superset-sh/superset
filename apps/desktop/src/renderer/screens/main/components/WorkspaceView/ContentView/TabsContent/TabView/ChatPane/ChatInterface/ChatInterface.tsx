@@ -1,7 +1,7 @@
 import { chatServiceTrpc, useChat } from "@superset/chat/client";
 import {
-	PromptInputProvider,
 	type PromptInputMessage,
+	PromptInputProvider,
 } from "@superset/ui/ai-elements/prompt-input";
 import { toast } from "@superset/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -185,7 +185,9 @@ export function ChatInterface({
 
 	const createFreshSession = useCallback(async (): Promise<boolean> => {
 		if (!organizationId) {
-			setSlashCommandError("Cannot create a new session without an organization");
+			setSlashCommandError(
+				"Cannot create a new session without an organization",
+			);
 			return false;
 		}
 
@@ -199,13 +201,7 @@ export function ChatInterface({
 			setSlashCommandError("Failed to create a new session");
 			return false;
 		}
-	}, [
-		deviceId,
-		organizationId,
-		paneId,
-		switchChatSession,
-		workspaceId,
-	]);
+	}, [deviceId, organizationId, paneId, switchChatSession, workspaceId]);
 
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
@@ -214,10 +210,12 @@ export function ChatInterface({
 
 			if (text.startsWith("/")) {
 				try {
-					const resolvedCommand = await resolveSlashCommandMutation.mutateAsync({
-						cwd,
-						text,
-					});
+					const resolvedCommand = await resolveSlashCommandMutation.mutateAsync(
+						{
+							cwd,
+							text,
+						},
+					);
 
 					if (resolvedCommand.handled) {
 						if (resolvedCommand.action) {
