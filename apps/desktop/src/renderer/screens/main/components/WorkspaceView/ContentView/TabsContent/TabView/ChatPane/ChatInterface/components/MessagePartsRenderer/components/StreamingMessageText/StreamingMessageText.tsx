@@ -47,7 +47,7 @@ export function StreamingMessageText({
 	return (
 		<MessageResponse
 			animated={false}
-			isAnimating={false}
+			isAnimating={isAnimating}
 			mermaid={mermaid}
 			components={components}
 		>
