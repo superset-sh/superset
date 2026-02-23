@@ -41,6 +41,26 @@ function getCommandMatchRank(
 	return bestAliasRank;
 }
 
+export function hasRequiredSlashCommandArguments(argumentHint: string): boolean {
+	if (!argumentHint.trim()) return false;
+	const requiredSegment = argumentHint.replace(/\[[^[\]]+\]/g, " ").trim();
+	return requiredSegment.length > 0;
+}
+
+export function sortSlashCommandMatches(
+	matches: Array<{ command: SlashCommand; rank: number }>,
+): SlashCommand[] {
+	return matches
+		.sort((a, b) => {
+			if (a.command.kind !== b.command.kind) {
+				return a.command.kind === "builtin" ? 1 : -1;
+			}
+			if (a.rank !== b.rank) return a.rank - b.rank;
+			return a.command.name.localeCompare(b.command.name);
+		})
+		.map((item) => item.command);
+}
+
 export function useSlashCommands({
 	inputValue,
 	commands,
@@ -64,13 +84,9 @@ export function useSlashCommands({
 			.filter(
 				(item): item is { command: SlashCommand; rank: number } =>
 					item !== null,
-			)
-			.sort((a, b) => {
-				if (a.rank !== b.rank) return a.rank - b.rank;
-				return a.command.name.localeCompare(b.command.name);
-			});
+			);
 
-		return rankedCommands.map((item) => item.command);
+		return sortSlashCommandMatches(rankedCommands);
 	}, [commands, isOpen, query]);
 
 	const prevQuery = useRef(query);
@@ -107,7 +123,7 @@ export function resolveCommandAction(command: SlashCommand): {
 	text: string;
 	shouldSend: boolean;
 } {
-	if (command.argumentHint) {
+	if (hasRequiredSlashCommandArguments(command.argumentHint)) {
 		return { text: `/${command.name} `, shouldSend: false };
 	}
 	return { text: "", shouldSend: true };

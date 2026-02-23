@@ -4,3 +4,4 @@ export {
 	type RawPresenceRow,
 	sessionStateSchema,
 } from "./schema";
+export { tokenizeSlashCommandArguments } from "./slash-command-arguments";

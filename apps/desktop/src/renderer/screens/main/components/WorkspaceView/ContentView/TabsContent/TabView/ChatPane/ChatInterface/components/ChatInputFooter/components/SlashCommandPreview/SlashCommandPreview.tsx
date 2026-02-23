@@ -11,12 +11,14 @@ import {
 	normalizeSlashPreviewInput,
 	type ParamField,
 	parseSlashInput,
+	resolveSlashCommandDefinition,
 } from "./slash-command-preview.model";
 
 interface SlashCommandPreviewProps {
 	cwd: string;
 	slashCommands: Array<{
 		name: string;
+		aliases: string[];
 		description: string;
 		argumentHint: string;
 	}>;
@@ -73,11 +75,18 @@ export function SlashCommandPreview({
 			},
 		);
 
-	const previewMatchesInputCommand =
-		parsedInput?.commandName &&
-		slashPreview?.commandName &&
-		slashPreview.commandName.toLowerCase() ===
-			parsedInput.commandName.toLowerCase();
+	const commandDefinition = useMemo(() => {
+		if (!parsedInput?.commandName) return null;
+		return resolveSlashCommandDefinition(slashCommands, parsedInput.commandName);
+	}, [parsedInput?.commandName, slashCommands]);
+	const commandDescription = commandDefinition?.description?.trim() ?? "";
+	const previewCommandName = slashPreview?.commandName?.toLowerCase();
+	const canonicalCommandName = commandDefinition?.name.toLowerCase();
+	const previewMatchesInputCommand = Boolean(
+		previewCommandName &&
+			canonicalCommandName &&
+			previewCommandName === canonicalCommandName,
+	);
 	const previewPrompt = previewMatchesInputCommand
 		? (slashPreview?.prompt ?? "")
 		: "";
@@ -89,17 +98,6 @@ export function SlashCommandPreview({
 		() => new Set(unresolvedFieldKeys),
 		[unresolvedFieldKeys],
 	);
-
-	const commandDefinition = useMemo(() => {
-		if (!parsedInput?.commandName) return null;
-		const targetName = parsedInput.commandName.toLowerCase();
-		return (
-			slashCommands.find(
-				(command) => command.name.toLowerCase() === targetName,
-			) ?? null
-		);
-	}, [parsedInput?.commandName, slashCommands]);
-	const commandDescription = commandDefinition?.description?.trim() ?? "";
 
 	const paramFields = useMemo(
 		() =>

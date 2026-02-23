@@ -3,6 +3,7 @@ import {
 	buildNextSlashInput,
 	buildParamFields,
 	parseSlashInput,
+	resolveSlashCommandDefinition,
 } from "./slash-command-preview.model";
 
 describe("slash-command-preview model", () => {
@@ -51,5 +52,21 @@ describe("slash-command-preview model", () => {
 		);
 
 		expect(next).toBe('/refactor src goal="improve readability"');
+	});
+
+	it("resolves command definitions by alias", () => {
+		const command = resolveSlashCommandDefinition(
+			[
+				{
+					name: "new",
+					aliases: ["clear"],
+					description: "Start a fresh chat session.",
+					argumentHint: "",
+				},
+			],
+			"clear",
+		);
+
+		expect(command?.name).toBe("new");
 	});
 });

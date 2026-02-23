@@ -1,3 +1,5 @@
+import { tokenizeSlashCommandArguments } from "@superset/chat/schema";
+
 export interface NamedArgEntry {
 	keyRaw: string;
 	keyUpper: string;
@@ -20,77 +22,16 @@ export interface ParamField {
 	positionalIndex?: number;
 }
 
+export interface SlashCommandDefinition {
+	name: string;
+	aliases: string[];
+	description: string;
+	argumentHint: string;
+}
+
 function getSlashCommandToken(input: string): string {
 	const match = input.match(/^\/[^\s]+/);
 	return match?.[0] ?? input;
-}
-
-function tokenizeSlashArguments(argumentsRaw: string): string[] {
-	if (!argumentsRaw) return [];
-
-	const tokens: string[] = [];
-	let current = "";
-	let quote: '"' | "'" | null = null;
-	let escaping = false;
-
-	for (let i = 0; i < argumentsRaw.length; i++) {
-		const character = argumentsRaw[i];
-		if (character === undefined) continue;
-
-		if (quote) {
-			if (escaping) {
-				current += character;
-				escaping = false;
-				continue;
-			}
-
-			if (character === "\\") {
-				escaping = true;
-				continue;
-			}
-
-			if (character === quote) {
-				quote = null;
-				continue;
-			}
-
-			current += character;
-			continue;
-		}
-
-		if (/\s/.test(character)) {
-			if (current) {
-				tokens.push(current);
-				current = "";
-			}
-			continue;
-		}
-
-		if (character === '"' || character === "'") {
-			quote = character;
-			continue;
-		}
-
-		if (character === "\\") {
-			const nextCharacter = argumentsRaw[i + 1];
-			if (nextCharacter !== undefined) {
-				current += nextCharacter;
-				i += 1;
-				continue;
-			}
-		}
-
-		current += character;
-	}
-
-	if (escaping) {
-		current += "\\";
-	}
-	if (current) {
-		tokens.push(current);
-	}
-
-	return tokens;
 }
 
 function parseNamedArgToken(token: string): NamedArgEntry | null {
@@ -244,7 +185,7 @@ export function parseSlashInput(input: string): ParsedSlashInput | null {
 	if (!commandName) return null;
 
 	const argumentsRaw = normalized.slice(commandToken.length).trim();
-	const argumentTokens = tokenizeSlashArguments(argumentsRaw);
+	const argumentTokens = tokenizeSlashCommandArguments(argumentsRaw);
 
 	const positionalTokens: string[] = [];
 	const namedEntries: NamedArgEntry[] = [];
@@ -367,6 +308,24 @@ export function buildParamFields(args: {
 	return mergeParsedNamedFields(withUnresolved, args.parsed);
 }
 
+export function resolveSlashCommandDefinition(
+	commands: SlashCommandDefinition[],
+	commandName: string,
+): SlashCommandDefinition | null {
+	const targetName = commandName.toLowerCase();
+
+	const directMatch =
+		commands.find((command) => command.name.toLowerCase() === targetName) ??
+		null;
+	if (directMatch) return directMatch;
+
+	return (
+		commands.find((command) =>
+			command.aliases.some((alias) => alias.toLowerCase() === targetName),
+		) ?? null
+	);
+}
+
 export function getNamedValueMap(
 	parsed: ParsedSlashInput | null,
 ): Map<string, string> {
@@ -386,14 +345,4 @@ export function getPositionalValueMap(
 		map.set(index, value);
 	}
 	return map;
-}
-
-export function getInlinePreviewText(previewPrompt: string): string {
-	const firstLine = previewPrompt
-		.split(/\r?\n/)
-		.map((line) => line.trim())
-		.find((line) => line.length > 0);
-	if (!firstLine) return "";
-	if (firstLine.length <= 96) return firstLine;
-	return `${firstLine.slice(0, 93)}...`;
 }
