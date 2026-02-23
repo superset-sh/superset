@@ -5,6 +5,8 @@ import { HiOutlineArrowUpTray, HiOutlineTrash } from "react-icons/hi2";
 import { useThemeStore } from "renderer/stores";
 import { parseThemeConfigFile } from "shared/themes";
 
+const MAX_THEME_FILE_SIZE = 256 * 1024; // 256 KB
+
 export function CustomThemesSection() {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isImporting, setIsImporting] = useState(false);
@@ -16,6 +18,12 @@ export function CustomThemesSection() {
 		const file = event.target.files?.[0];
 		event.target.value = "";
 		if (!file) return;
+		if (file.size > MAX_THEME_FILE_SIZE) {
+			toast.error("Theme file too large", {
+				description: "Maximum size is 256 KB.",
+			});
+			return;
+		}
 
 		setIsImporting(true);
 		try {
