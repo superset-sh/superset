@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
 	chmodSync,
 	existsSync,
@@ -8,8 +9,8 @@ import {
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
-import { copyFile } from "node:fs/promises";
-import { basename, extname, join } from "node:path";
+import { copyFile, rename, unlink } from "node:fs/promises";
+import { basename, extname, join, resolve } from "node:path";
 import { CUSTOM_RINGTONE_ID } from "shared/ringtones";
 import {
 	SUPERSET_HOME_DIR,
@@ -88,6 +89,17 @@ function sanitizeDisplayName(filename: string): string {
 		return "Custom Audio";
 	}
 	return stripped.slice(0, 80);
+}
+
+function normalizePathForComparison(filePath: string): string {
+	const resolved = resolve(filePath);
+	return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
+function areSamePath(pathA: string, pathB: string): boolean {
+	return (
+		normalizePathForComparison(pathA) === normalizePathForComparison(pathB)
+	);
 }
 
 function readCustomRingtoneMetadata(): CustomRingtoneMetadata {
@@ -182,15 +194,50 @@ export async function importCustomRingtoneFromPath(
 	}
 
 	ensureCustomRingtonesDir();
-	removeExistingCustomRingtoneFiles();
 
 	const ext = extname(sourcePath).toLowerCase();
 	const destinationPath = join(
 		RINGTONES_ASSETS_DIR,
 		`${CUSTOM_RINGTONE_FILE_STEM}${ext}`,
 	);
+	const displayName = sanitizeDisplayName(basename(sourcePath));
 
-	await copyFile(sourcePath, destinationPath);
+	// Re-importing the same file path should not delete the active ringtone.
+	if (areSamePath(sourcePath, destinationPath) && existsSync(destinationPath)) {
+		try {
+			chmodSync(destinationPath, SUPERSET_SENSITIVE_FILE_MODE);
+		} catch {
+			// Best effort only.
+		}
+		writeCustomRingtoneMetadata(displayName);
+		return {
+			id: CUSTOM_RINGTONE_ID,
+			name: displayName,
+			description: "Imported from your local machine",
+			emoji: "SFX",
+		};
+	}
+
+	const tempPath = join(
+		RINGTONES_ASSETS_DIR,
+		`.tmp-${CUSTOM_RINGTONE_FILE_STEM}-${randomUUID()}${ext}`,
+	);
+
+	try {
+		// Copy first so existing ringtone remains intact if this step fails.
+		await copyFile(sourcePath, tempPath);
+		removeExistingCustomRingtoneFiles();
+		await rename(tempPath, destinationPath);
+	} catch (error) {
+		if (existsSync(tempPath)) {
+			try {
+				await unlink(tempPath);
+			} catch {
+				// Best effort cleanup only.
+			}
+		}
+		throw error;
+	}
 
 	try {
 		chmodSync(destinationPath, SUPERSET_SENSITIVE_FILE_MODE);
@@ -198,7 +245,6 @@ export async function importCustomRingtoneFromPath(
 		// Best effort only.
 	}
 
-	const displayName = sanitizeDisplayName(basename(sourcePath));
 	writeCustomRingtoneMetadata(displayName);
 
 	return {

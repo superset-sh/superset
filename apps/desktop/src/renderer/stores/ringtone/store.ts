@@ -6,7 +6,10 @@ import {
 	RINGTONES,
 	type RingtoneData,
 } from "../../../shared/ringtones";
-import { trpcRingtoneStorage } from "../../lib/trpc-storage";
+import {
+	setRingtonePersistErrorHandler,
+	trpcRingtoneStorage,
+} from "../../lib/trpc-storage";
 
 // Re-export shared types and data for convenience
 export type Ringtone = RingtoneData;
@@ -93,6 +96,15 @@ export const useRingtoneStore = create<RingtoneState>()(
 		{ name: "RingtoneStore" },
 	),
 );
+
+setRingtonePersistErrorHandler((canonicalRingtoneId) => {
+	const current = useRingtoneStore.getState().selectedRingtoneId;
+	if (current === canonicalRingtoneId) {
+		return;
+	}
+
+	useRingtoneStore.setState({ selectedRingtoneId: canonicalRingtoneId });
+});
 
 // Convenience hooks
 export const useSelectedRingtoneId = () =>
