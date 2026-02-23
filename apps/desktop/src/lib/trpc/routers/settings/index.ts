@@ -30,7 +30,6 @@ import {
 import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
-	shouldPersistNormalizedPresetModes,
 } from "./preset-execution-mode";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
@@ -43,26 +42,29 @@ function getSettings() {
 	return row;
 }
 
-function getNormalizedTerminalPresets() {
+function readRawTerminalPresets(): PresetWithUnknownMode[] {
 	const row = getSettings();
-	const rawPresets = (row.terminalPresets ?? []) as PresetWithUnknownMode[];
-	if (rawPresets.length === 0) return [];
-	if (!shouldPersistNormalizedPresetModes(rawPresets)) {
-		return rawPresets as TerminalPreset[];
-	}
+	return (row.terminalPresets ?? []) as PresetWithUnknownMode[];
+}
 
-	const normalizedPresets = normalizeTerminalPresets(rawPresets);
+function getNormalizedTerminalPresets() {
+	const rawPresets = readRawTerminalPresets();
+	return normalizeTerminalPresets(rawPresets);
+}
 
+function saveTerminalPresets(
+	presets: TerminalPreset[],
+	options?: { terminalPresetsInitialized?: boolean },
+) {
+	const values = { id: 1, terminalPresets: presets, ...options };
 	localDb
 		.insert(settings)
-		.values({ id: 1, terminalPresets: normalizedPresets })
+		.values(values)
 		.onConflictDoUpdate({
 			target: settings.id,
-			set: { terminalPresets: normalizedPresets },
+			set: { terminalPresets: presets, ...options },
 		})
 		.run();
-
-	return normalizedPresets;
 }
 
 const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
@@ -103,9 +105,7 @@ function initializeDefaultPresets() {
 	const row = getSettings();
 	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
 
-	const existingPresets = normalizeTerminalPresets(
-		(row.terminalPresets ?? []) as PresetWithUnknownMode[],
-	);
+	const existingPresets = getNormalizedTerminalPresets();
 
 	const mergedPresets =
 		existingPresets.length > 0
@@ -116,21 +116,7 @@ function initializeDefaultPresets() {
 					executionMode: p.executionMode ?? "split-pane",
 				}));
 
-	localDb
-		.insert(settings)
-		.values({
-			id: 1,
-			terminalPresets: mergedPresets,
-			terminalPresetsInitialized: true,
-		})
-		.onConflictDoUpdate({
-			target: settings.id,
-			set: {
-				terminalPresets: mergedPresets,
-				terminalPresetsInitialized: true,
-			},
-		})
-		.run();
+	saveTerminalPresets(mergedPresets, { terminalPresetsInitialized: true });
 
 	return mergedPresets;
 }
@@ -175,14 +161,7 @@ export const createSettingsRouter = () => {
 				const presets = getNormalizedTerminalPresets();
 				presets.push(preset);
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: presets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: presets },
-					})
-					.run();
+				saveTerminalPresets(presets);
 
 				return preset;
 			}),
@@ -220,14 +199,7 @@ export const createSettingsRouter = () => {
 				if (input.patch.executionMode !== undefined)
 					preset.executionMode = input.patch.executionMode;
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: presets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: presets },
-					})
-					.run();
+				saveTerminalPresets(presets);
 
 				return { success: true };
 			}),
@@ -238,14 +210,7 @@ export const createSettingsRouter = () => {
 				const presets = getNormalizedTerminalPresets();
 				const filteredPresets = presets.filter((p) => p.id !== input.id);
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: filteredPresets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: filteredPresets },
-					})
-					.run();
+				saveTerminalPresets(filteredPresets);
 
 				return { success: true };
 			}),
@@ -260,14 +225,7 @@ export const createSettingsRouter = () => {
 					isDefault: input.id === p.id ? true : undefined,
 				}));
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: updatedPresets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: updatedPresets },
-					})
-					.run();
+				saveTerminalPresets(updatedPresets);
 
 				return { success: true };
 			}),
@@ -307,14 +265,7 @@ export const createSettingsRouter = () => {
 					};
 				});
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: updatedPresets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: updatedPresets },
-					})
-					.run();
+				saveTerminalPresets(updatedPresets);
 
 				return { success: true };
 			}),
@@ -347,14 +298,7 @@ export const createSettingsRouter = () => {
 				const [removed] = presets.splice(currentIndex, 1);
 				presets.splice(input.targetIndex, 0, removed);
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: presets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: presets },
-					})
-					.run();
+				saveTerminalPresets(presets);
 
 				return { success: true };
 			}),
