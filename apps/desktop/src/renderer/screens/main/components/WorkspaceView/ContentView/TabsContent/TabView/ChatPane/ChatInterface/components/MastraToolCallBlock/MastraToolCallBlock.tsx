@@ -1,12 +1,5 @@
 import { BashTool } from "@superset/ui/ai-elements/bash-tool";
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
-import {
-	Tool,
-	ToolContent,
-	ToolHeader,
-	ToolInput,
-	ToolOutput,
-} from "@superset/ui/ai-elements/tool";
 import { ToolCall } from "@superset/ui/ai-elements/tool-call";
 import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
@@ -15,13 +8,9 @@ import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolPart } from "../../utils/tool-helpers";
-import {
-	getArgs,
-	getResult,
-	toToolDisplayState,
-	toWsToolState,
-} from "../../utils/tool-helpers";
+import { getArgs, getResult, toWsToolState } from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
+import { GenericToolCall } from "./components/GenericToolCall";
 
 interface MastraToolCallBlockProps {
 	part: ToolPart;
@@ -201,41 +190,5 @@ export function MastraToolCallBlock({
 	}
 
 	// --- Fallback: generic tool UI ---
-	const output =
-		"output" in part ? (part as { output: unknown }).output : undefined;
-	const isOutputError =
-		output != null &&
-		typeof output === "object" &&
-		"error" in output &&
-		(output as { error?: boolean }).error === true;
-	const isError = part.state === "output-error" || isOutputError;
-	const displayState =
-		isOutputError && toToolDisplayState(part) === "output-available"
-			? "output-error"
-			: toToolDisplayState(part);
-	const errorText =
-		isError && output && typeof output === "object" && "message" in output
-			? String((output as { message?: unknown }).message ?? "")
-			: undefined;
-
-	return (
-		<Tool>
-			<ToolHeader title={toolName} state={displayState} />
-			<ToolContent>
-				{part.input != null && <ToolInput input={part.input} />}
-				{(output != null || isError) && (
-					<ToolOutput
-						output={!isError ? output : undefined}
-						errorText={
-							isError
-								? typeof output === "string"
-									? output
-									: errorText
-								: undefined
-						}
-					/>
-				)}
-			</ToolContent>
-		</Tool>
-	);
+	return <GenericToolCall part={part} toolName={toolName} />;
 }

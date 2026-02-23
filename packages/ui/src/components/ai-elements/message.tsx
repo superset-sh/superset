@@ -234,7 +234,7 @@ export const MessageBranchSelector = ({
 	return (
 		<ButtonGroup
 			className={cn(
-				"[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md",
+				"[&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md",
 				className,
 			)}
 			orientation="horizontal"
