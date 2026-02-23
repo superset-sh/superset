@@ -77,6 +77,8 @@ export function MessageList({
 					messages.map((msg, index) => {
 						const isLastAssistant =
 							msg.role === "assistant" && index === messages.length - 1;
+						const shouldAnimateStreaming =
+							isLastAssistant && (isStreaming || submitStatus === "submitted");
 
 						if (msg.role === "user") {
 							const textContent = msg.parts
@@ -144,17 +146,14 @@ export function MessageList({
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
 									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
-										<Shimmer
-											className="text-sm text-muted-foreground"
-											duration={1}
-										>
+										<Shimmer className="m-0 inline-flex h-4 items-center text-xs leading-none text-muted-foreground">
 											Thinking...
 										</Shimmer>
 									) : (
 										<MessagePartsRenderer
 											parts={msg.parts}
 											isLastAssistant={isLastAssistant}
-											isStreaming={isStreaming}
+											isStreaming={shouldAnimateStreaming}
 											workspaceId={workspaceId}
 											onAnswer={onAnswer}
 										/>
@@ -167,7 +166,7 @@ export function MessageList({
 				{isThinking && messages[messages.length - 1]?.role === "user" && (
 					<Message from="assistant">
 						<MessageContent>
-							<Shimmer className="text-sm text-muted-foreground" duration={1}>
+							<Shimmer className="m-0 inline-flex h-4 items-center text-xs leading-none text-muted-foreground">
 								Thinking...
 							</Shimmer>
 						</MessageContent>

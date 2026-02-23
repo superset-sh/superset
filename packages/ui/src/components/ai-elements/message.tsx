@@ -22,6 +22,12 @@ import {
 } from "../ui/tooltip";
 
 const streamdownPlugins = { mermaid };
+const defaultMessageAnimation = {
+	animation: "blurIn",
+	sep: "char",
+	duration: 180,
+	easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+} as const;
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
 	from: UIMessage["role"];
@@ -31,7 +37,7 @@ export const Message = ({ className, from, ...props }: MessageProps) => (
 	<div
 		className={cn(
 			"group flex w-full flex-col gap-2",
-			from === "user" ? "is-user" : "is-assistant",
+			from === "user" ? "is-user ml-auto justify-end" : "is-assistant",
 			className,
 		)}
 		{...props}
@@ -47,8 +53,9 @@ export const MessageContent = ({
 }: MessageContentProps) => (
 	<div
 		className={cn(
-			"flex w-full min-w-0 flex-col gap-3 text-sm select-text",
-			"group-[.is-user]:w-full",
+			"is-user:dark flex min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm select-text",
+			"group-[.is-user]:ml-auto group-[.is-user]:w-fit group-[.is-user]:rounded-lg group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
+			"group-[.is-assistant]:w-full",
 			"group-[.is-assistant]:text-foreground",
 			className,
 		)}
@@ -211,13 +218,10 @@ export const MessageBranchContent = ({
 	));
 };
 
-export type MessageBranchSelectorProps = HTMLAttributes<HTMLDivElement> & {
-	from: UIMessage["role"];
-};
+export type MessageBranchSelectorProps = ComponentProps<typeof ButtonGroup>;
 
 export const MessageBranchSelector = ({
 	className,
-	from,
 	...props
 }: MessageBranchSelectorProps) => {
 	const { totalBranches } = useMessageBranch();
@@ -229,7 +233,10 @@ export const MessageBranchSelector = ({
 
 	return (
 		<ButtonGroup
-			className="[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md"
+			className={cn(
+				"[&>*:not(:first-child)]:rounded-l-md [&>*:not(:last-child)]:rounded-r-md",
+				className,
+			)}
 			orientation="horizontal"
 			{...props}
 		/>
@@ -263,7 +270,6 @@ export type MessageBranchNextProps = ComponentProps<typeof Button>;
 
 export const MessageBranchNext = ({
 	children,
-	className,
 	...props
 }: MessageBranchNextProps) => {
 	const { goToNext, totalBranches } = useMessageBranch();
@@ -309,12 +315,13 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 export const MessageResponse = memo(
 	({ className, animated, isAnimating, ...props }: MessageResponseProps) => (
 		<Streamdown
-			animated={animated ?? { animation: "fadeIn", sep: "char" }}
+			animated={animated ?? defaultMessageAnimation}
 			className={cn(
 				"text-foreground [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_ol]:list-outside [&_ol]:pl-6 [&_ul]:list-outside [&_ul]:pl-6 [&_:not(pre)>code]:break-all",
 				className,
 			)}
 			isAnimating={isAnimating}
+			mode="streaming"
 			plugins={isAnimating ? undefined : streamdownPlugins}
 			{...props}
 		/>

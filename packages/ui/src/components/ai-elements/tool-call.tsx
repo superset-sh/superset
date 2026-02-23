@@ -37,7 +37,6 @@ export const ToolCall = ({
 						{isPending ? (
 							<Shimmer
 								as="span"
-								duration={1.2}
 								className="m-0 inline-flex h-4 items-center text-xs leading-none"
 							>
 								{title}

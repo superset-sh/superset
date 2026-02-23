@@ -73,7 +73,6 @@ export const WebFetchTool = ({
 					{isPending ? (
 						<Shimmer
 							as="span"
-							duration={1.2}
 							className="text-xs text-muted-foreground"
 						>
 							Fetching

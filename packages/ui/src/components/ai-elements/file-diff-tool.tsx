@@ -145,7 +145,6 @@ export const FileDiffTool = ({
 					{isStreaming && !filePath ? (
 						<Shimmer
 							as="span"
-							duration={1.2}
 							className="text-xs text-muted-foreground"
 						>
 							{isWriteMode ? "Writing file..." : "Editing file..."}
