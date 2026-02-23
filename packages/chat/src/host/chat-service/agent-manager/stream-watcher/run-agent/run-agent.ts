@@ -1,5 +1,11 @@
-import { RequestContext, superagent, toAISdkStream } from "@superset/agent";
+import {
+	RequestContext,
+	setAnthropicAuthToken,
+	superagent,
+	toAISdkStream,
+} from "@superset/agent";
 import type { UIMessage, UIMessageChunk } from "ai";
+import { getOrRefreshAnthropicOAuthCredentials } from "../../../../auth/anthropic";
 import type { GetHeaders } from "../../../../lib/auth/auth";
 import {
 	sessionAbortControllers,
@@ -32,6 +38,78 @@ export interface RunAgentOptions {
 	thinkingEnabled?: boolean;
 	apiUrl: string;
 	getHeaders: GetHeaders;
+}
+
+async function syncAnthropicOAuthToken(options?: {
+	forceRefresh?: boolean;
+}): Promise<boolean> {
+	try {
+		const oauthCredentials = await getOrRefreshAnthropicOAuthCredentials({
+			forceRefresh: options?.forceRefresh,
+		});
+
+		if (!oauthCredentials) {
+			setAnthropicAuthToken(null);
+			return false;
+		}
+
+		setAnthropicAuthToken(oauthCredentials.apiKey);
+		return true;
+	} catch (error) {
+		console.warn("[run-agent] Failed to sync Anthropic OAuth token:", error);
+		if (options?.forceRefresh) {
+			setAnthropicAuthToken(null);
+		}
+		return false;
+	}
+}
+
+function isAnthropicOAuthExpiredError(error: unknown): boolean {
+	const message = error instanceof Error ? error.message : String(error);
+	const normalized = message.toLowerCase();
+
+	if (normalized.includes("oauth token has expired")) {
+		return true;
+	}
+	if (
+		normalized.includes("authentication_error") &&
+		normalized.includes("oauth")
+	) {
+		return true;
+	}
+	if (
+		normalized.includes("api.anthropic.com") &&
+		normalized.includes("token") &&
+		normalized.includes("expired")
+	) {
+		return true;
+	}
+
+	return false;
+}
+
+async function withAnthropicOAuthRetry<T>(
+	operation: () => Promise<T>,
+): Promise<T> {
+	await syncAnthropicOAuthToken();
+
+	try {
+		return await operation();
+	} catch (error) {
+		if (!isAnthropicOAuthExpiredError(error)) {
+			throw error;
+		}
+
+		const refreshed = await syncAnthropicOAuthToken({ forceRefresh: true });
+		if (!refreshed) {
+			throw error;
+		}
+
+		console.warn(
+			"[run-agent] Retrying agent call after Anthropic OAuth refresh",
+		);
+		return operation();
+	}
 }
 
 export async function runAgent(options: RunAgentOptions): Promise<void> {
@@ -123,29 +201,31 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 					}
 				: text;
 
-		const output = await superagent.stream(streamInput, {
-			requestContext: new RequestContext(requestEntries),
-			maxSteps: 100,
-			memory: {
-				thread: sessionId,
-				resource: sessionId,
-			},
-			abortSignal: abortController.signal,
-			...(contextInstructions ? { instructions: contextInstructions } : {}),
-			...(requireToolApproval ? { requireToolApproval: true } : {}),
-			...(thinkingEnabled
-				? {
-						providerOptions: {
-							anthropic: {
-								thinking: {
-									type: "enabled",
-									budgetTokens: 10000,
+		const output = await withAnthropicOAuthRetry(() =>
+			superagent.stream(streamInput, {
+				requestContext: new RequestContext(requestEntries),
+				maxSteps: 100,
+				memory: {
+					thread: sessionId,
+					resource: sessionId,
+				},
+				abortSignal: abortController.signal,
+				...(contextInstructions ? { instructions: contextInstructions } : {}),
+				...(requireToolApproval ? { requireToolApproval: true } : {}),
+				...(thinkingEnabled
+					? {
+							providerOptions: {
+								anthropic: {
+									thinking: {
+										type: "enabled",
+										budgetTokens: 10000,
+									},
 								},
 							},
-						},
-					}
-				: {}),
-		});
+						}
+					: {}),
+			}),
+		);
 
 		if (output.runId) {
 			sessionRunIds.set(sessionId, output.runId);
@@ -200,19 +280,19 @@ export async function resumeAgent(options: ResumeAgentOptions): Promise<void> {
 		ctxEntries.push(["toolAnswers", JSON.stringify(answers)]);
 	}
 
-	const reqCtx = new RequestContext(ctxEntries);
 	const abortController = new AbortController();
 	sessionAbortControllers.set(sessionId, abortController);
 
 	try {
-		const approvalOpts = {
-			runId,
-			requestContext: reqCtx,
-		};
-
-		const stream = approved
-			? await superagent.approveToolCall(approvalOpts)
-			: await superagent.declineToolCall(approvalOpts);
+		const stream = await withAnthropicOAuthRetry(() => {
+			const approvalOpts = {
+				runId,
+				requestContext: new RequestContext(ctxEntries),
+			};
+			return approved
+				? superagent.approveToolCall(approvalOpts)
+				: superagent.declineToolCall(approvalOpts);
+		});
 
 		await writeToDurableStream(stream, host, abortController.signal);
 	} catch (error) {
