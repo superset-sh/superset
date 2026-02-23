@@ -176,7 +176,10 @@ export function ChatInputFooter({
 										<PromptInputAttachments>
 											{(file) => <PromptInputAttachment data={file} />}
 										</PromptInputAttachments>
-										<SlashCommandPreview cwd={cwd} />
+										<SlashCommandPreview
+											cwd={cwd}
+											slashCommands={slashCommands}
+										/>
 										<PromptInputTextarea placeholder="Ask to make changes, @mention files, run /commands" />
 										<ChatComposerControls
 											availableModels={availableModels}

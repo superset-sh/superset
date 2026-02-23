@@ -14,6 +14,7 @@ interface UseSlashCommandExecutorOptions {
 	}>;
 	onStopActiveResponse: () => void;
 	onSelectModel: (model: ModelOption) => void;
+	onOpenModelPicker: () => void;
 	onSetErrorMessage: (message: string) => void;
 	onClearError: () => void;
 }
@@ -56,6 +57,7 @@ export function useSlashCommandExecutor({
 	onStartFreshSession,
 	onStopActiveResponse,
 	onSelectModel,
+	onOpenModelPicker,
 	onSetErrorMessage,
 	onClearError,
 }: UseSlashCommandExecutorOptions) {
@@ -106,9 +108,8 @@ export function useSlashCommandExecutor({
 						case "set_model": {
 							const modelQuery = (resolvedCommand.action.argument ?? "").trim();
 							if (!modelQuery) {
-								const usage = "Usage: /model <model-id-or-name>";
-								onSetErrorMessage(usage);
-								toast.error(usage);
+								onClearError();
+								onOpenModelPicker();
 								return { handled: true, nextText: "" };
 							}
 
@@ -161,6 +162,7 @@ export function useSlashCommandExecutor({
 			canAbort,
 			cwd,
 			onClearError,
+			onOpenModelPicker,
 			onSelectModel,
 			onSetErrorMessage,
 			onStartFreshSession,

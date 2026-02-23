@@ -97,7 +97,9 @@ Clean up this branch.`,
 
 		expect(result.handled).toBe(true);
 		expect(result.commandName).toBe("plan");
-		expect(result.prompt).toContain("Goal: improve caching");
+		expect(result.prompt).toContain(
+			"If a goal is provided, target this: improve caching",
+		);
 		expect(result.action).toBeUndefined();
 	});
 
@@ -112,7 +114,19 @@ Clean up this branch.`,
 		expect(model.handled).toBe(true);
 		expect(model.action?.type).toBe("set_model");
 		expect(model.action?.argument).toBe("gpt-4.1");
-		expect(model.prompt).toContain("Switch active model to: gpt-4.1");
+		expect(model.prompt).toContain(
+			"Switch active model in this chat. Requested model: gpt-4.1",
+		);
+	});
+
+	it("keeps model action arguments empty when /model is invoked without args", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+
+		const model = resolveSlashCommand(cwd, "/model");
+
+		expect(model.handled).toBe(true);
+		expect(model.action?.type).toBe("set_model");
+		expect(model.action?.argument).toBe("");
 	});
 
 	it("resolves built-in aliases to the canonical command", () => {

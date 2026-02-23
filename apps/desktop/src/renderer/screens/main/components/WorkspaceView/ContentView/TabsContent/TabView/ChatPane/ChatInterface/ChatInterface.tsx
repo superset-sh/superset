@@ -143,6 +143,7 @@ export function ChatInterface({
 		onStartFreshSession: startFreshSession,
 		onStopActiveResponse: stopActiveResponse,
 		onSelectModel: setSelectedModel,
+		onOpenModelPicker: () => setModelSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
 	});
