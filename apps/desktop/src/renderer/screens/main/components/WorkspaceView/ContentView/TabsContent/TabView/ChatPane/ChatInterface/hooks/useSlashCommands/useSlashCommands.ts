@@ -41,12 +41,6 @@ function getCommandMatchRank(
 	return bestAliasRank;
 }
 
-export function hasRequiredSlashCommandArguments(argumentHint: string): boolean {
-	if (!argumentHint.trim()) return false;
-	const requiredSegment = argumentHint.replace(/\[[^[\]]+\]/g, " ").trim();
-	return requiredSegment.length > 0;
-}
-
 export function sortSlashCommandMatches(
 	matches: Array<{ command: SlashCommand; rank: number }>,
 ): SlashCommand[] {
@@ -123,7 +117,7 @@ export function resolveCommandAction(command: SlashCommand): {
 	text: string;
 	shouldSend: boolean;
 } {
-	if (hasRequiredSlashCommandArguments(command.argumentHint)) {
+	if (command.argumentHint.trim()) {
 		return { text: `/${command.name} `, shouldSend: false };
 	}
 	return { text: "", shouldSend: true };

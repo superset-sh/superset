@@ -61,7 +61,7 @@ export function useSlashCommandExecutor({
 	onSetErrorMessage,
 	onClearError,
 }: UseSlashCommandExecutorOptions) {
-	const resolveSlashCommandMutation =
+	const { mutateAsync: resolveSlashCommandMutateAsync } =
 		chatServiceTrpc.workspace.resolveSlashCommand.useMutation();
 
 	const resolveSlashCommandInput = useCallback(
@@ -72,7 +72,7 @@ export function useSlashCommandExecutor({
 			}
 
 			try {
-				const resolvedCommand = await resolveSlashCommandMutation.mutateAsync({
+				const resolvedCommand = await resolveSlashCommandMutateAsync({
 					cwd,
 					text,
 				});
@@ -129,6 +129,18 @@ export function useSlashCommandExecutor({
 							toast.success(`Model set to ${matchedModel.name}`);
 							return { handled: true, nextText: "" };
 						}
+						default: {
+							const unknownActionType = String(
+								(resolvedCommand.action as { type: unknown }).type,
+							);
+							const errorMessage = `Unsupported slash command action: ${unknownActionType}`;
+							console.warn("[chat] Unsupported slash command action", {
+								action: unknownActionType,
+							});
+							onSetErrorMessage(errorMessage);
+							toast.error(errorMessage);
+							return { handled: true, nextText: "" };
+						}
 					}
 				}
 
@@ -154,6 +166,7 @@ export function useSlashCommandExecutor({
 					"[chat] Failed to resolve slash command, sending raw input",
 					error,
 				);
+				toast.warning("Slash command resolution failed; sending as plain text");
 				return { handled: false, nextText: text };
 			}
 		},
@@ -167,7 +180,7 @@ export function useSlashCommandExecutor({
 			onSetErrorMessage,
 			onStartFreshSession,
 			onStopActiveResponse,
-			resolveSlashCommandMutation,
+			resolveSlashCommandMutateAsync,
 		],
 	);
 

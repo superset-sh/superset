@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import {
-	hasRequiredSlashCommandArguments,
 	resolveCommandAction,
 	sortSlashCommandMatches,
 	type SlashCommand,
@@ -18,28 +17,12 @@ function createCommand(command: Partial<SlashCommand> & { name: string }): Slash
 	};
 }
 
-describe("hasRequiredSlashCommandArguments", () => {
-	it("returns false for empty and optional-only hints", () => {
-		expect(hasRequiredSlashCommandArguments("")).toBe(false);
-		expect(hasRequiredSlashCommandArguments("[<goal>]")).toBe(false);
-		expect(hasRequiredSlashCommandArguments("[--scope=<path>] [<target>]")).toBe(
-			false,
-		);
-	});
-
-	it("returns true when required segments are present", () => {
-		expect(hasRequiredSlashCommandArguments("<target>")).toBe(true);
-		expect(hasRequiredSlashCommandArguments("$PATH")).toBe(true);
-		expect(hasRequiredSlashCommandArguments("<target> [goal=...]")).toBe(true);
-	});
-});
-
 describe("resolveCommandAction", () => {
-	it("sends immediately for commands with optional-only hints", () => {
+	it("keeps composer open for commands with optional hints", () => {
 		const action = resolveCommandAction(
 			createCommand({ name: "plan", argumentHint: "[<goal>]" }),
 		);
-		expect(action).toEqual({ text: "", shouldSend: true });
+		expect(action).toEqual({ text: "/plan ", shouldSend: false });
 	});
 
 	it("keeps composer open for required argument hints", () => {
@@ -47,6 +30,11 @@ describe("resolveCommandAction", () => {
 			createCommand({ name: "grep", argumentHint: "<pattern>" }),
 		);
 		expect(action).toEqual({ text: "/grep ", shouldSend: false });
+	});
+
+	it("sends immediately when no argument hint exists", () => {
+		const action = resolveCommandAction(createCommand({ name: "new" }));
+		expect(action).toEqual({ text: "", shouldSend: true });
 	});
 });
 

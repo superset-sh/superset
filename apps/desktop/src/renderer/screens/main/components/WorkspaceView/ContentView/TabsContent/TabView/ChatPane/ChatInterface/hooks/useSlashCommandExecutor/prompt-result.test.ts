@@ -50,4 +50,30 @@ describe("resolveSlashPromptResult", () => {
 			errorMessage: "Slash command /review produced an empty prompt",
 		});
 	});
+
+	it("treats undefined prompt as empty and returns an error", () => {
+		expect(
+			resolveSlashPromptResult({
+				handled: true,
+				commandName: "review",
+			}),
+		).toEqual({
+			handled: true,
+			nextText: "",
+			errorMessage: "Slash command /review produced an empty prompt",
+		});
+	});
+
+	it("falls back to generic label when invokedAs and commandName are missing", () => {
+		expect(
+			resolveSlashPromptResult({
+				handled: true,
+				prompt: "",
+			}),
+		).toEqual({
+			handled: true,
+			nextText: "",
+			errorMessage: "Slash command /command produced an empty prompt",
+		});
+	});
 });
