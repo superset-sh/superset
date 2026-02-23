@@ -92,6 +92,38 @@ describe("materializeMessage", () => {
 		expect(result.parts).toEqual([{ type: "text", text: "Hello world" }]);
 	});
 
+	it("materializes text-delta chunks when text-start id is missing", () => {
+		const rows = [
+			makeRow({
+				seq: 0,
+				chunk: JSON.stringify({ type: "text-start" }),
+			}),
+			makeRow({
+				seq: 1,
+				chunk: JSON.stringify({
+					type: "text-delta",
+					textDelta: "Hello ",
+				}),
+			}),
+			makeRow({
+				seq: 2,
+				chunk: JSON.stringify({
+					type: "text-delta",
+					text: "world",
+				}),
+			}),
+			makeRow({
+				seq: 3,
+				chunk: JSON.stringify({ type: "text-end" }),
+			}),
+			makeRow({ seq: 4, chunk: JSON.stringify({ type: "finish" }) }),
+		];
+
+		const result = materializeMessage(rows);
+		expect(result.isComplete).toBe(true);
+		expect(result.parts).toEqual([{ type: "text", text: "Hello world" }]);
+	});
+
 	it("materializes tool-input-start -> tool-input-available -> tool-output-available", () => {
 		const rows = [
 			makeRow({

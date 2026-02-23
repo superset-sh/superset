@@ -1,7 +1,11 @@
 import type { UIMessage } from "ai";
 import type { GetHeaders } from "../../../lib/auth/auth";
 import { sessionAbortControllers, sessionRunIds } from "../session-state";
-import { resumeAgent, runAgent } from "./run-agent";
+import {
+	continueAgentWithToolOutput,
+	resumeAgent,
+	runAgent,
+} from "./run-agent";
 import { SessionHost } from "./session-host";
 
 /**
@@ -15,6 +19,7 @@ export class StreamWatcher {
 	private host: SessionHost;
 	private readonly sessionId: string;
 	private readonly cwd: string;
+	private readonly defaultModelId = "anthropic/claude-sonnet-4-6";
 	private status: "idle" | "starting" | "ready" = "idle";
 	private startPromise: Promise<void> | null = null;
 
@@ -38,45 +43,67 @@ export class StreamWatcher {
 			const hasFiles = message.parts?.some((p) => p.type === "file");
 			if (!text.trim() && !hasFiles) return;
 
-			void runAgent({
-				sessionId: options.sessionId,
-				text,
-				message,
-				host: this.host,
-				modelId: metadata?.model ?? "anthropic/claude-sonnet-4-6",
-				cwd: this.cwd,
-				permissionMode: metadata?.permissionMode ?? "bypassPermissions",
-				thinkingEnabled: metadata?.thinkingEnabled ?? false,
-				apiUrl: options.apiUrl,
-				getHeaders: options.getHeaders,
+				void runAgent({
+					sessionId: options.sessionId,
+					text,
+					message,
+					host: this.host,
+					modelId: metadata?.model ?? this.defaultModelId,
+					cwd: this.cwd,
+					permissionMode: metadata?.permissionMode ?? "bypassPermissions",
+					thinkingEnabled: metadata?.thinkingEnabled ?? false,
+					apiUrl: options.apiUrl,
+					getHeaders: options.getHeaders,
+				});
 			});
-		});
 
-		this.host.on("toolResult", ({ answers }) => {
-			const runId = sessionRunIds.get(options.sessionId);
-			if (runId) {
-				void resumeAgent({
-					sessionId: options.sessionId,
-					runId,
-					host: this.host,
-					approved: true,
-					answers,
-				});
-			}
-		});
+			this.host.on(
+				"toolOutput",
+				({ toolCallId, tool, state, output, errorText }) => {
+					const recoveredRunId = this.host.getLatestRunId();
+					const runId =
+						sessionRunIds.get(options.sessionId) ?? recoveredRunId ?? undefined;
+					if (runId) {
+						sessionRunIds.set(options.sessionId, runId);
+					}
 
-		this.host.on("toolApproval", ({ approved, permissionMode }) => {
-			const runId = sessionRunIds.get(options.sessionId);
-			if (runId) {
-				void resumeAgent({
-					sessionId: options.sessionId,
-					runId,
-					host: this.host,
-					approved,
-					permissionMode,
-				});
-			}
-		});
+					void continueAgentWithToolOutput({
+						sessionId: options.sessionId,
+						host: this.host,
+						runId,
+						toolCallId,
+						toolName: tool,
+						state,
+						output,
+						errorText,
+						fallbackContext: {
+							cwd: this.cwd,
+							modelId: this.defaultModelId,
+							permissionMode: "bypassPermissions",
+							thinkingEnabled: false,
+							requestEntries: [
+								["modelId", this.defaultModelId],
+								["cwd", this.cwd],
+								["apiUrl", options.apiUrl],
+							],
+						},
+					});
+				},
+			);
+
+			this.host.on("toolApproval", ({ approved, permissionMode, toolCallId }) => {
+				const runId = sessionRunIds.get(options.sessionId);
+				if (runId) {
+					void resumeAgent({
+						sessionId: options.sessionId,
+						runId,
+						host: this.host,
+						approved,
+						toolCallId,
+						permissionMode,
+					});
+				}
+			});
 
 		this.host.on("abort", () => {
 			sessionAbortControllers.get(options.sessionId)?.abort();

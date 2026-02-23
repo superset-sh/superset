@@ -20,14 +20,14 @@ import { materializeMessage } from "./materialize";
 const NON_CONTENT_TYPES = new Set([
 	"config",
 	"control",
-	"tool-result",
+	"tool-output",
 	"approval-response",
 	"tool-approval",
 ]);
 
 /**
  * Returns true if this chunk group is a non-content event
- * (config, control, tool-result, approval-response) that should
+ * (config, control, tool-output, approval-response) that should
  * not appear as a message in the UI.
  */
 function isNonContentChunk(row: ChunkRow): boolean {
@@ -50,7 +50,7 @@ export interface MessagesCollectionOptions {
  * re-evaluation for that group only. The fn.select closure scans
  * the source chunksCollection for all rows matching the messageId.
  *
- * Non-content events (config, control, tool-result, approval-response)
+ * Non-content events (config, control, tool-output, approval-response)
  * are filtered out so they don't render as empty bubbles.
  */
 export function createMessagesCollection(
