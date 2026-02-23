@@ -37,7 +37,9 @@ export function SlashCommandParamField({
 				className="h-8 font-mono text-xs"
 				id={inputId}
 				onChange={(event) => onChange(event.target.value)}
-				placeholder={required ? `Set ${field.label}` : `Set ${field.label} (optional)`}
+				placeholder={
+					required ? `Set ${field.label}` : `Set ${field.label} (optional)`
+				}
 				value={value}
 			/>
 		</label>

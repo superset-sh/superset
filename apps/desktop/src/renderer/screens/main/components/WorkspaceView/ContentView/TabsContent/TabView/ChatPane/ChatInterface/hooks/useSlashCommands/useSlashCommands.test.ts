@@ -1,11 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import {
 	resolveCommandAction,
-	sortSlashCommandMatches,
 	type SlashCommand,
+	shouldSuppressSlashMenuForCommittedCommand,
+	sortSlashCommandMatches,
 } from "./useSlashCommands";
 
-function createCommand(command: Partial<SlashCommand> & { name: string }): SlashCommand {
+function createCommand(
+	command: Partial<SlashCommand> & { name: string },
+): SlashCommand {
 	return {
 		name: command.name,
 		aliases: command.aliases ?? [],
@@ -41,8 +44,22 @@ describe("resolveCommandAction", () => {
 describe("sortSlashCommandMatches", () => {
 	it("places builtin commands after custom commands when ranks tie", () => {
 		const sorted = sortSlashCommandMatches([
-			{ command: createCommand({ name: "plan", kind: "builtin", source: "builtin" }), rank: 0 },
-			{ command: createCommand({ name: "deploy", kind: "custom", source: "project" }), rank: 0 },
+			{
+				command: createCommand({
+					name: "plan",
+					kind: "builtin",
+					source: "builtin",
+				}),
+				rank: 0,
+			},
+			{
+				command: createCommand({
+					name: "deploy",
+					kind: "custom",
+					source: "project",
+				}),
+				rank: 0,
+			},
 		]);
 
 		expect(sorted.map((command) => command.name)).toEqual(["deploy", "plan"]);
@@ -50,10 +67,58 @@ describe("sortSlashCommandMatches", () => {
 
 	it("keeps builtins at the end even when builtin rank is better", () => {
 		const sorted = sortSlashCommandMatches([
-			{ command: createCommand({ name: "plan", kind: "builtin", source: "builtin" }), rank: 0 },
-			{ command: createCommand({ name: "deploy", kind: "custom", source: "project" }), rank: 1 },
+			{
+				command: createCommand({
+					name: "plan",
+					kind: "builtin",
+					source: "builtin",
+				}),
+				rank: 0,
+			},
+			{
+				command: createCommand({
+					name: "deploy",
+					kind: "custom",
+					source: "project",
+				}),
+				rank: 1,
+			},
 		]);
 
 		expect(sorted.map((command) => command.name)).toEqual(["deploy", "plan"]);
+	});
+});
+
+describe("shouldSuppressSlashMenuForCommittedCommand", () => {
+	it("suppresses menu for exact command match with argument hint", () => {
+		expect(
+			shouldSuppressSlashMenuForCommittedCommand("model", [
+				createCommand({
+					name: "model",
+					aliases: [],
+					argumentHint: "[<model-id-or-name>]",
+				}),
+			]),
+		).toBe(true);
+	});
+
+	it("does not suppress menu for exact command match without argument hint", () => {
+		expect(
+			shouldSuppressSlashMenuForCommittedCommand("new", [
+				createCommand({ name: "new", aliases: [], argumentHint: "" }),
+			]),
+		).toBe(false);
+	});
+
+	it("does not suppress menu for partial matches", () => {
+		expect(
+			shouldSuppressSlashMenuForCommittedCommand("mod", [
+				createCommand({
+					name: "model",
+					aliases: ["m"],
+					argumentHint: "[<model-id-or-name>]",
+				}),
+			]),
+		).toBe(false);
 	});
 });

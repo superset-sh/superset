@@ -41,6 +41,26 @@ function getCommandMatchRank(
 	return bestAliasRank;
 }
 
+function isExactCommandOrAliasMatch(
+	command: SlashCommand,
+	query: string,
+): boolean {
+	if (command.name.toLowerCase() === query) return true;
+	return command.aliases.some((alias) => alias.toLowerCase() === query);
+}
+
+export function shouldSuppressSlashMenuForCommittedCommand(
+	query: string | null,
+	commands: SlashCommand[],
+): boolean {
+	if (!query) return false;
+	const exactCommandMatch =
+		commands.find((command) => isExactCommandOrAliasMatch(command, query)) ??
+		null;
+	if (!exactCommandMatch) return false;
+	return exactCommandMatch.argumentHint.trim().length > 0;
+}
+
 export function sortSlashCommandMatches(
 	matches: Array<{ command: SlashCommand; rank: number }>,
 ): SlashCommand[] {
@@ -66,6 +86,10 @@ export function useSlashCommands({
 
 	const query = getSlashQuery(inputValue);
 	const isOpen = query !== null;
+	const suppressMenuForCommittedCommand = useMemo(
+		() => shouldSuppressSlashMenuForCommittedCommand(query, commands),
+		[commands, query],
+	);
 
 	const filteredCommands = useMemo(() => {
 		if (!isOpen || query === null) return [];
@@ -104,7 +128,8 @@ export function useSlashCommands({
 	}, [filteredCommands.length]);
 
 	return {
-		isOpen: isOpen && filteredCommands.length > 0,
+		isOpen:
+			isOpen && filteredCommands.length > 0 && !suppressMenuForCommittedCommand,
 		filteredCommands,
 		selectedIndex,
 		setSelectedIndex,

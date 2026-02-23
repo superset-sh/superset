@@ -77,7 +77,10 @@ export function SlashCommandPreview({
 
 	const commandDefinition = useMemo(() => {
 		if (!parsedInput?.commandName) return null;
-		return resolveSlashCommandDefinition(slashCommands, parsedInput.commandName);
+		return resolveSlashCommandDefinition(
+			slashCommands,
+			parsedInput.commandName,
+		);
 	}, [parsedInput?.commandName, slashCommands]);
 	const commandDescription = commandDefinition?.description?.trim() ?? "";
 	const previewCommandName = slashPreview?.commandName?.toLowerCase();

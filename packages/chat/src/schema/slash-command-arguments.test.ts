@@ -9,9 +9,9 @@ describe("tokenizeSlashCommandArguments", () => {
 	});
 
 	it("supports quotes that start mid-token", () => {
-		expect(tokenizeSlashCommandArguments('constraints="no api changes"')).toEqual(
-			["constraints=no api changes"],
-		);
+		expect(
+			tokenizeSlashCommandArguments('constraints="no api changes"'),
+		).toEqual(["constraints=no api changes"]);
 	});
 
 	it("keeps escaped delimiters within quoted values", () => {
