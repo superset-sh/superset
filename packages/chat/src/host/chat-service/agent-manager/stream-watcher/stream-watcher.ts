@@ -2,6 +2,7 @@ import type { UIMessage } from "ai";
 import type { GetHeaders } from "../../../lib/auth/auth";
 import type { ChatLifecycleEvent } from "../../chat-service";
 import { sessionAbortControllers, sessionRunIds } from "../session-state";
+import { buildFallbackSessionContext } from "./fallback-context";
 import { McpRuntimeManager } from "./mcp-runtime-manager";
 import {
 	continueAgentWithToolOutput,
@@ -21,9 +22,14 @@ export class StreamWatcher {
 	private host: SessionHost;
 	private readonly sessionId: string;
 	private readonly cwd: string;
+	private readonly apiUrl: string;
+	private readonly getHeaders: GetHeaders;
 	private readonly mcpRuntimeManager: McpRuntimeManager;
 	private readonly onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
 	private readonly defaultModelId = "anthropic/claude-sonnet-4-6";
+	private lastKnownModelId: string | null = null;
+	private lastKnownPermissionMode: string | null = null;
+	private lastKnownThinkingEnabled: boolean | null = null;
 	private status: "idle" | "starting" | "ready" = "idle";
 	private startPromise: Promise<void> | null = null;
 
@@ -36,6 +42,8 @@ export class StreamWatcher {
 	}) {
 		this.sessionId = options.sessionId;
 		this.cwd = options.cwd;
+		this.apiUrl = options.apiUrl;
+		this.getHeaders = options.getHeaders;
 		this.onLifecycleEvent = options.onLifecycleEvent;
 		this.mcpRuntimeManager = new McpRuntimeManager({
 			sessionId: options.sessionId,
@@ -54,6 +62,14 @@ export class StreamWatcher {
 			const text = extractTextFromMessage(message);
 			const hasFiles = message.parts?.some((p) => p.type === "file");
 			if (!text.trim() && !hasFiles) return;
+
+			this.lastKnownModelId = metadata?.model ?? this.defaultModelId;
+			if (metadata?.permissionMode) {
+				this.lastKnownPermissionMode = metadata.permissionMode;
+			}
+			if (typeof metadata?.thinkingEnabled === "boolean") {
+				this.lastKnownThinkingEnabled = metadata.thinkingEnabled;
+			}
 
 			void this.executeWithLifecycle(async () => {
 				const mcpToolsets = await this.mcpRuntimeManager
@@ -97,6 +113,7 @@ export class StreamWatcher {
 				}
 
 				void this.executeWithLifecycle(async () => {
+					const fallbackContext = await this.buildFallbackContext();
 					await continueAgentWithToolOutput({
 						sessionId: options.sessionId,
 						host: this.host,
@@ -106,17 +123,7 @@ export class StreamWatcher {
 						state,
 						output,
 						errorText,
-						fallbackContext: {
-							cwd: this.cwd,
-							modelId: this.defaultModelId,
-							permissionMode: "bypassPermissions",
-							thinkingEnabled: false,
-							requestEntries: [
-								["modelId", this.defaultModelId],
-								["cwd", this.cwd],
-								["apiUrl", options.apiUrl],
-							],
-						},
+						fallbackContext,
 					});
 				});
 			},
@@ -258,6 +265,34 @@ export class StreamWatcher {
 				error,
 			);
 		}
+	}
+
+	private async buildFallbackContext(): Promise<{
+		cwd: string;
+		modelId: string;
+		permissionMode?: string;
+		thinkingEnabled?: boolean;
+		requestEntries: [string, string][];
+	}> {
+		let authHeaders: Record<string, string> | undefined;
+		try {
+			authHeaders = await this.getHeaders();
+		} catch (error) {
+			console.warn(
+				`[stream-watcher] Failed to resolve auth headers for fallback context in ${this.sessionId}:`,
+				error,
+			);
+		}
+
+		return buildFallbackSessionContext({
+			defaultModelId: this.defaultModelId,
+			cwd: this.cwd,
+			apiUrl: this.apiUrl,
+			lastKnownModelId: this.lastKnownModelId,
+			lastKnownPermissionMode: this.lastKnownPermissionMode,
+			lastKnownThinkingEnabled: this.lastKnownThinkingEnabled,
+			authHeaders,
+		});
 	}
 }
 

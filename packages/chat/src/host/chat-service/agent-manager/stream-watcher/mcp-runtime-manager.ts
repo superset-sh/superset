@@ -12,7 +12,14 @@ interface McpRuntimeManagerOptions {
 	cwd: string;
 	apiUrl: string;
 	getHeaders: GetHeaders;
+	loadMcpToolsets?: (
+		options: Parameters<typeof loadMcpToolsetsForChat>[0],
+	) => Promise<LoadedMcpToolsetsResult>;
+	retryOnIssuesMs?: number;
+	now?: () => number;
 }
+
+const DEFAULT_RETRY_ON_ISSUES_MS = 30_000;
 
 function normalizeHeaderEntries(
 	headers: Record<string, string>,
@@ -40,17 +47,27 @@ export class McpRuntimeManager {
 	private readonly cwd: string;
 	private readonly apiUrl: string;
 	private readonly getHeaders: GetHeaders;
+	private readonly loadMcpToolsets: (
+		options: Parameters<typeof loadMcpToolsetsForChat>[0],
+	) => Promise<LoadedMcpToolsetsResult>;
+	private readonly retryOnIssuesMs: number;
+	private readonly now: () => number;
 
 	private cachedResult: LoadedMcpToolsetsResult | null = null;
 	private lastAuthSignature: string | null = null;
 	private loadPromise: Promise<LoadedMcpToolsetsResult> | null = null;
 	private loadSignature: string | null = null;
+	private lastLoadedAtMs: number | null = null;
 
 	constructor(options: McpRuntimeManagerOptions) {
 		this.sessionId = options.sessionId;
 		this.cwd = options.cwd;
 		this.apiUrl = options.apiUrl;
 		this.getHeaders = options.getHeaders;
+		this.loadMcpToolsets = options.loadMcpToolsets ?? loadMcpToolsetsForChat;
+		this.retryOnIssuesMs =
+			options.retryOnIssuesMs ?? DEFAULT_RETRY_ON_ISSUES_MS;
+		this.now = options.now ?? Date.now;
 	}
 
 	async getOrLoad(): Promise<LoadedMcpToolsetsResult> {
@@ -58,7 +75,15 @@ export class McpRuntimeManager {
 		const signature = serializeHeaders(headers);
 
 		if (this.cachedResult && this.lastAuthSignature === signature) {
-			return this.cachedResult;
+			const lastLoadedAtMs = this.lastLoadedAtMs;
+			const hasIssues = this.cachedResult.issues.length > 0;
+			const shouldRetryIssues =
+				hasIssues &&
+				lastLoadedAtMs !== null &&
+				this.now() - lastLoadedAtMs >= this.retryOnIssuesMs;
+			if (!shouldRetryIssues) {
+				return this.cachedResult;
+			}
 		}
 
 		if (this.loadPromise && this.loadSignature === signature) {
@@ -85,6 +110,7 @@ export class McpRuntimeManager {
 		this.lastAuthSignature = null;
 		this.loadPromise = null;
 		this.loadSignature = null;
+		this.lastLoadedAtMs = null;
 		if (!current) return;
 		await current.disconnect();
 	}
@@ -112,7 +138,7 @@ export class McpRuntimeManager {
 		if (existingPromise) return existingPromise;
 
 		const loadPromise = (async () => {
-			const nextResult = await loadMcpToolsetsForChat({
+			const nextResult = await this.loadMcpToolsets({
 				cwd: this.cwd,
 				apiUrl: this.apiUrl,
 				authHeaders,
@@ -121,6 +147,7 @@ export class McpRuntimeManager {
 			const previous = this.cachedResult;
 			this.cachedResult = nextResult;
 			this.lastAuthSignature = signature;
+			this.lastLoadedAtMs = this.now();
 
 			if (previous && previous !== nextResult) {
 				void previous.disconnect().catch((error) => {
