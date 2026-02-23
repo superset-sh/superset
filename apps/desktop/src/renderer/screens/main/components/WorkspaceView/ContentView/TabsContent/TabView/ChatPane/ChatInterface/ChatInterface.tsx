@@ -15,7 +15,12 @@ import { MessageList } from "./components/MessageList";
 import { useChatSendController } from "./hooks/useChatSendController";
 import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "./hooks/useSlashCommands";
-import type { ChatInterfaceProps, ModelOption, PermissionMode } from "./types";
+import type {
+	ChatInterfaceProps,
+	InterruptedMessage,
+	ModelOption,
+	PermissionMode,
+} from "./types";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;
 
@@ -66,6 +71,15 @@ function buildTitleDigest(messages: TitleMessageLike[]): TitleDigestMessage[] {
 	});
 }
 
+function cloneParts(
+	parts: InterruptedMessage["parts"],
+): InterruptedMessage["parts"] {
+	if (typeof structuredClone === "function") {
+		return structuredClone(parts);
+	}
+	return parts.map((part) => ({ ...part }));
+}
+
 export function ChatInterface({
 	sessionId,
 	sessionTitle,
@@ -88,6 +102,8 @@ export function ChatInterface({
 	const titleRequestSessionRef = useRef<string | null>(null);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
+	const [interruptedMessage, setInterruptedMessage] =
+		useState<InterruptedMessage | null>(null);
 
 	const chat = useChat({
 		sessionId,
@@ -131,10 +147,23 @@ export function ChatInterface({
 		switchChatSession,
 	});
 
+	const captureInterruptedMessage = useCallback(() => {
+		if (!chat.isLoading) return;
+		const lastMessage = chat.messages.at(-1);
+		if (!lastMessage || lastMessage.role !== "assistant") return;
+		if (lastMessage.parts.length === 0) return;
+		setInterruptedMessage({
+			id: `interrupted:${lastMessage.id}`,
+			sourceMessageId: lastMessage.id,
+			parts: cloneParts(lastMessage.parts),
+		});
+	}, [chat.isLoading, chat.messages]);
+
 	const stopActiveResponse = useCallback(() => {
+		captureInterruptedMessage();
 		stopPendingSends();
 		chat.stop();
-	}, [stopPendingSends, chat.stop]);
+	}, [captureInterruptedMessage, stopPendingSends, chat.stop]);
 
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
@@ -161,6 +190,7 @@ export function ChatInterface({
 
 			if (!text && files.length === 0) return;
 
+			setInterruptedMessage(null);
 			clearRuntimeError();
 			sendThroughController({ text, files });
 		},
@@ -217,8 +247,20 @@ export function ChatInterface({
 				],
 				createdAt: pending.createdAt,
 			}));
-		return [...chat.messages, ...optimisticMessages];
-	}, [chat.messages, pendingMessages]);
+		const merged = [...chat.messages, ...optimisticMessages];
+		if (!interruptedMessage) return merged;
+		return merged.filter(
+			(message) => message.id !== interruptedMessage.sourceMessageId,
+		);
+	}, [chat.messages, pendingMessages, interruptedMessage]);
+
+	const interruptedPreview = interruptedMessage
+		? { id: interruptedMessage.id, parts: interruptedMessage.parts }
+		: null;
+
+	useEffect(() => {
+		setInterruptedMessage(null);
+	}, [sessionId]);
 
 	const handleStop = useCallback(
 		(event: React.MouseEvent) => {
@@ -241,6 +283,7 @@ export function ChatInterface({
 			<div className="flex h-full flex-col bg-background">
 				<MessageList
 					messages={displayMessages}
+					interruptedMessage={interruptedPreview}
 					isStreaming={chat.isLoading}
 					submitStatus={submitStatus}
 					workspaceId={workspaceId}

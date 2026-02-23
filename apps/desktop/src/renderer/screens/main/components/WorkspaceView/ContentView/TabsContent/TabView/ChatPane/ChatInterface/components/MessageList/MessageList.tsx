@@ -13,9 +13,11 @@ import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
+import type { InterruptedMessagePreview } from "../../types";
 
 interface MessageListProps {
 	messages: UIMessage[];
+	interruptedMessage?: InterruptedMessagePreview | null;
 	isStreaming: boolean;
 	submitStatus?: ChatStatus;
 	workspaceId?: string;
@@ -47,6 +49,7 @@ function FileChip({
 
 export function MessageList({
 	messages,
+	interruptedMessage,
 	isStreaming,
 	submitStatus,
 	workspaceId,
@@ -67,7 +70,7 @@ export function MessageList({
 	return (
 		<Conversation className="flex-1">
 			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 pl-4 pr-16">
-				{messages.length === 0 ? (
+				{messages.length === 0 && !interruptedMessage ? (
 					<ConversationEmptyState
 						title="Start a conversation"
 						description="Ask anything to get started"
@@ -163,6 +166,25 @@ export function MessageList({
 							</Message>
 						);
 					})
+				)}
+				{interruptedMessage && interruptedMessage.parts.length > 0 && (
+					<Message key={interruptedMessage.id} from="assistant">
+						<MessageContent>
+							<MessagePartsRenderer
+								parts={interruptedMessage.parts}
+								isLastAssistant={false}
+								isStreaming={false}
+								workspaceId={workspaceId}
+								onAnswer={onAnswer}
+							/>
+							<div className="flex items-center gap-2 text-xs text-muted-foreground">
+								<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
+									Interrupted
+								</span>
+								<span>Response stopped</span>
+							</div>
+						</MessageContent>
+					</Message>
 				)}
 				{isThinking && messages[messages.length - 1]?.role === "user" && (
 					<Message from="assistant">

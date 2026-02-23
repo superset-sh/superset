@@ -1,3 +1,5 @@
+import type { UIMessage } from "ai";
+
 export interface ModelOption {
 	id: string;
 	name: string;
@@ -5,6 +7,17 @@ export interface ModelOption {
 }
 
 export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions";
+
+export type InterruptedMessage = {
+	id: string;
+	sourceMessageId: string;
+	parts: UIMessage["parts"];
+};
+
+export type InterruptedMessagePreview = {
+	id: string;
+	parts: UIMessage["parts"];
+};
 
 export interface ChatInterfaceProps {
 	sessionId: string | null;
