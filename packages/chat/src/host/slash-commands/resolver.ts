@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { tokenizeSlashCommandArguments } from "../../schema";
+import { tokenizeSlashCommandArguments } from "../../shared";
 import { buildSlashCommandRegistry } from "./registry";
 import type { SlashCommandActionType } from "./types";
 

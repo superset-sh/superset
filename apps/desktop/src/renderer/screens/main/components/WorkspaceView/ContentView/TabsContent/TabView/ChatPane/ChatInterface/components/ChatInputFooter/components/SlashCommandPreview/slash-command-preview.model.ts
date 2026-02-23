@@ -1,4 +1,4 @@
-import { tokenizeSlashCommandArguments } from "@superset/chat/schema";
+import { tokenizeSlashCommandArguments } from "@superset/chat/shared";
 
 export interface NamedArgEntry {
 	keyRaw: string;

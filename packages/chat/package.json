@@ -8,6 +8,10 @@
 			"types": "./src/schema/index.ts",
 			"default": "./src/schema/index.ts"
 		},
+		"./shared": {
+			"types": "./src/shared/index.ts",
+			"default": "./src/shared/index.ts"
+		},
 		"./host": {
 			"types": "./src/host/index.ts",
 			"default": "./src/host/index.ts"
