@@ -5,6 +5,13 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "./store";
 import type { AddTabOptions } from "./types";
 
+function resolvePresetMode(mode?: string) {
+	if (mode === "new-tab") {
+		return "new-tab";
+	}
+	return "split-pane";
+}
+
 export function useTabsWithPresets() {
 	const { data: newTabPresets = [] } =
 		electronTrpc.settings.getNewTabPresets.useQuery();
@@ -31,33 +38,63 @@ export function useTabsWithPresets() {
 
 	const openPresetAsTab = useCallback(
 		(workspaceId: string, preset: TerminalPreset) => {
-			const isParallel =
-				preset.executionMode === "parallel" && preset.commands.length > 1;
+			const mode = resolvePresetMode(preset.executionMode);
+			const commands = preset.commands;
+			const hasMultipleCommands = commands.length > 1;
 
-			let tabId: string;
-			let paneId: string;
+			if (mode === "new-tab" && hasMultipleCommands) {
+				let firstResult: {
+					tabId: string;
+					paneId: string;
+				} | null = null;
 
-			if (isParallel) {
-				const result = storeAddTabWithMultiplePanes(workspaceId, {
-					commands: preset.commands,
+				for (const command of commands) {
+					const result = storeAddTab(workspaceId, {
+						initialCommands: [command],
+						initialCwd: preset.cwd || undefined,
+					});
+
+					if (!firstResult) {
+						firstResult = result;
+					}
+
+					if (preset.name) {
+						renameTab(result.tabId, preset.name);
+					}
+				}
+
+				if (!firstResult) {
+					const fallback = storeAddTab(workspaceId, {
+						initialCwd: preset.cwd || undefined,
+					});
+					if (preset.name) {
+						renameTab(fallback.tabId, preset.name);
+					}
+					return fallback;
+				}
+
+				return firstResult;
+			}
+
+			let result: { tabId: string; paneId: string };
+			if (hasMultipleCommands) {
+				const multiPane = storeAddTabWithMultiplePanes(workspaceId, {
+					commands,
 					initialCwd: preset.cwd || undefined,
 				});
-				tabId = result.tabId;
-				paneId = result.paneIds[0];
+				result = { tabId: multiPane.tabId, paneId: multiPane.paneIds[0] };
 			} else {
-				const result = storeAddTab(workspaceId, {
-					initialCommands: preset.commands,
+				result = storeAddTab(workspaceId, {
+					initialCommands: commands,
 					initialCwd: preset.cwd || undefined,
 				});
-				tabId = result.tabId;
-				paneId = result.paneId;
 			}
 
 			if (preset.name) {
-				renameTab(tabId, preset.name);
+				renameTab(result.tabId, preset.name);
 			}
 
-			return { tabId, paneId };
+			return result;
 		},
 		[storeAddTab, storeAddTabWithMultiplePanes, renameTab],
 	);

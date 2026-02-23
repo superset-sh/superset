@@ -142,6 +142,8 @@ export function PresetRow({
 		preset.applyOnNewTab ||
 		(!preset.applyOnWorkspaceCreated && preset.isDefault)
 	);
+	const modeValue =
+		preset.executionMode === "new-tab" ? "new-tab" : "split-pane";
 
 	return (
 		<div
@@ -171,7 +173,7 @@ export function PresetRow({
 			))}
 			<div className="w-28 shrink-0 pt-0.5">
 				<Select
-					value={preset.executionMode ?? "sequential"}
+					value={modeValue}
 					onValueChange={(value) => {
 						if (EXECUTION_MODES.includes(value as ExecutionMode)) {
 							onExecutionModeChange(rowIndex, value as ExecutionMode);
@@ -182,8 +184,8 @@ export function PresetRow({
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="sequential">Sequential</SelectItem>
-						<SelectItem value="parallel">Parallel</SelectItem>
+						<SelectItem value="split-pane">Split Pane</SelectItem>
+						<SelectItem value="new-tab">New Tab</SelectItem>
 					</SelectContent>
 				</Select>
 			</div>

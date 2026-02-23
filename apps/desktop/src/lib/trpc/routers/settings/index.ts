@@ -84,6 +84,7 @@ function initializeDefaultPresets() {
 			: DEFAULT_PRESETS.map((p) => ({
 					id: crypto.randomUUID(),
 					...p,
+					executionMode: p.executionMode ?? "split-pane",
 				}));
 
 	localDb
@@ -140,6 +141,7 @@ export const createSettingsRouter = () => {
 				const preset: TerminalPreset = {
 					id: crypto.randomUUID(),
 					...input,
+					executionMode: input.executionMode ?? "split-pane",
 				};
 
 				const row = getSettings();
