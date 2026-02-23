@@ -225,6 +225,13 @@
       "when": 1771797962833,
       "tag": "0031_add_open_links_in_app_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1771876417139,
+      "tag": "0032_migrate_workspace_ids_to_uuid_v4",
+      "breakpoints": true
     }
   ]
 }
