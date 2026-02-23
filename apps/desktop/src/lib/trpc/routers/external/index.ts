@@ -156,15 +156,9 @@ export const createExternalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const filePath = resolvePath(input.path, input.cwd);
-				const app = resolveDefaultEditor(input.projectId);
-
-				if (!app) {
-					throw new TRPCError({
-						code: "PRECONDITION_FAILED",
-						message:
-							"No default editor configured. Open a project in an editor first to set a default.",
-					});
-				}
+				// Preserve first-run behavior for terminal/file-link flows.
+				// If no project/global default editor is configured yet, fall back to Cursor.
+				const app = resolveDefaultEditor(input.projectId) ?? "cursor";
 
 				await openPathInApp(filePath, app);
 			}),
