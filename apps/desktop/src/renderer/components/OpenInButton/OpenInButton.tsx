@@ -51,6 +51,7 @@ interface AppOption {
 }
 
 const LINUX_UNSUPPORTED_APPS = new Set<ExternalApp>([
+	"finder",
 	"xcode",
 	"iterm",
 	"appcode",
