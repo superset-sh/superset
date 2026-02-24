@@ -70,7 +70,10 @@ export function useAnthropicOAuth({
 			);
 		}
 
-		window.open(url, "_blank");
+		const openedWindow = window.open(url, "_blank");
+		if (!openedWindow) {
+			throw new Error("Failed to open browser window");
+		}
 	}, []);
 
 	const openOAuthUrl = useCallback(async () => {

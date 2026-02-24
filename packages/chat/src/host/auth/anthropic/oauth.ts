@@ -8,6 +8,7 @@ const AUTHORIZE_URL = "https://claude.ai/oauth/authorize";
 const TOKEN_URL = "https://console.anthropic.com/v1/oauth/token";
 const REDIRECT_URI = "https://console.anthropic.com/oauth/code/callback";
 const SCOPES = "org:create_api_key user:profile user:inference";
+const TOKEN_EXCHANGE_TIMEOUT_MS = 15_000;
 
 export interface AnthropicOAuthSession {
 	verifier: string;
@@ -117,20 +118,32 @@ export async function exchangeAnthropicAuthorizationCode(input: {
 		);
 	}
 
-	const response = await fetch(TOKEN_URL, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({
-			grant_type: "authorization_code",
-			client_id: CLIENT_ID,
-			code,
-			state,
-			redirect_uri: REDIRECT_URI,
-			code_verifier: input.verifier,
-		}),
-	});
+	let response: Response;
+	try {
+		response = await fetch(TOKEN_URL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			signal: AbortSignal.timeout(TOKEN_EXCHANGE_TIMEOUT_MS),
+			body: JSON.stringify({
+				grant_type: "authorization_code",
+				client_id: CLIENT_ID,
+				code,
+				state,
+				redirect_uri: REDIRECT_URI,
+				code_verifier: input.verifier,
+			}),
+		});
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			(error.name === "TimeoutError" || error.name === "AbortError")
+		) {
+			throw new Error("Anthropic token exchange timed out. Try again.");
+		}
+		throw error;
+	}
 
 	if (!response.ok) {
 		const errorText = await response.text().catch(() => "");

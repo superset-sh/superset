@@ -123,18 +123,16 @@ export class ChatService {
 			);
 		}
 
+		const session = this.anthropicAuthSession;
+		this.anthropicAuthSession = null;
+
 		const credentials = await exchangeAnthropicAuthorizationCode({
 			rawCode: input.code,
-			verifier: this.anthropicAuthSession.verifier,
-			expectedState: this.anthropicAuthSession.state,
+			verifier: session.verifier,
+			expectedState: session.state,
 		});
 
-		setAnthropicOAuthCredentials({
-			accessToken: credentials.accessToken,
-			refreshToken: credentials.refreshToken,
-			expiresAt: credentials.expiresAt,
-		});
-		this.anthropicAuthSession = null;
+		setAnthropicOAuthCredentials(credentials);
 		return { success: true, expiresAt: credentials.expiresAt };
 	}
 
