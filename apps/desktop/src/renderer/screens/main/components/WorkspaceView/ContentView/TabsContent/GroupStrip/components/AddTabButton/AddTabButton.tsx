@@ -9,20 +9,12 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { BsTerminalPlus } from "react-icons/bs";
-import {
-	HiMiniChevronDown,
-	HiMiniCog6Tooth,
-	HiMiniCommandLine,
-} from "react-icons/hi2";
+import { HiMiniChevronDown } from "react-icons/hi2";
 import { LuPlus } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
-import { PRESET_HOTKEY_IDS } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NewTabDropZone } from "../../NewTabDropZone";
+import { PresetsSubmenu } from "./components/PresetsSubmenu";
 
 interface AddTabButtonProps {
 	hasAiChat: boolean;
@@ -55,7 +47,6 @@ export function AddTabButton({
 	onToggleShowPresetsBar,
 	onToggleBigAddButton,
 }: AddTabButtonProps) {
-	const isDark = useIsDarkTheme();
 	const showPresetsInDropdown = !showPresetsBar;
 
 	return (
@@ -135,42 +126,13 @@ export function AddTabButton({
 							<DropdownMenuSeparator />
 						</>
 					)}
-					{showPresetsInDropdown && presets.length > 0 && (
-						<>
-							{presets.map((preset, index) => {
-								const presetIcon = getPresetIcon(preset.name, isDark);
-								const hotkeyId = PRESET_HOTKEY_IDS[index];
-								return (
-									<DropdownMenuItem
-										key={preset.id}
-										onClick={() => onOpenPreset(preset)}
-										className="gap-2"
-									>
-										{presetIcon ? (
-											<img
-												src={presetIcon}
-												alt=""
-												className="size-4 object-contain"
-											/>
-										) : (
-											<HiMiniCommandLine className="size-4" />
-										)}
-										<span className="truncate">{preset.name || "default"}</span>
-										{hotkeyId ? (
-											<HotkeyMenuShortcut hotkeyId={hotkeyId} />
-										) : null}
-									</DropdownMenuItem>
-								);
-							})}
-							<DropdownMenuSeparator />
-						</>
-					)}
 					{showPresetsInDropdown && (
 						<>
-							<DropdownMenuItem onClick={onConfigurePresets} className="gap-2">
-								<HiMiniCog6Tooth className="size-4" />
-								<span>Configure Presets</span>
-							</DropdownMenuItem>
+							<PresetsSubmenu
+								presets={presets}
+								onOpenPreset={onOpenPreset}
+								onConfigurePresets={onConfigurePresets}
+							/>
 							<DropdownMenuSeparator />
 						</>
 					)}
@@ -186,7 +148,7 @@ export function AddTabButton({
 						onCheckedChange={onToggleBigAddButton}
 						onSelect={(e) => e.preventDefault()}
 					>
-						Use Big Add Button
+						Show Full Options
 					</DropdownMenuCheckboxItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
