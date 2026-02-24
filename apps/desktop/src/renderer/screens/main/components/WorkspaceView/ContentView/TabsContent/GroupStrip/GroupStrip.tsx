@@ -1,6 +1,7 @@
+import type { TerminalPreset } from "@superset/local-db";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	useCallback,
@@ -11,6 +12,7 @@ import {
 	useState,
 } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { usePresets } from "renderer/react-query/presets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -30,7 +32,7 @@ export function GroupStrip() {
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
-	const { addTab } = useTabsWithPresets();
+	const { addTab, openPreset } = useTabsWithPresets();
 	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
@@ -41,6 +43,8 @@ export function GroupStrip() {
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
 
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const { presets } = usePresets();
+	const navigate = useNavigate();
 
 	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -170,6 +174,18 @@ export function GroupStrip() {
 		addBrowserTab(activeWorkspaceId);
 	};
 
+	const handleOpenPreset = useCallback(
+		(preset: TerminalPreset) => {
+			if (!activeWorkspaceId) return;
+			openPreset(activeWorkspaceId, preset, { target: "active-tab" });
+		},
+		[activeWorkspaceId, openPreset],
+	);
+
+	const handleOpenPresetsSettings = useCallback(() => {
+		navigate({ to: "/settings/presets" });
+	}, [navigate]);
+
 	const handleSelectGroup = (tabId: string) => {
 		if (activeWorkspaceId) {
 			setActiveTab(activeWorkspaceId, tabId);
@@ -237,11 +253,14 @@ export function GroupStrip() {
 			hasAiChat={hasAiChat === true}
 			showBigAddButton={showBigAddButton}
 			showPresetsBar={showPresetsBar ?? false}
+			presets={presets}
 			onDropToNewTab={movePaneToNewTab}
 			isLastPaneInTab={checkIsLastPaneInTab}
 			onAddTerminal={handleAddGroup}
 			onAddChat={handleAddChat}
 			onAddBrowser={handleAddBrowser}
+			onOpenPreset={handleOpenPreset}
+			onConfigurePresets={handleOpenPresetsSettings}
 			onToggleShowPresetsBar={(enabled) =>
 				setShowPresetsBar.mutate({ enabled })
 			}
