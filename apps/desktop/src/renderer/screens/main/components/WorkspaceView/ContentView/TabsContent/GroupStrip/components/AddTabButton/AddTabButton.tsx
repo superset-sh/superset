@@ -150,7 +150,7 @@ export function AddTabButton({
 						}
 						onSelect={(e) => e.preventDefault()}
 					>
-						Show Compact Button
+						Use Compact Button
 					</DropdownMenuCheckboxItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
