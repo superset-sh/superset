@@ -4,10 +4,12 @@ import { McpOverviewCard } from "../McpOverviewCard";
 
 interface SlashCommandUiMessagesProps {
 	messages: SlashCommandUiMessage[];
+	onDismissMessage?: (messageId: string) => void;
 }
 
 export function SlashCommandUiMessages({
 	messages,
+	onDismissMessage,
 }: SlashCommandUiMessagesProps) {
 	return messages.map((message) => {
 		if (message.type !== "mcp_overview") {
@@ -20,6 +22,13 @@ export function SlashCommandUiMessages({
 					<McpOverviewCard
 						sourcePath={message.sourcePath}
 						servers={message.servers}
+						onDismiss={
+							onDismissMessage
+								? () => {
+										onDismissMessage(message.id);
+									}
+								: undefined
+						}
 					/>
 				</MessageContent>
 			</Message>

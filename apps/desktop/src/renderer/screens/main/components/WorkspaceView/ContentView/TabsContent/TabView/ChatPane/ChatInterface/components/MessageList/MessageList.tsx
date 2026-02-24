@@ -22,6 +22,7 @@ import { SlashCommandUiMessages } from "./components/SlashCommandUiMessages";
 interface MessageListProps {
 	messages: UIMessage[];
 	slashCommandUiMessages?: SlashCommandUiMessage[];
+	onDismissSlashCommandUiMessage?: (messageId: string) => void;
 	interruptedMessage?: InterruptedMessagePreview | null;
 	isStreaming: boolean;
 	submitStatus?: ChatStatus;
@@ -58,6 +59,7 @@ function FileChip({
 export function MessageList({
 	messages,
 	slashCommandUiMessages = [],
+	onDismissSlashCommandUiMessage,
 	interruptedMessage,
 	isStreaming,
 	submitStatus,
@@ -175,7 +177,10 @@ export function MessageList({
 						);
 					})
 				)}
-				<SlashCommandUiMessages messages={slashCommandUiMessages} />
+				<SlashCommandUiMessages
+					messages={slashCommandUiMessages}
+					onDismissMessage={onDismissSlashCommandUiMessage}
+				/>
 				{interruptedMessage && interruptedMessage.parts.length > 0 && (
 					<Message key={interruptedMessage.id} from="assistant">
 						<MessageContent>

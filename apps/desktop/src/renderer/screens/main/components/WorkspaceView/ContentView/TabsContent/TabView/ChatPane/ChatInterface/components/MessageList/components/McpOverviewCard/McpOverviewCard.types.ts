@@ -10,4 +10,5 @@ export interface McpOverviewServerItem {
 export interface McpOverviewCardProps {
 	sourcePath: string | null;
 	servers: McpOverviewServerItem[];
+	onDismiss?: () => void;
 }

@@ -247,12 +247,22 @@ export function ChatInterface({
 		[handleSend],
 	);
 
+	const handleDismissSlashCommandUiMessage = useCallback(
+		(messageId: string) => {
+			setSlashCommandUiMessages((previous) =>
+				previous.filter((message) => message.id !== messageId),
+			);
+		},
+		[],
+	);
+
 	return (
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
 				<MessageList
 					messages={displayMessages}
 					slashCommandUiMessages={slashCommandUiMessages}
+					onDismissSlashCommandUiMessage={handleDismissSlashCommandUiMessage}
 					interruptedMessage={interruptedPreview}
 					isStreaming={chat.isLoading}
 					submitStatus={submitStatus}
