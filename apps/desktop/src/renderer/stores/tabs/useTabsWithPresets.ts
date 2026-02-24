@@ -205,7 +205,6 @@ export function useTabsWithPresets() {
 				const multiPane = storeAddTabWithMultiplePanes(workspaceId, {
 					commands: preset.commands,
 					initialCwd: preset.initialCwd,
-					includeInitialCommands: false,
 				});
 				const launches: PresetPaneLaunch[] = multiPane.paneIds.flatMap(
 					(paneId, index) => {
@@ -261,7 +260,6 @@ export function useTabsWithPresets() {
 				const paneIds = storeAddPanesToTab(activeTabId, {
 					commands: preset.commands,
 					initialCwd: preset.initialCwd,
-					includeInitialCommands: false,
 				});
 				if (paneIds.length > 0) {
 					const launches: PresetPaneLaunch[] = paneIds.flatMap(
