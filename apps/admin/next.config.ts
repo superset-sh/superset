@@ -12,20 +12,9 @@ if (process.env.NODE_ENV !== "production") {
 	});
 }
 
-const deploymentId = [
-	process.env.VERCEL_PROJECT_ID,
-	process.env.GITHUB_RUN_ID,
-	process.env.GITHUB_RUN_ATTEMPT,
-]
-	.map((value) => value?.replace(/[^a-zA-Z0-9_-]/g, ""))
-	.filter(Boolean)
-	.join("_")
-	.slice(0, 32);
-
 const config: NextConfig = {
 	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
-	...(deploymentId ? { deploymentId } : {}),
 
 	images: {
 		remotePatterns: [
