@@ -21,6 +21,7 @@ import {
 import { useTheme } from "renderer/stores/theme";
 import { BrowserPane } from "./BrowserPane";
 import { ChatPane } from "./ChatPane";
+import { ChatMastraPane } from "./ChatMastraPane";
 import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
@@ -175,6 +176,21 @@ export function TabView({ tab }: TabViewProps) {
 			}
 
 			// Route chat panes to ChatPane component
+			if (paneInfo.type === "chat-mastra" && hasAiChat) {
+				return (
+					<ChatMastraPane
+						paneId={paneId}
+						path={path}
+						tabId={tab.id}
+						workspaceId={tab.workspaceId}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route legacy chat panes to ChatPane component
 			if (paneInfo.type === "chat" && hasAiChat) {
 				return (
 					<ChatPane

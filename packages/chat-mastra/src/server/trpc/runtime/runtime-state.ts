@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { createMastraCode } from "mastracode";
 import {
 	createSessionStreamProducer,
@@ -10,15 +11,18 @@ import { chatMastraSessionStateSchema } from "../../../session-db/schema";
 import type {
 	ApprovalRespondInput,
 	ControlInput,
+	CreateSessionInput,
 	EnsureRuntimeInput,
 	PlanRespondInput,
 	QuestionRespondInput,
 	SessionIdInput,
 	SendMessageInput,
+	WorkspaceIdInput,
 } from "../zod";
 
 type RuntimeHarness = Awaited<ReturnType<typeof createMastraCode>>["harness"];
 type HarnessEvent = Parameters<Parameters<RuntimeHarness["subscribe"]>[0]>[0];
+type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
 
 interface RuntimeSession {
 	sessionId: string;
@@ -29,8 +33,12 @@ interface RuntimeSession {
 	cwd?: string;
 }
 
-interface HarnessWithDisplayState {
-	getDisplayState?: () => unknown;
+export interface ChatMastraSessionMetadata {
+	sessionId: string;
+	workspaceId: string;
+	title: string;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 export interface RuntimeConfig {
@@ -42,6 +50,7 @@ let started = false;
 let organizationId: string | null = null;
 const runtimes = new Map<string, RuntimeSession>();
 const commandTails = new Map<string, Promise<void>>();
+const sessions = new Map<string, ChatMastraSessionMetadata>();
 
 function getRuntimeConfig(): RuntimeConfig {
 	if (!runtimeConfig) {
@@ -92,6 +101,60 @@ function appendEvent(
 	});
 	runtime.sequenceHint += 1;
 	runtime.producer.append(JSON.stringify(stateEvent));
+}
+
+function touchSession(sessionId: string): void {
+	const session = sessions.get(sessionId);
+	if (!session) return;
+	sessions.set(sessionId, {
+		...session,
+		updatedAt: new Date(),
+	});
+}
+
+function updateSessionTitleFromMessage(
+	sessionId: string,
+	content: string | undefined,
+): void {
+	const session = sessions.get(sessionId);
+	if (!session) return;
+
+	const nextTitle = content?.trim();
+	if (!nextTitle) {
+		touchSession(sessionId);
+		return;
+	}
+
+	if (session.title !== "New Chat") {
+		touchSession(sessionId);
+		return;
+	}
+
+	sessions.set(sessionId, {
+		...session,
+		title: nextTitle.slice(0, 140),
+		updatedAt: new Date(),
+	});
+}
+
+function upsertSession(
+	sessionId: string,
+	values: {
+		workspaceId: string;
+		title?: string;
+	},
+): ChatMastraSessionMetadata {
+	const existing = sessions.get(sessionId);
+	const now = new Date();
+	const next: ChatMastraSessionMetadata = {
+		sessionId,
+		workspaceId: values.workspaceId,
+		title: values.title ?? existing?.title ?? "New Chat",
+		createdAt: existing?.createdAt ?? now,
+		updatedAt: now,
+	};
+	sessions.set(sessionId, next);
+	return next;
 }
 
 async function withSessionCommandLock<T>(
@@ -147,13 +210,38 @@ export async function stopRuntimeService(): Promise<void> {
 	await Promise.all([...runtimes.keys()].map((sessionId) => stopRuntime(sessionId)));
 }
 
+export function createSession(input: CreateSessionInput): ChatMastraSessionMetadata {
+	const sessionId = input.sessionId ?? randomUUID();
+	return upsertSession(sessionId, {
+		workspaceId: input.workspaceId,
+		title: input.title,
+	});
+}
+
+export function listSessions(
+	input: WorkspaceIdInput,
+): ChatMastraSessionMetadata[] {
+	return [...sessions.values()]
+		.filter((session) => session.workspaceId === input.workspaceId)
+		.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+}
+
+export async function deleteSession(
+	input: SessionIdInput,
+): Promise<{ deleted: boolean }> {
+	await stopRuntime(input.sessionId);
+	const deleted = sessions.delete(input.sessionId);
+	commandTails.delete(input.sessionId);
+	return { deleted };
+}
+
 export function hasRuntime(sessionId: string): boolean {
 	return runtimes.has(sessionId);
 }
 
 export function getDisplayState(
 	input: SessionIdInput,
-): { ready: boolean; displayState?: unknown; reason?: string } {
+): { ready: boolean; displayState?: RuntimeDisplayState; reason?: string } {
 	const runtime = runtimes.get(input.sessionId);
 	if (!runtime) {
 		return {
@@ -162,18 +250,9 @@ export function getDisplayState(
 		};
 	}
 
-	const harness = runtime.harness as unknown as HarnessWithDisplayState;
-	if (typeof harness.getDisplayState !== "function") {
-		return {
-			ready: false,
-			reason:
-				"Mastra runtime does not expose getDisplayState(); upgrade mastracode/@mastra/core",
-		};
-	}
-
 	return {
 		ready: true,
-		displayState: harness.getDisplayState(),
+		displayState: runtime.harness.getDisplayState(),
 	};
 }
 
@@ -200,6 +279,7 @@ export async function ensureRuntime(
 		if (existing) {
 			existing.cwd = input.cwd ?? existing.cwd;
 			runtimes.set(input.sessionId, existing);
+			touchSession(input.sessionId);
 			return { ready: true };
 		}
 
@@ -209,6 +289,9 @@ export async function ensureRuntime(
 			organizationId: activeOrganizationId,
 			workspaceId: input.workspaceId,
 		});
+		if (input.workspaceId) {
+			upsertSession(input.sessionId, { workspaceId: input.workspaceId });
+		}
 
 		const producer = createSessionStreamProducer(config.streams, input.sessionId);
 		const cwd = input.cwd ?? process.cwd();
@@ -232,6 +315,7 @@ export async function ensureRuntime(
 			if (!current) return;
 			appendEvent(current, "harness", event);
 		});
+		touchSession(input.sessionId);
 
 		return { ready: true };
 	});
@@ -253,6 +337,7 @@ export async function sendMessage(
 				clientMessageId: input.clientMessageId,
 			},
 		});
+		updateSessionTitleFromMessage(input.sessionId, input.content);
 
 		const images = toMastraImages(input.files);
 		await runtime.harness.sendMessage({
@@ -275,6 +360,7 @@ export async function control(input: ControlInput): Promise<{ accepted: boolean 
 				action: input.action,
 			},
 		});
+		touchSession(input.sessionId);
 
 		if (input.action === "stop" || input.action === "abort") {
 			runtime.harness.abort();
@@ -298,6 +384,7 @@ export async function approvalRespond(
 				toolCallId: input.toolCallId,
 			},
 		});
+		touchSession(input.sessionId);
 
 		runtime.harness.respondToToolApproval({
 			decision: input.decision === "approve" ? "approve" : "decline",
@@ -321,6 +408,7 @@ export async function questionRespond(
 				answer: input.answer,
 			},
 		});
+		touchSession(input.sessionId);
 
 		runtime.harness.respondToQuestion({
 			questionId: input.questionId,
@@ -346,6 +434,7 @@ export async function planRespond(
 				feedback: input.feedback,
 			},
 		});
+		touchSession(input.sessionId);
 
 		await runtime.harness.respondToPlanApproval({
 			planId: input.planId,

@@ -2,11 +2,14 @@ import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import {
 	approvalRespond as approvalRespondRuntime,
+	createSession as createSessionRuntime,
+	deleteSession as deleteSessionRuntime,
 	configureRuntimeState,
 	control as controlRuntime,
 	ensureRuntime as ensureRuntimeState,
 	getDisplayState as getDisplayStateRuntime,
 	hasRuntime as hasRuntimeState,
+	listSessions as listSessionsRuntime,
 	planRespond as planRespondRuntime,
 	questionRespond as questionRespondRuntime,
 	sendMessage as sendMessageRuntime,
@@ -18,6 +21,7 @@ import { searchFiles } from "./utils/file-search";
 import {
 	approvalRespondInput,
 	controlInput,
+	createSessionInput,
 	ensureRuntimeInput,
 	planRespondInput,
 	questionRespondInput,
@@ -25,6 +29,7 @@ import {
 	sendMessageInput,
 	sessionIdInput,
 	startInput,
+	workspaceIdInput,
 } from "./zod";
 
 const t = initTRPC.create({ transformer: superjson });
@@ -61,6 +66,18 @@ export function createChatMastraServiceRouter(
 		}),
 
 		session: t.router({
+			create: t.procedure
+				.input(createSessionInput)
+				.mutation(({ input }) => createSessionRuntime(input)),
+
+			list: t.procedure
+				.input(workspaceIdInput)
+				.query(({ input }) => listSessionsRuntime(input)),
+
+			delete: t.procedure
+				.input(sessionIdInput)
+				.mutation(async ({ input }) => deleteSessionRuntime(input)),
+
 			isActive: t.procedure.input(sessionIdInput).query(({ input }) => {
 				return {
 					active: hasRuntimeState(input.sessionId),

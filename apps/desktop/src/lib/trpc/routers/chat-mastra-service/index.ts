@@ -10,7 +10,11 @@ export const createChatMastraServiceRouter = () =>
 			routePrefix: "/api/chat",
 			getHeaders: async () => {
 				const { token } = await loadToken();
-				return token ? { Authorization: `Bearer ${token}` } : {};
+				const headers: Record<string, string> = {};
+				if (token) {
+					headers.Authorization = `Bearer ${token}`;
+				}
+				return headers;
 			},
 		},
 	});

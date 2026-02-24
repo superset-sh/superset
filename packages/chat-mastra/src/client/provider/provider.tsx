@@ -5,7 +5,7 @@ import type { ChatMastraServiceRouter } from "../../server/trpc";
 
 export const chatMastraServiceTrpc = createTRPCReact<ChatMastraServiceRouter>();
 
-type ChatMastraServiceClient = ReturnType<
+export type ChatMastraServiceClient = ReturnType<
 	typeof chatMastraServiceTrpc.createClient
 >;
 
@@ -26,4 +26,3 @@ export function ChatMastraServiceProvider({
 		</chatMastraServiceTrpc.Provider>
 	);
 }
-

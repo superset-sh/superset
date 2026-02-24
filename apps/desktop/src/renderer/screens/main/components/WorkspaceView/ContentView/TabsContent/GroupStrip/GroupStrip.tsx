@@ -43,7 +43,7 @@ export function GroupStrip() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const { addTab } = useTabsWithPresets();
-	const addChatTab = useTabsStore((s) => s.addChatTab);
+	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
@@ -152,7 +152,7 @@ export function GroupStrip() {
 
 	const handleAddChat = () => {
 		if (!activeWorkspaceId) return;
-		addChatTab(activeWorkspaceId);
+		addChatMastraTab(activeWorkspaceId);
 	};
 
 	const handleAddBrowser = () => {

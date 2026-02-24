@@ -124,7 +124,7 @@ function WorkspacePage() {
 		splitPaneHorizontal,
 		openPreset,
 	} = useTabsWithPresets();
-	const addChatTab = useTabsStore((s) => s.addChatTab);
+	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -175,17 +175,19 @@ function WorkspacePage() {
 		workspaceId,
 		addTab,
 	]);
-	useAppHotkey("NEW_CHAT", () => addChatTab(workspaceId), undefined, [
+	useAppHotkey("NEW_CHAT", () => addChatMastraTab(workspaceId), undefined, [
 		workspaceId,
-		addChatTab,
+		addChatMastraTab,
 	]);
 	useAppHotkey(
 		"REOPEN_TAB",
 		() => {
-			reopenClosedTab(workspaceId);
+			if (!reopenClosedTab(workspaceId)) {
+				addChatMastraTab(workspaceId);
+			}
 		},
 		undefined,
-		[workspaceId, reopenClosedTab],
+		[workspaceId, reopenClosedTab, addChatMastraTab],
 	);
 	useAppHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId), undefined, [
 		workspaceId,

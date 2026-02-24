@@ -15,6 +15,10 @@ export const sessionIdInput = z.object({
 	sessionId: z.uuid(),
 });
 
+export const workspaceIdInput = z.object({
+	workspaceId: z.uuid(),
+});
+
 export const ensureRuntimeInput = z.object({
 	sessionId: z.uuid(),
 	cwd: z.string().optional(),
@@ -67,12 +71,20 @@ export const planRespondInput = z.object({
 	feedback: z.string().optional(),
 });
 
+export const createSessionInput = z.object({
+	workspaceId: z.uuid(),
+	sessionId: z.uuid().optional(),
+	title: z.string().trim().min(1).max(140).optional(),
+});
+
 export type StartInput = z.infer<typeof startInput>;
 export type SearchFilesInput = z.infer<typeof searchFilesInput>;
 export type SessionIdInput = z.infer<typeof sessionIdInput>;
+export type WorkspaceIdInput = z.infer<typeof workspaceIdInput>;
 export type EnsureRuntimeInput = z.infer<typeof ensureRuntimeInput>;
 export type SendMessageInput = z.infer<typeof sendMessageInput>;
 export type ControlInput = z.infer<typeof controlInput>;
 export type ApprovalRespondInput = z.infer<typeof approvalRespondInput>;
 export type QuestionRespondInput = z.infer<typeof questionRespondInput>;
 export type PlanRespondInput = z.infer<typeof planRespondInput>;
+export type CreateSessionInput = z.infer<typeof createSessionInput>;

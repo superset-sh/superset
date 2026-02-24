@@ -246,6 +246,23 @@ export const createChatPane = (tabId: string): Pane => {
 };
 
 /**
+ * Creates a new Mastra chat pane
+ */
+export const createChatMastraPane = (tabId: string): Pane => {
+	const id = generateId("pane");
+
+	return {
+		id,
+		tabId,
+		type: "chat-mastra",
+		name: "New Chat",
+		chatMastra: {
+			sessionId: null,
+		},
+	};
+};
+
+/**
  * Options for creating a browser pane
  */
 export interface CreateBrowserPaneOptions {
@@ -332,6 +349,26 @@ export const createChatTabWithPane = (
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
 	const pane = createChatPane(tabId);
+
+	const tab: Tab = {
+		id: tabId,
+		name: "New Chat",
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
+
+	return { tab, pane };
+};
+
+/**
+ * Creates a new tab with a Mastra chat pane atomically
+ */
+export const createChatMastraTabWithPane = (
+	workspaceId: string,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createChatMastraPane(tabId);
 
 	const tab: Tab = {
 		id: tabId,

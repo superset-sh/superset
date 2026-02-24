@@ -17,6 +17,7 @@ import {
 	type CreatePaneOptions,
 	createBrowserPane,
 	createBrowserTabWithPane,
+	createChatMastraTabWithPane,
 	createChatTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
@@ -150,6 +151,40 @@ export const useTabsStore = create<TabsStore>()(
 					const state = get();
 
 					const { tab, pane } = createChatTabWithPane(workspaceId);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addChatMastraTab: (workspaceId: string) => {
+					const state = get();
+
+					const { tab, pane } = createChatMastraTabWithPane(workspaceId);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -1667,6 +1702,22 @@ export const useTabsStore = create<TabsStore>()(
 							[paneId]: {
 								...pane,
 								chat: { sessionId },
+							},
+						},
+					});
+				},
+
+				switchChatMastraSession: (paneId, sessionId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.chatMastra) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								chatMastra: { sessionId },
 							},
 						},
 					});
