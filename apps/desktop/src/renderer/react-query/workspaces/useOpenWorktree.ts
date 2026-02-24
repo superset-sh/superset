@@ -36,21 +36,21 @@ export function useOpenWorktree(
 			if (initialCommands) {
 				setTabAutoTitle(tabId, "Workspace Setup");
 			}
-			await createOrAttach.mutateAsync({
-				paneId,
-				tabId,
-				workspaceId: data.workspace.id,
-			});
-			if (initialCommands) {
-				await writeToTerminal
-					.mutateAsync({
+			try {
+				await createOrAttach.mutateAsync({
+					paneId,
+					tabId,
+					workspaceId: data.workspace.id,
+				});
+				if (initialCommands) {
+					await writeToTerminal.mutateAsync({
 						paneId,
 						data: `${initialCommands.join(" && ")}\n`,
 						throwOnError: true,
-					})
-					.catch(() => {
-						// keep navigation behavior consistent even if setup command write fails
 					});
+				}
+			} catch (error) {
+				console.error("[useOpenWorktree] Failed to bootstrap terminal:", error);
 			}
 
 			navigateToWorkspace(data.workspace.id, navigate);

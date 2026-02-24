@@ -413,7 +413,7 @@ export function useTerminalLifecycle({
 								setConnectionError(null);
 								if (initialCommands || initialCwd) {
 									clearPaneInitialDataRef.current(paneId);
-									if (initialCommandString) {
+									if (initialCommandString && !result.wasRecovered) {
 										writeRef.current(
 											{
 												paneId,
