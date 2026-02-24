@@ -144,11 +144,13 @@ export function AddTabButton({
 						Show Preset Bar
 					</DropdownMenuCheckboxItem>
 					<DropdownMenuCheckboxItem
-						checked={showBigAddButton}
-						onCheckedChange={onToggleBigAddButton}
+						checked={!showBigAddButton}
+						onCheckedChange={(checked) =>
+							onToggleBigAddButton(!(checked === true))
+						}
 						onSelect={(e) => e.preventDefault()}
 					>
-						Show Expanded Button
+						Show Compact Button
 					</DropdownMenuCheckboxItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
