@@ -255,6 +255,30 @@ describe("Shell Environment", () => {
 		const env = await getShellEnvironment();
 		expect(env.PATH || env.Path).toBeDefined();
 	});
+
+	test("getProcessEnvWithShellPath applies shell PATH and preserves string vars", async () => {
+		const { getProcessEnvWithShellPath, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+
+		const shellEnv = await getShellEnvironment();
+		const env = await getProcessEnvWithShellPath({
+			PATH: "/usr/bin",
+			FOO: "bar",
+			UNSET: undefined,
+		});
+
+		expect(env.FOO).toBe("bar");
+		expect("UNSET" in env).toBe(false);
+
+		const shellPath = shellEnv.PATH || shellEnv.Path;
+		if (shellPath) {
+			expect(env.PATH).toBe(shellPath);
+			if (process.platform === "win32" || "Path" in shellEnv) {
+				expect(env.Path).toBe(shellPath);
+			}
+		}
+	});
 });
 
 describe("createWorktree hook tolerance", () => {
