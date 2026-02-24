@@ -19,6 +19,7 @@ interface SessionRuntime {
 	sessionId: string;
 	harness: ReturnType<typeof createMastraCode>["harness"];
 	unsubscribe: () => void;
+	inFlight?: Promise<void>;
 	sequenceHint: number;
 	cwd: string;
 	createdAt: string;
@@ -218,6 +219,10 @@ export function createMastraProbeService({
 				type: "session_closed",
 				reason,
 			});
+			if (session.inFlight) {
+				session.harness.abort();
+				await session.inFlight.catch(() => {});
+			}
 			await session.harness.stopHeartbeats().catch(() => {});
 			await session.harness.destroyWorkspace().catch(() => {});
 			sessions.delete(sessionId);
@@ -326,6 +331,9 @@ export function createMastraProbeService({
 			if (!session) {
 				return c.json({ error: "Session not found" }, 404);
 			}
+			if (session.inFlight) {
+				return c.json({ error: "Session is already running" }, 409);
+			}
 
 			await appendSessionEvent(session, "submit", {
 				type: "user_message_submitted",
@@ -333,10 +341,27 @@ export function createMastraProbeService({
 			});
 
 			const images = toMastraImages(parsed.data.files);
-			await session.harness.sendMessage({
+			const runPromise = session.harness
+				.sendMessage({
 				content: parsed.data.content,
 				...(images.length > 0 ? { images } : {}),
-			});
+				})
+				.catch(async (error) => {
+					await appendSessionEvent(session, "service", {
+						type: "send_message_failed",
+						error:
+							error instanceof Error
+								? { message: error.message }
+								: { message: "unknown sendMessage error" },
+					});
+				})
+				.finally(() => {
+					const current = sessions.get(sessionId);
+					if (current?.inFlight === runPromise) {
+						current.inFlight = undefined;
+					}
+				});
+			session.inFlight = runPromise;
 
 			return c.json({ accepted: true });
 		});

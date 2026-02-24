@@ -38,7 +38,6 @@ export interface OMProgressState {
 	stepNumber: number;
 	cycleId?: string;
 	startTime?: number;
-	preReflectionTokens: number;
 }
 
 export interface ActiveToolState {

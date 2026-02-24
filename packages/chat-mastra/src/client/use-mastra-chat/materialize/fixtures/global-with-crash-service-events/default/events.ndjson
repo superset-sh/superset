@@ -45,4 +45,3 @@
 {"timestamp":"2026-02-24T05:57:50.084Z","sessionId":"55555555-5555-4555-8555-555555555555","sequenceHint":5,"channel":"harness","payload":{"type":"usage_update","usage":{"promptTokens":0,"completionTokens":0,"totalTokens":0}}}
 {"timestamp":"2026-02-24T05:57:50.088Z","sessionId":"55555555-5555-4555-8555-555555555555","sequenceHint":6,"channel":"harness","payload":{"type":"message_end","message":{"id":"1771912667012-h2tk8k8bn","role":"assistant","content":[],"createdAt":"2026-02-24T05:57:47.012Z","stopReason":"complete"}}}
 {"timestamp":"2026-02-24T05:57:50.088Z","sessionId":"55555555-5555-4555-8555-555555555555","sequenceHint":7,"channel":"harness","payload":{"type":"agent_end","reason":"complete"}}
-{"timestamp":"2026-02-24T06:00:56.611Z","sessionId":"55555555-5555-4555-8555-555555555555","sequenceHint":8,"channel":"service","payload":{"type":"session_closed","reason":"close_all"}}

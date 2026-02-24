@@ -2,14 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-
-interface ProbeFixtureRecord {
-	timestamp: string;
-	sessionId?: string;
-	sequenceHint?: number;
-	channel: "service" | "submit" | "harness";
-	payload: unknown;
-}
+import { loadFixtureRecords } from "./fixtures/utils";
 
 const HARNESS_EVENT_CLASSIFICATION: Record<string, "handled" | "auxiliary"> = {
 	mode_changed: "auxiliary",
@@ -63,17 +56,6 @@ const HARNESS_EVENT_CLASSIFICATION: Record<string, "handled" | "auxiliary"> = {
 
 const require = createRequire(import.meta.url);
 
-function loadFixture(name: string): ProbeFixtureRecord[] {
-	const fixturePath = path.join(
-		import.meta.dir,
-		"..",
-		"fixtures",
-		"mastra-events",
-		name,
-	);
-	return JSON.parse(readFileSync(fixturePath, "utf8")) as ProbeFixtureRecord[];
-}
-
 function extractHarnessEventTypes(): string[] {
 	const mastraPackagePath = require.resolve("mastracode/package.json");
 	const harnessTypesPath = path.resolve(
@@ -122,7 +104,7 @@ describe("harness event coverage contract", () => {
 	});
 
 	it("confirms user turns are submit events, not harness message payloads", () => {
-		const records = loadFixture("session-basic-auth-error.json");
+		const records = loadFixtureRecords("basic-auth-error");
 		const harnessMessageRoles = records
 			.filter((record) => record.channel === "harness")
 			.map((record) => {

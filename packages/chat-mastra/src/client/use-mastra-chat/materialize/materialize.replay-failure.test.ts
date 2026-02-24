@@ -5,7 +5,7 @@ import {
 	materializeMastraChatStateFromRows,
 	type MastraChatEventEnvelope,
 	type MastraChatEventRow,
-} from "../../src/client/use-mastra-chat";
+} from "./index";
 
 const SESSION_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 

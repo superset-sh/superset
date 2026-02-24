@@ -28,7 +28,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
     "test": "bun test",
-    "test:probe": "bun run test/mastra-probe/run.ts"
+    "test:probe": "bun run test/mastra-probe/run.ts",
+    "fixtures:probe": "bun run test/mastra-probe/generate-fixtures.ts"
   },
   "dependencies": {
     "@durable-streams/client": "^0.2.1",

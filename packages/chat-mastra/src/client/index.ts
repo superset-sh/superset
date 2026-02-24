@@ -5,6 +5,9 @@ export {
 export {
 	materializeMastraChatState,
 	materializeMastraChatStateFromRows,
+	materializeMastraDisplayState,
+	materializeMastraDisplayStateFromRows,
+	serializeMastraDisplayState,
 	type MastraChatEventEnvelope,
 	type MastraChatEventRow,
 	type MastraChatMaterializedState,

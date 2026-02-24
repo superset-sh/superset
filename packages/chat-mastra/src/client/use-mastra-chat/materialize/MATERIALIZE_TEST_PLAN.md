@@ -46,7 +46,7 @@ Goal: deterministic, replay-safe output from raw stream events for all supported
 
 - `[x] MZ-MAT-101` Duplicate event replay idempotency (same envelope repeated N times).
 - `[x] MZ-MAT-102` Stable tie-breaking with identical timestamp and identical sequence hint.
-- `[ ] MZ-MAT-103` Out-of-order ingestion with explicit caller-order mode expectations.
+- `[x] MZ-MAT-103` Out-of-order ingestion with explicit caller-order mode expectations.
 - `[x] MZ-MAT-104` Large replay (10k+ envelopes) deterministic hash snapshot.
 - `[x] MZ-MAT-105` Sequence reset across three epochs with interleaved control submits.
 
@@ -111,7 +111,7 @@ Run this loop repeatedly to build fixtures with real harness output:
 
 For each captured fixture:
 
-- `R-01` Add fixture under `test/fixtures/mastra-events`.
+- `R-01` Add fixture under `src/client/use-mastra-chat/materialize/fixtures/<scenario>/<variant>/`.
 - `R-02` Add one focused static test referencing the fixture.
 - `R-03` Assert key invariants and expected minimal output state.
 - `R-04` Record new case id in this document as completed.
