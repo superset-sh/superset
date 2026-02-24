@@ -33,6 +33,10 @@ export const ensureRuntimeInput = z.object({
 	cwd: z.string().optional(),
 });
 
+export const anthropicOAuthCodeInput = z.object({
+	code: z.string().min(1),
+});
+
 function resolveWorkspaceSlashCommand(input: { cwd: string; text: string }) {
 	return resolveSlashCommand(input.cwd, input.text);
 }
@@ -80,6 +84,23 @@ export function createChatServiceRouter(service: ChatService) {
 				.query(async ({ input }) => {
 					return resolveWorkspaceSlashCommand(input);
 				}),
+		}),
+
+		auth: t.router({
+			getAnthropicStatus: t.procedure.query(() => {
+				return service.getAnthropicAuthStatus();
+			}),
+			startAnthropicOAuth: t.procedure.mutation(() => {
+				return service.startAnthropicOAuth();
+			}),
+			completeAnthropicOAuth: t.procedure
+				.input(anthropicOAuthCodeInput)
+				.mutation(async ({ input }) => {
+					return service.completeAnthropicOAuth({ code: input.code });
+				}),
+			cancelAnthropicOAuth: t.procedure.mutation(() => {
+				return service.cancelAnthropicOAuth();
+			}),
 		}),
 
 		session: t.router({
