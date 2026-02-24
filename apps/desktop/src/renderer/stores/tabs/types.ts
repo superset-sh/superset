@@ -44,7 +44,6 @@ export interface TabsState extends Omit<BaseTabsState, "tabs"> {
  * Options for creating a tab with preset configuration
  */
 export interface AddTabOptions {
-	initialCommands?: string[];
 	initialCwd?: string;
 }
 

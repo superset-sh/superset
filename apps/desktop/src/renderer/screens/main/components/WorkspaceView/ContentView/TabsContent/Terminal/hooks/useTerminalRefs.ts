@@ -19,7 +19,6 @@ export interface UseTerminalRefsOptions {
 	tabId: string;
 	focusedPaneId: string | undefined;
 	terminalTheme: ITheme | null;
-	paneInitialCommands?: string[];
 	paneInitialCwd?: string;
 	clearPaneInitialData: (paneId: string) => void;
 	workspaceCwd: string | null | undefined;
@@ -32,7 +31,6 @@ export interface UseTerminalRefsReturn {
 	isFocused: boolean;
 	isFocusedRef: MutableRefObject<boolean>;
 	initialThemeRef: MutableRefObject<ITheme | null>;
-	paneInitialCommandsRef: MutableRefObject<string[] | undefined>;
 	paneInitialCwdRef: MutableRefObject<string | undefined>;
 	clearPaneInitialDataRef: MutableRefObject<(paneId: string) => void>;
 	workspaceCwdRef: MutableRefObject<string | null>;
@@ -56,7 +54,6 @@ export function useTerminalRefs({
 	tabId,
 	focusedPaneId,
 	terminalTheme,
-	paneInitialCommands,
 	paneInitialCwd,
 	clearPaneInitialData,
 	workspaceCwd,
@@ -69,10 +66,8 @@ export function useTerminalRefs({
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
 
-	const paneInitialCommandsRef = useRef(paneInitialCommands);
 	const paneInitialCwdRef = useRef(paneInitialCwd);
 	const clearPaneInitialDataRef = useRef(clearPaneInitialData);
-	paneInitialCommandsRef.current = paneInitialCommands;
 	paneInitialCwdRef.current = paneInitialCwd;
 	clearPaneInitialDataRef.current = clearPaneInitialData;
 
@@ -119,7 +114,6 @@ export function useTerminalRefs({
 		isFocused,
 		isFocusedRef,
 		initialThemeRef,
-		paneInitialCommandsRef,
 		paneInitialCwdRef,
 		clearPaneInitialDataRef,
 		workspaceCwdRef,

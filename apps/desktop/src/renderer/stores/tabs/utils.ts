@@ -143,7 +143,6 @@ export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
  * Options for creating a pane with preset configuration
  */
 export interface CreatePaneOptions {
-	initialCommands?: string[];
 	initialCwd?: string;
 }
 
@@ -163,7 +162,6 @@ export const createPane = (
 		type,
 		name: "Terminal",
 		isNew: true,
-		initialCommands: options?.initialCommands,
 		initialCwd: options?.initialCwd,
 	};
 };

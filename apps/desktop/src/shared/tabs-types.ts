@@ -132,7 +132,6 @@ export interface Pane {
 	name: string;
 	isNew?: boolean;
 	status?: PaneStatus;
-	initialCommands?: string[];
 	initialCwd?: string;
 	url?: string; // For webview panes
 	cwd?: string | null; // Current working directory

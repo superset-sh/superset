@@ -98,7 +98,6 @@ export interface UseTerminalLifecycleOptions {
 		(path: string, line?: number, column?: number) => void
 	>;
 	handleUrlClickRef: MutableRefObject<((url: string) => void) | undefined>;
-	paneInitialCommandsRef: MutableRefObject<string[] | undefined>;
 	paneInitialCwdRef: MutableRefObject<string | undefined>;
 	clearPaneInitialDataRef: MutableRefObject<(paneId: string) => void>;
 	setConnectionError: (error: string | null) => void;
@@ -159,7 +158,6 @@ export function useTerminalLifecycle({
 	workspaceCwdRef,
 	handleFileLinkClickRef,
 	handleUrlClickRef,
-	paneInitialCommandsRef,
 	paneInitialCwdRef,
 	clearPaneInitialDataRef,
 	setConnectionError,
@@ -362,11 +360,6 @@ export function useTerminalLifecycle({
 			}
 		};
 
-		const initialCommands = paneInitialCommandsRef.current;
-		const initialCommandString =
-			initialCommands && initialCommands.length > 0
-				? `${initialCommands.join(" && ")}\n`
-				: null;
 		const initialCwd = paneInitialCwdRef.current;
 
 		const cancelInitialAttach = scheduleTerminalAttach({
@@ -411,27 +404,7 @@ export function useTerminalLifecycle({
 							onSuccess: (result) => {
 								if (!isAttachActive()) return;
 								setConnectionError(null);
-								if (initialCommands || initialCwd) {
-									clearPaneInitialDataRef.current(paneId);
-									if (initialCommandString && !result.wasRecovered) {
-										writeRef.current(
-											{
-												paneId,
-												data: initialCommandString,
-												throwOnError: true,
-											},
-											{
-												onError: (error) => {
-													if (!isAttachActive()) return;
-													console.error(
-														"[Terminal] Failed to run initial commands:",
-														error,
-													);
-												},
-											},
-										);
-									}
-								}
+								clearPaneInitialDataRef.current(paneId);
 
 								const storedColdRestore = coldRestoreState.get(paneId);
 								if (storedColdRestore?.isRestored) {

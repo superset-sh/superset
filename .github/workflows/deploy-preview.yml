@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  VERCEL_CLI_VERSION: 50.22.1
   PR_NUMBER: ${{ github.event.pull_request.number }}
   API_ALIAS: api-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   WEB_ALIAS: web-pr-${{ github.event.pull_request.number }}-superset.vercel.app
@@ -157,7 +158,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy API
         id: deploy
@@ -214,7 +215,7 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+          VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env BLOB_READ_WRITE_TOKEN=$BLOB_READ_WRITE_TOKEN \
@@ -313,7 +314,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Web
         id: deploy
@@ -349,7 +350,7 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+          VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
@@ -415,7 +416,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Marketing
         id: deploy
@@ -448,7 +449,7 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+          VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
@@ -522,7 +523,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Admin
         id: deploy
@@ -559,7 +560,7 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+          VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
@@ -626,7 +627,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Docs
         id: deploy
@@ -646,7 +647,7 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+          VERCEL_URL=$(vercel deploy --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
             --env NEXT_PUBLIC_SENTRY_DSN_DOCS=$NEXT_PUBLIC_SENTRY_DSN_DOCS \
