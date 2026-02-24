@@ -16,8 +16,8 @@ import type {
 	SlashCommandUiMessage,
 } from "../../types";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
-import { McpOverviewCard } from "./components/McpOverviewCard";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
+import { SlashCommandUiMessages } from "./components/SlashCommandUiMessages";
 
 interface MessageListProps {
 	messages: UIMessage[];
@@ -175,18 +175,7 @@ export function MessageList({
 						);
 					})
 				)}
-				{slashCommandUiMessages.map((uiMessage) =>
-					uiMessage.type === "mcp_overview" ? (
-						<Message key={uiMessage.id} from="assistant">
-							<MessageContent>
-								<McpOverviewCard
-									sourcePath={uiMessage.sourcePath}
-									servers={uiMessage.servers}
-								/>
-							</MessageContent>
-						</Message>
-					) : null,
-				)}
+				<SlashCommandUiMessages messages={slashCommandUiMessages} />
 				{interruptedMessage && interruptedMessage.parts.length > 0 && (
 					<Message key={interruptedMessage.id} from="assistant">
 						<MessageContent>
