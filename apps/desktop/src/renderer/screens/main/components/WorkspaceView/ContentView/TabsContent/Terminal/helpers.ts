@@ -380,17 +380,22 @@ export function setupPasteHandler(
 
 	let cancelActivePaste: (() => void) | null = null;
 
-	const hasImageClipboardData = (event: ClipboardEvent): boolean =>
-		Array.from(event.clipboardData?.items ?? []).some(
-			(item) => item.kind === "file" && item.type.startsWith("image/"),
-		);
+	const shouldForwardCtrlVForNonTextPaste = (
+		event: ClipboardEvent,
+		text: string,
+	): boolean => {
+		if (text) return false;
+		const types = Array.from(event.clipboardData?.types ?? []);
+		if (types.length === 0) return false;
+		return types.some((type) => type !== "text/plain");
+	};
 
 	const handlePaste = (event: ClipboardEvent) => {
 		const text = event.clipboardData?.getData("text/plain");
 		if (!text) {
-			// Image-only clipboard payloads (common on macOS) do not expose text/plain.
-			// Forward Ctrl+V so TUIs like Codex/Copilot can read the image from the OS clipboard.
-			if (hasImageClipboardData(event) && options.onWrite) {
+			// Match terminal behavior like iTerm's "Paste or send ^V":
+			// when clipboard has non-text payloads but no plain text, forward Ctrl+V.
+			if (options.onWrite && shouldForwardCtrlVForNonTextPaste(event, text)) {
 				event.preventDefault();
 				event.stopImmediatePropagation();
 				options.onWrite("\x16");

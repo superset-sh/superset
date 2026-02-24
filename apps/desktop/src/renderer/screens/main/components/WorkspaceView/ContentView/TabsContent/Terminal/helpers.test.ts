@@ -230,6 +230,7 @@ describe("setupPasteHandler", () => {
 			clipboardData: {
 				getData: mock(() => ""),
 				items: [{ kind: "file", type: "image/png" }],
+				types: ["Files", "image/png"],
 			},
 			preventDefault,
 			stopImmediatePropagation,
@@ -244,7 +245,7 @@ describe("setupPasteHandler", () => {
 		expect(stopImmediatePropagation).toHaveBeenCalled();
 	});
 
-	it("ignores empty non-image clipboard payloads", () => {
+	it("forwards Ctrl+V for non-text clipboard payloads without plain text", () => {
 		const { xterm, listeners } = createXtermStub();
 		const onWrite = mock(() => {});
 		setupPasteHandler(xterm, { onWrite });
@@ -255,6 +256,33 @@ describe("setupPasteHandler", () => {
 			clipboardData: {
 				getData: mock(() => ""),
 				items: [{ kind: "string", type: "text/html" }],
+				types: ["text/html"],
+			},
+			preventDefault,
+			stopImmediatePropagation,
+		} as unknown as ClipboardEvent;
+
+		const pasteListener = listeners.get("paste");
+		expect(pasteListener).toBeDefined();
+		pasteListener?.(pasteEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x16");
+		expect(preventDefault).toHaveBeenCalled();
+		expect(stopImmediatePropagation).toHaveBeenCalled();
+	});
+
+	it("ignores empty clipboard payloads", () => {
+		const { xterm, listeners } = createXtermStub();
+		const onWrite = mock(() => {});
+		setupPasteHandler(xterm, { onWrite });
+
+		const preventDefault = mock(() => {});
+		const stopImmediatePropagation = mock(() => {});
+		const pasteEvent = {
+			clipboardData: {
+				getData: mock(() => ""),
+				items: [],
+				types: [],
 			},
 			preventDefault,
 			stopImmediatePropagation,
