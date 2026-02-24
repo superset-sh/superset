@@ -20,7 +20,10 @@ import {
 	isLastPaneInTab,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
-import { DEFAULT_USE_BIG_TERMINAL_ADD_BUTTON } from "shared/constants";
+import {
+	DEFAULT_SHOW_PRESETS_BAR,
+	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
+} from "shared/constants";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
@@ -53,8 +56,8 @@ export function GroupStrip() {
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
-	const { data: useBigTerminalAddButton } =
-		electronTrpc.settings.getUseBigTerminalAddButton.useQuery();
+	const { data: useCompactTerminalAddButton } =
+		electronTrpc.settings.getUseCompactTerminalAddButton.useQuery();
 	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
 		{
 			onMutate: async ({ enabled }) => {
@@ -73,24 +76,28 @@ export function GroupStrip() {
 			},
 		},
 	);
-	const setUseBigTerminalAddButton =
-		electronTrpc.settings.setUseBigTerminalAddButton.useMutation({
+	const setUseCompactTerminalAddButton =
+		electronTrpc.settings.setUseCompactTerminalAddButton.useMutation({
 			onMutate: async ({ enabled }) => {
-				await utils.settings.getUseBigTerminalAddButton.cancel();
-				const previous = utils.settings.getUseBigTerminalAddButton.getData();
-				utils.settings.getUseBigTerminalAddButton.setData(undefined, enabled);
+				await utils.settings.getUseCompactTerminalAddButton.cancel();
+				const previous =
+					utils.settings.getUseCompactTerminalAddButton.getData();
+				utils.settings.getUseCompactTerminalAddButton.setData(
+					undefined,
+					enabled,
+				);
 				return { previous };
 			},
 			onError: (_err, _vars, context) => {
 				if (context?.previous !== undefined) {
-					utils.settings.getUseBigTerminalAddButton.setData(
+					utils.settings.getUseCompactTerminalAddButton.setData(
 						undefined,
 						context.previous,
 					);
 				}
 			},
 			onSettled: () => {
-				utils.settings.getUseBigTerminalAddButton.invalidate();
+				utils.settings.getUseCompactTerminalAddButton.invalidate();
 			},
 		});
 
@@ -245,14 +252,14 @@ export function GroupStrip() {
 		requestAnimationFrame(updateOverflow);
 	}, [updateOverflow]);
 
-	const showBigAddButton =
-		useBigTerminalAddButton ?? DEFAULT_USE_BIG_TERMINAL_ADD_BUTTON;
+	const useCompactAddButton =
+		useCompactTerminalAddButton ?? DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON;
 
 	const plusControl = (
 		<AddTabButton
 			hasAiChat={hasAiChat === true}
-			showBigAddButton={showBigAddButton}
-			showPresetsBar={showPresetsBar ?? false}
+			useCompactAddButton={useCompactAddButton}
+			showPresetsBar={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
 			presets={presets}
 			onDropToNewTab={movePaneToNewTab}
 			isLastPaneInTab={checkIsLastPaneInTab}
@@ -264,8 +271,8 @@ export function GroupStrip() {
 			onToggleShowPresetsBar={(enabled) =>
 				setShowPresetsBar.mutate({ enabled })
 			}
-			onToggleBigAddButton={(enabled) =>
-				setUseBigTerminalAddButton.mutate({ enabled })
+			onToggleCompactAddButton={(enabled) =>
+				setUseCompactTerminalAddButton.mutate({ enabled })
 			}
 		/>
 	);
@@ -306,7 +313,7 @@ export function GroupStrip() {
 					{hasHorizontalOverflow ? (
 						<div
 							className={`h-full shrink-0 ${
-								showBigAddButton
+								!useCompactAddButton
 									? hasAiChat
 										? "w-[220px]"
 										: "w-[170px]"

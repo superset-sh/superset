@@ -18,7 +18,7 @@ import { PresetsSubmenu } from "./components/PresetsSubmenu";
 
 interface AddTabButtonProps {
 	hasAiChat: boolean;
-	showBigAddButton: boolean;
+	useCompactAddButton: boolean;
 	showPresetsBar: boolean;
 	presets: TerminalPreset[];
 	onDropToNewTab: (paneId: string) => void;
@@ -29,12 +29,12 @@ interface AddTabButtonProps {
 	onOpenPreset: (preset: TerminalPreset) => void;
 	onConfigurePresets: () => void;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
-	onToggleBigAddButton: (enabled: boolean) => void;
+	onToggleCompactAddButton: (enabled: boolean) => void;
 }
 
 export function AddTabButton({
 	hasAiChat,
-	showBigAddButton,
+	useCompactAddButton,
 	showPresetsBar,
 	presets,
 	onDropToNewTab,
@@ -45,8 +45,9 @@ export function AddTabButton({
 	onOpenPreset,
 	onConfigurePresets,
 	onToggleShowPresetsBar,
-	onToggleBigAddButton,
+	onToggleCompactAddButton,
 }: AddTabButtonProps) {
+	const showBigAddButton = !useCompactAddButton;
 	const showPresetsInDropdown = !showPresetsBar;
 
 	return (
@@ -144,9 +145,9 @@ export function AddTabButton({
 						Show Preset Bar
 					</DropdownMenuCheckboxItem>
 					<DropdownMenuCheckboxItem
-						checked={!showBigAddButton}
+						checked={useCompactAddButton}
 						onCheckedChange={(checked) =>
-							onToggleBigAddButton(!(checked === true))
+							onToggleCompactAddButton(checked === true)
 						}
 						onSelect={(e) => e.preventDefault()}
 					>

@@ -25,7 +25,7 @@ import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
-	DEFAULT_USE_BIG_TERMINAL_ADD_BUTTON,
+	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
 import {
 	CUSTOM_RINGTONE_ID,
@@ -413,20 +413,22 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		getUseBigTerminalAddButton: publicProcedure.query(() => {
+		getUseCompactTerminalAddButton: publicProcedure.query(() => {
 			const row = getSettings();
-			return row.useBigTerminalAddButton ?? DEFAULT_USE_BIG_TERMINAL_ADD_BUTTON;
+			const useBigAddButton =
+				row.useBigTerminalAddButton ?? !DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON;
+			return !useBigAddButton;
 		}),
 
-		setUseBigTerminalAddButton: publicProcedure
+		setUseCompactTerminalAddButton: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
 			.mutation(({ input }) => {
 				localDb
 					.insert(settings)
-					.values({ id: 1, useBigTerminalAddButton: input.enabled })
+					.values({ id: 1, useBigTerminalAddButton: !input.enabled })
 					.onConflictDoUpdate({
 						target: settings.id,
-						set: { useBigTerminalAddButton: input.enabled },
+						set: { useBigTerminalAddButton: !input.enabled },
 					})
 					.run();
 
