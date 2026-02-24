@@ -1,4 +1,4 @@
-import { chatMastraServiceTrpc } from "../../provider";
+import { chatMastraServiceTrpc } from "../../../provider";
 import type {
 	MastraDisplayStateContract,
 	UseMastraDisplayStateOptions,

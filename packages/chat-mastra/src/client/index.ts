@@ -1,13 +1,4 @@
 export {
-	type ChatMastraServiceClient,
-	ChatMastraServiceProvider,
-	type CreateChatMastraServiceClientOptions,
-	type CreateChatMastraServiceHttpClientOptions,
-	chatMastraServiceTrpc,
-	createChatMastraServiceClient,
-	createChatMastraServiceHttpClient,
-} from "./provider";
-export {
 	type MastraChatEventEnvelope,
 	type MastraChatEventRow,
 	type MastraChatMaterializedState,
@@ -22,10 +13,19 @@ export {
 	type UseMastraDisplayStateOptions,
 	type UseMastraDisplayStateReturn,
 	useMastraDisplayState,
-} from "./use-mastra-chat";
+} from "./hooks/use-mastra-chat";
 export {
 	type MastraChatDisplayState,
 	type UseMastraChatDisplayOptions,
 	type UseMastraChatDisplayReturn,
 	useMastraChatDisplay,
 } from "./hooks/use-mastra-chat-display";
+export {
+	type ChatMastraServiceClient,
+	ChatMastraServiceProvider,
+	type CreateChatMastraServiceClientOptions,
+	type CreateChatMastraServiceHttpClientOptions,
+	chatMastraServiceTrpc,
+	createChatMastraServiceClient,
+	createChatMastraServiceHttpClient,
+} from "./provider";

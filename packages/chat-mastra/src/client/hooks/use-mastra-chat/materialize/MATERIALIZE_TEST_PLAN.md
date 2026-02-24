@@ -111,7 +111,7 @@ Run this loop repeatedly to build fixtures with real harness output:
 
 For each captured fixture:
 
-- `R-01` Add fixture under `src/client/use-mastra-chat/materialize/fixtures/<scenario>/<variant>/`.
+- `R-01` Add fixture under `src/client/hooks/use-mastra-chat/materialize/fixtures/<scenario>/<variant>/`.
 - `R-02` Add one focused static test referencing the fixture.
 - `R-03` Assert key invariants and expected minimal output state.
 - `R-04` Record new case id in this document as completed.

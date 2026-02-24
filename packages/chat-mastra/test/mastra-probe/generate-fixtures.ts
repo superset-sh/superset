@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { MastraChatEventEnvelope } from "../../src/client/use-mastra-chat/materialize";
+import type { MastraChatEventEnvelope } from "../../src/client/hooks/use-mastra-chat/materialize";
 import {
 	materializeMastraDisplayState,
 	serializeMastraDisplayState,
-} from "../../src/client/use-mastra-chat/materialize";
+} from "../../src/client/hooks/use-mastra-chat/materialize";
 import { createMastraProbeService } from "./service";
 
 interface ProbeLogRecord {
@@ -30,7 +30,7 @@ interface OpenSessionConfig {
 const routeBase = "/chat-mastra/test";
 const fixtureDir = path.join(
 	process.cwd(),
-	"src/client/use-mastra-chat/materialize/fixtures",
+	"src/client/hooks/use-mastra-chat/materialize/fixtures",
 );
 
 function asObject(value: unknown): Record<string, unknown> | null {
