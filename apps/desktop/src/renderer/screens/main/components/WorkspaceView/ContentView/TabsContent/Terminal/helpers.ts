@@ -380,9 +380,23 @@ export function setupPasteHandler(
 
 	let cancelActivePaste: (() => void) | null = null;
 
+	const hasImageClipboardData = (event: ClipboardEvent): boolean =>
+		Array.from(event.clipboardData?.items ?? []).some(
+			(item) => item.kind === "file" && item.type.startsWith("image/"),
+		);
+
 	const handlePaste = (event: ClipboardEvent) => {
 		const text = event.clipboardData?.getData("text/plain");
-		if (!text) return;
+		if (!text) {
+			// Image-only clipboard payloads (common on macOS) do not expose text/plain.
+			// Forward Ctrl+V so TUIs like Codex/Copilot can read the image from the OS clipboard.
+			if (hasImageClipboardData(event) && options.onWrite) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				options.onWrite("\x16");
+			}
+			return;
+		}
 
 		event.preventDefault();
 		event.stopImmediatePropagation();
