@@ -3,6 +3,7 @@ import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
+import { RadioGroup, RadioGroupItem } from "@superset/ui/radio-group";
 import {
 	Select,
 	SelectContent,
@@ -18,7 +19,6 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@superset/ui/sheet";
-import { Switch } from "@superset/ui/switch";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { CommandsEditor } from "../../../PresetRow/components/CommandsEditor";
 import type { AutoApplyField } from "../../constants";
@@ -137,27 +137,40 @@ export function PresetEditorSheet({
 								/>
 								{hasMultipleCommands ? (
 									<div className="rounded-md border border-border p-3">
-										<div className="flex items-start justify-between gap-3">
-											<div className="space-y-0.5">
+										<RadioGroup
+											value={modeValue}
+											onValueChange={(value) =>
+												onModeChange(value as ExecutionMode)
+											}
+											className="gap-3"
+										>
+											<div className="flex items-start gap-2">
+												<RadioGroupItem
+													id="preset-multi-command-split-pane"
+													value="split-pane"
+													className="mt-0.5"
+												/>
 												<Label
-													htmlFor="preset-multi-command-mode"
+													htmlFor="preset-multi-command-split-pane"
+													className="text-sm font-medium"
+												>
+													Run all commands in one tab using split panes
+												</Label>
+											</div>
+											<div className="flex items-start gap-2">
+												<RadioGroupItem
+													id="preset-multi-command-new-tab"
+													value="new-tab"
+													className="mt-0.5"
+												/>
+												<Label
+													htmlFor="preset-multi-command-new-tab"
 													className="text-sm font-medium"
 												>
 													Open each command in its own tab
 												</Label>
-												<p className="text-xs text-muted-foreground">
-													Turn off to run all commands in one tab using split
-													panes.
-												</p>
 											</div>
-											<Switch
-												id="preset-multi-command-mode"
-												checked={modeValue === "new-tab"}
-												onCheckedChange={(checked) =>
-													onModeChange(checked ? "new-tab" : "split-pane")
-												}
-											/>
-										</div>
+										</RadioGroup>
 									</div>
 								) : (
 									<Select
