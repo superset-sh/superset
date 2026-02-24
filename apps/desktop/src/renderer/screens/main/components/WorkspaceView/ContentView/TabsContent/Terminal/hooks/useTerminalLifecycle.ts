@@ -29,6 +29,7 @@ import type {
 	TerminalWriteMutate,
 } from "../types";
 import { scrollToBottom } from "../utils";
+import { shouldWriteInitialCommand } from "./should-write-initial-command";
 
 type RegisterCallback = (paneId: string, callback: () => void) => void;
 type UnregisterCallback = (paneId: string) => void;
@@ -413,7 +414,13 @@ export function useTerminalLifecycle({
 								setConnectionError(null);
 								if (initialCommands || initialCwd) {
 									clearPaneInitialDataRef.current(paneId);
-									if (initialCommandString && !result.wasRecovered) {
+									if (
+										shouldWriteInitialCommand({
+											initialCommandString,
+											wasRecovered: result.wasRecovered,
+										}) &&
+										initialCommandString
+									) {
 										writeRef.current(
 											{
 												paneId,

@@ -3,6 +3,7 @@ import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWith
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { bootstrapOpenWorktree } from "./bootstrap-open-worktree";
 
 /**
  * Mutation hook for opening an existing worktree as a new workspace
@@ -24,36 +25,18 @@ export function useOpenWorktree(
 	return electronTrpc.workspaces.openWorktree.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
-			await utils.workspaces.invalidate();
-			await utils.projects.getRecents.invalidate();
-
-			const initialCommands =
-				Array.isArray(data.initialCommands) && data.initialCommands.length > 0
-					? data.initialCommands
-					: undefined;
-
-			const { tabId, paneId } = addTab(data.workspace.id);
-			if (initialCommands) {
-				setTabAutoTitle(tabId, "Workspace Setup");
-			}
-			try {
-				await createOrAttach.mutateAsync({
-					paneId,
-					tabId,
-					workspaceId: data.workspace.id,
-				});
-				if (initialCommands) {
-					await writeToTerminal.mutateAsync({
-						paneId,
-						data: `${initialCommands.join(" && ")}\n`,
-						throwOnError: true,
-					});
-				}
-			} catch (error) {
-				console.error("[useOpenWorktree] Failed to bootstrap terminal:", error);
-			}
-
-			navigateToWorkspace(data.workspace.id, navigate);
+			await bootstrapOpenWorktree({
+				data,
+				invalidateWorkspaces: () => utils.workspaces.invalidate(),
+				invalidateRecentProjects: () => utils.projects.getRecents.invalidate(),
+				addTab,
+				setTabAutoTitle,
+				createOrAttach: (input) => createOrAttach.mutateAsync(input),
+				writeToTerminal: (input) => writeToTerminal.mutateAsync(input),
+				navigateToWorkspaceById: (workspaceId) =>
+					navigateToWorkspace(workspaceId, navigate),
+				logPrefix: "useOpenWorktree",
+			});
 
 			await options?.onSuccess?.(data, ...rest);
 		},
