@@ -1,5 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { getAnthropicAuthToken, setAnthropicAuthToken } from "@superset/agent";
+import {
+	getAnthropicAuthToken,
+	setAnthropicOAuthCredentials,
+} from "@superset/agent";
 import {
 	createAnthropicOAuthSession,
 	exchangeAnthropicAuthorizationCode,
@@ -24,8 +27,11 @@ export interface ChatServiceHostConfig {
 export class ChatService {
 	private agentManager: AgentManager | null = null;
 	private hostConfig: ChatServiceHostConfig;
-	private anthropicAuthSession: { verifier: string; createdAt: number } | null =
-		null;
+	private anthropicAuthSession: {
+		verifier: string;
+		state: string;
+		createdAt: number;
+	} | null = null;
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 
 	constructor(hostConfig: ChatServiceHostConfig) {
@@ -86,6 +92,7 @@ export class ChatService {
 		const session = createAnthropicOAuthSession();
 		this.anthropicAuthSession = {
 			verifier: session.verifier,
+			state: session.state,
 			createdAt: session.createdAt,
 		};
 
@@ -119,9 +126,14 @@ export class ChatService {
 		const credentials = await exchangeAnthropicAuthorizationCode({
 			rawCode: input.code,
 			verifier: this.anthropicAuthSession.verifier,
+			expectedState: this.anthropicAuthSession.state,
 		});
 
-		setAnthropicAuthToken(credentials.accessToken);
+		setAnthropicOAuthCredentials({
+			accessToken: credentials.accessToken,
+			refreshToken: credentials.refreshToken,
+			expiresAt: credentials.expiresAt,
+		});
 		this.anthropicAuthSession = null;
 		return { success: true, expiresAt: credentials.expiresAt };
 	}

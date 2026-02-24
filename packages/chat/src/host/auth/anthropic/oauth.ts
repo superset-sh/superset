@@ -11,6 +11,7 @@ const SCOPES = "org:create_api_key user:profile user:inference";
 
 export interface AnthropicOAuthSession {
 	verifier: string;
+	state: string;
 	authUrl: string;
 	createdAt: number;
 }
@@ -35,29 +36,55 @@ function generatePKCE(): { verifier: string; challenge: string } {
 	return { verifier, challenge };
 }
 
-function parseAuthorizationCodeInput(
+function parseOAuthCallbackUrl(
 	value: string,
-	fallbackState: string,
-): { code: string; state: string } {
+): { code: string; state: string } | null {
+	try {
+		const url = new URL(value);
+		const code = url.searchParams.get("code")?.trim();
+		const state = url.searchParams.get("state")?.trim();
+		if (code && state) {
+			return { code, state };
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+function parseAuthorizationCodeInput(value: string): {
+	code: string;
+	state: string;
+} {
 	const trimmed = value.trim();
 	if (!trimmed) {
 		throw new Error("Authorization code is required");
 	}
 
+	const callbackData = parseOAuthCallbackUrl(trimmed);
+	if (callbackData) {
+		return callbackData;
+	}
+
 	const [codeRaw, stateRaw] = trimmed.split("#", 2);
 	const code = codeRaw?.trim();
-	if (!code) {
-		throw new Error("Authorization code is required");
+	const state = stateRaw?.trim();
+	if (!code) throw new Error("Authorization code is required");
+	if (!state) {
+		throw new Error(
+			"Authorization state is required. Paste code in the format code#state.",
+		);
 	}
 
 	return {
 		code,
-		state: stateRaw?.trim() || fallbackState,
+		state,
 	};
 }
 
 export function createAnthropicOAuthSession(): AnthropicOAuthSession {
 	const { verifier, challenge } = generatePKCE();
+	const state = base64Url(randomBytes(32));
 
 	const authParams = new URLSearchParams({
 		code: "true",
@@ -67,11 +94,12 @@ export function createAnthropicOAuthSession(): AnthropicOAuthSession {
 		scope: SCOPES,
 		code_challenge: challenge,
 		code_challenge_method: "S256",
-		state: verifier,
+		state,
 	});
 
 	return {
 		verifier,
+		state,
 		authUrl: `${AUTHORIZE_URL}?${authParams.toString()}`,
 		createdAt: Date.now(),
 	};
@@ -80,11 +108,14 @@ export function createAnthropicOAuthSession(): AnthropicOAuthSession {
 export async function exchangeAnthropicAuthorizationCode(input: {
 	rawCode: string;
 	verifier: string;
+	expectedState: string;
 }): Promise<AnthropicOAuthCredentials> {
-	const { code, state } = parseAuthorizationCodeInput(
-		input.rawCode,
-		input.verifier,
-	);
+	const { code, state } = parseAuthorizationCodeInput(input.rawCode);
+	if (state !== input.expectedState) {
+		throw new Error(
+			"Authorization state mismatch. Start auth again and use the latest code.",
+		);
+	}
 
 	const response = await fetch(TOKEN_URL, {
 		method: "POST",

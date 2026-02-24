@@ -90,7 +90,7 @@ export function AnthropicOAuthDialog({
 						<InputGroup>
 							<InputGroupInput
 								id="anthropic-oauth-code"
-								placeholder="Paste code or code#state"
+								placeholder="Paste code#state or callback URL"
 								value={code}
 								onChange={(event) => onCodeChange(event.target.value)}
 								disabled={isPending}
@@ -108,7 +108,7 @@ export function AnthropicOAuthDialog({
 							</InputGroupAddon>
 						</InputGroup>
 						<p className="text-muted-foreground text-xs">
-							Accepts either `code` or `code#state`.
+							Paste `code#state` from Anthropic (or full callback URL).
 						</p>
 					</div>
 
