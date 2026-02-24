@@ -23,14 +23,6 @@ export interface McpOverviewPayload {
 	servers: McpServerOverviewItem[];
 }
 
-export interface McpOverviewUiMessage extends McpOverviewPayload {
-	id: string;
-	createdAt: Date;
-	type: "mcp_overview";
-}
-
-export type SlashCommandUiMessage = McpOverviewUiMessage;
-
 export type InterruptedMessage = {
 	id: string;
 	sourceMessageId: string;

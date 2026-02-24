@@ -11,6 +11,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getAuthToken } from "renderer/lib/auth-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatInputFooter } from "./components/ChatInputFooter";
+import { McpOverviewPicker } from "./components/McpOverviewPicker";
 import { MessageList } from "./components/MessageList";
 import { useChatSendController } from "./hooks/useChatSendController";
 import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
@@ -21,7 +22,6 @@ import type {
 	McpOverviewPayload,
 	ModelOption,
 	PermissionMode,
-	SlashCommandUiMessage,
 } from "./types";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;
@@ -72,9 +72,10 @@ export function ChatInterface({
 		useState<PermissionMode>("bypassPermissions");
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
-	const [slashCommandUiMessages, setSlashCommandUiMessages] = useState<
-		SlashCommandUiMessage[]
-	>([]);
+	const [mcpOverview, setMcpOverview] = useState<McpOverviewPayload | null>(
+		null,
+	);
+	const [mcpOverviewOpen, setMcpOverviewOpen] = useState(false);
 
 	const chat = useChat({
 		sessionId,
@@ -139,7 +140,8 @@ export function ChatInterface({
 	const startFreshSessionAndResetUi = useCallback(async () => {
 		const result = await startFreshSession();
 		if (result.created) {
-			setSlashCommandUiMessages([]);
+			setMcpOverview(null);
+			setMcpOverviewOpen(false);
 		}
 		return result;
 	}, [startFreshSession]);
@@ -155,16 +157,8 @@ export function ChatInterface({
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
 		onShowMcpOverview: (overview: McpOverviewPayload) => {
-			setSlashCommandUiMessages((previous) => [
-				...previous,
-				{
-					id: `mcp-overview:${crypto.randomUUID()}`,
-					type: "mcp_overview",
-					createdAt: new Date(),
-					sourcePath: overview.sourcePath,
-					servers: overview.servers,
-				},
-			]);
+			setMcpOverview(overview);
+			setMcpOverviewOpen(true);
 		},
 	});
 
@@ -216,7 +210,8 @@ export function ChatInterface({
 
 	useEffect(() => {
 		setInterruptedMessage(null);
-		setSlashCommandUiMessages([]);
+		setMcpOverview(null);
+		setMcpOverviewOpen(false);
 	}, []);
 
 	const handleStop = useCallback(
@@ -247,27 +242,21 @@ export function ChatInterface({
 		[handleSend],
 	);
 
-	const handleDismissSlashCommandUiMessage = useCallback(
-		(messageId: string) => {
-			setSlashCommandUiMessages((previous) =>
-				previous.filter((message) => message.id !== messageId),
-			);
-		},
-		[],
-	);
-
 	return (
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
 				<MessageList
 					messages={displayMessages}
-					slashCommandUiMessages={slashCommandUiMessages}
-					onDismissSlashCommandUiMessage={handleDismissSlashCommandUiMessage}
 					interruptedMessage={interruptedPreview}
 					isStreaming={chat.isLoading}
 					submitStatus={submitStatus}
 					workspaceId={workspaceId}
 					onAnswer={handleAnswer}
+				/>
+				<McpOverviewPicker
+					overview={mcpOverview}
+					open={mcpOverviewOpen}
+					onOpenChange={setMcpOverviewOpen}
 				/>
 				<ChatInputFooter
 					cwd={cwd}
