@@ -519,8 +519,13 @@ export const HOTKEYS = {
 		label: "New Terminal",
 		category: "Terminal",
 	}),
-	REOPEN_TAB: defineHotkey({
+	NEW_CHAT: defineHotkey({
 		keys: "meta+shift+t",
+		label: "New Chat",
+		category: "Terminal",
+	}),
+	REOPEN_TAB: defineHotkey({
+		keys: "meta+shift+r",
 		label: "Reopen Closed Tab",
 		category: "Terminal",
 	}),
@@ -730,6 +735,13 @@ export const HOTKEYS = {
 		label: "Quick Open File",
 		category: "Navigation",
 		description: "Search and open files in the current workspace",
+	}),
+	KEYWORD_SEARCH: defineHotkey({
+		keys: "meta+shift+f",
+		label: "Keyword Search",
+		category: "Navigation",
+		description:
+			"Search for keyword matches across files in the current workspace",
 	}),
 
 	// Chat

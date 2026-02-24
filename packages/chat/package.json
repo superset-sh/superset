@@ -28,7 +28,7 @@
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.78.0",
 		"@durable-streams/client": "^0.2.1",
-		"@durable-streams/state": "^0.2.0",
+		"@durable-streams/state": "^0.2.1",
 		"@electric-sql/client": "1.5.2",
 		"@superset/agent": "workspace:*",
 		"@superset/trpc": "workspace:*",

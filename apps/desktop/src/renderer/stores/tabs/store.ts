@@ -17,6 +17,7 @@ import {
 	type CreatePaneOptions,
 	createBrowserPane,
 	createBrowserTabWithPane,
+	createChatMastraTabWithPane,
 	createChatTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
@@ -180,6 +181,40 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
+				addChatMastraTab: (workspaceId: string) => {
+					const state = get();
+
+					const { tab, pane } = createChatMastraTabWithPane(workspaceId);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
 				addTabWithMultiplePanes: (
 					workspaceId: string,
 					options: AddTabWithMultiplePanesOptions,
@@ -187,9 +222,8 @@ export const useTabsStore = create<TabsStore>()(
 					const state = get();
 					const tabId = generateId("tab");
 					const panes: ReturnType<typeof createPane>[] = options.commands.map(
-						(command) =>
+						(_command) =>
 							createPane(tabId, "terminal", {
-								initialCommands: [command],
 								initialCwd: options.initialCwd,
 							}),
 					);
@@ -510,9 +544,8 @@ export const useTabsStore = create<TabsStore>()(
 					if (!tab) return [];
 
 					const panes: ReturnType<typeof createPane>[] = options.commands.map(
-						(command) =>
+						(_command) =>
 							createPane(tabId, "terminal", {
-								initialCommands: [command],
 								initialCwd: options.initialCwd,
 							}),
 					);
@@ -990,10 +1023,7 @@ export const useTabsStore = create<TabsStore>()(
 					set((state) => {
 						const pane = state.panes[paneId];
 						if (!pane) return state;
-						if (
-							pane.initialCommands === undefined &&
-							pane.initialCwd === undefined
-						) {
+						if (pane.initialCwd === undefined) {
 							return state;
 						}
 						return {
@@ -1001,7 +1031,6 @@ export const useTabsStore = create<TabsStore>()(
 								...state.panes,
 								[paneId]: {
 									...pane,
-									initialCommands: undefined,
 									initialCwd: undefined,
 								},
 							},
@@ -1667,6 +1696,22 @@ export const useTabsStore = create<TabsStore>()(
 							[paneId]: {
 								...pane,
 								chat: { sessionId },
+							},
+						},
+					});
+				},
+
+				switchChatMastraSession: (paneId, sessionId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane?.chatMastra) return;
+
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								chatMastra: { sessionId },
 							},
 						},
 					});

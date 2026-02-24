@@ -44,7 +44,6 @@ export interface TabsState extends Omit<BaseTabsState, "tabs"> {
  * Options for creating a tab with preset configuration
  */
 export interface AddTabOptions {
-	initialCommands?: string[];
 	initialCwd?: string;
 }
 
@@ -85,6 +84,7 @@ export interface TabsStore extends TabsState {
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
 	addChatTab: (workspaceId: string) => { tabId: string; paneId: string };
+	addChatMastraTab: (workspaceId: string) => { tabId: string; paneId: string };
 	addTabWithMultiplePanes: (
 		workspaceId: string,
 		options: AddTabWithMultiplePanesOptions,
@@ -184,6 +184,8 @@ export interface TabsStore extends TabsState {
 	// Chat operations
 	/** Switch a chat pane to a different session */
 	switchChatSession: (paneId: string, sessionId: string | null) => void;
+	/** Switch a Mastra chat pane to a different session */
+	switchChatMastraSession: (paneId: string, sessionId: string | null) => void;
 
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];

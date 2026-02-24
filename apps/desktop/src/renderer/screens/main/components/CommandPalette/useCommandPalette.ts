@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { useFileSearch } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileSearch/useFileSearch";
+import { useSearchDialogStore } from "renderer/stores/search-dialog-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 const SEARCH_LIMIT = 50;
@@ -15,10 +16,30 @@ export function useCommandPalette({
 }: UseCommandPaletteParams) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
+	const includePattern = useSearchDialogStore(
+		(state) => state.byMode.quickOpen.includePattern,
+	);
+	const excludePattern = useSearchDialogStore(
+		(state) => state.byMode.quickOpen.excludePattern,
+	);
+	const filtersOpen = useSearchDialogStore(
+		(state) => state.byMode.quickOpen.filtersOpen,
+	);
+	const setIncludePatternByMode = useSearchDialogStore(
+		(state) => state.setIncludePattern,
+	);
+	const setExcludePatternByMode = useSearchDialogStore(
+		(state) => state.setExcludePattern,
+	);
+	const setFiltersOpenByMode = useSearchDialogStore(
+		(state) => state.setFiltersOpen,
+	);
 
 	const { searchResults, isFetching } = useFileSearch({
 		worktreePath: open ? worktreePath : undefined,
 		searchTerm: query,
+		includePattern,
+		excludePattern,
 		includeHidden: false,
 		limit: SEARCH_LIMIT,
 	});
@@ -47,10 +68,37 @@ export function useCommandPalette({
 		[workspaceId, handleOpenChange],
 	);
 
+	const setIncludePattern = useCallback(
+		(value: string) => {
+			setIncludePatternByMode("quickOpen", value);
+		},
+		[setIncludePatternByMode],
+	);
+
+	const setExcludePattern = useCallback(
+		(value: string) => {
+			setExcludePatternByMode("quickOpen", value);
+		},
+		[setExcludePatternByMode],
+	);
+
+	const setFiltersOpen = useCallback(
+		(nextOpen: boolean) => {
+			setFiltersOpenByMode("quickOpen", nextOpen);
+		},
+		[setFiltersOpenByMode],
+	);
+
 	return {
 		open,
 		query,
 		setQuery,
+		filtersOpen,
+		setFiltersOpen,
+		includePattern,
+		setIncludePattern,
+		excludePattern,
+		setExcludePattern,
 		handleOpenChange,
 		toggle,
 		selectFile,

@@ -1,3 +1,8 @@
+import {
+	buildTerminalCommand,
+	writeCommandInPane,
+} from "renderer/lib/terminal/launch-command";
+
 interface OpenWorkspaceData {
 	workspace: { id: string };
 	initialCommands?: string[] | null;
@@ -26,14 +31,10 @@ interface BootstrapOpenWorktreeOptions {
 export async function bootstrapOpenWorktree(
 	options: BootstrapOpenWorktreeOptions,
 ): Promise<BootstrapOpenWorktreeError | null> {
-	const initialCommands =
-		Array.isArray(options.data.initialCommands) &&
-		options.data.initialCommands.length > 0
-			? options.data.initialCommands
-			: undefined;
+	const setupCommand = buildTerminalCommand(options.data.initialCommands);
 
 	const { tabId, paneId } = options.addTab(options.data.workspace.id);
-	if (initialCommands) {
+	if (setupCommand) {
 		options.setTabAutoTitle(tabId, "Workspace Setup");
 	}
 
@@ -48,15 +49,15 @@ export async function bootstrapOpenWorktree(
 		return "create_or_attach_failed";
 	}
 
-	if (!initialCommands) {
+	if (!setupCommand) {
 		return null;
 	}
 
 	try {
-		await options.writeToTerminal({
+		await writeCommandInPane({
 			paneId,
-			data: `${initialCommands.join(" && ")}\n`,
-			throwOnError: true,
+			command: setupCommand,
+			write: options.writeToTerminal,
 		});
 		return null;
 	} catch (error) {

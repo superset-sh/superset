@@ -2,7 +2,10 @@ import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
+import {
+	launchCommandInPane,
+	writeCommandsInPane,
+} from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
@@ -89,11 +92,10 @@ export function WorkspaceInitEffects() {
 
 	const runSetupCommandsInPane = useCallback(
 		async (paneId: string, commands: string[] | null) => {
-			if (!Array.isArray(commands) || commands.length === 0) return;
-			await terminalWrite.mutateAsync({
+			await writeCommandsInPane({
 				paneId,
-				data: `${commands.join(" && ")}\n`,
-				throwOnError: true,
+				commands,
+				write: (input) => terminalWrite.mutateAsync(input),
 			});
 		},
 		[terminalWrite],

@@ -37,7 +37,6 @@ const paneSchema = z.object({
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
-	initialCommands: z.array(z.string()).optional(),
 	initialCwd: z.string().optional(),
 	url: z.string().optional(),
 	cwd: z.string().nullable().optional(),
