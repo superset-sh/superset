@@ -13,6 +13,53 @@ const mockLocalStorage = {
 // @ts-expect-error - mocking global localStorage
 globalThis.localStorage = mockLocalStorage;
 
+// Mock xterm browser-only modules to allow running in Node.js test environment
+mock.module("@xterm/xterm", () => ({
+	Terminal: class {
+		textarea = null;
+		element = null;
+		paste = mock((_text: string) => {});
+		getSelection = mock(() => "");
+		attachCustomKeyEventHandler = mock(() => {});
+		loadAddon = mock(() => {});
+		open = mock(() => {});
+		onData = mock(() => ({ dispose: () => {} }));
+		onKey = mock(() => ({ dispose: () => {} }));
+	},
+}));
+mock.module("@xterm/addon-webgl", () => ({
+	WebglAddon: class {
+		activate = mock(() => {});
+	},
+}));
+mock.module("@xterm/addon-clipboard", () => ({
+	ClipboardAddon: class {
+		activate = mock(() => {});
+	},
+}));
+mock.module("@xterm/addon-fit", () => ({
+	FitAddon: class {
+		activate = mock(() => {});
+		fit = mock(() => {});
+		proposeDimensions = mock(() => null);
+	},
+}));
+mock.module("@xterm/addon-image", () => ({
+	ImageAddon: class {
+		activate = mock(() => {});
+	},
+}));
+mock.module("@xterm/addon-ligatures", () => ({
+	LigaturesAddon: class {
+		activate = mock(() => {});
+	},
+}));
+mock.module("@xterm/addon-unicode11", () => ({
+	Unicode11Addon: class {
+		activate = mock(() => {});
+	},
+}));
+
 // Mock trpc-client to avoid electronTRPC dependency
 mock.module("renderer/lib/trpc-client", () => ({
 	electronTrpcClient: {
@@ -31,8 +78,12 @@ mock.module("renderer/lib/trpc-client", () => ({
 }));
 
 // Import after mocks are set up
-const { getDefaultTerminalBg, getDefaultTerminalTheme, setupKeyboardHandler } =
-	await import("./helpers");
+const {
+	getDefaultTerminalBg,
+	getDefaultTerminalTheme,
+	setupKeyboardHandler,
+	setupPasteHandler,
+} = await import("./helpers");
 
 describe("getDefaultTerminalTheme", () => {
 	beforeEach(() => {
@@ -193,5 +244,55 @@ describe("setupKeyboardHandler", () => {
 
 		expect(onWrite).toHaveBeenCalledWith("\x1bb");
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+	});
+});
+
+describe("setupPasteHandler", () => {
+	it("should call preventDefault when pasting an image-only clipboard (no text/plain)", () => {
+		// Reproduce bug #1743: pasting an image on macOS shows the Preview app icon
+		// because the handler returns early when there is no text/plain data, without
+		// calling preventDefault(). This allows the default browser paste to proceed,
+		// which renders the macOS Preview PNG icon instead of the actual image.
+
+		const textarea = new EventTarget() as HTMLTextAreaElement;
+		const xterm = {
+			textarea,
+			paste: mock((_text: string) => {}),
+		} as unknown as XTerm;
+
+		setupPasteHandler(xterm);
+
+		let preventDefaultCalled = false;
+
+		// Build a ClipboardEvent carrying only image data (no text/plain),
+		// which is what macOS produces when copying a screenshot or image file.
+		const clipboardData = {
+			getData: (type: string) => (type === "text/plain" ? "" : ""),
+			types: ["image/png"],
+			files: [new File(["fake-png-bytes"], "image.png", { type: "image/png" })],
+		};
+
+		const pasteEvent = new Event("paste", {
+			bubbles: true,
+			cancelable: true,
+		}) as ClipboardEvent;
+
+		Object.defineProperty(pasteEvent, "clipboardData", {
+			value: clipboardData,
+		});
+
+		Object.defineProperty(pasteEvent, "preventDefault", {
+			value: () => {
+				preventDefaultCalled = true;
+			},
+			writable: true,
+		});
+
+		textarea.dispatchEvent(pasteEvent);
+
+		// Expected: handler prevents the default paste so macOS doesn't render
+		// the Preview app icon. Currently FAILS because the handler returns early
+		// when text/plain is empty, without calling preventDefault().
+		expect(preventDefaultCalled).toBe(true);
 	});
 });
