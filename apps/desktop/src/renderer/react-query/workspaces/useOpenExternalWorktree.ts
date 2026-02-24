@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -20,18 +21,24 @@ export function useOpenExternalWorktree(
 	return electronTrpc.workspaces.openExternalWorktree.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
-			await bootstrapOpenWorktree({
+			await utils.workspaces.invalidate();
+			await utils.projects.getRecents.invalidate();
+
+			const bootstrapError = await bootstrapOpenWorktree({
 				data,
-				invalidateWorkspaces: () => utils.workspaces.invalidate(),
-				invalidateRecentProjects: () => utils.projects.getRecents.invalidate(),
 				addTab,
 				setTabAutoTitle,
 				createOrAttach: (input) => createOrAttach.mutateAsync(input),
 				writeToTerminal: (input) => writeToTerminal.mutateAsync(input),
-				navigateToWorkspaceById: (workspaceId) =>
-					navigateToWorkspace(workspaceId, navigate),
-				logPrefix: "useOpenExternalWorktree",
 			});
+			if (bootstrapError === "create_or_attach_failed") {
+				toast.error("Workspace opened, but terminal failed to start.");
+			}
+			if (bootstrapError === "write_initial_commands_failed") {
+				toast.error("Workspace opened, but setup command failed.");
+			}
+
+			navigateToWorkspace(data.workspace.id, navigate);
 
 			await options?.onSuccess?.(data, ...rest);
 		},

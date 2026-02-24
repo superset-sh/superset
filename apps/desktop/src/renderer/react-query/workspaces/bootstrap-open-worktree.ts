@@ -3,10 +3,12 @@ interface OpenWorkspaceData {
 	initialCommands?: string[] | null;
 }
 
+export type BootstrapOpenWorktreeError =
+	| "create_or_attach_failed"
+	| "write_initial_commands_failed";
+
 interface BootstrapOpenWorktreeOptions {
 	data: OpenWorkspaceData;
-	invalidateWorkspaces: () => Promise<unknown>;
-	invalidateRecentProjects: () => Promise<unknown>;
 	addTab: (workspaceId: string) => { tabId: string; paneId: string };
 	setTabAutoTitle: (tabId: string, title: string) => void;
 	createOrAttach: (input: {
@@ -19,16 +21,11 @@ interface BootstrapOpenWorktreeOptions {
 		data: string;
 		throwOnError?: boolean;
 	}) => Promise<unknown>;
-	navigateToWorkspaceById: (workspaceId: string) => void;
-	logPrefix: string;
 }
 
 export async function bootstrapOpenWorktree(
 	options: BootstrapOpenWorktreeOptions,
-): Promise<void> {
-	await options.invalidateWorkspaces();
-	await options.invalidateRecentProjects();
-
+): Promise<BootstrapOpenWorktreeError | null> {
 	const initialCommands =
 		Array.isArray(options.data.initialCommands) &&
 		options.data.initialCommands.length > 0
@@ -46,19 +43,27 @@ export async function bootstrapOpenWorktree(
 			tabId,
 			workspaceId: options.data.workspace.id,
 		});
-		if (initialCommands) {
-			await options.writeToTerminal({
-				paneId,
-				data: `${initialCommands.join(" && ")}\n`,
-				throwOnError: true,
-			});
-		}
 	} catch (error) {
-		console.error(
-			`[${options.logPrefix}] Failed to bootstrap terminal:`,
-			error,
-		);
+		console.error("[bootstrapOpenWorktree] Failed to create or attach:", error);
+		return "create_or_attach_failed";
 	}
 
-	options.navigateToWorkspaceById(options.data.workspace.id);
+	if (!initialCommands) {
+		return null;
+	}
+
+	try {
+		await options.writeToTerminal({
+			paneId,
+			data: `${initialCommands.join(" && ")}\n`,
+			throwOnError: true,
+		});
+		return null;
+	} catch (error) {
+		console.error(
+			"[bootstrapOpenWorktree] Failed to write initial commands:",
+			error,
+		);
+		return "write_initial_commands_failed";
+	}
 }
