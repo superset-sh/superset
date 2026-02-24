@@ -1,29 +1,39 @@
 import { useCallback, useState } from "react";
-import { useFileSearch } from "renderer/screens/main/components/WorkspaceView/RightSidebar/FilesView/hooks/useFileSearch/useFileSearch";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSearchDialogStore } from "renderer/stores/search-dialog-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
-const SEARCH_LIMIT = 50;
+const SEARCH_LIMIT = 200;
 
-interface UseCommandPaletteParams {
+interface UseKeywordSearchParams {
 	workspaceId: string;
 	worktreePath: string | undefined;
 }
 
-export function useCommandPalette({
+interface KeywordSearchResult {
+	id: string;
+	name: string;
+	relativePath: string;
+	path: string;
+	line: number;
+	column: number;
+	preview: string;
+}
+
+export function useKeywordSearch({
 	workspaceId,
 	worktreePath,
-}: UseCommandPaletteParams) {
+}: UseKeywordSearchParams) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const includePattern = useSearchDialogStore(
-		(state) => state.byMode.quickOpen.includePattern,
+		(state) => state.byMode.keywordSearch.includePattern,
 	);
 	const excludePattern = useSearchDialogStore(
-		(state) => state.byMode.quickOpen.excludePattern,
+		(state) => state.byMode.keywordSearch.excludePattern,
 	);
 	const filtersOpen = useSearchDialogStore(
-		(state) => state.byMode.quickOpen.filtersOpen,
+		(state) => state.byMode.keywordSearch.filtersOpen,
 	);
 	const setIncludePatternByMode = useSearchDialogStore(
 		(state) => state.setIncludePattern,
@@ -34,15 +44,24 @@ export function useCommandPalette({
 	const setFiltersOpenByMode = useSearchDialogStore(
 		(state) => state.setFiltersOpen,
 	);
+	const trimmedQuery = query.trim();
 
-	const { searchResults, isFetching } = useFileSearch({
-		worktreePath: open ? worktreePath : undefined,
-		searchTerm: query,
-		includePattern,
-		excludePattern,
-		includeHidden: false,
-		limit: SEARCH_LIMIT,
-	});
+	const { data: searchResults, isFetching } =
+		electronTrpc.filesystem.searchKeyword.useQuery(
+			{
+				rootPath: worktreePath ?? "",
+				query: trimmedQuery,
+				includePattern,
+				excludePattern,
+				includeHidden: false,
+				limit: SEARCH_LIMIT,
+			},
+			{
+				enabled: open && Boolean(worktreePath) && trimmedQuery.length > 0,
+				staleTime: 1000,
+				placeholderData: (previous) => previous ?? [],
+			},
+		);
 
 	const handleOpenChange = useCallback((nextOpen: boolean) => {
 		setOpen(nextOpen);
@@ -60,9 +79,13 @@ export function useCommandPalette({
 		});
 	}, []);
 
-	const selectFile = useCallback(
-		(filePath: string) => {
-			useTabsStore.getState().addFileViewerPane(workspaceId, { filePath });
+	const selectMatch = useCallback(
+		(match: KeywordSearchResult) => {
+			useTabsStore.getState().addFileViewerPane(workspaceId, {
+				filePath: match.relativePath,
+				line: match.line,
+				column: match.column,
+			});
 			handleOpenChange(false);
 		},
 		[workspaceId, handleOpenChange],
@@ -70,21 +93,21 @@ export function useCommandPalette({
 
 	const setIncludePattern = useCallback(
 		(value: string) => {
-			setIncludePatternByMode("quickOpen", value);
+			setIncludePatternByMode("keywordSearch", value);
 		},
 		[setIncludePatternByMode],
 	);
 
 	const setExcludePattern = useCallback(
 		(value: string) => {
-			setExcludePatternByMode("quickOpen", value);
+			setExcludePatternByMode("keywordSearch", value);
 		},
 		[setExcludePatternByMode],
 	);
 
 	const setFiltersOpen = useCallback(
 		(nextOpen: boolean) => {
-			setFiltersOpenByMode("quickOpen", nextOpen);
+			setFiltersOpenByMode("keywordSearch", nextOpen);
 		},
 		[setFiltersOpenByMode],
 	);
@@ -101,8 +124,8 @@ export function useCommandPalette({
 		setExcludePattern,
 		handleOpenChange,
 		toggle,
-		selectFile,
-		searchResults,
+		selectMatch,
+		searchResults: searchResults ?? [],
 		isFetching,
 	};
 }
