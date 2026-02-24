@@ -1,11 +1,17 @@
 import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
+	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
+	NON_EDITOR_APPS,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 } from "@superset/local-db";
+import {
+	AGENT_PRESET_COMMANDS,
+	AGENT_PRESET_DESCRIPTIONS,
+} from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
@@ -82,39 +88,22 @@ function saveTerminalPresets(
 		.run();
 }
 
-const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
-	{
-		name: "claude",
-		description: "Danger mode: All permissions auto-approved",
+const DEFAULT_PRESET_AGENTS = [
+	"claude",
+	"codex",
+	"copilot",
+	"opencode",
+	"gemini",
+] as const;
+
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = DEFAULT_PRESET_AGENTS.map(
+	(name) => ({
+		name,
+		description: AGENT_PRESET_DESCRIPTIONS[name],
 		cwd: "",
-		commands: ["claude --dangerously-skip-permissions"],
-	},
-	{
-		name: "codex",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: [
-			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
-		],
-	},
-	{
-		name: "copilot",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: ["copilot --allow-all"],
-	},
-	{
-		name: "opencode",
-		cwd: "",
-		commands: ["opencode"],
-	},
-	{
-		name: "gemini",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: ["gemini -y"],
-	},
-];
+		commands: AGENT_PRESET_COMMANDS[name],
+	}),
+);
 
 function initializeDefaultPresets() {
 	const row = getSettings();
@@ -655,6 +644,35 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { openLinksInApp: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getDefaultEditor: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.defaultEditor ?? null;
+		}),
+
+		setDefaultEditor: publicProcedure
+			.input(
+				z.object({
+					editor: z
+						.enum(EXTERNAL_APPS)
+						.nullable()
+						.refine((val) => val === null || !NON_EDITOR_APPS.includes(val), {
+							message: "Non-editor apps cannot be set as the global default",
+						}),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, defaultEditor: input.editor })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { defaultEditor: input.editor },
 					})
 					.run();
 

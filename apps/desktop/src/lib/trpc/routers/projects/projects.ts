@@ -24,6 +24,7 @@ import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { resolveDefaultEditor } from "../external";
 import {
 	activateProject,
 	getBranchWorkspace,
@@ -279,13 +280,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		getDefaultApp: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
-
-				return project?.defaultApp ?? "cursor";
+				return resolveDefaultEditor(input.projectId);
 			}),
 
 		getRecents: publicProcedure.query((): Project[] => {

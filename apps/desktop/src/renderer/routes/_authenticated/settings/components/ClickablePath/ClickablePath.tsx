@@ -27,12 +27,18 @@ interface ClickablePathProps {
 	className?: string;
 }
 
-const defaultApp: ExternalApp = "cursor";
-
 export function ClickablePath({ path, className }: ClickablePathProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const utils = electronTrpc.useUtils();
+	// Uses global default editor (no project context on the settings page).
+	// No projectId is passed to openInApp, so per-project defaults are not affected.
+	const { data: defaultApp } =
+		electronTrpc.settings.getDefaultEditor.useQuery();
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
+		onSuccess: () => {
+			utils.settings.getDefaultEditor.invalidate();
+		},
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
 

@@ -110,6 +110,15 @@ export const EXTERNAL_APPS = [
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
 
+/** Apps that are not editors/IDEs and should not be set as the global default editor. */
+export const NON_EDITOR_APPS: readonly ExternalApp[] = [
+	"finder",
+	"iterm",
+	"warp",
+	"terminal",
+	"ghostty",
+] as const;
+
 /**
  * Terminal link behavior options
  */
