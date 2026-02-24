@@ -148,7 +148,7 @@ export function AddTabButton({
 						onCheckedChange={onToggleBigAddButton}
 						onSelect={(e) => e.preventDefault()}
 					>
-						Show Full Options
+						Show Expanded Button
 					</DropdownMenuCheckboxItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
