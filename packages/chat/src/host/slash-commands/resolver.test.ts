@@ -117,6 +117,10 @@ Clean up this branch.`,
 		expect(model.prompt).toContain(
 			"Switch active model in this chat. Requested model: gpt-4.1",
 		);
+
+		const mcp = resolveSlashCommand(cwd, "/mcp");
+		expect(mcp.handled).toBe(true);
+		expect(mcp.action?.type).toBe("show_mcp_overview");
 	});
 
 	it("keeps model action arguments empty when /model is invoked without args", () => {

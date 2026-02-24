@@ -11,12 +11,17 @@ import { FileIcon, FileTextIcon, ImageIcon } from "lucide-react";
 import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { InterruptedMessagePreview } from "../../types";
+import type {
+	InterruptedMessagePreview,
+	SlashCommandUiMessage,
+} from "../../types";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
+import { McpOverviewCard } from "./components/McpOverviewCard";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 
 interface MessageListProps {
 	messages: UIMessage[];
+	slashCommandUiMessages?: SlashCommandUiMessage[];
 	interruptedMessage?: InterruptedMessagePreview | null;
 	isStreaming: boolean;
 	submitStatus?: ChatStatus;
@@ -52,6 +57,7 @@ function FileChip({
 
 export function MessageList({
 	messages,
+	slashCommandUiMessages = [],
 	interruptedMessage,
 	isStreaming,
 	submitStatus,
@@ -168,6 +174,18 @@ export function MessageList({
 							</Message>
 						);
 					})
+				)}
+				{slashCommandUiMessages.map((uiMessage) =>
+					uiMessage.type === "mcp_overview" ? (
+						<Message key={uiMessage.id} from="assistant">
+							<MessageContent>
+								<McpOverviewCard
+									sourcePath={uiMessage.sourcePath}
+									servers={uiMessage.servers}
+								/>
+							</MessageContent>
+						</Message>
+					) : null,
 				)}
 				{interruptedMessage && interruptedMessage.parts.length > 0 && (
 					<Message key={interruptedMessage.id} from="assistant">

@@ -18,8 +18,10 @@ import type { SlashCommand } from "./hooks/useSlashCommands";
 import type {
 	ChatInterfaceProps,
 	InterruptedMessage,
+	McpOverviewPayload,
 	ModelOption,
 	PermissionMode,
+	SlashCommandUiMessage,
 } from "./types";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;
@@ -70,6 +72,9 @@ export function ChatInterface({
 		useState<PermissionMode>("bypassPermissions");
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
+	const [slashCommandUiMessages, setSlashCommandUiMessages] = useState<
+		SlashCommandUiMessage[]
+	>([]);
 
 	const chat = useChat({
 		sessionId,
@@ -131,16 +136,36 @@ export function ChatInterface({
 		chat.stop();
 	}, [captureInterruptedMessage, stopPendingSends, chat.stop]);
 
+	const startFreshSessionAndResetUi = useCallback(async () => {
+		const result = await startFreshSession();
+		if (result.created) {
+			setSlashCommandUiMessages([]);
+		}
+		return result;
+	}, [startFreshSession]);
+
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
 		availableModels,
 		canAbort,
-		onStartFreshSession: startFreshSession,
+		onStartFreshSession: startFreshSessionAndResetUi,
 		onStopActiveResponse: stopActiveResponse,
 		onSelectModel: setSelectedModel,
 		onOpenModelPicker: () => setModelSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
+		onShowMcpOverview: (overview: McpOverviewPayload) => {
+			setSlashCommandUiMessages((previous) => [
+				...previous,
+				{
+					id: `mcp-overview:${crypto.randomUUID()}`,
+					type: "mcp_overview",
+					createdAt: new Date(),
+					sourcePath: overview.sourcePath,
+					servers: overview.servers,
+				},
+			]);
+		},
 	});
 
 	const handleSend = useCallback(
@@ -191,6 +216,7 @@ export function ChatInterface({
 
 	useEffect(() => {
 		setInterruptedMessage(null);
+		setSlashCommandUiMessages([]);
 	}, []);
 
 	const handleStop = useCallback(
@@ -226,6 +252,7 @@ export function ChatInterface({
 			<div className="flex h-full flex-col bg-background">
 				<MessageList
 					messages={displayMessages}
+					slashCommandUiMessages={slashCommandUiMessages}
 					interruptedMessage={interruptedPreview}
 					isStreaming={chat.isLoading}
 					submitStatus={submitStatus}

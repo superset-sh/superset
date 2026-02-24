@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { ChatService } from "../chat-service";
 import { getSlashCommands, resolveSlashCommand } from "../slash-commands";
 import { searchFiles } from "./file-search";
+import { getMcpOverview } from "./mcp-overview";
 
 const t = initTRPC.create({ transformer: superjson });
 
@@ -15,6 +16,10 @@ export const searchFilesInput = z.object({
 });
 
 export const getSlashCommandsInput = z.object({
+	cwd: z.string(),
+});
+
+export const getMcpOverviewInput = z.object({
 	cwd: z.string(),
 });
 
@@ -71,6 +76,12 @@ export function createChatServiceRouter(service: ChatService) {
 				.input(getSlashCommandsInput)
 				.query(async ({ input }) => {
 					return getSlashCommands(input.cwd);
+				}),
+
+			getMcpOverview: t.procedure
+				.input(getMcpOverviewInput)
+				.query(async ({ input }) => {
+					return getMcpOverview(input.cwd);
 				}),
 
 			resolveSlashCommand: t.procedure
