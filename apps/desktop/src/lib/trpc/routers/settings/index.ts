@@ -25,7 +25,6 @@ import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
-	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
 import {
 	CUSTOM_RINGTONE_ID,
@@ -407,28 +406,6 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { showPresetsBar: input.enabled },
-					})
-					.run();
-
-				return { success: true };
-			}),
-
-		getUseCompactTerminalAddButton: publicProcedure.query(() => {
-			const row = getSettings();
-			const useBigAddButton =
-				row.useBigTerminalAddButton ?? !DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON;
-			return !useBigAddButton;
-		}),
-
-		setUseCompactTerminalAddButton: publicProcedure
-			.input(z.object({ enabled: z.boolean() }))
-			.mutation(({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, useBigTerminalAddButton: !input.enabled })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { useBigTerminalAddButton: !input.enabled },
 					})
 					.run();
 
