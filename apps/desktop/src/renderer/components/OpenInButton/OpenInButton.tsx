@@ -50,7 +50,23 @@ interface AppOption {
 	displayLabel?: string;
 }
 
-export const APP_OPTIONS: AppOption[] = [
+const LINUX_UNSUPPORTED_APPS = new Set<ExternalApp>([
+	"xcode",
+	"iterm",
+	"appcode",
+	"antigravity",
+]);
+
+const IS_LINUX_RENDERER =
+	typeof window !== "undefined" &&
+	window.navigator.platform.toLowerCase().includes("linux");
+
+const filterOptionsForPlatform = (options: AppOption[]): AppOption[] => {
+	if (!IS_LINUX_RENDERER) return options;
+	return options.filter((app) => !LINUX_UNSUPPORTED_APPS.has(app.id));
+};
+
+const BASE_APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
 	{ id: "antigravity", label: "Antigravity", icon: antigravityIcon },
@@ -63,7 +79,10 @@ export const APP_OPTIONS: AppOption[] = [
 	{ id: "ghostty", label: "Ghostty", icon: ghosttyIcon },
 ];
 
-export const VSCODE_OPTIONS: AppOption[] = [
+export const APP_OPTIONS: AppOption[] =
+	filterOptionsForPlatform(BASE_APP_OPTIONS);
+
+const BASE_VSCODE_OPTIONS: AppOption[] = [
 	{
 		id: "vscode",
 		label: "Standard",
@@ -78,7 +97,10 @@ export const VSCODE_OPTIONS: AppOption[] = [
 	},
 ];
 
-export const JETBRAINS_OPTIONS: AppOption[] = [
+export const VSCODE_OPTIONS: AppOption[] =
+	filterOptionsForPlatform(BASE_VSCODE_OPTIONS);
+
+const BASE_JETBRAINS_OPTIONS: AppOption[] = [
 	{ id: "intellij", label: "IntelliJ IDEA", icon: intellijIcon },
 	{ id: "webstorm", label: "WebStorm", icon: webstormIcon },
 	{ id: "pycharm", label: "PyCharm", icon: pycharmIcon },
@@ -92,6 +114,10 @@ export const JETBRAINS_OPTIONS: AppOption[] = [
 	{ id: "fleet", label: "Fleet", icon: fleetIcon },
 	{ id: "rustrover", label: "RustRover", icon: rustroverIcon },
 ];
+
+export const JETBRAINS_OPTIONS: AppOption[] = filterOptionsForPlatform(
+	BASE_JETBRAINS_OPTIONS,
+);
 
 const ALL_APP_OPTIONS = [
 	...APP_OPTIONS,
