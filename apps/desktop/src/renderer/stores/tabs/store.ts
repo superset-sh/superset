@@ -186,10 +186,11 @@ export const useTabsStore = create<TabsStore>()(
 				) => {
 					const state = get();
 					const tabId = generateId("tab");
+					const includeInitialCommands = options.includeInitialCommands ?? true;
 					const panes: ReturnType<typeof createPane>[] = options.commands.map(
 						(command) =>
 							createPane(tabId, "terminal", {
-								initialCommands: [command],
+								initialCommands: includeInitialCommands ? [command] : undefined,
 								initialCwd: options.initialCwd,
 							}),
 					);
@@ -509,10 +510,11 @@ export const useTabsStore = create<TabsStore>()(
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return [];
 
+					const includeInitialCommands = options.includeInitialCommands ?? true;
 					const panes: ReturnType<typeof createPane>[] = options.commands.map(
 						(command) =>
 							createPane(tabId, "terminal", {
-								initialCommands: [command],
+								initialCommands: includeInitialCommands ? [command] : undefined,
 								initialCwd: options.initialCwd,
 							}),
 					);

@@ -51,6 +51,7 @@ export interface AddTabOptions {
 export interface AddTabWithMultiplePanesOptions {
 	commands: string[];
 	initialCwd?: string;
+	includeInitialCommands?: boolean;
 }
 
 /**
