@@ -330,6 +330,44 @@ describe("materializeMessage", () => {
 		expect(result.parts).toEqual([{ type: "error", text: "something broke" }]);
 	});
 
+	it("preserves error chunk code", () => {
+		const rows = [
+			makeRow({
+				seq: 0,
+				chunk: JSON.stringify({
+					type: "error",
+					errorText: "reauth required",
+					code: "anthropic_oauth_reauth_required",
+				}),
+			}),
+		];
+
+		const result = materializeMessage(rows);
+		expect(result.parts).toEqual([
+			{
+				type: "error",
+				text: "reauth required",
+				code: "anthropic_oauth_reauth_required",
+			},
+		]);
+	});
+
+	it("preserves empty-string error chunk code", () => {
+		const rows = [
+			makeRow({
+				seq: 0,
+				chunk: JSON.stringify({
+					type: "error",
+					errorText: "custom",
+					code: "",
+				}),
+			}),
+		];
+
+		const result = materializeMessage(rows);
+		expect(result.parts).toEqual([{ type: "error", text: "custom", code: "" }]);
+	});
+
 	it("skips custom chunk types (config, control)", () => {
 		const rows = [
 			makeRow({

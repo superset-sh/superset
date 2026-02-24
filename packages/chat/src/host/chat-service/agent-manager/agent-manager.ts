@@ -10,6 +10,7 @@ import { setAnthropicAuthToken } from "@superset/agent";
 import {
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
+	getOrRefreshAnthropicOAuthCredentials,
 } from "../../auth/anthropic";
 import type { GetHeaders } from "../../lib/auth/auth";
 import type { ChatLifecycleEvent } from "../chat-service";
@@ -46,18 +47,27 @@ export class AgentManager {
 	}
 
 	async start(): Promise<void> {
-		// Initialize Claude credentials
-		const cliCredentials =
-			getCredentialsFromConfig() ?? getCredentialsFromKeychain();
-		if (cliCredentials?.kind === "oauth") {
-			setAnthropicAuthToken(cliCredentials.apiKey);
-			console.log(
-				`[agent-manager] Using Claude OAuth credentials from ${cliCredentials.source}`,
-			);
-		} else if (cliCredentials) {
-			console.warn(
-				`[agent-manager] Ignoring non-OAuth credentials from ${cliCredentials.source}`,
-			);
+		// Initialize Claude OAuth credentials (auto-refresh if close to expiry).
+		const oauthCredentials = await getOrRefreshAnthropicOAuthCredentials();
+		if (oauthCredentials) {
+			setAnthropicAuthToken(oauthCredentials.apiKey);
+			console.log("[agent-manager] Using Claude OAuth credentials from config");
+		} else {
+			setAnthropicAuthToken(null);
+
+			const cliCredentials =
+				getCredentialsFromConfig() ?? getCredentialsFromKeychain();
+			if (cliCredentials) {
+				if (cliCredentials.kind === "oauth") {
+					console.warn(
+						"[agent-manager] Claude OAuth token is unavailable or expired and could not be refreshed",
+					);
+				} else {
+					console.warn(
+						`[agent-manager] Ignoring non-OAuth Claude credentials from ${cliCredentials.source}`,
+					);
+				}
+			}
 		}
 
 		console.log(

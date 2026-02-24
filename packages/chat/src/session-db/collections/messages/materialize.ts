@@ -354,10 +354,17 @@ function materializeStreamedMessage(rows: ChunkRow[]): MessageRow {
 				isComplete = true;
 				break;
 			case "error":
-				parts.push({
-					type: "error",
-					text: c.errorText ?? "An error occurred",
-				} as unknown as AnyUIMessagePart);
+				{
+					const errorChunk = c as {
+						errorText?: string;
+						code?: string;
+					};
+					parts.push({
+						type: "error",
+						text: errorChunk.errorText ?? "An error occurred",
+						...(errorChunk.code != null ? { code: errorChunk.code } : {}),
+					} as unknown as AnyUIMessagePart);
+				}
 				break;
 			case "message-metadata":
 				// No-op

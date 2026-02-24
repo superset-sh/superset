@@ -17,6 +17,7 @@ import {
 } from "shared/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
+import { ChatErrorMessage } from "../ChatErrorMessage";
 import { IssueLinkCommand } from "../IssueLinkCommand";
 import { MentionAnchor, MentionProvider } from "../MentionPopover";
 import { SlashCommandInput } from "../SlashCommandInput";
@@ -138,9 +139,11 @@ export function ChatInputFooter({
 			{(dragType) => (
 				<div className="mx-auto w-full max-w-[680px]">
 					{error && (
-						<div className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-							{error}
-						</div>
+						<ChatErrorMessage
+							className="mb-3"
+							message={error}
+							showIcon={false}
+						/>
 					)}
 					<SlashCommandInput
 						onCommandSend={onSlashCommandSend}

@@ -2,7 +2,6 @@ import { ExploringGroup } from "@superset/ui/ai-elements/exploring-group";
 import type { UIMessage } from "ai";
 import { getToolName, isToolUIPart } from "ai";
 import {
-	AlertCircleIcon,
 	FileIcon,
 	FileSearchIcon,
 	FolderTreeIcon,
@@ -16,10 +15,12 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolPart } from "../../utils/tool-helpers";
 import { getArgs } from "../../utils/tool-helpers";
+import { ChatErrorMessage } from "../ChatErrorMessage";
 import { MastraToolCallBlock } from "../MastraToolCallBlock";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { ReasoningBlock } from "../ReasoningBlock";
 import { StreamingMessageText } from "./components/StreamingMessageText";
+import { resolveOAuthReauthErrorUi } from "./oauth-error";
 
 interface MessagePartsRendererProps {
 	parts: UIMessage["parts"];
@@ -39,6 +40,7 @@ export function MessagePartsRenderer({
 	const theme = useTheme();
 	const { data: openLinksInApp } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
+	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
 
 	const handleLinkClick = useCallback(
@@ -109,16 +111,30 @@ export function MessagePartsRenderer({
 			}
 
 			if ((part as { type: string }).type === "error") {
-				const errorPart = part as unknown as { type: "error"; text: string };
-				nodes.push(
-					<div
-						key={i}
-						className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
-					>
-						<AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-						<span className="select-text">{errorPart.text}</span>
-					</div>,
-				);
+				const errorPart = part as unknown as {
+					type: "error";
+					text: string;
+					code?: string;
+				};
+				const oauthReauth = resolveOAuthReauthErrorUi(errorPart);
+
+				if (oauthReauth) {
+					nodes.push(
+						<ChatErrorMessage
+							key={i}
+							title={oauthReauth.title}
+							message={oauthReauth.description}
+							action={{
+								label: oauthReauth.actionLabel,
+								onClick: () => openUrl.mutate(oauthReauth.actionUrl),
+							}}
+						/>,
+					);
+					i++;
+					continue;
+				}
+
+				nodes.push(<ChatErrorMessage key={i} message={errorPart.text} />);
 				i++;
 				continue;
 			}

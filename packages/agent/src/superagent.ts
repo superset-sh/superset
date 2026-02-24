@@ -21,7 +21,7 @@ import { askUserQuestionTool, webFetchTool, webSearchTool } from "./tools";
  */
 let anthropicAuthToken: string | null = null;
 
-export function setAnthropicAuthToken(token: string) {
+export function setAnthropicAuthToken(token: string | null) {
 	anthropicAuthToken = token;
 }
 
