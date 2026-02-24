@@ -363,6 +363,10 @@ export function useTerminalLifecycle({
 		};
 
 		const initialCommands = paneInitialCommandsRef.current;
+		const initialCommandString =
+			initialCommands && initialCommands.length > 0
+				? `${initialCommands.join(" && ")}\n`
+				: null;
 		const initialCwd = paneInitialCwdRef.current;
 
 		const cancelInitialAttach = scheduleTerminalAttach({
@@ -401,7 +405,6 @@ export function useTerminalLifecycle({
 							workspaceId,
 							cols: xterm.cols,
 							rows: xterm.rows,
-							initialCommands,
 							cwd: initialCwd,
 						},
 						{
@@ -410,6 +413,24 @@ export function useTerminalLifecycle({
 								setConnectionError(null);
 								if (initialCommands || initialCwd) {
 									clearPaneInitialDataRef.current(paneId);
+									if (initialCommandString) {
+										writeRef.current(
+											{
+												paneId,
+												data: initialCommandString,
+												throwOnError: true,
+											},
+											{
+												onError: (error) => {
+													if (!isAttachActive()) return;
+													console.error(
+														"[Terminal] Failed to run initial commands:",
+														error,
+													);
+												},
+											},
+										);
+									}
 								}
 
 								const storedColdRestore = coldRestoreState.get(paneId);

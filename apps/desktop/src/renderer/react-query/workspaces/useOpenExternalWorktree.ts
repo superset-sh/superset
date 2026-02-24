@@ -14,6 +14,7 @@ export function useOpenExternalWorktree(
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = useCreateOrAttachWithTheme();
+	const writeToTerminal = electronTrpc.terminal.write.useMutation();
 
 	return electronTrpc.workspaces.openExternalWorktree.useMutation({
 		...options,
@@ -30,12 +31,22 @@ export function useOpenExternalWorktree(
 			if (initialCommands) {
 				setTabAutoTitle(tabId, "Workspace Setup");
 			}
-			createOrAttach.mutate({
+			await createOrAttach.mutateAsync({
 				paneId,
 				tabId,
 				workspaceId: data.workspace.id,
-				initialCommands,
 			});
+			if (initialCommands) {
+				await writeToTerminal
+					.mutateAsync({
+						paneId,
+						data: `${initialCommands.join(" && ")}\n`,
+						throwOnError: true,
+					})
+					.catch(() => {
+						// keep navigation behavior consistent even if setup command write fails
+					});
+			}
 
 			navigateToWorkspace(data.workspace.id, navigate);
 

@@ -141,20 +141,6 @@ export class TerminalHost {
 				throw new Error("Session spawn failed: PTY process exited immediately");
 			}
 
-			if (request.initialCommands && request.initialCommands.length > 0) {
-				if (session.isAlive) {
-					try {
-						const cmdString = `${request.initialCommands.join(" && ")}\n`;
-						session.write(cmdString);
-					} catch (error) {
-						console.error(
-							`[TerminalHost] Failed to run initial commands for ${sessionId}:`,
-							error,
-						);
-					}
-				}
-			}
-
 			this.sessions.set(sessionId, session);
 			isNew = true;
 		} else {

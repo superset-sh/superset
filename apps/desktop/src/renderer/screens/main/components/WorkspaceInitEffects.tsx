@@ -87,6 +87,18 @@ export function WorkspaceInitEffects() {
 		[removePane, terminalCreateOrAttach, terminalWrite],
 	);
 
+	const runSetupCommandsInPane = useCallback(
+		async (paneId: string, commands: string[] | null) => {
+			if (!Array.isArray(commands) || commands.length === 0) return;
+			await terminalWrite.mutateAsync({
+				paneId,
+				data: `${commands.join(" && ")}\n`,
+				throwOnError: true,
+			});
+		},
+		[terminalWrite],
+	);
+
 	const handleTerminalSetup = useCallback(
 		(setup: PendingTerminalSetup, onComplete: () => void) => {
 			const hasSetupScript =
@@ -123,10 +135,27 @@ export function WorkspaceInitEffects() {
 						paneId: setupPaneId,
 						tabId: setupTabId,
 						workspaceId: setup.workspaceId,
-						initialCommands: setup.initialCommands ?? undefined,
 					},
 					{
-						onSuccess: () => onComplete(),
+						onSuccess: () => {
+							void runSetupCommandsInPane(
+								setupPaneId,
+								setup.initialCommands ?? null,
+							)
+								.catch((error) => {
+									console.error(
+										"[WorkspaceInitEffects] Failed to run setup commands:",
+										error,
+									);
+									toast.error("Failed to run setup commands", {
+										description:
+											error instanceof Error
+												? error.message
+												: "Failed to execute setup commands.",
+									});
+								})
+								.finally(() => onComplete());
+						},
 						onError: (error) => {
 							console.error(
 								"[WorkspaceInitEffects] Failed to create terminal:",
@@ -165,10 +194,24 @@ export function WorkspaceInitEffects() {
 						paneId,
 						tabId,
 						workspaceId: setup.workspaceId,
-						initialCommands: setup.initialCommands ?? undefined,
 					},
 					{
-						onSuccess: () => onComplete(),
+						onSuccess: () => {
+							void runSetupCommandsInPane(paneId, setup.initialCommands ?? null)
+								.catch((error) => {
+									console.error(
+										"[WorkspaceInitEffects] Failed to run setup commands:",
+										error,
+									);
+									toast.error("Failed to run setup commands", {
+										description:
+											error instanceof Error
+												? error.message
+												: "Failed to execute setup commands.",
+									});
+								})
+								.finally(() => onComplete());
+						},
 						onError: (error) => {
 							console.error(
 								"[WorkspaceInitEffects] Failed to create terminal:",
@@ -183,12 +226,32 @@ export function WorkspaceInitEffects() {
 										const { tabId: newTabId, paneId: newPaneId } = addTab(
 											setup.workspaceId,
 										);
-										createOrAttach.mutate({
-											paneId: newPaneId,
-											tabId: newTabId,
-											workspaceId: setup.workspaceId,
-											initialCommands: setup.initialCommands ?? undefined,
-										});
+										createOrAttach.mutate(
+											{
+												paneId: newPaneId,
+												tabId: newTabId,
+												workspaceId: setup.workspaceId,
+											},
+											{
+												onSuccess: () => {
+													void runSetupCommandsInPane(
+														newPaneId,
+														setup.initialCommands ?? null,
+													).catch((runError) => {
+														console.error(
+															"[WorkspaceInitEffects] Failed to run setup commands:",
+															runError,
+														);
+														toast.error("Failed to run setup commands", {
+															description:
+																runError instanceof Error
+																	? runError.message
+																	: "Failed to execute setup commands.",
+														});
+													});
+												},
+											},
+										);
 									},
 								},
 							});
@@ -242,6 +305,7 @@ export function WorkspaceInitEffects() {
 			setTabAutoTitle,
 			createOrAttach,
 			launchAgentCommand,
+			runSetupCommandsInPane,
 			openPresetsInActiveTab,
 			shouldApplyPreset,
 		],

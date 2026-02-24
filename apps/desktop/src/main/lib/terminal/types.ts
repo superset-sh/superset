@@ -99,7 +99,6 @@ export interface CreateSessionParams {
 	cwd?: string;
 	cols?: number;
 	rows?: number;
-	initialCommands?: string[];
 	/** Skip cold restore detection (used when auto-resuming after cold restore) */
 	skipColdRestore?: boolean;
 	/** Allow restarting a session that was explicitly killed */
