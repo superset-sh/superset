@@ -3,7 +3,10 @@ import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
+import {
+	buildTerminalCommand,
+	launchCommandInPane,
+} from "renderer/lib/terminal/launch-command";
 import {
 	getPresetLaunchPlan,
 	normalizePresetMode,
@@ -30,11 +33,6 @@ interface PresetPaneLaunch {
 	tabId: string;
 	workspaceId: string;
 	command: string;
-}
-
-function buildPresetCommand(commands: string[]): string | null {
-	if (commands.length === 0) return null;
-	return commands.join(" && ");
 }
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
@@ -65,7 +63,7 @@ export function useTabsWithPresets() {
 
 	const firstPreset = newTabPresets[0] ?? null;
 	const firstPresetCommand = useMemo(
-		() => (firstPreset ? buildPresetCommand(firstPreset.commands) : null),
+		() => (firstPreset ? buildTerminalCommand(firstPreset.commands) : null),
 		[firstPreset],
 	);
 
@@ -218,7 +216,7 @@ export function useTabsWithPresets() {
 				return { tabId: multiPane.tabId, paneId: multiPane.paneIds[0] };
 			}
 
-			const command = buildPresetCommand(preset.commands);
+			const command = buildTerminalCommand(preset.commands);
 			const result = storeAddTab(workspaceId, {
 				initialCwd: preset.initialCwd,
 			});
@@ -276,7 +274,7 @@ export function useTabsWithPresets() {
 			}
 
 			if (plan === "active-tab-single" && activeTabId) {
-				const command = buildPresetCommand(preset.commands);
+				const command = buildTerminalCommand(preset.commands);
 				const paneId = storeAddPane(activeTabId, {
 					initialCwd: preset.initialCwd,
 				});
