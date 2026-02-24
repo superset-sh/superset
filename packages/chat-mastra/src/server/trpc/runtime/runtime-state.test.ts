@@ -53,14 +53,6 @@ interface MockHarness {
 }
 
 const harnesses: MockHarness[] = [];
-const ensureCalls: Array<{
-	sessionId: string;
-	organizationId: string;
-	workspaceId?: string;
-}> = [];
-const streamAppends = new Map<string, string[]>();
-const flushCalls: string[] = [];
-const detachCalls: string[] = [];
 
 function createMockHarness(): MockHarness {
 	let listeners: Array<(event: MockHarnessEvent) => void> = [];
@@ -84,35 +76,6 @@ function createMockHarness(): MockHarness {
 			harness.sendMessageCalls.push({ content });
 			await new Promise((resolve) => setTimeout(resolve, 0));
 			harness.emit({ type: "agent_start" });
-			harness.emit({
-				type: "message_start",
-				message: {
-					id: `m-${harness.sendMessageCalls.length}`,
-					role: "assistant",
-					content: [{ type: "text", text: "" }],
-					createdAt: new Date(),
-				},
-			});
-			harness.emit({
-				type: "message_update",
-				message: {
-					id: `m-${harness.sendMessageCalls.length}`,
-					role: "assistant",
-					content: [{ type: "text", text: `echo:${content}` }],
-					createdAt: new Date(),
-				},
-			});
-			harness.emit({
-				type: "message_end",
-				message: {
-					id: `m-${harness.sendMessageCalls.length}`,
-					role: "assistant",
-					content: [{ type: "text", text: `echo:${content}` }],
-					createdAt: new Date(),
-					stopReason: "complete",
-				},
-			});
-			harness.emit({ type: "agent_end", reason: "complete" });
 		},
 		abort: () => {
 			harness.aborts += 1;
@@ -157,59 +120,7 @@ mock.module("mastracode", () => ({
 	},
 }));
 
-mock.module("../../../events/durable-streams", () => ({
-	ensureSessionStream: async (
-		_config: unknown,
-		input: { sessionId: string; organizationId: string; workspaceId?: string },
-	) => {
-		ensureCalls.push(input);
-	},
-	createSessionStreamProducer: (
-		_config: unknown,
-		sessionId: string,
-	): {
-		append: (payload: string) => void;
-		flush: () => Promise<void>;
-		detach: () => Promise<void>;
-	} => {
-		const events: string[] = [];
-		streamAppends.set(sessionId, events);
-		return {
-			append: (payload: string) => {
-				events.push(payload);
-			},
-			flush: async () => {
-				flushCalls.push(sessionId);
-			},
-			detach: async () => {
-				detachCalls.push(sessionId);
-			},
-		};
-	},
-}));
-
 const runtime = await import("./runtime-state");
-
-function readEnvelopes(sessionId: string): Array<{
-	kind: string;
-	sessionId: string;
-	sequenceHint: number;
-	payload: unknown;
-}> {
-	return (streamAppends.get(sessionId) ?? [])
-		.map((entry) => JSON.parse(entry) as { value?: unknown })
-		.map((entry) => entry.value)
-		.filter(
-			(
-				entry,
-			): entry is {
-				kind: string;
-				sessionId: string;
-				sequenceHint: number;
-				payload: unknown;
-			} => Boolean(entry),
-		);
-}
 
 function getHarnessForSession(sessionId: string): MockHarness {
 	const harness = harnesses.find((entry) => entry.resourceId === sessionId);
@@ -221,17 +132,7 @@ function getHarnessForSession(sessionId: string): MockHarness {
 
 beforeEach(async () => {
 	await runtime.stopRuntimeService();
-	ensureCalls.length = 0;
-	flushCalls.length = 0;
-	detachCalls.length = 0;
 	harnesses.length = 0;
-	streamAppends.clear();
-
-	runtime.configureRuntimeState({
-		streams: {
-			apiBaseUrl: "http://localhost:3000",
-		},
-	});
 	runtime.startRuntimeService("org-test");
 });
 
@@ -240,7 +141,7 @@ afterEach(async () => {
 });
 
 describe("runtime-state", () => {
-	it("ensures runtime, subscribes, and writes harness events", async () => {
+	it("ensures runtime and binds a harness to the session", async () => {
 		const result = await runtime.ensureRuntime({
 			sessionId: sessionA,
 			cwd: "/tmp/project-a",
@@ -248,58 +149,11 @@ describe("runtime-state", () => {
 		});
 
 		expect(result).toEqual({ ready: true });
-		expect(ensureCalls).toHaveLength(1);
-		expect(ensureCalls[0]).toEqual({
-			sessionId: sessionA,
-			organizationId: "org-test",
-			workspaceId: workspaceA,
-		});
+		expect(runtime.hasRuntime(sessionA)).toBeTrue();
 
 		const harness = getHarnessForSession(sessionA);
-		harness.emit({ type: "agent_start" });
-
-		const envelopes = readEnvelopes(sessionA);
-		expect(envelopes).toHaveLength(1);
-		expect(envelopes[0]).toMatchObject({
-			kind: "harness",
-			sessionId: sessionA,
-			sequenceHint: 0,
-			payload: { type: "agent_start" },
-		});
-	});
-
-	it("writes submit event before harness stream events for sendMessage", async () => {
-		await runtime.ensureRuntime({ sessionId: sessionA, cwd: "/tmp/project-a" });
-
-		const result = await runtime.sendMessage({
-			sessionId: sessionA,
-			content: "hello",
-			clientMessageId: "client-1",
-		});
-
-		expect(result).toEqual({ accepted: true });
-
-		const envelopes = readEnvelopes(sessionA);
-		expect(envelopes.length).toBeGreaterThanOrEqual(2);
-		expect(envelopes[0]).toMatchObject({
-			kind: "submit",
-			sessionId: sessionA,
-			sequenceHint: 0,
-			payload: {
-				type: "user_message_submitted",
-				data: {
-					content: "hello",
-					clientMessageId: "client-1",
-				},
-			},
-		});
-		expect(envelopes[1]?.kind).toBe("harness");
-		expect((envelopes[1]?.payload as { type: string }).type).toBe(
-			"agent_start",
-		);
-		expect(envelopes.map((entry) => entry.sequenceHint)).toEqual(
-			Array.from({ length: envelopes.length }, (_, index) => index),
-		);
+		expect(harness.resourceId).toBe(sessionA);
+		expect(harness.currentThreadId).toBe(`thread-${sessionA}`);
 	});
 
 	it("serializes concurrent sendMessage calls per session", async () => {
@@ -315,36 +169,26 @@ describe("runtime-state", () => {
 			"first",
 			"second",
 		]);
-
-		const submitEvents = readEnvelopes(sessionA)
-			.filter((entry) => entry.kind === "submit")
-			.map(
-				(entry) => entry.payload as { type: string; data: { content: string } },
-			);
-
-		expect(submitEvents.map((entry) => entry.data.content)).toEqual([
-			"first",
-			"second",
-		]);
 	});
 
-	it("isolates events across multiple sessions", async () => {
+	it("isolates runtime operations across sessions", async () => {
 		await runtime.ensureRuntime({ sessionId: sessionA, cwd: "/tmp/project-a" });
 		await runtime.ensureRuntime({ sessionId: sessionB, cwd: "/tmp/project-b" });
 
 		await runtime.sendMessage({ sessionId: sessionA, content: "only-a" });
 		await runtime.sendMessage({ sessionId: sessionB, content: "only-b" });
 
-		const eventsA = readEnvelopes(sessionA);
-		const eventsB = readEnvelopes(sessionB);
-
-		expect(eventsA.length).toBeGreaterThan(0);
-		expect(eventsB.length).toBeGreaterThan(0);
-		expect(eventsA.every((event) => event.sessionId === sessionA)).toBeTrue();
-		expect(eventsB.every((event) => event.sessionId === sessionB)).toBeTrue();
+		const harnessA = getHarnessForSession(sessionA);
+		const harnessB = getHarnessForSession(sessionB);
+		expect(harnessA.sendMessageCalls.map((call) => call.content)).toEqual([
+			"only-a",
+		]);
+		expect(harnessB.sendMessageCalls.map((call) => call.content)).toEqual([
+			"only-b",
+		]);
 	});
 
-	it("writes submit events for control/approval/question/plan and calls harness handlers", async () => {
+	it("routes control/approval/question/plan actions to harness handlers", async () => {
 		await runtime.ensureRuntime({ sessionId: sessionA, cwd: "/tmp/project-a" });
 
 		await runtime.control({ sessionId: sessionA, action: "stop" });
@@ -380,17 +224,6 @@ describe("runtime-state", () => {
 				},
 			},
 		]);
-
-		const submitTypes = readEnvelopes(sessionA)
-			.filter((entry) => entry.kind === "submit")
-			.map((entry) => (entry.payload as { type: string }).type);
-
-		expect(submitTypes).toEqual([
-			"control_submitted",
-			"approval_submitted",
-			"question_submitted",
-			"plan_submitted",
-		]);
 	});
 
 	it("returns runtime display state when available", async () => {
@@ -406,7 +239,7 @@ describe("runtime-state", () => {
 		});
 	});
 
-	it("returns not-ready display state when runtime missing", () => {
+	it("returns not-ready display state when runtime is missing", () => {
 		const result = runtime.getDisplayState({ sessionId: sessionA });
 		expect(result).toEqual({
 			ready: false,
@@ -414,12 +247,10 @@ describe("runtime-state", () => {
 		});
 	});
 
-	it("flushes and detaches producer on stop", async () => {
+	it("clears active runtimes on stop", async () => {
 		await runtime.ensureRuntime({ sessionId: sessionA, cwd: "/tmp/project-a" });
 		await runtime.stopRuntimeService();
 
-		expect(flushCalls).toEqual([sessionA]);
-		expect(detachCalls).toEqual([sessionA]);
 		expect(runtime.hasRuntime(sessionA)).toBeFalse();
 	});
 });

@@ -1,13 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { createMastraCode } from "mastracode";
-import {
-	type ChatMastraStreamsConfig,
-	createSessionStreamProducer,
-	ensureSessionStream,
-	type SessionStreamProducer,
-} from "../../../events/durable-streams";
-import type { ChatMastraEnvelope } from "../../../schema";
-import { chatMastraSessionStateSchema } from "../../../session-db/schema";
 import type {
 	ApprovalRespondInput,
 	ControlInput,
@@ -21,15 +13,12 @@ import type {
 } from "../zod";
 
 type RuntimeHarness = Awaited<ReturnType<typeof createMastraCode>>["harness"];
-type HarnessEvent = Parameters<Parameters<RuntimeHarness["subscribe"]>[0]>[0];
 type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
 
 interface RuntimeSession {
 	sessionId: string;
 	harness: RuntimeHarness;
-	producer: SessionStreamProducer;
 	unsubscribe: () => void;
-	sequenceHint: number;
 	cwd?: string;
 }
 
@@ -41,25 +30,11 @@ export interface ChatMastraSessionMetadata {
 	updatedAt: Date;
 }
 
-export interface RuntimeConfig {
-	streams: ChatMastraStreamsConfig;
-}
-
-let runtimeConfig: RuntimeConfig | null = null;
 let started = false;
 let organizationId: string | null = null;
 const runtimes = new Map<string, RuntimeSession>();
 const commandTails = new Map<string, Promise<void>>();
 const sessions = new Map<string, ChatMastraSessionMetadata>();
-
-function getRuntimeConfig(): RuntimeConfig {
-	if (!runtimeConfig) {
-		throw new Error(
-			"Runtime config not set. Call configureRuntimeState() first.",
-		);
-	}
-	return runtimeConfig;
-}
 
 function toMastraImages(
 	files:
@@ -84,27 +59,6 @@ function toMastraImages(
 	}
 
 	return images;
-}
-
-function appendEvent(
-	runtime: RuntimeSession,
-	kind: ChatMastraEnvelope["kind"],
-	payload: ChatMastraEnvelope["payload"],
-): void {
-	const sequenceHint = runtime.sequenceHint;
-	const envelope: ChatMastraEnvelope = {
-		kind,
-		sessionId: runtime.sessionId,
-		timestamp: new Date().toISOString(),
-		sequenceHint,
-		payload,
-	};
-	const stateEvent = chatMastraSessionStateSchema.events.insert({
-		key: `${runtime.sessionId}:${sequenceHint}`,
-		value: envelope,
-	});
-	runtime.sequenceHint += 1;
-	runtime.producer.append(JSON.stringify(stateEvent));
 }
 
 function touchSession(sessionId: string): void {
@@ -188,17 +142,8 @@ async function stopRuntime(sessionId: string): Promise<void> {
 	if (!runtime) return;
 
 	runtime.unsubscribe();
-	try {
-		await runtime.producer.flush();
-	} finally {
-		await runtime.producer.detach().catch(() => {});
-	}
 	runtimes.delete(sessionId);
 	commandTails.delete(sessionId);
-}
-
-export function configureRuntimeState(config: RuntimeConfig): void {
-	runtimeConfig = config;
 }
 
 export function startRuntimeService(nextOrganizationId: string): void {
@@ -291,20 +236,10 @@ export async function ensureRuntime(
 			return { ready: true };
 		}
 
-		const config = getRuntimeConfig();
-		await ensureSessionStream(config.streams, {
-			sessionId: input.sessionId,
-			organizationId: activeOrganizationId,
-			workspaceId: input.workspaceId,
-		});
 		if (input.workspaceId) {
 			upsertSession(input.sessionId, { workspaceId: input.workspaceId });
 		}
 
-		const producer = createSessionStreamProducer(
-			config.streams,
-			input.sessionId,
-		);
 		const cwd = input.cwd ?? process.cwd();
 		const runtimeMastra = await createMastraCode({ cwd });
 		await runtimeMastra.harness.init();
@@ -314,18 +249,11 @@ export async function ensureRuntime(
 		const runtime: RuntimeSession = {
 			sessionId: input.sessionId,
 			harness: runtimeMastra.harness,
-			producer,
 			unsubscribe: () => {},
-			sequenceHint: 0,
 			cwd,
 		};
 
 		runtimes.set(input.sessionId, runtime);
-		runtime.unsubscribe = runtime.harness.subscribe((event: HarnessEvent) => {
-			const current = runtimes.get(input.sessionId);
-			if (!current) return;
-			appendEvent(current, "harness", event);
-		});
 		touchSession(input.sessionId);
 
 		return { ready: true };
@@ -339,15 +267,6 @@ export async function sendMessage(
 		const runtime = runtimes.get(input.sessionId);
 		if (!runtime) return { accepted: false };
 
-		appendEvent(runtime, "submit", {
-			type: "user_message_submitted",
-			data: {
-				content: input.content ?? "",
-				files: input.files ?? [],
-				metadata: input.metadata,
-				clientMessageId: input.clientMessageId,
-			},
-		});
 		updateSessionTitleFromMessage(input.sessionId, input.content);
 
 		const images = toMastraImages(input.files);
@@ -367,12 +286,6 @@ export async function control(
 		const runtime = runtimes.get(input.sessionId);
 		if (!runtime) return { accepted: false };
 
-		appendEvent(runtime, "submit", {
-			type: "control_submitted",
-			data: {
-				action: input.action,
-			},
-		});
 		touchSession(input.sessionId);
 
 		if (input.action === "stop" || input.action === "abort") {
@@ -390,13 +303,6 @@ export async function approvalRespond(
 		const runtime = runtimes.get(input.sessionId);
 		if (!runtime) return { accepted: false };
 
-		appendEvent(runtime, "submit", {
-			type: "approval_submitted",
-			data: {
-				decision: input.decision,
-				toolCallId: input.toolCallId,
-			},
-		});
 		touchSession(input.sessionId);
 
 		runtime.harness.respondToToolApproval({
@@ -414,13 +320,6 @@ export async function questionRespond(
 		const runtime = runtimes.get(input.sessionId);
 		if (!runtime) return { accepted: false };
 
-		appendEvent(runtime, "submit", {
-			type: "question_submitted",
-			data: {
-				questionId: input.questionId,
-				answer: input.answer,
-			},
-		});
 		touchSession(input.sessionId);
 
 		runtime.harness.respondToQuestion({
@@ -439,14 +338,6 @@ export async function planRespond(
 		const runtime = runtimes.get(input.sessionId);
 		if (!runtime) return { accepted: false };
 
-		appendEvent(runtime, "submit", {
-			type: "plan_submitted",
-			data: {
-				planId: input.planId,
-				action: input.action,
-				feedback: input.feedback,
-			},
-		});
 		touchSession(input.sessionId);
 
 		await runtime.harness.respondToPlanApproval({

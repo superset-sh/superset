@@ -2,7 +2,6 @@ import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import {
 	approvalRespond as approvalRespondRuntime,
-	configureRuntimeState,
 	control as controlRuntime,
 	createSession as createSessionRuntime,
 	deleteSession as deleteSessionRuntime,
@@ -12,7 +11,6 @@ import {
 	listSessions as listSessionsRuntime,
 	planRespond as planRespondRuntime,
 	questionRespond as questionRespondRuntime,
-	type RuntimeConfig,
 	sendMessage as sendMessageRuntime,
 	startRuntimeService,
 	stopRuntimeService,
@@ -34,13 +32,7 @@ import {
 
 const t = initTRPC.create({ transformer: superjson });
 
-export type CreateChatMastraServiceRouterOptions = RuntimeConfig;
-
-export function createChatMastraServiceRouter(
-	options: CreateChatMastraServiceRouterOptions,
-) {
-	configureRuntimeState(options);
-
+export function createChatMastraServiceRouter() {
 	return t.router({
 		start: t.procedure.input(startInput).mutation(async ({ input }) => {
 			startRuntimeService(input.organizationId);
