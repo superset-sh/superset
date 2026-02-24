@@ -391,7 +391,7 @@ export function setupPasteHandler(
 	};
 
 	const handlePaste = (event: ClipboardEvent) => {
-		const text = event.clipboardData?.getData("text/plain");
+		const text = event.clipboardData?.getData("text/plain") ?? "";
 		if (!text) {
 			// Match terminal behavior like iTerm's "Paste or send ^V":
 			// when clipboard has non-text payloads but no plain text, forward Ctrl+V.
