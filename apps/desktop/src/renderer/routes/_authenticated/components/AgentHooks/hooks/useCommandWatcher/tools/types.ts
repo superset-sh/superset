@@ -50,6 +50,10 @@ export interface ToolContext {
 	updateWorkspace: ReturnType<
 		typeof electronTrpc.workspaces.update.useMutation
 	>;
+	terminalCreateOrAttach: ReturnType<
+		typeof electronTrpc.terminal.createOrAttach.useMutation
+	>;
+	terminalWrite: ReturnType<typeof electronTrpc.terminal.write.useMutation>;
 	// Query helpers
 	refetchWorkspaces: () => Promise<unknown>;
 	getWorkspaces: () => SelectWorkspace[] | undefined;

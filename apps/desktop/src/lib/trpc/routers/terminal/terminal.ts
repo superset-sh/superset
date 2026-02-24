@@ -200,9 +200,11 @@ export const createTerminalRouter = () => {
 				z.object({
 					paneId: z.string(),
 					data: z.string(),
+					throwOnError: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const shouldThrow = input.throwOnError ?? false;
 				try {
 					terminal.write(input);
 				} catch (error) {
@@ -212,6 +214,12 @@ export const createTerminalRouter = () => {
 					// Emit exit instead of error for deleted sessions to prevent toast floods
 					if (message.includes("not found or not alive")) {
 						terminal.emit(`exit:${input.paneId}`, 0, 15);
+						if (shouldThrow) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message,
+							});
+						}
 						return;
 					}
 
@@ -219,6 +227,12 @@ export const createTerminalRouter = () => {
 						error: message,
 						code: "WRITE_FAILED",
 					});
+					if (shouldThrow) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message,
+						});
+					}
 				}
 			}),
 

@@ -27,6 +27,9 @@ export function useCommandWatcher() {
 	const setActive = electronTrpc.workspaces.setActive.useMutation();
 	const deleteWorkspace = useDeleteWorkspace();
 	const updateWorkspace = useUpdateWorkspace();
+	const terminalCreateOrAttach =
+		electronTrpc.terminal.createOrAttach.useMutation();
+	const terminalWrite = electronTrpc.terminal.write.useMutation();
 
 	const { data: workspaces, refetch: refetchWorkspaces } =
 		electronTrpc.workspaces.getAll.useQuery();
@@ -45,6 +48,8 @@ export function useCommandWatcher() {
 			setActive,
 			deleteWorkspace,
 			updateWorkspace,
+			terminalCreateOrAttach,
+			terminalWrite,
 			refetchWorkspaces: async () => refetchWorkspaces(),
 			getWorkspaces: () => workspaces,
 			getProjects: () => projects,
@@ -57,6 +62,8 @@ export function useCommandWatcher() {
 			setActive,
 			deleteWorkspace,
 			updateWorkspace,
+			terminalCreateOrAttach,
+			terminalWrite,
 			refetchWorkspaces,
 			workspaces,
 			projects,
