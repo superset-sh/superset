@@ -239,6 +239,13 @@
       "when": 1771887719788,
       "tag": "0033_nosy_overlord",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1771971922954,
+      "tag": "0034_add_use_big_terminal_add_button_setting",
+      "breakpoints": true
     }
   ]
 }

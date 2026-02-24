@@ -1,13 +1,4 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { Button } from "@superset/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
@@ -19,10 +10,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { BsTerminalPlus } from "react-icons/bs";
-import { LuPlus } from "react-icons/lu";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
-import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -31,9 +18,10 @@ import {
 	isLastPaneInTab,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
+import { DEFAULT_USE_BIG_TERMINAL_ADD_BUTTON } from "shared/constants";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
+import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
-import { NewTabDropZone } from "./NewTabDropZone";
 
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -61,6 +49,8 @@ export function GroupStrip() {
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
+	const { data: useBigTerminalAddButton } =
+		electronTrpc.settings.getUseBigTerminalAddButton.useQuery();
 	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
 		{
 			onMutate: async ({ enabled }) => {
@@ -79,6 +69,26 @@ export function GroupStrip() {
 			},
 		},
 	);
+	const setUseBigTerminalAddButton =
+		electronTrpc.settings.setUseBigTerminalAddButton.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getUseBigTerminalAddButton.cancel();
+				const previous = utils.settings.getUseBigTerminalAddButton.getData();
+				utils.settings.getUseBigTerminalAddButton.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getUseBigTerminalAddButton.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getUseBigTerminalAddButton.invalidate();
+			},
+		});
 
 	const tabs = useMemo(
 		() =>
@@ -219,52 +229,26 @@ export function GroupStrip() {
 		requestAnimationFrame(updateOverflow);
 	}, [updateOverflow]);
 
+	const showBigAddButton =
+		useBigTerminalAddButton ?? DEFAULT_USE_BIG_TERMINAL_ADD_BUTTON;
+
 	const plusControl = (
-		<NewTabDropZone
-			onDrop={(paneId) => movePaneToNewTab(paneId)}
+		<AddTabButton
+			hasAiChat={hasAiChat === true}
+			showBigAddButton={showBigAddButton}
+			showPresetsBar={showPresetsBar ?? false}
+			onDropToNewTab={movePaneToNewTab}
 			isLastPaneInTab={checkIsLastPaneInTab}
-		>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7 px-1 shrink-0 rounded-md border border-border/60 bg-muted/30 text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-					>
-						<LuPlus className="size-3.5" strokeWidth={1.8} />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="w-56">
-					<DropdownMenuItem onClick={handleAddGroup} className="gap-2">
-						<BsTerminalPlus className="size-4" />
-						<span>Terminal</span>
-						<HotkeyMenuShortcut hotkeyId="NEW_GROUP" />
-					</DropdownMenuItem>
-					{hasAiChat && (
-						<DropdownMenuItem onClick={handleAddChat} className="gap-2">
-							<TbMessageCirclePlus className="size-4" />
-							<span>Chat</span>
-							<HotkeyMenuShortcut hotkeyId="NEW_CHAT" />
-						</DropdownMenuItem>
-					)}
-					<DropdownMenuItem onClick={handleAddBrowser} className="gap-2">
-						<TbWorld className="size-4" />
-						<span>Browser</span>
-						<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuCheckboxItem
-						checked={showPresetsBar ?? false}
-						onCheckedChange={(checked) =>
-							setShowPresetsBar.mutate({ enabled: checked })
-						}
-						onSelect={(e) => e.preventDefault()}
-					>
-						Show Preset Bar
-					</DropdownMenuCheckboxItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</NewTabDropZone>
+			onAddTerminal={handleAddGroup}
+			onAddChat={handleAddChat}
+			onAddBrowser={handleAddBrowser}
+			onToggleShowPresetsBar={(enabled) =>
+				setShowPresetsBar.mutate({ enabled })
+			}
+			onToggleBigAddButton={(enabled) =>
+				setUseBigTerminalAddButton.mutate({ enabled })
+			}
+		/>
 	);
 
 	return (
@@ -301,7 +285,15 @@ export function GroupStrip() {
 						</div>
 					)}
 					{hasHorizontalOverflow ? (
-						<div className="h-full w-10 shrink-0" />
+						<div
+							className={`h-full shrink-0 ${
+								showBigAddButton
+									? hasAiChat
+										? "w-[220px]"
+										: "w-[170px]"
+									: "w-10"
+							}`}
+						/>
 					) : (
 						<div className="shrink-0">{plusControl}</div>
 					)}
