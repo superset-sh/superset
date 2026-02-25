@@ -6,6 +6,7 @@ import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
+let cachedUtf8Locale: string | null = null;
 
 /**
  * Current hook protocol version.
@@ -44,19 +45,34 @@ export function getLocale(baseEnv: Record<string, string>): string {
 		return baseEnv.LC_ALL;
 	}
 
+	if (cachedUtf8Locale) {
+		return cachedUtf8Locale;
+	}
+
 	try {
 		const result = execSync("locale 2>/dev/null | grep LANG= | cut -d= -f2", {
 			encoding: "utf-8",
 			timeout: 1000,
 		}).trim();
 		if (result?.includes("UTF-8")) {
-			return result;
+			cachedUtf8Locale = result;
+			return cachedUtf8Locale;
 		}
 	} catch {
 		// Ignore - will use fallback
 	}
 
-	return "en_US.UTF-8";
+	cachedUtf8Locale = "en_US.UTF-8";
+	return cachedUtf8Locale;
+}
+
+/**
+ * Precompute expensive locale fallback resolution early in app startup so
+ * the first terminal create/attach path does not pay a synchronous probe.
+ */
+export function prewarmTerminalEnv(): void {
+	const rawBaseEnv = sanitizeEnv(process.env) || {};
+	getLocale(rawBaseEnv);
 }
 
 export function sanitizeEnv(
