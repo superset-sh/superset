@@ -4,13 +4,14 @@ export const OPENAI_LOGO_PROVIDER = "openai";
 /** Derive a logo provider slug from the provider name */
 export function providerToLogo(provider: string): string {
 	const lower = provider.toLowerCase();
+	const isO3Model = lower === "o3" || lower.startsWith("o3-");
 	if (lower.includes("anthropic") || lower.includes("claude")) {
 		return ANTHROPIC_LOGO_PROVIDER;
 	}
 	if (
 		lower.includes("openai") ||
 		lower.includes("gpt") ||
-		lower.includes("o3") ||
+		isO3Model ||
 		lower.includes("codex")
 	)
 		return OPENAI_LOGO_PROVIDER;

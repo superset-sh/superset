@@ -78,6 +78,10 @@ export function ModelProviderGroup({
 				const modelDisabled =
 					(logo === ANTHROPIC_LOGO_PROVIDER && !isAnthropicAuthenticated) ||
 					(logo === OPENAI_LOGO_PROVIDER && !isOpenAIAuthenticated);
+				const disabledLabel =
+					logo === OPENAI_LOGO_PROVIDER
+						? `${model.provider} (API key required)`
+						: `${model.provider} (connection required)`;
 
 				return (
 					<ModelSelectorItem
@@ -97,9 +101,7 @@ export function ModelProviderGroup({
 						<div className="flex flex-1 flex-col gap-0.5">
 							<ModelSelectorName>{model.name}</ModelSelectorName>
 							<span className="text-muted-foreground text-xs">
-								{modelDisabled
-									? `${model.provider} (connect required)`
-									: model.provider}
+								{modelDisabled ? disabledLabel : model.provider}
 							</span>
 						</div>
 					</ModelSelectorItem>

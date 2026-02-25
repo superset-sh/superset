@@ -14,7 +14,9 @@ import { AgentManager, type AgentManagerConfig } from "./agent-manager";
 export type ChatLifecycleEventType = "Start" | "PermissionRequest" | "Stop";
 type OpenAIAuthMethod = "api_key" | "env_api_key" | "oauth" | null;
 const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
-type OpenAIAuthStorage = Awaited<ReturnType<typeof createMastraCode>>["authStorage"];
+type OpenAIAuthStorage = Awaited<
+	ReturnType<typeof createMastraCode>
+>["authStorage"];
 
 export interface ChatLifecycleEvent {
 	sessionId: string;

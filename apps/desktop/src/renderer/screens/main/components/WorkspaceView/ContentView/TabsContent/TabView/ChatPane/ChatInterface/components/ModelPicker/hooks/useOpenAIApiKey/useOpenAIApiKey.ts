@@ -46,6 +46,8 @@ export function useOpenAIApiKey({
 		chatServiceTrpc.auth.setOpenAIApiKey.useMutation();
 	const clearOpenAIApiKeyMutation =
 		chatServiceTrpc.auth.clearOpenAIApiKey.useMutation();
+	const isPending =
+		setOpenAIApiKeyMutation.isPending || clearOpenAIApiKeyMutation.isPending;
 
 	useEffect(() => {
 		if (!isModelSelectorOpen) return;
@@ -98,15 +100,13 @@ export function useOpenAIApiKey({
 			open: dialogOpen,
 			apiKey,
 			errorMessage,
-			isPending:
-				setOpenAIApiKeyMutation.isPending ||
-				clearOpenAIApiKeyMutation.isPending,
+			isPending,
 			onOpenChange: (open: boolean) => {
 				if (!open) {
 					closeDialog();
 					return;
 				}
-				setDialogOpen(true);
+				openOpenAIApiKeyDialog();
 			},
 			onApiKeyChange: (value: string) => {
 				setApiKey(value);
@@ -121,11 +121,11 @@ export function useOpenAIApiKey({
 		[
 			apiKey,
 			clearApiKey,
-			clearOpenAIApiKeyMutation.isPending,
 			closeDialog,
 			dialogOpen,
 			errorMessage,
-			setOpenAIApiKeyMutation.isPending,
+			isPending,
+			openOpenAIApiKeyDialog,
 			submitApiKey,
 		],
 	);
@@ -133,8 +133,7 @@ export function useOpenAIApiKey({
 	return {
 		isOpenAIAuthenticated: openAIStatus?.authenticated ?? false,
 		isOpenAIApiKeyConfigured: openAIStatus?.method === "api_key",
-		isSavingOpenAIApiKey:
-			setOpenAIApiKeyMutation.isPending || clearOpenAIApiKeyMutation.isPending,
+		isSavingOpenAIApiKey: isPending,
 		openOpenAIApiKeyDialog,
 		apiKeyDialog,
 	};
