@@ -102,6 +102,12 @@ const config: Configuration = {
 			to: "node_modules/friendly-words",
 			filter: ["**/*"],
 		},
+		// mastracode is externalized from the main bundle and must ship at runtime
+		{
+			from: "node_modules/mastracode",
+			to: "node_modules/mastracode",
+			filter: ["**/*"],
+		},
 		"!**/.DS_Store",
 	],
 

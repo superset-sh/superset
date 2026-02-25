@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { createMastraCode } from "mastracode";
 import {
 	type ChatMastraStreamsConfig,
 	createSessionStreamProducer,
@@ -20,7 +19,8 @@ import type {
 	WorkspaceIdInput,
 } from "../zod";
 
-type RuntimeHarness = Awaited<ReturnType<typeof createMastraCode>>["harness"];
+type CreateMastraCode = typeof import("mastracode")["createMastraCode"];
+type RuntimeHarness = Awaited<ReturnType<CreateMastraCode>>["harness"];
 type HarnessEvent = Parameters<Parameters<RuntimeHarness["subscribe"]>[0]>[0];
 type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
 
@@ -48,9 +48,27 @@ export interface RuntimeConfig {
 let runtimeConfig: RuntimeConfig | null = null;
 let started = false;
 let organizationId: string | null = null;
+let createMastraCodeLoader: Promise<CreateMastraCode> | null = null;
 const runtimes = new Map<string, RuntimeSession>();
 const commandTails = new Map<string, Promise<void>>();
 const sessions = new Map<string, ChatMastraSessionMetadata>();
+
+function getErrorMessage(error: unknown): string {
+	if (error instanceof Error) return error.message;
+	return String(error);
+}
+
+async function loadCreateMastraCode(): Promise<CreateMastraCode> {
+	if (!createMastraCodeLoader) {
+		createMastraCodeLoader = import("mastracode")
+			.then((module) => module.createMastraCode)
+			.catch((error: unknown) => {
+				createMastraCodeLoader = null;
+				throw new Error(`Failed to load mastracode: ${getErrorMessage(error)}`);
+			});
+	}
+	return createMastraCodeLoader;
+}
 
 function getRuntimeConfig(): RuntimeConfig {
 	if (!runtimeConfig) {
@@ -306,29 +324,38 @@ export async function ensureRuntime(
 			input.sessionId,
 		);
 		const cwd = input.cwd ?? process.cwd();
-		const runtimeMastra = await createMastraCode({ cwd });
-		await runtimeMastra.harness.init();
-		runtimeMastra.harness.setResourceId({ resourceId: input.sessionId });
-		await runtimeMastra.harness.selectOrCreateThread();
+		try {
+			const createMastraCode = await loadCreateMastraCode();
+			const runtimeMastra = await createMastraCode({ cwd });
+			await runtimeMastra.harness.init();
+			runtimeMastra.harness.setResourceId({ resourceId: input.sessionId });
+			await runtimeMastra.harness.selectOrCreateThread();
 
-		const runtime: RuntimeSession = {
-			sessionId: input.sessionId,
-			harness: runtimeMastra.harness,
-			producer,
-			unsubscribe: () => {},
-			sequenceHint: 0,
-			cwd,
-		};
+			const runtime: RuntimeSession = {
+				sessionId: input.sessionId,
+				harness: runtimeMastra.harness,
+				producer,
+				unsubscribe: () => {},
+				sequenceHint: 0,
+				cwd,
+			};
 
-		runtimes.set(input.sessionId, runtime);
-		runtime.unsubscribe = runtime.harness.subscribe((event: HarnessEvent) => {
-			const current = runtimes.get(input.sessionId);
-			if (!current) return;
-			appendEvent(current, "harness", event);
-		});
-		touchSession(input.sessionId);
+			runtimes.set(input.sessionId, runtime);
+			runtime.unsubscribe = runtime.harness.subscribe((event: HarnessEvent) => {
+				const current = runtimes.get(input.sessionId);
+				if (!current) return;
+				appendEvent(current, "harness", event);
+			});
+			touchSession(input.sessionId);
 
-		return { ready: true };
+			return { ready: true };
+		} catch (error) {
+			await producer.detach().catch(() => {});
+			return {
+				ready: false,
+				reason: `Failed to initialize Mastra runtime: ${getErrorMessage(error)}`,
+			};
+		}
 	});
 }
 
