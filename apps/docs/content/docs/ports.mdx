@@ -5,7 +5,7 @@ description: View and manage active ports per workspace
 
 ## Overview
 
-Each workspace gets its own port range. View active ports and kill processes directly from the UI.
+Superset does not assign per-workspace port ranges. It discovers listening ports from processes running in each workspace and lets you manage them from the UI.
 
 ![Port Panel](/images/ports.png)
 
@@ -13,7 +13,7 @@ Each workspace gets its own port range. View active ports and kill processes dir
 
 - **View active ports** - See which processes are using which ports
 - **Kill processes** - Stop a process by clicking its port
-- **No conflicts** - Each workspace has dedicated ports
+- **Workspace grouping** - Ports are grouped by the workspace that owns the process
 
 ## Static Port Configuration
 
@@ -53,5 +53,5 @@ If `ports.json` is malformed:
 - Dynamic detection is NOT used as fallback
 
 **Tips:**
-- Commit `.superset/ports.json` to share with team
-- Delete the file to restore dynamic detection
+- Commit `.superset/ports.json` to share port labels with your team
+- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
