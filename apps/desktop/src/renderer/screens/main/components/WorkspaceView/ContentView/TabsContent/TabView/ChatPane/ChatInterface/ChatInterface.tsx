@@ -11,6 +11,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getAuthToken } from "renderer/lib/auth-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatInputFooter } from "./components/ChatInputFooter";
+import { McpOverviewPicker } from "./components/McpOverviewPicker";
 import { MessageList } from "./components/MessageList";
 import { useChatSendController } from "./hooks/useChatSendController";
 import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
@@ -18,6 +19,7 @@ import type { SlashCommand } from "./hooks/useSlashCommands";
 import type {
 	ChatInterfaceProps,
 	InterruptedMessage,
+	McpOverviewPayload,
 	ModelOption,
 	PermissionMode,
 } from "./types";
@@ -70,6 +72,10 @@ export function ChatInterface({
 		useState<PermissionMode>("bypassPermissions");
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
+	const [mcpOverview, setMcpOverview] = useState<McpOverviewPayload | null>(
+		null,
+	);
+	const [mcpOverviewOpen, setMcpOverviewOpen] = useState(false);
 
 	const chat = useChat({
 		sessionId,
@@ -131,16 +137,29 @@ export function ChatInterface({
 		chat.stop();
 	}, [captureInterruptedMessage, stopPendingSends, chat.stop]);
 
+	const startFreshSessionAndResetUi = useCallback(async () => {
+		const result = await startFreshSession();
+		if (result.created) {
+			setMcpOverview(null);
+			setMcpOverviewOpen(false);
+		}
+		return result;
+	}, [startFreshSession]);
+
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
 		availableModels,
 		canAbort,
-		onStartFreshSession: startFreshSession,
+		onStartFreshSession: startFreshSessionAndResetUi,
 		onStopActiveResponse: stopActiveResponse,
 		onSelectModel: setSelectedModel,
 		onOpenModelPicker: () => setModelSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
+		onShowMcpOverview: (overview: McpOverviewPayload) => {
+			setMcpOverview(overview);
+			setMcpOverviewOpen(true);
+		},
 	});
 
 	const handleSend = useCallback(
@@ -191,6 +210,8 @@ export function ChatInterface({
 
 	useEffect(() => {
 		setInterruptedMessage(null);
+		setMcpOverview(null);
+		setMcpOverviewOpen(false);
 	}, []);
 
 	const handleStop = useCallback(
@@ -231,6 +252,11 @@ export function ChatInterface({
 					submitStatus={submitStatus}
 					workspaceId={workspaceId}
 					onAnswer={handleAnswer}
+				/>
+				<McpOverviewPicker
+					overview={mcpOverview}
+					open={mcpOverviewOpen}
+					onOpenChange={setMcpOverviewOpen}
 				/>
 				<ChatInputFooter
 					cwd={cwd}

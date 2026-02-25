@@ -8,6 +8,21 @@ export interface ModelOption {
 
 export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions";
 
+export type McpServerState = "enabled" | "disabled" | "invalid";
+export type McpServerTransport = "remote" | "local" | "unknown";
+
+export interface McpServerOverviewItem {
+	name: string;
+	state: McpServerState;
+	transport: McpServerTransport;
+	target: string;
+}
+
+export interface McpOverviewPayload {
+	sourcePath: string | null;
+	servers: McpServerOverviewItem[];
+}
+
 export type InterruptedMessage = {
 	id: string;
 	sourceMessageId: string;

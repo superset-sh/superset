@@ -97,6 +97,36 @@ export function clearShellEnvCache(): void {
 }
 
 /**
+ * Returns process env merged with login-shell PATH.
+ * Use this for child processes that should resolve binaries exactly
+ * as they do in an interactive terminal.
+ */
+export async function getProcessEnvWithShellPath(
+	baseEnv: NodeJS.ProcessEnv = process.env,
+): Promise<Record<string, string>> {
+	const shellEnv = await getShellEnvironment();
+	const env: Record<string, string> = {};
+
+	for (const [key, value] of Object.entries(baseEnv)) {
+		if (typeof value === "string") {
+			env[key] = value;
+		}
+	}
+
+	const shellPath = shellEnv.PATH || shellEnv.Path;
+	if (!shellPath) {
+		return env;
+	}
+
+	env.PATH = shellPath;
+	if (process.platform === "win32" || "Path" in baseEnv || "Path" in shellEnv) {
+		env.Path = shellPath;
+	}
+
+	return env;
+}
+
+/**
  * Execute a command, retrying once with shell environment if it fails with ENOENT.
  * On macOS, GUI apps launched from Finder/Dock get minimal PATH that excludes
  * homebrew and other user-installed tools. This lazily derives the user's

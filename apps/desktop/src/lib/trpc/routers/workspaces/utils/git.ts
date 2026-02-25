@@ -9,7 +9,7 @@ import friendlyWords = require("friendly-words");
 import type { BranchPrefixMode } from "@superset/local-db";
 import simpleGit, { type StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import { execWithShellEnv, getShellEnvironment } from "./shell-env";
+import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -122,21 +122,7 @@ async function checkoutBranchWithHookTolerance({
 }
 
 async function getGitEnv(): Promise<Record<string, string>> {
-	const shellEnv = await getShellEnvironment();
-	const result: Record<string, string> = {};
-
-	for (const [key, value] of Object.entries(process.env)) {
-		if (typeof value === "string") {
-			result[key] = value;
-		}
-	}
-
-	const pathKey = process.platform === "win32" ? "Path" : "PATH";
-	if (shellEnv[pathKey]) {
-		result[pathKey] = shellEnv[pathKey];
-	}
-
-	return result;
+	return getProcessEnvWithShellPath();
 }
 
 /**
