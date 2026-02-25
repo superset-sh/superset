@@ -43,8 +43,29 @@ function trimUnbalancedParens(url: string): string {
 export class UrlLinkProvider extends MultiLineLinkProvider {
 	private readonly URL_PATTERN = /\bhttps?:\/\/[^\s<>[\]'"]+/g;
 
+	private createContextLine(
+		index: number,
+		text: string,
+		leadingTrim = 0,
+	): ContextLine {
+		return {
+			index,
+			lineNumber: index + 1,
+			text,
+			leadingTrim,
+		};
+	}
+
+	private getContextText(lines: ContextLine[]): string {
+		return lines.map((line) => line.text).join("");
+	}
+
 	private getLine(index: number) {
 		return this.terminal.buffer.active.getLine(index);
+	}
+
+	private getLineText(index: number): string | null {
+		return this.getLine(index)?.translateToString(true) ?? null;
 	}
 
 	private isLikelyHardWrapBoundary(text: string): boolean {
@@ -113,6 +134,97 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		);
 	}
 
+	private tryExtendForward(lines: ContextLine[]): boolean {
+		const last = lines[lines.length - 1];
+		if (!last) {
+			return false;
+		}
+
+		const nextBufferLine = this.getLine(last.index + 1);
+		if (!nextBufferLine || nextBufferLine.isWrapped) {
+			return false;
+		}
+
+		const lastRawText = this.getLineText(last.index);
+		if (!lastRawText) {
+			return false;
+		}
+
+		const combinedTail = this.getContextText(lines);
+		if (
+			!URL_AT_END_PATTERN.test(combinedTail) &&
+			!this.isLikelyContinuationLine(lastRawText)
+		) {
+			return false;
+		}
+
+		const nextRawText = nextBufferLine.translateToString(true);
+		const continuation = this.getContinuationSegment(nextRawText);
+		if (!continuation) {
+			return false;
+		}
+
+		if (
+			!this.isLikelyUrlContinuation(
+				lastRawText,
+				continuation.text,
+				continuation.leadingTrim,
+			)
+		) {
+			return false;
+		}
+
+		lines.push(
+			this.createContextLine(
+				last.index + 1,
+				continuation.text,
+				continuation.leadingTrim,
+			),
+		);
+		return true;
+	}
+
+	private tryExtendBackward(lines: ContextLine[]): boolean {
+		const first = lines[0];
+		if (!first) {
+			return false;
+		}
+
+		const prevBufferLine = this.getLine(first.index - 1);
+		if (!prevBufferLine || prevBufferLine.isWrapped) {
+			return false;
+		}
+
+		const prevRawText = prevBufferLine.translateToString(true);
+		const firstRawText = this.getLineText(first.index);
+		if (!firstRawText) {
+			return false;
+		}
+
+		const continuation = this.getContinuationSegment(firstRawText);
+		if (!continuation) {
+			return false;
+		}
+
+		if (
+			!this.isLikelyUrlContinuation(
+				prevRawText,
+				continuation.text,
+				continuation.leadingTrim,
+			)
+		) {
+			return false;
+		}
+
+		lines[0] = {
+			...first,
+			text: continuation.text,
+			leadingTrim: continuation.leadingTrim,
+		};
+		lines.unshift(this.createContextLine(first.index - 1, prevRawText));
+		return true;
+	}
+
 	protected buildContextLines(lineIndex: number): ContextLine[] {
 		const baseLines = super.buildContextLines(lineIndex);
 		if (baseLines.length === 0) {
@@ -123,91 +235,10 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 
 		// Extend forward for TUI hard-wraps where lines are split by explicit newline
 		// instead of xterm's soft-wrap flag.
-		while (true) {
-			const last = lines[lines.length - 1];
-			if (!last) {
-				break;
-			}
-
-			const lastBufferLine = this.getLine(last.index);
-			const nextBufferLine = this.getLine(last.index + 1);
-			if (!lastBufferLine || !nextBufferLine || nextBufferLine.isWrapped) {
-				break;
-			}
-
-			const lastRawText = lastBufferLine.translateToString(true);
-			const combinedTail = lines.map((line) => line.text).join("");
-			if (
-				!URL_AT_END_PATTERN.test(combinedTail) &&
-				!this.isLikelyContinuationLine(lastRawText)
-			) {
-				break;
-			}
-
-			const nextRawText = nextBufferLine.translateToString(true);
-			const continuation = this.getContinuationSegment(nextRawText);
-			if (!continuation) {
-				break;
-			}
-			if (
-				!this.isLikelyUrlContinuation(
-					lastRawText,
-					continuation.text,
-					continuation.leadingTrim,
-				)
-			) {
-				break;
-			}
-
-			lines.push({
-				index: last.index + 1,
-				lineNumber: last.index + 2,
-				text: continuation.text,
-				leadingTrim: continuation.leadingTrim,
-			});
-		}
+		while (this.tryExtendForward(lines)) {}
 
 		// Extend backward when scanning a continuation line directly.
-		while (true) {
-			const first = lines[0];
-			if (!first) {
-				break;
-			}
-
-			const firstBufferLine = this.getLine(first.index);
-			const prevBufferLine = this.getLine(first.index - 1);
-			if (!firstBufferLine || !prevBufferLine || prevBufferLine.isWrapped) {
-				break;
-			}
-
-			const prevRawText = prevBufferLine.translateToString(true);
-			const firstRawText = firstBufferLine.translateToString(true);
-			const continuation = this.getContinuationSegment(firstRawText);
-			if (!continuation) {
-				break;
-			}
-			if (
-				!this.isLikelyUrlContinuation(
-					prevRawText,
-					continuation.text,
-					continuation.leadingTrim,
-				)
-			) {
-				break;
-			}
-
-			lines[0] = {
-				...first,
-				text: continuation.text,
-				leadingTrim: continuation.leadingTrim,
-			};
-			lines.unshift({
-				index: first.index - 1,
-				lineNumber: first.index,
-				text: prevRawText,
-				leadingTrim: 0,
-			});
-		}
+		while (this.tryExtendBackward(lines)) {}
 
 		return lines;
 	}
