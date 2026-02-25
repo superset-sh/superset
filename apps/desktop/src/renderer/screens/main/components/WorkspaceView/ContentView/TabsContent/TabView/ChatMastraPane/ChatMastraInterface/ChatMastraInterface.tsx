@@ -4,25 +4,22 @@ import {
 	type PromptInputMessage,
 	PromptInputProvider,
 } from "@superset/ui/ai-elements/prompt-input";
-import { Button } from "@superset/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus, UIMessage } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { ChatInputFooter } from "../../ChatPane/ChatInterface/components/ChatInputFooter";
-import { McpOverviewPicker } from "../../ChatPane/ChatInterface/components/McpOverviewPicker";
 import { MessageList } from "../../ChatPane/ChatInterface/components/MessageList";
 import { useSlashCommandExecutor } from "../../ChatPane/ChatInterface/hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "../../ChatPane/ChatInterface/hooks/useSlashCommands";
 import type {
-	McpOverviewPayload,
 	ModelOption,
 	PermissionMode,
 } from "../../ChatPane/ChatInterface/types";
-import { McpActionPanels } from "./components/McpActionPanels";
+import { McpControls } from "./components/McpControls";
+import { useMcpUi } from "./hooks/useMcpUi";
 import type { ChatMastraInterfaceProps } from "./types";
-import { toActiveToolEntries } from "./utils/active-tools";
 import { messagePartsFromDisplay } from "./utils/message-parts-from-display";
 
 function useAvailableModels(): {
@@ -64,16 +61,6 @@ export function ChatMastraInterface({
 	);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const [messages, setMessages] = useState<UIMessage[]>([]);
-	const [mcpOverview, setMcpOverview] = useState<McpOverviewPayload | null>(
-		null,
-	);
-	const [mcpOverviewOpen, setMcpOverviewOpen] = useState(false);
-	const [isMcpOverviewLoading, setIsMcpOverviewLoading] = useState(false);
-	const [isApprovalPending, setIsApprovalPending] = useState(false);
-	const [isQuestionPending, setIsQuestionPending] = useState(false);
-	const [isPlanPending, setIsPlanPending] = useState(false);
-	const [questionDraft, setQuestionDraft] = useState("");
-	const [planFeedback, setPlanFeedback] = useState("");
 	const currentSessionRef = useRef<string | null>(null);
 	const chatServiceTrpcUtils = chatServiceTrpc.useUtils();
 
@@ -101,6 +88,21 @@ export function ChatMastraInterface({
 	}, []);
 
 	const canAbort = Boolean(chat.displayState?.isRunning);
+	const loadMcpOverview = useCallback(
+		(rootCwd: string) =>
+			chatServiceTrpcUtils.workspace.getMcpOverview.fetch({
+				cwd: rootCwd,
+			}),
+		[chatServiceTrpcUtils.workspace.getMcpOverview],
+	);
+	const mcpUi = useMcpUi({
+		chat,
+		cwd,
+		loadOverview: loadMcpOverview,
+		onSetErrorMessage: setRuntimeErrorMessage,
+		onClearError: clearRuntimeError,
+	});
+	const resetMcpUi = mcpUi.resetUi;
 
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
@@ -114,22 +116,8 @@ export function ChatMastraInterface({
 		onOpenModelPicker: () => setModelSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
-		onShowMcpOverview: (overview) => {
-			setMcpOverview(overview);
-			setMcpOverviewOpen(true);
-		},
+		onShowMcpOverview: mcpUi.showOverview,
 	});
-
-	const pendingApproval = chat.displayState?.pendingApproval;
-	const pendingQuestion = chat.displayState?.pendingQuestion;
-	const pendingPlanApproval = chat.displayState?.pendingPlanApproval;
-	const activeToolEntries = useMemo(
-		() => toActiveToolEntries(chat.displayState?.activeTools),
-		[chat.displayState?.activeTools],
-	);
-
-	const pendingQuestionId = pendingQuestion?.questionId ?? null;
-	const pendingPlanId = pendingPlanApproval?.planId ?? null;
 
 	useEffect(() => {
 		if (currentSessionRef.current === sessionId) return;
@@ -137,21 +125,8 @@ export function ChatMastraInterface({
 		setMessages([]);
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
-		setMcpOverview(null);
-		setMcpOverviewOpen(false);
-		setQuestionDraft("");
-		setPlanFeedback("");
-	}, [sessionId]);
-
-	useEffect(() => {
-		if (pendingQuestionId === null) return;
-		setQuestionDraft("");
-	}, [pendingQuestionId]);
-
-	useEffect(() => {
-		if (pendingPlanId === null) return;
-		setPlanFeedback("");
-	}, [pendingPlanId]);
+		resetMcpUi();
+	}, [resetMcpUi, sessionId]);
 
 	useEffect(() => {
 		if (chat.displayState?.isRunning) {
@@ -289,109 +264,6 @@ export function ChatMastraInterface({
 		[chat, clearRuntimeError],
 	);
 
-	const handleOpenMcpOverview = useCallback(async () => {
-		if (!cwd) {
-			setRuntimeErrorMessage("Workspace path is missing");
-			return;
-		}
-		setIsMcpOverviewLoading(true);
-		try {
-			const overview =
-				await chatServiceTrpcUtils.workspace.getMcpOverview.fetch({
-					cwd,
-				});
-			clearRuntimeError();
-			setMcpOverview(overview);
-			setMcpOverviewOpen(true);
-		} catch {
-			setRuntimeErrorMessage("Failed to load MCP settings");
-		} finally {
-			setIsMcpOverviewLoading(false);
-		}
-	}, [
-		chatServiceTrpcUtils.workspace.getMcpOverview,
-		clearRuntimeError,
-		cwd,
-		setRuntimeErrorMessage,
-	]);
-
-	const submitApprovalDecision = useCallback(
-		async (decision: "approve" | "deny") => {
-			if (!pendingApproval) return;
-			setIsApprovalPending(true);
-			clearRuntimeError();
-			try {
-				await chat.respondToApproval({
-					decision,
-					toolCallId: pendingApproval.toolCallId || undefined,
-				});
-			} catch (error) {
-				setRuntimeErrorMessage(
-					error instanceof Error
-						? error.message
-						: "Failed to submit approval response",
-				);
-			} finally {
-				setIsApprovalPending(false);
-			}
-		},
-		[chat, pendingApproval, clearRuntimeError, setRuntimeErrorMessage],
-	);
-
-	const submitQuestionAnswer = useCallback(
-		async (answer: string) => {
-			if (!pendingQuestion) return;
-			const trimmed = answer.trim();
-			if (!trimmed) return;
-			setIsQuestionPending(true);
-			clearRuntimeError();
-			try {
-				await chat.respondToQuestion({
-					questionId: pendingQuestion.questionId,
-					answer: trimmed,
-				});
-				setQuestionDraft("");
-			} catch (error) {
-				setRuntimeErrorMessage(
-					error instanceof Error ? error.message : "Failed to answer question",
-				);
-			} finally {
-				setIsQuestionPending(false);
-			}
-		},
-		[chat, pendingQuestion, clearRuntimeError, setRuntimeErrorMessage],
-	);
-
-	const submitPlanDecision = useCallback(
-		async (action: "accept" | "reject" | "revise") => {
-			if (!pendingPlanApproval) return;
-			setIsPlanPending(true);
-			clearRuntimeError();
-			try {
-				await chat.respondToPlan({
-					planId: pendingPlanApproval.planId,
-					action,
-					feedback: planFeedback.trim() || undefined,
-				});
-			} catch (error) {
-				setRuntimeErrorMessage(
-					error instanceof Error
-						? error.message
-						: "Failed to submit plan response",
-				);
-			} finally {
-				setIsPlanPending(false);
-			}
-		},
-		[
-			chat,
-			pendingPlanApproval,
-			planFeedback,
-			clearRuntimeError,
-			setRuntimeErrorMessage,
-		],
-	);
-
 	const errorMessage =
 		runtimeError ?? toErrorMessage(chat.error) ?? chat.reason;
 	const mergedMessages = useMemo(() => messages, [messages]);
@@ -406,54 +278,7 @@ export function ChatMastraInterface({
 					workspaceId={workspaceId}
 					onAnswer={handleAnswer}
 				/>
-				<McpActionPanels
-					pendingApproval={pendingApproval}
-					pendingQuestion={pendingQuestion}
-					pendingPlanApproval={pendingPlanApproval}
-					activeToolEntries={activeToolEntries}
-					isApprovalPending={isApprovalPending}
-					isQuestionPending={isQuestionPending}
-					isPlanPending={isPlanPending}
-					questionDraft={questionDraft}
-					planFeedback={planFeedback}
-					onQuestionDraftChange={setQuestionDraft}
-					onPlanFeedbackChange={setPlanFeedback}
-					onApprove={() => {
-						void submitApprovalDecision("approve");
-					}}
-					onDeny={() => {
-						void submitApprovalDecision("deny");
-					}}
-					onSubmitQuestion={(answer) => {
-						void submitQuestionAnswer(answer);
-					}}
-					onAcceptPlan={() => {
-						void submitPlanDecision("accept");
-					}}
-					onRejectPlan={() => {
-						void submitPlanDecision("reject");
-					}}
-					onRevisePlan={() => {
-						void submitPlanDecision("revise");
-					}}
-				/>
-				<div className="mx-auto flex w-full max-w-[680px] justify-end px-4 pb-2">
-					<Button
-						size="sm"
-						variant="ghost"
-						onClick={() => {
-							void handleOpenMcpOverview();
-						}}
-						disabled={isMcpOverviewLoading}
-					>
-						{isMcpOverviewLoading ? "Loading MCP..." : "MCP Servers"}
-					</Button>
-				</div>
-				<McpOverviewPicker
-					overview={mcpOverview}
-					open={mcpOverviewOpen}
-					onOpenChange={setMcpOverviewOpen}
-				/>
+				<McpControls mcpUi={mcpUi} />
 				<ChatInputFooter
 					cwd={cwd}
 					error={errorMessage}
