@@ -29,6 +29,7 @@ export interface UseTerminalColdRestoreOptions {
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
 	resetModes: () => void;
+	onReconnectSuccess?: () => void;
 }
 
 export interface UseTerminalColdRestoreReturn {
@@ -67,6 +68,7 @@ export function useTerminalColdRestore({
 	maybeApplyInitialState,
 	flushPendingEvents,
 	resetModes,
+	onReconnectSuccess,
 }: UseTerminalColdRestoreOptions): UseTerminalColdRestoreReturn {
 	const [isRestoredMode, setIsRestoredMode] = useState(false);
 	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
@@ -97,6 +99,7 @@ export function useTerminalColdRestore({
 					if (!currentXterm) return;
 
 					setConnectionError(null);
+					onReconnectSuccess?.();
 					currentXterm.writeln("\x1b[90m[Reconnected]\x1b[0m");
 
 					if (result.isColdRestore) {
@@ -162,6 +165,7 @@ export function useTerminalColdRestore({
 		setExitStatus,
 		maybeApplyInitialState,
 		flushPendingEvents,
+		onReconnectSuccess,
 	]);
 
 	const handleStartShell = useCallback(() => {

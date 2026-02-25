@@ -2,7 +2,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -199,6 +199,30 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			setConnectionError(reason || "Connection to terminal daemon lost"),
 	});
 
+	// Auto-retry connection with exponential backoff
+	const retryCountRef = useRef(0);
+	const retryExhaustedMessageShownRef = useRef(false);
+	const retryResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+	const MAX_RETRIES = 5;
+	const RETRY_RESET_STABILITY_MS = 30_000;
+
+	const clearRetryResetTimeout = useCallback(() => {
+		if (!retryResetTimeoutRef.current) return;
+		clearTimeout(retryResetTimeoutRef.current);
+		retryResetTimeoutRef.current = null;
+	}, []);
+
+	const scheduleRetryBudgetReset = useCallback(() => {
+		clearRetryResetTimeout();
+		retryResetTimeoutRef.current = setTimeout(() => {
+			retryCountRef.current = 0;
+			retryExhaustedMessageShownRef.current = false;
+			retryResetTimeoutRef.current = null;
+		}, RETRY_RESET_STABILITY_MS);
+	}, [clearRetryResetTimeout]);
+
 	// Cold restore handling
 	const {
 		isRestoredMode,
@@ -225,6 +249,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
+		onReconnectSuccess: scheduleRetryBudgetReset,
 	});
 
 	// Avoid effect re-runs: track overlay states via refs for input gating
@@ -232,10 +257,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	isRestoredModeRef.current = isRestoredMode;
 	const connectionErrorRef = useRef(connectionError);
 	connectionErrorRef.current = connectionError;
-
-	// Auto-retry connection with exponential backoff
-	const retryCountRef = useRef(0);
-	const MAX_RETRIES = 5;
 
 	// Stream handling
 	const { handleTerminalExit, handleStreamError, handleStreamData } =
@@ -261,7 +282,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		onData: (event) => {
 			if (connectionErrorRef.current && event.type === "data") {
 				setConnectionError(null);
-				retryCountRef.current = 0;
 			}
 			handleStreamData(event);
 		},
@@ -280,8 +300,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	// Auto-retry when connection error is set
 	useEffect(() => {
 		if (!connectionError) return;
+		clearRetryResetTimeout();
 		if (isExitedRef.current) return;
-		if (retryCountRef.current >= MAX_RETRIES) return;
+		if (retryCountRef.current >= MAX_RETRIES) {
+			if (!retryExhaustedMessageShownRef.current) {
+				xtermRef.current?.writeln(
+					'\r\n\x1b[90m[Reconnection paused after 5 attempts. Use "Restart daemon" in Terminal Settings.]\x1b[0m',
+				);
+				retryExhaustedMessageShownRef.current = true;
+			}
+			return;
+		}
 
 		if (retryCountRef.current === 0) {
 			xtermRef.current?.writeln(
@@ -294,7 +323,14 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 		const timeout = setTimeout(handleRetryConnection, delay);
 		return () => clearTimeout(timeout);
-	}, [connectionError, handleRetryConnection]);
+	}, [connectionError, handleRetryConnection, clearRetryResetTimeout]);
+
+	useEffect(
+		() => () => {
+			clearRetryResetTimeout();
+		},
+		[clearRetryResetTimeout],
+	);
 
 	const { isSearchOpen, setIsSearchOpen } = useTerminalHotkeys({
 		isFocused,
