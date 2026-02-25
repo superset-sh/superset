@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
 	clearPendingDeleteDialogOpen,
-	type PendingDeleteDialogTimerRef,
 	scheduleDeleteDialogOpen,
 } from "./deleteDialogOpenScheduler";
 
@@ -20,23 +19,19 @@ interface UseWorkspaceDeleteHandlerResult {
  */
 export function useWorkspaceDeleteHandler(): UseWorkspaceDeleteHandlerResult {
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const pendingOpenTimerRef = useRef<PendingDeleteDialogTimerRef>({
-		current: null,
-	});
+	const pendingOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	useEffect(() => {
 		return () => {
-			clearPendingDeleteDialogOpen(pendingOpenTimerRef.current);
+			clearPendingDeleteDialogOpen(pendingOpenTimerRef);
 		};
 	}, []);
 
 	const handleDeleteClick = (e?: React.MouseEvent) => {
 		e?.stopPropagation();
 		scheduleDeleteDialogOpen({
-			pendingTimerRef: pendingOpenTimerRef.current,
-			setShowDeleteDialog: (show) => {
-				setShowDeleteDialog(show);
-			},
+			pendingTimerRef: pendingOpenTimerRef,
+			setShowDeleteDialog,
 		});
 	};
 

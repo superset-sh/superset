@@ -27,8 +27,9 @@ export function scheduleDeleteDialogOpen({
 	clearTimer?: (timer: ReturnType<typeof setTimeout>) => void;
 }) {
 	clearPendingDeleteDialogOpen(pendingTimerRef, clearTimer);
-	pendingTimerRef.current = deferOpen((show) => {
-		setShowDeleteDialog(show);
+	const wrappedSet: typeof setShowDeleteDialog = (show) => {
 		pendingTimerRef.current = null;
-	});
+		setShowDeleteDialog(show);
+	};
+	pendingTimerRef.current = deferOpen(wrappedSet);
 }
