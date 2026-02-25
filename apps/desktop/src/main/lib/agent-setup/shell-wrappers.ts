@@ -187,7 +187,16 @@ export function getShellArgs(
 	if (shellName === "bash") {
 		return ["--rcfile", path.join(paths.BASH_DIR, "rcfile")];
 	}
-	if (["zsh", "sh", "ksh", "fish"].includes(shellName)) {
+	if (shellName === "fish") {
+		// Use --init-command to prepend BIN_DIR to PATH after config is loaded
+		// This ensures agent wrappers are found first, even after user's config modifies PATH
+		return [
+			"-l",
+			"--init-command",
+			`set -gx PATH ${paths.BIN_DIR} $PATH`,
+		];
+	}
+	if (["zsh", "sh", "ksh"].includes(shellName)) {
 		return ["-l"];
 	}
 	return [];

@@ -97,11 +97,28 @@ describe("shell-wrappers", () => {
 		expect(getShellArgs("/bin/zsh")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/sh")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/ksh")).toEqual(["-l"]);
-		expect(getShellArgs("/opt/homebrew/bin/fish")).toEqual(["-l"]);
 	});
 
 	it("returns empty args for unrecognized shells", () => {
 		expect(getShellArgs("/bin/csh")).toEqual([]);
 		expect(getShellArgs("powershell")).toEqual([]);
+	});
+
+	describe("fish shell", () => {
+		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
+			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);
+
+			// Should have login flag, --init-command, and PATH prepend command
+			expect(args[0]).toBe("-l");
+			expect(args[1]).toBe("--init-command");
+			// init-command should prepend BIN_DIR to PATH using fish syntax
+			expect(args[2]).toContain("set -gx PATH");
+			expect(args[2]).toContain(TEST_BIN_DIR);
+		});
+
+		it("uses login shell args for fish when BIN_DIR not provided", () => {
+			// When paths don't have BIN_DIR (shouldn't happen in practice, but test fallback)
+			expect(getShellArgs("/bin/fish")).toContain("-l");
+		});
 	});
 });
