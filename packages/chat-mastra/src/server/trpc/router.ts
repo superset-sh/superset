@@ -49,6 +49,13 @@ export function createChatMastraServiceRouter() {
 				.input(sendMessageInput)
 				.mutation(async ({ input }) => {
 					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const selectedModel = input.metadata?.model?.trim();
+					if (selectedModel) {
+						await runtime.harness.switchModel({
+							modelId: selectedModel,
+							scope: "thread",
+						});
+					}
 					return runtime.harness.sendMessage(input.payload);
 				}),
 

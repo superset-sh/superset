@@ -19,7 +19,7 @@
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"test": "bun test"
+		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
 		"@trpc/server": "^11.7.1",

@@ -61,6 +61,11 @@ export const sendMessageInput = z.object({
 	sessionId: z.uuid(),
 	cwd: z.string().optional(),
 	payload: sendMessagePayloadSchema,
+	metadata: z
+		.object({
+			model: z.string().optional(),
+		})
+		.optional(),
 });
 
 export const approvalRespondInput = z.object({
