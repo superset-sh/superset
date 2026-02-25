@@ -70,6 +70,13 @@ function buildPathPrependFunction(binDir: string): string {
 _superset_prepend_bin`;
 }
 
+function escapeFishDoubleQuoted(value: string): string {
+	return value
+		.replaceAll("\\", "\\\\")
+		.replaceAll('"', '\\"')
+		.replaceAll("$", "\\$");
+}
+
 export function createZshWrapper(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): void {
@@ -187,7 +194,17 @@ export function getShellArgs(
 	if (shellName === "bash") {
 		return ["--rcfile", path.join(paths.BASH_DIR, "rcfile")];
 	}
-	if (["zsh", "sh", "ksh", "fish"].includes(shellName)) {
+	if (shellName === "fish") {
+		// Use --init-command to prepend BIN_DIR to PATH after config is loaded.
+		// Use fish list-aware checks to avoid duplicate PATH entries across nested shells.
+		const escapedBinDir = escapeFishDoubleQuoted(paths.BIN_DIR);
+		return [
+			"-l",
+			"--init-command",
+			`set -l _superset_bin "${escapedBinDir}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
+		];
+	}
+	if (["zsh", "sh", "ksh"].includes(shellName)) {
 		return ["-l"];
 	}
 	return [];

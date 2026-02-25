@@ -41,7 +41,7 @@ export async function fetchGitHubPRStatus(
 
 		const [branchCheck, prInfo] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
-			getPRForBranch(worktreePath),
+			getPRForBranch(worktreePath, branchName),
 		]);
 
 		const result: GitHubStatus = {
@@ -84,8 +84,15 @@ const PR_JSON_FIELDS =
 
 async function getPRForBranch(
 	worktreePath: string,
+	branchName: string,
 ): Promise<GitHubStatus["pr"]> {
-	return getPRByBranchTracking(worktreePath);
+	const byTracking = await getPRByBranchTracking(worktreePath);
+	if (byTracking) {
+		return byTracking;
+	}
+
+	// Fallback for branches where local naming/casing diverges from PR head.
+	return findPRByHeadBranch(worktreePath, branchName);
 }
 
 /**
@@ -107,6 +114,10 @@ async function getPRByBranchTracking(
 			return null;
 		}
 
+		if (!(await sharesAncestry(worktreePath, data.headRefOid))) {
+			return null;
+		}
+
 		return formatPRData(data);
 	} catch (error) {
 		if (
@@ -116,6 +127,41 @@ async function getPRByBranchTracking(
 			return null;
 		}
 		throw error;
+	}
+}
+
+async function findPRByHeadBranch(
+	worktreePath: string,
+	branchName: string,
+): Promise<GitHubStatus["pr"]> {
+	try {
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"list",
+				"--state",
+				"all",
+				"--search",
+				`head:${branchName}`,
+				"--limit",
+				"20",
+				"--json",
+				PR_JSON_FIELDS,
+			],
+			{ cwd: worktreePath },
+		);
+
+		const candidates = parsePRListResponse(stdout);
+		for (const candidate of candidates) {
+			if (await sharesAncestry(worktreePath, candidate.headRefOid)) {
+				return formatPRData(candidate);
+			}
+		}
+
+		return null;
+	} catch {
+		return null;
 	}
 }
 
@@ -142,6 +188,86 @@ function parsePRResponse(stdout: string): GHPRResponse | null {
 		return null;
 	}
 	return result.data;
+}
+
+function parsePRListResponse(stdout: string): GHPRResponse[] {
+	const trimmed = stdout.trim();
+	if (!trimmed || trimmed === "null") {
+		return [];
+	}
+
+	let raw: unknown;
+	try {
+		raw = JSON.parse(trimmed);
+	} catch (error) {
+		console.warn(
+			"[GitHub] Failed to parse PR list response JSON:",
+			error instanceof Error ? error.message : String(error),
+		);
+		return [];
+	}
+
+	if (!Array.isArray(raw)) {
+		return [];
+	}
+
+	const parsed: GHPRResponse[] = [];
+	for (const item of raw) {
+		const result = GHPRResponseSchema.safeParse(item);
+		if (result.success) {
+			parsed.push(result.data);
+		}
+	}
+	return parsed;
+}
+
+/**
+ * Returns true if local HEAD and the given commit share ancestry
+ * (one is an ancestor of the other, or they are the same commit).
+ */
+async function sharesAncestry(
+	worktreePath: string,
+	prHeadOid: string,
+): Promise<boolean> {
+	try {
+		const { stdout: localHead } = await execFileAsync(
+			"git",
+			["-C", worktreePath, "rev-parse", "HEAD"],
+			{ timeout: 10_000 },
+		);
+		const localOid = localHead.trim();
+
+		if (localOid === prHeadOid) {
+			return true;
+		}
+
+		for (const [ancestor, descendant] of [
+			[prHeadOid, localOid],
+			[localOid, prHeadOid],
+		]) {
+			try {
+				await execFileAsync(
+					"git",
+					[
+						"-C",
+						worktreePath,
+						"merge-base",
+						"--is-ancestor",
+						ancestor,
+						descendant,
+					],
+					{ timeout: 10_000 },
+				);
+				return true;
+			} catch {
+				// Try the other direction.
+			}
+		}
+
+		return false;
+	} catch {
+		return false;
+	}
 }
 
 function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {

@@ -1,6 +1,13 @@
 import { useRef, useState } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
+import type {
+	TerminalClearScrollbackMutate,
+	TerminalDetachMutate,
+	TerminalResizeMutate,
+	TerminalWriteMutate,
+} from "../types";
 
 export interface UseTerminalConnectionOptions {
 	workspaceId: string;
@@ -10,7 +17,8 @@ export interface UseTerminalConnectionOptions {
  * Hook to manage terminal connection state and mutations.
  *
  * Encapsulates:
- * - tRPC mutations (createOrAttach, write, resize, detach, clearScrollback)
+ * - createOrAttach mutation (for lifecycle callbacks)
+ * - imperative tRPC calls for write/resize/detach/clearScrollback hot paths
  * - Stable refs to mutation functions (to avoid re-renders)
  * - Connection error state
  * - Workspace CWD query
@@ -25,29 +33,48 @@ export function useTerminalConnection({
 
 	// tRPC mutations
 	const createOrAttachMutation = useCreateOrAttachWithTheme();
-	const writeMutation = electronTrpc.terminal.write.useMutation();
-	const resizeMutation = electronTrpc.terminal.resize.useMutation();
-	const detachMutation = electronTrpc.terminal.detach.useMutation();
-	const clearScrollbackMutation =
-		electronTrpc.terminal.clearScrollback.useMutation();
 
 	// Query for workspace cwd
 	const { data: workspaceCwd } =
 		electronTrpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
-	// Stable refs to mutation functions - these don't change identity on re-render
+	// Stable refs - these don't change identity on re-render
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
-	const writeRef = useRef(writeMutation.mutate);
-	const resizeRef = useRef(resizeMutation.mutate);
-	const detachRef = useRef(detachMutation.mutate);
-	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
+	// Use imperative client calls for write/resize/detach/clear to avoid
+	// mutation-observer re-renders on every keystroke.
+	const writeRef = useRef<TerminalWriteMutate>((input, callbacks) => {
+		electronTrpcClient.terminal.write
+			.mutate(input)
+			.then(() => {
+				callbacks?.onSuccess?.();
+			})
+			.catch((error) => {
+				callbacks?.onError?.({
+					message: error instanceof Error ? error.message : "Write failed",
+				});
+			})
+			.finally(() => {
+				callbacks?.onSettled?.();
+			});
+	});
+	const resizeRef = useRef<TerminalResizeMutate>((input) => {
+		electronTrpcClient.terminal.resize.mutate(input).catch((error) => {
+			console.warn("[Terminal] Failed to resize terminal:", error);
+		});
+	});
+	const detachRef = useRef<TerminalDetachMutate>((input) => {
+		electronTrpcClient.terminal.detach.mutate(input).catch((error) => {
+			console.warn("[Terminal] Failed to detach terminal:", error);
+		});
+	});
+	const clearScrollbackRef = useRef<TerminalClearScrollbackMutate>((input) => {
+		electronTrpcClient.terminal.clearScrollback.mutate(input).catch((error) => {
+			console.warn("[Terminal] Failed to clear scrollback:", error);
+		});
+	});
 
 	// Keep refs up to date
 	createOrAttachRef.current = createOrAttachMutation.mutate;
-	writeRef.current = writeMutation.mutate;
-	resizeRef.current = resizeMutation.mutate;
-	detachRef.current = detachMutation.mutate;
-	clearScrollbackRef.current = clearScrollbackMutation.mutate;
 
 	return {
 		// Connection error state
