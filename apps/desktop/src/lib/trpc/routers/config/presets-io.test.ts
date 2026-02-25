@@ -233,6 +233,35 @@ describe("presets-io", () => {
 		expect(codex?.commands).toEqual(["codex --old"]);
 	});
 
+	test("previewImportPresetsFromFile reads from explicit file path", () => {
+		const supersetHomeDir = createSupersetHomeDir("explicit-path-home");
+		const importFilePath = join(TEST_DIR, "custom-import.json");
+		writeFileSync(
+			importFilePath,
+			JSON.stringify(
+				{
+					schemaVersion: 1,
+					exportedAt: "2026-02-25T12:00:00.000Z",
+					app: "superset",
+					presets: [{ name: "custom", cwd: "", commands: ["echo custom"] }],
+				},
+				null,
+				2,
+			),
+			"utf-8",
+		);
+
+		const result = previewImportPresetsFromFile({
+			existingPresets: [],
+			supersetHomeDir,
+			importFilePath,
+		});
+
+		expect(result.path).toBe(importFilePath);
+		expect(result.created).toBe(1);
+		expect(result.items[0]?.name).toBe("custom");
+	});
+
 	test("importPresetsFromFile throws when presets file is missing", () => {
 		const supersetHomeDir = join(TEST_DIR, "missing-file-home");
 		const existingPresets: TerminalPreset[] = [];

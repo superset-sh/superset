@@ -136,17 +136,27 @@ export const createConfigRouter = () => {
 			});
 		}),
 
-		previewImportPresets: publicProcedure.query(() => {
-			const existingPresets = getTerminalPresetsEnsuringInitialized();
-			return previewImportPresetsFromFile({
-				existingPresets,
-			});
-		}),
+		previewImportPresets: publicProcedure
+			.input(
+				z
+					.object({
+						filePath: z.string().min(1).optional(),
+					})
+					.optional(),
+			)
+			.query(({ input }) => {
+				const existingPresets = getTerminalPresetsEnsuringInitialized();
+				return previewImportPresetsFromFile({
+					existingPresets,
+					importFilePath: input?.filePath,
+				});
+			}),
 
 		importPresets: publicProcedure
 			.input(
 				z.object({
 					selectedIndices: z.array(z.number().int().min(0)).optional(),
+					filePath: z.string().min(1).optional(),
 				}),
 			)
 			.mutation(({ input }) => {
@@ -155,6 +165,7 @@ export const createConfigRouter = () => {
 				const result = importPresetsFromFile({
 					existingPresets,
 					selectedIndices: input.selectedIndices,
+					importFilePath: input.filePath,
 				});
 
 				saveTerminalPresets(result.presets);

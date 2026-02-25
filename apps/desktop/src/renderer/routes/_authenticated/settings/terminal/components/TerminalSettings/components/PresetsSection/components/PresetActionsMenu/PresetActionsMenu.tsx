@@ -14,8 +14,6 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
@@ -62,32 +60,34 @@ export function PresetActionsMenu({
 	const utils = electronTrpc.useUtils();
 	const { data: presets = [] } =
 		electronTrpc.settings.getTerminalPresets.useQuery();
-	const { data: presetsFileStatus } =
-		electronTrpc.config.getPresetsFileStatus.useQuery();
+	const { data: defaultPresetsFilePath } =
+		electronTrpc.config.getPresetsFilePath.useQuery();
 
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+	const [importFilePath, setImportFilePath] = useState<string | null>(null);
 	const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
 		new Set(),
 	);
+	const selectFile = electronTrpc.window.selectFile.useMutation();
 
 	const exportPresets = electronTrpc.config.exportPresets.useMutation({
 		onSuccess: async () => {
-			await Promise.all([
-				utils.config.getPresetsFileStatus.invalidate(),
-				utils.config.previewImportPresets.invalidate(),
-			]);
+			await utils.config.previewImportPresets.invalidate();
 		},
 	});
 
+	const previewImportInput = useMemo(
+		() => (importFilePath ? { filePath: importFilePath } : undefined),
+		[importFilePath],
+	);
 	const previewImportPresets =
-		electronTrpc.config.previewImportPresets.useQuery(undefined, {
-			enabled: isImportDialogOpen,
+		electronTrpc.config.previewImportPresets.useQuery(previewImportInput, {
+			enabled: isImportDialogOpen && !!importFilePath,
 		});
 
 	const importPresets = electronTrpc.config.importPresets.useMutation({
 		onSuccess: async () => {
 			await Promise.all([
-				utils.config.getPresetsFileStatus.invalidate(),
 				utils.config.previewImportPresets.invalidate(),
 				utils.settings.getTerminalPresets.invalidate(),
 				utils.settings.getWorkspaceCreationPresets.invalidate(),
@@ -117,12 +117,22 @@ export function PresetActionsMenu({
 		setSelectedIndices(new Set(defaultSelected));
 	}, [isImportDialogOpen, previewImportPresets.data]);
 
+	useEffect(() => {
+		if (isImportDialogOpen) {
+			return;
+		}
+
+		setImportFilePath(null);
+		setSelectedIndices(new Set());
+	}, [isImportDialogOpen]);
+
 	const selectedCount = selectedIndices.size;
 	const totalCount = previewImportPresets.data?.items.length ?? 0;
 	const allSelected = totalCount > 0 && selectedCount === totalCount;
 	const hasPreviewData = !!previewImportPresets.data;
 	const canImportSelected =
 		hasPreviewData &&
+		!!importFilePath &&
 		selectedCount > 0 &&
 		!previewImportPresets.isFetching &&
 		!importPresets.isPending;
@@ -150,7 +160,7 @@ export function PresetActionsMenu({
 	);
 
 	const handleImportConfirm = useCallback(async () => {
-		if (selectedIndicesArray.length === 0) {
+		if (!importFilePath || selectedIndicesArray.length === 0) {
 			toast.error("No presets selected", {
 				description: "Select at least one preset to import.",
 			});
@@ -161,6 +171,7 @@ export function PresetActionsMenu({
 		try {
 			const result = await importPresets.mutateAsync({
 				selectedIndices: selectedIndicesArray,
+				filePath: importFilePath,
 			});
 			setIsImportDialogOpen(false);
 			toast.success("Presets imported", {
@@ -177,7 +188,34 @@ export function PresetActionsMenu({
 				description: error instanceof Error ? error.message : undefined,
 			});
 		}
-	}, [handleUndoImport, importPresets, presets, selectedIndicesArray]);
+	}, [
+		handleUndoImport,
+		importFilePath,
+		importPresets,
+		presets,
+		selectedIndicesArray,
+	]);
+
+	const handleOpenImportDialog = useCallback(async () => {
+		try {
+			const result = await selectFile.mutateAsync({
+				title: "Import Terminal Presets",
+				defaultPath: defaultPresetsFilePath ?? undefined,
+				filters: [{ name: "JSON", extensions: ["json"] }],
+			});
+
+			if (result.canceled || !result.path) {
+				return;
+			}
+
+			setImportFilePath(result.path);
+			setIsImportDialogOpen(true);
+		} catch (error) {
+			toast.error("Failed to select presets file", {
+				description: error instanceof Error ? error.message : undefined,
+			});
+		}
+	}, [defaultPresetsFilePath, selectFile]);
 
 	const handleExport = useCallback(async () => {
 		try {
@@ -245,11 +283,11 @@ export function PresetActionsMenu({
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-64">
 						<DropdownMenuItem
-							onClick={() => setIsImportDialogOpen(true)}
-							disabled={!presetsFileStatus?.exists}
+							onClick={handleOpenImportDialog}
+							disabled={selectFile.isPending}
 						>
 							<HiOutlineArrowDownTray className="h-4 w-4" />
-							Import from file
+							{selectFile.isPending ? "Selecting file..." : "Import from file"}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onClick={handleExport}
@@ -258,10 +296,6 @@ export function PresetActionsMenu({
 							<HiOutlineArrowUpTray className="h-4 w-4" />
 							{exportPresets.isPending ? "Exporting..." : "Export to file"}
 						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuLabel className="text-[11px] font-normal text-muted-foreground break-all">
-							{presetsFileStatus?.path ?? "Loading presets path..."}
-						</DropdownMenuLabel>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
@@ -277,7 +311,7 @@ export function PresetActionsMenu({
 							Review Preset Import
 						</DialogTitle>
 						<DialogDescription>
-							Review changes from <code>{presetsFileStatus?.path}</code> before
+							Review changes from <code>{importFilePath}</code> before
 							importing.
 						</DialogDescription>
 					</DialogHeader>

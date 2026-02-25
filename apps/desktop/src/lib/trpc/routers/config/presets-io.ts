@@ -60,10 +60,12 @@ export function importPresetsFromFile({
 	existingPresets,
 	supersetHomeDir = SUPERSET_HOME_DIR,
 	selectedIndices,
+	importFilePath,
 }: {
 	existingPresets: TerminalPreset[];
 	supersetHomeDir?: string;
 	selectedIndices?: number[];
+	importFilePath?: string;
 }): {
 	path: string;
 	created: number;
@@ -72,7 +74,7 @@ export function importPresetsFromFile({
 	skipped: number;
 	presets: TerminalPreset[];
 } {
-	const path = getPresetsFilePath(supersetHomeDir);
+	const path = importFilePath ?? getPresetsFilePath(supersetHomeDir);
 	if (!existsSync(path)) {
 		throw new Error(`No presets file found at ${path}`);
 	}
@@ -126,9 +128,11 @@ export function importPresetsFromFile({
 export function previewImportPresetsFromFile({
 	existingPresets,
 	supersetHomeDir = SUPERSET_HOME_DIR,
+	importFilePath,
 }: {
 	existingPresets: TerminalPreset[];
 	supersetHomeDir?: string;
+	importFilePath?: string;
 }): {
 	path: string;
 	created: number;
@@ -137,7 +141,7 @@ export function previewImportPresetsFromFile({
 	skipped: number;
 	items: ReturnType<typeof previewSharedPresetImport>["items"];
 } {
-	const path = getPresetsFilePath(supersetHomeDir);
+	const path = importFilePath ?? getPresetsFilePath(supersetHomeDir);
 	if (!existsSync(path)) {
 		throw new Error(`No presets file found at ${path}`);
 	}
