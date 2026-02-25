@@ -18,6 +18,7 @@ import {
 	existsSync,
 	lstatSync,
 	mkdirSync,
+	readdirSync,
 	readFileSync,
 	realpathSync,
 	rmSync,
@@ -29,6 +30,7 @@ const NATIVE_MODULES = [
 	"better-sqlite3",
 	"node-pty",
 	"@ast-grep/napi",
+	"libsql",
 ] as const;
 
 // Dependencies of native modules that need to be copied (may be hoisted or symlinked)
@@ -40,8 +42,25 @@ function copyModuleIfSymlink(
 	required: boolean,
 ): boolean {
 	const modulePath = join(nodeModulesDir, moduleName);
+	const bunFlatNodeModulesDir = join(
+		nodeModulesDir,
+		"..",
+		"..",
+		"..",
+		"node_modules",
+		".bun",
+		"node_modules",
+	);
+	const bunFlatModulePath = join(bunFlatNodeModulesDir, moduleName);
 
 	if (!existsSync(modulePath)) {
+		if (existsSync(bunFlatModulePath)) {
+			console.log(`  ${moduleName}: materializing from Bun store index`);
+			mkdirSync(dirname(modulePath), { recursive: true });
+			cpSync(realpathSync(bunFlatModulePath), modulePath, { recursive: true });
+			console.log(`    Copied to: ${modulePath}`);
+			return true;
+		}
 		if (required) {
 			console.error(`  [ERROR] ${moduleName} not found at ${modulePath}`);
 			process.exit(1);
@@ -126,6 +145,57 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 	}
 }
 
+function copyLibsqlDependencies(nodeModulesDir: string): void {
+	const libsqlPath = join(nodeModulesDir, "libsql");
+	const libsqlPkgJsonPath = join(libsqlPath, "package.json");
+	if (!existsSync(libsqlPkgJsonPath)) return;
+
+	type LibsqlPackageJson = {
+		dependencies?: Record<string, string>;
+		optionalDependencies?: Record<string, string>;
+	};
+	const libsqlPkg = JSON.parse(
+		readFileSync(libsqlPkgJsonPath, "utf8"),
+	) as LibsqlPackageJson;
+	const deps = Object.keys(libsqlPkg.dependencies ?? {});
+	const optionalDeps = Object.keys(libsqlPkg.optionalDependencies ?? {});
+
+	console.log("\nPreparing libsql runtime dependencies...");
+	for (const dep of deps) {
+		copyModuleIfSymlink(nodeModulesDir, dep, true);
+	}
+
+	// Copy whichever optional native platform packages Bun installed for this platform.
+	for (const dep of optionalDeps) {
+		copyModuleIfSymlink(nodeModulesDir, dep, false);
+	}
+
+	// Some Bun installs place optional deps under .bun/node_modules/@scope.
+	// Mirror discovered @libsql optional packages if present there.
+	const bunFlatLibsqlScopePath = join(
+		nodeModulesDir,
+		"..",
+		"..",
+		"..",
+		"node_modules",
+		".bun",
+		"node_modules",
+		"@libsql",
+	);
+	if (existsSync(bunFlatLibsqlScopePath)) {
+		for (const entry of readdirSync(bunFlatLibsqlScopePath)) {
+			if (
+				!entry.includes("darwin") &&
+				!entry.includes("linux") &&
+				!entry.includes("win32")
+			) {
+				continue;
+			}
+			copyModuleIfSymlink(nodeModulesDir, `@libsql/${entry}`, false);
+		}
+	}
+}
+
 function prepareNativeModules() {
 	console.log("Preparing native modules for electron-builder...");
 
@@ -145,6 +215,7 @@ function prepareNativeModules() {
 
 	console.log("\nPreparing ast-grep platform package...");
 	copyAstGrepPlatformPackages(nodeModulesDir);
+	copyLibsqlDependencies(nodeModulesDir);
 
 	console.log("\nDone!");
 }

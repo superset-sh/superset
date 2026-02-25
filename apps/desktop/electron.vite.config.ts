@@ -108,6 +108,7 @@ export default defineConfig({
 					"node-pty",
 					"pg-native",
 					"@ast-grep/napi",
+					"libsql",
 				],
 				plugins: [sentryPlugin].filter(Boolean),
 			},
