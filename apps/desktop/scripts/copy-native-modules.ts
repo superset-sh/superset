@@ -13,11 +13,23 @@
  * This is safe because bun install will recreate the symlinks on next install.
  */
 
-import { cpSync, existsSync, lstatSync, realpathSync, rmSync } from "node:fs";
+import {
+	cpSync,
+	existsSync,
+	lstatSync,
+	mkdirSync,
+	readFileSync,
+	realpathSync,
+	rmSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 
 // Native modules that must exist for the app to work
-const NATIVE_MODULES = ["better-sqlite3", "node-pty"] as const;
+const NATIVE_MODULES = [
+	"better-sqlite3",
+	"node-pty",
+	"@ast-grep/napi",
+] as const;
 
 // Dependencies of native modules that need to be copied (may be hoisted or symlinked)
 const NATIVE_MODULE_DEPS = ["bindings", "file-uri-to-path"] as const;
@@ -60,6 +72,60 @@ function copyModuleIfSymlink(
 	return true;
 }
 
+function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
+	const astGrepNapiPath = join(nodeModulesDir, "@ast-grep", "napi");
+	if (!existsSync(astGrepNapiPath)) return;
+
+	const astGrepPkgJsonPath = join(astGrepNapiPath, "package.json");
+	if (!existsSync(astGrepPkgJsonPath)) return;
+
+	type AstGrepPackageJson = {
+		optionalDependencies?: Record<string, string>;
+	};
+	const astGrepPkg = JSON.parse(
+		readFileSync(astGrepPkgJsonPath, "utf8"),
+	) as AstGrepPackageJson;
+	const optionalDeps = astGrepPkg.optionalDependencies ?? {};
+	const platformPackages = Object.entries(optionalDeps)
+		.filter(([name]) => name.startsWith("@ast-grep/napi-"))
+		.map(([name, version]) => ({ name, version }));
+
+	if (platformPackages.length === 0) return;
+
+	// Bun isolated installs keep package payloads in workspaceRoot/node_modules/.bun
+	const bunStoreDir = join(
+		nodeModulesDir,
+		"..",
+		"..",
+		"..",
+		"node_modules",
+		".bun",
+	);
+
+	for (const platformPkg of platformPackages) {
+		const destPath = join(nodeModulesDir, platformPkg.name);
+		if (existsSync(destPath)) {
+			copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false);
+			continue;
+		}
+
+		const bunStoreFolderName = `${platformPkg.name.replace("/", "+")}@${platformPkg.version}`;
+		const sourcePath = join(
+			bunStoreDir,
+			bunStoreFolderName,
+			"node_modules",
+			platformPkg.name,
+		);
+		if (!existsSync(sourcePath)) {
+			continue;
+		}
+
+		console.log(`  ${platformPkg.name}: copying from Bun store`);
+		mkdirSync(dirname(destPath), { recursive: true });
+		cpSync(sourcePath, destPath, { recursive: true });
+	}
+}
+
 function prepareNativeModules() {
 	console.log("Preparing native modules for electron-builder...");
 
@@ -76,6 +142,9 @@ function prepareNativeModules() {
 	for (const moduleName of NATIVE_MODULE_DEPS) {
 		copyModuleIfSymlink(nodeModulesDir, moduleName, false);
 	}
+
+	console.log("\nPreparing ast-grep platform package...");
+	copyAstGrepPlatformPackages(nodeModulesDir);
 
 	console.log("\nDone!");
 }

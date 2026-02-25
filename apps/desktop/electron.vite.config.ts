@@ -107,7 +107,6 @@ export default defineConfig({
 					"better-sqlite3",
 					"node-pty",
 					"pg-native",
-					"mastracode",
 					"@ast-grep/napi",
 				],
 				plugins: [sentryPlugin].filter(Boolean),
