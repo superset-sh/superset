@@ -58,6 +58,7 @@ export const SETTING_ITEM_ID = {
 	// Permissions
 	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
 	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
+	PERMISSIONS_MICROPHONE: "permissions-microphone",
 	PERMISSIONS_APPLE_EVENTS: "permissions-apple-events",
 	PERMISSIONS_LOCAL_NETWORK: "permissions-local-network",
 } as const;
@@ -791,7 +792,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		section: "permissions",
 		title: "Full Disk Access",
 		description:
-			"Access files in Documents, Downloads, Desktop, and iCloud from the terminal",
+			"Persistent access to Documents, Downloads, Desktop, and iCloud from terminal sessions",
 		keywords: [
 			"permissions",
 			"full disk access",
@@ -822,6 +823,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"security",
 			"privacy",
 			"trusted",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PERMISSIONS_MICROPHONE,
+		section: "permissions",
+		title: "Microphone",
+		description: "Use voice transcription and push-to-talk features",
+		keywords: [
+			"permissions",
+			"microphone",
+			"mic",
+			"voice",
+			"transcription",
+			"audio",
+			"recording",
+			"push to talk",
+			"codex",
+			"privacy",
 		],
 	},
 	{

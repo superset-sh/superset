@@ -22,12 +22,21 @@ function checkAccessibility(): boolean {
 	return systemPreferences.isTrustedAccessibilityClient(false);
 }
 
+function checkMicrophone(): boolean {
+	try {
+		return systemPreferences.getMediaAccessStatus("microphone") === "granted";
+	} catch {
+		return false;
+	}
+}
+
 export const createPermissionsRouter = () => {
 	return router({
 		getStatus: publicProcedure.query(() => {
 			return {
 				fullDiskAccess: checkFullDiskAccess(),
 				accessibility: checkAccessibility(),
+				microphone: checkMicrophone(),
 			};
 		}),
 
@@ -41,6 +50,25 @@ export const createPermissionsRouter = () => {
 			await shell.openExternal(
 				"x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
 			);
+		}),
+
+		requestMicrophone: publicProcedure.mutation(async () => {
+			try {
+				if (process.platform === "darwin") {
+					const granted =
+						await systemPreferences.askForMediaAccess("microphone");
+					if (granted) {
+						return { granted: true };
+					}
+				}
+			} catch {
+				// Fall through to opening System Settings.
+			}
+
+			await shell.openExternal(
+				"x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone",
+			);
+			return { granted: false };
 		}),
 
 		requestAppleEvents: publicProcedure.mutation(async () => {
