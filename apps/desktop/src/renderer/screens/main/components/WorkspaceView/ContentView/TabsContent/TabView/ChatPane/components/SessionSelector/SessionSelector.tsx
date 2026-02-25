@@ -31,6 +31,12 @@ interface SessionSelectorProps {
 	onDeleteSession: (sessionId: string) => Promise<void>;
 }
 
+function formatSessionDate(isoDate: string): string {
+	const parsed = new Date(isoDate);
+	if (Number.isNaN(parsed.getTime())) return isoDate;
+	return parsed.toLocaleString();
+}
+
 export function SessionSelector({
 	currentSessionId,
 	workspaceId,
@@ -73,6 +79,13 @@ export function SessionSelector({
 		);
 	const importClaudeSessionMutation =
 		electronTrpc.chatServiceClaude.importSession.useMutation();
+	const claudeSessionsErrorMessage =
+		claudeSessionsError instanceof Error
+			? claudeSessionsError.message
+			: "Failed to load Claude sessions";
+	const requiresMainRestart =
+		claudeSessionsErrorMessage.includes("No \"query\"-procedure") ||
+		claudeSessionsErrorMessage.includes("No procedure");
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -149,7 +162,12 @@ export function SessionSelector({
 						</div>
 					) : claudeSessionsError ? (
 						<div className="px-2 py-1.5 text-xs text-destructive">
-							Failed to load Claude sessions
+							<div className="truncate">{claudeSessionsErrorMessage}</div>
+							{requiresMainRestart ? (
+								<div className="text-[10px] text-muted-foreground">
+									Restart desktop app to refresh main-process routes
+								</div>
+							) : null}
 						</div>
 					) : claudeSessions && claudeSessions.length > 0 ? (
 						claudeSessions.map((claudeSession) => (
@@ -184,9 +202,12 @@ export function SessionSelector({
 									})();
 								}}
 							>
-								<span className="min-w-0 truncate text-xs">
-									{claudeSession.title}
-								</span>
+								<div className="min-w-0">
+									<div className="truncate text-xs">{claudeSession.title}</div>
+									<div className="truncate text-[10px] text-muted-foreground">
+										{formatSessionDate(claudeSession.lastModifiedAt)}
+									</div>
+								</div>
 								<HiMiniArrowDownTray className="size-3 shrink-0 text-muted-foreground group-hover:text-foreground" />
 							</DropdownMenuItem>
 						))

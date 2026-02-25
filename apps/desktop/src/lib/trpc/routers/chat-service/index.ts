@@ -29,6 +29,12 @@ interface ClaudeSessionSummary {
 }
 
 type FileStat = Awaited<ReturnType<typeof stat>>;
+type ClaudeSessionRootKind = "projects" | "transcripts";
+
+interface ClaudeSessionRoot {
+	kind: ClaudeSessionRootKind;
+	rootDir: string;
+}
 
 function resolveLifecycleTargets(sessionId: string): Array<{
 	paneId: string;
@@ -64,8 +70,18 @@ function resolveLifecycleTargets(sessionId: string): Array<{
 	return targets;
 }
 
-function getClaudeProjectsRoot(): string {
-	return path.join(os.homedir(), ".claude", "projects");
+function getClaudeSessionRoots(): ClaudeSessionRoot[] {
+	const baseDir = path.join(os.homedir(), ".claude");
+	return [
+		{
+			kind: "projects",
+			rootDir: path.join(baseDir, "projects"),
+		},
+		{
+			kind: "transcripts",
+			rootDir: path.join(baseDir, "transcripts"),
+		},
+	];
 }
 
 function encodeClaudeProjectPath(cwd: string): string {
@@ -87,50 +103,81 @@ function isWithinDirectory(rootDir: string, targetPath: string): boolean {
 	);
 }
 
+function findClaudeSessionRootForPath(
+	targetPath: string,
+): ClaudeSessionRoot | null {
+	const normalizedFilePath = path.resolve(targetPath);
+	for (const root of getClaudeSessionRoots()) {
+		if (!existsSync(root.rootDir)) continue;
+		if (isWithinDirectory(root.rootDir, normalizedFilePath)) {
+			return root;
+		}
+	}
+	return null;
+}
+
 async function listClaudeSessions(args: {
 	cwd: string;
 	limit: number;
 }): Promise<ClaudeSessionSummary[]> {
 	const { cwd, limit } = args;
-	const claudeProjectsRoot = getClaudeProjectsRoot();
-	if (!existsSync(claudeProjectsRoot)) return [];
+	const roots = getClaudeSessionRoots().filter((root) => existsSync(root.rootDir));
+	if (roots.length === 0) return [];
 
-	const filePaths = await fg("**/*.jsonl", {
-		cwd: claudeProjectsRoot,
-		absolute: true,
-		onlyFiles: true,
-		unique: true,
-		followSymbolicLinks: false,
-		suppressErrors: true,
-	});
+	const rootEntries = await Promise.all(
+		roots.map(async (root) => {
+			try {
+				const filePaths = await fg("**/*.jsonl", {
+					cwd: root.rootDir,
+					absolute: true,
+					onlyFiles: true,
+					unique: true,
+					followSymbolicLinks: false,
+					suppressErrors: true,
+				});
+				return filePaths.map((filePath) => ({ filePath, root }));
+			} catch {
+				return [] as Array<{ filePath: string; root: ClaudeSessionRoot }>;
+			}
+		}),
+	);
+
+	const allEntries = rootEntries.flat();
+	if (allEntries.length === 0) return [];
 
 	const workspaceProjectId = encodeClaudeProjectPath(cwd);
-	const workspaceMatches = filePaths.filter((filePath) => {
-		const relative = path
-			.relative(claudeProjectsRoot, filePath)
-			.replace(/\\/g, "/");
+	const workspaceMatches = allEntries.filter(({ filePath, root }) => {
+		if (root.kind !== "projects") return false;
+		const relative = path.relative(root.rootDir, filePath).replace(/\\/g, "/");
 		const [projectId] = relative.split("/");
 		return projectId === workspaceProjectId;
 	});
 
-	const candidates = workspaceMatches.length > 0 ? workspaceMatches : filePaths;
+	const candidates = workspaceMatches.length > 0 ? workspaceMatches : allEntries;
 
-	const withStats: Array<{ filePath: string; fileStat: FileStat }> = [];
-	for (const filePath of candidates) {
+	const withStats: Array<{
+		filePath: string;
+		fileStat: FileStat;
+		root: ClaudeSessionRoot;
+	}> = [];
+	for (const { filePath, root } of candidates) {
 		try {
 			const fileStat = await stat(filePath);
-			withStats.push({ filePath, fileStat });
+			withStats.push({ filePath, fileStat, root });
 		} catch {}
 	}
 
 	return withStats
 		.sort((a, b) => b.fileStat.mtime.getTime() - a.fileStat.mtime.getTime())
 		.slice(0, limit)
-		.map(({ filePath, fileStat }) => {
-			const relative = path
-				.relative(claudeProjectsRoot, filePath)
-				.replace(/\\/g, "/");
-			const [projectId = "unknown"] = relative.split("/");
+		.map(({ filePath, fileStat, root }) => {
+			const projectId =
+				root.kind === "projects"
+					? (path
+							.relative(root.rootDir, filePath)
+							.replace(/\\/g, "/")
+							.split("/")[0] ?? "unknown")
+					: "transcripts";
 			const id = path.basename(filePath, ".jsonl");
 			return {
 				id,
@@ -193,15 +240,9 @@ async function importClaudeSession(args: {
 	importedMessages: number;
 	ignoredEntries: number;
 }> {
-	const claudeProjectsRoot = getClaudeProjectsRoot();
 	const normalizedFilePath = path.resolve(args.filePath);
-	if (!existsSync(claudeProjectsRoot)) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Claude projects directory does not exist",
-		});
-	}
-	if (!isWithinDirectory(claudeProjectsRoot, normalizedFilePath)) {
+	const root = findClaudeSessionRootForPath(normalizedFilePath);
+	if (!root) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: "Invalid Claude session path",
