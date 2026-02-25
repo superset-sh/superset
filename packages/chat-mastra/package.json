@@ -4,10 +4,6 @@
 	"private": true,
 	"type": "module",
 	"exports": {
-		"./schema": {
-			"types": "./src/schema/index.ts",
-			"default": "./src/schema/index.ts"
-		},
 		"./client": {
 			"types": "./src/client/index.ts",
 			"default": "./src/client/index.ts"
