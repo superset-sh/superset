@@ -8,11 +8,13 @@ import {
 	gitDiscardAllUnstaged,
 	gitStageAll,
 	gitStageFile,
+	gitStageFiles,
 	gitStash,
 	gitStashIncludeUntracked,
 	gitStashPop,
 	gitUnstageAll,
 	gitUnstageFile,
+	gitUnstageFiles,
 	secureFs,
 } from "./security";
 import { parseGitStatus } from "./utils/parse-status";
@@ -77,6 +79,30 @@ export const createStagingRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				await gitCheckoutFile(input.worktreePath, input.filePath);
+				return { success: true };
+			}),
+
+		stageFiles: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePaths: z.array(z.string()).min(1),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				await gitStageFiles(input.worktreePath, input.filePaths);
+				return { success: true };
+			}),
+
+		unstageFiles: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePaths: z.array(z.string()).min(1),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				await gitUnstageFiles(input.worktreePath, input.filePaths);
 				return { success: true };
 			}),
 

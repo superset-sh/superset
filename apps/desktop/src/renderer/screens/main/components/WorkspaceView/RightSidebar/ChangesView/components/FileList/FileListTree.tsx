@@ -36,6 +36,8 @@ interface FileListTreeProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onStageFiles?: (files: ChangedFile[]) => void;
+	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
@@ -106,6 +108,8 @@ interface TreeNodeComponentProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onStageFiles?: (files: ChangedFile[]) => void;
+	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
@@ -124,6 +128,8 @@ function TreeNodeComponent({
 	showStats,
 	onStage,
 	onUnstage,
+	onStageFiles,
+	onUnstageFiles,
 	isActioning,
 	worktreePath,
 	onDiscard,
@@ -138,20 +144,24 @@ function TreeNodeComponent({
 	const isSelected = selectedPath === node.path && !selectedCommitHash;
 
 	const handleStageAll = useCallback(() => {
-		if (!onStage) return;
-		const files = collectFilesFromNode(node);
-		for (const file of files) {
-			onStage(file);
+		if (onStageFiles) {
+			onStageFiles(collectFilesFromNode(node));
+		} else if (onStage) {
+			for (const file of collectFilesFromNode(node)) {
+				onStage(file);
+			}
 		}
-	}, [node, onStage]);
+	}, [node, onStage, onStageFiles]);
 
 	const handleUnstageAll = useCallback(() => {
-		if (!onUnstage) return;
-		const files = collectFilesFromNode(node);
-		for (const file of files) {
-			onUnstage(file);
+		if (onUnstageFiles) {
+			onUnstageFiles(collectFilesFromNode(node));
+		} else if (onUnstage) {
+			for (const file of collectFilesFromNode(node)) {
+				onUnstage(file);
+			}
 		}
-	}, [node, onUnstage]);
+	}, [node, onUnstage, onUnstageFiles]);
 
 	const handleDiscardAll = useCallback(() => {
 		if (!onDiscard) return;
@@ -172,8 +182,10 @@ function TreeNodeComponent({
 				folderPath={node.path}
 				worktreePath={worktreePath}
 				projectId={projectId}
-				onStageAll={onStage ? handleStageAll : undefined}
-				onUnstageAll={onUnstage ? handleUnstageAll : undefined}
+				onStageAll={onStage || onStageFiles ? handleStageAll : undefined}
+				onUnstageAll={
+					onUnstage || onUnstageFiles ? handleUnstageAll : undefined
+				}
 				onDiscardAll={onDiscard ? handleDiscardAll : undefined}
 				isActioning={isActioning}
 			>
@@ -188,6 +200,8 @@ function TreeNodeComponent({
 						showStats={showStats}
 						onStage={onStage}
 						onUnstage={onUnstage}
+						onStageFiles={onStageFiles}
+						onUnstageFiles={onUnstageFiles}
 						isActioning={isActioning}
 						worktreePath={worktreePath}
 						onDiscard={onDiscard}
@@ -234,6 +248,8 @@ export function FileListTree({
 	showStats = true,
 	onStage,
 	onUnstage,
+	onStageFiles,
+	onUnstageFiles,
 	isActioning,
 	worktreePath,
 	onDiscard,
@@ -256,6 +272,8 @@ export function FileListTree({
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}
+					onStageFiles={onStageFiles}
+					onUnstageFiles={onUnstageFiles}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard}

@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createWorktree } from "./git";
+import { createWorktree, getCurrentBranch, parsePrUrl } from "./git";
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -331,5 +331,94 @@ describe("createWorktree hook tolerance", () => {
 		await expect(
 			createWorktree(repoPath, "feature/existing-path", worktreePath, "HEAD"),
 		).rejects.toThrow("already exists");
+	});
+});
+
+describe("getCurrentBranch", () => {
+	test("returns branch name for empty repo with unborn HEAD", async () => {
+		const repoPath = join(
+			realpathSync(tmpdir()),
+			`superset-test-current-branch-empty-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		);
+
+		mkdirSync(repoPath, { recursive: true });
+
+		try {
+			execSync("git init", { cwd: repoPath, stdio: "ignore" });
+			execSync("git symbolic-ref HEAD refs/heads/feature/empty", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			const branch = await getCurrentBranch(repoPath);
+			expect(branch).toBe("feature/empty");
+		} finally {
+			if (existsSync(repoPath)) {
+				rmSync(repoPath, { recursive: true, force: true });
+			}
+		}
+	});
+
+	test("returns null in detached HEAD state", async () => {
+		const repoPath = join(
+			realpathSync(tmpdir()),
+			`superset-test-current-branch-detached-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		);
+
+		mkdirSync(repoPath, { recursive: true });
+
+		try {
+			execSync("git init", { cwd: repoPath, stdio: "ignore" });
+			execSync("git config user.email 'test@test.com'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git config user.name 'Test'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			writeFileSync(join(repoPath, "README.md"), "# test\n");
+			execSync("git add . && git commit -m 'init'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git checkout --detach HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			const branch = await getCurrentBranch(repoPath);
+			expect(branch).toBeNull();
+		} finally {
+			if (existsSync(repoPath)) {
+				rmSync(repoPath, { recursive: true, force: true });
+			}
+		}
+	});
+});
+
+describe("parsePrUrl", () => {
+	test("parses canonical GitHub PR URL", () => {
+		expect(
+			parsePrUrl("https://github.com/superset-sh/superset/pull/1781"),
+		).toEqual({
+			owner: "superset-sh",
+			repo: "superset",
+			number: 1781,
+		});
+	});
+
+	test("parses GitHub URL without protocol", () => {
+		expect(parsePrUrl("github.com/superset-sh/superset/pull/1781")).toEqual({
+			owner: "superset-sh",
+			repo: "superset",
+			number: 1781,
+		});
+	});
+
+	test("returns null for non-PR URLs", () => {
+		expect(
+			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
+		).toBe(null);
 	});
 });

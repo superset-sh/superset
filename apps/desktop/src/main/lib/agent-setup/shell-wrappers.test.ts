@@ -97,11 +97,36 @@ describe("shell-wrappers", () => {
 		expect(getShellArgs("/bin/zsh")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/sh")).toEqual(["-l"]);
 		expect(getShellArgs("/bin/ksh")).toEqual(["-l"]);
-		expect(getShellArgs("/opt/homebrew/bin/fish")).toEqual(["-l"]);
 	});
 
 	it("returns empty args for unrecognized shells", () => {
 		expect(getShellArgs("/bin/csh")).toEqual([]);
 		expect(getShellArgs("powershell")).toEqual([]);
+	});
+
+	describe("fish shell", () => {
+		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
+			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);
+
+			expect(args).toEqual([
+				"-l",
+				"--init-command",
+				`set -l _superset_bin "${TEST_BIN_DIR}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
+			]);
+		});
+
+		it("escapes fish init-command BIN_DIR safely", () => {
+			const fishPath = '/tmp/with space/quote"buck$slash\\bin';
+			const args = getShellArgs("/opt/homebrew/bin/fish", {
+				...TEST_PATHS,
+				BIN_DIR: fishPath,
+			});
+
+			expect(args).toEqual([
+				"-l",
+				"--init-command",
+				`set -l _superset_bin "/tmp/with space/quote\\"buck\\$slash\\\\bin"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
+			]);
+		});
 	});
 });

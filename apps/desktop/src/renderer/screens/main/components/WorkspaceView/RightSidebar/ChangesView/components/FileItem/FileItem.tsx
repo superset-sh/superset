@@ -1,13 +1,4 @@
 import {
-	AlertDialog,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
-import {
 	ContextMenu,
 	ContextMenuContent,
 	ContextMenuItem,
@@ -31,6 +22,9 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../ChangesContent";
 import { useFileDrag, usePathActions } from "../../hooks";
 import { getStatusColor, getStatusIndicator } from "../../utils";
+import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
+import type { RowHoverAction } from "../RowHoverActions";
+import { RowHoverActions } from "../RowHoverActions";
 
 interface FileItemProps {
 	file: ChangedFile;
@@ -93,7 +87,7 @@ export function FileItem({
 	const showStatsDisplay =
 		showStats && (file.additions > 0 || file.deletions > 0);
 	const hasIndent = level > 0;
-	const hasAction = onStage || onUnstage;
+	const hasAction = onStage || onUnstage || onDiscard;
 
 	const isScrollSyncActive =
 		category && activeFileKey === createFileKey(file, category, commitHash);
@@ -156,20 +150,60 @@ export function FileItem({
 	};
 
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
-	const discardLabel = isDeleteAction ? "Delete" : "Discard Changes";
+	const discardLabel = isDeleteAction ? "Delete" : "Discard";
 	const discardDialogTitle = isDeleteAction
 		? `Delete "${fileName}"?`
 		: `Discard changes to "${fileName}"?`;
 	const discardDialogDescription = isDeleteAction
 		? "This will permanently delete this file. This action cannot be undone."
 		: "This will revert all changes to this file. This action cannot be undone.";
+	const hoverActions: RowHoverAction[] = [
+		...(onDiscard
+			? [
+					{
+						key: "discard",
+						label: discardLabel,
+						icon: isDeleteAction ? (
+							<LuTrash2 className="size-3" />
+						) : (
+							<LuUndo2 className="size-3" />
+						),
+						onClick: handleDiscardClick,
+						isDestructive: true,
+						disabled: isActioning,
+					},
+				]
+			: []),
+		...(onStage
+			? [
+					{
+						key: "stage",
+						label: "Stage",
+						icon: <HiMiniPlus className="size-3" />,
+						onClick: onStage,
+						disabled: isActioning,
+					},
+				]
+			: []),
+		...(onUnstage
+			? [
+					{
+						key: "unstage",
+						label: "Unstage",
+						icon: <HiMiniMinus className="size-3" />,
+						onClick: onUnstage,
+						disabled: isActioning,
+					},
+				]
+			: []),
+	];
 
 	const fileContent = (
 		<div
 			{...fileDragProps}
 			className={cn(
 				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
-				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
+				"hover:bg-accent/50 cursor-pointer transition-colors",
 				isHighlighted && "bg-accent",
 			)}
 		>
@@ -179,7 +213,7 @@ export function FileItem({
 				onClick={handleClick}
 				onDoubleClick={handleDoubleClick}
 				className={cn(
-					"flex items-center gap-1.5 flex-1 min-w-0",
+					"flex items-center gap-1.5 flex-1 min-w-0 overflow-hidden",
 					hasIndent ? "py-0.5" : "py-1",
 				)}
 			>
@@ -214,48 +248,7 @@ export function FileItem({
 				</span>
 			</button>
 
-			{hasAction && (
-				<div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-					{onStage && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5 hover:bg-accent"
-									onClick={(e) => {
-										e.stopPropagation();
-										onStage();
-									}}
-									disabled={isActioning}
-								>
-									<HiMiniPlus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="right">Stage</TooltipContent>
-						</Tooltip>
-					)}
-					{onUnstage && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5 hover:bg-accent"
-									onClick={(e) => {
-										e.stopPropagation();
-										onUnstage();
-									}}
-									disabled={isActioning}
-								>
-									<HiMiniMinus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="right">Unstage</TooltipContent>
-						</Tooltip>
-					)}
-				</div>
-			)}
+			{hasAction && <RowHoverActions actions={hoverActions} />}
 		</div>
 	);
 
@@ -319,36 +312,15 @@ export function FileItem({
 				</ContextMenuContent>
 			</ContextMenu>
 
-			<AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
-					<AlertDialogHeader className="px-4 pt-4 pb-2">
-						<AlertDialogTitle className="font-medium">
-							{discardDialogTitle}
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							{discardDialogDescription}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={() => setShowDiscardDialog(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={handleConfirmDiscard}
-						>
-							{isDeleteAction ? "Delete" : "Discard"}
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			<DiscardConfirmDialog
+				open={showDiscardDialog}
+				onOpenChange={setShowDiscardDialog}
+				title={discardDialogTitle}
+				description={discardDialogDescription}
+				onConfirm={handleConfirmDiscard}
+				confirmLabel={isDeleteAction ? "Delete" : "Discard"}
+				confirmDisabled={!onDiscard || isActioning}
+			/>
 		</>
 	);
 }

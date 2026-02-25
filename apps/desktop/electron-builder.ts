@@ -46,6 +46,10 @@ const config: Configuration = {
 		"**/node_modules/bindings/**/*",
 		"**/node_modules/file-uri-to-path/**/*",
 		"**/node_modules/node-pty/**/*",
+		// ast-grep native bindings (package + platform binary package)
+		"**/node_modules/@ast-grep/napi*/**/*",
+		// libsql native bindings are loaded from @libsql/<platform>
+		"**/node_modules/@libsql/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
 		// Tray icon must be unpacked so Electron Tray can load it
@@ -96,6 +100,32 @@ const config: Configuration = {
 			to: "node_modules/node-pty",
 			filter: ["**/*"],
 		},
+		// ast-grep native bindings (package + platform binary package)
+		{
+			from: "node_modules/@ast-grep",
+			to: "node_modules/@ast-grep",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/libsql",
+			to: "node_modules/libsql",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/@libsql",
+			to: "node_modules/@libsql",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/@neon-rs",
+			to: "node_modules/@neon-rs",
+			filter: ["**/*"],
+		},
+		{
+			from: "node_modules/detect-libc",
+			to: "node_modules/detect-libc",
+			filter: ["**/*"],
+		},
 		// friendly-words is a CommonJS module that Vite doesn't bundle
 		{
 			from: "node_modules/friendly-words",
@@ -129,6 +159,9 @@ const config: Configuration = {
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
+			// Required for macOS microphone permission prompt
+			NSMicrophoneUsageDescription:
+				"Superset needs microphone access so voice-enabled tools like Codex transcription can capture audio input.",
 			// Required for macOS local network permission prompt
 			NSLocalNetworkUsageDescription:
 				"Superset needs access to your local network to discover and connect to development servers running on your network.",

@@ -101,6 +101,28 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		},
 	});
 
+	const stageFilesMutation = electronTrpc.changes.stageFiles.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to stage files ${variables.filePaths.join(", ")}:`,
+				error,
+			);
+			toast.error(`Failed to stage files: ${error.message}`);
+		},
+	});
+
+	const unstageFilesMutation = electronTrpc.changes.unstageFiles.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to unstage files ${variables.filePaths.join(", ")}:`,
+				error,
+			);
+			toast.error(`Failed to unstage files: ${error.message}`);
+		},
+	});
+
 	const discardChangesMutation =
 		electronTrpc.changes.discardChanges.useMutation({
 			onSuccess: () => refetch(),
@@ -452,7 +474,18 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 									filePath: file.path,
 								})
 							}
-							isActioning={unstageFileMutation.isPending}
+							onUnstageFiles={(files) =>
+								unstageFilesMutation.mutate({
+									worktreePath: worktreePath || "",
+									filePaths: files.map((f) => f.path),
+								})
+							}
+							isActioning={
+								unstageFileMutation.isPending ||
+								unstageFilesMutation.isPending ||
+								unstageAllMutation.isPending ||
+								discardAllStagedMutation.isPending
+							}
 							worktreePath={worktreePath}
 							projectId={projectId}
 							category="staged"
@@ -516,10 +549,19 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 									filePath: file.path,
 								})
 							}
+							onStageFiles={(files) =>
+								stageFilesMutation.mutate({
+									worktreePath: worktreePath || "",
+									filePaths: files.map((f) => f.path),
+								})
+							}
 							isActioning={
 								stageFileMutation.isPending ||
+								stageFilesMutation.isPending ||
+								stageAllMutation.isPending ||
 								discardChangesMutation.isPending ||
-								deleteUntrackedMutation.isPending
+								deleteUntrackedMutation.isPending ||
+								discardAllUnstagedMutation.isPending
 							}
 							worktreePath={worktreePath}
 							projectId={projectId}

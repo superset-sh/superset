@@ -1,5 +1,7 @@
+import type { ExecutionMode } from "@superset/local-db";
+
 export type PresetOpenTarget = "new-tab" | "active-tab";
-export type PresetMode = "split-pane" | "new-tab";
+export type PresetMode = ExecutionMode;
 
 export type PresetLaunchPlan =
 	| "new-tab-single"
@@ -7,13 +9,6 @@ export type PresetLaunchPlan =
 	| "new-tab-per-command"
 	| "active-tab-single"
 	| "active-tab-multi-pane";
-
-export function normalizePresetMode(mode: unknown): PresetMode {
-	if (mode === "new-tab") {
-		return "new-tab";
-	}
-	return "split-pane";
-}
 
 export function getPresetLaunchPlan({
 	mode,

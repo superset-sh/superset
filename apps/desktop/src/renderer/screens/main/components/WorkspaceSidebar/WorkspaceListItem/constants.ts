@@ -1,5 +1,4 @@
 export const MAX_KEYBOARD_SHORTCUT_INDEX = 9;
 export const GITHUB_STATUS_STALE_TIME = 30_000;
-export const AHEAD_BEHIND_STALE_TIME = 60_000;
 export const HOVER_CARD_OPEN_DELAY = 400;
 export const HOVER_CARD_CLOSE_DELAY = 100;

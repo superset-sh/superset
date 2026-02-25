@@ -42,7 +42,6 @@ import { STROKE_WIDTH } from "../constants";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
 import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import {
-	AHEAD_BEHIND_STALE_TIME,
 	GITHUB_STATUS_STALE_TIME,
 	HOVER_CARD_CLOSE_DELAY,
 	HOVER_CARD_OPEN_DELAY,
@@ -92,6 +91,7 @@ export function WorkspaceListItem({
 	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
 	const [hasHovered, setHasHovered] = useState(false);
+	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
 	const rename = useWorkspaceRename(id, name, branch);
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
@@ -141,14 +141,15 @@ export function WorkspaceListItem({
 		staleTime: GITHUB_STATUS_STALE_TIME,
 	});
 
-	const { data: aheadBehind } = electronTrpc.workspaces.getAheadBehind.useQuery(
-		{ workspaceId: id },
-		{
-			enabled: isBranchWorkspace,
-			staleTime: AHEAD_BEHIND_STALE_TIME,
-			refetchInterval: AHEAD_BEHIND_STALE_TIME,
-		},
-	);
+	const { data: aheadBehind, refetch: refetchAheadBehind } =
+		electronTrpc.workspaces.getAheadBehind.useQuery(
+			{ workspaceId: id },
+			{
+				enabled: isBranchWorkspace,
+				staleTime: GITHUB_STATUS_STALE_TIME,
+				refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
+			},
+		);
 
 	useBranchSyncInvalidation({
 		gitBranch: localChanges?.branch,
@@ -194,6 +195,7 @@ export function WorkspaceListItem({
 
 	const handleMouseEnter = () => {
 		if (!hasHovered) setHasHovered(true);
+		if (isBranchWorkspace) void refetchAheadBehind();
 	};
 
 	const handleOpenInFinder = () => {
@@ -525,10 +527,11 @@ export function WorkspaceListItem({
 	return (
 		<>
 			<HoverCard
+				open={isContextMenuOpen ? false : undefined}
 				openDelay={HOVER_CARD_OPEN_DELAY}
 				closeDelay={HOVER_CARD_CLOSE_DELAY}
 			>
-				<ContextMenu>
+				<ContextMenu onOpenChange={setIsContextMenuOpen}>
 					<HoverCardTrigger asChild>
 						<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
 					</HoverCardTrigger>

@@ -1,4 +1,7 @@
-import type { TerminalPreset } from "@superset/local-db";
+import {
+	normalizeExecutionMode,
+	type TerminalPreset,
+} from "@superset/local-db";
 import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
@@ -9,7 +12,6 @@ import {
 } from "renderer/lib/terminal/launch-command";
 import {
 	getPresetLaunchPlan,
-	normalizePresetMode,
 	type PresetMode,
 	type PresetOpenTarget,
 } from "./preset-launch";
@@ -19,6 +21,7 @@ import { resolveActiveTabIdForWorkspace } from "./utils";
 
 interface OpenPresetOptions {
 	target?: PresetOpenTarget;
+	modeOverride?: PresetMode;
 }
 
 interface PreparedPreset {
@@ -37,7 +40,7 @@ interface PresetPaneLaunch {
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
 	return {
-		mode: normalizePresetMode(preset.executionMode),
+		mode: normalizeExecutionMode(preset.executionMode),
 		commands: preset.commands,
 		initialCwd: preset.cwd || undefined,
 		name: preset.name || undefined,
@@ -312,7 +315,8 @@ export function useTabsWithPresets() {
 		) => {
 			const prepared = preparePreset(preset);
 			const target = options?.target ?? "new-tab";
-			return executePreset(workspaceId, prepared, target);
+			const mode = options?.modeOverride ?? prepared.mode;
+			return executePreset(workspaceId, { ...prepared, mode }, target);
 		},
 		[executePreset],
 	);

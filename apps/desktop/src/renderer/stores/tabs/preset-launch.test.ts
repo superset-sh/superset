@@ -1,16 +1,23 @@
 import { describe, expect, it } from "bun:test";
-import { getPresetLaunchPlan, normalizePresetMode } from "./preset-launch";
+import { normalizeExecutionMode } from "@superset/local-db";
+import { getPresetLaunchPlan } from "./preset-launch";
 
-describe("normalizePresetMode", () => {
+describe("normalizeExecutionMode", () => {
 	it("returns new-tab for new-tab mode", () => {
-		expect(normalizePresetMode("new-tab")).toBe("new-tab");
+		expect(normalizeExecutionMode("new-tab")).toBe("new-tab");
+	});
+
+	it("returns new-tab-split-pane for new-tab-split-pane mode", () => {
+		expect(normalizeExecutionMode("new-tab-split-pane")).toBe(
+			"new-tab-split-pane",
+		);
 	});
 
 	it("maps legacy and unknown modes to split-pane", () => {
-		expect(normalizePresetMode("split-pane")).toBe("split-pane");
-		expect(normalizePresetMode("parallel")).toBe("split-pane");
-		expect(normalizePresetMode("sequential")).toBe("split-pane");
-		expect(normalizePresetMode(undefined)).toBe("split-pane");
+		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
+		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
+		expect(normalizeExecutionMode("sequential")).toBe("split-pane");
+		expect(normalizeExecutionMode(undefined)).toBe("split-pane");
 	});
 });
 
@@ -46,6 +53,17 @@ describe("getPresetLaunchPlan", () => {
 				hasActiveTab: true,
 			}),
 		).toBe("new-tab-per-command");
+	});
+
+	it("uses new-tab multi-pane path when mode is new-tab-split-pane", () => {
+		expect(
+			getPresetLaunchPlan({
+				mode: "new-tab-split-pane",
+				target: "active-tab",
+				commandCount: 3,
+				hasActiveTab: true,
+			}),
+		).toBe("new-tab-multi-pane");
 	});
 
 	it("defaults new-tab target with split-pane mode to tab multi-pane for multiple commands", () => {

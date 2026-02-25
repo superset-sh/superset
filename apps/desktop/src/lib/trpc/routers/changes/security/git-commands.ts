@@ -126,6 +126,50 @@ export async function gitStageFile(
 }
 
 /**
+ * Stage multiple files for commit in a single git command.
+ *
+ * Uses `git add -- <paths...>` to avoid index.lock races
+ * when staging multiple files.
+ */
+export async function gitStageFiles(
+	worktreePath: string,
+	filePaths: string[],
+): Promise<void> {
+	if (filePaths.length === 0) {
+		throw new Error("filePaths must not be empty");
+	}
+	assertRegisteredWorktree(worktreePath);
+	for (const filePath of filePaths) {
+		assertValidGitPath(filePath);
+	}
+
+	const git = simpleGit(worktreePath);
+	await git.add(["--", ...filePaths]);
+}
+
+/**
+ * Unstage multiple files in a single git command.
+ *
+ * Uses `git reset HEAD -- <paths...>` to avoid index.lock races
+ * when unstaging multiple files.
+ */
+export async function gitUnstageFiles(
+	worktreePath: string,
+	filePaths: string[],
+): Promise<void> {
+	if (filePaths.length === 0) {
+		throw new Error("filePaths must not be empty");
+	}
+	assertRegisteredWorktree(worktreePath);
+	for (const filePath of filePaths) {
+		assertValidGitPath(filePath);
+	}
+
+	const git = simpleGit(worktreePath);
+	await git.reset(["HEAD", "--", ...filePaths]);
+}
+
+/**
  * Stage all changes for commit.
  *
  * Uses `git add -A` to stage all changes (new, modified, deleted).

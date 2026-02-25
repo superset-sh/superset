@@ -12,6 +12,8 @@ interface FileListProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onStageFiles?: (files: ChangedFile[]) => void;
+	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
@@ -30,6 +32,8 @@ export function FileList({
 	showStats = true,
 	onStage,
 	onUnstage,
+	onStageFiles,
+	onUnstageFiles,
 	isActioning,
 	worktreePath,
 	onDiscard,
@@ -52,6 +56,8 @@ export function FileList({
 				showStats={showStats}
 				onStage={onStage}
 				onUnstage={onUnstage}
+				onStageFiles={onStageFiles}
+				onUnstageFiles={onUnstageFiles}
 				isActioning={isActioning}
 				worktreePath={worktreePath}
 				onDiscard={onDiscard}
@@ -72,6 +78,8 @@ export function FileList({
 			showStats={showStats}
 			onStage={onStage}
 			onUnstage={onUnstage}
+			onStageFiles={onStageFiles}
+			onUnstageFiles={onUnstageFiles}
 			isActioning={isActioning}
 			worktreePath={worktreePath}
 			onDiscard={onDiscard}

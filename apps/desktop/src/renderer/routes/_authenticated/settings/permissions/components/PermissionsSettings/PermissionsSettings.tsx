@@ -56,6 +56,8 @@ export function PermissionsSettings({
 		electronTrpc.permissions.requestFullDiskAccess.useMutation();
 	const requestA11y =
 		electronTrpc.permissions.requestAccessibility.useMutation();
+	const requestMicrophone =
+		electronTrpc.permissions.requestMicrophone.useMutation();
 	const requestAppleEvents =
 		electronTrpc.permissions.requestAppleEvents.useMutation();
 	const requestLocalNetwork =
@@ -66,8 +68,9 @@ export function PermissionsSettings({
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Permissions</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Grant these permissions to avoid repeated macOS prompts. Open System
-					Settings and enable the toggle for Superset.
+					Grant these permissions once to avoid repeated prompts. For persistent
+					directory access, enable Full Disk Access in System Settings for
+					Superset.
 				</p>
 			</div>
 
@@ -78,7 +81,7 @@ export function PermissionsSettings({
 				) && (
 					<PermissionRow
 						label="Full Disk Access"
-						description="Access files in Documents, Downloads, Desktop, and iCloud from the terminal"
+						description="Persistent access to Documents, Downloads, Desktop, and iCloud from terminal sessions"
 						granted={status?.fullDiskAccess}
 						onRequest={() => requestFDA.mutate()}
 					/>
@@ -93,6 +96,18 @@ export function PermissionsSettings({
 						description="Send keystrokes, manage windows, and control other applications"
 						granted={status?.accessibility}
 						onRequest={() => requestA11y.mutate()}
+					/>
+				)}
+
+				{isItemVisible(
+					SETTING_ITEM_ID.PERMISSIONS_MICROPHONE,
+					visibleItems,
+				) && (
+					<PermissionRow
+						label="Microphone"
+						description="Use voice transcription and push-to-talk features"
+						granted={status?.microphone}
+						onRequest={() => requestMicrophone.mutate()}
 					/>
 				)}
 

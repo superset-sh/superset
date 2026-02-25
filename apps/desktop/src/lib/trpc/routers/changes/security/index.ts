@@ -14,12 +14,14 @@ export {
 	gitDiscardAllUnstaged,
 	gitStageAll,
 	gitStageFile,
+	gitStageFiles,
 	gitStash,
 	gitStashIncludeUntracked,
 	gitStashPop,
 	gitSwitchBranch,
 	gitUnstageAll,
 	gitUnstageFile,
+	gitUnstageFiles,
 } from "./git-commands";
 
 export {

@@ -5,7 +5,7 @@ import { ImageAddon } from "@xterm/addon-image";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
-import type { ITheme } from "@xterm/xterm";
+import type { ILinkHandler, ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -164,6 +164,152 @@ export interface CreateTerminalOptions {
 	onUrlClickRef?: { current: ((url: string) => void) | undefined };
 }
 
+function openUrlWithFallback(
+	uri: string,
+	urlClickRef?: { current: ((url: string) => void) | undefined },
+): void {
+	const handler = urlClickRef?.current;
+	if (handler) {
+		handler(uri);
+		return;
+	}
+
+	trpcClient.external.openUrl.mutate(uri).catch((error) => {
+		console.error("[Terminal] Failed to open URL:", uri, error);
+		toast.error("Failed to open URL", {
+			description:
+				error instanceof Error
+					? error.message
+					: "Could not open URL in browser",
+		});
+	});
+}
+
+function openFileWithFallback(
+	path: string,
+	line: number | undefined,
+	column: number | undefined,
+	cwd: string | undefined,
+	onFileLinkClick?: (path: string, line?: number, column?: number) => void,
+): void {
+	if (onFileLinkClick) {
+		onFileLinkClick(path, line, column);
+		return;
+	}
+
+	trpcClient.external.openFileInEditor
+		.mutate({
+			path,
+			line,
+			column,
+			cwd,
+		})
+		.catch((error) => {
+			console.error("[Terminal] Failed to open file in editor:", path, error);
+		});
+}
+
+interface ParsedFileOsc8Link {
+	path: string;
+	line?: number;
+	column?: number;
+}
+
+function parseFileOsc8Link(uri: string): ParsedFileOsc8Link | null {
+	try {
+		const parsed = new URL(uri);
+		if (parsed.protocol !== "file:") {
+			return null;
+		}
+
+		let path = "";
+		try {
+			path = decodeURIComponent(parsed.pathname);
+		} catch {
+			path = parsed.pathname;
+		}
+
+		// file:///C:/... should map to C:/... on Windows-style file URIs.
+		if (/^\/[a-zA-Z]:\//.test(path)) {
+			path = path.slice(1);
+		}
+
+		// file://hostname/path can represent UNC-like paths.
+		if (parsed.hostname && parsed.hostname !== "localhost") {
+			path = `//${parsed.hostname}${path}`;
+		}
+
+		let line: number | undefined;
+		let column: number | undefined;
+
+		const lineColumnSuffix = path.match(/:(\d+)(?::(\d+))?$/);
+		if (lineColumnSuffix) {
+			path = path.slice(0, -lineColumnSuffix[0].length);
+			line = Number.parseInt(lineColumnSuffix[1], 10);
+			column = lineColumnSuffix[2]
+				? Number.parseInt(lineColumnSuffix[2], 10)
+				: undefined;
+		} else {
+			const hash = parsed.hash.replace(/^#/, "");
+			const hashLineColumn = hash.match(/^L(\d+)(?:C(\d+))?$/i);
+			if (hashLineColumn) {
+				line = Number.parseInt(hashLineColumn[1], 10);
+				column = hashLineColumn[2]
+					? Number.parseInt(hashLineColumn[2], 10)
+					: undefined;
+			}
+		}
+
+		if (!path) {
+			return null;
+		}
+
+		return { path, line, column };
+	} catch {
+		return null;
+	}
+}
+
+interface TerminalOsc8LinkHandlerOptions {
+	onOpenUrl: (uri: string) => void;
+	onOpenFile: (path: string, line?: number, column?: number) => void;
+}
+
+export function createTerminalOsc8LinkHandler(
+	options: TerminalOsc8LinkHandlerOptions,
+): ILinkHandler {
+	return {
+		allowNonHttpProtocols: true,
+		activate: (event, text) => {
+			// Match custom URL provider behavior to avoid accidental navigation.
+			if (!event.metaKey && !event.ctrlKey) {
+				return;
+			}
+			event.preventDefault();
+
+			let parsed: URL | null = null;
+			try {
+				parsed = new URL(text);
+			} catch {
+				return;
+			}
+
+			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+				options.onOpenUrl(text);
+				return;
+			}
+
+			if (parsed.protocol === "file:") {
+				const fileLink = parseFileOsc8Link(text);
+				if (!fileLink) {
+					return;
+				}
+				options.onOpenFile(fileLink.path, fileLink.line, fileLink.column);
+			}
+		},
+	};
+}
+
 /**
  * Mutable reference to the terminal renderer.
  * Used because the GPU renderer is loaded asynchronously after the terminal is created.
@@ -188,9 +334,29 @@ export function createTerminalInstance(
 		onUrlClickRef: urlClickRef,
 	} = options;
 
+	const handleUrlOpen = (uri: string) => {
+		openUrlWithFallback(uri, urlClickRef);
+	};
+	const handleFileOpen = (
+		path: string,
+		line?: number,
+		column?: number,
+	): void => {
+		openFileWithFallback(path, line, column, cwd, onFileLinkClick);
+	};
+
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
-	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
+	const terminalOptions = {
+		...TERMINAL_OPTIONS,
+		theme,
+		// xterm has a built-in OSC 8 link provider. This handler routes those links
+		// through app behavior so OSC 8 is primary and regex providers are fallback.
+		linkHandler: createTerminalOsc8LinkHandler({
+			onOpenUrl: handleUrlOpen,
+			onOpenFile: handleFileOpen,
+		}),
+	};
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
 
@@ -244,45 +410,14 @@ export function createTerminalInstance(
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
-		const handler = urlClickRef?.current;
-		if (handler) {
-			handler(uri);
-			return;
-		}
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-			toast.error("Failed to open URL", {
-				description:
-					error instanceof Error
-						? error.message
-						: "Could not open URL in browser",
-			});
-		});
+		handleUrlOpen(uri);
 	});
 	xterm.registerLinkProvider(urlLinkProvider);
 
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
-			if (onFileLinkClick) {
-				onFileLinkClick(path, line, column);
-			} else {
-				// Fallback to default behavior (external editor)
-				trpcClient.external.openFileInEditor
-					.mutate({
-						path,
-						line,
-						column,
-						cwd,
-					})
-					.catch((error) => {
-						console.error(
-							"[Terminal] Failed to open file in editor:",
-							path,
-							error,
-						);
-					});
-			}
+			handleFileOpen(path, line, column);
 		},
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
@@ -346,8 +481,17 @@ export function setupCopyHandler(xterm: XTerm): () => void {
 			.map((line) => line.trimEnd())
 			.join("\n");
 
-		event.preventDefault();
-		event.clipboardData?.setData("text/plain", trimmedText);
+		// On Linux/Wayland in Electron, clipboardData can be null for copy events.
+		// Only cancel default behavior when we can write directly to event clipboardData.
+		if (event.clipboardData) {
+			event.preventDefault();
+			event.clipboardData.setData("text/plain", trimmedText);
+			return;
+		}
+
+		// Fallback path when clipboardData is unavailable.
+		// Keep default browser copy behavior and best-effort write trimmed text.
+		void navigator.clipboard?.writeText(trimmedText).catch(() => {});
 	};
 
 	element.addEventListener("copy", handleCopy);

@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -247,20 +246,13 @@ export const createGitOperationsRouter = () => {
 						}
 					}
 
-					// Get the remote URL to construct the GitHub compare URL
-					const remoteUrl = (await git.remote(["get-url", "origin"])) || "";
-					const repoMatch = remoteUrl
-						.trim()
-						.match(/github\.com[:/](.+?)(?:\.git)?$/);
+					const { stdout } = await execWithShellEnv(
+						"gh",
+						["pr", "create", "--web", "--fill", "--head", branch],
+						{ cwd: input.worktreePath },
+					);
 
-					if (!repoMatch) {
-						throw new Error("Could not determine GitHub repository URL");
-					}
-
-					const repo = repoMatch[1].replace(/\.git$/, "");
-					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
-
-					await shell.openExternal(url);
+					const url = stdout.trim() || "https://github.com";
 					await fetchCurrentBranch(git);
 
 					return { success: true, url };

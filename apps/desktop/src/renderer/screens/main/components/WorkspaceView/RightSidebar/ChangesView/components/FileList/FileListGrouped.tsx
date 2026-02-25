@@ -11,6 +11,8 @@ interface FileListGroupedProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onStageFiles?: (files: ChangedFile[]) => void;
+	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
@@ -66,6 +68,8 @@ interface FolderGroupItemProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onStageFiles?: (files: ChangedFile[]) => void;
+	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
 	onDiscard?: (file: ChangedFile) => void;
@@ -82,6 +86,8 @@ function FolderGroupItem({
 	showStats,
 	onStage,
 	onUnstage,
+	onStageFiles,
+	onUnstageFiles,
 	isActioning,
 	worktreePath,
 	onDiscard,
@@ -94,18 +100,24 @@ function FolderGroupItem({
 	const displayName = group.folderPath || "Root Path";
 
 	const handleStageAll = useCallback(() => {
-		if (!onStage) return;
-		for (const file of group.files) {
-			onStage(file);
+		if (onStageFiles) {
+			onStageFiles(group.files);
+		} else if (onStage) {
+			for (const file of group.files) {
+				onStage(file);
+			}
 		}
-	}, [group.files, onStage]);
+	}, [group.files, onStage, onStageFiles]);
 
 	const handleUnstageAll = useCallback(() => {
-		if (!onUnstage) return;
-		for (const file of group.files) {
-			onUnstage(file);
+		if (onUnstageFiles) {
+			onUnstageFiles(group.files);
+		} else if (onUnstage) {
+			for (const file of group.files) {
+				onUnstage(file);
+			}
 		}
-	}, [group.files, onUnstage]);
+	}, [group.files, onUnstage, onUnstageFiles]);
 
 	const handleDiscardAll = useCallback(() => {
 		if (!onDiscard) return;
@@ -124,8 +136,8 @@ function FolderGroupItem({
 			folderPath={group.folderPath}
 			worktreePath={worktreePath}
 			projectId={projectId}
-			onStageAll={onStage ? handleStageAll : undefined}
-			onUnstageAll={onUnstage ? handleUnstageAll : undefined}
+			onStageAll={onStage || onStageFiles ? handleStageAll : undefined}
+			onUnstageAll={onUnstage || onUnstageFiles ? handleUnstageAll : undefined}
 			onDiscardAll={onDiscard ? handleDiscardAll : undefined}
 			isActioning={isActioning}
 		>
@@ -158,6 +170,8 @@ export function FileListGrouped({
 	showStats = true,
 	onStage,
 	onUnstage,
+	onStageFiles,
+	onUnstageFiles,
 	isActioning,
 	worktreePath,
 	onDiscard,
@@ -179,6 +193,8 @@ export function FileListGrouped({
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}
+					onStageFiles={onStageFiles}
+					onUnstageFiles={onUnstageFiles}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard}

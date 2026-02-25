@@ -32,8 +32,10 @@ mock.module("renderer/lib/trpc-client", () => ({
 
 // Import after mocks are set up
 const {
+	createTerminalOsc8LinkHandler,
 	getDefaultTerminalBg,
 	getDefaultTerminalTheme,
+	setupCopyHandler,
 	setupKeyboardHandler,
 	setupPasteHandler,
 } = await import("./helpers");
@@ -200,6 +202,116 @@ describe("setupKeyboardHandler", () => {
 	});
 });
 
+describe("setupCopyHandler", () => {
+	const originalNavigator = globalThis.navigator;
+
+	afterEach(() => {
+		globalThis.navigator = originalNavigator;
+	});
+
+	function createXtermStub(selection: string) {
+		const listeners = new Map<string, EventListener>();
+		const element = {
+			addEventListener: mock((eventName: string, listener: EventListener) => {
+				listeners.set(eventName, listener);
+			}),
+			removeEventListener: mock((eventName: string) => {
+				listeners.delete(eventName);
+			}),
+		} as unknown as HTMLElement;
+		const xterm = {
+			element,
+			getSelection: mock(() => selection),
+		} as unknown as XTerm;
+		return { xterm, listeners };
+	}
+
+	it("trims trailing whitespace and writes to clipboardData when available", () => {
+		const { xterm, listeners } = createXtermStub("foo   \nbar  ");
+		setupCopyHandler(xterm);
+
+		const preventDefault = mock(() => {});
+		const setData = mock(() => {});
+		const copyEvent = {
+			preventDefault,
+			clipboardData: { setData },
+		} as unknown as ClipboardEvent;
+
+		const copyListener = listeners.get("copy");
+		expect(copyListener).toBeDefined();
+		copyListener?.(copyEvent);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(setData).toHaveBeenCalledWith("text/plain", "foo\nbar");
+	});
+
+	it("prefers clipboardData path over navigator.clipboard fallback", () => {
+		const { xterm, listeners } = createXtermStub("foo   \nbar  ");
+		const writeText = mock(() => Promise.resolve());
+
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { clipboard: { writeText } };
+
+		setupCopyHandler(xterm);
+
+		const preventDefault = mock(() => {});
+		const setData = mock(() => {});
+		const copyEvent = {
+			preventDefault,
+			clipboardData: { setData },
+		} as unknown as ClipboardEvent;
+
+		const copyListener = listeners.get("copy");
+		expect(copyListener).toBeDefined();
+		copyListener?.(copyEvent);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(setData).toHaveBeenCalledWith("text/plain", "foo\nbar");
+		expect(writeText).not.toHaveBeenCalled();
+	});
+
+	it("falls back to navigator.clipboard.writeText when clipboardData is missing", () => {
+		const { xterm, listeners } = createXtermStub("foo   \nbar  ");
+		const writeText = mock(() => Promise.resolve());
+
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { clipboard: { writeText } };
+
+		setupCopyHandler(xterm);
+
+		const preventDefault = mock(() => {});
+		const copyEvent = {
+			preventDefault,
+			clipboardData: null,
+		} as unknown as ClipboardEvent;
+
+		const copyListener = listeners.get("copy");
+		expect(copyListener).toBeDefined();
+		copyListener?.(copyEvent);
+
+		expect(preventDefault).not.toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalledWith("foo\nbar");
+	});
+
+	it("does not throw when clipboardData is missing and navigator.clipboard is unavailable", () => {
+		const { xterm, listeners } = createXtermStub("foo   \nbar  ");
+
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = {};
+
+		setupCopyHandler(xterm);
+
+		const copyEvent = {
+			preventDefault: mock(() => {}),
+			clipboardData: null,
+		} as unknown as ClipboardEvent;
+
+		const copyListener = listeners.get("copy");
+		expect(copyListener).toBeDefined();
+		expect(() => copyListener?.(copyEvent)).not.toThrow();
+	});
+});
+
 describe("setupPasteHandler", () => {
 	function createXtermStub() {
 		const listeners = new Map<string, EventListener>();
@@ -295,5 +407,169 @@ describe("setupPasteHandler", () => {
 		expect(onWrite).not.toHaveBeenCalled();
 		expect(preventDefault).not.toHaveBeenCalled();
 		expect(stopImmediatePropagation).not.toHaveBeenCalled();
+	});
+});
+
+describe("createTerminalOsc8LinkHandler", () => {
+	it("requires metaKey (Cmd) or ctrlKey for activation", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: false,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"https://example.com",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).not.toHaveBeenCalled();
+		expect(preventDefault).not.toHaveBeenCalled();
+	});
+
+	it("opens https URL with metaKey (Cmd)", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"https://example.com",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).toHaveBeenCalledWith("https://example.com");
+		expect(onOpenFile).not.toHaveBeenCalled();
+	});
+
+	it("opens https URL with ctrlKey", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: false,
+				ctrlKey: true,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"https://example.com",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).toHaveBeenCalledWith("https://example.com");
+		expect(onOpenFile).not.toHaveBeenCalled();
+	});
+
+	it("opens file:// links and parses line/column suffix", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"file:///tmp/project/src/index.ts:42:7",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).toHaveBeenCalledWith("/tmp/project/src/index.ts", 42, 7);
+	});
+
+	it("opens file:// links and parses #L<C> hash", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: false,
+				ctrlKey: true,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"file:///tmp/project/src/index.ts#L5C2",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).toHaveBeenCalledWith("/tmp/project/src/index.ts", 5, 2);
+	});
+
+	it("ignores unsafe/non-http non-file protocols", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"javascript:alert(1)",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).not.toHaveBeenCalled();
 	});
 });

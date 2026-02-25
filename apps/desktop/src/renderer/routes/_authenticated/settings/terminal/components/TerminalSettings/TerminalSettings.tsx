@@ -10,6 +10,8 @@ import { SessionsSection } from "./components/SessionsSection";
 
 interface TerminalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
+	editingPresetId?: string | null;
+	onEditingPresetIdChange?: (presetId: string | null) => void;
 }
 
 /**
@@ -33,7 +35,11 @@ function SectionList({ children }: { children: ReactNode[] }) {
 	);
 }
 
-export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
+export function TerminalSettings({
+	visibleItems,
+	editingPresetId,
+	onEditingPresetIdChange,
+}: TerminalSettingsProps) {
 	const showPresets = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PRESETS,
 		visibleItems,
@@ -66,6 +72,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 						key="presets"
 						showPresets={showPresets}
 						showQuickAdd={showQuickAdd}
+						editingPresetId={editingPresetId}
+						onEditingPresetIdChange={onEditingPresetIdChange}
 					/>
 				)}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
