@@ -9,11 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-	createWorktree,
-	getCurrentBranch,
-	parsePrUrl,
-} from "./git";
+import { createWorktree, getCurrentBranch, parsePrUrl } from "./git";
 
 const TEST_DIR = join(
 	realpathSync(tmpdir()),
@@ -403,13 +399,13 @@ describe("getCurrentBranch", () => {
 
 describe("parsePrUrl", () => {
 	test("parses canonical GitHub PR URL", () => {
-		expect(parsePrUrl("https://github.com/superset-sh/superset/pull/1781")).toEqual(
-			{
-				owner: "superset-sh",
-				repo: "superset",
-				number: 1781,
-			},
-		);
+		expect(
+			parsePrUrl("https://github.com/superset-sh/superset/pull/1781"),
+		).toEqual({
+			owner: "superset-sh",
+			repo: "superset",
+			number: 1781,
+		});
 	});
 
 	test("parses GitHub URL without protocol", () => {
@@ -421,8 +417,8 @@ describe("parsePrUrl", () => {
 	});
 
 	test("returns null for non-PR URLs", () => {
-		expect(parsePrUrl("https://github.com/superset-sh/superset/issues/1781")).toBe(
-			null,
-		);
+		expect(
+			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
+		).toBe(null);
 	});
 });
