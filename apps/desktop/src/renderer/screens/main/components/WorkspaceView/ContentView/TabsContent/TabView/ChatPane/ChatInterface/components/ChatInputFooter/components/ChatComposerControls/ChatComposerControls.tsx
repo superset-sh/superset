@@ -71,10 +71,10 @@ export function ChatComposerControls({
 					status={submitStatus}
 					onClick={canAbort ? onStop : undefined}
 				>
-					{submitStatus === "submitted" ? (
-						<Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />
-					) : submitStatus === "streaming" ? (
+					{canAbort ? (
 						<SquareIcon className="size-3.5 text-muted-foreground" />
+					) : submitStatus === "submitted" ? (
+						<Loader2Icon className="size-3.5 animate-spin text-muted-foreground" />
 					) : (
 						<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 					)}

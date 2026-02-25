@@ -1,6 +1,6 @@
 import { skipToken } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ChatMastraServiceRouter } from "../../../server/trpc";
 import { chatMastraServiceTrpc } from "../../provider";
 
@@ -30,6 +30,7 @@ function toRefetchIntervalMs(fps: number): number {
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
+	const [commandError, setCommandError] = useState<unknown>(null);
 
 	const displayQuery = chatMastraServiceTrpc.session.getDisplayState.useQuery(
 		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
@@ -54,52 +55,89 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	);
 
 	const displayState = displayQuery.data ?? null;
+
 	const commands = useMemo(
 		() => ({
 			sendMessage: async (
 				input: Omit<SessionInputs["sendMessage"], "sessionId">,
 			) => {
 				if (!sessionId) return;
-				return utils.client.session.sendMessage.mutate({
-					sessionId,
-					...(cwd ? { cwd } : {}),
-					...input,
-				});
+				setCommandError(null);
+				try {
+					return await utils.client.session.sendMessage.mutate({
+						sessionId,
+						...(cwd ? { cwd } : {}),
+						...input,
+					});
+				} catch (error) {
+					setCommandError(error);
+					return;
+				}
 			},
 			stop: async () => {
 				if (!sessionId) return;
-				return utils.client.session.stop.mutate({ sessionId });
+				setCommandError(null);
+				try {
+					return await utils.client.session.stop.mutate({ sessionId });
+				} catch (error) {
+					setCommandError(error);
+					return;
+				}
 			},
 			abort: async () => {
 				if (!sessionId) return;
-				return utils.client.session.abort.mutate({ sessionId });
+				setCommandError(null);
+				try {
+					return await utils.client.session.abort.mutate({ sessionId });
+				} catch (error) {
+					setCommandError(error);
+					return;
+				}
 			},
 			respondToApproval: async (
 				input: Omit<SessionInputs["approval"]["respond"], "sessionId">,
 			) => {
 				if (!sessionId) return;
-				return utils.client.session.approval.respond.mutate({
-					sessionId,
-					...input,
-				});
+				setCommandError(null);
+				try {
+					return await utils.client.session.approval.respond.mutate({
+						sessionId,
+						...input,
+					});
+				} catch (error) {
+					setCommandError(error);
+					return;
+				}
 			},
 			respondToQuestion: async (
 				input: Omit<SessionInputs["question"]["respond"], "sessionId">,
 			) => {
 				if (!sessionId) return;
-				return utils.client.session.question.respond.mutate({
-					sessionId,
-					...input,
-				});
+				setCommandError(null);
+				try {
+					return await utils.client.session.question.respond.mutate({
+						sessionId,
+						...input,
+					});
+				} catch (error) {
+					setCommandError(error);
+					return;
+				}
 			},
 			respondToPlan: async (
 				input: Omit<SessionInputs["plan"]["respond"], "sessionId">,
 			) => {
 				if (!sessionId) return;
-				return utils.client.session.plan.respond.mutate({
-					sessionId,
-					...input,
-				});
+				setCommandError(null);
+				try {
+					return await utils.client.session.plan.respond.mutate({
+						sessionId,
+						...input,
+					});
+				} catch (error) {
+					setCommandError(error);
+					return;
+				}
 			},
 		}),
 		[cwd, sessionId, utils],
@@ -107,8 +145,9 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 
 	return {
 		...displayState,
-		historyMessages: messagesQuery.data ?? null,
-		transportError: displayQuery.error ?? messagesQuery.error ?? null,
+		currentMessage: displayState?.currentMessage ?? null,
+		messages: messagesQuery.data ?? null,
+		error: displayQuery.error ?? messagesQuery.error ?? commandError ?? null,
 		commands,
 	};
 }

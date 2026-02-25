@@ -4,7 +4,7 @@ import {
 	PromptInputProvider,
 } from "@superset/ui/ai-elements/prompt-input";
 import { useQuery } from "@tanstack/react-query";
-import type { ChatStatus, UIMessage } from "ai";
+import type { UIMessage } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -14,7 +14,6 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "../../ChatPane/ChatInterface/types";
-import { reportChatMastraError } from "../utils/reportChatMastraError";
 import type { ChatMastraInterfaceProps } from "./types";
 import { toMastraImages } from "./utils/toMastraImages";
 
@@ -47,14 +46,8 @@ function messageTextFromDisplay(currentMessage: {
 		.join("\n");
 }
 
-function toErrorMessage(error: unknown): string {
-	if (error instanceof Error) return error.message;
-	if (typeof error === "string") return error;
-	return "Unexpected chat error";
-}
-
 type MastraHistoryMessage = NonNullable<
-	ReturnType<typeof useMastraChatDisplay>["historyMessages"]
+	ReturnType<typeof useMastraChatDisplay>["messages"]
 >[number];
 
 function toUiMessage(message: MastraHistoryMessage): UIMessage {
@@ -78,13 +71,8 @@ export function ChatMastraInterface({
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
-	const [submitStatus, setSubmitStatus] = useState<ChatStatus | undefined>(
-		undefined,
-	);
-	const [error, setError] = useState<string | null>(null);
 	const [messages, setMessages] = useState<UIMessage[]>([]);
 	const currentSessionRef = useRef<string | null>(null);
-	const lastReportedTransportErrorRef = useRef<string | null>(null);
 
 	const chat = useMastraChatDisplay({
 		sessionId,
@@ -94,36 +82,18 @@ export function ChatMastraInterface({
 	});
 	const {
 		commands,
+		messages: historyMessages = null,
 		currentMessage = null,
-		historyMessages = null,
-		isRunning = false,
 		pendingQuestion = null,
-		transportError = null,
+		isRunning = false,
+		error = null,
 	} = chat;
 
 	useEffect(() => {
 		if (currentSessionRef.current === sessionId) return;
 		currentSessionRef.current = sessionId;
 		setMessages([]);
-		setSubmitStatus(undefined);
-		setError(null);
 	}, [sessionId]);
-
-	useEffect(() => {
-		if (!transportError) return;
-		const message = toErrorMessage(transportError);
-		if (lastReportedTransportErrorRef.current === message) return;
-		lastReportedTransportErrorRef.current = message;
-
-		setError(message);
-		reportChatMastraError({
-			operation: "display.poll",
-			error: transportError,
-			sessionId,
-			workspaceId,
-			cwd,
-		});
-	}, [cwd, sessionId, transportError, workspaceId]);
 
 	useEffect(() => {
 		if (!sessionId) {
@@ -133,16 +103,6 @@ export function ChatMastraInterface({
 		if (!historyMessages) return;
 		setMessages(historyMessages.map(toUiMessage));
 	}, [historyMessages, sessionId]);
-
-	useEffect(() => {
-		if (isRunning) {
-			setSubmitStatus((prev) =>
-				prev === "submitted" || prev === "streaming" ? "streaming" : prev,
-			);
-			return;
-		}
-		setSubmitStatus(undefined);
-	}, [isRunning]);
 
 	useEffect(() => {
 		if (!currentMessage) return;
@@ -157,6 +117,21 @@ export function ChatMastraInterface({
 		setMessages((prev) => {
 			const index = prev.findIndex((message) => message.id === nextMessage.id);
 			if (index < 0) return [...prev, nextMessage];
+			const previousMessage = prev[index];
+			const previousText = previousMessage.parts
+				.filter((part) => part.type === "text")
+				.map((part) => part.text)
+				.join("");
+			const nextText = nextMessage.parts
+				.filter((part) => part.type === "text")
+				.map((part) => part.text)
+				.join("");
+			if (
+				previousMessage.role === nextMessage.role &&
+				previousText === nextText
+			) {
+				return prev;
+			}
 			const copy = [...prev];
 			copy[index] = nextMessage;
 			return copy;
@@ -186,18 +161,6 @@ export function ChatMastraInterface({
 
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
-			if (!sessionId) {
-				const error = new Error("No active chat session");
-				setError(error.message);
-				reportChatMastraError({
-					operation: "message.send.no_session",
-					error,
-					sessionId,
-					workspaceId,
-					cwd,
-				});
-				return;
-			}
 			const text = message.text.trim();
 			const files = (message.files ?? []).map((file) => ({
 				url: file.url,
@@ -206,51 +169,24 @@ export function ChatMastraInterface({
 			}));
 			const images = toMastraImages(files);
 			if (!text && images.length === 0) return;
-
 			const messageId = crypto.randomUUID();
 			appendUserMessage(messageId, message);
-			setSubmitStatus("submitted");
 
-			try {
-				await commands.sendMessage({
-					payload: {
-						content: text || "",
-						...(images.length > 0 ? { images } : {}),
-					},
-				});
-				setError(null);
-			} catch (error) {
-				setSubmitStatus(undefined);
-				setError(toErrorMessage(error));
-				reportChatMastraError({
-					operation: "message.send",
-					error,
-					sessionId,
-					workspaceId,
-					cwd,
-				});
-			}
+			await commands.sendMessage({
+				payload: {
+					content: text || "",
+					...(images.length > 0 ? { images } : {}),
+				},
+			});
 		},
-		[appendUserMessage, commands, cwd, sessionId, workspaceId],
+		[appendUserMessage, commands],
 	);
 
 	const handleStop = useCallback(
-		async (event: React.MouseEvent) => {
-			event.preventDefault();
-			try {
-				await commands.stop();
-			} catch (error) {
-				setError(toErrorMessage(error));
-				reportChatMastraError({
-					operation: "message.stop",
-					error,
-					sessionId,
-					workspaceId,
-					cwd,
-				});
-			}
+		async (_event: React.MouseEvent) => {
+			await commands.stop();
 		},
-		[commands, cwd, sessionId, workspaceId],
+		[commands],
 	);
 
 	const handleAnswer = useCallback(
@@ -258,26 +194,14 @@ export function ChatMastraInterface({
 			if (!pendingQuestion) return;
 			const firstAnswer = Object.values(answers)[0];
 			if (!firstAnswer) return;
-			try {
-				await commands.respondToQuestion({
-					payload: {
-						questionId: pendingQuestion.questionId,
-						answer: firstAnswer,
-					},
-				});
-				setError(null);
-			} catch (error) {
-				setError(toErrorMessage(error));
-				reportChatMastraError({
-					operation: "question.respond",
-					error,
-					sessionId,
-					workspaceId,
-					cwd,
-				});
-			}
+			await commands.respondToQuestion({
+				payload: {
+					questionId: pendingQuestion.questionId,
+					answer: firstAnswer,
+				},
+			});
 		},
-		[commands, cwd, pendingQuestion, sessionId, workspaceId],
+		[commands, pendingQuestion],
 	);
 
 	const canAbort = Boolean(isRunning);
@@ -287,8 +211,7 @@ export function ChatMastraInterface({
 			<div className="flex h-full flex-col bg-background">
 				<MessageList
 					messages={messages}
-					isStreaming={canAbort}
-					submitStatus={submitStatus}
+					isStreaming={isRunning}
 					workspaceId={workspaceId}
 					onAnswer={handleAnswer}
 				/>
@@ -296,7 +219,6 @@ export function ChatMastraInterface({
 					cwd={cwd}
 					error={error}
 					canAbort={canAbort}
-					submitStatus={submitStatus}
 					availableModels={availableModels}
 					selectedModel={activeModel}
 					setSelectedModel={setSelectedModel}
@@ -309,10 +231,6 @@ export function ChatMastraInterface({
 					slashCommands={[]}
 					onSend={(message) => {
 						void handleSend(message);
-					}}
-					onSubmitStart={() => setSubmitStatus("submitted")}
-					onSubmitEnd={() => {
-						if (!canAbort) setSubmitStatus(undefined);
 					}}
 					onStop={handleStop}
 					onSlashCommandSend={() => {}}
