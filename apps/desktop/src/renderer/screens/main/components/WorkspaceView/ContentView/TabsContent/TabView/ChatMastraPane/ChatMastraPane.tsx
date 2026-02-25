@@ -101,6 +101,22 @@ export function ChatMastraPane({
 		[deleteSessionMutation, paneId, sessionId, switchChatMastraSession],
 	);
 
+	const handleStartFreshSession = useCallback(async () => {
+		try {
+			const created = await createSessionMutation.mutateAsync({ workspaceId });
+			switchChatMastraSession(paneId, created.sessionId);
+			return { created: true as const };
+		} catch (error) {
+			return {
+				created: false as const,
+				errorMessage:
+					error instanceof Error
+						? error.message
+						: "Failed to create a new chat session",
+			};
+		}
+	}, [createSessionMutation, paneId, switchChatMastraSession, workspaceId]);
+
 	useEffect(() => {
 		if (sessionId) return;
 		if (sessions.length > 0) {
@@ -173,6 +189,7 @@ export function ChatMastraPane({
 						organizationId={organizationId}
 						workspaceId={workspaceId}
 						cwd={workspace?.worktreePath ?? ""}
+						onStartFreshSession={handleStartFreshSession}
 					/>
 				</BasePaneWindow>
 			</ChatServiceProvider>

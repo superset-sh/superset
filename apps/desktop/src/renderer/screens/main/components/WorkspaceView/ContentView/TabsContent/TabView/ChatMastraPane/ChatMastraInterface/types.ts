@@ -3,4 +3,8 @@ export interface ChatMastraInterfaceProps {
 	organizationId: string | null;
 	workspaceId: string;
 	cwd: string;
+	onStartFreshSession: () => Promise<{
+		created: boolean;
+		errorMessage?: string;
+	}>;
 }
