@@ -14,7 +14,7 @@
 		"@anthropic-ai/sdk": "^0.78.0",
 		"@better-auth/oauth-provider": "1.4.18",
 		"@durable-streams/client": "^0.2.1",
-		"@electric-sql/client": "1.5.2",
+		"@electric-sql/client": "1.5.7",
 		"@linear/sdk": "^68.1.0",
 		"@modelcontextprotocol/sdk": "^1.26.0",
 		"@octokit/app": "^16.1.2",
