@@ -600,8 +600,6 @@
       "name": "@superset/chat-mastra",
       "version": "0.0.1",
       "dependencies": {
-        "@durable-streams/client": "^0.2.1",
-        "@durable-streams/state": "^0.2.1",
         "@trpc/server": "^11.7.1",
         "fast-glob": "^3.3.3",
         "fuse.js": "^7.1.0",
