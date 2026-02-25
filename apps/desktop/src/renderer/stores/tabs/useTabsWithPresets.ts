@@ -19,6 +19,7 @@ import { resolveActiveTabIdForWorkspace } from "./utils";
 
 interface OpenPresetOptions {
 	target?: PresetOpenTarget;
+	modeOverride?: PresetMode;
 }
 
 interface PreparedPreset {
@@ -312,7 +313,8 @@ export function useTabsWithPresets() {
 		) => {
 			const prepared = preparePreset(preset);
 			const target = options?.target ?? "new-tab";
-			return executePreset(workspaceId, prepared, target);
+			const mode = options?.modeOverride ?? prepared.mode;
+			return executePreset(workspaceId, { ...prepared, mode }, target);
 		},
 		[executePreset],
 	);

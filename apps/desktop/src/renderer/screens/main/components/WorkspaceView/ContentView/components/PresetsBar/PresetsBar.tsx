@@ -14,7 +14,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCog6Tooth, HiMiniCommandLine } from "react-icons/hi2";
 import { LuCirclePlus, LuPin } from "react-icons/lu";
 import {
@@ -22,11 +22,11 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { PRESET_HOTKEY_IDS } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
+import { PresetBarItem } from "./components/PresetBarItem";
 
 interface PresetTemplate {
 	name: string;
@@ -58,12 +58,77 @@ function isPresetPinnedToBar(pinnedToBar: boolean | undefined): boolean {
 	return pinnedToBar !== false;
 }
 
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+	if (left.length !== right.length) {
+		return false;
+	}
+
+	return left.every((value, index) => value === right[index]);
+}
+
+function getPinnedPresetOrder(
+	presets: Array<{ id: string; pinnedToBar?: boolean }>,
+): string[] {
+	return presets.flatMap((preset) =>
+		isPresetPinnedToBar(preset.pinnedToBar) ? [preset.id] : [],
+	);
+}
+
+function getTargetIndexForPinnedReorder({
+	presets,
+	pinnedPresetIds,
+	presetId,
+	targetPinnedIndex,
+}: {
+	presets: Array<{ id: string }>;
+	pinnedPresetIds: string[];
+	presetId: string;
+	targetPinnedIndex: number;
+}): number | null {
+	const currentIndex = presets.findIndex((preset) => preset.id === presetId);
+	if (currentIndex < 0) {
+		return null;
+	}
+
+	const previousPinnedId =
+		targetPinnedIndex > 0 ? pinnedPresetIds[targetPinnedIndex - 1] : undefined;
+	const nextPinnedId =
+		targetPinnedIndex < pinnedPresetIds.length - 1
+			? pinnedPresetIds[targetPinnedIndex + 1]
+			: undefined;
+
+	if (nextPinnedId) {
+		const nextIndex = presets.findIndex((preset) => preset.id === nextPinnedId);
+		if (nextIndex < 0) {
+			return null;
+		}
+		return currentIndex < nextIndex ? nextIndex - 1 : nextIndex;
+	}
+
+	if (previousPinnedId) {
+		const previousIndex = presets.findIndex(
+			(preset) => preset.id === previousPinnedId,
+		);
+		if (previousIndex < 0) {
+			return null;
+		}
+		const adjustedPreviousIndex =
+			currentIndex < previousIndex ? previousIndex - 1 : previousIndex;
+		return adjustedPreviousIndex + 1;
+	}
+
+	return currentIndex;
+}
+
 export function PresetsBar() {
 	const { workspaceId } = useParams({ strict: false });
 	const navigate = useNavigate();
-	const { presets, createPreset, updatePreset } = usePresets();
+	const { presets, createPreset, updatePreset, reorderPresets } = usePresets();
 	const isDark = useIsDarkTheme();
 	const { openPreset } = useTabsWithPresets();
+	const [localPinnedPresetIds, setLocalPinnedPresetIds] = useState<string[]>(
+		() => getPinnedPresetOrder(presets),
+	);
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
@@ -97,13 +162,32 @@ export function PresetsBar() {
 		}
 		return map;
 	}, [presets]);
-	const pinnedPresets = useMemo(
-		() =>
-			presets.flatMap((preset, index) =>
-				isPresetPinnedToBar(preset.pinnedToBar) ? [{ preset, index }] : [],
-			),
-		[presets],
-	);
+	const pinnedPresets = useMemo(() => {
+		const presetById = new Map(
+			presets.map((preset, index) => [preset.id, { preset, index }]),
+		);
+		const orderedPinnedPresets: Array<{
+			preset: (typeof presets)[number];
+			index: number;
+		}> = [];
+		const seenIds = new Set<string>();
+
+		for (const presetId of localPinnedPresetIds) {
+			const item = presetById.get(presetId);
+			if (!item) continue;
+			if (!isPresetPinnedToBar(item.preset.pinnedToBar)) continue;
+			orderedPinnedPresets.push(item);
+			seenIds.add(presetId);
+		}
+
+		for (const [index, preset] of presets.entries()) {
+			if (!isPresetPinnedToBar(preset.pinnedToBar)) continue;
+			if (seenIds.has(preset.id)) continue;
+			orderedPinnedPresets.push({ preset, index });
+		}
+
+		return orderedPinnedPresets;
+	}, [presets, localPinnedPresetIds]);
 	const presetIndexById = useMemo(
 		() => new Map(presets.map((preset, index) => [preset.id, index])),
 		[presets],
@@ -140,6 +224,98 @@ export function PresetsBar() {
 			}));
 		return [...fromTemplates, ...customExisting];
 	}, [presetsByName, presets]);
+
+	useEffect(() => {
+		const serverPinnedPresetIds = getPinnedPresetOrder(presets);
+		setLocalPinnedPresetIds((current) =>
+			areStringArraysEqual(current, serverPinnedPresetIds)
+				? current
+				: serverPinnedPresetIds,
+		);
+	}, [presets]);
+
+	const handleOpenPresetDefault = useCallback(
+		(preset: (typeof presets)[number]) => {
+			if (!workspaceId) return;
+			openPreset(workspaceId, preset, { target: "active-tab" });
+		},
+		[workspaceId, openPreset],
+	);
+
+	const handleOpenPresetInNewTab = useCallback(
+		(preset: (typeof presets)[number]) => {
+			if (!workspaceId) return;
+			openPreset(workspaceId, preset, {
+				target: "new-tab",
+			});
+		},
+		[workspaceId, openPreset],
+	);
+
+	const handleOpenPresetInPane = useCallback(
+		(preset: (typeof presets)[number]) => {
+			if (!workspaceId) return;
+			openPreset(workspaceId, preset, {
+				target: "active-tab",
+				modeOverride: "split-pane",
+			});
+		},
+		[workspaceId, openPreset],
+	);
+
+	const handleEditPreset = useCallback(
+		(presetId: string) => {
+			navigate({
+				to: "/settings/terminal",
+				search: { editPresetId: presetId },
+			});
+		},
+		[navigate],
+	);
+
+	const handleLocalPinnedReorder = useCallback(
+		(fromIndex: number, toIndex: number) => {
+			setLocalPinnedPresetIds((current) => {
+				if (
+					fromIndex < 0 ||
+					fromIndex >= current.length ||
+					toIndex < 0 ||
+					toIndex >= current.length
+				) {
+					return current;
+				}
+
+				const next = [...current];
+				const [moved] = next.splice(fromIndex, 1);
+				next.splice(toIndex, 0, moved);
+				return next;
+			});
+		},
+		[],
+	);
+
+	const handlePersistPinnedReorder = useCallback(
+		(presetId: string, targetPinnedIndex: number) => {
+			const reorderedPinnedPresetIds = [...localPinnedPresetIds];
+			const currentPinnedIndex = reorderedPinnedPresetIds.indexOf(presetId);
+			if (currentPinnedIndex === -1) {
+				return;
+			}
+			const [moved] = reorderedPinnedPresetIds.splice(currentPinnedIndex, 1);
+			reorderedPinnedPresetIds.splice(targetPinnedIndex, 0, moved);
+
+			const targetIndex = getTargetIndexForPinnedReorder({
+				presets,
+				pinnedPresetIds: reorderedPinnedPresetIds,
+				presetId,
+				targetPinnedIndex,
+			});
+			if (targetIndex === null) return;
+
+			reorderPresets.mutate({ presetId, targetIndex });
+		},
+		[presets, localPinnedPresetIds, reorderPresets],
+	);
 
 	return (
 		<div
@@ -229,7 +405,7 @@ export function PresetsBar() {
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						className="gap-2"
-						onClick={() => navigate({ to: "/settings/presets" })}
+						onClick={() => navigate({ to: "/settings/terminal" })}
 					>
 						<HiMiniCog6Tooth className="size-4" />
 						<span>Manage Presets</span>
@@ -237,39 +413,23 @@ export function PresetsBar() {
 				</DropdownMenuContent>
 			</DropdownMenu>
 			<div className="h-4 w-px bg-border mx-1 shrink-0" />
-			{pinnedPresets.map(({ preset, index }) => {
-				const icon = getPresetIcon(preset.name, isDark);
+			{pinnedPresets.map(({ preset, index }, pinnedIndex) => {
 				const hotkeyId = PRESET_HOTKEY_IDS[index];
-				const label = preset.description || preset.name || "default";
 				return (
-					<Tooltip key={preset.id}>
-						<TooltipTrigger asChild>
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-6 px-2 gap-1.5 text-xs shrink-0"
-								onClick={() => {
-									if (workspaceId) {
-										openPreset(workspaceId, preset, {
-											target: "active-tab",
-										});
-									}
-								}}
-							>
-								{icon ? (
-									<img src={icon} alt="" className="size-3.5 object-contain" />
-								) : (
-									<HiMiniCommandLine className="size-3.5" />
-								)}
-								<span className="truncate max-w-[120px]">
-									{preset.name || "default"}
-								</span>
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" sideOffset={4}>
-							<HotkeyTooltipContent label={label} hotkeyId={hotkeyId} />
-						</TooltipContent>
-					</Tooltip>
+					<PresetBarItem
+						key={preset.id}
+						preset={preset}
+						pinnedIndex={pinnedIndex}
+						hotkeyId={hotkeyId}
+						isDark={isDark}
+						canOpen={!!workspaceId}
+						onOpenDefault={handleOpenPresetDefault}
+						onOpenInNewTab={handleOpenPresetInNewTab}
+						onOpenInPane={handleOpenPresetInPane}
+						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
+						onLocalReorder={handleLocalPinnedReorder}
+						onPersistReorder={handlePersistPinnedReorder}
+					/>
 				);
 			})}
 		</div>

@@ -18,11 +18,15 @@ import {
 interface PresetsSectionProps {
 	showPresets: boolean;
 	showQuickAdd: boolean;
+	editingPresetId?: string | null;
+	onEditingPresetIdChange?: (presetId: string | null) => void;
 }
 
 export function PresetsSection({
 	showPresets,
 	showQuickAdd,
+	editingPresetId: editingPresetIdFromRoute,
+	onEditingPresetIdChange,
 }: PresetsSectionProps) {
 	const isDark = useIsDarkTheme();
 	const {
@@ -37,7 +41,9 @@ export function PresetsSection({
 
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
-	const [editingPresetId, setEditingPresetId] = useState<string | null>(null);
+	const [editingPresetId, setEditingPresetId] = useState<string | null>(
+		editingPresetIdFromRoute ?? null,
+	);
 	const presetsContainerRef = useRef<HTMLDivElement>(null);
 	const prevPresetsCountRef = useRef(serverPresets.length);
 	const serverPresetsRef = useRef(serverPresets);
@@ -50,6 +56,18 @@ export function PresetsSection({
 		serverPresetsRef.current = serverPresets;
 	}, [serverPresets]);
 
+	const setEditingPreset = useCallback(
+		(presetId: string | null) => {
+			setEditingPresetId(presetId);
+			onEditingPresetIdChange?.(presetId);
+		},
+		[onEditingPresetIdChange],
+	);
+
+	useEffect(() => {
+		setEditingPresetId(editingPresetIdFromRoute ?? null);
+	}, [editingPresetIdFromRoute]);
+
 	useEffect(() => {
 		setLocalPresets(serverPresets);
 
@@ -59,7 +77,7 @@ export function PresetsSection({
 				(preset) => !previousIds.has(preset.id),
 			);
 			if (addedPreset) {
-				setEditingPresetId(addedPreset.id);
+				setEditingPreset(addedPreset.id);
 				shouldOpenNewPresetEditorRef.current = false;
 			}
 		}
@@ -76,7 +94,7 @@ export function PresetsSection({
 		previousServerPresetIdsRef.current = new Set(
 			serverPresets.map((preset) => preset.id),
 		);
-	}, [serverPresets]);
+	}, [serverPresets, setEditingPreset]);
 
 	const editingRowIndex = useMemo(() => {
 		if (!editingPresetId) return -1;
@@ -93,9 +111,9 @@ export function PresetsSection({
 			editingPresetId &&
 			!localPresets.some((preset) => preset.id === editingPresetId)
 		) {
-			setEditingPresetId(null);
+			setEditingPreset(null);
 		}
-	}, [editingPresetId, localPresets]);
+	}, [editingPresetId, localPresets, setEditingPreset]);
 
 	const existingPresetNames = useMemo(
 		() => new Set(serverPresets.map((preset) => preset.name)),
@@ -267,14 +285,14 @@ export function PresetsSection({
 	);
 
 	const handleCloseEditor = useCallback(() => {
-		setEditingPresetId(null);
-	}, []);
+		setEditingPreset(null);
+	}, [setEditingPreset]);
 
 	const handleDeleteEditingPreset = useCallback(() => {
 		if (editingRowIndex < 0) return;
 		handleDeleteRow(editingRowIndex);
-		setEditingPresetId(null);
-	}, [editingRowIndex, handleDeleteRow]);
+		setEditingPreset(null);
+	}, [editingRowIndex, handleDeleteRow, setEditingPreset]);
 
 	const isWorkspaceCreation = !!(
 		editingPreset?.applyOnWorkspaceCreated ||
@@ -372,7 +390,7 @@ export function PresetsSection({
 						presets={localPresets}
 						isLoading={isLoadingPresets}
 						presetsContainerRef={presetsContainerRef}
-						onEdit={setEditingPresetId}
+						onEdit={setEditingPreset}
 						onLocalReorder={handleLocalReorder}
 						onPersistReorder={handlePersistReorder}
 					/>
