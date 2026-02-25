@@ -14,11 +14,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type RefObject, useMemo, useState } from "react";
 import { LuCopy, LuX } from "react-icons/lu";
+import { createContextMenuDeleteDialogCoordinator } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import { HOVER_CARD_CLOSE_DELAY, HOVER_CARD_OPEN_DELAY } from "./constants";
-import { createContextMenuDeleteDialogCoordinator } from "./context-menu-delete-dialog-coordinator";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 
 interface CollapsedWorkspaceItemProps {

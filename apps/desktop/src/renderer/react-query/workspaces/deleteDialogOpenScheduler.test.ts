@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
 	clearPendingDeleteDialogOpen,
 	scheduleDeleteDialogOpen,
-} from "./deleteDialogOpenScheduler";
+} from "./useWorkspaceDeleteHandler";
 
-describe("deleteDialogOpenScheduler", () => {
+describe("useWorkspaceDeleteHandler utilities", () => {
 	test("clearPendingDeleteDialogOpen is a no-op when there is no pending timer", () => {
 		const pendingTimerRef = {
 			current: null as ReturnType<typeof setTimeout> | null,

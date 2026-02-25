@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { deferDeleteDialogOpen } from "renderer/react-query/workspaces/deferDeleteDialogOpen";
-import { createContextMenuDeleteDialogCoordinator } from "../../context-menu-delete-dialog-coordinator";
+import {
+	createContextMenuDeleteDialogCoordinator,
+	deferDeleteDialogOpen,
+} from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { focusPrimaryDialogAction } from "./focus-primary-dialog-action";
 
 /**
