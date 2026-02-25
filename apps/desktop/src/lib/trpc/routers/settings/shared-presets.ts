@@ -40,9 +40,12 @@ function isSupportedExecutionMode(value: unknown): boolean {
 	);
 }
 
-function toSharedPreset(input: SharedPresetInput): PresetWithUnknownMode {
+function toSharedPreset(
+	input: SharedPresetInput,
+	scopeKey: string,
+): PresetWithUnknownMode {
 	return {
-		id: getSharedPresetId(input.slug),
+		id: getSharedPresetId(scopeKey, input.slug),
 		name: input.name,
 		description: input.description,
 		cwd: input.cwd ?? "",
@@ -77,8 +80,8 @@ function arePresetFieldsEqual(a: TerminalPreset, b: TerminalPreset): boolean {
 	);
 }
 
-export function getSharedPresetId(slug: string): string {
-	return `${SHARED_PRESET_ID_PREFIX}${slug}`;
+export function getSharedPresetId(scopeKey: string, slug: string): string {
+	return `${SHARED_PRESET_ID_PREFIX}${encodeURIComponent(scopeKey)}:${slug}`;
 }
 
 export function isSharedPresetId(presetId: string): boolean {
@@ -86,10 +89,11 @@ export function isSharedPresetId(presetId: string): boolean {
 }
 
 export function loadSharedTerminalPresets(
-	mainRepoPath: string,
+	worktreePath: string,
+	workspaceId: string,
 ): TerminalPreset[] {
 	const presetsPath = join(
-		mainRepoPath,
+		worktreePath,
 		PROJECT_SUPERSET_DIR_NAME,
 		PRESETS_FILE_NAME,
 	);
@@ -121,7 +125,9 @@ export function loadSharedTerminalPresets(
 		? parsed.data
 		: parsed.data.presets;
 
-	return normalizeTerminalPresets(rawPresets.map(toSharedPreset));
+	return normalizeTerminalPresets(
+		rawPresets.map((preset) => toSharedPreset(preset, workspaceId)),
+	);
 }
 
 export function mergeSharedAndLocalTerminalPresets(
@@ -129,7 +135,7 @@ export function mergeSharedAndLocalTerminalPresets(
 	localPresets: TerminalPreset[],
 ): TerminalPreset[] {
 	if (sharedPresets.length === 0) {
-		return localPresets;
+		return localPresets.filter((preset) => !isSharedPresetId(preset.id));
 	}
 
 	const localById = new Map(localPresets.map((preset) => [preset.id, preset]));
@@ -151,7 +157,7 @@ export function mergeSharedAndLocalTerminalPresets(
 	}
 
 	for (const localPreset of localPresets) {
-		if (!sharedIds.has(localPreset.id)) {
+		if (!sharedIds.has(localPreset.id) && !isSharedPresetId(localPreset.id)) {
 			merged.push(localPreset);
 		}
 	}

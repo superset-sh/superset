@@ -4,11 +4,11 @@ import {
 	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
 	NON_EDITOR_APPS,
-	projects,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 	workspaces,
+	worktrees,
 } from "@superset/local-db";
 import {
 	AGENT_PRESET_COMMANDS,
@@ -83,56 +83,89 @@ function getNormalizedTerminalPresets() {
 	return normalizeTerminalPresets(rawPresets);
 }
 
-function getActiveProjectMainRepoPath(): string | null {
+function getWorkspacePath(worktreeId: string | null): string | null {
+	if (!worktreeId) {
+		return null;
+	}
+	const worktree = localDb
+		.select({ path: worktrees.path })
+		.from(worktrees)
+		.where(eq(worktrees.id, worktreeId))
+		.get();
+	return worktree?.path ?? null;
+}
+
+function getActiveWorkspacePresetSource(): {
+	workspaceId: string;
+	worktreePath: string;
+} | null {
 	const row = getSettings();
 	const activeWorkspaceId = row.lastActiveWorkspaceId;
-	if (!activeWorkspaceId) {
-		const mostRecentProject = localDb
-			.select({ mainRepoPath: projects.mainRepoPath })
-			.from(projects)
-			.orderBy(desc(projects.lastOpenedAt))
-			.limit(1)
+
+	if (activeWorkspaceId) {
+		const activeWorkspace = localDb
+			.select({ id: workspaces.id, worktreeId: workspaces.worktreeId })
+			.from(workspaces)
+			.where(eq(workspaces.id, activeWorkspaceId))
 			.get();
-		return mostRecentProject?.mainRepoPath ?? null;
+		if (activeWorkspace) {
+			const worktreePath = getWorkspacePath(activeWorkspace.worktreeId ?? null);
+			if (worktreePath) {
+				return { workspaceId: activeWorkspace.id, worktreePath };
+			}
+		}
 	}
 
-	const workspace = localDb
-		.select({ projectId: workspaces.projectId })
+	const recentWorkspaces = localDb
+		.select({ id: workspaces.id, worktreeId: workspaces.worktreeId })
 		.from(workspaces)
-		.where(eq(workspaces.id, activeWorkspaceId))
-		.get();
+		.orderBy(desc(workspaces.lastOpenedAt))
+		.limit(50)
+		.all();
 
-	if (!workspace) {
-		const mostRecentProject = localDb
-			.select({ mainRepoPath: projects.mainRepoPath })
-			.from(projects)
-			.orderBy(desc(projects.lastOpenedAt))
-			.limit(1)
-			.get();
-		return mostRecentProject?.mainRepoPath ?? null;
+	for (const workspace of recentWorkspaces) {
+		const worktreePath = getWorkspacePath(workspace.worktreeId ?? null);
+		if (worktreePath) {
+			return { workspaceId: workspace.id, worktreePath };
+		}
 	}
 
-	const project = localDb
-		.select({ mainRepoPath: projects.mainRepoPath })
-		.from(projects)
-		.where(eq(projects.id, workspace.projectId))
-		.get();
-
-	return project?.mainRepoPath ?? null;
+	return null;
 }
 
 function getSharedTerminalPresets() {
-	const mainRepoPath = getActiveProjectMainRepoPath();
-	if (!mainRepoPath) {
+	const source = getActiveWorkspacePresetSource();
+	if (!source) {
 		return [];
 	}
-	return loadSharedTerminalPresets(mainRepoPath);
+	return loadSharedTerminalPresets(source.worktreePath, source.workspaceId);
 }
 
 function getEffectiveTerminalPresets() {
 	const localPresets = getNormalizedTerminalPresets();
 	const sharedPresets = getSharedTerminalPresets();
 	return mergeSharedAndLocalTerminalPresets(sharedPresets, localPresets);
+}
+
+function saveEffectiveTerminalPresets(
+	effectivePresets: TerminalPreset[],
+	sharedPresets: TerminalPreset[],
+) {
+	const activeSharedPresetIds = new Set(
+		sharedPresets.map((preset) => preset.id),
+	);
+	const hiddenSharedOverrides = getNormalizedTerminalPresets().filter(
+		(preset) =>
+			isSharedPresetId(preset.id) && !activeSharedPresetIds.has(preset.id),
+	);
+	const currentWorkspaceLocalPresets = toLocalTerminalPresets(
+		effectivePresets,
+		sharedPresets,
+	);
+	saveTerminalPresets([
+		...currentWorkspaceLocalPresets,
+		...hiddenSharedOverrides,
+	]);
 }
 
 function saveTerminalPresets(
@@ -326,9 +359,7 @@ export const createSettingsRouter = () => {
 					isDefault: input.id === p.id ? true : undefined,
 				}));
 
-				saveTerminalPresets(
-					toLocalTerminalPresets(updatedPresets, sharedPresets),
-				);
+				saveEffectiveTerminalPresets(updatedPresets, sharedPresets);
 
 				return { success: true };
 			}),
@@ -375,9 +406,7 @@ export const createSettingsRouter = () => {
 					};
 				});
 
-				saveTerminalPresets(
-					toLocalTerminalPresets(updatedPresets, sharedPresets),
-				);
+				saveEffectiveTerminalPresets(updatedPresets, sharedPresets);
 
 				return { success: true };
 			}),
@@ -430,7 +459,7 @@ export const createSettingsRouter = () => {
 				const [removed] = presets.splice(currentIndex, 1);
 				presets.splice(input.targetIndex, 0, removed);
 
-				saveTerminalPresets(toLocalTerminalPresets(presets, sharedPresets));
+				saveEffectiveTerminalPresets(presets, sharedPresets);
 
 				return { success: true };
 			}),
