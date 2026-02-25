@@ -140,14 +140,15 @@ export function WorkspaceListItem({
 		staleTime: GITHUB_STATUS_STALE_TIME,
 	});
 
-	const { data: aheadBehind } = electronTrpc.workspaces.getAheadBehind.useQuery(
-		{ workspaceId: id },
-		{
-			enabled: isBranchWorkspace,
-			staleTime: GITHUB_STATUS_STALE_TIME,
-			refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
-		},
-	);
+	const { data: aheadBehind, refetch: refetchAheadBehind } =
+		electronTrpc.workspaces.getAheadBehind.useQuery(
+			{ workspaceId: id },
+			{
+				enabled: isBranchWorkspace,
+				staleTime: GITHUB_STATUS_STALE_TIME,
+				refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
+			},
+		);
 
 	useBranchSyncInvalidation({
 		gitBranch: localChanges?.branch,
@@ -193,6 +194,7 @@ export function WorkspaceListItem({
 
 	const handleMouseEnter = () => {
 		if (!hasHovered) setHasHovered(true);
+		if (isBranchWorkspace) void refetchAheadBehind();
 	};
 
 	const handleOpenInFinder = () => {
