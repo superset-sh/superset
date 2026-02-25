@@ -8,6 +8,28 @@ relatedSlugs:
   - parallel-coding-agents-guide
   - roadmap-to-100-agents
   - working-with-worktrees-in-superset
+keywords:
+  - ai agent orchestration
+  - parallel coding agents
+  - multi-agent workflows
+  - coding agent management
+  - ai coding tools 2026
+  - claude code orchestration
+  - codex orchestration
+  - agent scaling
+  - superset orchestrator
+  - ai development workflow
+faq:
+  - question: "What is AI agent orchestration?"
+    answer: "AI agent orchestration is the process of managing multiple AI coding agents running in parallel — handling isolation, session persistence, task allocation, and unified review. Instead of running one agent at a time, an orchestrator lets you run 5-10+ agents simultaneously on independent tasks."
+  - question: "Why do I need an orchestrator instead of a better AI coding agent?"
+    answer: "A 20% improvement in agent quality improves throughput by 20%. Running 5 agents in parallel instead of 1 improves throughput by 5x. The orchestration layer has more leverage than the agent layer because the bottleneck is managing multiple agents, not individual agent quality."
+  - question: "How does Superset orchestrate multiple coding agents?"
+    answer: "Superset uses Git worktrees for filesystem isolation, a persistent daemon for session management, and supports any CLI agent (Claude Code, Codex, Aider, OpenCode) as a first-class citizen. It includes a built-in diff viewer for fast review and editor integration for VS Code, Cursor, JetBrains, and Xcode."
+  - question: "Can I use different AI coding agents for different tasks?"
+    answer: "Yes. An orchestrator like Superset is agent-agnostic, letting you match agents to tasks — Claude Code for complex refactors, Codex for well-defined tasks, Aider for iterative changes — and run them all simultaneously."
+  - question: "What's the difference between an AI coding agent and an AI agent orchestrator?"
+    answer: "An AI coding agent (like Claude Code, Codex, or Cursor) performs individual coding tasks. An AI agent orchestrator (like Superset) manages multiple agents running in parallel, handling isolation, session persistence, and review workflows so you can scale from 1 agent to 10+."
 ---
 
 Every month, a new AI coding agent launches. Claude Code. Codex. Aider. OpenCode. Cursor's agent mode. Windsurf's Cascade. Devin. The list keeps growing. Each promises to be smarter, faster, more capable than the last.

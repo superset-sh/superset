@@ -16,6 +16,7 @@ export interface ComparisonPage {
 	competitors: string[];
 	keywords: string[];
 	image?: string;
+	faq?: Array<{ question: string; answer: string }>;
 	content: string;
 }
 

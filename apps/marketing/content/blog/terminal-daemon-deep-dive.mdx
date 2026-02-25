@@ -6,7 +6,26 @@ date: 2026-01-26
 category: Engineering
 relatedSlugs:
   - git-worktrees-history-deep-dive
-  - how-to-get-hit
+  - working-with-worktrees-in-superset
+  - roadmap-to-100-agents
+keywords:
+  - persistent terminal electron
+  - terminal daemon architecture
+  - electron terminal session persistence
+  - node-pty daemon
+  - unix domain socket terminal
+  - terminal backpressure handling
+  - xterm.js headless emulator
+  - cold restore terminal
+  - superset terminal architecture
+  - electron app terminal
+faq:
+  - question: "How does Superset's terminal survive app restarts?"
+    answer: "Superset runs a detached Node.js daemon process that owns all PTY sessions. The Electron app connects as a client over Unix domain sockets. When the app restarts, it reconnects to the still-running daemon and reattaches to existing sessions."
+  - question: "What happens if the terminal daemon crashes?"
+    answer: "Superset implements cold restore — terminal scrollback and metadata are persisted to disk. On next launch, it detects unclean shutdown, shows the previous scrollback as read-only, and spawns a new shell in the same directory."
+  - question: "Why didn't Superset use tmux for terminal persistence?"
+    answer: "Tmux has three issues: (1) it's an extra dependency users must install, (2) it doesn't work on Windows, and (3) tmux hijacks scrollbar, selection, and hotkeys inside xterm.js, making the experience clunky. A custom daemon avoids all three problems."
 ---
 
 One of the slickest features of Superset is how our terminal survives app restarts. This is a deep dive on how we built it. Huge credits to [Andreas Asprou](https://x.com/andyasprou) who spearheaded this entire effort.

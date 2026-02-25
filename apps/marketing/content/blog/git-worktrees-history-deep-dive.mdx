@@ -6,7 +6,30 @@ date: 2026-01-27
 category: Engineering
 relatedSlugs:
   - terminal-daemon-deep-dive
-  - how-to-get-hit
+  - working-with-worktrees-in-superset
+  - parallel-coding-agents-guide
+keywords:
+  - git worktrees
+  - git worktree tutorial
+  - git worktree history
+  - git 2.5 worktrees
+  - multiple working directories git
+  - git worktree ai agents
+  - parallel branch development
+  - git-new-workdir
+  - worktree internals
+  - git worktree best practices
+faq:
+  - question: "What are Git worktrees and when were they introduced?"
+    answer: "Git worktrees are a feature introduced in Git 2.5 (July 2015) that lets you check out multiple branches simultaneously in separate working directories, all sharing the same git object store. They were primarily authored by Nguyễn Thái Ngọc Duy."
+  - question: "Why are Git worktrees suddenly popular in 2026?"
+    answer: "AI coding agents need isolated environments to work without conflicting. Worktrees provide filesystem-level isolation — each agent gets its own directory, branch, and staging area while sharing the git history. This pattern of parallel human + AI work is driving a resurgence in worktree adoption."
+  - question: "What's the difference between Git worktrees and cloning a repo twice?"
+    answer: "Worktrees share the git object store (commits, trees, blobs), so they take seconds to create and use minimal disk space. Separate clones duplicate the entire history, take minutes to create, and require push/pull to synchronize. Worktrees also share branches and tags natively."
+  - question: "Can the same branch be checked out in multiple Git worktrees?"
+    answer: "No. Git enforces a one-branch-per-worktree rule to prevent confusing bugs where commits in one worktree would cause unexpected dirty diffs in another. You can work around this with detached HEAD or by creating a new branch."
+  - question: "How do Git worktrees work under the hood?"
+    answer: "When you create a worktree, git creates a new directory with a .git file (not directory) pointing back to the main repo. The main repo stores worktree metadata in .git/worktrees/<name>/ with separate HEAD, index, and reflog files. Shared resources like objects and refs are resolved via the commondir mechanism."
 ---
 
 Git worktrees have been around since 2015. For most of that time, they were a curiosity — something kernel developers used, something that showed up in obscure Stack Overflow answers, something most developers had never heard of.

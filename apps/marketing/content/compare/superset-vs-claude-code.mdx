@@ -13,6 +13,20 @@ keywords:
   - claude code orchestration
   - claude code worktrees
   - ai coding agent comparison
+  - anthropic claude code
+  - claude code multiple instances
+  - claude code session persistence
+faq:
+  - question: "Is Superset a Claude Code replacement?"
+    answer: "No. Superset does not talk to AI models or write code. It orchestrates agents like Claude Code in parallel, each in its own Git worktree. Think of it as a multiplier for Claude Code, not a substitute."
+  - question: "How many Claude Code instances can I run in Superset?"
+    answer: "As many as your machine and API rate limits allow. Most developers run 5-10 concurrent agents. Superset's daemon handles concurrency, and its priority-based scheduling ensures the focused task gets full resources."
+  - question: "Does Superset modify how Claude Code works?"
+    answer: "No. Claude Code runs exactly as it would in any terminal. Superset just provides the worktree, branch, and terminal session. All Claude Code features — tool use, MCP servers, hooks, slash commands — work normally."
+  - question: "Can I use Claude Code without Superset?"
+    answer: "Yes. Claude Code works perfectly in any terminal. Superset adds value when you want to run multiple instances in parallel with automatic isolation — which becomes important as you scale from one agent to many."
+  - question: "Is Superset open source?"
+    answer: "Yes. Superset is open source under Apache 2.0 with zero telemetry. The full codebase is on GitHub. Claude Code is source-available but not open source."
 ---
 
 Claude Code is Anthropic's terminal-based AI coding agent. Superset is an orchestration layer that runs multiple Claude Code instances in parallel, each in its own Git worktree. They're complementary — Superset doesn't replace Claude Code, it multiplies it.
@@ -115,3 +129,12 @@ No. Claude Code runs exactly as it would in any terminal. Superset just provides
 ### Is Superset open source?
 
 Yes. Superset is open source under Apache 2.0 with zero telemetry. The full codebase is on GitHub. Claude Code is source-available but not open source.
+
+---
+
+## Related Comparisons
+
+- [Superset vs Codex CLI](/compare/superset-vs-codex) — How Superset orchestrates OpenAI's coding agent
+- [Superset vs Conductor](/compare/superset-vs-conductor) — Comparing AI agent orchestration platforms
+- [Superset vs Cursor](/compare/superset-vs-cursor) — Parallel agents vs AI editor
+- [Best AI Coding Tools 2026](/compare/best-ai-coding-agents-2026) — Complete comparison of all major tools

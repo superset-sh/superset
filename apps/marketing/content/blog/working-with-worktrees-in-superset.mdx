@@ -7,6 +7,27 @@ category: Engineering
 relatedSlugs:
   - git-worktrees-history-deep-dive
   - roadmap-to-100-agents
+  - parallel-coding-agents-guide
+keywords:
+  - git worktrees superset
+  - ai agent isolation
+  - parallel development workflow
+  - worktree agent orchestration
+  - superset worktrees tutorial
+  - multiple coding agents workflow
+  - git worktrees vs containers
+  - agent workspace isolation
+  - concurrent ai development
+  - worktree management tool
+faq:
+  - question: "How does Superset use Git worktrees for AI coding agents?"
+    answer: "When you create a task in Superset, it automatically creates a Git worktree and branch for the agent. The agent works in isolation with its own files, branch, and staging area, while sharing the git object store. When finished, you review the diff and merge — just like reviewing a coworker's PR."
+  - question: "What are the advantages of Git worktrees over Docker containers for AI agents?"
+    answer: "Git worktrees are faster to create (seconds vs minutes), cheaper on disk (shared object store), share git history natively, and use standard git merging. Containers add unnecessary overhead for most coding tasks where filesystem isolation is sufficient."
+  - question: "How many parallel agents can Superset manage with worktrees?"
+    answer: "Most developers find a sweet spot around 5-7 concurrent agents before review becomes the bottleneck. Superset's persistent daemon manages all sessions via Unix domain sockets, with sessions surviving crashes and app restarts."
+  - question: "Can I use different AI coding agents in different worktrees?"
+    answer: "Yes. Superset is agent-agnostic — you can run Claude Code on a complex refactor, Codex on test generation, and Aider on iterative fixes, all simultaneously in separate worktrees."
 ---
 
 Running one AI coding agent is useful. Running ten at once is a different game entirely. But running ten agents in the same working directory is a disaster — they step on each other's files, create merge conflicts mid-edit, and leave your codebase in an unpredictable state.

@@ -13,6 +13,18 @@ keywords:
   - openai codex alternative
   - codex parallel agents
   - ai coding agent comparison
+  - codex full auto mode
+  - codex sandbox agent
+  - openai coding agent
+faq:
+  - question: "Is Superset a Codex replacement?"
+    answer: "No. Superset does not talk to AI models or write code. It orchestrates agents like Codex in parallel, each in its own Git worktree. Think of Superset as a multiplier for Codex, not a substitute."
+  - question: "Can I run Codex in Full Auto mode inside Superset?"
+    answer: "Yes. Each Superset task runs Codex in its own isolated worktree. You can use any Codex mode — Suggest, Auto Edit, or Full Auto — safely, because worktree isolation means an autonomous agent can't affect your main working directory."
+  - question: "How does cloud Codex compare to Superset?"
+    answer: "Cloud Codex runs in OpenAI's VMs and produces pull requests. Superset runs agents locally in Git worktrees. Cloud Codex offloads compute but sends code to OpenAI's servers. Superset keeps everything local with zero telemetry."
+  - question: "Are both tools open source?"
+    answer: "Yes. Both Superset and Codex CLI are open source under Apache 2.0. You can inspect, modify, and self-host either."
 ---
 
 Codex CLI is OpenAI's terminal-based coding agent. Superset is an orchestration layer that runs multiple Codex instances (and other agents) in parallel, each in its own Git worktree. They solve different problems: Codex does the coding, Superset scales it horizontally.
@@ -111,3 +123,12 @@ Cloud Codex runs in OpenAI's VMs and produces pull requests. Superset runs agent
 ### Are both tools open source?
 
 Yes. Both Superset and Codex CLI are open source under Apache 2.0. You can inspect, modify, and self-host either.
+
+---
+
+## Related Comparisons
+
+- [Superset vs Claude Code](/compare/superset-vs-claude-code) — How Superset orchestrates Anthropic's coding agent
+- [Superset vs Conductor](/compare/superset-vs-conductor) — Comparing AI agent orchestration platforms
+- [Superset vs OpenCode](/compare/superset-vs-opencode) — Agent orchestration vs open-source AI terminal
+- [Best AI Coding Tools 2026](/compare/best-ai-coding-agents-2026) — Complete comparison of all major tools

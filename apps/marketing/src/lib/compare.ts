@@ -31,6 +31,7 @@ function parseFrontmatter(filePath: string): ComparisonPage | null {
 			competitors: data.competitors ?? [],
 			keywords: data.keywords ?? [],
 			image: data.image,
+			faq: data.faq,
 			content,
 		};
 	} catch {

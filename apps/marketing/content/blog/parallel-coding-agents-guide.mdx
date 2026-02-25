@@ -8,6 +8,28 @@ relatedSlugs:
   - working-with-worktrees-in-superset
   - roadmap-to-100-agents
   - git-worktrees-history-deep-dive
+keywords:
+  - parallel coding agents
+  - run multiple ai agents
+  - ai agent isolation
+  - git worktrees ai agents
+  - claude code parallel
+  - codex parallel
+  - agent orchestration guide
+  - ai coding workflow
+  - review bottleneck agents
+  - multi-agent development
+faq:
+  - question: "How do I run multiple AI coding agents in parallel without conflicts?"
+    answer: "Use Git worktrees to give each agent its own working directory, branch, and staging area. Each worktree shares the git object store but has completely isolated files, preventing agents from overwriting each other's work."
+  - question: "How many AI coding agents can I run at the same time?"
+    answer: "On a modern laptop, 5-7 concurrent agents are comfortable. Start with 2-3 to get used to the review workflow, then scale up. The bottleneck is usually review speed, not compute resources."
+  - question: "Which AI coding agent is best for which task?"
+    answer: "Claude Code excels at complex multi-file refactors and architectural changes. Codex is fast for well-scoped, clearly defined tasks. OpenCode offers flexibility with 75+ model providers. Aider is ideal for iterative pair programming with tight feedback loops."
+  - question: "What is the biggest challenge with running parallel AI coding agents?"
+    answer: "The review bottleneck. If you run 10 agents producing diffs every 15 minutes, you need to review 10 diffs per hour. Strategies include prioritizing by risk, reviewing diffs rather than full files, letting agents verify their own work with tests, and batching similar tasks."
+  - question: "Do I need a special tool to run parallel coding agents?"
+    answer: "You can start with manual Git worktrees for 2-3 agents, but for 5+ agents you need a dedicated orchestrator like Superset that handles worktree creation, session persistence, diff review, and editor integration automatically."
 ---
 
 Running one AI coding agent is straightforward. Running ten at once introduces problems that most developers haven't encountered before: file conflicts, branch collisions, resource contention, and a review bottleneck that grows linearly with agent count. This guide covers the patterns that work and the mistakes to avoid.

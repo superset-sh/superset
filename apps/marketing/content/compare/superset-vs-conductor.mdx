@@ -12,6 +12,16 @@ keywords:
   - ai agent orchestration
   - coding agent management
   - conductor vs superset
+  - melty labs conductor
+  - conductor open source
+  - agent orchestration comparison
+faq:
+  - question: "Is Conductor open source?"
+    answer: "No. Conductor is closed source from Melty Labs. You cannot inspect or audit the code. Superset is open source under Apache 2.0 with its full codebase on GitHub."
+  - question: "Can Conductor run agents other than Claude Code?"
+    answer: "Conductor supports Claude Code and OpenAI Codex. It does not support other CLI agents like OpenCode, Aider, or custom tools. Adding new agents requires Conductor to build an SDK integration."
+  - question: "Do both tools use Git worktrees?"
+    answer: "Yes. Both create isolated Git worktrees for each agent, giving every task its own branch and working directory. The underlying isolation mechanism is identical."
 ---
 
 Superset and Conductor both run multiple AI coding agents in parallel using Git worktrees for isolation. They differ sharply in agent support, architecture, and openness.
@@ -100,3 +110,12 @@ Conductor supports Claude Code and OpenAI Codex. It does not support other CLI a
 ### Do both tools use Git worktrees?
 
 Yes. Both create isolated Git worktrees for each agent, giving every task its own branch and working directory. The underlying isolation mechanism is identical.
+
+---
+
+## Related Comparisons
+
+- [Superset vs Claude Code](/compare/superset-vs-claude-code) — Orchestrator vs Anthropic's coding agent
+- [Superset vs Codex CLI](/compare/superset-vs-codex) — Orchestrator vs OpenAI's coding agent
+- [Superset vs Devin](/compare/superset-vs-devin) — Local orchestration vs cloud AI engineer
+- [Best AI Coding Tools 2026](/compare/best-ai-coding-agents-2026) — Complete comparison of all major tools

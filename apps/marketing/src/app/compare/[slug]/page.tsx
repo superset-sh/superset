@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { mdxComponents } from "@/app/blog/components/mdx-components";
-import { ComparisonJsonLd } from "@/components/JsonLd";
+import {
+	BreadcrumbJsonLd,
+	ComparisonJsonLd,
+	FAQPageJsonLd,
+} from "@/components/JsonLd";
 import { getAllComparisonSlugs, getComparisonPage } from "@/lib/compare";
 import { CompareLayout } from "./components/CompareLayout";
 
@@ -36,6 +40,14 @@ export default async function ComparePageRoute({ params }: PageProps) {
 				url={url}
 				image={page.image}
 			/>
+			<BreadcrumbJsonLd
+				items={[
+					{ name: "Home", url: COMPANY.MARKETING_URL },
+					{ name: "Compare", url: `${COMPANY.MARKETING_URL}/compare` },
+					{ name: page.title, url },
+				]}
+			/>
+			{page.faq && page.faq.length > 0 && <FAQPageJsonLd items={page.faq} />}
 			<CompareLayout page={page}>
 				<MDXRemote
 					source={page.content}
@@ -66,6 +78,7 @@ export async function generateMetadata({
 	return {
 		title: `${page.title} | ${COMPANY.NAME}`,
 		description: page.description,
+		keywords: page.keywords,
 		alternates: {
 			canonical: url,
 		},
