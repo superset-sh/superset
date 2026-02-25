@@ -14,6 +14,7 @@ interface MockHarness {
 	currentThreadId: string | null;
 	aborts: number;
 	sendMessageCalls: Array<{ content: string }>;
+	switchModelCalls: Array<{ modelId: string; scope?: string }>;
 	toolApprovalCalls: Array<{ decision: string }>;
 	questionCalls: Array<{ questionId: string; answer: string }>;
 	planCalls: Array<{
@@ -23,6 +24,13 @@ interface MockHarness {
 	init: () => Promise<void>;
 	setResourceId: ({ resourceId }: { resourceId: string }) => void;
 	selectOrCreateThread: () => Promise<{ id: string }>;
+	switchModel: ({
+		modelId,
+		scope,
+	}: {
+		modelId: string;
+		scope?: "global" | "thread";
+	}) => Promise<void>;
 	sendMessage: ({ content }: { content: string }) => Promise<void>;
 	abort: () => void;
 	respondToToolApproval: ({ decision }: { decision: string }) => void;
@@ -69,6 +77,7 @@ function createMockHarness(): MockHarness {
 		currentThreadId: null,
 		aborts: 0,
 		sendMessageCalls: [],
+		switchModelCalls: [],
 		toolApprovalCalls: [],
 		questionCalls: [],
 		planCalls: [],
@@ -79,6 +88,9 @@ function createMockHarness(): MockHarness {
 		selectOrCreateThread: async () => {
 			harness.currentThreadId = `thread-${harness.resourceId ?? "unknown"}`;
 			return { id: harness.currentThreadId };
+		},
+		switchModel: async ({ modelId, scope }) => {
+			harness.switchModelCalls.push({ modelId, scope });
 		},
 		sendMessage: async ({ content }) => {
 			harness.sendMessageCalls.push({ content });
@@ -300,6 +312,24 @@ describe("runtime-state", () => {
 		expect(envelopes.map((entry) => entry.sequenceHint)).toEqual(
 			Array.from({ length: envelopes.length }, (_, index) => index),
 		);
+	});
+
+	it("switches model before sendMessage when metadata model is provided", async () => {
+		await runtime.ensureRuntime({ sessionId: sessionA, cwd: "/tmp/project-a" });
+
+		const result = await runtime.sendMessage({
+			sessionId: sessionA,
+			content: "hello",
+			metadata: {
+				model: "openai/gpt-4o",
+			},
+		});
+		expect(result).toEqual({ accepted: true });
+
+		const harness = getHarnessForSession(sessionA);
+		expect(harness.switchModelCalls).toEqual([
+			{ modelId: "openai/gpt-4o", scope: "thread" },
+		]);
 	});
 
 	it("serializes concurrent sendMessage calls per session", async () => {

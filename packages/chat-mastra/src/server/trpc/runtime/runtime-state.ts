@@ -350,6 +350,14 @@ export async function sendMessage(
 		});
 		updateSessionTitleFromMessage(input.sessionId, input.content);
 
+		const selectedModel = input.metadata?.model?.trim();
+		if (selectedModel) {
+			await runtime.harness.switchModel({
+				modelId: selectedModel,
+				scope: "thread",
+			});
+		}
+
 		const images = toMastraImages(input.files);
 		await runtime.harness.sendMessage({
 			content: input.content ?? "",
