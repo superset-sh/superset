@@ -1593,7 +1593,7 @@ export async function getPrInfo({
 		if (isExecFileException(error)) {
 			if (error.code === "ENOENT") {
 				throw new Error(
-					"GitHub CLI (gh) is not installed. Please install it from https://cli.github.com/",
+					"GitHub CLI (gh) is unavailable. Superset could not find a bundled gh binary or a PATH-installed gh. Install it from https://cli.github.com/",
 				);
 			}
 			const stderr = error.stderr || error.message || "";

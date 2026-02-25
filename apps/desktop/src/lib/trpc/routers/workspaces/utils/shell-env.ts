@@ -4,6 +4,10 @@ import {
 } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
+import {
+	getBundledGhBinDir,
+	getBundledGhPath,
+} from "main/lib/github-cli/bundled-gh";
 
 const execFileAsync = promisify(execFile);
 
@@ -17,6 +21,44 @@ const FALLBACK_CACHE_TTL_MS = 10_000; // 10 second cache for fallback (retry soo
 // Track PATH fix state for macOS GUI app PATH fix
 let pathFixAttempted = false;
 let pathFixSucceeded = false;
+
+function prependPathEntry(pathValue: string, entry: string): string {
+	const delimiter = process.platform === "win32" ? ";" : ":";
+	const normalizedEntry =
+		process.platform === "win32" ? entry.toLowerCase() : entry;
+	const hasEntry = pathValue.split(delimiter).some((current) => {
+		const normalizedCurrent =
+			process.platform === "win32" ? current.toLowerCase() : current;
+		return normalizedCurrent === normalizedEntry;
+	});
+
+	if (hasEntry) {
+		return pathValue;
+	}
+
+	return `${entry}${delimiter}${pathValue}`;
+}
+
+function applyBundledGhToPath(pathValue?: string): string | undefined {
+	const bundledGhBinDir = getBundledGhBinDir();
+	if (!bundledGhBinDir) {
+		return pathValue;
+	}
+
+	if (!pathValue) {
+		return bundledGhBinDir;
+	}
+
+	return prependPathEntry(pathValue, bundledGhBinDir);
+}
+
+function resolveCommand(cmd: string): string {
+	if (cmd !== "gh") {
+		return cmd;
+	}
+
+	return getBundledGhPath() ?? cmd;
+}
 
 /**
  * Gets the full shell environment by spawning a login shell.
@@ -114,13 +156,14 @@ export async function getProcessEnvWithShellPath(
 	}
 
 	const shellPath = shellEnv.PATH || shellEnv.Path;
-	if (!shellPath) {
+	const resolvedPath = applyBundledGhToPath(shellPath || env.PATH || env.Path);
+	if (!resolvedPath) {
 		return env;
 	}
 
-	env.PATH = shellPath;
+	env.PATH = resolvedPath;
 	if (process.platform === "win32" || "Path" in baseEnv || "Path" in shellEnv) {
-		env.Path = shellPath;
+		env.Path = resolvedPath;
 	}
 
 	return env;
@@ -137,8 +180,12 @@ export async function execWithShellEnv(
 	args: string[],
 	options?: Omit<ExecFileOptionsWithStringEncoding, "encoding">,
 ): Promise<{ stdout: string; stderr: string }> {
+	const resolvedCmd = resolveCommand(cmd);
 	try {
-		return await execFileAsync(cmd, args, { ...options, encoding: "utf8" });
+		return await execFileAsync(resolvedCmd, args, {
+			...options,
+			encoding: "utf8",
+		});
 	} catch (error) {
 		// Only retry on ENOENT (command not found), only on macOS
 		// Skip if we've already successfully fixed PATH, or if a fix attempt is in progress
@@ -158,20 +205,27 @@ export async function execWithShellEnv(
 
 		try {
 			const shellEnv = await getShellEnvironment();
+			const resolvedPath = applyBundledGhToPath(shellEnv.PATH || shellEnv.Path);
 
 			// Persist the fix to process.env so all subsequent calls benefit
-			if (shellEnv.PATH) {
-				process.env.PATH = shellEnv.PATH;
+			if (resolvedPath) {
+				process.env.PATH = resolvedPath;
 				pathFixSucceeded = true;
 				console.log("[shell-env] Fixed process.env.PATH for GUI app");
 			}
 
 			// Retry with fixed env (respect caller's other env vars, force PATH if present)
-			const retryEnv = shellEnv.PATH
-				? { ...shellEnv, ...options?.env, PATH: shellEnv.PATH }
+			const retryEnv = resolvedPath
+				? { ...shellEnv, ...options?.env, PATH: resolvedPath }
 				: { ...shellEnv, ...options?.env };
+			if (
+				resolvedPath &&
+				("Path" in shellEnv || "Path" in (options?.env ?? {}))
+			) {
+				(retryEnv as Record<string, string>).Path = resolvedPath;
+			}
 
-			return await execFileAsync(cmd, args, {
+			return await execFileAsync(resolvedCmd, args, {
 				...options,
 				encoding: "utf8",
 				env: retryEnv,

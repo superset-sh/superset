@@ -64,6 +64,12 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
+		// Bundled GitHub CLI binary used by desktop git workflows
+		{
+			from: "dist/resources/bin",
+			to: "bin",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [

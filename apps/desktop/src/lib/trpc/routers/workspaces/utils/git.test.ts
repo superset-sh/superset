@@ -273,9 +273,16 @@ describe("Shell Environment", () => {
 
 		const shellPath = shellEnv.PATH || shellEnv.Path;
 		if (shellPath) {
-			expect(env.PATH).toBe(shellPath);
+			const delimiter = process.platform === "win32" ? ";" : ":";
+			expect(
+				env.PATH === shellPath ||
+					env.PATH?.endsWith(`${delimiter}${shellPath}`),
+			).toBe(true);
 			if (process.platform === "win32" || "Path" in shellEnv) {
-				expect(env.Path).toBe(shellPath);
+				expect(
+					env.Path === shellPath ||
+						env.Path?.endsWith(`${delimiter}${shellPath}`),
+				).toBe(true);
 			}
 		}
 	});
