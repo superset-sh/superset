@@ -3,6 +3,7 @@ import {
 	getAnthropicAuthToken,
 	setAnthropicOAuthCredentials,
 } from "@superset/agent";
+import { createMastraCode } from "mastracode";
 import {
 	createAnthropicOAuthSession,
 	exchangeAnthropicAuthorizationCode,
@@ -11,6 +12,11 @@ import type { GetHeaders } from "../lib/auth/auth";
 import { AgentManager, type AgentManagerConfig } from "./agent-manager";
 
 export type ChatLifecycleEventType = "Start" | "PermissionRequest" | "Stop";
+type OpenAIAuthMethod = "api_key" | "env_api_key" | "oauth" | null;
+const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
+type OpenAIAuthStorage = Awaited<
+	ReturnType<typeof createMastraCode>
+>["authStorage"];
 
 export interface ChatLifecycleEvent {
 	sessionId: string;
@@ -32,6 +38,7 @@ export class ChatService {
 		state: string;
 		createdAt: number;
 	} | null = null;
+	private openAIAuthStoragePromise: Promise<OpenAIAuthStorage> | null = null;
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 
 	constructor(hostConfig: ChatServiceHostConfig) {
@@ -86,6 +93,78 @@ export class ChatService {
 
 	getAnthropicAuthStatus(): { authenticated: boolean } {
 		return { authenticated: Boolean(getAnthropicAuthToken()) };
+	}
+
+	async getOpenAIAuthStatus(): Promise<{
+		authenticated: boolean;
+		method: OpenAIAuthMethod;
+	}> {
+		const method = await this.resolveOpenAIAuthMethod();
+		return { authenticated: method !== null, method };
+	}
+
+	async setOpenAIApiKey(input: { apiKey: string }): Promise<{ success: true }> {
+		const trimmedApiKey = input.apiKey.trim();
+		if (trimmedApiKey.length === 0) {
+			throw new Error("OpenAI API key is required");
+		}
+
+		const authStorage = await this.getOpenAIAuthStorage();
+		authStorage.reload();
+		authStorage.set(OPENAI_AUTH_PROVIDER_ID, {
+			type: "api_key",
+			key: trimmedApiKey,
+		});
+
+		process.env.OPENAI_API_KEY = trimmedApiKey;
+		return { success: true };
+	}
+
+	async clearOpenAIApiKey(): Promise<{ success: true }> {
+		const authStorage = await this.getOpenAIAuthStorage();
+		authStorage.reload();
+		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		if (credential?.type !== "api_key") {
+			return { success: true };
+		}
+
+		authStorage.remove(OPENAI_AUTH_PROVIDER_ID);
+		if (process.env.OPENAI_API_KEY?.trim() === credential.key.trim()) {
+			delete process.env.OPENAI_API_KEY;
+		}
+
+		return { success: true };
+	}
+
+	private async resolveOpenAIAuthMethod(): Promise<OpenAIAuthMethod> {
+		const authStorage = await this.getOpenAIAuthStorage();
+		authStorage.reload();
+		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
+		if (credential?.type === "oauth") {
+			return "oauth";
+		}
+		if (credential?.type === "api_key" && credential.key.trim().length > 0) {
+			return "api_key";
+		}
+		if (process.env.OPENAI_API_KEY?.trim()) {
+			return "env_api_key";
+		}
+		return null;
+	}
+
+	private async getOpenAIAuthStorage(): Promise<OpenAIAuthStorage> {
+		if (!this.openAIAuthStoragePromise) {
+			this.openAIAuthStoragePromise = createMastraCode({
+				disableMcp: true,
+				disableHooks: true,
+			})
+				.then((runtime) => runtime.authStorage)
+				.catch((error) => {
+					this.openAIAuthStoragePromise = null;
+					throw error;
+				});
+		}
+		return this.openAIAuthStoragePromise;
 	}
 
 	startAnthropicOAuth(): { url: string; instructions: string } {

@@ -17,6 +17,21 @@ const AVAILABLE_MODELS = [
 		name: "Haiku 4.5",
 		provider: "Anthropic",
 	},
+	{
+		id: "openai/gpt-5.3-codex",
+		name: "GPT-5.3 Codex",
+		provider: "OpenAI",
+	},
+	{
+		id: "openai/gpt-5.3-codex-spark",
+		name: "GPT-5.3 Codex Spark",
+		provider: "OpenAI",
+	},
+	{
+		id: "openai/gpt-5.2",
+		name: "GPT-5.2",
+		provider: "OpenAI",
+	},
 ];
 
 export const chatRouter = {

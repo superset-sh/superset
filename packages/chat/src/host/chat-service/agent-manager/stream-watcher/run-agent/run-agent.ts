@@ -17,6 +17,14 @@ import {
 	parseTaskMentions,
 } from "./context/task-mentions";
 
+function isAnthropicModel(modelId: string): boolean {
+	const normalizedModelId = modelId.toLowerCase();
+	return (
+		normalizedModelId.startsWith("anthropic/") ||
+		(!normalizedModelId.includes("/") && normalizedModelId.includes("claude"))
+	);
+}
+
 // ---------------------------------------------------------------------------
 // runAgent — core agent execution
 // ---------------------------------------------------------------------------
@@ -96,6 +104,8 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 
 		const requireToolApproval =
 			permissionMode === "default" || permissionMode === "acceptEdits";
+		const anthropicThinkingEnabled =
+			thinkingEnabled && isAnthropicModel(modelId);
 
 		// When the message has file parts, build a CoreUserMessage with
 		// multimodal content so the model receives images/files.
@@ -134,7 +144,7 @@ export async function runAgent(options: RunAgentOptions): Promise<void> {
 			abortSignal: abortController.signal,
 			...(contextInstructions ? { instructions: contextInstructions } : {}),
 			...(requireToolApproval ? { requireToolApproval: true } : {}),
-			...(thinkingEnabled
+			...(anthropicThinkingEnabled
 				? {
 						providerOptions: {
 							anthropic: {
@@ -249,6 +259,8 @@ export async function continueAgentWithToolOutput(
 
 	const requireToolApproval =
 		ctx.permissionMode === "default" || ctx.permissionMode === "acceptEdits";
+	const anthropicThinkingEnabled =
+		Boolean(ctx.thinkingEnabled) && isAnthropicModel(ctx.modelId);
 
 	const resumeData =
 		state === "output-error"
@@ -273,7 +285,7 @@ export async function continueAgentWithToolOutput(
 			},
 			abortSignal: abortController.signal,
 			...(requireToolApproval ? { requireToolApproval: true } : {}),
-			...(ctx.thinkingEnabled
+			...(anthropicThinkingEnabled
 				? {
 						providerOptions: {
 							anthropic: {

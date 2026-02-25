@@ -8,9 +8,11 @@ import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import type { ModelOption } from "../../../../types";
 import {
 	ANTHROPIC_LOGO_PROVIDER,
+	OPENAI_LOGO_PROVIDER,
 	providerToLogo,
 } from "../../utils/providerToLogo";
 import { AnthropicProviderHeading } from "./components/AnthropicProviderHeading";
+import { OpenAIProviderHeading } from "./components/OpenAIProviderHeading";
 
 interface ModelProviderGroupProps {
 	provider: string;
@@ -18,6 +20,9 @@ interface ModelProviderGroupProps {
 	isAnthropicAuthenticated: boolean;
 	isAnthropicOAuthPending: boolean;
 	onStartAnthropicOAuth: () => void;
+	isOpenAIAuthenticated: boolean;
+	isOpenAIApiKeyPending: boolean;
+	onOpenOpenAIApiKeyDialog: () => void;
 	onSelectModel: (model: ModelOption) => void;
 	onCloseModelSelector: () => void;
 }
@@ -28,20 +33,29 @@ export function ModelProviderGroup({
 	isAnthropicAuthenticated,
 	isAnthropicOAuthPending,
 	onStartAnthropicOAuth,
+	isOpenAIAuthenticated,
+	isOpenAIApiKeyPending,
+	onOpenOpenAIApiKeyDialog,
 	onSelectModel,
 	onCloseModelSelector,
 }: ModelProviderGroupProps) {
 	const groupLogo = providerToLogo(provider);
 	const isAnthropicProvider = groupLogo === ANTHROPIC_LOGO_PROVIDER;
-	const isConnected = isAnthropicProvider ? isAnthropicAuthenticated : true;
-	const heading = isAnthropicProvider
-		? `${provider} ${isConnected ? "• Connected" : "• Not connected"}`
-		: provider;
+	const isOpenAIProvider = groupLogo === OPENAI_LOGO_PROVIDER;
+	const isConnected = isAnthropicProvider
+		? isAnthropicAuthenticated
+		: isOpenAIProvider
+			? isOpenAIAuthenticated
+			: true;
+	const heading =
+		isAnthropicProvider || isOpenAIProvider
+			? `${provider} ${isConnected ? "• Connected" : "• Not connected"}`
+			: provider;
 
 	return (
 		<ModelSelectorGroup
 			key={provider}
-			heading={isAnthropicProvider ? undefined : heading}
+			heading={isAnthropicProvider || isOpenAIProvider ? undefined : heading}
 		>
 			{isAnthropicProvider ? (
 				<AnthropicProviderHeading
@@ -50,12 +64,24 @@ export function ModelProviderGroup({
 					isPending={isAnthropicOAuthPending}
 					onStartOAuth={onStartAnthropicOAuth}
 				/>
+			) : isOpenAIProvider ? (
+				<OpenAIProviderHeading
+					heading={heading}
+					isConnected={isConnected}
+					isPending={isOpenAIApiKeyPending}
+					onConfigureApiKey={onOpenOpenAIApiKeyDialog}
+				/>
 			) : null}
 
 			{models.map((model) => {
 				const logo = providerToLogo(model.provider);
 				const modelDisabled =
-					logo === ANTHROPIC_LOGO_PROVIDER && !isAnthropicAuthenticated;
+					(logo === ANTHROPIC_LOGO_PROVIDER && !isAnthropicAuthenticated) ||
+					(logo === OPENAI_LOGO_PROVIDER && !isOpenAIAuthenticated);
+				const disabledLabel =
+					logo === OPENAI_LOGO_PROVIDER
+						? `${model.provider} (API key required)`
+						: `${model.provider} (connection required)`;
 
 				return (
 					<ModelSelectorItem
@@ -75,9 +101,7 @@ export function ModelProviderGroup({
 						<div className="flex flex-1 flex-col gap-0.5">
 							<ModelSelectorName>{model.name}</ModelSelectorName>
 							<span className="text-muted-foreground text-xs">
-								{modelDisabled
-									? `${model.provider} (connect required)`
-									: model.provider}
+								{modelDisabled ? disabledLabel : model.provider}
 							</span>
 						</div>
 					</ModelSelectorItem>
