@@ -12,6 +12,8 @@ type SessionOutputs = RouterOutputs["session"];
 
 type DisplayStateOutput = SessionOutputs["getDisplayState"];
 type ListMessagesOutput = SessionOutputs["listMessages"];
+type MastraMessage = NonNullable<ListMessagesOutput>[number];
+
 export type MastraChatDisplayState = DisplayStateOutput;
 export type MastraChatHistoryMessages = ListMessagesOutput;
 
@@ -25,6 +27,27 @@ export interface UseMastraChatDisplayOptions {
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
+}
+
+function mergeMessages({
+	historyMessages,
+	currentMessage,
+}: {
+	historyMessages: MastraMessage[];
+	currentMessage: MastraMessage | null;
+}) {
+	if (!currentMessage) return historyMessages;
+
+	const currentIndex = historyMessages.findIndex(
+		(message) => message.id === currentMessage.id,
+	);
+	if (currentIndex >= 0) {
+		const next = [...historyMessages];
+		next[currentIndex] = currentMessage;
+		return next;
+	}
+
+	return [...historyMessages, currentMessage];
 }
 
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
@@ -55,6 +78,12 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	);
 
 	const displayState = displayQuery.data ?? null;
+	const currentMessage = displayState?.currentMessage ?? null;
+
+	const messages = useMemo(() => {
+		const historyMessages = messagesQuery.data ?? [];
+		return mergeMessages({ historyMessages, currentMessage });
+	}, [messagesQuery.data, currentMessage]);
 
 	const commands = useMemo(
 		() => ({
@@ -145,8 +174,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 
 	return {
 		...displayState,
-		currentMessage: displayState?.currentMessage ?? null,
-		messages: messagesQuery.data ?? null,
+		messages,
 		error: displayQuery.error ?? messagesQuery.error ?? commandError ?? null,
 		commands,
 	};

@@ -30,7 +30,6 @@ type MastraToolResult = Extract<MastraMessageContent, { type: "tool_result" }>;
 interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
 	isRunning: boolean;
-	streamingMessageId: string | null;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -241,11 +240,11 @@ function AssistantMessage({
 export function ChatMastraMessageList({
 	messages,
 	isRunning,
-	streamingMessageId,
 }: ChatMastraMessageListProps) {
-	const hasStreamingMessage =
-		streamingMessageId != null &&
-		messages.some((message) => message.id === streamingMessageId);
+	const lastAssistantMessageId =
+		[...messages].reverse().find((message) => message.role === "assistant")
+			?.id ?? null;
+	const hasStreamingMessage = Boolean(isRunning && lastAssistantMessageId);
 
 	return (
 		<Conversation className="flex-1">
@@ -265,7 +264,7 @@ export function ChatMastraMessageList({
 							<AssistantMessage
 								key={message.id}
 								message={message}
-								isStreaming={streamingMessageId === message.id}
+								isStreaming={isRunning && message.id === lastAssistantMessageId}
 							/>
 						);
 					})
