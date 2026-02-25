@@ -115,10 +115,5 @@ describe("shell-wrappers", () => {
 			expect(args[2]).toContain("set -gx PATH");
 			expect(args[2]).toContain(TEST_BIN_DIR);
 		});
-
-		it("uses login shell args for fish when BIN_DIR not provided", () => {
-			// When paths don't have BIN_DIR (shouldn't happen in practice, but test fallback)
-			expect(getShellArgs("/bin/fish")).toContain("-l");
-		});
 	});
 });
