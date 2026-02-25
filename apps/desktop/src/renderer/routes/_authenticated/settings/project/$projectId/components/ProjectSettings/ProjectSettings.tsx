@@ -30,6 +30,7 @@ import {
 	WorktreeLocationPicker,
 } from "../../../../components/WorktreeLocationPicker";
 import { BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT } from "../../../../utils/branch-prefix";
+import { PresetSharing } from "./components/PresetSharing";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 const REPO_DEFAULT_BASE_BRANCH = "__repo_default__";
@@ -362,6 +363,10 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 
 				<div className="pt-3 border-t">
 					<ScriptsEditor projectId={project.id} />
+				</div>
+
+				<div className="pt-3 border-t">
+					<PresetSharing projectId={project.id} />
 				</div>
 
 				<SettingsSection

@@ -60,3 +60,25 @@ Mark a preset as default to auto-apply it when creating workspaces or opening ne
 Both settings are enabled by default. Disable either to prevent automatic preset application in that context.
 
 Explicit preset launches (via hotkey or menu) always work regardless of these settings.
+
+## Share Presets with Your Team
+
+You can share presets through a repository file at `.superset/presets.json`.
+
+Go to **Settings → Project → Presets** and use:
+- **Export to file** to write your current presets to `.superset/presets.json`
+- **Import from file** to load shared presets from `.superset/presets.json`
+
+Import uses **merge by preset name** (case-insensitive):
+- Matching names are updated
+- New names are added
+- Other local presets stay unchanged
+
+The shared file includes portable preset fields only:
+- `name`
+- `description`
+- `cwd`
+- `commands`
+- `executionMode`
+
+Local-only behavior (like pinned/default/auto-apply flags) is not shared.

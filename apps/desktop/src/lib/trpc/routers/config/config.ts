@@ -4,11 +4,25 @@ import { join } from "node:path";
 import { projects } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { CONFIG_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	getTerminalPresetsEnsuringInitialized,
+	saveTerminalPresets,
+} from "../settings/preset-store";
+import {
+	exportPresetsToFile,
+	getPresetsFilePath,
+	importPresetsFromFile,
+} from "./presets-io";
 
 async function hasConfiguredScripts(mainRepoPath: string): Promise<boolean> {
-	const configPath = join(mainRepoPath, ".superset", "config.json");
+	const configPath = join(
+		mainRepoPath,
+		PROJECT_SUPERSET_DIR_NAME,
+		CONFIG_FILE_NAME,
+	);
 	try {
 		const content = await readFile(configPath, "utf-8");
 		const parsed = JSON.parse(content);
@@ -31,18 +45,30 @@ const CONFIG_TEMPLATE = `{
 `;
 
 function getConfigPath(mainRepoPath: string): string {
-	return join(mainRepoPath, ".superset", "config.json");
+	return join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
+}
+
+function ensureProjectSupersetDir(mainRepoPath: string): string {
+	const supersetDir = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME);
+	if (!existsSync(supersetDir)) {
+		mkdirSync(supersetDir, { recursive: true });
+	}
+	return supersetDir;
+}
+
+function getProjectById(projectId: string) {
+	return localDb
+		.select()
+		.from(projects)
+		.where(eq(projects.id, projectId))
+		.get();
 }
 
 function ensureConfigExists(mainRepoPath: string): string {
 	const configPath = getConfigPath(mainRepoPath);
-	const supersetDir = join(mainRepoPath, ".superset");
 
 	if (!existsSync(configPath)) {
-		// Create .superset directory if it doesn't exist
-		if (!existsSync(supersetDir)) {
-			mkdirSync(supersetDir, { recursive: true });
-		}
+		ensureProjectSupersetDir(mainRepoPath);
 		// Create config.json with template
 		writeFileSync(configPath, CONFIG_TEMPLATE, "utf-8");
 	}
@@ -56,11 +82,7 @@ export const createConfigRouter = () => {
 		shouldShowSetupCard: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(async ({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					return false;
 				}
@@ -89,26 +111,85 @@ export const createConfigRouter = () => {
 		getConfigFilePath: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					return null;
 				}
 				return ensureConfigExists(project.mainRepoPath);
 			}),
 
+		getPresetsFilePath: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(({ input }) => {
+				const project = getProjectById(input.projectId);
+				if (!project) {
+					return null;
+				}
+
+				return getPresetsFilePath(project.mainRepoPath);
+			}),
+
+		getPresetsFileStatus: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(({ input }) => {
+				const project = getProjectById(input.projectId);
+				if (!project) {
+					return null;
+				}
+
+				const path = getPresetsFilePath(project.mainRepoPath);
+				return {
+					path,
+					exists: existsSync(path),
+				};
+			}),
+
+		exportPresets: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.mutation(({ input }) => {
+				const project = getProjectById(input.projectId);
+				if (!project) {
+					throw new Error("Project not found");
+				}
+
+				const presets = getTerminalPresetsEnsuringInitialized();
+				return exportPresetsToFile({
+					mainRepoPath: project.mainRepoPath,
+					presets,
+				});
+			}),
+
+		importPresets: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.mutation(({ input }) => {
+				const project = getProjectById(input.projectId);
+				if (!project) {
+					throw new Error("Project not found");
+				}
+
+				const existingPresets = getTerminalPresetsEnsuringInitialized();
+
+				const result = importPresetsFromFile({
+					mainRepoPath: project.mainRepoPath,
+					existingPresets,
+				});
+
+				saveTerminalPresets(result.presets);
+
+				return {
+					path: result.path,
+					created: result.created,
+					updated: result.updated,
+					unchanged: result.unchanged,
+					skipped: result.skipped,
+				};
+			}),
+
 		// Get the config file content
 		getConfigContent: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					return { content: null, exists: false };
 				}
@@ -136,11 +217,7 @@ export const createConfigRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get();
+				const project = getProjectById(input.projectId);
 				if (!project) {
 					throw new Error("Project not found");
 				}
