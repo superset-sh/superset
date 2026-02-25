@@ -1,13 +1,4 @@
 import {
-	AlertDialog,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@superset/ui/alert-dialog";
-import { Button } from "@superset/ui/button";
-import {
 	ContextMenu,
 	ContextMenuContent,
 	ContextMenuItem,
@@ -31,6 +22,9 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { createFileKey, useScrollContext } from "../../../../ChangesContent";
 import { useFileDrag, usePathActions } from "../../hooks";
 import { getStatusColor, getStatusIndicator } from "../../utils";
+import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
+import type { RowHoverAction } from "../RowHoverActions";
+import { RowHoverActions } from "../RowHoverActions";
 
 interface FileItemProps {
 	file: ChangedFile;
@@ -163,6 +157,46 @@ export function FileItem({
 	const discardDialogDescription = isDeleteAction
 		? "This will permanently delete this file. This action cannot be undone."
 		: "This will revert all changes to this file. This action cannot be undone.";
+	const hoverActions: RowHoverAction[] = [
+		...(onDiscard
+			? [
+					{
+						key: "discard",
+						label: discardLabel,
+						icon: isDeleteAction ? (
+							<LuTrash2 className="size-3" />
+						) : (
+							<LuUndo2 className="size-3" />
+						),
+						onClick: handleDiscardClick,
+						isDestructive: true,
+						disabled: isActioning,
+					},
+				]
+			: []),
+		...(onStage
+			? [
+					{
+						key: "stage",
+						label: "Stage",
+						icon: <HiMiniPlus className="size-3" />,
+						onClick: onStage,
+						disabled: isActioning,
+					},
+				]
+			: []),
+		...(onUnstage
+			? [
+					{
+						key: "unstage",
+						label: "Unstage",
+						icon: <HiMiniMinus className="size-3" />,
+						onClick: onUnstage,
+						disabled: isActioning,
+					},
+				]
+			: []),
+	];
 
 	const fileContent = (
 		<div
@@ -214,71 +248,7 @@ export function FileItem({
 				</span>
 			</button>
 
-				{hasAction && (
-					<div className="flex items-center shrink-0 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
-						{onDiscard && (
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="size-5 hover:bg-accent hover:text-destructive"
-										onClick={(e) => {
-											e.stopPropagation();
-											handleDiscardClick();
-										}}
-										disabled={isActioning}
-									>
-									{isDeleteAction ? (
-										<LuTrash2 className="size-3" />
-									) : (
-										<LuUndo2 className="size-3" />
-										)}
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent side="bottom">{discardLabel}</TooltipContent>
-							</Tooltip>
-						)}
-					{onStage && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5 hover:bg-accent"
-									onClick={(e) => {
-										e.stopPropagation();
-										onStage();
-									}}
-									disabled={isActioning}
-								>
-									<HiMiniPlus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Stage</TooltipContent>
-						</Tooltip>
-					)}
-					{onUnstage && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-5 hover:bg-accent"
-									onClick={(e) => {
-										e.stopPropagation();
-										onUnstage();
-									}}
-									disabled={isActioning}
-								>
-									<HiMiniMinus className="size-3" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">Unstage</TooltipContent>
-						</Tooltip>
-					)}
-				</div>
-			)}
+			{hasAction && <RowHoverActions actions={hoverActions} />}
 		</div>
 	);
 
@@ -342,36 +312,15 @@ export function FileItem({
 				</ContextMenuContent>
 			</ContextMenu>
 
-			<AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
-					<AlertDialogHeader className="px-4 pt-4 pb-2">
-						<AlertDialogTitle className="font-medium">
-							{discardDialogTitle}
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							{discardDialogDescription}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={() => setShowDiscardDialog(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							size="sm"
-							className="h-7 px-3 text-xs"
-							onClick={handleConfirmDiscard}
-						>
-							{isDeleteAction ? "Delete" : "Discard"}
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			<DiscardConfirmDialog
+				open={showDiscardDialog}
+				onOpenChange={setShowDiscardDialog}
+				title={discardDialogTitle}
+				description={discardDialogDescription}
+				onConfirm={handleConfirmDiscard}
+				confirmLabel={isDeleteAction ? "Delete" : "Discard"}
+				confirmDisabled={!onDiscard || isActioning}
+			/>
 		</>
 	);
 }

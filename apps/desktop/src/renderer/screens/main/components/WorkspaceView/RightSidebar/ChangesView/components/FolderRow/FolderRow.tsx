@@ -1,12 +1,4 @@
 import {
-	AlertDialog,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@superset/ui/alert-dialog";
-import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
@@ -18,8 +10,6 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type ReactNode, useState } from "react";
 import { HiChevronRight, HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
@@ -32,6 +22,9 @@ import {
 	LuUndo2,
 } from "react-icons/lu";
 import { usePathActions } from "../../hooks";
+import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
+import type { RowHoverAction } from "../RowHoverActions";
+import { RowHoverActions } from "../RowHoverActions";
 
 interface FolderRowProps {
 	name: string;
@@ -130,6 +123,8 @@ export function FolderRow({
 	const isRoot = folderPath === "";
 	const absolutePath = isRoot ? worktreePath : `${worktreePath}/${folderPath}`;
 	const hasAction = !!(onStageAll || onUnstageAll || onDiscardAll);
+	const discardFileCount = fileCount ?? "all";
+	const discardFileSuffix = fileCount === 1 ? "" : "s";
 
 	const { copyPath, copyRelativePath, revealInFinder, openInEditor } =
 		usePathActions({
@@ -137,6 +132,44 @@ export function FolderRow({
 			relativePath: folderPath || undefined,
 			projectId,
 		});
+
+	const openDiscardDialog = () => setShowDiscardDialog(true);
+	const hoverActions: RowHoverAction[] = [
+		...(onDiscardAll
+			? [
+					{
+						key: "discard-all",
+						label: "Discard All",
+						icon: <LuUndo2 className="size-3" />,
+						onClick: openDiscardDialog,
+						isDestructive: true,
+						disabled: isActioning,
+					},
+				]
+			: []),
+		...(onStageAll
+			? [
+					{
+						key: "stage-all",
+						label: "Stage All",
+						icon: <HiMiniPlus className="size-3" />,
+						onClick: onStageAll,
+						disabled: isActioning,
+					},
+				]
+			: []),
+		...(onUnstageAll
+			? [
+					{
+						key: "unstage-all",
+						label: "Unstage All",
+						icon: <HiMiniMinus className="size-3" />,
+						onClick: onUnstageAll,
+						disabled: isActioning,
+					},
+				]
+			: []),
+	];
 
 	const triggerContent = (
 		<CollapsibleTrigger
@@ -196,7 +229,7 @@ export function FolderRow({
 
 			{onDiscardAll && (
 				<ContextMenuItem
-					onClick={() => setShowDiscardDialog(true)}
+					onClick={openDiscardDialog}
 					disabled={isActioning}
 					className="text-destructive focus:text-destructive"
 				>
@@ -209,128 +242,43 @@ export function FolderRow({
 
 	return (
 		<>
-		<Collapsible
-			open={isExpanded}
-			onOpenChange={onToggle}
-			className={cn("min-w-0", isGrouped && "overflow-hidden")}
-		>
-			<ContextMenu>
-				<ContextMenuTrigger asChild>
-					<div
-						className={cn(
-							"group flex items-center min-w-0 rounded-sm px-1.5",
-							"hover:bg-accent/50 cursor-pointer transition-colors",
-						)}
-					>
-						{triggerContent}
-						{hasAction && (
-							<div className="flex items-center shrink-0 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity">
-								{onDiscardAll && (
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="size-5 hover:bg-accent hover:text-destructive"
-												onClick={(e) => {
-													e.stopPropagation();
-													setShowDiscardDialog(true);
-												}}
-												disabled={isActioning}
-											>
-												<LuUndo2 className="size-3" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="bottom">Discard All</TooltipContent>
-									</Tooltip>
-								)}
-								{onStageAll && (
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="size-5 hover:bg-accent"
-												onClick={(e) => {
-													e.stopPropagation();
-													onStageAll();
-												}}
-												disabled={isActioning}
-											>
-												<HiMiniPlus className="size-3" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="bottom">Stage All</TooltipContent>
-									</Tooltip>
-								)}
-								{onUnstageAll && (
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="size-5 hover:bg-accent"
-												onClick={(e) => {
-													e.stopPropagation();
-													onUnstageAll();
-												}}
-												disabled={isActioning}
-											>
-												<HiMiniMinus className="size-3" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="bottom">Unstage All</TooltipContent>
-									</Tooltip>
-								)}
-							</div>
-						)}
-					</div>
-				</ContextMenuTrigger>
-				{contextMenuContent}
-			</ContextMenu>
-			<CollapsibleContent
-				className={cn(
-					"min-w-0",
-					isGrouped && "ml-1.5 border-l border-border pl-0.5",
-				)}
+			<Collapsible
+				open={isExpanded}
+				onOpenChange={onToggle}
+				className={cn("min-w-0", isGrouped && "overflow-hidden")}
 			>
-				{children}
-			</CollapsibleContent>
-		</Collapsible>
+				<ContextMenu>
+					<ContextMenuTrigger asChild>
+						<div
+							className={cn(
+								"group flex items-center min-w-0 rounded-sm px-1.5",
+								"hover:bg-accent/50 cursor-pointer transition-colors",
+							)}
+						>
+							{triggerContent}
+							{hasAction && <RowHoverActions actions={hoverActions} />}
+						</div>
+					</ContextMenuTrigger>
+					{contextMenuContent}
+				</ContextMenu>
+				<CollapsibleContent
+					className={cn(
+						"min-w-0",
+						isGrouped && "ml-1.5 border-l border-border pl-0.5",
+					)}
+				>
+					{children}
+				</CollapsibleContent>
+			</Collapsible>
 
-		<AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
-				<AlertDialogHeader className="px-4 pt-4 pb-2">
-					<AlertDialogTitle className="font-medium">
-						Discard all changes in "{name}"?
-					</AlertDialogTitle>
-					<AlertDialogDescription>
-						This will revert all changes to {fileCount ?? "all"} file{fileCount === 1 ? "" : "s"} in this folder. This action cannot be undone.
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => setShowDiscardDialog(false)}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="destructive"
-						size="sm"
-						className="h-7 px-3 text-xs"
-						onClick={() => {
-							setShowDiscardDialog(false);
-							onDiscardAll();
-						}}
-					>
-						Discard
-					</Button>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+			<DiscardConfirmDialog
+				open={showDiscardDialog}
+				onOpenChange={setShowDiscardDialog}
+				title={`Discard all changes in "${name}"?`}
+				description={`This will revert all changes to ${discardFileCount} file${discardFileSuffix} in this folder. This action cannot be undone.`}
+				onConfirm={() => onDiscardAll?.()}
+				confirmDisabled={!onDiscardAll || isActioning}
+			/>
 		</>
 	);
 }
