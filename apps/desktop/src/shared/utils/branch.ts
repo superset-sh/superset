@@ -24,6 +24,8 @@ export function sanitizeBranchName(name: string): string {
 		.join("/");
 }
 
+export const DEFAULT_BRANCH_PREFIX_SEPARATOR = "/";
+
 export function resolveBranchPrefix({
 	mode,
 	customPrefix,
@@ -52,4 +54,14 @@ export function resolveBranchPrefix({
 			return null;
 	}
 	return prefix ? sanitizeSegment(prefix) : null;
+}
+
+export function applyBranchPrefix(
+	branchName: string,
+	prefix: string | null | undefined,
+	separator?: string | null,
+): string {
+	if (!prefix) return branchName;
+	const sep = separator ?? DEFAULT_BRANCH_PREFIX_SEPARATOR;
+	return `${prefix}${sep}${branchName}`;
 }

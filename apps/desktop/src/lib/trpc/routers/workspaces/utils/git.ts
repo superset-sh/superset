@@ -408,12 +408,16 @@ export {
 	sanitizeBranchName,
 } from "shared/utils/branch";
 
+import { applyBranchPrefix } from "shared/utils/branch";
+
 export function generateBranchName({
 	existingBranches = [],
 	authorPrefix,
+	separator,
 }: {
 	existingBranches?: string[];
 	authorPrefix?: string;
+	separator?: string;
 } = {}): string {
 	const words = friendlyWords.objects as string[];
 	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
@@ -422,12 +426,8 @@ export function generateBranchName({
 		authorPrefix && existingSet.has(authorPrefix.toLowerCase());
 	const safePrefix = prefixWouldCollide ? undefined : authorPrefix;
 
-	const addPrefix = (name: string): string => {
-		if (safePrefix) {
-			return `${safePrefix}/${name}`;
-		}
-		return name;
-	};
+	const addPrefix = (name: string): string =>
+		applyBranchPrefix(name, safePrefix, separator);
 
 	for (let i = 0; i < MAX_ATTEMPTS; i++) {
 		const word = words[Math.floor(Math.random() * words.length)];

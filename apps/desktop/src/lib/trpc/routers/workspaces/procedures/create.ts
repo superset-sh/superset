@@ -3,6 +3,7 @@ import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
+import { applyBranchPrefix } from "shared/utils/branch";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
@@ -329,6 +330,7 @@ export const createCreateProcedures = () => {
 				const existingBranches = [...local, ...remote];
 
 				let branchPrefix: string | undefined;
+				let branchSeparator: string | undefined;
 				if (input.applyPrefix) {
 					const globalSettings = localDb.select().from(settings).get();
 					const projectOverrides = project.branchPrefixMode != null;
@@ -338,6 +340,11 @@ export const createCreateProcedures = () => {
 					const customPrefix = projectOverrides
 						? project.branchPrefixCustom
 						: globalSettings?.branchPrefixCustom;
+					const separator = projectOverrides
+						? (project.branchPrefixSeparator ??
+							globalSettings?.branchPrefixSeparator)
+						: globalSettings?.branchPrefixSeparator;
+					branchSeparator = separator ?? undefined;
 
 					const rawPrefix = await getBranchPrefix({
 						repoPath: project.mainRepoPath,
@@ -357,7 +364,7 @@ export const createCreateProcedures = () => {
 				}
 
 				const withPrefix = (name: string): string =>
-					branchPrefix ? `${branchPrefix}/${name}` : name;
+					applyBranchPrefix(name, branchPrefix, branchSeparator);
 
 				let branch: string;
 				if (existingBranchName) {
@@ -373,6 +380,7 @@ export const createCreateProcedures = () => {
 					branch = generateBranchName({
 						existingBranches,
 						authorPrefix: branchPrefix,
+						separator: branchSeparator,
 					});
 				}
 

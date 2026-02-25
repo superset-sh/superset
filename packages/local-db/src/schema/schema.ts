@@ -39,6 +39,7 @@ export const projects = sqliteTable(
 		githubOwner: text("github_owner"),
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		branchPrefixSeparator: text("branch_prefix_separator"),
 		worktreeBaseDir: text("worktree_base_dir"),
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
@@ -161,6 +162,7 @@ export const settings = sqliteTable("settings", {
 	}),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
+	branchPrefixSeparator: text("branch_prefix_separator"),
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),

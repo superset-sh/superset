@@ -11,7 +11,11 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { resolveBranchPrefix, sanitizeSegment } from "shared/utils/branch";
+import {
+	DEFAULT_BRANCH_PREFIX_SEPARATOR,
+	resolveBranchPrefix,
+	sanitizeSegment,
+} from "shared/utils/branch";
 import {
 	useDefaultWorktreePath,
 	WorktreeLocationPicker,
@@ -150,10 +154,17 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	const [customPrefixInput, setCustomPrefixInput] = useState(
 		branchPrefix?.customPrefix ?? "",
 	);
+	const [separatorInput, setSeparatorInput] = useState(
+		branchPrefix?.separator ?? "",
+	);
 
 	useEffect(() => {
 		setCustomPrefixInput(branchPrefix?.customPrefix ?? "");
 	}, [branchPrefix?.customPrefix]);
+
+	useEffect(() => {
+		setSeparatorInput(branchPrefix?.separator ?? "");
+	}, [branchPrefix?.separator]);
 
 	const setBranchPrefix = electronTrpc.settings.setBranchPrefix.useMutation({
 		onError: (err) => {
@@ -168,6 +179,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		setBranchPrefix.mutate({
 			mode,
 			customPrefix: customPrefixInput || null,
+			separator: separatorInput || null,
 		});
 	};
 
@@ -177,6 +189,15 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		setBranchPrefix.mutate({
 			mode: "custom",
 			customPrefix: sanitized || null,
+			separator: separatorInput || null,
+		});
+	};
+
+	const handleSeparatorBlur = () => {
+		setBranchPrefix.mutate({
+			mode: branchPrefix?.mode ?? "none",
+			customPrefix: customPrefixInput || null,
+			separator: separatorInput || null,
 		});
 	};
 
@@ -267,7 +288,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 	);
 
-	const previewPrefix =
+	const resolvedPrefix =
 		resolveBranchPrefix({
 			mode: branchPrefix?.mode ?? "none",
 			customPrefix: customPrefixInput,
@@ -279,6 +300,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			: branchPrefix?.mode === "github"
 				? "username"
 				: null);
+	const effectiveSeparator = separatorInput || DEFAULT_BRANCH_PREFIX_SEPARATOR;
+	const previewPrefix = resolvedPrefix;
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -340,7 +363,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								Preview:{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
-										? `${previewPrefix}/branch-name`
+										? `${previewPrefix}${effectiveSeparator}branch-name`
 										: "branch-name"}
 								</code>
 							</p>
@@ -377,6 +400,17 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 									onBlur={handleCustomPrefixBlur}
 									className="w-[120px]"
 									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
+								/>
+							)}
+							{branchPrefix?.mode !== "none" && (
+								<Input
+									placeholder="/"
+									value={separatorInput}
+									onChange={(e) => setSeparatorInput(e.target.value)}
+									onBlur={handleSeparatorBlur}
+									className="w-[60px]"
+									disabled={isBranchPrefixLoading || setBranchPrefix.isPending}
+									title="Separator between prefix and branch name"
 								/>
 							)}
 						</div>
