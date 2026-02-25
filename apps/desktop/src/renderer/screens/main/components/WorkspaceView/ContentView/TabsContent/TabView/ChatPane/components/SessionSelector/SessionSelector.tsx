@@ -56,14 +56,18 @@ export function SessionSelector({
 	const current = sessions?.find((s) => s.id === currentSessionId);
 	const currentTitle = current?.title || "New Chat";
 
-	const { data: claudeSessions, isLoading: isLoadingClaudeSessions } =
+	const {
+		data: claudeSessions,
+		isLoading: isLoadingClaudeSessions,
+		error: claudeSessionsError,
+	} =
 		electronTrpc.chatServiceClaude.listSessions.useQuery(
 			{
-				cwd,
+				cwd: cwd.trim().length > 0 ? cwd : "/",
 				limit: 20,
 			},
 			{
-				enabled: isOpen && cwd.trim().length > 0,
+				enabled: isOpen,
 				staleTime: 30_000,
 			},
 		);
@@ -142,6 +146,10 @@ export function SessionSelector({
 					{isLoadingClaudeSessions ? (
 						<div className="px-2 py-1.5 text-xs text-muted-foreground">
 							Loading Claude sessions...
+						</div>
+					) : claudeSessionsError ? (
+						<div className="px-2 py-1.5 text-xs text-destructive">
+							Failed to load Claude sessions
 						</div>
 					) : claudeSessions && claudeSessions.length > 0 ? (
 						claudeSessions.map((claudeSession) => (

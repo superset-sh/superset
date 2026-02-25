@@ -10,11 +10,13 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useMemo, useState } from "react";
 import {
+	HiMiniArrowDownTray,
 	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
 	HiMiniPlus,
 	HiMiniTrash,
 } from "react-icons/hi2";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface SessionItem {
 	sessionId: string;
@@ -25,7 +27,11 @@ interface SessionItem {
 interface SessionSelectorProps {
 	currentSessionId: string | null;
 	sessions: SessionItem[];
+	workspaceId: string;
+	organizationId: string | null;
+	cwd: string;
 	onSelectSession: (sessionId: string) => void;
+	onImportClaudeSession: (sessionId: string) => void;
 	onNewChat: () => Promise<void>;
 	onDeleteSession: (sessionId: string) => Promise<void>;
 }
@@ -33,7 +39,11 @@ interface SessionSelectorProps {
 export function SessionSelector({
 	currentSessionId,
 	sessions,
+	workspaceId,
+	organizationId,
+	cwd,
 	onSelectSession,
+	onImportClaudeSession,
 	onNewChat,
 	onDeleteSession,
 }: SessionSelectorProps) {
@@ -49,6 +59,22 @@ export function SessionSelector({
 		(session) => session.sessionId === currentSessionId,
 	);
 	const currentTitle = current?.title || "New Chat";
+	const {
+		data: claudeSessions,
+		isLoading: isLoadingClaudeSessions,
+		error: claudeSessionsError,
+	} = electronTrpc.chatServiceClaude.listSessions.useQuery(
+		{
+			cwd: cwd.trim().length > 0 ? cwd : "/",
+			limit: 20,
+		},
+		{
+			enabled: isOpen,
+			staleTime: 30_000,
+		},
+	);
+	const importClaudeSessionMutation =
+		electronTrpc.chatServiceClaude.importSession.useMutation();
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -111,6 +137,65 @@ export function SessionSelector({
 					) : (
 						<div className="px-2 py-1.5 text-xs text-muted-foreground">
 							No sessions yet
+						</div>
+					)}
+				</div>
+
+				<DropdownMenuSeparator />
+				<DropdownMenuLabel className="text-xs">
+					Claude Sessions
+				</DropdownMenuLabel>
+				<div className="max-h-48 overflow-y-auto">
+					{isLoadingClaudeSessions ? (
+						<div className="px-2 py-1.5 text-xs text-muted-foreground">
+							Loading Claude sessions...
+						</div>
+					) : claudeSessionsError ? (
+						<div className="px-2 py-1.5 text-xs text-destructive">
+							Failed to load Claude sessions
+						</div>
+					) : claudeSessions && claudeSessions.length > 0 ? (
+						claudeSessions.map((claudeSession) => (
+							<DropdownMenuItem
+								key={claudeSession.filePath}
+								disabled={importClaudeSessionMutation.isPending}
+								className="group flex items-center justify-between gap-2"
+								onSelect={(event) => {
+									event.preventDefault();
+									if (!organizationId) {
+										toast.error("Organization is required to import session");
+										return;
+									}
+									void (async () => {
+										try {
+											const imported =
+												await importClaudeSessionMutation.mutateAsync({
+													filePath: claudeSession.filePath,
+													organizationId,
+													workspaceId,
+												});
+											onImportClaudeSession(imported.sessionId);
+											setIsOpen(false);
+											toast.success("Claude session imported");
+										} catch (error) {
+											toast.error(
+												error instanceof Error
+													? error.message
+													: "Failed to import Claude session",
+											);
+										}
+									})();
+								}}
+							>
+								<span className="min-w-0 truncate text-xs">
+									{claudeSession.title}
+								</span>
+								<HiMiniArrowDownTray className="size-3 shrink-0 text-muted-foreground group-hover:text-foreground" />
+							</DropdownMenuItem>
+						))
+					) : (
+						<div className="px-2 py-1.5 text-xs text-muted-foreground">
+							No Claude sessions found
 						</div>
 					)}
 				</div>

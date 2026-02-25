@@ -74,7 +74,7 @@ function encodeClaudeProjectPath(cwd: string): string {
 	const segments = withoutDrive
 		.split("/")
 		.filter(Boolean)
-		.map((segment) => segment.replace(/[^A-Za-z0-9._-]/g, "-"));
+		.map((segment) => segment.replace(/[^A-Za-z0-9_-]/g, "-"));
 	return `-${segments.join("-")}`;
 }
 
