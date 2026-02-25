@@ -45,6 +45,7 @@ export const DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON = true;
 export const DEFAULT_TELEMETRY_ENABLED = true;
 export const DEFAULT_SHOW_RESOURCE_MONITOR = false;
 export const DEFAULT_OPEN_LINKS_IN_APP = false;
+/** Mouse back/forward button (3/4) navigation defaults to disabled to avoid conflicting with system-level mouse shortcuts. */
 export const DEFAULT_MOUSE_NAVIGATION_ENABLED = false;
 
 // External links (documentation, help resources, etc.)

@@ -477,7 +477,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"navigation",
 			"workspace",
 			"tabs",
-			"accessibility",
 		],
 	},
 	{

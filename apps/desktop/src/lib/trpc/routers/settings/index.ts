@@ -659,11 +659,13 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		/** Read whether mouse back/forward button navigation is enabled. Returns the stored value or DEFAULT_MOUSE_NAVIGATION_ENABLED if unset. */
 		getMouseNavigationEnabled: publicProcedure.query(() => {
 			const row = getSettings();
 			return row.mouseNavigationEnabled ?? DEFAULT_MOUSE_NAVIGATION_ENABLED;
 		}),
 
+		/** Persist whether mouse back/forward button navigation is enabled. Upserts the settings row so the value survives restarts. */
 		setMouseNavigationEnabled: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
 			.mutation(({ input }) => {
