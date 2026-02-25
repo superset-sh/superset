@@ -2,12 +2,9 @@ import {
 	ModelSelector,
 	ModelSelectorContent,
 	ModelSelectorEmpty,
-	ModelSelectorGroup,
 	ModelSelectorInput,
-	ModelSelectorItem,
 	ModelSelectorList,
 	ModelSelectorLogo,
-	ModelSelectorName,
 	ModelSelectorTrigger,
 } from "@superset/ui/ai-elements/model-selector";
 import { PromptInputButton } from "@superset/ui/ai-elements/prompt-input";
@@ -16,18 +13,23 @@ import { ChevronDownIcon } from "lucide-react";
 import { useMemo } from "react";
 import { PILL_BUTTON_CLASS } from "../../styles";
 import type { ModelOption } from "../../types";
+import { AnthropicOAuthDialog } from "./components/AnthropicOAuthDialog";
+import { ModelProviderGroup } from "./components/ModelProviderGroup";
+import { OpenAIApiKeyDialog } from "./components/OpenAIApiKeyDialog";
+import { useAnthropicOAuth } from "./hooks/useAnthropicOAuth";
+import { useOpenAIApiKey } from "./hooks/useOpenAIApiKey";
+import { groupModelsByProvider } from "./utils/groupModelsByProvider";
+import {
+	ANTHROPIC_LOGO_PROVIDER,
+	providerToLogo,
+} from "./utils/providerToLogo";
 
-/** Derive a logo provider slug from the provider name */
-function providerToLogo(provider: string): string {
-	const lower = provider.toLowerCase();
-	if (lower.includes("anthropic") || lower.includes("claude"))
-		return "anthropic";
-	if (lower.includes("openai") || lower.includes("gpt")) return "openai";
-	if (lower.includes("google") || lower.includes("gemini")) return "google";
-	if (lower.includes("mistral")) return "mistral";
-	if (lower.includes("deepseek")) return "deepseek";
-	if (lower.includes("xai") || lower.includes("grok")) return "xai";
-	return lower;
+interface ModelPickerProps {
+	models: ModelOption[];
+	selectedModel: ModelOption | null;
+	onSelectModel: (model: ModelOption) => void;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 }
 
 export function ModelPicker({
@@ -36,77 +38,80 @@ export function ModelPicker({
 	onSelectModel,
 	open,
 	onOpenChange,
-}: {
-	models: ModelOption[];
-	selectedModel: ModelOption | null;
-	onSelectModel: (model: ModelOption) => void;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-}) {
-	const groupedModels = useMemo(() => {
-		const groups: Record<string, ModelOption[]> = {};
-		for (const model of models) {
-			const group = model.provider;
-			if (!groups[group]) groups[group] = [];
-			groups[group].push(model);
-		}
-		return groups;
-	}, [models]);
-
+}: ModelPickerProps) {
+	const groupedModels = useMemo(() => groupModelsByProvider(models), [models]);
 	const selectedLogo = selectedModel
 		? providerToLogo(selectedModel.provider)
 		: null;
 
+	const {
+		isAnthropicAuthenticated,
+		isStartingOAuth,
+		startAnthropicOAuth,
+		oauthDialog: anthropicOAuthDialog,
+	} = useAnthropicOAuth({
+		isModelSelectorOpen: open,
+		onModelSelectorOpenChange: onOpenChange,
+	});
+	const {
+		isOpenAIAuthenticated,
+		isOpenAIApiKeyConfigured,
+		isSavingOpenAIApiKey,
+		openOpenAIApiKeyDialog,
+		apiKeyDialog,
+	} = useOpenAIApiKey({
+		isModelSelectorOpen: open,
+		onModelSelectorOpenChange: onOpenChange,
+	});
+
 	return (
-		<ModelSelector open={open} onOpenChange={onOpenChange}>
-			<ModelSelectorTrigger asChild>
-				<PromptInputButton
-					className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
-				>
-					{selectedLogo === "anthropic" ? (
-						<img alt="Claude" className="size-3" src={claudeIcon} />
-					) : selectedLogo ? (
-						<ModelSelectorLogo provider={selectedLogo} />
-					) : null}
-					<span>{selectedModel?.name ?? "Model"}</span>
-					<ChevronDownIcon className="size-2.5 opacity-50" />
-				</PromptInputButton>
-			</ModelSelectorTrigger>
-			<ModelSelectorContent title="Select Model">
-				<ModelSelectorInput placeholder="Search models..." />
-				<ModelSelectorList>
-					<ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
-					{Object.entries(groupedModels).map(([provider, providerModels]) => (
-						<ModelSelectorGroup key={provider} heading={provider}>
-							{providerModels.map((model) => {
-								const logo = providerToLogo(model.provider);
-								return (
-									<ModelSelectorItem
-										key={model.id}
-										value={model.id}
-										onSelect={() => {
-											onSelectModel(model);
-											onOpenChange(false);
-										}}
-									>
-										{logo === "anthropic" ? (
-											<img alt="Claude" className="size-3" src={claudeIcon} />
-										) : (
-											<ModelSelectorLogo provider={logo} />
-										)}
-										<div className="flex flex-1 flex-col gap-0.5">
-											<ModelSelectorName>{model.name}</ModelSelectorName>
-											<span className="text-muted-foreground text-xs">
-												{model.provider}
-											</span>
-										</div>
-									</ModelSelectorItem>
-								);
-							})}
-						</ModelSelectorGroup>
-					))}
-				</ModelSelectorList>
-			</ModelSelectorContent>
-		</ModelSelector>
+		<>
+			<ModelSelector open={open} onOpenChange={onOpenChange}>
+				<ModelSelectorTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
+					>
+						{selectedLogo === ANTHROPIC_LOGO_PROVIDER ? (
+							<img alt="Claude" className="size-3" src={claudeIcon} />
+						) : selectedLogo ? (
+							<ModelSelectorLogo provider={selectedLogo} />
+						) : null}
+						<span>{selectedModel?.name ?? "Model"}</span>
+						<ChevronDownIcon className="size-2.5 opacity-50" />
+					</PromptInputButton>
+				</ModelSelectorTrigger>
+				<ModelSelectorContent title="Select Model">
+					<ModelSelectorInput placeholder="Search models..." />
+					<ModelSelectorList>
+						<ModelSelectorEmpty>No models found.</ModelSelectorEmpty>
+						{groupedModels.map(([provider, providerModels]) => (
+							<ModelProviderGroup
+								key={provider}
+								provider={provider}
+								models={providerModels}
+								isAnthropicAuthenticated={isAnthropicAuthenticated}
+								isAnthropicOAuthPending={isStartingOAuth}
+								onStartAnthropicOAuth={() => {
+									void startAnthropicOAuth();
+								}}
+								isOpenAIAuthenticated={isOpenAIAuthenticated}
+								isOpenAIApiKeyPending={isSavingOpenAIApiKey}
+								onOpenOpenAIApiKeyDialog={openOpenAIApiKeyDialog}
+								onSelectModel={onSelectModel}
+								onCloseModelSelector={() => {
+									onOpenChange(false);
+								}}
+							/>
+						))}
+					</ModelSelectorList>
+				</ModelSelectorContent>
+			</ModelSelector>
+
+			<AnthropicOAuthDialog {...anthropicOAuthDialog} />
+			<OpenAIApiKeyDialog
+				{...apiKeyDialog}
+				canClearApiKey={isOpenAIApiKeyConfigured}
+			/>
+		</>
 	);
 }

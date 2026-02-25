@@ -19,10 +19,41 @@ import { askUserQuestionTool, webFetchTool, webSearchTool } from "./tools";
  * provider's `authToken` option) instead of the default `x-api-key` header.
  * Call `setAnthropicAuthToken` before the first agent invocation.
  */
-let anthropicAuthToken: string | null = null;
+type AnthropicOAuthCredentials = {
+	accessToken: string;
+	refreshToken?: string;
+	expiresAt?: number;
+};
+
+let anthropicOAuthCredentials: AnthropicOAuthCredentials | null = null;
 
 export function setAnthropicAuthToken(token: string) {
-	anthropicAuthToken = token;
+	anthropicOAuthCredentials = {
+		accessToken: token,
+	};
+}
+
+export function setAnthropicOAuthCredentials(
+	credentials: AnthropicOAuthCredentials,
+) {
+	anthropicOAuthCredentials = credentials;
+}
+
+export function clearAnthropicAuthToken() {
+	anthropicOAuthCredentials = null;
+}
+
+export function getAnthropicAuthToken(): string | null {
+	if (!anthropicOAuthCredentials) return null;
+	if (
+		typeof anthropicOAuthCredentials.expiresAt === "number" &&
+		Date.now() >= anthropicOAuthCredentials.expiresAt
+	) {
+		anthropicOAuthCredentials = null;
+		return null;
+	}
+
+	return anthropicOAuthCredentials.accessToken;
 }
 
 /**
@@ -46,9 +77,10 @@ function resolveModel({
 	const provider = slashIdx > -1 ? modelId.slice(0, slashIdx) : "anthropic";
 	const model = slashIdx > -1 ? modelId.slice(slashIdx + 1) : modelId;
 
-	if (anthropicAuthToken && provider === "anthropic") {
+	const authToken = getAnthropicAuthToken();
+	if (authToken && provider === "anthropic") {
 		return createAnthropic({
-			authToken: anthropicAuthToken,
+			authToken,
 			headers: {
 				"anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
 				"user-agent": "claude-cli/2.1.2 (external, cli)",

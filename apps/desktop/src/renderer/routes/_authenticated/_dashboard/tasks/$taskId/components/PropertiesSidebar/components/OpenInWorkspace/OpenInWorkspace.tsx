@@ -25,6 +25,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -41,7 +42,11 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const terminalCreateOrAttach =
+		electronTrpc.terminal.createOrAttach.useMutation();
+	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const addTab = useTabsStore((s) => s.addTab);
+	const removePane = useTabsStore((s) => s.removePane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const isDark = useIsDarkTheme();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
@@ -99,10 +104,28 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			});
 
 			if (result.wasExisting) {
-				const { tabId } = addTab(result.workspace.id, {
-					initialCommands: [command],
-				});
+				const { tabId, paneId } = addTab(result.workspace.id);
 				setTabAutoTitle(tabId, "Agent");
+				try {
+					await launchCommandInPane({
+						paneId,
+						tabId,
+						workspaceId: result.workspace.id,
+						command,
+						createOrAttach: (input) =>
+							terminalCreateOrAttach.mutateAsync(input),
+						write: (input) => terminalWrite.mutateAsync(input),
+					});
+				} catch (error) {
+					removePane(paneId);
+					toast.error("Failed to start agent", {
+						description:
+							error instanceof Error
+								? error.message
+								: "Failed to start agent terminal session.",
+					});
+					return;
+				}
 			} else {
 				const store = useWorkspaceInitStore.getState();
 				const pending = store.pendingTerminalSetups[result.workspace.id];

@@ -162,6 +162,13 @@
       "when": 1771740179749,
       "tag": "0022_remove_claimed_executing_command_status",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1771866677057,
+      "tag": "0023_agent_commands_timestamptz",
+      "breakpoints": true
     }
   ]
 }

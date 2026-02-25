@@ -4,7 +4,6 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { CustomThemesSection } from "./components/CustomThemesSection";
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
@@ -55,6 +54,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
 		<div className="p-6 max-w-4xl w-full">
@@ -66,7 +66,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			</div>
 
 			<SectionList>
-				{showTheme && <ThemeSection key="theme" />}
+				{showThemeSection && <ThemeSection key="theme" />}
 				{showMarkdown && <MarkdownStyleSection key="markdown" />}
 				{showEditorFont && (
 					<FontSettingSection key="editor-font" variant="editor" />
@@ -74,7 +74,6 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				{showTerminalFont && (
 					<FontSettingSection key="terminal-font" variant="terminal" />
 				)}
-				{showCustomThemes && <CustomThemesSection key="custom-themes" />}
 			</SectionList>
 		</div>
 	);

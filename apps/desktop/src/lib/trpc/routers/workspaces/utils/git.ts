@@ -9,7 +9,7 @@ import friendlyWords = require("friendly-words");
 import type { BranchPrefixMode } from "@superset/local-db";
 import simpleGit, { type StatusResult } from "simple-git";
 import { runWithPostCheckoutHookTolerance } from "../../utils/git-hook-tolerance";
-import { execWithShellEnv, getShellEnvironment } from "./shell-env";
+import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -122,21 +122,7 @@ async function checkoutBranchWithHookTolerance({
 }
 
 async function getGitEnv(): Promise<Record<string, string>> {
-	const shellEnv = await getShellEnvironment();
-	const result: Record<string, string> = {};
-
-	for (const [key, value] of Object.entries(process.env)) {
-		if (typeof value === "string") {
-			result[key] = value;
-		}
-	}
-
-	const pathKey = process.platform === "win32" ? "Path" : "PATH";
-	if (shellEnv[pathKey]) {
-		result[pathKey] = shellEnv[pathKey];
-	}
-
-	return result;
+	return getProcessEnvWithShellPath();
 }
 
 /**
@@ -1297,8 +1283,17 @@ export async function getCurrentBranch(
 	try {
 		const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 		const trimmed = branch.trim();
-		// "HEAD" means detached HEAD state
-		return trimmed === "HEAD" ? null : trimmed;
+		if (trimmed && trimmed !== "HEAD") {
+			return trimmed;
+		}
+	} catch {
+		// Fall back to symbolic-ref below for unborn HEAD repos.
+	}
+
+	try {
+		const branch = await git.raw(["symbolic-ref", "--short", "HEAD"]);
+		const trimmed = branch.trim();
+		return trimmed || null;
 	} catch {
 		return null;
 	}
@@ -1621,56 +1616,8 @@ export async function getPrInfo({
 }
 
 /**
- * Fetches a PR branch into the repository, handling cross-repository (fork) PRs.
- * For fork PRs, adds the fork as a remote and fetches from there.
- * @returns The local branch name to use for the worktree
- */
-export async function fetchPrBranch({
-	repoPath,
-	prInfo,
-}: {
-	repoPath: string;
-	prInfo: PullRequestInfo;
-}): Promise<string> {
-	const git = simpleGit(repoPath);
-	const env = await getGitEnv();
-
-	if (prInfo.isCrossRepository) {
-		const forkOwner = prInfo.headRepositoryOwner.login;
-		const remoteName = forkOwner.toLowerCase();
-		const forkRepo = prInfo.headRepository.name;
-		const headBranch = prInfo.headRefName;
-
-		const remotes = await git.getRemotes();
-		const remoteExists = remotes.some((r) => r.name === remoteName);
-
-		if (!remoteExists) {
-			const forkUrl = `https://github.com/${forkOwner}/${forkRepo}.git`;
-			await git.addRemote(remoteName, forkUrl);
-			console.log(`[git] Added remote ${remoteName} -> ${forkUrl}`);
-		}
-
-		await execFileAsync(
-			"git",
-			["-C", repoPath, "fetch", remoteName, headBranch],
-			{ env, timeout: 120_000 },
-		);
-
-		return `${remoteName}/${headBranch}`;
-	}
-
-	await execFileAsync(
-		"git",
-		["-C", repoPath, "fetch", "origin", prInfo.headRefName],
-		{ env, timeout: 120_000 },
-	);
-
-	return prInfo.headRefName;
-}
-
-/**
  * Creates a worktree from a PR.
- * Handles fetching the PR branch (including from forks) and creating the worktree.
+ * Uses `gh pr checkout` inside the new worktree to resolve fork/head remotes.
  */
 export async function createWorktreeFromPr({
 	mainRepoPath,
@@ -1691,63 +1638,43 @@ export async function createWorktreeFromPr({
 
 		const git = simpleGit(mainRepoPath);
 		const localBranches = await git.branchLocal();
-
-		const remoteRef = prInfo.isCrossRepository
-			? `refs/remotes/${prInfo.headRepositoryOwner.login.toLowerCase()}/${prInfo.headRefName}`
-			: `refs/remotes/origin/${prInfo.headRefName}`;
-		const branchName = prInfo.isCrossRepository
-			? localBranchName
-			: prInfo.headRefName;
-		const branchExists = localBranches.all.includes(branchName);
+		const branchExists = localBranches.all.includes(localBranchName);
 
 		if (branchExists) {
-			const localCommit = (await git.revparse([branchName])).trim();
-			const remoteCommit = (await git.revparse([remoteRef])).trim();
-
-			if (localCommit !== remoteCommit) {
-				try {
-					await execFileAsync(
-						"git",
-						[
-							"-C",
-							mainRepoPath,
-							"merge-base",
-							"--is-ancestor",
-							localCommit,
-							remoteCommit,
-						],
-						{ env, timeout: 10_000 },
-					);
-				} catch {
-					throw new Error(
-						`Local branch "${branchName}" has diverged from the PR. ` +
-							`Please delete or rename it before opening this PR.`,
-					);
-				}
-			}
-
 			await execWorktreeAdd({
 				mainRepoPath,
-				args: ["-C", mainRepoPath, "worktree", "add", worktreePath, branchName],
+				args: [
+					"-C",
+					mainRepoPath,
+					"worktree",
+					"add",
+					worktreePath,
+					localBranchName,
+				],
 				env,
 				worktreePath,
 			});
-
-			if (localCommit !== remoteCommit) {
-				await execFileAsync(
-					"git",
-					["-C", worktreePath, "reset", "--hard", remoteRef],
-					{ env, timeout: 30_000 },
-				);
-			}
 		} else {
-			const args = ["-C", mainRepoPath, "worktree", "add"];
-			if (!prInfo.isCrossRepository) {
-				args.push("--track");
-			}
-			args.push("-b", branchName, worktreePath, remoteRef);
-			await execWorktreeAdd({ mainRepoPath, args, env, worktreePath });
+			await execWorktreeAdd({
+				mainRepoPath,
+				args: ["-C", mainRepoPath, "worktree", "add", "--detach", worktreePath],
+				env,
+				worktreePath,
+			});
 		}
+
+		await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"checkout",
+				String(prInfo.number),
+				"--branch",
+				localBranchName,
+				"--force",
+			],
+			{ cwd: worktreePath, timeout: 120_000 },
+		);
 
 		// Enable autoSetupRemote so `git push` just works without -u flag.
 		await execFileAsync(
@@ -1771,7 +1698,6 @@ export async function createWorktreeFromPr({
 				`This PR's branch is already checked out in another worktree.`,
 			);
 		}
-
 		throw new Error(`Failed to create worktree from PR: ${errorMessage}`);
 	}
 }

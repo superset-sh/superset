@@ -56,8 +56,10 @@ mock.module("node:os", () => ({
 }));
 
 const {
+	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
+	createCodexWrapper,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getGeminiSettingsJsonContent,
@@ -116,6 +118,31 @@ describe("agent-wrappers copilot", () => {
 		const updated = readFileSync(hookFile, "utf-8");
 		expect(updated).toContain(hookScriptPath);
 		expect(updated).not.toContain("/tmp/old-hook.sh");
+	});
+
+	it("injects codex message-start watcher + completion notifications in wrapper", () => {
+		createCodexWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("export CODEX_TUI_RECORD_SESSION=1");
+		expect(wrapper).toContain('"type":"task_started"');
+		expect(wrapper).toContain('_superset_last_turn_id=""');
+		expect(wrapper).toContain("_superset_turn_id=$(printf");
+		expect(wrapper).toContain('awk -F\'"turn_id":"\'');
+		expect(wrapper).toContain('{"hook_event_name":"Start"}');
+		expect(wrapper).toContain(
+			`"$REAL_BIN" -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+		);
+		expect(wrapper).toContain("SUPERSET_CODEX_START_WATCHER_PID");
+		expect(wrapper).toContain('kill "$SUPERSET_CODEX_START_WATCHER_PID"');
+
+		const execLine = buildCodexWrapperExecLine(
+			path.join(TEST_HOOKS_DIR, "notify.sh"),
+		);
+		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
+		expect(wrapper).toContain(execLine);
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {

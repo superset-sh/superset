@@ -1,3 +1,4 @@
+import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { z } from "zod";
@@ -38,12 +39,39 @@ async function execute(
 				};
 			}
 
-			const newPaneId = tabsStore.addPane(pane.tabId, {
-				initialCommands: [params.command],
-			});
+			const tab = tabsStore.tabs.find((t) => t.id === pane.tabId);
+			if (!tab || tab.workspaceId !== workspace.id) {
+				return {
+					success: false,
+					error: `Tab not found for pane: ${params.paneId}`,
+				};
+			}
+
+			const newPaneId = tabsStore.addPane(tab.id);
 
 			if (!newPaneId) {
 				return { success: false, error: "Failed to add pane" };
+			}
+
+			try {
+				await launchCommandInPane({
+					paneId: newPaneId,
+					tabId: tab.id,
+					workspaceId: workspace.id,
+					command: params.command,
+					createOrAttach: (input) =>
+						ctx.terminalCreateOrAttach.mutateAsync(input),
+					write: (input) => ctx.terminalWrite.mutateAsync(input),
+				});
+			} catch (error) {
+				tabsStore.removePane(newPaneId);
+				return {
+					success: false,
+					error:
+						error instanceof Error
+							? error.message
+							: "Failed to start agent session",
+				};
 			}
 
 			return {

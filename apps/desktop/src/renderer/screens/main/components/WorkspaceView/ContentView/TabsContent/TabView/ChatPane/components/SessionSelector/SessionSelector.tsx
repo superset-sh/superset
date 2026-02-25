@@ -22,7 +22,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 interface SessionSelectorProps {
 	currentSessionId: string | null;
 	workspaceId: string;
-	onSelectSession: (sessionId: string, title: string | null) => void;
+	onSelectSession: (sessionId: string) => void;
 	onNewChat: () => void;
 	onDeleteSession: (sessionId: string) => Promise<void>;
 }
@@ -73,7 +73,7 @@ export function SessionSelector({
 								key={session.id}
 								className="group flex items-center justify-between gap-2"
 								onSelect={() => {
-									onSelectSession(session.id, session.title);
+									onSelectSession(session.id);
 									setIsOpen(false);
 								}}
 							>

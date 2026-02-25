@@ -25,7 +25,7 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	],
 	gemini: ["gemini --yolo"],
 	opencode: ["opencode"],
-	copilot: ["copilot"],
+	copilot: ["copilot --allow-all"],
 	"cursor-agent": ["cursor-agent"],
 };
 
@@ -34,7 +34,7 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	codex: "Danger mode: All permissions auto-approved",
 	gemini: "Danger mode: All permissions auto-approved",
 	opencode: "OpenCode: Open-source AI coding agent",
-	copilot: "GitHub Copilot: AI-powered coding in your terminal",
+	copilot: "Danger mode: All permissions auto-approved",
 	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
 };
 
@@ -102,7 +102,11 @@ const AGENT_COMMANDS: Record<
 	claude: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "claude --dangerously-skip-permissions"),
 	codex: (prompt, delimiter) =>
-		buildHeredoc(prompt, delimiter, "codex --full-auto"),
+		buildHeredoc(
+			prompt,
+			delimiter,
+			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access',
+		),
 	gemini: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
 	opencode: (prompt, delimiter) =>

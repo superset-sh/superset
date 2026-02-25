@@ -143,7 +143,6 @@ export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
  * Options for creating a pane with preset configuration
  */
 export interface CreatePaneOptions {
-	initialCommands?: string[];
 	initialCwd?: string;
 }
 
@@ -163,7 +162,6 @@ export const createPane = (
 		type,
 		name: "Terminal",
 		isNew: true,
-		initialCommands: options?.initialCommands,
 		initialCwd: options?.initialCwd,
 	};
 };
@@ -238,8 +236,25 @@ export const createChatPane = (tabId: string): Pane => {
 		id,
 		tabId,
 		type: "chat",
-		name: "Chat",
+		name: "New Chat",
 		chat: {
+			sessionId: null,
+		},
+	};
+};
+
+/**
+ * Creates a new Mastra chat pane
+ */
+export const createChatMastraPane = (tabId: string): Pane => {
+	const id = generateId("pane");
+
+	return {
+		id,
+		tabId,
+		type: "chat-mastra",
+		name: "New Chat",
+		chatMastra: {
 			sessionId: null,
 		},
 	};
@@ -329,18 +344,33 @@ export const createBrowserTabWithPane = (
  */
 export const createChatTabWithPane = (
 	workspaceId: string,
-	existingTabs: Tab[] = [],
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
 	const pane = createChatPane(tabId);
 
-	const workspaceTabs = existingTabs.filter(
-		(t) => t.workspaceId === workspaceId,
-	);
+	const tab: Tab = {
+		id: tabId,
+		name: "New Chat",
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
+
+	return { tab, pane };
+};
+
+/**
+ * Creates a new tab with a Mastra chat pane atomically
+ */
+export const createChatMastraTabWithPane = (
+	workspaceId: string,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createChatMastraPane(tabId);
 
 	const tab: Tab = {
 		id: tabId,
-		name: `Chat ${workspaceTabs.filter((t) => t.name.startsWith("Chat")).length + 1}`,
+		name: "New Chat",
 		workspaceId,
 		layout: pane.id,
 		createdAt: Date.now(),

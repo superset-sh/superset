@@ -2,9 +2,11 @@ import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { settings } from "@superset/local-db";
 import {
+	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
 	getRingtoneFilename,
 } from "../../shared/ringtones";
+import { getCustomRingtonePath } from "./custom-ringtones";
 import { localDb } from "./local-db";
 import { getSoundPath } from "./sound-paths";
 
@@ -21,11 +23,12 @@ function areNotificationSoundsMuted(): boolean {
 }
 
 /**
- * Gets the selected ringtone filename from the database.
+ * Gets the selected ringtone path from the database.
  * Falls back to default ringtone if the stored ID is invalid/stale.
  */
-function getSelectedRingtoneFilename(): string {
+function getSelectedRingtonePath(): string | null {
 	const defaultFilename = getRingtoneFilename(DEFAULT_RINGTONE_ID);
+	const defaultPath = getSoundPath(defaultFilename);
 
 	try {
 		const settingsRow = localDb.select().from(settings).get();
@@ -33,14 +36,18 @@ function getSelectedRingtoneFilename(): string {
 
 		// Legacy: "none" was previously used before the muted toggle existed
 		if (selectedId === "none") {
-			return "";
+			return null;
+		}
+
+		if (selectedId === CUSTOM_RINGTONE_ID) {
+			return getCustomRingtonePath() ?? defaultPath;
 		}
 
 		const filename = getRingtoneFilename(selectedId);
 		// Fall back to default if stored ID is stale/unknown
-		return filename || defaultFilename;
+		return filename ? getSoundPath(filename) : defaultPath;
 	} catch {
-		return defaultFilename;
+		return defaultPath;
 	}
 }
 
@@ -80,13 +87,12 @@ export function playNotificationSound(): void {
 		return;
 	}
 
-	const filename = getSelectedRingtoneFilename();
+	const soundPath = getSelectedRingtonePath();
 
 	// No sound if "none" is selected
-	if (!filename) {
+	if (!soundPath) {
 		return;
 	}
 
-	const soundPath = getSoundPath(filename);
 	playSoundFile(soundPath);
 }

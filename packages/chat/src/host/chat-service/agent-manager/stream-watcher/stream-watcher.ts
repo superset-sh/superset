@@ -1,7 +1,12 @@
 import type { UIMessage } from "ai";
 import type { GetHeaders } from "../../../lib/auth/auth";
+import type { ChatLifecycleEvent } from "../../chat-service";
 import { sessionAbortControllers, sessionRunIds } from "../session-state";
-import { resumeAgent, runAgent } from "./run-agent";
+import {
+	continueAgentWithToolOutput,
+	resumeAgent,
+	runAgent,
+} from "./run-agent";
 import { SessionHost } from "./session-host";
 
 /**
@@ -15,6 +20,8 @@ export class StreamWatcher {
 	private host: SessionHost;
 	private readonly sessionId: string;
 	private readonly cwd: string;
+	private readonly onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
+	private readonly defaultModelId = "anthropic/claude-sonnet-4-6";
 	private status: "idle" | "starting" | "ready" = "idle";
 	private startPromise: Promise<void> | null = null;
 
@@ -23,9 +30,11 @@ export class StreamWatcher {
 		apiUrl: string;
 		cwd: string;
 		getHeaders: GetHeaders;
+		onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
 	}) {
 		this.sessionId = options.sessionId;
 		this.cwd = options.cwd;
+		this.onLifecycleEvent = options.onLifecycleEvent;
 
 		this.host = new SessionHost({
 			sessionId: options.sessionId,
@@ -38,42 +47,74 @@ export class StreamWatcher {
 			const hasFiles = message.parts?.some((p) => p.type === "file");
 			if (!text.trim() && !hasFiles) return;
 
-			void runAgent({
-				sessionId: options.sessionId,
-				text,
-				message,
-				host: this.host,
-				modelId: metadata?.model ?? "anthropic/claude-sonnet-4-6",
-				cwd: this.cwd,
-				permissionMode: metadata?.permissionMode ?? "bypassPermissions",
-				thinkingEnabled: metadata?.thinkingEnabled ?? false,
-				apiUrl: options.apiUrl,
-				getHeaders: options.getHeaders,
+			void this.executeWithLifecycle(async () => {
+				await runAgent({
+					sessionId: options.sessionId,
+					text,
+					message,
+					host: this.host,
+					modelId: metadata?.model ?? this.defaultModelId,
+					cwd: this.cwd,
+					permissionMode: metadata?.permissionMode ?? "bypassPermissions",
+					thinkingEnabled: metadata?.thinkingEnabled ?? false,
+					apiUrl: options.apiUrl,
+					getHeaders: options.getHeaders,
+				});
 			});
 		});
 
-		this.host.on("toolResult", ({ answers }) => {
-			const runId = sessionRunIds.get(options.sessionId);
-			if (runId) {
-				void resumeAgent({
-					sessionId: options.sessionId,
-					runId,
-					host: this.host,
-					approved: true,
-					answers,
-				});
-			}
+		this.host.on("toolApprovalRequest", () => {
+			this.emitLifecycle("PermissionRequest");
 		});
 
-		this.host.on("toolApproval", ({ approved, permissionMode }) => {
+		this.host.on(
+			"toolOutput",
+			({ toolCallId, tool, state, output, errorText }) => {
+				const recoveredRunId = this.host.getLatestRunId();
+				const runId =
+					sessionRunIds.get(options.sessionId) ?? recoveredRunId ?? undefined;
+				if (runId) {
+					sessionRunIds.set(options.sessionId, runId);
+				}
+
+				void this.executeWithLifecycle(async () => {
+					await continueAgentWithToolOutput({
+						sessionId: options.sessionId,
+						host: this.host,
+						runId,
+						toolCallId,
+						toolName: tool,
+						state,
+						output,
+						errorText,
+						fallbackContext: {
+							cwd: this.cwd,
+							modelId: this.defaultModelId,
+							permissionMode: "bypassPermissions",
+							thinkingEnabled: false,
+							requestEntries: [
+								["modelId", this.defaultModelId],
+								["cwd", this.cwd],
+								["apiUrl", options.apiUrl],
+							],
+						},
+					});
+				});
+			},
+		);
+
+		this.host.on("toolApproval", ({ approved, permissionMode, toolCallId }) => {
 			const runId = sessionRunIds.get(options.sessionId);
 			if (runId) {
-				void resumeAgent({
-					sessionId: options.sessionId,
-					runId,
-					host: this.host,
-					approved,
-					permissionMode,
+				void this.executeWithLifecycle(async () => {
+					await resumeAgent({
+						sessionId: options.sessionId,
+						runId,
+						host: this.host,
+						approved,
+						toolCallId,
+						permissionMode,
+					});
 				});
 			}
 		});
@@ -85,6 +126,32 @@ export class StreamWatcher {
 		this.host.on("error", (err) => {
 			console.error(`[stream-watcher] Error for ${options.sessionId}:`, err);
 		});
+	}
+
+	private emitLifecycle(eventType: ChatLifecycleEvent["eventType"]): void {
+		if (!this.onLifecycleEvent) return;
+		try {
+			this.onLifecycleEvent({
+				sessionId: this.sessionId,
+				eventType,
+			});
+		} catch (error) {
+			console.error(
+				`[stream-watcher] lifecycle callback failed for ${this.sessionId}:`,
+				error,
+			);
+		}
+	}
+
+	private async executeWithLifecycle(
+		action: () => Promise<void>,
+	): Promise<void> {
+		this.emitLifecycle("Start");
+		try {
+			await action();
+		} finally {
+			this.emitLifecycle("Stop");
+		}
 	}
 
 	get sessionHost() {

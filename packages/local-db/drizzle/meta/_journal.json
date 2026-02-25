@@ -220,17 +220,31 @@
       "breakpoints": true
     },
     {
-      "idx": 31,
+      "idx": 32,
       "version": "6",
-      "when": 1771797962833,
-      "tag": "0031_add_open_links_in_app_setting",
+      "when": 1771876417139,
+      "tag": "0032_migrate_workspace_ids_to_uuid_v4",
       "breakpoints": true
     },
     {
-      "idx": 32,
+      "idx": 33,
       "version": "6",
       "when": 1771855095227,
-      "tag": "0032_normal_cardiac",
+      "tag": "0033_normal_cardiac",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1771887719788,
+      "tag": "0034_nosy_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1771977629901,
+      "tag": "0035_add_use_compact_terminal_add_button_setting",
       "breakpoints": true
     }
   ]

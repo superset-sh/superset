@@ -167,7 +167,6 @@ export interface CreateOrAttachRequest {
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
-	initialCommands?: string[];
 }
 
 export interface CreateOrAttachResponse {

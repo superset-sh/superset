@@ -5,6 +5,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+env:
+  VERCEL_CLI_VERSION: 50.22.1
+
 jobs:
   deploy-database:
     name: Deploy Database Migrations
@@ -61,7 +64,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy API
         env:
@@ -117,7 +120,7 @@ jobs:
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
-          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+          vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env BLOB_READ_WRITE_TOKEN=$BLOB_READ_WRITE_TOKEN \
@@ -189,7 +192,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Web
         env:
@@ -224,7 +227,7 @@ jobs:
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
-          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+          vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
@@ -275,7 +278,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Marketing
         env:
@@ -307,7 +310,7 @@ jobs:
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
-          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+          vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
@@ -355,7 +358,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Admin
         env:
@@ -391,7 +394,7 @@ jobs:
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
-          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+          vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
             --env BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET \
@@ -470,7 +473,7 @@ jobs:
         run: bun install --frozen
 
       - name: Install Vercel CLI
-        run: npm install --global vercel@latest
+        run: npm install --global vercel@$VERCEL_CLI_VERSION
 
       - name: Build and Deploy Docs
         env:
@@ -489,7 +492,7 @@ jobs:
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
-          vercel deploy --prod --prebuilt --token=$VERCEL_TOKEN \
+          vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
             --env NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
             --env NEXT_PUBLIC_SENTRY_DSN_DOCS=$NEXT_PUBLIC_SENTRY_DSN_DOCS \

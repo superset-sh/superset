@@ -1,14 +1,21 @@
 import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
+	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
+	NON_EDITOR_APPS,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 } from "@superset/local-db";
+import {
+	AGENT_PRESET_COMMANDS,
+	AGENT_PRESET_DESCRIPTIONS,
+} from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
+import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
@@ -19,8 +26,13 @@ import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
+	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
 } from "shared/constants";
-import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
+import {
+	CUSTOM_RINGTONE_ID,
+	DEFAULT_RINGTONE_ID,
+	isBuiltInRingtoneId,
+} from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitAuthorName, getGitHubUsername } from "../workspaces/utils/git";
@@ -28,8 +40,22 @@ import {
 	setFontSettingsSchema,
 	transformFontSettings,
 } from "./font-settings.utils";
+import {
+	normalizeTerminalPresets,
+	type PresetWithUnknownMode,
+} from "./preset-execution-mode";
 
-const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
+function isValidRingtoneId(ringtoneId: string): boolean {
+	if (isBuiltInRingtoneId(ringtoneId)) {
+		return true;
+	}
+
+	if (ringtoneId === CUSTOM_RINGTONE_ID) {
+		return hasCustomRingtone();
+	}
+
+	return false;
+}
 
 function getSettings() {
 	let row = localDb.select().from(settings).get();
@@ -39,45 +65,53 @@ function getSettings() {
 	return row;
 }
 
-const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
-	{
-		name: "claude",
-		description: "Danger mode: All permissions auto-approved",
+function readRawTerminalPresets(): PresetWithUnknownMode[] {
+	const row = getSettings();
+	return (row.terminalPresets ?? []) as PresetWithUnknownMode[];
+}
+
+function getNormalizedTerminalPresets() {
+	const rawPresets = readRawTerminalPresets();
+	return normalizeTerminalPresets(rawPresets);
+}
+
+function saveTerminalPresets(
+	presets: TerminalPreset[],
+	options?: { terminalPresetsInitialized?: boolean },
+) {
+	const values = { id: 1, terminalPresets: presets, ...options };
+	localDb
+		.insert(settings)
+		.values(values)
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { terminalPresets: presets, ...options },
+		})
+		.run();
+}
+
+const DEFAULT_PRESET_AGENTS = [
+	"claude",
+	"codex",
+	"copilot",
+	"opencode",
+	"gemini",
+] as const;
+
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = DEFAULT_PRESET_AGENTS.map(
+	(name) => ({
+		name,
+		description: AGENT_PRESET_DESCRIPTIONS[name],
 		cwd: "",
-		commands: ["claude --dangerously-skip-permissions"],
-	},
-	{
-		name: "codex",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: [
-			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
-		],
-	},
-	{
-		name: "copilot",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: ["copilot --allow-all"],
-	},
-	{
-		name: "opencode",
-		cwd: "",
-		commands: ["opencode"],
-	},
-	{
-		name: "gemini",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: ["gemini -y"],
-	},
-];
+		commands: AGENT_PRESET_COMMANDS[name],
+	}),
+);
 
 function initializeDefaultPresets() {
 	const row = getSettings();
 	if (row.terminalPresetsInitialized) return row.terminalPresets ?? [];
 
-	const existingPresets: TerminalPreset[] = row.terminalPresets ?? [];
+	const existingPresets = getNormalizedTerminalPresets();
 
 	const mergedPresets =
 		existingPresets.length > 0
@@ -85,23 +119,10 @@ function initializeDefaultPresets() {
 			: DEFAULT_PRESETS.map((p) => ({
 					id: crypto.randomUUID(),
 					...p,
+					executionMode: p.executionMode ?? "split-pane",
 				}));
 
-	localDb
-		.insert(settings)
-		.values({
-			id: 1,
-			terminalPresets: mergedPresets,
-			terminalPresetsInitialized: true,
-		})
-		.onConflictDoUpdate({
-			target: settings.id,
-			set: {
-				terminalPresets: mergedPresets,
-				terminalPresetsInitialized: true,
-			},
-		})
-		.run();
+	saveTerminalPresets(mergedPresets, { terminalPresetsInitialized: true });
 
 	return mergedPresets;
 }
@@ -110,8 +131,7 @@ function initializeDefaultPresets() {
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
 ) {
-	const row = getSettings();
-	const presets = row.terminalPresets ?? [];
+	const presets = getNormalizedTerminalPresets();
 	const tagged = presets.filter((p) => p[field]);
 	if (tagged.length > 0) return tagged;
 	const defaultPreset = presets.find((p) => p.isDefault);
@@ -125,7 +145,7 @@ export const createSettingsRouter = () => {
 			if (!row.terminalPresetsInitialized) {
 				return initializeDefaultPresets();
 			}
-			return row.terminalPresets ?? [];
+			return getNormalizedTerminalPresets();
 		}),
 		createTerminalPreset: publicProcedure
 			.input(
@@ -134,6 +154,7 @@ export const createSettingsRouter = () => {
 					description: z.string().optional(),
 					cwd: z.string(),
 					commands: z.array(z.string()),
+					pinnedToBar: z.boolean().optional(),
 					executionMode: z.enum(EXECUTION_MODES).optional(),
 				}),
 			)
@@ -141,20 +162,13 @@ export const createSettingsRouter = () => {
 				const preset: TerminalPreset = {
 					id: crypto.randomUUID(),
 					...input,
+					executionMode: input.executionMode ?? "split-pane",
 				};
 
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 				presets.push(preset);
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: presets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: presets },
-					})
-					.run();
+				saveTerminalPresets(presets);
 
 				return preset;
 			}),
@@ -168,13 +182,13 @@ export const createSettingsRouter = () => {
 						description: z.string().optional(),
 						cwd: z.string().optional(),
 						commands: z.array(z.string()).optional(),
+						pinnedToBar: z.boolean().optional(),
 						executionMode: z.enum(EXECUTION_MODES).optional(),
 					}),
 				}),
 			)
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 				const preset = presets.find((p) => p.id === input.id);
 
 				if (!preset) {
@@ -190,17 +204,12 @@ export const createSettingsRouter = () => {
 				if (input.patch.cwd !== undefined) preset.cwd = input.patch.cwd;
 				if (input.patch.commands !== undefined)
 					preset.commands = input.patch.commands;
+				if (input.patch.pinnedToBar !== undefined)
+					preset.pinnedToBar = input.patch.pinnedToBar;
 				if (input.patch.executionMode !== undefined)
 					preset.executionMode = input.patch.executionMode;
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: presets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: presets },
-					})
-					.run();
+				saveTerminalPresets(presets);
 
 				return { success: true };
 			}),
@@ -208,18 +217,10 @@ export const createSettingsRouter = () => {
 		deleteTerminalPreset: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 				const filteredPresets = presets.filter((p) => p.id !== input.id);
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: filteredPresets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: filteredPresets },
-					})
-					.run();
+				saveTerminalPresets(filteredPresets);
 
 				return { success: true };
 			}),
@@ -227,22 +228,14 @@ export const createSettingsRouter = () => {
 		setDefaultPreset: publicProcedure
 			.input(z.object({ id: z.string().nullable() }))
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 
 				const updatedPresets = presets.map((p) => ({
 					...p,
 					isDefault: input.id === p.id ? true : undefined,
 				}));
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: updatedPresets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: updatedPresets },
-					})
-					.run();
+				saveTerminalPresets(updatedPresets);
 
 				return { success: true };
 			}),
@@ -256,8 +249,7 @@ export const createSettingsRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 
 				const updatedPresets = presets.map((p) => {
 					if (p.id !== input.id) return p;
@@ -283,14 +275,7 @@ export const createSettingsRouter = () => {
 					};
 				});
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: updatedPresets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: updatedPresets },
-					})
-					.run();
+				saveTerminalPresets(updatedPresets);
 
 				return { success: true };
 			}),
@@ -303,8 +288,7 @@ export const createSettingsRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const row = getSettings();
-				const presets = row.terminalPresets ?? [];
+				const presets = getNormalizedTerminalPresets();
 
 				const currentIndex = presets.findIndex((p) => p.id === input.presetId);
 				if (currentIndex === -1) {
@@ -324,21 +308,13 @@ export const createSettingsRouter = () => {
 				const [removed] = presets.splice(currentIndex, 1);
 				presets.splice(input.targetIndex, 0, removed);
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, terminalPresets: presets })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { terminalPresets: presets },
-					})
-					.run();
+				saveTerminalPresets(presets);
 
 				return { success: true };
 			}),
 
 		getDefaultPreset: publicProcedure.query(() => {
-			const row = getSettings();
-			const presets = row.terminalPresets ?? [];
+			const presets = getNormalizedTerminalPresets();
 			return presets.find((p) => p.isDefault) ?? null;
 		}),
 
@@ -358,7 +334,7 @@ export const createSettingsRouter = () => {
 				return DEFAULT_RINGTONE_ID;
 			}
 
-			if (VALID_RINGTONE_IDS.includes(storedId)) {
+			if (isValidRingtoneId(storedId)) {
 				return storedId;
 			}
 
@@ -379,7 +355,7 @@ export const createSettingsRouter = () => {
 		setSelectedRingtoneId: publicProcedure
 			.input(z.object({ ringtoneId: z.string() }))
 			.mutation(({ input }) => {
-				if (!VALID_RINGTONE_IDS.includes(input.ringtoneId)) {
+				if (!isValidRingtoneId(input.ringtoneId)) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
 						message: `Invalid ringtone ID: ${input.ringtoneId}`,
@@ -432,6 +408,29 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { showPresetsBar: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getUseCompactTerminalAddButton: publicProcedure.query(() => {
+			const row = getSettings();
+			return (
+				row.useCompactTerminalAddButton ??
+				DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON
+			);
+		}),
+
+		setUseCompactTerminalAddButton: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, useCompactTerminalAddButton: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { useCompactTerminalAddButton: input.enabled },
 					})
 					.run();
 
@@ -694,6 +693,35 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { openLinksInApp: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getDefaultEditor: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.defaultEditor ?? null;
+		}),
+
+		setDefaultEditor: publicProcedure
+			.input(
+				z.object({
+					editor: z
+						.enum(EXTERNAL_APPS)
+						.nullable()
+						.refine((val) => val === null || !NON_EDITOR_APPS.includes(val), {
+							message: "Non-editor apps cannot be set as the global default",
+						}),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, defaultEditor: input.editor })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { defaultEditor: input.editor },
 					})
 					.run();
 

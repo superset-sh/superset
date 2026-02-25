@@ -4,13 +4,14 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { AutoApplyPresetSetting } from "./components/AutoApplyPresetSetting";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
 
 interface TerminalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
+	editingPresetId?: string | null;
+	onEditingPresetIdChange?: (presetId: string | null) => void;
 }
 
 /**
@@ -34,17 +35,17 @@ function SectionList({ children }: { children: ReactNode[] }) {
 	);
 }
 
-export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
+export function TerminalSettings({
+	visibleItems,
+	editingPresetId,
+	onEditingPresetIdChange,
+}: TerminalSettingsProps) {
 	const showPresets = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_PRESETS,
 		visibleItems,
 	);
 	const showQuickAdd = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_QUICK_ADD,
-		visibleItems,
-	);
-	const showAutoApplyPreset = isItemVisible(
-		SETTING_ITEM_ID.TERMINAL_AUTO_APPLY_PRESET,
 		visibleItems,
 	);
 	const showLinkBehavior = isItemVisible(
@@ -71,9 +72,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 						key="presets"
 						showPresets={showPresets}
 						showQuickAdd={showQuickAdd}
+						editingPresetId={editingPresetId}
+						onEditingPresetIdChange={onEditingPresetIdChange}
 					/>
 				)}
-				{showAutoApplyPreset && <AutoApplyPresetSetting key="auto-apply" />}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
 				{showSessions && <SessionsSection key="sessions" />}
 			</SectionList>

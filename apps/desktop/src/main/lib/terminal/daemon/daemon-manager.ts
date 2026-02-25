@@ -320,7 +320,6 @@ export class DaemonTerminalManager extends EventEmitter {
 			cwd,
 			cols = 80,
 			rows = 24,
-			initialCommands,
 			skipColdRestore,
 			themeType,
 		} = params;
@@ -406,7 +405,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				cwd,
 				env,
 				shell,
-				initialCommands,
 			});
 
 			this.daemonAliveSessionIds.add(paneId);

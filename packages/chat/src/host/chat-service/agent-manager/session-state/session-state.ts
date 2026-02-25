@@ -5,6 +5,7 @@ export interface SessionContext {
 	cwd: string;
 	modelId: string;
 	permissionMode?: string;
+	thinkingEnabled?: boolean;
 	requestEntries: [string, string][];
 }
 

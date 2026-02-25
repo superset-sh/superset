@@ -65,7 +65,6 @@ export const createTerminalRouter = () => {
 					cols: z.number().optional(),
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
-					initialCommands: z.array(z.string()).optional(),
 					skipColdRestore: z.boolean().optional(),
 					allowKilled: z.boolean().optional(),
 					themeType: z.enum(["dark", "light"]).optional(),
@@ -81,7 +80,6 @@ export const createTerminalRouter = () => {
 					cols,
 					rows,
 					cwd: cwdOverride,
-					initialCommands,
 					skipColdRestore,
 					allowKilled,
 					themeType,
@@ -135,7 +133,6 @@ export const createTerminalRouter = () => {
 						cwd,
 						cols,
 						rows,
-						initialCommands,
 						skipColdRestore,
 						allowKilled,
 						themeType: resolvedThemeType,
@@ -200,9 +197,11 @@ export const createTerminalRouter = () => {
 				z.object({
 					paneId: z.string(),
 					data: z.string(),
+					throwOnError: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const shouldThrow = input.throwOnError ?? false;
 				try {
 					terminal.write(input);
 				} catch (error) {
@@ -212,6 +211,12 @@ export const createTerminalRouter = () => {
 					// Emit exit instead of error for deleted sessions to prevent toast floods
 					if (message.includes("not found or not alive")) {
 						terminal.emit(`exit:${input.paneId}`, 0, 15);
+						if (shouldThrow) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message,
+							});
+						}
 						return;
 					}
 
@@ -219,6 +224,12 @@ export const createTerminalRouter = () => {
 						error: message,
 						code: "WRITE_FAILED",
 					});
+					if (shouldThrow) {
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message,
+						});
+					}
 				}
 			}),
 

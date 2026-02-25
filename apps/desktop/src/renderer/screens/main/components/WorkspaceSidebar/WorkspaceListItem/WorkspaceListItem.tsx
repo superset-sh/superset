@@ -42,7 +42,6 @@ import { STROKE_WIDTH } from "../constants";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
 import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import {
-	AHEAD_BEHIND_STALE_TIME,
 	GITHUB_STATUS_STALE_TIME,
 	HOVER_CARD_CLOSE_DELAY,
 	HOVER_CARD_OPEN_DELAY,
@@ -141,14 +140,15 @@ export function WorkspaceListItem({
 		staleTime: GITHUB_STATUS_STALE_TIME,
 	});
 
-	const { data: aheadBehind } = electronTrpc.workspaces.getAheadBehind.useQuery(
-		{ workspaceId: id },
-		{
-			enabled: isBranchWorkspace,
-			staleTime: AHEAD_BEHIND_STALE_TIME,
-			refetchInterval: AHEAD_BEHIND_STALE_TIME,
-		},
-	);
+	const { data: aheadBehind, refetch: refetchAheadBehind } =
+		electronTrpc.workspaces.getAheadBehind.useQuery(
+			{ workspaceId: id },
+			{
+				enabled: isBranchWorkspace,
+				staleTime: GITHUB_STATUS_STALE_TIME,
+				refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
+			},
+		);
 
 	useBranchSyncInvalidation({
 		gitBranch: localChanges?.branch,
@@ -194,6 +194,7 @@ export function WorkspaceListItem({
 
 	const handleMouseEnter = () => {
 		if (!hasHovered) setHasHovered(true);
+		if (isBranchWorkspace) void refetchAheadBehind();
 	};
 
 	const handleOpenInFinder = () => {

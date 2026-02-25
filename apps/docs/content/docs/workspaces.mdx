@@ -21,7 +21,18 @@ Each workspace gets:
 - Own git branch
 - Own working directory
 - Own terminal sessions
-- Own port range
+- Workspace-scoped port detection and controls
+
+## Import Worktrees
+
+If you have existing git worktrees on disk, use the **Import** tab in the New Workspace modal to bring them into Superset. Click **Import all** to bulk-import all discovered worktrees at once.
+
+## Ahead/Behind Status
+
+For **local (branch-based) workspaces**, the sidebar shows how far the active branch is ahead or behind its remote branch:
+
+- **↑N** - N commits ahead of remote (unpushed)
+- **↓N** - N commits behind remote (needs pull/rebase)
 
 ## Use Cases
 

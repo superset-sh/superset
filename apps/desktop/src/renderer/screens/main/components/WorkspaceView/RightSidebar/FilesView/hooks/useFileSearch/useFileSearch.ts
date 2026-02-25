@@ -4,6 +4,8 @@ import { SEARCH_RESULT_LIMIT } from "../../constants";
 interface UseFileSearchParams {
 	worktreePath: string | undefined;
 	searchTerm: string;
+	includePattern?: string;
+	excludePattern?: string;
 	includeHidden: boolean;
 	limit?: number;
 }
@@ -11,6 +13,8 @@ interface UseFileSearchParams {
 export function useFileSearch({
 	worktreePath,
 	searchTerm,
+	includePattern = "",
+	excludePattern = "",
 	includeHidden,
 	limit = SEARCH_RESULT_LIMIT,
 }: UseFileSearchParams) {
@@ -21,6 +25,8 @@ export function useFileSearch({
 			{
 				rootPath: worktreePath ?? "",
 				query: trimmedQuery,
+				includePattern,
+				excludePattern,
 				includeHidden,
 				limit,
 			},

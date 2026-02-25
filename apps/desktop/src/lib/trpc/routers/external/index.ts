@@ -1,4 +1,9 @@
-import { EXTERNAL_APPS, projects } from "@superset/local-db";
+import {
+	EXTERNAL_APPS,
+	NON_EDITOR_APPS,
+	projects,
+	settings,
+} from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { clipboard, shell } from "electron";
@@ -13,6 +18,39 @@ import {
 } from "./helpers";
 
 const ExternalAppSchema = z.enum(EXTERNAL_APPS);
+
+const nonEditorSet = new Set<ExternalApp>(NON_EDITOR_APPS);
+
+/** Sets the global default editor if one hasn't been set yet. Skips non-editor apps. */
+function ensureGlobalDefaultEditor(app: ExternalApp) {
+	if (nonEditorSet.has(app)) return;
+
+	const row = localDb.select().from(settings).get();
+	if (!row?.defaultEditor) {
+		localDb
+			.insert(settings)
+			.values({ id: 1, defaultEditor: app })
+			.onConflictDoUpdate({
+				target: settings.id,
+				set: { defaultEditor: app },
+			})
+			.run();
+	}
+}
+
+/** Resolves the default editor from project setting, then global setting. */
+export function resolveDefaultEditor(projectId?: string): ExternalApp | null {
+	if (projectId) {
+		const project = localDb
+			.select()
+			.from(projects)
+			.where(eq(projects.id, projectId))
+			.get();
+		if (project?.defaultApp) return project.defaultApp;
+	}
+	const row = localDb.select().from(settings).get();
+	return row?.defaultEditor ?? null;
+}
 
 async function openPathInApp(
 	filePath: string,
@@ -80,6 +118,9 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				await openPathInApp(input.path, input.app);
+
+				// Persist defaults only after successful launch
 				if (input.projectId) {
 					localDb
 						.update(projects)
@@ -87,7 +128,16 @@ export const createExternalRouter = () => {
 						.where(eq(projects.id, input.projectId))
 						.run();
 				}
-				await openPathInApp(input.path, input.app);
+
+				// Auto-set global default editor on first successful use (best-effort)
+				try {
+					ensureGlobalDefaultEditor(input.app);
+				} catch (err) {
+					console.warn(
+						"[external/openInApp] Failed to persist global default editor:",
+						err,
+					);
+				}
 			}),
 
 		copyPath: publicProcedure.input(z.string()).mutation(async ({ input }) => {
@@ -106,15 +156,10 @@ export const createExternalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const filePath = resolvePath(input.path, input.cwd);
-				let app: ExternalApp = "cursor";
-				if (input.projectId) {
-					const project = localDb
-						.select()
-						.from(projects)
-						.where(eq(projects.id, input.projectId))
-						.get();
-					app = project?.defaultApp ?? "cursor";
-				}
+				// Preserve first-run behavior for terminal/file-link flows.
+				// If no project/global default editor is configured yet, fall back to Cursor.
+				const app = resolveDefaultEditor(input.projectId) ?? "cursor";
+
 				await openPathInApp(filePath, app);
 			}),
 	});

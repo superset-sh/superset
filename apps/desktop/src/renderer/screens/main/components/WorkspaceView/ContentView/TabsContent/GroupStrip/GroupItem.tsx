@@ -204,7 +204,7 @@ export function GroupItem({
 							}}
 							className={tabStyles}
 						>
-							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
+							<span className="text-sm truncate flex-1 text-left">
 								{displayName}
 							</span>
 							{status && status !== "idle" && (

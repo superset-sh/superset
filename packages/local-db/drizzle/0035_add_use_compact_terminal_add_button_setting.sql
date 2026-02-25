@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `use_compact_terminal_add_button` integer;

@@ -31,8 +31,12 @@ mock.module("renderer/lib/trpc-client", () => ({
 }));
 
 // Import after mocks are set up
-const { getDefaultTerminalBg, getDefaultTerminalTheme, setupKeyboardHandler } =
-	await import("./helpers");
+const {
+	getDefaultTerminalBg,
+	getDefaultTerminalTheme,
+	setupKeyboardHandler,
+	setupPasteHandler,
+} = await import("./helpers");
 
 describe("getDefaultTerminalTheme", () => {
 	beforeEach(() => {
@@ -72,8 +76,8 @@ describe("getDefaultTerminalTheme", () => {
 	it("should fall back to default dark theme when localStorage is empty", () => {
 		const theme = getDefaultTerminalTheme();
 
-		// Default theme is dark
-		expect(theme.background).toBe("#1a1a1a");
+		// Default theme is dark (ember)
+		expect(theme.background).toBe("#151110");
 	});
 
 	it("should handle invalid JSON in cached terminal gracefully", () => {
@@ -82,7 +86,7 @@ describe("getDefaultTerminalTheme", () => {
 		const theme = getDefaultTerminalTheme();
 
 		// Should fall back to default
-		expect(theme.background).toBe("#1a1a1a");
+		expect(theme.background).toBe("#151110");
 	});
 });
 
@@ -105,7 +109,7 @@ describe("getDefaultTerminalBg", () => {
 	});
 
 	it("should return default background when no cache", () => {
-		expect(getDefaultTerminalBg()).toBe("#1a1a1a");
+		expect(getDefaultTerminalBg()).toBe("#151110");
 	});
 });
 
@@ -193,5 +197,103 @@ describe("setupKeyboardHandler", () => {
 
 		expect(onWrite).toHaveBeenCalledWith("\x1bb");
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
+	});
+});
+
+describe("setupPasteHandler", () => {
+	function createXtermStub() {
+		const listeners = new Map<string, EventListener>();
+		const textarea = {
+			addEventListener: mock((eventName: string, listener: EventListener) => {
+				listeners.set(eventName, listener);
+			}),
+			removeEventListener: mock((eventName: string) => {
+				listeners.delete(eventName);
+			}),
+		} as unknown as HTMLTextAreaElement;
+		const paste = mock(() => {});
+		const xterm = {
+			textarea,
+			paste,
+		} as unknown as XTerm;
+		return { xterm, listeners, paste };
+	}
+
+	it("forwards Ctrl+V for image-only clipboard payloads", () => {
+		const { xterm, listeners } = createXtermStub();
+		const onWrite = mock(() => {});
+		setupPasteHandler(xterm, { onWrite });
+
+		const preventDefault = mock(() => {});
+		const stopImmediatePropagation = mock(() => {});
+		const pasteEvent = {
+			clipboardData: {
+				getData: mock(() => ""),
+				items: [{ kind: "file", type: "image/png" }],
+				types: ["Files", "image/png"],
+			},
+			preventDefault,
+			stopImmediatePropagation,
+		} as unknown as ClipboardEvent;
+
+		const pasteListener = listeners.get("paste");
+		expect(pasteListener).toBeDefined();
+		pasteListener?.(pasteEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x16");
+		expect(preventDefault).toHaveBeenCalled();
+		expect(stopImmediatePropagation).toHaveBeenCalled();
+	});
+
+	it("forwards Ctrl+V for non-text clipboard payloads without plain text", () => {
+		const { xterm, listeners } = createXtermStub();
+		const onWrite = mock(() => {});
+		setupPasteHandler(xterm, { onWrite });
+
+		const preventDefault = mock(() => {});
+		const stopImmediatePropagation = mock(() => {});
+		const pasteEvent = {
+			clipboardData: {
+				getData: mock(() => ""),
+				items: [{ kind: "string", type: "text/html" }],
+				types: ["text/html"],
+			},
+			preventDefault,
+			stopImmediatePropagation,
+		} as unknown as ClipboardEvent;
+
+		const pasteListener = listeners.get("paste");
+		expect(pasteListener).toBeDefined();
+		pasteListener?.(pasteEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x16");
+		expect(preventDefault).toHaveBeenCalled();
+		expect(stopImmediatePropagation).toHaveBeenCalled();
+	});
+
+	it("ignores empty clipboard payloads", () => {
+		const { xterm, listeners } = createXtermStub();
+		const onWrite = mock(() => {});
+		setupPasteHandler(xterm, { onWrite });
+
+		const preventDefault = mock(() => {});
+		const stopImmediatePropagation = mock(() => {});
+		const pasteEvent = {
+			clipboardData: {
+				getData: mock(() => ""),
+				items: [],
+				types: [],
+			},
+			preventDefault,
+			stopImmediatePropagation,
+		} as unknown as ClipboardEvent;
+
+		const pasteListener = listeners.get("paste");
+		expect(pasteListener).toBeDefined();
+		pasteListener?.(pasteEvent);
+
+		expect(onWrite).not.toHaveBeenCalled();
+		expect(preventDefault).not.toHaveBeenCalled();
+		expect(stopImmediatePropagation).not.toHaveBeenCalled();
 	});
 });

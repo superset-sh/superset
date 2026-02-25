@@ -5,12 +5,13 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { useQuery } from "@tanstack/react-query";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { getAuthToken } from "renderer/lib/auth-client";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { ChatInputFooter } from "./components/ChatInputFooter";
+import { McpOverviewPicker } from "./components/McpOverviewPicker";
 import { MessageList } from "./components/MessageList";
 import { useChatSendController } from "./hooks/useChatSendController";
 import { useSlashCommandExecutor } from "./hooks/useSlashCommandExecutor";
@@ -18,6 +19,7 @@ import type { SlashCommand } from "./hooks/useSlashCommands";
 import type {
 	ChatInterfaceProps,
 	InterruptedMessage,
+	McpOverviewPayload,
 	ModelOption,
 	PermissionMode,
 } from "./types";
@@ -42,35 +44,6 @@ function getAuthHeaders(): Record<string, string> {
 	return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-interface TitleMessagePartLike {
-	type: string;
-	text?: string;
-}
-
-interface TitleMessageLike {
-	role: string;
-	parts?: TitleMessagePartLike[];
-}
-
-interface TitleDigestMessage {
-	role: string;
-	text: string;
-}
-
-function hasAssistantMessage(messages: TitleMessageLike[]): boolean {
-	return messages.some((message) => message.role === "assistant");
-}
-
-function buildTitleDigest(messages: TitleMessageLike[]): TitleDigestMessage[] {
-	return messages.slice(-20).map((message) => {
-		const text = (message.parts ?? [])
-			.filter((part) => part.type === "text")
-			.map((part) => part.text?.slice(0, 500) ?? "")
-			.join(" ");
-		return { role: message.role, text };
-	});
-}
-
 function cloneParts(
 	parts: InterruptedMessage["parts"],
 ): InterruptedMessage["parts"] {
@@ -82,28 +55,27 @@ function cloneParts(
 
 export function ChatInterface({
 	sessionId,
-	sessionTitle,
 	organizationId,
 	deviceId,
 	workspaceId,
 	cwd,
 	paneId,
-	tabId,
 }: ChatInterfaceProps) {
 	const switchChatSession = useTabsStore((state) => state.switchChatSession);
-	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const { models: availableModels, defaultModel } = useAvailableModels();
 
 	const [selectedModel, setSelectedModel] = useState<ModelOption | null>(null);
 	const activeModel = selectedModel ?? defaultModel;
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
-	const titleRequestedRef = useRef(false);
-	const titleRequestSessionRef = useRef<string | null>(null);
 	const [permissionMode, setPermissionMode] =
 		useState<PermissionMode>("bypassPermissions");
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
+	const [mcpOverview, setMcpOverview] = useState<McpOverviewPayload | null>(
+		null,
+	);
+	const [mcpOverviewOpen, setMcpOverviewOpen] = useState(false);
 
 	const chat = useChat({
 		sessionId,
@@ -165,16 +137,29 @@ export function ChatInterface({
 		chat.stop();
 	}, [captureInterruptedMessage, stopPendingSends, chat.stop]);
 
+	const startFreshSessionAndResetUi = useCallback(async () => {
+		const result = await startFreshSession();
+		if (result.created) {
+			setMcpOverview(null);
+			setMcpOverviewOpen(false);
+		}
+		return result;
+	}, [startFreshSession]);
+
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
 		availableModels,
 		canAbort,
-		onStartFreshSession: startFreshSession,
+		onStartFreshSession: startFreshSessionAndResetUi,
 		onStopActiveResponse: stopActiveResponse,
 		onSelectModel: setSelectedModel,
 		onOpenModelPicker: () => setModelSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
+		onShowMcpOverview: (overview: McpOverviewPayload) => {
+			setMcpOverview(overview);
+			setMcpOverviewOpen(true);
+		},
 	});
 
 	const handleSend = useCallback(
@@ -196,41 +181,6 @@ export function ChatInterface({
 		},
 		[clearRuntimeError, resolveSlashCommandInput, sendThroughController],
 	);
-
-	useEffect(() => {
-		if (chat.isLoading) return;
-		if (!sessionId || sessionTitle) return;
-		if (titleRequestSessionRef.current !== sessionId) {
-			titleRequestSessionRef.current = sessionId;
-			titleRequestedRef.current = false;
-		}
-		if (titleRequestedRef.current) return;
-		if (!hasAssistantMessage(chat.messages)) return;
-		titleRequestedRef.current = true;
-
-		const requestedSessionId = sessionId;
-		const digest = buildTitleDigest(chat.messages);
-
-		apiTrpcClient.chat.generateTitle
-			.mutate({ sessionId: requestedSessionId, messages: digest })
-			.then(({ title }) => {
-				if (titleRequestSessionRef.current !== requestedSessionId) return;
-				setTabAutoTitle(tabId, title);
-			})
-			.catch((error) => {
-				if (titleRequestSessionRef.current === requestedSessionId) {
-					titleRequestedRef.current = false;
-				}
-				console.error(error);
-			});
-	}, [
-		chat.isLoading,
-		chat.messages,
-		sessionId,
-		sessionTitle,
-		tabId,
-		setTabAutoTitle,
-	]);
 
 	const displayMessages = useMemo(() => {
 		const persistedIds = new Set(chat.messages.map((message) => message.id));
@@ -260,6 +210,8 @@ export function ChatInterface({
 
 	useEffect(() => {
 		setInterruptedMessage(null);
+		setMcpOverview(null);
+		setMcpOverviewOpen(false);
 	}, []);
 
 	const handleStop = useCallback(
@@ -269,6 +221,18 @@ export function ChatInterface({
 			stopActiveResponse();
 		},
 		[clearRuntimeError, stopActiveResponse],
+	);
+
+	const handleAnswer = useCallback(
+		async (toolCallId: string, answers: Record<string, string>) => {
+			clearRuntimeError();
+			await chat.addToolOutput({
+				tool: "ask_user_question",
+				toolCallId,
+				output: { answers },
+			});
+		},
+		[clearRuntimeError, chat.addToolOutput],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -287,6 +251,12 @@ export function ChatInterface({
 					isStreaming={chat.isLoading}
 					submitStatus={submitStatus}
 					workspaceId={workspaceId}
+					onAnswer={handleAnswer}
+				/>
+				<McpOverviewPicker
+					overview={mcpOverview}
+					open={mcpOverviewOpen}
+					onOpenChange={setMcpOverviewOpen}
 				/>
 				<ChatInputFooter
 					cwd={cwd}

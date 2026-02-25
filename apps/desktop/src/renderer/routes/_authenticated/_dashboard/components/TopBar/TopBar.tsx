@@ -21,7 +21,7 @@ export function TopBar() {
 	const isMac = platform === undefined || platform === "darwin";
 
 	return (
-		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-background border-b border-border relative">
+		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35">
 			<div
 				className="flex items-center gap-1.5 h-full"
 				style={{

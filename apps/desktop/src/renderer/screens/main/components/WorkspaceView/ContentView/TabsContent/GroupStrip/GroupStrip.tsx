@@ -1,42 +1,32 @@
+import type { TerminalPreset } from "@superset/local-db";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { Button } from "@superset/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { useCallback, useMemo, useState } from "react";
-import { BsTerminalPlus } from "react-icons/bs";
 import {
-	HiMiniChevronDown,
-	HiMiniCog6Tooth,
-	HiMiniCommandLine,
-	HiStar,
-} from "react-icons/hi2";
-import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
-import {
-	getPresetIcon,
-	useIsDarkTheme,
-} from "renderer/assets/app-icons/preset-icons";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
 	isLastPaneInTab,
 	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
+import {
+	DEFAULT_SHOW_PRESETS_BAR,
+	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
+} from "shared/constants";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
-import { PresetMenuItemShortcut } from "./components/PresetMenuItemShortcut";
+import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
-import { NewTabDropZone } from "./NewTabDropZone";
 
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -46,7 +36,7 @@ export function GroupStrip() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const { addTab, openPreset } = useTabsWithPresets();
-	const addChatTab = useTabsStore((s) => s.addChatTab);
+	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
@@ -55,12 +45,19 @@ export function GroupStrip() {
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
 
-	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
+	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const { presets } = usePresets();
-	const isDark = useIsDarkTheme();
+	const navigate = useNavigate();
+
+	const hasAiChat = useFeatureFlagEnabled(FEATURE_FLAGS.AI_CHAT);
+	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const tabsTrackRef = useRef<HTMLDivElement>(null);
+	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
 	const utils = electronTrpc.useUtils();
 	const { data: showPresetsBar } =
 		electronTrpc.settings.getShowPresetsBar.useQuery();
+	const { data: useCompactTerminalAddButton } =
+		electronTrpc.settings.getUseCompactTerminalAddButton.useQuery();
 	const setShowPresetsBar = electronTrpc.settings.setShowPresetsBar.useMutation(
 		{
 			onMutate: async ({ enabled }) => {
@@ -79,8 +76,30 @@ export function GroupStrip() {
 			},
 		},
 	);
-	const navigate = useNavigate();
-	const [dropdownOpen, setDropdownOpen] = useState(false);
+	const setUseCompactTerminalAddButton =
+		electronTrpc.settings.setUseCompactTerminalAddButton.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getUseCompactTerminalAddButton.cancel();
+				const previous =
+					utils.settings.getUseCompactTerminalAddButton.getData();
+				utils.settings.getUseCompactTerminalAddButton.setData(
+					undefined,
+					enabled,
+				);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getUseCompactTerminalAddButton.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getUseCompactTerminalAddButton.invalidate();
+			},
+		});
 
 	const tabs = useMemo(
 		() =>
@@ -113,6 +132,40 @@ export function GroupStrip() {
 		return result;
 	}, [panes]);
 
+	// Sync Electric session titles → tab names for all chat tabs in this workspace
+	const chatPaneSessionMap = useMemo(() => {
+		const map = new Map<string, string>(); // sessionId → tabId
+		for (const pane of Object.values(panes)) {
+			if (pane.type === "chat" && pane.chat?.sessionId) {
+				const tab = tabs.find((t) => t.id === pane.tabId);
+				if (tab) map.set(pane.chat.sessionId, tab.id);
+			}
+		}
+		return map;
+	}, [panes, tabs]);
+
+	const collections = useCollections();
+	const { data: chatSessions } = useLiveQuery(
+		(q) =>
+			q
+				.from({ chatSessions: collections.chatSessions })
+				.select(({ chatSessions }) => ({
+					id: chatSessions.id,
+					title: chatSessions.title,
+				})),
+		[collections.chatSessions],
+	);
+
+	useEffect(() => {
+		if (!chatSessions) return;
+		for (const session of chatSessions) {
+			const tabId = chatPaneSessionMap.get(session.id);
+			if (tabId) {
+				setTabAutoTitle(tabId, session.title || "New Chat");
+			}
+		}
+	}, [chatSessions, chatPaneSessionMap, setTabAutoTitle]);
+
 	const handleAddGroup = () => {
 		if (!activeWorkspaceId) return;
 		addTab(activeWorkspaceId);
@@ -120,7 +173,7 @@ export function GroupStrip() {
 
 	const handleAddChat = () => {
 		if (!activeWorkspaceId) return;
-		addChatTab(activeWorkspaceId);
+		addChatMastraTab(activeWorkspaceId);
 	};
 
 	const handleAddBrowser = () => {
@@ -128,16 +181,17 @@ export function GroupStrip() {
 		addBrowserTab(activeWorkspaceId);
 	};
 
-	const handleSelectPreset = (preset: Parameters<typeof openPreset>[1]) => {
-		if (!activeWorkspaceId) return;
-		openPreset(activeWorkspaceId, preset);
-		setDropdownOpen(false);
-	};
+	const handleOpenPreset = useCallback(
+		(preset: TerminalPreset) => {
+			if (!activeWorkspaceId) return;
+			openPreset(activeWorkspaceId, preset, { target: "active-tab" });
+		},
+		[activeWorkspaceId, openPreset],
+	);
 
-	const handleOpenPresetsSettings = () => {
+	const handleOpenPresetsSettings = useCallback(() => {
 		navigate({ to: "/settings/presets" });
-		setDropdownOpen(false);
-	};
+	}, [navigate]);
 
 	const handleSelectGroup = (tabId: string) => {
 		if (activeWorkspaceId) {
@@ -170,162 +224,110 @@ export function GroupStrip() {
 		return isLastPaneInTab(freshPanes, pane.tabId);
 	}, []);
 
+	const updateOverflow = useCallback(() => {
+		const container = scrollContainerRef.current;
+		const track = tabsTrackRef.current;
+		if (!container || !track) return;
+		setHasHorizontalOverflow(track.scrollWidth > container.clientWidth + 1);
+	}, []);
+
+	useLayoutEffect(() => {
+		const container = scrollContainerRef.current;
+		const track = tabsTrackRef.current;
+		if (!container || !track) return;
+
+		updateOverflow();
+		const resizeObserver = new ResizeObserver(updateOverflow);
+		resizeObserver.observe(container);
+		resizeObserver.observe(track);
+		window.addEventListener("resize", updateOverflow);
+
+		return () => {
+			resizeObserver.disconnect();
+			window.removeEventListener("resize", updateOverflow);
+		};
+	}, [updateOverflow]);
+
+	useEffect(() => {
+		requestAnimationFrame(updateOverflow);
+	}, [updateOverflow]);
+
+	const useCompactAddButton =
+		useCompactTerminalAddButton ?? DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON;
+
+	const plusControl = (
+		<AddTabButton
+			hasAiChat={hasAiChat === true}
+			useCompactAddButton={useCompactAddButton}
+			showPresetsBar={showPresetsBar ?? DEFAULT_SHOW_PRESETS_BAR}
+			presets={presets}
+			onDropToNewTab={movePaneToNewTab}
+			isLastPaneInTab={checkIsLastPaneInTab}
+			onAddTerminal={handleAddGroup}
+			onAddChat={handleAddChat}
+			onAddBrowser={handleAddBrowser}
+			onOpenPreset={handleOpenPreset}
+			onConfigurePresets={handleOpenPresetsSettings}
+			onToggleShowPresetsBar={(enabled) =>
+				setShowPresetsBar.mutate({ enabled })
+			}
+			onToggleCompactAddButton={(enabled) =>
+				setUseCompactTerminalAddButton.mutate({ enabled })
+			}
+		/>
+	);
+
 	return (
-		<div
-			className="flex items-center h-10 flex-1 min-w-0 overflow-x-auto overflow-y-hidden"
-			style={{ scrollbarWidth: "none" }}
-		>
-			{tabs.length > 0 && (
-				<div className="flex items-center h-full shrink-0">
-					{tabs.map((tab, index) => {
-						return (
-							<div
-								key={tab.id}
-								className="h-full shrink-0"
-								style={{ width: "160px" }}
-							>
-								<GroupItem
-									tab={tab}
-									index={index}
-									isActive={tab.id === activeTabId}
-									status={tabStatusMap.get(tab.id) ?? null}
-									onSelect={() => handleSelectGroup(tab.id)}
-									onClose={() => handleCloseGroup(tab.id)}
-									onRename={(newName) => handleRenameGroup(tab.id, newName)}
-									onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
-									onReorder={handleReorderTabs}
-								/>
-							</div>
-						);
-					})}
-				</div>
-			)}
-			<NewTabDropZone
-				onDrop={(paneId) => movePaneToNewTab(paneId)}
-				isLastPaneInTab={checkIsLastPaneInTab}
+		<div className="flex h-10 min-w-0 flex-1 items-stretch">
+			<div
+				ref={scrollContainerRef}
+				className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
+				style={{ scrollbarWidth: "none" }}
 			>
-				<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-					<div className="flex items-center shrink-0">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="outline"
-									className="h-7 rounded-r-none pl-2 pr-1.5 gap-1 text-xs"
-									onClick={handleAddGroup}
-								>
-									<BsTerminalPlus className="size-3.5" />
-									Terminal
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="top" sideOffset={4}>
-								<HotkeyTooltipContent
-									label="New Terminal"
-									hotkeyId="NEW_GROUP"
-								/>
-							</TooltipContent>
-						</Tooltip>
-						{hasAiChat && (
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="outline"
-										className="h-7 rounded-none border-l-0 px-1.5 gap-1 text-xs"
-										onClick={handleAddChat}
+				<div ref={tabsTrackRef} className="flex items-stretch">
+					{tabs.length > 0 && (
+						<div className="flex items-stretch h-full shrink-0">
+							{tabs.map((tab, index) => {
+								return (
+									<div
+										key={tab.id}
+										className="h-full shrink-0"
+										style={{ width: "160px" }}
 									>
-										<TbMessageCirclePlus className="size-3.5" />
-										Chat
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent side="top" sideOffset={4}>
-									<HotkeyTooltipContent
-										label="New Chat"
-										hotkeyId="REOPEN_TAB"
-									/>
-								</TooltipContent>
-							</Tooltip>
-						)}
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="outline"
-									className="h-7 rounded-none border-l-0 px-1.5 gap-1 text-xs"
-									onClick={handleAddBrowser}
-								>
-									<TbWorld className="size-3.5" />
-									Browser
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="top" sideOffset={4}>
-								<HotkeyTooltipContent
-									label="New Browser"
-									hotkeyId="NEW_BROWSER"
-								/>
-							</TooltipContent>
-						</Tooltip>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="outline"
-								size="icon"
-								className="size-7 rounded-l-none border-l-0 px-1"
-							>
-								<HiMiniChevronDown className="size-3" />
-							</Button>
-						</DropdownMenuTrigger>
-					</div>
-					<DropdownMenuContent align="end" className="w-56">
-						{presets.length > 0 && (
-							<>
-								{presets.map((preset, index) => {
-									const presetIcon = getPresetIcon(preset.name, isDark);
-									return (
-										<DropdownMenuItem
-											key={preset.id}
-											onClick={() => handleSelectPreset(preset)}
-											className="gap-2"
-										>
-											{presetIcon ? (
-												<img
-													src={presetIcon}
-													alt=""
-													className="size-4 object-contain"
-												/>
-											) : (
-												<HiMiniCommandLine className="size-4" />
-											)}
-											<span className="truncate">
-												{preset.name || "default"}
-											</span>
-											{preset.isDefault && (
-												<HiStar className="size-3 text-yellow-500 flex-shrink-0" />
-											)}
-											<PresetMenuItemShortcut index={index} />
-										</DropdownMenuItem>
-									);
-								})}
-								<DropdownMenuSeparator />
-							</>
-						)}
-						{presets.length > 0 && (
-							<DropdownMenuCheckboxItem
-								checked={showPresetsBar ?? false}
-								onCheckedChange={(checked) =>
-									setShowPresetsBar.mutate({ enabled: checked })
-								}
-								onSelect={(e) => e.preventDefault()}
-							>
-								Show Preset Bar
-							</DropdownMenuCheckboxItem>
-						)}
-						<DropdownMenuItem
-							onClick={handleOpenPresetsSettings}
-							className="gap-2"
-						>
-							<HiMiniCog6Tooth className="size-4" />
-							<span>Configure Presets</span>
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</NewTabDropZone>
+										<GroupItem
+											tab={tab}
+											index={index}
+											isActive={tab.id === activeTabId}
+											status={tabStatusMap.get(tab.id) ?? null}
+											onSelect={() => handleSelectGroup(tab.id)}
+											onClose={() => handleCloseGroup(tab.id)}
+											onRename={(newName) => handleRenameGroup(tab.id, newName)}
+											onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
+											onReorder={handleReorderTabs}
+										/>
+									</div>
+								);
+							})}
+						</div>
+					)}
+					{hasHorizontalOverflow ? (
+						<div
+							className={`h-full shrink-0 ${
+								!useCompactAddButton
+									? hasAiChat
+										? "w-[220px]"
+										: "w-[170px]"
+									: "w-10"
+							}`}
+						/>
+					) : (
+						<div className="shrink-0">{plusControl}</div>
+					)}
+				</div>
+			</div>
+			{hasHorizontalOverflow && (
+				<div className="shrink-0 bg-background/95 pr-1">{plusControl}</div>
+			)}
 		</div>
 	);
 }

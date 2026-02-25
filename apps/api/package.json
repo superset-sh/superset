@@ -11,7 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@anthropic-ai/sdk": "^0.72.1",
+		"@anthropic-ai/sdk": "^0.78.0",
 		"@better-auth/oauth-provider": "1.4.18",
 		"@durable-streams/client": "^0.2.1",
 		"@electric-sql/client": "1.5.2",

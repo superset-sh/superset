@@ -10,6 +10,7 @@
 		"diff-viewer",
 		"terminal-integration",
 		"ports",
+		"browser",
 		"agent-integration",
 		"mcp",
 		"---BookOpen Guides---",
@@ -18,6 +19,7 @@
 		"using-monorepos",
 		"terminal-presets",
 		"keyboard-shortcuts",
+		"custom-themes",
 		"customization",
 		"---CircleHelp Help---",
 		"faq"

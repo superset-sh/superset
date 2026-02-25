@@ -50,13 +50,15 @@ export interface ToolContext {
 	updateWorkspace: ReturnType<
 		typeof electronTrpc.workspaces.update.useMutation
 	>;
+	terminalCreateOrAttach: ReturnType<
+		typeof electronTrpc.terminal.createOrAttach.useMutation
+	>;
+	terminalWrite: ReturnType<typeof electronTrpc.terminal.write.useMutation>;
 	// Query helpers
 	refetchWorkspaces: () => Promise<unknown>;
 	getWorkspaces: () => SelectWorkspace[] | undefined;
 	getProjects: () => SelectProject[] | undefined;
 	getActiveWorkspaceId: () => string | null;
-	// Navigation
-	navigateToWorkspace: (workspaceId: string) => Promise<void>;
 }
 
 // Tool definition with schema and execute function

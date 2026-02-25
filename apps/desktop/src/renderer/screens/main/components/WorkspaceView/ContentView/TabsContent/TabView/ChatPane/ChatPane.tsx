@@ -71,17 +71,6 @@ export function ChatPane({
 	);
 	const existsRemotely = remoteWorkspaces && remoteWorkspaces.length > 0;
 
-	// Get current session title from Electric so ChatInterface can skip title generation
-	const { data: currentSessionRows } = useLiveQuery(
-		(q) =>
-			q
-				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) => eq(chatSessions.id, sessionId ?? ""))
-				.select(({ chatSessions }) => ({ title: chatSessions.title })),
-		[collections.chatSessions, sessionId],
-	);
-	const sessionTitle = currentSessionRows?.[0]?.title ?? null;
-
 	// Ensure remote workspace + project exist before any chat session references them
 	const ensuredRef = useRef<string | null>(null);
 	useEffect(() => {
@@ -123,16 +112,11 @@ export function ChatPane({
 			});
 	}, [existsRemotely, workspace, organizationId, workspaceId]);
 
-	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
-
 	const handleSelectSession = useCallback(
-		(newSessionId: string, title: string | null) => {
+		(newSessionId: string) => {
 			switchChatSession(paneId, newSessionId);
-			if (title) {
-				setTabAutoTitle(tabId, title);
-			}
 		},
-		[paneId, tabId, switchChatSession, setTabAutoTitle],
+		[paneId, switchChatSession],
 	);
 
 	const handleNewChat = useCallback(() => {
@@ -189,7 +173,6 @@ export function ChatPane({
 			>
 				<ChatInterface
 					sessionId={sessionId}
-					sessionTitle={sessionTitle}
 					organizationId={organizationId}
 					deviceId={deviceId}
 					workspaceId={workspaceId}

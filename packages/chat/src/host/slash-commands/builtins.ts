@@ -33,6 +33,16 @@ const BUILTIN_COMMANDS: SlashCommandRegistryEntry[] = [
 		template: "Switch active model in this chat. Requested model: $ARGUMENTS",
 	},
 	{
+		name: "mcp",
+		aliases: [],
+		description: "Show configured MCP servers and their current state.",
+		argumentHint: "",
+		kind: "builtin",
+		source: "builtin",
+		action: { type: "show_mcp_overview" },
+		template: "Show MCP server overview for this workspace.",
+	},
+	{
 		name: "review",
 		aliases: [],
 		description: "Review code for bugs, regressions, and missing tests.",

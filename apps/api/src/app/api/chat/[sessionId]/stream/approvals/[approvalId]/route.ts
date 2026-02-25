@@ -11,7 +11,10 @@ export async function POST(
 	const { sessionId, approvalId } = await params;
 	const actorId = session.user.id;
 
-	const body = (await request.json()) as { approved: boolean };
+	const body = (await request.json()) as {
+		approved: boolean;
+		toolCallId?: string;
+	};
 
 	if (typeof body.approved !== "boolean") {
 		return Response.json({ error: "approved is required" }, { status: 400 });
@@ -29,6 +32,7 @@ export async function POST(
 				type: "approval-response",
 				approvalId,
 				approved: body.approved,
+				...(body.toolCallId ? { toolCallId: body.toolCallId } : {}),
 			}),
 			seq: 0,
 			createdAt: new Date().toISOString(),

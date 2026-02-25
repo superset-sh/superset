@@ -167,6 +167,9 @@ export const settings = sqliteTable("settings", {
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
 	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
+	useCompactTerminalAddButton: integer("use_compact_terminal_add_button", {
+		mode: "boolean",
+	}),
 	terminalFontFamily: text("terminal_font_family"),
 	terminalFontSize: integer("terminal_font_size"),
 	editorFontFamily: text("editor_font_family"),
@@ -177,6 +180,7 @@ export const settings = sqliteTable("settings", {
 	mouseNavigationEnabled: integer("mouse_navigation_enabled", {
 		mode: "boolean",
 	}),
+	defaultEditor: text("default_editor").$type<ExternalApp>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
