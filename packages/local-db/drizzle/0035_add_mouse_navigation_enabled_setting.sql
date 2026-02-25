@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `mouse_navigation_enabled` integer;
