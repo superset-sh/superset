@@ -13,11 +13,12 @@ describe("normalizeExecutionMode", () => {
 		);
 	});
 
-	it("maps legacy and unknown modes to split-pane", () => {
+	it("maps legacy modes to split-pane and defaults unknown modes to new-tab", () => {
 		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
 		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
 		expect(normalizeExecutionMode("sequential")).toBe("split-pane");
-		expect(normalizeExecutionMode(undefined)).toBe("split-pane");
+		expect(normalizeExecutionMode(undefined)).toBe("new-tab");
+		expect(normalizeExecutionMode("unknown")).toBe("new-tab");
 	});
 });
 
