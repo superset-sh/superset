@@ -101,6 +101,18 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		};
 	}
 
+	private isLikelyContinuationLine(rawText: string): boolean {
+		const continuation = this.getContinuationSegment(rawText);
+		if (!continuation) {
+			return false;
+		}
+
+		return (
+			URL_CONTINUATION_SIGNAL_PATTERN.test(continuation.text) ||
+			/^[0-9]/.test(continuation.text)
+		);
+	}
+
 	protected buildContextLines(lineIndex: number): ContextLine[] {
 		const baseLines = super.buildContextLines(lineIndex);
 		if (baseLines.length === 0) {
@@ -125,7 +137,10 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 
 			const lastRawText = lastBufferLine.translateToString(true);
 			const combinedTail = lines.map((line) => line.text).join("");
-			if (!URL_AT_END_PATTERN.test(combinedTail)) {
+			if (
+				!URL_AT_END_PATTERN.test(combinedTail) &&
+				!this.isLikelyContinuationLine(lastRawText)
+			) {
 				break;
 			}
 
@@ -166,10 +181,6 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 			}
 
 			const prevRawText = prevBufferLine.translateToString(true);
-			if (!this.isLikelyHardWrapBoundary(prevRawText)) {
-				break;
-			}
-
 			const firstRawText = firstBufferLine.translateToString(true);
 			const continuation = this.getContinuationSegment(firstRawText);
 			if (!continuation) {
@@ -182,11 +193,6 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 					continuation.leadingTrim,
 				)
 			) {
-				break;
-			}
-
-			const combinedTail = `${prevRawText}${continuation.text}`;
-			if (!URL_AT_END_PATTERN.test(combinedTail)) {
 				break;
 			}
 
