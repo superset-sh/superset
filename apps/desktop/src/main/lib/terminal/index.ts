@@ -102,7 +102,10 @@ export function prewarmTerminalRuntime(): void {
 			prewarmTerminalEnv();
 		} catch (error) {
 			if (DEBUG_TERMINAL) {
-				console.warn("[TerminalManager] Failed to prewarm terminal env:", error);
+				console.warn(
+					"[TerminalManager] Failed to prewarm terminal env:",
+					error,
+				);
 			}
 		}
 
@@ -116,5 +119,7 @@ export function prewarmTerminalRuntime(): void {
 				);
 			}
 		}
-	})();
+	})().finally(() => {
+		prewarmInFlight = null;
+	});
 }

@@ -68,11 +68,9 @@ export function useTerminalConnection({
 		});
 	});
 	const clearScrollbackRef = useRef<TerminalClearScrollbackMutate>((input) => {
-		electronTrpcClient.terminal.clearScrollback
-			.mutate(input)
-			.catch((error) => {
-				console.warn("[Terminal] Failed to clear scrollback:", error);
-			});
+		electronTrpcClient.terminal.clearScrollback.mutate(input).catch((error) => {
+			console.warn("[Terminal] Failed to clear scrollback:", error);
+		});
 	});
 
 	// Keep refs up to date

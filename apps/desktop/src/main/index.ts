@@ -30,7 +30,10 @@ import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { localDb } from "./lib/local-db";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
-import { prewarmTerminalRuntime, reconcileDaemonSessions } from "./lib/terminal";
+import {
+	prewarmTerminalRuntime,
+	reconcileDaemonSessions,
+} from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
 import { MainWindow } from "./windows/main";
 
