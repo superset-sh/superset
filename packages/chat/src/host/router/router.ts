@@ -42,6 +42,10 @@ export const anthropicOAuthCodeInput = z.object({
 	code: z.string().min(1),
 });
 
+export const openAIApiKeyInput = z.object({
+	apiKey: z.string().min(1),
+});
+
 function resolveWorkspaceSlashCommand(input: { cwd: string; text: string }) {
 	return resolveSlashCommand(input.cwd, input.text);
 }
@@ -101,6 +105,9 @@ export function createChatServiceRouter(service: ChatService) {
 			getAnthropicStatus: t.procedure.query(() => {
 				return service.getAnthropicAuthStatus();
 			}),
+			getOpenAIStatus: t.procedure.query(() => {
+				return service.getOpenAIAuthStatus();
+			}),
 			startAnthropicOAuth: t.procedure.mutation(() => {
 				return service.startAnthropicOAuth();
 			}),
@@ -111,6 +118,14 @@ export function createChatServiceRouter(service: ChatService) {
 				}),
 			cancelAnthropicOAuth: t.procedure.mutation(() => {
 				return service.cancelAnthropicOAuth();
+			}),
+			setOpenAIApiKey: t.procedure
+				.input(openAIApiKeyInput)
+				.mutation(({ input }) => {
+					return service.setOpenAIApiKey({ apiKey: input.apiKey });
+				}),
+			clearOpenAIApiKey: t.procedure.mutation(() => {
+				return service.clearOpenAIApiKey();
 			}),
 		}),
 

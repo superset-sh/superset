@@ -1283,8 +1283,17 @@ export async function getCurrentBranch(
 	try {
 		const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 		const trimmed = branch.trim();
-		// "HEAD" means detached HEAD state
-		return trimmed === "HEAD" ? null : trimmed;
+		if (trimmed && trimmed !== "HEAD") {
+			return trimmed;
+		}
+	} catch {
+		// Fall back to symbolic-ref below for unborn HEAD repos.
+	}
+
+	try {
+		const branch = await git.raw(["symbolic-ref", "--short", "HEAD"]);
+		const trimmed = branch.trim();
+		return trimmed || null;
 	} catch {
 		return null;
 	}
