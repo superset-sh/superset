@@ -10,6 +10,9 @@ const URL_AT_END_PATTERN = /https?:\/\/[^\s<>[\]'"]+$/;
 const URL_CONTINUATION_PATTERN = /^[^\s<>[\]'"]+/;
 const URL_SCHEME_PATTERN = /^https?:\/\//i;
 const HARD_WRAP_COLS_TOLERANCE = 2;
+const URL_CONTINUATION_SIGNAL_PATTERN = /[./?&=#%_-]/;
+const URL_CONTINUATION_PREV_END_PATTERN = /[/?#=&%._-]/;
+const URL_BREAK_SIGNAL_PATTERN = /[-/?#=&%]/;
 
 function trimUnbalancedParens(url: string): string {
 	let openCount = 0;
@@ -50,6 +53,31 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 			return false;
 		}
 		return text.length >= Math.max(1, cols - HARD_WRAP_COLS_TOLERANCE);
+	}
+
+	private isLikelyUrlContinuation(
+		prevRawText: string,
+		continuationText: string,
+		leadingTrim: number,
+	): boolean {
+		const trimmedPrev = prevRawText.trimEnd();
+		const prevEnd = trimmedPrev.at(-1) ?? "";
+		const startsWithDigit = /^[0-9]/.test(continuationText);
+		const hasUrlSignal = URL_CONTINUATION_SIGNAL_PATTERN.test(continuationText);
+		const prevSuggestsContinuation =
+			URL_CONTINUATION_PREV_END_PATTERN.test(prevEnd);
+		const explicitWrappedFormatting = leadingTrim > 0;
+
+		// Accept continuation when this looks like a viewport wrap, a markdown-style
+		// wrapped line, or when URL syntax strongly suggests continuation.
+		return (
+			this.isLikelyHardWrapBoundary(prevRawText) ||
+			explicitWrappedFormatting ||
+			URL_BREAK_SIGNAL_PATTERN.test(prevEnd) ||
+			hasUrlSignal ||
+			startsWithDigit ||
+			prevSuggestsContinuation
+		);
 	}
 
 	private getContinuationSegment(
@@ -97,16 +125,22 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 
 			const lastRawText = lastBufferLine.translateToString(true);
 			const combinedTail = lines.map((line) => line.text).join("");
-			if (
-				!this.isLikelyHardWrapBoundary(lastRawText) ||
-				!URL_AT_END_PATTERN.test(combinedTail)
-			) {
+			if (!URL_AT_END_PATTERN.test(combinedTail)) {
 				break;
 			}
 
 			const nextRawText = nextBufferLine.translateToString(true);
 			const continuation = this.getContinuationSegment(nextRawText);
 			if (!continuation) {
+				break;
+			}
+			if (
+				!this.isLikelyUrlContinuation(
+					lastRawText,
+					continuation.text,
+					continuation.leadingTrim,
+				)
+			) {
 				break;
 			}
 
@@ -139,6 +173,15 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 			const firstRawText = firstBufferLine.translateToString(true);
 			const continuation = this.getContinuationSegment(firstRawText);
 			if (!continuation) {
+				break;
+			}
+			if (
+				!this.isLikelyUrlContinuation(
+					prevRawText,
+					continuation.text,
+					continuation.leadingTrim,
+				)
+			) {
 				break;
 			}
 

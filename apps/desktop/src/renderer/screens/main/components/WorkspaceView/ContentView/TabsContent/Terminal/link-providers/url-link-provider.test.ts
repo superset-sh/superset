@@ -362,6 +362,38 @@ describe("UrlLinkProvider", () => {
 			expect(links[0].range.start.y).toBe(1);
 			expect(links[0].range.end.y).toBe(2);
 		});
+
+		it("should detect bullet URL split across indented continuation lines", async () => {
+			const terminal = createMockTerminal(
+				[
+					{
+						text: "• https://example.com/testing/purpose/very/long/path/with/multiple/segments/for-",
+					},
+					{ text: "  url-length-validation/and-ui-wrapping-check?" },
+					{
+						text: "  session_id=abc123xyz789&user=qa_tester&environment=staging&feature_flag=long_l",
+					},
+					{
+						text: "  ink_test&redirect=https%3A%2F%2Fexample.com%2Fcallback%3Fsource%3Demail%26camp",
+					},
+					{
+						text: "  aign%3Dspring_launch_2026&timestamp=2026-02-25T12%3A34%3A56Z",
+					},
+				],
+				140,
+			);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"https://example.com/testing/purpose/very/long/path/with/multiple/segments/for-url-length-validation/and-ui-wrapping-check?session_id=abc123xyz789&user=qa_tester&environment=staging&feature_flag=long_link_test&redirect=https%3A%2F%2Fexample.com%2Fcallback%3Fsource%3Demail%26campaign%3Dspring_launch_2026&timestamp=2026-02-25T12%3A34%3A56Z",
+			);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.y).toBe(5);
+		});
 	});
 
 	describe("non-wrapped lines", () => {

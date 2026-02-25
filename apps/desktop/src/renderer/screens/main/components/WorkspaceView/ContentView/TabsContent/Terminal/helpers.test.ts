@@ -32,6 +32,7 @@ mock.module("renderer/lib/trpc-client", () => ({
 
 // Import after mocks are set up
 const {
+	createTerminalOsc8LinkHandler,
 	getDefaultTerminalBg,
 	getDefaultTerminalTheme,
 	setupKeyboardHandler,
@@ -295,5 +296,73 @@ describe("setupPasteHandler", () => {
 		expect(onWrite).not.toHaveBeenCalled();
 		expect(preventDefault).not.toHaveBeenCalled();
 		expect(stopImmediatePropagation).not.toHaveBeenCalled();
+	});
+});
+
+describe("createTerminalOsc8LinkHandler", () => {
+	it("requires metaKey (Cmd) or ctrlKey for activation", () => {
+		const onOpen = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler(onOpen);
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: false,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"https://example.com",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(onOpen).not.toHaveBeenCalled();
+		expect(preventDefault).not.toHaveBeenCalled();
+	});
+
+	it("opens URL with metaKey (Cmd)", () => {
+		const onOpen = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler(onOpen);
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"https://example.com",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpen).toHaveBeenCalledWith("https://example.com");
+	});
+
+	it("opens URL with ctrlKey", () => {
+		const onOpen = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler(onOpen);
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: false,
+				ctrlKey: true,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"https://example.com",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpen).toHaveBeenCalledWith("https://example.com");
 	});
 });
