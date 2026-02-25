@@ -249,7 +249,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,
-		onReconnectSuccess: scheduleRetryBudgetReset,
 	});
 
 	// Avoid effect re-runs: track overlay states via refs for input gating
