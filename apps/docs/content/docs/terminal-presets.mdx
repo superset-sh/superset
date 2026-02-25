@@ -9,6 +9,35 @@ description: Save and reuse terminal configurations
 
 Presets let you quickly launch terminals with pre-configured commands. Save common workflows and apply them with a single click.
 
+## Team-Shared Presets
+
+You can commit presets in your repo at `.superset/presets.json` to share them with your team.
+
+```json
+{
+  "version": 1,
+  "presets": [
+    {
+      "slug": "web-dev",
+      "name": "Web Dev",
+      "description": "Run the web app",
+      "cwd": "apps/web",
+      "commands": ["bun dev"],
+      "executionMode": "new-tab",
+      "pinnedToBar": true,
+      "isDefault": true,
+      "applyOnWorkspaceCreated": true,
+      "applyOnNewTab": false
+    }
+  ]
+}
+```
+
+- `slug` is the stable identifier for each shared preset
+- Shared presets are loaded from the active project's `.superset/presets.json`
+- Editing a shared preset in the app creates a local override for your machine only
+- To remove a shared preset for everyone, delete it from `.superset/presets.json`
+
 ## What Presets Do
 
 - **Custom commands for new tabs** - Define commands that run when opening a terminal
