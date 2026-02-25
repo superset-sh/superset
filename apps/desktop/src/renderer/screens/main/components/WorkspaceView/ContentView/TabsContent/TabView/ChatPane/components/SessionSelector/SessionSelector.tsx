@@ -57,7 +57,7 @@ export function SessionSelector({
 	const currentTitle = current?.title || "New Chat";
 
 	const { data: claudeSessions, isLoading: isLoadingClaudeSessions } =
-		electronTrpc.chatService.claude.listSessions.useQuery(
+		electronTrpc.chatServiceClaude.listSessions.useQuery(
 			{
 				cwd,
 				limit: 20,
@@ -68,7 +68,7 @@ export function SessionSelector({
 			},
 		);
 	const importClaudeSessionMutation =
-		electronTrpc.chatService.claude.importSession.useMutation();
+		electronTrpc.chatServiceClaude.importSession.useMutation();
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>

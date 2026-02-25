@@ -17,7 +17,7 @@ import { getHashedDeviceId } from "main/lib/device-info";
 import { notificationsEmitter } from "main/lib/notifications/server";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { z } from "zod";
-import { mergeRouters, publicProcedure, router } from "../..";
+import { publicProcedure, router } from "../..";
 import { loadToken } from "../auth/utils/auth-functions";
 
 interface ClaudeSessionSummary {
@@ -365,8 +365,10 @@ const service = new ChatService({
 	},
 });
 
-const claudeSessionsRouter = router({
-	claude: router({
+export const createChatServiceRouter = () => buildRouter(service);
+
+export const createChatServiceClaudeRouter = () =>
+	router({
 		listSessions: publicProcedure
 			.input(
 				z.object({
@@ -395,11 +397,7 @@ const claudeSessionsRouter = router({
 					workspaceId: input.workspaceId,
 				});
 			}),
-	}),
-});
-
-export const createChatServiceRouter = () =>
-	mergeRouters(buildRouter(service), claudeSessionsRouter);
+	});
 
 export type ChatServiceDesktopRouter = ReturnType<
 	typeof createChatServiceRouter
