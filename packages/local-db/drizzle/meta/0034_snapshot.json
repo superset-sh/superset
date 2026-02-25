@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "ba114f05-088b-4d20-9942-547e6c445505",
+  "id": "ba86e644-bfb3-445c-83c0-ac90043bbca6",
   "prevId": "7e7925c9-05e7-4c56-849f-eca44c839fea",
   "tables": {
     "browser_history": {
@@ -530,8 +530,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "use_big_terminal_add_button": {
-          "name": "use_big_terminal_add_button",
+        "use_compact_terminal_add_button": {
+          "name": "use_compact_terminal_add_button",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,

@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD `use_big_terminal_add_button` integer;

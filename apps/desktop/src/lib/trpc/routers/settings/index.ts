@@ -415,9 +415,10 @@ export const createSettingsRouter = () => {
 
 		getUseCompactTerminalAddButton: publicProcedure.query(() => {
 			const row = getSettings();
-			const useBigAddButton =
-				row.useBigTerminalAddButton ?? !DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON;
-			return !useBigAddButton;
+			return (
+				row.useCompactTerminalAddButton ??
+				DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON
+			);
 		}),
 
 		setUseCompactTerminalAddButton: publicProcedure
@@ -425,10 +426,10 @@ export const createSettingsRouter = () => {
 			.mutation(({ input }) => {
 				localDb
 					.insert(settings)
-					.values({ id: 1, useBigTerminalAddButton: !input.enabled })
+					.values({ id: 1, useCompactTerminalAddButton: input.enabled })
 					.onConflictDoUpdate({
 						target: settings.id,
-						set: { useBigTerminalAddButton: !input.enabled },
+						set: { useCompactTerminalAddButton: input.enabled },
 					})
 					.run();
 

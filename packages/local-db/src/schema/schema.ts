@@ -167,7 +167,7 @@ export const settings = sqliteTable("settings", {
 	deleteLocalBranch: integer("delete_local_branch", { mode: "boolean" }),
 	fileOpenMode: text("file_open_mode").$type<FileOpenMode>(),
 	showPresetsBar: integer("show_presets_bar", { mode: "boolean" }),
-	useBigTerminalAddButton: integer("use_big_terminal_add_button", {
+	useCompactTerminalAddButton: integer("use_compact_terminal_add_button", {
 		mode: "boolean",
 	}),
 	terminalFontFamily: text("terminal_font_family"),
