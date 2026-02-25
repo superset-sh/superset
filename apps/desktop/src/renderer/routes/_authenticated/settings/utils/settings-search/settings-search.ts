@@ -477,6 +477,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"navigation",
 			"workspace",
 			"tabs",
+			"button 3",
+			"button 4",
+			"side button",
+			"thumb button",
+			"back button",
+			"forward button",
 		],
 	},
 	{

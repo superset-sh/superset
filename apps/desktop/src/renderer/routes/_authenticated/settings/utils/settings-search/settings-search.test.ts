@@ -95,6 +95,24 @@ describe("settings search - mouse navigation setting", () => {
 		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
 	});
 
+	it('searching "button 3" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("button 3");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
+	it('searching "thumb button" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("thumb button");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
+	it('searching "back button" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("back button");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
 	it("mouse navigation item has correct section and title", () => {
 		const results = searchSettings("mouse");
 		const mouseNav = results.find(
