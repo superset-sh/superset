@@ -19,7 +19,9 @@ interface UseWorkspaceDeleteHandlerResult {
  */
 export function useWorkspaceDeleteHandler(): UseWorkspaceDeleteHandlerResult {
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const pendingOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const pendingOpenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 
 	useEffect(() => {
 		return () => {
