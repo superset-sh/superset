@@ -13,6 +13,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import type { RefObject } from "react";
+import { useState } from "react";
 import { LuCopy, LuX } from "react-icons/lu";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
@@ -54,6 +55,7 @@ export function CollapsedWorkspaceItem({
 	onCopyPath,
 }: CollapsedWorkspaceItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
 
 	const collapsedButton = (
 		<button
@@ -111,10 +113,11 @@ export function CollapsedWorkspaceItem({
 	return (
 		<>
 			<HoverCard
+				open={isContextMenuOpen ? false : undefined}
 				openDelay={HOVER_CARD_OPEN_DELAY}
 				closeDelay={HOVER_CARD_CLOSE_DELAY}
 			>
-				<ContextMenu>
+				<ContextMenu onOpenChange={setIsContextMenuOpen}>
 					<HoverCardTrigger asChild>
 						<ContextMenuTrigger asChild>{collapsedButton}</ContextMenuTrigger>
 					</HoverCardTrigger>
