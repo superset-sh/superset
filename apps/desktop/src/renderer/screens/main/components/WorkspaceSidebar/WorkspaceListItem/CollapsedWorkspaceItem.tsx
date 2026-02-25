@@ -12,12 +12,13 @@ import {
 } from "@superset/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import type { RefObject } from "react";
+import { type RefObject, useMemo } from "react";
 import { LuCopy, LuX } from "react-icons/lu";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import { HOVER_CARD_CLOSE_DELAY, HOVER_CARD_OPEN_DELAY } from "./constants";
+import { createContextMenuDeleteDialogCoordinator } from "./context-menu-delete-dialog-coordinator";
 import { WorkspaceIcon } from "./WorkspaceIcon";
 
 interface CollapsedWorkspaceItemProps {
@@ -54,6 +55,10 @@ export function CollapsedWorkspaceItem({
 	onCopyPath,
 }: CollapsedWorkspaceItemProps) {
 	const isBranchWorkspace = type === "branch";
+	const deleteDialogCoordinator = useMemo(
+		() => createContextMenuDeleteDialogCoordinator(onDeleteClick),
+		[onDeleteClick],
+	);
 
 	const collapsedButton = (
 		<button
@@ -118,13 +123,21 @@ export function CollapsedWorkspaceItem({
 					<HoverCardTrigger asChild>
 						<ContextMenuTrigger asChild>{collapsedButton}</ContextMenuTrigger>
 					</HoverCardTrigger>
-					<ContextMenuContent>
+					<ContextMenuContent
+						onCloseAutoFocus={(event) => {
+							deleteDialogCoordinator.handleCloseAutoFocus(event);
+						}}
+					>
 						<ContextMenuItem onSelect={onCopyPath}>
 							<LuCopy className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Copy Path
 						</ContextMenuItem>
 						<ContextMenuSeparator />
-						<ContextMenuItem onSelect={() => onDeleteClick()}>
+						<ContextMenuItem
+							onSelect={() => {
+								deleteDialogCoordinator.requestOpenDeleteDialog();
+							}}
+						>
 							<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Close Worktree
 						</ContextMenuItem>
