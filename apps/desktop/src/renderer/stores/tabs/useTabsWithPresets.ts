@@ -1,4 +1,7 @@
-import type { TerminalPreset } from "@superset/local-db";
+import {
+	normalizeExecutionMode,
+	type TerminalPreset,
+} from "@superset/local-db";
 import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
@@ -9,7 +12,6 @@ import {
 } from "renderer/lib/terminal/launch-command";
 import {
 	getPresetLaunchPlan,
-	normalizePresetMode,
 	type PresetMode,
 	type PresetOpenTarget,
 } from "./preset-launch";
@@ -38,7 +40,7 @@ interface PresetPaneLaunch {
 
 function preparePreset(preset: TerminalPreset): PreparedPreset {
 	return {
-		mode: normalizePresetMode(preset.executionMode),
+		mode: normalizeExecutionMode(preset.executionMode),
 		commands: preset.commands,
 		initialCwd: preset.cwd || undefined,
 		name: preset.name || undefined,

@@ -57,6 +57,18 @@ export const EXECUTION_MODES = [
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
 
+export function normalizeExecutionMode(mode: unknown): ExecutionMode {
+	if (
+		mode === "split-pane" ||
+		mode === "new-tab" ||
+		mode === "new-tab-split-pane"
+	) {
+		return mode;
+	}
+
+	return "split-pane";
+}
+
 /**
  * Terminal preset
  */

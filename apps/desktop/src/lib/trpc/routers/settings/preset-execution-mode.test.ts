@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { TerminalPreset } from "@superset/local-db";
 import {
-	normalizePresetExecutionMode,
+	normalizeExecutionMode,
+	type TerminalPreset,
+} from "@superset/local-db";
+import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,
 	shouldPersistNormalizedPresetModes,
@@ -17,22 +19,22 @@ function createPreset(mode?: unknown): PresetWithUnknownMode {
 	};
 }
 
-describe("normalizePresetExecutionMode", () => {
+describe("normalizeExecutionMode", () => {
 	it("keeps new-tab mode", () => {
-		expect(normalizePresetExecutionMode("new-tab")).toBe("new-tab");
+		expect(normalizeExecutionMode("new-tab")).toBe("new-tab");
 	});
 
 	it("keeps new-tab-split-pane mode", () => {
-		expect(normalizePresetExecutionMode("new-tab-split-pane")).toBe(
+		expect(normalizeExecutionMode("new-tab-split-pane")).toBe(
 			"new-tab-split-pane",
 		);
 	});
 
 	it("maps legacy and missing modes to split-pane", () => {
-		expect(normalizePresetExecutionMode("split-pane")).toBe("split-pane");
-		expect(normalizePresetExecutionMode("parallel")).toBe("split-pane");
-		expect(normalizePresetExecutionMode("sequential")).toBe("split-pane");
-		expect(normalizePresetExecutionMode(undefined)).toBe("split-pane");
+		expect(normalizeExecutionMode("split-pane")).toBe("split-pane");
+		expect(normalizeExecutionMode("parallel")).toBe("split-pane");
+		expect(normalizeExecutionMode("sequential")).toBe("split-pane");
+		expect(normalizeExecutionMode(undefined)).toBe("split-pane");
 	});
 });
 
