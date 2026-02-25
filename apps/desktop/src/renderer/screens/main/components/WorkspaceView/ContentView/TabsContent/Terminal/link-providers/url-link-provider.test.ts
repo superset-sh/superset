@@ -14,6 +14,7 @@ function createMockLine(text: string, isWrapped = false): IBufferLine {
 
 function createMockTerminal(
 	lines: Array<{ text: string; isWrapped?: boolean }>,
+	cols = 80,
 ): Terminal {
 	const mockLines = lines.map((l) =>
 		createMockLine(l.text, l.isWrapped ?? false),
@@ -28,6 +29,7 @@ function createMockTerminal(
 		element: {
 			style: { cursor: "" },
 		},
+		cols,
 	} as unknown as Terminal;
 }
 
@@ -314,6 +316,51 @@ describe("UrlLinkProvider", () => {
 
 			expect(links.length).toBe(1);
 			expect(links[0].text).toBe("https://example.com/very/long/url");
+		});
+
+		it("should handle URL spanning four wrapped lines when scanned from middle", async () => {
+			const terminal = createMockTerminal([
+				{ text: "https://github.com/palette-" },
+				{ text: "performance/palette-", isWrapped: true },
+				{ text: "monorepo/pull/", isWrapped: true },
+				{ text: "883", isWrapped: true },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 3);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"https://github.com/palette-performance/palette-monorepo/pull/883",
+			);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.y).toBe(4);
+		});
+	});
+
+	describe("hard-wrapped TUI lines", () => {
+		it("should detect URL split across adjacent non-wrapped lines", async () => {
+			const terminal = createMockTerminal(
+				[
+					{
+						text: "Draft PR created: https://github.com/palette-performance/pa",
+					},
+					{ text: "lette-monorepo/pull/883" },
+				],
+				60,
+			);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"https://github.com/palette-performance/palette-monorepo/pull/883",
+			);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.y).toBe(2);
 		});
 	});
 

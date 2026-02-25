@@ -1,10 +1,15 @@
 import type { Terminal } from "@xterm/xterm";
 import {
+	type ContextLine,
 	type LinkMatch,
 	MultiLineLinkProvider,
 } from "./multi-line-link-provider";
 
 const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+const URL_AT_END_PATTERN = /https?:\/\/[^\s<>[\]'"]+$/;
+const URL_CONTINUATION_PATTERN = /^[^\s<>[\]'"]+/;
+const URL_SCHEME_PATTERN = /^https?:\/\//i;
+const HARD_WRAP_COLS_TOLERANCE = 2;
 
 function trimUnbalancedParens(url: string): string {
 	let openCount = 0;
@@ -34,6 +39,129 @@ function trimUnbalancedParens(url: string): string {
 
 export class UrlLinkProvider extends MultiLineLinkProvider {
 	private readonly URL_PATTERN = /\bhttps?:\/\/[^\s<>[\]'"]+/g;
+
+	private getLine(index: number) {
+		return this.terminal.buffer.active.getLine(index);
+	}
+
+	private isLikelyHardWrapBoundary(text: string): boolean {
+		const cols = this.terminal.cols;
+		if (typeof cols !== "number" || cols <= 0) {
+			return false;
+		}
+		return text.length >= Math.max(1, cols - HARD_WRAP_COLS_TOLERANCE);
+	}
+
+	private getContinuationSegment(
+		rawText: string,
+	): { leadingTrim: number; text: string } | null {
+		const leadingTrim = rawText.length - rawText.trimStart().length;
+		const trimmed = rawText.slice(leadingTrim);
+		if (!trimmed || URL_SCHEME_PATTERN.test(trimmed)) {
+			return null;
+		}
+
+		const continuationMatch = trimmed.match(URL_CONTINUATION_PATTERN);
+		const continuationText = continuationMatch?.[0];
+		if (!continuationText) {
+			return null;
+		}
+
+		return {
+			leadingTrim,
+			text: continuationText,
+		};
+	}
+
+	protected buildContextLines(lineIndex: number): ContextLine[] {
+		const baseLines = super.buildContextLines(lineIndex);
+		if (baseLines.length === 0) {
+			return baseLines;
+		}
+
+		const lines = [...baseLines];
+
+		// Extend forward for TUI hard-wraps where lines are split by explicit newline
+		// instead of xterm's soft-wrap flag.
+		while (true) {
+			const last = lines[lines.length - 1];
+			if (!last) {
+				break;
+			}
+
+			const lastBufferLine = this.getLine(last.index);
+			const nextBufferLine = this.getLine(last.index + 1);
+			if (!lastBufferLine || !nextBufferLine || nextBufferLine.isWrapped) {
+				break;
+			}
+
+			const lastRawText = lastBufferLine.translateToString(true);
+			const combinedTail = lines.map((line) => line.text).join("");
+			if (
+				!this.isLikelyHardWrapBoundary(lastRawText) ||
+				!URL_AT_END_PATTERN.test(combinedTail)
+			) {
+				break;
+			}
+
+			const nextRawText = nextBufferLine.translateToString(true);
+			const continuation = this.getContinuationSegment(nextRawText);
+			if (!continuation) {
+				break;
+			}
+
+			lines.push({
+				index: last.index + 1,
+				lineNumber: last.index + 2,
+				text: continuation.text,
+				leadingTrim: continuation.leadingTrim,
+			});
+		}
+
+		// Extend backward when scanning a continuation line directly.
+		while (true) {
+			const first = lines[0];
+			if (!first) {
+				break;
+			}
+
+			const firstBufferLine = this.getLine(first.index);
+			const prevBufferLine = this.getLine(first.index - 1);
+			if (!firstBufferLine || !prevBufferLine || prevBufferLine.isWrapped) {
+				break;
+			}
+
+			const prevRawText = prevBufferLine.translateToString(true);
+			if (!this.isLikelyHardWrapBoundary(prevRawText)) {
+				break;
+			}
+
+			const firstRawText = firstBufferLine.translateToString(true);
+			const continuation = this.getContinuationSegment(firstRawText);
+			if (!continuation) {
+				break;
+			}
+
+			const combinedTail = `${prevRawText}${continuation.text}`;
+			if (!URL_AT_END_PATTERN.test(combinedTail)) {
+				break;
+			}
+
+			lines[0] = {
+				...first,
+				text: continuation.text,
+				leadingTrim: continuation.leadingTrim,
+			};
+			lines.unshift({
+				index: first.index - 1,
+				lineNumber: first.index,
+				text: prevRawText,
+				leadingTrim: 0,
+			});
+		}
+
+		return lines;
+	}
 
 	constructor(
 		terminal: Terminal,
