@@ -1704,7 +1704,7 @@ export const useTabsStore = create<TabsStore>()(
 				switchChatMastraSession: (paneId, sessionId) => {
 					const state = get();
 					const pane = state.panes[paneId];
-					if (!pane?.chatMastra) return;
+					if (!pane || pane.type !== "chat-mastra") return;
 
 					set({
 						panes: {
@@ -1748,7 +1748,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 5,
+				version: 6,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
