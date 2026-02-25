@@ -14,7 +14,6 @@ export function McpControls({ mcpUi }: McpControlsProps) {
 				pendingApproval={mcpUi.pendingApproval}
 				pendingQuestion={mcpUi.pendingQuestion}
 				pendingPlanApproval={mcpUi.pendingPlanApproval}
-				activeToolEntries={mcpUi.activeToolEntries}
 				isApprovalPending={mcpUi.isApprovalPending}
 				isQuestionPending={mcpUi.isQuestionPending}
 				isPlanPending={mcpUi.isPlanPending}
@@ -41,6 +40,14 @@ export function McpControls({ mcpUi }: McpControlsProps) {
 					void mcpUi.submitPlanDecision("revise");
 				}}
 			/>
+			{mcpUi.overview && (
+				<div className="mx-auto w-full max-w-[680px] px-4 pb-1 text-xs text-muted-foreground">
+					Loaded MCPs:{" "}
+					{mcpUi.overview.servers.length > 0
+						? mcpUi.overview.servers.map((server) => server.name).join(", ")
+						: "none"}
+				</div>
+			)}
 			<div className="mx-auto flex w-full max-w-[680px] justify-end px-4 pb-2">
 				<Button
 					size="sm"

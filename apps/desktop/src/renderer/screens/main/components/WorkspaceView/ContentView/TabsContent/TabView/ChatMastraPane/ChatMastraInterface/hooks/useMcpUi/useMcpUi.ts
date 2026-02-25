@@ -1,7 +1,6 @@
 import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { McpOverviewPayload } from "../../../../ChatPane/ChatInterface/types";
-import { toActiveToolEntries } from "../../utils/active-tools";
 
 type DisplayState = NonNullable<UseMastraChatDisplayReturn["displayState"]>;
 
@@ -20,11 +19,11 @@ export interface UseMcpUiReturn {
 	showOverview: (overview: McpOverviewPayload) => void;
 	setOverviewOpen: (open: boolean) => void;
 	openOverview: () => Promise<void>;
+	refreshOverview: () => Promise<void>;
 	resetUi: () => void;
 	pendingApproval: DisplayState["pendingApproval"] | null | undefined;
 	pendingQuestion: DisplayState["pendingQuestion"] | null | undefined;
 	pendingPlanApproval: DisplayState["pendingPlanApproval"] | null | undefined;
-	activeToolEntries: ReturnType<typeof toActiveToolEntries>;
 	isApprovalPending: boolean;
 	isQuestionPending: boolean;
 	isPlanPending: boolean;
@@ -56,10 +55,6 @@ export function useMcpUi({
 	const pendingApproval = chat.displayState?.pendingApproval;
 	const pendingQuestion = chat.displayState?.pendingQuestion;
 	const pendingPlanApproval = chat.displayState?.pendingPlanApproval;
-	const activeToolEntries = useMemo(
-		() => toActiveToolEntries(chat.displayState?.activeTools),
-		[chat.displayState?.activeTools],
-	);
 
 	const resetUi = useCallback(() => {
 		setOverview(null);
@@ -100,6 +95,16 @@ export function useMcpUi({
 			setIsOverviewLoading(false);
 		}
 	}, [cwd, loadOverview, onClearError, onSetErrorMessage]);
+
+	const refreshOverview = useCallback(async () => {
+		if (!cwd) return;
+		try {
+			const nextOverview = await loadOverview(cwd);
+			setOverview(nextOverview);
+		} catch {
+			// keep existing overview when background refresh fails
+		}
+	}, [cwd, loadOverview]);
 
 	const submitApprovalDecision = useCallback(
 		async (decision: "approve" | "deny") => {
@@ -179,11 +184,11 @@ export function useMcpUi({
 		showOverview,
 		setOverviewOpen,
 		openOverview,
+		refreshOverview,
 		resetUi,
 		pendingApproval,
 		pendingQuestion,
 		pendingPlanApproval,
-		activeToolEntries,
 		isApprovalPending,
 		isQuestionPending,
 		isPlanPending,

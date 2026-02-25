@@ -103,6 +103,7 @@ export function ChatMastraInterface({
 		onClearError: clearRuntimeError,
 	});
 	const resetMcpUi = mcpUi.resetUi;
+	const refreshMcpOverview = mcpUi.refreshOverview;
 
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
@@ -126,7 +127,8 @@ export function ChatMastraInterface({
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
 		resetMcpUi();
-	}, [resetMcpUi, sessionId]);
+		void refreshMcpOverview();
+	}, [refreshMcpOverview, resetMcpUi, sessionId]);
 
 	useEffect(() => {
 		if (chat.displayState?.isRunning) {
