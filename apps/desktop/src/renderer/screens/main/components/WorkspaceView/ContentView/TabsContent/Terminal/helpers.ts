@@ -185,17 +185,127 @@ function openUrlWithFallback(
 	});
 }
 
+function openFileWithFallback(
+	path: string,
+	line: number | undefined,
+	column: number | undefined,
+	cwd: string | undefined,
+	onFileLinkClick?: (path: string, line?: number, column?: number) => void,
+): void {
+	if (onFileLinkClick) {
+		onFileLinkClick(path, line, column);
+		return;
+	}
+
+	trpcClient.external.openFileInEditor
+		.mutate({
+			path,
+			line,
+			column,
+			cwd,
+		})
+		.catch((error) => {
+			console.error("[Terminal] Failed to open file in editor:", path, error);
+		});
+}
+
+interface ParsedFileOsc8Link {
+	path: string;
+	line?: number;
+	column?: number;
+}
+
+function parseFileOsc8Link(uri: string): ParsedFileOsc8Link | null {
+	try {
+		const parsed = new URL(uri);
+		if (parsed.protocol !== "file:") {
+			return null;
+		}
+
+		let path = "";
+		try {
+			path = decodeURIComponent(parsed.pathname);
+		} catch {
+			path = parsed.pathname;
+		}
+
+		// file:///C:/... should map to C:/... on Windows-style file URIs.
+		if (/^\/[a-zA-Z]:\//.test(path)) {
+			path = path.slice(1);
+		}
+
+		// file://hostname/path can represent UNC-like paths.
+		if (parsed.hostname && parsed.hostname !== "localhost") {
+			path = `//${parsed.hostname}${path}`;
+		}
+
+		let line: number | undefined;
+		let column: number | undefined;
+
+		const lineColumnSuffix = path.match(/:(\d+)(?::(\d+))?$/);
+		if (lineColumnSuffix) {
+			path = path.slice(0, -lineColumnSuffix[0].length);
+			line = Number.parseInt(lineColumnSuffix[1], 10);
+			column = lineColumnSuffix[2]
+				? Number.parseInt(lineColumnSuffix[2], 10)
+				: undefined;
+		} else {
+			const hash = parsed.hash.replace(/^#/, "");
+			const hashLineColumn = hash.match(/^L(\d+)(?:C(\d+))?$/i);
+			if (hashLineColumn) {
+				line = Number.parseInt(hashLineColumn[1], 10);
+				column = hashLineColumn[2]
+					? Number.parseInt(hashLineColumn[2], 10)
+					: undefined;
+			}
+		}
+
+		if (!path) {
+			return null;
+		}
+
+		return { path, line, column };
+	} catch {
+		return null;
+	}
+}
+
+interface TerminalOsc8LinkHandlerOptions {
+	onOpenUrl: (uri: string) => void;
+	onOpenFile: (path: string, line?: number, column?: number) => void;
+}
+
 export function createTerminalOsc8LinkHandler(
-	onOpenUrl: (uri: string) => void,
+	options: TerminalOsc8LinkHandlerOptions,
 ): ILinkHandler {
 	return {
+		allowNonHttpProtocols: true,
 		activate: (event, text) => {
 			// Match custom URL provider behavior to avoid accidental navigation.
 			if (!event.metaKey && !event.ctrlKey) {
 				return;
 			}
 			event.preventDefault();
-			onOpenUrl(text);
+
+			let parsed: URL | null = null;
+			try {
+				parsed = new URL(text);
+			} catch {
+				return;
+			}
+
+			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+				options.onOpenUrl(text);
+				return;
+			}
+
+			if (parsed.protocol === "file:") {
+				const fileLink = parseFileOsc8Link(text);
+				if (!fileLink) {
+					return;
+				}
+				options.onOpenFile(fileLink.path, fileLink.line, fileLink.column);
+			}
 		},
 	};
 }
@@ -227,6 +337,13 @@ export function createTerminalInstance(
 	const handleUrlOpen = (uri: string) => {
 		openUrlWithFallback(uri, urlClickRef);
 	};
+	const handleFileOpen = (
+		path: string,
+		line?: number,
+		column?: number,
+	): void => {
+		openFileWithFallback(path, line, column, cwd, onFileLinkClick);
+	};
 
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
@@ -235,7 +352,10 @@ export function createTerminalInstance(
 		theme,
 		// xterm has a built-in OSC 8 link provider. This handler routes those links
 		// through app behavior so OSC 8 is primary and regex providers are fallback.
-		linkHandler: createTerminalOsc8LinkHandler(handleUrlOpen),
+		linkHandler: createTerminalOsc8LinkHandler({
+			onOpenUrl: handleUrlOpen,
+			onOpenFile: handleFileOpen,
+		}),
 	};
 	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
@@ -297,25 +417,7 @@ export function createTerminalInstance(
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
-			if (onFileLinkClick) {
-				onFileLinkClick(path, line, column);
-			} else {
-				// Fallback to default behavior (external editor)
-				trpcClient.external.openFileInEditor
-					.mutate({
-						path,
-						line,
-						column,
-						cwd,
-					})
-					.catch((error) => {
-						console.error(
-							"[Terminal] Failed to open file in editor:",
-							path,
-							error,
-						);
-					});
-			}
+			handleFileOpen(path, line, column);
 		},
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);

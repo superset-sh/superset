@@ -301,8 +301,12 @@ describe("setupPasteHandler", () => {
 
 describe("createTerminalOsc8LinkHandler", () => {
 	it("requires metaKey (Cmd) or ctrlKey for activation", () => {
-		const onOpen = mock(() => {});
-		const handler = createTerminalOsc8LinkHandler(onOpen);
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
 		const preventDefault = mock(() => {});
 
 		handler.activate(
@@ -318,13 +322,18 @@ describe("createTerminalOsc8LinkHandler", () => {
 			},
 		);
 
-		expect(onOpen).not.toHaveBeenCalled();
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).not.toHaveBeenCalled();
 		expect(preventDefault).not.toHaveBeenCalled();
 	});
 
-	it("opens URL with metaKey (Cmd)", () => {
-		const onOpen = mock(() => {});
-		const handler = createTerminalOsc8LinkHandler(onOpen);
+	it("opens https URL with metaKey (Cmd)", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
 		const preventDefault = mock(() => {});
 
 		handler.activate(
@@ -341,12 +350,17 @@ describe("createTerminalOsc8LinkHandler", () => {
 		);
 
 		expect(preventDefault).toHaveBeenCalled();
-		expect(onOpen).toHaveBeenCalledWith("https://example.com");
+		expect(onOpenUrl).toHaveBeenCalledWith("https://example.com");
+		expect(onOpenFile).not.toHaveBeenCalled();
 	});
 
-	it("opens URL with ctrlKey", () => {
-		const onOpen = mock(() => {});
-		const handler = createTerminalOsc8LinkHandler(onOpen);
+	it("opens https URL with ctrlKey", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
 		const preventDefault = mock(() => {});
 
 		handler.activate(
@@ -363,6 +377,88 @@ describe("createTerminalOsc8LinkHandler", () => {
 		);
 
 		expect(preventDefault).toHaveBeenCalled();
-		expect(onOpen).toHaveBeenCalledWith("https://example.com");
+		expect(onOpenUrl).toHaveBeenCalledWith("https://example.com");
+		expect(onOpenFile).not.toHaveBeenCalled();
+	});
+
+	it("opens file:// links and parses line/column suffix", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"file:///tmp/project/src/index.ts:42:7",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).toHaveBeenCalledWith("/tmp/project/src/index.ts", 42, 7);
+	});
+
+	it("opens file:// links and parses #L<C> hash", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: false,
+				ctrlKey: true,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"file:///tmp/project/src/index.ts#L5C2",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).toHaveBeenCalledWith("/tmp/project/src/index.ts", 5, 2);
+	});
+
+	it("ignores unsafe/non-http non-file protocols", () => {
+		const onOpenUrl = mock(() => {});
+		const onOpenFile = mock(() => {});
+		const handler = createTerminalOsc8LinkHandler({
+			onOpenUrl,
+			onOpenFile,
+		});
+		const preventDefault = mock(() => {});
+
+		handler.activate(
+			{
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault,
+			} as unknown as MouseEvent,
+			"javascript:alert(1)",
+			{
+				start: { x: 1, y: 1 },
+				end: { x: 10, y: 1 },
+			},
+		);
+
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onOpenUrl).not.toHaveBeenCalled();
+		expect(onOpenFile).not.toHaveBeenCalled();
 	});
 });
