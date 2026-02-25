@@ -56,6 +56,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_WORKTREE_LOCATION,
 		visibleItems,
 	);
+	const showMouseNavigation = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION,
+		visibleItems,
+	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
@@ -246,6 +250,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		});
 	const defaultWorktreePath = useDefaultWorktreePath();
 
+	const { data: mouseNavigationEnabled, isLoading: isMouseNavigationLoading } =
+		electronTrpc.settings.getMouseNavigationEnabled.useQuery();
+	const setMouseNavigationEnabled =
+		electronTrpc.settings.setMouseNavigationEnabled.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getMouseNavigationEnabled.cancel();
+				const previous = utils.settings.getMouseNavigationEnabled.getData();
+				utils.settings.getMouseNavigationEnabled.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getMouseNavigationEnabled.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getMouseNavigationEnabled.invalidate();
+			},
+		});
+
 	const { data: openLinksInApp, isLoading: isOpenLinksInAppLoading } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
 	const setOpenLinksInApp = electronTrpc.settings.setOpenLinksInApp.useMutation(
@@ -427,6 +454,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							}
 							disabled={
 								isResourceMonitorLoading || setShowResourceMonitor.isPending
+							}
+						/>
+					</div>
+				)}
+
+				{showMouseNavigation && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="mouse-navigation" className="text-sm font-medium">
+								Mouse back/forward navigation
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Use mouse buttons 3/4 to move between workspace tabs
+							</p>
+						</div>
+						<Switch
+							id="mouse-navigation"
+							checked={mouseNavigationEnabled ?? false}
+							onCheckedChange={(enabled) =>
+								setMouseNavigationEnabled.mutate({ enabled })
+							}
+							disabled={
+								isMouseNavigationLoading || setMouseNavigationEnabled.isPending
 							}
 						/>
 					</div>
