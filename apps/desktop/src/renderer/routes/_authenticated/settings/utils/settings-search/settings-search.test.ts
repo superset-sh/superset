@@ -63,3 +63,48 @@ describe("settings search - font settings", () => {
 		expect(terminalFont?.section).toBe("appearance");
 	});
 });
+
+describe("settings search - mouse navigation setting", () => {
+	it('searching "mouse" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("mouse");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
+	it('searching "navigation" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("navigation");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
+	it('searching "back" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("back");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
+	it('searching "forward" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("forward");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
+	it('searching "buttons" returns BEHAVIOR_MOUSE_NAVIGATION', () => {
+		const results = searchSettings("buttons");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION);
+	});
+
+	it("mouse navigation item has correct section and title", () => {
+		const results = searchSettings("mouse");
+		const mouseNav = results.find(
+			(r) => r.id === SETTING_ITEM_ID.BEHAVIOR_MOUSE_NAVIGATION,
+		);
+
+		expect(mouseNav?.section).toBe("behavior");
+		expect(mouseNav?.title).toBe("Mouse back/forward navigation");
+		expect(mouseNav?.description).toBe(
+			"Use mouse buttons 3/4 to move between workspace tabs",
+		);
+	});
+});
