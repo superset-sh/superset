@@ -42,7 +42,6 @@ import { STROKE_WIDTH } from "../constants";
 import { CollapsedWorkspaceItem } from "./CollapsedWorkspaceItem";
 import { DeleteWorkspaceDialog, WorkspaceHoverCardContent } from "./components";
 import {
-	AHEAD_BEHIND_STALE_TIME,
 	GITHUB_STATUS_STALE_TIME,
 	HOVER_CARD_CLOSE_DELAY,
 	HOVER_CARD_OPEN_DELAY,
@@ -145,8 +144,8 @@ export function WorkspaceListItem({
 		{ workspaceId: id },
 		{
 			enabled: isBranchWorkspace,
-			staleTime: AHEAD_BEHIND_STALE_TIME,
-			refetchInterval: AHEAD_BEHIND_STALE_TIME,
+			staleTime: GITHUB_STATUS_STALE_TIME,
+			refetchInterval: hasHovered ? GITHUB_STATUS_STALE_TIME : false,
 		},
 	);
 
