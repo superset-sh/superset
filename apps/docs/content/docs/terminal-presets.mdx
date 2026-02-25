@@ -11,7 +11,7 @@ Presets let you quickly launch terminals with pre-configured commands. Save comm
 
 ## Team-Shared Presets
 
-You can define presets in `.superset/presets.json` and Superset will load them per workspace (from that workspace's worktree).
+You can commit presets in your repo at `.superset/presets.json` to share them with your team.
 
 ```json
 {
@@ -34,9 +34,16 @@ You can define presets in `.superset/presets.json` and Superset will load them p
 ```
 
 - `slug` is the stable identifier for each shared preset
-- Shared presets are loaded from the active workspace's `<worktree>/.superset/presets.json`
+- Shared presets are loaded from the active project's `.superset/presets.json`
 - Editing a shared preset in the app creates a local override for your machine only
-- To remove a shared preset from a workspace, delete it from that workspace's `.superset/presets.json`
+- To remove a shared preset for everyone, delete it from `.superset/presets.json`
+
+## Import and Export
+
+From **Settings → Terminal**, you can use **Import** and **Export** to move presets between machines and projects.
+
+- **Export** writes your current preset list to a JSON file
+- **Import** appends presets from a JSON file into your local preset list
 
 ## What Presets Do
 

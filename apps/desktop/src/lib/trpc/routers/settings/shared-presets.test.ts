@@ -4,15 +4,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TerminalPreset } from "@superset/local-db";
 import {
+	createTerminalPresetsExport,
 	getSharedPresetId,
 	loadSharedTerminalPresets,
 	mergeSharedAndLocalTerminalPresets,
+	parseImportedTerminalPresets,
 	toLocalTerminalPresets,
 } from "./shared-presets";
 
 const TEST_DIR = join(tmpdir(), `superset-test-shared-presets-${process.pid}`);
-const WORKTREE_DIR = join(TEST_DIR, "worktree");
-const SUPERSET_DIR = join(WORKTREE_DIR, ".superset");
+const REPO_DIR = join(TEST_DIR, "repo");
+const SUPERSET_DIR = join(REPO_DIR, ".superset");
 const PRESETS_FILE = join(SUPERSET_DIR, "presets.json");
 
 describe("loadSharedTerminalPresets", () => {
@@ -43,10 +45,10 @@ describe("loadSharedTerminalPresets", () => {
 			}),
 		);
 
-		const presets = loadSharedTerminalPresets(WORKTREE_DIR, "workspace-1");
+		const presets = loadSharedTerminalPresets(REPO_DIR);
 		expect(presets).toEqual([
 			{
-				id: "shared:workspace-1:web-dev",
+				id: "shared:web-dev",
 				name: "Web Dev",
 				cwd: "apps/web",
 				commands: ["bun dev"],
@@ -68,13 +70,13 @@ describe("loadSharedTerminalPresets", () => {
 			]),
 		);
 
-		const presets = loadSharedTerminalPresets(WORKTREE_DIR, "workspace-1");
-		expect(presets[0]?.id).toBe("shared:workspace-1:api-dev");
+		const presets = loadSharedTerminalPresets(REPO_DIR);
+		expect(presets[0]?.id).toBe("shared:api-dev");
 	});
 
 	test("returns empty array for invalid json", () => {
 		writeFileSync(PRESETS_FILE, "{ invalid json }");
-		expect(loadSharedTerminalPresets(WORKTREE_DIR, "workspace-1")).toEqual([]);
+		expect(loadSharedTerminalPresets(REPO_DIR)).toEqual([]);
 	});
 });
 
@@ -82,7 +84,7 @@ describe("mergeSharedAndLocalTerminalPresets", () => {
 	test("overrides shared fields with local values when ids match", () => {
 		const shared: TerminalPreset[] = [
 			{
-				id: getSharedPresetId("workspace-1", "web-dev"),
+				id: "shared:web-dev",
 				name: "Web Dev",
 				cwd: "apps/web",
 				commands: ["bun dev"],
@@ -91,7 +93,7 @@ describe("mergeSharedAndLocalTerminalPresets", () => {
 		];
 		const local: TerminalPreset[] = [
 			{
-				id: getSharedPresetId("workspace-1", "web-dev"),
+				id: "shared:web-dev",
 				name: "My Web Dev",
 				cwd: "apps/web",
 				commands: ["bun dev --hot"],
@@ -109,7 +111,7 @@ describe("mergeSharedAndLocalTerminalPresets", () => {
 		const merged = mergeSharedAndLocalTerminalPresets(shared, local);
 		expect(merged).toEqual([
 			{
-				id: getSharedPresetId("workspace-1", "web-dev"),
+				id: "shared:web-dev",
 				name: "My Web Dev",
 				cwd: "apps/web",
 				commands: ["bun dev --hot"],
@@ -124,37 +126,13 @@ describe("mergeSharedAndLocalTerminalPresets", () => {
 			},
 		]);
 	});
-
-	test("ignores shared overrides from other workspaces", () => {
-		const shared: TerminalPreset[] = [
-			{
-				id: getSharedPresetId("workspace-1", "web-dev"),
-				name: "Web Dev",
-				cwd: "",
-				commands: ["bun dev"],
-				executionMode: "split-pane",
-			},
-		];
-		const local: TerminalPreset[] = [
-			{
-				id: getSharedPresetId("workspace-2", "web-dev"),
-				name: "Workspace 2 Override",
-				cwd: "",
-				commands: ["bun dev --hot"],
-				executionMode: "split-pane",
-			},
-		];
-
-		const merged = mergeSharedAndLocalTerminalPresets(shared, local);
-		expect(merged).toEqual(shared);
-	});
 });
 
 describe("toLocalTerminalPresets", () => {
 	test("keeps only local overrides and local-only presets", () => {
 		const shared: TerminalPreset[] = [
 			{
-				id: getSharedPresetId("workspace-1", "web"),
+				id: getSharedPresetId("web"),
 				name: "Web",
 				cwd: "",
 				commands: ["bun dev"],
@@ -163,7 +141,7 @@ describe("toLocalTerminalPresets", () => {
 		];
 		const effective: TerminalPreset[] = [
 			{
-				id: getSharedPresetId("workspace-1", "web"),
+				id: getSharedPresetId("web"),
 				name: "Web (Personal)",
 				cwd: "",
 				commands: ["bun dev --hot"],
@@ -185,7 +163,7 @@ describe("toLocalTerminalPresets", () => {
 	test("drops unchanged shared presets", () => {
 		const shared: TerminalPreset[] = [
 			{
-				id: getSharedPresetId("workspace-1", "web"),
+				id: getSharedPresetId("web"),
 				name: "Web",
 				cwd: "",
 				commands: ["bun dev"],
@@ -195,5 +173,83 @@ describe("toLocalTerminalPresets", () => {
 
 		const local = toLocalTerminalPresets(shared, shared);
 		expect(local).toEqual([]);
+	});
+});
+
+describe("parseImportedTerminalPresets", () => {
+	test("parses app export format", () => {
+		const presets = parseImportedTerminalPresets({
+			schemaVersion: 1,
+			exportedAt: new Date().toISOString(),
+			app: "superset",
+			presets: [
+				{
+					name: "Imported",
+					cwd: "apps/web",
+					commands: ["bun dev"],
+					executionMode: "new-tab",
+				},
+			],
+		});
+
+		expect(presets).toEqual([
+			{
+				name: "Imported",
+				cwd: "apps/web",
+				commands: ["bun dev"],
+				executionMode: "new-tab",
+			},
+		]);
+	});
+
+	test("parses shared presets format with slug", () => {
+		const presets = parseImportedTerminalPresets({
+			version: 1,
+			presets: [
+				{
+					slug: "shared",
+					name: "Shared",
+					commands: ["bun dev"],
+				},
+			],
+		});
+
+		expect(presets).toEqual([
+			{
+				name: "Shared",
+				cwd: "",
+				commands: ["bun dev"],
+				executionMode: "split-pane",
+			},
+		]);
+	});
+
+	test("throws for invalid schema", () => {
+		expect(() => parseImportedTerminalPresets({})).toThrow();
+	});
+});
+
+describe("createTerminalPresetsExport", () => {
+	test("creates export payload without ids", () => {
+		const payload = createTerminalPresetsExport([
+			{
+				id: "preset-1",
+				name: "Preset 1",
+				cwd: "",
+				commands: ["echo hi"],
+				executionMode: "split-pane",
+			},
+		]);
+
+		expect(payload.schemaVersion).toBe(1);
+		expect(payload.app).toBe("superset");
+		expect(payload.presets).toEqual([
+			{
+				name: "Preset 1",
+				cwd: "",
+				commands: ["echo hi"],
+				executionMode: "split-pane",
+			},
+		]);
 	});
 });

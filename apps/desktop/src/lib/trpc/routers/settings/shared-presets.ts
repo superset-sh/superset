@@ -33,19 +33,47 @@ const sharedPresetFileSchema = z.union([
 
 type SharedPresetInput = z.infer<typeof sharedPresetSchema>;
 
-function isSupportedExecutionMode(value: unknown): boolean {
+const importablePresetSchema = z.object({
+	name: z.string(),
+	description: z.string().optional(),
+	cwd: z.string().optional(),
+	commands: z.array(z.string()),
+	pinnedToBar: z.boolean().optional(),
+	isDefault: z.boolean().optional(),
+	applyOnWorkspaceCreated: z.boolean().optional(),
+	applyOnNewTab: z.boolean().optional(),
+	executionMode: z.unknown().optional(),
+	slug: z.string().optional(),
+});
+
+const importablePresetFileSchema = z.union([
+	z.array(importablePresetSchema),
+	z.object({
+		version: z.number().int().positive().optional(),
+		presets: z.array(importablePresetSchema),
+	}),
+	z.object({
+		schemaVersion: z.number().int().positive(),
+		exportedAt: z.string().optional(),
+		app: z.string().optional(),
+		presets: z.array(importablePresetSchema),
+	}),
+]);
+
+type ImportablePresetInput = z.infer<typeof importablePresetSchema>;
+
+function isSupportedExecutionMode(
+	value: unknown,
+): value is (typeof EXECUTION_MODES)[number] {
 	return (
 		typeof value === "string" &&
 		(EXECUTION_MODES as readonly string[]).includes(value)
 	);
 }
 
-function toSharedPreset(
-	input: SharedPresetInput,
-	scopeKey: string,
-): PresetWithUnknownMode {
+function toSharedPreset(input: SharedPresetInput): PresetWithUnknownMode {
 	return {
-		id: getSharedPresetId(scopeKey, input.slug),
+		id: getSharedPresetId(input.slug),
 		name: input.name,
 		description: input.description,
 		cwd: input.cwd ?? "",
@@ -57,6 +85,24 @@ function toSharedPreset(
 		executionMode: isSupportedExecutionMode(input.executionMode)
 			? input.executionMode
 			: undefined,
+	};
+}
+
+function toImportablePreset(
+	input: ImportablePresetInput,
+): Omit<TerminalPreset, "id"> {
+	return {
+		name: input.name,
+		description: input.description,
+		cwd: input.cwd ?? "",
+		commands: input.commands,
+		pinnedToBar: input.pinnedToBar,
+		isDefault: input.isDefault,
+		applyOnWorkspaceCreated: input.applyOnWorkspaceCreated,
+		applyOnNewTab: input.applyOnNewTab,
+		executionMode: isSupportedExecutionMode(input.executionMode)
+			? input.executionMode
+			: "split-pane",
 	};
 }
 
@@ -80,20 +126,58 @@ function arePresetFieldsEqual(a: TerminalPreset, b: TerminalPreset): boolean {
 	);
 }
 
-export function getSharedPresetId(scopeKey: string, slug: string): string {
-	return `${SHARED_PRESET_ID_PREFIX}${encodeURIComponent(scopeKey)}:${slug}`;
+export function getSharedPresetId(slug: string): string {
+	return `${SHARED_PRESET_ID_PREFIX}${slug}`;
 }
 
 export function isSharedPresetId(presetId: string): boolean {
 	return presetId.startsWith(SHARED_PRESET_ID_PREFIX);
 }
 
+export function parseImportedTerminalPresets(
+	data: unknown,
+): Omit<TerminalPreset, "id">[] {
+	const parsed = importablePresetFileSchema.safeParse(data);
+	if (!parsed.success) {
+		throw new Error(parsed.error.message);
+	}
+
+	const rawPresets = Array.isArray(parsed.data)
+		? parsed.data
+		: parsed.data.presets;
+
+	return rawPresets.map(toImportablePreset);
+}
+
+export function createTerminalPresetsExport(presets: TerminalPreset[]): {
+	schemaVersion: number;
+	exportedAt: string;
+	app: string;
+	presets: Omit<TerminalPreset, "id">[];
+} {
+	return {
+		schemaVersion: 1,
+		exportedAt: new Date().toISOString(),
+		app: "superset",
+		presets: presets.map((preset) => ({
+			name: preset.name,
+			description: preset.description,
+			cwd: preset.cwd,
+			commands: preset.commands,
+			pinnedToBar: preset.pinnedToBar,
+			isDefault: preset.isDefault,
+			applyOnWorkspaceCreated: preset.applyOnWorkspaceCreated,
+			applyOnNewTab: preset.applyOnNewTab,
+			executionMode: preset.executionMode ?? "split-pane",
+		})),
+	};
+}
+
 export function loadSharedTerminalPresets(
-	worktreePath: string,
-	workspaceId: string,
+	mainRepoPath: string,
 ): TerminalPreset[] {
 	const presetsPath = join(
-		worktreePath,
+		mainRepoPath,
 		PROJECT_SUPERSET_DIR_NAME,
 		PRESETS_FILE_NAME,
 	);
@@ -125,9 +209,7 @@ export function loadSharedTerminalPresets(
 		? parsed.data
 		: parsed.data.presets;
 
-	return normalizeTerminalPresets(
-		rawPresets.map((preset) => toSharedPreset(preset, workspaceId)),
-	);
+	return normalizeTerminalPresets(rawPresets.map(toSharedPreset));
 }
 
 export function mergeSharedAndLocalTerminalPresets(
@@ -135,7 +217,7 @@ export function mergeSharedAndLocalTerminalPresets(
 	localPresets: TerminalPreset[],
 ): TerminalPreset[] {
 	if (sharedPresets.length === 0) {
-		return localPresets.filter((preset) => !isSharedPresetId(preset.id));
+		return localPresets;
 	}
 
 	const localById = new Map(localPresets.map((preset) => [preset.id, preset]));
@@ -157,7 +239,7 @@ export function mergeSharedAndLocalTerminalPresets(
 	}
 
 	for (const localPreset of localPresets) {
-		if (!sharedIds.has(localPreset.id) && !isSharedPresetId(localPreset.id)) {
+		if (!sharedIds.has(localPreset.id)) {
 			merged.push(localPreset);
 		}
 	}

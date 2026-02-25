@@ -1,6 +1,7 @@
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
+import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
@@ -37,6 +38,8 @@ export function PresetsSection({
 		deletePreset,
 		setPresetAutoApply,
 		reorderPresets,
+		importPresets,
+		exportPresets,
 	} = usePresets();
 
 	const [localPresets, setLocalPresets] =
@@ -288,6 +291,46 @@ export function PresetsSection({
 		setEditingPreset(null);
 	}, [setEditingPreset]);
 
+	const handleImportPresets = useCallback(async () => {
+		try {
+			const result = await importPresets.mutateAsync();
+			if ("canceled" in result && result.canceled) return;
+			if ("error" in result) {
+				toast.error("Failed to import presets", {
+					description: result.error,
+				});
+				return;
+			}
+			toast.success("Presets imported", {
+				description: `Imported ${result.importedCount} preset${result.importedCount === 1 ? "" : "s"} from ${result.path}`,
+			});
+		} catch (error) {
+			toast.error("Failed to import presets", {
+				description: error instanceof Error ? error.message : undefined,
+			});
+		}
+	}, [importPresets]);
+
+	const handleExportPresets = useCallback(async () => {
+		try {
+			const result = await exportPresets.mutateAsync();
+			if ("canceled" in result && result.canceled) return;
+			if ("error" in result) {
+				toast.error("Failed to export presets", {
+					description: result.error,
+				});
+				return;
+			}
+			toast.success("Presets exported", {
+				description: `Exported ${result.exportedCount} preset${result.exportedCount === 1 ? "" : "s"} to ${result.path}`,
+			});
+		} catch (error) {
+			toast.error("Failed to export presets", {
+				description: error instanceof Error ? error.message : undefined,
+			});
+		}
+	}, [exportPresets]);
+
 	const handleDeleteEditingPreset = useCallback(() => {
 		if (editingRowIndex < 0) return;
 		handleDeleteRow(editingRowIndex);
@@ -362,15 +405,33 @@ export function PresetsSection({
 					</p>
 				</div>
 				{showPresets && (
-					<Button
-						variant="default"
-						size="sm"
-						className="gap-2"
-						onClick={handleAddRow}
-					>
-						<HiOutlinePlus className="h-4 w-4" />
-						Add Preset
-					</Button>
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={importPresets.isPending}
+							onClick={handleImportPresets}
+						>
+							Import
+						</Button>
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={exportPresets.isPending}
+							onClick={handleExportPresets}
+						>
+							Export
+						</Button>
+						<Button
+							variant="default"
+							size="sm"
+							className="gap-2"
+							onClick={handleAddRow}
+						>
+							<HiOutlinePlus className="h-4 w-4" />
+							Add Preset
+						</Button>
+					</div>
 				)}
 			</div>
 

@@ -1,14 +1,15 @@
+import { readFile, writeFile } from "node:fs/promises";
 import {
 	BRANCH_PREFIX_MODES,
 	EXECUTION_MODES,
 	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
 	NON_EDITOR_APPS,
+	projects,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 	workspaces,
-	worktrees,
 } from "@superset/local-db";
 import {
 	AGENT_PRESET_COMMANDS,
@@ -16,7 +17,13 @@ import {
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
-import { app } from "electron";
+import {
+	app,
+	BrowserWindow,
+	dialog,
+	type OpenDialogOptions,
+	type SaveDialogOptions,
+} from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
@@ -47,9 +54,11 @@ import {
 	type PresetWithUnknownMode,
 } from "./preset-execution-mode";
 import {
+	createTerminalPresetsExport,
 	isSharedPresetId,
 	loadSharedTerminalPresets,
 	mergeSharedAndLocalTerminalPresets,
+	parseImportedTerminalPresets,
 	toLocalTerminalPresets,
 } from "./shared-presets";
 
@@ -83,89 +92,56 @@ function getNormalizedTerminalPresets() {
 	return normalizeTerminalPresets(rawPresets);
 }
 
-function getWorkspacePath(worktreeId: string | null): string | null {
-	if (!worktreeId) {
-		return null;
-	}
-	const worktree = localDb
-		.select({ path: worktrees.path })
-		.from(worktrees)
-		.where(eq(worktrees.id, worktreeId))
-		.get();
-	return worktree?.path ?? null;
-}
-
-function getActiveWorkspacePresetSource(): {
-	workspaceId: string;
-	worktreePath: string;
-} | null {
+function getActiveProjectMainRepoPath(): string | null {
 	const row = getSettings();
 	const activeWorkspaceId = row.lastActiveWorkspaceId;
-
-	if (activeWorkspaceId) {
-		const activeWorkspace = localDb
-			.select({ id: workspaces.id, worktreeId: workspaces.worktreeId })
-			.from(workspaces)
-			.where(eq(workspaces.id, activeWorkspaceId))
+	if (!activeWorkspaceId) {
+		const mostRecentProject = localDb
+			.select({ mainRepoPath: projects.mainRepoPath })
+			.from(projects)
+			.orderBy(desc(projects.lastOpenedAt))
+			.limit(1)
 			.get();
-		if (activeWorkspace) {
-			const worktreePath = getWorkspacePath(activeWorkspace.worktreeId ?? null);
-			if (worktreePath) {
-				return { workspaceId: activeWorkspace.id, worktreePath };
-			}
-		}
+		return mostRecentProject?.mainRepoPath ?? null;
 	}
 
-	const recentWorkspaces = localDb
-		.select({ id: workspaces.id, worktreeId: workspaces.worktreeId })
+	const workspace = localDb
+		.select({ projectId: workspaces.projectId })
 		.from(workspaces)
-		.orderBy(desc(workspaces.lastOpenedAt))
-		.limit(50)
-		.all();
+		.where(eq(workspaces.id, activeWorkspaceId))
+		.get();
 
-	for (const workspace of recentWorkspaces) {
-		const worktreePath = getWorkspacePath(workspace.worktreeId ?? null);
-		if (worktreePath) {
-			return { workspaceId: workspace.id, worktreePath };
-		}
+	if (!workspace) {
+		const mostRecentProject = localDb
+			.select({ mainRepoPath: projects.mainRepoPath })
+			.from(projects)
+			.orderBy(desc(projects.lastOpenedAt))
+			.limit(1)
+			.get();
+		return mostRecentProject?.mainRepoPath ?? null;
 	}
 
-	return null;
+	const project = localDb
+		.select({ mainRepoPath: projects.mainRepoPath })
+		.from(projects)
+		.where(eq(projects.id, workspace.projectId))
+		.get();
+
+	return project?.mainRepoPath ?? null;
 }
 
 function getSharedTerminalPresets() {
-	const source = getActiveWorkspacePresetSource();
-	if (!source) {
+	const mainRepoPath = getActiveProjectMainRepoPath();
+	if (!mainRepoPath) {
 		return [];
 	}
-	return loadSharedTerminalPresets(source.worktreePath, source.workspaceId);
+	return loadSharedTerminalPresets(mainRepoPath);
 }
 
 function getEffectiveTerminalPresets() {
 	const localPresets = getNormalizedTerminalPresets();
 	const sharedPresets = getSharedTerminalPresets();
 	return mergeSharedAndLocalTerminalPresets(sharedPresets, localPresets);
-}
-
-function saveEffectiveTerminalPresets(
-	effectivePresets: TerminalPreset[],
-	sharedPresets: TerminalPreset[],
-) {
-	const activeSharedPresetIds = new Set(
-		sharedPresets.map((preset) => preset.id),
-	);
-	const hiddenSharedOverrides = getNormalizedTerminalPresets().filter(
-		(preset) =>
-			isSharedPresetId(preset.id) && !activeSharedPresetIds.has(preset.id),
-	);
-	const currentWorkspaceLocalPresets = toLocalTerminalPresets(
-		effectivePresets,
-		sharedPresets,
-	);
-	saveTerminalPresets([
-		...currentWorkspaceLocalPresets,
-		...hiddenSharedOverrides,
-	]);
 }
 
 function saveTerminalPresets(
@@ -246,6 +222,93 @@ export const createSettingsRouter = () => {
 				});
 			}
 			return getEffectiveTerminalPresets();
+		}),
+		exportTerminalPresets: publicProcedure.mutation(async () => {
+			const window = BrowserWindow.getFocusedWindow();
+			const saveDialogOptions: SaveDialogOptions = {
+				title: "Export Terminal Presets",
+				defaultPath: "superset-presets.json",
+				filters: [{ name: "JSON", extensions: ["json"] }],
+			};
+			const result = window
+				? await dialog.showSaveDialog(window, saveDialogOptions)
+				: await dialog.showSaveDialog(saveDialogOptions);
+
+			if (result.canceled || !result.filePath) {
+				return { canceled: true as const };
+			}
+
+			const exportFile = createTerminalPresetsExport(
+				getEffectiveTerminalPresets(),
+			);
+			try {
+				await writeFile(
+					result.filePath,
+					JSON.stringify(exportFile, null, 2),
+					"utf-8",
+				);
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : "Failed to write file";
+				return { canceled: false as const, error: message };
+			}
+
+			return {
+				canceled: false as const,
+				path: result.filePath,
+				exportedCount: exportFile.presets.length,
+			};
+		}),
+		importTerminalPresets: publicProcedure.mutation(async () => {
+			const window = BrowserWindow.getFocusedWindow();
+			const openDialogOptions: OpenDialogOptions = {
+				title: "Import Terminal Presets",
+				properties: ["openFile"],
+				filters: [{ name: "JSON", extensions: ["json"] }],
+			};
+			const result = window
+				? await dialog.showOpenDialog(window, openDialogOptions)
+				: await dialog.showOpenDialog(openDialogOptions);
+
+			if (result.canceled || result.filePaths.length === 0) {
+				return { canceled: true as const };
+			}
+
+			const filePath = result.filePaths[0];
+			try {
+				const content = await readFile(filePath, "utf-8");
+				const importedPresets = parseImportedTerminalPresets(
+					JSON.parse(content),
+				);
+
+				if (importedPresets.length === 0) {
+					return {
+						canceled: false as const,
+						error: "No presets found in the selected file",
+					};
+				}
+
+				const localPresets = getNormalizedTerminalPresets();
+				const importedWithIds: TerminalPreset[] = importedPresets.map(
+					(preset) => ({
+						id: crypto.randomUUID(),
+						...preset,
+					}),
+				);
+				saveTerminalPresets([...localPresets, ...importedWithIds], {
+					terminalPresetsInitialized: true,
+				});
+
+				return {
+					canceled: false as const,
+					path: filePath,
+					importedCount: importedWithIds.length,
+				};
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : "Invalid presets file";
+				return { canceled: false as const, error: message };
+			}
 		}),
 		createTerminalPreset: publicProcedure
 			.input(
@@ -359,7 +422,9 @@ export const createSettingsRouter = () => {
 					isDefault: input.id === p.id ? true : undefined,
 				}));
 
-				saveEffectiveTerminalPresets(updatedPresets, sharedPresets);
+				saveTerminalPresets(
+					toLocalTerminalPresets(updatedPresets, sharedPresets),
+				);
 
 				return { success: true };
 			}),
@@ -406,7 +471,9 @@ export const createSettingsRouter = () => {
 					};
 				});
 
-				saveEffectiveTerminalPresets(updatedPresets, sharedPresets);
+				saveTerminalPresets(
+					toLocalTerminalPresets(updatedPresets, sharedPresets),
+				);
 
 				return { success: true };
 			}),
@@ -459,7 +526,7 @@ export const createSettingsRouter = () => {
 				const [removed] = presets.splice(currentIndex, 1);
 				presets.splice(input.targetIndex, 0, removed);
 
-				saveEffectiveTerminalPresets(presets, sharedPresets);
+				saveTerminalPresets(toLocalTerminalPresets(presets, sharedPresets));
 
 				return { success: true };
 			}),
