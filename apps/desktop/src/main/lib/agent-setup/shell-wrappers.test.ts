@@ -49,6 +49,9 @@ describe("shell-wrappers", () => {
 		expect(zshrc).toContain(`codex() { "${TEST_BIN_DIR}/codex" "$@"; }`);
 		expect(zshrc).toContain(`opencode() { "${TEST_BIN_DIR}/opencode" "$@"; }`);
 		expect(zshrc).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
+		expect(zshrc).toContain(
+			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
+		);
 		expect(zshrc).toContain("rehash 2>/dev/null || true");
 
 		expect(zlogin).toContain("if [[ -o interactive ]]; then");
@@ -56,6 +59,9 @@ describe("shell-wrappers", () => {
 		expect(zlogin).toContain("_superset_prepend_bin()");
 		expect(zlogin).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zlogin).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
+		expect(zlogin).toContain(
+			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
+		);
 		expect(zlogin).toContain("rehash 2>/dev/null || true");
 	});
 
@@ -68,6 +74,9 @@ describe("shell-wrappers", () => {
 		expect(rcfile).toContain(`codex() { "${TEST_BIN_DIR}/codex" "$@"; }`);
 		expect(rcfile).toContain(`opencode() { "${TEST_BIN_DIR}/opencode" "$@"; }`);
 		expect(rcfile).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
+		expect(rcfile).toContain(
+			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
+		);
 		expect(rcfile).toContain("hash -r 2>/dev/null || true");
 	});
 

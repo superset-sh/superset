@@ -63,6 +63,7 @@ const {
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getGeminiSettingsJsonContent,
+	getMastraCodeHooksJsonContent,
 } = await import("./agent-wrappers");
 
 describe("agent-wrappers copilot", () => {
@@ -300,6 +301,94 @@ describe("agent-wrappers copilot", () => {
 				def.hooks.some((hook) => hook.command === "/opt/custom-hook.sh"),
 			),
 		).toBe(true);
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("replaces stale Mastra Code hook commands from old superset paths", () => {
+		const mastraCodeHooksPath = path.join(
+			mockedHomeDir,
+			".mastracode",
+			"hooks.json",
+		);
+		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(path.dirname(mastraCodeHooksPath), { recursive: true });
+		writeFileSync(
+			mastraCodeHooksPath,
+			JSON.stringify(
+				{
+					PreToolUse: [
+						{ type: "command", command: staleHookPath },
+						{ type: "command", command: "echo should-stay" },
+					],
+					PostToolUse: [
+						{ type: "command", command: `${staleHookPath} --legacy-post` },
+					],
+					UserPromptSubmit: [
+						{ type: "command", command: staleHookPath },
+						{ type: "command", command: "/opt/custom-hook.sh" },
+					],
+					Stop: [{ type: "command", command: `${staleHookPath} --legacy` }],
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getMastraCodeHooksJsonContent(currentHookPath);
+		writeFileSync(mastraCodeHooksPath, content);
+		const content2 = getMastraCodeHooksJsonContent(currentHookPath);
+
+		const parsed = JSON.parse(content) as {
+			PreToolUse: Array<{ type: string; command: string }>;
+			PostToolUse?: Array<{ type: string; command: string }>;
+			UserPromptSubmit: Array<{ type: string; command: string }>;
+			Stop: Array<{ type: string; command: string }>;
+			SessionStart?: Array<{ type: string; command: string }>;
+			SessionEnd?: Array<{ type: string; command: string }>;
+		};
+
+		expect(
+			parsed.UserPromptSubmit.some(
+				(hook) => hook.command === "/opt/custom-hook.sh",
+			),
+		).toBe(true);
+		expect(
+			parsed.UserPromptSubmit.some((hook) =>
+				hook.command.includes(staleHookPath),
+			),
+		).toBe(false);
+		expect(
+			parsed.UserPromptSubmit.some(
+				(hook) => hook.command === currentHookPath && hook.type === "command",
+			),
+		).toBe(true);
+		expect(parsed.UserPromptSubmit).toEqual([
+			{ type: "command", command: "/opt/custom-hook.sh" },
+			{ type: "command", command: currentHookPath },
+		]);
+
+		expect(
+			parsed.Stop.some(
+				(hook) => hook.command === currentHookPath && hook.type === "command",
+			),
+		).toBe(true);
+		expect(
+			parsed.Stop.some((hook) => hook.command.includes(staleHookPath)),
+		).toBe(false);
+		expect(parsed.Stop).toHaveLength(1);
+
+		expect(
+			parsed.PreToolUse.some((hook) => hook.command === "echo should-stay"),
+		).toBe(true);
+		expect(
+			parsed.PreToolUse.some((hook) => hook.command.includes(staleHookPath)),
+		).toBe(false);
+
+		expect(parsed.PostToolUse).toBeUndefined();
+		expect(parsed.SessionStart).toBeUndefined();
+		expect(parsed.SessionEnd).toBeUndefined();
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
 	});
 });
