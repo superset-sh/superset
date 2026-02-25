@@ -6,9 +6,9 @@ export type PresetWithUnknownMode = Omit<TerminalPreset, "executionMode"> & {
 
 export function normalizePresetExecutionMode(
 	mode: unknown,
-): "split-pane" | "new-tab" {
-	if (mode === "new-tab") {
-		return "new-tab";
+): "split-pane" | "new-tab" | "new-tab-split-pane" {
+	if (mode === "new-tab" || mode === "new-tab-split-pane") {
+		return mode;
 	}
 	return "split-pane";
 }

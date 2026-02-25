@@ -22,6 +22,12 @@ describe("normalizePresetExecutionMode", () => {
 		expect(normalizePresetExecutionMode("new-tab")).toBe("new-tab");
 	});
 
+	it("keeps new-tab-split-pane mode", () => {
+		expect(normalizePresetExecutionMode("new-tab-split-pane")).toBe(
+			"new-tab-split-pane",
+		);
+	});
+
 	it("maps legacy and missing modes to split-pane", () => {
 		expect(normalizePresetExecutionMode("split-pane")).toBe("split-pane");
 		expect(normalizePresetExecutionMode("parallel")).toBe("split-pane");
@@ -34,12 +40,14 @@ describe("normalizeTerminalPresets", () => {
 	it("normalizes every preset mode to current enum values", () => {
 		const normalized = normalizeTerminalPresets([
 			createPreset("new-tab"),
+			createPreset("new-tab-split-pane"),
 			createPreset("parallel"),
 			createPreset(undefined),
 		]);
 
 		expect(normalized.map((p) => p.executionMode)).toEqual([
 			"new-tab",
+			"new-tab-split-pane",
 			"split-pane",
 			"split-pane",
 		] satisfies TerminalPreset["executionMode"][]);
@@ -61,6 +69,7 @@ describe("shouldPersistNormalizedPresetModes", () => {
 			shouldPersistNormalizedPresetModes([
 				createPreset("split-pane"),
 				createPreset("new-tab"),
+				createPreset("new-tab-split-pane"),
 			]),
 		).toBe(false);
 	});

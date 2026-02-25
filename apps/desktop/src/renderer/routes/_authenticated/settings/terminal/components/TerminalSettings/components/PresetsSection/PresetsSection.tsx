@@ -302,9 +302,14 @@ export function PresetsSection({
 		editingPreset?.applyOnNewTab ||
 		(!editingPreset?.applyOnWorkspaceCreated && editingPreset?.isDefault)
 	);
-	const modeValue =
-		editingPreset?.executionMode === "new-tab" ? "new-tab" : "split-pane";
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
+	const modeValue: ExecutionMode =
+		editingPreset?.executionMode === "new-tab" ||
+		editingPreset?.executionMode === "new-tab-split-pane"
+			? hasMultipleCommands
+				? editingPreset.executionMode
+				: "new-tab"
+			: "split-pane";
 
 	const handleEditorFieldChange = useCallback(
 		(column: PresetColumnKey, value: string) => {

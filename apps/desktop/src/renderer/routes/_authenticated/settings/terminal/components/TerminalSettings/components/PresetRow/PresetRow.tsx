@@ -66,15 +66,22 @@ export function PresetRow({
 		(!preset.applyOnWorkspaceCreated && preset.isDefault)
 	);
 	const modeValue =
-		preset.executionMode === "new-tab" ? "new-tab" : "split-pane";
+		preset.executionMode === "new-tab" ||
+		preset.executionMode === "new-tab-split-pane"
+			? preset.executionMode
+			: "split-pane";
 	const modeLabel =
 		modeValue === "new-tab"
 			? preset.commands.length > 1
 				? "Tab per command"
 				: "New tab"
-			: preset.commands.length > 1
-				? "Single tab + panes"
-				: "Split pane";
+			: modeValue === "new-tab-split-pane"
+				? preset.commands.length > 1
+					? "New tab + panes"
+					: "New tab"
+				: preset.commands.length > 1
+					? "Single tab + panes"
+					: "Split pane";
 	const commandsToShow = preset.commands.length > 0 ? preset.commands : [""];
 
 	return (

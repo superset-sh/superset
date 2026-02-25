@@ -1,5 +1,5 @@
 export type PresetOpenTarget = "new-tab" | "active-tab";
-export type PresetMode = "split-pane" | "new-tab";
+export type PresetMode = "split-pane" | "new-tab" | "new-tab-split-pane";
 
 export type PresetLaunchPlan =
 	| "new-tab-single"
@@ -9,8 +9,8 @@ export type PresetLaunchPlan =
 	| "active-tab-multi-pane";
 
 export function normalizePresetMode(mode: unknown): PresetMode {
-	if (mode === "new-tab") {
-		return "new-tab";
+	if (mode === "new-tab" || mode === "new-tab-split-pane") {
+		return mode;
 	}
 	return "split-pane";
 }
