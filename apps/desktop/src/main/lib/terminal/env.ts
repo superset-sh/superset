@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import defaultShell from "default-shell";
@@ -7,6 +7,25 @@ import { getShellEnv } from "../agent-setup/shell-wrappers";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;
+let localeProbeInFlight = false;
+
+function startLocaleProbe(): void {
+	if (cachedUtf8Locale || localeProbeInFlight) return;
+	localeProbeInFlight = true;
+
+	exec(
+		"locale 2>/dev/null | grep LANG= | cut -d= -f2",
+		{ encoding: "utf-8", timeout: 1000 },
+		(error, stdout) => {
+			localeProbeInFlight = false;
+			if (error) return;
+			const result = stdout.trim();
+			if (result.includes("UTF-8")) {
+				cachedUtf8Locale = result;
+			}
+		},
+	);
+}
 
 /**
  * Current hook protocol version.
@@ -49,19 +68,7 @@ export function getLocale(baseEnv: Record<string, string>): string {
 		return cachedUtf8Locale;
 	}
 
-	try {
-		const result = execSync("locale 2>/dev/null | grep LANG= | cut -d= -f2", {
-			encoding: "utf-8",
-			timeout: 1000,
-		}).trim();
-		if (result?.includes("UTF-8")) {
-			cachedUtf8Locale = result;
-			return cachedUtf8Locale;
-		}
-	} catch {
-		// Ignore - will use fallback
-	}
-
+	startLocaleProbe();
 	cachedUtf8Locale = "en_US.UTF-8";
 	return cachedUtf8Locale;
 }
@@ -72,7 +79,16 @@ export function getLocale(baseEnv: Record<string, string>): string {
  */
 export function prewarmTerminalEnv(): void {
 	const rawBaseEnv = sanitizeEnv(process.env) || {};
-	getLocale(rawBaseEnv);
+	const directLocale = rawBaseEnv.LANG?.includes("UTF-8")
+		? rawBaseEnv.LANG
+		: rawBaseEnv.LC_ALL?.includes("UTF-8")
+			? rawBaseEnv.LC_ALL
+			: null;
+	if (directLocale) {
+		cachedUtf8Locale = directLocale;
+		return;
+	}
+	startLocaleProbe();
 }
 
 export function sanitizeEnv(
