@@ -183,7 +183,9 @@ function TreeNodeComponent({
 				worktreePath={worktreePath}
 				projectId={projectId}
 				onStageAll={onStage || onStageFiles ? handleStageAll : undefined}
-				onUnstageAll={onUnstage || onUnstageFiles ? handleUnstageAll : undefined}
+				onUnstageAll={
+					onUnstage || onUnstageFiles ? handleUnstageAll : undefined
+				}
 				onDiscardAll={onDiscard ? handleDiscardAll : undefined}
 				isActioning={isActioning}
 			>

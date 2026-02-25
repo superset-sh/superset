@@ -104,7 +104,10 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const stageFilesMutation = electronTrpc.changes.stageFiles.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error, variables) => {
-			console.error(`Failed to stage files ${variables.filePaths.join(", ")}:`, error);
+			console.error(
+				`Failed to stage files ${variables.filePaths.join(", ")}:`,
+				error,
+			);
 			toast.error(`Failed to stage files: ${error.message}`);
 		},
 	});
@@ -112,7 +115,10 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const unstageFilesMutation = electronTrpc.changes.unstageFiles.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error, variables) => {
-			console.error(`Failed to unstage files ${variables.filePaths.join(", ")}:`, error);
+			console.error(
+				`Failed to unstage files ${variables.filePaths.join(", ")}:`,
+				error,
+			);
 			toast.error(`Failed to unstage files: ${error.message}`);
 		},
 	});
