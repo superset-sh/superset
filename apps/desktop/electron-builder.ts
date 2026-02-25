@@ -159,6 +159,9 @@ const config: Configuration = {
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
+			// Required for macOS microphone permission prompt
+			NSMicrophoneUsageDescription:
+				"Superset needs microphone access so voice-enabled tools like Codex transcription can capture audio input.",
 			// Required for macOS local network permission prompt
 			NSLocalNetworkUsageDescription:
 				"Superset needs access to your local network to discover and connect to development servers running on your network.",
