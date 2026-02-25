@@ -45,6 +45,7 @@ export function ChatMastraInterface({
 	const {
 		commands,
 		messages,
+		currentMessage,
 		isRunning = false,
 		error = null,
 	} = useMastraChatDisplay({
@@ -88,6 +89,7 @@ export function ChatMastraInterface({
 				<ChatMastraMessageList
 					messages={messages}
 					isRunning={Boolean(isRunning)}
+					currentMessage={currentMessage ?? null}
 				/>
 				<ChatInputFooter
 					cwd={cwd}

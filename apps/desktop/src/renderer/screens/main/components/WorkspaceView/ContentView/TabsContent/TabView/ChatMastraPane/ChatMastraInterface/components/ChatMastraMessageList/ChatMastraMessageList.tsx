@@ -10,16 +10,16 @@ import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import {
 	Tool,
 	ToolContent,
+	type ToolDisplayState,
 	ToolHeader,
 	ToolInput,
 	ToolOutput,
-	type ToolDisplayState,
 } from "@superset/ui/ai-elements/tool";
 import { FileSearchIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
-import { ReasoningBlock } from "../../../../ChatPane/ChatInterface/components/ReasoningBlock";
 import { StreamingMessageText } from "../../../../ChatPane/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
+import { ReasoningBlock } from "../../../../ChatPane/ChatInterface/components/ReasoningBlock";
 
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
@@ -30,6 +30,7 @@ type MastraToolResult = Extract<MastraMessageContent, { type: "tool_result" }>;
 interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
 	isRunning: boolean;
+	currentMessage: MastraMessage | null;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -240,12 +241,8 @@ function AssistantMessage({
 export function ChatMastraMessageList({
 	messages,
 	isRunning,
+	currentMessage,
 }: ChatMastraMessageListProps) {
-	const lastAssistantMessageId =
-		[...messages].reverse().find((message) => message.role === "assistant")
-			?.id ?? null;
-	const hasStreamingMessage = Boolean(isRunning && lastAssistantMessageId);
-
 	return (
 		<Conversation className="flex-1">
 			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 pl-4 pr-16">
@@ -264,13 +261,13 @@ export function ChatMastraMessageList({
 							<AssistantMessage
 								key={message.id}
 								message={message}
-								isStreaming={isRunning && message.id === lastAssistantMessageId}
+								isStreaming={isRunning && message.id === currentMessage?.id}
 							/>
 						);
 					})
 				)}
 				{isRunning &&
-					!hasStreamingMessage &&
+					!currentMessage &&
 					messages[messages.length - 1]?.role === "user" && (
 						<Message from="assistant">
 							<MessageContent>

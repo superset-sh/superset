@@ -20,11 +20,11 @@ import type { ModelOption, PermissionMode } from "../../types";
 import { IssueLinkCommand } from "../IssueLinkCommand";
 import { MentionAnchor, MentionProvider } from "../MentionPopover";
 import { SlashCommandInput } from "../SlashCommandInput";
-import { getErrorMessage } from "./utils/getErrorMessage";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
 import { FileDropOverlay } from "./components/FileDropOverlay";
 import { SlashCommandPreview } from "./components/SlashCommandPreview";
+import { getErrorMessage } from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
 	cwd: string;

@@ -3,6 +3,7 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo, useState } from "react";
 import type { ChatMastraServiceRouter } from "../../../server/trpc";
 import { chatMastraServiceTrpc } from "../../provider";
+import { useMessages } from "./hooks/use-messages";
 
 type RouterInputs = inferRouterInputs<ChatMastraServiceRouter>;
 type RouterOutputs = inferRouterOutputs<ChatMastraServiceRouter>;
@@ -12,7 +13,6 @@ type SessionOutputs = RouterOutputs["session"];
 
 type DisplayStateOutput = SessionOutputs["getDisplayState"];
 type ListMessagesOutput = SessionOutputs["listMessages"];
-type MastraMessage = NonNullable<ListMessagesOutput>[number];
 
 export type MastraChatDisplayState = DisplayStateOutput;
 export type MastraChatHistoryMessages = ListMessagesOutput;
@@ -27,27 +27,6 @@ export interface UseMastraChatDisplayOptions {
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
-}
-
-function mergeMessages({
-	historyMessages,
-	currentMessage,
-}: {
-	historyMessages: MastraMessage[];
-	currentMessage: MastraMessage | null;
-}) {
-	if (!currentMessage) return historyMessages;
-
-	const currentIndex = historyMessages.findIndex(
-		(message) => message.id === currentMessage.id,
-	);
-	if (currentIndex >= 0) {
-		const next = [...historyMessages];
-		next[currentIndex] = currentMessage;
-		return next;
-	}
-
-	return [...historyMessages, currentMessage];
 }
 
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
@@ -71,6 +50,8 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
 		{
 			enabled: enabled && Boolean(sessionId),
+			refetchInterval: toRefetchIntervalMs(fps),
+			refetchIntervalInBackground: true,
 			refetchOnWindowFocus: false,
 			staleTime: 0,
 			gcTime: 0,
@@ -79,11 +60,14 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 
 	const displayState = displayQuery.data ?? null;
 	const currentMessage = displayState?.currentMessage ?? null;
+	const historicalMessages = messagesQuery.data ?? [];
+	const isRunning = displayState?.isRunning ?? false;
 
-	const messages = useMemo(() => {
-		const historyMessages = messagesQuery.data ?? [];
-		return mergeMessages({ historyMessages, currentMessage });
-	}, [messagesQuery.data, currentMessage]);
+	const { messages, addOptimisticUserMessage, clearOptimistic } = useMessages({
+		historicalMessages,
+		currentMessage,
+		isRunning,
+	});
 
 	const commands = useMemo(
 		() => ({
@@ -92,6 +76,15 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			) => {
 				if (!sessionId) return;
 				setCommandError(null);
+
+				const text =
+					typeof input.payload?.content === "string"
+						? input.payload.content
+						: "";
+				if (text) {
+					addOptimisticUserMessage(text);
+				}
+
 				try {
 					return await utils.client.session.sendMessage.mutate({
 						sessionId,
@@ -100,6 +93,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					});
 				} catch (error) {
 					setCommandError(error);
+					clearOptimistic();
 					return;
 				}
 			},
@@ -169,7 +163,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 		}),
-		[cwd, sessionId, utils],
+		[addOptimisticUserMessage, clearOptimistic, cwd, sessionId, utils],
 	);
 
 	return {
