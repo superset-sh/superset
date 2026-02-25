@@ -20,7 +20,6 @@ import {
 } from "../utils/db-helpers";
 import {
 	createWorktreeFromPr,
-	fetchPrBranch,
 	generateBranchName,
 	getBranchPrefix,
 	getBranchWorktreePath,
@@ -199,11 +198,6 @@ async function handleNewWorktree({
 			`This PR's branch is already checked out in a worktree at: ${existingWorktreePath}`,
 		);
 	}
-
-	await fetchPrBranch({
-		repoPath: project.mainRepoPath,
-		prInfo,
-	});
 
 	const worktreePath = resolveWorktreePath(project, localBranchName);
 
