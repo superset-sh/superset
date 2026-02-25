@@ -36,21 +36,43 @@ const NATIVE_MODULES = [
 // Dependencies of native modules that need to be copied (may be hoisted or symlinked)
 const NATIVE_MODULE_DEPS = ["bindings", "file-uri-to-path"] as const;
 
+function getWorkspaceRootNodeModulesDir(nodeModulesDir: string): string {
+	return join(nodeModulesDir, "..", "..", "..", "node_modules");
+}
+
+function getBunFlatNodeModulesDir(nodeModulesDir: string): string {
+	return join(
+		getWorkspaceRootNodeModulesDir(nodeModulesDir),
+		".bun",
+		"node_modules",
+	);
+}
+
+function getBunStoreDir(nodeModulesDir: string): string {
+	return join(getWorkspaceRootNodeModulesDir(nodeModulesDir), ".bun");
+}
+
+function findBunStoreFolderName(
+	bunStoreDir: string,
+	moduleName: string,
+	version: string,
+): string | null {
+	if (!existsSync(bunStoreDir)) return null;
+	const entries = readdirSync(bunStoreDir);
+	const modulePrefix = `${moduleName.replace("/", "+")}@`;
+	const exactPrefix = `${modulePrefix}${version}`;
+	const exactMatch = entries.find((entry) => entry.startsWith(exactPrefix));
+	if (exactMatch) return exactMatch;
+	return entries.find((entry) => entry.startsWith(modulePrefix)) ?? null;
+}
+
 function copyModuleIfSymlink(
 	nodeModulesDir: string,
 	moduleName: string,
 	required: boolean,
 ): boolean {
 	const modulePath = join(nodeModulesDir, moduleName);
-	const bunFlatNodeModulesDir = join(
-		nodeModulesDir,
-		"..",
-		"..",
-		"..",
-		"node_modules",
-		".bun",
-		"node_modules",
-	);
+	const bunFlatNodeModulesDir = getBunFlatNodeModulesDir(nodeModulesDir);
 	const bunFlatModulePath = join(bunFlatNodeModulesDir, moduleName);
 
 	if (!existsSync(modulePath)) {
@@ -112,23 +134,30 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 	if (platformPackages.length === 0) return;
 
 	// Bun isolated installs keep package payloads in workspaceRoot/node_modules/.bun
-	const bunStoreDir = join(
-		nodeModulesDir,
-		"..",
-		"..",
-		"..",
-		"node_modules",
-		".bun",
-	);
+	const bunStoreDir = getBunStoreDir(nodeModulesDir);
+	let resolvedPlatformPackage = false;
 
 	for (const platformPkg of platformPackages) {
 		const destPath = join(nodeModulesDir, platformPkg.name);
 		if (existsSync(destPath)) {
-			copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false);
+			resolvedPlatformPackage =
+				copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false) ||
+				resolvedPlatformPackage;
 			continue;
 		}
 
-		const bunStoreFolderName = `${platformPkg.name.replace("/", "+")}@${platformPkg.version}`;
+		const bunStoreFolderName = findBunStoreFolderName(
+			bunStoreDir,
+			platformPkg.name,
+			platformPkg.version,
+		);
+		if (!bunStoreFolderName) {
+			console.warn(
+				`  ${platformPkg.name}: no Bun store entry matched version ${platformPkg.version}`,
+			);
+			continue;
+		}
+
 		const sourcePath = join(
 			bunStoreDir,
 			bunStoreFolderName,
@@ -136,12 +165,23 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 			platformPkg.name,
 		);
 		if (!existsSync(sourcePath)) {
+			console.warn(
+				`  ${platformPkg.name}: Bun store path missing after resolve (${sourcePath})`,
+			);
 			continue;
 		}
 
 		console.log(`  ${platformPkg.name}: copying from Bun store`);
 		mkdirSync(dirname(destPath), { recursive: true });
 		cpSync(sourcePath, destPath, { recursive: true });
+		resolvedPlatformPackage = true;
+	}
+
+	if (!resolvedPlatformPackage) {
+		console.error(
+			"  [ERROR] No `@ast-grep/napi-` runtime package was materialized",
+		);
+		process.exit(1);
 	}
 }
 
@@ -173,13 +213,7 @@ function copyLibsqlDependencies(nodeModulesDir: string): void {
 	// Some Bun installs place optional deps under .bun/node_modules/@scope.
 	// Mirror discovered @libsql optional packages if present there.
 	const bunFlatLibsqlScopePath = join(
-		nodeModulesDir,
-		"..",
-		"..",
-		"..",
-		"node_modules",
-		".bun",
-		"node_modules",
+		getBunFlatNodeModulesDir(nodeModulesDir),
 		"@libsql",
 	);
 	if (existsSync(bunFlatLibsqlScopePath)) {
