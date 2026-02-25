@@ -5,6 +5,7 @@ import { getOrCreateRuntime } from "./utils/runtime";
 import {
 	approvalRespondInput,
 	displayStateInput,
+	listMessagesInput,
 	planRespondInput,
 	questionRespondInput,
 	searchFilesInput,
@@ -35,6 +36,13 @@ export function createChatMastraServiceRouter() {
 				.query(async ({ input }) => {
 					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
 					return runtime.harness.getDisplayState();
+				}),
+
+			listMessages: t.procedure
+				.input(listMessagesInput)
+				.query(async ({ input }) => {
+					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					return runtime.harness.listMessages();
 				}),
 
 			sendMessage: t.procedure

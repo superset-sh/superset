@@ -11,7 +11,9 @@ type SessionInputs = RouterInputs["session"];
 type SessionOutputs = RouterOutputs["session"];
 
 type DisplayStateOutput = SessionOutputs["getDisplayState"];
+type ListMessagesOutput = SessionOutputs["listMessages"];
 export type MastraChatDisplayState = DisplayStateOutput;
+export type MastraChatHistoryMessages = ListMessagesOutput;
 
 export interface UseMastraChatDisplayOptions {
 	sessionId: string | null;
@@ -35,6 +37,16 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			enabled: enabled && Boolean(sessionId),
 			refetchInterval: toRefetchIntervalMs(fps),
 			refetchIntervalInBackground: true,
+			refetchOnWindowFocus: false,
+			staleTime: 0,
+			gcTime: 0,
+		},
+	);
+
+	const messagesQuery = chatMastraServiceTrpc.session.listMessages.useQuery(
+		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
+		{
+			enabled: enabled && Boolean(sessionId),
 			refetchOnWindowFocus: false,
 			staleTime: 0,
 			gcTime: 0,
@@ -95,6 +107,8 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 
 	return {
 		...displayState,
+		historyMessages: messagesQuery.data ?? null,
+		transportError: displayQuery.error ?? messagesQuery.error ?? null,
 		commands,
 	};
 }

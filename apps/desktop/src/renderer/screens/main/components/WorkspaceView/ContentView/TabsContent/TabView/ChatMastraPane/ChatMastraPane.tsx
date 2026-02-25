@@ -1,5 +1,5 @@
-import { ChatServiceProvider } from "@superset/chat/client";
 import { ChatMastraServiceProvider } from "@superset/chat-mastra/client";
+import { toast } from "@superset/ui/sonner";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -11,15 +11,14 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { createChatServiceIpcClient } from "../ChatPane/utils/chat-service-client";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatMastraInterface } from "./ChatMastraInterface";
 import { SessionSelector } from "./components/SessionSelector";
 import { createChatMastraServiceIpcClient } from "./utils/chat-mastra-service-client";
+import { reportChatMastraError } from "./utils/reportChatMastraError";
 
 const apiUrl = env.NEXT_PUBLIC_API_URL;
 const mastraIpcClient = createChatMastraServiceIpcClient();
-const legacyChatIpcClient = createChatServiceIpcClient();
 
 interface ChatMastraPaneProps {
 	paneId: string;
@@ -174,13 +173,16 @@ export function ChatMastraPane({
 				},
 			})
 			.catch((error) => {
-				console.error(
-					"[chat-mastra-pane] Failed to ensure remote workspace:",
+				reportChatMastraError({
+					operation: "workspace.ensure",
 					error,
-				);
+					workspaceId,
+					paneId,
+					organizationId,
+				});
 				ensuredRef.current = null;
 			});
-	}, [existsRemotely, organizationId, workspace, workspaceId]);
+	}, [existsRemotely, organizationId, paneId, workspace, workspaceId]);
 
 	const { data: sessionsData } = useLiveQuery(
 		(q) =>
@@ -203,45 +205,60 @@ export function ChatMastraPane({
 	const handleNewChat = useCallback(async () => {
 		if (!organizationId) return;
 		const newSessionId = crypto.randomUUID();
-		await createSessionRecord({
-			sessionId: newSessionId,
-			organizationId,
-			workspaceId,
-		});
-		switchChatMastraSession(paneId, newSessionId);
+		try {
+			await createSessionRecord({
+				sessionId: newSessionId,
+				organizationId,
+				workspaceId,
+			});
+			switchChatMastraSession(paneId, newSessionId);
+		} catch (error) {
+			reportChatMastraError({
+				operation: "session.create",
+				error,
+				sessionId: newSessionId,
+				workspaceId,
+				paneId,
+				organizationId,
+			});
+			toast.error("Failed to create session");
+		}
 	}, [organizationId, paneId, switchChatMastraSession, workspaceId]);
 
 	const handleDeleteSession = useCallback(
 		async (sessionIdToDelete: string) => {
-			await deleteSessionRecord(sessionIdToDelete);
-			if (sessionIdToDelete === sessionId) {
-				switchChatMastraSession(paneId, null);
+			try {
+				await deleteSessionRecord(sessionIdToDelete);
+				if (sessionIdToDelete === sessionId) {
+					switchChatMastraSession(paneId, null);
+				}
+			} catch (error) {
+				reportChatMastraError({
+					operation: "session.delete",
+					error,
+					sessionId: sessionIdToDelete,
+					workspaceId,
+					paneId,
+					organizationId,
+				});
+				throw error;
 			}
 		},
-		[paneId, sessionId, switchChatMastraSession],
+		[organizationId, paneId, sessionId, switchChatMastraSession, workspaceId],
 	);
 
 	useEffect(() => {
 		if (sessionId) return;
-		if (sessions.length > 0) {
-			switchChatMastraSession(paneId, sessions[0].id);
-			return;
-		}
 		if (!organizationId) return;
 		if (ensureSessionRef.current) return;
 		ensureSessionRef.current = true;
 
-		void handleNewChat().finally(() => {
-			ensureSessionRef.current = false;
-		});
-	}, [
-		handleNewChat,
-		organizationId,
-		paneId,
-		sessionId,
-		sessions,
-		switchChatMastraSession,
-	]);
+		void handleNewChat()
+			.catch(() => {})
+			.finally(() => {
+				ensureSessionRef.current = false;
+			});
+	}, [handleNewChat, organizationId, sessionId]);
 
 	const sessionItems = useMemo(
 		() => sessions.map((item) => toSessionSelectorItem(item)),
@@ -253,44 +270,39 @@ export function ChatMastraPane({
 			client={mastraIpcClient}
 			queryClient={electronQueryClient}
 		>
-			<ChatServiceProvider
-				client={legacyChatIpcClient}
-				queryClient={electronQueryClient}
-			>
-				<BasePaneWindow
-					paneId={paneId}
-					path={path}
-					tabId={tabId}
-					splitPaneAuto={splitPaneAuto}
-					removePane={removePane}
-					setFocusedPane={setFocusedPane}
-					renderToolbar={(handlers) => (
-						<div className="flex h-full w-full items-center justify-between px-3">
-							<div className="flex min-w-0 items-center gap-2">
-								<SessionSelector
-									currentSessionId={sessionId}
-									sessions={sessionItems}
-									onSelectSession={handleSelectSession}
-									onNewChat={handleNewChat}
-									onDeleteSession={handleDeleteSession}
-								/>
-							</div>
-							<PaneToolbarActions
-								splitOrientation={handlers.splitOrientation}
-								onSplitPane={handlers.onSplitPane}
-								onClosePane={handlers.onClosePane}
-								closeHotkeyId="CLOSE_TERMINAL"
+			<BasePaneWindow
+				paneId={paneId}
+				path={path}
+				tabId={tabId}
+				splitPaneAuto={splitPaneAuto}
+				removePane={removePane}
+				setFocusedPane={setFocusedPane}
+				renderToolbar={(handlers) => (
+					<div className="flex h-full w-full items-center justify-between px-3">
+						<div className="flex min-w-0 items-center gap-2">
+							<SessionSelector
+								currentSessionId={sessionId}
+								sessions={sessionItems}
+								onSelectSession={handleSelectSession}
+								onNewChat={handleNewChat}
+								onDeleteSession={handleDeleteSession}
 							/>
 						</div>
-					)}
-				>
-					<ChatMastraInterface
-						sessionId={sessionId}
-						workspaceId={workspaceId}
-						cwd={workspace?.worktreePath ?? ""}
-					/>
-				</BasePaneWindow>
-			</ChatServiceProvider>
+						<PaneToolbarActions
+							splitOrientation={handlers.splitOrientation}
+							onSplitPane={handlers.onSplitPane}
+							onClosePane={handlers.onClosePane}
+							closeHotkeyId="CLOSE_TERMINAL"
+						/>
+					</div>
+				)}
+			>
+				<ChatMastraInterface
+					sessionId={sessionId}
+					workspaceId={workspaceId}
+					cwd={workspace?.worktreePath ?? ""}
+				/>
+			</BasePaneWindow>
 		</ChatMastraServiceProvider>
 	);
 }
