@@ -150,7 +150,7 @@ export function FileItem({
 	};
 
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
-	const discardLabel = isDeleteAction ? "Delete" : "Discard Changes";
+	const discardLabel = isDeleteAction ? "Delete" : "Discard";
 	const discardDialogTitle = isDeleteAction
 		? `Delete "${fileName}"?`
 		: `Discard changes to "${fileName}"?`;
