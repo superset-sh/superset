@@ -1,35 +1,45 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { TerminalPreset } from "@superset/local-db";
-import { PRESETS_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
+import {
+	ensureSupersetHomeDirExists,
+	SUPERSET_HOME_DIR,
+} from "main/lib/app-environment";
+import { PRESETS_FILE_NAME } from "shared/constants";
 import { z } from "zod";
 import {
 	createSharedPresetsFile,
 	mergeSharedPresetsIntoTerminalPresets,
 	parseSharedPresetsFile,
+	previewSharedPresetImport,
 } from "./presets-file";
 
-function ensureProjectSupersetDir(mainRepoPath: string): string {
-	const supersetDir = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME);
-	if (!existsSync(supersetDir)) {
-		mkdirSync(supersetDir, { recursive: true });
+function ensureSupersetHomeForPresets(supersetHomeDir: string): void {
+	if (supersetHomeDir === SUPERSET_HOME_DIR) {
+		ensureSupersetHomeDirExists();
+		return;
 	}
-	return supersetDir;
+
+	if (!existsSync(supersetHomeDir)) {
+		mkdirSync(supersetHomeDir, { recursive: true });
+	}
 }
 
-export function getPresetsFilePath(mainRepoPath: string): string {
-	return join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, PRESETS_FILE_NAME);
+export function getPresetsFilePath(
+	supersetHomeDir = SUPERSET_HOME_DIR,
+): string {
+	return join(supersetHomeDir, PRESETS_FILE_NAME);
 }
 
 export function exportPresetsToFile({
-	mainRepoPath,
 	presets,
+	supersetHomeDir = SUPERSET_HOME_DIR,
 }: {
-	mainRepoPath: string;
 	presets: TerminalPreset[];
+	supersetHomeDir?: string;
 }): { path: string; exported: number; skipped: number } {
-	const path = getPresetsFilePath(mainRepoPath);
-	ensureProjectSupersetDir(mainRepoPath);
+	const path = getPresetsFilePath(supersetHomeDir);
+	ensureSupersetHomeForPresets(supersetHomeDir);
 
 	const { file, exported, skipped } = createSharedPresetsFile(presets);
 
@@ -47,11 +57,13 @@ export function exportPresetsToFile({
 }
 
 export function importPresetsFromFile({
-	mainRepoPath,
 	existingPresets,
+	supersetHomeDir = SUPERSET_HOME_DIR,
+	selectedIndices,
 }: {
-	mainRepoPath: string;
 	existingPresets: TerminalPreset[];
+	supersetHomeDir?: string;
+	selectedIndices?: number[];
 }): {
 	path: string;
 	created: number;
@@ -60,11 +72,9 @@ export function importPresetsFromFile({
 	skipped: number;
 	presets: TerminalPreset[];
 } {
-	const path = getPresetsFilePath(mainRepoPath);
+	const path = getPresetsFilePath(supersetHomeDir);
 	if (!existsSync(path)) {
-		throw new Error(
-			`No presets file found at ${PROJECT_SUPERSET_DIR_NAME}/${PRESETS_FILE_NAME}`,
-		);
+		throw new Error(`No presets file found at ${path}`);
 	}
 
 	let parsed: ReturnType<typeof parseSharedPresetsFile>;
@@ -85,9 +95,21 @@ export function importPresetsFromFile({
 		throw new Error("Failed to import presets");
 	}
 
+	const selectedIndexSet = selectedIndices
+		? new Set(
+				selectedIndices.filter(
+					(index) => index >= 0 && index < parsed.file.presets.length,
+				),
+			)
+		: null;
+	const sharedPresetsToImport =
+		selectedIndexSet === null
+			? parsed.file.presets
+			: parsed.file.presets.filter((_, index) => selectedIndexSet.has(index));
+
 	const merged = mergeSharedPresetsIntoTerminalPresets({
 		existingPresets,
-		sharedPresets: parsed.file.presets,
+		sharedPresets: sharedPresetsToImport,
 		initialSkipped: parsed.skipped,
 	});
 
@@ -98,5 +120,57 @@ export function importPresetsFromFile({
 		unchanged: merged.unchanged,
 		skipped: merged.skipped,
 		presets: merged.presets,
+	};
+}
+
+export function previewImportPresetsFromFile({
+	existingPresets,
+	supersetHomeDir = SUPERSET_HOME_DIR,
+}: {
+	existingPresets: TerminalPreset[];
+	supersetHomeDir?: string;
+}): {
+	path: string;
+	created: number;
+	updated: number;
+	unchanged: number;
+	skipped: number;
+	items: ReturnType<typeof previewSharedPresetImport>["items"];
+} {
+	const path = getPresetsFilePath(supersetHomeDir);
+	if (!existsSync(path)) {
+		throw new Error(`No presets file found at ${path}`);
+	}
+
+	let parsed: ReturnType<typeof parseSharedPresetsFile>;
+	try {
+		const content = readFileSync(path, "utf-8");
+		parsed = parseSharedPresetsFile(content);
+	} catch (error) {
+		console.error(
+			"[config/previewImportPresetsFromFile] Failed to parse presets:",
+			error,
+		);
+		if (error instanceof z.ZodError) {
+			throw new Error("Invalid presets file format");
+		}
+		if (error instanceof Error) {
+			throw new Error(error.message);
+		}
+		throw new Error("Failed to preview presets import");
+	}
+
+	const preview = previewSharedPresetImport({
+		existingPresets,
+		sharedPresets: parsed.file.presets,
+	});
+
+	return {
+		path,
+		created: preview.created,
+		updated: preview.updated,
+		unchanged: preview.unchanged,
+		skipped: parsed.skipped,
+		items: preview.items,
 	};
 }

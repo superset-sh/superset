@@ -20,6 +20,25 @@ export interface SharedPresetsFile {
 	presets: SharedPreset[];
 }
 
+export type SharedPresetPortableField =
+	| "name"
+	| "description"
+	| "cwd"
+	| "commands"
+	| "executionMode";
+
+export type SharedPresetImportAction = "create" | "update" | "unchanged";
+
+export interface SharedPresetImportPreviewItem {
+	index: number;
+	name: string;
+	description?: string;
+	action: SharedPresetImportAction;
+	changedFields: SharedPresetPortableField[];
+	existingPresetId?: string;
+	existingPresetName?: string;
+}
+
 interface RawSharedPreset {
 	name: string;
 	description?: string;
@@ -94,6 +113,41 @@ function isPortablePresetEqual(
 		normalizePresetExecutionMode(existingPreset.executionMode) ===
 			normalizePresetExecutionMode(sharedPreset.executionMode)
 	);
+}
+
+function getPortableFieldChanges(
+	existingPreset: TerminalPreset,
+	sharedPreset: SharedPreset,
+): SharedPresetPortableField[] {
+	const changedFields: SharedPresetPortableField[] = [];
+
+	if (existingPreset.name !== sharedPreset.name) {
+		changedFields.push("name");
+	}
+
+	if (
+		(existingPreset.description ?? undefined) !==
+		(sharedPreset.description ?? undefined)
+	) {
+		changedFields.push("description");
+	}
+
+	if (existingPreset.cwd !== sharedPreset.cwd) {
+		changedFields.push("cwd");
+	}
+
+	if (!stringArraysEqual(existingPreset.commands, sharedPreset.commands)) {
+		changedFields.push("commands");
+	}
+
+	if (
+		normalizePresetExecutionMode(existingPreset.executionMode) !==
+		normalizePresetExecutionMode(sharedPreset.executionMode)
+	) {
+		changedFields.push("executionMode");
+	}
+
+	return changedFields;
 }
 
 export function createSharedPresetsFile(
@@ -253,5 +307,103 @@ export function mergeSharedPresetsIntoTerminalPresets({
 		updated,
 		unchanged,
 		skipped,
+	};
+}
+
+export function previewSharedPresetImport({
+	existingPresets,
+	sharedPresets,
+}: {
+	existingPresets: TerminalPreset[];
+	sharedPresets: SharedPreset[];
+}): {
+	items: SharedPresetImportPreviewItem[];
+	created: number;
+	updated: number;
+	unchanged: number;
+} {
+	const workingPresets = [...existingPresets];
+	const presetIndexByName = new Map<string, number>();
+
+	for (const [index, preset] of workingPresets.entries()) {
+		const key = toNameKey(preset.name);
+		if (!presetIndexByName.has(key)) {
+			presetIndexByName.set(key, index);
+		}
+	}
+
+	const items: SharedPresetImportPreviewItem[] = [];
+	let created = 0;
+	let updated = 0;
+	let unchanged = 0;
+
+	for (const [index, sharedPreset] of sharedPresets.entries()) {
+		const key = toNameKey(sharedPreset.name);
+		const existingIndex = presetIndexByName.get(key);
+
+		if (existingIndex === undefined) {
+			items.push({
+				index,
+				name: sharedPreset.name,
+				description: sharedPreset.description,
+				action: "create",
+				changedFields: [
+					"name",
+					"description",
+					"cwd",
+					"commands",
+					"executionMode",
+				],
+			});
+
+			workingPresets.push({
+				id: `preview-${index}`,
+				name: sharedPreset.name,
+				description: sharedPreset.description,
+				cwd: sharedPreset.cwd,
+				commands: sharedPreset.commands,
+				executionMode: normalizePresetExecutionMode(sharedPreset.executionMode),
+			});
+			presetIndexByName.set(key, workingPresets.length - 1);
+			created += 1;
+			continue;
+		}
+
+		const existingPreset = workingPresets[existingIndex];
+		const changedFields = getPortableFieldChanges(existingPreset, sharedPreset);
+		const action: SharedPresetImportAction =
+			changedFields.length === 0 ? "unchanged" : "update";
+
+		items.push({
+			index,
+			name: sharedPreset.name,
+			description: sharedPreset.description,
+			action,
+			changedFields,
+			existingPresetId: existingPreset.id,
+			existingPresetName: existingPreset.name,
+		});
+
+		if (action === "unchanged") {
+			unchanged += 1;
+			continue;
+		}
+
+		workingPresets[existingIndex] = {
+			...existingPreset,
+			name: sharedPreset.name,
+			description: sharedPreset.description,
+			cwd: sharedPreset.cwd,
+			commands: sharedPreset.commands,
+			executionMode: normalizePresetExecutionMode(sharedPreset.executionMode),
+		};
+		updated += 1;
+	}
+
+	return {
+		items,
+		created,
+		updated,
+		unchanged,
 	};
 }

@@ -15,6 +15,7 @@ import {
 	exportPresetsToFile,
 	getPresetsFilePath,
 	importPresetsFromFile,
+	previewImportPresetsFromFile,
 } from "./presets-io";
 
 async function hasConfiguredScripts(mainRepoPath: string): Promise<boolean> {
@@ -118,60 +119,42 @@ export const createConfigRouter = () => {
 				return ensureConfigExists(project.mainRepoPath);
 			}),
 
-		getPresetsFilePath: publicProcedure
-			.input(z.object({ projectId: z.string() }))
-			.query(({ input }) => {
-				const project = getProjectById(input.projectId);
-				if (!project) {
-					return null;
-				}
+		getPresetsFilePath: publicProcedure.query(() => getPresetsFilePath()),
 
-				return getPresetsFilePath(project.mainRepoPath);
-			}),
+		getPresetsFileStatus: publicProcedure.query(() => {
+			const path = getPresetsFilePath();
+			return {
+				path,
+				exists: existsSync(path),
+			};
+		}),
 
-		getPresetsFileStatus: publicProcedure
-			.input(z.object({ projectId: z.string() }))
-			.query(({ input }) => {
-				const project = getProjectById(input.projectId);
-				if (!project) {
-					return null;
-				}
+		exportPresets: publicProcedure.mutation(() => {
+			const presets = getTerminalPresetsEnsuringInitialized();
+			return exportPresetsToFile({
+				presets,
+			});
+		}),
 
-				const path = getPresetsFilePath(project.mainRepoPath);
-				return {
-					path,
-					exists: existsSync(path),
-				};
-			}),
-
-		exportPresets: publicProcedure
-			.input(z.object({ projectId: z.string() }))
-			.mutation(({ input }) => {
-				const project = getProjectById(input.projectId);
-				if (!project) {
-					throw new Error("Project not found");
-				}
-
-				const presets = getTerminalPresetsEnsuringInitialized();
-				return exportPresetsToFile({
-					mainRepoPath: project.mainRepoPath,
-					presets,
-				});
-			}),
+		previewImportPresets: publicProcedure.query(() => {
+			const existingPresets = getTerminalPresetsEnsuringInitialized();
+			return previewImportPresetsFromFile({
+				existingPresets,
+			});
+		}),
 
 		importPresets: publicProcedure
-			.input(z.object({ projectId: z.string() }))
+			.input(
+				z.object({
+					selectedIndices: z.array(z.number().int().min(0)).optional(),
+				}),
+			)
 			.mutation(({ input }) => {
-				const project = getProjectById(input.projectId);
-				if (!project) {
-					throw new Error("Project not found");
-				}
-
 				const existingPresets = getTerminalPresetsEnsuringInitialized();
 
 				const result = importPresetsFromFile({
-					mainRepoPath: project.mainRepoPath,
 					existingPresets,
+					selectedIndices: input.selectedIndices,
 				});
 
 				saveTerminalPresets(result.presets);

@@ -47,7 +47,6 @@ export const SETTING_ITEM_ID = {
 	PROJECT_NAME: "project-name",
 	PROJECT_PATH: "project-path",
 	PROJECT_SCRIPTS: "project-scripts",
-	PROJECT_PRESETS: "project-presets",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
 	PROJECT_ENV_VARS: "project-env-vars",
@@ -485,7 +484,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.TERMINAL_PRESETS,
 		section: "terminal",
 		title: "Terminal Presets",
-		description: "Manage your terminal presets",
+		description:
+			"Manage terminal presets and import/export ~/.superset/presets.json",
 		keywords: [
 			"terminal",
 			"preset",
@@ -498,6 +498,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"config",
 			"shell",
 			"run",
+			"import",
+			"export",
+			"share",
+			"sharing",
+			".superset",
+			"presets.json",
 		],
 	},
 	{
@@ -700,26 +706,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cleanup",
 			"onboarding",
 			"config",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.PROJECT_PRESETS,
-		section: "project",
-		title: "Preset Sharing",
-		description:
-			"Import and export terminal presets via .superset/presets.json",
-		keywords: [
-			"project",
-			"presets",
-			"terminal presets",
-			"share",
-			"sharing",
-			"import",
-			"export",
-			".superset",
-			"presets.json",
-			"commands",
-			"teammates",
 		],
 	},
 	{

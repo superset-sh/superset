@@ -3,19 +3,19 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { TerminalPreset } from "@superset/local-db";
-import { PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
 import {
 	exportPresetsToFile,
 	getPresetsFilePath,
 	importPresetsFromFile,
+	previewImportPresetsFromFile,
 } from "./presets-io";
 
 const TEST_DIR = join(tmpdir(), `superset-presets-io-test-${process.pid}`);
 
-function createRepoPath(name: string): string {
-	const repoPath = join(TEST_DIR, name);
-	mkdirSync(repoPath, { recursive: true });
-	return repoPath;
+function createSupersetHomeDir(name: string): string {
+	const supersetHomeDir = join(TEST_DIR, name);
+	mkdirSync(supersetHomeDir, { recursive: true });
+	return supersetHomeDir;
 }
 
 afterEach(() => {
@@ -25,8 +25,8 @@ afterEach(() => {
 });
 
 describe("presets-io", () => {
-	test("exportPresetsToFile creates .superset directory and writes presets.json", () => {
-		const repoPath = createRepoPath("export-repo");
+	test("exportPresetsToFile creates presets.json in Superset home", () => {
+		const supersetHomeDir = createSupersetHomeDir("export-home");
 		const presets: TerminalPreset[] = [
 			{
 				id: "p1",
@@ -37,8 +37,8 @@ describe("presets-io", () => {
 			},
 		];
 
-		const result = exportPresetsToFile({ mainRepoPath: repoPath, presets });
-		const expectedPath = getPresetsFilePath(repoPath);
+		const result = exportPresetsToFile({ supersetHomeDir, presets });
+		const expectedPath = getPresetsFilePath(supersetHomeDir);
 
 		expect(result.path).toBe(expectedPath);
 		expect(result.exported).toBe(1);
@@ -47,11 +47,8 @@ describe("presets-io", () => {
 	});
 
 	test("importPresetsFromFile returns merge counts", () => {
-		const repoPath = createRepoPath("import-repo");
-		const supersetDir = join(repoPath, PROJECT_SUPERSET_DIR_NAME);
-		mkdirSync(supersetDir, { recursive: true });
-
-		const presetsPath = getPresetsFilePath(repoPath);
+		const supersetHomeDir = createSupersetHomeDir("import-home");
+		const presetsPath = getPresetsFilePath(supersetHomeDir);
 		writeFileSync(
 			presetsPath,
 			JSON.stringify(
@@ -103,8 +100,8 @@ describe("presets-io", () => {
 		];
 
 		const result = importPresetsFromFile({
-			mainRepoPath: repoPath,
 			existingPresets,
+			supersetHomeDir,
 		});
 
 		expect(result.path).toBe(presetsPath);
@@ -122,14 +119,128 @@ describe("presets-io", () => {
 		expect(updatedCodex?.executionMode).toBe("new-tab");
 	});
 
+	test("previewImportPresetsFromFile returns per-preset actions and counts", () => {
+		const supersetHomeDir = createSupersetHomeDir("preview-home");
+		const presetsPath = getPresetsFilePath(supersetHomeDir);
+		writeFileSync(
+			presetsPath,
+			JSON.stringify(
+				{
+					schemaVersion: 1,
+					exportedAt: "2026-02-25T12:00:00.000Z",
+					app: "superset",
+					presets: [
+						{
+							name: "codex",
+							cwd: "",
+							commands: ["codex --new"],
+						},
+						{
+							name: "claude",
+							cwd: "",
+							commands: ["claude"],
+						},
+					],
+				},
+				null,
+				2,
+			),
+			"utf-8",
+		);
+
+		const existingPresets: TerminalPreset[] = [
+			{
+				id: "p1",
+				name: "Codex",
+				cwd: "",
+				commands: ["codex --old"],
+				executionMode: "split-pane",
+			},
+			{
+				id: "p2",
+				name: "untouched",
+				cwd: "",
+				commands: ["echo untouched"],
+				executionMode: "split-pane",
+			},
+		];
+
+		const result = previewImportPresetsFromFile({
+			existingPresets,
+			supersetHomeDir,
+		});
+
+		expect(result.path).toBe(presetsPath);
+		expect(result.created).toBe(1);
+		expect(result.updated).toBe(1);
+		expect(result.unchanged).toBe(0);
+		expect(result.skipped).toBe(0);
+		expect(result.items).toHaveLength(2);
+		expect(result.items[0]?.action).toBe("update");
+		expect(result.items[1]?.action).toBe("create");
+	});
+
+	test("importPresetsFromFile applies only selected indices", () => {
+		const supersetHomeDir = createSupersetHomeDir("selected-home");
+		const presetsPath = getPresetsFilePath(supersetHomeDir);
+		writeFileSync(
+			presetsPath,
+			JSON.stringify(
+				{
+					schemaVersion: 1,
+					exportedAt: "2026-02-25T12:00:00.000Z",
+					app: "superset",
+					presets: [
+						{
+							name: "codex",
+							cwd: "",
+							commands: ["codex --new"],
+						},
+						{
+							name: "claude",
+							cwd: "",
+							commands: ["claude"],
+						},
+					],
+				},
+				null,
+				2,
+			),
+			"utf-8",
+		);
+
+		const existingPresets: TerminalPreset[] = [
+			{
+				id: "p1",
+				name: "Codex",
+				cwd: "",
+				commands: ["codex --old"],
+				executionMode: "split-pane",
+			},
+		];
+
+		const result = importPresetsFromFile({
+			existingPresets,
+			supersetHomeDir,
+			selectedIndices: [1],
+		});
+
+		expect(result.created).toBe(1);
+		expect(result.updated).toBe(0);
+		expect(result.unchanged).toBe(0);
+		expect(result.presets).toHaveLength(2);
+		const codex = result.presets.find((preset) => preset.id === "p1");
+		expect(codex?.commands).toEqual(["codex --old"]);
+	});
+
 	test("importPresetsFromFile throws when presets file is missing", () => {
-		const repoPath = createRepoPath("missing-file-repo");
+		const supersetHomeDir = join(TEST_DIR, "missing-file-home");
 		const existingPresets: TerminalPreset[] = [];
 
 		expect(() =>
 			importPresetsFromFile({
-				mainRepoPath: repoPath,
 				existingPresets,
+				supersetHomeDir,
 			}),
 		).toThrow("No presets file found");
 	});

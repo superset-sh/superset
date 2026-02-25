@@ -4,6 +4,7 @@ import {
 	createSharedPresetsFile,
 	mergeSharedPresetsIntoTerminalPresets,
 	parseSharedPresetsFile,
+	previewSharedPresetImport,
 	SHARED_PRESETS_FILE_SCHEMA_VERSION,
 } from "./presets-file";
 
@@ -177,6 +178,89 @@ describe("presets-file", () => {
 				cwd: "",
 				commands: ["codex"],
 				executionMode: "split-pane",
+			},
+		]);
+	});
+
+	test("previewSharedPresetImport reports create/update/unchanged actions", () => {
+		const existingPresets: TerminalPreset[] = [
+			{
+				id: "existing-codex",
+				name: "codex",
+				description: "existing",
+				cwd: "",
+				commands: ["codex --old"],
+				executionMode: "split-pane",
+			},
+			{
+				id: "existing-claude",
+				name: "claude",
+				cwd: "",
+				commands: ["claude"],
+				executionMode: "split-pane",
+			},
+		];
+
+		const result = previewSharedPresetImport({
+			existingPresets,
+			sharedPresets: [
+				{
+					name: "codex",
+					description: "new description",
+					cwd: "apps/desktop",
+					commands: ["codex --new"],
+					executionMode: "new-tab",
+				},
+				{
+					name: "claude",
+					cwd: "",
+					commands: ["claude"],
+					executionMode: "split-pane",
+				},
+				{
+					name: "gemini",
+					cwd: "",
+					commands: ["gemini --yolo"],
+					executionMode: "split-pane",
+				},
+			],
+		});
+
+		expect(result.created).toBe(1);
+		expect(result.updated).toBe(1);
+		expect(result.unchanged).toBe(1);
+
+		expect(result.items).toEqual([
+			{
+				index: 0,
+				name: "codex",
+				description: "new description",
+				action: "update",
+				changedFields: ["description", "cwd", "commands", "executionMode"],
+				existingPresetId: "existing-codex",
+				existingPresetName: "codex",
+			},
+			{
+				index: 1,
+				name: "claude",
+				description: undefined,
+				action: "unchanged",
+				changedFields: [],
+				existingPresetId: "existing-claude",
+				existingPresetName: "claude",
+			},
+			{
+				index: 2,
+				name: "gemini",
+				description: undefined,
+				action: "create",
+				changedFields: [
+					"name",
+					"description",
+					"cwd",
+					"commands",
+					"executionMode",
+				],
 			},
 		]);
 	});

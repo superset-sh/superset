@@ -61,6 +61,19 @@ function getSettings() {
 	return row;
 }
 
+const terminalPresetSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	description: z.string().optional(),
+	cwd: z.string(),
+	commands: z.array(z.string()),
+	pinnedToBar: z.boolean().optional(),
+	isDefault: z.boolean().optional(),
+	applyOnWorkspaceCreated: z.boolean().optional(),
+	applyOnNewTab: z.boolean().optional(),
+	executionMode: z.enum(EXECUTION_MODES).optional(),
+});
+
 /** Get presets tagged with a given auto-apply field, falling back to the isDefault preset */
 export function getPresetsForTrigger(
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
@@ -77,6 +90,18 @@ export const createSettingsRouter = () => {
 		getTerminalPresets: publicProcedure.query(() =>
 			getTerminalPresetsEnsuringInitialized(),
 		),
+		replaceTerminalPresets: publicProcedure
+			.input(
+				z.object({
+					presets: z.array(terminalPresetSchema),
+				}),
+			)
+			.mutation(({ input }) => {
+				saveTerminalPresets(input.presets, {
+					terminalPresetsInitialized: true,
+				});
+				return { success: true };
+			}),
 		createTerminalPreset: publicProcedure
 			.input(
 				z.object({
