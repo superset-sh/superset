@@ -257,6 +257,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	isRestoredModeRef.current = isRestoredMode;
 	const connectionErrorRef = useRef(connectionError);
 	connectionErrorRef.current = connectionError;
+	const previousConnectionErrorRef = useRef<string | null>(connectionError);
 
 	// Stream handling
 	const { handleTerminalExit, handleStreamError, handleStreamData } =
@@ -296,6 +297,15 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		},
 		enabled: true,
 	});
+
+	// Reset retry budget after any successful recovery path clears connection errors.
+	useEffect(() => {
+		const previousError = previousConnectionErrorRef.current;
+		previousConnectionErrorRef.current = connectionError;
+		if (previousError && !connectionError) {
+			scheduleRetryBudgetReset();
+		}
+	}, [connectionError, scheduleRetryBudgetReset]);
 
 	// Auto-retry when connection error is set
 	useEffect(() => {
