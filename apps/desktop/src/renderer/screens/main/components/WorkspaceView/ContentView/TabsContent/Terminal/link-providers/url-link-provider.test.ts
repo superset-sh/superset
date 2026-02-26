@@ -603,7 +603,9 @@ describe("UrlLinkProvider", () => {
 
 			const links = await getLinks(provider, 1);
 			expect(links.length).toBe(1);
-			expect(links[0].text).toBe("https://example.com/path/to/resource?x=1&y=2");
+			expect(links[0].text).toBe(
+				"https://example.com/path/to/resource?x=1&y=2",
+			);
 		});
 
 		it("should not merge hyphen-number prose after URL", async () => {

@@ -169,8 +169,7 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		return (
 			URL_CONTINUATION_SIGNAL_PATTERN.test(continuation.text) ||
 			/^[0-9]/.test(continuation.text) ||
-			(continuation.leadingTrim > 0 &&
-				/^[A-Za-z0-9]/.test(continuation.text))
+			(continuation.leadingTrim > 0 && /^[A-Za-z0-9]/.test(continuation.text))
 		);
 	}
 
