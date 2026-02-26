@@ -90,6 +90,9 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		if (!continuationText) {
 			return null;
 		}
+		if (!/[A-Za-z0-9]/.test(continuationText)) {
+			return null;
+		}
 
 		return {
 			leadingTrim,
@@ -111,8 +114,28 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		const continuationLooksUrlLike =
 			URL_CONTINUATION_SIGNAL_PATTERN.test(continuationText) ||
 			/^[0-9]/.test(continuationText);
+		const continuationStartsListMarker =
+			continuationText.startsWith("-") &&
+			continuationText.length > 1 &&
+			/[A-Za-z0-9]/.test(continuationText.slice(1)) &&
+			prevEnd !== "-";
 
-		return boundaryLooksWrapped && continuationLooksUrlLike;
+		return (
+			boundaryLooksWrapped &&
+			continuationLooksUrlLike &&
+			!continuationStartsListMarker
+		);
+	}
+
+	private isLikelyContinuationLine(rawText: string): boolean {
+		const continuation = this.getContinuationSegment(rawText);
+		if (!continuation) {
+			return false;
+		}
+		return (
+			URL_CONTINUATION_SIGNAL_PATTERN.test(continuation.text) ||
+			/^[0-9]/.test(continuation.text)
+		);
 	}
 
 	private tryExtendForward(lines: ContextLine[]): boolean {
@@ -173,10 +196,6 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		}
 
 		const prevRawText = prevBufferLine.translateToString(true);
-		if (!URL_AT_END_PATTERN.test(prevRawText)) {
-			return false;
-		}
-
 		const firstRawText = this.getLineText(first.index);
 		if (!firstRawText) {
 			return false;
@@ -184,6 +203,12 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 
 		const continuation = this.getContinuationSegment(firstRawText);
 		if (!continuation) {
+			return false;
+		}
+		if (
+			!URL_AT_END_PATTERN.test(prevRawText) &&
+			!this.isLikelyContinuationLine(prevRawText)
+		) {
 			return false;
 		}
 

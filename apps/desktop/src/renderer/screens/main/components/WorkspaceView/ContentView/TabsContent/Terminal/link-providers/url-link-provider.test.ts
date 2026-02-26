@@ -417,6 +417,45 @@ describe("UrlLinkProvider", () => {
 			);
 			expect(linksFromSecondLine.length).toBe(0);
 		});
+
+		it("should not merge into following list-item URL continuations", async () => {
+			const terminal = createMockTerminal(
+				[
+					{
+						text: "https://www.google.com/search?q=testing+long+urls+for+development+pur",
+					},
+					{
+						text: "  poses&oq=testing+long+urls+for+development+purposes&sourceid=chrome&ie=",
+					},
+					{ text: "  UTF-8&num=100&start=0&safe=active&filter=0" },
+					{
+						text: " - https://jsonplaceholder.typicode.com/comments?postId=1&sort=id&_orde",
+					},
+					{
+						text: "  r=desc&_start=0&_end=10&_limit=10&_page=1&_embed=post&_expand=user",
+					},
+					{
+						text: " - https://httpbin.org/anything/path/to/some/deeply/nested/resource/that",
+					},
+					{
+						text: "  /keeps/going/and/going/until/it/becomes/quite/long?param1=value1",
+					},
+				],
+				85,
+			);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const firstLinks = await getLinks(provider, 1);
+			const firstLinksFromLastLine = await getLinks(provider, 3);
+
+			const expectedFirstUrl =
+				"https://www.google.com/search?q=testing+long+urls+for+development+purposes&oq=testing+long+urls+for+development+purposes&sourceid=chrome&ie=UTF-8&num=100&start=0&safe=active&filter=0";
+			expect(firstLinks.length).toBe(1);
+			expect(firstLinks[0].text).toBe(expectedFirstUrl);
+			expect(firstLinksFromLastLine.length).toBe(1);
+			expect(firstLinksFromLastLine[0].text).toBe(expectedFirstUrl);
+		});
 	});
 
 	describe("handleActivation", () => {
