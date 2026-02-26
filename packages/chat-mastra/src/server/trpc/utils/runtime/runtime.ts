@@ -1,5 +1,6 @@
 import { MCPClient } from "@mastra/mcp";
 import { createMastraCode } from "mastracode";
+import { getSupersetMcpTools } from "./superset-mcp";
 
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>
@@ -103,9 +104,15 @@ function subscribeRuntimeHooks(runtime: RuntimeSession): void {
 	});
 }
 
+export interface RuntimeConfig {
+	headers: () => Promise<Record<string, string>>;
+	apiUrl: string;
+}
+
 export async function getOrCreateRuntime(
 	sessionId: string,
-	cwd?: string,
+	cwd: string | undefined,
+	config: RuntimeConfig,
 ): Promise<RuntimeSession> {
 	const existing = runtimes.get(sessionId);
 	if (existing) {
@@ -117,7 +124,11 @@ export async function getOrCreateRuntime(
 	}
 
 	const runtimeCwd = cwd ?? process.cwd();
-	const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
+	const extraTools = await getSupersetMcpTools(config.headers, config.apiUrl);
+	const runtimeMastra = await createMastraCode({
+		cwd: runtimeCwd,
+		extraTools,
+	});
 	if (runtimeMastra.mcpManager?.hasServers()) {
 		try {
 			await runtimeMastra.mcpManager.init();

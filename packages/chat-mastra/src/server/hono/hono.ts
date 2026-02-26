@@ -4,19 +4,22 @@ import {
 	type ChatMastraServiceRouter,
 	createChatMastraServiceRouter,
 } from "../trpc";
+import type { RuntimeConfig } from "../trpc/utils/runtime";
 
 export interface CreateChatMastraHonoAppOptions {
 	endpoint?: string;
+	config: RuntimeConfig;
 }
 
 export function createChatMastraHonoApp({
 	endpoint = "/trpc/chat-mastra",
+	config,
 }: CreateChatMastraHonoAppOptions): {
 	app: Hono;
 	router: ChatMastraServiceRouter;
 } {
 	const app = new Hono();
-	const router = createChatMastraServiceRouter();
+	const router = createChatMastraServiceRouter(config);
 
 	app.all(`${endpoint}/*`, async (c) => {
 		return fetchRequestHandler({
