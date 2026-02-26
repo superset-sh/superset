@@ -5,7 +5,10 @@ import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
+import { useCallback } from "react";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { READ_ONLY_TOOLS } from "../../constants";
+import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
 import {
 	getArgs,
@@ -14,24 +17,42 @@ import {
 	toWsToolState,
 } from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
+import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
 
 interface MastraToolCallBlockProps {
 	part: ToolPart;
+	workspaceId?: string;
+	workspaceCwd?: string;
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
 export function MastraToolCallBlock({
 	part,
+	workspaceId,
+	workspaceCwd,
 	onAnswer,
 }: MastraToolCallBlockProps) {
 	const args = getArgs(part);
 	const result = getResult(part);
 	const state = toWsToolState(part);
 	const toolName = normalizeToolName(getToolName(part));
+	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
 	const toolDisplayName = toolName
 		.replace("mastra_workspace_", "")
 		.replaceAll("_", " ");
+	const openFileInPane = useCallback(
+		(filePath: string) => {
+			if (!workspaceId) return;
+			const normalizedPath = normalizeWorkspaceFilePath({
+				filePath,
+				workspaceRoot: workspaceCwd,
+			});
+			if (!normalizedPath) return;
+			addFileViewerPane(workspaceId, { filePath: normalizedPath });
+		},
+		[addFileViewerPane, workspaceCwd, workspaceId],
+	);
 
 	const outputObject =
 		typeof result.output === "object" && result.output !== null
@@ -158,6 +179,7 @@ export function MastraToolCallBlock({
 				filePath={filePath}
 				content={content}
 				isWriteMode
+				onFilePathClick={openFileInPane}
 				state={state}
 			/>
 		);
@@ -173,6 +195,14 @@ export function MastraToolCallBlock({
 				filePath={filePath}
 				oldString={oldString}
 				newString={newString}
+				onFilePathClick={openFileInPane}
+				renderExpandedContent={() => (
+					<EditToolExpandedDiff
+						filePath={filePath}
+						oldString={oldString}
+						newString={newString}
+					/>
+				)}
 				state={state}
 			/>
 		);
@@ -239,7 +269,7 @@ export function MastraToolCallBlock({
 
 	// --- Read-only exploration tools ---
 	if (READ_ONLY_TOOLS.has(toolName)) {
-		return <ReadOnlyToolCall part={part} />;
+		return <ReadOnlyToolCall part={part} onOpenFileInPane={openFileInPane} />;
 	}
 
 	// --- Destructive workspace tools ---

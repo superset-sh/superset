@@ -27,6 +27,8 @@ interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
 	isRunning: boolean;
 	currentMessage: MastraMessage | null;
+	workspaceId: string;
+	workspaceCwd?: string;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -125,9 +127,13 @@ function UserMessage({ message }: { message: MastraMessage }) {
 function AssistantMessage({
 	message,
 	isStreaming,
+	workspaceId,
+	workspaceCwd,
 }: {
 	message: MastraMessage;
 	isStreaming: boolean;
+	workspaceId: string;
+	workspaceCwd?: string;
 }) {
 	const nodes: ReactNode[] = [];
 	for (let partIndex = 0; partIndex < message.content.length; partIndex++) {
@@ -183,6 +189,8 @@ function AssistantMessage({
 						result,
 						isStreaming,
 					})}
+					workspaceId={workspaceId}
+					workspaceCwd={workspaceCwd}
 				/>,
 			);
 
@@ -198,6 +206,8 @@ function AssistantMessage({
 				<MastraToolCallBlock
 					key={`${message.id}-tool-result-${part.id}`}
 					part={toToolPartFromResult(part)}
+					workspaceId={workspaceId}
+					workspaceCwd={workspaceCwd}
 				/>,
 			);
 			continue;
@@ -235,6 +245,8 @@ export function ChatMastraMessageList({
 	messages,
 	isRunning,
 	currentMessage,
+	workspaceId,
+	workspaceCwd,
 }: ChatMastraMessageListProps) {
 	return (
 		<Conversation className="flex-1">
@@ -255,6 +267,8 @@ export function ChatMastraMessageList({
 								key={message.id}
 								message={message}
 								isStreaming={isRunning && message.id === currentMessage?.id}
+								workspaceId={workspaceId}
+								workspaceCwd={workspaceCwd}
 							/>
 						);
 					})
