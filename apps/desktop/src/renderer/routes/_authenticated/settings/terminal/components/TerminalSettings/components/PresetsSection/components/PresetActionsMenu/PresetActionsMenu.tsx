@@ -68,6 +68,8 @@ export function PresetActionsMenu({
 	const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
 		new Set(),
 	);
+	const [hasInitializedSelection, setHasInitializedSelection] =
+		useState(false);
 	const selectFile = electronTrpc.window.selectFile.useMutation();
 
 	const exportPresets = electronTrpc.config.exportPresets.useMutation({
@@ -108,20 +110,26 @@ export function PresetActionsMenu({
 		});
 
 	useEffect(() => {
-		if (!isImportDialogOpen || !previewImportPresets.data) {
+		if (
+			!isImportDialogOpen ||
+			!previewImportPresets.data ||
+			hasInitializedSelection
+		) {
 			return;
 		}
 		const defaultSelected = previewImportPresets.data.items
 			.filter((item) => item.action !== "unchanged")
 			.map((item) => item.index);
 		setSelectedIndices(new Set(defaultSelected));
-	}, [isImportDialogOpen, previewImportPresets.data]);
+		setHasInitializedSelection(true);
+	}, [hasInitializedSelection, isImportDialogOpen, previewImportPresets.data]);
 
 	useEffect(() => {
 		if (isImportDialogOpen) {
 			return;
 		}
 
+		setHasInitializedSelection(false);
 		setImportFilePath(null);
 		setSelectedIndices(new Set());
 	}, [isImportDialogOpen]);

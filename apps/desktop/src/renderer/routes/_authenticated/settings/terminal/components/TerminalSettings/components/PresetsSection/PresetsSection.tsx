@@ -2,6 +2,7 @@ import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Label } from "@superset/ui/label";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
 import { PresetActionsMenu } from "./components/PresetActionsMenu";
@@ -28,6 +29,8 @@ export function PresetsSection({
 	onEditingPresetIdChange,
 }: PresetsSectionProps) {
 	const isDark = useIsDarkTheme();
+	const { data: presetsFilePath } =
+		electronTrpc.config.getPresetsFilePath.useQuery();
 	const {
 		presets: serverPresets,
 		isLoading: isLoadingPresets,
@@ -358,7 +361,7 @@ export function PresetsSection({
 					<p className="text-xs text-muted-foreground">
 						Presets let you quickly launch terminals with pre-configured
 						commands. Use the Add Preset menu to import and export{" "}
-						<code>~/.superset/presets.json</code>.
+						<code>{presetsFilePath ?? "~/.superset/presets.json"}</code>.
 					</p>
 				</div>
 				{showPresets && (

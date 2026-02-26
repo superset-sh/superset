@@ -14,6 +14,26 @@ import {
 	previewSharedPresetImport,
 } from "./presets-file";
 
+function readAndParsePresetsFile(
+	path: string,
+): ReturnType<typeof parseSharedPresetsFile> {
+	if (!existsSync(path)) {
+		throw new Error(`No presets file found at ${path}`);
+	}
+	try {
+		const content = readFileSync(path, "utf-8");
+		return parseSharedPresetsFile(content);
+	} catch (error) {
+		if (error instanceof z.ZodError) {
+			throw new Error("Invalid presets file format");
+		}
+		if (error instanceof Error) {
+			throw new Error(error.message);
+		}
+		throw new Error("Failed to parse presets file");
+	}
+}
+
 function ensureSupersetHomeForPresets(supersetHomeDir: string): void {
 	if (supersetHomeDir === SUPERSET_HOME_DIR) {
 		ensureSupersetHomeDirExists();
@@ -75,27 +95,7 @@ export function importPresetsFromFile({
 	presets: TerminalPreset[];
 } {
 	const path = importFilePath ?? getPresetsFilePath(supersetHomeDir);
-	if (!existsSync(path)) {
-		throw new Error(`No presets file found at ${path}`);
-	}
-
-	let parsed: ReturnType<typeof parseSharedPresetsFile>;
-	try {
-		const content = readFileSync(path, "utf-8");
-		parsed = parseSharedPresetsFile(content);
-	} catch (error) {
-		console.error(
-			"[config/importPresetsFromFile] Failed to parse presets:",
-			error,
-		);
-		if (error instanceof z.ZodError) {
-			throw new Error("Invalid presets file format");
-		}
-		if (error instanceof Error) {
-			throw new Error(error.message);
-		}
-		throw new Error("Failed to import presets");
-	}
+	const parsed = readAndParsePresetsFile(path);
 
 	const selectedIndexSet = selectedIndices
 		? new Set(
@@ -142,27 +142,7 @@ export function previewImportPresetsFromFile({
 	items: ReturnType<typeof previewSharedPresetImport>["items"];
 } {
 	const path = importFilePath ?? getPresetsFilePath(supersetHomeDir);
-	if (!existsSync(path)) {
-		throw new Error(`No presets file found at ${path}`);
-	}
-
-	let parsed: ReturnType<typeof parseSharedPresetsFile>;
-	try {
-		const content = readFileSync(path, "utf-8");
-		parsed = parseSharedPresetsFile(content);
-	} catch (error) {
-		console.error(
-			"[config/previewImportPresetsFromFile] Failed to parse presets:",
-			error,
-		);
-		if (error instanceof z.ZodError) {
-			throw new Error("Invalid presets file format");
-		}
-		if (error instanceof Error) {
-			throw new Error(error.message);
-		}
-		throw new Error("Failed to preview presets import");
-	}
+	const parsed = readAndParsePresetsFile(path);
 
 	const preview = previewSharedPresetImport({
 		existingPresets,
