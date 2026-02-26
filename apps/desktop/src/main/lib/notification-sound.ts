@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { basename } from "node:path";
 import { settings } from "@superset/local-db";
 import {
 	CUSTOM_RINGTONE_ID,
@@ -14,6 +15,26 @@ const DND_CACHE_TTL_MS = 5000;
 let dndCacheValue: boolean | null = null;
 let dndCacheTimestamp = 0;
 let dndRefreshInFlight: Promise<boolean> | null = null;
+
+const debugNotificationSoundOverride =
+	process.env.SUPERSET_DEBUG_NOTIFICATION_SOUND?.trim();
+const DEBUG_NOTIFICATION_SOUND_ENABLED =
+	debugNotificationSoundOverride === undefined
+		? process.env.NODE_ENV === "development"
+		: !/^(0|false)$/i.test(debugNotificationSoundOverride);
+
+function logDebug(message: string, context?: Record<string, unknown>): void {
+	if (!DEBUG_NOTIFICATION_SOUND_ENABLED) return;
+	if (context) {
+		console.log(`[notification-sound] ${message}`, context);
+		return;
+	}
+	console.log(`[notification-sound] ${message}`);
+}
+
+function summarizeSoundPath(soundPath: string): string {
+	return basename(soundPath);
+}
 
 function isFreshDndCache(): boolean {
 	return Date.now() - dndCacheTimestamp < DND_CACHE_TTL_MS;
@@ -31,10 +52,21 @@ function execFileOutput(
 			{ encoding: "utf8", timeout, windowsHide: true },
 			(error, stdout) => {
 				if (error) {
+					logDebug("Probe command failed", {
+						command,
+						args,
+						error: error.message,
+					});
 					resolve(null);
 					return;
 				}
-				resolve(stdout.trim());
+				const output = stdout.trim();
+				logDebug("Probe command output", {
+					command,
+					args,
+					output: output.length > 160 ? `${output.slice(0, 160)}...` : output,
+				});
+				resolve(output);
 			},
 		);
 	});
@@ -85,6 +117,11 @@ async function readMacDoNotDisturbFromDefaults(): Promise<boolean | undefined> {
 		const output = await execFileOutput(command, args, 250);
 		if (!output) continue;
 		const parsed = parseMacDefaultsDnd(output);
+		logDebug("Parsed macOS defaults probe", {
+			command,
+			args,
+			parsed,
+		});
 		if (parsed !== undefined) {
 			return parsed;
 		}
@@ -96,9 +133,11 @@ async function readMacDoNotDisturbFromDefaults(): Promise<boolean | undefined> {
 async function isMacDoNotDisturbEnabled(): Promise<boolean> {
 	const fallback = await readMacDoNotDisturbFromDefaults();
 	if (fallback !== undefined) {
+		logDebug("macOS DND probe resolved", { isDnd: fallback });
 		return fallback;
 	}
 	// If detection fails entirely, allow sound instead of suppressing forever.
+	logDebug("macOS DND probe unavailable, defaulting to sound allowed");
 	return false;
 }
 
@@ -121,13 +160,17 @@ function isWindowsDoNotDisturbEnabled(): boolean {
 		const mod =
 			require("windows-notification-state") as WindowsNotificationStateModule;
 		const state = mod.getNotificationState();
-		return (
+		const isDnd =
 			state === "QUNS_BUSY" ||
 			state === "QUNS_RUNNING_D3D_FULL_SCREEN" ||
 			state === "QUNS_PRESENTATION_MODE" ||
-			state === "QUNS_QUIET_TIME"
-		);
-	} catch {
+			state === "QUNS_QUIET_TIME";
+		logDebug("Windows notification state", { state, isDnd });
+		return isDnd;
+	} catch (error) {
+		logDebug("Windows DND probe failed, defaulting to not DND", {
+			error: error instanceof Error ? error.message : String(error),
+		});
 		return false;
 	}
 }
@@ -138,45 +181,58 @@ async function isLinuxDoNotDisturbEnabled(): Promise<boolean> {
 		["get", "org.gnome.desktop.notifications", "show-banners"],
 		200,
 	);
-	if (!output) return false;
+	if (!output) {
+		logDebug("Linux DND probe unavailable, defaulting to not DND");
+		return false;
+	}
 
 	// show-banners=false indicates DND-style suppression in GNOME.
-	return output.toLowerCase() === "false";
+	const isDnd = output.toLowerCase() === "false";
+	logDebug("Linux DND probe resolved", { output, isDnd });
+	return isDnd;
 }
 
 async function detectDoNotDisturb(): Promise<boolean> {
+	let isDnd = false;
 	if (process.platform === "darwin") {
-		return isMacDoNotDisturbEnabled();
+		isDnd = await isMacDoNotDisturbEnabled();
+	} else if (process.platform === "win32") {
+		isDnd = isWindowsDoNotDisturbEnabled();
+	} else if (process.platform === "linux") {
+		isDnd = await isLinuxDoNotDisturbEnabled();
 	}
-	if (process.platform === "win32") {
-		return isWindowsDoNotDisturbEnabled();
-	}
-	if (process.platform === "linux") {
-		return await isLinuxDoNotDisturbEnabled();
-	}
-	return false;
+	logDebug("DND detection complete", { platform: process.platform, isDnd });
+	return isDnd;
 }
 
 function refreshDoNotDisturbCache(): Promise<boolean> {
 	if (dndRefreshInFlight) {
+		logDebug("Reusing in-flight DND refresh");
 		return dndRefreshInFlight;
 	}
 
+	logDebug("Refreshing DND cache");
 	dndRefreshInFlight = detectDoNotDisturb()
 		.then((isDnd) => {
 			dndCacheValue = isDnd;
 			dndCacheTimestamp = Date.now();
+			logDebug("DND cache updated", { isDnd });
 			return isDnd;
 		})
-		.catch(() => {
+		.catch((error) => {
 			if (dndCacheValue === null) {
 				dndCacheValue = false;
 				dndCacheTimestamp = Date.now();
 			}
+			logDebug("DND refresh failed, using existing/default cache", {
+				error: error instanceof Error ? error.message : String(error),
+				isDnd: dndCacheValue,
+			});
 			return dndCacheValue;
 		})
 		.finally(() => {
 			dndRefreshInFlight = null;
+			logDebug("DND refresh complete");
 		});
 
 	return dndRefreshInFlight;
@@ -188,8 +244,11 @@ function refreshDoNotDisturbCache(): Promise<boolean> {
 export function areNotificationSoundsMuted(): boolean {
 	try {
 		const settingsRow = localDb.select().from(settings).get();
-		return settingsRow?.notificationSoundsMuted ?? false;
+		const muted = settingsRow?.notificationSoundsMuted ?? false;
+		logDebug("Notification mute setting read", { muted });
+		return muted;
 	} catch {
+		logDebug("Failed reading mute setting, defaulting to unmuted");
 		return false;
 	}
 }
@@ -208,16 +267,29 @@ function getSelectedRingtonePath(): string | null {
 
 		// Legacy: "none" was previously used before the muted toggle existed.
 		if (selectedId === "none") {
+			logDebug("Ringtone disabled via legacy 'none' selection");
 			return null;
 		}
 
 		if (selectedId === CUSTOM_RINGTONE_ID) {
-			return getCustomRingtonePath() ?? defaultPath;
+			const customPath = getCustomRingtonePath() ?? defaultPath;
+			logDebug("Selected custom ringtone", {
+				filename: summarizeSoundPath(customPath),
+			});
+			return customPath;
 		}
 
 		const filename = getRingtoneFilename(selectedId);
-		return filename ? getSoundPath(filename) : defaultPath;
+		const resolved = filename ? getSoundPath(filename) : defaultPath;
+		logDebug("Selected built-in ringtone", {
+			selectedId,
+			filename: summarizeSoundPath(resolved),
+		});
+		return resolved;
 	} catch {
+		logDebug("Failed reading selected ringtone, defaulting", {
+			filename: summarizeSoundPath(defaultPath),
+		});
 		return defaultPath;
 	}
 }
@@ -230,6 +302,11 @@ function playSoundFile(soundPath: string): void {
 		console.warn(`[notification-sound] Sound file not found: ${soundPath}`);
 		return;
 	}
+
+	logDebug("Playing notification sound", {
+		platform: process.platform,
+		filename: summarizeSoundPath(soundPath),
+	});
 
 	if (process.platform === "darwin") {
 		execFile("afplay", [soundPath]);
@@ -253,25 +330,36 @@ function playSoundFile(soundPath: string): void {
  */
 export function playNotificationSound(): void {
 	if (areNotificationSoundsMuted()) {
+		logDebug("Skipping sound because notifications are muted");
 		return;
 	}
 
 	const soundPath = getSelectedRingtonePath();
 	if (!soundPath) {
+		logDebug("Skipping sound because no ringtone is selected");
 		return;
 	}
 
 	if (dndCacheValue !== null && isFreshDndCache()) {
+		logDebug("Using fresh DND cache", { isDnd: dndCacheValue });
 		if (!dndCacheValue) {
 			playSoundFile(soundPath);
+		} else {
+			logDebug("Skipping sound because DND is enabled (fresh cache)");
 		}
 		return;
 	}
 
 	if (dndCacheValue !== null) {
 		// Serve immediately from stale cache to keep notifications snappy.
+		logDebug("Using stale DND cache and refreshing in background", {
+			isDnd: dndCacheValue,
+			ageMs: Date.now() - dndCacheTimestamp,
+		});
 		if (!dndCacheValue) {
 			playSoundFile(soundPath);
+		} else {
+			logDebug("Skipping sound because DND is enabled (stale cache)");
 		}
 		// Refresh in background for subsequent notifications.
 		void refreshDoNotDisturbCache();
@@ -279,9 +367,12 @@ export function playNotificationSound(): void {
 	}
 
 	// First notification: ensure we establish cache before playing.
+	logDebug("No DND cache yet, probing before first sound");
 	void refreshDoNotDisturbCache().then((isDnd) => {
 		if (!isDnd) {
 			playSoundFile(soundPath);
+		} else {
+			logDebug("Skipping sound because DND is enabled (first probe)");
 		}
 	});
 }
