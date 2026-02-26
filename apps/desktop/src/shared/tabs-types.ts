@@ -12,7 +12,6 @@ export type PaneType =
 	| "terminal"
 	| "webview"
 	| "file-viewer"
-	| "chat"
 	| "chat-mastra"
 	| "devtools";
 
@@ -137,14 +136,9 @@ export interface Pane {
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
-	chat?: ChatPaneState; // For chat panes
 	chatMastra?: ChatMastraPaneState; // For Mastra chat panes
 	browser?: BrowserPaneState; // For browser (webview) panes
 	devtools?: DevToolsPaneState; // For devtools panes
-}
-
-export interface ChatPaneState {
-	sessionId: string | null;
 }
 
 export interface ChatMastraPaneState {

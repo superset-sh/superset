@@ -132,13 +132,13 @@ export function GroupStrip() {
 		return result;
 	}, [panes]);
 
-	// Sync Electric session titles → tab names for all chat tabs in this workspace
+	// Sync Electric session titles → tab names for all Mastra chat tabs in this workspace
 	const chatPaneSessionMap = useMemo(() => {
 		const map = new Map<string, string>(); // sessionId → tabId
 		for (const pane of Object.values(panes)) {
-			if (pane.type === "chat" && pane.chat?.sessionId) {
+			if (pane.type === "chat-mastra" && pane.chatMastra?.sessionId) {
 				const tab = tabs.find((t) => t.id === pane.tabId);
-				if (tab) map.set(pane.chat.sessionId, tab.id);
+				if (tab) map.set(pane.chatMastra.sessionId, tab.id);
 			}
 		}
 		return map;
