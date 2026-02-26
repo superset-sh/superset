@@ -50,7 +50,7 @@ function createDeps(
 			notifications.push(n);
 			return n;
 		},
-		isNotificationSoundMuted: () => false,
+		playSound: mock(() => {}),
 		onNotificationClick: (ids) => clickedIds.push(ids),
 		getVisibilityContext: () => ({
 			isFocused: false,
@@ -114,48 +114,9 @@ describe("NotificationManager", () => {
 			expect(localManager.activeCount).toBe(0);
 		});
 
-		it("uses native sound when notification sounds are unmuted", () => {
-			const createNotification = mock(
-				(_opts: {
-					title: string;
-					body: string;
-					silent: boolean;
-					sound?: string;
-				}) => createMockNotification(),
-			);
-			const localDeps = createDeps({
-				createNotification,
-				isNotificationSoundMuted: () => false,
-			});
-			const localManager = new NotificationManager(localDeps);
-
-			localManager.handleAgentLifecycle(makeEvent());
-
-			expect(createNotification).toHaveBeenCalledWith(
-				expect.objectContaining({ silent: false }),
-			);
-		});
-
-		it("suppresses native sound when notification sounds are muted", () => {
-			const createNotification = mock(
-				(_opts: {
-					title: string;
-					body: string;
-					silent: boolean;
-					sound?: string;
-				}) => createMockNotification(),
-			);
-			const localDeps = createDeps({
-				createNotification,
-				isNotificationSoundMuted: () => true,
-			});
-			const localManager = new NotificationManager(localDeps);
-
-			localManager.handleAgentLifecycle(makeEvent());
-
-			expect(createNotification).toHaveBeenCalledWith(
-				expect.objectContaining({ silent: true }),
-			);
+		it("plays custom sound on notification", () => {
+			manager.handleAgentLifecycle(makeEvent());
+			expect(deps.playSound).toHaveBeenCalled();
 		});
 	});
 
@@ -264,12 +225,8 @@ describe("NotificationManager", () => {
 	describe("notification content", () => {
 		it("uses permission request title/body for PermissionRequest events", () => {
 			const createNotification = mock(
-				(_opts: {
-					title: string;
-					body: string;
-					silent: boolean;
-					sound?: string;
-				}) => createMockNotification(),
+				(_opts: { title: string; body: string; silent: boolean }) =>
+					createMockNotification(),
 			);
 			const localDeps = createDeps({ createNotification });
 			const localManager = new NotificationManager(localDeps);
@@ -288,12 +245,8 @@ describe("NotificationManager", () => {
 
 		it("uses completion title/body for Stop events", () => {
 			const createNotification = mock(
-				(_opts: {
-					title: string;
-					body: string;
-					silent: boolean;
-					sound?: string;
-				}) => createMockNotification(),
+				(_opts: { title: string; body: string; silent: boolean }) =>
+					createMockNotification(),
 			);
 			const localDeps = createDeps({ createNotification });
 			const localManager = new NotificationManager(localDeps);

@@ -20,9 +20,8 @@ export interface NotificationManagerDeps {
 		title: string;
 		body: string;
 		silent: boolean;
-		sound?: string;
 	}) => NativeNotification;
-	isNotificationSoundMuted: () => boolean;
+	playSound: () => void;
 	onNotificationClick: (ids: NotificationIds) => void;
 	getVisibilityContext: () => {
 		isFocused: boolean;
@@ -63,7 +62,6 @@ export class NotificationManager {
 
 		const workspaceName = this.deps.getWorkspaceName(event.workspaceId);
 		const title = this.deps.getNotificationTitle(event);
-		const isMuted = this.deps.isNotificationSoundMuted();
 
 		const isPermissionRequest = event.eventType === "PermissionRequest";
 		const notification = this.deps.createNotification({
@@ -73,14 +71,12 @@ export class NotificationManager {
 			body: isPermissionRequest
 				? `"${title}" needs your attention`
 				: `"${title}" has finished its task`,
-			silent: isMuted,
-			// Explicitly request default notification sound on macOS.
-			// This keeps sound delivery native (DND-aware) instead of shelling out.
-			sound: !isMuted && process.platform === "darwin" ? "default" : undefined,
+			silent: true,
 		});
 
 		const key = event.paneId ?? `_anon_${this.counter++}`;
 		this.track(key, notification);
+		this.deps.playSound();
 
 		notification.on("click", () => {
 			this.deps.onNotificationClick({
