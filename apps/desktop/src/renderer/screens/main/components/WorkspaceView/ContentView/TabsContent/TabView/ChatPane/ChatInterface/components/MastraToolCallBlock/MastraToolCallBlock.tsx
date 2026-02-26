@@ -20,6 +20,7 @@ import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
 import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
+import { getWebSearchViewModel } from "./utils/getWebSearchViewModel";
 
 interface MastraToolCallBlockProps {
 	part: ToolPart;
@@ -271,14 +272,7 @@ export function MastraToolCallBlock({
 
 	// --- Web search → WebSearchTool ---
 	if (toolName === "web_search") {
-		const query = String(args.query ?? "");
-		const rawResults = Array.isArray(result.results) ? result.results : [];
-		const results = (
-			rawResults as Array<{ title?: string; url?: string }>
-		).filter(
-			(r): r is { title: string; url: string } =>
-				typeof r.title === "string" && typeof r.url === "string",
-		);
+		const { query, results } = getWebSearchViewModel({ args, result });
 		return <WebSearchTool query={query} results={results} state={state} />;
 	}
 
