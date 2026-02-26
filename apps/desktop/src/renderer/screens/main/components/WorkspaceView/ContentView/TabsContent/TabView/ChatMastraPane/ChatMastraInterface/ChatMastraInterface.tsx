@@ -47,7 +47,7 @@ function toErrorMessage(error: unknown): string | null {
 
 export function ChatMastraInterface({
 	sessionId,
-	workspaceId: _workspaceId,
+	workspaceId,
 	cwd,
 	onStartFreshSession,
 	onRawSnapshotChange,
@@ -84,6 +84,8 @@ export function ChatMastraInterface({
 		currentMessage,
 		isRunning = false,
 		error = null,
+		activeTools,
+		toolInputBuffers,
 	} = chat;
 
 	const clearRuntimeError = useCallback(() => {
@@ -232,6 +234,10 @@ export function ChatMastraInterface({
 					messages={mergedMessages}
 					isRunning={canAbort}
 					currentMessage={currentMessage ?? null}
+					workspaceId={workspaceId}
+					workspaceCwd={cwd}
+					activeTools={activeTools}
+					toolInputBuffers={toolInputBuffers}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<ChatInputFooter

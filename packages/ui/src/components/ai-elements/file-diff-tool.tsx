@@ -1,7 +1,7 @@
 "use client";
 
-import { FileCode2Icon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ExternalLinkIcon, FileCode2Icon } from "lucide-react";
+import { type ReactNode, useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
 import { ShimmerLabel } from "./shimmer-label";
 
@@ -13,6 +13,14 @@ type FileDiffToolState =
 
 type DiffLine = { type: "added" | "removed" | "context"; content: string };
 
+export interface FileDiffToolExpandedContentProps {
+	filePath?: string;
+	oldString?: string;
+	newString?: string;
+	content?: string;
+	isWriteMode?: boolean;
+}
+
 type FileDiffToolProps = {
 	filePath?: string;
 	oldString?: string;
@@ -21,6 +29,10 @@ type FileDiffToolProps = {
 	isWriteMode?: boolean;
 	state: FileDiffToolState;
 	structuredPatch?: Array<{ lines: string[] }>;
+	onFilePathClick?: (filePath: string) => void;
+	renderExpandedContent?: (
+		props: FileDiffToolExpandedContentProps,
+	) => ReactNode;
 	className?: string;
 };
 
@@ -96,6 +108,8 @@ export const FileDiffTool = ({
 	isWriteMode,
 	state,
 	structuredPatch,
+	onFilePathClick,
+	renderExpandedContent,
 	className,
 }: FileDiffToolProps) => {
 	const [expanded, setExpanded] = useState(false);
@@ -122,6 +136,16 @@ export const FileDiffTool = ({
 
 	const stats = useMemo(() => calculateDiffStats(diffLines), [diffLines]);
 	const hasDiff = diffLines.length > 0;
+	const expandedContentProps = useMemo(
+		() => ({
+			filePath,
+			oldString,
+			newString,
+			content,
+			isWriteMode,
+		}),
+		[filePath, oldString, newString, content, isWriteMode],
+	);
 
 	return (
 		<div
@@ -149,24 +173,54 @@ export const FileDiffTool = ({
 					) : (
 						<span className="min-w-0 truncate text-muted-foreground">
 							{isWriteMode ? "Wrote" : "Edited"}{" "}
-							<span className="text-foreground">
-								{filePath ? extractFilename(filePath) : "file"}
-							</span>
+							{filePath && onFilePathClick ? (
+								<button
+									type="button"
+									className="inline cursor-pointer truncate text-foreground transition-colors hover:text-muted-foreground"
+									onClick={(event) => {
+										event.stopPropagation();
+										onFilePathClick(filePath);
+									}}
+								>
+									{extractFilename(filePath)}
+								</button>
+							) : (
+								<span className="text-foreground">
+									{filePath ? extractFilename(filePath) : "file"}
+								</span>
+							)}
 						</span>
 					)}
 				</div>
 
-				{/* Diff stats */}
-				{(stats.additions > 0 || stats.removals > 0) && (
-					<span className="ml-2 flex shrink-0 items-center gap-1.5 text-xs">
-						{stats.additions > 0 && (
-							<span className="text-green-500">+{stats.additions}</span>
-						)}
-						{stats.removals > 0 && (
-							<span className="text-red-500">-{stats.removals}</span>
-						)}
-					</span>
-				)}
+				<div className="ml-2 flex shrink-0 items-center gap-1.5 text-xs">
+					{filePath && onFilePathClick && (
+						<button
+							type="button"
+							aria-label={`Open ${filePath}`}
+							className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+							onClick={(event) => {
+								event.stopPropagation();
+								onFilePathClick(filePath);
+							}}
+						>
+							<ExternalLinkIcon className="h-3 w-3" />
+							Open
+						</button>
+					)}
+
+					{/* Diff stats */}
+					{(stats.additions > 0 || stats.removals > 0) && (
+						<span className="flex items-center gap-1.5">
+							{stats.additions > 0 && (
+								<span className="text-green-500">+{stats.additions}</span>
+							)}
+							{stats.removals > 0 && (
+								<span className="text-red-500">-{stats.removals}</span>
+							)}
+						</span>
+					)}
+				</div>
 			</div>
 
 			{/* Diff body */}
@@ -180,33 +234,37 @@ export const FileDiffTool = ({
 						maxHeight: expanded ? EXPANDED_MAX_HEIGHT : COLLAPSED_MAX_HEIGHT,
 					}}
 				>
-					<div className="font-mono text-xs">
-						{diffLines.map((line, i) => (
-							<div
-								className={cn(
-									"flex border-l-2 px-2.5 py-0.5",
-									line.type === "added" &&
-										"border-l-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
-									line.type === "removed" &&
-										"border-l-red-500 bg-red-500/10 text-red-700 dark:text-red-400",
-									line.type === "context" &&
-										"border-l-transparent text-muted-foreground",
-								)}
-								key={`${i}-${line.type}`}
-							>
-								<span className="mr-2 select-none">
-									{line.type === "added"
-										? "+"
-										: line.type === "removed"
-											? "-"
-											: " "}
-								</span>
-								<pre className="whitespace-pre-wrap break-all">
-									{line.content}
-								</pre>
-							</div>
-						))}
-					</div>
+					{expanded && renderExpandedContent ? (
+						renderExpandedContent(expandedContentProps)
+					) : (
+						<div className="font-mono text-xs">
+							{diffLines.map((line, i) => (
+								<div
+									className={cn(
+										"flex border-l-2 px-2.5 py-0.5",
+										line.type === "added" &&
+											"border-l-green-500 bg-green-500/10 text-green-700 dark:text-green-400",
+										line.type === "removed" &&
+											"border-l-red-500 bg-red-500/10 text-red-700 dark:text-red-400",
+										line.type === "context" &&
+											"border-l-transparent text-muted-foreground",
+									)}
+									key={`${i}-${line.type}`}
+								>
+									<span className="mr-2 select-none">
+										{line.type === "added"
+											? "+"
+											: line.type === "removed"
+												? "-"
+												: " "}
+									</span>
+									<pre className="whitespace-pre-wrap break-all">
+										{line.content}
+									</pre>
+								</div>
+							))}
+						</div>
+					)}
 				</div>
 			)}
 

@@ -8,6 +8,7 @@ import {
 import { getToolName } from "ai";
 import {
 	CheckIcon,
+	ExternalLinkIcon,
 	FileIcon,
 	FileSearchIcon,
 	FolderTreeIcon,
@@ -16,6 +17,7 @@ import {
 	XIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { getWorkspaceToolFilePath } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
 import {
 	getArgs,
@@ -32,7 +34,15 @@ function stringify(value: unknown): string {
 	}
 }
 
-export function ReadOnlyToolCall({ part }: { part: ToolPart }) {
+interface ReadOnlyToolCallProps {
+	part: ToolPart;
+	onOpenFileInPane?: (filePath: string) => void;
+}
+
+export function ReadOnlyToolCall({
+	part,
+	onOpenFileInPane,
+}: ReadOnlyToolCallProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const args = getArgs(part);
 	const toolName = normalizeToolName(getToolName(part));
@@ -101,42 +111,57 @@ export function ReadOnlyToolCall({ part }: { part: ToolPart }) {
 		subtitle = subtitle.split("/").pop() ?? subtitle;
 	}
 
+	const filePath = getWorkspaceToolFilePath({ toolName, args });
+	const canOpenFile = Boolean(filePath && onOpenFileInPane);
+
 	return (
 		<Collapsible
 			className="overflow-hidden rounded-md"
 			onOpenChange={(open) => hasDetails && setIsOpen(open)}
 			open={hasDetails ? isOpen : false}
 		>
-			<CollapsibleTrigger asChild>
-				<button
-					className={
-						hasDetails
-							? "flex h-7 w-full items-center justify-between px-2.5 text-left transition-colors duration-150 hover:bg-muted/30"
-							: "flex h-7 w-full items-center justify-between px-2.5 text-left"
-					}
-					disabled={!hasDetails}
-					type="button"
-				>
-					<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
-						<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
-						<ShimmerLabel
-							className="truncate text-xs text-muted-foreground"
-							isShimmering={isPending}
-						>
-							{subtitle ? `${title} ${subtitle}` : title}
-						</ShimmerLabel>
-					</div>
-					<div className="ml-2 flex h-6 w-6 items-center justify-center text-muted-foreground">
-						{isPending ? (
-							<Loader2Icon className="h-3 w-3 animate-spin" />
-						) : isError || displayState === "output-error" ? (
-							<XIcon className="h-3 w-3" />
-						) : (
-							<CheckIcon className="h-3 w-3" />
-						)}
-					</div>
-				</button>
-			</CollapsibleTrigger>
+			<div className="flex items-center">
+				<CollapsibleTrigger asChild>
+					<button
+						className={
+							hasDetails
+								? "flex h-7 min-w-0 flex-1 items-center justify-between px-2.5 text-left transition-colors duration-150 hover:bg-muted/30"
+								: "flex h-7 min-w-0 flex-1 items-center justify-between px-2.5 text-left"
+						}
+						disabled={!hasDetails}
+						type="button"
+					>
+						<div className="flex min-w-0 flex-1 items-center gap-1.5 text-xs">
+							<Icon className="h-3 w-3 shrink-0 text-muted-foreground" />
+							<ShimmerLabel
+								className="truncate text-xs text-muted-foreground"
+								isShimmering={isPending}
+							>
+								{subtitle ? `${title} ${subtitle}` : title}
+							</ShimmerLabel>
+						</div>
+						<div className="ml-2 flex h-6 w-6 items-center justify-center text-muted-foreground">
+							{isPending ? (
+								<Loader2Icon className="h-3 w-3 animate-spin" />
+							) : isError || displayState === "output-error" ? (
+								<XIcon className="h-3 w-3" />
+							) : (
+								<CheckIcon className="h-3 w-3" />
+							)}
+						</div>
+					</button>
+				</CollapsibleTrigger>
+				{canOpenFile && filePath && (
+					<button
+						type="button"
+						aria-label={`Open ${filePath} in file pane`}
+						className="mr-1 flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+						onClick={() => onOpenFileInPane?.(filePath)}
+					>
+						<ExternalLinkIcon className="h-3 w-3" />
+					</button>
+				)}
+			</div>
 			{hasDetails && (
 				<CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in">
 					<div className="mt-0.5">

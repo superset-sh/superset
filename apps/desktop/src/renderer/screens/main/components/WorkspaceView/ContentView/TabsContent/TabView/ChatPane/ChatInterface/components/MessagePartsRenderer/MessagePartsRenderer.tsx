@@ -14,6 +14,10 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTheme } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { READ_ONLY_TOOLS } from "../../constants";
+import {
+	getWorkspaceToolFilePath,
+	normalizeWorkspaceFilePath,
+} from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
 import { getArgs, normalizeToolName } from "../../utils/tool-helpers";
 import { MastraToolCallBlock } from "../MastraToolCallBlock";
@@ -26,6 +30,7 @@ interface MessagePartsRendererProps {
 	isLastAssistant: boolean;
 	isStreaming: boolean;
 	workspaceId?: string;
+	workspaceCwd?: string;
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
@@ -34,12 +39,14 @@ export function MessagePartsRenderer({
 	isLastAssistant,
 	isStreaming,
 	workspaceId,
+	workspaceCwd,
 	onAnswer,
 }: MessagePartsRendererProps): React.ReactNode[] {
 	const theme = useTheme();
 	const { data: openLinksInApp } =
 		electronTrpc.settings.getOpenLinksInApp.useQuery();
 	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
+	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
 
 	const handleLinkClick = useCallback(
 		(e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -49,6 +56,18 @@ export function MessagePartsRenderer({
 			}
 		},
 		[openLinksInApp, workspaceId, openInBrowserPane],
+	);
+	const openFileInPane = useCallback(
+		(filePath: string) => {
+			if (!workspaceId) return;
+			const normalizedPath = normalizeWorkspaceFilePath({
+				filePath,
+				workspaceRoot: workspaceCwd,
+			});
+			if (!normalizedPath) return;
+			addFileViewerPane(workspaceId, { filePath: normalizedPath });
+		},
+		[addFileViewerPane, workspaceCwd, workspaceId],
 	);
 
 	const components = useMemo(() => {
@@ -153,6 +172,7 @@ export function MessagePartsRenderer({
 							<ReadOnlyToolCall
 								key={groupParts[0].toolCallId}
 								part={groupParts[0]}
+								onOpenFileInPane={openFileInPane}
 							/>,
 						);
 						continue;
@@ -165,6 +185,10 @@ export function MessagePartsRenderer({
 					const exploringItems = groupParts.map((p) => {
 						const args = getArgs(p);
 						const name = normalizeToolName(getToolName(p));
+						const filePath = getWorkspaceToolFilePath({
+							toolName: name,
+							args,
+						});
 						let title = "Read";
 						let subtitle = "";
 						let icon = FileIcon;
@@ -247,6 +271,7 @@ export function MessagePartsRenderer({
 							isPending:
 								p.state !== "output-available" && p.state !== "output-error",
 							isError: p.state === "output-error",
+							onClick: filePath ? () => openFileInPane(filePath) : undefined,
 						};
 					});
 
@@ -265,6 +290,8 @@ export function MessagePartsRenderer({
 					<MastraToolCallBlock
 						key={part.toolCallId}
 						part={part as ToolPart}
+						workspaceId={workspaceId}
+						workspaceCwd={workspaceCwd}
 						onAnswer={onAnswer}
 					/>,
 				);
