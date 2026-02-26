@@ -33,15 +33,22 @@ export async function getOrCreateRuntime(
 
 	const existing = runtimes.get(sessionId);
 	if (existing) {
-		if (cwd && existing.cwd !== cwd) {
-			existing.cwd = cwd;
-			runtimes.set(sessionId, existing);
+		if (!cwd || existing.cwd === cwd) {
+			return existing;
 		}
-		return existing;
+		// Runtime sessions are cwd-bound. Recreate when cwd changes.
+		runtimes.delete(sessionId);
 	}
 
 	const pending = runtimeInFlight.get(sessionId);
-	if (pending) return pending;
+	if (pending) {
+		const runtime = await pending;
+		if (!cwd || runtime.cwd === cwd) {
+			return runtime;
+		}
+		// CWD changed while create was in-flight; recreate for requested cwd.
+		runtimes.delete(sessionId);
+	}
 
 	const createRuntimePromise = (async () => {
 		const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });

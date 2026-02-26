@@ -29,7 +29,12 @@ export function createChatMastraServiceRouter(
 		sessionId: string;
 		cwd?: string;
 	}) => {
-		const authToken = await options.getAuthToken?.();
+		let authToken: string | null | undefined;
+		try {
+			authToken = await options.getAuthToken?.();
+		} catch {
+			authToken = null;
+		}
 		return getOrCreateRuntime(input.sessionId, input.cwd, {
 			authToken: authToken ?? undefined,
 		});
