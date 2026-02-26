@@ -98,8 +98,8 @@ async function isMacDoNotDisturbEnabled(): Promise<boolean> {
 	if (fallback !== undefined) {
 		return fallback;
 	}
-	// Conservative fallback: if detection fails entirely, suppress sound.
-	return true;
+	// If detection fails entirely, allow sound instead of suppressing forever.
+	return false;
 }
 
 type WindowsNotificationState =
