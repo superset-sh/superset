@@ -36,12 +36,6 @@ import { shellEscapePaths } from "./utils";
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
 
-type XTermWithLinkDecorationManager = XTerm & {
-	__linkDecorationManager?: {
-		updateColor: (newColor: string) => void;
-	};
-};
-
 export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCwd = pane?.initialCwd;
@@ -365,9 +359,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
 		xterm.options.theme = terminalTheme;
-		(xterm as XTermWithLinkDecorationManager).__linkDecorationManager?.updateColor(
-			terminalTheme.blue ?? "#57c7ff",
-		);
 	}, [terminalTheme]);
 
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
