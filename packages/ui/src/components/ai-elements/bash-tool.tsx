@@ -61,10 +61,7 @@ export const BashTool = ({
 
 	return (
 		<Collapsible
-			className={cn(
-				"overflow-hidden rounded-lg border border-border bg-muted/30",
-				className,
-			)}
+			className={cn("overflow-hidden rounded-md", className)}
 			onOpenChange={(open) => hasOutput && setIsOutputExpanded(open)}
 			open={hasOutput ? isOutputExpanded : false}
 		>
@@ -73,7 +70,7 @@ export const BashTool = ({
 					className={cn(
 						"flex h-7 w-full items-center justify-between px-2.5 text-left",
 						hasOutput
-							? "cursor-pointer transition-colors duration-150 hover:bg-muted/50"
+							? "cursor-pointer transition-colors duration-150 hover:bg-muted/30"
 							: "cursor-default",
 					)}
 					disabled={!hasOutput}
@@ -94,26 +91,14 @@ export const BashTool = ({
 					</div>
 
 					{/* Status */}
-					<div className="ml-2 flex shrink-0 items-center gap-2">
-						{!isPending && (
-							<div className="flex items-center gap-1 text-xs text-muted-foreground">
-								{isSuccess && (
-									<>
-										<CheckIcon className="h-3 w-3" />
-										<span>Success</span>
-									</>
-								)}
-								{isError && (
-									<>
-										<XIcon className="h-3 w-3" />
-										<span>Failed</span>
-									</>
-								)}
-							</div>
-						)}
-						<div className="flex h-6 w-6 items-center justify-center">
-							{isPending && <Loader size={12} />}
-						</div>
+					<div className="ml-2 flex h-6 w-6 shrink-0 items-center justify-center text-muted-foreground">
+						{isPending ? (
+							<Loader size={12} />
+						) : isError ? (
+							<XIcon className="h-3 w-3" />
+						) : isSuccess ? (
+							<CheckIcon className="h-3 w-3" />
+						) : null}
 					</div>
 				</button>
 			</CollapsibleTrigger>
@@ -121,10 +106,10 @@ export const BashTool = ({
 			{hasOutput && (
 				<CollapsibleContent
 					className={cn(
-						"border-t border-border data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+						"data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
 					)}
 				>
-					<div className="px-2.5 py-1.5">
+					<div className="mt-0.5 px-2.5 py-1.5">
 						{/* Command */}
 						{command && (
 							<div className="font-mono text-xs">
