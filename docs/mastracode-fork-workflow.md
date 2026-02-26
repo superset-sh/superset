@@ -26,6 +26,28 @@ Recommended remote model:
 
 Keep this separate from personal fork clones to avoid pushing internal release tags/branches to the wrong remote.
 
+## Superset worktree convention
+
+For day-to-day fork work, use a separate worktree under the Superset worktrees directory.
+
+Current team path:
+
+- `/Users/kietho/.superset/worktrees/mastra-superset/kitenite/chicory`
+
+Example setup from the local fork clone:
+
+```bash
+git -C ~/workplace/mastra-superset worktree add \
+  /Users/kietho/.superset/worktrees/mastra-superset/kitenite/chicory \
+  -b kitenite/chicory \
+  origin/main
+```
+
+Expected remotes in that worktree:
+
+- `origin` -> `https://github.com/superset-sh/mastra.git`
+- `upstream` -> `https://github.com/mastra-ai/mastra.git`
+
 ## Current behavior shipped in the bundle
 
 - Per-tool `deny` hides tools from dynamic tool exposure (not just execution).
