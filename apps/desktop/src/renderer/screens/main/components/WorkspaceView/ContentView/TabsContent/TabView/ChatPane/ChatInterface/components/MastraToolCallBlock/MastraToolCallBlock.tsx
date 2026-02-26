@@ -8,7 +8,12 @@ import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolPart } from "../../utils/tool-helpers";
-import { getArgs, getResult, toWsToolState } from "../../utils/tool-helpers";
+import {
+	getArgs,
+	getResult,
+	normalizeToolName,
+	toWsToolState,
+} from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { GenericToolCall } from "./components/GenericToolCall";
 
@@ -24,7 +29,7 @@ export function MastraToolCallBlock({
 	const args = getArgs(part);
 	const result = getResult(part);
 	const state = toWsToolState(part);
-	const toolName = getToolName(part);
+	const toolName = normalizeToolName(getToolName(part));
 
 	// --- Execute command → BashTool ---
 	if (toolName === "mastra_workspace_execute_command") {
