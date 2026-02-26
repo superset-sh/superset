@@ -226,26 +226,6 @@ export const createFileViewerPane = (
 	};
 };
 
-/**
- * Creates a new chat pane
- */
-export const createChatPane = (tabId: string): Pane => {
-	const id = generateId("pane");
-
-	return {
-		id,
-		tabId,
-		type: "chat",
-		name: "New Chat",
-		chat: {
-			sessionId: null,
-		},
-	};
-};
-
-/**
- * Creates a new Mastra chat pane
- */
 export const createChatMastraPane = (tabId: string): Pane => {
 	const id = generateId("pane");
 
@@ -339,29 +319,6 @@ export const createBrowserTabWithPane = (
 	return { tab, pane };
 };
 
-/**
- * Creates a new tab with a chat pane atomically
- */
-export const createChatTabWithPane = (
-	workspaceId: string,
-): { tab: Tab; pane: Pane } => {
-	const tabId = generateId("tab");
-	const pane = createChatPane(tabId);
-
-	const tab: Tab = {
-		id: tabId,
-		name: "New Chat",
-		workspaceId,
-		layout: pane.id,
-		createdAt: Date.now(),
-	};
-
-	return { tab, pane };
-};
-
-/**
- * Creates a new tab with a Mastra chat pane atomically
- */
 export const createChatMastraTabWithPane = (
 	workspaceId: string,
 ): { tab: Tab; pane: Pane } => {

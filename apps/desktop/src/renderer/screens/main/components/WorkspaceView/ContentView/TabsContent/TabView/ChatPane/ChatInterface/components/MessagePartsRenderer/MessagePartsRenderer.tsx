@@ -15,7 +15,7 @@ import { useTheme } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolPart } from "../../utils/tool-helpers";
-import { getArgs } from "../../utils/tool-helpers";
+import { getArgs, normalizeToolName } from "../../utils/tool-helpers";
 import { MastraToolCallBlock } from "../MastraToolCallBlock";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { ReasoningBlock } from "../ReasoningBlock";
@@ -130,7 +130,7 @@ export function MessagePartsRenderer({
 			}
 
 			if (isToolUIPart(part)) {
-				const toolName = getToolName(part);
+				const toolName = normalizeToolName(getToolName(part));
 
 				// Group consecutive read-only tools into ExploringGroup
 				if (READ_ONLY_TOOLS.has(toolName)) {
@@ -139,7 +139,9 @@ export function MessagePartsRenderer({
 					while (
 						i < parts.length &&
 						isToolUIPart(parts[i]) &&
-						READ_ONLY_TOOLS.has(getToolName(parts[i] as ToolPart))
+						READ_ONLY_TOOLS.has(
+							normalizeToolName(getToolName(parts[i] as ToolPart)),
+						)
 					) {
 						groupParts.push(parts[i] as ToolPart);
 						i++;
@@ -162,7 +164,7 @@ export function MessagePartsRenderer({
 					);
 					const exploringItems = groupParts.map((p) => {
 						const args = getArgs(p);
-						const name = getToolName(p);
+						const name = normalizeToolName(getToolName(p));
 						let title = "Read";
 						let subtitle = "";
 						let icon = FileIcon;
@@ -172,7 +174,13 @@ export function MessagePartsRenderer({
 									p.state !== "output-available" && p.state !== "output-error"
 										? "Reading"
 										: "Read";
-								subtitle = String(args.path ?? args.filePath ?? "");
+								subtitle = String(
+									args.path ??
+										args.filePath ??
+										args.file_path ??
+										args.file ??
+										"",
+								);
 								icon = FileIcon;
 								break;
 							case "mastra_workspace_list_files":
@@ -180,7 +188,15 @@ export function MessagePartsRenderer({
 									p.state !== "output-available" && p.state !== "output-error"
 										? "Listing"
 										: "Listed";
-								subtitle = String(args.path ?? args.directory ?? "");
+								subtitle = String(
+									args.path ??
+										args.directory ??
+										args.directoryPath ??
+										args.directory_path ??
+										args.root ??
+										args.cwd ??
+										"",
+								);
 								icon = FolderTreeIcon;
 								break;
 							case "mastra_workspace_file_stat":
@@ -188,7 +204,9 @@ export function MessagePartsRenderer({
 									p.state !== "output-available" && p.state !== "output-error"
 										? "Checking"
 										: "Checked";
-								subtitle = String(args.path ?? "");
+								subtitle = String(
+									args.path ?? args.file_path ?? args.file ?? "",
+								);
 								icon = FileSearchIcon;
 								break;
 							case "mastra_workspace_search":
@@ -196,7 +214,14 @@ export function MessagePartsRenderer({
 									p.state !== "output-available" && p.state !== "output-error"
 										? "Searching"
 										: "Searched";
-								subtitle = String(args.query ?? args.pattern ?? "");
+								subtitle = String(
+									args.query ??
+										args.pattern ??
+										args.regex ??
+										args.substring_pattern ??
+										args.text ??
+										"",
+								);
 								icon = SearchIcon;
 								break;
 							case "mastra_workspace_index":

@@ -6,6 +6,28 @@ type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>;
 
 export type { ToolPart };
 
+const TOOL_NAME_ALIASES: Record<string, string> = {
+	execute_command: "mastra_workspace_execute_command",
+	run_command: "mastra_workspace_execute_command",
+	run_terminal_cmd: "mastra_workspace_execute_command",
+	write_file: "mastra_workspace_write_file",
+	edit_file: "mastra_workspace_edit_file",
+	read_file: "mastra_workspace_read_file",
+	view: "mastra_workspace_read_file",
+	list_files: "mastra_workspace_list_files",
+	find_files: "mastra_workspace_list_files",
+	file_stat: "mastra_workspace_file_stat",
+	search: "mastra_workspace_search",
+	search_content: "mastra_workspace_search",
+	index: "mastra_workspace_index",
+	mkdir: "mastra_workspace_mkdir",
+	delete: "mastra_workspace_delete",
+};
+
+export function normalizeToolName(toolName: string): string {
+	return TOOL_NAME_ALIASES[toolName] ?? toolName;
+}
+
 export function toToolDisplayState(part: ToolPart): ToolDisplayState {
 	switch (part.state) {
 		case "input-streaming":

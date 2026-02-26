@@ -51,3 +51,8 @@ export {
 	getGeminiSettingsJsonContent,
 	getGeminiSettingsJsonPath,
 } from "./agent-wrappers-gemini";
+export {
+	createMastraHooksJson,
+	getMastraGlobalHooksJsonPath,
+	getMastraHooksJsonContent,
+} from "./agent-wrappers-mastra";

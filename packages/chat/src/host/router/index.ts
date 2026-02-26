@@ -6,5 +6,4 @@ export {
 	previewSlashCommandInput,
 	resolveSlashCommandInput,
 	searchFilesInput,
-	sessionIdInput,
 } from "./router";

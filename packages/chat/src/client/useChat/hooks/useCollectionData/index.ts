@@ -1,1 +1,0 @@
-export { useCollectionData } from "./useCollectionData";

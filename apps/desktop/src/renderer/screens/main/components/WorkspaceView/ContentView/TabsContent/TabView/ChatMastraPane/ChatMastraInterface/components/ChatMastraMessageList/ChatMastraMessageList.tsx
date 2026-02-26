@@ -7,24 +7,20 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
-import {
-	Tool,
-	ToolContent,
-	type ToolDisplayState,
-	ToolHeader,
-	ToolInput,
-	ToolOutput,
-} from "@superset/ui/ai-elements/tool";
 import { FileSearchIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
+import { MastraToolCallBlock } from "../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import { StreamingMessageText } from "../../../../ChatPane/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
 import { ReasoningBlock } from "../../../../ChatPane/ChatInterface/components/ReasoningBlock";
+import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
+import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
 >[number];
 type MastraMessageContent = MastraMessage["content"][number];
+type MastraToolCall = Extract<MastraMessageContent, { type: "tool_call" }>;
 type MastraToolResult = Extract<MastraMessageContent, { type: "tool_result" }>;
 
 interface ChatMastraMessageListProps {
@@ -61,21 +57,38 @@ function findToolResultForCall({
 	return { result: null, index: -1 };
 }
 
-function toToolDisplayState({
+function toToolPartFromCall({
+	part,
 	result,
 	isStreaming,
 }: {
+	part: MastraToolCall;
 	result: MastraToolResult | null;
 	isStreaming: boolean;
-}): ToolDisplayState {
-	if (result?.isError) return "output-error";
-	if (result) return "output-available";
-	if (isStreaming) return "input-streaming";
-	return "input-available";
+}): ToolPart {
+	return {
+		type: `tool-${normalizeToolName(part.name)}` as ToolPart["type"],
+		toolCallId: part.id,
+		state: result?.isError
+			? "output-error"
+			: result
+				? "output-available"
+				: isStreaming
+					? "input-streaming"
+					: "input-available",
+		input: part.args,
+		...(result ? { output: result.result } : {}),
+	} as ToolPart;
 }
 
-function getToolErrorText(result: unknown): string {
-	return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+function toToolPartFromResult(part: MastraToolResult): ToolPart {
+	return {
+		type: `tool-${normalizeToolName(part.name)}` as ToolPart["type"],
+		toolCallId: part.id,
+		state: part.isError ? "output-error" : "output-available",
+		input: {},
+		output: part.result,
+	} as ToolPart;
 }
 
 function UserMessage({ message }: { message: MastraMessage }) {
@@ -161,26 +174,16 @@ function AssistantMessage({
 				toolCallId: part.id,
 				startAt: partIndex + 1,
 			});
-			const state = toToolDisplayState({
-				result,
-				isStreaming,
-			});
-			const errorText =
-				result?.isError === true ? getToolErrorText(result.result) : undefined;
 
 			nodes.push(
-				<Tool key={`${message.id}-tool-${part.id}`}>
-					<ToolHeader title={part.name} state={state} />
-					<ToolContent>
-						<ToolInput input={part.args} />
-						{result ? (
-							<ToolOutput
-								output={result.isError ? undefined : result.result}
-								errorText={errorText}
-							/>
-						) : null}
-					</ToolContent>
-				</Tool>,
+				<MastraToolCallBlock
+					key={`${message.id}-tool-${part.id}`}
+					part={toToolPartFromCall({
+						part,
+						result,
+						isStreaming,
+					})}
+				/>,
 			);
 
 			// If next sibling is the matched result, skip it.
@@ -192,20 +195,10 @@ function AssistantMessage({
 
 		if (part.type === "tool_result") {
 			nodes.push(
-				<Tool key={`${message.id}-tool-result-${part.id}`}>
-					<ToolHeader
-						title={part.name}
-						state={part.isError ? "output-error" : "output-available"}
-					/>
-					<ToolContent>
-						<ToolOutput
-							output={part.isError ? undefined : part.result}
-							errorText={
-								part.isError ? getToolErrorText(part.result) : undefined
-							}
-						/>
-					</ToolContent>
-				</Tool>,
+				<MastraToolCallBlock
+					key={`${message.id}-tool-result-${part.id}`}
+					part={toToolPartFromResult(part)}
+				/>,
 			);
 			continue;
 		}

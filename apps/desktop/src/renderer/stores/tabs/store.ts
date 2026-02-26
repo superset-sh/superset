@@ -18,7 +18,6 @@ import {
 	createBrowserPane,
 	createBrowserTabWithPane,
 	createChatMastraTabWithPane,
-	createChatTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
 	createPane,
@@ -117,40 +116,6 @@ export const useTabsStore = create<TabsStore>()(
 						state.tabs,
 						options,
 					);
-
-					const currentActiveId = state.activeTabIds[workspaceId];
-					const historyStack = state.tabHistoryStacks[workspaceId] || [];
-					const newHistoryStack = currentActiveId
-						? [
-								currentActiveId,
-								...historyStack.filter((id) => id !== currentActiveId),
-							]
-						: historyStack;
-
-					set({
-						tabs: [...state.tabs, tab],
-						panes: { ...state.panes, [pane.id]: pane },
-						activeTabIds: {
-							...state.activeTabIds,
-							[workspaceId]: tab.id,
-						},
-						focusedPaneIds: {
-							...state.focusedPaneIds,
-							[tab.id]: pane.id,
-						},
-						tabHistoryStacks: {
-							...state.tabHistoryStacks,
-							[workspaceId]: newHistoryStack,
-						},
-					});
-
-					return { tabId: tab.id, paneId: pane.id };
-				},
-
-				addChatTab: (workspaceId: string) => {
-					const state = get();
-
-					const { tab, pane } = createChatTabWithPane(workspaceId);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -1685,22 +1650,6 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Chat operations
-				switchChatSession: (paneId, sessionId) => {
-					const state = get();
-					const pane = state.panes[paneId];
-					if (!pane?.chat) return;
-
-					set({
-						panes: {
-							...state.panes,
-							[paneId]: {
-								...pane,
-								chat: { sessionId },
-							},
-						},
-					});
-				},
-
 				switchChatMastraSession: (paneId, sessionId) => {
 					const state = get();
 					const pane = state.panes[paneId];
@@ -1748,7 +1697,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 6,
+				version: 7,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -1777,8 +1726,21 @@ export const useTabsStore = create<TabsStore>()(
 					}
 					if (version < 5 && state.panes) {
 						for (const pane of Object.values(state.panes)) {
-							if (pane.chat) {
-								pane.chat.sessionId = null;
+							if (pane.chatMastra) {
+								pane.chatMastra.sessionId = null;
+							}
+						}
+					}
+					if (version < 7 && state.panes) {
+						for (const pane of Object.values(state.panes)) {
+							// biome-ignore lint/suspicious/noExplicitAny: migration from legacy chat pane shape
+							const legacyPane = pane as any;
+							if (legacyPane.type === "chat") {
+								legacyPane.type = "chat-mastra";
+								legacyPane.chatMastra = {
+									sessionId: legacyPane.chat?.sessionId ?? null,
+								};
+								delete legacyPane.chat;
 							}
 						}
 					}

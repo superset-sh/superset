@@ -4,10 +4,6 @@
 	"private": true,
 	"type": "module",
 	"exports": {
-		"./schema": {
-			"types": "./src/schema/index.ts",
-			"default": "./src/schema/index.ts"
-		},
 		"./shared": {
 			"types": "./src/shared/index.ts",
 			"default": "./src/shared/index.ts"
@@ -26,16 +22,7 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"@anthropic-ai/sdk": "^0.78.0",
-		"@durable-streams/client": "^0.2.1",
-		"@durable-streams/state": "^0.2.1",
-		"@electric-sql/client": "1.5.7",
-		"@superset/agent": "workspace:*",
-		"@superset/trpc": "workspace:*",
-		"@tanstack/db": "0.5.27",
-		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
-		"ai": "^6.0.0",
 		"fast-glob": "^3.3.3",
 		"fuse.js": "^7.1.0",
 		"mastracode": "^0.3.0",
@@ -45,7 +32,6 @@
 	"peerDependencies": {
 		"@tanstack/react-query": "^5.0.0",
 		"@trpc/react-query": "^11.7.1",
-		"drizzle-orm": "0.45.1",
 		"react": "^18.0.0 || ^19.0.0"
 	},
 	"devDependencies": {

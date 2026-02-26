@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	normalizeExecutionMode,
 	type TerminalPreset,
-} from "@superset/local-db";
+} from "@superset/local-db/schema/zod";
 import {
 	normalizeTerminalPresets,
 	type PresetWithUnknownMode,

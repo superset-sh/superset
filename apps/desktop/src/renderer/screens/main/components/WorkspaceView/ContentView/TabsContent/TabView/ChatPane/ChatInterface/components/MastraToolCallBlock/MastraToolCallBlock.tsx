@@ -1,6 +1,5 @@
 import { BashTool } from "@superset/ui/ai-elements/bash-tool";
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
-import { ToolCall } from "@superset/ui/ai-elements/tool-call";
 import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
@@ -8,7 +7,12 @@ import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
 import { READ_ONLY_TOOLS } from "../../constants";
 import type { ToolPart } from "../../utils/tool-helpers";
-import { getArgs, getResult, toWsToolState } from "../../utils/tool-helpers";
+import {
+	getArgs,
+	getResult,
+	normalizeToolName,
+	toWsToolState,
+} from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { GenericToolCall } from "./components/GenericToolCall";
 
@@ -24,24 +28,116 @@ export function MastraToolCallBlock({
 	const args = getArgs(part);
 	const result = getResult(part);
 	const state = toWsToolState(part);
-	const toolName = getToolName(part);
+	const toolName = normalizeToolName(getToolName(part));
+	const toolDisplayName = toolName
+		.replace("mastra_workspace_", "")
+		.replaceAll("_", " ");
+
+	const outputObject =
+		typeof result.output === "object" && result.output !== null
+			? (result.output as Record<string, unknown>)
+			: undefined;
+	const nestedResultObject =
+		typeof result.result === "object" && result.result !== null
+			? (result.result as Record<string, unknown>)
+			: undefined;
+
+	const toText = (value: unknown): string | undefined => {
+		if (typeof value === "string") return value;
+		if (typeof value === "number" || typeof value === "boolean") {
+			return String(value);
+		}
+		if (Array.isArray(value)) {
+			const parts = value
+				.map((item) => (typeof item === "string" ? item : String(item)))
+				.filter(Boolean);
+			return parts.length > 0 ? parts.join("\n") : undefined;
+		}
+		return undefined;
+	};
+
+	const firstText = (...values: unknown[]): string | undefined => {
+		for (const value of values) {
+			const text = toText(value);
+			if (text && text.trim().length > 0) return text;
+		}
+		return undefined;
+	};
+
+	const toNumber = (value: unknown): number | undefined => {
+		if (typeof value === "number" && Number.isFinite(value)) return value;
+		if (typeof value === "string" && value.trim().length > 0) {
+			const parsed = Number(value);
+			return Number.isFinite(parsed) ? parsed : undefined;
+		}
+		return undefined;
+	};
 
 	// --- Execute command → BashTool ---
 	if (toolName === "mastra_workspace_execute_command") {
-		const command = String(args.command ?? args.cmd ?? "");
+		const command = String(
+			args.command ??
+				args.cmd ??
+				args.command_line ??
+				args.commandLine ??
+				args.raw ??
+				"",
+		);
 		const stdout =
-			result.stdout != null
-				? String(result.stdout)
-				: result.output != null
-					? typeof result.output === "string"
-						? result.output
-						: JSON.stringify(result.output, null, 2)
-					: result.text != null
-						? String(result.text)
-						: undefined;
-		const stderr = result.stderr != null ? String(result.stderr) : undefined;
-		const exitCode =
-			result.exitCode != null ? Number(result.exitCode) : undefined;
+			firstText(
+				result.stdout,
+				result.stdout_text,
+				result.stdoutText,
+				outputObject?.stdout,
+				outputObject?.stdout_text,
+				outputObject?.stdoutText,
+				nestedResultObject?.stdout,
+				nestedResultObject?.stdout_text,
+				nestedResultObject?.stdoutText,
+				result.combined_output,
+				result.combinedOutput,
+				outputObject?.combined_output,
+				outputObject?.combinedOutput,
+				result.output_text,
+				result.outputText,
+				result.text,
+				typeof result.output === "string" ? result.output : undefined,
+				typeof result.result === "string" ? result.result : undefined,
+			) ??
+			(typeof result.output === "object" && result.output !== null
+				? JSON.stringify(result.output, null, 2)
+				: undefined);
+		const stderr = firstText(
+			result.stderr,
+			result.stderr_text,
+			result.stderrText,
+			outputObject?.stderr,
+			outputObject?.stderr_text,
+			outputObject?.stderrText,
+			nestedResultObject?.stderr,
+			nestedResultObject?.stderr_text,
+			nestedResultObject?.stderrText,
+			result.error,
+			result.errorText,
+			outputObject?.error,
+			outputObject?.errorText,
+			nestedResultObject?.error,
+			nestedResultObject?.errorText,
+		);
+		const exitCode = toNumber(
+			result.exitCode ??
+				result.exit_code ??
+				result.code ??
+				result.status_code ??
+				outputObject?.exitCode ??
+				outputObject?.exit_code ??
+				outputObject?.code ??
+				outputObject?.status_code ??
+				nestedResultObject?.exitCode ??
+				nestedResultObject?.exit_code ??
+				nestedResultObject?.code ??
+				nestedResultObject?.status_code,
+		);
 		return (
 			<BashTool
 				command={command}
@@ -123,17 +219,11 @@ export function MastraToolCallBlock({
 		const questions = Array.isArray(args.questions) ? args.questions : [];
 
 		if (part.state === "output-available" || part.state === "output-error") {
-			const answers = result.answers as Record<string, string> | undefined;
 			return (
-				<ToolCall
+				<GenericToolCall
+					part={part}
+					toolName="Question"
 					icon={MessageCircleQuestionIcon}
-					isError={false}
-					isPending={false}
-					title={
-						answers
-							? `Answered ${Object.keys(answers).length} question(s)`
-							: "Question skipped"
-					}
 				/>
 			);
 		}
@@ -147,48 +237,28 @@ export function MastraToolCallBlock({
 		);
 	}
 
-	// --- Read-only exploration tools → compact ToolCall ---
+	// --- Read-only exploration tools ---
 	if (READ_ONLY_TOOLS.has(toolName)) {
 		return <ReadOnlyToolCall part={part} />;
 	}
 
-	// --- Destructive workspace tools → compact ToolCall ---
+	// --- Destructive workspace tools ---
 	if (toolName === "mastra_workspace_mkdir") {
-		const isPending =
-			part.state !== "output-available" && part.state !== "output-error";
-		const subtitle = String(args.path ?? "");
-		const shortName = subtitle.includes("/")
-			? (subtitle.split("/").pop() ?? subtitle)
-			: subtitle;
 		return (
-			<ToolCall
+			<GenericToolCall
+				part={part}
+				toolName="Create directory"
 				icon={FolderIcon}
-				title={isPending ? "Creating directory" : "Created directory"}
-				subtitle={shortName}
-				isPending={isPending}
-				isError={part.state === "output-error"}
 			/>
 		);
 	}
 
 	if (toolName === "mastra_workspace_delete") {
-		const isPending =
-			part.state !== "output-available" && part.state !== "output-error";
-		const subtitle = String(args.path ?? "");
-		const shortName = subtitle.includes("/")
-			? (subtitle.split("/").pop() ?? subtitle)
-			: subtitle;
 		return (
-			<ToolCall
-				icon={FileIcon}
-				title={isPending ? "Deleting" : "Deleted"}
-				subtitle={shortName}
-				isPending={isPending}
-				isError={part.state === "output-error"}
-			/>
+			<GenericToolCall part={part} toolName="Delete path" icon={FileIcon} />
 		);
 	}
 
 	// --- Fallback: generic tool UI ---
-	return <GenericToolCall part={part} toolName={toolName} />;
+	return <GenericToolCall part={part} toolName={toolDisplayName} />;
 }

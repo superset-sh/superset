@@ -1,7 +1,7 @@
 import {
 	normalizeExecutionMode,
 	type TerminalPreset,
-} from "@superset/local-db";
+} from "@superset/local-db/schema/zod";
 
 export type PresetWithUnknownMode = Omit<TerminalPreset, "executionMode"> & {
 	executionMode?: unknown;
