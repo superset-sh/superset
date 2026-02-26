@@ -3,6 +3,7 @@ import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
 import {
 	getOrCreateRuntime,
+	getRuntimeMcpOverview,
 	onDisplayStateObserved,
 	runStopHook,
 	runUserPromptHook,
@@ -11,6 +12,7 @@ import {
 	approvalRespondInput,
 	displayStateInput,
 	listMessagesInput,
+	mcpOverviewInput,
 	planRespondInput,
 	questionRespondInput,
 	searchFilesInput,
@@ -32,6 +34,13 @@ export function createChatMastraServiceRouter() {
 						includeHidden: input.includeHidden,
 						limit: input.limit,
 					});
+				}),
+
+			getMcpOverview: t.procedure
+				.input(mcpOverviewInput)
+				.query(async ({ input }) => {
+					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					return getRuntimeMcpOverview(runtime);
 				}),
 		}),
 

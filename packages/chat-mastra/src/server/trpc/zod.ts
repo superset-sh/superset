@@ -14,6 +14,11 @@ export const searchFilesInput = z.object({
 	limit: z.number().default(20),
 });
 
+export const mcpOverviewInput = z.object({
+	sessionId: z.uuid(),
+	cwd: z.string().optional(),
+});
+
 export const sessionIdInput = z.object({
 	sessionId: z.uuid(),
 });
@@ -84,6 +89,7 @@ export const planRespondInput = z.object({
 });
 
 export type SearchFilesInput = z.infer<typeof searchFilesInput>;
+export type McpOverviewInput = z.infer<typeof mcpOverviewInput>;
 export type SessionIdInput = z.infer<typeof sessionIdInput>;
 export type SendMessagePayloadInput = z.infer<typeof sendMessagePayloadSchema>;
 export type ApprovalPayloadInput = z.infer<typeof approvalPayloadSchema>;

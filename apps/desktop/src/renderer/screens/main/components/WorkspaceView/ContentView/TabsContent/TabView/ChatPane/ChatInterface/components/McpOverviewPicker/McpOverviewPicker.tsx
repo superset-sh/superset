@@ -67,7 +67,7 @@ export function McpOverviewPicker({
 					<div className="mt-1 truncate text-xs text-muted-foreground">
 						{overview?.sourcePath
 							? `Loaded from ${overview.sourcePath}`
-							: "No .mcp.json found in this workspace"}
+							: "No MCP config found in this workspace"}
 					</div>
 				</div>
 				<ModelSelectorInput placeholder="Search MCP servers..." />

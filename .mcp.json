@@ -6,7 +6,8 @@
 		},
 		"expo-mcp": {
 			"type": "http",
-			"url": "https://mcp.expo.dev/mcp"
+			"url": "https://mcp.expo.dev/mcp",
+			"enabled": false
 		},
 		"maestro": {
 			"command": "maestro",

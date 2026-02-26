@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
-const MCP_SETTINGS_FILE = ".mcp.json";
+const MCP_SETTINGS_FILES = [".mastracode/mcp.json", ".mcp.json"] as const;
 
 const mcpSettingsSchema = z.object({
 	mcpServers: z.record(z.string(), z.unknown()),
@@ -21,6 +21,43 @@ export interface McpServerOverview {
 export interface McpOverview {
 	sourcePath: string | null;
 	servers: McpServerOverview[];
+}
+
+function resolveMcpServers(cwd: string): {
+	sourcePath: string | null;
+	servers: Record<string, unknown>;
+} {
+	let firstExistingPath: string | null = null;
+
+	for (const relativePath of MCP_SETTINGS_FILES) {
+		const sourcePath = join(cwd, relativePath);
+		if (!existsSync(sourcePath)) {
+			continue;
+		}
+
+		if (!firstExistingPath) {
+			firstExistingPath = sourcePath;
+		}
+
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(readFileSync(sourcePath, "utf-8"));
+		} catch {
+			continue;
+		}
+
+		const result = mcpSettingsSchema.safeParse(parsed);
+		if (!result.success) {
+			continue;
+		}
+
+		return {
+			sourcePath,
+			servers: result.data.mcpServers,
+		};
+	}
+
+	return { sourcePath: firstExistingPath, servers: {} };
 }
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -95,24 +132,12 @@ function resolveState(
 }
 
 export function getMcpOverview(cwd: string): McpOverview {
-	const sourcePath = join(cwd, MCP_SETTINGS_FILE);
-	if (!existsSync(sourcePath)) {
+	const { sourcePath, servers: mcpServers } = resolveMcpServers(cwd);
+	if (!sourcePath) {
 		return { sourcePath: null, servers: [] };
 	}
 
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(readFileSync(sourcePath, "utf-8"));
-	} catch {
-		return { sourcePath, servers: [] };
-	}
-
-	const result = mcpSettingsSchema.safeParse(parsed);
-	if (!result.success) {
-		return { sourcePath, servers: [] };
-	}
-
-	const servers = Object.entries(result.data.mcpServers)
+	const servers = Object.entries(mcpServers)
 		.map(([name, rawConfig]) => {
 			const config = toRecord(rawConfig) ?? {};
 			const transport = resolveTransport(config);

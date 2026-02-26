@@ -3,6 +3,9 @@ import { createMastraCode } from "mastracode";
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>
 >["harness"];
+export type RuntimeMcpManager = Awaited<
+	ReturnType<typeof createMastraCode>
+>["mcpManager"];
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
@@ -11,6 +14,7 @@ export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
 export interface RuntimeSession {
 	sessionId: string;
 	harness: RuntimeHarness;
+	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
 	cwd: string;
 	lastIsRunning: boolean;
@@ -105,6 +109,9 @@ export async function getOrCreateRuntime(
 
 	const runtimeCwd = cwd ?? process.cwd();
 	const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
+	if (runtimeMastra.mcpManager?.hasServers()) {
+		await runtimeMastra.mcpManager.init();
+	}
 	runtimeMastra.hookManager?.setSessionId(sessionId);
 	if (DEBUG_HOOKS_ENABLED) {
 		const hookManager = runtimeMastra.hookManager;
@@ -131,10 +138,106 @@ export async function getOrCreateRuntime(
 	const runtime: RuntimeSession = {
 		sessionId,
 		harness: runtimeMastra.harness,
+		mcpManager: runtimeMastra.mcpManager,
 		hookManager: runtimeMastra.hookManager,
 		cwd: runtimeCwd,
 		lastIsRunning: false,
 	};
 	runtimes.set(sessionId, runtime);
 	return runtime;
+}
+
+function toNonEmptyString(value: unknown): string | null {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : null;
+}
+
+function toStringArray(value: unknown): string[] | null {
+	if (!Array.isArray(value)) return null;
+	const items = value
+		.map((item) => (typeof item === "string" ? item.trim() : ""))
+		.filter(Boolean);
+	return items.length > 0 ? items : null;
+}
+
+function resolveTransport(config: Record<string, unknown>): "remote" | "local" {
+	const command = toNonEmptyString(config.command)?.toLowerCase();
+	const args = toStringArray(config.args) ?? [];
+	const hasRemoteUrl = args.some((arg) => /^https?:\/\//i.test(arg));
+	const isMcpRemote =
+		command === "mcp-remote" ||
+		args.some((arg) => arg.toLowerCase() === "mcp-remote");
+	return hasRemoteUrl || isMcpRemote ? "remote" : "local";
+}
+
+function resolveTarget(
+	config: Record<string, unknown>,
+	transport: "remote" | "local",
+): string {
+	if (transport === "remote") {
+		const args = toStringArray(config.args) ?? [];
+		const remoteUrl = args.find((arg) => /^https?:\/\//i.test(arg));
+		if (remoteUrl) {
+			return remoteUrl;
+		}
+	}
+
+	const command = toNonEmptyString(config.command);
+	const args = toStringArray(config.args) ?? [];
+	if (!command) {
+		return "Not configured";
+	}
+
+	return [command, ...args].join(" ");
+}
+
+export async function getRuntimeMcpOverview(runtime: RuntimeSession): Promise<{
+	sourcePath: string | null;
+	servers: Array<{
+		name: string;
+		state: "enabled" | "disabled" | "invalid";
+		transport: "remote" | "local" | "unknown";
+		target: string;
+	}>;
+}> {
+	const manager = runtime.mcpManager;
+	if (!manager || !manager.hasServers()) {
+		return { sourcePath: null, servers: [] };
+	}
+
+	if (manager.getServerStatuses().length === 0) {
+		await manager.init();
+	}
+
+	const statusesByName = new Map(
+		manager.getServerStatuses().map((status) => [status.name, status]),
+	);
+	const config = manager.getConfig().mcpServers ?? {};
+	const servers: Array<{
+		name: string;
+		state: "enabled" | "disabled" | "invalid";
+		transport: "remote" | "local" | "unknown";
+		target: string;
+	}> = Object.entries(config)
+		.map(([name, rawConfig]) => {
+			const normalizedConfig = rawConfig as unknown as Record<string, unknown>;
+			const transport = resolveTransport(normalizedConfig);
+			const status = statusesByName.get(name);
+			const state: "enabled" | "invalid" = status?.connected
+				? "enabled"
+				: "invalid";
+			return {
+				name,
+				state,
+				transport,
+				target: resolveTarget(normalizedConfig, transport),
+			};
+		})
+		.sort((left, right) => left.name.localeCompare(right.name));
+
+	return {
+		sourcePath: manager.getConfigPaths().project,
+		servers,
+	};
 }

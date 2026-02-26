@@ -26,7 +26,7 @@
 		"fast-glob": "^3.3.3",
 		"fuse.js": "^7.1.0",
 		"hono": "^4.8.5",
-		"mastracode": "^0.3.0",
+		"mastracode": "^0.4.0",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"
 	},
