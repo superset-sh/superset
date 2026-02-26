@@ -50,7 +50,7 @@ function createDeps(
 			notifications.push(n);
 			return n;
 		},
-		playSound: mock(() => {}),
+		isNotificationSoundMuted: () => false,
 		onNotificationClick: (ids) => clickedIds.push(ids),
 		getVisibilityContext: () => ({
 			isFocused: false,
@@ -114,9 +114,40 @@ describe("NotificationManager", () => {
 			expect(localManager.activeCount).toBe(0);
 		});
 
-		it("plays sound on notification", () => {
-			manager.handleAgentLifecycle(makeEvent());
-			expect(deps.playSound).toHaveBeenCalled();
+		it("uses native sound when notification sounds are unmuted", () => {
+			const createNotification = mock(
+				(_opts: { title: string; body: string; silent: boolean }) =>
+					createMockNotification(),
+			);
+			const localDeps = createDeps({
+				createNotification,
+				isNotificationSoundMuted: () => false,
+			});
+			const localManager = new NotificationManager(localDeps);
+
+			localManager.handleAgentLifecycle(makeEvent());
+
+			expect(createNotification).toHaveBeenCalledWith(
+				expect.objectContaining({ silent: false }),
+			);
+		});
+
+		it("suppresses native sound when notification sounds are muted", () => {
+			const createNotification = mock(
+				(_opts: { title: string; body: string; silent: boolean }) =>
+					createMockNotification(),
+			);
+			const localDeps = createDeps({
+				createNotification,
+				isNotificationSoundMuted: () => true,
+			});
+			const localManager = new NotificationManager(localDeps);
+
+			localManager.handleAgentLifecycle(makeEvent());
+
+			expect(createNotification).toHaveBeenCalledWith(
+				expect.objectContaining({ silent: true }),
+			);
 		});
 	});
 

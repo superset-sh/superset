@@ -17,7 +17,7 @@ import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { browserManager } from "../lib/browser/browser-manager";
 import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
-import { playNotificationSound } from "../lib/notification-sound";
+import { areNotificationSoundsMuted } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
 import {
 	notificationsApp,
@@ -157,7 +157,7 @@ export async function MainWindow() {
 	const notificationManager = new NotificationManager({
 		isSupported: () => Notification.isSupported(),
 		createNotification: (opts) => new Notification(opts),
-		playSound: playNotificationSound,
+		isNotificationSoundMuted: areNotificationSoundsMuted,
 		onNotificationClick: (ids) => {
 			window.show();
 			window.focus();
