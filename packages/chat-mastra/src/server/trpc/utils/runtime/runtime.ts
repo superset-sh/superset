@@ -11,6 +11,10 @@ export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
 export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
+type RuntimeHarnessEvent = Parameters<
+	Parameters<RuntimeHarness["subscribe"]>[0]
+>[0];
+type RuntimeAgentEndEvent = Extract<RuntimeHarnessEvent, { type: "agent_end" }>;
 
 export interface RuntimeSession {
 	sessionId: string;
@@ -18,12 +22,9 @@ export interface RuntimeSession {
 	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
 	cwd: string;
-	lastIsRunning: boolean;
-	stopMonitorInterval: ReturnType<typeof setInterval> | null;
 }
 
 const runtimes = new Map<string, RuntimeSession>();
-const STOP_MONITOR_INTERVAL_MS = 1000;
 const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
 const DEBUG_HOOKS_ENABLED =
 	debugHooksOverride === undefined
@@ -75,16 +76,21 @@ export async function runStopHook(
 	logHookResult(runtime, "Stop", result);
 }
 
-export function onDisplayStateObserved(
-	runtime: RuntimeSession,
-	displayState: RuntimeDisplayState,
-): void {
-	const isRunning = Boolean(displayState?.isRunning);
-	const wasRunning = runtime.lastIsRunning;
-	runtime.lastIsRunning = isRunning;
+function toStopReason(
+	event: RuntimeAgentEndEvent,
+): "complete" | "aborted" | "error" {
+	if (event.reason === "aborted") return "aborted";
+	if (event.reason === "error") return "error";
+	return "complete";
+}
 
-	if (wasRunning && !isRunning) {
-		void runStopHook(runtime, "complete").catch((error) => {
+function subscribeRuntimeHooks(runtime: RuntimeSession): void {
+	runtime.harness.subscribe(async (event) => {
+		if (event.type !== "agent_end") return;
+
+		try {
+			await runStopHook(runtime, toStopReason(event));
+		} catch (error) {
 			if (DEBUG_HOOKS_ENABLED) {
 				console.warn("[chat-mastra] failed to emit Stop hook", {
 					sessionId: runtime.sessionId,
@@ -94,49 +100,8 @@ export function onDisplayStateObserved(
 							: "Unknown hook execution error",
 				});
 			}
-		});
-	}
-}
-
-function stopRuntimeCompletionMonitor(runtime: RuntimeSession): void {
-	if (!runtime.stopMonitorInterval) return;
-	clearInterval(runtime.stopMonitorInterval);
-	runtime.stopMonitorInterval = null;
-}
-
-async function checkRuntimeCompletion(runtime: RuntimeSession): Promise<void> {
-	// Stop polling when no active run is in progress.
-	if (!runtime.lastIsRunning) {
-		stopRuntimeCompletionMonitor(runtime);
-		return;
-	}
-
-	try {
-		onDisplayStateObserved(runtime, runtime.harness.getDisplayState());
-		if (!runtime.lastIsRunning) {
-			stopRuntimeCompletionMonitor(runtime);
 		}
-	} catch (error) {
-		if (DEBUG_HOOKS_ENABLED) {
-			console.warn("[chat-mastra] completion monitor failed", {
-				sessionId: runtime.sessionId,
-				error:
-					error instanceof Error ? error.message : "Unknown completion error",
-			});
-		}
-	}
-}
-
-function ensureRuntimeCompletionMonitor(runtime: RuntimeSession): void {
-	if (runtime.stopMonitorInterval) return;
-	runtime.stopMonitorInterval = setInterval(() => {
-		void checkRuntimeCompletion(runtime);
-	}, STOP_MONITOR_INTERVAL_MS);
-}
-
-export function markRuntimeRunStarted(runtime: RuntimeSession): void {
-	runtime.lastIsRunning = true;
-	ensureRuntimeCompletionMonitor(runtime);
+	});
 }
 
 export async function getOrCreateRuntime(
@@ -194,9 +159,8 @@ export async function getOrCreateRuntime(
 		mcpManager: runtimeMastra.mcpManager,
 		hookManager: runtimeMastra.hookManager,
 		cwd: runtimeCwd,
-		lastIsRunning: false,
-		stopMonitorInterval: null,
 	};
+	subscribeRuntimeHooks(runtime);
 	runtimes.set(sessionId, runtime);
 	return runtime;
 }
