@@ -1,4 +1,4 @@
-import { execFile, execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { settings } from "@superset/local-db";
 import {
@@ -23,6 +23,27 @@ type MacNotificationStateModule = {
 	getDoNotDisturb: () => Promise<boolean>;
 };
 
+function execFileOutput(
+	command: string,
+	args: string[],
+	timeout: number,
+): Promise<string | null> {
+	return new Promise((resolve) => {
+		execFile(
+			command,
+			args,
+			{ encoding: "utf8", timeout, windowsHide: true },
+			(error, stdout) => {
+				if (error) {
+					resolve(null);
+					return;
+				}
+				resolve(stdout.trim());
+			},
+		);
+	});
+}
+
 function parseMacDefaultsDnd(output: string): boolean | undefined {
 	const normalized = output.trim().toLowerCase();
 	if (normalized === "1" || normalized === "true") {
@@ -46,7 +67,7 @@ function parseMacDefaultsDnd(output: string): boolean | undefined {
 	return undefined;
 }
 
-function readMacDoNotDisturbFromDefaults(): boolean | undefined {
+async function readMacDoNotDisturbFromDefaults(): Promise<boolean | undefined> {
 	const commands: Array<[string, string[]]> = [
 		[
 			"defaults",
@@ -65,18 +86,11 @@ function readMacDoNotDisturbFromDefaults(): boolean | undefined {
 	];
 
 	for (const [command, args] of commands) {
-		try {
-			const output = execFileSync(command, args, {
-				encoding: "utf8",
-				stdio: ["ignore", "pipe", "ignore"],
-				timeout: 250,
-			}).trim();
-			const parsed = parseMacDefaultsDnd(output);
-			if (parsed !== undefined) {
-				return parsed;
-			}
-		} catch {
-			// Try next fallback command.
+		const output = await execFileOutput(command, args, 250);
+		if (!output) continue;
+		const parsed = parseMacDefaultsDnd(output);
+		if (parsed !== undefined) {
+			return parsed;
 		}
 	}
 
@@ -89,7 +103,7 @@ async function isMacDoNotDisturbEnabled(): Promise<boolean> {
 			require("macos-notification-state") as MacNotificationStateModule;
 		return await mod.getDoNotDisturb();
 	} catch {
-		const fallback = readMacDoNotDisturbFromDefaults();
+		const fallback = await readMacDoNotDisturbFromDefaults();
 		if (fallback !== undefined) {
 			return fallback;
 		}
@@ -128,25 +142,16 @@ function isWindowsDoNotDisturbEnabled(): boolean {
 	}
 }
 
-function isLinuxDoNotDisturbEnabled(): boolean {
-	try {
-		const output = execFileSync(
-			"gsettings",
-			["get", "org.gnome.desktop.notifications", "show-banners"],
-			{
-				encoding: "utf8",
-				stdio: ["ignore", "pipe", "ignore"],
-				timeout: 200,
-			},
-		)
-			.trim()
-			.toLowerCase();
+async function isLinuxDoNotDisturbEnabled(): Promise<boolean> {
+	const output = await execFileOutput(
+		"gsettings",
+		["get", "org.gnome.desktop.notifications", "show-banners"],
+		200,
+	);
+	if (!output) return false;
 
-		// show-banners=false indicates DND-style suppression in GNOME.
-		return output === "false";
-	} catch {
-		return false;
-	}
+	// show-banners=false indicates DND-style suppression in GNOME.
+	return output.toLowerCase() === "false";
 }
 
 async function detectDoNotDisturb(): Promise<boolean> {
@@ -157,7 +162,7 @@ async function detectDoNotDisturb(): Promise<boolean> {
 		return isWindowsDoNotDisturbEnabled();
 	}
 	if (process.platform === "linux") {
-		return isLinuxDoNotDisturbEnabled();
+		return await isLinuxDoNotDisturbEnabled();
 	}
 	return false;
 }
