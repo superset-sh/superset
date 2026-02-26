@@ -20,6 +20,18 @@ function assistantMessage(id: string, text: string): MastraMessage {
 	} as unknown as MastraMessage;
 }
 
+function assistantWithContent(
+	id: string,
+	content: MastraMessage["content"],
+): MastraMessage {
+	return {
+		id,
+		role: "assistant",
+		content,
+		createdAt: new Date("2026-02-26T00:00:00.000Z"),
+	} as unknown as MastraMessage;
+}
+
 describe("reconcileStreamingCandidates", () => {
 	it("replaces historical assistant fragments in the active turn with currentMessage", () => {
 		const reconciled = reconcileStreamingCandidates({
@@ -98,6 +110,54 @@ describe("reconcileStreamingCandidates", () => {
 
 		expect(reconciled.map((message) => message.id)).toEqual(["u_1"]);
 		expect(reconciled[0]?.content[0]).toEqual({ type: "text", text: "after" });
+	});
+
+	it("preserves historical tool parts when assistant id changes mid-stream", () => {
+		const reconciled = reconcileStreamingCandidates({
+			historicalMessages: [
+				userMessage("u_1", "call tool"),
+				assistantWithContent("a_hist", [
+					{
+						type: "tool_call",
+						id: "tc_1",
+						name: "view",
+						args: { path: "." },
+					},
+					{
+						type: "tool_result",
+						id: "tc_1",
+						name: "view",
+						result: { content: "files" },
+						isError: false,
+					},
+					{ type: "text", text: "historical text that can be superseded" },
+				]),
+			],
+			optimisticMessage: null,
+			currentMessage: assistantMessage("a_current", "continuing"),
+			isRunning: true,
+		});
+
+		expect(reconciled.map((message) => message.id)).toEqual([
+			"u_1",
+			"a_current",
+		]);
+		expect(reconciled[1]?.content).toEqual([
+			{
+				type: "tool_call",
+				id: "tc_1",
+				name: "view",
+				args: { path: "." },
+			},
+			{
+				type: "tool_result",
+				id: "tc_1",
+				name: "view",
+				result: { content: "files" },
+				isError: false,
+			},
+			{ type: "text", text: "continuing" },
+		]);
 	});
 
 	it("returns historical+optimistic unchanged when not running", () => {

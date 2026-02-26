@@ -14,6 +14,27 @@ function findLastUserIndex(messages: MastraMessage[]): number {
 	return -1;
 }
 
+function mergeActiveTurnAssistantForStreaming({
+	activeTurnMessages,
+	currentMessage,
+}: {
+	activeTurnMessages: MastraMessage[];
+	currentMessage: MastraMessage;
+}): MastraMessage {
+	const historicalToolParts = activeTurnMessages
+		.filter((message) => message.role === "assistant")
+		.flatMap((message) =>
+			message.content.filter(
+				(part) => part.type === "tool_call" || part.type === "tool_result",
+			),
+		);
+
+	return {
+		...currentMessage,
+		content: [...historicalToolParts, ...currentMessage.content],
+	};
+}
+
 export function reconcileStreamingCandidates({
 	historicalMessages,
 	optimisticMessage,
@@ -54,22 +75,27 @@ export function reconcileStreamingCandidates({
 
 	const lastUserIndex = findLastUserIndex(candidates);
 	const turnStartIndex = lastUserIndex + 1;
+	const activeTurnMessages = candidates.slice(turnStartIndex);
+	const mergedCurrentAssistant = mergeActiveTurnAssistantForStreaming({
+		activeTurnMessages,
+		currentMessage,
+	});
 	const next: MastraMessage[] = candidates.slice(0, turnStartIndex);
 	let insertedCurrentMessage = false;
 
-	for (const message of candidates.slice(turnStartIndex)) {
+	for (const message of activeTurnMessages) {
 		if (message.role !== "assistant") {
 			next.push(message);
 			continue;
 		}
 		if (!insertedCurrentMessage) {
-			next.push(currentMessage);
+			next.push(mergedCurrentAssistant);
 			insertedCurrentMessage = true;
 		}
 	}
 
 	if (!insertedCurrentMessage) {
-		next.push(currentMessage);
+		next.push(mergedCurrentAssistant);
 	}
 
 	return next;
