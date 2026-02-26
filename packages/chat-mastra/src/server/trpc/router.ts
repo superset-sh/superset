@@ -7,10 +7,13 @@ import {
 	runStopHook,
 	runUserPromptHook,
 } from "./utils/runtime";
+import { getMastraCodeMcpBridgeDebugInfo } from "./utils/runtime/mcp-bridge";
 import {
 	approvalRespondInput,
+	connectInput,
 	displayStateInput,
 	listMessagesInput,
+	mcpDebugInput,
 	planRespondInput,
 	questionRespondInput,
 	searchFilesInput,
@@ -20,7 +23,28 @@ import {
 
 const t = initTRPC.create({ transformer: superjson });
 
-export function createChatMastraServiceRouter() {
+export interface ChatMastraServiceRouterOptions {
+	getAuthToken?: () => Promise<string | null> | string | null;
+}
+
+export function createChatMastraServiceRouter(
+	options: ChatMastraServiceRouterOptions = {},
+) {
+	const getRuntimeForSession = async (input: {
+		sessionId: string;
+		cwd?: string;
+	}) => {
+		let authToken: string | null | undefined;
+		try {
+			authToken = await options.getAuthToken?.();
+		} catch {
+			authToken = null;
+		}
+		return getOrCreateRuntime(input.sessionId, input.cwd, {
+			authToken: authToken ?? undefined,
+		});
+	};
+
 	return t.router({
 		workspace: t.router({
 			searchFiles: t.procedure
@@ -36,10 +60,52 @@ export function createChatMastraServiceRouter() {
 		}),
 
 		session: t.router({
+			connect: t.procedure.input(connectInput).query(async ({ input }) => {
+				await getRuntimeForSession(input);
+				return { connected: true };
+			}),
+
+			mcpDebug: t.procedure.input(mcpDebugInput).query(async ({ input }) => {
+				const runtime = await getRuntimeForSession(input);
+				const mcpManager = runtime.mcpManager;
+				if (input.reload && mcpManager?.hasServers()) {
+					await mcpManager.reload();
+				}
+
+				const managerConfig = mcpManager?.getConfig();
+				const configuredServerNames = Object.keys(
+					managerConfig?.mcpServers ?? {},
+				).sort((left, right) => left.localeCompare(right));
+				const serverConfigs = Object.fromEntries(
+					Object.entries(managerConfig?.mcpServers ?? {}).map(
+						([name, config]) => [
+							name,
+							{
+								command: config.command,
+								args: config.args ?? [],
+							},
+						],
+					),
+				);
+
+				return {
+					cwd: runtime.cwd,
+					bridge: getMastraCodeMcpBridgeDebugInfo(runtime.cwd),
+					manager: {
+						present: Boolean(mcpManager),
+						hasServers: mcpManager?.hasServers() ?? false,
+						configPaths: mcpManager?.getConfigPaths() ?? null,
+						configuredServerNames,
+						serverConfigs,
+						statuses: mcpManager?.getServerStatuses() ?? [],
+					},
+				};
+			}),
+
 			getDisplayState: t.procedure
 				.input(displayStateInput)
 				.query(async ({ input }) => {
-					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const runtime = await getRuntimeForSession(input);
 					const displayState = runtime.harness.getDisplayState();
 					onDisplayStateObserved(runtime, displayState);
 					return displayState;
@@ -48,16 +114,15 @@ export function createChatMastraServiceRouter() {
 			listMessages: t.procedure
 				.input(listMessagesInput)
 				.query(async ({ input }) => {
-					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const runtime = await getRuntimeForSession(input);
 					return runtime.harness.listMessages();
 				}),
 
 			sendMessage: t.procedure
 				.input(sendMessageInput)
 				.mutation(async ({ input }) => {
-					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
-					const userMessage =
-						input.payload.content.trim() || "[non-text message]";
+					const runtime = await getRuntimeForSession(input);
+					const userMessage = input.payload.content.trim() || "[non-text message]";
 					await runUserPromptHook(runtime, userMessage);
 					const selectedModel = input.metadata?.model?.trim();
 					if (selectedModel) {
@@ -72,14 +137,14 @@ export function createChatMastraServiceRouter() {
 				}),
 
 			stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-				const runtime = await getOrCreateRuntime(input.sessionId);
+				const runtime = await getRuntimeForSession(input);
 				runtime.harness.abort();
 				runtime.lastIsRunning = false;
 				await runStopHook(runtime, "aborted");
 			}),
 
 			abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-				const runtime = await getOrCreateRuntime(input.sessionId);
+				const runtime = await getRuntimeForSession(input);
 				runtime.harness.abort();
 				runtime.lastIsRunning = false;
 				await runStopHook(runtime, "aborted");
@@ -89,7 +154,7 @@ export function createChatMastraServiceRouter() {
 				respond: t.procedure
 					.input(approvalRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getOrCreateRuntime(input.sessionId);
+						const runtime = await getRuntimeForSession(input);
 						return runtime.harness.respondToToolApproval(input.payload);
 					}),
 			}),
@@ -98,7 +163,7 @@ export function createChatMastraServiceRouter() {
 				respond: t.procedure
 					.input(questionRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getOrCreateRuntime(input.sessionId);
+						const runtime = await getRuntimeForSession(input);
 						return runtime.harness.respondToQuestion(input.payload);
 					}),
 			}),
@@ -107,7 +172,7 @@ export function createChatMastraServiceRouter() {
 				respond: t.procedure
 					.input(planRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getOrCreateRuntime(input.sessionId);
+						const runtime = await getRuntimeForSession(input);
 						return runtime.harness.respondToPlanApproval(input.payload);
 					}),
 			}),

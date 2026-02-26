@@ -1,8 +1,12 @@
 import { createMastraCode } from "mastracode";
+import { ensureMastraCodeMcpBridge } from "./mcp-bridge";
 
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>
 >["harness"];
+export type RuntimeMcpManager = Awaited<
+	ReturnType<typeof createMastraCode>
+>["mcpManager"];
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
@@ -11,12 +15,14 @@ export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
 export interface RuntimeSession {
 	sessionId: string;
 	harness: RuntimeHarness;
+	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
 	cwd: string;
 	lastIsRunning: boolean;
 }
 
 const runtimes = new Map<string, RuntimeSession>();
+const runtimeInFlight = new Map<string, Promise<RuntimeSession>>();
 const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
 const DEBUG_HOOKS_ENABLED =
 	debugHooksOverride === undefined
@@ -93,48 +99,80 @@ export function onDisplayStateObserved(
 export async function getOrCreateRuntime(
 	sessionId: string,
 	cwd?: string,
+	options?: {
+		authToken?: string;
+	},
 ): Promise<RuntimeSession> {
+	const runtimeCwd = cwd ?? runtimes.get(sessionId)?.cwd ?? process.cwd();
+	ensureMastraCodeMcpBridge({
+		cwd: runtimeCwd,
+		authToken: options?.authToken,
+	});
+
 	const existing = runtimes.get(sessionId);
 	if (existing) {
-		if (cwd && existing.cwd !== cwd) {
-			existing.cwd = cwd;
-			runtimes.set(sessionId, existing);
+		if (!cwd || existing.cwd === cwd) {
+			return existing;
 		}
-		return existing;
+		// Runtime sessions are cwd-bound. Recreate when cwd changes.
+		runtimes.delete(sessionId);
 	}
 
-	const runtimeCwd = cwd ?? process.cwd();
-	const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
-	runtimeMastra.hookManager?.setSessionId(sessionId);
-	if (DEBUG_HOOKS_ENABLED) {
-		const hookManager = runtimeMastra.hookManager;
-		if (!hookManager) {
-			console.log("[chat-mastra] hook manager unavailable", {
-				sessionId,
-				cwd: runtimeCwd,
-			});
-		} else {
-			const hookConfig = hookManager.getConfig();
-			console.log("[chat-mastra] hook manager initialized", {
-				sessionId,
-				cwd: runtimeCwd,
-				hasHooks: hookManager.hasHooks(),
-				events: Object.keys(hookConfig),
-				paths: hookManager.getConfigPaths(),
-			});
+	const pending = runtimeInFlight.get(sessionId);
+	if (pending) {
+		const runtime = await pending;
+		if (!cwd || runtime.cwd === cwd) {
+			return runtime;
 		}
+		// CWD changed while create was in-flight; recreate for requested cwd.
+		runtimes.delete(sessionId);
 	}
-	await runtimeMastra.harness.init();
-	runtimeMastra.harness.setResourceId({ resourceId: sessionId });
-	await runtimeMastra.harness.selectOrCreateThread();
 
-	const runtime: RuntimeSession = {
-		sessionId,
-		harness: runtimeMastra.harness,
-		hookManager: runtimeMastra.hookManager,
-		cwd: runtimeCwd,
-		lastIsRunning: false,
-	};
-	runtimes.set(sessionId, runtime);
-	return runtime;
+	const createRuntimePromise = (async () => {
+		const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
+		runtimeMastra.hookManager?.setSessionId(sessionId);
+		if (DEBUG_HOOKS_ENABLED) {
+			const hookManager = runtimeMastra.hookManager;
+			if (!hookManager) {
+				console.log("[chat-mastra] hook manager unavailable", {
+					sessionId,
+					cwd: runtimeCwd,
+				});
+			} else {
+				const hookConfig = hookManager.getConfig();
+				console.log("[chat-mastra] hook manager initialized", {
+					sessionId,
+					cwd: runtimeCwd,
+					hasHooks: hookManager.hasHooks(),
+					events: Object.keys(hookConfig),
+					paths: hookManager.getConfigPaths(),
+				});
+			}
+		}
+
+		if (runtimeMastra.mcpManager?.hasServers()) {
+			await runtimeMastra.mcpManager.init();
+		}
+		await runtimeMastra.harness.init();
+		runtimeMastra.harness.setResourceId({ resourceId: sessionId });
+		await runtimeMastra.harness.selectOrCreateThread();
+
+		const runtime: RuntimeSession = {
+			sessionId,
+			harness: runtimeMastra.harness,
+			mcpManager: runtimeMastra.mcpManager,
+			hookManager: runtimeMastra.hookManager,
+			cwd: runtimeCwd,
+			lastIsRunning: false,
+		};
+		runtimes.set(sessionId, runtime);
+		return runtime;
+	})();
+
+	runtimeInFlight.set(sessionId, createRuntimePromise);
+	try {
+		return await createRuntimePromise;
+	} finally {
+		runtimeInFlight.delete(sessionId);
+	}
 }

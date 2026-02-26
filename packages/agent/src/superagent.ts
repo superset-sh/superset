@@ -260,10 +260,12 @@ const superagentInstance = new Agent({
 			sandbox: new LocalSandbox({ workingDirectory: cwd, timeout: 30_000 }),
 		});
 	},
-	tools: {
-		web_search: webSearchTool,
-		web_fetch: webFetchTool,
-		ask_user_question: askUserQuestionTool,
+	tools: async () => {
+		return {
+			web_search: webSearchTool,
+			web_fetch: webFetchTool,
+			ask_user_question: askUserQuestionTool,
+		};
 	},
 	agents: {
 		planner: planningAgent,

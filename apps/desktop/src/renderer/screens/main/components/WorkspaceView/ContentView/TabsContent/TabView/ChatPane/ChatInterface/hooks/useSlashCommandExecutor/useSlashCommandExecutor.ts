@@ -21,6 +21,7 @@ interface UseSlashCommandExecutorOptions {
 	onOpenModelPicker: () => void;
 	onSetErrorMessage: (message: string) => void;
 	onClearError: () => void;
+	loadMcpOverview?: (cwd: string) => Promise<McpOverviewPayload>;
 	onShowMcpOverview: (overview: McpOverviewPayload) => void;
 }
 
@@ -39,6 +40,7 @@ export function useSlashCommandExecutor({
 	onOpenModelPicker,
 	onSetErrorMessage,
 	onClearError,
+	loadMcpOverview,
 	onShowMcpOverview,
 }: UseSlashCommandExecutorOptions) {
 	const { mutateAsync: resolveSlashCommandMutateAsync } =
@@ -114,10 +116,11 @@ export function useSlashCommandExecutor({
 						}
 						case "show_mcp_overview": {
 							try {
-								const overview =
-									await chatServiceTrpcUtils.workspace.getMcpOverview.fetch({
-										cwd,
-									});
+								const overview = loadMcpOverview
+									? await loadMcpOverview(cwd)
+									: await chatServiceTrpcUtils.workspace.getMcpOverview.fetch({
+											cwd,
+										});
 								onClearError();
 								onShowMcpOverview(overview);
 							} catch (error) {
@@ -183,6 +186,7 @@ export function useSlashCommandExecutor({
 			onShowMcpOverview,
 			onStartFreshSession,
 			onStopActiveResponse,
+			loadMcpOverview,
 			chatServiceTrpcUtils.workspace.getMcpOverview,
 			resolveSlashCommandMutateAsync,
 		],
