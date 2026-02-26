@@ -1,4 +1,3 @@
-import { useAgentManager } from "./hooks/useAgentManager";
 import { useCommandWatcher } from "./hooks/useCommandWatcher";
 import { useDevicePresence } from "./hooks/useDevicePresence";
 
@@ -9,6 +8,5 @@ import { useDevicePresence } from "./hooks/useDevicePresence";
 export function AgentHooks() {
 	useDevicePresence();
 	useCommandWatcher();
-	useAgentManager();
 	return null;
 }

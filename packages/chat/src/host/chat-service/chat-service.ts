@@ -5,26 +5,12 @@ import {
 	getCredentialsFromConfig,
 	getCredentialsFromKeychain,
 } from "../auth/anthropic";
-import type { GetHeaders } from "../lib/auth/auth";
 
-export type ChatLifecycleEventType = "Start" | "PermissionRequest" | "Stop";
 type OpenAIAuthMethod = "api_key" | "env_api_key" | "oauth" | null;
 const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
 type OpenAIAuthStorage = Awaited<
 	ReturnType<typeof createMastraCode>
 >["authStorage"];
-
-export interface ChatLifecycleEvent {
-	sessionId: string;
-	eventType: ChatLifecycleEventType;
-}
-
-export interface ChatServiceHostConfig {
-	deviceId: string;
-	apiUrl: string;
-	getHeaders: GetHeaders;
-	onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
-}
 
 type AnthropicOAuthCredentials = {
 	accessToken: string;
@@ -62,32 +48,7 @@ export class ChatService {
 	private openAIAuthStoragePromise: Promise<OpenAIAuthStorage> | null = null;
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 
-	constructor(_hostConfig: ChatServiceHostConfig) {}
-
-	async start(_options: { organizationId: string }): Promise<void> {
-		// Legacy AgentManager runtime is deprecated in favor of Mastra chat.
-		// Keep this endpoint as a no-op for compatibility with existing clients.
-		this.ensureAnthropicTokenFromCliCredentials();
-	}
-
-	stop(): void {
-		// Legacy AgentManager runtime is deprecated in favor of Mastra chat.
-		// Keep this endpoint as a no-op for compatibility with existing clients.
-	}
-
-	hasWatcher(_sessionId: string): boolean {
-		return false;
-	}
-
-	async ensureWatcher(
-		_sessionId: string,
-		_cwd?: string,
-	): Promise<{ ready: boolean; reason?: string }> {
-		return {
-			ready: false,
-			reason: "Legacy chat runtime is deprecated. Use Mastra chat runtime.",
-		};
-	}
+	constructor() {}
 
 	getAnthropicAuthStatus(): { authenticated: boolean } {
 		this.ensureAnthropicTokenFromCliCredentials();

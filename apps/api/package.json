@@ -24,7 +24,6 @@
 		"@slack/types": "^2.19.0",
 		"@slack/web-api": "^7.13.0",
 		"@superset/auth": "workspace:*",
-		"@superset/chat": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/mcp": "workspace:*",
 		"@superset/shared": "workspace:*",

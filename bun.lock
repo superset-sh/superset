@@ -72,7 +72,6 @@
         "@slack/types": "^2.19.0",
         "@slack/web-api": "^7.13.0",
         "@superset/auth": "workspace:*",
-        "@superset/chat": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/mcp": "workspace:*",
         "@superset/shared": "workspace:*",
@@ -128,7 +127,6 @@
         "@radix-ui/react-label": "^2.1.8",
         "@sentry/electron": "^7.7.0",
         "@streamdown/mermaid": "^1.0.2",
-        "@superset/agent": "workspace:*",
         "@superset/auth": "workspace:*",
         "@superset/chat": "workspace:*",
         "@superset/chat-mastra": "workspace:*",
@@ -570,16 +568,9 @@
       "name": "@superset/chat",
       "version": "0.0.1",
       "dependencies": {
-        "@anthropic-ai/sdk": "^0.78.0",
-        "@durable-streams/client": "^0.2.1",
-        "@durable-streams/state": "^0.2.1",
-        "@electric-sql/client": "1.5.7",
-        "@superset/agent": "workspace:*",
         "@superset/trpc": "workspace:*",
-        "@tanstack/db": "0.5.27",
         "@trpc/client": "^11.7.1",
         "@trpc/server": "^11.7.1",
-        "ai": "^6.0.0",
         "fast-glob": "^3.3.3",
         "fuse.js": "^7.1.0",
         "mastracode": "^0.3.0",
@@ -833,9 +824,6 @@
       "name": "@superset/typescript",
       "version": "0.1.0",
     },
-  },
-  "patchedDependencies": {
-    "@durable-streams/state@0.2.1": "patches/@durable-streams%2Fstate@0.2.1.patch",
   },
   "packages": {
     "7zip-bin": ["7zip-bin@5.2.0", "", {}, "sha512-ukTPVhqG4jNzMro2qA9HSCSSVJN3aN7tlb+hfqYCt3ER0yWroeA2VR38MNrOHLQ/cVj+DaIMad0kFCtWWowh/A=="],
@@ -1161,8 +1149,6 @@
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
     "@durable-streams/client": ["@durable-streams/client@0.2.1", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1", "fastq": "^1.19.1" } }, "sha512-+mGdK6TuDR9fJPo8jw6DufPfoUv6g+27xoPES76GXQc6y3val9Oe/SK2o2FV9sqqLSE19HEUSxTp0D6CZebfZw=="],
-
-    "@durable-streams/state": ["@durable-streams/state@0.2.1", "", { "dependencies": { "@durable-streams/client": "0.2.1", "@standard-schema/spec": "^1.0.0" }, "peerDependencies": { "@tanstack/db": ">=0.5.0" } }, "sha512-8piCcw/y1Jz6QJn0vOf+yhovFlp3xvRbzWRWtF51ndlorofJi3pOfCXnEINuvSueuNMIJosmKOg0AEvpMKfoCw=="],
 
     "@electric-sql/client": ["@electric-sql/client@1.5.7", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1" }, "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" } }, "sha512-jeKLlooV/wIBVkZV6d3opT+eoDLds9qDzHtUYezfl6BzAPY1v5mApgjlG/evbvBBZKYW778wOIBUfq16SMnr7w=="],
 

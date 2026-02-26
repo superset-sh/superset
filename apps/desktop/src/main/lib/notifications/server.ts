@@ -51,6 +51,7 @@ function resolvePaneId(
 	paneId: string | undefined,
 	tabId: string | undefined,
 	workspaceId: string | undefined,
+	sessionId: string | undefined,
 ): string | undefined {
 	try {
 		const tabsState = appState.data.tabsState;
@@ -80,6 +81,15 @@ function resolvePaneId(
 				}
 			}
 		}
+
+		// Resolve from Mastra chat session ID
+		if (sessionId) {
+			for (const [existingPaneId, pane] of Object.entries(tabsState.panes ?? {})) {
+				if (pane.chatMastra?.sessionId === sessionId) {
+					return existingPaneId;
+				}
+			}
+		}
 	} catch {
 		// App state not initialized yet, ignore
 	}
@@ -93,6 +103,7 @@ app.get("/hook/complete", (req, res) => {
 		paneId,
 		tabId,
 		workspaceId,
+		sessionId,
 		eventType,
 		env: clientEnv,
 		version,
@@ -130,6 +141,7 @@ app.get("/hook/complete", (req, res) => {
 		paneId as string | undefined,
 		tabId as string | undefined,
 		workspaceId as string | undefined,
+		sessionId as string | undefined,
 	);
 
 	const event: AgentLifecycleEvent = {

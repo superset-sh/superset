@@ -2,15 +2,18 @@
 {{MARKER}}
 # Called by CLI agents (Claude Code, Codex, etc.) when they complete or need input
 
-# Only run if inside a Superset terminal
-[ -z "$SUPERSET_TAB_ID" ] && exit 0
-
 # Get JSON input - Codex passes as argument, Claude pipes to stdin
 if [ -n "$1" ]; then
   INPUT="$1"
 else
   INPUT=$(cat)
 fi
+
+# Extract Mastra session ID when available (mastracode hooks)
+SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+
+# Skip if this isn't a Superset terminal hook and no Mastra session context exists
+[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && exit 0
 
 # Extract event type - Claude uses "hook_event_name", Codex uses "type"
 # Use flexible pattern to handle optional whitespace: "key": "value" or "key":"value"
@@ -41,6 +44,7 @@ curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
   --data-urlencode "paneId=$SUPERSET_PANE_ID" \
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+  --data-urlencode "sessionId=$SESSION_ID" \
   --data-urlencode "eventType=$EVENT_TYPE" \
   --data-urlencode "env=$SUPERSET_ENV" \
   --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
