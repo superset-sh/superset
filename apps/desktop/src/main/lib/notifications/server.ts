@@ -21,6 +21,8 @@ export type {
  */
 const SERVER_ENV =
 	env.NODE_ENV === "development" ? "development" : "production";
+const DEBUG_HOOKS_ENABLED =
+	process.env.SUPERSET_DEBUG_HOOKS === "1" || SERVER_ENV === "development";
 
 export const notificationsEmitter = new EventEmitter();
 
@@ -84,7 +86,9 @@ function resolvePaneId(
 
 		// Resolve from Mastra chat session ID
 		if (sessionId) {
-			for (const [existingPaneId, pane] of Object.entries(tabsState.panes ?? {})) {
+			for (const [existingPaneId, pane] of Object.entries(
+				tabsState.panes ?? {},
+			)) {
 				if (pane.chatMastra?.sessionId === sessionId) {
 					return existingPaneId;
 				}
@@ -150,6 +154,18 @@ app.get("/hook/complete", (req, res) => {
 		workspaceId: workspaceId as string | undefined,
 		eventType: mappedEventType,
 	};
+
+	if (DEBUG_HOOKS_ENABLED) {
+		console.log("[notifications] hook event received", {
+			eventType,
+			mappedEventType,
+			paneId: paneId as string | undefined,
+			tabId: tabId as string | undefined,
+			workspaceId: workspaceId as string | undefined,
+			sessionId: sessionId as string | undefined,
+			resolvedPaneId,
+		});
+	}
 
 	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, event);
 

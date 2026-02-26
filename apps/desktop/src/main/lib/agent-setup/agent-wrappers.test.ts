@@ -305,7 +305,11 @@ describe("agent-wrappers copilot", () => {
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {
-		const mastraHooksPath = path.join(mockedHomeDir, ".mastracode", "hooks.json");
+		const mastraHooksPath = path.join(
+			mockedHomeDir,
+			".mastracode",
+			"hooks.json",
+		);
 		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
 
@@ -319,7 +323,9 @@ describe("agent-wrappers copilot", () => {
 						{ type: "command", command: "/usr/local/bin/custom-hook" },
 					],
 					Stop: [{ type: "command", command: `bash '${staleHookPath}'` }],
-					PostToolUse: [{ type: "command", command: `bash '${staleHookPath}'` }],
+					PostToolUse: [
+						{ type: "command", command: `bash '${staleHookPath}'` },
+					],
 				},
 				null,
 				2,
@@ -346,9 +352,9 @@ describe("agent-wrappers copilot", () => {
 						entry.command === `bash '${currentHookPath}'`,
 				),
 			).toBe(true);
-			expect(
-				hooks.some((entry) => entry.command.includes(staleHookPath)),
-			).toBe(false);
+			expect(hooks.some((entry) => entry.command.includes(staleHookPath))).toBe(
+				false,
+			);
 		}
 
 		expect(

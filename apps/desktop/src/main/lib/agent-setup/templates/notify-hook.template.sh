@@ -38,16 +38,34 @@ fi
 # This prevents parse failures from causing false completion notifications
 [ -z "$EVENT_TYPE" ] && exit 0
 
+if [ "$SUPERSET_DEBUG_HOOKS" = "1" ]; then
+  echo "[notify-hook] event=$EVENT_TYPE sessionId=$SESSION_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+fi
+
 # Timeouts prevent blocking agent completion if notification server is unresponsive
-curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
-  --connect-timeout 1 --max-time 2 \
-  --data-urlencode "paneId=$SUPERSET_PANE_ID" \
-  --data-urlencode "tabId=$SUPERSET_TAB_ID" \
-  --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
-  --data-urlencode "sessionId=$SESSION_ID" \
-  --data-urlencode "eventType=$EVENT_TYPE" \
-  --data-urlencode "env=$SUPERSET_ENV" \
-  --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
-  > /dev/null 2>&1
+if [ "$SUPERSET_DEBUG_HOOKS" = "1" ]; then
+  STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
+    --connect-timeout 1 --max-time 2 \
+    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
+    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
+    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+    --data-urlencode "sessionId=$SESSION_ID" \
+    --data-urlencode "eventType=$EVENT_TYPE" \
+    --data-urlencode "env=$SUPERSET_ENV" \
+    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
+    -o /dev/null -w "%{http_code}" 2>/dev/null)
+  echo "[notify-hook] dispatched status=$STATUS_CODE" >&2
+else
+  curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
+    --connect-timeout 1 --max-time 2 \
+    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
+    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
+    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+    --data-urlencode "sessionId=$SESSION_ID" \
+    --data-urlencode "eventType=$EVENT_TYPE" \
+    --data-urlencode "env=$SUPERSET_ENV" \
+    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
+    > /dev/null 2>&1
+fi
 
 exit 0

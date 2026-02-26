@@ -48,8 +48,6 @@ export class ChatService {
 	private openAIAuthStoragePromise: Promise<OpenAIAuthStorage> | null = null;
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 
-	constructor() {}
-
 	getAnthropicAuthStatus(): { authenticated: boolean } {
 		this.ensureAnthropicTokenFromCliCredentials();
 		return { authenticated: Boolean(getAnthropicAuthToken()) };
