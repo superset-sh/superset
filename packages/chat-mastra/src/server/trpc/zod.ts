@@ -52,6 +52,11 @@ export const displayStateInput = z.object({
 	cwd: z.string().optional(),
 });
 
+export const connectInput = z.object({
+	sessionId: z.uuid(),
+	cwd: z.string().optional(),
+});
+
 export const listMessagesInput = z.object({
 	sessionId: z.uuid(),
 	cwd: z.string().optional(),
@@ -66,6 +71,12 @@ export const sendMessageInput = z.object({
 			model: z.string().optional(),
 		})
 		.optional(),
+});
+
+export const mcpDebugInput = z.object({
+	sessionId: z.uuid(),
+	cwd: z.string().optional(),
+	reload: z.boolean().default(false),
 });
 
 export const approvalRespondInput = z.object({
@@ -90,8 +101,10 @@ export type ApprovalPayloadInput = z.infer<typeof approvalPayloadSchema>;
 export type QuestionPayloadInput = z.infer<typeof questionPayloadSchema>;
 export type PlanPayloadInput = z.infer<typeof planPayloadSchema>;
 export type DisplayStateInput = z.infer<typeof displayStateInput>;
+export type ConnectInput = z.infer<typeof connectInput>;
 export type ListMessagesInput = z.infer<typeof listMessagesInput>;
 export type SendMessageInput = z.infer<typeof sendMessageInput>;
+export type McpDebugInput = z.infer<typeof mcpDebugInput>;
 export type ApprovalRespondInput = z.infer<typeof approvalRespondInput>;
 export type QuestionRespondInput = z.infer<typeof questionRespondInput>;
 export type PlanRespondInput = z.infer<typeof planRespondInput>;

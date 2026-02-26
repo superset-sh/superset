@@ -7,7 +7,7 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 
 const WORKSPACE_MCP_FILE = ".mcp.json";
 const MASTRA_MCP_FILE = ".mastracode/mcp.json";
@@ -25,6 +25,21 @@ interface MastraCodeMcpConfig {
 	generatedAt: string;
 	sourcePath: string;
 	mcpServers: Record<string, MastraCodeMcpServer>;
+}
+
+export interface MastraCodeMcpBridgeDebugInfo {
+	cwd: string;
+	workspaceConfigPath: string;
+	mastraConfigPath: string;
+	workspaceConfigExists: boolean;
+	mastraConfigExists: boolean;
+	workspaceConfigParseError: boolean;
+	mastraConfigParseError: boolean;
+	mastraConfigManagedByBridge: boolean;
+	workspaceServerNames: string[];
+	mastraServerNames: string[];
+	supersetAuthEnvPresent: boolean;
+	remoteBridgeCommand: "bunx" | "npx" | null;
 }
 
 type HeaderMap = Record<string, string>;
@@ -64,10 +79,44 @@ function toStringMap(value: unknown): Record<string, string> | null {
 }
 
 function commandExists(command: string): boolean {
-	const result = spawnSync(command, ["--version"], {
+	const result = spawnSync("which", [command], {
 		stdio: "ignore",
 	});
 	return result.status === 0;
+}
+
+function isCommandAvailable(command: string): boolean {
+	if (!command.trim()) return false;
+	if (isAbsolute(command)) {
+		return existsSync(command);
+	}
+	if (command.includes("/")) {
+		return existsSync(join(process.cwd(), command));
+	}
+	return commandExists(command);
+}
+
+function looksLikeFilePathArg(arg: string): boolean {
+	if (!arg || arg.startsWith("-")) return false;
+	if (arg.includes("://")) return false;
+	if (arg.startsWith("$") || arg.includes("${")) return false;
+	return (
+		arg.includes("/") ||
+		arg.endsWith(".ts") ||
+		arg.endsWith(".tsx") ||
+		arg.endsWith(".js") ||
+		arg.endsWith(".mjs") ||
+		arg.endsWith(".cjs")
+	);
+}
+
+function normalizeCommandArgs(cwd: string, args: string[]): string[] {
+	return args.map((arg) => {
+		if (!looksLikeFilePathArg(arg)) return arg;
+		if (isAbsolute(arg)) return arg;
+		const absolutePath = join(cwd, arg);
+		return existsSync(absolutePath) ? absolutePath : arg;
+	});
 }
 
 function resolveRemoteBridgeCommand(): RemoteBridgeCommand {
@@ -113,11 +162,12 @@ function serverHeadersFromConfig(config: Record<string, unknown>): HeaderMap {
 }
 
 function toMastraCodeServer(input: {
+	cwd: string;
 	name: string;
 	config: Record<string, unknown>;
 	bridgeCommand: RemoteBridgeCommand;
 }): MastraCodeMcpServer | null {
-	const { name, config, bridgeCommand } = input;
+	const { cwd, name, config, bridgeCommand } = input;
 
 	if (config.disabled === true || config.enabled === false) {
 		return null;
@@ -125,11 +175,21 @@ function toMastraCodeServer(input: {
 
 	const command = toNonEmptyString(config.command);
 	if (command) {
-		const args = toStringArray(config.args) ?? undefined;
+		if (!isCommandAvailable(command)) {
+			console.warn(
+				`[chat-mastra] MCP bridge: skipping "${name}" because command "${command}" is not available`,
+			);
+			return null;
+		}
+
+		const normalizedArgs = normalizeCommandArgs(
+			cwd,
+			toStringArray(config.args) ?? [],
+		);
 		const env = toStringMap(config.env) ?? undefined;
 		return {
 			command,
-			...(args ? { args } : {}),
+			...(normalizedArgs.length > 0 ? { args: normalizedArgs } : {}),
 			...(env ? { env } : {}),
 		};
 	}
@@ -185,7 +245,7 @@ function readWorkspaceMcpServers(
 	for (const [name, rawConfig] of Object.entries(rawServers)) {
 		const config = toRecord(rawConfig);
 		if (!config) continue;
-		const server = toMastraCodeServer({ name, config, bridgeCommand });
+		const server = toMastraCodeServer({ cwd, name, config, bridgeCommand });
 		if (!server) continue;
 		result[name] = server;
 	}
@@ -202,6 +262,66 @@ function cleanupGeneratedFile(path: string): void {
 	try {
 		rmdirSync(parent);
 	} catch {}
+}
+
+function readMcpServerNames(path: string): {
+	names: string[];
+	parseError: boolean;
+} {
+	if (!existsSync(path)) {
+		return {
+			names: [],
+			parseError: false,
+		};
+	}
+
+	try {
+		const parsed = JSON.parse(readFileSync(path, "utf-8"));
+		const root = toRecord(parsed);
+		const rawServers = toRecord(root?.mcpServers);
+		if (!rawServers) {
+			return {
+				names: [],
+				parseError: false,
+			};
+		}
+
+		return {
+			names: Object.keys(rawServers).sort((left, right) =>
+				left.localeCompare(right),
+			),
+			parseError: false,
+		};
+	} catch {
+		return {
+			names: [],
+			parseError: true,
+		};
+	}
+}
+
+export function getMastraCodeMcpBridgeDebugInfo(
+	cwd: string,
+): MastraCodeMcpBridgeDebugInfo {
+	const workspaceConfigPath = join(cwd, WORKSPACE_MCP_FILE);
+	const mastraConfigPath = join(cwd, MASTRA_MCP_FILE);
+	const workspaceDetails = readMcpServerNames(workspaceConfigPath);
+	const mastraDetails = readMcpServerNames(mastraConfigPath);
+
+	return {
+		cwd,
+		workspaceConfigPath,
+		mastraConfigPath,
+		workspaceConfigExists: existsSync(workspaceConfigPath),
+		mastraConfigExists: existsSync(mastraConfigPath),
+		workspaceConfigParseError: workspaceDetails.parseError,
+		mastraConfigParseError: mastraDetails.parseError,
+		mastraConfigManagedByBridge: readGeneratedFlag(mastraConfigPath),
+		workspaceServerNames: workspaceDetails.names,
+		mastraServerNames: mastraDetails.names,
+		supersetAuthEnvPresent: Boolean(process.env[SUPERSET_AUTH_TOKEN_ENV]),
+		remoteBridgeCommand: resolveRemoteBridgeCommand()?.command ?? null,
+	};
 }
 
 export function ensureMastraCodeMcpBridge(input: {

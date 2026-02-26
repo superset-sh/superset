@@ -1,5 +1,8 @@
 import { chatServiceTrpc } from "@superset/chat/client";
-import { useMastraChatDisplay } from "@superset/chat-mastra/client";
+import {
+	chatMastraServiceTrpc,
+	useMastraChatDisplay,
+} from "@superset/chat-mastra/client";
 import {
 	type PromptInputMessage,
 	PromptInputProvider,
@@ -21,6 +24,7 @@ import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import type { ChatMastraInterfaceProps } from "./types";
 import { toMastraImages } from "./utils/toMastraImages";
+import { toMcpOverviewFromMastraDebug } from "./utils/toMcpOverviewFromMastraDebug";
 
 function useAvailableModels(): {
 	models: ModelOption[];
@@ -60,7 +64,7 @@ export function ChatMastraInterface({
 	);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const currentSessionRef = useRef<string | null>(null);
-	const chatServiceTrpcUtils = chatServiceTrpc.useUtils();
+	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
 
 	const { data: slashCommands = [] } =
 		chatServiceTrpc.workspace.getSlashCommands.useQuery(
@@ -92,11 +96,21 @@ export function ChatMastraInterface({
 
 	const canAbort = Boolean(isRunning);
 	const loadMcpOverview = useCallback(
-		(rootCwd: string) =>
-			chatServiceTrpcUtils.workspace.getMcpOverview.fetch({
+		async (rootCwd: string) => {
+			if (!sessionId) {
+				return {
+					sourcePath: null,
+					servers: [],
+				};
+			}
+			const debug = await chatMastraServiceTrpcUtils.session.mcpDebug.fetch({
+				sessionId,
 				cwd: rootCwd,
-			}),
-		[chatServiceTrpcUtils.workspace.getMcpOverview],
+				reload: true,
+			});
+			return toMcpOverviewFromMastraDebug(debug);
+		},
+		[chatMastraServiceTrpcUtils.session.mcpDebug, sessionId],
 	);
 	const mcpUi = useMcpUi({
 		cwd,
@@ -119,6 +133,7 @@ export function ChatMastraInterface({
 		onOpenModelPicker: () => setModelSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
+		loadMcpOverview,
 		onShowMcpOverview: mcpUi.showOverview,
 	});
 

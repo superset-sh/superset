@@ -2,10 +2,13 @@ import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
 import { getOrCreateRuntime } from "./utils/runtime";
+import { getMastraCodeMcpBridgeDebugInfo } from "./utils/runtime/mcp-bridge";
 import {
 	approvalRespondInput,
+	connectInput,
 	displayStateInput,
 	listMessagesInput,
+	mcpDebugInput,
 	planRespondInput,
 	questionRespondInput,
 	searchFilesInput,
@@ -47,6 +50,48 @@ export function createChatMastraServiceRouter(
 		}),
 
 		session: t.router({
+			connect: t.procedure.input(connectInput).query(async ({ input }) => {
+				await getRuntimeForSession(input);
+				return { connected: true };
+			}),
+
+			mcpDebug: t.procedure.input(mcpDebugInput).query(async ({ input }) => {
+				const runtime = await getRuntimeForSession(input);
+				const mcpManager = runtime.mcpManager;
+				if (input.reload && mcpManager?.hasServers()) {
+					await mcpManager.reload();
+				}
+
+				const managerConfig = mcpManager?.getConfig();
+				const configuredServerNames = Object.keys(
+					managerConfig?.mcpServers ?? {},
+				).sort((left, right) => left.localeCompare(right));
+				const serverConfigs = Object.fromEntries(
+					Object.entries(managerConfig?.mcpServers ?? {}).map(
+						([name, config]) => [
+							name,
+							{
+								command: config.command,
+								args: config.args ?? [],
+							},
+						],
+					),
+				);
+
+				return {
+					cwd: runtime.cwd,
+					bridge: getMastraCodeMcpBridgeDebugInfo(runtime.cwd),
+					manager: {
+						present: Boolean(mcpManager),
+						hasServers: mcpManager?.hasServers() ?? false,
+						configPaths: mcpManager?.getConfigPaths() ?? null,
+						configuredServerNames,
+						serverConfigs,
+						statuses: mcpManager?.getServerStatuses() ?? [],
+					},
+				};
+			}),
+
 			getDisplayState: t.procedure
 				.input(displayStateInput)
 				.query(async ({ input }) => {

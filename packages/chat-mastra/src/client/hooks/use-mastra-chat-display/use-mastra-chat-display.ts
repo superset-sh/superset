@@ -34,10 +34,24 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const utils = chatMastraServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
 
-	const displayQuery = chatMastraServiceTrpc.session.getDisplayState.useQuery(
+	const connectQuery = chatMastraServiceTrpc.session.connect.useQuery(
 		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
 		{
 			enabled: enabled && Boolean(sessionId),
+			refetchOnWindowFocus: false,
+			refetchOnReconnect: false,
+			refetchOnMount: false,
+			staleTime: Number.POSITIVE_INFINITY,
+			gcTime: 0,
+			retry: false,
+		},
+	);
+	const isConnected = connectQuery.isSuccess;
+
+	const displayQuery = chatMastraServiceTrpc.session.getDisplayState.useQuery(
+		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
+		{
+			enabled: enabled && Boolean(sessionId) && isConnected,
 			refetchInterval: toRefetchIntervalMs(fps),
 			refetchIntervalInBackground: true,
 			refetchOnWindowFocus: false,
@@ -49,7 +63,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const messagesQuery = chatMastraServiceTrpc.session.listMessages.useQuery(
 		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
 		{
-			enabled: enabled && Boolean(sessionId),
+			enabled: enabled && Boolean(sessionId) && isConnected,
 			refetchInterval: toRefetchIntervalMs(fps),
 			refetchIntervalInBackground: true,
 			refetchOnWindowFocus: false,
@@ -74,7 +88,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			sendMessage: async (
 				input: Omit<SessionInputs["sendMessage"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionId || !isConnected) return;
 				setCommandError(null);
 
 				const text =
@@ -98,7 +112,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 			stop: async () => {
-				if (!sessionId) return;
+				if (!sessionId || !isConnected) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.stop.mutate({ sessionId });
@@ -108,7 +122,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 			abort: async () => {
-				if (!sessionId) return;
+				if (!sessionId || !isConnected) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.abort.mutate({ sessionId });
@@ -120,7 +134,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToApproval: async (
 				input: Omit<SessionInputs["approval"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionId || !isConnected) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.approval.respond.mutate({
@@ -135,7 +149,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToQuestion: async (
 				input: Omit<SessionInputs["question"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionId || !isConnected) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.question.respond.mutate({
@@ -150,7 +164,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			respondToPlan: async (
 				input: Omit<SessionInputs["plan"]["respond"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionId || !isConnected) return;
 				setCommandError(null);
 				try {
 					return await utils.client.session.plan.respond.mutate({
@@ -163,13 +177,25 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 		}),
-		[addOptimisticUserMessage, clearOptimistic, cwd, sessionId, utils],
+		[
+			addOptimisticUserMessage,
+			clearOptimistic,
+			cwd,
+			isConnected,
+			sessionId,
+			utils,
+		],
 	);
 
 	return {
 		...displayState,
 		messages,
-		error: displayQuery.error ?? messagesQuery.error ?? commandError ?? null,
+		error:
+			connectQuery.error ??
+			displayQuery.error ??
+			messagesQuery.error ??
+			commandError ??
+			null,
 		commands,
 	};
 }
