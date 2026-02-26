@@ -56,7 +56,8 @@ export function createChatMastraServiceRouter() {
 				.input(sendMessageInput)
 				.mutation(async ({ input }) => {
 					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
-					const userMessage = input.payload.content.trim() || "[non-text message]";
+					const userMessage =
+						input.payload.content.trim() || "[non-text message]";
 					await runUserPromptHook(runtime, userMessage);
 					const selectedModel = input.metadata?.model?.trim();
 					if (selectedModel) {
