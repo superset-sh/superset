@@ -7,12 +7,17 @@ import {
 
 const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
 const URL_AT_END_PATTERN = /https?:\/\/[^\s<>[\]'"]+$/;
+const URL_INCOMPLETE_SCHEME_AT_END_PATTERN = /https?$/i;
 const URL_CONTINUATION_PATTERN = /^[^\s<>[\]'"]+/;
 const URL_SCHEME_PATTERN = /^https?:\/\//i;
 const HARD_WRAP_COLS_TOLERANCE = 2;
 const URL_BREAK_SIGNAL_PATTERN = /[-/?#=&%._~]/;
 const URL_CONTINUATION_SIGNAL_PATTERN = /[/?#=&%._~-]/;
 const MAX_HARD_WRAP_EXTENSION_LINES = 24;
+const MAX_HARD_WRAP_URL_LENGTH = 4096;
+const LIST_MARKER_LINE_PATTERN = /^(?:[-*+•]|\d+[.)])\s+/;
+const PROMPT_LINE_PATTERN = /^(?:[$#>]{1,3}|❯)\s+/;
+const TABLE_MARKER_LINE_PATTERN = /^(?:\||│|┆|┃|├|└|┌|┐|┘|┬|┴|┼)/;
 
 function trimUnbalancedParens(url: string): string {
 	let openCount = 0;
@@ -84,6 +89,9 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		if (!trimmed || URL_SCHEME_PATTERN.test(trimmed)) {
 			return null;
 		}
+		if (this.isBoundaryMarkerLine(trimmed)) {
+			return null;
+		}
 
 		const continuationMatch = trimmed.match(URL_CONTINUATION_PATTERN);
 		const continuationText = continuationMatch?.[0];
@@ -100,6 +108,14 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		};
 	}
 
+	private isBoundaryMarkerLine(trimmedLine: string): boolean {
+		return (
+			LIST_MARKER_LINE_PATTERN.test(trimmedLine) ||
+			PROMPT_LINE_PATTERN.test(trimmedLine) ||
+			TABLE_MARKER_LINE_PATTERN.test(trimmedLine)
+		);
+	}
+
 	private shouldAcceptContinuation(
 		prevRawText: string,
 		continuationText: string,
@@ -114,21 +130,33 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		const continuationHasUrlSignal =
 			URL_CONTINUATION_SIGNAL_PATTERN.test(continuationText) ||
 			/^[0-9]/.test(continuationText);
+		const continuationAfterUrlBreak =
+			URL_BREAK_SIGNAL_PATTERN.test(prevEnd) &&
+			/^[A-Za-z0-9]/.test(continuationText);
 		const continuationLooksLikeWrappedWord =
 			leadingTrim > 0 &&
 			/^[A-Za-z0-9]/.test(continuationText) &&
 			/[A-Za-z0-9]$/.test(trimmedPrev);
 		const continuationLooksUrlLike =
-			continuationHasUrlSignal || continuationLooksLikeWrappedWord;
-		const continuationStartsListMarker =
-			continuationText.startsWith("-") &&
+			continuationHasUrlSignal ||
+			continuationAfterUrlBreak ||
+			continuationLooksLikeWrappedWord;
+		const continuationStartsHyphenToken = continuationText.startsWith("-");
+		const hyphenTokenLooksUrlLike =
 			continuationText.length > 1 &&
-			/[A-Za-z0-9]/.test(continuationText.slice(1)) &&
-			prevEnd !== "-";
+			(/[&/?#=.%_~]/.test(continuationText) ||
+				URL_BREAK_SIGNAL_PATTERN.test(prevEnd));
+		const continuationStartsListMarker =
+			prevEnd !== "-" && /^-(?:https?:\/\/|www\.)/i.test(continuationText);
+		const prevIsBoundaryMarkerLine = this.isBoundaryMarkerLine(
+			prevRawText.trimStart(),
+		);
 
 		return (
 			boundaryLooksWrapped &&
 			continuationLooksUrlLike &&
+			(!continuationStartsHyphenToken || hyphenTokenLooksUrlLike) &&
+			(!prevIsBoundaryMarkerLine || URL_AT_END_PATTERN.test(prevRawText)) &&
 			!continuationStartsListMarker
 		);
 	}
@@ -162,13 +190,23 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 			return false;
 		}
 
-		if (!URL_AT_END_PATTERN.test(this.getContextText(lines))) {
+		const combinedTail = this.getContextText(lines);
+		if (
+			!URL_AT_END_PATTERN.test(combinedTail) &&
+			!URL_INCOMPLETE_SCHEME_AT_END_PATTERN.test(combinedTail.trimEnd())
+		) {
 			return false;
 		}
 
 		const nextRawText = nextBufferLine.translateToString(true);
 		const continuation = this.getContinuationSegment(nextRawText);
 		if (!continuation) {
+			return false;
+		}
+		if (
+			this.getContextText(lines).length + continuation.text.length >
+			MAX_HARD_WRAP_URL_LENGTH
+		) {
 			return false;
 		}
 
@@ -214,8 +252,15 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 			return false;
 		}
 		if (
+			this.getContextText(lines).length + prevRawText.length >
+			MAX_HARD_WRAP_URL_LENGTH
+		) {
+			return false;
+		}
+		if (
 			!URL_AT_END_PATTERN.test(prevRawText) &&
-			!this.isLikelyContinuationLine(prevRawText)
+			!this.isLikelyContinuationLine(prevRawText) &&
+			!URL_INCOMPLETE_SCHEME_AT_END_PATTERN.test(prevRawText.trimEnd())
 		) {
 			return false;
 		}
