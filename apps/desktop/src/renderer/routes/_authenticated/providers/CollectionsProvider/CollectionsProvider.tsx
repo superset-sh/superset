@@ -49,7 +49,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		if (!organizationIds) return;
 		for (const orgId of organizationIds) {
-			preloadCollections(orgId);
+			preloadCollections(orgId, { includeChatCollections: false });
 		}
 	}, [organizationIds]);
 

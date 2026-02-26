@@ -374,12 +374,19 @@ function createOrgCollections(organizationId: string): OrgCollections {
  */
 export async function preloadCollections(
 	organizationId: string,
+	options?: {
+		includeChatCollections?: boolean;
+	},
 ): Promise<void> {
-	const { organizations, ...orgCollections } = getCollections(organizationId);
+	const { organizations, chatSessions, sessionHosts, ...orgCollections } =
+		getCollections(organizationId);
+	const includeChatCollections = options?.includeChatCollections ?? true;
+	const collectionsToPreload = includeChatCollections
+		? [...Object.values(orgCollections), chatSessions, sessionHosts]
+		: Object.values(orgCollections);
+
 	await Promise.allSettled(
-		Object.values(orgCollections).map((c) =>
-			(c as Collection<object>).preload(),
-		),
+		collectionsToPreload.map((c) => (c as Collection<object>).preload()),
 	);
 }
 
