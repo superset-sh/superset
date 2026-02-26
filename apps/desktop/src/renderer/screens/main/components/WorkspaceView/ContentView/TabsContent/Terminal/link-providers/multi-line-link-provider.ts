@@ -8,22 +8,10 @@ export interface LinkMatch {
 	regexMatch: RegExpMatchArray;
 }
 
-export interface ContextLine {
-	index: number;
-	lineNumber: number;
-	text: string;
-	leadingTrim: number;
-}
-
-interface ContextLineWithOffsets extends ContextLine {
-	startOffset: number;
-	endOffset: number;
-}
-
 /**
  * Abstract base class for terminal link providers that handles links spanning
- * wrapped lines. Subclasses may override context collection to support
- * additional hard-wrap behaviors.
+ * up to 3 wrapped lines (previous + current + next). Links spanning 4+ wrapped
+ * lines will be truncated.
  */
 export abstract class MultiLineLinkProvider implements ILinkProvider {
 	constructor(protected readonly terminal: Terminal) {}
@@ -44,83 +32,34 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		return match;
 	}
 
-	protected buildContextLines(lineIndex: number): ContextLine[] {
-		const currentLine = this.terminal.buffer.active.getLine(lineIndex);
-		if (!currentLine) {
-			return [];
-		}
-
-		let startIndex = lineIndex;
-		while (startIndex > 0) {
-			const line = this.terminal.buffer.active.getLine(startIndex);
-			if (!line?.isWrapped) {
-				break;
-			}
-			if (!this.terminal.buffer.active.getLine(startIndex - 1)) {
-				break;
-			}
-			startIndex--;
-		}
-
-		let endIndex = lineIndex;
-		while (true) {
-			const nextLine = this.terminal.buffer.active.getLine(endIndex + 1);
-			if (!nextLine?.isWrapped) {
-				break;
-			}
-			endIndex++;
-		}
-
-		const lines: ContextLine[] = [];
-		for (let i = startIndex; i <= endIndex; i++) {
-			const line = this.terminal.buffer.active.getLine(i);
-			if (!line) {
-				continue;
-			}
-			lines.push({
-				index: i,
-				lineNumber: i + 1,
-				text: line.translateToString(true),
-				leadingTrim: 0,
-			});
-		}
-
-		return lines;
-	}
-
 	provideLinks(
 		bufferLineNumber: number,
 		callback: (links: ILink[] | undefined) => void,
 	): void {
 		const lineIndex = bufferLineNumber - 1;
-		const contextLines = this.buildContextLines(lineIndex);
-		if (contextLines.length === 0) {
+		const line = this.terminal.buffer.active.getLine(lineIndex);
+		if (!line) {
 			callback(undefined);
 			return;
 		}
 
-		const linesWithOffsets: ContextLineWithOffsets[] = [];
-		let runningOffset = 0;
-		for (const contextLine of contextLines) {
-			const startOffset = runningOffset;
-			const endOffset = startOffset + contextLine.text.length;
-			linesWithOffsets.push({
-				...contextLine,
-				startOffset,
-				endOffset,
-			});
-			runningOffset = endOffset;
-		}
+		const lineText = line.translateToString(true);
+		const lineLength = lineText.length;
+		const isCurrentLineWrapped = line.isWrapped;
 
-		const currentLine = linesWithOffsets.find(
-			(line) => line.index === lineIndex,
-		);
-		if (!currentLine) {
-			callback(undefined);
-			return;
-		}
+		const prevLine = isCurrentLineWrapped
+			? this.terminal.buffer.active.getLine(lineIndex - 1)
+			: null;
+		const prevLineText = prevLine ? prevLine.translateToString(true) : "";
+		const prevLineLength = prevLineText.length;
 
-		const combinedText = linesWithOffsets.map((line) => line.text).join("");
+		const nextLine = this.terminal.buffer.active.getLine(lineIndex + 1);
+		const nextLineIsWrapped = nextLine?.isWrapped ?? false;
+		const nextLineText =
+			nextLineIsWrapped && nextLine ? nextLine.translateToString(true) : "";
+
+		const combinedText = prevLineText + lineText + nextLineText;
+		const currentLineOffset = prevLineLength;
 
 		const links: ILink[] = [];
 		const regex = this.getPattern();
@@ -130,10 +69,10 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 			const matchIndex = match.index ?? 0;
 			const matchEnd = matchIndex + matchText.length;
 
-			if (
-				matchEnd <= currentLine.startOffset ||
-				matchIndex >= currentLine.endOffset
-			) {
+			const currentLineStart = currentLineOffset;
+			const currentLineEnd = currentLineOffset + lineLength;
+
+			if (matchEnd <= currentLineStart || matchIndex >= currentLineEnd) {
 				continue;
 			}
 
@@ -157,7 +96,11 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 			const range = this.calculateLinkRange(
 				linkMatch.index,
 				linkMatch.end,
-				linesWithOffsets,
+				prevLineLength,
+				lineLength,
+				bufferLineNumber,
+				isCurrentLineWrapped,
+				nextLineIsWrapped,
 			);
 
 			links.push({
@@ -172,51 +115,49 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		callback(links.length > 0 ? links : undefined);
 	}
 
-	private offsetToPosition(
-		offset: number,
-		lines: ContextLineWithOffsets[],
-		isEnd: boolean,
-	): { x: number; y: number } {
-		for (const line of lines) {
-			const isInLine = isEnd
-				? offset <= line.endOffset
-				: offset < line.endOffset ||
-					(offset === line.startOffset && line.text.length === 0);
-			if (!isInLine) {
-				continue;
-			}
-
-			const localOffset = Math.max(
-				0,
-				Math.min(offset - line.startOffset, line.text.length),
-			);
-			return {
-				x: line.leadingTrim + localOffset + 1,
-				y: line.lineNumber,
-			};
-		}
-
-		const lastLine = lines[lines.length - 1];
-		if (!lastLine) {
-			return { x: 1, y: 1 };
-		}
-		return {
-			x: lastLine.leadingTrim + lastLine.text.length + 1,
-			y: lastLine.lineNumber,
-		};
-	}
-
 	private calculateLinkRange(
 		matchIndex: number,
 		matchEnd: number,
-		lines: ContextLineWithOffsets[],
+		prevLineLength: number,
+		lineLength: number,
+		bufferLineNumber: number,
+		isCurrentLineWrapped: boolean,
+		nextLineIsWrapped: boolean,
 	): ILink["range"] {
-		const start = this.offsetToPosition(matchIndex, lines, false);
-		const end = this.offsetToPosition(matchEnd, lines, true);
+		const currentLineStart = prevLineLength;
+		const currentLineEnd = prevLineLength + lineLength;
+
+		const startsInPrevLine =
+			isCurrentLineWrapped && matchIndex < currentLineStart;
+		const endsInNextLine = nextLineIsWrapped && matchEnd > currentLineEnd;
+
+		let startY: number;
+		let startX: number;
+		let endY: number;
+		let endX: number;
+
+		if (startsInPrevLine) {
+			startY = bufferLineNumber - 1;
+			startX = matchIndex + 1;
+		} else {
+			startY = bufferLineNumber;
+			startX = matchIndex - currentLineStart + 1;
+		}
+
+		if (endsInNextLine) {
+			endY = bufferLineNumber + 1;
+			endX = matchEnd - currentLineEnd + 1;
+		} else if (matchEnd <= currentLineStart) {
+			endY = bufferLineNumber - 1;
+			endX = matchEnd + 1;
+		} else {
+			endY = bufferLineNumber;
+			endX = matchEnd - currentLineStart + 1;
+		}
 
 		return {
-			start,
-			end,
+			start: { x: startX, y: startY },
+			end: { x: endX, y: endY },
 		};
 	}
 }
