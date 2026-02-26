@@ -12,6 +12,7 @@ import { localDb } from "./local-db";
 import { getSoundPath } from "./sound-paths";
 
 const DND_CACHE_TTL_MS = 5000;
+const MACOS_NATIVE_DND_TIMEOUT_MS = 400;
 let dndCacheValue: boolean | null = null;
 let dndCacheTimestamp = 0;
 let dndRefreshInFlight: Promise<boolean> | null = null;
@@ -130,7 +131,60 @@ async function readMacDoNotDisturbFromDefaults(): Promise<boolean | undefined> {
 	return undefined;
 }
 
+type MacosNotificationStateModule = {
+	getDoNotDisturb: () => Promise<boolean>;
+};
+
+async function isMacDoNotDisturbEnabledWithNativeModule(): Promise<
+	boolean | undefined
+> {
+	try {
+		const mod =
+			require("macos-notification-state") as MacosNotificationStateModule;
+		return await new Promise((resolve) => {
+			let settled = false;
+			const timer = setTimeout(() => {
+				if (settled) return;
+				settled = true;
+				logDebug("macOS native DND probe timed out", {
+					timeoutMs: MACOS_NATIVE_DND_TIMEOUT_MS,
+				});
+				resolve(undefined);
+			}, MACOS_NATIVE_DND_TIMEOUT_MS);
+
+			void mod
+				.getDoNotDisturb()
+				.then((isDnd) => {
+					if (settled) return;
+					settled = true;
+					clearTimeout(timer);
+					logDebug("macOS native DND probe resolved", { isDnd });
+					resolve(isDnd);
+				})
+				.catch((error) => {
+					if (settled) return;
+					settled = true;
+					clearTimeout(timer);
+					logDebug("macOS native DND probe unavailable", {
+						error: error instanceof Error ? error.message : String(error),
+					});
+					resolve(undefined);
+				});
+		});
+	} catch (error) {
+		logDebug("macOS native DND probe unavailable", {
+			error: error instanceof Error ? error.message : String(error),
+		});
+		return undefined;
+	}
+}
+
 async function isMacDoNotDisturbEnabled(): Promise<boolean> {
+	const native = await isMacDoNotDisturbEnabledWithNativeModule();
+	if (native !== undefined) {
+		return native;
+	}
+
 	const fallback = await readMacDoNotDisturbFromDefaults();
 	if (fallback !== undefined) {
 		logDebug("macOS DND probe resolved", { isDnd: fallback });
