@@ -19,10 +19,6 @@ function isFreshDndCache(): boolean {
 	return Date.now() - dndCacheTimestamp < DND_CACHE_TTL_MS;
 }
 
-type MacNotificationStateModule = {
-	getDoNotDisturb: () => Promise<boolean>;
-};
-
 function execFileOutput(
 	command: string,
 	args: string[],
@@ -98,18 +94,12 @@ async function readMacDoNotDisturbFromDefaults(): Promise<boolean | undefined> {
 }
 
 async function isMacDoNotDisturbEnabled(): Promise<boolean> {
-	try {
-		const mod =
-			require("macos-notification-state") as MacNotificationStateModule;
-		return await mod.getDoNotDisturb();
-	} catch {
-		const fallback = await readMacDoNotDisturbFromDefaults();
-		if (fallback !== undefined) {
-			return fallback;
-		}
-		// Conservative fallback: if detection fails entirely, suppress sound.
-		return true;
+	const fallback = await readMacDoNotDisturbFromDefaults();
+	if (fallback !== undefined) {
+		return fallback;
 	}
+	// Conservative fallback: if detection fails entirely, suppress sound.
+	return true;
 }
 
 type WindowsNotificationState =
@@ -244,9 +234,10 @@ function playSoundFile(soundPath: string): void {
 	if (process.platform === "darwin") {
 		execFile("afplay", [soundPath]);
 	} else if (process.platform === "win32") {
+		const escapedPath = soundPath.replace(/'/g, "''");
 		execFile("powershell", [
 			"-c",
-			`(New-Object Media.SoundPlayer '${soundPath}').PlaySync()`,
+			`(New-Object Media.SoundPlayer '${escapedPath}').PlaySync()`,
 		]);
 	} else {
 		execFile("paplay", [soundPath], (error) => {
