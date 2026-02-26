@@ -2,6 +2,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
+import { scrollPositionState } from "../state";
 import type {
 	CreateOrAttachResult,
 	TerminalExitReason,
@@ -125,7 +126,14 @@ export function useTerminalRestore({
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
 					fitAddon.fit();
-					scrollToBottom(xterm);
+					// Only scroll to the bottom if the user was already there before
+					// the tab switch. This preserves the scroll position when the user
+					// had scrolled up to read earlier output.
+					const saved = scrollPositionState.get(paneId);
+					scrollPositionState.delete(paneId);
+					if (!saved || saved.wasAtBottom) {
+						scrollToBottom(xterm);
+					}
 				});
 			};
 

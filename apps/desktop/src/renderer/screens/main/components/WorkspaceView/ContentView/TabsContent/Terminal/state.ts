@@ -15,3 +15,12 @@ export const pendingDetaches = new Map<string, NodeJS.Timeout>();
  * with fresh state, losing the cold restore detection.
  */
 export const coldRestoreState = new Map<string, ColdRestoreState>();
+
+/**
+ * Module-level map to track whether the user's terminal viewport was at the
+ * bottom just before the component unmounted (e.g., on a tab switch). Used by
+ * maybeApplyInitialState to decide whether to scroll to the bottom after
+ * restoring — preserving the user's scroll position when they were reading
+ * earlier output.
+ */
+export const scrollPositionState = new Map<string, { wasAtBottom: boolean }>();

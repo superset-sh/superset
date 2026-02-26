@@ -19,7 +19,11 @@ import {
 	type TerminalRendererRef,
 } from "../helpers";
 import { isPaneDestroyed } from "../pane-guards";
-import { coldRestoreState, pendingDetaches } from "../state";
+import {
+	coldRestoreState,
+	pendingDetaches,
+	scrollPositionState,
+} from "../state";
 import type {
 	CreateOrAttachMutate,
 	CreateOrAttachResult,
@@ -658,7 +662,16 @@ export function useTerminalLifecycle({
 				killTerminalForPane(paneId);
 				coldRestoreState.delete(paneId);
 				pendingDetaches.delete(paneId);
+				scrollPositionState.delete(paneId);
 			} else {
+				// Save whether the user was at the bottom so that
+				// maybeApplyInitialState can restore scroll position on remount
+				// instead of always forcing the terminal to the bottom.
+				const buffer = xterm.buffer.active;
+				scrollPositionState.set(paneId, {
+					wasAtBottom: buffer.viewportY >= buffer.baseY,
+				});
+
 				const detachTimeout = setTimeout(() => {
 					detachRef.current({ paneId });
 					pendingDetaches.delete(paneId);
