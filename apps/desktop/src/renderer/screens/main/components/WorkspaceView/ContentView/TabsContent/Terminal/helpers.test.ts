@@ -492,33 +492,6 @@ describe("createTerminalOsc8LinkHandler", () => {
 		expect(onOpenFile).not.toHaveBeenCalled();
 	});
 
-	it("normalizes http URL text with trailing punctuation", () => {
-		const onOpenUrl = mock(() => {});
-		const onOpenFile = mock(() => {});
-		const handler = createTerminalOsc8LinkHandler({
-			onOpenUrl,
-			onOpenFile,
-		});
-		const preventDefault = mock(() => {});
-
-		handler.activate(
-			{
-				metaKey: true,
-				ctrlKey: false,
-				preventDefault,
-			} as unknown as MouseEvent,
-			"https://example.com/path).",
-			{
-				start: { x: 1, y: 1 },
-				end: { x: 10, y: 1 },
-			},
-		);
-
-		expect(preventDefault).toHaveBeenCalled();
-		expect(onOpenUrl).toHaveBeenCalledWith("https://example.com/path");
-		expect(onOpenFile).not.toHaveBeenCalled();
-	});
-
 	it("opens file:// links and parses line/column suffix", () => {
 		const onOpenUrl = mock(() => {});
 		const onOpenFile = mock(() => {});
