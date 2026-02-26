@@ -1,7 +1,12 @@
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
-import { getOrCreateRuntime } from "./utils/runtime";
+import {
+	getOrCreateRuntime,
+	onDisplayStateObserved,
+	runStopHook,
+	runUserPromptHook,
+} from "./utils/runtime";
 import {
 	approvalRespondInput,
 	displayStateInput,
@@ -35,7 +40,9 @@ export function createChatMastraServiceRouter() {
 				.input(displayStateInput)
 				.query(async ({ input }) => {
 					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
-					return runtime.harness.getDisplayState();
+					const displayState = runtime.harness.getDisplayState();
+					onDisplayStateObserved(runtime, displayState);
+					return displayState;
 				}),
 
 			listMessages: t.procedure
@@ -49,6 +56,8 @@ export function createChatMastraServiceRouter() {
 				.input(sendMessageInput)
 				.mutation(async ({ input }) => {
 					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const userMessage = input.payload.content.trim() || "[non-text message]";
+					await runUserPromptHook(runtime, userMessage);
 					const selectedModel = input.metadata?.model?.trim();
 					if (selectedModel) {
 						await runtime.harness.switchModel({
@@ -56,17 +65,23 @@ export function createChatMastraServiceRouter() {
 							scope: "thread",
 						});
 					}
-					return runtime.harness.sendMessage(input.payload);
+					const sendResult = await runtime.harness.sendMessage(input.payload);
+					runtime.lastIsRunning = true;
+					return sendResult;
 				}),
 
 			stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
 				const runtime = await getOrCreateRuntime(input.sessionId);
 				runtime.harness.abort();
+				runtime.lastIsRunning = false;
+				await runStopHook(runtime, "aborted");
 			}),
 
 			abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
 				const runtime = await getOrCreateRuntime(input.sessionId);
 				runtime.harness.abort();
+				runtime.lastIsRunning = false;
+				await runStopHook(runtime, "aborted");
 			}),
 
 			approval: t.router({

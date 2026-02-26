@@ -21,8 +21,11 @@ export type {
  */
 const SERVER_ENV =
 	env.NODE_ENV === "development" ? "development" : "production";
+const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
 const DEBUG_HOOKS_ENABLED =
-	process.env.SUPERSET_DEBUG_HOOKS === "1" || SERVER_ENV === "development";
+	debugHooksOverride === undefined
+		? SERVER_ENV === "development"
+		: !/^(0|false)$/i.test(debugHooksOverride);
 
 export const notificationsEmitter = new EventEmitter();
 

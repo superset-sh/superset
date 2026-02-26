@@ -38,12 +38,26 @@ fi
 # This prevents parse failures from causing false completion notifications
 [ -z "$EVENT_TYPE" ] && exit 0
 
-if [ "$SUPERSET_DEBUG_HOOKS" = "1" ]; then
+DEBUG_HOOKS_ENABLED="0"
+if [ -n "$SUPERSET_DEBUG_HOOKS" ]; then
+  case "$SUPERSET_DEBUG_HOOKS" in
+    1|true|TRUE|True|yes|YES|on|ON)
+      DEBUG_HOOKS_ENABLED="1"
+      ;;
+    *)
+      DEBUG_HOOKS_ENABLED="0"
+      ;;
+  esac
+elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; then
+  DEBUG_HOOKS_ENABLED="1"
+fi
+
+if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   echo "[notify-hook] event=$EVENT_TYPE sessionId=$SESSION_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 # Timeouts prevent blocking agent completion if notification server is unresponsive
-if [ "$SUPERSET_DEBUG_HOOKS" = "1" ]; then
+if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
     --connect-timeout 1 --max-time 2 \
     --data-urlencode "paneId=$SUPERSET_PANE_ID" \
