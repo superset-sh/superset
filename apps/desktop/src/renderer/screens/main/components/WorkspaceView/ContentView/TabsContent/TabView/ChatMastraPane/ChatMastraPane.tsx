@@ -118,6 +118,8 @@ export function ChatMastraPane({
 	setFocusedPane,
 }: ChatMastraPaneProps) {
 	const pane = useTabsStore((state) => state.panes[paneId]);
+	const addChatTab = useTabsStore((state) => state.addChatTab);
+	const switchChatSession = useTabsStore((state) => state.switchChatSession);
 	const switchChatMastraSession = useTabsStore(
 		(state) => state.switchChatMastraSession,
 	);
@@ -235,6 +237,14 @@ export function ChatMastraPane({
 			toast.error("Failed to create session");
 		}
 	}, [organizationId, paneId, switchChatMastraSession, workspaceId]);
+
+	const handleOpenImportedLegacySession = useCallback(
+		(importedSessionId: string) => {
+			const { paneId: legacyPaneId } = addChatTab(workspaceId);
+			switchChatSession(legacyPaneId, importedSessionId);
+		},
+		[addChatTab, switchChatSession, workspaceId],
+	);
 
 	const handleStartFreshSession = useCallback(async () => {
 		if (!organizationId) {
@@ -366,7 +376,11 @@ export function ChatMastraPane({
 								<SessionSelector
 									currentSessionId={sessionId}
 									sessions={sessionItems}
+									workspaceId={workspaceId}
+									organizationId={organizationId}
+									cwd={workspace?.worktreePath ?? ""}
 									onSelectSession={handleSelectSession}
+									onImportClaudeSession={handleOpenImportedLegacySession}
 									onNewChat={handleNewChat}
 									onDeleteSession={handleDeleteSession}
 								/>

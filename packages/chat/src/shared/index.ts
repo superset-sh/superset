@@ -1,3 +1,15 @@
+export {
+	type ConvertExternalSessionOptions,
+	type ConvertExternalSessionResult,
+	claudeCodeSessionConverter,
+	codexSessionConverter,
+	convertExternalSessionToChatChunks,
+	createDefaultSessionConverterRegistry,
+	defaultSessionConverterRegistry,
+	type SessionConverter,
+	type SessionConverterConvertContext,
+	SessionConverterRegistry,
+} from "./session-conversion";
 export { tokenizeSlashCommandArguments } from "./slash-command-arguments";
 export {
 	findSlashCommandByNameOrAlias,

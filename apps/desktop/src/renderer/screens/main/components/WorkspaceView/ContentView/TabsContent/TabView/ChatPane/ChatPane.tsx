@@ -157,6 +157,8 @@ export function ChatPane({
 							<SessionSelector
 								currentSessionId={sessionId}
 								workspaceId={workspaceId}
+								organizationId={organizationId}
+								cwd={workspace?.worktreePath ?? ""}
 								onSelectSession={handleSelectSession}
 								onNewChat={handleNewChat}
 								onDeleteSession={handleDeleteSession}

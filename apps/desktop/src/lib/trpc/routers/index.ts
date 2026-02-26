@@ -8,7 +8,10 @@ import { createBrowserHistoryRouter } from "./browser-history";
 import { createCacheRouter } from "./cache";
 import { createChangesRouter } from "./changes";
 import { createChatMastraServiceRouter } from "./chat-mastra-service";
-import { createChatServiceRouter } from "./chat-service";
+import {
+	createChatServiceClaudeRouter,
+	createChatServiceRouter,
+} from "./chat-service";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createFilesystemRouter } from "./filesystem";
@@ -30,6 +33,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		chatMastraService: createChatMastraServiceRouter(),
 		chatService: createChatServiceRouter(),
+		chatServiceClaude: createChatServiceClaudeRouter(),
 		analytics: createAnalyticsRouter(),
 		browser: createBrowserRouter(),
 		browserHistory: createBrowserHistoryRouter(),
