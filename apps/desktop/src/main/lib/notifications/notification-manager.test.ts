@@ -116,8 +116,12 @@ describe("NotificationManager", () => {
 
 		it("uses native sound when notification sounds are unmuted", () => {
 			const createNotification = mock(
-				(_opts: { title: string; body: string; silent: boolean }) =>
-					createMockNotification(),
+				(_opts: {
+					title: string;
+					body: string;
+					silent: boolean;
+					sound?: string;
+				}) => createMockNotification(),
 			);
 			const localDeps = createDeps({
 				createNotification,
@@ -134,8 +138,12 @@ describe("NotificationManager", () => {
 
 		it("suppresses native sound when notification sounds are muted", () => {
 			const createNotification = mock(
-				(_opts: { title: string; body: string; silent: boolean }) =>
-					createMockNotification(),
+				(_opts: {
+					title: string;
+					body: string;
+					silent: boolean;
+					sound?: string;
+				}) => createMockNotification(),
 			);
 			const localDeps = createDeps({
 				createNotification,
@@ -256,8 +264,12 @@ describe("NotificationManager", () => {
 	describe("notification content", () => {
 		it("uses permission request title/body for PermissionRequest events", () => {
 			const createNotification = mock(
-				(_opts: { title: string; body: string; silent: boolean }) =>
-					createMockNotification(),
+				(_opts: {
+					title: string;
+					body: string;
+					silent: boolean;
+					sound?: string;
+				}) => createMockNotification(),
 			);
 			const localDeps = createDeps({ createNotification });
 			const localManager = new NotificationManager(localDeps);
@@ -276,8 +288,12 @@ describe("NotificationManager", () => {
 
 		it("uses completion title/body for Stop events", () => {
 			const createNotification = mock(
-				(_opts: { title: string; body: string; silent: boolean }) =>
-					createMockNotification(),
+				(_opts: {
+					title: string;
+					body: string;
+					silent: boolean;
+					sound?: string;
+				}) => createMockNotification(),
 			);
 			const localDeps = createDeps({ createNotification });
 			const localManager = new NotificationManager(localDeps);
