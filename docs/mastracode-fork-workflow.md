@@ -50,23 +50,12 @@ Expected remotes in that worktree:
 
 ## Current behavior shipped in the bundle
 
-- `createMastraCode({ extraTools })` is merged into runtime dynamic tools.
 - Tool executions are wrapped with Mastra `HookManager` pre/post hooks.
 - `createAuthStorage()` is exported for auth-only storage usage without runtime bootstrap.
 
 ## Superset runtime wiring
 
-`@superset/chat-mastra` now accepts runtime options through router construction:
-
-```ts
-createChatMastraServiceRouter({
-  runtime: {
-    extraTools: {
-      my_custom_tool,
-    },
-  },
-});
-```
+`@superset/chat-mastra` uses Mastra's built-in tool set from `createMastraCode()`.
 
 Desktop pass-through lives at:
 
@@ -80,9 +69,7 @@ Core runtime creation and tool diagnostics live at:
 
 When `NODE_ENV !== "production"` (or `SUPERSET_DEBUG_HOOKS` is enabled), runtime startup logs:
 
-- `configuredExtraToolNames` (tools passed from Superset router options)
 - `resolvedToolNames` (tools actually visible to the agent at runtime)
-- `mastraSupportsCreateAuthStorage` (quick signal that forked bundle APIs are loaded)
 
 ## Publishing the next internal bundle
 

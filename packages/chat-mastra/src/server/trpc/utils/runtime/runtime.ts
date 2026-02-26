@@ -1,5 +1,5 @@
 import { MCPClient } from "@mastra/mcp";
-import { createAuthStorage, createMastraCode } from "mastracode";
+import { createMastraCode } from "mastracode";
 
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>
@@ -21,10 +21,6 @@ export interface RuntimeSession {
 	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
 	cwd: string;
-}
-
-export interface RuntimeCreateOptions {
-	extraTools?: Record<string, unknown>;
 }
 
 const runtimes = new Map<string, RuntimeSession>();
@@ -174,14 +170,9 @@ async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
 async function createRuntimeSession(
 	sessionId: string,
 	runtimeCwd: string,
-	options?: RuntimeCreateOptions,
 ): Promise<RuntimeSession> {
 	// This runtime powers interactive chat tool execution.
-	// Runtime extensions (e.g. extra tools) are injected through createMastraCode options.
-	const runtimeMastra = await createMastraCode({
-		cwd: runtimeCwd,
-		extraTools: options?.extraTools,
-	});
+	const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
 	if (runtimeMastra.mcpManager?.hasServers()) {
 		try {
 			await runtimeMastra.mcpManager.init();
@@ -245,9 +236,6 @@ async function createRuntimeSession(
 			console.log("[chat-mastra] runtime tool resolution", {
 				sessionId,
 				cwd: runtimeCwd,
-				mastraSupportsCreateAuthStorage:
-					typeof createAuthStorage === "function",
-				configuredExtraToolNames: Object.keys(options?.extraTools ?? {}),
 				resolvedToolNames: Object.keys(resolvedTools).sort(),
 			});
 		} catch (error) {
@@ -290,7 +278,6 @@ async function createRuntimeSession(
 export async function getOrCreateRuntime(
 	sessionId: string,
 	cwd?: string,
-	options?: RuntimeCreateOptions,
 ): Promise<RuntimeSession> {
 	const existing = runtimes.get(sessionId);
 	if (existing) {
@@ -304,7 +291,7 @@ export async function getOrCreateRuntime(
 	}
 
 	const runtimeCwd = cwd ?? process.cwd();
-	return createRuntimeSession(sessionId, runtimeCwd, options);
+	return createRuntimeSession(sessionId, runtimeCwd);
 }
 
 function toNonEmptyString(value: unknown): string | null {

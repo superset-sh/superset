@@ -1,11 +1,6 @@
-import {
-	createChatMastraServiceRouter as buildRouter,
-	type CreateChatMastraServiceRouterOptions,
-} from "@superset/chat-mastra/server/trpc";
+import { createChatMastraServiceRouter as buildRouter } from "@superset/chat-mastra/server/trpc";
 
-export const createChatMastraServiceRouter = (
-	options?: CreateChatMastraServiceRouterOptions,
-) => buildRouter(options);
+export const createChatMastraServiceRouter = () => buildRouter();
 
 export type ChatMastraServiceDesktopRouter = ReturnType<
 	typeof createChatMastraServiceRouter

@@ -1,12 +1,7 @@
 import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
-import {
-	getOrCreateRuntime,
-	getRuntimeMcpOverview,
-	type RuntimeCreateOptions,
-	runUserPromptHook,
-} from "./utils/runtime";
+import { getOrCreateRuntime, getRuntimeMcpOverview, runUserPromptHook } from "./utils/runtime";
 import {
 	approvalRespondInput,
 	displayStateInput,
@@ -21,16 +16,7 @@ import {
 
 const t = initTRPC.create({ transformer: superjson });
 
-export interface CreateChatMastraServiceRouterOptions {
-	runtime?: RuntimeCreateOptions;
-}
-
-export function createChatMastraServiceRouter(
-	options?: CreateChatMastraServiceRouterOptions,
-) {
-	const getRuntime = (sessionId: string, cwd?: string) =>
-		getOrCreateRuntime(sessionId, cwd, options?.runtime);
-
+export function createChatMastraServiceRouter() {
 	return t.router({
 		workspace: t.router({
 			searchFiles: t.procedure
@@ -47,7 +33,7 @@ export function createChatMastraServiceRouter(
 			getMcpOverview: t.procedure
 				.input(mcpOverviewInput)
 				.query(async ({ input }) => {
-					const runtime = await getRuntime(input.sessionId, input.cwd);
+					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
 					return getRuntimeMcpOverview(runtime);
 				}),
 		}),
@@ -56,21 +42,21 @@ export function createChatMastraServiceRouter(
 			getDisplayState: t.procedure
 				.input(displayStateInput)
 				.query(async ({ input }) => {
-					const runtime = await getRuntime(input.sessionId, input.cwd);
+					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
 					return runtime.harness.getDisplayState();
 				}),
 
 			listMessages: t.procedure
 				.input(listMessagesInput)
 				.query(async ({ input }) => {
-					const runtime = await getRuntime(input.sessionId, input.cwd);
+					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
 					return runtime.harness.listMessages();
 				}),
 
 			sendMessage: t.procedure
 				.input(sendMessageInput)
 				.mutation(async ({ input }) => {
-					const runtime = await getRuntime(input.sessionId, input.cwd);
+					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
 					const userMessage =
 						input.payload.content.trim() || "[non-text message]";
 					await runUserPromptHook(runtime, userMessage);
@@ -86,12 +72,12 @@ export function createChatMastraServiceRouter(
 				}),
 
 			stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-				const runtime = await getRuntime(input.sessionId);
+				const runtime = await getOrCreateRuntime(input.sessionId);
 				runtime.harness.abort();
 			}),
 
 			abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-				const runtime = await getRuntime(input.sessionId);
+				const runtime = await getOrCreateRuntime(input.sessionId);
 				runtime.harness.abort();
 			}),
 
@@ -99,7 +85,7 @@ export function createChatMastraServiceRouter(
 				respond: t.procedure
 					.input(approvalRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getRuntime(input.sessionId);
+						const runtime = await getOrCreateRuntime(input.sessionId);
 						return runtime.harness.respondToToolApproval(input.payload);
 					}),
 			}),
@@ -108,7 +94,7 @@ export function createChatMastraServiceRouter(
 				respond: t.procedure
 					.input(questionRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getRuntime(input.sessionId);
+						const runtime = await getOrCreateRuntime(input.sessionId);
 						return runtime.harness.respondToQuestion(input.payload);
 					}),
 			}),
@@ -117,7 +103,7 @@ export function createChatMastraServiceRouter(
 				respond: t.procedure
 					.input(planRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getRuntime(input.sessionId);
+						const runtime = await getOrCreateRuntime(input.sessionId);
 						return runtime.harness.respondToPlanApproval(input.payload);
 					}),
 			}),
