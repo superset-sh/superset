@@ -17,6 +17,7 @@
 		"@ai-sdk/anthropic": "^3.0.43",
 		"@mastra/ai-sdk": "^1.0.4",
 		"@mastra/core": "^1.3.0",
+		"@mastra/mcp": "^1.0.1",
 		"@mastra/memory": "^1.2.0",
 		"cheerio": "^1.2.0",
 		"mastracode": "^0.3.0",

@@ -9,6 +9,7 @@ import {
 } from "@mastra/core/workspace";
 import { Memory } from "@mastra/memory";
 import { askUserQuestionTool, webFetchTool, webSearchTool } from "./tools";
+import { getMcpTools } from "./tools/mcp";
 
 // ---------------------------------------------------------------------------
 // Anthropic OAuth support
@@ -260,10 +261,14 @@ const superagentInstance = new Agent({
 			sandbox: new LocalSandbox({ workingDirectory: cwd, timeout: 30_000 }),
 		});
 	},
-	tools: {
-		web_search: webSearchTool,
-		web_fetch: webFetchTool,
-		ask_user_question: askUserQuestionTool,
+	tools: async ({ requestContext }) => {
+		const mcpTools = await getMcpTools({ requestContext });
+		return {
+			web_search: webSearchTool,
+			web_fetch: webFetchTool,
+			ask_user_question: askUserQuestionTool,
+			...mcpTools,
+		};
 	},
 	agents: {
 		planner: planningAgent,

@@ -1,4 +1,5 @@
 import { createMastraCode } from "mastracode";
+import { ensureMastraCodeMcpBridge } from "./mcp-bridge";
 
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>
@@ -15,6 +16,9 @@ const runtimes = new Map<string, RuntimeSession>();
 export async function getOrCreateRuntime(
 	sessionId: string,
 	cwd?: string,
+	options?: {
+		authToken?: string;
+	},
 ): Promise<RuntimeSession> {
 	const existing = runtimes.get(sessionId);
 	if (existing) {
@@ -26,7 +30,14 @@ export async function getOrCreateRuntime(
 	}
 
 	const runtimeCwd = cwd ?? process.cwd();
+	ensureMastraCodeMcpBridge({
+		cwd: runtimeCwd,
+		authToken: options?.authToken,
+	});
 	const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
+	if (runtimeMastra.mcpManager?.hasServers()) {
+		await runtimeMastra.mcpManager.init();
+	}
 	await runtimeMastra.harness.init();
 	runtimeMastra.harness.setResourceId({ resourceId: sessionId });
 	await runtimeMastra.harness.selectOrCreateThread();
