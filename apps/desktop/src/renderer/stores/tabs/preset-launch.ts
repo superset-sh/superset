@@ -1,4 +1,4 @@
-import type { ExecutionMode } from "@superset/local-db";
+import type { ExecutionMode } from "@superset/local-db/schema/zod";
 
 export type PresetOpenTarget = "new-tab" | "active-tab";
 export type PresetMode = ExecutionMode;

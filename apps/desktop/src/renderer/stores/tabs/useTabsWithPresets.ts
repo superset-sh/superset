@@ -1,7 +1,7 @@
 import {
 	normalizeExecutionMode,
 	type TerminalPreset,
-} from "@superset/local-db";
+} from "@superset/local-db/schema/zod";
 import { useCallback, useMemo } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
