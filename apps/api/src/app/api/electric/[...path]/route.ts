@@ -25,9 +25,10 @@ export async function GET(request: Request): Promise<Response> {
 	}
 
 	const useCloud =
-		request.headers.get("x-electric-backend") === "cloud" &&
 		env.ELECTRIC_SOURCE_ID &&
-		env.ELECTRIC_SOURCE_SECRET;
+		env.ELECTRIC_SOURCE_SECRET &&
+		(request.headers.get("x-electric-backend") === "cloud" ||
+			sessionData.user.email?.endsWith("@superset.sh"));
 
 	const originUrl = useCloud
 		? new URL("/v1/shape", "https://api.electric-sql.cloud")
@@ -37,7 +38,7 @@ export async function GET(request: Request): Promise<Response> {
 		// biome-ignore lint/style/noNonNullAssertion: guarded by useCloud check above
 		originUrl.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID!);
 		// biome-ignore lint/style/noNonNullAssertion: guarded by useCloud check above
-		originUrl.searchParams.set("source_secret", env.ELECTRIC_SOURCE_SECRET!);
+		originUrl.searchParams.set("secret", env.ELECTRIC_SOURCE_SECRET!);
 	} else {
 		originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
 	}
