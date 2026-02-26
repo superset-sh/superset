@@ -112,6 +112,8 @@ export class ChatService {
 
 	private async getOpenAIAuthStorage(): Promise<OpenAIAuthStorage> {
 		if (!this.openAIAuthStoragePromise) {
+			// Auth-only runtime bootstrap for credential storage.
+			// This path does not drive chat tool execution/permissions.
 			this.openAIAuthStoragePromise = createMastraCode({
 				disableMcp: true,
 				disableHooks: true,

@@ -110,7 +110,19 @@ export async function getOrCreateRuntime(
 	}
 
 	const runtimeCwd = cwd ?? process.cwd();
-	const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
+	// This runtime powers interactive chat tool execution.
+	// Tool-level allow/deny rules must be configured here.
+	const runtimeMastra = await createMastraCode({
+		cwd: runtimeCwd,
+		initialState: {
+			permissionRules: {
+				tools: {
+					string_replace_lsp: "deny",
+					ast_smart_edit: "deny",
+				},
+			},
+		},
+	});
 	if (runtimeMastra.mcpManager?.hasServers()) {
 		try {
 			await runtimeMastra.mcpManager.init();
