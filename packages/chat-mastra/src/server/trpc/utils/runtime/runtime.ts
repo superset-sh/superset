@@ -112,7 +112,15 @@ export async function getOrCreateRuntime(
 	const runtimeCwd = cwd ?? process.cwd();
 	const runtimeMastra = await createMastraCode({ cwd: runtimeCwd });
 	if (runtimeMastra.mcpManager?.hasServers()) {
-		await runtimeMastra.mcpManager.init();
+		try {
+			await runtimeMastra.mcpManager.init();
+		} catch (error) {
+			console.warn("[chat-mastra] MCP init failed during runtime creation", {
+				sessionId,
+				cwd: runtimeCwd,
+				error: toErrorMessage(error),
+			});
+		}
 	}
 	runtimeMastra.hookManager?.setSessionId(sessionId);
 	if (DEBUG_HOOKS_ENABLED) {
@@ -246,13 +254,14 @@ async function probeMcpServerStatus(
 		};
 	}
 
-	const client = new MCPClient({
-		id: `superset-chat-mcp-probe-${name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-		timeout: MCP_PROBE_TIMEOUT_MS,
-		servers: { [name]: serverDefinition },
-	});
+	let client: MCPClient | null = null;
 
 	try {
+		client = new MCPClient({
+			id: `superset-chat-mcp-probe-${name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			timeout: MCP_PROBE_TIMEOUT_MS,
+			servers: { [name]: serverDefinition },
+		});
 		const tools = await withTimeout(
 			client.listTools(),
 			MCP_PROBE_TIMEOUT_MS,
@@ -271,7 +280,9 @@ async function probeMcpServerStatus(
 			error: toErrorMessage(error),
 		};
 	} finally {
-		await client.disconnect().catch(() => undefined);
+		if (client) {
+			await client.disconnect().catch(() => undefined);
+		}
 	}
 }
 
@@ -305,9 +316,14 @@ function shouldRunPerServerProbe(
 	return normalizedErrors.size <= 1;
 }
 
-function resolveTransport(config: Record<string, unknown>): "remote" | "local" {
+function resolveTransport(
+	config: Record<string, unknown>,
+): "remote" | "local" | "unknown" {
 	const command = toNonEmptyString(config.command)?.toLowerCase();
 	const args = toStringArray(config.args) ?? [];
+	if (!command && args.length === 0) {
+		return "unknown";
+	}
 	const hasRemoteUrl = args.some((arg) => /^https?:\/\//i.test(arg));
 	const isMcpRemote =
 		command === "mcp-remote" ||
@@ -317,7 +333,7 @@ function resolveTransport(config: Record<string, unknown>): "remote" | "local" {
 
 function resolveTarget(
 	config: Record<string, unknown>,
-	transport: "remote" | "local",
+	transport: "remote" | "local" | "unknown",
 ): string {
 	if (transport === "remote") {
 		const args = toStringArray(config.args) ?? [];
@@ -351,7 +367,14 @@ export async function getRuntimeMcpOverview(runtime: RuntimeSession): Promise<{
 	}
 
 	if (manager.getServerStatuses().length === 0) {
-		await manager.init();
+		try {
+			await manager.init();
+		} catch (error) {
+			console.warn("[chat-mastra] MCP init failed during overview", {
+				sessionId: runtime.sessionId,
+				error: toErrorMessage(error),
+			});
+		}
 	}
 
 	const rawStatuses = manager.getServerStatuses();
@@ -390,7 +413,14 @@ export async function getRuntimeMcpOverview(runtime: RuntimeSession): Promise<{
 			const probedStatus = perServerStatusesByName?.get(name);
 			const isConnected =
 				probedStatus?.connected ?? Boolean(status?.connected ?? false);
-			const state: "enabled" | "invalid" = isConnected ? "enabled" : "invalid";
+			const isDisabled =
+				normalizedConfig.disabled === true ||
+				normalizedConfig.enabled === false;
+			const state: "enabled" | "disabled" | "invalid" = isDisabled
+				? "disabled"
+				: isConnected
+					? "enabled"
+					: "invalid";
 			return {
 				name,
 				state,
