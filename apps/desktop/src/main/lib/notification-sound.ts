@@ -15,14 +15,6 @@ let dndCacheValue: boolean | null = null;
 let dndCacheTimestamp = 0;
 let dndRefreshInFlight: Promise<boolean> | null = null;
 
-function logDebug(message: string, data?: Record<string, unknown>): void {
-	if (data) {
-		console.log(`[notification-sound][debug] ${message}`, data);
-		return;
-	}
-	console.log(`[notification-sound][debug] ${message}`);
-}
-
 function isFreshDndCache(): boolean {
 	return Date.now() - dndCacheTimestamp < DND_CACHE_TTL_MS;
 }
@@ -81,10 +73,6 @@ function readMacDoNotDisturbFromDefaults(): boolean | undefined {
 			}).trim();
 			const parsed = parseMacDefaultsDnd(output);
 			if (parsed !== undefined) {
-				logDebug("macOS defaults fallback DND state read", {
-					command: `${command} ${args.join(" ")}`,
-					isDnd: parsed,
-				});
 				return parsed;
 			}
 		} catch {
@@ -99,21 +87,12 @@ async function isMacDoNotDisturbEnabled(): Promise<boolean> {
 	try {
 		const mod =
 			require("macos-notification-state") as MacNotificationStateModule;
-		const isDnd = await mod.getDoNotDisturb();
-		logDebug("macOS DND state read", { isDnd });
-		return isDnd;
-	} catch (error) {
+		return await mod.getDoNotDisturb();
+	} catch {
 		const fallback = readMacDoNotDisturbFromDefaults();
 		if (fallback !== undefined) {
-			logDebug("macOS DND detection used defaults fallback", {
-				isDnd: fallback,
-			});
 			return fallback;
 		}
-
-		logDebug("macOS DND detection failed", {
-			error: error instanceof Error ? error.message : String(error),
-		});
 		// Conservative fallback: if detection fails entirely, suppress sound.
 		return true;
 	}
@@ -138,17 +117,13 @@ function isWindowsDoNotDisturbEnabled(): boolean {
 		const mod =
 			require("windows-notification-state") as WindowsNotificationStateModule;
 		const state = mod.getNotificationState();
-		const isDnd =
+		return (
 			state === "QUNS_BUSY" ||
 			state === "QUNS_RUNNING_D3D_FULL_SCREEN" ||
 			state === "QUNS_PRESENTATION_MODE" ||
-			state === "QUNS_QUIET_TIME";
-		logDebug("Windows DND state read", { state, isDnd });
-		return isDnd;
-	} catch (error) {
-		logDebug("Windows DND detection failed", {
-			error: error instanceof Error ? error.message : String(error),
-		});
+			state === "QUNS_QUIET_TIME"
+		);
+	} catch {
 		return false;
 	}
 }
@@ -168,19 +143,13 @@ function isLinuxDoNotDisturbEnabled(): boolean {
 			.toLowerCase();
 
 		// show-banners=false indicates DND-style suppression in GNOME.
-		const isDnd = output === "false";
-		logDebug("Linux DND state read", { output, isDnd });
-		return isDnd;
-	} catch (error) {
-		logDebug("Linux DND detection failed", {
-			error: error instanceof Error ? error.message : String(error),
-		});
+		return output === "false";
+	} catch {
 		return false;
 	}
 }
 
 async function detectDoNotDisturb(): Promise<boolean> {
-	logDebug("Detecting DND state", { platform: process.platform });
 	if (process.platform === "darwin") {
 		return isMacDoNotDisturbEnabled();
 	}
@@ -195,32 +164,24 @@ async function detectDoNotDisturb(): Promise<boolean> {
 
 function refreshDoNotDisturbCache(): Promise<boolean> {
 	if (dndRefreshInFlight) {
-		logDebug("Reusing in-flight DND refresh");
 		return dndRefreshInFlight;
 	}
-	logDebug("Refreshing DND cache");
 
 	dndRefreshInFlight = detectDoNotDisturb()
 		.then((isDnd) => {
 			dndCacheValue = isDnd;
 			dndCacheTimestamp = Date.now();
-			logDebug("DND cache refreshed", { isDnd, timestamp: dndCacheTimestamp });
 			return isDnd;
 		})
-		.catch((error) => {
+		.catch(() => {
 			if (dndCacheValue === null) {
 				dndCacheValue = false;
 				dndCacheTimestamp = Date.now();
 			}
-			logDebug("DND refresh failed, using fallback cache", {
-				error: error instanceof Error ? error.message : String(error),
-				fallbackValue: dndCacheValue,
-			});
 			return dndCacheValue;
 		})
 		.finally(() => {
 			dndRefreshInFlight = null;
-			logDebug("DND refresh completed");
 		});
 
 	return dndRefreshInFlight;
@@ -232,13 +193,8 @@ function refreshDoNotDisturbCache(): Promise<boolean> {
 export function areNotificationSoundsMuted(): boolean {
 	try {
 		const settingsRow = localDb.select().from(settings).get();
-		const muted = settingsRow?.notificationSoundsMuted ?? false;
-		logDebug("Read notification mute setting", { muted });
-		return muted;
-	} catch (error) {
-		logDebug("Failed reading mute setting; defaulting to false", {
-			error: error instanceof Error ? error.message : String(error),
-		});
+		return settingsRow?.notificationSoundsMuted ?? false;
+	} catch {
 		return false;
 	}
 }
@@ -254,32 +210,19 @@ function getSelectedRingtonePath(): string | null {
 	try {
 		const settingsRow = localDb.select().from(settings).get();
 		const selectedId = settingsRow?.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
-		logDebug("Resolved selected ringtone ID", { selectedId });
 
 		// Legacy: "none" was previously used before the muted toggle existed.
 		if (selectedId === "none") {
-			logDebug("Ringtone ID is legacy 'none'; skipping sound");
 			return null;
 		}
 
 		if (selectedId === CUSTOM_RINGTONE_ID) {
-			const customPath = getCustomRingtonePath() ?? defaultPath;
-			logDebug("Using custom ringtone path", { path: customPath });
-			return customPath;
+			return getCustomRingtonePath() ?? defaultPath;
 		}
 
 		const filename = getRingtoneFilename(selectedId);
-		const resolvedPath = filename ? getSoundPath(filename) : defaultPath;
-		logDebug("Using built-in ringtone path", {
-			filename: filename ?? "(default fallback)",
-			path: resolvedPath,
-		});
-		return resolvedPath;
-	} catch (error) {
-		logDebug("Failed resolving ringtone path; using default", {
-			error: error instanceof Error ? error.message : String(error),
-			path: defaultPath,
-		});
+		return filename ? getSoundPath(filename) : defaultPath;
+	} catch {
 		return defaultPath;
 	}
 }
@@ -292,24 +235,17 @@ function playSoundFile(soundPath: string): void {
 		console.warn(`[notification-sound] Sound file not found: ${soundPath}`);
 		return;
 	}
-	logDebug("Playing sound file", { soundPath, platform: process.platform });
 
 	if (process.platform === "darwin") {
-		logDebug("Executing afplay");
 		execFile("afplay", [soundPath]);
 	} else if (process.platform === "win32") {
-		logDebug("Executing PowerShell SoundPlayer");
 		execFile("powershell", [
 			"-c",
 			`(New-Object Media.SoundPlayer '${soundPath}').PlaySync()`,
 		]);
 	} else {
-		logDebug("Executing paplay/aplay fallback");
 		execFile("paplay", [soundPath], (error) => {
 			if (error) {
-				logDebug("paplay failed; falling back to aplay", {
-					error: error.message,
-				});
 				execFile("aplay", [soundPath]);
 			}
 		});
@@ -320,35 +256,26 @@ function playSoundFile(soundPath: string): void {
  * Plays custom notification sound unless muted or OS do-not-disturb is active.
  */
 export function playNotificationSound(): void {
-	logDebug("playNotificationSound invoked");
 	if (areNotificationSoundsMuted()) {
-		logDebug("Skipping sound because notifications are muted");
 		return;
 	}
 
 	const soundPath = getSelectedRingtonePath();
 	if (!soundPath) {
-		logDebug("Skipping sound because no ringtone path resolved");
 		return;
 	}
 
 	if (dndCacheValue !== null && isFreshDndCache()) {
-		logDebug("Using fresh DND cache", { dndCacheValue });
 		if (!dndCacheValue) {
 			playSoundFile(soundPath);
-		} else {
-			logDebug("Skipping sound because DND cache is true");
 		}
 		return;
 	}
 
 	if (dndCacheValue !== null) {
 		// Serve immediately from stale cache to keep notifications snappy.
-		logDebug("Using stale DND cache and refreshing", { dndCacheValue });
 		if (!dndCacheValue) {
 			playSoundFile(soundPath);
-		} else {
-			logDebug("Skipping immediate sound because stale DND cache is true");
 		}
 		// Refresh in background for subsequent notifications.
 		void refreshDoNotDisturbCache();
@@ -356,13 +283,9 @@ export function playNotificationSound(): void {
 	}
 
 	// First notification: ensure we establish cache before playing.
-	logDebug("No DND cache yet; refreshing before first play");
 	void refreshDoNotDisturbCache().then((isDnd) => {
-		logDebug("First-play DND result resolved", { isDnd });
 		if (!isDnd) {
 			playSoundFile(soundPath);
-		} else {
-			logDebug("Skipping first-play sound because DND is true");
 		}
 	});
 }
