@@ -1,9 +1,8 @@
 import { skipToken } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMastraServiceRouter } from "../../../server/trpc";
 import { chatMastraServiceTrpc } from "../../provider";
-import { useMessages } from "./hooks/use-messages";
 
 type RouterInputs = inferRouterInputs<ChatMastraServiceRouter>;
 type RouterOutputs = inferRouterOutputs<ChatMastraServiceRouter>;
@@ -27,6 +26,35 @@ export interface UseMastraChatDisplayOptions {
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
+}
+
+function findLastUserMessageIndex(messages: ListMessagesOutput): number {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		if (messages[index]?.role === "user") return index;
+	}
+	return -1;
+}
+
+export function withoutActiveTurnAssistantHistory({
+	messages,
+	currentMessage,
+	isRunning,
+}: {
+	messages: ListMessagesOutput;
+	currentMessage: DisplayStateOutput["currentMessage"] | null;
+	isRunning: boolean;
+}): ListMessagesOutput {
+	if (!isRunning || !currentMessage || currentMessage.role !== "assistant") {
+		return messages;
+	}
+
+	const turnStartIndex = findLastUserMessageIndex(messages) + 1;
+	const previousTurns = messages.slice(0, turnStartIndex);
+	const activeTurnNonAssistant = messages
+		.slice(turnStartIndex)
+		.filter((message) => message.role !== "assistant");
+
+	return [...previousTurns, ...activeTurnNonAssistant];
 }
 
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
@@ -60,14 +88,43 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 
 	const displayState = displayQuery.data ?? null;
 	const currentMessage = displayState?.currentMessage ?? null;
-	const historicalMessages = messagesQuery.data ?? [];
 	const isRunning = displayState?.isRunning ?? false;
+	const historicalMessages = messagesQuery.data ?? [];
+	const [optimisticUserMessage, setOptimisticUserMessage] = useState<
+		ListMessagesOutput[number] | null
+	>(null);
+	const optimisticTextRef = useRef<string | null>(null);
 
-	const { messages, addOptimisticUserMessage, clearOptimistic } = useMessages({
-		historicalMessages,
-		currentMessage,
-		isRunning,
-	});
+	useEffect(() => {
+		const optimisticText = optimisticTextRef.current;
+		if (!optimisticText) return;
+
+		const found = historicalMessages.some(
+			(message) =>
+				message.role === "user" &&
+				message.content.some(
+					(part) =>
+						part.type === "text" &&
+						"text" in part &&
+						part.text === optimisticText,
+				),
+		);
+		if (!found) return;
+
+		setOptimisticUserMessage(null);
+		optimisticTextRef.current = null;
+	}, [historicalMessages]);
+
+	const messages = useMemo(() => {
+		const withOptimistic = optimisticUserMessage
+			? [...historicalMessages, optimisticUserMessage]
+			: historicalMessages;
+		return withoutActiveTurnAssistantHistory({
+			messages: withOptimistic,
+			currentMessage,
+			isRunning,
+		});
+	}, [historicalMessages, optimisticUserMessage, currentMessage, isRunning]);
 
 	const commands = useMemo(
 		() => ({
@@ -82,7 +139,13 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 						? input.payload.content
 						: "";
 				if (text) {
-					addOptimisticUserMessage(text);
+					optimisticTextRef.current = text;
+					setOptimisticUserMessage({
+						id: `optimistic-${Date.now()}`,
+						role: "user",
+						content: [{ type: "text", text }],
+						createdAt: new Date(),
+					} as ListMessagesOutput[number]);
 				}
 
 				try {
@@ -93,7 +156,8 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					});
 				} catch (error) {
 					setCommandError(error);
-					clearOptimistic();
+					setOptimisticUserMessage(null);
+					optimisticTextRef.current = null;
 					return;
 				}
 			},
@@ -163,7 +227,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 			},
 		}),
-		[addOptimisticUserMessage, clearOptimistic, cwd, sessionId, utils],
+		[cwd, sessionId, utils],
 	);
 
 	return {
