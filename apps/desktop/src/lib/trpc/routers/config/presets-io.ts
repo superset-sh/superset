@@ -28,7 +28,7 @@ function readAndParsePresetsFile(
 			throw new Error("Invalid presets file format");
 		}
 		if (error instanceof Error) {
-			throw new Error(error.message);
+			throw error;
 		}
 		throw new Error("Failed to parse presets file");
 	}

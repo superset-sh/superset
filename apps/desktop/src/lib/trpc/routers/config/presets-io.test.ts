@@ -176,8 +176,10 @@ describe("presets-io", () => {
 		expect(result.unchanged).toBe(0);
 		expect(result.skipped).toBe(0);
 		expect(result.items).toHaveLength(2);
-		expect(result.items[0]?.action).toBe("update");
-		expect(result.items[1]?.action).toBe("create");
+		const codexItem = result.items.find((item) => item.name === "codex");
+		const claudeItem = result.items.find((item) => item.name === "claude");
+		expect(codexItem?.action).toBe("update");
+		expect(claudeItem?.action).toBe("create");
 	});
 
 	test("importPresetsFromFile applies only selected indices", () => {
@@ -268,6 +270,18 @@ describe("presets-io", () => {
 
 		expect(() =>
 			importPresetsFromFile({
+				existingPresets,
+				supersetHomeDir,
+			}),
+		).toThrow("No presets file found");
+	});
+
+	test("previewImportPresetsFromFile throws when presets file is missing", () => {
+		const supersetHomeDir = join(TEST_DIR, "missing-preview-home");
+		const existingPresets: TerminalPreset[] = [];
+
+		expect(() =>
+			previewImportPresetsFromFile({
 				existingPresets,
 				supersetHomeDir,
 			}),
