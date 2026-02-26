@@ -10,7 +10,6 @@ export type RuntimeMcpManager = Awaited<
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
-export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
 type RuntimeHarnessEvent = Parameters<
 	Parameters<RuntimeHarness["subscribe"]>[0]
 >[0];
