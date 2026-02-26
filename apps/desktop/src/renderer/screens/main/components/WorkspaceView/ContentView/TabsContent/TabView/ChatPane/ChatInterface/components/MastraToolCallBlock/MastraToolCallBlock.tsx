@@ -7,6 +7,7 @@ import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
 import { useCallback } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { z } from "zod";
 import { READ_ONLY_TOOLS } from "../../constants";
 import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
@@ -19,6 +20,21 @@ import {
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
+
+const mastraTextContentPartSchema = z.object({
+	type: z.literal("text"),
+	text: z.string(),
+});
+
+const mastraToolResultEnvelopeSchema = z.object({
+	content: z
+		.array(z.union([z.string(), mastraTextContentPartSchema]))
+		.optional(),
+	text: z.string().optional(),
+	output: z.unknown().optional(),
+	result: z.unknown().optional(),
+	error: z.unknown().optional(),
+});
 
 interface MastraToolCallBlockProps {
 	part: ToolPart;
@@ -70,9 +86,45 @@ export function MastraToolCallBlock({
 		}
 		if (Array.isArray(value)) {
 			const parts = value
-				.map((item) => (typeof item === "string" ? item : String(item)))
-				.filter(Boolean);
+				.map((item) => toText(item))
+				.filter((item): item is string =>
+					Boolean(item && item.trim().length > 0),
+				);
 			return parts.length > 0 ? parts.join("\n") : undefined;
+		}
+		if (typeof value === "object" && value !== null) {
+			const parsedEnvelope = mastraToolResultEnvelopeSchema.safeParse(value);
+			if (parsedEnvelope.success) {
+				const content = parsedEnvelope.data.content;
+				if (content && content.length > 0) {
+					const text = content
+						.map((part) => (typeof part === "string" ? part : part.text))
+						.filter((part) => part.trim().length > 0)
+						.join("\n");
+					if (text.trim().length > 0) return text;
+				}
+				const nestedCandidates = [
+					parsedEnvelope.data.text,
+					parsedEnvelope.data.output,
+					parsedEnvelope.data.result,
+					parsedEnvelope.data.error,
+				];
+				for (const candidate of nestedCandidates) {
+					const text = toText(candidate);
+					if (text && text.trim().length > 0) return text;
+				}
+			}
+
+			const record = value as Record<string, unknown>;
+			for (const key of ["message", "output_text", "outputText"]) {
+				const text = toText(record[key]);
+				if (text && text.trim().length > 0) return text;
+			}
+			try {
+				return JSON.stringify(value);
+			} catch {
+				return String(value);
+			}
 		}
 		return undefined;
 	};
