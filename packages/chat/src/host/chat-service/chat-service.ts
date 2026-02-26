@@ -1,15 +1,11 @@
-import Anthropic from "@anthropic-ai/sdk";
-import {
-	getAnthropicAuthToken,
-	setAnthropicOAuthCredentials,
-} from "@superset/agent";
 import { createMastraCode } from "mastracode";
 import {
 	createAnthropicOAuthSession,
 	exchangeAnthropicAuthorizationCode,
+	getCredentialsFromConfig,
+	getCredentialsFromKeychain,
 } from "../auth/anthropic";
 import type { GetHeaders } from "../lib/auth/auth";
-import { AgentManager, type AgentManagerConfig } from "./agent-manager";
 
 export type ChatLifecycleEventType = "Start" | "PermissionRequest" | "Stop";
 type OpenAIAuthMethod = "api_key" | "env_api_key" | "oauth" | null;
@@ -30,9 +26,34 @@ export interface ChatServiceHostConfig {
 	onLifecycleEvent?: (event: ChatLifecycleEvent) => void;
 }
 
+type AnthropicOAuthCredentials = {
+	accessToken: string;
+	refreshToken?: string;
+	expiresAt?: number;
+};
+
+let anthropicOAuthCredentials: AnthropicOAuthCredentials | null = null;
+
+function setAnthropicOAuthCredentials(
+	credentials: AnthropicOAuthCredentials,
+): void {
+	anthropicOAuthCredentials = credentials;
+}
+
+function getAnthropicAuthToken(): string | null {
+	if (!anthropicOAuthCredentials) return null;
+	if (
+		typeof anthropicOAuthCredentials.expiresAt === "number" &&
+		Date.now() >= anthropicOAuthCredentials.expiresAt
+	) {
+		anthropicOAuthCredentials = null;
+		return null;
+	}
+
+	return anthropicOAuthCredentials.accessToken;
+}
+
 export class ChatService {
-	private agentManager: AgentManager | null = null;
-	private hostConfig: ChatServiceHostConfig;
 	private anthropicAuthSession: {
 		verifier: string;
 		state: string;
@@ -41,57 +62,35 @@ export class ChatService {
 	private openAIAuthStoragePromise: Promise<OpenAIAuthStorage> | null = null;
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 
-	constructor(hostConfig: ChatServiceHostConfig) {
-		this.hostConfig = hostConfig;
-	}
+	constructor(_hostConfig: ChatServiceHostConfig) {}
 
-	async start(options: { organizationId: string }): Promise<void> {
-		const config: AgentManagerConfig = {
-			deviceId: this.hostConfig.deviceId,
-			organizationId: options.organizationId,
-			apiUrl: this.hostConfig.apiUrl,
-			getHeaders: this.hostConfig.getHeaders,
-			onLifecycleEvent: (event) => {
-				this.hostConfig.onLifecycleEvent?.(event);
-				if (event.eventType === "Stop") {
-					void this.maybeGenerateTitle(event.sessionId);
-				}
-			},
-		};
-
-		if (this.agentManager) {
-			await this.agentManager.restart({
-				organizationId: options.organizationId,
-				deviceId: this.hostConfig.deviceId,
-			});
-		} else {
-			this.agentManager = new AgentManager(config);
-			await this.agentManager.start();
-		}
+	async start(_options: { organizationId: string }): Promise<void> {
+		// Legacy AgentManager runtime is deprecated in favor of Mastra chat.
+		// Keep this endpoint as a no-op for compatibility with existing clients.
+		this.ensureAnthropicTokenFromCliCredentials();
 	}
 
 	stop(): void {
-		if (this.agentManager) {
-			this.agentManager.stop();
-			this.agentManager = null;
-		}
+		// Legacy AgentManager runtime is deprecated in favor of Mastra chat.
+		// Keep this endpoint as a no-op for compatibility with existing clients.
 	}
 
-	hasWatcher(sessionId: string): boolean {
-		return this.agentManager?.hasWatcher(sessionId) ?? false;
+	hasWatcher(_sessionId: string): boolean {
+		return false;
 	}
 
 	async ensureWatcher(
-		sessionId: string,
-		cwd?: string,
+		_sessionId: string,
+		_cwd?: string,
 	): Promise<{ ready: boolean; reason?: string }> {
-		if (!this.agentManager) {
-			return { ready: false, reason: "Chat service is not started" };
-		}
-		return this.agentManager.ensureWatcher(sessionId, cwd);
+		return {
+			ready: false,
+			reason: "Legacy chat runtime is deprecated. Use Mastra chat runtime.",
+		};
 	}
 
 	getAnthropicAuthStatus(): { authenticated: boolean } {
+		this.ensureAnthropicTokenFromCliCredentials();
 		return { authenticated: Boolean(getAnthropicAuthToken()) };
 	}
 
@@ -215,50 +214,13 @@ export class ChatService {
 		return { success: true, expiresAt: credentials.expiresAt };
 	}
 
-	private async maybeGenerateTitle(sessionId: string): Promise<void> {
-		const watcher = this.agentManager?.getWatcher(sessionId);
-		if (!watcher) return;
-
-		const host = watcher.sessionHost;
-		const messages = host.getMessageDigest();
-		if (messages.length === 0) return;
-
-		const userCount = messages.filter((m) => m.role === "user").length;
-		if (userCount !== 1 && userCount % 10 !== 0) return;
-
-		const { title } = await this.generateTitle(messages);
-		await host.postTitle(title);
-	}
-
-	private async generateTitle(
-		messages: { role: string; text: string }[],
-	): Promise<{ title: string }> {
-		const authToken = getAnthropicAuthToken();
-		if (!authToken) {
-			const firstUser = messages.find((m) => m.role === "user");
-			return { title: firstUser?.text.slice(0, 40).trim() || "Untitled Chat" };
-		}
-
-		const digest = messages.map((m) => `${m.role}: ${m.text}`).join("\n");
-		const client = new Anthropic({
-			authToken,
-			defaultHeaders: {
-				"anthropic-beta": "oauth-2025-04-20",
-			},
+	private ensureAnthropicTokenFromCliCredentials(): void {
+		if (getAnthropicAuthToken()) return;
+		const credentials =
+			getCredentialsFromConfig() ?? getCredentialsFromKeychain();
+		if (!credentials || credentials.kind !== "oauth") return;
+		setAnthropicOAuthCredentials({
+			accessToken: credentials.apiKey,
 		});
-
-		const response = await client.messages.create({
-			model: "claude-haiku-4-5-20251001",
-			max_tokens: 30,
-			system:
-				"Generate a concise 2-5 word title for this coding chat. Respond with just the title, nothing else.",
-			messages: [{ role: "user", content: digest }],
-		});
-
-		const text =
-			response.content[0]?.type === "text"
-				? response.content[0].text.trim()
-				: null;
-		return { title: text || "Untitled Chat" };
 	}
 }

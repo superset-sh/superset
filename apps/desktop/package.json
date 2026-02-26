@@ -51,7 +51,6 @@
 		"@radix-ui/react-label": "^2.1.8",
 		"@sentry/electron": "^7.7.0",
 		"@streamdown/mermaid": "^1.0.2",
-		"@superset/agent": "workspace:*",
 		"@superset/auth": "workspace:*",
 		"@superset/chat": "workspace:*",
 		"@superset/chat-mastra": "workspace:*",
