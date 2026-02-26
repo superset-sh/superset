@@ -19,9 +19,11 @@ export interface RuntimeSession {
 	hookManager: RuntimeHookManager;
 	cwd: string;
 	lastIsRunning: boolean;
+	stopMonitorInterval: ReturnType<typeof setInterval> | null;
 }
 
 const runtimes = new Map<string, RuntimeSession>();
+const STOP_MONITOR_INTERVAL_MS = 1000;
 const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
 const DEBUG_HOOKS_ENABLED =
 	debugHooksOverride === undefined
@@ -96,6 +98,47 @@ export function onDisplayStateObserved(
 	}
 }
 
+function stopRuntimeCompletionMonitor(runtime: RuntimeSession): void {
+	if (!runtime.stopMonitorInterval) return;
+	clearInterval(runtime.stopMonitorInterval);
+	runtime.stopMonitorInterval = null;
+}
+
+async function checkRuntimeCompletion(runtime: RuntimeSession): Promise<void> {
+	// Stop polling when no active run is in progress.
+	if (!runtime.lastIsRunning) {
+		stopRuntimeCompletionMonitor(runtime);
+		return;
+	}
+
+	try {
+		onDisplayStateObserved(runtime, runtime.harness.getDisplayState());
+		if (!runtime.lastIsRunning) {
+			stopRuntimeCompletionMonitor(runtime);
+		}
+	} catch (error) {
+		if (DEBUG_HOOKS_ENABLED) {
+			console.warn("[chat-mastra] completion monitor failed", {
+				sessionId: runtime.sessionId,
+				error:
+					error instanceof Error ? error.message : "Unknown completion error",
+			});
+		}
+	}
+}
+
+function ensureRuntimeCompletionMonitor(runtime: RuntimeSession): void {
+	if (runtime.stopMonitorInterval) return;
+	runtime.stopMonitorInterval = setInterval(() => {
+		void checkRuntimeCompletion(runtime);
+	}, STOP_MONITOR_INTERVAL_MS);
+}
+
+export function markRuntimeRunStarted(runtime: RuntimeSession): void {
+	runtime.lastIsRunning = true;
+	ensureRuntimeCompletionMonitor(runtime);
+}
+
 export async function getOrCreateRuntime(
 	sessionId: string,
 	cwd?: string,
@@ -152,6 +195,7 @@ export async function getOrCreateRuntime(
 		hookManager: runtimeMastra.hookManager,
 		cwd: runtimeCwd,
 		lastIsRunning: false,
+		stopMonitorInterval: null,
 	};
 	runtimes.set(sessionId, runtime);
 	return runtime;

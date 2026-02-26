@@ -4,6 +4,7 @@ import { searchFiles } from "./utils/file-search";
 import {
 	getOrCreateRuntime,
 	getRuntimeMcpOverview,
+	markRuntimeRunStarted,
 	onDisplayStateObserved,
 	runStopHook,
 	runUserPromptHook,
@@ -76,7 +77,7 @@ export function createChatMastraServiceRouter() {
 						});
 					}
 					const sendResult = await runtime.harness.sendMessage(input.payload);
-					runtime.lastIsRunning = true;
+					markRuntimeRunStarted(runtime);
 					return sendResult;
 				}),
 

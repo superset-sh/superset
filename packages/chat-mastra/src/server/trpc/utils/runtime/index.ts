@@ -1,6 +1,7 @@
 export {
 	getOrCreateRuntime,
 	getRuntimeMcpOverview,
+	markRuntimeRunStarted,
 	onDisplayStateObserved,
 	type RuntimeDisplayState,
 	type RuntimeHarness,
