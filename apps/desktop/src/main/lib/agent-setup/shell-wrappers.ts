@@ -53,10 +53,16 @@ const SHIMMED_BINARIES = ["claude", "codex", "opencode", "gemini", "copilot"];
  * Functions take precedence over PATH in both zsh and bash,
  * so even if a precmd hook or .zlogin re-orders PATH, the
  * wrapped binary is always invoked.
+ *
+ * To preserve user-defined wrappers (e.g. env setup functions),
+ * only install a shim when the function is not already defined.
+ * User wrappers can delegate via `command <name>` and still reach
+ * Superset's binary wrapper through PATH.
  */
 function buildShimFunctions(binDir: string): string {
 	return SHIMMED_BINARIES.map(
-		(name) => `${name}() { "${binDir}/${name}" "$@"; }`,
+		(name) =>
+			`if ! typeset -f ${name} > /dev/null 2>&1; then\n  ${name}() { "${binDir}/${name}" "$@"; }\nfi`,
 	).join("\n");
 }
 
