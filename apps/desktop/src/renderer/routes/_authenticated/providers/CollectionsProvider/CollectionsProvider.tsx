@@ -42,16 +42,12 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		[activeOrganizationId, refetchSession],
 	);
 
-	// Preload collections for all orgs the user belongs to.
+	// Preload collections for the active org only.
 	// Collections are lazy — they don't sync until subscribed or preloaded.
-	// This starts Electric subscriptions eagerly so data is ready on org switch.
-	const organizationIds = session?.session?.organizationIds;
 	useEffect(() => {
-		if (!organizationIds) return;
-		for (const orgId of organizationIds) {
-			preloadCollections(orgId, { includeChatCollections: false });
-		}
-	}, [organizationIds]);
+		if (!activeOrganizationId) return;
+		preloadCollections(activeOrganizationId, { includeChatCollections: false });
+	}, [activeOrganizationId]);
 
 	const collections = useMemo(() => {
 		if (!activeOrganizationId) {
