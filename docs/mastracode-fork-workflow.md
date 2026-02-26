@@ -3,7 +3,7 @@
 This repo resolves `mastracode` from a Superset-managed fork bundle:
 
 - Fork repo: `https://github.com/superset-sh/mastra`
-- Current bundle release: `mastracode-v0.4.0-superset.1`
+- Current bundle release: `mastracode-v0.4.0-superset.4`
 - Dependency override location: root `package.json` -> `resolutions.mastracode`
 
 ## Why
@@ -53,6 +53,37 @@ Expected remotes in that worktree:
 - Per-tool `deny` hides tools from dynamic tool exposure (not just execution).
 - Tool guidance omits denied tools.
 - `createMastraCode({ extraTools })` is merged into runtime dynamic tools.
+- `createAuthStorage()` is exported for auth-only storage usage without runtime bootstrap.
+
+## Superset runtime wiring
+
+`@superset/chat-mastra` now accepts runtime options through router construction:
+
+```ts
+createChatMastraServiceRouter({
+  runtime: {
+    extraTools: {
+      my_custom_tool,
+    },
+  },
+});
+```
+
+Desktop pass-through lives at:
+
+- `apps/desktop/src/lib/trpc/routers/chat-mastra-service/index.ts`
+
+Core runtime creation and tool diagnostics live at:
+
+- `packages/chat-mastra/src/server/trpc/utils/runtime/runtime.ts`
+
+## Debugging tool registration
+
+When `NODE_ENV !== "production"` (or `SUPERSET_DEBUG_HOOKS` is enabled), runtime startup logs:
+
+- `configuredExtraToolNames` (tools passed from Superset router options)
+- `resolvedToolNames` (tools actually visible to the agent after deny filters)
+- `mastraSupportsCreateAuthStorage` (quick signal that forked bundle APIs are loaded)
 
 ## Publishing the next internal bundle
 

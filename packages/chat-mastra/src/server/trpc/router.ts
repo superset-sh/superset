@@ -5,6 +5,7 @@ import {
 	getOrCreateRuntime,
 	getRuntimeMcpOverview,
 	onDisplayStateObserved,
+	type RuntimeCreateOptions,
 	runStopHook,
 	runUserPromptHook,
 } from "./utils/runtime";
@@ -22,7 +23,16 @@ import {
 
 const t = initTRPC.create({ transformer: superjson });
 
-export function createChatMastraServiceRouter() {
+export interface CreateChatMastraServiceRouterOptions {
+	runtime?: RuntimeCreateOptions;
+}
+
+export function createChatMastraServiceRouter(
+	options?: CreateChatMastraServiceRouterOptions,
+) {
+	const getRuntime = (sessionId: string, cwd?: string) =>
+		getOrCreateRuntime(sessionId, cwd, options?.runtime);
+
 	return t.router({
 		workspace: t.router({
 			searchFiles: t.procedure
@@ -39,7 +49,7 @@ export function createChatMastraServiceRouter() {
 			getMcpOverview: t.procedure
 				.input(mcpOverviewInput)
 				.query(async ({ input }) => {
-					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const runtime = await getRuntime(input.sessionId, input.cwd);
 					return getRuntimeMcpOverview(runtime);
 				}),
 		}),
@@ -48,7 +58,7 @@ export function createChatMastraServiceRouter() {
 			getDisplayState: t.procedure
 				.input(displayStateInput)
 				.query(async ({ input }) => {
-					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const runtime = await getRuntime(input.sessionId, input.cwd);
 					const displayState = runtime.harness.getDisplayState();
 					onDisplayStateObserved(runtime, displayState);
 					return displayState;
@@ -57,14 +67,14 @@ export function createChatMastraServiceRouter() {
 			listMessages: t.procedure
 				.input(listMessagesInput)
 				.query(async ({ input }) => {
-					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const runtime = await getRuntime(input.sessionId, input.cwd);
 					return runtime.harness.listMessages();
 				}),
 
 			sendMessage: t.procedure
 				.input(sendMessageInput)
 				.mutation(async ({ input }) => {
-					const runtime = await getOrCreateRuntime(input.sessionId, input.cwd);
+					const runtime = await getRuntime(input.sessionId, input.cwd);
 					const userMessage =
 						input.payload.content.trim() || "[non-text message]";
 					await runUserPromptHook(runtime, userMessage);
@@ -81,14 +91,14 @@ export function createChatMastraServiceRouter() {
 				}),
 
 			stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-				const runtime = await getOrCreateRuntime(input.sessionId);
+				const runtime = await getRuntime(input.sessionId);
 				runtime.harness.abort();
 				runtime.lastIsRunning = false;
 				await runStopHook(runtime, "aborted");
 			}),
 
 			abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
-				const runtime = await getOrCreateRuntime(input.sessionId);
+				const runtime = await getRuntime(input.sessionId);
 				runtime.harness.abort();
 				runtime.lastIsRunning = false;
 				await runStopHook(runtime, "aborted");
@@ -98,7 +108,7 @@ export function createChatMastraServiceRouter() {
 				respond: t.procedure
 					.input(approvalRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getOrCreateRuntime(input.sessionId);
+						const runtime = await getRuntime(input.sessionId);
 						return runtime.harness.respondToToolApproval(input.payload);
 					}),
 			}),
@@ -107,7 +117,7 @@ export function createChatMastraServiceRouter() {
 				respond: t.procedure
 					.input(questionRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getOrCreateRuntime(input.sessionId);
+						const runtime = await getRuntime(input.sessionId);
 						return runtime.harness.respondToQuestion(input.payload);
 					}),
 			}),
@@ -116,7 +126,7 @@ export function createChatMastraServiceRouter() {
 				respond: t.procedure
 					.input(planRespondInput)
 					.mutation(async ({ input }) => {
-						const runtime = await getOrCreateRuntime(input.sessionId);
+						const runtime = await getRuntime(input.sessionId);
 						return runtime.harness.respondToPlanApproval(input.payload);
 					}),
 			}),
