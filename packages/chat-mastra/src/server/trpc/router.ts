@@ -4,9 +4,7 @@ import { searchFiles } from "./utils/file-search";
 import {
 	getOrCreateRuntime,
 	getRuntimeMcpOverview,
-	onDisplayStateObserved,
 	type RuntimeCreateOptions,
-	runStopHook,
 	runUserPromptHook,
 } from "./utils/runtime";
 import {
@@ -59,9 +57,7 @@ export function createChatMastraServiceRouter(
 				.input(displayStateInput)
 				.query(async ({ input }) => {
 					const runtime = await getRuntime(input.sessionId, input.cwd);
-					const displayState = runtime.harness.getDisplayState();
-					onDisplayStateObserved(runtime, displayState);
-					return displayState;
+					return runtime.harness.getDisplayState();
 				}),
 
 			listMessages: t.procedure
@@ -86,22 +82,17 @@ export function createChatMastraServiceRouter(
 						});
 					}
 					const sendResult = await runtime.harness.sendMessage(input.payload);
-					runtime.lastIsRunning = true;
 					return sendResult;
 				}),
 
 			stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
 				const runtime = await getRuntime(input.sessionId);
 				runtime.harness.abort();
-				runtime.lastIsRunning = false;
-				await runStopHook(runtime, "aborted");
 			}),
 
 			abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
 				const runtime = await getRuntime(input.sessionId);
 				runtime.harness.abort();
-				runtime.lastIsRunning = false;
-				await runStopHook(runtime, "aborted");
 			}),
 
 			approval: t.router({

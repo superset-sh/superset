@@ -10,7 +10,10 @@ export type RuntimeMcpManager = Awaited<
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
-export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
+type RuntimeHarnessEvent = Parameters<
+	Parameters<RuntimeHarness["subscribe"]>[0]
+>[0];
+type RuntimeAgentEndEvent = Extract<RuntimeHarnessEvent, { type: "agent_end" }>;
 
 export interface RuntimeSession {
 	sessionId: string;
@@ -18,7 +21,6 @@ export interface RuntimeSession {
 	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
 	cwd: string;
-	lastIsRunning: boolean;
 }
 
 export interface RuntimeCreateOptions {
@@ -108,16 +110,21 @@ export async function runStopHook(
 	logHookResult(runtime, "Stop", result);
 }
 
-export function onDisplayStateObserved(
-	runtime: RuntimeSession,
-	displayState: RuntimeDisplayState,
-): void {
-	const isRunning = Boolean(displayState?.isRunning);
-	const wasRunning = runtime.lastIsRunning;
-	runtime.lastIsRunning = isRunning;
+function toStopReason(
+	event: RuntimeAgentEndEvent,
+): "complete" | "aborted" | "error" {
+	if (event.reason === "aborted") return "aborted";
+	if (event.reason === "error") return "error";
+	return "complete";
+}
 
-	if (wasRunning && !isRunning) {
-		void runStopHook(runtime, "complete").catch((error) => {
+function subscribeRuntimeHooks(runtime: RuntimeSession): void {
+	runtime.harness.subscribe(async (event) => {
+		if (event.type !== "agent_end") return;
+
+		try {
+			await runStopHook(runtime, toStopReason(event));
+		} catch (error) {
 			if (DEBUG_HOOKS_ENABLED) {
 				console.warn("[chat-mastra] failed to emit Stop hook", {
 					sessionId: runtime.sessionId,
@@ -127,8 +134,8 @@ export function onDisplayStateObserved(
 							: "Unknown hook execution error",
 				});
 			}
-		});
-	}
+		}
+	});
 }
 
 async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
@@ -139,7 +146,9 @@ async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
 			console.warn("[chat-mastra] failed to emit SessionEnd hook", {
 				sessionId: runtime.sessionId,
 				error:
-					error instanceof Error ? error.message : "Unknown hook execution error",
+					error instanceof Error
+						? error.message
+						: "Unknown hook execution error",
 			});
 		}
 	}
@@ -154,7 +163,9 @@ async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
 			console.warn("[chat-mastra] failed to destroy runtime harness", {
 				sessionId: runtime.sessionId,
 				error:
-					error instanceof Error ? error.message : "Unknown harness destroy error",
+					error instanceof Error
+						? error.message
+						: "Unknown harness destroy error",
 			});
 		}
 	}
@@ -220,8 +231,7 @@ async function createRuntimeSession(
 		try {
 			const currentMode = harnessWithInternals.getCurrentMode?.();
 			const currentAgent = currentMode?.agent;
-			const requestContext =
-				await harnessWithInternals.buildRequestContext?.();
+			const requestContext = await harnessWithInternals.buildRequestContext?.();
 
 			let resolvedTools: Record<string, unknown> = {};
 			if (currentAgent?.listAssignedTools && requestContext) {
@@ -258,9 +268,7 @@ async function createRuntimeSession(
 		mcpManager: runtimeMastra.mcpManager,
 		hookManager: runtimeMastra.hookManager,
 		cwd: runtimeCwd,
-		lastIsRunning: false,
 	};
-
 	try {
 		await runSessionStartHook(runtime);
 	} catch (error) {
@@ -268,10 +276,13 @@ async function createRuntimeSession(
 			console.warn("[chat-mastra] failed to emit SessionStart hook", {
 				sessionId: runtime.sessionId,
 				error:
-					error instanceof Error ? error.message : "Unknown hook execution error",
+					error instanceof Error
+						? error.message
+						: "Unknown hook execution error",
 			});
 		}
 	}
+	subscribeRuntimeHooks(runtime);
 	runtimes.set(sessionId, runtime);
 	return runtime;
 }

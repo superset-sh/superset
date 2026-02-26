@@ -11,6 +11,7 @@ import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
+	formatHotkeyText,
 	getCurrentPlatform,
 	HOTKEYS,
 	matchesHotkeyEvent,
@@ -134,6 +135,10 @@ export function ChatInputFooter({
 }: ChatInputFooterProps) {
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const errorMessage = getErrorMessage(error);
+	const platform = getCurrentPlatform();
+	const focusKey = HOTKEYS.FOCUS_CHAT_INPUT.defaults[platform];
+	const focusShortcutText = formatHotkeyText(focusKey, platform);
+	const showFocusHint = focusShortcutText !== "Unassigned";
 
 	return (
 		<ChatInputDropZone className="bg-background px-4 py-3">
@@ -157,6 +162,11 @@ export function ChatInputFooter({
 											: "relative"
 									}
 								>
+									{showFocusHint && (
+										<span className="pointer-events-none absolute top-3 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
+											{focusShortcutText} to focus
+										</span>
+									)}
 									<PromptInput
 										className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 										onSubmitStart={onSubmitStart}

@@ -1,8 +1,8 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Hono } from "hono";
 import {
-	type CreateChatMastraServiceRouterOptions,
 	type ChatMastraServiceRouter,
+	type CreateChatMastraServiceRouterOptions,
 	createChatMastraServiceRouter,
 } from "../trpc";
 

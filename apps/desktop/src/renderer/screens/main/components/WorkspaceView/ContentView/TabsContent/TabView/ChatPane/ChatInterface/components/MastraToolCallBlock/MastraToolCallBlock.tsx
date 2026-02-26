@@ -19,6 +19,8 @@ import {
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
+import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
+import { getWebSearchViewModel } from "./utils/getWebSearchViewModel";
 
 interface MastraToolCallBlockProps {
 	part: ToolPart;
@@ -70,8 +72,10 @@ export function MastraToolCallBlock({
 		}
 		if (Array.isArray(value)) {
 			const parts = value
-				.map((item) => (typeof item === "string" ? item : String(item)))
-				.filter(Boolean);
+				.map((item) => toText(item))
+				.filter((item): item is string =>
+					Boolean(item && item.trim().length > 0),
+				);
 			return parts.length > 0 ? parts.join("\n") : undefined;
 		}
 		return undefined;
@@ -96,80 +100,12 @@ export function MastraToolCallBlock({
 		return firstText(...values) ?? "";
 	};
 
-	const toNumber = (value: unknown): number | undefined => {
-		if (typeof value === "number" && Number.isFinite(value)) return value;
-		if (typeof value === "string" && value.trim().length > 0) {
-			const parsed = Number(value);
-			return Number.isFinite(parsed) ? parsed : undefined;
-		}
-		return undefined;
-	};
-
 	// --- Execute command → BashTool ---
 	if (toolName === "mastra_workspace_execute_command") {
-		const command = String(
-			args.command ??
-				args.cmd ??
-				args.command_line ??
-				args.commandLine ??
-				args.raw ??
-				"",
-		);
-		const stdout =
-			firstText(
-				result.stdout,
-				result.stdout_text,
-				result.stdoutText,
-				outputObject?.stdout,
-				outputObject?.stdout_text,
-				outputObject?.stdoutText,
-				nestedResultObject?.stdout,
-				nestedResultObject?.stdout_text,
-				nestedResultObject?.stdoutText,
-				result.combined_output,
-				result.combinedOutput,
-				outputObject?.combined_output,
-				outputObject?.combinedOutput,
-				result.output_text,
-				result.outputText,
-				result.text,
-				typeof result.output === "string" ? result.output : undefined,
-				typeof result.result === "string" ? result.result : undefined,
-			) ??
-			(typeof result.output === "object" && result.output !== null
-				? JSON.stringify(result.output, null, 2)
-				: undefined);
-		const stderr = firstText(
-			result.stderr,
-			result.stderr_text,
-			result.stderrText,
-			outputObject?.stderr,
-			outputObject?.stderr_text,
-			outputObject?.stderrText,
-			nestedResultObject?.stderr,
-			nestedResultObject?.stderr_text,
-			nestedResultObject?.stderrText,
-			result.error,
-			result.errorText,
-			outputObject?.error,
-			outputObject?.errorText,
-			nestedResultObject?.error,
-			nestedResultObject?.errorText,
-		);
-		const exitCode = toNumber(
-			result.exitCode ??
-				result.exit_code ??
-				result.code ??
-				result.status_code ??
-				outputObject?.exitCode ??
-				outputObject?.exit_code ??
-				outputObject?.code ??
-				outputObject?.status_code ??
-				nestedResultObject?.exitCode ??
-				nestedResultObject?.exit_code ??
-				nestedResultObject?.code ??
-				nestedResultObject?.status_code,
-		);
+		const { command, stdout, stderr, exitCode } = getExecuteCommandViewModel({
+			args,
+			result,
+		});
 		return (
 			<BashTool
 				command={command}
@@ -200,6 +136,17 @@ export function MastraToolCallBlock({
 				content={content}
 				isWriteMode
 				onFilePathClick={openFileInPane}
+				renderExpandedContent={
+					content
+						? () => (
+								<EditToolExpandedDiff
+									filePath={filePath}
+									oldString=""
+									newString={content}
+								/>
+							)
+						: undefined
+				}
 				state={state}
 			/>
 		);
@@ -325,14 +272,7 @@ export function MastraToolCallBlock({
 
 	// --- Web search → WebSearchTool ---
 	if (toolName === "web_search") {
-		const query = String(args.query ?? "");
-		const rawResults = Array.isArray(result.results) ? result.results : [];
-		const results = (
-			rawResults as Array<{ title?: string; url?: string }>
-		).filter(
-			(r): r is { title: string; url: string } =>
-				typeof r.title === "string" && typeof r.url === "string",
-		);
+		const { query, results } = getWebSearchViewModel({ args, result });
 		return <WebSearchTool query={query} results={results} state={state} />;
 	}
 

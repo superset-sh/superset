@@ -3,7 +3,7 @@
 This repo resolves `mastracode` from a Superset-managed fork bundle:
 
 - Fork repo: `https://github.com/superset-sh/mastra`
-- Current bundle release: `mastracode-v0.4.0-superset.4`
+- Current bundle release: `mastracode-v0.4.0-superset.5`
 - Dependency override location: root `package.json` -> `resolutions.mastracode`
 
 ## Why

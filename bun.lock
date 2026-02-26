@@ -824,7 +824,7 @@
     },
   },
   "overrides": {
-    "mastracode": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.4/mastracode-0.4.0-superset.4.tgz",
+    "mastracode": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.5/mastracode-0.4.0-superset.5.tgz",
   },
   "packages": {
     "7zip-bin": ["7zip-bin@5.2.0", "", {}, "sha512-ukTPVhqG4jNzMro2qA9HSCSSVJN3aN7tlb+hfqYCt3ER0yWroeA2VR38MNrOHLQ/cVj+DaIMad0kFCtWWowh/A=="],
@@ -3977,7 +3977,7 @@
 
     "marky": ["marky@1.3.0", "", {}, "sha512-ocnPZQLNpvbedwTy9kNrQEsknEfgvcLMvOtz3sFeWApDq1MXH1TqkCIx58xlpESsfwQOnuBO9beyQuNGzVvuhQ=="],
 
-    "mastracode": ["mastracode@https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.4/mastracode-0.4.0-superset.4.tgz", { "dependencies": { "@ai-sdk/anthropic": "latest", "@ai-sdk/openai": "latest", "@ast-grep/napi": "latest", "@mariozechner/pi-tui": "latest", "@mastra/core": "1.8.0", "@mastra/libsql": "1.6.2", "@mastra/mcp": "1.0.2", "@mastra/memory": "1.5.2", "@mastra/pg": "1.7.0", "@tavily/core": "latest", "ai": "latest", "chalk": "latest", "cli-highlight": "latest", "execa": "^9.6.1", "fastest-levenshtein": "latest", "js-tiktoken": "^1.0.21", "js-yaml": "latest", "partial-json": "^0.1.7", "strip-ansi": "^7.1.2", "tree-kill": "latest", "vscode-jsonrpc": "latest", "vscode-languageserver-protocol": "latest" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "bin": { "mastracode": "./dist/cli.js" } }],
+    "mastracode": ["mastracode@https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.5/mastracode-0.4.0-superset.5.tgz", { "dependencies": { "@ai-sdk/anthropic": "latest", "@ai-sdk/openai": "latest", "@ast-grep/napi": "latest", "@mariozechner/pi-tui": "latest", "@mastra/core": "1.8.0", "@mastra/libsql": "1.6.2", "@mastra/mcp": "1.0.2", "@mastra/memory": "1.5.2", "@mastra/pg": "1.7.0", "@tavily/core": "latest", "ai": "latest", "chalk": "latest", "cli-highlight": "latest", "execa": "^9.6.1", "fastest-levenshtein": "latest", "js-tiktoken": "^1.0.21", "js-yaml": "latest", "partial-json": "^0.1.7", "strip-ansi": "^7.1.2", "tree-kill": "latest", "vscode-jsonrpc": "latest", "vscode-languageserver-protocol": "latest" }, "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" }, "bin": { "mastracode": "./dist/cli.js" } }],
 
     "matcher": ["matcher@5.0.0", "", { "dependencies": { "escape-string-regexp": "^5.0.0" } }, "sha512-s2EMBOWtXFc8dgqvoAzKJXxNHibcdJMV0gwqKUaw9E2JBJuGUK7DrNKrA6g/i+v72TT16+6sVm5mS3thaMLQUw=="],
 

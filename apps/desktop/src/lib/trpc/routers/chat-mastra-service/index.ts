@@ -1,6 +1,6 @@
 import {
-	type CreateChatMastraServiceRouterOptions,
 	createChatMastraServiceRouter as buildRouter,
+	type CreateChatMastraServiceRouterOptions,
 } from "@superset/chat-mastra/server/trpc";
 
 export const createChatMastraServiceRouter = (

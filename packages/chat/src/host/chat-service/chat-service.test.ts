@@ -7,7 +7,9 @@ type Credential =
 type FakeAuthStorage = {
 	reload: ReturnType<typeof mock<() => void>>;
 	get: ReturnType<typeof mock<(providerId: string) => Credential | undefined>>;
-	set: ReturnType<typeof mock<(providerId: string, credential: Credential) => void>>;
+	set: ReturnType<
+		typeof mock<(providerId: string, credential: Credential) => void>
+	>;
 	remove: ReturnType<typeof mock<(providerId: string) => void>>;
 };
 

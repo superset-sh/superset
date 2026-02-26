@@ -20,10 +20,16 @@ interface ContextLineWithOffsets extends ContextLine {
 	endOffset: number;
 }
 
+interface MatchRangeContext {
+	bufferLineNumber: number;
+	currentLine: ContextLineWithOffsets;
+	lines: ContextLineWithOffsets[];
+}
+
 /**
  * Abstract base class for terminal link providers that handles links spanning
- * wrapped lines. Subclasses may override context collection to support
- * additional hard-wrap behaviors.
+ * up to 3 wrapped lines (previous + current + next). Links spanning 4+ wrapped
+ * lines will be truncated.
  */
 export abstract class MultiLineLinkProvider implements ILinkProvider {
 	constructor(protected readonly terminal: Terminal) {}
@@ -44,43 +50,47 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		return match;
 	}
 
+	protected buildRangesForMatch(
+		matchIndex: number,
+		matchEnd: number,
+		context: MatchRangeContext,
+	): ILink["range"][] {
+		return [this.calculateLinkRange(matchIndex, matchEnd, context.lines)];
+	}
+
 	protected buildContextLines(lineIndex: number): ContextLine[] {
-		const currentLine = this.terminal.buffer.active.getLine(lineIndex);
-		if (!currentLine) {
+		const line = this.terminal.buffer.active.getLine(lineIndex);
+		if (!line) {
 			return [];
 		}
 
-		let startIndex = lineIndex;
-		while (startIndex > 0) {
-			const line = this.terminal.buffer.active.getLine(startIndex);
-			if (!line?.isWrapped) {
-				break;
-			}
-			if (!this.terminal.buffer.active.getLine(startIndex - 1)) {
-				break;
-			}
-			startIndex--;
-		}
-
-		let endIndex = lineIndex;
-		while (true) {
-			const nextLine = this.terminal.buffer.active.getLine(endIndex + 1);
-			if (!nextLine?.isWrapped) {
-				break;
-			}
-			endIndex++;
-		}
-
 		const lines: ContextLine[] = [];
-		for (let i = startIndex; i <= endIndex; i++) {
-			const line = this.terminal.buffer.active.getLine(i);
-			if (!line) {
-				continue;
+
+		if (line.isWrapped) {
+			const prevLine = this.terminal.buffer.active.getLine(lineIndex - 1);
+			if (prevLine) {
+				lines.push({
+					index: lineIndex - 1,
+					lineNumber: lineIndex,
+					text: prevLine.translateToString(true),
+					leadingTrim: 0,
+				});
 			}
+		}
+
+		lines.push({
+			index: lineIndex,
+			lineNumber: lineIndex + 1,
+			text: line.translateToString(true),
+			leadingTrim: 0,
+		});
+
+		const nextLine = this.terminal.buffer.active.getLine(lineIndex + 1);
+		if (nextLine?.isWrapped) {
 			lines.push({
-				index: i,
-				lineNumber: i + 1,
-				text: line.translateToString(true),
+				index: lineIndex + 1,
+				lineNumber: lineIndex + 2,
+				text: nextLine.translateToString(true),
 				leadingTrim: 0,
 			});
 		}
@@ -154,19 +164,21 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 				continue;
 			}
 
-			const range = this.calculateLinkRange(
-				linkMatch.index,
-				linkMatch.end,
-				linesWithOffsets,
-			);
-
-			links.push({
-				range,
-				text: linkMatch.text,
-				activate: (event: MouseEvent, text: string) => {
-					this.handleActivation(event, text, match);
-				},
+			const ranges = this.buildRangesForMatch(linkMatch.index, linkMatch.end, {
+				bufferLineNumber,
+				currentLine,
+				lines: linesWithOffsets,
 			});
+
+			for (const range of ranges) {
+				links.push({
+					range,
+					text: linkMatch.text,
+					activate: (event: MouseEvent, text: string) => {
+						this.handleActivation(event, text, match);
+					},
+				});
+			}
 		}
 
 		callback(links.length > 0 ? links : undefined);
@@ -206,7 +218,7 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		};
 	}
 
-	private calculateLinkRange(
+	protected calculateLinkRange(
 		matchIndex: number,
 		matchEnd: number,
 		lines: ContextLineWithOffsets[],

@@ -167,7 +167,6 @@ const planningAgent = new Agent({
 			tools: {
 				mastra_workspace_write_file: { enabled: false },
 				mastra_workspace_edit_file: { enabled: false },
-				mastra_workspace_ast_edit: { enabled: false },
 				mastra_workspace_delete: { enabled: false },
 				mastra_workspace_mkdir: { enabled: false },
 			},
@@ -259,13 +258,6 @@ const superagentInstance = new Agent({
 			name: cwd,
 			filesystem: new LocalFilesystem({ basePath: cwd }),
 			sandbox: new LocalSandbox({ workingDirectory: cwd, timeout: 30_000 }),
-			tools: {
-				mastra_workspace_write_file: { enabled: false },
-				mastra_workspace_edit_file: { enabled: false },
-				mastra_workspace_ast_edit: { enabled: false },
-				mastra_workspace_delete: { enabled: false },
-				mastra_workspace_mkdir: { enabled: false },
-			},
 		});
 	},
 	tools: {
