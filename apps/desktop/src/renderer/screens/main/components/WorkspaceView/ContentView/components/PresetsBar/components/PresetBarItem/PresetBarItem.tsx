@@ -117,15 +117,15 @@ export function PresetBarItem({
 			<ContextMenuContent>
 				<ContextMenuItem
 					disabled={!canOpen}
-					onSelect={() => onOpenInNewTab(preset)}
+					onSelect={() => onOpenInPane(preset)}
 				>
-					Open in new tab
+					Open in current tab
 				</ContextMenuItem>
 				<ContextMenuItem
 					disabled={!canOpen}
-					onSelect={() => onOpenInPane(preset)}
+					onSelect={() => onOpenInNewTab(preset)}
 				>
-					Open in pane
+					Open in new tab
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onEdit(preset)}>
