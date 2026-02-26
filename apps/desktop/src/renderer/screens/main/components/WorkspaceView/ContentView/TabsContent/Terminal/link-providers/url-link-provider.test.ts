@@ -14,6 +14,7 @@ function createMockLine(text: string, isWrapped = false): IBufferLine {
 
 function createMockTerminal(
 	lines: Array<{ text: string; isWrapped?: boolean }>,
+	cols = 80,
 ): Terminal {
 	const mockLines = lines.map((l) =>
 		createMockLine(l.text, l.isWrapped ?? false),
@@ -28,6 +29,7 @@ function createMockTerminal(
 		element: {
 			style: { cursor: "" },
 		},
+		cols,
 	} as unknown as Terminal;
 }
 
@@ -347,6 +349,75 @@ describe("UrlLinkProvider", () => {
 			expect(links1[0].text).toBe("https://a.com");
 			expect(links2.length).toBe(1);
 			expect(links2[0].text).toBe("https://b.com");
+		});
+	});
+
+	describe("hard-wrapped TUI lines", () => {
+		it("should detect URL split across adjacent non-wrapped lines", async () => {
+			const terminal = createMockTerminal(
+				[
+					{
+						text: "Draft PR created: https://github.com/palette-performance/pa",
+					},
+					{ text: "lette-monorepo/pull/883" },
+				],
+				60,
+			);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"https://github.com/palette-performance/palette-monorepo/pull/883",
+			);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.y).toBe(2);
+		});
+
+		it("should detect URL when scanning the continuation line", async () => {
+			const terminal = createMockTerminal(
+				[
+					{
+						text: "Draft PR created: https://github.com/palette-performance/pa",
+					},
+					{ text: "lette-monorepo/pull/883" },
+				],
+				60,
+			);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 2);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"https://github.com/palette-performance/palette-monorepo/pull/883",
+			);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.y).toBe(2);
+		});
+
+		it("should not merge plain prose after a complete URL", async () => {
+			const terminal = createMockTerminal(
+				[
+					{ text: "Open https://example.com/docs/reference" },
+					{ text: "for details" },
+				],
+				40,
+			);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const linksFromFirstLine = await getLinks(provider, 1);
+			const linksFromSecondLine = await getLinks(provider, 2);
+
+			expect(linksFromFirstLine.length).toBe(1);
+			expect(linksFromFirstLine[0].text).toBe(
+				"https://example.com/docs/reference",
+			);
+			expect(linksFromSecondLine.length).toBe(0);
 		});
 	});
 
