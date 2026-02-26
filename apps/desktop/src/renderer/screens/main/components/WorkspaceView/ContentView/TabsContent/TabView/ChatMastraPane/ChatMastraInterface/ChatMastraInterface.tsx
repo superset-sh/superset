@@ -81,6 +81,8 @@ export function ChatMastraInterface({
 		currentMessage,
 		isRunning = false,
 		error = null,
+		activeTools,
+		toolInputBuffers,
 	} = chat;
 
 	const clearRuntimeError = useCallback(() => {
@@ -220,6 +222,8 @@ export function ChatMastraInterface({
 					messages={mergedMessages}
 					isRunning={canAbort}
 					currentMessage={currentMessage ?? null}
+					activeTools={activeTools}
+					toolInputBuffers={toolInputBuffers}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<ChatInputFooter

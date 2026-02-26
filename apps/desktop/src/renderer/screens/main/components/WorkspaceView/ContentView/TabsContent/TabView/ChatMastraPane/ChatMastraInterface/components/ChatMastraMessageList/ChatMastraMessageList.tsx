@@ -8,7 +8,7 @@ import {
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { FileSearchIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useMemo } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { MastraToolCallBlock } from "../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import { StreamingMessageText } from "../../../../ChatPane/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
@@ -19,14 +19,26 @@ import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
 >[number];
+type MastraActiveTools = NonNullable<UseMastraChatDisplayReturn["activeTools"]>;
+type MastraToolInputBuffers = NonNullable<
+	UseMastraChatDisplayReturn["toolInputBuffers"]
+>;
 type MastraMessageContent = MastraMessage["content"][number];
 type MastraToolCall = Extract<MastraMessageContent, { type: "tool_call" }>;
 type MastraToolResult = Extract<MastraMessageContent, { type: "tool_result" }>;
+type MastraActiveTool =
+	MastraActiveTools extends Map<string, infer ToolState> ? ToolState : never;
+type MastraToolInputBuffer =
+	MastraToolInputBuffers extends Map<string, infer InputBuffer>
+		? InputBuffer
+		: never;
 
 interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
 	isRunning: boolean;
 	currentMessage: MastraMessage | null;
+	activeTools: MastraActiveTools | undefined;
+	toolInputBuffers: MastraToolInputBuffers | undefined;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -91,6 +103,87 @@ function toToolPartFromResult(part: MastraToolResult): ToolPart {
 	} as ToolPart;
 }
 
+function toPreviewToolPart({
+	toolCallId,
+	toolState,
+	inputBuffer,
+}: {
+	toolCallId: string;
+	toolState: MastraActiveTool | null;
+	inputBuffer: MastraToolInputBuffer | null;
+}): ToolPart {
+	const name =
+		(toolState && "name" in toolState ? toolState.name : undefined) ??
+		(inputBuffer && "toolName" in inputBuffer
+			? inputBuffer.toolName
+			: undefined) ??
+		"unknown_tool";
+	const status =
+		toolState && "status" in toolState ? toolState.status : "streaming_input";
+	const isError =
+		toolState &&
+		"isError" in toolState &&
+		typeof toolState.isError === "boolean" &&
+		toolState.isError;
+	const state: ToolPart["state"] =
+		status === "error" || isError
+			? "output-error"
+			: status === "completed"
+				? "output-available"
+				: status === "streaming_input"
+					? "input-streaming"
+					: "input-available";
+	const input =
+		(toolState && "args" in toolState ? toolState.args : undefined) ??
+		(inputBuffer && "text" in inputBuffer ? inputBuffer.text : undefined) ??
+		{};
+	const output =
+		(toolState && "result" in toolState ? toolState.result : undefined) ??
+		(toolState && "partialResult" in toolState
+			? toolState.partialResult
+			: undefined);
+
+	return {
+		type: `tool-${normalizeToolName(name)}` as ToolPart["type"],
+		toolCallId,
+		state,
+		input,
+		...(state === "output-available" || state === "output-error"
+			? { output }
+			: {}),
+	} as ToolPart;
+}
+
+function toToolEntries<T>(
+	value: Map<string, T> | undefined,
+): Array<[string, T]> {
+	if (!value) return [];
+	return [...value.entries()];
+}
+
+function getStreamingPreviewToolParts({
+	activeTools,
+	toolInputBuffers,
+}: {
+	activeTools: MastraActiveTools | undefined;
+	toolInputBuffers: MastraToolInputBuffers | undefined;
+}): ToolPart[] {
+	const activeEntries = toToolEntries(activeTools);
+	const inputEntries = toToolEntries(toolInputBuffers);
+	const knownIds = new Set<string>([
+		...activeEntries.map(([id]) => id),
+		...inputEntries.map(([id]) => id),
+	]);
+
+	return [...knownIds].map((toolCallId) => {
+		const toolState =
+			activeEntries.find(([id]) => id === toolCallId)?.[1] ?? null;
+		const inputBuffer =
+			inputEntries.find(([id]) => id === toolCallId)?.[1] ?? null;
+		return toPreviewToolPart({ toolCallId, toolState, inputBuffer });
+	});
+}
+
 function UserMessage({ message }: { message: MastraMessage }) {
 	return (
 		<div
@@ -125,11 +218,14 @@ function UserMessage({ message }: { message: MastraMessage }) {
 function AssistantMessage({
 	message,
 	isStreaming,
+	previewToolParts = [],
 }: {
 	message: MastraMessage;
 	isStreaming: boolean;
+	previewToolParts?: ToolPart[];
 }) {
 	const nodes: ReactNode[] = [];
+	const renderedToolCallIds = new Set<string>();
 	for (let partIndex = 0; partIndex < message.content.length; partIndex++) {
 		const part = message.content[partIndex];
 
@@ -169,6 +265,7 @@ function AssistantMessage({
 		}
 
 		if (part.type === "tool_call") {
+			renderedToolCallIds.add(part.id);
 			const { result, index: resultIndex } = findToolResultForCall({
 				content: message.content,
 				toolCallId: part.id,
@@ -194,6 +291,7 @@ function AssistantMessage({
 		}
 
 		if (part.type === "tool_result") {
+			renderedToolCallIds.add(part.id);
 			nodes.push(
 				<MastraToolCallBlock
 					key={`${message.id}-tool-result-${part.id}`}
@@ -216,6 +314,16 @@ function AssistantMessage({
 		}
 	}
 
+	for (const previewPart of previewToolParts) {
+		if (renderedToolCallIds.has(previewPart.toolCallId)) continue;
+		nodes.push(
+			<MastraToolCallBlock
+				key={`${message.id}-tool-preview-${previewPart.toolCallId}`}
+				part={previewPart}
+			/>,
+		);
+	}
+
 	return (
 		<Message from="assistant">
 			<MessageContent>
@@ -235,7 +343,18 @@ export function ChatMastraMessageList({
 	messages,
 	isRunning,
 	currentMessage,
+	activeTools,
+	toolInputBuffers,
 }: ChatMastraMessageListProps) {
+	const previewToolParts = useMemo(
+		() =>
+			getStreamingPreviewToolParts({
+				activeTools,
+				toolInputBuffers,
+			}),
+		[activeTools, toolInputBuffers],
+	);
+
 	return (
 		<Conversation className="flex-1">
 			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 px-6">
@@ -255,18 +374,39 @@ export function ChatMastraMessageList({
 								key={message.id}
 								message={message}
 								isStreaming={isRunning && message.id === currentMessage?.id}
+								previewToolParts={
+									isRunning && message.id === currentMessage?.id
+										? previewToolParts
+										: []
+								}
 							/>
 						);
 					})
 				)}
 				{isRunning &&
 					!currentMessage &&
-					messages[messages.length - 1]?.role === "user" && (
+					messages[messages.length - 1]?.role === "user" &&
+					previewToolParts.length === 0 && (
 						<Message from="assistant">
 							<MessageContent>
 								<ShimmerLabel className="text-sm text-muted-foreground">
 									Thinking...
 								</ShimmerLabel>
+							</MessageContent>
+						</Message>
+					)}
+				{isRunning &&
+					!currentMessage &&
+					messages[messages.length - 1]?.role === "user" &&
+					previewToolParts.length > 0 && (
+						<Message from="assistant">
+							<MessageContent>
+								{previewToolParts.map((part) => (
+									<MastraToolCallBlock
+										key={`tool-preview-${part.toolCallId}`}
+										part={part}
+									/>
+								))}
 							</MessageContent>
 						</Message>
 					)}
