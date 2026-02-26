@@ -233,6 +233,33 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		return lines;
 	}
 
+	protected buildRangesForMatch(
+		matchIndex: number,
+		matchEnd: number,
+		context: {
+			currentLine: { startOffset: number; endOffset: number };
+			lines: Array<{
+				startOffset: number;
+				endOffset: number;
+				lineNumber: number;
+				leadingTrim: number;
+				text: string;
+			}>;
+		},
+	): {
+		start: { x: number; y: number };
+		end: { x: number; y: number };
+	}[] {
+		const clippedStart = Math.max(matchIndex, context.currentLine.startOffset);
+		const clippedEnd = Math.min(matchEnd, context.currentLine.endOffset);
+		if (clippedEnd <= clippedStart) {
+			return [];
+		}
+
+		// Keep hover region exact to the visible segment on the scanned row.
+		return [this.calculateLinkRange(clippedStart, clippedEnd, context.lines)];
+	}
+
 	constructor(
 		terminal: Terminal,
 		private readonly onOpen: (event: MouseEvent, uri: string) => void,

@@ -248,7 +248,7 @@ describe("UrlLinkProvider", () => {
 			expect(links.length).toBe(1);
 			expect(links[0].text).toBe("https://example.com/very/long/path/here");
 			expect(links[0].range.start.y).toBe(1);
-			expect(links[0].range.end.y).toBe(2);
+			expect(links[0].range.end.y).toBe(1);
 		});
 
 		it("should calculate correct range for multi-line URL starting on current line", async () => {
@@ -261,10 +261,8 @@ describe("UrlLinkProvider", () => {
 
 			const links = await getLinks(provider, 1);
 
-			expect(links[0].range.start.x).toBe(1);
 			expect(links[0].range.start.y).toBe(1);
-			expect(links[0].range.end.x).toBe(17);
-			expect(links[0].range.end.y).toBe(2);
+			expect(links[0].range.end.y).toBe(1);
 		});
 	});
 
@@ -281,7 +279,7 @@ describe("UrlLinkProvider", () => {
 
 			expect(links.length).toBe(1);
 			expect(links[0].text).toBe("https://example.com/very/long/path/here");
-			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.start.y).toBe(2);
 			expect(links[0].range.end.y).toBe(2);
 		});
 
@@ -373,7 +371,7 @@ describe("UrlLinkProvider", () => {
 				"https://github.com/palette-performance/palette-monorepo/pull/883",
 			);
 			expect(links[0].range.start.y).toBe(1);
-			expect(links[0].range.end.y).toBe(2);
+			expect(links[0].range.end.y).toBe(1);
 		});
 
 		it("should detect URL when scanning the continuation line", async () => {
@@ -395,7 +393,7 @@ describe("UrlLinkProvider", () => {
 			expect(links[0].text).toBe(
 				"https://github.com/palette-performance/palette-monorepo/pull/883",
 			);
-			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.start.y).toBe(2);
 			expect(links[0].range.end.y).toBe(2);
 		});
 

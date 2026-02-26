@@ -20,6 +20,12 @@ interface ContextLineWithOffsets extends ContextLine {
 	endOffset: number;
 }
 
+interface MatchRangeContext {
+	bufferLineNumber: number;
+	currentLine: ContextLineWithOffsets;
+	lines: ContextLineWithOffsets[];
+}
+
 /**
  * Abstract base class for terminal link providers that handles links spanning
  * up to 3 wrapped lines (previous + current + next). Links spanning 4+ wrapped
@@ -42,6 +48,14 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 	 */
 	protected transformMatch(match: LinkMatch): LinkMatch | null {
 		return match;
+	}
+
+	protected buildRangesForMatch(
+		matchIndex: number,
+		matchEnd: number,
+		context: MatchRangeContext,
+	): ILink["range"][] {
+		return [this.calculateLinkRange(matchIndex, matchEnd, context.lines)];
 	}
 
 	protected buildContextLines(lineIndex: number): ContextLine[] {
@@ -150,19 +164,21 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 				continue;
 			}
 
-			const range = this.calculateLinkRange(
-				linkMatch.index,
-				linkMatch.end,
-				linesWithOffsets,
-			);
-
-			links.push({
-				range,
-				text: linkMatch.text,
-				activate: (event: MouseEvent, text: string) => {
-					this.handleActivation(event, text, match);
-				},
+			const ranges = this.buildRangesForMatch(linkMatch.index, linkMatch.end, {
+				bufferLineNumber,
+				currentLine,
+				lines: linesWithOffsets,
 			});
+
+			for (const range of ranges) {
+				links.push({
+					range,
+					text: linkMatch.text,
+					activate: (event: MouseEvent, text: string) => {
+						this.handleActivation(event, text, match);
+					},
+				});
+			}
 		}
 
 		callback(links.length > 0 ? links : undefined);
@@ -202,7 +218,7 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 		};
 	}
 
-	private calculateLinkRange(
+	protected calculateLinkRange(
 		matchIndex: number,
 		matchEnd: number,
 		lines: ContextLineWithOffsets[],
