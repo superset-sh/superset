@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	deduplicateBranchName,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
 	sanitizeSegment,
@@ -134,5 +135,45 @@ describe("sanitizeBranchName", () => {
 
 	test("handles only slashes", () => {
 		expect(sanitizeBranchName("///")).toBe("");
+	});
+});
+
+describe("deduplicateBranchName", () => {
+	test("returns candidate when no collision exists", () => {
+		expect(deduplicateBranchName("feature/test", ["main", "develop"])).toBe(
+			"feature/test",
+		);
+	});
+
+	test("appends numeric suffix when branch exists", () => {
+		expect(deduplicateBranchName("feature/test", ["feature/test"])).toBe(
+			"feature/test-1",
+		);
+	});
+
+	test("increments suffix to next available value", () => {
+		expect(
+			deduplicateBranchName("feature/test", [
+				"feature/test",
+				"feature/test-1",
+				"feature/test-2",
+			]),
+		).toBe("feature/test-3");
+	});
+
+	test("treats existing names case-insensitively", () => {
+		expect(deduplicateBranchName("Feature/Test", ["feature/test"])).toBe(
+			"Feature/Test-1",
+		);
+	});
+
+	test("reuses base segment when candidate already ends with a suffix", () => {
+		expect(
+			deduplicateBranchName("feature/test-2", [
+				"feature/test",
+				"feature/test-1",
+				"feature/test-2",
+			]),
+		).toBe("feature/test-3");
 	});
 });

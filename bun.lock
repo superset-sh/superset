@@ -108,7 +108,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.86",
+      "version": "0.0.88",
       "dependencies": {
         "@ai-sdk/react": "^3.0.0",
         "@ast-grep/napi": "^0.41.0",
