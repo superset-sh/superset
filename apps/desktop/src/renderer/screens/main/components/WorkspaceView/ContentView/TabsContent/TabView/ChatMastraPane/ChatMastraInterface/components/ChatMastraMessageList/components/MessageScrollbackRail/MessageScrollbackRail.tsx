@@ -1,3 +1,4 @@
+import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
 import { useConversationContext } from "@superset/ui/ai-elements/conversation";
 import {
 	HoverCard,
@@ -6,18 +7,46 @@ import {
 } from "@superset/ui/hover-card";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-	buildUserMessageEntries,
-	findActiveMessageId,
-	type MastraMessage,
-	type UserMessageEntry,
-} from "./message-scrollback-rail.model";
+
+type MastraMessage = NonNullable<
+	UseMastraChatDisplayReturn["messages"]
+>[number];
 
 const JUMP_TOP_OFFSET_PX = 8;
 const HOVER_CARD_RIGHT_EDGE_OFFSET_PX = -28;
 
 interface MessageScrollbackRailProps {
 	messages: MastraMessage[];
+}
+
+function buildPreview(message: MastraMessage): string {
+	const textContent = message.content
+		.filter(
+			(
+				part,
+			): part is Extract<MastraMessage["content"][number], { type: "text" }> =>
+				part.type === "text",
+		)
+		.map((part) => part.text.trim())
+		.filter(Boolean)
+		.join(" ")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (textContent) {
+		return textContent;
+	}
+
+	const attachmentCount = message.content.filter(
+		(part) => part.type === "image",
+	).length;
+	if (attachmentCount > 0) {
+		return attachmentCount === 1
+			? "Sent 1 attachment"
+			: `Sent ${attachmentCount} attachments`;
+	}
+
+	return "(empty message)";
 }
 
 function findUserMessageElement(
@@ -37,31 +66,53 @@ function findUserMessageElement(
 	return null;
 }
 
+function findActiveMessageId(
+	entries: { id: string; top: number }[],
+	scrollTop: number,
+): string | null {
+	if (entries.length === 0) {
+		return null;
+	}
+
+	let activeId = entries[0]?.id ?? null;
+	const adjustedTop = scrollTop + 4;
+
+	for (const entry of entries) {
+		if (entry.top <= adjustedTop) {
+			activeId = entry.id;
+			continue;
+		}
+		break;
+	}
+
+	return activeId;
+}
+
 export function MessageScrollbackRail({
 	messages,
 }: MessageScrollbackRailProps) {
 	const { scrollRef, stopScroll } = useConversationContext();
-	const [entries, setEntries] = useState<UserMessageEntry[]>([]);
+	const [entries, setEntries] = useState<
+		{ id: string; preview: string; top: number; isLatest: boolean }[]
+	>([]);
 	const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 	const [isCardOpen, setIsCardOpen] = useState(false);
 	const [dismissedByClick, setDismissedByClick] = useState(false);
 	const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const userMessages = useMemo(
-		() => buildUserMessageEntries(messages),
-		[messages],
-	);
+	const userMessages = useMemo(() => {
+		const filtered = messages.filter((msg) => msg.role === "user");
+		return filtered.map((msg, index) => ({
+			id: msg.id,
+			preview: buildPreview(msg),
+			isLatest: index === filtered.length - 1,
+		}));
+	}, [messages]);
 
 	const recalculateEntries = useCallback(() => {
 		const scrollElement = scrollRef.current;
-		if (!scrollElement) {
-			setEntries([]);
-			setActiveMessageId(null);
-			return;
-		}
-
-		if (userMessages.length === 0) {
+		if (!scrollElement || userMessages.length === 0) {
 			setEntries([]);
 			setActiveMessageId(null);
 			return;
@@ -77,10 +128,7 @@ export function MessageScrollbackRail({
 					scrollElement.scrollTop
 				: fallbackTop;
 
-			return {
-				...message,
-				top,
-			};
+			return { ...message, top };
 		});
 
 		setEntries(nextEntries);
@@ -258,7 +306,7 @@ export function MessageScrollbackRail({
 									key={entry.id}
 									type="button"
 									className={cn(
-										"block w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors",
+										"block w-full truncate rounded-md px-2 py-1.5 text-left text-xs transition-colors",
 										entryClassName,
 									)}
 									onMouseEnter={() => setHoveredMessageId(entry.id)}
