@@ -13,6 +13,7 @@ import { MastraToolCallBlock } from "../../../../ChatPane/ChatInterface/componen
 import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { AssistantMessage } from "./components/AssistantMessage";
+import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { UserMessage } from "./components/UserMessage";
 
 type MastraMessage = NonNullable<
@@ -159,7 +160,7 @@ export function ChatMastraMessageList({
 
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 px-6">
+			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 pl-6 pr-16">
 				{visibleMessages.length === 0 ? (
 					<ConversationEmptyState
 						title="Start a conversation"
@@ -230,6 +231,7 @@ export function ChatMastraMessageList({
 						</Message>
 					)}
 			</ConversationContent>
+			<MessageScrollbackRail messages={visibleMessages} />
 			<ConversationScrollButton />
 		</Conversation>
 	);
