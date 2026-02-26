@@ -200,6 +200,17 @@ export function MastraToolCallBlock({
 				content={content}
 				isWriteMode
 				onFilePathClick={openFileInPane}
+				renderExpandedContent={
+					content
+						? () => (
+								<EditToolExpandedDiff
+									filePath={filePath}
+									oldString=""
+									newString={content}
+								/>
+							)
+						: undefined
+				}
 				state={state}
 			/>
 		);
