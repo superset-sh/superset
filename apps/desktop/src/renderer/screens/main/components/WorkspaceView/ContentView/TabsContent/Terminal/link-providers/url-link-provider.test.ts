@@ -57,6 +57,8 @@ describe("UrlLinkProvider", () => {
 
 			expect(links.length).toBe(1);
 			expect(links[0].text).toBe("https://example.com/path");
+			expect(links[0].decorations?.underline).toBe(true);
+			expect(links[0].decorations?.pointerCursor).toBe(true);
 		});
 
 		it("should detect http URLs", async () => {

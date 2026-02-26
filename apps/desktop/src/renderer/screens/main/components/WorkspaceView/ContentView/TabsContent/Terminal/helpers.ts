@@ -215,6 +215,46 @@ interface ParsedFileOsc8Link {
 	column?: number;
 }
 
+const OSC8_HTTP_URL_PATTERN = /^https?:\/\//i;
+const OSC8_TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+function trimTrailingUnbalancedParens(value: string): string {
+	let openCount = 0;
+	let endIndex = value.length;
+
+	for (let i = 0; i < value.length; i++) {
+		if (value[i] === "(") {
+			openCount++;
+			continue;
+		}
+		if (value[i] === ")") {
+			if (openCount > 0) {
+				openCount--;
+				continue;
+			}
+			endIndex = i;
+			break;
+		}
+	}
+
+	let result = value.slice(0, endIndex);
+	while (result.endsWith("(")) {
+		result = result.slice(0, -1);
+	}
+	return result;
+}
+
+function normalizeHttpUrlForFallback(value: string): string | null {
+	const trimmed = value.trim();
+	if (!OSC8_HTTP_URL_PATTERN.test(trimmed)) {
+		return null;
+	}
+
+	const withoutParens = trimTrailingUnbalancedParens(trimmed);
+	const normalized = withoutParens.replace(OSC8_TRAILING_PUNCTUATION, "");
+	return normalized || null;
+}
+
 function parseFileOsc8Link(uri: string): ParsedFileOsc8Link | null {
 	try {
 		const parsed = new URL(uri);
@@ -287,20 +327,30 @@ export function createTerminalOsc8LinkHandler(
 			}
 			event.preventDefault();
 
+			let linkText = text;
 			let parsed: URL | null = null;
 			try {
-				parsed = new URL(text);
+				parsed = new URL(linkText);
 			} catch {
-				return;
+				const normalizedHttpUrl = normalizeHttpUrlForFallback(linkText);
+				if (!normalizedHttpUrl) {
+					return;
+				}
+				try {
+					parsed = new URL(normalizedHttpUrl);
+					linkText = normalizedHttpUrl;
+				} catch {
+					return;
+				}
 			}
 
 			if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-				options.onOpenUrl(text);
+				options.onOpenUrl(normalizeHttpUrlForFallback(linkText) ?? linkText);
 				return;
 			}
 
 			if (parsed.protocol === "file:") {
-				const fileLink = parseFileOsc8Link(text);
+				const fileLink = parseFileOsc8Link(linkText);
 				if (!fileLink) {
 					return;
 				}

@@ -163,6 +163,7 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 			links.push({
 				range,
 				text: linkMatch.text,
+				decorations: { pointerCursor: true, underline: true },
 				activate: (event: MouseEvent, text: string) => {
 					this.handleActivation(event, text, match);
 				},

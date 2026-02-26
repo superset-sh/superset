@@ -135,6 +135,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 			links.push({
 				range,
 				text: fullLinkText,
+				decorations: { pointerCursor: true, underline: true },
 				activate: (event: MouseEvent) => {
 					this.handleActivation(event, parsedLink);
 				},
@@ -170,6 +171,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 				links.push({
 					range,
 					text: fallback.link,
+					decorations: { pointerCursor: true, underline: true },
 					activate: (event: MouseEvent) => {
 						this.handleFallbackActivation(event, fallback);
 					},
