@@ -46,6 +46,8 @@ const config: Configuration = {
 		"**/node_modules/bindings/**/*",
 		"**/node_modules/file-uri-to-path/**/*",
 		"**/node_modules/node-pty/**/*",
+		"**/node_modules/windows-notification-state/**/*",
+		"**/node_modules/macos-notification-state/**/*",
 		// ast-grep native bindings (package + platform binary package)
 		"**/node_modules/@ast-grep/napi*/**/*",
 		// libsql native bindings are loaded from @libsql/<platform>
@@ -100,6 +102,8 @@ const config: Configuration = {
 			to: "node_modules/node-pty",
 			filter: ["**/*"],
 		},
+		"node_modules/windows-notification-state/**/*",
+		"node_modules/macos-notification-state/**/*",
 		// ast-grep native bindings (package + platform binary package)
 		{
 			from: "node_modules/@ast-grep",

@@ -76,7 +76,6 @@ export class NotificationManager {
 
 		const key = event.paneId ?? `_anon_${this.counter++}`;
 		this.track(key, notification);
-
 		this.deps.playSound();
 
 		notification.on("click", () => {

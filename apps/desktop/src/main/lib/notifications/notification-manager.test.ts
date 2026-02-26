@@ -114,7 +114,7 @@ describe("NotificationManager", () => {
 			expect(localManager.activeCount).toBe(0);
 		});
 
-		it("plays sound on notification", () => {
+		it("plays custom sound on notification", () => {
 			manager.handleAgentLifecycle(makeEvent());
 			expect(deps.playSound).toHaveBeenCalled();
 		});

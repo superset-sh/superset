@@ -33,6 +33,12 @@ const NATIVE_MODULES = [
 	"libsql",
 ] as const;
 
+// Optional native modules used for OS-specific notification state detection.
+const OPTIONAL_NATIVE_MODULES = [
+	"windows-notification-state",
+	"macos-notification-state",
+] as const;
+
 // Dependencies of native modules that need to be copied (may be hoisted or symlinked)
 const NATIVE_MODULE_DEPS = ["bindings", "file-uri-to-path"] as const;
 
@@ -244,6 +250,11 @@ function prepareNativeModules() {
 	// Copy native module dependencies (not required but needed if present)
 	console.log("\nPreparing native module dependencies...");
 	for (const moduleName of NATIVE_MODULE_DEPS) {
+		copyModuleIfSymlink(nodeModulesDir, moduleName, false);
+	}
+
+	console.log("\nPreparing optional native modules...");
+	for (const moduleName of OPTIONAL_NATIVE_MODULES) {
 		copyModuleIfSymlink(nodeModulesDir, moduleName, false);
 	}
 
