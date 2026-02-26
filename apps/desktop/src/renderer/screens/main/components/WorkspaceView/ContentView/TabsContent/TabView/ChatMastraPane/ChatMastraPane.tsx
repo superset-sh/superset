@@ -1,9 +1,11 @@
 import { ChatServiceProvider } from "@superset/chat/client";
 import { ChatMastraServiceProvider } from "@superset/chat-mastra/client";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { CopyIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -15,6 +17,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { createChatServiceIpcClient } from "../ChatPane/utils/chat-service-client";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatMastraInterface } from "./ChatMastraInterface";
+import type { ChatMastraRawSnapshot } from "./ChatMastraInterface/types";
 import { SessionSelector } from "./components/SessionSelector";
 import { createChatMastraServiceIpcClient } from "./utils/chat-mastra-service-client";
 import { reportChatMastraError } from "./utils/reportChatMastraError";
@@ -124,6 +127,11 @@ export function ChatMastraPane({
 	const collections = useCollections();
 	const ensureSessionRef = useRef(false);
 	const ensuredRef = useRef<string | null>(null);
+	const rawSnapshotRef = useRef<ChatMastraRawSnapshot | null>(null);
+	const [rawSnapshotSessionId, setRawSnapshotSessionId] = useState<
+		string | null
+	>(null);
+	const showDevToolbarActions = env.NODE_ENV === "development";
 
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId },
@@ -304,6 +312,38 @@ export function ChatMastraPane({
 		[sessions],
 	);
 
+	const handleRawSnapshotChange = useCallback(
+		(snapshot: ChatMastraRawSnapshot) => {
+			rawSnapshotRef.current = snapshot;
+			setRawSnapshotSessionId((previousSessionId) =>
+				previousSessionId === snapshot.sessionId
+					? previousSessionId
+					: snapshot.sessionId,
+			);
+		},
+		[],
+	);
+
+	const handleCopyRawSnapshot = useCallback(async () => {
+		const rawSnapshot = rawSnapshotRef.current;
+		if (!rawSnapshot || rawSnapshot.sessionId !== sessionId) {
+			toast.error("No raw chat data to copy yet");
+			return;
+		}
+
+		if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+			toast.error("Clipboard API is unavailable");
+			return;
+		}
+
+		try {
+			await navigator.clipboard.writeText(JSON.stringify(rawSnapshot, null, 2));
+			toast.success("Copied raw chat JSON");
+		} catch {
+			toast.error("Failed to copy raw chat JSON");
+		}
+	}, [sessionId]);
+
 	return (
 		<ChatMastraServiceProvider
 			client={mastraIpcClient}
@@ -335,6 +375,30 @@ export function ChatMastraPane({
 								splitOrientation={handlers.splitOrientation}
 								onSplitPane={handlers.onSplitPane}
 								onClosePane={handlers.onClosePane}
+								leadingActions={
+									showDevToolbarActions ? (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={() => {
+														void handleCopyRawSnapshot();
+													}}
+													disabled={
+														!rawSnapshotRef.current ||
+														rawSnapshotSessionId !== sessionId
+													}
+													className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+												>
+													<CopyIcon className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="bottom" showArrow={false}>
+												Copy raw chat JSON (dev)
+											</TooltipContent>
+										</Tooltip>
+									) : null
+								}
 								closeHotkeyId="CLOSE_TERMINAL"
 							/>
 						</div>
@@ -345,6 +409,9 @@ export function ChatMastraPane({
 						workspaceId={workspaceId}
 						cwd={workspace?.worktreePath ?? ""}
 						onStartFreshSession={handleStartFreshSession}
+						onRawSnapshotChange={
+							showDevToolbarActions ? handleRawSnapshotChange : undefined
+						}
 					/>
 				</BasePaneWindow>
 			</ChatServiceProvider>

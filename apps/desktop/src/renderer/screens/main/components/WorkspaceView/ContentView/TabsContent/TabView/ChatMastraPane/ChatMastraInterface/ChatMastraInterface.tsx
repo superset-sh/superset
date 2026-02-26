@@ -47,6 +47,7 @@ export function ChatMastraInterface({
 	workspaceId: _workspaceId,
 	cwd,
 	onStartFreshSession,
+	onRawSnapshotChange,
 }: ChatMastraInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
 	const [selectedModel, setSelectedModel] = useState<ModelOption | null>(null);
@@ -142,6 +143,23 @@ export function ChatMastraInterface({
 		}
 		setSubmitStatus(undefined);
 	}, [isRunning]);
+
+	useEffect(() => {
+		onRawSnapshotChange?.({
+			sessionId,
+			isRunning: canAbort,
+			currentMessage: currentMessage ?? null,
+			messages: messages ?? [],
+			error,
+		});
+	}, [
+		canAbort,
+		currentMessage,
+		error,
+		messages,
+		onRawSnapshotChange,
+		sessionId,
+	]);
 
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
