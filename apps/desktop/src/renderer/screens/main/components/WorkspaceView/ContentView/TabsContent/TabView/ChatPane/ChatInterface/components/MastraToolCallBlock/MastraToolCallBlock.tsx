@@ -107,54 +107,153 @@ export function MastraToolCallBlock({
 
 	// --- Execute command → BashTool ---
 	if (toolName === "mastra_workspace_execute_command") {
-		const command = String(
-			args.command ??
-				args.cmd ??
-				args.command_line ??
-				args.commandLine ??
-				args.raw ??
-				"",
-		);
+		const outputPayloadObject = toRecord(outputObject?.output);
+		const outputResultObject = toRecord(outputObject?.result);
+		const nestedOutputPayloadObject = toRecord(nestedResultObject?.output);
+		const nestedOutputResultObject = toRecord(nestedResultObject?.result);
+
+		const command =
+			firstText(
+				args.command,
+				args.cmd,
+				args.command_line,
+				args.commandLine,
+				args.raw,
+				result.command,
+				result.cmd,
+				outputObject?.command,
+				outputObject?.cmd,
+				nestedResultObject?.command,
+				nestedResultObject?.cmd,
+				outputPayloadObject?.command,
+				outputPayloadObject?.cmd,
+				outputResultObject?.command,
+				outputResultObject?.cmd,
+				nestedOutputPayloadObject?.command,
+				nestedOutputPayloadObject?.cmd,
+				nestedOutputResultObject?.command,
+				nestedOutputResultObject?.cmd,
+			) ?? "";
 		const stdout =
 			firstText(
 				result.stdout,
 				result.stdout_text,
 				result.stdoutText,
+				result.output_text,
+				result.outputText,
+				result.text,
+				result.output,
+				result.result,
 				outputObject?.stdout,
 				outputObject?.stdout_text,
 				outputObject?.stdoutText,
+				outputObject?.output_text,
+				outputObject?.outputText,
+				outputObject?.text,
+				outputObject?.output,
+				outputObject?.result,
 				nestedResultObject?.stdout,
 				nestedResultObject?.stdout_text,
 				nestedResultObject?.stdoutText,
+				nestedResultObject?.output_text,
+				nestedResultObject?.outputText,
+				nestedResultObject?.text,
+				nestedResultObject?.output,
+				nestedResultObject?.result,
+				outputPayloadObject?.stdout,
+				outputPayloadObject?.stdout_text,
+				outputPayloadObject?.stdoutText,
+				outputPayloadObject?.output_text,
+				outputPayloadObject?.outputText,
+				outputPayloadObject?.text,
+				outputPayloadObject?.output,
+				outputPayloadObject?.result,
+				outputResultObject?.stdout,
+				outputResultObject?.stdout_text,
+				outputResultObject?.stdoutText,
+				outputResultObject?.output_text,
+				outputResultObject?.outputText,
+				outputResultObject?.text,
+				outputResultObject?.output,
+				outputResultObject?.result,
+				nestedOutputPayloadObject?.stdout,
+				nestedOutputPayloadObject?.stdout_text,
+				nestedOutputPayloadObject?.stdoutText,
+				nestedOutputPayloadObject?.output_text,
+				nestedOutputPayloadObject?.outputText,
+				nestedOutputPayloadObject?.text,
+				nestedOutputPayloadObject?.output,
+				nestedOutputPayloadObject?.result,
+				nestedOutputResultObject?.stdout,
+				nestedOutputResultObject?.stdout_text,
+				nestedOutputResultObject?.stdoutText,
+				nestedOutputResultObject?.output_text,
+				nestedOutputResultObject?.outputText,
+				nestedOutputResultObject?.text,
+				nestedOutputResultObject?.output,
+				nestedOutputResultObject?.result,
 				result.combined_output,
 				result.combinedOutput,
 				outputObject?.combined_output,
 				outputObject?.combinedOutput,
-				result.output_text,
-				result.outputText,
-				result.text,
-				typeof result.output === "string" ? result.output : undefined,
-				typeof result.result === "string" ? result.result : undefined,
+				nestedResultObject?.combined_output,
+				nestedResultObject?.combinedOutput,
+				outputPayloadObject?.combined_output,
+				outputPayloadObject?.combinedOutput,
+				outputResultObject?.combined_output,
+				outputResultObject?.combinedOutput,
+				nestedOutputPayloadObject?.combined_output,
+				nestedOutputPayloadObject?.combinedOutput,
+				nestedOutputResultObject?.combined_output,
+				nestedOutputResultObject?.combinedOutput,
 			) ??
-			(typeof result.output === "object" && result.output !== null
-				? JSON.stringify(result.output, null, 2)
-				: undefined);
+			(typeof outputObject === "object" && outputObject !== null
+				? JSON.stringify(outputObject, null, 2)
+				: typeof result.output === "object" && result.output !== null
+					? JSON.stringify(result.output, null, 2)
+					: undefined);
 		const stderr = firstText(
 			result.stderr,
 			result.stderr_text,
 			result.stderrText,
+			result.error,
+			result.errorText,
 			outputObject?.stderr,
 			outputObject?.stderr_text,
 			outputObject?.stderrText,
+			outputObject?.error,
+			outputObject?.error_text,
+			outputObject?.errorText,
 			nestedResultObject?.stderr,
 			nestedResultObject?.stderr_text,
 			nestedResultObject?.stderrText,
-			result.error,
-			result.errorText,
-			outputObject?.error,
-			outputObject?.errorText,
 			nestedResultObject?.error,
+			nestedResultObject?.error_text,
 			nestedResultObject?.errorText,
+			outputPayloadObject?.stderr,
+			outputPayloadObject?.stderr_text,
+			outputPayloadObject?.stderrText,
+			outputPayloadObject?.error,
+			outputPayloadObject?.error_text,
+			outputPayloadObject?.errorText,
+			outputResultObject?.stderr,
+			outputResultObject?.stderr_text,
+			outputResultObject?.stderrText,
+			outputResultObject?.error,
+			outputResultObject?.error_text,
+			outputResultObject?.errorText,
+			nestedOutputPayloadObject?.stderr,
+			nestedOutputPayloadObject?.stderr_text,
+			nestedOutputPayloadObject?.stderrText,
+			nestedOutputPayloadObject?.error,
+			nestedOutputPayloadObject?.error_text,
+			nestedOutputPayloadObject?.errorText,
+			nestedOutputResultObject?.stderr,
+			nestedOutputResultObject?.stderr_text,
+			nestedOutputResultObject?.stderrText,
+			nestedOutputResultObject?.error,
+			nestedOutputResultObject?.error_text,
+			nestedOutputResultObject?.errorText,
 		);
 		const exitCode = toNumber(
 			result.exitCode ??
@@ -168,7 +267,23 @@ export function MastraToolCallBlock({
 				nestedResultObject?.exitCode ??
 				nestedResultObject?.exit_code ??
 				nestedResultObject?.code ??
-				nestedResultObject?.status_code,
+				nestedResultObject?.status_code ??
+				outputPayloadObject?.exitCode ??
+				outputPayloadObject?.exit_code ??
+				outputPayloadObject?.code ??
+				outputPayloadObject?.status_code ??
+				outputResultObject?.exitCode ??
+				outputResultObject?.exit_code ??
+				outputResultObject?.code ??
+				outputResultObject?.status_code ??
+				nestedOutputPayloadObject?.exitCode ??
+				nestedOutputPayloadObject?.exit_code ??
+				nestedOutputPayloadObject?.code ??
+				nestedOutputPayloadObject?.status_code ??
+				nestedOutputResultObject?.exitCode ??
+				nestedOutputResultObject?.exit_code ??
+				nestedOutputResultObject?.code ??
+				nestedOutputResultObject?.status_code,
 		);
 		return (
 			<BashTool
