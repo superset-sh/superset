@@ -50,9 +50,8 @@ Expected remotes in that worktree:
 
 ## Current behavior shipped in the bundle
 
-- Per-tool `deny` hides tools from dynamic tool exposure (not just execution).
-- Tool guidance omits denied tools.
 - `createMastraCode({ extraTools })` is merged into runtime dynamic tools.
+- Tool executions are wrapped with Mastra `HookManager` pre/post hooks.
 - `createAuthStorage()` is exported for auth-only storage usage without runtime bootstrap.
 
 ## Superset runtime wiring
@@ -82,7 +81,7 @@ Core runtime creation and tool diagnostics live at:
 When `NODE_ENV !== "production"` (or `SUPERSET_DEBUG_HOOKS` is enabled), runtime startup logs:
 
 - `configuredExtraToolNames` (tools passed from Superset router options)
-- `resolvedToolNames` (tools actually visible to the agent after deny filters)
+- `resolvedToolNames` (tools actually visible to the agent at runtime)
 - `mastraSupportsCreateAuthStorage` (quick signal that forked bundle APIs are loaded)
 
 ## Publishing the next internal bundle
@@ -93,16 +92,16 @@ When `NODE_ENV !== "production"` (or `SUPERSET_DEBUG_HOOKS` is enabled), runtime
 WORKDIR=$(mktemp -d)
 cp -R node_modules/mastracode "$WORKDIR/mastracode"
 cd "$WORKDIR/mastracode"
-node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));p.version="0.4.0-superset.2";fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n");'
+node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));p.version="0.4.0-superset.X";fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n");'
 npm pack
 ```
 
 2. Publish tarball to fork release:
 
 ```bash
-gh release create mastracode-v0.4.0-superset.2 ./mastracode-0.4.0-superset.2.tgz \
+gh release create mastracode-v0.4.0-superset.X ./mastracode-0.4.0-superset.X.tgz \
   -R superset-sh/mastra \
-  --title "mastracode v0.4.0-superset.2" \
+  --title "mastracode v0.4.0-superset.X" \
   --notes "Superset internal mastracode bundle"
 ```
 
@@ -117,5 +116,5 @@ bun install
 5. Verify lockfile points to the release URL:
 
 ```bash
-rg -n "mastracode-v0.4.0-superset.2|mastracode@https://github.com/superset-sh/mastra/releases/download" bun.lock package.json
+rg -n "mastracode-v0.4.0-superset|mastracode@https://github.com/superset-sh/mastra/releases/download" bun.lock package.json
 ```

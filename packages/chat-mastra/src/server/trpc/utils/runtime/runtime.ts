@@ -166,7 +166,7 @@ async function createRuntimeSession(
 	options?: RuntimeCreateOptions,
 ): Promise<RuntimeSession> {
 	// This runtime powers interactive chat tool execution.
-	// Tool-level allow/deny rules must be configured here.
+	// Runtime extensions (e.g. extra tools) are injected through createMastraCode options.
 	const runtimeMastra = await createMastraCode({
 		cwd: runtimeCwd,
 		extraTools: options?.extraTools,
