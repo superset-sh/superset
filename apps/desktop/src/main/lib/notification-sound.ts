@@ -31,6 +31,70 @@ type MacNotificationStateModule = {
 	getDoNotDisturb: () => Promise<boolean>;
 };
 
+function parseMacDefaultsDnd(output: string): boolean | undefined {
+	const normalized = output.trim().toLowerCase();
+	if (normalized === "1" || normalized === "true") {
+		return true;
+	}
+	if (normalized === "0" || normalized === "false") {
+		return false;
+	}
+
+	// Plist-style output patterns.
+	if (
+		/\b(enabled|active|donotdisturb)\s*=\s*1\b/i.test(output) ||
+		/\bcom\.apple\.donotdisturb\.mode\.default\b/i.test(output)
+	) {
+		return true;
+	}
+	if (/\b(enabled|active|donotdisturb)\s*=\s*0\b/i.test(output)) {
+		return false;
+	}
+
+	return undefined;
+}
+
+function readMacDoNotDisturbFromDefaults(): boolean | undefined {
+	const commands: Array<[string, string[]]> = [
+		[
+			"defaults",
+			[
+				"-currentHost",
+				"read",
+				"com.apple.notificationcenterui",
+				"doNotDisturb",
+			],
+		],
+		[
+			"defaults",
+			["-currentHost", "read", "com.apple.controlcenter", "FocusModes"],
+		],
+		["defaults", ["read", "com.apple.controlcenter", "FocusModes"]],
+	];
+
+	for (const [command, args] of commands) {
+		try {
+			const output = execFileSync(command, args, {
+				encoding: "utf8",
+				stdio: ["ignore", "pipe", "ignore"],
+				timeout: 250,
+			}).trim();
+			const parsed = parseMacDefaultsDnd(output);
+			if (parsed !== undefined) {
+				logDebug("macOS defaults fallback DND state read", {
+					command: `${command} ${args.join(" ")}`,
+					isDnd: parsed,
+				});
+				return parsed;
+			}
+		} catch {
+			// Try next fallback command.
+		}
+	}
+
+	return undefined;
+}
+
 async function isMacDoNotDisturbEnabled(): Promise<boolean> {
 	try {
 		const mod =
@@ -39,10 +103,19 @@ async function isMacDoNotDisturbEnabled(): Promise<boolean> {
 		logDebug("macOS DND state read", { isDnd });
 		return isDnd;
 	} catch (error) {
+		const fallback = readMacDoNotDisturbFromDefaults();
+		if (fallback !== undefined) {
+			logDebug("macOS DND detection used defaults fallback", {
+				isDnd: fallback,
+			});
+			return fallback;
+		}
+
 		logDebug("macOS DND detection failed", {
 			error: error instanceof Error ? error.message : String(error),
 		});
-		return false;
+		// Conservative fallback: if detection fails entirely, suppress sound.
+		return true;
 	}
 }
 
