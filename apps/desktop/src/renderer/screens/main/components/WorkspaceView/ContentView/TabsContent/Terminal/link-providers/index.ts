@@ -1,4 +1,5 @@
 export { FilePathLinkProvider } from "./file-path-link-provider";
+export { LinkDecorationManager } from "./link-decoration-manager";
 export {
 	type LinkMatch,
 	MultiLineLinkProvider,

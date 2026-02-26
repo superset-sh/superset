@@ -23,7 +23,11 @@ import {
 	getTerminalColors,
 } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
-import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
+import {
+	FilePathLinkProvider,
+	LinkDecorationManager,
+	UrlLinkProvider,
+} from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
 import { scrollToBottom } from "./utils";
 
@@ -368,6 +372,10 @@ export interface TerminalRendererRef {
 	current: TerminalRenderer;
 }
 
+type XTermWithLinkDecorationManager = XTerm & {
+	__linkDecorationManager?: LinkDecorationManager;
+};
+
 export function createTerminalInstance(
 	container: HTMLDivElement,
 	options: CreateTerminalOptions = {},
@@ -471,6 +479,12 @@ export function createTerminalInstance(
 		},
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
+	const linkDecorationManager = new LinkDecorationManager(
+		xterm,
+		theme.blue ?? "#57c7ff",
+	);
+	(xterm as XTermWithLinkDecorationManager).__linkDecorationManager =
+		linkDecorationManager;
 
 	xterm.unicode.activeVersion = "11";
 	fitAddon.fit();
@@ -485,6 +499,8 @@ export function createTerminalInstance(
 				cancelAnimationFrame(rafId);
 			}
 			cleanupQuerySuppression();
+			linkDecorationManager.dispose();
+			delete (xterm as XTermWithLinkDecorationManager).__linkDecorationManager;
 			rendererRef.current.dispose();
 		},
 	};
