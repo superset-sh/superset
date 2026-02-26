@@ -161,6 +161,13 @@ function toToolEntries<T>(
 	return [...value.entries()];
 }
 
+function findLastUserMessageIndex(messages: MastraMessage[]): number {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		if (messages[index]?.role === "user") return index;
+	}
+	return -1;
+}
+
 function getStreamingPreviewToolParts({
 	activeTools,
 	toolInputBuffers,
@@ -346,13 +353,17 @@ export function ChatMastraMessageList({
 	activeTools,
 	toolInputBuffers,
 }: ChatMastraMessageListProps) {
-	const visibleMessages = useMemo(
-		() =>
-			isRunning && currentMessage
-				? messages.filter((message) => message.id !== currentMessage.id)
-				: messages,
-		[messages, isRunning, currentMessage],
-	);
+	const visibleMessages = useMemo(() => {
+		if (!isRunning || !currentMessage || currentMessage.role !== "assistant") {
+			return messages;
+		}
+		const turnStartIndex = findLastUserMessageIndex(messages) + 1;
+		const previousTurns = messages.slice(0, turnStartIndex);
+		const activeTurnNonAssistant = messages
+			.slice(turnStartIndex)
+			.filter((message) => message.role !== "assistant");
+		return [...previousTurns, ...activeTurnNonAssistant];
+	}, [messages, isRunning, currentMessage]);
 
 	const previewToolParts = useMemo(
 		() =>

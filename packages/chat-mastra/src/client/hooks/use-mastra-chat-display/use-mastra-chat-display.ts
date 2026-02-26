@@ -28,6 +28,35 @@ function toRefetchIntervalMs(fps: number): number {
 	return Math.max(16, Math.floor(1000 / fps));
 }
 
+function findLastUserMessageIndex(messages: ListMessagesOutput): number {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		if (messages[index]?.role === "user") return index;
+	}
+	return -1;
+}
+
+export function withoutActiveTurnAssistantHistory({
+	messages,
+	currentMessage,
+	isRunning,
+}: {
+	messages: ListMessagesOutput;
+	currentMessage: DisplayStateOutput["currentMessage"] | null;
+	isRunning: boolean;
+}): ListMessagesOutput {
+	if (!isRunning || !currentMessage || currentMessage.role !== "assistant") {
+		return messages;
+	}
+
+	const turnStartIndex = findLastUserMessageIndex(messages) + 1;
+	const previousTurns = messages.slice(0, turnStartIndex);
+	const activeTurnNonAssistant = messages
+		.slice(turnStartIndex)
+		.filter((message) => message.role !== "assistant");
+
+	return [...previousTurns, ...activeTurnNonAssistant];
+}
+
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
@@ -58,6 +87,8 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	);
 
 	const displayState = displayQuery.data ?? null;
+	const currentMessage = displayState?.currentMessage ?? null;
+	const isRunning = displayState?.isRunning ?? false;
 	const historicalMessages = messagesQuery.data ?? [];
 	const [optimisticUserMessage, setOptimisticUserMessage] = useState<
 		ListMessagesOutput[number] | null
@@ -85,9 +116,15 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	}, [historicalMessages]);
 
 	const messages = useMemo(() => {
-		if (!optimisticUserMessage) return historicalMessages;
-		return [...historicalMessages, optimisticUserMessage];
-	}, [historicalMessages, optimisticUserMessage]);
+		const withOptimistic = optimisticUserMessage
+			? [...historicalMessages, optimisticUserMessage]
+			: historicalMessages;
+		return withoutActiveTurnAssistantHistory({
+			messages: withOptimistic,
+			currentMessage,
+			isRunning,
+		});
+	}, [historicalMessages, optimisticUserMessage, currentMessage, isRunning]);
 
 	const commands = useMemo(
 		() => ({
