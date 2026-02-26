@@ -108,7 +108,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "dependencies": {
         "@ai-sdk/react": "^3.0.0",
         "@ast-grep/napi": "^0.41.0",
@@ -219,6 +219,7 @@
         "lowdb": "^7.0.1",
         "lowlight": "^3.3.0",
         "lucide-react": "^0.563.0",
+        "macos-notification-state": "^3.0.0",
         "mastracode": "^0.4.0",
         "monaco-editor": "^0.55.1",
         "nanoid": "^5.1.6",
@@ -258,6 +259,7 @@
         "use-resize-observer": "^9.1.0",
         "utf-8-validate": "^6.0.6",
         "uuid": "^13.0.0",
+        "windows-notification-state": "^2.0.0",
         "zod": "^4.3.5",
         "zustand": "^5.0.8",
       },
@@ -3954,6 +3956,8 @@
 
     "maath": ["maath@0.10.8", "", { "peerDependencies": { "@types/three": ">=0.134.0", "three": ">=0.134.0" } }, "sha512-tRvbDF0Pgqz+9XUa4jjfgAQ8/aPKmQdWXilFu2tMy4GWj4NOsx99HlULO4IeREfbO3a0sA145DZYyvXPkybm0g=="],
 
+    "macos-notification-state": ["macos-notification-state@3.0.0", "", { "dependencies": { "bindings": "^1.5.0", "node-addon-api": "3.0.0" } }, "sha512-tvFDZajIcwIsYg1WQAXGtrJFljlL1PEOK2cCoPDrN//XxIwTiVNvaXznxLjV4mYkyXctIDVs0ujGdrbGzeOY/w=="],
+
     "magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 
     "make-fetch-happen": ["make-fetch-happen@14.0.3", "", { "dependencies": { "@npmcli/agent": "^3.0.0", "cacache": "^19.0.1", "http-cache-semantics": "^4.1.1", "minipass": "^7.0.2", "minipass-fetch": "^4.0.0", "minipass-flush": "^1.0.5", "minipass-pipeline": "^1.2.4", "negotiator": "^1.0.0", "proc-log": "^5.0.0", "promise-retry": "^2.0.1", "ssri": "^12.0.0" } }, "sha512-QMjGbFTP0blj97EeidG5hk/QhKQ3T4ICckQGLgz38QF7Vgbk6e6FTARN8KhKxyBbWn8R0HU+bnw8aSoFPD4qtQ=="],
@@ -5320,6 +5324,8 @@
 
     "why-is-node-running": ["why-is-node-running@2.3.0", "", { "dependencies": { "siginfo": "^2.0.0", "stackback": "0.0.2" }, "bin": { "why-is-node-running": "cli.js" } }, "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w=="],
 
+    "windows-notification-state": ["windows-notification-state@2.0.0", "", { "dependencies": { "bindings": "^1.5.0", "node-addon-api": "^5.0.0" } }, "sha512-8c2DQBZw8wgCU73a7oLp+YfzbLAxLa3D7OONXpfH3Rk2r2lEH+1NIvw7gYUVxior8zXpFu6WCgzjcARwbaRl/w=="],
+
     "wonka": ["wonka@6.3.5", "", {}, "sha512-SSil+ecw6B4/Dm7Pf2sAshKQ5hWFvfyGlfPbEd6A14dOH6VDjrmbY86u6nZvy9omGwwIPFR8V41+of1EezgoUw=="],
 
     "wrap-ansi": ["wrap-ansi@7.0.0", "", { "dependencies": { "ansi-styles": "^4.0.0", "string-width": "^4.1.0", "strip-ansi": "^6.0.0" } }, "sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q=="],
@@ -5980,6 +5986,8 @@
 
     "lightningcss/detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
 
+    "macos-notification-state/node-addon-api": ["node-addon-api@3.0.0", "", {}, "sha512-sSHCgWfJ+Lui/u+0msF3oyCgvdkhxDbkCS6Q8uiJquzOimkJBvX6hl5aSSA7DR1XbMpdM8r7phjcF63sF4rkKg=="],
+
     "make-fetch-happen/proc-log": ["proc-log@5.0.0", "", {}, "sha512-Azwzvl90HaF0aCz1JrDdXQykFakSSNPaPoiZ9fm5qJIMHioDZEi7OAdRwSm6rSoPtY3Qutnm3L7ogmg3dc+wbQ=="],
 
     "matcher/escape-string-regexp": ["escape-string-regexp@5.0.0", "", {}, "sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw=="],
@@ -6241,6 +6249,8 @@
     "whatwg-url/webidl-conversions": ["webidl-conversions@3.0.1", "", {}, "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ=="],
 
     "whatwg-url-without-unicode/buffer": ["buffer@5.7.1", "", { "dependencies": { "base64-js": "^1.3.1", "ieee754": "^1.1.13" } }, "sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ=="],
+
+    "windows-notification-state/node-addon-api": ["node-addon-api@5.1.0", "", {}, "sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA=="],
 
     "wrap-ansi/strip-ansi": ["strip-ansi@6.0.1", "", { "dependencies": { "ansi-regex": "^5.0.1" } }, "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A=="],
 
