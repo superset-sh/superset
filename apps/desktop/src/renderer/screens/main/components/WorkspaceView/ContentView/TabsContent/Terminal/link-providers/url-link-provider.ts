@@ -12,7 +12,7 @@ const URL_SCHEME_PATTERN = /^https?:\/\//i;
 const HARD_WRAP_COLS_TOLERANCE = 2;
 const URL_BREAK_SIGNAL_PATTERN = /[-/?#=&%._~]/;
 const URL_CONTINUATION_SIGNAL_PATTERN = /[/?#=&%._~-]/;
-const MAX_HARD_WRAP_EXTENSION_LINES = 8;
+const MAX_HARD_WRAP_EXTENSION_LINES = 24;
 
 function trimUnbalancedParens(url: string): string {
 	let openCount = 0;
@@ -111,9 +111,15 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 			this.isLikelyHardWrapBoundary(prevRawText) ||
 			leadingTrim > 0 ||
 			URL_BREAK_SIGNAL_PATTERN.test(prevEnd);
-		const continuationLooksUrlLike =
+		const continuationHasUrlSignal =
 			URL_CONTINUATION_SIGNAL_PATTERN.test(continuationText) ||
 			/^[0-9]/.test(continuationText);
+		const continuationLooksLikeWrappedWord =
+			leadingTrim > 0 &&
+			/^[A-Za-z0-9]/.test(continuationText) &&
+			/[A-Za-z0-9]$/.test(trimmedPrev);
+		const continuationLooksUrlLike =
+			continuationHasUrlSignal || continuationLooksLikeWrappedWord;
 		const continuationStartsListMarker =
 			continuationText.startsWith("-") &&
 			continuationText.length > 1 &&
@@ -134,7 +140,9 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		}
 		return (
 			URL_CONTINUATION_SIGNAL_PATTERN.test(continuation.text) ||
-			/^[0-9]/.test(continuation.text)
+			/^[0-9]/.test(continuation.text) ||
+			(continuation.leadingTrim > 0 &&
+				/^[A-Za-z0-9]/.test(continuation.text))
 		);
 	}
 
@@ -256,33 +264,6 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 		}
 
 		return lines;
-	}
-
-	protected buildRangesForMatch(
-		matchIndex: number,
-		matchEnd: number,
-		context: {
-			currentLine: { startOffset: number; endOffset: number };
-			lines: Array<{
-				startOffset: number;
-				endOffset: number;
-				lineNumber: number;
-				leadingTrim: number;
-				text: string;
-			}>;
-		},
-	): {
-		start: { x: number; y: number };
-		end: { x: number; y: number };
-	}[] {
-		const clippedStart = Math.max(matchIndex, context.currentLine.startOffset);
-		const clippedEnd = Math.min(matchEnd, context.currentLine.endOffset);
-		if (clippedEnd <= clippedStart) {
-			return [];
-		}
-
-		// Keep hover region exact to the visible segment on the scanned row.
-		return [this.calculateLinkRange(clippedStart, clippedEnd, context.lines)];
 	}
 
 	constructor(
