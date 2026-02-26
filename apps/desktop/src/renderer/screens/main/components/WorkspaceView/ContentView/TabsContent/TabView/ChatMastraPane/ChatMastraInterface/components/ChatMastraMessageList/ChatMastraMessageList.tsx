@@ -346,6 +346,14 @@ export function ChatMastraMessageList({
 	activeTools,
 	toolInputBuffers,
 }: ChatMastraMessageListProps) {
+	const visibleMessages = useMemo(
+		() =>
+			isRunning && currentMessage
+				? messages.filter((message) => message.id !== currentMessage.id)
+				: messages,
+		[messages, isRunning, currentMessage],
+	);
+
 	const previewToolParts = useMemo(
 		() =>
 			getStreamingPreviewToolParts({
@@ -358,14 +366,14 @@ export function ChatMastraMessageList({
 	return (
 		<Conversation className="flex-1">
 			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 px-6">
-				{messages.length === 0 ? (
+				{visibleMessages.length === 0 ? (
 					<ConversationEmptyState
 						title="Start a conversation"
 						description="Ask anything to get started"
 						icon={<HiMiniChatBubbleLeftRight className="size-8" />}
 					/>
 				) : (
-					messages.map((message) => {
+					visibleMessages.map((message) => {
 						if (message.role === "user")
 							return <UserMessage key={message.id} message={message} />;
 
@@ -373,19 +381,23 @@ export function ChatMastraMessageList({
 							<AssistantMessage
 								key={message.id}
 								message={message}
-								isStreaming={isRunning && message.id === currentMessage?.id}
-								previewToolParts={
-									isRunning && message.id === currentMessage?.id
-										? previewToolParts
-										: []
-								}
+								isStreaming={false}
+								previewToolParts={[]}
 							/>
 						);
 					})
 				)}
+				{isRunning && currentMessage && (
+					<AssistantMessage
+						key={`current-${currentMessage.id}`}
+						message={currentMessage}
+						isStreaming
+						previewToolParts={previewToolParts}
+					/>
+				)}
 				{isRunning &&
 					!currentMessage &&
-					messages[messages.length - 1]?.role === "user" &&
+					visibleMessages[visibleMessages.length - 1]?.role === "user" &&
 					previewToolParts.length === 0 && (
 						<Message from="assistant">
 							<MessageContent>
@@ -397,7 +409,7 @@ export function ChatMastraMessageList({
 					)}
 				{isRunning &&
 					!currentMessage &&
-					messages[messages.length - 1]?.role === "user" &&
+					visibleMessages[visibleMessages.length - 1]?.role === "user" &&
 					previewToolParts.length > 0 && (
 						<Message from="assistant">
 							<MessageContent>
