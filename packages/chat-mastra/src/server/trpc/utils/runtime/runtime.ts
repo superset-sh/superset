@@ -10,10 +10,11 @@ export type RuntimeMcpManager = Awaited<
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
-type RuntimeHarnessEvent = Parameters<
-	Parameters<RuntimeHarness["subscribe"]>[0]
->[0];
-type RuntimeAgentEndEvent = Extract<RuntimeHarnessEvent, { type: "agent_end" }>;
+
+interface RuntimeAgentEndEvent {
+	type: "agent_end";
+	reason?: unknown;
+}
 
 export interface RuntimeSession {
 	sessionId: string;
@@ -114,9 +115,15 @@ function toStopReason(
 	return "complete";
 }
 
+function isRuntimeAgentEndEvent(event: unknown): event is RuntimeAgentEndEvent {
+	if (!event || typeof event !== "object") return false;
+	if (!("type" in event)) return false;
+	return (event as { type?: unknown }).type === "agent_end";
+}
+
 function subscribeRuntimeHooks(runtime: RuntimeSession): void {
-	runtime.harness.subscribe(async (event) => {
-		if (event.type !== "agent_end") return;
+	runtime.harness.subscribe(async (event: unknown) => {
+		if (!isRuntimeAgentEndEvent(event)) return;
 
 		try {
 			await runStopHook(runtime, toStopReason(event));
