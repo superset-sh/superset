@@ -151,7 +151,9 @@ export function MastraToolCallBlock({
 
 	// --- Write file → FileDiffTool (write mode) ---
 	if (toolName === "mastra_workspace_write_file") {
-		const filePath = String(args.path ?? args.filePath ?? "");
+		const filePath = String(
+			args.path ?? args.filePath ?? args.relative_workspace_path ?? "",
+		);
 		const content = String(args.content ?? args.data ?? "");
 		return (
 			<FileDiffTool
@@ -165,9 +167,15 @@ export function MastraToolCallBlock({
 
 	// --- Edit file → FileDiffTool (diff mode) ---
 	if (toolName === "mastra_workspace_edit_file") {
-		const filePath = String(args.path ?? args.filePath ?? "");
-		const oldString = String(args.oldString ?? args.old_string ?? "");
-		const newString = String(args.newString ?? args.new_string ?? "");
+		const filePath = String(
+			args.path ?? args.filePath ?? args.relative_workspace_path ?? "",
+		);
+		const oldString = String(
+			args.oldString ?? args.old_string ?? args.old_str ?? "",
+		);
+		const newString = String(
+			args.newString ?? args.new_string ?? args.new_str ?? "",
+		);
 		return (
 			<FileDiffTool
 				filePath={filePath}
@@ -257,6 +265,22 @@ export function MastraToolCallBlock({
 		return (
 			<GenericToolCall part={part} toolName="Delete path" icon={FileIcon} />
 		);
+	}
+
+	if (toolName === "request_sandbox_access") {
+		return <GenericToolCall part={part} toolName="Request sandbox access" />;
+	}
+
+	if (toolName === "task_write") {
+		return <GenericToolCall part={part} toolName="Write task list" />;
+	}
+
+	if (toolName === "task_check") {
+		return <GenericToolCall part={part} toolName="Update task status" />;
+	}
+
+	if (toolName === "submit_plan") {
+		return <GenericToolCall part={part} toolName="Submit plan" />;
 	}
 
 	// --- Fallback: generic tool UI ---
