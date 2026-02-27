@@ -79,27 +79,59 @@ export function TrustedBySection() {
 		<section className="py-6 sm:py-12 md:py-18 bg-background overflow-hidden">
 			<div className="max-w-7xl mx-auto">
 				<div>
-					<h2 className="hidden sm:block text-lg sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
+					<h2 className="text-base sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
 						Trusted by builders from
 					</h2>
 				</div>
-				<div className="space-y-3 sm:space-y-4 px-4">
+
+				{/* Mobile/tablet: responsive grid to avoid horizontal overflow */}
+				<div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 px-4 md:hidden">
+					{CLIENT_LOGOS.map((client) => (
+						<div
+							key={client.name}
+							className="flex items-center justify-center min-w-0 whitespace-nowrap h-16 sm:h-18 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+						>
+							<Image
+								src={client.logo}
+								alt={client.name}
+								width={160}
+								height={client.height}
+								className="object-contain scale-75 sm:scale-90 grayscale brightness-0 invert"
+								style={{
+									height: client.height,
+									width: "auto",
+									borderRadius: client?.borderRadius ?? 0,
+									marginTop: client?.marginTop ?? 0,
+								}}
+								unoptimized
+							/>
+							{client.text && (
+								<span className="ml-2 mt-0.5 font-medium text-foreground text-[0.9rem]">
+									{client.text}
+								</span>
+							)}
+						</div>
+					))}
+				</div>
+
+				{/* Desktop: two explicit rows */}
+				<div className="hidden md:block space-y-3 sm:space-y-4 px-4">
 					{logoRows.map((row) => (
 						<div
 							key={row.map((client) => client.name).join("-")}
-							className="flex flex-wrap md:flex-nowrap items-center justify-center gap-2.5 sm:gap-3.5"
+							className="flex items-center justify-center gap-3.5"
 						>
 							{row.map((client) => (
 								<div
 									key={client.name}
-									className="flex items-center justify-center whitespace-nowrap h-18 sm:h-22 md:h-24 w-[145px] sm:w-[160px] md:w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
+									className="flex items-center justify-center whitespace-nowrap h-24 w-[168px] rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03] opacity-90 hover:opacity-100 transition-opacity"
 								>
 									<Image
 										src={client.logo}
 										alt={client.name}
 										width={160}
 										height={client.height}
-										className="object-contain scale-75 sm:scale-90 md:scale-100 grayscale brightness-0 invert"
+										className="object-contain scale-100 grayscale brightness-0 invert"
 										style={{
 											height: client.height,
 											width: "auto",
@@ -109,7 +141,7 @@ export function TrustedBySection() {
 										unoptimized
 									/>
 									{client.text && (
-										<span className="ml-2 mt-0.5 font-medium text-foreground text-[0.95rem] sm:text-[1.1rem]">
+										<span className="ml-2 mt-0.5 font-medium text-foreground text-[1.1rem]">
 											{client.text}
 										</span>
 									)}
