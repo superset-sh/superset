@@ -28,8 +28,6 @@ interface MessageScrollbackRailProps {
 	messages: UIMessage[];
 }
 
-type ScrollbackEntry = UserMessageEntry;
-
 function truncatePreview(text: string): string {
 	if (text.length <= PREVIEW_CHARACTER_LIMIT) {
 		return text;
@@ -102,44 +100,16 @@ function findUserMessageElement(
 	return null;
 }
 
-function areEntriesEqual(
-	left: ScrollbackEntry[],
-	right: ScrollbackEntry[],
-): boolean {
-	if (left.length !== right.length) {
-		return false;
-	}
-
-	for (let index = 0; index < left.length; index += 1) {
-		const leftEntry = left[index];
-		const rightEntry = right[index];
-		if (!leftEntry || !rightEntry) {
-			return false;
-		}
-		if (
-			leftEntry.id !== rightEntry.id ||
-			leftEntry.preview !== rightEntry.preview ||
-			leftEntry.top !== rightEntry.top ||
-			leftEntry.isLatest !== rightEntry.isLatest
-		) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 export function MessageScrollbackRail({
 	messages,
 }: MessageScrollbackRailProps) {
 	const { scrollRef, stopScroll } = useConversationContext();
-	const [entries, setEntries] = useState<ScrollbackEntry[]>([]);
+	const [entries, setEntries] = useState<UserMessageEntry[]>([]);
 	const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 	const [isCardOpen, setIsCardOpen] = useState(false);
 	const [dismissedByClick, setDismissedByClick] = useState(false);
 	const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const entriesRef = useRef<ScrollbackEntry[]>([]);
 
 	const userMessages = useMemo<BaseUserMessageEntry[]>(
 		() =>
@@ -156,22 +126,14 @@ export function MessageScrollbackRail({
 	const recalculateEntries = useCallback(() => {
 		const scrollElement = scrollRef.current;
 		if (!scrollElement) {
-			setEntries((previousEntries) =>
-				previousEntries.length === 0 ? previousEntries : [],
-			);
-			setActiveMessageId((previousId) =>
-				previousId === null ? previousId : null,
-			);
+			setEntries([]);
+			setActiveMessageId(null);
 			return;
 		}
 
 		if (userMessages.length === 0) {
-			setEntries((previousEntries) =>
-				previousEntries.length === 0 ? previousEntries : [],
-			);
-			setActiveMessageId((previousId) =>
-				previousId === null ? previousId : null,
-			);
+			setEntries([]);
+			setActiveMessageId(null);
 			return;
 		}
 
@@ -192,17 +154,9 @@ export function MessageScrollbackRail({
 			};
 		});
 
-		const nextActiveMessageId = findActiveMessageId(
-			nextEntries,
-			scrollElement.scrollTop,
-		);
-		setEntries((previousEntries) =>
-			areEntriesEqual(previousEntries, nextEntries)
-				? previousEntries
-				: nextEntries,
-		);
-		setActiveMessageId((previousId) =>
-			previousId === nextActiveMessageId ? previousId : nextActiveMessageId,
+		setEntries(nextEntries);
+		setActiveMessageId(
+			findActiveMessageId(nextEntries, scrollElement.scrollTop),
 		);
 	}, [scrollRef, userMessages]);
 
@@ -212,30 +166,20 @@ export function MessageScrollbackRail({
 	}, [recalculateEntries]);
 
 	useEffect(() => {
-		entriesRef.current = entries;
-	}, [entries]);
-
-	useEffect(() => {
 		const scrollElement = scrollRef.current;
 		if (!scrollElement) {
 			return;
 		}
 
 		const handleScroll = () => {
-			const nextActiveMessageId = findActiveMessageId(
-				entriesRef.current,
-				scrollElement.scrollTop,
-			);
-			setActiveMessageId((previousId) =>
-				previousId === nextActiveMessageId ? previousId : nextActiveMessageId,
-			);
+			setActiveMessageId(findActiveMessageId(entries, scrollElement.scrollTop));
 		};
 
 		scrollElement.addEventListener("scroll", handleScroll, { passive: true });
 		return () => {
 			scrollElement.removeEventListener("scroll", handleScroll);
 		};
-	}, [scrollRef]);
+	}, [entries, scrollRef]);
 
 	useEffect(() => {
 		const scrollElement = scrollRef.current;
