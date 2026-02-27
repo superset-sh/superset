@@ -1,11 +1,9 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
 import { TbDeviceDesktop } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Tab } from "renderer/stores/tabs/types";
-import { TabContentContextMenu } from "../../TabContentContextMenu";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { BrowserErrorOverlay } from "./components/BrowserErrorOverlay";
 import { BrowserToolbar } from "./components/BrowserToolbar";
@@ -23,21 +21,8 @@ interface BrowserPaneProps {
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
 	) => void;
-	splitPaneHorizontal: (
-		tabId: string,
-		sourcePaneId: string,
-		path?: MosaicBranch[],
-	) => void;
-	splitPaneVertical: (
-		tabId: string,
-		sourcePaneId: string,
-		path?: MosaicBranch[],
-	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
-	availableTabs: Tab[];
-	onMoveToTab: (targetTabId: string) => void;
-	onMoveToNewTab: () => void;
 }
 
 export function BrowserPane({
@@ -45,17 +30,11 @@ export function BrowserPane({
 	path,
 	tabId,
 	splitPaneAuto,
-	splitPaneHorizontal,
-	splitPaneVertical,
 	removePane,
 	setFocusedPane,
-	availableTabs,
-	onMoveToTab,
-	onMoveToNewTab,
 }: BrowserPaneProps) {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const openDevToolsPane = useTabsStore((s) => s.openDevToolsPane);
-	const contentRef = useRef<HTMLDivElement>(null);
 	const browserState = pane?.browser;
 	const currentUrl = browserState?.currentUrl ?? DEFAULT_BROWSER_URL;
 	const pageTitle =
@@ -63,25 +42,6 @@ export function BrowserPane({
 	const isLoading = browserState?.isLoading ?? false;
 	const loadError = browserState?.error ?? null;
 	const isBlankPage = currentUrl === "about:blank";
-
-	const handleWebviewContextMenu = useCallback(
-		(position: { clientX: number; clientY: number }) => {
-			const target = contentRef.current;
-			if (!target) return;
-			target.dispatchEvent(
-				new MouseEvent("contextmenu", {
-					bubbles: true,
-					cancelable: true,
-					button: 2,
-					buttons: 2,
-					clientX: position.clientX,
-					clientY: position.clientY,
-					view: window,
-				}),
-			);
-		},
-		[],
-	);
 
 	const {
 		containerRef,
@@ -94,7 +54,6 @@ export function BrowserPane({
 	} = usePersistentWebview({
 		paneId,
 		initialUrl: currentUrl,
-		onContextMenu: handleWebviewContextMenu,
 	});
 
 	const handleOpenDevTools = useCallback(() => {
@@ -153,42 +112,27 @@ export function BrowserPane({
 				</div>
 			)}
 		>
-			<TabContentContextMenu
-				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
-				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
-				onClosePane={() => removePane(paneId)}
-				currentTabId={tabId}
-				availableTabs={availableTabs}
-				onMoveToTab={onMoveToTab}
-				onMoveToNewTab={onMoveToNewTab}
-				closeLabel="Close Browser"
-			>
-				<div ref={contentRef} className="relative flex flex-1 h-full">
-					<div
-						ref={containerRef}
-						className="h-full w-full"
-						style={{ flex: 1 }}
-					/>
-					{loadError && !isLoading && (
-						<BrowserErrorOverlay error={loadError} onRetry={reload} />
-					)}
-					{isBlankPage && !isLoading && !loadError && (
-						<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background">
-							<GlobeIcon className="size-10 text-muted-foreground/30" />
-							<div className="text-center">
-								<p className="text-sm font-medium text-muted-foreground/50">
-									Browser
-								</p>
-								<p className="mt-1 text-xs text-muted-foreground/30">
-									Enter a URL above, or instruct an agent to navigate
-									<br />
-									and use the browser
-								</p>
-							</div>
+			<div className="relative flex flex-1 h-full">
+				<div ref={containerRef} className="w-full h-full" style={{ flex: 1 }} />
+				{loadError && !isLoading && (
+					<BrowserErrorOverlay error={loadError} onRetry={reload} />
+				)}
+				{isBlankPage && !isLoading && !loadError && (
+					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background pointer-events-none">
+						<GlobeIcon className="size-10 text-muted-foreground/30" />
+						<div className="text-center">
+							<p className="text-sm font-medium text-muted-foreground/50">
+								Browser
+							</p>
+							<p className="mt-1 text-xs text-muted-foreground/30">
+								Enter a URL above, or instruct an agent to navigate
+								<br />
+								and use the browser
+							</p>
 						</div>
-					)}
-				</div>
-			</TabContentContextMenu>
+					</div>
+				)}
+			</div>
 		</BasePaneWindow>
 	);
 }
