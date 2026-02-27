@@ -6,17 +6,21 @@ interface EditToolExpandedDiffProps {
 	filePath: string;
 	oldString: string;
 	newString: string;
+	hideUnchangedRegions?: boolean;
 }
 
 export function EditToolExpandedDiff({
 	filePath,
 	oldString,
 	newString,
+	hideUnchangedRegions,
 }: EditToolExpandedDiffProps) {
 	const viewMode = useChangesStore((state) => state.viewMode);
-	const hideUnchangedRegions = useChangesStore(
+	const hideUnchangedRegionsFromStore = useChangesStore(
 		(state) => state.hideUnchangedRegions,
 	);
+	const effectiveHideUnchangedRegions =
+		hideUnchangedRegions ?? hideUnchangedRegionsFromStore;
 
 	const contents: FileContents = {
 		original: oldString,
@@ -28,7 +32,7 @@ export function EditToolExpandedDiff({
 		<LightDiffViewer
 			contents={contents}
 			viewMode={viewMode}
-			hideUnchangedRegions={hideUnchangedRegions}
+			hideUnchangedRegions={effectiveHideUnchangedRegions}
 			filePath={filePath}
 		/>
 	);

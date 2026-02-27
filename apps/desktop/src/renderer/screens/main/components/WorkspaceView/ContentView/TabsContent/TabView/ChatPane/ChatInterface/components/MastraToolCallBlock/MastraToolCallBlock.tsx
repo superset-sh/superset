@@ -6,6 +6,7 @@ import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
+import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
 import { READ_ONLY_TOOLS } from "../../constants";
@@ -46,6 +47,9 @@ export function MastraToolCallBlock({
 	const result = getResult(part);
 	const state = toWsToolState(part);
 	const toolName = normalizeToolName(getToolName(part));
+	const hideUnchangedRegions = useChangesStore(
+		(store) => store.hideUnchangedRegions,
+	);
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
 	const panes = useTabsStore((store) => store.panes);
 	const tabs = useTabsStore((store) => store.tabs);
@@ -257,6 +261,7 @@ export function MastraToolCallBlock({
 									filePath={filePath}
 									oldString=""
 									newString={content}
+									hideUnchangedRegions={hideUnchangedRegions}
 								/>
 							)
 						: undefined
@@ -379,6 +384,7 @@ export function MastraToolCallBlock({
 									filePath={filePath}
 									oldString={expandedOldString}
 									newString={expandedNewString}
+									hideUnchangedRegions={hideUnchangedRegions}
 								/>
 							)
 						: undefined

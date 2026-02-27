@@ -53,7 +53,7 @@ export const WebFetchTool = ({
 	return (
 		<div
 			className={cn(
-				"overflow-hidden rounded-lg border border-border bg-muted/30",
+				"overflow-hidden rounded-md",
 				className,
 			)}
 		>
@@ -64,7 +64,7 @@ export const WebFetchTool = ({
 					"flex h-7 items-center justify-between px-2.5",
 					hasContent &&
 						!isPending &&
-						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
+						"cursor-pointer transition-colors duration-150 hover:bg-muted/30",
 				)}
 				onClick={() => hasContent && !isPending && setIsExpanded(!isExpanded)}
 			>
@@ -102,7 +102,7 @@ export const WebFetchTool = ({
 
 			{/* Content */}
 			{hasContent && isExpanded && (
-				<div className="max-h-[300px] overflow-y-auto border-t border-border">
+				<div className="mt-0.5 max-h-[300px] overflow-y-auto">
 					<pre className="whitespace-pre-wrap break-words px-2.5 py-2 font-mono text-xs text-foreground">
 						{content}
 					</pre>

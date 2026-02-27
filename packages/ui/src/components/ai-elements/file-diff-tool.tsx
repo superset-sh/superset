@@ -169,7 +169,7 @@ export const FileDiffTool = ({
 	return (
 		<div
 			className={cn(
-				"overflow-hidden rounded-lg border border-border bg-muted/30",
+				"overflow-hidden rounded-md",
 				className,
 			)}
 		>
@@ -179,7 +179,7 @@ export const FileDiffTool = ({
 				className={cn(
 					"flex h-7 items-center justify-between px-2.5",
 					hasDiff &&
-						"cursor-pointer transition-colors duration-150 hover:bg-muted/50",
+						"cursor-pointer transition-colors duration-150 hover:bg-muted/30",
 				)}
 				onClick={() => hasDiff && setExpanded((prev) => !prev)}
 			>
@@ -219,7 +219,7 @@ export const FileDiffTool = ({
 								<button
 									type="button"
 									aria-label={`Open ${filePath}`}
-									className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+									className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
 									onClick={(event) => {
 										event.stopPropagation();
 									}}
@@ -249,7 +249,7 @@ export const FileDiffTool = ({
 							<button
 								type="button"
 								aria-label={`Open ${filePath}`}
-								className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+								className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
 								onClick={(event) => {
 									event.stopPropagation();
 									onFilePathClick?.(filePath);
@@ -278,7 +278,7 @@ export const FileDiffTool = ({
 			{/* Diff body */}
 			{hasDiff && expanded && (
 				<div
-					className="overflow-y-auto border-t border-border"
+					className="mt-0.5 overflow-y-auto"
 					style={{ maxHeight: EXPANDED_MAX_HEIGHT }}
 				>
 					{renderExpandedContent ? (
@@ -317,7 +317,7 @@ export const FileDiffTool = ({
 
 			{/* Streaming indicator */}
 			{isStreaming && !hasDiff && (
-				<div className="border-t border-border px-2.5 py-1.5">
+				<div className="mt-0.5 px-2.5 py-1.5">
 					<span className="animate-pulse font-mono text-muted-foreground/50 text-xs">
 						...
 					</span>

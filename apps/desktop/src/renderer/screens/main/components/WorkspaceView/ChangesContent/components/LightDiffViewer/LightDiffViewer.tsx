@@ -49,8 +49,10 @@ function getDiffBrandUnsafeCss(theme: Theme): string {
 :host {
 	--diffs-light-bg: ${bg};
 	--diffs-dark-bg: ${bg};
+	--diffs-bg: light-dark(var(--diffs-light-bg), var(--diffs-dark-bg));
 	--diffs-light: ${fg};
 	--diffs-dark: ${fg};
+	background-color: var(--diffs-bg);
 
 	--diffs-bg-buffer-override: ${withAlpha(brand, subtleTint + 0.04)};
 	--diffs-bg-context-override: ${withAlpha(brand, subtleTint)};
@@ -74,6 +76,10 @@ function getDiffBrandUnsafeCss(theme: Theme): string {
 	--diffs-bg-selection-override: ${withAlpha(brand, selectionTint)};
 	--diffs-bg-selection-number-override: ${withAlpha(brand, selectionNumberTint)};
 }
+
+[data-diffs] {
+	background-color: var(--diffs-bg);
+}
 `;
 }
 
@@ -92,6 +98,9 @@ export function LightDiffViewer({
 }: LightDiffViewerProps) {
 	const activeTheme = useThemeStore((s) => s.activeTheme);
 	const themeId = activeTheme?.id ?? "dark";
+	const diffBackground = activeTheme
+		? toHexAuto(getTerminalColors(activeTheme).background)
+		: undefined;
 	const themeType = useThemeStore((s) =>
 		s.activeTheme?.type === "light" ? ("light" as const) : ("dark" as const),
 	);
@@ -104,8 +113,10 @@ export function LightDiffViewer({
 
 	return (
 		<MultiFileDiff
+			className="block"
 			oldFile={{ name: filePath, contents: contents.original }}
 			newFile={{ name: filePath, contents: contents.modified }}
+			style={diffBackground ? { backgroundColor: diffBackground } : undefined}
 			options={{
 				diffStyle: viewMode === "side-by-side" ? "split" : "unified",
 				expandUnchanged: !hideUnchangedRegions,
