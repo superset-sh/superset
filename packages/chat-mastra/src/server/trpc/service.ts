@@ -73,9 +73,6 @@ export class ChatMastraService {
 			cwd: runtimeCwd,
 			extraTools,
 		});
-		if (runtimeMastra.mcpManager?.hasServers()) {
-			await runtimeMastra.mcpManager.init().catch(() => {});
-		}
 		runtimeMastra.hookManager?.setSessionId(sessionId);
 		await runtimeMastra.harness.init();
 		runtimeMastra.harness.setResourceId({ resourceId: sessionId });
