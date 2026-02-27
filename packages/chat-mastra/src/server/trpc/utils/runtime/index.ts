@@ -1,10 +1,10 @@
 export {
-	getOrCreateRuntime,
 	getRuntimeMcpOverview,
-	onDisplayStateObserved,
 	type RuntimeDisplayState,
 	type RuntimeHarness,
+	type RuntimeHookManager,
+	type RuntimeMcpManager,
 	type RuntimeSession,
-	runStopHook,
-	runUserPromptHook,
 } from "./runtime";
+export { runUserPromptHook, runStopHook } from "./hooks";
+export { onDisplayStateObserved } from "./lifecycle";

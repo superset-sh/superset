@@ -108,7 +108,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "dependencies": {
         "@ai-sdk/react": "^3.0.0",
         "@ast-grep/napi": "^0.41.0",
@@ -593,6 +593,8 @@
       "version": "0.0.1",
       "dependencies": {
         "@mastra/mcp": "^1.0.2",
+        "@superset/trpc": "workspace:*",
+        "@trpc/client": "^11.7.1",
         "@trpc/server": "^11.7.1",
         "fast-glob": "^3.3.3",
         "fuse.js": "^7.1.0",

@@ -23,6 +23,8 @@
 	},
 	"dependencies": {
 		"@mastra/mcp": "^1.0.2",
+		"@superset/trpc": "workspace:*",
+		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
 		"fast-glob": "^3.3.3",
 		"fuse.js": "^7.1.0",
