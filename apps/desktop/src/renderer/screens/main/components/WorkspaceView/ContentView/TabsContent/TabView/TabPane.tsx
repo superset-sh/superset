@@ -124,6 +124,7 @@ export function TabPane({
 				availableTabs={availableTabs}
 				onMoveToTab={onMoveToTab}
 				onMoveToNewTab={onMoveToNewTab}
+				closeLabel="Close Terminal"
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
 					<Terminal paneId={paneId} tabId={tabId} workspaceId={workspaceId} />

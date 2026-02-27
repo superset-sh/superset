@@ -35,14 +35,15 @@ interface TabContentContextMenuProps {
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onClosePane: () => void;
-	onClearTerminal: () => void;
-	onScrollToBottom: () => void;
+	onClearTerminal?: () => void;
+	onScrollToBottom?: () => void;
 	getSelection?: () => string;
 	onPaste?: (text: string) => void;
 	currentTabId: string;
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
+	closeLabel?: string;
 }
 
 export function TabContentContextMenu({
@@ -58,6 +59,7 @@ export function TabContentContextMenu({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
+	closeLabel = "Close Pane",
 }: TabContentContextMenuProps) {
 	// Filter out current tab from available targets
 	const targetTabs = availableTabs.filter((t) => t.id !== currentTabId);
@@ -66,6 +68,7 @@ export function TabContentContextMenu({
 	const scrollToBottomShortcut = useHotkeyText("SCROLL_TO_BOTTOM");
 	const showScrollToBottomShortcut = scrollToBottomShortcut !== "Unassigned";
 	const modKey = getModifierKeyLabel();
+	const hasTerminalActions = !!onClearTerminal || !!onScrollToBottom;
 
 	const [hasSelection, setHasSelection] = useState(false);
 	const [hasClipboard, setHasClipboard] = useState(false);
@@ -124,21 +127,27 @@ export function TabContentContextMenu({
 					<LuColumns2 className="size-4" />
 					Split Vertically
 				</ContextMenuItem>
-				<ContextMenuItem onSelect={onClearTerminal}>
-					<LuEraser className="size-4" />
-					Clear Terminal
-					{showClearShortcut && (
-						<ContextMenuShortcut>{clearShortcut}</ContextMenuShortcut>
-					)}
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={onScrollToBottom}>
-					<LuArrowDownToLine className="size-4" />
-					Scroll to Bottom
-					{showScrollToBottomShortcut && (
-						<ContextMenuShortcut>{scrollToBottomShortcut}</ContextMenuShortcut>
-					)}
-				</ContextMenuItem>
-				<ContextMenuSeparator />
+				{onClearTerminal && (
+					<ContextMenuItem onSelect={onClearTerminal}>
+						<LuEraser className="size-4" />
+						Clear Terminal
+						{showClearShortcut && (
+							<ContextMenuShortcut>{clearShortcut}</ContextMenuShortcut>
+						)}
+					</ContextMenuItem>
+				)}
+				{onScrollToBottom && (
+					<ContextMenuItem onSelect={onScrollToBottom}>
+						<LuArrowDownToLine className="size-4" />
+						Scroll to Bottom
+						{showScrollToBottomShortcut && (
+							<ContextMenuShortcut>
+								{scrollToBottomShortcut}
+							</ContextMenuShortcut>
+						)}
+					</ContextMenuItem>
+				)}
+				{hasTerminalActions && <ContextMenuSeparator />}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger className="gap-2">
 						<LuMoveRight className="size-4" />
@@ -163,7 +172,7 @@ export function TabContentContextMenu({
 				<ContextMenuSeparator />
 				<ContextMenuItem variant="destructive" onSelect={onClosePane}>
 					<LuX className="size-4" />
-					Close Terminal
+					{closeLabel}
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
