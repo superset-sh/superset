@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useState } from "react";
+import { TypewriterText } from "renderer/components/TypewriterText";
 import { authClient, setAuthToken } from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
@@ -76,7 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	if (!isHydrated) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<SupersetLogo className="h-8 w-auto animate-pulse opacity-80" />
+				<div className="flex flex-col items-center gap-4">
+					<SupersetLogo className="h-8 w-auto opacity-80" />
+					<div className="text-lg font-semibold text-foreground">
+						<TypewriterText text="Superset" speed={45} delay={200} />
+					</div>
+				</div>
 			</div>
 		);
 	}
