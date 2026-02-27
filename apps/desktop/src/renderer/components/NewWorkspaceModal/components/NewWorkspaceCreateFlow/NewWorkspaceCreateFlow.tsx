@@ -54,7 +54,7 @@ export function NewWorkspaceCreateFlow({
 	const isDark = useIsDarkTheme();
 
 	return (
-		<div className="space-y-3">
+		<div className="space-y-3 min-w-0">
 			<div className="flex items-end gap-3 min-w-0">
 				<div className="flex-1 min-w-0">{projectSelector}</div>
 				<div className="shrink-0 max-w-[45%]">
@@ -101,7 +101,7 @@ export function NewWorkspaceCreateFlow({
 			<Textarea
 				ref={titleInputRef}
 				id="title"
-				className="min-h-20 text-sm resize-y"
+				className="min-h-20 min-w-0 w-full max-w-full field-sizing-fixed text-sm resize-y"
 				placeholder="What do you want to do?"
 				value={title}
 				onChange={(e) => onTitleChange(e.target.value)}

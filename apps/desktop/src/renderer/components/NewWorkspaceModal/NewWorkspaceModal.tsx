@@ -386,7 +386,7 @@ export function NewWorkspaceModal() {
 				)}
 
 				{selectedProjectId && (
-					<div className="px-4 pb-4">
+					<div className="px-4 pb-4 min-w-0">
 						{mode === "new" && (
 							<NewWorkspaceCreateFlow
 								projectSelector={projectSelector}
