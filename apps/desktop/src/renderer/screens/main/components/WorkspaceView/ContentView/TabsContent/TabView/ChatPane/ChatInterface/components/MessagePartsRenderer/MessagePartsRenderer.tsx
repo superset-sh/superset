@@ -153,6 +153,19 @@ export function MessagePartsRenderer({
 
 				// Group consecutive read-only tools into ExploringGroup
 				if (READ_ONLY_TOOLS.has(toolName)) {
+					// Read-file calls should render content inline instead of being grouped away.
+					if (toolName === "mastra_workspace_read_file") {
+						nodes.push(
+							<ReadOnlyToolCall
+								key={part.toolCallId}
+								part={part as ToolPart}
+								onOpenFileInPane={openFileInPane}
+							/>,
+						);
+						i++;
+						continue;
+					}
+
 					const groupStart = i;
 					const groupParts: ToolPart[] = [];
 					while (
@@ -160,7 +173,9 @@ export function MessagePartsRenderer({
 						isToolUIPart(parts[i]) &&
 						READ_ONLY_TOOLS.has(
 							normalizeToolName(getToolName(parts[i] as ToolPart)),
-						)
+						) &&
+						normalizeToolName(getToolName(parts[i] as ToolPart)) !==
+							"mastra_workspace_read_file"
 					) {
 						groupParts.push(parts[i] as ToolPart);
 						i++;
