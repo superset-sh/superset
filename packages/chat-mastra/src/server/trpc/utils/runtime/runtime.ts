@@ -18,7 +18,6 @@ export interface RuntimeSession {
 	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
 	cwd: string;
-	lastIsRunning: boolean;
 }
 
 const MCP_PROBE_TIMEOUT_MS = 15_000;

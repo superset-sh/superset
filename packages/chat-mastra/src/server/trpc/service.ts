@@ -7,9 +7,8 @@ import { searchFiles } from "./utils/file-search";
 import {
 	type RuntimeSession,
 	getRuntimeMcpOverview,
-	onDisplayStateObserved,
-	runStopHook,
-	runUserPromptHook,
+	onUserPromptSubmit,
+	subscribeToSessionEvents,
 } from "./utils/runtime";
 import {
 	approvalRespondInput,
@@ -75,8 +74,8 @@ export class ChatMastraService {
 			mcpManager: runtimeMastra.mcpManager,
 			hookManager: runtimeMastra.hookManager,
 			cwd: runtimeCwd,
-			lastIsRunning: false,
 		};
+		subscribeToSessionEvents(runtime, this.apiClient);
 		this.runtimes.set(sessionId, runtime);
 		return runtime;
 	}
@@ -116,9 +115,7 @@ export class ChatMastraService {
 							input.sessionId,
 							input.cwd,
 						);
-						const displayState = runtime.harness.getDisplayState();
-						onDisplayStateObserved(runtime, displayState, this.apiClient);
-						return displayState;
+						return runtime.harness.getDisplayState();
 					}),
 
 				listMessages: t.procedure
@@ -140,7 +137,7 @@ export class ChatMastraService {
 						);
 						const userMessage =
 							input.payload.content.trim() || "[non-text message]";
-						await runUserPromptHook(runtime, userMessage);
+						await onUserPromptSubmit(runtime, userMessage);
 						const selectedModel = input.metadata?.model?.trim();
 						if (selectedModel) {
 							await runtime.harness.switchModel({
@@ -148,23 +145,17 @@ export class ChatMastraService {
 								scope: "thread",
 							});
 						}
-						const sendResult = await runtime.harness.sendMessage(input.payload);
-						runtime.lastIsRunning = true;
-						return sendResult;
+						return runtime.harness.sendMessage(input.payload);
 					}),
 
 				stop: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
 					const runtime = await this.getOrCreateRuntime(input.sessionId);
 					runtime.harness.abort();
-					runtime.lastIsRunning = false;
-					await runStopHook(runtime, "aborted");
 				}),
 
 				abort: t.procedure.input(sessionIdInput).mutation(async ({ input }) => {
 					const runtime = await this.getOrCreateRuntime(input.sessionId);
 					runtime.harness.abort();
-					runtime.lastIsRunning = false;
-					await runStopHook(runtime, "aborted");
 				}),
 
 				approval: t.router({

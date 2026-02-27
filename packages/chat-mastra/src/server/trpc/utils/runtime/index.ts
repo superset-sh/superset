@@ -6,5 +6,7 @@ export {
 	type RuntimeMcpManager,
 	type RuntimeSession,
 } from "./runtime";
-export { runUserPromptHook, runStopHook } from "./hooks";
-export { onDisplayStateObserved } from "./lifecycle";
+export {
+	onUserPromptSubmit,
+	subscribeToSessionEvents,
+} from "./session-events";
