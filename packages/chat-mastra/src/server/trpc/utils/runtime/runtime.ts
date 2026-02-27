@@ -11,6 +11,12 @@ export type RuntimeMcpManager = Awaited<
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
+export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
+export interface RuntimeEvent {
+	type: string;
+	reason?: string;
+	displayState?: RuntimeDisplayState;
+}
 
 export interface RuntimeSession {
 	sessionId: string;
@@ -89,7 +95,7 @@ export function subscribeToSessionEvents(
 	runtime: RuntimeSession,
 	apiClient: ApiClient,
 ): void {
-	runtime.harness.subscribe((event: { type: string; reason?: string }) => {
+	runtime.harness.subscribe((event: RuntimeEvent) => {
 		if (event.type === "agent_end") {
 			const raw = event.reason;
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
