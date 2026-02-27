@@ -1,3 +1,4 @@
+import { Spinner } from "@superset/ui/spinner";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo";
 import { TypewriterText } from "./components/TypewriterText";
 
@@ -17,6 +18,11 @@ export function InitialSplashScreen() {
 						delay={300}
 					/>
 				</h1>
+
+				<div className="flex items-center gap-2 text-sm text-muted-foreground">
+					<Spinner className="size-4" />
+					<span>Loading...</span>
+				</div>
 			</div>
 		</div>
 	);
