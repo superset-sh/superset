@@ -32,7 +32,7 @@ import {
 	parsePrUrl,
 	safeCheckoutBranch,
 	sanitizeAuthorPrefix,
-	sanitizeBranchName,
+	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
@@ -368,7 +368,9 @@ export const createCreateProcedures = () => {
 					}
 					branch = existingBranchName;
 				} else if (input.branchName?.trim()) {
-					branch = withPrefix(sanitizeBranchName(input.branchName));
+					branch = sanitizeBranchNameWithMaxLength(
+						withPrefix(input.branchName),
+					);
 				} else {
 					branch = generateBranchName({
 						existingBranches,

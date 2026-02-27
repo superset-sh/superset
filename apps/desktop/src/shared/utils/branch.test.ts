@@ -3,7 +3,9 @@ import {
 	deduplicateBranchName,
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
+	sanitizeBranchNameWithMaxLength,
 	sanitizeSegment,
+	truncateBranchName,
 } from "./branch";
 
 describe("sanitizeSegment", () => {
@@ -135,6 +137,26 @@ describe("sanitizeBranchName", () => {
 
 	test("handles only slashes", () => {
 		expect(sanitizeBranchName("///")).toBe("");
+	});
+});
+
+describe("truncateBranchName", () => {
+	test("truncates to max length", () => {
+		expect(truncateBranchName("feature/my-very-long-branch", 8)).toBe(
+			"feature",
+		);
+	});
+
+	test("drops trailing slash after truncation", () => {
+		expect(truncateBranchName("feature/test", 8)).toBe("feature");
+	});
+});
+
+describe("sanitizeBranchNameWithMaxLength", () => {
+	test("sanitizes and then truncates", () => {
+		expect(
+			sanitizeBranchNameWithMaxLength("Feature Name/With Spaces", 16),
+		).toBe("feature-name/wit");
 	});
 });
 

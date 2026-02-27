@@ -1,4 +1,10 @@
-export function sanitizeSegment(text: string, maxLength = 50): string {
+export const DEFAULT_BRANCH_SEGMENT_MAX_LENGTH = 50;
+export const DEFAULT_BRANCH_NAME_MAX_LENGTH = 100;
+
+export function sanitizeSegment(
+	text: string,
+	maxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+): string {
 	return text
 		.toLowerCase()
 		.trim()
@@ -22,6 +28,20 @@ export function sanitizeBranchName(name: string): string {
 		.map((s) => sanitizeSegment(s))
 		.filter(Boolean)
 		.join("/");
+}
+
+export function truncateBranchName(
+	branchName: string,
+	maxLength = DEFAULT_BRANCH_NAME_MAX_LENGTH,
+): string {
+	return branchName.slice(0, maxLength).replace(/\/+$/g, "");
+}
+
+export function sanitizeBranchNameWithMaxLength(
+	name: string,
+	maxLength = DEFAULT_BRANCH_NAME_MAX_LENGTH,
+): string {
+	return truncateBranchName(sanitizeBranchName(name), maxLength);
 }
 
 /**

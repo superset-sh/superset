@@ -19,7 +19,14 @@ import {
 } from "renderer/stores/new-workspace-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
-import { resolveBranchPrefix, sanitizeBranchName } from "shared/utils/branch";
+import {
+	resolveBranchPrefix,
+	sanitizeBranchNameWithMaxLength,
+} from "shared/utils/branch";
+import {
+	deriveWorkspaceBranchFromPrompt,
+	deriveWorkspaceTitleFromPrompt,
+} from "shared/utils/workspace-naming";
 import type { ImportSourceTab } from "./components/ExistingWorktreesList";
 import { ImportFlow } from "./components/ImportFlow";
 import { NewWorkspaceAdvancedOptions } from "./components/NewWorkspaceAdvancedOptions";
@@ -29,10 +36,6 @@ import {
 } from "./components/NewWorkspaceCreateFlow";
 import { NewWorkspaceHeader } from "./components/NewWorkspaceHeader";
 import { ProjectSelector } from "./components/ProjectSelector";
-
-function generateSlugFromTitle(title: string): string {
-	return sanitizeBranchName(title);
-}
 
 type Mode = "existing" | "new";
 const WORKSPACE_AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
@@ -147,14 +150,14 @@ export function NewWorkspaceModal() {
 	}, [selectedProjectId]);
 
 	const branchSlug = branchNameEdited
-		? sanitizeBranchName(branchName)
-		: generateSlugFromTitle(title);
+		? sanitizeBranchNameWithMaxLength(branchName)
+		: deriveWorkspaceBranchFromPrompt(title);
 
 	const applyPrefix = !branchNameEdited;
 
 	const branchPreview =
 		branchSlug && applyPrefix && resolvedPrefix
-			? `${resolvedPrefix}/${branchSlug}`
+			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
 			: branchSlug;
 
 	const resetForm = () => {
@@ -246,9 +249,10 @@ export function NewWorkspaceModal() {
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
+		// Keep the agent prompt uncapped; only trim surrounding whitespace.
 		const prompt = title.trim();
 
-		const workspaceName = prompt || undefined;
+		const workspaceName = deriveWorkspaceTitleFromPrompt(title) || undefined;
 		const agentCommand =
 			selectedAgent === "none"
 				? null

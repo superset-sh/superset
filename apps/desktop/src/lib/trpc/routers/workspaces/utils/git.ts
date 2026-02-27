@@ -406,6 +406,7 @@ export async function getBranchPrefix({
 export {
 	sanitizeAuthorPrefix,
 	sanitizeBranchName,
+	sanitizeBranchNameWithMaxLength,
 } from "shared/utils/branch";
 
 export function generateBranchName({

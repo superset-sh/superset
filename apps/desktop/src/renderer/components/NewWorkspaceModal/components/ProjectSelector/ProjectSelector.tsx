@@ -39,14 +39,16 @@ export function ProjectSelector({
 					<DropdownMenuTrigger asChild>
 						<Button
 							variant="outline"
-							className={`w-full h-8 text-sm justify-between font-normal ${className ?? ""}`}
+							className={`w-full h-8 text-sm justify-between font-normal min-w-0 ${className ?? ""}`}
 						>
 							<span
-								className={selectedProjectName ? "" : "text-muted-foreground"}
+								className={`truncate ${
+									selectedProjectName ? "" : "text-muted-foreground"
+								}`}
 							>
 								{selectedProjectName ?? "Select project"}
 							</span>
-							<HiChevronDown className="size-4 text-muted-foreground" />
+							<HiChevronDown className="size-4 text-muted-foreground shrink-0" />
 						</Button>
 					</DropdownMenuTrigger>
 				</TooltipTrigger>

@@ -55,9 +55,9 @@ export function NewWorkspaceCreateFlow({
 
 	return (
 		<div className="space-y-3">
-			<div className="flex items-end gap-3">
-				<div className="flex-1">{projectSelector}</div>
-				<div>
+			<div className="flex items-end gap-3 min-w-0">
+				<div className="flex-1 min-w-0">{projectSelector}</div>
+				<div className="shrink-0 max-w-[45%]">
 					<Select
 						value={selectedAgent}
 						onValueChange={(value: WorkspaceCreateAgent) =>
@@ -66,8 +66,8 @@ export function NewWorkspaceCreateFlow({
 					>
 						<Tooltip>
 							<TooltipTrigger asChild>
-								<SelectTrigger className="h-8 text-xs w-auto">
-									<SelectValue placeholder="No agent" />
+								<SelectTrigger className="h-8 text-xs w-auto max-w-full">
+									<SelectValue placeholder="No agent" className="truncate" />
 								</SelectTrigger>
 							</TooltipTrigger>
 							<TooltipContent side="bottom" showArrow={false}>
@@ -108,10 +108,12 @@ export function NewWorkspaceCreateFlow({
 			/>
 
 			{showBranchPreview && (
-				<p className="text-xs text-muted-foreground flex items-center gap-1.5">
+				<p className="text-xs text-muted-foreground grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 min-w-0">
 					<GoGitBranch className="size-3" />
-					<span className="font-mono">{branchPreview || "branch-name"}</span>
-					<span className="text-muted-foreground/60">
+					<span className="font-mono min-w-0 truncate">
+						{branchPreview || "branch-name"}
+					</span>
+					<span className="text-muted-foreground/60 whitespace-nowrap">
 						from {effectiveBaseBranch ?? "..."}
 					</span>
 				</p>
