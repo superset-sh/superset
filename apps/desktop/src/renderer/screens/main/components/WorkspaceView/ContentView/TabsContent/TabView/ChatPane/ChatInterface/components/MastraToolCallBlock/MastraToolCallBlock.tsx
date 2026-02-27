@@ -100,6 +100,47 @@ export function MastraToolCallBlock({
 		return firstText(...values) ?? "";
 	};
 
+	const deriveStringsFromStructuredPatch = (
+		hunks?: Array<{ lines: string[] }>,
+	): { oldString: string; newString: string } | undefined => {
+		if (!hunks?.length) return undefined;
+
+		const oldLines: string[] = [];
+		const newLines: string[] = [];
+
+		for (const hunk of hunks) {
+			for (const rawLine of hunk.lines) {
+				if (
+					rawLine.startsWith("@@") ||
+					rawLine.startsWith("\\ No newline at end of file")
+				) {
+					continue;
+				}
+
+				if (rawLine.startsWith("+")) {
+					newLines.push(rawLine.slice(1));
+					continue;
+				}
+
+				if (rawLine.startsWith("-")) {
+					oldLines.push(rawLine.slice(1));
+					continue;
+				}
+
+				const line = rawLine.startsWith(" ") ? rawLine.slice(1) : rawLine;
+				oldLines.push(line);
+				newLines.push(line);
+			}
+		}
+
+		if (oldLines.length === 0 && newLines.length === 0) return undefined;
+
+		return {
+			oldString: oldLines.join("\n"),
+			newString: newLines.join("\n"),
+		};
+	};
+
 	// --- Execute command → BashTool ---
 	if (toolName === "mastra_workspace_execute_command") {
 		const { command, stdout, stderr, exitCode } = getExecuteCommandViewModel({
@@ -247,6 +288,10 @@ export function MastraToolCallBlock({
 				);
 			},
 		);
+		const derivedStrings = deriveStringsFromStructuredPatch(structuredPatch);
+		const expandedOldString = oldString || derivedStrings?.oldString || "";
+		const expandedNewString = newString || derivedStrings?.newString || "";
+
 		return (
 			<FileDiffTool
 				filePath={filePath}
@@ -255,12 +300,12 @@ export function MastraToolCallBlock({
 				structuredPatch={structuredPatch}
 				onFilePathClick={openFileInPane}
 				renderExpandedContent={
-					oldString || newString
+					expandedOldString || expandedNewString
 						? () => (
 								<EditToolExpandedDiff
 									filePath={filePath}
-									oldString={oldString}
-									newString={newString}
+									oldString={expandedOldString}
+									newString={expandedNewString}
 								/>
 							)
 						: undefined
