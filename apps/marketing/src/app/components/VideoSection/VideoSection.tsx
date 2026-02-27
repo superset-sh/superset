@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useState } from "react";
 
-const VIDEO_ID = "7jhPfMDwTUc";
+const VIDEO_ID = "mk02bSQmEKY";
+const VIDEO_START_SECONDS = 8;
 
 export function VideoSection() {
 	const [isPlaying, setIsPlaying] = useState(false);
@@ -29,7 +30,7 @@ export function VideoSection() {
 						{isPlaying ? (
 							<iframe
 								className="absolute inset-0 w-full h-full"
-								src={`https://www.youtube.com/embed/${VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`}
+								src={`https://www.youtube.com/embed/${VIDEO_ID}?start=${VIDEO_START_SECONDS}&autoplay=1&rel=0&modestbranding=1`}
 								title="Superset Demo"
 								allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 								allowFullScreen
