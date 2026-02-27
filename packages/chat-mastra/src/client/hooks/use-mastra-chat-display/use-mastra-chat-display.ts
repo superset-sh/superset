@@ -25,9 +25,15 @@ export interface UseMastraChatDisplayOptions {
 	fps?: number;
 }
 
+const DEFAULT_ACTIVE_FPS = 20;
+const IDLE_DISPLAY_REFETCH_INTERVAL_MS = 1500;
+const RUNNING_MESSAGES_REFETCH_INTERVAL_MS = 1000;
+
 function toRefetchIntervalMs(fps: number): number {
-	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
-	return Math.max(16, Math.floor(1000 / fps));
+	if (!Number.isFinite(fps) || fps <= 0) {
+		return Math.floor(1000 / DEFAULT_ACTIVE_FPS);
+	}
+	return Math.max(50, Math.floor(1000 / fps));
 }
 
 function findLastUserMessageIndex(messages: ListMessagesOutput): number {
@@ -60,16 +66,22 @@ export function withoutActiveTurnAssistantHistory({
 }
 
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
-	const { sessionId, cwd, enabled = true, fps = 60 } = options;
+	const { sessionId, cwd, enabled = true, fps = DEFAULT_ACTIVE_FPS } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
+	const activePollIntervalMs = toRefetchIntervalMs(fps);
 
 	const displayQuery = chatMastraServiceTrpc.session.getDisplayState.useQuery(
 		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
 		{
 			enabled: enabled && Boolean(sessionId),
-			refetchInterval: toRefetchIntervalMs(fps),
-			refetchIntervalInBackground: true,
+			refetchInterval: (query) => {
+				const state = query.state.data as DisplayStateOutput | undefined;
+				return state?.isRunning
+					? activePollIntervalMs
+					: IDLE_DISPLAY_REFETCH_INTERVAL_MS;
+			},
+			refetchIntervalInBackground: false,
 			refetchOnWindowFocus: false,
 			staleTime: 0,
 			gcTime: 0,
@@ -80,8 +92,10 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
 		{
 			enabled: enabled && Boolean(sessionId),
-			refetchInterval: toRefetchIntervalMs(fps),
-			refetchIntervalInBackground: true,
+			refetchInterval: displayQuery.data?.isRunning
+				? RUNNING_MESSAGES_REFETCH_INTERVAL_MS
+				: false,
+			refetchIntervalInBackground: false,
 			refetchOnWindowFocus: false,
 			staleTime: 0,
 			gcTime: 0,
