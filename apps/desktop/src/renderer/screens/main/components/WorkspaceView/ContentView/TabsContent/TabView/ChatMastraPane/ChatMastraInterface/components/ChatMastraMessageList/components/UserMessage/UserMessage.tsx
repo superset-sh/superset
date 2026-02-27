@@ -7,6 +7,7 @@ import { parseUserMentions } from "./utils/parseUserMentions";
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
 >[number];
+type MastraMessagePart = MastraMessage["content"][number];
 
 interface UserMessageProps {
 	message: MastraMessage;
@@ -33,7 +34,7 @@ export function UserMessage({
 			data-chat-user-message="true"
 			data-message-id={message.id}
 		>
-			{message.content.map((part, partIndex) => {
+			{message.content.map((part: MastraMessagePart, partIndex: number) => {
 				if (part.type === "text") {
 					const mentionSegments = parseUserMentions(part.text);
 					return (
