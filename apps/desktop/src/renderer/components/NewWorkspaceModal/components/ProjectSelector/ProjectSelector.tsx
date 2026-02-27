@@ -34,9 +34,9 @@ export function ProjectSelector({
 }: ProjectSelectorProps) {
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Tooltip>
-					<TooltipTrigger asChild>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<DropdownMenuTrigger asChild>
 						<Button
 							variant="outline"
 							className={`w-full h-8 text-sm justify-between font-normal ${className ?? ""}`}
@@ -48,12 +48,12 @@ export function ProjectSelector({
 							</span>
 							<HiChevronDown className="size-4 text-muted-foreground" />
 						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Repository
-					</TooltipContent>
-				</Tooltip>
-			</DropdownMenuTrigger>
+					</DropdownMenuTrigger>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					Repository
+				</TooltipContent>
+			</Tooltip>
 			<DropdownMenuContent
 				align="start"
 				className="w-[--radix-dropdown-menu-trigger-width]"
