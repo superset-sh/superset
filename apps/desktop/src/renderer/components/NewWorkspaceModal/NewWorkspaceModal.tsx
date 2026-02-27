@@ -1,4 +1,5 @@
 import {
+	AGENT_PRESET_COMMANDS,
 	AGENT_TYPES,
 	buildAgentPromptCommand,
 } from "@superset/shared/agent-command";
@@ -241,31 +242,23 @@ export function NewWorkspaceModal() {
 			onImportRepo={handleImportRepo}
 		/>
 	);
-	const requiresPromptTitle = selectedAgent !== "none";
-	const isCreateDisabled =
-		createWorkspace.isPending ||
-		isBranchesError ||
-		(requiresPromptTitle && !title.trim());
+	const isCreateDisabled = createWorkspace.isPending || isBranchesError;
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
 		const prompt = title.trim();
-		if (selectedAgent !== "none" && !prompt) {
-			toast.error("Enter a prompt to start an agent", {
-				description: "The prompt is used as the initial agent message.",
-			});
-			return;
-		}
 
 		const workspaceName = prompt || undefined;
 		const agentCommand =
 			selectedAgent === "none"
 				? null
-				: buildAgentPromptCommand({
-						prompt,
-						randomId: window.crypto.randomUUID(),
-						agent: selectedAgent,
-					});
+				: prompt
+					? buildAgentPromptCommand({
+							prompt,
+							randomId: window.crypto.randomUUID(),
+							agent: selectedAgent,
+						})
+					: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
 
 		closeModal();
 

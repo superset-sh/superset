@@ -51,7 +51,7 @@ export function ProjectSelector({
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
-					Repository
+					Project the workspace belongs to
 				</TooltipContent>
 			</Tooltip>
 			<DropdownMenuContent

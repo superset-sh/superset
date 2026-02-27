@@ -71,7 +71,7 @@ export function NewWorkspaceCreateFlow({
 								</SelectTrigger>
 							</TooltipTrigger>
 							<TooltipContent side="bottom" showArrow={false}>
-								Agent
+								Send the description as prompt to the agent
 							</TooltipContent>
 						</Tooltip>
 						<SelectContent>
