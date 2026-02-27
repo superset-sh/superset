@@ -33,6 +33,10 @@ export interface ChatMastraServiceOptions {
 
 export class ChatMastraService {
 	private readonly runtimes = new Map<string, RuntimeSession>();
+	private readonly runtimeCreations = new Map<
+		string,
+		Promise<RuntimeSession>
+	>();
 	private readonly apiClient: ReturnType<typeof createTRPCClient<AppRouter>>;
 
 	constructor(readonly opts: ChatMastraServiceOptions) {
@@ -53,6 +57,9 @@ export class ChatMastraService {
 		sessionId: string,
 		cwd?: string,
 	): Promise<RuntimeSession> {
+		const runtimeCwd = cwd ?? process.cwd();
+		const runtimeKey = `${sessionId}:${runtimeCwd}`;
+
 		const existing = this.runtimes.get(sessionId);
 		if (existing) {
 			if (cwd && existing.cwd !== cwd) {
@@ -64,34 +71,49 @@ export class ChatMastraService {
 			}
 		}
 
-		const runtimeCwd = cwd ?? process.cwd();
-		const extraTools = await getSupersetMcpTools(
-			() => Promise.resolve(this.opts.headers()),
-			this.opts.apiUrl,
-		);
-		const runtimeMastra = await createMastraCode({
-			cwd: runtimeCwd,
-			extraTools,
-		});
-		if (runtimeMastra.mcpManager?.hasServers()) {
-			await runtimeMastra.mcpManager.init().catch(() => {});
+		const existingCreation = this.runtimeCreations.get(runtimeKey);
+		if (existingCreation) {
+			return existingCreation;
 		}
-		runtimeMastra.hookManager?.setSessionId(sessionId);
-		await runtimeMastra.harness.init();
-		runtimeMastra.harness.setResourceId({ resourceId: sessionId });
-		await runtimeMastra.harness.selectOrCreateThread();
 
-		const runtime: RuntimeSession = {
-			sessionId,
-			harness: runtimeMastra.harness,
-			mcpManager: runtimeMastra.mcpManager,
-			hookManager: runtimeMastra.hookManager,
-			cwd: runtimeCwd,
-		};
-		await runSessionStartHook(runtime).catch(() => {});
-		subscribeToSessionEvents(runtime, this.apiClient);
-		this.runtimes.set(sessionId, runtime);
-		return runtime;
+		const creationPromise = (async () => {
+			try {
+				const extraTools = await getSupersetMcpTools(
+					() => Promise.resolve(this.opts.headers()),
+					this.opts.apiUrl,
+				);
+				const runtimeMastra = await createMastraCode({
+					cwd: runtimeCwd,
+					extraTools,
+				});
+				const mcpManager = runtimeMastra.mcpManager;
+				const hasMcpServers = mcpManager?.hasServers() ?? false;
+				if (mcpManager && hasMcpServers) {
+					await mcpManager.init().catch(() => {});
+				}
+				runtimeMastra.hookManager?.setSessionId(sessionId);
+				await runtimeMastra.harness.init();
+				runtimeMastra.harness.setResourceId({ resourceId: sessionId });
+				await runtimeMastra.harness.selectOrCreateThread();
+
+				const runtime: RuntimeSession = {
+					sessionId,
+					harness: runtimeMastra.harness,
+					mcpManager: runtimeMastra.mcpManager,
+					hookManager: runtimeMastra.hookManager,
+					cwd: runtimeCwd,
+				};
+				await runSessionStartHook(runtime).catch(() => {});
+				subscribeToSessionEvents(runtime, this.apiClient);
+				this.runtimes.set(sessionId, runtime);
+				return runtime;
+			} finally {
+				this.runtimeCreations.delete(runtimeKey);
+			}
+		})();
+
+		this.runtimeCreations.set(runtimeKey, creationPromise);
+		return creationPromise;
 	}
 
 	createRouter() {
