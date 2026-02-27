@@ -65,7 +65,7 @@ export function ChatMastraInterface({
 		undefined,
 	);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
-	const currentSessionRef = useRef<string | null>(null);
+	const currentMcpScopeRef = useRef<string | null>(null);
 	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatMastraServiceTrpc.workspace.authenticateMcpServer.useMutation();
@@ -188,15 +188,16 @@ export function ChatMastraInterface({
 	});
 
 	useEffect(() => {
-		if (currentSessionRef.current === sessionId) return;
-		currentSessionRef.current = sessionId;
+		const scopeKey = `${sessionId ?? "no-session"}::${cwd || "no-cwd"}`;
+		if (currentMcpScopeRef.current === scopeKey) return;
+		currentMcpScopeRef.current = scopeKey;
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
 		resetMcpUi();
 		if (sessionId) {
 			void refreshMcpOverview();
 		}
-	}, [refreshMcpOverview, resetMcpUi, sessionId]);
+	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
 
 	useEffect(() => {
 		if (isRunning) {
