@@ -11,6 +11,7 @@ export interface ChatMastraRawSnapshot {
 export interface ChatMastraInterfaceProps {
 	sessionId: string | null;
 	workspaceId: string;
+	organizationId: string | null;
 	cwd: string;
 	onStartFreshSession: () => Promise<{
 		created: boolean;

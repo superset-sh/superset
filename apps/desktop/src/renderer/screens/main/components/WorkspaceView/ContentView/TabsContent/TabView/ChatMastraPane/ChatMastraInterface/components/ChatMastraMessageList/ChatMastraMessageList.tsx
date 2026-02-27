@@ -42,6 +42,8 @@ interface ChatMastraMessageListProps {
 	isRunning: boolean;
 	currentMessage: MastraMessage | null;
 	workspaceId: string;
+	sessionId: string | null;
+	organizationId: string | null;
 	workspaceCwd?: string;
 	activeTools: MastraActiveTools | undefined;
 	toolInputBuffers: MastraToolInputBuffers | undefined;
@@ -136,6 +138,8 @@ export function ChatMastraMessageList({
 	isRunning,
 	currentMessage,
 	workspaceId,
+	sessionId,
+	organizationId,
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
@@ -187,6 +191,8 @@ export function ChatMastraMessageList({
 								key={message.id}
 								message={message}
 								workspaceId={workspaceId}
+								sessionId={sessionId}
+								organizationId={organizationId}
 								workspaceCwd={workspaceCwd}
 								isStreaming={false}
 								previewToolParts={[]}
@@ -199,6 +205,8 @@ export function ChatMastraMessageList({
 						key={`current-${currentMessage.id}`}
 						message={currentMessage}
 						workspaceId={workspaceId}
+						sessionId={sessionId}
+						organizationId={organizationId}
 						workspaceCwd={workspaceCwd}
 						isStreaming
 						previewToolParts={previewToolParts}
@@ -227,6 +235,8 @@ export function ChatMastraMessageList({
 										key={`tool-preview-${part.toolCallId}`}
 										part={part}
 										workspaceId={workspaceId}
+										sessionId={sessionId}
+										organizationId={organizationId}
 										workspaceCwd={workspaceCwd}
 									/>
 								))}

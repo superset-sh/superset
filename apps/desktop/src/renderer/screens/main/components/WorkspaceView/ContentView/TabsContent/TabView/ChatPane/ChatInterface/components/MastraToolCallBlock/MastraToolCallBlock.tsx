@@ -6,6 +6,7 @@ import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
+import { posthog } from "renderer/lib/posthog";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
@@ -28,6 +29,8 @@ interface MastraToolCallBlockProps {
 	part: ToolPart;
 	workspaceId?: string;
 	workspaceCwd?: string;
+	sessionId?: string | null;
+	organizationId?: string | null;
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
@@ -41,6 +44,8 @@ export function MastraToolCallBlock({
 	part,
 	workspaceId,
 	workspaceCwd,
+	sessionId,
+	organizationId,
 	onAnswer,
 }: MastraToolCallBlockProps) {
 	const args = getArgs(part);
@@ -72,8 +77,22 @@ export function MastraToolCallBlock({
 			const normalizedPath = normalizeFilePath(filePath);
 			if (!normalizedPath) return;
 			addFileViewerPane(workspaceId, { filePath: normalizedPath });
+			posthog.capture("chat_file_opened_from_tool", {
+				workspace_id: workspaceId,
+				session_id: sessionId ?? null,
+				organization_id: organizationId ?? null,
+				tool_name: toolName,
+				open_target: "view",
+			});
 		},
-		[addFileViewerPane, normalizeFilePath, workspaceId],
+		[
+			addFileViewerPane,
+			normalizeFilePath,
+			organizationId,
+			sessionId,
+			toolName,
+			workspaceId,
+		],
 	);
 	const workspaceDiffPaneByFilePath = useMemo(() => {
 		if (!workspaceId) return new Map<string, DiffPaneTarget>();
@@ -124,11 +143,21 @@ export function MastraToolCallBlock({
 				oldPath: diffPaneTarget?.oldPath,
 				viewMode: "diff",
 			});
+			posthog.capture("chat_file_opened_from_tool", {
+				workspace_id: workspaceId,
+				session_id: sessionId ?? null,
+				organization_id: organizationId ?? null,
+				tool_name: toolName,
+				open_target: "diff",
+			});
 		},
 		[
 			addFileViewerPane,
 			getDiffPaneTargetForFile,
 			normalizeFilePath,
+			organizationId,
+			sessionId,
+			toolName,
 			workspaceId,
 		],
 	);

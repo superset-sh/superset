@@ -6,6 +6,7 @@ export interface UseMcpUiOptions {
 	loadOverview: (cwd: string) => Promise<McpOverviewPayload>;
 	onSetErrorMessage: (message: string) => void;
 	onClearError: () => void;
+	onTrackEvent?: (event: string, properties: Record<string, unknown>) => void;
 }
 
 export interface UseMcpUiReturn {
@@ -24,6 +25,7 @@ export function useMcpUi({
 	loadOverview,
 	onSetErrorMessage,
 	onClearError,
+	onTrackEvent,
 }: UseMcpUiOptions): UseMcpUiReturn {
 	const [overview, setOverview] = useState<McpOverviewPayload | null>(null);
 	const [overviewOpen, setOverviewOpen] = useState(false);
@@ -34,10 +36,18 @@ export function useMcpUi({
 		setOverviewOpen(false);
 	}, []);
 
-	const showOverview = useCallback((nextOverview: McpOverviewPayload) => {
-		setOverview(nextOverview);
-		setOverviewOpen(true);
-	}, []);
+	const showOverview = useCallback(
+		(nextOverview: McpOverviewPayload) => {
+			setOverview(nextOverview);
+			setOverviewOpen(true);
+			const servers = nextOverview.servers ?? [];
+			onTrackEvent?.("chat_mcp_overview_opened", {
+				server_count: servers.length,
+				enabled_count: servers.filter((s) => s.state === "enabled").length,
+			});
+		},
+		[onTrackEvent],
+	);
 
 	const openOverview = useCallback(async () => {
 		if (!cwd) {

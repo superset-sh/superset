@@ -12,6 +12,7 @@ import type { ChatStatus } from "ai";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { posthog } from "renderer/lib/posthog";
 import { ChatInputFooter } from "../../ChatPane/ChatInterface/components/ChatInputFooter";
 import { useSlashCommandExecutor } from "../../ChatPane/ChatInterface/hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "../../ChatPane/ChatInterface/hooks/useSlashCommands";
@@ -48,6 +49,7 @@ function toErrorMessage(error: unknown): string | null {
 export function ChatMastraInterface({
 	sessionId,
 	workspaceId,
+	organizationId,
 	cwd,
 	onStartFreshSession,
 	onRawSnapshotChange,
@@ -95,6 +97,23 @@ export function ChatMastraInterface({
 		setRuntimeError(message);
 	}, []);
 
+	const handleSelectModel = useCallback(
+		(model: React.SetStateAction<ModelOption | null>) => {
+			setSelectedModel(model);
+			if (typeof model === "object" && model !== null) {
+				posthog.capture("chat_model_changed", {
+					workspace_id: workspaceId,
+					session_id: sessionId,
+					organization_id: organizationId,
+					model_id: model.id,
+					model_name: model.name,
+					trigger: "picker",
+				});
+			}
+		},
+		[organizationId, sessionId, workspaceId],
+	);
+
 	const canAbort = Boolean(isRunning);
 	const loadMcpOverview = useCallback(
 		async (rootCwd: string) => {
@@ -114,6 +133,14 @@ export function ChatMastraInterface({
 		loadOverview: loadMcpOverview,
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
+		onTrackEvent: (event, properties) => {
+			posthog.capture(event, {
+				workspace_id: workspaceId,
+				session_id: sessionId,
+				organization_id: organizationId,
+				...properties,
+			});
+		},
 	});
 	const resetMcpUi = mcpUi.resetUi;
 	const refreshMcpOverview = mcpUi.refreshOverview;
@@ -126,12 +153,20 @@ export function ChatMastraInterface({
 		onStopActiveResponse: () => {
 			void commands.stop();
 		},
-		onSelectModel: setSelectedModel,
+		onSelectModel: handleSelectModel,
 		onOpenModelPicker: () => setModelSelectorOpen(true),
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
 		onShowMcpOverview: mcpUi.showOverview,
 		loadMcpOverview,
+		onTrackEvent: (event, properties) => {
+			posthog.capture(event, {
+				workspace_id: workspaceId,
+				session_id: sessionId,
+				organization_id: organizationId,
+				...properties,
+			});
+		},
 	});
 
 	useEffect(() => {
@@ -183,6 +218,7 @@ export function ChatMastraInterface({
 				filename: file.filename,
 			}));
 
+			const isSlashCommand = text.startsWith("/");
 			const slashCommandResult = await resolveSlashCommandInput(text);
 			if (slashCommandResult.handled) {
 				return;
@@ -203,8 +239,29 @@ export function ChatMastraInterface({
 					model: activeModel?.id,
 				},
 			});
+
+			posthog.capture("chat_message_sent", {
+				workspace_id: workspaceId,
+				session_id: sessionId,
+				organization_id: organizationId,
+				model_id: activeModel?.id ?? null,
+				mention_count: 0,
+				attachment_count: files.length,
+				is_slash_command: isSlashCommand,
+				message_length: text.length,
+				turn_number: (messages?.length ?? 0) + 1,
+			});
 		},
-		[activeModel?.id, clearRuntimeError, commands, resolveSlashCommandInput],
+		[
+			activeModel?.id,
+			clearRuntimeError,
+			commands,
+			messages?.length,
+			organizationId,
+			resolveSlashCommandInput,
+			sessionId,
+			workspaceId,
+		],
 	);
 
 	const handleStop = useCallback(
@@ -212,8 +269,21 @@ export function ChatMastraInterface({
 			event.preventDefault();
 			clearRuntimeError();
 			await commands.stop();
+			posthog.capture("chat_turn_aborted", {
+				workspace_id: workspaceId,
+				session_id: sessionId,
+				organization_id: organizationId,
+				model_id: activeModel?.id ?? null,
+			});
 		},
-		[clearRuntimeError, commands],
+		[
+			activeModel?.id,
+			clearRuntimeError,
+			commands,
+			organizationId,
+			sessionId,
+			workspaceId,
+		],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -234,6 +304,8 @@ export function ChatMastraInterface({
 					isRunning={canAbort}
 					currentMessage={currentMessage ?? null}
 					workspaceId={workspaceId}
+					sessionId={sessionId}
+					organizationId={organizationId}
 					workspaceCwd={cwd}
 					activeTools={activeTools}
 					toolInputBuffers={toolInputBuffers}
@@ -246,7 +318,7 @@ export function ChatMastraInterface({
 					submitStatus={submitStatus}
 					availableModels={availableModels}
 					selectedModel={activeModel}
-					setSelectedModel={setSelectedModel}
+					setSelectedModel={handleSelectModel}
 					modelSelectorOpen={modelSelectorOpen}
 					setModelSelectorOpen={setModelSelectorOpen}
 					permissionMode={permissionMode}

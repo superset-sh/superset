@@ -11,6 +11,7 @@ import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { posthog } from "renderer/lib/posthog";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -209,8 +210,13 @@ export function ChatMastraPane({
 	const handleSelectSession = useCallback(
 		(nextSessionId: string) => {
 			switchChatMastraSession(paneId, nextSessionId);
+			posthog.capture("chat_session_opened", {
+				workspace_id: workspaceId,
+				session_id: nextSessionId,
+				organization_id: organizationId,
+			});
 		},
-		[paneId, switchChatMastraSession],
+		[organizationId, paneId, switchChatMastraSession, workspaceId],
 	);
 
 	const handleNewChat = useCallback(async () => {
@@ -223,6 +229,11 @@ export function ChatMastraPane({
 				workspaceId,
 			});
 			switchChatMastraSession(paneId, newSessionId);
+			posthog.capture("chat_session_created", {
+				workspace_id: workspaceId,
+				session_id: newSessionId,
+				organization_id: organizationId,
+			});
 		} catch (error) {
 			reportChatMastraError({
 				operation: "session.create",
@@ -252,6 +263,11 @@ export function ChatMastraPane({
 				workspaceId,
 			});
 			switchChatMastraSession(paneId, newSessionId);
+			posthog.capture("chat_session_created", {
+				workspace_id: workspaceId,
+				session_id: newSessionId,
+				organization_id: organizationId,
+			});
 			return { created: true as const };
 		} catch (error) {
 			reportChatMastraError({
@@ -276,6 +292,11 @@ export function ChatMastraPane({
 		async (sessionIdToDelete: string) => {
 			try {
 				await deleteSessionRecord(sessionIdToDelete);
+				posthog.capture("chat_session_deleted", {
+					workspace_id: workspaceId,
+					session_id: sessionIdToDelete,
+					organization_id: organizationId,
+				});
 				if (sessionIdToDelete === sessionId) {
 					switchChatMastraSession(paneId, null);
 				}
@@ -407,6 +428,7 @@ export function ChatMastraPane({
 					<ChatMastraInterface
 						sessionId={sessionId}
 						workspaceId={workspaceId}
+						organizationId={organizationId}
 						cwd={workspace?.worktreePath ?? ""}
 						onStartFreshSession={handleStartFreshSession}
 						onRawSnapshotChange={

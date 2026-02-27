@@ -1,6 +1,7 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { getFileOpenMode } from "renderer/hooks/useFileOpenMode";
+import { posthog } from "renderer/lib/posthog";
 import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { acknowledgedStatus } from "shared/tabs-types";
 import { create } from "zustand";
@@ -143,6 +144,12 @@ export const useTabsStore = create<TabsStore>()(
 						},
 					});
 
+					posthog.capture("panel_opened", {
+						panel_type: "terminal",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
+					});
+
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
@@ -175,6 +182,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.tabHistoryStacks,
 							[workspaceId]: newHistoryStack,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "chat",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
 					});
 
 					return { tabId: tab.id, paneId: pane.id };
@@ -237,6 +250,14 @@ export const useTabsStore = create<TabsStore>()(
 							[workspaceId]: newHistoryStack,
 						},
 					});
+
+					for (const paneId of paneIds) {
+						posthog.capture("panel_opened", {
+							panel_type: "terminal",
+							workspace_id: workspaceId,
+							pane_id: paneId,
+						});
+					}
 
 					return { tabId: tab.id, paneIds };
 				},
@@ -497,6 +518,12 @@ export const useTabsStore = create<TabsStore>()(
 						},
 					});
 
+					posthog.capture("panel_opened", {
+						panel_type: "terminal",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
+					});
+
 					return newPane.id;
 				},
 
@@ -539,6 +566,14 @@ export const useTabsStore = create<TabsStore>()(
 							[tabId]: paneIds[0],
 						},
 					});
+
+					for (const paneId of paneIds) {
+						posthog.capture("panel_opened", {
+							panel_type: "terminal",
+							workspace_id: tab.workspaceId,
+							pane_id: paneId,
+						});
+					}
 
 					return paneIds;
 				},
@@ -743,6 +778,12 @@ export const useTabsStore = create<TabsStore>()(
 							},
 						});
 
+						posthog.capture("panel_opened", {
+							panel_type: "file_viewer",
+							workspace_id: workspaceId,
+							pane_id: newPane.id,
+						});
+
 						return newPane.id;
 					}
 
@@ -769,6 +810,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.focusedPaneIds,
 							[activeTab.id]: newPane.id,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "file_viewer",
+						workspace_id: activeTab.workspaceId,
+						pane_id: newPane.id,
 					});
 
 					return newPane.id;
@@ -1074,6 +1121,12 @@ export const useTabsStore = create<TabsStore>()(
 							[tabId]: newPane.id,
 						},
 					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "terminal",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
+					});
 				},
 
 				splitPaneHorizontal: (tabId, sourcePaneId, path, options) => {
@@ -1125,6 +1178,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.focusedPaneIds,
 							[tabId]: newPane.id,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "terminal",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
 					});
 				},
 
@@ -1217,6 +1276,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.tabHistoryStacks,
 							[workspaceId]: newHistoryStack,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "browser",
+						workspace_id: workspaceId,
+						pane_id: pane.id,
 					});
 
 					return { tabId: tab.id, paneId: pane.id };
@@ -1338,6 +1403,12 @@ export const useTabsStore = create<TabsStore>()(
 								...state.focusedPaneIds,
 								[activeTab.id]: newPane.id,
 							},
+						});
+
+						posthog.capture("panel_opened", {
+							panel_type: "browser",
+							workspace_id: workspaceId,
+							pane_id: newPane.id,
 						});
 					}
 				},
@@ -1560,6 +1631,12 @@ export const useTabsStore = create<TabsStore>()(
 							...state.focusedPaneIds,
 							[tabId]: browserPaneId,
 						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "devtools",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
 					});
 
 					return newPane.id;
