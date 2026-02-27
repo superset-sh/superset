@@ -455,16 +455,18 @@ export function ChatMastraPane({
 						onMoveToNewTab={onMoveToNewTab}
 						closeLabel="Close Chat"
 					>
-						<ChatMastraInterface
-							sessionId={sessionId}
-							workspaceId={workspaceId}
-							organizationId={organizationId}
-							cwd={workspace?.worktreePath ?? ""}
-							onStartFreshSession={handleStartFreshSession}
-							onRawSnapshotChange={
-								showDevToolbarActions ? handleRawSnapshotChange : undefined
-							}
-						/>
+						<div className="h-full w-full">
+							<ChatMastraInterface
+								sessionId={sessionId}
+								workspaceId={workspaceId}
+								organizationId={organizationId}
+								cwd={workspace?.worktreePath ?? ""}
+								onStartFreshSession={handleStartFreshSession}
+								onRawSnapshotChange={
+									showDevToolbarActions ? handleRawSnapshotChange : undefined
+								}
+							/>
+						</div>
 					</TabContentContextMenu>
 				</BasePaneWindow>
 			</ChatServiceProvider>
