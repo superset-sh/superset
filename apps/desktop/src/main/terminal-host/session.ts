@@ -79,6 +79,10 @@ export interface AttachedClient {
 	attachedAt: number;
 }
 
+interface AttachOptions {
+	includeSnapshot?: boolean;
+}
+
 // =============================================================================
 // Session Class
 // =============================================================================
@@ -669,10 +673,26 @@ export class Session {
 		return this.attachedClients.size;
 	}
 
+	private getLiveAttachSnapshot(): TerminalSnapshot {
+		const { cols, rows } = this.emulator.getDimensions();
+		return {
+			snapshotAnsi: "",
+			rehydrateSequences: "",
+			cwd: this.emulator.getCwd(),
+			modes: this.emulator.getModes(),
+			cols,
+			rows,
+			scrollbackLines: this.emulator.getScrollbackLines(),
+		};
+	}
+
 	/**
 	 * Attach a client to this session
 	 */
-	async attach(socket: Socket): Promise<TerminalSnapshot> {
+	async attach(
+		socket: Socket,
+		{ includeSnapshot = true }: AttachOptions = {},
+	): Promise<TerminalSnapshot> {
 		if (this.disposed) {
 			throw new Error("Session disposed");
 		}
@@ -682,6 +702,15 @@ export class Session {
 			attachedAt: Date.now(),
 		});
 		this.lastAttachedAt = new Date();
+
+		if (!includeSnapshot) {
+			const liveSnapshot = this.getLiveAttachSnapshot();
+			// Keep full snapshot for TUI/alternate-screen sessions so the user
+			// sees current content even when no new output is emitted.
+			if (!liveSnapshot.modes.alternateScreen) {
+				return liveSnapshot;
+			}
+		}
 
 		// Use snapshot boundary flush for consistent state with continuous output.
 		// This ensures we capture all data received BEFORE attach was called,

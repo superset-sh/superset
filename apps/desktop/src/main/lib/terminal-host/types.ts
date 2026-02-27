@@ -158,6 +158,8 @@ export interface CreateOrAttachRequest {
 	sessionId: string;
 	cols: number;
 	rows: number;
+	/** Prefer live stream-first attach for existing sessions (skip expensive snapshot serialization). */
+	liveAttach?: boolean;
 	cwd?: string;
 	env?: Record<string, string>;
 	shell?: string;
@@ -171,6 +173,8 @@ export interface CreateOrAttachRequest {
 
 export interface CreateOrAttachResponse {
 	isNew: boolean;
+	/** True when daemon used stream-first attach without full snapshot replay. */
+	isLiveAttach?: boolean;
 	snapshot: TerminalSnapshot;
 	wasRecovered: boolean;
 	/** PTY process ID for port scanning (null if not yet spawned or exited) */

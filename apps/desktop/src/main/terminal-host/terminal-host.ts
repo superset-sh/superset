@@ -152,10 +152,18 @@ export class TerminalHost {
 			}
 		}
 
-		const snapshot = await session.attach(socket);
+		const shouldUseLiveAttach = !!request.liveAttach && !isNew;
+		const snapshot = await session.attach(socket, {
+			includeSnapshot: !shouldUseLiveAttach,
+		});
+		const isLiveAttach =
+			shouldUseLiveAttach &&
+			!snapshot.modes.alternateScreen &&
+			snapshot.snapshotAnsi.length === 0;
 
 		return {
 			isNew,
+			isLiveAttach,
 			snapshot,
 			wasRecovered: !isNew && session.isAlive,
 			pid: session.pid,

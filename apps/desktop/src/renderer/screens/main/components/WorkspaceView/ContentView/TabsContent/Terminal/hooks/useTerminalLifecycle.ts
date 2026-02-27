@@ -290,6 +290,7 @@ export function useTerminalLifecycle({
 					cols: xterm.cols,
 					rows: xterm.rows,
 					allowKilled: true,
+					liveAttach: true,
 				},
 				{
 					onSuccess: (result) => {
@@ -399,6 +400,7 @@ export function useTerminalLifecycle({
 							cols: xterm.cols,
 							rows: xterm.rows,
 							cwd: initialCwd,
+							liveAttach: true,
 						},
 						{
 							onSuccess: (result) => {
@@ -434,6 +436,13 @@ export function useTerminalLifecycle({
 										xterm.write(scrollback, scheduleScrollToBottom);
 									}
 									didFirstRenderRef.current = true;
+									return;
+								}
+
+								if (result.isLiveAttach) {
+									isStreamReadyRef.current = true;
+									didFirstRenderRef.current = true;
+									flushPendingEvents();
 									return;
 								}
 
