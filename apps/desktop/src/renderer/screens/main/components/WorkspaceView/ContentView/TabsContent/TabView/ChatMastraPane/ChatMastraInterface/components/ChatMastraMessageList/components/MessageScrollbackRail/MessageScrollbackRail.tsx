@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
 >[number];
-type MastraMessageContent = MastraMessage["content"][number];
+type MastraMessagePart = MastraMessage["content"][number];
 
 const JUMP_TOP_OFFSET_PX = 8;
 const HOVER_CARD_RIGHT_EDGE_OFFSET_PX = -28;
@@ -24,11 +24,11 @@ function buildPreview(message: MastraMessage): string {
 	const textContent = message.content
 		.filter(
 			(
-				part: MastraMessageContent,
-			): part is Extract<MastraMessage["content"][number], { type: "text" }> =>
+				part: MastraMessagePart,
+			): part is Extract<MastraMessagePart, { type: "text" }> =>
 				part.type === "text",
 		)
-		.map((part: Extract<MastraMessage["content"][number], { type: "text" }>) =>
+		.map((part: Extract<MastraMessagePart, { type: "text" }>) =>
 			part.text.trim(),
 		)
 		.filter(Boolean)
@@ -41,7 +41,7 @@ function buildPreview(message: MastraMessage): string {
 	}
 
 	const attachmentCount = message.content.filter(
-		(part: MastraMessageContent) => part.type === "image",
+		(part: MastraMessagePart) => part.type === "image",
 	).length;
 	if (attachmentCount > 0) {
 		return attachmentCount === 1
