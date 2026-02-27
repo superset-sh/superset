@@ -72,15 +72,15 @@ export const TESTIMONIALS: Testimonial[] = [
 		avatar: "https://unavatar.io/twitter/ChaseMcDou",
 		url: "https://x.com/ChaseMcDou/status/2013458004977373643",
 	},
-    {
-        id: "9",
-        content:
-            "hasn't been a day i haven't used superset since onboarding\n\ncomplete paradigm shift on how i use ai to code",
-        author: "Leo",
-        handle: "@LeosReal",
-        avatar: "https://unavatar.io/twitter/LeosReal",
-        url: "https://x.com/LeosReal/status/2027306293858586745",
-    },
+	{
+		id: "9",
+		content:
+			"hasn't been a day i haven't used superset since onboarding\n\ncomplete paradigm shift on how i use ai to code",
+		author: "Leo",
+		handle: "@LeosReal",
+		avatar: "https://unavatar.io/twitter/LeosReal",
+		url: "https://x.com/LeosReal/status/2027306293858586745",
+	},
 	{
 		id: "10",
 		content:
@@ -112,5 +112,4 @@ export const TESTIMONIALS: Testimonial[] = [
 		avatar: "https://unavatar.io/twitter/eliasstravik",
 		url: "https://x.com/eliasstravik/status/2020580091449708978",
 	},
-
 ];
