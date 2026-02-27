@@ -18,6 +18,20 @@ type CollectionsContextType = ReturnType<typeof getCollections> & {
 
 const CollectionsContext = createContext<CollectionsContextType | null>(null);
 
+export function preloadActiveOrganizationCollections(
+	activeOrganizationId: string | null | undefined,
+): void {
+	if (!activeOrganizationId) return;
+	void preloadCollections(activeOrganizationId, {
+		includeChatCollections: false,
+	}).catch((error) => {
+		console.error(
+			"[collections-provider] Failed to preload active org collections:",
+			error,
+		);
+	});
+}
+
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
@@ -45,8 +59,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	// Preload collections for the active org only.
 	// Collections are lazy — they don't sync until subscribed or preloaded.
 	useEffect(() => {
-		if (!activeOrganizationId) return;
-		preloadCollections(activeOrganizationId, { includeChatCollections: false });
+		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
 	const collections = useMemo(() => {
