@@ -138,6 +138,9 @@ export function AssistantMessage({
 		}
 
 		if (part.type === "tool_call") {
+			if (renderedToolCallIds.has(part.id)) {
+				continue;
+			}
 			renderedToolCallIds.add(part.id);
 			const { result, index: resultIndex } = findToolResultForCall({
 				content: message.content,
@@ -167,6 +170,9 @@ export function AssistantMessage({
 		}
 
 		if (part.type === "tool_result") {
+			if (renderedToolCallIds.has(part.id)) {
+				continue;
+			}
 			renderedToolCallIds.add(part.id);
 			nodes.push(
 				<MastraToolCallBlock
