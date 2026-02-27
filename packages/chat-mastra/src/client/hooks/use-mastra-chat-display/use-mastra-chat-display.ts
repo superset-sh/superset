@@ -92,11 +92,34 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 
 	const [liveDisplayState, setLiveDisplayState] =
 		useState<DisplayStateOutput | null>(null);
+	const sessionKey = sessionInput
+		? `${sessionInput.sessionId}:${sessionInput.cwd ?? ""}`
+		: null;
+	const activeSessionKeyRef = useRef<string | null>(null);
+	const seededSessionKeyRef = useRef<string | null>(null);
 
 	useEffect(() => {
-		setLiveDisplayState(displayQuery.data ?? null);
-		previousRunningRef.current = displayQuery.data?.isRunning ?? false;
-	}, [displayQuery.data]);
+		activeSessionKeyRef.current = sessionKey;
+		if (seededSessionKeyRef.current === sessionKey) {
+			return;
+		}
+		seededSessionKeyRef.current = sessionKey;
+		previousRunningRef.current = false;
+		setLiveDisplayState(null);
+	}, [sessionKey]);
+
+	useEffect(() => {
+		if (!sessionKey || !displayQuery.data) {
+			return;
+		}
+		setLiveDisplayState((previousState: DisplayStateOutput | null) => {
+			if (previousState) {
+				return previousState;
+			}
+			previousRunningRef.current = displayQuery.data?.isRunning ?? false;
+			return displayQuery.data;
+		});
+	}, [displayQuery.data, sessionKey]);
 
 	const subscriptionInput = enabled && sessionInput ? sessionInput : skipToken;
 	chatMastraServiceTrpc.session.subscribeDisplayState.useSubscription(
@@ -104,6 +127,9 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 		sessionInput
 			? {
 					onData: (nextDisplayState) => {
+						if (activeSessionKeyRef.current !== sessionKey) {
+							return;
+						}
 						const wasRunning = previousRunningRef.current;
 						const isRunning = nextDisplayState.isRunning;
 						previousRunningRef.current = isRunning;

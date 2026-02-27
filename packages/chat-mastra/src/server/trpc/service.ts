@@ -147,6 +147,9 @@ export class ChatMastraService {
 											if (event.type !== "display_state_changed" || closed) {
 												return;
 											}
+											if (!("displayState" in event)) {
+												return;
+											}
 											emit.next(event.displayState);
 										},
 									);

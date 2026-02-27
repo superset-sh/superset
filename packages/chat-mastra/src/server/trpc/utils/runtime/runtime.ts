@@ -12,11 +12,22 @@ export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
 export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
-export interface RuntimeEvent {
+interface RuntimeDisplayStateChangedEvent {
+	type: "display_state_changed";
+	displayState: RuntimeDisplayState;
+}
+interface RuntimeAgentEndEvent {
+	type: "agent_end";
+	reason?: string;
+}
+interface RuntimeOtherEvent {
 	type: string;
 	reason?: string;
-	displayState?: RuntimeDisplayState;
 }
+export type RuntimeEvent =
+	| RuntimeDisplayStateChangedEvent
+	| RuntimeAgentEndEvent
+	| RuntimeOtherEvent;
 
 export interface RuntimeSession {
 	sessionId: string;
