@@ -1,1 +1,0 @@
-export { InitialSplashScreen } from "./InitialSplashScreen";

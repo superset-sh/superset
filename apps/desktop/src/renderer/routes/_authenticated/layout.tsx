@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Spinner } from "@superset/ui/spinner";
 import {
 	createFileRoute,
 	Navigate,
@@ -7,7 +8,6 @@ import {
 } from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
-import { InitialSplashScreen } from "renderer/components/InitialSplashScreen";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
@@ -86,7 +86,11 @@ function AuthenticatedLayout() {
 		(isPending || (isRefetching && !session?.user && hasLocalToken)) &&
 		!env.SKIP_ENV_VALIDATION
 	) {
-		return <InitialSplashScreen />;
+		return (
+			<div className="flex h-screen w-screen items-center justify-center bg-background">
+				<Spinner className="size-8" />
+			</div>
+		);
 	}
 
 	if (!isSignedIn && hasLocalToken && !isOnline) {

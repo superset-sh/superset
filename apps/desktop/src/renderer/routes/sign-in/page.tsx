@@ -1,9 +1,10 @@
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { InitialSplashScreen } from "renderer/components/InitialSplashScreen";
+import { TypewriterText } from "renderer/components/TypewriterText";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -25,7 +26,11 @@ function SignInPage() {
 
 	// Show loading while session is being fetched
 	if (isPending) {
-		return <InitialSplashScreen />;
+		return (
+			<div className="flex h-screen w-screen items-center justify-center bg-background">
+				<Spinner className="size-8" />
+			</div>
+		);
 	}
 
 	// If already signed in, redirect to workspace
@@ -50,7 +55,7 @@ function SignInPage() {
 
 					<div className="text-center mb-8">
 						<h1 className="text-xl font-semibold text-foreground mb-2">
-							Welcome to Superset
+							<TypewriterText text="Superset" speed={45} delay={200} />
 						</h1>
 						<p className="text-sm text-muted-foreground">
 							Sign in to get started
