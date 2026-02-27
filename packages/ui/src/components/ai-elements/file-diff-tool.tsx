@@ -167,12 +167,7 @@ export const FileDiffTool = ({
 	);
 
 	return (
-		<div
-			className={cn(
-				"overflow-hidden rounded-md",
-				className,
-			)}
-		>
+		<div className={cn("overflow-hidden rounded-md", className)}>
 			{/* Header - fixed height */}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
 			<div

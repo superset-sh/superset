@@ -51,12 +51,7 @@ export const WebFetchTool = ({
 	const hostname = url ? extractHostname(url) : "";
 
 	return (
-		<div
-			className={cn(
-				"overflow-hidden rounded-md",
-				className,
-			)}
-		>
+		<div className={cn("overflow-hidden rounded-md", className)}>
 			{/* Header */}
 			{/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: interactive tool header */}
 			<div
