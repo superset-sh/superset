@@ -161,6 +161,37 @@ describe("setupKeyboardHandler", () => {
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
 	});
 
+	it("maps Option+P to Meta+P on macOS", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "MacIntel" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+		};
+
+		const onWrite = mock(() => {});
+		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+
+		captured.handler?.({
+			type: "keydown",
+			key: "π",
+			code: "KeyP",
+			altKey: true,
+			metaKey: false,
+			ctrlKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(onWrite).toHaveBeenCalledWith("\x1bp");
+	});
+
 	it("maps Ctrl+Left/Right to Meta+B/F on Windows", () => {
 		// @ts-expect-error - mocking navigator for tests
 		globalThis.navigator = { platform: "Win32" };
