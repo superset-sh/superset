@@ -1,12 +1,10 @@
 export {
-	getRuntimeMcpOverview,
+	onUserPromptSubmit,
 	type RuntimeDisplayState,
 	type RuntimeHarness,
 	type RuntimeHookManager,
 	type RuntimeMcpManager,
 	type RuntimeSession,
-} from "./runtime";
-export {
-	onUserPromptSubmit,
 	subscribeToSessionEvents,
-} from "./session-events";
+} from "./runtime";
+export { getRuntimeMcpOverview } from "./utils/mcp-overview";

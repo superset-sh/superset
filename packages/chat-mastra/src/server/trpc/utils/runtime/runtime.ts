@@ -1,5 +1,6 @@
-import { MCPClient } from "@mastra/mcp";
-import { createMastraCode } from "mastracode";
+import type { AppRouter } from "@superset/trpc";
+import type { createTRPCClient } from "@trpc/client";
+import type { createMastraCode } from "mastracode";
 
 export type RuntimeHarness = Awaited<
 	ReturnType<typeof createMastraCode>
@@ -20,283 +21,98 @@ export interface RuntimeSession {
 	cwd: string;
 }
 
-const MCP_PROBE_TIMEOUT_MS = 15_000;
+type ApiClient = ReturnType<typeof createTRPCClient<AppRouter>>;
 
-function toNonEmptyString(value: unknown): string | null {
-	if (typeof value !== "string") return null;
-	const trimmed = value.trim();
-	return trimmed.length > 0 ? trimmed : null;
-}
-
-function toStringArray(value: unknown): string[] | null {
-	if (!Array.isArray(value)) return null;
-	const items = value
-		.map((item) => (typeof item === "string" ? item.trim() : ""))
-		.filter(Boolean);
-	return items.length > 0 ? items : null;
-}
-
-function toStringRecord(value: unknown): Record<string, string> | undefined {
-	if (!value || typeof value !== "object" || Array.isArray(value)) {
-		return undefined;
+/**
+ * Gate: validates user prompt against hooks before sending.
+ * Throws if the hook blocks the message.
+ */
+export async function onUserPromptSubmit(
+	runtime: RuntimeSession,
+	userMessage: string,
+): Promise<void> {
+	if (!runtime.hookManager) return;
+	const result = await runtime.hookManager.runUserPromptSubmit(userMessage);
+	if (!result.allowed) {
+		throw new Error(result.blockReason ?? "Blocked by UserPromptSubmit hook");
 	}
-
-	const entries = Object.entries(value).filter(
-		([key, item]) => key.trim().length > 0 && typeof item === "string",
-	);
-	if (entries.length === 0) {
-		return undefined;
-	}
-
-	return Object.fromEntries(entries);
 }
 
-function toErrorMessage(error: unknown): string {
-	if (error instanceof Error) return error.message;
-	if (typeof error === "string") return error;
-	if (
-		error &&
-		typeof error === "object" &&
-		"message" in error &&
-		typeof (error as { message?: unknown }).message === "string"
-	) {
-		return (error as { message: string }).message;
-	}
-	return "Unknown MCP error";
-}
-
-async function withTimeout<T>(
-	promise: Promise<T>,
-	timeoutMs: number,
-	timeoutMessage: string,
-): Promise<T> {
-	let timeoutId: ReturnType<typeof setTimeout> | null = null;
-	const timeoutPromise = new Promise<never>((_, reject) => {
-		timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+/**
+ * Subscribe to harness lifecycle events for a runtime session.
+ * Call once after creating a runtime — handles stop hooks and title generation.
+ */
+export function subscribeToSessionEvents(
+	runtime: RuntimeSession,
+	apiClient: ApiClient,
+): void {
+	runtime.harness.subscribe((event) => {
+		if (event.type === "agent_end") {
+			const reason = event.reason ?? "complete";
+			if (runtime.hookManager) {
+				void runtime.hookManager.runStop(undefined, reason).catch(() => {});
+			}
+			if (reason === "complete") {
+				void generateAndSetTitle(runtime, apiClient);
+			}
+		}
 	});
+}
 
+async function generateAndSetTitle(
+	runtime: RuntimeSession,
+	apiClient: ApiClient,
+): Promise<void> {
 	try {
-		return await Promise.race([promise, timeoutPromise]);
-	} finally {
-		if (timeoutId) {
-			clearTimeout(timeoutId);
+		const messages = await runtime.harness.listMessages();
+		const userMessages = messages.filter((m) => m.role === "user");
+		const userCount = userMessages.length;
+
+		const isFirst = userCount === 1;
+		const isRename = userCount > 1 && userCount % 10 === 0;
+		if (!isFirst && !isRename) return;
+
+		let text: string;
+		const firstMessage = userMessages[0];
+		if (isFirst && firstMessage) {
+			text = firstMessage.content
+				.filter((c): c is { type: "text"; text: string } => c.type === "text")
+				.map((c) => c.text)
+				.join(" ")
+				.slice(0, 500);
+		} else {
+			text = messages
+				.slice(-10)
+				.map((m) => {
+					const body = m.content
+						.filter(
+							(c): c is { type: "text"; text: string } => c.type === "text",
+						)
+						.map((c) => c.text)
+						.join(" ");
+					return `${m.role}: ${body}`;
+				})
+				.join("\n")
+				.slice(0, 2000);
 		}
-	}
-}
+		if (!text.trim()) return;
 
-function buildMcpServerDefinition(rawConfig: Record<string, unknown>): {
-	command: string;
-	args?: string[];
-	env?: Record<string, string>;
-} | null {
-	const command = toNonEmptyString(rawConfig.command);
-	if (!command) return null;
+		const mode = runtime.harness.getCurrentMode();
+		const agent =
+			typeof mode.agent === "function" ? mode.agent({}) : mode.agent;
 
-	const args = toStringArray(rawConfig.args) ?? undefined;
-	const env = toStringRecord(rawConfig.env);
-
-	return { command, ...(args ? { args } : {}), ...(env ? { env } : {}) };
-}
-
-interface ProbedMcpServerStatus {
-	name: string;
-	connected: boolean;
-	toolCount: number;
-	error?: string;
-}
-
-async function probeMcpServerStatus(
-	name: string,
-	rawConfig: Record<string, unknown>,
-): Promise<ProbedMcpServerStatus> {
-	const serverDefinition = buildMcpServerDefinition(rawConfig);
-	if (!serverDefinition) {
-		return {
-			name,
-			connected: false,
-			toolCount: 0,
-			error: "MCP server command is not configured",
-		};
-	}
-
-	let client: MCPClient | null = null;
-
-	try {
-		client = new MCPClient({
-			id: `superset-chat-mcp-probe-${name}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-			timeout: MCP_PROBE_TIMEOUT_MS,
-			servers: { [name]: serverDefinition },
+		const title = await agent.generateTitleFromUserMessage({
+			message: text,
+			model: runtime.harness.getFullModelId(),
+			tracingContext: {},
 		});
-		const tools = await withTimeout(
-			client.listTools(),
-			MCP_PROBE_TIMEOUT_MS,
-			`Timed out connecting to MCP server "${name}"`,
-		);
-		const namespacedPrefix = `${name}_`;
-		const toolCount = Object.keys(tools as Record<string, unknown>).filter(
-			(toolName) => toolName.startsWith(namespacedPrefix),
-		).length;
-		return { name, connected: true, toolCount };
+		if (!title?.trim()) return;
+
+		await apiClient.chat.updateTitle.mutate({
+			sessionId: runtime.sessionId,
+			title: title.trim(),
+		});
 	} catch (error) {
-		return {
-			name,
-			connected: false,
-			toolCount: 0,
-			error: toErrorMessage(error),
-		};
-	} finally {
-		if (client) {
-			await client.disconnect().catch(() => undefined);
-		}
+		console.warn("[chat-mastra] Title generation failed:", error);
 	}
-}
-
-function shouldRunPerServerProbe(
-	configEntries: Array<[string, unknown]>,
-	statuses: Array<{
-		name: string;
-		connected: boolean;
-		error?: string;
-	}>,
-): boolean {
-	if (configEntries.length === 0) {
-		return false;
-	}
-
-	if (statuses.length === 0) {
-		return true;
-	}
-
-	if (statuses.some((status) => status.connected)) {
-		return false;
-	}
-
-	if (statuses.length !== configEntries.length) {
-		return true;
-	}
-
-	const normalizedErrors = new Set(
-		statuses.map((status) => toNonEmptyString(status.error) ?? "unknown"),
-	);
-	return normalizedErrors.size <= 1;
-}
-
-function resolveTransport(
-	config: Record<string, unknown>,
-): "remote" | "local" | "unknown" {
-	const command = toNonEmptyString(config.command)?.toLowerCase();
-	const args = toStringArray(config.args) ?? [];
-	if (!command && args.length === 0) {
-		return "unknown";
-	}
-	const hasRemoteUrl = args.some((arg) => /^https?:\/\//i.test(arg));
-	const isMcpRemote =
-		command === "mcp-remote" ||
-		args.some((arg) => arg.toLowerCase() === "mcp-remote");
-	return hasRemoteUrl || isMcpRemote ? "remote" : "local";
-}
-
-function resolveTarget(
-	config: Record<string, unknown>,
-	transport: "remote" | "local" | "unknown",
-): string {
-	if (transport === "remote") {
-		const args = toStringArray(config.args) ?? [];
-		const remoteUrl = args.find((arg) => /^https?:\/\//i.test(arg));
-		if (remoteUrl) {
-			return remoteUrl;
-		}
-	}
-
-	const command = toNonEmptyString(config.command);
-	const args = toStringArray(config.args) ?? [];
-	if (!command) {
-		return "Not configured";
-	}
-
-	return [command, ...args].join(" ");
-}
-
-export async function getRuntimeMcpOverview(runtime: RuntimeSession): Promise<{
-	sourcePath: string | null;
-	servers: Array<{
-		name: string;
-		state: "enabled" | "disabled" | "invalid";
-		transport: "remote" | "local" | "unknown";
-		target: string;
-	}>;
-}> {
-	const manager = runtime.mcpManager;
-	if (!manager || !manager.hasServers()) {
-		return { sourcePath: null, servers: [] };
-	}
-
-	if (manager.getServerStatuses().length === 0) {
-		try {
-			await manager.init();
-		} catch (error) {
-			console.warn("[chat-mastra] MCP init failed during overview", {
-				sessionId: runtime.sessionId,
-				error: toErrorMessage(error),
-			});
-		}
-	}
-
-	const rawStatuses = manager.getServerStatuses();
-	const statusesByName = new Map(
-		rawStatuses.map((status) => [status.name, status]),
-	);
-	const config = manager.getConfig().mcpServers ?? {};
-	const configEntries = Object.entries(config);
-	const perServerStatusesByName = shouldRunPerServerProbe(
-		configEntries,
-		rawStatuses,
-	)
-		? new Map(
-				(
-					await Promise.all(
-						configEntries.map(([name, rawConfig]) =>
-							probeMcpServerStatus(
-								name,
-								rawConfig as unknown as Record<string, unknown>,
-							),
-						),
-					)
-				).map((status) => [status.name, status]),
-			)
-		: null;
-	const servers: Array<{
-		name: string;
-		state: "enabled" | "disabled" | "invalid";
-		transport: "remote" | "local" | "unknown";
-		target: string;
-	}> = configEntries
-		.map(([name, rawConfig]) => {
-			const normalizedConfig = rawConfig as unknown as Record<string, unknown>;
-			const transport = resolveTransport(normalizedConfig);
-			const status = statusesByName.get(name);
-			const probedStatus = perServerStatusesByName?.get(name);
-			const isConnected =
-				probedStatus?.connected ?? Boolean(status?.connected ?? false);
-			const isDisabled =
-				normalizedConfig.disabled === true ||
-				normalizedConfig.enabled === false;
-			const state: "enabled" | "disabled" | "invalid" = isDisabled
-				? "disabled"
-				: isConnected
-					? "enabled"
-					: "invalid";
-			return {
-				name,
-				state,
-				transport,
-				target: resolveTarget(normalizedConfig, transport),
-			};
-		})
-		.sort((left, right) => left.name.localeCompare(right.name));
-
-	return {
-		sourcePath: manager.getConfigPaths().project,
-		servers,
-	};
 }

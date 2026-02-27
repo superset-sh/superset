@@ -5,9 +5,9 @@ import { createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
 import {
-	type RuntimeSession,
 	getRuntimeMcpOverview,
 	onUserPromptSubmit,
+	type RuntimeSession,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
 import {
@@ -31,7 +31,7 @@ export class ChatMastraService {
 	private readonly runtimes = new Map<string, RuntimeSession>();
 	private readonly apiClient: ReturnType<typeof createTRPCClient<AppRouter>>;
 
-	constructor(private readonly opts: ChatMastraServiceOptions) {
+	constructor(readonly opts: ChatMastraServiceOptions) {
 		this.apiClient = createTRPCClient<AppRouter>({
 			links: [
 				httpBatchLink({

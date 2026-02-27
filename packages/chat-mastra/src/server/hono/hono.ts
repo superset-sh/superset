@@ -1,9 +1,6 @@
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Hono } from "hono";
-import {
-	ChatMastraService,
-	type ChatMastraServiceRouter,
-} from "../trpc";
+import { ChatMastraService, type ChatMastraServiceRouter } from "../trpc";
 
 export interface CreateChatMastraHonoAppOptions {
 	endpoint?: string;
