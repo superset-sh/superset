@@ -12,6 +12,7 @@ import {
 	createGeminiSettingsJson,
 	createGeminiWrapper,
 	createMastraHooksJson,
+	createMastraWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
 } from "./agent-wrappers";
@@ -53,6 +54,7 @@ export function setupAgentHooks(): void {
 	createGeminiHookScript();
 	createGeminiWrapper();
 	createGeminiSettingsJson();
+	createMastraWrapper();
 	createMastraHooksJson();
 	createCopilotHookScript();
 	createCopilotWrapper();

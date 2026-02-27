@@ -53,6 +53,7 @@ export {
 } from "./agent-wrappers-gemini";
 export {
 	createMastraHooksJson,
+	createMastraWrapper,
 	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";

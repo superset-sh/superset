@@ -2,6 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+	buildWrapperScript,
+	createWrapper,
 	isSupersetManagedHookCommand,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
@@ -38,6 +40,11 @@ function quoteShellPath(filePath: string): string {
 
 export function getMastraGlobalHooksJsonPath(): string {
 	return path.join(os.homedir(), ".mastracode", "hooks.json");
+}
+
+export function createMastraWrapper(): void {
+	const script = buildWrapperScript("mastracode", `exec "$REAL_BIN" "$@"`);
+	createWrapper("mastracode", script);
 }
 
 /**

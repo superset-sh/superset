@@ -60,6 +60,7 @@ const {
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
 	createCodexWrapper,
+	createMastraWrapper,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
 	getGeminiSettingsJsonContent,
@@ -144,6 +145,17 @@ describe("agent-wrappers copilot", () => {
 		);
 		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
 		expect(wrapper).toContain(execLine);
+	});
+
+	it("creates mastracode wrapper passthrough", () => {
+		createMastraWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "mastracode");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("# Superset wrapper for mastracode");
+		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "mastracode")"');
+		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {

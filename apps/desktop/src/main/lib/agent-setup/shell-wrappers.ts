@@ -46,7 +46,14 @@ function writeFileIfChanged(
 }
 
 /** Agent binaries that get wrapper shims to guarantee resolution. */
-const SHIMMED_BINARIES = ["claude", "codex", "opencode", "gemini", "copilot"];
+const SHIMMED_BINARIES = [
+	"claude",
+	"codex",
+	"opencode",
+	"gemini",
+	"copilot",
+	"mastracode",
+];
 
 /**
  * Shell function shims that override PATH-based lookup.
