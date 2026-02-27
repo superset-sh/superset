@@ -111,13 +111,13 @@ export function MastraToolCallBlock({
 			if (!workspaceId) return;
 			const normalizedPath = normalizeFilePath(filePath);
 			const diffPaneTarget = getDiffPaneTargetForFile(filePath);
-			if (!normalizedPath || !diffPaneTarget) return;
+			if (!normalizedPath) return;
 
 			addFileViewerPane(workspaceId, {
 				filePath: normalizedPath,
-				diffCategory: diffPaneTarget.diffCategory,
-				commitHash: diffPaneTarget.commitHash,
-				oldPath: diffPaneTarget.oldPath,
+				diffCategory: diffPaneTarget?.diffCategory ?? "unstaged",
+				commitHash: diffPaneTarget?.commitHash,
+				oldPath: diffPaneTarget?.oldPath,
 				viewMode: "diff",
 			});
 		},
@@ -203,14 +203,13 @@ export function MastraToolCallBlock({
 			toRecord(args.target)?.path,
 		);
 		const content = String(args.content ?? args.data ?? "");
-		const hasExistingDiffPane = Boolean(getDiffPaneTargetForFile(filePath));
 		return (
 			<FileDiffTool
 				filePath={filePath}
 				content={content}
 				isWriteMode
 				onFilePathClick={openFileInPane}
-				onDiffPathClick={hasExistingDiffPane ? openFileInDiffPane : undefined}
+				onDiffPathClick={openFileInDiffPane}
 				renderExpandedContent={
 					content
 						? () => (
@@ -322,7 +321,6 @@ export function MastraToolCallBlock({
 				);
 			},
 		);
-		const hasExistingDiffPane = Boolean(getDiffPaneTargetForFile(filePath));
 		return (
 			<FileDiffTool
 				filePath={filePath}
@@ -330,7 +328,7 @@ export function MastraToolCallBlock({
 				newString={newString}
 				structuredPatch={structuredPatch}
 				onFilePathClick={openFileInPane}
-				onDiffPathClick={hasExistingDiffPane ? openFileInDiffPane : undefined}
+				onDiffPathClick={openFileInDiffPane}
 				renderExpandedContent={
 					oldString || newString
 						? () => (

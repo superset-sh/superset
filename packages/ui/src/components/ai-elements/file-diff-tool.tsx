@@ -104,7 +104,6 @@ function calculateDiffStats(lines: DiffLine[]): {
 	return { additions, removals };
 }
 
-const COLLAPSED_MAX_HEIGHT = 72;
 const EXPANDED_MAX_HEIGHT = 200;
 
 export const FileDiffTool = ({
@@ -277,17 +276,12 @@ export const FileDiffTool = ({
 			</div>
 
 			{/* Diff body */}
-			{hasDiff && (
+			{hasDiff && expanded && (
 				<div
-					className={cn(
-						"overflow-hidden border-t border-border transition-[max-height] duration-200",
-						expanded ? "overflow-y-auto" : "",
-					)}
-					style={{
-						maxHeight: expanded ? EXPANDED_MAX_HEIGHT : COLLAPSED_MAX_HEIGHT,
-					}}
+					className="overflow-y-auto border-t border-border"
+					style={{ maxHeight: EXPANDED_MAX_HEIGHT }}
 				>
-					{expanded && renderExpandedContent ? (
+					{renderExpandedContent ? (
 						renderExpandedContent(expandedContentProps)
 					) : (
 						<div className="font-mono text-xs">
