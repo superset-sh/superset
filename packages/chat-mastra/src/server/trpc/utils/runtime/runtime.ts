@@ -12,11 +12,18 @@ export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
 
+export interface RuntimeMcpServerStatus {
+	connected: boolean;
+	toolCount: number;
+	error?: string;
+}
+
 export interface RuntimeSession {
 	sessionId: string;
 	harness: RuntimeHarness;
 	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
+	mcpManualStatuses: Map<string, RuntimeMcpServerStatus>;
 	cwd: string;
 }
 

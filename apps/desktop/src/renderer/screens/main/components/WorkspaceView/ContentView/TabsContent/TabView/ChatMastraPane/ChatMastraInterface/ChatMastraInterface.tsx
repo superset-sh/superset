@@ -67,6 +67,8 @@ export function ChatMastraInterface({
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const currentSessionRef = useRef<string | null>(null);
 	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
+	const authenticateMcpServerMutation =
+		chatMastraServiceTrpc.workspace.authenticateMcpServer.useMutation();
 
 	const { data: slashCommands = [] } =
 		chatServiceTrpc.workspace.getSlashCommands.useQuery(
@@ -129,9 +131,24 @@ export function ChatMastraInterface({
 		},
 		[chatMastraServiceTrpcUtils.workspace.getMcpOverview, sessionId],
 	);
+	const authenticateMcpServer = useCallback(
+		async (rootCwd: string, serverName: string) => {
+			if (!sessionId) {
+				return { sourcePath: null, servers: [] };
+			}
+
+			return authenticateMcpServerMutation.mutateAsync({
+				sessionId,
+				cwd: rootCwd,
+				serverName,
+			});
+		},
+		[authenticateMcpServerMutation, sessionId],
+	);
 	const mcpUi = useMcpUi({
 		cwd,
 		loadOverview: loadMcpOverview,
+		authenticateServer: authenticateMcpServer,
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
 		onTrackEvent: (event, properties) => {

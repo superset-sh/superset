@@ -10,6 +10,7 @@ function createRuntime(
 		harness: {} as RuntimeSession["harness"],
 		mcpManager,
 		hookManager: {} as RuntimeSession["hookManager"],
+		mcpManualStatuses: new Map(),
 		cwd: "/tmp/workspace",
 	};
 }
@@ -64,7 +65,7 @@ describe("getRuntimeMcpOverview", () => {
 		const result = await getRuntimeMcpOverview(createRuntime(manager));
 
 		expect(initCalled).toBe(false);
-		expect(statusCalled).toBe(false);
+		expect(statusCalled).toBe(true);
 		expect(result).toEqual({
 			sourcePath: "/tmp/workspace/.mcp.json",
 			servers: [

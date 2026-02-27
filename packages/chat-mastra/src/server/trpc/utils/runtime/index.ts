@@ -4,9 +4,13 @@ export {
 	type RuntimeHarness,
 	type RuntimeHookManager,
 	type RuntimeMcpManager,
+	type RuntimeMcpServerStatus,
 	type RuntimeSession,
 	reloadHookConfig,
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./runtime";
-export { getRuntimeMcpOverview } from "./utils/mcp-overview";
+export {
+	authenticateRuntimeMcpServer,
+	getRuntimeMcpOverview,
+} from "./utils/mcp-overview";

@@ -13,6 +13,8 @@ interface McpOverviewPickerProps {
 	overview: McpOverviewPayload | null;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	onAuthenticateServer?: (serverName: string) => Promise<void> | void;
+	authenticatingServerName?: string | null;
 }
 
 function getStateClassName(state: McpServerOverviewItem["state"]): string {
@@ -54,6 +56,8 @@ export function McpOverviewPicker({
 	overview,
 	open,
 	onOpenChange,
+	onAuthenticateServer,
+	authenticatingServerName,
 }: McpOverviewPickerProps) {
 	const servers = overview?.servers ?? [];
 
@@ -77,7 +81,17 @@ export function McpOverviewPicker({
 						{servers.map((server) => (
 							<ModelSelectorItem
 								key={server.name}
-								value={`${server.name} ${server.target} ${server.transport} ${server.state}`}
+								value={`${server.name} ${server.target} ${server.transport} ${server.state} ${server.error ?? ""}`}
+								onSelect={() => {
+									if (
+										!onAuthenticateServer ||
+										server.transport !== "remote" ||
+										server.state === "disabled"
+									) {
+										return;
+									}
+									void onAuthenticateServer(server.name);
+								}}
 							>
 								<div className="min-w-0 flex-1">
 									<div className="truncate text-sm font-medium text-foreground">
@@ -86,8 +100,22 @@ export function McpOverviewPicker({
 									<div className="truncate text-xs text-muted-foreground">
 										{server.target}
 									</div>
+									{server.error ? (
+										<div className="truncate text-xs text-destructive">
+											{server.error}
+										</div>
+									) : null}
 								</div>
 								<div className="ml-3 flex shrink-0 items-center gap-1.5">
+									{server.connected === true ? (
+										<span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+											Connected
+										</span>
+									) : server.connected === false ? (
+										<span className="rounded-full border border-zinc-500/30 bg-zinc-500/10 px-2 py-0.5 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+											Disconnected
+										</span>
+									) : null}
 									<span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
 										{formatTransportLabel(server.transport)}
 									</span>
@@ -96,6 +124,17 @@ export function McpOverviewPicker({
 									>
 										{formatStateLabel(server.state)}
 									</span>
+									{onAuthenticateServer &&
+									server.transport === "remote" &&
+									server.state !== "disabled" ? (
+										<span className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-foreground">
+											{authenticatingServerName === server.name
+												? "Connecting..."
+												: server.connected
+													? "Re-auth"
+													: "Auth"}
+										</span>
+									) : null}
 								</div>
 							</ModelSelectorItem>
 						))}
