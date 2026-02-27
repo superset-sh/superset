@@ -73,6 +73,7 @@ import {
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { resolveBranchPrefix, sanitizeBranchName } from "shared/utils/branch";
+import type { ImportSourceTab } from "./components/ExistingWorktreesList";
 import { ImportFlow } from "./components/ImportFlow";
 
 function generateSlugFromTitle(title: string): string {
@@ -100,6 +101,7 @@ export function NewWorkspaceModal() {
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [runSetupScript, setRunSetupScript] = useState(true);
+	const [importTab, setImportTab] = useState<ImportSourceTab>("pull-request");
 	const [selectedAgent, setSelectedAgent] = useState<WorkspaceCreateAgent>(
 		() => {
 			if (typeof window === "undefined") return "none";
@@ -209,6 +211,7 @@ export function NewWorkspaceModal() {
 		setBranchName("");
 		setBranchNameEdited(false);
 		setMode("new");
+		setImportTab("pull-request");
 		setBaseBranch(null);
 		setBranchSearch("");
 		setShowAdvanced(false);
@@ -431,7 +434,11 @@ export function NewWorkspaceModal() {
 							Back
 						</Button>
 					)}
-					<DialogTitle className="text-base">New Workspace</DialogTitle>
+					<DialogTitle
+						className={mode === "existing" ? "sr-only" : "text-base"}
+					>
+						New Workspace
+					</DialogTitle>
 					{selectedProjectId && mode === "new" && (
 						<Button
 							type="button"
@@ -443,6 +450,9 @@ export function NewWorkspaceModal() {
 							<LuFolderOpen className="size-3.5" />
 							Import
 						</Button>
+					)}
+					{selectedProjectId && mode === "existing" && (
+						<div className="h-7 w-[56px]" />
 					)}
 				</DialogHeader>
 
@@ -687,6 +697,8 @@ export function NewWorkspaceModal() {
 								projectId={selectedProjectId}
 								projectSelector={projectSelector}
 								onOpenSuccess={handleClose}
+								activeTab={importTab}
+								onActiveTabChange={setImportTab}
 							/>
 						)}
 					</div>
