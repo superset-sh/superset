@@ -42,12 +42,15 @@ import {
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
+import { Textarea } from "@superset/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import {
 	HiCheck,
 	HiChevronDown,
+	HiChevronLeft,
 	HiChevronUpDown,
 	HiOutlinePencil,
 } from "react-icons/hi2";
@@ -109,7 +112,7 @@ export function NewWorkspaceModal() {
 	);
 	const runSetupScriptRef = useRef(true);
 	runSetupScriptRef.current = runSetupScript;
-	const titleInputRef = useRef<HTMLInputElement>(null);
+	const titleInputRef = useRef<HTMLTextAreaElement>(null);
 	const isDark = useIsDarkTheme();
 
 	const { data: recentProjects = [] } =
@@ -220,6 +223,10 @@ export function NewWorkspaceModal() {
 	}, [isOpen, selectedProjectId, mode]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.target instanceof HTMLTextAreaElement) {
+			return;
+		}
+
 		if (
 			e.key === "Enter" &&
 			!e.shiftKey &&
@@ -270,6 +277,51 @@ export function NewWorkspaceModal() {
 
 	const selectedProject = recentProjects.find(
 		(p) => p.id === selectedProjectId,
+	);
+	const projectSelector = (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="outline"
+							className="w-full h-8 text-sm justify-between font-normal"
+						>
+							<span className={selectedProject ? "" : "text-muted-foreground"}>
+								{selectedProject?.name ?? "Select project"}
+							</span>
+							<HiChevronDown className="size-4 text-muted-foreground" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						Repository
+					</TooltipContent>
+				</Tooltip>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent
+				align="start"
+				className="w-[--radix-dropdown-menu-trigger-width]"
+			>
+				{recentProjects
+					.filter((project) => project.id)
+					.map((project) => (
+						<DropdownMenuItem
+							key={project.id}
+							onClick={() => setSelectedProjectId(project.id)}
+						>
+							{project.name}
+							{project.id === selectedProjectId && (
+								<HiCheck className="ml-auto size-4" />
+							)}
+						</DropdownMenuItem>
+					))}
+				<DropdownMenuSeparator />
+				<DropdownMenuItem onClick={handleImportRepo}>
+					<LuFolderOpen className="size-4" />
+					Import repo
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 	const requiresPromptTitle = selectedAgent !== "none";
 	const isCreateDisabled =
@@ -364,316 +416,282 @@ export function NewWorkspaceModal() {
 			<DialogContent
 				className="sm:max-w-[440px] gap-0 p-0 overflow-hidden"
 				onKeyDown={handleKeyDown}
+				showCloseButton={false}
 			>
-				<DialogHeader className="px-4 pt-4 pb-3">
-					<DialogTitle className="text-base">Open Workspace</DialogTitle>
+				<DialogHeader className="px-4 pt-4 pb-3 flex-row items-center justify-between space-y-0">
+					{selectedProjectId && mode === "existing" && (
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className="h-7 px-2 text-xs"
+							onClick={() => setMode("new")}
+						>
+							<HiChevronLeft className="size-3.5" />
+							Back
+						</Button>
+					)}
+					<DialogTitle className="text-base">New Workspace</DialogTitle>
 				</DialogHeader>
 
-				<div className="px-4 pb-3">
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="outline"
-								className="w-full h-8 text-sm justify-between font-normal"
-							>
-								<span
-									className={selectedProject ? "" : "text-muted-foreground"}
-								>
-									{selectedProject?.name ?? "Select project"}
-								</span>
-								<HiChevronDown className="size-4 text-muted-foreground" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent
-							align="start"
-							className="w-[--radix-dropdown-menu-trigger-width]"
-						>
-							{recentProjects
-								.filter((project) => project.id)
-								.map((project) => (
-									<DropdownMenuItem
-										key={project.id}
-										onClick={() => setSelectedProjectId(project.id)}
-									>
-										{project.name}
-										{project.id === selectedProjectId && (
-											<HiCheck className="ml-auto size-4" />
-										)}
-									</DropdownMenuItem>
-								))}
-							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={handleImportRepo}>
-								<LuFolderOpen className="size-4" />
-								Import repo
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				</div>
+				{(!selectedProjectId || mode === "existing") && (
+					<div className="px-4 pb-3">{projectSelector}</div>
+				)}
 
 				{selectedProjectId && (
-					<>
-						<div className="px-4 pb-3">
-							<div className="flex p-0.5 bg-muted rounded-md">
-								<button
-									type="button"
-									onClick={() => setMode("new")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "new"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									New
-								</button>
-								<button
-									type="button"
-									onClick={() => setMode("existing")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "existing"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									Import
-								</button>
-							</div>
-						</div>
-
-						<div className="px-4 pb-4">
-							{mode === "new" && (
-								<div className="space-y-3">
-									<Input
-										ref={titleInputRef}
-										id="title"
-										className="h-9 text-sm"
-										placeholder="Feature name (press Enter to create)"
-										value={title}
-										onChange={(e) => setTitle(e.target.value)}
-									/>
-
-									{(title || branchNameEdited) && (
-										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
-											<GoGitBranch className="size-3" />
-											<span className="font-mono">
-												{branchPreview || "branch-name"}
-											</span>
-											<span className="text-muted-foreground/60">
-												from {effectiveBaseBranch ?? "..."}
-											</span>
-										</p>
-									)}
-
-									<div className="flex items-center justify-between gap-3">
+					<div className="px-4 pb-4">
+						{mode === "new" && (
+							<div className="space-y-3">
+								<div className="flex items-end gap-3">
+									<div className="flex-1 space-y-1.5">
 										<Label className="text-xs text-muted-foreground">
-											Send to agent
+											Repository
 										</Label>
-										<div className="w-44">
-											<Select
-												value={selectedAgent}
-												onValueChange={(value: WorkspaceCreateAgent) => {
-													setSelectedAgent(value);
-													window.localStorage.setItem(
-														WORKSPACE_AGENT_STORAGE_KEY,
-														value,
-													);
-												}}
-											>
-												<SelectTrigger className="h-8 text-xs">
-													<SelectValue placeholder="No agent" />
-												</SelectTrigger>
-												<SelectContent>
-													<SelectItem value="none">No agent</SelectItem>
-													{AGENT_TYPES.map((agent) => {
-														const icon = getPresetIcon(agent, isDark);
-														return (
-															<SelectItem key={agent} value={agent}>
-																<span className="flex items-center gap-2">
-																	{icon && (
-																		<img
-																			src={icon}
-																			alt=""
-																			className="size-3.5 object-contain"
-																		/>
-																	)}
-																	{AGENT_LABELS[agent]}
-																</span>
-															</SelectItem>
-														);
-													})}
-												</SelectContent>
-											</Select>
-										</div>
+										{projectSelector}
 									</div>
+									<div>
+										<Select
+											value={selectedAgent}
+											onValueChange={(value: WorkspaceCreateAgent) => {
+												setSelectedAgent(value);
+												window.localStorage.setItem(
+													WORKSPACE_AGENT_STORAGE_KEY,
+													value,
+												);
+											}}
+										>
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<SelectTrigger className="h-8 text-xs w-auto">
+														<SelectValue placeholder="No agent" />
+													</SelectTrigger>
+												</TooltipTrigger>
+												<TooltipContent side="bottom" showArrow={false}>
+													Agent
+												</TooltipContent>
+											</Tooltip>
+											<SelectContent>
+												<SelectItem value="none">No agent</SelectItem>
+												{AGENT_TYPES.map((agent) => {
+													const icon = getPresetIcon(agent, isDark);
+													return (
+														<SelectItem key={agent} value={agent}>
+															<span className="flex items-center gap-2">
+																{icon && (
+																	<img
+																		src={icon}
+																		alt=""
+																		className="size-3.5 object-contain"
+																	/>
+																)}
+																{AGENT_LABELS[agent]}
+															</span>
+														</SelectItem>
+													);
+												})}
+											</SelectContent>
+										</Select>
+									</div>
+								</div>
 
+								<Textarea
+									ref={titleInputRef}
+									id="title"
+									className="min-h-20 text-sm resize-y"
+									placeholder="What do you want to do?"
+									value={title}
+									onChange={(e) => setTitle(e.target.value)}
+								/>
+
+								{(title || branchNameEdited) && (
+									<p className="text-xs text-muted-foreground flex items-center gap-1.5">
+										<GoGitBranch className="size-3" />
+										<span className="font-mono">
+											{branchPreview || "branch-name"}
+										</span>
+										<span className="text-muted-foreground/60">
+											from {effectiveBaseBranch ?? "..."}
+										</span>
+									</p>
+								)}
+
+								<div className="flex gap-2">
 									<Button
-										className="w-full h-8 text-sm"
+										className="flex-1 h-8 text-sm"
 										onClick={handleCreateWorkspace}
 										disabled={isCreateDisabled}
 									>
 										Create Workspace
 									</Button>
-
-									<Collapsible
-										open={showAdvanced}
-										onOpenChange={setShowAdvanced}
+									<Button
+										type="button"
+										variant="ghost"
+										className="h-8 text-sm"
+										onClick={() => setMode("existing")}
 									>
-										<CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-											<HiChevronDown
-												className={`size-3 transition-transform ${showAdvanced ? "" : "-rotate-90"}`}
-											/>
-											Advanced options
-										</CollapsibleTrigger>
-										<CollapsibleContent className="pt-3 space-y-3">
-											<div className="space-y-1.5">
-												<div className="flex items-center justify-between">
-													<label
-														htmlFor="branch"
-														className="text-xs text-muted-foreground"
-													>
-														Branch name
-													</label>
-													<button
-														type="button"
-														onClick={() => {
-															handleClose();
-															navigate({ to: "/settings/behavior" });
-														}}
-														className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-													>
-														<HiOutlinePencil className="size-3" />
-														<span>Edit prefix</span>
-													</button>
-												</div>
-												<Input
-													id="branch"
-													className="h-8 text-sm font-mono"
-													placeholder="auto-generated"
-													value={branchNameEdited ? branchName : branchPreview}
-													onChange={(e) =>
-														handleBranchNameChange(e.target.value)
-													}
-													onBlur={handleBranchNameBlur}
-												/>
-											</div>
+										Import
+									</Button>
+								</div>
 
-											<div className="space-y-1.5">
-												<span className="text-xs text-muted-foreground">
-													Base branch
-												</span>
-												{isBranchesError ? (
-													<div className="flex items-center gap-2 h-8 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs">
-														Failed to load branches
-													</div>
-												) : (
-													<Popover
-														open={baseBranchOpen}
-														onOpenChange={setBaseBranchOpen}
-														modal={false}
-													>
-														<PopoverTrigger asChild>
-															<Button
-																variant="outline"
-																size="sm"
-																className="w-full h-8 justify-between font-normal"
-																disabled={isBranchesLoading}
-															>
-																<span className="flex items-center gap-2 truncate">
-																	<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-																	<span className="truncate font-mono text-sm">
-																		{effectiveBaseBranch || "Select branch..."}
-																	</span>
-																	{effectiveBaseBranch ===
-																		branchData?.defaultBranch && (
-																		<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																			default
-																		</span>
-																	)}
-																</span>
-																<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
-															</Button>
-														</PopoverTrigger>
-														<PopoverContent
-															className="w-[--radix-popover-trigger-width] p-0"
-															align="start"
-															onWheel={(e) => e.stopPropagation()}
-														>
-															<Command shouldFilter={false}>
-																<CommandInput
-																	placeholder="Search branches..."
-																	value={branchSearch}
-																	onValueChange={setBranchSearch}
-																/>
-																<CommandList className="max-h-[200px]">
-																	<CommandEmpty>No branches found</CommandEmpty>
-																	{filteredBranches.map((branch) => (
-																		<CommandItem
-																			key={branch.name}
-																			value={branch.name}
-																			onSelect={() => {
-																				setBaseBranch(branch.name);
-																				setBaseBranchOpen(false);
-																				setBranchSearch("");
-																			}}
-																			className="flex items-center justify-between"
-																		>
-																			<span className="flex items-center gap-2 truncate">
-																				<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-																				<span className="truncate">
-																					{branch.name}
-																				</span>
-																				{branch.name ===
-																					branchData?.defaultBranch && (
-																					<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																						default
-																					</span>
-																				)}
-																			</span>
-																			<span className="flex items-center gap-2 shrink-0">
-																				{branch.lastCommitDate > 0 && (
-																					<span className="text-xs text-muted-foreground">
-																						{formatRelativeTime(
-																							branch.lastCommitDate,
-																						)}
-																					</span>
-																				)}
-																				{effectiveBaseBranch ===
-																					branch.name && (
-																					<HiCheck className="size-4 text-primary" />
-																				)}
-																			</span>
-																		</CommandItem>
-																	))}
-																</CommandList>
-															</Command>
-														</PopoverContent>
-													</Popover>
-												)}
-											</div>
+								<Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+									<CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+										<HiChevronDown
+											className={`size-3 transition-transform ${showAdvanced ? "" : "-rotate-90"}`}
+										/>
+										Advanced options
+									</CollapsibleTrigger>
+									<CollapsibleContent className="pt-3 space-y-3">
+										<div className="space-y-1.5">
 											<div className="flex items-center justify-between">
-												<Label
-													htmlFor="run-setup-script"
+												<label
+													htmlFor="branch"
 													className="text-xs text-muted-foreground"
 												>
-													Run setup script
-												</Label>
-												<Switch
-													id="run-setup-script"
-													checked={runSetupScript}
-													onCheckedChange={setRunSetupScript}
-												/>
+													Branch name
+												</label>
+												<button
+													type="button"
+													onClick={() => {
+														handleClose();
+														navigate({ to: "/settings/behavior" });
+													}}
+													className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+												>
+													<HiOutlinePencil className="size-3" />
+													<span>Edit prefix</span>
+												</button>
 											</div>
-										</CollapsibleContent>
-									</Collapsible>
-								</div>
-							)}
-							{mode === "existing" && (
+											<Input
+												id="branch"
+												className="h-8 text-sm font-mono"
+												placeholder="auto-generated"
+												value={branchNameEdited ? branchName : branchPreview}
+												onChange={(e) => handleBranchNameChange(e.target.value)}
+												onBlur={handleBranchNameBlur}
+											/>
+										</div>
+
+										<div className="space-y-1.5">
+											<span className="text-xs text-muted-foreground">
+												Base branch
+											</span>
+											{isBranchesError ? (
+												<div className="flex items-center gap-2 h-8 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs">
+													Failed to load branches
+												</div>
+											) : (
+												<Popover
+													open={baseBranchOpen}
+													onOpenChange={setBaseBranchOpen}
+													modal={false}
+												>
+													<PopoverTrigger asChild>
+														<Button
+															variant="outline"
+															size="sm"
+															className="w-full h-8 justify-between font-normal"
+															disabled={isBranchesLoading}
+														>
+															<span className="flex items-center gap-2 truncate">
+																<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+																<span className="truncate font-mono text-sm">
+																	{effectiveBaseBranch || "Select branch..."}
+																</span>
+																{effectiveBaseBranch ===
+																	branchData?.defaultBranch && (
+																	<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																		default
+																	</span>
+																)}
+															</span>
+															<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+														</Button>
+													</PopoverTrigger>
+													<PopoverContent
+														className="w-[--radix-popover-trigger-width] p-0"
+														align="start"
+														onWheel={(e) => e.stopPropagation()}
+													>
+														<Command shouldFilter={false}>
+															<CommandInput
+																placeholder="Search branches..."
+																value={branchSearch}
+																onValueChange={setBranchSearch}
+															/>
+															<CommandList className="max-h-[200px]">
+																<CommandEmpty>No branches found</CommandEmpty>
+																{filteredBranches.map((branch) => (
+																	<CommandItem
+																		key={branch.name}
+																		value={branch.name}
+																		onSelect={() => {
+																			setBaseBranch(branch.name);
+																			setBaseBranchOpen(false);
+																			setBranchSearch("");
+																		}}
+																		className="flex items-center justify-between"
+																	>
+																		<span className="flex items-center gap-2 truncate">
+																			<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+																			<span className="truncate">
+																				{branch.name}
+																			</span>
+																			{branch.name ===
+																				branchData?.defaultBranch && (
+																				<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																					default
+																				</span>
+																			)}
+																		</span>
+																		<span className="flex items-center gap-2 shrink-0">
+																			{branch.lastCommitDate > 0 && (
+																				<span className="text-xs text-muted-foreground">
+																					{formatRelativeTime(
+																						branch.lastCommitDate,
+																					)}
+																				</span>
+																			)}
+																			{effectiveBaseBranch === branch.name && (
+																				<HiCheck className="size-4 text-primary" />
+																			)}
+																		</span>
+																	</CommandItem>
+																))}
+															</CommandList>
+														</Command>
+													</PopoverContent>
+												</Popover>
+											)}
+										</div>
+										<div className="flex items-center justify-between">
+											<Label
+												htmlFor="run-setup-script"
+												className="text-xs text-muted-foreground"
+											>
+												Run setup script
+											</Label>
+											<Switch
+												id="run-setup-script"
+												checked={runSetupScript}
+												onCheckedChange={setRunSetupScript}
+											/>
+										</div>
+									</CollapsibleContent>
+								</Collapsible>
+							</div>
+						)}
+						{mode === "existing" && (
+							<div className="space-y-3">
+								<p className="text-xs text-muted-foreground">
+									Choose Import source.
+								</p>
 								<ExistingWorktreesList
 									projectId={selectedProjectId}
 									onOpenSuccess={handleClose}
 								/>
-							)}
-						</div>
-					</>
+							</div>
+						)}
+					</div>
 				)}
 
 				{!selectedProjectId && (
