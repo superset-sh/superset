@@ -22,13 +22,13 @@ function createFakeAuthStorage(): FakeAuthStorage {
 		set: mock((providerId: string, credential: Credential) => {
 			credentials.set(providerId, credential);
 		}),
-			remove: mock((providerId: string) => {
-				credentials.delete(providerId);
-			}),
-			clear: () => {
-				credentials.clear();
-			},
-		};
+		remove: mock((providerId: string) => {
+			credentials.delete(providerId);
+		}),
+		clear: () => {
+			credentials.clear();
+		},
+	};
 }
 
 const fakeAuthStorage = createFakeAuthStorage();

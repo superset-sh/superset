@@ -58,7 +58,9 @@ function toPreviewToolPart({
 	const toolStateRecord = asRecord(toolState);
 	const inputBufferRecord = asRecord(inputBuffer);
 	const name =
-		(typeof toolStateRecord?.name === "string" ? toolStateRecord.name : undefined) ??
+		(typeof toolStateRecord?.name === "string"
+			? toolStateRecord.name
+			: undefined) ??
 		(typeof inputBufferRecord?.toolName === "string"
 			? inputBufferRecord.toolName
 			: undefined) ??
@@ -74,16 +76,11 @@ function toPreviewToolPart({
 			? "output-error"
 			: status === "completed"
 				? "output-available"
-			: status === "streaming_input"
-				? "input-streaming"
-				: "input-available";
-	const input =
-		toolStateRecord?.args ??
-		inputBufferRecord?.text ??
-		{};
-	const output =
-		toolStateRecord?.result ??
-		toolStateRecord?.partialResult;
+				: status === "streaming_input"
+					? "input-streaming"
+					: "input-available";
+	const input = toolStateRecord?.args ?? inputBufferRecord?.text ?? {};
+	const output = toolStateRecord?.result ?? toolStateRecord?.partialResult;
 
 	return {
 		type: `tool-${normalizeToolName(name)}` as ToolPart["type"],
