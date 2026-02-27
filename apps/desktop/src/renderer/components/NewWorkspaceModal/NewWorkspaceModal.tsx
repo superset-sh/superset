@@ -73,7 +73,7 @@ import {
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { resolveBranchPrefix, sanitizeBranchName } from "shared/utils/branch";
-import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
+import { ImportFlow } from "./components/ImportFlow";
 
 function generateSlugFromTitle(title: string): string {
 	return sanitizeBranchName(title);
@@ -432,9 +432,21 @@ export function NewWorkspaceModal() {
 						</Button>
 					)}
 					<DialogTitle className="text-base">New Workspace</DialogTitle>
+					{selectedProjectId && mode === "new" && (
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className="h-7 px-2 text-xs"
+							onClick={() => setMode("existing")}
+						>
+							<LuFolderOpen className="size-3.5" />
+							Import
+						</Button>
+					)}
 				</DialogHeader>
 
-				{(!selectedProjectId || mode === "existing") && (
+				{!selectedProjectId && (
 					<div className="px-4 pb-3">{projectSelector}</div>
 				)}
 
@@ -515,23 +527,13 @@ export function NewWorkspaceModal() {
 									</p>
 								)}
 
-								<div className="flex gap-2">
-									<Button
-										className="flex-1 h-8 text-sm"
-										onClick={handleCreateWorkspace}
-										disabled={isCreateDisabled}
-									>
-										Create Workspace
-									</Button>
-									<Button
-										type="button"
-										variant="ghost"
-										className="h-8 text-sm"
-										onClick={() => setMode("existing")}
-									>
-										Import
-									</Button>
-								</div>
+								<Button
+									className="w-full h-8 text-sm"
+									onClick={handleCreateWorkspace}
+									disabled={isCreateDisabled}
+								>
+									Create Workspace
+								</Button>
 
 								<Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
 									<CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -681,15 +683,11 @@ export function NewWorkspaceModal() {
 							</div>
 						)}
 						{mode === "existing" && (
-							<div className="space-y-3">
-								<p className="text-xs text-muted-foreground">
-									Choose Import source.
-								</p>
-								<ExistingWorktreesList
-									projectId={selectedProjectId}
-									onOpenSuccess={handleClose}
-								/>
-							</div>
+							<ImportFlow
+								projectId={selectedProjectId}
+								projectSelector={projectSelector}
+								onOpenSuccess={handleClose}
+							/>
 						)}
 					</div>
 				)}

@@ -25,9 +25,6 @@ export function PrUrlSection({
 
 	return (
 		<div className="space-y-1.5">
-			<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-				Pull Request
-			</div>
 			<div className="flex gap-2">
 				<div className="relative flex-1">
 					<GoGitPullRequest className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
