@@ -13,6 +13,7 @@ import { MastraToolCallBlock } from "../../../../ChatPane/ChatInterface/componen
 import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { AssistantMessage } from "./components/AssistantMessage";
+import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { UserMessage } from "./components/UserMessage";
 
 type MastraMessage = NonNullable<
@@ -28,6 +29,13 @@ type MastraToolInputBuffer =
 	MastraToolInputBuffers extends Map<string, infer InputBuffer>
 		? InputBuffer
 		: never;
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	if (typeof value === "object" && value !== null) {
+		return value as Record<string, unknown>;
+	}
+	return null;
+}
 
 interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
@@ -48,19 +56,22 @@ function toPreviewToolPart({
 	toolState: MastraActiveTool | null;
 	inputBuffer: MastraToolInputBuffer | null;
 }): ToolPart {
+	const toolStateRecord = asRecord(toolState);
+	const inputBufferRecord = asRecord(inputBuffer);
 	const name =
-		(toolState && "name" in toolState ? toolState.name : undefined) ??
-		(inputBuffer && "toolName" in inputBuffer
-			? inputBuffer.toolName
+		(typeof toolStateRecord?.name === "string"
+			? toolStateRecord.name
+			: undefined) ??
+		(typeof inputBufferRecord?.toolName === "string"
+			? inputBufferRecord.toolName
 			: undefined) ??
 		"unknown_tool";
 	const status =
-		toolState && "status" in toolState ? toolState.status : "streaming_input";
+		typeof toolStateRecord?.status === "string"
+			? toolStateRecord.status
+			: "streaming_input";
 	const isError =
-		toolState &&
-		"isError" in toolState &&
-		typeof toolState.isError === "boolean" &&
-		toolState.isError;
+		typeof toolStateRecord?.isError === "boolean" && toolStateRecord.isError;
 	const state: ToolPart["state"] =
 		status === "error" || isError
 			? "output-error"
@@ -69,15 +80,8 @@ function toPreviewToolPart({
 				: status === "streaming_input"
 					? "input-streaming"
 					: "input-available";
-	const input =
-		(toolState && "args" in toolState ? toolState.args : undefined) ??
-		(inputBuffer && "text" in inputBuffer ? inputBuffer.text : undefined) ??
-		{};
-	const output =
-		(toolState && "result" in toolState ? toolState.result : undefined) ??
-		(toolState && "partialResult" in toolState
-			? toolState.partialResult
-			: undefined);
+	const input = toolStateRecord?.args ?? inputBufferRecord?.text ?? {};
+	const output = toolStateRecord?.result ?? toolStateRecord?.partialResult;
 
 	return {
 		type: `tool-${normalizeToolName(name)}` as ToolPart["type"],
@@ -159,7 +163,7 @@ export function ChatMastraMessageList({
 
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 px-6">
+			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 pl-6 pr-16">
 				{visibleMessages.length === 0 ? (
 					<ConversationEmptyState
 						title="Start a conversation"
@@ -230,6 +234,7 @@ export function ChatMastraMessageList({
 						</Message>
 					)}
 			</ConversationContent>
+			<MessageScrollbackRail messages={visibleMessages} />
 			<ConversationScrollButton />
 		</Conversation>
 	);

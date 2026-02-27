@@ -1,8 +1,14 @@
 "use client";
 
-import { ExternalLinkIcon, FileCode2Icon } from "lucide-react";
+import { ChevronDownIcon, ExternalLinkIcon, FileCode2Icon } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { ShimmerLabel } from "./shimmer-label";
 
 type FileDiffToolState =
@@ -30,6 +36,7 @@ type FileDiffToolProps = {
 	state: FileDiffToolState;
 	structuredPatch?: Array<{ lines: string[] }>;
 	onFilePathClick?: (filePath: string) => void;
+	onDiffPathClick?: (filePath: string) => void;
 	renderExpandedContent?: (
 		props: FileDiffToolExpandedContentProps,
 	) => ReactNode;
@@ -97,7 +104,6 @@ function calculateDiffStats(lines: DiffLine[]): {
 	return { additions, removals };
 }
 
-const COLLAPSED_MAX_HEIGHT = 72;
 const EXPANDED_MAX_HEIGHT = 200;
 
 export const FileDiffTool = ({
@@ -109,6 +115,7 @@ export const FileDiffTool = ({
 	state,
 	structuredPatch,
 	onFilePathClick,
+	onDiffPathClick,
 	renderExpandedContent,
 	className,
 }: FileDiffToolProps) => {
@@ -145,6 +152,9 @@ export const FileDiffTool = ({
 
 	const stats = useMemo(() => calculateDiffStats(diffLines), [diffLines]);
 	const hasDiff = diffLines.length > 0;
+	const canOpenFile = Boolean(filePath && onFilePathClick);
+	const canOpenDiffPane = Boolean(filePath && onDiffPathClick);
+	const hasOpenMenu = canOpenFile && canOpenDiffPane;
 	const expandedContentProps = useMemo(
 		() => ({
 			filePath,
@@ -182,13 +192,13 @@ export const FileDiffTool = ({
 					) : (
 						<span className="min-w-0 truncate text-muted-foreground">
 							{isWriteMode ? "Wrote" : "Edited"}{" "}
-							{filePath && onFilePathClick ? (
+							{canOpenFile && filePath ? (
 								<button
 									type="button"
 									className="inline cursor-pointer truncate text-foreground transition-colors hover:text-muted-foreground"
 									onClick={(event) => {
 										event.stopPropagation();
-										onFilePathClick(filePath);
+										onFilePathClick?.(filePath);
 									}}
 								>
 									{extractFilename(filePath)}
@@ -203,19 +213,52 @@ export const FileDiffTool = ({
 				</div>
 
 				<div className="ml-2 flex shrink-0 items-center gap-1.5 text-xs">
-					{filePath && onFilePathClick && (
-						<button
-							type="button"
-							aria-label={`Open ${filePath}`}
-							className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-							onClick={(event) => {
-								event.stopPropagation();
-								onFilePathClick(filePath);
-							}}
-						>
-							<ExternalLinkIcon className="h-3 w-3" />
-							Open
-						</button>
+					{hasOpenMenu && filePath ? (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									aria-label={`Open ${filePath}`}
+									className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+									onClick={(event) => {
+										event.stopPropagation();
+									}}
+								>
+									<ExternalLinkIcon className="h-3 w-3" />
+									Open
+									<ChevronDownIcon className="h-3 w-3" />
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="end"
+								onClick={(event) => {
+									event.stopPropagation();
+								}}
+							>
+								<DropdownMenuItem onClick={() => onFilePathClick?.(filePath)}>
+									Open in File pane
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => onDiffPathClick?.(filePath)}>
+									Open in Changes pane
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					) : (
+						canOpenFile &&
+						filePath && (
+							<button
+								type="button"
+								aria-label={`Open ${filePath}`}
+								className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+								onClick={(event) => {
+									event.stopPropagation();
+									onFilePathClick?.(filePath);
+								}}
+							>
+								<ExternalLinkIcon className="h-3 w-3" />
+								Open
+							</button>
+						)
 					)}
 
 					{/* Diff stats */}
@@ -233,17 +276,12 @@ export const FileDiffTool = ({
 			</div>
 
 			{/* Diff body */}
-			{hasDiff && (
+			{hasDiff && expanded && (
 				<div
-					className={cn(
-						"overflow-hidden border-t border-border transition-[max-height] duration-200",
-						expanded ? "overflow-y-auto" : "",
-					)}
-					style={{
-						maxHeight: expanded ? EXPANDED_MAX_HEIGHT : COLLAPSED_MAX_HEIGHT,
-					}}
+					className="overflow-y-auto border-t border-border"
+					style={{ maxHeight: EXPANDED_MAX_HEIGHT }}
 				>
-					{expanded && renderExpandedContent ? (
+					{renderExpandedContent ? (
 						renderExpandedContent(expandedContentProps)
 					) : (
 						<div className="font-mono text-xs">

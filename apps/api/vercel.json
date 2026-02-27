@@ -1,0 +1,11 @@
+{
+	"headers": [
+		{
+			"source": "/api/electric/(.*)",
+			"headers": [
+				{ "key": "CDN-Cache-Control", "value": "no-store" },
+				{ "key": "Vercel-CDN-Cache-Control", "value": "no-store" }
+			]
+		}
+	]
+}

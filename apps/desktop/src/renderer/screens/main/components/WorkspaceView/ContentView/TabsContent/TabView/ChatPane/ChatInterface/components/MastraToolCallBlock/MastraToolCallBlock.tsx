@@ -5,8 +5,9 @@ import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import { getToolName } from "ai";
 import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import type { ChangeCategory } from "shared/changes-types";
 import { READ_ONLY_TOOLS } from "../../constants";
 import { normalizeWorkspaceFilePath } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
@@ -29,6 +30,12 @@ interface MastraToolCallBlockProps {
 	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
 }
 
+interface DiffPaneTarget {
+	diffCategory: ChangeCategory;
+	commitHash?: string;
+	oldPath?: string;
+}
+
 export function MastraToolCallBlock({
 	part,
 	workspaceId,
@@ -40,20 +47,86 @@ export function MastraToolCallBlock({
 	const state = toWsToolState(part);
 	const toolName = normalizeToolName(getToolName(part));
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
+	const panes = useTabsStore((store) => store.panes);
+	const tabs = useTabsStore((store) => store.tabs);
 	const toolDisplayName = toolName
 		.replace("mastra_workspace_", "")
 		.replaceAll("_", " ");
-	const openFileInPane = useCallback(
+	const normalizeFilePath = useCallback(
 		(filePath: string) => {
-			if (!workspaceId) return;
 			const normalizedPath = normalizeWorkspaceFilePath({
 				filePath,
 				workspaceRoot: workspaceCwd,
 			});
+			return normalizedPath ?? null;
+		},
+		[workspaceCwd],
+	);
+	const openFileInPane = useCallback(
+		(filePath: string) => {
+			if (!workspaceId) return;
+			const normalizedPath = normalizeFilePath(filePath);
 			if (!normalizedPath) return;
 			addFileViewerPane(workspaceId, { filePath: normalizedPath });
 		},
-		[addFileViewerPane, workspaceCwd, workspaceId],
+		[addFileViewerPane, normalizeFilePath, workspaceId],
+	);
+	const workspaceDiffPaneByFilePath = useMemo(() => {
+		if (!workspaceId) return new Map<string, DiffPaneTarget>();
+
+		const workspaceTabIds = new Set(
+			tabs
+				.filter((tab) => tab.workspaceId === workspaceId)
+				.map((tab) => tab.id),
+		);
+		const diffPaneByFilePath = new Map<string, DiffPaneTarget>();
+
+		for (const pane of Object.values(panes)) {
+			if (pane?.type !== "file-viewer") continue;
+			if (!workspaceTabIds.has(pane.tabId)) continue;
+
+			const fileViewer = pane.fileViewer;
+			if (!fileViewer?.filePath || !fileViewer.diffCategory) continue;
+			if (diffPaneByFilePath.has(fileViewer.filePath)) continue;
+
+			diffPaneByFilePath.set(fileViewer.filePath, {
+				diffCategory: fileViewer.diffCategory,
+				commitHash: fileViewer.commitHash,
+				oldPath: fileViewer.oldPath,
+			});
+		}
+
+		return diffPaneByFilePath;
+	}, [panes, tabs, workspaceId]);
+	const getDiffPaneTargetForFile = useCallback(
+		(filePath: string) => {
+			const normalizedPath = normalizeFilePath(filePath);
+			if (!normalizedPath) return null;
+			return workspaceDiffPaneByFilePath.get(normalizedPath) ?? null;
+		},
+		[normalizeFilePath, workspaceDiffPaneByFilePath],
+	);
+	const openFileInDiffPane = useCallback(
+		(filePath: string) => {
+			if (!workspaceId) return;
+			const normalizedPath = normalizeFilePath(filePath);
+			const diffPaneTarget = getDiffPaneTargetForFile(filePath);
+			if (!normalizedPath) return;
+
+			addFileViewerPane(workspaceId, {
+				filePath: normalizedPath,
+				diffCategory: diffPaneTarget?.diffCategory ?? "unstaged",
+				commitHash: diffPaneTarget?.commitHash,
+				oldPath: diffPaneTarget?.oldPath,
+				viewMode: "diff",
+			});
+		},
+		[
+			addFileViewerPane,
+			getDiffPaneTargetForFile,
+			normalizeFilePath,
+			workspaceId,
+		],
 	);
 
 	const outputObject =
@@ -135,7 +208,7 @@ export function MastraToolCallBlock({
 				filePath={filePath}
 				content={content}
 				isWriteMode
-				onFilePathClick={openFileInPane}
+				onFilePathClick={openFileInDiffPane}
 				renderExpandedContent={
 					content
 						? () => (
@@ -253,7 +326,7 @@ export function MastraToolCallBlock({
 				oldString={oldString}
 				newString={newString}
 				structuredPatch={structuredPatch}
-				onFilePathClick={openFileInPane}
+				onFilePathClick={openFileInDiffPane}
 				renderExpandedContent={
 					oldString || newString
 						? () => (

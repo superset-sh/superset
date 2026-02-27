@@ -1,4 +1,4 @@
-import { createMastraCode } from "mastracode";
+import { createAuthStorage } from "mastracode";
 import {
 	createAnthropicOAuthSession,
 	exchangeAnthropicAuthorizationCode,
@@ -8,9 +8,7 @@ import {
 
 type OpenAIAuthMethod = "api_key" | "env_api_key" | "oauth" | null;
 const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
-type OpenAIAuthStorage = Awaited<
-	ReturnType<typeof createMastraCode>
->["authStorage"];
+type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 
 type AnthropicOAuthCredentials = {
 	accessToken: string;
@@ -45,7 +43,7 @@ export class ChatService {
 		state: string;
 		createdAt: number;
 	} | null = null;
-	private openAIAuthStoragePromise: Promise<OpenAIAuthStorage> | null = null;
+	private openAIAuthStorage: OpenAIAuthStorage | null = null;
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
 
 	getAnthropicAuthStatus(): { authenticated: boolean } {
@@ -57,7 +55,7 @@ export class ChatService {
 		authenticated: boolean;
 		method: OpenAIAuthMethod;
 	}> {
-		const method = await this.resolveOpenAIAuthMethod();
+		const method = this.resolveOpenAIAuthMethod();
 		return { authenticated: method !== null, method };
 	}
 
@@ -67,7 +65,7 @@ export class ChatService {
 			throw new Error("OpenAI API key is required");
 		}
 
-		const authStorage = await this.getOpenAIAuthStorage();
+		const authStorage = this.getOpenAIAuthStorage();
 		authStorage.reload();
 		authStorage.set(OPENAI_AUTH_PROVIDER_ID, {
 			type: "api_key",
@@ -79,7 +77,7 @@ export class ChatService {
 	}
 
 	async clearOpenAIApiKey(): Promise<{ success: true }> {
-		const authStorage = await this.getOpenAIAuthStorage();
+		const authStorage = this.getOpenAIAuthStorage();
 		authStorage.reload();
 		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
 		if (credential?.type !== "api_key") {
@@ -94,8 +92,8 @@ export class ChatService {
 		return { success: true };
 	}
 
-	private async resolveOpenAIAuthMethod(): Promise<OpenAIAuthMethod> {
-		const authStorage = await this.getOpenAIAuthStorage();
+	private resolveOpenAIAuthMethod(): OpenAIAuthMethod {
+		const authStorage = this.getOpenAIAuthStorage();
 		authStorage.reload();
 		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
 		if (credential?.type === "oauth") {
@@ -110,19 +108,13 @@ export class ChatService {
 		return null;
 	}
 
-	private async getOpenAIAuthStorage(): Promise<OpenAIAuthStorage> {
-		if (!this.openAIAuthStoragePromise) {
-			this.openAIAuthStoragePromise = createMastraCode({
-				disableMcp: true,
-				disableHooks: true,
-			})
-				.then((runtime) => runtime.authStorage)
-				.catch((error) => {
-					this.openAIAuthStoragePromise = null;
-					throw error;
-				});
+	private getOpenAIAuthStorage(): OpenAIAuthStorage {
+		if (!this.openAIAuthStorage) {
+			// Standalone auth storage bootstrap.
+			// This path intentionally avoids full createMastraCode runtime initialization.
+			this.openAIAuthStorage = createAuthStorage();
 		}
-		return this.openAIAuthStoragePromise;
+		return this.openAIAuthStorage;
 	}
 
 	startAnthropicOAuth(): { url: string; instructions: string } {
