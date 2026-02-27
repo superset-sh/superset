@@ -181,7 +181,11 @@ export function NewWorkspaceModal() {
 	}, [isOpen, selectedProjectId, mode]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.target instanceof HTMLTextAreaElement) {
+		const isTextareaTarget = e.target instanceof HTMLTextAreaElement;
+		const isSubmitShortcutInTextarea =
+			isTextareaTarget && (e.metaKey || e.ctrlKey);
+
+		if (isTextareaTarget && !isSubmitShortcutInTextarea) {
 			return;
 		}
 
