@@ -28,7 +28,9 @@ function buildPreview(message: MastraMessage): string {
 			): part is Extract<MastraMessagePart, { type: "text" }> =>
 				part.type === "text",
 		)
-		.map((part: { type: "text"; text: string }) => part.text.trim())
+		.map((part: Extract<MastraMessagePart, { type: "text" }>) =>
+			part.text.trim(),
+		)
 		.filter(Boolean)
 		.join(" ")
 		.replace(/\s+/g, " ")
