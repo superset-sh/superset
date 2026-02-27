@@ -463,6 +463,56 @@ export function NewWorkspaceModal() {
 										</p>
 									)}
 
+									<div className="flex items-center justify-between gap-3">
+										<Label className="text-xs text-muted-foreground">
+											Send to agent
+										</Label>
+										<div className="w-44">
+											<Select
+												value={selectedAgent}
+												onValueChange={(value: WorkspaceCreateAgent) => {
+													setSelectedAgent(value);
+													window.localStorage.setItem(
+														WORKSPACE_AGENT_STORAGE_KEY,
+														value,
+													);
+												}}
+											>
+												<SelectTrigger className="h-8 text-xs">
+													<SelectValue placeholder="No agent" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="none">No agent</SelectItem>
+													{AGENT_TYPES.map((agent) => {
+														const icon = getPresetIcon(agent, isDark);
+														return (
+															<SelectItem key={agent} value={agent}>
+																<span className="flex items-center gap-2">
+																	{icon && (
+																		<img
+																			src={icon}
+																			alt=""
+																			className="size-3.5 object-contain"
+																		/>
+																	)}
+																	{AGENT_LABELS[agent]}
+																</span>
+															</SelectItem>
+														);
+													})}
+												</SelectContent>
+											</Select>
+										</div>
+									</div>
+
+									<Button
+										className="w-full h-8 text-sm"
+										onClick={handleCreateWorkspace}
+										disabled={isCreateDisabled}
+									>
+										Create Workspace
+									</Button>
+
 									<Collapsible
 										open={showAdvanced}
 										onOpenChange={setShowAdvanced}
@@ -614,59 +664,6 @@ export function NewWorkspaceModal() {
 											</div>
 										</CollapsibleContent>
 									</Collapsible>
-
-									<div className="space-y-1.5">
-										<Label className="text-xs text-muted-foreground">
-											Start agent
-										</Label>
-										<Select
-											value={selectedAgent}
-											onValueChange={(value: WorkspaceCreateAgent) => {
-												setSelectedAgent(value);
-												window.localStorage.setItem(
-													WORKSPACE_AGENT_STORAGE_KEY,
-													value,
-												);
-											}}
-										>
-											<SelectTrigger className="h-8 text-xs">
-												<SelectValue placeholder="No agent" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="none">No agent</SelectItem>
-												{AGENT_TYPES.map((agent) => {
-													const icon = getPresetIcon(agent, isDark);
-													return (
-														<SelectItem key={agent} value={agent}>
-															<span className="flex items-center gap-2">
-																{icon && (
-																	<img
-																		src={icon}
-																		alt=""
-																		className="size-3.5 object-contain"
-																	/>
-																)}
-																{AGENT_LABELS[agent]}
-															</span>
-														</SelectItem>
-													);
-												})}
-											</SelectContent>
-										</Select>
-										{requiresPromptTitle && !title.trim() && (
-											<p className="text-xs text-muted-foreground">
-												Enter a title to use as the agent prompt.
-											</p>
-										)}
-									</div>
-
-									<Button
-										className="w-full h-8 text-sm"
-										onClick={handleCreateWorkspace}
-										disabled={isCreateDisabled}
-									>
-										Create Workspace
-									</Button>
 								</div>
 							)}
 							{mode === "existing" && (
