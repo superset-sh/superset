@@ -1,8 +1,6 @@
 export {
 	destroyRuntime,
 	onUserPromptSubmit,
-	type RuntimeDisplayState,
-	type RuntimeEvent,
 	type RuntimeHarness,
 	type RuntimeHookManager,
 	type RuntimeMcpManager,

@@ -1,7 +1,6 @@
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
@@ -9,8 +8,6 @@ import {
 	destroyRuntime,
 	getRuntimeMcpOverview,
 	onUserPromptSubmit,
-	type RuntimeDisplayState,
-	type RuntimeEvent,
 	type RuntimeSession,
 	reloadHookConfig,
 	runSessionStartHook,
@@ -133,46 +130,6 @@ export class ChatMastraService {
 							input.cwd,
 						);
 						return runtime.harness.getDisplayState();
-					}),
-
-				subscribeDisplayState: t.procedure
-					.input(displayStateInput)
-					.subscription(({ input }) => {
-						return observable<RuntimeDisplayState>((emit) => {
-							let closed = false;
-							let unsubscribeHarness: (() => void) | null = null;
-
-							void this.getOrCreateRuntime(input.sessionId, input.cwd)
-								.then((runtime) => {
-									if (closed) {
-										return;
-									}
-
-									emit.next(runtime.harness.getDisplayState());
-
-									unsubscribeHarness = runtime.harness.subscribe(
-										(event: RuntimeEvent) => {
-											if (event.type !== "display_state_changed" || closed) {
-												return;
-											}
-											if (!("displayState" in event)) {
-												return;
-											}
-											emit.next(event.displayState);
-										},
-									);
-								})
-								.catch((error) => {
-									if (!closed) {
-										emit.error(error as Error);
-									}
-								});
-
-							return () => {
-								closed = true;
-								unsubscribeHarness?.();
-							};
-						});
 					}),
 
 				listMessages: t.procedure
