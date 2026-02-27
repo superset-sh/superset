@@ -117,6 +117,23 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
 };
 
+export function buildAgentPromptCommand({
+	prompt,
+	randomId,
+	agent = "claude",
+}: {
+	prompt: string;
+	randomId: string;
+	agent?: AgentType;
+}): string {
+	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
+	while (prompt.includes(delimiter)) {
+		delimiter = `${delimiter}_X`;
+	}
+	const builder = AGENT_COMMANDS[agent];
+	return builder(prompt, delimiter);
+}
+
 export function buildAgentCommand({
 	task,
 	randomId,
@@ -127,12 +144,7 @@ export function buildAgentCommand({
 	agent?: AgentType;
 }): string {
 	const prompt = buildPrompt(task);
-	let delimiter = `SUPERSET_PROMPT_${randomId.replaceAll("-", "")}`;
-	while (prompt.includes(delimiter)) {
-		delimiter = `${delimiter}_X`;
-	}
-	const builder = AGENT_COMMANDS[agent];
-	return builder(prompt, delimiter);
+	return buildAgentPromptCommand({ prompt, randomId, agent });
 }
 
 /** @deprecated Use `buildAgentCommand` instead */

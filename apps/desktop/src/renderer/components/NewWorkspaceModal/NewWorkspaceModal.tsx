@@ -1,3 +1,9 @@
+import {
+	AGENT_LABELS,
+	AGENT_TYPES,
+	type AgentType,
+	buildAgentPromptCommand,
+} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import {
 	Collapsible,
@@ -27,6 +33,13 @@ import {
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { useNavigate } from "@tanstack/react-router";
@@ -39,8 +52,13 @@ import {
 	HiOutlinePencil,
 } from "react-icons/hi2";
 import { LuFolderOpen } from "react-icons/lu";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
+import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useOpenProject } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -49,6 +67,8 @@ import {
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { resolveBranchPrefix, sanitizeBranchName } from "shared/utils/branch";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
@@ -56,7 +76,9 @@ function generateSlugFromTitle(title: string): string {
 	return sanitizeBranchName(title);
 }
 
-type Mode = "existing" | "new" | "cloud";
+type Mode = "existing" | "new";
+type WorkspaceCreateAgent = AgentType | "none";
+const WORKSPACE_AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 
 export function NewWorkspaceModal() {
 	const navigate = useNavigate();
@@ -75,9 +97,20 @@ export function NewWorkspaceModal() {
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [runSetupScript, setRunSetupScript] = useState(true);
+	const [selectedAgent, setSelectedAgent] = useState<WorkspaceCreateAgent>(
+		() => {
+			if (typeof window === "undefined") return "none";
+			const stored = window.localStorage.getItem(WORKSPACE_AGENT_STORAGE_KEY);
+			if (stored === "none") return "none";
+			return stored && (AGENT_TYPES as readonly string[]).includes(stored)
+				? (stored as AgentType)
+				: "none";
+		},
+	);
 	const runSetupScriptRef = useRef(true);
 	runSetupScriptRef.current = runSetupScript;
 	const titleInputRef = useRef<HTMLInputElement>(null);
+	const isDark = useIsDarkTheme();
 
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
@@ -100,10 +133,16 @@ export function NewWorkspaceModal() {
 	const { data: globalBranchPrefix } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+	const terminalCreateOrAttach =
+		electronTrpc.terminal.createOrAttach.useMutation();
+	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const createWorkspace = useCreateWorkspace({
 		resolveInitialCommands: (commands) =>
 			runSetupScriptRef.current ? commands : null,
 	});
+	const addTab = useTabsStore((s) => s.addTab);
+	const removePane = useTabsStore((s) => s.removePane);
+	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const { openNew } = useOpenProject();
 
 	const resolvedPrefix = useMemo(() => {
@@ -232,11 +271,31 @@ export function NewWorkspaceModal() {
 	const selectedProject = recentProjects.find(
 		(p) => p.id === selectedProjectId,
 	);
+	const requiresPromptTitle = selectedAgent !== "none";
+	const isCreateDisabled =
+		createWorkspace.isPending ||
+		isBranchesError ||
+		(requiresPromptTitle && !title.trim());
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
+		const prompt = title.trim();
+		if (selectedAgent !== "none" && !prompt) {
+			toast.error("Enter a title to start an agent", {
+				description: "The workspace title is used as the initial agent prompt.",
+			});
+			return;
+		}
 
-		const workspaceName = title.trim() || undefined;
+		const workspaceName = prompt || undefined;
+		const agentCommand =
+			selectedAgent === "none"
+				? null
+				: buildAgentPromptCommand({
+						prompt,
+						randomId: window.crypto.randomUUID(),
+						agent: selectedAgent,
+					});
 
 		closeModal();
 
@@ -248,6 +307,43 @@ export function NewWorkspaceModal() {
 				baseBranch: baseBranch || undefined,
 				applyPrefix,
 			});
+
+			if (agentCommand) {
+				if (result.wasExisting) {
+					const { tabId, paneId } = addTab(result.workspace.id);
+					setTabAutoTitle(tabId, "Agent");
+					try {
+						await launchCommandInPane({
+							paneId,
+							tabId,
+							workspaceId: result.workspace.id,
+							command: agentCommand,
+							createOrAttach: (input) =>
+								terminalCreateOrAttach.mutateAsync(input),
+							write: (input) => terminalWrite.mutateAsync(input),
+						});
+					} catch (error) {
+						removePane(paneId);
+						toast.error("Failed to start agent", {
+							description:
+								error instanceof Error
+									? error.message
+									: "Failed to start agent terminal session.",
+						});
+						return;
+					}
+				} else {
+					const store = useWorkspaceInitStore.getState();
+					const pending = store.pendingTerminalSetups[result.workspace.id];
+					store.addPendingTerminalSetup({
+						workspaceId: result.workspace.id,
+						projectId: result.projectId,
+						initialCommands: pending?.initialCommands ?? null,
+						defaultPresets: pending?.defaultPresets,
+						agentCommand,
+					});
+				}
+			}
 
 			if (result.isInitializing) {
 				toast.success("Workspace created", {
@@ -339,17 +435,6 @@ export function NewWorkspaceModal() {
 									}`}
 								>
 									Import
-								</button>
-								<button
-									type="button"
-									onClick={() => setMode("cloud")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "cloud"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									Cloud
 								</button>
 							</div>
 						</div>
@@ -530,10 +615,55 @@ export function NewWorkspaceModal() {
 										</CollapsibleContent>
 									</Collapsible>
 
+									<div className="space-y-1.5">
+										<Label className="text-xs text-muted-foreground">
+											Start agent
+										</Label>
+										<Select
+											value={selectedAgent}
+											onValueChange={(value: WorkspaceCreateAgent) => {
+												setSelectedAgent(value);
+												window.localStorage.setItem(
+													WORKSPACE_AGENT_STORAGE_KEY,
+													value,
+												);
+											}}
+										>
+											<SelectTrigger className="h-8 text-xs">
+												<SelectValue placeholder="No agent" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="none">No agent</SelectItem>
+												{AGENT_TYPES.map((agent) => {
+													const icon = getPresetIcon(agent, isDark);
+													return (
+														<SelectItem key={agent} value={agent}>
+															<span className="flex items-center gap-2">
+																{icon && (
+																	<img
+																		src={icon}
+																		alt=""
+																		className="size-3.5 object-contain"
+																	/>
+																)}
+																{AGENT_LABELS[agent]}
+															</span>
+														</SelectItem>
+													);
+												})}
+											</SelectContent>
+										</Select>
+										{requiresPromptTitle && !title.trim() && (
+											<p className="text-xs text-muted-foreground">
+												Enter a title to use as the agent prompt.
+											</p>
+										)}
+									</div>
+
 									<Button
 										className="w-full h-8 text-sm"
 										onClick={handleCreateWorkspace}
-										disabled={createWorkspace.isPending || isBranchesError}
+										disabled={isCreateDisabled}
 									>
 										Create Workspace
 									</Button>
@@ -544,14 +674,6 @@ export function NewWorkspaceModal() {
 									projectId={selectedProjectId}
 									onOpenSuccess={handleClose}
 								/>
-							)}
-							{mode === "cloud" && (
-								<div className="flex flex-col items-center justify-center py-8 text-center">
-									<div className="text-sm font-medium text-foreground mb-1">
-										Cloud Workspaces
-									</div>
-									<p className="text-xs text-muted-foreground">Coming soon</p>
-								</div>
 							)}
 						</div>
 					</>
