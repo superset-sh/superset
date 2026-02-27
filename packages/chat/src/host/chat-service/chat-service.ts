@@ -55,7 +55,7 @@ export class ChatService {
 		authenticated: boolean;
 		method: OpenAIAuthMethod;
 	}> {
-		const method = await this.resolveOpenAIAuthMethod();
+		const method = this.resolveOpenAIAuthMethod();
 		return { authenticated: method !== null, method };
 	}
 
@@ -92,7 +92,7 @@ export class ChatService {
 		return { success: true };
 	}
 
-	private async resolveOpenAIAuthMethod(): Promise<OpenAIAuthMethod> {
+	private resolveOpenAIAuthMethod(): OpenAIAuthMethod {
 		const authStorage = this.getOpenAIAuthStorage();
 		authStorage.reload();
 		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);

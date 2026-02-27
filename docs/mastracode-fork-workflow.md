@@ -32,14 +32,15 @@ For day-to-day fork work, use a separate worktree under the Superset worktrees d
 
 Current team path:
 
-- `/Users/kietho/.superset/worktrees/mastra-superset/kitenite/chicory`
+- `$HOME/.superset/worktrees/mastra-superset/<owner>/<branch>`
 
 Example setup from the local fork clone:
 
 ```bash
+WORKTREE_DIR="$HOME/.superset/worktrees/mastra-superset/<owner>/<branch>"
 git -C ~/workplace/mastra-superset worktree add \
-  /Users/kietho/.superset/worktrees/mastra-superset/kitenite/chicory \
-  -b kitenite/chicory \
+  "$WORKTREE_DIR" \
+  -b <owner>/<branch> \
   origin/main
 ```
 

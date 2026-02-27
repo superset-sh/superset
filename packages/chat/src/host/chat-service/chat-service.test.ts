@@ -11,6 +11,7 @@ type FakeAuthStorage = {
 		typeof mock<(providerId: string, credential: Credential) => void>
 	>;
 	remove: ReturnType<typeof mock<(providerId: string) => void>>;
+	clear: () => void;
 };
 
 function createFakeAuthStorage(): FakeAuthStorage {
@@ -21,10 +22,13 @@ function createFakeAuthStorage(): FakeAuthStorage {
 		set: mock((providerId: string, credential: Credential) => {
 			credentials.set(providerId, credential);
 		}),
-		remove: mock((providerId: string) => {
-			credentials.delete(providerId);
-		}),
-	};
+			remove: mock((providerId: string) => {
+				credentials.delete(providerId);
+			}),
+			clear: () => {
+				credentials.clear();
+			},
+		};
 }
 
 const fakeAuthStorage = createFakeAuthStorage();
@@ -43,6 +47,7 @@ describe("ChatService OpenAI auth storage", () => {
 		originalOpenAiEnv = process.env.OPENAI_API_KEY;
 		delete process.env.OPENAI_API_KEY;
 		createAuthStorageMock.mockClear();
+		fakeAuthStorage.clear();
 		fakeAuthStorage.reload.mockClear();
 		fakeAuthStorage.get.mockClear();
 		fakeAuthStorage.set.mockClear();
