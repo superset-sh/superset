@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { TbDeviceDesktop } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -55,6 +55,7 @@ export function BrowserPane({
 }: BrowserPaneProps) {
 	const pane = useTabsStore((s) => s.panes[paneId]);
 	const openDevToolsPane = useTabsStore((s) => s.openDevToolsPane);
+	const contentRef = useRef<HTMLDivElement>(null);
 	const browserState = pane?.browser;
 	const currentUrl = browserState?.currentUrl ?? DEFAULT_BROWSER_URL;
 	const pageTitle =
@@ -62,6 +63,25 @@ export function BrowserPane({
 	const isLoading = browserState?.isLoading ?? false;
 	const loadError = browserState?.error ?? null;
 	const isBlankPage = currentUrl === "about:blank";
+
+	const handleWebviewContextMenu = useCallback(
+		(position: { clientX: number; clientY: number }) => {
+			const target = contentRef.current;
+			if (!target) return;
+			target.dispatchEvent(
+				new MouseEvent("contextmenu", {
+					bubbles: true,
+					cancelable: true,
+					button: 2,
+					buttons: 2,
+					clientX: position.clientX,
+					clientY: position.clientY,
+					view: window,
+				}),
+			);
+		},
+		[],
+	);
 
 	const {
 		containerRef,
@@ -74,6 +94,7 @@ export function BrowserPane({
 	} = usePersistentWebview({
 		paneId,
 		initialUrl: currentUrl,
+		onContextMenu: handleWebviewContextMenu,
 	});
 
 	const handleOpenDevTools = useCallback(() => {
@@ -142,7 +163,7 @@ export function BrowserPane({
 				onMoveToNewTab={onMoveToNewTab}
 				closeLabel="Close Browser"
 			>
-				<div className="relative flex flex-1 h-full">
+				<div ref={contentRef} className="relative flex flex-1 h-full">
 					<div
 						ref={containerRef}
 						className="h-full w-full"

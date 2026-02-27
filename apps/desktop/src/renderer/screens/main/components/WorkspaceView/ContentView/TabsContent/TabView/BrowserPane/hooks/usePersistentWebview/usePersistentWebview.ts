@@ -60,11 +60,13 @@ function sanitizeUrl(url: string): string {
 interface UsePersistentWebviewOptions {
 	paneId: string;
 	initialUrl: string;
+	onContextMenu?: (position: { clientX: number; clientY: number }) => void;
 }
 
 export function usePersistentWebview({
 	paneId,
 	initialUrl,
+	onContextMenu,
 }: UsePersistentWebviewOptions) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const isHistoryNavigation = useRef(false);
@@ -273,6 +275,24 @@ export function usePersistentWebview({
 			});
 		};
 
+		const handleContextMenu = (
+			event: Event & {
+				preventDefault?: () => void;
+				params?: { x?: number; y?: number };
+			},
+		) => {
+			event.preventDefault?.();
+			if (!onContextMenu) return;
+
+			const x = event.params?.x ?? 0;
+			const y = event.params?.y ?? 0;
+			const rect = container.getBoundingClientRect();
+			onContextMenu({
+				clientX: rect.left + x,
+				clientY: rect.top + y,
+			});
+		};
+
 		// -- Attach listeners ----------------------------------------------
 
 		wv.addEventListener("dom-ready", handleDomReady);
@@ -292,6 +312,7 @@ export function usePersistentWebview({
 			handlePageFaviconUpdated as EventListener,
 		);
 		wv.addEventListener("did-fail-load", handleDidFailLoad as EventListener);
+		wv.addEventListener("context-menu", handleContextMenu as EventListener);
 
 		// -- Cleanup: park in hidden container -----------------------------
 
@@ -319,11 +340,21 @@ export function usePersistentWebview({
 				"did-fail-load",
 				handleDidFailLoad as EventListener,
 			);
+			wv.removeEventListener(
+				"context-menu",
+				handleContextMenu as EventListener,
+			);
 
 			getHiddenContainer().appendChild(wv);
 		};
 		// paneId is stable for the lifetime of a pane; initialUrlRef only used on first create.
-	}, [paneId, registerBrowser, syncStoreFromWebview, upsertHistory]);
+	}, [
+		onContextMenu,
+		paneId,
+		registerBrowser,
+		syncStoreFromWebview,
+		upsertHistory,
+	]);
 
 	// -- Navigation methods (operate directly on the webview) ---------------
 
