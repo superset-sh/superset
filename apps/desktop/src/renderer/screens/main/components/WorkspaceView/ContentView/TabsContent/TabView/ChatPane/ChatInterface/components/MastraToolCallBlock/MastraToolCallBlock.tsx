@@ -208,8 +208,7 @@ export function MastraToolCallBlock({
 				filePath={filePath}
 				content={content}
 				isWriteMode
-				onFilePathClick={openFileInPane}
-				onDiffPathClick={openFileInDiffPane}
+				onFilePathClick={openFileInDiffPane}
 				renderExpandedContent={
 					content
 						? () => (
@@ -327,8 +326,7 @@ export function MastraToolCallBlock({
 				oldString={oldString}
 				newString={newString}
 				structuredPatch={structuredPatch}
-				onFilePathClick={openFileInPane}
-				onDiffPathClick={openFileInDiffPane}
+				onFilePathClick={openFileInDiffPane}
 				renderExpandedContent={
 					oldString || newString
 						? () => (
