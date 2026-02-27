@@ -32,10 +32,20 @@ describe("shouldShowGitHubAvatar", () => {
 		).toBe(true);
 	});
 
-	test("does not show avatar when owner is absent", () => {
+	test("does not show avatar when owner is null", () => {
 		expect(
 			shouldShowGitHubAvatar({
 				owner: null,
+				imageError: false,
+				hideImage: false,
+			}),
+		).toBe(false);
+	});
+
+	test("does not show avatar when owner is undefined", () => {
+		expect(
+			shouldShowGitHubAvatar({
+				owner: undefined,
 				imageError: false,
 				hideImage: false,
 			}),

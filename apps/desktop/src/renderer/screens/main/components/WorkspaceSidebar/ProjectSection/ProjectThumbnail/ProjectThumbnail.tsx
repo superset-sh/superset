@@ -105,7 +105,7 @@ export function ProjectThumbnail({
 	}
 
 	// Priority 2: Show GitHub avatar if available and not hidden
-	if (shouldShowGitHubAvatar({ owner, imageError, hideImage })) {
+	if (owner && shouldShowGitHubAvatar({ owner, imageError, hideImage })) {
 		return (
 			<div
 				className={cn(
