@@ -21,7 +21,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	claude: ["claude --dangerously-skip-permissions"],
 	codex: [
-		'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+		'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access',
 	],
 	gemini: ["gemini --yolo"],
 	opencode: ["opencode"],
