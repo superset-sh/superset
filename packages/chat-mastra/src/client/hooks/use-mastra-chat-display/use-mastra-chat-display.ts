@@ -12,6 +12,8 @@ type SessionOutputs = RouterOutputs["session"];
 
 type DisplayStateOutput = SessionOutputs["getDisplayState"];
 type ListMessagesOutput = SessionOutputs["listMessages"];
+type HistoryMessage = ListMessagesOutput[number];
+type HistoryMessagePart = HistoryMessage["content"][number];
 
 export type MastraChatDisplayState = DisplayStateOutput;
 export type MastraChatHistoryMessages = ListMessagesOutput;
@@ -52,7 +54,7 @@ export function withoutActiveTurnAssistantHistory({
 	const previousTurns = messages.slice(0, turnStartIndex);
 	const activeTurnNonAssistant = messages
 		.slice(turnStartIndex)
-		.filter((message) => message.role !== "assistant");
+		.filter((message: HistoryMessage) => message.role !== "assistant");
 
 	return [...previousTurns, ...activeTurnNonAssistant];
 }
@@ -100,10 +102,10 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 		if (!optimisticText) return;
 
 		const found = historicalMessages.some(
-			(message) =>
+			(message: HistoryMessage) =>
 				message.role === "user" &&
 				message.content.some(
-					(part) =>
+					(part: HistoryMessagePart) =>
 						part.type === "text" &&
 						"text" in part &&
 						part.text === optimisticText,

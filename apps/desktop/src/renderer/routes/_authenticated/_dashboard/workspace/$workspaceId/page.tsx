@@ -132,6 +132,7 @@ function WorkspacePage() {
 	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+	const removeTab = useTabsStore((s) => s.removeTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
@@ -208,6 +209,16 @@ function WorkspacePage() {
 		},
 		undefined,
 		[focusedPaneId, removePane],
+	);
+	useAppHotkey(
+		"CLOSE_TAB",
+		() => {
+			if (activeTabId) {
+				removeTab(activeTabId);
+			}
+		},
+		undefined,
+		[activeTabId, removeTab],
 	);
 
 	useAppHotkey(

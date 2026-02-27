@@ -539,6 +539,12 @@ export const HOTKEYS = {
 		label: "Close Terminal",
 		category: "Terminal",
 	}),
+	CLOSE_TAB: defineHotkey({
+		keys: "meta+shift+w",
+		label: "Close Tab",
+		category: "Terminal",
+		description: "Close the current tab",
+	}),
 	CLEAR_TERMINAL: defineHotkey({
 		keys: "meta+k",
 		label: "Clear Terminal",
@@ -713,7 +719,7 @@ export const HOTKEYS = {
 		isHidden: true,
 	}),
 	CLOSE_WINDOW: defineHotkey({
-		keys: "meta+shift+w",
+		keys: "meta+shift+q",
 		label: "Close Window",
 		category: "Window",
 	}),

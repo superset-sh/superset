@@ -37,6 +37,23 @@ const DISPLAY_STEPS: WorkspaceInitStep[] = INIT_STEP_ORDER.filter(
 	(step) => step !== "pending" && step !== "ready",
 );
 
+const DUPLICATE_BRANCH_ERROR_PATTERNS = [
+	"a branch named",
+	"already checked out",
+	"already used by worktree",
+] as const;
+
+function isDuplicateBranchInitError(error?: string): boolean {
+	if (!error) return false;
+	const normalized = error.toLowerCase();
+	if (normalized.includes("branch") && normalized.includes("already exists")) {
+		return true;
+	}
+	return DUPLICATE_BRANCH_ERROR_PATTERNS.some((pattern) =>
+		normalized.includes(pattern),
+	);
+}
+
 export function WorkspaceInitializingView({
 	workspaceId,
 	workspaceName,
@@ -61,9 +78,9 @@ export function WorkspaceInitializingView({
 	const deleteWorkspace = useDeleteWorkspace();
 	const utils = electronTrpc.useUtils();
 
-	const handleRetry = () => {
+	const handleRetry = (deduplicateBranchName = false) => {
 		retryMutation.mutate(
-			{ workspaceId },
+			{ workspaceId, deduplicateBranchName },
 			{
 				onSuccess: () => {
 					utils.workspaces.invalidate();
@@ -84,6 +101,9 @@ export function WorkspaceInitializingView({
 	};
 
 	const currentStep = progress?.step ?? "pending";
+	const canRetryWithDeduplicatedBranch = isDuplicateBranchInitError(
+		progress?.error,
+	);
 
 	// Interrupted state (app restart during init - no in-memory progress)
 	// Only show after delay to avoid flash during normal creation
@@ -120,7 +140,7 @@ export function WorkspaceInitializingView({
 							</Button>
 							<Button
 								size="sm"
-								onClick={handleRetry}
+								onClick={() => handleRetry()}
 								disabled={retryMutation.isPending}
 							>
 								{retryMutation.isPending ? (
@@ -213,7 +233,7 @@ export function WorkspaceInitializingView({
 							</Button>
 							<Button
 								size="sm"
-								onClick={handleRetry}
+								onClick={() => handleRetry()}
 								disabled={retryMutation.isPending}
 							>
 								{retryMutation.isPending ? (
@@ -225,6 +245,17 @@ export function WorkspaceInitializingView({
 									"Retry"
 								)}
 							</Button>
+							{canRetryWithDeduplicatedBranch && (
+								<Button
+									size="sm"
+									onClick={() => handleRetry(true)}
+									disabled={retryMutation.isPending}
+								>
+									{retryMutation.isPending
+										? "Retrying..."
+										: "Retry With Deduplicated Branch"}
+								</Button>
+							)}
 						</div>
 					</div>
 				</div>

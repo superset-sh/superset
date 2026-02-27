@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLinkIcon, FileCode2Icon } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "../../lib/utils";
 import { ShimmerLabel } from "./shimmer-label";
 
@@ -112,7 +112,16 @@ export const FileDiffTool = ({
 	renderExpandedContent,
 	className,
 }: FileDiffToolProps) => {
-	const [expanded, setExpanded] = useState(false);
+	const hasExpandedRenderer = Boolean(renderExpandedContent);
+	const [expanded, setExpanded] = useState(hasExpandedRenderer);
+	const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+
+	useEffect(() => {
+		if (!hasAutoExpanded && hasExpandedRenderer) {
+			setExpanded(true);
+			setHasAutoExpanded(true);
+		}
+	}, [hasAutoExpanded, hasExpandedRenderer]);
 
 	const isStreaming = state === "input-streaming";
 

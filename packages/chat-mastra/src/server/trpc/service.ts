@@ -5,9 +5,12 @@ import { createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
 import {
+	destroyRuntime,
 	getRuntimeMcpOverview,
 	onUserPromptSubmit,
 	type RuntimeSession,
+	reloadHookConfig,
+	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
 import {
@@ -52,10 +55,12 @@ export class ChatMastraService {
 		const existing = this.runtimes.get(sessionId);
 		if (existing) {
 			if (cwd && existing.cwd !== cwd) {
-				existing.cwd = cwd;
-				this.runtimes.set(sessionId, existing);
+				await destroyRuntime(existing);
+				this.runtimes.delete(sessionId);
+			} else {
+				reloadHookConfig(existing);
+				return existing;
 			}
-			return existing;
 		}
 
 		const runtimeCwd = cwd ?? process.cwd();
@@ -75,6 +80,7 @@ export class ChatMastraService {
 			hookManager: runtimeMastra.hookManager,
 			cwd: runtimeCwd,
 		};
+		await runSessionStartHook(runtime).catch(() => {});
 		subscribeToSessionEvents(runtime, this.apiClient);
 		this.runtimes.set(sessionId, runtime);
 		return runtime;

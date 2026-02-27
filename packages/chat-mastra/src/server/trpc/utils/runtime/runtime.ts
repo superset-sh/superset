@@ -11,7 +11,6 @@ export type RuntimeMcpManager = Awaited<
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
-export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
 
 export interface RuntimeSession {
 	sessionId: string;
@@ -22,6 +21,15 @@ export interface RuntimeSession {
 }
 
 type ApiClient = ReturnType<typeof createTRPCClient<AppRouter>>;
+
+interface TextContentPart {
+	type: "text";
+	text: string;
+}
+interface MessageLike {
+	role: string;
+	content: Array<{ type: string; text?: string }>;
+}
 
 /**
  * Gate: validates user prompt against hooks before sending.
@@ -39,6 +47,41 @@ export async function onUserPromptSubmit(
 }
 
 /**
+ * Fire SessionStart hook when a runtime is first created.
+ */
+export async function runSessionStartHook(
+	runtime: RuntimeSession,
+): Promise<void> {
+	if (!runtime.hookManager) return;
+	await runtime.hookManager.runSessionStart();
+}
+
+/**
+ * Reload hook config so user edits take effect without restarting.
+ */
+export function reloadHookConfig(runtime: RuntimeSession): void {
+	if (!runtime.hookManager) return;
+	try {
+		runtime.hookManager.reload();
+	} catch {
+		// Best-effort — swallow reload failures
+	}
+}
+
+/**
+ * Destroy a runtime: fire SessionEnd hook and tear down the harness.
+ */
+export async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
+	if (runtime.hookManager) {
+		await runtime.hookManager.runSessionEnd().catch(() => {});
+	}
+	const harnessWithDestroy = runtime.harness as RuntimeHarness & {
+		destroy?: () => Promise<void>;
+	};
+	await harnessWithDestroy.destroy?.().catch(() => {});
+}
+
+/**
  * Subscribe to harness lifecycle events for a runtime session.
  * Call once after creating a runtime — handles stop hooks and title generation.
  */
@@ -46,9 +89,10 @@ export function subscribeToSessionEvents(
 	runtime: RuntimeSession,
 	apiClient: ApiClient,
 ): void {
-	runtime.harness.subscribe((event) => {
+	runtime.harness.subscribe((event: { type: string; reason?: string }) => {
 		if (event.type === "agent_end") {
-			const reason = event.reason ?? "complete";
+			const raw = event.reason;
+			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
 			if (runtime.hookManager) {
 				void runtime.hookManager.runStop(undefined, reason).catch(() => {});
 			}
@@ -64,7 +108,7 @@ async function generateAndSetTitle(
 	apiClient: ApiClient,
 ): Promise<void> {
 	try {
-		const messages = await runtime.harness.listMessages();
+		const messages: MessageLike[] = await runtime.harness.listMessages();
 		const userMessages = messages.filter((m) => m.role === "user");
 		const userCount = userMessages.length;
 
@@ -72,26 +116,20 @@ async function generateAndSetTitle(
 		const isRename = userCount > 1 && userCount % 10 === 0;
 		if (!isFirst && !isRename) return;
 
+		const extractText = (parts: MessageLike["content"]): string =>
+			parts
+				.filter((c): c is TextContentPart => c.type === "text")
+				.map((c) => c.text)
+				.join(" ");
+
 		let text: string;
 		const firstMessage = userMessages[0];
 		if (isFirst && firstMessage) {
-			text = firstMessage.content
-				.filter((c): c is { type: "text"; text: string } => c.type === "text")
-				.map((c) => c.text)
-				.join(" ")
-				.slice(0, 500);
+			text = extractText(firstMessage.content).slice(0, 500);
 		} else {
 			text = messages
 				.slice(-10)
-				.map((m) => {
-					const body = m.content
-						.filter(
-							(c): c is { type: "text"; text: string } => c.type === "text",
-						)
-						.map((c) => c.text)
-						.join(" ");
-					return `${m.role}: ${body}`;
-				})
+				.map((m) => `${m.role}: ${extractText(m.content)}`)
 				.join("\n")
 				.slice(0, 2000);
 		}

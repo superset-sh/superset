@@ -24,6 +24,46 @@ export function sanitizeBranchName(name: string): string {
 		.join("/");
 }
 
+/**
+ * Returns a branch name that does not collide with existing names.
+ * If the candidate already exists, appends numeric suffixes (-1, -2, ...)
+ * to the last path segment until an available name is found.
+ */
+export function deduplicateBranchName(
+	candidate: string,
+	existingBranchNames: string[],
+): string {
+	const normalizedCandidate = candidate.trim();
+	if (!normalizedCandidate) {
+		return normalizedCandidate;
+	}
+
+	const existingSet = new Set(existingBranchNames.map((b) => b.toLowerCase()));
+	if (!existingSet.has(normalizedCandidate.toLowerCase())) {
+		return normalizedCandidate;
+	}
+
+	const segments = normalizedCandidate.split("/");
+	const lastSegment = segments.at(-1) ?? normalizedCandidate;
+	const prefix = segments.slice(0, -1).join("/");
+
+	const strippedBase = lastSegment.replace(/-\d+$/, "");
+	const baseSegment = strippedBase || lastSegment;
+	const append = (suffix: number) =>
+		prefix ? `${prefix}/${baseSegment}-${suffix}` : `${baseSegment}-${suffix}`;
+
+	for (let suffix = 1; suffix < 10_000; suffix++) {
+		const deduplicated = append(suffix);
+		if (!existingSet.has(deduplicated.toLowerCase())) {
+			return deduplicated;
+		}
+	}
+
+	return prefix
+		? `${prefix}/${baseSegment}-${Date.now()}`
+		: `${baseSegment}-${Date.now()}`;
+}
+
 export function resolveBranchPrefix({
 	mode,
 	customPrefix,

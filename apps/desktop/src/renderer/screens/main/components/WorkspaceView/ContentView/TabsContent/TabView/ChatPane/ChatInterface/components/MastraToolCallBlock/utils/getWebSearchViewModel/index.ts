@@ -1,0 +1,1 @@
+export { getWebSearchViewModel } from "./getWebSearchViewModel";
