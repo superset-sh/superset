@@ -9,6 +9,10 @@ import {
 	resolveFileViewerMode,
 } from "./utils";
 
+// maximizePaneLayout is not yet implemented — issue #1763 (temporarily maximize pane)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const { maximizePaneLayout } = require("./utils") as any;
+
 describe("findPanePath", () => {
 	it("returns empty array for single pane layout matching the id", () => {
 		const layout: MosaicNode<string> = "pane-1";
@@ -517,5 +521,64 @@ describe("resolveFileViewerMode", () => {
 				viewMode: "diff",
 			}),
 		).toBe("diff");
+	});
+});
+
+// Tests for issue #1763: temporarily maximize pane (tmux-style PREFIX+z toggle)
+// These tests describe the expected behavior of a `maximizePaneLayout` utility that
+// does not exist yet. They fail to prove the feature is missing.
+describe("maximizePaneLayout — issue #1763: temporarily maximize pane", () => {
+	it("is exported from utils", () => {
+		// Fails because maximizePaneLayout has not been implemented yet
+		expect(typeof maximizePaneLayout).toBe("function");
+	});
+
+	it("reduces a two-pane layout to just the target pane", () => {
+		const layout: MosaicNode<string> = {
+			direction: "row",
+			first: "pane-1",
+			second: "pane-2",
+		};
+		// When pane-1 is maximized, the visible layout collapses to a single leaf
+		expect(maximizePaneLayout(layout, "pane-1")).toBe("pane-1");
+	});
+
+	it("reduces a deeply-nested layout to just the target pane", () => {
+		const layout: MosaicNode<string> = {
+			direction: "row",
+			first: {
+				direction: "column",
+				first: "pane-1",
+				second: "pane-2",
+			},
+			second: "pane-3",
+		};
+		expect(maximizePaneLayout(layout, "pane-2")).toBe("pane-2");
+	});
+
+	it("returns the pane itself when the layout is already a single pane", () => {
+		const layout: MosaicNode<string> = "pane-1";
+		expect(maximizePaneLayout(layout, "pane-1")).toBe("pane-1");
+	});
+
+	it("throws when the target pane is not present in the layout", () => {
+		const layout: MosaicNode<string> = {
+			direction: "row",
+			first: "pane-1",
+			second: "pane-2",
+		};
+		expect(() => maximizePaneLayout(layout, "pane-99")).toThrow();
+	});
+
+	it("does not mutate the original layout (restore is lossless)", () => {
+		const layout: MosaicNode<string> = {
+			direction: "row",
+			first: "pane-1",
+			second: "pane-2",
+		};
+		const layoutCopy = JSON.parse(JSON.stringify(layout));
+		maximizePaneLayout(layout, "pane-1");
+		// Original layout must be unchanged so the caller can restore it
+		expect(layout).toEqual(layoutCopy);
 	});
 });
