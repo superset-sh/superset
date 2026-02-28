@@ -105,7 +105,7 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(
 			prompt,
 			delimiter,
-			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access',
+			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access --',
 		),
 	gemini: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
