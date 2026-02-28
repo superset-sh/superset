@@ -19,10 +19,12 @@ interface ModelProviderGroupProps {
 	models: ModelOption[];
 	isAnthropicAuthenticated: boolean;
 	isAnthropicOAuthPending: boolean;
-	onStartAnthropicOAuth: () => void;
+	isAnthropicApiKeyPending: boolean;
+	onOpenAnthropicAuthModal: () => void;
 	isOpenAIAuthenticated: boolean;
+	isOpenAIOAuthPending: boolean;
 	isOpenAIApiKeyPending: boolean;
-	onOpenOpenAIApiKeyDialog: () => void;
+	onOpenOpenAIAuthModal: () => void;
 	onSelectModel: (model: ModelOption) => void;
 	onCloseModelSelector: () => void;
 }
@@ -32,10 +34,12 @@ export function ModelProviderGroup({
 	models,
 	isAnthropicAuthenticated,
 	isAnthropicOAuthPending,
-	onStartAnthropicOAuth,
+	isAnthropicApiKeyPending,
+	onOpenAnthropicAuthModal,
 	isOpenAIAuthenticated,
+	isOpenAIOAuthPending,
 	isOpenAIApiKeyPending,
-	onOpenOpenAIApiKeyDialog,
+	onOpenOpenAIAuthModal,
 	onSelectModel,
 	onCloseModelSelector,
 }: ModelProviderGroupProps) {
@@ -61,15 +65,15 @@ export function ModelProviderGroup({
 				<AnthropicProviderHeading
 					heading={heading}
 					isConnected={isConnected}
-					isPending={isAnthropicOAuthPending}
-					onStartOAuth={onStartAnthropicOAuth}
+					isPending={isAnthropicOAuthPending || isAnthropicApiKeyPending}
+					onOpenAuthModal={onOpenAnthropicAuthModal}
 				/>
 			) : isOpenAIProvider ? (
 				<OpenAIProviderHeading
 					heading={heading}
 					isConnected={isConnected}
-					isPending={isOpenAIApiKeyPending}
-					onConfigureApiKey={onOpenOpenAIApiKeyDialog}
+					isPending={isOpenAIApiKeyPending || isOpenAIOAuthPending}
+					onOpenAuthModal={onOpenOpenAIAuthModal}
 				/>
 			) : null}
 
@@ -79,9 +83,11 @@ export function ModelProviderGroup({
 					(logo === ANTHROPIC_LOGO_PROVIDER && !isAnthropicAuthenticated) ||
 					(logo === OPENAI_LOGO_PROVIDER && !isOpenAIAuthenticated);
 				const disabledLabel =
-					logo === OPENAI_LOGO_PROVIDER
-						? `${model.provider} (API key required)`
-						: `${model.provider} (connection required)`;
+					logo === ANTHROPIC_LOGO_PROVIDER
+						? `${model.provider} (API key or OAuth required)`
+						: logo === OPENAI_LOGO_PROVIDER
+							? `${model.provider} (API key or OAuth required)`
+							: `${model.provider} (connection required)`;
 
 				return (
 					<ModelSelectorItem

@@ -45,7 +45,7 @@
 		"tooling/*"
 	],
 	"resolutions": {
-		"mastracode": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.5/mastracode-0.4.0-superset.5.tgz"
+		"mastracode": "https://github.com/superset-sh/mastra/releases/download/mastracode-v0.4.0-superset.7/mastracode-0.4.0-superset.7.tgz"
 	},
 	"patchedDependencies": {
 		"@durable-streams/state@0.2.1": "patches/@durable-streams%2Fstate@0.2.1.patch"

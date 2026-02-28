@@ -1,21 +1,23 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { Loader2Icon, Settings2Icon } from "lucide-react";
+import { KeyRoundIcon, Loader2Icon } from "lucide-react";
 
 interface AnthropicProviderHeadingProps {
 	heading: string;
 	isConnected: boolean;
 	isPending: boolean;
-	onStartOAuth: () => void;
+	onOpenAuthModal: () => void;
 }
 
 export function AnthropicProviderHeading({
 	heading,
 	isConnected,
 	isPending,
-	onStartOAuth,
+	onOpenAuthModal,
 }: AnthropicProviderHeadingProps) {
-	const tooltipLabel = isConnected ? "Re-auth Anthropic" : "Connect Anthropic";
+	const tooltipLabel = isConnected
+		? "Manage Anthropic auth"
+		: "Connect Anthropic";
 
 	return (
 		<div className="text-muted-foreground flex items-center justify-between px-2 py-1.5 text-xs font-medium">
@@ -32,13 +34,13 @@ export function AnthropicProviderHeading({
 						onClick={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
-							onStartOAuth();
+							onOpenAuthModal();
 						}}
 					>
 						{isPending ? (
 							<Loader2Icon className="size-4 animate-spin" />
 						) : (
-							<Settings2Icon className="size-4" />
+							<KeyRoundIcon className="size-4" />
 						)}
 					</Button>
 				</TooltipTrigger>

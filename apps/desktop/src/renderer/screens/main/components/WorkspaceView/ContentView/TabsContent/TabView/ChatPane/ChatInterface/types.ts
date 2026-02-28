@@ -16,6 +16,9 @@ export interface McpServerOverviewItem {
 	state: McpServerState;
 	transport: McpServerTransport;
 	target: string;
+	connected?: boolean;
+	toolCount?: number;
+	error?: string;
 }
 
 export interface McpOverviewPayload {

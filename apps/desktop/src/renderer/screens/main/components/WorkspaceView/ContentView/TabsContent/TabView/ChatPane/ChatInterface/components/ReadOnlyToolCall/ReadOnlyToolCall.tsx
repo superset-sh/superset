@@ -16,7 +16,7 @@ import {
 	SearchIcon,
 	XIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getWorkspaceToolFilePath } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
 import {
@@ -79,7 +79,6 @@ export function ReadOnlyToolCall({
 	onOpenFileInPane,
 }: ReadOnlyToolCallProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [hasAutoOpened, setHasAutoOpened] = useState(false);
 	const args = getArgs(part);
 	const toolName = normalizeToolName(getToolName(part));
 	const output =
@@ -97,18 +96,6 @@ export function ReadOnlyToolCall({
 		? extractReadFileContent(output)
 		: undefined;
 	const hasDetails = part.input != null || output != null || isError;
-
-	useEffect(() => {
-		if (
-			!hasAutoOpened &&
-			isReadFileTool &&
-			Boolean(readFileContent) &&
-			!isPending
-		) {
-			setIsOpen(true);
-			setHasAutoOpened(true);
-		}
-	}, [hasAutoOpened, isPending, isReadFileTool, readFileContent]);
 
 	let title = "Read file";
 	let subtitle = String(args.path ?? args.filePath ?? args.query ?? "");

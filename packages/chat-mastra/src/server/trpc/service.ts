@@ -1,27 +1,27 @@
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
 import {
+	authenticateRuntimeMcpServer,
 	destroyRuntime,
 	getRuntimeMcpOverview,
 	onUserPromptSubmit,
-	type RuntimeDisplayState,
-	type RuntimeEvent,
 	type RuntimeSession,
 	reloadHookConfig,
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
+import { isMastraMcpEnabled } from "./utils/runtime/mcp-gate";
 import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
 	approvalRespondInput,
 	displayStateInput,
 	listMessagesInput,
 	mcpOverviewInput,
+	mcpServerAuthInput,
 	planRespondInput,
 	questionRespondInput,
 	searchFilesInput,
@@ -36,6 +36,10 @@ export interface ChatMastraServiceOptions {
 
 export class ChatMastraService {
 	private readonly runtimes = new Map<string, RuntimeSession>();
+	private readonly runtimeCreations = new Map<
+		string,
+		Promise<RuntimeSession>
+	>();
 	private readonly apiClient: ReturnType<typeof createTRPCClient<AppRouter>>;
 
 	constructor(readonly opts: ChatMastraServiceOptions) {
@@ -56,6 +60,10 @@ export class ChatMastraService {
 		sessionId: string,
 		cwd?: string,
 	): Promise<RuntimeSession> {
+		const mcpEnabled = isMastraMcpEnabled();
+		const runtimeCwd = cwd ?? process.cwd();
+		const runtimeKey = `${sessionId}:${runtimeCwd}`;
+
 		const existing = this.runtimes.get(sessionId);
 		if (existing) {
 			if (cwd && existing.cwd !== cwd) {
@@ -67,34 +75,49 @@ export class ChatMastraService {
 			}
 		}
 
-		const runtimeCwd = cwd ?? process.cwd();
-		const extraTools = await getSupersetMcpTools(
-			() => Promise.resolve(this.opts.headers()),
-			this.opts.apiUrl,
-		);
-		const runtimeMastra = await createMastraCode({
-			cwd: runtimeCwd,
-			extraTools,
-		});
-		if (runtimeMastra.mcpManager?.hasServers()) {
-			await runtimeMastra.mcpManager.init().catch(() => {});
+		const existingCreation = this.runtimeCreations.get(runtimeKey);
+		if (existingCreation) {
+			return existingCreation;
 		}
-		runtimeMastra.hookManager?.setSessionId(sessionId);
-		await runtimeMastra.harness.init();
-		runtimeMastra.harness.setResourceId({ resourceId: sessionId });
-		await runtimeMastra.harness.selectOrCreateThread();
 
-		const runtime: RuntimeSession = {
-			sessionId,
-			harness: runtimeMastra.harness,
-			mcpManager: runtimeMastra.mcpManager,
-			hookManager: runtimeMastra.hookManager,
-			cwd: runtimeCwd,
-		};
-		await runSessionStartHook(runtime).catch(() => {});
-		subscribeToSessionEvents(runtime, this.apiClient);
-		this.runtimes.set(sessionId, runtime);
-		return runtime;
+		const creationPromise = (async () => {
+			try {
+				const extraTools = mcpEnabled
+					? await getSupersetMcpTools(
+							() => Promise.resolve(this.opts.headers()),
+							this.opts.apiUrl,
+						)
+					: {};
+				const runtimeMastra = await createMastraCode({
+					cwd: runtimeCwd,
+					extraTools,
+					disableMcp: !mcpEnabled,
+				});
+				runtimeMastra.hookManager?.setSessionId(sessionId);
+				await runtimeMastra.harness.init();
+				runtimeMastra.harness.setResourceId({ resourceId: sessionId });
+				await runtimeMastra.harness.selectOrCreateThread();
+
+				const runtime: RuntimeSession = {
+					sessionId,
+					harness: runtimeMastra.harness,
+					mcpManager: runtimeMastra.mcpManager,
+					hookManager: runtimeMastra.hookManager,
+					mcpManualStatuses: new Map(),
+					lastErrorMessage: null,
+					cwd: runtimeCwd,
+				};
+				await runSessionStartHook(runtime).catch(() => {});
+				subscribeToSessionEvents(runtime, this.apiClient);
+				this.runtimes.set(sessionId, runtime);
+				return runtime;
+			} finally {
+				this.runtimeCreations.delete(runtimeKey);
+			}
+		})();
+
+		this.runtimeCreations.set(runtimeKey, creationPromise);
+		return creationPromise;
 	}
 
 	createRouter() {
@@ -116,11 +139,28 @@ export class ChatMastraService {
 				getMcpOverview: t.procedure
 					.input(mcpOverviewInput)
 					.query(async ({ input }) => {
+						if (!isMastraMcpEnabled()) {
+							return { sourcePath: null, servers: [] };
+						}
+
 						const runtime = await this.getOrCreateRuntime(
 							input.sessionId,
 							input.cwd,
 						);
 						return getRuntimeMcpOverview(runtime);
+					}),
+				authenticateMcpServer: t.procedure
+					.input(mcpServerAuthInput)
+					.mutation(async ({ input }) => {
+						if (!isMastraMcpEnabled()) {
+							return { sourcePath: null, servers: [] };
+						}
+
+						const runtime = await this.getOrCreateRuntime(
+							input.sessionId,
+							input.cwd,
+						);
+						return authenticateRuntimeMcpServer(runtime, input.serverName);
 					}),
 			}),
 
@@ -132,47 +172,22 @@ export class ChatMastraService {
 							input.sessionId,
 							input.cwd,
 						);
-						return runtime.harness.getDisplayState();
-					}),
-
-				subscribeDisplayState: t.procedure
-					.input(displayStateInput)
-					.subscription(({ input }) => {
-						return observable<RuntimeDisplayState>((emit) => {
-							let closed = false;
-							let unsubscribeHarness: (() => void) | null = null;
-
-							void this.getOrCreateRuntime(input.sessionId, input.cwd)
-								.then((runtime) => {
-									if (closed) {
-										return;
-									}
-
-									emit.next(runtime.harness.getDisplayState());
-
-									unsubscribeHarness = runtime.harness.subscribe(
-										(event: RuntimeEvent) => {
-											if (event.type !== "display_state_changed" || closed) {
-												return;
-											}
-											if (!("displayState" in event)) {
-												return;
-											}
-											emit.next(event.displayState);
-										},
-									);
-								})
-								.catch((error) => {
-									if (!closed) {
-										emit.error(error as Error);
-									}
-								});
-
-							return () => {
-								closed = true;
-								unsubscribeHarness?.();
-							};
-						});
+						const displayState = runtime.harness.getDisplayState();
+						const currentMessage = displayState.currentMessage as {
+							role?: string;
+							stopReason?: string;
+							errorMessage?: string;
+						} | null;
+						const currentMessageError =
+							currentMessage?.role === "assistant" &&
+							typeof currentMessage.errorMessage === "string" &&
+							currentMessage.errorMessage.trim()
+								? currentMessage.errorMessage.trim()
+								: null;
+						return {
+							...displayState,
+							errorMessage: currentMessageError ?? runtime.lastErrorMessage,
+						};
 					}),
 
 				listMessages: t.procedure
@@ -192,6 +207,7 @@ export class ChatMastraService {
 							input.sessionId,
 							input.cwd,
 						);
+						runtime.lastErrorMessage = null;
 						const userMessage =
 							input.payload.content.trim() || "[non-text message]";
 						await onUserPromptSubmit(runtime, userMessage);

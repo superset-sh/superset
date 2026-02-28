@@ -25,11 +25,40 @@ export interface UseMastraChatDisplayOptions {
 	fps?: number;
 }
 
+function toRefetchIntervalMs(fps: number): number {
+	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
+	return Math.max(16, Math.floor(1000 / fps));
+}
+
 function findLastUserMessageIndex(messages: ListMessagesOutput): number {
 	for (let index = messages.length - 1; index >= 0; index -= 1) {
 		if (messages[index]?.role === "user") return index;
 	}
 	return -1;
+}
+
+export function findLatestAssistantErrorMessage(
+	messages: ListMessagesOutput,
+): string | null {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		const message = messages[index] as {
+			role?: string;
+			stopReason?: string;
+			errorMessage?: string;
+		};
+		if (message.role !== "assistant") continue;
+		if (message.stopReason !== undefined && message.stopReason !== "error") {
+			return null;
+		}
+		if (
+			typeof message.errorMessage === "string" &&
+			message.errorMessage.trim().length > 0
+		) {
+			return message.errorMessage.trim();
+		}
+		return null;
+	}
+	return null;
 }
 
 export function withoutActiveTurnAssistantHistory({
@@ -55,25 +84,16 @@ export function withoutActiveTurnAssistantHistory({
 }
 
 export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
-	const { sessionId, cwd, enabled = true } = options;
+	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
-	const previousRunningRef = useRef(false);
-	const sessionInput = useMemo(
-		() =>
-			sessionId
-				? {
-						sessionId,
-						...(cwd ? { cwd } : {}),
-					}
-				: null,
-		[sessionId, cwd],
-	);
 
 	const displayQuery = chatMastraServiceTrpc.session.getDisplayState.useQuery(
-		sessionInput ?? skipToken,
+		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
 		{
 			enabled: enabled && Boolean(sessionId),
+			refetchInterval: toRefetchIntervalMs(fps),
+			refetchIntervalInBackground: true,
 			refetchOnWindowFocus: false,
 			staleTime: 0,
 			gcTime: 0,
@@ -81,71 +101,29 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	);
 
 	const messagesQuery = chatMastraServiceTrpc.session.listMessages.useQuery(
-		sessionInput ?? skipToken,
+		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
 		{
 			enabled: enabled && Boolean(sessionId),
+			refetchInterval: toRefetchIntervalMs(fps),
+			refetchIntervalInBackground: true,
 			refetchOnWindowFocus: false,
 			staleTime: 0,
 			gcTime: 0,
 		},
 	);
 
-	const [liveDisplayState, setLiveDisplayState] =
-		useState<DisplayStateOutput | null>(null);
-	const sessionKey = sessionInput
-		? `${sessionInput.sessionId}:${sessionInput.cwd ?? ""}`
-		: null;
-	const activeSessionKeyRef = useRef<string | null>(null);
-	const seededSessionKeyRef = useRef<string | null>(null);
-
-	useEffect(() => {
-		activeSessionKeyRef.current = sessionKey;
-		if (seededSessionKeyRef.current === sessionKey) {
-			return;
-		}
-		seededSessionKeyRef.current = sessionKey;
-		previousRunningRef.current = false;
-		setLiveDisplayState(null);
-	}, [sessionKey]);
-
-	useEffect(() => {
-		if (!sessionKey || !displayQuery.data) {
-			return;
-		}
-		setLiveDisplayState((previousState: DisplayStateOutput | null) => {
-			if (previousState) {
-				return previousState;
-			}
-			previousRunningRef.current = displayQuery.data?.isRunning ?? false;
-			return displayQuery.data;
-		});
-	}, [displayQuery.data, sessionKey]);
-
-	const subscriptionInput = enabled && sessionInput ? sessionInput : skipToken;
-	chatMastraServiceTrpc.session.subscribeDisplayState.useSubscription(
-		subscriptionInput,
-		sessionInput
-			? {
-					onData: (nextDisplayState) => {
-						if (activeSessionKeyRef.current !== sessionKey) {
-							return;
-						}
-						const wasRunning = previousRunningRef.current;
-						const isRunning = nextDisplayState.isRunning;
-						previousRunningRef.current = isRunning;
-						setLiveDisplayState(nextDisplayState);
-						if (wasRunning && !isRunning) {
-							void utils.session.listMessages.invalidate(sessionInput);
-						}
-					},
-				}
-			: undefined,
-	);
-
-	const displayState = liveDisplayState;
+	const displayState = displayQuery.data ?? null;
+	const runtimeErrorMessage =
+		typeof displayState?.errorMessage === "string" &&
+		displayState.errorMessage.trim()
+			? displayState.errorMessage
+			: null;
 	const currentMessage = displayState?.currentMessage ?? null;
 	const isRunning = displayState?.isRunning ?? false;
 	const historicalMessages = messagesQuery.data ?? [];
+	const latestAssistantErrorMessage = isRunning
+		? null
+		: findLatestAssistantErrorMessage(historicalMessages);
 	const [optimisticUserMessage, setOptimisticUserMessage] = useState<
 		ListMessagesOutput[number] | null
 	>(null);
@@ -205,15 +183,11 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				}
 
 				try {
-					const result = await utils.client.session.sendMessage.mutate({
+					return await utils.client.session.sendMessage.mutate({
 						sessionId,
 						...(cwd ? { cwd } : {}),
 						...input,
 					});
-					if (sessionInput) {
-						void utils.session.listMessages.invalidate(sessionInput);
-					}
-					return result;
 				} catch (error) {
 					setCommandError(error);
 					setOptimisticUserMessage(null);
@@ -225,11 +199,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				if (!sessionId) return;
 				setCommandError(null);
 				try {
-					const result = await utils.client.session.stop.mutate({ sessionId });
-					if (sessionInput) {
-						void utils.session.listMessages.invalidate(sessionInput);
-					}
-					return result;
+					return await utils.client.session.stop.mutate({ sessionId });
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -239,11 +209,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				if (!sessionId) return;
 				setCommandError(null);
 				try {
-					const result = await utils.client.session.abort.mutate({ sessionId });
-					if (sessionInput) {
-						void utils.session.listMessages.invalidate(sessionInput);
-					}
-					return result;
+					return await utils.client.session.abort.mutate({ sessionId });
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -255,14 +221,10 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				if (!sessionId) return;
 				setCommandError(null);
 				try {
-					const result = await utils.client.session.approval.respond.mutate({
+					return await utils.client.session.approval.respond.mutate({
 						sessionId,
 						...input,
 					});
-					if (sessionInput) {
-						void utils.session.listMessages.invalidate(sessionInput);
-					}
-					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -274,14 +236,10 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				if (!sessionId) return;
 				setCommandError(null);
 				try {
-					const result = await utils.client.session.question.respond.mutate({
+					return await utils.client.session.question.respond.mutate({
 						sessionId,
 						...input,
 					});
-					if (sessionInput) {
-						void utils.session.listMessages.invalidate(sessionInput);
-					}
-					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
@@ -293,27 +251,29 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 				if (!sessionId) return;
 				setCommandError(null);
 				try {
-					const result = await utils.client.session.plan.respond.mutate({
+					return await utils.client.session.plan.respond.mutate({
 						sessionId,
 						...input,
 					});
-					if (sessionInput) {
-						void utils.session.listMessages.invalidate(sessionInput);
-					}
-					return result;
 				} catch (error) {
 					setCommandError(error);
 					return;
 				}
 			},
 		}),
-		[cwd, sessionId, sessionInput, utils],
+		[cwd, sessionId, utils],
 	);
 
 	return {
 		...displayState,
 		messages,
-		error: displayQuery.error ?? messagesQuery.error ?? commandError ?? null,
+		error:
+			runtimeErrorMessage ??
+			latestAssistantErrorMessage ??
+			displayQuery.error ??
+			messagesQuery.error ??
+			commandError ??
+			null,
 		commands,
 	};
 }

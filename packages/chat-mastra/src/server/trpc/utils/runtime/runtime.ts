@@ -11,29 +11,20 @@ export type RuntimeMcpManager = Awaited<
 export type RuntimeHookManager = Awaited<
 	ReturnType<typeof createMastraCode>
 >["hookManager"];
-export type RuntimeDisplayState = ReturnType<RuntimeHarness["getDisplayState"]>;
-interface RuntimeDisplayStateChangedEvent {
-	type: "display_state_changed";
-	displayState: RuntimeDisplayState;
+
+export interface RuntimeMcpServerStatus {
+	connected: boolean;
+	toolCount: number;
+	error?: string;
 }
-interface RuntimeAgentEndEvent {
-	type: "agent_end";
-	reason?: string;
-}
-interface RuntimeOtherEvent {
-	type: string;
-	reason?: string;
-}
-export type RuntimeEvent =
-	| RuntimeDisplayStateChangedEvent
-	| RuntimeAgentEndEvent
-	| RuntimeOtherEvent;
 
 export interface RuntimeSession {
 	sessionId: string;
 	harness: RuntimeHarness;
 	mcpManager: RuntimeMcpManager;
 	hookManager: RuntimeHookManager;
+	mcpManualStatuses: Map<string, RuntimeMcpServerStatus>;
+	lastErrorMessage: string | null;
 	cwd: string;
 }
 
@@ -106,8 +97,16 @@ export function subscribeToSessionEvents(
 	runtime: RuntimeSession,
 	apiClient: ApiClient,
 ): void {
-	runtime.harness.subscribe((event: RuntimeEvent) => {
-		if (event.type === "agent_end") {
+	runtime.harness.subscribe((event: unknown) => {
+		if (isHarnessErrorEvent(event) || isHarnessWorkspaceErrorEvent(event)) {
+			runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
+			return;
+		}
+		if (isHarnessAgentStartEvent(event)) {
+			runtime.lastErrorMessage = null;
+			return;
+		}
+		if (isHarnessAgentEndEvent(event)) {
 			const raw = event.reason;
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
 			if (runtime.hookManager) {
@@ -118,6 +117,94 @@ export function subscribeToSessionEvents(
 			}
 		}
 	});
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isHarnessErrorEvent(
+	event: unknown,
+): event is { type: "error"; error: unknown } {
+	return isObjectRecord(event) && event.type === "error" && "error" in event;
+}
+
+function isHarnessWorkspaceErrorEvent(
+	event: unknown,
+): event is { type: "workspace_error"; error: unknown } {
+	return (
+		isObjectRecord(event) &&
+		event.type === "workspace_error" &&
+		"error" in event
+	);
+}
+
+function isHarnessAgentStartEvent(
+	event: unknown,
+): event is { type: "agent_start" } {
+	return isObjectRecord(event) && event.type === "agent_start";
+}
+
+function isHarnessAgentEndEvent(
+	event: unknown,
+): event is { type: "agent_end"; reason?: string } {
+	return isObjectRecord(event) && event.type === "agent_end";
+}
+
+function toRuntimeErrorMessage(error: unknown): string {
+	const providerMessage = extractProviderMessage(error);
+	if (providerMessage) return providerMessage;
+	if (error instanceof Error && error.message.trim()) {
+		return normalizeErrorMessage(error.message);
+	}
+	if (typeof error === "string" && error.trim()) {
+		return normalizeErrorMessage(error);
+	}
+	if (isObjectRecord(error) && typeof error.message === "string") {
+		return normalizeErrorMessage(error.message);
+	}
+	return "Unexpected chat error";
+}
+
+function normalizeErrorMessage(message: string): string {
+	return message.trim().replace(/^AI_APICallError\d*\s*:\s*/i, "");
+}
+
+function extractProviderMessage(error: unknown): string | null {
+	if (!isObjectRecord(error)) return null;
+
+	const data = error.data;
+	if (isObjectRecord(data)) {
+		const nestedError = data.error;
+		if (
+			isObjectRecord(nestedError) &&
+			typeof nestedError.message === "string"
+		) {
+			return normalizeErrorMessage(nestedError.message);
+		}
+	}
+
+	const nestedError = error.error;
+	if (isObjectRecord(nestedError) && typeof nestedError.message === "string") {
+		return normalizeErrorMessage(nestedError.message);
+	}
+
+	if (typeof error.responseBody === "string" && error.responseBody.trim()) {
+		try {
+			const parsed = JSON.parse(error.responseBody);
+			if (
+				isObjectRecord(parsed) &&
+				isObjectRecord(parsed.error) &&
+				typeof parsed.error.message === "string"
+			) {
+				return normalizeErrorMessage(parsed.error.message);
+			}
+		} catch {
+			// ignore parse errors
+		}
+	}
+
+	return null;
 }
 
 async function generateAndSetTitle(

@@ -1,10 +1,7 @@
-import {
-	DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
-	sanitizeBranchNameWithMaxLength,
-	sanitizeSegment,
-} from "./branch";
+import { sanitizeBranchNameWithMaxLength, sanitizeSegment } from "./branch";
 
 export const DEFAULT_WORKSPACE_TITLE_MAX_LENGTH = 100;
+export const DEFAULT_PROMPT_BRANCH_MAX_LENGTH = 30;
 
 /**
  * Normalized workspace title (for display/storage), derived from a free-form prompt.
@@ -22,7 +19,7 @@ export function deriveWorkspaceTitleFromPrompt(
  */
 export function deriveWorkspaceBranchFromPrompt(
 	prompt: string,
-	segmentMaxLength = DEFAULT_BRANCH_SEGMENT_MAX_LENGTH,
+	segmentMaxLength = DEFAULT_PROMPT_BRANCH_MAX_LENGTH,
 ): string {
 	const generatedSlug = sanitizeSegment(prompt, segmentMaxLength);
 	return sanitizeBranchNameWithMaxLength(generatedSlug);

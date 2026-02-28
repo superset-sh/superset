@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { ChatMastraServiceRouter } from "../../../server/trpc";
-import { withoutActiveTurnAssistantHistory } from "./use-mastra-chat-display";
+import {
+	findLatestAssistantErrorMessage,
+	withoutActiveTurnAssistantHistory,
+} from "./use-mastra-chat-display";
 
 type RouterOutputs = inferRouterOutputs<ChatMastraServiceRouter>;
 type SessionOutputs = RouterOutputs["session"];
@@ -80,5 +83,42 @@ describe("withoutActiveTurnAssistantHistory", () => {
 		});
 
 		expect(messages.map((message) => message.id)).toEqual(["u_1", "a_1"]);
+	});
+});
+
+describe("findLatestAssistantErrorMessage", () => {
+	it("returns latest assistant error when the latest assistant message is an error", () => {
+		const error = findLatestAssistantErrorMessage([
+			userMessage("u_1", "first"),
+			{
+				...assistantMessage("a_1", "older error"),
+				stopReason: "error",
+				errorMessage: "older error",
+			} as unknown as ListMessagesOutput[number],
+			{
+				...assistantMessage("a_2", "latest error"),
+				stopReason: "error",
+				errorMessage: "latest error",
+			} as unknown as ListMessagesOutput[number],
+		]);
+
+		expect(error).toBe("latest error");
+	});
+
+	it("does not surface stale assistant error after a later successful assistant message", () => {
+		const error = findLatestAssistantErrorMessage([
+			userMessage("u_1", "first"),
+			{
+				...assistantMessage("a_1", "older error"),
+				stopReason: "error",
+				errorMessage: "older error",
+			} as unknown as ListMessagesOutput[number],
+			{
+				...assistantMessage("a_2", "latest success"),
+				stopReason: "stop",
+			} as unknown as ListMessagesOutput[number],
+		]);
+
+		expect(error).toBeNull();
 	});
 });

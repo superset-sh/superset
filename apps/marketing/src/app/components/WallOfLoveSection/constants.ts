@@ -75,11 +75,11 @@ export const TESTIMONIALS: Testimonial[] = [
 	{
 		id: "9",
 		content:
-			"used conductor since its inception but limited across many dimensions and hard to customise. switched to @superset_sh and haven't looked back",
-		author: "AI Dev Stack Pigeon",
-		handle: "@aidailyprimer",
-		avatar: "https://unavatar.io/twitter/aidailyprimer",
-		url: "https://x.com/aidailyprimer/status/2010470703556919781",
+			"hasn't been a day i haven't used superset since onboarding\n\ncomplete paradigm shift on how i use ai to code",
+		author: "Leo",
+		handle: "@LeosReal",
+		avatar: "https://unavatar.io/twitter/LeosReal",
+		url: "https://x.com/LeosReal/status/2027306293858586745",
 	},
 	{
 		id: "10",
@@ -111,13 +111,5 @@ export const TESTIMONIALS: Testimonial[] = [
 		handle: "@eliasstravik",
 		avatar: "https://unavatar.io/twitter/eliasstravik",
 		url: "https://x.com/eliasstravik/status/2020580091449708978",
-	},
-	{
-		id: "13",
-		content: "Use @superset_sh, go into debt if you have to",
-		author: "Abhi Aiyer",
-		handle: "@abhiaiyer",
-		avatar: "https://unavatar.io/twitter/abhiaiyer",
-		url: "https://x.com/abhiaiyer/status/2012274607399620970",
 	},
 ];

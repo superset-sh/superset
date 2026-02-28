@@ -11,6 +11,8 @@ export function McpControls({ mcpUi }: McpControlsProps) {
 			overview={mcpUi.overview}
 			open={mcpUi.overviewOpen}
 			onOpenChange={mcpUi.setOverviewOpen}
+			onAuthenticateServer={mcpUi.authenticateServer}
+			authenticatingServerName={mcpUi.authenticatingServerName}
 		/>
 	);
 }

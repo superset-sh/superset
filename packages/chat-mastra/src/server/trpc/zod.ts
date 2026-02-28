@@ -19,6 +19,12 @@ export const mcpOverviewInput = z.object({
 	cwd: z.string().optional(),
 });
 
+export const mcpServerAuthInput = z.object({
+	sessionId: z.uuid(),
+	cwd: z.string().optional(),
+	serverName: z.string().min(1),
+});
+
 export const sessionIdInput = z.object({
 	sessionId: z.uuid(),
 });
@@ -90,6 +96,7 @@ export const planRespondInput = z.object({
 
 export type SearchFilesInput = z.infer<typeof searchFilesInput>;
 export type McpOverviewInput = z.infer<typeof mcpOverviewInput>;
+export type McpServerAuthInput = z.infer<typeof mcpServerAuthInput>;
 export type SessionIdInput = z.infer<typeof sessionIdInput>;
 export type SendMessagePayloadInput = z.infer<typeof sendMessagePayloadSchema>;
 export type ApprovalPayloadInput = z.infer<typeof approvalPayloadSchema>;

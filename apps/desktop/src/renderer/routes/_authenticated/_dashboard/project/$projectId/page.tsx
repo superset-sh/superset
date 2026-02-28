@@ -162,7 +162,10 @@ function ProjectPage() {
 			<div className="flex-1 flex overflow-y-auto">
 				<div className="flex-1 flex items-center justify-center">
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: onKeyDown for Enter-to-submit */}
-					<div className="w-full max-w-md mx-6" onKeyDown={handleKeyDown}>
+					<div
+						className="w-full max-w-md min-w-0 mx-6"
+						onKeyDown={handleKeyDown}
+					>
 						<h1 className="text-3xl font-semibold text-foreground tracking-tight mb-2">
 							Create your first workspace
 						</h1>
@@ -178,7 +181,7 @@ function ProjectPage() {
 								<Input
 									id="task-title"
 									ref={titleInputRef}
-									className="h-11 text-base bg-card/50 border-border/60 focus:border-primary/40 focus:ring-primary/20 transition-all"
+									className="h-11 w-full min-w-0 max-w-full text-base bg-card/50 border-border/60 focus:border-primary/40 focus:ring-primary/20 transition-all"
 									placeholder="e.g. Add dark mode, Fix checkout bug"
 									value={title}
 									onChange={(e) => setTitle(e.target.value)}
@@ -186,14 +189,14 @@ function ProjectPage() {
 							</div>
 
 							<p
-								className={`text-xs text-muted-foreground flex items-center gap-2 transition-all duration-200 ${title ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"}`}
+								className={`text-xs text-muted-foreground flex min-w-0 items-center gap-2 transition-all duration-200 ${title ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-1"}`}
 							>
 								<GoGitBranch className="size-3" />
-								<span className="font-mono">
+								<span className="font-mono min-w-0 truncate">
 									{generateBranchFromTitle({ title, authorPrefix }) ||
 										"branch-name"}
 								</span>
-								<span className="text-muted-foreground/50">
+								<span className="shrink-0 text-muted-foreground/50">
 									from {effectiveBaseBranch}
 								</span>
 							</p>

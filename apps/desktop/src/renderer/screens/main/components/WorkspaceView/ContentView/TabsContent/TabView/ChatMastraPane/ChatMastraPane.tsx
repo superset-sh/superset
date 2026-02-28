@@ -15,6 +15,8 @@ import { posthog } from "renderer/lib/posthog";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import type { Tab } from "renderer/stores/tabs/types";
+import { TabContentContextMenu } from "../../TabContentContextMenu";
 import { createChatServiceIpcClient } from "../ChatPane/utils/chat-service-client";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatMastraInterface } from "./ChatMastraInterface";
@@ -38,8 +40,21 @@ interface ChatMastraPaneProps {
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
 	) => void;
+	splitPaneHorizontal: (
+		tabId: string,
+		sourcePaneId: string,
+		path?: MosaicBranch[],
+	) => void;
+	splitPaneVertical: (
+		tabId: string,
+		sourcePaneId: string,
+		path?: MosaicBranch[],
+	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
+	availableTabs: Tab[];
+	onMoveToTab: (targetTabId: string) => void;
+	onMoveToNewTab: () => void;
 }
 
 function toSessionSelectorItem(session: {
@@ -115,8 +130,13 @@ export function ChatMastraPane({
 	tabId,
 	workspaceId,
 	splitPaneAuto,
+	splitPaneHorizontal,
+	splitPaneVertical,
 	removePane,
 	setFocusedPane,
+	availableTabs,
+	onMoveToTab,
+	onMoveToNewTab,
 }: ChatMastraPaneProps) {
 	const pane = useTabsStore((state) => state.panes[paneId]);
 	const switchChatMastraSession = useTabsStore(
@@ -425,16 +445,29 @@ export function ChatMastraPane({
 						</div>
 					)}
 				>
-					<ChatMastraInterface
-						sessionId={sessionId}
-						workspaceId={workspaceId}
-						organizationId={organizationId}
-						cwd={workspace?.worktreePath ?? ""}
-						onStartFreshSession={handleStartFreshSession}
-						onRawSnapshotChange={
-							showDevToolbarActions ? handleRawSnapshotChange : undefined
-						}
-					/>
+					<TabContentContextMenu
+						onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
+						onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+						onClosePane={() => removePane(paneId)}
+						currentTabId={tabId}
+						availableTabs={availableTabs}
+						onMoveToTab={onMoveToTab}
+						onMoveToNewTab={onMoveToNewTab}
+						closeLabel="Close Chat"
+					>
+						<div className="h-full w-full">
+							<ChatMastraInterface
+								sessionId={sessionId}
+								workspaceId={workspaceId}
+								organizationId={organizationId}
+								cwd={workspace?.worktreePath ?? ""}
+								onStartFreshSession={handleStartFreshSession}
+								onRawSnapshotChange={
+									showDevToolbarActions ? handleRawSnapshotChange : undefined
+								}
+							/>
+						</div>
+					</TabContentContextMenu>
 				</BasePaneWindow>
 			</ChatServiceProvider>
 		</ChatMastraServiceProvider>

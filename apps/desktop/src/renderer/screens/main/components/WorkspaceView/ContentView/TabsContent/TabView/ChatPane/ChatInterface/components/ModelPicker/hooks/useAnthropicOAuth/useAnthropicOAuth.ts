@@ -24,7 +24,6 @@ interface AnthropicOAuthDialogState {
 	onCodeChange: (value: string) => void;
 	onOpenAuthUrl: () => void;
 	onCopyAuthUrl: () => void;
-	onPasteCode: () => void;
 	onSubmit: () => void;
 }
 
@@ -62,17 +61,9 @@ export function useAnthropicOAuth({
 	const openExternalUrl = useCallback(async (url: string) => {
 		try {
 			await electronTrpcClient.external.openUrl.mutate(url);
-			return;
 		} catch (ipcError) {
-			console.warn(
-				"[model-picker] external.openUrl failed, falling back:",
-				ipcError,
-			);
-		}
-
-		const openedWindow = window.open(url, "_blank");
-		if (!openedWindow) {
-			throw new Error("Failed to open browser window");
+			console.error("[model-picker] external.openUrl failed:", ipcError);
+			throw ipcError;
 		}
 	}, []);
 
@@ -113,16 +104,6 @@ export function useAnthropicOAuth({
 		}
 	}, [oauthUrl]);
 
-	const pasteOAuthCode = useCallback(async () => {
-		try {
-			const pasted = await navigator.clipboard.readText();
-			setOauthCode(pasted);
-			setOauthError(null);
-		} catch (error) {
-			setOauthError(getErrorMessage(error, "Failed to read clipboard"));
-		}
-	}, []);
-
 	const completeAnthropicOAuth = useCallback(async () => {
 		const code = oauthCode.trim();
 		if (!code) return;
@@ -159,13 +140,23 @@ export function useAnthropicOAuth({
 			setOauthUrl(null);
 
 			if (hasPendingOAuthSession) {
-				void cancelAnthropicOAuthMutation.mutateAsync().catch((error) => {
-					console.error(
-						"[model-picker] Failed to cancel Anthropic OAuth:",
-						error,
-					);
-				});
-				setHasPendingOAuthSession(false);
+				void cancelAnthropicOAuthMutation
+					.mutateAsync()
+					.then(() => {
+						setHasPendingOAuthSession(false);
+					})
+					.catch((error) => {
+						console.error(
+							"[model-picker] Failed to cancel Anthropic OAuth:",
+							error,
+						);
+						setOauthError(
+							getErrorMessage(
+								error,
+								"Failed to cancel Anthropic OAuth session",
+							),
+						);
+					});
 			}
 		},
 		[
@@ -192,9 +183,6 @@ export function useAnthropicOAuth({
 			onCopyAuthUrl: () => {
 				void copyOAuthUrl();
 			},
-			onPasteCode: () => {
-				void pasteOAuthCode();
-			},
 			onSubmit: () => {
 				void completeAnthropicOAuth();
 			},
@@ -209,7 +197,6 @@ export function useAnthropicOAuth({
 			oauthDialogOpen,
 			oauthError,
 			oauthUrl,
-			pasteOAuthCode,
 		],
 	);
 

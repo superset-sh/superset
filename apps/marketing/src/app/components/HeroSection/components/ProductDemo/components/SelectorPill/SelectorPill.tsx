@@ -19,7 +19,7 @@ export function SelectorPill({
 			onMouseEnter={onSelect}
 			onClick={onSelect}
 			className={`
-				inline-flex items-center justify-center py-2 text-xs sm:text-sm whitespace-nowrap cursor-pointer shrink-0 rounded-full
+				inline-flex items-center justify-center py-2 text-xs sm:text-sm whitespace-nowrap cursor-pointer shrink-0 rounded-[2px]
 				${
 					active
 						? "bg-foreground/90 border border-foreground text-background/80"

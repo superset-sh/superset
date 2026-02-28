@@ -4,6 +4,7 @@ import {
 	type AgentType,
 } from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
+import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import {
 	Select,
 	SelectContent,
@@ -19,6 +20,7 @@ import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { useHotkeysStore } from "renderer/stores/hotkeys";
 
 export type WorkspaceCreateAgent = AgentType | "none";
 
@@ -52,9 +54,11 @@ export function NewWorkspaceCreateFlow({
 	advancedOptions,
 }: NewWorkspaceCreateFlowProps) {
 	const isDark = useIsDarkTheme();
+	const platform = useHotkeysStore((state) => state.platform);
+	const modKey = platform === "darwin" || platform === undefined ? "⌘" : "Ctrl";
 
 	return (
-		<div className="space-y-3">
+		<div className="space-y-3 min-w-0">
 			<div className="flex items-end gap-3 min-w-0">
 				<div className="flex-1 min-w-0">{projectSelector}</div>
 				<div className="shrink-0 max-w-[45%]">
@@ -101,7 +105,7 @@ export function NewWorkspaceCreateFlow({
 			<Textarea
 				ref={titleInputRef}
 				id="title"
-				className="min-h-20 text-sm resize-y"
+				className="min-h-20 min-w-0 w-full max-w-full field-sizing-fixed text-sm resize-y"
 				placeholder="What do you want to do?"
 				value={title}
 				onChange={(e) => onTitleChange(e.target.value)}
@@ -125,6 +129,14 @@ export function NewWorkspaceCreateFlow({
 				disabled={isCreateDisabled}
 			>
 				Create Workspace
+				<KbdGroup className="ml-1.5 opacity-70">
+					<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+						{modKey}
+					</Kbd>
+					<Kbd className="bg-primary-foreground/15 text-primary-foreground h-4 min-w-4 text-[10px]">
+						↵
+					</Kbd>
+				</KbdGroup>
 			</Button>
 
 			{advancedOptions}

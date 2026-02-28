@@ -181,7 +181,11 @@ export function NewWorkspaceModal() {
 	}, [isOpen, selectedProjectId, mode]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.target instanceof HTMLTextAreaElement) {
+		const isTextareaTarget = e.target instanceof HTMLTextAreaElement;
+		const isSubmitShortcutInTextarea =
+			isTextareaTarget && (e.metaKey || e.ctrlKey);
+
+		if (isTextareaTarget && !isSubmitShortcutInTextarea) {
 			return;
 		}
 
@@ -382,7 +386,7 @@ export function NewWorkspaceModal() {
 				)}
 
 				{selectedProjectId && (
-					<div className="px-4 pb-4">
+					<div className="px-4 pb-4 min-w-0">
 						{mode === "new" && (
 							<NewWorkspaceCreateFlow
 								projectSelector={projectSelector}

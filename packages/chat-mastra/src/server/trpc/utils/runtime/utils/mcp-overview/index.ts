@@ -1,1 +1,4 @@
-export { getRuntimeMcpOverview } from "./mcp-overview";
+export {
+	authenticateRuntimeMcpServer,
+	getRuntimeMcpOverview,
+} from "./mcp-overview";

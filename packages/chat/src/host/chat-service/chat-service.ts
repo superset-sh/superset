@@ -1,177 +1,229 @@
 import { createAuthStorage } from "mastracode";
+import type { AuthMethod } from "./auth-storage-types";
 import {
-	createAnthropicOAuthSession,
-	exchangeAnthropicAuthorizationCode,
-	getCredentialsFromConfig,
-	getCredentialsFromKeychain,
-} from "../auth/anthropic";
+	clearApiKeyForProvider,
+	resolveAuthMethodForProvider,
+	setApiKeyForProvider,
+} from "./auth-storage-utils";
+import {
+	OAuthFlowController,
+	type OAuthFlowOptions,
+} from "./oauth-flow-controller";
+import {
+	parseOpenAIOAuthUrl,
+	summarizeOpenAIManualInput,
+} from "./openai-oauth-debug";
 
-type OpenAIAuthMethod = "api_key" | "env_api_key" | "oauth" | null;
-const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
+type OpenAIAuthMethod = AuthMethod;
+type AnthropicAuthMethod = AuthMethod;
+
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
 
-type AnthropicOAuthCredentials = {
-	accessToken: string;
-	refreshToken?: string;
-	expiresAt?: number;
-};
-
-let anthropicOAuthCredentials: AnthropicOAuthCredentials | null = null;
-
-function setAnthropicOAuthCredentials(
-	credentials: AnthropicOAuthCredentials,
-): void {
-	anthropicOAuthCredentials = credentials;
-}
-
-function getAnthropicAuthToken(): string | null {
-	if (!anthropicOAuthCredentials) return null;
-	if (
-		typeof anthropicOAuthCredentials.expiresAt === "number" &&
-		Date.now() >= anthropicOAuthCredentials.expiresAt
-	) {
-		anthropicOAuthCredentials = null;
-		return null;
-	}
-
-	return anthropicOAuthCredentials.accessToken;
-}
+const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
+const ANTHROPIC_AUTH_PROVIDER_ID = "anthropic";
 
 export class ChatService {
-	private anthropicAuthSession: {
-		verifier: string;
-		state: string;
-		createdAt: number;
-	} | null = null;
-	private openAIAuthStorage: OpenAIAuthStorage | null = null;
+	private authStorage: OpenAIAuthStorage | null = null;
+	private readonly oauthFlowController = new OAuthFlowController(() =>
+		this.getAuthStorage(),
+	);
 	private static readonly ANTHROPIC_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
+	private static readonly OPENAI_AUTH_SESSION_TTL_MS = 10 * 60 * 1000;
+	private static readonly OAUTH_URL_TIMEOUT_MS = 10_000;
 
-	getAnthropicAuthStatus(): { authenticated: boolean } {
-		this.ensureAnthropicTokenFromCliCredentials();
-		return { authenticated: Boolean(getAnthropicAuthToken()) };
+	getAnthropicAuthStatus(): {
+		authenticated: boolean;
+		method: AnthropicAuthMethod;
+	} {
+		const method = resolveAuthMethodForProvider(
+			this.getAuthStorage(),
+			ANTHROPIC_AUTH_PROVIDER_ID,
+			(credential) => credential.access.trim().length > 0,
+		);
+		return { authenticated: method !== null, method };
 	}
 
 	async getOpenAIAuthStatus(): Promise<{
 		authenticated: boolean;
 		method: OpenAIAuthMethod;
 	}> {
-		const method = this.resolveOpenAIAuthMethod();
+		const method = resolveAuthMethodForProvider(
+			this.getAuthStorage(),
+			OPENAI_AUTH_PROVIDER_ID,
+		);
 		return { authenticated: method !== null, method };
 	}
 
 	async setOpenAIApiKey(input: { apiKey: string }): Promise<{ success: true }> {
-		const trimmedApiKey = input.apiKey.trim();
-		if (trimmedApiKey.length === 0) {
-			throw new Error("OpenAI API key is required");
-		}
-
-		const authStorage = this.getOpenAIAuthStorage();
-		authStorage.reload();
-		authStorage.set(OPENAI_AUTH_PROVIDER_ID, {
-			type: "api_key",
-			key: trimmedApiKey,
-		});
-
-		process.env.OPENAI_API_KEY = trimmedApiKey;
+		setApiKeyForProvider(
+			this.getAuthStorage(),
+			OPENAI_AUTH_PROVIDER_ID,
+			input.apiKey,
+			"OpenAI API key is required",
+		);
 		return { success: true };
 	}
 
 	async clearOpenAIApiKey(): Promise<{ success: true }> {
-		const authStorage = this.getOpenAIAuthStorage();
-		authStorage.reload();
-		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
-		if (credential?.type !== "api_key") {
-			return { success: true };
-		}
-
-		authStorage.remove(OPENAI_AUTH_PROVIDER_ID);
-		if (process.env.OPENAI_API_KEY?.trim() === credential.key.trim()) {
-			delete process.env.OPENAI_API_KEY;
-		}
-
+		clearApiKeyForProvider(this.getAuthStorage(), OPENAI_AUTH_PROVIDER_ID);
 		return { success: true };
 	}
 
-	private resolveOpenAIAuthMethod(): OpenAIAuthMethod {
-		const authStorage = this.getOpenAIAuthStorage();
-		authStorage.reload();
-		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
-		if (credential?.type === "oauth") {
-			return "oauth";
-		}
-		if (credential?.type === "api_key" && credential.key.trim().length > 0) {
-			return "api_key";
-		}
-		if (process.env.OPENAI_API_KEY?.trim()) {
-			return "env_api_key";
-		}
-		return null;
+	async startOpenAIOAuth(): Promise<{ url: string; instructions: string }> {
+		return this.oauthFlowController.start(this.getOpenAIOAuthFlowOptions());
 	}
 
-	private getOpenAIAuthStorage(): OpenAIAuthStorage {
-		if (!this.openAIAuthStorage) {
-			// Standalone auth storage bootstrap.
-			// This path intentionally avoids full createMastraCode runtime initialization.
-			this.openAIAuthStorage = createAuthStorage();
-		}
-		return this.openAIAuthStorage;
+	cancelOpenAIOAuth(): { success: true } {
+		return this.oauthFlowController.cancel(this.getOpenAIOAuthFlowOptions());
 	}
 
-	startAnthropicOAuth(): { url: string; instructions: string } {
-		const session = createAnthropicOAuthSession();
-		this.anthropicAuthSession = {
-			verifier: session.verifier,
-			state: session.state,
-			createdAt: session.createdAt,
-		};
+	async completeOpenAIOAuth(input: {
+		code?: string;
+	}): Promise<{ success: true }> {
+		await this.oauthFlowController.complete(
+			this.getOpenAIOAuthFlowOptions(),
+			input.code,
+		);
+		return { success: true };
+	}
 
+	async setAnthropicApiKey(input: {
+		apiKey: string;
+	}): Promise<{ success: true }> {
+		setApiKeyForProvider(
+			this.getAuthStorage(),
+			ANTHROPIC_AUTH_PROVIDER_ID,
+			input.apiKey,
+			"Anthropic API key is required",
+		);
+		return { success: true };
+	}
+
+	async clearAnthropicApiKey(): Promise<{ success: true }> {
+		clearApiKeyForProvider(this.getAuthStorage(), ANTHROPIC_AUTH_PROVIDER_ID);
+		return { success: true };
+	}
+
+	async startAnthropicOAuth(): Promise<{ url: string; instructions: string }> {
+		return this.oauthFlowController.start(this.getAnthropicOAuthFlowOptions());
+	}
+
+	cancelAnthropicOAuth(): { success: true } {
+		return this.oauthFlowController.cancel(this.getAnthropicOAuthFlowOptions());
+	}
+
+	async completeAnthropicOAuth(input: {
+		code?: string;
+	}): Promise<{ success: true; expiresAt: number }> {
+		const credential = await this.oauthFlowController.complete(
+			this.getAnthropicOAuthFlowOptions(),
+			input.code,
+		);
+		return { success: true, expiresAt: credential.expires };
+	}
+
+	private getOpenAIOAuthFlowOptions(): OAuthFlowOptions {
 		return {
-			url: session.authUrl,
-			instructions:
+			providerId: OPENAI_AUTH_PROVIDER_ID,
+			providerName: "OpenAI",
+			sessionSlot: "openai",
+			ttlMs: ChatService.OPENAI_AUTH_SESSION_TTL_MS,
+			urlTimeoutMs: ChatService.OAUTH_URL_TIMEOUT_MS,
+			expiredMessage:
+				"OpenAI auth session expired. Start auth again and retry.",
+			defaultInstructions:
+				"Authorize OpenAI in your browser. If callback doesn't complete automatically, paste the code or callback URL here.",
+			supportsManualCodeInput: true,
+			onStartRequested: () => {
+				this.logOpenAIOAuth("start-requested");
+			},
+			onAuthInfo: (info) => {
+				const authDetails = parseOpenAIOAuthUrl(info.url);
+				this.logOpenAIOAuth("auth-url-received", authDetails);
+				if (authDetails.redirectUriMatchesExpected === false) {
+					this.logOpenAIOAuth("unexpected-callback-target", authDetails);
+				}
+			},
+			onPromptRequested: () => {
+				this.logOpenAIOAuth("manual-code-prompt-requested");
+			},
+			onManualCodeInputRequested: () => {
+				this.logOpenAIOAuth("manual-code-input-requested");
+			},
+			onLoginFailed: (message) => {
+				this.logOpenAIOAuth("login-failed", { message });
+			},
+			onAuthUrlTimeoutOrError: (message) => {
+				this.logOpenAIOAuth("auth-url-timeout-or-error", { message });
+			},
+			onAuthUrlReturned: () => {
+				this.logOpenAIOAuth("auth-url-returned-to-ui");
+			},
+			onCancelWithActiveSession: () => {
+				this.logOpenAIOAuth("cancel-requested-with-active-session");
+			},
+			onCancelWithoutSession: () => {
+				this.logOpenAIOAuth("cancel-requested-without-session");
+			},
+			onSessionCleared: () => {
+				this.logOpenAIOAuth("session-cleared");
+			},
+			onCompleteWithManualInput: (manualInput) => {
+				this.logOpenAIOAuth(
+					"complete-called-with-manual-input",
+					summarizeOpenAIManualInput(manualInput),
+				);
+			},
+			onCompleteWithoutManualInput: () => {
+				this.logOpenAIOAuth("complete-called-without-manual-input");
+			},
+			onLoginSettled: (hasError) => {
+				this.logOpenAIOAuth("login-promise-settled", { hasError });
+			},
+			onMissingOAuthCredential: (credentialType) => {
+				this.logOpenAIOAuth("complete-missing-oauth-credential", {
+					credentialType,
+				});
+			},
+			onCompleteSuccess: (credential) => {
+				this.logOpenAIOAuth("complete-success", {
+					credentialType: credential.type,
+					expiresAt: credential.expires,
+				});
+			},
+		};
+	}
+
+	private getAnthropicOAuthFlowOptions(): OAuthFlowOptions {
+		return {
+			providerId: ANTHROPIC_AUTH_PROVIDER_ID,
+			providerName: "Anthropic",
+			sessionSlot: "anthropic",
+			ttlMs: ChatService.ANTHROPIC_AUTH_SESSION_TTL_MS,
+			urlTimeoutMs: ChatService.OAUTH_URL_TIMEOUT_MS,
+			expiredMessage:
+				"Anthropic auth session expired. Start auth again and paste a fresh code.",
+			defaultInstructions:
 				"Authorize Anthropic in your browser, then paste the code shown there (format: code#state).",
 		};
 	}
 
-	cancelAnthropicOAuth(): { success: true } {
-		this.anthropicAuthSession = null;
-		return { success: true };
+	private getAuthStorage(): OpenAIAuthStorage {
+		if (!this.authStorage) {
+			// Standalone auth storage bootstrap.
+			// This path intentionally avoids full createMastraCode runtime initialization.
+			this.authStorage = createAuthStorage();
+		}
+		return this.authStorage;
 	}
 
-	async completeAnthropicOAuth(input: {
-		code: string;
-	}): Promise<{ success: true; expiresAt: number }> {
-		if (!this.anthropicAuthSession) {
-			throw new Error("No active Anthropic auth session. Start auth again.");
-		}
-
-		const elapsed = Date.now() - this.anthropicAuthSession.createdAt;
-		if (elapsed > ChatService.ANTHROPIC_AUTH_SESSION_TTL_MS) {
-			this.anthropicAuthSession = null;
-			throw new Error(
-				"Anthropic auth session expired. Start auth again and paste a fresh code.",
-			);
-		}
-
-		const session = this.anthropicAuthSession;
-		this.anthropicAuthSession = null;
-
-		const credentials = await exchangeAnthropicAuthorizationCode({
-			rawCode: input.code,
-			verifier: session.verifier,
-			expectedState: session.state,
-		});
-
-		setAnthropicOAuthCredentials(credentials);
-		return { success: true, expiresAt: credentials.expiresAt };
-	}
-
-	private ensureAnthropicTokenFromCliCredentials(): void {
-		if (getAnthropicAuthToken()) return;
-		const credentials =
-			getCredentialsFromConfig() ?? getCredentialsFromKeychain();
-		if (!credentials || credentials.kind !== "oauth") return;
-		setAnthropicOAuthCredentials({
-			accessToken: credentials.apiKey,
+	private logOpenAIOAuth(
+		event: string,
+		details: Record<string, unknown> = {},
+	): void {
+		console.info("[chat-service][openai-oauth]", {
+			event,
+			...details,
 		});
 	}
 }
