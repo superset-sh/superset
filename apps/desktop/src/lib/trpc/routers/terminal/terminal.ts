@@ -147,6 +147,7 @@ export const createTerminalRouter = () => {
 							paneId,
 							isNew: result.isNew,
 							wasRecovered: result.wasRecovered,
+							isLiveAttach: result.isLiveAttach,
 							durationMs: Date.now() - startedAt,
 						});
 					}
