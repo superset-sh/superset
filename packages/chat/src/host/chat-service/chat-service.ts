@@ -327,7 +327,9 @@ export class ChatService {
 				authInfoPromise,
 				new Promise<OAuthAuthInfo>((_, reject) => {
 					setTimeout(() => {
-						reject(new Error("Timed out while waiting for Anthropic OAuth URL"));
+						reject(
+							new Error("Timed out while waiting for Anthropic OAuth URL"),
+						);
 					}, ChatService.OAUTH_URL_TIMEOUT_MS);
 				}),
 			]);

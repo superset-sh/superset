@@ -106,17 +106,17 @@ export function subscribeToSessionEvents(
 			runtime.lastErrorMessage = null;
 			return;
 		}
-			if (isHarnessAgentEndEvent(event)) {
-				const raw = event.reason;
-				const reason = raw === "aborted" || raw === "error" ? raw : "complete";
-				if (runtime.hookManager) {
-					void runtime.hookManager.runStop(undefined, reason).catch(() => {});
-				}
-				if (reason === "complete") {
-					void generateAndSetTitle(runtime, apiClient);
-				}
+		if (isHarnessAgentEndEvent(event)) {
+			const raw = event.reason;
+			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
+			if (runtime.hookManager) {
+				void runtime.hookManager.runStop(undefined, reason).catch(() => {});
 			}
-		});
+			if (reason === "complete") {
+				void generateAndSetTitle(runtime, apiClient);
+			}
+		}
+	});
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {

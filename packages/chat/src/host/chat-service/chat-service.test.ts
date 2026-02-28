@@ -280,7 +280,9 @@ describe("ChatService OpenAI auth storage", () => {
 			},
 		);
 
-		const timeoutSlot = ChatService as unknown as { OAUTH_URL_TIMEOUT_MS: number };
+		const timeoutSlot = ChatService as unknown as {
+			OAUTH_URL_TIMEOUT_MS: number;
+		};
 		const previousTimeout = timeoutSlot.OAUTH_URL_TIMEOUT_MS;
 		timeoutSlot.OAUTH_URL_TIMEOUT_MS = 1;
 
