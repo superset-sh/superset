@@ -27,11 +27,6 @@ const AVAILABLE_MODELS = [
 		provider: "OpenAI",
 	},
 	{
-		id: "openai/gpt-5.3-codex-spark",
-		name: "GPT-5.3 Codex Spark",
-		provider: "OpenAI",
-	},
-	{
 		id: "openai/gpt-5.2",
 		name: "GPT-5.2",
 		provider: "OpenAI",
