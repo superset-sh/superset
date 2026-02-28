@@ -3,6 +3,8 @@ import type { MosaicNode } from "react-mosaic-component";
 import type { Tab } from "./types";
 import {
 	buildMultiPaneLayout,
+	createBrowserTabWithPane,
+	extractPaneIdsFromLayout,
 	findPanePath,
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
@@ -517,5 +519,56 @@ describe("resolveFileViewerMode", () => {
 				viewMode: "diff",
 			}),
 		).toBe("diff");
+	});
+});
+
+// Reproduction test for issue #1732:
+// "No way to open browser in existing multi-pane window"
+// CMD+SHIFT+B (NEW_BROWSER hotkey) calls addBrowserTab → createBrowserTabWithPane,
+// which always creates a NEW tab. Users with a multi-pane window want to add a
+// browser pane to the existing active tab's layout instead.
+describe("issue #1732 - browser pane should be addable to existing multi-pane tab", () => {
+	it("CMD+SHIFT+B should add a browser pane to the active tab layout, not create a new tab", () => {
+		const workspaceId = "ws-1";
+		const existingTabId = "tab-existing";
+
+		// An existing tab with 6 terminal panes — the scenario reported in the issue
+		const existingPaneIds = [
+			"pane-1",
+			"pane-2",
+			"pane-3",
+			"pane-4",
+			"pane-5",
+			"pane-6",
+		];
+		const existingLayout = buildMultiPaneLayout(existingPaneIds);
+
+		const existingTabs: Tab[] = [
+			{
+				id: existingTabId,
+				name: "Terminal 1",
+				workspaceId,
+				layout: existingLayout,
+				createdAt: 0,
+			},
+		];
+
+		// The NEW_BROWSER hotkey calls addBrowserTab(workspaceId) in the store,
+		// which delegates to createBrowserTabWithPane. The expected behavior is that
+		// a browser pane is added to the existing active tab — not a new tab opened.
+		const { tab: resultTab, pane: browserPane } = createBrowserTabWithPane(
+			workspaceId,
+			existingTabs,
+		);
+
+		// Expected: the browser pane is added to the SAME existing tab
+		// Actual (bug): createBrowserTabWithPane always generates a brand-new tab ID
+		expect(resultTab.id).toBe(existingTabId);
+
+		// Expected: the existing tab's layout now contains the browser pane alongside
+		// the 6 original terminal panes (7 panes total)
+		const paneIds = extractPaneIdsFromLayout(resultTab.layout);
+		expect(paneIds).toContain(browserPane.id);
+		expect(paneIds.length).toBe(existingPaneIds.length + 1);
 	});
 });
