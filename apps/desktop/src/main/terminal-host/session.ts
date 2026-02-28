@@ -39,6 +39,7 @@ import {
  * Prevents indefinite hang when continuous output (e.g., tail -f) keeps the queue non-empty.
  */
 const ATTACH_FLUSH_TIMEOUT_MS = 500;
+const ATTACH_SNAPSHOT_SCROLLBACK_LINES = 600;
 
 /**
  * Maximum bytes allowed in subprocess stdin queue.
@@ -725,7 +726,9 @@ export class Session {
 			);
 		}
 
-		return this.emulator.getSnapshotAsync();
+		return this.emulator.getSnapshotAsync({
+			scrollbackLines: ATTACH_SNAPSHOT_SCROLLBACK_LINES,
+		});
 	}
 
 	/**
