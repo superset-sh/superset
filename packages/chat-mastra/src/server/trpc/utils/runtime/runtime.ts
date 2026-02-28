@@ -25,6 +25,7 @@ export interface RuntimeSession {
 	hookManager: RuntimeHookManager;
 	mcpManualStatuses: Map<string, RuntimeMcpServerStatus>;
 	cwd: string;
+	lastErrorMessage?: string | null;
 }
 
 type ApiClient = ReturnType<typeof createTRPCClient<AppRouter>>;
@@ -36,6 +37,127 @@ interface TextContentPart {
 interface MessageLike {
 	role: string;
 	content: Array<{ type: string; text?: string }>;
+}
+
+const AI_API_CALL_ERROR_PREFIX = /^\s*AI_APICallError\d*:\s*/;
+const MAX_ERROR_PARSE_DEPTH = 12;
+const GENERIC_ERROR_TOKENS = new Set([
+	"error",
+	"workspace_error",
+	"agent_start",
+	"agent_end",
+]);
+
+function toNonEmptyString(value: unknown): string | null {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	return value as Record<string, unknown>;
+}
+
+export function normalizeRuntimeErrorMessage(message: string): string {
+	let normalized = message.trim();
+	while (AI_API_CALL_ERROR_PREFIX.test(normalized)) {
+		normalized = normalized.replace(AI_API_CALL_ERROR_PREFIX, "").trim();
+	}
+	return normalized;
+}
+
+function toUserFacingErrorMessage(message: string): string | null {
+	const normalized = normalizeRuntimeErrorMessage(message);
+	if (normalized.length === 0) return null;
+	const lower = normalized.toLowerCase();
+	if (GENERIC_ERROR_TOKENS.has(lower)) return null;
+	return normalized;
+}
+
+function extractRuntimeErrorMessageFromUnknown(
+	value: unknown,
+	seen: WeakSet<object>,
+	depth = 0,
+): string | null {
+	if (depth > MAX_ERROR_PARSE_DEPTH) return null;
+
+	const asString = toNonEmptyString(value);
+	if (asString) {
+		return toUserFacingErrorMessage(asString);
+	}
+
+	if (value instanceof Error) {
+		const ownMessage = toNonEmptyString(value.message);
+		if (ownMessage) {
+			return normalizeRuntimeErrorMessage(ownMessage);
+		}
+
+		const causeMessage = extractRuntimeErrorMessageFromUnknown(
+			(value as Error & { cause?: unknown }).cause,
+			seen,
+			depth + 1,
+		);
+		if (causeMessage) return causeMessage;
+	}
+
+	if (Array.isArray(value)) {
+		for (const item of value) {
+			const nested = extractRuntimeErrorMessageFromUnknown(item, seen, depth + 1);
+			if (nested) return nested;
+		}
+		return null;
+	}
+
+	const record = asRecord(value);
+	if (!record) return null;
+	if (seen.has(record)) return null;
+	seen.add(record);
+
+	// Prioritize nested provider payloads where actionable messages usually live.
+	const preferredKeys = [
+		"userFacingMessage",
+		"displayMessage",
+		"error",
+		"cause",
+		"data",
+		"details",
+		"responseBody",
+		"body",
+		"payload",
+		"result",
+	];
+	for (const key of preferredKeys) {
+		const nested = extractRuntimeErrorMessageFromUnknown(
+			record[key],
+			seen,
+			depth + 1,
+		);
+		if (nested) return nested;
+	}
+
+	const messageKeys = ["message", "errorMessage", "reason"];
+	for (const key of messageKeys) {
+		const message = toNonEmptyString(record[key]);
+		if (!message) continue;
+		const normalized = toUserFacingErrorMessage(message);
+		if (normalized) return normalized;
+	}
+
+	for (const nestedValue of Object.values(record)) {
+		const nested = extractRuntimeErrorMessageFromUnknown(
+			nestedValue,
+			seen,
+			depth + 1,
+		);
+		if (nested) return nested;
+	}
+
+	return null;
+}
+
+export function extractRuntimeErrorMessage(value: unknown): string | null {
+	return extractRuntimeErrorMessageFromUnknown(value, new WeakSet(), 0);
 }
 
 /**
@@ -96,9 +218,27 @@ export function subscribeToSessionEvents(
 	runtime: RuntimeSession,
 	apiClient: ApiClient,
 ): void {
-	runtime.harness.subscribe((event: { type: string; reason?: string }) => {
-		if (event.type === "agent_end") {
-			const raw = event.reason;
+	runtime.harness.subscribe((event: unknown) => {
+		const eventRecord = asRecord(event);
+		if (!eventRecord) return;
+		const eventType = toNonEmptyString(eventRecord.type);
+		if (!eventType) return;
+
+		if (eventType === "agent_start") {
+			runtime.lastErrorMessage = null;
+			return;
+		}
+
+		if (eventType === "error" || eventType === "workspace_error") {
+			const message = extractRuntimeErrorMessage(eventRecord);
+			if (message) {
+				runtime.lastErrorMessage = message;
+			}
+			return;
+		}
+
+		if (eventType === "agent_end") {
+			const raw = toNonEmptyString(eventRecord.reason);
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
 			if (runtime.hookManager) {
 				void runtime.hookManager.runStop(undefined, reason).catch(() => {});

@@ -14,6 +14,7 @@ import {
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
+import { extractRuntimeErrorMessage } from "./utils/runtime/runtime";
 import { isMastraMcpEnabled } from "./utils/runtime/mcp-gate";
 import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
@@ -32,6 +33,46 @@ import {
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
 	apiUrl: string;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return null;
+	}
+	return value as Record<string, unknown>;
+}
+
+function getCurrentAssistantErrorMessage(
+	displayState: Awaited<ReturnType<RuntimeSession["harness"]["getDisplayState"]>>,
+): string | null {
+	const state = asRecord(displayState);
+	if (!state) return null;
+
+	const currentMessage = asRecord(state.currentMessage);
+	if (!currentMessage) return null;
+	if (currentMessage.role !== "assistant") return null;
+
+	const directError = extractRuntimeErrorMessage(currentMessage.error);
+	if (directError) return directError;
+
+	const metadata = asRecord(currentMessage.metadata);
+	if (metadata) {
+		const metadataError = extractRuntimeErrorMessage(metadata.error);
+		if (metadataError) return metadataError;
+	}
+
+	if (!Array.isArray(currentMessage.content)) return null;
+
+	for (const part of currentMessage.content) {
+		const contentPart = asRecord(part);
+		if (!contentPart || contentPart.type !== "error") continue;
+		const partError = extractRuntimeErrorMessage(
+			contentPart.error ?? contentPart.text ?? contentPart.message,
+		);
+		if (partError) return partError;
+	}
+
+	return null;
 }
 
 export class ChatMastraService {
@@ -105,6 +146,7 @@ export class ChatMastraService {
 					hookManager: runtimeMastra.hookManager,
 					mcpManualStatuses: new Map(),
 					cwd: runtimeCwd,
+					lastErrorMessage: null,
 				};
 				await runSessionStartHook(runtime).catch(() => {});
 				subscribeToSessionEvents(runtime, this.apiClient);
@@ -171,7 +213,14 @@ export class ChatMastraService {
 							input.sessionId,
 							input.cwd,
 						);
-						return runtime.harness.getDisplayState();
+						const displayState = await runtime.harness.getDisplayState();
+						const assistantError =
+							getCurrentAssistantErrorMessage(displayState);
+						const errorMessage = assistantError ?? runtime.lastErrorMessage ?? null;
+						return {
+							...displayState,
+							errorMessage,
+						};
 					}),
 
 				listMessages: t.procedure
@@ -201,6 +250,7 @@ export class ChatMastraService {
 								scope: "thread",
 							});
 						}
+						runtime.lastErrorMessage = null;
 						return runtime.harness.sendMessage(input.payload);
 					}),
 
