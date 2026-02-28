@@ -61,17 +61,9 @@ export function useAnthropicOAuth({
 	const openExternalUrl = useCallback(async (url: string) => {
 		try {
 			await electronTrpcClient.external.openUrl.mutate(url);
-			return;
 		} catch (ipcError) {
-			console.warn(
-				"[model-picker] external.openUrl failed, falling back:",
-				ipcError,
-			);
-		}
-
-		const openedWindow = window.open(url, "_blank");
-		if (!openedWindow) {
-			throw new Error("Failed to open browser window");
+			console.error("[model-picker] external.openUrl failed:", ipcError);
+			throw ipcError;
 		}
 	}, []);
 
@@ -148,13 +140,20 @@ export function useAnthropicOAuth({
 			setOauthUrl(null);
 
 			if (hasPendingOAuthSession) {
-				void cancelAnthropicOAuthMutation.mutateAsync().catch((error) => {
-					console.error(
-						"[model-picker] Failed to cancel Anthropic OAuth:",
-						error,
-					);
-				});
-				setHasPendingOAuthSession(false);
+				void cancelAnthropicOAuthMutation
+					.mutateAsync()
+					.then(() => {
+						setHasPendingOAuthSession(false);
+					})
+					.catch((error) => {
+						console.error(
+							"[model-picker] Failed to cancel Anthropic OAuth:",
+							error,
+						);
+						setOauthError(
+							getErrorMessage(error, "Failed to cancel Anthropic OAuth session"),
+						);
+					});
 			}
 		},
 		[

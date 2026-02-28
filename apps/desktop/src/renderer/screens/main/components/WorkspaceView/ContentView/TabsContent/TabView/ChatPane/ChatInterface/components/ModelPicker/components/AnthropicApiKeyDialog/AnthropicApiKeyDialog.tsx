@@ -33,6 +33,8 @@ export function AnthropicApiKeyDialog({
 	onSubmit,
 	onClear,
 }: AnthropicApiKeyDialogProps) {
+	const errorId = "anthropic-api-key-error";
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-lg">
@@ -52,12 +54,16 @@ export function AnthropicApiKeyDialog({
 						value={apiKey}
 						onChange={(event) => onApiKeyChange(event.target.value)}
 						disabled={isPending}
+						aria-invalid={Boolean(errorMessage)}
+						aria-describedby={errorMessage ? errorId : undefined}
 						className="h-11 font-mono"
 					/>
 				</div>
 
 				{errorMessage ? (
-					<p className="text-destructive text-sm">{errorMessage}</p>
+					<p id={errorId} role="alert" className="text-destructive text-sm">
+						{errorMessage}
+					</p>
 				) : null}
 
 				<DialogFooter>

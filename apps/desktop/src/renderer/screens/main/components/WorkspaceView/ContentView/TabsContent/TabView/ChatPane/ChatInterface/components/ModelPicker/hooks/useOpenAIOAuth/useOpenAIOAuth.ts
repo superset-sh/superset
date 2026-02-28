@@ -61,17 +61,9 @@ export function useOpenAIOAuth({
 	const openExternalUrl = useCallback(async (url: string) => {
 		try {
 			await electronTrpcClient.external.openUrl.mutate(url);
-			return;
 		} catch (ipcError) {
-			console.warn(
-				"[model-picker] external.openUrl failed, falling back:",
-				ipcError,
-			);
-		}
-
-		const openedWindow = window.open(url, "_blank");
-		if (!openedWindow) {
-			throw new Error("Failed to open browser window");
+			console.error("[model-picker] external.openUrl failed:", ipcError);
+			throw ipcError;
 		}
 	}, []);
 
@@ -145,10 +137,17 @@ export function useOpenAIOAuth({
 			setOauthUrl(null);
 
 			if (hasPendingOAuthSession) {
-				void cancelOpenAIOAuthMutation.mutateAsync().catch((error) => {
-					console.error("[model-picker] Failed to cancel OpenAI OAuth:", error);
-				});
-				setHasPendingOAuthSession(false);
+				void cancelOpenAIOAuthMutation
+					.mutateAsync()
+					.then(() => {
+						setHasPendingOAuthSession(false);
+					})
+					.catch((error) => {
+						console.error("[model-picker] Failed to cancel OpenAI OAuth:", error);
+						setOauthError(
+							getErrorMessage(error, "Failed to cancel OpenAI OAuth session"),
+						);
+					});
 			}
 		},
 		[
