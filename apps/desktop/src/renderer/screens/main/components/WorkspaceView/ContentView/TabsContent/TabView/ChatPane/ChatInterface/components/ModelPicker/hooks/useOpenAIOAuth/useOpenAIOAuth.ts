@@ -143,7 +143,10 @@ export function useOpenAIOAuth({
 						setHasPendingOAuthSession(false);
 					})
 					.catch((error) => {
-						console.error("[model-picker] Failed to cancel OpenAI OAuth:", error);
+						console.error(
+							"[model-picker] Failed to cancel OpenAI OAuth:",
+							error,
+						);
 						setOauthError(
 							getErrorMessage(error, "Failed to cancel OpenAI OAuth session"),
 						);

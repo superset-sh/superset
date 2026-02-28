@@ -151,7 +151,10 @@ export function useAnthropicOAuth({
 							error,
 						);
 						setOauthError(
-							getErrorMessage(error, "Failed to cancel Anthropic OAuth session"),
+							getErrorMessage(
+								error,
+								"Failed to cancel Anthropic OAuth session",
+							),
 						);
 					});
 			}
