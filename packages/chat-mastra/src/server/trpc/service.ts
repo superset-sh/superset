@@ -4,7 +4,6 @@ import { initTRPC } from "@trpc/server";
 import { createMastraCode } from "mastracode";
 import superjson from "superjson";
 import { searchFiles } from "./utils/file-search";
-import { isMastraMcpEnabled } from "./utils/runtime/mcp-gate";
 import {
 	authenticateRuntimeMcpServer,
 	destroyRuntime,
@@ -15,6 +14,7 @@ import {
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
+import { isMastraMcpEnabled } from "./utils/runtime/mcp-gate";
 import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
 	approvalRespondInput,
