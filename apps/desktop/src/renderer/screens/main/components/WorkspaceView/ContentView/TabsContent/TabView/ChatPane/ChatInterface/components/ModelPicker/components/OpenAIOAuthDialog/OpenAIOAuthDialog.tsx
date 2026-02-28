@@ -47,8 +47,8 @@ export function OpenAIOAuthDialog({
 				<DialogHeader>
 					<DialogTitle>Connect OpenAI</DialogTitle>
 					<DialogDescription>
-						Open OpenAI OAuth in your browser. If callback does not complete,
-						paste the code or callback URL below.
+						Open the OAuth URL and sign in. If Connect does not finish, paste
+						the redirected localhost callback URL below.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -84,13 +84,11 @@ export function OpenAIOAuthDialog({
 					</InputGroup>
 
 					<div className="min-w-0 space-y-2">
-						<Label htmlFor="openai-oauth-code">
-							Authorization code (optional)
-						</Label>
+						<Label htmlFor="openai-oauth-code">Callback URL (optional)</Label>
 						<InputGroup>
 							<InputGroupInput
 								id="openai-oauth-code"
-								placeholder="Paste code or callback URL"
+								placeholder="Paste full http://localhost:1455/auth/callback?... URL (preferred)"
 								value={code}
 								onChange={(event) => onCodeChange(event.target.value)}
 								disabled={isPending}
@@ -98,7 +96,8 @@ export function OpenAIOAuthDialog({
 							/>
 						</InputGroup>
 						<p className="text-muted-foreground text-xs">
-							You can leave this empty if browser callback succeeds.
+							If browser redirects to `localhost`, copy the full URL from the
+							address bar and paste it here.
 						</p>
 					</div>
 

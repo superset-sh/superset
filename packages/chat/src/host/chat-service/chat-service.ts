@@ -20,7 +20,62 @@ type OAuthSession = {
 
 const OPENAI_AUTH_PROVIDER_ID = "openai-codex";
 const ANTHROPIC_AUTH_PROVIDER_ID = "anthropic";
+const OPENAI_EXPECTED_CALLBACK_ORIGIN = "http://localhost:1455";
+const OPENAI_EXPECTED_CALLBACK_PATH = "/auth/callback";
 type OpenAIAuthStorage = ReturnType<typeof createAuthStorage>;
+
+function parseOpenAIOAuthUrl(url: string): Record<string, unknown> {
+	try {
+		const parsed = new URL(url);
+		const redirectUriRaw = parsed.searchParams.get("redirect_uri");
+		const redirectUri = redirectUriRaw ? new URL(redirectUriRaw) : null;
+		const callbackTarget = redirectUri
+			? `${redirectUri.origin}${redirectUri.pathname}`
+			: null;
+
+		return {
+			authOrigin: parsed.origin,
+			authPathname: parsed.pathname,
+			hasStateParam: parsed.searchParams.has("state"),
+			hasCodeChallengeParam: parsed.searchParams.has("code_challenge"),
+			redirectUriOrigin: redirectUri?.origin ?? null,
+			redirectUriPathname: redirectUri?.pathname ?? null,
+			redirectUriMatchesExpected: callbackTarget
+				? callbackTarget ===
+					`${OPENAI_EXPECTED_CALLBACK_ORIGIN}${OPENAI_EXPECTED_CALLBACK_PATH}`
+				: null,
+		};
+	} catch {
+		return {
+			authUrlParseError: true,
+		};
+	}
+}
+
+function summarizeOpenAIManualInput(input: string): Record<string, unknown> {
+	if (/^https?:\/\//i.test(input)) {
+		try {
+			const parsed = new URL(input);
+			return {
+				manualInputKind: "callback_url",
+				manualInputOrigin: parsed.origin,
+				manualInputPathname: parsed.pathname,
+				manualInputHasCodeParam: parsed.searchParams.has("code"),
+				manualInputHasStateParam: parsed.searchParams.has("state"),
+			};
+		} catch {
+			return {
+				manualInputKind: "malformed_url",
+			};
+		}
+	}
+
+	return {
+		manualInputKind: "code_or_code_state",
+		manualInputHasStateDelimiter: input.includes("#"),
+		manualInputLength: input.length,
+	};
+}
 
 export class ChatService {
 	private anthropicOAuthSession: OAuthSession | null = null;
@@ -75,6 +130,7 @@ export class ChatService {
 	}
 
 	async startOpenAIOAuth(): Promise<{ url: string; instructions: string }> {
+		this.logOpenAIOAuth("start-requested");
 		this.clearOpenAIOAuthSession();
 
 		const authStorage = this.getAuthStorage();
@@ -122,16 +178,23 @@ export class ChatService {
 		const loginPromise = authStorage
 			.login(OPENAI_AUTH_PROVIDER_ID, {
 				onAuth: (info) => {
+					const authDetails = parseOpenAIOAuthUrl(info.url);
+					this.logOpenAIOAuth("auth-url-received", authDetails);
+					if (authDetails.redirectUriMatchesExpected === false) {
+						this.logOpenAIOAuth("unexpected-callback-target", authDetails);
+					}
 					resolveAuthInfo?.(info);
 					resolveAuthInfo = null;
 					rejectAuthInfo = null;
 				},
 				onPrompt: async () => {
 					manualCodeRequested = true;
+					this.logOpenAIOAuth("manual-code-prompt-requested");
 					return manualCodePromise;
 				},
 				onManualCodeInput: async () => {
 					manualCodeRequested = true;
+					this.logOpenAIOAuth("manual-code-input-requested");
 					return manualCodePromise;
 				},
 				signal: abortController.signal,
@@ -143,6 +206,9 @@ export class ChatService {
 						: "OpenAI OAuth failed";
 				const normalizedError = new Error(message);
 				session.error = normalizedError;
+				this.logOpenAIOAuth("login-failed", {
+					message,
+				});
 				rejectAuthInfo?.(normalizedError);
 				rejectAuthInfo = null;
 				resolveAuthInfo = null;
@@ -160,10 +226,14 @@ export class ChatService {
 				}),
 			]);
 		} catch (error) {
+			this.logOpenAIOAuth("auth-url-timeout-or-error", {
+				message: error instanceof Error ? error.message : String(error),
+			});
 			this.clearOpenAIOAuthSession();
 			throw error;
 		}
 
+		this.logOpenAIOAuth("auth-url-returned-to-ui");
 		return {
 			url: authInfo.url,
 			instructions:
@@ -174,10 +244,14 @@ export class ChatService {
 
 	cancelOpenAIOAuth(): { success: true } {
 		if (this.openAIOAuthSession) {
+			this.logOpenAIOAuth("cancel-requested-with-active-session");
 			this.openAIOAuthSession.abortController.abort();
 			this.openAIOAuthSession.rejectManualCode(
 				new Error("OpenAI auth cancelled"),
 			);
+		}
+		if (!this.openAIOAuthSession) {
+			this.logOpenAIOAuth("cancel-requested-without-session");
 		}
 		this.openAIOAuthSession = null;
 		return { success: true };
@@ -201,11 +275,20 @@ export class ChatService {
 
 		const trimmedCode = input.code?.trim();
 		if (trimmedCode) {
+			this.logOpenAIOAuth(
+				"complete-called-with-manual-input",
+				summarizeOpenAIManualInput(trimmedCode),
+			);
 			session.resolveManualCode(trimmedCode);
+		} else {
+			this.logOpenAIOAuth("complete-called-without-manual-input");
 		}
 
 		await session.loginPromise;
 		const error = session.error;
+		this.logOpenAIOAuth("login-promise-settled", {
+			hasError: Boolean(error),
+		});
 		this.clearOpenAIOAuthSession();
 		if (error) {
 			throw error;
@@ -215,8 +298,15 @@ export class ChatService {
 		authStorage.reload();
 		const credential = authStorage.get(OPENAI_AUTH_PROVIDER_ID);
 		if (credential?.type !== "oauth") {
+			this.logOpenAIOAuth("complete-missing-oauth-credential", {
+				credentialType: credential?.type ?? null,
+			});
 			throw new Error("OpenAI OAuth did not return credentials");
 		}
+		this.logOpenAIOAuth("complete-success", {
+			credentialType: credential.type,
+			expiresAt: credential.expires,
+		});
 		return { success: true };
 	}
 
@@ -431,11 +521,22 @@ export class ChatService {
 
 	private clearOpenAIOAuthSession(): void {
 		if (!this.openAIOAuthSession) return;
+		this.logOpenAIOAuth("session-cleared");
 		this.openAIOAuthSession.abortController.abort();
 		this.openAIOAuthSession.rejectManualCode(
 			new Error("OpenAI auth session closed"),
 		);
 		this.openAIOAuthSession = null;
+	}
+
+	private logOpenAIOAuth(
+		event: string,
+		details: Record<string, unknown> = {},
+	): void {
+		console.info("[chat-service][openai-oauth]", {
+			event,
+			...details,
+		});
 	}
 
 	private clearAnthropicOAuthSession(): void {
