@@ -321,7 +321,6 @@ export class DaemonTerminalManager extends EventEmitter {
 			cols = 80,
 			rows = 24,
 			skipColdRestore,
-			liveAttach,
 			themeType,
 		} = params;
 
@@ -403,7 +402,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				rootPath,
 				cols,
 				rows,
-				liveAttach,
 				cwd,
 				env,
 				shell,
@@ -473,7 +471,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				isNew: response.isNew,
 				scrollback: "",
 				wasRecovered: response.wasRecovered,
-				isLiveAttach: response.isLiveAttach,
 				snapshot: {
 					snapshotAnsi: response.snapshot.snapshotAnsi,
 					rehydrateSequences: response.snapshot.rehydrateSequences,

@@ -67,7 +67,6 @@ export const createTerminalRouter = () => {
 					cwd: z.string().optional(),
 					skipColdRestore: z.boolean().optional(),
 					allowKilled: z.boolean().optional(),
-					liveAttach: z.boolean().optional(),
 					themeType: z.enum(["dark", "light"]).optional(),
 				}),
 			)
@@ -83,7 +82,6 @@ export const createTerminalRouter = () => {
 					cwd: cwdOverride,
 					skipColdRestore,
 					allowKilled,
-					liveAttach,
 					themeType,
 				} = input;
 
@@ -137,7 +135,6 @@ export const createTerminalRouter = () => {
 						rows,
 						skipColdRestore,
 						allowKilled,
-						liveAttach,
 						themeType: resolvedThemeType,
 					});
 
@@ -147,7 +144,6 @@ export const createTerminalRouter = () => {
 							paneId,
 							isNew: result.isNew,
 							wasRecovered: result.wasRecovered,
-							isLiveAttach: result.isLiveAttach,
 							durationMs: Date.now() - startedAt,
 						});
 					}
@@ -157,7 +153,6 @@ export const createTerminalRouter = () => {
 						isNew: result.isNew,
 						scrollback: result.scrollback,
 						wasRecovered: result.wasRecovered,
-						isLiveAttach: result.isLiveAttach,
 						// Cold restore fields (for reboot recovery)
 						isColdRestore: result.isColdRestore,
 						previousCwd: result.previousCwd,

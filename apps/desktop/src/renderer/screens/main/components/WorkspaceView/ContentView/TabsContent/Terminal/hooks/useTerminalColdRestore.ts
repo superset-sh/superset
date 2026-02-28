@@ -90,7 +90,6 @@ export function useTerminalColdRestore({
 				workspaceId,
 				cols: xterm.cols,
 				rows: xterm.rows,
-				liveAttach: true,
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {
@@ -122,16 +121,6 @@ export function useTerminalColdRestore({
 						}
 
 						didFirstRenderRef.current = true;
-						return;
-					}
-
-					if (result.isLiveAttach) {
-						isStreamReadyRef.current = true;
-						didFirstRenderRef.current = true;
-						flushPendingEvents();
-						if (isFocusedRef.current) {
-							currentXterm.focus();
-						}
 						return;
 					}
 
@@ -213,7 +202,6 @@ export function useTerminalColdRestore({
 				cwd: restoredCwdRef.current || undefined,
 				skipColdRestore: true,
 				allowKilled: true,
-				liveAttach: true,
 			},
 			{
 				onSuccess: (result: CreateOrAttachResult) => {

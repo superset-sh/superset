@@ -87,8 +87,6 @@ export interface SessionResult {
 			normalBufferLines: number;
 		};
 	};
-	/** True when attach used stream-first mode without full snapshot replay. */
-	isLiveAttach?: boolean;
 }
 
 export interface CreateSessionParams {
@@ -105,8 +103,6 @@ export interface CreateSessionParams {
 	skipColdRestore?: boolean;
 	/** Allow restarting a session that was explicitly killed */
 	allowKilled?: boolean;
-	/** Prefer stream-first warm attach over full snapshot replay. */
-	liveAttach?: boolean;
 	themeType?: "dark" | "light";
 }
 

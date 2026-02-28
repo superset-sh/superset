@@ -153,22 +153,17 @@ export class TerminalHost {
 			}
 		}
 
-		const shouldUseLiveAttach = !!request.liveAttach && !isNew;
+		const usedWarmAttachFastPath = !isNew;
 		const attachStartedAt = Date.now();
 		const snapshot = await session.attach(socket, {
-			includeSnapshot: !shouldUseLiveAttach,
+			includeSnapshot: isNew,
 		});
 		const attachDurationMs = Date.now() - attachStartedAt;
-		const isLiveAttach =
-			shouldUseLiveAttach &&
-			!snapshot.modes.alternateScreen &&
-			snapshot.snapshotAnsi.length === 0;
 		if (DEBUG_TERMINAL) {
 			console.log("[TerminalHost] createOrAttach attach complete", {
 				sessionId,
 				isNew,
-				liveAttachRequested: !!request.liveAttach,
-				isLiveAttach,
+				usedWarmAttachFastPath,
 				attachDurationMs,
 				snapshotBytes: Buffer.byteLength(snapshot.snapshotAnsi || "", "utf8"),
 				alternateScreen: snapshot.modes.alternateScreen,
@@ -177,7 +172,6 @@ export class TerminalHost {
 
 		return {
 			isNew,
-			isLiveAttach,
 			snapshot,
 			wasRecovered: !isNew && session.isAlive,
 			pid: session.pid,

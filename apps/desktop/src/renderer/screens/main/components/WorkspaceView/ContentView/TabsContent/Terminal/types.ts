@@ -20,7 +20,6 @@ export type TerminalStreamEvent =
 export type CreateOrAttachResult = {
 	wasRecovered: boolean;
 	isNew: boolean;
-	isLiveAttach?: boolean;
 	scrollback: string;
 	// Cold restore fields (for reboot recovery)
 	isColdRestore?: boolean;
@@ -67,7 +66,6 @@ export interface CreateOrAttachInput {
 	cwd?: string;
 	skipColdRestore?: boolean;
 	allowKilled?: boolean;
-	liveAttach?: boolean;
 	themeType?: "dark" | "light";
 }
 
