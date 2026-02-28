@@ -30,6 +30,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_WORKTREE_LOCATION: "behavior-worktree-location",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_MENUBAR_ICON: "behavior-menubar-icon",
 
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
@@ -479,6 +480,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chat",
 			"terminal",
 			"url",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_MENUBAR_ICON,
+		section: "behavior",
+		title: "Show menu bar icon",
+		description: "Show the Superset icon in the macOS menu bar",
+		keywords: [
+			"menu bar",
+			"menubar",
+			"tray",
+			"icon",
+			"status bar",
+			"macos",
+			"dock",
+			"hide",
+			"show",
 		],
 	},
 	{

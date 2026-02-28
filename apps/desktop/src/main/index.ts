@@ -17,6 +17,7 @@ import {
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_SHOW_MENUBAR_ICON,
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
@@ -150,6 +151,24 @@ function getConfirmOnQuitSetting(): boolean {
 	} catch {
 		return DEFAULT_CONFIRM_ON_QUIT;
 	}
+}
+
+function getShowMenubarIconSetting(): boolean {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.showMenubarIcon ?? DEFAULT_SHOW_MENUBAR_ICON;
+	} catch {
+		return DEFAULT_SHOW_MENUBAR_ICON;
+	}
+}
+
+export function setMenubarIconVisibility(enabled: boolean): void {
+	if (enabled) {
+		initTray();
+		return;
+	}
+
+	disposeTray();
 }
 
 export function setSkipQuitConfirmation(): void {
@@ -298,7 +317,7 @@ if (!gotTheLock) {
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
-		initTray();
+		setMenubarIconVisibility(getShowMenubarIconSetting());
 
 		// Process any deep links from cold start
 		const coldStartUrl = findDeepLinkInArgv(process.argv);

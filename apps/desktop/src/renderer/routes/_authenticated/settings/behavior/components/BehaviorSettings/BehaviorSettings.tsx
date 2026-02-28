@@ -60,6 +60,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
 	);
+	const showMenubarIcon = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_MENUBAR_ICON,
+		visibleItems,
+	);
 
 	const utils = electronTrpc.useUtils();
 
@@ -267,6 +271,26 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		},
 	);
 
+	const { data: showMenubarIconEnabled, isLoading: isShowMenubarIconLoading } =
+		electronTrpc.settings.getShowMenubarIcon.useQuery();
+	const setShowMenubarIcon =
+		electronTrpc.settings.setShowMenubarIcon.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowMenubarIcon.cancel();
+				const previous = utils.settings.getShowMenubarIcon.getData();
+				utils.settings.getShowMenubarIcon.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowMenubarIcon.setData(undefined, context.previous);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowMenubarIcon.invalidate();
+			},
+		});
+
 	const previewPrefix =
 		resolveBranchPrefix({
 			mode: branchPrefix?.mode ?? "none",
@@ -453,6 +477,29 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								setOpenLinksInApp.mutate({ enabled })
 							}
 							disabled={isOpenLinksInAppLoading || setOpenLinksInApp.isPending}
+						/>
+					</div>
+				)}
+
+				{showMenubarIcon && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="show-menubar-icon" className="text-sm font-medium">
+								Show menu bar icon
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show the Superset icon in the macOS menu bar
+							</p>
+						</div>
+						<Switch
+							id="show-menubar-icon"
+							checked={showMenubarIconEnabled ?? true}
+							onCheckedChange={(enabled) =>
+								setShowMenubarIcon.mutate({ enabled })
+							}
+							disabled={
+								isShowMenubarIconLoading || setShowMenubarIcon.isPending
+							}
 						/>
 					</div>
 				)}

@@ -14,7 +14,7 @@ import {
 } from "@superset/shared/agent-command";
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
-import { quitWithoutConfirmation } from "main/index";
+import { quitWithoutConfirmation, setMenubarIconVisibility } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { localDb } from "main/lib/local-db";
 import {
@@ -23,6 +23,7 @@ import {
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
+	DEFAULT_SHOW_MENUBAR_ICON,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
@@ -634,6 +635,28 @@ export const createSettingsRouter = () => {
 						set: { showResourceMonitor: input.enabled },
 					})
 					.run();
+
+				return { success: true };
+			}),
+
+		getShowMenubarIcon: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showMenubarIcon ?? DEFAULT_SHOW_MENUBAR_ICON;
+		}),
+
+		setShowMenubarIcon: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, showMenubarIcon: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showMenubarIcon: input.enabled },
+					})
+					.run();
+
+				setMenubarIconVisibility(input.enabled);
 
 				return { success: true };
 			}),
