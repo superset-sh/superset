@@ -466,6 +466,16 @@ export function MastraToolCallBlock({
 			);
 		}
 
+		if (questions.length === 0) {
+			return (
+				<GenericToolCall
+					part={part}
+					toolName="Question"
+					icon={MessageCircleQuestionIcon}
+				/>
+			);
+		}
+
 		return (
 			<UserQuestionTool
 				questions={questions}
