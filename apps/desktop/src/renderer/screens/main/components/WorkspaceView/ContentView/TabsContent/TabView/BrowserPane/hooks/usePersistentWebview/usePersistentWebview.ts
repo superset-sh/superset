@@ -31,30 +31,53 @@ function getPersistentContainer(): HTMLDivElement {
  * The webview lives outside the <app> React tree, so every ancestor of the
  * React placeholder div intercepts pointer events before they reach it.
  * This walks from `container` up to <app>, setting pointer-events:none on
- * each ancestor and pointer-events:auto on their siblings.  Returns a
- * cleanup function that restores all original inline values.
+ * each ancestor and pointer-events:auto on their siblings.
+ *
+ * Uses ref-counting so multiple browser panes in a mosaic split can share
+ * ancestors safely — the original value is only restored when the last
+ * pane releases its hold on the element.
  */
+const pointerEventsRefCounts = new WeakMap<
+	HTMLElement,
+	{ count: number; original: string }
+>();
+
+function acquirePointerEvents(el: HTMLElement, value: string): void {
+	const entry = pointerEventsRefCounts.get(el);
+	if (entry) {
+		entry.count++;
+	} else {
+		pointerEventsRefCounts.set(el, { count: 1, original: el.style.pointerEvents });
+	}
+	el.style.pointerEvents = value;
+}
+
+function releasePointerEvents(el: HTMLElement): void {
+	const entry = pointerEventsRefCounts.get(el);
+	if (!entry) return;
+	entry.count--;
+	if (entry.count <= 0) {
+		el.style.pointerEvents = entry.original;
+		pointerEventsRefCounts.delete(el);
+	}
+}
+
 function createPointerEventsHole(container: HTMLElement): () => void {
 	const appElement = document.querySelector("app");
 	if (!appElement) return () => {};
 
-	const saved: Array<{ el: HTMLElement; original: string }> = [];
-
-	function save(el: HTMLElement, value: string) {
-		saved.push({ el, original: el.style.pointerEvents });
-		el.style.pointerEvents = value;
-	}
+	const touched: HTMLElement[] = [];
 
 	let current: HTMLElement | null = container;
 	while (current) {
-		save(current, "none");
+		acquirePointerEvents(current, "none");
+		touched.push(current);
 
 		if (current.parentElement) {
 			for (const sibling of Array.from(current.parentElement.children)) {
 				if (sibling !== current && sibling instanceof HTMLElement) {
-					if (!sibling.style.pointerEvents) {
-						save(sibling, "auto");
-					}
+					acquirePointerEvents(sibling, "auto");
+					touched.push(sibling);
 				}
 			}
 		}
@@ -64,8 +87,8 @@ function createPointerEventsHole(container: HTMLElement): () => void {
 	}
 
 	return () => {
-		for (const { el, original } of saved) {
-			el.style.pointerEvents = original;
+		for (const el of touched) {
+			releasePointerEvents(el);
 		}
 	};
 }
