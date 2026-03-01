@@ -246,16 +246,35 @@ export function useTabsWithPresets() {
 	const executePreset = useCallback(
 		(workspaceId: string, preset: PreparedPreset, target: PresetOpenTarget) => {
 			const activeTabId =
-				target === "active-tab" && preset.mode === "split-pane"
+				target === "active-tab" &&
+				(preset.mode === "split-pane" || preset.mode === "inject")
 					? resolveActiveWorkspaceTabId(workspaceId)
 					: null;
+
+			const focusedPaneId = activeTabId
+				? (useTabsStore.getState().focusedPaneIds[activeTabId] ?? null)
+				: null;
 
 			const plan = getPresetLaunchPlan({
 				mode: preset.mode,
 				target,
 				commandCount: preset.commands.length,
 				hasActiveTab: !!activeTabId,
+				hasFocusedPane: !!focusedPaneId,
 			});
+
+			if (plan === "active-tab-inject" && activeTabId && focusedPaneId) {
+				const command = buildTerminalCommand(preset.commands);
+				if (command !== null) {
+					launchPresetCommand({
+						paneId: focusedPaneId,
+						tabId: activeTabId,
+						workspaceId,
+						command,
+					});
+				}
+				return { tabId: activeTabId, paneId: focusedPaneId };
+			}
 
 			if (plan === "active-tab-multi-pane" && activeTabId) {
 				const paneIds = storeAddPanesToTab(activeTabId, {

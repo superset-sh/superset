@@ -53,6 +53,7 @@ export const EXECUTION_MODES = [
 	"split-pane",
 	"new-tab",
 	"new-tab-split-pane",
+	"inject",
 ] as const;
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
@@ -61,7 +62,8 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 	if (
 		mode === "split-pane" ||
 		mode === "new-tab" ||
-		mode === "new-tab-split-pane"
+		mode === "new-tab-split-pane" ||
+		mode === "inject"
 	) {
 		return mode;
 	}
