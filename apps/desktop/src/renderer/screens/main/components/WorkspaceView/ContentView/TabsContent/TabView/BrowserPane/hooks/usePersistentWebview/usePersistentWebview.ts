@@ -11,6 +11,7 @@ const webviewRegistry = new Map<string, Electron.WebviewTag>();
 const registeredWebContentsIds = new Map<string, number>();
 let persistentContainer: HTMLDivElement | null = null;
 
+/** Lazily creates a 0×0 fixed container on `<body>` that holds all webviews. */
 function getPersistentContainer(): HTMLDivElement {
 	if (!persistentContainer) {
 		persistentContainer = document.createElement("div");
@@ -42,6 +43,7 @@ const pointerEventsRefCounts = new WeakMap<
 	{ noneCount: number; autoCount: number; original: string }
 >();
 
+/** Ref-count a pointer-events override on `el`; `"none"` always wins over `"auto"`. */
 function acquirePointerEvents(el: HTMLElement, value: "none" | "auto"): void {
 	let entry = pointerEventsRefCounts.get(el);
 	if (!entry) {
@@ -54,6 +56,7 @@ function acquirePointerEvents(el: HTMLElement, value: "none" | "auto"): void {
 	el.style.pointerEvents = entry.noneCount > 0 ? "none" : "auto";
 }
 
+/** Release a previously acquired pointer-events override; restores original when all refs drop. */
 function releasePointerEvents(el: HTMLElement, value: "none" | "auto"): void {
 	const entry = pointerEventsRefCounts.get(el);
 	if (!entry) return;
@@ -98,6 +101,7 @@ function createPointerEventsHole(container: HTMLElement): () => void {
 	};
 }
 
+/** Copies the container's bounding rect onto the fixed-position webview. */
 function syncBounds(
 	webview: Electron.WebviewTag,
 	container: HTMLElement,
@@ -109,7 +113,7 @@ function syncBounds(
 	webview.style.height = `${rect.height}px`;
 }
 
-/** Call from useBrowserLifecycle when a pane is removed. */
+/** Removes the webview element and cleans up registry entries for a closed pane. */
 export function destroyPersistentWebview(paneId: string): void {
 	const webview = webviewRegistry.get(paneId);
 	if (webview) {
@@ -123,6 +127,7 @@ export function destroyPersistentWebview(paneId: string): void {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Normalises user input into a loadable URL (adds protocol or falls back to Google search). */
 function sanitizeUrl(url: string): string {
 	if (/^https?:\/\//i.test(url) || url.startsWith("about:")) {
 		return url;
@@ -145,6 +150,11 @@ interface UsePersistentWebviewOptions {
 	initialUrl: string;
 }
 
+/**
+ * Manages a persistent `<webview>` that lives outside the React tree to avoid
+ * reload-on-reparent. Syncs position via `ResizeObserver` and punches a
+ * pointer-events hole through ancestors so the webview receives input.
+ */
 export function usePersistentWebview({
 	paneId,
 	initialUrl,
