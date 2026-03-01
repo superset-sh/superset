@@ -14,9 +14,8 @@ let persistentContainer: HTMLDivElement | null = null;
 function getPersistentContainer(): HTMLDivElement {
 	if (!persistentContainer) {
 		persistentContainer = document.createElement("div");
-		// 0×0 box at the viewport origin — webviews overflow it with position:fixed.
-		// No pointer-events:none here (0×0 has no hittable area), which avoids
-		// Electron's compositor skipping the entire subtree for input routing.
+		// Deliberately 0×0 with overflow:visible — avoids pointer-events:none which
+		// causes Electron's compositor to skip the entire subtree for input routing.
 		persistentContainer.style.position = "fixed";
 		persistentContainer.style.top = "0";
 		persistentContainer.style.left = "0";
@@ -29,12 +28,11 @@ function getPersistentContainer(): HTMLDivElement {
 }
 
 /**
- * Walk from `container` up to `<app>` (inclusive), setting pointer-events:none
- * on each ancestor so DOM hit-testing falls through to the fixed-position
- * webview that sits outside the React tree.  Siblings at each level get
- * pointer-events:auto so the rest of the UI (sidebar, toolbar, other panes)
- * stays interactive.  Returns a cleanup function that restores all original
- * inline values.
+ * The webview lives outside the <app> React tree, so every ancestor of the
+ * React placeholder div intercepts pointer events before they reach it.
+ * This walks from `container` up to <app>, setting pointer-events:none on
+ * each ancestor and pointer-events:auto on their siblings.  Returns a
+ * cleanup function that restores all original inline values.
  */
 function createPointerEventsHole(container: HTMLElement): () => void {
 	const appElement = document.querySelector("app");
@@ -51,7 +49,6 @@ function createPointerEventsHole(container: HTMLElement): () => void {
 	while (current) {
 		save(current, "none");
 
-		// Keep siblings interactive
 		if (current.parentElement) {
 			for (const sibling of Array.from(current.parentElement.children)) {
 				if (sibling !== current && sibling instanceof HTMLElement) {
@@ -190,10 +187,8 @@ export function usePersistentWebview({
 		let webview = webviewRegistry.get(paneId);
 
 		if (webview) {
-			// Reclaim existing webview (it stays in the persistent container)
 			syncStoreFromWebview(webview);
 		} else {
-			// Create new webview in the persistent container
 			webview = document.createElement("webview") as Electron.WebviewTag;
 			webview.setAttribute("partition", "persist:superset");
 			webview.setAttribute("allowpopups", "");
@@ -206,17 +201,13 @@ export function usePersistentWebview({
 			webviewRegistry.set(paneId, webview);
 			getPersistentContainer().appendChild(webview);
 
-			const finalUrl = sanitizeUrl(initialUrlRef.current);
-			webview.src = finalUrl;
+			webview.src = sanitizeUrl(initialUrlRef.current);
 		}
 
-		// Show the webview and sync its bounds to the container
 		webview.style.visibility = "visible";
 		webview.style.pointerEvents = "auto";
 		syncBounds(webview, container);
 
-		// Punch a pointer-events hole through the React tree so DOM
-		// hit-testing reaches the fixed-position webview outside <app>.
 		const restorePointerEvents = createPointerEventsHole(container);
 
 		const resizeObserver = new ResizeObserver(() => {
@@ -234,6 +225,7 @@ export function usePersistentWebview({
 		const handleDomReady = () => {
 			const webContentsId = wv.getWebContentsId();
 			const previousId = registeredWebContentsIds.get(paneId);
+			// Register on first load, or re-register if webContentsId changed (e.g. after DOM reparenting)
 			if (previousId !== webContentsId) {
 				registeredWebContentsIds.set(paneId, webContentsId);
 				registerBrowser({ paneId, webContentsId });
@@ -393,7 +385,6 @@ export function usePersistentWebview({
 				handleDidFailLoad as EventListener,
 			);
 
-			// Hide webview but keep it in the persistent container (no reparenting)
 			wv.style.visibility = "hidden";
 			wv.style.pointerEvents = "none";
 			resizeObserver.disconnect();
