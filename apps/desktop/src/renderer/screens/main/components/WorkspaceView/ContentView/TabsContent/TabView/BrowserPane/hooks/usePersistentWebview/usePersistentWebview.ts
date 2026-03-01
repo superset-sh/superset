@@ -39,26 +39,31 @@ function getPersistentContainer(): HTMLDivElement {
  */
 const pointerEventsRefCounts = new WeakMap<
 	HTMLElement,
-	{ count: number; original: string }
+	{ noneCount: number; autoCount: number; original: string }
 >();
 
-function acquirePointerEvents(el: HTMLElement, value: string): void {
-	const entry = pointerEventsRefCounts.get(el);
-	if (entry) {
-		entry.count++;
-	} else {
-		pointerEventsRefCounts.set(el, { count: 1, original: el.style.pointerEvents });
+function acquirePointerEvents(el: HTMLElement, value: "none" | "auto"): void {
+	let entry = pointerEventsRefCounts.get(el);
+	if (!entry) {
+		entry = { noneCount: 0, autoCount: 0, original: el.style.pointerEvents };
+		pointerEventsRefCounts.set(el, entry);
 	}
-	el.style.pointerEvents = value;
+	if (value === "none") entry.noneCount++;
+	else entry.autoCount++;
+	// "none" wins — if any pane needs the element transparent, it must be
+	el.style.pointerEvents = entry.noneCount > 0 ? "none" : "auto";
 }
 
-function releasePointerEvents(el: HTMLElement): void {
+function releasePointerEvents(el: HTMLElement, value: "none" | "auto"): void {
 	const entry = pointerEventsRefCounts.get(el);
 	if (!entry) return;
-	entry.count--;
-	if (entry.count <= 0) {
+	if (value === "none") entry.noneCount--;
+	else entry.autoCount--;
+	if (entry.noneCount <= 0 && entry.autoCount <= 0) {
 		el.style.pointerEvents = entry.original;
 		pointerEventsRefCounts.delete(el);
+	} else {
+		el.style.pointerEvents = entry.noneCount > 0 ? "none" : "auto";
 	}
 }
 
@@ -66,18 +71,18 @@ function createPointerEventsHole(container: HTMLElement): () => void {
 	const appElement = document.querySelector("app");
 	if (!appElement) return () => {};
 
-	const touched: HTMLElement[] = [];
+	const touched: Array<{ el: HTMLElement; value: "none" | "auto" }> = [];
 
 	let current: HTMLElement | null = container;
 	while (current) {
 		acquirePointerEvents(current, "none");
-		touched.push(current);
+		touched.push({ el: current, value: "none" });
 
 		if (current.parentElement) {
 			for (const sibling of Array.from(current.parentElement.children)) {
 				if (sibling !== current && sibling instanceof HTMLElement) {
 					acquirePointerEvents(sibling, "auto");
-					touched.push(sibling);
+					touched.push({ el: sibling, value: "auto" });
 				}
 			}
 		}
@@ -87,8 +92,8 @@ function createPointerEventsHole(container: HTMLElement): () => void {
 	}
 
 	return () => {
-		for (const el of touched) {
-			releasePointerEvents(el);
+		for (const { el, value } of touched) {
+			releasePointerEvents(el, value);
 		}
 	};
 }
