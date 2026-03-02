@@ -1,4 +1,3 @@
-import { MessageResponse } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import {
 	Collapsible,
@@ -6,9 +5,9 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/lib/utils";
-import { Switch } from "@superset/ui/switch";
 import { BotIcon, CheckIcon, Loader2Icon, XIcon } from "lucide-react";
 import { useId, useMemo, useState } from "react";
+import { MarkdownToggleContent } from "../../../../../../components/MarkdownToggleContent";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { parseSubagentToolResult } from "./utils/parseSubagentToolResult";
 
@@ -96,19 +95,6 @@ export function SubagentToolCall({
 								? ` • ${Math.round(parsed.durationMs)} ms`
 								: ""}
 						</div>
-						{parsed.text ? (
-							<label
-								htmlFor={markdownToggleId}
-								className="flex cursor-pointer items-center gap-2 text-muted-foreground"
-							>
-								<Switch
-									id={markdownToggleId}
-									checked={renderMarkdown}
-									onCheckedChange={setRenderMarkdown}
-								/>
-								Render markdown
-							</label>
-						) : null}
 						{parsed.tools.length > 0 ? (
 							<div className="flex flex-wrap gap-1.5">
 								{parsed.tools.map((tool, index) => (
@@ -127,25 +113,12 @@ export function SubagentToolCall({
 							</div>
 						) : null}
 						{parsed.text ? (
-							renderMarkdown ? (
-								<div className="max-h-64 overflow-auto rounded border bg-background/80 p-2">
-									<MessageResponse
-										animated={false}
-										isAnimating={false}
-										mermaid={{
-											config: {
-												theme: "default",
-											},
-										}}
-									>
-										{parsed.text}
-									</MessageResponse>
-								</div>
-							) : (
-								<pre className="max-h-64 overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words">
-									{parsed.text}
-								</pre>
-							)
+							<MarkdownToggleContent
+								toggleId={markdownToggleId}
+								checked={renderMarkdown}
+								onCheckedChange={setRenderMarkdown}
+								content={parsed.text}
+							/>
 						) : null}
 					</div>
 				</CollapsibleContent>

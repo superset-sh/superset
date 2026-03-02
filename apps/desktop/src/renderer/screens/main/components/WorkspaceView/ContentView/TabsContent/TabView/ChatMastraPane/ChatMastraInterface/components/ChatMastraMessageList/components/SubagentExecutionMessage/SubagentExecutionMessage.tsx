@@ -1,11 +1,7 @@
-import {
-	Message,
-	MessageContent,
-	MessageResponse,
-} from "@superset/ui/ai-elements/message";
+import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { cn } from "@superset/ui/lib/utils";
-import { Switch } from "@superset/ui/switch";
-import { useId, useState } from "react";
+import { useState } from "react";
+import { MarkdownToggleContent } from "../../../../../../components/MarkdownToggleContent";
 import {
 	type SubagentEntries,
 	toSubagentViewModels,
@@ -34,8 +30,9 @@ function getStatusClassName(status: "running" | "completed" | "error"): string {
 export function SubagentExecutionMessage({
 	subagents,
 }: SubagentExecutionMessageProps) {
-	const [renderMarkdown, setRenderMarkdown] = useState(false);
-	const markdownToggleId = useId();
+	const [markdownBySubagent, setMarkdownBySubagent] = useState<
+		Record<string, boolean>
+	>({});
 	if (subagents.length === 0) return null;
 	const viewModels = toSubagentViewModels(subagents);
 
@@ -43,21 +40,8 @@ export function SubagentExecutionMessage({
 		<Message from="assistant">
 			<MessageContent>
 				<div className="w-full max-w-none space-y-3 rounded-xl border bg-card/95 p-3">
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<div className="text-sm font-medium text-foreground">
-							Subagent activity
-						</div>
-						<label
-							htmlFor={markdownToggleId}
-							className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
-						>
-							<Switch
-								id={markdownToggleId}
-								checked={renderMarkdown}
-								onCheckedChange={setRenderMarkdown}
-							/>
-							Render markdown
-						</label>
+					<div className="text-sm font-medium text-foreground">
+						Subagent activity
 					</div>
 					<div className="space-y-3">
 						{viewModels.map((subagent) => (
@@ -86,25 +70,20 @@ export function SubagentExecutionMessage({
 										: ""}
 								</div>
 								{subagent.text ? (
-									renderMarkdown ? (
-										<div className="max-h-56 overflow-auto rounded border bg-background/80 p-2">
-											<MessageResponse
-												animated={false}
-												isAnimating={false}
-												mermaid={{
-													config: {
-														theme: "default",
-													},
-												}}
-											>
-												{subagent.text}
-											</MessageResponse>
-										</div>
-									) : (
-										<pre className="max-h-56 overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words">
-											{subagent.text}
-										</pre>
-									)
+									<MarkdownToggleContent
+										toggleId={`subagent-markdown-${subagent.toolCallId}`}
+										checked={Boolean(markdownBySubagent[subagent.toolCallId])}
+										onCheckedChange={(checked) =>
+											setMarkdownBySubagent((previous) => ({
+												...previous,
+												[subagent.toolCallId]: checked,
+											}))
+										}
+										content={subagent.text}
+										labelClassName="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
+										markdownContainerClassName="max-h-56 overflow-auto rounded border bg-background/80 p-2"
+										plainContainerClassName="max-h-56 overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
+									/>
 								) : null}
 								{subagent.toolCalls.length > 0 ? (
 									<div className="flex flex-wrap items-center gap-1.5">
