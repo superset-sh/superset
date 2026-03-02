@@ -1,0 +1,7 @@
+[
+	"esbuild",
+	"electron",
+	"electron-vite",
+	"@tailwindcss/oxide",
+	"electron-winstaller"
+]

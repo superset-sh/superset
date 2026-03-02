@@ -1,0 +1,174 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1762574385218,
+      "tag": "0000_initial_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1765561192058,
+      "tag": "0001_add_clerk_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765569368202,
+      "tag": "0002_add_deleted_at_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766704473637,
+      "tag": "0003_set_up_linear_integration",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766710371092,
+      "tag": "0004_webhook_events_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1766942895219,
+      "tag": "0005_back_up_user_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766991848204,
+      "tag": "0006_add_better_auth_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767049518603,
+      "tag": "0007_add_created_at_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768087327155,
+      "tag": "0008_add_full_task_status_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768250000970,
+      "tag": "0009_add_organization_id_to_tasks_external_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1768446870608,
+      "tag": "0010_add_organization_ids_to_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1768871460342,
+      "tag": "0011_add_github_integration_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1769106861342,
+      "tag": "0012_add_stripe_subscription_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1769225155008,
+      "tag": "0013_add_mcp_actions_and_presence",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1769383267153,
+      "tag": "0014_better_auth_mcp_oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1769719998551,
+      "tag": "0015_scope_tasks_slug_unique_to_org",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1769727642212,
+      "tag": "0016_slack_integration",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1770583877762,
+      "tag": "0017_switch_to_oauth2",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1771034439575,
+      "tag": "0018_sandbox_and_slack_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1771218285573,
+      "tag": "0019_device_presence_timestamptz",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1771357800887,
+      "tag": "0020_session_hosts_and_chat_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1771473303728,
+      "tag": "0021_add_workspace_id_to_chat_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1771740179749,
+      "tag": "0022_remove_claimed_executing_command_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1771866677057,
+      "tag": "0023_agent_commands_timestamptz",
+      "breakpoints": true
+    }
+  ]
+}

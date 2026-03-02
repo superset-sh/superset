@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `open_links_in_app` integer;

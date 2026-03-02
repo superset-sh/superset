@@ -1,0 +1,1 @@
+export { AssigneeMenuIcon } from "./AssigneeMenuIcon";

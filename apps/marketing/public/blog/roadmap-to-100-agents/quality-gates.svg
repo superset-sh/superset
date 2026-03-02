@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300">
+  <rect width="900" height="300" fill="#000"/>
+
+  <!-- Robot icon (coding agent) -->
+  <g transform="translate(100, 150)">
+    <rect x="-18" y="-20" width="36" height="32" rx="4" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <rect x="-10" y="-12" width="6" height="6" rx="1" fill="#fff"/>
+    <rect x="4" y="-12" width="6" height="6" rx="1" fill="#fff"/>
+    <rect x="-6" y="0" width="12" height="2" rx="1" fill="#fff"/>
+    <line x1="0" y1="-20" x2="0" y2="-28" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="0" cy="-30" r="2.5" fill="#fff"/>
+  </g>
+  <text x="100" y="200" fill="#666" font-family="monospace" font-size="11" text-anchor="middle">AGENT</text>
+
+  <!-- Arrow 1 -->
+  <line x1="145" y1="150" x2="245" y2="150" stroke="#444" stroke-width="1"/>
+  <polygon points="245,146 253,150 245,154" fill="#444"/>
+
+  <!-- Filter 1 -->
+  <g transform="translate(300, 150)">
+    <polygon points="0,-24 20,24 -20,24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="0" cy="10" r="3" fill="#fff"/>
+  </g>
+  <text x="300" y="200" fill="#666" font-family="monospace" font-size="11" text-anchor="middle">REVIEW</text>
+
+  <!-- Arrow 2 -->
+  <line x1="345" y1="150" x2="405" y2="150" stroke="#444" stroke-width="1"/>
+  <polygon points="405,146 413,150 405,154" fill="#444"/>
+
+  <!-- Filter 2 -->
+  <g transform="translate(460, 150)">
+    <polygon points="0,-24 20,24 -20,24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="0" cy="10" r="3" fill="#fff"/>
+  </g>
+  <text x="460" y="200" fill="#666" font-family="monospace" font-size="11" text-anchor="middle">TEST</text>
+
+  <!-- Arrow 3 -->
+  <line x1="505" y1="150" x2="565" y2="150" stroke="#444" stroke-width="1"/>
+  <polygon points="565,146 573,150 565,154" fill="#444"/>
+
+  <!-- Filter 3 -->
+  <g transform="translate(620, 150)">
+    <polygon points="0,-24 20,24 -20,24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="0" cy="10" r="3" fill="#fff"/>
+  </g>
+  <text x="620" y="200" fill="#666" font-family="monospace" font-size="11" text-anchor="middle">BOUNCER</text>
+
+  <!-- Arrow 4 -->
+  <line x1="665" y1="150" x2="755" y2="150" stroke="#fff" stroke-width="1"/>
+  <polygon points="755,146 763,150 755,154" fill="#fff"/>
+
+  <!-- Human icon -->
+  <g transform="translate(800, 150)">
+    <circle cx="0" cy="-18" r="10" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <path d="M -16,16 Q -16,-4 0,-4 Q 16,-4 16,16" fill="none" stroke="#fff" stroke-width="1.5"/>
+  </g>
+  <text x="800" y="200" fill="#fff" font-family="monospace" font-size="11" text-anchor="middle">YOU</text>
+
+  <!-- Rejected loop arrow (curved, going back) -->
+  <path d="M 460,185 Q 460,250 280,250 Q 100,250 100,185" fill="none" stroke="#333" stroke-width="1" stroke-dasharray="4,4"/>
+  <polygon points="96,185 100,177 104,185" fill="#333"/>
+  <text x="280" y="265" fill="#333" font-family="monospace" font-size="10" text-anchor="middle">rejected</text>
+</svg>

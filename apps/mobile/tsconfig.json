@@ -1,0 +1,13 @@
+{
+	"extends": "expo/tsconfig.base",
+	"compilerOptions": {
+		"strict": true,
+		"skipLibCheck": true,
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["./*"],
+			"@superset/tab-bar": ["./modules/tab-bar/src/index.tsx"]
+		}
+	},
+	"include": ["**/*.ts", "**/*.tsx", "uniwind-env.d.ts", "uniwind-types.d.ts"]
+}

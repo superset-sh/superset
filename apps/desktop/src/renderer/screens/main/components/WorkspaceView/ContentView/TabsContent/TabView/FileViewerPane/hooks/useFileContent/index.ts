@@ -1,0 +1,1 @@
+export { useFileContent } from "./useFileContent";

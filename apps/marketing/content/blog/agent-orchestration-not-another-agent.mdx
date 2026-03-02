@@ -1,0 +1,121 @@
+---
+title: "You Don't Need Another AI Coding Agent — You Need an Orchestrator"
+description: "The AI coding tools landscape is flooded with agents. The real bottleneck isn't agent quality — it's managing multiple agents at scale. Here's why orchestration is the missing layer."
+author: satya
+date: 2026-02-18
+category: Product
+relatedSlugs:
+  - parallel-coding-agents-guide
+  - roadmap-to-100-agents
+  - working-with-worktrees-in-superset
+---
+
+Every month, a new AI coding agent launches. Claude Code. Codex. Aider. OpenCode. Cursor's agent mode. Windsurf's Cascade. Devin. The list keeps growing. Each promises to be smarter, faster, more capable than the last.
+
+Here's the thing: the agents are already good enough. Claude Code can refactor a module. Codex can write a test suite. Aider can iterate on a bugfix. The quality difference between top-tier agents is shrinking. What's not getting better is the workflow around them.
+
+The real bottleneck isn't agent quality. It's agent quantity.
+
+---
+
+## The Single-Agent Ceiling
+
+Most developers use AI coding agents the same way:
+
+1. Open terminal
+2. Describe a task
+3. Watch the agent work
+4. Review the output
+5. Give feedback or merge
+6. Repeat
+
+This is sequential. One task at a time. The agent might take 5 minutes. Your review might take 10. That's one task per 15 minutes, four tasks per hour. For an individual developer, that's a solid productivity boost.
+
+But your codebase has 50 parallelizable tasks right now. Writing tests for untested modules. Refactoring deprecated patterns. Updating stale documentation. Migrating config formats. Fixing lint warnings. Each task is independent. None requires the output of another.
+
+Running them one at a time means 50 tasks at 15 minutes each: over 12 hours. Running 5 in parallel: under 3 hours. Running 10 in parallel: under 2 hours. The math is straightforward. The orchestration is the hard part.
+
+---
+
+## Why Orchestration Is Hard
+
+### Isolation
+
+Two agents in the same directory destroy each other's work. You need filesystem-level isolation — each agent in its own working directory with its own branch. Git worktrees solve this elegantly, but setting them up manually for every task is tedious.
+
+### Session Management
+
+Agents crash. Terminals close. Laptops go to sleep. If your agent's session dies, you lose the context and have to restart. For a single agent, this is annoying. For 10 agents, it's unmanageable.
+
+### Review
+
+The review workflow matters more with parallel agents, not less. You need to see what each agent changed, verify it against the task description, and decide whether to merge or iterate. Without a unified view across all tasks, you're tab-switching between terminals.
+
+### Task Allocation
+
+Not every task suits every agent. Claude Code handles complex refactors better than Codex. Codex is faster for well-defined tasks. Aider excels at iterative changes. An orchestrator lets you match agents to tasks instead of using one agent for everything.
+
+---
+
+## Orchestration vs More Agents
+
+The AI coding industry is betting heavily on better agents. Smarter models, larger context windows, better tool use. These improvements are real and valuable.
+
+But consider: a 20% improvement in agent quality (smarter code, fewer bugs) improves throughput by 20%. Running 5 agents in parallel instead of 1 improves throughput by 5x. The orchestration layer has more leverage than the agent layer.
+
+This isn't an argument against better agents. It's an argument that the orchestration layer deserves equal attention. The best coding agent in the world, run one at a time, is slower than a good agent run ten at a time.
+
+---
+
+## What Good Orchestration Looks Like
+
+### Automatic Isolation
+
+Creating a task should automatically create a Git worktree and branch. No manual setup, no remembering to checkout a new branch, no worrying about file conflicts. The orchestrator handles this transparently.
+
+### Session Persistence
+
+Agent sessions should survive crashes, app restarts, and laptop sleep cycles. A background daemon that owns the sessions independently of the UI solves this — the same pattern that tmux uses for terminal multiplexing, applied to agent orchestration.
+
+### Agent Agnosticism
+
+Lock-in to a single agent is a strategic mistake. The AI landscape moves fast. Today's best agent might be tomorrow's second-best. An orchestrator should run any CLI-based agent — Claude Code, Codex, Aider, OpenCode, or whatever ships next week.
+
+### Unified Review
+
+All active tasks, their status, and their diffs should be visible in one place. When a task completes, the review workflow should be fast: see the diff, open in your editor if needed, merge or give feedback. Seconds per review, not minutes.
+
+### Editor Integration
+
+Developers have strong editor preferences. The orchestrator shouldn't force an editor choice. It should integrate with whatever you use — VS Code, Cursor, JetBrains, Xcode, Neovim — and let you open any worktree in your preferred environment.
+
+---
+
+## Building This at Superset
+
+We built [Superset](https://superset.sh) because we hit this ceiling ourselves. We were running Claude Code for everything — and it was great for individual tasks. But scaling to 5-7 agents manually was operational overhead that distracted from the actual work.
+
+The architecture is intentionally simple:
+
+- **Git worktrees** for isolation (no containers, no VMs)
+- **Persistent daemon** for session management (Unix domain sockets, survives crashes)
+- **Any CLI agent** as a first-class citizen (no SDK integrations to maintain)
+- **Built-in diff viewer** for fast review
+- **Editor integration** for deep inspection (VS Code, Cursor, JetBrains, Xcode)
+
+The orchestrator doesn't make agents smarter. It makes using agents at scale practical. That's the missing layer in most developers' AI workflows — not a better agent, but a better way to run the agents they already have.
+
+---
+
+## The Compound Effect
+
+Running parallel agents has a compound effect on productivity:
+
+1. **More tasks completed per day** — 5x agents means 5x throughput (minus review overhead)
+2. **Faster iteration** — while one agent iterates on feedback, others are working on new tasks
+3. **Better agent matching** — use the right agent for each task instead of one-size-fits-all
+4. **Reduced context switching** — tasks run to completion in isolation instead of being stashed and resumed
+
+The developers we work with who've adopted parallel agent workflows don't go back to single-agent work. The throughput difference is too large. The question shifts from "which agent should I use?" to "how many agents can I effectively manage?"
+
+That's the right question. And the answer is: as many as your orchestrator supports and your review speed allows.

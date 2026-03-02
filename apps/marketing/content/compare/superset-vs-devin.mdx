@@ -1,0 +1,104 @@
+---
+title: "Superset vs Devin (2026): Local Agent Orchestration vs Cloud AI Engineer"
+description: "Compare Superset and Devin for AI-powered development. See how local parallel agent orchestration differs from a fully remote AI software engineer."
+date: 2026-02-18
+lastUpdated: 2026-02-18
+type: "1v1"
+competitors:
+  - devin
+keywords:
+  - superset vs devin
+  - devin alternative
+  - devin vs superset
+  - ai software engineer comparison
+  - ai coding agent comparison
+---
+
+Devin is a cloud-based AI software engineer that works autonomously in a remote VM. Superset is a desktop terminal that orchestrates local coding agents in parallel across Git worktrees. They represent opposite ends of the AI development spectrum: Devin offloads work to the cloud, Superset keeps everything local.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Devin** |
+|---|---|---|
+| **Category** | Agent orchestration terminal | Autonomous AI software engineer |
+| **Architecture** | Fully local — agents run on your machine | Fully remote — runs in cloud VMs |
+| **AI approach** | Agent-agnostic — orchestrates any CLI agent | Proprietary AI with browser, editor, and terminal in cloud |
+| **Parallelism** | 10+ agents across isolated local worktrees | Multiple Devin sessions run as separate cloud VMs |
+| **Code privacy** | Code never leaves your machine | Code runs on Cognition's cloud infrastructure |
+| **Pricing** | Free tier + Pro $20/seat/mo | Teams $500/seat/mo |
+| **Open source** | Yes (Apache 2.0) | No (closed source) |
+
+---
+
+## What Is Superset?
+
+Superset is a desktop terminal that orchestrates CLI-based coding agents in parallel across isolated Git worktrees. Each agent — Claude Code, Codex, Aider, OpenCode — gets its own branch and working directory. A persistent daemon manages sessions so they survive crashes. Includes a built-in diff viewer and integrates with VS Code, Cursor, JetBrains, and Xcode. Open source (Apache 2.0) with zero telemetry.
+
+---
+
+## What Is Devin?
+
+Devin is Cognition's AI software engineer — a cloud-based autonomous agent that runs in its own virtual machine with a browser, code editor, terminal, and planner. You assign tasks via chat or Slack, and Devin works independently: reading docs, writing code, debugging, running tests, and creating pull requests. It has event-driven workflows (triggers from Linear, Slack, etc.) and a review system that annotates PRs before human review.
+
+---
+
+## Key Differences
+
+### Local vs Cloud
+
+Superset runs everything locally. Your code stays on your machine, agents use your local git repos, and nothing is sent to external servers beyond what the agents' own API calls require. Devin runs entirely in Cognition's cloud — your code is cloned into remote VMs where Devin operates. This is the fundamental architectural difference and drives most of the trade-offs below.
+
+### Control vs Autonomy
+
+Superset gives you direct terminal access to each agent. You see what it's doing in real time, can interrupt, redirect, or provide feedback mid-task. Devin aims for full autonomy — you assign a task and check back later for a PR. This makes Devin more hands-off but less controllable when it goes in the wrong direction.
+
+### Agent Flexibility
+
+Devin is a single proprietary agent — you use Cognition's AI or nothing. Superset is agent-agnostic: run Claude Code for complex refactors, Codex for well-scoped tasks, Aider for iterative work. When a better agent ships, use it in Superset immediately. With Devin, you wait for Cognition to improve their model.
+
+### Isolation Mechanism
+
+Superset isolates agents using Git worktrees — lightweight, fast, and built into git itself. Devin isolates each session in a full cloud VM with its own OS, browser, and toolchain. VMs provide stronger isolation (separate environments) but at much higher cost and latency.
+
+### Pricing
+
+Superset offers a free tier and Pro at $20/seat/month plus your agents' API costs. Devin costs $500/seat/month for the Teams plan. The price difference is significant — Superset plus API usage for heavy agent use typically costs a fraction of Devin's monthly fee.
+
+---
+
+## Which Should You Choose?
+
+**Choose Devin if you:**
+- Want a fully autonomous AI that works in the background with minimal oversight
+- Need event-driven workflows (auto-respond to Linear tickets, Slack messages)
+- Prefer cloud-based execution where you don't manage local compute
+- Have budget for $500/seat/month and the ROI justifies it
+
+**Choose Superset if you:**
+- Want direct control over each agent — see what they're doing, redirect in real time
+- Need code to stay local with zero telemetry
+- Want agent flexibility (Claude Code, Codex, Aider, OpenCode — your choice per task)
+- Prefer the cost efficiency of local execution with direct API pricing
+- Need an open-source tool you can inspect and modify
+
+---
+
+## Frequently Asked Questions
+
+### Can Devin and Superset work together?
+
+They serve different workflows. Devin is a cloud-based autonomous engineer. Superset is a local agent orchestrator. You might use Devin for fully autonomous background tasks and Superset for interactive parallel work where you want more control.
+
+### Is Devin worth the price premium?
+
+Devin's $500/seat/month buys full autonomy: assign tasks via Slack, get PRs back. If your workflow benefits from hands-off delegation and you have the budget, it can be valuable. If you prefer direct control and cost efficiency, Superset at $20/seat/month plus API costs delivers more throughput per dollar.
+
+### Is Superset open source?
+
+Yes. Superset is open source under Apache 2.0 with zero telemetry. Devin is closed source from Cognition.
+
+### Which is better for security-sensitive codebases?
+
+Superset. Code never leaves your machine. Devin runs code on Cognition's cloud infrastructure. For regulated industries, government work, or sensitive IP, local execution is a hard requirement.

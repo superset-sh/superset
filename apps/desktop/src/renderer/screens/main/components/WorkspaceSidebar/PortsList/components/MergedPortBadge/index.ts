@@ -1,0 +1,1 @@
+export { MergedPortBadge } from "./MergedPortBadge";

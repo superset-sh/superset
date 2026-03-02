@@ -1,0 +1,43 @@
+---
+title: Chat improvements, desktop automation, and in-app browser
+date: 2026-02-16
+image: /changelog/chat.png
+---
+
+## Chat - Still in preview <PRBadge url="https://github.com/superset-sh/superset/pull/1413" />
+
+Chat got a major upgrade this week. Streaming responses now support interactive tool-approval flows, so you can review and approve each tool call as it happens. A new multi-provider model picker lets you choose between providers and models. Agent and tool calls render as expandable UI blocks with tool-specific displays, and a new web search tool lets Claude fetch and reference live content.
+
+We also shipped a series of fixes to MCP connectivity — replacing the stagnant `mcp-handler` library with a direct SDK transport <PRBadge url="https://github.com/superset-sh/superset/pull/1518" />, fixing OAuth connections through the reverse proxy <PRBadge url="https://github.com/superset-sh/superset/pull/1512" />, and resolving SDK version conflicts that caused session failures <PRBadge url="https://github.com/superset-sh/superset/pull/1515" /> <PRBadge url="https://github.com/superset-sh/superset/pull/1516" />.
+
+![Chat with tool approval](/changelog/chat.png)
+
+## In-App Browser <PRBadge url="https://github.com/superset-sh/superset/pull/1519" />
+
+Browse documentation, preview dev servers, and test web apps without leaving Superset. The new embedded browser includes Chrome-like URL autocomplete with browsing history, favicon capture, and DevTools support.
+
+- Navigate directly from detected ports — click the external link icon to open in a browser pane instead of your system browser
+- URL bar with persistent history and keyboard navigation
+- Clear browsing data from the overflow menu
+- Open browser tabs with Cmd+Shift+B hotkey
+
+![In-app browser](/changelog/browser.png)
+
+## Desktop Automation Tools <PRBadge url="https://github.com/superset-sh/superset/pull/1481" />
+
+Added MCP-based automation tools that let Claude Code interact with the Superset UI programmatically. Claude can now take screenshots, click UI elements, type into fields, and inspect the DOM — enabling fully automated testing and debugging workflows through natural language.
+
+## Improvements
+
+- **Linux desktop support** - Superset Desktop is now available on Linux with full auto-update support via AppImage builds <PRBadge url="https://github.com/superset-sh/superset/pull/1477" />
+- **Terminal context menu** - Right-click to copy selected text or paste from clipboard <PRBadge url="https://github.com/superset-sh/superset/pull/1509" />
+- **Workspace visual identity** - Each workspace gets a unique colored dock icon border for quick visual identification in development <PRBadge url="https://github.com/superset-sh/superset/pull/1478" />
+- **Open tasks in workspace** - New "Open in workspace" button in task detail creates a workspace and launches Claude with full task context <PRBadge url="https://github.com/superset-sh/superset/pull/1473" />
+- **Ahead/behind indicators** - See commit sync status directly on workspace items in the sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/1496" />
+- **Preset hotkey tooltips** - Keyboard shortcuts now visible when hovering over preset bar items <PRBadge url="https://github.com/superset-sh/superset/pull/1469" />
+- **Branch name sanitization** - Git branch names now preserve valid characters like underscores, dots, and at signs <PRBadge url="https://github.com/superset-sh/superset/pull/1470" />
+- **Port allocation improvements** - Generated ports.json with human-readable labels, moved allocation to shared file for CLI workflows <PRBadge url="https://github.com/superset-sh/superset/pull/1479" />
+
+---
+
+**Bug fixes:** Fixed device presence timezone display <PRBadge url="https://github.com/superset-sh/superset/pull/1521" />, improved error reporting for bulk operations <PRBadge url="https://github.com/superset-sh/superset/pull/1522" />, fixed stale port data race condition <PRBadge url="https://github.com/superset-sh/superset/pull/1497" />, showed diffs against base branch in sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/1495" />, prevented row click navigation on dropdown cells <PRBadge url="https://github.com/superset-sh/superset/pull/1468" />, preserved permission status when tab focused <PRBadge url="https://github.com/superset-sh/superset/pull/1465" />, invalidated workspace nav queries after reorder <PRBadge url="https://github.com/superset-sh/superset/pull/1474" />, fixed macOS notification center registration <PRBadge url="https://github.com/superset-sh/superset/pull/1492" />, killed orphaned terminal daemon processes during teardown <PRBadge url="https://github.com/superset-sh/superset/pull/1480" />, only showed active ports in sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/1488" />, fixed canary crash from PostgresStore <PRBadge url="https://github.com/superset-sh/superset/pull/1510" />, removed Electric proxy and reverted to API proxy <PRBadge url="https://github.com/superset-sh/superset/pull/1501" />, fixed docs search API crash <PRBadge url="https://github.com/superset-sh/superset/pull/1467" />, resolved conflicting drizzle migrations <PRBadge url="https://github.com/superset-sh/superset/pull/1482" />

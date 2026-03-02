@@ -1,0 +1,15 @@
+# HTTP/2 reverse proxy for Electric SQL SSE streams.
+# Avoids browser's 6-connection limit when using 10+ Electric streams.
+#
+# Copy to Caddyfile:  cp Caddyfile.example Caddyfile
+# Install caddy:      brew install caddy  (macOS) / see https://caddyserver.com/docs/install
+
+{
+	auto_https disable_redirects
+}
+
+https://localhost:3010 {
+	reverse_proxy localhost:3001 {
+		flush_interval -1
+	}
+}

@@ -1,0 +1,57 @@
+---
+title: Port Management
+description: View and manage active ports per workspace
+---
+
+## Overview
+
+Superset does not assign per-workspace port ranges. It discovers listening ports from processes running in each workspace and lets you manage them from the UI.
+
+![Port Panel](/images/ports.png)
+
+## Features
+
+- **View active ports** - See which processes are using which ports
+- **Kill processes** - Stop a process by clicking its port
+- **Workspace grouping** - Ports are grouped by the workspace that owns the process
+
+## Static Port Configuration
+
+Override automatic port discovery with a static configuration file. Useful for:
+
+- Documenting ports that aren't auto-detected (databases, external services)
+- Providing meaningful labels for your team
+- Projects where dynamic scanning doesn't work well
+
+Create `.superset/ports.json` in your repository:
+
+```json
+{
+  "ports": [
+    { "port": 3000, "label": "Frontend Dev Server" },
+    { "port": 8080, "label": "API Server" },
+    { "port": 5432, "label": "PostgreSQL" }
+  ]
+}
+```
+
+**Fields:**
+- `port` - Port number (1-65535)
+- `label` - Display text shown in tooltip
+
+**Behavior:**
+- Static config replaces dynamic port discovery
+- Each workspace reads from its own worktree's file
+- Changes are detected automatically
+- Ports open `localhost:PORT` in browser when clicked
+
+**Error Handling:**
+
+If `ports.json` is malformed:
+- Error toast appears with details
+- No ports displayed until fixed
+- Dynamic detection is NOT used as fallback
+
+**Tips:**
+- Commit `.superset/ports.json` to share port labels with your team
+- **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).

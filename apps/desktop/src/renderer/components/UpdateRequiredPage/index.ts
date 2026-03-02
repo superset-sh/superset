@@ -1,0 +1,1 @@
+export { UpdateRequiredPage } from "./UpdateRequiredPage";

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="none" viewBox="0 0 70 70">
+  <defs>
+    <linearGradient id="a" x1="30.221" x2="69.7964" y1="63.0744" y2="63.0744" gradientUnits="userSpaceOnUse">
+      <stop offset="0.1935" stop-color="#07C3F2"/>
+      <stop offset="0.9032" stop-color="#087CFA"/>
+    </linearGradient>
+    <linearGradient id="b" x1="1.27396" x2="38.4098" y1="16.0356" y2="16.0356" gradientUnits="userSpaceOnUse">
+      <stop offset="0.1935" stop-color="#07C3F2"/>
+      <stop offset="0.9032" stop-color="#087CFA"/>
+    </linearGradient>
+    <linearGradient id="c" x1="45.8757" x2="11.1967" y1="72.2218" y2="23.8238" gradientUnits="userSpaceOnUse">
+      <stop offset="0.0913979" stop-color="#21D789"/>
+      <stop offset="0.4839" stop-color="#07C3F2"/>
+      <stop offset="0.9032" stop-color="#087CFA"/>
+    </linearGradient>
+  </defs>
+  <path fill="#087CFA" d="M53.5207 70L69.9999 26.3229L41.5625 19.6875L53.5207 70Z"/>
+  <path fill="url(#a)" d="M69.7812 56.1458L53.5208 70L30.1874 64.0208L42 54.5L69.7812 56.1458Z"/>
+  <path fill="url(#b)" d="M8.7501 32.0833L1.23969 10.7917L38.4272 0L29.5 21.5L8.7501 32.0833Z"/>
+  <path fill="url(#c)"
+        d="M61.1042 40.5417L50.6771 22.75L50.8229 22.6042L38.4271 0L0 41.4896V70L69.7812 56.1458L61.1042 40.5417Z"/>
+  <g>
+    <path fill="#000000" d="M56 14H14V56H56V14Z"/>
+    <path fill="#FFFFFF" d="M34.4167 48.65H18.6667V51.3333H34.4167V48.65Z"/>
+    <g>
+      <path fill="#FFFFFF"
+            d="M24.7993 19.13H27.9253L34.5941 34.76H31.0513L29.662 31.2867H23.0627L21.6733 34.76H18.2L24.7993 19.13ZM28.3421 28.2301L26.2581 23.1591L24.1741 28.2301H28.3421Z"/>
+      <path fill="#FFFFFF"
+            d="M34.6 27.0667C34.6 22.6333 37.8666 18.9 42.7666 18.9C45.8 18.9 47.4333 19.8333 49.0666 21.2333L46.9666 23.8C45.8 22.6333 44.6333 21.9333 43 21.9333C40.4333 21.9333 38.3333 24.0333 38.3333 26.8333C38.3333 29.6333 40.2 31.7333 43 31.7333C44.8666 31.7333 45.8 31.0333 47.2 29.8667L49.3 32.2C47.4333 34.0667 45.5666 35 42.5333 35C37.8666 35 34.6 31.5 34.6 27.0667Z"/>
+    </g>
+  </g>
+</svg>

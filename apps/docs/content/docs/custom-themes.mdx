@@ -1,0 +1,88 @@
+---
+title: Custom Themes
+description: Build, edit, and import your own Superset theme files
+---
+
+You can create your own Superset theme file and import it from desktop settings.
+
+## Quick Workflow
+
+1. Open `Settings → Appearance → Theme`.
+2. Click `Download Base File`.
+3. Edit the JSON manually or ask an agent to customize it.
+4. Click `Import Theme` and select the file.
+5. Pick the imported theme from the theme grid.
+
+## Ask An Agent To Customize It
+
+After downloading the base file, you can prompt an agent with something like:
+
+```text
+Customize this Superset theme JSON to feel like a neon cyberpunk arcade.
+Keep the schema valid. Preserve all required ui and terminal keys.
+Return the full JSON file contents only.
+```
+
+Then save the returned JSON and import it in Superset.
+
+## Theme File Format
+
+Superset accepts:
+
+- A single theme object
+- An array of theme objects
+- An object with `themes: [...]`
+
+The importer supports:
+
+- `id`, `name`, `type` (`dark` or `light`)
+- `ui` color overrides
+- `terminal` color overrides
+- `colors` as an alias for `terminal`
+
+Missing values fall back to Superset defaults for the selected theme type.
+
+## Example: Single Theme
+
+```json
+{
+  "id": "my-neon-theme",
+  "name": "My Neon Theme",
+  "type": "dark",
+  "author": "You",
+  "description": "Neon terminal and UI accents",
+  "ui": {
+    "background": "#12061f",
+    "foreground": "#f7f5ff",
+    "primary": "#39ff14",
+    "accent": "#00e5ff",
+    "border": "#7b2dff"
+  },
+  "terminal": {
+    "background": "#0b0314",
+    "foreground": "#f8f2ff",
+    "cursor": "#39ff14",
+    "red": "#ff2b70",
+    "green": "#39ff14",
+    "yellow": "#ffef00",
+    "blue": "#00b7ff",
+    "magenta": "#ff5ecf",
+    "cyan": "#00ffd1",
+    "white": "#e9dcff",
+    "black": "#18082a",
+    "brightBlack": "#6e3ea5",
+    "brightRed": "#ff6fa2",
+    "brightGreen": "#7dff5a",
+    "brightYellow": "#fff86a",
+    "brightBlue": "#59dbff",
+    "brightMagenta": "#ff9be8",
+    "brightCyan": "#8dffe8",
+    "brightWhite": "#ffffff"
+  }
+}
+```
+
+## Notes
+
+- Theme IDs must be unique and not reserved (`system`, built-in theme IDs like `dark`/`light`).
+- Very large files are rejected in the desktop importer.

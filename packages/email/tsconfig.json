@@ -1,0 +1,11 @@
+{
+	"extends": "@superset/typescript/base.json",
+	"compilerOptions": {
+		"lib": ["ES2022"],
+		"jsx": "react-jsx",
+		"moduleResolution": "bundler",
+		"baseUrl": "."
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
+	"exclude": ["node_modules", "dist"]
+}

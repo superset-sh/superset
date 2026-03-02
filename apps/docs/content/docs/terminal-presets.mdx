@@ -1,0 +1,62 @@
+---
+title: Presets
+description: Save and reuse terminal configurations
+---
+
+<YouTubeVideo id="jT8AoqYTwRU" title="Superset Presets" thumbnail="/images/preset.png" />
+
+## Overview
+
+Presets let you quickly launch terminals with pre-configured commands. Save common workflows and apply them with a single click.
+
+## What Presets Do
+
+- **Custom commands for new tabs** - Define commands that run when opening a terminal
+- **Working directory** - Specify where commands run in your project (e.g., `apps/web`)
+- **Split pane or new tab launch mode** - Run commands in parallel in one tab, or one tab per command
+- **Default preset** - Auto-apply a preset to new workspaces
+- **Quick-add templates** - One-click setup for Claude, Codex, Gemini, and other agents
+
+## Creating a Preset
+
+Go to **Settings → Terminal** and click **Add Preset**.
+
+Each preset has:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name for the preset |
+| **Description** | Optional description |
+| **Working Directory** | Relative path in your project (leave empty for root) |
+| **Commands** | One or more commands to run |
+| **Mode** | Split Pane (parallel panes) or New Tab (parallel tabs) |
+
+## Launch Modes
+
+**Split Pane** - Commands run in parallel in a single tab, with one split pane per command.
+
+**New Tab** - Commands run in parallel in separate tabs, with one tab per command.
+
+Presets are parallel by default.
+
+## Quick-Add Templates
+
+Pre-configured presets for popular AI agents:
+
+- **claude** - `claude --dangerously-skip-permissions`
+- **codex** - Full danger mode with high reasoning effort
+- **gemini** - `gemini --yolo`
+- **cursor-agent** - Cursor AI agent
+- **opencode** - Open-source AI coding agent
+
+## Default Preset
+
+Mark a preset as default to auto-apply it when creating workspaces or opening new tabs.
+
+**Auto-apply settings** in Settings → Terminal:
+- **Apply preset on workspace creation** - Runs default preset when creating new workspaces
+- **Apply preset on new tab** - Runs default preset when opening new terminal tabs/panes/splits
+
+Both settings are enabled by default. Disable either to prevent automatic preset application in that context.
+
+Explicit preset launches (via hotkey or menu) always work regardless of these settings.

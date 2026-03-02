@@ -1,0 +1,48 @@
+name: Cleanup Preview
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    name: Cleanup Preview Resources
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Delete Neon branch
+        id: neon-cleanup
+        uses: neondatabase/delete-branch-action@v3
+        continue-on-error: true
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ github.event.pull_request.head.ref }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Delete Electric Fly.io app
+        id: electric-cleanup
+        continue-on-error: true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl apps destroy "superset-electric-pr-${{ github.event.pull_request.number }}" --yes
+
+      - name: Update comment
+        if: always()
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            ## 🧹 Preview Cleanup Complete
+
+            The following preview resources have been cleaned up:
+            - ${{ steps.neon-cleanup.outcome == 'success' && '✅' || '⚠️' }} Neon database branch
+            - ${{ steps.electric-cleanup.outcome == 'success' && '✅' || '⚠️' }} Electric Fly.io app
+
+            Thank you for your contribution! 🎉
+          comment-tag: "🚀-preview-deployment"

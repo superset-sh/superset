@@ -1,0 +1,1 @@
+export { WorkspaceDetailScreen } from "./WorkspaceDetailScreen";

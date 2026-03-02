@@ -1,0 +1,1 @@
+export { PropertiesSidebar } from "./PropertiesSidebar";

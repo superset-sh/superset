@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `default_editor` text;

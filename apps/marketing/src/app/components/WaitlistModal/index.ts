@@ -1,0 +1,1 @@
+export { WaitlistModal } from "./WaitlistModal";
