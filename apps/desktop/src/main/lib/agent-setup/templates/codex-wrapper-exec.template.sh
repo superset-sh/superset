@@ -2,18 +2,6 @@
 # For per-prompt Start notifications and permission requests, watch the TUI
 # session log for task_started/exec_command_begin and *_approval_request events.
 if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
-  _superset_debug_hooks="1"
-  if [ -n "$SUPERSET_DEBUG_HOOKS" ]; then
-    case "$SUPERSET_DEBUG_HOOKS" in
-      0|false|FALSE|False|no|NO|off|OFF)
-        _superset_debug_hooks="0"
-        ;;
-      *)
-        _superset_debug_hooks="1"
-        ;;
-    esac
-  fi
-
   export CODEX_TUI_RECORD_SESSION=1
   if [ -z "$CODEX_TUI_SESSION_LOG_PATH" ]; then
     _superset_codex_ts="$(date +%s 2>/dev/null || echo "$$")"
@@ -26,14 +14,9 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
     _superset_last_turn_id=""
     _superset_last_approval_id=""
 
-    _superset_debug() {
-      [ "$_superset_debug_hooks" = "1" ] && echo "[codex-wrapper] $1" >&2
-    }
-
     _superset_emit_event() {
       _superset_event="$1"
       _superset_payload=$(printf '{"hook_event_name":"%s"}' "$_superset_event")
-      _superset_debug "dispatch event=$_superset_event via=$_superset_notify"
       bash "$_superset_notify" "$_superset_payload" >/dev/null 2>&1 || true
     }
 
@@ -44,10 +27,8 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
       sleep 0.05
     done
     if [ ! -f "$_superset_log" ]; then
-      _superset_debug "session log not found path=$_superset_log"
       exit 0
     fi
-    _superset_debug "watching session log path=$_superset_log"
 
     tail -n 0 -F "$_superset_log" 2>/dev/null | while IFS= read -r _superset_line; do
       case "$_superset_line" in
@@ -56,7 +37,6 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
           [ -n "$_superset_turn_id" ] || _superset_turn_id="task_started"
           if [ "$_superset_turn_id" != "$_superset_last_turn_id" ]; then
             _superset_last_turn_id="$_superset_turn_id"
-            _superset_debug "matched task_started turn_id=$_superset_turn_id"
             _superset_emit_event "Start"
           fi
           ;;
@@ -67,13 +47,10 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
           [ -n "$_superset_approval_id" ] || _superset_approval_id="approval_request"
           if [ "$_superset_approval_id" != "$_superset_last_approval_id" ]; then
             _superset_last_approval_id="$_superset_approval_id"
-            _superset_debug "matched approval_request id=$_superset_approval_id"
             _superset_emit_event "PermissionRequest"
           fi
           ;;
         *'"dir":"to_tui"'*'"kind":"codex_event"'*'"msg":{"type":"exec_command_begin"'*)
-          _superset_exec_call_id=$(printf '%s\n' "$_superset_line" | awk -F'"call_id":"' 'NF > 1 { sub(/".*/, "", $2); print $2; exit }')
-          [ -n "$_superset_exec_call_id" ] && _superset_debug "matched exec_command_begin call_id=$_superset_exec_call_id"
           _superset_emit_event "Start"
           ;;
       esac
