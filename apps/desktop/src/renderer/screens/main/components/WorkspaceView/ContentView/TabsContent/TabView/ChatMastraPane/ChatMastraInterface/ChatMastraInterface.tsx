@@ -51,6 +51,9 @@ function toErrorMessage(error: unknown): string | null {
 	return "Unknown chat error";
 }
 
+const AUTO_LAUNCH_MAX_RETRIES = 3;
+const AUTO_LAUNCH_RETRY_DELAY_MS = 1500;
+
 export function ChatMastraInterface({
 	sessionId,
 	initialLaunchConfig,
@@ -79,6 +82,11 @@ export function ChatMastraInterface({
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
 	const currentMcpScopeRef = useRef<string | null>(null);
 	const consumedLaunchConfigRef = useRef<string | null>(null);
+	const autoLaunchInFlightRef = useRef<string | null>(null);
+	const autoLaunchAttemptsRef = useRef<Record<string, number>>({});
+	const autoLaunchRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatMastraServiceTrpc.workspace.authenticateMcpServer.useMutation();
@@ -344,41 +352,60 @@ export function ChatMastraInterface({
 		if (!initialLaunchConfig) return;
 
 		const launchConfigKey = JSON.stringify(initialLaunchConfig);
-		if (consumedLaunchConfigRef.current === launchConfigKey) return;
-		consumedLaunchConfigRef.current = launchConfigKey;
-		onConsumeLaunchConfig();
+		const attemptAutoLaunch = async (): Promise<void> => {
+			if (consumedLaunchConfigRef.current === launchConfigKey) return;
+			if (autoLaunchInFlightRef.current === launchConfigKey) return;
 
-		const prompt = initialLaunchConfig.initialPrompt?.trim();
-		if (!prompt) return;
+			const prompt = initialLaunchConfig.initialPrompt?.trim();
+			if (!prompt) {
+				consumedLaunchConfigRef.current = launchConfigKey;
+				onConsumeLaunchConfig();
+				return;
+			}
 
-		clearRuntimeError();
-		setSubmitStatus("submitted");
+			const previousAttempts =
+				autoLaunchAttemptsRef.current[launchConfigKey] ?? 0;
+			if (previousAttempts >= AUTO_LAUNCH_MAX_RETRIES) return;
 
-		const modelId = initialLaunchConfig.metadata?.model ?? activeModel?.id;
-		const sendInput: ChatSendMessageInput = {
-			payload: {
-				content: prompt,
-			},
-			metadata: {
-				model: modelId,
-			},
-		};
+			autoLaunchAttemptsRef.current[launchConfigKey] = previousAttempts + 1;
+			autoLaunchInFlightRef.current = launchConfigKey;
+			if (autoLaunchRetryTimerRef.current) {
+				clearTimeout(autoLaunchRetryTimerRef.current);
+				autoLaunchRetryTimerRef.current = null;
+			}
 
-		let targetSessionId = sessionId;
-		void sendMessageForSession({
-			currentSessionId: sessionId,
-			isSessionReady,
-			ensureSessionReady,
-			onStartFreshSession,
-			sendToCurrentSession: () => commands.sendMessage(sendInput),
-			sendToSession: (nextSessionId) =>
-				sendMessageToSession(nextSessionId, sendInput),
-		})
-			.then((sendResult) => {
-				targetSessionId = sendResult.targetSessionId;
+			clearRuntimeError();
+			setSubmitStatus("submitted");
+
+			const modelId = initialLaunchConfig.metadata?.model ?? activeModel?.id;
+			const sendInput: ChatSendMessageInput = {
+				payload: {
+					content: prompt,
+				},
+				metadata: {
+					model: modelId,
+				},
+			};
+
+			try {
+				const sendResult = await sendMessageForSession({
+					currentSessionId: sessionId,
+					isSessionReady,
+					ensureSessionReady,
+					onStartFreshSession,
+					sendToCurrentSession: () => commands.sendMessage(sendInput),
+					sendToSession: (nextSessionId) =>
+						sendMessageToSession(nextSessionId, sendInput),
+				});
+
+				autoLaunchInFlightRef.current = null;
+				consumedLaunchConfigRef.current = launchConfigKey;
+				delete autoLaunchAttemptsRef.current[launchConfigKey];
+				onConsumeLaunchConfig();
+
 				posthog.capture("chat_message_sent", {
 					workspace_id: workspaceId,
-					session_id: targetSessionId,
+					session_id: sendResult.targetSessionId,
 					organization_id: organizationId,
 					model_id: modelId ?? null,
 					mention_count: 0,
@@ -388,13 +415,32 @@ export function ChatMastraInterface({
 					turn_number: (messages?.length ?? 0) + 1,
 					send_trigger: "launch-config",
 				});
-			})
-			.catch((error) => {
+			} catch (error) {
+				autoLaunchInFlightRef.current = null;
+
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
 				console.debug("[chat-mastra] auto launch send failed", error);
-			});
+
+				const currentAttempts =
+					autoLaunchAttemptsRef.current[launchConfigKey] ??
+					previousAttempts + 1;
+				if (currentAttempts < AUTO_LAUNCH_MAX_RETRIES) {
+					autoLaunchRetryTimerRef.current = setTimeout(() => {
+						void attemptAutoLaunch();
+					}, AUTO_LAUNCH_RETRY_DELAY_MS);
+				}
+			}
+		};
+		void attemptAutoLaunch();
+
+		return () => {
+			if (autoLaunchRetryTimerRef.current) {
+				clearTimeout(autoLaunchRetryTimerRef.current);
+				autoLaunchRetryTimerRef.current = null;
+			}
+		};
 	}, [
 		activeModel?.id,
 		clearRuntimeError,

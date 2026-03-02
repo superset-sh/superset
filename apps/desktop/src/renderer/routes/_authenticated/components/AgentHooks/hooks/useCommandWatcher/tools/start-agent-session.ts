@@ -22,6 +22,14 @@ const schema = z.object({
 	openChatPane: z.boolean().optional(),
 });
 
+function hasChatLaunchRequest(params: z.infer<typeof schema>): boolean {
+	return Boolean(params.chatLaunchConfig || params.openChatPane);
+}
+
+function hasActionablePayload(params: z.infer<typeof schema>): boolean {
+	return Boolean(params.command || hasChatLaunchRequest(params));
+}
+
 async function execute(
 	params: z.infer<typeof schema>,
 	ctx: ToolContext,
@@ -36,6 +44,13 @@ async function execute(
 		return {
 			success: false,
 			error: `Workspace not found: ${params.workspaceId}`,
+		};
+	}
+	if (!hasActionablePayload(params)) {
+		return {
+			success: false,
+			error:
+				"Missing payload: provide command or chat launch config for start_agent_session.",
 		};
 	}
 
@@ -58,13 +73,16 @@ async function execute(
 				};
 			}
 
-			if (params.chatLaunchConfig || params.openChatPane) {
-				const { paneId: chatPaneId } = tabsStore.addChatMastraTab(
-					workspace.id,
-					{
-						launchConfig: params.chatLaunchConfig ?? null,
-					},
-				);
+			if (hasChatLaunchRequest(params)) {
+				const chatPaneId = tabsStore.addChatMastraPane(tab.id, {
+					launchConfig: params.chatLaunchConfig ?? null,
+				});
+				if (!chatPaneId) {
+					return {
+						success: false,
+						error: "Failed to add chat pane",
+					};
+				}
 				return {
 					success: true,
 					data: { workspaceId: workspace.id, paneId: chatPaneId },

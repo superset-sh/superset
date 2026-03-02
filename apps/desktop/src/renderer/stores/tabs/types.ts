@@ -110,6 +110,10 @@ export interface TabsStore extends TabsState {
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
+	addChatMastraPane: (
+		tabId: string,
+		options?: AddChatMastraTabOptions,
+	) => string;
 	addPanesToTab: (
 		tabId: string,
 		options: AddTabWithMultiplePanesOptions,

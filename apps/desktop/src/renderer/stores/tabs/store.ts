@@ -18,6 +18,7 @@ import {
 	type CreatePaneOptions,
 	createBrowserPane,
 	createBrowserTabWithPane,
+	createChatMastraPane,
 	createChatMastraTabWithPane,
 	createDevToolsPane,
 	createFileViewerPane,
@@ -523,6 +524,42 @@ export const useTabsStore = create<TabsStore>()(
 
 					posthog.capture("panel_opened", {
 						panel_type: "terminal",
+						workspace_id: tab.workspaceId,
+						pane_id: newPane.id,
+					});
+
+					return newPane.id;
+				},
+				addChatMastraPane: (tabId, options) => {
+					const state = get();
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab) return "";
+
+					const newPane = createChatMastraPane(tabId, options);
+
+					const newLayout: MosaicNode<string> = {
+						direction: "row",
+						first: tab.layout,
+						second: newPane.id,
+						splitPercentage: 50,
+					};
+
+					const newPanes = { ...state.panes, [newPane.id]: newPane };
+					const tabName = deriveTabName(newPanes, tabId);
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, layout: newLayout, name: tabName } : t,
+						),
+						panes: newPanes,
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tabId]: newPane.id,
+						},
+					});
+
+					posthog.capture("panel_opened", {
+						panel_type: "chat",
 						workspace_id: tab.workspaceId,
 						pane_id: newPane.id,
 					});
