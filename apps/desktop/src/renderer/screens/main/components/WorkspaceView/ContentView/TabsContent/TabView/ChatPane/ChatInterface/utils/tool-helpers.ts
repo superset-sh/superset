@@ -1,10 +1,14 @@
+import { INTERNAL_MASTRA_TOOL_NAMES } from "@superset/chat-mastra/shared/internal-tools";
 import type { ToolDisplayState } from "@superset/ui/ai-elements/tool";
 import type { UIMessage } from "ai";
+import { getToolName, isToolUIPart } from "ai";
 
 // Extract tool part type from UIMessage
 type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>;
 
 export type { ToolPart };
+
+const INTERNAL_MASTRA_TOOL_NAME_SET = new Set(INTERNAL_MASTRA_TOOL_NAMES);
 
 const TOOL_NAME_ALIASES: Record<string, string> = {
 	// Mastra Code built-ins
@@ -37,6 +41,23 @@ const TOOL_NAME_ALIASES: Record<string, string> = {
 
 export function normalizeToolName(toolName: string): string {
 	return TOOL_NAME_ALIASES[toolName] ?? toolName;
+}
+
+export function isInternalMastraToolName(toolName: string): boolean {
+	return INTERNAL_MASTRA_TOOL_NAME_SET.has(normalizeToolName(toolName));
+}
+
+export function isInternalMastraToolPart(
+	part: UIMessage["parts"][number],
+): boolean {
+	if (!isToolUIPart(part)) return false;
+	return isInternalMastraToolName(getToolName(part));
+}
+
+export function filterInternalMastraToolParts(
+	parts: UIMessage["parts"],
+): UIMessage["parts"] {
+	return parts.filter((part) => !isInternalMastraToolPart(part));
 }
 
 export function toToolDisplayState(part: ToolPart): ToolDisplayState {

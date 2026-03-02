@@ -1,5 +1,19 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeToolName } from "./tool-helpers";
+import type { UIMessage } from "ai";
+import {
+	filterInternalMastraToolParts,
+	isInternalMastraToolName,
+	normalizeToolName,
+} from "./tool-helpers";
+
+function toolPart(toolName: string): UIMessage["parts"][number] {
+	return {
+		type: `tool-${toolName}`,
+		toolCallId: `call-${toolName}`,
+		state: "input-available",
+		input: {},
+	} as unknown as UIMessage["parts"][number];
+}
 
 describe("normalizeToolName", () => {
 	it("normalizes Mastra built-in tool names to supported render targets", () => {
@@ -27,5 +41,33 @@ describe("normalizeToolName", () => {
 
 	it("preserves unknown names", () => {
 		expect(normalizeToolName("some_future_tool")).toBe("some_future_tool");
+	});
+});
+
+describe("isInternalMastraToolName", () => {
+	it("identifies internal mastracode tool names", () => {
+		expect(isInternalMastraToolName("request_sandbox_access")).toBe(true);
+		expect(isInternalMastraToolName("task_write")).toBe(false);
+		expect(isInternalMastraToolName("task_check")).toBe(false);
+		expect(isInternalMastraToolName("submit_plan")).toBe(false);
+		expect(isInternalMastraToolName("execute_command")).toBe(false);
+	});
+});
+
+describe("filterInternalMastraToolParts", () => {
+	it("filters internal mastracode tool parts and keeps user-facing parts", () => {
+		const parts = [
+			{ type: "text", text: "Working on it" } as UIMessage["parts"][number],
+			toolPart("request_sandbox_access"),
+			toolPart("task_check"),
+			toolPart("read_file"),
+		] as UIMessage["parts"];
+
+		const filtered = filterInternalMastraToolParts(parts);
+
+		expect(filtered).toHaveLength(3);
+		expect(filtered[0]?.type).toBe("text");
+		expect(filtered[1]?.type).toBe("tool-task_check");
+		expect(filtered[2]?.type).toBe("tool-read_file");
 	});
 });
