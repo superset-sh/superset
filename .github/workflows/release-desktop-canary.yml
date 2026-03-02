@@ -106,6 +106,13 @@ jobs:
               echo "Created canary copy: Superset-Canary-${arch}.AppImage"
             fi
           done
+          for file in *.exe; do
+            if [[ -f "$file" ]]; then
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.exe$/\1/')
+              cp "$file" "Superset-Canary-${arch}.exe"
+              echo "Created canary copy: Superset-Canary-${arch}.exe"
+            fi
+          done
           # Prerelease builds may request canary-linux.yml; keep latest-linux.yml as fallback.
           for file in *-linux.yml; do
             if [[ -f "$file" && "$file" != "canary-linux.yml" && "$file" != "latest-linux.yml" ]]; then
@@ -115,6 +122,9 @@ jobs:
               break
             fi
           done
+          # Windows manifest is named latest.yml by electron-builder (no -win suffix).
+          # With generateUpdatesFilesForAllChannels, canary.yml is also generated.
+          # Both are already correctly named for electron-updater.
 
       - name: List artifacts
         run: |

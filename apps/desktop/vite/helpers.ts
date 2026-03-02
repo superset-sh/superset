@@ -63,6 +63,25 @@ export function copyResourcesPlugin(): Plugin {
 }
 
 /**
+ * Strips the `crossorigin` attribute that Vite adds to script/link tags.
+ * Windows-only: Electron's ASAR file:// handler doesn't support CORS on
+ * Windows, so crossorigin causes scripts/styles to silently fail to load
+ * (black screen). macOS and Linux are unaffected.
+ */
+export function stripCrossOriginPlugin(): Plugin {
+	return {
+		name: "strip-crossorigin",
+		transformIndexHtml: {
+			order: "post",
+			handler(html) {
+				if (process.platform !== "win32") return html;
+				return html.replace(/ crossorigin(?:="[^"]*")?/g, "");
+			},
+		},
+	};
+}
+
+/**
  * Injects environment variables into index.html CSP.
  */
 export function htmlEnvTransformPlugin(): Plugin {

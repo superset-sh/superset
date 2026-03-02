@@ -92,6 +92,7 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
           NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
+          NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SUPERSET_WORKSPACE_NAME: superset
@@ -232,5 +233,110 @@ jobs:
         with:
           name: ${{ inputs.artifact_prefix }}-linux-update-manifest
           path: apps/desktop/release/*-linux.yml
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error
+
+  build-windows:
+    name: Build - Windows (x64)
+    runs-on: windows-latest
+    environment: production
+
+    steps:
+      - name: Enable long paths
+        run: git config --system core.longPaths true
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: "1.3.2"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        shell: bash
+        run: bun install --frozen
+
+      - name: Set version suffix
+        if: inputs.version_suffix != ''
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION="${CURRENT_VERSION}${{ inputs.version_suffix }}"
+          echo "Setting version to: $NEW_VERSION"
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, '\t') + '\n');
+          "
+          echo "Updated package.json version to $NEW_VERSION"
+
+      - name: Clean dev folder
+        shell: bash
+        working-directory: apps/desktop
+        run: bun run clean:dev
+
+      - name: Compile app with electron-vite
+        shell: bash
+        working-directory: apps/desktop
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_DOCS_URL: ${{ secrets.NEXT_PUBLIC_DOCS_URL }}
+          NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
+          NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SUPERSET_WORKSPACE_NAME: superset
+        run: bun run compile:app
+
+      - name: Build Electron app
+        shell: bash
+        working-directory: apps/desktop
+        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+
+      - name: Verify Windows installer + update manifest exist
+        shell: bash
+        working-directory: apps/desktop
+        run: |
+          ls -la release
+          test -n "$(ls -1 release/*.exe 2>/dev/null)" || {
+            echo "::error::No .exe installer generated in apps/desktop/release"
+            exit 1
+          }
+          # electron-builder names the Windows manifest latest.yml (no -win suffix)
+          test -f "release/latest.yml" || {
+            echo "::error::No Windows auto-update manifest (latest.yml) generated in apps/desktop/release"
+            exit 1
+          }
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-win-exe
+          path: apps/desktop/release/*.exe
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error
+
+      - name: Upload Windows auto-update manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-win-update-manifest
+          path: apps/desktop/release/latest.yml
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error

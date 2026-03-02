@@ -86,6 +86,14 @@ jobs:
               echo "Created stable copy: Superset-${arch}.AppImage"
             fi
           done
+          for file in *.exe; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., Superset-0.0.1-x64.exe -> x64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.exe$/\1/')
+              cp "$file" "Superset-${arch}.exe"
+              echo "Created stable copy: Superset-${arch}.exe"
+            fi
+          done
           # Keep Linux updater manifest at a stable filename for generic provider lookups.
           for file in *-linux.yml; do
             if [[ -f "$file" && "$file" != "latest-linux.yml" ]]; then
@@ -94,6 +102,8 @@ jobs:
               break
             fi
           done
+          # Windows manifest is already named latest.yml by electron-builder
+          # (no -win suffix, unlike macOS/Linux). No stable copy needed.
           echo "Release artifacts:"
           ls -la
 

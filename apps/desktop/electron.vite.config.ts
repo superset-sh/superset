@@ -15,6 +15,7 @@ import {
 	defineEnv,
 	devPath,
 	htmlEnvTransformPlugin,
+	stripCrossOriginPlugin,
 } from "./vite/helpers";
 
 // override: true ensures .env values take precedence over inherited env vars
@@ -223,6 +224,7 @@ export default defineConfig({
 			}),
 			reactPlugin(),
 			htmlEnvTransformPlugin(),
+			stripCrossOriginPlugin(),
 		],
 
 		worker: {
