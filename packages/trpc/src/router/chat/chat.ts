@@ -31,6 +31,16 @@ const AVAILABLE_MODELS = [
 		name: "GPT-5.2",
 		provider: "OpenAI",
 	},
+	{
+		id: "openai/deepseek/deepseek-v3",
+		name: "DeepSeek V3",
+		provider: "Novita (OpenAI Compatible)",
+	},
+	{
+		id: "openai/deepseek/deepseek-r1",
+		name: "DeepSeek R1",
+		provider: "Novita (OpenAI Compatible)",
+	},
 ];
 
 export const chatRouter = {
