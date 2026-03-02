@@ -275,33 +275,58 @@ export function ChatMastraPane({
 		[organizationId, paneId, switchChatMastraSession, workspaceId],
 	);
 
+	const createAndActivateSession = useCallback(
+		async ({
+			targetOrganizationId,
+			newSessionId,
+		}: {
+			targetOrganizationId: string;
+			newSessionId: string;
+		}) => {
+			try {
+				await createSessionRecord({
+					sessionId: newSessionId,
+					organizationId: targetOrganizationId,
+					workspaceId,
+				});
+				switchChatMastraSession(paneId, newSessionId);
+				posthog.capture("chat_session_created", {
+					workspace_id: workspaceId,
+					session_id: newSessionId,
+					organization_id: targetOrganizationId,
+				});
+				return { created: true as const, sessionId: newSessionId };
+			} catch (error) {
+				reportChatMastraError({
+					operation: "session.create",
+					error,
+					sessionId: newSessionId,
+					workspaceId,
+					paneId,
+					organizationId: targetOrganizationId,
+				});
+				return {
+					created: false as const,
+					errorMessage:
+						error instanceof Error
+							? error.message
+							: "Failed to create a new chat session",
+				};
+			}
+		},
+		[paneId, switchChatMastraSession, workspaceId],
+	);
+
 	const handleNewChat = useCallback(async () => {
 		if (!organizationId) return;
-		const newSessionId = crypto.randomUUID();
-		try {
-			await createSessionRecord({
-				sessionId: newSessionId,
-				organizationId,
-				workspaceId,
-			});
-			switchChatMastraSession(paneId, newSessionId);
-			posthog.capture("chat_session_created", {
-				workspace_id: workspaceId,
-				session_id: newSessionId,
-				organization_id: organizationId,
-			});
-		} catch (error) {
-			reportChatMastraError({
-				operation: "session.create",
-				error,
-				sessionId: newSessionId,
-				workspaceId,
-				paneId,
-				organizationId,
-			});
+		const createResult = await createAndActivateSession({
+			targetOrganizationId: organizationId,
+			newSessionId: crypto.randomUUID(),
+		});
+		if (!createResult.created) {
 			toast.error("Failed to create session");
 		}
-	}, [organizationId, paneId, switchChatMastraSession, workspaceId]);
+	}, [createAndActivateSession, organizationId]);
 
 	const handleStartFreshSession = useCallback(async () => {
 		if (!organizationId) {
@@ -310,39 +335,11 @@ export function ChatMastraPane({
 				errorMessage: "No active organization selected",
 			};
 		}
-
-		const newSessionId = crypto.randomUUID();
-		try {
-			await createSessionRecord({
-				sessionId: newSessionId,
-				organizationId,
-				workspaceId,
-			});
-			switchChatMastraSession(paneId, newSessionId);
-			posthog.capture("chat_session_created", {
-				workspace_id: workspaceId,
-				session_id: newSessionId,
-				organization_id: organizationId,
-			});
-			return { created: true as const, sessionId: newSessionId };
-		} catch (error) {
-			reportChatMastraError({
-				operation: "session.create",
-				error,
-				sessionId: newSessionId,
-				workspaceId,
-				paneId,
-				organizationId,
-			});
-			return {
-				created: false as const,
-				errorMessage:
-					error instanceof Error
-						? error.message
-						: "Failed to create a new chat session",
-			};
-		}
-	}, [organizationId, paneId, switchChatMastraSession, workspaceId]);
+		return createAndActivateSession({
+			targetOrganizationId: organizationId,
+			newSessionId: crypto.randomUUID(),
+		});
+	}, [createAndActivateSession, organizationId]);
 
 	const handleDeleteSession = useCallback(
 		async (sessionIdToDelete: string) => {

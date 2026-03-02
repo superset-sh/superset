@@ -27,31 +27,47 @@ function toBaseErrorMessage(error: unknown): string {
 	return "Failed to send message";
 }
 
-function isLikelyAuthErrorMessage(message: string): boolean {
-	const normalizedMessage = message.toLowerCase();
-	return (
-		normalizedMessage.includes("oauth") ||
-		normalizedMessage.includes("invalid bearer token") ||
-		normalizedMessage.includes("invalid x-api-key") ||
-		normalizedMessage.includes("invalid api key") ||
-		normalizedMessage.includes("api key is missing") ||
-		(normalizedMessage.includes("anthropic") &&
-			(normalizedMessage.includes("api key") ||
-				normalizedMessage.includes("bearer token"))) ||
-		(normalizedMessage.includes("openai") &&
-			(normalizedMessage.includes("api key") ||
-				normalizedMessage.includes("bearer token")))
-	);
+function toNumericStatus(value: unknown): number | null {
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value !== "string") return null;
+	const parsed = Number.parseInt(value, 10);
+	return Number.isNaN(parsed) ? null : parsed;
+}
+
+function getErrorStatusCode(error: unknown): number | null {
+	if (!error || typeof error !== "object") return null;
+	const candidate = error as {
+		status?: unknown;
+		statusCode?: unknown;
+		code?: unknown;
+		data?: { status?: unknown; statusCode?: unknown };
+		response?: {
+			status?: unknown;
+			data?: { status?: unknown; statusCode?: unknown };
+		};
+	};
+	const statusCandidates = [
+		candidate.status,
+		candidate.statusCode,
+		candidate.response?.status,
+		candidate.data?.status,
+		candidate.data?.statusCode,
+		candidate.response?.data?.status,
+		candidate.response?.data?.statusCode,
+		candidate.code,
+	];
+	for (const statusCandidate of statusCandidates) {
+		const parsed = toNumericStatus(statusCandidate);
+		if (parsed !== null) return parsed;
+	}
+	return null;
 }
 
 export function toSendFailureMessage(error: unknown): string {
 	const baseMessage = toBaseErrorMessage(error);
-	if (!isLikelyAuthErrorMessage(baseMessage)) return baseMessage;
+	const statusCode = getErrorStatusCode(error);
+	if (statusCode !== 401 && statusCode !== 403) return baseMessage;
 	return "Model authentication failed. Reconnect OAuth or set an API key in the model picker, then retry.";
-}
-
-export async function sendMessageOnce<T>(send: () => Promise<T>): Promise<T> {
-	return send();
 }
 
 export async function sendMessageForSession<T>({

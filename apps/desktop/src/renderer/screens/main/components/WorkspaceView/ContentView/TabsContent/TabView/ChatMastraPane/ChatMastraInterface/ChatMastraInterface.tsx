@@ -27,7 +27,6 @@ import type { ChatMastraInterfaceProps } from "./types";
 import {
 	type ChatSendMessageInput,
 	sendMessageForSession,
-	sendMessageOnce,
 	toSendFailureMessage,
 } from "./utils/sendMessage";
 import { toMastraImages } from "./utils/toMastraImages";
@@ -127,13 +126,11 @@ export function ChatMastraInterface({
 
 	const sendMessageToSession = useCallback(
 		async (targetSessionId: string, input: ChatSendMessageInput) => {
-			await sendMessageOnce(async () =>
-				chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
-					sessionId: targetSessionId,
-					...(cwd ? { cwd } : {}),
-					...input,
-				}),
-			);
+			await chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
+				sessionId: targetSessionId,
+				...(cwd ? { cwd } : {}),
+				...input,
+			});
 		},
 		[chatMastraServiceTrpcUtils, cwd],
 	);
@@ -287,8 +284,7 @@ export function ChatMastraInterface({
 					isSessionReady,
 					ensureSessionReady,
 					onStartFreshSession,
-					sendToCurrentSession: () =>
-						sendMessageOnce(() => commands.sendMessage(sendInput)),
+					sendToCurrentSession: () => commands.sendMessage(sendInput),
 					sendToSession: (nextSessionId) =>
 						sendMessageToSession(nextSessionId, sendInput),
 				});

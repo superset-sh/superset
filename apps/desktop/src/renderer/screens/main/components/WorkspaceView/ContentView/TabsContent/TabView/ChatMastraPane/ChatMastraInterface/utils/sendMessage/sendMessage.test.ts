@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { sendMessageForSession } from "./sendMessage";
+import { sendMessageForSession, toSendFailureMessage } from "./sendMessage";
 
 describe("sendMessageForSession", () => {
 	it("creates a fresh session and sends to that session when no current session exists", async () => {
@@ -85,5 +85,24 @@ describe("sendMessageForSession", () => {
 		expect(sendToCurrentSession).toHaveBeenCalledTimes(1);
 		expect(sendToSession).toHaveBeenCalledTimes(0);
 		expect(ensureSessionReady).toHaveBeenCalledTimes(0);
+	});
+});
+
+describe("toSendFailureMessage", () => {
+	it("maps auth failures when status is 401/403", () => {
+		expect(toSendFailureMessage({ status: 401 })).toBe(
+			"Model authentication failed. Reconnect OAuth or set an API key in the model picker, then retry.",
+		);
+		expect(toSendFailureMessage({ response: { status: 403 } })).toBe(
+			"Model authentication failed. Reconnect OAuth or set an API key in the model picker, then retry.",
+		);
+	});
+
+	it("keeps backend message when status is not auth-related", () => {
+		expect(
+			toSendFailureMessage(
+				new Error("Unauthorized model provider token, please reconnect OAuth"),
+			),
+		).toBe("Unauthorized model provider token, please reconnect OAuth");
 	});
 });
