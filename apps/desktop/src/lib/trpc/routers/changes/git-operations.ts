@@ -90,6 +90,76 @@ function shouldRetryPushWithUpstream(message: string): boolean {
 	);
 }
 
+function extractPRUrl(text: string): string | null {
+	const match = text.match(/https:\/\/github\.com\/\S+\/pull\/\d+/);
+	return match?.[0] ?? null;
+}
+
+async function findExistingOpenPRUrl(
+	worktreePath: string,
+	branch: string,
+): Promise<string | null> {
+	// Prefer tracking-based lookup first for fork/branch-name mismatch scenarios.
+	try {
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"view",
+				"--json",
+				"url,state",
+				"--jq",
+				'if .state == "OPEN" then .url else "" end',
+			],
+			{ cwd: worktreePath },
+		);
+		const url = stdout.trim();
+		if (url) {
+			return url;
+		}
+	} catch {
+		// Fallback to head-branch search below.
+	}
+
+	try {
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"list",
+				"--state",
+				"open",
+				"--search",
+				`head:${branch}`,
+				"--limit",
+				"20",
+				"--json",
+				"url",
+				"--jq",
+				'.[0].url // ""',
+			],
+			{ cwd: worktreePath },
+		);
+		const url = stdout.trim();
+		return url || null;
+	} catch {
+		return null;
+	}
+}
+
+async function openPRInBrowser(
+	worktreePath: string,
+	prUrl: string,
+): Promise<void> {
+	try {
+		await execWithShellEnv("gh", ["pr", "view", prUrl, "--web"], {
+			cwd: worktreePath,
+		});
+	} catch {
+		// Opening in browser is best-effort; return URL either way.
+	}
+}
+
 async function getGitWithShellPath(worktreePath: string) {
 	const git = simpleGit(worktreePath);
 	git.env(await getProcessEnvWithShellPath());
@@ -246,13 +316,41 @@ export const createGitOperationsRouter = () => {
 						}
 					}
 
-					const { stdout } = await execWithShellEnv(
-						"gh",
-						["pr", "create", "--web", "--fill", "--head", branch],
-						{ cwd: input.worktreePath },
+					const existingPRUrl = await findExistingOpenPRUrl(
+						input.worktreePath,
+						branch,
 					);
+					if (existingPRUrl) {
+						await openPRInBrowser(input.worktreePath, existingPRUrl);
+						await fetchCurrentBranch(git);
+						return { success: true, url: existingPRUrl };
+					}
 
-					const url = stdout.trim() || "https://github.com";
+					let stdout = "";
+					try {
+						const result = await execWithShellEnv(
+							"gh",
+							["pr", "create", "--web", "--fill", "--head", branch],
+							{ cwd: input.worktreePath },
+						);
+						stdout = result.stdout;
+					} catch (error) {
+						// If creation reports branch/tracking mismatch but an open PR exists,
+						// recover by opening that existing PR instead of failing.
+						const recoveredPRUrl = await findExistingOpenPRUrl(
+							input.worktreePath,
+							branch,
+						);
+						if (recoveredPRUrl) {
+							await openPRInBrowser(input.worktreePath, recoveredPRUrl);
+							await fetchCurrentBranch(git);
+							return { success: true, url: recoveredPRUrl };
+						}
+						throw error;
+					}
+
+					const url =
+						(extractPRUrl(stdout) ?? stdout.trim()) || "https://github.com";
 					await fetchCurrentBranch(git);
 
 					return { success: true, url };
