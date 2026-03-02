@@ -14,7 +14,6 @@ import {
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
-import { isMastraMcpEnabled } from "./utils/runtime/mcp-gate";
 import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
 	approvalRespondInput,
@@ -30,6 +29,7 @@ import {
 } from "./zod";
 
 const INTERNAL_MASTRA_TOOL_NAMES = ["request_sandbox_access"] as const;
+const ENABLE_MASTRA_MCP_SERVERS = false;
 
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
@@ -62,7 +62,6 @@ export class ChatMastraService {
 		sessionId: string,
 		cwd?: string,
 	): Promise<RuntimeSession> {
-		const mcpEnabled = isMastraMcpEnabled();
 		const runtimeCwd = cwd ?? process.cwd();
 		const runtimeKey = `${sessionId}:${runtimeCwd}`;
 
@@ -84,16 +83,14 @@ export class ChatMastraService {
 
 		const creationPromise = (async () => {
 			try {
-				const extraTools = mcpEnabled
-					? await getSupersetMcpTools(
-							() => Promise.resolve(this.opts.headers()),
-							this.opts.apiUrl,
-						)
-					: {};
+				const extraTools = await getSupersetMcpTools(
+					() => Promise.resolve(this.opts.headers()),
+					this.opts.apiUrl,
+				);
 				const runtimeMastra = await createMastraCode({
 					cwd: runtimeCwd,
 					extraTools,
-					disableMcp: !mcpEnabled,
+					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
 					disabledTools: [...INTERNAL_MASTRA_TOOL_NAMES],
 				});
 				runtimeMastra.hookManager?.setSessionId(sessionId);
@@ -142,7 +139,7 @@ export class ChatMastraService {
 				getMcpOverview: t.procedure
 					.input(mcpOverviewInput)
 					.query(async ({ input }) => {
-						if (!isMastraMcpEnabled()) {
+						if (!ENABLE_MASTRA_MCP_SERVERS) {
 							return { sourcePath: null, servers: [] };
 						}
 
@@ -155,7 +152,7 @@ export class ChatMastraService {
 				authenticateMcpServer: t.procedure
 					.input(mcpServerAuthInput)
 					.mutation(async ({ input }) => {
-						if (!isMastraMcpEnabled()) {
+						if (!ENABLE_MASTRA_MCP_SERVERS) {
 							return { sourcePath: null, servers: [] };
 						}
 

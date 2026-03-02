@@ -1,14 +1,9 @@
 import { MCPClient } from "@mastra/mcp";
-import { isMastraMcpEnabled } from "./mcp-gate";
 
 export async function getSupersetMcpTools(
 	headers: () => Promise<Record<string, string>>,
 	apiUrl: string,
 ): Promise<Record<string, unknown>> {
-	if (!isMastraMcpEnabled()) {
-		return {};
-	}
-
 	try {
 		const h = await headers();
 		if (!h.Authorization && !h.authorization) return {};
