@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { MastraToolCallBlock } from "../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
@@ -32,6 +32,10 @@ type MastraActiveSubagents = NonNullable<
 >;
 type MastraActiveTool =
 	MastraActiveTools extends Map<string, infer ToolState> ? ToolState : never;
+type MastraActiveSubagent =
+	MastraActiveSubagents extends Map<string, infer SubagentState>
+		? SubagentState
+		: never;
 type MastraToolInputBuffer =
 	MastraToolInputBuffers extends Map<string, infer InputBuffer>
 		? InputBuffer
@@ -136,6 +140,14 @@ function findLastUserMessageIndex(messages: MastraMessage[]): number {
 	return -1;
 }
 
+function findLastUserMessageId(messages: MastraMessage[]): string | null {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		const message = messages[index];
+		if (message?.role === "user") return message.id;
+	}
+	return null;
+}
+
 function getStreamingPreviewToolParts({
 	activeTools,
 	toolInputBuffers,
@@ -204,7 +216,30 @@ export function ChatMastraMessageList({
 		() => toToolEntries(activeSubagents),
 		[activeSubagents],
 	);
-	const hasSubagentActivity = activeSubagentEntries.length > 0;
+	const lastUserMessageId = useMemo(
+		() => findLastUserMessageId(visibleMessages),
+		[visibleMessages],
+	);
+	const [persistedSubagentTurn, setPersistedSubagentTurn] = useState<{
+		userMessageId: string | null;
+		entries: Array<[string, MastraActiveSubagent]>;
+	} | null>(null);
+
+	useEffect(() => {
+		if (activeSubagentEntries.length === 0) return;
+		setPersistedSubagentTurn({
+			userMessageId: lastUserMessageId,
+			entries: activeSubagentEntries,
+		});
+	}, [activeSubagentEntries, lastUserMessageId]);
+
+	const displayedSubagentEntries = useMemo(() => {
+		if (activeSubagentEntries.length > 0) return activeSubagentEntries;
+		if (!persistedSubagentTurn) return [];
+		if (persistedSubagentTurn.userMessageId !== lastUserMessageId) return [];
+		return persistedSubagentTurn.entries;
+	}, [activeSubagentEntries, persistedSubagentTurn, lastUserMessageId]);
+	const hasSubagentActivity = displayedSubagentEntries.length > 0;
 
 	return (
 		<Conversation className="flex-1">
@@ -293,7 +328,7 @@ export function ChatMastraMessageList({
 						</Message>
 					)}
 				{hasSubagentActivity && (
-					<SubagentExecutionMessage subagents={activeSubagentEntries} />
+					<SubagentExecutionMessage subagents={displayedSubagentEntries} />
 				)}
 				{pendingApproval && (
 					<PendingApprovalMessage
