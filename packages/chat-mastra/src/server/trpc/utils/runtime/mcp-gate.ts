@@ -1,14 +1,14 @@
-const ENABLED_VALUES = new Set(["1", "true", "yes", "on"]);
+const DISABLED_VALUES = new Set(["0", "false", "no", "off"]);
 
 /**
- * Temporary kill-switch: MCP is disabled by default for chat-mastra.
- * Set SUPERSET_CHAT_MASTRA_MCP_ENABLED=1 to re-enable without code changes.
+ * MCP is enabled by default for chat-mastra.
+ * Set SUPERSET_CHAT_MASTRA_MCP_ENABLED=0 to disable without code changes.
  */
 export function isMastraMcpEnabled(): boolean {
 	const rawFlag = process.env.SUPERSET_CHAT_MASTRA_MCP_ENABLED;
 	if (!rawFlag) {
-		return false;
+		return true;
 	}
 
-	return ENABLED_VALUES.has(rawFlag.trim().toLowerCase());
+	return !DISABLED_VALUES.has(rawFlag.trim().toLowerCase());
 }
