@@ -207,6 +207,7 @@ export function ProjectHeader({
 										projectName={projectName}
 										projectColor={projectColor}
 										githubOwner={githubOwner}
+										hideImage={hideImage}
 										iconUrl={iconUrl}
 									/>
 								</button>

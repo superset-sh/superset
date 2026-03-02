@@ -34,6 +34,22 @@ function isCustomColor(color: string): boolean {
 	return color !== PROJECT_COLOR_DEFAULT && color.startsWith("#");
 }
 
+/**
+ * Determines whether the GitHub avatar should be displayed.
+ * Exported for unit testing.
+ */
+export function shouldShowGitHubAvatar({
+	owner,
+	imageError,
+	hideImage,
+}: {
+	owner: string | null | undefined;
+	imageError: boolean;
+	hideImage: boolean | undefined;
+}): boolean {
+	return !!(owner && !imageError && !hideImage);
+}
+
 export function ProjectThumbnail({
 	projectId,
 	projectName,
@@ -89,7 +105,7 @@ export function ProjectThumbnail({
 	}
 
 	// Priority 2: Show GitHub avatar if available and not hidden
-	if (owner && !imageError && !hideImage) {
+	if (shouldShowGitHubAvatar({ owner, imageError, hideImage })) {
 		return (
 			<div
 				className={cn(
