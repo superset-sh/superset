@@ -3,10 +3,7 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
 import { createMastraCode } from "mastracode";
 import superjson from "superjson";
-import {
-	createDeniedToolPolicies,
-	INTERNAL_MASTRA_TOOL_NAMES,
-} from "../../shared/internal-tools";
+import { INTERNAL_MASTRA_TOOL_NAMES } from "../../shared/internal-tools";
 import { searchFiles } from "./utils/file-search";
 import {
 	authenticateRuntimeMcpServer,
@@ -97,9 +94,6 @@ export class ChatMastraService {
 					extraTools,
 					disableMcp: !mcpEnabled,
 					disabledTools: [...INTERNAL_MASTRA_TOOL_NAMES],
-					permissionRules: {
-						tools: createDeniedToolPolicies(INTERNAL_MASTRA_TOOL_NAMES),
-					},
 				});
 				runtimeMastra.hookManager?.setSessionId(sessionId);
 				await runtimeMastra.harness.init();
