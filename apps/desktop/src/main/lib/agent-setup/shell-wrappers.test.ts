@@ -70,6 +70,8 @@ describe("shell-wrappers", () => {
 			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
 		);
 		expect(zshrc).toContain("rehash 2>/dev/null || true");
+		expect(zshrc).toContain('export ZDOTDIR="$_superset_home"');
+		expect(zshrc).toContain('source "$_superset_home/.zshrc"');
 		expect(zshrc.indexOf('export ZDOTDIR="$_superset_home"')).toBeLessThan(
 			zshrc.indexOf('source "$_superset_home/.zshrc"'),
 		);
@@ -92,9 +94,19 @@ describe("shell-wrappers", () => {
 	it("reproduces pre-fix .zlogin behavior where system node wins", () => {
 		try {
 			execFileSync("zsh", ["-lc", "exit 0"], { stdio: "ignore" });
-		} catch {
-			// zsh may not exist in all test environments.
-			return;
+		} catch (error) {
+			const errorCode =
+				typeof error === "object" &&
+				error !== null &&
+				"code" in error &&
+				typeof error.code === "string"
+					? error.code
+					: "";
+			if (errorCode === "ENOENT") {
+				// zsh may not exist in all test environments.
+				return;
+			}
+			throw error;
 		}
 
 		const integrationRoot = path.join(TEST_ROOT, "zlogin-node-repro");
