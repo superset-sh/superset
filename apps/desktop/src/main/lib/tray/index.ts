@@ -40,21 +40,26 @@ function getTrayIconPath(): string | null {
 		return null;
 	}
 
-	const previewPath = join(__dirname, "../resources/tray", TRAY_ICON_FILENAME);
-	if (existsSync(previewPath)) {
-		return previewPath;
+	const devPaths = [
+		join(__dirname, "../resources/tray", TRAY_ICON_FILENAME),
+		join(__dirname, "../../resources/tray", TRAY_ICON_FILENAME),
+		join(app.getAppPath(), "src/resources/tray", TRAY_ICON_FILENAME),
+		join(
+			app.getAppPath(),
+			"apps/desktop/src/resources/tray",
+			TRAY_ICON_FILENAME,
+		),
+		join(process.cwd(), "src/resources/tray", TRAY_ICON_FILENAME),
+		join(process.cwd(), "apps/desktop/src/resources/tray", TRAY_ICON_FILENAME),
+	];
+
+	for (const iconPath of devPaths) {
+		if (existsSync(iconPath)) {
+			return iconPath;
+		}
 	}
 
-	const devPath = join(
-		app.getAppPath(),
-		"src/resources/tray",
-		TRAY_ICON_FILENAME,
-	);
-	if (existsSync(devPath)) {
-		return devPath;
-	}
-
-	console.warn("[Tray] Icon not found at:", previewPath, "or", devPath);
+	console.warn("[Tray] Icon not found. Tried paths:", devPaths.join(", "));
 	return null;
 }
 
