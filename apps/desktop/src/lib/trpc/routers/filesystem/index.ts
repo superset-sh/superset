@@ -1,13 +1,12 @@
-import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
 import { shell } from "electron";
 import fg from "fast-glob";
 import Fuse from "fuse.js";
 import type { DirectoryEntry } from "shared/file-tree-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { execWithShellEnv } from "../workspaces/utils/shell-env";
 
 const SEARCH_INDEX_TTL_MS = 30_000;
 const MAX_SEARCH_RESULTS = 500;
@@ -66,7 +65,6 @@ interface KeywordSearchMatch {
 
 const searchIndexCache = new Map<string, FileSearchCacheEntry>();
 const searchIndexBuilds = new Map<string, Promise<FileSearchIndex>>();
-const execFileAsync = promisify(execFile);
 
 function createFileSearchFuse(items: FileSearchItem[]): Fuse<FileSearchItem> {
 	return new Fuse(items, FILE_SEARCH_FUSE_OPTIONS);
@@ -391,7 +389,7 @@ async function searchKeywordWithRipgrep({
 	args.push(query, ".");
 
 	try {
-		const { stdout } = await execFileAsync("rg", args, {
+		const { stdout } = await execWithShellEnv("rg", args, {
 			cwd: rootPath,
 			windowsHide: true,
 			maxBuffer: KEYWORD_SEARCH_RIPGREP_BUFFER_BYTES,

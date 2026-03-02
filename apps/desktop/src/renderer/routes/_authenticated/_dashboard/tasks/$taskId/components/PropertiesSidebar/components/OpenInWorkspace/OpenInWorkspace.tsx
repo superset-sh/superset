@@ -29,7 +29,6 @@ import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { buildAgentCommand } from "../../../../utils/buildAgentCommand";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
@@ -81,27 +80,29 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			slug: task.slug,
 			title: task.title,
 		});
+		const command = buildAgentCommand({
+			task: {
+				id: task.id,
+				slug: task.slug,
+				title: task.title,
+				description: task.description,
+				priority: task.priority,
+				statusName: task.status.name,
+				labels: task.labels,
+			},
+			randomId: window.crypto.randomUUID(),
+			agent: selectedAgent,
+		});
 
 		try {
-			const result = await createWorkspace.mutateAsync({
-				projectId,
-				name: task.slug,
-				branchName,
-			});
-
-			const command = buildAgentCommand({
-				task: {
-					id: task.id,
-					slug: task.slug,
-					title: task.title,
-					description: task.description,
-					priority: task.priority,
-					statusName: task.status.name,
-					labels: task.labels,
+			const result = await createWorkspace.mutateAsyncWithPendingSetup(
+				{
+					projectId,
+					name: task.slug,
+					branchName,
 				},
-				randomId: window.crypto.randomUUID(),
-				agent: selectedAgent,
-			});
+				{ agentCommand: command },
+			);
 
 			if (result.wasExisting) {
 				const { tabId, paneId } = addTab(result.workspace.id);
@@ -126,16 +127,6 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					});
 					return;
 				}
-			} else {
-				const store = useWorkspaceInitStore.getState();
-				const pending = store.pendingTerminalSetups[result.workspace.id];
-				store.addPendingTerminalSetup({
-					workspaceId: result.workspace.id,
-					projectId: result.projectId,
-					initialCommands: pending?.initialCommands ?? null,
-					defaultPresets: pending?.defaultPresets,
-					agentCommand: command,
-				});
 			}
 
 			toast.success(

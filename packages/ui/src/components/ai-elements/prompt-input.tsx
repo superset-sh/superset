@@ -77,6 +77,7 @@ import {
 export type AttachmentsContext = {
 	files: (FileUIPart & { id: string })[];
 	add: (files: File[] | FileList) => void;
+	setFiles: (files: FileUIPart[]) => void;
 	remove: (id: string) => void;
 	clear: () => void;
 	openFileDialog: () => void;
@@ -196,6 +197,20 @@ export function PromptInputProvider({
 		});
 	}, []);
 
+	const setFiles = useCallback((files: FileUIPart[]) => {
+		setAttachmentFiles((prev) => {
+			for (const f of prev) {
+				if (f.url) {
+					URL.revokeObjectURL(f.url);
+				}
+			}
+			return files.map((file) => ({
+				...file,
+				id: nanoid(),
+			}));
+		});
+	}, []);
+
 	// Keep a ref to attachments for cleanup on unmount (avoids stale closure)
 	const attachmentsRef = useRef(attachmentFiles);
 	attachmentsRef.current = attachmentFiles;
@@ -219,12 +234,13 @@ export function PromptInputProvider({
 		() => ({
 			files: attachmentFiles,
 			add,
+			setFiles,
 			remove,
 			clear,
 			openFileDialog,
 			fileInputRef,
 		}),
-		[attachmentFiles, add, remove, clear, openFileDialog],
+		[attachmentFiles, add, setFiles, remove, clear, openFileDialog],
 	);
 
 	const __registerFileInput = useCallback(
@@ -590,7 +606,24 @@ export const PromptInput = ({
 		[],
 	);
 
+	const setLocalFiles = useCallback((nextFiles: FileUIPart[]) => {
+		setItems((prev) => {
+			for (const file of prev) {
+				if (file.url) {
+					URL.revokeObjectURL(file.url);
+				}
+			}
+			return nextFiles.map((file) => ({
+				...file,
+				id: nanoid(),
+			}));
+		});
+	}, []);
+
 	const add = usingProvider ? controller.attachments.add : addLocal;
+	const setFiles = usingProvider
+		? controller.attachments.setFiles
+		: setLocalFiles;
 	const remove = usingProvider ? controller.attachments.remove : removeLocal;
 	const clear = usingProvider ? controller.attachments.clear : clearLocal;
 	const openFileDialog = usingProvider
@@ -703,12 +736,13 @@ export const PromptInput = ({
 		() => ({
 			files: files.map((item) => ({ ...item, id: item.id })),
 			add,
+			setFiles,
 			remove,
 			clear,
 			openFileDialog,
 			fileInputRef: inputRef,
 		}),
-		[files, add, remove, clear, openFileDialog],
+		[files, add, setFiles, remove, clear, openFileDialog],
 	);
 
 	const handleSubmit: FormEventHandler<HTMLFormElement> = (event) => {
@@ -737,6 +771,22 @@ export const PromptInput = ({
 
 		onSubmitStart?.();
 
+		const clearComposer = () => {
+			clear();
+			if (usingProvider) {
+				controller.textInput.clear();
+			}
+		};
+
+		const restoreComposer = (
+			restoreText: string,
+			restoreFiles: FileUIPart[],
+		) => {
+			if (!usingProvider) return;
+			controller.textInput.setInput(restoreText);
+			setFiles(restoreFiles);
+		};
+
 		// Convert blob URLs to data URLs asynchronously
 		Promise.all(
 			files.map(async ({ id, ...item }) => {
@@ -752,6 +802,11 @@ export const PromptInput = ({
 			}),
 		)
 			.then((convertedFiles: FileUIPart[]) => {
+				if (usingProvider) {
+					// Clear immediately on submit; restore if send fails.
+					clearComposer();
+				}
+
 				try {
 					const result = onSubmit({ text, files: convertedFiles }, event);
 
@@ -759,26 +814,23 @@ export const PromptInput = ({
 					if (result instanceof Promise) {
 						result
 							.then(() => {
-								clear();
-								if (usingProvider) {
-									controller.textInput.clear();
+								if (!usingProvider) {
+									clearComposer();
 								}
 								finishSubmit();
 							})
 							.catch(() => {
-								// Don't clear on error - user may want to retry
+								restoreComposer(text, convertedFiles);
 								finishSubmit();
 							});
 					} else {
-						// Sync function completed without throwing, clear attachments
-						clear();
-						if (usingProvider) {
-							controller.textInput.clear();
+						if (!usingProvider) {
+							clearComposer();
 						}
 						finishSubmit();
 					}
 				} catch {
-					// Don't clear on error - user may want to retry
+					restoreComposer(text, convertedFiles);
 					finishSubmit();
 				}
 			})

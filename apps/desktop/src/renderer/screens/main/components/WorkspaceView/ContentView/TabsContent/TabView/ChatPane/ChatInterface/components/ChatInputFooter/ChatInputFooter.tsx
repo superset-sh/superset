@@ -44,7 +44,7 @@ interface ChatInputFooterProps {
 	slashCommands: SlashCommand[];
 	onSubmitStart?: () => void;
 	onSubmitEnd?: () => void;
-	onSend: (message: PromptInputMessage) => void;
+	onSend: (message: PromptInputMessage) => Promise<void> | void;
 	onStop: (e: React.MouseEvent) => void;
 	onSlashCommandSend: (command: SlashCommand) => void;
 }

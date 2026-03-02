@@ -3,6 +3,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import type { Tab } from "./types";
 import {
 	buildMultiPaneLayout,
+	createChatMastraPane,
 	findPanePath,
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
@@ -517,5 +518,15 @@ describe("resolveFileViewerMode", () => {
 				viewMode: "diff",
 			}),
 		).toBe("diff");
+	});
+});
+
+describe("createChatMastraPane", () => {
+	it("seeds a session id when the pane is created", () => {
+		const pane = createChatMastraPane("tab-1");
+
+		expect(pane.type).toBe("chat-mastra");
+		expect(typeof pane.chatMastra?.sessionId).toBe("string");
+		expect((pane.chatMastra?.sessionId ?? "").length).toBeGreaterThan(0);
 	});
 });

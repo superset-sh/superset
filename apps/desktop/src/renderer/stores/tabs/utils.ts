@@ -228,6 +228,7 @@ export const createFileViewerPane = (
 
 export const createChatMastraPane = (tabId: string): Pane => {
 	const id = generateId("pane");
+	const sessionId = crypto.randomUUID();
 
 	return {
 		id,
@@ -235,7 +236,7 @@ export const createChatMastraPane = (tabId: string): Pane => {
 		type: "chat-mastra",
 		name: "New Chat",
 		chatMastra: {
-			sessionId: null,
+			sessionId,
 		},
 	};
 };

@@ -1,7 +1,11 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
-import type { McpOverviewPayload, ModelOption } from "../../types";
+import type {
+	McpOverviewPayload,
+	ModelOption,
+	StartFreshSessionResult,
+} from "../../types";
 import {
 	findModelByQuery,
 	normalizeModelQueryFromActionArgument,
@@ -12,10 +16,7 @@ interface UseSlashCommandExecutorOptions {
 	cwd: string;
 	availableModels: ModelOption[];
 	canAbort: boolean;
-	onStartFreshSession: () => Promise<{
-		created: boolean;
-		errorMessage?: string;
-	}>;
+	onStartFreshSession: () => Promise<StartFreshSessionResult>;
 	onStopActiveResponse: () => void;
 	onSelectModel: (model: ModelOption) => void;
 	onOpenModelPicker: () => void;

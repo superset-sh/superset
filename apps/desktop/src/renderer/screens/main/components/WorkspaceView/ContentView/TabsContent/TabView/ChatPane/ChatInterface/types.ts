@@ -37,6 +37,12 @@ export type InterruptedMessagePreview = {
 	parts: UIMessage["parts"];
 };
 
+export type StartFreshSessionResult = {
+	created: boolean;
+	sessionId?: string;
+	errorMessage?: string;
+};
+
 export interface ChatInterfaceProps {
 	sessionId: string | null;
 	organizationId: string | null;

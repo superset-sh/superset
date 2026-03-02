@@ -165,7 +165,13 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			sendMessage: async (
 				input: Omit<SessionInputs["sendMessage"], "sessionId">,
 			) => {
-				if (!sessionId) return;
+				if (!sessionId) {
+					const error = new Error(
+						"Chat session is still starting. Please retry in a moment.",
+					);
+					setCommandError(error);
+					throw error;
+				}
 				setCommandError(null);
 
 				const text =
@@ -192,7 +198,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					setCommandError(error);
 					setOptimisticUserMessage(null);
 					optimisticTextRef.current = null;
-					return;
+					throw error;
 				}
 			},
 			stop: async () => {

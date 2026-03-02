@@ -21,7 +21,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	claude: ["claude --dangerously-skip-permissions"],
 	codex: [
-		'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+		'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
 	],
 	gemini: ["gemini --yolo"],
 	opencode: ["opencode"],
@@ -105,7 +105,7 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(
 			prompt,
 			delimiter,
-			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access --',
+			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox --',
 		),
 	gemini: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
