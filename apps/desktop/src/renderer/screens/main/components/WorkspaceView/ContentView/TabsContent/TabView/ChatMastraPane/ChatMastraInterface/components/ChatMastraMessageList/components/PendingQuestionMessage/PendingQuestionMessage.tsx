@@ -57,7 +57,7 @@ export function PendingQuestionMessage({
 	return (
 		<Message from="assistant">
 			<MessageContent>
-				<div className="w-full max-w-xl space-y-3 rounded-xl border bg-card/95 p-3">
+				<div className="w-full max-w-none space-y-3 rounded-xl border bg-card/95 p-3">
 					<div className="text-sm text-foreground">{questionText}</div>
 
 					{options.length > 0 ? (
