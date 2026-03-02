@@ -353,7 +353,8 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 		pullCount: status.pullCount,
 		isDefaultBranch,
 	});
-	const shouldAutoCreatePRAfterPublish = hasGitHubRepo && !isDefaultBranch;
+	const shouldAutoCreatePRAfterPublish =
+		hasGitHubRepo && !isDefaultBranch && !hasExistingPR;
 
 	return (
 		<div className="flex flex-col flex-1 min-h-0">

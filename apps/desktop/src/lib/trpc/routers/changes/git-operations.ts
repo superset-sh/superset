@@ -90,6 +90,18 @@ function shouldRetryPushWithUpstream(message: string): boolean {
 	);
 }
 
+function isNonFastForwardPushError(message: string): boolean {
+	const lowerMessage = message.toLowerCase();
+	return (
+		lowerMessage.includes("non-fast-forward") ||
+		(lowerMessage.includes("failed to push some refs") &&
+			(lowerMessage.includes("rejected") ||
+				lowerMessage.includes("fetch first") ||
+				lowerMessage.includes("tip of your current branch is behind") ||
+				lowerMessage.includes("remote contains work")))
+	);
+}
+
 interface TrackingStatus {
 	pushCount: number;
 	pullCount: number;
@@ -121,7 +133,15 @@ async function getTrackingBranchStatus(
 			pullCount: Number.parseInt(pullStr || "0", 10),
 			hasUpstream: true,
 		};
-	} catch {
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (isUpstreamMissingError(message)) {
+			return { pushCount: 0, pullCount: 0, hasUpstream: false };
+		}
+		console.warn(
+			"[git/tracking] Failed to resolve upstream tracking status:",
+			message,
+		);
 		return { pushCount: 0, pullCount: 0, hasUpstream: false };
 	}
 }
@@ -153,7 +173,17 @@ async function findExistingOpenPRUrl(
 		if (url) {
 			return url;
 		}
-	} catch {
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		const isNoPROpenError = message
+			.toLowerCase()
+			.includes("no pull requests found");
+		if (!isNoPROpenError) {
+			console.warn(
+				"[git/findExistingOpenPRUrl] Failed tracking-branch PR lookup:",
+				message,
+			);
+		}
 		// Fallback to head-branch search below.
 	}
 
@@ -178,7 +208,12 @@ async function findExistingOpenPRUrl(
 		);
 		const url = stdout.trim();
 		return url || null;
-	} catch {
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		console.warn(
+			"[git/findExistingOpenPRUrl] Failed head-branch PR lookup:",
+			message,
+		);
 		return null;
 	}
 }
@@ -191,7 +226,12 @@ async function openPRInBrowser(
 		await execWithShellEnv("gh", ["pr", "view", prUrl, "--web"], {
 			cwd: worktreePath,
 		});
-	} catch {
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		console.warn(
+			`[git/openPRInBrowser] Failed to open PR URL ${prUrl}:`,
+			message,
+		);
 		// Opening in browser is best-effort; return URL either way.
 	}
 }
@@ -333,10 +373,12 @@ export const createGitOperationsRouter = () => {
 
 					const git = await getGitWithShellPath(input.worktreePath);
 					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
-					const hasUpstream = await hasUpstreamBranch(git);
 					const trackingStatus = await getTrackingBranchStatus(git);
+					const hasUpstream = trackingStatus.hasUpstream;
 					const isBehindUpstream =
 						trackingStatus.hasUpstream && trackingStatus.pullCount > 0;
+					const hasUnpushedCommits =
+						trackingStatus.hasUpstream && trackingStatus.pushCount > 0;
 
 					if (isBehindUpstream && !input.allowOutOfDate) {
 						const commitLabel =
@@ -347,11 +389,10 @@ export const createGitOperationsRouter = () => {
 						});
 					}
 
-					// Ensure branch is pushed first
+					// Ensure remote branch exists and local commits are available on remote before PR create.
 					if (!hasUpstream) {
 						await pushWithSetUpstream({ git, branch });
-					} else if (!isBehindUpstream) {
-						// Push any unpushed commits
+					} else {
 						try {
 							await git.push();
 						} catch (error) {
@@ -359,6 +400,17 @@ export const createGitOperationsRouter = () => {
 								error instanceof Error ? error.message : String(error);
 							if (shouldRetryPushWithUpstream(message)) {
 								await pushWithSetUpstream({ git, branch });
+							} else if (
+								input.allowOutOfDate &&
+								isBehindUpstream &&
+								hasUnpushedCommits &&
+								isNonFastForwardPushError(message)
+							) {
+								throw new TRPCError({
+									code: "PRECONDITION_FAILED",
+									message:
+										"Branch has local commits but is behind upstream. Pull/rebase first so local commits can be pushed before creating a PR.",
+								});
 							} else {
 								throw error;
 							}

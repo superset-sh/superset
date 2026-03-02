@@ -16,14 +16,15 @@ export function useCreateOrOpenPR({
 	worktreePath,
 	onSuccess,
 }: UseCreateOrOpenPROptions): UseCreateOrOpenPRResult {
-	const mutation = electronTrpc.changes.createPR.useMutation();
+	const { mutateAsync, isPending } =
+		electronTrpc.changes.createPR.useMutation();
 
 	const createOrOpenPR = useCallback(() => {
-		if (!worktreePath) return;
+		if (!worktreePath || isPending) return;
 
 		void (async () => {
 			try {
-				await mutation.mutateAsync({ worktreePath });
+				await mutateAsync({ worktreePath });
 				toast.success("Opening GitHub...");
 				onSuccess?.();
 				return;
@@ -44,7 +45,7 @@ export function useCreateOrOpenPR({
 			}
 
 			try {
-				await mutation.mutateAsync({ worktreePath, allowOutOfDate: true });
+				await mutateAsync({ worktreePath, allowOutOfDate: true });
 				toast.success("Opening GitHub...");
 				onSuccess?.();
 			} catch (retryError) {
@@ -53,10 +54,10 @@ export function useCreateOrOpenPR({
 				toast.error(`Failed: ${retryMessage}`);
 			}
 		})();
-	}, [mutation, onSuccess, worktreePath]);
+	}, [isPending, mutateAsync, onSuccess, worktreePath]);
 
 	return {
 		createOrOpenPR,
-		isPending: mutation.isPending,
+		isPending,
 	};
 }
