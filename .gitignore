@@ -83,3 +83,8 @@ superset-dev-data/
 !.codex/config.toml
 !.codex/commands
 !.codex/prompts
+
+# Autohand workspace config (track only shared config/symlinks; ignore runtime state)
+.autohand/*
+!.autohand/config.json
+!.autohand/commands

@@ -5,6 +5,7 @@ export const AGENT_TYPES = [
 	"opencode",
 	"copilot",
 	"cursor-agent",
+	"autohand",
 ] as const;
 
 export type AgentType = (typeof AGENT_TYPES)[number];
@@ -16,6 +17,7 @@ export const AGENT_LABELS: Record<AgentType, string> = {
 	opencode: "OpenCode",
 	copilot: "Copilot",
 	"cursor-agent": "Cursor Agent",
+	autohand: "Autohand Code",
 };
 
 export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
@@ -27,6 +29,7 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	opencode: ["opencode"],
 	copilot: ["copilot --allow-all"],
 	"cursor-agent": ["cursor-agent"],
+	autohand: ["autohand --unrestricted"],
 };
 
 export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
@@ -36,6 +39,7 @@ export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	opencode: "OpenCode: Open-source AI coding agent",
 	copilot: "Danger mode: All permissions auto-approved",
 	"cursor-agent": "Cursor AI agent for terminal-based coding assistance",
+	autohand: "Danger mode: All permissions auto-approved",
 };
 
 export interface TaskInput {
@@ -115,6 +119,8 @@ const AGENT_COMMANDS: Record<
 		buildHeredoc(prompt, delimiter, "copilot -i", "--yolo"),
 	"cursor-agent": (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "cursor-agent --yolo"),
+	autohand: (prompt, delimiter) =>
+		buildHeredoc(prompt, delimiter, "autohand --unrestricted -p"),
 };
 
 export function buildAgentPromptCommand({

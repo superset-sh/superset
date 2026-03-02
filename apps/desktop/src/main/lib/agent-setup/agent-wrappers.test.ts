@@ -59,10 +59,12 @@ const {
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
+	createAutohandWrapper,
 	createCodexWrapper,
 	createMastraWrapper,
-	getCursorHooksJsonContent,
+	getAutohandHooksConfigContent,
 	getCopilotHookScriptPath,
+	getCursorHooksJsonContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
 } = await import("./agent-wrappers");
@@ -388,5 +390,80 @@ describe("agent-wrappers copilot", () => {
 			),
 		).toBe(true);
 		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("replaces stale Autohand hook commands from old superset paths", () => {
+		const autohandConfigDir = path.join(mockedHomeDir, ".autohand");
+		const autohandConfigPath = path.join(autohandConfigDir, "config.json");
+		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
+		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+
+		mkdirSync(autohandConfigDir, { recursive: true });
+		writeFileSync(
+			autohandConfigPath,
+			JSON.stringify(
+				{
+					provider: "openrouter",
+					hooks: {
+						enabled: true,
+						hooks: [
+							{ event: "pre-prompt", command: `bash '${staleHookPath}'`, enabled: true },
+							{ event: "stop", command: `bash '${staleHookPath}'`, enabled: true },
+							{ event: "post-tool", command: `bash '${staleHookPath}'`, enabled: true },
+							{ event: "session-start", command: "/usr/local/bin/custom-hook", enabled: true },
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		const content = getAutohandHooksConfigContent(currentHookPath);
+		writeFileSync(autohandConfigPath, content);
+		const content2 = getAutohandHooksConfigContent(currentHookPath);
+
+		const parsed = JSON.parse(content) as {
+			provider?: string;
+			hooks?: { enabled?: boolean; hooks?: Array<{ event: string; command: string; enabled: boolean }> };
+		};
+		const managedEvents = ["pre-prompt", "stop", "post-tool"] as const;
+
+		// Verify provider config is preserved
+		expect(parsed.provider).toBe("openrouter");
+
+		// Verify hooks are enabled
+		expect(parsed.hooks?.enabled).toBe(true);
+
+		const hooks = parsed.hooks?.hooks ?? [];
+
+		for (const eventName of managedEvents) {
+			const eventHooks = hooks.filter((h) => h.event === eventName);
+			expect(eventHooks.length).toBe(1);
+			expect(eventHooks[0].command).toBe(`bash '${currentHookPath}'`);
+			expect(eventHooks[0].enabled).toBe(true);
+			expect(
+				eventHooks.some((h) => h.command.includes(staleHookPath)),
+			).toBe(false);
+		}
+
+		// Verify user-defined hooks are preserved
+		const customHooks = hooks.filter((h) => h.event === "session-start");
+		expect(customHooks.length).toBe(1);
+		expect(customHooks[0].command).toBe("/usr/local/bin/custom-hook");
+
+		// Idempotency check
+		expect(JSON.parse(content2)).toEqual(JSON.parse(content));
+	});
+
+	it("creates autohand wrapper passthrough", () => {
+		createAutohandWrapper();
+
+		const wrapperPath = path.join(TEST_BIN_DIR, "autohand");
+		const wrapper = readFileSync(wrapperPath, "utf-8");
+
+		expect(wrapper).toContain("# Superset wrapper for autohand");
+		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "autohand")"');
+		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
 	});
 });

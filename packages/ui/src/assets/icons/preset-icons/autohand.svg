@@ -1,0 +1,21 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 4x2 grid Autohand logo (dark fill for light backgrounds) -->
+  <!-- Row 1 -->
+  <circle cx="4.5" cy="8" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="4.5" cy="8" r="0.7" fill="#1a1a1a"/>
+  <circle cx="9.5" cy="8" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="9.5" cy="8" r="0.7" fill="#1a1a1a"/>
+  <circle cx="14.5" cy="8" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="14.5" cy="8" r="0.7" fill="#1a1a1a"/>
+  <circle cx="19.5" cy="8" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="19.5" cy="8" r="0.7" fill="#1a1a1a"/>
+  <!-- Row 2 -->
+  <circle cx="4.5" cy="16" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="4.5" cy="16" r="0.7" fill="#1a1a1a"/>
+  <circle cx="9.5" cy="16" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="9.5" cy="16" r="0.7" fill="#1a1a1a"/>
+  <circle cx="14.5" cy="16" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="14.5" cy="16" r="0.7" fill="#1a1a1a"/>
+  <circle cx="19.5" cy="16" r="2" stroke="#1a1a1a" stroke-width="0.8" fill="none"/>
+  <circle cx="19.5" cy="16" r="0.7" fill="#1a1a1a"/>
+</svg>

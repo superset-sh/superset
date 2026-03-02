@@ -57,3 +57,9 @@ export {
 	getMastraGlobalHooksJsonPath,
 	getMastraHooksJsonContent,
 } from "./agent-wrappers-mastra";
+export {
+	createAutohandHooksConfig,
+	createAutohandWrapper,
+	getAutohandGlobalConfigPath,
+	getAutohandHooksConfigContent,
+} from "./agent-wrappers-autohand";

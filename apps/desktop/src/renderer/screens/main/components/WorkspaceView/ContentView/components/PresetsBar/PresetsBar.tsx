@@ -1,4 +1,5 @@
 import {
+	AGENT_LABELS,
 	AGENT_PRESET_COMMANDS,
 	AGENT_PRESET_DESCRIPTIONS,
 	AGENT_TYPES,
@@ -374,7 +375,7 @@ export function PresetsBar() {
 								) : (
 									<HiMiniCommandLine className="size-4" />
 								)}
-								<span className="truncate">{item.name || "default"}</span>
+								<span className="truncate">{AGENT_LABELS[item.name as keyof typeof AGENT_LABELS] || item.name || "default"}</span>
 								<div className="ml-auto flex items-center gap-2">
 									{hotkeyId ? <HotkeyMenuShortcut hotkeyId={hotkeyId} /> : null}
 									{hasPreset ? (

@@ -1,0 +1,44 @@
+{
+  "mcp": {
+    "servers": [
+      {
+        "name": "superset",
+        "transport": "http",
+        "url": "https://api.superset.sh/api/agent/mcp"
+      },
+      {
+        "name": "expo-mcp",
+        "transport": "http",
+        "url": "https://mcp.expo.dev/mcp",
+        "enabled": false
+      },
+      {
+        "name": "maestro",
+        "transport": "stdio",
+        "command": "maestro",
+        "args": ["mcp"]
+      },
+      {
+        "name": "neon",
+        "transport": "http",
+        "url": "https://mcp.neon.tech/mcp"
+      },
+      {
+        "name": "linear",
+        "transport": "http",
+        "url": "https://mcp.linear.app/mcp"
+      },
+      {
+        "name": "sentry",
+        "transport": "http",
+        "url": "https://mcp.sentry.dev/mcp"
+      },
+      {
+        "name": "desktop-automation",
+        "transport": "stdio",
+        "command": "bun",
+        "args": ["run", "packages/desktop-mcp/src/bin.ts"]
+      }
+    ]
+  }
+}
