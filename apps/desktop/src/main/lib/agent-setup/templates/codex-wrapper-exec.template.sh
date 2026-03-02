@@ -13,6 +13,8 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
     _superset_notify="{{NOTIFY_PATH}}"
     _superset_last_turn_id=""
     _superset_last_approval_id=""
+    _superset_last_exec_call_id=""
+    _superset_approval_fallback_seq=0
 
     _superset_emit_event() {
       _superset_event="$1"
@@ -44,14 +46,25 @@ if [ -n "$SUPERSET_TAB_ID" ] && [ -f "{{NOTIFY_PATH}}" ]; then
           _superset_approval_id=$(printf '%s\n' "$_superset_line" | awk -F'"id":"' 'NF > 1 { sub(/".*/, "", $2); print $2; exit }')
           [ -n "$_superset_approval_id" ] || _superset_approval_id=$(printf '%s\n' "$_superset_line" | awk -F'"approval_id":"' 'NF > 1 { sub(/".*/, "", $2); print $2; exit }')
           [ -n "$_superset_approval_id" ] || _superset_approval_id=$(printf '%s\n' "$_superset_line" | awk -F'"call_id":"' 'NF > 1 { sub(/".*/, "", $2); print $2; exit }')
-          [ -n "$_superset_approval_id" ] || _superset_approval_id="approval_request"
+          if [ -z "$_superset_approval_id" ]; then
+            _superset_approval_fallback_seq=$((_superset_approval_fallback_seq + 1))
+            _superset_approval_id="approval_request_${_superset_approval_fallback_seq}"
+          fi
           if [ "$_superset_approval_id" != "$_superset_last_approval_id" ]; then
             _superset_last_approval_id="$_superset_approval_id"
             _superset_emit_event "PermissionRequest"
           fi
           ;;
         *'"dir":"to_tui"'*'"kind":"codex_event"'*'"msg":{"type":"exec_command_begin"'*)
-          _superset_emit_event "Start"
+          _superset_exec_call_id=$(printf '%s\n' "$_superset_line" | awk -F'"call_id":"' 'NF > 1 { sub(/".*/, "", $2); print $2; exit }')
+          if [ -n "$_superset_exec_call_id" ]; then
+            if [ "$_superset_exec_call_id" != "$_superset_last_exec_call_id" ]; then
+              _superset_last_exec_call_id="$_superset_exec_call_id"
+              _superset_emit_event "Start"
+            fi
+          else
+            _superset_emit_event "Start"
+          fi
           ;;
       esac
     done
