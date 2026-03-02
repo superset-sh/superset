@@ -22,6 +22,7 @@ import {
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
+import { SubagentToolCall } from "./components/SubagentToolCall";
 import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
 import { getWebSearchViewModel } from "./utils/getWebSearchViewModel";
 
@@ -466,6 +467,16 @@ export function MastraToolCallBlock({
 			);
 		}
 
+		if (questions.length === 0) {
+			return (
+				<GenericToolCall
+					part={part}
+					toolName="Question"
+					icon={MessageCircleQuestionIcon}
+				/>
+			);
+		}
+
 		return (
 			<UserQuestionTool
 				questions={questions}
@@ -511,6 +522,10 @@ export function MastraToolCallBlock({
 
 	if (toolName === "submit_plan") {
 		return <GenericToolCall part={part} toolName="Submit plan" />;
+	}
+
+	if (toolName === "subagent") {
+		return <SubagentToolCall part={part} args={args} result={result} />;
 	}
 
 	// --- Fallback: generic tool UI ---

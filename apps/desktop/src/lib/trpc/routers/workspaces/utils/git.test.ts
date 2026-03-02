@@ -3,6 +3,7 @@ import { execSync } from "node:child_process";
 import {
 	existsSync,
 	mkdirSync,
+	mkdtempSync,
 	realpathSync,
 	rmSync,
 	writeFileSync,
@@ -277,6 +278,106 @@ describe("Shell Environment", () => {
 			if (process.platform === "win32" || "Path" in shellEnv) {
 				expect(env.Path).toBe(shellPath);
 			}
+		}
+	});
+
+	test("getShellEnvironment PATH includes homebrew and user-installed tools", async () => {
+		const { clearShellEnvCache, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+		clearShellEnvCache();
+
+		const env = await getShellEnvironment();
+		const shellPath = env.PATH || env.Path || "";
+
+		// The derived PATH should be richer than the minimal macOS GUI PATH
+		// (/usr/bin:/bin:/usr/sbin:/sbin). It should include at least one of
+		// these common user-installed tool directories.
+		const userPaths = [
+			"/opt/homebrew/bin",
+			"/usr/local/bin",
+			"/home/linuxbrew/.linuxbrew/bin",
+		];
+		const hasUserPath = userPaths.some((p) => shellPath.includes(p));
+		expect(hasUserPath).toBe(true);
+	});
+
+	test("getShellEnvironment strips delimiter noise from interactive shell output", async () => {
+		const { clearShellEnvCache, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+		clearShellEnvCache();
+
+		const env = await getShellEnvironment();
+
+		// Delimiter markers should not leak into any env key or value
+		expect(
+			Object.keys(env).some((k) => k.includes("_SHELL_ENV_DELIMITER_")),
+		).toBe(false);
+		expect(
+			Object.values(env).some((v) => v.includes("_SHELL_ENV_DELIMITER_")),
+		).toBe(false);
+	});
+
+	test("getProcessEnvWithShellPath overrides minimal GUI PATH with shell PATH", async () => {
+		const { clearShellEnvCache, getProcessEnvWithShellPath } = await import(
+			"./shell-env"
+		);
+		clearShellEnvCache();
+
+		// Simulate the minimal PATH a macOS GUI app gets from Finder/Dock
+		const guiPath = "/usr/bin:/bin:/usr/sbin:/sbin";
+		const env = await getProcessEnvWithShellPath({
+			PATH: guiPath,
+			HOME: process.env.HOME,
+		});
+
+		// The resulting PATH should NOT be the minimal GUI PATH
+		expect(env.PATH).not.toBe(guiPath);
+		// It should contain additional directories from the shell
+		expect(env.PATH.length).toBeGreaterThan(guiPath.length);
+	});
+
+	test("getShellEnvironment captures .zshrc variables (requires -ilc)", async () => {
+		// This test proves that getShellEnvironment uses an interactive shell (-i)
+		// which sources .zshrc. Without -i, only .zprofile is sourced and tools
+		// installed via nvm/volta/fnm (configured in .zshrc) won't be in PATH.
+		//
+		// We use ZDOTDIR to point zsh at a temp .zshrc with a known test variable.
+		// -lc (non-interactive) won't source it → test fails
+		// -ilc (interactive) will source it → test passes
+		const { clearShellEnvCache, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+		const zshPath = ["/bin/zsh", "/usr/bin/zsh"].find((candidate) =>
+			existsSync(candidate),
+		);
+		if (!zshPath) {
+			return;
+		}
+
+		const tmpDir = mkdtempSync(join(realpathSync(tmpdir()), "shell-env-test-"));
+		writeFileSync(
+			join(tmpDir, ".zshrc"),
+			'export __SUPERSET_SHELL_ENV_TEST__="interactive"\n',
+		);
+
+		const origZDOTDIR = process.env.ZDOTDIR;
+		const origShell = process.env.SHELL;
+		process.env.SHELL = zshPath;
+		process.env.ZDOTDIR = tmpDir;
+		clearShellEnvCache();
+
+		try {
+			const env = await getShellEnvironment();
+			expect(env.__SUPERSET_SHELL_ENV_TEST__).toBe("interactive");
+		} finally {
+			if (origZDOTDIR !== undefined) process.env.ZDOTDIR = origZDOTDIR;
+			else delete process.env.ZDOTDIR;
+			if (origShell !== undefined) process.env.SHELL = origShell;
+			else delete process.env.SHELL;
+			clearShellEnvCache();
+			rmSync(tmpDir, { recursive: true });
 		}
 	});
 });
