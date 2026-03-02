@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { type RuntimeSession, subscribeToSessionEvents } from "./runtime";
 
-function createRuntimeForTest(): {
+function createRuntimeForTest(
+	harnessOverrides?: Partial<RuntimeSession["harness"]>,
+): {
 	runtime: RuntimeSession;
 	emit: (event: unknown) => void;
 } {
@@ -19,6 +21,8 @@ function createRuntimeForTest(): {
 			},
 		}),
 		getFullModelId: () => "anthropic/claude-opus-4-6",
+		respondToQuestion: (_params: { questionId: string; answer: string }) => {},
+		...harnessOverrides,
 	} as RuntimeSession["harness"];
 
 	const runtime: RuntimeSession = {
@@ -49,6 +53,38 @@ function createRuntimeForTest(): {
 		},
 	};
 }
+
+describe("sandbox_access_request handling", () => {
+	it("auto-denies sandbox_access_request to prevent indefinite hang in chat interface", () => {
+		// The request_sandbox_access mastracode tool uses harnessCtx.registerQuestion +
+		// harnessCtx.emitEvent({ type: "sandbox_access_request", ... }) to wait for user
+		// approval. In the TUI this is handled by a dialog. In the Superset chat interface
+		// no handler was registered, so the promise never resolved and the tool call hung
+		// indefinitely with a loading spinner. The fix: subscribeToSessionEvents must
+		// detect sandbox_access_request events and call respondToQuestion to unblock the
+		// pending promise.
+		const calls: Array<{ questionId: string; answer: string }> = [];
+
+		const { emit } = createRuntimeForTest({
+			respondToQuestion: (params: { questionId: string; answer: string }) => {
+				calls.push(params);
+			},
+		});
+
+		emit({
+			type: "sandbox_access_request",
+			questionId: "sandbox_1_1234567890",
+			path: "/Users/user/.zshrc",
+			reason: "Need to edit shell config",
+		});
+
+		expect(calls).toHaveLength(1);
+		expect(calls[0]?.questionId).toBe("sandbox_1_1234567890");
+		// Answer must not start with "y" or equal "approve" so the tool resolves as denied
+		expect(calls[0]?.answer).not.toMatch(/^y/i);
+		expect(calls[0]?.answer).not.toBe("approve");
+	});
+});
 
 describe("runtime error propagation", () => {
 	it("extracts nested provider message from error.data.error.message", () => {

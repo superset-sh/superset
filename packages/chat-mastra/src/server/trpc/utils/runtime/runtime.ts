@@ -116,6 +116,17 @@ export function subscribeToSessionEvents(
 				void generateAndSetTitle(runtime, apiClient);
 			}
 		}
+		if (isSandboxAccessRequestEvent(event)) {
+			// The request_sandbox_access mastracode tool emits this event and waits for
+			// respondToQuestion to resolve its promise. In the TUI a dialog handles it;
+			// the Superset chat interface has no such handler, so without this the tool
+			// call hangs indefinitely with a loading spinner. Auto-deny so the promise
+			// resolves immediately and the agent receives a clear "access denied" response.
+			runtime.harness.respondToQuestion({
+				questionId: event.questionId,
+				answer: "deny",
+			});
+		}
 	});
 }
 
@@ -149,6 +160,19 @@ function isHarnessAgentEndEvent(
 	event: unknown,
 ): event is { type: "agent_end"; reason?: string } {
 	return isObjectRecord(event) && event.type === "agent_end";
+}
+
+function isSandboxAccessRequestEvent(event: unknown): event is {
+	type: "sandbox_access_request";
+	questionId: string;
+	path: string;
+	reason: string;
+} {
+	return (
+		isObjectRecord(event) &&
+		event.type === "sandbox_access_request" &&
+		typeof event.questionId === "string"
+	);
 }
 
 function toRuntimeErrorMessage(error: unknown): string {
