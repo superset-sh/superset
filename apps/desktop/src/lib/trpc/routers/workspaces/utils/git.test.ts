@@ -311,8 +311,12 @@ describe("Shell Environment", () => {
 		const env = await getShellEnvironment();
 
 		// Delimiter markers should not leak into any env key or value
-		expect(Object.keys(env).some((k) => k.includes("_SHELL_ENV_DELIMITER_"))).toBe(false);
-		expect(Object.values(env).some((v) => v.includes("_SHELL_ENV_DELIMITER_"))).toBe(false);
+		expect(
+			Object.keys(env).some((k) => k.includes("_SHELL_ENV_DELIMITER_")),
+		).toBe(false);
+		expect(
+			Object.values(env).some((v) => v.includes("_SHELL_ENV_DELIMITER_")),
+		).toBe(false);
 	});
 
 	test("getProcessEnvWithShellPath overrides minimal GUI PATH with shell PATH", async () => {
