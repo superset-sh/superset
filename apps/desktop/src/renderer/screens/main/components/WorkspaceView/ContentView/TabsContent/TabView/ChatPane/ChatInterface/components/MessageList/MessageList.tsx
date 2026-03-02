@@ -12,7 +12,6 @@ import { useCallback } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { InterruptedMessagePreview } from "../../types";
-import { filterInternalMastraToolParts } from "../../utils/tool-helpers";
 import { MessagePartsRenderer } from "../MessagePartsRenderer";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 
@@ -64,9 +63,6 @@ export function MessageList({
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const isThinking =
 		submitStatus === "submitted" || submitStatus === "streaming";
-	const interruptedVisibleParts = interruptedMessage
-		? filterInternalMastraToolParts(interruptedMessage.parts)
-		: null;
 
 	const handleImageClick = useCallback(
 		(url: string) => {
@@ -87,7 +83,6 @@ export function MessageList({
 					/>
 				) : (
 					messages.map((msg, index) => {
-						const visibleParts = filterInternalMastraToolParts(msg.parts);
 						const isLastAssistant =
 							msg.role === "assistant" && index === messages.length - 1;
 						const shouldAnimateStreaming =
@@ -158,15 +153,13 @@ export function MessageList({
 						return (
 							<Message key={msg.id} from={msg.role}>
 								<MessageContent>
-									{isLastAssistant &&
-									isThinking &&
-									visibleParts.length === 0 ? (
+									{isLastAssistant && isThinking && msg.parts.length === 0 ? (
 										<ShimmerLabel className="text-sm text-muted-foreground">
 											Thinking...
 										</ShimmerLabel>
 									) : (
 										<MessagePartsRenderer
-											parts={visibleParts}
+											parts={msg.parts}
 											isLastAssistant={isLastAssistant}
 											isStreaming={shouldAnimateStreaming}
 											workspaceId={workspaceId}
@@ -179,28 +172,26 @@ export function MessageList({
 						);
 					})
 				)}
-				{interruptedMessage &&
-					interruptedVisibleParts &&
-					interruptedVisibleParts.length > 0 && (
-						<Message key={interruptedMessage.id} from="assistant">
-							<MessageContent>
-								<MessagePartsRenderer
-									parts={interruptedVisibleParts}
-									isLastAssistant={false}
-									isStreaming={false}
-									workspaceId={workspaceId}
-									workspaceCwd={workspaceCwd}
-									onAnswer={onAnswer}
-								/>
-								<div className="flex items-center gap-2 text-xs text-muted-foreground">
-									<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
-										Interrupted
-									</span>
-									<span>Response stopped</span>
-								</div>
-							</MessageContent>
-						</Message>
-					)}
+				{interruptedMessage && interruptedMessage.parts.length > 0 && (
+					<Message key={interruptedMessage.id} from="assistant">
+						<MessageContent>
+							<MessagePartsRenderer
+								parts={interruptedMessage.parts}
+								isLastAssistant={false}
+								isStreaming={false}
+								workspaceId={workspaceId}
+								workspaceCwd={workspaceCwd}
+								onAnswer={onAnswer}
+							/>
+							<div className="flex items-center gap-2 text-xs text-muted-foreground">
+								<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
+									Interrupted
+								</span>
+								<span>Response stopped</span>
+							</div>
+						</MessageContent>
+					</Message>
+				)}
 				{isThinking && messages[messages.length - 1]?.role === "user" && (
 					<Message from="assistant">
 						<MessageContent>

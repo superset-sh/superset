@@ -7,10 +7,7 @@ import { MastraToolCallBlock } from "../../../../../../ChatPane/ChatInterface/co
 import { StreamingMessageText } from "../../../../../../ChatPane/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
 import { ReasoningBlock } from "../../../../../../ChatPane/ChatInterface/components/ReasoningBlock";
 import type { ToolPart } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
-import {
-	isInternalMastraToolName,
-	normalizeToolName,
-} from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
+import { normalizeToolName } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
 
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
@@ -145,19 +142,11 @@ export function AssistantMessage({
 				continue;
 			}
 			renderedToolCallIds.add(part.id);
-			const normalizedToolName = normalizeToolName(part.name);
-			const isInternalTool = isInternalMastraToolName(normalizedToolName);
 			const { result, index: resultIndex } = findToolResultForCall({
 				content: message.content,
 				toolCallId: part.id,
 				startAt: partIndex + 1,
 			});
-			if (isInternalTool) {
-				if (resultIndex === partIndex + 1) {
-					partIndex++;
-				}
-				continue;
-			}
 
 			nodes.push(
 				<MastraToolCallBlock
@@ -182,11 +171,6 @@ export function AssistantMessage({
 
 		if (part.type === "tool_result") {
 			if (renderedToolCallIds.has(part.id)) {
-				continue;
-			}
-			const normalizedToolName = normalizeToolName(part.name);
-			if (isInternalMastraToolName(normalizedToolName)) {
-				renderedToolCallIds.add(part.id);
 				continue;
 			}
 			renderedToolCallIds.add(part.id);

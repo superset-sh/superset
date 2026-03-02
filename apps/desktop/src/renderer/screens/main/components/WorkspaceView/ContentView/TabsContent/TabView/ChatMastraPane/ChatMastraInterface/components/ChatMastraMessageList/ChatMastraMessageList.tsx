@@ -11,10 +11,7 @@ import { useMemo } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { MastraToolCallBlock } from "../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
-import {
-	isInternalMastraToolPart,
-	normalizeToolName,
-} from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
+import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
@@ -154,15 +151,13 @@ function getStreamingPreviewToolParts({
 		...inputEntries.map(([id]) => id),
 	]);
 
-	return [...knownIds]
-		.map((toolCallId) => {
-			const toolState =
-				activeEntries.find(([id]) => id === toolCallId)?.[1] ?? null;
-			const inputBuffer =
-				inputEntries.find(([id]) => id === toolCallId)?.[1] ?? null;
-			return toPreviewToolPart({ toolCallId, toolState, inputBuffer });
-		})
-		.filter((part) => !isInternalMastraToolPart(part));
+	return [...knownIds].map((toolCallId) => {
+		const toolState =
+			activeEntries.find(([id]) => id === toolCallId)?.[1] ?? null;
+		const inputBuffer =
+			inputEntries.find(([id]) => id === toolCallId)?.[1] ?? null;
+		return toPreviewToolPart({ toolCallId, toolState, inputBuffer });
+	});
 }
 
 export function ChatMastraMessageList({

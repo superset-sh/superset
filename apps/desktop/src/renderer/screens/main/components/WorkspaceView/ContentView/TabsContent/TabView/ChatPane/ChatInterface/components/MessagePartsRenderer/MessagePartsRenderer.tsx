@@ -19,11 +19,7 @@ import {
 	normalizeWorkspaceFilePath,
 } from "../../utils/file-paths";
 import type { ToolPart } from "../../utils/tool-helpers";
-import {
-	filterInternalMastraToolParts,
-	getArgs,
-	normalizeToolName,
-} from "../../utils/tool-helpers";
+import { getArgs, normalizeToolName } from "../../utils/tool-helpers";
 import { MastraToolCallBlock } from "../MastraToolCallBlock";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { ReasoningBlock } from "../ReasoningBlock";
@@ -112,11 +108,10 @@ export function MessagePartsRenderer({
 		isLastAssistant: boolean;
 	}): React.ReactNode[] => {
 		const nodes: React.ReactNode[] = [];
-		const visibleParts = filterInternalMastraToolParts(parts);
 		let i = 0;
 
-		while (i < visibleParts.length) {
-			const part = visibleParts[i];
+		while (i < parts.length) {
+			const part = parts[i];
 
 			if (part.type === "text") {
 				nodes.push(
@@ -174,15 +169,15 @@ export function MessagePartsRenderer({
 					const groupStart = i;
 					const groupParts: ToolPart[] = [];
 					while (
-						i < visibleParts.length &&
-						isToolUIPart(visibleParts[i]) &&
+						i < parts.length &&
+						isToolUIPart(parts[i]) &&
 						READ_ONLY_TOOLS.has(
-							normalizeToolName(getToolName(visibleParts[i] as ToolPart)),
+							normalizeToolName(getToolName(parts[i] as ToolPart)),
 						) &&
-						normalizeToolName(getToolName(visibleParts[i] as ToolPart)) !==
+						normalizeToolName(getToolName(parts[i] as ToolPart)) !==
 							"mastra_workspace_read_file"
 					) {
-						groupParts.push(visibleParts[i] as ToolPart);
+						groupParts.push(parts[i] as ToolPart);
 						i++;
 					}
 
