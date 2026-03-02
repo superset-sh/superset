@@ -18,13 +18,16 @@ const FALLBACK_CACHE_TTL_MS = 10_000; // 10 second cache for fallback (retry soo
 let pathFixAttempted = false;
 let pathFixSucceeded = false;
 
+const ENV_DELIMITER = "_SHELL_ENV_DELIMITER_";
+
 /**
- * Gets the full shell environment by spawning a login shell.
- * This captures PATH and other environment variables set in shell profiles
- * which includes tools installed via homebrew.
+ * Gets the full shell environment by spawning an interactive login shell.
+ * This matches what a terminal does, capturing PATH from ALL shell configs:
+ * - .zprofile/.profile (login): homebrew, system PATH
+ * - .zshrc/.bashrc (interactive): nvm, volta, fnm, pnpm, etc.
  *
- * Uses -lc (login, command) instead of -ilc to avoid interactive prompts
- * and TTY issues from dotfiles expecting a terminal.
+ * Uses -ilc flags (same approach as sindresorhus/shell-env used by VS Code).
+ * Delimiters isolate env output from shell startup noise.
  *
  * Results are cached for 1 minute to avoid spawning shells repeatedly.
  */
@@ -41,20 +44,26 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 		(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
 
 	try {
-		// Use -lc flags (not -ilc):
-		// -l: login shell (sources .zprofile/.profile for PATH setup)
-		// -c: execute command
-		// Avoids -i (interactive) to skip TTY prompts and reduce latency
-		const { stdout } = await execFileAsync(shell, ["-lc", "env"], {
-			timeout: 10_000,
-			env: {
-				...process.env,
-				HOME: os.homedir(),
+		const { stdout } = await execFileAsync(
+			shell,
+			[
+				"-ilc",
+				`echo -n "${ENV_DELIMITER}"; command env; echo -n "${ENV_DELIMITER}"; exit`,
+			],
+			{
+				timeout: 10_000,
+				env: {
+					...process.env,
+					HOME: os.homedir(),
+				},
 			},
-		});
+		);
+
+		const parts = stdout.split(ENV_DELIMITER);
+		const envOutput = parts.length >= 3 ? parts[1] : stdout;
 
 		const env: Record<string, string> = {};
-		for (const line of stdout.split("\n")) {
+		for (const line of envOutput.split("\n")) {
 			const idx = line.indexOf("=");
 			if (idx > 0) {
 				const key = line.substring(0, idx);

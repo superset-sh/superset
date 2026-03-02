@@ -10,7 +10,7 @@ function findBinaryPathsUnix(name: string): string[] {
 	const shell = getDefaultShell();
 	const result = execFileSync(
 		shell,
-		["-l", "-c", 'which -a -- "$1"', "superset-find-binary", name],
+		["-il", "-c", 'which -a -- "$1"', "superset-find-binary", name],
 		{
 			encoding: "utf-8",
 			stdio: ["pipe", "pipe", "ignore"],
