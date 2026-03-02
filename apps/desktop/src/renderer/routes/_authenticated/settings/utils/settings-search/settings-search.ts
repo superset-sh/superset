@@ -512,6 +512,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"template",
 			"claude",
 			"codex",
+			"superset",
+			"mastracode",
 			"gemini",
 			"cursor",
 			"opencode",

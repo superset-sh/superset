@@ -7,6 +7,8 @@ import cursorAgentIcon from "./cursor.svg";
 import geminiIcon from "./gemini.svg";
 import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
+import supersetIcon from "./superset.svg";
+import supersetWhiteIcon from "./superset-white.svg";
 
 export interface PresetIconSet {
 	light: string;
@@ -18,6 +20,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
+	superset: { light: supersetIcon, dark: supersetWhiteIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
 };
@@ -42,4 +45,6 @@ export {
 	geminiIcon,
 	opencodeIcon,
 	opencodeWhiteIcon,
+	supersetIcon,
+	supersetWhiteIcon,
 };
