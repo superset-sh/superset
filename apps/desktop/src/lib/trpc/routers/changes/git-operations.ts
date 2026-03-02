@@ -90,6 +90,152 @@ function shouldRetryPushWithUpstream(message: string): boolean {
 	);
 }
 
+function isNonFastForwardPushError(message: string): boolean {
+	const lowerMessage = message.toLowerCase();
+	return (
+		lowerMessage.includes("non-fast-forward") ||
+		(lowerMessage.includes("failed to push some refs") &&
+			(lowerMessage.includes("rejected") ||
+				lowerMessage.includes("fetch first") ||
+				lowerMessage.includes("tip of your current branch is behind") ||
+				lowerMessage.includes("remote contains work")))
+	);
+}
+
+interface TrackingStatus {
+	pushCount: number;
+	pullCount: number;
+	hasUpstream: boolean;
+}
+
+async function getTrackingBranchStatus(
+	git: ReturnType<typeof simpleGit>,
+): Promise<TrackingStatus> {
+	try {
+		const upstream = await git.raw([
+			"rev-parse",
+			"--abbrev-ref",
+			"@{upstream}",
+		]);
+		if (!upstream.trim()) {
+			return { pushCount: 0, pullCount: 0, hasUpstream: false };
+		}
+
+		const tracking = await git.raw([
+			"rev-list",
+			"--left-right",
+			"--count",
+			"@{upstream}...HEAD",
+		]);
+		const [pullStr, pushStr] = tracking.trim().split(/\s+/);
+		return {
+			pushCount: Number.parseInt(pushStr || "0", 10),
+			pullCount: Number.parseInt(pullStr || "0", 10),
+			hasUpstream: true,
+		};
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		if (isUpstreamMissingError(message)) {
+			return { pushCount: 0, pullCount: 0, hasUpstream: false };
+		}
+		console.warn(
+			"[git/tracking] Failed to resolve upstream tracking status:",
+			message,
+		);
+		return { pushCount: 0, pullCount: 0, hasUpstream: false };
+	}
+}
+
+function extractPRUrl(text: string): string | null {
+	const match = text.match(/https:\/\/github\.com\/\S+\/pull\/\d+/);
+	return match?.[0] ?? null;
+}
+
+async function findExistingOpenPRUrl(
+	worktreePath: string,
+	branch: string,
+): Promise<string | null> {
+	// Prefer tracking-based lookup first for fork/branch-name mismatch scenarios.
+	try {
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"view",
+				"--json",
+				"url,state",
+				"--jq",
+				'if .state == "OPEN" then .url else "" end',
+			],
+			{ cwd: worktreePath },
+		);
+		const url = stdout.trim();
+		if (url) {
+			return url;
+		}
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		const isNoPROpenError = message
+			.toLowerCase()
+			.includes("no pull requests found");
+		if (!isNoPROpenError) {
+			console.warn(
+				"[git/findExistingOpenPRUrl] Failed tracking-branch PR lookup:",
+				message,
+			);
+		}
+		// Fallback to head-branch search below.
+	}
+
+	try {
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"list",
+				"--state",
+				"open",
+				"--search",
+				`head:${branch}`,
+				"--limit",
+				"20",
+				"--json",
+				"url",
+				"--jq",
+				'.[0].url // ""',
+			],
+			{ cwd: worktreePath },
+		);
+		const url = stdout.trim();
+		return url || null;
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		console.warn(
+			"[git/findExistingOpenPRUrl] Failed head-branch PR lookup:",
+			message,
+		);
+		return null;
+	}
+}
+
+async function openPRInBrowser(
+	worktreePath: string,
+	prUrl: string,
+): Promise<void> {
+	try {
+		await execWithShellEnv("gh", ["pr", "view", prUrl, "--web"], {
+			cwd: worktreePath,
+		});
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		console.warn(
+			`[git/openPRInBrowser] Failed to open PR URL ${prUrl}:`,
+			message,
+		);
+		// Opening in browser is best-effort; return URL either way.
+	}
+}
+
 async function getGitWithShellPath(worktreePath: string) {
 	const git = simpleGit(worktreePath);
 	git.env(await getProcessEnvWithShellPath());
@@ -218,6 +364,7 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
+					allowOutOfDate: z.boolean().optional().default(false),
 				}),
 			)
 			.mutation(
@@ -226,13 +373,26 @@ export const createGitOperationsRouter = () => {
 
 					const git = await getGitWithShellPath(input.worktreePath);
 					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
-					const hasUpstream = await hasUpstreamBranch(git);
+					const trackingStatus = await getTrackingBranchStatus(git);
+					const hasUpstream = trackingStatus.hasUpstream;
+					const isBehindUpstream =
+						trackingStatus.hasUpstream && trackingStatus.pullCount > 0;
+					const hasUnpushedCommits =
+						trackingStatus.hasUpstream && trackingStatus.pushCount > 0;
 
-					// Ensure branch is pushed first
+					if (isBehindUpstream && !input.allowOutOfDate) {
+						const commitLabel =
+							trackingStatus.pullCount === 1 ? "commit" : "commits";
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message: `Branch is behind upstream by ${trackingStatus.pullCount} ${commitLabel}. Pull/rebase first, or continue anyway.`,
+						});
+					}
+
+					// Ensure remote branch exists and local commits are available on remote before PR create.
 					if (!hasUpstream) {
 						await pushWithSetUpstream({ git, branch });
 					} else {
-						// Push any unpushed commits
 						try {
 							await git.push();
 						} catch (error) {
@@ -240,19 +400,58 @@ export const createGitOperationsRouter = () => {
 								error instanceof Error ? error.message : String(error);
 							if (shouldRetryPushWithUpstream(message)) {
 								await pushWithSetUpstream({ git, branch });
+							} else if (
+								input.allowOutOfDate &&
+								isBehindUpstream &&
+								hasUnpushedCommits &&
+								isNonFastForwardPushError(message)
+							) {
+								throw new TRPCError({
+									code: "PRECONDITION_FAILED",
+									message:
+										"Branch has local commits but is behind upstream. Pull/rebase first so local commits can be pushed before creating a PR.",
+								});
 							} else {
 								throw error;
 							}
 						}
 					}
 
-					const { stdout } = await execWithShellEnv(
-						"gh",
-						["pr", "create", "--web", "--fill", "--head", branch],
-						{ cwd: input.worktreePath },
+					const existingPRUrl = await findExistingOpenPRUrl(
+						input.worktreePath,
+						branch,
 					);
+					if (existingPRUrl) {
+						await openPRInBrowser(input.worktreePath, existingPRUrl);
+						await fetchCurrentBranch(git);
+						return { success: true, url: existingPRUrl };
+					}
 
-					const url = stdout.trim() || "https://github.com";
+					let stdout = "";
+					try {
+						const result = await execWithShellEnv(
+							"gh",
+							["pr", "create", "--web", "--fill", "--head", branch],
+							{ cwd: input.worktreePath },
+						);
+						stdout = result.stdout;
+					} catch (error) {
+						// If creation reports branch/tracking mismatch but an open PR exists,
+						// recover by opening that existing PR instead of failing.
+						const recoveredPRUrl = await findExistingOpenPRUrl(
+							input.worktreePath,
+							branch,
+						);
+						if (recoveredPRUrl) {
+							await openPRInBrowser(input.worktreePath, recoveredPRUrl);
+							await fetchCurrentBranch(git);
+							return { success: true, url: recoveredPRUrl };
+						}
+						throw error;
+					}
+
+					const url =
+						(extractPRUrl(stdout) ?? stdout.trim()) || "https://github.com";
 					await fetchCurrentBranch(git);
 
 					return { success: true, url };

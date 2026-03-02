@@ -23,6 +23,7 @@ import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
+import { getPRActionState } from "./utils";
 
 interface ChangesViewProps {
 	onFileOpen?: (
@@ -42,21 +43,24 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const worktreePath = workspace?.worktreePath;
 	const projectId = workspace?.projectId;
 
-	const { status, isLoading, effectiveBaseBranch, refetch } =
+	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
 		useGitChangesStatus({
 			worktreePath,
 			refetchInterval: 2500,
 			refetchOnWindowFocus: true,
 		});
 
-	const { data: githubStatus, refetch: refetchGithubStatus } =
-		electronTrpc.workspaces.getGitHubStatus.useQuery(
-			{ workspaceId: workspaceId ?? "" },
-			{
-				enabled: !!workspaceId,
-				refetchInterval: 10000,
-			},
-		);
+	const {
+		data: githubStatus,
+		isLoading: isGitHubStatusLoading,
+		refetch: refetchGithubStatus,
+	} = electronTrpc.workspaces.getGitHubStatus.useQuery(
+		{ workspaceId: workspaceId ?? "" },
+		{
+			enabled: !!workspaceId,
+			refetchInterval: 10000,
+		},
+	);
 
 	useBranchSyncInvalidation({
 		gitBranch: status?.branch,
@@ -338,6 +342,19 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 	const hasStagedChanges = status.staged.length > 0;
 	const hasExistingPR = !!githubStatus?.pr;
 	const prUrl = githubStatus?.pr?.url;
+	const hasGitHubRepo = !!githubStatus?.repoUrl;
+	const defaultBranch = branchData?.defaultBranch ?? status.defaultBranch;
+	const isDefaultBranch = status.branch === defaultBranch;
+	const prActionState = getPRActionState({
+		hasRepo: hasGitHubRepo,
+		hasExistingPR,
+		hasUpstream: status.hasUpstream,
+		pushCount: status.pushCount,
+		pullCount: status.pullCount,
+		isDefaultBranch,
+	});
+	const shouldAutoCreatePRAfterPublish =
+		hasGitHubRepo && !isDefaultBranch && !hasExistingPR;
 
 	return (
 		<div className="flex flex-col flex-1 min-h-0">
@@ -346,7 +363,10 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
-				workspaceId={workspaceId}
+				pr={githubStatus?.pr ?? null}
+				isPRStatusLoading={isGitHubStatusLoading}
+				canCreatePR={prActionState.canCreatePR}
+				createPRBlockedReason={prActionState.createPRBlockedReason}
 				onStash={() => stashMutation.mutate({ worktreePath })}
 				onStashIncludeUntracked={() =>
 					stashIncludeUntrackedMutation.mutate({ worktreePath })
@@ -366,6 +386,8 @@ export function ChangesView({ onFileOpen, isExpandedView }: ChangesViewProps) {
 				pullCount={status.pullCount}
 				hasUpstream={status.hasUpstream}
 				hasExistingPR={hasExistingPR}
+				canCreatePR={prActionState.canCreatePR}
+				shouldAutoCreatePRAfterPublish={shouldAutoCreatePRAfterPublish}
 				prUrl={prUrl}
 				onRefresh={handleRefresh}
 			/>
