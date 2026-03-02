@@ -2,8 +2,8 @@ import {
 	type ExecFileOptionsWithStringEncoding,
 	execFile,
 } from "node:child_process";
-import os from "node:os";
 import { promisify } from "node:util";
+import { shellEnv } from "shell-env";
 
 const execFileAsync = promisify(execFile);
 
@@ -18,16 +18,11 @@ const FALLBACK_CACHE_TTL_MS = 10_000; // 10 second cache for fallback (retry soo
 let pathFixAttempted = false;
 let pathFixSucceeded = false;
 
-const ENV_DELIMITER = "_SHELL_ENV_DELIMITER_";
-
 /**
- * Gets the full shell environment by spawning an interactive login shell.
- * This matches what a terminal does, capturing PATH from ALL shell configs:
+ * Gets the full shell environment using sindresorhus/shell-env.
+ * Spawns an interactive login shell (-ilc) to capture PATH from ALL configs:
  * - .zprofile/.profile (login): homebrew, system PATH
  * - .zshrc/.bashrc (interactive): nvm, volta, fnm, pnpm, etc.
- *
- * Uses -ilc flags (same approach as sindresorhus/shell-env used by VS Code).
- * Delimiters isolate env output from shell startup noise.
  *
  * Results are cached for 1 minute to avoid spawning shells repeatedly.
  */
@@ -35,53 +30,19 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 	const now = Date.now();
 	const ttl = isFallbackCache ? FALLBACK_CACHE_TTL_MS : CACHE_TTL_MS;
 	if (cachedEnv && now - cacheTime < ttl) {
-		// Return a copy to prevent caller mutations from corrupting cache
 		return { ...cachedEnv };
 	}
 
-	const shell =
-		process.env.SHELL ||
-		(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
-
 	try {
-		const { stdout } = await execFileAsync(
-			shell,
-			[
-				"-ilc",
-				`echo -n "${ENV_DELIMITER}"; command env; echo -n "${ENV_DELIMITER}"; exit`,
-			],
-			{
-				timeout: 10_000,
-				env: {
-					...process.env,
-					HOME: os.homedir(),
-				},
-			},
-		);
-
-		const parts = stdout.split(ENV_DELIMITER);
-		const envOutput = parts.length >= 3 ? parts[1] : stdout;
-
-		const env: Record<string, string> = {};
-		for (const line of envOutput.split("\n")) {
-			const idx = line.indexOf("=");
-			if (idx > 0) {
-				const key = line.substring(0, idx);
-				const value = line.substring(idx + 1);
-				env[key] = value;
-			}
-		}
-
-		cachedEnv = env;
+		const env = await shellEnv();
+		cachedEnv = env as Record<string, string>;
 		cacheTime = now;
 		isFallbackCache = false;
-		return { ...env };
+		return { ...cachedEnv };
 	} catch (error) {
 		console.warn(
 			`[shell-env] Failed to get shell environment: ${error}. Falling back to process.env`,
 		);
-		// Fall back to process.env if shell spawn fails
-		// Cache with shorter TTL so we retry sooner
 		const fallback: Record<string, string> = {};
 		for (const [key, value] of Object.entries(process.env)) {
 			if (typeof value === "string") {
@@ -113,7 +74,7 @@ export function clearShellEnvCache(): void {
 export async function getProcessEnvWithShellPath(
 	baseEnv: NodeJS.ProcessEnv = process.env,
 ): Promise<Record<string, string>> {
-	const shellEnv = await getShellEnvironment();
+	const shellEnvResult = await getShellEnvironment();
 	const env: Record<string, string> = {};
 
 	for (const [key, value] of Object.entries(baseEnv)) {
@@ -122,13 +83,17 @@ export async function getProcessEnvWithShellPath(
 		}
 	}
 
-	const shellPath = shellEnv.PATH || shellEnv.Path;
+	const shellPath = shellEnvResult.PATH || shellEnvResult.Path;
 	if (!shellPath) {
 		return env;
 	}
 
 	env.PATH = shellPath;
-	if (process.platform === "win32" || "Path" in baseEnv || "Path" in shellEnv) {
+	if (
+		process.platform === "win32" ||
+		"Path" in baseEnv ||
+		"Path" in shellEnvResult
+	) {
 		env.Path = shellPath;
 	}
 
@@ -166,19 +131,19 @@ export async function execWithShellEnv(
 		console.log("[shell-env] Command not found, deriving shell environment");
 
 		try {
-			const shellEnv = await getShellEnvironment();
+			const shellEnvResult = await getShellEnvironment();
 
 			// Persist the fix to process.env so all subsequent calls benefit
-			if (shellEnv.PATH) {
-				process.env.PATH = shellEnv.PATH;
+			if (shellEnvResult.PATH) {
+				process.env.PATH = shellEnvResult.PATH;
 				pathFixSucceeded = true;
 				console.log("[shell-env] Fixed process.env.PATH for GUI app");
 			}
 
 			// Retry with fixed env (respect caller's other env vars, force PATH if present)
-			const retryEnv = shellEnv.PATH
-				? { ...shellEnv, ...options?.env, PATH: shellEnv.PATH }
-				: { ...shellEnv, ...options?.env };
+			const retryEnv = shellEnvResult.PATH
+				? { ...shellEnvResult, ...options?.env, PATH: shellEnvResult.PATH }
+				: { ...shellEnvResult, ...options?.env };
 
 			return await execFileAsync(cmd, args, {
 				...options,
