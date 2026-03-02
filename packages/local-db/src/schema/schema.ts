@@ -9,6 +9,7 @@ import type {
 	GitStatus,
 	TerminalLinkBehavior,
 	TerminalPreset,
+	WorkspaceBranchNamingMode,
 	WorkspaceType,
 } from "./zod";
 
@@ -161,6 +162,9 @@ export const settings = sqliteTable("settings", {
 	}),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
+	workspaceBranchNamingMode: text(
+		"workspace_branch_naming_mode",
+	).$type<WorkspaceBranchNamingMode>(),
 	notificationSoundsMuted: integer("notification_sounds_muted", {
 		mode: "boolean",
 	}),

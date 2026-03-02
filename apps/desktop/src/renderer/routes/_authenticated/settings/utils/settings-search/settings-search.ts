@@ -25,6 +25,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 	BEHAVIOR_DELETE_LOCAL_BRANCH: "behavior-delete-local-branch",
 	BEHAVIOR_BRANCH_PREFIX: "behavior-branch-prefix",
+	BEHAVIOR_WORKSPACE_BRANCH_NAMING: "behavior-workspace-branch-naming",
 	BEHAVIOR_TELEMETRY: "behavior-telemetry",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
@@ -390,6 +391,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"username",
 			"feat",
 			"custom",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_WORKSPACE_BRANCH_NAMING,
+		section: "behavior",
+		title: "Auto branch naming",
+		description:
+			"Choose whether new workspace branches are based on prompt text or random words",
+		keywords: [
+			"features",
+			"branch",
+			"naming",
+			"auto",
+			"prompt",
+			"random",
+			"workspace",
+			"worktree",
+			"three",
+			"words",
 		],
 	},
 	{

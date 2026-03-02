@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `workspace_branch_naming_mode` text;
