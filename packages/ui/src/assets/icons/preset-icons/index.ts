@@ -1,3 +1,5 @@
+import autohandIcon from "./autohand.svg";
+import autohandWhiteIcon from "./autohand-white.svg";
 import claudeIcon from "./claude.svg";
 import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
@@ -14,6 +16,7 @@ export interface PresetIconSet {
 }
 
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
+	autohand: { light: autohandIcon, dark: autohandWhiteIcon },
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
@@ -33,6 +36,8 @@ export function getPresetIcon(
 }
 
 export {
+	autohandIcon,
+	autohandWhiteIcon,
 	claudeIcon,
 	codexIcon,
 	codexWhiteIcon,
