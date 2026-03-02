@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+	chmodSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -80,6 +87,94 @@ describe("shell-wrappers", () => {
 			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
 		);
 		expect(zlogin).toContain("rehash 2>/dev/null || true");
+	});
+
+	it("reproduces pre-fix .zlogin behavior where system node wins", () => {
+		try {
+			execFileSync("zsh", ["-lc", "exit 0"], { stdio: "ignore" });
+		} catch {
+			// zsh may not exist in all test environments.
+			return;
+		}
+
+		const integrationRoot = path.join(TEST_ROOT, "zlogin-node-repro");
+		const integrationBinDir = path.join(integrationRoot, "superset-bin");
+		const integrationZshDir = path.join(integrationRoot, "zsh");
+		const integrationBashDir = path.join(integrationRoot, "bash");
+		const homeDir = path.join(integrationRoot, "home");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		const projectBinDir = path.join(homeDir, "project-bin");
+
+		mkdirSync(integrationBinDir, { recursive: true });
+		mkdirSync(integrationZshDir, { recursive: true });
+		mkdirSync(integrationBashDir, { recursive: true });
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+		mkdirSync(projectBinDir, { recursive: true });
+
+		const makeNode = (target: string, label: string) => {
+			writeFileSync(
+				target,
+				`#!/usr/bin/env bash
+echo ${label}
+`,
+			);
+			chmodSync(target, 0o755);
+		};
+
+		makeNode(path.join(systemBinDir, "node"), "system");
+		makeNode(path.join(projectBinDir, "node"), "project");
+
+		writeFileSync(
+			path.join(homeDir, ".zlogin"),
+			`if [[ -f "$ZDOTDIR/.project-node" ]]; then
+  export PATH="$HOME/project-bin:$PATH"
+fi
+`,
+		);
+		writeFileSync(path.join(homeDir, ".project-node"), "");
+
+		createZshWrapper({
+			BIN_DIR: integrationBinDir,
+			ZSH_DIR: integrationZshDir,
+			BASH_DIR: integrationBashDir,
+		});
+
+		const fixedWrapperPath = path.join(integrationZshDir, ".zlogin");
+		const fixedWrapper = readFileSync(fixedWrapperPath, "utf-8");
+		const legacyWrapper = fixedWrapper.replace(
+			'export ZDOTDIR="$_superset_home"\nif [[ -o interactive ]]; then',
+			"if [[ -o interactive ]]; then",
+		);
+		expect(legacyWrapper).not.toBe(fixedWrapper);
+
+		const legacyWrapperPath = path.join(integrationZshDir, ".zlogin.legacy");
+		writeFileSync(legacyWrapperPath, legacyWrapper);
+
+		const runNode = (wrapperPath: string): string => {
+			const output = execFileSync(
+				"zsh",
+				["-ic", `source "${wrapperPath}"; node`],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: `${systemBinDir}:/usr/bin:/bin`,
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((line) => line.trim())
+				.filter(Boolean);
+			return lines[lines.length - 1] || "";
+		};
+
+		expect(runNode(legacyWrapperPath)).toBe("system");
+		expect(runNode(fixedWrapperPath)).toBe("project");
 	});
 
 	it("creates bash wrapper with command shims and idempotent PATH prepend", () => {
