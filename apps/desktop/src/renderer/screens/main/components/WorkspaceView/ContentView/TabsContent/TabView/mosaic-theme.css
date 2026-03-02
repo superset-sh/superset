@@ -20,7 +20,7 @@
 	box-shadow: none;
 }
 :is(.mosaic-theme-dark, .mosaic-theme-light) .mosaic-window-focused {
-	border-color: var(--color-border);
+	border-color: var(--color-ring);
 }
 
 :is(.mosaic-theme-dark, .mosaic-theme-light)
