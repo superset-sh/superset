@@ -14,6 +14,8 @@ import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-hel
 import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
+import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
+import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
 import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
 import { UserMessage } from "./components/UserMessage";
 
@@ -30,6 +32,9 @@ type MastraToolInputBuffer =
 	MastraToolInputBuffers extends Map<string, infer InputBuffer>
 		? InputBuffer
 		: never;
+type MastraPendingApproval = UseMastraChatDisplayReturn["pendingApproval"];
+type MastraPendingPlanApproval =
+	UseMastraChatDisplayReturn["pendingPlanApproval"];
 type MastraPendingQuestion = UseMastraChatDisplayReturn["pendingQuestion"];
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -49,6 +54,17 @@ interface ChatMastraMessageListProps {
 	workspaceCwd?: string;
 	activeTools: MastraActiveTools | undefined;
 	toolInputBuffers: MastraToolInputBuffers | undefined;
+	pendingApproval: MastraPendingApproval;
+	isApprovalSubmitting: boolean;
+	onApprovalRespond: (
+		decision: "approve" | "decline" | "always_allow_category",
+	) => Promise<void>;
+	pendingPlanApproval: MastraPendingPlanApproval;
+	isPlanSubmitting: boolean;
+	onPlanRespond: (response: {
+		action: "approved" | "rejected";
+		feedback?: string;
+	}) => Promise<void>;
 	pendingQuestion: MastraPendingQuestion;
 	isQuestionSubmitting: boolean;
 	onQuestionRespond: (questionId: string, answer: string) => Promise<void>;
@@ -148,6 +164,12 @@ export function ChatMastraMessageList({
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
+	pendingApproval,
+	isApprovalSubmitting,
+	onApprovalRespond,
+	pendingPlanApproval,
+	isPlanSubmitting,
+	onPlanRespond,
 	pendingQuestion,
 	isQuestionSubmitting,
 	onQuestionRespond,
@@ -222,6 +244,8 @@ export function ChatMastraMessageList({
 				)}
 				{isRunning &&
 					!currentMessage &&
+					!pendingApproval &&
+					!pendingPlanApproval &&
 					!pendingQuestion &&
 					visibleMessages[visibleMessages.length - 1]?.role === "user" &&
 					previewToolParts.length === 0 && (
@@ -235,6 +259,8 @@ export function ChatMastraMessageList({
 					)}
 				{isRunning &&
 					!currentMessage &&
+					!pendingApproval &&
+					!pendingPlanApproval &&
 					!pendingQuestion &&
 					visibleMessages[visibleMessages.length - 1]?.role === "user" &&
 					previewToolParts.length > 0 && (
@@ -253,6 +279,20 @@ export function ChatMastraMessageList({
 							</MessageContent>
 						</Message>
 					)}
+				{pendingApproval && (
+					<PendingApprovalMessage
+						approval={pendingApproval}
+						isSubmitting={isApprovalSubmitting}
+						onRespond={onApprovalRespond}
+					/>
+				)}
+				{pendingPlanApproval && (
+					<PendingPlanApprovalMessage
+						planApproval={pendingPlanApproval}
+						isSubmitting={isPlanSubmitting}
+						onRespond={onPlanRespond}
+					/>
+				)}
 				{pendingQuestion && (
 					<PendingQuestionMessage
 						question={pendingQuestion}

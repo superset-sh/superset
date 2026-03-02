@@ -20,10 +20,8 @@ import type {
 	ModelOption,
 	PermissionMode,
 } from "../../ChatPane/ChatInterface/types";
-import { ApprovalDialog } from "./components/ApprovalDialog";
 import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
 import { McpControls } from "./components/McpControls";
-import { PlanApprovalDialog } from "./components/PlanApprovalDialog";
 import { useMcpUi } from "./hooks/useMcpUi";
 import type { ChatMastraInterfaceProps } from "./types";
 import { toMastraImages } from "./utils/toMastraImages";
@@ -395,6 +393,12 @@ export function ChatMastraInterface({
 					workspaceCwd={cwd}
 					activeTools={activeTools}
 					toolInputBuffers={toolInputBuffers}
+					pendingApproval={pendingApproval}
+					isApprovalSubmitting={approvalResponsePending}
+					onApprovalRespond={handleApprovalResponse}
+					pendingPlanApproval={pendingPlanApproval}
+					isPlanSubmitting={planResponsePending}
+					onPlanRespond={handlePlanResponse}
 					pendingQuestion={pendingQuestion}
 					isQuestionSubmitting={questionResponsePending}
 					onQuestionRespond={handleQuestionResponse}
@@ -424,16 +428,6 @@ export function ChatMastraInterface({
 					}}
 					onStop={handleStop}
 					onSlashCommandSend={handleSlashCommandSend}
-				/>
-				<ApprovalDialog
-					approval={pendingApproval}
-					isSubmitting={approvalResponsePending}
-					onRespond={handleApprovalResponse}
-				/>
-				<PlanApprovalDialog
-					planApproval={pendingPlanApproval}
-					isSubmitting={planResponsePending}
-					onRespond={handlePlanResponse}
 				/>
 			</div>
 		</PromptInputProvider>
