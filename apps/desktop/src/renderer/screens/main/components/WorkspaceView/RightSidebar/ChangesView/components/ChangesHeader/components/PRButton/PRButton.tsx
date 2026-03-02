@@ -1,3 +1,4 @@
+import type { GitHubStatus } from "@superset/local-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,24 +13,25 @@ import { LuGitPullRequest, LuLoaderCircle } from "react-icons/lu";
 import { VscGitMerge } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
-import { useCreateOrOpenPR, usePRStatus } from "renderer/screens/main/hooks";
+import { useCreateOrOpenPR } from "renderer/screens/main/hooks";
 
 interface PRButtonProps {
-	workspaceId?: string;
+	pr: GitHubStatus["pr"] | null;
+	isLoading: boolean;
+	canCreatePR: boolean;
+	createPRBlockedReason: string | null;
 	worktreePath: string;
 	onRefresh: () => void;
 }
 
 export function PRButton({
-	workspaceId,
+	pr,
+	isLoading,
+	canCreatePR,
+	createPRBlockedReason,
 	worktreePath,
 	onRefresh,
 }: PRButtonProps) {
-	const { pr, isLoading } = usePRStatus({
-		workspaceId,
-		refetchInterval: 10000,
-	});
-
 	const mergePRMutation = electronTrpc.changes.mergePR.useMutation({
 		onSuccess: () => {
 			toast.success("PR merged successfully");
@@ -58,6 +60,21 @@ export function PRButton({
 	}
 
 	if (!pr) {
+		if (!canCreatePR) {
+			return (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<span className="flex items-center ml-auto text-muted-foreground/40">
+							<LuGitPullRequest className="w-4 h-4" />
+						</span>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						{createPRBlockedReason ?? "Create Pull Request unavailable"}
+					</TooltipContent>
+				</Tooltip>
+			);
+		}
+
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>

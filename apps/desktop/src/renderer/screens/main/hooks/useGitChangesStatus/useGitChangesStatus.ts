@@ -40,5 +40,5 @@ export function useGitChangesStatus({
 		},
 	);
 
-	return { status, isLoading, effectiveBaseBranch, refetch };
+	return { status, isLoading, effectiveBaseBranch, branchData, refetch };
 }

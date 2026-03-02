@@ -16,18 +16,44 @@ export function useCreateOrOpenPR({
 	worktreePath,
 	onSuccess,
 }: UseCreateOrOpenPROptions): UseCreateOrOpenPRResult {
-	const mutation = electronTrpc.changes.createPR.useMutation({
-		onSuccess: () => {
-			toast.success("Opening GitHub...");
-			onSuccess?.();
-		},
-		onError: (error) => toast.error(`Failed: ${error.message}`),
-	});
+	const mutation = electronTrpc.changes.createPR.useMutation();
 
 	const createOrOpenPR = useCallback(() => {
 		if (!worktreePath) return;
-		mutation.mutate({ worktreePath });
-	}, [mutation, worktreePath]);
+
+		void (async () => {
+			try {
+				await mutation.mutateAsync({ worktreePath });
+				toast.success("Opening GitHub...");
+				onSuccess?.();
+				return;
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				const isBehindUpstreamError = message.includes("behind upstream");
+				if (!isBehindUpstreamError) {
+					toast.error(`Failed: ${message}`);
+					return;
+				}
+
+				const shouldContinue = window.confirm(
+					`${message}\n\nCreate/open the pull request anyway?`,
+				);
+				if (!shouldContinue) {
+					return;
+				}
+			}
+
+			try {
+				await mutation.mutateAsync({ worktreePath, allowOutOfDate: true });
+				toast.success("Opening GitHub...");
+				onSuccess?.();
+			} catch (retryError) {
+				const retryMessage =
+					retryError instanceof Error ? retryError.message : String(retryError);
+				toast.error(`Failed: ${retryMessage}`);
+			}
+		})();
+	}, [mutation, onSuccess, worktreePath]);
 
 	return {
 		createOrOpenPR,

@@ -90,6 +90,42 @@ function shouldRetryPushWithUpstream(message: string): boolean {
 	);
 }
 
+interface TrackingStatus {
+	pushCount: number;
+	pullCount: number;
+	hasUpstream: boolean;
+}
+
+async function getTrackingBranchStatus(
+	git: ReturnType<typeof simpleGit>,
+): Promise<TrackingStatus> {
+	try {
+		const upstream = await git.raw([
+			"rev-parse",
+			"--abbrev-ref",
+			"@{upstream}",
+		]);
+		if (!upstream.trim()) {
+			return { pushCount: 0, pullCount: 0, hasUpstream: false };
+		}
+
+		const tracking = await git.raw([
+			"rev-list",
+			"--left-right",
+			"--count",
+			"@{upstream}...HEAD",
+		]);
+		const [pullStr, pushStr] = tracking.trim().split(/\s+/);
+		return {
+			pushCount: Number.parseInt(pushStr || "0", 10),
+			pullCount: Number.parseInt(pullStr || "0", 10),
+			hasUpstream: true,
+		};
+	} catch {
+		return { pushCount: 0, pullCount: 0, hasUpstream: false };
+	}
+}
+
 function extractPRUrl(text: string): string | null {
 	const match = text.match(/https:\/\/github\.com\/\S+\/pull\/\d+/);
 	return match?.[0] ?? null;
@@ -288,6 +324,7 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
+					allowOutOfDate: z.boolean().optional().default(false),
 				}),
 			)
 			.mutation(
@@ -297,11 +334,23 @@ export const createGitOperationsRouter = () => {
 					const git = await getGitWithShellPath(input.worktreePath);
 					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 					const hasUpstream = await hasUpstreamBranch(git);
+					const trackingStatus = await getTrackingBranchStatus(git);
+					const isBehindUpstream =
+						trackingStatus.hasUpstream && trackingStatus.pullCount > 0;
+
+					if (isBehindUpstream && !input.allowOutOfDate) {
+						const commitLabel =
+							trackingStatus.pullCount === 1 ? "commit" : "commits";
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message: `Branch is behind upstream by ${trackingStatus.pullCount} ${commitLabel}. Pull/rebase first, or continue anyway.`,
+						});
+					}
 
 					// Ensure branch is pushed first
 					if (!hasUpstream) {
 						await pushWithSetUpstream({ git, branch });
-					} else {
+					} else if (!isBehindUpstream) {
 						// Push any unpushed commits
 						try {
 							await git.push();

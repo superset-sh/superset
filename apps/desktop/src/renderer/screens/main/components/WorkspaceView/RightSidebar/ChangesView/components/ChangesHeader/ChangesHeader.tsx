@@ -1,3 +1,4 @@
+import type { GitHubStatus } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -29,7 +30,10 @@ interface ChangesHeaderProps {
 	viewMode: ChangesViewMode;
 	onViewModeChange: (mode: ChangesViewMode) => void;
 	worktreePath: string;
-	workspaceId?: string;
+	pr: GitHubStatus["pr"] | null;
+	isPRStatusLoading: boolean;
+	canCreatePR: boolean;
+	createPRBlockedReason: string | null;
 	onStash: () => void;
 	onStashIncludeUntracked: () => void;
 	onStashPop: () => void;
@@ -229,7 +233,10 @@ export function ChangesHeader({
 	viewMode,
 	onViewModeChange,
 	worktreePath,
-	workspaceId,
+	pr,
+	isPRStatusLoading,
+	canCreatePR,
+	createPRBlockedReason,
 	onStash,
 	onStashIncludeUntracked,
 	onStashPop,
@@ -247,7 +254,10 @@ export function ChangesHeader({
 			<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
 			<RefreshButton onRefresh={onRefresh} />
 			<PRButton
-				workspaceId={workspaceId}
+				pr={pr}
+				isLoading={isPRStatusLoading}
+				canCreatePR={canCreatePR}
+				createPRBlockedReason={createPRBlockedReason}
 				worktreePath={worktreePath}
 				onRefresh={onRefresh}
 			/>
