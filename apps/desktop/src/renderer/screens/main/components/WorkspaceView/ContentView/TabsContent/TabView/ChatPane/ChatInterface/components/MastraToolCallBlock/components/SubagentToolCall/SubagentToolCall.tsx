@@ -29,7 +29,7 @@ export function SubagentToolCall({
 	result,
 }: SubagentToolCallProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [renderMarkdown, setRenderMarkdown] = useState(false);
+	const [renderMarkdown, setRenderMarkdown] = useState(true);
 	const markdownToggleId = useId();
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";

@@ -72,7 +72,7 @@ export function SubagentExecutionMessage({
 								{subagent.text ? (
 									<MarkdownToggleContent
 										toggleId={`subagent-markdown-${subagent.toolCallId}`}
-										checked={Boolean(markdownBySubagent[subagent.toolCallId])}
+										checked={markdownBySubagent[subagent.toolCallId] ?? true}
 										onCheckedChange={(checked) =>
 											setMarkdownBySubagent((previous) => ({
 												...previous,
