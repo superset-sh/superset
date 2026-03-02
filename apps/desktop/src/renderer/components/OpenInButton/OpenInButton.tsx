@@ -267,7 +267,7 @@ export function OpenInButton({
 								alt=""
 								className="size-4 object-contain"
 							/>
-							<span className="font-medium">{`isDark: ${isDark}. ${label}`}</span>
+							<span className="font-medium">{label}</span>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
