@@ -113,6 +113,23 @@ describe("shell-wrappers", () => {
 		expect(getShellArgs("powershell")).toEqual([]);
 	});
 
+	it("does not override user-defined shell functions (issue #1812)", () => {
+		createZshWrapper(TEST_PATHS);
+		createBashWrapper(TEST_PATHS);
+
+		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
+		const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
+		const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
+
+		// Shim functions must be guarded so that user-defined wrappers (e.g. a
+		// claude() that sets AWS_PROFILE for Bedrock auth) are not overridden.
+		for (const name of ["claude", "codex", "opencode", "gemini", "copilot"]) {
+			expect(zshrc).toContain(`typeset -f ${name}`);
+			expect(zlogin).toContain(`typeset -f ${name}`);
+			expect(rcfile).toContain(`typeset -f ${name}`);
+		}
+	});
+
 	describe("fish shell", () => {
 		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
 			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);

@@ -60,10 +60,16 @@ const SHIMMED_BINARIES = [
  * Functions take precedence over PATH in both zsh and bash,
  * so even if a precmd hook or .zlogin re-orders PATH, the
  * wrapped binary is always invoked.
+ *
+ * Each shim is guarded with `typeset -f` (compatible with bash and zsh) so
+ * that user-defined functions loaded from .zshrc/.bashrc are not overridden.
+ * This preserves user wrappers that set env vars (e.g. AWS_PROFILE for Bedrock
+ * auth) before delegating to the real binary.
  */
 function buildShimFunctions(binDir: string): string {
 	return SHIMMED_BINARIES.map(
-		(name) => `${name}() { "${binDir}/${name}" "$@"; }`,
+		(name) =>
+			`if ! typeset -f ${name} > /dev/null 2>&1; then\n  ${name}() { "${binDir}/${name}" "$@"; }\nfi`,
 	).join("\n");
 }
 
