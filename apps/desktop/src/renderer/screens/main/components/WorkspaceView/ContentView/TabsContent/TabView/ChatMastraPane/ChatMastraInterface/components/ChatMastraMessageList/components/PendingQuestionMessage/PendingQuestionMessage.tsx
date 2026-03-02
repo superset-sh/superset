@@ -23,6 +23,9 @@ export function PendingQuestionMessage({
 	onRespond,
 }: PendingQuestionMessageProps) {
 	const [freeText, setFreeText] = useState("");
+	const [selectedOptionLabel, setSelectedOptionLabel] = useState<string | null>(
+		null,
+	);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const previousQuestionIdRef = useRef<string | null>(null);
 
@@ -40,6 +43,7 @@ export function PendingQuestionMessage({
 		if (previousQuestionIdRef.current === currentQuestionId) return;
 		previousQuestionIdRef.current = currentQuestionId;
 		setFreeText("");
+		setSelectedOptionLabel(null);
 	}, [question]);
 
 	useEffect(() => {
@@ -67,10 +71,15 @@ export function PendingQuestionMessage({
 									key={option.label}
 									type="button"
 									variant="outline"
-									className="h-auto w-full justify-start px-3 py-2 text-left"
+									className={`h-auto w-full justify-start px-3 py-2 text-left ${
+										selectedOptionLabel === option.label
+											? "border-primary bg-primary/10 text-primary"
+											: ""
+									}`}
 									disabled={isSubmitting || !canRespond}
 									onClick={() => {
 										if (!question?.questionId) return;
+										setSelectedOptionLabel(option.label);
 										void onRespond(question.questionId, option.label);
 									}}
 								>
