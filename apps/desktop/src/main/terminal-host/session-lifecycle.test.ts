@@ -13,9 +13,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { ChildProcess } from "node:child_process";
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+} from "node:fs";
 import { connect, type Socket } from "node:net";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
 	type CreateOrAttachRequest,
@@ -24,10 +29,12 @@ import {
 	type IpcResponse,
 	PROTOCOL_VERSION,
 } from "../lib/terminal-host/types";
+import { supportsLocalSocketBinding } from "./test-helpers";
 
 // Test uses a dedicated workspace name for isolation
 const SUPERSET_DIR_NAME = ".superset-test";
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
+const TEST_HOME_DIR = mkdtempSync("/tmp/sth-");
+const SUPERSET_HOME_DIR = join(TEST_HOME_DIR, SUPERSET_DIR_NAME);
 const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
 const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
 const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
@@ -41,7 +48,16 @@ const XTERM_POLYFILL_PATH = resolve(__dirname, "xterm-env-polyfill.ts");
 const DAEMON_TIMEOUT = 10000;
 const CONNECT_TIMEOUT = 5000;
 
-describe("Terminal Host Session Lifecycle", () => {
+const canRunSessionLifecycleIntegration = supportsLocalSocketBinding();
+
+if (!canRunSessionLifecycleIntegration) {
+	describe("Terminal Host Session Lifecycle", () => {
+		it("skips when local socket binding is unavailable", () => {
+			expect(true).toBe(true);
+		});
+	});
+} else {
+	describe("Terminal Host Session Lifecycle", () => {
 	let daemonProcess: ChildProcess | null = null;
 
 	/**
@@ -99,6 +115,7 @@ describe("Terminal Host Session Lifecycle", () => {
 				{
 					env: {
 						...process.env,
+						HOME: TEST_HOME_DIR,
 						NODE_ENV: "development",
 						SUPERSET_WORKSPACE_NAME: "test",
 					},
@@ -108,6 +125,7 @@ describe("Terminal Host Session Lifecycle", () => {
 			);
 
 			let output = "";
+			let stderrOutput = "";
 			let settled = false;
 			let timeoutId: ReturnType<typeof setTimeout>;
 
@@ -122,14 +140,20 @@ describe("Terminal Host Session Lifecycle", () => {
 			});
 
 			daemonProcess.stderr?.on("data", (data) => {
-				console.error("Daemon stderr:", data.toString());
+				const text = data.toString();
+				stderrOutput += text;
+				console.error("Daemon stderr:", text);
 			});
 
 			daemonProcess.on("error", (error) => {
 				if (settled) return;
 				settled = true;
 				clearTimeout(timeoutId);
-				reject(new Error(`Failed to start daemon: ${error.message}`));
+				reject(
+					new Error(
+						`Failed to start daemon: ${error.message}. stdout=${output} stderr=${stderrOutput}`,
+					),
+				);
 			});
 
 			daemonProcess.on("exit", (code, signal) => {
@@ -137,7 +161,9 @@ describe("Terminal Host Session Lifecycle", () => {
 					settled = true;
 					clearTimeout(timeoutId);
 					reject(
-						new Error(`Daemon exited with code ${code}, signal ${signal}`),
+						new Error(
+							`Daemon exited with code ${code}, signal ${signal}. stdout=${output} stderr=${stderrOutput}`,
+						),
 					);
 				}
 			});
@@ -147,7 +173,7 @@ describe("Terminal Host Session Lifecycle", () => {
 				settled = true;
 				reject(
 					new Error(
-						`Daemon failed to start within ${DAEMON_TIMEOUT}ms. Output: ${output}`,
+						`Daemon failed to start within ${DAEMON_TIMEOUT}ms. stdout=${output} stderr=${stderrOutput}`,
 					),
 				);
 			}, DAEMON_TIMEOUT);
@@ -288,6 +314,7 @@ describe("Terminal Host Session Lifecycle", () => {
 	afterAll(async () => {
 		await stopDaemon();
 		cleanup();
+		rmSync(TEST_HOME_DIR, { recursive: true, force: true });
 	});
 
 	describe("session creation", () => {
@@ -328,3 +355,4 @@ describe("Terminal Host Session Lifecycle", () => {
 		});
 	});
 });
+}
