@@ -171,6 +171,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 				<DropdownMenuContent align="end" className="w-48">
 					<OpenInExternalDropdownItems
 						isDark={isDark}
+						activeApp={defaultApp}
 						onOpenIn={handleOpenInOtherApp}
 						onCopyPath={handleCopyPath}
 						renderAppTrailing={(appId, group) => {

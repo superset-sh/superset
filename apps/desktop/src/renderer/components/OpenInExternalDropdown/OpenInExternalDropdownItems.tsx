@@ -10,13 +10,27 @@ import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 import { LuCopy } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
+import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
-import { APP_OPTIONS, JETBRAINS_OPTIONS, VSCODE_OPTIONS } from "./constants";
+import {
+	FINDER_OPTIONS,
+	IDE_OPTIONS,
+	JETBRAINS_OPTIONS,
+	type OpenInExternalAppOption,
+	TERMINAL_OPTIONS,
+	VSCODE_OPTIONS,
+} from "./constants";
 
-export type OpenInExternalAppGroup = "primary" | "vscode" | "jetbrains";
+export type OpenInExternalAppGroup =
+	| "finder"
+	| "ide"
+	| "terminal"
+	| "vscode"
+	| "jetbrains";
 
 interface OpenInExternalDropdownItemsProps {
 	isDark: boolean;
+	activeApp?: ExternalApp;
 	onOpenIn: (app: ExternalApp) => void;
 	onCopyPath: () => void;
 	renderAppTrailing?: (
@@ -40,6 +54,7 @@ interface OpenInExternalDropdownItemsProps {
 
 export function OpenInExternalDropdownItems({
 	isDark,
+	activeApp,
 	onOpenIn,
 	onCopyPath,
 	renderAppTrailing,
@@ -58,7 +73,7 @@ export function OpenInExternalDropdownItems({
 	copyPathLabelClassName,
 }: OpenInExternalDropdownItemsProps) {
 	const renderAppOptions = (
-		apps: typeof APP_OPTIONS,
+		apps: OpenInExternalAppOption[],
 		group: OpenInExternalAppGroup,
 	) =>
 		apps.map((app) => (
@@ -79,9 +94,18 @@ export function OpenInExternalDropdownItems({
 			</DropdownMenuItem>
 		));
 
+	const activeIdeOption = activeApp
+		? [...IDE_OPTIONS, ...VSCODE_OPTIONS, ...JETBRAINS_OPTIONS].find(
+				(app) => app.id === activeApp,
+			)
+		: undefined;
+	const activeTerminalOption = activeApp
+		? TERMINAL_OPTIONS.find((app) => app.id === activeApp)
+		: undefined;
+
 	return (
 		<>
-			{renderAppOptions(APP_OPTIONS, "primary")}
+			{renderAppOptions(FINDER_OPTIONS, "finder")}
 			<DropdownMenuSub>
 				<DropdownMenuSubTrigger className={subTriggerClassName}>
 					<div
@@ -91,15 +115,67 @@ export function OpenInExternalDropdownItems({
 						)}
 					>
 						<img
-							src={vscodeIcon}
+							src={
+								activeIdeOption
+									? isDark
+										? activeIdeOption.darkIcon
+										: activeIdeOption.lightIcon
+									: vscodeIcon
+							}
 							alt=""
 							className={cn("size-4 object-contain", subTriggerIconClassName)}
 						/>
-						<span>VS Code</span>
+						<span>IDE</span>
 					</div>
 				</DropdownMenuSubTrigger>
-				<DropdownMenuSubContent className={subContentClassName}>
-					{renderAppOptions(VSCODE_OPTIONS, "vscode")}
+				<DropdownMenuSubContent sideOffset={8} className={subContentClassName}>
+					{renderAppOptions(IDE_OPTIONS, "ide")}
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger className={subTriggerClassName}>
+							<div
+								className={cn(
+									"flex items-center gap-2",
+									subTriggerContentClassName,
+								)}
+							>
+								<img
+									src={vscodeIcon}
+									alt=""
+									className={cn(
+										"size-4 object-contain",
+										subTriggerIconClassName,
+									)}
+								/>
+								<span>VS Code</span>
+							</div>
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent className={subContentClassName}>
+							{renderAppOptions(VSCODE_OPTIONS, "vscode")}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger className={subTriggerClassName}>
+							<div
+								className={cn(
+									"flex items-center gap-2",
+									subTriggerContentClassName,
+								)}
+							>
+								<img
+									src={jetbrainsIcon}
+									alt=""
+									className={cn(
+										"size-4 object-contain",
+										subTriggerIconClassName,
+									)}
+								/>
+								<span>JetBrains</span>
+							</div>
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent className={subContentClassName}>
+							{renderAppOptions(JETBRAINS_OPTIONS, "jetbrains")}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
 				</DropdownMenuSubContent>
 			</DropdownMenuSub>
 			<DropdownMenuSub>
@@ -111,15 +187,21 @@ export function OpenInExternalDropdownItems({
 						)}
 					>
 						<img
-							src={jetbrainsIcon}
+							src={
+								activeTerminalOption
+									? isDark
+										? activeTerminalOption.darkIcon
+										: activeTerminalOption.lightIcon
+									: terminalIcon
+							}
 							alt=""
 							className={cn("size-4 object-contain", subTriggerIconClassName)}
 						/>
-						<span>JetBrains</span>
+						<span>Terminal</span>
 					</div>
 				</DropdownMenuSubTrigger>
-				<DropdownMenuSubContent className={subContentClassName}>
-					{renderAppOptions(JETBRAINS_OPTIONS, "jetbrains")}
+				<DropdownMenuSubContent sideOffset={8} className={subContentClassName}>
+					{renderAppOptions(TERMINAL_OPTIONS, "terminal")}
 				</DropdownMenuSubContent>
 			</DropdownMenuSub>
 			<DropdownMenuSeparator />

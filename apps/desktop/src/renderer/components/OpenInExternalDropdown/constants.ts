@@ -34,13 +34,16 @@ export interface OpenInExternalAppOption {
 	displayLabel?: string;
 }
 
-export const APP_OPTIONS: OpenInExternalAppOption[] = [
+export const FINDER_OPTIONS: OpenInExternalAppOption[] = [
 	{
 		id: "finder",
 		label: "Finder",
 		lightIcon: finderIcon,
 		darkIcon: finderIcon,
 	},
+];
+
+export const IDE_OPTIONS: OpenInExternalAppOption[] = [
 	{
 		id: "cursor",
 		label: "Cursor",
@@ -67,6 +70,9 @@ export const APP_OPTIONS: OpenInExternalAppOption[] = [
 		darkIcon: sublimeIcon,
 	},
 	{ id: "xcode", label: "Xcode", lightIcon: xcodeIcon, darkIcon: xcodeIcon },
+];
+
+export const TERMINAL_OPTIONS: OpenInExternalAppOption[] = [
 	{ id: "iterm", label: "iTerm", lightIcon: itermIcon, darkIcon: itermIcon },
 	{ id: "warp", label: "Warp", lightIcon: warpIcon, darkIcon: warpIcon },
 	{
@@ -81,6 +87,12 @@ export const APP_OPTIONS: OpenInExternalAppOption[] = [
 		lightIcon: ghosttyIcon,
 		darkIcon: ghosttyIcon,
 	},
+];
+
+export const APP_OPTIONS: OpenInExternalAppOption[] = [
+	...FINDER_OPTIONS,
+	...IDE_OPTIONS,
+	...TERMINAL_OPTIONS,
 ];
 
 export const VSCODE_OPTIONS: OpenInExternalAppOption[] = [
