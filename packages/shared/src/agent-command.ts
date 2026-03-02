@@ -1,7 +1,6 @@
 export const AGENT_TYPES = [
 	"claude",
 	"codex",
-	"superset",
 	"gemini",
 	"opencode",
 	"copilot",
@@ -13,7 +12,6 @@ export type AgentType = (typeof AGENT_TYPES)[number];
 export const AGENT_LABELS: Record<AgentType, string> = {
 	claude: "Claude",
 	codex: "Codex",
-	superset: "Superset",
 	gemini: "Gemini",
 	opencode: "OpenCode",
 	copilot: "Copilot",
@@ -25,7 +23,6 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 	codex: [
 		'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
 	],
-	superset: ["mastracode"],
 	gemini: ["gemini --yolo"],
 	opencode: ["opencode"],
 	copilot: ["copilot --allow-all"],
@@ -35,7 +32,6 @@ export const AGENT_PRESET_COMMANDS: Record<AgentType, string[]> = {
 export const AGENT_PRESET_DESCRIPTIONS: Record<AgentType, string> = {
 	claude: "Danger mode: All permissions auto-approved",
 	codex: "Danger mode: All permissions auto-approved",
-	superset: "Superset Chat GUI (MastraCode)",
 	gemini: "Danger mode: All permissions auto-approved",
 	opencode: "OpenCode: Open-source AI coding agent",
 	copilot: "Danger mode: All permissions auto-approved",
@@ -111,8 +107,6 @@ const AGENT_COMMANDS: Record<
 			delimiter,
 			'codex -c model_reasoning_effort="high" --dangerously-bypass-approvals-and-sandbox --',
 		),
-	// MastraCode CLI currently has no stable "initial prompt" arg, so we launch TUI directly.
-	superset: () => "mastracode",
 	gemini: (prompt, delimiter) =>
 		buildHeredoc(prompt, delimiter, "gemini --yolo"),
 	opencode: (prompt, delimiter) =>

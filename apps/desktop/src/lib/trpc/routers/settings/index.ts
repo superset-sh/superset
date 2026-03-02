@@ -92,7 +92,6 @@ function saveTerminalPresets(
 const DEFAULT_PRESET_AGENTS = [
 	"claude",
 	"codex",
-	"superset",
 	"copilot",
 	"opencode",
 	"gemini",

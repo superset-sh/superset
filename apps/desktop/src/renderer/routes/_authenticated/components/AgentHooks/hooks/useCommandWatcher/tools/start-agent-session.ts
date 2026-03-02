@@ -5,10 +5,11 @@ import { z } from "zod";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 
 const schema = z.object({
-	command: z.string(),
+	command: z.string().optional(),
 	name: z.string(),
 	workspaceId: z.string(),
 	paneId: z.string().optional(),
+	openChatPane: z.boolean().optional(),
 });
 
 async function execute(
@@ -44,6 +45,20 @@ async function execute(
 				return {
 					success: false,
 					error: `Tab not found for pane: ${params.paneId}`,
+				};
+			}
+
+			if (params.openChatPane) {
+				const { paneId: chatPaneId } = tabsStore.addChatMastraTab(workspace.id);
+				return {
+					success: true,
+					data: { workspaceId: workspace.id, paneId: chatPaneId },
+				};
+			}
+			if (!params.command) {
+				return {
+					success: false,
+					error: "No agent command provided",
 				};
 			}
 
@@ -88,7 +103,8 @@ async function execute(
 			projectId: pending?.projectId ?? workspace.projectId,
 			initialCommands: pending?.initialCommands ?? null,
 			defaultPresets: pending?.defaultPresets,
-			agentCommand: params.command,
+			agentCommand: params.command ?? pending?.agentCommand,
+			openChatPane: params.openChatPane ?? pending?.openChatPane,
 		});
 
 		return {

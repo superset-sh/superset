@@ -26,14 +26,4 @@ describe("buildAgentPromptCommand", () => {
 			"claude --dangerously-skip-permissions \"$(cat <<'SUPERSET_PROMPT_abcdefgh'",
 		);
 	});
-
-	it("uses mastracode for superset agent", () => {
-		const command = buildAgentPromptCommand({
-			prompt: "hello",
-			randomId: "abcd-efgh",
-			agent: "superset",
-		});
-
-		expect(command).toBe("mastracode");
-	});
 });

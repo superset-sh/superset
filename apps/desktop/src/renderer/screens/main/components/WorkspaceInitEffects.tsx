@@ -33,6 +33,7 @@ export function WorkspaceInitEffects() {
 	const processingRef = useRef<Set<string>>(new Set());
 
 	const addTab = useTabsStore((state) => state.addTab);
+	const addChatMastraTab = useTabsStore((state) => state.addChatMastraTab);
 	const addPane = useTabsStore((state) => state.addPane);
 	const removePane = useTabsStore((state) => state.removePane);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
@@ -110,7 +111,11 @@ export function WorkspaceInitEffects() {
 				(p) => p.commands.length > 0,
 			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
-			const { agentCommand } = setup;
+			const { agentCommand, openChatPane } = setup;
+
+			if (openChatPane) {
+				addChatMastraTab(setup.workspaceId);
+			}
 
 			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
@@ -303,6 +308,7 @@ export function WorkspaceInitEffects() {
 		},
 		[
 			addTab,
+			addChatMastraTab,
 			addPane,
 			setTabAutoTitle,
 			createOrAttach,

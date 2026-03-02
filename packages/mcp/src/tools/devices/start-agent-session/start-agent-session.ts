@@ -7,6 +7,8 @@ import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { executeOnDevice, getMcpContext } from "../../utils";
 
+const MCP_AGENT_TYPES = [...AGENT_TYPES, "superset"] as const;
+
 async function fetchTask({
 	taskId,
 	organizationId,
@@ -97,10 +99,10 @@ export function register(server: McpServer) {
 						"Optional pane ID. When provided, adds a new pane to the tab containing this pane instead of initializing the workspace.",
 					),
 				agent: z
-					.enum(AGENT_TYPES)
+					.enum(MCP_AGENT_TYPES)
 					.optional()
 					.describe(
-						'AI agent to use: "claude", "codex", "gemini", "opencode", "copilot", or "cursor-agent". Defaults to "claude".',
+						'AI agent to use: "claude", "codex", "gemini", "opencode", "copilot", "cursor-agent", or "superset". Defaults to "claude".',
 					),
 			},
 		},
@@ -110,13 +112,27 @@ export function register(server: McpServer) {
 			if (!validated) return ERROR_ARGS_REQUIRED;
 
 			const agent =
-				(validated.agent as (typeof AGENT_TYPES)[number]) ?? "claude";
+				(validated.agent as (typeof MCP_AGENT_TYPES)[number]) ?? "claude";
 
 			const task = await fetchTask({
 				taskId: validated.taskId,
 				organizationId: ctx.organizationId,
 			});
 			if (!task) return ERROR_TASK_NOT_FOUND;
+
+			if (agent === "superset") {
+				return executeOnDevice({
+					ctx,
+					deviceId: validated.deviceId,
+					tool: "start_agent_session",
+					params: {
+						openChatPane: true,
+						name: task.slug,
+						workspaceId: validated.workspaceId,
+						...(validated.paneId ? { paneId: validated.paneId } : {}),
+					},
+				});
+			}
 
 			return executeOnDevice({
 				ctx,

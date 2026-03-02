@@ -11,6 +11,8 @@ export interface PendingTerminalSetup {
 	defaultPresets?: TerminalPreset[];
 	/** Agent command to run in a separate pane from the setup script */
 	agentCommand?: string;
+	/** Open a Superset chat pane for this workspace once setup flow runs */
+	openChatPane?: boolean;
 }
 
 interface WorkspaceInitState {
