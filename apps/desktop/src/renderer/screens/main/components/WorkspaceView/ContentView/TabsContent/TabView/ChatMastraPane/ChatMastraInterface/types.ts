@@ -1,5 +1,5 @@
 import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
-import type { StartFreshSessionResult } from "./utils/sendMessage";
+import type { StartFreshSessionResult } from "../../ChatPane/ChatInterface/types";
 
 export interface ChatMastraRawSnapshot {
 	sessionId: string | null;

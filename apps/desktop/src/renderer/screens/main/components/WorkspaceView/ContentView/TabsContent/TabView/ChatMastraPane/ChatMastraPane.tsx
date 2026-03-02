@@ -146,10 +146,11 @@ export function ChatMastraPane({
 		(state) => state.switchChatMastraSession,
 	);
 	const sessionId = pane?.chatMastra?.sessionId ?? null;
+	const needsLegacySessionBootstrap = sessionId === null;
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 	const collections = useCollections();
-	const ensureSessionRef = useRef(false);
+	const legacySessionBootstrapRef = useRef(false);
 	const ensuredRef = useRef<string | null>(null);
 	const rawSnapshotRef = useRef<ChatMastraRawSnapshot | null>(null);
 	const [rawSnapshotSessionId, setRawSnapshotSessionId] = useState<
@@ -463,17 +464,18 @@ export function ChatMastraPane({
 	]);
 
 	useEffect(() => {
-		if (sessionId) return;
+		// Legacy fallback for panes created before session IDs were seeded at pane creation.
+		if (!needsLegacySessionBootstrap) return;
 		if (!organizationId) return;
-		if (ensureSessionRef.current) return;
-		ensureSessionRef.current = true;
+		if (legacySessionBootstrapRef.current) return;
+		legacySessionBootstrapRef.current = true;
 
 		void handleNewChat()
 			.catch(() => {})
 			.finally(() => {
-				ensureSessionRef.current = false;
+				legacySessionBootstrapRef.current = false;
 			});
-	}, [handleNewChat, organizationId, sessionId]);
+	}, [handleNewChat, needsLegacySessionBootstrap, organizationId]);
 
 	const sessionItems = useMemo(
 		() => sessions.map((item) => toSessionSelectorItem(item)),

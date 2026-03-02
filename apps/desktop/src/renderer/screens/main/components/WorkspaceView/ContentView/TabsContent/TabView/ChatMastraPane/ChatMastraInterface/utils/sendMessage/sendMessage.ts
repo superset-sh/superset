@@ -1,3 +1,5 @@
+import type { StartFreshSessionResult } from "../../../../ChatPane/ChatInterface/types";
+
 export type ChatSendMessageInput = {
 	payload: {
 		content: string;
@@ -6,12 +8,6 @@ export type ChatSendMessageInput = {
 	metadata: {
 		model?: string;
 	};
-};
-
-export type StartFreshSessionResult = {
-	created: boolean;
-	sessionId?: string;
-	errorMessage?: string;
 };
 
 const SESSION_CREATE_ERROR_MESSAGE =

@@ -8,7 +8,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
 	HiMiniArrowPath,
 	HiMiniChatBubbleLeftRight,
@@ -42,13 +42,7 @@ export function SessionSelector({
 }: SessionSelectorProps) {
 	const [isOpen, setIsOpen] = useState(false);
 
-	const sortedSessions = useMemo(() => {
-		return [...sessions].sort(
-			(a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
-		);
-	}, [sessions]);
-
-	const current = sortedSessions.find(
+	const current = sessions.find(
 		(session) => session.sessionId === currentSessionId,
 	);
 	const currentTitle =
@@ -75,8 +69,8 @@ export function SessionSelector({
 				<DropdownMenuSeparator />
 
 				<div className="max-h-80 overflow-y-auto">
-					{sortedSessions.length > 0 ? (
-						sortedSessions.map((session) => (
+					{sessions.length > 0 ? (
+						sessions.map((session) => (
 							<DropdownMenuItem
 								key={session.sessionId}
 								className="group flex items-center justify-between gap-2"

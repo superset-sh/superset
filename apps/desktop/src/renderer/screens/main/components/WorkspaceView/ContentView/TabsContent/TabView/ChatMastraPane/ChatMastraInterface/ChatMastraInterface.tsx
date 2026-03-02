@@ -10,7 +10,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { posthog } from "renderer/lib/posthog";
 import { ChatInputFooter } from "../../ChatPane/ChatInterface/components/ChatInputFooter";
@@ -359,13 +359,12 @@ export function ChatMastraInterface({
 	);
 
 	const errorMessage = runtimeError ?? toErrorMessage(error);
-	const mergedMessages = useMemo(() => messages, [messages]);
 
 	return (
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
-					messages={mergedMessages}
+					messages={messages}
 					isRunning={canAbort}
 					currentMessage={currentMessage ?? null}
 					workspaceId={workspaceId}
