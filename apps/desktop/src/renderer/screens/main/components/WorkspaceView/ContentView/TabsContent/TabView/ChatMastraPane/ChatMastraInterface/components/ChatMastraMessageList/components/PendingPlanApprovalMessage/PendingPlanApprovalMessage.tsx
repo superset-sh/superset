@@ -96,7 +96,7 @@ export function PendingPlanApprovalMessage({
 					</div>
 					<div className="rounded-md border bg-muted/20 p-3">
 						{renderMarkdown ? (
-							<div className="max-h-72 overflow-auto">
+							<div className="max-h-[32rem] overflow-auto">
 								<MessageResponse
 									animated={false}
 									isAnimating={false}
@@ -110,7 +110,7 @@ export function PendingPlanApprovalMessage({
 								</MessageResponse>
 							</div>
 						) : (
-							<pre className="max-h-72 overflow-auto text-sm whitespace-pre-wrap break-words">
+							<pre className="max-h-[32rem] overflow-auto text-sm whitespace-pre-wrap break-words">
 								{planBody}
 							</pre>
 						)}
