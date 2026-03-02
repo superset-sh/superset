@@ -18,7 +18,6 @@ import {
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import {
 	resolveBranchPrefix,
 	sanitizeBranchNameWithMaxLength,
@@ -271,13 +270,16 @@ export function NewWorkspaceModal() {
 		closeModal();
 
 		try {
-			const result = await createWorkspace.mutateAsync({
-				projectId: selectedProjectId,
-				name: workspaceName,
-				branchName: branchSlug || undefined,
-				baseBranch: baseBranch || undefined,
-				applyPrefix,
-			});
+			const result = await createWorkspace.mutateAsyncWithPendingSetup(
+				{
+					projectId: selectedProjectId,
+					name: workspaceName,
+					branchName: branchSlug || undefined,
+					baseBranch: baseBranch || undefined,
+					applyPrefix,
+				},
+				agentCommand ? { agentCommand } : undefined,
+			);
 
 			if (agentCommand) {
 				if (result.wasExisting) {
@@ -303,16 +305,6 @@ export function NewWorkspaceModal() {
 						});
 						return;
 					}
-				} else {
-					const store = useWorkspaceInitStore.getState();
-					const pending = store.pendingTerminalSetups[result.workspace.id];
-					store.addPendingTerminalSetup({
-						workspaceId: result.workspace.id,
-						projectId: result.projectId,
-						initialCommands: pending?.initialCommands ?? null,
-						defaultPresets: pending?.defaultPresets,
-						agentCommand,
-					});
 				}
 			}
 
