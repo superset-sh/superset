@@ -27,22 +27,30 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 		(s) => s.addPendingTerminalSetup,
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
-	const pendingSetupOverridesByInput = useRef(
-		new WeakMap<object, PendingSetupOverrides>(),
+	const pendingSetupOverridesByCallKey = useRef(
+		new Map<symbol, PendingSetupOverrides>(),
 	);
+	const callKeyByVariables = useRef(new WeakMap<object, symbol>());
 
 	const mutation = electronTrpc.workspaces.create.useMutation({
 		...options,
 		onSuccess: async (data, variables, ...rest) => {
-			const inputKey =
+			const variablesKey =
 				typeof variables === "object" && variables !== null
 					? (variables as object)
 					: null;
-			const pendingSetupOverrides = inputKey
-				? pendingSetupOverridesByInput.current.get(inputKey)
+			const callKey = variablesKey
+				? callKeyByVariables.current.get(variablesKey)
 				: undefined;
-			if (inputKey) {
-				pendingSetupOverridesByInput.current.delete(inputKey);
+			const pendingSetupOverrides = callKey
+				? pendingSetupOverridesByCallKey.current.get(callKey)
+				: undefined;
+
+			if (variablesKey) {
+				callKeyByVariables.current.delete(variablesKey);
+			}
+			if (callKey) {
+				pendingSetupOverridesByCallKey.current.delete(callKey);
 			}
 
 			// Set optimistic progress before navigation to prevent "Setup incomplete" flash
@@ -83,19 +91,31 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 			input: Parameters<typeof mutation.mutateAsync>[0],
 			pendingSetupOverrides?: PendingSetupOverrides,
 		) => {
-			const inputKey =
-				typeof input === "object" && input !== null ? (input as object) : null;
-			if (inputKey && pendingSetupOverrides) {
-				pendingSetupOverridesByInput.current.set(
-					inputKey,
+			const variables =
+				typeof input === "object" && input !== null
+					? ({ ...input } as Parameters<typeof mutation.mutateAsync>[0])
+					: input;
+			const variablesKey =
+				typeof variables === "object" && variables !== null
+					? (variables as object)
+					: null;
+			const callKey = pendingSetupOverrides ? Symbol("pending-setup") : null;
+
+			if (callKey && variablesKey && pendingSetupOverrides) {
+				pendingSetupOverridesByCallKey.current.set(
+					callKey,
 					pendingSetupOverrides,
 				);
+				callKeyByVariables.current.set(variablesKey, callKey);
 			}
 			try {
-				return await mutation.mutateAsync(input);
+				return await mutation.mutateAsync(variables);
 			} finally {
-				if (inputKey) {
-					pendingSetupOverridesByInput.current.delete(inputKey);
+				if (variablesKey) {
+					callKeyByVariables.current.delete(variablesKey);
+				}
+				if (callKey) {
+					pendingSetupOverridesByCallKey.current.delete(callKey);
 				}
 			}
 		},
