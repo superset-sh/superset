@@ -64,6 +64,8 @@ export function clearShellEnvCache(): void {
 	cachedEnv = null;
 	cacheTime = 0;
 	isFallbackCache = false;
+	pathFixAttempted = false;
+	pathFixSucceeded = false;
 }
 
 /**
@@ -133,26 +135,29 @@ export async function execWithShellEnv(
 		try {
 			const shellEnvResult = await getShellEnvironment();
 
-			// Persist the fix to process.env so all subsequent calls benefit
-			if (shellEnvResult.PATH) {
-				process.env.PATH = shellEnvResult.PATH;
-				pathFixSucceeded = true;
-				console.log("[shell-env] Fixed process.env.PATH for GUI app");
-			}
-
 			// Retry with fixed env (respect caller's other env vars, force PATH if present)
 			const retryEnv = shellEnvResult.PATH
 				? { ...shellEnvResult, ...options?.env, PATH: shellEnvResult.PATH }
 				: { ...shellEnvResult, ...options?.env };
 
-			return await execFileAsync(cmd, args, {
+			const result = await execFileAsync(cmd, args, {
 				...options,
 				encoding: "utf8",
 				env: retryEnv,
 			});
+
+			// Persist the fix to process.env only after the retry succeeds.
+			if (shellEnvResult.PATH) {
+				process.env.PATH = shellEnvResult.PATH;
+				pathFixSucceeded = true;
+				console.log("[shell-env] Fixed process.env.PATH for GUI app");
+			}
+			pathFixAttempted = false;
+			return result;
 		} catch (retryError) {
 			// Shell env derivation or retry failed - allow future retries
 			pathFixAttempted = false;
+			pathFixSucceeded = false;
 			console.error("[shell-env] Retry failed:", retryError);
 			throw retryError;
 		}
