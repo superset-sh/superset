@@ -30,6 +30,7 @@ export function PendingPlanApprovalMessage({
 		"approved" | "rejected" | null
 	>(null);
 	const [renderMarkdown, setRenderMarkdown] = useState(false);
+	const inFlightResponseRef = useRef(false);
 	const previousPlanIdRef = useRef<string | null>(null);
 	const feedbackTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const markdownToggleId = useId();
@@ -45,13 +46,33 @@ export function PendingPlanApprovalMessage({
 
 	if (!planApproval) return null;
 
-	const title = planApproval?.title?.trim() || "Implementation plan";
+	const planId = planApproval.planId?.trim() ?? "";
+	const title = planApproval.title?.trim() || "Implementation plan";
 	const planBody =
-		planApproval?.plan?.trim() || "No plan details were provided.";
-	const canRespond = Boolean(planApproval?.planId);
+		planApproval.plan?.trim() || "No plan details were provided.";
+	const canRespond = planId.length > 0;
 	const getLatestFeedback = (): string => {
 		const textareaValue = feedbackTextareaRef.current?.value;
 		return (textareaValue ?? feedback).trim();
+	};
+	const handleRespond = async (
+		action: "approved" | "rejected",
+	): Promise<void> => {
+		if (!canRespond || isSubmitting || inFlightResponseRef.current) return;
+		inFlightResponseRef.current = true;
+		setSelectedAction(action);
+		const latestFeedback = getLatestFeedback();
+		try {
+			await onRespond({
+				action,
+				...(latestFeedback ? { feedback: latestFeedback } : {}),
+			});
+		} catch (error) {
+			console.error("Failed to submit plan approval response", error);
+			setSelectedAction(null);
+		} finally {
+			inFlightResponseRef.current = false;
+		}
 	};
 
 	return (
@@ -107,7 +128,7 @@ export function PendingPlanApprovalMessage({
 							rows={4}
 						/>
 						<div className="text-xs text-muted-foreground">
-							Feedback is applied when you choose Request changes.
+							Feedback is included with your response.
 						</div>
 					</div>
 					<div className="flex flex-wrap items-center justify-end gap-2">
@@ -121,12 +142,7 @@ export function PendingPlanApprovalMessage({
 							}
 							disabled={isSubmitting || !canRespond}
 							onClick={() => {
-								setSelectedAction("rejected");
-								const latestFeedback = getLatestFeedback();
-								void onRespond({
-									action: "rejected",
-									...(latestFeedback ? { feedback: latestFeedback } : {}),
-								});
+								void handleRespond("rejected");
 							}}
 						>
 							Request changes
@@ -140,12 +156,7 @@ export function PendingPlanApprovalMessage({
 							}
 							disabled={isSubmitting || !canRespond}
 							onClick={() => {
-								setSelectedAction("approved");
-								const latestFeedback = getLatestFeedback();
-								void onRespond({
-									action: "approved",
-									...(latestFeedback ? { feedback: latestFeedback } : {}),
-								});
+								void handleRespond("approved");
 							}}
 						>
 							Approve plan

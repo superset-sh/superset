@@ -27,13 +27,17 @@ export function PendingQuestionMessage({
 		null,
 	);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const inFlightResponseRef = useRef(false);
 	const previousQuestionIdRef = useRef<string | null>(null);
 
 	const options = useMemo(() => {
 		if (!question?.options) return [];
 		return question.options.filter((option): option is QuestionOption => {
 			return (
-				typeof option?.label === "string" && option.label.trim().length > 0
+				typeof option?.label === "string" &&
+				option.label.trim().length > 0 &&
+				(typeof option?.description === "undefined" ||
+					typeof option.description === "string")
 			);
 		});
 	}, [question?.options]);
@@ -53,10 +57,45 @@ export function PendingQuestionMessage({
 
 	if (!question) return null;
 
+	const questionId = question.questionId?.trim() ?? "";
 	const questionText =
-		question?.question?.trim() || "The agent asked a question.";
+		question.question?.trim() || "The agent asked a question.";
 	const answerText = freeText.trim();
-	const canRespond = Boolean(question?.questionId);
+	const canRespond = questionId.length > 0;
+
+	const handleOptionSelect = async (optionLabel: string): Promise<void> => {
+		if (!canRespond || isSubmitting || inFlightResponseRef.current) return;
+		inFlightResponseRef.current = true;
+		const previousSelection = selectedOptionLabel;
+		setSelectedOptionLabel(optionLabel);
+		try {
+			await onRespond(questionId, optionLabel);
+		} catch (error) {
+			console.error("Failed to submit question option response", error);
+			setSelectedOptionLabel(previousSelection);
+		} finally {
+			inFlightResponseRef.current = false;
+		}
+	};
+
+	const handleFreeTextSubmit = async (): Promise<void> => {
+		if (
+			!canRespond ||
+			!answerText ||
+			isSubmitting ||
+			inFlightResponseRef.current
+		) {
+			return;
+		}
+		inFlightResponseRef.current = true;
+		try {
+			await onRespond(questionId, answerText);
+		} catch (error) {
+			console.error("Failed to submit question free-text response", error);
+		} finally {
+			inFlightResponseRef.current = false;
+		}
+	};
 
 	return (
 		<Message from="assistant">
@@ -66,9 +105,9 @@ export function PendingQuestionMessage({
 
 					{options.length > 0 ? (
 						<div className="space-y-2">
-							{options.map((option) => (
+							{options.map((option, index) => (
 								<Button
-									key={option.label}
+									key={`${option.label}-${index}`}
 									type="button"
 									variant="outline"
 									className={`h-auto w-full justify-start px-3 py-2 text-left ${
@@ -78,9 +117,7 @@ export function PendingQuestionMessage({
 									}`}
 									disabled={isSubmitting || !canRespond}
 									onClick={() => {
-										if (!question?.questionId) return;
-										setSelectedOptionLabel(option.label);
-										void onRespond(question.questionId, option.label);
+										void handleOptionSelect(option.label);
 									}}
 								>
 									<span className="flex flex-col">
@@ -97,11 +134,9 @@ export function PendingQuestionMessage({
 					) : (
 						<form
 							className="flex items-center gap-2"
-							onSubmit={(event) => {
+							onSubmit={async (event) => {
 								event.preventDefault();
-								if (!question?.questionId || !answerText || isSubmitting)
-									return;
-								void onRespond(question.questionId, answerText);
+								await handleFreeTextSubmit();
 							}}
 						>
 							<Input

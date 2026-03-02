@@ -31,6 +31,7 @@ export function PendingApprovalMessage({
 }: PendingApprovalMessageProps) {
 	const [selectedDecision, setSelectedDecision] =
 		useState<ApprovalDecision | null>(null);
+	const inFlightResponseRef = useRef(false);
 	const previousToolCallIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -42,15 +43,30 @@ export function PendingApprovalMessage({
 
 	if (!approval) return null;
 
+	const toolCallId = approval.toolCallId?.trim() ?? "";
 	const toolName =
-		approval?.toolName?.trim().replaceAll("_", " ") || "tool execution";
-	const renderedArgs = stringifyArgs(approval?.args);
-	const canRespond = Boolean(approval?.toolCallId);
+		approval.toolName?.trim().replaceAll("_", " ") || "tool execution";
+	const renderedArgs = stringifyArgs(approval.args);
+	const canRespond = toolCallId.length > 0;
 
 	const getDecisionClassName = (decision: ApprovalDecision): string => {
 		if (selectedDecision !== decision) return "";
 		if (decision === "decline") return "border-destructive text-destructive";
 		return "border-primary bg-primary/10 text-primary";
+	};
+
+	const handleRespond = async (decision: ApprovalDecision): Promise<void> => {
+		if (!canRespond || isSubmitting || inFlightResponseRef.current) return;
+		inFlightResponseRef.current = true;
+		setSelectedDecision(decision);
+		try {
+			await onRespond(decision);
+		} catch (error) {
+			console.error("Failed to submit approval response", error);
+			setSelectedDecision(null);
+		} finally {
+			inFlightResponseRef.current = false;
+		}
 	};
 
 	return (
@@ -75,8 +91,7 @@ export function PendingApprovalMessage({
 							className={getDecisionClassName("always_allow_category")}
 							disabled={isSubmitting || !canRespond}
 							onClick={() => {
-								setSelectedDecision("always_allow_category");
-								void onRespond("always_allow_category");
+								void handleRespond("always_allow_category");
 							}}
 						>
 							Always allow category
@@ -88,8 +103,7 @@ export function PendingApprovalMessage({
 								className={getDecisionClassName("decline")}
 								disabled={isSubmitting || !canRespond}
 								onClick={() => {
-									setSelectedDecision("decline");
-									void onRespond("decline");
+									void handleRespond("decline");
 								}}
 							>
 								Decline
@@ -99,8 +113,7 @@ export function PendingApprovalMessage({
 								className={getDecisionClassName("approve")}
 								disabled={isSubmitting || !canRespond}
 								onClick={() => {
-									setSelectedDecision("approve");
-									void onRespond("approve");
+									void handleRespond("approve");
 								}}
 							>
 								Approve

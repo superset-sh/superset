@@ -360,14 +360,15 @@ export function ChatMastraInterface({
 	);
 	const handleQuestionResponse = useCallback(
 		async (questionId: string, answer: string) => {
+			const trimmedQuestionId = questionId.trim();
 			const trimmedAnswer = answer.trim();
-			if (!trimmedAnswer) return;
+			if (!trimmedQuestionId || !trimmedAnswer) return;
 			clearRuntimeError();
 			setQuestionResponsePending(true);
 			try {
 				await commands.respondToQuestion({
 					payload: {
-						questionId,
+						questionId: trimmedQuestionId,
 						answer: trimmedAnswer,
 					},
 				});
