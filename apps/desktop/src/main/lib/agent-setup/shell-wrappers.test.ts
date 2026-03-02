@@ -38,11 +38,21 @@ describe("shell-wrappers", () => {
 		createZshWrapper(TEST_PATHS);
 
 		const zshenv = readFileSync(path.join(TEST_ZSH_DIR, ".zshenv"), "utf-8");
+		const zprofile = readFileSync(
+			path.join(TEST_ZSH_DIR, ".zprofile"),
+			"utf-8",
+		);
 		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
 		const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
 
 		expect(zshenv).toContain('source "$_superset_home/.zshenv"');
 		expect(zshenv).toContain(`export ZDOTDIR="${TEST_ZSH_DIR}"`);
+		expect(zprofile).toContain('export ZDOTDIR="$_superset_home"');
+		expect(zprofile).toContain('source "$_superset_home/.zprofile"');
+		expect(zprofile).toContain(`export ZDOTDIR="${TEST_ZSH_DIR}"`);
+		expect(zprofile.indexOf('export ZDOTDIR="$_superset_home"')).toBeLessThan(
+			zprofile.indexOf('source "$_superset_home/.zprofile"'),
+		);
 
 		expect(zshrc).toContain("_superset_prepend_bin()");
 		expect(zshrc).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
@@ -53,9 +63,16 @@ describe("shell-wrappers", () => {
 			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
 		);
 		expect(zshrc).toContain("rehash 2>/dev/null || true");
+		expect(zshrc.indexOf('export ZDOTDIR="$_superset_home"')).toBeLessThan(
+			zshrc.indexOf('source "$_superset_home/.zshrc"'),
+		);
 
 		expect(zlogin).toContain("if [[ -o interactive ]]; then");
+		expect(zlogin).toContain('export ZDOTDIR="$_superset_home"');
 		expect(zlogin).toContain('source "$_superset_home/.zlogin"');
+		expect(zlogin.indexOf('export ZDOTDIR="$_superset_home"')).toBeLessThan(
+			zlogin.indexOf('source "$_superset_home/.zlogin"'),
+		);
 		expect(zlogin).toContain("_superset_prepend_bin()");
 		expect(zlogin).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zlogin).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
