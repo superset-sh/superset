@@ -31,6 +31,7 @@ export function PendingPlanApprovalMessage({
 	>(null);
 	const [renderMarkdown, setRenderMarkdown] = useState(false);
 	const previousPlanIdRef = useRef<string | null>(null);
+	const feedbackTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const markdownToggleId = useId();
 
 	useEffect(() => {
@@ -48,7 +49,10 @@ export function PendingPlanApprovalMessage({
 	const planBody =
 		planApproval?.plan?.trim() || "No plan details were provided.";
 	const canRespond = Boolean(planApproval?.planId);
-	const feedbackTrimmed = feedback.trim();
+	const getLatestFeedback = (): string => {
+		const textareaValue = feedbackTextareaRef.current?.value;
+		return (textareaValue ?? feedback).trim();
+	};
 
 	return (
 		<Message from="assistant">
@@ -95,12 +99,16 @@ export function PendingPlanApprovalMessage({
 							Feedback (optional)
 						</div>
 						<Textarea
+							ref={feedbackTextareaRef}
 							value={feedback}
 							onChange={(event) => setFeedback(event.target.value)}
 							placeholder="Add feedback for revisions..."
 							disabled={isSubmitting || !canRespond}
 							rows={4}
 						/>
+						<div className="text-xs text-muted-foreground">
+							Feedback is applied when you choose Request changes.
+						</div>
 					</div>
 					<div className="flex flex-wrap items-center justify-end gap-2">
 						<Button
@@ -114,9 +122,10 @@ export function PendingPlanApprovalMessage({
 							disabled={isSubmitting || !canRespond}
 							onClick={() => {
 								setSelectedAction("rejected");
+								const latestFeedback = getLatestFeedback();
 								void onRespond({
 									action: "rejected",
-									...(feedbackTrimmed ? { feedback: feedbackTrimmed } : {}),
+									...(latestFeedback ? { feedback: latestFeedback } : {}),
 								});
 							}}
 						>
@@ -132,9 +141,10 @@ export function PendingPlanApprovalMessage({
 							disabled={isSubmitting || !canRespond}
 							onClick={() => {
 								setSelectedAction("approved");
+								const latestFeedback = getLatestFeedback();
 								void onRespond({
 									action: "approved",
-									...(feedbackTrimmed ? { feedback: feedbackTrimmed } : {}),
+									...(latestFeedback ? { feedback: latestFeedback } : {}),
 								});
 							}}
 						>
