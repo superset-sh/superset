@@ -5,10 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
 
-/**
- * Deep link passthrough page for tasks.
- * Attempts to open the Superset desktop app, falls back to dashboard.
- */
 export default function TaskDeepLinkPage() {
 	const params = useParams<{ slug: string }>();
 	const slug = params.slug;

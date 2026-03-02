@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { sessions } from "@superset/db/schema/auth";
 import { headers } from "next/headers";
 
 import { DesktopRedirect } from "./components/DesktopRedirect";
+
+export const metadata: Metadata = {
+	title: "Desktop Authentication - Superset",
+	description: "Authenticate with the Superset desktop app.",
+};
 
 export default async function DesktopSuccessPage({
 	searchParams,
