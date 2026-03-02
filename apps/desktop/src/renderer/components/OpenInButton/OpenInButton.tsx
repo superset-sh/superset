@@ -120,7 +120,7 @@ export function OpenInButton({
 				<DropdownMenuContent align="end" className="w-48">
 					<OpenInExternalDropdownItems
 						isDark={isDark}
-						activeApp={defaultApp}
+						activeApp={defaultApp ?? undefined}
 						onOpenIn={handleOpenIn}
 						onCopyPath={handleCopyPath}
 						renderAppTrailing={(appId, group) => {

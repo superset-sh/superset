@@ -69,7 +69,7 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 			<DropdownMenuContent align="start" className="w-48">
 				<OpenInExternalDropdownItems
 					isDark={isDark}
-					activeApp={defaultApp}
+					activeApp={defaultApp ?? undefined}
 					onOpenIn={handleOpenIn}
 					onCopyPath={handleCopyPath}
 					renderAppTrailing={(appId) =>
