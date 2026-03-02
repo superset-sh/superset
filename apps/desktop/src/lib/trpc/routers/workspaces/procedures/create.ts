@@ -327,10 +327,10 @@ export const createCreateProcedures = () => {
 
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
+				const globalSettings = localDb.select().from(settings).get();
 
 				let branchPrefix: string | undefined;
 				if (input.applyPrefix) {
-					const globalSettings = localDb.select().from(settings).get();
 					const projectOverrides = project.branchPrefixMode != null;
 					const prefixMode = projectOverrides
 						? project.branchPrefixMode
@@ -375,6 +375,10 @@ export const createCreateProcedures = () => {
 					branch = generateBranchName({
 						existingBranches,
 						authorPrefix: branchPrefix,
+						style:
+							globalSettings?.workspaceBranchNamingMode === "random-three-words"
+								? "three-words"
+								: "single-word",
 					});
 				}
 

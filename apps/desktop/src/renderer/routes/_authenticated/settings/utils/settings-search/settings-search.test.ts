@@ -62,4 +62,10 @@ describe("settings search - font settings", () => {
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
 	});
+
+	it('searching "random words" returns BEHAVIOR_WORKSPACE_BRANCH_NAMING', () => {
+		const results = searchSettings("random words");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_WORKSPACE_BRANCH_NAMING);
+	});
 });

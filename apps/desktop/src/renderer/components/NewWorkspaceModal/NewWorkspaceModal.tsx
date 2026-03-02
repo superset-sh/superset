@@ -93,6 +93,8 @@ export function NewWorkspaceModal() {
 	const { data: globalBranchPrefix } =
 		electronTrpc.settings.getBranchPrefix.useQuery();
 	const { data: gitInfo } = electronTrpc.settings.getGitInfo.useQuery();
+	const { data: workspaceBranchNamingMode } =
+		electronTrpc.settings.getWorkspaceBranchNamingMode.useQuery();
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
@@ -149,14 +151,22 @@ export function NewWorkspaceModal() {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
 
+	const isRandomBranchNaming =
+		workspaceBranchNamingMode === "random-three-words";
+
 	const branchSlug = branchNameEdited
 		? sanitizeBranchNameWithMaxLength(branchName)
-		: deriveWorkspaceBranchFromPrompt(title);
+		: isRandomBranchNaming
+			? ""
+			: deriveWorkspaceBranchFromPrompt(title);
 
 	const applyPrefix = !branchNameEdited;
 
-	const branchPreview =
-		branchSlug && applyPrefix && resolvedPrefix
+	const branchPreview = isRandomBranchNaming
+		? resolvedPrefix && applyPrefix
+			? `${resolvedPrefix}/random-three-words`
+			: "random-three-words"
+		: branchSlug && applyPrefix && resolvedPrefix
 			? sanitizeBranchNameWithMaxLength(`${resolvedPrefix}/${branchSlug}`)
 			: branchSlug;
 
@@ -257,6 +267,10 @@ export function NewWorkspaceModal() {
 		const prompt = title.trim();
 
 		const workspaceName = deriveWorkspaceTitleFromPrompt(title) || undefined;
+		const autoBranchName =
+			isRandomBranchNaming && !branchNameEdited
+				? undefined
+				: branchSlug || undefined;
 		const agentCommand =
 			selectedAgent === "none"
 				? null
@@ -274,7 +288,7 @@ export function NewWorkspaceModal() {
 			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
-				branchName: branchSlug || undefined,
+				branchName: autoBranchName,
 				baseBranch: baseBranch || undefined,
 				applyPrefix,
 			});
@@ -395,7 +409,9 @@ export function NewWorkspaceModal() {
 								title={title}
 								onTitleChange={setTitle}
 								titleInputRef={titleInputRef}
-								showBranchPreview={Boolean(title || branchNameEdited)}
+								showBranchPreview={Boolean(
+									branchNameEdited || title || isRandomBranchNaming,
+								)}
 								branchPreview={branchPreview}
 								effectiveBaseBranch={effectiveBaseBranch}
 								onCreateWorkspace={handleCreateWorkspace}

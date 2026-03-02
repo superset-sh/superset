@@ -313,6 +313,23 @@ const MAX_ATTEMPTS = 10;
 /** Maximum suffix value to try in fallback (exclusive), e.g., 0-99 */
 const FALLBACK_MAX_SUFFIX = 100;
 
+type BranchNameGenerationStyle = "single-word" | "three-words";
+
+function pickRandomWord(words: string[]): string {
+	return words[Math.floor(Math.random() * words.length)];
+}
+
+function generateRandomBranchSegment(
+	words: string[],
+	style: BranchNameGenerationStyle,
+): string {
+	if (style === "three-words") {
+		return `${pickRandomWord(words)}-${pickRandomWord(words)}-${pickRandomWord(words)}`;
+	}
+
+	return pickRandomWord(words);
+}
+
 export async function getGitAuthorName(
 	repoPath?: string,
 ): Promise<string | null> {
@@ -412,9 +429,11 @@ export {
 export function generateBranchName({
 	existingBranches = [],
 	authorPrefix,
+	style = "single-word",
 }: {
 	existingBranches?: string[];
 	authorPrefix?: string;
+	style?: BranchNameGenerationStyle;
 } = {}): string {
 	const words = friendlyWords.objects as string[];
 	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
@@ -431,14 +450,14 @@ export function generateBranchName({
 	};
 
 	for (let i = 0; i < MAX_ATTEMPTS; i++) {
-		const word = words[Math.floor(Math.random() * words.length)];
+		const word = generateRandomBranchSegment(words, style);
 		const candidate = addPrefix(word);
 		if (!existingSet.has(candidate.toLowerCase())) {
 			return candidate;
 		}
 	}
 
-	const baseWord = words[Math.floor(Math.random() * words.length)];
+	const baseWord = generateRandomBranchSegment(words, style);
 	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
 		const candidate = addPrefix(`${baseWord}-${n}`);
 		if (!existingSet.has(candidate.toLowerCase())) {

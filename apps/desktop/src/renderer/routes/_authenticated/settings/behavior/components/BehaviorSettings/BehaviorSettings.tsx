@@ -1,4 +1,8 @@
-import type { BranchPrefixMode, FileOpenMode } from "@superset/local-db";
+import type {
+	BranchPrefixMode,
+	FileOpenMode,
+	WorkspaceBranchNamingMode,
+} from "@superset/local-db";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import {
@@ -38,6 +42,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showBranchPrefix = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_BRANCH_PREFIX,
+		visibleItems,
+	);
+	const showWorkspaceBranchNaming = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_WORKSPACE_BRANCH_NAMING,
 		visibleItems,
 	);
 	const showTelemetry = isItemVisible(
@@ -178,6 +186,37 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			mode: "custom",
 			customPrefix: sanitized || null,
 		});
+	};
+
+	const {
+		data: workspaceBranchNamingMode,
+		isLoading: isWorkspaceBranchNamingModeLoading,
+	} = electronTrpc.settings.getWorkspaceBranchNamingMode.useQuery();
+	const setWorkspaceBranchNamingMode =
+		electronTrpc.settings.setWorkspaceBranchNamingMode.useMutation({
+			onMutate: async ({ mode }) => {
+				await utils.settings.getWorkspaceBranchNamingMode.cancel();
+				const previous = utils.settings.getWorkspaceBranchNamingMode.getData();
+				utils.settings.getWorkspaceBranchNamingMode.setData(undefined, mode);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getWorkspaceBranchNamingMode.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getWorkspaceBranchNamingMode.invalidate();
+			},
+		});
+
+	const handleWorkspaceBranchNamingModeChange = (
+		mode: WorkspaceBranchNamingMode,
+	) => {
+		setWorkspaceBranchNamingMode.mutate({ mode });
 	};
 
 	const { data: fileOpenMode, isLoading: isFileOpenModeLoading } =
@@ -380,6 +419,39 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								/>
 							)}
 						</div>
+					</div>
+				)}
+
+				{showWorkspaceBranchNaming && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label className="text-sm font-medium">Auto branch naming</Label>
+							<p className="text-xs text-muted-foreground">
+								Choose how branch names are generated for new workspaces
+							</p>
+						</div>
+						<Select
+							value={workspaceBranchNamingMode ?? "prompt"}
+							onValueChange={(value) =>
+								handleWorkspaceBranchNamingModeChange(
+									value as WorkspaceBranchNamingMode,
+								)
+							}
+							disabled={
+								isWorkspaceBranchNamingModeLoading ||
+								setWorkspaceBranchNamingMode.isPending
+							}
+						>
+							<SelectTrigger className="w-[220px]">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="prompt">Use prompt text</SelectItem>
+								<SelectItem value="random-three-words">
+									Use random 3 words
+								</SelectItem>
+							</SelectContent>
+						</Select>
 					</div>
 				)}
 

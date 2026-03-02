@@ -158,6 +158,14 @@ export const BRANCH_PREFIX_MODES = [
 
 export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
 
+export const WORKSPACE_BRANCH_NAMING_MODES = [
+	"prompt",
+	"random-three-words",
+] as const;
+
+export type WorkspaceBranchNamingMode =
+	(typeof WORKSPACE_BRANCH_NAMING_MODES)[number];
+
 export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
 
 export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];

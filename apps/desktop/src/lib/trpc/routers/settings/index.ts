@@ -7,6 +7,7 @@ import {
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
+	WORKSPACE_BRANCH_NAMING_MODES,
 } from "@superset/local-db";
 import {
 	AGENT_PRESET_COMMANDS,
@@ -531,6 +532,26 @@ export const createSettingsRouter = () => {
 							branchPrefixMode: input.mode,
 							branchPrefixCustom: input.customPrefix ?? null,
 						},
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getWorkspaceBranchNamingMode: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.workspaceBranchNamingMode ?? "prompt";
+		}),
+
+		setWorkspaceBranchNamingMode: publicProcedure
+			.input(z.object({ mode: z.enum(WORKSPACE_BRANCH_NAMING_MODES) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, workspaceBranchNamingMode: input.mode })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { workspaceBranchNamingMode: input.mode },
 					})
 					.run();
 
