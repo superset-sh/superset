@@ -101,6 +101,7 @@ describe("Terminal Host Session Lifecycle", () => {
 						...process.env,
 						NODE_ENV: "development",
 						SUPERSET_WORKSPACE_NAME: "test",
+						SUPERSET_HOME_DIR,
 					},
 					stdio: ["ignore", "pipe", "pipe"],
 					detached: true,
@@ -320,6 +321,22 @@ describe("Terminal Host Session Lifecycle", () => {
 					expect(payload.snapshot).toBeDefined();
 					expect(payload.snapshot.cols).toBe(80);
 					expect(payload.snapshot.rows).toBe(24);
+					expect(payload.generationId).toBe("legacy");
+				}
+
+				const listResponse = await sendRequest(control, {
+					id: "test-list-1",
+					type: "listSessions",
+					payload: undefined,
+				});
+				expect(listResponse.ok).toBe(true);
+				if (listResponse.ok) {
+					const payload = listResponse.payload as {
+						sessions: Array<{ sessionId: string; generationId?: string }>;
+					};
+					expect(payload.sessions.length).toBe(1);
+					expect(payload.sessions[0]?.sessionId).toBe("test-session-1");
+					expect(payload.sessions[0]?.generationId).toBe("legacy");
 				}
 			} finally {
 				control.destroy();

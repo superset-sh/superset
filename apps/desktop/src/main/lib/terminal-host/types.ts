@@ -149,6 +149,8 @@ export interface HelloResponse {
 	protocolVersion: number;
 	daemonVersion: string;
 	daemonPid: number;
+	/** Daemon generation ID (optional for backwards compatibility) */
+	generationId?: string;
 }
 
 /**
@@ -175,6 +177,8 @@ export interface CreateOrAttachResponse {
 	wasRecovered: boolean;
 	/** PTY process ID for port scanning (null if not yet spawned or exited) */
 	pid: number | null;
+	/** Daemon generation ID (optional for backwards compatibility) */
+	generationId?: string;
 }
 
 /**
@@ -241,6 +245,8 @@ export interface ListSessionsResponse {
 		/** ISO timestamp */
 		lastAttachedAt?: string;
 		shell?: string;
+		/** Daemon generation ID (optional for backwards compatibility) */
+		generationId?: string;
 	}>;
 }
 

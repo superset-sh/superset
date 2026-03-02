@@ -63,16 +63,20 @@ export class TerminalHost {
 		exitCode: number;
 		signal?: number;
 	}) => void;
+	private generationId: string;
 
 	constructor({
+		generationId = "legacy",
 		onUnattachedExit,
 	}: {
+		generationId?: string;
 		onUnattachedExit?: (event: {
 			sessionId: string;
 			exitCode: number;
 			signal?: number;
 		}) => void;
 	} = {}) {
+		this.generationId = generationId;
 		this.onUnattachedExit = onUnattachedExit;
 	}
 
@@ -159,6 +163,7 @@ export class TerminalHost {
 			snapshot,
 			wasRecovered: !isNew && session.isAlive,
 			pid: session.pid,
+			generationId: this.generationId,
 		};
 	}
 
@@ -279,6 +284,7 @@ export class TerminalHost {
 				createdAt: meta.createdAt,
 				lastAttachedAt: meta.lastAttachedAt,
 				shell: meta.shell,
+				generationId: this.generationId,
 			};
 		});
 

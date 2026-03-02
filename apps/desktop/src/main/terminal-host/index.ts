@@ -22,9 +22,19 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { createServer, type Server, Socket } from "node:net";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { SUPERSET_DIR_NAME } from "shared/constants";
+import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
+import {
+	getDaemonPidPath,
+	getDaemonSocketPath,
+	getDaemonTokenPath,
+	LEGACY_DAEMON_PID_PATH,
+	LEGACY_DAEMON_SOCKET_PATH,
+	LEGACY_DAEMON_TOKEN_PATH,
+} from "../lib/terminal-host/daemon-paths";
+import {
+	type DaemonState,
+	getTerminalDaemonRegistry,
+} from "../lib/terminal-host/daemon-registry";
 import {
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -52,15 +62,29 @@ import { TerminalHost } from "./terminal-host";
 // =============================================================================
 
 const DAEMON_VERSION = "1.0.0";
+const DAEMON_GENERATION_ID =
+	process.env.SUPERSET_TERMINAL_DAEMON_GENERATION_ID || "legacy";
+const DAEMON_APP_VERSION =
+	process.env.SUPERSET_TERMINAL_DAEMON_APP_VERSION || DAEMON_VERSION;
+const rawInitialState = process.env.SUPERSET_TERMINAL_DAEMON_INITIAL_STATE as
+	| DaemonState
+	| undefined;
+const DAEMON_INITIAL_STATE: DaemonState =
+	rawInitialState === "draining" || rawInitialState === "retired"
+		? rawInitialState
+		: "preferred";
+const USE_LEGACY_PATHS =
+	process.env.SUPERSET_TERMINAL_DAEMON_GENERATION_ID == null;
 
-// SUPERSET_DIR_NAME is imported from shared/constants for multi-worktree support
-// This allows workspace-specific home directories (e.g., ~/.superset-my-feature)
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
-
-// Socket and token paths
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
-const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
-const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
+const SOCKET_PATH = USE_LEGACY_PATHS
+	? LEGACY_DAEMON_SOCKET_PATH
+	: getDaemonSocketPath(DAEMON_GENERATION_ID);
+const TOKEN_PATH = USE_LEGACY_PATHS
+	? LEGACY_DAEMON_TOKEN_PATH
+	: getDaemonTokenPath(DAEMON_GENERATION_ID);
+const PID_PATH = USE_LEGACY_PATHS
+	? LEGACY_DAEMON_PID_PATH
+	: getDaemonPidPath(DAEMON_GENERATION_ID);
 
 // =============================================================================
 // Logging
@@ -168,6 +192,41 @@ function sendError(socket: Socket, id: string, code: string, message: string) {
 // =============================================================================
 
 let terminalHost: TerminalHost;
+const daemonRegistry = getTerminalDaemonRegistry();
+let registryHeartbeat: NodeJS.Timeout | null = null;
+
+function registerDaemon(state: DaemonState): void {
+	try {
+		daemonRegistry.upsert({
+			generationId: DAEMON_GENERATION_ID,
+			socketPath: SOCKET_PATH,
+			pid: process.pid,
+			appVersion: DAEMON_APP_VERSION,
+			state,
+		});
+	} catch (error) {
+		log("warn", "Failed to register daemon generation", {
+			generationId: DAEMON_GENERATION_ID,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+}
+
+function touchDaemonLiveness(): void {
+	try {
+		daemonRegistry.markLastSeen(DAEMON_GENERATION_ID);
+	} catch {
+		// best-effort
+	}
+}
+
+function markDaemonRetired(): void {
+	try {
+		daemonRegistry.setState(DAEMON_GENERATION_ID, "retired");
+	} catch {
+		// best-effort
+	}
+}
 
 // =============================================================================
 // Request Handlers
@@ -289,6 +348,7 @@ const handlers: Record<string, RequestHandler> = {
 			protocolVersion: PROTOCOL_VERSION,
 			daemonVersion: DAEMON_VERSION,
 			daemonPid: process.pid,
+			generationId: DAEMON_GENERATION_ID,
 		};
 
 		sendSuccess(socket, id, response);
@@ -676,6 +736,14 @@ async function startServer(): Promise<void> {
 		// May fail if not owner, that's okay
 	}
 
+	try {
+		daemonRegistry.cleanupStaleDaemons();
+	} catch (error) {
+		log("warn", "Failed to cleanup stale daemon registry entries", {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
+
 	// Check if socket is live before removing it
 	// This prevents orphaning a running daemon
 	if (existsSync(SOCKET_PATH)) {
@@ -708,6 +776,7 @@ async function startServer(): Promise<void> {
 
 	// Initialize terminal host
 	terminalHost = new TerminalHost({
+		generationId: DAEMON_GENERATION_ID,
 		onUnattachedExit: ({ sessionId, exitCode, signal }) => {
 			const event: IpcEvent = {
 				type: "event",
@@ -750,16 +819,29 @@ async function startServer(): Promise<void> {
 
 			// Write PID file
 			writeFileSync(PID_PATH, String(process.pid), { mode: 0o600 });
+			registerDaemon(DAEMON_INITIAL_STATE);
+			touchDaemonLiveness();
+			registryHeartbeat = setInterval(() => {
+				touchDaemonLiveness();
+			}, 10_000);
+			registryHeartbeat.unref();
 
 			log("info", `Daemon started`);
 			log("info", `Socket: ${SOCKET_PATH}`);
 			log("info", `PID: ${process.pid}`);
+			log("info", `Generation: ${DAEMON_GENERATION_ID}`);
+			log("info", `State: ${DAEMON_INITIAL_STATE}`);
 			resolve();
 		});
 	});
 }
 
 async function stopServer(): Promise<void> {
+	if (registryHeartbeat) {
+		clearInterval(registryHeartbeat);
+		registryHeartbeat = null;
+	}
+
 	if (terminalHost) {
 		await terminalHost.dispose();
 		log("info", "Terminal host disposed");
@@ -777,6 +859,7 @@ async function stopServer(): Promise<void> {
 	});
 
 	try {
+		markDaemonRetired();
 		if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
 		if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
 	} catch {
@@ -822,6 +905,8 @@ async function main() {
 	log("info", "Terminal Host Daemon starting...");
 	log("info", `Environment: ${process.env.NODE_ENV || "production"}`);
 	log("info", `Home directory: ${SUPERSET_HOME_DIR}`);
+	log("info", `Generation: ${DAEMON_GENERATION_ID}`);
+	log("info", `App version: ${DAEMON_APP_VERSION}`);
 
 	setupSignalHandlers();
 

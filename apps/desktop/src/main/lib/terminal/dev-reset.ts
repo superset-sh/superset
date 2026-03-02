@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { appState } from "main/lib/app-state";
@@ -15,6 +15,7 @@ const TERMINAL_STATE_PATHS = [
 	"terminal-host.pid",
 	"terminal-host.spawn.lock",
 	"terminal-host.mtime",
+	"terminal-daemons.json",
 	"daemon.log",
 ] as const;
 
@@ -38,6 +39,21 @@ export async function resetTerminalStateDev(): Promise<void> {
 		await rm(fullPath, { recursive: true, force: true }).catch((error) => {
 			console.warn(
 				"[dev/reset-terminal-state] Failed to remove state path:",
+				fullPath,
+				error,
+			);
+		});
+	}
+
+	const generationPaths = await readdir(SUPERSET_HOME_DIR).catch(() => []);
+	for (const entry of generationPaths) {
+		if (!entry.startsWith("terminal-host.")) {
+			continue;
+		}
+		const fullPath = join(SUPERSET_HOME_DIR, entry);
+		await rm(fullPath, { recursive: true, force: true }).catch((error) => {
+			console.warn(
+				"[dev/reset-terminal-state] Failed to remove generation state path:",
 				fullPath,
 				error,
 			);

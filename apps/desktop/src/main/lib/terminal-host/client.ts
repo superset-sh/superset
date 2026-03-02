@@ -16,7 +16,6 @@ import {
 	chmodSync,
 	closeSync,
 	existsSync,
-	mkdirSync,
 	openSync,
 	readFileSync,
 	statSync,
@@ -24,10 +23,31 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { connect, type Socket } from "node:net";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import { app } from "electron";
-import { SUPERSET_DIR_NAME } from "shared/constants";
+import {
+	ensureSupersetHomeDirExists,
+	SUPERSET_HOME_DIR,
+} from "main/lib/app-environment";
+import {
+	getDaemonPidPath,
+	getDaemonScriptMtimePath,
+	getDaemonSocketPath,
+	getDaemonSpawnLockPath,
+	getDaemonTokenPath,
+	LEGACY_DAEMON_PID_PATH,
+	LEGACY_DAEMON_SOCKET_PATH,
+	LEGACY_DAEMON_TOKEN_PATH,
+} from "./daemon-paths";
+import { getTerminalDaemonRegistry } from "./daemon-registry";
+import {
+	getCurrentTerminalGenerationId,
+	getPreferredGenerationId as getPreferredGenerationIdFromRollout,
+	getTerminalDaemonAppVersion,
+	listDrainingGenerations,
+	markGenerationPreferred,
+	markGenerationRetired,
+} from "./daemon-rollout";
 import {
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -65,15 +85,6 @@ enum ConnectionState {
 // =============================================================================
 
 const DEBUG_CLIENT = process.env.SUPERSET_TERMINAL_DEBUG === "1";
-
-// Get from shared constants for multi-worktree support (imported at top of file)
-const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
-
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
-const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
-const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
-const SPAWN_LOCK_PATH = join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock");
-const SCRIPT_MTIME_PATH = join(SUPERSET_HOME_DIR, "terminal-host.mtime");
 
 // Connection timeouts
 const CONNECT_TIMEOUT_MS = 5000;
@@ -150,11 +161,17 @@ export interface TerminalHostClientEvents {
 	error: (error: Error) => void;
 }
 
+interface GenerationClientOptions {
+	generationId: string;
+	initialState: "preferred" | "draining";
+	canSpawn: boolean;
+}
+
 /**
  * Client for communicating with the terminal host daemon.
  * Emits events for terminal data and exit.
  */
-export class TerminalHostClient extends EventEmitter {
+class GenerationTerminalHostClient extends EventEmitter {
 	private controlSocket: Socket | null = null;
 	private streamSocket: Socket | null = null;
 	private controlParser = new NdjsonParser();
@@ -170,14 +187,46 @@ export class TerminalHostClient extends EventEmitter {
 	private notifyDrainArmed = false;
 	private disconnectArmed = false;
 	private clientId = randomUUID();
+	private generationId: string;
+	private initialState: "preferred" | "draining";
+	private canSpawn: boolean;
+	private socketPath: string;
+	private tokenPath: string;
+	private pidPath: string;
+	private spawnLockPath: string;
+	private scriptMtimePath: string;
 
-	constructor() {
+	constructor({
+		generationId,
+		initialState,
+		canSpawn,
+	}: GenerationClientOptions) {
 		super();
+		this.generationId = generationId;
+		this.initialState = initialState;
+		this.canSpawn = canSpawn;
+		const useLegacyPaths = generationId === "legacy";
+		this.socketPath = useLegacyPaths
+			? LEGACY_DAEMON_SOCKET_PATH
+			: getDaemonSocketPath(generationId);
+		this.tokenPath = useLegacyPaths
+			? LEGACY_DAEMON_TOKEN_PATH
+			: getDaemonTokenPath(generationId);
+		this.pidPath = useLegacyPaths
+			? LEGACY_DAEMON_PID_PATH
+			: getDaemonPidPath(generationId);
+		this.spawnLockPath = useLegacyPaths
+			? join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock")
+			: getDaemonSpawnLockPath(generationId);
+		this.scriptMtimePath = useLegacyPaths
+			? join(SUPERSET_HOME_DIR, "terminal-host.mtime")
+			: getDaemonScriptMtimePath(generationId);
+
 		if (DEBUG_CLIENT) {
 			console.log("[TerminalHostClient] Initialized with paths:", {
-				SUPERSET_DIR_NAME,
 				SUPERSET_HOME_DIR,
-				SOCKET_PATH,
+				socketPath: this.socketPath,
+				generationId: this.generationId,
 				NODE_ENV: process.env.NODE_ENV,
 			});
 		}
@@ -310,6 +359,11 @@ export class TerminalHostClient extends EventEmitter {
 
 			let controlConnected = await this.tryConnectControl();
 			if (!controlConnected) {
+				if (!this.canSpawn) {
+					throw new Error(
+						`No daemon available for generation ${this.generationId}`,
+					);
+				}
 				await this.spawnDaemon();
 				controlConnected = await this.tryConnectControl();
 				if (!controlConnected) {
@@ -326,6 +380,9 @@ export class TerminalHostClient extends EventEmitter {
 						console.log(
 							"[TerminalHostClient] Auth token missing, restarting daemon...",
 						);
+					}
+					if (!this.canSpawn) {
+						throw error;
 					}
 					this.resetConnectionState({ emitDisconnected: false });
 					this.killDaemonFromPidFile();
@@ -344,6 +401,9 @@ export class TerminalHostClient extends EventEmitter {
 						console.log(
 							"[TerminalHostClient] Protocol mismatch detected, shutting down legacy daemon...",
 						);
+					}
+					if (!this.canSpawn) {
+						throw error;
 					}
 					this.resetConnectionState({ emitDisconnected: false });
 					await this.shutdownLegacyDaemon();
@@ -373,11 +433,11 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private isDaemonScriptStale(): boolean {
 		try {
-			if (!existsSync(SCRIPT_MTIME_PATH)) {
+			if (!existsSync(this.scriptMtimePath)) {
 				return false; // No mtime file = first run or manual cleanup
 			}
 
-			const savedMtime = readFileSync(SCRIPT_MTIME_PATH, "utf-8").trim();
+			const savedMtime = readFileSync(this.scriptMtimePath, "utf-8").trim();
 			const scriptPath = this.getDaemonScriptPath();
 
 			if (!existsSync(scriptPath)) {
@@ -402,17 +462,17 @@ export class TerminalHostClient extends EventEmitter {
 			}
 
 			const mtime = statSync(scriptPath).mtimeMs.toString();
-			writeFileSync(SCRIPT_MTIME_PATH, mtime, { mode: 0o600 });
+			writeFileSync(this.scriptMtimePath, mtime, { mode: 0o600 });
 		} catch {
 			// Best-effort
 		}
 	}
 
 	private killDaemonFromPidFile(): void {
-		if (!existsSync(PID_PATH)) return;
+		if (!existsSync(this.pidPath)) return;
 
 		try {
-			const raw = readFileSync(PID_PATH, "utf-8").trim();
+			const raw = readFileSync(this.pidPath, "utf-8").trim();
 			const pid = Number.parseInt(raw, 10);
 			if (!Number.isNaN(pid)) {
 				try {
@@ -428,12 +488,12 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectControl(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!existsSync(this.socketPath)) {
 				resolve(false);
 				return;
 			}
 
-			const socket = connect(SOCKET_PATH);
+			const socket = connect(this.socketPath);
 			let resolved = false;
 
 			const timeout = setTimeout(() => {
@@ -468,12 +528,12 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectStream(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!existsSync(this.socketPath)) {
 				resolve(false);
 				return;
 			}
 
-			const socket = connect(SOCKET_PATH);
+			const socket = connect(this.socketPath);
 			let resolved = false;
 
 			const timeout = setTimeout(() => {
@@ -673,11 +733,11 @@ export class TerminalHostClient extends EventEmitter {
 	}
 
 	private readAuthToken(): string {
-		if (!existsSync(TOKEN_PATH)) {
+		if (!existsSync(this.tokenPath)) {
 			throw new Error("Auth token not found - daemon may not be running");
 		}
 
-		return readFileSync(TOKEN_PATH, "utf-8").trim();
+		return readFileSync(this.tokenPath, "utf-8").trim();
 	}
 
 	private isProtocolMismatchError(error: unknown): boolean {
@@ -813,12 +873,12 @@ export class TerminalHostClient extends EventEmitter {
 	}: {
 		killSessions?: boolean;
 	} = {}): Promise<void> {
-		if (!existsSync(SOCKET_PATH)) return;
+		if (!existsSync(this.socketPath)) return;
 
 		const token = this.readAuthToken();
 
 		await new Promise<void>((resolve, reject) => {
-			const socket = connect(SOCKET_PATH);
+			const socket = connect(this.socketPath);
 			let settled = false;
 
 			const timeoutId = setTimeout(() => {
@@ -908,7 +968,7 @@ export class TerminalHostClient extends EventEmitter {
 		const timeoutMs = 2000;
 
 		while (Date.now() - startTime < timeoutMs) {
-			if (!existsSync(SOCKET_PATH)) return;
+			if (!existsSync(this.socketPath)) return;
 			const live = await this.isSocketLive();
 			if (!live) return;
 			await this.sleep(100);
@@ -925,12 +985,12 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private isSocketLive(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (!existsSync(this.socketPath)) {
 				resolve(false);
 				return;
 			}
 
-			const testSocket = connect(SOCKET_PATH);
+			const testSocket = connect(this.socketPath);
 			const timeout = setTimeout(() => {
 				testSocket.destroy();
 				resolve(false);
@@ -956,18 +1016,11 @@ export class TerminalHostClient extends EventEmitter {
 	private acquireSpawnLock(): boolean {
 		try {
 			// Ensure superset home directory exists before any file operations
-			if (!existsSync(SUPERSET_HOME_DIR)) {
-				mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
-			}
-			try {
-				chmodSync(SUPERSET_HOME_DIR, 0o700);
-			} catch {
-				// Best-effort.
-			}
+			ensureSupersetHomeDirExists();
 
 			// Check if lock exists and is recent (within timeout)
-			if (existsSync(SPAWN_LOCK_PATH)) {
-				const lockContent = readFileSync(SPAWN_LOCK_PATH, "utf-8").trim();
+			if (existsSync(this.spawnLockPath)) {
+				const lockContent = readFileSync(this.spawnLockPath, "utf-8").trim();
 				const lockTime = Number.parseInt(lockContent, 10);
 				if (
 					!Number.isNaN(lockTime) &&
@@ -977,11 +1030,11 @@ export class TerminalHostClient extends EventEmitter {
 					return false;
 				}
 				// Stale lock, remove it
-				unlinkSync(SPAWN_LOCK_PATH);
+				unlinkSync(this.spawnLockPath);
 			}
 
 			// Create lock file with current timestamp
-			writeFileSync(SPAWN_LOCK_PATH, String(Date.now()), { mode: 0o600 });
+			writeFileSync(this.spawnLockPath, String(Date.now()), { mode: 0o600 });
 			return true;
 		} catch {
 			return false;
@@ -993,8 +1046,8 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private releaseSpawnLock(): void {
 		try {
-			if (existsSync(SPAWN_LOCK_PATH)) {
-				unlinkSync(SPAWN_LOCK_PATH);
+			if (existsSync(this.spawnLockPath)) {
+				unlinkSync(this.spawnLockPath);
 			}
 		} catch {
 			// Best effort cleanup
@@ -1007,7 +1060,7 @@ export class TerminalHostClient extends EventEmitter {
 	private async spawnDaemon(): Promise<void> {
 		// Check if socket is live first - this is the authoritative check
 		// PID file can be stale if daemon crashed and PID was reused by another process
-		if (existsSync(SOCKET_PATH)) {
+		if (existsSync(this.socketPath)) {
 			const isLive = await this.isSocketLive();
 			if (isLive) {
 				if (DEBUG_CLIENT) {
@@ -1021,7 +1074,7 @@ export class TerminalHostClient extends EventEmitter {
 				console.log("[TerminalHostClient] Removing stale socket file");
 			}
 			try {
-				unlinkSync(SOCKET_PATH);
+				unlinkSync(this.socketPath);
 			} catch {
 				// Ignore - might not have permission
 			}
@@ -1029,12 +1082,12 @@ export class TerminalHostClient extends EventEmitter {
 
 		// Also clean up stale PID file if socket was not live
 		// This handles the case where daemon crashed and PID was reused
-		if (existsSync(PID_PATH)) {
+		if (existsSync(this.pidPath)) {
 			if (DEBUG_CLIENT) {
 				console.log("[TerminalHostClient] Removing stale PID file");
 			}
 			try {
-				unlinkSync(PID_PATH);
+				unlinkSync(this.pidPath);
 			} catch {
 				// Ignore - might not have permission
 			}
@@ -1110,6 +1163,9 @@ export class TerminalHostClient extends EventEmitter {
 						...process.env,
 						ELECTRON_RUN_AS_NODE: "1",
 						NODE_ENV: process.env.NODE_ENV,
+						SUPERSET_TERMINAL_DAEMON_GENERATION_ID: this.generationId,
+						SUPERSET_TERMINAL_DAEMON_APP_VERSION: getTerminalDaemonAppVersion(),
+						SUPERSET_TERMINAL_DAEMON_INITIAL_STATE: this.initialState,
 					},
 				});
 			} finally {
@@ -1128,7 +1184,7 @@ export class TerminalHostClient extends EventEmitter {
 
 			if (DEBUG_CLIENT) {
 				console.log(
-					`[TerminalHostClient] Daemon spawned with PID: ${child.pid}`,
+					`[TerminalHostClient] Daemon spawned with PID: ${child.pid} (generation=${this.generationId})`,
 				);
 			}
 
@@ -1175,7 +1231,7 @@ export class TerminalHostClient extends EventEmitter {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < SPAWN_WAIT_MS) {
-			if (existsSync(SOCKET_PATH)) {
+			if (existsSync(this.socketPath)) {
 				// Give it a moment to start listening
 				await this.sleep(200);
 				return;
@@ -1295,7 +1351,11 @@ export class TerminalHostClient extends EventEmitter {
 			request,
 		);
 		// Version skew: older daemons may not return pid - normalize undefined → null
-		return { ...response, pid: response.pid ?? null };
+		return {
+			...response,
+			pid: response.pid ?? null,
+			generationId: response.generationId ?? this.generationId,
+		};
 	}
 
 	/**
@@ -1384,7 +1444,11 @@ export class TerminalHostClient extends EventEmitter {
 		);
 		// Version skew: older daemons may not return pid - normalize undefined → null
 		return {
-			sessions: response.sessions.map((s) => ({ ...s, pid: s.pid ?? null })),
+			sessions: response.sessions.map((session) => ({
+				...session,
+				pid: session.pid ?? null,
+				generationId: session.generationId ?? this.generationId,
+			})),
 		};
 	}
 
@@ -1461,6 +1525,453 @@ export class TerminalHostClient extends EventEmitter {
 		if (this.disposed) return;
 		this.disposed = true;
 		this.disconnect();
+		this.removeAllListeners();
+	}
+}
+
+export class TerminalHostClient extends EventEmitter {
+	private generationClients = new Map<string, GenerationTerminalHostClient>();
+	private sessionGenerationMap = new Map<string, string>();
+	private disposed = false;
+
+	private getOrCreateGenerationClient({
+		generationId,
+		canSpawn,
+		initialState,
+	}: {
+		generationId: string;
+		canSpawn: boolean;
+		initialState: "preferred" | "draining";
+	}): GenerationTerminalHostClient {
+		const existing = this.generationClients.get(generationId);
+		if (existing) {
+			return existing;
+		}
+
+		const client = new GenerationTerminalHostClient({
+			generationId,
+			initialState,
+			canSpawn,
+		});
+		client.on("data", (sessionId: string, data: string) => {
+			this.emit("data", sessionId, data);
+		});
+		client.on(
+			"exit",
+			(sessionId: string, exitCode: number, signal?: number) => {
+				this.sessionGenerationMap.delete(sessionId);
+				this.emit("exit", sessionId, exitCode, signal);
+			},
+		);
+		client.on(
+			"terminalError",
+			(sessionId: string, error: string, code?: string) => {
+				if (error.includes("Session not found")) {
+					this.sessionGenerationMap.delete(sessionId);
+				}
+				this.emit("terminalError", sessionId, error, code);
+			},
+		);
+		client.on("connected", () => this.emit("connected"));
+		client.on("disconnected", () => this.emit("disconnected"));
+		client.on("error", (error: Error) => this.emit("error", error));
+
+		this.generationClients.set(generationId, client);
+		return client;
+	}
+
+	private getCurrentGenerationId(): string {
+		return getCurrentTerminalGenerationId();
+	}
+
+	private getKnownGenerationIds(): string[] {
+		const registry = getTerminalDaemonRegistry();
+		registry.cleanupStaleDaemons();
+		const active = registry.listActive().map((entry) => entry.generationId);
+		const mapped = Array.from(this.sessionGenerationMap.values());
+		const ids = new Set<string>([
+			this.getCurrentGenerationId(),
+			...active,
+			...mapped,
+		]);
+
+		// First progressive-rollout upgrade can have active legacy sessions
+		// with no registry entry. Discover legacy daemon when legacy artifacts
+		// or mappings are present.
+		const hasLegacyArtifacts =
+			existsSync(LEGACY_DAEMON_SOCKET_PATH) ||
+			existsSync(LEGACY_DAEMON_TOKEN_PATH) ||
+			existsSync(LEGACY_DAEMON_PID_PATH);
+		if (
+			hasLegacyArtifacts ||
+			mapped.includes("legacy") ||
+			this.generationClients.has("legacy")
+		) {
+			ids.add("legacy");
+		}
+		return Array.from(ids);
+	}
+
+	private async resolveSessionGeneration(
+		sessionId: string,
+	): Promise<string | null> {
+		const cached = this.sessionGenerationMap.get(sessionId);
+		if (cached) {
+			return cached;
+		}
+
+		const sessions = await this.listSessionsAcrossGenerations({
+			includeCurrentSpawn: false,
+		});
+		const session = sessions.find((entry) => entry.sessionId === sessionId);
+		if (!session?.generationId) {
+			return null;
+		}
+		this.sessionGenerationMap.set(sessionId, session.generationId);
+		return session.generationId;
+	}
+
+	private async listSessionsAcrossGenerations({
+		includeCurrentSpawn,
+	}: {
+		includeCurrentSpawn: boolean;
+	}): Promise<ListSessionsResponse["sessions"]> {
+		const currentGenerationId = this.getCurrentGenerationId();
+		const generationIds = this.getKnownGenerationIds();
+		const sessions: ListSessionsResponse["sessions"] = [];
+
+		for (const generationId of generationIds) {
+			const canSpawn =
+				includeCurrentSpawn && generationId === currentGenerationId;
+			const initialState: "preferred" | "draining" =
+				generationId === currentGenerationId ? "preferred" : "draining";
+			const client = this.getOrCreateGenerationClient({
+				generationId,
+				canSpawn,
+				initialState,
+			});
+
+			try {
+				if (!canSpawn) {
+					const connected = await client.tryConnectAndAuthenticate();
+					if (!connected) {
+						continue;
+					}
+				}
+
+				const response = await client.listSessions();
+				for (const session of response.sessions) {
+					const resolvedGeneration = session.generationId ?? generationId;
+					this.sessionGenerationMap.set(session.sessionId, resolvedGeneration);
+					sessions.push({ ...session, generationId: resolvedGeneration });
+				}
+			} catch {
+				// best effort for per-generation discovery
+			}
+		}
+
+		return sessions;
+	}
+
+	private getPreferredGenerationId(): string {
+		return getPreferredGenerationIdFromRollout();
+	}
+
+	async ensureConnected(): Promise<void> {
+		const preferredGenerationId = this.getPreferredGenerationId();
+		const currentGenerationId = this.getCurrentGenerationId();
+		const client = this.getOrCreateGenerationClient({
+			generationId: preferredGenerationId,
+			canSpawn: preferredGenerationId === currentGenerationId,
+			initialState: "preferred",
+		});
+		await client.ensureConnected();
+		markGenerationPreferred(preferredGenerationId);
+	}
+
+	async tryConnectAndAuthenticate(): Promise<boolean> {
+		const generationIds = this.getKnownGenerationIds();
+		for (const generationId of generationIds) {
+			const client = this.getOrCreateGenerationClient({
+				generationId,
+				canSpawn: false,
+				initialState:
+					generationId === this.getCurrentGenerationId()
+						? "preferred"
+						: "draining",
+			});
+			const connected = await client.tryConnectAndAuthenticate();
+			if (connected) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	async createOrAttach(
+		request: CreateOrAttachRequest,
+	): Promise<CreateOrAttachResponse> {
+		const currentGenerationId = this.getCurrentGenerationId();
+		const preferredGenerationId = this.getPreferredGenerationId();
+		const existingGenerationId = await this.resolveSessionGeneration(
+			request.sessionId,
+		);
+		let targetGenerationId = existingGenerationId ?? preferredGenerationId;
+
+		const callCreate = async (generationId: string) => {
+			const client = this.getOrCreateGenerationClient({
+				generationId,
+				canSpawn: generationId === currentGenerationId,
+				initialState:
+					generationId === currentGenerationId ? "preferred" : "draining",
+			});
+			const response = await client.createOrAttach(request);
+			const resolvedGeneration = response.generationId ?? generationId;
+			this.sessionGenerationMap.set(request.sessionId, resolvedGeneration);
+			return { ...response, generationId: resolvedGeneration };
+		};
+
+		try {
+			const response = await callCreate(targetGenerationId);
+			if (response.generationId === currentGenerationId) {
+				markGenerationPreferred(currentGenerationId);
+			}
+			return response;
+		} catch (error) {
+			if (
+				existingGenerationId &&
+				existingGenerationId !== preferredGenerationId
+			) {
+				this.sessionGenerationMap.delete(request.sessionId);
+				targetGenerationId = preferredGenerationId;
+				const fallback = await callCreate(targetGenerationId);
+				if (fallback.generationId === currentGenerationId) {
+					markGenerationPreferred(currentGenerationId);
+				}
+				return fallback;
+			}
+
+			for (const drainingGenerationId of listDrainingGenerations()) {
+				try {
+					const fallback = await callCreate(drainingGenerationId);
+					console.warn(
+						"[TerminalHostClient] Preferred generation unavailable, routed createOrAttach to draining daemon",
+						{
+							sessionId: request.sessionId,
+							preferredGenerationId,
+							drainingGenerationId,
+						},
+					);
+					return fallback;
+				} catch {
+					// try next draining generation
+				}
+			}
+			throw error;
+		}
+	}
+
+	private async routeBySessionId(sessionId: string): Promise<{
+		generationId: string;
+		client: GenerationTerminalHostClient;
+	}> {
+		const mappedGenerationId = await this.resolveSessionGeneration(sessionId);
+		const generationId = mappedGenerationId ?? this.getPreferredGenerationId();
+		const currentGenerationId = this.getCurrentGenerationId();
+		const client = this.getOrCreateGenerationClient({
+			generationId,
+			canSpawn: generationId === currentGenerationId,
+			initialState:
+				generationId === currentGenerationId ? "preferred" : "draining",
+		});
+		return { generationId, client };
+	}
+
+	async write(request: WriteRequest): Promise<EmptyResponse> {
+		const { client } = await this.routeBySessionId(request.sessionId);
+		return client.write(request);
+	}
+
+	writeNoAck(request: WriteRequest): void {
+		void this.routeBySessionId(request.sessionId)
+			.then(({ client }) => {
+				client.writeNoAck(request);
+			})
+			.catch((error) => {
+				this.emit(
+					"error",
+					error instanceof Error ? error : new Error(String(error)),
+				);
+			});
+	}
+
+	async resize(request: ResizeRequest): Promise<EmptyResponse> {
+		const { client } = await this.routeBySessionId(request.sessionId);
+		return client.resize(request);
+	}
+
+	async detach(request: DetachRequest): Promise<EmptyResponse> {
+		const { client } = await this.routeBySessionId(request.sessionId);
+		return client.detach(request);
+	}
+
+	async signal(request: SignalRequest): Promise<EmptyResponse> {
+		const { client } = await this.routeBySessionId(request.sessionId);
+		return client.signal(request);
+	}
+
+	async kill(request: KillRequest): Promise<EmptyResponse> {
+		const { generationId, client } = await this.routeBySessionId(
+			request.sessionId,
+		);
+		const response = await client.kill(request);
+		this.sessionGenerationMap.delete(request.sessionId);
+
+		const draining = new Set(listDrainingGenerations());
+		if (draining.has(generationId)) {
+			try {
+				const sessions = await client.listSessions();
+				const alive = sessions.sessions.filter(
+					(session) => session.isAlive,
+				).length;
+				if (alive === 0) {
+					await client.shutdownIfRunning({ killSessions: false });
+					markGenerationRetired(generationId);
+				}
+			} catch {
+				// best effort
+			}
+		}
+
+		return response;
+	}
+
+	async killAll(request: KillAllRequest): Promise<EmptyResponse> {
+		const generationIds = this.getKnownGenerationIds();
+		for (const generationId of generationIds) {
+			const client = this.getOrCreateGenerationClient({
+				generationId,
+				canSpawn: false,
+				initialState:
+					generationId === this.getCurrentGenerationId()
+						? "preferred"
+						: "draining",
+			});
+			try {
+				await client.killAll(request);
+			} catch {
+				// best effort across generations
+			}
+		}
+		this.sessionGenerationMap.clear();
+		return { success: true };
+	}
+
+	async listSessions(): Promise<ListSessionsResponse> {
+		const sessions = await this.listSessionsAcrossGenerations({
+			includeCurrentSpawn: false,
+		});
+		return { sessions };
+	}
+
+	async listSessionsByGeneration(
+		generationId: string,
+	): Promise<ListSessionsResponse> {
+		const client = this.getOrCreateGenerationClient({
+			generationId,
+			canSpawn: generationId === this.getCurrentGenerationId(),
+			initialState:
+				generationId === this.getCurrentGenerationId()
+					? "preferred"
+					: "draining",
+		});
+		return client.listSessions();
+	}
+
+	async clearScrollback(
+		request: ClearScrollbackRequest,
+	): Promise<EmptyResponse> {
+		const { client } = await this.routeBySessionId(request.sessionId);
+		return client.clearScrollback(request);
+	}
+
+	async shutdown(request: ShutdownRequest = {}): Promise<EmptyResponse> {
+		await this.shutdownIfRunning(request);
+		return { success: true };
+	}
+
+	async shutdownIfRunning(
+		request: ShutdownRequest = {},
+	): Promise<{ wasRunning: boolean }> {
+		let wasRunning = false;
+		const generationIds = this.getKnownGenerationIds();
+
+		for (const generationId of generationIds) {
+			const client = this.getOrCreateGenerationClient({
+				generationId,
+				canSpawn: false,
+				initialState:
+					generationId === this.getCurrentGenerationId()
+						? "preferred"
+						: "draining",
+			});
+			try {
+				const result = await client.shutdownIfRunning(request);
+				wasRunning = wasRunning || result.wasRunning;
+			} catch {
+				// best effort
+			}
+		}
+
+		this.sessionGenerationMap.clear();
+		return { wasRunning };
+	}
+
+	async shutdownGenerationIfRunning({
+		generationId,
+		request = {},
+	}: {
+		generationId: string;
+		request?: ShutdownRequest;
+	}): Promise<{ wasRunning: boolean }> {
+		const client = this.getOrCreateGenerationClient({
+			generationId,
+			canSpawn: false,
+			initialState:
+				generationId === this.getCurrentGenerationId()
+					? "preferred"
+					: "draining",
+		});
+		const result = await client.shutdownIfRunning(request);
+		if (result.wasRunning) {
+			for (const [
+				sessionId,
+				mappedGeneration,
+			] of this.sessionGenerationMap.entries()) {
+				if (mappedGeneration === generationId) {
+					this.sessionGenerationMap.delete(sessionId);
+				}
+			}
+		}
+		return result;
+	}
+
+	disconnect(): void {
+		for (const client of this.generationClients.values()) {
+			client.disconnect();
+		}
+	}
+
+	dispose(): void {
+		if (this.disposed) {
+			return;
+		}
+		this.disposed = true;
+		for (const client of this.generationClients.values()) {
+			client.dispose();
+		}
+		this.generationClients.clear();
+		this.sessionGenerationMap.clear();
 		this.removeAllListeners();
 	}
 }

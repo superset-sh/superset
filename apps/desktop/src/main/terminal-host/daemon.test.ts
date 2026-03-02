@@ -104,6 +104,7 @@ describe("Terminal Host Daemon", () => {
 						...process.env,
 						NODE_ENV: "development",
 						SUPERSET_WORKSPACE_NAME: "test",
+						SUPERSET_HOME_DIR,
 					},
 					stdio: ["ignore", "pipe", "pipe"],
 					detached: true,
@@ -281,6 +282,7 @@ describe("Terminal Host Daemon", () => {
 					expect(payload.protocolVersion).toBe(PROTOCOL_VERSION);
 					expect(payload.daemonVersion).toBe("1.0.0");
 					expect(payload.daemonPid).toBeGreaterThan(0);
+					expect(payload.generationId).toBe("legacy");
 				}
 			} finally {
 				socket.destroy();

@@ -1,6 +1,7 @@
 export interface SessionInfo {
 	paneId: string;
 	workspaceId: string;
+	generationId?: string;
 	isAlive: boolean;
 	lastActive: number;
 	cwd: string;

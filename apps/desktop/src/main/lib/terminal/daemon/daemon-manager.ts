@@ -418,6 +418,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			this.sessions.set(paneId, {
 				paneId,
 				workspaceId,
+				generationId: response.generationId,
 				isAlive: true,
 				lastActive: Date.now(),
 				cwd: sessionCwd,
