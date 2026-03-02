@@ -1,0 +1,37 @@
+---
+title: Desktop 1.0, Mastra approval prompts, and guided onboarding
+date: 2026-03-02
+image: /changelog/IMAGE_PLACEHOLDER.png
+---
+
+{/* TODO: Replace header image with a screenshot of the Mastra prompt UI or onboarding flow */}
+
+## Mastra Agent Prompt UI <PRBadge url="https://github.com/superset-sh/superset/pull/1933" />
+
+The desktop app now surfaces Mastra agent interactions inline—questions, approval requests, and plans appear as interactive prompts directly in the chat pane. You can respond to agent questions, approve or reject proposed actions, and review multi-step plans without leaving your workflow.
+
+- Inline question prompts with text input
+- Approve/reject dialogs for sensitive agent actions
+- Plan previews before execution
+
+## Guided Onboarding Flow <PRBadge url="https://github.com/superset-sh/superset/pull/1913" />
+
+New users now see a multi-step setup experience that detects which tools are already installed. The onboarding checks for required dependencies and guides you through configuration before landing in the main app.
+
+## Improvements
+
+- **Persist chat model selection** - Your chosen model is now remembered across sessions and app restarts <PRBadge url="https://github.com/superset-sh/superset/pull/1956" />
+- **Superset MCP tools built-in** - Superset's own MCP tools are wired in as built-in extras in chat, no manual configuration needed <PRBadge url="https://github.com/superset-sh/superset/pull/1858" />
+- **Anthropic API key support** - You can now supply your own Anthropic API key for Mastra chat sessions <PRBadge url="https://github.com/superset-sh/superset/pull/1905" />
+- **Pane right-click menu** - Right-clicking a chat or browser pane now opens a context menu with common actions <PRBadge url="https://github.com/superset-sh/superset/pull/1886" />
+- **Open changes pane from file edits** - When an agent edits a file in chat, you can jump directly to the changes pane to review the diff <PRBadge url="https://github.com/superset-sh/superset/pull/1868" />
+- **Cmd+Shift+W closes the active tab** - New keyboard shortcut to close whichever pane tab is focused <PRBadge url="https://github.com/superset-sh/superset/pull/1860" />
+- **Resource monitor on by default** - The system tray resource monitor is now enabled for all users out of the box <PRBadge url="https://github.com/superset-sh/superset/pull/1949" />
+- **File diffs via diffs.com** - Edit tool diffs now open in diffs.com by default for a cleaner review experience <PRBadge url="https://github.com/superset-sh/superset/pull/1859" />
+- **Read-file tool collapsed by default** - File read results start collapsed to reduce chat noise <PRBadge url="https://github.com/superset-sh/superset/pull/1895" />
+- **Cmd+Enter submits new workspace prompt** - Keyboard shortcut now works in the new workspace creation flow <PRBadge url="https://github.com/superset-sh/superset/pull/1887" />
+- **Chat performance improvements** - Replaced aggressive polling with a smarter update strategy, reducing scrollback churn and improving rendering speed <PRBadge url="https://github.com/superset-sh/superset/pull/1872" />
+
+---
+
+**Bug fixes:** Fixed race condition dropping agent prompt on new workspace init <PRBadge url="https://github.com/superset-sh/superset/pull/1941" />, fixed first chat message send race on pane creation <PRBadge url="https://github.com/superset-sh/superset/pull/1932" />, fixed PATH resolution by using interactive login shell <PRBadge url="https://github.com/superset-sh/superset/pull/1940" />, fixed existing PR state handling in changes actions <PRBadge url="https://github.com/superset-sh/superset/pull/1952" />, fixed new workspace modal text overflow <PRBadge url="https://github.com/superset-sh/superset/pull/1902" />, fixed Codex prompt payload being parsed as flags <PRBadge url="https://github.com/superset-sh/superset/pull/1910" />, fixed first chat send failing on session create <PRBadge url="https://github.com/superset-sh/superset/pull/1903" />, fixed duplicate tool entries in assistant message rendering <PRBadge url="https://github.com/superset-sh/superset/pull/1879" />
