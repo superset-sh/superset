@@ -3,7 +3,6 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { initTRPC } from "@trpc/server";
 import { createMastraCode } from "mastracode";
 import superjson from "superjson";
-import { INTERNAL_MASTRA_TOOL_NAMES } from "../../shared/internal-tools";
 import { searchFiles } from "./utils/file-search";
 import {
 	authenticateRuntimeMcpServer,
@@ -29,6 +28,8 @@ import {
 	sendMessageInput,
 	sessionIdInput,
 } from "./zod";
+
+const INTERNAL_MASTRA_TOOL_NAMES = ["request_sandbox_access"] as const;
 
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;

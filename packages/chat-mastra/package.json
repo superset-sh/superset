@@ -15,10 +15,6 @@
 		"./server/hono": {
 			"types": "./src/server/hono/index.ts",
 			"default": "./src/server/hono/index.ts"
-		},
-		"./shared/internal-tools": {
-			"types": "./src/shared/internal-tools.ts",
-			"default": "./src/shared/internal-tools.ts"
 		}
 	},
 	"scripts": {

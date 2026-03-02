@@ -1,4 +1,3 @@
-import { INTERNAL_MASTRA_TOOL_NAMES } from "@superset/chat-mastra/shared/internal-tools";
 import type { ToolDisplayState } from "@superset/ui/ai-elements/tool";
 import type { UIMessage } from "ai";
 import { getToolName, isToolUIPart } from "ai";
@@ -8,6 +7,7 @@ type ToolPart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>;
 
 export type { ToolPart };
 
+const INTERNAL_MASTRA_TOOL_NAMES = ["request_sandbox_access"] as const;
 const INTERNAL_MASTRA_TOOL_NAME_SET = new Set(INTERNAL_MASTRA_TOOL_NAMES);
 
 const TOOL_NAME_ALIASES: Record<string, string> = {
