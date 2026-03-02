@@ -25,6 +25,7 @@ import {
 	VSCODE_OPTIONS,
 } from "renderer/components/OpenInButton";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useThemeStore } from "renderer/stores";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
 interface OpenInMenuButtonProps {
@@ -38,6 +39,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	branch,
 	projectId,
 }: OpenInMenuButtonProps) {
+	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const utils = electronTrpc.useUtils();
 	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
 		{ projectId: projectId as string },
@@ -65,6 +67,8 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	const showOpenInShortcut = openInShortcut !== "Unassigned";
 	const showCopyPathShortcut = copyPathShortcut !== "Unassigned";
 	const isLoading = openInApp.isPending || copyPath.isPending;
+
+	const isDark = activeTheme?.type === "dark";
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
@@ -116,7 +120,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 					>
 						{currentApp ? (
 							<img
-								src={currentApp.icon}
+								src={isDark ? currentApp.darkIcon : currentApp.lightIcon}
 								alt=""
 								className="size-3.5 object-contain shrink-0"
 							/>
@@ -180,7 +184,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							onClick={() => handleOpenInOtherApp(app.id)}
 						>
 							<img
-								src={app.icon}
+								src={isDark ? app.darkIcon : app.lightIcon}
 								alt=""
 								className="size-4 object-contain mr-2"
 							/>
@@ -206,7 +210,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 									onClick={() => handleOpenInOtherApp(app.id)}
 								>
 									<img
-										src={app.icon}
+										src={isDark ? app.darkIcon : app.lightIcon}
 										alt=""
 										className="size-4 object-contain mr-2"
 									/>
@@ -236,7 +240,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 									onClick={() => handleOpenInOtherApp(app.id)}
 								>
 									<img
-										src={app.icon}
+										src={isDark ? app.darkIcon : app.lightIcon}
 										alt=""
 										className="size-4 object-contain mr-2"
 									/>

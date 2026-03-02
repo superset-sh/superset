@@ -39,60 +39,145 @@ import vscodeInsidersIcon from "renderer/assets/app-icons/vscode-insiders.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
 import windsurfIcon from "renderer/assets/app-icons/windsurf.svg";
+import windsurfWhiteIcon from "renderer/assets/app-icons/windsurf-white.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
 import zedIcon from "renderer/assets/app-icons/zed.png";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHotkeyText } from "renderer/stores/hotkeys";
+import { useThemeStore } from "renderer/stores";
 
 interface AppOption {
 	id: ExternalApp;
 	label: string;
-	icon: string;
+	lightIcon: string;
+	darkIcon: string;
 	displayLabel?: string;
 }
 
 export const APP_OPTIONS: AppOption[] = [
-	{ id: "finder", label: "Finder", icon: finderIcon },
-	{ id: "cursor", label: "Cursor", icon: cursorIcon },
-	{ id: "antigravity", label: "Antigravity", icon: antigravityIcon },
-	{ id: "windsurf", label: "Windsurf", icon: windsurfIcon },
-	{ id: "zed", label: "Zed", icon: zedIcon },
-	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
-	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
-	{ id: "iterm", label: "iTerm", icon: itermIcon },
-	{ id: "warp", label: "Warp", icon: warpIcon },
-	{ id: "terminal", label: "Terminal", icon: terminalIcon },
-	{ id: "ghostty", label: "Ghostty", icon: ghosttyIcon },
+	{
+		id: "finder",
+		label: "Finder",
+		lightIcon: finderIcon,
+		darkIcon: finderIcon,
+	},
+	{
+		id: "cursor",
+		label: "Cursor",
+		lightIcon: cursorIcon,
+		darkIcon: cursorIcon,
+	},
+	{
+		id: "antigravity",
+		label: "Antigravity",
+		lightIcon: antigravityIcon,
+		darkIcon: antigravityIcon,
+	},
+	{
+		id: "windsurf",
+		label: "Windsurf",
+		lightIcon: windsurfIcon,
+		darkIcon: windsurfWhiteIcon,
+	},
+	{ id: "zed", label: "Zed", lightIcon: zedIcon, darkIcon: zedIcon },
+	{
+		id: "sublime",
+		label: "Sublime Text",
+		lightIcon: sublimeIcon,
+		darkIcon: sublimeIcon,
+	},
+	{ id: "xcode", label: "Xcode", lightIcon: xcodeIcon, darkIcon: xcodeIcon },
+	{ id: "iterm", label: "iTerm", lightIcon: itermIcon, darkIcon: itermIcon },
+	{ id: "warp", label: "Warp", lightIcon: warpIcon, darkIcon: warpIcon },
+	{
+		id: "terminal",
+		label: "Terminal",
+		lightIcon: terminalIcon,
+		darkIcon: terminalIcon,
+	},
+	{
+		id: "ghostty",
+		label: "Ghostty",
+		lightIcon: ghosttyIcon,
+		darkIcon: ghosttyIcon,
+	},
 ];
 
 export const VSCODE_OPTIONS: AppOption[] = [
 	{
 		id: "vscode",
 		label: "Standard",
-		icon: vscodeIcon,
+		lightIcon: vscodeIcon,
+		darkIcon: vscodeIcon,
 		displayLabel: "VS Code",
 	},
 	{
 		id: "vscode-insiders",
 		label: "Insiders",
-		icon: vscodeInsidersIcon,
+		lightIcon: vscodeInsidersIcon,
+		darkIcon: vscodeInsidersIcon,
 		displayLabel: "VS Code Insiders",
 	},
 ];
 
 export const JETBRAINS_OPTIONS: AppOption[] = [
-	{ id: "intellij", label: "IntelliJ IDEA", icon: intellijIcon },
-	{ id: "webstorm", label: "WebStorm", icon: webstormIcon },
-	{ id: "pycharm", label: "PyCharm", icon: pycharmIcon },
-	{ id: "phpstorm", label: "PhpStorm", icon: phpstormIcon },
-	{ id: "rubymine", label: "RubyMine", icon: rubymineIcon },
-	{ id: "goland", label: "GoLand", icon: golandIcon },
-	{ id: "clion", label: "CLion", icon: clionIcon },
-	{ id: "rider", label: "Rider", icon: riderIcon },
-	{ id: "datagrip", label: "DataGrip", icon: datagripIcon },
-	{ id: "appcode", label: "AppCode", icon: appcodeIcon },
-	{ id: "fleet", label: "Fleet", icon: fleetIcon },
-	{ id: "rustrover", label: "RustRover", icon: rustroverIcon },
+	{
+		id: "intellij",
+		label: "IntelliJ IDEA",
+		lightIcon: intellijIcon,
+		darkIcon: intellijIcon,
+	},
+	{
+		id: "webstorm",
+		label: "WebStorm",
+		lightIcon: webstormIcon,
+		darkIcon: webstormIcon,
+	},
+	{
+		id: "pycharm",
+		label: "PyCharm",
+		lightIcon: pycharmIcon,
+		darkIcon: pycharmIcon,
+	},
+	{
+		id: "phpstorm",
+		label: "PhpStorm",
+		lightIcon: phpstormIcon,
+		darkIcon: phpstormIcon,
+	},
+	{
+		id: "rubymine",
+		label: "RubyMine",
+		lightIcon: rubymineIcon,
+		darkIcon: rubymineIcon,
+	},
+	{
+		id: "goland",
+		label: "GoLand",
+		lightIcon: golandIcon,
+		darkIcon: golandIcon,
+	},
+	{ id: "clion", label: "CLion", lightIcon: clionIcon, darkIcon: clionIcon },
+	{ id: "rider", label: "Rider", lightIcon: riderIcon, darkIcon: riderIcon },
+	{
+		id: "datagrip",
+		label: "DataGrip",
+		lightIcon: datagripIcon,
+		darkIcon: datagripIcon,
+	},
+	{
+		id: "appcode",
+		label: "AppCode",
+		lightIcon: appcodeIcon,
+		darkIcon: appcodeIcon,
+	},
+	{ id: "fleet", label: "Fleet", lightIcon: fleetIcon, darkIcon: fleetIcon },
+	{
+		id: "rustrover",
+		label: "RustRover",
+		lightIcon: rustroverIcon,
+		darkIcon: rustroverIcon,
+	},
 ];
 
 const ALL_APP_OPTIONS = [
@@ -120,10 +205,12 @@ export function OpenInButton({
 	showShortcuts = false,
 	projectId,
 }: OpenInButtonProps) {
+	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
 	const openInShortcut = useHotkeyText("OPEN_IN_APP");
 	const copyPathShortcut = useHotkeyText("COPY_PATH");
+
 	const showOpenInShortcut = showShortcuts && openInShortcut !== "Unassigned";
 	const showCopyPathShortcut =
 		showShortcuts && copyPathShortcut !== "Unassigned";
@@ -144,6 +231,8 @@ export function OpenInButton({
 
 	const currentApp = defaultApp ? (getAppOption(defaultApp) ?? null) : null;
 
+	const isDark = activeTheme?.type === "dark";
+	const currentAppIcon = currentApp?.[isDark ? "darkIcon" : "lightIcon"];
 	const handleOpenIn = (app: ExternalApp) => {
 		if (!path) return;
 		openInApp.mutate({ path, app, projectId });
@@ -174,11 +263,11 @@ export function OpenInButton({
 							disabled={!path}
 						>
 							<img
-								src={currentApp.icon}
+								src={currentAppIcon}
 								alt=""
 								className="size-4 object-contain"
 							/>
-							<span className="font-medium">{label}</span>
+							<span className="font-medium">{`isDark: ${isDark}. ${label}`}</span>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
@@ -209,7 +298,7 @@ export function OpenInButton({
 						>
 							<div className="flex items-center gap-2">
 								<img
-									src={app.icon}
+									src={isDark ? app.darkIcon : app.lightIcon}
 									alt={app.label}
 									className="size-4 object-contain"
 								/>
@@ -240,7 +329,7 @@ export function OpenInButton({
 								>
 									<div className="flex items-center gap-2">
 										<img
-											src={app.icon}
+											src={isDark ? app.darkIcon : app.lightIcon}
 											alt={app.label}
 											className="size-4 object-contain"
 										/>
@@ -271,7 +360,7 @@ export function OpenInButton({
 								>
 									<div className="flex items-center gap-2">
 										<img
-											src={app.icon}
+											src={isDark ? app.darkIcon : app.lightIcon}
 											alt={app.label}
 											className="size-4 object-contain"
 										/>

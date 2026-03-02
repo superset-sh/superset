@@ -21,6 +21,7 @@ import {
 	VSCODE_OPTIONS,
 } from "renderer/components/OpenInButton";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useThemeStore } from "renderer/stores/theme";
 
 interface ClickablePathProps {
 	path: string;
@@ -28,6 +29,7 @@ interface ClickablePathProps {
 }
 
 export function ClickablePath({ path, className }: ClickablePathProps) {
+	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
 	// Uses global default editor (no project context on the settings page).
@@ -46,6 +48,8 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 		onSuccess: () => toast.success("Path copied to clipboard"),
 		onError: (error) => toast.error(`Failed to copy path: ${error.message}`),
 	});
+
+	const isDark = activeTheme?.type === "dark";
 
 	const handleOpenIn = (app: ExternalApp) => {
 		openInApp.mutate({ path, app });
@@ -80,7 +84,11 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 						onClick={() => handleOpenIn(app.id)}
 						className="flex items-center gap-2"
 					>
-						<img src={app.icon} alt="" className="size-4 object-contain" />
+						<img
+							src={isDark ? app.darkIcon : app.lightIcon}
+							alt=""
+							className="size-4 object-contain"
+						/>
 						<span>{app.label}</span>
 						{app.id === defaultApp && (
 							<span className="ml-auto text-xs text-muted-foreground">
@@ -105,7 +113,11 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 								onClick={() => handleOpenIn(app.id)}
 								className="flex items-center gap-2"
 							>
-								<img src={app.icon} alt="" className="size-4 object-contain" />
+								<img
+									src={isDark ? app.darkIcon : app.lightIcon}
+									alt=""
+									className="size-4 object-contain"
+								/>
 								<span>{app.label}</span>
 								{app.id === defaultApp && (
 									<span className="ml-auto text-xs text-muted-foreground">
@@ -132,7 +144,11 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 								onClick={() => handleOpenIn(app.id)}
 								className="flex items-center gap-2"
 							>
-								<img src={app.icon} alt="" className="size-4 object-contain" />
+								<img
+									src={isDark ? app.darkIcon : app.lightIcon}
+									alt=""
+									className="size-4 object-contain"
+								/>
 								<span>{app.label}</span>
 								{app.id === defaultApp && (
 									<span className="ml-auto text-xs text-muted-foreground">
