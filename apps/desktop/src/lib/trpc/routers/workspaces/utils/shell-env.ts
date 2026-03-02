@@ -13,10 +13,37 @@ let cacheTime = 0;
 let isFallbackCache = false;
 const CACHE_TTL_MS = 60_000; // 1 minute cache
 const FALLBACK_CACHE_TTL_MS = 10_000; // 10 second cache for fallback (retry sooner)
+const TIMEOUT_FALLBACK_CACHE_TTL_MS = 60_000; // 1 minute fallback when shell startup hangs
+const SHELL_ENV_TIMEOUT_MS = 8_000;
+let fallbackCacheTtlMs = FALLBACK_CACHE_TTL_MS;
 
 // Track PATH fix state for macOS GUI app PATH fix
 let pathFixAttempted = false;
 let pathFixSucceeded = false;
+
+class ShellEnvTimeoutError extends Error {
+	constructor(timeoutMs: number) {
+		super(`[shell-env] Timed out after ${timeoutMs}ms`);
+	}
+}
+
+async function getShellEnvWithTimeout(): Promise<Record<string, string>> {
+	let timeoutId: ReturnType<typeof setTimeout> | undefined;
+	try {
+		return (await Promise.race([
+			shellEnv() as Promise<Record<string, string>>,
+			new Promise<never>((_resolve, reject) => {
+				timeoutId = setTimeout(() => {
+					reject(new ShellEnvTimeoutError(SHELL_ENV_TIMEOUT_MS));
+				}, SHELL_ENV_TIMEOUT_MS);
+			}),
+		])) as Record<string, string>;
+	} finally {
+		if (timeoutId !== undefined) {
+			clearTimeout(timeoutId);
+		}
+	}
+}
 
 /**
  * Gets the full shell environment using sindresorhus/shell-env.
@@ -28,20 +55,22 @@ let pathFixSucceeded = false;
  */
 export async function getShellEnvironment(): Promise<Record<string, string>> {
 	const now = Date.now();
-	const ttl = isFallbackCache ? FALLBACK_CACHE_TTL_MS : CACHE_TTL_MS;
+	const ttl = isFallbackCache ? fallbackCacheTtlMs : CACHE_TTL_MS;
 	if (cachedEnv && now - cacheTime < ttl) {
 		return { ...cachedEnv };
 	}
 
 	try {
-		const env = await shellEnv();
+		const env = await getShellEnvWithTimeout();
 		cachedEnv = env as Record<string, string>;
 		cacheTime = now;
 		isFallbackCache = false;
+		fallbackCacheTtlMs = FALLBACK_CACHE_TTL_MS;
 		return { ...cachedEnv };
 	} catch (error) {
+		const isTimeout = error instanceof ShellEnvTimeoutError;
 		console.warn(
-			`[shell-env] Failed to get shell environment: ${error}. Falling back to process.env`,
+			`[shell-env] Failed to get shell environment${isTimeout ? " (timed out)" : ""}: ${error}. Falling back to process.env`,
 		);
 		const fallback: Record<string, string> = {};
 		for (const [key, value] of Object.entries(process.env)) {
@@ -52,6 +81,9 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 		cachedEnv = fallback;
 		cacheTime = now;
 		isFallbackCache = true;
+		fallbackCacheTtlMs = isTimeout
+			? TIMEOUT_FALLBACK_CACHE_TTL_MS
+			: FALLBACK_CACHE_TTL_MS;
 		return { ...fallback };
 	}
 }
@@ -64,6 +96,7 @@ export function clearShellEnvCache(): void {
 	cachedEnv = null;
 	cacheTime = 0;
 	isFallbackCache = false;
+	fallbackCacheTtlMs = FALLBACK_CACHE_TTL_MS;
 	pathFixAttempted = false;
 	pathFixSucceeded = false;
 }
