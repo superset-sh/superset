@@ -1,4 +1,5 @@
 import type { TerminalPreset } from "@superset/local-db";
+import type { ChatMastraLaunchConfig } from "shared/tabs-types";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
@@ -11,8 +12,10 @@ export interface PendingTerminalSetup {
 	defaultPresets?: TerminalPreset[];
 	/** Agent command to run in a separate pane from the setup script */
 	agentCommand?: string;
-	/** Open a Superset chat pane for this workspace once setup flow runs */
-	openChatPane?: boolean;
+	/** Optional Superset chat launch configuration for opening/sending in chat pane */
+	chatLaunchConfig?: ChatMastraLaunchConfig | null;
+	/** Worktree path used as chat cwd when launching a chat pane */
+	worktreePath?: string;
 }
 
 interface WorkspaceInitState {

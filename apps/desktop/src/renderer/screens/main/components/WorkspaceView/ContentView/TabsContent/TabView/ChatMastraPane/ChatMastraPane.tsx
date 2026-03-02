@@ -63,6 +63,7 @@ export function ChatMastraPane({
 	const showDevToolbarActions = env.NODE_ENV === "development";
 	const {
 		sessionId,
+		launchConfig,
 		organizationId,
 		workspacePath,
 		isSessionInitializing,
@@ -73,6 +74,7 @@ export function ChatMastraPane({
 		handleStartFreshSession,
 		handleDeleteSession,
 		ensureCurrentSessionRecord,
+		consumeLaunchConfig,
 	} = useChatMastraPaneController({
 		paneId,
 		workspaceId,
@@ -154,12 +156,14 @@ export function ChatMastraPane({
 						<div className="h-full w-full">
 							<ChatMastraInterface
 								sessionId={sessionId}
+								initialLaunchConfig={launchConfig}
 								workspaceId={workspaceId}
 								organizationId={organizationId}
 								cwd={workspacePath}
 								isSessionReady={hasCurrentSessionRecord}
 								ensureSessionReady={ensureCurrentSessionRecord}
 								onStartFreshSession={handleStartFreshSession}
+								onConsumeLaunchConfig={consumeLaunchConfig}
 								onRawSnapshotChange={
 									showDevToolbarActions ? handleRawSnapshotChange : undefined
 								}

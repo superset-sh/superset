@@ -9,6 +9,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import type { ChatMastraLaunchConfig } from "shared/tabs-types";
 import type { StartFreshSessionResult } from "../../../ChatPane/ChatInterface/types";
 import { reportChatMastraError } from "../../utils/reportChatMastraError";
 import { createSessionInitRunner } from "../../utils/session-init-runner";
@@ -30,6 +31,7 @@ interface UseChatMastraPaneControllerOptions {
 
 interface UseChatMastraPaneControllerReturn {
 	sessionId: string | null;
+	launchConfig: ChatMastraLaunchConfig | null;
 	organizationId: string | null;
 	workspacePath: string;
 	isSessionInitializing: boolean;
@@ -40,6 +42,7 @@ interface UseChatMastraPaneControllerReturn {
 	handleStartFreshSession: () => Promise<StartFreshSessionResult>;
 	handleDeleteSession: (sessionId: string) => Promise<void>;
 	ensureCurrentSessionRecord: () => Promise<boolean>;
+	consumeLaunchConfig: () => void;
 }
 
 function toSessionSelectorItem(session: {
@@ -117,7 +120,11 @@ export function useChatMastraPaneController({
 	const switchChatMastraSession = useTabsStore(
 		(state) => state.switchChatMastraSession,
 	);
+	const setChatMastraLaunchConfig = useTabsStore(
+		(state) => state.setChatMastraLaunchConfig,
+	);
 	const sessionId = pane?.chatMastra?.sessionId ?? null;
+	const launchConfig = pane?.chatMastra?.launchConfig ?? null;
 	const needsLegacySessionBootstrap = sessionId === null;
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
@@ -418,8 +425,13 @@ export function useChatMastraPaneController({
 		[sessions],
 	);
 
+	const consumeLaunchConfig = useCallback(() => {
+		setChatMastraLaunchConfig(paneId, null);
+	}, [paneId, setChatMastraLaunchConfig]);
+
 	return {
 		sessionId,
+		launchConfig,
 		organizationId,
 		workspacePath: workspace?.worktreePath ?? "",
 		isSessionInitializing,
@@ -430,5 +442,6 @@ export function useChatMastraPaneController({
 		handleStartFreshSession,
 		handleDeleteSession,
 		ensureCurrentSessionRecord,
+		consumeLaunchConfig,
 	};
 }

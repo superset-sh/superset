@@ -32,7 +32,10 @@ import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { buildAgentCommand } from "../../../../utils/buildAgentCommand";
+import {
+	buildAgentCommand,
+	buildAgentTaskPrompt,
+} from "../../../../utils/buildAgentCommand";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 interface OpenInWorkspaceProps {
@@ -81,21 +84,27 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			slug: task.slug,
 			title: task.title,
 		});
+		const taskInput = {
+			id: task.id,
+			slug: task.slug,
+			title: task.title,
+			description: task.description,
+			priority: task.priority,
+			statusName: task.status.name,
+			labels: task.labels,
+		};
 		const isSupersetChat = selectedAgent === "superset";
 		const terminalAgent = isTerminalAgentType(selectedAgent)
 			? selectedAgent
 			: null;
+		const chatLaunchConfig = isSupersetChat
+			? {
+					initialPrompt: buildAgentTaskPrompt(taskInput),
+				}
+			: null;
 		const command = terminalAgent
 			? buildAgentCommand({
-					task: {
-						id: task.id,
-						slug: task.slug,
-						title: task.title,
-						description: task.description,
-						priority: task.priority,
-						statusName: task.status.name,
-						labels: task.labels,
-					},
+					task: taskInput,
 					randomId: window.crypto.randomUUID(),
 					agent: terminalAgent,
 				})
@@ -108,12 +117,18 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					name: task.slug,
 					branchName,
 				},
-				command ? { agentCommand: command } : { openChatPane: isSupersetChat },
+				command
+					? { agentCommand: command }
+					: chatLaunchConfig
+						? { chatLaunchConfig }
+						: undefined,
 			);
 
 			if (result.wasExisting) {
 				if (isSupersetChat) {
-					addChatMastraTab(result.workspace.id);
+					addChatMastraTab(result.workspace.id, {
+						launchConfig: chatLaunchConfig,
+					});
 				} else if (command) {
 					const { tabId, paneId } = addTab(result.workspace.id);
 					setTabAutoTitle(tabId, "Agent");

@@ -17,7 +17,7 @@ interface UseCreateWorkspaceOptions extends NonNullable<MutationOptions> {
 
 type PendingSetupOverrides = Pick<
 	PendingTerminalSetup,
-	"defaultPresets" | "agentCommand" | "openChatPane"
+	"defaultPresets" | "agentCommand" | "chatLaunchConfig"
 >;
 
 export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
@@ -73,7 +73,8 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 						: data.initialCommands,
 					defaultPresets: pendingSetupOverrides?.defaultPresets,
 					agentCommand: pendingSetupOverrides?.agentCommand,
-					openChatPane: pendingSetupOverrides?.openChatPane,
+					chatLaunchConfig: pendingSetupOverrides?.chatLaunchConfig,
+					worktreePath: data.worktreePath,
 				});
 			}
 

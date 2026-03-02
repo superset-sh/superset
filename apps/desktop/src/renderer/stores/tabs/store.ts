@@ -153,10 +153,13 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
-				addChatMastraTab: (workspaceId: string) => {
+				addChatMastraTab: (workspaceId: string, options) => {
 					const state = get();
 
-					const { tab, pane } = createChatMastraTabWithPane(workspaceId);
+					const { tab, pane } = createChatMastraTabWithPane(
+						workspaceId,
+						options,
+					);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -1737,7 +1740,28 @@ export const useTabsStore = create<TabsStore>()(
 							...state.panes,
 							[paneId]: {
 								...pane,
-								chatMastra: { sessionId },
+								chatMastra: {
+									...pane.chatMastra,
+									sessionId,
+								},
+							},
+						},
+					});
+				},
+				setChatMastraLaunchConfig: (paneId, launchConfig) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane || pane.type !== "chat-mastra") return;
+					const sessionId = pane.chatMastra?.sessionId ?? null;
+					set({
+						panes: {
+							...state.panes,
+							[paneId]: {
+								...pane,
+								chatMastra: {
+									sessionId,
+									launchConfig: launchConfig ?? null,
+								},
 							},
 						},
 					});

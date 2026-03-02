@@ -9,7 +9,16 @@ const schema = z.object({
 	name: z.string(),
 	workspaceId: z.string(),
 	paneId: z.string().optional(),
-	openChatPane: z.boolean().optional(),
+	chatLaunchConfig: z
+		.object({
+			initialPrompt: z.string().optional(),
+			metadata: z
+				.object({
+					model: z.string().optional(),
+				})
+				.optional(),
+		})
+		.optional(),
 });
 
 async function execute(
@@ -48,8 +57,13 @@ async function execute(
 				};
 			}
 
-			if (params.openChatPane) {
-				const { paneId: chatPaneId } = tabsStore.addChatMastraTab(workspace.id);
+			if (params.chatLaunchConfig) {
+				const { paneId: chatPaneId } = tabsStore.addChatMastraTab(
+					workspace.id,
+					{
+						launchConfig: params.chatLaunchConfig,
+					},
+				);
 				return {
 					success: true,
 					data: { workspaceId: workspace.id, paneId: chatPaneId },
@@ -104,7 +118,8 @@ async function execute(
 			initialCommands: pending?.initialCommands ?? null,
 			defaultPresets: pending?.defaultPresets,
 			agentCommand: params.command ?? pending?.agentCommand,
-			openChatPane: params.openChatPane ?? pending?.openChatPane,
+			chatLaunchConfig: params.chatLaunchConfig ?? pending?.chatLaunchConfig,
+			worktreePath: pending?.worktreePath,
 		});
 
 		return {

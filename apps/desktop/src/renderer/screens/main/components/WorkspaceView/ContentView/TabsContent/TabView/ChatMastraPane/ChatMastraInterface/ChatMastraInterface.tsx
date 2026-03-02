@@ -53,12 +53,14 @@ function toErrorMessage(error: unknown): string | null {
 
 export function ChatMastraInterface({
 	sessionId,
+	initialLaunchConfig,
 	workspaceId,
 	organizationId,
 	cwd,
 	isSessionReady,
 	ensureSessionReady,
 	onStartFreshSession,
+	onConsumeLaunchConfig,
 	onRawSnapshotChange,
 }: ChatMastraInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
@@ -76,6 +78,7 @@ export function ChatMastraInterface({
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
 	const currentMcpScopeRef = useRef<string | null>(null);
+	const consumedLaunchConfigRef = useRef<string | null>(null);
 	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatMastraServiceTrpc.workspace.authenticateMcpServer.useMutation();
@@ -336,6 +339,78 @@ export function ChatMastraInterface({
 			workspaceId,
 		],
 	);
+
+	useEffect(() => {
+		if (!initialLaunchConfig) return;
+
+		const launchConfigKey = JSON.stringify(initialLaunchConfig);
+		if (consumedLaunchConfigRef.current === launchConfigKey) return;
+		consumedLaunchConfigRef.current = launchConfigKey;
+		onConsumeLaunchConfig();
+
+		const prompt = initialLaunchConfig.initialPrompt?.trim();
+		if (!prompt) return;
+
+		clearRuntimeError();
+		setSubmitStatus("submitted");
+
+		const modelId = initialLaunchConfig.metadata?.model ?? activeModel?.id;
+		const sendInput: ChatSendMessageInput = {
+			payload: {
+				content: prompt,
+			},
+			metadata: {
+				model: modelId,
+			},
+		};
+
+		let targetSessionId = sessionId;
+		void sendMessageForSession({
+			currentSessionId: sessionId,
+			isSessionReady,
+			ensureSessionReady,
+			onStartFreshSession,
+			sendToCurrentSession: () => commands.sendMessage(sendInput),
+			sendToSession: (nextSessionId) =>
+				sendMessageToSession(nextSessionId, sendInput),
+		})
+			.then((sendResult) => {
+				targetSessionId = sendResult.targetSessionId;
+				posthog.capture("chat_message_sent", {
+					workspace_id: workspaceId,
+					session_id: targetSessionId,
+					organization_id: organizationId,
+					model_id: modelId ?? null,
+					mention_count: 0,
+					attachment_count: 0,
+					is_slash_command: false,
+					message_length: prompt.length,
+					turn_number: (messages?.length ?? 0) + 1,
+					send_trigger: "launch-config",
+				});
+			})
+			.catch((error) => {
+				const sendErrorMessage = toSendFailureMessage(error);
+				setSubmitStatus(undefined);
+				setRuntimeErrorMessage(sendErrorMessage);
+				console.debug("[chat-mastra] auto launch send failed", error);
+			});
+	}, [
+		activeModel?.id,
+		clearRuntimeError,
+		commands,
+		ensureSessionReady,
+		initialLaunchConfig,
+		isSessionReady,
+		messages?.length,
+		onConsumeLaunchConfig,
+		onStartFreshSession,
+		organizationId,
+		sendMessageToSession,
+		sessionId,
+		setRuntimeErrorMessage,
+		workspaceId,
+	]);
 
 	const handleStop = useCallback(
 		async (event: React.MouseEvent) => {

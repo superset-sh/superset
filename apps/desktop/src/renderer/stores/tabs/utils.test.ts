@@ -529,4 +529,16 @@ describe("createChatMastraPane", () => {
 		expect(typeof pane.chatMastra?.sessionId).toBe("string");
 		expect((pane.chatMastra?.sessionId ?? "").length).toBeGreaterThan(0);
 	});
+
+	it("stores optional launch config", () => {
+		const pane = createChatMastraPane("tab-1", {
+			launchConfig: {
+				initialPrompt: "test prompt",
+				metadata: { model: "gpt-5" },
+			},
+		});
+
+		expect(pane.chatMastra?.launchConfig?.initialPrompt).toBe("test prompt");
+		expect(pane.chatMastra?.launchConfig?.metadata?.model).toBe("gpt-5");
+	});
 });

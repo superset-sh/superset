@@ -261,6 +261,11 @@ export function NewWorkspaceModal() {
 		const selectedWorkspaceAgent =
 			selectedAgent === "none" ? null : selectedAgent;
 		const isSupersetChat = selectedWorkspaceAgent === "superset";
+		const chatLaunchConfig = isSupersetChat
+			? {
+					initialPrompt: prompt || undefined,
+				}
+			: null;
 		const agentCommand =
 			selectedWorkspaceAgent && isTerminalAgentType(selectedWorkspaceAgent)
 				? prompt
@@ -285,14 +290,16 @@ export function NewWorkspaceModal() {
 				},
 				agentCommand
 					? { agentCommand }
-					: isSupersetChat
-						? { openChatPane: true }
+					: chatLaunchConfig
+						? { chatLaunchConfig }
 						: undefined,
 			);
 
 			if (result.wasExisting) {
 				if (isSupersetChat) {
-					addChatMastraTab(result.workspace.id);
+					addChatMastraTab(result.workspace.id, {
+						launchConfig: chatLaunchConfig,
+					});
 				} else if (agentCommand) {
 					const { tabId, paneId } = addTab(result.workspace.id);
 					setTabAutoTitle(tabId, "Agent");

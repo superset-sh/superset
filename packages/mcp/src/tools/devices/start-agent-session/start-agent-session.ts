@@ -1,7 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@superset/db/client";
 import { taskStatuses, tasks } from "@superset/db/schema";
-import { AGENT_TYPES, buildAgentCommand } from "@superset/shared/agent-command";
+import {
+	AGENT_TYPES,
+	buildAgentCommand,
+	buildAgentTaskPrompt,
+} from "@superset/shared/agent-command";
 import { and, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -47,12 +51,14 @@ function validateArgs(args: Record<string, unknown>): {
 	workspaceId: string;
 	paneId?: string;
 	agent?: string;
+	model?: string;
 } | null {
 	const deviceId = args.deviceId as string;
 	const taskId = args.taskId as string;
 	const workspaceId = args.workspaceId as string;
 	const paneId = args.paneId as string | undefined;
 	const agent = args.agent as string | undefined;
+	const model = args.model as string | undefined;
 	if (!deviceId || !taskId || !workspaceId) return null;
 	return {
 		deviceId,
@@ -60,6 +66,7 @@ function validateArgs(args: Record<string, unknown>): {
 		workspaceId,
 		...(paneId ? { paneId } : {}),
 		...(agent ? { agent } : {}),
+		...(model ? { model } : {}),
 	};
 }
 
@@ -104,6 +111,12 @@ export function register(server: McpServer) {
 					.describe(
 						'AI agent to use: "claude", "codex", "gemini", "opencode", "copilot", "cursor-agent", or "superset". Defaults to "claude".',
 					),
+				model: z
+					.string()
+					.optional()
+					.describe(
+						"Optional model ID for superset chat agent (for example: gpt-5).",
+					),
 			},
 		},
 		async (args, extra) => {
@@ -126,7 +139,12 @@ export function register(server: McpServer) {
 					deviceId: validated.deviceId,
 					tool: "start_agent_session",
 					params: {
-						openChatPane: true,
+						chatLaunchConfig: {
+							initialPrompt: buildAgentTaskPrompt(task),
+							...(validated.model
+								? { metadata: { model: validated.model } }
+								: {}),
+						},
 						name: task.slug,
 						workspaceId: validated.workspaceId,
 						...(validated.paneId ? { paneId: validated.paneId } : {}),

@@ -111,11 +111,7 @@ export function WorkspaceInitEffects() {
 				(p) => p.commands.length > 0,
 			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
-			const { agentCommand, openChatPane } = setup;
-
-			if (openChatPane) {
-				addChatMastraTab(setup.workspaceId);
-			}
+			const { agentCommand, chatLaunchConfig } = setup;
 
 			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
@@ -135,6 +131,11 @@ export function WorkspaceInitEffects() {
 							removePaneOnError: true,
 						});
 					}
+				}
+				if (chatLaunchConfig) {
+					addChatMastraTab(setup.workspaceId, {
+						launchConfig: chatLaunchConfig,
+					});
 				}
 
 				createOrAttach.mutate(
@@ -194,6 +195,11 @@ export function WorkspaceInitEffects() {
 							removePaneOnError: true,
 						});
 					}
+				}
+				if (chatLaunchConfig) {
+					addChatMastraTab(setup.workspaceId, {
+						launchConfig: chatLaunchConfig,
+					});
 				}
 
 				createOrAttach.mutate(
@@ -284,6 +290,11 @@ export function WorkspaceInitEffects() {
 						removePaneOnError: true,
 					});
 				}
+				if (chatLaunchConfig) {
+					addChatMastraTab(setup.workspaceId, {
+						launchConfig: chatLaunchConfig,
+					});
+				}
 				onComplete();
 				return;
 			}
@@ -299,6 +310,13 @@ export function WorkspaceInitEffects() {
 					workspaceId: setup.workspaceId,
 					command: agentCommand,
 					removePaneOnError: true,
+				});
+				onComplete();
+				return;
+			}
+			if (chatLaunchConfig) {
+				addChatMastraTab(setup.workspaceId, {
+					launchConfig: chatLaunchConfig,
 				});
 				onComplete();
 				return;
