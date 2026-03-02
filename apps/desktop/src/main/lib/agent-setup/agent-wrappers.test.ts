@@ -141,7 +141,9 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain('awk -F\'"turn_id":"\'');
 		expect(wrapper).toContain('"msg":{"type":"exec_command_begin"');
 		expect(wrapper).toContain('_approval_request"');
-		expect(wrapper).toContain('approval_request_${_superset_approval_fallback_seq}');
+		expect(wrapper).toContain(
+			`approval_request_\${_superset_approval_fallback_seq}`,
+		);
 		expect(wrapper).toContain('awk -F\'"approval_id":"\'');
 		expect(wrapper).toContain('_superset_emit_event "Start"');
 		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
