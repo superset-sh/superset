@@ -13,6 +13,7 @@ import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { posthog } from "renderer/lib/posthog";
+import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
 import { ChatInputFooter } from "../../ChatPane/ChatInterface/components/ChatInputFooter";
 import { useSlashCommandExecutor } from "../../ChatPane/ChatInterface/hooks/useSlashCommandExecutor";
 import type { SlashCommand } from "../../ChatPane/ChatInterface/hooks/useSlashCommands";
@@ -62,7 +63,14 @@ export function ChatMastraInterface({
 	onRawSnapshotChange,
 }: ChatMastraInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
-	const [selectedModel, setSelectedModel] = useState<ModelOption | null>(null);
+	const selectedModelId = useChatPreferencesStore(
+		(state) => state.selectedModelId,
+	);
+	const setSelectedModelId = useChatPreferencesStore(
+		(state) => state.setSelectedModelId,
+	);
+	const selectedModel =
+		availableModels.find((model) => model.id === selectedModelId) ?? null;
 	const activeModel = selectedModel ?? defaultModel;
 	const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
 	const [thinkingEnabled, setThinkingEnabled] = useState(false);
@@ -116,19 +124,23 @@ export function ChatMastraInterface({
 
 	const handleSelectModel = useCallback(
 		(model: React.SetStateAction<ModelOption | null>) => {
-			setSelectedModel(model);
-			if (typeof model === "object" && model !== null) {
-				posthog.capture("chat_model_changed", {
-					workspace_id: workspaceId,
-					session_id: sessionId,
-					organization_id: organizationId,
-					model_id: model.id,
-					model_name: model.name,
-					trigger: "picker",
-				});
+			const nextSelectedModel =
+				typeof model === "function" ? model(selectedModel) : model;
+			if (!nextSelectedModel) {
+				setSelectedModelId(null);
+				return;
 			}
+			posthog.capture("chat_model_changed", {
+				workspace_id: workspaceId,
+				session_id: sessionId,
+				organization_id: organizationId,
+				model_id: nextSelectedModel.id,
+				model_name: nextSelectedModel.name,
+				trigger: "picker",
+			});
+			setSelectedModelId(nextSelectedModel.id);
 		},
-		[organizationId, sessionId, workspaceId],
+		[organizationId, selectedModel, sessionId, setSelectedModelId, workspaceId],
 	);
 
 	const sendMessageToSession = useCallback(
