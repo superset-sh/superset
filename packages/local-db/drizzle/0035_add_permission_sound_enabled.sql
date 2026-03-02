@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `permission_sound_enabled` integer;

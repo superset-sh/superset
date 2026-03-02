@@ -19,6 +19,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
+	RINGTONES_PERMISSION_SOUND: "ringtones-permission-sound",
 
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 
@@ -316,6 +317,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"chime",
 			"mute",
 			"volume",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.RINGTONES_PERMISSION_SOUND,
+		section: "ringtones",
+		title: "Approval Sound",
+		description: "Play a sound when agent needs your approval to continue",
+		keywords: [
+			"approval",
+			"permission",
+			"sound",
+			"notification",
+			"alert",
+			"decision",
+			"input",
+			"needed",
+			"approve",
 		],
 	},
 	{

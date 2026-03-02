@@ -124,6 +124,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 		SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
 		visibleItems,
 	);
+	const showPermissionSound = isItemVisible(
+		SETTING_ITEM_ID.RINGTONES_PERMISSION_SOUND,
+		visibleItems,
+	);
 
 	const selectedRingtoneId = useSelectedRingtoneId();
 	const setRingtone = useSetRingtone();
@@ -136,6 +140,11 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	const { data: isMutedData, isLoading: isMutedLoading } =
 		electronTrpc.settings.getNotificationSoundsMuted.useQuery();
 	const isMuted = isMutedData ?? false;
+	const {
+		data: isPermissionSoundEnabledData,
+		isLoading: isPermissionSoundLoading,
+	} = electronTrpc.settings.getPermissionSoundEnabled.useQuery();
+	const isPermissionSoundEnabled = isPermissionSoundEnabledData ?? true;
 	const customRingtone: Ringtone | null = customRingtoneData
 		? {
 				...customRingtoneData,
@@ -165,6 +174,23 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 			},
 		},
 	);
+	const setPermissionSound =
+		electronTrpc.settings.setPermissionSoundEnabled.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getPermissionSoundEnabled.cancel();
+				const previous = utils.settings.getPermissionSoundEnabled.getData();
+				utils.settings.getPermissionSoundEnabled.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getPermissionSoundEnabled.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+		});
 	const importCustomRingtone = electronTrpc.ringtone.importCustom.useMutation({
 		onError: (error) => {
 			console.error("Failed to import custom ringtone:", error);
@@ -180,6 +206,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 
 	const handleMutedToggle = (enabled: boolean) => {
 		setMuted.mutate({ muted: !enabled });
+	};
+
+	const handlePermissionSoundToggle = (enabled: boolean) => {
+		setPermissionSound.mutate({ enabled });
 	};
 
 	const handleImportCustomRingtone = useCallback(() => {
@@ -283,6 +313,30 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 							checked={!isMuted}
 							onCheckedChange={handleMutedToggle}
 							disabled={isMutedLoading || setMuted.isPending}
+						/>
+					</div>
+				)}
+
+				{/* Permission Sound Toggle */}
+				{showPermissionSound && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label htmlFor="permission-sound" className="text-sm font-medium">
+								Approval sound
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Play a sound when the agent needs your approval to continue
+							</p>
+						</div>
+						<Switch
+							id="permission-sound"
+							checked={isPermissionSoundEnabled}
+							onCheckedChange={handlePermissionSoundToggle}
+							disabled={
+								isMuted ||
+								isPermissionSoundLoading ||
+								setPermissionSound.isPending
+							}
 						/>
 					</div>
 				)}

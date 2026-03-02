@@ -21,7 +21,7 @@ export interface NotificationManagerDeps {
 		body: string;
 		silent: boolean;
 	}) => NativeNotification;
-	playSound: () => void;
+	playSound: (eventType: "Stop" | "PermissionRequest") => void;
 	onNotificationClick: (ids: NotificationIds) => void;
 	getVisibilityContext: () => {
 		isFocused: boolean;
@@ -77,7 +77,7 @@ export class NotificationManager {
 		const key = event.paneId ?? `_anon_${this.counter++}`;
 		this.track(key, notification);
 
-		this.deps.playSound();
+		this.deps.playSound(event.eventType as "Stop" | "PermissionRequest");
 
 		notification.on("click", () => {
 			this.deps.onNotificationClick({

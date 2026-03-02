@@ -118,6 +118,23 @@ describe("NotificationManager", () => {
 			manager.handleAgentLifecycle(makeEvent());
 			expect(deps.playSound).toHaveBeenCalled();
 		});
+
+		it("passes Stop event type to playSound for Stop events", () => {
+			manager.handleAgentLifecycle(makeEvent({ eventType: "Stop" }));
+			expect(deps.playSound).toHaveBeenCalledWith("Stop");
+		});
+
+		it("passes PermissionRequest event type to playSound for PermissionRequest events", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "PermissionRequest" }),
+			);
+			expect(deps.playSound).toHaveBeenCalledWith("PermissionRequest");
+		});
+
+		it("does not call playSound for Start events", () => {
+			manager.handleAgentLifecycle(makeEvent({ eventType: "Start" }));
+			expect(deps.playSound).not.toHaveBeenCalled();
+		});
 	});
 
 	describe("tracking and replacement", () => {

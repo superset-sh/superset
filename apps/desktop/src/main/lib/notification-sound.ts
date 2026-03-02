@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { settings } from "@superset/local-db";
+import { DEFAULT_PERMISSION_SOUND_ENABLED } from "../../shared/constants";
 import {
 	CUSTOM_RINGTONE_ID,
 	DEFAULT_RINGTONE_ID,
@@ -19,6 +20,20 @@ function areNotificationSoundsMuted(): boolean {
 		return settingsRow?.notificationSoundsMuted ?? false;
 	} catch {
 		return false;
+	}
+}
+
+/**
+ * Checks if the permission request sound is enabled.
+ */
+function isPermissionSoundEnabled(): boolean {
+	try {
+		const settingsRow = localDb.select().from(settings).get();
+		return (
+			settingsRow?.permissionSoundEnabled ?? DEFAULT_PERMISSION_SOUND_ENABLED
+		);
+	} catch {
+		return DEFAULT_PERMISSION_SOUND_ENABLED;
 	}
 }
 
@@ -80,10 +95,18 @@ function playSoundFile(soundPath: string): void {
 /**
  * Plays the notification sound based on user's selected ringtone.
  * Uses platform-specific commands to play the audio file.
+ * @param eventType - The type of event triggering the sound.
  */
-export function playNotificationSound(): void {
+export function playNotificationSound(
+	eventType: "Stop" | "PermissionRequest",
+): void {
 	// Check if sounds are muted
 	if (areNotificationSoundsMuted()) {
+		return;
+	}
+
+	// For permission requests, check the dedicated permission sound setting
+	if (eventType === "PermissionRequest" && !isPermissionSoundEnabled()) {
 		return;
 	}
 
