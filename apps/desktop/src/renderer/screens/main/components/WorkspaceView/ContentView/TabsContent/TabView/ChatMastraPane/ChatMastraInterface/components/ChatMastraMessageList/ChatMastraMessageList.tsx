@@ -14,6 +14,7 @@ import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-hel
 import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { AssistantMessage } from "./components/AssistantMessage";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
+import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
 import { UserMessage } from "./components/UserMessage";
 
 type MastraMessage = NonNullable<
@@ -29,6 +30,7 @@ type MastraToolInputBuffer =
 	MastraToolInputBuffers extends Map<string, infer InputBuffer>
 		? InputBuffer
 		: never;
+type MastraPendingQuestion = UseMastraChatDisplayReturn["pendingQuestion"];
 
 function asRecord(value: unknown): Record<string, unknown> | null {
 	if (typeof value === "object" && value !== null) {
@@ -47,6 +49,9 @@ interface ChatMastraMessageListProps {
 	workspaceCwd?: string;
 	activeTools: MastraActiveTools | undefined;
 	toolInputBuffers: MastraToolInputBuffers | undefined;
+	pendingQuestion: MastraPendingQuestion;
+	isQuestionSubmitting: boolean;
+	onQuestionRespond: (questionId: string, answer: string) => Promise<void>;
 }
 
 function toPreviewToolPart({
@@ -143,6 +148,9 @@ export function ChatMastraMessageList({
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
+	pendingQuestion,
+	isQuestionSubmitting,
+	onQuestionRespond,
 }: ChatMastraMessageListProps) {
 	const visibleMessages = useMemo(() => {
 		if (!isRunning || !currentMessage || currentMessage.role !== "assistant") {
@@ -214,6 +222,7 @@ export function ChatMastraMessageList({
 				)}
 				{isRunning &&
 					!currentMessage &&
+					!pendingQuestion &&
 					visibleMessages[visibleMessages.length - 1]?.role === "user" &&
 					previewToolParts.length === 0 && (
 						<Message from="assistant">
@@ -226,6 +235,7 @@ export function ChatMastraMessageList({
 					)}
 				{isRunning &&
 					!currentMessage &&
+					!pendingQuestion &&
 					visibleMessages[visibleMessages.length - 1]?.role === "user" &&
 					previewToolParts.length > 0 && (
 						<Message from="assistant">
@@ -243,6 +253,13 @@ export function ChatMastraMessageList({
 							</MessageContent>
 						</Message>
 					)}
+				{pendingQuestion && (
+					<PendingQuestionMessage
+						question={pendingQuestion}
+						isSubmitting={isQuestionSubmitting}
+						onRespond={onQuestionRespond}
+					/>
+				)}
 			</ConversationContent>
 			<MessageScrollbackRail messages={visibleMessages} />
 			<ConversationScrollButton />

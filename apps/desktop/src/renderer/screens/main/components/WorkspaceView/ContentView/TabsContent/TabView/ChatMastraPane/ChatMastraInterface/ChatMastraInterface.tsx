@@ -24,7 +24,6 @@ import { ApprovalDialog } from "./components/ApprovalDialog";
 import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
 import { McpControls } from "./components/McpControls";
 import { PlanApprovalDialog } from "./components/PlanApprovalDialog";
-import { QuestionDialog } from "./components/QuestionDialog";
 import { useMcpUi } from "./hooks/useMcpUi";
 import type { ChatMastraInterfaceProps } from "./types";
 import { toMastraImages } from "./utils/toMastraImages";
@@ -396,6 +395,9 @@ export function ChatMastraInterface({
 					workspaceCwd={cwd}
 					activeTools={activeTools}
 					toolInputBuffers={toolInputBuffers}
+					pendingQuestion={pendingQuestion}
+					isQuestionSubmitting={questionResponsePending}
+					onQuestionRespond={handleQuestionResponse}
 				/>
 				<McpControls mcpUi={mcpUi} />
 				<ChatInputFooter
@@ -432,11 +434,6 @@ export function ChatMastraInterface({
 					planApproval={pendingPlanApproval}
 					isSubmitting={planResponsePending}
 					onRespond={handlePlanResponse}
-				/>
-				<QuestionDialog
-					question={pendingQuestion}
-					isSubmitting={questionResponsePending}
-					onRespond={handleQuestionResponse}
 				/>
 			</div>
 		</PromptInputProvider>
