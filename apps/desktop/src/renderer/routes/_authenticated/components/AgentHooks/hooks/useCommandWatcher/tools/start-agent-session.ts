@@ -19,6 +19,7 @@ const schema = z.object({
 				.optional(),
 		})
 		.optional(),
+	openChatPane: z.boolean().optional(),
 });
 
 async function execute(
@@ -57,11 +58,11 @@ async function execute(
 				};
 			}
 
-			if (params.chatLaunchConfig) {
+			if (params.chatLaunchConfig || params.openChatPane) {
 				const { paneId: chatPaneId } = tabsStore.addChatMastraTab(
 					workspace.id,
 					{
-						launchConfig: params.chatLaunchConfig,
+						launchConfig: params.chatLaunchConfig ?? null,
 					},
 				);
 				return {
@@ -119,6 +120,7 @@ async function execute(
 			defaultPresets: pending?.defaultPresets,
 			agentCommand: params.command ?? pending?.agentCommand,
 			chatLaunchConfig: params.chatLaunchConfig ?? pending?.chatLaunchConfig,
+			openChatPane: params.openChatPane ?? pending?.openChatPane,
 			worktreePath: pending?.worktreePath,
 		});
 

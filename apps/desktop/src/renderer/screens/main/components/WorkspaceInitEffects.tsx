@@ -111,7 +111,8 @@ export function WorkspaceInitEffects() {
 				(p) => p.commands.length > 0,
 			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
-			const { agentCommand, chatLaunchConfig } = setup;
+			const { agentCommand, chatLaunchConfig, openChatPane } = setup;
+			const shouldOpenChatPane = Boolean(chatLaunchConfig || openChatPane);
 
 			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
@@ -132,9 +133,9 @@ export function WorkspaceInitEffects() {
 						});
 					}
 				}
-				if (chatLaunchConfig) {
+				if (shouldOpenChatPane) {
 					addChatMastraTab(setup.workspaceId, {
-						launchConfig: chatLaunchConfig,
+						launchConfig: chatLaunchConfig ?? null,
 					});
 				}
 
@@ -196,9 +197,9 @@ export function WorkspaceInitEffects() {
 						});
 					}
 				}
-				if (chatLaunchConfig) {
+				if (shouldOpenChatPane) {
 					addChatMastraTab(setup.workspaceId, {
-						launchConfig: chatLaunchConfig,
+						launchConfig: chatLaunchConfig ?? null,
 					});
 				}
 
@@ -290,9 +291,9 @@ export function WorkspaceInitEffects() {
 						removePaneOnError: true,
 					});
 				}
-				if (chatLaunchConfig) {
+				if (shouldOpenChatPane) {
 					addChatMastraTab(setup.workspaceId, {
-						launchConfig: chatLaunchConfig,
+						launchConfig: chatLaunchConfig ?? null,
 					});
 				}
 				onComplete();
@@ -314,9 +315,9 @@ export function WorkspaceInitEffects() {
 				onComplete();
 				return;
 			}
-			if (chatLaunchConfig) {
+			if (shouldOpenChatPane) {
 				addChatMastraTab(setup.workspaceId, {
-					launchConfig: chatLaunchConfig,
+					launchConfig: chatLaunchConfig ?? null,
 				});
 				onComplete();
 				return;

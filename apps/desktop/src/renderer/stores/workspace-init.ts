@@ -14,6 +14,8 @@ export interface PendingTerminalSetup {
 	agentCommand?: string;
 	/** Optional Superset chat launch configuration for opening/sending in chat pane */
 	chatLaunchConfig?: ChatMastraLaunchConfig | null;
+	/** @deprecated Legacy fallback for pre-launch-config callers */
+	openChatPane?: boolean;
 	/** Worktree path used as chat cwd when launching a chat pane */
 	worktreePath?: string;
 }
