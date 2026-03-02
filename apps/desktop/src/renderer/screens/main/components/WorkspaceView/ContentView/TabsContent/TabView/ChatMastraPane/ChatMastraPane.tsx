@@ -1,32 +1,20 @@
 import { ChatServiceProvider } from "@superset/chat/client";
 import { ChatMastraServiceProvider } from "@superset/chat-mastra/client";
-import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { CopyIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { env } from "renderer/env.renderer";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { authClient, getAuthToken } from "renderer/lib/auth-client";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { posthog } from "renderer/lib/posthog";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../../TabContentContextMenu";
 import { createChatServiceIpcClient } from "../ChatPane/utils/chat-service-client";
 import { BasePaneWindow, PaneToolbarActions } from "../components";
 import { ChatMastraInterface } from "./ChatMastraInterface";
-import type { ChatMastraRawSnapshot } from "./ChatMastraInterface/types";
 import { SessionSelector } from "./components/SessionSelector";
+import { useChatMastraPaneController } from "./hooks/useChatMastraPaneController";
+import { useChatMastraRawSnapshot } from "./hooks/useChatMastraRawSnapshot";
 import { createChatMastraServiceIpcClient } from "./utils/chat-mastra-service-client";
-import { reportChatMastraError } from "./utils/reportChatMastraError";
-import { createSessionInitRunner } from "./utils/session-init-runner";
 
-const apiUrl = env.NEXT_PUBLIC_API_URL;
 const mastraIpcClient = createChatMastraServiceIpcClient();
 const chatIpcClient = createChatServiceIpcClient();
 
@@ -58,76 +46,6 @@ interface ChatMastraPaneProps {
 	onMoveToNewTab: () => void;
 }
 
-function toSessionSelectorItem(session: {
-	id: string;
-	title: string | null;
-	lastActiveAt: Date | string | null;
-	createdAt: Date | string;
-}) {
-	return {
-		sessionId: session.id,
-		title: session.title ?? "",
-		updatedAt:
-			session.lastActiveAt instanceof Date
-				? session.lastActiveAt
-				: session.lastActiveAt
-					? new Date(session.lastActiveAt)
-					: session.createdAt instanceof Date
-						? session.createdAt
-						: new Date(session.createdAt),
-	};
-}
-
-async function getHttpErrorDetail(response: Response): Promise<string> {
-	const errorBody = await response
-		.text()
-		.then((text) => text.trim())
-		.catch(() => "");
-	const statusText = response.statusText ? ` ${response.statusText}` : "";
-	const detail = errorBody ? ` - ${errorBody.slice(0, 500)}` : "";
-	return `${response.status}${statusText}${detail}`;
-}
-
-async function createSessionRecord(input: {
-	sessionId: string;
-	organizationId: string;
-	workspaceId: string;
-}): Promise<void> {
-	const token = getAuthToken();
-	const response = await fetch(`${apiUrl}/api/chat/${input.sessionId}`, {
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-			...(token ? { Authorization: `Bearer ${token}` } : {}),
-		},
-		body: JSON.stringify({
-			organizationId: input.organizationId,
-			workspaceId: input.workspaceId,
-		}),
-	});
-
-	if (!response.ok) {
-		const detail = await getHttpErrorDetail(response);
-		throw new Error(`Failed to create session ${input.sessionId}: ${detail}`);
-	}
-}
-
-async function deleteSessionRecord(sessionId: string): Promise<void> {
-	const token = getAuthToken();
-	const response = await fetch(`${apiUrl}/api/chat/${sessionId}/stream`, {
-		method: "DELETE",
-		headers: token ? { Authorization: `Bearer ${token}` } : {},
-	});
-
-	if (!response.ok) {
-		const detail = await getHttpErrorDetail(response);
-		throw new Error(`Failed to delete session ${sessionId}: ${detail}`);
-	}
-}
-
-const SESSION_INIT_RETRY_DELAY_MS = 1500;
-const SESSION_INIT_MAX_RETRIES = 3;
-
 export function ChatMastraPane({
 	paneId,
 	path,
@@ -142,347 +60,28 @@ export function ChatMastraPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: ChatMastraPaneProps) {
-	const pane = useTabsStore((state) => state.panes[paneId]);
-	const switchChatMastraSession = useTabsStore(
-		(state) => state.switchChatMastraSession,
-	);
-	const sessionId = pane?.chatMastra?.sessionId ?? null;
-	const needsLegacySessionBootstrap = sessionId === null;
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
-	const collections = useCollections();
-	const legacySessionBootstrapRef = useRef(false);
-	const ensuredRef = useRef<string | null>(null);
-	const rawSnapshotRef = useRef<ChatMastraRawSnapshot | null>(null);
-	const [rawSnapshotSessionId, setRawSnapshotSessionId] = useState<
-		string | null
-	>(null);
 	const showDevToolbarActions = env.NODE_ENV === "development";
-
-	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
-		{ id: workspaceId },
-		{ enabled: Boolean(workspaceId) },
-	);
-
-	const { data: remoteWorkspaces } = useLiveQuery(
-		(q) =>
-			q
-				.from({ ws: collections.workspaces })
-				.where(({ ws }) => eq(ws.id, workspaceId))
-				.select(({ ws }) => ({ id: ws.id })),
-		[collections.workspaces, workspaceId],
-	);
-	const existsRemotely = Boolean(
-		remoteWorkspaces && remoteWorkspaces.length > 0,
-	);
-
-	useEffect(() => {
-		if (existsRemotely) return;
-		if (!workspace?.project || !organizationId) return;
-		if (ensuredRef.current === workspaceId) return;
-
-		const project = workspace.project;
-		const repoName = project.mainRepoPath.split("/").pop();
-		if (!repoName || !project.githubOwner) return;
-
-		ensuredRef.current = workspaceId;
-
-		apiTrpcClient.workspace.ensure
-			.mutate({
-				organizationId,
-				project: {
-					name: project.name,
-					slug: repoName.toLowerCase(),
-					repoOwner: project.githubOwner,
-					repoName,
-					repoUrl: `https://github.com/${project.githubOwner}/${repoName}`,
-					defaultBranch: project.defaultBranch ?? "main",
-				},
-				workspace: {
-					id: workspaceId,
-					name: workspace.name,
-					type: "local",
-					config: {
-						path: workspace.worktreePath,
-						branch:
-							workspace.worktree?.branch ?? project.defaultBranch ?? "main",
-					},
-				},
-			})
-			.catch((error) => {
-				reportChatMastraError({
-					operation: "workspace.ensure",
-					error,
-					workspaceId,
-					paneId,
-					organizationId,
-				});
-				ensuredRef.current = null;
-			});
-	}, [existsRemotely, organizationId, paneId, workspace, workspaceId]);
-
-	const { data: sessionsData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) => eq(chatSessions.workspaceId, workspaceId))
-				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc")
-				.select(({ chatSessions }) => ({ ...chatSessions })),
-		[collections.chatSessions, workspaceId],
-	);
-	const sessions = sessionsData ?? [];
-	const hasCurrentSessionRecord = Boolean(
-		sessionId && sessions.some((item) => item.id === sessionId),
-	);
-	const [isSessionInitializing, setIsSessionInitializing] = useState(false);
-	const hasCurrentSessionRecordRef = useRef(hasCurrentSessionRecord);
-	const sessionInitScopeRef = useRef<string | null>(null);
-	const sessionInitRunnerRef = useRef<ReturnType<
-		typeof createSessionInitRunner
-	> | null>(null);
-
-	useEffect(() => {
-		hasCurrentSessionRecordRef.current = hasCurrentSessionRecord;
-	}, [hasCurrentSessionRecord]);
-
-	if (!sessionInitRunnerRef.current) {
-		sessionInitRunnerRef.current = createSessionInitRunner({
-			maxRetries: SESSION_INIT_MAX_RETRIES,
-			retryDelayMs: SESSION_INIT_RETRY_DELAY_MS,
-			hasCurrentSessionRecord: () => hasCurrentSessionRecordRef.current,
-			isScopeCurrent: (scopeKey) => sessionInitScopeRef.current === scopeKey,
-			setIsSessionInitializing,
-			createSessionRecord: async (scope) => {
-				await createSessionRecord({
-					sessionId: scope.sessionId,
-					organizationId: scope.organizationId,
-					workspaceId: scope.workspaceId,
-				});
-			},
-			reportCreateSessionError: (error, scope) => {
-				reportChatMastraError({
-					operation: "session.create",
-					error,
-					sessionId: scope.sessionId,
-					workspaceId: scope.workspaceId,
-					paneId,
-					organizationId: scope.organizationId,
-				});
-			},
-			onRetryExhausted: () => {
-				toast.error("Failed to initialize chat session");
-			},
-		});
-	}
-
-	useEffect(() => {
-		return () => {
-			sessionInitRunnerRef.current?.dispose();
-		};
-	}, []);
-
-	useEffect(() => {
-		const scope = `${organizationId ?? "none"}:${workspaceId}:${sessionId ?? "none"}`;
-		if (sessionInitScopeRef.current === scope) return;
-		sessionInitScopeRef.current = scope;
-		sessionInitRunnerRef.current?.resetScope(scope);
-	}, [organizationId, sessionId, workspaceId]);
-
-	const currentSessionInitScope = useMemo(() => {
-		if (!sessionId || !organizationId) return null;
-		return {
-			scopeKey: `${organizationId}:${workspaceId}:${sessionId}`,
-			organizationId,
-			workspaceId,
-			sessionId,
-		};
-	}, [organizationId, sessionId, workspaceId]);
-
-	const handleSelectSession = useCallback(
-		(nextSessionId: string) => {
-			switchChatMastraSession(paneId, nextSessionId);
-			posthog.capture("chat_session_opened", {
-				workspace_id: workspaceId,
-				session_id: nextSessionId,
-				organization_id: organizationId,
-			});
-		},
-		[organizationId, paneId, switchChatMastraSession, workspaceId],
-	);
-
-	const createAndActivateSession = useCallback(
-		async ({
-			targetOrganizationId,
-			newSessionId,
-		}: {
-			targetOrganizationId: string;
-			newSessionId: string;
-		}) => {
-			try {
-				await createSessionRecord({
-					sessionId: newSessionId,
-					organizationId: targetOrganizationId,
-					workspaceId,
-				});
-				switchChatMastraSession(paneId, newSessionId);
-				posthog.capture("chat_session_created", {
-					workspace_id: workspaceId,
-					session_id: newSessionId,
-					organization_id: targetOrganizationId,
-				});
-				return { created: true as const, sessionId: newSessionId };
-			} catch (error) {
-				reportChatMastraError({
-					operation: "session.create",
-					error,
-					sessionId: newSessionId,
-					workspaceId,
-					paneId,
-					organizationId: targetOrganizationId,
-				});
-				return {
-					created: false as const,
-					errorMessage:
-						error instanceof Error
-							? error.message
-							: "Failed to create a new chat session",
-				};
-			}
-		},
-		[paneId, switchChatMastraSession, workspaceId],
-	);
-
-	const handleNewChat = useCallback(async () => {
-		if (!organizationId) return;
-		const createResult = await createAndActivateSession({
-			targetOrganizationId: organizationId,
-			newSessionId: crypto.randomUUID(),
-		});
-		if (!createResult.created) {
-			toast.error("Failed to create session");
-		}
-	}, [createAndActivateSession, organizationId]);
-
-	const handleStartFreshSession = useCallback(async () => {
-		if (!organizationId) {
-			return {
-				created: false as const,
-				errorMessage: "No active organization selected",
-			};
-		}
-		return createAndActivateSession({
-			targetOrganizationId: organizationId,
-			newSessionId: crypto.randomUUID(),
-		});
-	}, [createAndActivateSession, organizationId]);
-
-	const handleDeleteSession = useCallback(
-		async (sessionIdToDelete: string) => {
-			try {
-				await deleteSessionRecord(sessionIdToDelete);
-				posthog.capture("chat_session_deleted", {
-					workspace_id: workspaceId,
-					session_id: sessionIdToDelete,
-					organization_id: organizationId,
-				});
-				if (sessionIdToDelete === sessionId) {
-					switchChatMastraSession(paneId, null);
-				}
-			} catch (error) {
-				reportChatMastraError({
-					operation: "session.delete",
-					error,
-					sessionId: sessionIdToDelete,
-					workspaceId,
-					paneId,
-					organizationId,
-				});
-				throw error;
-			}
-		},
-		[organizationId, paneId, sessionId, switchChatMastraSession, workspaceId],
-	);
-
-	const runSessionInit = useCallback(
-		async ({
-			retryOnFailure,
-		}: {
-			retryOnFailure: boolean;
-		}): Promise<boolean> => {
-			if (!currentSessionInitScope) return false;
-			const runner = sessionInitRunnerRef.current;
-			if (!runner) return false;
-			return runner.run({ scope: currentSessionInitScope, retryOnFailure });
-		},
-		[currentSessionInitScope],
-	);
-
-	const ensureCurrentSessionRecord = useCallback(async (): Promise<boolean> => {
-		return runSessionInit({ retryOnFailure: false });
-	}, [runSessionInit]);
-
-	useEffect(() => {
-		if (!currentSessionInitScope) return;
-		if (!hasCurrentSessionRecord) return;
-		sessionInitRunnerRef.current?.markReady(currentSessionInitScope.scopeKey);
-	}, [currentSessionInitScope, hasCurrentSessionRecord]);
-
-	useEffect(() => {
-		if (!currentSessionInitScope) return;
-		if (hasCurrentSessionRecord) return;
-		void runSessionInit({ retryOnFailure: true });
-	}, [currentSessionInitScope, hasCurrentSessionRecord, runSessionInit]);
-
-	useEffect(() => {
-		// Legacy fallback for panes created before session IDs were seeded at pane creation.
-		if (!needsLegacySessionBootstrap) return;
-		if (!organizationId) return;
-		if (legacySessionBootstrapRef.current) return;
-		legacySessionBootstrapRef.current = true;
-
-		void handleNewChat()
-			.catch(() => {})
-			.finally(() => {
-				legacySessionBootstrapRef.current = false;
-			});
-	}, [handleNewChat, needsLegacySessionBootstrap, organizationId]);
-
-	const sessionItems = useMemo(
-		() => sessions.map((item) => toSessionSelectorItem(item)),
-		[sessions],
-	);
-
-	const handleRawSnapshotChange = useCallback(
-		(snapshot: ChatMastraRawSnapshot) => {
-			rawSnapshotRef.current = snapshot;
-			setRawSnapshotSessionId((previousSessionId) =>
-				previousSessionId === snapshot.sessionId
-					? previousSessionId
-					: snapshot.sessionId,
-			);
-		},
-		[],
-	);
-
-	const handleCopyRawSnapshot = useCallback(async () => {
-		const rawSnapshot = rawSnapshotRef.current;
-		if (!rawSnapshot || rawSnapshot.sessionId !== sessionId) {
-			toast.error("No raw chat data to copy yet");
-			return;
-		}
-
-		if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
-			toast.error("Clipboard API is unavailable");
-			return;
-		}
-
-		try {
-			await navigator.clipboard.writeText(JSON.stringify(rawSnapshot, null, 2));
-			toast.success("Copied raw chat JSON");
-		} catch {
-			toast.error("Failed to copy raw chat JSON");
-		}
-	}, [sessionId]);
+	const {
+		sessionId,
+		organizationId,
+		workspacePath,
+		isSessionInitializing,
+		hasCurrentSessionRecord,
+		sessionItems,
+		handleSelectSession,
+		handleNewChat,
+		handleStartFreshSession,
+		handleDeleteSession,
+		ensureCurrentSessionRecord,
+	} = useChatMastraPaneController({
+		paneId,
+		workspaceId,
+	});
+	const {
+		snapshotAvailableForSession,
+		handleRawSnapshotChange,
+		handleCopyRawSnapshot,
+	} = useChatMastraRawSnapshot({ sessionId });
 
 	return (
 		<ChatMastraServiceProvider
@@ -525,10 +124,7 @@ export function ChatMastraPane({
 													onClick={() => {
 														void handleCopyRawSnapshot();
 													}}
-													disabled={
-														!rawSnapshotRef.current ||
-														rawSnapshotSessionId !== sessionId
-													}
+													disabled={!snapshotAvailableForSession}
 													className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
 												>
 													<CopyIcon className="size-3.5" />
@@ -560,7 +156,7 @@ export function ChatMastraPane({
 								sessionId={sessionId}
 								workspaceId={workspaceId}
 								organizationId={organizationId}
-								cwd={workspace?.worktreePath ?? ""}
+								cwd={workspacePath}
 								isSessionReady={hasCurrentSessionRecord}
 								ensureSessionReady={ensureCurrentSessionRecord}
 								onStartFreshSession={handleStartFreshSession}
