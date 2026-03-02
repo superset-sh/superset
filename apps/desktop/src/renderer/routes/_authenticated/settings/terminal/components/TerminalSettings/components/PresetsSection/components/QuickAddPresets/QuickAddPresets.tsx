@@ -1,3 +1,4 @@
+import { AGENT_LABELS } from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiOutlineCheck } from "react-icons/hi2";
@@ -46,7 +47,7 @@ export function QuickAddPresets({
 										className="h-3 w-3 object-contain"
 									/>
 								) : null}
-								{template.name}
+								{AGENT_LABELS[template.name as keyof typeof AGENT_LABELS] || template.name}
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>

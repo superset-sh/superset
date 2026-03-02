@@ -1,3 +1,4 @@
+import { AGENT_LABELS } from "@superset/shared/agent-command";
 import type { TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
@@ -104,7 +105,7 @@ export function PresetBarItem({
 									<HiMiniCommandLine className="size-3.5" />
 								)}
 								<span className="truncate max-w-[120px]">
-									{preset.name || "default"}
+									{AGENT_LABELS[preset.name as keyof typeof AGENT_LABELS] || preset.name || "default"}
 								</span>
 							</Button>
 						</TooltipTrigger>

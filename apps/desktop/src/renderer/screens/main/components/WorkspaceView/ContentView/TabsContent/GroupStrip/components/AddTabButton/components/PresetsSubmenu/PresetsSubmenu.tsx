@@ -1,3 +1,4 @@
+import { AGENT_LABELS } from "@superset/shared/agent-command";
 import type { TerminalPreset } from "@superset/local-db";
 import {
 	DropdownMenuItem,
@@ -53,7 +54,7 @@ export function PresetsSubmenu({
 								) : (
 									<HiMiniCommandLine className="size-4" />
 								)}
-								<span className="truncate">{preset.name || "default"}</span>
+								<span className="truncate">{AGENT_LABELS[preset.name as keyof typeof AGENT_LABELS] || preset.name || "default"}</span>
 								{hotkeyId ? <HotkeyMenuShortcut hotkeyId={hotkeyId} /> : null}
 							</DropdownMenuItem>
 						);
