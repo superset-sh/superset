@@ -53,6 +53,7 @@ const SHIMMED_BINARIES = [
 	"gemini",
 	"copilot",
 	"mastracode",
+	"autohand",
 ];
 
 /**

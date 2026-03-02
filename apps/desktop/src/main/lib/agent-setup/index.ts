@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import {
 	cleanupGlobalOpenCodePlugin,
+	createAutohandHooksConfig,
+	createAutohandWrapper,
 	createClaudeWrapper,
 	createCodexWrapper,
 	createCopilotHookScript,
@@ -58,6 +60,8 @@ export function setupAgentHooks(): void {
 	createMastraHooksJson();
 	createCopilotHookScript();
 	createCopilotWrapper();
+	createAutohandWrapper();
+	createAutohandHooksConfig();
 
 	createZshWrapper();
 	createBashWrapper();
