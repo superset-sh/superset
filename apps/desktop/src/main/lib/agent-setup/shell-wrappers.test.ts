@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -45,6 +46,7 @@ describe("shell-wrappers", () => {
 		expect(zshenv).toContain(`export ZDOTDIR="${TEST_ZSH_DIR}"`);
 
 		expect(zshrc).toContain("_superset_prepend_bin()");
+		expect(zshrc).toContain("if ! typeset -f claude > /dev/null 2>&1; then");
 		expect(zshrc).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zshrc).toContain(`codex() { "${TEST_BIN_DIR}/codex" "$@"; }`);
 		expect(zshrc).toContain(`opencode() { "${TEST_BIN_DIR}/opencode" "$@"; }`);
@@ -57,6 +59,7 @@ describe("shell-wrappers", () => {
 		expect(zlogin).toContain("if [[ -o interactive ]]; then");
 		expect(zlogin).toContain('source "$_superset_home/.zlogin"');
 		expect(zlogin).toContain("_superset_prepend_bin()");
+		expect(zlogin).toContain("if ! typeset -f claude > /dev/null 2>&1; then");
 		expect(zlogin).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zlogin).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
 		expect(zlogin).toContain(
@@ -70,6 +73,7 @@ describe("shell-wrappers", () => {
 
 		const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
 		expect(rcfile).toContain("_superset_prepend_bin()");
+		expect(rcfile).toContain("if ! typeset -f claude > /dev/null 2>&1; then");
 		expect(rcfile).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(rcfile).toContain(`codex() { "${TEST_BIN_DIR}/codex" "$@"; }`);
 		expect(rcfile).toContain(`opencode() { "${TEST_BIN_DIR}/opencode" "$@"; }`);
@@ -78,6 +82,44 @@ describe("shell-wrappers", () => {
 			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
 		);
 		expect(rcfile).toContain("hash -r 2>/dev/null || true");
+	});
+
+	it("preserves user-defined bash wrappers and still reaches Superset binary via command", () => {
+		createBashWrapper(TEST_PATHS);
+
+		const homeDir = path.join(TEST_ROOT, "home");
+		const markerFile = path.join(TEST_ROOT, "claude-args.txt");
+		const userBashrcPath = path.join(homeDir, ".bashrc");
+		const wrapperBinaryPath = path.join(TEST_BIN_DIR, "claude");
+		const rcfilePath = path.join(TEST_BASH_DIR, "rcfile");
+
+		mkdirSync(homeDir, { recursive: true });
+		writeFileSync(
+			userBashrcPath,
+			'claude() { AWS_PROFILE="$BEDROCK_AWS_PROFILE" command claude "$@"; }\n',
+		);
+		writeFileSync(
+			wrapperBinaryPath,
+			'#!/bin/bash\nprintf \'%s\\n\' "$@" > "$SUPERSET_WRAPPER_ARGS_FILE"\n',
+			{ mode: 0o755 },
+		);
+		chmodSync(wrapperBinaryPath, 0o755);
+
+		execFileSync(
+			"bash",
+			["-c", `source "${rcfilePath}" && claude "from-user-wrapper"`],
+			{
+				env: {
+					...process.env,
+					BEDROCK_AWS_PROFILE: "bedrock-profile",
+					HOME: homeDir,
+					PATH: `${TEST_BIN_DIR}:${process.env.PATH || ""}`,
+					SUPERSET_WRAPPER_ARGS_FILE: markerFile,
+				},
+			},
+		);
+
+		expect(readFileSync(markerFile, "utf-8").trim()).toBe("from-user-wrapper");
 	});
 
 	it("uses login zsh command args when wrappers exist", () => {
