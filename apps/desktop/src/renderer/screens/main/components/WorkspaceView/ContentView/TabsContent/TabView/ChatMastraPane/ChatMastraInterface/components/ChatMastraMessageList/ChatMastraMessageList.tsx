@@ -17,6 +17,7 @@ import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
 import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
+import { SubagentExecutionMessage } from "./components/SubagentExecutionMessage";
 import { UserMessage } from "./components/UserMessage";
 
 type MastraMessage = NonNullable<
@@ -25,6 +26,9 @@ type MastraMessage = NonNullable<
 type MastraActiveTools = NonNullable<UseMastraChatDisplayReturn["activeTools"]>;
 type MastraToolInputBuffers = NonNullable<
 	UseMastraChatDisplayReturn["toolInputBuffers"]
+>;
+type MastraActiveSubagents = NonNullable<
+	UseMastraChatDisplayReturn["activeSubagents"]
 >;
 type MastraActiveTool =
 	MastraActiveTools extends Map<string, infer ToolState> ? ToolState : never;
@@ -54,6 +58,7 @@ interface ChatMastraMessageListProps {
 	workspaceCwd?: string;
 	activeTools: MastraActiveTools | undefined;
 	toolInputBuffers: MastraToolInputBuffers | undefined;
+	activeSubagents: MastraActiveSubagents | undefined;
 	pendingApproval: MastraPendingApproval;
 	isApprovalSubmitting: boolean;
 	onApprovalRespond: (
@@ -164,6 +169,7 @@ export function ChatMastraMessageList({
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
+	activeSubagents,
 	pendingApproval,
 	isApprovalSubmitting,
 	onApprovalRespond,
@@ -194,6 +200,11 @@ export function ChatMastraMessageList({
 			}),
 		[activeTools, toolInputBuffers],
 	);
+	const activeSubagentEntries = useMemo(
+		() => toToolEntries(activeSubagents),
+		[activeSubagents],
+	);
+	const hasSubagentActivity = activeSubagentEntries.length > 0;
 
 	return (
 		<Conversation className="flex-1">
@@ -244,6 +255,7 @@ export function ChatMastraMessageList({
 				)}
 				{isRunning &&
 					!currentMessage &&
+					!hasSubagentActivity &&
 					!pendingApproval &&
 					!pendingPlanApproval &&
 					!pendingQuestion &&
@@ -259,6 +271,7 @@ export function ChatMastraMessageList({
 					)}
 				{isRunning &&
 					!currentMessage &&
+					!hasSubagentActivity &&
 					!pendingApproval &&
 					!pendingPlanApproval &&
 					!pendingQuestion &&
@@ -279,6 +292,9 @@ export function ChatMastraMessageList({
 							</MessageContent>
 						</Message>
 					)}
+				{hasSubagentActivity && (
+					<SubagentExecutionMessage subagents={activeSubagentEntries} />
+				)}
 				{pendingApproval && (
 					<PendingApprovalMessage
 						approval={pendingApproval}

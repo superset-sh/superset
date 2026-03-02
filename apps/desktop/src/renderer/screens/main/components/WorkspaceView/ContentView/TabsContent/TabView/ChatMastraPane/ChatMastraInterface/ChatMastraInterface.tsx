@@ -93,6 +93,7 @@ export function ChatMastraInterface({
 		error = null,
 		activeTools,
 		toolInputBuffers,
+		activeSubagents,
 		pendingApproval = null,
 		pendingPlanApproval = null,
 		pendingQuestion = null,
@@ -393,6 +394,7 @@ export function ChatMastraInterface({
 					workspaceCwd={cwd}
 					activeTools={activeTools}
 					toolInputBuffers={toolInputBuffers}
+					activeSubagents={activeSubagents}
 					pendingApproval={pendingApproval}
 					isApprovalSubmitting={approvalResponsePending}
 					onApprovalRespond={handleApprovalResponse}
