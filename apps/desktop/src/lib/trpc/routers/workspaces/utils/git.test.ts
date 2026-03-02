@@ -349,6 +349,12 @@ describe("Shell Environment", () => {
 		const { clearShellEnvCache, getShellEnvironment } = await import(
 			"./shell-env"
 		);
+		const zshPath = ["/bin/zsh", "/usr/bin/zsh"].find((candidate) =>
+			existsSync(candidate),
+		);
+		if (!zshPath) {
+			return;
+		}
 
 		const tmpDir = mkdtempSync(join(realpathSync(tmpdir()), "shell-env-test-"));
 		writeFileSync(
@@ -357,6 +363,8 @@ describe("Shell Environment", () => {
 		);
 
 		const origZDOTDIR = process.env.ZDOTDIR;
+		const origShell = process.env.SHELL;
+		process.env.SHELL = zshPath;
 		process.env.ZDOTDIR = tmpDir;
 		clearShellEnvCache();
 
@@ -366,6 +374,8 @@ describe("Shell Environment", () => {
 		} finally {
 			if (origZDOTDIR !== undefined) process.env.ZDOTDIR = origZDOTDIR;
 			else delete process.env.ZDOTDIR;
+			if (origShell !== undefined) process.env.SHELL = origShell;
+			else delete process.env.SHELL;
 			clearShellEnvCache();
 			rmSync(tmpDir, { recursive: true });
 		}
