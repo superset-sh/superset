@@ -1,10 +1,9 @@
 import { BashTool } from "@superset/ui/ai-elements/bash-tool";
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
-import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { WebFetchTool } from "@superset/ui/ai-elements/web-fetch-tool";
 import { WebSearchTool } from "@superset/ui/ai-elements/web-search-tool";
 import { getToolName } from "ai";
-import { FileIcon, FolderIcon, MessageCircleQuestionIcon } from "lucide-react";
+import { FileIcon, FolderIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { posthog } from "renderer/lib/posthog";
 import { useChangesStore } from "renderer/stores/changes";
@@ -20,6 +19,7 @@ import {
 	toWsToolState,
 } from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
+import { AskUserQuestionToolCall } from "./components/AskUserQuestionToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
@@ -32,7 +32,10 @@ interface MastraToolCallBlockProps {
 	workspaceCwd?: string;
 	sessionId?: string | null;
 	organizationId?: string | null;
-	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
+	onAnswer?: (
+		toolCallId: string,
+		answers: Record<string, string>,
+	) => Promise<void> | void;
 }
 
 interface DiffPaneTarget {
@@ -455,33 +458,14 @@ export function MastraToolCallBlock({
 
 	// --- Ask user question → UserQuestionTool ---
 	if (toolName === "ask_user_question") {
-		const questions = Array.isArray(args.questions) ? args.questions : [];
-
-		if (part.state === "output-available" || part.state === "output-error") {
-			return (
-				<GenericToolCall
-					part={part}
-					toolName="Question"
-					icon={MessageCircleQuestionIcon}
-				/>
-			);
-		}
-
-		if (questions.length === 0) {
-			return (
-				<GenericToolCall
-					part={part}
-					toolName="Question"
-					icon={MessageCircleQuestionIcon}
-				/>
-			);
-		}
-
 		return (
-			<UserQuestionTool
-				questions={questions}
-				onAnswer={(answers) => onAnswer?.(part.toolCallId, answers)}
-				onSkip={() => onAnswer?.(part.toolCallId, {})}
+			<AskUserQuestionToolCall
+				part={part}
+				args={args}
+				result={result}
+				outputObject={outputObject}
+				nestedResultObject={nestedResultObject}
+				onAnswer={onAnswer}
 			/>
 		);
 	}

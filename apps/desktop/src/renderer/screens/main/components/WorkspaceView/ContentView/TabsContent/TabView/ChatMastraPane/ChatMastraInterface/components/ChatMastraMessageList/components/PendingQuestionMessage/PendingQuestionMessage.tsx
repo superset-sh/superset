@@ -1,5 +1,9 @@
 import type { UseMastraChatDisplayReturn } from "@superset/chat-mastra/client";
-import { Message, MessageContent } from "@superset/ui/ai-elements/message";
+import {
+	Message,
+	MessageContent,
+	MessageResponse,
+} from "@superset/ui/ai-elements/message";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +27,7 @@ export function PendingQuestionMessage({
 	onRespond,
 }: PendingQuestionMessageProps) {
 	const [freeText, setFreeText] = useState("");
+	const [optimisticAnswer, setOptimisticAnswer] = useState<string | null>(null);
 	const [selectedOptionLabel, setSelectedOptionLabel] = useState<string | null>(
 		null,
 	);
@@ -47,6 +52,7 @@ export function PendingQuestionMessage({
 		if (previousQuestionIdRef.current === currentQuestionId) return;
 		previousQuestionIdRef.current = currentQuestionId;
 		setFreeText("");
+		setOptimisticAnswer(null);
 		setSelectedOptionLabel(null);
 	}, [question]);
 
@@ -62,16 +68,20 @@ export function PendingQuestionMessage({
 		question.question?.trim() || "The agent asked a question.";
 	const answerText = freeText.trim();
 	const canRespond = questionId.length > 0;
+	const hasOptimisticAnswer = optimisticAnswer !== null;
+	const controlsDisabled = isSubmitting || !canRespond || hasOptimisticAnswer;
 
 	const handleOptionSelect = async (optionLabel: string): Promise<void> => {
 		if (!canRespond || isSubmitting || inFlightResponseRef.current) return;
 		inFlightResponseRef.current = true;
 		const previousSelection = selectedOptionLabel;
 		setSelectedOptionLabel(optionLabel);
+		setOptimisticAnswer(optionLabel);
 		try {
 			await onRespond(questionId, optionLabel);
 		} catch (error) {
 			console.error("Failed to submit question option response", error);
+			setOptimisticAnswer(null);
 			setSelectedOptionLabel(previousSelection);
 		} finally {
 			inFlightResponseRef.current = false;
@@ -88,10 +98,12 @@ export function PendingQuestionMessage({
 			return;
 		}
 		inFlightResponseRef.current = true;
+		setOptimisticAnswer(answerText);
 		try {
 			await onRespond(questionId, answerText);
 		} catch (error) {
 			console.error("Failed to submit question free-text response", error);
+			setOptimisticAnswer(null);
 		} finally {
 			inFlightResponseRef.current = false;
 		}
@@ -101,9 +113,33 @@ export function PendingQuestionMessage({
 		<Message from="assistant">
 			<MessageContent>
 				<div className="w-full max-w-none space-y-3 rounded-xl border bg-card/95 p-3">
-					<div className="text-sm text-foreground">{questionText}</div>
+					<div className="rounded-md border bg-muted/20 p-3">
+						<MessageResponse
+							animated={false}
+							isAnimating={false}
+							mermaid={{
+								config: {
+									theme: "default",
+								},
+							}}
+						>
+							{questionText}
+						</MessageResponse>
+					</div>
 
-					{options.length > 0 ? (
+					{hasOptimisticAnswer ? (
+						<div className="rounded-md border bg-muted/20 p-3">
+							<div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+								Submitted answer
+							</div>
+							<div className="mt-1 text-sm text-foreground">
+								{optimisticAnswer}
+							</div>
+							<div className="mt-1 text-xs text-muted-foreground">
+								Waiting for agent confirmation...
+							</div>
+						</div>
+					) : options.length > 0 ? (
 						<div className="space-y-2">
 							{options.map((option, index) => (
 								<Button
@@ -115,7 +151,7 @@ export function PendingQuestionMessage({
 											? "border-primary bg-primary/10 text-primary"
 											: ""
 									}`}
-									disabled={isSubmitting || !canRespond}
+									disabled={controlsDisabled}
 									onClick={() => {
 										void handleOptionSelect(option.label);
 									}}
@@ -144,15 +180,13 @@ export function PendingQuestionMessage({
 								value={freeText}
 								onChange={(event) => setFreeText(event.target.value)}
 								placeholder="Type your answer..."
-								disabled={isSubmitting || !canRespond}
+								disabled={controlsDisabled}
 							/>
 							<Button
 								type="submit"
-								disabled={
-									isSubmitting || !canRespond || answerText.length === 0
-								}
+								disabled={controlsDisabled || answerText.length === 0}
 							>
-								{isSubmitting ? "Sending..." : "Submit"}
+								{isSubmitting || hasOptimisticAnswer ? "Sending..." : "Submit"}
 							</Button>
 						</form>
 					)}
