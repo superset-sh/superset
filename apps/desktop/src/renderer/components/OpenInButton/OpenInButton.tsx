@@ -38,6 +38,7 @@ import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import vscodeInsidersIcon from "renderer/assets/app-icons/vscode-insiders.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
+import windsurfIcon from "renderer/assets/app-icons/windsurf.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
 import zedIcon from "renderer/assets/app-icons/zed.png";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -54,6 +55,7 @@ export const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
 	{ id: "antigravity", label: "Antigravity", icon: antigravityIcon },
+	{ id: "windsurf", label: "Windsurf", icon: windsurfIcon },
 	{ id: "zed", label: "Zed", icon: zedIcon },
 	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
 	{ id: "xcode", label: "Xcode", icon: xcodeIcon },

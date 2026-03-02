@@ -9,6 +9,7 @@ const APP_NAMES: Record<ExternalApp, string | null> = {
 	"vscode-insiders": "Visual Studio Code - Insiders",
 	cursor: "Cursor",
 	antigravity: "Antigravity",
+	windsurf: "Windsurf",
 	zed: "Zed",
 	xcode: "Xcode",
 	iterm: "iTerm",
