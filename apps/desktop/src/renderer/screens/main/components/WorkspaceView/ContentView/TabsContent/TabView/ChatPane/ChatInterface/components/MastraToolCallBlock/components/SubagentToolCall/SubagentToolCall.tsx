@@ -118,6 +118,8 @@ export function SubagentToolCall({
 								checked={renderMarkdown}
 								onCheckedChange={setRenderMarkdown}
 								content={parsed.text}
+								markdownContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2"
+								plainContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
 							/>
 						) : null}
 					</div>

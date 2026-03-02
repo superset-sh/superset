@@ -81,8 +81,8 @@ export function SubagentExecutionMessage({
 										}
 										content={subagent.text}
 										labelClassName="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground"
-										markdownContainerClassName="max-h-56 overflow-auto rounded border bg-background/80 p-2"
-										plainContainerClassName="max-h-56 overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
+										markdownContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2"
+										plainContainerClassName="max-h-[32rem] overflow-auto rounded border bg-background/80 p-2 text-xs whitespace-pre-wrap break-words"
 									/>
 								) : null}
 								{subagent.toolCalls.length > 0 ? (
