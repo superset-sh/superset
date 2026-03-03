@@ -57,7 +57,22 @@ function writeFileIfChanged(
 	return true;
 }
 
-function buildManagedCommandPrelude(binDir: string): string {
+function buildManagedCommandPrelude(shellName: string, binDir: string): string {
+	if (shellName === "fish") {
+		return SUPERSET_MANAGED_BINARIES.map(
+			(name) =>
+				`functions -q ${name}; and functions -e ${name}
+function ${name}
+  set -l _superset_wrapper "${binDir}/${name}"
+  if test -x "$_superset_wrapper"; and not test -d "$_superset_wrapper"
+    "$_superset_wrapper" $argv
+  else
+    command ${name} $argv
+  end
+end`,
+		).join("\n");
+	}
+
 	return SUPERSET_MANAGED_BINARIES.map(
 		(name) =>
 			`unalias ${name} 2>/dev/null || true
@@ -243,7 +258,7 @@ export function getCommandShellArgs(
 	logModeDiagnostics(shellName);
 	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");
 	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");
-	const commandWithManagedPrelude = `${buildManagedCommandPrelude(paths.BIN_DIR)}\n${command}`;
+	const commandWithManagedPrelude = `${buildManagedCommandPrelude(shellName, paths.BIN_DIR)}\n${command}`;
 	if (shellName === "zsh" && fs.existsSync(zshRc)) {
 		return ["-lc", `source "${zshRc}" &&\n${commandWithManagedPrelude}`];
 	}

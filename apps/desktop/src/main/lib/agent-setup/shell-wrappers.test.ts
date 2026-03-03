@@ -329,6 +329,20 @@ echo system
 	});
 
 	describe("fish shell", () => {
+		it("uses fish-compatible managed command prelude for non-interactive commands", () => {
+			const args = getCommandShellArgs(
+				"/opt/homebrew/bin/fish",
+				"echo ok",
+				TEST_PATHS,
+			);
+
+			expect(args[0]).toBe("-lc");
+			expect(args[1]).toContain(`function claude`);
+			expect(args[1]).toContain(`command claude $argv`);
+			expect(args[1]).not.toContain(`claude() {`);
+			expect(args[1]).toContain("echo ok");
+		});
+
 		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
 			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);
 
