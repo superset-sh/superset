@@ -82,10 +82,6 @@ export class WorkerTaskRunner {
 		this.concurrency = Math.max(1, options.concurrency);
 		this.name = options.name ?? "worker-runner";
 		this.debug = options.debug ?? false;
-
-		for (let i = 0; i < this.concurrency; i++) {
-			this.spawnWorker();
-		}
 	}
 
 	runTask<TResult>(
@@ -218,6 +214,7 @@ export class WorkerTaskRunner {
 
 	private drainQueue(): void {
 		if (this.disposed) return;
+		this.ensureWorkerCapacity();
 
 		for (const slot of this.workerSlots.values()) {
 			if (slot.activeTaskId) continue;
@@ -335,7 +332,7 @@ export class WorkerTaskRunner {
 			this.rejectTask(activeTaskId, error);
 		}
 
-		if (!this.disposed) {
+		if (!this.disposed && (this.queue.length > 0 || this.hasActiveTasks())) {
 			this.spawnWorker();
 			this.drainQueue();
 		}
@@ -400,6 +397,21 @@ export class WorkerTaskRunner {
 	private log(message: string): void {
 		if (!this.debug) return;
 		console.log(`[WorkerTaskRunner:${this.name}] ${message}`);
+	}
+
+	private ensureWorkerCapacity(): void {
+		while (this.workerSlots.size < this.concurrency) {
+			this.spawnWorker();
+		}
+	}
+
+	private hasActiveTasks(): boolean {
+		for (const slot of this.workerSlots.values()) {
+			if (slot.activeTaskId) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
 
