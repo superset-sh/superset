@@ -10,6 +10,7 @@ import {
 	HiOutlineCheckCircle,
 	HiOutlineExclamationTriangle,
 } from "react-icons/hi2";
+import { LuArchive } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -144,15 +145,25 @@ export function NotificationsCenter() {
 						</div>
 					) : (
 						<div className="divide-y divide-border">
-							{visibleEntries.map((entry) => (
-								<div key={entry.id} className="group px-3 py-2.5">
-									<button
-										type="button"
-										onClick={() => handleOpenEntry(entry)}
-										className="w-full text-left"
+							{visibleEntries.map((entry) => {
+								const description = entry.message
+									? `${entry.title} ${entry.message}`
+									: entry.title;
+								return (
+									<div
+										key={entry.id}
+										className="group grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 px-3 py-2.5"
 									>
-										<div className="flex items-start gap-2.5">
-											<div className="mt-0.5 shrink-0">
+										<button
+											type="button"
+											onClick={() => handleOpenEntry(entry)}
+											className="min-w-0 flex items-start gap-2.5 text-left"
+										>
+											<div className="mt-0.5 shrink-0 flex items-center gap-1.5">
+												<span
+													className={`size-2 rounded-full ${entry.read ? "bg-muted-foreground/30" : "bg-blue-500"}`}
+													aria-hidden="true"
+												/>
 												{entry.kind === "error" ? (
 													<HiOutlineExclamationTriangle className="size-4 text-destructive" />
 												) : (
@@ -161,39 +172,26 @@ export function NotificationsCenter() {
 											</div>
 
 											<div className="min-w-0 flex-1">
-												<div className="flex items-center justify-between gap-2">
-													<p className="text-sm font-medium text-foreground truncate">
-														{entry.title}
-													</p>
-													<span className="text-[11px] text-muted-foreground shrink-0">
-														{formatTimestamp(entry.timestamp)}
-													</span>
-												</div>
-
-												{entry.message && (
-													<p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-														{entry.message}
-													</p>
-												)}
+												<p className="text-sm text-foreground break-words line-clamp-2">
+													{description}
+												</p>
+												<p className="mt-1 text-[11px] text-muted-foreground">
+													{formatTimestamp(entry.timestamp)}
+												</p>
 											</div>
+										</button>
 
-											{!entry.read && (
-												<span className="mt-1 size-2 rounded-full bg-primary shrink-0" />
-											)}
-										</div>
-									</button>
-
-									<div className="mt-1.5 flex justify-end">
 										<button
 											type="button"
 											onClick={() => handleArchive(entry)}
-											className="text-[11px] text-muted-foreground hover:text-foreground"
+											className="mt-0.5 inline-flex items-center justify-center size-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted"
+											aria-label="Archive notification"
 										>
-											Archive
+											<LuArchive className="size-3.5" />
 										</button>
 									</div>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					)}
 				</ScrollArea>

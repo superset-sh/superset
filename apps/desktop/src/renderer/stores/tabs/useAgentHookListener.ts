@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useNotificationCenterStore } from "renderer/stores/notification-center";
 import { NOTIFICATION_EVENTS } from "shared/constants";
@@ -37,6 +38,34 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
 export function useAgentHookListener() {
 	const navigate = useNavigate();
 	const shownMainProcessErrorIdsRef = useRef<Set<string>>(new Set());
+	const workspaceNameByIdRef = useRef<Map<string, string>>(new Map());
+	const pendingWorkspaceNameByIdRef = useRef<Map<string, Promise<string>>>(
+		new Map(),
+	);
+
+	const resolveWorkspaceName = (workspaceId: string): Promise<string> => {
+		const cached = workspaceNameByIdRef.current.get(workspaceId);
+		if (cached) return Promise.resolve(cached);
+
+		const pending = pendingWorkspaceNameByIdRef.current.get(workspaceId);
+		if (pending) return pending;
+
+		const request = electronTrpcClient.workspaces.get
+			.query({ id: workspaceId })
+			.then((workspace) => {
+				const name = workspace.name?.trim() || "Workspace";
+				workspaceNameByIdRef.current.set(workspaceId, name);
+				pendingWorkspaceNameByIdRef.current.delete(workspaceId);
+				return name;
+			})
+			.catch(() => {
+				pendingWorkspaceNameByIdRef.current.delete(workspaceId);
+				return "Workspace";
+			});
+
+		pendingWorkspaceNameByIdRef.current.set(workspaceId, request);
+		return request;
+	};
 
 	// Ref avoids stale closure; parsed from URL since hook runs in _authenticated/layout
 	const currentWorkspaceIdRef = useRef<string | null>(null);
@@ -116,13 +145,15 @@ export function useAgentHookListener() {
 					});
 
 					state.setPaneStatus(paneId, isInActiveTab ? "idle" : "review");
-					useNotificationCenterStore.getState().addEntry({
-						dedupeKey: `agent-pane:${paneId}`,
-						kind: "notification",
-						source: "agent:complete",
-						title: "Agent complete",
-						message: `${pane?.name ?? "Agent session"} has finished.`,
-						target,
+					void resolveWorkspaceName(workspaceId).then((workspaceName) => {
+						useNotificationCenterStore.getState().addEntry({
+							dedupeKey: `agent-pane:${paneId}`,
+							kind: "notification",
+							source: "agent:complete",
+							title: `${workspaceName} complete`,
+							message: `${pane?.name ?? "Agent session"} has finished.`,
+							target,
+						});
 					});
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.TERMINAL_EXIT) {
