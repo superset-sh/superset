@@ -228,6 +228,7 @@ export function ChatMastraMessageList({
 		pendingApproval?.toolName ?? "",
 	);
 	const pendingApprovalToolCallId = pendingApproval?.toolCallId ?? null;
+	const pendingQuestionId = pendingQuestion?.questionId ?? null;
 	const shouldRenderStandalonePendingApproval =
 		Boolean(pendingApproval) &&
 		pendingApprovalToolName !== "request_sandbox_access";
@@ -266,6 +267,8 @@ export function ChatMastraMessageList({
 								pendingApprovalToolCallId={pendingApprovalToolCallId}
 								isApprovalSubmitting={isApprovalSubmitting}
 								onApprovalRespond={onApprovalRespond}
+								pendingQuestionId={pendingQuestionId}
+								onQuestionRespond={onQuestionRespond}
 							/>
 						);
 					})
@@ -283,6 +286,8 @@ export function ChatMastraMessageList({
 						pendingApprovalToolCallId={pendingApprovalToolCallId}
 						isApprovalSubmitting={isApprovalSubmitting}
 						onApprovalRespond={onApprovalRespond}
+						pendingQuestionId={pendingQuestionId}
+						onQuestionRespond={onQuestionRespond}
 					/>
 				)}
 				{shouldShowThinking && (
@@ -308,6 +313,8 @@ export function ChatMastraMessageList({
 									pendingApprovalToolCallId={pendingApprovalToolCallId}
 									isApprovalSubmitting={isApprovalSubmitting}
 									onApprovalRespond={onApprovalRespond}
+									pendingQuestionId={pendingQuestionId}
+									onQuestionRespond={onQuestionRespond}
 								/>
 							))}
 						</MessageContent>

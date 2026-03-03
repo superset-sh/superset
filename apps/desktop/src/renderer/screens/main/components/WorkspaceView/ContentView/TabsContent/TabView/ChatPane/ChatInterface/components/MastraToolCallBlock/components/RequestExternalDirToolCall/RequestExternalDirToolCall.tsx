@@ -16,6 +16,11 @@ interface RequestExternalDirToolCallProps {
 		decision: "approve" | "decline" | "always_allow_category",
 		toolCallId?: string,
 	) => Promise<void> | void;
+	pendingQuestionId?: string | null;
+	onQuestionRespond?: (
+		questionId: string,
+		answer: string,
+	) => Promise<void> | void;
 }
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
@@ -95,6 +100,8 @@ export function RequestExternalDirToolCall({
 	pendingApprovalToolCallId,
 	isApprovalSubmitting = false,
 	onApprovalRespond,
+	pendingQuestionId,
+	onQuestionRespond,
 }: RequestExternalDirToolCallProps) {
 	const [selectedDecision, setSelectedDecision] = useState<
 		"approve" | "decline" | null
@@ -172,11 +179,14 @@ export function RequestExternalDirToolCall({
 	const hasMatchingPendingApproval =
 		Boolean(pendingApprovalToolCallId) &&
 		pendingApprovalToolCallId === part.toolCallId;
-	const hasUnknownPendingApproval = !pendingApprovalToolCallId;
-	const canRespond =
+	const canRespondViaApproval =
+		isPending && hasMatchingPendingApproval && Boolean(onApprovalRespond);
+	const canRespondViaQuestion =
 		isPending &&
-		(hasMatchingPendingApproval || hasUnknownPendingApproval) &&
-		Boolean(onApprovalRespond);
+		!hasMatchingPendingApproval &&
+		Boolean(pendingQuestionId) &&
+		Boolean(onQuestionRespond);
+	const canRespond = canRespondViaApproval || canRespondViaQuestion;
 
 	const handleApproval = async (
 		decision: "approve" | "decline",
@@ -192,11 +202,24 @@ export function RequestExternalDirToolCall({
 			decision,
 			toolCallId: part.toolCallId,
 			pendingApprovalToolCallId: pendingApprovalToolCallId ?? null,
+			pendingQuestionId: pendingQuestionId ?? null,
+			mode: canRespondViaApproval ? "approval" : "question",
 		});
 		inFlightResponseRef.current = true;
 		setSelectedDecision(decision);
 		try {
-			await onApprovalRespond(decision, part.toolCallId);
+			if (canRespondViaApproval && onApprovalRespond) {
+				await onApprovalRespond(decision, part.toolCallId);
+			} else if (
+				canRespondViaQuestion &&
+				onQuestionRespond &&
+				pendingQuestionId
+			) {
+				await onQuestionRespond(
+					pendingQuestionId,
+					decision === "approve" ? "Yes" : "No",
+				);
+			}
 			console.debug("[chat-mastra] external-dir approval submitted", {
 				decision,
 				toolCallId: part.toolCallId,

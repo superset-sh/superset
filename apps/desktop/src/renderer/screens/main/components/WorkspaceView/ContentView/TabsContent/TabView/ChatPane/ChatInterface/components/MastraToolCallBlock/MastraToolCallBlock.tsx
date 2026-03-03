@@ -39,6 +39,11 @@ interface MastraToolCallBlockProps {
 		decision: "approve" | "decline" | "always_allow_category",
 		toolCallId?: string,
 	) => Promise<void> | void;
+	pendingQuestionId?: string | null;
+	onQuestionRespond?: (
+		questionId: string,
+		answer: string,
+	) => Promise<void> | void;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -60,6 +65,8 @@ export function MastraToolCallBlock({
 	pendingApprovalToolCallId,
 	isApprovalSubmitting,
 	onApprovalRespond,
+	pendingQuestionId,
+	onQuestionRespond,
 	onAnswer,
 }: MastraToolCallBlockProps) {
 	const args = getArgs(part);
@@ -513,6 +520,8 @@ export function MastraToolCallBlock({
 				pendingApprovalToolCallId={pendingApprovalToolCallId}
 				isApprovalSubmitting={isApprovalSubmitting}
 				onApprovalRespond={onApprovalRespond}
+				pendingQuestionId={pendingQuestionId}
+				onQuestionRespond={onQuestionRespond}
 			/>
 		);
 	}

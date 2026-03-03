@@ -30,6 +30,8 @@ interface AssistantMessageProps {
 		decision: "approve" | "decline" | "always_allow_category",
 		toolCallId?: string,
 	) => Promise<void>;
+	pendingQuestionId?: string | null;
+	onQuestionRespond?: (questionId: string, answer: string) => Promise<void>;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -105,6 +107,8 @@ export function AssistantMessage({
 	pendingApprovalToolCallId,
 	isApprovalSubmitting = false,
 	onApprovalRespond,
+	pendingQuestionId,
+	onQuestionRespond,
 }: AssistantMessageProps) {
 	const nodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
@@ -172,6 +176,8 @@ export function AssistantMessage({
 					pendingApprovalToolCallId={pendingApprovalToolCallId}
 					isApprovalSubmitting={isApprovalSubmitting}
 					onApprovalRespond={onApprovalRespond}
+					pendingQuestionId={pendingQuestionId}
+					onQuestionRespond={onQuestionRespond}
 				/>,
 			);
 
@@ -197,6 +203,8 @@ export function AssistantMessage({
 					pendingApprovalToolCallId={pendingApprovalToolCallId}
 					isApprovalSubmitting={isApprovalSubmitting}
 					onApprovalRespond={onApprovalRespond}
+					pendingQuestionId={pendingQuestionId}
+					onQuestionRespond={onQuestionRespond}
 				/>,
 			);
 			continue;
@@ -228,6 +236,8 @@ export function AssistantMessage({
 				pendingApprovalToolCallId={pendingApprovalToolCallId}
 				isApprovalSubmitting={isApprovalSubmitting}
 				onApprovalRespond={onApprovalRespond}
+				pendingQuestionId={pendingQuestionId}
+				onQuestionRespond={onQuestionRespond}
 			/>,
 		);
 	}
