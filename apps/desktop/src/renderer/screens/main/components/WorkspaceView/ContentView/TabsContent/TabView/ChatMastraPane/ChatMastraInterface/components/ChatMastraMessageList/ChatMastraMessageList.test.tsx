@@ -102,55 +102,89 @@ mock.module("./components/PendingQuestionMessage", () => ({
 }));
 
 const { ChatMastraMessageList } = await import("./ChatMastraMessageList");
+type ChatMastraMessageListProps = Parameters<typeof ChatMastraMessageList>[0];
+
+type TestMessage = {
+	id: string;
+	role: "user" | "assistant";
+	content: Array<{ type: "text"; text: string }>;
+	createdAt: Date;
+};
+
+function testMessage(
+	id: string,
+	role: TestMessage["role"],
+	text: string,
+	createdAt: string,
+): TestMessage {
+	return {
+		id,
+		role,
+		content: [{ type: "text", text }],
+		createdAt: new Date(createdAt),
+	};
+}
+
+function createBaseProps(
+	overrides: Partial<ChatMastraMessageListProps> = {},
+): ChatMastraMessageListProps {
+	return {
+		messages: [] as never,
+		isRunning: false,
+		isAwaitingAssistant: false,
+		currentMessage: null,
+		interruptedMessage: null,
+		workspaceId: "workspace-1",
+		sessionId: "session-1",
+		organizationId: "org-1",
+		workspaceCwd: "/repo",
+		activeTools: undefined,
+		toolInputBuffers: undefined,
+		activeSubagents: undefined,
+		pendingApproval: null,
+		isApprovalSubmitting: false,
+		onApprovalRespond: async () => {},
+		pendingPlanApproval: null,
+		isPlanSubmitting: false,
+		onPlanRespond: async () => {},
+		pendingQuestion: null,
+		isQuestionSubmitting: false,
+		onQuestionRespond: async () => {},
+		...overrides,
+	};
+}
+
+function renderListHtml(
+	overrides: Partial<ChatMastraMessageListProps> = {},
+): string {
+	return renderToStaticMarkup(
+		<ChatMastraMessageList {...createBaseProps(overrides)} />,
+	);
+}
 
 describe("ChatMastraMessageList", () => {
 	it("shows interrupted preview content after stop and hides the source assistant message", () => {
-		const html = renderToStaticMarkup(
-			<ChatMastraMessageList
-				messages={
-					[
-						{
-							id: "user-1",
-							role: "user",
-							content: [{ type: "text", text: "first user prompt" }],
-							createdAt: new Date("2026-03-03T00:00:00.000Z"),
-						},
-						{
-							id: "assistant-1",
-							role: "assistant",
-							content: [{ type: "text", text: "persisted assistant text" }],
-							createdAt: new Date("2026-03-03T00:00:01.000Z"),
-						},
-					] as never
-				}
-				isRunning={false}
-				isAwaitingAssistant={false}
-				currentMessage={null}
-				interruptedMessage={
-					{
-						id: "interrupted:assistant-1",
-						sourceMessageId: "assistant-1",
-						content: [{ type: "text", text: "interrupted snapshot text" }],
-					} as never
-				}
-				workspaceId="workspace-1"
-				sessionId="session-1"
-				organizationId="org-1"
-				workspaceCwd="/repo"
-				activeTools={undefined}
-				toolInputBuffers={undefined}
-				activeSubagents={undefined}
-				pendingApproval={null}
-				isApprovalSubmitting={false}
-				onApprovalRespond={async () => {}}
-				pendingPlanApproval={null}
-				isPlanSubmitting={false}
-				onPlanRespond={async () => {}}
-				pendingQuestion={null}
-				isQuestionSubmitting={false}
-				onQuestionRespond={async () => {}}
-			/>,
-		);
+		const html = renderListHtml({
+			messages: [
+				testMessage(
+					"user-1",
+					"user",
+					"first user prompt",
+					"2026-03-03T00:00:00.000Z",
+				),
+				testMessage(
+					"assistant-1",
+					"assistant",
+					"persisted assistant text",
+					"2026-03-03T00:00:01.000Z",
+				),
+			] as never,
+			interruptedMessage: {
+				id: "interrupted:assistant-1",
+				sourceMessageId: "assistant-1",
+				content: [{ type: "text", text: "interrupted snapshot text" }],
+			} as never,
+		});
 
 		expect(html).toContain("first user prompt");
 		expect(html).toContain("interrupted snapshot text");
@@ -160,59 +194,35 @@ describe("ChatMastraMessageList", () => {
 	});
 
 	it("does not show interrupted preview while a response is still running", () => {
-		const html = renderToStaticMarkup(
-			<ChatMastraMessageList
-				messages={
-					[
-						{
-							id: "user-1",
-							role: "user",
-							content: [{ type: "text", text: "first user prompt" }],
-							createdAt: new Date("2026-03-03T00:00:00.000Z"),
-						},
-						{
-							id: "assistant-1",
-							role: "assistant",
-							content: [{ type: "text", text: "persisted assistant text" }],
-							createdAt: new Date("2026-03-03T00:00:01.000Z"),
-						},
-					] as never
-				}
-				isRunning
-				isAwaitingAssistant
-				currentMessage={
-					{
-						id: "assistant-current",
-						role: "assistant",
-						content: [{ type: "text", text: "streaming assistant text" }],
-						createdAt: new Date("2026-03-03T00:00:02.000Z"),
-					} as never
-				}
-				interruptedMessage={
-					{
-						id: "interrupted:assistant-1",
-						sourceMessageId: "assistant-1",
-						content: [{ type: "text", text: "interrupted snapshot text" }],
-					} as never
-				}
-				workspaceId="workspace-1"
-				sessionId="session-1"
-				organizationId="org-1"
-				workspaceCwd="/repo"
-				activeTools={undefined}
-				toolInputBuffers={undefined}
-				activeSubagents={undefined}
-				pendingApproval={null}
-				isApprovalSubmitting={false}
-				onApprovalRespond={async () => {}}
-				pendingPlanApproval={null}
-				isPlanSubmitting={false}
-				onPlanRespond={async () => {}}
-				pendingQuestion={null}
-				isQuestionSubmitting={false}
-				onQuestionRespond={async () => {}}
-			/>,
-		);
+		const html = renderListHtml({
+			messages: [
+				testMessage(
+					"user-1",
+					"user",
+					"first user prompt",
+					"2026-03-03T00:00:00.000Z",
+				),
+				testMessage(
+					"assistant-1",
+					"assistant",
+					"persisted assistant text",
+					"2026-03-03T00:00:01.000Z",
+				),
+			] as never,
+			isRunning: true,
+			isAwaitingAssistant: true,
+			currentMessage: testMessage(
+				"assistant-current",
+				"assistant",
+				"streaming assistant text",
+				"2026-03-03T00:00:02.000Z",
+			) as never,
+			interruptedMessage: {
+				id: "interrupted:assistant-1",
+				sourceMessageId: "assistant-1",
+				content: [{ type: "text", text: "interrupted snapshot text" }],
+			} as never,
+		});
 
 		expect(html).toContain("streaming assistant text");
 		expect(html).not.toContain("interrupted snapshot text");

@@ -235,22 +235,17 @@ export function ChatMastraMessageList({
 		[activeSubagents],
 	);
 	const hasSubagentActivity = activeSubagentEntries.length > 0;
+	const canShowPendingAssistantUi =
+		isAwaitingAssistant &&
+		!currentMessage &&
+		!hasSubagentActivity &&
+		!pendingApproval &&
+		!pendingPlanApproval &&
+		!pendingQuestion;
 	const shouldShowThinking =
-		isAwaitingAssistant &&
-		!currentMessage &&
-		!hasSubagentActivity &&
-		!pendingApproval &&
-		!pendingPlanApproval &&
-		!pendingQuestion &&
-		previewToolParts.length === 0;
+		canShowPendingAssistantUi && previewToolParts.length === 0;
 	const shouldShowToolPreview =
-		isAwaitingAssistant &&
-		!currentMessage &&
-		!hasSubagentActivity &&
-		!pendingApproval &&
-		!pendingPlanApproval &&
-		!pendingQuestion &&
-		previewToolParts.length > 0;
+		canShowPendingAssistantUi && previewToolParts.length > 0;
 
 	return (
 		<Conversation className="flex-1">
