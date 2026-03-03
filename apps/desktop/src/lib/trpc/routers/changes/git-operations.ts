@@ -8,6 +8,7 @@ import {
 } from "../workspaces/utils/shell-env";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security";
+import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export { isUpstreamMissingError };
 
@@ -260,6 +261,7 @@ export const createGitOperationsRouter = () => {
 
 					const git = await getGitWithShellPath(input.worktreePath);
 					const result = await git.commit(input.message);
+					clearStatusCacheForWorktree(input.worktreePath);
 					return { success: true, hash: result.commit };
 				},
 			),
@@ -295,6 +297,7 @@ export const createGitOperationsRouter = () => {
 					}
 				}
 				await fetchCurrentBranch(git);
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -320,6 +323,7 @@ export const createGitOperationsRouter = () => {
 					}
 					throw error;
 				}
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -342,12 +346,14 @@ export const createGitOperationsRouter = () => {
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 						await pushWithSetUpstream({ git, branch });
 						await fetchCurrentBranch(git);
+						clearStatusCacheForWorktree(input.worktreePath);
 						return { success: true };
 					}
 					throw error;
 				}
 				await git.push();
 				await fetchCurrentBranch(git);
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -357,6 +363,7 @@ export const createGitOperationsRouter = () => {
 				assertRegisteredWorktree(input.worktreePath);
 				const git = await getGitWithShellPath(input.worktreePath);
 				await fetchCurrentBranch(git);
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -424,6 +431,7 @@ export const createGitOperationsRouter = () => {
 					if (existingPRUrl) {
 						await openPRInBrowser(input.worktreePath, existingPRUrl);
 						await fetchCurrentBranch(git);
+						clearStatusCacheForWorktree(input.worktreePath);
 						return { success: true, url: existingPRUrl };
 					}
 
@@ -445,6 +453,7 @@ export const createGitOperationsRouter = () => {
 						if (recoveredPRUrl) {
 							await openPRInBrowser(input.worktreePath, recoveredPRUrl);
 							await fetchCurrentBranch(git);
+							clearStatusCacheForWorktree(input.worktreePath);
 							return { success: true, url: recoveredPRUrl };
 						}
 						throw error;
@@ -453,6 +462,7 @@ export const createGitOperationsRouter = () => {
 					const url =
 						(extractPRUrl(stdout) ?? stdout.trim()) || "https://github.com";
 					await fetchCurrentBranch(git);
+					clearStatusCacheForWorktree(input.worktreePath);
 
 					return { success: true, url };
 				},
@@ -473,6 +483,7 @@ export const createGitOperationsRouter = () => {
 
 					try {
 						await execWithShellEnv("gh", args, { cwd: input.worktreePath });
+						clearStatusCacheForWorktree(input.worktreePath);
 						return { success: true, mergedAt: new Date().toISOString() };
 					} catch (error) {
 						const message =

@@ -1,7 +1,11 @@
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
 import { FileListGrouped } from "./FileListGrouped";
 import { FileListTree } from "./FileListTree";
+import { FileListVirtualized } from "./FileListVirtualized";
+
+const LARGE_FILE_LIST_THRESHOLD = 200;
 
 interface FileListProps {
 	files: ChangedFile[];
@@ -42,8 +46,35 @@ export function FileList({
 	isExpandedView,
 	projectId,
 }: FileListProps) {
+	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
+		{ projectId: projectId ?? "" },
+		{ enabled: !!projectId },
+	);
+
 	if (files.length === 0) {
 		return null;
+	}
+
+	if (files.length >= LARGE_FILE_LIST_THRESHOLD) {
+		return (
+			<FileListVirtualized
+				files={files}
+				selectedFile={selectedFile}
+				selectedCommitHash={selectedCommitHash}
+				onFileSelect={onFileSelect}
+				showStats={showStats}
+				onStage={onStage}
+				onUnstage={onUnstage}
+				isActioning={isActioning}
+				worktreePath={worktreePath}
+				onDiscard={onDiscard}
+				category={category}
+				commitHash={commitHash}
+				isExpandedView={isExpandedView}
+				projectId={projectId}
+				defaultApp={defaultApp}
+			/>
+		);
 	}
 
 	if (viewMode === "tree") {
@@ -65,6 +96,7 @@ export function FileList({
 				commitHash={commitHash}
 				isExpandedView={isExpandedView}
 				projectId={projectId}
+				defaultApp={defaultApp}
 			/>
 		);
 	}
@@ -87,6 +119,7 @@ export function FileList({
 			commitHash={commitHash}
 			isExpandedView={isExpandedView}
 			projectId={projectId}
+			defaultApp={defaultApp}
 		/>
 	);
 }

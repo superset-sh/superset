@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -41,6 +42,7 @@ interface FolderRowProps {
 	onDiscardAll?: () => void;
 	isActioning?: boolean;
 	projectId?: string;
+	defaultApp?: ExternalApp | null;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -117,6 +119,7 @@ export function FolderRow({
 	onDiscardAll,
 	isActioning = false,
 	projectId,
+	defaultApp,
 }: FolderRowProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const isGrouped = variant === "grouped";
@@ -130,6 +133,7 @@ export function FolderRow({
 		usePathActions({
 			absolutePath,
 			relativePath: folderPath || undefined,
+			defaultApp,
 			projectId,
 		});
 

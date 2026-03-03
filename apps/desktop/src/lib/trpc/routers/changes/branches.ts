@@ -15,6 +15,7 @@ import {
 	getRegisteredWorktree,
 	gitSwitchBranch,
 } from "./security";
+import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export const createBranchesRouter = () => {
 	return router({
@@ -111,6 +112,7 @@ export const createBranchesRouter = () => {
 					.where(eq(worktrees.path, input.worktreePath))
 					.run();
 
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -149,6 +151,7 @@ export const createBranchesRouter = () => {
 					.where(eq(worktrees.path, input.worktreePath))
 					.run();
 
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 	});

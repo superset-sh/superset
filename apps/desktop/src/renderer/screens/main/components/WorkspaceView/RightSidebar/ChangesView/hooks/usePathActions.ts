@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -7,6 +8,8 @@ interface UsePathActionsProps {
 	relativePath?: string;
 	/** For files: pass cwd to use openFileInEditor. For folders: omit to use openInApp */
 	cwd?: string;
+	/** Pre-resolved app to avoid per-row default-app queries */
+	defaultApp?: ExternalApp | null;
 	/** Project ID for per-project default app resolution */
 	projectId?: string;
 }
@@ -15,6 +18,7 @@ export function usePathActions({
 	absolutePath,
 	relativePath,
 	cwd,
+	defaultApp,
 	projectId,
 }: UsePathActionsProps) {
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
@@ -31,10 +35,6 @@ export function usePathActions({
 					description: error.message,
 				}),
 		});
-	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
-		{ projectId: projectId as string },
-		{ enabled: !!projectId },
-	);
 
 	const copyPath = useCallback(async () => {
 		if (absolutePath) {
@@ -56,18 +56,15 @@ export function usePathActions({
 
 	const openInEditor = useCallback(() => {
 		if (!absolutePath) return;
+		const resolvedDefaultApp = defaultApp ?? "cursor";
 
 		if (cwd) {
 			openFileInEditorMutation.mutate({ path: absolutePath, cwd, projectId });
-		} else if (defaultApp) {
+		} else {
 			openInAppMutation.mutate({
 				path: absolutePath,
-				app: defaultApp,
+				app: resolvedDefaultApp,
 				projectId,
-			});
-		} else {
-			toast.error("No default editor configured", {
-				description: "Open a project in an editor first to set a default.",
 			});
 		}
 	}, [
