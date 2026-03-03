@@ -46,8 +46,7 @@ export async function runTeardown({
 			process.env.SHELL ||
 			(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
 		const supersetHomeDir =
-			process.env.SUPERSET_HOME_DIR ||
-			join(homedir(), SUPERSET_DIR_NAME);
+			process.env.SUPERSET_HOME_DIR || join(homedir(), SUPERSET_DIR_NAME);
 		const shellWrapperPaths = {
 			BIN_DIR: join(supersetHomeDir, "bin"),
 			ZSH_DIR: join(supersetHomeDir, "zsh"),
