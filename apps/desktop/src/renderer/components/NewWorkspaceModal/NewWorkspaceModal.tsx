@@ -1,12 +1,19 @@
 import {
 	AGENT_PRESET_COMMANDS,
-	AGENT_TYPES,
 	buildAgentPromptCommand,
 } from "@superset/shared/agent-command";
+import {
+	type AgentLaunchRequest,
+	STARTABLE_AGENT_TYPES,
+	type StartableAgentType,
+} from "@superset/shared/agent-launch";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
@@ -41,6 +48,9 @@ const WORKSPACE_AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 
 export function NewWorkspaceModal() {
 	const navigate = useNavigate();
+	const isOrchestratorEnabled = useFeatureFlagEnabled(
+		FEATURE_FLAGS.DESKTOP_AGENT_LAUNCH_ORCHESTRATOR_V1,
+	);
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
@@ -62,7 +72,8 @@ export function NewWorkspaceModal() {
 			if (typeof window === "undefined") return "none";
 			const stored = window.localStorage.getItem(WORKSPACE_AGENT_STORAGE_KEY);
 			if (stored === "none") return "none";
-			return stored && (AGENT_TYPES as readonly string[]).includes(stored)
+			return stored &&
+				(STARTABLE_AGENT_TYPES as readonly string[]).includes(stored)
 				? (stored as WorkspaceCreateAgent)
 				: "none";
 		},
@@ -103,6 +114,15 @@ export function NewWorkspaceModal() {
 	const removePane = useTabsStore((s) => s.removePane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const { openNew } = useOpenProject();
+	const selectableAgents = useMemo(
+		() =>
+			isOrchestratorEnabled
+				? (STARTABLE_AGENT_TYPES as readonly StartableAgentType[])
+				: (STARTABLE_AGENT_TYPES.filter(
+						(agent) => agent !== "superset-chat",
+					) as readonly StartableAgentType[]),
+		[isOrchestratorEnabled],
+	);
 
 	const resolvedPrefix = useMemo(() => {
 		const projectOverrides = project?.branchPrefixMode != null;
@@ -135,6 +155,13 @@ export function NewWorkspaceModal() {
 			setSelectedProjectId(preSelectedProjectId);
 		}
 	}, [isOpen]);
+
+	useEffect(() => {
+		if (selectedAgent === "none") return;
+		if (selectableAgents.includes(selectedAgent)) return;
+		setSelectedAgent("none");
+		window.localStorage.setItem(WORKSPACE_AGENT_STORAGE_KEY, "none");
+	}, [selectedAgent, selectableAgents]);
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -249,6 +276,50 @@ export function NewWorkspaceModal() {
 		/>
 	);
 	const isCreateDisabled = createWorkspace.isPending || isBranchesError;
+	const buildLaunchRequestForWorkspace = (
+		workspaceId: string,
+		prompt: string,
+	): AgentLaunchRequest | null => {
+		if (selectedAgent === "none") {
+			return null;
+		}
+
+		if (selectedAgent === "superset-chat") {
+			return {
+				kind: "chat",
+				workspaceId,
+				agentType: "superset-chat",
+				source: "new-workspace",
+				chat: {
+					initialPrompt: prompt || undefined,
+					retryCount: 1,
+				},
+			};
+		}
+
+		const command = prompt
+			? buildAgentPromptCommand({
+					prompt,
+					randomId: window.crypto.randomUUID(),
+					agent: selectedAgent,
+				})
+			: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
+
+		if (!command) {
+			return null;
+		}
+
+		return {
+			kind: "terminal",
+			workspaceId,
+			agentType: selectedAgent,
+			source: "new-workspace",
+			terminal: {
+				command,
+				name: "Agent",
+			},
+		};
+	};
 
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
@@ -256,16 +327,21 @@ export function NewWorkspaceModal() {
 		const prompt = title.trim();
 
 		const workspaceName = deriveWorkspaceTitleFromPrompt(title) || undefined;
-		const agentCommand =
-			selectedAgent === "none"
-				? null
-				: prompt
+		const launchRequestTemplate = isOrchestratorEnabled
+			? buildLaunchRequestForWorkspace("pending-workspace", prompt)
+			: null;
+		const legacyAgentCommand =
+			!isOrchestratorEnabled &&
+			selectedAgent !== "none" &&
+			selectedAgent !== "superset-chat"
+				? prompt
 					? buildAgentPromptCommand({
 							prompt,
 							randomId: window.crypto.randomUUID(),
 							agent: selectedAgent,
 						})
-					: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
+					: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null)
+				: null;
 
 		closeModal();
 
@@ -278,33 +354,58 @@ export function NewWorkspaceModal() {
 					baseBranch: baseBranch || undefined,
 					applyPrefix,
 				},
-				agentCommand ? { agentCommand } : undefined,
+				launchRequestTemplate
+					? { agentLaunchRequest: launchRequestTemplate }
+					: legacyAgentCommand
+						? { agentCommand: legacyAgentCommand }
+						: undefined,
 			);
 
-			if (agentCommand) {
+			const launchRequest = launchRequestTemplate
+				? {
+						...launchRequestTemplate,
+						workspaceId: result.workspace.id,
+					}
+				: null;
+
+			if (launchRequest && isOrchestratorEnabled) {
 				if (result.wasExisting) {
-					const { tabId, paneId } = addTab(result.workspace.id);
-					setTabAutoTitle(tabId, "Agent");
-					try {
-						await launchCommandInPane({
-							paneId,
-							tabId,
-							workspaceId: result.workspace.id,
-							command: agentCommand,
-							createOrAttach: (input) =>
-								terminalCreateOrAttach.mutateAsync(input),
-							write: (input) => terminalWrite.mutateAsync(input),
-						});
-					} catch (error) {
-						removePane(paneId);
+					const launchResult = await launchAgentSession(launchRequest, {
+						source: "new-workspace",
+						createOrAttach: (input) =>
+							terminalCreateOrAttach.mutateAsync(input),
+						write: (input) => terminalWrite.mutateAsync(input),
+					});
+					if (launchResult.status === "failed") {
 						toast.error("Failed to start agent", {
 							description:
-								error instanceof Error
-									? error.message
-									: "Failed to start agent terminal session.",
+								launchResult.error ?? "Failed to start agent session.",
 						});
 						return;
 					}
+				}
+			} else if (legacyAgentCommand && result.wasExisting) {
+				const { tabId, paneId } = addTab(result.workspace.id);
+				setTabAutoTitle(tabId, "Agent");
+				try {
+					await launchCommandInPane({
+						paneId,
+						tabId,
+						workspaceId: result.workspace.id,
+						command: legacyAgentCommand,
+						createOrAttach: (input) =>
+							terminalCreateOrAttach.mutateAsync(input),
+						write: (input) => terminalWrite.mutateAsync(input),
+					});
+				} catch (error) {
+					removePane(paneId);
+					toast.error("Failed to start agent", {
+						description:
+							error instanceof Error
+								? error.message
+								: "Failed to start agent terminal session.",
+					});
+					return;
 				}
 			}
 
@@ -383,6 +484,7 @@ export function NewWorkspaceModal() {
 							<NewWorkspaceCreateFlow
 								projectSelector={projectSelector}
 								selectedAgent={selectedAgent}
+								agentOptions={selectableAgents}
 								onSelectedAgentChange={handleAgentChange}
 								title={title}
 								onTitleChange={setTitle}

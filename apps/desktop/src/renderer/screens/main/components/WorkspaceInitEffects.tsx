@@ -1,6 +1,13 @@
+import {
+	type AgentLaunchRequest,
+	normalizeAgentLaunchRequest,
+} from "@superset/shared/agent-launch";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { toast } from "@superset/ui/sonner";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useRef } from "react";
 import { useCreateOrAttachWithTheme } from "renderer/hooks/useCreateOrAttachWithTheme";
+import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	launchCommandInPane,
@@ -29,6 +36,9 @@ export function WorkspaceInitEffects() {
 		electronTrpc.settings.getAutoApplyDefaultPreset.useQuery();
 	const shouldApplyPreset =
 		autoApplyDefaultPreset ?? DEFAULT_AUTO_APPLY_DEFAULT_PRESET;
+	const isOrchestratorEnabled = useFeatureFlagEnabled(
+		FEATURE_FLAGS.DESKTOP_AGENT_LAUNCH_ORCHESTRATOR_V1,
+	);
 
 	const processingRef = useRef<Set<string>>(new Set());
 
@@ -90,6 +100,82 @@ export function WorkspaceInitEffects() {
 		[removePane, terminalCreateOrAttach, terminalWrite],
 	);
 
+	const resolveSetupLaunchRequest = useCallback(
+		(setup: PendingTerminalSetup): AgentLaunchRequest | null => {
+			if (setup.agentLaunchRequest) {
+				return normalizeAgentLaunchRequest(setup.agentLaunchRequest);
+			}
+			if (setup.agentCommand) {
+				return normalizeAgentLaunchRequest({
+					workspaceId: setup.workspaceId,
+					command: setup.agentCommand,
+					name: "Agent",
+					source: "workspace-init",
+				});
+			}
+			return null;
+		},
+		[],
+	);
+
+	const launchAgentViaOrchestrator = useCallback(
+		(setup: PendingTerminalSetup, targetPaneId?: string) => {
+			if (!isOrchestratorEnabled) return false;
+
+			let request: AgentLaunchRequest;
+			try {
+				const resolved = resolveSetupLaunchRequest(setup);
+				if (!resolved) return false;
+				request =
+					targetPaneId &&
+					resolved.kind === "terminal" &&
+					!resolved.terminal.paneId
+						? {
+								...resolved,
+								terminal: {
+									...resolved.terminal,
+									paneId: targetPaneId,
+								},
+							}
+						: resolved;
+			} catch (error) {
+				console.error(
+					"[WorkspaceInitEffects] Invalid launch request in pending setup:",
+					error,
+				);
+				toast.error("Failed to start agent", {
+					description:
+						error instanceof Error
+							? error.message
+							: "Invalid launch request in workspace setup.",
+				});
+				return true;
+			}
+
+			void launchAgentSession(request, {
+				source: "workspace-init",
+				createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
+				write: (input) => terminalWrite.mutateAsync(input),
+			}).then((result) => {
+				if (result.status === "failed") {
+					toast.error("Failed to start agent", {
+						description:
+							result.error ??
+							"Failed to start agent session in workspace setup.",
+					});
+				}
+			});
+
+			return true;
+		},
+		[
+			isOrchestratorEnabled,
+			resolveSetupLaunchRequest,
+			terminalCreateOrAttach,
+			terminalWrite,
+		],
+	);
+
 	const runSetupCommandsInPane = useCallback(
 		async (paneId: string, commands: string[] | null) => {
 			await writeCommandsInPane({
@@ -110,7 +196,7 @@ export function WorkspaceInitEffects() {
 				(p) => p.commands.length > 0,
 			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
-			const { agentCommand } = setup;
+			const { agentCommand, agentLaunchRequest } = setup;
 
 			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
@@ -119,7 +205,9 @@ export function WorkspaceInitEffects() {
 				setTabAutoTitle(setupTabId, "Workspace Setup");
 				openPresetsInActiveTab(setup.workspaceId, presets);
 
-				if (agentCommand) {
+				if (agentLaunchRequest) {
+					launchAgentViaOrchestrator(setup, setupPaneId);
+				} else if (agentCommand) {
 					const agentPaneId = addPane(setupTabId);
 					if (agentPaneId) {
 						launchAgentCommand({
@@ -178,7 +266,9 @@ export function WorkspaceInitEffects() {
 				const { tabId, paneId } = addTab(setup.workspaceId);
 				setTabAutoTitle(tabId, "Workspace Setup");
 
-				if (agentCommand) {
+				if (agentLaunchRequest) {
+					launchAgentViaOrchestrator(setup, paneId);
+				} else if (agentCommand) {
 					const agentPaneId = addPane(tabId);
 					if (agentPaneId) {
 						launchAgentCommand({
@@ -266,7 +356,9 @@ export function WorkspaceInitEffects() {
 
 			if (hasPresets) {
 				openPresetsInActiveTab(setup.workspaceId, presets);
-				if (agentCommand) {
+				if (agentLaunchRequest) {
+					launchAgentViaOrchestrator(setup);
+				} else if (agentCommand) {
 					const { tabId: agentTabId, paneId: agentPaneId } = addTab(
 						setup.workspaceId,
 					);
@@ -279,6 +371,12 @@ export function WorkspaceInitEffects() {
 						removePaneOnError: true,
 					});
 				}
+				onComplete();
+				return;
+			}
+
+			if (agentLaunchRequest) {
+				launchAgentViaOrchestrator(setup);
 				onComplete();
 				return;
 			}
@@ -307,6 +405,7 @@ export function WorkspaceInitEffects() {
 			setTabAutoTitle,
 			createOrAttach,
 			launchAgentCommand,
+			launchAgentViaOrchestrator,
 			runSetupCommandsInPane,
 			openPresetsInActiveTab,
 			shouldApplyPreset,

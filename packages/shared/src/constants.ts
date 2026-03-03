@@ -59,4 +59,6 @@ export const FEATURE_FLAGS = {
 	SLACK_INTEGRATION_ACCESS: "slack-integration-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
+	/** Enables the unified desktop agent launch orchestrator path. */
+	DESKTOP_AGENT_LAUNCH_ORCHESTRATOR_V1: "desktop_agent_launch_orchestrator_v1",
 } as const;

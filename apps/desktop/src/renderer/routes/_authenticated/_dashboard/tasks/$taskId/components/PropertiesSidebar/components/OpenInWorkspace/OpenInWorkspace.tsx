@@ -1,8 +1,11 @@
+import { buildAgentTaskPrompt } from "@superset/shared/agent-command";
 import {
-	AGENT_LABELS,
-	AGENT_TYPES,
-	type AgentType,
-} from "@superset/shared/agent-command";
+	type AgentLaunchRequest,
+	STARTABLE_AGENT_LABELS,
+	STARTABLE_AGENT_TYPES,
+	type StartableAgentType,
+} from "@superset/shared/agent-launch";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -18,12 +21,14 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -38,6 +43,9 @@ interface OpenInWorkspaceProps {
 }
 
 export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
+	const isOrchestratorEnabled = useFeatureFlagEnabled(
+		FEATURE_FLAGS.DESKTOP_AGENT_LAUNCH_ORCHESTRATOR_V1,
+	);
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
@@ -48,13 +56,19 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	const removePane = useTabsStore((s) => s.removePane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const isDark = useIsDarkTheme();
+	const selectableAgents = isOrchestratorEnabled
+		? (STARTABLE_AGENT_TYPES as readonly StartableAgentType[])
+		: (STARTABLE_AGENT_TYPES.filter(
+				(agent) => agent !== "superset-chat",
+			) as readonly StartableAgentType[]);
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
 	);
-	const [selectedAgent, setSelectedAgent] = useState<AgentType>(() => {
+	const [selectedAgent, setSelectedAgent] = useState<StartableAgentType>(() => {
 		const stored = localStorage.getItem("lastSelectedAgent");
-		return stored && (AGENT_TYPES as readonly string[]).includes(stored)
-			? (stored as AgentType)
+		return stored &&
+			(STARTABLE_AGENT_TYPES as readonly string[]).includes(stored)
+			? (stored as StartableAgentType)
 			: "claude";
 	});
 
@@ -70,9 +84,61 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		}
 	}, [selectedProjectId, recentProjects]);
 
+	useEffect(() => {
+		if (selectableAgents.includes(selectedAgent)) return;
+		setSelectedAgent("claude");
+		localStorage.setItem("lastSelectedAgent", "claude");
+	}, [selectedAgent, selectableAgents]);
+
 	const handleOpen = async () => {
 		if (!effectiveProjectId) return;
 		await handleSelectProject(effectiveProjectId);
+	};
+
+	const buildLaunchRequest = (workspaceId: string): AgentLaunchRequest => {
+		if (selectedAgent === "superset-chat") {
+			return {
+				kind: "chat",
+				workspaceId,
+				agentType: "superset-chat",
+				source: "open-in-workspace",
+				chat: {
+					initialPrompt: buildAgentTaskPrompt({
+						id: task.id,
+						slug: task.slug,
+						title: task.title,
+						description: task.description,
+						priority: task.priority,
+						statusName: task.status.name,
+						labels: task.labels,
+					}),
+					retryCount: 1,
+				},
+			};
+		}
+
+		return {
+			kind: "terminal",
+			workspaceId,
+			agentType: selectedAgent,
+			source: "open-in-workspace",
+			terminal: {
+				command: buildAgentCommand({
+					task: {
+						id: task.id,
+						slug: task.slug,
+						title: task.title,
+						description: task.description,
+						priority: task.priority,
+						statusName: task.status.name,
+						labels: task.labels,
+					},
+					randomId: window.crypto.randomUUID(),
+					agent: selectedAgent,
+				}),
+				name: task.slug,
+			},
+		};
 	};
 
 	const handleSelectProject = async (projectId: string) => {
@@ -80,19 +146,25 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			slug: task.slug,
 			title: task.title,
 		});
-		const command = buildAgentCommand({
-			task: {
-				id: task.id,
-				slug: task.slug,
-				title: task.title,
-				description: task.description,
-				priority: task.priority,
-				statusName: task.status.name,
-				labels: task.labels,
-			},
-			randomId: window.crypto.randomUUID(),
-			agent: selectedAgent,
-		});
+		const launchRequestTemplate = isOrchestratorEnabled
+			? buildLaunchRequest("pending-workspace")
+			: null;
+		const legacyCommand =
+			!isOrchestratorEnabled && selectedAgent !== "superset-chat"
+				? buildAgentCommand({
+						task: {
+							id: task.id,
+							slug: task.slug,
+							title: task.title,
+							description: task.description,
+							priority: task.priority,
+							statusName: task.status.name,
+							labels: task.labels,
+						},
+						randomId: window.crypto.randomUUID(),
+						agent: selectedAgent,
+					})
+				: null;
 
 		try {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
@@ -101,10 +173,40 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					name: task.slug,
 					branchName,
 				},
-				{ agentCommand: command },
+				launchRequestTemplate
+					? { agentLaunchRequest: launchRequestTemplate }
+					: legacyCommand
+						? { agentCommand: legacyCommand }
+						: undefined,
 			);
 
-			if (result.wasExisting) {
+			const launchRequest = launchRequestTemplate
+				? {
+						...launchRequestTemplate,
+						workspaceId: result.workspace.id,
+					}
+				: null;
+
+			if (isOrchestratorEnabled) {
+				if (!launchRequest) {
+					return;
+				}
+				if (result.wasExisting) {
+					const launchResult = await launchAgentSession(launchRequest, {
+						source: "open-in-workspace",
+						createOrAttach: (input) =>
+							terminalCreateOrAttach.mutateAsync(input),
+						write: (input) => terminalWrite.mutateAsync(input),
+					});
+					if (launchResult.status === "failed") {
+						toast.error("Failed to start agent", {
+							description:
+								launchResult.error ?? "Failed to start agent session.",
+						});
+						return;
+					}
+				}
+			} else if (legacyCommand && result.wasExisting) {
 				const { tabId, paneId } = addTab(result.workspace.id);
 				setTabAutoTitle(tabId, "Agent");
 				try {
@@ -112,7 +214,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 						paneId,
 						tabId,
 						workspaceId: result.workspace.id,
-						command,
+						command: legacyCommand,
 						createOrAttach: (input) =>
 							terminalCreateOrAttach.mutateAsync(input),
 						write: (input) => terminalWrite.mutateAsync(input),
@@ -215,7 +317,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			</div>
 			<Select
 				value={selectedAgent}
-				onValueChange={(value: AgentType) => {
+				onValueChange={(value: StartableAgentType) => {
 					setSelectedAgent(value);
 					localStorage.setItem("lastSelectedAgent", value);
 				}}
@@ -224,7 +326,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					<SelectValue placeholder="Select agent" />
 				</SelectTrigger>
 				<SelectContent>
-					{AGENT_TYPES.map((agent) => {
+					{selectableAgents.map((agent) => {
 						const icon = getPresetIcon(agent, isDark);
 						return (
 							<SelectItem key={agent} value={agent}>
@@ -236,7 +338,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 											className="size-3.5 object-contain"
 										/>
 									)}
-									{AGENT_LABELS[agent]}
+									{STARTABLE_AGENT_LABELS[agent]}
 								</span>
 							</SelectItem>
 						);
