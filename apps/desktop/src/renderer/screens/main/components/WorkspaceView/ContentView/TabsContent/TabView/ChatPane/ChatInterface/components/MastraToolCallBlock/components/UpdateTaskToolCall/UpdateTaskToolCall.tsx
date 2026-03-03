@@ -108,6 +108,18 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 											: typeof update?.statusId === "string"
 												? update.statusId
 												: null;
+									const statusType =
+										typeof update?.statusType === "string"
+											? update.statusType
+											: null;
+									const statusColor =
+										typeof update?.statusColor === "string"
+											? update.statusColor
+											: null;
+									const statusProgress =
+										typeof update?.statusProgress === "number"
+											? update.statusProgress
+											: null;
 									const labels = toStringArray(update?.labels);
 									const priority =
 										typeof update?.priority === "string"
@@ -142,6 +154,9 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 											priority={priority}
 											slug={slug}
 											status={status}
+											statusColor={statusColor}
+											statusProgress={statusProgress}
+											statusType={statusType}
 											taskId={taskId}
 											title={title}
 											onClick={() =>

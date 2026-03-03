@@ -50,6 +50,16 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 		typeof task?.description === "string" ? task.description : null;
 	const dueDate = formatDate(task?.dueDate);
 	const status = typeof task?.statusName === "string" ? task.statusName : null;
+	const statusType =
+		typeof task?.statusType === "string" ? task.statusType : null;
+	const statusColor =
+		typeof task?.statusColor === "string" ? task.statusColor : null;
+	const statusProgress =
+		typeof task?.statusProgressPercent === "number"
+			? task.statusProgressPercent
+			: typeof task?.statusProgress === "number"
+				? task.statusProgress
+				: null;
 	const priority = typeof task?.priority === "string" ? task.priority : null;
 	const assignee =
 		typeof task?.assigneeName === "string"
@@ -69,6 +79,12 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 		typeof task?.creatorName === "string" ? task.creatorName : null;
 	const assigneeEmail =
 		typeof task?.assigneeEmail === "string" ? task.assigneeEmail : null;
+	const assigneeImage =
+		typeof task?.assigneeImage === "string"
+			? task.assigneeImage
+			: typeof task?.assigneeAvatarUrl === "string"
+				? task.assigneeAvatarUrl
+				: null;
 	const extraDetails = [
 		creator ? { label: "Creator", value: creator } : null,
 		assigneeEmail ? { label: "Assignee Email", value: assigneeEmail } : null,
@@ -97,10 +113,14 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 							priority={priority}
 							slug={typeof task.slug === "string" ? task.slug : null}
 							status={status}
+							statusColor={statusColor}
+							statusProgress={statusProgress}
+							statusType={statusType}
 							taskId={typeof task.id === "string" ? task.id : taskId}
 							title={
 								typeof task.title === "string" ? task.title : "Task details"
 							}
+							assigneeImage={assigneeImage}
 							onClick={() =>
 								openTaskId
 									? navigate({

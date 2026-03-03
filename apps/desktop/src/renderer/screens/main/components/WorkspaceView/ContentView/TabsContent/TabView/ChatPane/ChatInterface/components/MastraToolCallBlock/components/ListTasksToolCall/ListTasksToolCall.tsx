@@ -65,12 +65,28 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 									typeof task.title === "string" ? task.title : "Untitled task";
 								const status =
 									typeof task.statusName === "string" ? task.statusName : null;
+								const statusType =
+									typeof task.statusType === "string" ? task.statusType : null;
+								const statusColor =
+									typeof task.statusColor === "string"
+										? task.statusColor
+										: null;
+								const statusProgress =
+									typeof task.statusProgress === "number"
+										? task.statusProgress
+										: null;
 								const priority =
 									typeof task.priority === "string" ? task.priority : null;
 								const assignee =
 									typeof task.assigneeName === "string"
 										? task.assigneeName
 										: null;
+								const assigneeImage =
+									typeof task.assigneeImage === "string"
+										? task.assigneeImage
+										: typeof task.assigneeAvatarUrl === "string"
+											? task.assigneeAvatarUrl
+											: null;
 								const dueDate = formatDate(task.dueDate);
 								const estimate =
 									typeof task.estimate === "number"
@@ -109,8 +125,12 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 										priority={priority}
 										slug={slug}
 										status={status}
+										statusColor={statusColor}
+										statusProgress={statusProgress}
+										statusType={statusType}
 										taskId={taskId}
 										title={title}
+										assigneeImage={assigneeImage}
 										onClick={() =>
 											openTaskId
 												? navigate({
