@@ -48,13 +48,15 @@ async function fetchTask({
 }
 
 const inputSchemaShape = {
-	deviceId: z.string().describe("Target device ID"),
-	taskId: z.string().describe("Task ID to work on"),
+	deviceId: z.string().min(1).describe("Target device ID"),
+	taskId: z.string().min(1).describe("Task ID to work on"),
 	workspaceId: z
 		.string()
+		.min(1)
 		.describe("Workspace ID to run the session in (from create_workspace)"),
 	paneId: z
 		.string()
+		.min(1)
 		.optional()
 		.describe(
 			"Optional pane ID. When provided, launches relative to the tab containing this pane.",

@@ -71,10 +71,12 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 	}, [selectedProjectId, recentProjects]);
 
 	useEffect(() => {
-		if (selectableAgents.includes(selectedAgent)) return;
+		if ((STARTABLE_AGENT_TYPES as readonly string[]).includes(selectedAgent)) {
+			return;
+		}
 		setSelectedAgent("claude");
 		localStorage.setItem("lastSelectedAgent", "claude");
-	}, [selectedAgent, selectableAgents]);
+	}, [selectedAgent]);
 
 	const handleOpen = async () => {
 		if (!effectiveProjectId) return;
@@ -141,21 +143,13 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					name: task.slug,
 					branchName,
 				},
-				launchRequestTemplate
-					? { agentLaunchRequest: launchRequestTemplate }
-					: undefined,
+				{ agentLaunchRequest: launchRequestTemplate },
 			);
 
-			const launchRequest = launchRequestTemplate
-				? {
-						...launchRequestTemplate,
-						workspaceId: result.workspace.id,
-					}
-				: null;
-
-			if (!launchRequest) {
-				return;
-			}
+			const launchRequest: AgentLaunchRequest = {
+				...launchRequestTemplate,
+				workspaceId: result.workspace.id,
+			};
 			if (result.wasExisting) {
 				const launchResult = await launchAgentSession(launchRequest, {
 					source: "open-in-workspace",

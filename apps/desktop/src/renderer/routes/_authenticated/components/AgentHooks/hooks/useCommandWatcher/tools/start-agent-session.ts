@@ -44,19 +44,29 @@ async function execute(
 	}
 
 	try {
-		const request = normalizeAgentLaunchRequest(
-			params.request ?? {
-				workspaceId: params.workspaceId,
-				command: params.command,
-				name: params.name,
-				paneId: params.paneId,
-				openChatPane: params.openChatPane,
-				chatLaunchConfig: params.chatLaunchConfig,
-				idempotencyKey: params.idempotencyKey,
-				agentType: params.agentType,
-				source: "command-watcher",
-			},
-		);
+		const fallbackRequest = {
+			workspaceId: params.workspaceId,
+			command: params.command,
+			name: params.name,
+			paneId: params.paneId,
+			openChatPane: params.openChatPane,
+			chatLaunchConfig: params.chatLaunchConfig,
+			idempotencyKey: params.idempotencyKey,
+			agentType: params.agentType,
+			source: "command-watcher",
+		};
+		const mergedRequest =
+			params.request && typeof params.request === "object"
+				? { ...fallbackRequest, ...(params.request as Record<string, unknown>) }
+				: fallbackRequest;
+		const request = normalizeAgentLaunchRequest(mergedRequest);
+
+		if (request.workspaceId !== params.workspaceId) {
+			return {
+				success: false,
+				error: `Workspace mismatch: ${request.workspaceId} (expected ${params.workspaceId})`,
+			};
+		}
 
 		const hasExplicitPaneTarget =
 			request.kind === "terminal"

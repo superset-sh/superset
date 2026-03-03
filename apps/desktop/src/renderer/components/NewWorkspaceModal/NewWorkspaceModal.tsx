@@ -104,10 +104,8 @@ export function NewWorkspaceModal() {
 			runSetupScriptRef.current ? commands : null,
 	});
 	const { openNew } = useOpenProject();
-	const selectableAgents = useMemo(
-		() => STARTABLE_AGENT_TYPES as readonly StartableAgentType[],
-		[],
-	);
+	const selectableAgents =
+		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
 
 	const resolvedPrefix = useMemo(() => {
 		const projectOverrides = project?.branchPrefixMode != null;
@@ -143,10 +141,12 @@ export function NewWorkspaceModal() {
 
 	useEffect(() => {
 		if (selectedAgent === "none") return;
-		if (selectableAgents.includes(selectedAgent)) return;
+		if ((STARTABLE_AGENT_TYPES as readonly string[]).includes(selectedAgent)) {
+			return;
+		}
 		setSelectedAgent("none");
 		window.localStorage.setItem(WORKSPACE_AGENT_STORAGE_KEY, "none");
-	}, [selectedAgent, selectableAgents]);
+	}, [selectedAgent]);
 
 	const effectiveBaseBranch = resolveEffectiveWorkspaceBaseBranch({
 		explicitBaseBranch: baseBranch,
@@ -351,11 +351,12 @@ export function NewWorkspaceModal() {
 					toast.error("Failed to start agent", {
 						description: launchResult.error ?? "Failed to start agent session.",
 					});
-					return;
 				}
 			}
 
-			if (result.isInitializing) {
+			if (result.wasExisting) {
+				toast.success("Opened existing workspace");
+			} else if (result.isInitializing) {
 				toast.success("Workspace created", {
 					description: "Setting up in the background...",
 				});
