@@ -54,6 +54,15 @@ function toErrorMessage(error: unknown): string | null {
 const AUTO_LAUNCH_MAX_RETRIES = 3;
 const AUTO_LAUNCH_RETRY_DELAY_MS = 1500;
 
+function getLaunchConfigKey(
+	config: NonNullable<ChatMastraInterfaceProps["initialLaunchConfig"]>,
+): string {
+	return JSON.stringify({
+		initialPrompt: config.initialPrompt ?? null,
+		model: config.metadata?.model ?? null,
+	});
+}
+
 export function ChatMastraInterface({
 	sessionId,
 	initialLaunchConfig,
@@ -356,7 +365,7 @@ export function ChatMastraInterface({
 	useEffect(() => {
 		if (!initialLaunchConfig) return;
 
-		const launchConfigKey = JSON.stringify(initialLaunchConfig);
+		const launchConfigKey = getLaunchConfigKey(initialLaunchConfig);
 		const attemptAutoLaunch = async (): Promise<void> => {
 			if (consumedLaunchConfigRef.current === launchConfigKey) return;
 			if (autoLaunchInFlightRef.current === launchConfigKey) return;

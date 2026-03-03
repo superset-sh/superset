@@ -144,6 +144,53 @@ const appendPaneToTab = ({
 	return pane.id;
 };
 
+const addSinglePaneTab = ({
+	state,
+	set,
+	workspaceId,
+	tab,
+	pane,
+	panelType,
+}: {
+	state: TabsState;
+	set: (partial: Partial<TabsState>) => void;
+	workspaceId: string;
+	tab: TabsState["tabs"][number];
+	pane: TabsState["panes"][string];
+	panelType: "terminal" | "chat";
+}): { tabId: string; paneId: string } => {
+	const currentActiveId = state.activeTabIds[workspaceId];
+	const historyStack = state.tabHistoryStacks[workspaceId] || [];
+	const newHistoryStack = currentActiveId
+		? [currentActiveId, ...historyStack.filter((id) => id !== currentActiveId)]
+		: historyStack;
+
+	set({
+		tabs: [...state.tabs, tab],
+		panes: { ...state.panes, [pane.id]: pane },
+		activeTabIds: {
+			...state.activeTabIds,
+			[workspaceId]: tab.id,
+		},
+		focusedPaneIds: {
+			...state.focusedPaneIds,
+			[tab.id]: pane.id,
+		},
+		tabHistoryStacks: {
+			...state.tabHistoryStacks,
+			[workspaceId]: newHistoryStack,
+		},
+	});
+
+	posthog.capture("panel_opened", {
+		panel_type: panelType,
+		workspace_id: workspaceId,
+		pane_id: pane.id,
+	});
+
+	return { tabId: tab.id, paneId: pane.id };
+};
+
 export const useTabsStore = create<TabsStore>()(
 	devtools(
 		persist(
@@ -158,89 +205,35 @@ export const useTabsStore = create<TabsStore>()(
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
 					const state = get();
-
 					const { tab, pane } = createTabWithPane(
 						workspaceId,
 						state.tabs,
 						options,
 					);
-
-					const currentActiveId = state.activeTabIds[workspaceId];
-					const historyStack = state.tabHistoryStacks[workspaceId] || [];
-					const newHistoryStack = currentActiveId
-						? [
-								currentActiveId,
-								...historyStack.filter((id) => id !== currentActiveId),
-							]
-						: historyStack;
-
-					set({
-						tabs: [...state.tabs, tab],
-						panes: { ...state.panes, [pane.id]: pane },
-						activeTabIds: {
-							...state.activeTabIds,
-							[workspaceId]: tab.id,
-						},
-						focusedPaneIds: {
-							...state.focusedPaneIds,
-							[tab.id]: pane.id,
-						},
-						tabHistoryStacks: {
-							...state.tabHistoryStacks,
-							[workspaceId]: newHistoryStack,
-						},
+					return addSinglePaneTab({
+						state,
+						set,
+						workspaceId,
+						tab,
+						pane,
+						panelType: "terminal",
 					});
-
-					posthog.capture("panel_opened", {
-						panel_type: "terminal",
-						workspace_id: workspaceId,
-						pane_id: pane.id,
-					});
-
-					return { tabId: tab.id, paneId: pane.id };
 				},
 
 				addChatMastraTab: (workspaceId: string, options) => {
 					const state = get();
-
 					const { tab, pane } = createChatMastraTabWithPane(
 						workspaceId,
 						options,
 					);
-
-					const currentActiveId = state.activeTabIds[workspaceId];
-					const historyStack = state.tabHistoryStacks[workspaceId] || [];
-					const newHistoryStack = currentActiveId
-						? [
-								currentActiveId,
-								...historyStack.filter((id) => id !== currentActiveId),
-							]
-						: historyStack;
-
-					set({
-						tabs: [...state.tabs, tab],
-						panes: { ...state.panes, [pane.id]: pane },
-						activeTabIds: {
-							...state.activeTabIds,
-							[workspaceId]: tab.id,
-						},
-						focusedPaneIds: {
-							...state.focusedPaneIds,
-							[tab.id]: pane.id,
-						},
-						tabHistoryStacks: {
-							...state.tabHistoryStacks,
-							[workspaceId]: newHistoryStack,
-						},
+					return addSinglePaneTab({
+						state,
+						set,
+						workspaceId,
+						tab,
+						pane,
+						panelType: "chat",
 					});
-
-					posthog.capture("panel_opened", {
-						panel_type: "chat",
-						workspace_id: workspaceId,
-						pane_id: pane.id,
-					});
-
-					return { tabId: tab.id, paneId: pane.id };
 				},
 
 				addTabWithMultiplePanes: (
