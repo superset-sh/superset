@@ -60,7 +60,15 @@ function writeFileIfChanged(
 function buildManagedCommandPrelude(binDir: string): string {
 	return SUPERSET_MANAGED_BINARIES.map(
 		(name) =>
-			`unalias ${name} 2>/dev/null || true\n${name}() { "${binDir}/${name}" "$@"; }`,
+			`unalias ${name} 2>/dev/null || true
+${name}() {
+  _superset_wrapper="${binDir}/${name}"
+  if [ -x "$_superset_wrapper" ] && [ ! -d "$_superset_wrapper" ]; then
+    "$_superset_wrapper" "$@"
+  else
+    command ${name} "$@"
+  fi
+}`,
 	).join("\n");
 }
 
