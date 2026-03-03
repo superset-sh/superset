@@ -45,7 +45,8 @@ export const createStatusRouter = () => {
 					return inFlight;
 				}
 
-				const statusPromise = (async (): Promise<GitChangesStatus> => {
+				let statusPromise!: Promise<GitChangesStatus>;
+				statusPromise = (async (): Promise<GitChangesStatus> => {
 					const git = simpleGit(input.worktreePath);
 
 					let status: StatusResult;
@@ -89,7 +90,10 @@ export const createStatusRouter = () => {
 						hasUpstream: trackingStatus.hasUpstream,
 					};
 
-					setCachedStatus(cacheKey, result);
+					// Guard against stale in-flight completion after explicit invalidation.
+					if (getInFlightStatus(cacheKey) === statusPromise) {
+						setCachedStatus(cacheKey, result);
+					}
 					return result;
 				})();
 
@@ -97,7 +101,9 @@ export const createStatusRouter = () => {
 				try {
 					return await statusPromise;
 				} finally {
-					clearInFlightStatus(cacheKey);
+					if (getInFlightStatus(cacheKey) === statusPromise) {
+						clearInFlightStatus(cacheKey);
+					}
 				}
 			}),
 
