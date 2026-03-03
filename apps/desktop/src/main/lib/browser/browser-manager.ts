@@ -40,7 +40,9 @@ class BrowserManager extends EventEmitter {
 		this.paneWebContentsIds.set(paneId, webContentsId);
 		const wc = webContents.fromId(webContentsId);
 		if (wc) {
-			wc.setBackgroundThrottling(false);
+			// Keep throttling enabled so parked/offscreen persistent webviews don't
+			// run at full speed in the background.
+			wc.setBackgroundThrottling(true);
 			wc.setWindowOpenHandler(({ url }) => {
 				if (url && url !== "about:blank") {
 					this.emit(`new-window:${paneId}`, url);

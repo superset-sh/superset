@@ -169,6 +169,24 @@ export function ResourceConsumption() {
 									</span>
 								</div>
 							</div>
+							{(snapshot.app.other.cpu > 0 ||
+								snapshot.app.other.memory > 0) && (
+								<div className="px-3 py-1.5 pl-6 flex items-center justify-between bg-muted/30">
+									<span className="text-[11px] text-muted-foreground min-w-0 truncate">
+										Other
+									</span>
+									<div
+										className={`${METRIC_COLS} text-[11px] text-muted-foreground`}
+									>
+										<span className={CPU_COL}>
+											{formatCpu(snapshot.app.other.cpu)}
+										</span>
+										<span className={MEM_COL}>
+											{formatMemory(snapshot.app.other.memory)}
+										</span>
+									</div>
+								</div>
+							)}
 						</div>
 					)}
 
