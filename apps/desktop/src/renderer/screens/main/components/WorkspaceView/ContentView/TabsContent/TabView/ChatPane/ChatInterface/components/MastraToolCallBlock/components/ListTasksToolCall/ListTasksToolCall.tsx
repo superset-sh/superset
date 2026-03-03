@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { ClipboardListIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
@@ -7,7 +8,22 @@ interface ListTasksToolCallProps {
 	part: ToolPart;
 }
 
+function toStringArray(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return value
+		.map((item) => (typeof item === "string" ? item.trim() : String(item)))
+		.filter((item) => item.length > 0);
+}
+
+function formatDate(value: unknown): string | null {
+	if (typeof value !== "string" || value.trim().length === 0) return null;
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return value;
+	return date.toLocaleDateString();
+}
+
 export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
+	const navigate = useNavigate();
 	const args = getArgs(part);
 	const result = getResult(part);
 	const resultData =
@@ -67,23 +83,69 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 					{tasks.length > 0 ? (
 						<div className="space-y-1">
 							{tasks.slice(0, 6).map((task, index) => {
+								const taskId =
+									typeof task.id === "string" ? task.id : null;
+								const slug =
+									typeof task.slug === "string" ? task.slug : null;
+								const openTaskId = taskId ?? slug;
 								const title =
 									typeof task.title === "string" ? task.title : "Untitled task";
 								const status =
 									typeof task.statusName === "string" ? task.statusName : null;
 								const priority =
 									typeof task.priority === "string" ? task.priority : null;
+								const assignee =
+									typeof task.assigneeName === "string" ? task.assigneeName : null;
+								const dueDate = formatDate(task.dueDate);
+								const estimate =
+									typeof task.estimate === "number" ? String(task.estimate) : null;
+								const labels = toStringArray(task.labels);
+								const description =
+									typeof task.description === "string" ? task.description : null;
 								return (
-									<div
-										key={`${title}-${index}`}
-										className="rounded border bg-background/70 px-2 py-1"
+									<button
+										key={`${taskId ?? slug ?? title}-${index}`}
+										className="w-full rounded border bg-background/70 px-2 py-1 text-left transition-colors hover:bg-muted/20"
+										type="button"
+										onClick={() =>
+											openTaskId
+												? navigate({
+														to: "/tasks/$taskId",
+														params: { taskId: openTaskId },
+													})
+												: undefined
+										}
 									>
 										<div className="font-medium text-foreground">{title}</div>
 										<div className="text-muted-foreground">
+											{slug ? `#${slug}` : null}
+											{taskId ? ` • ${taskId}` : null}
+										</div>
+										<div className="text-muted-foreground">
 											{status ? `Status: ${status}` : "Status: unknown"}
 											{priority ? ` • Priority: ${priority}` : ""}
+											{assignee ? ` • Assignee: ${assignee}` : ""}
+											{dueDate ? ` • Due: ${dueDate}` : ""}
+											{estimate ? ` • Estimate: ${estimate}` : ""}
 										</div>
-									</div>
+										{labels.length > 0 ? (
+											<div className="mt-1 flex flex-wrap gap-1">
+												{labels.map((label) => (
+													<span
+														key={label}
+														className="rounded border bg-muted/30 px-1.5 py-0.5 text-muted-foreground"
+													>
+														{label}
+													</span>
+												))}
+											</div>
+										) : null}
+										{description ? (
+											<div className="mt-1 line-clamp-2 text-muted-foreground">
+												{description}
+											</div>
+										) : null}
+									</button>
 								);
 							})}
 						</div>
