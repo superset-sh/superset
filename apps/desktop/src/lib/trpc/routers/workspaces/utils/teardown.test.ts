@@ -27,12 +27,11 @@ const ORIGINAL_SHELL = process.env.SHELL;
 const ORIGINAL_PATH = process.env.PATH;
 const ORIGINAL_HOME = process.env.HOME;
 
-process.env.SUPERSET_HOME_DIR = TEST_SUPERSET_HOME;
-
 const { runTeardown } = await import("./teardown");
 
 describe("runTeardown", () => {
 	beforeEach(() => {
+		process.env.SUPERSET_HOME_DIR = TEST_SUPERSET_HOME;
 		// Create test directories
 		mkdirSync(join(MAIN_REPO, ".superset"), { recursive: true });
 		mkdirSync(WORKTREE, { recursive: true });
