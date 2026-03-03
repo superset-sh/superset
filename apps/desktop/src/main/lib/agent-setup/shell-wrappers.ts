@@ -132,6 +132,7 @@ export ZDOTDIR="${paths.ZSH_DIR}"
 	const zloginPath = path.join(paths.ZSH_DIR, ".zlogin");
 	const zloginScript = `# Superset zsh login wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
 if [[ -o interactive ]]; then
   [[ -f "$_superset_home/.zlogin" ]] && source "$_superset_home/.zlogin"
 fi

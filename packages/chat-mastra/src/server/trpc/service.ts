@@ -14,7 +14,6 @@ import {
 	runSessionStartHook,
 	subscribeToSessionEvents,
 } from "./utils/runtime";
-import { isMastraMcpEnabled } from "./utils/runtime/mcp-gate";
 import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
 	approvalRespondInput,
@@ -29,7 +28,7 @@ import {
 	sessionIdInput,
 } from "./zod";
 
-const INTERNAL_MASTRA_TOOL_NAMES = ["request_sandbox_access"] as const;
+const ENABLE_MASTRA_MCP_SERVERS = false;
 
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
@@ -62,7 +61,6 @@ export class ChatMastraService {
 		sessionId: string,
 		cwd?: string,
 	): Promise<RuntimeSession> {
-		const mcpEnabled = isMastraMcpEnabled();
 		const runtimeCwd = cwd ?? process.cwd();
 		const runtimeKey = `${sessionId}:${runtimeCwd}`;
 
@@ -84,17 +82,14 @@ export class ChatMastraService {
 
 		const creationPromise = (async () => {
 			try {
-				const extraTools = mcpEnabled
-					? await getSupersetMcpTools(
-							() => Promise.resolve(this.opts.headers()),
-							this.opts.apiUrl,
-						)
-					: {};
+				const extraTools = await getSupersetMcpTools(
+					() => Promise.resolve(this.opts.headers()),
+					this.opts.apiUrl,
+				);
 				const runtimeMastra = await createMastraCode({
 					cwd: runtimeCwd,
 					extraTools,
-					disableMcp: !mcpEnabled,
-					disabledTools: [...INTERNAL_MASTRA_TOOL_NAMES],
+					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
 				});
 				runtimeMastra.hookManager?.setSessionId(sessionId);
 				await runtimeMastra.harness.init();
@@ -108,6 +103,7 @@ export class ChatMastraService {
 					hookManager: runtimeMastra.hookManager,
 					mcpManualStatuses: new Map(),
 					lastErrorMessage: null,
+					pendingSandboxQuestion: null,
 					cwd: runtimeCwd,
 				};
 				await runSessionStartHook(runtime).catch(() => {});
@@ -142,7 +138,7 @@ export class ChatMastraService {
 				getMcpOverview: t.procedure
 					.input(mcpOverviewInput)
 					.query(async ({ input }) => {
-						if (!isMastraMcpEnabled()) {
+						if (!ENABLE_MASTRA_MCP_SERVERS) {
 							return { sourcePath: null, servers: [] };
 						}
 
@@ -155,7 +151,7 @@ export class ChatMastraService {
 				authenticateMcpServer: t.procedure
 					.input(mcpServerAuthInput)
 					.mutation(async ({ input }) => {
-						if (!isMastraMcpEnabled()) {
+						if (!ENABLE_MASTRA_MCP_SERVERS) {
 							return { sourcePath: null, servers: [] };
 						}
 
@@ -187,8 +183,26 @@ export class ChatMastraService {
 							currentMessage.errorMessage.trim()
 								? currentMessage.errorMessage.trim()
 								: null;
+						const sandboxPendingQuestion = runtime.pendingSandboxQuestion
+							? {
+									questionId: runtime.pendingSandboxQuestion.questionId,
+									question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
+									options: [
+										{
+											label: "Yes",
+											description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
+										},
+										{
+											label: "No",
+											description: "Deny access.",
+										},
+									],
+								}
+							: null;
 						return {
 							...displayState,
+							pendingQuestion:
+								displayState.pendingQuestion ?? sandboxPendingQuestion,
 							errorMessage: currentMessageError ?? runtime.lastErrorMessage,
 						};
 					}),
@@ -248,6 +262,12 @@ export class ChatMastraService {
 						.input(questionRespondInput)
 						.mutation(async ({ input }) => {
 							const runtime = await this.getOrCreateRuntime(input.sessionId);
+							if (
+								runtime.pendingSandboxQuestion?.questionId ===
+								input.payload.questionId
+							) {
+								runtime.pendingSandboxQuestion = null;
+							}
 							return runtime.harness.respondToQuestion(input.payload);
 						}),
 				}),

@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import {
+	chmodSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -38,11 +45,21 @@ describe("shell-wrappers", () => {
 		createZshWrapper(TEST_PATHS);
 
 		const zshenv = readFileSync(path.join(TEST_ZSH_DIR, ".zshenv"), "utf-8");
+		const zprofile = readFileSync(
+			path.join(TEST_ZSH_DIR, ".zprofile"),
+			"utf-8",
+		);
 		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
 		const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
 
 		expect(zshenv).toContain('source "$_superset_home/.zshenv"');
 		expect(zshenv).toContain(`export ZDOTDIR="${TEST_ZSH_DIR}"`);
+		expect(zprofile).toContain('export ZDOTDIR="$_superset_home"');
+		expect(zprofile).toContain('source "$_superset_home/.zprofile"');
+		expect(zprofile).toContain(`export ZDOTDIR="${TEST_ZSH_DIR}"`);
+		expect(zprofile.indexOf('export ZDOTDIR="$_superset_home"')).toBeLessThan(
+			zprofile.indexOf('source "$_superset_home/.zprofile"'),
+		);
 
 		expect(zshrc).toContain("_superset_prepend_bin()");
 		expect(zshrc).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
@@ -53,9 +70,18 @@ describe("shell-wrappers", () => {
 			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
 		);
 		expect(zshrc).toContain("rehash 2>/dev/null || true");
+		expect(zshrc).toContain('export ZDOTDIR="$_superset_home"');
+		expect(zshrc).toContain('source "$_superset_home/.zshrc"');
+		expect(zshrc.indexOf('export ZDOTDIR="$_superset_home"')).toBeLessThan(
+			zshrc.indexOf('source "$_superset_home/.zshrc"'),
+		);
 
 		expect(zlogin).toContain("if [[ -o interactive ]]; then");
+		expect(zlogin).toContain('export ZDOTDIR="$_superset_home"');
 		expect(zlogin).toContain('source "$_superset_home/.zlogin"');
+		expect(zlogin.indexOf('export ZDOTDIR="$_superset_home"')).toBeLessThan(
+			zlogin.indexOf('source "$_superset_home/.zlogin"'),
+		);
 		expect(zlogin).toContain("_superset_prepend_bin()");
 		expect(zlogin).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zlogin).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
@@ -63,6 +89,104 @@ describe("shell-wrappers", () => {
 			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
 		);
 		expect(zlogin).toContain("rehash 2>/dev/null || true");
+	});
+
+	it("reproduces pre-fix .zlogin behavior where system node wins", () => {
+		try {
+			execFileSync("zsh", ["-lc", "exit 0"], { stdio: "ignore" });
+		} catch (error) {
+			const errorCode =
+				typeof error === "object" &&
+				error !== null &&
+				"code" in error &&
+				typeof error.code === "string"
+					? error.code
+					: "";
+			if (errorCode === "ENOENT") {
+				// zsh may not exist in all test environments.
+				return;
+			}
+			throw error;
+		}
+
+		const integrationRoot = path.join(TEST_ROOT, "zlogin-node-repro");
+		const integrationBinDir = path.join(integrationRoot, "superset-bin");
+		const integrationZshDir = path.join(integrationRoot, "zsh");
+		const integrationBashDir = path.join(integrationRoot, "bash");
+		const homeDir = path.join(integrationRoot, "home");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		const projectBinDir = path.join(homeDir, "project-bin");
+
+		mkdirSync(integrationBinDir, { recursive: true });
+		mkdirSync(integrationZshDir, { recursive: true });
+		mkdirSync(integrationBashDir, { recursive: true });
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+		mkdirSync(projectBinDir, { recursive: true });
+
+		const makeNode = (target: string, label: string) => {
+			writeFileSync(
+				target,
+				`#!/usr/bin/env bash
+echo ${label}
+`,
+			);
+			chmodSync(target, 0o755);
+		};
+
+		makeNode(path.join(systemBinDir, "node"), "system");
+		makeNode(path.join(projectBinDir, "node"), "project");
+
+		writeFileSync(
+			path.join(homeDir, ".zlogin"),
+			`if [[ -f "$ZDOTDIR/.project-node" ]]; then
+  export PATH="$HOME/project-bin:$PATH"
+fi
+`,
+		);
+		writeFileSync(path.join(homeDir, ".project-node"), "");
+
+		createZshWrapper({
+			BIN_DIR: integrationBinDir,
+			ZSH_DIR: integrationZshDir,
+			BASH_DIR: integrationBashDir,
+		});
+
+		const fixedWrapperPath = path.join(integrationZshDir, ".zlogin");
+		const fixedWrapper = readFileSync(fixedWrapperPath, "utf-8");
+		const legacyWrapper = fixedWrapper.replace(
+			'export ZDOTDIR="$_superset_home"\nif [[ -o interactive ]]; then',
+			"if [[ -o interactive ]]; then",
+		);
+		expect(legacyWrapper).not.toBe(fixedWrapper);
+
+		const legacyWrapperPath = path.join(integrationZshDir, ".zlogin.legacy");
+		writeFileSync(legacyWrapperPath, legacyWrapper);
+
+		const runNode = (wrapperPath: string): string => {
+			const output = execFileSync(
+				"zsh",
+				["-ic", `source "${wrapperPath}"; node`],
+				{
+					encoding: "utf-8",
+					env: {
+						HOME: homeDir,
+						PATH: `${systemBinDir}:/usr/bin:/bin`,
+						SUPERSET_ORIG_ZDOTDIR: homeDir,
+						ZDOTDIR: integrationZshDir,
+					},
+				},
+			).trim();
+
+			const lines = output
+				.split("\n")
+				.map((line) => line.trim())
+				.filter(Boolean);
+			return lines[lines.length - 1] || "";
+		};
+
+		expect(runNode(legacyWrapperPath)).toBe("system");
+		expect(runNode(fixedWrapperPath)).toBe("project");
 	});
 
 	it("creates bash wrapper with command shims and idempotent PATH prepend", () => {

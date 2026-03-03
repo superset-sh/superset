@@ -25,6 +25,11 @@ export interface RuntimeSession {
 	hookManager: RuntimeHookManager;
 	mcpManualStatuses: Map<string, RuntimeMcpServerStatus>;
 	lastErrorMessage: string | null;
+	pendingSandboxQuestion: {
+		questionId: string;
+		path: string;
+		reason: string;
+	} | null;
 	cwd: string;
 }
 
@@ -102,11 +107,21 @@ export function subscribeToSessionEvents(
 			runtime.lastErrorMessage = toRuntimeErrorMessage(event.error);
 			return;
 		}
+		if (isHarnessSandboxAccessRequestEvent(event)) {
+			runtime.pendingSandboxQuestion = {
+				questionId: event.questionId,
+				path: event.path,
+				reason: event.reason,
+			};
+			return;
+		}
 		if (isHarnessAgentStartEvent(event)) {
 			runtime.lastErrorMessage = null;
+			runtime.pendingSandboxQuestion = null;
 			return;
 		}
 		if (isHarnessAgentEndEvent(event)) {
+			runtime.pendingSandboxQuestion = null;
 			const raw = event.reason;
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
 			if (runtime.hookManager) {
@@ -149,6 +164,21 @@ function isHarnessAgentEndEvent(
 	event: unknown,
 ): event is { type: "agent_end"; reason?: string } {
 	return isObjectRecord(event) && event.type === "agent_end";
+}
+
+function isHarnessSandboxAccessRequestEvent(event: unknown): event is {
+	type: "sandbox_access_request";
+	questionId: string;
+	path: string;
+	reason: string;
+} {
+	if (!isObjectRecord(event)) return false;
+	if (event.type !== "sandbox_access_request") return false;
+	return (
+		typeof event.questionId === "string" &&
+		typeof event.path === "string" &&
+		typeof event.reason === "string"
+	);
 }
 
 function toRuntimeErrorMessage(error: unknown): string {

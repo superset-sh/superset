@@ -2,24 +2,13 @@ import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuSub,
-	DropdownMenuSubContent,
-	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { LuCopy, LuExternalLink } from "react-icons/lu";
-import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
-import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
-import {
-	APP_OPTIONS,
-	JETBRAINS_OPTIONS,
-	VSCODE_OPTIONS,
-} from "renderer/components/OpenInButton";
+import { LuExternalLink } from "react-icons/lu";
+import { OpenInExternalDropdownItems } from "renderer/components/OpenInExternalDropdown";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useThemeStore } from "renderer/stores/theme";
 
@@ -78,95 +67,23 @@ export function ClickablePath({ path, className }: ClickablePathProps) {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-48">
-				{APP_OPTIONS.map((app) => (
-					<DropdownMenuItem
-						key={app.id}
-						onClick={() => handleOpenIn(app.id)}
-						className="flex items-center gap-2"
-					>
-						<img
-							src={isDark ? app.darkIcon : app.lightIcon}
-							alt=""
-							className="size-4 object-contain"
-						/>
-						<span>{app.label}</span>
-						{app.id === defaultApp && (
+				<OpenInExternalDropdownItems
+					isDark={isDark}
+					activeApp={defaultApp ?? undefined}
+					onOpenIn={handleOpenIn}
+					onCopyPath={handleCopyPath}
+					renderAppTrailing={(appId) =>
+						appId === defaultApp ? (
 							<span className="ml-auto text-xs text-muted-foreground">
 								Default
 							</span>
-						)}
-					</DropdownMenuItem>
-				))}
-				<DropdownMenuSub>
-					<DropdownMenuSubTrigger className="flex items-center gap-2">
-						<img
-							src={vscodeIcon}
-							alt="VS Code"
-							className="size-4 object-contain"
-						/>
-						<span>VS Code</span>
-					</DropdownMenuSubTrigger>
-					<DropdownMenuSubContent className="w-48">
-						{VSCODE_OPTIONS.map((app) => (
-							<DropdownMenuItem
-								key={app.id}
-								onClick={() => handleOpenIn(app.id)}
-								className="flex items-center gap-2"
-							>
-								<img
-									src={isDark ? app.darkIcon : app.lightIcon}
-									alt=""
-									className="size-4 object-contain"
-								/>
-								<span>{app.label}</span>
-								{app.id === defaultApp && (
-									<span className="ml-auto text-xs text-muted-foreground">
-										Default
-									</span>
-								)}
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuSubContent>
-				</DropdownMenuSub>
-				<DropdownMenuSub>
-					<DropdownMenuSubTrigger className="flex items-center gap-2">
-						<img
-							src={jetbrainsIcon}
-							alt="JetBrains"
-							className="size-4 object-contain"
-						/>
-						<span>JetBrains</span>
-					</DropdownMenuSubTrigger>
-					<DropdownMenuSubContent className="w-48">
-						{JETBRAINS_OPTIONS.map((app) => (
-							<DropdownMenuItem
-								key={app.id}
-								onClick={() => handleOpenIn(app.id)}
-								className="flex items-center gap-2"
-							>
-								<img
-									src={isDark ? app.darkIcon : app.lightIcon}
-									alt=""
-									className="size-4 object-contain"
-								/>
-								<span>{app.label}</span>
-								{app.id === defaultApp && (
-									<span className="ml-auto text-xs text-muted-foreground">
-										Default
-									</span>
-								)}
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuSubContent>
-				</DropdownMenuSub>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem
-					onClick={handleCopyPath}
-					className="flex items-center gap-2"
-				>
-					<LuCopy className="size-4" />
-					<span>Copy path</span>
-				</DropdownMenuItem>
+						) : null
+					}
+					appItemClassName="flex items-center gap-2"
+					subTriggerClassName="flex items-center gap-2"
+					subContentClassName="w-48"
+					copyPathItemClassName="flex items-center gap-2"
+				/>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

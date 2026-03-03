@@ -59,4 +59,5 @@ export const FEATURE_FLAGS = {
 	SLACK_INTEGRATION_ACCESS: "slack-integration-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
+	ELECTRIC_CLOUD: "electric-cloud",
 } as const;

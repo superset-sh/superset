@@ -31,6 +31,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])
 			.optional(),
+		NEXT_PUBLIC_OUTLIT_KEY: z.string(),
 	},
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
@@ -41,6 +42,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_DSN_MARKETING:
 			process.env.NEXT_PUBLIC_SENTRY_DSN_MARKETING,
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+		NEXT_PUBLIC_OUTLIT_KEY: process.env.NEXT_PUBLIC_OUTLIT_KEY,
 	},
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

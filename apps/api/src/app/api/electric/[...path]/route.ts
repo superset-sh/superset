@@ -3,45 +3,50 @@ import { auth } from "@superset/auth/server";
 import { env } from "@/env";
 import { buildWhereClause } from "./utils";
 
+interface AuthInfo {
+	userId: string;
+	organizationIds: string[];
+}
+
+async function authenticate(request: Request): Promise<AuthInfo | null> {
+	const bearer = request.headers.get("Authorization");
+	if (bearer?.startsWith("Bearer ")) {
+		const token = bearer.slice(7);
+		try {
+			const { payload } = await auth.api.verifyJWT({ body: { token } });
+			if (payload?.sub && Array.isArray(payload.organizationIds)) {
+				return {
+					userId: payload.sub,
+					organizationIds: payload.organizationIds as string[],
+				};
+			}
+		} catch {}
+	}
+
+	const sessionData = await auth.api.getSession({ headers: request.headers });
+	if (!sessionData?.user) return null;
+	return {
+		userId: sessionData.user.id,
+		organizationIds: sessionData.session.organizationIds ?? [],
+	};
+}
+
 export async function GET(request: Request): Promise<Response> {
-	const sessionData = await auth.api.getSession({
-		headers: request.headers,
-	});
-	if (!sessionData?.user) {
+	const authInfo = await authenticate(request);
+	if (!authInfo) {
 		return new Response("Unauthorized", { status: 401 });
 	}
 
 	const url = new URL(request.url);
 
-	// Use client-sent organizationId, falling back to session for older clients.
-	// TODO(2026-02-26): Remove activeOrganizationId fallback once all clients send organizationId param.
-	const organizationId =
-		url.searchParams.get("organizationId") ??
-		sessionData.session.activeOrganizationId;
-	const allowedOrgIds = sessionData.session.organizationIds ?? [];
+	const organizationId = url.searchParams.get("organizationId");
 
-	if (organizationId && !allowedOrgIds.includes(organizationId)) {
+	if (organizationId && !authInfo.organizationIds.includes(organizationId)) {
 		return new Response("Not a member of this organization", { status: 403 });
 	}
 
-	const useCloud =
-		env.ELECTRIC_SOURCE_ID &&
-		env.ELECTRIC_SOURCE_SECRET &&
-		(request.headers.get("x-electric-backend") === "cloud" ||
-			sessionData.user.email?.endsWith("@superset.sh"));
-
-	const originUrl = useCloud
-		? new URL("/v1/shape", "https://api.electric-sql.cloud")
-		: new URL(env.ELECTRIC_URL);
-
-	if (useCloud) {
-		// biome-ignore lint/style/noNonNullAssertion: guarded by useCloud check above
-		originUrl.searchParams.set("source_id", env.ELECTRIC_SOURCE_ID!);
-		// biome-ignore lint/style/noNonNullAssertion: guarded by useCloud check above
-		originUrl.searchParams.set("secret", env.ELECTRIC_SOURCE_SECRET!);
-	} else {
-		originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
-	}
+	const originUrl = new URL(env.ELECTRIC_URL);
+	originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
 
 	url.searchParams.forEach((value, key) => {
 		if (ELECTRIC_PROTOCOL_QUERY_PARAMS.includes(key)) {
@@ -57,7 +62,7 @@ export async function GET(request: Request): Promise<Response> {
 	const whereClause = await buildWhereClause(
 		tableName,
 		organizationId ?? "",
-		sessionData.user.id,
+		authInfo.userId,
 	);
 	if (!whereClause) {
 		return new Response(`Unknown table: ${tableName}`, { status: 400 });
@@ -86,8 +91,6 @@ export async function GET(request: Request): Promise<Response> {
 	const response = await fetch(originUrl.toString());
 
 	const headers = new Headers(response.headers);
-	headers.append("Vary", "Authorization, X-Electric-Backend");
-
 	if (headers.get("content-encoding")) {
 		headers.delete("content-encoding");
 		headers.delete("content-length");

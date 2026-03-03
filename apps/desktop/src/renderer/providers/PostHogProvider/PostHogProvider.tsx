@@ -1,6 +1,7 @@
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { track } from "renderer/lib/analytics";
 import { initPostHog, posthog } from "renderer/lib/posthog";
 
 interface PostHogProviderProps {
@@ -13,7 +14,7 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 	useEffect(() => {
 		try {
 			initPostHog();
-			posthog.capture("desktop_opened");
+			track("desktop_opened");
 		} catch (error) {
 			console.error("[posthog] Failed to initialize:", error);
 		} finally {

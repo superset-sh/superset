@@ -296,22 +296,6 @@ export function ChatMastraMessageList({
 						</MessageContent>
 					</Message>
 				)}
-				{shouldShowToolPreview && (
-					<Message from="assistant">
-						<MessageContent>
-							{previewToolParts.map((part) => (
-								<MastraToolCallBlock
-									key={`tool-preview-${part.toolCallId}`}
-									part={part}
-									workspaceId={workspaceId}
-									sessionId={sessionId}
-									organizationId={organizationId}
-									workspaceCwd={workspaceCwd}
-								/>
-							))}
-						</MessageContent>
-					</Message>
-				)}
 				{hasSubagentActivity && (
 					<SubagentExecutionMessage subagents={activeSubagentEntries} />
 				)}

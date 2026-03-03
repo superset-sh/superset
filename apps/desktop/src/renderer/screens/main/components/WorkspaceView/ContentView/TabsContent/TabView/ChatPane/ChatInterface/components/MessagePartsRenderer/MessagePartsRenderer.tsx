@@ -31,7 +31,10 @@ interface MessagePartsRendererProps {
 	isStreaming: boolean;
 	workspaceId?: string;
 	workspaceCwd?: string;
-	onAnswer?: (toolCallId: string, answers: Record<string, string>) => void;
+	onAnswer?: (
+		toolCallId: string,
+		answers: Record<string, string>,
+	) => Promise<void> | void;
 }
 
 export function MessagePartsRenderer({
