@@ -3,6 +3,7 @@ import { FilePenIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
+import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface UpdateTaskToolCallProps {
 	part: ToolPart;
@@ -22,6 +23,13 @@ function toStringArray(value: unknown): string[] {
 		.filter((item) => item.length > 0);
 }
 
+function formatDate(value: unknown): string | null {
+	if (typeof value !== "string" || value.trim().length === 0) return null;
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return value;
+	return date.toLocaleDateString();
+}
+
 export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 	const navigate = useNavigate();
 	const args = getArgs(part);
@@ -39,7 +47,6 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 	const updates = Array.isArray(args.updates)
 		? args.updates.map((update) => toRecord(update)).filter(Boolean)
 		: [];
-	const requestedCount = Array.isArray(args.updates) ? args.updates.length : 0;
 
 	return (
 		<SupersetToolCall
@@ -48,9 +55,6 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 			icon={FilePenIcon}
 			details={
 				<div className="space-y-2">
-					<div className="text-muted-foreground">
-						Requested: {requestedCount} update{requestedCount === 1 ? "" : "s"}
-					</div>
 					{updated.length > 0 ? (
 						<div className="space-y-1">
 							<div className="font-medium text-foreground">
@@ -60,7 +64,9 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 								{updated.map((task, index) => {
 									const update = updates[index] ?? null;
 									const title =
-										typeof task.title === "string" ? task.title : "Updated task";
+										typeof task.title === "string"
+											? task.title
+											: "Updated task";
 									const slug = typeof task.slug === "string" ? task.slug : null;
 									const taskId =
 										typeof task.id === "string"
@@ -69,18 +75,75 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 												? update.taskId
 												: null;
 									const openTaskId = taskId ?? slug;
-									const changedFields = update
-										? Object.entries(update).filter(
-												([key, value]) =>
-													key !== "taskId" && value !== undefined && value !== null,
-											)
-										: [];
+									const changedFields = (
+										update
+											? Object.entries(update).filter(
+													([key, value]) =>
+														![
+															"taskId",
+															"title",
+															"description",
+															"priority",
+															"assigneeId",
+															"assigneeName",
+															"dueDate",
+															"estimate",
+															"labels",
+															"statusId",
+															"statusName",
+														].includes(key) &&
+														value !== undefined &&
+														value !== null,
+												)
+											: []
+									).map(([key, value]) => ({
+										label: key,
+										value: Array.isArray(value)
+											? value.map((item) => String(item)).join(", ")
+											: String(value).slice(0, 80),
+									}));
+									const status =
+										typeof update?.statusName === "string"
+											? update.statusName
+											: typeof update?.statusId === "string"
+												? update.statusId
+												: null;
 									const labels = toStringArray(update?.labels);
+									const priority =
+										typeof update?.priority === "string"
+											? update.priority
+											: null;
+									const assignee =
+										typeof update?.assigneeName === "string"
+											? update.assigneeName
+											: typeof update?.assigneeId === "string"
+												? update.assigneeId
+												: null;
+									const dueDate = formatDate(update?.dueDate);
+									const estimate =
+										typeof update?.estimate === "number" ||
+										typeof update?.estimate === "string"
+											? String(update.estimate)
+											: null;
+									const description =
+										typeof update?.description === "string"
+											? update.description
+											: null;
+
 									return (
-										<button
+										<TaskItemDisplay
 											key={`${title}-${slug ?? index}`}
-											className="w-full rounded border bg-background/70 px-2 py-1 text-left transition-colors hover:bg-muted/20"
-											type="button"
+											assignee={assignee}
+											description={description}
+											dueDate={dueDate}
+											estimate={estimate}
+											extraDetails={changedFields}
+											labels={labels}
+											priority={priority}
+											slug={slug}
+											status={status}
+											taskId={taskId}
+											title={title}
 											onClick={() =>
 												openTaskId
 													? navigate({
@@ -89,39 +152,15 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 														})
 													: undefined
 											}
-										>
-											<div className="font-medium text-foreground">{title}</div>
-											<div className="text-muted-foreground">
-												{slug ? `#${slug}` : null}
-												{taskId ? ` • ${taskId}` : null}
-											</div>
-											{changedFields.length > 0 ? (
-												<div className="mt-1 flex flex-wrap gap-1">
-													{changedFields.map(([key, value]) => (
-														<span
-															key={key}
-															className="rounded border bg-muted/30 px-1.5 py-0.5 text-muted-foreground"
-														>
-															{key}:{" "}
-															{Array.isArray(value)
-																? value.map((item) => String(item)).join(", ")
-																: String(value)}
-														</span>
-													))}
-												</div>
-											) : null}
-											{labels.length > 0 ? (
-												<div className="mt-1 text-muted-foreground">
-													labels: {labels.join(", ")}
-												</div>
-											) : null}
-										</button>
+										/>
 									);
 								})}
 							</div>
 						</div>
 					) : (
-						<div className="text-muted-foreground">No updated tasks in result.</div>
+						<div className="text-muted-foreground">
+							No updated tasks in result.
+						</div>
 					)}
 				</div>
 			}

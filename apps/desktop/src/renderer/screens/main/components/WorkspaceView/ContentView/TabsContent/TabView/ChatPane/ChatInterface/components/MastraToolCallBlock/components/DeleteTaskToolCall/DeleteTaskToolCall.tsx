@@ -1,13 +1,16 @@
+import { useNavigate } from "@tanstack/react-router";
 import { FileXIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
+import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface DeleteTaskToolCallProps {
 	part: ToolPart;
 }
 
 export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
+	const navigate = useNavigate();
 	const args = getArgs(part);
 	const result = getResult(part);
 	const resultData =
@@ -41,17 +44,25 @@ export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 							</div>
 							<div className="space-y-1">
 								{deleted.map((taskId) => (
-									<div
+									<TaskItemDisplay
 										key={taskId}
-										className="rounded border bg-background/70 px-2 py-1 text-muted-foreground"
-									>
-										{taskId}
-									</div>
+										status="Deleted"
+										taskId={taskId}
+										title="Deleted task"
+										onClick={() =>
+											navigate({
+												to: "/tasks/$taskId",
+												params: { taskId },
+											})
+										}
+									/>
 								))}
 							</div>
 						</div>
 					) : (
-						<div className="text-muted-foreground">No deleted tasks in result.</div>
+						<div className="text-muted-foreground">
+							No deleted tasks in result.
+						</div>
 					)}
 				</div>
 			}

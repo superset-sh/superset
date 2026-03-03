@@ -3,6 +3,7 @@ import { FileSearchIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
+import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface GetTaskToolCallProps {
 	part: ToolPart;
@@ -48,6 +49,35 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 	const description =
 		typeof task?.description === "string" ? task.description : null;
 	const dueDate = formatDate(task?.dueDate);
+	const status = typeof task?.statusName === "string" ? task.statusName : null;
+	const priority = typeof task?.priority === "string" ? task.priority : null;
+	const assignee =
+		typeof task?.assigneeName === "string"
+			? task.assigneeName
+			: typeof task?.assigneeId === "string"
+				? task.assigneeId
+				: null;
+	const estimate =
+		typeof task?.estimate === "number" || typeof task?.estimate === "string"
+			? String(task.estimate)
+			: null;
+	const externalUrl =
+		typeof task?.externalUrl === "string" ? task.externalUrl : null;
+	const branch = typeof task?.branch === "string" ? task.branch : null;
+	const prUrl = typeof task?.prUrl === "string" ? task.prUrl : null;
+	const creator =
+		typeof task?.creatorName === "string" ? task.creatorName : null;
+	const assigneeEmail =
+		typeof task?.assigneeEmail === "string" ? task.assigneeEmail : null;
+	const extraDetails = [
+		creator ? { label: "Creator", value: creator } : null,
+		assigneeEmail ? { label: "Assignee Email", value: assigneeEmail } : null,
+		branch ? { label: "Branch", value: branch } : null,
+		prUrl ? { label: "PR", value: prUrl } : null,
+		externalUrl ? { label: "External", value: externalUrl } : null,
+	].filter((detail): detail is { label: string; value: string } =>
+		Boolean(detail),
+	);
 
 	return (
 		<SupersetToolCall
@@ -56,13 +86,21 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 			icon={FileSearchIcon}
 			details={
 				<div className="space-y-2">
-					{taskId ? (
-						<div className="text-muted-foreground">Task ID: {taskId}</div>
-					) : null}
 					{task ? (
-						<button
-							type="button"
-							className="w-full space-y-1 rounded border bg-background/70 px-2 py-1 text-left transition-colors hover:bg-muted/20"
+						<TaskItemDisplay
+							assignee={assignee}
+							description={description}
+							dueDate={dueDate}
+							estimate={estimate}
+							extraDetails={extraDetails}
+							labels={labels}
+							priority={priority}
+							slug={typeof task.slug === "string" ? task.slug : null}
+							status={status}
+							taskId={typeof task.id === "string" ? task.id : taskId}
+							title={
+								typeof task.title === "string" ? task.title : "Task details"
+							}
 							onClick={() =>
 								openTaskId
 									? navigate({
@@ -71,49 +109,11 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 										})
 									: undefined
 							}
-						>
-							<div className="font-medium text-foreground">
-								{typeof task.title === "string" ? task.title : "Task details"}
-							</div>
-							<div className="text-muted-foreground">
-								{typeof task.slug === "string" ? `#${task.slug}` : null}
-								{typeof task.id === "string" ? ` • ${task.id}` : null}
-							</div>
-							<div className="text-muted-foreground">
-								{typeof task.statusName === "string"
-									? `Status: ${task.statusName}`
-									: "Status: unknown"}
-								{typeof task.priority === "string"
-									? ` • Priority: ${task.priority}`
-									: ""}
-								{typeof task.assigneeName === "string"
-									? ` • Assignee: ${task.assigneeName}`
-									: ""}
-								{dueDate ? ` • Due: ${dueDate}` : ""}
-								{typeof task.estimate === "number"
-									? ` • Estimate: ${task.estimate}`
-									: ""}
-							</div>
-							{labels.length > 0 ? (
-								<div className="flex flex-wrap gap-1">
-									{labels.map((label) => (
-										<span
-											key={label}
-											className="rounded border bg-muted/30 px-1.5 py-0.5 text-muted-foreground"
-										>
-											{label}
-										</span>
-									))}
-								</div>
-							) : null}
-							{description ? (
-								<div className="line-clamp-3 text-muted-foreground">
-									{description}
-								</div>
-							) : null}
-						</button>
+						/>
 					) : (
-						<div className="text-muted-foreground">No task object in result.</div>
+						<div className="text-muted-foreground">
+							No task object in result.
+						</div>
 					)}
 				</div>
 			}

@@ -1,8 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { ClipboardListIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import { getResult } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
+import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface ListTasksToolCallProps {
 	part: ToolPart;
@@ -24,7 +25,6 @@ function formatDate(value: unknown): string | null {
 
 export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 	const navigate = useNavigate();
-	const args = getArgs(part);
 	const result = getResult(part);
 	const resultData =
 		typeof result.result === "object" && result.result !== null
@@ -43,12 +43,6 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 				? resultData.total
 				: tasks.length;
 	const hasMore = resultData.hasMore === true;
-	const filterEntries = Object.entries(args).filter(([, value]) => {
-		if (value === null || value === undefined) return false;
-		if (typeof value === "string") return value.trim().length > 0;
-		if (Array.isArray(value)) return value.length > 0;
-		return true;
-	});
 
 	return (
 		<SupersetToolCall
@@ -61,32 +55,11 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 						Found: {count} task{count === 1 ? "" : "s"}
 						{hasMore ? " (more available)" : ""}
 					</div>
-					{filterEntries.length > 0 ? (
-						<div className="flex flex-wrap gap-1">
-							{filterEntries.map(([key, value]) => (
-								<span
-									key={key}
-									className="rounded border bg-background/70 px-1.5 py-0.5 text-muted-foreground"
-								>
-									{key}:{" "}
-									{Array.isArray(value)
-										? value.join(", ")
-										: typeof value === "boolean"
-											? value
-												? "true"
-												: "false"
-											: String(value)}
-								</span>
-							))}
-						</div>
-					) : null}
 					{tasks.length > 0 ? (
 						<div className="space-y-1">
 							{tasks.slice(0, 6).map((task, index) => {
-								const taskId =
-									typeof task.id === "string" ? task.id : null;
-								const slug =
-									typeof task.slug === "string" ? task.slug : null;
+								const taskId = typeof task.id === "string" ? task.id : null;
+								const slug = typeof task.slug === "string" ? task.slug : null;
 								const openTaskId = taskId ?? slug;
 								const title =
 									typeof task.title === "string" ? task.title : "Untitled task";
@@ -95,18 +68,49 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 								const priority =
 									typeof task.priority === "string" ? task.priority : null;
 								const assignee =
-									typeof task.assigneeName === "string" ? task.assigneeName : null;
+									typeof task.assigneeName === "string"
+										? task.assigneeName
+										: null;
 								const dueDate = formatDate(task.dueDate);
 								const estimate =
-									typeof task.estimate === "number" ? String(task.estimate) : null;
+									typeof task.estimate === "number"
+										? String(task.estimate)
+										: null;
 								const labels = toStringArray(task.labels);
 								const description =
-									typeof task.description === "string" ? task.description : null;
+									typeof task.description === "string"
+										? task.description
+										: null;
+								const creator =
+									typeof task.creatorName === "string"
+										? task.creatorName
+										: null;
+								const branch =
+									typeof task.branch === "string" ? task.branch : null;
+								const prUrl =
+									typeof task.prUrl === "string" ? task.prUrl : null;
+								const extraDetails = [
+									creator ? { label: "Creator", value: creator } : null,
+									branch ? { label: "Branch", value: branch } : null,
+									prUrl ? { label: "PR", value: prUrl } : null,
+								].filter((detail): detail is { label: string; value: string } =>
+									Boolean(detail),
+								);
+
 								return (
-									<button
+									<TaskItemDisplay
 										key={`${taskId ?? slug ?? title}-${index}`}
-										className="w-full rounded border bg-background/70 px-2 py-1 text-left transition-colors hover:bg-muted/20"
-										type="button"
+										assignee={assignee}
+										description={description}
+										dueDate={dueDate}
+										estimate={estimate}
+										extraDetails={extraDetails}
+										labels={labels}
+										priority={priority}
+										slug={slug}
+										status={status}
+										taskId={taskId}
+										title={title}
 										onClick={() =>
 											openTaskId
 												? navigate({
@@ -115,37 +119,7 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 													})
 												: undefined
 										}
-									>
-										<div className="font-medium text-foreground">{title}</div>
-										<div className="text-muted-foreground">
-											{slug ? `#${slug}` : null}
-											{taskId ? ` • ${taskId}` : null}
-										</div>
-										<div className="text-muted-foreground">
-											{status ? `Status: ${status}` : "Status: unknown"}
-											{priority ? ` • Priority: ${priority}` : ""}
-											{assignee ? ` • Assignee: ${assignee}` : ""}
-											{dueDate ? ` • Due: ${dueDate}` : ""}
-											{estimate ? ` • Estimate: ${estimate}` : ""}
-										</div>
-										{labels.length > 0 ? (
-											<div className="mt-1 flex flex-wrap gap-1">
-												{labels.map((label) => (
-													<span
-														key={label}
-														className="rounded border bg-muted/30 px-1.5 py-0.5 text-muted-foreground"
-													>
-														{label}
-													</span>
-												))}
-											</div>
-										) : null}
-										{description ? (
-											<div className="mt-1 line-clamp-2 text-muted-foreground">
-												{description}
-											</div>
-										) : null}
-									</button>
+									/>
 								);
 							})}
 						</div>

@@ -3,6 +3,7 @@ import { FilePlusIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
+import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface CreateTaskToolCallProps {
 	part: ToolPart;
@@ -46,11 +47,6 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 	const requestedTasks = Array.isArray(args.tasks)
 		? args.tasks.map((task) => toRecord(task)).filter(Boolean)
 		: [];
-	const requestedCount = Array.isArray(args.tasks)
-		? args.tasks.length
-		: typeof args.title === "string"
-			? 1
-			: 0;
 
 	return (
 		<SupersetToolCall
@@ -59,9 +55,6 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 			icon={FilePlusIcon}
 			details={
 				<div className="space-y-2">
-					<div className="text-muted-foreground">
-						Requested: {requestedCount} task{requestedCount === 1 ? "" : "s"}
-					</div>
 					{created.length > 0 ? (
 						<div className="space-y-1">
 							<div className="font-medium text-foreground">
@@ -95,10 +88,16 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 											: null;
 
 									return (
-										<button
+										<TaskItemDisplay
 											key={`${title}-${slug ?? index}`}
-											className="w-full rounded border bg-background/70 px-2 py-1 text-left transition-colors hover:bg-muted/20"
-											type="button"
+											assignee={assignee}
+											description={description}
+											dueDate={dueDate}
+											labels={labels}
+											priority={priority}
+											slug={slug}
+											taskId={taskId}
+											title={title}
 											onClick={() =>
 												openTaskId
 													? navigate({
@@ -107,39 +106,15 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 														})
 													: undefined
 											}
-										>
-											<div className="font-medium text-foreground">{title}</div>
-											<div className="text-muted-foreground">
-												{slug ? `#${slug}` : null}
-												{taskId ? ` • ${taskId}` : null}
-												{priority ? ` • ${priority}` : ""}
-												{assignee ? ` • assignee ${assignee}` : ""}
-												{dueDate ? ` • due ${dueDate}` : ""}
-											</div>
-											{labels.length > 0 ? (
-												<div className="mt-1 flex flex-wrap gap-1">
-													{labels.map((label) => (
-														<span
-															key={label}
-															className="rounded border bg-muted/30 px-1.5 py-0.5 text-muted-foreground"
-														>
-															{label}
-														</span>
-													))}
-												</div>
-											) : null}
-											{description ? (
-												<div className="mt-1 line-clamp-2 text-muted-foreground">
-													{description}
-												</div>
-											) : null}
-										</button>
+										/>
 									);
 								})}
 							</div>
 						</div>
 					) : (
-						<div className="text-muted-foreground">No created tasks in result.</div>
+						<div className="text-muted-foreground">
+							No created tasks in result.
+						</div>
 					)}
 				</div>
 			}
