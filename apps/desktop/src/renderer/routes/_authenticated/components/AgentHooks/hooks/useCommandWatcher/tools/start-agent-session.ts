@@ -10,10 +10,6 @@ import {
 import { z } from "zod";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 
-type WorkspaceRecord = NonNullable<
-	ReturnType<ToolContext["getWorkspaces"]>
->[number];
-
 const schema = z.object({
 	workspaceId: z.string(),
 	command: z.string().optional(),

@@ -118,12 +118,8 @@ export function WorkspaceInitEffects() {
 			});
 
 			return true;
-	},
-	[
-		resolveSetupLaunchRequest,
-		terminalCreateOrAttach,
-		terminalWrite,
-	],
+		},
+		[resolveSetupLaunchRequest, terminalCreateOrAttach, terminalWrite],
 	);
 
 	const runSetupCommandsInPane = useCallback(

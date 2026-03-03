@@ -46,7 +46,8 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const isDark = useIsDarkTheme();
-	const selectableAgents = STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
+	const selectableAgents =
+		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
 	);
@@ -153,14 +154,12 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			if (result.wasExisting) {
 				const launchResult = await launchAgentSession(launchRequest, {
 					source: "open-in-workspace",
-					createOrAttach: (input) =>
-						terminalCreateOrAttach.mutateAsync(input),
+					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
 					write: (input) => terminalWrite.mutateAsync(input),
 				});
 				if (launchResult.status === "failed") {
 					toast.error("Failed to start agent", {
-						description:
-							launchResult.error ?? "Failed to start agent session.",
+						description: launchResult.error ?? "Failed to start agent session.",
 					});
 					return;
 				}

@@ -12,12 +12,7 @@ import type {
 	FileViewerMode,
 	FileViewerState,
 } from "shared/tabs-types";
-import type {
-	AddChatMastraTabOptions,
-	Pane,
-	PaneType,
-	Tab,
-} from "./types";
+import type { AddChatMastraTabOptions, Pane, PaneType, Tab } from "./types";
 
 export const resolveFileViewerMode = ({
 	filePath,

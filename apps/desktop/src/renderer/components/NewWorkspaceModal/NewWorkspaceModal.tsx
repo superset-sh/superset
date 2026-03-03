@@ -343,8 +343,7 @@ export function NewWorkspaceModal() {
 			if (launchRequest && result.wasExisting) {
 				const launchResult = await launchAgentSession(launchRequest, {
 					source: "new-workspace",
-					createOrAttach: (input) =>
-						terminalCreateOrAttach.mutateAsync(input),
+					createOrAttach: (input) => terminalCreateOrAttach.mutateAsync(input),
 					write: (input) => terminalWrite.mutateAsync(input),
 				});
 				if (launchResult.status === "failed") {

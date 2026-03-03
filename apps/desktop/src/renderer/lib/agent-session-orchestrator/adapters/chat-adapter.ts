@@ -4,7 +4,9 @@ import type { AgentSessionLaunchContext, LaunchResultPayload } from "../types";
 
 type ChatLaunchRequest = Extract<AgentLaunchRequest, { kind: "chat" }>;
 
-function toLaunchConfig(request: ChatLaunchRequest): ChatMastraLaunchConfig | null {
+function toLaunchConfig(
+	request: ChatLaunchRequest,
+): ChatMastraLaunchConfig | null {
 	const initialPrompt = request.chat.initialPrompt?.trim();
 	const model = request.chat.model?.trim();
 	const retryCount = request.chat.retryCount;
