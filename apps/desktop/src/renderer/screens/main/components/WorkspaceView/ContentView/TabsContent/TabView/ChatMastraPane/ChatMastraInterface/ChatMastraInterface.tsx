@@ -641,6 +641,7 @@ export function ChatMastraInterface({
 					onSubmitStart={() => setSubmitStatus("submitted")}
 					onStop={handleStop}
 					onSlashCommandSend={handleSlashCommandSend}
+					onOpenModelPicker={() => setModelSelectorOpen(true)}
 				/>
 			</div>
 		</PromptInputProvider>
