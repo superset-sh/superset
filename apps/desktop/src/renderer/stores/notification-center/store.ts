@@ -12,8 +12,7 @@ export interface NotificationCenterEntry {
 	dedupeKey?: string;
 	kind: NotificationCenterEntryKind;
 	source: string;
-	title: string;
-	message?: string;
+	description: string;
 	timestamp: number;
 	read: boolean;
 	archived: boolean;
@@ -25,8 +24,7 @@ interface AddEntryInput {
 	dedupeKey?: string;
 	kind: NotificationCenterEntryKind;
 	source: string;
-	title: string;
-	message?: string;
+	description: string;
 	timestamp?: number;
 	target?: NotificationIds;
 }
@@ -34,6 +32,12 @@ interface AddEntryInput {
 interface NotificationCenterState {
 	entries: NotificationCenterEntry[];
 	addEntry: (entry: AddEntryInput) => string;
+	updateLatestByDedupeKey: (
+		dedupeKey: string,
+		patch: Partial<
+			Pick<NotificationCenterEntry, "description" | "timestamp" | "target">
+		>,
+	) => void;
 	markRead: (id: string) => void;
 	markReadByDedupeKey: (dedupeKey: string) => void;
 	markAllRead: (kind?: NotificationCenterEntryKind) => void;
@@ -65,8 +69,7 @@ export const useNotificationCenterStore = create<NotificationCenterState>()(
 						dedupeKey: entry.dedupeKey,
 						kind: entry.kind,
 						source: entry.source,
-						title: entry.title,
-						message: entry.message,
+						description: entry.description,
 						timestamp: entry.timestamp ?? Date.now(),
 						read: false,
 						archived: false,
@@ -86,6 +89,22 @@ export const useNotificationCenterStore = create<NotificationCenterState>()(
 					});
 
 					return nextEntry.id;
+				},
+
+				updateLatestByDedupeKey: (dedupeKey, patch) => {
+					let updated = false;
+					set((state) => ({
+						entries: state.entries.map((entry) => {
+							if (updated || entry.archived || entry.dedupeKey !== dedupeKey) {
+								return entry;
+							}
+							updated = true;
+							return {
+								...entry,
+								...patch,
+							};
+						}),
+					}));
 				},
 
 				markRead: (id) => {
@@ -138,6 +157,37 @@ export const useNotificationCenterStore = create<NotificationCenterState>()(
 			}),
 			{
 				name: "notification-center-store",
+				version: 2,
+				migrate: (persisted) => {
+					const state = persisted as {
+						entries?: Array<{
+							id?: string;
+							description?: string;
+							title?: string;
+							message?: string;
+						}>;
+					};
+					if (!Array.isArray(state?.entries)) {
+						return state as NotificationCenterState;
+					}
+
+					return {
+						...state,
+						entries: state.entries.map((entry) => {
+							const derivedDescription =
+								typeof entry.description === "string"
+									? entry.description
+									: [entry.title, entry.message]
+											.filter(Boolean)
+											.join(" ")
+											.trim();
+							return {
+								...entry,
+								description: derivedDescription || "Notification",
+							};
+						}),
+					} as NotificationCenterState;
+				},
 				partialize: (state) => ({
 					entries: state.entries,
 				}),

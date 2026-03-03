@@ -49,9 +49,6 @@ export function setupAgentHooks(): void {
 	createOpenCodePlugin();
 	createOpenCodeWrapper();
 	createCursorHookScript();
-	if (process.env.NODE_ENV === "development") {
-		throw new Error("Simulated failure to create agent wrapper (Cursor)");
-	}
 	createCursorAgentWrapper();
 	createCursorHooksJson();
 	createGeminiHookScript();

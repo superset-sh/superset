@@ -88,8 +88,9 @@ export function useAgentHookListener() {
 					sourceEventId: errorEvent.id,
 					kind: "error",
 					source: `main:${errorEvent.source}`,
-					title: errorEvent.message,
-					message: errorEvent.details,
+					description: errorEvent.details
+						? `${errorEvent.message} ${errorEvent.details}`
+						: errorEvent.message,
 					timestamp: errorEvent.timestamp,
 				});
 
@@ -125,8 +126,7 @@ export function useAgentHookListener() {
 						dedupeKey: `agent-pane:${paneId}`,
 						kind: "notification",
 						source: "agent:permission",
-						title: "Input needed",
-						message: `${paneName} needs your attention.`,
+						description: `${paneName} needs your attention.`,
 						target,
 					});
 				} else if (eventType === "Stop") {
@@ -145,16 +145,26 @@ export function useAgentHookListener() {
 					});
 
 					state.setPaneStatus(paneId, isInActiveTab ? "idle" : "review");
-					void resolveWorkspaceName(workspaceId).then((workspaceName) => {
-						useNotificationCenterStore.getState().addEntry({
-							dedupeKey: `agent-pane:${paneId}`,
-							kind: "notification",
-							source: "agent:complete",
-							title: `${workspaceName} complete`,
-							message: `${pane?.name ?? "Agent session"} has finished.`,
-							target,
-						});
+					const dedupeKey = `agent-pane:${paneId}`;
+					const cachedWorkspaceName =
+						workspaceNameByIdRef.current.get(workspaceId) ?? "Workspace";
+					useNotificationCenterStore.getState().addEntry({
+						dedupeKey,
+						kind: "notification",
+						source: "agent:complete",
+						description: `${cachedWorkspaceName} complete. ${pane?.name ?? "Agent session"} has finished.`,
+						target,
 					});
+
+					if (cachedWorkspaceName === "Workspace") {
+						void resolveWorkspaceName(workspaceId).then((workspaceName) => {
+							useNotificationCenterStore
+								.getState()
+								.updateLatestByDedupeKey(dedupeKey, {
+									description: `${workspaceName} complete. ${pane?.name ?? "Agent session"} has finished.`,
+								});
+						});
+					}
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.TERMINAL_EXIT) {
 				// Clear transient status for unmounted panes (mounted panes handle this via stream subscription)
@@ -174,8 +184,7 @@ export function useAgentHookListener() {
 					useNotificationCenterStore.getState().addEntry({
 						kind: "error",
 						source: "terminal:exit",
-						title: "Terminal session error",
-						message: `${paneName} exited with code ${event.data.exitCode}${signalText}.`,
+						description: `Terminal session error: ${paneName} exited with code ${event.data.exitCode}${signalText}.`,
 						target,
 					});
 				}

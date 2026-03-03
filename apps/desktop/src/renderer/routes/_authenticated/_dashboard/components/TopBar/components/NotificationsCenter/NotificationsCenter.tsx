@@ -142,9 +142,7 @@ export function NotificationsCenter() {
 					) : (
 						<div className="divide-y divide-border">
 							{visibleEntries.map((entry) => {
-								const description = entry.message
-									? `${entry.title} ${entry.message}`
-									: entry.title;
+								const description = entry.description;
 								return (
 									<div
 										key={entry.id}
