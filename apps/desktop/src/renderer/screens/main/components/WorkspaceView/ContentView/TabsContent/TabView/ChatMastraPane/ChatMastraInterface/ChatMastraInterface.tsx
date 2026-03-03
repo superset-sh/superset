@@ -84,6 +84,7 @@ export function ChatMastraInterface({
 	const consumedLaunchConfigRef = useRef<string | null>(null);
 	const autoLaunchInFlightRef = useRef<string | null>(null);
 	const autoLaunchAttemptsRef = useRef<Record<string, number>>({});
+	const autoLaunchSessionLockRef = useRef<Record<string, string | null>>({});
 	const autoLaunchRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
 	);
@@ -359,7 +360,18 @@ export function ChatMastraInterface({
 			const prompt = initialLaunchConfig.initialPrompt?.trim();
 			if (!prompt) {
 				consumedLaunchConfigRef.current = launchConfigKey;
+				delete autoLaunchAttemptsRef.current[launchConfigKey];
+				delete autoLaunchSessionLockRef.current[launchConfigKey];
 				onConsumeLaunchConfig();
+				return;
+			}
+
+			const currentSessionKey = sessionId ?? null;
+			const lockedSession = autoLaunchSessionLockRef.current[launchConfigKey];
+			if (lockedSession === undefined) {
+				autoLaunchSessionLockRef.current[launchConfigKey] = currentSessionKey;
+			} else if (lockedSession !== currentSessionKey) {
+				// Don't send launch retries into a different user-selected session.
 				return;
 			}
 
@@ -389,7 +401,7 @@ export function ChatMastraInterface({
 
 			try {
 				const sendResult = await sendMessageForSession({
-					currentSessionId: sessionId,
+					currentSessionId: autoLaunchSessionLockRef.current[launchConfigKey],
 					isSessionReady,
 					ensureSessionReady,
 					onStartFreshSession,
@@ -401,6 +413,7 @@ export function ChatMastraInterface({
 				autoLaunchInFlightRef.current = null;
 				consumedLaunchConfigRef.current = launchConfigKey;
 				delete autoLaunchAttemptsRef.current[launchConfigKey];
+				delete autoLaunchSessionLockRef.current[launchConfigKey];
 				onConsumeLaunchConfig();
 
 				posthog.capture("chat_message_sent", {
