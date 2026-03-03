@@ -5,7 +5,6 @@ import {
 	type MainProcessErrorEvent,
 	type NotificationIds,
 	notificationsEmitter,
-	reportMainProcessError,
 } from "main/lib/notifications/server";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { publicProcedure, router } from "..";
@@ -87,14 +86,6 @@ export const createNotificationsRouter = () => {
 						onMainProcessError,
 					);
 				};
-			});
-		}),
-		throwTestMainProcessError: publicProcedure.mutation(() => {
-			const now = new Date().toISOString();
-			reportMainProcessError({
-				source: "test",
-				message: "Test main-process error",
-				error: `Triggered manually at ${now}`,
 			});
 		}),
 	});

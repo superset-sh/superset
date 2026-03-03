@@ -11,8 +11,6 @@ import {
 	HiOutlineExclamationTriangle,
 } from "react-icons/hi2";
 import { LuArchive } from "react-icons/lu";
-import { env } from "renderer/env.renderer";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import {
 	type NotificationCenterEntry,
@@ -49,8 +47,6 @@ export function NotificationsCenter() {
 	const archive = useNotificationCenterStore((state) => state.archive);
 	const archiveAll = useNotificationCenterStore((state) => state.archiveAll);
 	const navigate = useNavigate();
-	const throwTestError =
-		electronTrpc.notifications.throwTestMainProcessError.useMutation();
 
 	const unreadCounts = useMemo(() => {
 		const counts: Record<NotificationCenterEntryKind, number> = {
@@ -198,17 +194,6 @@ export function NotificationsCenter() {
 
 				<div className="border-t border-border px-2 py-2 flex items-center justify-between">
 					<div className="flex items-center gap-1">
-						{env.NODE_ENV === "development" && (
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-7 text-xs"
-								onClick={() => throwTestError.mutate()}
-								disabled={throwTestError.isPending}
-							>
-								{throwTestError.isPending ? "Throwing..." : "Throw test error"}
-							</Button>
-						)}
 						<Button
 							variant="ghost"
 							size="sm"
