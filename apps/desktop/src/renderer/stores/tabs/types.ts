@@ -4,6 +4,7 @@ import type {
 	BaseTab,
 	BaseTabsState,
 	BrowserLoadError,
+	ChatMastraLaunchConfig,
 	FileViewerMode,
 	Pane,
 	PaneStatus,
@@ -47,6 +48,10 @@ export interface AddTabOptions {
 	initialCwd?: string;
 }
 
+export interface AddChatMastraTabOptions {
+	launchConfig?: ChatMastraLaunchConfig | null;
+}
+
 export interface AddTabWithMultiplePanesOptions {
 	commands: string[];
 	initialCwd?: string;
@@ -83,7 +88,10 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
-	addChatMastraTab: (workspaceId: string) => { tabId: string; paneId: string };
+	addChatMastraTab: (
+		workspaceId: string,
+		options?: AddChatMastraTabOptions,
+	) => { tabId: string; paneId: string };
 	addTabWithMultiplePanes: (
 		workspaceId: string,
 		options: AddTabWithMultiplePanesOptions,
@@ -102,6 +110,10 @@ export interface TabsStore extends TabsState {
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
+	addChatMastraPane: (
+		tabId: string,
+		options?: AddChatMastraTabOptions,
+	) => string;
 	addPanesToTab: (
 		tabId: string,
 		options: AddTabWithMultiplePanesOptions,
@@ -183,6 +195,10 @@ export interface TabsStore extends TabsState {
 	// Chat operations
 	/** Switch a Mastra chat pane to a different session */
 	switchChatMastraSession: (paneId: string, sessionId: string | null) => void;
+	setChatMastraLaunchConfig: (
+		paneId: string,
+		launchConfig: AddChatMastraTabOptions["launchConfig"],
+	) => void;
 
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];

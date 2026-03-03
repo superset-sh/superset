@@ -1,73 +1,23 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import type { ChatMastraLaunchConfig } from "shared/tabs-types";
 import type { AgentSessionLaunchContext, LaunchResultPayload } from "../types";
 
 type ChatLaunchRequest = Extract<AgentLaunchRequest, { kind: "chat" }>;
 
-type ChatClient = {
-	session: {
-		sendMessage: {
-			mutate: (input: {
-				sessionId: string;
-				payload: { content: string };
-				metadata?: { model?: string };
-			}) => Promise<unknown>;
-		};
+function toLaunchConfig(request: ChatLaunchRequest): ChatMastraLaunchConfig | null {
+	const initialPrompt = request.chat.initialPrompt?.trim();
+	const model = request.chat.model?.trim();
+	const retryCount = request.chat.retryCount;
+
+	if (!initialPrompt && !model && retryCount === undefined) {
+		return null;
+	}
+
+	return {
+		initialPrompt: initialPrompt || undefined,
+		metadata: model ? { model } : undefined,
+		retryCount,
 	};
-};
-
-let chatClientPromise: Promise<ChatClient> | null = null;
-
-async function getChatClient(): Promise<ChatClient> {
-	if (!chatClientPromise) {
-		chatClientPromise = import(
-			"renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/ChatMastraPane/utils/chat-mastra-service-client"
-		).then((module) => module.createChatMastraServiceIpcClient());
-	}
-	return chatClientPromise;
-}
-
-async function defaultSendChatMessage(input: {
-	sessionId: string;
-	prompt: string;
-	model?: string;
-}) {
-	const chatClient = await getChatClient();
-	await chatClient.session.sendMessage.mutate({
-		sessionId: input.sessionId,
-		payload: { content: input.prompt },
-		metadata: input.model ? { model: input.model } : undefined,
-	});
-}
-
-async function sendInitialPromptWithRetry({
-	context,
-	sessionId,
-	prompt,
-	model,
-	retryCount,
-}: {
-	context: AgentSessionLaunchContext;
-	sessionId: string;
-	prompt: string;
-	model?: string;
-	retryCount: number;
-}) {
-	const send = context.sendChatMessage ?? defaultSendChatMessage;
-	let attempt = 0;
-	let lastError: unknown;
-
-	while (attempt <= retryCount) {
-		try {
-			await send({ sessionId, prompt, model });
-			return;
-		} catch (error) {
-			lastError = error;
-			attempt += 1;
-			if (attempt > retryCount) {
-				throw lastError;
-			}
-		}
-	}
 }
 
 export async function launchChatAdapter(
@@ -81,6 +31,7 @@ export async function launchChatAdapter(
 
 	let tabId: string;
 	let paneId: string;
+	const launchConfig = toLaunchConfig(request);
 
 	const targetPaneId = request.chat.paneId;
 	if (targetPaneId) {
@@ -97,12 +48,16 @@ export async function launchChatAdapter(
 			tabId = tab.id;
 			paneId = targetPane.id;
 		} else {
-			const created = tabs.addChatTab(request.workspaceId);
-			tabId = created.tabId;
-			paneId = created.paneId;
+			const nextPaneId = tabs.addChatPane(tab.id, {
+				launchConfig,
+			});
+			tabId = tab.id;
+			paneId = nextPaneId;
 		}
 	} else {
-		const created = tabs.addChatTab(request.workspaceId);
+		const created = tabs.addChatTab(request.workspaceId, {
+			launchConfig,
+		});
 		tabId = created.tabId;
 		paneId = created.paneId;
 	}
@@ -119,15 +74,8 @@ export async function launchChatAdapter(
 		tabs.switchChatSession(paneId, sessionId);
 	}
 
-	const initialPrompt = request.chat.initialPrompt?.trim();
-	if (initialPrompt) {
-		await sendInitialPromptWithRetry({
-			context,
-			sessionId,
-			prompt: initialPrompt,
-			model: request.chat.model,
-			retryCount: request.chat.retryCount ?? 0,
-		});
+	if (launchConfig) {
+		tabs.setChatLaunchConfig(paneId, launchConfig);
 	}
 
 	return {

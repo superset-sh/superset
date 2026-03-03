@@ -52,14 +52,29 @@ function toErrorMessage(error: unknown): string | null {
 	return "Unknown chat error";
 }
 
+const AUTO_LAUNCH_MAX_RETRIES = 3;
+const AUTO_LAUNCH_RETRY_DELAY_MS = 1500;
+
+function getLaunchConfigKey(
+	config: NonNullable<ChatMastraInterfaceProps["initialLaunchConfig"]>,
+): string {
+	return JSON.stringify({
+		initialPrompt: config.initialPrompt ?? null,
+		model: config.metadata?.model ?? null,
+		retryCount: config.retryCount ?? null,
+	});
+}
+
 export function ChatMastraInterface({
 	sessionId,
+	initialLaunchConfig,
 	workspaceId,
 	organizationId,
 	cwd,
 	isSessionReady,
 	ensureSessionReady,
 	onStartFreshSession,
+	onConsumeLaunchConfig,
 	onRawSnapshotChange,
 }: ChatMastraInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
@@ -84,6 +99,14 @@ export function ChatMastraInterface({
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
 	const currentMcpScopeRef = useRef<string | null>(null);
+	const consumedLaunchConfigRef = useRef<string | null>(null);
+	const autoLaunchInFlightRef = useRef<string | null>(null);
+	const autoLaunchAttemptsRef = useRef<Record<string, number>>({});
+	const autoLaunchSessionLockRef = useRef<Record<string, string | null>>({});
+	const messagesLengthRef = useRef(0);
+	const autoLaunchRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatMastraServiceTrpc.workspace.authenticateMcpServer.useMutation();
@@ -265,6 +288,10 @@ export function ChatMastraInterface({
 		sessionId,
 	]);
 
+	useEffect(() => {
+		messagesLengthRef.current = messages?.length ?? 0;
+	}, [messages]);
+
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
 			let text = message.text.trim();
@@ -348,6 +375,129 @@ export function ChatMastraInterface({
 			workspaceId,
 		],
 	);
+
+	useEffect(() => {
+		if (!initialLaunchConfig) return;
+
+		const launchConfigKey = getLaunchConfigKey(initialLaunchConfig);
+		const attemptAutoLaunch = async (): Promise<void> => {
+			if (consumedLaunchConfigRef.current === launchConfigKey) return;
+			if (autoLaunchInFlightRef.current === launchConfigKey) return;
+
+			const prompt = initialLaunchConfig.initialPrompt?.trim();
+			if (!prompt) {
+				consumedLaunchConfigRef.current = launchConfigKey;
+				delete autoLaunchAttemptsRef.current[launchConfigKey];
+				delete autoLaunchSessionLockRef.current[launchConfigKey];
+				onConsumeLaunchConfig();
+				return;
+			}
+
+			const currentSessionKey = sessionId ?? null;
+			const lockedSession = autoLaunchSessionLockRef.current[launchConfigKey];
+			if (lockedSession === undefined) {
+				autoLaunchSessionLockRef.current[launchConfigKey] = currentSessionKey;
+			} else if (lockedSession !== currentSessionKey) {
+				// Don't send launch retries into a different user-selected session.
+				return;
+			}
+
+			const previousAttempts =
+				autoLaunchAttemptsRef.current[launchConfigKey] ?? 0;
+			const retryLimit =
+				initialLaunchConfig.retryCount ?? AUTO_LAUNCH_MAX_RETRIES;
+			if (previousAttempts >= retryLimit) return;
+
+			autoLaunchAttemptsRef.current[launchConfigKey] = previousAttempts + 1;
+			autoLaunchInFlightRef.current = launchConfigKey;
+			if (autoLaunchRetryTimerRef.current) {
+				clearTimeout(autoLaunchRetryTimerRef.current);
+				autoLaunchRetryTimerRef.current = null;
+			}
+
+			clearRuntimeError();
+			setSubmitStatus("submitted");
+
+			const modelId = initialLaunchConfig.metadata?.model ?? activeModel?.id;
+			const sendInput: ChatSendMessageInput = {
+				payload: {
+					content: prompt,
+				},
+				metadata: {
+					model: modelId,
+				},
+			};
+
+			try {
+				const sendResult = await sendMessageForSession({
+					currentSessionId: autoLaunchSessionLockRef.current[launchConfigKey],
+					isSessionReady,
+					ensureSessionReady,
+					onStartFreshSession,
+					sendToCurrentSession: () => commands.sendMessage(sendInput),
+					sendToSession: (nextSessionId) =>
+						sendMessageToSession(nextSessionId, sendInput),
+				});
+
+				autoLaunchInFlightRef.current = null;
+				consumedLaunchConfigRef.current = launchConfigKey;
+				delete autoLaunchAttemptsRef.current[launchConfigKey];
+				delete autoLaunchSessionLockRef.current[launchConfigKey];
+				onConsumeLaunchConfig();
+
+				posthog.capture("chat_message_sent", {
+					workspace_id: workspaceId,
+					session_id: sendResult.targetSessionId,
+					organization_id: organizationId,
+					model_id: modelId ?? null,
+					mention_count: 0,
+					attachment_count: 0,
+					is_slash_command: false,
+					message_length: prompt.length,
+					turn_number: messagesLengthRef.current + 1,
+					send_trigger: "launch-config",
+				});
+			} catch (error) {
+				autoLaunchInFlightRef.current = null;
+
+				const sendErrorMessage = toSendFailureMessage(error);
+				setSubmitStatus(undefined);
+				setRuntimeErrorMessage(sendErrorMessage);
+				console.debug("[chat-mastra] auto launch send failed", error);
+
+				const currentAttempts =
+					autoLaunchAttemptsRef.current[launchConfigKey] ??
+					previousAttempts + 1;
+				if (currentAttempts < retryLimit) {
+					autoLaunchRetryTimerRef.current = setTimeout(() => {
+						void attemptAutoLaunch();
+					}, AUTO_LAUNCH_RETRY_DELAY_MS);
+				}
+			}
+		};
+		void attemptAutoLaunch();
+
+		return () => {
+			if (autoLaunchRetryTimerRef.current) {
+				clearTimeout(autoLaunchRetryTimerRef.current);
+				autoLaunchRetryTimerRef.current = null;
+			}
+		};
+	}, [
+		activeModel?.id,
+		clearRuntimeError,
+		commands,
+		ensureSessionReady,
+		initialLaunchConfig,
+		isSessionReady,
+		onConsumeLaunchConfig,
+		onStartFreshSession,
+		organizationId,
+		sendMessageToSession,
+		sessionId,
+		setRuntimeErrorMessage,
+		workspaceId,
+	]);
 
 	const handleStop = useCallback(
 		async (event: React.MouseEvent) => {

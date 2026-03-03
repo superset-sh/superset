@@ -528,5 +528,22 @@ describe("createChatMastraPane", () => {
 		expect(pane.type).toBe("chat-mastra");
 		expect(typeof pane.chatMastra?.sessionId).toBe("string");
 		expect((pane.chatMastra?.sessionId ?? "").length).toBeGreaterThan(0);
+		expect(pane.chatMastra?.launchConfig ?? null).toBeNull();
+	});
+
+	it("stores launch config when provided", () => {
+		const pane = createChatMastraPane("tab-1", {
+			launchConfig: {
+				initialPrompt: "hello",
+				metadata: { model: "gpt-5" },
+				retryCount: 2,
+			},
+		});
+
+		expect(pane.chatMastra?.launchConfig).toEqual({
+			initialPrompt: "hello",
+			metadata: { model: "gpt-5" },
+			retryCount: 2,
+		});
 	});
 });

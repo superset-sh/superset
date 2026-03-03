@@ -68,7 +68,9 @@ describe("launchAgentSession", () => {
 			removePane: mock(() => {}),
 			setTabAutoTitle: mock(() => {}),
 			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
+			addChatPane: mock(() => "chat-pane-2"),
 			switchChatSession: mock(() => {}),
+			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({
@@ -107,7 +109,9 @@ describe("launchAgentSession", () => {
 			removePane,
 			setTabAutoTitle: mock(() => {}),
 			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
+			addChatPane: mock(() => "chat-pane-2"),
 			switchChatSession: mock(() => {}),
+			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({

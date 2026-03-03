@@ -29,10 +29,14 @@ async function getDefaultTabsAdapter(): Promise<AgentLaunchTabsAdapter> {
 		removePane: (paneId) => useTabsStore.getState().removePane(paneId),
 		setTabAutoTitle: (tabId, title) =>
 			useTabsStore.getState().setTabAutoTitle(tabId, title),
-		addChatTab: (workspaceId) =>
-			useTabsStore.getState().addChatMastraTab(workspaceId),
+		addChatTab: (workspaceId, options) =>
+			useTabsStore.getState().addChatMastraTab(workspaceId, options),
+		addChatPane: (tabId, options) =>
+			useTabsStore.getState().addChatMastraPane(tabId, options),
 		switchChatSession: (paneId, sessionId) =>
 			useTabsStore.getState().switchChatMastraSession(paneId, sessionId),
+		setChatLaunchConfig: (paneId, launchConfig) =>
+			useTabsStore.getState().setChatMastraLaunchConfig(paneId, launchConfig),
 	};
 }
 
