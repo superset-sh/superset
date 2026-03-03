@@ -58,7 +58,9 @@ export const killTerminalForPane = (paneId: string): void => {
 const flushPendingKills = (): void => {
 	for (const [paneId, timer] of pendingKills) {
 		clearTimeout(timer);
-		electronTrpcClient.terminal.kill.mutate({ paneId }).catch(() => {});
+		electronTrpcClient.terminal.kill.mutate({ paneId }).catch((error) => {
+			console.warn(`Failed to flush pending kill for pane ${paneId}:`, error);
+		});
 	}
 	pendingKills.clear();
 };
