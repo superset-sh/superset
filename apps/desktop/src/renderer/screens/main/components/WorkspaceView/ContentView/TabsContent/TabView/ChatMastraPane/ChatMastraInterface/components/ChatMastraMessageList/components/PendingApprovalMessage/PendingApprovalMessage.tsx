@@ -9,7 +9,7 @@ type PendingApproval = UseMastraChatDisplayReturn["pendingApproval"];
 interface PendingApprovalMessageProps {
 	approval: PendingApproval;
 	isSubmitting: boolean;
-	onRespond: (decision: ApprovalDecision, toolCallId?: string) => Promise<void>;
+	onRespond: (decision: ApprovalDecision) => Promise<void>;
 }
 
 function stringifyArgs(value: unknown): string {
@@ -60,7 +60,7 @@ export function PendingApprovalMessage({
 		inFlightResponseRef.current = true;
 		setSelectedDecision(decision);
 		try {
-			await onRespond(decision, toolCallId);
+			await onRespond(decision);
 		} catch (error) {
 			console.error("Failed to submit approval response", error);
 			setSelectedDecision(null);

@@ -64,7 +64,6 @@ interface ChatMastraMessageListProps {
 	isApprovalSubmitting: boolean;
 	onApprovalRespond: (
 		decision: "approve" | "decline" | "always_allow_category",
-		toolCallId?: string,
 	) => Promise<void>;
 	pendingPlanApproval: MastraPendingPlanApproval;
 	isPlanSubmitting: boolean;
@@ -224,14 +223,6 @@ export function ChatMastraMessageList({
 		!pendingPlanApproval &&
 		!pendingQuestion &&
 		previewToolParts.length > 0;
-	const pendingApprovalToolName = normalizeToolName(
-		pendingApproval?.toolName ?? "",
-	);
-	const pendingApprovalToolCallId = pendingApproval?.toolCallId ?? null;
-	const pendingQuestionId = pendingQuestion?.questionId ?? null;
-	const shouldRenderStandalonePendingApproval =
-		Boolean(pendingApproval) &&
-		pendingApprovalToolName !== "request_sandbox_access";
 
 	return (
 		<Conversation className="flex-1">
@@ -264,11 +255,6 @@ export function ChatMastraMessageList({
 								workspaceCwd={workspaceCwd}
 								isStreaming={false}
 								previewToolParts={[]}
-								pendingApprovalToolCallId={pendingApprovalToolCallId}
-								isApprovalSubmitting={isApprovalSubmitting}
-								onApprovalRespond={onApprovalRespond}
-								pendingQuestionId={pendingQuestionId}
-								onQuestionRespond={onQuestionRespond}
 							/>
 						);
 					})
@@ -283,11 +269,6 @@ export function ChatMastraMessageList({
 						workspaceCwd={workspaceCwd}
 						isStreaming
 						previewToolParts={previewToolParts}
-						pendingApprovalToolCallId={pendingApprovalToolCallId}
-						isApprovalSubmitting={isApprovalSubmitting}
-						onApprovalRespond={onApprovalRespond}
-						pendingQuestionId={pendingQuestionId}
-						onQuestionRespond={onQuestionRespond}
 					/>
 				)}
 				{shouldShowThinking && (
@@ -310,11 +291,6 @@ export function ChatMastraMessageList({
 									sessionId={sessionId}
 									organizationId={organizationId}
 									workspaceCwd={workspaceCwd}
-									pendingApprovalToolCallId={pendingApprovalToolCallId}
-									isApprovalSubmitting={isApprovalSubmitting}
-									onApprovalRespond={onApprovalRespond}
-									pendingQuestionId={pendingQuestionId}
-									onQuestionRespond={onQuestionRespond}
 								/>
 							))}
 						</MessageContent>
@@ -323,7 +299,7 @@ export function ChatMastraMessageList({
 				{hasSubagentActivity && (
 					<SubagentExecutionMessage subagents={activeSubagentEntries} />
 				)}
-				{shouldRenderStandalonePendingApproval && pendingApproval && (
+				{pendingApproval && (
 					<PendingApprovalMessage
 						approval={pendingApproval}
 						isSubmitting={isApprovalSubmitting}

@@ -22,7 +22,6 @@ import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { AskUserQuestionToolCall } from "./components/AskUserQuestionToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
-import { RequestExternalDirToolCall } from "./components/RequestExternalDirToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
 import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
 import { getWebSearchViewModel } from "./utils/getWebSearchViewModel";
@@ -33,17 +32,6 @@ interface MastraToolCallBlockProps {
 	workspaceCwd?: string;
 	sessionId?: string | null;
 	organizationId?: string | null;
-	pendingApprovalToolCallId?: string | null;
-	isApprovalSubmitting?: boolean;
-	onApprovalRespond?: (
-		decision: "approve" | "decline" | "always_allow_category",
-		toolCallId?: string,
-	) => Promise<void> | void;
-	pendingQuestionId?: string | null;
-	onQuestionRespond?: (
-		questionId: string,
-		answer: string,
-	) => Promise<void> | void;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -62,11 +50,6 @@ export function MastraToolCallBlock({
 	workspaceCwd,
 	sessionId,
 	organizationId,
-	pendingApprovalToolCallId,
-	isApprovalSubmitting,
-	onApprovalRespond,
-	pendingQuestionId,
-	onQuestionRespond,
 	onAnswer,
 }: MastraToolCallBlockProps) {
 	const args = getArgs(part);
@@ -510,20 +493,7 @@ export function MastraToolCallBlock({
 	}
 
 	if (toolName === "request_sandbox_access") {
-		return (
-			<RequestExternalDirToolCall
-				part={part}
-				args={args}
-				result={result}
-				outputObject={outputObject}
-				nestedResultObject={nestedResultObject}
-				pendingApprovalToolCallId={pendingApprovalToolCallId}
-				isApprovalSubmitting={isApprovalSubmitting}
-				onApprovalRespond={onApprovalRespond}
-				pendingQuestionId={pendingQuestionId}
-				onQuestionRespond={onQuestionRespond}
-			/>
-		);
+		return <GenericToolCall part={part} toolName="Request sandbox access" />;
 	}
 
 	if (toolName === "task_write") {

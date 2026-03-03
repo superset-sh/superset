@@ -43,7 +43,6 @@ export const sendMessagePayloadSchema = z.object({
 
 export const approvalPayloadSchema = z.object({
 	decision: z.enum(["approve", "decline", "always_allow_category"]),
-	toolCallId: z.string().min(1).optional(),
 }) satisfies z.ZodType<ApprovalPayload>;
 
 export const questionPayloadSchema = z.object({

@@ -24,14 +24,6 @@ interface AssistantMessageProps {
 	organizationId?: string | null;
 	workspaceCwd?: string;
 	previewToolParts?: ToolPart[];
-	pendingApprovalToolCallId?: string | null;
-	isApprovalSubmitting?: boolean;
-	onApprovalRespond?: (
-		decision: "approve" | "decline" | "always_allow_category",
-		toolCallId?: string,
-	) => Promise<void>;
-	pendingQuestionId?: string | null;
-	onQuestionRespond?: (questionId: string, answer: string) => Promise<void>;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -104,11 +96,6 @@ export function AssistantMessage({
 	organizationId,
 	workspaceCwd,
 	previewToolParts = [],
-	pendingApprovalToolCallId,
-	isApprovalSubmitting = false,
-	onApprovalRespond,
-	pendingQuestionId,
-	onQuestionRespond,
 }: AssistantMessageProps) {
 	const nodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
@@ -173,11 +160,6 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
-					pendingApprovalToolCallId={pendingApprovalToolCallId}
-					isApprovalSubmitting={isApprovalSubmitting}
-					onApprovalRespond={onApprovalRespond}
-					pendingQuestionId={pendingQuestionId}
-					onQuestionRespond={onQuestionRespond}
 				/>,
 			);
 
@@ -200,11 +182,6 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
-					pendingApprovalToolCallId={pendingApprovalToolCallId}
-					isApprovalSubmitting={isApprovalSubmitting}
-					onApprovalRespond={onApprovalRespond}
-					pendingQuestionId={pendingQuestionId}
-					onQuestionRespond={onQuestionRespond}
 				/>,
 			);
 			continue;
@@ -233,11 +210,6 @@ export function AssistantMessage({
 				sessionId={sessionId}
 				organizationId={organizationId}
 				workspaceCwd={workspaceCwd}
-				pendingApprovalToolCallId={pendingApprovalToolCallId}
-				isApprovalSubmitting={isApprovalSubmitting}
-				onApprovalRespond={onApprovalRespond}
-				pendingQuestionId={pendingQuestionId}
-				onQuestionRespond={onQuestionRespond}
 			/>,
 		);
 	}
