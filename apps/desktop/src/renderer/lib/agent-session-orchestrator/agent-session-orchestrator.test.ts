@@ -1,10 +1,17 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
-import {
-	launchAgentSession,
-	selectAgentLaunchAdapter,
-} from "./agent-session-orchestrator";
 import type { AgentLaunchTabsAdapter } from "./types";
+
+mock.module("renderer/lib/posthog", () => ({
+	posthog: {
+		capture: mock(() => {}),
+	},
+	initPostHog: mock(() => {}),
+}));
+
+const { launchAgentSession, selectAgentLaunchAdapter } = await import(
+	"./agent-session-orchestrator",
+);
 
 function createDeferred() {
 	let resolve!: () => void;
