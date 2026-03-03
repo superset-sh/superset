@@ -383,7 +383,6 @@ export function ChatMastraInterface({
 	);
 	const handleApprovalResponse = useCallback(
 		async (decision: "approve" | "decline" | "always_allow_category") => {
-			if (!pendingApproval?.toolCallId) return;
 			clearRuntimeError();
 			setApprovalResponsePending(true);
 			try {
@@ -394,7 +393,7 @@ export function ChatMastraInterface({
 				setApprovalResponsePending(false);
 			}
 		},
-		[clearRuntimeError, commands, pendingApproval?.toolCallId],
+		[clearRuntimeError, commands],
 	);
 	const handlePlanResponse = useCallback(
 		async (response: {

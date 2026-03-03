@@ -171,8 +171,11 @@ export function RequestExternalDirToolCall({
 	const hasMatchingPendingApproval =
 		Boolean(pendingApprovalToolCallId) &&
 		pendingApprovalToolCallId === part.toolCallId;
+	const hasUnknownPendingApproval = !pendingApprovalToolCallId;
 	const canRespond =
-		isPending && hasMatchingPendingApproval && Boolean(onApprovalRespond);
+		isPending &&
+		(hasMatchingPendingApproval || hasUnknownPendingApproval) &&
+		Boolean(onApprovalRespond);
 
 	const handleApproval = async (
 		decision: "approve" | "decline",
