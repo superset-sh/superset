@@ -828,20 +828,24 @@ function setupSignalHandlers() {
 	process.on("SIGHUP", () => shutdown("SIGHUP"));
 
 	let transientErrorCount = 0;
+	let isShuttingDown = false;
+
+	const fatalShutdown = () => {
+		if (isShuttingDown) return;
+		isShuttingDown = true;
+		stopServer().then(() => process.exit(1));
+	};
 
 	process.on("uncaughtException", (error) => {
+		if (isShuttingDown) return;
+
 		const transient = isTransientError(error);
-		log("error", "Uncaught exception", {
-			error: error.message,
-			stack: error.stack,
-			transient,
-		});
 
 		if (transient) {
 			transientErrorCount++;
 			log(
 				"warn",
-				`Transient error #${transientErrorCount}/${MAX_TRANSIENT_ERRORS} ` +
+				`Transient uncaught error #${transientErrorCount}/${MAX_TRANSIENT_ERRORS} ` +
 					`(${(error as NodeJS.ErrnoException).code ?? error.message.split(",")[0]}), ` +
 					`keeping sessions alive`,
 			);
@@ -850,35 +854,41 @@ function setupSignalHandlers() {
 					"error",
 					"Too many consecutive transient errors, shutting down",
 				);
-				stopServer().then(() => process.exit(1));
+				fatalShutdown();
 			}
 			return;
 		}
 
-		// Non-transient: reset counter and shut down
+		// Non-transient: log at error level and shut down
 		transientErrorCount = 0;
-		stopServer().then(() => process.exit(1));
+		log("error", "Uncaught exception", {
+			error: error.message,
+			stack: error.stack,
+		});
+		fatalShutdown();
 	});
 
 	process.on("unhandledRejection", (reason) => {
+		if (isShuttingDown) return;
+
 		const transient = isTransientError(reason);
-		log("error", "Unhandled rejection", { reason, transient });
 
 		if (transient) {
 			transientErrorCount++;
 			log(
 				"warn",
-				`Transient rejection #${transientErrorCount}/${MAX_TRANSIENT_ERRORS}, ` +
+				`Transient unhandled rejection #${transientErrorCount}/${MAX_TRANSIENT_ERRORS}, ` +
 					`keeping sessions alive`,
 			);
 			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
-				stopServer().then(() => process.exit(1));
+				fatalShutdown();
 			}
 			return;
 		}
 
 		transientErrorCount = 0;
-		stopServer().then(() => process.exit(1));
+		log("error", "Unhandled rejection", { reason });
+		fatalShutdown();
 	});
 }
 
