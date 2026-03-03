@@ -249,13 +249,44 @@ export function ChatMastraInterface({
 	const resetMcpUi = mcpUi.resetUi;
 	const refreshMcpOverview = mcpUi.refreshOverview;
 
+	const captureInterruptedMessage = useCallback(() => {
+		if (!isRunning) return;
+		if (!currentMessage || currentMessage.role !== "assistant") return;
+		if (currentMessage.content.length === 0) return;
+		setInterruptedMessage({
+			id: `interrupted:${currentMessage.id}`,
+			sourceMessageId: currentMessage.id,
+			content: cloneMessageContent(currentMessage.content),
+		});
+	}, [currentMessage, isRunning]);
+
+	const stopActiveResponse = useCallback(async () => {
+		clearRuntimeError();
+		captureInterruptedMessage();
+		await commands.stop();
+		posthog.capture("chat_turn_aborted", {
+			workspace_id: workspaceId,
+			session_id: sessionId,
+			organization_id: organizationId,
+			model_id: activeModel?.id ?? null,
+		});
+	}, [
+		activeModel?.id,
+		captureInterruptedMessage,
+		clearRuntimeError,
+		commands,
+		organizationId,
+		sessionId,
+		workspaceId,
+	]);
+
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
 		availableModels,
 		canAbort,
 		onStartFreshSession,
 		onStopActiveResponse: () => {
-			void commands.stop();
+			void stopActiveResponse();
 		},
 		onSelectModel: handleSelectModel,
 		onOpenModelPicker: () => setModelSelectorOpen(true),
@@ -404,17 +435,6 @@ export function ChatMastraInterface({
 		],
 	);
 
-	const captureInterruptedMessage = useCallback(() => {
-		if (!isRunning) return;
-		if (!currentMessage || currentMessage.role !== "assistant") return;
-		if (currentMessage.content.length === 0) return;
-		setInterruptedMessage({
-			id: `interrupted:${currentMessage.id}`,
-			sourceMessageId: currentMessage.id,
-			content: cloneMessageContent(currentMessage.content),
-		});
-	}, [currentMessage, isRunning]);
-
 	useEffect(() => {
 		if (!initialLaunchConfig) return;
 
@@ -541,25 +561,9 @@ export function ChatMastraInterface({
 	const handleStop = useCallback(
 		async (event: React.MouseEvent) => {
 			event.preventDefault();
-			clearRuntimeError();
-			captureInterruptedMessage();
-			await commands.stop();
-			posthog.capture("chat_turn_aborted", {
-				workspace_id: workspaceId,
-				session_id: sessionId,
-				organization_id: organizationId,
-				model_id: activeModel?.id ?? null,
-			});
+			await stopActiveResponse();
 		},
-		[
-			activeModel?.id,
-			captureInterruptedMessage,
-			clearRuntimeError,
-			commands,
-			organizationId,
-			sessionId,
-			workspaceId,
-		],
+		[stopActiveResponse],
 	);
 
 	const handleSlashCommandSend = useCallback(

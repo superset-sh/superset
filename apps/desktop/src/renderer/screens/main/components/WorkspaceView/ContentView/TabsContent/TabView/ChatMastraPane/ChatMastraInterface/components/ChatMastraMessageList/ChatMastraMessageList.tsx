@@ -199,21 +199,28 @@ export function ChatMastraMessageList({
 			.filter((message) => message.role !== "assistant");
 		return [...previousTurns, ...activeTurnNonAssistant];
 	}, [messages, isRunning, currentMessage]);
-	const interruptedPreview =
-		interruptedMessage && interruptedMessage.content.length > 0
-			? ({
-					id: interruptedMessage.id,
-					role: "assistant",
-					content: interruptedMessage.content,
-					createdAt: new Date(),
-				} as MastraMessage)
+	const shouldShowInterruptedPreview = Boolean(
+		!isRunning && interruptedMessage && interruptedMessage.content.length > 0,
+	);
+	const interruptedPreview = useMemo(() => {
+		if (!shouldShowInterruptedPreview || !interruptedMessage) return null;
+		return {
+			id: interruptedMessage.id,
+			role: "assistant",
+			content: interruptedMessage.content,
+			createdAt: new Date(),
+		} as MastraMessage;
+	}, [interruptedMessage, shouldShowInterruptedPreview]);
+	const interruptedSourceMessageId =
+		shouldShowInterruptedPreview && interruptedMessage
+			? interruptedMessage.sourceMessageId
 			: null;
 	const renderedMessages = useMemo(() => {
-		if (!interruptedMessage) return visibleMessages;
+		if (!interruptedSourceMessageId) return visibleMessages;
 		return visibleMessages.filter(
-			(message) => message.id !== interruptedMessage.sourceMessageId,
+			(message) => message.id !== interruptedSourceMessageId,
 		);
-	}, [interruptedMessage, visibleMessages]);
+	}, [interruptedSourceMessageId, visibleMessages]);
 
 	const previewToolParts = useMemo(
 		() =>

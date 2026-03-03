@@ -158,4 +158,65 @@ describe("ChatMastraMessageList", () => {
 		expect(html).toContain("Response stopped");
 		expect(html).not.toContain("persisted assistant text");
 	});
+
+	it("does not show interrupted preview while a response is still running", () => {
+		const html = renderToStaticMarkup(
+			<ChatMastraMessageList
+				messages={
+					[
+						{
+							id: "user-1",
+							role: "user",
+							content: [{ type: "text", text: "first user prompt" }],
+							createdAt: new Date("2026-03-03T00:00:00.000Z"),
+						},
+						{
+							id: "assistant-1",
+							role: "assistant",
+							content: [{ type: "text", text: "persisted assistant text" }],
+							createdAt: new Date("2026-03-03T00:00:01.000Z"),
+						},
+					] as never
+				}
+				isRunning
+				isAwaitingAssistant
+				currentMessage={
+					{
+						id: "assistant-current",
+						role: "assistant",
+						content: [{ type: "text", text: "streaming assistant text" }],
+						createdAt: new Date("2026-03-03T00:00:02.000Z"),
+					} as never
+				}
+				interruptedMessage={
+					{
+						id: "interrupted:assistant-1",
+						sourceMessageId: "assistant-1",
+						content: [{ type: "text", text: "interrupted snapshot text" }],
+					} as never
+				}
+				workspaceId="workspace-1"
+				sessionId="session-1"
+				organizationId="org-1"
+				workspaceCwd="/repo"
+				activeTools={undefined}
+				toolInputBuffers={undefined}
+				activeSubagents={undefined}
+				pendingApproval={null}
+				isApprovalSubmitting={false}
+				onApprovalRespond={async () => {}}
+				pendingPlanApproval={null}
+				isPlanSubmitting={false}
+				onPlanRespond={async () => {}}
+				pendingQuestion={null}
+				isQuestionSubmitting={false}
+				onQuestionRespond={async () => {}}
+			/>,
+		);
+
+		expect(html).toContain("streaming assistant text");
+		expect(html).not.toContain("interrupted snapshot text");
+		expect(html).not.toContain("Interrupted");
+		expect(html).not.toContain("Response stopped");
+	});
 });
