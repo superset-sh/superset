@@ -1,6 +1,7 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import {
 	chatMastraServiceTrpc,
+	type UseMastraChatDisplayReturn,
 	useMastraChatDisplay,
 } from "@superset/chat-mastra/client";
 import {
@@ -10,7 +11,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
@@ -31,6 +32,57 @@ import {
 	toSendFailureMessage,
 } from "./utils/sendMessage";
 import { toMastraImages } from "./utils/toMastraImages";
+
+type MastraHistoryMessage = NonNullable<
+	UseMastraChatDisplayReturn["messages"]
+>[number];
+
+function toOptimisticUserMessage(
+	input: ChatSendMessageInput,
+): MastraHistoryMessage | null {
+	const text = input.payload.content.trim();
+	const images = input.payload.images ?? [];
+	if (!text && images.length === 0) return null;
+
+	return {
+		id: `optimistic-${crypto.randomUUID()}`,
+		role: "user",
+		content: [
+			...(text ? [{ type: "text", text }] : []),
+			...images.map((image) => ({
+				type: "image",
+				data: image.data,
+				mimeType: image.mimeType,
+			})),
+		],
+		createdAt: new Date(),
+	} as MastraHistoryMessage;
+}
+
+function toUserMessageSignature(message: MastraHistoryMessage): string | null {
+	if (message.role !== "user") return null;
+	return message.content
+		.map((part) => {
+			if (part.type === "text") return `text:${part.text}`;
+			if (part.type === "image") return `image:${part.mimeType}:${part.data}`;
+			return `${part.type}:${JSON.stringify(part)}`;
+		})
+		.join("||");
+}
+
+function hasMatchingUserMessage({
+	messages,
+	candidate,
+}: {
+	messages: MastraHistoryMessage[];
+	candidate: MastraHistoryMessage;
+}): boolean {
+	const signature = toUserMessageSignature(candidate);
+	if (!signature) return false;
+	return messages.some(
+		(message) => toUserMessageSignature(message) === signature,
+	);
+}
 
 function useAvailableModels(): {
 	models: ModelOption[];
@@ -95,6 +147,8 @@ export function ChatMastraInterface({
 		undefined,
 	);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
+	const [pendingImmediateUserMessage, setPendingImmediateUserMessage] =
+		useState<MastraHistoryMessage | null>(null);
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
@@ -168,11 +222,36 @@ export function ChatMastraInterface({
 
 	const sendMessageToSession = useCallback(
 		async (targetSessionId: string, input: ChatSendMessageInput) => {
-			await chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
+			const queryInput = {
 				sessionId: targetSessionId,
 				...(cwd ? { cwd } : {}),
-				...input,
-			});
+			};
+			const optimisticMessage = toOptimisticUserMessage(input);
+			if (optimisticMessage) {
+				chatMastraServiceTrpcUtils.session.listMessages.setData(
+					queryInput,
+					(existingMessages = []) => [...existingMessages, optimisticMessage],
+				);
+			}
+
+			try {
+				await chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
+					sessionId: targetSessionId,
+					...(cwd ? { cwd } : {}),
+					...input,
+				});
+			} catch (error) {
+				if (optimisticMessage) {
+					chatMastraServiceTrpcUtils.session.listMessages.setData(
+						queryInput,
+						(existingMessages = []) =>
+							existingMessages.filter(
+								(message) => message.id !== optimisticMessage.id,
+							),
+					);
+				}
+				throw error;
+			}
 		},
 		[chatMastraServiceTrpcUtils, cwd],
 	);
@@ -253,11 +332,37 @@ export function ChatMastraInterface({
 		currentMcpScopeRef.current = scopeKey;
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
+		setPendingImmediateUserMessage(null);
 		resetMcpUi();
 		if (sessionId) {
 			void refreshMcpOverview();
 		}
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
+
+	useEffect(() => {
+		if (!pendingImmediateUserMessage) return;
+		if (
+			hasMatchingUserMessage({
+				messages: messages as MastraHistoryMessage[],
+				candidate: pendingImmediateUserMessage,
+			})
+		) {
+			setPendingImmediateUserMessage(null);
+		}
+	}, [messages, pendingImmediateUserMessage]);
+
+	const visibleMessages = useMemo(() => {
+		if (!pendingImmediateUserMessage) return messages;
+		if (
+			hasMatchingUserMessage({
+				messages: messages as MastraHistoryMessage[],
+				candidate: pendingImmediateUserMessage,
+			})
+		) {
+			return messages;
+		}
+		return [...messages, pendingImmediateUserMessage];
+	}, [messages, pendingImmediateUserMessage]);
 
 	useEffect(() => {
 		if (isRunning) {
@@ -326,6 +431,13 @@ export function ChatMastraInterface({
 					model: activeModel?.id,
 				},
 			};
+			const immediateUserMessage =
+				sessionId && !isSessionReady
+					? toOptimisticUserMessage(sendInput)
+					: null;
+			if (immediateUserMessage) {
+				setPendingImmediateUserMessage(immediateUserMessage);
+			}
 
 			let targetSessionId = sessionId;
 			try {
@@ -343,6 +455,13 @@ export function ChatMastraInterface({
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
+				if (immediateUserMessage) {
+					setPendingImmediateUserMessage((previousMessage) =>
+						previousMessage?.id === immediateUserMessage.id
+							? null
+							: previousMessage,
+					);
+				}
 				if (error instanceof Error) throw error;
 				throw new Error(sendErrorMessage);
 			}
@@ -600,7 +719,7 @@ export function ChatMastraInterface({
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
-					messages={messages}
+					messages={visibleMessages}
 					isRunning={canAbort}
 					isAwaitingAssistant={isAwaitingAssistant}
 					currentMessage={currentMessage ?? null}
