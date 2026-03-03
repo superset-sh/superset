@@ -6,30 +6,16 @@ import {
 	type mock as MockType,
 	mock,
 } from "bun:test";
+import { electronTestMock } from "../test-utils/electron-mock";
 
 // Mock electron with screen API before importing anything that uses it
-const mockScreen = {
-	getPrimaryDisplay: mock(() => ({
-		workAreaSize: { width: 1920, height: 1080 },
-		bounds: { x: 0, y: 0, width: 1920, height: 1080 },
-	})),
-	getAllDisplays: mock(() => [
-		{
-			bounds: { x: 0, y: 0, width: 1920, height: 1080 },
-			workAreaSize: { width: 1920, height: 1080 },
-		},
-	]),
-};
-
-mock.module("electron", () => ({
-	screen: mockScreen,
-}));
+mock.module("electron", () => electronTestMock);
 
 // Import module after mocks are set up
 const { getInitialWindowBounds, isVisibleOnAnyDisplay } = await import(
 	"./bounds-validation"
 );
-const screen = mockScreen;
+const screen = electronTestMock.screen;
 
 const MIN_VISIBLE_OVERLAP = 50;
 const MIN_WINDOW_SIZE = 400;

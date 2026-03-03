@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { NOTIFICATION_EVENTS } from "shared/constants";
+import { electronTestMock } from "../test-utils/electron-mock";
 import { mapEventType } from "./map-event-type";
-import {
+
+mock.module("electron", () => electronTestMock);
+
+const {
 	consumePendingMainProcessErrors,
 	notificationsEmitter,
 	reportMainProcessError,
-} from "./server";
+} = await import("./server");
 
 describe("notifications/server", () => {
 	beforeEach(() => {
