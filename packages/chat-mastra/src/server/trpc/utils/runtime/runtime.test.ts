@@ -28,6 +28,7 @@ function createRuntimeForTest(): {
 		hookManager: null as RuntimeSession["hookManager"],
 		mcpManualStatuses: new Map(),
 		lastErrorMessage: null,
+		pendingSandboxQuestion: null,
 		cwd: "/tmp",
 	};
 
@@ -94,5 +95,34 @@ describe("runtime error propagation", () => {
 
 		emit({ type: "agent_start" });
 		expect(runtime.lastErrorMessage).toBeNull();
+	});
+
+	it("captures sandbox_access_request as pending sandbox question", () => {
+		const { runtime, emit } = createRuntimeForTest();
+		emit({
+			type: "sandbox_access_request",
+			questionId: "sandbox_1",
+			path: "/Users/test/Desktop",
+			reason: "Need to list files",
+		});
+		expect(runtime.pendingSandboxQuestion).toEqual({
+			questionId: "sandbox_1",
+			path: "/Users/test/Desktop",
+			reason: "Need to list files",
+		});
+	});
+
+	it("clears pending sandbox question on agent_start", () => {
+		const { runtime, emit } = createRuntimeForTest();
+		emit({
+			type: "sandbox_access_request",
+			questionId: "sandbox_1",
+			path: "/Users/test/Desktop",
+			reason: "Need to list files",
+		});
+		expect(runtime.pendingSandboxQuestion).not.toBeNull();
+
+		emit({ type: "agent_start" });
+		expect(runtime.pendingSandboxQuestion).toBeNull();
 	});
 });

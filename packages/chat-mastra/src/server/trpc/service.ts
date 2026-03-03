@@ -103,6 +103,7 @@ export class ChatMastraService {
 					hookManager: runtimeMastra.hookManager,
 					mcpManualStatuses: new Map(),
 					lastErrorMessage: null,
+					pendingSandboxQuestion: null,
 					cwd: runtimeCwd,
 				};
 				await runSessionStartHook(runtime).catch(() => {});
@@ -182,8 +183,26 @@ export class ChatMastraService {
 							currentMessage.errorMessage.trim()
 								? currentMessage.errorMessage.trim()
 								: null;
+						const sandboxPendingQuestion = runtime.pendingSandboxQuestion
+							? {
+									questionId: runtime.pendingSandboxQuestion.questionId,
+									question: `Grant sandbox access to "${runtime.pendingSandboxQuestion.path}"?`,
+									options: [
+										{
+											label: "Yes",
+											description: `Allow access. Reason: ${runtime.pendingSandboxQuestion.reason}`,
+										},
+										{
+											label: "No",
+											description: "Deny access.",
+										},
+									],
+								}
+							: null;
 						return {
 							...displayState,
+							pendingQuestion:
+								displayState.pendingQuestion ?? sandboxPendingQuestion,
 							errorMessage: currentMessageError ?? runtime.lastErrorMessage,
 						};
 					}),
@@ -266,6 +285,12 @@ export class ChatMastraService {
 						.input(questionRespondInput)
 						.mutation(async ({ input }) => {
 							const runtime = await this.getOrCreateRuntime(input.sessionId);
+							if (
+								runtime.pendingSandboxQuestion?.questionId ===
+								input.payload.questionId
+							) {
+								runtime.pendingSandboxQuestion = null;
+							}
 							return runtime.harness.respondToQuestion(input.payload);
 						}),
 				}),
