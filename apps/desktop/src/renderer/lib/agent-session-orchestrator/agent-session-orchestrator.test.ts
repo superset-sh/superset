@@ -10,7 +10,7 @@ mock.module("renderer/lib/posthog", () => ({
 }));
 
 const { launchAgentSession, selectAgentLaunchAdapter } = await import(
-	"./agent-session-orchestrator",
+	"./agent-session-orchestrator"
 );
 
 function createDeferred() {
