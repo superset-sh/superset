@@ -22,6 +22,7 @@ import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { AskUserQuestionToolCall } from "./components/AskUserQuestionToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
 import { GenericToolCall } from "./components/GenericToolCall";
+import { RequestExternalDirToolCall } from "./components/RequestExternalDirToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
 import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
 import { getWebSearchViewModel } from "./utils/getWebSearchViewModel";
@@ -493,7 +494,15 @@ export function MastraToolCallBlock({
 	}
 
 	if (toolName === "request_sandbox_access") {
-		return <GenericToolCall part={part} toolName="Request sandbox access" />;
+		return (
+			<RequestExternalDirToolCall
+				part={part}
+				args={args}
+				result={result}
+				outputObject={outputObject}
+				nestedResultObject={nestedResultObject}
+			/>
+		);
 	}
 
 	if (toolName === "task_write") {

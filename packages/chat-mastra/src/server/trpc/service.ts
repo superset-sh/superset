@@ -28,7 +28,6 @@ import {
 	sessionIdInput,
 } from "./zod";
 
-const INTERNAL_MASTRA_TOOL_NAMES = ["request_sandbox_access"] as const;
 const ENABLE_MASTRA_MCP_SERVERS = false;
 
 export interface ChatMastraServiceOptions {
@@ -91,7 +90,6 @@ export class ChatMastraService {
 					cwd: runtimeCwd,
 					extraTools,
 					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
-					disabledTools: [...INTERNAL_MASTRA_TOOL_NAMES],
 				});
 				runtimeMastra.hookManager?.setSessionId(sessionId);
 				await runtimeMastra.harness.init();
