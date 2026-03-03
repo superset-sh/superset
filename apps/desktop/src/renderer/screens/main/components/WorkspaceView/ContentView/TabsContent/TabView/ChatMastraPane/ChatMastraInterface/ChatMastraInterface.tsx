@@ -284,16 +284,17 @@ export function ChatMastraInterface({
 	const resetMcpUi = mcpUi.resetUi;
 	const refreshMcpOverview = mcpUi.refreshOverview;
 
-	const captureInterruptedMessage = useCallback((): InterruptedMessage | null => {
-		if (!isRunning) return null;
-		if (!currentMessage || currentMessage.role !== "assistant") return null;
-		if (currentMessage.content.length === 0) return null;
-		return {
-			id: `interrupted:${currentMessage.id}`,
-			sourceMessageId: currentMessage.id,
-			content: cloneMessageContent(currentMessage.content),
-		};
-	}, [currentMessage, isRunning]);
+	const captureInterruptedMessage =
+		useCallback((): InterruptedMessage | null => {
+			if (!isRunning) return null;
+			if (!currentMessage || currentMessage.role !== "assistant") return null;
+			if (currentMessage.content.length === 0) return null;
+			return {
+				id: `interrupted:${currentMessage.id}`,
+				sourceMessageId: currentMessage.id,
+				content: cloneMessageContent(currentMessage.content),
+			};
+		}, [currentMessage, isRunning]);
 
 	const stopActiveResponse = useCallback(async () => {
 		clearRuntimeError();
@@ -302,7 +303,9 @@ export function ChatMastraInterface({
 			await commands.stop();
 		} catch (error) {
 			setInterruptedMessage(null);
-			setRuntimeErrorMessage(toErrorMessage(error) ?? "Failed to stop response");
+			setRuntimeErrorMessage(
+				toErrorMessage(error) ?? "Failed to stop response",
+			);
 			return;
 		}
 		if (snapshot) {
