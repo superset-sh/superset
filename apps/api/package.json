@@ -45,6 +45,7 @@
 		"react": "19.2.0",
 		"react-dom": "19.2.0",
 		"require-in-the-middle": "8.0.1",
+		"stripe": "^20.2.0",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {

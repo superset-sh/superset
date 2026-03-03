@@ -1,8 +1,8 @@
 "use client";
 
 import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
-import posthog from "posthog-js";
 import { HiMiniArrowDownTray, HiMiniClock } from "react-icons/hi2";
+import { track } from "@/lib/analytics";
 import { usePlatform } from "../../hooks/useOS";
 import { type DropdownSection, PlatformDropdown } from "../PlatformDropdown";
 
@@ -64,7 +64,7 @@ export function DownloadButton({
 						description: "APPLE SILICON",
 						icon: appleIcon,
 						onClick: () => {
-							posthog.capture("download_clicked");
+							track("download_clicked");
 							window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
 						},
 						variant: "primary",
@@ -79,7 +79,7 @@ export function DownloadButton({
 						label: "Join waitlist for Windows & Linux",
 						icon: <HiMiniClock className="size-4" />,
 						onClick: () => {
-							posthog.capture("waitlist_clicked");
+							track("waitlist_clicked");
 							onJoinWaitlist?.();
 						},
 					},
@@ -111,7 +111,7 @@ export function DownloadButton({
 				type="button"
 				className={buttonClasses}
 				onClick={() => {
-					posthog.capture("download_clicked");
+					track("download_clicked");
 					window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
 				}}
 			>
@@ -127,7 +127,7 @@ export function DownloadButton({
 			type="button"
 			className={buttonClasses}
 			onClick={() => {
-				posthog.capture("waitlist_clicked");
+				track("waitlist_clicked");
 				onJoinWaitlist?.();
 			}}
 		>

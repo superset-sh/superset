@@ -28,6 +28,7 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { localDb } from "./lib/local-db";
+import { outlit } from "./lib/outlit";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
@@ -187,7 +188,10 @@ app.on("before-quit", async (event) => {
 		}
 	}
 
+	// Quit confirmed or no confirmation needed - exit immediately
+	// Let OS clean up child processes, tray, etc.
 	isQuitting = true;
+	await outlit.shutdown();
 	disposeTray();
 	app.exit(0);
 });

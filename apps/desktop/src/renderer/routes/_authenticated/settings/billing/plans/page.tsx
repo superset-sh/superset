@@ -4,7 +4,7 @@ import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { format } from "date-fns";
+import { differenceInDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
@@ -215,6 +215,14 @@ function PlansPage() {
 	const currentPlan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
 	const cancelAt = subscriptionData?.cancelAt;
 
+	const isCurrentlyYearly =
+		subscriptionData?.periodStart &&
+		subscriptionData?.periodEnd &&
+		differenceInDays(
+			new Date(subscriptionData.periodEnd),
+			new Date(subscriptionData.periodStart),
+		) > 60;
+
 	const { data: membersData } = useLiveQuery(
 		(q) =>
 			q
@@ -295,6 +303,7 @@ function PlansPage() {
 					seats: memberCount,
 					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
 					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
+					returnUrl: env.NEXT_PUBLIC_WEB_URL,
 					disableRedirect: true,
 				},
 				{
@@ -397,6 +406,29 @@ function PlansPage() {
 												variant: "default" as const,
 											},
 										];
+									} else if (isCurrent && plan.id === "pro") {
+										const intervalMatches = isYearly === !!isCurrentlyYearly;
+										if (intervalMatches) {
+											planActions = [
+												{
+													label: "Current plan",
+													action: "current" as const,
+													variant: "secondary" as const,
+												},
+											];
+										} else {
+											planActions = [
+												{
+													label: isUpgrading
+														? "Changing..."
+														: isYearly
+															? "Change to Annual"
+															: "Change to Monthly",
+													action: "upgrade" as const,
+													variant: "default" as const,
+												},
+											];
+										}
 									} else if (isCurrent) {
 										planActions = [
 											{

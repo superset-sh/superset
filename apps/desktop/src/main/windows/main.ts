@@ -220,7 +220,35 @@ export async function MainWindow() {
 		});
 	}
 
-	window.webContents.on("did-finish-load", async () => {
+	// Persist window bounds on move/resize so state survives app.exit(0)
+	// (which skips the close handler — e.g. electron-vite SIGTERM during dev).
+	// Gated by `initialized` so the initial maximize() doesn't immediately
+	// write isMaximized: true back to disk before the user touches the window.
+	let initialized = false;
+	let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+	const debouncedSave = () => {
+		if (!initialized || window.isDestroyed()) return;
+		if (saveTimeout) clearTimeout(saveTimeout);
+		saveTimeout = setTimeout(() => {
+			if (window.isDestroyed()) return;
+			const isMaximized = window.isMaximized();
+			const bounds = isMaximized
+				? window.getNormalBounds()
+				: window.getBounds();
+			saveWindowState({
+				x: bounds.x,
+				y: bounds.y,
+				width: bounds.width,
+				height: bounds.height,
+				isMaximized,
+				zoomLevel: window.webContents.getZoomLevel(),
+			});
+		}, 500);
+	};
+	window.on("move", debouncedSave);
+	window.on("resize", debouncedSave);
+
+	window.webContents.once("did-finish-load", async () => {
 		console.log("[main-window] Renderer loaded successfully");
 		if (initialBounds.isMaximized) {
 			window.maximize();
@@ -229,6 +257,7 @@ export async function MainWindow() {
 			window.webContents.setZoomLevel(savedWindowState.zoomLevel);
 		}
 		window.show();
+		initialized = true;
 	});
 
 	window.webContents.on(

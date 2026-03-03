@@ -2,9 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 
 const preloadCollectionsMock = mock(() => Promise.resolve());
 
+mock.module("posthog-js/react", () => ({
+	useFeatureFlagEnabled: mock(() => false),
+}));
+
 mock.module("./collections", () => ({
 	getCollections: mock(() => ({})),
 	preloadCollections: preloadCollectionsMock,
+	setElectricUrl: mock(),
 }));
 
 const { preloadActiveOrganizationCollections } = await import(

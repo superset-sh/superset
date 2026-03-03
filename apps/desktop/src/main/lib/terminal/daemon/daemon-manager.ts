@@ -457,16 +457,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				);
 			}
 
-			if (response.wasRecovered) {
-				track("terminal_warm_attached", {
-					workspace_id: workspaceId,
-					pane_id: paneId,
-					snapshot_bytes: response.snapshot.snapshotAnsi
-						? Buffer.byteLength(response.snapshot.snapshotAnsi, "utf8")
-						: 0,
-				});
-			}
-
 			return {
 				isNew: response.isNew,
 				scrollback: "",
