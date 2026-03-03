@@ -1,4 +1,4 @@
-import { electronTrpcClient } from "../../../lib/trpc-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 /**
  * Soft-close delay: terminal sessions are kept alive for this duration after
