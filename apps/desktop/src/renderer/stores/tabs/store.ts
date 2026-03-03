@@ -906,7 +906,7 @@ export const useTabsStore = create<TabsStore>()(
 					const pane = state.panes[paneId];
 					if (!pane || pane.tabId !== tabId) return;
 					const resolvedStatus = acknowledgedStatus(pane.status);
-					if (resolvedStatus === "idle") {
+					if (pane.status === "review") {
 						markAgentNotificationReadForPane(paneId);
 					}
 

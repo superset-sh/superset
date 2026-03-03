@@ -34,13 +34,6 @@ export const createNotificationsRouter = () => {
 	return router({
 		subscribe: publicProcedure.subscription(() => {
 			return observable<NotificationEvent>((emit) => {
-				for (const event of consumePendingMainProcessErrors()) {
-					emit.next({
-						type: NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
-						data: event,
-					});
-				}
-
 				const onLifecycle = (data: AgentLifecycleEvent) => {
 					emit.next({ type: NOTIFICATION_EVENTS.AGENT_LIFECYCLE, data });
 				};
@@ -70,6 +63,13 @@ export const createNotificationsRouter = () => {
 					NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
 					onMainProcessError,
 				);
+
+				for (const event of consumePendingMainProcessErrors()) {
+					emit.next({
+						type: NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
+						data: event,
+					});
+				}
 
 				return () => {
 					notificationsEmitter.off(

@@ -75,11 +75,16 @@ export function NotificationsCenter() {
 		const workspaceId = entry.target?.workspaceId;
 		if (!workspaceId) return;
 
-		navigateToWorkspace(workspaceId, navigate, {
+		void navigateToWorkspace(workspaceId, navigate, {
 			search: {
 				tabId: entry.target?.tabId,
 				paneId: entry.target?.paneId,
 			},
+		}).catch((error) => {
+			console.warn(
+				"[notifications] Failed to navigate from notification",
+				error,
+			);
 		});
 		setOpen(false);
 	};

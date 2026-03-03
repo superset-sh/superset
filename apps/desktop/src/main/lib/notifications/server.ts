@@ -33,17 +33,18 @@ const DEBUG_HOOKS_ENABLED =
 
 export const notificationsEmitter = new EventEmitter();
 const MAX_PENDING_MAIN_PROCESS_ERRORS = 20;
+const MAX_ERROR_DETAILS_LENGTH = 1000;
 const pendingMainProcessErrors: MainProcessErrorEvent[] = [];
 
 function toErrorDetails(error: unknown): string | undefined {
-	if (error instanceof Error) return error.message || error.name;
-	if (typeof error === "string") return error;
+	const truncate = (value: string): string =>
+		value.length > MAX_ERROR_DETAILS_LENGTH
+			? `${value.slice(0, MAX_ERROR_DETAILS_LENGTH)}...`
+			: value;
 
-	try {
-		return JSON.stringify(error);
-	} catch {
-		return String(error);
-	}
+	if (error instanceof Error) return truncate(error.message || error.name);
+	if (typeof error === "string") return truncate(error);
+	return undefined;
 }
 
 export function reportMainProcessError(input: {

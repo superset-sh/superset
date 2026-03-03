@@ -58,7 +58,11 @@ export function useAgentHookListener() {
 				pendingWorkspaceNameByIdRef.current.delete(workspaceId);
 				return name;
 			})
-			.catch(() => {
+			.catch((error) => {
+				debugLog("agent-hooks", "Failed to resolve workspace name", {
+					workspaceId,
+					error,
+				});
 				pendingWorkspaceNameByIdRef.current.delete(workspaceId);
 				return "Workspace";
 			});
