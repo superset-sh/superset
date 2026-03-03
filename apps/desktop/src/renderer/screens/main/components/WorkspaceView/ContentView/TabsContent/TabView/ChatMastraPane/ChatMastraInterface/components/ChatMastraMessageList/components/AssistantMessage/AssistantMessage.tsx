@@ -24,6 +24,7 @@ interface AssistantMessageProps {
 	organizationId?: string | null;
 	workspaceCwd?: string;
 	previewToolParts?: ToolPart[];
+	footer?: ReactNode;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -96,6 +97,7 @@ export function AssistantMessage({
 	organizationId,
 	workspaceCwd,
 	previewToolParts = [],
+	footer,
 }: AssistantMessageProps) {
 	const nodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
@@ -224,6 +226,7 @@ export function AssistantMessage({
 				) : (
 					nodes
 				)}
+				{footer}
 			</MessageContent>
 		</Message>
 	);

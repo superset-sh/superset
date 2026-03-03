@@ -53,6 +53,11 @@ interface ChatMastraMessageListProps {
 	isRunning: boolean;
 	isAwaitingAssistant: boolean;
 	currentMessage: MastraMessage | null;
+	interruptedMessage: {
+		id: string;
+		sourceMessageId: string;
+		content: MastraMessage["content"];
+	} | null;
 	workspaceId: string;
 	sessionId: string | null;
 	organizationId: string | null;
@@ -165,6 +170,7 @@ export function ChatMastraMessageList({
 	isRunning,
 	isAwaitingAssistant,
 	currentMessage,
+	interruptedMessage,
 	workspaceId,
 	sessionId,
 	organizationId,
@@ -193,6 +199,21 @@ export function ChatMastraMessageList({
 			.filter((message) => message.role !== "assistant");
 		return [...previousTurns, ...activeTurnNonAssistant];
 	}, [messages, isRunning, currentMessage]);
+	const interruptedPreview =
+		interruptedMessage && interruptedMessage.content.length > 0
+			? ({
+					id: interruptedMessage.id,
+					role: "assistant",
+					content: interruptedMessage.content,
+					createdAt: new Date(),
+				} as MastraMessage)
+			: null;
+	const renderedMessages = useMemo(() => {
+		if (!interruptedMessage) return visibleMessages;
+		return visibleMessages.filter(
+			(message) => message.id !== interruptedMessage.sourceMessageId,
+		);
+	}, [interruptedMessage, visibleMessages]);
 
 	const previewToolParts = useMemo(
 		() =>
@@ -227,14 +248,14 @@ export function ChatMastraMessageList({
 	return (
 		<Conversation className="flex-1">
 			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 pl-6 pr-16">
-				{visibleMessages.length === 0 ? (
+				{renderedMessages.length === 0 && !interruptedPreview ? (
 					<ConversationEmptyState
 						title="Start a conversation"
 						description="Ask anything to get started"
 						icon={<HiMiniChatBubbleLeftRight className="size-8" />}
 					/>
 				) : (
-					visibleMessages.map((message) => {
+					renderedMessages.map((message) => {
 						if (message.role === "user")
 							return (
 								<UserMessage
@@ -258,6 +279,26 @@ export function ChatMastraMessageList({
 							/>
 						);
 					})
+				)}
+				{interruptedPreview && (
+					<AssistantMessage
+						key={interruptedPreview.id}
+						message={interruptedPreview}
+						workspaceId={workspaceId}
+						sessionId={sessionId}
+						organizationId={organizationId}
+						workspaceCwd={workspaceCwd}
+						isStreaming={false}
+						previewToolParts={[]}
+						footer={
+							<div className="flex items-center gap-2 text-xs text-muted-foreground">
+								<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
+									Interrupted
+								</span>
+								<span>Response stopped</span>
+							</div>
+						}
+					/>
 				)}
 				{isRunning && currentMessage && (
 					<AssistantMessage
@@ -321,7 +362,7 @@ export function ChatMastraMessageList({
 					/>
 				)}
 			</ConversationContent>
-			<MessageScrollbackRail messages={visibleMessages} />
+			<MessageScrollbackRail messages={renderedMessages} />
 			<ConversationScrollButton />
 		</Conversation>
 	);

@@ -1,6 +1,7 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import {
 	chatMastraServiceTrpc,
+	type UseMastraChatDisplayReturn,
 	useMastraChatDisplay,
 } from "@superset/chat-mastra/client";
 import {
@@ -55,6 +56,29 @@ function toErrorMessage(error: unknown): string | null {
 const AUTO_LAUNCH_MAX_RETRIES = 3;
 const AUTO_LAUNCH_RETRY_DELAY_MS = 1500;
 
+type MastraMessage = NonNullable<
+	UseMastraChatDisplayReturn["messages"]
+>[number];
+
+type InterruptedMessage = {
+	id: string;
+	sourceMessageId: string;
+	content: MastraMessage["content"];
+};
+
+function cloneMessageContent(
+	content: MastraMessage["content"],
+): MastraMessage["content"] {
+	if (typeof structuredClone === "function") {
+		return structuredClone(content);
+	}
+	try {
+		return JSON.parse(JSON.stringify(content)) as MastraMessage["content"];
+	} catch {
+		return content.map((part) => ({ ...part }));
+	}
+}
+
 function getLaunchConfigKey(
 	config: NonNullable<ChatMastraInterfaceProps["initialLaunchConfig"]>,
 ): string {
@@ -95,6 +119,8 @@ export function ChatMastraInterface({
 		undefined,
 	);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
+	const [interruptedMessage, setInterruptedMessage] =
+		useState<InterruptedMessage | null>(null);
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
@@ -253,6 +279,7 @@ export function ChatMastraInterface({
 		currentMcpScopeRef.current = scopeKey;
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
+		setInterruptedMessage(null);
 		resetMcpUi();
 		if (sessionId) {
 			void refreshMcpOverview();
@@ -314,6 +341,7 @@ export function ChatMastraInterface({
 				setSubmitStatus(undefined);
 				return;
 			}
+			setInterruptedMessage(null);
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
@@ -375,6 +403,17 @@ export function ChatMastraInterface({
 			workspaceId,
 		],
 	);
+
+	const captureInterruptedMessage = useCallback(() => {
+		if (!isRunning) return;
+		if (!currentMessage || currentMessage.role !== "assistant") return;
+		if (currentMessage.content.length === 0) return;
+		setInterruptedMessage({
+			id: `interrupted:${currentMessage.id}`,
+			sourceMessageId: currentMessage.id,
+			content: cloneMessageContent(currentMessage.content),
+		});
+	}, [currentMessage, isRunning]);
 
 	useEffect(() => {
 		if (!initialLaunchConfig) return;
@@ -503,6 +542,7 @@ export function ChatMastraInterface({
 		async (event: React.MouseEvent) => {
 			event.preventDefault();
 			clearRuntimeError();
+			captureInterruptedMessage();
 			await commands.stop();
 			posthog.capture("chat_turn_aborted", {
 				workspace_id: workspaceId,
@@ -513,6 +553,7 @@ export function ChatMastraInterface({
 		},
 		[
 			activeModel?.id,
+			captureInterruptedMessage,
 			clearRuntimeError,
 			commands,
 			organizationId,
@@ -604,6 +645,7 @@ export function ChatMastraInterface({
 					isRunning={canAbort}
 					isAwaitingAssistant={isAwaitingAssistant}
 					currentMessage={currentMessage ?? null}
+					interruptedMessage={interruptedMessage}
 					workspaceId={workspaceId}
 					sessionId={sessionId}
 					organizationId={organizationId}
