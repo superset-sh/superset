@@ -6,6 +6,7 @@ import {
 	execWithShellEnv,
 	getProcessEnvWithShellPath,
 } from "../workspaces/utils/shell-env";
+import { getRepoContext } from "../workspaces/utils/github/github";
 import { isUpstreamMissingError } from "./git-utils";
 import { assertRegisteredWorktree } from "./security";
 
@@ -188,6 +189,14 @@ async function findExistingOpenPRUrl(
 	}
 
 	try {
+		// For fork repos, cross-repo PRs need head:forkowner:branchName format
+		let headQuery = `head:${branch}`;
+		const repoContext = await getRepoContext(worktreePath);
+		if (repoContext?.isFork && repoContext.forkNwo) {
+			const forkOwner = repoContext.forkNwo.split("/")[0];
+			headQuery = `head:${forkOwner}:${branch}`;
+		}
+
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
@@ -196,7 +205,7 @@ async function findExistingOpenPRUrl(
 				"--state",
 				"open",
 				"--search",
-				`head:${branch}`,
+				headQuery,
 				"--limit",
 				"20",
 				"--json",
@@ -429,9 +438,17 @@ export const createGitOperationsRouter = () => {
 
 					let stdout = "";
 					try {
+						// For fork repos, --head needs forkowner:branch format
+						let headArg = branch;
+						const repoContext = await getRepoContext(input.worktreePath);
+						if (repoContext?.isFork && repoContext.forkNwo) {
+							const forkOwner = repoContext.forkNwo.split("/")[0];
+							headArg = `${forkOwner}:${branch}`;
+						}
+
 						const result = await execWithShellEnv(
 							"gh",
-							["pr", "create", "--web", "--fill", "--head", branch],
+							["pr", "create", "--web", "--fill", "--head", headArg],
 							{ cwd: input.worktreePath },
 						);
 						stdout = result.stdout;
