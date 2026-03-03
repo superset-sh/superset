@@ -33,6 +33,7 @@ export function WorkspaceInitEffects() {
 	const processingRef = useRef<Set<string>>(new Set());
 
 	const addTab = useTabsStore((state) => state.addTab);
+	const addChatMastraTab = useTabsStore((state) => state.addChatMastraTab);
 	const addPane = useTabsStore((state) => state.addPane);
 	const removePane = useTabsStore((state) => state.removePane);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
@@ -110,7 +111,8 @@ export function WorkspaceInitEffects() {
 				(p) => p.commands.length > 0,
 			);
 			const hasPresets = shouldApplyPreset && presets.length > 0;
-			const { agentCommand } = setup;
+			const { agentCommand, chatLaunchConfig, openChatPane } = setup;
+			const shouldOpenChatPane = Boolean(chatLaunchConfig || openChatPane);
 
 			if (hasSetupScript && hasPresets) {
 				const { tabId: setupTabId, paneId: setupPaneId } = addTab(
@@ -130,6 +132,11 @@ export function WorkspaceInitEffects() {
 							removePaneOnError: true,
 						});
 					}
+				}
+				if (shouldOpenChatPane) {
+					addChatMastraTab(setup.workspaceId, {
+						launchConfig: chatLaunchConfig ?? null,
+					});
 				}
 
 				createOrAttach.mutate(
@@ -189,6 +196,11 @@ export function WorkspaceInitEffects() {
 							removePaneOnError: true,
 						});
 					}
+				}
+				if (shouldOpenChatPane) {
+					addChatMastraTab(setup.workspaceId, {
+						launchConfig: chatLaunchConfig ?? null,
+					});
 				}
 
 				createOrAttach.mutate(
@@ -279,6 +291,11 @@ export function WorkspaceInitEffects() {
 						removePaneOnError: true,
 					});
 				}
+				if (shouldOpenChatPane) {
+					addChatMastraTab(setup.workspaceId, {
+						launchConfig: chatLaunchConfig ?? null,
+					});
+				}
 				onComplete();
 				return;
 			}
@@ -298,11 +315,19 @@ export function WorkspaceInitEffects() {
 				onComplete();
 				return;
 			}
+			if (shouldOpenChatPane) {
+				addChatMastraTab(setup.workspaceId, {
+					launchConfig: chatLaunchConfig ?? null,
+				});
+				onComplete();
+				return;
+			}
 
 			onComplete();
 		},
 		[
 			addTab,
+			addChatMastraTab,
 			addPane,
 			setTabAutoTitle,
 			createOrAttach,

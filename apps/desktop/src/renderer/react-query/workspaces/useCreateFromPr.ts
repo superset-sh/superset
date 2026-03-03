@@ -34,6 +34,7 @@ export function useCreateFromPr(options?: MutationOptions) {
 					workspaceId: data.workspace.id,
 					projectId: data.projectId,
 					initialCommands: data.initialCommands,
+					worktreePath: data.worktreePath,
 				});
 			}
 

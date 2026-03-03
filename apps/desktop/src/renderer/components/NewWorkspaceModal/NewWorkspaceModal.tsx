@@ -1,6 +1,5 @@
 import {
 	AGENT_PRESET_COMMANDS,
-	AGENT_TYPES,
 	buildAgentPromptCommand,
 } from "@superset/shared/agent-command";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
@@ -9,6 +8,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
+import {
+	isTerminalAgentType,
+	isWorkspaceAgentType,
+} from "renderer/lib/workspace-agent";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useOpenProject } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -61,10 +64,8 @@ export function NewWorkspaceModal() {
 		() => {
 			if (typeof window === "undefined") return "none";
 			const stored = window.localStorage.getItem(WORKSPACE_AGENT_STORAGE_KEY);
-			if (stored === "none") return "none";
-			return stored && (AGENT_TYPES as readonly string[]).includes(stored)
-				? (stored as WorkspaceCreateAgent)
-				: "none";
+			if (!stored || stored === "none") return "none";
+			return isWorkspaceAgentType(stored) ? stored : "none";
 		},
 	);
 	const runSetupScriptRef = useRef(true);
@@ -100,6 +101,7 @@ export function NewWorkspaceModal() {
 			runSetupScriptRef.current ? commands : null,
 	});
 	const addTab = useTabsStore((s) => s.addTab);
+	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const { openNew } = useOpenProject();
@@ -256,16 +258,24 @@ export function NewWorkspaceModal() {
 		const prompt = title.trim();
 
 		const workspaceName = deriveWorkspaceTitleFromPrompt(title) || undefined;
+		const selectedWorkspaceAgent =
+			selectedAgent === "none" ? null : selectedAgent;
+		const isSupersetChat = selectedWorkspaceAgent === "superset";
+		const chatLaunchConfig = isSupersetChat
+			? {
+					initialPrompt: prompt || undefined,
+				}
+			: null;
 		const agentCommand =
-			selectedAgent === "none"
-				? null
-				: prompt
+			selectedWorkspaceAgent && isTerminalAgentType(selectedWorkspaceAgent)
+				? prompt
 					? buildAgentPromptCommand({
 							prompt,
 							randomId: window.crypto.randomUUID(),
-							agent: selectedAgent,
+							agent: selectedWorkspaceAgent,
 						})
-					: (AGENT_PRESET_COMMANDS[selectedAgent][0] ?? null);
+					: (AGENT_PRESET_COMMANDS[selectedWorkspaceAgent][0] ?? null)
+				: null;
 
 		closeModal();
 
@@ -278,11 +288,19 @@ export function NewWorkspaceModal() {
 					baseBranch: baseBranch || undefined,
 					applyPrefix,
 				},
-				agentCommand ? { agentCommand } : undefined,
+				agentCommand
+					? { agentCommand }
+					: chatLaunchConfig
+						? { chatLaunchConfig }
+						: undefined,
 			);
 
-			if (agentCommand) {
-				if (result.wasExisting) {
+			if (result.wasExisting) {
+				if (isSupersetChat) {
+					addChatMastraTab(result.workspace.id, {
+						launchConfig: chatLaunchConfig,
+					});
+				} else if (agentCommand) {
 					const { tabId, paneId } = addTab(result.workspace.id);
 					setTabAutoTitle(tabId, "Agent");
 					try {

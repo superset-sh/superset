@@ -48,7 +48,7 @@ export interface TaskInput {
 	labels: string[] | null;
 }
 
-function buildPrompt(task: TaskInput): string {
+export function buildAgentTaskPrompt(task: TaskInput): string {
 	const metadata = [
 		`Priority: ${task.priority}`,
 		task.statusName && `Status: ${task.statusName}`,
@@ -143,7 +143,7 @@ export function buildAgentCommand({
 	randomId: string;
 	agent?: AgentType;
 }): string {
-	const prompt = buildPrompt(task);
+	const prompt = buildAgentTaskPrompt(task);
 	return buildAgentPromptCommand({ prompt, randomId, agent });
 }
 

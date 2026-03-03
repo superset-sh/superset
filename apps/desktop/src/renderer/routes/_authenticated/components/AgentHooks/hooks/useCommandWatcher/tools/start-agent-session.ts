@@ -5,11 +5,30 @@ import { z } from "zod";
 import type { CommandResult, ToolContext, ToolDefinition } from "./types";
 
 const schema = z.object({
-	command: z.string(),
+	command: z.string().optional(),
 	name: z.string(),
 	workspaceId: z.string(),
 	paneId: z.string().optional(),
+	chatLaunchConfig: z
+		.object({
+			initialPrompt: z.string().optional(),
+			metadata: z
+				.object({
+					model: z.string().optional(),
+				})
+				.optional(),
+		})
+		.optional(),
+	openChatPane: z.boolean().optional(),
 });
+
+function hasChatLaunchRequest(params: z.infer<typeof schema>): boolean {
+	return Boolean(params.chatLaunchConfig || params.openChatPane);
+}
+
+function hasActionablePayload(params: z.infer<typeof schema>): boolean {
+	return Boolean(params.command || hasChatLaunchRequest(params));
+}
 
 async function execute(
 	params: z.infer<typeof schema>,
@@ -25,6 +44,13 @@ async function execute(
 		return {
 			success: false,
 			error: `Workspace not found: ${params.workspaceId}`,
+		};
+	}
+	if (!hasActionablePayload(params)) {
+		return {
+			success: false,
+			error:
+				"Missing payload: provide command or chat launch config for start_agent_session.",
 		};
 	}
 
@@ -44,6 +70,28 @@ async function execute(
 				return {
 					success: false,
 					error: `Tab not found for pane: ${params.paneId}`,
+				};
+			}
+
+			if (hasChatLaunchRequest(params)) {
+				const chatPaneId = tabsStore.addChatMastraPane(tab.id, {
+					launchConfig: params.chatLaunchConfig ?? null,
+				});
+				if (!chatPaneId) {
+					return {
+						success: false,
+						error: "Failed to add chat pane",
+					};
+				}
+				return {
+					success: true,
+					data: { workspaceId: workspace.id, paneId: chatPaneId },
+				};
+			}
+			if (!params.command) {
+				return {
+					success: false,
+					error: "No agent command provided",
 				};
 			}
 
@@ -88,7 +136,10 @@ async function execute(
 			projectId: pending?.projectId ?? workspace.projectId,
 			initialCommands: pending?.initialCommands ?? null,
 			defaultPresets: pending?.defaultPresets,
-			agentCommand: params.command,
+			agentCommand: params.command ?? pending?.agentCommand,
+			chatLaunchConfig: params.chatLaunchConfig ?? pending?.chatLaunchConfig,
+			openChatPane: params.openChatPane ?? pending?.openChatPane,
+			worktreePath: pending?.worktreePath,
 		});
 
 		return {

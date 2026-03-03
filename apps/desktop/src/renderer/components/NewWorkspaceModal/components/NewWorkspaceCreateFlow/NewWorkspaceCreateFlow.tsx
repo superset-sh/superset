@@ -1,8 +1,3 @@
-import {
-	AGENT_LABELS,
-	AGENT_TYPES,
-	type AgentType,
-} from "@superset/shared/agent-command";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import {
@@ -20,9 +15,14 @@ import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import {
+	WORKSPACE_AGENT_LABELS,
+	WORKSPACE_AGENT_TYPES,
+	type WorkspaceAgentType,
+} from "renderer/lib/workspace-agent";
 import { useHotkeysStore } from "renderer/stores/hotkeys";
 
-export type WorkspaceCreateAgent = AgentType | "none";
+export type WorkspaceCreateAgent = WorkspaceAgentType | "none";
 
 interface NewWorkspaceCreateFlowProps {
 	projectSelector: ReactNode;
@@ -80,7 +80,7 @@ export function NewWorkspaceCreateFlow({
 						</Tooltip>
 						<SelectContent>
 							<SelectItem value="none">No agent</SelectItem>
-							{AGENT_TYPES.map((agent) => {
+							{WORKSPACE_AGENT_TYPES.map((agent) => {
 								const icon = getPresetIcon(agent, isDark);
 								return (
 									<SelectItem key={agent} value={agent}>
@@ -92,7 +92,7 @@ export function NewWorkspaceCreateFlow({
 													className="size-3.5 object-contain"
 												/>
 											)}
-											{AGENT_LABELS[agent]}
+											{WORKSPACE_AGENT_LABELS[agent]}
 										</span>
 									</SelectItem>
 								);

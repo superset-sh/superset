@@ -1,11 +1,17 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@superset/db/client";
 import { taskStatuses, tasks } from "@superset/db/schema";
-import { AGENT_TYPES, buildAgentCommand } from "@superset/shared/agent-command";
+import {
+	AGENT_TYPES,
+	buildAgentCommand,
+	buildAgentTaskPrompt,
+} from "@superset/shared/agent-command";
 import { and, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { executeOnDevice, getMcpContext } from "../../utils";
+
+const MCP_AGENT_TYPES = [...AGENT_TYPES, "superset"] as const;
 
 async function fetchTask({
 	taskId,
@@ -45,12 +51,14 @@ function validateArgs(args: Record<string, unknown>): {
 	workspaceId: string;
 	paneId?: string;
 	agent?: string;
+	model?: string;
 } | null {
 	const deviceId = args.deviceId as string;
 	const taskId = args.taskId as string;
 	const workspaceId = args.workspaceId as string;
 	const paneId = args.paneId as string | undefined;
 	const agent = args.agent as string | undefined;
+	const model = args.model as string | undefined;
 	if (!deviceId || !taskId || !workspaceId) return null;
 	return {
 		deviceId,
@@ -58,6 +66,7 @@ function validateArgs(args: Record<string, unknown>): {
 		workspaceId,
 		...(paneId ? { paneId } : {}),
 		...(agent ? { agent } : {}),
+		...(model ? { model } : {}),
 	};
 }
 
@@ -97,10 +106,16 @@ export function register(server: McpServer) {
 						"Optional pane ID. When provided, adds a new pane to the tab containing this pane instead of initializing the workspace.",
 					),
 				agent: z
-					.enum(AGENT_TYPES)
+					.enum(MCP_AGENT_TYPES)
 					.optional()
 					.describe(
-						'AI agent to use: "claude", "codex", "gemini", "opencode", "copilot", or "cursor-agent". Defaults to "claude".',
+						'AI agent to use: "claude", "codex", "gemini", "opencode", "copilot", "cursor-agent", or "superset". Defaults to "claude".',
+					),
+				model: z
+					.string()
+					.optional()
+					.describe(
+						"Optional model ID for superset chat agent (for example: gpt-5).",
 					),
 			},
 		},
@@ -110,13 +125,32 @@ export function register(server: McpServer) {
 			if (!validated) return ERROR_ARGS_REQUIRED;
 
 			const agent =
-				(validated.agent as (typeof AGENT_TYPES)[number]) ?? "claude";
+				(validated.agent as (typeof MCP_AGENT_TYPES)[number]) ?? "claude";
 
 			const task = await fetchTask({
 				taskId: validated.taskId,
 				organizationId: ctx.organizationId,
 			});
 			if (!task) return ERROR_TASK_NOT_FOUND;
+
+			if (agent === "superset") {
+				return executeOnDevice({
+					ctx,
+					deviceId: validated.deviceId,
+					tool: "start_agent_session",
+					params: {
+						chatLaunchConfig: {
+							initialPrompt: buildAgentTaskPrompt(task),
+							...(validated.model
+								? { metadata: { model: validated.model } }
+								: {}),
+						},
+						name: task.slug,
+						workspaceId: validated.workspaceId,
+						...(validated.paneId ? { paneId: validated.paneId } : {}),
+					},
+				});
+			}
 
 			return executeOnDevice({
 				ctx,
