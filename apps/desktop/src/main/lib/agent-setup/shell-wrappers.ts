@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { SUPERSET_MANAGED_BINARIES } from "./agent-wrappers-common";
 import { BASH_DIR, BIN_DIR, ZSH_DIR } from "./paths";
 
 export interface ShellWrapperPaths {
@@ -15,8 +16,19 @@ const DEFAULT_PATHS: ShellWrapperPaths = {
 	BASH_DIR,
 };
 
+const modeDiagnosticsLogged = new Set<string>();
+
 function getShellName(shell: string): string {
 	return shell.split("/").pop() || shell;
+}
+
+function logModeDiagnostics(shellName: string): void {
+	const key = `${shellName}:native`;
+	if (modeDiagnosticsLogged.has(key)) return;
+	modeDiagnosticsLogged.add(key);
+	console.debug(
+		`[agent-setup] shell integration mode=native shell=${shellName}`,
+	);
 }
 
 function writeFileIfChanged(
@@ -45,25 +57,10 @@ function writeFileIfChanged(
 	return true;
 }
 
-/** Agent binaries that get wrapper shims to guarantee resolution. */
-const SHIMMED_BINARIES = [
-	"claude",
-	"codex",
-	"opencode",
-	"gemini",
-	"copilot",
-	"mastracode",
-];
-
-/**
- * Shell function shims that override PATH-based lookup.
- * Functions take precedence over PATH in both zsh and bash,
- * so even if a precmd hook or .zlogin re-orders PATH, the
- * wrapped binary is always invoked.
- */
-function buildShimFunctions(binDir: string): string {
-	return SHIMMED_BINARIES.map(
-		(name) => `${name}() { "${binDir}/${name}" "$@"; }`,
+function buildManagedCommandPrelude(binDir: string): string {
+	return SUPERSET_MANAGED_BINARIES.map(
+		(name) =>
+			`unalias ${name} 2>/dev/null || true\n${name}() { "${binDir}/${name}" "$@"; }`,
 	).join("\n");
 }
 
@@ -87,6 +84,8 @@ function escapeFishDoubleQuoted(value: string): string {
 export function createZshWrapper(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): void {
+	logModeDiagnostics("zsh");
+
 	// .zshenv is always sourced first by zsh (interactive + non-interactive).
 	// Temporarily restore the user's ZDOTDIR while sourcing user config, then
 	// switch back so zsh continues through our wrapper chain.
@@ -117,7 +116,6 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
 ${buildPathPrependFunction(paths.BIN_DIR)}
-${buildShimFunctions(paths.BIN_DIR)}
 rehash 2>/dev/null || true
 # Restore ZDOTDIR so our .zlogin runs after user's .zlogin
 export ZDOTDIR="${paths.ZSH_DIR}"
@@ -126,9 +124,8 @@ export ZDOTDIR="${paths.ZSH_DIR}"
 
 	// .zlogin runs AFTER .zshrc in login shells. By restoring ZDOTDIR above,
 	// zsh sources our .zlogin instead of the user's directly. We source the
-	// user's .zlogin only for interactive shells, then re-apply command shims
-	// and prepend BIN_DIR so tools like mise, nvm, or PATH exports in .zlogin
-	// can't shadow our wrappers.
+	// user's .zlogin only for interactive shells, then re-assert Superset's
+	// PATH prepend after user startup hooks run.
 	const zloginPath = path.join(paths.ZSH_DIR, ".zlogin");
 	const zloginScript = `# Superset zsh login wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
@@ -137,7 +134,6 @@ if [[ -o interactive ]]; then
   [[ -f "$_superset_home/.zlogin" ]] && source "$_superset_home/.zlogin"
 fi
 ${buildPathPrependFunction(paths.BIN_DIR)}
-${buildShimFunctions(paths.BIN_DIR)}
 rehash 2>/dev/null || true
 export ZDOTDIR="$_superset_home"
 `;
@@ -151,6 +147,8 @@ export ZDOTDIR="$_superset_home"
 export function createBashWrapper(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): void {
+	logModeDiagnostics("bash");
+
 	const rcfilePath = path.join(paths.BASH_DIR, "rcfile");
 	const script = `# Superset bash rcfile wrapper
 
@@ -171,7 +169,6 @@ fi
 
 # Keep superset bin first without duplicating entries
 ${buildPathPrependFunction(paths.BIN_DIR)}
-${buildShimFunctions(paths.BIN_DIR)}
 hash -r 2>/dev/null || true
 # Minimal prompt (path/env shown in toolbar) - emerald to match app theme
 export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
@@ -199,6 +196,7 @@ export function getShellArgs(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
 	const shellName = getShellName(shell);
+	logModeDiagnostics(shellName);
 	if (shellName === "bash") {
 		return ["--rcfile", path.join(paths.BASH_DIR, "rcfile")];
 	}
@@ -226,6 +224,7 @@ export function getShellArgs(
  * Unlike getShellArgs (interactive), we must source profiles inline because:
  * - zsh skips .zshrc for non-interactive shells
  * - bash ignores --rcfile when -c is present
+ * - managed binary prelude enforces wrapper paths for app-owned commands
  */
 export function getCommandShellArgs(
 	shell: string,
@@ -233,13 +232,15 @@ export function getCommandShellArgs(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
 	const shellName = getShellName(shell);
+	logModeDiagnostics(shellName);
 	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");
 	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");
+	const commandWithManagedPrelude = `${buildManagedCommandPrelude(paths.BIN_DIR)}\n${command}`;
 	if (shellName === "zsh" && fs.existsSync(zshRc)) {
-		return ["-lc", `source "${zshRc}" && ${command}`];
+		return ["-lc", `source "${zshRc}" &&\n${commandWithManagedPrelude}`];
 	}
 	if (shellName === "bash" && fs.existsSync(bashRcfile)) {
-		return ["-c", `source "${bashRcfile}" && ${command}`];
+		return ["-c", `source "${bashRcfile}" &&\n${commandWithManagedPrelude}`];
 	}
-	return ["-lc", command];
+	return ["-lc", commandWithManagedPrelude];
 }
