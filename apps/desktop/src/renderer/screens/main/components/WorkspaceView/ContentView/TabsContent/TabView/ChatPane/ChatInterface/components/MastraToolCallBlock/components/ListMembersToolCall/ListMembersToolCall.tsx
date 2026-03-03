@@ -31,6 +31,8 @@ export function ListMembersToolCall({ part }: ListMembersToolCallProps) {
 					{members.length > 0 ? (
 						<div className="space-y-1">
 							{members.map((member, index) => {
+								const memberId =
+									typeof member.id === "string" ? member.id : null;
 								const name =
 									typeof member.name === "string"
 										? member.name
@@ -43,7 +45,7 @@ export function ListMembersToolCall({ part }: ListMembersToolCallProps) {
 									typeof member.role === "string" ? member.role : null;
 								return (
 									<div
-										key={`${name}-${index}`}
+										key={memberId ?? `${name}-${email ?? "unknown"}`}
 										className="rounded border bg-background/70 px-2 py-1"
 									>
 										<div className="font-medium text-foreground">{name}</div>

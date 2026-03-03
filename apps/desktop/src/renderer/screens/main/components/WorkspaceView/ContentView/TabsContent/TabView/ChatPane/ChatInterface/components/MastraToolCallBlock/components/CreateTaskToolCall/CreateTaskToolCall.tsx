@@ -2,32 +2,16 @@ import { useNavigate } from "@tanstack/react-router";
 import { FilePlusIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import {
+	formatTaskDate,
+	toRecord,
+	toStringArray,
+} from "../../utils/taskToolCallHelpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface CreateTaskToolCallProps {
 	part: ToolPart;
-}
-
-function toRecord(value: unknown): Record<string, unknown> | null {
-	if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-		return value as Record<string, unknown>;
-	}
-	return null;
-}
-
-function toStringArray(value: unknown): string[] {
-	if (!Array.isArray(value)) return [];
-	return value
-		.map((item) => (typeof item === "string" ? item.trim() : String(item)))
-		.filter((item) => item.length > 0);
-}
-
-function formatDate(value: unknown): string | null {
-	if (typeof value !== "string" || value.trim().length === 0) return null;
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return value;
-	return date.toLocaleDateString();
 }
 
 export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
@@ -45,8 +29,14 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 			)
 		: [];
 	const requestedTasks = Array.isArray(args.tasks)
-		? args.tasks.map((task) => toRecord(task)).filter(Boolean)
-		: [];
+		? args.tasks
+				.map((task) => toRecord(task))
+				.filter((task): task is Record<string, unknown> => task !== null)
+		: Object.keys(args).length > 0
+			? [toRecord(args)].filter(
+					(task): task is Record<string, unknown> => task !== null,
+				)
+			: [];
 
 	return (
 		<SupersetToolCall
@@ -61,16 +51,35 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 								Created ({created.length})
 							</div>
 							<div className="space-y-1">
-								{created.map((task, index) => {
-									const requested = requestedTasks[index] ?? null;
+								{created.map((task) => {
+									const taskId = typeof task.id === "string" ? task.id : null;
+									const slug = typeof task.slug === "string" ? task.slug : null;
+									const requested =
+										requestedTasks.find((candidate) => {
+											if (!candidate) return false;
+											if (
+												taskId &&
+												typeof candidate.taskId === "string" &&
+												candidate.taskId === taskId
+											) {
+												return true;
+											}
+											if (
+												slug &&
+												typeof candidate.slug === "string" &&
+												candidate.slug === slug
+											) {
+												return true;
+											}
+											return false;
+										}) ??
+										(requestedTasks.length === 1 ? requestedTasks[0] : null);
 									const title =
 										typeof task.title === "string"
 											? task.title
 											: typeof requested?.title === "string"
 												? requested.title
 												: "Untitled task";
-									const slug = typeof task.slug === "string" ? task.slug : null;
-									const taskId = typeof task.id === "string" ? task.id : null;
 									const openTaskId = taskId ?? slug;
 									const priority =
 										typeof requested?.priority === "string"
@@ -80,7 +89,7 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 										typeof requested?.assigneeId === "string"
 											? requested.assigneeId
 											: null;
-									const dueDate = formatDate(requested?.dueDate);
+									const dueDate = formatTaskDate(requested?.dueDate);
 									const labels = toStringArray(requested?.labels);
 									const description =
 										typeof requested?.description === "string"
@@ -89,7 +98,7 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 
 									return (
 										<TaskItemDisplay
-											key={`${title}-${slug ?? index}`}
+											key={taskId ?? slug ?? title}
 											assignee={assignee}
 											description={description}
 											dueDate={dueDate}
@@ -98,12 +107,13 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 											slug={slug}
 											taskId={taskId}
 											title={title}
-											onClick={() =>
+											onClick={
 												openTaskId
-													? navigate({
-															to: "/tasks/$taskId",
-															params: { taskId: openTaskId },
-														})
+													? () =>
+															navigate({
+																to: "/tasks/$taskId",
+																params: { taskId: openTaskId },
+															})
 													: undefined
 											}
 										/>

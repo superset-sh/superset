@@ -2,32 +2,16 @@ import { useNavigate } from "@tanstack/react-router";
 import { FilePenIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import {
+	formatTaskDate,
+	toRecord,
+	toStringArray,
+} from "../../utils/taskToolCallHelpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface UpdateTaskToolCallProps {
 	part: ToolPart;
-}
-
-function toRecord(value: unknown): Record<string, unknown> | null {
-	if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-		return value as Record<string, unknown>;
-	}
-	return null;
-}
-
-function toStringArray(value: unknown): string[] {
-	if (!Array.isArray(value)) return [];
-	return value
-		.map((item) => (typeof item === "string" ? item.trim() : String(item)))
-		.filter((item) => item.length > 0);
-}
-
-function formatDate(value: unknown): string | null {
-	if (typeof value !== "string" || value.trim().length === 0) return null;
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return value;
-	return date.toLocaleDateString();
 }
 
 export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
@@ -45,8 +29,20 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 			)
 		: [];
 	const updates = Array.isArray(args.updates)
-		? args.updates.map((update) => toRecord(update)).filter(Boolean)
+		? args.updates
+				.map((update) => toRecord(update))
+				.filter((update): update is Record<string, unknown> => update !== null)
 		: [];
+	const updatesByTaskId = new Map<string, Record<string, unknown>>();
+	const updatesBySlug = new Map<string, Record<string, unknown>>();
+	for (const update of updates) {
+		if (typeof update.taskId === "string") {
+			updatesByTaskId.set(update.taskId, update);
+		}
+		if (typeof update.slug === "string") {
+			updatesBySlug.set(update.slug, update);
+		}
+	}
 
 	return (
 		<SupersetToolCall
@@ -61,23 +57,26 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 								Updated ({updated.length})
 							</div>
 							<div className="space-y-1">
-								{updated.map((task, index) => {
-									const update = updates[index] ?? null;
+								{updated.map((task) => {
 									const title =
 										typeof task.title === "string"
 											? task.title
 											: "Updated task";
 									const slug = typeof task.slug === "string" ? task.slug : null;
-									const taskId =
-										typeof task.id === "string"
-											? task.id
-											: typeof update?.taskId === "string"
-												? update.taskId
-												: null;
-									const openTaskId = taskId ?? slug;
+									const taskId = typeof task.id === "string" ? task.id : null;
+									const matchedUpdate =
+										(taskId ? updatesByTaskId.get(taskId) : undefined) ??
+										(slug ? updatesBySlug.get(slug) : undefined) ??
+										(updates.length === 1 ? updates[0] : null);
+									const resolvedTaskId =
+										taskId ??
+										(typeof matchedUpdate?.taskId === "string"
+											? matchedUpdate.taskId
+											: null);
+									const openTaskId = resolvedTaskId ?? slug;
 									const changedFields = (
-										update
-											? Object.entries(update).filter(
+										matchedUpdate
+											? Object.entries(matchedUpdate).filter(
 													([key, value]) =>
 														![
 															"taskId",
@@ -103,48 +102,48 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 											: String(value).slice(0, 80),
 									}));
 									const status =
-										typeof update?.statusName === "string"
-											? update.statusName
-											: typeof update?.statusId === "string"
-												? update.statusId
+										typeof matchedUpdate?.statusName === "string"
+											? matchedUpdate.statusName
+											: typeof matchedUpdate?.statusId === "string"
+												? matchedUpdate.statusId
 												: null;
 									const statusType =
-										typeof update?.statusType === "string"
-											? update.statusType
+										typeof matchedUpdate?.statusType === "string"
+											? matchedUpdate.statusType
 											: null;
 									const statusColor =
-										typeof update?.statusColor === "string"
-											? update.statusColor
+										typeof matchedUpdate?.statusColor === "string"
+											? matchedUpdate.statusColor
 											: null;
 									const statusProgress =
-										typeof update?.statusProgress === "number"
-											? update.statusProgress
+										typeof matchedUpdate?.statusProgress === "number"
+											? matchedUpdate.statusProgress
 											: null;
-									const labels = toStringArray(update?.labels);
+									const labels = toStringArray(matchedUpdate?.labels);
 									const priority =
-										typeof update?.priority === "string"
-											? update.priority
+										typeof matchedUpdate?.priority === "string"
+											? matchedUpdate.priority
 											: null;
 									const assignee =
-										typeof update?.assigneeName === "string"
-											? update.assigneeName
-											: typeof update?.assigneeId === "string"
-												? update.assigneeId
+										typeof matchedUpdate?.assigneeName === "string"
+											? matchedUpdate.assigneeName
+											: typeof matchedUpdate?.assigneeId === "string"
+												? matchedUpdate.assigneeId
 												: null;
-									const dueDate = formatDate(update?.dueDate);
+									const dueDate = formatTaskDate(matchedUpdate?.dueDate);
 									const estimate =
-										typeof update?.estimate === "number" ||
-										typeof update?.estimate === "string"
-											? String(update.estimate)
+										typeof matchedUpdate?.estimate === "number" ||
+										typeof matchedUpdate?.estimate === "string"
+											? String(matchedUpdate.estimate)
 											: null;
 									const description =
-										typeof update?.description === "string"
-											? update.description
+										typeof matchedUpdate?.description === "string"
+											? matchedUpdate.description
 											: null;
 
 									return (
 										<TaskItemDisplay
-											key={`${title}-${slug ?? index}`}
+											key={resolvedTaskId ?? slug ?? title}
 											assignee={assignee}
 											description={description}
 											dueDate={dueDate}
@@ -157,14 +156,15 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 											statusColor={statusColor}
 											statusProgress={statusProgress}
 											statusType={statusType}
-											taskId={taskId}
+											taskId={resolvedTaskId}
 											title={title}
-											onClick={() =>
+											onClick={
 												openTaskId
-													? navigate({
-															to: "/tasks/$taskId",
-															params: { taskId: openTaskId },
-														})
+													? () =>
+															navigate({
+																to: "/tasks/$taskId",
+																params: { taskId: openTaskId },
+															})
 													: undefined
 											}
 										/>

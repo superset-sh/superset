@@ -2,25 +2,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { FileSearchIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import { formatTaskDate, toStringArray } from "../../utils/taskToolCallHelpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface GetTaskToolCallProps {
 	part: ToolPart;
-}
-
-function toStringArray(value: unknown): string[] {
-	if (!Array.isArray(value)) return [];
-	return value
-		.map((item) => (typeof item === "string" ? item.trim() : String(item)))
-		.filter((item) => item.length > 0);
-}
-
-function formatDate(value: unknown): string | null {
-	if (typeof value !== "string" || value.trim().length === 0) return null;
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return value;
-	return date.toLocaleDateString();
 }
 
 export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
@@ -48,7 +35,7 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 	const labels = toStringArray(task?.labels);
 	const description =
 		typeof task?.description === "string" ? task.description : null;
-	const dueDate = formatDate(task?.dueDate);
+	const dueDate = formatTaskDate(task?.dueDate);
 	const status = typeof task?.statusName === "string" ? task.statusName : null;
 	const statusType =
 		typeof task?.statusType === "string" ? task.statusType : null;
@@ -121,12 +108,13 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 								typeof task.title === "string" ? task.title : "Task details"
 							}
 							assigneeImage={assigneeImage}
-							onClick={() =>
+							onClick={
 								openTaskId
-									? navigate({
-											to: "/tasks/$taskId",
-											params: { taskId: openTaskId },
-										})
+									? () =>
+											navigate({
+												to: "/tasks/$taskId",
+												params: { taskId: openTaskId },
+											})
 									: undefined
 							}
 						/>

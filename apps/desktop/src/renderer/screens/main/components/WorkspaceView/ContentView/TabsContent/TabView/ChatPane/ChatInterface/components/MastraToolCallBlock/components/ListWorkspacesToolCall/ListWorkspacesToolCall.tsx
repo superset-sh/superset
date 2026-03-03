@@ -6,9 +6,7 @@ interface ListWorkspacesToolCallProps {
 	part: ToolPart;
 }
 
-export function ListWorkspacesToolCall({
-	part,
-}: ListWorkspacesToolCallProps) {
+export function ListWorkspacesToolCall({ part }: ListWorkspacesToolCallProps) {
 	return (
 		<SupersetToolCall
 			part={part}

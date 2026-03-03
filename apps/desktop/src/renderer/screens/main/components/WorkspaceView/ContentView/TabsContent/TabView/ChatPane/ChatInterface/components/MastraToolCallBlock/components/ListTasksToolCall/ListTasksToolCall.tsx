@@ -2,25 +2,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { ClipboardListIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getResult } from "../../../../utils/tool-helpers";
+import { formatTaskDate, toStringArray } from "../../utils/taskToolCallHelpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
 
 interface ListTasksToolCallProps {
 	part: ToolPart;
-}
-
-function toStringArray(value: unknown): string[] {
-	if (!Array.isArray(value)) return [];
-	return value
-		.map((item) => (typeof item === "string" ? item.trim() : String(item)))
-		.filter((item) => item.length > 0);
-}
-
-function formatDate(value: unknown): string | null {
-	if (typeof value !== "string" || value.trim().length === 0) return null;
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return value;
-	return date.toLocaleDateString();
 }
 
 export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
@@ -57,7 +44,7 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 					</div>
 					{tasks.length > 0 ? (
 						<div className="space-y-1">
-							{tasks.slice(0, 6).map((task, index) => {
+							{tasks.slice(0, 6).map((task) => {
 								const taskId = typeof task.id === "string" ? task.id : null;
 								const slug = typeof task.slug === "string" ? task.slug : null;
 								const openTaskId = taskId ?? slug;
@@ -87,7 +74,7 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 										: typeof task.assigneeAvatarUrl === "string"
 											? task.assigneeAvatarUrl
 											: null;
-								const dueDate = formatDate(task.dueDate);
+								const dueDate = formatTaskDate(task.dueDate);
 								const estimate =
 									typeof task.estimate === "number"
 										? String(task.estimate)
@@ -115,7 +102,7 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 
 								return (
 									<TaskItemDisplay
-										key={`${taskId ?? slug ?? title}-${index}`}
+										key={taskId ?? slug ?? title}
 										assignee={assignee}
 										description={description}
 										dueDate={dueDate}
@@ -131,12 +118,13 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 										taskId={taskId}
 										title={title}
 										assigneeImage={assigneeImage}
-										onClick={() =>
+										onClick={
 											openTaskId
-												? navigate({
-														to: "/tasks/$taskId",
-														params: { taskId: openTaskId },
-													})
+												? () =>
+														navigate({
+															to: "/tasks/$taskId",
+															params: { taskId: openTaskId },
+														})
 												: undefined
 										}
 									/>

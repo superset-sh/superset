@@ -94,7 +94,9 @@ export function SupersetToolCall({
 				<CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in">
 					<div className="mt-0.5 space-y-1">
 						{details ? (
-							<div className="rounded border bg-muted/20 p-2.5 text-xs">{details}</div>
+							<div className="rounded border bg-muted/20 p-2.5 text-xs">
+								{details}
+							</div>
 						) : null}
 						{isError && errorText ? (
 							<div className="rounded border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive">
