@@ -5,7 +5,6 @@ import {
 	STARTABLE_AGENT_TYPES,
 	type StartableAgentType,
 } from "@superset/shared/agent-launch";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -21,7 +20,6 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import {
@@ -30,10 +28,8 @@ import {
 } from "renderer/assets/app-icons/preset-icons";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
-import { useTabsStore } from "renderer/stores/tabs/store";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { buildAgentCommand } from "../../../../utils/buildAgentCommand";
 import { deriveBranchName } from "../../../../utils/deriveBranchName";
@@ -43,24 +39,14 @@ interface OpenInWorkspaceProps {
 }
 
 export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
-	const isOrchestratorEnabled = useFeatureFlagEnabled(
-		FEATURE_FLAGS.DESKTOP_AGENT_LAUNCH_ORCHESTRATOR_V1,
-	);
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
-	const addTab = useTabsStore((s) => s.addTab);
-	const removePane = useTabsStore((s) => s.removePane);
-	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const isDark = useIsDarkTheme();
-	const selectableAgents = isOrchestratorEnabled
-		? (STARTABLE_AGENT_TYPES as readonly StartableAgentType[])
-		: (STARTABLE_AGENT_TYPES.filter(
-				(agent) => agent !== "superset-chat",
-			) as readonly StartableAgentType[]);
+	const selectableAgents = STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
 	);
@@ -146,25 +132,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			slug: task.slug,
 			title: task.title,
 		});
-		const launchRequestTemplate = isOrchestratorEnabled
-			? buildLaunchRequest("pending-workspace")
-			: null;
-		const legacyCommand =
-			!isOrchestratorEnabled && selectedAgent !== "superset-chat"
-				? buildAgentCommand({
-						task: {
-							id: task.id,
-							slug: task.slug,
-							title: task.title,
-							description: task.description,
-							priority: task.priority,
-							statusName: task.status.name,
-							labels: task.labels,
-						},
-						randomId: window.crypto.randomUUID(),
-						agent: selectedAgent,
-					})
-				: null;
+		const launchRequestTemplate = buildLaunchRequest("pending-workspace");
 
 		try {
 			const result = await createWorkspace.mutateAsyncWithPendingSetup(
@@ -175,9 +143,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				},
 				launchRequestTemplate
 					? { agentLaunchRequest: launchRequestTemplate }
-					: legacyCommand
-						? { agentCommand: legacyCommand }
-						: undefined,
+					: undefined,
 			);
 
 			const launchRequest = launchRequestTemplate
@@ -187,45 +153,20 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					}
 				: null;
 
-			if (isOrchestratorEnabled) {
-				if (!launchRequest) {
-					return;
-				}
-				if (result.wasExisting) {
-					const launchResult = await launchAgentSession(launchRequest, {
-						source: "open-in-workspace",
-						createOrAttach: (input) =>
-							terminalCreateOrAttach.mutateAsync(input),
-						write: (input) => terminalWrite.mutateAsync(input),
-					});
-					if (launchResult.status === "failed") {
-						toast.error("Failed to start agent", {
-							description:
-								launchResult.error ?? "Failed to start agent session.",
-						});
-						return;
-					}
-				}
-			} else if (legacyCommand && result.wasExisting) {
-				const { tabId, paneId } = addTab(result.workspace.id);
-				setTabAutoTitle(tabId, "Agent");
-				try {
-					await launchCommandInPane({
-						paneId,
-						tabId,
-						workspaceId: result.workspace.id,
-						command: legacyCommand,
-						createOrAttach: (input) =>
-							terminalCreateOrAttach.mutateAsync(input),
-						write: (input) => terminalWrite.mutateAsync(input),
-					});
-				} catch (error) {
-					removePane(paneId);
+			if (!launchRequest) {
+				return;
+			}
+			if (result.wasExisting) {
+				const launchResult = await launchAgentSession(launchRequest, {
+					source: "open-in-workspace",
+					createOrAttach: (input) =>
+						terminalCreateOrAttach.mutateAsync(input),
+					write: (input) => terminalWrite.mutateAsync(input),
+				});
+				if (launchResult.status === "failed") {
 					toast.error("Failed to start agent", {
 						description:
-							error instanceof Error
-								? error.message
-								: "Failed to start agent terminal session.",
+							launchResult.error ?? "Failed to start agent session.",
 					});
 					return;
 				}
