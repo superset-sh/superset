@@ -11,7 +11,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
@@ -26,6 +26,11 @@ import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import type { ChatMastraInterfaceProps } from "./types";
+import {
+	hasMatchingUserMessage,
+	type MastraHistoryMessage,
+	toOptimisticUserMessage,
+} from "./utils/optimisticUserMessage";
 import {
 	type ChatSendMessageInput,
 	sendMessageForSession,
@@ -123,6 +128,8 @@ export function ChatMastraInterface({
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
 	const [interruptedMessage, setInterruptedMessage] =
 		useState<InterruptedMessage | null>(null);
+	const [pendingImmediateUserMessage, setPendingImmediateUserMessage] =
+		useState<MastraHistoryMessage | null>(null);
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
@@ -204,11 +211,36 @@ export function ChatMastraInterface({
 
 	const sendMessageToSession = useCallback(
 		async (targetSessionId: string, input: ChatSendMessageInput) => {
-			await chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
+			const queryInput = {
 				sessionId: targetSessionId,
 				...(cwd ? { cwd } : {}),
-				...input,
-			});
+			};
+			const optimisticMessage = toOptimisticUserMessage(input);
+			if (optimisticMessage) {
+				chatMastraServiceTrpcUtils.session.listMessages.setData(
+					queryInput,
+					(existingMessages = []) => [...existingMessages, optimisticMessage],
+				);
+			}
+
+			try {
+				await chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
+					sessionId: targetSessionId,
+					...(cwd ? { cwd } : {}),
+					...input,
+				});
+			} catch (error) {
+				if (optimisticMessage) {
+					chatMastraServiceTrpcUtils.session.listMessages.setData(
+						queryInput,
+						(existingMessages = []) =>
+							existingMessages.filter(
+								(message) => message.id !== optimisticMessage.id,
+							),
+					);
+				}
+				throw error;
+			}
 		},
 		[chatMastraServiceTrpcUtils, cwd],
 	);
@@ -302,11 +334,37 @@ export function ChatMastraInterface({
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
 		setInterruptedMessage(null);
+		setPendingImmediateUserMessage(null);
 		resetMcpUi();
 		if (sessionId) {
 			void refreshMcpOverview();
 		}
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
+
+	useEffect(() => {
+		if (!pendingImmediateUserMessage) return;
+		if (
+			hasMatchingUserMessage({
+				messages,
+				candidate: pendingImmediateUserMessage,
+			})
+		) {
+			setPendingImmediateUserMessage(null);
+		}
+	}, [messages, pendingImmediateUserMessage]);
+
+	const visibleMessages = useMemo(() => {
+		if (!pendingImmediateUserMessage) return messages;
+		if (
+			hasMatchingUserMessage({
+				messages,
+				candidate: pendingImmediateUserMessage,
+			})
+		) {
+			return messages;
+		}
+		return [...messages, pendingImmediateUserMessage];
+	}, [messages, pendingImmediateUserMessage]);
 
 	useEffect(() => {
 		if (isRunning) {
@@ -376,6 +434,13 @@ export function ChatMastraInterface({
 					model: activeModel?.id,
 				},
 			};
+			const immediateUserMessage =
+				sessionId && !isSessionReady
+					? toOptimisticUserMessage(sendInput)
+					: null;
+			if (immediateUserMessage) {
+				setPendingImmediateUserMessage(immediateUserMessage);
+			}
 
 			let targetSessionId = sessionId;
 			try {
@@ -393,6 +458,13 @@ export function ChatMastraInterface({
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
+				if (immediateUserMessage) {
+					setPendingImmediateUserMessage((previousMessage) =>
+						previousMessage?.id === immediateUserMessage.id
+							? null
+							: previousMessage,
+					);
+				}
 				if (error instanceof Error) throw error;
 				throw new Error(sendErrorMessage);
 			}
@@ -630,7 +702,7 @@ export function ChatMastraInterface({
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
-					messages={messages}
+					messages={visibleMessages}
 					isRunning={canAbort}
 					isAwaitingAssistant={isAwaitingAssistant}
 					currentMessage={currentMessage ?? null}
