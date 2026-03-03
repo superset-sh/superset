@@ -45,6 +45,14 @@ function writeFileIfChanged(
 	return true;
 }
 
+function removeFileIfExists(filePath: string): boolean {
+	if (!fs.existsSync(filePath)) {
+		return false;
+	}
+	fs.unlinkSync(filePath);
+	return true;
+}
+
 function escapeFishDoubleQuoted(value: string): string {
 	return value
 		.replaceAll("\\", "\\\\")
@@ -93,8 +101,8 @@ fi
   _superset_file="\${ZDOTDIR-$HOME}/.zshenv"
   [[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
 } always {
-  if [[ -o interactive && "\${SUPERSET_SHELL_INTEGRATION:-1}" != "0" ]]; then
-    _superset_integ="\${SUPERSET_SHELL_INTEGRATION_DIR:-${paths.ZSH_DIR}}/superset-zsh-integration.zsh"
+  if [[ -o interactive ]]; then
+    _superset_integ="${paths.ZSH_DIR}/superset-zsh-integration.zsh"
     [[ -r "$_superset_integ" ]] && source -- "$_superset_integ"
   fi
   unset _superset_file _superset_integ
@@ -102,54 +110,22 @@ fi
 `;
 	const wroteZshenv = writeFileIfChanged(zshenvPath, zshenvScript, 0o644);
 
-	// Compatibility shim: this should not run in normal flow because .zshenv
-	// restores ZDOTDIR first. If reached, behave like vanilla zsh.
-	const zprofilePath = path.join(paths.ZSH_DIR, ".zprofile");
-	const zprofileScript = `# Superset zsh profile wrapper
-if [[ -n "\${SUPERSET_ORIG_ZDOTDIR+X}" ]]; then
-  export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"
-else
-  unset ZDOTDIR
-fi
-_superset_file="\${ZDOTDIR-$HOME}/.zprofile"
-[[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
-unset _superset_file
-`;
-	const wroteZprofile = writeFileIfChanged(zprofilePath, zprofileScript, 0o644);
-
-	// Compatibility shim mirroring .zprofile behavior.
-	const zshrcPath = path.join(paths.ZSH_DIR, ".zshrc");
-	const zshrcScript = `# Superset zsh rc wrapper
-if [[ -n "\${SUPERSET_ORIG_ZDOTDIR+X}" ]]; then
-  export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"
-else
-  unset ZDOTDIR
-fi
-_superset_file="\${ZDOTDIR-$HOME}/.zshrc"
-[[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
-unset _superset_file
-`;
-	const wroteZshrc = writeFileIfChanged(zshrcPath, zshrcScript, 0o644);
-
-	// Compatibility shim mirroring .zprofile behavior.
-	const zloginPath = path.join(paths.ZSH_DIR, ".zlogin");
-	const zloginScript = `# Superset zsh login wrapper
-if [[ -n "\${SUPERSET_ORIG_ZDOTDIR+X}" ]]; then
-  export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"
-else
-  unset ZDOTDIR
-fi
-_superset_file="\${ZDOTDIR-$HOME}/.zlogin"
-[[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
-unset _superset_file
-`;
-	const wroteZlogin = writeFileIfChanged(zloginPath, zloginScript, 0o644);
+	// Remove legacy compatibility shim files; startup now uses only .zshenv.
+	const removedLegacyZprofile = removeFileIfExists(
+		path.join(paths.ZSH_DIR, ".zprofile"),
+	);
+	const removedLegacyZshrc = removeFileIfExists(
+		path.join(paths.ZSH_DIR, ".zshrc"),
+	);
+	const removedLegacyZlogin = removeFileIfExists(
+		path.join(paths.ZSH_DIR, ".zlogin"),
+	);
 	const changed =
 		wroteIntegration ||
 		wroteZshenv ||
-		wroteZprofile ||
-		wroteZshrc ||
-		wroteZlogin;
+		removedLegacyZprofile ||
+		removedLegacyZshrc ||
+		removedLegacyZlogin;
 	console.log(
 		`[agent-setup] ${changed ? "Updated" : "Verified"} zsh wrapper files`,
 	);
@@ -218,8 +194,6 @@ export function getShellEnv(
 	if (shellName === "zsh") {
 		return {
 			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
-			SUPERSET_SHELL_INTEGRATION: "1",
-			SUPERSET_SHELL_INTEGRATION_DIR: paths.ZSH_DIR,
 			ZDOTDIR: paths.ZSH_DIR,
 		};
 	}
@@ -265,10 +239,13 @@ export function getCommandShellArgs(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
 	const shellName = getShellName(shell);
-	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");
+	const zshEnv = path.join(paths.ZSH_DIR, ".zshenv");
 	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");
-	if (shellName === "zsh" && fs.existsSync(zshRc)) {
-		return ["-lc", `source "${zshRc}" && ${command}`];
+	if (shellName === "zsh" && fs.existsSync(zshEnv)) {
+		return [
+			"-lc",
+			`source "${zshEnv}" && _superset_file="\${ZDOTDIR-$HOME}/.zshrc"; [[ ! -r "$_superset_file" ]] || source -- "$_superset_file"; unset _superset_file; ${command}`,
+		];
 	}
 	if (shellName === "bash" && fs.existsSync(bashRcfile)) {
 		return ["-c", `source "${bashRcfile}" && ${command}`];

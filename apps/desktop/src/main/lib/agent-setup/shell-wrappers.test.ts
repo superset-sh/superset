@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -57,7 +64,7 @@ describe("shell-wrappers", () => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
 	});
 
-	it("creates zsh wrappers that restore user ZDOTDIR and load integration", () => {
+	it("creates minimal zsh wrappers that restore user ZDOTDIR and load integration", () => {
 		createZshWrapper(TEST_PATHS);
 
 		const zshenv = readFileSync(path.join(TEST_ZSH_DIR, ".zshenv"), "utf-8");
@@ -65,28 +72,18 @@ describe("shell-wrappers", () => {
 			path.join(TEST_ZSH_DIR, "superset-zsh-integration.zsh"),
 			"utf-8",
 		);
-		const zprofile = readFileSync(
-			path.join(TEST_ZSH_DIR, ".zprofile"),
-			"utf-8",
-		);
-		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
-		const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
 
 		expect(zshenv).toContain('export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"');
 		expect(zshenv).toContain('source -- "$_superset_file"');
 		expect(zshenv).toContain("superset-zsh-integration.zsh");
+		expect(zshenv).not.toContain("SUPERSET_SHELL_INTEGRATION");
+		expect(zshenv).not.toContain("SUPERSET_SHELL_INTEGRATION_DIR");
 		expect(integration).toContain("_superset_fix_path()");
 		expect(integration).toContain(`local superset_bin="${TEST_BIN_DIR}"`);
 		expect(integration).toContain("add-zsh-hook precmd _superset_fix_path");
-
-		expect(zprofile).toContain('export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"');
-		expect(zprofile).toContain('source -- "$_superset_file"');
-		expect(zshrc).toContain('export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"');
-		expect(zshrc).toContain('source -- "$_superset_file"');
-		expect(zlogin).toContain('export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"');
-		expect(zlogin).toContain('source -- "$_superset_file"');
-		expect(zshrc).not.toContain("claude() {");
-		expect(zlogin).not.toContain("claude() {");
+		expect(existsSync(path.join(TEST_ZSH_DIR, ".zprofile"))).toBe(false);
+		expect(existsSync(path.join(TEST_ZSH_DIR, ".zshrc"))).toBe(false);
+		expect(existsSync(path.join(TEST_ZSH_DIR, ".zlogin"))).toBe(false);
 	});
 
 	it("restores original ZDOTDIR before sourcing user .zshenv", () => {
@@ -121,7 +118,6 @@ describe("shell-wrappers", () => {
 				HOME: integrationRoot,
 				PATH: process.env.PATH || "/usr/bin:/bin",
 				SUPERSET_ORIG_ZDOTDIR: userZdotdir,
-				SUPERSET_SHELL_INTEGRATION: "0",
 				ZDOTDIR: integrationZshDir,
 			},
 		});
@@ -176,13 +172,76 @@ describe("shell-wrappers", () => {
 				HOME: homeDir,
 				PATH: process.env.PATH || "/usr/bin:/bin",
 				SUPERSET_ORIG_ZDOTDIR: userZdotdir,
-				SUPERSET_SHELL_INTEGRATION: "0",
 				ZDOTDIR: integrationZshDir,
 			},
 		});
 
 		const seen = readFileSync(seenPath, "utf-8").trim();
 		expect(seen).toBe("alt");
+	});
+
+	it("keeps user node resolution stable across repeated interactive sessions", () => {
+		if (!ensureZshAvailable()) return;
+
+		const integrationRoot = path.join(
+			TEST_ROOT,
+			"repeated-sessions-stable-node",
+		);
+		const integrationZshDir = path.join(integrationRoot, "zsh");
+		const integrationBashDir = path.join(integrationRoot, "bash");
+		const integrationBinDir = path.join(integrationRoot, "bin");
+		const userZdotdir = path.join(integrationRoot, "orig");
+		const userBinDir = path.join(integrationRoot, "user-bin");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+
+		mkdirSync(integrationBinDir, { recursive: true });
+		mkdirSync(integrationZshDir, { recursive: true });
+		mkdirSync(integrationBashDir, { recursive: true });
+		mkdirSync(userZdotdir, { recursive: true });
+		mkdirSync(userBinDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+
+		const writeNodeStub = (target: string, label: string) => {
+			writeFileSync(
+				target,
+				`#!/usr/bin/env bash
+echo ${label}
+`,
+			);
+			chmodSync(target, 0o755);
+		};
+
+		writeNodeStub(path.join(systemBinDir, "node"), "system");
+		writeNodeStub(path.join(userBinDir, "node"), "user");
+
+		writeFileSync(
+			path.join(userZdotdir, ".zshrc"),
+			`export PATH="${userBinDir}:$PATH"
+`,
+		);
+
+		createZshWrapper({
+			BIN_DIR: integrationBinDir,
+			ZSH_DIR: integrationZshDir,
+			BASH_DIR: integrationBashDir,
+		});
+
+		const runSession = (): string =>
+			execFileSync("zsh", ["-d", "-i", "-c", "node"], {
+				encoding: "utf-8",
+				env: {
+					HOME: integrationRoot,
+					PATH: `${systemBinDir}:${process.env.PATH || "/usr/bin:/bin"}`,
+					SUPERSET_ORIG_ZDOTDIR: userZdotdir,
+					ZDOTDIR: integrationZshDir,
+				},
+			}).trim();
+
+		const firstSessionNode = runSession();
+		const secondSessionNode = runSession();
+
+		expect(firstSessionNode).toBe("user");
+		expect(secondSessionNode).toBe("user");
 	});
 
 	it("creates bash wrapper with PATH integration and no command shims", () => {
@@ -208,7 +267,7 @@ describe("shell-wrappers", () => {
 		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
 		expect(args).toEqual([
 			"-lc",
-			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" && echo ok`,
+			`source "${path.join(TEST_ZSH_DIR, ".zshenv")}" && _superset_file="\${ZDOTDIR-$HOME}/.zshrc"; [[ ! -r "$_superset_file" ]] || source -- "$_superset_file"; unset _superset_file; echo ok`,
 		]);
 	});
 
