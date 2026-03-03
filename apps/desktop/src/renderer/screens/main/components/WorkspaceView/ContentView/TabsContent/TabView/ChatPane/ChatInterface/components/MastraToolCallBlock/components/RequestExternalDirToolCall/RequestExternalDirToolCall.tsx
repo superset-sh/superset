@@ -14,6 +14,7 @@ interface RequestExternalDirToolCallProps {
 	isApprovalSubmitting?: boolean;
 	onApprovalRespond?: (
 		decision: "approve" | "decline" | "always_allow_category",
+		toolCallId?: string,
 	) => Promise<void> | void;
 }
 
@@ -190,7 +191,7 @@ export function RequestExternalDirToolCall({
 		inFlightResponseRef.current = true;
 		setSelectedDecision(decision);
 		try {
-			await onApprovalRespond(decision);
+			await onApprovalRespond(decision, part.toolCallId);
 		} catch (error) {
 			console.error("Failed to submit external directory approval", error);
 			setSelectedDecision(null);

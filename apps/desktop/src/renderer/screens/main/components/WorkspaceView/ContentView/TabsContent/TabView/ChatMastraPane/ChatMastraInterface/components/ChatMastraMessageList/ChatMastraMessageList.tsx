@@ -64,6 +64,7 @@ interface ChatMastraMessageListProps {
 	isApprovalSubmitting: boolean;
 	onApprovalRespond: (
 		decision: "approve" | "decline" | "always_allow_category",
+		toolCallId?: string,
 	) => Promise<void>;
 	pendingPlanApproval: MastraPendingPlanApproval;
 	isPlanSubmitting: boolean;

@@ -382,18 +382,28 @@ export function ChatMastraInterface({
 		[handleSend],
 	);
 	const handleApprovalResponse = useCallback(
-		async (decision: "approve" | "decline" | "always_allow_category") => {
+		async (
+			decision: "approve" | "decline" | "always_allow_category",
+			toolCallId?: string,
+		) => {
 			clearRuntimeError();
 			setApprovalResponsePending(true);
 			try {
 				await commands.respondToApproval({
-					payload: { decision },
+					payload: {
+						decision,
+						...(toolCallId?.trim()
+							? { toolCallId: toolCallId.trim() }
+							: pendingApproval?.toolCallId?.trim()
+								? { toolCallId: pendingApproval.toolCallId.trim() }
+								: {}),
+					},
 				});
 			} finally {
 				setApprovalResponsePending(false);
 			}
 		},
-		[clearRuntimeError, commands],
+		[clearRuntimeError, commands, pendingApproval?.toolCallId],
 	);
 	const handlePlanResponse = useCallback(
 		async (response: {

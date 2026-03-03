@@ -37,6 +37,7 @@ interface MastraToolCallBlockProps {
 	isApprovalSubmitting?: boolean;
 	onApprovalRespond?: (
 		decision: "approve" | "decline" | "always_allow_category",
+		toolCallId?: string,
 	) => Promise<void> | void;
 	onAnswer?: (
 		toolCallId: string,
