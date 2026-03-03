@@ -145,9 +145,12 @@ export function ChatInputFooter({
 			{(dragType) => (
 				<div className="mx-auto w-full max-w-[680px]">
 					{errorMessage && (
-						<div className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+						<p
+							role="alert"
+							className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+						>
 							{errorMessage}
-						</div>
+						</p>
 					)}
 					<SlashCommandInput
 						onCommandSend={onSlashCommandSend}

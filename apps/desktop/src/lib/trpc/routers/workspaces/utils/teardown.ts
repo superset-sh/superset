@@ -1,9 +1,12 @@
 import { spawn } from "node:child_process";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
 	getCommandShellArgs,
 	getShellEnv,
 } from "main/lib/agent-setup/shell-wrappers";
 import { buildSafeEnv, sanitizeEnv } from "main/lib/terminal/env";
+import { SUPERSET_DIR_NAME } from "shared/constants";
 import { removeWorktree } from "./git";
 import { loadSetupConfig } from "./setup";
 
@@ -42,10 +45,17 @@ export async function runTeardown({
 		const shell =
 			process.env.SHELL ||
 			(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
+		const supersetHomeDir =
+			process.env.SUPERSET_HOME_DIR || join(homedir(), SUPERSET_DIR_NAME);
+		const shellWrapperPaths = {
+			BIN_DIR: join(supersetHomeDir, "bin"),
+			ZSH_DIR: join(supersetHomeDir, "zsh"),
+			BASH_DIR: join(supersetHomeDir, "bash"),
+		};
 
 		const baseEnv = buildSafeEnv(sanitizeEnv(process.env) || {});
-		const wrapperEnv = getShellEnv(shell);
-		const args = getCommandShellArgs(shell, command);
+		const wrapperEnv = getShellEnv(shell, shellWrapperPaths);
+		const args = getCommandShellArgs(shell, command, shellWrapperPaths);
 
 		const output = await new Promise<string>((resolve, reject) => {
 			const child = spawn(shell, args, {

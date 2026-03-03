@@ -1,6 +1,7 @@
 import { chatServiceTrpc } from "@superset/chat/client";
 import {
 	chatMastraServiceTrpc,
+	type UseMastraChatDisplayReturn,
 	useMastraChatDisplay,
 } from "@superset/chat-mastra/client";
 import {
@@ -10,7 +11,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
@@ -25,6 +26,11 @@ import { ChatMastraMessageList } from "./components/ChatMastraMessageList";
 import { McpControls } from "./components/McpControls";
 import { useMcpUi } from "./hooks/useMcpUi";
 import type { ChatMastraInterfaceProps } from "./types";
+import {
+	hasMatchingUserMessage,
+	type MastraHistoryMessage,
+	toOptimisticUserMessage,
+} from "./utils/optimisticUserMessage";
 import {
 	type ChatSendMessageInput,
 	sendMessageForSession,
@@ -54,6 +60,31 @@ function toErrorMessage(error: unknown): string | null {
 
 const AUTO_LAUNCH_MAX_RETRIES = 3;
 const AUTO_LAUNCH_RETRY_DELAY_MS = 1500;
+
+type MastraMessage = NonNullable<
+	UseMastraChatDisplayReturn["messages"]
+>[number];
+
+type InterruptedMessage = {
+	id: string;
+	sourceMessageId: string;
+	content: MastraMessage["content"];
+};
+
+type ChatAnalyticsProperties = Record<string, unknown>;
+
+function cloneMessageContent(
+	content: MastraMessage["content"],
+): MastraMessage["content"] {
+	if (typeof structuredClone === "function") {
+		return structuredClone(content);
+	}
+	try {
+		return JSON.parse(JSON.stringify(content)) as MastraMessage["content"];
+	} catch {
+		return content.map((part) => ({ ...part }));
+	}
+}
 
 function getLaunchConfigKey(
 	config: NonNullable<ChatMastraInterfaceProps["initialLaunchConfig"]>,
@@ -95,6 +126,10 @@ export function ChatMastraInterface({
 		undefined,
 	);
 	const [runtimeError, setRuntimeError] = useState<string | null>(null);
+	const [interruptedMessage, setInterruptedMessage] =
+		useState<InterruptedMessage | null>(null);
+	const [pendingImmediateUserMessage, setPendingImmediateUserMessage] =
+		useState<MastraHistoryMessage | null>(null);
 	const [approvalResponsePending, setApprovalResponsePending] = useState(false);
 	const [planResponsePending, setPlanResponsePending] = useState(false);
 	const [questionResponsePending, setQuestionResponsePending] = useState(false);
@@ -110,6 +145,17 @@ export function ChatMastraInterface({
 	const chatMastraServiceTrpcUtils = chatMastraServiceTrpc.useUtils();
 	const authenticateMcpServerMutation =
 		chatMastraServiceTrpc.workspace.authenticateMcpServer.useMutation();
+	const captureChatEvent = useCallback(
+		(event: string, properties?: ChatAnalyticsProperties) => {
+			posthog.capture(event, {
+				workspace_id: workspaceId,
+				session_id: sessionId,
+				organization_id: organizationId,
+				...properties,
+			});
+		},
+		[organizationId, sessionId, workspaceId],
+	);
 
 	const { data: slashCommands = [] } =
 		chatServiceTrpc.workspace.getSlashCommands.useQuery(
@@ -153,26 +199,48 @@ export function ChatMastraInterface({
 				setSelectedModelId(null);
 				return;
 			}
-			posthog.capture("chat_model_changed", {
-				workspace_id: workspaceId,
-				session_id: sessionId,
-				organization_id: organizationId,
+			captureChatEvent("chat_model_changed", {
 				model_id: nextSelectedModel.id,
 				model_name: nextSelectedModel.name,
 				trigger: "picker",
 			});
 			setSelectedModelId(nextSelectedModel.id);
 		},
-		[organizationId, selectedModel, sessionId, setSelectedModelId, workspaceId],
+		[captureChatEvent, selectedModel, setSelectedModelId],
 	);
 
 	const sendMessageToSession = useCallback(
 		async (targetSessionId: string, input: ChatSendMessageInput) => {
-			await chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
+			const queryInput = {
 				sessionId: targetSessionId,
 				...(cwd ? { cwd } : {}),
-				...input,
-			});
+			};
+			const optimisticMessage = toOptimisticUserMessage(input);
+			if (optimisticMessage) {
+				chatMastraServiceTrpcUtils.session.listMessages.setData(
+					queryInput,
+					(existingMessages = []) => [...existingMessages, optimisticMessage],
+				);
+			}
+
+			try {
+				await chatMastraServiceTrpcUtils.client.session.sendMessage.mutate({
+					sessionId: targetSessionId,
+					...(cwd ? { cwd } : {}),
+					...input,
+				});
+			} catch (error) {
+				if (optimisticMessage) {
+					chatMastraServiceTrpcUtils.session.listMessages.setData(
+						queryInput,
+						(existingMessages = []) =>
+							existingMessages.filter(
+								(message) => message.id !== optimisticMessage.id,
+							),
+					);
+				}
+				throw error;
+			}
 		},
 		[chatMastraServiceTrpcUtils, cwd],
 	);
@@ -211,17 +279,49 @@ export function ChatMastraInterface({
 		authenticateServer: authenticateMcpServer,
 		onSetErrorMessage: setRuntimeErrorMessage,
 		onClearError: clearRuntimeError,
-		onTrackEvent: (event, properties) => {
-			posthog.capture(event, {
-				workspace_id: workspaceId,
-				session_id: sessionId,
-				organization_id: organizationId,
-				...properties,
-			});
-		},
+		onTrackEvent: captureChatEvent,
 	});
 	const resetMcpUi = mcpUi.resetUi;
 	const refreshMcpOverview = mcpUi.refreshOverview;
+
+	const captureInterruptedMessage =
+		useCallback((): InterruptedMessage | null => {
+			if (!isRunning) return null;
+			if (!currentMessage || currentMessage.role !== "assistant") return null;
+			if (currentMessage.content.length === 0) return null;
+			return {
+				id: `interrupted:${currentMessage.id}`,
+				sourceMessageId: currentMessage.id,
+				content: cloneMessageContent(currentMessage.content),
+			};
+		}, [currentMessage, isRunning]);
+
+	const stopActiveResponse = useCallback(async () => {
+		clearRuntimeError();
+		const snapshot = captureInterruptedMessage();
+		try {
+			await commands.stop();
+		} catch (error) {
+			setInterruptedMessage(null);
+			setRuntimeErrorMessage(
+				toErrorMessage(error) ?? "Failed to stop response",
+			);
+			return;
+		}
+		if (snapshot) {
+			setInterruptedMessage(snapshot);
+		}
+		captureChatEvent("chat_turn_aborted", {
+			model_id: activeModel?.id ?? null,
+		});
+	}, [
+		activeModel?.id,
+		captureChatEvent,
+		captureInterruptedMessage,
+		clearRuntimeError,
+		commands,
+		setRuntimeErrorMessage,
+	]);
 
 	const { resolveSlashCommandInput } = useSlashCommandExecutor({
 		cwd,
@@ -229,7 +329,7 @@ export function ChatMastraInterface({
 		canAbort,
 		onStartFreshSession,
 		onStopActiveResponse: () => {
-			void commands.stop();
+			void stopActiveResponse();
 		},
 		onSelectModel: handleSelectModel,
 		onOpenModelPicker: () => setModelSelectorOpen(true),
@@ -237,14 +337,7 @@ export function ChatMastraInterface({
 		onClearError: clearRuntimeError,
 		onShowMcpOverview: mcpUi.showOverview,
 		loadMcpOverview,
-		onTrackEvent: (event, properties) => {
-			posthog.capture(event, {
-				workspace_id: workspaceId,
-				session_id: sessionId,
-				organization_id: organizationId,
-				...properties,
-			});
-		},
+		onTrackEvent: captureChatEvent,
 	});
 
 	useEffect(() => {
@@ -253,11 +346,38 @@ export function ChatMastraInterface({
 		currentMcpScopeRef.current = scopeKey;
 		setSubmitStatus(undefined);
 		setRuntimeError(null);
+		setInterruptedMessage(null);
+		setPendingImmediateUserMessage(null);
 		resetMcpUi();
 		if (sessionId) {
 			void refreshMcpOverview();
 		}
 	}, [cwd, refreshMcpOverview, resetMcpUi, sessionId]);
+
+	useEffect(() => {
+		if (!pendingImmediateUserMessage) return;
+		if (
+			hasMatchingUserMessage({
+				messages,
+				candidate: pendingImmediateUserMessage,
+			})
+		) {
+			setPendingImmediateUserMessage(null);
+		}
+	}, [messages, pendingImmediateUserMessage]);
+
+	const visibleMessages = useMemo(() => {
+		if (!pendingImmediateUserMessage) return messages;
+		if (
+			hasMatchingUserMessage({
+				messages,
+				candidate: pendingImmediateUserMessage,
+			})
+		) {
+			return messages;
+		}
+		return [...messages, pendingImmediateUserMessage];
+	}, [messages, pendingImmediateUserMessage]);
 
 	useEffect(() => {
 		if (isRunning) {
@@ -314,6 +434,7 @@ export function ChatMastraInterface({
 				setSubmitStatus(undefined);
 				return;
 			}
+			setInterruptedMessage(null);
 			setSubmitStatus("submitted");
 			clearRuntimeError();
 
@@ -326,6 +447,13 @@ export function ChatMastraInterface({
 					model: activeModel?.id,
 				},
 			};
+			const immediateUserMessage =
+				sessionId && !isSessionReady
+					? toOptimisticUserMessage(sendInput)
+					: null;
+			if (immediateUserMessage) {
+				setPendingImmediateUserMessage(immediateUserMessage);
+			}
 
 			let targetSessionId = sessionId;
 			try {
@@ -343,14 +471,19 @@ export function ChatMastraInterface({
 				const sendErrorMessage = toSendFailureMessage(error);
 				setSubmitStatus(undefined);
 				setRuntimeErrorMessage(sendErrorMessage);
+				if (immediateUserMessage) {
+					setPendingImmediateUserMessage((previousMessage) =>
+						previousMessage?.id === immediateUserMessage.id
+							? null
+							: previousMessage,
+					);
+				}
 				if (error instanceof Error) throw error;
 				throw new Error(sendErrorMessage);
 			}
 
-			posthog.capture("chat_message_sent", {
-				workspace_id: workspaceId,
+			captureChatEvent("chat_message_sent", {
 				session_id: targetSessionId,
-				organization_id: organizationId,
 				model_id: activeModel?.id ?? null,
 				mention_count: 0,
 				attachment_count: files.length,
@@ -361,18 +494,17 @@ export function ChatMastraInterface({
 		},
 		[
 			activeModel?.id,
+			captureChatEvent,
 			clearRuntimeError,
 			commands,
 			messages?.length,
 			isSessionReady,
 			onStartFreshSession,
-			organizationId,
 			resolveSlashCommandInput,
 			ensureSessionReady,
 			sendMessageToSession,
 			sessionId,
 			setRuntimeErrorMessage,
-			workspaceId,
 		],
 	);
 
@@ -445,10 +577,8 @@ export function ChatMastraInterface({
 				delete autoLaunchSessionLockRef.current[launchConfigKey];
 				onConsumeLaunchConfig();
 
-				posthog.capture("chat_message_sent", {
-					workspace_id: workspaceId,
+				captureChatEvent("chat_message_sent", {
 					session_id: sendResult.targetSessionId,
-					organization_id: organizationId,
 					model_id: modelId ?? null,
 					mention_count: 0,
 					attachment_count: 0,
@@ -485,6 +615,7 @@ export function ChatMastraInterface({
 		};
 	}, [
 		activeModel?.id,
+		captureChatEvent,
 		clearRuntimeError,
 		commands,
 		ensureSessionReady,
@@ -492,33 +623,17 @@ export function ChatMastraInterface({
 		isSessionReady,
 		onConsumeLaunchConfig,
 		onStartFreshSession,
-		organizationId,
 		sendMessageToSession,
 		sessionId,
 		setRuntimeErrorMessage,
-		workspaceId,
 	]);
 
 	const handleStop = useCallback(
 		async (event: React.MouseEvent) => {
 			event.preventDefault();
-			clearRuntimeError();
-			await commands.stop();
-			posthog.capture("chat_turn_aborted", {
-				workspace_id: workspaceId,
-				session_id: sessionId,
-				organization_id: organizationId,
-				model_id: activeModel?.id ?? null,
-			});
+			await stopActiveResponse();
 		},
-		[
-			activeModel?.id,
-			clearRuntimeError,
-			commands,
-			organizationId,
-			sessionId,
-			workspaceId,
-		],
+		[stopActiveResponse],
 	);
 
 	const handleSlashCommandSend = useCallback(
@@ -600,10 +715,11 @@ export function ChatMastraInterface({
 		<PromptInputProvider>
 			<div className="flex h-full flex-col bg-background">
 				<ChatMastraMessageList
-					messages={messages}
+					messages={visibleMessages}
 					isRunning={canAbort}
 					isAwaitingAssistant={isAwaitingAssistant}
 					currentMessage={currentMessage ?? null}
+					interruptedMessage={interruptedMessage}
 					workspaceId={workspaceId}
 					sessionId={sessionId}
 					organizationId={organizationId}

@@ -41,7 +41,7 @@ describe("shell-wrappers", () => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
 	});
 
-	it("creates zsh wrappers with interactive .zlogin sourcing and command shims", () => {
+	it("creates zsh wrappers with interactive .zlogin sourcing and idempotent PATH prepend", () => {
 		createZshWrapper(TEST_PATHS);
 
 		const zshenv = readFileSync(path.join(TEST_ZSH_DIR, ".zshenv"), "utf-8");
@@ -62,13 +62,8 @@ describe("shell-wrappers", () => {
 		);
 
 		expect(zshrc).toContain("_superset_prepend_bin()");
-		expect(zshrc).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
-		expect(zshrc).toContain(`codex() { "${TEST_BIN_DIR}/codex" "$@"; }`);
-		expect(zshrc).toContain(`opencode() { "${TEST_BIN_DIR}/opencode" "$@"; }`);
-		expect(zshrc).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
-		expect(zshrc).toContain(
-			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
-		);
+		expect(zshrc.split(`export PATH="${TEST_BIN_DIR}:$PATH"`)).toHaveLength(2);
+		expect(zshrc).not.toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zshrc).toContain("rehash 2>/dev/null || true");
 		expect(zshrc).toContain('export ZDOTDIR="$_superset_home"');
 		expect(zshrc).toContain('source "$_superset_home/.zshrc"');
@@ -83,12 +78,26 @@ describe("shell-wrappers", () => {
 			zlogin.indexOf('source "$_superset_home/.zlogin"'),
 		);
 		expect(zlogin).toContain("_superset_prepend_bin()");
-		expect(zlogin).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
-		expect(zlogin).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
-		expect(zlogin).toContain(
-			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
-		);
+		expect(zlogin).not.toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(zlogin).toContain("rehash 2>/dev/null || true");
+	});
+
+	it("creates bash wrapper without persistent command shims and with idempotent PATH prepend", () => {
+		createZshWrapper(TEST_PATHS);
+		createBashWrapper(TEST_PATHS);
+
+		const zshrc = readFileSync(path.join(TEST_ZSH_DIR, ".zshrc"), "utf-8");
+		const zlogin = readFileSync(path.join(TEST_ZSH_DIR, ".zlogin"), "utf-8");
+		const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
+
+		expect(zshrc).toContain("_superset_prepend_bin()");
+		expect(zshrc.split(`export PATH="${TEST_BIN_DIR}:$PATH"`)).toHaveLength(2);
+		expect(zshrc).not.toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
+		expect(zlogin).toContain("_superset_prepend_bin()");
+		expect(zlogin).not.toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
+		expect(rcfile).toContain("_superset_prepend_bin()");
+		expect(rcfile.split(`export PATH="${TEST_BIN_DIR}:$PATH"`)).toHaveLength(2);
+		expect(rcfile).not.toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 	});
 
 	it("reproduces pre-fix .zlogin behavior where system node wins", () => {
@@ -189,18 +198,13 @@ fi
 		expect(runNode(fixedWrapperPath)).toBe("project");
 	});
 
-	it("creates bash wrapper with command shims and idempotent PATH prepend", () => {
+	it("creates bash wrapper with idempotent PATH prepend", () => {
 		createBashWrapper(TEST_PATHS);
 
 		const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
 		expect(rcfile).toContain("_superset_prepend_bin()");
-		expect(rcfile).toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
-		expect(rcfile).toContain(`codex() { "${TEST_BIN_DIR}/codex" "$@"; }`);
-		expect(rcfile).toContain(`opencode() { "${TEST_BIN_DIR}/opencode" "$@"; }`);
-		expect(rcfile).toContain(`copilot() { "${TEST_BIN_DIR}/copilot" "$@"; }`);
-		expect(rcfile).toContain(
-			`mastracode() { "${TEST_BIN_DIR}/mastracode" "$@"; }`,
-		);
+		expect(rcfile.split(`export PATH="${TEST_BIN_DIR}:$PATH"`)).toHaveLength(2);
+		expect(rcfile).not.toContain(`claude() { "${TEST_BIN_DIR}/claude" "$@"; }`);
 		expect(rcfile).toContain("hash -r 2>/dev/null || true");
 	});
 
@@ -208,15 +212,152 @@ fi
 		createZshWrapper(TEST_PATHS);
 
 		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
-		expect(args).toEqual([
-			"-lc",
-			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" && echo ok`,
-		]);
+		expect(args[0]).toBe("-lc");
+		expect(args[1]).toContain(
+			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" &&`,
+		);
+		expect(args[1]).toContain(
+			`_superset_wrapper="${path.join(TEST_BIN_DIR, "claude")}"`,
+		);
+		expect(args[1]).toContain('command claude "$@"');
+		expect(args[1]).toContain("echo ok");
 	});
 
 	it("falls back to login shell args when zsh wrappers are missing", () => {
 		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
-		expect(args).toEqual(["-lc", "echo ok"]);
+		expect(args[0]).toBe("-lc");
+		expect(args[1]).not.toContain(
+			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" &&`,
+		);
+		expect(args[1]).toContain(
+			`_superset_wrapper="${path.join(TEST_BIN_DIR, "claude")}"`,
+		);
+		expect(args[1]).toContain('command claude "$@"');
+		expect(args[1]).toContain("echo ok");
+	});
+
+	it("uses managed wrappers for non-interactive commands even if shell config rewrites PATH", () => {
+		createBashWrapper(TEST_PATHS);
+
+		const integrationRoot = path.join(TEST_ROOT, "managed-command-path");
+		const homeDir = path.join(integrationRoot, "home");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+
+		writeFileSync(
+			path.join(homeDir, ".bash_profile"),
+			`export PATH="${systemBinDir}:/usr/bin:/bin"\n`,
+		);
+
+		writeFileSync(
+			path.join(systemBinDir, "claude"),
+			`#!/usr/bin/env bash
+echo system
+`,
+		);
+		chmodSync(path.join(systemBinDir, "claude"), 0o755);
+
+		writeFileSync(
+			path.join(TEST_BIN_DIR, "claude"),
+			`#!/usr/bin/env bash
+echo wrapper
+`,
+		);
+		chmodSync(path.join(TEST_BIN_DIR, "claude"), 0o755);
+
+		const args = getCommandShellArgs("/bin/bash", "claude", TEST_PATHS);
+		const output = execFileSync("bash", args, {
+			encoding: "utf-8",
+			env: {
+				...process.env,
+				HOME: homeDir,
+				PATH: `${systemBinDir}:/usr/bin:/bin`,
+			},
+		}).trim();
+		expect(output).toBe("wrapper");
+	});
+
+	it("falls back to system binaries for managed commands when wrappers are missing", () => {
+		const integrationRoot = path.join(TEST_ROOT, "managed-command-fallback");
+		const homeDir = path.join(integrationRoot, "home");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		const missingBinDir = path.join(integrationRoot, "missing-bin");
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+
+		writeFileSync(
+			path.join(systemBinDir, "claude"),
+			`#!/usr/bin/env bash
+echo system
+`,
+		);
+		chmodSync(path.join(systemBinDir, "claude"), 0o755);
+
+		const fallbackPaths: ShellWrapperPaths = {
+			BIN_DIR: missingBinDir,
+			ZSH_DIR: TEST_ZSH_DIR,
+			BASH_DIR: TEST_BASH_DIR,
+		};
+		createBashWrapper(fallbackPaths);
+
+		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
+		const output = execFileSync("bash", args, {
+			encoding: "utf-8",
+			env: {
+				...process.env,
+				HOME: homeDir,
+				PATH: `${systemBinDir}:/usr/bin:/bin`,
+			},
+		}).trim();
+		expect(output).toBe("system");
+	});
+
+	it("falls back to system binaries when wrapper exists but is not executable", () => {
+		const integrationRoot = path.join(
+			TEST_ROOT,
+			"managed-command-non-executable-fallback",
+		);
+		const homeDir = path.join(integrationRoot, "home");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		const wrapperBinDir = path.join(integrationRoot, "wrapper-bin");
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+		mkdirSync(wrapperBinDir, { recursive: true });
+
+		writeFileSync(
+			path.join(systemBinDir, "claude"),
+			`#!/usr/bin/env bash
+echo system
+`,
+		);
+		chmodSync(path.join(systemBinDir, "claude"), 0o755);
+
+		writeFileSync(
+			path.join(wrapperBinDir, "claude"),
+			`#!/usr/bin/env bash
+echo wrapper
+`,
+		);
+		chmodSync(path.join(wrapperBinDir, "claude"), 0o644);
+
+		const fallbackPaths: ShellWrapperPaths = {
+			BIN_DIR: wrapperBinDir,
+			ZSH_DIR: TEST_ZSH_DIR,
+			BASH_DIR: TEST_BASH_DIR,
+		};
+		createBashWrapper(fallbackPaths);
+
+		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
+		const output = execFileSync("bash", args, {
+			encoding: "utf-8",
+			env: {
+				...process.env,
+				HOME: homeDir,
+				PATH: `${systemBinDir}:/usr/bin:/bin`,
+			},
+		}).trim();
+		expect(output).toBe("system");
 	});
 
 	it("uses bash rcfile args for interactive bash shells", () => {
@@ -238,6 +379,20 @@ fi
 	});
 
 	describe("fish shell", () => {
+		it("uses fish-compatible managed command prelude for non-interactive commands", () => {
+			const args = getCommandShellArgs(
+				"/opt/homebrew/bin/fish",
+				"echo ok",
+				TEST_PATHS,
+			);
+
+			expect(args[0]).toBe("-lc");
+			expect(args[1]).toContain(`function claude`);
+			expect(args[1]).toContain(`command claude $argv`);
+			expect(args[1]).not.toContain(`claude() {`);
+			expect(args[1]).toContain("echo ok");
+		});
+
 		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
 			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);
 

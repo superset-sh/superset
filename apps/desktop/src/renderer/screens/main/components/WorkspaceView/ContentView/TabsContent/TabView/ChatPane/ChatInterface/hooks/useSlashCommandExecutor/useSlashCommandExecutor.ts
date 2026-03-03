@@ -90,10 +90,10 @@ export function useSlashCommandExecutor({
 						case "stop_stream":
 							if (canAbort) {
 								toast.success("Stopped current response");
+								onStopActiveResponse();
 							} else {
 								toast.warning("No active response to stop");
 							}
-							onStopActiveResponse();
 							onTrackEvent?.("chat_slash_command_used", {
 								command_name: resolvedCommand.invokedAs ?? "stop",
 								command_type: "stop_stream",
