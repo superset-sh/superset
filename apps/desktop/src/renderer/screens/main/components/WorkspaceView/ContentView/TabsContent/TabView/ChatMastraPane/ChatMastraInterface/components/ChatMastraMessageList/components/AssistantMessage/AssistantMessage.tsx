@@ -24,6 +24,11 @@ interface AssistantMessageProps {
 	organizationId?: string | null;
 	workspaceCwd?: string;
 	previewToolParts?: ToolPart[];
+	pendingApprovalToolCallId?: string | null;
+	isApprovalSubmitting?: boolean;
+	onApprovalRespond?: (
+		decision: "approve" | "decline" | "always_allow_category",
+	) => Promise<void>;
 }
 
 function ImagePart({ data, mimeType }: { data: string; mimeType: string }) {
@@ -96,6 +101,9 @@ export function AssistantMessage({
 	organizationId,
 	workspaceCwd,
 	previewToolParts = [],
+	pendingApprovalToolCallId,
+	isApprovalSubmitting = false,
+	onApprovalRespond,
 }: AssistantMessageProps) {
 	const nodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
@@ -160,6 +168,9 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
+					pendingApprovalToolCallId={pendingApprovalToolCallId}
+					isApprovalSubmitting={isApprovalSubmitting}
+					onApprovalRespond={onApprovalRespond}
 				/>,
 			);
 
@@ -182,6 +193,9 @@ export function AssistantMessage({
 					sessionId={sessionId}
 					organizationId={organizationId}
 					workspaceCwd={workspaceCwd}
+					pendingApprovalToolCallId={pendingApprovalToolCallId}
+					isApprovalSubmitting={isApprovalSubmitting}
+					onApprovalRespond={onApprovalRespond}
 				/>,
 			);
 			continue;
@@ -210,6 +224,9 @@ export function AssistantMessage({
 				sessionId={sessionId}
 				organizationId={organizationId}
 				workspaceCwd={workspaceCwd}
+				pendingApprovalToolCallId={pendingApprovalToolCallId}
+				isApprovalSubmitting={isApprovalSubmitting}
+				onApprovalRespond={onApprovalRespond}
 			/>,
 		);
 	}

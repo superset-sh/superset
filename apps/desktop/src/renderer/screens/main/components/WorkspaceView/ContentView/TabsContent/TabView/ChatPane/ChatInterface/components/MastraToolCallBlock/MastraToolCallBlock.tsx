@@ -33,6 +33,11 @@ interface MastraToolCallBlockProps {
 	workspaceCwd?: string;
 	sessionId?: string | null;
 	organizationId?: string | null;
+	pendingApprovalToolCallId?: string | null;
+	isApprovalSubmitting?: boolean;
+	onApprovalRespond?: (
+		decision: "approve" | "decline" | "always_allow_category",
+	) => Promise<void> | void;
 	onAnswer?: (
 		toolCallId: string,
 		answers: Record<string, string>,
@@ -51,6 +56,9 @@ export function MastraToolCallBlock({
 	workspaceCwd,
 	sessionId,
 	organizationId,
+	pendingApprovalToolCallId,
+	isApprovalSubmitting,
+	onApprovalRespond,
 	onAnswer,
 }: MastraToolCallBlockProps) {
 	const args = getArgs(part);
@@ -501,6 +509,9 @@ export function MastraToolCallBlock({
 				result={result}
 				outputObject={outputObject}
 				nestedResultObject={nestedResultObject}
+				pendingApprovalToolCallId={pendingApprovalToolCallId}
+				isApprovalSubmitting={isApprovalSubmitting}
+				onApprovalRespond={onApprovalRespond}
 			/>
 		);
 	}

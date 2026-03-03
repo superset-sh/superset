@@ -223,6 +223,12 @@ export function ChatMastraMessageList({
 		!pendingPlanApproval &&
 		!pendingQuestion &&
 		previewToolParts.length > 0;
+	const pendingApprovalToolName = normalizeToolName(
+		pendingApproval?.toolName ?? "",
+	);
+	const shouldRenderStandalonePendingApproval =
+		Boolean(pendingApproval) &&
+		pendingApprovalToolName !== "request_sandbox_access";
 
 	return (
 		<Conversation className="flex-1">
@@ -255,6 +261,9 @@ export function ChatMastraMessageList({
 								workspaceCwd={workspaceCwd}
 								isStreaming={false}
 								previewToolParts={[]}
+								pendingApprovalToolCallId={pendingApproval?.toolCallId ?? null}
+								isApprovalSubmitting={isApprovalSubmitting}
+								onApprovalRespond={onApprovalRespond}
 							/>
 						);
 					})
@@ -269,6 +278,9 @@ export function ChatMastraMessageList({
 						workspaceCwd={workspaceCwd}
 						isStreaming
 						previewToolParts={previewToolParts}
+						pendingApprovalToolCallId={pendingApproval?.toolCallId ?? null}
+						isApprovalSubmitting={isApprovalSubmitting}
+						onApprovalRespond={onApprovalRespond}
 					/>
 				)}
 				{shouldShowThinking && (
@@ -291,6 +303,11 @@ export function ChatMastraMessageList({
 									sessionId={sessionId}
 									organizationId={organizationId}
 									workspaceCwd={workspaceCwd}
+									pendingApprovalToolCallId={
+										pendingApproval?.toolCallId ?? null
+									}
+									isApprovalSubmitting={isApprovalSubmitting}
+									onApprovalRespond={onApprovalRespond}
 								/>
 							))}
 						</MessageContent>
@@ -307,6 +324,11 @@ export function ChatMastraMessageList({
 									sessionId={sessionId}
 									organizationId={organizationId}
 									workspaceCwd={workspaceCwd}
+									pendingApprovalToolCallId={
+										pendingApproval?.toolCallId ?? null
+									}
+									isApprovalSubmitting={isApprovalSubmitting}
+									onApprovalRespond={onApprovalRespond}
 								/>
 							))}
 						</MessageContent>
@@ -315,7 +337,7 @@ export function ChatMastraMessageList({
 				{hasSubagentActivity && (
 					<SubagentExecutionMessage subagents={activeSubagentEntries} />
 				)}
-				{pendingApproval && (
+				{shouldRenderStandalonePendingApproval && pendingApproval && (
 					<PendingApprovalMessage
 						approval={pendingApproval}
 						isSubmitting={isApprovalSubmitting}

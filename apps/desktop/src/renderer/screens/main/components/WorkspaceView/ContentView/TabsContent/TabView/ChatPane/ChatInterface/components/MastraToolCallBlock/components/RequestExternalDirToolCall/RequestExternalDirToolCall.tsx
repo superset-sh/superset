@@ -1,4 +1,6 @@
+import { Button } from "@superset/ui/button";
 import { FolderIcon } from "lucide-react";
+import { useRef, useState } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { GenericToolCall } from "../GenericToolCall";
 
@@ -8,6 +10,11 @@ interface RequestExternalDirToolCallProps {
 	result: Record<string, unknown>;
 	outputObject?: Record<string, unknown>;
 	nestedResultObject?: Record<string, unknown>;
+	pendingApprovalToolCallId?: string | null;
+	isApprovalSubmitting?: boolean;
+	onApprovalRespond?: (
+		decision: "approve" | "decline" | "always_allow_category",
+	) => Promise<void> | void;
 }
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
@@ -84,7 +91,15 @@ export function RequestExternalDirToolCall({
 	result,
 	outputObject,
 	nestedResultObject,
+	pendingApprovalToolCallId,
+	isApprovalSubmitting = false,
+	onApprovalRespond,
 }: RequestExternalDirToolCallProps) {
+	const [selectedDecision, setSelectedDecision] = useState<
+		"approve" | "decline" | null
+	>(null);
+	const inFlightResponseRef = useRef(false);
+
 	const argsRequest = toRecord(args.request);
 	const outputRecord = toRecord(result.output);
 	const resultRecord = toRecord(result.result);
@@ -151,6 +166,35 @@ export function RequestExternalDirToolCall({
 	);
 	const statusLabel = getStatusLabel({ part, approval, statusText });
 	const hasSummary = Boolean(requestedPath || reason || statusText);
+	const isPending =
+		part.state !== "output-available" && part.state !== "output-error";
+	const hasMatchingPendingApproval =
+		Boolean(pendingApprovalToolCallId) &&
+		pendingApprovalToolCallId === part.toolCallId;
+	const canRespond =
+		isPending && hasMatchingPendingApproval && Boolean(onApprovalRespond);
+
+	const handleApproval = async (
+		decision: "approve" | "decline",
+	): Promise<void> => {
+		if (
+			!onApprovalRespond ||
+			isApprovalSubmitting ||
+			inFlightResponseRef.current
+		) {
+			return;
+		}
+		inFlightResponseRef.current = true;
+		setSelectedDecision(decision);
+		try {
+			await onApprovalRespond(decision);
+		} catch (error) {
+			console.error("Failed to submit external directory approval", error);
+			setSelectedDecision(null);
+		} finally {
+			inFlightResponseRef.current = false;
+		}
+	};
 
 	return (
 		<div className="space-y-2">
@@ -173,6 +217,39 @@ export function RequestExternalDirToolCall({
 					<div className="mt-1 text-muted-foreground">
 						Status: {statusLabel}
 					</div>
+				</div>
+			) : null}
+			{canRespond ? (
+				<div className="flex items-center gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						className={
+							selectedDecision === "decline"
+								? "border-destructive text-destructive"
+								: ""
+						}
+						disabled={isApprovalSubmitting}
+						onClick={() => {
+							void handleApproval("decline");
+						}}
+					>
+						Reject
+					</Button>
+					<Button
+						type="button"
+						className={
+							selectedDecision === "approve"
+								? "border-primary bg-primary/10 text-primary"
+								: ""
+						}
+						disabled={isApprovalSubmitting}
+						onClick={() => {
+							void handleApproval("approve");
+						}}
+					>
+						Approve
+					</Button>
 				</div>
 			) : null}
 			<GenericToolCall
