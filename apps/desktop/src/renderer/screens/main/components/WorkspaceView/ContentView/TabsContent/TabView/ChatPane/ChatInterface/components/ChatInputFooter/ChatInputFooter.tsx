@@ -47,7 +47,6 @@ interface ChatInputFooterProps {
 	onSend: (message: PromptInputMessage) => Promise<void> | void;
 	onStop: (e: React.MouseEvent) => void;
 	onSlashCommandSend: (command: SlashCommand) => void;
-	onOpenModelPicker: () => void;
 }
 
 function ChatShortcuts({
@@ -133,7 +132,6 @@ export function ChatInputFooter({
 	onSend,
 	onStop,
 	onSlashCommandSend,
-	onOpenModelPicker,
 }: ChatInputFooterProps) {
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const errorMessage = getErrorMessage(error);
@@ -149,13 +147,6 @@ export function ChatInputFooter({
 					{errorMessage && (
 						<div className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
 							<div>{errorMessage}</div>
-							<button
-								type="button"
-								className="mt-1 text-xs font-medium text-destructive underline underline-offset-2 hover:no-underline"
-								onClick={onOpenModelPicker}
-							>
-								Open models
-							</button>
 						</div>
 					)}
 					<SlashCommandInput
