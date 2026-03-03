@@ -310,6 +310,53 @@ echo system
 		expect(output).toBe("system");
 	});
 
+	it("falls back to system binaries when wrapper exists but is not executable", () => {
+		const integrationRoot = path.join(
+			TEST_ROOT,
+			"managed-command-non-executable-fallback",
+		);
+		const homeDir = path.join(integrationRoot, "home");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		const wrapperBinDir = path.join(integrationRoot, "wrapper-bin");
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+		mkdirSync(wrapperBinDir, { recursive: true });
+
+		writeFileSync(
+			path.join(systemBinDir, "claude"),
+			`#!/usr/bin/env bash
+echo system
+`,
+		);
+		chmodSync(path.join(systemBinDir, "claude"), 0o755);
+
+		writeFileSync(
+			path.join(wrapperBinDir, "claude"),
+			`#!/usr/bin/env bash
+echo wrapper
+`,
+		);
+		chmodSync(path.join(wrapperBinDir, "claude"), 0o644);
+
+		const fallbackPaths: ShellWrapperPaths = {
+			BIN_DIR: wrapperBinDir,
+			ZSH_DIR: TEST_ZSH_DIR,
+			BASH_DIR: TEST_BASH_DIR,
+		};
+		createBashWrapper(fallbackPaths);
+
+		const args = getCommandShellArgs("/bin/bash", "claude", fallbackPaths);
+		const output = execFileSync("bash", args, {
+			encoding: "utf-8",
+			env: {
+				...process.env,
+				HOME: homeDir,
+				PATH: `${systemBinDir}:/usr/bin:/bin`,
+			},
+		}).trim();
+		expect(output).toBe("system");
+	});
+
 	it("uses bash rcfile args for interactive bash shells", () => {
 		expect(getShellArgs("/bin/bash", TEST_PATHS)).toEqual([
 			"--rcfile",

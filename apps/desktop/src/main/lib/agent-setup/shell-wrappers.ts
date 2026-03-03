@@ -59,11 +59,12 @@ function writeFileIfChanged(
 
 function buildManagedCommandPrelude(shellName: string, binDir: string): string {
 	if (shellName === "fish") {
+		const escapedBinDir = escapeFishDoubleQuoted(binDir);
 		return SUPERSET_MANAGED_BINARIES.map(
 			(name) =>
 				`functions -q ${name}; and functions -e ${name}
 function ${name}
-  set -l _superset_wrapper "${binDir}/${name}"
+  set -l _superset_wrapper "${escapedBinDir}/${name}"
   if test -x "$_superset_wrapper"; and not test -d "$_superset_wrapper"
     "$_superset_wrapper" $argv
   else
