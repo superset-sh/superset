@@ -35,7 +35,7 @@ export default {
 	async fetch(
 		request: Request,
 		env: Env,
-		ctx: ExecutionContext,
+		_ctx: ExecutionContext,
 	): Promise<Response> {
 		if (request.method === "OPTIONS") {
 			return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -74,41 +74,31 @@ export default {
 			}
 		}
 
+		// Keep org list ordering stable so equivalent memberships generate
+		// equivalent Electric URLs and maximize CDN cache hits.
+		const authorizedOrganizationIds = [...auth.organizationIds].sort();
 		const whereClause = buildWhereClause(
 			tableName,
 			organizationId ?? "",
-			auth.organizationIds,
+			authorizedOrganizationIds,
 		);
 		if (!whereClause) {
 			return corsResponse(400, `Unknown table: ${tableName}`);
 		}
 
 		const upstreamUrl = buildUpstreamUrl(url, tableName, whereClause, env);
+		const upstreamHeaders = new Headers(request.headers);
+		// Auth is enforced by this worker. Strip user credentials before the
+		// subrequest so cacheability isn't affected by auth/cookie headers.
+		upstreamHeaders.delete("Authorization");
+		upstreamHeaders.delete("Cookie");
 
-		// Use the Worker's own URL as the cache key (required for Cache API).
-		// organizationId must stay in the key to prevent cross-tenant cache sharing.
-		// For auth.organizations (no organizationId param), the where clause depends
-		// on the user's JWT org list, so add a stable derivative to scope the cache.
-		const cacheUrl = new URL(request.url);
-		if (tableName === "auth.organizations") {
-			cacheUrl.searchParams.set(
-				"_orgIds",
-				[...auth.organizationIds].sort().join(","),
-			);
-		}
-		const cacheKey = new Request(cacheUrl.toString());
-
-		const cache = caches.default;
-		const cached = await cache.match(cacheKey);
-		if (cached) {
-			return addCorsHeaders(cached);
-		}
-
-		const response = await fetch(upstreamUrl.toString());
-
-		if (response.ok && response.headers.has("cache-control")) {
-			ctx.waitUntil(cache.put(cacheKey, response.clone()));
-		}
+		const response = await fetch(upstreamUrl.toString(), {
+			headers: upstreamHeaders,
+			// Electric returns cache headers; cacheEverything ensures Cloudflare
+			// applies caching to shape responses consistently at the CDN edge.
+			cf: { cacheEverything: true },
+		});
 
 		return addCorsHeaders(response);
 	},
