@@ -78,7 +78,7 @@ jobs:
 
       - name: Test
         env:
-          NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY || 'ci-outlit-key' }}
+          NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY }}
         run: bun run test
 
   typecheck:
@@ -128,5 +128,5 @@ jobs:
 
       - name: Build Desktop
         env:
-          NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY || 'ci-outlit-key' }}
+          NEXT_PUBLIC_OUTLIT_KEY: ${{ secrets.NEXT_PUBLIC_OUTLIT_KEY }}
         run: bun turbo run build --filter=@superset/desktop
