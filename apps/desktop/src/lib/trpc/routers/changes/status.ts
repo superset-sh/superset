@@ -12,6 +12,7 @@ import {
 	parseGitStatus,
 	parseNameStatus,
 } from "./utils/parse-status";
+import { detectAndRecoverUnbornHead } from "./utils/unborn-head";
 
 export const createStatusRouter = () => {
 	return router({
@@ -27,6 +28,11 @@ export const createStatusRouter = () => {
 
 				const defaultBranch = input.defaultBranch || "main";
 				const git = simpleGit(input.worktreePath);
+				await detectAndRecoverUnbornHead(
+					git,
+					input.worktreePath,
+					defaultBranch,
+				);
 
 				let status: StatusResult;
 				try {
