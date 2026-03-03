@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -46,6 +52,18 @@ function ensureZshAvailable(): boolean {
 	}
 }
 
+function ensureBashAvailable(): boolean {
+	try {
+		execFileSync("bash", ["-lc", "exit 0"], { stdio: "ignore" });
+		return true;
+	} catch (error) {
+		if (isZshMissing(error)) {
+			return false;
+		}
+		throw error;
+	}
+}
+
 describe("shell-wrappers", () => {
 	beforeEach(() => {
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
@@ -77,7 +95,9 @@ describe("shell-wrappers", () => {
 		expect(zshenv).toContain("superset-zsh-integration.zsh");
 		expect(integration).toContain("_superset_fix_path()");
 		expect(integration).toContain(`local superset_bin="${TEST_BIN_DIR}"`);
-		expect(integration).toContain("add-zsh-hook precmd _superset_fix_path");
+		expect(integration).toContain("_superset_reorder_hooks()");
+		expect(integration).toContain("add-zsh-hook precmd _superset_precmd");
+		expect(integration).toContain("add-zsh-hook preexec _superset_fix_path");
 
 		expect(zprofile).toContain('export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"');
 		expect(zprofile).toContain('source -- "$_superset_file"');
@@ -185,6 +205,68 @@ describe("shell-wrappers", () => {
 		expect(seen).toBe("alt");
 	});
 
+	it("keeps zsh wrapper precedence when user precmd rewrites PATH", () => {
+		if (!ensureZshAvailable()) return;
+
+		const integrationRoot = path.join(TEST_ROOT, "zsh-precmd-path-shadow");
+		const integrationZshDir = path.join(integrationRoot, "zsh");
+		const integrationBashDir = path.join(integrationRoot, "bash");
+		const integrationBinDir = path.join(integrationRoot, "bin");
+		const userZdotdir = path.join(integrationRoot, "orig");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		const homeDir = path.join(integrationRoot, "home");
+
+		mkdirSync(integrationBinDir, { recursive: true });
+		mkdirSync(integrationZshDir, { recursive: true });
+		mkdirSync(integrationBashDir, { recursive: true });
+		mkdirSync(userZdotdir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+		mkdirSync(homeDir, { recursive: true });
+
+		const wrapperCodex = path.join(integrationBinDir, "codex");
+		const systemCodex = path.join(systemBinDir, "codex");
+		writeFileSync(wrapperCodex, "#!/usr/bin/env bash\necho wrapper\n");
+		writeFileSync(systemCodex, "#!/usr/bin/env bash\necho system\n");
+		chmodSync(wrapperCodex, 0o755);
+		chmodSync(systemCodex, 0o755);
+
+		writeFileSync(
+			path.join(userZdotdir, ".zshrc"),
+			`autoload -Uz add-zsh-hook
+_superset_user_shadow_precmd() {
+  export PATH="${systemBinDir}:$PATH"
+}
+add-zsh-hook precmd _superset_user_shadow_precmd
+`,
+		);
+
+		createZshWrapper({
+			BIN_DIR: integrationBinDir,
+			ZSH_DIR: integrationZshDir,
+			BASH_DIR: integrationBashDir,
+		});
+
+		const output = execFileSync(
+			"zsh",
+			["-d", "-i", "-c", "command -v codex; codex"],
+			{
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: `${systemBinDir}:${process.env.PATH || "/usr/bin:/bin"}`,
+					SUPERSET_ORIG_ZDOTDIR: userZdotdir,
+					SUPERSET_SHELL_INTEGRATION: "1",
+					SUPERSET_SHELL_INTEGRATION_DIR: integrationZshDir,
+					ZDOTDIR: integrationZshDir,
+				},
+			},
+		).trim();
+
+		const lines = output.split("\n");
+		expect(lines.at(-2)).toBe(wrapperCodex);
+		expect(lines.at(-1)).toBe("wrapper");
+	});
+
 	it("creates bash wrapper with PATH integration and no command shims", () => {
 		createBashWrapper(TEST_PATHS);
 
@@ -198,8 +280,69 @@ describe("shell-wrappers", () => {
 		);
 		expect(integration).toContain("_superset_fix_path()");
 		expect(integration).toContain(`local superset_bin="${TEST_BIN_DIR}"`);
+		expect(integration).toContain("_superset_install_prompt_command()");
+		expect(integration).toContain('PROMPT_COMMAND+=("_superset_fix_path")');
 		expect(integration).not.toContain("claude() {");
+		expect(integration).not.toContain("unset -f _superset_fix_path");
 		expect(rcfile).toContain("hash -r 2>/dev/null || true");
+	});
+
+	it("keeps bash wrapper precedence when PROMPT_COMMAND rewrites PATH", () => {
+		if (!ensureBashAvailable()) return;
+
+		const integrationRoot = path.join(TEST_ROOT, "bash-prompt-path-shadow");
+		const integrationZshDir = path.join(integrationRoot, "zsh");
+		const integrationBashDir = path.join(integrationRoot, "bash");
+		const integrationBinDir = path.join(integrationRoot, "bin");
+		const systemBinDir = path.join(integrationRoot, "system-bin");
+		const homeDir = path.join(integrationRoot, "home");
+
+		mkdirSync(integrationBinDir, { recursive: true });
+		mkdirSync(integrationZshDir, { recursive: true });
+		mkdirSync(integrationBashDir, { recursive: true });
+		mkdirSync(systemBinDir, { recursive: true });
+		mkdirSync(homeDir, { recursive: true });
+
+		const wrapperCodex = path.join(integrationBinDir, "codex");
+		const systemCodex = path.join(systemBinDir, "codex");
+		writeFileSync(wrapperCodex, "#!/usr/bin/env bash\necho wrapper\n");
+		writeFileSync(systemCodex, "#!/usr/bin/env bash\necho system\n");
+		chmodSync(wrapperCodex, 0o755);
+		chmodSync(systemCodex, 0o755);
+
+		writeFileSync(
+			path.join(homeDir, ".bashrc"),
+			`PROMPT_COMMAND='export PATH="${systemBinDir}:$PATH"'
+`,
+		);
+
+		createBashWrapper({
+			BIN_DIR: integrationBinDir,
+			ZSH_DIR: integrationZshDir,
+			BASH_DIR: integrationBashDir,
+		});
+
+		const output = execFileSync(
+			"bash",
+			[
+				"--rcfile",
+				path.join(integrationBashDir, "rcfile"),
+				"-ic",
+				`if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then for __cmd in "\${PROMPT_COMMAND[@]}"; do eval "$__cmd"; done; else eval "$PROMPT_COMMAND"; fi; command -v codex; codex`,
+			],
+			{
+				encoding: "utf-8",
+				stdio: ["pipe", "pipe", "ignore"],
+				env: {
+					HOME: homeDir,
+					PATH: `${systemBinDir}:${process.env.PATH || "/usr/bin:/bin"}`,
+				},
+			},
+		).trim();
+
+		const lines = output.split("\n");
+		expect(lines.at(-2)).toBe(wrapperCodex);
+		expect(lines.at(-1)).toBe("wrapper");
 	});
 
 	it("uses login zsh command args when wrappers exist", () => {

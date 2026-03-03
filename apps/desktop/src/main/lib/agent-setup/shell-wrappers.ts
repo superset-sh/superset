@@ -61,17 +61,27 @@ export function createZshWrapper(
 		"superset-zsh-integration.zsh",
 	);
 	const integrationScript = `# Superset zsh integration
-# Re-prepend BIN_DIR after user init files finish; then remove this hook.
+# Keep BIN_DIR first even if user prompt hooks rewrite PATH.
 _superset_fix_path() {
   local superset_bin="${paths.BIN_DIR}"
-  [[ -d "$superset_bin" ]] || { add-zsh-hook -d precmd _superset_fix_path; return 0; }
+  [[ -d "$superset_bin" ]] || return 0
   local -a parts=("\${(@s/:/)PATH}")
   parts=("\${(@)parts:#$superset_bin}")
   PATH="$superset_bin:\${(j/:/)parts}"
-  add-zsh-hook -d precmd _superset_fix_path
+}
+_superset_reorder_hooks() {
+  add-zsh-hook -d precmd _superset_precmd 2>/dev/null || true
+  add-zsh-hook precmd _superset_precmd
+  add-zsh-hook -d preexec _superset_fix_path 2>/dev/null || true
+  add-zsh-hook preexec _superset_fix_path
+}
+_superset_precmd() {
+  _superset_reorder_hooks
+  _superset_fix_path
 }
 autoload -Uz add-zsh-hook
-add-zsh-hook precmd _superset_fix_path
+_superset_fix_path
+_superset_reorder_hooks
 `;
 	const wroteIntegration = writeFileIfChanged(
 		integrationPath,
@@ -172,8 +182,30 @@ _superset_fix_path() {
   new_path="\${new_path%:}"
   export PATH="$superset_bin:$new_path"
 }
+_superset_install_prompt_command() {
+  local decl
+  decl="$(declare -p PROMPT_COMMAND 2>/dev/null || true)"
+  if [[ "$decl" == "declare -a"* ]]; then
+    local item
+    for item in "\${PROMPT_COMMAND[@]}"; do
+      [[ "$item" == "_superset_fix_path" ]] && return 0
+    done
+    PROMPT_COMMAND+=("_superset_fix_path")
+    return 0
+  fi
+
+  case ";\${PROMPT_COMMAND:-};" in
+    *";_superset_fix_path;"*) return 0 ;;
+  esac
+
+  if [[ -n "\${PROMPT_COMMAND:-}" ]]; then
+    PROMPT_COMMAND="\${PROMPT_COMMAND};_superset_fix_path"
+  else
+    PROMPT_COMMAND="_superset_fix_path"
+  fi
+}
 _superset_fix_path
-unset -f _superset_fix_path
+_superset_install_prompt_command
 `;
 	const wroteIntegration = writeFileIfChanged(
 		integrationPath,
