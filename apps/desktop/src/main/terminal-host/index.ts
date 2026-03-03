@@ -788,6 +788,34 @@ async function stopServer(): Promise<void> {
 // Signal Handling
 // =============================================================================
 
+/**
+ * Error codes for transient OS-level errors that should not kill the daemon.
+ *
+ * ENOSPC - disk full (temporary, user may free space)
+ * ENOMEM - out of memory (temporary, other processes may release)
+ * EMFILE - too many open files per-process
+ * ENFILE - too many open files system-wide
+ *
+ * These errors are typically momentary. Crashing the daemon on a transient
+ * error destroys all active terminal sessions, which is far more disruptive
+ * than the original error itself.
+ */
+const TRANSIENT_ERROR_CODES = ["ENOSPC", "ENOMEM", "EMFILE", "ENFILE"];
+
+/** After this many consecutive transient errors, give up and shut down. */
+const MAX_TRANSIENT_ERRORS = 50;
+
+function isTransientError(error: unknown): boolean {
+	if (error instanceof Error) {
+		return TRANSIENT_ERROR_CODES.some(
+			(code) =>
+				error.message.includes(code) ||
+				(error as NodeJS.ErrnoException).code === code,
+		);
+	}
+	return false;
+}
+
 function setupSignalHandlers() {
 	const shutdown = async (signal: string) => {
 		log("info", `Received ${signal}, shutting down...`);
@@ -799,17 +827,57 @@ function setupSignalHandlers() {
 	process.on("SIGTERM", () => shutdown("SIGTERM"));
 	process.on("SIGHUP", () => shutdown("SIGHUP"));
 
-	// Handle uncaught errors
+	let transientErrorCount = 0;
+
 	process.on("uncaughtException", (error) => {
+		const transient = isTransientError(error);
 		log("error", "Uncaught exception", {
 			error: error.message,
 			stack: error.stack,
+			transient,
 		});
+
+		if (transient) {
+			transientErrorCount++;
+			log(
+				"warn",
+				`Transient error #${transientErrorCount}/${MAX_TRANSIENT_ERRORS} ` +
+					`(${(error as NodeJS.ErrnoException).code ?? error.message.split(",")[0]}), ` +
+					`keeping sessions alive`,
+			);
+			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
+				log(
+					"error",
+					"Too many consecutive transient errors, shutting down",
+				);
+				stopServer().then(() => process.exit(1));
+			}
+			return;
+		}
+
+		// Non-transient: reset counter and shut down
+		transientErrorCount = 0;
 		stopServer().then(() => process.exit(1));
 	});
 
 	process.on("unhandledRejection", (reason) => {
-		log("error", "Unhandled rejection", { reason });
+		const transient = isTransientError(reason);
+		log("error", "Unhandled rejection", { reason, transient });
+
+		if (transient) {
+			transientErrorCount++;
+			log(
+				"warn",
+				`Transient rejection #${transientErrorCount}/${MAX_TRANSIENT_ERRORS}, ` +
+					`keeping sessions alive`,
+			);
+			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
+				stopServer().then(() => process.exit(1));
+			}
+			return;
+		}
+
+		transientErrorCount = 0;
 		stopServer().then(() => process.exit(1));
 	});
 }
