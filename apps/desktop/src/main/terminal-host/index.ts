@@ -829,11 +829,29 @@ function setupSignalHandlers() {
 
 	let transientErrorCount = 0;
 	let isShuttingDown = false;
+	let forceExitTimer: NodeJS.Timeout | null = null;
 
 	const fatalShutdown = () => {
 		if (isShuttingDown) return;
 		isShuttingDown = true;
-		stopServer().then(() => process.exit(1));
+
+		// Ensure we always terminate even if cleanup hangs.
+		forceExitTimer = setTimeout(() => {
+			log("error", "Forced exit after shutdown timeout");
+			process.exit(1);
+		}, 10_000);
+
+		stopServer()
+			.catch((error) => {
+				log("error", "Error during stopServer in fatal shutdown", { error });
+			})
+			.finally(() => {
+				if (forceExitTimer) {
+					clearTimeout(forceExitTimer);
+					forceExitTimer = null;
+				}
+				process.exit(1);
+			});
 	};
 
 	process.on("uncaughtException", (error) => {
@@ -881,6 +899,10 @@ function setupSignalHandlers() {
 					`keeping sessions alive`,
 			);
 			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
+				log(
+					"error",
+					`Too many consecutive transient rejections (${transientErrorCount}/${MAX_TRANSIENT_ERRORS}), shutting down`,
+				);
 				fatalShutdown();
 			}
 			return;
