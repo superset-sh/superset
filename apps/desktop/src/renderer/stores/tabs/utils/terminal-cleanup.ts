@@ -6,8 +6,45 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
  * the live session with full scrollback and running processes.
  */
 const SOFT_CLOSE_DELAY_MS = 60_000;
+const PENDING_KILLS_STORAGE_KEY = "superset:terminal:pending-soft-close-kills";
 
 const pendingKills = new Map<string, ReturnType<typeof setTimeout>>();
+
+const persistPendingKills = (): void => {
+	if (typeof window === "undefined") return;
+	try {
+		window.localStorage.setItem(
+			PENDING_KILLS_STORAGE_KEY,
+			JSON.stringify([...pendingKills.keys()]),
+		);
+	} catch (error) {
+		console.warn("Failed to persist pending soft-close kills:", error);
+	}
+};
+
+const readPersistedPendingKills = (): string[] => {
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = window.localStorage.getItem(PENDING_KILLS_STORAGE_KEY);
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed)
+			? parsed.filter((id): id is string => typeof id === "string")
+			: [];
+	} catch (error) {
+		console.warn("Failed to read persisted pending soft-close kills:", error);
+		return [];
+	}
+};
+
+const clearPersistedPendingKills = (): void => {
+	if (typeof window === "undefined") return;
+	try {
+		window.localStorage.removeItem(PENDING_KILLS_STORAGE_KEY);
+	} catch (error) {
+		console.warn("Failed to clear persisted pending soft-close kills:", error);
+	}
+};
 
 /**
  * Schedule a terminal kill after SOFT_CLOSE_DELAY_MS.
@@ -18,12 +55,14 @@ export const scheduleKillTerminalForPane = (paneId: string): void => {
 
 	const timer = setTimeout(() => {
 		pendingKills.delete(paneId);
+		persistPendingKills();
 		electronTrpcClient.terminal.kill.mutate({ paneId }).catch((error) => {
 			console.warn(`Failed to kill terminal for pane ${paneId}:`, error);
 		});
 	}, SOFT_CLOSE_DELAY_MS);
 
 	pendingKills.set(paneId, timer);
+	persistPendingKills();
 };
 
 /**
@@ -35,6 +74,7 @@ export const cancelPendingKill = (paneId: string): boolean => {
 	if (timer) {
 		clearTimeout(timer);
 		pendingKills.delete(paneId);
+		persistPendingKills();
 		return true;
 	}
 	return false;
@@ -63,10 +103,28 @@ const flushPendingKills = (): void => {
 		});
 	}
 	pendingKills.clear();
+	clearPersistedPendingKills();
+};
+
+/**
+ * Recover pending soft-close kills after renderer crash/reload.
+ * If timers were lost, best effort kill the affected pane sessions on next boot.
+ */
+const replayPersistedPendingKills = (): void => {
+	const paneIds = readPersistedPendingKills();
+	if (paneIds.length === 0) return;
+
+	for (const paneId of paneIds) {
+		electronTrpcClient.terminal.kill.mutate({ paneId }).catch((error) => {
+			console.warn(`Failed to replay pending kill for pane ${paneId}:`, error);
+		});
+	}
+	clearPersistedPendingKills();
 };
 
 // Flush pending kills when the renderer is unloading (crash, reload, quit)
 // so that orphan PTY sessions are not left behind.
 if (typeof window !== "undefined") {
+	replayPersistedPendingKills();
 	window.addEventListener("beforeunload", flushPendingKills);
 }
