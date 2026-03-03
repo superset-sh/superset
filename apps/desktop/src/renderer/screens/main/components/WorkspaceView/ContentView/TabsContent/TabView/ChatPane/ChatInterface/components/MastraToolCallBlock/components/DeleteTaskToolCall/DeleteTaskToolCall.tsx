@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { FileXIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getArgs, getResult } from "../../../../utils/tool-helpers";
+import { getResult } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 import { TaskItemDisplay } from "../TaskItemDisplay";
 
@@ -11,7 +11,6 @@ interface DeleteTaskToolCallProps {
 
 export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 	const navigate = useNavigate();
-	const args = getArgs(part);
 	const result = getResult(part);
 	const resultData =
 		typeof result.result === "object" && result.result !== null
@@ -19,9 +18,6 @@ export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 			: result;
 	const deleted = Array.isArray(resultData.deleted)
 		? resultData.deleted.map((item) => String(item))
-		: [];
-	const requestedIds = Array.isArray(args.taskIds)
-		? args.taskIds.map((item) => String(item))
 		: [];
 
 	return (
@@ -31,12 +27,6 @@ export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 			icon={FileXIcon}
 			details={
 				<div className="space-y-2">
-					{requestedIds.length > 0 ? (
-						<div className="text-muted-foreground">
-							Requested: {requestedIds.length} task
-							{requestedIds.length === 1 ? "" : "s"}
-						</div>
-					) : null}
 					{deleted.length > 0 ? (
 						<div className="space-y-1">
 							<div className="font-medium text-foreground">

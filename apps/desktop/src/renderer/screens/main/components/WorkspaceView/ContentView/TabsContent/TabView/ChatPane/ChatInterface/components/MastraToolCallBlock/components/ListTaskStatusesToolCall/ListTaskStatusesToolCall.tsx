@@ -1,10 +1,29 @@
+import { TaskItem, TaskItemFile } from "@superset/ui/ai-elements/task";
 import { ListChecksIcon } from "lucide-react";
+import {
+	StatusIcon,
+	type StatusType,
+} from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getResult } from "../../../../utils/tool-helpers";
 import { SupersetToolCall } from "../SupersetToolCall";
 
 interface ListTaskStatusesToolCallProps {
 	part: ToolPart;
+}
+
+function normalizeStatusType(value: unknown): StatusType | null {
+	if (typeof value !== "string") return null;
+	if (
+		value === "backlog" ||
+		value === "unstarted" ||
+		value === "started" ||
+		value === "completed" ||
+		value === "canceled"
+	) {
+		return value;
+	}
+	return null;
 }
 
 export function ListTaskStatusesToolCall({
@@ -39,20 +58,50 @@ export function ListTaskStatusesToolCall({
 									typeof status.name === "string"
 										? status.name
 										: `Status ${index + 1}`;
+								const statusId =
+									typeof status.id === "string" ? status.id : null;
 								const type =
 									typeof status.type === "string" ? status.type : null;
 								const color =
 									typeof status.color === "string" ? status.color : null;
+								const position =
+									typeof status.position === "number"
+										? String(status.position)
+										: null;
+								const statusType = normalizeStatusType(type);
+								const statusColor = color ?? "#9ca3af";
+
 								return (
 									<div
-										key={`${name}-${index}`}
+										key={statusId ?? `${name}-${type ?? "unknown"}`}
 										className="rounded border bg-background/70 px-2 py-1"
 									>
-										<div className="font-medium text-foreground">{name}</div>
-										<div className="text-muted-foreground">
-											{type ? `Type: ${type}` : "Type: unknown"}
-											{color ? ` • ${color}` : ""}
-										</div>
+										<TaskItem className="space-y-1 text-xs">
+											<div className="flex items-center gap-1.5">
+												{statusType ? (
+													<StatusIcon type={statusType} color={statusColor} />
+												) : (
+													<div
+														className="h-3.5 w-3.5 rounded-full"
+														style={{ backgroundColor: statusColor }}
+													/>
+												)}
+												<div className="font-medium text-foreground">
+													{name}
+												</div>
+											</div>
+											<div className="flex flex-wrap gap-1">
+												{type ? (
+													<TaskItemFile>Type: {type}</TaskItemFile>
+												) : null}
+												{color ? (
+													<TaskItemFile>Color: {color}</TaskItemFile>
+												) : null}
+												{position ? (
+													<TaskItemFile>Position: {position}</TaskItemFile>
+												) : null}
+											</div>
+										</TaskItem>
 									</div>
 								);
 							})}
