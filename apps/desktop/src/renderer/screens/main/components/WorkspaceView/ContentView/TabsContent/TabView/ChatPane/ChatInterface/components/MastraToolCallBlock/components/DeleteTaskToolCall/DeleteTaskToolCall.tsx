@@ -55,6 +55,7 @@ export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 					)}
 				</div>
 			}
+			showRawJson={false}
 		/>
 	);
 }

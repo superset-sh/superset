@@ -62,6 +62,7 @@ export function ListTaskStatusesToolCall({
 					)}
 				</div>
 			}
+			showRawJson={false}
 		/>
 	);
 }

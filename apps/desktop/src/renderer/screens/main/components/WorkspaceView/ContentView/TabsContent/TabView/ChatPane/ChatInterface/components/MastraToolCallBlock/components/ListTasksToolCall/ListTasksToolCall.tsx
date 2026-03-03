@@ -92,6 +92,7 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 					)}
 				</div>
 			}
+			showRawJson={false}
 		/>
 	);
 }

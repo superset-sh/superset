@@ -61,6 +61,7 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 					)}
 				</div>
 			}
+			showRawJson={false}
 		/>
 	);
 }

@@ -60,6 +60,7 @@ export function ListMembersToolCall({ part }: ListMembersToolCallProps) {
 					)}
 				</div>
 			}
+			showRawJson={false}
 		/>
 	);
 }

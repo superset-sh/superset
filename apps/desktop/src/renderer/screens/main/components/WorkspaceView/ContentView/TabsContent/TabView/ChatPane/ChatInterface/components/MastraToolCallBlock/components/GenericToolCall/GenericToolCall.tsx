@@ -16,6 +16,7 @@ type GenericToolCallProps = {
 	toolName: string;
 	icon?: ComponentType<{ className?: string }>;
 	expandedContent?: ReactNode;
+	showRawJson?: boolean;
 };
 
 export function GenericToolCall({
@@ -23,6 +24,7 @@ export function GenericToolCall({
 	toolName,
 	icon: Icon = WrenchIcon,
 	expandedContent,
+	showRawJson = true,
 }: GenericToolCallProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const { output, isError, displayState, errorText } =
@@ -75,13 +77,13 @@ export function GenericToolCall({
 								{expandedContent}
 							</div>
 						) : null}
-						{part.input != null && <ToolInput input={part.input} />}
-						{(output != null || isError) && (
+						{showRawJson && part.input != null ? <ToolInput input={part.input} /> : null}
+						{showRawJson && (output != null || isError) ? (
 							<ToolOutput
 								output={!isError ? output : undefined}
 								errorText={isError ? errorText : undefined}
 							/>
-						)}
+						) : null}
 					</div>
 				</CollapsibleContent>
 			)}
