@@ -35,6 +35,7 @@ interface NotificationCenterState {
 	entries: NotificationCenterEntry[];
 	addEntry: (entry: AddEntryInput) => string;
 	markRead: (id: string) => void;
+	markReadByDedupeKey: (dedupeKey: string) => void;
 	markAllRead: (kind?: NotificationCenterEntryKind) => void;
 	archive: (id: string) => void;
 	archiveAll: (kind?: NotificationCenterEntryKind) => void;
@@ -92,6 +93,16 @@ export const useNotificationCenterStore = create<NotificationCenterState>()(
 						entries: state.entries.map((entry) =>
 							entry.id === id ? { ...entry, read: true } : entry,
 						),
+					}));
+				},
+
+				markReadByDedupeKey: (dedupeKey) => {
+					set((state) => ({
+						entries: state.entries.map((entry) => {
+							if (entry.archived || entry.dedupeKey !== dedupeKey) return entry;
+							if (entry.read) return entry;
+							return { ...entry, read: true };
+						}),
 					}));
 				},
 
