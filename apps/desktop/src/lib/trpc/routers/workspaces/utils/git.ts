@@ -480,6 +480,21 @@ export async function createWorktree(
 			worktreePath,
 		});
 
+		// Verify the new worktree has a valid HEAD. In rare partial-failure
+		// cases, Git can leave the branch unborn even though the worktree exists.
+		const worktreeGit = simpleGit(worktreePath);
+		try {
+			const headCheck = await worktreeGit.raw(["rev-parse", "HEAD"]);
+			if (!headCheck.trim()) {
+				throw new Error("HEAD is empty after worktree creation");
+			}
+		} catch {
+			console.warn(
+				`[createWorktree] HEAD is unborn after creation, resetting to ${startPoint}`,
+			);
+			await worktreeGit.raw(["reset", startPoint]);
+		}
+
 		// Enable autoSetupRemote so the first `git push` automatically creates
 		// the remote branch and sets upstream (like `git push -u origin <branch>`).
 		await execFileAsync(
