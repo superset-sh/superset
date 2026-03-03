@@ -33,10 +33,20 @@ const TOOL_NAME_ALIASES: Record<string, string> = {
 	task_write: "task_write",
 	task_check: "task_check",
 	submit_plan: "submit_plan",
+
+	// Legacy Superset MCP names
+	create_worktree: "create_workspace",
+	start_claude_session: "start_agent_session",
 };
 
 export function normalizeToolName(toolName: string): string {
-	return TOOL_NAME_ALIASES[toolName] ?? toolName;
+	const directAlias = TOOL_NAME_ALIASES[toolName];
+	if (directAlias) return directAlias;
+
+	const unnamespacedToolName = toolName.startsWith("superset_")
+		? toolName.slice("superset_".length)
+		: toolName;
+	return TOOL_NAME_ALIASES[unnamespacedToolName] ?? unnamespacedToolName;
 }
 
 export function toToolDisplayState(part: ToolPart): ToolDisplayState {

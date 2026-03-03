@@ -20,9 +20,19 @@ import {
 } from "../../utils/tool-helpers";
 import { ReadOnlyToolCall } from "../ReadOnlyToolCall";
 import { AskUserQuestionToolCall } from "./components/AskUserQuestionToolCall";
+import { CreateWorkspaceToolCall } from "./components/CreateWorkspaceToolCall";
+import { DeleteWorkspaceToolCall } from "./components/DeleteWorkspaceToolCall";
 import { EditToolExpandedDiff } from "./components/EditToolExpandedDiff";
+import { GetAppContextToolCall } from "./components/GetAppContextToolCall";
+import { GetWorkspaceDetailsToolCall } from "./components/GetWorkspaceDetailsToolCall";
 import { GenericToolCall } from "./components/GenericToolCall";
+import { ListDevicesToolCall } from "./components/ListDevicesToolCall";
+import { ListProjectsToolCall } from "./components/ListProjectsToolCall";
+import { ListWorkspacesToolCall } from "./components/ListWorkspacesToolCall";
+import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
+import { SwitchWorkspaceToolCall } from "./components/SwitchWorkspaceToolCall";
+import { UpdateWorkspaceToolCall } from "./components/UpdateWorkspaceToolCall";
 import { getExecuteCommandViewModel } from "./utils/getExecuteCommandViewModel";
 import { getWebSearchViewModel } from "./utils/getWebSearchViewModel";
 
@@ -468,6 +478,47 @@ export function MastraToolCallBlock({
 				onAnswer={onAnswer}
 			/>
 		);
+	}
+
+	// --- Superset MCP tools ---
+	if (toolName === "list_devices") {
+		return <ListDevicesToolCall part={part} />;
+	}
+
+	if (toolName === "list_workspaces") {
+		return <ListWorkspacesToolCall part={part} />;
+	}
+
+	if (toolName === "list_projects") {
+		return <ListProjectsToolCall part={part} />;
+	}
+
+	if (toolName === "get_app_context") {
+		return <GetAppContextToolCall part={part} />;
+	}
+
+	if (toolName === "get_workspace_details") {
+		return <GetWorkspaceDetailsToolCall part={part} />;
+	}
+
+	if (toolName === "create_workspace") {
+		return <CreateWorkspaceToolCall part={part} />;
+	}
+
+	if (toolName === "switch_workspace") {
+		return <SwitchWorkspaceToolCall part={part} />;
+	}
+
+	if (toolName === "update_workspace") {
+		return <UpdateWorkspaceToolCall part={part} />;
+	}
+
+	if (toolName === "delete_workspace") {
+		return <DeleteWorkspaceToolCall part={part} />;
+	}
+
+	if (toolName === "start_agent_session") {
+		return <StartAgentSessionToolCall part={part} />;
 	}
 
 	// --- Read-only exploration tools ---
