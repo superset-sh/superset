@@ -37,6 +37,7 @@ import { ListTasksToolCall } from "./components/ListTasksToolCall";
 import { ListWorkspacesToolCall } from "./components/ListWorkspacesToolCall";
 import { StartAgentSessionToolCall } from "./components/StartAgentSessionToolCall";
 import { SubagentToolCall } from "./components/SubagentToolCall";
+import { SupersetToolCall } from "./components/SupersetToolCall";
 import { SwitchWorkspaceToolCall } from "./components/SwitchWorkspaceToolCall";
 import { UpdateTaskToolCall } from "./components/UpdateTaskToolCall";
 import { UpdateWorkspaceToolCall } from "./components/UpdateWorkspaceToolCall";
@@ -564,7 +565,7 @@ export function MastraToolCallBlock({
 	// --- Destructive workspace tools ---
 	if (toolName === "mastra_workspace_mkdir") {
 		return (
-			<GenericToolCall
+			<SupersetToolCall
 				part={part}
 				toolName="Create directory"
 				icon={FolderIcon}
@@ -574,24 +575,24 @@ export function MastraToolCallBlock({
 
 	if (toolName === "mastra_workspace_delete") {
 		return (
-			<GenericToolCall part={part} toolName="Delete path" icon={FileIcon} />
+			<SupersetToolCall part={part} toolName="Delete path" icon={FileIcon} />
 		);
 	}
 
 	if (toolName === "request_sandbox_access") {
-		return <GenericToolCall part={part} toolName="Request sandbox access" />;
+		return <SupersetToolCall part={part} toolName="Request sandbox access" />;
 	}
 
 	if (toolName === "task_write") {
-		return <GenericToolCall part={part} toolName="Write task list" />;
+		return <SupersetToolCall part={part} toolName="Write task list" />;
 	}
 
 	if (toolName === "task_check") {
-		return <GenericToolCall part={part} toolName="Update task status" />;
+		return <SupersetToolCall part={part} toolName="Update task status" />;
 	}
 
 	if (toolName === "submit_plan") {
-		return <GenericToolCall part={part} toolName="Submit plan" />;
+		return <SupersetToolCall part={part} toolName="Submit plan" />;
 	}
 
 	if (toolName === "subagent") {

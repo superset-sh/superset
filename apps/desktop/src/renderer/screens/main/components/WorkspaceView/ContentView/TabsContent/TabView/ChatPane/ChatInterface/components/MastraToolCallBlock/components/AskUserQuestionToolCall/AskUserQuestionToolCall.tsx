@@ -3,7 +3,7 @@ import { UserQuestionTool } from "@superset/ui/ai-elements/user-question-tool";
 import { MessageCircleQuestionIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface QuestionToolOption {
 	label: string;
@@ -222,7 +222,7 @@ export function AskUserQuestionToolCall({
 
 	if (!hasQuestions) {
 		return (
-			<GenericToolCall
+			<SupersetToolCall
 				part={part}
 				toolName="Question"
 				icon={MessageCircleQuestionIcon}
@@ -234,7 +234,7 @@ export function AskUserQuestionToolCall({
 		return (
 			<div className="space-y-2">
 				{messageBlock}
-				<GenericToolCall
+				<SupersetToolCall
 					part={part}
 					toolName="Question"
 					icon={MessageCircleQuestionIcon}
@@ -247,7 +247,7 @@ export function AskUserQuestionToolCall({
 		return (
 			<div className="space-y-2">
 				{messageBlock}
-				<GenericToolCall
+				<SupersetToolCall
 					part={part}
 					toolName="Question"
 					icon={MessageCircleQuestionIcon}
