@@ -233,7 +233,13 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 					});
 				} catch (error) {
 					setCommandError(error);
-					return;
+					console.error("[chat-mastra] respondToApproval failed", {
+						sessionId,
+						decision: input.payload?.decision,
+						toolCallId: input.payload?.toolCallId,
+						error,
+					});
+					throw error;
 				}
 			},
 			respondToQuestion: async (

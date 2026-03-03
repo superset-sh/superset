@@ -188,10 +188,19 @@ export function RequestExternalDirToolCall({
 		) {
 			return;
 		}
+		console.debug("[chat-mastra] external-dir approval click", {
+			decision,
+			toolCallId: part.toolCallId,
+			pendingApprovalToolCallId: pendingApprovalToolCallId ?? null,
+		});
 		inFlightResponseRef.current = true;
 		setSelectedDecision(decision);
 		try {
 			await onApprovalRespond(decision, part.toolCallId);
+			console.debug("[chat-mastra] external-dir approval submitted", {
+				decision,
+				toolCallId: part.toolCallId,
+			});
 		} catch (error) {
 			console.error("Failed to submit external directory approval", error);
 			setSelectedDecision(null);

@@ -234,7 +234,30 @@ export class ChatMastraService {
 						.input(approvalRespondInput)
 						.mutation(async ({ input }) => {
 							const runtime = await this.getOrCreateRuntime(input.sessionId);
-							return runtime.harness.respondToToolApproval(input.payload);
+							console.info("[chat-mastra] approval.respond", {
+								sessionId: input.sessionId,
+								decision: input.payload.decision,
+								toolCallId: input.payload.toolCallId ?? null,
+							});
+							try {
+								const response = await runtime.harness.respondToToolApproval(
+									input.payload,
+								);
+								console.info("[chat-mastra] approval.respond.success", {
+									sessionId: input.sessionId,
+									decision: input.payload.decision,
+									toolCallId: input.payload.toolCallId ?? null,
+								});
+								return response;
+							} catch (error) {
+								console.error("[chat-mastra] approval.respond.error", {
+									sessionId: input.sessionId,
+									decision: input.payload.decision,
+									toolCallId: input.payload.toolCallId ?? null,
+									error,
+								});
+								throw error;
+							}
 						}),
 				}),
 

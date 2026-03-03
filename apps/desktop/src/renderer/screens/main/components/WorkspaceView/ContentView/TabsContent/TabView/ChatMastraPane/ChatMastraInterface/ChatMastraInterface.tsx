@@ -386,19 +386,36 @@ export function ChatMastraInterface({
 			decision: "approve" | "decline" | "always_allow_category",
 			toolCallId?: string,
 		) => {
+			const resolvedToolCallId = toolCallId?.trim()
+				? toolCallId.trim()
+				: pendingApproval?.toolCallId?.trim()
+					? pendingApproval.toolCallId.trim()
+					: undefined;
 			clearRuntimeError();
 			setApprovalResponsePending(true);
 			try {
+				console.debug("[chat-mastra] sending approval response", {
+					decision,
+					toolCallId: resolvedToolCallId ?? null,
+					pendingApprovalToolCallId: pendingApproval?.toolCallId ?? null,
+				});
 				await commands.respondToApproval({
 					payload: {
 						decision,
-						...(toolCallId?.trim()
-							? { toolCallId: toolCallId.trim() }
-							: pendingApproval?.toolCallId?.trim()
-								? { toolCallId: pendingApproval.toolCallId.trim() }
-								: {}),
+						...(resolvedToolCallId ? { toolCallId: resolvedToolCallId } : {}),
 					},
 				});
+				console.debug("[chat-mastra] approval response submitted", {
+					decision,
+					toolCallId: resolvedToolCallId ?? null,
+				});
+			} catch (error) {
+				console.error("Failed to send approval response", {
+					decision,
+					toolCallId: resolvedToolCallId ?? null,
+					error,
+				});
+				throw error;
 			} finally {
 				setApprovalResponsePending(false);
 			}

@@ -227,6 +227,7 @@ export function ChatMastraMessageList({
 	const pendingApprovalToolName = normalizeToolName(
 		pendingApproval?.toolName ?? "",
 	);
+	const pendingApprovalToolCallId = pendingApproval?.toolCallId ?? null;
 	const shouldRenderStandalonePendingApproval =
 		Boolean(pendingApproval) &&
 		pendingApprovalToolName !== "request_sandbox_access";
@@ -262,7 +263,7 @@ export function ChatMastraMessageList({
 								workspaceCwd={workspaceCwd}
 								isStreaming={false}
 								previewToolParts={[]}
-								pendingApprovalToolCallId={pendingApproval?.toolCallId ?? null}
+								pendingApprovalToolCallId={pendingApprovalToolCallId}
 								isApprovalSubmitting={isApprovalSubmitting}
 								onApprovalRespond={onApprovalRespond}
 							/>
@@ -279,7 +280,7 @@ export function ChatMastraMessageList({
 						workspaceCwd={workspaceCwd}
 						isStreaming
 						previewToolParts={previewToolParts}
-						pendingApprovalToolCallId={pendingApproval?.toolCallId ?? null}
+						pendingApprovalToolCallId={pendingApprovalToolCallId}
 						isApprovalSubmitting={isApprovalSubmitting}
 						onApprovalRespond={onApprovalRespond}
 					/>
@@ -304,30 +305,7 @@ export function ChatMastraMessageList({
 									sessionId={sessionId}
 									organizationId={organizationId}
 									workspaceCwd={workspaceCwd}
-									pendingApprovalToolCallId={
-										pendingApproval?.toolCallId ?? null
-									}
-									isApprovalSubmitting={isApprovalSubmitting}
-									onApprovalRespond={onApprovalRespond}
-								/>
-							))}
-						</MessageContent>
-					</Message>
-				)}
-				{shouldShowToolPreview && (
-					<Message from="assistant">
-						<MessageContent>
-							{previewToolParts.map((part) => (
-								<MastraToolCallBlock
-									key={`tool-preview-${part.toolCallId}`}
-									part={part}
-									workspaceId={workspaceId}
-									sessionId={sessionId}
-									organizationId={organizationId}
-									workspaceCwd={workspaceCwd}
-									pendingApprovalToolCallId={
-										pendingApproval?.toolCallId ?? null
-									}
+									pendingApprovalToolCallId={pendingApprovalToolCallId}
 									isApprovalSubmitting={isApprovalSubmitting}
 									onApprovalRespond={onApprovalRespond}
 								/>
