@@ -213,7 +213,13 @@ export function useMarkdownSearch({
 
 	useAppHotkey(
 		"FIND_IN_FILE_VIEWER",
-		() => setIsSearchOpen((prev) => !prev),
+		() => {
+			if (isSearchOpen) {
+				closeSearch();
+			} else {
+				setIsSearchOpen(true);
+			}
+		},
 		{ enabled: isFocused && isRenderedMode, preventDefault: true },
 		[isFocused, isRenderedMode],
 	);
