@@ -169,6 +169,13 @@
       "when": 1771866677057,
       "tag": "0023_agent_commands_timestamptz",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1771881481160,
+      "tag": "0024_bring_in_comments_and_assets_linear",
+      "breakpoints": true
     }
   ]
 }

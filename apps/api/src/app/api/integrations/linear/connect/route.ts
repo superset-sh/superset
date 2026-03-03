@@ -1,8 +1,8 @@
 import { auth } from "@superset/auth/server";
 import { findOrgMembership } from "@superset/db/utils";
-
 import { env } from "@/env";
 import { createSignedState } from "@/lib/oauth-state";
+import { getLinearPublicApiUrl } from "../lib/public-api-url";
 
 export async function GET(request: Request) {
 	const session = await auth.api.getSession({
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 	linearAuthUrl.searchParams.set("client_id", env.LINEAR_CLIENT_ID);
 	linearAuthUrl.searchParams.set(
 		"redirect_uri",
-		`${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/callback`,
+		`${getLinearPublicApiUrl()}/api/integrations/linear/callback`,
 	);
 	linearAuthUrl.searchParams.set("response_type", "code");
 	linearAuthUrl.searchParams.set("scope", "read,write,issues:create");

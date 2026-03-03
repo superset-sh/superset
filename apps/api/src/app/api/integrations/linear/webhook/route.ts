@@ -1,22 +1,51 @@
-import type { EntityWebhookPayloadWithIssueData } from "@linear/sdk/webhooks";
+import { LinearClient } from "@linear/sdk";
 import {
 	LINEAR_WEBHOOK_SIGNATURE_HEADER,
 	LinearWebhookClient,
 } from "@linear/sdk/webhooks";
 import { db } from "@superset/db/client";
-import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
 	integrationConnections,
-	taskStatuses,
+	type SelectIntegrationConnection,
 	tasks,
-	users,
 	webhookEvents,
 } from "@superset/db/schema";
-import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 import { and, eq, sql } from "drizzle-orm";
 import { env } from "@/env";
+import { syncLinearIssueById } from "../lib/issues/sync-linear-issue";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
+
+interface LinearWebhookPayload {
+	type: string;
+	action: string;
+	organizationId: string;
+	webhookTimestamp: string | number;
+	data: Record<string, unknown>;
+}
+
+function extractIssueId(payload: LinearWebhookPayload): string | null {
+	const data = payload.data;
+	if (!data || typeof data !== "object") return null;
+
+	if (payload.type === "Issue") {
+		const id = data.id;
+		return typeof id === "string" ? id : null;
+	}
+
+	const issueId = data.issueId;
+	if (typeof issueId === "string") {
+		return issueId;
+	}
+
+	const issue = data.issue;
+	if (issue && typeof issue === "object") {
+		const nestedId = (issue as { id?: unknown }).id;
+		return typeof nestedId === "string" ? nestedId : null;
+	}
+
+	return null;
+}
 
 export async function POST(request: Request) {
 	const body = await request.text();
@@ -26,7 +55,16 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	const payload = webhookClient.parseData(Buffer.from(body), signature);
+	let payload: LinearWebhookPayload;
+	try {
+		payload = webhookClient.parseData(
+			Buffer.from(body),
+			signature,
+		) as LinearWebhookPayload;
+	} catch (error) {
+		console.warn("[linear/webhook] Invalid signature payload", error);
+		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	}
 
 	// Store event with idempotent handling
 	const eventId = `${payload.organizationId}-${payload.webhookTimestamp}`;
@@ -84,14 +122,7 @@ export async function POST(request: Request) {
 	}
 
 	try {
-		let status: "processed" | "skipped" = "processed";
-
-		if (payload.type === "Issue") {
-			status = await processIssueEvent(
-				payload as EntityWebhookPayloadWithIssueData,
-				connection,
-			);
-		}
+		const status = await processWebhookEvent(payload, connection);
 
 		await db
 			.update(webhookEvents)
@@ -116,85 +147,35 @@ export async function POST(request: Request) {
 	}
 }
 
-async function processIssueEvent(
-	payload: EntityWebhookPayloadWithIssueData,
+async function processWebhookEvent(
+	payload: LinearWebhookPayload,
 	connection: SelectIntegrationConnection,
 ): Promise<"processed" | "skipped"> {
-	const issue = payload.data;
-
-	if (payload.action === "create" || payload.action === "update") {
-		const taskStatus = await db.query.taskStatuses.findFirst({
-			where: and(
-				eq(taskStatuses.organizationId, connection.organizationId),
-				eq(taskStatuses.externalProvider, "linear"),
-				eq(taskStatuses.externalId, issue.state.id),
-			),
-		});
-
-		if (!taskStatus) {
-			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
-			// Currently webhooks silently fail when Linear has new statuses that aren't synced yet.
-			// Should either: (1) trigger workflow state sync and retry, (2) queue for retry, or (3) keep periodic sync only
-			console.warn(
-				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
-			);
-			return "skipped";
-		}
-
-		let assigneeId: string | null = null;
-		if (issue.assignee?.email) {
-			const matchedUser = await db.query.users.findFirst({
-				where: eq(users.email, issue.assignee.email),
-			});
-			assigneeId = matchedUser?.id ?? null;
-		}
-
-		const taskData = {
-			slug: issue.identifier,
-			title: issue.title,
-			description: issue.description ?? null,
-			statusId: taskStatus.id,
-			priority: mapPriorityFromLinear(issue.priority),
-			assigneeId,
-			estimate: issue.estimate ?? null,
-			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
-			labels: issue.labels.map((l) => l.name),
-			startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
-			completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
-			externalProvider: "linear" as const,
-			externalId: issue.id,
-			externalKey: issue.identifier,
-			externalUrl: issue.url,
-			lastSyncedAt: new Date(),
-		};
-
-		await db
-			.insert(tasks)
-			.values({
-				...taskData,
-				organizationId: connection.organizationId,
-				creatorId: connection.connectedByUserId,
-				createdAt: new Date(issue.createdAt),
-			})
-			.onConflictDoUpdate({
-				target: [
-					tasks.organizationId,
-					tasks.externalProvider,
-					tasks.externalId,
-				],
-				set: { ...taskData, syncError: null },
-			});
-	} else if (payload.action === "remove") {
-		await db
-			.update(tasks)
-			.set({ deletedAt: new Date() })
-			.where(
-				and(
-					eq(tasks.externalProvider, "linear"),
-					eq(tasks.externalId, issue.id),
-				),
-			);
+	const issueId = extractIssueId(payload);
+	if (!issueId) {
+		return "skipped";
 	}
 
-	return "processed";
+	if (payload.type === "Issue" && payload.action === "remove") {
+		await db
+			.update(tasks)
+			.set({ deletedAt: new Date(), lastSyncedAt: new Date() })
+			.where(
+				and(
+					eq(tasks.organizationId, connection.organizationId),
+					eq(tasks.externalProvider, "linear"),
+					eq(tasks.externalId, issueId),
+				),
+			);
+		return "processed";
+	}
+
+	const client = new LinearClient({ accessToken: connection.accessToken });
+	return syncLinearIssueById({
+		client,
+		organizationId: connection.organizationId,
+		creatorUserId: connection.connectedByUserId,
+		issueId,
+		linearAccessToken: connection.accessToken,
+	});
 }

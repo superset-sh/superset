@@ -6,6 +6,8 @@ interface ActivityItemProps {
 	actorName: string;
 	action: string;
 	timestamp: Date;
+	body?: string | null;
+	externalUrl?: string | null;
 }
 
 export function ActivityItem({
@@ -14,6 +16,8 @@ export function ActivityItem({
 	actorName,
 	action,
 	timestamp,
+	body,
+	externalUrl,
 }: ActivityItemProps) {
 	return (
 		<div className="flex items-start gap-3">
@@ -34,6 +38,21 @@ export function ActivityItem({
 					{" "}
 					{action} · {formatDistanceToNow(timestamp, { addSuffix: true })}
 				</span>
+				{body ? (
+					<div className="mt-1 whitespace-pre-wrap rounded-md border border-border bg-muted/40 px-2 py-1.5 text-foreground text-xs">
+						{body}
+					</div>
+				) : null}
+				{externalUrl ? (
+					<a
+						href={externalUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="mt-1 block text-primary text-xs underline"
+					>
+						View in Linear
+					</a>
+				) : null}
 			</div>
 		</div>
 	);

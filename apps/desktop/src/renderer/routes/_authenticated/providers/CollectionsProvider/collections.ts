@@ -11,6 +11,7 @@ import type {
 	SelectSessionHost,
 	SelectSubscription,
 	SelectTask,
+	SelectTaskComment,
 	SelectTaskStatus,
 	SelectUser,
 	SelectWorkspace,
@@ -50,6 +51,7 @@ type IntegrationConnectionDisplay = Omit<
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
+	taskComments: Collection<SelectTaskComment>;
 	taskStatuses: Collection<SelectTaskStatus>;
 	projects: Collection<SelectProject>;
 	workspaces: Collection<SelectWorkspace>;
@@ -151,6 +153,22 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				url: electricUrl,
 				params: {
 					table: "task_statuses",
+					organizationId,
+				},
+				headers: electricHeaders,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const taskComments = createCollection(
+		electricCollectionOptions<SelectTaskComment>({
+			id: `task_comments-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "task_comments",
 					organizationId,
 				},
 				headers: electricHeaders,
@@ -362,6 +380,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 
 	return {
 		tasks,
+		taskComments,
 		taskStatuses,
 		projects,
 		workspaces,

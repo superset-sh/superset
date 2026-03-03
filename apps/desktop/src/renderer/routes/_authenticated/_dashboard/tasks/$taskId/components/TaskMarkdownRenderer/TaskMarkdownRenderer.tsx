@@ -26,53 +26,12 @@ import { Text } from "@tiptap/extension-text";
 import { Underline } from "@tiptap/extension-underline";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import { common, createLowlight } from "lowlight";
-import { env } from "renderer/env.renderer";
 import { Markdown } from "tiptap-markdown";
 
 import { CodeBlockView } from "./components/CodeBlockView";
 import { SlashCommand } from "./components/SlashCommand";
 
 const lowlight = createLowlight(common);
-
-const LINEAR_IMAGE_HOST = "uploads.linear.app";
-
-function isLinearImageUrl(src: string): boolean {
-	try {
-		const url = new URL(src);
-		return url.host === LINEAR_IMAGE_HOST;
-	} catch {
-		return false;
-	}
-}
-
-function getLinearProxyUrl(linearUrl: string): string {
-	const proxyUrl = new URL(`${env.NEXT_PUBLIC_API_URL}/api/proxy/linear-image`);
-	proxyUrl.searchParams.set("url", linearUrl);
-	return proxyUrl.toString();
-}
-
-const LinearImage = Image.extend({
-	addAttributes() {
-		return {
-			...this.parent?.(),
-			src: {
-				default: null,
-				parseHTML: (element) => element.getAttribute("src"),
-				renderHTML: (attributes) => {
-					const src = attributes.src;
-					if (!src) return { src: null };
-					const proxiedSrc = isLinearImageUrl(src)
-						? getLinearProxyUrl(src)
-						: src;
-					return {
-						src: proxiedSrc,
-						crossorigin: isLinearImageUrl(src) ? "use-credentials" : undefined,
-					};
-				},
-			},
-		};
-	},
-});
 
 const HEADING_CLASSES: Record<number, string> = {
 	1: "text-3xl font-bold leading-tight mt-0 mb-3",
@@ -191,7 +150,7 @@ export function TaskMarkdownRenderer({
 				openOnClick: false,
 				HTMLAttributes: { class: "text-primary underline" },
 			}),
-			LinearImage.configure({
+			Image.configure({
 				HTMLAttributes: { class: "max-w-full h-auto rounded-md my-3" },
 			}),
 			Placeholder.configure({

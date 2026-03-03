@@ -30,3 +30,8 @@ export const updateTaskSchema = z.object({
 	dueDate: z.coerce.date().nullish(),
 	labels: z.array(z.string()).nullish(),
 });
+
+export const createTaskCommentSchema = z.object({
+	taskId: z.string().uuid(),
+	body: z.string().min(1),
+});

@@ -1,13 +1,41 @@
 import { db, dbWs } from "@superset/db/client";
-import { tasks, users } from "@superset/db/schema";
+import { taskComments, tasks, users } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
+import { getLinearClient } from "../../lib/integrations/linear";
 import { syncTask } from "../../lib/integrations/sync";
 import { protectedProcedure, publicProcedure } from "../../trpc";
-import { createTaskSchema, updateTaskSchema } from "./schema";
+import {
+	createTaskCommentSchema,
+	createTaskSchema,
+	updateTaskSchema,
+} from "./schema";
+
+const CREATE_LINEAR_COMMENT_MUTATION = `
+	mutation CreateComment($issueId: String!, $body: String!) {
+		commentCreate(input: { issueId: $issueId, body: $body }) {
+			success
+			comment {
+				id
+				url
+				body
+				createdAt
+				updatedAt
+				parent {
+					id
+				}
+				user {
+					id
+					name
+					avatarUrl
+				}
+			}
+		}
+	}
+`;
 
 export const taskRouter = {
 	all: publicProcedure.query(() => {
@@ -63,6 +91,18 @@ export const taskRouter = {
 		return task ?? null;
 	}),
 
+	commentsByTaskId: publicProcedure
+		.input(z.string().uuid())
+		.query(async ({ input }) => {
+			return db
+				.select()
+				.from(taskComments)
+				.where(
+					and(eq(taskComments.taskId, input), isNull(taskComments.deletedAt)),
+				)
+				.orderBy(asc(taskComments.createdAt));
+		}),
+
 	create: protectedProcedure
 		.input(createTaskSchema)
 		.mutation(async ({ ctx, input }) => {
@@ -110,6 +150,54 @@ export const taskRouter = {
 			}
 
 			return result;
+		}),
+
+	createComment: protectedProcedure
+		.input(createTaskCommentSchema)
+		.mutation(async ({ input }) => {
+			const task = await db.query.tasks.findFirst({
+				where: and(eq(tasks.id, input.taskId), isNull(tasks.deletedAt)),
+			});
+
+			if (!task) {
+				throw new Error("Task not found");
+			}
+
+			if (task.externalProvider !== "linear" || !task.externalId) {
+				throw new Error(
+					"Comments are currently supported for Linear tasks only",
+				);
+			}
+
+			const client = await getLinearClient(task.organizationId);
+			if (!client) {
+				throw new Error("No Linear connection found");
+			}
+
+			const response = await client.client.request<
+				{
+					commentCreate: {
+						success: boolean;
+						comment: {
+							id: string;
+							url: string;
+						} | null;
+					};
+				},
+				{ issueId: string; body: string }
+			>(CREATE_LINEAR_COMMENT_MUTATION, {
+				issueId: task.externalId,
+				body: input.body,
+			});
+
+			if (!response.commentCreate.success || !response.commentCreate.comment) {
+				throw new Error("Failed to create Linear comment");
+			}
+
+			return {
+				success: true,
+				comment: response.commentCreate.comment,
+			};
 		}),
 
 	delete: protectedProcedure

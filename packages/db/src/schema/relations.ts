@@ -23,6 +23,8 @@ import {
 	secrets,
 	sessionHosts,
 	subscriptions,
+	taskAssets,
+	taskComments,
 	taskStatuses,
 	tasks,
 	usersSlackUsers,
@@ -66,6 +68,8 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	sandboxImages: many(sandboxImages),
 	workspaces: many(workspaces),
 	tasks: many(tasks),
+	taskAssets: many(taskAssets),
+	taskComments: many(taskComments),
 	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
@@ -103,7 +107,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 	}),
 }));
 
-export const tasksRelations = relations(tasks, ({ one }) => ({
+export const tasksRelations = relations(tasks, ({ one, many }) => ({
 	organization: one(organizations, {
 		fields: [tasks.organizationId],
 		references: [organizations.id],
@@ -121,6 +125,30 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 		fields: [tasks.creatorId],
 		references: [users.id],
 		relationName: "creator",
+	}),
+	assets: many(taskAssets),
+	comments: many(taskComments),
+}));
+
+export const taskAssetsRelations = relations(taskAssets, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [taskAssets.organizationId],
+		references: [organizations.id],
+	}),
+	task: one(tasks, {
+		fields: [taskAssets.taskId],
+		references: [tasks.id],
+	}),
+}));
+
+export const taskCommentsRelations = relations(taskComments, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [taskComments.organizationId],
+		references: [organizations.id],
+	}),
+	task: one(tasks, {
+		fields: [taskComments.taskId],
+		references: [tasks.id],
 	}),
 }));
 

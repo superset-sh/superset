@@ -11,6 +11,8 @@ import { and, eq, inArray } from "drizzle-orm";
 import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
+import { syncLinearIssueById } from "../../lib/issues/sync-linear-issue";
+import { getLinearPublicApiUrl } from "../../lib/public-api-url";
 import { syncWorkflowStates } from "./syncWorkflowStates";
 import { fetchAllIssues, mapIssueToTask } from "./utils";
 
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
 		const isValid = await receiver.verify({
 			body,
 			signature,
-			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
+			url: `${getLinearPublicApiUrl()}/api/integrations/linear/jobs/initial-sync`,
 		});
 
 		if (!isValid) {
@@ -68,7 +70,12 @@ export async function POST(request: Request) {
 	}
 
 	const client = new LinearClient({ accessToken: connection.accessToken });
-	await performInitialSync(client, organizationId, creatorUserId);
+	await performInitialSync(
+		client,
+		organizationId,
+		creatorUserId,
+		connection.accessToken,
+	);
 
 	return Response.json({ success: true });
 }
@@ -77,6 +84,7 @@ async function performInitialSync(
 	client: LinearClient,
 	organizationId: string,
 	creatorUserId: string,
+	linearAccessToken: string,
 ) {
 	await syncWorkflowStates({ client, organizationId });
 
@@ -156,5 +164,24 @@ async function performInitialSync(
 					syncError: null,
 				},
 			});
+	}
+
+	// Secondary pass: hydrate comments + mirrored assets and rewrite markdown URLs.
+	const issueIdBatches = chunk(
+		issues.map((issue) => issue.id),
+		20,
+	);
+	for (const issueBatch of issueIdBatches) {
+		await Promise.allSettled(
+			issueBatch.map((issueId) =>
+				syncLinearIssueById({
+					client,
+					organizationId,
+					creatorUserId,
+					issueId,
+					linearAccessToken,
+				}),
+			),
+		);
 	}
 }

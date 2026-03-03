@@ -146,6 +146,86 @@ export const tasks = pgTable(
 export type InsertTask = typeof tasks.$inferInsert;
 export type SelectTask = typeof tasks.$inferSelect;
 
+export const taskAssets = pgTable(
+	"task_assets",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		taskId: uuid("task_id")
+			.notNull()
+			.references(() => tasks.id, { onDelete: "cascade" }),
+		externalProvider: integrationProvider("external_provider").notNull(),
+		sourceKind: text("source_kind").notNull(),
+		sourceUrl: text("source_url").notNull(),
+		sourceHash: text("source_hash").notNull(),
+		blobUrl: text("blob_url").notNull(),
+		mimeType: text("mime_type"),
+		sizeBytes: integer("size_bytes"),
+		lastSyncedAt: timestamp("last_synced_at").notNull().defaultNow(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("task_assets_org_idx").on(table.organizationId),
+		index("task_assets_task_idx").on(table.taskId),
+		index("task_assets_provider_idx").on(table.externalProvider),
+		unique("task_assets_unique_source").on(
+			table.organizationId,
+			table.taskId,
+			table.sourceHash,
+		),
+	],
+);
+
+export type InsertTaskAsset = typeof taskAssets.$inferInsert;
+export type SelectTaskAsset = typeof taskAssets.$inferSelect;
+
+export const taskComments = pgTable(
+	"task_comments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		taskId: uuid("task_id")
+			.notNull()
+			.references(() => tasks.id, { onDelete: "cascade" }),
+		body: text().notNull(),
+		authorExternalId: text("author_external_id"),
+		authorName: text("author_name"),
+		authorAvatarUrl: text("author_avatar_url"),
+		externalProvider: integrationProvider("external_provider").notNull(),
+		externalId: text("external_id").notNull(),
+		externalUrl: text("external_url"),
+		parentCommentExternalId: text("parent_comment_external_id"),
+		lastSyncedAt: timestamp("last_synced_at").notNull().defaultNow(),
+		deletedAt: timestamp("deleted_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("task_comments_org_idx").on(table.organizationId),
+		index("task_comments_task_created_idx").on(table.taskId, table.createdAt),
+		index("task_comments_provider_idx").on(table.externalProvider),
+		unique("task_comments_external_unique").on(
+			table.organizationId,
+			table.externalProvider,
+			table.externalId,
+		),
+	],
+);
+
+export type InsertTaskComment = typeof taskComments.$inferInsert;
+export type SelectTaskComment = typeof taskComments.$inferSelect;
+
 // Integration connections for external providers (Linear, GitHub, etc.)
 export const integrationConnections = pgTable(
 	"integration_connections",

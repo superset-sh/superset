@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
+import { getLinearPublicApiUrl } from "../lib/public-api-url";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
 			grant_type: "authorization_code",
 			client_id: env.LINEAR_CLIENT_ID,
 			client_secret: env.LINEAR_CLIENT_SECRET,
-			redirect_uri: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/callback`,
+			redirect_uri: `${getLinearPublicApiUrl()}/api/integrations/linear/callback`,
 			code,
 		}),
 	});
@@ -114,7 +115,7 @@ export async function GET(request: Request) {
 
 	try {
 		await qstash.publishJSON({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
+			url: `${getLinearPublicApiUrl()}/api/integrations/linear/jobs/initial-sync`,
 			body: { organizationId, creatorUserId: userId },
 			retries: 3,
 		});

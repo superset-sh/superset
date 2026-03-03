@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
-import { eq, or } from "@tanstack/db";
+import { and, eq, isNull, or } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -62,6 +62,39 @@ function TaskDetailPage() {
 		if (!taskData || taskData.length === 0) return null;
 		return taskData[0];
 	}, [taskData]);
+
+	const { data: commentData } = useLiveQuery(
+		(q) =>
+			q
+				.from({ comments: collections.taskComments })
+				.innerJoin({ tasks: collections.tasks }, ({ comments, tasks }) =>
+					eq(comments.taskId, tasks.id),
+				)
+				.select(({ comments }) => ({
+					...comments,
+				}))
+				.where(({ comments, tasks }) =>
+					and(
+						or(eq(tasks.id, taskId), eq(tasks.slug, taskId)),
+						isNull(tasks.deletedAt),
+						isNull(comments.deletedAt),
+					),
+				),
+		[collections.taskComments, collections.tasks, taskId],
+	);
+
+	const taskComments = useMemo(() => {
+		return (commentData ?? [])
+			.map((comment) => ({
+				id: comment.id,
+				body: comment.body,
+				authorName: comment.authorName,
+				authorAvatarUrl: comment.authorAvatarUrl,
+				externalUrl: comment.externalUrl,
+				createdAt: new Date(comment.createdAt),
+			}))
+			.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+	}, [commentData]);
 
 	const handleBack = () => {
 		navigate({ to: "/tasks", search: backSearch });
@@ -132,10 +165,11 @@ function TaskDetailPage() {
 							createdAt={new Date(task.createdAt)}
 							creatorName={task.assignee?.name ?? "Someone"}
 							creatorAvatarUrl={task.assignee?.image}
+							comments={taskComments}
 						/>
 
 						<div className="mt-6">
-							<CommentInput />
+							<CommentInput disabled={task.externalProvider === "linear"} />
 						</div>
 					</div>
 				</ScrollArea>
