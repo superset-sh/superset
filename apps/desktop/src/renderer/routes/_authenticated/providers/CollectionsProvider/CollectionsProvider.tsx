@@ -6,7 +6,6 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
-	useMemo,
 	useState,
 } from "react";
 import { env } from "renderer/env.renderer";
@@ -41,16 +40,10 @@ export function preloadActiveOrganizationCollections(
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
 	const useElectricCloud = useFeatureFlagEnabled(FEATURE_FLAGS.ELECTRIC_CLOUD);
+	const [isSwitching, setIsSwitching] = useState(false);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
-
-	useEffect(() => {
-		if (useElectricCloud) {
-			setElectricUrl(env.NEXT_PUBLIC_ELECTRIC_URL);
-		}
-	}, [useElectricCloud]);
-	const [isSwitching, setIsSwitching] = useState(false);
 
 	const switchOrganization = useCallback(
 		async (organizationId: string) => {
@@ -58,8 +51,6 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			setIsSwitching(true);
 			try {
 				await authClient.organization.setActive({ organizationId });
-				// Wait for target org's collections to finish initial Electric sync.
-				// If already preloaded by the background useEffect, this resolves instantly.
 				await preloadCollections(organizationId);
 				await refetchSession();
 			} finally {
@@ -69,19 +60,23 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		[activeOrganizationId, refetchSession],
 	);
 
-	// Preload collections for the active org only.
-	// Collections are lazy — they don't sync until subscribed or preloaded.
 	useEffect(() => {
 		preloadActiveOrganizationCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	const collections = useMemo(() => {
-		if (!activeOrganizationId) {
-			return null;
-		}
+	if (useElectricCloud === undefined) {
+		return null;
+	}
 
-		return getCollections(activeOrganizationId);
-	}, [activeOrganizationId]);
+	setElectricUrl(
+		useElectricCloud
+			? env.NEXT_PUBLIC_ELECTRIC_URL
+			: env.NEXT_PUBLIC_ELECTRIC_PROXY_URL,
+	);
+
+	const collections = activeOrganizationId
+		? getCollections(activeOrganizationId)
+		: null;
 
 	if (!collections || isSwitching) {
 		return null;
