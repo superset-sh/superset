@@ -45,38 +45,6 @@ function writeFileIfChanged(
 	return true;
 }
 
-/** Agent binaries that get wrapper shims to guarantee resolution. */
-const SHIMMED_BINARIES = [
-	"claude",
-	"codex",
-	"opencode",
-	"gemini",
-	"copilot",
-	"mastracode",
-];
-
-/**
- * Shell function shims that override PATH-based lookup.
- * Functions take precedence over PATH in both zsh and bash,
- * so even if a precmd hook or .zlogin re-orders PATH, the
- * wrapped binary is always invoked.
- */
-function buildShimFunctions(binDir: string): string {
-	return SHIMMED_BINARIES.map(
-		(name) => `${name}() { "${binDir}/${name}" "$@"; }`,
-	).join("\n");
-}
-
-function buildPathPrependFunction(binDir: string): string {
-	return `_superset_prepend_bin() {
-  case ":$PATH:" in
-    *:"${binDir}":*) ;;
-    *) export PATH="${binDir}:$PATH" ;;
-  esac
-}
-_superset_prepend_bin`;
-}
-
 function escapeFishDoubleQuoted(value: string): string {
 	return value
 		.replaceAll("\\", "\\\\")
@@ -87,62 +55,101 @@ function escapeFishDoubleQuoted(value: string): string {
 export function createZshWrapper(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): void {
+	// Keep wrapper bin first after user init files are done.
+	const integrationPath = path.join(
+		paths.ZSH_DIR,
+		"superset-zsh-integration.zsh",
+	);
+	const integrationScript = `# Superset zsh integration
+# Re-prepend BIN_DIR after user init files finish; then remove this hook.
+_superset_fix_path() {
+  local superset_bin="${paths.BIN_DIR}"
+  [[ -d "$superset_bin" ]] || { add-zsh-hook -d precmd _superset_fix_path; return 0; }
+  local -a parts=("\${(@s/:/)PATH}")
+  parts=("\${(@)parts:#$superset_bin}")
+  PATH="$superset_bin:\${(j/:/)parts}"
+  add-zsh-hook -d precmd _superset_fix_path
+}
+autoload -Uz add-zsh-hook
+add-zsh-hook precmd _superset_fix_path
+`;
+	const wroteIntegration = writeFileIfChanged(
+		integrationPath,
+		integrationScript,
+		0o644,
+	);
+
 	// .zshenv is always sourced first by zsh (interactive + non-interactive).
-	// Temporarily restore the user's ZDOTDIR while sourcing user config, then
-	// switch back so zsh continues through our wrapper chain.
+	// Restore original ZDOTDIR immediately so zsh loads user startup files naturally.
 	const zshenvPath = path.join(paths.ZSH_DIR, ".zshenv");
 	const zshenvScript = `# Superset zsh env wrapper
-_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
-export ZDOTDIR="$_superset_home"
-[[ -f "$_superset_home/.zshenv" ]] && source "$_superset_home/.zshenv"
-export ZDOTDIR="${paths.ZSH_DIR}"
+if [[ -n "\${SUPERSET_ORIG_ZDOTDIR+X}" ]]; then
+  export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"
+else
+  unset ZDOTDIR
+fi
+
+{
+  _superset_file="\${ZDOTDIR-$HOME}/.zshenv"
+  [[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
+} always {
+  if [[ -o interactive && "\${SUPERSET_SHELL_INTEGRATION:-1}" != "0" ]]; then
+    _superset_integ="\${SUPERSET_SHELL_INTEGRATION_DIR:-${paths.ZSH_DIR}}/superset-zsh-integration.zsh"
+    [[ -r "$_superset_integ" ]] && source -- "$_superset_integ"
+  fi
+  unset _superset_file _superset_integ
+}
 `;
 	const wroteZshenv = writeFileIfChanged(zshenvPath, zshenvScript, 0o644);
 
-	// Source user .zprofile with their ZDOTDIR, then restore wrapper ZDOTDIR
-	// so startup continues into our .zshrc wrapper.
+	// Compatibility shim: this should not run in normal flow because .zshenv
+	// restores ZDOTDIR first. If reached, behave like vanilla zsh.
 	const zprofilePath = path.join(paths.ZSH_DIR, ".zprofile");
 	const zprofileScript = `# Superset zsh profile wrapper
-_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
-export ZDOTDIR="$_superset_home"
-[[ -f "$_superset_home/.zprofile" ]] && source "$_superset_home/.zprofile"
-export ZDOTDIR="${paths.ZSH_DIR}"
+if [[ -n "\${SUPERSET_ORIG_ZDOTDIR+X}" ]]; then
+  export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"
+else
+  unset ZDOTDIR
+fi
+_superset_file="\${ZDOTDIR-$HOME}/.zprofile"
+[[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
+unset _superset_file
 `;
 	const wroteZprofile = writeFileIfChanged(zprofilePath, zprofileScript, 0o644);
 
-	// Reset ZDOTDIR before sourcing so Oh My Zsh works correctly
+	// Compatibility shim mirroring .zprofile behavior.
 	const zshrcPath = path.join(paths.ZSH_DIR, ".zshrc");
 	const zshrcScript = `# Superset zsh rc wrapper
-_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
-export ZDOTDIR="$_superset_home"
-[[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
-${buildPathPrependFunction(paths.BIN_DIR)}
-${buildShimFunctions(paths.BIN_DIR)}
-rehash 2>/dev/null || true
-# Restore ZDOTDIR so our .zlogin runs after user's .zlogin
-export ZDOTDIR="${paths.ZSH_DIR}"
+if [[ -n "\${SUPERSET_ORIG_ZDOTDIR+X}" ]]; then
+  export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"
+else
+  unset ZDOTDIR
+fi
+_superset_file="\${ZDOTDIR-$HOME}/.zshrc"
+[[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
+unset _superset_file
 `;
 	const wroteZshrc = writeFileIfChanged(zshrcPath, zshrcScript, 0o644);
 
-	// .zlogin runs AFTER .zshrc in login shells. By restoring ZDOTDIR above,
-	// zsh sources our .zlogin instead of the user's directly. We source the
-	// user's .zlogin only for interactive shells, then re-apply command shims
-	// and prepend BIN_DIR so tools like mise, nvm, or PATH exports in .zlogin
-	// can't shadow our wrappers.
+	// Compatibility shim mirroring .zprofile behavior.
 	const zloginPath = path.join(paths.ZSH_DIR, ".zlogin");
 	const zloginScript = `# Superset zsh login wrapper
-_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
-export ZDOTDIR="$_superset_home"
-if [[ -o interactive ]]; then
-  [[ -f "$_superset_home/.zlogin" ]] && source "$_superset_home/.zlogin"
+if [[ -n "\${SUPERSET_ORIG_ZDOTDIR+X}" ]]; then
+  export ZDOTDIR="$SUPERSET_ORIG_ZDOTDIR"
+else
+  unset ZDOTDIR
 fi
-${buildPathPrependFunction(paths.BIN_DIR)}
-${buildShimFunctions(paths.BIN_DIR)}
-rehash 2>/dev/null || true
-export ZDOTDIR="$_superset_home"
+_superset_file="\${ZDOTDIR-$HOME}/.zlogin"
+[[ ! -r "$_superset_file" ]] || source -- "$_superset_file"
+unset _superset_file
 `;
 	const wroteZlogin = writeFileIfChanged(zloginPath, zloginScript, 0o644);
-	const changed = wroteZshenv || wroteZprofile || wroteZshrc || wroteZlogin;
+	const changed =
+		wroteIntegration ||
+		wroteZshenv ||
+		wroteZprofile ||
+		wroteZshrc ||
+		wroteZlogin;
 	console.log(
 		`[agent-setup] ${changed ? "Updated" : "Verified"} zsh wrapper files`,
 	);
@@ -151,6 +158,29 @@ export ZDOTDIR="$_superset_home"
 export function createBashWrapper(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): void {
+	const integrationPath = path.join(
+		paths.BASH_DIR,
+		"superset-bash-integration.bash",
+	);
+	const integrationScript = `# Superset bash integration
+_superset_fix_path() {
+  local superset_bin="${paths.BIN_DIR}"
+  [[ -d "$superset_bin" ]] || return 0
+  local new_path=":$PATH:"
+  new_path="\${new_path//:$superset_bin:/:}"
+  new_path="\${new_path#:}"
+  new_path="\${new_path%:}"
+  export PATH="$superset_bin:$new_path"
+}
+_superset_fix_path
+unset -f _superset_fix_path
+`;
+	const wroteIntegration = writeFileIfChanged(
+		integrationPath,
+		integrationScript,
+		0o644,
+	);
+
 	const rcfilePath = path.join(paths.BASH_DIR, "rcfile");
 	const script = `# Superset bash rcfile wrapper
 
@@ -169,14 +199,14 @@ fi
 # Source bashrc if separate
 [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
 
-# Keep superset bin first without duplicating entries
-${buildPathPrependFunction(paths.BIN_DIR)}
-${buildShimFunctions(paths.BIN_DIR)}
+# Load Superset bash integration (PATH fix after user init)
+[[ -f "${integrationPath}" ]] && source "${integrationPath}"
 hash -r 2>/dev/null || true
 # Minimal prompt (path/env shown in toolbar) - emerald to match app theme
 export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;
-	const changed = writeFileIfChanged(rcfilePath, script, 0o644);
+	const wroteRcfile = writeFileIfChanged(rcfilePath, script, 0o644);
+	const changed = wroteIntegration || wroteRcfile;
 	console.log(`[agent-setup] ${changed ? "Updated" : "Verified"} bash wrapper`);
 }
 
@@ -188,6 +218,8 @@ export function getShellEnv(
 	if (shellName === "zsh") {
 		return {
 			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
+			SUPERSET_SHELL_INTEGRATION: "1",
+			SUPERSET_SHELL_INTEGRATION_DIR: paths.ZSH_DIR,
 			ZDOTDIR: paths.ZSH_DIR,
 		};
 	}
