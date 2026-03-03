@@ -226,6 +226,9 @@ fi
 	it("falls back to login shell args when zsh wrappers are missing", () => {
 		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
 		expect(args[0]).toBe("-lc");
+		expect(args[1]).not.toContain(
+			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" &&`,
+		);
 		expect(args[1]).toContain(
 			`_superset_wrapper="${path.join(TEST_BIN_DIR, "claude")}"`,
 		);
