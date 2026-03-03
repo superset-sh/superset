@@ -50,3 +50,21 @@ export const killTerminalForPane = (paneId: string): void => {
 		console.warn(`Failed to kill terminal for pane ${paneId}:`, error);
 	});
 };
+
+/**
+ * Flush all pending soft-close kills immediately.
+ * Called on renderer teardown to prevent orphan PTY sessions.
+ */
+const flushPendingKills = (): void => {
+	for (const [paneId, timer] of pendingKills) {
+		clearTimeout(timer);
+		electronTrpcClient.terminal.kill.mutate({ paneId }).catch(() => {});
+	}
+	pendingKills.clear();
+};
+
+// Flush pending kills when the renderer is unloading (crash, reload, quit)
+// so that orphan PTY sessions are not left behind.
+if (typeof window !== "undefined") {
+	window.addEventListener("beforeunload", flushPendingKills);
+}
