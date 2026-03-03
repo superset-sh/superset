@@ -86,11 +86,16 @@ export default {
 		const upstreamUrl = buildUpstreamUrl(url, tableName, whereClause, env);
 
 		// Use the Worker's own URL as the cache key (required for Cache API).
-		// Strip organizationId since it's already encoded in the where clause
-		// sent upstream — the rest of the params (table, offset, handle, etc.)
-		// naturally deduplicate requests from the same org.
+		// organizationId must stay in the key to prevent cross-tenant cache sharing.
+		// For auth.organizations (no organizationId param), the where clause depends
+		// on the user's JWT org list, so add a stable derivative to scope the cache.
 		const cacheUrl = new URL(request.url);
-		cacheUrl.searchParams.delete("organizationId");
+		if (tableName === "auth.organizations") {
+			cacheUrl.searchParams.set(
+				"_orgIds",
+				[...auth.organizationIds].sort().join(","),
+			);
+		}
 		const cacheKey = new Request(cacheUrl.toString());
 
 		const cache = caches.default;
