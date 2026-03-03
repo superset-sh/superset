@@ -1,6 +1,6 @@
 import { PencilLineIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface UpdateWorkspaceToolCallProps {
 	part: ToolPart;
@@ -10,7 +10,7 @@ export function UpdateWorkspaceToolCall({
 	part,
 }: UpdateWorkspaceToolCallProps) {
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="Update workspace"
 			icon={PencilLineIcon}

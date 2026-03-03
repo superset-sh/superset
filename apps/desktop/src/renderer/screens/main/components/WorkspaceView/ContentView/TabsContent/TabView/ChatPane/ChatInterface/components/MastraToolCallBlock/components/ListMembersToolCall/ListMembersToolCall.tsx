@@ -1,7 +1,7 @@
 import { UsersIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getResult } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface ListMembersToolCallProps {
 	part: ToolPart;
@@ -21,11 +21,11 @@ export function ListMembersToolCall({ part }: ListMembersToolCallProps) {
 		: [];
 
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="List members"
 			icon={UsersIcon}
-			expandedContent={
+			details={
 				<div className="space-y-2">
 					<div className="text-muted-foreground">Members: {members.length}</div>
 					{members.length > 0 ? (
@@ -60,7 +60,6 @@ export function ListMembersToolCall({ part }: ListMembersToolCallProps) {
 					)}
 				</div>
 			}
-			showRawJson={false}
 		/>
 	);
 }

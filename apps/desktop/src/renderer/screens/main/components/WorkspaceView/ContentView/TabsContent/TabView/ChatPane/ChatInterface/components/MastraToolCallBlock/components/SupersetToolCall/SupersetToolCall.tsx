@@ -1,33 +1,58 @@
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
-import { ToolInput, ToolOutput } from "@superset/ui/ai-elements/tool";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { CheckIcon, Loader2Icon, WrenchIcon, XIcon } from "lucide-react";
-import type { ComponentType } from "react";
-import { useState } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { useMemo, useState } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { getGenericToolCallState } from "./getGenericToolCallState";
 
-type GenericToolCallProps = {
+type SupersetToolCallProps = {
 	part: ToolPart;
 	toolName: string;
 	icon?: ComponentType<{ className?: string }>;
+	details?: ReactNode;
 };
 
-export function GenericToolCall({
+function stringifyValue(value: unknown): string {
+	if (typeof value === "string") return value;
+	try {
+		return JSON.stringify(value);
+	} catch {
+		return String(value);
+	}
+}
+
+export function SupersetToolCall({
 	part,
 	toolName,
 	icon: Icon = WrenchIcon,
-}: GenericToolCallProps) {
+	details,
+}: SupersetToolCallProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const { output, isError, displayState, errorText } =
-		getGenericToolCallState(part);
+	const output =
+		"output" in part ? (part as { output?: unknown }).output : undefined;
+	const outputObject =
+		output != null && typeof output === "object"
+			? (output as Record<string, unknown>)
+			: undefined;
+	const outputError = outputObject?.error;
+	const isError = part.state === "output-error" || Boolean(outputError);
 	const isPending =
 		part.state !== "output-available" && part.state !== "output-error";
-	const hasDetails = part.input != null || output != null || isError;
+
+	const errorText = useMemo(() => {
+		if (!isError) return null;
+		if (typeof outputError === "string") return outputError;
+		if (typeof outputObject?.message === "string") return outputObject.message;
+		if (outputError !== undefined) return stringifyValue(outputError);
+		if (output !== undefined) return stringifyValue(output);
+		return "Tool failed";
+	}, [isError, output, outputError, outputObject?.message]);
+
+	const hasDetails = Boolean(details) || isError;
 
 	return (
 		<Collapsible
@@ -57,7 +82,7 @@ export function GenericToolCall({
 					<div className="ml-2 flex h-6 w-6 items-center justify-center text-muted-foreground">
 						{isPending ? (
 							<Loader2Icon className="h-3 w-3 animate-spin" />
-						) : isError || displayState === "output-error" ? (
+						) : isError ? (
 							<XIcon className="h-3 w-3" />
 						) : (
 							<CheckIcon className="h-3 w-3" />
@@ -65,19 +90,20 @@ export function GenericToolCall({
 					</div>
 				</button>
 			</CollapsibleTrigger>
-			{hasDetails && (
+			{hasDetails ? (
 				<CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in">
-					<div className="mt-0.5">
-						{part.input != null && <ToolInput input={part.input} />}
-						{(output != null || isError) && (
-							<ToolOutput
-								output={!isError ? output : undefined}
-								errorText={isError ? errorText : undefined}
-							/>
-						)}
+					<div className="mt-0.5 space-y-1">
+						{details ? (
+							<div className="rounded border bg-muted/20 p-2.5 text-xs">{details}</div>
+						) : null}
+						{isError && errorText ? (
+							<div className="rounded border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive">
+								{errorText}
+							</div>
+						) : null}
 					</div>
 				</CollapsibleContent>
-			)}
+			) : null}
 		</Collapsible>
 	);
 }

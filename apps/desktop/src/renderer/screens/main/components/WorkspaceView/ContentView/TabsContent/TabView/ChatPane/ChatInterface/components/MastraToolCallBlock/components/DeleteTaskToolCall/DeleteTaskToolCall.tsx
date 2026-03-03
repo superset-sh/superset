@@ -1,7 +1,7 @@
 import { FileXIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface DeleteTaskToolCallProps {
 	part: ToolPart;
@@ -22,11 +22,11 @@ export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 		: [];
 
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="Delete task"
 			icon={FileXIcon}
-			expandedContent={
+			details={
 				<div className="space-y-2">
 					{requestedIds.length > 0 ? (
 						<div className="text-muted-foreground">
@@ -55,7 +55,6 @@ export function DeleteTaskToolCall({ part }: DeleteTaskToolCallProps) {
 					)}
 				</div>
 			}
-			showRawJson={false}
 		/>
 	);
 }

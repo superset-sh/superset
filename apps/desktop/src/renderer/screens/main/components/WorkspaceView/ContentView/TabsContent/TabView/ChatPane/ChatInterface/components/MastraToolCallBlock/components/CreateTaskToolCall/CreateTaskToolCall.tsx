@@ -1,7 +1,7 @@
 import { FilePlusIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface CreateTaskToolCallProps {
 	part: ToolPart;
@@ -27,11 +27,11 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 			: 0;
 
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="Create task"
 			icon={FilePlusIcon}
-			expandedContent={
+			details={
 				<div className="space-y-2">
 					<div className="text-muted-foreground">
 						Requested: {requestedCount} task{requestedCount === 1 ? "" : "s"}
@@ -65,7 +65,6 @@ export function CreateTaskToolCall({ part }: CreateTaskToolCallProps) {
 					)}
 				</div>
 			}
-			showRawJson={false}
 		/>
 	);
 }

@@ -1,6 +1,6 @@
 import { FolderKanbanIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface ListProjectsToolCallProps {
 	part: ToolPart;
@@ -8,7 +8,7 @@ interface ListProjectsToolCallProps {
 
 export function ListProjectsToolCall({ part }: ListProjectsToolCallProps) {
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="List projects"
 			icon={FolderKanbanIcon}

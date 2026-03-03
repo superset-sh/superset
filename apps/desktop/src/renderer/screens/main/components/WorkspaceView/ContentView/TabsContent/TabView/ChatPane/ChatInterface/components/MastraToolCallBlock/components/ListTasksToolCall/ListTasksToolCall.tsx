@@ -1,7 +1,7 @@
 import { ClipboardListIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface ListTasksToolCallProps {
 	part: ToolPart;
@@ -35,11 +35,11 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 	});
 
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="List tasks"
 			icon={ClipboardListIcon}
-			expandedContent={
+			details={
 				<div className="space-y-2">
 					<div className="text-muted-foreground">
 						Found: {count} task{count === 1 ? "" : "s"}
@@ -92,7 +92,6 @@ export function ListTasksToolCall({ part }: ListTasksToolCallProps) {
 					)}
 				</div>
 			}
-			showRawJson={false}
 		/>
 	);
 }

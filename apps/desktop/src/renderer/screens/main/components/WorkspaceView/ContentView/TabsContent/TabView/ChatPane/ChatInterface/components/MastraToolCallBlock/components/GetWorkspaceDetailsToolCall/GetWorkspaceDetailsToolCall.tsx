@@ -1,6 +1,6 @@
 import { InfoIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface GetWorkspaceDetailsToolCallProps {
 	part: ToolPart;
@@ -10,7 +10,7 @@ export function GetWorkspaceDetailsToolCall({
 	part,
 }: GetWorkspaceDetailsToolCallProps) {
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="Get workspace details"
 			icon={InfoIcon}

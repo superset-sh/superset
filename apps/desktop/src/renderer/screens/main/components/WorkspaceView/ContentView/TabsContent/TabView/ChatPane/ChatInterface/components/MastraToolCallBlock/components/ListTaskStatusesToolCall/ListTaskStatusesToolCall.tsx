@@ -1,7 +1,7 @@
 import { ListChecksIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getResult } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface ListTaskStatusesToolCallProps {
 	part: ToolPart;
@@ -23,11 +23,11 @@ export function ListTaskStatusesToolCall({
 		: [];
 
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="List task statuses"
 			icon={ListChecksIcon}
-			expandedContent={
+			details={
 				<div className="space-y-2">
 					<div className="text-muted-foreground">
 						Statuses: {statuses.length}
@@ -62,7 +62,6 @@ export function ListTaskStatusesToolCall({
 					)}
 				</div>
 			}
-			showRawJson={false}
 		/>
 	);
 }

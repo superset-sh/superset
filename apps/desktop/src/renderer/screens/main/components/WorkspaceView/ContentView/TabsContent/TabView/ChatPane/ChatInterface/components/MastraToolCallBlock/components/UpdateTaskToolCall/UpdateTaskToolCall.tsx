@@ -1,7 +1,7 @@
 import { FilePenIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface UpdateTaskToolCallProps {
 	part: ToolPart;
@@ -23,11 +23,11 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 	const requestedCount = Array.isArray(args.updates) ? args.updates.length : 0;
 
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="Update task"
 			icon={FilePenIcon}
-			expandedContent={
+			details={
 				<div className="space-y-2">
 					<div className="text-muted-foreground">
 						Requested: {requestedCount} update{requestedCount === 1 ? "" : "s"}
@@ -61,7 +61,6 @@ export function UpdateTaskToolCall({ part }: UpdateTaskToolCallProps) {
 					)}
 				</div>
 			}
-			showRawJson={false}
 		/>
 	);
 }

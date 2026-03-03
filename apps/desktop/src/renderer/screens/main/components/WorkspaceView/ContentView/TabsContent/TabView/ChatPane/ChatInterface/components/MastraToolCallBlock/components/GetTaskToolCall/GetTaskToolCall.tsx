@@ -1,7 +1,7 @@
 import { FileSearchIcon } from "lucide-react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getArgs, getResult } from "../../../../utils/tool-helpers";
-import { GenericToolCall } from "../GenericToolCall";
+import { SupersetToolCall } from "../SupersetToolCall";
 
 interface GetTaskToolCallProps {
 	part: ToolPart;
@@ -26,11 +26,11 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 				: null;
 
 	return (
-		<GenericToolCall
+		<SupersetToolCall
 			part={part}
 			toolName="Get task"
 			icon={FileSearchIcon}
-			expandedContent={
+			details={
 				<div className="space-y-2">
 					{taskId ? (
 						<div className="text-muted-foreground">Task ID: {taskId}</div>
@@ -66,7 +66,6 @@ export function GetTaskToolCall({ part }: GetTaskToolCallProps) {
 					)}
 				</div>
 			}
-			showRawJson={false}
 		/>
 	);
 }
