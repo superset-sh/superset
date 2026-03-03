@@ -85,6 +85,7 @@ export function ChatMastraInterface({
 	const autoLaunchInFlightRef = useRef<string | null>(null);
 	const autoLaunchAttemptsRef = useRef<Record<string, number>>({});
 	const autoLaunchSessionLockRef = useRef<Record<string, string | null>>({});
+	const messagesLengthRef = useRef(0);
 	const autoLaunchRetryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
 	);
@@ -264,6 +265,9 @@ export function ChatMastraInterface({
 		onRawSnapshotChange,
 		sessionId,
 	]);
+	useEffect(() => {
+		messagesLengthRef.current = messages?.length ?? 0;
+	}, [messages?.length]);
 
 	const handleSend = useCallback(
 		async (message: PromptInputMessage) => {
@@ -425,7 +429,7 @@ export function ChatMastraInterface({
 					attachment_count: 0,
 					is_slash_command: false,
 					message_length: prompt.length,
-					turn_number: (messages?.length ?? 0) + 1,
+					turn_number: messagesLengthRef.current + 1,
 					send_trigger: "launch-config",
 				});
 			} catch (error) {
@@ -461,7 +465,6 @@ export function ChatMastraInterface({
 		ensureSessionReady,
 		initialLaunchConfig,
 		isSessionReady,
-		messages?.length,
 		onConsumeLaunchConfig,
 		onStartFreshSession,
 		organizationId,
