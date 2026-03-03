@@ -30,6 +30,7 @@ export const NOTIFICATION_EVENTS = {
 	AGENT_LIFECYCLE: "agent-lifecycle",
 	FOCUS_TAB: "focus-tab",
 	TERMINAL_EXIT: "terminal-exit",
+	MAIN_PROCESS_ERROR: "main-process-error",
 } as const;
 
 // Development/testing mock values (used when SKIP_ENV_VALIDATION is set)

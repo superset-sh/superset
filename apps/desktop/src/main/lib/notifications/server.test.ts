@@ -1,7 +1,20 @@
-import { describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { NOTIFICATION_EVENTS } from "shared/constants";
 import { mapEventType } from "./map-event-type";
+import {
+	consumePendingMainProcessErrors,
+	notificationsEmitter,
+	reportMainProcessError,
+} from "./server";
 
 describe("notifications/server", () => {
+	beforeEach(() => {
+		consumePendingMainProcessErrors();
+		notificationsEmitter.removeAllListeners(
+			NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
+		);
+	});
+
 	describe("mapEventType", () => {
 		it("should map 'Start' to 'Start'", () => {
 			expect(mapEventType("Start")).toBe("Start");
@@ -55,6 +68,37 @@ describe("notifications/server", () => {
 
 		it("should return null for empty string eventType", () => {
 			expect(mapEventType("")).toBeNull();
+		});
+	});
+
+	describe("main process error reporting", () => {
+		it("queues errors when no listeners are attached yet", () => {
+			const reported = reportMainProcessError({
+				source: "agent-setup",
+				message: "Failed to create wrapper",
+				error: new Error("EACCES"),
+			});
+
+			const queued = consumePendingMainProcessErrors();
+			expect(queued).toHaveLength(1);
+			expect(queued[0]?.id).toBe(reported.id);
+			expect(queued[0]?.message).toBe("Failed to create wrapper");
+			expect(queued[0]?.details).toBe("EACCES");
+			expect(consumePendingMainProcessErrors()).toEqual([]);
+		});
+
+		it("emits immediately and skips queueing when listeners are attached", () => {
+			const received = mock(() => {});
+			notificationsEmitter.on(NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR, received);
+
+			const reported = reportMainProcessError({
+				source: "agent-setup",
+				message: "Failed to set up agent hooks",
+				error: "permission denied",
+			});
+
+			expect(received).toHaveBeenCalledWith(reported);
+			expect(consumePendingMainProcessErrors()).toEqual([]);
 		});
 	});
 });

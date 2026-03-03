@@ -1,8 +1,11 @@
 import { observable } from "@trpc/server/observable";
 import {
 	type AgentLifecycleEvent,
+	consumePendingMainProcessErrors,
+	type MainProcessErrorEvent,
 	type NotificationIds,
 	notificationsEmitter,
+	reportMainProcessError,
 } from "main/lib/notifications/server";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { publicProcedure, router } from "..";
@@ -22,12 +25,23 @@ type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.TERMINAL_EXIT;
 			data?: TerminalExitNotification;
+	  }
+	| {
+			type: typeof NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR;
+			data?: MainProcessErrorEvent;
 	  };
 
 export const createNotificationsRouter = () => {
 	return router({
 		subscribe: publicProcedure.subscription(() => {
 			return observable<NotificationEvent>((emit) => {
+				for (const event of consumePendingMainProcessErrors()) {
+					emit.next({
+						type: NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
+						data: event,
+					});
+				}
+
 				const onLifecycle = (data: AgentLifecycleEvent) => {
 					emit.next({ type: NOTIFICATION_EVENTS.AGENT_LIFECYCLE, data });
 				};
@@ -40,6 +54,10 @@ export const createNotificationsRouter = () => {
 					emit.next({ type: NOTIFICATION_EVENTS.TERMINAL_EXIT, data });
 				};
 
+				const onMainProcessError = (data: MainProcessErrorEvent) => {
+					emit.next({ type: NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR, data });
+				};
+
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 					onLifecycle,
@@ -48,6 +66,10 @@ export const createNotificationsRouter = () => {
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.TERMINAL_EXIT,
 					onTerminalExit,
+				);
+				notificationsEmitter.on(
+					NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
+					onMainProcessError,
 				);
 
 				return () => {
@@ -60,7 +82,19 @@ export const createNotificationsRouter = () => {
 						NOTIFICATION_EVENTS.TERMINAL_EXIT,
 						onTerminalExit,
 					);
+					notificationsEmitter.off(
+						NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
+						onMainProcessError,
+					);
 				};
+			});
+		}),
+		throwTestMainProcessError: publicProcedure.mutation(() => {
+			const now = new Date().toISOString();
+			reportMainProcessError({
+				source: "test",
+				message: "Test main-process error",
+				error: `Triggered manually at ${now}`,
 			});
 		}),
 	});

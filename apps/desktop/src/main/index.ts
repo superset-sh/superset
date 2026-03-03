@@ -28,6 +28,7 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { localDb } from "./lib/local-db";
+import { reportMainProcessError } from "./lib/notifications/server";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { initSentry } from "./lib/sentry";
 import {
@@ -294,6 +295,12 @@ if (!gotTheLock) {
 			setupAgentHooks();
 		} catch (error) {
 			console.error("[main] Failed to set up agent hooks:", error);
+			reportMainProcessError({
+				source: "agent-setup",
+				message:
+					"Failed to initialize agent wrappers. Agent lifecycle updates may not appear in Superset.",
+				error,
+			});
 		}
 
 		await makeAppSetup(() => MainWindow());
