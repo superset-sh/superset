@@ -44,6 +44,33 @@ interface MessageLike {
 	content: Array<{ type: string; text?: string }>;
 }
 
+const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
+const DEBUG_HOOKS_ENABLED =
+	debugHooksOverride === undefined
+		? process.env.NODE_ENV !== "production"
+		: !/^(0|false)$/i.test(debugHooksOverride);
+
+function logHookDebug(
+	message: string,
+	details?: Record<string, unknown>,
+): void {
+	if (!DEBUG_HOOKS_ENABLED) return;
+	if (details) {
+		console.log("[chat-mastra hooks]", message, details);
+		return;
+	}
+	console.log("[chat-mastra hooks]", message);
+}
+
+function getCurrentThreadId(
+	runtime: RuntimeSession,
+): string | null | undefined {
+	const harnessWithThreadId = runtime.harness as RuntimeHarness & {
+		getCurrentThreadId?: () => string | null;
+	};
+	return harnessWithThreadId.getCurrentThreadId?.();
+}
+
 /**
  * Gate: validates user prompt against hooks before sending.
  * Throws if the hook blocks the message.
@@ -52,8 +79,24 @@ export async function onUserPromptSubmit(
 	runtime: RuntimeSession,
 	userMessage: string,
 ): Promise<void> {
-	if (!runtime.hookManager) return;
+	if (!runtime.hookManager) {
+		logHookDebug("skip UserPromptSubmit: no hookManager", {
+			sessionId: runtime.sessionId,
+			threadId: getCurrentThreadId(runtime),
+		});
+		return;
+	}
+	logHookDebug("run UserPromptSubmit", {
+		sessionId: runtime.sessionId,
+		threadId: getCurrentThreadId(runtime),
+	});
 	const result = await runtime.hookManager.runUserPromptSubmit(userMessage);
+	logHookDebug("UserPromptSubmit result", {
+		sessionId: runtime.sessionId,
+		threadId: getCurrentThreadId(runtime),
+		allowed: result.allowed,
+		blockReason: result.blockReason ?? null,
+	});
 	if (!result.allowed) {
 		throw new Error(result.blockReason ?? "Blocked by UserPromptSubmit hook");
 	}
@@ -65,8 +108,22 @@ export async function onUserPromptSubmit(
 export async function runSessionStartHook(
 	runtime: RuntimeSession,
 ): Promise<void> {
-	if (!runtime.hookManager) return;
+	if (!runtime.hookManager) {
+		logHookDebug("skip SessionStart: no hookManager", {
+			sessionId: runtime.sessionId,
+			threadId: getCurrentThreadId(runtime),
+		});
+		return;
+	}
+	logHookDebug("run SessionStart", {
+		sessionId: runtime.sessionId,
+		threadId: getCurrentThreadId(runtime),
+	});
 	await runtime.hookManager.runSessionStart();
+	logHookDebug("SessionStart complete", {
+		sessionId: runtime.sessionId,
+		threadId: getCurrentThreadId(runtime),
+	});
 }
 
 /**
@@ -76,8 +133,12 @@ export function reloadHookConfig(runtime: RuntimeSession): void {
 	if (!runtime.hookManager) return;
 	try {
 		runtime.hookManager.reload();
-	} catch {
-		// Best-effort — swallow reload failures
+		logHookDebug("hook config reloaded", { sessionId: runtime.sessionId });
+	} catch (error) {
+		logHookDebug("hook config reload failed", {
+			sessionId: runtime.sessionId,
+			error: error instanceof Error ? error.message : String(error),
+		});
 	}
 }
 
@@ -86,7 +147,17 @@ export function reloadHookConfig(runtime: RuntimeSession): void {
  */
 export async function destroyRuntime(runtime: RuntimeSession): Promise<void> {
 	if (runtime.hookManager) {
-		await runtime.hookManager.runSessionEnd().catch(() => {});
+		logHookDebug("run SessionEnd", {
+			sessionId: runtime.sessionId,
+			threadId: getCurrentThreadId(runtime),
+		});
+		await runtime.hookManager.runSessionEnd().catch((error) => {
+			logHookDebug("SessionEnd failed", {
+				sessionId: runtime.sessionId,
+				threadId: getCurrentThreadId(runtime),
+				error: error instanceof Error ? error.message : String(error),
+			});
+		});
 	}
 	const harnessWithDestroy = runtime.harness as RuntimeHarness & {
 		destroy?: () => Promise<void>;
@@ -118,14 +189,37 @@ export function subscribeToSessionEvents(
 		if (isHarnessAgentStartEvent(event)) {
 			runtime.lastErrorMessage = null;
 			runtime.pendingSandboxQuestion = null;
+			logHookDebug("harness agent_start", {
+				sessionId: runtime.sessionId,
+				threadId: getCurrentThreadId(runtime),
+			});
 			return;
 		}
 		if (isHarnessAgentEndEvent(event)) {
 			runtime.pendingSandboxQuestion = null;
 			const raw = event.reason;
 			const reason = raw === "aborted" || raw === "error" ? raw : "complete";
+			logHookDebug("harness agent_end", {
+				sessionId: runtime.sessionId,
+				threadId: getCurrentThreadId(runtime),
+				rawReason: raw ?? null,
+				stopReason: reason,
+				hasHookManager: Boolean(runtime.hookManager),
+			});
 			if (runtime.hookManager) {
-				void runtime.hookManager.runStop(undefined, reason).catch(() => {});
+				logHookDebug("run Stop", {
+					sessionId: runtime.sessionId,
+					threadId: getCurrentThreadId(runtime),
+					reason,
+				});
+				void runtime.hookManager.runStop(undefined, reason).catch((error) => {
+					logHookDebug("Stop failed", {
+						sessionId: runtime.sessionId,
+						threadId: getCurrentThreadId(runtime),
+						reason,
+						error: error instanceof Error ? error.message : String(error),
+					});
+				});
 			}
 			if (reason === "complete") {
 				void generateAndSetTitle(runtime, apiClient);

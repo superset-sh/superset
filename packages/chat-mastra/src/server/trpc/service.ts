@@ -29,6 +29,23 @@ import {
 } from "./zod";
 
 const ENABLE_MASTRA_MCP_SERVERS = false;
+const debugHooksOverride = process.env.SUPERSET_DEBUG_HOOKS?.trim();
+const DEBUG_HOOKS_ENABLED =
+	debugHooksOverride === undefined
+		? process.env.NODE_ENV !== "production"
+		: !/^(0|false)$/i.test(debugHooksOverride);
+
+function logHookDebug(
+	message: string,
+	details?: Record<string, unknown>,
+): void {
+	if (!DEBUG_HOOKS_ENABLED) return;
+	if (details) {
+		console.log("[chat-mastra hooks]", message, details);
+		return;
+	}
+	console.log("[chat-mastra hooks]", message);
+}
 
 export interface ChatMastraServiceOptions {
 	headers: () => Record<string, string> | Promise<Record<string, string>>;
@@ -92,6 +109,11 @@ export class ChatMastraService {
 					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
 				});
 				runtimeMastra.hookManager?.setSessionId(sessionId);
+				logHookDebug("runtime created", {
+					sessionId,
+					cwd: runtimeCwd,
+					hasHookManager: Boolean(runtimeMastra.hookManager),
+				});
 				await runtimeMastra.harness.init();
 				runtimeMastra.harness.setResourceId({ resourceId: sessionId });
 				await runtimeMastra.harness.selectOrCreateThread();
