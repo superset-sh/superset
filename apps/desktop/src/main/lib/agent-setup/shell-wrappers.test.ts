@@ -349,15 +349,34 @@ add-zsh-hook precmd _superset_user_shadow_precmd
 		createZshWrapper(TEST_PATHS);
 
 		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
-		expect(args).toEqual([
-			"-lc",
-			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" && echo ok`,
-		]);
+		expect(args[0]).toBe("-lc");
+		expect(args[1]).toContain(
+			`source "${path.join(TEST_ZSH_DIR, ".zshrc")}" &&`,
+		);
+		expect(args[1]).toContain("claude() {");
+		expect(args[1]).toContain('command claude "$@"');
+		expect(args[1]).toContain("echo ok");
 	});
 
 	it("falls back to login shell args when zsh wrappers are missing", () => {
 		const args = getCommandShellArgs("/bin/zsh", "echo ok", TEST_PATHS);
-		expect(args).toEqual(["-lc", "echo ok"]);
+		expect(args[0]).toBe("-lc");
+		expect(args[1]).toContain("claude() {");
+		expect(args[1]).toContain('command claude "$@"');
+		expect(args[1]).toContain("echo ok");
+	});
+
+	it("falls back to system managed binary when wrapper path is missing", () => {
+		const args = getCommandShellArgs(
+			"/bin/bash",
+			"claude --version",
+			TEST_PATHS,
+		);
+
+		expect(args[0]).toBe("-lc");
+		expect(args[1]).toContain('_superset_wrapper="/');
+		expect(args[1]).toContain('command claude "$@"');
+		expect(args[1]).toContain("claude --version");
 	});
 
 	it("uses bash rcfile args for interactive bash shells", () => {
@@ -379,6 +398,20 @@ add-zsh-hook precmd _superset_user_shadow_precmd
 	});
 
 	describe("fish shell", () => {
+		it("uses fish-compatible managed command prelude for non-interactive commands", () => {
+			const args = getCommandShellArgs(
+				"/opt/homebrew/bin/fish",
+				"echo ok",
+				TEST_PATHS,
+			);
+
+			expect(args[0]).toBe("-lc");
+			expect(args[1]).toContain("function claude");
+			expect(args[1]).toContain("command claude $argv");
+			expect(args[1]).not.toContain("claude() {");
+			expect(args[1]).toContain("echo ok");
+		});
+
 		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
 			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);
 

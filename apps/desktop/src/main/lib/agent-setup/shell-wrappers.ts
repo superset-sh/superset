@@ -15,8 +15,47 @@ const DEFAULT_PATHS: ShellWrapperPaths = {
 	BASH_DIR,
 };
 
+const MANAGED_BINARIES = [
+	"claude",
+	"codex",
+	"opencode",
+	"gemini",
+	"copilot",
+	"mastracode",
+] as const;
+
 function getShellName(shell: string): string {
 	return shell.split("/").pop() || shell;
+}
+
+function buildManagedCommandPrelude(shellName: string, binDir: string): string {
+	if (shellName === "fish") {
+		return MANAGED_BINARIES.map(
+			(name) =>
+				`functions -q ${name}; and functions -e ${name}
+function ${name}
+  set -l _superset_wrapper "${binDir}/${name}"
+  if test -x "$_superset_wrapper"; and not test -d "$_superset_wrapper"
+    "$_superset_wrapper" $argv
+  else
+    command ${name} $argv
+  end
+end`,
+		).join("\n");
+	}
+
+	return MANAGED_BINARIES.map(
+		(name) =>
+			`unalias ${name} 2>/dev/null || true
+${name}() {
+  _superset_wrapper="${binDir}/${name}"
+  if [ -x "$_superset_wrapper" ] && [ ! -d "$_superset_wrapper" ]; then
+    "$_superset_wrapper" "$@"
+  else
+    command ${name} "$@"
+  fi
+}`,
+	).join("\n");
 }
 
 function writeFileIfChanged(
@@ -290,6 +329,7 @@ export function getShellArgs(
  * Unlike getShellArgs (interactive), we must source profiles inline because:
  * - zsh skips .zshrc for non-interactive shells
  * - bash ignores --rcfile when -c is present
+ * - managed binary prelude enforces app wrappers while falling back to system bins
  */
 export function getCommandShellArgs(
 	shell: string,
@@ -299,11 +339,12 @@ export function getCommandShellArgs(
 	const shellName = getShellName(shell);
 	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");
 	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");
+	const commandWithManagedPrelude = `${buildManagedCommandPrelude(shellName, paths.BIN_DIR)}\n${command}`;
 	if (shellName === "zsh" && fs.existsSync(zshRc)) {
-		return ["-lc", `source "${zshRc}" && ${command}`];
+		return ["-lc", `source "${zshRc}" &&\n${commandWithManagedPrelude}`];
 	}
 	if (shellName === "bash" && fs.existsSync(bashRcfile)) {
-		return ["-c", `source "${bashRcfile}" && ${command}`];
+		return ["-c", `source "${bashRcfile}" &&\n${commandWithManagedPrelude}`];
 	}
-	return ["-lc", command];
+	return ["-lc", commandWithManagedPrelude];
 }
