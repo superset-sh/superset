@@ -6,7 +6,7 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { CheckIcon, Loader2Icon, WrenchIcon, XIcon } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { useState } from "react";
 import type { ToolPart } from "../../../../utils/tool-helpers";
 import { getGenericToolCallState } from "./getGenericToolCallState";
@@ -15,12 +15,14 @@ type GenericToolCallProps = {
 	part: ToolPart;
 	toolName: string;
 	icon?: ComponentType<{ className?: string }>;
+	expandedContent?: ReactNode;
 };
 
 export function GenericToolCall({
 	part,
 	toolName,
 	icon: Icon = WrenchIcon,
+	expandedContent,
 }: GenericToolCallProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const { output, isError, displayState, errorText } =
@@ -68,6 +70,11 @@ export function GenericToolCall({
 			{hasDetails && (
 				<CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in">
 					<div className="mt-0.5">
+						{expandedContent ? (
+							<div className="rounded border bg-muted/20 p-2.5 text-xs">
+								{expandedContent}
+							</div>
+						) : null}
 						{part.input != null && <ToolInput input={part.input} />}
 						{(output != null || isError) && (
 							<ToolOutput
