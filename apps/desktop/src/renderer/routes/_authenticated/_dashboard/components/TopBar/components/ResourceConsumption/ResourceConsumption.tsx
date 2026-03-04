@@ -43,38 +43,32 @@ interface UsageValues {
 function getUsageSeverity(
 	values: UsageValues,
 	totals: UsageValues,
-	options: { includeShare?: boolean; hostMemoryUsagePercent?: number } = {},
+	options: { includeShare?: boolean } = {},
 ): UsageSeverity {
-	const { includeShare = true, hostMemoryUsagePercent } = options;
-	const isHighAbsolute = values.cpu >= 90 || values.memory >= 2 * GB;
+	const { includeShare = true } = options;
+	const isHighAbsolute = values.cpu >= 120 || values.memory >= 3 * GB;
 	if (isHighAbsolute) return "high";
 
-	const isElevatedAbsolute = values.cpu >= 50 || values.memory >= 1 * GB;
+	const isElevatedAbsolute = values.cpu >= 70 || values.memory >= 1.5 * GB;
 	if (isElevatedAbsolute) return "elevated";
 
-	if (hostMemoryUsagePercent != null) {
-		const isHighHostPressure =
-			hostMemoryUsagePercent >= 85 && values.memory >= 512 * MB;
-		if (isHighHostPressure) return "high";
-
-		const isElevatedHostPressure =
-			hostMemoryUsagePercent >= 70 && values.memory >= 256 * MB;
-		if (isElevatedHostPressure) return "elevated";
-	}
-
 	if (!includeShare) return "normal";
+
+	const isCpuPressure = totals.cpu >= 60;
+	const isMemoryPressure = totals.memory >= 1.5 * GB;
+	if (!isCpuPressure && !isMemoryPressure) return "normal";
 
 	const cpuShare = totals.cpu > 0 ? values.cpu / totals.cpu : 0;
 	const memoryShare = totals.memory > 0 ? values.memory / totals.memory : 0;
 
 	const isHighShare =
-		(cpuShare >= 0.45 && values.cpu >= 20) ||
-		(memoryShare >= 0.45 && values.memory >= 512 * MB);
+		(isCpuPressure && cpuShare >= 0.55 && values.cpu >= 25) ||
+		(isMemoryPressure && memoryShare >= 0.55 && values.memory >= 768 * MB);
 	if (isHighShare) return "high";
 
 	const isElevatedShare =
-		(cpuShare >= 0.25 && values.cpu >= 10) ||
-		(memoryShare >= 0.25 && values.memory >= 256 * MB);
+		(isCpuPressure && cpuShare >= 0.35 && values.cpu >= 15) ||
+		(isMemoryPressure && memoryShare >= 0.35 && values.memory >= 512 * MB);
 	if (isElevatedShare) return "elevated";
 
 	return "normal";
@@ -86,20 +80,18 @@ function getUsageClasses(severity: UsageSeverity, nested = false) {
 
 	if (severity === "high") {
 		return {
-			rowClass: nested ? "bg-destructive/10" : "bg-destructive/5",
-			hoverClass: nested
-				? "hover:bg-destructive/15"
-				: "hover:bg-destructive/10",
-			labelClass: "text-destructive",
-			metricClass: "text-destructive",
+			rowClass: nested ? "bg-destructive/6" : "bg-destructive/4",
+			hoverClass: nested ? "hover:bg-destructive/10" : "hover:bg-destructive/8",
+			labelClass: "text-foreground",
+			metricClass: "text-destructive/90",
 		};
 	}
 
 	if (severity === "elevated") {
 		return {
-			rowClass: nested ? "bg-amber-500/10" : "bg-amber-500/5",
-			hoverClass: nested ? "hover:bg-amber-500/15" : "hover:bg-amber-500/10",
-			labelClass: "text-amber-700 dark:text-amber-300",
+			rowClass: nested ? "bg-amber-500/8" : "bg-amber-500/4",
+			hoverClass: nested ? "hover:bg-amber-500/12" : "hover:bg-amber-500/8",
+			labelClass: "text-foreground",
 			metricClass: "text-amber-700 dark:text-amber-300",
 		};
 	}
@@ -113,8 +105,8 @@ function getUsageClasses(severity: UsageSeverity, nested = false) {
 }
 
 function getHostMemorySeverity(memoryUsagePercent: number): UsageSeverity {
-	if (memoryUsagePercent >= 85) return "high";
-	if (memoryUsagePercent >= 70) return "elevated";
+	if (memoryUsagePercent >= 35) return "high";
+	if (memoryUsagePercent >= 20) return "elevated";
 	return "normal";
 }
 
@@ -184,11 +176,15 @@ export function ResourceConsumption() {
 		: { cpu: 0, memory: 0 };
 	const totalSeverity = getUsageSeverity(totalUsage, totalUsage, {
 		includeShare: false,
-		hostMemoryUsagePercent: snapshot?.host.memoryUsagePercent,
 	});
 	const totalUsageClasses = getUsageClasses(totalSeverity);
+	const trackedMemorySharePercent = snapshot
+		? snapshot.host.totalMemory > 0
+			? (snapshot.totalMemory / snapshot.host.totalMemory) * 100
+			: 0
+		: 0;
 	const hostMemorySeverity = snapshot
-		? getHostMemorySeverity(snapshot.host.memoryUsagePercent)
+		? getHostMemorySeverity(trackedMemorySharePercent)
 		: "normal";
 
 	const workspaceTotals = snapshot
@@ -225,9 +221,9 @@ export function ResourceConsumption() {
 					className={cn(
 						"no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring",
 						totalSeverity === "elevated" &&
-							"border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15",
+							"border-amber-500/25 bg-amber-500/8 hover:bg-amber-500/12",
 						totalSeverity === "high" &&
-							"border-destructive/30 bg-destructive/10 hover:bg-destructive/15",
+							"border-destructive/25 bg-destructive/8 hover:bg-destructive/12",
 					)}
 					aria-label="Resource consumption"
 				>
@@ -267,7 +263,7 @@ export function ResourceConsumption() {
 						</button>
 					</div>
 					{snapshot && (
-						<div className="mt-2 flex items-center gap-4">
+						<div className="mt-2 grid grid-cols-3 gap-2">
 							<MetricBadge
 								label="CPU"
 								value={formatCpu(snapshot.totalCpu)}
@@ -279,8 +275,8 @@ export function ResourceConsumption() {
 								severity={totalSeverity}
 							/>
 							<MetricBadge
-								label="System RAM"
-								value={formatPercent(snapshot.host.memoryUsagePercent)}
+								label="Tracked/Host"
+								value={formatPercent(trackedMemorySharePercent)}
 								severity={hostMemorySeverity}
 							/>
 						</div>
@@ -546,13 +542,13 @@ function UsageSeverityBadge({ severity }: { severity: UsageSeverity }) {
 	return (
 		<span
 			className={cn(
-				"rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
-				severity === "high" && "bg-destructive/15 text-destructive",
+				"rounded px-1 py-0.5 text-[10px] font-medium",
+				severity === "high" && "bg-destructive/12 text-destructive/90",
 				severity === "elevated" &&
-					"bg-amber-500/15 text-amber-700 dark:text-amber-300",
+					"bg-amber-500/12 text-amber-700 dark:text-amber-300",
 			)}
 		>
-			{severity === "high" ? "High" : "Elevated"}
+			{severity === "high" ? "Hot" : "Elevated"}
 		</span>
 	);
 }
@@ -569,10 +565,15 @@ function MetricBadge({
 	const classes = getUsageClasses(severity);
 
 	return (
-		<div className="flex items-center gap-1.5">
-			<span className="text-xs text-muted-foreground">{label}</span>
+		<div className="min-w-0 rounded-md border border-border/40 bg-muted/20 px-2 py-1.5">
+			<span className="block text-[10px] text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+				{label}
+			</span>
 			<span
-				className={cn("text-sm font-medium tabular-nums", classes.metricClass)}
+				className={cn(
+					"block text-base leading-5 font-medium tabular-nums whitespace-nowrap",
+					classes.metricClass,
+				)}
 			>
 				{value}
 			</span>
