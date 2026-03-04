@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import type { StatusResult } from "simple-git";
@@ -59,10 +59,20 @@ async function applyUntrackedLineCount(
 	worktreePath: string,
 	untracked: ChangedFile[],
 ): Promise<void> {
+	let worktreeReal: string;
+	try {
+		worktreeReal = await realpath(worktreePath);
+	} catch {
+		return;
+	}
+
 	for (const file of untracked) {
 		try {
 			const absolutePath = resolvePathInWorktree(worktreePath, file.path);
 			if (!absolutePath) continue;
+
+			const fileReal = await realpath(absolutePath);
+			if (!isPathWithinWorktree(worktreeReal, fileReal)) continue;
 
 			const stats = await stat(absolutePath);
 			if (stats.size > MAX_LINE_COUNT_SIZE) continue;

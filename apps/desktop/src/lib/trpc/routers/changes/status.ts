@@ -47,8 +47,6 @@ export const createStatusRouter = () => {
 								defaultBranch,
 							},
 							{
-								dedupeKey: cacheKey,
-								strategy: "coalesce",
 								timeoutMs: 45_000,
 							},
 						);
