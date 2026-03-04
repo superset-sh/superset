@@ -2,6 +2,7 @@ import { WebClient } from "@slack/web-api";
 import { db } from "@superset/db/client";
 import type { SlackConfig } from "@superset/db/schema";
 import { integrationConnections, members } from "@superset/db/schema";
+import { encryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
@@ -70,31 +71,37 @@ export async function GET(request: Request) {
 			);
 		}
 
-		const config: SlackConfig = {
-			provider: "slack",
-		};
-
-		await db
-			.insert(integrationConnections)
-			.values({
-				organizationId,
-				connectedByUserId: userId,
+			const config: SlackConfig = {
 				provider: "slack",
-				accessToken: tokenData.access_token,
-				externalOrgId: tokenData.team.id,
-				externalOrgName: tokenData.team.name,
-				config,
-			})
-			.onConflictDoUpdate({
-				target: [
-					integrationConnections.organizationId,
-					integrationConnections.provider,
-				],
-				set: {
-					accessToken: tokenData.access_token,
+			};
+			const accessToken = encryptOAuthToken(tokenData.access_token);
+			const refreshToken = tokenData.refresh_token
+				? encryptOAuthToken(tokenData.refresh_token)
+				: null;
+
+			await db
+				.insert(integrationConnections)
+				.values({
+					organizationId,
+					connectedByUserId: userId,
+					provider: "slack",
+					accessToken,
+					refreshToken,
 					externalOrgId: tokenData.team.id,
 					externalOrgName: tokenData.team.name,
-					connectedByUserId: userId,
+					config,
+			})
+			.onConflictDoUpdate({
+					target: [
+						integrationConnections.organizationId,
+						integrationConnections.provider,
+					],
+					set: {
+						accessToken,
+						refreshToken,
+						externalOrgId: tokenData.team.id,
+						externalOrgName: tokenData.team.name,
+						connectedByUserId: userId,
 					config,
 					updatedAt: new Date(),
 				},

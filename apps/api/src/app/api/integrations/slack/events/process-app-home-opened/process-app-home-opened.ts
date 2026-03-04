@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
+import { decryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { and, eq } from "drizzle-orm";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import { createSlackClient } from "../utils/slack-client";
@@ -45,7 +46,7 @@ export async function processAppHomeOpened({
 		? undefined
 		: generateConnectUrl({ slackUserId: event.user, teamId });
 
-	const slack = createSlackClient(connection.accessToken);
+	const slack = createSlackClient(decryptOAuthToken(connection.accessToken));
 
 	await slack.views.publish({
 		user_id: event.user,

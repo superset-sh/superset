@@ -1,6 +1,13 @@
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+const base64KeySchema = z
+	.string()
+	.min(1)
+	.refine((value) => Buffer.from(value, "base64").length === 32, {
+		message: "Must be base64 for a 32-byte key",
+	});
+
 export const env = createEnv({
 	server: {
 		NODE_ENV: z
@@ -22,6 +29,7 @@ export const env = createEnv({
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
 		SECRETS_ENCRYPTION_KEY: z.string().min(1),
+		OAUTH_TOKENS_ENCRYPTION_KEY: base64KeySchema,
 		ANTHROPIC_API_KEY: z.string(),
 	},
 	clientPrefix: "PUBLIC_",

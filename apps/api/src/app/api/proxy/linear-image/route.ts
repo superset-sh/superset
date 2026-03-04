@@ -1,6 +1,7 @@
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
+import { decryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { and, eq } from "drizzle-orm";
 
 const LINEAR_IMAGE_HOST = "uploads.linear.app";
@@ -52,11 +53,12 @@ export async function GET(request: Request): Promise<Response> {
 	if (!connection) {
 		return new Response("Linear integration not connected", { status: 400 });
 	}
+	const accessToken = decryptOAuthToken(connection.accessToken);
 
 	// Fetch the image from Linear with auth
 	const linearResponse = await fetch(linearUrl, {
 		headers: {
-			Authorization: `Bearer ${connection.accessToken}`,
+			Authorization: `Bearer ${accessToken}`,
 		},
 	});
 

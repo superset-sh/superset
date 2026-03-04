@@ -1,6 +1,13 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const base64KeySchema = z
+	.string()
+	.min(1)
+	.refine((value) => Buffer.from(value, "base64").length === 32, {
+		message: "Must be base64 for a 32-byte key",
+	});
+
 export const env = createEnv({
 	shared: {
 		NODE_ENV: z
@@ -43,6 +50,7 @@ export const env = createEnv({
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
 		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SECRETS_ENCRYPTION_KEY: z.string().min(1),
+		OAUTH_TOKENS_ENCRYPTION_KEY: base64KeySchema,
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 		DURABLE_STREAMS_URL: z.string().url(),
 		DURABLE_STREAMS_SECRET: z.string().min(1),

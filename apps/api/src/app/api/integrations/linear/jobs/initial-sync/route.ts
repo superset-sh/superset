@@ -6,6 +6,7 @@ import {
 	tasks,
 	users,
 } from "@superset/db/schema";
+import { decryptOAuthToken } from "@superset/shared/oauth-token-crypto";
 import { Receiver } from "@upstash/qstash";
 import { and, eq, inArray } from "drizzle-orm";
 import chunk from "lodash.chunk";
@@ -66,8 +67,9 @@ export async function POST(request: Request) {
 	if (!connection) {
 		return Response.json({ error: "No connection found", skipped: true });
 	}
+	const accessToken = decryptOAuthToken(connection.accessToken);
 
-	const client = new LinearClient({ accessToken: connection.accessToken });
+	const client = new LinearClient({ accessToken });
 	await performInitialSync(client, organizationId, creatorUserId);
 
 	return Response.json({ success: true });
