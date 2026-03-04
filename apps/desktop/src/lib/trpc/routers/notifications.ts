@@ -1,8 +1,6 @@
 import { observable } from "@trpc/server/observable";
 import {
 	type AgentLifecycleEvent,
-	consumePendingMainProcessErrors,
-	type MainProcessErrorEvent,
 	type NotificationIds,
 	notificationsEmitter,
 } from "main/lib/notifications/server";
@@ -24,10 +22,6 @@ type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.TERMINAL_EXIT;
 			data?: TerminalExitNotification;
-	  }
-	| {
-			type: typeof NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR;
-			data?: MainProcessErrorEvent;
 	  };
 
 export const createNotificationsRouter = () => {
@@ -46,10 +40,6 @@ export const createNotificationsRouter = () => {
 					emit.next({ type: NOTIFICATION_EVENTS.TERMINAL_EXIT, data });
 				};
 
-				const onMainProcessError = (data: MainProcessErrorEvent) => {
-					emit.next({ type: NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR, data });
-				};
-
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 					onLifecycle,
@@ -59,17 +49,6 @@ export const createNotificationsRouter = () => {
 					NOTIFICATION_EVENTS.TERMINAL_EXIT,
 					onTerminalExit,
 				);
-				notificationsEmitter.on(
-					NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
-					onMainProcessError,
-				);
-
-				for (const event of consumePendingMainProcessErrors()) {
-					emit.next({
-						type: NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
-						data: event,
-					});
-				}
 
 				return () => {
 					notificationsEmitter.off(
@@ -80,10 +59,6 @@ export const createNotificationsRouter = () => {
 					notificationsEmitter.off(
 						NOTIFICATION_EVENTS.TERMINAL_EXIT,
 						onTerminalExit,
-					);
-					notificationsEmitter.off(
-						NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
-						onMainProcessError,
 					);
 				};
 			});

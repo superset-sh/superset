@@ -4,10 +4,7 @@ import express from "express";
 import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
-import type {
-	AgentLifecycleEvent,
-	MainProcessErrorEvent,
-} from "shared/notification-types";
+import type { AgentLifecycleEvent } from "shared/notification-types";
 import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
@@ -15,7 +12,6 @@ import { mapEventType } from "./map-event-type";
 // Re-export types for backwards compatibility
 export type {
 	AgentLifecycleEvent,
-	MainProcessErrorEvent,
 	NotificationIds,
 } from "shared/notification-types";
 
@@ -32,59 +28,6 @@ const DEBUG_HOOKS_ENABLED =
 		: !/^(0|false)$/i.test(debugHooksOverride);
 
 export const notificationsEmitter = new EventEmitter();
-const MAX_PENDING_MAIN_PROCESS_ERRORS = 20;
-const MAX_ERROR_DETAILS_LENGTH = 1000;
-const pendingMainProcessErrors: MainProcessErrorEvent[] = [];
-
-function toErrorDetails(error: unknown): string | undefined {
-	const truncate = (value: string): string =>
-		value.length > MAX_ERROR_DETAILS_LENGTH
-			? `${value.slice(0, MAX_ERROR_DETAILS_LENGTH)}...`
-			: value;
-
-	if (error instanceof Error) return truncate(error.message || error.name);
-	if (typeof error === "string") return truncate(error);
-	return undefined;
-}
-
-export function reportMainProcessError(input: {
-	source: string;
-	message: string;
-	error?: unknown;
-}): MainProcessErrorEvent {
-	const event: MainProcessErrorEvent = {
-		id: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-		source: input.source,
-		message: input.message,
-		details: toErrorDetails(input.error),
-		timestamp: Date.now(),
-	};
-
-	notificationsEmitter.emit(NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR, event);
-
-	// Keep errors that occur before renderer subscribers exist (app startup).
-	// Once the subscription connects, these are drained and emitted to UI.
-	if (
-		notificationsEmitter.listenerCount(
-			NOTIFICATION_EVENTS.MAIN_PROCESS_ERROR,
-		) === 0
-	) {
-		pendingMainProcessErrors.push(event);
-		if (pendingMainProcessErrors.length > MAX_PENDING_MAIN_PROCESS_ERRORS) {
-			pendingMainProcessErrors.splice(
-				0,
-				pendingMainProcessErrors.length - MAX_PENDING_MAIN_PROCESS_ERRORS,
-			);
-		}
-	}
-
-	return event;
-}
-
-export function consumePendingMainProcessErrors(): MainProcessErrorEvent[] {
-	if (pendingMainProcessErrors.length === 0) return [];
-	return pendingMainProcessErrors.splice(0, pendingMainProcessErrors.length);
-}
 
 const app = express();
 

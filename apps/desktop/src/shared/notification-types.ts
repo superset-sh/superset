@@ -12,11 +12,3 @@ export interface NotificationIds {
 export interface AgentLifecycleEvent extends NotificationIds {
 	eventType: "Start" | "Stop" | "PermissionRequest";
 }
-
-export interface MainProcessErrorEvent {
-	id: string;
-	source: string;
-	message: string;
-	details?: string;
-	timestamp: number;
-}
