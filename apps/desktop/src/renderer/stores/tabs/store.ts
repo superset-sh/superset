@@ -445,6 +445,58 @@ export const useTabsStore = create<TabsStore>()(
 					set({ tabs: [...otherTabs, ...workspaceTabs] });
 				},
 
+				updateWorkspacePaths: (workspaceId, oldPath, newPath) => {
+					const state = get();
+					const workspaceTabs = state.tabs.filter((t) => t.workspaceId === workspaceId);
+					if (workspaceTabs.length === 0) return;
+					
+					const workspaceTabIds = new Set(workspaceTabs.map((t) => t.id));
+					const newPanes = { ...state.panes };
+					let hasChanges = false;
+
+					const matchesPath = (p: string) => p === oldPath || p.startsWith(oldPath + '/');
+					const replacePath = (p: string) => newPath + p.slice(oldPath.length);
+
+					for (const [paneId, pane] of Object.entries(newPanes)) {
+						if (!workspaceTabIds.has(pane.tabId)) continue;
+						
+						let updated = false;
+						const updatedPane = { ...pane };
+
+						if (updatedPane.cwd && matchesPath(updatedPane.cwd)) {
+							updatedPane.cwd = replacePath(updatedPane.cwd);
+							updated = true;
+						}
+						
+						if (updatedPane.initialCwd && matchesPath(updatedPane.initialCwd)) {
+							updatedPane.initialCwd = replacePath(updatedPane.initialCwd);
+							updated = true;
+						}
+
+						if (updatedPane.fileViewer) {
+							const newFileViewer = { ...updatedPane.fileViewer };
+							if (matchesPath(newFileViewer.filePath)) {
+								newFileViewer.filePath = replacePath(newFileViewer.filePath);
+								updated = true;
+							}
+							if (newFileViewer.oldPath && matchesPath(newFileViewer.oldPath)) {
+								newFileViewer.oldPath = replacePath(newFileViewer.oldPath);
+								updated = true;
+							}
+							updatedPane.fileViewer = newFileViewer;
+						}
+
+						if (updated) {
+							newPanes[paneId] = updatedPane;
+							hasChanges = true;
+						}
+					}
+
+					if (hasChanges) {
+						set({ panes: newPanes });
+					}
+				},
+
 				updateTabLayout: (tabId, layout) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);

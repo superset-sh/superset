@@ -1,4 +1,14 @@
 import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
+import {
 	ContextMenu,
 	ContextMenuContent,
 	ContextMenuItem,
@@ -92,7 +102,7 @@ export function WorkspaceListItem({
 	const reorderWorkspaces = useReorderWorkspaces();
 	const [hasHovered, setHasHovered] = useState(false);
 	const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
-	const rename = useWorkspaceRename(id, name, branch);
+	const rename = useWorkspaceRename(id, name, branch, !isBranchWorkspace);
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const clearWorkspaceAttentionStatus = useTabsStore(
@@ -555,6 +565,32 @@ export function WorkspaceListItem({
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
 			/>
+			<AlertDialog
+				open={!!rename.pendingRename}
+				onOpenChange={(open) => {
+					if (!open) rename.cancelPendingRename();
+				}}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Rename Workspace Folder</AlertDialogTitle>
+						<AlertDialogDescription>
+							Would you like to rename the worktree folder as well? This will also update open files and restart any active terminal sessions in this workspace.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={rename.isUpdating} onClick={() => rename.cancelPendingRename()}>
+							Cancel
+						</AlertDialogCancel>
+						<AlertDialogAction disabled={rename.isUpdating} className="bg-secondary text-secondary-foreground hover:bg-secondary/80" onClick={() => rename.confirmRename(false)}>
+							Only Rename Workspace
+						</AlertDialogAction>
+						<AlertDialogAction disabled={rename.isUpdating} onClick={() => rename.confirmRename(true)}>
+							Rename Both
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</>
 	);
 }

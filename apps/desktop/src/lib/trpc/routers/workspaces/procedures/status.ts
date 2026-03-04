@@ -7,6 +7,7 @@ import {
 	getWorkspaceNotDeleting,
 	setLastActiveWorkspace,
 	touchWorkspace,
+	getWorktree,
 } from "../utils/db-helpers";
 
 export const createStatusProcedures = () => {
@@ -63,17 +64,52 @@ export const createStatusProcedures = () => {
 					id: z.string(),
 					patch: z.object({
 						name: z.string().optional(),
+						renameFolder: z.boolean().optional(),
 						preserveUnnamedStatus: z.boolean().optional(),
 						isUnnamed: z.boolean().optional(),
 					}),
 				}),
 			)
-			.mutation(({ input }) => {
+			.mutation(async ({ input }) => {
 				const workspace = getWorkspaceNotDeleting(input.id);
 				if (!workspace) {
 					throw new Error(
 						`Workspace ${input.id} not found or is being deleted`,
 					);
+				}
+
+				let renamedPaths: { oldPath: string, newPath: string } | undefined;
+
+				if (input.patch.renameFolder && input.patch.name && workspace.type === "worktree" && workspace.worktreeId) {
+					// Path traversal check
+					if (/[/\\]|\.\./.test(input.patch.name)) {
+						throw new Error("Invalid folder name");
+					}
+
+					const worktree = getWorktree(workspace.worktreeId);
+					if (!worktree) {
+						throw new Error(`Worktree record missing for workspace.worktreeId`);
+					}
+					
+					const { dirname, join } = await import("path");
+					const newPath = join(dirname(worktree.path), input.patch.name);
+					
+					// Need to use git worktree move
+					try {
+						const { execFile } = await import("child_process");
+						const { promisify } = await import("util");
+						const execFileAsync = promisify(execFile);
+						await execFileAsync("git", ["worktree", "move", worktree.path, newPath], {
+							cwd: dirname(worktree.path)
+						});
+						
+						// Update worktree in db
+						localDb.update(worktrees).set({ path: newPath }).where(eq(worktrees.id, worktree.id)).run();
+						renamedPaths = { oldPath: worktree.path, newPath };
+					} catch (e) {
+						console.error("Failed to rename worktree folder:", e);
+						throw new Error(`Failed to rename worktree folder: ${e instanceof Error ? e.message : String(e)}`);
+					}
 				}
 
 				const resolveIsUnnamed = () => {
@@ -93,7 +129,7 @@ export const createStatusProcedures = () => {
 					...(isUnnamed !== undefined && { isUnnamed }),
 				});
 
-				return { success: true };
+				return { success: true, renamedPaths };
 			}),
 
 		setUnread: publicProcedure

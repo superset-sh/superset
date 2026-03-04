@@ -108,6 +108,9 @@ export interface TabsStore extends TabsState {
 	reorderTabById: (tabId: string, targetIndex: number) => void;
 	updateTabLayout: (tabId: string, layout: MosaicNode<string>) => void;
 
+	// Workspace operations
+	updateWorkspacePaths: (workspaceId: string, oldPath: string, newPath: string) => void;
+
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
 	addChatMastraPane: (
