@@ -10,6 +10,7 @@ import { MetricBadge } from "./components/MetricBadge";
 import { WorkspaceResourceSection } from "./components/WorkspaceResourceSection";
 import type { UsageValues } from "./types";
 import { formatCpu, formatMemory, formatPercent } from "./utils/formatters";
+import { normalizeResourceMetricsSnapshot } from "./utils/normalizeSnapshot";
 import {
 	getTrackedHostMemorySeverity,
 	getUsageClasses,
@@ -64,6 +65,7 @@ export function ResourceConsumption() {
 	);
 
 	if (!enabled) return null;
+	const normalizedSnapshot = normalizeResourceMetricsSnapshot(snapshot);
 
 	const getPaneName = (paneId: string): string => {
 		const pane = panes[paneId];
@@ -109,16 +111,19 @@ export function ResourceConsumption() {
 		});
 	};
 
-	const totalUsage = getTotalUsage(snapshot?.totalCpu, snapshot?.totalMemory);
+	const totalUsage = getTotalUsage(
+		normalizedSnapshot?.totalCpu,
+		normalizedSnapshot?.totalMemory,
+	);
 	const totalSeverity = getUsageSeverity(totalUsage, totalUsage, {
 		includeShare: false,
 	});
 	const totalUsageClasses = getUsageClasses(totalSeverity);
 
-	const trackedMemorySharePercent = snapshot
+	const trackedMemorySharePercent = normalizedSnapshot
 		? getTrackedMemorySharePercent(
-				snapshot.totalMemory,
-				snapshot.host?.totalMemory ?? 0,
+				normalizedSnapshot.totalMemory,
+				normalizedSnapshot.host.totalMemory,
 			)
 		: 0;
 	const trackedHostMemorySeverity = getTrackedHostMemorySeverity(
@@ -145,14 +150,14 @@ export function ResourceConsumption() {
 							totalUsageClasses.metricClass,
 						)}
 					/>
-					{snapshot && (
+					{normalizedSnapshot && (
 						<span
 							className={cn(
 								"text-xs font-medium tabular-nums",
 								totalUsageClasses.metricClass,
 							)}
 						>
-							{formatMemory(snapshot.totalMemory)}
+							{formatMemory(normalizedSnapshot.totalMemory)}
 						</span>
 					)}
 				</button>
@@ -176,17 +181,17 @@ export function ResourceConsumption() {
 						</button>
 					</div>
 
-					{snapshot && (
+					{normalizedSnapshot && (
 						<div className="mt-2 grid grid-cols-3 gap-2">
 							<MetricBadge
 								label="CPU"
-								value={formatCpu(snapshot.totalCpu)}
+								value={formatCpu(normalizedSnapshot.totalCpu)}
 								severity={totalSeverity}
 								tooltip="Sum of CPU used by Superset and monitored terminal process trees. Over 100% means multiple CPU cores are busy. Sustained high values usually cause UI sluggishness and higher battery drain."
 							/>
 							<MetricBadge
 								label="Memory"
-								value={formatMemory(snapshot.totalMemory)}
+								value={formatMemory(normalizedSnapshot.totalMemory)}
 								severity={totalSeverity}
 								tooltip="Resident memory used by Superset and monitored terminal process trees. If this keeps climbing without dropping, a workspace process may be retaining memory. High values increase swap risk and can cause stutter."
 							/>
@@ -201,13 +206,16 @@ export function ResourceConsumption() {
 				</div>
 
 				<div className="max-h-[50vh] overflow-y-auto">
-					{snapshot && (
-						<AppResourceSection app={snapshot.app} totalUsage={totalUsage} />
+					{normalizedSnapshot && (
+						<AppResourceSection
+							app={normalizedSnapshot.app}
+							totalUsage={totalUsage}
+						/>
 					)}
 
-					{snapshot && (
+					{normalizedSnapshot && (
 						<WorkspaceResourceSection
-							workspaces={snapshot.workspaces}
+							workspaces={normalizedSnapshot.workspaces}
 							collapsedProjects={collapsedProjects}
 							toggleProject={toggleProject}
 							collapsedWorkspaces={collapsedWorkspaces}
@@ -218,13 +226,13 @@ export function ResourceConsumption() {
 						/>
 					)}
 
-					{snapshot && snapshot.workspaces.length === 0 && (
+					{normalizedSnapshot && normalizedSnapshot.workspaces.length === 0 && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
 							No active terminal sessions
 						</div>
 					)}
 
-					{!snapshot && (
+					{!normalizedSnapshot && (
 						<div className="px-3 py-4 text-center text-xs text-muted-foreground">
 							Loading...
 						</div>
