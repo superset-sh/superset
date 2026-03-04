@@ -1,6 +1,8 @@
 [test]
 # Preload test setup before running tests
-preload = ["./test-setup.ts"]
+# xterm-env-polyfill: @xterm/headless 6.x references `window` at module load, which
+# throws in Bun since its navigator.userAgent causes xterm's isNode check to return false
+preload = ["./src/main/terminal-host/xterm-env-polyfill.ts", "./test-setup.ts"]
 
 [test.env]
 NODE_ENV = "test"

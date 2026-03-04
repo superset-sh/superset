@@ -1,12 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createWorktree, getCurrentBranch, parsePrUrl } from "./git";
 
-// We need to test the internal functions, so we'll import the module
-// and test the exported functions that use them
-
-const TEST_DIR = join(__dirname, ".test-git-tmp");
+const TEST_DIR = join(
+	realpathSync(tmpdir()),
+	`superset-test-git-${process.pid}`,
+);
 
 function createTestRepo(name: string): string {
 	const repoPath = join(TEST_DIR, name);
@@ -20,78 +29,13 @@ function createTestRepo(name: string): string {
 	return repoPath;
 }
 
-describe("LFS Detection", () => {
-	beforeEach(() => {
-		mkdirSync(TEST_DIR, { recursive: true });
+function seedCommit(repoPath: string): void {
+	writeFileSync(join(repoPath, "README.md"), "# test\n");
+	execSync("git add . && git commit -m 'init'", {
+		cwd: repoPath,
+		stdio: "ignore",
 	});
-
-	afterEach(() => {
-		if (existsSync(TEST_DIR)) {
-			rmSync(TEST_DIR, { recursive: true, force: true });
-		}
-	});
-
-	test("detects LFS via .git/lfs directory", async () => {
-		const repoPath = createTestRepo("lfs-dir-test");
-
-		// Create .git/lfs directory (simulates LFS being initialized)
-		mkdirSync(join(repoPath, ".git", "lfs"), { recursive: true });
-
-		// Import and test - we need to test via the exported createWorktree behavior
-		// For now, just verify the directory structure is correct
-		expect(existsSync(join(repoPath, ".git", "lfs"))).toBe(true);
-	});
-
-	test("detects LFS via root .gitattributes", async () => {
-		const repoPath = createTestRepo("lfs-gitattributes-test");
-
-		// Create .gitattributes with LFS filter
-		writeFileSync(
-			join(repoPath, ".gitattributes"),
-			"*.bin filter=lfs diff=lfs merge=lfs -text\n",
-		);
-
-		const content = await Bun.file(join(repoPath, ".gitattributes")).text();
-		expect(content.includes("filter=lfs")).toBe(true);
-	});
-
-	test("detects LFS via .git/info/attributes", async () => {
-		const repoPath = createTestRepo("lfs-info-attributes-test");
-
-		// Create .git/info/attributes with LFS filter
-		mkdirSync(join(repoPath, ".git", "info"), { recursive: true });
-		writeFileSync(
-			join(repoPath, ".git", "info", "attributes"),
-			"*.png filter=lfs diff=lfs merge=lfs -text\n",
-		);
-
-		const content = await Bun.file(
-			join(repoPath, ".git", "info", "attributes"),
-		).text();
-		expect(content.includes("filter=lfs")).toBe(true);
-	});
-
-	test("detects LFS via .lfsconfig", async () => {
-		const repoPath = createTestRepo("lfs-config-test");
-
-		// Create .lfsconfig
-		writeFileSync(
-			join(repoPath, ".lfsconfig"),
-			"[lfs]\n\turl = https://example.com/lfs\n",
-		);
-
-		const content = await Bun.file(join(repoPath, ".lfsconfig")).text();
-		expect(content.includes("[lfs]")).toBe(true);
-	});
-
-	test("no LFS detected in plain repo", async () => {
-		const repoPath = createTestRepo("no-lfs-test");
-
-		// Just a plain repo with no LFS
-		expect(existsSync(join(repoPath, ".git", "lfs"))).toBe(false);
-		expect(existsSync(join(repoPath, ".gitattributes"))).toBe(false);
-	});
-});
+}
 
 describe("getDefaultBranch", () => {
 	// Import simpleGit directly to bypass any module mocks from other test files
@@ -137,8 +81,8 @@ describe("getDefaultBranch", () => {
 		cleanup: () => void;
 	} {
 		const testDir = join(
-			__dirname,
-			`.test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+			realpathSync(tmpdir()),
+			`superset-test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
 		);
 		mkdirSync(testDir, { recursive: true });
 		execSync("git init", { cwd: testDir, stdio: "ignore" });
@@ -311,5 +255,271 @@ describe("Shell Environment", () => {
 		// Should work again (cache was cleared)
 		const env = await getShellEnvironment();
 		expect(env.PATH || env.Path).toBeDefined();
+	});
+
+	test("getProcessEnvWithShellPath applies shell PATH and preserves string vars", async () => {
+		const { getProcessEnvWithShellPath, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+
+		const shellEnv = await getShellEnvironment();
+		const env = await getProcessEnvWithShellPath({
+			PATH: "/usr/bin",
+			FOO: "bar",
+			UNSET: undefined,
+		});
+
+		expect(env.FOO).toBe("bar");
+		expect("UNSET" in env).toBe(false);
+
+		const shellPath = shellEnv.PATH || shellEnv.Path;
+		if (shellPath) {
+			expect(env.PATH).toBe(shellPath);
+			if (process.platform === "win32" || "Path" in shellEnv) {
+				expect(env.Path).toBe(shellPath);
+			}
+		}
+	});
+
+	test("getShellEnvironment PATH includes homebrew and user-installed tools", async () => {
+		const { clearShellEnvCache, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+		clearShellEnvCache();
+
+		const env = await getShellEnvironment();
+		const shellPath = env.PATH || env.Path || "";
+
+		// The derived PATH should be richer than the minimal macOS GUI PATH
+		// (/usr/bin:/bin:/usr/sbin:/sbin). It should include at least one of
+		// these common user-installed tool directories.
+		const userPaths = [
+			"/opt/homebrew/bin",
+			"/usr/local/bin",
+			"/home/linuxbrew/.linuxbrew/bin",
+		];
+		const hasUserPath = userPaths.some((p) => shellPath.includes(p));
+		expect(hasUserPath).toBe(true);
+	});
+
+	test("getShellEnvironment strips delimiter noise from interactive shell output", async () => {
+		const { clearShellEnvCache, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+		clearShellEnvCache();
+
+		const env = await getShellEnvironment();
+
+		// Delimiter markers should not leak into any env key or value
+		expect(
+			Object.keys(env).some((k) => k.includes("_SHELL_ENV_DELIMITER_")),
+		).toBe(false);
+		expect(
+			Object.values(env).some((v) => v.includes("_SHELL_ENV_DELIMITER_")),
+		).toBe(false);
+	});
+
+	test("getProcessEnvWithShellPath overrides minimal GUI PATH with shell PATH", async () => {
+		const { clearShellEnvCache, getProcessEnvWithShellPath } = await import(
+			"./shell-env"
+		);
+		clearShellEnvCache();
+
+		// Simulate the minimal PATH a macOS GUI app gets from Finder/Dock
+		const guiPath = "/usr/bin:/bin:/usr/sbin:/sbin";
+		const env = await getProcessEnvWithShellPath({
+			PATH: guiPath,
+			HOME: process.env.HOME,
+		});
+
+		// The resulting PATH should NOT be the minimal GUI PATH
+		expect(env.PATH).not.toBe(guiPath);
+		// It should contain additional directories from the shell
+		expect(env.PATH.length).toBeGreaterThan(guiPath.length);
+	});
+
+	test("getShellEnvironment captures .zshrc variables (requires -ilc)", async () => {
+		// This test proves that getShellEnvironment uses an interactive shell (-i)
+		// which sources .zshrc. Without -i, only .zprofile is sourced and tools
+		// installed via nvm/volta/fnm (configured in .zshrc) won't be in PATH.
+		//
+		// We use ZDOTDIR to point zsh at a temp .zshrc with a known test variable.
+		// -lc (non-interactive) won't source it → test fails
+		// -ilc (interactive) will source it → test passes
+		const { clearShellEnvCache, getShellEnvironment } = await import(
+			"./shell-env"
+		);
+		const zshPath = ["/bin/zsh", "/usr/bin/zsh"].find((candidate) =>
+			existsSync(candidate),
+		);
+		if (!zshPath) {
+			return;
+		}
+
+		const tmpDir = mkdtempSync(join(realpathSync(tmpdir()), "shell-env-test-"));
+		writeFileSync(
+			join(tmpDir, ".zshrc"),
+			'export __SUPERSET_SHELL_ENV_TEST__="interactive"\n',
+		);
+
+		const origZDOTDIR = process.env.ZDOTDIR;
+		const origShell = process.env.SHELL;
+		process.env.SHELL = zshPath;
+		process.env.ZDOTDIR = tmpDir;
+		clearShellEnvCache();
+
+		try {
+			const env = await getShellEnvironment();
+			expect(env.__SUPERSET_SHELL_ENV_TEST__).toBe("interactive");
+		} finally {
+			if (origZDOTDIR !== undefined) process.env.ZDOTDIR = origZDOTDIR;
+			else delete process.env.ZDOTDIR;
+			if (origShell !== undefined) process.env.SHELL = origShell;
+			else delete process.env.SHELL;
+			clearShellEnvCache();
+			rmSync(tmpDir, { recursive: true });
+		}
+	});
+});
+
+describe("createWorktree hook tolerance", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("continues when post-checkout hook fails but worktree is created", async () => {
+		const repoPath = createTestRepo("worktree-hook-failure");
+		seedCommit(repoPath);
+
+		const hookPath = join(repoPath, ".git", "hooks", "post-checkout");
+		writeFileSync(
+			hookPath,
+			"#!/bin/sh\necho 'post-checkout failed' >&2\nexit 1\n",
+		);
+		execSync(`chmod +x "${hookPath}"`);
+
+		const worktreePath = join(TEST_DIR, "worktree-hook-failure-wt");
+		await createWorktree(
+			repoPath,
+			"feature/hook-failure",
+			worktreePath,
+			"HEAD",
+		);
+
+		expect(existsSync(worktreePath)).toBe(true);
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/hook-failure");
+	});
+
+	test("throws when destination path exists but worktree is not created", async () => {
+		const repoPath = createTestRepo("worktree-existing-path");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "worktree-existing-path-wt");
+		mkdirSync(worktreePath, { recursive: true });
+		writeFileSync(join(worktreePath, "keep.txt"), "keep");
+
+		await expect(
+			createWorktree(repoPath, "feature/existing-path", worktreePath, "HEAD"),
+		).rejects.toThrow("already exists");
+	});
+});
+
+describe("getCurrentBranch", () => {
+	test("returns branch name for empty repo with unborn HEAD", async () => {
+		const repoPath = join(
+			realpathSync(tmpdir()),
+			`superset-test-current-branch-empty-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		);
+
+		mkdirSync(repoPath, { recursive: true });
+
+		try {
+			execSync("git init", { cwd: repoPath, stdio: "ignore" });
+			execSync("git symbolic-ref HEAD refs/heads/feature/empty", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			const branch = await getCurrentBranch(repoPath);
+			expect(branch).toBe("feature/empty");
+		} finally {
+			if (existsSync(repoPath)) {
+				rmSync(repoPath, { recursive: true, force: true });
+			}
+		}
+	});
+
+	test("returns null in detached HEAD state", async () => {
+		const repoPath = join(
+			realpathSync(tmpdir()),
+			`superset-test-current-branch-detached-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		);
+
+		mkdirSync(repoPath, { recursive: true });
+
+		try {
+			execSync("git init", { cwd: repoPath, stdio: "ignore" });
+			execSync("git config user.email 'test@test.com'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git config user.name 'Test'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			writeFileSync(join(repoPath, "README.md"), "# test\n");
+			execSync("git add . && git commit -m 'init'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git checkout --detach HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			const branch = await getCurrentBranch(repoPath);
+			expect(branch).toBeNull();
+		} finally {
+			if (existsSync(repoPath)) {
+				rmSync(repoPath, { recursive: true, force: true });
+			}
+		}
+	});
+});
+
+describe("parsePrUrl", () => {
+	test("parses canonical GitHub PR URL", () => {
+		expect(
+			parsePrUrl("https://github.com/superset-sh/superset/pull/1781"),
+		).toEqual({
+			owner: "superset-sh",
+			repo: "superset",
+			number: 1781,
+		});
+	});
+
+	test("parses GitHub URL without protocol", () => {
+		expect(parsePrUrl("github.com/superset-sh/superset/pull/1781")).toEqual({
+			owner: "superset-sh",
+			repo: "superset",
+			number: 1781,
+		});
+	});
+
+	test("returns null for non-PR URLs", () => {
+		expect(
+			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
+		).toBe(null);
 	});
 });

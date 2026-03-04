@@ -1,9 +1,14 @@
 import { workspaces, worktrees } from "@superset/local-db";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, not } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
-import { getWorkspaceNotDeleting, touchWorkspace, getWorktree } from "../utils/db-helpers";
+import {
+	getWorkspaceNotDeleting,
+	setLastActiveWorkspace,
+	touchWorkspace,
+	getWorktree,
+} from "../utils/db-helpers";
 
 export const createStatusProcedures = () => {
 	return router({
@@ -60,6 +65,8 @@ export const createStatusProcedures = () => {
 					patch: z.object({
 						name: z.string().optional(),
 						renameFolder: z.boolean().optional(),
+						preserveUnnamedStatus: z.boolean().optional(),
+						isUnnamed: z.boolean().optional(),
 					}),
 				}),
 			)
@@ -74,6 +81,11 @@ export const createStatusProcedures = () => {
 				let renamedPaths: { oldPath: string, newPath: string } | undefined;
 
 				if (input.patch.renameFolder && input.patch.name && workspace.type === "worktree" && workspace.worktreeId) {
+					// Path traversal check
+					if (/[/\\]|\.\./.test(input.patch.name)) {
+						throw new Error("Invalid folder name");
+					}
+
 					const worktree = getWorktree(workspace.worktreeId);
 					if (worktree) {
 						const { dirname, join } = await import("path");
@@ -81,10 +93,10 @@ export const createStatusProcedures = () => {
 						
 						// Need to use git worktree move
 						try {
-							const { exec } = await import("child_process");
+							const { execFile } = await import("child_process");
 							const { promisify } = await import("util");
-							const execAsync = promisify(exec);
-							await execAsync(`git worktree move "${worktree.path}" "${newPath}"`, {
+							const execFileAsync = promisify(execFile);
+							await execFileAsync("git", ["worktree", "move", worktree.path, newPath], {
 								cwd: dirname(worktree.path)
 							});
 							
@@ -93,12 +105,26 @@ export const createStatusProcedures = () => {
 							renamedPaths = { oldPath: worktree.path, newPath };
 						} catch (e) {
 							console.error("Failed to rename worktree folder:", e);
+							throw new Error(`Failed to rename worktree folder: ${e instanceof Error ? e.message : String(e)}`);
 						}
 					}
 				}
 
+				const resolveIsUnnamed = () => {
+					if (input.patch.isUnnamed !== undefined) return input.patch.isUnnamed;
+					if (
+						input.patch.name !== undefined &&
+						!input.patch.preserveUnnamedStatus
+					)
+						return false;
+					return undefined;
+				};
+
+				const isUnnamed = resolveIsUnnamed();
+
 				touchWorkspace(input.id, {
 					...(input.patch.name !== undefined && { name: input.patch.name }),
+					...(isUnnamed !== undefined && { isUnnamed }),
 				});
 
 				return { success: true, renamedPaths };
@@ -121,6 +147,66 @@ export const createStatusProcedures = () => {
 					.run();
 
 				return { success: true, isUnread: input.isUnread };
+			}),
+
+		setActive: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(({ input }) => {
+				const workspace = getWorkspaceNotDeleting(input.workspaceId);
+				if (!workspace) {
+					throw new Error(
+						`Workspace ${input.workspaceId} not found or is being deleted`,
+					);
+				}
+
+				setLastActiveWorkspace(input.workspaceId);
+
+				return { success: true, workspaceId: input.workspaceId };
+			}),
+
+		syncBranch: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					branch: z.string(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const { workspaceId, branch } = input;
+
+				if (!branch || branch === "HEAD") {
+					return { success: false as const, reason: "invalid-branch" as const };
+				}
+
+				const workspace = getWorkspaceNotDeleting(workspaceId);
+				if (!workspace) {
+					return { success: false as const, reason: "not-found" as const };
+				}
+
+				if (workspace.branch === branch) {
+					return { success: true as const, changed: false as const };
+				}
+
+				localDb
+					.update(workspaces)
+					.set({ branch })
+					.where(eq(workspaces.id, workspaceId))
+					.run();
+
+				if (workspace.worktreeId) {
+					localDb
+						.update(worktrees)
+						.set({ branch })
+						.where(
+							and(
+								eq(worktrees.id, workspace.worktreeId),
+								not(eq(worktrees.branch, branch)),
+							),
+						)
+						.run();
+				}
+
+				return { success: true as const, changed: true as const };
 			}),
 	});
 };

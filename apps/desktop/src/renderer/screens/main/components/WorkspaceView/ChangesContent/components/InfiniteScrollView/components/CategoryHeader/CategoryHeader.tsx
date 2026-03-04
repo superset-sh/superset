@@ -19,7 +19,7 @@ export function CategoryHeader({
 		<button
 			type="button"
 			onClick={onToggle}
-			className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-muted transition-colors sticky top-0 z-20 border-b border-border"
+			className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-muted transition-colors sticky top-0 z-20 border-b border-r border-border"
 		>
 			{isExpanded ? (
 				<LuChevronDown className="size-4 text-muted-foreground" />

@@ -78,6 +78,22 @@ jobs:
               echo "Created stable copy: Superset-${arch}-mac.zip"
             fi
           done
+          for file in *.AppImage; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., superset-0.0.1-x64.AppImage -> x64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.AppImage$/\1/')
+              cp "$file" "Superset-${arch}.AppImage"
+              echo "Created stable copy: Superset-${arch}.AppImage"
+            fi
+          done
+          # Keep Linux updater manifest at a stable filename for generic provider lookups.
+          for file in *-linux.yml; do
+            if [[ -f "$file" && "$file" != "latest-linux.yml" ]]; then
+              cp "$file" "latest-linux.yml"
+              echo "Created stable copy: latest-linux.yml"
+              break
+            fi
+          done
           echo "Release artifacts:"
           ls -la
 

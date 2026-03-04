@@ -3,6 +3,11 @@ import type {
 	UseNavigateResult,
 } from "@tanstack/react-router";
 
+export interface WorkspaceSearchParams {
+	tabId?: string;
+	paneId?: string;
+}
+
 /**
  * Navigate to a workspace and update localStorage to remember it as the last viewed workspace.
  * This ensures the workspace will be restored when the app is reopened.
@@ -14,12 +19,16 @@ import type {
 export function navigateToWorkspace(
 	workspaceId: string,
 	navigate: UseNavigateResult<string>,
-	options?: Omit<NavigateOptions, "to" | "params">,
+	options?: Omit<NavigateOptions, "to" | "params"> & {
+		search?: WorkspaceSearchParams;
+	},
 ): Promise<void> {
+	const { search, ...rest } = options ?? {};
 	localStorage.setItem("lastViewedWorkspaceId", workspaceId);
 	return navigate({
 		to: "/workspace/$workspaceId",
 		params: { workspaceId },
-		...options,
+		search: search ?? {},
+		...rest,
 	});
 }

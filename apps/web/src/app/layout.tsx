@@ -22,6 +22,12 @@ const inter = Inter({
 export const metadata: Metadata = {
 	title: "Superset",
 	description: "Run 10+ parallel coding agents on your machine",
+	icons: {
+		icon: [
+			{ url: "/favicon.ico", sizes: "32x32" },
+			{ url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
+		],
+	},
 };
 
 export const viewport: Viewport = {

@@ -5,10 +5,17 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	getBranchBaseConfig,
+	setBranchBaseConfig,
+	unsetBranchBaseConfig,
+} from "../workspaces/utils/base-branch-config";
+import { getCurrentBranch } from "../workspaces/utils/git";
+import {
 	assertRegisteredWorktree,
 	getRegisteredWorktree,
 	gitSwitchBranch,
 } from "./security";
+import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export const createBranchesRouter = () => {
 	return router({
@@ -22,12 +29,33 @@ export const createBranchesRouter = () => {
 					remote: string[];
 					defaultBranch: string;
 					checkedOutBranches: Record<string, string>;
+					worktreeBaseBranch: string | null;
 				}> => {
 					assertRegisteredWorktree(input.worktreePath);
 
 					const git = simpleGit(input.worktreePath);
 
 					const branchSummary = await git.branch(["-a"]);
+					const currentBranch = await getCurrentBranch(input.worktreePath);
+					const { baseBranch: configuredBaseBranch } = currentBranch
+						? await getBranchBaseConfig({
+								repoPath: input.worktreePath,
+								branch: currentBranch,
+							})
+						: { baseBranch: null };
+					const persistedWorktree = localDb
+						.select({
+							branch: worktrees.branch,
+							baseBranch: worktrees.baseBranch,
+						})
+						.from(worktrees)
+						.where(eq(worktrees.path, input.worktreePath))
+						.get();
+					const persistedBaseBranch =
+						persistedWorktree &&
+						(!currentBranch || persistedWorktree.branch === currentBranch)
+							? (persistedWorktree.baseBranch?.trim() ?? null)
+							: null;
 
 					const localBranches: string[] = [];
 					const remote: string[] = [];
@@ -54,6 +82,7 @@ export const createBranchesRouter = () => {
 						remote: remote.sort(),
 						defaultBranch,
 						checkedOutBranches,
+						worktreeBaseBranch: configuredBaseBranch ?? persistedBaseBranch,
 					};
 				},
 			),
@@ -69,7 +98,6 @@ export const createBranchesRouter = () => {
 				const worktree = getRegisteredWorktree(input.worktreePath);
 				await gitSwitchBranch(input.worktreePath, input.branch);
 
-				// Update the branch in the worktree record
 				const gitStatus = worktree.gitStatus
 					? { ...worktree.gitStatus, branch: input.branch }
 					: null;
@@ -78,11 +106,52 @@ export const createBranchesRouter = () => {
 					.update(worktrees)
 					.set({
 						branch: input.branch,
+						baseBranch: null,
 						gitStatus,
 					})
 					.where(eq(worktrees.path, input.worktreePath))
 					.run();
 
+				clearStatusCacheForWorktree(input.worktreePath);
+				return { success: true };
+			}),
+
+		updateBaseBranch: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					baseBranch: z.string().nullable(),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				assertRegisteredWorktree(input.worktreePath);
+
+				const currentBranch = await getCurrentBranch(input.worktreePath);
+				if (!currentBranch) {
+					throw new Error("Could not determine current branch");
+				}
+
+				if (input.baseBranch) {
+					await setBranchBaseConfig({
+						repoPath: input.worktreePath,
+						branch: currentBranch,
+						baseBranch: input.baseBranch,
+						isExplicit: true,
+					});
+				} else {
+					await unsetBranchBaseConfig({
+						repoPath: input.worktreePath,
+						branch: currentBranch,
+					});
+				}
+
+				localDb
+					.update(worktrees)
+					.set({ baseBranch: input.baseBranch })
+					.where(eq(worktrees.path, input.worktreePath))
+					.run();
+
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 	});

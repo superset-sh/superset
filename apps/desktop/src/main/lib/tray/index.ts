@@ -14,7 +14,7 @@ import {
 import { localDb } from "main/lib/local-db";
 import { menuEmitter } from "main/lib/menu-events";
 import {
-	getDaemonTerminalManager,
+	restartDaemon as restartDaemonShared,
 	tryListExistingDaemonSessions,
 } from "main/lib/terminal";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
@@ -116,21 +116,6 @@ function openSessionInSuperset(workspaceId: string): void {
 	menuEmitter.emit("open-workspace", workspaceId);
 }
 
-async function killAllSessions(): Promise<void> {
-	try {
-		const client = getTerminalHostClient();
-		const connected = await client.tryConnectAndAuthenticate();
-		if (connected) {
-			await client.killAll({});
-			console.log("[Tray] Killed all daemon sessions");
-		}
-	} catch (error) {
-		console.error("[Tray] Failed to kill sessions:", error);
-	}
-
-	await updateTrayMenu();
-}
-
 async function killSession(paneId: string): Promise<void> {
 	try {
 		const client = getTerminalHostClient();
@@ -169,7 +154,6 @@ function formatSessionLabel(
 
 function buildSessionsSubmenu(
 	sessions: ListSessionsResponse["sessions"],
-	daemonRunning: boolean,
 ): MenuItemConstructorOptions[] {
 	const aliveSessions = sessions.filter((s) => s.isAlive);
 	const menuItems: MenuItemConstructorOptions[] = [];
@@ -214,12 +198,6 @@ function buildSessionsSubmenu(
 
 			isFirst = false;
 		}
-
-		menuItems.push({ type: "separator" });
-		menuItems.push({
-			label: "Kill All Sessions",
-			click: killAllSessions,
-		});
 	}
 
 	menuItems.push({ type: "separator" });
@@ -227,62 +205,48 @@ function buildSessionsSubmenu(
 		label: "Terminal Settings",
 		click: openTerminalSettings,
 	});
-	menuItems.push({
-		label: "Restart Daemon",
-		enabled: daemonRunning,
-		click: restartDaemon,
-	});
 
 	return menuItems;
 }
 
-async function restartDaemon(): Promise<void> {
+async function quitApp(): Promise<void> {
+	const { sessions } = await tryListExistingDaemonSessions();
+	const hasActiveSessions = sessions.some((s) => s.isAlive);
+
+	if (!hasActiveSessions) {
+		app.quit();
+		return;
+	}
+
 	const { response } = await dialog.showMessageBox({
-		type: "warning",
-		buttons: ["Cancel", "Restart Daemon"],
-		defaultId: 0,
+		type: "question",
+		buttons: ["Cancel", "Keep Sessions", "Kill Sessions"],
+		defaultId: 1,
 		cancelId: 0,
-		title: "Restart Terminal Daemon?",
-		message: "Restart Terminal Daemon?",
+		title: "Quit Superset?",
+		message: "Quit Superset?",
 		detail:
-			"This will shut down the terminal daemon and kill all running sessions. Use this to fix terminals that are stuck or unresponsive.\n\nA fresh daemon will start automatically when you open a new terminal.",
+			"Keep sessions running in the background, or kill all sessions and shut down the daemon?",
 	});
 
 	if (response === 0) {
 		return;
 	}
 
-	console.log("[Tray] Restarting daemon...");
-
-	try {
-		const client = getTerminalHostClient();
-		const connected = await client.tryConnectAndAuthenticate();
-
-		if (connected) {
-			await client.shutdownIfRunning({ killSessions: true });
-			console.log("[Tray] Daemon shutdown complete");
-		} else {
-			console.log("[Tray] Daemon was not running");
-		}
-	} catch (error) {
-		console.warn("[Tray] Error during shutdown (continuing):", error);
+	if (response === 2) {
+		await restartDaemonShared();
 	}
 
-	const manager = getDaemonTerminalManager();
-	manager.reset();
-
-	console.log("[Tray] Daemon restart complete");
-
-	await updateTrayMenu();
+	app.quit();
 }
 
 async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
-	const { daemonRunning, sessions } = await tryListExistingDaemonSessions();
+	const { sessions } = await tryListExistingDaemonSessions();
 	const sessionCount = sessions.filter((s) => s.isAlive).length;
 
-	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonRunning);
+	const sessionsSubmenu = buildSessionsSubmenu(sessions);
 	const sessionsLabel =
 		sessionCount > 0
 			? `Background Sessions (${sessionCount})`
@@ -304,7 +268,7 @@ async function updateTrayMenu(): Promise<void> {
 		},
 		{
 			label: "Quit",
-			click: () => app.quit(),
+			click: quitApp,
 		},
 	]);
 

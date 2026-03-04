@@ -1,15 +1,28 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import type { ChangeCategory } from "shared/changes-types";
+import type { ChangeCategory, FileStatus } from "shared/changes-types";
 import type {
 	BaseTab,
 	BaseTabsState,
+	BrowserLoadError,
+	ChatMastraLaunchConfig,
+	FileViewerMode,
 	Pane,
 	PaneStatus,
 	PaneType,
+	ViewportPreset,
 } from "shared/tabs-types";
 
 // Re-export shared types
 export type { Pane, PaneStatus, PaneType };
+
+/**
+ * Snapshot of a closed tab + its panes, used for "reopen closed tab".
+ */
+export interface ClosedTabEntry {
+	tab: Tab;
+	panes: Pane[];
+	closedAt: number;
+}
 
 /**
  * A Tab is a container that holds one or more Panes in a Mosaic layout.
@@ -25,13 +38,22 @@ export interface Tab extends BaseTab {
  */
 export interface TabsState extends Omit<BaseTabsState, "tabs"> {
 	tabs: Tab[];
+	closedTabsStack: ClosedTabEntry[];
 }
 
 /**
  * Options for creating a tab with preset configuration
  */
 export interface AddTabOptions {
-	initialCommands?: string[];
+	initialCwd?: string;
+}
+
+export interface AddChatMastraTabOptions {
+	launchConfig?: ChatMastraLaunchConfig | null;
+}
+
+export interface AddTabWithMultiplePanesOptions {
+	commands: string[];
 	initialCwd?: string;
 }
 
@@ -40,7 +62,11 @@ export interface AddTabOptions {
  */
 export interface AddFileViewerPaneOptions {
 	filePath: string;
+	/** Override default view mode (raw/diff/rendered) */
+	viewMode?: FileViewerMode;
 	diffCategory?: ChangeCategory;
+	/** File status from git — used to determine default view mode for new files */
+	fileStatus?: FileStatus;
 	commitHash?: string;
 	oldPath?: string;
 	/** Line to scroll to (raw mode only) */
@@ -49,6 +75,8 @@ export interface AddFileViewerPaneOptions {
 	column?: number;
 	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
 	isPinned?: boolean;
+	/** If true, opens in a new tab instead of splitting the current tab */
+	openInNewTab?: boolean;
 }
 
 /**
@@ -60,6 +88,14 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
+	addChatMastraTab: (
+		workspaceId: string,
+		options?: AddChatMastraTabOptions,
+	) => { tabId: string; paneId: string };
+	addTabWithMultiplePanes: (
+		workspaceId: string,
+		options: AddTabWithMultiplePanesOptions,
+	) => { tabId: string; paneIds: string[] };
 	removeTab: (tabId: string) => void;
 	renameTab: (tabId: string, newName: string) => void;
 	setTabAutoTitle: (tabId: string, title: string) => void;
@@ -77,6 +113,14 @@ export interface TabsStore extends TabsState {
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
+	addChatMastraPane: (
+		tabId: string,
+		options?: AddChatMastraTabOptions,
+	) => string;
+	addPanesToTab: (
+		tabId: string,
+		options: AddTabWithMultiplePanesOptions,
+	) => string[];
 	addFileViewerPane: (
 		workspaceId: string,
 		options: AddFileViewerPaneOptions,
@@ -85,7 +129,9 @@ export interface TabsStore extends TabsState {
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
 	setPaneStatus: (paneId: string, status: PaneStatus) => void;
+	setPaneName: (paneId: string, name: string) => void;
 	clearWorkspaceAttentionStatus: (workspaceId: string) => void;
+	resetWorkspaceStatus: (workspaceId: string) => void;
 	updatePaneCwd: (
 		paneId: string,
 		cwd: string | null,
@@ -119,6 +165,43 @@ export interface TabsStore extends TabsState {
 	// Move operations
 	movePaneToTab: (paneId: string, targetTabId: string) => void;
 	movePaneToNewTab: (paneId: string) => string;
+
+	// Browser operations
+	addBrowserTab: (
+		workspaceId: string,
+		url?: string,
+	) => { tabId: string; paneId: string };
+	openInBrowserPane: (workspaceId: string, url: string) => void;
+	updateBrowserUrl: (
+		paneId: string,
+		url: string,
+		title: string,
+		faviconUrl?: string,
+	) => void;
+	navigateBrowserHistory: (
+		paneId: string,
+		direction: "back" | "forward",
+	) => string | null;
+	updateBrowserLoading: (paneId: string, isLoading: boolean) => void;
+	setBrowserError: (paneId: string, error: BrowserLoadError | null) => void;
+	setBrowserViewport: (paneId: string, viewport: ViewportPreset | null) => void;
+	openDevToolsPane: (
+		tabId: string,
+		browserPaneId: string,
+		path?: MosaicBranch[],
+	) => string | null;
+
+	// Reopen operations
+	/** Reopen the last closed tab for a workspace. Returns true if a tab was reopened. */
+	reopenClosedTab: (workspaceId: string) => boolean;
+
+	// Chat operations
+	/** Switch a Mastra chat pane to a different session */
+	switchChatMastraSession: (paneId: string, sessionId: string | null) => void;
+	setChatMastraLaunchConfig: (
+		paneId: string,
+		launchConfig: AddChatMastraTabOptions["launchConfig"],
+	) => void;
 
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];

@@ -28,15 +28,11 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 		checkScrollPosition();
 
 		const writeDisposable = terminal.onWriteParsed(checkScrollPosition);
-		const viewport = terminal.element?.querySelector(".xterm-viewport");
-
-		if (viewport) {
-			viewport.addEventListener("scroll", checkScrollPosition);
-		}
+		const scrollDisposable = terminal.onScroll(checkScrollPosition);
 
 		return () => {
 			writeDisposable.dispose();
-			viewport?.removeEventListener("scroll", checkScrollPosition);
+			scrollDisposable.dispose();
 		};
 	}, [terminal, checkScrollPosition]);
 

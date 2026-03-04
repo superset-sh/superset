@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { hasStaticPortsConfig, loadStaticPorts } from "./loader";
 
-const TEST_DIR = join(__dirname, ".test-tmp");
+const TEST_DIR = join(tmpdir(), `superset-test-loader-${process.pid}`);
 const WORKTREE_PATH = join(TEST_DIR, "worktree");
 const SUPERSET_DIR = join(WORKTREE_PATH, ".superset");
 const PORTS_FILE = join(SUPERSET_DIR, "ports.json");

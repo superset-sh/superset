@@ -1,5 +1,11 @@
+import { COMPANY } from "@superset/shared/constants";
 import { Link } from "@tanstack/react-router";
-import { HiArrowLeft, HiMagnifyingGlass, HiXMark } from "react-icons/hi2";
+import {
+	HiArrowLeft,
+	HiArrowTopRightOnSquare,
+	HiMagnifyingGlass,
+	HiXMark,
+} from "react-icons/hi2";
 import {
 	useSetSettingsSearchQuery,
 	useSettingsSearchQuery,
@@ -51,6 +57,18 @@ export function SettingsSidebar() {
 			<div className="flex-1 overflow-y-auto min-h-0">
 				<GeneralSettings matchCounts={matchCounts} />
 				<ProjectsSettings searchQuery={searchQuery} />
+			</div>
+
+			<div className="pt-3 mt-3 border-t border-border">
+				<a
+					href={COMPANY.DOCS_URL}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+				>
+					<HiArrowTopRightOnSquare className="h-4 w-4" />
+					<span>Documentation</span>
+				</a>
 			</div>
 		</div>
 	);

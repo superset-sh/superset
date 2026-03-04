@@ -21,8 +21,10 @@ function isPrereleaseBuild(): boolean {
 }
 
 const IS_PRERELEASE = isPrereleaseBuild();
+const IS_AUTO_UPDATE_PLATFORM = PLATFORM.IS_MAC || PLATFORM.IS_LINUX;
 
-// Use explicit feed URLs to ensure we always fetch latest-mac.yml from the correct release
+// Use explicit feed URLs to ensure we always fetch platform-specific manifests
+// (for example latest-mac.yml and latest-linux.yml) from the correct release.
 // - Stable: fetches from /releases/latest/download/ (latest non-prerelease)
 // - Canary: fetches from /releases/download/desktop-canary/ (rolling canary tag)
 const UPDATE_FEED_URL = IS_PRERELEASE
@@ -100,7 +102,7 @@ export function dismissUpdate(): void {
 }
 
 export function checkForUpdates(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
 		return;
 	}
 	isDismissed = false;
@@ -125,11 +127,11 @@ export function checkForUpdatesInteractive(): void {
 		});
 		return;
 	}
-	if (!PLATFORM.IS_MAC) {
+	if (!IS_AUTO_UPDATE_PLATFORM) {
 		dialog.showMessageBox({
 			type: "info",
 			title: "Updates",
-			message: "Auto-updates are only available on macOS.",
+			message: "Auto-updates are only available on macOS and Linux.",
 		});
 		return;
 	}
@@ -198,22 +200,27 @@ export function simulateError(): void {
 }
 
 export function setupAutoUpdater(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
 		return;
 	}
 
 	autoUpdater.autoDownload = true;
 	autoUpdater.autoInstallOnAppQuit = true;
+	autoUpdater.disableDifferentialDownload = true;
 
 	// Allow downgrade for prerelease builds so users can switch back to stable
 	autoUpdater.allowDowngrade = IS_PRERELEASE;
 
-	// Use generic provider with explicit feed URL
-	// This ensures we always fetch latest-mac.yml from the correct GitHub release
+	// Use generic provider with explicit feed URL so electron-updater can request
+	// the correct manifest for the current platform from GitHub release assets.
 	autoUpdater.setFeedURL({
 		provider: "generic",
 		url: UPDATE_FEED_URL,
 	});
+
+	console.info(
+		`[auto-updater] Initialized: version=${app.getVersion()}, channel=${IS_PRERELEASE ? "canary" : "stable"}, feedURL=${UPDATE_FEED_URL}`,
+	);
 
 	autoUpdater.on("error", (error) => {
 		if (isNetworkError(error)) {
@@ -221,36 +228,43 @@ export function setupAutoUpdater(): void {
 			emitStatus(AUTO_UPDATE_STATUS.IDLE);
 			return;
 		}
-		console.error("[auto-updater] Error during update check:", error);
+		console.error(
+			`[auto-updater] Error during update (currentVersion=${app.getVersion()}):`,
+			error?.message || error,
+		);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
 
 	autoUpdater.on("checking-for-update", () => {
-		console.info("[auto-updater] Checking for updates...");
+		console.info(
+			`[auto-updater] Checking for updates... (currentVersion=${app.getVersion()}, feedURL=${UPDATE_FEED_URL})`,
+		);
 		emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	});
 
 	autoUpdater.on("update-available", (info) => {
 		console.info(
-			`[auto-updater] Update available: ${info.version}. Downloading...`,
+			`[auto-updater] Update available: ${app.getVersion()} → ${info.version} (files: ${info.files?.map((f: { url: string }) => f.url).join(", ")})`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, info.version);
 	});
 
-	autoUpdater.on("update-not-available", () => {
-		console.info("[auto-updater] No updates available");
+	autoUpdater.on("update-not-available", (info) => {
+		console.info(
+			`[auto-updater] No updates available (currentVersion=${app.getVersion()}, latestVersion=${info.version})`,
+		);
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 	});
 
 	autoUpdater.on("download-progress", (progress) => {
 		console.info(
-			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}%`,
+			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`,
 		);
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
 		console.info(
-			`[auto-updater] Update downloaded (${info.version}). Ready to install.`,
+			`[auto-updater] Update downloaded: ${app.getVersion()} → ${info.version}. Ready to install.`,
 		);
 		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
 	});

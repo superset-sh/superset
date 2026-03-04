@@ -3,8 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { LuFolderPlus, LuLoader, LuX } from "react-icons/lu";
-import { useOpenFromPath } from "renderer/react-query/projects";
-import { InitGitDialog } from "../../StartView/InitGitDialog";
+import { useOpenProject } from "renderer/react-query/projects";
 
 interface SidebarDropZoneProps {
 	children: ReactNode;
@@ -15,16 +14,9 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 	const navigate = useNavigate();
 	const [isDragOver, setIsDragOver] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [initGitDialog, setInitGitDialog] = useState<{
-		isOpen: boolean;
-		selectedPath: string;
-	}>({ isOpen: false, selectedPath: "" });
 
-	const openFromPath = useOpenFromPath();
+	const { openFromPath, isPending } = useOpenProject();
 
-	const isProcessing = openFromPath.isPending;
-
-	// Auto-dismiss error after 5 seconds
 	useEffect(() => {
 		if (!error) return;
 
@@ -35,15 +27,9 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 		return () => clearTimeout(timer);
 	}, [error]);
 
-	// Clear drag state when drag ends anywhere (e.g., drop outside this component)
 	useEffect(() => {
-		const handleWindowDragEnd = () => {
-			setIsDragOver(false);
-		};
-
-		const handleWindowDrop = () => {
-			setIsDragOver(false);
-		};
+		const handleWindowDragEnd = () => setIsDragOver(false);
+		const handleWindowDrop = () => setIsDragOver(false);
 
 		window.addEventListener("dragend", handleWindowDragEnd);
 		window.addEventListener("drop", handleWindowDrop);
@@ -58,7 +44,6 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 		e.preventDefault();
 		e.stopPropagation();
 
-		// Check if the drag contains files
 		if (e.dataTransfer.types.includes("Files")) {
 			setIsDragOver(true);
 			e.dataTransfer.dropEffect = "copy";
@@ -69,8 +54,7 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 		e.preventDefault();
 		e.stopPropagation();
 
-		// Only set to false if we're leaving the drop zone entirely
-		// (not just moving to a child element)
+		// Ignore drag leaves to child elements
 		const rect = e.currentTarget.getBoundingClientRect();
 		const { clientX, clientY } = e;
 
@@ -85,23 +69,18 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 	}, []);
 
 	const handleDrop = useCallback(
-		(e: React.DragEvent) => {
+		async (e: React.DragEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
 			setIsDragOver(false);
 
-			// Prevent multiple drops while processing
-			if (isProcessing) return;
+			if (isPending) return;
 
 			setError(null);
 
-			const files = Array.from(e.dataTransfer.files);
-
-			// Get the first dropped item
-			const firstFile = files[0];
+			const firstFile = Array.from(e.dataTransfer.files)[0];
 			if (!firstFile) return;
 
-			// In Electron with contextIsolation, use webUtils.getPathForFile to get the file path
 			let filePath: string;
 			try {
 				filePath = window.webUtils.getPathForFile(firstFile);
@@ -115,43 +94,19 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 				return;
 			}
 
-			openFromPath.mutate(
-				{ path: filePath },
-				{
-					onSuccess: (result) => {
-						if ("canceled" in result && result.canceled) {
-							return;
-						}
-
-						if ("error" in result) {
-							setError(result.error);
-							return;
-						}
-
-						if ("needsGitInit" in result) {
-							// Show dialog to offer git initialization
-							setInitGitDialog({
-								isOpen: true,
-								selectedPath: result.selectedPath,
-							});
-							return;
-						}
-
-						// Navigate to project view
-						if ("project" in result && result.project) {
-							navigate({
-								to: "/project/$projectId",
-								params: { projectId: result.project.id },
-							});
-						}
-					},
-					onError: (err) => {
-						setError(err.message || "Failed to open project");
-					},
-				},
-			);
+			try {
+				const project = await openFromPath(filePath);
+				if (project) {
+					navigate({
+						to: "/project/$projectId",
+						params: { projectId: project.id },
+					});
+				}
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Failed to open project");
+			}
 		},
-		[openFromPath, isProcessing, navigate],
+		[openFromPath, isPending, navigate],
 	);
 
 	return (
@@ -165,7 +120,6 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 			{children}
 
 			<AnimatePresence>
-				{/* Drop overlay */}
 				{isDragOver && (
 					<motion.div
 						initial={{ opacity: 0 }}
@@ -196,8 +150,7 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 					</motion.div>
 				)}
 
-				{/* Processing indicator when not dragging */}
-				{isProcessing && !isDragOver && (
+				{isPending && !isDragOver && (
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
@@ -214,7 +167,6 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 					</motion.div>
 				)}
 
-				{/* Error toast - auto-dismisses after 5s or can be manually dismissed */}
 				{error && (
 					<motion.div
 						initial={{ opacity: 0, y: 10 }}
@@ -235,13 +187,6 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 					</motion.div>
 				)}
 			</AnimatePresence>
-
-			<InitGitDialog
-				isOpen={initGitDialog.isOpen}
-				selectedPath={initGitDialog.selectedPath}
-				onClose={() => setInitGitDialog({ isOpen: false, selectedPath: "" })}
-				onError={setError}
-			/>
 		</div>
 	);
 }

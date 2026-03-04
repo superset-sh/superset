@@ -49,7 +49,11 @@ export function ConfigFilePreview({
 					<span className="text-sm text-muted-foreground font-mono truncate">
 						{projectName}/{PROJECT_SUPERSET_DIR_NAME}/{CONFIG_FILE_NAME}
 					</span>
-					<OpenInButton path={configFilePath} label={CONFIG_FILE_NAME} />
+					<OpenInButton
+						path={configFilePath}
+						label={CONFIG_FILE_NAME}
+						projectId={projectId}
+					/>
 				</div>
 
 				<div className="p-4 bg-background/50">

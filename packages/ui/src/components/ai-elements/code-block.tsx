@@ -7,7 +7,6 @@ import {
 	type HTMLAttributes,
 	useContext,
 	useEffect,
-	useRef,
 	useState,
 } from "react";
 import { type BundledLanguage, codeToHtml, type ShikiTransformer } from "shiki";
@@ -82,19 +81,17 @@ export const CodeBlock = ({
 }: CodeBlockProps) => {
 	const [html, setHtml] = useState<string>("");
 	const [darkHtml, setDarkHtml] = useState<string>("");
-	const mounted = useRef(false);
 
 	useEffect(() => {
+		let cancelled = false;
 		highlightCode(code, language, showLineNumbers).then(([light, dark]) => {
-			if (!mounted.current) {
+			if (!cancelled) {
 				setHtml(light);
 				setDarkHtml(dark);
-				mounted.current = true;
 			}
 		});
-
 		return () => {
-			mounted.current = false;
+			cancelled = true;
 		};
 	}, [code, language, showLineNumbers]);
 
@@ -162,8 +159,6 @@ export const CodeBlockCopyButton = ({
 		}
 	};
 
-	const Icon = isCopied ? CheckIcon : CopyIcon;
-
 	return (
 		<Button
 			className={cn("shrink-0", className)}
@@ -172,7 +167,22 @@ export const CodeBlockCopyButton = ({
 			variant="ghost"
 			{...props}
 		>
-			{children ?? <Icon size={14} />}
+			{children ?? (
+				<div className="relative h-3.5 w-3.5">
+					<CopyIcon
+						className={cn(
+							"absolute inset-0 h-3.5 w-3.5 transition-[opacity,transform] duration-200 ease-out",
+							isCopied ? "scale-50 opacity-0" : "scale-100 opacity-100",
+						)}
+					/>
+					<CheckIcon
+						className={cn(
+							"absolute inset-0 h-3.5 w-3.5 transition-[opacity,transform] duration-200 ease-out",
+							isCopied ? "scale-100 opacity-100" : "scale-50 opacity-0",
+						)}
+					/>
+				</div>
+			)}
 		</Button>
 	);
 };

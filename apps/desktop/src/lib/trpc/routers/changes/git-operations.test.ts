@@ -6,6 +6,7 @@ describe("git-operations error handling", () => {
 		const upstreamDeletedMessages = [
 			"Your configuration specifies to merge with the ref 'refs/heads/feature-branch' from the remote, but no such ref was fetched.",
 			"fatal: couldn't find remote ref refs/heads/deleted-branch",
+			"fatal: kitenite/dont-hide-changes-tab cannot be resolved to branch",
 			"There is no tracking information for the current branch",
 		];
 

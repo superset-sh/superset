@@ -1,2 +1,2 @@
-export { contents } from "./components/SidebarContent";
+export { sections } from "./components/SidebarContent";
 export { default as Sidebar } from "./Sidebar";

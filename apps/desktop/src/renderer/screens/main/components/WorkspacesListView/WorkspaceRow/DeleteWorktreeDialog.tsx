@@ -7,10 +7,10 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
-import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
+import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
@@ -32,18 +32,17 @@ export function DeleteWorktreeDialog({
 			{ worktreeId },
 			{
 				enabled: open,
-				staleTime: Number.POSITIVE_INFINITY,
 			},
 		);
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		onOpenChange(false);
 
-		toast.promise(deleteWorktree.mutateAsync({ worktreeId }), {
-			loading: `Deleting "${worktreeName}"...`,
-			success: `Deleted "${worktreeName}"`,
-			error: (error) =>
-				error instanceof Error ? error.message : "Failed to delete",
+		await deleteWithToast({
+			name: worktreeName,
+			deleteFn: () => deleteWorktree.mutateAsync({ worktreeId }),
+			forceDeleteFn: () =>
+				deleteWorktree.mutateAsync({ worktreeId, force: true }),
 		});
 	};
 

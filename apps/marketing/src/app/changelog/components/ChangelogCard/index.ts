@@ -1,0 +1,1 @@
+export { ChangelogCard } from "./ChangelogCard";

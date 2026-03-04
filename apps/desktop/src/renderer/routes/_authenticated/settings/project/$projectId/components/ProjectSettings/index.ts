@@ -1,1 +1,1 @@
-export { ProjectSettings } from "./ProjectSettings";
+export { ProjectSettings, SettingsSection } from "./ProjectSettings";

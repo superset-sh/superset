@@ -1,142 +1,143 @@
-import { Button } from "@superset/ui/button";
-import { Input } from "@superset/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HiOutlineStar, HiStar } from "react-icons/hi2";
-import { LuTrash } from "react-icons/lu";
-import {
-	PRESET_COLUMNS,
-	type PresetColumnConfig,
-	type PresetColumnKey,
-	type TerminalPreset,
-} from "renderer/routes/_authenticated/settings/presets/types";
-import { CommandsEditor } from "./components/CommandsEditor";
+import { Badge } from "@superset/ui/badge";
+import { useEffect, useRef } from "react";
+import { useDrag, useDrop } from "react-dnd";
+import { LuGripVertical } from "react-icons/lu";
+import type { TerminalPreset } from "renderer/routes/_authenticated/settings/presets/types";
 
-interface PresetCellProps {
-	column: PresetColumnConfig;
-	preset: TerminalPreset;
-	rowIndex: number;
-	onChange: (rowIndex: number, column: PresetColumnKey, value: string) => void;
-	onBlur: (rowIndex: number, column: PresetColumnKey) => void;
-	onCommandsChange: (rowIndex: number, commands: string[]) => void;
-	onCommandsBlur: (rowIndex: number) => void;
-}
-
-function PresetCell({
-	column,
-	preset,
-	rowIndex,
-	onChange,
-	onBlur,
-	onCommandsChange,
-	onCommandsBlur,
-}: PresetCellProps) {
-	const value = preset[column.key];
-
-	if (column.key === "commands") {
-		return (
-			<CommandsEditor
-				commands={value as string[]}
-				onChange={(commands) => onCommandsChange(rowIndex, commands)}
-				onBlur={() => onCommandsBlur(rowIndex)}
-				placeholder={column.placeholder}
-			/>
-		);
-	}
-
-	return (
-		<Input
-			variant="ghost"
-			value={(value as string) ?? ""}
-			onChange={(e) => onChange(rowIndex, column.key, e.target.value)}
-			onBlur={() => onBlur(rowIndex, column.key)}
-			className={`h-8 px-2 text-sm w-full min-w-0 truncate ${column.mono ? "font-mono" : ""}`}
-			placeholder={column.placeholder}
-		/>
-	);
-}
+const PRESET_TYPE = "TERMINAL_PRESET";
 
 interface PresetRowProps {
 	preset: TerminalPreset;
 	rowIndex: number;
 	isEven: boolean;
-	onChange: (rowIndex: number, column: PresetColumnKey, value: string) => void;
-	onBlur: (rowIndex: number, column: PresetColumnKey) => void;
-	onCommandsChange: (rowIndex: number, commands: string[]) => void;
-	onCommandsBlur: (rowIndex: number) => void;
-	onDelete: (rowIndex: number) => void;
-	onSetDefault: (presetId: string | null) => void;
+	onEdit: (presetId: string) => void;
+	onLocalReorder: (fromIndex: number, toIndex: number) => void;
+	onPersistReorder: (presetId: string, targetIndex: number) => void;
 }
 
 export function PresetRow({
 	preset,
 	rowIndex,
 	isEven,
-	onChange,
-	onBlur,
-	onCommandsChange,
-	onCommandsBlur,
-	onDelete,
-	onSetDefault,
+	onEdit,
+	onLocalReorder,
+	onPersistReorder,
 }: PresetRowProps) {
-	const handleToggleDefault = () => {
-		// If already default, clear it; otherwise set this preset as default
-		onSetDefault(preset.isDefault ? null : preset.id);
-	};
+	const rowRef = useRef<HTMLButtonElement>(null);
+	const dragHandleRef = useRef<HTMLDivElement>(null);
+
+	const [{ isDragging }, drag, preview] = useDrag(
+		() => ({
+			type: PRESET_TYPE,
+			item: { id: preset.id, index: rowIndex, originalIndex: rowIndex },
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
+		}),
+		[preset.id, rowIndex],
+	);
+
+	const [, drop] = useDrop({
+		accept: PRESET_TYPE,
+		hover: (item: { id: string; index: number; originalIndex: number }) => {
+			if (item.index !== rowIndex) {
+				onLocalReorder(item.index, rowIndex);
+				item.index = rowIndex;
+			}
+		},
+		drop: (item: { id: string; index: number; originalIndex: number }) => {
+			if (item.originalIndex !== item.index) {
+				onPersistReorder(item.id, item.index);
+			}
+		},
+	});
+
+	useEffect(() => {
+		preview(drop(rowRef));
+		drag(dragHandleRef);
+	}, [preview, drop, drag]);
+
+	const isWorkspaceCreation = !!(
+		preset.applyOnWorkspaceCreated ||
+		(!preset.applyOnNewTab && preset.isDefault)
+	);
+	const isNewTab = !!(
+		preset.applyOnNewTab ||
+		(!preset.applyOnWorkspaceCreated && preset.isDefault)
+	);
+	const modeValue =
+		preset.executionMode === "new-tab" ||
+		preset.executionMode === "new-tab-split-pane"
+			? preset.executionMode
+			: "split-pane";
+	const modeLabel =
+		modeValue === "new-tab"
+			? preset.commands.length > 1
+				? "Tab per command"
+				: "New tab"
+			: modeValue === "new-tab-split-pane"
+				? preset.commands.length > 1
+					? "New tab + panes"
+					: "New tab"
+				: preset.commands.length > 1
+					? "Single tab + panes"
+					: "Split pane";
+	const commandsToShow = preset.commands.length > 0 ? preset.commands : [""];
 
 	return (
-		<div
-			className={`flex items-start gap-4 py-3 px-4 ${
+		<button
+			type="button"
+			ref={rowRef}
+			onClick={() => onEdit(preset.id)}
+			className={`w-full flex items-start gap-4 py-3 px-4 text-left cursor-pointer hover:bg-accent/30 transition-colors ${
 				isEven ? "bg-accent/20" : ""
-			}`}
+			} ${isDragging ? "opacity-30" : ""}`}
 		>
-			{PRESET_COLUMNS.map((column) => (
-				<div key={column.key} className="flex-1 min-w-0">
-					<PresetCell
-						column={column}
-						preset={preset}
-						rowIndex={rowIndex}
-						onChange={onChange}
-						onBlur={onBlur}
-						onCommandsChange={onCommandsChange}
-						onCommandsBlur={onCommandsBlur}
-					/>
-				</div>
-			))}
-			<div className="w-20 flex justify-center gap-1 shrink-0 pt-1">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleToggleDefault}
-							className={`h-8 w-8 p-0 ${preset.isDefault ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-foreground"}`}
-							aria-label={
-								preset.isDefault ? "Remove default" : "Set as default"
-							}
-						>
-							{preset.isDefault ? (
-								<HiStar className="h-4 w-4" />
-							) : (
-								<HiOutlineStar className="h-4 w-4" />
-							)}
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="top">
-						{preset.isDefault
-							? "Remove as default"
-							: "Set as default for new terminals"}
-					</TooltipContent>
-				</Tooltip>
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => onDelete(rowIndex)}
-					className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-					aria-label="Delete row"
-				>
-					<LuTrash className="h-4 w-4" />
-				</Button>
+			<div
+				ref={dragHandleRef}
+				className="w-6 flex justify-center shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+			>
+				<LuGripVertical className="h-4 w-4" />
 			</div>
-		</div>
+
+			<div className="flex-1 min-w-0">
+				<div className="text-sm font-medium truncate">
+					{preset.name.trim() || "Untitled preset"}
+				</div>
+				{preset.description?.trim() ? (
+					<div className="text-xs text-muted-foreground truncate">
+						{preset.description}
+					</div>
+				) : null}
+			</div>
+
+			<div className="flex-[1.2] min-w-0 space-y-1">
+				{commandsToShow.map((command, index) => (
+					<div
+						key={`${preset.id}-command-${index}`}
+						className="text-xs font-mono text-muted-foreground truncate"
+					>
+						{command.trim() || "Empty command"}
+					</div>
+				))}
+			</div>
+
+			<div className="w-32 shrink-0 pt-0.5">
+				<span className="text-xs text-muted-foreground">{modeLabel}</span>
+			</div>
+
+			<div className="w-36 shrink-0 flex items-center justify-start gap-1.5 pt-0.5">
+				{isWorkspaceCreation ? (
+					<Badge variant="secondary" className="text-[10px]">
+						Workspace
+					</Badge>
+				) : null}
+				{isNewTab ? (
+					<Badge variant="secondary" className="text-[10px]">
+						Tab
+					</Badge>
+				) : null}
+			</div>
+		</button>
 	);
 }

@@ -257,6 +257,17 @@ describe("env", () => {
 				expect(result.RBENV_ROOT).toBe("/Users/test/.rbenv");
 			});
 
+			it("should include shell wrapper control vars", () => {
+				const env = {
+					ZDOTDIR: "/Users/test/.superset-dev/zsh",
+					BASH_ENV: "/Users/test/.superset-dev/bash/rcfile",
+					PATH: "/usr/bin",
+				};
+				const result = buildSafeEnv(env);
+				expect(result.ZDOTDIR).toBe("/Users/test/.superset-dev/zsh");
+				expect(result.BASH_ENV).toBe("/Users/test/.superset-dev/bash/rcfile");
+			});
+
 			it("should include proxy vars (both cases)", () => {
 				const env = {
 					HTTP_PROXY: "http://proxy:8080",
@@ -550,6 +561,7 @@ describe("env", () => {
 			"NEXT_PUBLIC_TEST",
 			"DATABASE_URL",
 			"CLERK_SECRET_KEY",
+			"SSL_CERT_FILE",
 		];
 
 		beforeEach(() => {
@@ -676,6 +688,45 @@ describe("env", () => {
 			const result = buildTerminalEnv(baseParams);
 			expect(result.SUPERSET_HOOK_VERSION).toBeDefined();
 			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
+		});
+
+		describe("SSL_CERT_FILE fallback on macOS", () => {
+			it("should set SSL_CERT_FILE to system cert bundle on macOS when not already set", () => {
+				delete process.env.SSL_CERT_FILE;
+				const result = buildTerminalEnv(baseParams);
+				if (process.platform === "darwin") {
+					expect(result.SSL_CERT_FILE).toBe("/etc/ssl/cert.pem");
+				}
+			});
+
+			it("should not override user-set SSL_CERT_FILE", () => {
+				process.env.SSL_CERT_FILE = "/custom/certs/ca-bundle.crt";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SSL_CERT_FILE).toBe("/custom/certs/ca-bundle.crt");
+			});
+		});
+
+		describe("COLORFGBG for light mode detection", () => {
+			it("should set COLORFGBG to dark mode by default", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.COLORFGBG).toBe("15;0");
+			});
+
+			it("should set COLORFGBG to dark mode when themeType is dark", () => {
+				const result = buildTerminalEnv({
+					...baseParams,
+					themeType: "dark",
+				});
+				expect(result.COLORFGBG).toBe("15;0");
+			});
+
+			it("should set COLORFGBG to light mode when themeType is light", () => {
+				const result = buildTerminalEnv({
+					...baseParams,
+					themeType: "light",
+				});
+				expect(result.COLORFGBG).toBe("0;15");
+			});
 		});
 	});
 });

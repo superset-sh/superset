@@ -1,5 +1,6 @@
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
+import { getImageMimeType } from "shared/file-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -8,9 +9,13 @@ import {
 	PathValidationError,
 	secureFs,
 } from "./security";
+import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 /** Maximum file size for reading (2 MiB) */
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+/** Maximum image file size (10 MiB) */
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 /** Bytes to scan for binary detection */
 const BINARY_CHECK_SIZE = 8192;
@@ -26,6 +31,21 @@ type ReadWorkingFileResult =
 				| "not-found"
 				| "too-large"
 				| "binary"
+				| "outside-worktree"
+				| "symlink-escape";
+	  };
+
+/**
+ * Result type for readWorkingFileImage procedure
+ */
+type ReadWorkingFileImageResult =
+	| { ok: true; dataUrl: string; byteLength: number }
+	| {
+			ok: false;
+			reason:
+				| "not-found"
+				| "too-large"
+				| "not-image"
 				| "outside-worktree"
 				| "symlink-escape";
 	  };
@@ -94,6 +114,7 @@ export const createFileContentsRouter = () => {
 					input.filePath,
 					input.content,
 				);
+				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -128,6 +149,53 @@ export const createFileContentsRouter = () => {
 						ok: true,
 						content: buffer.toString("utf-8"),
 						truncated: false,
+						byteLength: buffer.length,
+					};
+				} catch (error) {
+					if (error instanceof PathValidationError) {
+						if (error.code === "SYMLINK_ESCAPE") {
+							return { ok: false, reason: "symlink-escape" };
+						}
+						return { ok: false, reason: "outside-worktree" };
+					}
+					return { ok: false, reason: "not-found" };
+				}
+			}),
+
+		/**
+		 * Read an image file and return as base64 data URL.
+		 * Used for File Viewer rendered mode for images.
+		 */
+		readWorkingFileImage: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePath: z.string(),
+				}),
+			)
+			.query(async ({ input }): Promise<ReadWorkingFileImageResult> => {
+				const mimeType = getImageMimeType(input.filePath);
+				if (!mimeType) {
+					return { ok: false, reason: "not-image" };
+				}
+
+				try {
+					const stats = await secureFs.stat(input.worktreePath, input.filePath);
+					if (stats.size > MAX_IMAGE_SIZE) {
+						return { ok: false, reason: "too-large" };
+					}
+
+					const buffer = await secureFs.readFileBuffer(
+						input.worktreePath,
+						input.filePath,
+					);
+
+					const base64 = buffer.toString("base64");
+					const dataUrl = `data:${mimeType};base64,${base64}`;
+
+					return {
+						ok: true,
+						dataUrl,
 						byteLength: buffer.length,
 					};
 				} catch (error) {

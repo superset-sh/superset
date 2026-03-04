@@ -5,7 +5,6 @@ import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import { getWorkspace } from "../utils/db-helpers";
-import { detectBaseBranch, hasOriginRemote } from "../utils/git";
 import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
@@ -64,47 +63,6 @@ export const createQueryProcedures = () => {
 							.get()
 					: null;
 
-				// Detect and persist base branch for existing worktrees that don't have it
-				// We use undefined to mean "not yet attempted" and null to mean "attempted but not found"
-				let baseBranch = worktree?.baseBranch;
-				if (worktree && baseBranch === undefined && project) {
-					// Only attempt detection if there's a remote origin
-					const hasRemote = await hasOriginRemote(project.mainRepoPath);
-					if (hasRemote) {
-						try {
-							const defaultBranch = project.defaultBranch || "main";
-							const detected = await detectBaseBranch(
-								worktree.path,
-								worktree.branch,
-								defaultBranch,
-							);
-							if (detected) {
-								baseBranch = detected;
-							}
-							// Persist the result (detected branch or null sentinel)
-							localDb
-								.update(worktrees)
-								.set({ baseBranch: detected ?? null })
-								.where(eq(worktrees.id, worktree.id))
-								.run();
-						} catch {
-							// Detection failed, persist null to avoid retrying
-							localDb
-								.update(worktrees)
-								.set({ baseBranch: null })
-								.where(eq(worktrees.id, worktree.id))
-								.run();
-						}
-					} else {
-						// No remote - persist null to avoid retrying
-						localDb
-							.update(worktrees)
-							.set({ baseBranch: null })
-							.where(eq(worktrees.id, worktree.id))
-							.run();
-					}
-				}
-
 				return {
 					...workspace,
 					type: workspace.type as "worktree" | "branch",
@@ -114,12 +72,13 @@ export const createQueryProcedures = () => {
 								id: project.id,
 								name: project.name,
 								mainRepoPath: project.mainRepoPath,
+								githubOwner: project.githubOwner ?? null,
+								defaultBranch: project.defaultBranch ?? null,
 							}
 						: null,
 					worktree: worktree
 						? {
 								branch: worktree.branch,
-								baseBranch,
 								// Normalize to null to ensure consistent "incomplete init" detection in UI
 								gitStatus: worktree.gitStatus ?? null,
 							}
@@ -143,7 +102,6 @@ export const createQueryProcedures = () => {
 				.where(isNotNull(projects.tabOrder))
 				.all();
 
-			// Preload all worktrees once to avoid N+1 queries in the loop below
 			const allWorktrees = localDb.select().from(worktrees).all();
 			const worktreePathMap: WorktreePathMap = new Map(
 				allWorktrees.map((wt) => [wt.id, wt.path]),
@@ -159,6 +117,8 @@ export const createQueryProcedures = () => {
 						tabOrder: number;
 						githubOwner: string | null;
 						mainRepoPath: string;
+						hideImage: boolean;
+						iconUrl: string | null;
 					};
 					workspaces: Array<{
 						id: string;
@@ -173,6 +133,7 @@ export const createQueryProcedures = () => {
 						updatedAt: number;
 						lastOpenedAt: number;
 						isUnread: boolean;
+						isUnnamed: boolean;
 					}>;
 				}
 			>();
@@ -187,6 +148,8 @@ export const createQueryProcedures = () => {
 						tabOrder: project.tabOrder!,
 						githubOwner: project.githubOwner ?? null,
 						mainRepoPath: project.mainRepoPath,
+						hideImage: project.hideImage ?? false,
+						iconUrl: project.iconUrl ?? null,
 					},
 					workspaces: [],
 				});
@@ -202,7 +165,6 @@ export const createQueryProcedures = () => {
 			for (const workspace of allWorkspaces) {
 				const group = groupsMap.get(workspace.projectId);
 				if (group) {
-					// Resolve path from preloaded data instead of per-workspace DB queries
 					let worktreePath = "";
 					if (workspace.type === "worktree" && workspace.worktreeId) {
 						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";
@@ -215,6 +177,7 @@ export const createQueryProcedures = () => {
 						type: workspace.type as "worktree" | "branch",
 						worktreePath,
 						isUnread: workspace.isUnread ?? false,
+						isUnnamed: workspace.isUnnamed ?? false,
 					});
 				}
 			}

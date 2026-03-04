@@ -15,19 +15,19 @@ export type SettingsSection =
 	| "terminal"
 	| "integrations"
 	| "billing"
-	| "project"
-	| "workspace";
+	| "devices"
+	| "apikeys"
+	| "permissions"
+	| "project";
 
 interface SettingsState {
 	activeSection: SettingsSection;
 	activeProjectId: string | null;
-	activeWorkspaceId: string | null;
 	searchQuery: string;
 	isOpen: boolean;
 
 	setActiveSection: (section: SettingsSection) => void;
 	setActiveProject: (projectId: string | null) => void;
-	setActiveWorkspace: (workspaceId: string | null) => void;
 	setSearchQuery: (query: string) => void;
 	openSettings: (section?: SettingsSection) => void;
 	closeSettings: () => void;
@@ -38,7 +38,6 @@ export const useSettingsStore = create<SettingsState>()(
 		(set) => ({
 			activeSection: "account",
 			activeProjectId: null,
-			activeWorkspaceId: null,
 			searchQuery: "",
 			isOpen: false,
 
@@ -47,14 +46,7 @@ export const useSettingsStore = create<SettingsState>()(
 			setActiveProject: (projectId) =>
 				set({
 					activeProjectId: projectId,
-					activeWorkspaceId: null,
 					activeSection: "project",
-				}),
-
-			setActiveWorkspace: (workspaceId) =>
-				set({
-					activeWorkspaceId: workspaceId,
-					activeSection: "workspace",
 				}),
 
 			setSearchQuery: (query) => set({ searchQuery: query }),
@@ -86,7 +78,5 @@ export const useSetSettingsSearchQuery = () =>
 	useSettingsStore((state) => state.setSearchQuery);
 export const useActiveProjectId = () =>
 	useSettingsStore((state) => state.activeProjectId);
-export const useActiveWorkspaceId = () =>
-	useSettingsStore((state) => state.activeWorkspaceId);
 export const useCloseSettings = () =>
 	useSettingsStore((state) => state.closeSettings);

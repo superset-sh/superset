@@ -85,7 +85,11 @@ export function useFileLinkClick({
 					});
 					return;
 				}
-				addFileViewerPane(workspaceId, { filePath, line, column });
+				addFileViewerPane(workspaceId, {
+					filePath,
+					line,
+					column,
+				});
 			} else {
 				openInExternalEditor();
 			}

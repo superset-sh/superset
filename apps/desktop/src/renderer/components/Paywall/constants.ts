@@ -1,10 +1,21 @@
 import type { IconType } from "react-icons";
-import { HiUsers } from "react-icons/hi2";
-import { IoSparkles, IoTerminal } from "react-icons/io5";
-import { MdWorkspaces } from "react-icons/md";
-import { RiRocketLine } from "react-icons/ri";
-import type { GatedFeature } from "./usePaywall";
-import { GATED_FEATURES } from "./usePaywall";
+import {
+	HiCloud,
+	HiDevicePhoneMobile,
+	HiOutlineClipboardDocumentList,
+	HiOutlinePuzzlePiece,
+	HiUsers,
+} from "react-icons/hi2";
+
+export const GATED_FEATURES = {
+	INVITE_MEMBERS: "invite-members",
+	INTEGRATIONS: "integrations",
+	TASKS: "tasks",
+	CLOUD_WORKSPACES: "cloud-workspaces",
+	MOBILE_APP: "mobile-app",
+} as const;
+
+export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
 
 export interface ProFeature {
 	id: string;
@@ -13,6 +24,7 @@ export interface ProFeature {
 	icon: IconType;
 	iconColor: string;
 	gradientColors: readonly [string, string, string, string];
+	comingSoon?: boolean;
 }
 
 export const PRO_FEATURES: ProFeature[] = [
@@ -26,47 +38,50 @@ export const PRO_FEATURES: ProFeature[] = [
 		gradientColors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
 	},
 	{
-		id: "ai-features",
-		title: "AI-Powered Features",
+		id: "integrations",
+		title: "Integrations",
 		description:
-			"Enhanced AI agent capabilities with context-aware completions, automated workflow suggestions, and intelligent terminal assistance.",
-		icon: IoSparkles,
+			"Connect Linear, GitHub, and more to sync issues and PRs directly with your workspaces.",
+		icon: HiOutlinePuzzlePiece,
 		iconColor: "text-purple-500",
-		gradientColors: ["#6b21a8", "#581c87", "#3b0764", "#1a1a2e"],
+		gradientColors: ["#7c3aed", "#6d28d9", "#4c1d95", "#1a1a2e"],
 	},
 	{
-		id: "advanced-terminal",
-		title: "Advanced Terminal",
+		id: "tasks",
+		title: "Tasks",
 		description:
-			"Split your terminal into multiple panes for parallel execution. Session persistence, custom themes, and comprehensive command history search.",
-		icon: IoTerminal,
-		iconColor: "text-green-500",
+			"Track and manage tasks synced from Linear. Stay on top of your work without leaving Superset.",
+		icon: HiOutlineClipboardDocumentList,
+		iconColor: "text-emerald-500",
 		gradientColors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
 	},
 	{
-		id: "unlimited-workspaces",
-		title: "Unlimited Workspaces",
+		id: "cloud-workspaces",
+		title: "Cloud Workspaces",
 		description:
-			"Create as many workspaces and worktrees as you need. Organize complex multi-agent workflows without hitting limits.",
-		icon: MdWorkspaces,
-		iconColor: "text-orange-500",
+			"Access your workspaces from anywhere with cloud-hosted environments.",
+		icon: HiCloud,
+		iconColor: "text-amber-500",
 		gradientColors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"],
+		comingSoon: true,
 	},
 	{
-		id: "priority-support",
-		title: "Priority Support",
+		id: "mobile-app",
+		title: "Mobile App",
 		description:
-			"Priority email support from the Superset team. Early access to new Pro features and beta releases.",
-		icon: RiRocketLine,
+			"Monitor workspaces and manage tasks on the go. Continue conversations from anywhere.",
+		icon: HiDevicePhoneMobile,
 		iconColor: "text-red-500",
 		gradientColors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"],
+		comingSoon: true,
 	},
 ];
 
 // Map gated feature IDs to the feature to highlight in the paywall dialog
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
-	[GATED_FEATURES.AI_COMPLETION]: "ai-features",
-	[GATED_FEATURES.SPLIT_TERMINAL]: "advanced-terminal",
-	[GATED_FEATURES.CREATE_WORKSPACE]: "unlimited-workspaces",
+	[GATED_FEATURES.INTEGRATIONS]: "integrations",
+	[GATED_FEATURES.TASKS]: "tasks",
+	[GATED_FEATURES.CLOUD_WORKSPACES]: "cloud-workspaces",
+	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
 };

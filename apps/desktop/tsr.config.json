@@ -3,5 +3,6 @@
 	"generatedRouteTree": "./src/renderer/routeTree.gen.ts",
 	"quoteStyle": "double",
 	"routeToken": "layout",
-	"indexToken": "page"
+	"indexToken": "page",
+	"routeFileIgnorePattern": "^(?!(__root|page|layout)\\.tsx$).*\\.(tsx?|jsx?)$"
 }

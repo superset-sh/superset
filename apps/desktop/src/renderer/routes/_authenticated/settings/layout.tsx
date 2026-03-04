@@ -27,6 +27,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"behavior",
 	"terminal",
 	"integrations",
+	"permissions",
 ];
 
 // Map route paths to section names
@@ -39,8 +40,8 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/behavior")) return "behavior";
 	if (pathname.includes("/settings/terminal")) return "terminal";
 	if (pathname.includes("/settings/integrations")) return "integrations";
+	if (pathname.includes("/settings/permissions")) return "permissions";
 	if (pathname.includes("/settings/project")) return "project";
-	if (pathname.includes("/settings/workspace")) return "workspace";
 	return null;
 }
 
@@ -63,6 +64,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/terminal";
 		case "integrations":
 			return "/settings/integrations";
+		case "permissions":
+			return "/settings/permissions";
 		default:
 			return "/settings/account";
 	}
@@ -82,8 +85,8 @@ function SettingsLayout() {
 		const currentSection = getSectionFromPath(location.pathname);
 		if (!currentSection) return;
 
-		// Don't auto-navigate from project/workspace pages
-		if (currentSection === "project" || currentSection === "workspace") return;
+		// Don't auto-navigate from project pages
+		if (currentSection === "project") return;
 
 		const matchCounts = getMatchCountBySection(searchQuery);
 		const currentHasMatches = (matchCounts[currentSection] ?? 0) > 0;
@@ -94,7 +97,7 @@ function SettingsLayout() {
 				(section) => (matchCounts[section] ?? 0) > 0,
 			);
 			if (firstMatch) {
-				navigate({ to: getPathFromSection(firstMatch) });
+				navigate({ to: getPathFromSection(firstMatch), replace: true });
 			}
 		}
 	}, [searchQuery, location.pathname, navigate]);

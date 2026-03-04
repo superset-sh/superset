@@ -1,0 +1,49 @@
+{
+	"name": "@superset/chat-mastra",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./client": {
+			"types": "./src/client/index.ts",
+			"default": "./src/client/index.ts"
+		},
+		"./server/trpc": {
+			"types": "./src/server/trpc/index.ts",
+			"default": "./src/server/trpc/index.ts"
+		},
+		"./server/hono": {
+			"types": "./src/server/hono/index.ts",
+			"default": "./src/server/hono/index.ts"
+		}
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test --pass-with-no-tests"
+	},
+	"dependencies": {
+		"@mastra/mcp": "^1.0.2",
+		"@superset/trpc": "workspace:*",
+		"@trpc/client": "^11.7.1",
+		"@trpc/server": "^11.7.1",
+		"fast-glob": "^3.3.3",
+		"fuse.js": "^7.1.0",
+		"hono": "^4.8.5",
+		"mastracode": "^0.4.0",
+		"superjson": "^2.2.5",
+		"zod": "^4.3.5"
+	},
+	"peerDependencies": {
+		"@tanstack/react-query": "^5.0.0",
+		"@trpc/client": "^11.7.1",
+		"@trpc/react-query": "^11.7.1",
+		"react": "^18.0.0 || ^19.0.0"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/bun": "^1.2.17",
+		"@types/node": "^24.9.1",
+		"@types/react": "~19.2.2",
+		"typescript": "^5.9.3"
+	}
+}

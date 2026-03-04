@@ -57,24 +57,6 @@ export const TESTIMONIALS: Testimonial[] = [
 	{
 		id: "6",
 		content:
-			"@superset_sh is a sick product - love OS since I don't have to wait for someone else to fix bugs",
-		author: "Chase McDougall",
-		handle: "@ChaseMcDou",
-		avatar: "https://unavatar.io/twitter/ChaseMcDou",
-		url: "https://x.com/ChaseMcDou/status/2013458004977373643",
-	},
-	{
-		id: "7",
-		content:
-			"Dang @superset_sh might have just let me uninstall the @claudeai mobile app",
-		author: "Chase McDougall",
-		handle: "@ChaseMcDou",
-		avatar: "https://unavatar.io/twitter/ChaseMcDou",
-		url: "https://x.com/ChaseMcDou/status/2014174535155683408",
-	},
-	{
-		id: "8",
-		content:
 			"If you prefer a more GUI-oriented approach to multiple agents in parallel, it seems like @superset_sh is doing a tremendous job.",
 		author: "Felipe Coury",
 		handle: "@fcoury",
@@ -82,13 +64,22 @@ export const TESTIMONIALS: Testimonial[] = [
 		url: "https://x.com/fcoury/status/2010477904472281220",
 	},
 	{
+		id: "8",
+		content:
+			"@superset_sh is a sick product - love OS since I don't have to wait for someone else to fix bugs",
+		author: "Chase McDougall",
+		handle: "@ChaseMcDou",
+		avatar: "https://unavatar.io/twitter/ChaseMcDou",
+		url: "https://x.com/ChaseMcDou/status/2013458004977373643",
+	},
+	{
 		id: "9",
 		content:
-			"used conductor since its inception but limited across many dimensions and hard to customise. switched to @superset_sh and haven't looked back",
-		author: "AI Dev Stack Pigeon",
-		handle: "@aidailyprimer",
-		avatar: "https://unavatar.io/twitter/aidailyprimer",
-		url: "https://x.com/aidailyprimer/status/2010470703556919781",
+			"hasn't been a day i haven't used superset since onboarding\n\ncomplete paradigm shift on how i use ai to code",
+		author: "Leo",
+		handle: "@LeosReal",
+		avatar: "https://unavatar.io/twitter/LeosReal",
+		url: "https://x.com/LeosReal/status/2027306293858586745",
 	},
 	{
 		id: "10",
@@ -114,10 +105,11 @@ export const TESTIMONIALS: Testimonial[] = [
 	},
 	{
 		id: "12",
-		content: "Use @superset_sh, go into debt if you have to",
-		author: "Abhi Aiyer",
-		handle: "@abhiaiyer",
-		avatar: "https://unavatar.io/twitter/abhiaiyer",
-		url: "https://x.com/abhiaiyer/status/2012274607399620970",
+		content:
+			"just started using remote desktop instead of ssh just to be able to use @superset_sh on my mac mini from my macbook pro\n\ngenerational product in the making, mark my words",
+		author: "Elias Ståvik",
+		handle: "@eliasstravik",
+		avatar: "https://unavatar.io/twitter/eliasstravik",
+		url: "https://x.com/eliasstravik/status/2020580091449708978",
 	},
 ];

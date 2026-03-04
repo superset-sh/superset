@@ -8,110 +8,124 @@ describe("getAppCommand", () => {
 		expect(getAppCommand("finder", "/path/to/file")).toBeNull();
 	});
 
-	test("returns correct command for cursor", () => {
+	test("returns single-element array for cursor", () => {
 		const result = getAppCommand("cursor", "/path/to/file");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "Cursor", "/path/to/file"],
-		});
+		expect(result).toEqual([
+			{ command: "open", args: ["-a", "Cursor", "/path/to/file"] },
+		]);
 	});
 
-	test("returns correct command for vscode", () => {
+	test("returns single-element array for vscode", () => {
 		const result = getAppCommand("vscode", "/path/to/file");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "Visual Studio Code", "/path/to/file"],
-		});
+		expect(result).toEqual([
+			{
+				command: "open",
+				args: ["-a", "Visual Studio Code", "/path/to/file"],
+			},
+		]);
 	});
 
-	test("returns correct command for sublime", () => {
+	test("returns single-element array for sublime", () => {
 		const result = getAppCommand("sublime", "/path/to/file");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "Sublime Text", "/path/to/file"],
-		});
+		expect(result).toEqual([
+			{ command: "open", args: ["-a", "Sublime Text", "/path/to/file"] },
+		]);
 	});
 
-	test("returns correct command for xcode", () => {
+	test("returns single-element array for xcode", () => {
 		const result = getAppCommand("xcode", "/path/to/file");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "Xcode", "/path/to/file"],
-		});
+		expect(result).toEqual([
+			{ command: "open", args: ["-a", "Xcode", "/path/to/file"] },
+		]);
 	});
 
-	test("returns correct command for iterm", () => {
+	test("returns single-element array for iterm", () => {
 		const result = getAppCommand("iterm", "/path/to/file");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "iTerm", "/path/to/file"],
-		});
+		expect(result).toEqual([
+			{ command: "open", args: ["-a", "iTerm", "/path/to/file"] },
+		]);
 	});
 
-	test("returns correct command for warp", () => {
+	test("returns single-element array for warp", () => {
 		const result = getAppCommand("warp", "/path/to/file");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "Warp", "/path/to/file"],
-		});
+		expect(result).toEqual([
+			{ command: "open", args: ["-a", "Warp", "/path/to/file"] },
+		]);
 	});
 
-	test("returns correct command for terminal", () => {
+	test("returns single-element array for terminal", () => {
 		const result = getAppCommand("terminal", "/path/to/file");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "Terminal", "/path/to/file"],
-		});
+		expect(result).toEqual([
+			{ command: "open", args: ["-a", "Terminal", "/path/to/file"] },
+		]);
+	});
+
+	test("returns single-element array for ghostty", () => {
+		const result = getAppCommand("ghostty", "/path/to/file");
+		expect(result).toEqual([
+			{ command: "open", args: ["-a", "Ghostty", "/path/to/file"] },
+		]);
 	});
 
 	describe("JetBrains IDEs", () => {
-		test("returns correct command for intellij", () => {
+		test("returns bundle ID candidates for intellij (multi-edition)", () => {
 			const result = getAppCommand("intellij", "/path/to/file");
-			expect(result).toEqual({
-				command: "open",
-				args: ["-a", "IntelliJ IDEA", "/path/to/file"],
-			});
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-b", "com.jetbrains.intellij", "/path/to/file"],
+				},
+				{
+					command: "open",
+					args: ["-b", "com.jetbrains.intellij.ce", "/path/to/file"],
+				},
+			]);
 		});
 
-		test("returns correct command for webstorm", () => {
-			const result = getAppCommand("webstorm", "/path/to/file");
-			expect(result).toEqual({
-				command: "open",
-				args: ["-a", "WebStorm", "/path/to/file"],
-			});
-		});
-
-		test("returns correct command for pycharm", () => {
+		test("returns bundle ID candidates for pycharm (multi-edition)", () => {
 			const result = getAppCommand("pycharm", "/path/to/file");
-			expect(result).toEqual({
-				command: "open",
-				args: ["-a", "PyCharm", "/path/to/file"],
-			});
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-b", "com.jetbrains.pycharm", "/path/to/file"],
+				},
+				{
+					command: "open",
+					args: ["-b", "com.jetbrains.pycharm.ce", "/path/to/file"],
+				},
+			]);
 		});
 
-		test("returns correct command for goland", () => {
+		test("returns single-element array for webstorm (single-edition)", () => {
+			const result = getAppCommand("webstorm", "/path/to/file");
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "WebStorm", "/path/to/file"] },
+			]);
+		});
+
+		test("returns single-element array for goland (single-edition)", () => {
 			const result = getAppCommand("goland", "/path/to/file");
-			expect(result).toEqual({
-				command: "open",
-				args: ["-a", "GoLand", "/path/to/file"],
-			});
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "GoLand", "/path/to/file"] },
+			]);
 		});
 
-		test("returns correct command for rustrover", () => {
+		test("returns single-element array for rustrover (single-edition)", () => {
 			const result = getAppCommand("rustrover", "/path/to/file");
-			expect(result).toEqual({
-				command: "open",
-				args: ["-a", "RustRover", "/path/to/file"],
-			});
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "RustRover", "/path/to/file"] },
+			]);
 		});
 	});
 
 	test("preserves paths with spaces", () => {
 		const result = getAppCommand("cursor", "/path/with spaces/file.ts");
-		expect(result).toEqual({
-			command: "open",
-			args: ["-a", "Cursor", "/path/with spaces/file.ts"],
-		});
+		expect(result).toEqual([
+			{
+				command: "open",
+				args: ["-a", "Cursor", "/path/with spaces/file.ts"],
+			},
+		]);
 	});
 });
 

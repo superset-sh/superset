@@ -22,6 +22,12 @@ const inter = Inter({
 export const metadata: Metadata = {
 	title: "Superset | Company Dashboard",
 	description: "Analytics, Ops, and more",
+	icons: {
+		icon: [
+			{ url: "/favicon.ico", sizes: "32x32" },
+			{ url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
+		],
+	},
 };
 
 export const viewport: Viewport = {

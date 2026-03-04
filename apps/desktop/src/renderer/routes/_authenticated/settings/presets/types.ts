@@ -9,6 +9,7 @@ export interface PresetColumnConfig {
 	label: string;
 	placeholder: string;
 	mono?: boolean;
+	tooltip?: string;
 }
 
 export const PRESET_COLUMNS: PresetColumnConfig[] = [
@@ -20,9 +21,11 @@ export const PRESET_COLUMNS: PresetColumnConfig[] = [
 	},
 	{
 		key: "cwd",
-		label: "CWD",
+		label: "Directory",
 		placeholder: "e.g. ./src (optional)",
 		mono: true,
+		tooltip:
+			"Working directory for the terminal session (relative to workspace root)",
 	},
 	{
 		key: "commands",

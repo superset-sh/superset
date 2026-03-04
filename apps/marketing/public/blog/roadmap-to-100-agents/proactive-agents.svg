@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300">
+  <rect width="900" height="300" fill="#000"/>
+
+  <!-- Event 1: Warning/alert -->
+  <g transform="translate(180, 70)">
+    <polygon points="0,-18 16,14 -16,14" fill="none" stroke="#666" stroke-width="1.5" stroke-linejoin="round"/>
+    <line x1="0" y1="-6" x2="0" y2="4" stroke="#666" stroke-width="1.5"/>
+    <circle cx="0" cy="9" r="1.5" fill="#666"/>
+  </g>
+  <text x="180" y="108" fill="#444" font-family="monospace" font-size="10" text-anchor="middle">BUILD FAILS</text>
+
+  <!-- Event 2: Ticket -->
+  <g transform="translate(180, 150)">
+    <rect x="-14" y="-10" width="28" height="20" rx="2" fill="none" stroke="#666" stroke-width="1.5"/>
+    <line x1="-8" y1="-4" x2="8" y2="-4" stroke="#666" stroke-width="1"/>
+    <line x1="-8" y1="0" x2="4" y2="0" stroke="#666" stroke-width="1"/>
+    <line x1="-8" y1="4" x2="6" y2="4" stroke="#666" stroke-width="1"/>
+  </g>
+  <text x="180" y="188" fill="#444" font-family="monospace" font-size="10" text-anchor="middle">TICKET CREATED</text>
+
+  <!-- Event 3: Clock/schedule -->
+  <g transform="translate(180, 230)">
+    <circle cx="0" cy="0" r="14" fill="none" stroke="#666" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="0" y2="-8" stroke="#666" stroke-width="1.5"/>
+    <line x1="0" y1="0" x2="6" y2="4" stroke="#666" stroke-width="1.5"/>
+  </g>
+  <text x="180" y="268" fill="#444" font-family="monospace" font-size="10" text-anchor="middle">SCHEDULED</text>
+
+  <!-- Dotted arrows from events to center -->
+  <line x1="220" y1="70" x2="400" y2="150" stroke="#444" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="220" y1="150" x2="400" y2="150" stroke="#444" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="220" y1="230" x2="400" y2="150" stroke="#444" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- Center trigger node -->
+  <circle cx="420" cy="150" r="6" fill="#fff"/>
+  <text x="420" y="180" fill="#666" font-family="monospace" font-size="10" text-anchor="middle">TRIGGER</text>
+
+  <!-- Solid arrows from center to robots -->
+  <line x1="440" y1="150" x2="580" y2="70" stroke="#fff" stroke-width="1"/>
+  <polygon points="580,66 588,70 580,74" fill="#fff"/>
+  <line x1="440" y1="150" x2="580" y2="150" stroke="#fff" stroke-width="1"/>
+  <polygon points="580,146 588,150 580,154" fill="#fff"/>
+  <line x1="440" y1="150" x2="580" y2="230" stroke="#fff" stroke-width="1"/>
+  <polygon points="580,226 588,230 580,234" fill="#fff"/>
+
+  <!-- Robot 1 -->
+  <g transform="translate(630, 70)">
+    <rect x="-14" y="-16" width="28" height="24" rx="3" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <rect x="-7" y="-9" width="5" height="5" rx="1" fill="#fff"/>
+    <rect x="2" y="-9" width="5" height="5" rx="1" fill="#fff"/>
+    <rect x="-4" y="0" width="8" height="2" rx="1" fill="#fff"/>
+    <line x1="0" y1="-16" x2="0" y2="-22" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="0" cy="-24" r="2" fill="#fff"/>
+  </g>
+
+  <!-- Robot 2 -->
+  <g transform="translate(630, 150)">
+    <rect x="-14" y="-16" width="28" height="24" rx="3" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <rect x="-7" y="-9" width="5" height="5" rx="1" fill="#fff"/>
+    <rect x="2" y="-9" width="5" height="5" rx="1" fill="#fff"/>
+    <rect x="-4" y="0" width="8" height="2" rx="1" fill="#fff"/>
+    <line x1="0" y1="-16" x2="0" y2="-22" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="0" cy="-24" r="2" fill="#fff"/>
+  </g>
+
+  <!-- Robot 3 -->
+  <g transform="translate(630, 230)">
+    <rect x="-14" y="-16" width="28" height="24" rx="3" fill="none" stroke="#fff" stroke-width="1.5"/>
+    <rect x="-7" y="-9" width="5" height="5" rx="1" fill="#fff"/>
+    <rect x="2" y="-9" width="5" height="5" rx="1" fill="#fff"/>
+    <rect x="-4" y="0" width="8" height="2" rx="1" fill="#fff"/>
+    <line x1="0" y1="-16" x2="0" y2="-22" stroke="#fff" stroke-width="1.5"/>
+    <circle cx="0" cy="-24" r="2" fill="#fff"/>
+  </g>
+
+</svg>

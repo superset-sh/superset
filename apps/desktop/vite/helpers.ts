@@ -4,9 +4,6 @@ import type { Plugin } from "vite";
 
 import { main, resources } from "../package.json";
 
-// Must match PORTS.VITE_DEV_SERVER in src/shared/constants.ts
-export const DEV_SERVER_PORT = 5927;
-
 export const devPath = normalize(dirname(main)).split(/\/|\\/g)[0];
 
 function copyDir({ src, dest }: { src: string; dest: string }): void {
@@ -34,6 +31,10 @@ const RESOURCES_TO_COPY = [
 	{
 		src: resolve(__dirname, "..", resources, "tray"),
 		dest: resolve(__dirname, "..", devPath, "resources/tray"),
+	},
+	{
+		src: resolve(__dirname, "..", resources, "browser-extension"),
+		dest: resolve(__dirname, "..", devPath, "resources/browser-extension"),
 	},
 	{
 		src: resolve(__dirname, "../../../packages/local-db/drizzle"),
@@ -68,10 +69,29 @@ export function htmlEnvTransformPlugin(): Plugin {
 	return {
 		name: "html-env-transform",
 		transformIndexHtml(html) {
-			return html.replace(
-				/%NEXT_PUBLIC_API_URL%/g,
-				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
-			);
+			return html
+				.replace(
+					/%NEXT_PUBLIC_API_URL%/g,
+					process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+				)
+				.replace(
+					/%NEXT_PUBLIC_ELECTRIC_URL%/g,
+					new URL(
+						process.env.NEXT_PUBLIC_ELECTRIC_URL ||
+							"https://electric-proxy.avi-6ac.workers.dev",
+					).origin,
+				)
+				.replace(
+					/%NEXT_PUBLIC_ELECTRIC_PROXY_URL%/g,
+					new URL(
+						process.env.NEXT_PUBLIC_ELECTRIC_PROXY_URL ||
+							"https://api.superset.sh",
+					).origin,
+				)
+				.replace(
+					/%NEXT_PUBLIC_STREAMS_URL%/g,
+					process.env.NEXT_PUBLIC_STREAMS_URL || "https://streams.superset.sh",
+				);
 		},
 	};
 }

@@ -9,7 +9,7 @@
 <th align="left">Link</th>
 </tr>
 <tr>
-<td><img src="https://neon.com/favicon.ico" width="20" height="20" alt="Neon"> <strong>Database (Neon)</strong></td>
+<td><img src="https://neon.com/favicon/favicon.svg" width="20" height="20" alt="Neon"> <strong>Database (Neon)</strong></td>
 <td align="center">$DATABASE_STATUS</td>
 <td>$DATABASE_LINK</td>
 </tr>

@@ -4,23 +4,27 @@ import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWor
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { toast } from "@superset/ui/sonner";
 
-export function useWorkspaceRename(workspaceId: string, workspaceName: string, isWorktree: boolean = false) {
+export function useWorkspaceRename(
+	workspaceId: string,
+	workspaceName: string,
+	branch: string,
+	isWorktree: boolean = false
+) {
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
 	const [pendingRename, setPendingRename] = useState<string | null>(null);
+	const [pendingIsUnnamed, setPendingIsUnnamed] = useState<boolean>(false);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const updateWorkspace = useUpdateWorkspace();
 	const updateWorkspacePaths = useTabsStore(s => s.updateWorkspacePaths);
 	const trpcClient = electronTrpc.useUtils().client;
 
-	// Select input text when rename mode is activated
 	useEffect(() => {
 		if (isRenaming && inputRef.current) {
 			inputRef.current.select();
 		}
 	}, [isRenaming]);
 
-	// Sync rename value when workspace name changes
 	useEffect(() => {
 		setRenameValue(workspaceName);
 	}, [workspaceName]);
@@ -31,9 +35,24 @@ export function useWorkspaceRename(workspaceId: string, workspaceName: string, i
 
 	const submitRename = () => {
 		const trimmedValue = renameValue.trim();
-		if (trimmedValue && trimmedValue !== workspaceName) {
+		const isCleared = !trimmedValue;
+
+		if (isCleared) {
+			if (isWorktree) {
+				setPendingRename(branch);
+				setPendingIsUnnamed(true);
+			} else {
+				updateWorkspace.mutate({
+					id: workspaceId,
+					patch: { name: branch, isUnnamed: true },
+				});
+				setRenameValue(branch);
+				setIsRenaming(false);
+			}
+		} else if (trimmedValue !== workspaceName) {
 			if (isWorktree) {
 				setPendingRename(trimmedValue);
+				setPendingIsUnnamed(false);
 			} else {
 				updateWorkspace.mutate({
 					id: workspaceId,
@@ -51,7 +70,7 @@ export function useWorkspaceRename(workspaceId: string, workspaceName: string, i
 		if (pendingRename) {
 			updateWorkspace.mutate({
 				id: workspaceId,
-				patch: { name: pendingRename, renameFolder },
+				patch: { name: pendingRename, renameFolder, isUnnamed: pendingIsUnnamed ? true : undefined },
 			}, {
 				onSuccess: (data) => {
 					if (data.renamedPaths) {

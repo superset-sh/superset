@@ -1,42 +1,179 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { SUPERSET_DIR_NAME } from "shared/constants";
-import { BASH_DIR, ZSH_DIR } from "./paths";
+import { SUPERSET_MANAGED_BINARIES } from "./agent-wrappers-common";
+import { BASH_DIR, BIN_DIR, ZSH_DIR } from "./paths";
 
-/**
- * Creates zsh initialization wrapper that intercepts shell startup
- * Sources user's real shell config files then prepends our bin to PATH
- */
-export function createZshWrapper(): void {
-	// Create .zprofile to source user's .zprofile (runs for login shells before .zshrc)
-	// This is critical - without it, brew/nvm PATH setup in ~/.zprofile is skipped
-	// Don't change ZDOTDIR here - we need our .zshrc to run after this
-	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
+export interface ShellWrapperPaths {
+	BIN_DIR: string;
+	ZSH_DIR: string;
+	BASH_DIR: string;
+}
+
+const DEFAULT_PATHS: ShellWrapperPaths = {
+	BIN_DIR,
+	ZSH_DIR,
+	BASH_DIR,
+};
+
+const modeDiagnosticsLogged = new Set<string>();
+
+function getShellName(shell: string): string {
+	return shell.split("/").pop() || shell;
+}
+
+function logModeDiagnostics(shellName: string): void {
+	const key = `${shellName}:native`;
+	if (modeDiagnosticsLogged.has(key)) return;
+	modeDiagnosticsLogged.add(key);
+	console.debug(
+		`[agent-setup] shell integration mode=native shell=${shellName}`,
+	);
+}
+
+function writeFileIfChanged(
+	filePath: string,
+	content: string,
+	mode: number,
+): boolean {
+	const existing = fs.existsSync(filePath)
+		? fs.readFileSync(filePath, "utf-8")
+		: null;
+	if (existing === content) {
+		try {
+			fs.chmodSync(filePath, mode);
+		} catch {
+			// Best effort.
+		}
+		return false;
+	}
+
+	fs.writeFileSync(filePath, content, { mode });
+	try {
+		fs.chmodSync(filePath, mode);
+	} catch {
+		// Best effort.
+	}
+	return true;
+}
+
+function buildManagedCommandPrelude(shellName: string, binDir: string): string {
+	if (shellName === "fish") {
+		const escapedBinDir = escapeFishDoubleQuoted(binDir);
+		return SUPERSET_MANAGED_BINARIES.map(
+			(name) =>
+				`functions -q ${name}; and functions -e ${name}
+function ${name}
+  set -l _superset_wrapper "${escapedBinDir}/${name}"
+  if test -x "$_superset_wrapper"; and not test -d "$_superset_wrapper"
+    "$_superset_wrapper" $argv
+  else
+    command ${name} $argv
+  end
+end`,
+		).join("\n");
+	}
+
+	return SUPERSET_MANAGED_BINARIES.map(
+		(name) =>
+			`unalias ${name} 2>/dev/null || true
+${name}() {
+  _superset_wrapper="${binDir}/${name}"
+  if [ -x "$_superset_wrapper" ] && [ ! -d "$_superset_wrapper" ]; then
+    "$_superset_wrapper" "$@"
+  else
+    command ${name} "$@"
+  fi
+}`,
+	).join("\n");
+}
+
+function buildPathPrependFunction(binDir: string): string {
+	return `_superset_prepend_bin() {
+  case ":$PATH:" in
+    *:"${binDir}":*) ;;
+    *) export PATH="${binDir}:$PATH" ;;
+  esac
+}
+_superset_prepend_bin`;
+}
+
+function escapeFishDoubleQuoted(value: string): string {
+	return value
+		.replaceAll("\\", "\\\\")
+		.replaceAll('"', '\\"')
+		.replaceAll("$", "\\$");
+}
+
+export function createZshWrapper(
+	paths: ShellWrapperPaths = DEFAULT_PATHS,
+): void {
+	logModeDiagnostics("zsh");
+
+	// .zshenv is always sourced first by zsh (interactive + non-interactive).
+	// Temporarily restore the user's ZDOTDIR while sourcing user config, then
+	// switch back so zsh continues through our wrapper chain.
+	const zshenvPath = path.join(paths.ZSH_DIR, ".zshenv");
+	const zshenvScript = `# Superset zsh env wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
+[[ -f "$_superset_home/.zshenv" ]] && source "$_superset_home/.zshenv"
+export ZDOTDIR="${paths.ZSH_DIR}"
+`;
+	const wroteZshenv = writeFileIfChanged(zshenvPath, zshenvScript, 0o644);
+
+	// Source user .zprofile with their ZDOTDIR, then restore wrapper ZDOTDIR
+	// so startup continues into our .zshrc wrapper.
+	const zprofilePath = path.join(paths.ZSH_DIR, ".zprofile");
 	const zprofileScript = `# Superset zsh profile wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zprofile" ]] && source "$_superset_home/.zprofile"
+export ZDOTDIR="${paths.ZSH_DIR}"
 `;
-	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
+	const wroteZprofile = writeFileIfChanged(zprofilePath, zprofileScript, 0o644);
 
-	// Create .zshrc - reset ZDOTDIR before sourcing so Oh My Zsh works correctly
-	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
+	// Reset ZDOTDIR before sourcing so Oh My Zsh works correctly
+	const zshrcPath = path.join(paths.ZSH_DIR, ".zshrc");
 	const zshrcScript = `# Superset zsh rc wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
-export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+${buildPathPrependFunction(paths.BIN_DIR)}
+rehash 2>/dev/null || true
+# Restore ZDOTDIR so our .zlogin runs after user's .zlogin
+export ZDOTDIR="${paths.ZSH_DIR}"
 `;
-	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
-	console.log("[agent-setup] Created zsh wrapper");
+	const wroteZshrc = writeFileIfChanged(zshrcPath, zshrcScript, 0o644);
+
+	// .zlogin runs AFTER .zshrc in login shells. By restoring ZDOTDIR above,
+	// zsh sources our .zlogin instead of the user's directly. We source the
+	// user's .zlogin only for interactive shells, then re-assert Superset's
+	// PATH prepend after user startup hooks run.
+	const zloginPath = path.join(paths.ZSH_DIR, ".zlogin");
+	const zloginScript = `# Superset zsh login wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
+if [[ -o interactive ]]; then
+  [[ -f "$_superset_home/.zlogin" ]] && source "$_superset_home/.zlogin"
+fi
+${buildPathPrependFunction(paths.BIN_DIR)}
+rehash 2>/dev/null || true
+export ZDOTDIR="$_superset_home"
+`;
+	const wroteZlogin = writeFileIfChanged(zloginPath, zloginScript, 0o644);
+	const changed = wroteZshenv || wroteZprofile || wroteZshrc || wroteZlogin;
+	console.log(
+		`[agent-setup] ${changed ? "Updated" : "Verified"} zsh wrapper files`,
+	);
 }
 
-/**
- * Creates bash initialization wrapper that intercepts shell startup
- * Sources user's real bashrc/profile then prepends our bin to PATH
- */
-export function createBashWrapper(): void {
-	const rcfilePath = path.join(BASH_DIR, "rcfile");
+export function createBashWrapper(
+	paths: ShellWrapperPaths = DEFAULT_PATHS,
+): void {
+	logModeDiagnostics("bash");
+
+	const rcfilePath = path.join(paths.BASH_DIR, "rcfile");
 	const script = `# Superset bash rcfile wrapper
 
 # Source system profile
@@ -54,41 +191,80 @@ fi
 # Source bashrc if separate
 [[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
 
-# Prepend superset bin to PATH
-export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+# Keep superset bin first without duplicating entries
+${buildPathPrependFunction(paths.BIN_DIR)}
+hash -r 2>/dev/null || true
 # Minimal prompt (path/env shown in toolbar) - emerald to match app theme
 export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;
-	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
-	console.log("[agent-setup] Created bash wrapper");
+	const changed = writeFileIfChanged(rcfilePath, script, 0o644);
+	console.log(`[agent-setup] ${changed ? "Updated" : "Verified"} bash wrapper`);
 }
 
-/**
- * Returns shell-specific environment variables for intercepting shell initialization
- */
-export function getShellEnv(shell: string): Record<string, string> {
-	if (shell.includes("zsh")) {
+export function getShellEnv(
+	shell: string,
+	paths: ShellWrapperPaths = DEFAULT_PATHS,
+): Record<string, string> {
+	const shellName = getShellName(shell);
+	if (shellName === "zsh") {
 		return {
 			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
-			ZDOTDIR: ZSH_DIR,
+			ZDOTDIR: paths.ZSH_DIR,
 		};
 	}
-	// Bash doesn't need special env vars - we use --rcfile instead
 	return {};
 }
 
-/**
- * Returns shell-specific arguments for intercepting shell initialization
- */
-export function getShellArgs(shell: string): string[] {
-	if (shell.includes("zsh")) {
-		// Zsh uses ZDOTDIR env var, no special args needed
-		// -l for login shell behavior
+export function getShellArgs(
+	shell: string,
+	paths: ShellWrapperPaths = DEFAULT_PATHS,
+): string[] {
+	const shellName = getShellName(shell);
+	logModeDiagnostics(shellName);
+	if (shellName === "bash") {
+		return ["--rcfile", path.join(paths.BASH_DIR, "rcfile")];
+	}
+	if (shellName === "fish") {
+		// Use --init-command to prepend BIN_DIR to PATH after config is loaded.
+		// Use fish list-aware checks to avoid duplicate PATH entries across nested shells.
+		const escapedBinDir = escapeFishDoubleQuoted(paths.BIN_DIR);
+		return [
+			"-l",
+			"--init-command",
+			`set -l _superset_bin "${escapedBinDir}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
+		];
+	}
+	if (["zsh", "sh", "ksh"].includes(shellName)) {
 		return ["-l"];
 	}
-	if (shell.includes("bash")) {
-		// Use our custom rcfile that sources user's files then fixes PATH
-		return ["--rcfile", path.join(BASH_DIR, "rcfile")];
-	}
 	return [];
+}
+
+/**
+ * Shell args for non-interactive command execution (`-c`) that sources
+ * user profiles via wrappers. Falls back to login shell if wrappers
+ * don't exist yet (e.g. before setupAgentHooks runs).
+ *
+ * Unlike getShellArgs (interactive), we must source profiles inline because:
+ * - zsh skips .zshrc for non-interactive shells
+ * - bash ignores --rcfile when -c is present
+ * - managed binary prelude enforces wrapper paths for app-owned commands
+ */
+export function getCommandShellArgs(
+	shell: string,
+	command: string,
+	paths: ShellWrapperPaths = DEFAULT_PATHS,
+): string[] {
+	const shellName = getShellName(shell);
+	logModeDiagnostics(shellName);
+	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");
+	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");
+	const commandWithManagedPrelude = `${buildManagedCommandPrelude(shellName, paths.BIN_DIR)}\n${command}`;
+	if (shellName === "zsh" && fs.existsSync(zshRc)) {
+		return ["-lc", `source "${zshRc}" &&\n${commandWithManagedPrelude}`];
+	}
+	if (shellName === "bash" && fs.existsSync(bashRcfile)) {
+		return ["-c", `source "${bashRcfile}" &&\n${commandWithManagedPrelude}`];
+	}
+	return ["-lc", commandWithManagedPrelude];
 }

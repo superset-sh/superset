@@ -146,6 +146,10 @@ export interface UIColors {
 	chart3: string;
 	chart4: string;
 	chart5: string;
+
+	// Search highlight colors (CSS Custom Highlight API)
+	highlightMatch: string;
+	highlightActive: string;
 }
 
 /**

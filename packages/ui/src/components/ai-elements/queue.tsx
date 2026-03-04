@@ -198,7 +198,7 @@ export type QueueSectionProps = ComponentProps<typeof Collapsible>;
 
 export const QueueSection = ({
 	className,
-	defaultOpen = true,
+	defaultOpen = false,
 	...props
 }: QueueSectionProps) => (
 	<Collapsible className={cn(className)} defaultOpen={defaultOpen} {...props} />

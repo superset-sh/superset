@@ -1,38 +1,77 @@
 #!/usr/bin/env bun
 /**
- * Patches the development Electron.app's Info.plist to register
- * the superset-dev:// URL scheme for deep linking.
+ * Patches the development Electron.app's Info.plist to register a
+ * workspace-specific URL scheme (superset-{workspace}://) for deep linking.
  *
- * This is needed because on macOS, app.setAsDefaultProtocolClient()
- * only works when the app is packaged. In development, we need to
- * manually add the URL scheme to the Electron binary's Info.plist.
+ * Each worktree gets a unique bundle ID and protocol scheme so macOS Launch
+ * Services treats them as distinct apps and routes deep links correctly.
  *
- * Runs automatically as part of `bun dev`.
+ * Needed because app.setAsDefaultProtocolClient() only works when packaged.
  */
 
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+	existsSync,
+	lstatSync,
+	readFileSync,
+	readlinkSync,
+	renameSync,
+	rmSync,
+	symlinkSync,
+	unlinkSync,
+	writeFileSync,
+} from "node:fs";
+import { homedir } from "node:os";
+import { isAbsolute, relative, resolve, sep } from "node:path";
+import { config } from "dotenv";
 
-// Import directly from shared package to avoid env.ts validation during predev script
-// (The desktop's shared/constants.ts imports env.ts which validates env vars at import time)
-const PROTOCOL_SCHEMES = {
-	DEV: "superset-dev",
-	PROD: "superset",
-} as const;
+// override: true ensures .env values take precedence over inherited env vars
+config({
+	path: resolve(import.meta.dirname, "../../../.env"),
+	override: true,
+	quiet: true,
+});
 
-// Only needed on macOS
+// Import directly — shared/constants.ts would trigger Zod env validation during predev
+import {
+	deriveWorkspaceNameFromWorktreeSegments,
+	getWorkspaceName,
+} from "../src/shared/worktree-id";
+
 if (process.platform !== "darwin") {
 	console.log("[patch-dev-protocol] Skipping - not macOS");
 	process.exit(0);
 }
 
-const PROTOCOL_SCHEME = PROTOCOL_SCHEMES.DEV;
-const BUNDLE_ID = "com.superset.desktop.dev";
-const ELECTRON_APP_PATH = resolve(
+if (process.env.NODE_ENV !== "development") {
+	console.log("[patch-dev-protocol] Skipping - non-development mode");
+	process.exit(0);
+}
+
+function deriveWorkspaceNameFromPath(): string | undefined {
+	const worktreeBase = resolve(homedir(), ".superset/worktrees");
+	const cwdRelative = relative(worktreeBase, process.cwd());
+
+	if (!cwdRelative || cwdRelative.startsWith("..") || isAbsolute(cwdRelative)) {
+		return undefined;
+	}
+
+	const segments = cwdRelative.split(sep).filter(Boolean);
+	return deriveWorkspaceNameFromWorktreeSegments(segments);
+}
+
+const workspaceName = getWorkspaceName() ?? deriveWorkspaceNameFromPath();
+if (!workspaceName) {
+	console.log("[patch-dev-protocol] Skipping - workspace name not resolved");
+	process.exit(0);
+}
+const PROTOCOL_SCHEME = `superset-${workspaceName}`;
+const BUNDLE_ID = `com.superset.desktop.${workspaceName}`;
+const ELECTRON_DIST_DIR = resolve(
 	import.meta.dirname,
-	"../node_modules/electron/dist/Electron.app",
+	"../node_modules/electron/dist",
 );
+const ELECTRON_APP_PATH = resolve(ELECTRON_DIST_DIR, "Electron.app");
 const PLIST_PATH = resolve(ELECTRON_APP_PATH, "Contents/Info.plist");
 
 if (!existsSync(PLIST_PATH)) {
@@ -40,35 +79,80 @@ if (!existsSync(PLIST_PATH)) {
 	process.exit(0);
 }
 
-// Check if already patched
+const DISPLAY_NAME = `Superset (${workspaceName})`;
+
 try {
-	const result = execSync(
+	const currentBundleId = execSync(
+		`/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "${PLIST_PATH}" 2>/dev/null`,
+		{ encoding: "utf-8" },
+	).trim();
+	const currentScheme = execSync(
 		`/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes:0:CFBundleURLSchemes:0" "${PLIST_PATH}" 2>/dev/null`,
 		{ encoding: "utf-8" },
 	).trim();
+	const currentName = execSync(
+		`/usr/libexec/PlistBuddy -c "Print :CFBundleName" "${PLIST_PATH}" 2>/dev/null`,
+		{ encoding: "utf-8" },
+	).trim();
 
-	if (result === PROTOCOL_SCHEME) {
+	// Also check if the .app has been renamed and path.txt is updated
+	const isRenamed =
+		lstatSync(ELECTRON_APP_PATH).isSymbolicLink() &&
+		readlinkSync(ELECTRON_APP_PATH) === `${DISPLAY_NAME}.app`;
+	const electronPkgCheck = resolve(
+		import.meta.dirname,
+		"../node_modules/electron",
+	);
+	const pathTxtCheck = resolve(electronPkgCheck, "path.txt");
+	let pathTxtCorrect = false;
+	try {
+		pathTxtCorrect =
+			readFileSync(pathTxtCheck, "utf-8").trim() ===
+			`${DISPLAY_NAME}.app/Contents/MacOS/Electron`;
+	} catch {}
+
+	if (
+		currentBundleId === BUNDLE_ID &&
+		currentScheme === PROTOCOL_SCHEME &&
+		currentName === DISPLAY_NAME &&
+		isRenamed &&
+		pathTxtCorrect
+	) {
 		console.log(
 			`[patch-dev-protocol] ${PROTOCOL_SCHEME}:// already registered`,
 		);
 		process.exit(0);
 	}
-} catch {
-	// Not patched yet, continue
-}
+} catch {}
 
 console.log(`[patch-dev-protocol] Registering ${PROTOCOL_SCHEME}:// scheme...`);
 
-// Set unique bundle ID to avoid conflicts with other Electron apps
+execSync(
+	`/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "${PLIST_PATH}"`,
+);
+
+// CFBundleName exists in default Electron plist, so Set works
+execSync(
+	`/usr/libexec/PlistBuddy -c "Set :CFBundleName ${DISPLAY_NAME}" "${PLIST_PATH}"`,
+);
+
+// CFBundleDisplayName may not exist — delete then add to handle both cases
 try {
 	execSync(
-		`/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "${PLIST_PATH}"`,
+		`/usr/libexec/PlistBuddy -c "Delete :CFBundleDisplayName" "${PLIST_PATH}" 2>/dev/null`,
 	);
-} catch {
-	// Ignore errors
-}
+} catch {}
+execSync(
+	`/usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string '${DISPLAY_NAME}'" "${PLIST_PATH}"`,
+);
 
-// Add URL scheme to Info.plist
+// Remove existing URL types to avoid stale entries from previous patches
+try {
+	execSync(
+		`/usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes" "${PLIST_PATH}" 2>/dev/null`,
+	);
+} catch {}
+
 const commands = [
 	`Add :CFBundleURLTypes array`,
 	`Add :CFBundleURLTypes:0 dict`,
@@ -79,17 +163,56 @@ const commands = [
 ];
 
 for (const cmd of commands) {
-	try {
-		execSync(`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}" 2>/dev/null`);
-	} catch {
-		// Ignore errors (e.g., key already exists)
-	}
+	execSync(`/usr/libexec/PlistBuddy -c "${cmd}" "${PLIST_PATH}"`);
 }
 
-// Register with Launch Services
+// Rename Electron.app so macOS uses our display name for the dock label.
+// The plist CFBundleName is set correctly, but Electron's runtime overrides
+// the in-memory value before the dock reads it. Renaming the .app bundle
+// ensures macOS sees the correct name from the bundle directory itself.
+// A symlink preserves backward compatibility for the `electron` npm package.
+const DESIRED_APP_NAME = `${DISPLAY_NAME}.app`;
+const desiredAppPath = resolve(ELECTRON_DIST_DIR, DESIRED_APP_NAME);
+let actualAppPath = ELECTRON_APP_PATH;
+
+try {
+	const stats = lstatSync(ELECTRON_APP_PATH);
+
+	if (stats.isSymbolicLink()) {
+		const currentTarget = readlinkSync(ELECTRON_APP_PATH);
+		if (currentTarget === DESIRED_APP_NAME) {
+			// Already correctly renamed
+			actualAppPath = desiredAppPath;
+		} else {
+			// Different workspace name from previous run — update
+			const oldTargetPath = resolve(ELECTRON_DIST_DIR, currentTarget);
+			unlinkSync(ELECTRON_APP_PATH);
+			if (existsSync(oldTargetPath)) {
+				renameSync(oldTargetPath, desiredAppPath);
+			}
+			symlinkSync(DESIRED_APP_NAME, ELECTRON_APP_PATH);
+			actualAppPath = desiredAppPath;
+		}
+	} else {
+		// Real directory — rename and create symlink
+		if (existsSync(desiredAppPath)) {
+			rmSync(desiredAppPath, { recursive: true });
+		}
+		renameSync(ELECTRON_APP_PATH, desiredAppPath);
+		symlinkSync(DESIRED_APP_NAME, ELECTRON_APP_PATH);
+		actualAppPath = desiredAppPath;
+	}
+
+	console.log(
+		`[patch-dev-protocol] Renamed Electron.app to ${DESIRED_APP_NAME}`,
+	);
+} catch (err) {
+	console.warn("[patch-dev-protocol] Failed to rename Electron.app:", err);
+}
+
 try {
 	execSync(
-		`/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "${ELECTRON_APP_PATH}"`,
+		`/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "${actualAppPath}"`,
 	);
 	console.log(
 		`[patch-dev-protocol] Registered ${PROTOCOL_SCHEME}:// with Launch Services`,
@@ -99,4 +222,19 @@ try {
 		"[patch-dev-protocol] Failed to register with Launch Services:",
 		err,
 	);
+}
+
+// Update the electron package's path.txt so electron-vite launches from the
+// renamed .app directly (not through the Electron.app symlink). This ensures
+// the invocation path contains the correct app name for macOS bundle resolution.
+const electronPkgDir = resolve(import.meta.dirname, "../node_modules/electron");
+const pathTxtPath = resolve(electronPkgDir, "path.txt");
+const desiredPathTxt = `${DESIRED_APP_NAME}/Contents/MacOS/Electron`;
+try {
+	writeFileSync(pathTxtPath, desiredPathTxt);
+	console.log(
+		`[patch-dev-protocol] Updated path.txt to use ${DESIRED_APP_NAME}`,
+	);
+} catch (err) {
+	console.warn("[patch-dev-protocol] Failed to update path.txt:", err);
 }

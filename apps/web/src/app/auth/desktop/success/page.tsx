@@ -8,9 +8,17 @@ import { DesktopRedirect } from "./components/DesktopRedirect";
 export default async function DesktopSuccessPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ desktop_state?: string }>;
+	searchParams: Promise<{
+		desktop_state?: string;
+		desktop_protocol?: string;
+		desktop_local_callback?: string;
+	}>;
 }) {
-	const { desktop_state: state } = await searchParams;
+	const {
+		desktop_state: state,
+		desktop_protocol = "superset",
+		desktop_local_callback: localCallbackBase,
+	} = await searchParams;
 
 	if (!state) {
 		return (
@@ -23,7 +31,6 @@ export default async function DesktopSuccessPage({
 		);
 	}
 
-	// Get session from Better Auth
 	let session: Awaited<ReturnType<typeof auth.api.getSession>> | null = null;
 	try {
 		session = await auth.api.getSession({ headers: await headers() });
@@ -50,8 +57,7 @@ export default async function DesktopSuccessPage({
 		);
 	}
 
-	// Create a separate session for the desktop app instead of reusing the browser session
-	// This ensures desktop and web have independent sessions with separate activeOrganizationId
+	// Desktop and web need independent sessions with separate activeOrganizationId
 	const headersObj = await headers();
 	const userAgent = headersObj.get("user-agent") || "Superset Desktop App";
 	const ipAddress =
@@ -59,15 +65,11 @@ export default async function DesktopSuccessPage({
 		headersObj.get("x-real-ip") ||
 		undefined;
 
-	// Generate a unique session token for the desktop app
 	const crypto = await import("node:crypto");
 	const token = crypto.randomBytes(32).toString("base64url");
 	const now = new Date();
-	const expiresAt = new Date(
-		Date.now() + 60 * 60 * 24 * 30 * 1000, // 30 days (matching auth config)
-	);
+	const expiresAt = new Date(Date.now() + 60 * 60 * 24 * 30 * 1000);
 
-	// Create a new session record in the database
 	await db.insert(sessions).values({
 		token,
 		userId: session.user.id,
@@ -77,13 +79,14 @@ export default async function DesktopSuccessPage({
 		activeOrganizationId: session.session.activeOrganizationId,
 		updatedAt: now,
 	});
-	const protocol =
-		process.env.NODE_ENV === "development" ? "superset-dev" : "superset";
-	const desktopUrl = `${protocol}://auth/callback?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`;
+	const desktopUrl = `${desktop_protocol}://auth/callback?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`;
+	const localCallbackUrl = localCallbackBase
+		? `${localCallbackBase}?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`
+		: undefined;
 
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-			<DesktopRedirect url={desktopUrl} />
+			<DesktopRedirect url={desktopUrl} localCallbackUrl={localCallbackUrl} />
 		</div>
 	);
 }

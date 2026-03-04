@@ -7,13 +7,18 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import { Checkbox } from "@superset/ui/checkbox";
+import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCloseWorkspace,
 	useDeleteWorkspace,
 } from "renderer/react-query/workspaces";
+import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
+import { focusPrimaryDialogAction } from "./focus-primary-dialog-action";
 
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
@@ -33,13 +38,25 @@ export function DeleteWorkspaceDialog({
 	const isBranch = workspaceType === "branch";
 	const deleteWorkspace = useDeleteWorkspace();
 	const closeWorkspace = useCloseWorkspace();
+	const setDeleteLocalBranchSetting =
+		electronTrpc.settings.setDeleteLocalBranch.useMutation();
+
+	const { data: deleteLocalBranchDefault } =
+		electronTrpc.settings.getDeleteLocalBranch.useQuery(undefined, {
+			enabled: open && !isBranch,
+		});
+	const [deleteLocalBranch, setDeleteLocalBranch] = useState<boolean | null>(
+		null,
+	);
+	const closeActionButtonRef = useRef<HTMLButtonElement | null>(null);
+	const deleteLocalBranchChecked =
+		deleteLocalBranch ?? deleteLocalBranchDefault ?? false;
 
 	const { data: gitStatusData, isLoading: isLoadingGitStatus } =
 		electronTrpc.workspaces.canDelete.useQuery(
 			{ id: workspaceId },
 			{
 				enabled: open,
-				staleTime: Number.POSITIVE_INFINITY,
 			},
 		);
 
@@ -82,23 +99,26 @@ export function DeleteWorkspaceDialog({
 		});
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		onOpenChange(false);
 
-		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
-			loading: `Deleting "${workspaceName}"...`,
-			success: (result) => {
-				if (result.terminalWarning) {
-					setTimeout(() => {
-						toast.warning("Terminal warning", {
-							description: result.terminalWarning,
-						});
-					}, 100);
-				}
-				return `Deleted "${workspaceName}"`;
-			},
-			error: (error) =>
-				error instanceof Error ? error.message : "Failed to delete",
+		setDeleteLocalBranchSetting.mutate({
+			enabled: deleteLocalBranchChecked,
+		});
+
+		await deleteWithToast({
+			name: workspaceName,
+			deleteFn: () =>
+				deleteWorkspace.mutateAsync({
+					id: workspaceId,
+					deleteLocalBranch: deleteLocalBranchChecked,
+				}),
+			forceDeleteFn: () =>
+				deleteWorkspace.mutateAsync({
+					id: workspaceId,
+					deleteLocalBranch: deleteLocalBranchChecked,
+					force: true,
+				}),
 		});
 	};
 
@@ -112,7 +132,12 @@ export function DeleteWorkspaceDialog({
 	if (isBranch) {
 		return (
 			<AlertDialog open={open} onOpenChange={onOpenChange}>
-				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+				<AlertDialogContent
+					className="max-w-[340px] gap-0 p-0"
+					onOpenAutoFocus={(event) => {
+						focusPrimaryDialogAction(event, closeActionButtonRef.current);
+					}}
+				>
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
 							Close workspace "{workspaceName}"?
@@ -137,6 +162,7 @@ export function DeleteWorkspaceDialog({
 							Cancel
 						</Button>
 						<Button
+							ref={closeActionButtonRef}
 							variant="secondary"
 							size="sm"
 							className="h-7 px-3 text-xs"
@@ -152,7 +178,12 @@ export function DeleteWorkspaceDialog({
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+			<AlertDialogContent
+				className="max-w-[340px] gap-0 p-0"
+				onOpenAutoFocus={(event) => {
+					focusPrimaryDialogAction(event, closeActionButtonRef.current);
+				}}
+			>
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						Remove workspace "{workspaceName}"?
@@ -175,12 +206,32 @@ export function DeleteWorkspaceDialog({
 
 				{!isLoading && canDelete && hasWarnings && (
 					<div className="px-4 pb-2">
-						<div className="text-sm text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+						<div className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-md px-2.5 py-1.5">
 							{hasChanges && hasUnpushedCommits
 								? "Has uncommitted changes and unpushed commits"
 								: hasChanges
 									? "Has uncommitted changes"
 									: "Has unpushed commits"}
+						</div>
+					</div>
+				)}
+
+				{!isLoading && canDelete && (
+					<div className="px-4 pb-2">
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id="delete-local-branch"
+								checked={deleteLocalBranchChecked}
+								onCheckedChange={(checked) =>
+									setDeleteLocalBranch(checked === true)
+								}
+							/>
+							<Label
+								htmlFor="delete-local-branch"
+								className="text-xs text-muted-foreground cursor-pointer select-none"
+							>
+								Also delete local branch
+							</Label>
 						</div>
 					</div>
 				)}
@@ -195,11 +246,11 @@ export function DeleteWorkspaceDialog({
 						Cancel
 					</Button>
 					<Button
+						ref={closeActionButtonRef}
 						variant="secondary"
 						size="sm"
 						className="h-7 px-3 text-xs"
 						onClick={handleClose}
-						disabled={isLoading}
 					>
 						Hide
 					</Button>

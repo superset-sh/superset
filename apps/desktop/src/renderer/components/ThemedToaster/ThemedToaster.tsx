@@ -3,5 +3,5 @@ import { useTheme } from "renderer/stores/theme/store";
 
 export function ThemedToaster() {
 	const theme = useTheme();
-	return <Toaster theme={theme?.type ?? "dark"} />;
+	return <Toaster expand theme={theme?.type ?? "dark"} />;
 }

@@ -11,32 +11,27 @@ import {
 
 const execFileAsync = promisify(execFile);
 
-// Cache for GitHub status (10 second TTL)
 const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
 const CACHE_TTL_MS = 10_000;
 
 /**
  * Fetches GitHub PR status for a worktree using the `gh` CLI.
  * Returns null if `gh` is not installed, not authenticated, or on error.
- * Results are cached for 10 seconds.
  */
 export async function fetchGitHubPRStatus(
 	worktreePath: string,
 ): Promise<GitHubStatus | null> {
-	// Check cache first
 	const cached = cache.get(worktreePath);
 	if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
 		return cached.data;
 	}
 
 	try {
-		// First, get the repo URL
 		const repoUrl = await getRepoUrl(worktreePath);
 		if (!repoUrl) {
 			return null;
 		}
 
-		// Get current branch name
 		const { stdout: branchOutput } = await execFileAsync(
 			"git",
 			["rev-parse", "--abbrev-ref", "HEAD"],
@@ -44,29 +39,22 @@ export async function fetchGitHubPRStatus(
 		);
 		const branchName = branchOutput.trim();
 
-		// Check if branch exists on remote and get PR info in parallel
 		const [branchCheck, prInfo] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
 			getPRForBranch(worktreePath, branchName),
 		]);
 
-		// Convert result to boolean - only "exists" is true
-		// "not_found" and "error" both mean we can't confirm it exists
-		const existsOnRemote = branchCheck.status === "exists";
-
 		const result: GitHubStatus = {
 			pr: prInfo,
 			repoUrl,
-			branchExistsOnRemote: existsOnRemote,
+			branchExistsOnRemote: branchCheck.status === "exists",
 			lastRefreshed: Date.now(),
 		};
 
-		// Cache the result
 		cache.set(worktreePath, { data: result, timestamp: Date.now() });
 
 		return result;
 	} catch {
-		// Any error (gh not installed, not auth'd, etc.) - return null
 		return null;
 	}
 }
@@ -91,57 +79,210 @@ async function getRepoUrl(worktreePath: string): Promise<string | null> {
 	}
 }
 
+const PR_JSON_FIELDS =
+	"number,title,url,state,isDraft,mergedAt,additions,deletions,headRefOid,reviewDecision,statusCheckRollup";
+
 async function getPRForBranch(
 	worktreePath: string,
-	branch: string,
+	branchName: string,
+): Promise<GitHubStatus["pr"]> {
+	const byTracking = await getPRByBranchTracking(worktreePath);
+	if (byTracking) {
+		return byTracking;
+	}
+
+	// Fallback for branches where local naming/casing diverges from PR head.
+	return findPRByHeadBranch(worktreePath, branchName);
+}
+
+/**
+ * Looks up a PR using `gh pr view` (no args), which matches via the branch's
+ * tracking ref. Essential for fork PRs that track refs/pull/XXX/head.
+ */
+async function getPRByBranchTracking(
+	worktreePath: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
-		// Use execWithShellEnv to handle macOS GUI app PATH issues
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			["pr", "view", "--json", PR_JSON_FIELDS],
+			{ cwd: worktreePath },
+		);
+
+		const data = parsePRResponse(stdout);
+		if (!data) {
+			return null;
+		}
+
+		if (!(await sharesAncestry(worktreePath, data.headRefOid))) {
+			return null;
+		}
+
+		return formatPRData(data);
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			error.message.toLowerCase().includes("no pull requests found")
+		) {
+			return null;
+		}
+		throw error;
+	}
+}
+
+async function findPRByHeadBranch(
+	worktreePath: string,
+	branchName: string,
+): Promise<GitHubStatus["pr"]> {
+	try {
 		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",
-				"view",
-				branch,
+				"list",
+				"--state",
+				"all",
+				"--search",
+				`head:${branchName}`,
+				"--limit",
+				"20",
 				"--json",
-				"number,title,url,state,isDraft,mergedAt,additions,deletions,reviewDecision,statusCheckRollup",
+				PR_JSON_FIELDS,
 			],
 			{ cwd: worktreePath },
 		);
-		const raw = JSON.parse(stdout);
-		const result = GHPRResponseSchema.safeParse(raw);
-		if (!result.success) {
-			console.error("[GitHub] PR schema validation failed:", result.error);
-			console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
-			throw new Error("PR schema validation failed");
-		}
-		const data = result.data;
 
-		const checks = parseChecks(data.statusCheckRollup);
-
-		return {
-			number: data.number,
-			title: data.title,
-			url: data.url,
-			state: mapPRState(data.state, data.isDraft),
-			mergedAt: data.mergedAt ? new Date(data.mergedAt).getTime() : undefined,
-			additions: data.additions,
-			deletions: data.deletions,
-			reviewDecision: mapReviewDecision(data.reviewDecision),
-			checksStatus: computeChecksStatus(data.statusCheckRollup),
-			checks,
-		};
-	} catch (error) {
-		// "no pull requests found" is not an error - just no PR
-		if (
-			error instanceof Error &&
-			error.message.includes("no pull requests found")
-		) {
-			return null;
+		const candidates = parsePRListResponse(stdout);
+		for (const candidate of candidates) {
+			if (await sharesAncestry(worktreePath, candidate.headRefOid)) {
+				return formatPRData(candidate);
+			}
 		}
-		// Re-throw other errors to be caught by parent
-		throw error;
+
+		return null;
+	} catch {
+		return null;
 	}
+}
+
+function parsePRResponse(stdout: string): GHPRResponse | null {
+	const trimmed = stdout.trim();
+	if (!trimmed || trimmed === "null") {
+		return null;
+	}
+
+	let raw: unknown;
+	try {
+		raw = JSON.parse(trimmed);
+	} catch (error) {
+		console.warn(
+			"[GitHub] Failed to parse PR response JSON:",
+			error instanceof Error ? error.message : String(error),
+		);
+		return null;
+	}
+	const result = GHPRResponseSchema.safeParse(raw);
+	if (!result.success) {
+		console.error("[GitHub] PR schema validation failed:", result.error);
+		console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
+		return null;
+	}
+	return result.data;
+}
+
+function parsePRListResponse(stdout: string): GHPRResponse[] {
+	const trimmed = stdout.trim();
+	if (!trimmed || trimmed === "null") {
+		return [];
+	}
+
+	let raw: unknown;
+	try {
+		raw = JSON.parse(trimmed);
+	} catch (error) {
+		console.warn(
+			"[GitHub] Failed to parse PR list response JSON:",
+			error instanceof Error ? error.message : String(error),
+		);
+		return [];
+	}
+
+	if (!Array.isArray(raw)) {
+		return [];
+	}
+
+	const parsed: GHPRResponse[] = [];
+	for (const item of raw) {
+		const result = GHPRResponseSchema.safeParse(item);
+		if (result.success) {
+			parsed.push(result.data);
+		}
+	}
+	return parsed;
+}
+
+/**
+ * Returns true if local HEAD and the given commit share ancestry
+ * (one is an ancestor of the other, or they are the same commit).
+ */
+async function sharesAncestry(
+	worktreePath: string,
+	prHeadOid: string,
+): Promise<boolean> {
+	try {
+		const { stdout: localHead } = await execFileAsync(
+			"git",
+			["-C", worktreePath, "rev-parse", "HEAD"],
+			{ timeout: 10_000 },
+		);
+		const localOid = localHead.trim();
+
+		if (localOid === prHeadOid) {
+			return true;
+		}
+
+		for (const [ancestor, descendant] of [
+			[prHeadOid, localOid],
+			[localOid, prHeadOid],
+		]) {
+			try {
+				await execFileAsync(
+					"git",
+					[
+						"-C",
+						worktreePath,
+						"merge-base",
+						"--is-ancestor",
+						ancestor,
+						descendant,
+					],
+					{ timeout: 10_000 },
+				);
+				return true;
+			} catch {
+				// Try the other direction.
+			}
+		}
+
+		return false;
+	} catch {
+		return false;
+	}
+}
+
+function formatPRData(data: GHPRResponse): NonNullable<GitHubStatus["pr"]> {
+	return {
+		number: data.number,
+		title: data.title,
+		url: data.url,
+		state: mapPRState(data.state, data.isDraft),
+		mergedAt: data.mergedAt ? new Date(data.mergedAt).getTime() : undefined,
+		additions: data.additions,
+		deletions: data.deletions,
+		reviewDecision: mapReviewDecision(data.reviewDecision),
+		checksStatus: computeChecksStatus(data.statusCheckRollup),
+		checks: parseChecks(data.statusCheckRollup),
+	};
 }
 
 function mapPRState(
@@ -167,12 +308,11 @@ function parseChecks(rollup: GHPRResponse["statusCheckRollup"]): CheckItem[] {
 		return [];
 	}
 
+	// GitHub returns two shapes: CheckRun (name/detailsUrl/conclusion) and
+	// StatusContext (context/targetUrl/state). Normalize both here.
 	return rollup.map((ctx) => {
-		// CheckRun uses 'name', StatusContext uses 'context'
 		const name = ctx.name || ctx.context || "Unknown check";
-		// CheckRun uses 'detailsUrl', StatusContext uses 'targetUrl'
 		const url = ctx.detailsUrl || ctx.targetUrl;
-		// StatusContext uses 'state', CheckRun uses 'conclusion'
 		const rawStatus = ctx.state || ctx.conclusion;
 
 		let status: CheckItem["status"];
@@ -207,7 +347,6 @@ function computeChecksStatus(
 	let hasPending = false;
 
 	for (const ctx of rollup) {
-		// StatusContext uses 'state', CheckRun uses 'conclusion'
 		const status = ctx.state || ctx.conclusion;
 
 		if (status === "FAILURE" || status === "ERROR" || status === "TIMED_OUT") {

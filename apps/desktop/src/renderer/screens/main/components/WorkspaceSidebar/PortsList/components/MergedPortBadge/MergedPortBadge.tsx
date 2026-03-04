@@ -3,58 +3,53 @@ import { useNavigate } from "@tanstack/react-router";
 import { LuExternalLink, LuX } from "react-icons/lu";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { MergedPort } from "shared/types";
+import type { EnrichedPort } from "shared/types";
 import { STROKE_WIDTH } from "../../../constants";
 import { useKillPort } from "../../hooks/useKillPort";
 
 interface MergedPortBadgeProps {
-	port: MergedPort;
+	port: EnrichedPort;
 }
 
 export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 	const navigate = useNavigate();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const openInBrowserPane = useTabsStore((s) => s.openInBrowserPane);
 	const { killPort } = useKillPort();
-
-	const portNumberColor = port.isActive
-		? "text-muted-foreground"
-		: "text-muted-foreground/80";
 
 	const displayContent = port.label ? (
 		<>
 			{port.label}{" "}
-			<span className={`font-mono font-normal ${portNumberColor}`}>
+			<span className="font-mono font-normal text-muted-foreground">
 				{port.port}
 			</span>
 		</>
 	) : (
-		<span className={`font-mono ${portNumberColor}`}>{port.port}</span>
+		<span className="font-mono text-muted-foreground">{port.port}</span>
 	);
 
-	const canJumpToTerminal = port.isActive && port.paneId;
+	const canJumpToTerminal = !!port.paneId;
 
 	const handleClick = () => {
-		if (!canJumpToTerminal || !port.paneId) return;
+		if (!port.paneId) return;
 
 		const pane = useTabsStore.getState().panes[port.paneId];
 		if (!pane) return;
 
-		// Navigate to workspace, then focus the pane
 		navigateToWorkspace(port.workspaceId, navigate);
 		setActiveTab(port.workspaceId, pane.tabId);
 		setFocusedPane(pane.tabId, port.paneId);
 	};
 
 	const handleOpenInBrowser = () => {
-		window.open(`http://localhost:${port.port}`, "_blank");
+		navigateToWorkspace(port.workspaceId, navigate);
+		openInBrowserPane(port.workspaceId, `http://localhost:${port.port}`);
 	};
 
 	const handleClose = () => {
 		killPort(port);
 	};
-
-	const canClose = port.isActive && port.paneId != null;
 
 	return (
 		<Tooltip>
@@ -76,16 +71,14 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					>
 						<LuExternalLink className="size-3.5" strokeWidth={STROKE_WIDTH} />
 					</button>
-					{canClose && (
-						<button
-							type="button"
-							onClick={handleClose}
-							aria-label={`Close ${port.label || `port ${port.port}`}`}
-							className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
-						>
-							<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
-						</button>
-					)}
+					<button
+						type="button"
+						onClick={handleClose}
+						aria-label={`Close ${port.label || `port ${port.port}`}`}
+						className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
+					>
+						<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
+					</button>
 				</div>
 			</TooltipTrigger>
 			<TooltipContent side="top" sideOffset={6} showArrow={false}>
@@ -96,20 +89,16 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					>
 						localhost:{port.port}
 					</div>
-					{port.isActive && (
-						<>
-							{(port.processName || port.pid != null) && (
-								<div className="text-muted-foreground">
-									{port.processName}
-									{port.pid != null && ` (pid ${port.pid})`}
-								</div>
-							)}
-							{canJumpToTerminal && (
-								<div className="text-muted-foreground/70 text-[10px]">
-									Click to open workspace
-								</div>
-							)}
-						</>
+					{(port.processName || port.pid != null) && (
+						<div className="text-muted-foreground">
+							{port.processName}
+							{port.pid != null && ` (pid ${port.pid})`}
+						</div>
+					)}
+					{canJumpToTerminal && (
+						<div className="text-muted-foreground/70 text-[10px]">
+							Click to open workspace
+						</div>
 					)}
 				</div>
 			</TooltipContent>

@@ -1,21 +1,29 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { type MutableRefObject, useCallback, useEffect, useRef } from "react";
+import {
+	type MutableRefObject,
+	type RefObject,
+	useCallback,
+	useEffect,
+	useRef,
+} from "react";
 import { LuLoader } from "react-icons/lu";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import {
-	MONACO_EDITOR_OPTIONS,
 	registerSaveAction,
 	SUPERSET_THEME,
+	useMonacoEditorOptions,
 	useMonacoReady,
 } from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
+import { isImageFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { DiffViewer } from "../../../../../../ChangesContent/components/DiffViewer";
 import { registerCopyPathLineAction } from "../../../../../components/EditorContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
+import { MarkdownSearch } from "../MarkdownSearch";
 
 interface RawFileData {
 	ok: true;
@@ -34,6 +42,24 @@ interface RawFileError {
 
 type RawFileResult = RawFileData | RawFileError | undefined;
 
+interface ImageData {
+	ok: true;
+	dataUrl: string;
+	byteLength: number;
+}
+
+interface ImageError {
+	ok: false;
+	reason:
+		| "too-large"
+		| "not-image"
+		| "outside-worktree"
+		| "symlink-escape"
+		| "not-found";
+}
+
+type ImageResult = ImageData | ImageError | undefined;
+
 interface DiffData {
 	original: string;
 	modified: string;
@@ -44,8 +70,10 @@ interface FileViewerContentProps {
 	viewMode: FileViewerMode;
 	filePath: string;
 	isLoadingRaw: boolean;
+	isLoadingImage?: boolean;
 	isLoadingDiff: boolean;
 	rawFileData: RawFileResult;
+	imageData?: ImageResult;
 	diffData: DiffData | undefined;
 	isDiffEditable: boolean;
 	editorRef: MutableRefObject<Monaco.editor.IStandaloneCodeEditor | null>;
@@ -68,14 +96,30 @@ interface FileViewerContentProps {
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
 	onMoveToNewTab: () => void;
+	// Markdown search props
+	markdownContainerRef: RefObject<HTMLDivElement | null>;
+	markdownSearch: {
+		isSearchOpen: boolean;
+		query: string;
+		caseSensitive: boolean;
+		matchCount: number;
+		activeMatchIndex: number;
+		setQuery: (query: string) => void;
+		setCaseSensitive: (caseSensitive: boolean) => void;
+		findNext: () => void;
+		findPrevious: () => void;
+		closeSearch: () => void;
+	};
 }
 
 export function FileViewerContent({
 	viewMode,
 	filePath,
 	isLoadingRaw,
+	isLoadingImage,
 	isLoadingDiff,
 	rawFileData,
+	imageData,
 	diffData,
 	isDiffEditable,
 	editorRef,
@@ -98,8 +142,13 @@ export function FileViewerContent({
 	availableTabs,
 	onMoveToTab,
 	onMoveToNewTab,
+	// Markdown search props
+	markdownContainerRef,
+	markdownSearch,
 }: FileViewerContentProps) {
+	const isImage = isImageFile(filePath);
 	const isMonacoReady = useMonacoReady();
+	const monacoEditorOptions = useMonacoEditorOptions();
 	const hasAppliedInitialLocationRef = useRef(false);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
@@ -210,6 +259,47 @@ export function FileViewerContent({
 		);
 	}
 
+	// Handle image files in rendered mode
+	if (viewMode === "rendered" && isImage) {
+		if (isLoadingImage) {
+			return (
+				<div className="flex items-center justify-center h-full text-muted-foreground">
+					<LuLoader className="w-4 h-4 animate-spin mr-2" />
+					<span>Loading image...</span>
+				</div>
+			);
+		}
+
+		if (!imageData?.ok) {
+			const errorMessage =
+				imageData?.reason === "too-large"
+					? "Image is too large to preview (max 10MB)"
+					: imageData?.reason === "outside-worktree"
+						? "File is outside worktree"
+						: imageData?.reason === "symlink-escape"
+							? "File is a symlink pointing outside worktree"
+							: imageData?.reason === "not-image"
+								? "Not a supported image format"
+								: "Image not found";
+			return (
+				<div className="flex items-center justify-center h-full text-muted-foreground">
+					{errorMessage}
+				</div>
+			);
+		}
+
+		return (
+			<div className="flex items-center justify-center h-full overflow-auto p-4 bg-[#0d0d0d]">
+				<img
+					src={imageData.dataUrl}
+					alt={filePath.split("/").pop() || "Image"}
+					className="max-w-full max-h-full object-contain"
+					style={{ imageRendering: "auto" }}
+				/>
+			</div>
+		);
+	}
+
 	if (isLoadingRaw) {
 		return (
 			<div className="flex items-center justify-center h-full text-muted-foreground">
@@ -238,8 +328,22 @@ export function FileViewerContent({
 
 	if (viewMode === "rendered") {
 		return (
-			<div className="p-4 overflow-auto h-full">
-				<MarkdownRenderer content={rawFileData.content} />
+			<div className="relative h-full">
+				<MarkdownSearch
+					isOpen={markdownSearch.isSearchOpen}
+					query={markdownSearch.query}
+					caseSensitive={markdownSearch.caseSensitive}
+					matchCount={markdownSearch.matchCount}
+					activeMatchIndex={markdownSearch.activeMatchIndex}
+					onQueryChange={markdownSearch.setQuery}
+					onCaseSensitiveChange={markdownSearch.setCaseSensitive}
+					onFindNext={markdownSearch.findNext}
+					onFindPrevious={markdownSearch.findPrevious}
+					onClose={markdownSearch.closeSearch}
+				/>
+				<div ref={markdownContainerRef} className="p-4 overflow-auto h-full">
+					<MarkdownRenderer content={rawFileData.content} />
+				</div>
 			</div>
 		);
 	}
@@ -281,7 +385,7 @@ export function FileViewerContent({
 						</div>
 					}
 					options={{
-						...MONACO_EDITOR_OPTIONS,
+						...monacoEditorOptions,
 						contextmenu: false, // Disable Monaco's native context menu to use our custom one
 					}}
 				/>

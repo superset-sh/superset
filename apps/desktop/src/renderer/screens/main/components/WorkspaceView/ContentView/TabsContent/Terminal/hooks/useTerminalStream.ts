@@ -1,10 +1,9 @@
 import { toast } from "@superset/ui/sonner";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
-import { isTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { DEBUG_TERMINAL } from "../config";
-import type { TerminalStreamEvent } from "../types";
+import type { TerminalExitReason, TerminalStreamEvent } from "../types";
 
 export interface UseTerminalStreamOptions {
 	paneId: string;
@@ -20,7 +19,11 @@ export interface UseTerminalStreamOptions {
 }
 
 export interface UseTerminalStreamReturn {
-	handleTerminalExit: (exitCode: number, xterm: XTerm) => void;
+	handleTerminalExit: (
+		exitCode: number,
+		xterm: XTerm,
+		reason?: TerminalExitReason,
+	) => void;
 	handleStreamError: (
 		event: Extract<TerminalStreamEvent, { type: "error" }>,
 		xterm: XTerm,
@@ -28,9 +31,6 @@ export interface UseTerminalStreamReturn {
 	handleStreamData: (event: TerminalStreamEvent) => void;
 }
 
-/**
- * Hook to handle terminal stream events (data, exit, disconnect, error).
- */
 export function useTerminalStream({
 	paneId,
 	xtermRef,
@@ -53,11 +53,11 @@ export function useTerminalStream({
 	updateCwdRef.current = updateCwdFromData;
 
 	const handleTerminalExit = useCallback(
-		(exitCode: number, xterm: XTerm) => {
+		(exitCode: number, xterm: XTerm, reason?: TerminalExitReason) => {
 			isExitedRef.current = true;
 			isStreamReadyRef.current = false;
 
-			const wasKilledByUser = isTerminalKilledByUser(paneId);
+			const wasKilledByUser = reason === "killed";
 			wasKilledByUserRef.current = wasKilledByUser;
 			setExitStatus(wasKilledByUser ? "killed" : "exited");
 
@@ -99,7 +99,7 @@ export function useTerminalStream({
 				event.code === "WRITE_FAILED" &&
 				event.error?.includes("Session not found")
 			) {
-				setConnectionError("Session lost - click to reconnect");
+				setConnectionError("Session lost");
 				return;
 			}
 
@@ -146,11 +146,12 @@ export function useTerminalStream({
 						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
 					);
 				}
+
 				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
-				handleTerminalExit(event.exitCode, xterm);
+				handleTerminalExit(event.exitCode, xterm, event.reason);
 			} else if (event.type === "disconnect") {
 				setConnectionError(
 					event.reason || "Connection to terminal daemon lost",

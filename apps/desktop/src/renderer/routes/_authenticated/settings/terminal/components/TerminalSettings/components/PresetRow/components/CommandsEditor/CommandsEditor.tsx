@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiMiniPlus, HiMiniXMark } from "react-icons/hi2";
 
 interface CommandsEditorProps {
 	commands: string[];
@@ -40,26 +40,9 @@ export function CommandsEditor({
 		onChange(updated);
 	};
 
-	const handleCommandKeyDown = (
-		e: React.KeyboardEvent<HTMLInputElement>,
-		index: number,
-	) => {
-		if (e.key === "Enter") {
-			e.preventDefault();
-			const updated = [...commands];
-			updated.splice(index + 1, 0, "");
-			onChange(updated);
-			setFocusIndex(index + 1);
-		} else if (
-			e.key === "Backspace" &&
-			commands[index] === "" &&
-			commands.length > 1
-		) {
-			e.preventDefault();
-			const updated = commands.filter((_, i) => i !== index);
-			onChange(updated);
-			setFocusIndex(Math.max(0, index - 1));
-		}
+	const handleAddCommand = () => {
+		onChange([...commands, ""]);
+		setFocusIndex(commands.length);
 	};
 
 	const handleDeleteCommand = (index: number) => {
@@ -77,27 +60,36 @@ export function CommandsEditor({
 				<div key={`${baseId}-${index}`} className="flex items-center gap-2">
 					<Input
 						ref={setInputRef(index)}
-						variant="ghost"
 						value={command}
 						onChange={(e) => handleCommandChange(index, e.target.value)}
-						onKeyDown={(e) => handleCommandKeyDown(e, index)}
 						onBlur={onBlur}
-						className="h-7 px-2 text-sm font-mono flex-1 min-w-0"
+						className="h-8 px-2 text-sm flex-1 min-w-0"
 						placeholder={placeholder}
 					/>
 					{commands.length > 1 && (
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="sm"
 							onClick={() => handleDeleteCommand(index)}
-							className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive shrink-0"
+							className="h-8 px-2 text-xs hover:bg-destructive/10 hover:text-destructive shrink-0"
 							aria-label="Delete command"
 						>
 							<HiMiniXMark className="h-3.5 w-3.5" />
+							Delete
 						</Button>
 					)}
 				</div>
 			))}
+			<Button
+				type="button"
+				variant="outline"
+				size="xs"
+				onClick={handleAddCommand}
+				className="w-fit mt-1"
+			>
+				<HiMiniPlus className="h-3.5 w-3.5" />
+				Add command
+			</Button>
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
 {
 	"extends": "@superset/typescript/electron.json",
 	"compilerOptions": {
-		"types": ["bun-types"],
+		"types": ["bun"],
 		"baseUrl": ".",
 		"paths": {
 			"*": ["src/*"],
@@ -19,6 +19,7 @@
 		"dist",
 		"dist-electron",
 		"release",
-		"src/**/templates/**"
+		"src/**/templates/**",
+		"src/resources/browser-extension"
 	]
 }

@@ -90,14 +90,14 @@ export class TerminalHost {
 
 		// Force-dispose terminating sessions to prevent race conditions
 		if (session?.isTerminating) {
-			session.dispose();
+			void session.dispose();
 			this.sessions.delete(sessionId);
 			this.clearKillTimer(sessionId);
 			session = undefined;
 		}
 
 		if (session && !session.isAlive) {
-			session.dispose();
+			void session.dispose();
 			this.sessions.delete(sessionId);
 			session = undefined;
 		}
@@ -137,22 +137,8 @@ export class TerminalHost {
 			}
 
 			if (!session.isAlive) {
-				session.dispose();
+				void session.dispose();
 				throw new Error("Session spawn failed: PTY process exited immediately");
-			}
-
-			if (request.initialCommands && request.initialCommands.length > 0) {
-				if (session.isAlive) {
-					try {
-						const cmdString = `${request.initialCommands.join(" && ")}\n`;
-						session.write(cmdString);
-					} catch (error) {
-						console.error(
-							`[TerminalHost] Failed to run initial commands for ${sessionId}:`,
-							error,
-						);
-					}
-				}
 			}
 
 			this.sessions.set(sessionId, session);
@@ -207,7 +193,7 @@ export class TerminalHost {
 		if (session) {
 			session.detach(socket);
 			if (!session.isAlive && session.clientCount === 0) {
-				session.dispose();
+				void session.dispose();
 				this.sessions.delete(request.sessionId);
 			}
 		}
@@ -253,7 +239,7 @@ export class TerminalHost {
 					console.warn(
 						`[TerminalHost] Force disposing stuck session ${sessionId} after ${KILL_TIMEOUT_MS}ms`,
 					);
-					s.dispose();
+					void s.dispose();
 					this.sessions.delete(sessionId);
 				}
 				this.killTimers.delete(sessionId);
@@ -318,22 +304,27 @@ export class TerminalHost {
 			session.detach(socket);
 			// Clean up dead sessions when last client detaches
 			if (!session.isAlive && session.clientCount === 0) {
-				session.dispose();
+				void session.dispose();
 				this.sessions.delete(sessionId);
 			}
 		}
 	}
 
-	dispose(): void {
+	async dispose(): Promise<void> {
 		for (const timer of this.killTimers.values()) {
 			clearTimeout(timer);
 		}
 		this.killTimers.clear();
 
-		for (const session of this.sessions.values()) {
-			session.dispose();
-		}
+		const sessions = [...this.sessions.values()];
 		this.sessions.clear();
+
+		if (sessions.length === 0) return;
+
+		await Promise.race([
+			Promise.all(sessions.map((s) => s.dispose())),
+			new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+		]);
 	}
 
 	/**
@@ -393,7 +384,7 @@ export class TerminalHost {
 			}
 
 			if (session.clientCount === 0) {
-				session.dispose();
+				void session.dispose();
 				this.sessions.delete(sessionId);
 			} else {
 				this.scheduleSessionCleanup(sessionId);

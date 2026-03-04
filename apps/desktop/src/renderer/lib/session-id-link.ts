@@ -1,6 +1,6 @@
 import type { TRPCLink } from "@trpc/client";
+import type { AnyRouter } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
-import type { AppRouter } from "lib/trpc/routers";
 
 /**
  * Global counter for unique operation IDs across all tRPC clients.
@@ -13,7 +13,7 @@ let globalOperationId = Date.now();
  * the React client and proxy client (each creates separate IPCClients
  * that both receive all IPC responses and match by ID).
  */
-export function sessionIdLink(): TRPCLink<AppRouter> {
+export function sessionIdLink<TRouter extends AnyRouter>(): TRPCLink<TRouter> {
 	return () => {
 		return ({ op, next }) => {
 			const uniqueId = ++globalOperationId;

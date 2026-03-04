@@ -11,7 +11,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "../ui/collapsible";
-import { Shimmer } from "./shimmer";
+import { ShimmerLabel } from "./shimmer-label";
 
 type ReasoningContextValue = {
 	isStreaming: boolean;
@@ -119,7 +119,11 @@ export type ReasoningTriggerProps = ComponentProps<
 
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
 	if (isStreaming || duration === 0) {
-		return <Shimmer duration={1}>Thinking...</Shimmer>;
+		return (
+			<ShimmerLabel className="text-xs text-muted-foreground">
+				Thinking...
+			</ShimmerLabel>
+		);
 	}
 	if (duration === undefined) {
 		return <p>Thought for a few seconds</p>;

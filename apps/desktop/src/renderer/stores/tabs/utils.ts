@@ -1,13 +1,42 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import type { ChangeCategory } from "shared/changes-types";
+import {
+	type ChangeCategory,
+	type FileStatus,
+	isNewFile,
+} from "shared/changes-types";
+import { hasRenderedPreview, isImageFile } from "shared/file-types";
 import type {
+	BrowserPaneState,
+	DevToolsPaneState,
 	DiffLayout,
 	FileViewerMode,
 	FileViewerState,
 } from "shared/tabs-types";
-import type { Pane, PaneType, Tab } from "./types";
+import type { AddChatMastraTabOptions, Pane, PaneType, Tab } from "./types";
 
-const MARKDOWN_EXTENSIONS = [".md", ".markdown", ".mdx"] as const;
+export const resolveFileViewerMode = ({
+	filePath,
+	diffCategory,
+	viewMode,
+	fileStatus,
+}: {
+	filePath: string;
+	diffCategory?: ChangeCategory;
+	viewMode?: FileViewerMode;
+	fileStatus?: FileStatus;
+}): FileViewerMode => {
+	if (viewMode) return viewMode;
+	// Images always default to rendered (no meaningful diff for binary files)
+	if (isImageFile(filePath)) return "rendered";
+	// New files have no previous version — show raw/rendered instead of an all-green diff
+	if (diffCategory && fileStatus && isNewFile(fileStatus)) {
+		if (hasRenderedPreview(filePath)) return "rendered";
+		return "raw";
+	}
+	if (diffCategory) return "diff";
+	if (hasRenderedPreview(filePath)) return "rendered";
+	return "raw";
+};
 
 /**
  * Generates a unique ID with the given prefix
@@ -114,7 +143,6 @@ export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
  * Options for creating a pane with preset configuration
  */
 export interface CreatePaneOptions {
-	initialCommands?: string[];
 	initialCwd?: string;
 }
 
@@ -134,7 +162,6 @@ export const createPane = (
 		type,
 		name: "Terminal",
 		isNew: true,
-		initialCommands: options?.initialCommands,
 		initialCwd: options?.initialCwd,
 	};
 };
@@ -149,6 +176,8 @@ export interface CreateFileViewerPaneOptions {
 	isPinned?: boolean;
 	diffLayout?: DiffLayout;
 	diffCategory?: ChangeCategory;
+	/** File status from git — used to determine default view mode for new files */
+	fileStatus?: FileStatus;
 	commitHash?: string;
 	oldPath?: string;
 	/** Line to scroll to (raw mode only) */
@@ -166,19 +195,16 @@ export const createFileViewerPane = (
 ): Pane => {
 	const id = generateId("pane");
 
-	// Determine default view mode based on file and category
-	let defaultViewMode: FileViewerMode = "raw";
-	if (options.diffCategory) {
-		defaultViewMode = "diff";
-	} else if (
-		MARKDOWN_EXTENSIONS.some((ext) => options.filePath.endsWith(ext))
-	) {
-		defaultViewMode = "rendered";
-	}
+	const resolvedViewMode = resolveFileViewerMode({
+		filePath: options.filePath,
+		diffCategory: options.diffCategory,
+		viewMode: options.viewMode,
+		fileStatus: options.fileStatus,
+	});
 
 	const fileViewer: FileViewerState = {
 		filePath: options.filePath,
-		viewMode: options.viewMode ?? defaultViewMode,
+		viewMode: resolvedViewMode,
 		isPinned: options.isPinned ?? false,
 		diffLayout: options.diffLayout ?? "inline",
 		diffCategory: options.diffCategory,
@@ -198,6 +224,122 @@ export const createFileViewerPane = (
 		name: fileName,
 		fileViewer,
 	};
+};
+
+export const createChatMastraPane = (
+	tabId: string,
+	options?: AddChatMastraTabOptions,
+): Pane => {
+	const id = generateId("pane");
+	const sessionId = crypto.randomUUID();
+
+	return {
+		id,
+		tabId,
+		type: "chat-mastra",
+		name: "New Chat",
+		chatMastra: {
+			sessionId,
+			launchConfig: options?.launchConfig ?? null,
+		},
+	};
+};
+
+/**
+ * Options for creating a browser pane
+ */
+export interface CreateBrowserPaneOptions {
+	url?: string;
+}
+
+const DEFAULT_BROWSER_URL = "about:blank";
+
+/**
+ * Creates a new browser (webview) pane
+ */
+export const createBrowserPane = (
+	tabId: string,
+	options?: CreateBrowserPaneOptions,
+): Pane => {
+	const id = generateId("pane");
+	const url = options?.url ?? DEFAULT_BROWSER_URL;
+
+	const browser: BrowserPaneState = {
+		currentUrl: url,
+		history: [{ url, title: "", timestamp: Date.now() }],
+		historyIndex: 0,
+		isLoading: false,
+	};
+
+	return {
+		id,
+		tabId,
+		type: "webview",
+		name: "Browser",
+		browser,
+	};
+};
+
+/**
+ * Creates a new DevTools pane targeting a browser pane
+ */
+export const createDevToolsPane = (
+	tabId: string,
+	targetPaneId: string,
+): Pane => {
+	const id = generateId("pane");
+	const devtools: DevToolsPaneState = { targetPaneId };
+	return {
+		id,
+		tabId,
+		type: "devtools",
+		name: "DevTools",
+		devtools,
+	};
+};
+
+/**
+ * Creates a new tab with a browser pane atomically
+ */
+export const createBrowserTabWithPane = (
+	workspaceId: string,
+	existingTabs: Tab[] = [],
+	url?: string,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createBrowserPane(tabId, url ? { url } : undefined);
+
+	const workspaceTabs = existingTabs.filter(
+		(t) => t.workspaceId === workspaceId,
+	);
+
+	const tab: Tab = {
+		id: tabId,
+		name: `Browser ${workspaceTabs.filter((t) => t.name.startsWith("Browser")).length + 1}`,
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
+
+	return { tab, pane };
+};
+
+export const createChatMastraTabWithPane = (
+	workspaceId: string,
+	options?: AddChatMastraTabOptions,
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createChatMastraPane(tabId, options);
+
+	const tab: Tab = {
+		id: tabId,
+		name: "New Chat",
+		workspaceId,
+		layout: pane.id,
+		createdAt: Date.now(),
+	};
+
+	return { tab, pane };
 };
 
 /**
@@ -438,6 +580,42 @@ export const addPaneToLayout = (
 	second: newPaneId,
 	splitPercentage: 50,
 });
+
+/**
+ * Builds a balanced multi-pane Mosaic layout using recursive binary splits.
+ * For 3+ panes, alternates between column and row splits to create a grid.
+ */
+export const buildMultiPaneLayout = (
+	paneIds: string[],
+	direction: "row" | "column" = "column",
+): MosaicNode<string> => {
+	if (paneIds.length === 0) {
+		throw new Error("Cannot build layout with zero panes");
+	}
+
+	if (paneIds.length === 1) {
+		return paneIds[0];
+	}
+
+	if (paneIds.length === 2) {
+		return {
+			direction: "row",
+			first: paneIds[0],
+			second: paneIds[1],
+			splitPercentage: 50,
+		};
+	}
+
+	const mid = Math.ceil(paneIds.length / 2);
+	const nextDirection = direction === "column" ? "row" : "column";
+
+	return {
+		direction,
+		first: buildMultiPaneLayout(paneIds.slice(0, mid), nextDirection),
+		second: buildMultiPaneLayout(paneIds.slice(mid), nextDirection),
+		splitPercentage: 50,
+	};
+};
 
 /**
  * Updates the history stack when switching to a new active tab

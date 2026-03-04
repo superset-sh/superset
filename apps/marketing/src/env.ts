@@ -18,7 +18,9 @@ export const env = createEnv({
 		STRIPE_WEBHOOK_SECRET: z.string(),
 		STRIPE_PRO_MONTHLY_PRICE_ID: z.string(),
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
+		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
+		ANTHROPIC_API_KEY: z.string(),
 	},
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),
@@ -29,6 +31,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
 			.enum(["development", "preview", "production"])
 			.optional(),
+		NEXT_PUBLIC_OUTLIT_KEY: z.string(),
 	},
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
@@ -39,6 +42,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_DSN_MARKETING:
 			process.env.NEXT_PUBLIC_SENTRY_DSN_MARKETING,
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+		NEXT_PUBLIC_OUTLIT_KEY: process.env.NEXT_PUBLIC_OUTLIT_KEY,
 	},
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

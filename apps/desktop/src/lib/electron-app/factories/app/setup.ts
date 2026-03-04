@@ -1,10 +1,6 @@
 import { app, BrowserWindow, shell } from "electron";
-
-import {
-	installExtension,
-	REACT_DEVELOPER_TOOLS,
-} from "electron-extension-installer";
 import { env } from "main/env.main";
+import { loadReactDevToolsExtension } from "main/lib/extensions";
 import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
@@ -15,17 +11,7 @@ export async function makeAppSetup(
 	createWindow: () => Promise<BrowserWindow>,
 	restoreWindows?: () => Promise<void>,
 ) {
-	if (env.NODE_ENV === "development") {
-		try {
-			await installExtension([REACT_DEVELOPER_TOOLS], {
-				loadExtensionOptions: {
-					allowFileAccess: true,
-				},
-			});
-		} catch (_error) {
-			//   console.warn('Failed to install React DevTools extension:', error)
-		}
-	}
+	await loadReactDevToolsExtension();
 
 	// Restore windows from previous session if available
 	if (restoreWindows) {
@@ -53,15 +39,16 @@ export async function makeAppSetup(
 		}
 	});
 
-	app.on("web-contents-created", (_, contents) =>
+	app.on("web-contents-created", (_, contents) => {
+		if (contents.getType() === "webview") return;
 		contents.on("will-navigate", (event, url) => {
 			// Always prevent in-app navigation for external URLs
 			if (url.startsWith("http://") || url.startsWith("https://")) {
 				event.preventDefault();
 				shell.openExternal(url);
 			}
-		}),
-	);
+		});
+	});
 
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
 	app.on("before-quit", () => {});
@@ -71,9 +58,19 @@ export async function makeAppSetup(
 
 PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
 
+// macOS Sequoia+: occluded window throttling can corrupt GPU compositor layers
+if (PLATFORM.IS_MAC) {
+	app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+}
+
 PLATFORM.IS_WINDOWS &&
 	app.setAppUserModelId(
 		env.NODE_ENV === "development" ? process.execPath : makeAppId(),
 	);
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");
+
+// Enable CDP for browser DevTools and desktop automation MCP
+const cdpPort = String(process.env.DESKTOP_AUTOMATION_PORT || 41729);
+app.commandLine.appendSwitch("remote-debugging-port", cdpPort);
+app.commandLine.appendSwitch("remote-allow-origins", "*");

@@ -1,0 +1,11 @@
+{
+	"name": "@superset/tab-bar",
+	"version": "0.0.1",
+	"main": "src/index.tsx",
+	"private": true,
+	"peerDependencies": {
+		"expo": "*",
+		"react": "*",
+		"react-native": "*"
+	}
+}

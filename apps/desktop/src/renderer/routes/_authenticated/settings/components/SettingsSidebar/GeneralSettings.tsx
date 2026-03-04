@@ -1,18 +1,20 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
 	HiOutlineCreditCard,
+	HiOutlineDevicePhoneMobile,
+	HiOutlineKey,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
+	HiOutlineShieldCheck,
 	HiOutlineSparkles,
 	HiOutlineUser,
 } from "react-icons/hi2";
 import { LuKeyboard } from "react-icons/lu";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface GeneralSettingsProps {
@@ -28,13 +30,17 @@ type SettingsRoute =
 	| "/settings/behavior"
 	| "/settings/terminal"
 	| "/settings/integrations"
-	| "/settings/billing";
+	| "/settings/billing"
+	| "/settings/devices"
+	| "/settings/api-keys"
+	| "/settings/permissions";
 
 const GENERAL_SECTIONS: {
 	id: SettingsRoute;
 	section: SettingsSection;
 	label: string;
 	icon: React.ReactNode;
+	macOnly?: boolean;
 }[] = [
 	{
 		id: "/settings/account",
@@ -90,19 +96,40 @@ const GENERAL_SECTIONS: {
 		label: "Billing",
 		icon: <HiOutlineCreditCard className="h-4 w-4" />,
 	},
+	{
+		id: "/settings/devices",
+		section: "devices",
+		label: "Devices",
+		icon: <HiOutlineDevicePhoneMobile className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/api-keys",
+		section: "apikeys",
+		label: "API Keys",
+		icon: <HiOutlineKey className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/permissions",
+		section: "permissions",
+		label: "Permissions",
+		icon: <HiOutlineShieldCheck className="h-4 w-4" />,
+		macOnly: true,
+	},
 ];
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
-	const billingEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.BILLING_ENABLED);
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const isMac = platform === "darwin";
 
-	const filteredSections = (
-		matchCounts
-			? GENERAL_SECTIONS.filter(
-					(section) => (matchCounts[section.section] ?? 0) > 0,
-				)
-			: GENERAL_SECTIONS
-	).filter((section) => section.section !== "billing" || billingEnabled);
+	const platformSections = GENERAL_SECTIONS.filter(
+		(section) => !section.macOnly || isMac,
+	);
+	const filteredSections = matchCounts
+		? platformSections.filter(
+				(section) => (matchCounts[section.section] ?? 0) > 0,
+			)
+		: platformSections;
 
 	if (filteredSections.length === 0) {
 		return null;

@@ -24,6 +24,7 @@ import {
 import { createServer, type Server, Socket } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { SUPERSET_DIR_NAME } from "shared/constants";
 import {
 	type ClearScrollbackRequest,
 	type CreateOrAttachRequest,
@@ -52,9 +53,8 @@ import { TerminalHost } from "./terminal-host";
 
 const DAEMON_VERSION = "1.0.0";
 
-// Determine superset directory based on NODE_ENV
-const SUPERSET_DIR_NAME =
-	process.env.NODE_ENV === "development" ? ".superset-dev" : ".superset";
+// SUPERSET_DIR_NAME is imported from shared/constants for multi-worktree support
+// This allows workspace-specific home directories (e.g., ~/.superset-my-feature)
 const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
 
 // Socket and token paths
@@ -759,14 +759,13 @@ async function startServer(): Promise<void> {
 	});
 }
 
-function stopServer(): Promise<void> {
-	return new Promise((resolve) => {
-		// Dispose terminal host (kills all sessions)
-		if (terminalHost) {
-			terminalHost.dispose();
-			log("info", "Terminal host disposed");
-		}
+async function stopServer(): Promise<void> {
+	if (terminalHost) {
+		await terminalHost.dispose();
+		log("info", "Terminal host disposed");
+	}
 
+	await new Promise<void>((resolve) => {
 		if (server) {
 			server.close(() => {
 				log("info", "Server closed");
@@ -775,15 +774,14 @@ function stopServer(): Promise<void> {
 		} else {
 			resolve();
 		}
-
-		// Clean up socket and PID files
-		try {
-			if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
-			if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
-		} catch {
-			// Best effort cleanup
-		}
 	});
+
+	try {
+		if (existsSync(SOCKET_PATH)) unlinkSync(SOCKET_PATH);
+		if (existsSync(PID_PATH)) unlinkSync(PID_PATH);
+	} catch {
+		// Best effort cleanup
+	}
 }
 
 // =============================================================================

@@ -46,6 +46,10 @@ export const oneDarkTheme: Theme = {
 		chart3: "#e5c07b",
 		chart4: "#c678dd",
 		chart5: "#e06c75",
+
+		// Search highlights - blue tint matching one dark's primary
+		highlightMatch: "rgba(97, 175, 239, 0.2)",
+		highlightActive: "rgba(97, 175, 239, 0.5)",
 	},
 
 	terminal: {

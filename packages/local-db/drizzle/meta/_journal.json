@@ -92,6 +92,160 @@
       "when": 1768799848274,
       "tag": "0012_add_persist_terminal",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1769500000000,
+      "tag": "0013_add_auto_apply_default_preset",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1769579643564,
+      "tag": "0014_add_branch_prefix_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1769649140217,
+      "tag": "0015_add_notification_sounds_muted",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1769672464844,
+      "tag": "0016_add_telemetry_enabled",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1770103994672,
+      "tag": "0017_add_is_unnamed_to_workspaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1770414833599,
+      "tag": "0018_add_delete_local_branch_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1770438863796,
+      "tag": "0019_add_hide_image_to_projects",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1770754481921,
+      "tag": "0020_add_file_open_mode_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1770783531923,
+      "tag": "0021_add_image_project",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1770786023683,
+      "tag": "0022_add_port_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1770879851897,
+      "tag": "0023_add_show_presets_bar_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1770884219595,
+      "tag": "0024_generate_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1771046337924,
+      "tag": "0025_add_neon_project_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1771214717763,
+      "tag": "0026_browser_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1771524526706,
+      "tag": "0027_per_project_default_app",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1771539756028,
+      "tag": "0028_add_show_resource_monitor_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1771547603399,
+      "tag": "0029_add_workspace_base_branch",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1771569145144,
+      "tag": "0030_shallow_the_leader",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1771797962833,
+      "tag": "0031_add_open_links_in_app_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1771876417139,
+      "tag": "0032_migrate_workspace_ids_to_uuid_v4",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1771887719788,
+      "tag": "0033_nosy_overlord",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1771977629901,
+      "tag": "0034_add_use_compact_terminal_add_button_setting",
+      "breakpoints": true
     }
   ]
 }

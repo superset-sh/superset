@@ -1,5 +1,16 @@
+import { join } from "node:path";
 import { withSentryConfig } from "@sentry/nextjs";
+import { config as dotenvConfig } from "dotenv";
 import { createMDX } from "fumadocs-mdx/next";
+
+// Load .env from monorepo root during development
+if (process.env.NODE_ENV !== "production") {
+	dotenvConfig({
+		path: join(process.cwd(), "../../.env"),
+		override: true,
+		quiet: true,
+	});
+}
 
 const withMDX = createMDX();
 
@@ -18,12 +29,12 @@ const config = {
 		return [
 			{
 				source: "/",
-				destination: "/quick-start",
+				destination: "/installation",
 				permanent: false,
 			},
 			{
 				source: "/docs",
-				destination: "/quick-start",
+				destination: "/installation",
 				permanent: false,
 			},
 		];

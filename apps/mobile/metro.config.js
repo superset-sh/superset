@@ -19,6 +19,11 @@ config.resolver.nodeModulesPaths = [
 // Enable package exports for better-auth
 config.resolver.unstable_enablePackageExports = true;
 
+// Resolve local Expo Modules (modules/ dir)
+config.resolver.extraNodeModules = {
+	"@superset/tab-bar": path.resolve(projectRoot, "modules/tab-bar"),
+};
+
 module.exports = withUniwindConfig(config, {
 	cssEntryFile: "./global.css",
 	dtsFile: "./uniwind-types.d.ts",

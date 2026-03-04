@@ -1,0 +1,1 @@
+export { PermissionsSettings } from "./PermissionsSettings";

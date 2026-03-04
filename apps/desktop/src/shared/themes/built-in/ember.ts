@@ -1,12 +1,12 @@
 import type { Theme } from "../types";
 
 /**
- * Ember theme - Warm dark theme inspired by the Figma start screen design
+ * Dark theme - Warm dark theme inspired by the Figma start screen design
  * Features a warm, slightly reddish dark background (#151110)
  */
-export const emberTheme: Theme = {
-	id: "ember",
-	name: "Ember",
+export const darkTheme: Theme = {
+	id: "dark",
+	name: "Dark",
 	author: "Superset",
 	type: "dark",
 	isBuiltIn: true,
@@ -65,6 +65,10 @@ export const emberTheme: Theme = {
 		chart3: "#d4a84b",
 		chart4: "#7b68ee",
 		chart5: "#dc6b6b",
+
+		// Search highlights - warm orange tint matching ember's accent
+		highlightMatch: "rgba(224, 120, 80, 0.2)",
+		highlightActive: "rgba(224, 120, 80, 0.5)",
 	},
 
 	terminal: {

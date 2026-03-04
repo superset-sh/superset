@@ -1,0 +1,144 @@
+---
+title: A Guide to Parallel Coding Agents
+description: Learn how to maximize your productivity by running multiple AI coding agents simultaneously.
+author: avi
+date: 2025-01-20
+category: Research
+---
+
+Running multiple AI coding agents in parallel can dramatically boost your productivity. Here's how to make the most of it.
+
+## Why Parallel Agents?
+
+Traditional AI coding workflows are sequential. You ask your agent to do something, wait for it to finish, review the results, and move on. But what if you could:
+
+1. Start a refactoring task
+2. While that's running, begin a new feature
+3. Review completed tasks as they finish
+4. Context switch without losing progress
+
+## Setting Up Your Workflow
+
+### Creating Workspaces
+
+Each parallel agent runs in its own isolated workspace. Here's how to create one:
+
+```bash
+# Create a new workspace for a feature
+superset create --branch feature/auth
+
+# List all active workspaces
+superset list
+
+# Switch to a workspace
+superset switch feature/auth
+```
+
+<Video src="/blog/parallel-agents-guide/parallel-agents-demo.mov" title="Parallel agents in action" />
+
+### Organize by Task Type
+
+Group your parallel workspaces by task type:
+
+- **Feature development** - New functionality
+- **Bug fixes** - Quick patches
+- **Refactoring** - Code improvements
+- **Documentation** - README updates, comments
+
+### Example: React Component
+
+Here's an example of a component you might build in parallel:
+
+```tsx
+import { useState, useEffect } from 'react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export function UserProfile({ userId }: { userId: string }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUser() {
+      const response = await fetch(`/api/users/${userId}`);
+      const data = await response.json();
+      setUser(data);
+      setLoading(false);
+    }
+    fetchUser();
+  }, [userId]);
+
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <div>User not found</div>;
+
+  return (
+    <div className="p-4 rounded-lg border">
+      <h2 className="text-xl font-bold">{user.name}</h2>
+      <p className="text-gray-600">{user.email}</p>
+    </div>
+  );
+}
+```
+
+### API Routes
+
+While one agent works on the frontend, another can build the API:
+
+```typescript
+import { db } from '@/lib/db';
+import { users } from '@/lib/schema';
+import { eq } from 'drizzle-orm';
+
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, params.id))
+    .limit(1);
+
+  if (!user.length) {
+    return Response.json(
+      { error: 'User not found' },
+      { status: 404 }
+    );
+  }
+
+  return Response.json(user[0]);
+}
+```
+
+## Best Practices
+
+- **Start small** - Begin with 2-3 parallel agents and scale up
+- **Keep tasks focused** - Smaller, well-defined tasks work better
+- **Use isolation** - Each workspace should be independent
+- **Commit frequently** - Save progress in each workspace
+
+### Configuration Example
+
+You can configure Superset with a simple config file:
+
+```json
+{
+  "workspaces": {
+    "maxParallel": 10,
+    "defaultBranch": "main",
+    "autoCommit": true
+  },
+  "agents": {
+    "model": "claude-sonnet-4-20250514",
+    "maxTokens": 8192
+  }
+}
+```
+
+## Conclusion
+
+Parallel coding agents transform how you work with AI. Instead of waiting, you're always making progress on something. Give it a try and see how it changes your workflow.

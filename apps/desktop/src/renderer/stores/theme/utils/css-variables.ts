@@ -38,6 +38,8 @@ const UI_COLOR_TO_CSS_VAR: Record<keyof UIColors, string> = {
 	chart3: "--chart-3",
 	chart4: "--chart-4",
 	chart5: "--chart-5",
+	highlightMatch: "--highlight-match",
+	highlightActive: "--highlight-active",
 };
 
 /**

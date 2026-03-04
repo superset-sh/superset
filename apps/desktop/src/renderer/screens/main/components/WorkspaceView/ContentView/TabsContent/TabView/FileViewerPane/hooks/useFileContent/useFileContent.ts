@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
+import { isImageFile } from "shared/file-types";
 
 interface UseFileContentParams {
 	worktreePath: string;
@@ -25,17 +26,44 @@ export function useFileContent({
 	originalContentRef,
 	originalDiffContentRef,
 }: UseFileContentParams) {
+	// For remote URLs (e.g. Vercel Blob), skip all IPC queries
+	const isRemote =
+		filePath.startsWith("https://") || filePath.startsWith("http://");
+
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath },
-		{ enabled: !!worktreePath && diffCategory === "against-base" },
+		{
+			enabled: !isRemote && !!worktreePath && diffCategory === "against-base",
+		},
 	);
-	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
+	const effectiveBaseBranch =
+		branchData?.worktreeBaseBranch ?? branchData?.defaultBranch ?? "main";
+
+	const isImage = isImageFile(filePath);
 
 	const { data: rawFileData, isLoading: isLoadingRaw } =
 		electronTrpc.changes.readWorkingFile.useQuery(
 			{ worktreePath, filePath },
 			{
-				enabled: viewMode !== "diff" && !!filePath && !!worktreePath,
+				enabled:
+					!isRemote &&
+					viewMode !== "diff" &&
+					!isImage &&
+					!!filePath &&
+					!!worktreePath,
+			},
+		);
+
+	const { data: imageData, isLoading: isLoadingImage } =
+		electronTrpc.changes.readWorkingFileImage.useQuery(
+			{ worktreePath, filePath },
+			{
+				enabled:
+					!isRemote &&
+					viewMode === "rendered" &&
+					isImage &&
+					!!filePath &&
+					!!worktreePath,
 			},
 		);
 
@@ -52,7 +80,11 @@ export function useFileContent({
 			},
 			{
 				enabled:
-					viewMode === "diff" && !!diffCategory && !!filePath && !!worktreePath,
+					!isRemote &&
+					viewMode === "diff" &&
+					!!diffCategory &&
+					!!filePath &&
+					!!worktreePath,
 			},
 		);
 
@@ -70,9 +102,20 @@ export function useFileContent({
 		}
 	}, [diffData]);
 
+	// For remote URLs, return the URL directly as imageData (works with <img src=>)
+	const remoteImageData = useMemo(
+		() =>
+			isRemote
+				? { ok: true as const, dataUrl: filePath, byteLength: 0 }
+				: undefined,
+		[isRemote, filePath],
+	);
+
 	return {
 		rawFileData,
-		isLoadingRaw,
+		isLoadingRaw: isLoadingRaw || (isImage && isLoadingImage),
+		imageData: isRemote ? remoteImageData : imageData,
+		isLoadingImage: isRemote ? false : isLoadingImage,
 		diffData,
 		isLoadingDiff,
 	};

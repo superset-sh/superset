@@ -3,7 +3,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 
-export const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
+const SUPERSET_HOME_DIR_ENV = "SUPERSET_HOME_DIR";
+
+export const SUPERSET_HOME_DIR =
+	process.env[SUPERSET_HOME_DIR_ENV] || join(homedir(), SUPERSET_DIR_NAME);
+process.env[SUPERSET_HOME_DIR_ENV] = SUPERSET_HOME_DIR;
 
 export const SUPERSET_HOME_DIR_MODE = 0o700;
 export const SUPERSET_SENSITIVE_FILE_MODE = 0o600;

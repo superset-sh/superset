@@ -14,6 +14,8 @@ export interface RingtoneData {
 	duration?: number;
 }
 
+export const CUSTOM_RINGTONE_ID = "custom";
+
 /**
  * Built-in ringtones available in the app.
  * Files are located in src/resources/sounds/
@@ -118,14 +120,6 @@ export const RINGTONES: RingtoneData[] = [
 		color: "from-indigo-400 to-purple-600",
 		duration: 7,
 	},
-	{
-		id: "none",
-		name: "Silent",
-		description: "Notifications without sound",
-		filename: "",
-		emoji: "🔇",
-		color: "from-gray-400 to-gray-500",
-	},
 ];
 
 export const DEFAULT_RINGTONE_ID = "arcade";
@@ -137,9 +131,13 @@ export function getRingtoneById(id: string): RingtoneData | undefined {
 	return RINGTONES.find((r) => r.id === id);
 }
 
+export function isBuiltInRingtoneId(id: string): boolean {
+	return RINGTONES.some((r) => r.id === id);
+}
+
 /**
  * Get the filename for a ringtone ID.
- * Returns empty string for "none" (silent) or if not found.
+ * Returns empty string if not found.
  */
 export function getRingtoneFilename(id: string): string {
 	const ringtone = getRingtoneById(id);

@@ -27,22 +27,71 @@ const fileViewerStateSchema = z.object({
 	oldPath: z.string().optional(),
 });
 
+const chatMastraLaunchConfigSchema = z.object({
+	initialPrompt: z.string().optional(),
+	metadata: z
+		.object({
+			model: z.string().optional(),
+		})
+		.optional(),
+	retryCount: z.number().int().min(0).optional(),
+});
+
 /**
  * Zod schema for Pane
  */
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum(["terminal", "webview", "file-viewer"]),
+	type: z.enum([
+		"terminal",
+		"webview",
+		"file-viewer",
+		"chat-mastra",
+		"devtools",
+	]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
-	initialCommands: z.array(z.string()).optional(),
 	initialCwd: z.string().optional(),
 	url: z.string().optional(),
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
+	chatMastra: z
+		.object({
+			sessionId: z.string().nullable(),
+			launchConfig: chatMastraLaunchConfigSchema.nullable().optional(),
+		})
+		.optional(),
+	browser: z
+		.object({
+			currentUrl: z.string(),
+			history: z.array(
+				z.object({
+					url: z.string(),
+					title: z.string(),
+					timestamp: z.number(),
+					faviconUrl: z.string().optional(),
+				}),
+			),
+			historyIndex: z.number(),
+			isLoading: z.boolean(),
+			viewport: z
+				.object({
+					name: z.string(),
+					width: z.number(),
+					height: z.number(),
+				})
+				.nullable()
+				.optional(),
+		})
+		.optional(),
+	devtools: z
+		.object({
+			targetPaneId: z.string(),
+		})
+		.optional(),
 });
 
 /**
@@ -129,6 +178,8 @@ const uiColorsSchema = z.object({
 	chart3: z.string(),
 	chart4: z.string(),
 	chart5: z.string(),
+	highlightMatch: z.string(),
+	highlightActive: z.string(),
 });
 
 /**

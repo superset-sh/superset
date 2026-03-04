@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useContext, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
-import { MosaicWindow } from "react-mosaic-component";
+import { MosaicWindow, MosaicWindowContext } from "react-mosaic-component";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
 
@@ -12,11 +13,22 @@ export interface PaneHandlers {
 	splitOrientation: SplitOrientation;
 }
 
+/**
+ * Connects drag source for root panes (single pane in a tab).
+ * react-mosaic-component skips drag connection for root panes (path=[]),
+ * but we need it for cross-tab drag-and-drop.
+ */
+function RootDraggable({ children }: { children: React.ReactNode }) {
+	const { mosaicWindowActions } = useContext(MosaicWindowContext);
+	return mosaicWindowActions.connectDragSource(
+		<div className="h-full w-full">{children}</div>,
+	);
+}
+
 interface BasePaneWindowProps {
 	paneId: string;
 	path: MosaicBranch[];
 	tabId: string;
-	isActive: boolean;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
@@ -34,7 +46,6 @@ export function BasePaneWindow({
 	paneId,
 	path,
 	tabId,
-	isActive,
 	splitPaneAuto,
 	removePane,
 	setFocusedPane,
@@ -42,8 +53,10 @@ export function BasePaneWindow({
 	children,
 	contentClassName = "w-full h-full overflow-hidden",
 }: BasePaneWindowProps) {
+	const isActive = useTabsStore((s) => s.focusedPaneIds[tabId] === paneId);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const splitOrientation = useSplitOrientation(containerRef);
+	const isDragging = useDragPaneStore((s) => s.draggingPaneId !== null);
 	const setDragging = useDragPaneStore((s) => s.setDragging);
 	const clearDragging = useDragPaneStore((s) => s.clearDragging);
 
@@ -72,11 +85,19 @@ export function BasePaneWindow({
 		splitOrientation,
 	};
 
+	const isRoot = path.length === 0;
+
 	return (
 		<MosaicWindow<string>
 			path={path}
 			title=""
-			renderToolbar={() => renderToolbar(handlers)}
+			renderToolbar={() =>
+				isRoot ? (
+					<RootDraggable>{renderToolbar(handlers)}</RootDraggable>
+				) : (
+					renderToolbar(handlers)
+				)
+			}
 			className={isActive ? "mosaic-window-focused" : ""}
 			onDragStart={() => setDragging(paneId, tabId)}
 			onDragEnd={() => clearDragging()}
@@ -85,6 +106,7 @@ export function BasePaneWindow({
 			<div
 				ref={containerRef}
 				className={contentClassName}
+				style={isDragging ? { pointerEvents: "none" } : undefined}
 				onClick={handleFocus}
 			>
 				{children}

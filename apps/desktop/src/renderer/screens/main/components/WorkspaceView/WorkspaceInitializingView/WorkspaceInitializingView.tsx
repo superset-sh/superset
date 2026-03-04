@@ -12,6 +12,8 @@ import { useEffect, useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCheck, LuCircle, LuGitBranch, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useDeleteWorkspace } from "renderer/react-query/workspaces";
+import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 import {
 	useHasWorkspaceFailed,
 	useWorkspaceInitProgress,
@@ -35,6 +37,23 @@ const DISPLAY_STEPS: WorkspaceInitStep[] = INIT_STEP_ORDER.filter(
 	(step) => step !== "pending" && step !== "ready",
 );
 
+const DUPLICATE_BRANCH_ERROR_PATTERNS = [
+	"a branch named",
+	"already checked out",
+	"already used by worktree",
+] as const;
+
+function isDuplicateBranchInitError(error?: string): boolean {
+	if (!error) return false;
+	const normalized = error.toLowerCase();
+	if (normalized.includes("branch") && normalized.includes("already exists")) {
+		return true;
+	}
+	return DUPLICATE_BRANCH_ERROR_PATTERNS.some((pattern) =>
+		normalized.includes(pattern),
+	);
+}
+
 export function WorkspaceInitializingView({
 	workspaceId,
 	workspaceName,
@@ -56,12 +75,12 @@ export function WorkspaceInitializingView({
 	}, [isInterrupted, progress]);
 
 	const retryMutation = electronTrpc.workspaces.retryInit.useMutation();
-	const deleteMutation = electronTrpc.workspaces.delete.useMutation();
+	const deleteWorkspace = useDeleteWorkspace();
 	const utils = electronTrpc.useUtils();
 
-	const handleRetry = () => {
+	const handleRetry = (deduplicateBranchName = false) => {
 		retryMutation.mutate(
-			{ workspaceId },
+			{ workspaceId, deduplicateBranchName },
 			{
 				onSuccess: () => {
 					utils.workspaces.invalidate();
@@ -70,19 +89,21 @@ export function WorkspaceInitializingView({
 		);
 	};
 
-	const handleDelete = () => {
+	const handleDelete = async () => {
 		setShowDeleteConfirm(false);
-		deleteMutation.mutate(
-			{ id: workspaceId },
-			{
-				onSuccess: () => {
-					utils.workspaces.invalidate();
-				},
-			},
-		);
+
+		await deleteWithToast({
+			name: workspaceName,
+			deleteFn: () => deleteWorkspace.mutateAsync({ id: workspaceId }),
+			forceDeleteFn: () =>
+				deleteWorkspace.mutateAsync({ id: workspaceId, force: true }),
+		});
 	};
 
 	const currentStep = progress?.step ?? "pending";
+	const canRetryWithDeduplicatedBranch = isDuplicateBranchInitError(
+		progress?.error,
+	);
 
 	// Interrupted state (app restart during init - no in-memory progress)
 	// Only show after delay to avoid flash during normal creation
@@ -113,13 +134,13 @@ export function WorkspaceInitializingView({
 								variant="outline"
 								size="sm"
 								onClick={() => setShowDeleteConfirm(true)}
-								disabled={deleteMutation.isPending}
+								disabled={deleteWorkspace.isPending}
 							>
-								{deleteMutation.isPending ? "Deleting..." : "Delete Workspace"}
+								{deleteWorkspace.isPending ? "Deleting..." : "Delete Workspace"}
 							</Button>
 							<Button
 								size="sm"
-								onClick={handleRetry}
+								onClick={() => handleRetry()}
 								disabled={retryMutation.isPending}
 							>
 								{retryMutation.isPending ? (
@@ -194,7 +215,7 @@ export function WorkspaceInitializingView({
 							</h2>
 							<p className="text-sm text-muted-foreground">{workspaceName}</p>
 							{progress?.error && (
-								<p className="text-xs text-destructive/80 mt-2 bg-destructive/5 rounded-md px-3 py-2">
+								<p className="text-xs text-destructive/80 mt-2 bg-destructive/5 rounded-md px-3 py-2 select-text cursor-text break-words">
 									{progress.error}
 								</p>
 							)}
@@ -206,13 +227,13 @@ export function WorkspaceInitializingView({
 								variant="outline"
 								size="sm"
 								onClick={() => setShowDeleteConfirm(true)}
-								disabled={deleteMutation.isPending}
+								disabled={deleteWorkspace.isPending}
 							>
-								{deleteMutation.isPending ? "Deleting..." : "Delete Workspace"}
+								{deleteWorkspace.isPending ? "Deleting..." : "Delete Workspace"}
 							</Button>
 							<Button
 								size="sm"
-								onClick={handleRetry}
+								onClick={() => handleRetry()}
 								disabled={retryMutation.isPending}
 							>
 								{retryMutation.isPending ? (
@@ -224,6 +245,17 @@ export function WorkspaceInitializingView({
 									"Retry"
 								)}
 							</Button>
+							{canRetryWithDeduplicatedBranch && (
+								<Button
+									size="sm"
+									onClick={() => handleRetry(true)}
+									disabled={retryMutation.isPending}
+								>
+									{retryMutation.isPending
+										? "Retrying..."
+										: "Retry With Deduplicated Branch"}
+								</Button>
+							)}
 						</div>
 					</div>
 				</div>

@@ -6,6 +6,8 @@ import { z } from "zod";
 export const gitStatusSchema = z.object({
 	branch: z.string(),
 	needsRebase: z.boolean(),
+	ahead: z.number().optional(),
+	behind: z.number().optional(),
 	lastRefreshed: z.number(),
 });
 
@@ -47,6 +49,26 @@ export const gitHubStatusSchema = z.object({
 
 export type GitHubStatus = z.infer<typeof gitHubStatusSchema>;
 
+export const EXECUTION_MODES = [
+	"split-pane",
+	"new-tab",
+	"new-tab-split-pane",
+] as const;
+
+export type ExecutionMode = (typeof EXECUTION_MODES)[number];
+
+export function normalizeExecutionMode(mode: unknown): ExecutionMode {
+	if (
+		mode === "split-pane" ||
+		mode === "new-tab" ||
+		mode === "new-tab-split-pane"
+	) {
+		return mode;
+	}
+
+	return "split-pane";
+}
+
 /**
  * Terminal preset
  */
@@ -56,7 +78,11 @@ export const terminalPresetSchema = z.object({
 	description: z.string().optional(),
 	cwd: z.string(),
 	commands: z.array(z.string()),
+	pinnedToBar: z.boolean().optional(),
 	isDefault: z.boolean().optional(),
+	applyOnWorkspaceCreated: z.boolean().optional(),
+	applyOnNewTab: z.boolean().optional(),
+	executionMode: z.enum(EXECUTION_MODES).optional(),
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;
@@ -76,12 +102,15 @@ export const EXTERNAL_APPS = [
 	"vscode",
 	"vscode-insiders",
 	"cursor",
+	"antigravity",
+	"windsurf",
 	"zed",
 	"sublime",
 	"xcode",
 	"iterm",
 	"warp",
 	"terminal",
+	"ghostty",
 	// JetBrains IDEs
 	"intellij",
 	"webstorm",
@@ -99,6 +128,15 @@ export const EXTERNAL_APPS = [
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
 
+/** Apps that are not editors/IDEs and should not be set as the global default editor. */
+export const NON_EDITOR_APPS: readonly ExternalApp[] = [
+	"finder",
+	"iterm",
+	"warp",
+	"terminal",
+	"ghostty",
+] as const;
+
 /**
  * Terminal link behavior options
  */
@@ -108,3 +146,19 @@ export const TERMINAL_LINK_BEHAVIORS = [
 ] as const;
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
+
+/**
+ * Branch prefix modes for workspace branch naming
+ */
+export const BRANCH_PREFIX_MODES = [
+	"none",
+	"github",
+	"author",
+	"custom",
+] as const;
+
+export type BranchPrefixMode = (typeof BRANCH_PREFIX_MODES)[number];
+
+export const FILE_OPEN_MODES = ["split-pane", "new-tab"] as const;
+
+export type FileOpenMode = (typeof FILE_OPEN_MODES)[number];

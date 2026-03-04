@@ -21,6 +21,8 @@ export const env = createEnv({
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
+		SECRETS_ENCRYPTION_KEY: z.string().min(1),
+		ANTHROPIC_API_KEY: z.string(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

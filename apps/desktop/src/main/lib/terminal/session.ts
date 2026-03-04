@@ -1,4 +1,5 @@
 import os from "node:os";
+import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import * as pty from "node-pty";
@@ -14,9 +15,7 @@ import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
-const DEFAULT_SCROLLBACK = 10000;
-/** Max time to wait for agent hooks before running initial commands */
-const AGENT_HOOKS_TIMEOUT_MS = 2000;
+const DEFAULT_SCROLLBACK = 2000;
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
 export function createHeadlessTerminal(params: {
@@ -93,6 +92,7 @@ export async function createSession(
 		rows,
 		existingScrollback,
 		useFallbackShell = false,
+		themeType,
 	} = params;
 
 	const shell = useFallbackShell ? FALLBACK_SHELL : getDefaultShell();
@@ -119,6 +119,7 @@ export async function createSession(
 		workspaceName,
 		workspacePath,
 		rootPath,
+		themeType,
 	});
 
 	const { headless, serializer } = createHeadlessTerminal({
@@ -165,18 +166,7 @@ export async function createSession(
 	};
 }
 
-export function setupDataHandler(
-	session: TerminalSession,
-	initialCommands: string[] | undefined,
-	wasRecovered: boolean,
-	beforeInitialCommands?: Promise<void>,
-): void {
-	const initialCommandString =
-		!wasRecovered && initialCommands && initialCommands.length > 0
-			? `${initialCommands.join(" && ")}\n`
-			: null;
-	let commandsSent = false;
-
+export function setupDataHandler(session: TerminalSession): void {
 	session.pty.onData((data) => {
 		// Recreate headless on clear (xterm writes are async, so clear() alone is unreliable)
 		if (containsClearScrollbackSequence(data)) {
@@ -196,38 +186,6 @@ export function setupDataHandler(
 		}
 
 		session.dataBatcher.write(data);
-
-		if (initialCommandString && !commandsSent) {
-			commandsSent = true;
-			setTimeout(() => {
-				if (session.isAlive) {
-					void (async () => {
-						if (beforeInitialCommands) {
-							const timeout = new Promise<void>((resolve) =>
-								setTimeout(resolve, AGENT_HOOKS_TIMEOUT_MS),
-							);
-							await Promise.race([beforeInitialCommands, timeout]).catch(
-								(error) => {
-									console.warn(
-										"[terminal/session] Initial command preconditions failed:",
-										{
-											paneId: session.paneId,
-											workspaceId: session.workspaceId,
-											error:
-												error instanceof Error ? error.message : String(error),
-										},
-									);
-								},
-							);
-						}
-
-						if (session.isAlive) {
-							session.writeQueue.write(initialCommandString);
-						}
-					})();
-				}
-			}, 100);
-		}
 	});
 }
 

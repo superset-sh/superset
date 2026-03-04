@@ -1,10 +1,13 @@
 import claudeIcon from "./claude.svg";
 import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
+import copilotIcon from "./copilot.svg";
+import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
 import geminiIcon from "./gemini.svg";
 import opencodeIcon from "./opencode.svg";
 import opencodeWhiteIcon from "./opencode-white.svg";
+import supersetIcon from "./superset.svg";
 
 export interface PresetIconSet {
 	light: string;
@@ -14,7 +17,10 @@ export interface PresetIconSet {
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
+	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
+	superset: { light: supersetIcon, dark: supersetIcon },
+	"superset-chat": { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
 };
@@ -33,8 +39,11 @@ export {
 	claudeIcon,
 	codexIcon,
 	codexWhiteIcon,
+	copilotIcon,
+	copilotWhiteIcon,
 	cursorAgentIcon,
 	geminiIcon,
 	opencodeIcon,
 	opencodeWhiteIcon,
+	supersetIcon,
 };

@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState } from "react";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
@@ -12,24 +11,15 @@ export function CTASection() {
 		<>
 			<section className="relative py-32 px-8 lg:px-[30px]">
 				<div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-					<motion.h2
+					<h2
 						className="text-[32px] lg:text-[40px] font-normal tracking-normal leading-[1.3em] text-foreground mb-8"
 						style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5 }}
 					>
 						Get Superset Today
-					</motion.h2>
-					<motion.div
-						initial={{ opacity: 0, y: 20 }}
-						whileInView={{ opacity: 1, y: 0 }}
-						viewport={{ once: true }}
-						transition={{ duration: 0.5, delay: 0.1 }}
-					>
+					</h2>
+					<div>
 						<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
-					</motion.div>
+					</div>
 				</div>
 			</section>
 			<WaitlistModal

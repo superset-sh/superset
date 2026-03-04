@@ -1,0 +1,1 @@
+export { getLineNumbersMinChars } from "./getLineNumbersMinChars";

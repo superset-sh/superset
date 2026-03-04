@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
 import { TESTIMONIALS, type Testimonial } from "./constants";
@@ -69,7 +68,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 						e.stopPropagation();
 						setShowOriginal(!showOriginal);
 					}}
-					className="group mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					className="group mt-2 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<span className="group-hover:hidden">
 						{showOriginal ? "Translated" : "Translated"}
@@ -91,58 +90,34 @@ export function WallOfLoveSection() {
 	return (
 		<section className="relative py-24 px-8 lg:px-[30px]">
 			<div className="max-w-6xl mx-auto">
-				<motion.div
-					className="text-center mb-12"
-					initial={{ opacity: 0, y: 20 }}
-					whileInView={{ opacity: 1, y: 0 }}
-					viewport={{ once: true }}
-					transition={{ duration: 0.5 }}
-				>
+				<div className="text-center mb-12">
 					<h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground">
 						What builders say about Superset
 					</h2>
-				</motion.div>
+				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 					<div className="flex flex-col gap-4">
-						{leftColumn.map((testimonial, index) => (
-							<motion.div
-								key={testimonial.id}
-								initial={{ opacity: 0, y: 20 }}
-								whileInView={{ opacity: 1, y: 0 }}
-								viewport={{ once: true, margin: "-50px" }}
-								transition={{ duration: 0.4, delay: index * 0.1 }}
-							>
+						{leftColumn.map((testimonial) => (
+							<div key={testimonial.id}>
 								<TestimonialCard testimonial={testimonial} />
-							</motion.div>
+							</div>
 						))}
 					</div>
 
 					<div className="flex flex-col gap-4">
-						{middleColumn.map((testimonial, index) => (
-							<motion.div
-								key={testimonial.id}
-								initial={{ opacity: 0, y: 20 }}
-								whileInView={{ opacity: 1, y: 0 }}
-								viewport={{ once: true, margin: "-50px" }}
-								transition={{ duration: 0.4, delay: index * 0.1 + 0.05 }}
-							>
+						{middleColumn.map((testimonial) => (
+							<div key={testimonial.id}>
 								<TestimonialCard testimonial={testimonial} />
-							</motion.div>
+							</div>
 						))}
 					</div>
 
 					<div className="flex flex-col gap-4 md:col-span-2 lg:col-span-1">
-						{rightColumn.map((testimonial, index) => (
-							<motion.div
-								key={testimonial.id}
-								initial={{ opacity: 0, y: 20 }}
-								whileInView={{ opacity: 1, y: 0 }}
-								viewport={{ once: true, margin: "-50px" }}
-								transition={{ duration: 0.4, delay: index * 0.1 + 0.1 }}
-							>
+						{rightColumn.map((testimonial) => (
+							<div key={testimonial.id}>
 								<TestimonialCard testimonial={testimonial} />
-							</motion.div>
+							</div>
 						))}
 					</div>
 				</div>

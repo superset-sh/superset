@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { getShellArgs } from "../lib/agent-setup/shell-wrappers";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
@@ -22,6 +23,7 @@ import type {
 	TerminalExitEvent,
 	TerminalSnapshot,
 } from "../lib/terminal-host/types";
+import { treeKillAsync } from "../lib/tree-kill";
 import {
 	createFrameHeader,
 	PtySubprocessFrameDecoder,
@@ -45,6 +47,12 @@ const ATTACH_FLUSH_TIMEOUT_MS = 500;
  */
 const MAX_SUBPROCESS_STDIN_QUEUE_BYTES = 2_000_000;
 
+type SpawnProcess = (
+	command: string,
+	args: readonly string[],
+	options: Parameters<typeof spawn>[2],
+) => ChildProcess;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -63,6 +71,7 @@ export interface SessionOptions {
 	workspacePath?: string;
 	rootPath?: string;
 	scrollbackLines?: number;
+	spawnProcess?: SpawnProcess;
 }
 
 export interface AttachedClient {
@@ -81,6 +90,7 @@ export class Session {
 	readonly tabId: string;
 	readonly shell: string;
 	readonly createdAt: Date;
+	private readonly spawnProcess: SpawnProcess;
 
 	private subprocess: ChildProcess | null = null;
 	private subprocessReady = false;
@@ -107,9 +117,14 @@ export class Session {
 	private emulatorWriteScheduled = false;
 	private emulatorFlushWaiters: Array<() => void> = [];
 
-	// Snapshot boundary tracking - allows capturing consistent state with continuous output
-	private snapshotBoundaryIndex: number | null = null;
-	private snapshotBoundaryWaiters: Array<() => void> = [];
+	// Snapshot boundary tracking for concurrent attaches.
+	private emulatorWriteProcessedItems = 0;
+	private nextSnapshotBoundaryWaiterId = 1;
+	private snapshotBoundaryWaiters: Array<{
+		id: number;
+		targetProcessedItems: number;
+		resolve: () => void;
+	}> = [];
 
 	// Callbacks
 	private onSessionExit?: (
@@ -126,6 +141,7 @@ export class Session {
 		this.shell = options.shell || this.getDefaultShell();
 		this.createdAt = new Date();
 		this.lastAttachedAt = new Date();
+		this.spawnProcess = options.spawnProcess ?? spawn;
 
 		// Initialize PTY ready promise
 		this.ptyReadyPromise = new Promise((resolve) => {
@@ -136,7 +152,7 @@ export class Session {
 		this.emulator = new HeadlessEmulator({
 			cols: options.cols,
 			rows: options.rows,
-			scrollback: options.scrollbackLines ?? 10000,
+			scrollback: options.scrollbackLines ?? 2000,
 		});
 
 		// Set initial CWD
@@ -168,21 +184,20 @@ export class Session {
 			throw new Error("PTY already spawned");
 		}
 
-		const { cwd, cols, rows, env = {} } = options;
+		const { cwd, cols, rows, env } = options;
 
-		// Merge process.env with passed env (passed takes precedence), then filter
-		const processEnv = buildSafeEnv({ ...process.env, ...env } as Record<
-			string,
-			string
-		>);
+		// In normal flow, caller provides a prebuilt terminal env.
+		// Fall back to process.env only if env was omitted.
+		const envSource = env ?? (process.env as Record<string, string>);
+		const processEnv = buildSafeEnv(envSource);
 		processEnv.TERM = "xterm-256color";
 
-		const shellArgs = this.getShellArgs(this.shell);
+		const shellArgs = getShellArgs(this.shell);
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
 		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
 		const electronPath = process.execPath;
-		this.subprocess = spawn(electronPath, [subprocessPath], {
+		this.subprocess = this.spawnProcess(electronPath, [subprocessPath], {
 			stdio: ["pipe", "pipe", "inherit"],
 			env: { ...processEnv, ELECTRON_RUN_AS_NODE: "1" },
 		});
@@ -340,24 +355,7 @@ export class Session {
 			this.ptyReadyResolve = null;
 		}
 
-		this.subprocess = null;
-		this.subprocessReady = false;
-		this.subprocessDecoder = null;
-		this.subprocessStdinQueue = [];
-		this.subprocessStdinQueuedBytes = 0;
-		this.subprocessStdinDrainArmed = false;
-		this.subprocessStdoutPaused = false;
-
-		this.emulatorWriteQueue = [];
-		this.emulatorWriteQueuedBytes = 0;
-		this.emulatorWriteScheduled = false;
-		this.snapshotBoundaryIndex = null;
-		const waiters = this.emulatorFlushWaiters;
-		this.emulatorFlushWaiters = [];
-		for (const resolve of waiters) resolve();
-		const boundaryWaiters = this.snapshotBoundaryWaiters;
-		this.snapshotBoundaryWaiters = [];
-		for (const resolve of boundaryWaiters) resolve();
+		this.resetProcessState();
 	}
 
 	/**
@@ -506,14 +504,13 @@ export class Session {
 		if (this.disposed) {
 			this.emulatorWriteQueue = [];
 			this.emulatorWriteQueuedBytes = 0;
+			this.emulatorWriteProcessedItems = 0;
+			this.nextSnapshotBoundaryWaiterId = 1;
 			this.emulatorWriteScheduled = false;
-			this.snapshotBoundaryIndex = null;
+			this.resolveAllSnapshotBoundaryWaiters();
 			const waiters = this.emulatorFlushWaiters;
 			this.emulatorFlushWaiters = [];
 			for (const resolve of waiters) resolve();
-			const boundaryWaiters = this.snapshotBoundaryWaiters;
-			this.snapshotBoundaryWaiters = [];
-			for (const resolve of boundaryWaiters) resolve();
 			return;
 		}
 
@@ -536,35 +533,12 @@ export class Session {
 				chunk = chunk.slice(0, MAX_CHUNK_CHARS);
 			} else {
 				this.emulatorWriteQueue.shift();
-
-				// Decrement boundary counter if tracking
-				if (this.snapshotBoundaryIndex !== null) {
-					this.snapshotBoundaryIndex--;
-				}
+				this.emulatorWriteProcessedItems++;
+				this.resolveReachedSnapshotBoundaryWaiters();
 			}
 
 			this.emulatorWriteQueuedBytes -= chunk.length;
 			this.emulator.write(chunk);
-
-			// Check if we've reached the snapshot boundary (processed all items up to it)
-			if (this.snapshotBoundaryIndex === 0) {
-				this.snapshotBoundaryIndex = null;
-				const boundaryWaiters = this.snapshotBoundaryWaiters;
-				this.snapshotBoundaryWaiters = [];
-				for (const resolve of boundaryWaiters) resolve();
-				// Continue processing remaining items (arrived after boundary was set)
-				if (this.emulatorWriteQueue.length > 0) {
-					setImmediate(() => {
-						this.processEmulatorWriteQueue();
-					});
-					return;
-				}
-				this.emulatorWriteScheduled = false;
-				const waiters = this.emulatorFlushWaiters;
-				this.emulatorFlushWaiters = [];
-				for (const resolve of waiters) resolve();
-				return;
-			}
 		}
 
 		if (this.emulatorWriteQueue.length > 0) {
@@ -575,43 +549,61 @@ export class Session {
 		}
 
 		this.emulatorWriteScheduled = false;
-
-		// If we've drained the queue, any pending boundary is also reached
-		if (this.snapshotBoundaryIndex !== null) {
-			this.snapshotBoundaryIndex = null;
-			const boundaryWaiters = this.snapshotBoundaryWaiters;
-			this.snapshotBoundaryWaiters = [];
-			for (const resolve of boundaryWaiters) resolve();
-		}
+		this.resolveReachedSnapshotBoundaryWaiters();
 
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
 	}
 
+	private resolveReachedSnapshotBoundaryWaiters(): void {
+		if (this.snapshotBoundaryWaiters.length === 0) return;
+
+		const remainingWaiters: typeof this.snapshotBoundaryWaiters = [];
+		for (const waiter of this.snapshotBoundaryWaiters) {
+			if (this.emulatorWriteProcessedItems >= waiter.targetProcessedItems) {
+				waiter.resolve();
+			} else {
+				remainingWaiters.push(waiter);
+			}
+		}
+		this.snapshotBoundaryWaiters = remainingWaiters;
+	}
+
+	private resolveAllSnapshotBoundaryWaiters(): void {
+		if (this.snapshotBoundaryWaiters.length === 0) return;
+		const waiters = this.snapshotBoundaryWaiters;
+		this.snapshotBoundaryWaiters = [];
+		for (const waiter of waiters) waiter.resolve();
+	}
+
 	/**
 	 * Flush emulator writes up to current queue position (snapshot boundary).
 	 * Unlike flushEmulatorWrites, this captures a consistent point-in-time state
 	 * even with continuous output - we only wait for data received BEFORE this call.
-	 *
-	 * The key insight: snapshotBoundaryIndex tracks how many items REMAIN that
-	 * need to be processed. Each time we shift an item, we decrement it.
-	 * When it reaches 0, we've processed everything up to the boundary.
 	 */
 	private async flushToSnapshotBoundary(timeoutMs: number): Promise<boolean> {
-		// Mark the current queue length as how many items we need to process
-		const itemsToProcess = this.emulatorWriteQueue.length;
-
-		if (itemsToProcess === 0 && !this.emulatorWriteScheduled) {
+		if (this.emulatorWriteQueue.length === 0) {
 			return true; // Already flushed
 		}
 
-		// Set the boundary counter - processEmulatorWriteQueue will decrement this
-		this.snapshotBoundaryIndex = itemsToProcess;
+		const targetProcessedItems =
+			this.emulatorWriteProcessedItems + this.emulatorWriteQueue.length;
+
+		const waiterId = this.nextSnapshotBoundaryWaiterId++;
+		let reachedBoundary = false;
 
 		const boundaryPromise = new Promise<void>((resolve) => {
-			this.snapshotBoundaryWaiters.push(resolve);
+			this.snapshotBoundaryWaiters.push({
+				id: waiterId,
+				targetProcessedItems,
+				resolve: () => {
+					reachedBoundary = true;
+					resolve();
+				},
+			});
 			this.scheduleEmulatorWrite();
+			this.resolveReachedSnapshotBoundaryWaiters();
 		});
 
 		const timeoutPromise = new Promise<void>((resolve) =>
@@ -620,14 +612,10 @@ export class Session {
 
 		await Promise.race([boundaryPromise, timeoutPromise]);
 
-		// Check if we actually reached the boundary or timed out
-		const reachedBoundary = this.snapshotBoundaryIndex === null;
-
-		// Clean up if timed out (boundary wasn't reached)
 		if (!reachedBoundary) {
-			this.snapshotBoundaryIndex = null;
-			// Remove our waiter from the list
-			this.snapshotBoundaryWaiters = [];
+			this.snapshotBoundaryWaiters = this.snapshotBoundaryWaiters.filter(
+				(waiter) => waiter.id !== waiterId,
+			);
 		}
 
 		return reachedBoundary;
@@ -814,49 +802,56 @@ export class Session {
 		}
 	}
 
-	/**
-	 * Dispose of the session
-	 */
-	dispose(): void {
-		if (this.disposed) return;
+	/** Callers that don't need to wait can fire-and-forget. */
+	dispose(): Promise<void> {
+		if (this.disposed) return Promise.resolve();
 		this.disposed = true;
 
+		const pidsToKill = this.collectProcessPids();
+
 		if (this.subprocess) {
-			// Capture reference before nullifying - the timeout needs it
-			const subprocess = this.subprocess;
 			this.sendDisposeToSubprocess();
-			// Force kill after timeout if dispose frame didn't terminate it
-			const killTimer = setTimeout(() => {
-				try {
-					subprocess.kill("SIGKILL");
-				} catch {
-					// Process may already be dead
-				}
-			}, 1000);
-			killTimer.unref(); // Don't keep daemon alive for this timer
-			this.subprocess = null;
 		}
+
+		this.resetProcessState();
+		this.emulator.dispose();
+		this.attachedClients.clear();
+		this.clientSocketsWaitingForDrain.clear();
+
+		if (pidsToKill.length === 0) return Promise.resolve();
+
+		// Must await: treeKill enumerates descendants via ps/pgrep before signaling
+		return Promise.all(
+			pidsToKill.map((pid) => treeKillAsync(pid, "SIGKILL")),
+		).then(() => {});
+	}
+
+	/** Includes PTY PID as safety net in case the shell was reparented after subprocess exit. */
+	private collectProcessPids(): number[] {
+		const pids: number[] = [];
+		if (this.subprocess?.pid) pids.push(this.subprocess.pid);
+		if (this.ptyPid) pids.push(this.ptyPid);
+		return pids;
+	}
+
+	private resetProcessState(): void {
+		this.subprocess = null;
 		this.subprocessReady = false;
 		this.subprocessDecoder = null;
 		this.subprocessStdinQueue = [];
 		this.subprocessStdinQueuedBytes = 0;
 		this.subprocessStdinDrainArmed = false;
+		this.subprocessStdoutPaused = false;
 
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
+		this.emulatorWriteProcessedItems = 0;
+		this.nextSnapshotBoundaryWaiterId = 1;
 		this.emulatorWriteScheduled = false;
-		this.snapshotBoundaryIndex = null;
+		this.resolveAllSnapshotBoundaryWaiters();
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
-		const boundaryWaiters = this.snapshotBoundaryWaiters;
-		this.snapshotBoundaryWaiters = [];
-		for (const resolve of boundaryWaiters) resolve();
-
-		this.emulator.dispose();
-		this.attachedClients.clear();
-		this.clientSocketsWaitingForDrain.clear();
-		this.subprocessStdoutPaused = false;
 	}
 
 	/**
@@ -941,19 +936,6 @@ export class Session {
 			return process.env.COMSPEC || "cmd.exe";
 		}
 		return process.env.SHELL || "/bin/zsh";
-	}
-
-	/**
-	 * Get shell arguments for login shell
-	 */
-	private getShellArgs(shell: string): string[] {
-		const shellName = shell.split("/").pop() || "";
-
-		if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
-			return ["-l"];
-		}
-
-		return [];
 	}
 }
 

@@ -1,11 +1,21 @@
 import type { ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
-import { z } from "zod";
+import { existsSync } from "node:fs";
+import { TRPCError } from "@trpc/server";
+import type { BrowserWindow, OpenDialogOptions } from "electron";
+import { dialog } from "electron";
 import {
-	getSoundPath,
-	getSoundsDirectory,
-} from "../../../../main/lib/sound-paths";
+	getCustomRingtoneInfo,
+	getCustomRingtonePath,
+	importCustomRingtoneFromPath,
+} from "main/lib/custom-ringtones";
+import { getSoundPath } from "main/lib/sound-paths";
+import {
+	CUSTOM_RINGTONE_ID,
+	getRingtoneFilename,
+	isBuiltInRingtoneId,
+} from "shared/ringtones";
+import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 /**
@@ -88,23 +98,43 @@ function playSoundFile(soundPath: string): void {
 	}
 }
 
+function getRingtoneSoundPath(ringtoneId: string): string | null {
+	if (!ringtoneId || ringtoneId === "") {
+		return null;
+	}
+
+	if (ringtoneId === CUSTOM_RINGTONE_ID) {
+		return getCustomRingtonePath();
+	}
+
+	if (!isBuiltInRingtoneId(ringtoneId)) {
+		return null;
+	}
+
+	const filename = getRingtoneFilename(ringtoneId);
+	if (!filename) {
+		return null;
+	}
+
+	return getSoundPath(filename);
+}
+
 /**
  * Ringtone router for audio preview and playback operations
  */
-export const createRingtoneRouter = () => {
+export const createRingtoneRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		/**
-		 * Preview a ringtone sound by filename
+		 * Preview a ringtone by ringtone ID.
 		 */
 		preview: publicProcedure
-			.input(z.object({ filename: z.string() }))
+			.input(z.object({ ringtoneId: z.string() }))
 			.mutation(({ input }) => {
-				// Handle "none" case - no sound
-				if (!input.filename || input.filename === "") {
+				const soundPath = getRingtoneSoundPath(input.ringtoneId);
+				if (!soundPath) {
 					return { success: true as const };
 				}
 
-				const soundPath = getSoundPath(input.filename);
 				playSoundFile(soundPath);
 				return { success: true as const };
 			}),
@@ -118,24 +148,49 @@ export const createRingtoneRouter = () => {
 		}),
 
 		/**
-		 * Get the list of available ringtone files from the sounds directory
+		 * Returns metadata for the imported custom ringtone, if one exists.
 		 */
-		list: publicProcedure.query(() => {
-			const ringtonesDir = getSoundsDirectory();
-			const files: string[] = [];
+		getCustom: publicProcedure.query(() => {
+			return getCustomRingtoneInfo();
+		}),
 
-			// Add ringtones from the sounds directory if it exists
-			if (existsSync(ringtonesDir)) {
-				const dirFiles = readdirSync(ringtonesDir).filter(
-					(file) =>
-						file.endsWith(".mp3") ||
-						file.endsWith(".wav") ||
-						file.endsWith(".ogg"),
-				);
-				files.push(...dirFiles);
+		/**
+		 * Imports a custom ringtone file from disk and stores it in the Superset home assets directory.
+		 */
+		importCustom: publicProcedure.mutation(async () => {
+			const window = getWindow();
+			const openDialogOptions: OpenDialogOptions = {
+				properties: ["openFile"],
+				title: "Select Notification Sound",
+				filters: [
+					{
+						name: "Audio",
+						extensions: ["mp3", "wav", "ogg"],
+					},
+				],
+			};
+			const result = window
+				? await dialog.showOpenDialog(window, openDialogOptions)
+				: await dialog.showOpenDialog(openDialogOptions);
+
+			if (result.canceled || result.filePaths.length === 0) {
+				return { canceled: true as const, ringtone: null };
 			}
 
-			return files;
+			try {
+				const ringtone = await importCustomRingtoneFromPath(
+					result.filePaths[0],
+				);
+				return { canceled: false as const, ringtone };
+			} catch (error) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						error instanceof Error
+							? error.message
+							: "Failed to import custom ringtone",
+				});
+			}
 		}),
 	});
 };
@@ -144,11 +199,11 @@ export const createRingtoneRouter = () => {
  * Plays the notification sound based on the selected ringtone.
  * This is used by the notification system.
  */
-export function playNotificationRingtone(filename: string): void {
-	if (!filename || filename === "") {
-		return; // No sound for "none" option
+export function playNotificationRingtone(ringtoneId: string): void {
+	const soundPath = getRingtoneSoundPath(ringtoneId);
+	if (!soundPath) {
+		return;
 	}
 
-	const soundPath = getSoundPath(filename);
 	playSoundFile(soundPath);
 }

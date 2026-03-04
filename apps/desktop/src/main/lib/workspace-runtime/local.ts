@@ -2,19 +2,16 @@
  * Local Workspace Runtime
  *
  * This is the local implementation of WorkspaceRuntime that wraps
- * either TerminalManager (in-process) or DaemonTerminalManager (daemon mode).
+ * DaemonTerminalManager (persistent terminals).
  *
- * Backend selection is done once at construction time based on settings.
+ * Backend selection is fixed to the daemon-based manager.
  * The runtime caches the backend and exposes it through the provider-neutral
  * TerminalRuntime interface.
  */
 
 import {
-	DaemonTerminalManager,
+	type DaemonTerminalManager,
 	getDaemonTerminalManager,
-	isDaemonModeEnabled,
-	type TerminalManager,
-	terminalManager,
 } from "../terminal";
 import type {
 	TerminalCapabilities,
@@ -29,7 +26,7 @@ import type {
 // =============================================================================
 
 /**
- * Adapts TerminalManager or DaemonTerminalManager to the TerminalRuntime interface.
+ * Adapts DaemonTerminalManager to the TerminalRuntime interface.
  *
  * This adapter:
  * 1. Wraps the underlying manager with the common interface
@@ -37,33 +34,25 @@ import type {
  * 3. Provides capability flags for UI feature detection
  */
 class LocalTerminalRuntime implements TerminalRuntime {
-	private readonly backend: TerminalManager | DaemonTerminalManager;
-	private readonly isDaemon: boolean;
+	private readonly backend: DaemonTerminalManager;
 
-	readonly management: TerminalManagement | null;
+	readonly management: TerminalManagement;
 	readonly capabilities: TerminalCapabilities;
 
-	constructor(backend: TerminalManager | DaemonTerminalManager) {
+	constructor(backend: DaemonTerminalManager) {
 		this.backend = backend;
-		this.isDaemon = backend instanceof DaemonTerminalManager;
 
-		// Set up capabilities based on backend type
+		// Capabilities are always daemon-backed
 		this.capabilities = {
-			persistent: this.isDaemon,
-			coldRestore: this.isDaemon,
+			persistent: true,
+			coldRestore: true,
 		};
 
-		// Set up management only for daemon mode
-		if (this.isDaemon) {
-			const daemon = backend as DaemonTerminalManager;
-			this.management = {
-				listSessions: () => daemon.listDaemonSessions(),
-				killAllSessions: () => daemon.forceKillAll(),
-				resetHistoryPersistence: () => daemon.resetHistoryPersistence(),
-			};
-		} else {
-			this.management = null;
-		}
+		this.management = {
+			listSessions: () => backend.listDaemonSessions(),
+			killAllSessions: () => backend.forceKillAll(),
+			resetHistoryPersistence: () => backend.resetHistoryPersistence(),
+		};
 	}
 
 	// ===========================================================================
@@ -238,7 +227,7 @@ class LocalTerminalRuntime implements TerminalRuntime {
  * Local workspace runtime implementation.
  *
  * This provides the WorkspaceRuntime interface for local workspaces,
- * wrapping the terminal manager (either in-process or daemon-based).
+ * wrapping the daemon-based terminal manager.
  */
 export class LocalWorkspaceRuntime implements WorkspaceRuntime {
 	readonly id: WorkspaceRuntimeId;
@@ -248,10 +237,7 @@ export class LocalWorkspaceRuntime implements WorkspaceRuntime {
 	constructor() {
 		this.id = "local";
 
-		// Select backend based on daemon mode setting
-		const backend = isDaemonModeEnabled()
-			? getDaemonTerminalManager()
-			: terminalManager;
+		const backend = getDaemonTerminalManager();
 
 		// Create terminal runtime adapter
 		this.terminal = new LocalTerminalRuntime(backend);

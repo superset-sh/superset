@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import { join } from "node:path";
-import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
+import { PROTOCOL_SCHEME } from "shared/constants";
 import { decrypt, encrypt } from "./crypto-storage";
 
 interface StoredAuth {
@@ -16,6 +16,10 @@ export const stateStore = new Map<string, number>();
 /**
  * Event emitter for auth-related events.
  * Used by tRPC subscription to notify renderer of token changes.
+ *
+ * Events:
+ * - "token-saved": { token, expiresAt } - New token saved (OAuth callback)
+ * - "token-cleared": (no data) - Token deleted (sign-out)
  */
 export const authEvents = new EventEmitter();
 
@@ -77,11 +81,7 @@ export function parseAuthDeepLink(
 ): { token: string; expiresAt: string; state: string } | null {
 	try {
 		const parsed = new URL(url);
-		const validProtocols = [
-			`${PROTOCOL_SCHEMES.PROD}:`,
-			`${PROTOCOL_SCHEMES.DEV}:`,
-		];
-		if (!validProtocols.includes(parsed.protocol)) return null;
+		if (parsed.protocol !== `${PROTOCOL_SCHEME}:`) return null;
 		if (parsed.host !== "auth" || parsed.pathname !== "/callback") return null;
 
 		const token = parsed.searchParams.get("token");

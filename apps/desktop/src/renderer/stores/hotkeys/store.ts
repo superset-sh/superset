@@ -20,8 +20,8 @@ import {
 	type HotkeyId,
 	type HotkeyPlatform,
 	type HotkeysState,
-	hasPrimaryModifier,
 	hotkeyFromKeyboardEvent,
+	isValidAppHotkey,
 	matchesHotkeyEvent,
 } from "shared/hotkeys";
 import { create } from "zustand";
@@ -77,8 +77,8 @@ export const useHotkeysStore = create<HotkeysStoreState>()(
 							? null
 							: canonicalizeHotkeyForPlatform(keys, platform);
 					if (keys !== null && !canonical) return;
-					// App hotkeys must include ctrl or meta to work in terminal
-					if (canonical !== null && !hasPrimaryModifier(canonical)) return;
+					// App hotkeys must include ctrl or meta (or be function keys) to work in terminal
+					if (canonical !== null && !isValidAppHotkey(canonical)) return;
 
 					const defaultValue = getDefaultHotkey(id, platform);
 					const overrides = getOverridesForPlatform(
@@ -117,8 +117,8 @@ export const useHotkeysStore = create<HotkeysStoreState>()(
 								? null
 								: canonicalizeHotkeyForPlatform(keys, platform);
 						if (keys !== null && !canonical) continue;
-						// App hotkeys must include ctrl or meta to work in terminal
-						if (canonical !== null && !hasPrimaryModifier(canonical)) continue;
+						// App hotkeys must include ctrl or meta (or be function keys) to work in terminal
+						if (canonical !== null && !isValidAppHotkey(canonical)) continue;
 						const defaultValue = getDefaultHotkey(hotkeyId, platform);
 						if (canonical === defaultValue) {
 							delete nextOverrides[hotkeyId];
@@ -231,6 +231,7 @@ export function useHotkeysByCategory(options?: {
 			HotkeyCategory,
 			Array<HotkeyDefinition & { id: HotkeyId }>
 		> = {
+			Navigation: [],
 			Workspace: [],
 			Layout: [],
 			Terminal: [],

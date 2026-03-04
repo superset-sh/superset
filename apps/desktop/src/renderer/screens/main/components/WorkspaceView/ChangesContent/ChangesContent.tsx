@@ -1,6 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useChangesStore } from "renderer/stores/changes";
+import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
 import { InfiniteScrollView } from "./components/InfiniteScrollView";
 
 export function ChangesContent() {
@@ -11,22 +11,11 @@ export function ChangesContent() {
 	);
 	const worktreePath = workspace?.worktreePath;
 
-	const { baseBranch } = useChangesStore();
-	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
-		{ worktreePath: worktreePath || "" },
-		{ enabled: !!worktreePath },
-	);
-
-	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
-
-	const { data: status, isLoading } = electronTrpc.changes.getStatus.useQuery(
-		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
-		{
-			enabled: !!worktreePath,
-			refetchInterval: 2500,
-			refetchOnWindowFocus: true,
-		},
-	);
+	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
+		worktreePath,
+		refetchInterval: 2500,
+		refetchOnWindowFocus: true,
+	});
 
 	if (!worktreePath) {
 		return (

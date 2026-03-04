@@ -1,11 +1,24 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { useFileOpenMode } from "renderer/hooks/useFileOpenMode";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { usePresets } from "renderer/react-query/presets";
+import type { WorkspaceSearchParams } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { usePresetHotkeys } from "renderer/routes/_authenticated/_dashboard/workspace/$workspaceId/hooks/usePresetHotkeys";
 import { NotFound } from "renderer/routes/not-found";
+import {
+	CommandPalette,
+	useCommandPalette,
+} from "renderer/screens/main/components/CommandPalette";
+import {
+	KeywordSearch,
+	useKeywordSearch,
+} from "renderer/screens/main/components/KeywordSearch";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
+import { useCreateOrOpenPR, usePRStatus } from "renderer/screens/main/hooks";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -29,6 +42,10 @@ export const Route = createFileRoute(
 )({
 	component: WorkspacePage,
 	notFoundComponent: NotFound,
+	validateSearch: (search: Record<string, unknown>): WorkspaceSearchParams => ({
+		tabId: typeof search.tabId === "string" ? search.tabId : undefined,
+		paneId: typeof search.paneId === "string" ? search.paneId : undefined,
+	}),
 	loader: async ({ params, context }) => {
 		const queryKey = [
 			["workspaces", "get"],
@@ -58,6 +75,30 @@ function WorkspacePage() {
 		id: workspaceId,
 	});
 	const navigate = useNavigate();
+	const routeNavigate = Route.useNavigate();
+	const { tabId: searchTabId, paneId: searchPaneId } = Route.useSearch();
+
+	// Keep the file open mode cache warm for addFileViewerPane
+	useFileOpenMode();
+
+	// Handle search-param-driven tab/pane activation (e.g. from notification clicks)
+	useEffect(() => {
+		if (!searchTabId) return;
+
+		const state = useTabsStore.getState();
+		const tab = state.tabs.find(
+			(t) => t.id === searchTabId && t.workspaceId === workspaceId,
+		);
+		if (!tab) return;
+
+		state.setActiveTab(workspaceId, searchTabId);
+
+		if (searchPaneId && state.panes[searchPaneId]) {
+			state.setFocusedPane(searchTabId, searchPaneId);
+		}
+
+		routeNavigate({ search: {}, replace: true });
+	}, [searchTabId, searchPaneId, workspaceId, routeNavigate]);
 
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);
@@ -79,9 +120,18 @@ function WorkspacePage() {
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
-	const { addTab, splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
-		useTabsWithPresets();
+	const {
+		addTab,
+		splitPaneAuto,
+		splitPaneVertical,
+		splitPaneHorizontal,
+		openPreset,
+	} = useTabsWithPresets();
+	const addChatMastraTab = useTabsStore((s) => s.addChatMastraTab);
+	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
+	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+	const removeTab = useTabsStore((s) => s.removeTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
@@ -111,15 +161,43 @@ function WorkspacePage() {
 
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Tab management shortcuts
+	const { presets } = usePresets();
+
+	const openTabWithPreset = useCallback(
+		(presetIndex: number) => {
+			const preset = presets[presetIndex];
+			if (preset) {
+				openPreset(workspaceId, preset, { target: "active-tab" });
+			} else {
+				addTab(workspaceId);
+			}
+		},
+		[presets, workspaceId, addTab, openPreset],
+	);
+
+	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
+		workspaceId,
+		addTab,
+	]);
+	useAppHotkey("NEW_CHAT", () => addChatMastraTab(workspaceId), undefined, [
+		workspaceId,
+		addChatMastraTab,
+	]);
 	useAppHotkey(
-		"NEW_GROUP",
+		"REOPEN_TAB",
 		() => {
-			addTab(workspaceId);
+			if (!reopenClosedTab(workspaceId)) {
+				addChatMastraTab(workspaceId);
+			}
 		},
 		undefined,
-		[workspaceId, addTab],
+		[workspaceId, reopenClosedTab, addChatMastraTab],
 	);
+	useAppHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId), undefined, [
+		workspaceId,
+		addBrowserTab,
+	]);
+	usePresetHotkeys(openTabWithPreset);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",
@@ -131,35 +209,87 @@ function WorkspacePage() {
 		undefined,
 		[focusedPaneId, removePane],
 	);
-
-	// Switch between tabs
 	useAppHotkey(
-		"PREV_TERMINAL",
+		"CLOSE_TAB",
 		() => {
-			if (!activeTabId) return;
-			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index > 0) {
-				setActiveTab(workspaceId, tabs[index - 1].id);
+			if (activeTabId) {
+				removeTab(activeTabId);
 			}
+		},
+		undefined,
+		[activeTabId, removeTab],
+	);
+
+	useAppHotkey(
+		"PREV_TAB",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
 	useAppHotkey(
-		"NEXT_TERMINAL",
+		"NEXT_TAB",
 		() => {
-			if (!activeTabId) return;
+			if (!activeTabId || tabs.length === 0) return;
 			const index = tabs.findIndex((t) => t.id === activeTabId);
-			if (index < tabs.length - 1) {
-				setActiveTab(workspaceId, tabs[index + 1].id);
-			}
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
 		},
 		undefined,
 		[workspaceId, activeTabId, tabs, setActiveTab],
 	);
 
-	// Switch between panes within a tab
+	useAppHotkey(
+		"PREV_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const prevIndex = index <= 0 ? tabs.length - 1 : index - 1;
+			setActiveTab(workspaceId, tabs[prevIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	useAppHotkey(
+		"NEXT_TAB_ALT",
+		() => {
+			if (!activeTabId || tabs.length === 0) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			const nextIndex =
+				index >= tabs.length - 1 || index === -1 ? 0 : index + 1;
+			setActiveTab(workspaceId, tabs[nextIndex].id);
+		},
+		undefined,
+		[workspaceId, activeTabId, tabs, setActiveTab],
+	);
+
+	const switchToTab = useCallback(
+		(index: number) => {
+			const tab = tabs[index];
+			if (tab) {
+				setActiveTab(workspaceId, tab.id);
+			}
+		},
+		[tabs, workspaceId, setActiveTab],
+	);
+
+	useAppHotkey("JUMP_TO_TAB_1", () => switchToTab(0), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_2", () => switchToTab(1), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_3", () => switchToTab(2), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_4", () => switchToTab(3), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_5", () => switchToTab(4), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_6", () => switchToTab(5), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_7", () => switchToTab(6), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_8", () => switchToTab(7), undefined, [switchToTab]);
+	useAppHotkey("JUMP_TO_TAB_9", () => switchToTab(8), undefined, [switchToTab]);
+
 	useAppHotkey(
 		"PREV_PANE",
 		() => {
@@ -187,21 +317,32 @@ function WorkspacePage() {
 	);
 
 	// Open in last used app shortcut
-	const { data: lastUsedApp = "cursor" } =
-		electronTrpc.settings.getLastUsedApp.useQuery();
-	const openInApp = electronTrpc.external.openInApp.useMutation();
+	const projectId = workspace?.projectId;
+	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
+		{ projectId: projectId as string },
+		{ enabled: !!projectId },
+	);
+	const utils = electronTrpc.useUtils();
+	const openInApp = electronTrpc.external.openInApp.useMutation({
+		onSuccess: () => {
+			if (projectId) {
+				utils.projects.getDefaultApp.invalidate({ projectId });
+			}
+		},
+	});
 	useAppHotkey(
 		"OPEN_IN_APP",
 		() => {
-			if (workspace?.worktreePath) {
+			if (workspace?.worktreePath && defaultApp) {
 				openInApp.mutate({
 					path: workspace.worktreePath,
-					app: lastUsedApp,
+					app: defaultApp,
+					projectId,
 				});
 			}
 		},
 		undefined,
-		[workspace?.worktreePath, lastUsedApp],
+		[workspace?.worktreePath, defaultApp, projectId],
 	);
 
 	// Copy path shortcut
@@ -215,6 +356,51 @@ function WorkspacePage() {
 		},
 		undefined,
 		[workspace?.worktreePath],
+	);
+
+	// Open PR shortcut (⌘⇧P)
+	const { pr } = usePRStatus({ workspaceId });
+	const { createOrOpenPR } = useCreateOrOpenPR({
+		worktreePath: workspace?.worktreePath,
+	});
+	useAppHotkey(
+		"OPEN_PR",
+		() => {
+			if (pr?.url) {
+				window.open(pr.url, "_blank");
+			} else {
+				createOrOpenPR();
+			}
+		},
+		undefined,
+		[pr?.url, createOrOpenPR],
+	);
+
+	const commandPalette = useCommandPalette({
+		workspaceId,
+		worktreePath: workspace?.worktreePath,
+	});
+	const keywordSearch = useKeywordSearch({
+		workspaceId,
+		worktreePath: workspace?.worktreePath,
+	});
+	useAppHotkey(
+		"QUICK_OPEN",
+		() => {
+			keywordSearch.handleOpenChange(false);
+			commandPalette.toggle();
+		},
+		undefined,
+		[commandPalette.toggle, keywordSearch.handleOpenChange],
+	);
+	useAppHotkey(
+		"KEYWORD_SEARCH",
+		() => {
+			commandPalette.handleOpenChange(false);
+			keywordSearch.toggle();
+		},
+		undefined,
+		[commandPalette.handleOpenChange, keywordSearch.toggle],
 	);
 
 	// Toggle changes sidebar (⌘L)
@@ -367,6 +553,36 @@ function WorkspacePage() {
 					<WorkspaceLayout />
 				)}
 			</div>
+			<CommandPalette
+				open={commandPalette.open}
+				onOpenChange={commandPalette.handleOpenChange}
+				query={commandPalette.query}
+				onQueryChange={commandPalette.setQuery}
+				filtersOpen={commandPalette.filtersOpen}
+				onFiltersOpenChange={commandPalette.setFiltersOpen}
+				includePattern={commandPalette.includePattern}
+				onIncludePatternChange={commandPalette.setIncludePattern}
+				excludePattern={commandPalette.excludePattern}
+				onExcludePatternChange={commandPalette.setExcludePattern}
+				isLoading={commandPalette.isFetching}
+				searchResults={commandPalette.searchResults}
+				onSelectFile={commandPalette.selectFile}
+			/>
+			<KeywordSearch
+				open={keywordSearch.open}
+				onOpenChange={keywordSearch.handleOpenChange}
+				query={keywordSearch.query}
+				onQueryChange={keywordSearch.setQuery}
+				filtersOpen={keywordSearch.filtersOpen}
+				onFiltersOpenChange={keywordSearch.setFiltersOpen}
+				includePattern={keywordSearch.includePattern}
+				onIncludePatternChange={keywordSearch.setIncludePattern}
+				excludePattern={keywordSearch.excludePattern}
+				onExcludePatternChange={keywordSearch.setExcludePattern}
+				isLoading={keywordSearch.isFetching}
+				searchResults={keywordSearch.searchResults}
+				onSelectMatch={keywordSearch.selectMatch}
+			/>
 		</div>
 	);
 }

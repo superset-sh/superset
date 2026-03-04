@@ -9,6 +9,7 @@ import {
 	LuChevronRight,
 	LuCopy,
 	LuExternalLink,
+	LuPencil,
 	LuUndo2,
 } from "react-icons/lu";
 import type { ChangedFile } from "shared/changes-types";
@@ -26,6 +27,8 @@ interface FileDiffHeaderProps {
 	onOpenInEditor: (e: React.MouseEvent) => void;
 	onCopyPath: (e: React.MouseEvent) => void;
 	isCopied: boolean;
+	isEditing?: boolean;
+	onToggleEdit?: () => void;
 	onStage?: () => void;
 	onUnstage?: () => void;
 	onDiscard?: () => void;
@@ -45,6 +48,8 @@ export function FileDiffHeader({
 	onOpenInEditor,
 	onCopyPath,
 	isCopied,
+	isEditing,
+	onToggleEdit,
 	onStage,
 	onUnstage,
 	onDiscard,
@@ -110,6 +115,31 @@ export function FileDiffHeader({
 					{isCopied ? "Copied!" : "Copy path"}
 				</TooltipContent>
 			</Tooltip>
+
+			{onToggleEdit && (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								onToggleEdit();
+							}}
+							className={cn(
+								"shrink-0 rounded p-1 transition-colors",
+								isEditing
+									? "text-primary bg-accent"
+									: "text-muted-foreground/60 hover:text-muted-foreground hover:bg-accent",
+							)}
+						>
+							<LuPencil className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						{isEditing ? "Switch to read-only" : "Edit file"}
+					</TooltipContent>
+				</Tooltip>
+			)}
 
 			<div className="flex-1" />
 

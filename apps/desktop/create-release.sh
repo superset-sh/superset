@@ -179,6 +179,11 @@ if ! command -v gh &> /dev/null; then
     error "GitHub CLI (gh) is required but not installed.\nInstall it from: https://cli.github.com/"
 fi
 
+# Check if jq is installed (required for package.json version updates)
+if ! command -v jq &> /dev/null; then
+    error "jq is required but not installed.\nInstall it with your package manager (e.g. sudo apt install jq)"
+fi
+
 # Check if authenticated with gh
 if ! gh auth status &> /dev/null; then
     error "Not authenticated with GitHub CLI.\nRun: gh auth login"
@@ -195,14 +200,7 @@ fi
 # Navigate to desktop app directory
 cd "${DESKTOP_DIR}"
 
-# 1. Check for uncommitted changes
-info "Checking for uncommitted changes..."
-if ! git diff-index --quiet HEAD --; then
-    error "You have uncommitted changes. Please commit or stash them first."
-fi
-success "Working directory is clean"
-
-# 2. Check if tag/release already exists
+# 1. Check if tag/release already exists
 info "Checking if tag ${TAG_NAME} already exists..."
 if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
     echo ""
@@ -275,7 +273,7 @@ fi
 # 4. Push changes and create PR if needed
 info "Pushing changes to remote..."
 CURRENT_BRANCH=$(git branch --show-current)
-git push origin "${CURRENT_BRANCH}"
+git push -u origin "HEAD:${CURRENT_BRANCH}"
 success "Changes pushed to ${CURRENT_BRANCH}"
 
 # Create PR if not on main branch
@@ -289,21 +287,32 @@ if [ "${CURRENT_BRANCH}" != "${MAIN_BRANCH}" ]; then
         info "PR #${EXISTING_PR} already exists for branch ${CURRENT_BRANCH}"
         PR_NUMBER="$EXISTING_PR"
     else
-        info "Creating pull request..."
-        PR_URL=$(gh pr create \
-            --title "chore(desktop): bump version to ${VERSION}" \
-            --body "Bumps desktop app version to ${VERSION}.
+        # Check if there are any commits ahead of main before trying to create PR
+        COMMITS_AHEAD=$(git rev-list --count "${MAIN_BRANCH}..HEAD" 2>/dev/null || echo "0")
+        if [ "$COMMITS_AHEAD" = "0" ]; then
+            warn "No commits ahead of ${MAIN_BRANCH}. Skipping PR creation."
+            warn "The tag will still be created and trigger the release workflow."
+        else
+            info "Creating pull request..."
+            # Disable set -e temporarily to capture exit code
+            set +e
+            PR_URL=$(gh pr create \
+                --title "chore(desktop): bump version to ${VERSION}" \
+                --body "Bumps desktop app version to ${VERSION}.
 
 This PR was automatically created by the release script." \
-            --base "${MAIN_BRANCH}" \
-            --head "${CURRENT_BRANCH}" 2>&1)
+                --base "${MAIN_BRANCH}" \
+                --head "${CURRENT_BRANCH}" 2>&1)
+            PR_EXIT_CODE=$?
+            set -e
 
-        if [ $? -eq 0 ]; then
-            success "Pull request created: ${PR_URL}"
-            # Extract PR number from URL
-            PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-        else
-            warn "Could not create PR: ${PR_URL}"
+            if [ $PR_EXIT_CODE -eq 0 ]; then
+                success "Pull request created: ${PR_URL}"
+                # Extract PR number from URL
+                PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+            else
+                warn "Could not create PR: ${PR_URL}"
+            fi
         fi
     fi
 fi
@@ -329,6 +338,7 @@ REPO=$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')
 # 6. Monitor the workflow
 info "Monitoring GitHub Actions workflow..."
 echo "  Waiting for workflow to start (this may take a few seconds)..."
+TAG_SHA=$(git rev-list -n 1 "${TAG_NAME}")
 
 # Wait and retry to find the workflow run
 MAX_RETRIES=6
@@ -337,7 +347,11 @@ WORKFLOW_RUN=""
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ -z "$WORKFLOW_RUN" ]; do
     sleep 5
-    WORKFLOW_RUN=$(gh run list --workflow=release-desktop.yml --json databaseId,headBranch,status --jq ".[] | select(.headBranch == \"${TAG_NAME}\") | .databaseId" | head -1)
+    WORKFLOW_RUN=$(gh run list \
+        --workflow=release-desktop.yml \
+        --json databaseId,headSha,event,createdAt \
+        --jq ".[] | select(.headSha == \"${TAG_SHA}\" and .event == \"push\") | .databaseId" \
+        | head -1)
     RETRY_COUNT=$((RETRY_COUNT + 1))
 
     if [ -z "$WORKFLOW_RUN" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
@@ -426,6 +440,7 @@ else
         echo ""
         echo -e "${BLUE}Direct download:${NC}"
         echo "  • ${LATEST_URL}/download/Superset-arm64.dmg"
+        echo "  • ${LATEST_URL}/download/Superset-x64.AppImage"
         echo ""
     else
         success "Draft release created!"

@@ -19,9 +19,9 @@ interface ChangesState {
 	viewMode: DiffViewMode;
 	fileListViewMode: FileListViewMode;
 	expandedSections: Record<ChangeCategory, boolean>;
-	baseBranch: string | null;
 	showRenderedMarkdown: Record<string, boolean>;
 	hideUnchangedRegions: boolean;
+	focusMode: boolean;
 
 	selectFile: (
 		worktreePath: string,
@@ -34,10 +34,10 @@ interface ChangesState {
 	setFileListViewMode: (mode: FileListViewMode) => void;
 	toggleSection: (section: ChangeCategory) => void;
 	setSectionExpanded: (section: ChangeCategory, expanded: boolean) => void;
-	setBaseBranch: (branch: string | null) => void;
 	toggleRenderedMarkdown: (worktreePath: string) => void;
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
+	toggleFocusMode: () => void;
 	reset: (worktreePath: string) => void;
 }
 
@@ -51,9 +51,9 @@ const initialState = {
 		staged: true,
 		unstaged: true,
 	},
-	baseBranch: null,
 	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
+	focusMode: false,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -110,10 +110,6 @@ export const useChangesStore = create<ChangesState>()(
 					});
 				},
 
-				setBaseBranch: (branch) => {
-					set({ baseBranch: branch });
-				},
-
 				toggleRenderedMarkdown: (worktreePath) => {
 					const { showRenderedMarkdown } = get();
 					set({
@@ -132,6 +128,10 @@ export const useChangesStore = create<ChangesState>()(
 					set({ hideUnchangedRegions: !get().hideUnchangedRegions });
 				},
 
+				toggleFocusMode: () => {
+					set({ focusMode: !get().focusMode });
+				},
+
 				reset: (worktreePath) => {
 					const { selectedFiles } = get();
 					set({
@@ -144,14 +144,22 @@ export const useChangesStore = create<ChangesState>()(
 			}),
 			{
 				name: "changes-store",
+				version: 2,
+				migrate: (persisted, version) => {
+					const state = persisted as Record<string, unknown>;
+					if (version < 2) {
+						delete state.baseBranch;
+					}
+					return state as unknown as ChangesState;
+				},
 				partialize: (state) => ({
 					selectedFiles: state.selectedFiles,
 					viewMode: state.viewMode,
 					fileListViewMode: state.fileListViewMode,
 					expandedSections: state.expandedSections,
-					baseBranch: state.baseBranch,
 					showRenderedMarkdown: state.showRenderedMarkdown,
 					hideUnchangedRegions: state.hideUnchangedRegions,
+					focusMode: state.focusMode,
 				}),
 			},
 		),

@@ -2,9 +2,12 @@ import { describe, expect, it } from "bun:test";
 import type { MosaicNode } from "react-mosaic-component";
 import type { Tab } from "./types";
 import {
+	buildMultiPaneLayout,
+	createChatMastraPane,
 	findPanePath,
 	getAdjacentPaneId,
 	resolveActiveTabIdForWorkspace,
+	resolveFileViewerMode,
 } from "./utils";
 
 describe("findPanePath", () => {
@@ -288,5 +291,259 @@ describe("resolveActiveTabIdForWorkspace", () => {
 				tabHistoryStacks: { "ws-1": ["tab-x"] },
 			}),
 		).toBeNull();
+	});
+});
+
+describe("buildMultiPaneLayout", () => {
+	it("throws error for empty pane array", () => {
+		expect(() => buildMultiPaneLayout([])).toThrow(
+			"Cannot build layout with zero panes",
+		);
+	});
+
+	it("returns leaf node for single pane", () => {
+		const result = buildMultiPaneLayout(["pane-1"]);
+		expect(result).toBe("pane-1");
+	});
+
+	it("returns horizontal split for two panes", () => {
+		const result = buildMultiPaneLayout(["pane-1", "pane-2"]);
+		expect(result).toEqual({
+			direction: "row",
+			first: "pane-1",
+			second: "pane-2",
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns balanced grid for three panes", () => {
+		const result = buildMultiPaneLayout(["pane-1", "pane-2", "pane-3"]);
+		expect(result).toEqual({
+			direction: "column",
+			first: {
+				direction: "row",
+				first: "pane-1",
+				second: "pane-2",
+				splitPercentage: 50,
+			},
+			second: "pane-3",
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns 2x2 grid for four panes", () => {
+		const result = buildMultiPaneLayout([
+			"pane-1",
+			"pane-2",
+			"pane-3",
+			"pane-4",
+		]);
+		expect(result).toEqual({
+			direction: "column",
+			first: {
+				direction: "row",
+				first: "pane-1",
+				second: "pane-2",
+				splitPercentage: 50,
+			},
+			second: {
+				direction: "row",
+				first: "pane-3",
+				second: "pane-4",
+				splitPercentage: 50,
+			},
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns balanced nested layout for five panes", () => {
+		const result = buildMultiPaneLayout([
+			"pane-1",
+			"pane-2",
+			"pane-3",
+			"pane-4",
+			"pane-5",
+		]);
+		expect(result).toEqual({
+			direction: "column",
+			first: {
+				direction: "row",
+				first: {
+					direction: "row",
+					first: "pane-1",
+					second: "pane-2",
+					splitPercentage: 50,
+				},
+				second: "pane-3",
+				splitPercentage: 50,
+			},
+			second: {
+				direction: "row",
+				first: "pane-4",
+				second: "pane-5",
+				splitPercentage: 50,
+			},
+			splitPercentage: 50,
+		});
+	});
+
+	it("returns row-first layout when direction is row", () => {
+		const result = buildMultiPaneLayout(["pane-1", "pane-2", "pane-3"], "row");
+		expect(result).toEqual({
+			direction: "row",
+			first: {
+				direction: "row",
+				first: "pane-1",
+				second: "pane-2",
+				splitPercentage: 50,
+			},
+			second: "pane-3",
+			splitPercentage: 50,
+		});
+	});
+});
+
+describe("resolveFileViewerMode", () => {
+	it("returns diff for modified file with diffCategory", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/app.ts",
+				diffCategory: "unstaged",
+				fileStatus: "modified",
+			}),
+		).toBe("diff");
+	});
+
+	it("returns raw for added file with diffCategory", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/new-file.ts",
+				diffCategory: "staged",
+				fileStatus: "added",
+			}),
+		).toBe("raw");
+	});
+
+	it("returns raw for untracked file with diffCategory", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/untracked.ts",
+				diffCategory: "unstaged",
+				fileStatus: "untracked",
+			}),
+		).toBe("raw");
+	});
+
+	it("returns rendered for added markdown with diffCategory", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "docs/README.md",
+				diffCategory: "staged",
+				fileStatus: "added",
+			}),
+		).toBe("rendered");
+	});
+
+	it("returns diff for renamed file with diffCategory", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/renamed.ts",
+				diffCategory: "committed",
+				fileStatus: "renamed",
+			}),
+		).toBe("diff");
+	});
+
+	it("returns diff for copied file with diffCategory", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/copied.ts",
+				diffCategory: "committed",
+				fileStatus: "copied",
+			}),
+		).toBe("diff");
+	});
+
+	it("returns diff for deleted file with diffCategory", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/removed.ts",
+				diffCategory: "staged",
+				fileStatus: "deleted",
+			}),
+		).toBe("diff");
+	});
+
+	it("returns diff when fileStatus is undefined (backward compat)", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/file.ts",
+				diffCategory: "unstaged",
+			}),
+		).toBe("diff");
+	});
+
+	it("returns raw when no diffCategory and not renderable", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/file.ts",
+			}),
+		).toBe("raw");
+	});
+
+	it("returns rendered when no diffCategory and file is markdown", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "README.md",
+			}),
+		).toBe("rendered");
+	});
+
+	it("returns rendered for image files regardless of other options", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "assets/logo.png",
+				diffCategory: "unstaged",
+				fileStatus: "modified",
+			}),
+		).toBe("rendered");
+	});
+
+	it("respects explicit viewMode override", () => {
+		expect(
+			resolveFileViewerMode({
+				filePath: "src/file.ts",
+				diffCategory: "unstaged",
+				fileStatus: "added",
+				viewMode: "diff",
+			}),
+		).toBe("diff");
+	});
+});
+
+describe("createChatMastraPane", () => {
+	it("seeds a session id when the pane is created", () => {
+		const pane = createChatMastraPane("tab-1");
+
+		expect(pane.type).toBe("chat-mastra");
+		expect(typeof pane.chatMastra?.sessionId).toBe("string");
+		expect((pane.chatMastra?.sessionId ?? "").length).toBeGreaterThan(0);
+		expect(pane.chatMastra?.launchConfig ?? null).toBeNull();
+	});
+
+	it("stores launch config when provided", () => {
+		const pane = createChatMastraPane("tab-1", {
+			launchConfig: {
+				initialPrompt: "hello",
+				metadata: { model: "gpt-5" },
+				retryCount: 2,
+			},
+		});
+
+		expect(pane.chatMastra?.launchConfig).toEqual({
+			initialPrompt: "hello",
+			metadata: { model: "gpt-5" },
+			retryCount: 2,
+		});
 	});
 });

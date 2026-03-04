@@ -3,7 +3,7 @@ import { createEnv } from "@t3-oss/env-core";
 import { config } from "dotenv";
 import { z } from "zod";
 
-config({ path: path.resolve(process.cwd(), "../../../.env") });
+config({ path: path.resolve(process.cwd(), "../../../.env"), quiet: true });
 
 export const env = createEnv({
 	server: {
@@ -19,6 +19,8 @@ export const env = createEnv({
 		STRIPE_WEBHOOK_SECRET: z.string(),
 		STRIPE_PRO_MONTHLY_PRICE_ID: z.string(),
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
+		QSTASH_TOKEN: z.string().min(1),
+		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 	},
 	clientPrefix: "NEXT_PUBLIC_",
 	client: {

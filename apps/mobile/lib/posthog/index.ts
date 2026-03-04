@@ -1,0 +1,1 @@
+export { posthogConfig } from "./client";

@@ -13,8 +13,13 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { HeadlessEmulator, modesEqual } from "./headless-emulator";
 import { DEFAULT_MODES } from "./types";
+
+if (typeof window === "undefined") {
+	(globalThis as Record<string, unknown>).window = globalThis;
+}
+
+const { HeadlessEmulator, modesEqual } = await import("./headless-emulator");
 
 // Escape sequences for testing
 const ESC = "\x1b";
@@ -45,7 +50,7 @@ const CLEAR_SCREEN = `${CSI}2J`;
 const OSC7_CWD = (path: string) => `${OSC}7;file://localhost${path}${BEL}`;
 
 describe("HeadlessEmulator", () => {
-	let emulator: HeadlessEmulator;
+	let emulator: InstanceType<typeof HeadlessEmulator>;
 
 	beforeEach(() => {
 		emulator = new HeadlessEmulator({ cols: 80, rows: 24, scrollback: 1000 });
@@ -521,7 +526,7 @@ describe("Edge Cases", () => {
 
 // Helper function to apply snapshot asynchronously
 async function applySnapshotAsync(
-	emulator: HeadlessEmulator,
+	emulator: InstanceType<typeof HeadlessEmulator>,
 	snapshot: { rehydrateSequences: string; snapshotAnsi: string },
 ): Promise<void> {
 	await emulator.writeSync(snapshot.rehydrateSequences);

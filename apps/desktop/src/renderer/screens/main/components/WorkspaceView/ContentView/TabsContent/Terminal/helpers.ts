@@ -1,8 +1,8 @@
 import { toast } from "@superset/ui/sonner";
-import { CanvasAddon } from "@xterm/addon-canvas";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
+import { LigaturesAddon } from "@xterm/addon-ligatures";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
@@ -11,7 +11,12 @@ import { debounce } from "lodash";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
-import { isTerminalReservedEvent, matchesHotkeyEvent } from "shared/hotkeys";
+import {
+	getCurrentPlatform,
+	hotkeyFromKeyboardEvent,
+	isTerminalReservedEvent,
+	matchesHotkeyEvent,
+} from "shared/hotkeys";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -47,7 +52,7 @@ export function getDefaultTerminalTheme(): ITheme {
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
 		? toXtermTheme(getTerminalColors(defaultTheme))
-		: { background: "#1a1a1a", foreground: "#d4d4d4" };
+		: { background: "#151110", foreground: "#eae8e6" };
 }
 
 /**
@@ -55,38 +60,53 @@ export function getDefaultTerminalTheme(): ITheme {
  * This reads from localStorage before store hydration to prevent flash.
  */
 export function getDefaultTerminalBg(): string {
-	return getDefaultTerminalTheme().background ?? "#1a1a1a";
+	return getDefaultTerminalTheme().background ?? "#151110";
 }
 
 /**
  * Load GPU-accelerated renderer with automatic fallback.
- * Tries WebGL first, falls back to Canvas if WebGL fails.
+ * Tries WebGL first, falls back to DOM if WebGL fails.
+ * This follows VS Code's approach: WebGL → DOM (canvas addon removed in xterm.js 6.0).
  */
 export type TerminalRenderer = {
-	kind: "webgl" | "canvas" | "dom";
+	kind: "webgl" | "dom";
 	dispose: () => void;
 	clearTextureAtlas?: () => void;
 };
 
 type PreferredRenderer = TerminalRenderer["kind"] | "auto";
 
+// Track WebGL failures globally to avoid repeated initialization attempts (VS Code pattern)
+let suggestedRendererType: TerminalRenderer["kind"] | undefined;
+
 function getPreferredRenderer(): PreferredRenderer {
+	// If WebGL previously failed, don't try again
+	if (suggestedRendererType === "dom") {
+		return "dom";
+	}
+
 	try {
 		const stored = localStorage.getItem("terminal-renderer");
-		if (stored === "webgl" || stored === "canvas" || stored === "dom") {
+		if (stored === "webgl" || stored === "dom") {
 			return stored;
+		}
+		if (stored === "canvas") {
+			// Canvas renderer was removed in xterm.js 6.0; fall back to DOM.
+			try {
+				localStorage.setItem("terminal-renderer", "dom");
+			} catch {
+				// ignore storage errors
+			}
+			return "dom";
 		}
 	} catch {
 		// ignore
 	}
 
-	// Default: avoid xterm-webgl on macOS. We've seen repeated corruption/glitching
-	// when terminals are hidden/shown or switched between panes.
-	return navigator.userAgent.includes("Macintosh") ? "canvas" : "webgl";
+	return "auto";
 }
 
 function loadRenderer(xterm: XTerm): TerminalRenderer {
-	let renderer: WebglAddon | CanvasAddon | null = null;
 	let webglAddon: WebglAddon | null = null;
 	let kind: TerminalRenderer["kind"] = "dom";
 
@@ -96,54 +116,35 @@ function loadRenderer(xterm: XTerm): TerminalRenderer {
 		return { kind: "dom", dispose: () => {}, clearTextureAtlas: undefined };
 	}
 
-	const tryLoadCanvas = () => {
-		try {
-			renderer = new CanvasAddon();
-			xterm.loadAddon(renderer);
-			kind = "canvas";
-		} catch {
-			// Canvas fallback failed, use default renderer
-		}
-	};
-
-	if (preferred === "canvas") {
-		tryLoadCanvas();
-		return {
-			kind,
-			dispose: () => renderer?.dispose(),
-			clearTextureAtlas: undefined,
-		};
-	}
-
 	try {
 		webglAddon = new WebglAddon();
 
 		webglAddon.onContextLoss(() => {
+			console.warn(
+				"[Terminal] WebGL context lost, falling back to DOM renderer",
+			);
 			webglAddon?.dispose();
 			webglAddon = null;
-			try {
-				renderer = new CanvasAddon();
-				xterm.loadAddon(renderer);
-				kind = "canvas";
-				// Force refresh after context loss recovery
-				xterm.refresh(0, xterm.rows - 1);
-			} catch {
-				// Canvas fallback failed, use default renderer
-				renderer = null;
-				kind = "dom";
-			}
+			kind = "dom";
+			// Force refresh after context loss
+			xterm.refresh(0, xterm.rows - 1);
 		});
 
 		xterm.loadAddon(webglAddon);
-		renderer = webglAddon;
 		kind = "webgl";
-	} catch {
-		tryLoadCanvas();
+	} catch (e) {
+		console.warn(
+			"[Terminal] WebGL could not be loaded, falling back to DOM renderer",
+			e,
+		);
+		suggestedRendererType = "dom";
+		webglAddon = null;
+		kind = "dom";
 	}
 
 	return {
 		kind,
-		dispose: () => renderer?.dispose(),
+		dispose: () => webglAddon?.dispose(),
 		clearTextureAtlas: webglAddon
 			? () => {
 					try {
@@ -160,6 +161,7 @@ export interface CreateTerminalOptions {
 	cwd?: string;
 	initialTheme?: ITheme | null;
 	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
+	onUrlClickRef?: { current: ((url: string) => void) | undefined };
 }
 
 /**
@@ -179,7 +181,12 @@ export function createTerminalInstance(
 	renderer: TerminalRendererRef;
 	cleanup: () => void;
 } {
-	const { cwd, initialTheme, onFileLinkClick } = options;
+	const {
+		cwd,
+		initialTheme,
+		onFileLinkClick,
+		onUrlClickRef: urlClickRef,
+	} = options;
 
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
@@ -215,31 +222,33 @@ export function createTerminalInstance(
 
 	// Defer GPU renderer loading to next animation frame.
 	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
-	// the renderer to be ready. Loading WebGL/Canvas immediately after open() can
-	// cause a race condition where the setTimeout fires during addon initialization,
-	// when _renderer is temporarily undefined (old renderer disposed, new not yet set).
+	// the renderer to be ready. Loading WebGL immediately after open() can cause a
+	// race condition where the setTimeout fires during addon initialization, when
+	// _renderer is temporarily undefined (old renderer disposed, new not yet set).
 	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
-	// default DOM renderer, then we safely swap to WebGL/Canvas.
+	// default DOM renderer, then we safely swap to WebGL.
 	rafId = requestAnimationFrame(() => {
 		rafId = null;
 		if (isDisposed) return;
 		rendererRef.current = loadRenderer(xterm);
 	});
 
-	import("@xterm/addon-ligatures")
-		.then(({ LigaturesAddon }) => {
-			if (isDisposed) return;
-			try {
-				xterm.loadAddon(new LigaturesAddon());
-			} catch {
-				// Ligatures not supported by current font
-			}
-		})
-		.catch(() => {});
+	try {
+		if (!isDisposed) {
+			xterm.loadAddon(new LigaturesAddon());
+		}
+	} catch {
+		// Ligatures not supported by current font
+	}
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
+		const handler = urlClickRef?.current;
+		if (handler) {
+			handler(uri);
+			return;
+		}
 		trpcClient.external.openUrl.mutate(uri).catch((error) => {
 			console.error("[Terminal] Failed to open URL:", uri, error);
 			toast.error("Failed to open URL", {
@@ -314,6 +323,50 @@ export interface PasteHandlerOptions {
 }
 
 /**
+ * Setup copy handler for xterm to trim trailing whitespace from copied text.
+ *
+ * Terminal emulators fill lines with whitespace to pad to the terminal width.
+ * When copying text, this results in unwanted trailing spaces on each line.
+ * This handler intercepts copy events and trims trailing whitespace from each
+ * line before writing to the clipboard.
+ *
+ * Returns a cleanup function to remove the handler.
+ */
+export function setupCopyHandler(xterm: XTerm): () => void {
+	const element = xterm.element;
+	if (!element) return () => {};
+
+	const handleCopy = (event: ClipboardEvent) => {
+		const selection = xterm.getSelection();
+		if (!selection) return;
+
+		// Trim trailing whitespace from each line while preserving intentional newlines
+		const trimmedText = selection
+			.split("\n")
+			.map((line) => line.trimEnd())
+			.join("\n");
+
+		// On Linux/Wayland in Electron, clipboardData can be null for copy events.
+		// Only cancel default behavior when we can write directly to event clipboardData.
+		if (event.clipboardData) {
+			event.preventDefault();
+			event.clipboardData.setData("text/plain", trimmedText);
+			return;
+		}
+
+		// Fallback path when clipboardData is unavailable.
+		// Keep default browser copy behavior and best-effort write trimmed text.
+		void navigator.clipboard?.writeText(trimmedText).catch(() => {});
+	};
+
+	element.addEventListener("copy", handleCopy);
+
+	return () => {
+		element.removeEventListener("copy", handleCopy);
+	};
+}
+
+/**
  * Setup paste handler for xterm to ensure bracketed paste mode works correctly.
  *
  * xterm.js's built-in paste handling via the textarea should work, but in some
@@ -336,9 +389,28 @@ export function setupPasteHandler(
 
 	let cancelActivePaste: (() => void) | null = null;
 
+	const shouldForwardCtrlVForNonTextPaste = (
+		event: ClipboardEvent,
+		text: string,
+	): boolean => {
+		if (text) return false;
+		const types = Array.from(event.clipboardData?.types ?? []);
+		if (types.length === 0) return false;
+		return types.some((type) => type !== "text/plain");
+	};
+
 	const handlePaste = (event: ClipboardEvent) => {
-		const text = event.clipboardData?.getData("text/plain");
-		if (!text) return;
+		const text = event.clipboardData?.getData("text/plain") ?? "";
+		if (!text) {
+			// Match terminal behavior like iTerm's "Paste or send ^V":
+			// when clipboard has non-text payloads but no plain text, forward Ctrl+V.
+			if (options.onWrite && shouldForwardCtrlVForNonTextPaste(event, text)) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				options.onWrite("\x16");
+			}
+			return;
+		}
 
 		event.preventDefault();
 		event.stopImmediatePropagation();
@@ -454,6 +526,11 @@ export function setupKeyboardHandler(
 	xterm: XTerm,
 	options: KeyboardHandlerOptions = {},
 ): () => void {
+	const platform =
+		typeof navigator !== "undefined" ? navigator.platform.toLowerCase() : "";
+	const isMac = platform.includes("mac");
+	const isWindows = platform.includes("win");
+
 	const handler = (event: KeyboardEvent): boolean => {
 		const isShiftEnter =
 			event.key === "Enter" &&
@@ -464,6 +541,7 @@ export function setupKeyboardHandler(
 
 		if (isShiftEnter) {
 			if (event.type === "keydown" && options.onShiftEnter) {
+				event.preventDefault();
 				options.onShiftEnter();
 			}
 			return false;
@@ -478,7 +556,103 @@ export function setupKeyboardHandler(
 
 		if (isCmdBackspace) {
 			if (event.type === "keydown" && options.onWrite) {
+				event.preventDefault();
 				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
+			}
+			return false;
+		}
+
+		// Cmd+Left: Move cursor to beginning of line (sends Ctrl+A)
+		const isCmdLeft =
+			event.key === "ArrowLeft" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdLeft) {
+			if (event.type === "keydown" && options.onWrite) {
+				event.preventDefault();
+				options.onWrite("\x01"); // Ctrl+A - beginning of line
+			}
+			return false;
+		}
+
+		// Cmd+Right: Move cursor to end of line (sends Ctrl+E)
+		const isCmdRight =
+			event.key === "ArrowRight" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdRight) {
+			if (event.type === "keydown" && options.onWrite) {
+				event.preventDefault();
+				options.onWrite("\x05"); // Ctrl+E - end of line
+			}
+			return false;
+		}
+
+		// Option+Left/Right (macOS): word navigation (Meta+B / Meta+F)
+		const isOptionLeft =
+			event.key === "ArrowLeft" &&
+			event.altKey &&
+			isMac &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.shiftKey;
+
+		if (isOptionLeft) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1bb"); // Meta+B - backward word
+			}
+			return false;
+		}
+
+		// Option+Right: Move cursor forward by word (Meta+F)
+		const isOptionRight =
+			event.key === "ArrowRight" &&
+			event.altKey &&
+			isMac &&
+			!event.metaKey &&
+			!event.ctrlKey &&
+			!event.shiftKey;
+
+		if (isOptionRight) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1bf"); // Meta+F - forward word
+			}
+			return false;
+		}
+
+		// Ctrl+Left/Right (Windows): word navigation (Meta+B / Meta+F)
+		const isCtrlLeft =
+			event.key === "ArrowLeft" &&
+			event.ctrlKey &&
+			isWindows &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCtrlLeft) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1bb"); // Meta+B - backward word
+			}
+			return false;
+		}
+
+		const isCtrlRight =
+			event.key === "ArrowRight" &&
+			event.ctrlKey &&
+			isWindows &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCtrlRight) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x1bf"); // Meta+F - forward word
 			}
 			return false;
 		}
@@ -497,7 +671,11 @@ export function setupKeyboardHandler(
 		}
 
 		if (event.type !== "keydown") return true;
-		if (!event.metaKey && !event.ctrlKey) return true;
+		const potentialHotkey = hotkeyFromKeyboardEvent(
+			event,
+			getCurrentPlatform(),
+		);
+		if (!potentialHotkey) return true;
 
 		if (isAppHotkeyEvent(event)) {
 			// Return false to prevent xterm from processing the key.

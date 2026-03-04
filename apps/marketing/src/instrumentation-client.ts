@@ -16,6 +16,7 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	cross_subdomain_cookie: true,
 	persistence: "cookie",
 	persistence_name: POSTHOG_COOKIE_NAME,
+	disable_session_recording: true,
 	loaded: (posthog) => {
 		posthog.register({
 			app_name: "marketing",

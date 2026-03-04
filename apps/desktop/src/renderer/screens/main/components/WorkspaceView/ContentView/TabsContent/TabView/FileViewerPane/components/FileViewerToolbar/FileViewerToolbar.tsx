@@ -1,6 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useState } from "react";
 import {
 	TbFold,
 	TbLayoutSidebarRightFilled,
@@ -14,11 +15,14 @@ import type { SplitOrientation } from "../../../hooks";
 
 interface FileViewerToolbarProps {
 	fileName: string;
+	filePath: string;
 	isDirty: boolean;
 	viewMode: FileViewerMode;
 	/** If false, this is a preview pane (italic name, can be replaced) */
 	isPinned: boolean;
-	isMarkdown: boolean;
+	/** Show Rendered tab (for markdown/images) */
+	hasRenderedMode: boolean;
+	/** Show Changes tab (when file has diff) */
 	hasDiff: boolean;
 	splitOrientation: SplitOrientation;
 	diffViewMode: DiffViewMode;
@@ -34,10 +38,11 @@ interface FileViewerToolbarProps {
 
 export function FileViewerToolbar({
 	fileName,
+	filePath,
 	isDirty,
 	viewMode,
 	isPinned,
-	isMarkdown,
+	hasRenderedMode,
 	hasDiff,
 	splitOrientation,
 	diffViewMode,
@@ -49,30 +54,34 @@ export function FileViewerToolbar({
 	onPin,
 	onClosePane,
 }: FileViewerToolbarProps) {
+	const [copied, setCopied] = useState(false);
+
+	const handleCopyPath = () => {
+		navigator.clipboard.writeText(filePath);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 1500);
+	};
 	return (
 		<div className="flex h-full w-full items-center justify-between px-3">
 			<div className="flex min-w-0 items-center gap-2">
-				<span
-					className={cn(
-						"truncate text-xs text-muted-foreground",
-						!isPinned && "italic",
-					)}
-				>
-					{isDirty && <span className="text-amber-500 mr-1">●</span>}
-					{fileName}
-				</span>
-				{!isPinned && (
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<span className="text-[10px] text-muted-foreground/50 cursor-default">
-								preview
-							</span>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							Click again or double-click to pin
-						</TooltipContent>
-					</Tooltip>
-				)}
+				<Tooltip open={copied ? true : undefined}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleCopyPath}
+							className={cn(
+								"truncate text-xs text-muted-foreground hover:text-foreground transition-colors text-left",
+								!isPinned && "italic",
+							)}
+						>
+							{isDirty && <span className="text-amber-500 mr-1">●</span>}
+							{fileName}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						{copied ? "Copied!" : "Click to copy path"}
+					</TooltipContent>
+				</Tooltip>
 			</div>
 			<div className="flex items-center gap-1">
 				<ToggleGroup
@@ -82,7 +91,7 @@ export function FileViewerToolbar({
 					size="sm"
 					className="h-5 bg-muted/50 rounded-md"
 				>
-					{isMarkdown && (
+					{hasRenderedMode && (
 						<ToggleGroupItem
 							value="rendered"
 							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
@@ -101,7 +110,7 @@ export function FileViewerToolbar({
 							value="diff"
 							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
 						>
-							Diff
+							Changes
 						</ToggleGroupItem>
 					)}
 				</ToggleGroup>

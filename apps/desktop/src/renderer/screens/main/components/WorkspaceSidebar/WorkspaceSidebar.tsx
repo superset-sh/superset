@@ -2,16 +2,21 @@ import { useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
+import { SetupScriptCard } from "./SetupScriptCard";
 import { SidebarDropZone } from "./SidebarDropZone";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
 import { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
 
 interface WorkspaceSidebarProps {
 	isCollapsed?: boolean;
+	activeProjectId: string | null;
+	activeProjectName: string | null;
 }
 
 export function WorkspaceSidebar({
 	isCollapsed = false,
+	activeProjectId,
+	activeProjectName,
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
 
@@ -29,7 +34,7 @@ export function WorkspaceSidebar({
 	);
 
 	return (
-		<SidebarDropZone className="flex flex-col h-full bg-background">
+		<SidebarDropZone className="flex flex-col h-full bg-muted/45 dark:bg-muted/35">
 			<WorkspaceSidebarHeader isCollapsed={isCollapsed} />
 
 			<div className="flex-1 overflow-y-auto hide-scrollbar">
@@ -41,6 +46,8 @@ export function WorkspaceSidebar({
 						projectColor={group.project.color}
 						githubOwner={group.project.githubOwner}
 						mainRepoPath={group.project.mainRepoPath}
+						hideImage={group.project.hideImage}
+						iconUrl={group.project.iconUrl}
 						workspaces={group.workspaces}
 						shortcutBaseIndex={projectShortcutIndices[index]}
 						index={index}
@@ -59,6 +66,12 @@ export function WorkspaceSidebar({
 			</div>
 
 			{!isCollapsed && <PortsList />}
+
+			<SetupScriptCard
+				isCollapsed={isCollapsed}
+				projectId={activeProjectId}
+				projectName={activeProjectName}
+			/>
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 		</SidebarDropZone>

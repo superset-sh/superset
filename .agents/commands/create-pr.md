@@ -275,7 +275,7 @@ For PRs bundling multiple features, use Part headers to organize (like PR #559):
     - `bun run lint` (required)
     - `bun test` (required)
     - `bun run lint:check-node-imports` (when touching Desktop renderer/shared)
-    - `bun turbo run build --filter=@superset/desktop --filter=@superset/cli` (when touching Desktop/CLI)
+    - `bun turbo run build --filter=@superset/desktop` (when touching Desktop)
 
     ## Design Decisions
     - **Why X instead of Y**: ...
