@@ -46,6 +46,7 @@ import {
 	type WriteRequest,
 } from "../lib/terminal-host/types";
 import { TerminalHost } from "./terminal-host";
+import { recordTransientErrorInWindow } from "./transient-error-window";
 
 // =============================================================================
 // Configuration
@@ -802,8 +803,13 @@ async function stopServer(): Promise<void> {
  */
 const TRANSIENT_ERROR_CODES = ["ENOSPC", "ENOMEM", "EMFILE", "ENFILE"];
 
-/** After this many consecutive transient errors, give up and shut down. */
+/** After this many transient errors inside the sliding window, shut down. */
 const MAX_TRANSIENT_ERRORS = 50;
+/** Sliding window duration for transient error rate limiting. */
+const TRANSIENT_ERROR_WINDOW_MS = 60_000;
+const TRANSIENT_ERROR_WINDOW_SECONDS = Math.floor(
+	TRANSIENT_ERROR_WINDOW_MS / 1000,
+);
 
 function isTransientError(error: unknown): boolean {
 	if (error instanceof Error) {
@@ -827,7 +833,7 @@ function setupSignalHandlers() {
 	process.on("SIGTERM", () => shutdown("SIGTERM"));
 	process.on("SIGHUP", () => shutdown("SIGHUP"));
 
-	let transientErrorCount = 0;
+	const transientErrorTimestamps: number[] = [];
 	let isShuttingDown = false;
 	let forceExitTimer: NodeJS.Timeout | null = null;
 
@@ -860,17 +866,22 @@ function setupSignalHandlers() {
 		const transient = isTransientError(error);
 
 		if (transient) {
-			transientErrorCount++;
+			const transientErrorCount = recordTransientErrorInWindow(
+				transientErrorTimestamps,
+				Date.now(),
+				TRANSIENT_ERROR_WINDOW_MS,
+			);
 			log(
 				"warn",
 				`Transient uncaught error #${transientErrorCount}/${MAX_TRANSIENT_ERRORS} ` +
+					`in last ${TRANSIENT_ERROR_WINDOW_SECONDS}s ` +
 					`(${(error as NodeJS.ErrnoException).code ?? error.message.split(",")[0]}), ` +
 					`keeping sessions alive`,
 			);
 			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
 				log(
 					"error",
-					"Too many consecutive transient errors, shutting down",
+					`Too many transient errors in ${TRANSIENT_ERROR_WINDOW_SECONDS}s window, shutting down`,
 				);
 				fatalShutdown();
 			}
@@ -878,7 +889,6 @@ function setupSignalHandlers() {
 		}
 
 		// Non-transient: log at error level and shut down
-		transientErrorCount = 0;
 		log("error", "Uncaught exception", {
 			error: error.message,
 			stack: error.stack,
@@ -892,23 +902,27 @@ function setupSignalHandlers() {
 		const transient = isTransientError(reason);
 
 		if (transient) {
-			transientErrorCount++;
+			const transientErrorCount = recordTransientErrorInWindow(
+				transientErrorTimestamps,
+				Date.now(),
+				TRANSIENT_ERROR_WINDOW_MS,
+			);
 			log(
 				"warn",
 				`Transient unhandled rejection #${transientErrorCount}/${MAX_TRANSIENT_ERRORS}, ` +
+					`in last ${TRANSIENT_ERROR_WINDOW_SECONDS}s, ` +
 					`keeping sessions alive`,
 			);
 			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
 				log(
 					"error",
-					`Too many consecutive transient rejections (${transientErrorCount}/${MAX_TRANSIENT_ERRORS}), shutting down`,
+					`Too many transient rejections in ${TRANSIENT_ERROR_WINDOW_SECONDS}s window (${transientErrorCount}/${MAX_TRANSIENT_ERRORS}), shutting down`,
 				);
 				fatalShutdown();
 			}
 			return;
 		}
 
-		transientErrorCount = 0;
 		log("error", "Unhandled rejection", { reason });
 		fatalShutdown();
 	});
