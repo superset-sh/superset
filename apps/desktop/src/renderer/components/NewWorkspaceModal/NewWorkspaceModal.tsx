@@ -15,7 +15,10 @@ import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { resolveEffectiveWorkspaceBaseBranch } from "renderer/lib/workspaceBaseBranch";
 import { useOpenProject } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateWorkspace,
+	useUpdateWorkspace,
+} from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -99,6 +102,8 @@ export function NewWorkspaceModal() {
 		resolveInitialCommands: (commands) =>
 			runSetupScriptRef.current ? commands : null,
 	});
+	const updateWorkspace = useUpdateWorkspace();
+	const generateName = electronTrpc.workspaces.generateName.useMutation();
 	const { openNew } = useOpenProject();
 	const selectableAgents =
 		STARTABLE_AGENT_TYPES as readonly StartableAgentType[];
@@ -328,6 +333,20 @@ export function NewWorkspaceModal() {
 					? { agentLaunchRequest: launchRequestTemplate }
 					: undefined,
 			);
+
+			if (prompt && !result.wasExisting) {
+				generateName
+					.mutateAsync({ prompt })
+					.then((res) => {
+						if (res.name) {
+							updateWorkspace.mutate({
+								id: result.workspace.id,
+								patch: { name: res.name, isUnnamed: false },
+							});
+						}
+					})
+					.catch(() => {});
+			}
 
 			const launchRequest = launchRequestTemplate
 				? {

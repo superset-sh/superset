@@ -5,6 +5,7 @@ import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { generateWorkspaceNameFromPrompt } from "../utils/ai-name";
 import { resolveWorkspaceBaseBranch } from "../utils/base-branch";
 import { setBranchBaseConfig } from "../utils/base-branch-config";
 import {
@@ -948,6 +949,13 @@ export const createCreateProcedures = () => {
 					localBranchName,
 					workspaceName,
 				});
+			}),
+
+		generateName: publicProcedure
+			.input(z.object({ prompt: z.string().min(1) }))
+			.mutation(async ({ input }) => {
+				const name = await generateWorkspaceNameFromPrompt(input.prompt);
+				return { name };
 			}),
 
 		importAllWorktrees: publicProcedure

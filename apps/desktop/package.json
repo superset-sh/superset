@@ -34,6 +34,7 @@
 		"test": "bun test"
 	},
 	"dependencies": {
+		"@ai-sdk/anthropic": "^3.0.43",
 		"@ai-sdk/react": "^3.0.0",
 		"@ast-grep/napi": "^0.41.0",
 		"@better-auth/stripe": "1.4.18",
@@ -145,6 +146,7 @@
 		"lowdb": "^7.0.1",
 		"lowlight": "^3.3.0",
 		"lucide-react": "^0.563.0",
+		"@mastra/core": "^1.3.0",
 		"mastracode": "^0.4.0",
 		"monaco-editor": "^0.55.1",
 		"nanoid": "^5.1.6",
