@@ -4,6 +4,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
+import { getWorkspaceTabsToRender } from "./utils";
 
 export function TabsContent() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -27,14 +28,30 @@ export function TabsContent() {
 		return resolvedActiveTabId;
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
-	const tabToRender = useMemo(() => {
-		if (!activeTabId) return null;
-		return allTabs.find((tab) => tab.id === activeTabId) || null;
-	}, [activeTabId, allTabs]);
+	// All workspace tabs are kept mounted so BrowserPane (and its Electron
+	// <webview>) is never unmounted during a tab switch. Inactive tabs are
+	// hidden via CSS — not removed from the DOM — to avoid the webview
+	// reparenting that would trigger a full page reload (#1834).
+	const workspaceTabs = useMemo(
+		() => getWorkspaceTabsToRender(allTabs, activeWorkspaceId),
+		[allTabs, activeWorkspaceId],
+	);
 
 	return (
-		<div className="flex-1 min-h-0 flex overflow-hidden">
-			{tabToRender ? <TabView tab={tabToRender} /> : <EmptyTabView />}
+		<div className="relative flex-1 min-h-0 overflow-hidden">
+			{workspaceTabs.length === 0 ? (
+				<EmptyTabView />
+			) : (
+				workspaceTabs.map((tab) => (
+					<div
+						key={tab.id}
+						className="absolute inset-0 flex"
+						style={{ display: tab.id === activeTabId ? "flex" : "none" }}
+					>
+						<TabView tab={tab} />
+					</div>
+				))
+			)}
 		</div>
 	);
 }
