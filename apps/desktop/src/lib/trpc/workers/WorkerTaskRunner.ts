@@ -226,6 +226,7 @@ export class WorkerTaskRunner {
 
 	private drainQueue(): void {
 		if (this.disposed) return;
+		if (this.queue.length === 0) return;
 		this.ensureWorkerCapacity();
 
 		for (const slot of this.workerSlots.values()) {
@@ -316,8 +317,10 @@ export class WorkerTaskRunner {
 			if (slot && !slot.terminating) {
 				slot.terminating = true;
 				void slot.worker.terminate();
-				this.ensureWorkerCapacity();
-				this.drainQueue();
+				if (this.hasOutstandingWork()) {
+					this.ensureWorkerCapacity();
+					this.drainQueue();
+				}
 			}
 		}
 	}
@@ -333,8 +336,10 @@ export class WorkerTaskRunner {
 			if (slot && !slot.terminating) {
 				slot.terminating = true;
 				void slot.worker.terminate();
-				this.ensureWorkerCapacity();
-				this.drainQueue();
+				if (this.hasOutstandingWork()) {
+					this.ensureWorkerCapacity();
+					this.drainQueue();
+				}
 			}
 		}
 	}
@@ -350,7 +355,7 @@ export class WorkerTaskRunner {
 			this.rejectTask(activeTaskId, error);
 		}
 
-		if (!this.disposed) {
+		if (!this.disposed && this.hasOutstandingWork()) {
 			this.ensureWorkerCapacity();
 			this.drainQueue();
 		}
@@ -431,6 +436,10 @@ export class WorkerTaskRunner {
 			}
 		}
 		return count;
+	}
+
+	private hasOutstandingWork(): boolean {
+		return this.tasks.size > 0 || this.queue.length > 0;
 	}
 }
 
