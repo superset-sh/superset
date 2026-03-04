@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateWorkspace } from "renderer/react-query/workspaces/useUpdateWorkspace";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { toast } from "@superset/ui/sonner";
 
 export function useWorkspaceRename(workspaceId: string, workspaceName: string, isWorktree: boolean = false) {
 	const [isRenaming, setIsRenaming] = useState(false);
@@ -61,11 +62,18 @@ export function useWorkspaceRename(workspaceId: string, workspaceName: string, i
 						);
 						// Kill all running terminal sessions for this workspace in the backend
 						trpcClient.terminal.killDaemonSessionsForWorkspace.mutate({ workspaceId }).catch(console.error);
+						setPendingRename(null);
+						setIsRenaming(false);
+					} else if (renameFolder) {
+						// Folder rename was requested but failed
+						toast.error("Failed to rename worktree folder. Only the workspace name was updated.");
+					} else {
+						// Folder rename was not requested, clear state
+						setPendingRename(null);
+						setIsRenaming(false);
 					}
 				}
 			});
-			setPendingRename(null);
-			setIsRenaming(false);
 		}
 	};
 
