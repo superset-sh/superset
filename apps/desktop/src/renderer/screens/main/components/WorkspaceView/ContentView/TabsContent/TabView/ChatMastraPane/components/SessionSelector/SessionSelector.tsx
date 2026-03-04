@@ -37,20 +37,8 @@ interface SessionGroup {
 
 const SESSION_PAGE_SIZE = 20;
 
-function toCompactLabel(relativeTime: string): string {
-	return relativeTime
-		.replace("just now", "now")
-		.replace("yesterday", "1d ago")
-		.replace(/(\d+)\s+days ago/, "$1d ago")
-		.replace(/(\d+)\s+weeks ago/, "$1w ago")
-		.replace("1 week ago", "1w ago")
-		.replace(/(\d+)\s+months ago/, "$1mo ago")
-		.replace("1 month ago", "1mo ago")
-		.replace("over a year ago", "1y+ ago");
-}
-
 function toSessionGroupLabel(updatedAt: Date): string {
-	return toCompactLabel(getRelativeTime(updatedAt.getTime()));
+	return getRelativeTime(updatedAt.getTime(), { format: "compact" });
 }
 
 function groupSessionsByAge(sessions: SessionItem[]): SessionGroup[] {
