@@ -48,6 +48,7 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	"vscode-insiders": "code-insiders",
 	cursor: "cursor",
 	antigravity: "antigravity",
+	windsurf: "windsurf",
 	zed: "zed",
 	xcode: null, // macOS only
 	iterm: null, // macOS only
@@ -90,8 +91,9 @@ const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
+	platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[] }[] | null {
-	if (process.platform === "darwin") {
+	if (platform === "darwin") {
 		const bundleIds = BUNDLE_ID_CANDIDATES[app];
 		if (bundleIds) {
 			return bundleIds.map((id) => ({

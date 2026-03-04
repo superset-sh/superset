@@ -4,19 +4,24 @@ import path from "node:path";
 import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
 
 describe("getAppCommand", () => {
+	const getMacCommand = (
+		app: Parameters<typeof getAppCommand>[0],
+		targetPath: string,
+	) => getAppCommand(app, targetPath, "darwin");
+
 	test("returns null for finder (handled specially)", () => {
-		expect(getAppCommand("finder", "/path/to/file")).toBeNull();
+		expect(getMacCommand("finder", "/path/to/file")).toBeNull();
 	});
 
 	test("returns single-element array for cursor", () => {
-		const result = getAppCommand("cursor", "/path/to/file");
+		const result = getMacCommand("cursor", "/path/to/file");
 		expect(result).toEqual([
 			{ command: "open", args: ["-a", "Cursor", "/path/to/file"] },
 		]);
 	});
 
 	test("returns single-element array for vscode", () => {
-		const result = getAppCommand("vscode", "/path/to/file");
+		const result = getMacCommand("vscode", "/path/to/file");
 		expect(result).toEqual([
 			{
 				command: "open",
@@ -26,42 +31,42 @@ describe("getAppCommand", () => {
 	});
 
 	test("returns single-element array for sublime", () => {
-		const result = getAppCommand("sublime", "/path/to/file");
+		const result = getMacCommand("sublime", "/path/to/file");
 		expect(result).toEqual([
 			{ command: "open", args: ["-a", "Sublime Text", "/path/to/file"] },
 		]);
 	});
 
 	test("returns single-element array for xcode", () => {
-		const result = getAppCommand("xcode", "/path/to/file");
+		const result = getMacCommand("xcode", "/path/to/file");
 		expect(result).toEqual([
 			{ command: "open", args: ["-a", "Xcode", "/path/to/file"] },
 		]);
 	});
 
 	test("returns single-element array for iterm", () => {
-		const result = getAppCommand("iterm", "/path/to/file");
+		const result = getMacCommand("iterm", "/path/to/file");
 		expect(result).toEqual([
 			{ command: "open", args: ["-a", "iTerm", "/path/to/file"] },
 		]);
 	});
 
 	test("returns single-element array for warp", () => {
-		const result = getAppCommand("warp", "/path/to/file");
+		const result = getMacCommand("warp", "/path/to/file");
 		expect(result).toEqual([
 			{ command: "open", args: ["-a", "Warp", "/path/to/file"] },
 		]);
 	});
 
 	test("returns single-element array for terminal", () => {
-		const result = getAppCommand("terminal", "/path/to/file");
+		const result = getMacCommand("terminal", "/path/to/file");
 		expect(result).toEqual([
 			{ command: "open", args: ["-a", "Terminal", "/path/to/file"] },
 		]);
 	});
 
 	test("returns single-element array for ghostty", () => {
-		const result = getAppCommand("ghostty", "/path/to/file");
+		const result = getMacCommand("ghostty", "/path/to/file");
 		expect(result).toEqual([
 			{ command: "open", args: ["-a", "Ghostty", "/path/to/file"] },
 		]);
@@ -69,7 +74,7 @@ describe("getAppCommand", () => {
 
 	describe("JetBrains IDEs", () => {
 		test("returns bundle ID candidates for intellij (multi-edition)", () => {
-			const result = getAppCommand("intellij", "/path/to/file");
+			const result = getMacCommand("intellij", "/path/to/file");
 			expect(result).toEqual([
 				{
 					command: "open",
@@ -83,7 +88,7 @@ describe("getAppCommand", () => {
 		});
 
 		test("returns bundle ID candidates for pycharm (multi-edition)", () => {
-			const result = getAppCommand("pycharm", "/path/to/file");
+			const result = getMacCommand("pycharm", "/path/to/file");
 			expect(result).toEqual([
 				{
 					command: "open",
@@ -97,21 +102,21 @@ describe("getAppCommand", () => {
 		});
 
 		test("returns single-element array for webstorm (single-edition)", () => {
-			const result = getAppCommand("webstorm", "/path/to/file");
+			const result = getMacCommand("webstorm", "/path/to/file");
 			expect(result).toEqual([
 				{ command: "open", args: ["-a", "WebStorm", "/path/to/file"] },
 			]);
 		});
 
 		test("returns single-element array for goland (single-edition)", () => {
-			const result = getAppCommand("goland", "/path/to/file");
+			const result = getMacCommand("goland", "/path/to/file");
 			expect(result).toEqual([
 				{ command: "open", args: ["-a", "GoLand", "/path/to/file"] },
 			]);
 		});
 
 		test("returns single-element array for rustrover (single-edition)", () => {
-			const result = getAppCommand("rustrover", "/path/to/file");
+			const result = getMacCommand("rustrover", "/path/to/file");
 			expect(result).toEqual([
 				{ command: "open", args: ["-a", "RustRover", "/path/to/file"] },
 			]);
@@ -119,12 +124,21 @@ describe("getAppCommand", () => {
 	});
 
 	test("preserves paths with spaces", () => {
-		const result = getAppCommand("cursor", "/path/with spaces/file.ts");
+		const result = getMacCommand("cursor", "/path/with spaces/file.ts");
 		expect(result).toEqual([
 			{
 				command: "open",
 				args: ["-a", "Cursor", "/path/with spaces/file.ts"],
 			},
+		]);
+	});
+
+	test("returns Linux command candidates on Linux", () => {
+		const result = getAppCommand("intellij", "/path/to/file", "linux");
+		expect(result).toEqual([
+			{ command: "idea", args: ["/path/to/file"] },
+			{ command: "intellij-idea-ultimate", args: ["/path/to/file"] },
+			{ command: "intellij-idea-community", args: ["/path/to/file"] },
 		]);
 	});
 });
