@@ -263,15 +263,27 @@ export class WorkerTaskRunner {
 		const slot = this.workerSlots.get(slotId);
 		if (!slot) return;
 
-		const response = message as WorkerTaskResponseMessage;
-		if (!response || response.kind !== "result") {
+		if (!this.isWorkerResultMessage(message)) {
+			return;
+		}
+		const response = message;
+
+		if (slot.activeTaskId !== response.taskId) {
+			this.log(
+				`worker ${slot.id} sent unexpected task result ${response.taskId} (active: ${slot.activeTaskId ?? "none"})`,
+			);
 			return;
 		}
 
 		const task = this.tasks.get(response.taskId);
 		if (!task) {
-			slot.activeTaskId = null;
-			this.drainQueue();
+			this.log(
+				`worker ${slot.id} reported result for missing active task ${response.taskId}; recycling worker`,
+			);
+			if (!slot.terminating) {
+				slot.terminating = true;
+				void slot.worker.terminate();
+			}
 			return;
 		}
 
@@ -299,6 +311,29 @@ export class WorkerTaskRunner {
 		}
 
 		this.drainQueue();
+	}
+
+	private isWorkerResultMessage(
+		message: unknown,
+	): message is WorkerTaskResponseMessage {
+		if (!message || typeof message !== "object") return false;
+		const candidate = message as {
+			kind?: unknown;
+			taskId?: unknown;
+			ok?: unknown;
+			error?: unknown;
+		};
+		if (
+			candidate.kind !== "result" ||
+			typeof candidate.taskId !== "string" ||
+			typeof candidate.ok !== "boolean"
+		) {
+			return false;
+		}
+		if (candidate.ok) return true;
+		if (!candidate.error || typeof candidate.error !== "object") return false;
+		const error = candidate.error as Partial<SerializedWorkerError>;
+		return typeof error.name === "string" && typeof error.message === "string";
 	}
 
 	private handleTaskTimeout(taskId: string): void {

@@ -30,6 +30,16 @@ interface TrackingStatus {
 }
 
 const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
+const WORKER_DEBUG = process.env.SUPERSET_WORKER_DEBUG === "1";
+
+function logWorkerWarning(message: string, error: unknown): void {
+	console.warn(`[changes-git-worker] ${message}`, error);
+}
+
+function logWorkerDebug(message: string, error: unknown): void {
+	if (!WORKER_DEBUG) return;
+	logWorkerWarning(message, error);
+}
 
 function isPathWithinWorktree(
 	worktreePath: string,
@@ -62,7 +72,11 @@ async function applyUntrackedLineCount(
 	let worktreeReal: string;
 	try {
 		worktreeReal = await realpath(worktreePath);
-	} catch {
+	} catch (error) {
+		logWorkerWarning(
+			`failed to resolve worktree realpath for line counting: ${worktreePath}`,
+			error,
+		);
 		return;
 	}
 
@@ -74,10 +88,10 @@ async function applyUntrackedLineCount(
 			const fileReal = await realpath(absolutePath);
 			if (!isPathWithinWorktree(worktreeReal, fileReal)) continue;
 
-			const stats = await stat(absolutePath);
-			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
+			const stats = await stat(fileReal);
+			if (!stats.isFile() || stats.size > MAX_LINE_COUNT_SIZE) continue;
 
-			const content = await readFile(absolutePath, "utf-8");
+			const content = await readFile(fileReal, "utf-8");
 			const lineCount =
 				content === ""
 					? 0
@@ -86,7 +100,12 @@ async function applyUntrackedLineCount(
 						: content.split(/\r?\n/).length;
 			file.additions = lineCount;
 			file.deletions = 0;
-		} catch {}
+		} catch (error) {
+			logWorkerDebug(
+				`failed untracked line count for "${file.path}" in "${worktreePath}"`,
+				error,
+			);
+		}
 	}
 }
 
@@ -131,7 +150,12 @@ async function getBranchComparison(
 				`origin/${defaultBranch}...HEAD`,
 			]);
 		}
-	} catch {}
+	} catch (error) {
+		logWorkerDebug(
+			`failed to compute branch comparison against ${defaultBranch}`,
+			error,
+		);
+	}
 
 	return { commits, againstBase, ahead, behind };
 }
@@ -161,7 +185,8 @@ async function getTrackingBranchStatus(
 			pullCount: Number.parseInt(pullStr || "0", 10),
 			hasUpstream: true,
 		};
-	} catch {
+	} catch (error) {
+		logWorkerDebug("failed to compute tracking branch status", error);
 		return { pushCount: 0, pullCount: 0, hasUpstream: false };
 	}
 }

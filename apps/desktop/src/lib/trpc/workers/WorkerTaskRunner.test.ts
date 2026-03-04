@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { EventEmitter } from "node:events";
 
-type WorkerBehavior = "boot-fail" | "fail-on-task" | "success";
+type WorkerBehavior =
+	| "boot-fail"
+	| "fail-on-task"
+	| "mismatched-only"
+	| "success";
 
 let behaviors: WorkerBehavior[] = [];
 let defaultBehavior: WorkerBehavior = "success";
@@ -42,6 +46,19 @@ class MockWorker extends EventEmitter {
 				if (this.terminated) return;
 				this.emit("error", new Error("Mock worker crashed while processing"));
 				this.emit("exit", 1);
+			});
+			return;
+		}
+
+		if (this.behavior === "mismatched-only") {
+			queueMicrotask(() => {
+				if (this.terminated) return;
+				this.emit("message", {
+					kind: "result",
+					taskId: `unexpected-${taskId}`,
+					ok: true,
+					result: { workerId: this.id },
+				});
 			});
 			return;
 		}
@@ -125,5 +142,45 @@ describe("WorkerTaskRunner failure handling", () => {
 		await expect(second).resolves.toEqual({ workerId: 2 });
 		expect(workers.length).toBe(2);
 		await runner.dispose();
+	});
+
+	test("ignores mismatched worker task results without freeing the slot", async () => {
+		defaultBehavior = "mismatched-only";
+		const runner = new WorkerTaskRunner({
+			workerScriptPath: "/mock/worker.js",
+			concurrency: 1,
+		});
+
+		const first = runner.runTask(
+			"status",
+			{ id: "first" },
+			{ timeoutMs: 1_000 },
+		);
+		const second = runner.runTask(
+			"status",
+			{ id: "second" },
+			{ timeoutMs: 1_000 },
+		);
+		await flushMicrotasks(10);
+
+		const state = runner as unknown as {
+			queue: string[];
+			workerSlots: Map<number, { activeTaskId: string | null }>;
+		};
+		expect(state.queue.length).toBe(1);
+		expect([...state.workerSlots.values()][0]?.activeTaskId).not.toBeNull();
+
+		const firstSettled = first.then(
+			() => "resolved" as const,
+			() => "rejected" as const,
+		);
+		const secondSettled = second.then(
+			() => "resolved" as const,
+			() => "rejected" as const,
+		);
+		await runner.dispose();
+
+		await expect(firstSettled).resolves.toBe("rejected");
+		await expect(secondSettled).resolves.toBe("rejected");
 	});
 });
