@@ -1,7 +1,5 @@
-import type { AgentType } from "@superset/shared/agent-command";
 import {
 	type AgentLaunchRequest,
-	STARTABLE_AGENT_LABELS,
 	STARTABLE_AGENT_TYPES,
 	type StartableAgentType,
 } from "@superset/shared/agent-launch";
@@ -16,11 +14,13 @@ import {
 	Select,
 	SelectContent,
 	SelectItem,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
-import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import {
 	getPresetIcon,
@@ -28,12 +28,14 @@ import {
 } from "renderer/assets/app-icons/preset-icons";
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useAgentLaunchAgents } from "renderer/react-query/agent-presets";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import {
 	buildPromptCommandFromAgentPreset,
 	DEFAULT_AGENT_TASK_PROMPT_TEMPLATE,
 	getDefaultAgentPreset,
+	OPEN_AGENT_SETTINGS_OPTION,
 	renderTaskPromptTemplate,
 } from "shared/utils/agent-preset-settings";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
@@ -44,38 +46,21 @@ interface OpenInWorkspaceProps {
 }
 
 export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
+	const navigate = useNavigate();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
-	const { data: agentPresets = [] } =
-		electronTrpc.settings.getAgentPresets.useQuery();
+	const {
+		agentLabels,
+		agentPresetById,
+		fallbackAgent,
+		selectableAgents,
+		selectableAgentSet,
+	} = useAgentLaunchAgents();
 	const createWorkspace = useCreateWorkspace();
 	const terminalCreateOrAttach =
 		electronTrpc.terminal.createOrAttach.useMutation();
 	const terminalWrite = electronTrpc.terminal.write.useMutation();
 	const isDark = useIsDarkTheme();
-	const selectableAgents = useMemo(() => {
-		const enabledTerminalAgents =
-			agentPresets.length > 0
-				? agentPresets
-						.filter((preset) => preset.enabled !== false)
-						.map((preset) => preset.id as AgentType)
-				: (STARTABLE_AGENT_TYPES.filter(
-						(agent) => agent !== "superset-chat",
-					) as AgentType[]);
-		return [...enabledTerminalAgents, "superset-chat"] as StartableAgentType[];
-	}, [agentPresets]);
-	const selectableAgentSet = useMemo(
-		() => new Set(selectableAgents),
-		[selectableAgents],
-	);
-	const fallbackAgent = useMemo<StartableAgentType>(() => {
-		if (selectableAgents.includes("claude")) return "claude";
-		return selectableAgents[0] ?? "superset-chat";
-	}, [selectableAgents]);
-	const agentPresetById = useMemo(
-		() => new Map(agentPresets.map((preset) => [preset.id, preset] as const)),
-		[agentPresets],
-	);
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		() => localStorage.getItem("lastOpenedInProjectId"),
 	);
@@ -289,9 +274,14 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			</div>
 			<Select
 				value={selectedAgent}
-				onValueChange={(value: StartableAgentType) => {
-					setSelectedAgent(value);
-					localStorage.setItem("lastSelectedAgent", value);
+				onValueChange={(value) => {
+					if (value === OPEN_AGENT_SETTINGS_OPTION) {
+						navigate({ to: "/settings/agent" });
+						return;
+					}
+					const nextAgent = value as StartableAgentType;
+					setSelectedAgent(nextAgent);
+					localStorage.setItem("lastSelectedAgent", nextAgent);
 				}}
 			>
 				<SelectTrigger className="h-8 text-xs">
@@ -300,9 +290,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				<SelectContent>
 					{selectableAgents.map((agent) => {
 						const icon = getPresetIcon(agent, isDark);
-						const label =
-							agentPresetById.get(agent as AgentType)?.label ??
-							STARTABLE_AGENT_LABELS[agent];
+						const label = agentLabels[agent] ?? agent;
 						return (
 							<SelectItem key={agent} value={agent}>
 								<span className="flex items-center gap-2">
@@ -318,6 +306,10 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 							</SelectItem>
 						);
 					})}
+					<SelectSeparator />
+					<SelectItem value={OPEN_AGENT_SETTINGS_OPTION}>
+						Agent settings...
+					</SelectItem>
 				</SelectContent>
 			</Select>
 		</div>

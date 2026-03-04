@@ -7,11 +7,17 @@ import {
 	type AgentType,
 	type TaskInput,
 } from "@superset/shared/agent-command";
+import {
+	STARTABLE_AGENT_TYPES,
+	type StartableAgentType,
+} from "@superset/shared/agent-launch";
 
 interface AgentPromptCommandDefaults {
 	command: string;
 	suffix?: string;
 }
+
+export const OPEN_AGENT_SETTINGS_OPTION = "__open-agent-settings__" as const;
 
 const AGENT_PROMPT_COMMAND_DEFAULTS: Record<
 	AgentType,
@@ -92,6 +98,26 @@ export function getDefaultAgentPreset(agent: AgentType): AgentPreset {
 
 export function getDefaultAgentPresets(): AgentPreset[] {
 	return AGENT_TYPES.map((agent) => getDefaultAgentPreset(agent));
+}
+
+export function getSelectableStartableAgents(agentPresets: AgentPreset[]) {
+	const enabledTerminalAgents =
+		agentPresets.length > 0
+			? agentPresets
+					.filter((preset) => preset.enabled !== false)
+					.map((preset) => preset.id as AgentType)
+			: (STARTABLE_AGENT_TYPES.filter(
+					(agent) => agent !== "superset-chat",
+				) as AgentType[]);
+
+	return [...enabledTerminalAgents, "superset-chat"] as StartableAgentType[];
+}
+
+export function getFallbackStartableAgent(
+	selectableAgents: readonly StartableAgentType[],
+): StartableAgentType {
+	if (selectableAgents.includes("claude")) return "claude";
+	return selectableAgents[0] ?? "superset-chat";
 }
 
 export function normalizeAgentPresets(
