@@ -158,7 +158,19 @@ function findLastUserMessageIndex(messages: MastraMessage[]): number {
 function isRunningSubagent(subagent: MastraActiveSubagent): boolean {
 	const subagentRecord = asRecord(subagent);
 	const status = asString(subagentRecord?.status);
-	return status === null || status === "running";
+	if (status === "running") return true;
+	if (status === "completed" || status === "error") return false;
+
+	const hasDuration =
+		typeof subagentRecord?.durationMs === "number" &&
+		Number.isFinite(subagentRecord.durationMs) &&
+		subagentRecord.durationMs >= 0;
+	const hasError =
+		subagentRecord?.isError === true ||
+		asString(subagentRecord?.error) !== null;
+	const hasResult = subagentRecord?.result !== undefined;
+
+	return !hasDuration && !hasError && !hasResult;
 }
 
 function findLatestSubmitPlanToolCallId({

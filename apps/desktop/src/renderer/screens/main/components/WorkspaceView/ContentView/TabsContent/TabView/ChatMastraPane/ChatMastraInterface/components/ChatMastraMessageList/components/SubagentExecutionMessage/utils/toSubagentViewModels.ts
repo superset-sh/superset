@@ -69,18 +69,25 @@ export function toSubagentViewModels(
 ): SubagentViewModel[] {
 	return entries.map(([toolCallId, subagent]) => {
 		const record = asRecord(subagent);
-		const status = asStatus(record?.status) ?? "running";
-		const text =
-			asString(status === "running" ? record?.textDelta : record?.result) ??
-			asString(record?.textDelta) ??
-			asString(record?.result) ??
-			"";
 		const durationMs =
 			typeof record?.durationMs === "number" &&
 			Number.isFinite(record.durationMs) &&
 			record.durationMs >= 0
 				? record.durationMs
 				: undefined;
+		const status =
+			asStatus(record?.status) ??
+			(record?.isError === true || asString(record?.error)
+				? "error"
+				: undefined) ??
+			(record?.result !== undefined || durationMs !== undefined
+				? "completed"
+				: "running");
+		const text =
+			asString(status === "running" ? record?.textDelta : record?.result) ??
+			asString(record?.textDelta) ??
+			asString(record?.result) ??
+			"";
 
 		return {
 			toolCallId,
