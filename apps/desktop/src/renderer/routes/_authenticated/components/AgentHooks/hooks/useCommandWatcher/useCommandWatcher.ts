@@ -21,7 +21,7 @@ export function useCommandWatcher() {
 
 	const organizationId = session?.session?.activeOrganizationId;
 	const remoteAgentDisabled = useFeatureFlagEnabled(FEATURE_FLAGS.DISABLE_REMOTE_AGENT);
-	const shouldWatch = !!deviceInfo && !!organizationId && remoteAgentDisabled === false;
+	const shouldWatch = !!deviceInfo && !!organizationId && !remoteAgentDisabled;
 
 	const createWorktree = useCreateWorkspace({ skipNavigation: true });
 	const setActive = electronTrpc.workspaces.setActive.useMutation();
