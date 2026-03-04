@@ -42,7 +42,7 @@ const TRANSIENT_ERROR_WINDOW_SECONDS = Math.floor(
 );
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
-function isTransientError(error: unknown): error is Error {
+function isTransientError(error: unknown): boolean {
 	if (error instanceof Error) {
 		return TRANSIENT_ERROR_CODES.some(
 			(code) =>
@@ -51,6 +51,14 @@ function isTransientError(error: unknown): error is Error {
 		);
 	}
 	return false;
+}
+
+function getTransientErrorIdentifier(error: unknown): string {
+	if (error instanceof Error) {
+		const code = (error as NodeJS.ErrnoException).code;
+		return code ?? error.message.split(",")[0];
+	}
+	return "unknown";
 }
 
 export function setupTerminalHostSignalHandlers({
@@ -141,7 +149,7 @@ export function setupTerminalHostSignalHandlers({
 				"warn",
 				`Transient uncaught error #${transientErrorCount}/${MAX_TRANSIENT_ERRORS} ` +
 					`in last ${TRANSIENT_ERROR_WINDOW_SECONDS}s ` +
-					`(${(error as NodeJS.ErrnoException).code ?? error.message.split(",")[0]}), ` +
+					`(${getTransientErrorIdentifier(error)}), ` +
 					`keeping sessions alive`,
 			);
 			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
@@ -180,7 +188,7 @@ export function setupTerminalHostSignalHandlers({
 				"warn",
 				`Transient unhandled rejection #${transientErrorCount}/${MAX_TRANSIENT_ERRORS}, ` +
 					`in last ${TRANSIENT_ERROR_WINDOW_SECONDS}s, ` +
-					`(${(reason as NodeJS.ErrnoException).code ?? reason.message.split(",")[0]}), ` +
+					`(${getTransientErrorIdentifier(reason)}), ` +
 					`keeping sessions alive`,
 			);
 			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
