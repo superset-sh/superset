@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { PROJECTS_DIR_NAME, SUPERSET_DIR_NAME } from "shared/constants";
-import { loadSetupConfig } from "./setup";
+import { loadSetupConfig, loadSetupConfigForPendingWorktree } from "./setup";
 
 const TEST_DIR = join(tmpdir(), `superset-test-setup-${process.pid}`);
 const MAIN_REPO = join(TEST_DIR, "main-repo");
@@ -224,5 +225,88 @@ describe("loadSetupConfig", () => {
 			projectId: PROJECT_ID,
 		});
 		expect(config).toEqual(mainConfig);
+	});
+
+	test("pending worktree resolution prefers remote branch config over stale local main", async () => {
+		const gitDir = join(TEST_DIR, "git-remote-priority");
+		const localRepo = join(gitDir, "local-repo");
+		const remoteRepo = join(gitDir, "origin.git");
+		const upstreamClone = join(gitDir, "upstream-clone");
+		const pendingWorktreePath = join(gitDir, "pending-worktree");
+		const remoteConfig = { setup: ["echo remote-setup"] };
+
+		mkdirSync(gitDir, { recursive: true });
+
+		execFileSync("git", ["init", "--bare", remoteRepo], { stdio: "pipe" });
+
+		mkdirSync(localRepo, { recursive: true });
+		execFileSync("git", ["init", "-b", "main"], {
+			cwd: localRepo,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["config", "user.email", "setup-test@example.com"], {
+			cwd: localRepo,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["config", "user.name", "Setup Test"], {
+			cwd: localRepo,
+			stdio: "pipe",
+		});
+		writeFileSync(join(localRepo, "README.md"), "initial\n");
+		execFileSync("git", ["add", "README.md"], {
+			cwd: localRepo,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["commit", "-m", "initial"], {
+			cwd: localRepo,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["remote", "add", "origin", remoteRepo], {
+			cwd: localRepo,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["push", "-u", "origin", "main"], {
+			cwd: localRepo,
+			stdio: "pipe",
+		});
+
+		execFileSync("git", ["clone", remoteRepo, upstreamClone], {
+			stdio: "pipe",
+		});
+		execFileSync("git", ["config", "user.email", "setup-test@example.com"], {
+			cwd: upstreamClone,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["config", "user.name", "Setup Test"], {
+			cwd: upstreamClone,
+			stdio: "pipe",
+		});
+		mkdirSync(join(upstreamClone, ".superset"), { recursive: true });
+		writeFileSync(
+			join(upstreamClone, ".superset", "config.json"),
+			JSON.stringify(remoteConfig),
+		);
+		execFileSync("git", ["add", ".superset/config.json"], {
+			cwd: upstreamClone,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["commit", "-m", "add setup config"], {
+			cwd: upstreamClone,
+			stdio: "pipe",
+		});
+		execFileSync("git", ["push", "origin", "main"], {
+			cwd: upstreamClone,
+			stdio: "pipe",
+		});
+
+		expect(existsSync(join(localRepo, ".superset", "config.json"))).toBe(false);
+
+		const config = await loadSetupConfigForPendingWorktree({
+			mainRepoPath: localRepo,
+			worktreePath: pendingWorktreePath,
+			sourceBranch: "main",
+		});
+
+		expect(config).toEqual(remoteConfig);
 	});
 });

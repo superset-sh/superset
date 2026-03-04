@@ -36,7 +36,11 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
-import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
+import {
+	copySupersetConfigToWorktree,
+	loadSetupConfig,
+	loadSetupConfigForPendingWorktree,
+} from "../utils/setup";
 import { initializeWorkspaceWorktree } from "../utils/workspace-init";
 
 interface CreateWorkspaceFromWorktreeParams {
@@ -491,10 +495,14 @@ export const createCreateProcedures = () => {
 					useExistingBranch: input.useExistingBranch,
 				});
 
-				const setupConfig = loadSetupConfig({
+				const setupSourceBranch = input.useExistingBranch
+					? branch
+					: targetBranch;
+				const setupConfig = await loadSetupConfigForPendingWorktree({
 					mainRepoPath: project.mainRepoPath,
 					worktreePath,
 					projectId: project.id,
+					sourceBranch: setupSourceBranch,
 				});
 
 				return {
