@@ -1519,11 +1519,12 @@ export function getPrLocalBranchName(prInfo: PullRequestInfo): string {
 }
 
 /**
- * Parses a GitHub PR URL to extract owner, repo, and PR number.
+ * Parses a GitHub or GitHub Enterprise PR URL to extract owner, repo, and PR number.
  * Supports formats:
  * - https://github.com/owner/repo/pull/123
  * - https://github.com/owner/repo/pull/123/
  * - github.com/owner/repo/pull/123
+ * - https://<ghe-host>/owner/repo/pull/123
  */
 export function parsePrUrl(url: string): {
 	owner: string;
@@ -1538,11 +1539,8 @@ export function parsePrUrl(url: string): {
 
 	try {
 		const urlObj = new URL(normalizedUrl);
-		if (!urlObj.hostname.includes("github.com")) {
-			return null;
-		}
 
-		// Match /owner/repo/pull/number pattern
+		// Match /owner/repo/pull/number pattern (works for github.com and GHE hosts)
 		const match = urlObj.pathname.match(/^\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
 		if (!match) {
 			return null;

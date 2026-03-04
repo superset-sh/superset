@@ -908,7 +908,7 @@ export const createCreateProcedures = () => {
 				const parsed = parsePrUrl(input.prUrl);
 				if (!parsed) {
 					throw new Error(
-						"Invalid PR URL. Expected format: https://github.com/owner/repo/pull/123",
+						"Invalid PR URL. Expected format: https://<host>/owner/repo/pull/123",
 					);
 				}
 

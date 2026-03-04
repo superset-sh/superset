@@ -522,4 +522,39 @@ describe("parsePrUrl", () => {
 			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
 		).toBe(null);
 	});
+
+	// GHE (GitHub Enterprise) support - issue #2015
+	test("parses GitHub Enterprise PR URL", () => {
+		expect(
+			parsePrUrl("https://github.mycompany.com/owner/repo/pull/42"),
+		).toEqual({
+			owner: "owner",
+			repo: "repo",
+			number: 42,
+		});
+	});
+
+	test("parses GitHub Enterprise URL without protocol", () => {
+		expect(parsePrUrl("github.mycompany.com/owner/repo/pull/42")).toEqual({
+			owner: "owner",
+			repo: "repo",
+			number: 42,
+		});
+	});
+
+	test("parses GitHub Enterprise URL on non-standard subdomain", () => {
+		expect(
+			parsePrUrl("https://git.enterprise.example.org/team/project/pull/99"),
+		).toEqual({
+			owner: "team",
+			repo: "project",
+			number: 99,
+		});
+	});
+
+	test("returns null for non-PR GHE URLs (issues path)", () => {
+		expect(
+			parsePrUrl("https://github.mycompany.com/owner/repo/issues/42"),
+		).toBe(null);
+	});
 });

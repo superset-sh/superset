@@ -148,7 +148,7 @@ async function getTrackingBranchStatus(
 }
 
 function extractPRUrl(text: string): string | null {
-	const match = text.match(/https:\/\/github\.com\/\S+\/pull\/\d+/);
+	const match = text.match(/https:\/\/\S+\/pull\/\d+/);
 	return match?.[0] ?? null;
 }
 
