@@ -118,7 +118,7 @@ export function ResourceConsumption() {
 	const trackedMemorySharePercent = snapshot
 		? getTrackedMemorySharePercent(
 				snapshot.totalMemory,
-				snapshot.host.totalMemory,
+				snapshot.host?.totalMemory ?? 0,
 			)
 		: 0;
 	const trackedHostMemorySeverity = getTrackedHostMemorySeverity(
