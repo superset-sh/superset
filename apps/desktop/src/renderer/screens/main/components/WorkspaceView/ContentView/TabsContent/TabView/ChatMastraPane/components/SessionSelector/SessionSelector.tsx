@@ -12,6 +12,7 @@ import {
 	HiMiniChevronDown,
 	HiMiniPlus,
 } from "react-icons/hi2";
+import { getRelativeTime } from "../../../../../../../WorkspacesListView/utils";
 import { SessionSelectorItem } from "./components/SessionSelectorItem";
 
 interface SessionItem {
@@ -36,19 +37,20 @@ interface SessionGroup {
 
 const SESSION_PAGE_SIZE = 20;
 
+function toCompactLabel(relativeTime: string): string {
+	return relativeTime
+		.replace("just now", "now")
+		.replace("yesterday", "1d ago")
+		.replace(/(\d+)\s+days ago/, "$1d ago")
+		.replace(/(\d+)\s+weeks ago/, "$1w ago")
+		.replace("1 week ago", "1w ago")
+		.replace(/(\d+)\s+months ago/, "$1mo ago")
+		.replace("1 month ago", "1mo ago")
+		.replace("over a year ago", "1y+ ago");
+}
+
 function toSessionGroupLabel(updatedAt: Date): string {
-	const diffMs = Date.now() - updatedAt.getTime();
-	const minutes = Math.floor(diffMs / (1000 * 60));
-	if (minutes < 1) return "now";
-	if (minutes < 60) return `${minutes}m ago`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
-	const days = Math.floor(hours / 24);
-	if (days < 30) return `${days}d ago`;
-	const months = Math.floor(days / 30);
-	if (months < 12) return `${months}mo ago`;
-	const years = Math.floor(days / 365);
-	return `${years}y ago`;
+	return toCompactLabel(getRelativeTime(updatedAt.getTime()));
 }
 
 function groupSessionsByAge(sessions: SessionItem[]): SessionGroup[] {
