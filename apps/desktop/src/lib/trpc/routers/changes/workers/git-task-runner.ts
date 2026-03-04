@@ -44,7 +44,14 @@ function getRunner(): WorkerTaskRunner {
 					gitTaskRunner = null;
 				});
 				didRegisterDisposeHook = true;
-			} catch {}
+			} catch (error) {
+				if (WORKER_DEBUG) {
+					console.warn(
+						"[changes-git] failed to register before-quit dispose hook",
+						error,
+					);
+				}
+			}
 		}
 	}
 	return gitTaskRunner;

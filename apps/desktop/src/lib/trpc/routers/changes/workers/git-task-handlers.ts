@@ -68,7 +68,12 @@ async function applyUntrackedLineCount(
 			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
 
 			const content = await readFile(absolutePath, "utf-8");
-			const lineCount = content.split("\n").length;
+			const lineCount =
+				content === ""
+					? 0
+					: content.endsWith("\n")
+						? content.split(/\r?\n/).length - 1
+						: content.split(/\r?\n/).length;
 			file.additions = lineCount;
 			file.deletions = 0;
 		} catch {}

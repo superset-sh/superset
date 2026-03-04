@@ -44,6 +44,7 @@ interface WorkerSlot {
 	id: number;
 	worker: Worker;
 	activeTaskId: string | null;
+	terminating: boolean;
 }
 
 interface QueuedTask {
@@ -98,6 +99,7 @@ export class WorkerTaskRunner {
 		const strategy = options?.strategy ?? "fifo";
 		const dedupeKey = options?.dedupeKey;
 		const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+		const useGeneration = strategy === "latest-wins" && Boolean(dedupeKey);
 
 		if (strategy === "coalesce" && dedupeKey) {
 			const inFlight = this.inFlightByKey.get(dedupeKey);
@@ -106,10 +108,11 @@ export class WorkerTaskRunner {
 			}
 		}
 
-		const generation = dedupeKey
-			? (this.generationByKey.get(dedupeKey) ?? 0) + 1
-			: 0;
-		if (dedupeKey) {
+		const generation =
+			useGeneration && dedupeKey
+				? (this.generationByKey.get(dedupeKey) ?? 0) + 1
+				: 0;
+		if (useGeneration && dedupeKey) {
 			this.generationByKey.set(dedupeKey, generation);
 		}
 
@@ -153,6 +156,13 @@ export class WorkerTaskRunner {
 			if (dedupeKey && this.inFlightByKey.get(dedupeKey) === taskPromise) {
 				this.inFlightByKey.delete(dedupeKey);
 			}
+			if (
+				useGeneration &&
+				dedupeKey &&
+				this.generationByKey.get(dedupeKey) === generation
+			) {
+				this.generationByKey.delete(dedupeKey);
+			}
 		});
 	}
 
@@ -168,6 +178,7 @@ export class WorkerTaskRunner {
 		this.queue.length = 0;
 
 		for (const slot of this.workerSlots.values()) {
+			slot.terminating = true;
 			if (slot.activeTaskId) {
 				this.rejectTask(
 					slot.activeTaskId,
@@ -187,6 +198,7 @@ export class WorkerTaskRunner {
 			id: slotId,
 			worker,
 			activeTaskId: null,
+			terminating: false,
 		};
 
 		worker.on("message", (message: unknown) => {
@@ -217,7 +229,7 @@ export class WorkerTaskRunner {
 		this.ensureWorkerCapacity();
 
 		for (const slot of this.workerSlots.values()) {
-			if (slot.activeTaskId) continue;
+			if (slot.activeTaskId || slot.terminating) continue;
 			if (this.queue.length === 0) break;
 
 			const nextTaskId = this.queue.shift();
@@ -301,8 +313,11 @@ export class WorkerTaskRunner {
 
 		if (task.slotId) {
 			const slot = this.workerSlots.get(task.slotId);
-			if (slot) {
+			if (slot && !slot.terminating) {
+				slot.terminating = true;
 				void slot.worker.terminate();
+				this.ensureWorkerCapacity();
+				this.drainQueue();
 			}
 		}
 	}
@@ -315,8 +330,11 @@ export class WorkerTaskRunner {
 
 		if (task.slotId) {
 			const slot = this.workerSlots.get(task.slotId);
-			if (slot) {
+			if (slot && !slot.terminating) {
+				slot.terminating = true;
 				void slot.worker.terminate();
+				this.ensureWorkerCapacity();
+				this.drainQueue();
 			}
 		}
 	}
@@ -332,8 +350,8 @@ export class WorkerTaskRunner {
 			this.rejectTask(activeTaskId, error);
 		}
 
-		if (!this.disposed && (this.queue.length > 0 || this.hasActiveTasks())) {
-			this.spawnWorker();
+		if (!this.disposed) {
+			this.ensureWorkerCapacity();
 			this.drainQueue();
 		}
 	}
@@ -400,18 +418,19 @@ export class WorkerTaskRunner {
 	}
 
 	private ensureWorkerCapacity(): void {
-		while (this.workerSlots.size < this.concurrency) {
+		while (this.getActiveSlotCount() < this.concurrency) {
 			this.spawnWorker();
 		}
 	}
 
-	private hasActiveTasks(): boolean {
+	private getActiveSlotCount(): number {
+		let count = 0;
 		for (const slot of this.workerSlots.values()) {
-			if (slot.activeTaskId) {
-				return true;
+			if (!slot.terminating) {
+				count += 1;
 			}
 		}
-		return false;
+		return count;
 	}
 }
 

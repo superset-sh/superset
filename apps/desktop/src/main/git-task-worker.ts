@@ -10,9 +10,23 @@ if (!parentPort) {
 	throw new Error("git-task-worker must be run in a worker thread");
 }
 
+function isWorkerTaskRequestMessage(
+	message: unknown,
+): message is WorkerTaskRequestMessage {
+	if (!message || typeof message !== "object") {
+		return false;
+	}
+	const candidate = message as Partial<WorkerTaskRequestMessage>;
+	return (
+		candidate.kind === "task" &&
+		typeof candidate.taskId === "string" &&
+		typeof candidate.taskType === "string"
+	);
+}
+
 parentPort.on("message", async (message: unknown) => {
-	const task = message as WorkerTaskRequestMessage;
-	if (!task || task.kind !== "task") return;
+	if (!isWorkerTaskRequestMessage(message)) return;
+	const task = message;
 
 	try {
 		const result = await executeGitTask(
