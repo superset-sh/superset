@@ -9,7 +9,6 @@ import { ReasoningBlock } from "../../../../../../ChatPane/ChatInterface/compone
 import type { ToolPart } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { normalizeToolName } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { PendingPlanApprovalMessage } from "../PendingPlanApprovalMessage";
-import { SubagentExecutionMessage } from "../SubagentExecutionMessage";
 
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
@@ -19,13 +18,6 @@ type MastraToolCall = Extract<MastraMessageContent, { type: "tool_call" }>;
 type MastraToolResult = Extract<MastraMessageContent, { type: "tool_result" }>;
 type MastraPendingPlanApproval =
 	UseMastraChatDisplayReturn["pendingPlanApproval"];
-type MastraActiveSubagents = NonNullable<
-	UseMastraChatDisplayReturn["activeSubagents"]
->;
-type MastraActiveSubagent =
-	MastraActiveSubagents extends Map<string, infer SubagentState>
-		? SubagentState
-		: never;
 
 interface AssistantMessageProps {
 	message: MastraMessage;
@@ -36,7 +28,6 @@ interface AssistantMessageProps {
 	workspaceCwd?: string;
 	previewToolParts?: ToolPart[];
 	footer?: ReactNode;
-	activeSubagentsByToolCallId?: Map<string, MastraActiveSubagent>;
 	pendingPlanApproval?: MastraPendingPlanApproval;
 	pendingPlanToolCallId?: string | null;
 	isPlanSubmitting?: boolean;
@@ -117,7 +108,6 @@ export function AssistantMessage({
 	workspaceCwd,
 	previewToolParts = [],
 	footer,
-	activeSubagentsByToolCallId,
 	pendingPlanApproval,
 	pendingPlanToolCallId = null,
 	isPlanSubmitting = false,
@@ -128,16 +118,6 @@ export function AssistantMessage({
 	let didRenderPendingPlanApproval = false;
 	const getInlineToolStateNodes = (toolCallId: string): ReactNode[] => {
 		const inlineNodes: ReactNode[] = [];
-		const activeSubagent = activeSubagentsByToolCallId?.get(toolCallId);
-		if (activeSubagent) {
-			inlineNodes.push(
-				<SubagentExecutionMessage
-					key={`${message.id}-subagent-${toolCallId}`}
-					inline
-					subagents={[[toolCallId, activeSubagent]]}
-				/>,
-			);
-		}
 
 		if (
 			!didRenderPendingPlanApproval &&

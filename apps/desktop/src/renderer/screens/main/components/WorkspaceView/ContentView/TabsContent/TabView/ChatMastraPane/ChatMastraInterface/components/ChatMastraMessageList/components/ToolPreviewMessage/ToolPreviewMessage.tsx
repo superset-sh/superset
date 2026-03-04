@@ -1,12 +1,8 @@
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { MastraToolCallBlock } from "../../../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import type { ToolPart } from "../../../../../../ChatPane/ChatInterface/utils/tool-helpers";
-import type {
-	MastraActiveSubagent,
-	MastraPendingPlanApproval,
-} from "../../ChatMastraMessageList.types";
+import type { MastraPendingPlanApproval } from "../../ChatMastraMessageList.types";
 import { PendingPlanApprovalMessage } from "../PendingPlanApprovalMessage";
-import { SubagentExecutionMessage } from "../SubagentExecutionMessage";
 
 interface ToolPreviewMessageProps {
 	previewToolParts: ToolPart[];
@@ -14,7 +10,6 @@ interface ToolPreviewMessageProps {
 	sessionId: string | null;
 	organizationId: string | null;
 	workspaceCwd?: string;
-	runningSubagentsByToolCallId: Map<string, MastraActiveSubagent>;
 	pendingPlanApproval: MastraPendingPlanApproval;
 	pendingPlanToolCallId: string | null;
 	isPlanSubmitting: boolean;
@@ -30,7 +25,6 @@ export function ToolPreviewMessage({
 	sessionId,
 	organizationId,
 	workspaceCwd,
-	runningSubagentsByToolCallId,
 	pendingPlanApproval,
 	pendingPlanToolCallId,
 	isPlanSubmitting,
@@ -41,10 +35,6 @@ export function ToolPreviewMessage({
 			<MessageContent>
 				<div className="space-y-3">
 					{previewToolParts.map((part) => {
-						const runningSubagent = runningSubagentsByToolCallId.get(
-							part.toolCallId,
-						);
-
 						return (
 							<div
 								key={`tool-preview-${part.toolCallId}`}
@@ -57,12 +47,6 @@ export function ToolPreviewMessage({
 									organizationId={organizationId}
 									workspaceCwd={workspaceCwd}
 								/>
-								{runningSubagent ? (
-									<SubagentExecutionMessage
-										inline
-										subagents={[[part.toolCallId, runningSubagent]]}
-									/>
-								) : null}
 								{pendingPlanApproval &&
 								pendingPlanToolCallId &&
 								pendingPlanToolCallId === part.toolCallId ? (

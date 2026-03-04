@@ -17,7 +17,6 @@ import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
 import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
-import { isSubagentRunning } from "./components/SubagentExecutionMessage/utils/toSubagentViewModels";
 import { ThinkingMessage } from "./components/ThinkingMessage";
 import { ToolPreviewMessage } from "./components/ToolPreviewMessage";
 import { UserMessage } from "./components/UserMessage";
@@ -29,7 +28,6 @@ import {
 	getVisibleMessages,
 	removeInterruptedSourceMessage,
 	resolvePendingPlanToolCallId,
-	toSubagentEntries,
 } from "./utils/messageListHelpers";
 
 export function ChatMastraMessageList({
@@ -45,7 +43,7 @@ export function ChatMastraMessageList({
 	workspaceCwd,
 	activeTools,
 	toolInputBuffers,
-	activeSubagents,
+	activeSubagents: _activeSubagents,
 	pendingApproval,
 	isApprovalSubmitting,
 	onApprovalRespond,
@@ -99,18 +97,6 @@ export function ChatMastraMessageList({
 		[activeTools, toolInputBuffers],
 	);
 
-	const runningSubagentEntries = useMemo(
-		() =>
-			toSubagentEntries(activeSubagents).filter(([, subagent]) =>
-				isSubagentRunning(subagent),
-			),
-		[activeSubagents],
-	);
-	const runningSubagentsByToolCallId = useMemo(
-		() => new Map(runningSubagentEntries),
-		[runningSubagentEntries],
-	);
-
 	const pendingPlanToolCallId = useMemo(() => {
 		const anchorMessages: MastraMessage[] = [...renderedMessages];
 		if (currentMessage?.role === "assistant") {
@@ -144,7 +130,6 @@ export function ChatMastraMessageList({
 		canShowPendingAssistantUi && previewToolParts.length > 0;
 
 	const inlineToolStateProps = {
-		activeSubagentsByToolCallId: runningSubagentsByToolCallId,
 		pendingPlanApproval,
 		pendingPlanToolCallId,
 		isPlanSubmitting,
@@ -224,7 +209,6 @@ export function ChatMastraMessageList({
 							sessionId={sessionId}
 							organizationId={organizationId}
 							workspaceCwd={workspaceCwd}
-							runningSubagentsByToolCallId={runningSubagentsByToolCallId}
 							pendingPlanApproval={pendingPlanApproval}
 							pendingPlanToolCallId={pendingPlanToolCallId}
 							isPlanSubmitting={isPlanSubmitting}

@@ -2,8 +2,6 @@ import type { ToolPart } from "../../../../../ChatPane/ChatInterface/utils/tool-
 import { normalizeToolName } from "../../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import type {
 	InterruptedMessagePreview,
-	MastraActiveSubagent,
-	MastraActiveSubagents,
 	MastraActiveTool,
 	MastraActiveTools,
 	MastraMessage,
@@ -164,13 +162,6 @@ export function getStreamingPreviewToolParts({
 			inputEntries.find(([id]) => id === toolCallId)?.[1] ?? null;
 		return toPreviewToolPart({ toolCallId, toolState, inputBuffer });
 	});
-}
-
-export function toSubagentEntries(
-	value: MastraActiveSubagents | undefined,
-): Array<[string, MastraActiveSubagent]> {
-	if (!value) return [];
-	return [...value.entries()];
 }
 
 export function findLatestSubmitPlanToolCallId({
