@@ -1,5 +1,5 @@
 import os from "node:os";
-import { workspaces } from "@superset/local-db";
+import { projects, workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
 import { localDb } from "main/lib/local-db";
@@ -22,6 +22,8 @@ interface SessionMetrics {
 
 interface WorkspaceMetrics {
 	workspaceId: string;
+	projectId: string;
+	projectName: string;
 	workspaceName: string;
 	cpu: number;
 	memory: number;
@@ -191,16 +193,28 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	}
 
 	const workspaceMetricsList: WorkspaceMetrics[] = [];
-	const nameCache = new Map<string, string>();
+	const workspaceMetaCache = new Map<
+		string,
+		{ workspaceName: string; projectId: string; projectName: string }
+	>();
 
 	for (const [workspaceId, entries] of workspaceSessionMap) {
-		if (!nameCache.has(workspaceId)) {
+		if (!workspaceMetaCache.has(workspaceId)) {
 			const ws = localDb
-				.select({ name: workspaces.name })
+				.select({
+					workspaceName: workspaces.name,
+					projectId: workspaces.projectId,
+					projectName: projects.name,
+				})
 				.from(workspaces)
+				.leftJoin(projects, eq(projects.id, workspaces.projectId))
 				.where(eq(workspaces.id, workspaceId))
 				.get();
-			nameCache.set(workspaceId, ws?.name ?? "Unknown");
+			workspaceMetaCache.set(workspaceId, {
+				workspaceName: ws?.workspaceName ?? "Unknown",
+				projectId: ws?.projectId ?? "unknown",
+				projectName: ws?.projectName ?? "Unknown Project",
+			});
 		}
 
 		const sessionMetrics: SessionMetrics[] = [];
@@ -227,7 +241,11 @@ async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 
 		workspaceMetricsList.push({
 			workspaceId,
-			workspaceName: nameCache.get(workspaceId) ?? "Unknown",
+			projectId: workspaceMetaCache.get(workspaceId)?.projectId ?? "unknown",
+			projectName:
+				workspaceMetaCache.get(workspaceId)?.projectName ?? "Unknown Project",
+			workspaceName:
+				workspaceMetaCache.get(workspaceId)?.workspaceName ?? "Unknown",
 			cpu: wsCpu,
 			memory: wsMemory,
 			sessions: sessionMetrics,

@@ -48,6 +48,7 @@ const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	"vscode-insiders": "code-insiders",
 	cursor: "cursor",
 	antigravity: "antigravity",
+	windsurf: "windsurf",
 	zed: "zed",
 	xcode: null, // macOS only
 	iterm: null, // macOS only
