@@ -158,7 +158,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 
 	return (
 		<>
-			{SECTION_GROUPS.map((group) => {
+			{SECTION_GROUPS.map((group, groupIndex) => {
 				const platformItems = group.items.filter(
 					(item) => !item.macOnly || isMac,
 				);
@@ -169,11 +169,11 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 				if (filteredItems.length === 0) return null;
 
 				return (
-					<div key={group.label} className="mb-4">
-						<h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">
+					<div key={group.label} className={cn(groupIndex > 0 && "mt-4")}>
+						<h2 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
 							{group.label}
 						</h2>
-						<nav className="flex flex-col gap-0.5">
+						<nav className="flex flex-col">
 							{filteredItems.map((section) => {
 								const isActive = matchRoute({ to: section.id });
 								const count = matchCounts?.[section.section];
