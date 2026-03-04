@@ -21,7 +21,6 @@ export function ChatShortcuts({
 			attachments.openFileDialog();
 		},
 		{ enabled: isFocused, preventDefault: true },
-		[attachments, isFocused],
 	);
 
 	useAppHotkey(
@@ -30,7 +29,6 @@ export function ChatShortcuts({
 			setIssueLinkOpen((prev) => !prev);
 		},
 		{ enabled: isFocused, preventDefault: true },
-		[isFocused, setIssueLinkOpen],
 	);
 
 	useAppHotkey(
@@ -42,7 +40,6 @@ export function ChatShortcuts({
 			textarea?.focus();
 		},
 		{ enabled: isFocused, preventDefault: true },
-		[inputRootRef, isFocused],
 	);
 
 	return null;
