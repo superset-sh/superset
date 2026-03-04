@@ -147,6 +147,7 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain('awk -F\'"approval_id":"\'');
 		expect(wrapper).toContain('_superset_emit_event "Start"');
 		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
+		expect(wrapper).toContain("TASKMASTER_REAL_CODEX_BIN");
 		expect(wrapper).toContain(
 			`"$REAL_BIN" -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
@@ -167,8 +168,45 @@ describe("agent-wrappers copilot", () => {
 		const wrapper = readFileSync(wrapperPath, "utf-8");
 
 		expect(wrapper).toContain("# Superset wrapper for mastracode");
-		expect(wrapper).toContain('REAL_BIN="$(find_real_binary "mastracode")"');
+		expect(wrapper).toContain('if ! resolve_binary_chain "mastracode"; then');
 		expect(wrapper).toContain('exec "$REAL_BIN" "$@"');
+	});
+
+	it("prefers shim binaries and still resolves underlying root binary", () => {
+		const shimDir = path.join(mockedHomeDir, ".codex", "bin");
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const shimPath = path.join(shimDir, "codex");
+		const rootPath = path.join(realBinDir, "codex");
+
+		mkdirSync(shimDir, { recursive: true });
+		mkdirSync(realBinDir, { recursive: true });
+
+		writeFileSync(shimPath, "#!/bin/bash\necho shim\n", { mode: 0o755 });
+		chmodSync(shimPath, 0o755);
+		writeFileSync(rootPath, "#!/bin/bash\necho root\n", { mode: 0o755 });
+		chmodSync(rootPath, 0o755);
+
+		const wrapperScript = buildWrapperScript(
+			"codex",
+			'printf "%s\\n%s\\n" "$REAL_BIN" "$REAL_BIN_ROOT"',
+		);
+		writeFileSync(wrapperPath, wrapperScript, { mode: 0o755 });
+		chmodSync(wrapperPath, 0o755);
+
+		const output = execFileSync(wrapperPath, [], {
+			encoding: "utf-8",
+			env: {
+				...process.env,
+				HOME: mockedHomeDir,
+				PATH: `${TEST_BIN_DIR}:${shimDir}:${realBinDir}:/usr/bin:/bin`,
+			},
+		})
+			.trim()
+			.split("\n");
+
+		expect(output[0]).toBe(shimPath);
+		expect(output[1]).toBe(rootPath);
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {

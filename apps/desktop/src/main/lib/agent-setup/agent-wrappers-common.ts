@@ -46,7 +46,7 @@ export function isSupersetManagedHookCommand(
 }
 
 function buildRealBinaryResolver(): string {
-	return `find_real_binary() {
+	return `list_binary_candidates() {
   local name="$1"
   local IFS=:
   for dir in $PATH; do
@@ -57,10 +57,54 @@ function buildRealBinaryResolver(): string {
     esac
     if [ -x "$dir/$name" ] && [ ! -d "$dir/$name" ]; then
       printf "%s\\n" "$dir/$name"
-      return 0
     fi
   done
-  return 1
+}
+
+is_probable_shim() {
+  local candidate="$1"
+  local home_prefix="$HOME/"
+  case "$candidate" in
+    "$home_prefix".*"/bin/"*) return 0 ;;
+  esac
+  [ -L "$candidate" ]
+}
+
+resolve_binary_chain() {
+  local name="$1"
+  local candidate=""
+  local selected=""
+  local root=""
+
+  while IFS= read -r candidate; do
+    [ -n "$candidate" ] || continue
+    if [ -z "$selected" ]; then
+      selected="$candidate"
+      continue
+    fi
+    if [ "$candidate" = "$selected" ]; then
+      continue
+    fi
+    root="$candidate"
+    break
+  done <<EOF
+\$(list_binary_candidates "$name")
+EOF
+
+  if [ -z "$selected" ]; then
+    return 1
+  fi
+
+  if [ -z "$root" ]; then
+    root="$selected"
+  fi
+
+  if ! is_probable_shim "$selected"; then
+    root="$selected"
+  fi
+
+  REAL_BIN="$selected"
+  REAL_BIN_ROOT="$root"
 }
 `;
 }
@@ -82,8 +126,9 @@ ${WRAPPER_MARKER}
 # Superset wrapper for ${binaryName}
 
 ${buildRealBinaryResolver()}
-REAL_BIN="$(find_real_binary "${binaryName}")"
-if [ -z "$REAL_BIN" ]; then
+REAL_BIN=""
+REAL_BIN_ROOT=""
+if ! resolve_binary_chain "${binaryName}"; then
   echo "${getMissingBinaryMessage(binaryName)}" >&2
   exit 127
 fi
