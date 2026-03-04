@@ -41,6 +41,10 @@ export const anthropicApiKeyInput = z.object({
 	apiKey: z.string().min(1),
 });
 
+export const anthropicEnvConfigInput = z.object({
+	envText: z.string(),
+});
+
 export const openAIApiKeyInput = z.object({
 	apiKey: z.string().min(1),
 });
@@ -122,6 +126,19 @@ export function createChatServiceRouter(service: ChatService) {
 				.mutation(({ input }) => {
 					return service.setAnthropicApiKey({ apiKey: input.apiKey });
 				}),
+			getAnthropicEnvConfig: t.procedure.query(() => {
+				return service.getAnthropicEnvConfig();
+			}),
+			setAnthropicEnvConfig: t.procedure
+				.input(anthropicEnvConfigInput)
+				.mutation(({ input }) => {
+					return service.setAnthropicEnvConfig({
+						envText: input.envText,
+					});
+				}),
+			clearAnthropicEnvConfig: t.procedure.mutation(() => {
+				return service.clearAnthropicEnvConfig();
+			}),
 			clearAnthropicApiKey: t.procedure.mutation(() => {
 				return service.clearAnthropicApiKey();
 			}),
