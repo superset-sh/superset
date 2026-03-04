@@ -60,6 +60,7 @@ export function ChatSearch({
 			<input
 				ref={inputRef}
 				type="text"
+				aria-label="Find in chat"
 				value={query}
 				onChange={(event) => onQueryChange(event.target.value)}
 				onKeyDown={handleKeyDown}
@@ -78,6 +79,8 @@ export function ChatSearch({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
+							aria-label="Match case"
+							aria-pressed={caseSensitive}
 							onClick={() => onCaseSensitiveChange(!caseSensitive)}
 							className={`rounded p-1 transition-colors ${
 								caseSensitive
@@ -94,6 +97,7 @@ export function ChatSearch({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
+							aria-label="Find previous match"
 							onClick={onFindPrevious}
 							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 						>
@@ -106,6 +110,7 @@ export function ChatSearch({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
+							aria-label="Find next match"
 							onClick={onFindNext}
 							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 						>
@@ -118,6 +123,7 @@ export function ChatSearch({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
+							aria-label="Close find in chat"
 							onClick={onClose}
 							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 						>

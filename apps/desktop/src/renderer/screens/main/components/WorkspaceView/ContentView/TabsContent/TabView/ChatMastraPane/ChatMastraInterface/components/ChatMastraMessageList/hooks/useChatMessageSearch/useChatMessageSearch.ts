@@ -48,12 +48,7 @@ export function useChatMessageSearch({
 	}, []);
 
 	const scrollRangeIntoView = useCallback((range: Range) => {
-		const node = range.startContainer;
-		if (node instanceof Element) {
-			node.scrollIntoView({ behavior: "smooth", block: "center" });
-			return;
-		}
-		node.parentElement?.scrollIntoView({
+		range.startContainer.parentElement?.scrollIntoView({
 			behavior: "smooth",
 			block: "center",
 		});

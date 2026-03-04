@@ -4,21 +4,20 @@ import {
 	PromptInputAttachments,
 	type PromptInputMessage,
 	PromptInputTextarea,
-	usePromptInputAttachments,
-	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ChatStatus } from "ai";
 import type React from "react";
-import { useCallback, useState } from "react";
-import { useAppHotkey, useHotkeyText } from "renderer/stores/hotkeys";
+import { useRef, useState } from "react";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
-import { IssueLinkCommand } from "../IssueLinkCommand";
 import { MentionAnchor, MentionProvider } from "../MentionPopover";
 import { SlashCommandInput } from "../SlashCommandInput";
 import { ChatComposerControls } from "./components/ChatComposerControls";
 import { ChatInputDropZone } from "./components/ChatInputDropZone";
+import { ChatShortcuts } from "./components/ChatShortcuts";
 import { FileDropOverlay } from "./components/FileDropOverlay";
+import { IssueLinkInserter } from "./components/IssueLinkInserter";
 import { SlashCommandPreview } from "./components/SlashCommandPreview";
 import { getErrorMessage } from "./utils/getErrorMessage";
 
@@ -45,75 +44,6 @@ interface ChatInputFooterProps {
 	onSlashCommandSend: (command: SlashCommand) => void;
 }
 
-function ChatShortcuts({
-	isFocused,
-	setIssueLinkOpen,
-}: {
-	isFocused: boolean;
-	setIssueLinkOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-	const attachments = usePromptInputAttachments();
-
-	useAppHotkey(
-		"CHAT_ADD_ATTACHMENT",
-		() => {
-			attachments.openFileDialog();
-		},
-		{ enabled: isFocused, preventDefault: true },
-		[attachments, isFocused],
-	);
-
-	useAppHotkey(
-		"CHAT_LINK_ISSUE",
-		() => {
-			setIssueLinkOpen((prev) => !prev);
-		},
-		{ enabled: isFocused, preventDefault: true },
-		[isFocused, setIssueLinkOpen],
-	);
-
-	useAppHotkey(
-		"FOCUS_CHAT_INPUT",
-		() => {
-			const textarea = document.querySelector<HTMLTextAreaElement>(
-				"[data-slot=input-group-control]",
-			);
-			textarea?.focus();
-		},
-		{ enabled: isFocused, preventDefault: true },
-		[isFocused],
-	);
-
-	return null;
-}
-
-function IssueLinkInserter({
-	issueLinkOpen,
-	setIssueLinkOpen,
-}: {
-	issueLinkOpen: boolean;
-	setIssueLinkOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}) {
-	const { textInput } = usePromptInputController();
-
-	const handleSelectTask = useCallback(
-		(slug: string) => {
-			const current = textInput.value;
-			const needsSpace = current.length > 0 && !current.endsWith(" ");
-			textInput.setInput(`${current}${needsSpace ? " " : ""}@task:${slug} `);
-		},
-		[textInput],
-	);
-
-	return (
-		<IssueLinkCommand
-			open={issueLinkOpen}
-			onOpenChange={setIssueLinkOpen}
-			onSelect={handleSelectTask}
-		/>
-	);
-}
-
 export function ChatInputFooter({
 	cwd,
 	isFocused,
@@ -137,6 +67,7 @@ export function ChatInputFooter({
 	onSlashCommandSend,
 }: ChatInputFooterProps) {
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
+	const inputRootRef = useRef<HTMLDivElement>(null);
 	const errorMessage = getErrorMessage(error);
 	const focusShortcutText = useHotkeyText("FOCUS_CHAT_INPUT");
 	const showFocusHint = focusShortcutText !== "Unassigned";
@@ -160,6 +91,7 @@ export function ChatInputFooter({
 						<MentionProvider cwd={cwd}>
 							<MentionAnchor>
 								<div
+									ref={inputRootRef}
 									className={
 										dragType === "path"
 											? "relative opacity-50 transition-opacity"
@@ -184,6 +116,7 @@ export function ChatInputFooter({
 										<ChatShortcuts
 											isFocused={isFocused}
 											setIssueLinkOpen={setIssueLinkOpen}
+											inputRootRef={inputRootRef}
 										/>
 										<IssueLinkInserter
 											issueLinkOpen={issueLinkOpen}
