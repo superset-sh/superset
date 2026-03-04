@@ -291,6 +291,61 @@ export const useTabsStore = create<TabsStore>()(
 					set({ tabs: [...otherTabs, ...workspaceTabs] });
 				},
 
+				updateWorkspacePaths: (workspaceId, oldPath, newPath) => {
+					const state = get();
+					const workspaceTabs = state.tabs.filter((t) => t.workspaceId === workspaceId);
+					if (workspaceTabs.length === 0) return [];
+					
+					const workspaceTabIds = new Set(workspaceTabs.map((t) => t.id));
+					const newPanes = { ...state.panes };
+					const terminalPaneIdsToKill: string[] = [];
+					let hasChanges = false;
+
+					for (const [paneId, pane] of Object.entries(newPanes)) {
+						if (!workspaceTabIds.has(pane.tabId)) continue;
+						
+						let updated = false;
+						const updatedPane = { ...pane };
+
+						if (updatedPane.cwd && updatedPane.cwd.startsWith(oldPath)) {
+							updatedPane.cwd = updatedPane.cwd.replace(oldPath, newPath);
+							updated = true;
+						}
+						
+						if (updatedPane.initialCwd && updatedPane.initialCwd.startsWith(oldPath)) {
+							updatedPane.initialCwd = updatedPane.initialCwd.replace(oldPath, newPath);
+							updated = true;
+						}
+
+						if (updatedPane.fileViewer) {
+							const newFileViewer = { ...updatedPane.fileViewer };
+							if (newFileViewer.filePath.startsWith(oldPath)) {
+								newFileViewer.filePath = newFileViewer.filePath.replace(oldPath, newPath);
+								updated = true;
+							}
+							if (newFileViewer.oldPath && newFileViewer.oldPath.startsWith(oldPath)) {
+								newFileViewer.oldPath = newFileViewer.oldPath.replace(oldPath, newPath);
+								updated = true;
+							}
+							updatedPane.fileViewer = newFileViewer;
+						}
+
+						if (updated) {
+							newPanes[paneId] = updatedPane;
+							hasChanges = true;
+							if (updatedPane.type === "terminal") {
+								terminalPaneIdsToKill.push(paneId);
+							}
+						}
+					}
+
+					if (hasChanges) {
+						set({ panes: newPanes });
+					}
+					
+					return terminalPaneIdsToKill;
+				},
+
 				updateTabLayout: (tabId, layout) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);

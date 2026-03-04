@@ -1,9 +1,9 @@
-import { workspaces } from "@superset/local-db";
+import { workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
-import { getWorkspaceNotDeleting, touchWorkspace } from "../utils/db-helpers";
+import { getWorkspaceNotDeleting, touchWorkspace, getWorktree } from "../utils/db-helpers";
 
 export const createStatusProcedures = () => {
 	return router({
@@ -59,10 +59,11 @@ export const createStatusProcedures = () => {
 					id: z.string(),
 					patch: z.object({
 						name: z.string().optional(),
+						renameFolder: z.boolean().optional(),
 					}),
 				}),
 			)
-			.mutation(({ input }) => {
+			.mutation(async ({ input }) => {
 				const workspace = getWorkspaceNotDeleting(input.id);
 				if (!workspace) {
 					throw new Error(
@@ -70,11 +71,37 @@ export const createStatusProcedures = () => {
 					);
 				}
 
+				let renamedPaths: { oldPath: string, newPath: string } | undefined;
+
+				if (input.patch.renameFolder && input.patch.name && workspace.type === "worktree" && workspace.worktreeId) {
+					const worktree = getWorktree(workspace.worktreeId);
+					if (worktree) {
+						const { dirname, join } = await import("path");
+						const newPath = join(dirname(worktree.path), input.patch.name);
+						
+						// Need to use git worktree move
+						try {
+							const { exec } = await import("child_process");
+							const { promisify } = await import("util");
+							const execAsync = promisify(exec);
+							await execAsync(`git worktree move "${worktree.path}" "${newPath}"`, {
+								cwd: dirname(worktree.path)
+							});
+							
+							// Update worktree in db
+							localDb.update(worktrees).set({ path: newPath }).where(eq(worktrees.id, worktree.id)).run();
+							renamedPaths = { oldPath: worktree.path, newPath };
+						} catch (e) {
+							console.error("Failed to rename worktree folder:", e);
+						}
+					}
+				}
+
 				touchWorkspace(input.id, {
 					...(input.patch.name !== undefined && { name: input.patch.name }),
 				});
 
-				return { success: true };
+				return { success: true, renamedPaths };
 			}),
 
 		setUnread: publicProcedure
