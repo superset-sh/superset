@@ -1,3 +1,7 @@
+import {
+	chatMastraServiceTrpc,
+	type UseMastraChatDisplayReturn,
+} from "@superset/chat-mastra/client";
 import { alert } from "@superset/ui/atoms/Alert";
 import {
 	DropdownMenu,
@@ -8,7 +12,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	HiMiniArrowPath,
 	HiMiniChatBubbleLeftRight,
@@ -23,24 +27,152 @@ interface SessionItem {
 	updatedAt: Date;
 }
 
+interface SessionPreview {
+	updatedAtMs: number;
+	subtitle: string;
+}
+
 interface SessionSelectorProps {
 	currentSessionId: string | null;
 	sessions: SessionItem[];
+	cwd?: string;
 	isSessionInitializing?: boolean;
 	onSelectSession: (sessionId: string) => void;
 	onNewChat: () => Promise<void>;
 	onDeleteSession: (sessionId: string) => Promise<void>;
 }
 
+type MastraMessage = NonNullable<
+	UseMastraChatDisplayReturn["messages"]
+>[number];
+type MastraMessagePart = MastraMessage["content"][number];
+
+const MAX_SUBTITLE_LENGTH = 56;
+
+function truncateSubtitle(text: string): string {
+	if (text.length <= MAX_SUBTITLE_LENGTH) return text;
+	return `${text.slice(0, MAX_SUBTITLE_LENGTH - 3)}...`;
+}
+
+function toMessagePreview(message: MastraMessage): string {
+	const text = message.content
+		.filter(
+			(
+				part: MastraMessagePart,
+			): part is Extract<MastraMessagePart, { type: "text" }> =>
+				part.type === "text",
+		)
+		.map((part: Extract<MastraMessagePart, { type: "text" }>) =>
+			part.text.trim(),
+		)
+		.filter(Boolean)
+		.join(" ")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (text) return truncateSubtitle(text);
+
+	const attachmentCount = message.content.filter(
+		(part: MastraMessagePart) => part.type === "image",
+	).length;
+	if (attachmentCount > 0) {
+		return attachmentCount === 1
+			? "1 attachment"
+			: `${attachmentCount} attachments`;
+	}
+
+	return "";
+}
+
+function buildSessionSubtitle(messages: MastraMessage[]): string {
+	for (let index = messages.length - 1; index >= 0; index -= 1) {
+		const preview = toMessagePreview(messages[index]);
+		if (preview) return preview;
+	}
+	return "No messages yet";
+}
+
+function getRelativeTime(date: Date): string {
+	const diffMs = Date.now() - date.getTime();
+	const seconds = Math.floor(diffMs / 1000);
+	if (seconds < 60) return "now";
+	const minutes = Math.floor(seconds / 60);
+	if (minutes < 60) return `${minutes}m ago`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `${hours}h ago`;
+	const days = Math.floor(hours / 24);
+	if (days < 7) return `${days}d ago`;
+	const weeks = Math.floor(days / 7);
+	if (weeks < 5) return `${weeks}w ago`;
+	const months = Math.floor(days / 30);
+	if (months < 12) return `${months}mo ago`;
+	const years = Math.floor(days / 365);
+	return `${years}y ago`;
+}
+
 export function SessionSelector({
 	currentSessionId,
 	sessions,
+	cwd,
 	isSessionInitializing = false,
 	onSelectSession,
 	onNewChat,
 	onDeleteSession,
 }: SessionSelectorProps) {
+	const utils = chatMastraServiceTrpc.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
+	const [sessionPreviews, setSessionPreviews] = useState<
+		Record<string, SessionPreview>
+	>({});
+
+	useEffect(() => {
+		if (!isOpen || sessions.length === 0) return;
+		let isCancelled = false;
+
+		const loadPreviews = async () => {
+			const updates: Record<string, SessionPreview> = {};
+
+			for (const session of sessions) {
+				const updatedAtMs = session.updatedAt.getTime();
+				const existing = sessionPreviews[session.sessionId];
+				if (existing && existing.updatedAtMs === updatedAtMs) {
+					continue;
+				}
+
+				try {
+					const messages = await utils.client.session.listMessages.query({
+						sessionId: session.sessionId,
+						...(cwd ? { cwd } : {}),
+					});
+					updates[session.sessionId] = {
+						updatedAtMs,
+						subtitle: buildSessionSubtitle(messages),
+					};
+				} catch {
+					if (!existing) {
+						updates[session.sessionId] = {
+							updatedAtMs,
+							subtitle: "No messages yet",
+						};
+					}
+				}
+			}
+
+			if (isCancelled || Object.keys(updates).length === 0) return;
+			setSessionPreviews((previous) => ({ ...previous, ...updates }));
+		};
+
+		void loadPreviews();
+		return () => {
+			isCancelled = true;
+		};
+	}, [
+		cwd,
+		isOpen,
+		sessionPreviews,
+		sessions,
+		utils.client.session.listMessages,
+	]);
 
 	const current = sessions.find(
 		(session) => session.sessionId === currentSessionId,
@@ -64,7 +196,7 @@ export function SessionSelector({
 					<HiMiniChevronDown className="size-3" />
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-64">
+			<DropdownMenuContent align="start" className="w-80">
 				<DropdownMenuLabel className="text-xs">Sessions</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 
@@ -73,7 +205,7 @@ export function SessionSelector({
 						sessions.map((session) => (
 							<DropdownMenuItem
 								key={session.sessionId}
-								className="group flex items-center justify-between gap-2"
+								className="group flex items-center gap-2"
 								onSelect={() => {
 									onSelectSession(session.sessionId);
 									setIsOpen(false);
@@ -84,30 +216,39 @@ export function SessionSelector({
 								>
 									{session.title || "New Chat"}
 								</span>
-								{session.sessionId !== currentSessionId && (
-									<button
-										type="button"
-										className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-										onClick={(event) => {
-											event.stopPropagation();
-											alert.destructive({
-												title: "Delete Chat Session",
-												description:
-													"Are you sure you want to delete this session?",
-												confirmText: "Delete",
-												onConfirm: () => {
-													toast.promise(onDeleteSession(session.sessionId), {
-														loading: "Deleting session...",
-														success: "Session deleted",
-														error: "Failed to delete session",
-													});
-												},
-											});
-										}}
-									>
-										<HiMiniTrash className="size-3" />
-									</button>
-								)}
+								<div className="ml-auto flex min-w-0 items-center gap-2">
+									<span className="max-w-[120px] truncate text-[11px] text-muted-foreground">
+										{sessionPreviews[session.sessionId]?.subtitle ??
+											"No messages yet"}
+									</span>
+									<span className="shrink-0 text-[10px] text-muted-foreground">
+										{getRelativeTime(session.updatedAt)}
+									</span>
+									{session.sessionId !== currentSessionId && (
+										<button
+											type="button"
+											className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+											onClick={(event) => {
+												event.stopPropagation();
+												alert.destructive({
+													title: "Delete Chat Session",
+													description:
+														"Are you sure you want to delete this session?",
+													confirmText: "Delete",
+													onConfirm: () => {
+														toast.promise(onDeleteSession(session.sessionId), {
+															loading: "Deleting session...",
+															success: "Session deleted",
+															error: "Failed to delete session",
+														});
+													},
+												});
+											}}
+										>
+											<HiMiniTrash className="size-3" />
+										</button>
+									)}
+								</div>
 							</DropdownMenuItem>
 						))
 					) : (
