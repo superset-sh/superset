@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 /**
  * Patches the development Electron.app's Info.plist to register a
  * workspace-specific URL scheme (superset-{workspace}://) for deep linking.
@@ -9,6 +10,7 @@
  * Needed because app.setAsDefaultProtocolClient() only works when packaged.
  */
 
+import { Database as BunSqliteDatabase } from "bun:sqlite";
 import { execSync } from "node:child_process";
 import {
 	existsSync,
@@ -60,11 +62,77 @@ function deriveWorkspaceNameFromPath(): string | undefined {
 	return deriveWorkspaceNameFromWorktreeSegments(segments);
 }
 
-const workspaceName = getWorkspaceName() ?? deriveWorkspaceNameFromPath();
+function deriveWorktreePathFromCwd(): string | undefined {
+	const worktreeBase = resolve(homedir(), ".superset/worktrees");
+	const cwdRelative = relative(worktreeBase, process.cwd());
+
+	if (!cwdRelative || cwdRelative.startsWith("..") || isAbsolute(cwdRelative)) {
+		return undefined;
+	}
+
+	const segments = cwdRelative.split(sep).filter(Boolean);
+	if (segments.length < 2) return undefined;
+
+	const appsIndex = segments.lastIndexOf("apps");
+	const endIndex =
+		appsIndex > 1 && segments[appsIndex + 1] === "desktop"
+			? appsIndex
+			: segments.length;
+	if (endIndex <= 1) return undefined;
+
+	return resolve(worktreeBase, ...segments.slice(0, endIndex));
+}
+
+function getWorkspaceDisplayNameFromProdDb(
+	worktreePath: string,
+): string | undefined {
+	const prodDbPath = resolve(homedir(), ".superset/local.db");
+	if (!existsSync(prodDbPath)) return undefined;
+
+	try {
+		const prodDb = new BunSqliteDatabase(prodDbPath, {
+			readonly: true,
+			create: false,
+		});
+		try {
+			const row = prodDb
+				.query(
+					`SELECT w.name as name
+					 FROM workspaces w
+					 INNER JOIN worktrees wt ON w.worktree_id = wt.id
+					 WHERE wt.path = ?
+					   AND w.deleting_at IS NULL
+					 ORDER BY w.last_opened_at DESC
+					 LIMIT 1`,
+				)
+				.get(worktreePath) as { name?: string } | null;
+			const name = row?.name?.trim();
+			return name ? name : undefined;
+		} finally {
+			prodDb.close();
+		}
+	} catch (error) {
+		console.warn(
+			"[patch-dev-protocol] Failed to resolve workspace display name from prod DB:",
+			error,
+		);
+		return undefined;
+	}
+}
+
+// Prefer path-derived name so stale .env values never override the active worktree.
+const workspaceName = deriveWorkspaceNameFromPath() ?? getWorkspaceName();
 if (!workspaceName) {
 	console.log("[patch-dev-protocol] Skipping - workspace name not resolved");
 	process.exit(0);
 }
+const worktreePath = deriveWorktreePathFromCwd();
+const displayWorkspaceName =
+	(worktreePath
+		? getWorkspaceDisplayNameFromProdDb(worktreePath)
+		: undefined) ?? workspaceName;
+const bundleDisplayWorkspaceName =
+	displayWorkspaceName.replaceAll("/", "-").trim() || workspaceName;
 const PROTOCOL_SCHEME = `superset-${workspaceName}`;
 const BUNDLE_ID = `com.superset.desktop.${workspaceName}`;
 const ELECTRON_DIST_DIR = resolve(
@@ -79,7 +147,7 @@ if (!existsSync(PLIST_PATH)) {
 	process.exit(0);
 }
 
-const DISPLAY_NAME = `Superset (${workspaceName})`;
+const DISPLAY_NAME = `Superset (${bundleDisplayWorkspaceName})`;
 
 try {
 	const currentBundleId = execSync(
