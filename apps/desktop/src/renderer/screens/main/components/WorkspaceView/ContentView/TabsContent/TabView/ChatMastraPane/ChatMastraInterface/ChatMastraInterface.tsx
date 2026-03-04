@@ -175,6 +175,7 @@ export function ChatMastraInterface({
 		messages,
 		currentMessage,
 		isRunning = false,
+		isConversationLoading = false,
 		error = null,
 		activeTools,
 		toolInputBuffers,
@@ -719,6 +720,7 @@ export function ChatMastraInterface({
 					messages={visibleMessages}
 					isFocused={isFocused}
 					isRunning={canAbort}
+					isConversationLoading={isConversationLoading}
 					isAwaitingAssistant={isAwaitingAssistant}
 					currentMessage={currentMessage ?? null}
 					interruptedMessage={interruptedMessage}

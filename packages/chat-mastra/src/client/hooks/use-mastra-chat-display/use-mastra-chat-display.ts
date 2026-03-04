@@ -87,29 +87,28 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	const { sessionId, cwd, enabled = true, fps = 60 } = options;
 	const utils = chatMastraServiceTrpc.useUtils();
 	const [commandError, setCommandError] = useState<unknown>(null);
+	const queryInput = sessionId
+		? { sessionId, ...(cwd ? { cwd } : {}) }
+		: skipToken;
+	const isQueryEnabled = enabled && Boolean(sessionId);
+	const refetchIntervalMs = toRefetchIntervalMs(fps);
+	const queryOptions = {
+		enabled: isQueryEnabled,
+		refetchInterval: refetchIntervalMs,
+		refetchIntervalInBackground: true,
+		refetchOnWindowFocus: false,
+		staleTime: 0,
+		gcTime: 0,
+	} as const;
 
 	const displayQuery = chatMastraServiceTrpc.session.getDisplayState.useQuery(
-		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
-		{
-			enabled: enabled && Boolean(sessionId),
-			refetchInterval: toRefetchIntervalMs(fps),
-			refetchIntervalInBackground: true,
-			refetchOnWindowFocus: false,
-			staleTime: 0,
-			gcTime: 0,
-		},
+		queryInput,
+		queryOptions,
 	);
 
 	const messagesQuery = chatMastraServiceTrpc.session.listMessages.useQuery(
-		sessionId ? { sessionId, ...(cwd ? { cwd } : {}) } : skipToken,
-		{
-			enabled: enabled && Boolean(sessionId),
-			refetchInterval: toRefetchIntervalMs(fps),
-			refetchIntervalInBackground: true,
-			refetchOnWindowFocus: false,
-			staleTime: 0,
-			gcTime: 0,
-		},
+		queryInput,
+		queryOptions,
 	);
 
 	const displayState = displayQuery.data ?? null;
@@ -120,6 +119,10 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 			: null;
 	const currentMessage = displayState?.currentMessage ?? null;
 	const isRunning = displayState?.isRunning ?? false;
+	const isConversationLoading =
+		isQueryEnabled &&
+		messagesQuery.data === undefined &&
+		(messagesQuery.isLoading || messagesQuery.isFetching);
 	const historicalMessages = messagesQuery.data ?? [];
 	const latestAssistantErrorMessage = isRunning
 		? null
@@ -273,6 +276,7 @@ export function useMastraChatDisplay(options: UseMastraChatDisplayOptions) {
 	return {
 		...displayState,
 		messages,
+		isConversationLoading,
 		error:
 			runtimeErrorMessage ??
 			latestAssistantErrorMessage ??

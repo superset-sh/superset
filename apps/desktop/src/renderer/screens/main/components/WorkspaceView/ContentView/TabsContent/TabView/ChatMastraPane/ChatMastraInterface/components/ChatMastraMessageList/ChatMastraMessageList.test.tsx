@@ -10,6 +10,9 @@ mock.module("@superset/ui/ai-elements/conversation", () => ({
 		HTMLDivElement,
 		{ children: React.ReactNode }
 	>(({ children }, ref) => <div ref={ref}>{children}</div>),
+	ConversationLoadingState: ({ label }: { label?: string }) => (
+		<div>{label ?? "Loading conversation..."}</div>
+	),
 	ConversationEmptyState: ({ title }: { title?: string }) => (
 		<div>{title ?? "Empty"}</div>
 	),
@@ -149,6 +152,7 @@ function createBaseProps(
 		messages: [] as never,
 		isFocused: true,
 		isRunning: false,
+		isConversationLoading: false,
 		isAwaitingAssistant: false,
 		currentMessage: null,
 		interruptedMessage: null,
@@ -181,6 +185,15 @@ function renderListHtml(
 }
 
 describe("ChatMastraMessageList", () => {
+	it("shows loading state while conversation history is loading", () => {
+		const html = renderListHtml({
+			isConversationLoading: true,
+		});
+
+		expect(html).toContain("Loading conversation...");
+		expect(html).not.toContain("Start a conversation");
+	});
+
 	it("shows interrupted preview content after stop and hides the source assistant message", () => {
 		const html = renderListHtml({
 			messages: [
