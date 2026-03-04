@@ -106,6 +106,18 @@ mock.module("./components/PendingQuestionMessage", () => ({
 	PendingQuestionMessage: () => null,
 }));
 
+mock.module("./components/ToolPreviewMessage", () => ({
+	ToolPreviewMessage: ({
+		pendingPlanToolCallId,
+	}: {
+		pendingPlanToolCallId?: string | null;
+	}) => (
+		<div data-pending-plan-tool-call-id={pendingPlanToolCallId ?? ""}>
+			TOOL_PREVIEW_MESSAGE
+		</div>
+	),
+}));
+
 mock.module("./hooks/useChatMessageSearch", () => ({
 	useChatMessageSearch: () => ({
 		isSearchOpen: false,
@@ -295,6 +307,67 @@ describe("ChatMastraMessageList", () => {
 		});
 
 		expect(html).not.toContain("SUBAGENT_EXECUTION_MESSAGE");
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
+	});
+
+	it("shows tool preview while awaiting assistant when pending plan is anchored", () => {
+		const html = renderListHtml({
+			isAwaitingAssistant: true,
+			activeTools: new Map([
+				[
+					"tool-call-1",
+					{
+						name: "submit_plan",
+						status: "streaming_input",
+					},
+				],
+			]) as never,
+			pendingPlanApproval: {
+				toolCallId: "tool-call-1",
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
+		expect(html).toContain("TOOL_PREVIEW_MESSAGE");
+		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
+	});
+
+	it("does not render standalone pending plan when anchored from interrupted preview", () => {
+		const html = renderListHtml({
+			messages: [
+				{
+					id: "assistant-1",
+					role: "assistant",
+					content: [
+						{
+							type: "tool_call",
+							id: "tool-call-interrupted",
+							name: "submit_plan",
+							args: {},
+						},
+					],
+					createdAt: new Date("2026-03-03T00:00:01.000Z"),
+				},
+			] as never,
+			interruptedMessage: {
+				id: "interrupted:assistant-1",
+				sourceMessageId: "assistant-1",
+				content: [
+					{
+						type: "tool_call",
+						id: "tool-call-interrupted",
+						name: "submit_plan",
+						args: {},
+					},
+				],
+			} as never,
+			pendingPlanApproval: {
+				title: "Implementation plan",
+				plan: "Do the thing",
+			} as never,
+		});
+
 		expect(html).not.toContain("PENDING_PLAN_APPROVAL_MESSAGE");
 	});
 });

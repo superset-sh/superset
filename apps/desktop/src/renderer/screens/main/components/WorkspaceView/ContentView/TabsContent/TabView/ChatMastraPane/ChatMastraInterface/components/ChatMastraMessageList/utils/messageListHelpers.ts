@@ -201,11 +201,7 @@ export function resolvePendingPlanToolCallId({
 			pendingPlanRecord?.callId,
 	);
 
-	if (
-		explicitToolCallId &&
-		fallbackToolCallId &&
-		explicitToolCallId === fallbackToolCallId
-	) {
+	if (explicitToolCallId) {
 		return explicitToolCallId;
 	}
 

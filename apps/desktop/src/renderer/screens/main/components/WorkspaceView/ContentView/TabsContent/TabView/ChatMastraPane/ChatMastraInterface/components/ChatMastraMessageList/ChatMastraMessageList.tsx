@@ -101,6 +101,9 @@ export function ChatMastraMessageList({
 
 	const pendingPlanToolCallId = useMemo(() => {
 		const anchorMessages: MastraMessage[] = [...renderedMessages];
+		if (interruptedPreview) {
+			anchorMessages.push(interruptedPreview);
+		}
 		if (currentMessage?.role === "assistant") {
 			anchorMessages.push(currentMessage);
 		}
@@ -114,7 +117,13 @@ export function ChatMastraMessageList({
 			pendingPlanApproval,
 			fallbackToolCallId: latestSubmitPlanToolCallId,
 		});
-	}, [currentMessage, pendingPlanApproval, previewToolParts, renderedMessages]);
+	}, [
+		currentMessage,
+		interruptedPreview,
+		pendingPlanApproval,
+		previewToolParts,
+		renderedMessages,
+	]);
 
 	const shouldShowStandalonePendingPlan = Boolean(
 		pendingPlanApproval && !pendingPlanToolCallId,
@@ -124,12 +133,15 @@ export function ChatMastraMessageList({
 		isAwaitingAssistant &&
 		!currentMessage &&
 		!pendingApproval &&
-		!pendingPlanApproval &&
 		!pendingQuestion;
 	const shouldShowThinking =
-		canShowPendingAssistantUi && previewToolParts.length === 0;
+		canShowPendingAssistantUi &&
+		!pendingPlanApproval &&
+		previewToolParts.length === 0;
 	const shouldShowToolPreview =
-		canShowPendingAssistantUi && previewToolParts.length > 0;
+		canShowPendingAssistantUi &&
+		previewToolParts.length > 0 &&
+		(!pendingPlanApproval || Boolean(pendingPlanToolCallId));
 
 	const hasConversationContent =
 		renderedMessages.length > 0 || Boolean(interruptedPreview);
