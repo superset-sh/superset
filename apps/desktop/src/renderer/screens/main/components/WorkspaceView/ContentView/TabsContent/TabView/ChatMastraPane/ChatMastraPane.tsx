@@ -109,7 +109,6 @@ export function ChatMastraPane({
 								<SessionSelector
 									currentSessionId={sessionId}
 									sessions={sessionItems}
-									cwd={workspacePath}
 									isSessionInitializing={isSessionInitializing}
 									onSelectSession={handleSelectSession}
 									onNewChat={handleNewChat}
