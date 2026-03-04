@@ -44,4 +44,24 @@ describe("resourceMetricsSnapshotSchema", () => {
 		expect(validated.snapshot).toEqual(validSnapshot);
 		expect(validated.issues).toHaveLength(0);
 	});
+
+	test("ignores additive fields while preserving required metrics", () => {
+		const validSnapshot = createFallbackResourceMetricsSnapshot();
+		const snapshotWithExtras = {
+			...validSnapshot,
+			unexpectedTopLevelKey: "extra",
+			host: {
+				...validSnapshot.host,
+				unexpectedHostKey: "extra",
+			},
+		};
+
+		const validated = validateResourceMetricsSnapshot(snapshotWithExtras);
+
+		expect(validated.isValid).toBe(true);
+		expect(validated.snapshot.totalMemory).toBe(validSnapshot.totalMemory);
+		expect(validated.snapshot.host.totalMemory).toBe(
+			validSnapshot.host.totalMemory,
+		);
+	});
 });

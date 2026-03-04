@@ -4,60 +4,48 @@ import { z as zod } from "zod";
 
 const nonNegativeFiniteNumberSchema = zod.number().finite().min(0);
 
-const usageValuesSchema = zod
-	.object({
-		cpu: nonNegativeFiniteNumberSchema,
-		memory: nonNegativeFiniteNumberSchema,
-	})
-	.strict();
+const usageValuesSchema = zod.object({
+	cpu: nonNegativeFiniteNumberSchema,
+	memory: nonNegativeFiniteNumberSchema,
+});
 
-const sessionMetricsSchema = usageValuesSchema
-	.extend({
-		sessionId: zod.string().min(1),
-		paneId: zod.string().min(1),
-		pid: zod.number().int().min(0),
-	})
-	.strict();
+const sessionMetricsSchema = usageValuesSchema.extend({
+	sessionId: zod.string().min(1),
+	paneId: zod.string().min(1),
+	pid: zod.number().int().min(0),
+});
 
-const workspaceMetricsSchema = usageValuesSchema
-	.extend({
-		workspaceId: zod.string().min(1),
-		projectId: zod.string().min(1),
-		projectName: zod.string().min(1),
-		workspaceName: zod.string().min(1),
-		sessions: zod.array(sessionMetricsSchema),
-	})
-	.strict();
+const workspaceMetricsSchema = usageValuesSchema.extend({
+	workspaceId: zod.string().min(1),
+	projectId: zod.string().min(1),
+	projectName: zod.string().min(1),
+	workspaceName: zod.string().min(1),
+	sessions: zod.array(sessionMetricsSchema),
+});
 
-const appMetricsSchema = usageValuesSchema
-	.extend({
-		main: usageValuesSchema,
-		renderer: usageValuesSchema,
-		other: usageValuesSchema,
-	})
-	.strict();
+const appMetricsSchema = usageValuesSchema.extend({
+	main: usageValuesSchema,
+	renderer: usageValuesSchema,
+	other: usageValuesSchema,
+});
 
-const hostMetricsSchema = zod
-	.object({
-		totalMemory: nonNegativeFiniteNumberSchema,
-		freeMemory: nonNegativeFiniteNumberSchema,
-		usedMemory: nonNegativeFiniteNumberSchema,
-		memoryUsagePercent: nonNegativeFiniteNumberSchema,
-		cpuCoreCount: zod.number().int().min(1),
-		loadAverage1m: nonNegativeFiniteNumberSchema,
-	})
-	.strict();
+const hostMetricsSchema = zod.object({
+	totalMemory: nonNegativeFiniteNumberSchema,
+	freeMemory: nonNegativeFiniteNumberSchema,
+	usedMemory: nonNegativeFiniteNumberSchema,
+	memoryUsagePercent: nonNegativeFiniteNumberSchema,
+	cpuCoreCount: zod.number().int().min(1),
+	loadAverage1m: nonNegativeFiniteNumberSchema,
+});
 
-export const resourceMetricsSnapshotSchema = zod
-	.object({
-		app: appMetricsSchema,
-		workspaces: zod.array(workspaceMetricsSchema),
-		host: hostMetricsSchema,
-		totalCpu: nonNegativeFiniteNumberSchema,
-		totalMemory: nonNegativeFiniteNumberSchema,
-		collectedAt: zod.number().int().min(0),
-	})
-	.strict();
+export const resourceMetricsSnapshotSchema = zod.object({
+	app: appMetricsSchema,
+	workspaces: zod.array(workspaceMetricsSchema),
+	host: hostMetricsSchema,
+	totalCpu: nonNegativeFiniteNumberSchema,
+	totalMemory: nonNegativeFiniteNumberSchema,
+	collectedAt: zod.number().int().min(0),
+});
 
 export type ResourceMetricsSnapshot = z.infer<
 	typeof resourceMetricsSnapshotSchema
