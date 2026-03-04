@@ -88,6 +88,73 @@ describe("NotificationManager", () => {
 		manager = new NotificationManager(deps);
 	});
 
+	describe("agent-teams: sub-agent Stop followed by main-agent Start", () => {
+		// Regression test for https://github.com/origranot/superset/issues/1785
+		//
+		// When using Agent Teams, each sub-agent emits a Stop event when it
+		// finishes its individual task. The main agent then resumes and emits a
+		// Start event for the same pane. Because NotificationManager fires the
+		// notification immediately on Stop — before the Start arrives — every
+		// sub-agent completion sends an "Agent Complete" notification to the user,
+		// even though the overall task is still in progress.
+		//
+		// The correct behaviour: if a Start follows a Stop for the same pane
+		// (indicating the main agent is still running), the Stop notification
+		// should be suppressed / cancelled.
+		it("does not notify when a Stop is immediately followed by a Start on the same pane", () => {
+			// Sub-agent completes → emits Stop for pane-1
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+			);
+			// Main agent resumes → emits Start for the same pane-1
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Start", paneId: "pane-1" }),
+			);
+
+			// No notification should be visible: the Stop was transient
+			expect(manager.activeCount).toBe(0);
+		});
+
+		it("does not play sound when a Stop is immediately cancelled by a Start", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+			);
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Start", paneId: "pane-1" }),
+			);
+
+			expect(deps.playSound).not.toHaveBeenCalled();
+		});
+
+		it("still notifies when Stop is NOT followed by a Start (agent genuinely done)", () => {
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+			);
+			// No subsequent Start — agent is truly finished
+			expect(manager.activeCount).toBe(1);
+		});
+
+		it("only suppresses the pane that resumed, not other panes", () => {
+			// pane-1 sub-agent stops but its main agent resumes
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-1" }),
+			);
+			// pane-2 agent genuinely finishes (no following Start)
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Stop", paneId: "pane-2" }),
+			);
+			// pane-1 main agent resumes
+			manager.handleAgentLifecycle(
+				makeEvent({ eventType: "Start", paneId: "pane-1" }),
+			);
+
+			// pane-2 should still have a notification; pane-1 should not
+			expect(manager.activeCount).toBe(1);
+			// And specifically pane-2's notification should have been shown
+			expect(deps.notifications.length).toBeGreaterThanOrEqual(1);
+		});
+	});
+
 	describe("handleAgentLifecycle", () => {
 		it("ignores Start events", () => {
 			manager.handleAgentLifecycle(makeEvent({ eventType: "Start" }));
