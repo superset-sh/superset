@@ -12,6 +12,7 @@ export type SettingsSection =
 	| "ringtones"
 	| "keyboard"
 	| "behavior"
+	| "git"
 	| "terminal"
 	| "integrations"
 	| "billing"
