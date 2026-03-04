@@ -10,7 +10,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	HiMiniArrowPath,
 	HiMiniChatBubbleLeftRight,
@@ -46,6 +46,7 @@ type MastraMessage = NonNullable<
 type MastraMessagePart = MastraMessage["content"][number];
 
 const MAX_SUBTITLE_LENGTH = 56;
+const SESSION_PAGE_SIZE = 20;
 
 function truncateSubtitle(text: string): string {
 	if (text.length <= MAX_SUBTITLE_LENGTH) return text;
@@ -101,41 +102,69 @@ export function SessionSelector({
 }: SessionSelectorProps) {
 	const utils = chatMastraServiceTrpc.useUtils();
 	const [isOpen, setIsOpen] = useState(false);
+	const [visibleCount, setVisibleCount] = useState(SESSION_PAGE_SIZE);
 	const [sessionPreviews, setSessionPreviews] = useState<
 		Record<string, SessionPreview>
 	>({});
+	const sessionPreviewsRef = useRef(sessionPreviews);
 
 	useEffect(() => {
-		if (!isOpen || sessions.length === 0) return;
+		sessionPreviewsRef.current = sessionPreviews;
+	}, [sessionPreviews]);
+
+	const visibleSessions = useMemo(
+		() => sessions.slice(0, visibleCount),
+		[sessions, visibleCount],
+	);
+	const hasMoreSessions = sessions.length > visibleCount;
+
+	useEffect(() => {
+		if (!isOpen) return;
+		setVisibleCount(SESSION_PAGE_SIZE);
+	}, [isOpen]);
+
+	useEffect(() => {
+		if (!isOpen || visibleSessions.length === 0) return;
 		let isCancelled = false;
 
 		const loadPreviews = async () => {
-			const updates: Record<string, SessionPreview> = {};
-
-			for (const session of sessions) {
+			const sessionsToFetch = visibleSessions.filter((session) => {
 				const updatedAtMs = session.updatedAt.getTime();
-				const existing = sessionPreviews[session.sessionId];
-				if (existing && existing.updatedAtMs === updatedAtMs) {
-					continue;
-				}
+				const existing = sessionPreviewsRef.current[session.sessionId];
+				return !existing || existing.updatedAtMs !== updatedAtMs;
+			});
+			if (sessionsToFetch.length === 0) return;
 
-				try {
-					const messages = await utils.client.session.listMessages.query({
-						sessionId: session.sessionId,
-						...(cwd ? { cwd } : {}),
-					});
-					updates[session.sessionId] = {
-						updatedAtMs,
-						subtitle: buildSessionSubtitle(messages),
-					};
-				} catch {
-					if (!existing) {
-						updates[session.sessionId] = {
-							updatedAtMs,
-							subtitle: "No messages yet",
-						};
+			const responses = await Promise.all(
+				sessionsToFetch.map(async (session) => {
+					const updatedAtMs = session.updatedAt.getTime();
+					const existing = sessionPreviewsRef.current[session.sessionId];
+					if (existing && existing.updatedAtMs === updatedAtMs) {
+						return null;
 					}
-				}
+
+					try {
+						const messages = await utils.client.session.listMessages.query({
+							sessionId: session.sessionId,
+							...(cwd ? { cwd } : {}),
+						});
+						return {
+							sessionId: session.sessionId,
+							preview: {
+								updatedAtMs,
+								subtitle: buildSessionSubtitle(messages),
+							},
+						};
+					} catch {
+						return null;
+					}
+				}),
+			);
+
+			const updates: Record<string, SessionPreview> = {};
+			for (const result of responses) {
+				if (!result) continue;
+				updates[result.sessionId] = result.preview;
 			}
 
 			if (isCancelled || Object.keys(updates).length === 0) return;
@@ -146,13 +175,13 @@ export function SessionSelector({
 		return () => {
 			isCancelled = true;
 		};
-	}, [
-		cwd,
-		isOpen,
-		sessionPreviews,
-		sessions,
-		utils.client.session.listMessages,
-	]);
+	}, [cwd, isOpen, visibleSessions, utils.client.session.listMessages]);
+
+	const loadMoreSessions = () => {
+		setVisibleCount((count) =>
+			Math.min(count + SESSION_PAGE_SIZE, sessions.length),
+		);
+	};
 
 	const current = sessions.find(
 		(session) => session.sessionId === currentSessionId,
@@ -182,24 +211,36 @@ export function SessionSelector({
 
 				<div className="max-h-80 overflow-y-auto">
 					{sessions.length > 0 ? (
-						sessions.map((session) => (
-							<SessionSelectorItem
-								key={session.sessionId}
-								sessionId={session.sessionId}
-								title={session.title}
-								updatedAt={session.updatedAt}
-								subtitle={
-									sessionPreviews[session.sessionId]?.subtitle ??
-									"No messages yet"
-								}
-								isCurrent={session.sessionId === currentSessionId}
-								onSelectSession={(sessionId) => {
-									onSelectSession(sessionId);
-									setIsOpen(false);
-								}}
-								onDeleteSession={onDeleteSession}
-							/>
-						))
+						<>
+							{visibleSessions.map((session) => (
+								<SessionSelectorItem
+									key={session.sessionId}
+									sessionId={session.sessionId}
+									title={session.title}
+									updatedAt={session.updatedAt}
+									subtitle={
+										sessionPreviews[session.sessionId]?.subtitle ?? "Loading..."
+									}
+									isCurrent={session.sessionId === currentSessionId}
+									onSelectSession={(sessionId) => {
+										onSelectSession(sessionId);
+										setIsOpen(false);
+									}}
+									onDeleteSession={onDeleteSession}
+								/>
+							))}
+							{hasMoreSessions && (
+								<div className="px-2 py-1.5">
+									<button
+										type="button"
+										className="w-full rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+										onClick={loadMoreSessions}
+									>
+										Show more sessions
+									</button>
+								</div>
+							)}
+						</>
 					) : (
 						<div className="px-2 py-1.5 text-xs text-muted-foreground">
 							No sessions yet
