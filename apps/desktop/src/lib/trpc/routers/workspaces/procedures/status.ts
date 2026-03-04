@@ -87,26 +87,28 @@ export const createStatusProcedures = () => {
 					}
 
 					const worktree = getWorktree(workspace.worktreeId);
-					if (worktree) {
-						const { dirname, join } = await import("path");
-						const newPath = join(dirname(worktree.path), input.patch.name);
+					if (!worktree) {
+						throw new Error(`Worktree record missing for workspace.worktreeId`);
+					}
+					
+					const { dirname, join } = await import("path");
+					const newPath = join(dirname(worktree.path), input.patch.name);
+					
+					// Need to use git worktree move
+					try {
+						const { execFile } = await import("child_process");
+						const { promisify } = await import("util");
+						const execFileAsync = promisify(execFile);
+						await execFileAsync("git", ["worktree", "move", worktree.path, newPath], {
+							cwd: dirname(worktree.path)
+						});
 						
-						// Need to use git worktree move
-						try {
-							const { execFile } = await import("child_process");
-							const { promisify } = await import("util");
-							const execFileAsync = promisify(execFile);
-							await execFileAsync("git", ["worktree", "move", worktree.path, newPath], {
-								cwd: dirname(worktree.path)
-							});
-							
-							// Update worktree in db
-							localDb.update(worktrees).set({ path: newPath }).where(eq(worktrees.id, worktree.id)).run();
-							renamedPaths = { oldPath: worktree.path, newPath };
-						} catch (e) {
-							console.error("Failed to rename worktree folder:", e);
-							throw new Error(`Failed to rename worktree folder: ${e instanceof Error ? e.message : String(e)}`);
-						}
+						// Update worktree in db
+						localDb.update(worktrees).set({ path: newPath }).where(eq(worktrees.id, worktree.id)).run();
+						renamedPaths = { oldPath: worktree.path, newPath };
+					} catch (e) {
+						console.error("Failed to rename worktree folder:", e);
+						throw new Error(`Failed to rename worktree folder: ${e instanceof Error ? e.message : String(e)}`);
 					}
 				}
 

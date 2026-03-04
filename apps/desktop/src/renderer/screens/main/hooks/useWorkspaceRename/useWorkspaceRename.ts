@@ -86,6 +86,8 @@ export function useWorkspaceRename(
 					} else if (renameFolder) {
 						// Folder rename was requested but failed
 						toast.error("Failed to rename worktree folder. Only the workspace name was updated.");
+						setPendingRename(null);
+						setIsRenaming(false);
 					} else {
 						// Folder rename was not requested, clear state
 						setPendingRename(null);
@@ -121,6 +123,7 @@ export function useWorkspaceRename(
 		isRenaming,
 		renameValue,
 		pendingRename,
+		isUpdating: updateWorkspace.isPending,
 		inputRef,
 		setRenameValue,
 		startRename,

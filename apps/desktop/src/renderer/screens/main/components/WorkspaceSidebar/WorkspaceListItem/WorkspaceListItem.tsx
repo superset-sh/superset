@@ -579,13 +579,13 @@ export function WorkspaceListItem({
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel onClick={() => rename.cancelPendingRename()}>
+						<AlertDialogCancel disabled={rename.isUpdating} onClick={() => rename.cancelPendingRename()}>
 							Cancel
 						</AlertDialogCancel>
-						<AlertDialogAction className="bg-secondary text-secondary-foreground hover:bg-secondary/80" onClick={() => rename.confirmRename(false)}>
+						<AlertDialogAction disabled={rename.isUpdating} className="bg-secondary text-secondary-foreground hover:bg-secondary/80" onClick={() => rename.confirmRename(false)}>
 							Only Rename Workspace
 						</AlertDialogAction>
-						<AlertDialogAction onClick={() => rename.confirmRename(true)}>
+						<AlertDialogAction disabled={rename.isUpdating} onClick={() => rename.confirmRename(true)}>
 							Rename Both
 						</AlertDialogAction>
 					</AlertDialogFooter>
