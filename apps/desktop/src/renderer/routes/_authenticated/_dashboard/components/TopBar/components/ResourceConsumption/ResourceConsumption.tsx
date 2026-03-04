@@ -22,6 +22,10 @@ function formatCpu(percent: number): string {
 	return `${percent.toFixed(1)}%`;
 }
 
+function formatPercent(value: number): string {
+	return `${value.toFixed(0)}%`;
+}
+
 const METRIC_COLS = "flex items-center shrink-0 tabular-nums";
 const CPU_COL = "w-12 text-right";
 const MEM_COL = "w-16 text-right";
@@ -39,14 +43,24 @@ interface UsageValues {
 function getUsageSeverity(
 	values: UsageValues,
 	totals: UsageValues,
-	options: { includeShare?: boolean } = {},
+	options: { includeShare?: boolean; hostMemoryUsagePercent?: number } = {},
 ): UsageSeverity {
-	const { includeShare = true } = options;
+	const { includeShare = true, hostMemoryUsagePercent } = options;
 	const isHighAbsolute = values.cpu >= 90 || values.memory >= 2 * GB;
 	if (isHighAbsolute) return "high";
 
 	const isElevatedAbsolute = values.cpu >= 50 || values.memory >= 1 * GB;
 	if (isElevatedAbsolute) return "elevated";
+
+	if (hostMemoryUsagePercent != null) {
+		const isHighHostPressure =
+			hostMemoryUsagePercent >= 85 && values.memory >= 512 * MB;
+		if (isHighHostPressure) return "high";
+
+		const isElevatedHostPressure =
+			hostMemoryUsagePercent >= 70 && values.memory >= 256 * MB;
+		if (isElevatedHostPressure) return "elevated";
+	}
 
 	if (!includeShare) return "normal";
 
@@ -98,6 +112,12 @@ function getUsageClasses(severity: UsageSeverity, nested = false) {
 	};
 }
 
+function getHostMemorySeverity(memoryUsagePercent: number): UsageSeverity {
+	if (memoryUsagePercent >= 85) return "high";
+	if (memoryUsagePercent >= 70) return "elevated";
+	return "normal";
+}
+
 export function ResourceConsumption() {
 	const [open, setOpen] = useState(false);
 	const [collapsedWorkspaces, setCollapsedWorkspaces] = useState<Set<string>>(
@@ -115,10 +135,15 @@ export function ResourceConsumption() {
 		data: snapshot,
 		refetch,
 		isFetching,
-	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(undefined, {
-		enabled: enabled === true,
-		refetchInterval: open ? 2000 : false,
-	});
+	} = electronTrpc.resourceMetrics.getSnapshot.useQuery(
+		{
+			mode: open ? "interactive" : "idle",
+		},
+		{
+			enabled: enabled === true,
+			refetchInterval: open ? 2000 : 15000,
+		},
+	);
 
 	if (!enabled) return null;
 
@@ -159,8 +184,12 @@ export function ResourceConsumption() {
 		: { cpu: 0, memory: 0 };
 	const totalSeverity = getUsageSeverity(totalUsage, totalUsage, {
 		includeShare: false,
+		hostMemoryUsagePercent: snapshot?.host.memoryUsagePercent,
 	});
 	const totalUsageClasses = getUsageClasses(totalSeverity);
+	const hostMemorySeverity = snapshot
+		? getHostMemorySeverity(snapshot.host.memoryUsagePercent)
+		: "normal";
 
 	const workspaceTotals = snapshot
 		? snapshot.workspaces.reduce(
@@ -248,6 +277,11 @@ export function ResourceConsumption() {
 								label="Memory"
 								value={formatMemory(snapshot.totalMemory)}
 								severity={totalSeverity}
+							/>
+							<MetricBadge
+								label="System RAM"
+								value={formatPercent(snapshot.host.memoryUsagePercent)}
+								severity={hostMemorySeverity}
 							/>
 						</div>
 					)}

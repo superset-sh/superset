@@ -1,3 +1,4 @@
+import os from "node:os";
 import { workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import { app } from "electron";
@@ -33,14 +34,74 @@ interface AppMetrics extends ProcessMetrics {
 	other: ProcessMetrics;
 }
 
+interface HostMetrics {
+	totalMemory: number;
+	freeMemory: number;
+	usedMemory: number;
+	memoryUsagePercent: number;
+	cpuCoreCount: number;
+	loadAverage1m: number;
+}
+
 export interface ResourceMetricsSnapshot {
 	app: AppMetrics;
 	workspaces: WorkspaceMetrics[];
+	host: HostMetrics;
 	totalCpu: number;
 	totalMemory: number;
+	collectedAt: number;
 }
 
-export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot> {
+type SnapshotMode = "interactive" | "idle";
+
+interface CollectResourceMetricsOptions {
+	mode?: SnapshotMode;
+	force?: boolean;
+}
+
+const SNAPSHOT_MAX_AGE_MS: Record<SnapshotMode, number> = {
+	interactive: 2500,
+	idle: 15000,
+};
+
+let cachedSnapshot: ResourceMetricsSnapshot | null = null;
+let inflightCollection: Promise<ResourceMetricsSnapshot> | null = null;
+
+function getSnapshotMaxAge(mode: SnapshotMode): number {
+	return SNAPSHOT_MAX_AGE_MS[mode];
+}
+
+export async function collectResourceMetrics(
+	options: CollectResourceMetricsOptions = {},
+): Promise<ResourceMetricsSnapshot> {
+	const mode = options.mode ?? "interactive";
+	const maxAgeMs = getSnapshotMaxAge(mode);
+
+	if (!options.force && cachedSnapshot) {
+		const ageMs = Date.now() - cachedSnapshot.collectedAt;
+		if (ageMs <= maxAgeMs) {
+			return cachedSnapshot;
+		}
+	}
+
+	// Avoid duplicate expensive process-tree scans for concurrent callers.
+	if (inflightCollection) {
+		return inflightCollection;
+	}
+
+	inflightCollection = collectResourceMetricsNow()
+		.then((snapshot) => {
+			cachedSnapshot = snapshot;
+			return snapshot;
+		})
+		.finally(() => {
+			inflightCollection = null;
+		});
+
+	return inflightCollection;
+}
+
+async function collectResourceMetricsNow(): Promise<ResourceMetricsSnapshot> {
 	const registry = getWorkspaceRuntimeRegistry();
 	const { sessions } = await registry
 		.getDefault()
@@ -80,7 +141,7 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		try {
 			pidStats = await pidusage(allPids);
 		} catch {
-			// PIDs may have exited between listing and querying
+			// PIDs may have exited between listing and querying.
 		}
 	}
 
@@ -96,7 +157,7 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 
 	for (const proc of electronMetrics) {
 		const cpu = proc.cpu.percentCPUUsage;
-		// workingSetSize is in KB
+		// Electron returns workingSetSize in KB.
 		const memory = proc.memory.workingSetSize * 1024;
 		let target = other;
 		if (proc.type === "Browser") {
@@ -182,10 +243,25 @@ export async function collectResourceMetrics(): Promise<ResourceMetricsSnapshot>
 		0,
 	);
 
+	const totalHostMemory = os.totalmem();
+	const freeHostMemory = os.freemem();
+	const usedHostMemory = Math.max(0, totalHostMemory - freeHostMemory);
+	const hostMetrics: HostMetrics = {
+		totalMemory: totalHostMemory,
+		freeMemory: freeHostMemory,
+		usedMemory: usedHostMemory,
+		memoryUsagePercent:
+			totalHostMemory > 0 ? (usedHostMemory / totalHostMemory) * 100 : 0,
+		cpuCoreCount: os.cpus().length,
+		loadAverage1m: os.loadavg()[0],
+	};
+
 	return {
 		app: appMetrics,
 		workspaces: workspaceMetricsList,
+		host: hostMetrics,
 		totalCpu: appMetrics.cpu + sessionCpuTotal,
 		totalMemory: appMetrics.memory + sessionMemoryTotal,
+		collectedAt: Date.now(),
 	};
 }
