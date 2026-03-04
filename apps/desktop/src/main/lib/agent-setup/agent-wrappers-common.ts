@@ -67,6 +67,10 @@ export function buildWrapperScript(
 	binaryName: string,
 	execLine: string,
 ): string {
+	const binaryEnvVar = `SUPERSET_REAL_${binaryName
+		.replace(/[^A-Za-z0-9]/g, "_")
+		.toUpperCase()}_BIN`;
+
 	return `#!/bin/bash
 ${WRAPPER_MARKER}
 # Superset wrapper for ${binaryName}
@@ -77,6 +81,38 @@ REAL_BIN_ROOT=""
 if ! resolve_binary_chain "${binaryName}"; then
   echo "${getMissingBinaryMessage(binaryName)}" >&2
   exit 127
+fi
+
+SUPERSET_WRAPPER_TARGET="${binaryName}"
+SUPERSET_WRAPPER_SELECTED_BIN="$REAL_BIN"
+SUPERSET_WRAPPER_ROOT_BIN="$REAL_BIN_ROOT"
+SUPERSET_REAL_BIN="$REAL_BIN_ROOT"
+${binaryEnvVar}="$REAL_BIN_ROOT"
+export SUPERSET_WRAPPER_TARGET
+export SUPERSET_WRAPPER_SELECTED_BIN
+export SUPERSET_WRAPPER_ROOT_BIN
+export SUPERSET_REAL_BIN
+export ${binaryEnvVar}
+
+SUPERSET_WRAPPER_HOPS="\${SUPERSET_WRAPPER_HOPS:-0}"
+if [ "$SUPERSET_WRAPPER_HOPS" -ge 8 ]; then
+  echo "Superset: wrapper loop detected for ${binaryName}" >&2
+  exit 125
+fi
+SUPERSET_WRAPPER_HOPS=$((SUPERSET_WRAPPER_HOPS + 1))
+export SUPERSET_WRAPPER_HOPS
+
+if [ -n "$REAL_BIN_ROOT" ] && [ "$REAL_BIN_ROOT" != "$REAL_BIN" ]; then
+  _superset_root_dir="\${REAL_BIN_ROOT%/*}"
+  _superset_path=":$PATH:"
+  _superset_path="\${_superset_path//:\$_superset_root_dir:/:}"
+  _superset_path="\${_superset_path#:}"
+  _superset_path="\${_superset_path%:}"
+  if [ -n "$_superset_path" ]; then
+    export PATH="\$_superset_root_dir:\$_superset_path"
+  else
+    export PATH="\$_superset_root_dir"
+  fi
 fi
 
 ${execLine}

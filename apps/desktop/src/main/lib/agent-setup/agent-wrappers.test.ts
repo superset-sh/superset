@@ -148,6 +148,11 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain('_superset_emit_event "Start"');
 		expect(wrapper).toContain('_superset_emit_event "PermissionRequest"');
 		expect(wrapper).toContain("TASKMASTER_REAL_CODEX_BIN");
+		expect(wrapper).toContain("SUPERSET_WRAPPER_SELECTED_BIN");
+		expect(wrapper).toContain("SUPERSET_WRAPPER_ROOT_BIN");
+		expect(wrapper).toContain("SUPERSET_REAL_BIN");
+		expect(wrapper).toContain("SUPERSET_REAL_CODEX_BIN");
+		expect(wrapper).toContain("SUPERSET_WRAPPER_HOPS");
 		expect(wrapper).toContain(
 			`"$REAL_BIN" -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
@@ -189,7 +194,7 @@ describe("agent-wrappers copilot", () => {
 
 		const wrapperScript = buildWrapperScript(
 			"codex",
-			'printf "%s\\n%s\\n" "$REAL_BIN" "$REAL_BIN_ROOT"',
+			'printf "%s\\n%s\\n%s\\n%s\\n%s\\n%s\\n" "$REAL_BIN" "$REAL_BIN_ROOT" "$SUPERSET_WRAPPER_SELECTED_BIN" "$SUPERSET_WRAPPER_ROOT_BIN" "$SUPERSET_REAL_CODEX_BIN" "$PATH"',
 		);
 		writeFileSync(wrapperPath, wrapperScript, { mode: 0o755 });
 		chmodSync(wrapperPath, 0o755);
@@ -207,6 +212,46 @@ describe("agent-wrappers copilot", () => {
 
 		expect(output[0]).toBe(shimPath);
 		expect(output[1]).toBe(rootPath);
+		expect(output[2]).toBe(shimPath);
+		expect(output[3]).toBe(rootPath);
+		expect(output[4]).toBe(rootPath);
+		expect(output[5]?.startsWith(`${realBinDir}:`)).toBe(true);
+	});
+
+	it("stops wrapper recursion with hop guard", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const wrapperPath = path.join(TEST_BIN_DIR, "mastracode");
+		const realPath = path.join(realBinDir, "mastracode");
+
+		mkdirSync(realBinDir, { recursive: true });
+		writeFileSync(realPath, "#!/bin/bash\necho real\n", { mode: 0o755 });
+		chmodSync(realPath, 0o755);
+
+		const wrapperScript = buildWrapperScript("mastracode", 'echo "ok"');
+		writeFileSync(wrapperPath, wrapperScript, { mode: 0o755 });
+		chmodSync(wrapperPath, 0o755);
+
+		try {
+			execFileSync(wrapperPath, [], {
+				encoding: "utf-8",
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:/usr/bin:/bin`,
+					SUPERSET_WRAPPER_HOPS: "8",
+				},
+				stdio: ["pipe", "pipe", "pipe"],
+			});
+			throw new Error("Expected wrapper to stop due to hop guard");
+		} catch (error) {
+			const failure = error as {
+				status?: number;
+				stderr?: Buffer;
+			};
+			expect(failure.status).toBe(125);
+			expect(failure.stderr?.toString()).toContain(
+				"Superset: wrapper loop detected for mastracode",
+			);
+		}
 	});
 
 	it("replaces stale Cursor hook commands from old superset paths", () => {
