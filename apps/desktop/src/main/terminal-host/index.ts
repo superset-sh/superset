@@ -45,8 +45,8 @@ import {
 	type TerminalExitEvent,
 	type WriteRequest,
 } from "../lib/terminal-host/types";
+import { setupTerminalHostSignalHandlers } from "./signal-handlers";
 import { TerminalHost } from "./terminal-host";
-import { recordTransientErrorInWindow } from "./transient-error-window";
 
 // =============================================================================
 // Configuration
@@ -789,142 +789,10 @@ async function stopServer(): Promise<void> {
 // Signal Handling
 // =============================================================================
 
-/**
- * Error codes for transient OS-level errors that should not kill the daemon.
- *
- * ENOSPC - disk full (temporary, user may free space)
- * ENOMEM - out of memory (temporary, other processes may release)
- * EMFILE - too many open files per-process
- * ENFILE - too many open files system-wide
- *
- * These errors are typically momentary. Crashing the daemon on a transient
- * error destroys all active terminal sessions, which is far more disruptive
- * than the original error itself.
- */
-const TRANSIENT_ERROR_CODES = ["ENOSPC", "ENOMEM", "EMFILE", "ENFILE"];
-
-/** After this many transient errors inside the sliding window, shut down. */
-const MAX_TRANSIENT_ERRORS = 50;
-/** Sliding window duration for transient error rate limiting. */
-const TRANSIENT_ERROR_WINDOW_MS = 60_000;
-const TRANSIENT_ERROR_WINDOW_SECONDS = Math.floor(
-	TRANSIENT_ERROR_WINDOW_MS / 1000,
-);
-
-function isTransientError(error: unknown): boolean {
-	if (error instanceof Error) {
-		return TRANSIENT_ERROR_CODES.some(
-			(code) =>
-				error.message.includes(code) ||
-				(error as NodeJS.ErrnoException).code === code,
-		);
-	}
-	return false;
-}
-
 function setupSignalHandlers() {
-	const shutdown = async (signal: string) => {
-		log("info", `Received ${signal}, shutting down...`);
-		await stopServer();
-		process.exit(0);
-	};
-
-	process.on("SIGINT", () => shutdown("SIGINT"));
-	process.on("SIGTERM", () => shutdown("SIGTERM"));
-	process.on("SIGHUP", () => shutdown("SIGHUP"));
-
-	const transientErrorTimestamps: number[] = [];
-	let isShuttingDown = false;
-	let forceExitTimer: NodeJS.Timeout | null = null;
-
-	const fatalShutdown = () => {
-		if (isShuttingDown) return;
-		isShuttingDown = true;
-
-		// Ensure we always terminate even if cleanup hangs.
-		forceExitTimer = setTimeout(() => {
-			log("error", "Forced exit after shutdown timeout");
-			process.exit(1);
-		}, 10_000);
-
-		stopServer()
-			.catch((error) => {
-				log("error", "Error during stopServer in fatal shutdown", { error });
-			})
-			.finally(() => {
-				if (forceExitTimer) {
-					clearTimeout(forceExitTimer);
-					forceExitTimer = null;
-				}
-				process.exit(1);
-			});
-	};
-
-	process.on("uncaughtException", (error) => {
-		if (isShuttingDown) return;
-
-		const transient = isTransientError(error);
-
-		if (transient) {
-			const transientErrorCount = recordTransientErrorInWindow(
-				transientErrorTimestamps,
-				Date.now(),
-				TRANSIENT_ERROR_WINDOW_MS,
-			);
-			log(
-				"warn",
-				`Transient uncaught error #${transientErrorCount}/${MAX_TRANSIENT_ERRORS} ` +
-					`in last ${TRANSIENT_ERROR_WINDOW_SECONDS}s ` +
-					`(${(error as NodeJS.ErrnoException).code ?? error.message.split(",")[0]}), ` +
-					`keeping sessions alive`,
-			);
-			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
-				log(
-					"error",
-					`Too many transient errors in ${TRANSIENT_ERROR_WINDOW_SECONDS}s window, shutting down`,
-				);
-				fatalShutdown();
-			}
-			return;
-		}
-
-		// Non-transient: log at error level and shut down
-		log("error", "Uncaught exception", {
-			error: error.message,
-			stack: error.stack,
-		});
-		fatalShutdown();
-	});
-
-	process.on("unhandledRejection", (reason) => {
-		if (isShuttingDown) return;
-
-		const transient = isTransientError(reason);
-
-		if (transient) {
-			const transientErrorCount = recordTransientErrorInWindow(
-				transientErrorTimestamps,
-				Date.now(),
-				TRANSIENT_ERROR_WINDOW_MS,
-			);
-			log(
-				"warn",
-				`Transient unhandled rejection #${transientErrorCount}/${MAX_TRANSIENT_ERRORS}, ` +
-					`in last ${TRANSIENT_ERROR_WINDOW_SECONDS}s, ` +
-					`keeping sessions alive`,
-			);
-			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
-				log(
-					"error",
-					`Too many transient rejections in ${TRANSIENT_ERROR_WINDOW_SECONDS}s window (${transientErrorCount}/${MAX_TRANSIENT_ERRORS}), shutting down`,
-				);
-				fatalShutdown();
-			}
-			return;
-		}
-
-		log("error", "Unhandled rejection", { reason });
-		fatalShutdown();
+	setupTerminalHostSignalHandlers({
+		log,
+		stopServer,
 	});
 }
 
