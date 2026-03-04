@@ -14,16 +14,20 @@ export const defaultConfig: MarkdownStyleConfig = {
 		),
 		table: ({ children }) => (
 			<div className="overflow-x-auto my-4">
-				<table className="min-w-full divide-y divide-border">{children}</table>
+				<table className="w-max min-w-full divide-y divide-border">
+					{children}
+				</table>
 			</div>
 		),
 		th: ({ children }) => (
-			<th className="px-4 py-2 text-left text-sm font-semibold bg-muted">
+			<th className="px-4 py-2 text-left text-sm font-semibold bg-muted align-top">
 				{children}
 			</th>
 		),
 		td: ({ children }) => (
-			<td className="px-4 py-2 text-sm border-t border-border">{children}</td>
+			<td className="px-4 py-2 text-sm border-t border-border align-top">
+				{children}
+			</td>
 		),
 		blockquote: ({ children }) => (
 			<blockquote className="border-l-4 border-muted-foreground/30 pl-4 italic my-4">
