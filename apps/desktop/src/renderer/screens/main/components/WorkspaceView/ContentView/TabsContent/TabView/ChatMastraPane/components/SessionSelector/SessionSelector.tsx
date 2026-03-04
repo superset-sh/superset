@@ -2,7 +2,6 @@ import {
 	chatMastraServiceTrpc,
 	type UseMastraChatDisplayReturn,
 } from "@superset/chat-mastra/client";
-import { alert } from "@superset/ui/atoms/Alert";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,16 +10,14 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import {
 	HiMiniArrowPath,
 	HiMiniChatBubbleLeftRight,
 	HiMiniChevronDown,
 	HiMiniPlus,
-	HiMiniTrash,
 } from "react-icons/hi2";
-import { getRelativeTime } from "../../../../../../../WorkspacesListView/utils";
+import { SessionSelectorItem } from "./components/SessionSelectorItem";
 
 interface SessionItem {
 	sessionId: string;
@@ -186,53 +183,22 @@ export function SessionSelector({
 				<div className="max-h-80 overflow-y-auto">
 					{sessions.length > 0 ? (
 						sessions.map((session) => (
-							<DropdownMenuItem
+							<SessionSelectorItem
 								key={session.sessionId}
-								className="group flex items-center gap-2"
-								onSelect={() => {
-									onSelectSession(session.sessionId);
+								sessionId={session.sessionId}
+								title={session.title}
+								updatedAt={session.updatedAt}
+								subtitle={
+									sessionPreviews[session.sessionId]?.subtitle ??
+									"No messages yet"
+								}
+								isCurrent={session.sessionId === currentSessionId}
+								onSelectSession={(sessionId) => {
+									onSelectSession(sessionId);
 									setIsOpen(false);
 								}}
-							>
-								<span
-									className={`min-w-0 truncate text-xs ${session.sessionId === currentSessionId ? "font-semibold" : ""}`}
-								>
-									{session.title || "New Chat"}
-								</span>
-								<div className="ml-auto flex min-w-0 items-center gap-2">
-									<span className="max-w-[120px] truncate text-[11px] text-muted-foreground">
-										{sessionPreviews[session.sessionId]?.subtitle ??
-											"No messages yet"}
-									</span>
-									<span className="shrink-0 text-[10px] text-muted-foreground">
-										{getRelativeTime(session.updatedAt.getTime())}
-									</span>
-									{session.sessionId !== currentSessionId && (
-										<button
-											type="button"
-											className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-											onClick={(event) => {
-												event.stopPropagation();
-												alert.destructive({
-													title: "Delete Chat Session",
-													description:
-														"Are you sure you want to delete this session?",
-													confirmText: "Delete",
-													onConfirm: () => {
-														toast.promise(onDeleteSession(session.sessionId), {
-															loading: "Deleting session...",
-															success: "Session deleted",
-															error: "Failed to delete session",
-														});
-													},
-												});
-											}}
-										>
-											<HiMiniTrash className="size-3" />
-										</button>
-									)}
-								</div>
-							</DropdownMenuItem>
+								onDeleteSession={onDeleteSession}
+							/>
 						))
 					) : (
 						<div className="px-2 py-1.5 text-xs text-muted-foreground">
