@@ -460,6 +460,18 @@ export async function createWorktree(
 		await mkdir(parentDir, { recursive: true });
 
 		const env = await getGitEnv();
+		const mainRepoGit = simpleGit(mainRepoPath);
+
+		// Resolve once in the main repo so recovery can safely target the same
+		// commit even if the new worktree ends up with an unborn HEAD.
+		const resolvedStartPoint = (
+			await mainRepoGit.raw(["rev-parse", `${startPoint}^{commit}`])
+		).trim();
+		if (!resolvedStartPoint) {
+			throw new Error(
+				`Failed to resolve start point "${startPoint}" to a commit`,
+			);
+		}
 
 		await execWorktreeAdd({
 			mainRepoPath,
@@ -471,10 +483,9 @@ export async function createWorktree(
 				worktreePath,
 				"-b",
 				branch,
-				// Append ^{commit} to force Git to treat the startPoint as a commit,
-				// not a branch ref. This prevents implicit upstream tracking when
-				// creating a new branch from a remote branch like origin/main.
-				`${startPoint}^{commit}`,
+				// Use the resolved commit to avoid implicit upstream tracking when
+				// creating a branch from a remote ref (e.g. origin/main).
+				resolvedStartPoint,
 			],
 			env,
 			worktreePath,
@@ -490,9 +501,9 @@ export async function createWorktree(
 			}
 		} catch {
 			console.warn(
-				`[createWorktree] HEAD is unborn after creation, resetting to ${startPoint}`,
+				`[createWorktree] HEAD is unborn after creation, hard-resetting to ${resolvedStartPoint}`,
 			);
-			await worktreeGit.raw(["reset", startPoint]);
+			await worktreeGit.raw(["reset", "--hard", resolvedStartPoint]);
 		}
 
 		// Enable autoSetupRemote so the first `git push` automatically creates

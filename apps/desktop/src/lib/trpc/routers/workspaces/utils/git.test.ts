@@ -421,6 +421,60 @@ describe("createWorktree hook tolerance", () => {
 		expect(currentBranch).toBe("feature/hook-failure");
 	});
 
+	test("hard-resets when hook leaves worktree with unborn HEAD and missing files", async () => {
+		const repoPath = createTestRepo("worktree-unborn-recovery");
+		seedCommit(repoPath);
+
+		mkdirSync(join(repoPath, "src"), { recursive: true });
+		writeFileSync(join(repoPath, "src", "nested.txt"), "nested\n");
+		execSync("git add . && git commit -m 'add nested file'", {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		const hookPath = join(repoPath, ".git", "hooks", "post-checkout");
+		writeFileSync(
+			hookPath,
+			[
+				"#!/bin/sh",
+				"branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)",
+				'if [ -n "$branch" ] && [ "$branch" != "HEAD" ]; then',
+				'  ref_file="$(git rev-parse --git-path refs/heads/$branch)"',
+				'  rm -f "$ref_file"',
+				"fi",
+				"rm -f README.md src/nested.txt",
+				'rm -f "$(git rev-parse --git-path index)"',
+				"exit 0",
+				"",
+			].join("\n"),
+		);
+		execSync(`chmod +x "${hookPath}"`);
+
+		const worktreePath = join(TEST_DIR, "worktree-unborn-recovery-wt");
+		await createWorktree(
+			repoPath,
+			"feature/unborn-recovery",
+			worktreePath,
+			"HEAD",
+		);
+
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/unborn-recovery");
+
+		const status = execSync("git status --short --branch", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(status).toBe("## feature/unborn-recovery");
+		expect(existsSync(join(worktreePath, "README.md"))).toBe(true);
+		expect(existsSync(join(worktreePath, "src", "nested.txt"))).toBe(true);
+	});
+
 	test("throws when destination path exists but worktree is not created", async () => {
 		const repoPath = createTestRepo("worktree-existing-path");
 		seedCommit(repoPath);

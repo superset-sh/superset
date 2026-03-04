@@ -1,7 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { detectAndRecoverUnbornHead } from "./utils/unborn-head";
+import {
+	detectAndRecoverUnbornHead,
+	type GitRawExecutor,
+} from "./utils/unborn-head";
 
-function createGitWithRaw(raw: (args: string[]) => Promise<string>) {
+function createGitWithRaw(
+	raw: (args: string[]) => Promise<string>,
+): GitRawExecutor {
 	return { raw };
 }
 
@@ -34,7 +39,7 @@ describe("detectAndRecoverUnbornHead", () => {
 		expect(calls).toEqual([["rev-parse", "HEAD"]]);
 	});
 
-	test("returns true when unborn HEAD is recovered via reset", async () => {
+	test("returns true when unborn HEAD is recovered via hard reset", async () => {
 		const calls: string[][] = [];
 		const git = createGitWithRaw(async (args) => {
 			calls.push(args);
@@ -49,14 +54,30 @@ describe("detectAndRecoverUnbornHead", () => {
 		expect(recovered).toBe(true);
 		expect(calls).toEqual([
 			["rev-parse", "HEAD"],
-			["reset", "origin/main"],
+			["reset", "--hard", "origin/main"],
 		]);
 	});
 
-	test("returns false when recovery reset fails", async () => {
+	test("returns false when HEAD validation fails for non-unborn errors", async () => {
 		const calls: string[][] = [];
 		const git = createGitWithRaw(async (args) => {
 			calls.push(args);
+			throw new Error("fatal: not a git repository");
+		});
+
+		const recovered = await detectAndRecoverUnbornHead(git, "/tmp/wt", "main");
+
+		expect(recovered).toBe(false);
+		expect(calls).toEqual([["rev-parse", "HEAD"]]);
+	});
+
+	test("returns false when hard-reset recovery fails", async () => {
+		const calls: string[][] = [];
+		const git = createGitWithRaw(async (args) => {
+			calls.push(args);
+			if (args[0] === "rev-parse") {
+				throw new Error("fatal: ambiguous argument 'HEAD'");
+			}
 			throw new Error("git failed");
 		});
 
@@ -65,7 +86,7 @@ describe("detectAndRecoverUnbornHead", () => {
 		expect(recovered).toBe(false);
 		expect(calls).toEqual([
 			["rev-parse", "HEAD"],
-			["reset", "origin/main"],
+			["reset", "--hard", "origin/main"],
 		]);
 	});
 });
