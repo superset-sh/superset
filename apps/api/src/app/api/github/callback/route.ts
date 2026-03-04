@@ -1,5 +1,10 @@
 import { db } from "@superset/db/client";
-import { githubInstallations, members } from "@superset/db/schema";
+import type { GithubConfig } from "@superset/db/schema";
+import {
+	githubInstallations,
+	integrationConnections,
+	members,
+} from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
 
@@ -119,6 +124,34 @@ export async function GET(request: Request) {
 				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=save_failed`,
 			);
 		}
+
+		await db
+			.insert(integrationConnections)
+			.values({
+				organizationId,
+				connectedByUserId: userId,
+				provider: "github",
+				accessToken: `ghi_${installation.id}`, // Installation-based auth, not OAuth
+				externalOrgId: accountLogin,
+				externalOrgName: accountLogin,
+				config: {
+					provider: "github",
+					syncIssues: true,
+				} satisfies GithubConfig,
+			})
+			.onConflictDoUpdate({
+				target: [
+					integrationConnections.organizationId,
+					integrationConnections.provider,
+				],
+				set: {
+					connectedByUserId: userId,
+					accessToken: `ghi_${installation.id}`,
+					externalOrgId: accountLogin,
+					externalOrgName: accountLogin,
+					updatedAt: new Date(),
+				},
+			});
 
 		// Queue initial sync job
 		try {
