@@ -76,10 +76,6 @@ export function setupTerminalHostSignalHandlers({
 		if (isShuttingDown) return;
 		isShuttingDown = true;
 
-		if (message) {
-			log(exitCode === 0 ? "info" : "error", message);
-		}
-
 		// Ensure we always terminate even if cleanup hangs.
 		forceExitTimer = setTimeout(() => {
 			try {
@@ -88,6 +84,14 @@ export function setupTerminalHostSignalHandlers({
 				process.exit(exitCode);
 			}
 		}, SHUTDOWN_TIMEOUT_MS);
+
+		if (message) {
+			try {
+				log(exitCode === 0 ? "info" : "error", message);
+			} catch {
+				// Continue shutdown if logging itself fails.
+			}
+		}
 
 		stopServer()
 			.catch((error) => {
@@ -176,6 +180,7 @@ export function setupTerminalHostSignalHandlers({
 				"warn",
 				`Transient unhandled rejection #${transientErrorCount}/${MAX_TRANSIENT_ERRORS}, ` +
 					`in last ${TRANSIENT_ERROR_WINDOW_SECONDS}s, ` +
+					`(${(reason as NodeJS.ErrnoException).code ?? reason.message.split(",")[0]}), ` +
 					`keeping sessions alive`,
 			);
 			if (transientErrorCount >= MAX_TRANSIENT_ERRORS) {
