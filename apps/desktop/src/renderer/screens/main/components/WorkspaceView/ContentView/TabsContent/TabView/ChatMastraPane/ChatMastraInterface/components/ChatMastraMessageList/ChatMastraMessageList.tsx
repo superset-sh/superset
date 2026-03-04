@@ -7,18 +7,20 @@ import {
 } from "@superset/ui/ai-elements/conversation";
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { HiMiniChatBubbleLeftRight } from "react-icons/hi2";
 import { MastraToolCallBlock } from "../../../../ChatPane/ChatInterface/components/MastraToolCallBlock";
 import type { ToolPart } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { normalizeToolName } from "../../../../ChatPane/ChatInterface/utils/tool-helpers";
 import { AssistantMessage } from "./components/AssistantMessage";
+import { ChatSearch } from "./components/ChatSearch";
 import { MessageScrollbackRail } from "./components/MessageScrollbackRail";
 import { PendingApprovalMessage } from "./components/PendingApprovalMessage";
 import { PendingPlanApprovalMessage } from "./components/PendingPlanApprovalMessage";
 import { PendingQuestionMessage } from "./components/PendingQuestionMessage";
 import { SubagentExecutionMessage } from "./components/SubagentExecutionMessage";
 import { UserMessage } from "./components/UserMessage";
+import { useChatMessageSearch } from "./hooks/useChatMessageSearch";
 
 type MastraMessage = NonNullable<
 	UseMastraChatDisplayReturn["messages"]
@@ -50,6 +52,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 
 interface ChatMastraMessageListProps {
 	messages: MastraMessage[];
+	isFocused: boolean;
 	isRunning: boolean;
 	isAwaitingAssistant: boolean;
 	currentMessage: MastraMessage | null;
@@ -167,6 +170,7 @@ function getStreamingPreviewToolParts({
 
 export function ChatMastraMessageList({
 	messages,
+	isFocused,
 	isRunning,
 	isAwaitingAssistant,
 	currentMessage,
@@ -188,6 +192,11 @@ export function ChatMastraMessageList({
 	isQuestionSubmitting,
 	onQuestionRespond,
 }: ChatMastraMessageListProps) {
+	const messageListRef = useRef<HTMLDivElement>(null);
+	const chatSearch = useChatMessageSearch({
+		containerRef: messageListRef,
+		isFocused,
+	});
 	const visibleMessages = useMemo(() => {
 		if (!isRunning || !currentMessage || currentMessage.role !== "assistant") {
 			return messages;
@@ -249,121 +258,135 @@ export function ChatMastraMessageList({
 
 	return (
 		<Conversation className="flex-1">
-			<ConversationContent className="mx-auto w-full max-w-3xl gap-6 py-6 pl-6 pr-16">
-				{renderedMessages.length === 0 && !interruptedPreview ? (
-					<ConversationEmptyState
-						title="Start a conversation"
-						description="Ask anything to get started"
-						icon={<HiMiniChatBubbleLeftRight className="size-8" />}
-					/>
-				) : (
-					renderedMessages.map((message) => {
-						if (message.role === "user")
+			<ConversationContent className="mx-auto w-full max-w-3xl py-6 pl-6 pr-16">
+				<div ref={messageListRef} className="flex flex-col gap-6">
+					{renderedMessages.length === 0 && !interruptedPreview ? (
+						<ConversationEmptyState
+							title="Start a conversation"
+							description="Ask anything to get started"
+							icon={<HiMiniChatBubbleLeftRight className="size-8" />}
+						/>
+					) : (
+						renderedMessages.map((message) => {
+							if (message.role === "user")
+								return (
+									<UserMessage
+										key={message.id}
+										message={message}
+										workspaceId={workspaceId}
+										workspaceCwd={workspaceCwd}
+									/>
+								);
+
 							return (
-								<UserMessage
+								<AssistantMessage
 									key={message.id}
 									message={message}
-									workspaceId={workspaceId}
-									workspaceCwd={workspaceCwd}
-								/>
-							);
-
-						return (
-							<AssistantMessage
-								key={message.id}
-								message={message}
-								workspaceId={workspaceId}
-								sessionId={sessionId}
-								organizationId={organizationId}
-								workspaceCwd={workspaceCwd}
-								isStreaming={false}
-								previewToolParts={[]}
-							/>
-						);
-					})
-				)}
-				{interruptedPreview && (
-					<AssistantMessage
-						key={interruptedPreview.id}
-						message={interruptedPreview}
-						workspaceId={workspaceId}
-						sessionId={sessionId}
-						organizationId={organizationId}
-						workspaceCwd={workspaceCwd}
-						isStreaming={false}
-						previewToolParts={[]}
-						footer={
-							<div className="flex items-center gap-2 text-xs text-muted-foreground">
-								<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
-									Interrupted
-								</span>
-								<span>Response stopped</span>
-							</div>
-						}
-					/>
-				)}
-				{isRunning && currentMessage && (
-					<AssistantMessage
-						key={`current-${currentMessage.id}`}
-						message={currentMessage}
-						workspaceId={workspaceId}
-						sessionId={sessionId}
-						organizationId={organizationId}
-						workspaceCwd={workspaceCwd}
-						isStreaming
-						previewToolParts={previewToolParts}
-					/>
-				)}
-				{shouldShowThinking && (
-					<Message from="assistant">
-						<MessageContent>
-							<ShimmerLabel className="text-sm text-muted-foreground">
-								Thinking...
-							</ShimmerLabel>
-						</MessageContent>
-					</Message>
-				)}
-				{shouldShowToolPreview && (
-					<Message from="assistant">
-						<MessageContent>
-							{previewToolParts.map((part) => (
-								<MastraToolCallBlock
-									key={`tool-preview-${part.toolCallId}`}
-									part={part}
 									workspaceId={workspaceId}
 									sessionId={sessionId}
 									organizationId={organizationId}
 									workspaceCwd={workspaceCwd}
+									isStreaming={false}
+									previewToolParts={[]}
 								/>
-							))}
-						</MessageContent>
-					</Message>
-				)}
-				{hasSubagentActivity && (
-					<SubagentExecutionMessage subagents={activeSubagentEntries} />
-				)}
-				{pendingApproval && (
-					<PendingApprovalMessage
-						approval={pendingApproval}
-						isSubmitting={isApprovalSubmitting}
-						onRespond={onApprovalRespond}
-					/>
-				)}
-				{pendingPlanApproval && (
-					<PendingPlanApprovalMessage
-						planApproval={pendingPlanApproval}
-						isSubmitting={isPlanSubmitting}
-						onRespond={onPlanRespond}
-					/>
-				)}
-				{pendingQuestion && (
-					<PendingQuestionMessage
-						question={pendingQuestion}
-						isSubmitting={isQuestionSubmitting}
-						onRespond={onQuestionRespond}
-					/>
-				)}
+							);
+						})
+					)}
+					{interruptedPreview && (
+						<AssistantMessage
+							key={interruptedPreview.id}
+							message={interruptedPreview}
+							workspaceId={workspaceId}
+							sessionId={sessionId}
+							organizationId={organizationId}
+							workspaceCwd={workspaceCwd}
+							isStreaming={false}
+							previewToolParts={[]}
+							footer={
+								<div className="flex items-center gap-2 text-xs text-muted-foreground">
+									<span className="rounded border border-border bg-muted px-1.5 py-0.5 font-medium uppercase tracking-wide">
+										Interrupted
+									</span>
+									<span>Response stopped</span>
+								</div>
+							}
+						/>
+					)}
+					{isRunning && currentMessage && (
+						<AssistantMessage
+							key={`current-${currentMessage.id}`}
+							message={currentMessage}
+							workspaceId={workspaceId}
+							sessionId={sessionId}
+							organizationId={organizationId}
+							workspaceCwd={workspaceCwd}
+							isStreaming
+							previewToolParts={previewToolParts}
+						/>
+					)}
+					{shouldShowThinking && (
+						<Message from="assistant">
+							<MessageContent>
+								<ShimmerLabel className="text-sm text-muted-foreground">
+									Thinking...
+								</ShimmerLabel>
+							</MessageContent>
+						</Message>
+					)}
+					{shouldShowToolPreview && (
+						<Message from="assistant">
+							<MessageContent>
+								{previewToolParts.map((part) => (
+									<MastraToolCallBlock
+										key={`tool-preview-${part.toolCallId}`}
+										part={part}
+										workspaceId={workspaceId}
+										sessionId={sessionId}
+										organizationId={organizationId}
+										workspaceCwd={workspaceCwd}
+									/>
+								))}
+							</MessageContent>
+						</Message>
+					)}
+					{hasSubagentActivity && (
+						<SubagentExecutionMessage subagents={activeSubagentEntries} />
+					)}
+					{pendingApproval && (
+						<PendingApprovalMessage
+							approval={pendingApproval}
+							isSubmitting={isApprovalSubmitting}
+							onRespond={onApprovalRespond}
+						/>
+					)}
+					{pendingPlanApproval && (
+						<PendingPlanApprovalMessage
+							planApproval={pendingPlanApproval}
+							isSubmitting={isPlanSubmitting}
+							onRespond={onPlanRespond}
+						/>
+					)}
+					{pendingQuestion && (
+						<PendingQuestionMessage
+							question={pendingQuestion}
+							isSubmitting={isQuestionSubmitting}
+							onRespond={onQuestionRespond}
+						/>
+					)}
+				</div>
 			</ConversationContent>
+			<ChatSearch
+				isOpen={chatSearch.isSearchOpen}
+				query={chatSearch.query}
+				caseSensitive={chatSearch.caseSensitive}
+				matchCount={chatSearch.matchCount}
+				activeMatchIndex={chatSearch.activeMatchIndex}
+				onQueryChange={chatSearch.setQuery}
+				onCaseSensitiveChange={chatSearch.setCaseSensitive}
+				onFindNext={chatSearch.findNext}
+				onFindPrevious={chatSearch.findPrevious}
+				onClose={chatSearch.closeSearch}
+			/>
 			<MessageScrollbackRail messages={renderedMessages} />
 			<ConversationScrollButton />
 		</Conversation>

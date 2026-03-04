@@ -1,13 +1,15 @@
 import { describe, expect, it, mock } from "bun:test";
+import { forwardRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 mock.module("@superset/ui/ai-elements/conversation", () => ({
 	Conversation: ({ children }: { children: React.ReactNode }) => (
 		<div>{children}</div>
 	),
-	ConversationContent: ({ children }: { children: React.ReactNode }) => (
-		<div>{children}</div>
-	),
+	ConversationContent: forwardRef<
+		HTMLDivElement,
+		{ children: React.ReactNode }
+	>(({ children }, ref) => <div ref={ref}>{children}</div>),
 	ConversationEmptyState: ({ title }: { title?: string }) => (
 		<div>{title ?? "Empty"}</div>
 	),
@@ -101,6 +103,21 @@ mock.module("./components/PendingQuestionMessage", () => ({
 	PendingQuestionMessage: () => null,
 }));
 
+mock.module("./hooks/useChatMessageSearch", () => ({
+	useChatMessageSearch: () => ({
+		isSearchOpen: false,
+		query: "",
+		caseSensitive: false,
+		matchCount: 0,
+		activeMatchIndex: 0,
+		setQuery: () => {},
+		setCaseSensitive: () => {},
+		findNext: () => {},
+		findPrevious: () => {},
+		closeSearch: () => {},
+	}),
+}));
+
 const { ChatMastraMessageList } = await import("./ChatMastraMessageList");
 type ChatMastraMessageListProps = Parameters<typeof ChatMastraMessageList>[0];
 
@@ -130,6 +147,7 @@ function createBaseProps(
 ): ChatMastraMessageListProps {
 	return {
 		messages: [] as never,
+		isFocused: true,
 		isRunning: false,
 		isAwaitingAssistant: false,
 		currentMessage: null,

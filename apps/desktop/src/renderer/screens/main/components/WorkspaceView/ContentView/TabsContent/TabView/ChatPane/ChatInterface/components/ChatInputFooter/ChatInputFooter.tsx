@@ -9,13 +9,8 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ChatStatus } from "ai";
 import type React from "react";
-import { useCallback, useEffect, useState } from "react";
-import {
-	formatHotkeyText,
-	getCurrentPlatform,
-	HOTKEYS,
-	matchesHotkeyEvent,
-} from "shared/hotkeys";
+import { useCallback, useState } from "react";
+import { useAppHotkey, useHotkeyText } from "renderer/stores/hotkeys";
 import type { SlashCommand } from "../../hooks/useSlashCommands";
 import type { ModelOption, PermissionMode } from "../../types";
 import { IssueLinkCommand } from "../IssueLinkCommand";
@@ -29,6 +24,7 @@ import { getErrorMessage } from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
 	cwd: string;
+	isFocused: boolean;
 	error: unknown;
 	canAbort: boolean;
 	submitStatus?: ChatStatus;
@@ -50,37 +46,43 @@ interface ChatInputFooterProps {
 }
 
 function ChatShortcuts({
+	isFocused,
 	setIssueLinkOpen,
 }: {
+	isFocused: boolean;
 	setIssueLinkOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
 	const attachments = usePromptInputAttachments();
-	const platform = getCurrentPlatform();
-	const attachKey = HOTKEYS.CHAT_ADD_ATTACHMENT.defaults[platform];
-	const linkKey = HOTKEYS.CHAT_LINK_ISSUE.defaults[platform];
-	const focusKey = HOTKEYS.FOCUS_CHAT_INPUT.defaults[platform];
 
-	useEffect(() => {
-		const handler = (e: KeyboardEvent) => {
-			if (attachKey && matchesHotkeyEvent(e, attachKey)) {
-				e.preventDefault();
-				attachments.openFileDialog();
-			}
-			if (linkKey && matchesHotkeyEvent(e, linkKey)) {
-				e.preventDefault();
-				setIssueLinkOpen((prev) => !prev);
-			}
-			if (focusKey && matchesHotkeyEvent(e, focusKey)) {
-				e.preventDefault();
-				const textarea = document.querySelector<HTMLTextAreaElement>(
-					"[data-slot=input-group-control]",
-				);
-				textarea?.focus();
-			}
-		};
-		document.addEventListener("keydown", handler);
-		return () => document.removeEventListener("keydown", handler);
-	}, [attachKey, linkKey, focusKey, attachments, setIssueLinkOpen]);
+	useAppHotkey(
+		"CHAT_ADD_ATTACHMENT",
+		() => {
+			attachments.openFileDialog();
+		},
+		{ enabled: isFocused, preventDefault: true },
+		[attachments, isFocused],
+	);
+
+	useAppHotkey(
+		"CHAT_LINK_ISSUE",
+		() => {
+			setIssueLinkOpen((prev) => !prev);
+		},
+		{ enabled: isFocused, preventDefault: true },
+		[isFocused, setIssueLinkOpen],
+	);
+
+	useAppHotkey(
+		"FOCUS_CHAT_INPUT",
+		() => {
+			const textarea = document.querySelector<HTMLTextAreaElement>(
+				"[data-slot=input-group-control]",
+			);
+			textarea?.focus();
+		},
+		{ enabled: isFocused, preventDefault: true },
+		[isFocused],
+	);
 
 	return null;
 }
@@ -114,6 +116,7 @@ function IssueLinkInserter({
 
 export function ChatInputFooter({
 	cwd,
+	isFocused,
 	error,
 	canAbort,
 	submitStatus,
@@ -135,9 +138,7 @@ export function ChatInputFooter({
 }: ChatInputFooterProps) {
 	const [issueLinkOpen, setIssueLinkOpen] = useState(false);
 	const errorMessage = getErrorMessage(error);
-	const platform = getCurrentPlatform();
-	const focusKey = HOTKEYS.FOCUS_CHAT_INPUT.defaults[platform];
-	const focusShortcutText = formatHotkeyText(focusKey, platform);
+	const focusShortcutText = useHotkeyText("FOCUS_CHAT_INPUT");
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
 	return (
@@ -180,7 +181,10 @@ export function ChatInputFooter({
 										maxFileSize={10 * 1024 * 1024}
 										globalDrop
 									>
-										<ChatShortcuts setIssueLinkOpen={setIssueLinkOpen} />
+										<ChatShortcuts
+											isFocused={isFocused}
+											setIssueLinkOpen={setIssueLinkOpen}
+										/>
 										<IssueLinkInserter
 											issueLinkOpen={issueLinkOpen}
 											setIssueLinkOpen={setIssueLinkOpen}

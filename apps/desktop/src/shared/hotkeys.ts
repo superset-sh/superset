@@ -751,8 +751,14 @@ export const HOTKEYS = {
 	}),
 
 	// Chat
-	FOCUS_CHAT_INPUT: defineHotkey({
+	FIND_IN_CHAT: defineHotkey({
 		keys: "meta+f",
+		label: "Find in Chat",
+		category: "Terminal",
+		description: "Search text in the active chat",
+	}),
+	FOCUS_CHAT_INPUT: defineHotkey({
+		keys: "meta+j",
 		label: "Focus Chat Input",
 		category: "Terminal",
 	}),
