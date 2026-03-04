@@ -4,6 +4,22 @@ import path from "node:path";
 import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
 
 describe("getAppCommand", () => {
+	const originalPlatform = process.platform;
+
+	beforeEach(() => {
+		Object.defineProperty(process, "platform", {
+			value: "darwin",
+			writable: true,
+		});
+	});
+
+	afterEach(() => {
+		Object.defineProperty(process, "platform", {
+			value: originalPlatform,
+			writable: true,
+		});
+	});
+
 	test("returns null for finder (handled specially)", () => {
 		expect(getAppCommand("finder", "/path/to/file")).toBeNull();
 	});
