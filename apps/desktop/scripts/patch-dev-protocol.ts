@@ -50,7 +50,7 @@ if (process.env.NODE_ENV !== "development") {
 	process.exit(0);
 }
 
-function deriveWorkspaceNameFromPath(): string | undefined {
+function getWorktreeSegmentsFromCwd(): string[] | undefined {
 	const worktreeBase = resolve(homedir(), ".superset/worktrees");
 	const cwdRelative = relative(worktreeBase, process.cwd());
 
@@ -59,19 +59,22 @@ function deriveWorkspaceNameFromPath(): string | undefined {
 	}
 
 	const segments = cwdRelative.split(sep).filter(Boolean);
+	return segments.length >= 2 ? segments : undefined;
+}
+
+function deriveWorkspaceNameFromSegments(
+	segments: string[] | undefined,
+): string | undefined {
+	if (!segments) return undefined;
 	return deriveWorkspaceNameFromWorktreeSegments(segments);
 }
 
-function deriveWorktreePathFromCwd(): string | undefined {
+function deriveWorktreePathFromSegments(
+	segments: string[] | undefined,
+): string | undefined {
+	if (!segments) return undefined;
+
 	const worktreeBase = resolve(homedir(), ".superset/worktrees");
-	const cwdRelative = relative(worktreeBase, process.cwd());
-
-	if (!cwdRelative || cwdRelative.startsWith("..") || isAbsolute(cwdRelative)) {
-		return undefined;
-	}
-
-	const segments = cwdRelative.split(sep).filter(Boolean);
-	if (segments.length < 2) return undefined;
 
 	const appsIndex = segments.lastIndexOf("apps");
 	const endIndex =
@@ -121,12 +124,14 @@ function getWorkspaceDisplayNameFromProdDb(
 }
 
 // Prefer path-derived name so stale .env values never override the active worktree.
-const workspaceName = deriveWorkspaceNameFromPath() ?? getWorkspaceName();
+const worktreeSegments = getWorktreeSegmentsFromCwd();
+const workspaceName =
+	deriveWorkspaceNameFromSegments(worktreeSegments) ?? getWorkspaceName();
 if (!workspaceName) {
 	console.log("[patch-dev-protocol] Skipping - workspace name not resolved");
 	process.exit(0);
 }
-const worktreePath = deriveWorktreePathFromCwd();
+const worktreePath = deriveWorktreePathFromSegments(worktreeSegments);
 const displayWorkspaceName =
 	(worktreePath
 		? getWorkspaceDisplayNameFromProdDb(worktreePath)
