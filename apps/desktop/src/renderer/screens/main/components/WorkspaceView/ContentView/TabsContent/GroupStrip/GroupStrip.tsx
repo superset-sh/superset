@@ -28,6 +28,7 @@ import {
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { AddTabButton } from "./components/AddTabButton";
 import { GroupItem } from "./GroupItem";
+import { getScrollOffsetForTab } from "./scroll-utils";
 
 const NO_WORKSPACE_MATCH = "__no_workspace__";
 
@@ -263,6 +264,27 @@ export function GroupStrip() {
 	useEffect(() => {
 		requestAnimationFrame(updateOverflow);
 	}, [updateOverflow]);
+
+	// Scroll the active tab into view whenever it changes (e.g. new tab added or
+	// switching to a tab outside the current visible area — fixes #1840).
+	useEffect(() => {
+		if (!activeTabId || !scrollContainerRef.current) return;
+		const container = scrollContainerRef.current;
+		const activeIndex = tabs.findIndex((t) => t.id === activeTabId);
+		if (activeIndex === -1) return;
+
+		requestAnimationFrame(() => {
+			const offset = getScrollOffsetForTab({
+				tabIndex: activeIndex,
+				tabWidth: 160,
+				containerScrollLeft: container.scrollLeft,
+				containerClientWidth: container.clientWidth,
+			});
+			if (offset !== null) {
+				container.scrollLeft = offset;
+			}
+		});
+	}, [activeTabId, tabs]);
 
 	const useCompactAddButton =
 		useCompactTerminalAddButton ?? DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON;
