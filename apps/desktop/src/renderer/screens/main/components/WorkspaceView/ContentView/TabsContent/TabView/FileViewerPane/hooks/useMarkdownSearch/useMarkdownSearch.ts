@@ -58,7 +58,13 @@ export function useMarkdownSearch({
 
 	useAppHotkey(
 		"FIND_IN_FILE_VIEWER",
-		() => textSearch.setIsSearchOpen((prev) => !prev),
+		() => {
+			if (textSearch.isSearchOpen) {
+				textSearch.closeSearch();
+				return;
+			}
+			textSearch.setIsSearchOpen(true);
+		},
 		{ enabled: isFocused && isRenderedMode, preventDefault: true },
 	);
 

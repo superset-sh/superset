@@ -44,6 +44,7 @@ export function useTextSearch({
 	const rangesRef = useRef<Range[]>([]);
 	const activeMatchIndexRef = useRef(0);
 	activeMatchIndexRef.current = activeMatchIndex;
+	const wasSearchOpenRef = useRef(false);
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const highlightInstanceIdRef = useRef<number | null>(null);
 
@@ -225,6 +226,25 @@ export function useTextSearch({
 			}
 		};
 	}, [caseSensitive, isSearchOpen, performSearch, query]);
+
+	useEffect(() => {
+		if (isSearchOpen) {
+			wasSearchOpenRef.current = true;
+			return;
+		}
+
+		if (!wasSearchOpenRef.current) return;
+		wasSearchOpenRef.current = false;
+
+		if (searchTimerRef.current) {
+			clearTimeout(searchTimerRef.current);
+			searchTimerRef.current = null;
+		}
+		setQuery("");
+		setMatchCount(0);
+		setActiveMatchIndex(0);
+		clearHighlights();
+	}, [isSearchOpen, clearHighlights]);
 
 	useEffect(() => {
 		return () => {
