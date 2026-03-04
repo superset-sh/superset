@@ -1,3 +1,4 @@
+import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
@@ -65,11 +66,7 @@ export function PresetRow({
 		preset.applyOnNewTab ||
 		(!preset.applyOnWorkspaceCreated && preset.isDefault)
 	);
-	const modeValue =
-		preset.executionMode === "new-tab" ||
-		preset.executionMode === "new-tab-split-pane"
-			? preset.executionMode
-			: "split-pane";
+	const modeValue = normalizeExecutionMode(preset.executionMode);
 	const modeLabel =
 		modeValue === "new-tab"
 			? preset.commands.length > 1
