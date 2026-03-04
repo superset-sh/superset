@@ -21,6 +21,7 @@ import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_FILE_OPEN_MODE,
+	DEFAULT_MOUSE_NAVIGATION_ENABLED,
 	DEFAULT_OPEN_LINKS_IN_APP,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
@@ -652,6 +653,28 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { worktreeBaseDir: input.path },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		/** Read whether mouse back/forward button navigation is enabled. Returns the stored value or DEFAULT_MOUSE_NAVIGATION_ENABLED if unset. */
+		getMouseNavigationEnabled: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.mouseNavigationEnabled ?? DEFAULT_MOUSE_NAVIGATION_ENABLED;
+		}),
+
+		/** Persist whether mouse back/forward button navigation is enabled. Upserts the settings row so the value survives restarts. */
+		setMouseNavigationEnabled: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, mouseNavigationEnabled: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { mouseNavigationEnabled: input.enabled },
 					})
 					.run();
 
