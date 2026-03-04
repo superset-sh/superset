@@ -3,129 +3,316 @@ import os from "node:os";
 import path from "node:path";
 import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
 
+/** Helper to temporarily override process.platform for a test. */
+function withPlatform(platform: string, fn: () => void): void {
+	const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
+	Object.defineProperty(process, "platform", {
+		value: platform,
+		configurable: true,
+	});
+	try {
+		fn();
+	} finally {
+		if (descriptor) {
+			Object.defineProperty(process, "platform", descriptor);
+		}
+	}
+}
+
 describe("getAppCommand", () => {
 	test("returns null for finder (handled specially)", () => {
 		expect(getAppCommand("finder", "/path/to/file")).toBeNull();
 	});
 
-	test("returns single-element array for cursor", () => {
-		const result = getAppCommand("cursor", "/path/to/file");
-		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Cursor", "/path/to/file"] },
-		]);
-	});
-
-	test("returns single-element array for vscode", () => {
-		const result = getAppCommand("vscode", "/path/to/file");
-		expect(result).toEqual([
-			{
-				command: "open",
-				args: ["-a", "Visual Studio Code", "/path/to/file"],
-			},
-		]);
-	});
-
-	test("returns single-element array for sublime", () => {
-		const result = getAppCommand("sublime", "/path/to/file");
-		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Sublime Text", "/path/to/file"] },
-		]);
-	});
-
-	test("returns single-element array for xcode", () => {
-		const result = getAppCommand("xcode", "/path/to/file");
-		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Xcode", "/path/to/file"] },
-		]);
-	});
-
-	test("returns single-element array for iterm", () => {
-		const result = getAppCommand("iterm", "/path/to/file");
-		expect(result).toEqual([
-			{ command: "open", args: ["-a", "iTerm", "/path/to/file"] },
-		]);
-	});
-
-	test("returns single-element array for warp", () => {
-		const result = getAppCommand("warp", "/path/to/file");
-		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Warp", "/path/to/file"] },
-		]);
-	});
-
-	test("returns single-element array for terminal", () => {
-		const result = getAppCommand("terminal", "/path/to/file");
-		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Terminal", "/path/to/file"] },
-		]);
-	});
-
-	test("returns single-element array for ghostty", () => {
-		const result = getAppCommand("ghostty", "/path/to/file");
-		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Ghostty", "/path/to/file"] },
-		]);
-	});
-
-	describe("JetBrains IDEs", () => {
-		test("returns bundle ID candidates for intellij (multi-edition)", () => {
-			const result = getAppCommand("intellij", "/path/to/file");
-			expect(result).toEqual([
-				{
-					command: "open",
-					args: ["-b", "com.jetbrains.intellij", "/path/to/file"],
-				},
-				{
-					command: "open",
-					args: ["-b", "com.jetbrains.intellij.ce", "/path/to/file"],
-				},
-			]);
+	describe("macOS (darwin)", () => {
+		test("returns single-element array for cursor", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("cursor", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "open", args: ["-a", "Cursor", "/path/to/file"] },
+				]);
+			});
 		});
 
-		test("returns bundle ID candidates for pycharm (multi-edition)", () => {
-			const result = getAppCommand("pycharm", "/path/to/file");
-			expect(result).toEqual([
-				{
-					command: "open",
-					args: ["-b", "com.jetbrains.pycharm", "/path/to/file"],
-				},
-				{
-					command: "open",
-					args: ["-b", "com.jetbrains.pycharm.ce", "/path/to/file"],
-				},
-			]);
+		test("returns single-element array for vscode", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("vscode", "/path/to/file");
+				expect(result).toEqual([
+					{
+						command: "open",
+						args: ["-a", "Visual Studio Code", "/path/to/file"],
+					},
+				]);
+			});
 		});
 
-		test("returns single-element array for webstorm (single-edition)", () => {
-			const result = getAppCommand("webstorm", "/path/to/file");
-			expect(result).toEqual([
-				{ command: "open", args: ["-a", "WebStorm", "/path/to/file"] },
-			]);
+		test("returns single-element array for sublime", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("sublime", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "open", args: ["-a", "Sublime Text", "/path/to/file"] },
+				]);
+			});
 		});
 
-		test("returns single-element array for goland (single-edition)", () => {
-			const result = getAppCommand("goland", "/path/to/file");
-			expect(result).toEqual([
-				{ command: "open", args: ["-a", "GoLand", "/path/to/file"] },
-			]);
+		test("returns single-element array for xcode", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("xcode", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "open", args: ["-a", "Xcode", "/path/to/file"] },
+				]);
+			});
 		});
 
-		test("returns single-element array for rustrover (single-edition)", () => {
-			const result = getAppCommand("rustrover", "/path/to/file");
-			expect(result).toEqual([
-				{ command: "open", args: ["-a", "RustRover", "/path/to/file"] },
-			]);
+		test("returns single-element array for iterm", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("iterm", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "open", args: ["-a", "iTerm", "/path/to/file"] },
+				]);
+			});
+		});
+
+		test("returns single-element array for warp", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("warp", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "open", args: ["-a", "Warp", "/path/to/file"] },
+				]);
+			});
+		});
+
+		test("returns single-element array for terminal", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("terminal", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "open", args: ["-a", "Terminal", "/path/to/file"] },
+				]);
+			});
+		});
+
+		test("returns single-element array for ghostty", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("ghostty", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "open", args: ["-a", "Ghostty", "/path/to/file"] },
+				]);
+			});
+		});
+
+		describe("JetBrains IDEs", () => {
+			test("returns bundle ID candidates for intellij (multi-edition)", () => {
+				withPlatform("darwin", () => {
+					const result = getAppCommand("intellij", "/path/to/file");
+					expect(result).toEqual([
+						{
+							command: "open",
+							args: ["-b", "com.jetbrains.intellij", "/path/to/file"],
+						},
+						{
+							command: "open",
+							args: ["-b", "com.jetbrains.intellij.ce", "/path/to/file"],
+						},
+					]);
+				});
+			});
+
+			test("returns bundle ID candidates for pycharm (multi-edition)", () => {
+				withPlatform("darwin", () => {
+					const result = getAppCommand("pycharm", "/path/to/file");
+					expect(result).toEqual([
+						{
+							command: "open",
+							args: ["-b", "com.jetbrains.pycharm", "/path/to/file"],
+						},
+						{
+							command: "open",
+							args: ["-b", "com.jetbrains.pycharm.ce", "/path/to/file"],
+						},
+					]);
+				});
+			});
+
+			test("returns single-element array for webstorm (single-edition)", () => {
+				withPlatform("darwin", () => {
+					const result = getAppCommand("webstorm", "/path/to/file");
+					expect(result).toEqual([
+						{ command: "open", args: ["-a", "WebStorm", "/path/to/file"] },
+					]);
+				});
+			});
+
+			test("returns single-element array for goland (single-edition)", () => {
+				withPlatform("darwin", () => {
+					const result = getAppCommand("goland", "/path/to/file");
+					expect(result).toEqual([
+						{ command: "open", args: ["-a", "GoLand", "/path/to/file"] },
+					]);
+				});
+			});
+
+			test("returns single-element array for rustrover (single-edition)", () => {
+				withPlatform("darwin", () => {
+					const result = getAppCommand("rustrover", "/path/to/file");
+					expect(result).toEqual([
+						{ command: "open", args: ["-a", "RustRover", "/path/to/file"] },
+					]);
+				});
+			});
+		});
+
+		test("preserves paths with spaces", () => {
+			withPlatform("darwin", () => {
+				const result = getAppCommand("cursor", "/path/with spaces/file.ts");
+				expect(result).toEqual([
+					{
+						command: "open",
+						args: ["-a", "Cursor", "/path/with spaces/file.ts"],
+					},
+				]);
+			});
 		});
 	});
 
-	test("preserves paths with spaces", () => {
-		const result = getAppCommand("cursor", "/path/with spaces/file.ts");
-		expect(result).toEqual([
-			{
-				command: "open",
-				args: ["-a", "Cursor", "/path/with spaces/file.ts"],
-			},
-		]);
+	describe("Linux", () => {
+		test("returns CLI command for vscode (not open -a)", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("vscode", "/path/to/file");
+				expect(result).toEqual([{ command: "code", args: ["/path/to/file"] }]);
+			});
+		});
+
+		test("returns CLI command for vscode-insiders", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("vscode-insiders", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "code-insiders", args: ["/path/to/file"] },
+				]);
+			});
+		});
+
+		test("returns CLI command for cursor", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("cursor", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "cursor", args: ["/path/to/file"] },
+				]);
+			});
+		});
+
+		test("returns CLI command for windsurf", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("windsurf", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "windsurf", args: ["/path/to/file"] },
+				]);
+			});
+		});
+
+		test("returns CLI command for zed", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("zed", "/path/to/file");
+				expect(result).toEqual([{ command: "zed", args: ["/path/to/file"] }]);
+			});
+		});
+
+		test("returns CLI command for sublime", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("sublime", "/path/to/file");
+				expect(result).toEqual([{ command: "subl", args: ["/path/to/file"] }]);
+			});
+		});
+
+		test("returns CLI command for ghostty", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("ghostty", "/path/to/file");
+				expect(result).toEqual([
+					{ command: "ghostty", args: ["/path/to/file"] },
+				]);
+			});
+		});
+
+		test("returns null for xcode (macOS-only)", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("xcode", "/path/to/file");
+				expect(result).toBeNull();
+			});
+		});
+
+		test("returns null for iterm (macOS-only)", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("iterm", "/path/to/file");
+				expect(result).toBeNull();
+			});
+		});
+
+		test("returns null for terminal (no single Linux equivalent)", () => {
+			withPlatform("linux", () => {
+				const result = getAppCommand("terminal", "/path/to/file");
+				expect(result).toBeNull();
+			});
+		});
+
+		describe("JetBrains IDEs on Linux", () => {
+			test("returns idea CLI command for intellij", () => {
+				withPlatform("linux", () => {
+					const result = getAppCommand("intellij", "/path/to/file");
+					expect(result).toEqual([
+						{ command: "idea", args: ["/path/to/file"] },
+					]);
+				});
+			});
+
+			test("returns pycharm CLI command for pycharm", () => {
+				withPlatform("linux", () => {
+					const result = getAppCommand("pycharm", "/path/to/file");
+					expect(result).toEqual([
+						{ command: "pycharm", args: ["/path/to/file"] },
+					]);
+				});
+			});
+
+			test("returns webstorm CLI command for webstorm", () => {
+				withPlatform("linux", () => {
+					const result = getAppCommand("webstorm", "/path/to/file");
+					expect(result).toEqual([
+						{ command: "webstorm", args: ["/path/to/file"] },
+					]);
+				});
+			});
+
+			test("returns goland CLI command for goland", () => {
+				withPlatform("linux", () => {
+					const result = getAppCommand("goland", "/path/to/file");
+					expect(result).toEqual([
+						{ command: "goland", args: ["/path/to/file"] },
+					]);
+				});
+			});
+		});
+
+		test("does not use open -a on Linux (regression for issue #2031)", () => {
+			withPlatform("linux", () => {
+				// Every editor app that has a Linux CLI command should NOT produce an
+				// `open -a` command — that is the macOS-only flag that caused the bug.
+				const linuxEditors = [
+					"vscode",
+					"cursor",
+					"windsurf",
+					"zed",
+					"sublime",
+				] as const;
+				for (const app of linuxEditors) {
+					const result = getAppCommand(app, "/path/to/file");
+					expect(result).not.toBeNull();
+					for (const cmd of result ?? []) {
+						expect(cmd.command).not.toBe("open");
+						expect(cmd.args).not.toContain("-a");
+						expect(cmd.args).not.toContain("-b");
+					}
+				}
+			});
+		});
 	});
 });
 

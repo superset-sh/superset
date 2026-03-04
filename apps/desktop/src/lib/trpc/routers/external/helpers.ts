@@ -3,7 +3,7 @@ import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
 
 /** Map of app IDs to their macOS application names */
-const APP_NAMES: Record<ExternalApp, string | null> = {
+const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
 	vscode: "Visual Studio Code",
 	"vscode-insiders": "Visual Studio Code - Insiders",
@@ -32,26 +32,64 @@ const APP_NAMES: Record<ExternalApp, string | null> = {
 };
 
 /**
- * Bundle ID candidates for JetBrains IDEs with multiple editions.
+ * Bundle ID candidates for JetBrains IDEs with multiple editions on macOS.
  * `open -b <bundleId>` works regardless of the .app display name,
  * so "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
  */
-const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
+const MACOS_BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["com.jetbrains.intellij", "com.jetbrains.intellij.ce"],
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
 };
 
 /**
+ * CLI command names for each app on Linux (and other non-macOS platforms).
+ * Apps not present here are not supported on Linux and will return null.
+ */
+const LINUX_CLI_COMMANDS: Partial<Record<ExternalApp, string>> = {
+	vscode: "code",
+	"vscode-insiders": "code-insiders",
+	cursor: "cursor",
+	antigravity: "antigravity",
+	windsurf: "windsurf",
+	zed: "zed",
+	ghostty: "ghostty",
+	sublime: "subl",
+	warp: "warp",
+	// JetBrains IDEs — launchers installed by JetBrains Toolbox or system packages
+	intellij: "idea",
+	webstorm: "webstorm",
+	pycharm: "pycharm",
+	phpstorm: "phpstorm",
+	rubymine: "rubymine",
+	goland: "goland",
+	clion: "clion",
+	rider: "rider",
+	datagrip: "datagrip",
+	fleet: "fleet",
+	rustrover: "rustrover",
+	// finder, xcode, iterm, terminal, appcode: macOS-only, no Linux equivalent
+};
+
+/**
  * Get candidate commands to open a path in the specified app.
- * Returns an array of commands to try in order — for multi-edition apps (IntelliJ, PyCharm),
- * multiple bundle IDs are returned so the caller can fall back if one isn't installed.
- * Uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
+ * Returns an array of commands to try in order — for multi-edition apps on macOS
+ * (IntelliJ, PyCharm), multiple bundle IDs are returned so the caller can fall back
+ * if one isn't installed.
+ *
+ * On macOS: uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
+ * On Linux: uses the app's CLI command directly (e.g. `code`, `cursor`, `idea`).
  */
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
 ): { command: string; args: string[] }[] | null {
-	const bundleIds = BUNDLE_ID_CANDIDATES[app];
+	if (process.platform !== "darwin") {
+		const cliCmd = LINUX_CLI_COMMANDS[app];
+		if (!cliCmd) return null;
+		return [{ command: cliCmd, args: [targetPath] }];
+	}
+
+	const bundleIds = MACOS_BUNDLE_ID_CANDIDATES[app];
 	if (bundleIds) {
 		return bundleIds.map((id) => ({
 			command: "open",
@@ -59,7 +97,7 @@ export function getAppCommand(
 		}));
 	}
 
-	const appName = APP_NAMES[app];
+	const appName = MACOS_APP_NAMES[app];
 	if (!appName) return null;
 	return [{ command: "open", args: ["-a", appName, targetPath] }];
 }
