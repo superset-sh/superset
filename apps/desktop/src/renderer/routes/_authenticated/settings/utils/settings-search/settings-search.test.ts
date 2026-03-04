@@ -62,4 +62,10 @@ describe("settings search - font settings", () => {
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
 	});
+
+	it('searching "menu bar" returns BEHAVIOR_MENUBAR_ICON', () => {
+		const results = searchSettings("menu bar");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.BEHAVIOR_MENUBAR_ICON);
+	});
 });

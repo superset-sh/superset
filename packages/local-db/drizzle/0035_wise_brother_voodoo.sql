@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `show_menubar_icon` integer;
