@@ -11,6 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { createAuthStorage } from "mastracode";
+import { ANTHROPIC_AUTH_PROVIDER_ID } from "../provider-ids";
 
 interface ClaudeCredentials {
 	apiKey: string;
@@ -129,7 +130,7 @@ export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
 	try {
 		const authStorage = createAuthStorage();
 		authStorage.reload();
-		const credential = authStorage.get("anthropic");
+		const credential = authStorage.get(ANTHROPIC_AUTH_PROVIDER_ID);
 		if (!credential) return null;
 
 		if (

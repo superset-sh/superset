@@ -6,36 +6,41 @@ import {
 	getOpenAICredentialsFromAnySource,
 } from "@superset/chat/host";
 
-async function generateTitleWithAnthropic(
-	prompt: string,
-	apiKey: string,
-): Promise<string | null> {
-	const anthropic = createAnthropic({ apiKey });
-	const agent = new Agent({
-		id: "workspace-namer-anthropic",
-		name: "Workspace Namer",
-		instructions: "You generate concise workspace titles.",
-		model: anthropic("claude-haiku-4-5-20251001"),
-	});
+type AgentModel = ConstructorParameters<typeof Agent>[0]["model"];
 
-	const title = await agent.generateTitleFromUserMessage({
-		message: prompt,
-		tracingContext: {},
-	});
-
-	return title?.trim() || null;
+interface TitleProvider {
+	name: "Anthropic" | "OpenAI";
+	agentId: string;
+	resolveApiKey: () => string | null;
+	createModel: (apiKey: string) => AgentModel;
 }
 
-async function generateTitleWithOpenAI(
+const TITLE_PROVIDERS: TitleProvider[] = [
+	{
+		name: "Anthropic",
+		agentId: "workspace-namer-anthropic",
+		resolveApiKey: () => getAnthropicCredentialsFromAnySource()?.apiKey ?? null,
+		createModel: (apiKey) =>
+			createAnthropic({ apiKey })("claude-haiku-4-5-20251001"),
+	},
+	{
+		name: "OpenAI",
+		agentId: "workspace-namer-openai",
+		resolveApiKey: () => getOpenAICredentialsFromAnySource()?.apiKey ?? null,
+		createModel: (apiKey) => createOpenAI({ apiKey })("gpt-4o-mini"),
+	},
+];
+
+async function generateTitleWithModel(
 	prompt: string,
-	apiKey: string,
+	agentId: string,
+	model: AgentModel,
 ): Promise<string | null> {
-	const openai = createOpenAI({ apiKey });
 	const agent = new Agent({
-		id: "workspace-namer-openai",
+		id: agentId,
 		name: "Workspace Namer",
 		instructions: "You generate concise workspace titles.",
-		model: openai("gpt-4o-mini"),
+		model,
 	});
 
 	const title = await agent.generateTitleFromUserMessage({
@@ -49,36 +54,28 @@ async function generateTitleWithOpenAI(
 export async function generateWorkspaceNameFromPrompt(
 	prompt: string,
 ): Promise<string | null> {
-	const anthropicCredentials = getAnthropicCredentialsFromAnySource();
-	if (anthropicCredentials?.apiKey) {
+	for (const provider of TITLE_PROVIDERS) {
+		const apiKey = provider.resolveApiKey();
+		if (!apiKey) {
+			continue;
+		}
+
 		try {
-			const title = await generateTitleWithAnthropic(
+			const title = await generateTitleWithModel(
 				prompt,
-				anthropicCredentials.apiKey,
+				provider.agentId,
+				provider.createModel(apiKey),
 			);
 			if (title) {
 				return title;
 			}
 		} catch (error) {
 			console.error(
-				"[workspace-ai-name] Anthropic title generation failed, trying OpenAI fallback",
+				`[workspace-ai-name] ${provider.name} title generation failed`,
 				error,
 			);
 		}
 	}
 
-	const openAICredentials = getOpenAICredentialsFromAnySource();
-	if (!openAICredentials?.apiKey) {
-		return null;
-	}
-
-	try {
-		return await generateTitleWithOpenAI(prompt, openAICredentials.apiKey);
-	} catch (error) {
-		console.error(
-			"[workspace-ai-name] OpenAI fallback title generation failed",
-			error,
-		);
-		return null;
-	}
+	return null;
 }

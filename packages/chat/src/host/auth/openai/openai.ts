@@ -1,6 +1,5 @@
 import { createAuthStorage } from "mastracode";
-
-const OPENAI_AUTH_PROVIDER_IDS = ["openai-codex", "openai"] as const;
+import { OPENAI_AUTH_PROVIDER_IDS } from "../provider-ids";
 
 interface OpenAICredentials {
 	apiKey: string;
