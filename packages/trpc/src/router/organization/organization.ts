@@ -318,6 +318,22 @@ export const organizationRouter = {
 				});
 			}
 
+			if (input.allowedDomains.length > 0) {
+				const conflicting = await db.query.organizations.findFirst({
+					where: and(
+						sql`${organizations.allowedDomains} && ARRAY[${sql.join(input.allowedDomains.map((d) => sql`${d}`), sql`,`)}]::text[]`,
+						ne(organizations.id, input.organizationId),
+					),
+				});
+				if (conflicting) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"One or more domains are already claimed by another organization",
+					});
+				}
+			}
+
 			const [updated] = await db
 				.update(organizations)
 				.set({ allowedDomains: input.allowedDomains })

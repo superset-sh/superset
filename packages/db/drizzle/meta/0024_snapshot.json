@@ -1,5 +1,5 @@
 {
-  "id": "db835bd3-5076-41a7-b627-d612bbd63734",
+  "id": "7737e571-4fd4-4034-a673-b8d5241b4873",
   "prevId": "bf1d47b1-e142-40fc-baed-82e917781e01",
   "version": "7",
   "dialect": "postgresql",
@@ -1213,6 +1213,21 @@
           "isUnique": true,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "organizations_allowed_domains_idx": {
+          "name": "organizations_allowed_domains_idx",
+          "columns": [
+            {
+              "expression": "allowed_domains",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },
