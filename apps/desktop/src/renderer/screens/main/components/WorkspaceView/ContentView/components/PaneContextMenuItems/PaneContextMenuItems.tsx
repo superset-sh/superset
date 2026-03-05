@@ -1,6 +1,7 @@
 import {
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
@@ -14,6 +15,7 @@ import {
 	LuRows2,
 	LuX,
 } from "react-icons/lu";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 import type { Tab } from "renderer/stores/tabs/types";
 
 export interface PaneContextMenuActions {
@@ -37,30 +39,42 @@ export function PaneContextMenuItems({
 	actions,
 	closeLabel,
 }: PaneContextMenuItemsProps) {
+	const splitDownShortcut = useHotkeyText("SPLIT_DOWN");
+	const splitRightShortcut = useHotkeyText("SPLIT_RIGHT");
+	const splitWithChatShortcut = useHotkeyText("SPLIT_WITH_CHAT");
+	const splitWithBrowserShortcut = useHotkeyText("SPLIT_WITH_BROWSER");
 	const targetTabs = actions.availableTabs.filter(
 		(tab) => tab.id !== actions.currentTabId,
 	);
+	const renderShortcut = (shortcut: string) => {
+		if (shortcut === "Unassigned") return null;
+		return <ContextMenuShortcut>{shortcut}</ContextMenuShortcut>;
+	};
 
 	return (
 		<>
 			<ContextMenuItem onSelect={actions.onSplitHorizontal}>
 				<LuRows2 className="size-4" />
 				Split Horizontally
+				{renderShortcut(splitDownShortcut)}
 			</ContextMenuItem>
 			<ContextMenuItem onSelect={actions.onSplitVertical}>
 				<LuColumns2 className="size-4" />
 				Split Vertically
+				{renderShortcut(splitRightShortcut)}
 			</ContextMenuItem>
 			{actions.onSplitWithNewChat && (
 				<ContextMenuItem onSelect={actions.onSplitWithNewChat}>
 					<LuMessageSquare className="size-4" />
 					Split with New Chat
+					{renderShortcut(splitWithChatShortcut)}
 				</ContextMenuItem>
 			)}
 			{actions.onSplitWithNewBrowser && (
 				<ContextMenuItem onSelect={actions.onSplitWithNewBrowser}>
 					<LuGlobe className="size-4" />
 					Split with New Browser
+					{renderShortcut(splitWithBrowserShortcut)}
 				</ContextMenuItem>
 			)}
 			<ContextMenuSeparator />

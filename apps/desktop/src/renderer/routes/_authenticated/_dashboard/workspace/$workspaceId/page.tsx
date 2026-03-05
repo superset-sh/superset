@@ -503,6 +503,56 @@ function WorkspacePage() {
 		],
 	);
 
+	useAppHotkey(
+		"SPLIT_WITH_CHAT",
+		() => {
+			if (activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				splitPaneVertical(activeTabId, target.paneId, target.path, {
+					paneType: "chat-mastra",
+				});
+			}
+		},
+		undefined,
+		[
+			activeTabId,
+			focusedPaneId,
+			activeTab,
+			splitPaneVertical,
+			resolveSplitTarget,
+		],
+	);
+
+	useAppHotkey(
+		"SPLIT_WITH_BROWSER",
+		() => {
+			if (activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				splitPaneVertical(activeTabId, target.paneId, target.path, {
+					paneType: "webview",
+				});
+			}
+		},
+		undefined,
+		[
+			activeTabId,
+			focusedPaneId,
+			activeTab,
+			splitPaneVertical,
+			resolveSplitTarget,
+		],
+	);
+
 	// Navigate to previous workspace (⌘↑)
 	const getPreviousWorkspace =
 		electronTrpc.workspaces.getPreviousWorkspace.useQuery(
