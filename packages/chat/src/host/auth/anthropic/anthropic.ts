@@ -155,8 +155,8 @@ export function getCredentialsFromAuthStorage(): ClaudeCredentials | null {
 				kind: "oauth",
 			};
 		}
-	} catch {
-		// Ignore auth storage read errors
+	} catch (error) {
+		console.warn("[claude/auth] Failed to read auth storage:", error);
 	}
 
 	return null;
